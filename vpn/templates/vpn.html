@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}
+    VPN
+{%endblock%}
+
+{% block head %}
+<style>
+    .mouse-hover:hover .mouse-hover-show {
+        display: inline-block;
+    }
+
+    .mouse-hover:hover .mouse-hover-no-show {
+        display: none;
+    }
+
+    .mouse-hover-no-show {
+        display: inline-block;
+    }
+
+    .mouse-hover-show {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div>
+                    <span class="panel-title">{% trans '我的VPN' %}</span>
+                    <span><a class="btn btn-sm btn-outline-info float-right" href="{% url 'vpn:usage' %}">VPN使用说明</a></span>
+                </div>
+                <table class="table table-hover">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>{% trans '用户名' %}</th>
+                            <th>{% trans 'VPN口令(双击修改)' %}</th>
+                            <th>{% trans '创建时间' %}</th>
+                            <th>{% trans '修改时间' %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>{{ vpn.user.username }}</td>
+                            <td class="vpn-password mouse-hover">
+                                <span class="vpn-password-value mouse-hover-show" title="{% trans '双击修改' %}">{{ vpn.password }}</span>
+                                <span class="mouse-hover-no-show">******</span>
+                            </td>
+                            <td>{{ vpn.created_time|date:'Y-m-d H:i:s' }}</td>
+                            <td>{{ vpn.modified_time|date:'Y-m-d H:i:s' }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block script %}
+    <script type="text/javascript" src="{% static 'gosc/common.js' %}"></script>
+    <script type="text/javascript" src="{% static 'vpn/vpn.js' %}"></script>
+{% endblock %}

@@ -14,8 +14,27 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
+from rest_framework import permissions
+from drf_yasg.views import get_schema_view
+from drf_yasg import openapi
+
+
+schema_view = get_schema_view(
+   openapi.Info(
+      title="GOSC API",
+      default_version='v1',
+   ),
+   public=False,
+   permission_classes=(permissions.AllowAny,),
+)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('users/', include('users.urls', namespace='users')),
+    path('', include('servers.urls', namespace='servers')),
+    path('api/', include('api.urls', namespace='api')),
+    path('vpn/', include('vpn.urls', namespace='vpn')),
+    path('apidocs/', schema_view.with_ui('swagger', cache_timeout=0), name='apidocs'),
+    path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='redoc'),
 ]

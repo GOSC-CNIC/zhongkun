@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+    {{ article.title }}
+{%endblock%}
+
+{% block body %}
+    <div class="container-fluid">
+        <div class="offset-sm-1 col-sm-10">
+            {% if article %}
+                <div class="text-center">
+                    <h3>{{ article.title }}</h3>
+                    <p>修改时间：{{ article.modify_time|date:'Y-m-d H:i:s' }}</p>
+                </div>
+                <hr>
+                <div>{{ article.content | safe }}</div>
+            {% else %}
+                <p class="text-center">未发布内容</p>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}
+
+

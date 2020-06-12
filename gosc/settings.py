@@ -36,7 +36,15 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+    'rest_framework',
+    # 'rest_framework.authtoken',
+    'drf_yasg',
+    'tinymce',
+
     'users',
+    'servers',
+    'api',
+    'vpn'
 ]
 
 MIDDLEWARE = [
@@ -54,7 +62,7 @@ ROOT_URLCONF = 'gosc.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates'), ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -133,6 +141,21 @@ AUTH_USER_MODEL = 'users.UserProfile'
 LOGIN_URL = '/users/login/'
 LOGOUT_URL = '/users/logout/'
 LOGIN_REDIRECT_URL = '/'    # 默认重定向url
+
+# TinyMCE
+TINYMCE_DEFAULT_CONFIG = {
+    "theme": "silver",
+    "height": 500,
+    "menubar": True,
+    "plugins": "advlist,autolink,lists,link,image imagetools,charmap,print,preview,anchor,"
+               "searchreplace,visualblocks,code,fullscreen,insertdatetime,media,table,paste,"
+               "code,help,wordcount",
+    "toolbar": "undo redo | formatselect | bold italic backcolor | alignleft aligncenter "
+               "alignright alignjustify | bullist numlist outdent indent | removeformat | preview fullscreen | help",
+    'file_picker_callback': 'file_picker_callback'
+}
+# TINYMCE_COMPRESSOR = True
+# TINYMCE_FILEBROWSER = True
 
 # 安全配置导入
 from .security import *
