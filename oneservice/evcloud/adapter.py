@@ -1,5 +1,6 @@
 import requests
 
+from ..base import AdapterBase
 from .builders import APIBuilder
 from . import exceptions
 
@@ -20,7 +21,7 @@ def get_failed_msg(response, msg_key='code_text'):
         return ''
 
 
-class EVCloudAdapter:
+class EVCloudAdapter(AdapterBase):
     """
     EVCloud服务API适配器
     """
@@ -29,9 +30,8 @@ class EVCloudAdapter:
                  auth=None,      # type tuple (username, password)
                  api_version: str = 'v3'
                  ):
-        self.endpoint_url = endpoint_url
-        self.auth = auth
-        self.api_version = api_version if api_version in ['v3'] else 'v3'
+        api_version = api_version if api_version in ['v3'] else 'v3'
+        super().__init__(endpoint_url=endpoint_url, api_version=api_version, auth=auth)
         self.api_builder = APIBuilder(endpoint_url=self.endpoint_url, api_version=self.api_version)
 
     def authenticate(self, username, password, style: str = 'token'):
@@ -44,6 +44,8 @@ class EVCloudAdapter:
         :return:
             ['token', 'token str']
             ['jwt', 'jwt str']
+
+        :raises: AuthenticationFailed, Error
         """
         style = style.lower()
         if style == 'jwt':
@@ -67,22 +69,17 @@ class EVCloudAdapter:
 
         raise exceptions.AuthenticationFailed(status_code=r.status_code)
 
-    def vm_create(self,
-                  image_id: str,
-                  flavor_id: str,
-                  region_id: str,
-                  network_id: str = None,
-                  headers={},
-                  extra_kwargs={}
-                  ):
+    def server_create(self, image_id: str, flavor_id: str, region_id: str, network_id: str = None,
+                      headers={}, extra_kwargs={}):
         """
         创建虚拟主机
 
         :param image_id: 系统镜像id
+        :param flavor_id: 配置样式id
+        :param region_id: 区域/分中心id
         :param network_id: 子网id
         :param headers: 标头
-        :param extra_kwargs:
-        :return:
+        :param extra_kwargs: 其他参数
         """
         image_id = int(image_id)
         vlan_id = int(network_id) if network_id else 0
@@ -113,7 +110,7 @@ class EVCloudAdapter:
         msg = get_failed_msg(r)
         raise exceptions.APIError(msg, status_code=r.status_code)
 
-    def vm_delete(self, server_id, headers={}):
+    def server_delete(self, server_id, headers={}):
         url = self.api_builder.vm_detail_url(vm_uuid=server_id)
         try:
             r = requests.delete(url, headers=headers)
@@ -129,7 +126,7 @@ class EVCloudAdapter:
         msg = get_failed_msg(r)
         raise exceptions.APIError(msg, status_code=r.status_code)
 
-    def vm_action(self, server_id, op, headers={}):
+    def server_action(self, server_id, op, headers={}):
         """
         操作虚拟主机
 
@@ -156,7 +153,7 @@ class EVCloudAdapter:
         msg = get_failed_msg(r)
         raise exceptions.APIError(msg, status_code=r.status_code)
 
-    def vm_status(self, server_id, headers={}):
+    def server_status(self, server_id, headers={}):
         url = self.api_builder.vm_status_url(vm_uuid=server_id)
         try:
             r = requests.get(url, headers=headers)
@@ -172,7 +169,7 @@ class EVCloudAdapter:
         msg = get_failed_msg(r)
         raise exceptions.APIError(msg, status_code=r.status_code)
 
-    def vm_vnc(self, server_id, headers={}):
+    def server_vnc(self, server_id, headers={}):
         url = self.api_builder.vm_vnc_url(vm_uuid=server_id)
         try:
             r = requests.post(url, headers=headers)

@@ -65,4 +65,8 @@ class AccessDenied(APIException):
     default_status_code = 403
 
 
+class AuthenticationFailed(APIException):
+    default_message = 'Incorrect authentication credentials.'
+    default_code = 'AuthenticationFailed'
+    status_code = 401
 

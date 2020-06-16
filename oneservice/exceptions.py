@@ -51,3 +51,8 @@ class NotAuthenticated(APIError):
     default_code = 'NotAuthenticated'
 
 
+class UnsupportedServiceType(Error):
+    status_code = 400
+    default_detail = 'Unsupported service type.'
+    default_code = 'UnsupportedServiceType'
+

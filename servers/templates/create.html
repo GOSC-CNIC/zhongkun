@@ -52,9 +52,6 @@
                         <label for="id-flavor" class="offset-sm-1 col-sm-2 text-right col-form-label">{% trans '配置' %}</label>
                         <div class="col-sm-7 form-inline">
                             <select name="flavor_id" class="form-control" id="id-flavor" required>
-                                {% for f in flavors %}
-                                    <option value="{{ f.id }}">vcpus:{{ f.vcpus }}/ram:{{ f.ram }}MB</option>
-                                {% endfor %}
                             </select>
                         </div>
                     </div>

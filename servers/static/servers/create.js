@@ -16,6 +16,7 @@
     // 页面刷新时执行
     window.onload = function() {
         image_select_update();
+        flavor_select_update();
     };
 
     /*
@@ -145,9 +146,44 @@
         });
     }
 
+    // 加载配置下拉框渲染模板
+    function render_flavor_select_items(data){
+        let ret='';
+        let t = '<option value="{0}">vcpus:{1}/ram:{2}MB</option>';
+        for(let i=0; i<data.length; i++){
+            let s = t.format([data[i]['id'], data[i]['vcpus'], data[i]['ram']]);
+            ret = ret.concat(s);
+        }
+        return ret;
+    }
+
+    function flavor_select_update(){
+        let service = $('select[name="service_id"]').val();
+        let flavor_select = $('select[name="flavor_id"]');
+
+        let query_str = encode_params({service_id:service});
+        $.ajax({
+            url: build_absolute_url('api/flavor/?'+ query_str),
+            type: 'get',
+            contentType: 'application/json',
+            success: function (data, status, xhr) {
+                let html = render_flavor_select_items(data);
+                flavor_select.html(html);
+            },
+            error: function (xhr) {
+                let msg = '获取配置样式数据失败!';
+                try{
+                    msg = msg + xhr.responseJSON.message;
+                }catch (e) {}
+                alert(msg);
+            }
+        });
+    }
+
     $("#id-service").change(function (e) {
         e.preventDefault();
         image_select_update();
+        flavor_select_update();
     });
 })();
 

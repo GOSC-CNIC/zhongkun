@@ -81,3 +81,14 @@ class Server(models.Model):
 
         return False
 
+    def do_soft_delete(self):
+        """
+        :return: True or False
+        """
+        try:
+            self.deleted = True
+            self.save(update_fields=['deleted'])
+        except Exception as e:
+            return False
+
+        return True
