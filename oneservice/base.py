@@ -14,7 +14,7 @@ AuthClass = namedtuple('AuthClass', ['style',       # 'token', 'jwt', ...
                                      'token',       # token value
                                      'header',      # AuthHeaderClass()
                                      'query',       # AuthQueryClass(); None if unsupported
-                                     'expire'       # expire time, datetime() utc
+                                     'expire'       # expire timestamp; type: int
                                      ])
 
 

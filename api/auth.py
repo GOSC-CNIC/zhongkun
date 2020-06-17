@@ -26,7 +26,7 @@ def get_auth(service, refresh=False):
 
     :raises: AuthenticationFailed
     """
-    now = datetime.utcnow()
+    now = datetime.utcnow().timestamp()
     if refresh:
         auth_delete_from_cache(service)
     else:
