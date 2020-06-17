@@ -1,6 +1,7 @@
+from datetime import datetime, timedelta
 import requests
 
-from ..base import AdapterBase
+from ..base import BaseAdapter, AuthClass, AuthHeaderClass, AuthQueryClass
 from .builders import APIBuilder
 from . import exceptions
 
@@ -21,7 +22,7 @@ def get_failed_msg(response, msg_key='code_text'):
         return ''
 
 
-class EVCloudAdapter(AdapterBase):
+class EVCloudAdapter(BaseAdapter):
     """
     EVCloud服务API适配器
     """
@@ -34,26 +35,26 @@ class EVCloudAdapter(AdapterBase):
         super().__init__(endpoint_url=endpoint_url, api_version=api_version, auth=auth)
         self.api_builder = APIBuilder(endpoint_url=self.endpoint_url, api_version=self.api_version)
 
-    def authenticate(self, username, password, style: str = 'token'):
+    def authenticate(self, username, password):
         """
         认证获取 Token
 
         :param username: 用户名
         :param password: 密码
-        :param style: 认证类型；'token', 'jwt'
         :return:
-            ['token', 'token str']
-            ['jwt', 'jwt str']
+
 
         :raises: AuthenticationFailed, Error
         """
-        style = style.lower()
-        if style == 'jwt':
-            url = self.api_builder.jwt_base_url()
-        else:
-            style = 'token'
-            url = self.api_builder.token_base_url()
+        try:
+            return self.authenticate_jwt(username=username, password=password)
+        except exceptions.Error:
+            pass
 
+        return self.authenticate_token(username=username, password=password)
+
+    def authenticate_jwt(self, username, password):
+        url = self.api_builder.jwt_base_url()
         try:
             r = requests.post(url, data={'username': username, 'password': password})
         except Exception as e:
@@ -61,11 +62,28 @@ class EVCloudAdapter(AdapterBase):
 
         if r.status_code == 200:
             data = r.json()
-            if style == 'jwt':
-                key = data['access']
-            else:
-                key = data['token']['key']
-            return [style, key]
+            token = data['access']
+            expire = datetime.utcnow() + timedelta(hours=1)
+            header = AuthHeaderClass(header_name='Authorization', header_value=f'JWT {token}')
+            auth = AuthClass(style='JWT', token=token, header=header, query=None, expire=expire)
+            return auth
+
+        raise exceptions.AuthenticationFailed(status_code=r.status_code)
+
+    def authenticate_token(self, username, password):
+        url = self.api_builder.token_base_url()
+        try:
+            r = requests.post(url, data={'username': username, 'password': password})
+        except Exception as e:
+            raise exceptions.Error(str(e))
+
+        if r.status_code == 200:
+            data = r.json()
+            token = data['token']['key']
+            expire = datetime.utcnow() + timedelta(hours=2)
+            header = AuthHeaderClass(header_name='Authorization', header_value=f'Token {token}')
+            auth = AuthClass(style='token', token=token, header=header, query=None, expire=expire)
+            return auth
 
         raise exceptions.AuthenticationFailed(status_code=r.status_code)
 
@@ -96,35 +114,13 @@ class EVCloudAdapter(AdapterBase):
             data['vlan_id'] = vlan_id
 
         url = self.api_builder.vm_base_url()
-        try:
-            r = requests.post(url, data=data, headers=headers)
-        except Exception as e:
-            raise exceptions.Error(str(e))
-
-        if r.status_code == 201:
-            return r.json()
-
-        if r.status_code == 401:
-            raise exceptions.AuthenticationFailed()
-
-        msg = get_failed_msg(r)
-        raise exceptions.APIError(msg, status_code=r.status_code)
+        r = self.do_request(method='post', url=url, data=data, success_code=201, headers=headers)
+        return r.json()
 
     def server_delete(self, server_id, headers={}):
         url = self.api_builder.vm_detail_url(vm_uuid=server_id)
-        try:
-            r = requests.delete(url, headers=headers)
-        except Exception as e:
-            raise exceptions.Error(str(e))
-
-        if r.status_code == 204:
-            return True
-
-        if r.status_code == 401:
-            raise exceptions.AuthenticationFailed()
-
-        msg = get_failed_msg(r)
-        raise exceptions.APIError(msg, status_code=r.status_code)
+        r = self.do_request(method='delete', url=url, success_code=204, headers=headers)
+        return True
 
     def server_action(self, server_id, op, headers={}):
         """
@@ -139,51 +135,18 @@ class EVCloudAdapter(AdapterBase):
             raise exceptions.APIInvalidParam('invalid param "op"')
 
         url = self.api_builder.vm_action_url(vm_uuid=server_id)
-        try:
-            r = requests.patch(url, data={'op': op}, headers=headers)
-        except Exception as e:
-            raise exceptions.Error(str(e))
-
-        if r.status_code == 200:
-            return True
-
-        if r.status_code == 401:
-            raise exceptions.AuthenticationFailed()
-
-        msg = get_failed_msg(r)
-        raise exceptions.APIError(msg, status_code=r.status_code)
+        r = self.do_request(method='patch', url=url, data={'op': op}, success_code=200, headers=headers)
+        return True
 
     def server_status(self, server_id, headers={}):
         url = self.api_builder.vm_status_url(vm_uuid=server_id)
-        try:
-            r = requests.get(url, headers=headers)
-        except Exception as e:
-            raise exceptions.Error(str(e))
-
-        if r.status_code == 200:
-            return r.json()
-
-        if r.status_code == 401:
-            raise exceptions.AuthenticationFailed()
-
-        msg = get_failed_msg(r)
-        raise exceptions.APIError(msg, status_code=r.status_code)
+        r = self.do_request(method='get', url=url, success_code=200, headers=headers)
+        return r.json()
 
     def server_vnc(self, server_id, headers={}):
         url = self.api_builder.vm_vnc_url(vm_uuid=server_id)
-        try:
-            r = requests.post(url, headers=headers)
-        except Exception as e:
-            raise exceptions.Error(str(e))
-
-        if r.status_code == 200:
-            return r.json()
-
-        if r.status_code == 401:
-            raise exceptions.AuthenticationFailed()
-
-        msg = get_failed_msg(r)
-        raise exceptions.APIError(msg, status_code=r.status_code)
+        r = self.do_request(method='post', url=url, success_code=200, headers=headers)
+        return r.json()
 
     def list_images(self, region_id: str, headers={}):
         """
@@ -195,20 +158,8 @@ class EVCloudAdapter(AdapterBase):
         """
         center_id = int(region_id)
         url = self.api_builder.image_base_url(query={'center_id': center_id, 'tag': 1})
-
-        try:
-            r = requests.get(url, headers=headers)
-        except Exception as e:
-            raise exceptions.Error(str(e))
-
-        if r.status_code == 200:
-            return r.json()
-
-        if r.status_code == 401:
-            raise exceptions.AuthenticationFailed()
-
-        msg = get_failed_msg(r)
-        raise exceptions.APIError(msg, status_code=r.status_code)
+        r = self.do_request(method='get', url=url, success_code=200, headers=headers)
+        return r.json()
 
     def list_networks(self, region_id: str, headers={}):
         """
@@ -220,20 +171,8 @@ class EVCloudAdapter(AdapterBase):
         """
         center_id = int(region_id)
         url = self.api_builder.vlan_base_url(query={'center_id': center_id})
-
-        try:
-            r = requests.get(url, headers=headers)
-        except Exception as e:
-            raise exceptions.Error(str(e))
-
-        if r.status_code == 200:
-            return r.json()
-
-        if r.status_code == 401:
-            raise exceptions.AuthenticationFailed()
-
-        msg = get_failed_msg(r)
-        raise exceptions.APIError(msg, status_code=r.status_code)
+        r = self.do_request(method='get', url=url, success_code=200, headers=headers)
+        return r.json()
 
     def list_groups(self, region_id: str, headers={}):
         """
@@ -245,20 +184,8 @@ class EVCloudAdapter(AdapterBase):
         """
         center_id = int(region_id)
         url = self.api_builder.group_base_url(query={'center_id': center_id})
-
-        try:
-            r = requests.get(url, headers=headers)
-        except Exception as e:
-            raise exceptions.Error(str(e))
-
-        if r.status_code == 200:
-            return r.json()
-
-        if r.status_code == 401:
-            raise exceptions.AuthenticationFailed()
-
-        msg = get_failed_msg(r)
-        raise exceptions.APIError(msg, status_code=r.status_code)
+        r = self.do_request(method='get', url=url, success_code=200, headers=headers)
+        return r.json()
 
     def list_flavors(self, headers={}):
         """
@@ -268,18 +195,30 @@ class EVCloudAdapter(AdapterBase):
         :return:
         """
         url = self.api_builder.flavor_base_url()
+        r = self.do_request(method='get', url=url, success_code=200, headers=headers)
+        return r.json()
 
+    def do_request(self, method: str, url: str, success_code: int, headers, **kwargs):
+        """
+        :param method: 'get', 'post, 'put', 'delete', 'patch', ..
+        :param success_code:
+        :param url:
+        :param headers:
+        :param kwargs:
+        :return:
+            requests.Response()
+        :raises: Error, AuthenticationFailed, APIError
+        """
         try:
-            r = requests.get(url, headers=headers)
+            r = requests.request(method=method, url=url, headers=headers, **kwargs)
         except Exception as e:
             raise exceptions.Error(str(e))
 
-        if r.status_code == 200:
-            return r.json()
+        if r.status_code == success_code:
+            return r
 
         if r.status_code == 401:
             raise exceptions.AuthenticationFailed()
 
         msg = get_failed_msg(r)
         raise exceptions.APIError(msg, status_code=r.status_code)
-

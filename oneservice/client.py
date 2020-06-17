@@ -1,6 +1,5 @@
 from .evcloud.adapter import EVCloudAdapter
 from .exceptions import UnsupportedServiceType
-from .base import AdapterBase
 
 
 SERVICE_TYPE_EVCLOUD = 'evcloud'
@@ -24,8 +23,14 @@ def get_adapter_class(style: str = 'evcloud'):
 
 
 class OneServiceClient:
-    def __init__(self, adapter: AdapterBase):
-        self.adapter = adapter
+    def __init__(self, style, endpoint_url, api_version):
+        """
+        :param style: style in ['evcloud', 'openstack']
+        :param endpoint_url:
+        :param api_version:
+        """
+        adapter_class = get_adapter_class(style)
+        self.adapter = adapter_class(endpoint_url=endpoint_url, api_version=api_version)
 
     def __getattr__(self, attr):
         try:

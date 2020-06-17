@@ -1,6 +1,5 @@
 from django.utils.translation import gettext as _
 from rest_framework import viewsets
-from rest_framework.response import Response
 
 from oneservice import exceptions as os_exceptions
 from servers.models import ServiceConfig
@@ -34,12 +33,8 @@ class CustomGenericViewSet(viewsets.GenericViewSet):
         :raises: AuthenticationFailed
         """
         t = auth.get_auth(service, refresh=refresh)
-
-        headers = {}
-        if service.service_type == service.SERVICE_EVCLOUD:
-            headers = {'Authorization': f'{t.token_head_name} {t.token}'}
-
-        return headers
+        h = t.header
+        return {h.header_name: h.header_value}
 
     def request_service(self, service, method: str, **kwargs):
         """

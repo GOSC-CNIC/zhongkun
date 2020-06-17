@@ -1,4 +1,27 @@
-class AdapterBase:
+"""
+
+"""
+from collections import namedtuple
+
+
+AuthHeaderClass = namedtuple('AuthHeaderClass', ['header_name',         # example: 'Authorization'
+                                                 'header_value'         # example: 'Token xxx', 'JWT xxx'
+                                                 ])
+AuthQueryClass = namedtuple('AuthQueryClass', ['query_name',            # example: 'token', 'jwt'
+                                               'query_value'
+                                               ])
+AuthClass = namedtuple('AuthClass', ['style',       # 'token', 'jwt', ...
+                                     'token',       # token value
+                                     'header',      # AuthHeaderClass()
+                                     'query',       # AuthQueryClass(); None if unsupported
+                                     'expire'       # expire time, datetime() utc
+                                     ])
+
+
+class BaseAdapter:
+    """
+    不同类型的服务平台的api适配器的基类
+    """
     def __init__(self,
                  endpoint_url: str,
                  api_version: str,
@@ -9,16 +32,14 @@ class AdapterBase:
         self.auth = auth
         self.api_version = api_version
 
-    def authenticate(self, username, password, style: str = 'token'):
+    def authenticate(self, username, password):
         """
         认证获取 Token
 
         :param username:
         :param password:
-        :param style: 'token', 'jwt'
         :return:
-            ['token', 'token str']
-            ['jwt', 'jwt str']
+            AuthClass()
 
         :raises: exceptions.AuthenticationFailed
         """
