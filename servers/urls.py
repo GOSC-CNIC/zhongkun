@@ -7,6 +7,7 @@ from . import views
 app_name = 'servers'
 
 urlpatterns = [
-    path('', login_required(views.index), name='index'),
-    path('create', login_required(views.ServerCreateView.as_view()), name='create')
+    path('', login_required(views.ServerView.as_view()), name='server-list'),
+    path('service/<int:service_id>/', login_required(views.ServerView.as_view()), name='service-server-list'),
+    path('create/', login_required(views.ServerCreateView.as_view()), name='create')
 ]

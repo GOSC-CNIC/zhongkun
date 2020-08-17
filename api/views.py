@@ -8,7 +8,7 @@ from rest_framework.serializers import Serializer
 from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
-from servers.models import Server, ServiceConfig
+from servers.models import Server
 from vpn.models import VPNAuth
 from . import exceptions, auth
 from . import serializers

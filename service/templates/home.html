@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load sizeformat %}
+{% load i18n %}
+
+{% block head %}
+{% endblock %}
+{% block title %}{% trans '首页' %}{% endblock %}
+
+{% block body %}
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-2">
+                <div class="list-group list-group-flush mt-2">
+                    <div role="presentation" class="list-group-item m-0 p-0">
+                        <li class="nav-list-toggle p-2 btn" data-toggle="collapse" data-target="#service-nav-list-group">
+                            <i class="fa fa-list"></i> {% trans '服务中心' %} <i class="fa fa-chevron-down"></i>
+                        </li>
+                        <div class="collapse show bg-light" id="service-nav-list-group">
+                            <div class="nav flex-column nav-pills">
+                                <a class="nav-link {% if not active_service %}active{% endif %}" href="{% url 'service:index' %}">{% trans '全部' %}</a>
+                                {% for s in services %}
+                                    <a class="nav-link {% ifequal s.id active_service %}active{% endifequal %}" href="{% url 'service:home' s.id %}" target="view_window">{{ s.name }}</a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-10" id="content-display-div">
+                <div class="container-fluid mt-2">
+                    <div class="bg-light p-2 mb-2">{% trans '我的资源' %}</div>
+                    <div class="col-2">
+                        <a class="card text-dark"
+                            {% if active_service %}
+                                href="{% url 'servers:service-server-list' active_service %}"
+                            {% else %}
+                                href="{% url 'servers:server-list' %}"
+                            {% endif %}
+                        >
+                            <div class="card-body">
+                                <p>{% trans '服务器实例' %}</p>
+                                <p class="card-text"><i class="fa fa-desktop"></i> {{ servers_count }}</p>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block script %}
+
+{% endblock %}

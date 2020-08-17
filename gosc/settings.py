@@ -44,7 +44,8 @@ INSTALLED_APPS = [
     'users',
     'servers',
     'api',
-    'vpn'
+    'vpn',
+    'service',
 ]
 
 MIDDLEWARE = [

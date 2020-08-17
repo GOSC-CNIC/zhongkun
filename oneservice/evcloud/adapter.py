@@ -270,3 +270,6 @@ class EVCloudAdapter(BaseAdapter):
 
         msg = get_failed_msg(r)
         raise exceptions.APIError(msg, status_code=r.status_code)
+
+    def get_vpn(self, method: str, url: str):
+        pass

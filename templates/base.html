@@ -1,5 +1,7 @@
 {% load static %}
 {% load i18n %}
+{% load services %}
+{% load cache %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -35,7 +37,7 @@
 <body>
 <div class="page-header">
     <nav class="navbar navbar-expand-md navbar-dark bg-dark">
-        <a class="navbar-brand" href="#">GOSC</a>
+        <a class="navbar-brand" href="{% url "home" %}">GOSC</a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
                 aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
@@ -43,8 +45,23 @@
 
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav mr-auto">
-                <li class="nav-item"><a class="nav-link" href="{% url "servers:index" %}">{% trans '云服务器' %}</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url "service:index" %}"><i class="fa fa-home"></i>{% trans '首页' %}</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url "servers:server-list" %}">{% trans '服务器' %}</a></li>
                 <li class="nav-item"><a class="nav-link" href="{% url "vpn:home" %}">VPN</a></li>
+{#                <li class="nav-item dropdown">#}
+{#                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button"#}
+{#                       data-toggle="dropdown"#}
+{#                       aria-haspopup="true" aria-expanded="false">{% trans '服务中心' %}<span class="caret"></span></a>#}
+{#                    <div class="dropdown-menu">#}
+{#                        {% cache 300 navbarservices %}#}
+{#                            {% get_services as services %}#}
+{#                            {% for s in services %}#}
+{#                                <a class="dropdown-item" href="{% url 'servers:index' s.id %}" target="view_window">{{ s.name }}</a>#}
+{#                            {% endfor %}#}
+{#                        {% endcache %}#}
+{#                    </div>#}
+{#                </li>#}
+                {% block navbar %}{% endblock %}
 {#                <li class="nav-item" id="nav_image_list"><a class="nav-link" href="{% url "image:image-list" %}">镜像</a></li>#}
 {#                <li class="nav-item" id="nav_pci_list"><a class="nav-link" href="{% url "device:pci-list" %}">PCI设备</a></li>#}
                 {% if user.is_superuser %}
