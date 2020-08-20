@@ -1,9 +1,8 @@
 from django.utils.translation import gettext as _
 from rest_framework import viewsets
 
-from oneservice import exceptions as os_exceptions
 from servers.models import ServiceConfig
-from . import auth
+from .request import request_service
 from . import exceptions
 
 
@@ -24,19 +23,8 @@ def str_to_int_or_default(val, default):
 
 
 class CustomGenericViewSet(viewsets.GenericViewSet):
-    def get_service_auth_header(self, service, refresh=False):
-        """
-        :param service:
-        :param refresh:
-        :return:
-            {}
-        :raises: AuthenticationFailed
-        """
-        t = auth.get_auth(service, refresh=refresh)
-        h = t.header
-        return {h.header_name: h.header_value}
-
-    def request_service(self, service, method: str, **kwargs):
+    @staticmethod
+    def request_service(service, method: str, **kwargs):
         """
         向服务发送请求
 
@@ -47,22 +35,10 @@ class CustomGenericViewSet(viewsets.GenericViewSet):
 
         :raises: APIException, AuthenticationFailed
         """
-        headers = self.get_service_auth_header(service)
+        return request_service(service=service, method=method, **kwargs)
 
-        client = auth.get_service_client(service)
-        handler = getattr(client, method)
-        for _ in range(2):
-            try:
-                return handler(headers=headers, **kwargs)
-            except os_exceptions.AuthenticationFailed:
-                headers = self.get_service_auth_header(service, refresh=True)
-                continue
-            except os_exceptions.Error as exc:
-                raise exceptions.APIException(message=exc.message)
-
-        raise exceptions.APIException()
-
-    def get_service(self, request, lookup='service_id', in_='query'):
+    @staticmethod
+    def get_service(request, lookup='service_id', in_='query'):
         """
 
         :param request:

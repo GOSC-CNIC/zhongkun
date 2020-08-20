@@ -80,6 +80,35 @@ class EVCloudAdapter(BaseAdapter):
         super().__init__(endpoint_url=endpoint_url, api_version=api_version, auth=auth)
         self.api_builder = APIBuilder(endpoint_url=self.endpoint_url, api_version=self.api_version)
 
+    @staticmethod
+    def do_request(method: str, url: str, ok_status_codes=(200,), headers=None, **kwargs):
+        """
+        :param method: 'get', 'post, 'put', 'delete', 'patch', ..
+        :param ok_status_codes: 表示请求成功的状态码列表，返回响应体，其他抛出Error
+        :param url:
+        :param headers:
+        :param kwargs:
+        :return:
+            requests.Response()
+        :raises: Error, AuthenticationFailed, APIError
+        """
+        try:
+            r = requests.request(method=method, url=url, headers=headers, **kwargs)
+        except Exception as e:
+            raise exceptions.Error(str(e))
+
+        if not isinstance(ok_status_codes, (list, tuple)):
+            ok_status_codes = [ok_status_codes]
+
+        if r.status_code in ok_status_codes:
+            return r
+
+        if r.status_code == 401:
+            raise exceptions.AuthenticationFailed()
+
+        msg = get_failed_msg(r)
+        raise exceptions.APIError(msg, status_code=r.status_code)
+
     def authenticate(self, username, password):
         """
         认证获取 Token
@@ -136,7 +165,7 @@ class EVCloudAdapter(BaseAdapter):
         raise exceptions.AuthenticationFailed(status_code=r.status_code)
 
     def server_create(self, image_id: str, flavor_id: str, region_id: str, network_id: str = None,
-                      headers={}, extra_kwargs={}):
+                      headers: dict = None, extra_kwargs: dict = None):
         """
         创建虚拟主机
 
@@ -147,6 +176,9 @@ class EVCloudAdapter(BaseAdapter):
         :param headers: 标头
         :param extra_kwargs: 其他参数
         """
+        if extra_kwargs is None:
+            extra_kwargs = {}
+
         image_id = int(image_id)
         vlan_id = int(network_id) if network_id else 0
         if image_id <= 0:
@@ -156,21 +188,21 @@ class EVCloudAdapter(BaseAdapter):
             'center_id': region_id,
             'image_id': image_id,
             'flavor_id': flavor_id,
-            'remarks': extra_kwargs.get('remarks', '')
+            'remarks': extra_kwargs.get('remarks', 'GOSC')
         }
         if vlan_id > 0:
             data['vlan_id'] = vlan_id
 
         url = self.api_builder.vm_base_url()
-        r = self.do_request(method='post', url=url, data=data, success_code=201, headers=headers)
+        r = self.do_request(method='post', url=url, data=data, ok_status_codes=[201], headers=headers)
         return r.json()
 
-    def server_delete(self, server_id, headers={}):
+    def server_delete(self, server_id, headers: dict = None):
         url = self.api_builder.vm_detail_url(vm_uuid=server_id)
-        r = self.do_request(method='delete', url=url, success_code=204, headers=headers)
+        r = self.do_request(method='delete', url=url, ok_status_codes=[204], headers=headers)
         return True
 
-    def server_action(self, server_id, op, headers={}):
+    def server_action(self, server_id, op, headers: dict = None):
         """
         操作虚拟主机
 
@@ -183,20 +215,20 @@ class EVCloudAdapter(BaseAdapter):
             raise exceptions.APIInvalidParam('invalid param "op"')
 
         url = self.api_builder.vm_action_url(vm_uuid=server_id)
-        r = self.do_request(method='patch', url=url, data={'op': op}, success_code=200, headers=headers)
+        r = self.do_request(method='patch', url=url, data={'op': op}, headers=headers)
         return True
 
-    def server_status(self, server_id, headers={}):
+    def server_status(self, server_id, headers: dict = None):
         url = self.api_builder.vm_status_url(vm_uuid=server_id)
-        r = self.do_request(method='get', url=url, success_code=200, headers=headers)
+        r = self.do_request(method='get', url=url, headers=headers)
         return r.json()
 
-    def server_vnc(self, server_id, headers={}):
+    def server_vnc(self, server_id, headers: dict = None):
         url = self.api_builder.vm_vnc_url(vm_uuid=server_id)
-        r = self.do_request(method='post', url=url, success_code=200, headers=headers)
+        r = self.do_request(method='post', url=url, headers=headers)
         return r.json()
 
-    def list_images(self, region_id: str, headers={}):
+    def list_images(self, region_id: str, headers: dict = None):
         """
         列举镜像
 
@@ -206,10 +238,10 @@ class EVCloudAdapter(BaseAdapter):
         """
         center_id = int(region_id)
         url = self.api_builder.image_base_url(query={'center_id': center_id, 'tag': 1})
-        r = self.do_request(method='get', url=url, success_code=200, headers=headers)
+        r = self.do_request(method='get', url=url, headers=headers)
         return r.json()
 
-    def list_networks(self, region_id: str, headers={}):
+    def list_networks(self, region_id: str, headers: dict = None):
         """
         列举子网
 
@@ -219,10 +251,10 @@ class EVCloudAdapter(BaseAdapter):
         """
         center_id = int(region_id)
         url = self.api_builder.vlan_base_url(query={'center_id': center_id})
-        r = self.do_request(method='get', url=url, success_code=200, headers=headers)
+        r = self.do_request(method='get', url=url, headers=headers)
         return r.json()
 
-    def list_groups(self, region_id: str, headers={}):
+    def list_groups(self, region_id: str, headers: dict = None):
         """
         列举宿主机组
 
@@ -232,10 +264,10 @@ class EVCloudAdapter(BaseAdapter):
         """
         center_id = int(region_id)
         url = self.api_builder.group_base_url(query={'center_id': center_id})
-        r = self.do_request(method='get', url=url, success_code=200, headers=headers)
+        r = self.do_request(method='get', url=url, headers=headers)
         return r.json()
 
-    def list_flavors(self, headers={}):
+    def list_flavors(self, headers: dict = None):
         """
         列举配置样式
 
@@ -243,33 +275,38 @@ class EVCloudAdapter(BaseAdapter):
         :return:
         """
         url = self.api_builder.flavor_base_url()
-        r = self.do_request(method='get', url=url, success_code=200, headers=headers)
+        r = self.do_request(method='get', url=url, headers=headers)
         return r.json()
 
-    def do_request(self, method: str, url: str, success_code: int, headers, **kwargs):
-        """
-        :param method: 'get', 'post, 'put', 'delete', 'patch', ..
-        :param success_code:
-        :param url:
-        :param headers:
-        :param kwargs:
-        :return:
-            requests.Response()
-        :raises: Error, AuthenticationFailed, APIError
-        """
-        try:
-            r = requests.request(method=method, url=url, headers=headers, **kwargs)
-        except Exception as e:
-            raise exceptions.Error(str(e))
+    def get_vpn(self, username: str, headers: dict = None):
+        url = self.api_builder.vpn_detail_url(username=username)
+        r = self.do_request(method='get', url=url, ok_status_codes=[200], headers=headers)
+        return r.json()
 
-        if r.status_code == success_code:
-            return r
+    def create_vpn(self, username: str, password: str = None, headers: dict = None):
+        data = {'username': username}
+        if password:
+            data['password'] = password
 
-        if r.status_code == 401:
-            raise exceptions.AuthenticationFailed()
+        url = self.api_builder.vpn_base_url()
+        r = self.do_request(method='post', url=url, data=data, ok_status_codes=[201], headers=headers)
+        return r.json()
+
+    def get_vpn_or_create(self, username: str, headers: dict = None):
+        url = self.api_builder.vpn_detail_url(username=username)
+        r = self.do_request(method='get', url=url, ok_status_codes=[200, 404], headers=headers)
+        d = r.json()
+        if r.status_code == 200:
+            return d
+
+        if 'err_code' in d and d['err_code'] == 'NoSuchVPN':
+            return self.create_vpn(username=username, headers=headers)
 
         msg = get_failed_msg(r)
         raise exceptions.APIError(msg, status_code=r.status_code)
 
-    def get_vpn(self, method: str, url: str):
-        pass
+    def get_vpn_config_file_url(self, **kwargs):
+        return self.api_builder.vpn_config_file_url()
+
+    def get_vpn_ca_file_url(self, **kwargs):
+        return self.api_builder.vpn_ca_file_url()

@@ -109,4 +109,14 @@ class APIBuilder:
     def flavor_base_url(self, query=None):
         return self.build_url(path=f'api/{self.api_version}/flavor/', query=query)
 
+    def vpn_base_url(self, query=None):
+        return self.build_url(path=f'api/{self.api_version}/vpn/', query=query)
 
+    def vpn_detail_url(self, username: str, query=None):
+        return self.build_url(path=f'api/{self.api_version}/vpn/{username}/', query=query)
+
+    def vpn_config_file_url(self):
+        return self.build_url(path=f'vpn/vpnfile/config', trailing_slash=False)
+
+    def vpn_ca_file_url(self):
+        return self.build_url(path=f'vpn/vpnfile/ca', trailing_slash=False)

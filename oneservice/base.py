@@ -45,8 +45,8 @@ class BaseAdapter:
         """
         raise NotImplementedError('`authenticate()` must be implemented.')
 
-    def server_create(self, image_id: str, flavor_id: str, region_id: str, network_id: str = None, headers={},
-                      extra_kwargs={}):
+    def server_create(self, image_id: str, flavor_id: str, region_id: str, network_id: str = None, headers: dict = None,
+                      extra_kwargs: dict = None):
         """
         创建虚拟服务器
 
@@ -60,10 +60,10 @@ class BaseAdapter:
         """
         raise NotImplementedError('`vm_create()` must be implemented.')
 
-    def server_delete(self, server_id, headers={}):
+    def server_delete(self, server_id, headers: dict = None):
         raise NotImplementedError('`server_delete()` must be implemented.')
 
-    def server_action(self, server_id, op, headers={}):
+    def server_action(self, server_id, op, headers: dict = None):
         """
         操作虚拟主机
 
@@ -74,13 +74,13 @@ class BaseAdapter:
         """
         raise NotImplementedError('`server_action()` must be implemented.')
 
-    def server_status(self, server_id, headers={}):
+    def server_status(self, server_id, headers: dict = None):
         raise NotImplementedError('`server_status()` must be implemented.')
 
-    def server_vnc(self, server_id, headers={}):
+    def server_vnc(self, server_id, headers: dict = None):
         raise NotImplementedError('`server_vnc()` must be implemented.')
 
-    def list_images(self, region_id: str, headers={}):
+    def list_images(self, region_id: str, headers: dict = None):
         """
         列举镜像
 
@@ -90,7 +90,7 @@ class BaseAdapter:
         """
         raise NotImplementedError('`list_images()` must be implemented.')
 
-    def list_networks(self, region_id: str, headers={}):
+    def list_networks(self, region_id: str, headers: dict = None):
         """
         列举子网
 
@@ -100,7 +100,7 @@ class BaseAdapter:
         """
         raise NotImplementedError('`list_networks()` must be implemented.')
 
-    def list_flavors(self, headers={}):
+    def list_flavors(self, headers: dict = None):
         """
         列举配置样式
 

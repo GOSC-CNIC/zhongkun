@@ -29,9 +29,25 @@
 {% block body %}
     <div class="container-fluid">
         <div class="row">
-            <div class="col-12">
-                <div>
-                    <span class="panel-title">{% trans '我的VPN' %}</span>
+            <div class="col-2 mt-2">
+                <div class="list-group list-group-flush">
+                    <div role="presentation" class="list-group-item m-0 p-0">
+                        <li class="nav-list-toggle p-2 btn" data-toggle="collapse" data-target="#service-nav-list-group">
+                            <i class="fa fa-list"></i> {% trans '服务中心' %} <i class="fa fa-chevron-down"></i>
+                        </li>
+                        <div class="collapse show bg-light" id="service-nav-list-group">
+                            <div class="nav flex-column nav-pills">
+                                {% for s in services %}
+                                    <a class="nav-link {% ifequal s.id active_service %}active{% endifequal %}" href="{% url 'vpn:service-vpn' s.id %}" target="view_window">{{ s.name }}</a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-10" id="content-display-div">
+                <div class="mt-2">
+                    <span>{% trans '我的VPN' %}</span>
                     <span><a class="btn btn-sm btn-outline-info float-right" href="{% url 'vpn:usage' %}">VPN使用说明</a></span>
                 </div>
                 <table class="table table-hover">
@@ -45,16 +61,27 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td>{{ vpn.user.username }}</td>
+                            <td>{{ vpn.username }}</td>
                             <td class="vpn-password mouse-hover">
                                 <span class="vpn-password-value mouse-hover-show" title="{% trans '双击修改' %}">{{ vpn.password }}</span>
                                 <span class="mouse-hover-no-show">******</span>
                             </td>
-                            <td>{{ vpn.created_time|date:'Y-m-d H:i:s' }}</td>
+                            <td>{{ vpn.create_time|date:'Y-m-d H:i:s' }}</td>
                             <td>{{ vpn.modified_time|date:'Y-m-d H:i:s' }}</td>
                         </tr>
                     </tbody>
                 </table>
+                {% if active_service %}
+                <div>
+                    <p class="bg-light p-2">VPN相关文件下载</p>
+                    {% if vpn_config_file_url %}
+                        <P>配置文件：<a href="{{ vpn_config_file_url }}" target="_blank">下载</a></P>
+                    {% endif %}
+                    {% if vpn_ca_file_url %}
+                        <P>CA证书：<a href="{{ vpn_ca_file_url }}" target="_blank">下载</a></P>
+                    {% endif %}
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>

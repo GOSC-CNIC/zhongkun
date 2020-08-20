@@ -256,7 +256,8 @@ class ServersViewSet(CustomGenericViewSet):
 
         return Serializer
 
-    def get_server(self, server_id: int, user):
+    @staticmethod
+    def get_server(server_id: int, user):
         server = Server.objects.filter(id=server_id, deleted=False).select_related('service', 'user').first()
         if not server:
             raise exceptions.NotFound(_('服务器实例不存在'))

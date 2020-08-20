@@ -28,21 +28,36 @@
                 </div>
             </div>
             <div class="col-10" id="content-display-div">
-                <div class="container-fluid mt-2">
+                <div class="mt-2">
                     <div class="bg-light p-2 mb-2">{% trans '我的资源' %}</div>
-                    <div class="col-2">
-                        <a class="card text-dark"
-                            {% if active_service %}
-                                href="{% url 'servers:service-server-list' active_service %}"
-                            {% else %}
-                                href="{% url 'servers:server-list' %}"
-                            {% endif %}
-                        >
-                            <div class="card-body">
-                                <p>{% trans '服务器实例' %}</p>
-                                <p class="card-text"><i class="fa fa-desktop"></i> {{ servers_count }}</p>
-                            </div>
-                        </a>
+                    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-4">
+                        <div class="col mb-4">
+                            <a class="card text-dark h-100"
+                                {% if active_service %}
+                                    href="{% url 'servers:service-server-list' active_service %}"
+                                {% else %}
+                                    href="{% url 'servers:server-list' %}"
+                                {% endif %}
+                            >
+                                <div class="card-body">
+                                    <p>{% trans '服务器实例' %}</p>
+                                    <p class="card-text"><i class="fa fa-desktop"></i> {{ servers_count }}</p>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col mb-4">
+                            <a class="card text-dark h-100"
+                                {% if active_service %}
+                                    href="{% url 'vpn:service-vpn' active_service %}"
+                                {% else %}
+                                    disabled="true"
+                                {% endif %}
+                            >
+                                <div class="card-body">
+                                    <p>VPN</p>
+                                </div>
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
