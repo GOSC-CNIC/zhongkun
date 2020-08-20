@@ -9,7 +9,6 @@ from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
 from servers.models import Server
-from vpn.models import VPNAuth
 from . import exceptions, auth
 from . import serializers
 from .viewsets import CustomGenericViewSet, str_to_int_or_default
@@ -376,8 +375,7 @@ class VPNViewSet(CustomGenericViewSet):
                 }
             }
         """
-        vpn, created = VPNAuth.objects.get_or_create(user=request.user)
-        return Response(data={'vpn': serializers.VPNSerializer(vpn).data})
+        return Response(data={'vpn': 'test'})
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('修改vpn口令'),
@@ -415,12 +413,7 @@ class VPNViewSet(CustomGenericViewSet):
             return Response(data=exc.err_data(), status=exc.status_code)
 
         password = serializer.validated_data['password']
-        vpn, created = VPNAuth.objects.get_or_create(user=request.user)
-        if vpn.reset_password(password):
-            return Response(data={'vpn': serializers.VPNSerializer(vpn).data}, status=status.HTTP_201_CREATED)
-
-        exc = exceptions.APIException(_('修改失败'))
-        return Response(data=exc.err_data(), status=exc.status_code)
+        return Response(data={'vpn': 'test'}, status=status.HTTP_201_CREATED)
 
     def get_serializer_class(self):
         if self.action == 'create':

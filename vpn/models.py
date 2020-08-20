@@ -25,47 +25,6 @@ def rand_string(length=10):
     return ''.join(random.sample(string.ascii_letters + string.digits, length))
 
 
-class VPNAuth(models.Model):
-    """
-    VPN登录认证model
-    """
-    id = models.AutoField(verbose_name='ID', primary_key=True)
-    user = models.OneToOneField(to=User, on_delete=models.CASCADE, related_name='vpn_auth', verbose_name='用户')
-    password = models.CharField(verbose_name='VPN口令', max_length=20, default='')
-    created_time = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
-    modified_time = models.DateTimeField(auto_now=True, verbose_name='修改时间')
-
-    class Meta:
-        db_table = 'vpn_auth'     # 数据库表名
-        ordering = ('-id',)
-        verbose_name = 'VPN口令'
-        verbose_name_plural = verbose_name
-
-    def __str__(self):
-        return f'<VPNAuth>{self.password}'
-
-    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-        if not self.password or len(self.password) < 6:
-            self.password = rand_string()
-
-        super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
-
-    def reset_password(self, password):
-        if self.password == password:
-            return True
-
-        self.password = password
-        try:
-            self.save(update_fields=['password', 'modified_time'])
-        except Exception as e:
-            return False
-
-        return True
-
-    def check_password(self, password):
-        return self.password == password
-
-
 class Article(models.Model):
     """
     文章模型

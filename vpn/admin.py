@@ -1,14 +1,6 @@
 from django.contrib import admin
 
-from .models import VPNAuth, Article
-
-
-@admin.register(VPNAuth)
-class VPNAuthAdmin(admin.ModelAdmin):
-    list_display_links = ('id',)
-    list_display = ('id', 'user', 'password', 'created_time', 'modified_time')
-    list_select_related = ('user',)
-    search_fields = ('user__username',)
+from .models import Article
 
 
 @admin.register(Article)
