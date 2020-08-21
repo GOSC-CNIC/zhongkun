@@ -108,3 +108,11 @@ class BaseAdapter:
         :return:
         """
         raise NotImplementedError('`list_flavors()` must be implemented.')
+
+    def get_flavor(self, flavor_id, headers: dict = None):
+        raise NotImplementedError('`get_flavor()` must be implemented.')
+
+    def get_network(self, network_id, headers: dict = None):
+        raise NotImplementedError('`get_network()` must be implemented.')
+
+

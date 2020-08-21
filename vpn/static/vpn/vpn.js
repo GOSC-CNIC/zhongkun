@@ -29,6 +29,7 @@
 
     $(".vpn-password").on("dblclick", function (e) {
         e.preventDefault();
+        let serviceId = $(this).attr('data-service-id');
         let remarks = $(this).children('.vpn-password-value');
         let old_html = remarks.text();
         old_html = old_html.replace(/(^\s*) | (\s*$)/g,'');
@@ -62,16 +63,16 @@
                     return;
                 }
                 // 请求修改ftp密码
-                let url = build_url_with_domain_name('api/vpn/');
+                let url = build_url_with_domain_name('api/vpn/' + serviceId + '/');
                 $.ajax({
                     url: url,
-                    type: "POST",
+                    type: "PATCH",
                     data: {password: input_text},
                     content_type: "application/json",
                     timeout: 5000,
                     async: false,
                     success: function (res, statusText, xhr) {
-                        if(xhr.status === 201){
+                        if(xhr.status === 200){
                             remarks.append(input_text);
                             alert("修改密码成功");
                         }

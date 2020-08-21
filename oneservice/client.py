@@ -64,3 +64,9 @@ class OneServiceClient:
 
     def list_flavors(self, *args, **kwargs):
         return self.adapter.list_flavors(*args, **kwargs)
+
+    def get_flavor(self, *args, **kwargs):
+        return self.adapter.get_flavor(*args, **kwargs)
+
+    def get_network(self, *args, **kwargs):
+        return self.get_network(*args, **kwargs)

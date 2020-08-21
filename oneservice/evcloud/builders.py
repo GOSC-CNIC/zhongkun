@@ -103,11 +103,17 @@ class APIBuilder:
     def vlan_base_url(self, query=None):
         return self.build_url(path=f'api/{self.api_version}/vlan/', query=query)
 
+    def vlan_detail_url(self, pk, query=None):
+        return self.build_url(path=f'api/{self.api_version}/vlan/{pk}/', query=query)
+
     def group_base_url(self, query=None):
         return self.build_url(path=f'api/{self.api_version}/group/', query=query)
 
     def flavor_base_url(self, query=None):
         return self.build_url(path=f'api/{self.api_version}/flavor/', query=query)
+
+    def flavor_detail_url(self, pk, query=None):
+        return self.build_url(path=f'api/{self.api_version}/flavor/{pk}/', query=query)
 
     def vpn_base_url(self, query=None):
         return self.build_url(path=f'api/{self.api_version}/vpn/', query=query)

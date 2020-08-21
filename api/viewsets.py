@@ -1,7 +1,7 @@
 from django.utils.translation import gettext as _
 from rest_framework import viewsets
 
-from servers.models import ServiceConfig
+from service.models import ServiceConfig
 from .request import request_service
 from . import exceptions
 
@@ -37,21 +37,22 @@ class CustomGenericViewSet(viewsets.GenericViewSet):
         """
         return request_service(service=service, method=method, **kwargs)
 
-    @staticmethod
-    def get_service(request, lookup='service_id', in_='query'):
+    def get_service(self, request, lookup='service_id', in_='query'):
         """
 
         :param request:
         :param lookup:
-        :param in_: ['query', 'body']
+        :param in_: ['query', 'body', 'path']
         :return:
 
         :raises: APIException
         """
         if in_ == 'query':
             service_id = request.query_params.get(lookup, None)
-        else:
+        elif in_ == 'body':
             service_id = request.data.get(lookup, None)
+        else:
+            service_id = self.kwargs.get(lookup, None)
 
         if service_id is None:
             raise exceptions.NoFoundArgument(extend_msg=f'"{lookup}" param were not provided')

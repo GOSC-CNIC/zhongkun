@@ -38,7 +38,7 @@
                         <div class="collapse show bg-light" id="service-nav-list-group">
                             <div class="nav flex-column nav-pills">
                                 {% for s in services %}
-                                    <a class="nav-link {% ifequal s.id active_service %}active{% endifequal %}" href="{% url 'vpn:service-vpn' s.id %}" target="view_window">{{ s.name }}</a>
+                                    <a class="nav-link {% ifequal s.id active_service %}active{% endifequal %}" href="{% url 'vpn:service-vpn' s.id %}">{{ s.name }}</a>
                                 {% endfor %}
                             </div>
                         </div>
@@ -62,7 +62,7 @@
                     <tbody>
                         <tr>
                             <td>{{ vpn.username }}</td>
-                            <td class="vpn-password mouse-hover">
+                            <td class="vpn-password mouse-hover" data-service-id="{{ active_service }}">
                                 <span class="vpn-password-value mouse-hover-show" title="{% trans '双击修改' %}">{{ vpn.password }}</span>
                                 <span class="mouse-hover-no-show">******</span>
                             </td>

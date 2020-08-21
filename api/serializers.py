@@ -30,17 +30,3 @@ class ServerCreateSerializer(serializers.Serializer):
         return attrs
 
 
-class VPNSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
-    password = serializers.CharField()
-    created_time = serializers.DateTimeField()  # format='%Y-%m-%d %H:%M:%S'
-    modified_time = serializers.DateTimeField()
-    user = serializers.SerializerMethodField()
-
-    def get_user(self, obj):
-        u = obj.user
-        return {'id': u.id, 'username': u.username}
-
-
-class VPNPostSerializer(serializers.Serializer):
-    password = serializers.CharField(max_length=20, min_length=6, help_text=_('新的VPN口令密码'))

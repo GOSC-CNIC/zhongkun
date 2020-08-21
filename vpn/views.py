@@ -3,7 +3,7 @@ from django.views import View
 
 from api.request import request_service
 from api import exceptions
-from servers.models import ServiceConfig
+from service.models import ServiceConfig
 from .models import Article
 from utils.time import iso_to_datetime
 

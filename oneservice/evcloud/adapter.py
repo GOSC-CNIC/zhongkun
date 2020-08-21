@@ -305,8 +305,37 @@ class EVCloudAdapter(BaseAdapter):
         msg = get_failed_msg(r)
         raise exceptions.APIError(msg, status_code=r.status_code)
 
+    def vpn_change_password(self, username: str, password: str, headers: dict = None):
+        url = self.api_builder.vpn_detail_url(username=username, query={'password': password})
+        r = self.do_request(method='patch', url=url, headers=headers)
+        return r.json()
+
     def get_vpn_config_file_url(self, **kwargs):
         return self.api_builder.vpn_config_file_url()
 
     def get_vpn_ca_file_url(self, **kwargs):
         return self.api_builder.vpn_ca_file_url()
+
+    def get_network(self, network_id, headers: dict = None):
+        """
+        查询子网信息
+
+        :param network_id: str or int
+        :param headers:
+        :return:
+        """
+        url = self.api_builder.vlan_detail_url(pk=network_id)
+        r = self.do_request(method='get', url=url, headers=headers)
+        return r.json()
+
+    def get_flavor(self, flavor_id, headers: dict = None):
+        """
+        查询配置样式
+
+        :param flavor_id:
+        :param headers:
+        :return:
+        """
+        url = self.api_builder.flavor_detail_url(pk=flavor_id)
+        r = self.do_request(method='get', url=url, headers=headers)
+        return r.json()

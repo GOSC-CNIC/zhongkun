@@ -350,6 +350,7 @@ class VPNViewSet(CustomGenericViewSet):
     queryset = []
     permission_classes = [IsAuthenticated]
     pagination_class = None
+    lookup_field = 'service_id'
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('获取VPN口令'),
@@ -357,40 +358,54 @@ class VPNViewSet(CustomGenericViewSet):
             status.HTTP_200_OK: ''
         }
     )
-    def list(self, request, *args, **kwargs):
+    def retrieve(self, request, *args, **kwargs):
         """
         获取VPN口令信息
 
             Http Code: 状态码200，返回数据：
             {
                 "vpn": {
-                    "id": 2,
-                    "password": "2523c77e7b",
-                    "created_time": "2020-03-04T06:01:50+00:00",
-                    "modified_time": "2020-03-04T06:01:50+00:00",
-                    "user": {
-                        "id": 3,
-                        "username": "869588058@qq.com"
-                    }
+                    "username": "testuser",
+                    "password": "password",
+                    "active": true,
+                    "create_time": "2020-07-29T15:12:08.715731+08:00",
+                    "modified_time": "2020-07-29T15:12:08.715998+08:00"
                 }
             }
         """
-        return Response(data={'vpn': 'test'})
+        try:
+            service = self.get_service(request, lookup=self.lookup_field, in_='path')
+        except exceptions.APIException as exc:
+            return Response(exc.err_data(), status=exc.status_code)
+
+        try:
+            r = self.request_service(service, method='get_vpn_or_create', username=request.user.username)
+        except exceptions.AuthenticationFailed as exc:
+            return Response(data=exc.err_data(), status=500)
+        except exceptions.APIException as exc:
+            return Response(data=exc.err_data(), status=exc.status_code)
+        return Response(data={'vpn': r})
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('修改vpn口令'),
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'password': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description='The new password of vpn'
+                )
+            }
+        ),
         responses={
             status.HTTP_201_CREATED: """
                 {
                     "vpn": {
-                        "id": 2,
-                        "password": "2523c77e7b",
-                        "created_time": "2020-03-04T06:01:50+00:00",
-                        "modified_time": "2020-03-04T06:01:50+00:00",
-                        "user": {
-                            "id": 3,
-                            "username": "869588058@qq.com"
-                        }
+                        "username": "testuser",
+                        "password": "password",
+                        "active": true,
+                        "create_time": "2020-07-29T15:12:08.715731+08:00",
+                        "modified_time": "2020-07-29T15:12:08.715998+08:00"
                     }
                 }
             """,
@@ -402,22 +417,27 @@ class VPNViewSet(CustomGenericViewSet):
                 """
         }
     )
-    def create(self, request, *args, **kwargs):
+    def partial_update(self, request, *args, **kwargs):
         """
         修改vpn口令
         """
-        serializer = self.get_serializer(data=request.data)
-        if not serializer.is_valid(raise_exception=False):
-            msg = serializer_error_msg(serializer.errors, 'password error')
-            exc = exceptions.BadRequest(msg)
-            return Response(data=exc.err_data(), status=exc.status_code)
+        password = request.data.get('password')
 
-        password = serializer.validated_data['password']
-        return Response(data={'vpn': 'test'}, status=status.HTTP_201_CREATED)
+        try:
+            service = self.get_service(request, lookup=self.lookup_field, in_='path')
+        except exceptions.APIException as exc:
+            return Response(exc.err_data(), status=exc.status_code)
+
+        try:
+            r = self.request_service(service, method='vpn_change_password', username=request.user.username,
+                                     password=password)
+        except exceptions.AuthenticationFailed as exc:
+            return Response(data=exc.err_data(), status=500)
+        except exceptions.APIException as exc:
+            return Response(data=exc.err_data(), status=exc.status_code)
+        return Response(data={'vpn': r})
 
     def get_serializer_class(self):
-        if self.action == 'create':
-            return serializers.VPNPostSerializer
         return Serializer
 
 

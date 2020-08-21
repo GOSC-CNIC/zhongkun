@@ -1,7 +1,8 @@
 from django.db import models
+from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 
-
+User = get_user_model()
 app_name = 'service'
 
 
@@ -35,13 +36,4 @@ class ServiceConfig(models.Model):
 
     def __str__(self):
         return self.name
-
-
-# class ServiceQuotaLimit(models.Model):
-#     """
-#     服务中心资源配额和限制
-#     """
-#     id = models.IntegerField(verbose_name='ID', primary_key=True)
-#     service =
-
 
