@@ -37,3 +37,55 @@ class ServiceConfig(models.Model):
     def __str__(self):
         return self.name
 
+
+class ServiceQuota(models.Model):
+    """
+    服务中心资源配额和限制
+    """
+    id = models.IntegerField(verbose_name='ID', primary_key=True)
+    service = models.ForeignKey(to=ServiceConfig, null=True, on_delete=models.SET_NULL,
+                                related_name='service_quota_set', verbose_name='服务中心')
+    private_ip_total = models.IntegerField(verbose_name='总私网IP数', default=0)
+    private_ip_used = models.IntegerField(verbose_name='已用私网IP数', default=0)
+    public_ip_total = models.IntegerField(verbose_name='总公网IP数', default=0)
+    public_ip_used = models.IntegerField(verbose_name='已用公网IP数', default=0)
+    cpu_total = models.IntegerField(verbose_name='总CPU核数', default=0)
+    cpu_used = models.IntegerField(verbose_name='已用CPU核数', default=0)
+    mem_total = models.IntegerField(verbose_name='总内存大小(MB)', default=0)
+    mem_used = models.IntegerField(verbose_name='已用内存大小(MB)', default=0)
+    disk_count_total = models.IntegerField(verbose_name='总云硬盘数', default=0)
+    disk_count_used = models.IntegerField(verbose_name='已用云硬盘数', default=0)
+    disk_size_total = models.IntegerField(verbose_name='总硬盘大小(GB)', default=0)
+    disk_size_used = models.IntegerField(verbose_name='已用硬盘大小(GB)', default=0)
+    enable = models.BooleanField(verbose_name='有效状态', help_text='选中，资源配额生效；未选中，无法申请分中心资源')
+
+    class Meta:
+        managed = False
+        verbose_name = '服务中心资源配额'
+        verbose_name_plural = verbose_name
+
+
+class UserQuota(models.Model):
+    """
+    用户资源配额限制
+    """
+    id = models.IntegerField(verbose_name='ID', primary_key=True)
+    user = models.ForeignKey(to=User, null=True, on_delete=models.SET_NULL,
+                             related_name='user_quota_set', verbose_name='用户')
+    private_ip_total = models.IntegerField(verbose_name='总私网IP数', default=0)
+    private_ip_used = models.IntegerField(verbose_name='已用私网IP数', default=0)
+    public_ip_total = models.IntegerField(verbose_name='总公网IP数', default=0)
+    public_ip_used = models.IntegerField(verbose_name='已用公网IP数', default=0)
+    cpu_total = models.IntegerField(verbose_name='总CPU核数', default=0)
+    cpu_used = models.IntegerField(verbose_name='已用CPU核数', default=0)
+    mem_total = models.IntegerField(verbose_name='总内存大小(MB)', default=0)
+    mem_used = models.IntegerField(verbose_name='已用内存大小(MB)', default=0)
+    disk_count_total = models.IntegerField(verbose_name='总云硬盘数', default=0)
+    disk_count_used = models.IntegerField(verbose_name='已用云硬盘数', default=0)
+    disk_size_total = models.IntegerField(verbose_name='总硬盘大小(GB)', default=0)
+    disk_size_used = models.IntegerField(verbose_name='已用硬盘大小(GB)', default=0)
+
+    class Meta:
+        managed = False
+        verbose_name = '用户资源配额'
+        verbose_name_plural = verbose_name

@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Server, ServiceConfig
+from .models import Server
 
 
 @admin.register(Server)
@@ -12,13 +12,4 @@ class ServerAdmin(admin.ModelAdmin):
     list_filter = ['service']
     raw_id_fields = ('user',)
     list_select_related = ('user',)
-
-
-@admin.register(ServiceConfig)
-class ServiceConfigAdmin(admin.ModelAdmin):
-    list_display_links = ('id',)
-    list_display = ('id', 'name', 'region_id', 'service_type', 'endpoint_url', 'username', 'password',
-                    'add_time', 'active', 'remarks')
-    search_fields = ['name', 'endpoint_url', 'remarks']
-    list_filter = ['service_type']
 

@@ -1,14 +1,13 @@
-{% extends 'sidebar.html' %}
+{% extends 'base.html' %}
 {% load static %}
 {% load i18n %}
 {% load sizeformat %}
 
 {% block head %}
-{#    <link rel="stylesheet" type="text/css" href="{% static 'vms/vms_list.css' %}">#}
 {% endblock %}
 {% block title %}{% trans '创建云服务器' %}{% endblock %}
 
-{% block content %}
+{% block body %}
     <div class="container-fluid">
         <div>
             <div class="bg-light p-2 mb-2">
@@ -17,7 +16,7 @@
             <div>
                 <form class="form-horizontal" id="id-form-server-create">
                     <div class="form-group row">
-                        <label for="id-service" class="col-sm-2 text-right col-form-label">{% trans '服务' %}</label>
+                        <label for="id-service" class="col-sm-2 text-right col-form-label">{% trans '服务中心' %}</label>
                         <div class="col-sm-7">
                             <select name="service_id" class="form-control" id="id-service">
                                 {% for s in services %}

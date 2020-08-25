@@ -14,16 +14,26 @@ def to_int_or_default(val, default=None):
 
 
 def home(request, *args, **kwargs):
+    limit = 5
     service_id = to_int_or_default(kwargs.get('service_id'), default=None)
 
-    services = ServiceConfig.objects.filter(active=True).all()
+    # services = ServiceConfig.objects.filter(active=True).all()
     if service_id:
-        servers_count = Server.objects.filter(service=service_id, deleted=False).count()
+        servers_qs = Server.objects.filter(service=service_id, deleted=False)
+        servers = servers_qs[0:limit]
+        servers_count = len(servers)
+        if servers_count >= limit:
+            servers_count = servers_qs.count()
     else:
-        servers_count = Server.objects.filter(deleted=False).count()
+        servers_qs = Server.objects.filter(deleted=False)
+        servers = servers_qs[0:limit]
+        servers_count = len(servers)
+        if servers_count >= limit:
+            servers_count = servers_qs.count()
 
     context = {
-        'services': services,
+        # 'services': services,
+        'servers': servers,
         'active_service': service_id,
         'servers_count': servers_count
     }

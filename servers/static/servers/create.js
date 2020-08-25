@@ -1,6 +1,8 @@
 ;'use strict';
 (function () {
-    var IMAGES = {};    // 缓存镜像信息
+    let IMAGES = {};    // 缓存镜像信息
+    let NETWORKS = {};    // 缓存网络信息
+    let FLAVORS = {};    // 缓存网络信息
 
     function get_image_from_cache(index){
         if (IMAGES.hasOwnProperty(index)){
@@ -12,11 +14,30 @@
         IMAGES[index] = html;
     }
 
+    function get_network_from_cache(index){
+        if (NETWORKS.hasOwnProperty(index)){
+            return NETWORKS[index];
+        }
+        return null;
+    }
+    function set_network_to_cache(index, html){
+        NETWORKS[index] = html;
+    }
+
+    function get_flavor_from_cache(index){
+        if (FLAVORS.hasOwnProperty(index)){
+            return FLAVORS[index];
+        }
+        return null;
+    }
+    function set_flavor_to_cache(index, html){
+        FLAVORS[index] = html;
+    }
+
     //
     // 页面刷新时执行
     window.onload = function() {
-        image_select_update();
-        flavor_select_update();
+        update_select();
     };
 
     /*
@@ -85,7 +106,7 @@
             success: function (data, status, xhr) {
                 if (xhr.status === 200){
                     if(confirm('创建成功,是否去服务器列表看看？')){
-                        window.location = '/';
+                        window.location = '/servers/';
                     }
                 }else{
                     alert("创建失败！" + data.message);
@@ -119,6 +140,9 @@
 
     function image_select_update(){
         let service = $('select[name="service_id"]').val();
+        if (!service)
+            return;
+
         let html = get_image_from_cache(service);
         let image_select = $('select[name="image_id"]');
         if (html !== null){
@@ -159,7 +183,15 @@
 
     function flavor_select_update(){
         let service = $('select[name="service_id"]').val();
+        if (!service)
+            return;
+
         let flavor_select = $('select[name="flavor_id"]');
+        let html = get_flavor_from_cache(service);
+        if (html !== null){
+            flavor_select.html(html);
+            return;
+        }
 
         let query_str = encode_params({service_id:service});
         $.ajax({
@@ -169,6 +201,7 @@
             success: function (data, status, xhr) {
                 let html = render_flavor_select_items(data);
                 flavor_select.html(html);
+                set_flavor_to_cache(service, html);
             },
             error: function (xhr) {
                 let msg = '获取配置样式数据失败!';
@@ -180,10 +213,58 @@
         });
     }
 
-    $("#id-service").change(function (e) {
-        e.preventDefault();
+
+     // 加载网络下拉框渲染模板
+    function render_network_select_items(data){
+        let ret='';
+        let t = '<option value="{0}">{1}</option>';
+        for(let i=0; i<data.length; i++){
+            let s = t.format([data[i]['id'], data[i]['name']]);
+            ret = ret.concat(s);
+        }
+        return ret;
+    }
+    function network_select_update(){
+        let service = $('select[name="service_id"]').val();
+        if (!service)
+            return;
+
+        let html = get_network_from_cache(service);
+        let network_select = $('select[name="network_id"]');
+        if (html !== null){
+            network_select.html(html);
+            return;
+        }
+
+        let query_str = encode_params({service_id:service});
+        $.ajax({
+            url: build_absolute_url('api/network/?'+ query_str),
+            type: 'get',
+            contentType: 'application/json',
+            success: function (data, status, xhr) {
+                let html = render_network_select_items(data);
+                network_select.html(html);
+                set_network_to_cache(service, html)
+            },
+            error: function (xhr) {
+                let msg = '获取网络数据失败!';
+                try{
+                    msg = msg + xhr.responseJSON.message;
+                }catch (e) {}
+                alert(msg);
+            }
+        });
+    }
+
+    function update_select(){
         image_select_update();
         flavor_select_update();
+        network_select_update();
+    }
+
+    $("#id-service").change(function (e) {
+        e.preventDefault();
+        update_select();
     });
 })();
 

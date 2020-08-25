@@ -249,6 +249,43 @@ class ServersViewSet(CustomGenericViewSet):
 
         return Response(data=r)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('修改云服务器备注信息'),
+        request_body=no_body,
+        manual_parameters=[
+            openapi.Parameter(
+                name='remark',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description='新的备注信息'
+            )
+        ],
+        responses={
+            200: '''
+                {
+                    "remarks": "xxx"
+                }
+            '''
+        }
+    )
+    @action(methods=['patch'], url_path='remark', detail=True, url_name='server-remark')
+    def server_remark(self, request, *args, **kwargs):
+        server_id = kwargs.get(self.lookup_field, '')
+        remarks = request.query_params.get('remark', None)
+        if remarks is None:
+            return Response(data=exceptions.InvalidArgument(message='query param "remark" is required'))
+
+        try:
+            r = Server.objects.filter(pk=server_id).update(remarks=remarks)
+        except Exception as exc:
+            return Response(data=exceptions.APIException(extend_msg=str(exc)), status=500)
+
+        if r == 0:
+            return Response(data=exceptions.NotFound(extend_msg='云服务器不存在'))
+
+        return Response(data={'remarks': remarks})
+
     def get_serializer_class(self):
         if self.action == 'create':
             return serializers.ServerCreateSerializer
@@ -287,7 +324,29 @@ class ImageViewSet(CustomGenericViewSet):
                 required=True,
                 description='服务端点id'
             ),
-        ]
+        ],
+        responses={
+            200: """
+                [
+                  {
+                    "id": 10,
+                    "name": "空天院_ubuntu1804_radi",
+                    "version": "64bit",
+                    "sys_type": {
+                      "id": 2,
+                      "name": "Linux"
+                    },
+                    "tag": {
+                      "id": 1,
+                      "name": "基础镜像"
+                    },
+                    "enable": true,
+                    "create_time": "2020-05-22T12:45:00.690152+08:00",
+                    "desc": "空天院_ubuntu1804_radi"
+                  },
+                ]
+            """
+        }
     )
     def list(self, request, *args, **kwargs):
         try:
@@ -325,7 +384,25 @@ class NetworkViewSet(CustomGenericViewSet):
                 required=True,
                 description='服务id'
             ),
-        ]
+        ],
+        responses={
+            200: """
+                [
+                  {
+                    "id": 1,
+                    "name": "v107_dev_121-140",
+                    "br": "br_107",
+                    "net_type": 2,
+                    "enable": true,
+                    "subnet_ip": "10.107.50.0",
+                    "net_mask": "255.255.255.0",
+                    "gateway": "10.107.50.254",
+                    "dns_server": "159.226.91.150",
+                    "remarks": ""
+                  },
+                ]
+            """
+        }
     )
     def list(self, request, *args, **kwargs):
         try:
@@ -470,16 +547,16 @@ class FlavorViewSet(CustomGenericViewSet):
 
             Http Code: 状态码200，返回数据：
             {
-                "vpn": {
-                    "id": 2,
-                    "password": "2523c77e7b",
-                    "created_time": "2020-03-04T06:01:50+00:00",
-                    "modified_time": "2020-03-04T06:01:50+00:00",
-                    "user": {
-                        "id": 3,
-                        "username": "869588058@qq.com"
-                    }
+                "count": 1,
+                "next": null,
+                "previous": null,
+                "results": [
+                {
+                  "id": 1,
+                  "vcpus": 1,
+                  "ram": 1024           # MB
                 }
+                ]
             }
         """
         try:

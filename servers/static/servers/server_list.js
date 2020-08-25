@@ -6,6 +6,26 @@
         update_vms_status(get_vm_list_uuid_array());
     };
 
+    /*
+     * 拼接params对象为url参数字符串
+     * @param {Object} obj - 待拼接的对象
+     * @returns {string} - 拼接成的query参数字符串
+     */
+    function encode_params(obj) {
+        const params = [];
+
+        Object.keys(obj).forEach((key) => {
+            let value = obj[key];
+            // 如果值为undefined我们将其置空
+            if (typeof value === 'undefined') {
+                value = ''
+            }
+            // 对于需要编码的文本我们要进行编码
+            params.push([key, encodeURIComponent(value)].join('='))
+        });
+
+        return params.join('&');
+    }
 
     //
     // 全选/全不选
@@ -332,22 +352,39 @@
         get_vm_vnc_url(vm_uuid);
     });
 
-    // 创建虚拟机系统快照点击事件
-    $(".btn-vm-snap-create").click(function (e) {
+    $('.edit_vm_remark').click(function (e) {
         e.preventDefault();
 
-        if(!confirm('确定创建云主机系统快照吗？'))
-		    return;
-
-        let remarks = prompt('请输入快照备注信息：');
-        if (remarks === null)
-            return;
         let vm_uuid = $(this).attr('data-server-id');
-        create_snap_vm_ajax(vm_uuid, remarks, null,
-            function (data) {
-                alert("创建快照成功");
-            }
-        ,null);
+        let div_show = $(this).parent();
+        div_show.hide();
+		div_show.next().show();
+    });
+
+    $('.save_vm_remark').click(function (e) {
+        e.preventDefault();
+        let vm_uuid = $(this).attr('data-server-id');
+        let dom_remark = $(this).prev();
+        let remark = dom_remark.val();
+        let div_edit = dom_remark.parent();
+        let div_show = div_edit.prev();
+
+        let query_str = encode_params({remark:remark});
+        $.ajax({
+			url: '/api/server/' + vm_uuid + '/remark/?' + query_str,
+			type: 'patch',
+			success:function(data){
+			    div_show.children("span:first").text(remark);
+			},
+            error: function(e){
+			    alert('修改失败');
+            },
+			complete:function() {
+				div_show.show();
+				div_edit.hide();
+			}
+		});
+
     });
 
 })();

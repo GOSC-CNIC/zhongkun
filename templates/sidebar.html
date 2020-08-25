@@ -13,13 +13,14 @@
                             <i class="fa fa-list"></i> {% trans '服务中心' %} <i class="fa fa-chevron-down"></i>
                         </li>
                         <div class="collapse show bg-light" id="service-nav-list-group">
-                            <div class="nav flex-column nav-fill">
-                                {% cache 300 navbarservices %}
+                            <div class="nav flex-column nav-pills">
+                                <a class="nav-link {% if not active_service %}active{% endif %}" href="{% url 'service:index' %}">{% trans '全部' %}</a>
+{#                                {% cache 300 navbarservices %}#}
                                 {% get_services as services %}
                                 {% for s in services %}
-                                    <a class="nav-link" href="#" target="view_window">{{ s.name }}</a>
+                                    <a class="nav-link {% ifequal s.id active_service %}active{% endifequal %}" href="{% url 'service:home' s.id %}">{{ s.name }}</a>
                                 {% endfor %}
-                            {% endcache %}
+{#                            {% endcache %}#}
                             </div>
                         </div>
                     </div>
