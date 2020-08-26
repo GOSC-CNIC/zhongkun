@@ -2,6 +2,7 @@
 {% load static %}
 {% load i18n %}
 {% load sizeformat %}
+{% load services %}
 
 {% block head %}
 {% endblock %}
@@ -19,6 +20,7 @@
                         <label for="id-service" class="col-sm-2 text-right col-form-label">{% trans '服务中心' %}</label>
                         <div class="col-sm-7">
                             <select name="service_id" class="form-control" id="id-service">
+                                {% get_services as services %}
                                 {% for s in services %}
                                     <option value="{{ s.id }}" {% if s.id == service_id %}selected{% endif %}>{{ s.name }}</option>
                                 {% endfor %}

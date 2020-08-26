@@ -70,3 +70,8 @@ class AuthenticationFailed(APIException):
     default_code = 'AuthenticationFailed'
     status_code = 401
 
+
+class MethodNotSupportInService(APIException):
+    default_message = 'This method or business is not supported by this service center.'
+    default_code = 'MethodNotSupportInService'
+    status_code = 405

@@ -22,7 +22,6 @@ class ServerView(View):
         service_id = to_int_or_default(kwargs.get('service_id'), default=None)
         user = request.user
 
-        services = ServiceConfig.objects.filter(active=True).all()
         if service_id:
             servers_qs = Server.objects.filter(service=service_id, user=user, deleted=False).all()
         else:
@@ -34,7 +33,6 @@ class ServerView(View):
         servers_page = paginator.get_page(page_num)
         page_nav = paginator.get_page_nav(servers_page)
         context = {
-            'services': services,
             'active_service': service_id,
             'servers': servers_page,
             'page_nav': page_nav,
@@ -46,5 +44,4 @@ class ServerView(View):
 class ServerCreateView(View):
     def get(self, request, *args, **kwargs):
         service_id = kwargs.get('service_id')
-        services = ServiceConfig.objects.filter(active=True).all()
-        return render(request, 'create.html', context={'services': services, 'service_id': service_id})
+        return render(request, 'create.html', context={'service_id': service_id})

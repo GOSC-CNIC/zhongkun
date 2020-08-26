@@ -7,5 +7,5 @@ app_name = "vpn"
 
 urlpatterns = [
     path('service/<int:service_id>/', login_required(views.VPNView.as_view()), name='service-vpn'),
-    path('usage/', views.usage, name='usage'),
+    # path('usage/', views.usage, name='usage'),
 ]

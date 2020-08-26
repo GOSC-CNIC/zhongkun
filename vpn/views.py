@@ -21,7 +21,6 @@ class VPNView(View):
         user = request.user
         service_id = kwargs.get('service_id')
         service = ServiceConfig.objects.filter(id=service_id).first()
-        services = ServiceConfig.objects.filter(active=True).all()
 
         vpn = None
         err = ''
@@ -37,7 +36,6 @@ class VPNView(View):
         config_file_url = request_service(service=service, method='get_vpn_config_file_url')
         ca_file_url = request_service(service=service, method='get_vpn_ca_file_url')
         context = {
-            'services': services,
             'active_service': service_id,
             'vpn': vpn,
             'err': err,

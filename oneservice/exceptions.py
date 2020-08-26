@@ -56,3 +56,8 @@ class UnsupportedServiceType(Error):
     default_detail = 'Unsupported service type.'
     default_code = 'UnsupportedServiceType'
 
+
+class MethodNotSupportInService(Error):
+    default_message = 'This method or business is not supported by this service center.'
+    default_code = 'MethodNotSupportInService'
+    status_code = 405

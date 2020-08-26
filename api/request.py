@@ -32,6 +32,8 @@ def request_service(service, method: str, raise_exception=True, **kwargs):
 
     client = auth.get_service_client(service)
     handler = getattr(client, method)
+    if handler is None:
+        raise
 
     raise_exc = exceptions.APIException()
     for _ in range(2):
@@ -40,6 +42,9 @@ def request_service(service, method: str, raise_exception=True, **kwargs):
         except os_exceptions.AuthenticationFailed:
             headers = get_service_auth_header(service, refresh=True)
             continue
+        except os_exceptions.MethodNotSupportInService as exc:
+            raise_exc = exceptions.MethodNotSupportInService(message=exc.message)
+            break
         except os_exceptions.Error as exc:
             raise_exc = exceptions.APIException(message=exc.message)
             break

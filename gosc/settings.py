@@ -24,7 +24,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
-
+INTERNAL_IPS = []
 
 # Application definition
 
@@ -78,6 +78,12 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'gosc.wsgi.application'
 
+# CACHE
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+    }
+}
 
 # Database
 # https://docs.djangoproject.com/en/2.2/ref/settings/#databases
@@ -161,3 +167,11 @@ TINYMCE_DEFAULT_CONFIG = {
 # 安全配置导入
 from .security import *
 
+if DEBUG:
+    # django debug toolbar
+    INSTALLED_APPS.append('debug_toolbar')
+    MIDDLEWARE.append('debug_toolbar.middleware.DebugToolbarMiddleware')
+    DEBUG_TOOLBAR_CONFIG = {
+        # 'SHOW_COLLAPSED': True,
+    }
+    INTERNAL_IPS += ['127.0.0.1']     # 通过这些IP地址访问时，页面才会出现django debug toolbar面板
