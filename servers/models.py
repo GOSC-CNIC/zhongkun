@@ -19,11 +19,11 @@ class Server(models.Model):
     vcpus = models.IntegerField(verbose_name=_('虚拟CPU数'), default=0)
     ram = models.IntegerField(verbose_name=_('内存MB'), default=0)
     ipv4 = models.CharField(max_length=128, verbose_name='IPV4', default='')
-    image_id = models.CharField(max_length=128, verbose_name='镜像ID', default='')
-    image = models.CharField(max_length=255, verbose_name='镜像系统名称', default='')
-    creation_time = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
-    remarks = models.CharField(max_length=255, default='', verbose_name='备注')
-    user = models.ForeignKey(to=User, verbose_name='创建者', on_delete=models.SET_NULL, related_name='user_vms', null=True)
+    image_id = models.CharField(max_length=128, verbose_name=_('镜像ID'), default='')
+    image = models.CharField(max_length=255, verbose_name=_('镜像系统名称'), default='')
+    creation_time = models.DateTimeField(auto_now_add=True, verbose_name=_('创建时间'))
+    remarks = models.CharField(max_length=255, default='', verbose_name=_('备注'))
+    user = models.ForeignKey(to=User, verbose_name=_('创建者'), on_delete=models.SET_NULL, related_name='user_vms', null=True)
     deleted = models.BooleanField(default=False, editable=False, verbose_name=_('删除'))
 
     class Meta:

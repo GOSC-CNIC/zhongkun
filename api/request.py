@@ -1,4 +1,4 @@
-from oneservice import exceptions as os_exceptions
+from adapters import exceptions as os_exceptions
 from . import auth
 from . import exceptions
 

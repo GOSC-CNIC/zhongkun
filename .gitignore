@@ -7,6 +7,6 @@
 *.so
 *.log
 /collect_static/
-/django_site/security.py
+/gosc/security.py
 /data/
 /ignore*

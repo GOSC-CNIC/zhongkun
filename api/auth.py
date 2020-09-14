@@ -1,7 +1,7 @@
 from datetime import datetime
 
-from oneservice import client
-from oneservice import exceptions as os_exceptions
+from adapters import client
+from adapters import exceptions as os_exceptions
 
 from . import exceptions
 

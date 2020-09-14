@@ -1,5 +1,5 @@
 from .evcloud.adapter import EVCloudAdapter
-from .exceptions import UnsupportedServiceType
+from .exceptions import UnsupportedServiceType, MethodNotSupportInService
 
 
 SERVICE_TYPE_EVCLOUD = 'evcloud'
@@ -36,7 +36,7 @@ class OneServiceClient:
         try:
             return getattr(self.adapter, attr)
         except AttributeError:
-            return self.__getattribute__(attr)
+            raise MethodNotSupportInService()
 
     def authenticate(self, *args, **kwargs):
         return self.adapter.authenticate(*args, **kwargs)

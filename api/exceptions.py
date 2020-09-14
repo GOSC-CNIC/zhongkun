@@ -1,8 +1,6 @@
 """
 异常定义
 """
-
-
 class APIException(Exception):
     default_message = 'We encountered an internal error. Please try again.'
     default_code = 'InternalError'
