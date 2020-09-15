@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from adapters import client
+from core import client
 from adapters import exceptions as os_exceptions
 
 from . import exceptions
@@ -9,12 +9,13 @@ from . import exceptions
 CACHE_AUTH = {}
 
 
-def get_service_client(service):
+def get_service_client(service, **kwargs):
     style = client.SERVICE_TYPE_EVCLOUD
     if service.service_type == service.SERVICE_OPENSTACK:
         style = client.SERVICE_TYPE_OPENSTACK
 
-    return client.OneServiceClient(style=style, endpoint_url=service.endpoint_url, api_version=service.api_version)
+    return client.OneServiceClient(style=style, endpoint_url=service.endpoint_url, api_version=service.api_version,
+                                   auth=kwargs.get('auth'))
 
 
 def get_auth(service, refresh=False):
@@ -38,8 +39,10 @@ def get_auth(service, refresh=False):
 
     s_client = get_service_client(service)
 
+    username = service.username
+    password = service.password
     try:
-        auth = s_client.authenticate(username=service.username, password=service.password)
+        auth = s_client.authenticate(username=username, password=password)
     except os_exceptions.AuthenticationFailed:
         raise exceptions.AuthenticationFailed()
 

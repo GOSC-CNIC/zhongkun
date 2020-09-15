@@ -2,6 +2,7 @@
 
 """
 from collections import namedtuple
+from .inputs import CreateServerInput
 
 
 AuthHeaderClass = namedtuple('AuthHeaderClass', ['header_name',         # example: 'Authorization'
@@ -14,7 +15,9 @@ AuthClass = namedtuple('AuthClass', ['style',       # 'token', 'jwt', ...
                                      'token',       # token value
                                      'header',      # AuthHeaderClass()
                                      'query',       # AuthQueryClass(); None if unsupported
-                                     'expire'       # expire timestamp; type: int
+                                     'expire',      # expire timestamp; type: int
+                                     'username',
+                                     'password'
                                      ])
 
 
@@ -25,7 +28,7 @@ class BaseAdapter:
     def __init__(self,
                  endpoint_url: str,
                  api_version: str,
-                 auth=None,  # type tuple (username, password)
+                 auth: AuthClass = None,
                  *args, **kwargs
                  ):
         self.endpoint_url = endpoint_url
@@ -45,18 +48,9 @@ class BaseAdapter:
         """
         raise NotImplementedError('`authenticate()` must be implemented.')
 
-    def server_create(self, image_id: str, flavor_id: str, region_id: str, network_id: str = None, headers: dict = None,
-                      extra_kwargs: dict = None):
+    def server_create(self, params: CreateServerInput, **kwargs):
         """
         创建虚拟服务器
-
-        :param image_id: 系统镜像id
-        :param flavor_id: 配置样式id
-        :param region_id: 区域/分中心id
-        :param network_id: 子网id
-        :param headers: 标头
-        :param extra_kwargs: 其他参数
-        :return:
         """
         raise NotImplementedError('`vm_create()` must be implemented.')
 

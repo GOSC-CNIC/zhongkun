@@ -9,7 +9,8 @@ from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
 from servers.models import Server
-from . import exceptions, auth
+from adapters import inputs
+from . import exceptions
 from . import serializers
 from .viewsets import CustomGenericViewSet, str_to_int_or_default
 
@@ -85,12 +86,10 @@ class ServersViewSet(CustomGenericViewSet):
         except exceptions.APIException as exc:
             return Response(exc.err_data(), status=exc.status_code)
 
+        params = inputs.CreateServerInput(ram=None, vcpu=None, image_id=image_id, flavor_id=flavor_id,
+                                          region_id=service.region_id, network_id=network_id, remarks=remarks)
         try:
-            r = self.request_service(service=service, method='server_create', region_id=service.region_id,
-                                     image_id=image_id, flavor_id=flavor_id, network_id=network_id,
-                                     extra_kwargs={
-                                        'remarks': remarks
-                                     })
+            r = self.request_service(service=service, method='server_create', params=params)
         except exceptions.AuthenticationFailed as exc:
             return Response(data=exc.err_data(), status=500)
         except exceptions.APIException as exc:

@@ -29,11 +29,10 @@ def request_service(service, method: str, raise_exception=True, **kwargs):
     :raises: APIException, AuthenticationFailed
     """
     headers = get_service_auth_header(service)
+    auth_obj = auth.get_auth(service)
 
-    client = auth.get_service_client(service)
+    client = auth.get_service_client(service, auth=auth_obj)
     handler = getattr(client, method)
-    if handler is None:
-        raise
 
     raise_exc = exceptions.APIException()
     for _ in range(2):

@@ -3,9 +3,11 @@ import requests
 import base64
 import json
 
-from ..base import BaseAdapter, AuthClass, AuthHeaderClass, AuthQueryClass
+from adapters.base import BaseAdapter, AuthClass, AuthHeaderClass
+from adapters import inputs
 from .builders import APIBuilder
 from . import exceptions
+from .validators import InputValidator
 
 
 def get_failed_msg(response, msg_key='code_text'):
@@ -73,12 +75,28 @@ class EVCloudAdapter(BaseAdapter):
     """
     def __init__(self,
                  endpoint_url: str,
-                 auth=None,      # type tuple (username, password)
+                 auth: AuthClass = None,
                  api_version: str = 'v3'
                  ):
         api_version = api_version if api_version in ['v3'] else 'v3'
         super().__init__(endpoint_url=endpoint_url, api_version=api_version, auth=auth)
         self.api_builder = APIBuilder(endpoint_url=self.endpoint_url, api_version=self.api_version)
+
+    def get_auth_header(self):
+        """
+        :return: {}
+
+        :raises: NotAuthenticated, AuthenticationFailed, Error
+        """
+        auth = self.auth
+        now = datetime.utcnow().timestamp()
+        if auth is None:
+            raise exceptions.NotAuthenticated()
+        elif now >= auth.expire:
+            auth = self.authenticate(auth.username, auth.password)
+
+        h = auth.header
+        return {h.header_name: h.header_value}
 
     @staticmethod
     def do_request(method: str, url: str, ok_status_codes=(200,), headers=None, **kwargs):
@@ -121,11 +139,12 @@ class EVCloudAdapter(BaseAdapter):
         :raises: AuthenticationFailed, Error
         """
         try:
-            return self.authenticate_jwt(username=username, password=password)
+            auth = self.authenticate_jwt(username=username, password=password)
         except exceptions.Error:
-            pass
+            auth = self.authenticate_token(username=username, password=password)
 
-        return self.authenticate_token(username=username, password=password)
+        self.auth = auth
+        return auth
 
     def authenticate_jwt(self, username, password):
         url = self.api_builder.jwt_base_url()
@@ -142,7 +161,8 @@ class EVCloudAdapter(BaseAdapter):
                 expire = (datetime.utcnow() + timedelta(hours=1)).timestamp()
 
             header = AuthHeaderClass(header_name='Authorization', header_value=f'JWT {token}')
-            auth = AuthClass(style='JWT', token=token, header=header, query=None, expire=expire)
+            auth = AuthClass(style='JWT', token=token, header=header, query=None, expire=expire,
+                             username=username, password=password)
             return auth
 
         raise exceptions.AuthenticationFailed(status_code=r.status_code)
@@ -159,40 +179,18 @@ class EVCloudAdapter(BaseAdapter):
             token = data['token']['key']
             expire = (datetime.utcnow() + timedelta(hours=2)).timestamp()
             header = AuthHeaderClass(header_name='Authorization', header_value=f'Token {token}')
-            auth = AuthClass(style='token', token=token, header=header, query=None, expire=expire)
+            auth = AuthClass(style='token', token=token, header=header, query=None, expire=expire,
+                             username=username, password=password)
             return auth
 
         raise exceptions.AuthenticationFailed(status_code=r.status_code)
 
-    def server_create(self, image_id: str, flavor_id: str, region_id: str, network_id: str = None,
-                      headers: dict = None, extra_kwargs: dict = None):
+    def server_create(self, params: inputs.CreateServerInput, **kwargs):
         """
         创建虚拟主机
-
-        :param image_id: 系统镜像id
-        :param flavor_id: 配置样式id
-        :param region_id: 区域/分中心id
-        :param network_id: 子网id
-        :param headers: 标头
-        :param extra_kwargs: 其他参数
         """
-        if extra_kwargs is None:
-            extra_kwargs = {}
-
-        image_id = int(image_id)
-        vlan_id = int(network_id) if network_id else 0
-        if image_id <= 0:
-            raise exceptions.APIInvalidParam('invalid param "image_id"')
-
-        data = {
-            'center_id': region_id,
-            'image_id': image_id,
-            'flavor_id': flavor_id,
-            'remarks': extra_kwargs.get('remarks', 'GOSC')
-        }
-        if vlan_id > 0:
-            data['vlan_id'] = vlan_id
-
+        data = InputValidator.create_server_validate(params)
+        headers = self.get_auth_header()
         url = self.api_builder.vm_base_url()
         r = self.do_request(method='post', url=url, data=data, ok_status_codes=[201], headers=headers)
         return r.json()
