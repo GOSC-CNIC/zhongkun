@@ -1,24 +1,8 @@
 """
 
 """
-from collections import namedtuple
 from .inputs import CreateServerInput
-
-
-AuthHeaderClass = namedtuple('AuthHeaderClass', ['header_name',         # example: 'Authorization'
-                                                 'header_value'         # example: 'Token xxx', 'JWT xxx'
-                                                 ])
-AuthQueryClass = namedtuple('AuthQueryClass', ['query_name',            # example: 'token', 'jwt'
-                                               'query_value'
-                                               ])
-AuthClass = namedtuple('AuthClass', ['style',       # 'token', 'jwt', ...
-                                     'token',       # token value
-                                     'header',      # AuthHeaderClass()
-                                     'query',       # AuthQueryClass(); None if unsupported
-                                     'expire',      # expire timestamp; type: int
-                                     'username',
-                                     'password'
-                                     ])
+from .outputs import AuthenticateOutput
 
 
 class BaseAdapter:
@@ -28,7 +12,7 @@ class BaseAdapter:
     def __init__(self,
                  endpoint_url: str,
                  api_version: str,
-                 auth: AuthClass = None,
+                 auth: AuthenticateOutput = None,
                  *args, **kwargs
                  ):
         self.endpoint_url = endpoint_url
@@ -42,7 +26,7 @@ class BaseAdapter:
         :param username:
         :param password:
         :return:
-            AuthClass()
+            outputs.AuthenticateOutput()
 
         :raises: exceptions.AuthenticationFailed
         """
@@ -51,8 +35,10 @@ class BaseAdapter:
     def server_create(self, params: CreateServerInput, **kwargs):
         """
         创建虚拟服务器
+        :return:
+            outputs.CreateServerOutput()
         """
-        raise NotImplementedError('`vm_create()` must be implemented.')
+        raise NotImplementedError('`server_create()` must be implemented.')
 
     def server_delete(self, server_id, headers: dict = None):
         raise NotImplementedError('`server_delete()` must be implemented.')

@@ -29,4 +29,3 @@ class ServerCreateSerializer(serializers.Serializer):
     def validate(self, attrs):
         return attrs
 
-

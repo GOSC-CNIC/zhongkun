@@ -32,3 +32,9 @@ class AuthenticationError(Error):
 class APIInvalidParam(APIError):
     default_message = 'invalid param'
     default_code = 'APIInvalidParam'
+
+
+class OutputConvertError(Error):
+    default_message = 'EVCloud adapter convert output object error.'
+    default_code = 'OutputConvertError'
+

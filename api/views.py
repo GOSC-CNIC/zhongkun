@@ -9,7 +9,7 @@ from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
 from servers.models import Server
-from adapters import inputs
+from adapters import inputs, outputs
 from . import exceptions
 from . import serializers
 from .viewsets import CustomGenericViewSet, str_to_int_or_default
@@ -89,15 +89,15 @@ class ServersViewSet(CustomGenericViewSet):
         params = inputs.CreateServerInput(ram=None, vcpu=None, image_id=image_id, flavor_id=flavor_id,
                                           region_id=service.region_id, network_id=network_id, remarks=remarks)
         try:
-            r = self.request_service(service=service, method='server_create', params=params)
+            out = self.request_service(service=service, method='server_create', params=params)
         except exceptions.AuthenticationFailed as exc:
             return Response(data=exc.err_data(), status=500)
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
-        vm_values = r['vm']
+        out_server = out.server
         server = Server(service=service,
-                        instance_id=vm_values['uuid'],
+                        instance_id=out_server.uuid,
                         flavor_id=flavor_id,
                         image_id=image_id,
                         remarks=remarks,
@@ -106,13 +106,13 @@ class ServersViewSet(CustomGenericViewSet):
         server.save()
 
         try:
-            server.name = vm_values['name']
-            server.vcpus = vm_values['vcpu']
-            server.ram = vm_values['mem']
-            server.ipv4 = vm_values['mac_ip']
-            server.image = vm_values['image']
+            server.name = out_server.name if out_server.name else out_server.uuid
+            server.vcpus = out_server.vcpu
+            server.ram = out_server.ram
+            server.ipv4 = out_server.ip.ipv4
+            server.image = out_server.image.name
             server.save()
-        except Exception:
+        except Exception as e:
             pass
 
         return Response(data={'id': server.id})
