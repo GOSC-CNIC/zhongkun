@@ -9,8 +9,19 @@ class UserProfile(AbstractUser):
     """
     自定义用户模型
     """
+    NON_THIRD_APP = 0
+    LOCAL_USER = NON_THIRD_APP
+    THIRD_APP_KJY = 1   # 第三方科技云通行证
+
+    THIRD_APP_CHOICES = (
+        (LOCAL_USER, '本地用户'),
+        (THIRD_APP_KJY, '科技云通行证')
+    )
+
     telephone = models.CharField(verbose_name=_('电话'), max_length=11, default='')
     company = models.CharField(verbose_name=_('公司/单位'), max_length=255, default='')
+    third_app = models.SmallIntegerField(verbose_name=_('第三方应用登录'), choices=THIRD_APP_CHOICES, default=NON_THIRD_APP)
+    last_active = models.DateTimeField(verbose_name=_('最后活跃日期'), db_index=True, auto_now=True)
 
     def get_full_name(self):
         if self.last_name.encode('UTF-8').isalpha() and self.first_name.encode('UTF-8').isalpha():

@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ form_title }}{% endblock %}
+
+{% block body %}
+    <div class="container">
+        <div class="row">
+            <div class="offset-sm-1 col-sm-10 offset-md-3 col-md-6 offset-lg-4 col-lg-4">
+                {% if tips_msg %}
+                    <div>
+                        <div class="alert alert-warning alert-dismissible" role="alert">
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
+                                    aria-hidden="true">&times;</span></button>
+                            {{ tips_msg }}
+                        </div>
+                    </div>
+                {% endif %}
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">{{ form_title }}</h3>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" action="{{ action_url }}" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            {% for field in form %}
+                                {% if field.is_hidden %}
+                                    {{ field }}
+                                {% else %}
+                                    {{ field.label_tag }}{{ field }}
+                                    <p class="text-danger">{{ field.errors.as_text }}</p>
+                                {% endif %}
+                            {% endfor %}
+                            <p id="tip_text" class="text-danger float-left">{{ form.non_field_errors.as_text }}</p>
+                            <div class="clearfix"></div>
+                            <button type="submit" class="btn btn-primary float-left">{{ submit_text }}</button>
+                        </form>
+                        {% block form_extend %}{% endblock %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+

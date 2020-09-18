@@ -145,9 +145,24 @@ AUTH_USER_MODEL = 'users.UserProfile'
 # APPEND_SLASH=False
 
 # 登陆url
-LOGIN_URL = '/users/login/'
-LOGOUT_URL = '/users/logout/'
+LOGIN_URL = '/accounts/login/'
+LOGOUT_URL = '/accounts/logout/'
 LOGIN_REDIRECT_URL = '/'    # 默认重定向url
+LOGOUT_REDIRECT_URL = '/'
+
+# 第三方应用登录认证
+THIRD_PARTY_APP_AUTH = {
+    # 科技云通行证
+    'SCIENCE_CLOUD': {
+        # 'client_id': 000,
+        # 'client_secret': 'xxx',
+        'client_home_url': 'http://gosc.cstcloud.cn',
+        'client_callback_url': 'http://gosc.cstcloud.cn/accounts/callback/',  # 认证回调地址
+        'login_url': 'https://passport.escience.cn/oauth2/authorize?response_type=code&theme=simple',
+        'token_url': 'https://passport.escience.cn/oauth2/token',
+        'logout_url': 'https://passport.escience.cn/logout'
+    },
+}
 
 # TinyMCE
 TINYMCE_DEFAULT_CONFIG = {
