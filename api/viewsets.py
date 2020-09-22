@@ -61,7 +61,7 @@ class CustomGenericViewSet(viewsets.GenericViewSet):
         if service_id <= 0:
             raise exceptions.InvalidArgument(_('参数"service_id"值无效.'))
 
-        service = ServiceConfig.objects.filter(id=service_id, active=True).first()
+        service = ServiceConfig.objects.filter(id=service_id, status=ServiceConfig.STATUS_ENABLE).first()
         if not service:
             raise exceptions.NotFound(_('服务端点不存在'))
 

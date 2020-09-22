@@ -83,13 +83,11 @@ class BaseAdapter:
         """
         raise NotImplementedError('`list_images()` must be implemented.')
 
-    def list_networks(self, region_id: str, headers: dict = None):
+    def list_networks(self, params: inputs.ListNetworkInput, **kwargs):
         """
         列举子网
-
-        :param region_id: 分中心id
-        :param headers:
         :return:
+            outputs.ListNetworkOutput()
         """
         raise NotImplementedError('`list_networks()` must be implemented.')
 

@@ -421,14 +421,16 @@ class NetworkViewSet(CustomGenericViewSet):
         except exceptions.APIException as exc:
             return Response(exc.err_data(), status=exc.status_code)
 
+        params = inputs.ListNetworkInput(region_id=service.region_id)
         try:
-            r = self.request_service(service, method='list_networks', region_id=service.region_id)
+            r = self.request_service(service, method='list_networks', params=params)
         except exceptions.AuthenticationFailed as exc:
             return Response(data=exc.err_data(), status=500)
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
-        return Response(data=r['results'])
+        serializer = serializers.NetworkSerializer(r.networks, many=True)
+        return Response(data=serializer.data)
 
 
 class VPNViewSet(CustomGenericViewSet):

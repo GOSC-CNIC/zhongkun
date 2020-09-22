@@ -150,7 +150,7 @@ class EVCloudAdapter(BaseAdapter):
         rj = r.json()
         return OutputConverter.to_server_create_output(rj['vm'])
 
-    def server_delete(self, params: inputs.ServerDeleteInput):
+    def server_delete(self, params: inputs.ServerDeleteInput, **kwargs):
         url = self.api_builder.vm_detail_url(vm_uuid=params.server_id)
         try:
             headers = self.get_auth_header()
@@ -218,18 +218,21 @@ class EVCloudAdapter(BaseAdapter):
         rj = r.json()
         return OutputConverter().to_list_image_output(rj['results'])
 
-    def list_networks(self, region_id: str, headers: dict = None):
+    def list_networks(self, params: inputs.ListNetworkInput, **kwargs):
         """
         列举子网
-
-        :param region_id: 分中心id
-        :param headers:
-        :return:
+        :return:    outputs.ListNetworkOutput()
         """
-        center_id = int(region_id)
+        center_id = int(params.region_id)
         url = self.api_builder.vlan_base_url(query={'center_id': center_id})
-        r = self.do_request(method='get', url=url, headers=headers)
-        return r.json()
+        try:
+            headers = self.get_auth_header()
+            r = self.do_request(method='get', url=url, headers=headers)
+        except exceptions.Error as e:
+            return OutputConverter().to_list_network_output_error(error=e)
+
+        rj = r.json()
+        return OutputConverter().to_list_network_output(networks=rj['results'])
 
     def list_groups(self, region_id: str, headers: dict = None):
         """

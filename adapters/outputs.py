@@ -212,3 +212,27 @@ class ListImageOutput(OutputBase):
         """
         self.images = images
         super().__init__(**kwargs)
+
+
+class ListNetworkOutputNetwork:
+    def __init__(self, id: str, name: str, public: bool, segment: str, **kwargs):
+        """
+        :param id:
+        :param name: 子网名称
+        :param public: 公网（True）；私网（False）
+        :param segment: 网段
+        """
+        self.id = id
+        self.name = name
+        self.public = public
+        self.segment = segment
+        super().__init__(**kwargs)
+
+
+class ListNetworkOutput(OutputBase):
+    def __init__(self, networks: list, **kwargs):
+        """
+        :param networks: [ListNetworkOutputNetwork(), ]
+        """
+        self.networks = networks
+        super().__init__(**kwargs)

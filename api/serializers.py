@@ -38,3 +38,9 @@ class ImageSerializer(serializers.Serializer):
     creation_time = serializers.DateTimeField()
     desc = serializers.CharField()
 
+
+class NetworkSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    name = serializers.CharField()
+    public = serializers.BooleanField()
+    segment = serializers.CharField()

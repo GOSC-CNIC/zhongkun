@@ -142,3 +142,17 @@ class OutputConverter:
 
         return outputs.ListImageOutput(images=new_images)
 
+    @staticmethod
+    def to_list_network_output_error(error):
+        return outputs.ListNetworkOutput(ok=False, error=error, networks=[])
+
+    @staticmethod
+    def to_list_network_output(networks: list):
+        new_networks = []
+        for net in networks:
+            public = {0: False, 1: True}.get(net['tag'], False) if 'tag' in net else None
+            new_net = outputs.ListNetworkOutputNetwork(id=net['id'], name=net['name'], public=public, segment=net['subnet_ip'])
+            new_networks.append(new_net)
+
+        return outputs.ListNetworkOutput(networks=new_networks)
+
