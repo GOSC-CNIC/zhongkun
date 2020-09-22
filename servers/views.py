@@ -23,9 +23,9 @@ class ServerView(View):
         user = request.user
 
         if service_id:
-            servers_qs = Server.objects.filter(service=service_id, user=user, deleted=False).all()
+            servers_qs = Server.objects.filter(service=service_id, user=user).all()
         else:
-            servers_qs = Server.objects.filter(user=user, deleted=False).all()
+            servers_qs = Server.objects.filter(user=user).all()
 
         # 分页显示
         paginator = NumsPaginator(request, servers_qs, self.NUM_PER_PAGE)

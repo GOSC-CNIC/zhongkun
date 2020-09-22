@@ -136,7 +136,7 @@ class ServersViewSet(CustomGenericViewSet):
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
-        server.do_soft_delete()
+        server.do_archive()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @swagger_auto_schema(
@@ -190,7 +190,7 @@ class ServersViewSet(CustomGenericViewSet):
             return Response(data=exc.err_data(), status=exc.status_code)
 
         if op in ['delete', 'delete_force']:
-            server.do_soft_delete()
+            server.do_archive()
         return Response({'code': 'OK', 'message': 'Success'})
 
     @swagger_auto_schema(
@@ -303,7 +303,7 @@ class ServersViewSet(CustomGenericViewSet):
 
     @staticmethod
     def get_server(server_id: int, user):
-        server = Server.objects.filter(id=server_id, deleted=False).select_related('service', 'user').first()
+        server = Server.objects.filter(id=server_id).select_related('service', 'user').first()
         if not server:
             raise exceptions.NotFound(_('服务器实例不存在'))
 
