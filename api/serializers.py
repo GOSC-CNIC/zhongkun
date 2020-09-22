@@ -29,3 +29,12 @@ class ServerCreateSerializer(serializers.Serializer):
     def validate(self, attrs):
         return attrs
 
+
+class ImageSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    name = serializers.CharField()
+    system = serializers.CharField()
+    system_type = serializers.CharField()
+    creation_time = serializers.DateTimeField()
+    desc = serializers.CharField()
+

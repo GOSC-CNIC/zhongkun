@@ -37,7 +37,13 @@ def request_service(service, method: str, raise_exception=True, **kwargs):
     raise_exc = exceptions.APIException()
     for _ in range(2):
         try:
-            return handler(headers=headers, **kwargs)
+            r = handler(headers=headers, **kwargs)
+            if hasattr(r, 'ok'):
+                if r.ok:
+                    return r
+                raise r.error
+            else:
+                return r
         except os_exceptions.AuthenticationFailed:
             headers = get_service_auth_header(service, refresh=True)
             continue
@@ -50,6 +56,4 @@ def request_service(service, method: str, raise_exception=True, **kwargs):
 
     if raise_exception:
         raise raise_exc
-
-    return None
 

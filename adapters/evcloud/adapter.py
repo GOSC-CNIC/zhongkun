@@ -30,6 +30,8 @@ class EVCloudAdapter(BaseAdapter):
     """
     EVCloud服务API适配器
     """
+    adapter_name = 'EVCloud adapter'
+
     def __init__(self,
                  endpoint_url: str,
                  auth: outputs.AuthenticateOutput = None,
@@ -91,9 +93,7 @@ class EVCloudAdapter(BaseAdapter):
         :param username: 用户名
         :param password: 密码
         :return:
-
-
-        :raises: AuthenticationFailed, Error
+            outputs.AuthenticateOutput()
         """
         try:
             auth = self.authenticate_jwt(username=username, password=password)
@@ -108,85 +108,115 @@ class EVCloudAdapter(BaseAdapter):
         try:
             r = requests.post(url, data={'username': username, 'password': password})
         except Exception as e:
-            raise exceptions.Error(str(e))
+            return OutputConverter().to_authenticate_output_error(error=exceptions.Error(str(e)), style='jwt')
 
         if r.status_code == 200:
             data = r.json()
             token = data['access']
             return OutputConverter.to_authenticate_output_jwt(token=token, username=username, password=password)
 
-        raise exceptions.AuthenticationFailed(status_code=r.status_code)
+        err = exceptions.AuthenticationFailed(status_code=r.status_code)
+        return OutputConverter().to_authenticate_output_error(error=err, style='jwt')
 
     def authenticate_token(self, username, password):
         url = self.api_builder.token_base_url()
         try:
             r = requests.post(url, data={'username': username, 'password': password})
         except Exception as e:
-            raise exceptions.Error(str(e))
+            return OutputConverter().to_authenticate_output_error(error=exceptions.Error(str(e)), style='token')
 
         if r.status_code == 200:
             data = r.json()
             token = data['token']['key']
             return OutputConverter.to_authenticate_output_token(token=token, username=username, password=password)
 
-        raise exceptions.AuthenticationFailed(status_code=r.status_code)
+        err = exceptions.AuthenticationFailed(status_code=r.status_code)
+        return OutputConverter().to_authenticate_output_error(error=err, style='token')
 
-    def server_create(self, params: inputs.CreateServerInput, **kwargs):
+    def server_create(self, params: inputs.ServerCreateInput, **kwargs):
         """
         创建虚拟主机
         :return:
-            outputs.CreateServerOutput()
+            outputs.ServerCreateOutput()
         """
-        data = InputValidator.create_server_validate(params)
-        headers = self.get_auth_header()
         url = self.api_builder.vm_base_url()
-        r = self.do_request(method='post', url=url, data=data, ok_status_codes=[201], headers=headers)
+        try:
+            data = InputValidator.create_server_validate(params)
+            headers = self.get_auth_header()
+            r = self.do_request(method='post', url=url, data=data, ok_status_codes=[201], headers=headers)
+        except exceptions.Error as e:
+            return OutputConverter.to_server_create_output_error(error=e)
+
         rj = r.json()
-        return OutputConverter.to_create_server_output(rj['vm'])
+        return OutputConverter.to_server_create_output(rj['vm'])
 
-    def server_delete(self, server_id, headers: dict = None):
-        url = self.api_builder.vm_detail_url(vm_uuid=server_id)
-        r = self.do_request(method='delete', url=url, ok_status_codes=[204], headers=headers)
-        return True
+    def server_delete(self, params: inputs.ServerDeleteInput):
+        url = self.api_builder.vm_detail_url(vm_uuid=params.server_id)
+        try:
+            headers = self.get_auth_header()
+            r = self.do_request(method='delete', url=url, ok_status_codes=[204], headers=headers)
+        except exceptions.Error as e:
+            return outputs.ServerDeleteOutput(ok=False, error=e)
 
-    def server_action(self, server_id, op, headers: dict = None):
+        return outputs.ServerDeleteOutput()
+
+    def server_action(self, params: inputs.ServerActionInput, **kwargs):
         """
         操作虚拟主机
-
-        :param server_id:
-        :param op:
-        :param headers:
         :return:
+            outputs.ServerActionOutput
         """
-        if op not in ['start', 'reboot', 'shutdown', 'poweroff', 'delete', 'delete_force']:
-            raise exceptions.APIInvalidParam('invalid param "op"')
+        action = params.action
+        if action not in inputs.ServerAction.values:
+            return outputs.ServerActionOutput(ok=False, error=exceptions.APIInvalidParam('invalid param "action"'))
 
-        url = self.api_builder.vm_action_url(vm_uuid=server_id)
-        r = self.do_request(method='patch', url=url, data={'op': op}, headers=headers)
-        return True
+        try:
+            url = self.api_builder.vm_action_url(vm_uuid=params.server_id)
+            headers = self.get_auth_header()
+            r = self.do_request(method='patch', url=url, data={'op': action}, headers=headers)
+        except exceptions.Error as e:
+            return outputs.ServerActionOutput(ok=False, error=e)
 
-    def server_status(self, server_id, headers: dict = None):
-        url = self.api_builder.vm_status_url(vm_uuid=server_id)
-        r = self.do_request(method='get', url=url, headers=headers)
-        return r.json()
+        return outputs.ServerActionOutput()
 
-    def server_vnc(self, server_id, headers: dict = None):
-        url = self.api_builder.vm_vnc_url(vm_uuid=server_id)
-        r = self.do_request(method='post', url=url, headers=headers)
-        return r.json()
+    def server_status(self, params: inputs.ServerStatusInput, **kwargs):
+        url = self.api_builder.vm_status_url(vm_uuid=params.server_id)
+        try:
+            headers = self.get_auth_header()
+            r = self.do_request(method='get', url=url, headers=headers)
+        except exceptions.Error as e:
+            return OutputConverter.to_server_status_output_error(error=e)
 
-    def list_images(self, region_id: str, headers: dict = None):
+        rj = r.json()
+        status_code = rj['status']['status_code']
+        return OutputConverter.to_server_status_output(status_code)
+
+    def server_vnc(self, params: inputs.ServerVNCInput, **kwargs):
+        url = self.api_builder.vm_vnc_url(vm_uuid=params.server_id)
+        try:
+            headers = self.get_auth_header()
+            r = self.do_request(method='post', url=url, headers=headers)
+        except exceptions.Error as e:
+            return OutputConverter().to_server_vnc_output_error(error=e)
+
+        rj = r.json()
+        return OutputConverter().to_server_vnc_output(url=rj['vnc']['url'])
+
+    def list_images(self, params: inputs.ListImageInput, **kwargs):
         """
         列举镜像
-
-        :param region_id: 分中心id
-        :param headers:
         :return:
+            outputs.ListImageOutput()
         """
-        center_id = int(region_id)
+        center_id = int(params.region_id)
         url = self.api_builder.image_base_url(query={'center_id': center_id, 'tag': 1})
-        r = self.do_request(method='get', url=url, headers=headers)
-        return r.json()
+        try:
+            headers = self.get_auth_header()
+            r = self.do_request(method='get', url=url, headers=headers)
+        except exceptions.Error as e:
+            return OutputConverter().to_list_image_output_error(error=e)
+        rj = r.json()
+        return OutputConverter().to_list_image_output(rj['results'])
 
     def list_networks(self, region_id: str, headers: dict = None):
         """

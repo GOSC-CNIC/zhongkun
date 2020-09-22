@@ -4,7 +4,7 @@ from . import exceptions
 
 class InputValidator:
     @staticmethod
-    def create_server_validate(params: inputs.CreateServerInput):
+    def create_server_validate(params: inputs.ServerCreateInput):
         remarks = params.remarks if params.remarks else 'GOSC'
         try:
             center_id = int(params.region_id)

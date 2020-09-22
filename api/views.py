@@ -86,7 +86,7 @@ class ServersViewSet(CustomGenericViewSet):
         except exceptions.APIException as exc:
             return Response(exc.err_data(), status=exc.status_code)
 
-        params = inputs.CreateServerInput(ram=None, vcpu=None, image_id=image_id, flavor_id=flavor_id,
+        params = inputs.ServerCreateInput(ram=None, vcpu=None, image_id=image_id, flavor_id=flavor_id,
                                           region_id=service.region_id, network_id=network_id, remarks=remarks)
         try:
             out = self.request_service(service=service, method='server_create', params=params)
@@ -170,7 +170,7 @@ class ServersViewSet(CustomGenericViewSet):
             exc = exceptions.InvalidArgument(_('参数有误') + ',' + str(e))
             return Response(data=exc.err_data(), status=exc.status_code)
 
-        ops = ['start', 'reboot', 'shutdown', 'poweroff', 'delete', 'delete_force']
+        ops = inputs.ServerAction.values    # ['start', 'reboot', 'shutdown', 'poweroff', 'delete', 'delete_force']
         if not op or op not in ops:
             exc = exceptions.InvalidArgument(_('op参数无效'))
             return Response(data=exc.err_data(), status=exc.status_code)
@@ -180,9 +180,10 @@ class ServersViewSet(CustomGenericViewSet):
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
+        params = inputs.ServerActionInput(server_id=server.instance_id, action=op)
         service = server.service
         try:
-            r = self.request_service(service, method='server_action', server_id=server.instance_id, op=op)
+            r = self.request_service(service, method='server_action', params=params)
         except exceptions.AuthenticationFailed as exc:
             return Response(data=exc.err_data(), status=500)
         except exceptions.APIException as exc:
@@ -210,15 +211,21 @@ class ServersViewSet(CustomGenericViewSet):
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
+        params = inputs.ServerStatusInput(server_id=server.instance_id)
         service = server.service
         try:
-            r = self.request_service(service, method='server_status', server_id=server.instance_id)
+            r = self.request_service(service, method='server_status', params=params)
         except exceptions.AuthenticationFailed as exc:
             return Response(data=exc.err_data(), status=500)
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
-        return Response(data=r)
+        return Response(data={
+            'status': {
+                'status_code': r.status,
+                'status_test': r.status_mean
+            }
+        })
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('服务器VNC'),
@@ -239,14 +246,17 @@ class ServersViewSet(CustomGenericViewSet):
             return Response(data=exc.err_data(), status=exc.status_code)
 
         service = server.service
+        params = inputs.ServerVNCInput(server_id=server.instance_id)
         try:
-            r = self.request_service(service, method='server_vnc', server_id=server.instance_id)
+            r = self.request_service(service, method='server_vnc', params=params)
         except exceptions.AuthenticationFailed as exc:
             return Response(data=exc.err_data(), status=500)
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
-        return Response(data=r)
+        return Response(data={'vnc': {
+            'url': r.vnc.url
+        }})
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('修改云服务器备注信息'),
@@ -353,14 +363,16 @@ class ImageViewSet(CustomGenericViewSet):
         except exceptions.APIException as exc:
             return Response(exc.err_data(), status=exc.status_code)
 
+        params = inputs.ListImageInput(region_id=service.region_id)
         try:
-            r = self.request_service(service, method='list_images', region_id=service.region_id)
+            r = self.request_service(service, method='list_images', params=params)
         except exceptions.AuthenticationFailed as exc:
             return Response(data=exc.err_data(), status=500)
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
-        return Response(data=r['results'])
+        serializer = serializers.ImageSerializer(r.images, many=True)
+        return Response(data=serializer.data)
 
 
 class NetworkViewSet(CustomGenericViewSet):
