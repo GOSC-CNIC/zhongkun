@@ -199,7 +199,7 @@
             type: 'get',
             contentType: 'application/json',
             success: function (data, status, xhr) {
-                let html = render_flavor_select_items(data);
+                let html = render_flavor_select_items(data['flavors']);
                 flavor_select.html(html);
                 set_flavor_to_cache(service, html);
             },

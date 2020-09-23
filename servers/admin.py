@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Server
+from .models import Server, Flavor
 
 
 @admin.register(Server)
@@ -13,3 +13,8 @@ class ServerAdmin(admin.ModelAdmin):
     raw_id_fields = ('user',)
     list_select_related = ('user',)
 
+
+@admin.register(Flavor)
+class FlavorAdmin(admin.ModelAdmin):
+    list_display_links = ('id',)
+    list_display = ('id', 'vcpus', 'ram', 'enable', 'creation_time')

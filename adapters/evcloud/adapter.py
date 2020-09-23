@@ -154,11 +154,20 @@ class EVCloudAdapter(BaseAdapter):
         url = self.api_builder.vm_detail_url(vm_uuid=params.server_id)
         try:
             headers = self.get_auth_header()
-            r = self.do_request(method='delete', url=url, ok_status_codes=[204], headers=headers)
+            r = self.do_request(method='delete', url=url, ok_status_codes=[204, 400], headers=headers)
         except exceptions.Error as e:
             return outputs.ServerDeleteOutput(ok=False, error=e)
 
-        return outputs.ServerDeleteOutput()
+        if r.status_code == 200:
+            return outputs.ServerDeleteOutput()
+
+        rj = r.json()
+        err_code = rj.get('err_code')
+        if err_code and err_code == "VmNotExist":
+            return outputs.ServerDeleteOutput()
+
+        msg = get_failed_msg(r)
+        return outputs.ServerDeleteOutput(ok=False, error=exceptions.APIError(message=msg, status_code=r.status_code))
 
     def server_action(self, params: inputs.ServerActionInput, **kwargs):
         """

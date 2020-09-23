@@ -44,3 +44,10 @@ class NetworkSerializer(serializers.Serializer):
     name = serializers.CharField()
     public = serializers.BooleanField()
     segment = serializers.CharField()
+
+
+class FlavorSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    vcpus = serializers.IntegerField(label=_('虚拟CPU数'))
+    ram = serializers.IntegerField(label=_('内存MB'))
+
