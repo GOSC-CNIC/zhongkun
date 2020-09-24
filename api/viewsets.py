@@ -2,7 +2,7 @@ from django.utils.translation import gettext as _
 from rest_framework import viewsets
 
 from service.models import ServiceConfig
-from .request import request_service
+from .request import request_service, request_vpn_service
 from . import exceptions
 
 
@@ -36,6 +36,20 @@ class CustomGenericViewSet(viewsets.GenericViewSet):
         :raises: APIException, AuthenticationFailed
         """
         return request_service(service=service, method=method, **kwargs)
+
+    @staticmethod
+    def request_vpn_service(service, method: str, **kwargs):
+        """
+        向vpn服务发送请求
+
+        :param service: 接入的服务配置对象
+        :param method:
+        :param kwargs:
+        :return:
+
+        :raises: APIException, AuthenticationFailed
+        """
+        return request_vpn_service(service=service, method=method, **kwargs)
 
     def get_service(self, request, lookup='service_id', in_='query'):
         """

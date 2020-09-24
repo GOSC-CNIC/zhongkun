@@ -463,7 +463,7 @@ class VPNViewSet(CustomGenericViewSet):
             return Response(exc.err_data(), status=exc.status_code)
 
         try:
-            r = self.request_service(service, method='get_vpn_or_create', username=request.user.username)
+            r = self.request_vpn_service(service, method='get_vpn_or_create', username=request.user.username)
         except exceptions.AuthenticationFailed as exc:
             return Response(data=exc.err_data(), status=500)
         except exceptions.APIException as exc:
@@ -513,8 +513,8 @@ class VPNViewSet(CustomGenericViewSet):
             return Response(exc.err_data(), status=exc.status_code)
 
         try:
-            r = self.request_service(service, method='vpn_change_password', username=request.user.username,
-                                     password=password)
+            r = self.request_vpn_service(service, method='vpn_change_password', username=request.user.username,
+                                         password=password)
         except exceptions.AuthenticationFailed as exc:
             return Response(data=exc.err_data(), status=500)
         except exceptions.APIException as exc:
@@ -555,7 +555,7 @@ class FlavorViewSet(CustomGenericViewSet):
             }
         """
         try:
-            flavors = Flavor.objects.filter(enable=True).all()
+            flavors = Flavor.objects.filter(enable=True).order_by('vcpus').all()
             serializer = serializers.FlavorSerializer(flavors, many=True)
         except Exception as exc:
             err = exceptions.APIException(message=str(exc))
