@@ -34,7 +34,7 @@ var VM_STATUS_LABEL = {
         7: 'info',
         8: 'default',
         9: 'danger',
-        10: 'default'
+        10: 'warning'
 };
 
 // 虚拟机操作api构建

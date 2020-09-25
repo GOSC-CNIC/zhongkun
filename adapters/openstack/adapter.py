@@ -9,9 +9,9 @@ import time
 from adapters import exceptions
 
 
-class OpenstackAdapter(BaseAdapter):
+class OpenStackAdapter(BaseAdapter):
     """
-    EVCloud服务API适配器
+    OpenStack服务API适配器
     """
 
     def __init__(self,
@@ -21,8 +21,6 @@ class OpenstackAdapter(BaseAdapter):
                  ):
         api_version = api_version if api_version in ['v3'] else 'v3'
         super().__init__(endpoint_url=endpoint_url, api_version=api_version, auth=auth)
-
-
 
     def authenticate(self, username, password):
         """
@@ -56,7 +54,6 @@ class OpenstackAdapter(BaseAdapter):
         }
         }
         try:
-            print(url)
             r = requests.post(url, json=auth_data)
             if r.status_code == 201:
                 token = r.headers['X-Subject-Token']
@@ -64,10 +61,7 @@ class OpenstackAdapter(BaseAdapter):
                 expire = (datetime.utcnow() + timedelta(hours=1)).timestamp()
                 header = outputs.AuthenticateOutputHeader(header_name='X-Auth-Token', header_value=token)
                 auth = outputs.AuthenticateOutput(style='token', token=token, header=header, query=None,
-                                                  expire=expire,
-                                                  username=username, password=password)
-                print(token)
-                print(expired_at)
+                                                  expire=int(expire), username=username, password=password)
             else:
                 raise exceptions.AuthenticationFailed()
         except Exception as e:
@@ -133,8 +127,7 @@ class OpenstackAdapter(BaseAdapter):
             )
             return outputs.ServerCreateOutput(server=server)
         except Exception as e:
-            return outputs.ServerCreateOutput(ok=False, error=exceptions.Error('server created failed'))
-        return None
+            return outputs.ServerCreateOutput(ok=False, error=exceptions.Error('server created failed'), server=None)
 
     def server_delete(self, params: inputs.ServerDeleteInput, **kwargs):
         """
@@ -143,7 +136,7 @@ class OpenstackAdapter(BaseAdapter):
             outputs.ServerDeleteOutput()
         """
         url = self.endpoint_url + ':8774/v2.1/servers/' + params.server_id + '/action'
-        headers = {self.auth.header.header_name:self.auth.header.header_value}
+        headers = {self.auth.header.header_name: self.auth.header.header_value}
         command = {
             "forceDelete": None
         }
@@ -154,7 +147,6 @@ class OpenstackAdapter(BaseAdapter):
             return None
         except Exception as e:
             raise e
-        return None
 
     def server_action(self, params: inputs.ServerActionInput, **kwargs):
         """
@@ -208,16 +200,14 @@ class OpenstackAdapter(BaseAdapter):
         :return:
             outputs.ServerStatusOutput()
         """
-
         url = self.endpoint_url + ':8774/v2.1/servers/' + params.server_id
-        headers = {self.auth.header.header_name:self.auth.header.header_value}
+        headers = {self.auth.header.header_name: self.auth.header.header_value}
         status_map = {
             'ACTIVE': 1,
             'UNKNOWN': 0,
             'PAUSED': 3,
             'SHUTOFF': 4,
             'SUSPENDED': 7
-
         }
         try:
             print(url)
@@ -232,7 +222,6 @@ class OpenstackAdapter(BaseAdapter):
             return outputs.ServerStatusOutput(status=status_code, status_mean=status_mean)
         except Exception as e:
             return outputs.ServerStatusOutput(ok=False, error=exceptions.Error('get server status failed'))
-        return None
 
     def server_vnc(self, params: inputs.ServerVNCInput, **kwargs):
         """
@@ -250,7 +239,7 @@ class OpenstackAdapter(BaseAdapter):
             print(url)
             r = requests.post(url, headers=headers, json=command)
             if r.status_code != 200:
-                return outputs.ServerVNCOutputVNC(ok=False, error=exceptions.Error('get vnc failed'))
+                return outputs.ServerVNCOutput(ok=False, error=exceptions.Error('get vnc failed'), vnc=None)
             vnc_url = r.json()['console']['url']
             port_pos = vnc_url.find(':', 7)
             if port_pos != -1:
@@ -258,8 +247,7 @@ class OpenstackAdapter(BaseAdapter):
             print(vnc_url)
             return outputs.ServerVNCOutput(vnc=outputs.ServerVNCOutputVNC(url=vnc_url))
         except Exception as e:
-            return outputs.ServerVNCOutputVNC(ok=False, error=exceptions.Error('get vnc failed'))
-        return None
+            return outputs.ServerVNCOutput(ok=False, error=exceptions.Error('get vnc failed'), vnc=None)
 
     def list_images(self, params: inputs.ListImageInput, **kwargs):
         """
@@ -268,12 +256,12 @@ class OpenstackAdapter(BaseAdapter):
             output.ListImageOutput()
         """
         url = self.endpoint_url + ':9292/v2.1/images'
-        headers = {self.auth.header.header_name:self.auth.header.header_value}
+        headers = {self.auth.header.header_name: self.auth.header.header_value}
         try:
             print(url)
             r = requests.get(url, headers=headers)
             if r.status_code != 200:
-                return outputs.ListImageOutput(ok=False, error=exceptions.Error('list image failed'))
+                return outputs.ListImageOutput(ok=False, error=exceptions.Error('list image failed'), images=[])
             images = r.json()['images']
             result = []
             for image in images:
@@ -283,8 +271,7 @@ class OpenstackAdapter(BaseAdapter):
                 result.append(img_obj)
             return outputs.ListImageOutput(images=result)
         except Exception as e:
-            return outputs.ListImageOutput(ok=False, error=exceptions.Error('list image failed'))
-        return None
+            return outputs.ListImageOutput(ok=False, error=exceptions.Error('list image failed'), images=[])
 
     def get_image(self, image_id):
         url = self.endpoint_url + ':9292/v2.1/images/' + image_id
@@ -298,12 +285,11 @@ class OpenstackAdapter(BaseAdapter):
             return image
         except Exception as e:
             raise exceptions.Error('get image failed')
-        return None
 
     def get_or_create_flavor(self, ram: int, vcpu: int):
         flavor_url = self.endpoint_url + ':8774/v2.1/flavors/detail'
         flavor_url_create = self.endpoint_url + ':8774/v2.1/flavors'
-        headers = {self.auth.header.header_name:self.auth.header.header_value}
+        headers = {self.auth.header.header_name: self.auth.header.header_value}
         r = requests.get(flavor_url, headers=headers)
         if r.status_code != 200:
             raise exceptions.Error('get flavor failed')
@@ -330,13 +316,10 @@ class OpenstackAdapter(BaseAdapter):
     def list_networks(self, params: inputs.ListNetworkInput, **kwargs):
         """
         列举子网
-
-        :param region_id: 分中心id
-        :param headers:
         :return:
         """
         network_url = self.endpoint_url + ':9696/v2.0/networks'
-        headers = {self.auth.header.header_name:self.auth.header.header_value}
+        headers = {self.auth.header.header_name: self.auth.header.header_value}
         try:
             r = requests.get(network_url, headers=headers)
             if r.status_code != 200:
@@ -350,7 +333,7 @@ class OpenstackAdapter(BaseAdapter):
                 result.append(new_net)
             return outputs.ListNetworkOutput(networks=result)
         except Exception as e:
-            exceptions.Error('list networks failed')
+            return outputs.ListNetworkOutput(ok=False, error=exceptions.Error('list networks failed'), networks=[])
 
     def get_network(self, network_id, headers: dict = None):
         network_url = self.endpoint_url + ':9696/v2.1/networks/' + network_id

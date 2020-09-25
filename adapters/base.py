@@ -20,7 +20,7 @@ class BaseAdapter:
                  auth: outputs.AuthenticateOutput = None,
                  *args, **kwargs
                  ):
-        self.endpoint_url = endpoint_url
+        self.endpoint_url = endpoint_url.rstrip('/')
         self.auth = auth
         self.api_version = api_version
 
@@ -90,20 +90,4 @@ class BaseAdapter:
             outputs.ListNetworkOutput()
         """
         raise NotImplementedError('`list_networks()` must be implemented.')
-
-    def list_flavors(self, headers: dict = None):
-        """
-        列举配置样式
-
-        :param headers:
-        :return:
-        """
-        raise NotImplementedError('`list_flavors()` must be implemented.')
-
-    def get_flavor(self, flavor_id, headers: dict = None):
-        raise NotImplementedError('`get_flavor()` must be implemented.')
-
-    def get_network(self, network_id, headers: dict = None):
-        raise NotImplementedError('`get_network()` must be implemented.')
-
 

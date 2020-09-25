@@ -1,5 +1,5 @@
 from adapters.evcloud.adapter import EVCloudAdapter
-from adapters.openstack.adapter import OpenstackAdapter
+from adapters.openstack.adapter import OpenStackAdapter
 
 from adapters.exceptions import UnsupportedServiceType, MethodNotSupportInService
 from service.models import ServiceConfig
@@ -13,8 +13,6 @@ def get_service_client(service, **kwargs):
     style = SERVICE_TYPE_EVCLOUD
     if service.service_type == service.SERVICE_OPENSTACK:
         style = SERVICE_TYPE_OPENSTACK
-
-
 
     return OneServiceClient(style=style, endpoint_url=service.endpoint_url, api_version=service.api_version,
                             auth=kwargs.get('auth'))
@@ -42,7 +40,7 @@ def get_adapter_class(style: str = 'evcloud'):
     if style.lower() == SERVICE_TYPE_EVCLOUD:
         return EVCloudAdapter
     if style.lower() == SERVICE_TYPE_OPENSTACK:
-        return OpenstackAdapter
+        return OpenStackAdapter
 
     raise UnsupportedServiceType()
 
