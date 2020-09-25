@@ -19,9 +19,14 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(max_length=255, verbose_name='名称')),
                 ('status', models.SmallIntegerField(choices=[(1, '开启状态'), (2, '关闭状态')], default=1, verbose_name='服务状态')),
-                ('desc', models.CharField(max_length=255, verbose_name='描述')),
-                ('users', models.ManyToManyField(related_name='data_center_set', to=settings.AUTH_USER_MODEL, verbose_name='用户')),
+                ('desc', models.CharField(blank=True, max_length=255, verbose_name='描述')),
+                ('users', models.ManyToManyField(blank=True, related_name='data_center_set', to=settings.AUTH_USER_MODEL, verbose_name='用户')),
             ],
+            options={
+                'ordering': ['-id'],
+                'verbose_name': '数据中心',
+                'verbose_name_plural': '数据中心'
+            },
         ),
         migrations.RemoveField(
             model_name='serviceconfig',
@@ -40,22 +45,22 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='serviceconfig',
             name='vpn_api_version',
-            field=models.CharField(default='v3', help_text='预留，主要EVCloud使用', max_length=64, verbose_name='API版本'),
+            field=models.CharField(blank=True, default='v3', help_text='预留，主要EVCloud使用', max_length=64, verbose_name='API版本'),
         ),
         migrations.AddField(
             model_name='serviceconfig',
             name='vpn_endpoint_url',
-            field=models.CharField(default='', help_text='http(s)://{hostname}:{port}/', max_length=255, verbose_name='服务地址url'),
+            field=models.CharField(blank=True, default='', help_text='http(s)://{hostname}:{port}/', max_length=255, verbose_name='服务地址url'),
         ),
         migrations.AddField(
             model_name='serviceconfig',
             name='vpn_password',
-            field=models.CharField(default='', max_length=128, verbose_name='密码'),
+            field=models.CharField(blank=True, default='', max_length=128, verbose_name='密码'),
         ),
         migrations.AddField(
             model_name='serviceconfig',
             name='vpn_username',
-            field=models.CharField(default='', help_text='用于此服务认证的用户名', max_length=128, verbose_name='用户名'),
+            field=models.CharField(blank=True, default='', help_text='用于此服务认证的用户名', max_length=128, verbose_name='用户名'),
         ),
         migrations.AlterField(
             model_name='serviceconfig',

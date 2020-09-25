@@ -106,7 +106,6 @@ class ServersViewSet(CustomGenericViewSet):
         out_server = out.server
         server = Server(service=service,
                         instance_id=out_server.uuid,
-                        flavor_id=flavor_id,
                         image_id=image_id,
                         remarks=remarks,
                         user=request.user

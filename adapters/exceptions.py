@@ -31,6 +31,13 @@ class Error(Exception):
             'message': self.message
         }
 
+    def copy_to_sub_error(self, error_cls):
+        """
+        创建一个Error子类对象
+        :param error_cls: subclass of Error
+        """
+        return error_cls(message=self.message, code=self.code, status_code=self.status_code)
+
 
 # API请求相关错误
 class APIError(Error):

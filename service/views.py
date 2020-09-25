@@ -19,12 +19,15 @@ def home(request, *args, **kwargs):
     user = request.user
 
     if service_id:
+        service = ServiceConfig.objects.filter(id=service_id).first()
+        is_need_vpn = service.is_need_vpn()
         servers_qs = Server.objects.filter(service=service_id, user=user)
         servers = servers_qs[0:limit]
         servers_count = len(servers)
         if servers_count >= limit:
             servers_count = servers_qs.count()
     else:
+        is_need_vpn = False
         servers_qs = Server.objects.filter(user=user)
         servers = servers_qs[0:limit]
         servers_count = len(servers)
@@ -34,6 +37,7 @@ def home(request, *args, **kwargs):
     context = {
         'servers': servers,
         'active_service': service_id,
-        'servers_count': servers_count
+        'servers_count': servers_count,
+        'is_need_vpn': is_need_vpn
     }
     return render(request, 'home.html', context=context)

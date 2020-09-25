@@ -23,8 +23,11 @@ class ServerView(View):
         user = request.user
 
         if service_id:
+            service = ServiceConfig.objects.filter(id=service_id).first()
+            is_need_vpn = service.is_need_vpn()
             servers_qs = Server.objects.filter(service=service_id, user=user).all()
         else:
+            is_need_vpn = False
             servers_qs = Server.objects.filter(user=user).all()
 
         # 分页显示
@@ -34,6 +37,7 @@ class ServerView(View):
         page_nav = paginator.get_page_nav(servers_page)
         context = {
             'active_service': service_id,
+            'is_need_vpn': is_need_vpn,
             'servers': servers_page,
             'page_nav': page_nav,
             'count': paginator.count

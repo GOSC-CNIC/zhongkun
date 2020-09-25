@@ -29,7 +29,7 @@ class ApplyService(models.Model):
     )
 
     id = models.AutoField(verbose_name='ID', primary_key=True)
-    user = models.ForeignKey(verbose_name=_('用户'), to=User, null=True, on_delete=models.SET_NULL)
+    user = models.ForeignKey(verbose_name=_('申请用户'), to=User, null=True, on_delete=models.SET_NULL)
     creation_time = models.DateTimeField(verbose_name=_('申请时间'), auto_now_add=True)
     approve_time = models.DateTimeField(verbose_name=_('审批时间'), auto_now_add=True)
     status = models.SmallIntegerField(verbose_name=_('状态'), choices=CHOICE_STATUS, default=STATUS_WAIT)
@@ -53,8 +53,41 @@ class ApplyService(models.Model):
     vpn_username = models.CharField(max_length=128, verbose_name=_('用户名'), help_text=_('用于VPN服务认证的用户名'))
     vpn_password = models.CharField(max_length=128, verbose_name=_('密码'))
 
+    class Meta:
+        ordering = ['-id']
+        verbose_name = _('服务接入申请')
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return f'ApplyService(data_center={self.data_center}, name={self.name})'
+
+    def convert_to_service(self):
+        """
+        申请转为对应的ServiceConfig对象
+        :return:
+        """
+        service = ServiceConfig()
+        service.data_center = self.data_center
+        service.name = self.name
+        service.region_id = self.region_id
+        service.service_type = self.service_type
+        service.endpoint_url = self.endpoint_url
+        service.api_version = self.api_version
+        service.username = self.username
+        service.password = self.password
+        service.remarks = self.remarks
+        service.need_vpn = self.need_vpn
+        service.vpn_endpoint_url = self.vpn_endpoint_url
+        service.vpn_api_version = self.vpn_api_version
+        service.vpn_username = self.vpn_username
+        service.vpn_password = self.vpn_password
+        return service
+
 
 class ApplyQuota(models.Model):
+    """
+    用户资源申请
+    """
     STATUS_WAIT = 1
     STATUS_PASS = 2
     STATUS_REJECT = 3
@@ -65,7 +98,7 @@ class ApplyQuota(models.Model):
     )
 
     id = models.AutoField(verbose_name='ID', primary_key=True)
-    user = models.ForeignKey(verbose_name=_('用户'), to=User, null=True, on_delete=models.SET_NULL)
+    user = models.ForeignKey(verbose_name=_('申请用户'), to=User, null=True, on_delete=models.SET_NULL)
     creation_time = models.DateTimeField(verbose_name=_('申请时间'), auto_now_add=True)
     approve_time = models.DateTimeField(verbose_name=_('审批时间'), auto_now_add=True)
     status = models.SmallIntegerField(verbose_name=_('状态'), choices=CHOICE_STATUS, default=STATUS_WAIT)
@@ -76,3 +109,10 @@ class ApplyQuota(models.Model):
     ram = models.IntegerField(verbose_name=_('总内存大小(MB)'), default=0)
     disk_size = models.IntegerField(verbose_name=_('总硬盘大小(GB)'), default=0)
 
+    class Meta:
+        ordering = ['-id']
+        verbose_name = _('用户资源申请')
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return f'ApplyQuota(vcpu={self.vcpu}, ram={self.ram}Mb, disk_size={self.disk_size}Gb, status={self.get_status_display()})'
