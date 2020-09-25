@@ -48,7 +48,7 @@ class ServiceConfig(models.Model):
     )
 
     id = models.AutoField(primary_key=True, verbose_name='ID')
-    data_center = models.ForeignKey(to=DataCenter, null=True, on_delete=models.SET_NULL, verbose_name=_('数据中心'))
+    data_center = models.ForeignKey(to=DataCenter, null=True, on_delete=models.SET_NULL, related_name='service_set', verbose_name=_('数据中心'))
     name = models.CharField(max_length=255, verbose_name=_('服务名称'))
     region_id = models.CharField(max_length=128, default='', blank=True, verbose_name=_('服务区域/分中心ID'))
     service_type = models.SmallIntegerField(choices=SERVICE_TYPE_CHOICES, default=SERVICE_EVCLOUD, verbose_name=_('服务平台类型'))

@@ -7,21 +7,27 @@
     <div class="container-fluid">
         <div class="row">
             <div class="col-2">
-                <div class="list-group list-group-flush mt-2">
-                    <div role="presentation" class="list-group-item m-0 p-0">
-                        <li class="nav-list-toggle p-2 btn" data-toggle="collapse" data-target="#service-nav-list-group">
-                            <i class="fa fa-list"></i> {% trans '服务中心' %} <i class="fa fa-chevron-down"></i>
-                        </li>
-                        <div class="collapse show bg-light" id="service-nav-list-group">
-                            <div class="nav flex-column nav-pills">
-                                <a class="nav-link {% if not active_service %}active{% endif %}" href="{% url 'service:index' %}">{% trans '全部' %}</a>
-                                {% get_services as services %}
-                                {% for s in services %}
-                                    <a class="nav-link {% ifequal s.id active_service %}active{% endifequal %}" href="{% url 'service:home' s.id %}">{{ s.name }}</a>
-                                {% endfor %}
-                            </div>
+                <div class="nav flex-column mt-2">
+                    <div role="presentation" class="nav-item m-0 p-0">
+                        <div class="nav flex-column nav-pills bg-light">
+                            <a class="nav-link {% if not active_service %}active{% endif %}" href="{% url 'service:index' %}">{% trans '全部' %}</a>
                         </div>
                     </div>
+                    {% get_center_and_services as centers %}
+                    {% for c in centers %}
+                        <div role="presentation" class="nav-item m-0 p-0">
+                            <li class="nav-list-toggle p-2 btn" data-toggle="collapse" data-target="#service-nav-list-group">
+                                <i class="fa fa-list"></i> {{ c.name }} <i class="fa fa-chevron-down"></i>
+                            </li>
+                            <div class="collapse show bg-light" id="service-nav-list-group">
+                                <div class="nav flex-column nav-pills">
+                                    {% for s in c.services %}
+                                        <a class="nav-link {% ifequal s.id active_service %}active{% endifequal %}" href="{% url 'service:home' s.id %}">{{ s.name }}</a>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
                 </div>
             </div>
             <div class="col-10" id="content-display-div">

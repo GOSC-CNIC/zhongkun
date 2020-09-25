@@ -117,6 +117,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='serviceconfig',
             name='data_center',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to='service.DataCenter', verbose_name='数据中心'),
+            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='service_set', to='service.DataCenter', verbose_name='数据中心'),
         ),
     ]
