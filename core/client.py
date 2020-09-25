@@ -1,6 +1,4 @@
 from adapters.evcloud.adapter import EVCloudAdapter
-from adapters.openstack.adapter import OpenstackAdapter
-
 from adapters.exceptions import UnsupportedServiceType, MethodNotSupportInService
 
 
@@ -20,8 +18,6 @@ def get_adapter_class(style: str = 'evcloud'):
     """
     if style.lower() == SERVICE_TYPE_EVCLOUD:
         return EVCloudAdapter
-    if style.lower() == SERVICE_TYPE_OPENSTACK:
-        return OpenstackAdapter
 
     raise UnsupportedServiceType()
 
