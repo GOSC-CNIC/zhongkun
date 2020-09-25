@@ -6,7 +6,6 @@ User = get_user_model()
 app_name = 'service'
 
 
-
 class DataCenter(models.Model):
     STATUS_ENABLE = 1
     STATUS_DISABLE = 2
@@ -17,9 +16,17 @@ class DataCenter(models.Model):
 
     id = models.AutoField(verbose_name='ID', primary_key=True)
     name = models.CharField(verbose_name=_('名称'), max_length=255)
-    users = models.ManyToManyField(to=User, verbose_name=_('用户'), related_name='data_center_set')
+    users = models.ManyToManyField(to=User, verbose_name=_('用户'), blank=True, related_name='data_center_set')
     status = models.SmallIntegerField(verbose_name=_('服务状态'), choices=CHOICE_STATUS, default=STATUS_ENABLE)
-    desc = models.CharField(verbose_name=_('描述'), max_length=255)
+    desc = models.CharField(verbose_name=_('描述'), blank=True, max_length=255)
+
+    class Meta:
+        ordering = ['-id']
+        verbose_name = _('数据中心')
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return self.name
 
 
 class ServiceConfig(models.Model):
@@ -53,10 +60,10 @@ class ServiceConfig(models.Model):
     status = models.SmallIntegerField(verbose_name=_('服务状态'), choices=CHOICE_STATUS, default=STATUS_ENABLE)
     remarks = models.CharField(max_length=255, default='', blank=True, verbose_name=_('备注'))
     need_vpn = models.BooleanField(verbose_name=_('是否需要VPN'), default=True)
-    vpn_endpoint_url = models.CharField(max_length=255, default='', verbose_name=_('服务地址url'), help_text='http(s)://{hostname}:{port}/')
-    vpn_api_version = models.CharField(max_length=64, default='v3', verbose_name=_('API版本'), help_text=_('预留，主要EVCloud使用'))
-    vpn_username = models.CharField(max_length=128, default='', verbose_name=_('用户名'), help_text=_('用于此服务认证的用户名'))
-    vpn_password = models.CharField(max_length=128, default='', verbose_name=_('密码'))
+    vpn_endpoint_url = models.CharField(max_length=255, blank=True, default='', verbose_name=_('服务地址url'), help_text='http(s)://{hostname}:{port}/')
+    vpn_api_version = models.CharField(max_length=64, blank=True, default='v3', verbose_name=_('API版本'), help_text=_('预留，主要EVCloud使用'))
+    vpn_username = models.CharField(max_length=128, blank=True, default='', verbose_name=_('用户名'), help_text=_('用于此服务认证的用户名'))
+    vpn_password = models.CharField(max_length=128, blank=True, default='', verbose_name=_('密码'))
 
     class Meta:
         ordering = ['-id']
@@ -65,6 +72,25 @@ class ServiceConfig(models.Model):
 
     def __str__(self):
         return self.name
+
+    def is_need_vpn(self):
+        return self.need_vpn
+
+    def check_vpn_config(self):
+        """
+        检查vpn配置
+        :return:
+        """
+        if not self.is_need_vpn():
+            return True
+
+        if self.service_type == self.SERVICE_EVCLOUD:
+            return True
+
+        if not self.vpn_endpoint_url or not self.vpn_password or not self.vpn_username:
+            return False
+
+        return True
 
 
 class ServiceQuota(models.Model):

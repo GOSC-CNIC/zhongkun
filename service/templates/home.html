@@ -34,7 +34,7 @@
                 {% endif %}
             </li>
             <li class="nav-item">
-                {% if active_service %}
+                {% if is_need_vpn %}
                     <a class="nav-link" href="{% url 'vpn:service-vpn' active_service %}">VPN</a>
                 {% else %}
                     <a class="nav-link disabled" href="#">VPN</a>
@@ -78,17 +78,19 @@
                 </a>
             </div>
             <div class="col mb-4">
-                <a class="card text-dark h-100"
-                    {% if active_service %}
-                        href="{% url 'vpn:service-vpn' active_service %}"
-                    {% else %}
-                        disabled="true"
-                    {% endif %}
-                >
-                    <div class="card-body">
-                        <p>VPN</p>
+                {% if is_need_vpn %}
+                    <a class="card text-dark h-100" href="{% url 'vpn:service-vpn' active_service %}">
+                        <div class="card-body">
+                            <p>VPN</p>
+                        </div>
+                    </a>
+                {% else %}
+                    <div class="card text-dark h-100">
+                        <div class="card-body">
+                            <p>此服务不需要VPN</p>
+                        </div>
                     </div>
-                </a>
+                {% endif %}
             </div>
         </div>
     </div>

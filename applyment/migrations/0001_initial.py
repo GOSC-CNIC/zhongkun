@@ -36,8 +36,13 @@ class Migration(migrations.Migration):
                 ('vpn_username', models.CharField(help_text='用于VPN服务认证的用户名', max_length=128, verbose_name='用户名')),
                 ('vpn_password', models.CharField(max_length=128, verbose_name='密码')),
                 ('data_center', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to='service.DataCenter', verbose_name='数据中心')),
-                ('user', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL, verbose_name='用户')),
+                ('user', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL, verbose_name='申请用户')),
             ],
+            options={
+                'ordering': ['-id'],
+                'verbose_name': '服务接入申请',
+                'verbose_name_plural': '服务接入申请'
+            },
         ),
         migrations.CreateModel(
             name='ApplyQuota',
@@ -51,7 +56,12 @@ class Migration(migrations.Migration):
                 ('vcpu', models.IntegerField(default=0, verbose_name='总CPU核数')),
                 ('ram', models.IntegerField(default=0, verbose_name='总内存大小(MB)')),
                 ('disk_size', models.IntegerField(default=0, verbose_name='总硬盘大小(GB)')),
-                ('user', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL, verbose_name='用户')),
+                ('user', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL, verbose_name='申请用户')),
             ],
+            options={
+                'ordering': ['-id'],
+                'verbose_name': '用户资源申请',
+                'verbose_name_plural': '用户资源申请'
+            },
         ),
     ]

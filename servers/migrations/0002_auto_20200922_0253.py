@@ -63,8 +63,8 @@ class Migration(migrations.Migration):
                 ('user', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='user_server_archives', to=settings.AUTH_USER_MODEL, verbose_name='创建者')),
             ],
             options={
-                'verbose_name': '虚拟服务器',
-                'verbose_name_plural': '虚拟服务器',
+                'verbose_name': '服务器归档记录',
+                'verbose_name_plural': '服务器归档记录',
                 'ordering': ['-id'],
             },
         ),
