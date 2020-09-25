@@ -33,14 +33,8 @@ class InputValidator:
 
             data['mem'] = ram
             data['vcpu'] = vcpu
-        elif params.flavor_id:
-            try:
-                flavor_id = int(params.flavor_id)
-            except ValueError as e:
-                raise exceptions.APIInvalidParam(extend_msg=str(e))
-            data['flavor_id'] = flavor_id
         else:
-            raise exceptions.APIInvalidParam(extend_msg='no found param "flavor_id" or "ram","vcpu"')
+            raise exceptions.APIInvalidParam(extend_msg='no found param "ram" and "vcpu"')
 
         return data
 

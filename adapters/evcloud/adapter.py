@@ -37,6 +37,7 @@ class EVCloudAdapter(BaseAdapter):
                  auth: outputs.AuthenticateOutput = None,
                  api_version: str = 'v3'
                  ):
+        api_version = api_version.lower()
         api_version = api_version if api_version in ['v3'] else 'v3'
         super().__init__(endpoint_url=endpoint_url, api_version=api_version, auth=auth)
         self.api_builder = APIBuilder(endpoint_url=self.endpoint_url, api_version=self.api_version)
@@ -150,15 +151,24 @@ class EVCloudAdapter(BaseAdapter):
         rj = r.json()
         return OutputConverter.to_server_create_output(rj['vm'])
 
-    def server_delete(self, params: inputs.ServerDeleteInput):
-        url = self.api_builder.vm_detail_url(vm_uuid=params.server_id)
+    def server_delete(self, params: inputs.ServerDeleteInput, **kwargs):
+        url = self.api_builder.vm_detail_url(vm_uuid=params.server_id, query={'force': True})
         try:
             headers = self.get_auth_header()
-            r = self.do_request(method='delete', url=url, ok_status_codes=[204], headers=headers)
+            r = self.do_request(method='delete', url=url, ok_status_codes=[204, 400, 404], headers=headers)
         except exceptions.Error as e:
             return outputs.ServerDeleteOutput(ok=False, error=e)
 
-        return outputs.ServerDeleteOutput()
+        if r.status_code == 200:
+            return outputs.ServerDeleteOutput()
+
+        rj = r.json()
+        err_code = rj.get('err_code')
+        if err_code and err_code == "VmNotExist":
+            return outputs.ServerDeleteOutput()
+
+        msg = get_failed_msg(r)
+        return outputs.ServerDeleteOutput(ok=False, error=exceptions.APIError(message=msg, status_code=r.status_code))
 
     def server_action(self, params: inputs.ServerActionInput, **kwargs):
         """
@@ -169,6 +179,13 @@ class EVCloudAdapter(BaseAdapter):
         action = params.action
         if action not in inputs.ServerAction.values:
             return outputs.ServerActionOutput(ok=False, error=exceptions.APIInvalidParam('invalid param "action"'))
+
+        if action in [inputs.ServerAction.DELETE_FORCE, inputs.ServerAction.DELETE]:
+            r = self.server_delete(params=inputs.ServerDeleteInput(server_id=params.server_id))
+            if r.ok:
+                return outputs.ServerActionOutput()
+
+            return outputs.ServerActionOutput(ok=False, error=r.error)
 
         try:
             url = self.api_builder.vm_action_url(vm_uuid=params.server_id)
@@ -183,13 +200,22 @@ class EVCloudAdapter(BaseAdapter):
         url = self.api_builder.vm_status_url(vm_uuid=params.server_id)
         try:
             headers = self.get_auth_header()
-            r = self.do_request(method='get', url=url, headers=headers)
+            r = self.do_request(method='get', url=url, ok_status_codes=[200, 400, 404], headers=headers)
         except exceptions.Error as e:
             return OutputConverter.to_server_status_output_error(error=e)
 
         rj = r.json()
-        status_code = rj['status']['status_code']
-        return OutputConverter.to_server_status_output(status_code)
+        if r.status_code == 200:
+            status_code = rj['status']['status_code']
+            return OutputConverter.to_server_status_output(status_code)
+
+        err_code = rj.get('err_code')
+        if err_code and err_code == "VmNotExist":
+            return OutputConverter.to_server_status_output(outputs.ServerStatus.MISS)
+
+        msg = get_failed_msg(r)
+        error = exceptions.APIError(message=msg, status_code=r.status_code)
+        return OutputConverter.to_server_status_output_error(error=error)
 
     def server_vnc(self, params: inputs.ServerVNCInput, **kwargs):
         url = self.api_builder.vm_vnc_url(vm_uuid=params.server_id)
@@ -218,18 +244,21 @@ class EVCloudAdapter(BaseAdapter):
         rj = r.json()
         return OutputConverter().to_list_image_output(rj['results'])
 
-    def list_networks(self, region_id: str, headers: dict = None):
+    def list_networks(self, params: inputs.ListNetworkInput, **kwargs):
         """
         列举子网
-
-        :param region_id: 分中心id
-        :param headers:
-        :return:
+        :return:    outputs.ListNetworkOutput()
         """
-        center_id = int(region_id)
+        center_id = int(params.region_id)
         url = self.api_builder.vlan_base_url(query={'center_id': center_id})
-        r = self.do_request(method='get', url=url, headers=headers)
-        return r.json()
+        try:
+            headers = self.get_auth_header()
+            r = self.do_request(method='get', url=url, headers=headers)
+        except exceptions.Error as e:
+            return OutputConverter().to_list_network_output_error(error=e)
+
+        rj = r.json()
+        return OutputConverter().to_list_network_output(networks=rj['results'])
 
     def list_groups(self, region_id: str, headers: dict = None):
         """
@@ -255,35 +284,39 @@ class EVCloudAdapter(BaseAdapter):
         r = self.do_request(method='get', url=url, headers=headers)
         return r.json()
 
-    def get_vpn(self, username: str, headers: dict = None):
+    def get_vpn(self, username: str):
         url = self.api_builder.vpn_detail_url(username=username)
+        headers = self.get_auth_header()
         r = self.do_request(method='get', url=url, ok_status_codes=[200], headers=headers)
         return r.json()
 
-    def create_vpn(self, username: str, password: str = None, headers: dict = None):
+    def create_vpn(self, username: str, password: str = None):
         data = {'username': username}
         if password:
             data['password'] = password
 
         url = self.api_builder.vpn_base_url()
+        headers = self.get_auth_header()
         r = self.do_request(method='post', url=url, data=data, ok_status_codes=[201], headers=headers)
         return r.json()
 
-    def get_vpn_or_create(self, username: str, headers: dict = None):
+    def get_vpn_or_create(self, username: str):
         url = self.api_builder.vpn_detail_url(username=username)
+        headers = self.get_auth_header()
         r = self.do_request(method='get', url=url, ok_status_codes=[200, 404], headers=headers)
         d = r.json()
         if r.status_code == 200:
             return d
 
         if 'err_code' in d and d['err_code'] == 'NoSuchVPN':
-            return self.create_vpn(username=username, headers=headers)
+            return self.create_vpn(username=username)
 
         msg = get_failed_msg(r)
         raise exceptions.APIError(msg, status_code=r.status_code)
 
-    def vpn_change_password(self, username: str, password: str, headers: dict = None):
+    def vpn_change_password(self, username: str, password: str):
         url = self.api_builder.vpn_detail_url(username=username, query={'password': password})
+        headers = self.get_auth_header()
         r = self.do_request(method='patch', url=url, headers=headers)
         return r.json()
 

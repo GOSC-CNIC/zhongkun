@@ -2,7 +2,7 @@ from django.utils.translation import gettext as _
 from rest_framework import viewsets
 
 from service.models import ServiceConfig
-from .request import request_service
+from .request import request_service, request_vpn_service
 from . import exceptions
 
 
@@ -37,6 +37,20 @@ class CustomGenericViewSet(viewsets.GenericViewSet):
         """
         return request_service(service=service, method=method, **kwargs)
 
+    @staticmethod
+    def request_vpn_service(service, method: str, **kwargs):
+        """
+        向vpn服务发送请求
+
+        :param service: 接入的服务配置对象
+        :param method:
+        :param kwargs:
+        :return:
+
+        :raises: APIException, AuthenticationFailed
+        """
+        return request_vpn_service(service=service, method=method, **kwargs)
+
     def get_service(self, request, lookup='service_id', in_='query'):
         """
 
@@ -61,7 +75,7 @@ class CustomGenericViewSet(viewsets.GenericViewSet):
         if service_id <= 0:
             raise exceptions.InvalidArgument(_('参数"service_id"值无效.'))
 
-        service = ServiceConfig.objects.filter(id=service_id, active=True).first()
+        service = ServiceConfig.objects.filter(id=service_id, status=ServiceConfig.STATUS_ENABLE).first()
         if not service:
             raise exceptions.NotFound(_('服务端点不存在'))
 

@@ -52,6 +52,9 @@
             </li>
         </ul>
     </div>
+    {% if err %}
+        <div class="alert alert-danger mt-2" role="alert">{{ err }}</div>
+    {% else %}
     <table class="table table-hover table-borderless mt-2">
         <thead>
         <tr>
@@ -73,6 +76,7 @@
         </tr>
         </tbody>
     </table>
+    {% endif %}
     {% if active_service %}
         <div>
             <p class="bg-light p-2">VPN相关文件下载</p>

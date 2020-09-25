@@ -8,8 +8,8 @@ from rest_framework.serializers import Serializer
 from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
-from servers.models import Server
-from adapters import inputs, outputs
+from servers.models import Server, Flavor
+from adapters import inputs
 from . import exceptions
 from . import serializers
 from .viewsets import CustomGenericViewSet, str_to_int_or_default
@@ -66,7 +66,10 @@ class ServersViewSet(CustomGenericViewSet):
                 required=True,
                 description='服务端点id'
             ),
-        ]
+        ],
+        responses={
+            200: ''''''
+        }
     )
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -81,12 +84,17 @@ class ServersViewSet(CustomGenericViewSet):
         network_id = data.get('network_id', '')
         remarks = data.get('remarks', request.user.username)
 
+        flavor = Flavor.objects.filter(id=flavor_id).first()
+        if not flavor:
+            exc = exceptions.BadRequest(message=_('无效的flavor id'))
+            return Response(exc.err_data(), status=exc.status_code)
+
         try:
             service = self.get_service(request, in_='body')
         except exceptions.APIException as exc:
             return Response(exc.err_data(), status=exc.status_code)
 
-        params = inputs.ServerCreateInput(ram=None, vcpu=None, image_id=image_id, flavor_id=flavor_id,
+        params = inputs.ServerCreateInput(ram=flavor.ram, vcpu=flavor.vcpus, image_id=image_id,
                                           region_id=service.region_id, network_id=network_id, remarks=remarks)
         try:
             out = self.request_service(service=service, method='server_create', params=params)
@@ -136,7 +144,7 @@ class ServersViewSet(CustomGenericViewSet):
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
-        server.do_soft_delete()
+        server.do_archive()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @swagger_auto_schema(
@@ -190,7 +198,7 @@ class ServersViewSet(CustomGenericViewSet):
             return Response(data=exc.err_data(), status=exc.status_code)
 
         if op in ['delete', 'delete_force']:
-            server.do_soft_delete()
+            server.do_archive()
         return Response({'code': 'OK', 'message': 'Success'})
 
     @swagger_auto_schema(
@@ -303,7 +311,7 @@ class ServersViewSet(CustomGenericViewSet):
 
     @staticmethod
     def get_server(server_id: int, user):
-        server = Server.objects.filter(id=server_id, deleted=False).select_related('service', 'user').first()
+        server = Server.objects.filter(id=server_id).select_related('service', 'user').first()
         if not server:
             raise exceptions.NotFound(_('服务器实例不存在'))
 
@@ -338,21 +346,13 @@ class ImageViewSet(CustomGenericViewSet):
             200: """
                 [
                   {
-                    "id": 10,
+                    "id": "10",
                     "name": "空天院_ubuntu1804_radi",
-                    "version": "64bit",
-                    "sys_type": {
-                      "id": 2,
-                      "name": "Linux"
-                    },
-                    "tag": {
-                      "id": 1,
-                      "name": "基础镜像"
-                    },
-                    "enable": true,
-                    "create_time": "2020-05-22T12:45:00.690152+08:00",
+                    "system": "空天院_ubuntu1804_radi",
+                    "system_type": "Linux",
+                    "creation_time": "2020-09-23T07:15:20.087505Z",
                     "desc": "空天院_ubuntu1804_radi"
-                  },
+                  }
                 ]
             """
         }
@@ -400,17 +400,11 @@ class NetworkViewSet(CustomGenericViewSet):
             200: """
                 [
                   {
-                    "id": 1,
-                    "name": "v107_dev_121-140",
-                    "br": "br_107",
-                    "net_type": 2,
-                    "enable": true,
-                    "subnet_ip": "10.107.50.0",
-                    "net_mask": "255.255.255.0",
-                    "gateway": "10.107.50.254",
-                    "dns_server": "159.226.91.150",
-                    "remarks": ""
-                  },
+                    "id": "2",
+                    "name": "private_10.108.50.0",
+                    "public": false,
+                    "segment": "10.108.50.0"
+                  }
                 ]
             """
         }
@@ -421,14 +415,16 @@ class NetworkViewSet(CustomGenericViewSet):
         except exceptions.APIException as exc:
             return Response(exc.err_data(), status=exc.status_code)
 
+        params = inputs.ListNetworkInput(region_id=service.region_id)
         try:
-            r = self.request_service(service, method='list_networks', region_id=service.region_id)
+            r = self.request_service(service, method='list_networks', params=params)
         except exceptions.AuthenticationFailed as exc:
             return Response(data=exc.err_data(), status=500)
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
-        return Response(data=r['results'])
+        serializer = serializers.NetworkSerializer(r.networks, many=True)
+        return Response(data=serializer.data)
 
 
 class VPNViewSet(CustomGenericViewSet):
@@ -467,7 +463,7 @@ class VPNViewSet(CustomGenericViewSet):
             return Response(exc.err_data(), status=exc.status_code)
 
         try:
-            r = self.request_service(service, method='get_vpn_or_create', username=request.user.username)
+            r = self.request_vpn_service(service, method='get_vpn_or_create', username=request.user.username)
         except exceptions.AuthenticationFailed as exc:
             return Response(data=exc.err_data(), status=500)
         except exceptions.APIException as exc:
@@ -517,8 +513,8 @@ class VPNViewSet(CustomGenericViewSet):
             return Response(exc.err_data(), status=exc.status_code)
 
         try:
-            r = self.request_service(service, method='vpn_change_password', username=request.user.username,
-                                     password=password)
+            r = self.request_vpn_service(service, method='vpn_change_password', username=request.user.username,
+                                         password=password)
         except exceptions.AuthenticationFailed as exc:
             return Response(data=exc.err_data(), status=500)
         except exceptions.APIException as exc:
@@ -539,15 +535,6 @@ class FlavorViewSet(CustomGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举配置样式flavor'),
-        manual_parameters=[
-            openapi.Parameter(
-                name='service_id',
-                in_=openapi.IN_QUERY,
-                type=openapi.TYPE_INTEGER,
-                required=True,
-                description='服务id'
-            )
-        ],
         responses={
             status.HTTP_200_OK: ''
         }
@@ -558,29 +545,21 @@ class FlavorViewSet(CustomGenericViewSet):
 
             Http Code: 状态码200，返回数据：
             {
-                "count": 1,
-                "next": null,
-                "previous": null,
-                "results": [
+              "flavors": [
                 {
-                  "id": 1,
-                  "vcpus": 1,
-                  "ram": 1024           # MB
+                  "id": 4,
+                  "vcpus": 4,
+                  "ram": 4096
                 }
-                ]
+              ]
             }
         """
         try:
-            service = self.get_service(request)
-        except exceptions.APIException as exc:
-            return Response(exc.err_data(), status=exc.status_code)
+            flavors = Flavor.objects.filter(enable=True).order_by('vcpus').all()
+            serializer = serializers.FlavorSerializer(flavors, many=True)
+        except Exception as exc:
+            err = exceptions.APIException(message=str(exc))
+            return Response(err.err_data(), status=err.status_code)
 
-        try:
-            r = self.request_service(service, method='list_flavors')
-        except exceptions.AuthenticationFailed as exc:
-            return Response(data=exc.err_data(), status=500)
-        except exceptions.APIException as exc:
-            return Response(data=exc.err_data(), status=exc.status_code)
-
-        return Response(data=r['results'])
+        return Response(data={"flavors": serializer.data})
 

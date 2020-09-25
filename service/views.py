@@ -18,22 +18,20 @@ def home(request, *args, **kwargs):
     service_id = to_int_or_default(kwargs.get('service_id'), default=None)
     user = request.user
 
-    # services = ServiceConfig.objects.filter(active=True).all()
     if service_id:
-        servers_qs = Server.objects.filter(service=service_id, user=user, deleted=False)
+        servers_qs = Server.objects.filter(service=service_id, user=user)
         servers = servers_qs[0:limit]
         servers_count = len(servers)
         if servers_count >= limit:
             servers_count = servers_qs.count()
     else:
-        servers_qs = Server.objects.filter(user=user, deleted=False)
+        servers_qs = Server.objects.filter(user=user)
         servers = servers_qs[0:limit]
         servers_count = len(servers)
         if servers_count >= limit:
             servers_count = servers_qs.count()
 
     context = {
-        # 'services': services,
         'servers': servers,
         'active_service': service_id,
         'servers_count': servers_count

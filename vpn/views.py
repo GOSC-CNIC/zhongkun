@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.views import View
 
-from api.request import request_service
+from api.request import request_vpn_service
 from api import exceptions
 from service.models import ServiceConfig
 from .models import Article
@@ -26,15 +26,15 @@ class VPNView(View):
         err = ''
         if service:
             try:
-                r = request_service(service=service, method='get_vpn_or_create', username=user.username)
+                r = request_vpn_service(service=service, method='get_vpn_or_create', username=user.username)
                 vpn = self.parse_data(data=r)
             except exceptions.APIException as e:
-                err = str(e)
+                err = f'Get VPN error, {str(e)}'
         else:
             err = 'not found service'
 
-        config_file_url = request_service(service=service, method='get_vpn_config_file_url')
-        ca_file_url = request_service(service=service, method='get_vpn_ca_file_url')
+        config_file_url = request_vpn_service(service=service, method='get_vpn_config_file_url')
+        ca_file_url = request_vpn_service(service=service, method='get_vpn_ca_file_url')
         context = {
             'active_service': service_id,
             'vpn': vpn,
