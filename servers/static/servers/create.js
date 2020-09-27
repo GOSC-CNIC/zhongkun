@@ -149,7 +149,7 @@
             image_select.html(html);
             return;
         }
-
+        image_select.html('');
         let query_str = encode_params({service_id:service});
         $.ajax({
             url: build_absolute_url('api/image/?'+ query_str),
@@ -235,7 +235,7 @@
             network_select.html(html);
             return;
         }
-
+        network_select.html('');
         let query_str = encode_params({service_id:service});
         $.ajax({
             url: build_absolute_url('api/network/?'+ query_str),
@@ -264,7 +264,8 @@
 
     $("#id-service").change(function (e) {
         e.preventDefault();
-        update_select();
+        image_select_update();
+        network_select_update();
     });
 })();
 

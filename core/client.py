@@ -79,6 +79,9 @@ class OneServiceClient:
     def server_vnc(self, *args, **kwargs):
         return self.adapter.server_vnc(*args, **kwargs)
 
+    def server_detail(self, *args, **kwargs):
+        return self.adapter.server_detail(*args, **kwargs)
+
     def list_images(self, *args, **kwargs):
         return self.adapter.list_images(*args, **kwargs)
 

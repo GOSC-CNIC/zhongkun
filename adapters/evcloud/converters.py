@@ -51,7 +51,7 @@ def parse_datetime(value):
         return datetime(**kw)
 
 
-def iso_to_datetime(value, default=datetime.now(tz=utc)):
+def iso_to_datetime(value, default=datetime(year=1, month=1, day=1, hour=0, minute=0, second=0, tzinfo=utc)):
     try:
         parsed = parse_datetime(value)
         if parsed is not None:
@@ -62,24 +62,37 @@ def iso_to_datetime(value, default=datetime.now(tz=utc)):
 
 class OutputConverter:
     @staticmethod
-    def to_server_create_output(vm_dict):
+    def _server_create_output_server(vm_dict):
+        """
+        :return: outputs.ServerCreateOutputServer()
+        """
         data = vm_dict
         image = outputs.ServerCreateOutputServerImage(
             name=data.get('image'),
             system=data.get('image')
         )
-        ip = outputs.ServerCreateOutputServerIP(
-            ipv4=data.get('mac_ip'),
-            public_ipv4=False
-        )
+        mac_ip = data.get('mac_ip')
+        if isinstance(mac_ip, str):
+            server_ip = {'ipv4': mac_ip, 'public_ipv4': None}
+        elif isinstance(mac_ip, dict):
+            server_ip = {'ipv4': mac_ip.get('ipv4'), 'public_ipv4': mac_ip.get('public_ipv4')}
+        else:
+            server_ip = {'ipv4': None, 'public_ipv4': None}
+
+        ip = outputs.ServerCreateOutputServerIP(**server_ip)
         server = outputs.ServerCreateOutputServer(
             uuid=data.get('uuid'),
             ram=data.get('mem'),
             vcpu=data.get('vcpu'),
             ip=ip,
             image=image,
-            creation_time=data.get('create_time')
+            creation_time=iso_to_datetime(data.get('create_time'))
         )
+        return server
+
+    @staticmethod
+    def to_server_create_output(vm_dict):
+        server = OutputConverter._server_create_output_server(vm_dict)
         return outputs.ServerCreateOutput(server=server)
 
     @staticmethod
@@ -156,3 +169,11 @@ class OutputConverter:
 
         return outputs.ListNetworkOutput(networks=new_networks)
 
+    @staticmethod
+    def to_server_detail_output(vm: dict):
+        server = OutputConverter._server_create_output_server(vm)
+        return outputs.ServerDetailOutput(server=server)
+
+    @staticmethod
+    def to_server_detail_output_error(error):
+        return outputs.ServerDetailOutput(ok=False, error=error, server=None)

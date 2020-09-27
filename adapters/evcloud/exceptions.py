@@ -1,4 +1,5 @@
-from ..exceptions import Error, APIError, AuthenticationFailed as AuthF, NotAuthenticated as NotAuth
+from ..exceptions import (Error, APIError, AuthenticationFailed as AuthF, NotAuthenticated as NotAuth,
+                          ServerNotExist)
 
 
 class AuthenticationFailed(AuthF):
@@ -6,6 +7,10 @@ class AuthenticationFailed(AuthF):
 
 
 class NotAuthenticated(NotAuth):
+    pass
+
+
+class ServerNotExistError(ServerNotExist):
     pass
 
 

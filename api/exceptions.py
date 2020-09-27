@@ -41,6 +41,12 @@ class NotFound(APIException):
     default_status_code = 404
 
 
+class ServerNotExist(NotFound):
+    default_message = 'This server is not exist.'
+    default_code = 'ServerNotExist'
+    default_status_code = 404
+
+
 class BadRequest(APIException):
     default_message = 'BadRequest.'
     default_code = 'BadRequest'

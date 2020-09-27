@@ -112,10 +112,22 @@ class ServersViewSet(CustomGenericViewSet):
                         )
         server.save()
 
+        # 信息不详，尝试获取详细信息
+        if not out_server.ip or not out_server.ip.ipv4:
+            params = inputs.ServerDetailInput(server_id=server.instance_id)
+            try:
+                out = self.request_service(service=service, method='server_detail', params=params)
+                out_server = out.server
+            except exceptions.ServerNotExist as exc:    # 不存在，创建失败
+                server.delete()
+                return Response(data=exc.err_data(), status=exc.status_code)
+            except exceptions.APIException as exc:      #
+                pass
+
         try:
             server.name = out_server.name if out_server.name else out_server.uuid
-            server.vcpus = out_server.vcpu
-            server.ram = out_server.ram
+            server.vcpus = out_server.vcpu if out_server.vcpu else flavor.vcpus
+            server.ram = out_server.ram if out_server.ram else flavor.ram
             server.ipv4 = out_server.ip.ipv4
             server.image = out_server.image.name
             server.save()

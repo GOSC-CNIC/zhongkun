@@ -228,6 +228,29 @@ class EVCloudAdapter(BaseAdapter):
         rj = r.json()
         return OutputConverter().to_server_vnc_output(url=rj['vnc']['url'])
 
+    def server_detail(self, params: inputs.ServerDetailInput, **kwargs):
+        """
+        :return:
+            outputs.ServerDetailOutput()
+        """
+        url = self.api_builder.vm_detail_url(vm_uuid=params.server_id)
+        try:
+            headers = self.get_auth_header()
+            r = self.do_request(method='get', ok_status_codes=[200, 404], url=url, headers=headers)
+        except exceptions.Error as e:
+            return OutputConverter().to_server_detail_output_error(error=e)
+
+        rj = r.json()
+        if r.status_code == 200:
+            return OutputConverter().to_server_detail_output(vm=rj['vm'])
+
+        if rj.get('err_code') == 'VmNotExist':
+            err = exceptions.ServerNotExistError(status_code=404)
+        else:
+            msg = get_failed_msg(r)
+            err = exceptions.APIError(message=msg, status_code=r.status_code)
+        return OutputConverter().to_server_detail_output_error(error=err)
+
     def list_images(self, params: inputs.ListImageInput, **kwargs):
         """
         列举镜像

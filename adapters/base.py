@@ -75,6 +75,13 @@ class BaseAdapter:
         """
         raise NotImplementedError('`server_vnc()` must be implemented.')
 
+    def server_detail(self, params: inputs.ServerDetailInput, **kwargs):
+        """
+        :return:
+            outputs.ServerDetailOutput()
+        """
+        raise NotImplementedError('`server_detail()` must be implemented.')
+
     def list_images(self, params: inputs.ListImageInput, **kwargs):
         """
         列举镜像

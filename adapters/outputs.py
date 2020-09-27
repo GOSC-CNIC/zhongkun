@@ -155,6 +155,15 @@ class ServerCreateOutput(OutputBase):
         super().__init__(**kwargs)
 
 
+class ServerDetailOutput(OutputBase):
+    def __init__(self, server: ServerCreateOutputServer, **kwargs):
+        """
+        :param server: server; type: CreateServerOutputServer
+        """
+        self.server = server
+        super().__init__(**kwargs)
+
+
 class ServerActionOutput(OutputBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

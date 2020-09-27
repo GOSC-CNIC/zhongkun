@@ -86,6 +86,15 @@ class ServerVNCInput(InputBase):
         super().__init__(**kwargs)
 
 
+class ServerDetailInput(InputBase):
+    def __init__(self, server_id: str, **kwargs):
+        """
+        :param server_id: 云服务器实例id
+        """
+        self.server_id = server_id
+        super().__init__(**kwargs)
+
+
 class ListImageInput(InputBase):
     def __init__(self, region_id: str, **kwargs):
         """

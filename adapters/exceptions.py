@@ -64,6 +64,12 @@ class UnsupportedServiceType(Error):
     default_code = 'UnsupportedServiceType'
 
 
+class ServerNotExist(Error):
+    default_message = 'This server instance is not exist.'
+    default_code = 'ServerNotExist'
+    status_code = 404
+
+
 class MethodNotSupportInService(Error):
     default_message = 'This method or business is not supported by this service center.'
     default_code = 'MethodNotSupportInService'

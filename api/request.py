@@ -35,6 +35,8 @@ def request_service(service, method: str, raise_exception=True, **kwargs):
         except os_exceptions.MethodNotSupportInService as exc:
             raise_exc = exceptions.MethodNotSupportInService(message=exc.message)
             break
+        except os_exceptions.ServerNotExist as exc:
+            raise_exc = exceptions.ServerNotExist(message=exc.message)
         except os_exceptions.Error as exc:
             raise_exc = exceptions.APIException(message=exc.message)
             break
