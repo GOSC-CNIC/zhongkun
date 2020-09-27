@@ -130,11 +130,51 @@ class ServersViewSet(CustomGenericViewSet):
             server.ram = out_server.ram if out_server.ram else flavor.ram
             server.ipv4 = out_server.ip.ipv4
             server.image = out_server.image.name
+            server.public_ip = out_server.ip.public_ipv4 if out_server.ip.public_ipv4 else False
             server.save()
         except Exception as e:
             pass
 
         return Response(data={'id': server.id})
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询服务器实例信息'),
+        responses={
+            200: ''''''
+        }
+    )
+    def retrieve(self, request, *args, **kwargs):
+        server_id = kwargs.get(self.lookup_field, '')
+
+        try:
+            server = self.get_server(server_id=server_id, user=request.user)
+        except exceptions.APIException as exc:
+            return Response(data=exc.err_data(), status=exc.status_code)
+
+        if server.ipv4 and server.image:
+            serializer = serializers.ServerSerializer(server)
+            return Response(data={'server': serializer.data})
+
+        service = server.service
+        params = inputs.ServerDetailInput(server_id=server.instance_id)
+        try:
+            out = self.request_service(service=service, method='server_detail', params=params)
+        except exceptions.APIException as exc:
+            return Response(data=exc.err_data(), status=exc.status_code)
+
+        server.ipv4 = out.server.ip.ipv4
+        server.image = out.server.image.name
+        pub_ip = out.server.ip.public_ipv4
+        if pub_ip is not None:
+            server.public_ip = pub_ip
+
+        try:
+            server.save()
+        except Exception as e:
+            pass
+
+        serializer = serializers.ServerSerializer(server)
+        return Response(data={'server': serializer.data})
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('删除服务器实例')

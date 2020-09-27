@@ -71,13 +71,11 @@ class OutputConverter:
             name=data.get('image'),
             system=data.get('image')
         )
-        mac_ip = data.get('mac_ip')
-        if isinstance(mac_ip, str):
-            server_ip = {'ipv4': mac_ip, 'public_ipv4': None}
-        elif isinstance(mac_ip, dict):
-            server_ip = {'ipv4': mac_ip.get('ipv4'), 'public_ipv4': mac_ip.get('public_ipv4')}
+        ip = data.get('ip')
+        if ip:
+            server_ip = {'ipv4': ip.get('ipv4'), 'public_ipv4': ip.get('public_ipv4')}
         else:
-            server_ip = {'ipv4': None, 'public_ipv4': None}
+            server_ip = {'ipv4': data.get('mac_ip'), 'public_ipv4': None}
 
         ip = outputs.ServerCreateOutputServerIP(**server_ip)
         server = outputs.ServerCreateOutputServer(

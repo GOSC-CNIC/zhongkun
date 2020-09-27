@@ -11,6 +11,7 @@ class ServerSerializer(serializers.Serializer):
     vcpus = serializers.IntegerField()
     ram = serializers.IntegerField()
     ipv4 = serializers.CharField()
+    public_ip = serializers.BooleanField()
     image = serializers.CharField()
     creation_time = serializers.DateTimeField()
     remarks = serializers.CharField()
