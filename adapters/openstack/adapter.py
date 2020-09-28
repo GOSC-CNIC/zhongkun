@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta, timezone
 import requests
 
+import uuid
+
 from adapters.base import BaseAdapter
 from adapters import inputs
 from adapters import outputs
@@ -83,7 +85,7 @@ class OpenStackAdapter(BaseAdapter):
             flavor_ref = self.get_or_create_flavor(params.ram, params.vcpu)
             server_data = {
                 "server": {
-                    "name": params.remarks,
+                    "name": 'gosc-instance-'+str(uuid.uuid4()),
                     "imageRef": params.image_id,
                     "flavorRef": flavor_ref,
                     "networks": [{
