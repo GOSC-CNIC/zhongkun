@@ -18,6 +18,8 @@ class ServerStatus:
     PMSUSPENDED = 7  # the domain is suspended by guest power management
     HOST_DOWN = 9   # host connect failed
     MISS = 10       # domain miss
+    BUILDING = 11    # The domain is being built
+    BUILT_FAILED = 12    # Failed to build the domain
 
     __status_map = {
         NOSTATE: 'no state',
@@ -30,7 +32,13 @@ class ServerStatus:
         PMSUSPENDED: 'suspended',
         HOST_DOWN: 'host connect failed',
         MISS: 'miss',
+        BUILDING: 'building',
+        BUILT_FAILED: 'built failed'
     }
+
+    __normal_values = [
+        RUNNING, BLOCKED, PAUSED, SHUTDOWN, SHUTOFF, CRASHED, PMSUSPENDED
+    ]
 
     def __contains__(self, item):
         return item in self.__status_map
@@ -53,6 +61,14 @@ class ServerStatus:
     @classmethod
     def status_map(cls):
         return cls.__status_map
+
+    @classmethod
+    def normal_values(cls):
+        """
+        server正常的运行状态值列表
+        :return:
+        """
+        return cls.__normal_values
 
 
 AuthenticateOutputHeader = namedtuple('AuthHeaderClass', ['header_name',         # example: 'Authorization'
@@ -105,7 +121,7 @@ class AuthenticateOutput(OutputBase):
         super().__init__(**kwargs)
 
 
-class ServerCreateOutputServerImage:
+class ServerImage:
     def __init__(self, name: str, system: str, **kwargs):
         """
         :param name: 镜像名称
@@ -115,7 +131,7 @@ class ServerCreateOutputServerImage:
         self.system = system
 
 
-class ServerCreateOutputServerIP:
+class ServerIP:
     def __init__(self, ipv4: str, public_ipv4: bool, **kwargs):
         """
         :param ipv4: ipv4 of server
@@ -126,14 +142,31 @@ class ServerCreateOutputServerIP:
 
 
 class ServerCreateOutputServer:
-    def __init__(self, uuid: str, ram: int, vcpu: int, image: ServerCreateOutputServerImage,
-                 ip: ServerCreateOutputServerIP, creation_time: datetime, **kwargs):
+    def __init__(self, uuid: str, **kwargs):
         """
         :param uuid: id of server; type: str
-        :param image: image of server; type: ServerCreateOutputServerImage
+        """
+        self.uuid = uuid
+
+
+class ServerCreateOutput(OutputBase):
+    def __init__(self, server: ServerCreateOutputServer, **kwargs):
+        """
+        :param server: server; type: CreateServerOutputServer
+        """
+        self.server = server
+        super().__init__(**kwargs)
+
+
+class ServerDetailOutputServer:
+    def __init__(self, uuid: str, ram: int, vcpu: int, image: ServerImage,
+                 ip: ServerIP, creation_time: datetime, **kwargs):
+        """
+        :param uuid: id of server; type: str
+        :param image: image of server
         :param vcpu: vcpu of server; type: int
         :param ram: ram of server; type: int
-        :param ip: ip of server; type: ServerCreateOutputServerIP
+        :param ip: ip of server
         :param creation_time: creation time of server; type: datetime
         :param name: name of server; type: str
         """
@@ -146,19 +179,10 @@ class ServerCreateOutputServer:
         self.name = kwargs.get('name', None)
 
 
-class ServerCreateOutput(OutputBase):
-    def __init__(self, server: ServerCreateOutputServer, **kwargs):
-        """
-        :param server: server; type: CreateServerOutputServer
-        """
-        self.server = server
-        super().__init__(**kwargs)
-
-
 class ServerDetailOutput(OutputBase):
-    def __init__(self, server: ServerCreateOutputServer, **kwargs):
+    def __init__(self, server: ServerDetailOutputServer, **kwargs):
         """
-        :param server: server; type: CreateServerOutputServer
+        :param server: server
         """
         self.server = server
         super().__init__(**kwargs)

@@ -9,7 +9,7 @@ from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
 from servers.models import Server, Flavor
-from adapters import inputs
+from adapters import inputs, outputs
 from . import exceptions
 from . import serializers
 from .viewsets import CustomGenericViewSet, str_to_int_or_default
@@ -68,7 +68,16 @@ class ServersViewSet(CustomGenericViewSet):
             ),
         ],
         responses={
-            200: ''''''
+            201: '''    
+                {
+                    "id": "xxx"     # 服务器id; 创建成功
+                }
+            ''',
+            202: '''
+                {
+                    "id": "xxx"     # 服务器id; 已接受创建请求，正在创建中；
+                }            
+            '''
         }
     )
     def create(self, request, *args, **kwargs):
@@ -106,36 +115,52 @@ class ServersViewSet(CustomGenericViewSet):
         out_server = out.server
         server = Server(service=service,
                         instance_id=out_server.uuid,
-                        image_id=image_id,
                         remarks=remarks,
-                        user=request.user
+                        user=request.user,
+                        vcpus=flavor.vcpus,
+                        ram=flavor.ram,
+                        task_status=Server.TASK_IN_CREATING
                         )
         server.save()
+        if service.service_type == service.SERVICE_EVCLOUD:
+            if self._update_server_detail(server):
+                Response(data={'id': server.id}, status=status.HTTP_201_CREATED)
 
-        # 信息不详，尝试获取详细信息
-        if not out_server.ip or not out_server.ip.ipv4:
-            params = inputs.ServerDetailInput(server_id=server.instance_id)
-            try:
-                out = self.request_service(service=service, method='server_detail', params=params)
-                out_server = out.server
-            except exceptions.ServerNotExist as exc:    # 不存在，创建失败
-                server.delete()
-                return Response(data=exc.err_data(), status=exc.status_code)
-            except exceptions.APIException as exc:      #
-                pass
+        return Response(data={'id': server.id}, status=status.HTTP_202_ACCEPTED)
+
+    def _update_server_detail(self, server, task_status: int = None):
+        """
+        尝试更新服务器的详细信息
+        :param server:
+        :param task_status: 设置server的创建状态；默认None忽略
+        :return:
+            True    # success
+            False   # failed
+        """
+        # 尝试获取详细信息
+        params = inputs.ServerDetailInput(server_id=server.instance_id)
+        try:
+            out = self.request_service(service=server.service, method='server_detail', params=params)
+            out_server = out.server
+        except exceptions.APIException as exc:      #
+            return False
 
         try:
             server.name = out_server.name if out_server.name else out_server.uuid
-            server.vcpus = out_server.vcpu if out_server.vcpu else flavor.vcpus
-            server.ram = out_server.ram if out_server.ram else flavor.ram
+            if out_server.vcpu:
+                server.vcpus = out_server.vcpu
+            if out_server.ram:
+                server.ram = out_server.ram
+
             server.ipv4 = out_server.ip.ipv4
             server.image = out_server.image.name
             server.public_ip = out_server.ip.public_ipv4 if out_server.ip.public_ipv4 else False
+            server.task_status = task_status if task_status is not None else server.TASK_CREATED_OK     # 创建成功
             server.save()
         except Exception as e:
-            pass
+            return False
 
-        return Response(data={'id': server.id})
+        return True
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('查询服务器实例信息'),
@@ -279,9 +304,14 @@ class ServersViewSet(CustomGenericViewSet):
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
+        status_code = r.status
+        if status_code in outputs.ServerStatus.normal_values():     # 虚拟服务器状态正常
+            if server.task_status == server.TASK_IN_CREATING:   #
+                self._update_server_detail(server, task_status=server.TASK_CREATED_OK)
+
         return Response(data={
             'status': {
-                'status_code': r.status,
+                'status_code': status_code,
                 'status_test': r.status_mean
             }
         })

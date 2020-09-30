@@ -87,19 +87,17 @@ class EVCloudAdapter(BaseAdapter):
         msg = get_failed_msg(r)
         raise exceptions.APIError(msg, status_code=r.status_code)
 
-    def authenticate(self, username, password):
+    def authenticate(self, params: inputs.AuthenticateInput, **kwargs):
         """
         认证获取 Token
 
-        :param username: 用户名
-        :param password: 密码
         :return:
             outputs.AuthenticateOutput()
         """
         try:
-            auth = self.authenticate_jwt(username=username, password=password)
+            auth = self.authenticate_jwt(username=params.username, password=params.password)
         except exceptions.Error:
-            auth = self.authenticate_token(username=username, password=password)
+            auth = self.authenticate_token(username=params.username, password=params.password)
 
         self.auth = auth
         return auth
@@ -149,7 +147,7 @@ class EVCloudAdapter(BaseAdapter):
             return OutputConverter.to_server_create_output_error(error=e)
 
         rj = r.json()
-        return OutputConverter.to_server_create_output(rj['vm'])
+        return OutputConverter.to_server_create_output(vm_id=rj['vm']['uuid'])
 
     def server_delete(self, params: inputs.ServerDeleteInput, **kwargs):
         url = self.api_builder.vm_detail_url(vm_uuid=params.server_id, query={'force': True})

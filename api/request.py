@@ -40,6 +40,9 @@ def request_service(service, method: str, raise_exception=True, **kwargs):
         except os_exceptions.Error as exc:
             raise_exc = exceptions.APIException(message=exc.message)
             break
+        except Exception as exc:
+            raise_exc = exceptions.APIException(message=str(exc))
+            break
 
     if raise_exception:
         raise raise_exc

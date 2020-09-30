@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import ServiceConfig, DataCenter, ServiceQuota, UserQuota
+from .models import ServiceConfig, DataCenter, DataCenterPrivateQuota, DataCenterShareQuota, UserQuota
 
 
 @admin.register(ServiceConfig)
@@ -20,8 +20,18 @@ class DataCenterAdmin(admin.ModelAdmin):
     filter_horizontal = ('users',)
 
 
-@admin.register(ServiceQuota)
-class ServiceQuotaAdmin(admin.ModelAdmin):
+@admin.register(DataCenterPrivateQuota)
+class DataCenterPrivateQuotaAdmin(admin.ModelAdmin):
+    list_display_links = ('id',)
+    list_display = ('id', 'data_center', 'vcpu_total', 'vcpu_used', 'ram_total', 'ram_used', 'disk_size_total',
+                    'disk_size_used', 'private_ip_total', 'private_ip_used', 'public_ip_total', 'public_ip_used',
+                    'enable')
+
+    list_filter = ('data_center',)
+
+
+@admin.register(DataCenterShareQuota)
+class DataCenterShareQuotaAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
     list_display = ('id', 'data_center', 'vcpu_total', 'vcpu_used', 'ram_total', 'ram_used', 'disk_size_total',
                     'disk_size_used', 'private_ip_total', 'private_ip_used', 'public_ip_total', 'public_ip_used',

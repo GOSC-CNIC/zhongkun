@@ -108,8 +108,8 @@ class Migration(migrations.Migration):
                 ('data_center', models.OneToOneField(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='data_center_quota', to='service.DataCenter', verbose_name='数据中心')),
             ],
             options={
-                'verbose_name': '服务中心资源配额',
-                'verbose_name_plural': '服务中心资源配额',
+                'verbose_name': '服务中心私有资源配额',
+                'verbose_name_plural': '服务中心私有资源配额',
                 'db_table': 'service_quota',
                 'ordering': ['-id'],
             },

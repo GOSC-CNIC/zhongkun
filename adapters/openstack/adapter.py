@@ -24,17 +24,17 @@ class OpenStackAdapter(BaseAdapter):
         api_version = api_version if api_version in ['v3'] else 'v3'
         super().__init__(endpoint_url=endpoint_url, api_version=api_version, auth=auth)
 
-    def authenticate(self, username, password):
+    def authenticate(self, params: inputs.AuthenticateInput, **kwargs):
         """
         认证获取 Token
 
-        :param username: 用户名
-        :param password: 密码
         :return:
-
+            outputs.AuthenticateOutput()
 
         :raises: AuthenticationFailed, Error
         """
+        username = params.username
+        password = params.password
         url = self.endpoint_url + ':5000/v3/auth/tokens'
         auth_data = {"auth": {
             "identity": {
@@ -108,7 +108,7 @@ class OpenStackAdapter(BaseAdapter):
                 num = num + 1
 
             if len(adresses) == 0:
-                return outputs.ServerCreateOutput(ok=False, error=exceptions.Error('server created failed'))
+                return outputs.ServerCreateOutput(ok=False, error=exceptions.Error('server created failed'), server=None)
             r_image = self.get_image(server_created['image']['id'])
             image = outputs.ServerCreateOutputServerImage(
                 name=r_image['name'],

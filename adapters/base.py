@@ -24,12 +24,9 @@ class BaseAdapter:
         self.auth = auth
         self.api_version = api_version
 
-    def authenticate(self, username, password):
+    def authenticate(self, params: inputs.AuthenticateInput, **kwargs):
         """
         认证获取 Token
-
-        :param username:
-        :param password:
         :return:
             outputs.AuthenticateOutput()
 

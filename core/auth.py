@@ -3,6 +3,7 @@ from threading import local
 
 from core import client
 from adapters import exceptions as os_exceptions
+from adapters import inputs
 from service.models import ServiceConfig
 from api import exceptions
 
@@ -47,7 +48,8 @@ class AuthCacheHandler:
 
         s_client = client.get_service_client(service)
         try:
-            auth = s_client.authenticate(username=service.username, password=service.password)
+            params = inputs.AuthenticateInput(username=service.username, password=service.password)
+            auth = s_client.authenticate(params)
         except os_exceptions.AuthenticationFailed:
             raise exceptions.AuthenticationFailed()
 
@@ -72,7 +74,8 @@ class AuthCacheHandler:
 
         cli = client.get_service_vpn_client(service)
         try:
-            auth = cli.authenticate(username=service.vpn_username, password=service.vpn_password)
+            params = inputs.AuthenticateInput(username=service.vpn_username, password=service.vpn_password)
+            auth = cli.authenticate(params)
         except os_exceptions.AuthenticationFailed:
             raise exceptions.AuthenticationFailed()
 

@@ -18,9 +18,10 @@ var VM_STATUS_CN = {
     5: '关机',
     6: '崩溃',
     7: '暂停',
-    8: '故障',  //libvirt预留状态码
     9: '宿主机连接失败',  //宿主机连接失败
-    10: '云主机丢失'  //虚拟机丢失
+    10: '丢失',  //虚拟机丢失
+    11: '正在创建',
+    12: '创建失败'
 };
 
 var VM_STATUS_LABEL = {
@@ -34,7 +35,9 @@ var VM_STATUS_LABEL = {
         7: 'info',
         8: 'default',
         9: 'danger',
-        10: 'warning'
+        10: 'warning',
+        11: 'secondary',
+        12: 'danger'
 };
 
 // 虚拟机操作api构建

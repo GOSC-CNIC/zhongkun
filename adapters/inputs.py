@@ -25,6 +25,20 @@ class InputBase:
             return None
 
 
+class AuthenticateInput(InputBase):
+    def __init__(self, username: str, password: str, **kwargs):
+        """
+        :param username:
+        :param password:
+        :param domain:
+        :param kwargs:
+        """
+        self.username = username
+        self.password = password
+        self.domain = kwargs.get('domain', 'default')
+        super().__init__(**kwargs)
+
+
 class ServerCreateInput(InputBase):
     def __init__(self, ram: int, vcpu: int, image_id: str, **kwargs):
         """

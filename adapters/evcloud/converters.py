@@ -62,12 +62,12 @@ def iso_to_datetime(value, default=datetime(year=1, month=1, day=1, hour=0, minu
 
 class OutputConverter:
     @staticmethod
-    def _server_create_output_server(vm_dict):
+    def _server_detail_output_server(vm_dict):
         """
-        :return: outputs.ServerCreateOutputServer()
+        :return: outputs.ServerDetailOutputServer()
         """
         data = vm_dict
-        image = outputs.ServerCreateOutputServerImage(
+        image = outputs.ServerImage(
             name=data.get('image'),
             system=data.get('image')
         )
@@ -77,8 +77,8 @@ class OutputConverter:
         else:
             server_ip = {'ipv4': data.get('mac_ip'), 'public_ipv4': None}
 
-        ip = outputs.ServerCreateOutputServerIP(**server_ip)
-        server = outputs.ServerCreateOutputServer(
+        ip = outputs.ServerIP(**server_ip)
+        server = outputs.ServerDetailOutputServer(
             uuid=data.get('uuid'),
             ram=data.get('mem'),
             vcpu=data.get('vcpu'),
@@ -89,8 +89,8 @@ class OutputConverter:
         return server
 
     @staticmethod
-    def to_server_create_output(vm_dict):
-        server = OutputConverter._server_create_output_server(vm_dict)
+    def to_server_create_output(vm_id: str):
+        server = outputs.ServerCreateOutputServer(uuid=vm_id)
         return outputs.ServerCreateOutput(server=server)
 
     @staticmethod
@@ -169,7 +169,7 @@ class OutputConverter:
 
     @staticmethod
     def to_server_detail_output(vm: dict):
-        server = OutputConverter._server_create_output_server(vm)
+        server = OutputConverter._server_detail_output_server(vm)
         return outputs.ServerDetailOutput(server=server)
 
     @staticmethod

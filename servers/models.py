@@ -8,23 +8,54 @@ from service.models import ServiceConfig
 User = get_user_model()
 
 
-class Server(models.Model):
+class ServerBase(models.Model):
     """
     虚拟服务器实例
     """
+    TASK_CREATED_OK = 1
+    TASK_IN_CREATING = 2
+    TASK_CREATE_FAILED = 3
+    CHOICES_TASK = (
+        (TASK_CREATED_OK, _('创建成功')),
+        (TASK_IN_CREATING, _('正在创建中')),
+        (TASK_CREATE_FAILED, _('创建失败')),
+    )
+
     id = models.AutoField(primary_key=True, verbose_name='ID')
-    service = models.ForeignKey(to=ServiceConfig, null=True, on_delete=models.SET_NULL, related_name='server_set', verbose_name=_('接入的服务配置'))
     name = models.CharField(max_length=255, verbose_name=_('服务器实例名称'))
     instance_id = models.CharField(max_length=128, verbose_name=_('虚拟主机ID'), help_text=_('各接入服务中虚拟主机的ID'))
     vcpus = models.IntegerField(verbose_name=_('虚拟CPU数'), default=0)
     ram = models.IntegerField(verbose_name=_('内存MB'), default=0)
     ipv4 = models.CharField(max_length=128, verbose_name='IPV4', default='')
     public_ip = models.BooleanField(default=True, verbose_name=_('公/私网'))
-    image_id = models.CharField(max_length=128, verbose_name=_('镜像ID'), default='')
     image = models.CharField(max_length=255, verbose_name=_('镜像系统名称'), default='')
     creation_time = models.DateTimeField(auto_now_add=True, verbose_name=_('创建时间'))
     remarks = models.CharField(max_length=255, default='', verbose_name=_('备注'))
-    user = models.ForeignKey(to=User, verbose_name=_('创建者'), on_delete=models.SET_NULL, related_name='user_servers', null=True)
+    task_status = models.SmallIntegerField(verbose_name=_('创建状态'), choices=CHOICES_TASK, default=TASK_CREATED_OK)
+
+    class Meta:
+        abstract = True
+
+    def do_delete(self):
+        """
+        :return: True or False
+        """
+        try:
+            self.delete()
+        except Exception as e:
+            return False
+
+        return True
+
+
+class Server(ServerBase):
+    """
+    虚拟服务器实例
+    """
+    service = models.ForeignKey(to=ServiceConfig, null=True, on_delete=models.SET_NULL, related_name='server_set',
+                                verbose_name=_('接入的服务配置'))
+    user = models.ForeignKey(to=User, verbose_name=_('创建者'), on_delete=models.SET_NULL, related_name='user_servers',
+                             null=True)
 
     class Meta:
         ordering = ['-id']
@@ -51,17 +82,6 @@ class Server(models.Model):
 
         return False
 
-    def do_delete(self):
-        """
-        :return: True or False
-        """
-        try:
-            self.delete()
-        except Exception as e:
-            return False
-
-        return True
-
     def do_archive(self):
         """
         创建归档记录
@@ -79,7 +99,6 @@ class Server(models.Model):
             a.ram = self.ram
             a.ipv4 = self.ipv4
             a.public_ip = self.public_ip
-            a.image_id = self.image_id
             a.image = self.image
             a.creation_time = self.creation_time
             a.remarks = self.remarks
@@ -95,40 +114,20 @@ class Server(models.Model):
         return True
 
 
-class ServerArchive(models.Model):
+class ServerArchive(ServerBase):
     """
     虚拟服务器实例归档
     """
-    id = models.AutoField(primary_key=True, verbose_name='ID')
-    service = models.ForeignKey(to=ServiceConfig, null=True, on_delete=models.SET_NULL, related_name='server_archive_set', verbose_name=_('接入的服务配置'))
-    name = models.CharField(max_length=255, verbose_name=_('服务器实例名称'))
-    instance_id = models.CharField(max_length=128, verbose_name=_('虚拟主机ID'), help_text=_('各接入服务中虚拟主机的ID'))
-    vcpus = models.IntegerField(verbose_name=_('虚拟CPU数'), default=0)
-    ram = models.IntegerField(verbose_name=_('内存MB'), default=0)
-    ipv4 = models.CharField(max_length=128, verbose_name='IPV4', default='')
-    public_ip = models.BooleanField(default=True, verbose_name=_('公/私网'))
-    image_id = models.CharField(max_length=128, verbose_name=_('镜像ID'), default='')
-    image = models.CharField(max_length=255, verbose_name=_('镜像系统名称'), default='')
-    creation_time = models.DateTimeField(auto_now_add=True, verbose_name=_('创建时间'))
-    remarks = models.CharField(max_length=255, default='', verbose_name=_('备注'))
-    user = models.ForeignKey(to=User, verbose_name=_('创建者'), on_delete=models.SET_NULL, related_name='user_server_archives', null=True)
+    service = models.ForeignKey(to=ServiceConfig, null=True, on_delete=models.SET_NULL,
+                                related_name='server_archive_set', verbose_name=_('接入的服务配置'))
+    user = models.ForeignKey(to=User, verbose_name=_('创建者'), on_delete=models.SET_NULL,
+                             related_name='user_server_archives', null=True)
     deleted_time = models.DateTimeField(verbose_name=_('删除归档时间'), auto_now_add=True)
 
     class Meta:
         ordering = ['-id']
         verbose_name = _('服务器归档记录')
         verbose_name_plural = verbose_name
-
-    def do_delete(self):
-        """
-        :return: True or False
-        """
-        try:
-            self.delete()
-        except Exception as e:
-            return False
-
-        return True
 
 
 class Flavor(models.Model):
