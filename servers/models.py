@@ -104,6 +104,7 @@ class Server(ServerBase):
             a.remarks = self.remarks
             a.user_id = self.user_id
             a.deleted_time = timezone.now()
+            a.task_status = self.task_status
             a.save()
         except Exception as e:
             return False

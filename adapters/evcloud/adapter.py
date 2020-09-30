@@ -157,7 +157,7 @@ class EVCloudAdapter(BaseAdapter):
         except exceptions.Error as e:
             return outputs.ServerDeleteOutput(ok=False, error=e)
 
-        if r.status_code == 200:
+        if r.status_code == 204:
             return outputs.ServerDeleteOutput()
 
         rj = r.json()

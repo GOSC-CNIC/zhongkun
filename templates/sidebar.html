@@ -16,10 +16,10 @@
                     {% get_center_and_services as centers %}
                     {% for c in centers %}
                         <div role="presentation" class="nav-item m-0 p-0">
-                            <li class="nav-list-toggle p-2 btn" data-toggle="collapse" data-target="#service-nav-list-group">
+                            <li class="nav-list-toggle p-2 btn" data-toggle="collapse" data-target="#service-{{ c.id }}-nav-list-group">
                                 <i class="fa fa-list"></i> {{ c.name }} <i class="fa fa-chevron-down"></i>
                             </li>
-                            <div class="collapse show bg-light" id="service-nav-list-group">
+                            <div class="collapse show bg-light" id="service-{{ c.id }}-nav-list-group">
                                 <div class="nav flex-column nav-pills">
                                     {% for s in c.services %}
                                         <a class="nav-link {% ifequal s.id active_service %}active{% endifequal %}" href="{% url 'service:home' s.id %}">{{ s.name }}</a>
