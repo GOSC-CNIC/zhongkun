@@ -75,7 +75,7 @@ function start_vm_ajax(vm_uuid, before_func, complate_func){
         url: api,
         type: 'post',
         data: {
-            'op': 'start',
+            'action': 'start',
         },
         success: function (data, status_text) {
         },
@@ -101,7 +101,7 @@ function reboot_vm_ajax(vm_uuid, before_func, complate_func){
         url: api,
         type: 'post',
         data: {
-            'op': 'reboot',
+            'action': 'reboot',
         },
         success: function (data, status_text) {
         },
@@ -127,7 +127,7 @@ function shutdown_vm_ajax(vm_uuid, before_func, complate_func){
         url: api,
         type: 'post',
         data: {
-            'op': 'shutdown',
+            'action': 'shutdown',
         },
         success: function (data, status_text) {
         },
@@ -153,7 +153,7 @@ function poweroff_vm_ajax(vm_uuid, before_func, complate_func){
         url: api,
         type: 'post',
         data: {
-            'op': 'poweroff',
+            'action': 'poweroff',
         },
         success: function (data, status_text) {
         },
@@ -179,7 +179,7 @@ function delete_vm_ajax(vm_uuid, op='delete', before_func, success_func, complat
         url: api,
         type: 'post',
         data: {
-            'op': op,
+            'action': op,
         },
         success: function (data, status_text) {
             if(typeof(success_func) === "function"){
