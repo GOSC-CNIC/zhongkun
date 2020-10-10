@@ -35,9 +35,11 @@ class ServiceConfig(models.Model):
     """
     SERVICE_EVCLOUD = 0
     SERVICE_OPENSTACK = 1
+    SERVICE_VMWARE = 2
     SERVICE_TYPE_CHOICES = (
         (SERVICE_EVCLOUD, 'EVCloud'),
         (SERVICE_OPENSTACK, 'OpenStack'),
+        (SERVICE_VMWARE, 'Vmware'),
     )
 
     STATUS_ENABLE = 1

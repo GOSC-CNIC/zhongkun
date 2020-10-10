@@ -2,6 +2,9 @@ from datetime import datetime, timedelta, timezone
 import requests
 
 import uuid
+import re
+from pytz import utc
+
 
 from adapters.base import BaseAdapter
 from adapters import inputs
@@ -10,6 +13,54 @@ import time
 
 from adapters import exceptions
 
+datetime_re = re.compile(
+    r'(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<day>\d{1,2})'
+    r'[T ](?P<hour>\d{1,2}):(?P<minute>\d{1,2})'
+    r'(?::(?P<second>\d{1,2})(?:\.(?P<microsecond>\d{1,6})\d{0,6})?)?'
+    r'(?P<tzinfo>Z|[+-]\d{2}(?::?\d{2})?)?$'
+)
+
+def get_fixed_timezone(offset):
+    """Return a tzinfo instance with a fixed offset from UTC."""
+    if isinstance(offset, timedelta):
+        offset = offset.total_seconds() // 60
+    sign = '-' if offset < 0 else '+'
+    hhmm = '%02d%02d' % divmod(abs(offset), 60)
+    name = sign + hhmm
+    return timezone(timedelta(minutes=offset), name)
+
+def parse_datetime(value):
+    """Parse a string and return a datetime.datetime.
+
+    This function supports time zone offsets. When the input contains one,
+    the output uses a timezone with a fixed offset from UTC.
+
+    Raise ValueError if the input is well formatted but not a valid datetime.
+    Return None if the input isn't well formatted.
+    """
+    match = datetime_re.match(value)
+    if match:
+        kw = match.groupdict()
+        kw['microsecond'] = kw['microsecond'] and kw['microsecond'].ljust(6, '0')
+        tzinfo = kw.pop('tzinfo')
+        if tzinfo == 'Z':
+            tzinfo = utc
+        elif tzinfo is not None:
+            offset_mins = int(tzinfo[-2:]) if len(tzinfo) > 3 else 0
+            offset = 60 * int(tzinfo[1:3]) + offset_mins
+            if tzinfo[0] == '-':
+                offset = -offset
+            tzinfo = get_fixed_timezone(offset)
+        kw = {k: int(v) for k, v in kw.items() if v is not None}
+        kw['tzinfo'] = tzinfo
+        return datetime(**kw)
+def iso_to_datetime(value, default=datetime(year=1, month=1, day=1, hour=0, minute=0, second=0, tzinfo=utc)):
+    try:
+        parsed = parse_datetime(value)
+        if parsed is not None:
+            return default
+    except (ValueError, TypeError):
+        return default
 
 class OpenStackAdapter(BaseAdapter):
     """
@@ -96,40 +147,50 @@ class OpenStackAdapter(BaseAdapter):
 
             r = requests.post(server_url, headers=headers, json=server_data)
             server_id = r.json()['server']['id']
-            r = requests.get(server_url + '/' + server_id, headers=headers)
-            server_created = r.json()['server']
-            adresses = r.json()['server']['addresses']
-            num = 0
-            while len(adresses) <= 0 and num <= 20:
-                time.sleep(1)
-                r = requests.get(server_url + '/' + server_id, headers=headers)
-                server_created = r.json()['server']
-                adresses = r.json()['server']['addresses']
-                num = num + 1
-
-            if len(adresses) == 0:
-                return outputs.ServerCreateOutput(ok=False, error=exceptions.Error('server created failed'), server=None)
-            r_image = self.get_image(server_created['image']['id'])
-            image = outputs.ServerCreateOutputServerImage(
-                name=r_image['name'],
-                system=r_image['os']
-            )
-            ip = outputs.ServerCreateOutputServerIP(
-                ipv4=adresses[list(adresses.keys())[0]][0]['addr'],
-                public_ipv4=False
-            )
             server = outputs.ServerCreateOutputServer(
-                uuid=server_created['id'],
-                ram=params.ram,
-                vcpu=params.vcpu,
-                ip=ip,
-                image=image,
-                creation_time=server_created['created'],
-                name=server_created['name']
+                uuid=server_id
             )
             return outputs.ServerCreateOutput(server=server)
         except Exception as e:
             return outputs.ServerCreateOutput(ok=False, error=exceptions.Error('server created failed'), server=None)
+
+    def server_detail(self, params: inputs.ServerDetailInput, **kwargs):
+        """
+        :return:
+            outputs.ServerDetailOutput()
+        """
+        try:
+            headers = {self.auth.header.header_name: self.auth.header.header_value}
+            server_url = self.endpoint_url + ':8774/v2.1/servers'
+
+            r = requests.get(server_url + '/' + params.server_id, headers=headers)
+            server_temp = r.json()['server']
+            try:
+                adresses = server_temp['addresses']
+                server_ip = {'ipv4': adresses[list(adresses.keys())[0]][0]['addr'], 'public_ipv4': None}
+            except Exception as e:
+                server_ip = {'ipv4': 'ip not exist', 'public_ipv4': None}
+
+            ip = outputs.ServerIP(**server_ip)
+            image_temp=self.get_image(server_temp['image']['id'])
+
+            image = outputs.ServerImage(
+                name=image_temp['name'],
+                system=image_temp['os']
+            )
+
+            flavor=self.get_flaor(server_temp['flavor']['id'])
+            server = outputs.ServerDetailOutputServer(
+                uuid=server_temp['id'],
+                ram=flavor['flavor']['ram'],
+                vcpu=flavor['flavor']['vcpus'],
+                ip=ip,
+                image=image,
+                creation_time=iso_to_datetime(server_temp['created'])
+            )
+            return outputs.ServerDetailOutput(server=server)
+        except exceptions.Error as e:
+            return outputs.ServerDetailOutput(ok=False, error=exceptions.Error('server detail failed'), server=None)
 
     def server_delete(self, params: inputs.ServerDeleteInput, **kwargs):
         """
@@ -288,6 +349,19 @@ class OpenStackAdapter(BaseAdapter):
         except Exception as e:
             raise exceptions.Error('get image failed')
 
+    def get_flaor(self, flavor_id):
+        url = self.endpoint_url + ':8774/v2.1/flavors/' + flavor_id
+        headers = {self.auth.header.header_name: self.auth.header.header_value}
+        try:
+            print(url)
+            r = requests.get(url, headers=headers)
+            if r.status_code != 200:
+                raise exceptions.Error('get flavor failed')
+            image = r.json()
+            return image
+        except Exception as e:
+            raise exceptions.Error('get flavor failed')
+
     def get_or_create_flavor(self, ram: int, vcpu: int):
         flavor_url = self.endpoint_url + ':8774/v2.1/flavors/detail'
         flavor_url_create = self.endpoint_url + ':8774/v2.1/flavors'
@@ -346,22 +420,3 @@ class OpenStackAdapter(BaseAdapter):
             return detail
         except Exception as e:
             raise e
-
-
-# adapter = OpenstackAdapter('http://10.0.200.215')
-# adapter.authenticate('admin', '123456')
-# adapter.list_networks('1')
-# images = adapter.list_images(params=None)
-# server = inputs.ServerStatusInput('920dca92-e974-40c9-90ac-108da39f5256')
-# status = adapter.server_status(server)
-# vnc = adapter.server_vnc(server)
-# # adapter.create_flavor()
-#
-# server_data = inputs.ServerCreateInput(2000, 2, network_id='df44279f-5218-4a04-95f0-8746e7a8df87', remarks='xxxx',
-#                                        image_id='378bc843-4a08-41fe-8de3-88210b6ee273')
-# adapter.server_create(server_data)
-# print(status)
-
-# curl  -s \
-#   -H "X-Auth-Token: gAAAAABfaV0wbjGKxz7EcFyAI-NgmzTGxc1qdSMIACpQtAfrPAfnntaJpfG07uOgdhaQf7OpfC3e75UhGQk3CAN0bBNZYq4K3hOo5HNYI1BCZTrzVc8G73_Dk2MImEvUMETWSXcOO2mH3f2UBo_N7hiav32JpC-AS5XVlSAlUg5Qa_d6q993ZuU" \
-#   "http://10.0.200.215:9292/v2.1/images"; echo
