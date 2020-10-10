@@ -98,7 +98,7 @@ class DataCenterPrivateQuota(models.Model):
     """
     数据中心私有资源配额和限制
     """
-    id = models.IntegerField(verbose_name='ID', primary_key=True)
+    id = models.AutoField(verbose_name='ID', primary_key=True)
     data_center = models.OneToOneField(to=DataCenter, null=True, on_delete=models.SET_NULL,
                                        related_name='data_center_private_quota', verbose_name=_('数据中心'))
     private_ip_total = models.IntegerField(verbose_name=_('总私网IP数'), default=0)
@@ -124,7 +124,7 @@ class DataCenterShareQuota(models.Model):
     """
     数据中心分享资源配额和限制
     """
-    id = models.IntegerField(verbose_name='ID', primary_key=True)
+    id = models.AutoField(verbose_name='ID', primary_key=True)
     data_center = models.OneToOneField(to=DataCenter, null=True, on_delete=models.SET_NULL,
                                        related_name='data_center_share_quota', verbose_name=_('数据中心'))
     private_ip_total = models.IntegerField(verbose_name=_('总私网IP数'), default=0)
@@ -150,7 +150,7 @@ class UserQuota(models.Model):
     """
     用户资源配额限制
     """
-    id = models.IntegerField(verbose_name='ID', primary_key=True)
+    id = models.AutoField(verbose_name='ID', primary_key=True)
     user = models.OneToOneField(to=User, null=True, on_delete=models.SET_NULL,
                                 related_name='user_quota', verbose_name=_('用户'))
     private_ip_total = models.IntegerField(verbose_name=_('总私网IP数'), default=0)
@@ -169,3 +169,27 @@ class UserQuota(models.Model):
         ordering = ['-id']
         verbose_name = _('用户资源配额')
         verbose_name_plural = verbose_name
+
+    @property
+    def vcpu_free_count(self):
+        return self.vcpu_total - self.vcpu_used
+
+    @property
+    def ram_free_count(self):
+        return self.ram_total - self.ram_used
+
+    @property
+    def disk_free_size(self):
+        return self.disk_size_total - self.disk_size_used
+
+    @property
+    def public_ip_free_count(self):
+        return self.public_ip_total - self.public_ip_used
+
+    @property
+    def private_ip_free_count(self):
+        return self.private_ip_total - self.private_ip_used
+
+    @property
+    def all_ip_count(self):
+        return self.private_ip_total + self.public_ip_total

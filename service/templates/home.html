@@ -43,59 +43,148 @@
         </ul>
     </div>
     <div class="mt-2">
-        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-2 row-cols-lg-3">
-            <div class="col mb-4">
-                <a class="card text-dark h-100"
-                    {% if active_service %}
-                        href="{% url 'servers:service-server-list' active_service %}"
-                    {% else %}
-                        href="{% url 'servers:server-list' %}"
-                    {% endif %}
-                >
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4">
+            <div class="col mb-2 mt-2">
+                <div class="card text-dark h-100">
                     <div class="card-body">
-                        <p>{% trans '云服务器' %} <i class="fa fa-desktop"></i> <span class="badge badge-primary badge-pill">{{ servers_count }}</span></p>
-                        {% if servers %}
-                            <table class="table text-center" style="table-layout:fixed">
-                                <thead>
-                                <tr>
-                                    <th scope="col">IP</th>
-                                    <th scope="col">备注</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                {% for s in servers %}
-                                    <tr>
-                                        <th scope="row">{{ s.ipv4 }}</th>
-                                        <td class="text-overflow-hide">{{ s.remarks }}</td>
-                                    </tr>
-                                {% endfor %}
-                                </tbody>
-                            </table>
-                        {% else %}
-                            <p>无云服务器</p>
-                        {% endif %}
+                        <div><p class="text-center">{% trans '云服务器' %} <i class="fa fa-desktop"></i> <span class="badge badge-primary badge-pill">{{ servers_count }}</span></p></div>
+                        <canvas id="id-chart-quota-server"></canvas>
                     </div>
-                </a>
+                </div>
             </div>
-            <div class="col mb-4">
-                {% if is_need_vpn %}
-                    <a class="card text-dark h-100" href="{% url 'vpn:service-vpn' active_service %}">
-                        <div class="card-body">
-                            <p>VPN</p>
-                        </div>
-                    </a>
-                {% else %}
-                    <div class="card text-dark h-100">
-                        <div class="card-body">
-                            <p>此服务不需要VPN</p>
-                        </div>
+            <div class="col mb-2 mt-2">
+                <div class="card text-dark h-100">
+                    <div class="card-body">
+                        <canvas id="id-chart-quota-vcpu"></canvas>
                     </div>
-                {% endif %}
+                </div>
+            </div>
+            <div class="col mb-2 mt-2">
+                <div class="card text-dark h-100">
+                    <div class="card-body">
+                        <canvas id="id-chart-quota-ram"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col mb-2 mt-2">
+                <div class="card text-dark h-100">
+                    <div class="card-body">
+                        <canvas id="id-chart-quota-disk"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col mb-2 mt-2">
+                <div class="card text-dark h-100">
+                    <div class="card-body">
+                        <canvas id="id-chart-quota-public"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col mb-2 mt-2">
+                <div class="card text-dark h-100">
+                    <div class="card-body">
+                        <canvas id="id-chart-quota-private"></canvas>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 {% endblock %}
 
 {% block script %}
+    <script type="text/javascript" src="{% static 'chartjs/Chart-2.9.3.min.js' %}"></script>
+    <script>
+        let data_vcpu = {% if quota.vcpu_total <= 0 %}[0.1, 0]{% else %}
+            [{{ quota.vcpu_used }}, {{ quota.vcpu_free_count }}]{% endif %};
+        let title_vcpu = 'vCPU ({{ quota.vcpu_total }})';
+        let data_ram = {% if quota.ram_total <= 0 %}[0.1, 0]{% else %}
+            [{{ quota.ram_used }}, {{ quota.ram_free_count }}]{% endif %};
+        let title_ram = 'RAM ({{ quota.ram_total }})MB';
+        let data_disk = {% if quota.disk_size_total <= 0 %}[0.1, 0]{% else %}
+            [{{ quota.disk_size_used }}, {{ quota.disk_free_size }}]{% endif %};
+        let title_disk = 'Disk Size ({{ quota.disk_size_total }})GB';
+        let data_public = {% if quota.public_ip_total <= 0 %}[0.1, 0]{% else %}
+            [{{ quota.public_ip_used }}, {{ quota.public_ip_free_count }}]{% endif %};
+        let title_public = 'Public IP ({{ quota.public_ip_total }})';
+        let data_private = {% if quota.private_ip_total <= 0 %}[0.1, 0]{% else %}
+            [{{ quota.private_ip_used }}, {{ quota.private_ip_free_count }}]{% endif %};
+        let title_private = 'Private IP ({{ quota.private_ip_total }})';
+        let data_server = {% if quota.all_ip_count <= 0 and servers_count <= 0 %}[0.1, 0]{% else %}[{{ servers_count }}, {{ quota.all_ip_count|subtract_min_0:servers_count }}]{% endif %};
+        {% verbatim script %}
+        window.chartColors = {
+            red: 'rgb(255, 99, 132)',
+            orange: 'rgb(255, 159, 64)',
+            yellow: 'rgb(255, 205, 86)',
+            green: 'rgb(80,192,83)',
+            blue: 'rgb(54, 162, 235)',
+            purple: 'rgb(153, 102, 255)',
+            grey: 'rgb(201, 203, 207)'
+        };
+        function create_chart(ctx, type, data, options){
+            return new Chart(ctx, {
+                type: type,
+                data: data,
+                options: options
+            })
+        }
 
+        //@title: title.text
+        //@data: datasets.data
+        function create_chart_pie(ctx, title, data){
+            let title_display = false;
+            if (title){
+                title_display = true;
+            }
+            return create_chart(ctx, 'pie', {
+                labels: ['已用', '可用'],
+                datasets: [{
+                    data: data,
+                    backgroundColor: [
+						window.chartColors.grey,
+						window.chartColors.green
+					],
+                    borderWidth: 2
+                }]
+            }, {
+                title: {
+                    display: title_display,
+                    text: title
+                },
+                legend: {
+                    position: 'right'
+                }
+            })
+        }
+
+        let canvas_server = document.getElementById('id-chart-quota-server').getContext('2d');
+        let canvas_vcpu = document.getElementById('id-chart-quota-vcpu').getContext('2d');
+        let canvas_ram = document.getElementById('id-chart-quota-ram').getContext('2d');
+        let canvas_disk = document.getElementById('id-chart-quota-disk').getContext('2d');
+        let canvas_public = document.getElementById('id-chart-quota-public').getContext('2d');
+        let canvas_private = document.getElementById('id-chart-quota-private').getContext('2d');
+        window.chart_server = create_chart(canvas_server, 'doughnut', {
+                labels: ['已创建', '可创建'],
+                datasets: [{
+                    data: data_server,
+                    backgroundColor: [
+						window.chartColors.blue,
+						window.chartColors.green
+					],
+                    borderWidth: 2
+                }]
+            }, {
+                legend: {
+                    position: 'right'
+                },
+                cutoutPercentage:80,
+                circumference: Math.PI,
+                rotation:Math.PI
+            });
+        window.chart_quota_vcpu = create_chart_pie(canvas_vcpu, title_vcpu, data_vcpu);
+        window.chart_quota_ram = create_chart_pie(canvas_ram, title_ram, data_ram);
+        window.chart_quota_disk = create_chart_pie(canvas_disk, title_disk, data_disk);
+        window.chart_quota_public = create_chart_pie(canvas_public, title_public, data_public);
+        window.chart_quota_private = create_chart_pie(canvas_private, title_private, data_private);
+        {% endverbatim script %}
+    </script>
 {% endblock %}
