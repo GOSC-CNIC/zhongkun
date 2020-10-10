@@ -177,7 +177,7 @@
     // 加载配置下拉框渲染模板
     function render_flavor_select_items(data){
         let ret='';
-        let t = '<option value="{0}">vcpus:{1}/ram:{2}MB</option>';
+        let t = '<option value="{0}">vCPU:{1}/RAM:{2}MB</option>';
         for(let i=0; i<data.length; i++){
             let s = t.format([data[i]['id'], data[i]['vcpus'], data[i]['ram']]);
             ret = ret.concat(s);

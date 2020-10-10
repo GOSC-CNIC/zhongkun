@@ -51,3 +51,14 @@ def sizeformat(value, arg="B"):
         value = ugettext("%s PB") % filesize_number_format(bytes / PB)
 
     return avoid_wrapping(value)
+
+
+@register.filter
+def subtract(value, arg):
+    return value - arg
+
+
+@register.filter
+def subtract_min_0(value, arg):
+    v = value - arg
+    return 0 if v < 0 else v

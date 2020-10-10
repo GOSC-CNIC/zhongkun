@@ -165,7 +165,21 @@ class ServersViewSet(CustomGenericViewSet):
     @swagger_auto_schema(
         operation_summary=gettext_lazy('查询服务器实例信息'),
         responses={
-            200: ''''''
+            200: """
+            {
+              "server": {
+                "id": 13,
+                "name": "bfbdcbce3e904615af49377fdc2f2ea9",
+                "vcpus": 1,
+                "ram": 1024,
+                "ipv4": "10.0.201.2",
+                "public_ip": false,
+                "image": "CentOS_8",
+                "creation_time": "2020-09-23T07:10:14.009418Z",
+                "remarks": ""
+              }
+            }
+            """
         }
     )
     def retrieve(self, request, *args, **kwargs):
@@ -202,7 +216,28 @@ class ServersViewSet(CustomGenericViewSet):
         return Response(data={'server': serializer.data})
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('删除服务器实例')
+        operation_summary=gettext_lazy('删除服务器实例'),
+        responses={
+            204: """NO CONTENT""",
+            403: """
+                {
+                    "code": "AccessDenied",
+                    "message": "xxx"
+                }
+                """,
+            404: """
+                {
+                    "code": "ServerNotExist",
+                    "message": "xxx"
+                }
+                """,
+            500: """
+                {
+                    "code": "InternalError",
+                    "message": "xxx"
+                }
+                """
+        }
     )
     def destroy(self, request, *args, **kwargs):
         server_id = kwargs.get(self.lookup_field, '')
@@ -237,26 +272,41 @@ class ServersViewSet(CustomGenericViewSet):
             }
         ),
         responses={
-            200: '''
+            200: """
                 {
-                    'code': 200,
-                    'code_text': '操作成功'
+                    "action": "xxx"
                 }
-                '''
+                """,
+            400: """
+                {
+                    "code": "InvalidArgument",
+                    "message": "xxx"
+                }
+                """,
+            500: """
+                {
+                    "code": "InternalError",
+                    "message": "xxx"
+                }
+                """
         }
     )
     @action(methods=['post'], url_path='action', detail=True, url_name='server-action')
     def server_action(self, request, *args, **kwargs):
         server_id = kwargs.get(self.lookup_field, '')
         try:
-            op = request.data.get('op', None)
+            act = request.data.get('action', None)
         except Exception as e:
             exc = exceptions.InvalidArgument(_('参数有误') + ',' + str(e))
             return Response(data=exc.err_data(), status=exc.status_code)
 
-        ops = inputs.ServerAction.values    # ['start', 'reboot', 'shutdown', 'poweroff', 'delete', 'delete_force']
-        if not op or op not in ops:
-            exc = exceptions.InvalidArgument(_('op参数无效'))
+        actions = inputs.ServerAction.values    # ['start', 'reboot', 'shutdown', 'poweroff', 'delete', 'delete_force']
+        if act is None:
+            exc = exceptions.InvalidArgument(_('action参数是必须的'))
+            return Response(data=exc.err_data(), status=exc.status_code)
+
+        if act not in actions:
+            exc = exceptions.InvalidArgument(_('action参数无效'))
             return Response(data=exc.err_data(), status=exc.status_code)
 
         try:
@@ -264,26 +314,47 @@ class ServersViewSet(CustomGenericViewSet):
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
-        params = inputs.ServerActionInput(server_id=server.instance_id, action=op)
+        params = inputs.ServerActionInput(server_id=server.instance_id, action=act)
         service = server.service
         try:
             r = self.request_service(service, method='server_action', params=params)
-        except exceptions.AuthenticationFailed as exc:
-            return Response(data=exc.err_data(), status=500)
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
-        if op in ['delete', 'delete_force']:
+        if act in ['delete', 'delete_force']:
             server.do_archive()
-        return Response({'code': 'OK', 'message': 'Success'})
+
+        return Response({'action': act})
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('服务器状态查询'),
         responses={
-            200: '''
+            200: """
                 {
+                  "status": {
+                    "status_code": 1,
+                    "status_text": "running"
+                  }
                 }
-                '''
+                """,
+            403: """
+                {
+                    "code": "AccessDenied",
+                    "message": "xxx"
+                }
+                """,
+            404: """
+                    {
+                        "code": "ServerNotExist",
+                        "message": "xxx"
+                    }
+                    """,
+            500: """
+                {
+                    "code": "InternalError",
+                    "message": "xxx"
+                }
+                """
         }
     )
     @action(methods=['get'], url_path='status', detail=True, url_name='server_status')
@@ -299,8 +370,6 @@ class ServersViewSet(CustomGenericViewSet):
         service = server.service
         try:
             r = self.request_service(service, method='server_status', params=params)
-        except exceptions.AuthenticationFailed as exc:
-            return Response(data=exc.err_data(), status=500)
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
@@ -312,7 +381,7 @@ class ServersViewSet(CustomGenericViewSet):
         return Response(data={
             'status': {
                 'status_code': status_code,
-                'status_test': r.status_mean
+                'status_text': r.status_mean
             }
         })
 
@@ -320,9 +389,30 @@ class ServersViewSet(CustomGenericViewSet):
         operation_summary=gettext_lazy('服务器VNC'),
         responses={
             200: '''
-                    {
-                    }
-                    '''
+                {
+                  "vnc": {
+                    "url": "xxx"
+                  }
+                }
+                ''',
+            403: """
+                {
+                    "code": "AccessDenied",
+                    "message": "xxx"
+                }
+                """,
+            404: """
+                {
+                    "code": "ServerNotExist",
+                    "message": "xxx"
+                }
+                """,
+            500: """
+                {
+                    "code": "InternalError",
+                    "message": "xxx"
+                }
+                """
         }
     )
     @action(methods=['get'], url_path='vnc', detail=True, url_name='server_vnc')
@@ -338,8 +428,6 @@ class ServersViewSet(CustomGenericViewSet):
         params = inputs.ServerVNCInput(server_id=server.instance_id)
         try:
             r = self.request_service(service, method='server_vnc', params=params)
-        except exceptions.AuthenticationFailed as exc:
-            return Response(data=exc.err_data(), status=500)
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
@@ -364,7 +452,25 @@ class ServersViewSet(CustomGenericViewSet):
                 {
                     "remarks": "xxx"
                 }
-            '''
+            ''',
+            403: """
+                    {
+                        "code": "AccessDenied",
+                        "message": "xxx"
+                    }
+                    """,
+            404: """
+                    {
+                        "code": "ServerNotExist",
+                        "message": "xxx"
+                    }
+                    """,
+            500: """
+                    {
+                        "code": "InternalError",
+                        "message": "xxx"
+                    }
+                    """
         }
     )
     @action(methods=['patch'], url_path='remark', detail=True, url_name='server-remark')
@@ -375,12 +481,15 @@ class ServersViewSet(CustomGenericViewSet):
             return Response(data=exceptions.InvalidArgument(message='query param "remark" is required'))
 
         try:
-            r = Server.objects.filter(pk=server_id).update(remarks=remarks)
+            server = self.get_server(server_id=server_id, user=request.user)
+        except exceptions.APIException as exc:
+            return Response(data=exc.err_data(), status=exc.status_code)
+
+        try:
+            server.remarks = remarks
+            server.save(update_fields=['remarks'])
         except Exception as exc:
             return Response(data=exceptions.APIException(extend_msg=str(exc)), status=500)
-
-        if r == 0:
-            return Response(data=exceptions.NotFound(extend_msg='云服务器不存在'))
 
         return Response(data={'remarks': remarks})
 
@@ -407,7 +516,7 @@ class ImageViewSet(CustomGenericViewSet):
     系统镜像视图
     """
     permission_classes = [IsAuthenticated, ]
-    pagination_class = LimitOffsetPagination
+    # pagination_class = LimitOffsetPagination
     lookup_field = 'id'
     lookup_value_regex = '[0-9a-z-]+'
     serializer_class = Serializer
@@ -461,7 +570,7 @@ class NetworkViewSet(CustomGenericViewSet):
     网络子网视图
     """
     permission_classes = [IsAuthenticated, ]
-    pagination_class = LimitOffsetPagination
+    # pagination_class = LimitOffsetPagination
     lookup_field = 'id'
     lookup_value_regex = '[0-9a-z-]+'
     serializer_class = Serializer
@@ -612,7 +721,7 @@ class FlavorViewSet(CustomGenericViewSet):
     """
     queryset = []
     permission_classes = [IsAuthenticated]
-    pagination_class = LimitOffsetPagination
+    # pagination_class = LimitOffsetPagination
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举配置样式flavor'),
