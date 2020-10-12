@@ -271,7 +271,13 @@ class EVCloudAdapter(BaseAdapter):
         :return:    outputs.ListNetworkOutput()
         """
         center_id = int(params.region_id)
-        url = self.api_builder.vlan_base_url(query={'center_id': center_id})
+        public = params.public
+        if public is not None:
+            query = {'center_id': center_id, 'public': str(public).lower()}
+        else:
+            query = {'center_id': center_id}
+
+        url = self.api_builder.vlan_base_url(query=query)
         try:
             headers = self.get_auth_header()
             r = self.do_request(method='get', url=url, headers=headers)
@@ -280,6 +286,24 @@ class EVCloudAdapter(BaseAdapter):
 
         rj = r.json()
         return OutputConverter().to_list_network_output(networks=rj['results'])
+
+    def network_detail(self, params: inputs.NetworkDetailInput, **kwargs):
+        """
+        查询子网网络信息
+
+        :return:
+            outputs.NetworkDetailOutput()
+        """
+        url = self.api_builder.vlan_detail_url(pk=params.network_id)
+
+        try:
+            headers = self.get_auth_header()
+            r = self.do_request(method='get', url=url, headers=headers)
+        except exceptions.Error as e:
+            return OutputConverter().to_network_detail_output_error(error=e)
+
+        rj = r.json()
+        return OutputConverter().to_network_detail_output(net=rj)
 
     def list_groups(self, region_id: str, headers: dict = None):
         """
@@ -291,17 +315,6 @@ class EVCloudAdapter(BaseAdapter):
         """
         center_id = int(region_id)
         url = self.api_builder.group_base_url(query={'center_id': center_id})
-        r = self.do_request(method='get', url=url, headers=headers)
-        return r.json()
-
-    def list_flavors(self, headers: dict = None):
-        """
-        列举配置样式
-
-        :param headers:
-        :return:
-        """
-        url = self.api_builder.flavor_base_url()
         r = self.do_request(method='get', url=url, headers=headers)
         return r.json()
 
@@ -347,26 +360,3 @@ class EVCloudAdapter(BaseAdapter):
     def get_vpn_ca_file_url(self, **kwargs):
         return self.api_builder.vpn_ca_file_url()
 
-    def get_network(self, network_id, headers: dict = None):
-        """
-        查询子网信息
-
-        :param network_id: str or int
-        :param headers:
-        :return:
-        """
-        url = self.api_builder.vlan_detail_url(pk=network_id)
-        r = self.do_request(method='get', url=url, headers=headers)
-        return r.json()
-
-    def get_flavor(self, flavor_id, headers: dict = None):
-        """
-        查询配置样式
-
-        :param flavor_id:
-        :param headers:
-        :return:
-        """
-        url = self.api_builder.flavor_detail_url(pk=flavor_id)
-        r = self.do_request(method='get', url=url, headers=headers)
-        return r.json()

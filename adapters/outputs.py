@@ -269,3 +269,13 @@ class ListNetworkOutput(OutputBase):
         """
         self.networks = networks
         super().__init__(**kwargs)
+
+
+class NetworkDetail(ListNetworkOutputNetwork):
+    pass
+
+
+class NetworkDetailOutput(OutputBase):
+    def __init__(self, network: NetworkDetail = None, **kwargs):
+        self.network = network
+        super().__init__(**kwargs)

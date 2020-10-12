@@ -95,3 +95,11 @@ class BaseAdapter:
         """
         raise NotImplementedError('`list_networks()` must be implemented.')
 
+    def network_detail(self, params: inputs.NetworkDetailInput, **kwargs):
+        """
+        查询子网网络信息
+
+        :return:
+            outputs.NetworkDetailOutput()
+        """
+        raise NotImplementedError('`network_detail()` must be implemented.')

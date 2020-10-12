@@ -122,8 +122,17 @@ class ListNetworkInput(InputBase):
     def __init__(self, region_id: str, public: bool = None, **kwargs):
         """
         :param region_id: 区域/分中心id; type: str; required: False
-        :param public: 网络类型帅选条件；True(公网网段);False(私网网段);默认None(忽略)
+        :param public: 网络类型筛选条件；True(公网网段);False(私网网段);默认None(忽略)
         """
         self.region_id = region_id
         self.public = public
+        super().__init__(**kwargs)
+
+
+class NetworkDetailInput(InputBase):
+    def __init__(self, network_id: str, **kwargs):
+        """
+        :param network_id: 网络网段id; type: str; required: False
+        """
+        self.network_id = network_id
         super().__init__(**kwargs)

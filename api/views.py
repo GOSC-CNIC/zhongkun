@@ -571,7 +571,7 @@ class NetworkViewSet(CustomGenericViewSet):
     """
     permission_classes = [IsAuthenticated, ]
     # pagination_class = LimitOffsetPagination
-    lookup_field = 'id'
+    lookup_field = 'network_id'
     lookup_value_regex = '[0-9a-z-]+'
     serializer_class = Serializer
 
@@ -616,6 +616,47 @@ class NetworkViewSet(CustomGenericViewSet):
         serializer = serializers.NetworkSerializer(r.networks, many=True)
         return Response(data=serializer.data)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询网络信息'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='service_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                required=True,
+                description='服务id'
+            ),
+        ],
+        responses={
+            200: """
+                  {
+                    "id": "2",
+                    "name": "private_10.108.50.0",
+                    "public": false,
+                    "segment": "10.108.50.0"
+                  }
+                """
+        }
+    )
+    def retrieve(self, request, *args, **kwargs):
+        try:
+            service = self.get_service(request)
+        except exceptions.APIException as exc:
+            return Response(exc.err_data(), status=exc.status_code)
+
+        network_id = kwargs.get(self.lookup_field)
+
+        params = inputs.NetworkDetailInput(network_id=network_id)
+        try:
+            r = self.request_service(service, method='network_detail', params=params)
+        except exceptions.AuthenticationFailed as exc:
+            return Response(data=exc.err_data(), status=500)
+        except exceptions.APIException as exc:
+            return Response(data=exc.err_data(), status=exc.status_code)
+
+        serializer = serializers.NetworkSerializer(r.network)
+        return Response(data=serializer.data)
+
 
 class VPNViewSet(CustomGenericViewSet):
     """
@@ -650,6 +691,10 @@ class VPNViewSet(CustomGenericViewSet):
         try:
             service = self.get_service(request, lookup=self.lookup_field, in_='path')
         except exceptions.APIException as exc:
+            return Response(exc.err_data(), status=exc.status_code)
+
+        if not service.need_vpn:
+            exc = exceptions.NoSupportVPN()
             return Response(exc.err_data(), status=exc.status_code)
 
         try:
@@ -700,6 +745,10 @@ class VPNViewSet(CustomGenericViewSet):
         try:
             service = self.get_service(request, lookup=self.lookup_field, in_='path')
         except exceptions.APIException as exc:
+            return Response(exc.err_data(), status=exc.status_code)
+
+        if not service.need_vpn:
+            exc = exceptions.NoSupportVPN()
             return Response(exc.err_data(), status=exc.status_code)
 
         try:

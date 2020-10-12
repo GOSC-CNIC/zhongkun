@@ -53,6 +53,12 @@ class BadRequest(APIException):
     default_status_code = 400
 
 
+class NoSupportVPN(APIException):
+    default_message = 'This service does not provide VPN support.'
+    default_code = 'NoSupportVPN'
+    default_status_code = 405
+
+
 class InvalidArgument(BadRequest):
     default_message = 'Invalid Argument.'
     default_code = 'InvalidArgument'

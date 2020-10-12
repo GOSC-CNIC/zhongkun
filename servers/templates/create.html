@@ -29,12 +29,15 @@
                     </div>
                     <div class="form-group row">
                         <label for="id-network" class="col-sm-2 text-right col-form-label">{% trans '网络' %}</label>
-                        <div class="col-sm-7">
+                        <div class="col-sm-2">
+                            <select class="form-control" id="id-network-tag">
+                                <option value="0">{% trans '全部' %}</option>
+                                <option value="1">{% trans '公网' %}</option>
+                                <option value="2">{% trans '私网' %}</option>
+                            </select>
+                        </div>
+                        <div class="col-sm-5">
                             <select name="network_id" class="form-control" id="id-network">
-                                <option value="">自动选择</option>
-                                {% for n in networks %}
-                                    <option value="{{ n.id }}" {% if n.id == network_id %}selected{% endif %}>{{ n.name }}</option>
-                                {% endfor %}
                             </select>
                         </div>
                     </div>

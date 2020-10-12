@@ -68,7 +68,8 @@
             return false;
         }
         if (!obj.network_id){
-            delete obj.network_id;
+            alert('请选择网络');
+            return false;
         }
         if(!obj.image_id){
             alert('请选择系统镜像');
@@ -220,10 +221,10 @@
 
      // 加载网络下拉框渲染模板
     function render_network_select_items(data){
-        let ret='';
-        let t = '<option value="{0}">{1}</option>';
+        let ret='<option value="" style="display: none">--</option>';
+        let t = '<option value="{0}" data-tag="{1}">{2}</option>';
         for(let i=0; i<data.length; i++){
-            let s = t.format([data[i]['id'], data[i]['name']]);
+            let s = t.format([data[i]['id'], data[i]['public'], data[i]['name']]);
             ret = ret.concat(s);
         }
         return ret;
@@ -259,6 +260,24 @@
             }
         });
     }
+
+    $("#id-network-tag").change(function (e){
+        e.preventDefault();
+
+        let tag = $("#id-network-tag").val();
+        let select_network = $('#id-network');
+        if (tag === "1"){
+            select_network.find('option[data-tag="true"]').attr("style", "display: block");
+            select_network.find('option[data-tag="false"]').attr("style", "display: none");
+            select_network.find('option').prop("selected",'');
+        }else if (tag === "2"){
+            $('#id-network option[data-tag="true"]').attr("style", "display: none");
+            $('#id-network option[data-tag="false"]').attr("style", "display: block");
+            select_network.find('option').prop("selected",'');
+        }else {
+            $('#id-network option').attr("style", "display: block");
+        }
+    });
 
     function update_select(){
         image_select_update();
