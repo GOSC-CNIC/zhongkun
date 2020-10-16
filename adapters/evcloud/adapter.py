@@ -53,7 +53,8 @@ class EVCloudAdapter(BaseAdapter):
         if auth is None:
             raise exceptions.NotAuthenticated()
         elif now >= auth.expire:
-            auth = self.authenticate(auth.username, auth.password)
+            params = inputs.AuthenticateInput(username=auth.username, password=auth.password)
+            auth = self.authenticate(params=params)
 
         h = auth.header
         return {h.header_name: h.header_value}

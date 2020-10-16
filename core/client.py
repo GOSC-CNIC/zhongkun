@@ -9,14 +9,14 @@ from service.models import ServiceConfig
 
 SERVICE_TYPE_EVCLOUD = 'evcloud'
 SERVICE_TYPE_OPENSTACK = 'openstack'
-
 SERVICE_TYPE_VMWARE = 'vmware'
 
-def get_service_client(service, **kwargs):
+
+def get_service_client(service: ServiceConfig, **kwargs):
     style = SERVICE_TYPE_EVCLOUD
     if service.service_type == service.SERVICE_OPENSTACK:
         style = SERVICE_TYPE_OPENSTACK
-    if service.service_type == service.SERVICE_VMWARE:
+    elif service.service_type == service.SERVICE_VMWARE:
         style = SERVICE_TYPE_VMWARE
 
     return OneServiceClient(style=style, endpoint_url=service.endpoint_url, api_version=service.api_version,
@@ -36,7 +36,7 @@ def get_adapter_class(style: str = 'evcloud'):
     """
     获取适配器
 
-    :param style: in ['evcloud', 'openstack']
+    :param style: in ['evcloud', 'openstack', 'vmware']
     :return:
         subclass of base.AdapterBase
 
@@ -95,14 +95,8 @@ class OneServiceClient:
     def list_networks(self, *args, **kwargs):
         return self.adapter.list_networks(*args, **kwargs)
 
-    def list_flavors(self, *args, **kwargs):
-        return self.adapter.list_flavors(*args, **kwargs)
-
-    def get_flavor(self, *args, **kwargs):
-        return self.adapter.get_flavor(*args, **kwargs)
-
-    def get_network(self, *args, **kwargs):
-        return self.adapter.get_network(*args, **kwargs)
+    def network_detail(self, *args, **kwargs):
+        return self.adapter.network_detail(*args, **kwargs)
 
 
 class VPNClient:

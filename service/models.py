@@ -96,13 +96,11 @@ class ServiceConfig(models.Model):
         return True
 
 
-class DataCenterPrivateQuota(models.Model):
+class DataCenterQuotaBase(models.Model):
     """
-    数据中心私有资源配额和限制
+    数据中心资源配额基类
     """
     id = models.AutoField(verbose_name='ID', primary_key=True)
-    data_center = models.OneToOneField(to=DataCenter, null=True, on_delete=models.SET_NULL,
-                                       related_name='data_center_private_quota', verbose_name=_('数据中心'))
     private_ip_total = models.IntegerField(verbose_name=_('总私网IP数'), default=0)
     private_ip_used = models.IntegerField(verbose_name=_('已用私网IP数'), default=0)
     public_ip_total = models.IntegerField(verbose_name=_('总公网IP数'), default=0)
@@ -116,30 +114,29 @@ class DataCenterPrivateQuota(models.Model):
     enable = models.BooleanField(verbose_name=_('有效状态'), help_text=_('选中，资源配额生效；未选中，无法申请分中心资源'))
 
     class Meta:
+        abstract = True
+
+
+class DataCenterPrivateQuota(DataCenterQuotaBase):
+    """
+    数据中心私有资源配额和限制
+    """
+    data_center = models.OneToOneField(to=DataCenter, null=True, on_delete=models.SET_NULL,
+                                       related_name='data_center_private_quota', verbose_name=_('数据中心'))
+
+    class Meta:
         db_table = 'data_center_private_quota'
         ordering = ['-id']
         verbose_name = _('数据中心私有资源配额')
         verbose_name_plural = verbose_name
 
 
-class DataCenterShareQuota(models.Model):
+class DataCenterShareQuota(DataCenterQuotaBase):
     """
     数据中心分享资源配额和限制
     """
-    id = models.AutoField(verbose_name='ID', primary_key=True)
     data_center = models.OneToOneField(to=DataCenter, null=True, on_delete=models.SET_NULL,
                                        related_name='data_center_share_quota', verbose_name=_('数据中心'))
-    private_ip_total = models.IntegerField(verbose_name=_('总私网IP数'), default=0)
-    private_ip_used = models.IntegerField(verbose_name=_('已用私网IP数'), default=0)
-    public_ip_total = models.IntegerField(verbose_name=_('总公网IP数'), default=0)
-    public_ip_used = models.IntegerField(verbose_name=_('已用公网IP数'), default=0)
-    vcpu_total = models.IntegerField(verbose_name=_('总CPU核数'), default=0)
-    vcpu_used = models.IntegerField(verbose_name=_('已用CPU核数'), default=0)
-    ram_total = models.IntegerField(verbose_name=_('总内存大小(MB)'), default=0)
-    ram_used = models.IntegerField(verbose_name=_('已用内存大小(MB)'), default=0)
-    disk_size_total = models.IntegerField(verbose_name=_('总硬盘大小(GB)'), default=0)
-    disk_size_used = models.IntegerField(verbose_name=_('已用硬盘大小(GB)'), default=0)
-    enable = models.BooleanField(verbose_name=_('有效状态'), help_text=_('选中，资源配额生效；未选中，无法申请分中心资源'))
 
     class Meta:
         db_table = 'data_center_share_quota'

@@ -17,7 +17,7 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(max_length=255, verbose_name='服务名称')),
                 ('region_id', models.CharField(blank=True, default='', max_length=128, verbose_name='服务区域/分中心ID')),
-                ('service_type', models.SmallIntegerField(choices=[(0, 'EVCloud'), (1, 'OpenStack')], default=0, verbose_name='服务平台类型')),
+                ('service_type', models.SmallIntegerField(choices=[(0, 'EVCloud'), (1, 'OpenStack'), (2, 'Vmware')], default=0, verbose_name='服务平台类型')),
                 ('endpoint_url', models.CharField(help_text='http(s)://{hostname}:{port}/', max_length=300, verbose_name='服务地址url')),
                 ('api_version', models.CharField(default='v3', help_text='预留，主要EVCloud使用', max_length=64, verbose_name='API版本')),
                 ('username', models.CharField(help_text='用于此服务认证的用户名', max_length=128, verbose_name='用户名')),
