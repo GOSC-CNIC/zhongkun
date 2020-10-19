@@ -7,7 +7,7 @@ from .models import Server, Flavor, ServerArchive
 class ServerAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
     list_display = ('id', 'service', 'name', 'instance_id', 'vcpus', 'ram', 'ipv4', 'image',
-                    'creation_time', 'user', 'task_status', 'remarks')
+                    'creation_time', 'user', 'task_status', 'center_quota', 'remarks')
     search_fields = ['name', 'image', 'ipv4', 'remarks']
     list_filter = ['service']
     raw_id_fields = ('user',)
@@ -18,7 +18,7 @@ class ServerAdmin(admin.ModelAdmin):
 class ServerArchiveAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
     list_display = ('id', 'service', 'name', 'instance_id', 'vcpus', 'ram', 'ipv4', 'image',
-                    'creation_time', 'user', 'task_status', 'remarks')
+                    'creation_time', 'user', 'task_status', 'center_quota', 'remarks')
     search_fields = ['name', 'image', 'ipv4', 'remarks']
     list_filter = ['service']
     raw_id_fields = ('user',)

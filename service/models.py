@@ -111,7 +111,7 @@ class DataCenterQuotaBase(models.Model):
     ram_used = models.IntegerField(verbose_name=_('已用内存大小(MB)'), default=0)
     disk_size_total = models.IntegerField(verbose_name=_('总硬盘大小(GB)'), default=0)
     disk_size_used = models.IntegerField(verbose_name=_('已用硬盘大小(GB)'), default=0)
-    enable = models.BooleanField(verbose_name=_('有效状态'), help_text=_('选中，资源配额生效；未选中，无法申请分中心资源'))
+    enable = models.BooleanField(verbose_name=_('有效状态'), default=True, help_text=_('选中，资源配额生效；未选中，无法申请分中心资源'))
 
     class Meta:
         abstract = True

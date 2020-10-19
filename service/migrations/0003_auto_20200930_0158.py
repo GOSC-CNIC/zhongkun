@@ -25,7 +25,7 @@ class Migration(migrations.Migration):
                 ('ram_used', models.IntegerField(default=0, verbose_name='已用内存大小(MB)')),
                 ('disk_size_total', models.IntegerField(default=0, verbose_name='总硬盘大小(GB)')),
                 ('disk_size_used', models.IntegerField(default=0, verbose_name='已用硬盘大小(GB)')),
-                ('enable', models.BooleanField(help_text='选中，资源配额生效；未选中，无法申请分中心资源', verbose_name='有效状态')),
+                ('enable', models.BooleanField(default=True, help_text='选中，资源配额生效；未选中，无法申请分中心资源', verbose_name='有效状态')),
                 ('data_center', models.OneToOneField(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='data_center_private_quota', to='service.DataCenter', verbose_name='数据中心')),
             ],
             options={
@@ -49,7 +49,7 @@ class Migration(migrations.Migration):
                 ('ram_used', models.IntegerField(default=0, verbose_name='已用内存大小(MB)')),
                 ('disk_size_total', models.IntegerField(default=0, verbose_name='总硬盘大小(GB)')),
                 ('disk_size_used', models.IntegerField(default=0, verbose_name='已用硬盘大小(GB)')),
-                ('enable', models.BooleanField(help_text='选中，资源配额生效；未选中，无法申请分中心资源', verbose_name='有效状态')),
+                ('enable', models.BooleanField(default=True, help_text='选中，资源配额生效；未选中，无法申请分中心资源', verbose_name='有效状态')),
                 ('data_center', models.OneToOneField(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='data_center_share_quota', to='service.DataCenter', verbose_name='数据中心')),
             ],
             options={

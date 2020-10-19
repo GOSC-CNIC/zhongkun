@@ -21,6 +21,13 @@ class ServerBase(models.Model):
         (TASK_CREATE_FAILED, _('创建失败')),
     )
 
+    QUOTA_PRIVATE = 1
+    QUOTA_SHARED = 2
+    CHOICES_QUOTA = (
+        (QUOTA_PRIVATE, _('私有资源配额')),
+        (QUOTA_SHARED, _('共享资源配额'))
+    )
+
     id = models.AutoField(primary_key=True, verbose_name='ID')
     name = models.CharField(max_length=255, verbose_name=_('服务器实例名称'))
     instance_id = models.CharField(max_length=128, verbose_name=_('虚拟主机ID'), help_text=_('各接入服务中虚拟主机的ID'))
@@ -32,6 +39,7 @@ class ServerBase(models.Model):
     creation_time = models.DateTimeField(auto_now_add=True, verbose_name=_('创建时间'))
     remarks = models.CharField(max_length=255, default='', verbose_name=_('备注'))
     task_status = models.SmallIntegerField(verbose_name=_('创建状态'), choices=CHOICES_TASK, default=TASK_CREATED_OK)
+    center_quota = models.SmallIntegerField(verbose_name=_('数据中心配额'), choices=CHOICES_QUOTA, default=QUOTA_SHARED)
 
     class Meta:
         abstract = True
@@ -105,6 +113,7 @@ class Server(ServerBase):
             a.user_id = self.user_id
             a.deleted_time = timezone.now()
             a.task_status = self.task_status
+            a.center_quota = self.center_quota
             a.save()
         except Exception as e:
             return False
