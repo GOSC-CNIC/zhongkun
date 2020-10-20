@@ -21,7 +21,7 @@ class DataCenter(models.Model):
     desc = models.CharField(verbose_name=_('描述'), blank=True, max_length=255)
 
     class Meta:
-        ordering = ['-id']
+        ordering = ['id']
         verbose_name = _('数据中心')
         verbose_name_plural = verbose_name
 

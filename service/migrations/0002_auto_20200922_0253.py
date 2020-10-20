@@ -23,7 +23,7 @@ class Migration(migrations.Migration):
                 ('users', models.ManyToManyField(blank=True, related_name='data_center_set', to=settings.AUTH_USER_MODEL, verbose_name='用户')),
             ],
             options={
-                'ordering': ['-id'],
+                'ordering': ['id'],
                 'verbose_name': '数据中心',
                 'verbose_name_plural': '数据中心'
             },

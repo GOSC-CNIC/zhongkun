@@ -33,7 +33,7 @@ class CustomGenericViewSet(viewsets.GenericViewSet):
         :param kwargs:
         :return:
 
-        :raises: APIException, AuthenticationFailed
+        :raises: APIException
         """
         return request_service(service=service, method=method, **kwargs)
 
@@ -47,7 +47,7 @@ class CustomGenericViewSet(viewsets.GenericViewSet):
         :param kwargs:
         :return:
 
-        :raises: APIException, AuthenticationFailed
+        :raises: APIException
         """
         return request_vpn_service(service=service, method=method, **kwargs)
 
@@ -75,7 +75,7 @@ class CustomGenericViewSet(viewsets.GenericViewSet):
         if service_id <= 0:
             raise exceptions.InvalidArgument(_('参数"service_id"值无效.'))
 
-        service = ServiceConfig.objects.filter(id=service_id, status=ServiceConfig.STATUS_ENABLE).first()
+        service = ServiceConfig.objects.select_related('data_center').filter(id=service_id, status=ServiceConfig.STATUS_ENABLE).first()
         if not service:
             raise exceptions.NotFound(_('服务端点不存在'))
 

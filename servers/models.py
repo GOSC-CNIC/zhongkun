@@ -55,6 +55,16 @@ class ServerBase(models.Model):
 
         return True
 
+    @property
+    def is_use_shared_quota(self):
+        """是否使用的数据中心共享资源配额"""
+        return self.center_quota == self.QUOTA_SHARED
+
+    @property
+    def is_use_private_quota(self):
+        """是否使用的数据中心私有资源配额"""
+        return self.center_quota == self.QUOTA_PRIVATE
+
 
 class Server(ServerBase):
     """

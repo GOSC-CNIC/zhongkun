@@ -10,6 +10,7 @@ from drf_yasg import openapi
 
 from servers.models import Server, Flavor
 from adapters import inputs, outputs
+from core.quota import QuotaAPI
 from . import exceptions
 from . import serializers
 from .viewsets import CustomGenericViewSet, str_to_int_or_default
@@ -103,28 +104,53 @@ class ServersViewSet(CustomGenericViewSet):
         except exceptions.APIException as exc:
             return Response(exc.err_data(), status=exc.status_code)
 
+        params = inputs.NetworkDetailInput(network_id=network_id)
+        try:
+            out_net = self.request_service(service=service, method='network_detail', params=params)
+        except exceptions.APIException as exc:
+            return Response(data=exc.err_data(), status=exc.status_code)
+
+        is_public_network = out_net.network.public
+
+        # 资源配额扣除
+        try:
+            use_shared_quota = QuotaAPI().server_create_quota_apply(
+                data_center=service.data_center, user=request.user, vcpu=flavor.vcpus, ram=flavor.ram,
+                public_ip=is_public_network)
+        except exceptions.Error as exc:
+            return Response(data=exc.err_data(), status=exc.status_code)
+
         params = inputs.ServerCreateInput(ram=flavor.ram, vcpu=flavor.vcpus, image_id=image_id,
                                           region_id=service.region_id, network_id=network_id, remarks=remarks)
         try:
             out = self.request_service(service=service, method='server_create', params=params)
-        except exceptions.AuthenticationFailed as exc:
-            return Response(data=exc.err_data(), status=500)
         except exceptions.APIException as exc:
+            try:
+                QuotaAPI().server_quota_release(data_center=service.data_center, user=request.user,
+                                                vcpu=flavor.vcpus, ram=flavor.ram, public_ip=is_public_network,
+                                                use_shared_quota=use_shared_quota)
+            except exceptions.Error:
+                pass
             return Response(data=exc.err_data(), status=exc.status_code)
 
         out_server = out.server
+        if use_shared_quota:
+            kwargs = {'center_quota': Server.QUOTA_SHARED}
+        else:
+            kwargs = {'center_quota': Server.QUOTA_PRIVATE}
         server = Server(service=service,
                         instance_id=out_server.uuid,
                         remarks=remarks,
                         user=request.user,
                         vcpus=flavor.vcpus,
                         ram=flavor.ram,
-                        task_status=Server.TASK_IN_CREATING
+                        task_status=Server.TASK_IN_CREATING,
+                        **kwargs
                         )
         server.save()
         if service.service_type == service.SERVICE_EVCLOUD:
             if self._update_server_detail(server):
-                Response(data={'id': server.id}, status=status.HTTP_201_CREATED)
+                return Response(data={'id': server.id}, status=status.HTTP_201_CREATED)
 
         return Response(data={'id': server.id}, status=status.HTTP_202_ACCEPTED)
 
@@ -255,7 +281,9 @@ class ServersViewSet(CustomGenericViewSet):
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
-        server.do_archive()
+        server.do_archive()     # 记录归档
+        self.release_server_quota(server=server)    # 释放资源配额
+
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @swagger_auto_schema(
@@ -323,6 +351,7 @@ class ServersViewSet(CustomGenericViewSet):
 
         if act in ['delete', 'delete_force']:
             server.do_archive()
+            self.release_server_quota(server=server)    # 释放资源配额
 
         return Response({'action': act})
 
@@ -509,6 +538,25 @@ class ServersViewSet(CustomGenericViewSet):
             raise exceptions.AccessDenied(_('无权限访问此服务器实例'))
 
         return server
+
+    @staticmethod
+    def release_server_quota(server):
+        """
+        释放虚拟服务器资源配额
+
+        :param server: 服务器对象
+        :return:
+            True
+            False
+        """
+        try:
+            QuotaAPI().server_quota_release(data_center=server.service.data_center, user=server.user,
+                                            vcpu=server.vcpus, ram=server.ram, public_ip=server.public_ip,
+                                            use_shared_quota=server.is_use_shared_quota)
+        except exceptions.Error as e:
+            return False
+
+        return True
 
 
 class ImageViewSet(CustomGenericViewSet):
