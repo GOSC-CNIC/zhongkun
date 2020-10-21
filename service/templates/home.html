@@ -47,7 +47,7 @@
             <div class="col mb-2 mt-2">
                 <div class="card text-dark h-100">
                     <div class="card-body">
-                        <div><p class="text-center">{% trans '云服务器' %} <i class="fa fa-desktop"></i> <span class="badge badge-primary badge-pill">{{ servers_count }}</span></p></div>
+                        <div><p class="text-center">{% trans '云服务器' %} <i class="fa fa-desktop"></i> <span class="badge badge-primary badge-pill">{{ private_server_count|add:shared_server_count }}</span></p></div>
                         <canvas id="id-chart-quota-server"></canvas>
                     </div>
                 </div>
@@ -94,22 +94,18 @@
 {% block script %}
     <script type="text/javascript" src="{% static 'chartjs/Chart-2.9.3.min.js' %}"></script>
     <script>
-        let data_vcpu = {% if quota.vcpu_total <= 0 %}[0.1, 0]{% else %}
-            [{{ quota.vcpu_used }}, {{ quota.vcpu_free_count }}]{% endif %};
+        let data_vcpu = {% if quota.vcpu_total <= 0 %}[0.1, 0]{% else %}[{{ quota.vcpu_used }}, {{ quota.vcpu_free_count }}]{% endif %};
         let title_vcpu = 'vCPU ({{ quota.vcpu_total }})';
-        let data_ram = {% if quota.ram_total <= 0 %}[0.1, 0]{% else %}
-            [{{ quota.ram_used }}, {{ quota.ram_free_count }}]{% endif %};
+        let data_ram = {% if quota.ram_total <= 0 %}[0.1, 0]{% else %}[{{ quota.ram_used }}, {{ quota.ram_free_count }}]{% endif %};
         let title_ram = 'RAM ({{ quota.ram_total }})MB';
-        let data_disk = {% if quota.disk_size_total <= 0 %}[0.1, 0]{% else %}
-            [{{ quota.disk_size_used }}, {{ quota.disk_free_size }}]{% endif %};
+        let data_disk = {% if quota.disk_size_total <= 0 %}[0.1, 0]{% else %}[{{ quota.disk_size_used }}, {{ quota.disk_free_size }}]{% endif %};
         let title_disk = 'Disk Size ({{ quota.disk_size_total }})GB';
-        let data_public = {% if quota.public_ip_total <= 0 %}[0.1, 0]{% else %}
-            [{{ quota.public_ip_used }}, {{ quota.public_ip_free_count }}]{% endif %};
+        let data_public = {% if quota.public_ip_total <= 0 %}[0.1, 0]{% else %}[{{ quota.public_ip_used }}, {{ quota.public_ip_free_count }}]{% endif %};
         let title_public = 'Public IP ({{ quota.public_ip_total }})';
-        let data_private = {% if quota.private_ip_total <= 0 %}[0.1, 0]{% else %}
-            [{{ quota.private_ip_used }}, {{ quota.private_ip_free_count }}]{% endif %};
+        let data_private = {% if quota.private_ip_total <= 0 %}[0.1, 0]{% else %}[{{ quota.private_ip_used }}, {{ quota.private_ip_free_count }}]{% endif %};
         let title_private = 'Private IP ({{ quota.private_ip_total }})';
-        let data_server = {% if quota.all_ip_count <= 0 and servers_count <= 0 %}[0.1, 0]{% else %}[{{ servers_count }}, {{ quota.all_ip_count|subtract_min_0:servers_count }}]{% endif %};
+        let data_server = {{ data_server|safe }};
+        let labels_server = {{ labels_server|safe }};
         {% verbatim script %}
         window.chartColors = {
             red: 'rgb(255, 99, 132)',
@@ -163,12 +159,13 @@
         let canvas_public = document.getElementById('id-chart-quota-public').getContext('2d');
         let canvas_private = document.getElementById('id-chart-quota-private').getContext('2d');
         window.chart_server = create_chart(canvas_server, 'doughnut', {
-                labels: ['已创建', '可创建'],
+                labels: labels_server,
                 datasets: [{
                     data: data_server,
                     backgroundColor: [
 						window.chartColors.blue,
-						window.chartColors.green
+						window.chartColors.green,
+                        window.chartColors.orange
 					],
                     borderWidth: 2
                 }]
