@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from django.db.models import Count
+from django.db.models import Count, Subquery
 from django.utils.translation import gettext as _
 
 from servers.models import Server, ServiceConfig
@@ -20,13 +20,14 @@ def home(request, *args, **kwargs):
     service_id = to_int_or_default(kwargs.get('service_id'), default=None)
     user = request.user
 
+    servers_qs = Server.objects.filter(user=user)
+    servers_count = servers_qs.count()
     if service_id:
         service = ServiceConfig.objects.filter(id=service_id).first()
         is_need_vpn = service.is_need_vpn()
-        servers_qs = Server.objects.filter(service=service_id, user=user)
+        servers_qs = servers_qs.filter(service=service_id)
     else:
         is_need_vpn = False
-        servers_qs = Server.objects.filter(user=user)
 
     shared_server_count = 0
     private_server_count = 0
@@ -42,7 +43,7 @@ def home(request, *args, **kwargs):
     if quota.all_ip_count <= 0 and shared_server_count <= 0 and private_server_count <= 0:
         data_server = """[0.1, 0, 0]"""
     else:
-        can_create = max(quota.all_ip_count - shared_server_count - private_server_count, 0)
+        can_create = max(quota.all_ip_count - servers_count, 0)
         data_server = f"[{shared_server_count}, {can_create}, {private_server_count}]"
 
     context = {
