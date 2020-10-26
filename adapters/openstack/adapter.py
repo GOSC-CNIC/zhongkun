@@ -6,6 +6,10 @@ import re
 from pytz import utc
 
 
+import openstack
+
+
+
 from adapters.base import BaseAdapter
 from adapters import inputs
 from adapters import outputs
@@ -86,37 +90,30 @@ class OpenStackAdapter(BaseAdapter):
         """
         username = params.username
         password = params.password
-        url = self.endpoint_url + ':5000/v3/auth/tokens'
-        auth_data = {"auth": {
-            "identity": {
-                "methods": ["password"],
-                "password": {
-                    "user": {
-                        "name": username,
-                        "domain": {"id": "default"},
-                        "password": password
-                    }
-                }
-            },
-            "scope": {
-                "project": {
-                    "name": "admin",
-                    "domain": {"id": "default"}
-                }
-            }
-        }
-        }
+        auth_url = self.endpoint_url + ':5000/v3/'
+        region = 'RegionOne'
+        project_name = 'admin'
+        user_domain = 'default'
+        project_domain = 'default'
+
+
+
         try:
-            r = requests.post(url, json=auth_data)
-            if r.status_code == 201:
-                token = r.headers['X-Subject-Token']
-                expired_at = r.json()['token']['expires_at']
-                expire = (datetime.utcnow() + timedelta(hours=1)).timestamp()
-                header = outputs.AuthenticateOutputHeader(header_name='X-Auth-Token', header_value=token)
-                auth = outputs.AuthenticateOutput(style='token', token=token, header=header, query=None,
-                                                  expire=int(expire), username=username, password=password)
-            else:
-                raise exceptions.AuthenticationFailed()
+            connect=openstack.connect(
+                auth_url=auth_url,
+                project_name=project_name,
+                username=username,
+                password=password,
+                region_name=region,
+                user_domain_name=user_domain,
+                project_domain_name=project_domain,
+                app_name='examples',
+                app_version='1.0',
+            )
+            expire = (datetime.utcnow() + timedelta(hours=1)).timestamp()
+            auth = outputs.AuthenticateOutput(style='token', token=None, header=None, query=None,
+                                              expire=int(expire), username=username, password=password,
+                                              vmconnect=connect)
         except Exception as e:
             raise exceptions.AuthenticationFailed()
 
@@ -129,30 +126,22 @@ class OpenStackAdapter(BaseAdapter):
         :return:
             outputs.ServerCreateOutput()
         """
-        headers = {self.auth.header.header_name:self.auth.header.header_value}
-        server_url = self.endpoint_url + ':8774/v2.1/servers'
+        service_instance = self.auth.kwargs['vmconnect']
 
         try:
-            flavor_ref = self.get_or_create_flavor(params.ram, params.vcpu)
-            server_data = {
-                "server": {
-                    "name": 'gosc-instance-'+str(uuid.uuid4()),
-                    "imageRef": params.image_id,
-                    "flavorRef": flavor_ref,
-                    "networks": [{
-                        "uuid": params.network_id
-                    }]
-                }
-            }
 
-            r = requests.post(server_url, headers=headers, json=server_data)
-            server_id = r.json()['server']['id']
+            flavor = self.get_or_create_flavor(params.ram, params.vcpu)
+
+            server_re = service_instance.compute.create_server(
+                name='gosc-instance-'+str(uuid.uuid4()), image_id=params.image_id, flavor_id=flavor.id,
+                networks=[{"uuid": params.network_id}])
+
             server = outputs.ServerCreateOutputServer(
-                uuid=server_id
+                uuid=server_re.id
             )
             return outputs.ServerCreateOutput(server=server)
         except Exception as e:
-            return outputs.ServerCreateOutput(ok=False, error=exceptions.Error('server created failed'), server=None)
+            return outputs.ServerCreateOutput(ok=False, error=exceptions.Error(str(e)), server=None)
 
     def server_detail(self, params: inputs.ServerDetailInput, **kwargs):
         """
@@ -160,33 +149,30 @@ class OpenStackAdapter(BaseAdapter):
             outputs.ServerDetailOutput()
         """
         try:
-            headers = {self.auth.header.header_name: self.auth.header.header_value}
-            server_url = self.endpoint_url + ':8774/v2.1/servers'
-
-            r = requests.get(server_url + '/' + params.server_id, headers=headers)
-            server_temp = r.json()['server']
+            service_instance = self.auth.kwargs['vmconnect']
+            server = service_instance.compute.get_server(params.server_id)
             try:
-                adresses = server_temp['addresses']
+                adresses = server.addresses
                 server_ip = {'ipv4': adresses[list(adresses.keys())[0]][0]['addr'], 'public_ipv4': None}
             except Exception as e:
-                server_ip = {'ipv4': 'ip not exist', 'public_ipv4': None}
+                server_ip = {'ipv4': '', 'public_ipv4': None}
 
             ip = outputs.ServerIP(**server_ip)
-            image_temp=self.get_image(server_temp['image']['id'])
+            image_temp=service_instance.image.get_image(server.image.id)
 
             image = outputs.ServerImage(
-                name=image_temp['name'],
-                system=image_temp['os']
+                name=image_temp.name,
+                system=image_temp.properties['os']
             )
 
-            flavor=self.get_flaor(server_temp['flavor']['id'])
+            flavor=server.flavor
             server = outputs.ServerDetailOutputServer(
-                uuid=server_temp['id'],
-                ram=flavor['flavor']['ram'],
-                vcpu=flavor['flavor']['vcpus'],
+                uuid=server.id,
+                ram=flavor['ram'],
+                vcpu=flavor['vcpus'],
                 ip=ip,
                 image=image,
-                creation_time=iso_to_datetime(server_temp['created'])
+                creation_time=iso_to_datetime(server.created_at)
             )
             return outputs.ServerDetailOutput(server=server)
         except exceptions.Error as e:
@@ -198,15 +184,9 @@ class OpenStackAdapter(BaseAdapter):
         :return:
             outputs.ServerDeleteOutput()
         """
-        url = self.endpoint_url + ':8774/v2.1/servers/' + params.server_id + '/action'
-        headers = {self.auth.header.header_name: self.auth.header.header_value}
-        command = {
-            "forceDelete": None
-        }
+        service_instance = self.auth.kwargs['vmconnect']
         try:
-            print(url)
-            r = requests.post(url, headers=headers, json=command)
-            status = r.json()['server']['status']
+            service_instance.compute.delete_server(params.server_id, force=True)
             return None
         except Exception as e:
             raise e
@@ -217,42 +197,21 @@ class OpenStackAdapter(BaseAdapter):
         :return:
             outputs.ServerActionOutput()
         """
-        url = self.endpoint_url + ':8774/v2.1/servers/' + params.server_id + '/action'
-        headers = {self.auth.header.header_name:self.auth.header.header_value}
-        command = None
-        if params.action == inputs.ServerAction.START:
-            command = {
-                "os-start": None
-            }
-        elif params.action == inputs.ServerAction.SHUTDOWN:
-            command = {
-                "os-stop": None
-            }
-        elif params.action == inputs.ServerAction.DELETE:
-            command = {
-                "restore": None
-            }
-        elif params.action == inputs.ServerAction.DELETE_FORCE:
-            command = {
-                "forceDelete": None
-            }
-        elif params.action == inputs.ServerAction.POWER_OFF:
-            command = {
-                "os-stop": None
-            }
-        elif params.action == inputs.ServerAction.REBOOT:
-            command = {
-                "reboot": {
-                    "type": "HARD"
-                }
-            }
-        else:
-            return outputs.ServerActionOutput(ok=False, error=exceptions.Error('server action failed'))
-
+        service_instance = self.auth.kwargs['vmconnect']
         try:
-            print(url)
-            r = requests.post(url, headers=headers, json=command)
-            if r.status_code != 202:
+            if params.action == inputs.ServerAction.START:
+                service_instance.compute.start_server(params.server_id)
+            elif params.action == inputs.ServerAction.SHUTDOWN:
+                service_instance.compute.stop_server(params.server_id)
+            elif params.action == inputs.ServerAction.DELETE:
+                service_instance.compute.delete_server(params.server_id)
+            elif params.action == inputs.ServerAction.DELETE_FORCE:
+                service_instance.compute.delete_server(params.server_id, force=True)
+            elif params.action == inputs.ServerAction.POWER_OFF:
+                service_instance.compute.stop_server(params.server_id)
+            elif params.action == inputs.ServerAction.REBOOT:
+                service_instance.compute.reboot_server(params.server_id, 'HARD')
+            else:
                 return outputs.ServerActionOutput(ok=False, error=exceptions.Error('server action failed'))
             return outputs.ServerActionOutput()
         except Exception as e:
@@ -263,8 +222,8 @@ class OpenStackAdapter(BaseAdapter):
         :return:
             outputs.ServerStatusOutput()
         """
-        url = self.endpoint_url + ':8774/v2.1/servers/' + params.server_id
-        headers = {self.auth.header.header_name: self.auth.header.header_value}
+
+        service_instance = self.auth.kwargs['vmconnect']
         status_map = {
             'ACTIVE': 1,
             'UNKNOWN': 0,
@@ -273,11 +232,8 @@ class OpenStackAdapter(BaseAdapter):
             'SUSPENDED': 7
         }
         try:
-            print(url)
-            r = requests.get(url, headers=headers)
-            if r.status_code != 200:
-                return outputs.ServerStatusOutput(ok=False, error=exceptions.Error('get server status failed'))
-            status = r.json()['server']['status']
+            server=service_instance.compute.get_server(params.server_id)
+            status =server.status
             status_code = status_map[status]
             if status_code not in outputs.ServerStatus():
                 status_code = outputs.ServerStatus.NOSTATE
@@ -318,105 +274,63 @@ class OpenStackAdapter(BaseAdapter):
         :return:
             output.ListImageOutput()
         """
-        url = self.endpoint_url + ':9292/v2.1/images'
-        headers = {self.auth.header.header_name: self.auth.header.header_value}
+        service_instance = self.auth.kwargs['vmconnect']
         try:
-            print(url)
-            r = requests.get(url, headers=headers)
-            if r.status_code != 200:
-                return outputs.ListImageOutput(ok=False, error=exceptions.Error('list image failed'), images=[])
-            images = r.json()['images']
-            result = []
-            for image in images:
-                img_obj = outputs.ListImageOutputImage(id=image['id'], name=image['name'], system=image['os'],
-                                                       desc=image['description'],
-                                                       system_type=image['os_type'], creation_time=image['created_at'])
+            result=[]
+            for image in service_instance.image.images():
+                img_obj = outputs.ListImageOutputImage(id=image.id, name=image.name, system=image.properties['os'],
+                                                       desc=image.properties['description'],
+                                                       system_type=image.os_type, creation_time=image.created_at)
                 result.append(img_obj)
             return outputs.ListImageOutput(images=result)
         except Exception as e:
             return outputs.ListImageOutput(ok=False, error=exceptions.Error('list image failed'), images=[])
 
-    def get_image(self, image_id):
-        url = self.endpoint_url + ':9292/v2.1/images/' + image_id
-        headers = {self.auth.header.header_name:self.auth.header.header_value}
-        try:
-            print(url)
-            r = requests.get(url, headers=headers)
-            if r.status_code != 200:
-                raise exceptions.Error('get image failed')
-            image = r.json()
-            return image
-        except Exception as e:
-            raise exceptions.Error('get image failed')
-
-    def get_flaor(self, flavor_id):
-        url = self.endpoint_url + ':8774/v2.1/flavors/' + flavor_id
-        headers = {self.auth.header.header_name: self.auth.header.header_value}
-        try:
-            print(url)
-            r = requests.get(url, headers=headers)
-            if r.status_code != 200:
-                raise exceptions.Error('get flavor failed')
-            image = r.json()
-            return image
-        except Exception as e:
-            raise exceptions.Error('get flavor failed')
-
     def get_or_create_flavor(self, ram: int, vcpu: int):
-        flavor_url = self.endpoint_url + ':8774/v2.1/flavors/detail'
-        flavor_url_create = self.endpoint_url + ':8774/v2.1/flavors'
-        headers = {self.auth.header.header_name: self.auth.header.header_value}
-        r = requests.get(flavor_url, headers=headers)
-        if r.status_code != 200:
-            raise exceptions.Error('get flavor failed')
-        flavors = r.json()['flavors']
-        flavor_ref = None
+        service_instance = self.auth.kwargs['vmconnect']
+        flavors = service_instance.compute.flavors()
         for flavor in flavors:
-            if flavor['ram'] == ram and flavor['vcpus'] == vcpu:
-                flavor_ref = flavor['links'][1]['href']
-        if flavor_ref is None:
-            flavor_data = {
-                "flavor": {
-                    "name": "flavor" + str(len(flavors)),
-                    "ram": ram,
-                    "vcpus": vcpu,
-                    "disk": 2
-                }
-            }
-            r = requests.post(flavor_url_create, headers=headers, json=flavor_data)
-            if r.status_code != 200:
-                raise exceptions.Error('create flavor failed')
-            flavor_ref = r.json()['flavor']['links'][1]['href']
-        return flavor_ref
+            if flavor.ram == ram and flavor.vcpus == vcpu:
+                return flavor
+
+
+        flavor=service_instance.compute.create_flavor("flavor" + str(len(flavors)), ram, vcpu, 2)
+        return flavor
 
     def list_networks(self, params: inputs.ListNetworkInput, **kwargs):
         """
         列举子网
         :return:
         """
-        network_url = self.endpoint_url + ':9696/v2.0/networks'
-        headers = {self.auth.header.header_name: self.auth.header.header_value}
+        service_instance = self.auth.kwargs['vmconnect']
         try:
-            r = requests.get(network_url, headers=headers)
-            if r.status_code != 200:
-                raise exceptions.Error('list networks failed')
-            networks = r.json()['networks']
+
             result=[]
-            for net in networks:
+            for net in service_instance.network.networks():
                 public = False
-                new_net = outputs.ListNetworkOutputNetwork(id=net['id'], name=net['name'], public=public,
-                                                           segment='123')
+                subnet = service_instance.network.get_subnet(net.subnet_ids[0])
+                new_net = outputs.ListNetworkOutputNetwork(id=net.id, name=net.name, public=public,
+                                                           segment=subnet.cidr)
                 result.append(new_net)
             return outputs.ListNetworkOutput(networks=result)
         except Exception as e:
             return outputs.ListNetworkOutput(ok=False, error=exceptions.Error('list networks failed'), networks=[])
 
-    def get_network(self, network_id, headers: dict = None):
-        network_url = self.endpoint_url + ':9696/v2.1/networks/' + network_id
-        headers = self.auth.header
+    def network_detail(self, params: inputs.NetworkDetailInput, **kwargs):
+        """
+        查询子网网络信息
+
+        :return:
+            outputs.NetworkDetailOutput()
+        """
         try:
-            r = requests.get(network_url, headers=headers)
-            detail = r.json()['network']
-            return detail
-        except Exception as e:
-            raise e
+            service_instance = self.auth.kwargs['vmconnect']
+
+            network=service_instance.network.get_network(params.network_id)
+            subnet =service_instance.network.get_subnet(network.subnet_ids[0])
+
+            new_net = outputs.NetworkDetail(id=params.network_id, name=network.name, public=False, segment=subnet.cidr)
+
+            return outputs.NetworkDetailOutput(network=new_net)
+        except exceptions.Error as e:
+            return outputs.NetworkDetailOutput(ok=False, error=exceptions.Error(e.msg), network=None)

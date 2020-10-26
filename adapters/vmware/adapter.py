@@ -82,6 +82,7 @@ def get_obj(content, vimtype, name):
     obj = None
     container = content.viewManager.CreateContainerView(content.rootFolder, vimtype, True)
     for c in container.view:
+        print(c.name.lower(),name.lower())
         if c.name.lower() == name.lower():
             obj = c
             break
@@ -188,7 +189,31 @@ class VmwareAdapter(BaseAdapter):
             '''
              Networking config for VM and guest OS
             '''
-            devices = []
+            devices_changes = []
+
+            for device in template_vm.config.hardware.device:
+                if isinstance(device, vim.vm.device.VirtualEthernetCard):
+                    remove_nicspec = vim.vm.device.VirtualDeviceSpec()
+                    remove_nicspec.operation = vim.vm.device.VirtualDeviceSpec.Operation.remove
+                    remove_nicspec.device = device
+                    devices_changes.append(remove_nicspec)
+            nic = vim.vm.device.VirtualDeviceSpec()
+            nic.operation = vim.vm.device.VirtualDeviceSpec.Operation.add  # or edit if a device exists
+            nic.device = vim.vm.device.VirtualVmxnet3()
+            nic.device.wakeOnLanEnabled = True
+            nic.device.addressType = 'assigned'
+            nic.device.key = 4000  # 4000 seems to be the value to use for a vmxnet3 device
+            nic.device.deviceInfo = vim.Description()
+            nic.device.deviceInfo.label = "Network Adapter 22"
+            nic.device.deviceInfo.summary = 'public_network'
+            nic.device.backing = vim.vm.device.VirtualEthernetCard.NetworkBackingInfo()
+            nic.device.backing.network = get_obj(content, [vim.Network], 'public_network')
+            nic.device.backing.deviceName = 'public_network'
+            nic.device.backing.useAutoDetect = False
+            nic.device.connectable = vim.vm.device.VirtualDevice.ConnectInfo()
+            nic.device.connectable.startConnected = True
+            nic.device.connectable.allowGuestControl = True
+            devices_changes.append(nic)
 
             # VM config spec
             vmconf = vim.vm.ConfigSpec()
@@ -196,7 +221,7 @@ class VmwareAdapter(BaseAdapter):
             vmconf.memoryMB = deploy_settings['mem']
             vmconf.cpuHotAddEnabled = True
             vmconf.memoryHotAddEnabled = True
-            vmconf.deviceChange = devices
+            vmconf.deviceChange = devices_changes
 
             # DNS settings
             globalip = vim.vm.customization.GlobalIPSettings()
@@ -222,6 +247,15 @@ class VmwareAdapter(BaseAdapter):
             clonespec.template = False
             # fire the clone task
             task = template_vm.Clone(folder=destfolder, name=deploy_settings["new_vm_name"].title(), spec=clonespec)
+            vm = get_obj(content,[vim.VirtualMachine],vm_name)
+
+            custom_fields = service_instance.RetrieveContent().customFieldsManager.field
+            image_name_field = None
+            for cu_f in custom_fields:
+                if cu_f.name == 'image_name':
+                    image_name_field = cu_f
+            service_instance.content.customFieldsManager.SetField(entity=vm, key=image_name_field.key, value=params.image_id)
+
             server = outputs.ServerCreateOutputServer(
                 uuid=vm_name
             )
@@ -430,10 +464,28 @@ class VmwareAdapter(BaseAdapter):
             for net in all_networks:
                 public = False
                 new_net = outputs.ListNetworkOutputNetwork(id=net.name, name=net.name, public=public,
-                                                           segment='123')
+                                                           segment='0.0.0.0')
                 result.append(new_net)
             return outputs.ListNetworkOutput(networks=result)
 
         except Exception as e:
             return outputs.ListNetworkOutput(ok=False, error=exceptions.Error('list networks failed'), networks=[])
         return None
+
+    def network_detail(self, params: inputs.NetworkDetailInput, **kwargs):
+        """
+        查询子网网络信息
+
+        :return:
+            outputs.NetworkDetailOutput()
+        """
+        try:
+            service_instance = self.auth.kwargs['vmconnect']
+            content = service_instance.RetrieveContent()
+            network=get_obj(content,[vim.Network],params.network_id)
+
+            new_net = outputs.NetworkDetail(id=params.network_id, name=params.network_id, public=False, segment='0.0.0.0')
+
+            return outputs.NetworkDetailOutput(network=new_net)
+        except exceptions.Error as e:
+            return outputs.NetworkDetailOutput(ok=False, error=exceptions.Error(e.msg), network=None)
