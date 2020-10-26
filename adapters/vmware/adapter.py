@@ -205,10 +205,10 @@ class VmwareAdapter(BaseAdapter):
             nic.device.key = 4000  # 4000 seems to be the value to use for a vmxnet3 device
             nic.device.deviceInfo = vim.Description()
             nic.device.deviceInfo.label = "Network Adapter 22"
-            nic.device.deviceInfo.summary = 'public_network'
+            nic.device.deviceInfo.summary =  params.network_id
             nic.device.backing = vim.vm.device.VirtualEthernetCard.NetworkBackingInfo()
-            nic.device.backing.network = get_obj(content, [vim.Network], 'public_network')
-            nic.device.backing.deviceName = 'public_network'
+            nic.device.backing.network = get_obj(content, [vim.Network],  params.network_id)
+            nic.device.backing.deviceName =  params.network_id
             nic.device.backing.useAutoDetect = False
             nic.device.connectable = vim.vm.device.VirtualDevice.ConnectInfo()
             nic.device.connectable.startConnected = True
