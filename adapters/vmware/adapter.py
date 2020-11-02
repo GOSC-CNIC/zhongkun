@@ -18,7 +18,6 @@ from pyVmomi import vim
 from pyVim.task import WaitForTask
 import OpenSSL
 
-
 datetime_re = re.compile(
     r'(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<day>\d{1,2})'
     r'[T ](?P<hour>\d{1,2}):(?P<minute>\d{1,2})'
@@ -82,7 +81,7 @@ def get_obj(content, vimtype, name):
     obj = None
     container = content.viewManager.CreateContainerView(content.rootFolder, vimtype, True)
     for c in container.view:
-        print(c.name.lower(),name.lower())
+        print(c.name.lower(), name.lower())
         if c.name.lower() == name.lower():
             obj = c
             break
@@ -160,7 +159,7 @@ class VmwareAdapter(BaseAdapter):
             outputs.ServerCreateOutput()
         """
         try:
-            vm_name = 'gosc-instance-' + str(uuid.uuid4())
+            vm_name = 'gosc-instance-' + str(uuid.uuid4()) + '-&&image&&-' + params.image_id
             deploy_settings = {'template': 'centos8_gui', 'hostname': 'gosc_003', 'ips': '10.0.200.243', 'cpus': 2,
                                'mem': 8 * 1024}
             deploy_settings["new_vm_name"] = vm_name
@@ -207,7 +206,7 @@ class VmwareAdapter(BaseAdapter):
             nic.device.deviceInfo.label = "Network Adapter 22"
             nic.device.deviceInfo.summary = params.network_id
             nic.device.backing = vim.vm.device.VirtualEthernetCard.NetworkBackingInfo()
-            nic.device.backing.network = get_obj(content, [vim.Network],  params.network_id)
+            nic.device.backing.network = get_obj(content, [vim.Network], params.network_id)
             nic.device.backing.deviceName = params.network_id
             nic.device.backing.useAutoDetect = False
             nic.device.connectable = vim.vm.device.VirtualDevice.ConnectInfo()
@@ -247,15 +246,6 @@ class VmwareAdapter(BaseAdapter):
             clonespec.template = False
             # fire the clone task
             task = template_vm.Clone(folder=destfolder, name=deploy_settings["new_vm_name"].title(), spec=clonespec)
-            vm = get_obj(content, [vim.VirtualMachine], vm_name)
-
-            custom_fields = service_instance.RetrieveContent().customFieldsManager.field
-            image_name_field = None
-            for cu_f in custom_fields:
-                if cu_f.name == 'image_name':
-                    image_name_field = cu_f
-            service_instance.content.customFieldsManager.SetField(entity=vm, key=image_name_field.key, value=params.image_id)
-
             server = outputs.ServerCreateOutputServer(
                 uuid=vm_name
             )
@@ -278,17 +268,14 @@ class VmwareAdapter(BaseAdapter):
 
             ip = outputs.ServerIP(**server_ip)
 
-            custom_fields = service_instance.RetrieveContent().customFieldsManager.field
-            image_name_key = None
-            for cu_f in custom_fields:
-                if cu_f.name == 'image_name':
-                    image_name_key = cu_f.key
-            custom_values = {}
-            for v in VM.customValue:
-                custom_values[v.key] = v.value
+            image_name = ''
+            try:
+                image_name = params.server_id.split('-&&image&&-')[1]
+            except Exception as e:
+                image_name = 'not found'
 
             image = outputs.ServerImage(
-                name=custom_values[image_name_key],
+                name=image_name,
                 system=VM.config.guestId
             )
 
@@ -334,33 +321,27 @@ class VmwareAdapter(BaseAdapter):
                 return outputs.ServerActionOutput()
             if params.action == inputs.ServerAction.START:
                 TASK = VM.PowerOn()
-                WaitForTask(service_instance, [TASK])
                 return outputs.ServerActionOutput()
             elif params.action == inputs.ServerAction.SHUTDOWN:
                 TASK = VM.PowerOffVM_Task()
-                WaitForTask(service_instance, [TASK])
                 return outputs.ServerActionOutput()
             elif params.action == inputs.ServerAction.DELETE:
                 if format(VM.runtime.powerState) == "poweredOn":
                     TASK = VM.PowerOffVM_Task()
                     WaitForTask(service_instance, [TASK])
                 TASK = VM.Destroy_Task()
-                WaitForTask(service_instance, [TASK])
                 return outputs.ServerActionOutput()
             elif params.action == inputs.ServerAction.DELETE_FORCE:
                 if format(VM.runtime.powerState) == "poweredOn":
                     TASK = VM.PowerOffVM_Task()
                     WaitForTask(service_instance, [TASK])
                 TASK = VM.Destroy_Task()
-                WaitForTask(service_instance, [TASK])
                 return outputs.ServerActionOutput()
             elif params.action == inputs.ServerAction.POWER_OFF:
                 TASK = VM.PowerOffVM_Task()
-                WaitForTask(service_instance, [TASK])
                 return outputs.ServerActionOutput()
             elif params.action == inputs.ServerAction.REBOOT:
                 TASK = VM.ResetVM_Task()
-                WaitForTask(service_instance, [TASK])
                 return outputs.ServerActionOutput()
             else:
                 return outputs.ServerActionOutput(ok=False, error=exceptions.Error('server action failed'))
@@ -399,31 +380,10 @@ class VmwareAdapter(BaseAdapter):
         """
         try:
             service_instance = self.auth.kwargs['vmconnect']
-            content = service_instance.RetrieveContent()
             vm = get_obj(service_instance.content, [vim.VirtualMachine], params.server_id)
-            vm_moid = vm._moId
-
-            vcenter_data = content.setting
-            vcenter_settings = vcenter_data.setting
-
-            for item in vcenter_settings:
-                key = getattr(item, 'key')
-                if key == 'VirtualCenter.FQDN':
-                    vcenter_fqdn = getattr(item, 'value')
-
-            session_manager = content.sessionManager
-            session = session_manager.AcquireCloneTicket()
-
-            vc_cert = ssl.get_server_certificate(('10.0.200.243', int(443)))
-            vc_pem = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                                     vc_cert)
-            vc_fingerprint = vc_pem.digest('sha1')
-
-            serverGuid = service_instance.content.about.instanceUuid
-
-            vnc_url = "http://" + self.endpoint_url + "/ui/webconsole.html?vmId=" \
-                      + str(vm_moid) + "&vmName=" + vm.name + "&serverGuid=" + serverGuid + "&host=" + vcenter_fqdn \
-                      + "&sessionTicket=" + session + "&thumbprint=" + str(vc_fingerprint, encoding="utf-8")
+            x = vm.AcquireTicket("webmks")
+            vm_url = "wss://" + str(x.host) + ":" + str(x.port) + "/ticket/" + str(x.ticket)
+            vnc_url = '/servers/vmware?vm_url=' + vm_url
             print(vnc_url)
             return outputs.ServerVNCOutput(vnc=outputs.ServerVNCOutputVNC(url=vnc_url))
         except Exception as e:
@@ -483,7 +443,8 @@ class VmwareAdapter(BaseAdapter):
             content = service_instance.RetrieveContent()
             network = get_obj(content, [vim.Network], params.network_id)
 
-            new_net = outputs.NetworkDetail(id=params.network_id, name=params.network_id, public=False, segment='0.0.0.0')
+            new_net = outputs.NetworkDetail(id=params.network_id, name=params.network_id, public=False,
+                                            segment='0.0.0.0')
 
             return outputs.NetworkDetailOutput(network=new_net)
         except exceptions.Error as e:

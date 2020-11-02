@@ -242,23 +242,15 @@ class OpenStackAdapter(BaseAdapter):
         :return:
             outputs.ServerVNCOutput()
         """
-        url = self.endpoint_url + ':8774/v2.1/servers/' + params.server_id + '/action'
-        headers = {self.auth.header.header_name:self.auth.header.header_value}
-        command = {
-            "os-getVNCConsole": {
-                "type": "novnc"
-            }
-        }
         try:
-            print(url)
-            r = requests.post(url, headers=headers, json=command)
-            if r.status_code != 200:
-                return outputs.ServerVNCOutput(ok=False, error=exceptions.Error('get vnc failed'), vnc=None)
-            vnc_url = r.json()['console']['url']
+            service_instance = self.auth.kwargs['vmconnect']
+            server = service_instance.compute.get_server(params.server_id)
+            console = service_instance.compute.create_server_remote_console(
+                server, protocol='vnc', type='novnc')
+            vnc_url = console.url
             port_pos = vnc_url.find(':', 7)
             if port_pos != -1:
                 vnc_url = self.endpoint_url + vnc_url[port_pos:len(vnc_url)]
-            print(vnc_url)
             return outputs.ServerVNCOutput(vnc=outputs.ServerVNCOutputVNC(url=vnc_url))
         except Exception as e:
             return outputs.ServerVNCOutput(ok=False, error=exceptions.Error('get vnc failed'), vnc=None)
