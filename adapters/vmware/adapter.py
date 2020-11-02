@@ -14,10 +14,10 @@ import atexit
 import ssl
 
 from pyVim.connect import SmartConnectNoSSL, Disconnect
-from pyVmomi import vmodl
 from pyVmomi import vim
 from pyVim.task import WaitForTask
 import OpenSSL
+
 
 datetime_re = re.compile(
     r'(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<day>\d{1,2})'
@@ -148,7 +148,7 @@ class VmwareAdapter(BaseAdapter):
                                               expire=int(expire), username=username, password=password,
                                               vmconnect=service_instance)
         except Exception as e:
-            raise exceptions.AuthenticationFailed(message=e.msg)
+            raise exceptions.AuthenticationFailed(message=str(e))
 
         self.auth = auth
         return auth
@@ -205,10 +205,10 @@ class VmwareAdapter(BaseAdapter):
             nic.device.key = 4000  # 4000 seems to be the value to use for a vmxnet3 device
             nic.device.deviceInfo = vim.Description()
             nic.device.deviceInfo.label = "Network Adapter 22"
-            nic.device.deviceInfo.summary =  params.network_id
+            nic.device.deviceInfo.summary = params.network_id
             nic.device.backing = vim.vm.device.VirtualEthernetCard.NetworkBackingInfo()
             nic.device.backing.network = get_obj(content, [vim.Network],  params.network_id)
-            nic.device.backing.deviceName =  params.network_id
+            nic.device.backing.deviceName = params.network_id
             nic.device.backing.useAutoDetect = False
             nic.device.connectable = vim.vm.device.VirtualDevice.ConnectInfo()
             nic.device.connectable.startConnected = True
@@ -247,7 +247,7 @@ class VmwareAdapter(BaseAdapter):
             clonespec.template = False
             # fire the clone task
             task = template_vm.Clone(folder=destfolder, name=deploy_settings["new_vm_name"].title(), spec=clonespec)
-            vm = get_obj(content,[vim.VirtualMachine],vm_name)
+            vm = get_obj(content, [vim.VirtualMachine], vm_name)
 
             custom_fields = service_instance.RetrieveContent().customFieldsManager.field
             image_name_field = None
@@ -378,7 +378,6 @@ class VmwareAdapter(BaseAdapter):
             'notRunning': 4,
         }
         try:
-
             service_instance = self.auth.kwargs['vmconnect']
             vm = get_obj(service_instance.content, [vim.VirtualMachine], params.server_id)
             if not vm:
@@ -390,7 +389,8 @@ class VmwareAdapter(BaseAdapter):
             status_mean = outputs.ServerStatus.get_mean(status_code)
             return outputs.ServerStatusOutput(status=status_code, status_mean=status_mean)
         except Exception as e:
-            return outputs.ServerStatusOutput(ok=False, error=exceptions.Error('get server status failed'))
+            return outputs.ServerStatusOutput(ok=False, error=exceptions.Error('get server status failed'),
+                                              status=outputs.ServerStatus.NOSTATE, status_mean='')
 
     def server_vnc(self, params: inputs.ServerVNCInput, **kwargs):
         """
@@ -470,7 +470,6 @@ class VmwareAdapter(BaseAdapter):
 
         except Exception as e:
             return outputs.ListNetworkOutput(ok=False, error=exceptions.Error('list networks failed'), networks=[])
-        return None
 
     def network_detail(self, params: inputs.NetworkDetailInput, **kwargs):
         """
@@ -482,10 +481,10 @@ class VmwareAdapter(BaseAdapter):
         try:
             service_instance = self.auth.kwargs['vmconnect']
             content = service_instance.RetrieveContent()
-            network=get_obj(content,[vim.Network],params.network_id)
+            network = get_obj(content, [vim.Network], params.network_id)
 
             new_net = outputs.NetworkDetail(id=params.network_id, name=params.network_id, public=False, segment='0.0.0.0')
 
             return outputs.NetworkDetailOutput(network=new_net)
         except exceptions.Error as e:
-            return outputs.NetworkDetailOutput(ok=False, error=exceptions.Error(e.msg), network=None)
+            return outputs.NetworkDetailOutput(ok=False, error=exceptions.Error(str(e)), network=None)

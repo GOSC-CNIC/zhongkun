@@ -1,21 +1,17 @@
 from datetime import datetime, timedelta, timezone
 import requests
-
 import uuid
 import re
 from pytz import utc
 
-
 import openstack
-
-
 
 from adapters.base import BaseAdapter
 from adapters import inputs
 from adapters import outputs
-import time
 
 from adapters import exceptions
+
 
 datetime_re = re.compile(
     r'(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<day>\d{1,2})'
@@ -23,6 +19,7 @@ datetime_re = re.compile(
     r'(?::(?P<second>\d{1,2})(?:\.(?P<microsecond>\d{1,6})\d{0,6})?)?'
     r'(?P<tzinfo>Z|[+-]\d{2}(?::?\d{2})?)?$'
 )
+
 
 def get_fixed_timezone(offset):
     """Return a tzinfo instance with a fixed offset from UTC."""
@@ -32,6 +29,7 @@ def get_fixed_timezone(offset):
     hhmm = '%02d%02d' % divmod(abs(offset), 60)
     name = sign + hhmm
     return timezone(timedelta(minutes=offset), name)
+
 
 def parse_datetime(value):
     """Parse a string and return a datetime.datetime.
@@ -58,6 +56,8 @@ def parse_datetime(value):
         kw = {k: int(v) for k, v in kw.items() if v is not None}
         kw['tzinfo'] = tzinfo
         return datetime(**kw)
+
+
 def iso_to_datetime(value, default=datetime(year=1, month=1, day=1, hour=0, minute=0, second=0, tzinfo=utc)):
     try:
         parsed = parse_datetime(value)
@@ -65,6 +65,7 @@ def iso_to_datetime(value, default=datetime(year=1, month=1, day=1, hour=0, minu
             return default
     except (ValueError, TypeError):
         return default
+
 
 class OpenStackAdapter(BaseAdapter):
     """
@@ -96,10 +97,8 @@ class OpenStackAdapter(BaseAdapter):
         user_domain = 'default'
         project_domain = 'default'
 
-
-
         try:
-            connect=openstack.connect(
+            connect = openstack.connect(
                 auth_url=auth_url,
                 project_name=project_name,
                 username=username,
@@ -127,11 +126,8 @@ class OpenStackAdapter(BaseAdapter):
             outputs.ServerCreateOutput()
         """
         service_instance = self.auth.kwargs['vmconnect']
-
         try:
-
             flavor = self.get_or_create_flavor(params.ram, params.vcpu)
-
             server_re = service_instance.compute.create_server(
                 name='gosc-instance-'+str(uuid.uuid4()), image_id=params.image_id, flavor_id=flavor.id,
                 networks=[{"uuid": params.network_id}])
@@ -165,7 +161,7 @@ class OpenStackAdapter(BaseAdapter):
                 system=image_temp.properties['os']
             )
 
-            flavor=server.flavor
+            flavor = server.flavor
             server = outputs.ServerDetailOutputServer(
                 uuid=server.id,
                 ram=flavor['ram'],
@@ -222,7 +218,6 @@ class OpenStackAdapter(BaseAdapter):
         :return:
             outputs.ServerStatusOutput()
         """
-
         service_instance = self.auth.kwargs['vmconnect']
         status_map = {
             'ACTIVE': 1,
@@ -232,8 +227,8 @@ class OpenStackAdapter(BaseAdapter):
             'SUSPENDED': 7
         }
         try:
-            server=service_instance.compute.get_server(params.server_id)
-            status =server.status
+            server = service_instance.compute.get_server(params.server_id)
+            status = server.status
             status_code = status_map[status]
             if status_code not in outputs.ServerStatus():
                 status_code = outputs.ServerStatus.NOSTATE
@@ -276,7 +271,7 @@ class OpenStackAdapter(BaseAdapter):
         """
         service_instance = self.auth.kwargs['vmconnect']
         try:
-            result=[]
+            result = []
             for image in service_instance.image.images():
                 img_obj = outputs.ListImageOutputImage(id=image.id, name=image.name, system=image.properties['os'],
                                                        desc=image.properties['description'],
@@ -293,8 +288,7 @@ class OpenStackAdapter(BaseAdapter):
             if flavor.ram == ram and flavor.vcpus == vcpu:
                 return flavor
 
-
-        flavor=service_instance.compute.create_flavor("flavor" + str(len(flavors)), ram, vcpu, 2)
+        flavor = service_instance.compute.create_flavor("flavor" + str(len(flavors)), ram, vcpu, 2)
         return flavor
 
     def list_networks(self, params: inputs.ListNetworkInput, **kwargs):
@@ -304,8 +298,7 @@ class OpenStackAdapter(BaseAdapter):
         """
         service_instance = self.auth.kwargs['vmconnect']
         try:
-
-            result=[]
+            result = []
             for net in service_instance.network.networks():
                 public = False
                 subnet = service_instance.network.get_subnet(net.subnet_ids[0])
@@ -326,11 +319,11 @@ class OpenStackAdapter(BaseAdapter):
         try:
             service_instance = self.auth.kwargs['vmconnect']
 
-            network=service_instance.network.get_network(params.network_id)
-            subnet =service_instance.network.get_subnet(network.subnet_ids[0])
+            network = service_instance.network.get_network(params.network_id)
+            subnet = service_instance.network.get_subnet(network.subnet_ids[0])
 
             new_net = outputs.NetworkDetail(id=params.network_id, name=network.name, public=False, segment=subnet.cidr)
 
             return outputs.NetworkDetailOutput(network=new_net)
         except exceptions.Error as e:
-            return outputs.NetworkDetailOutput(ok=False, error=exceptions.Error(e.msg), network=None)
+            return outputs.NetworkDetailOutput(ok=False, error=exceptions.Error(str(e)), network=None)
