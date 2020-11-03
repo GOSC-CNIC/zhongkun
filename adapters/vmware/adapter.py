@@ -143,7 +143,7 @@ class VmwareAdapter(BaseAdapter):
                                                  port=int(443))
             atexit.register(Disconnect, service_instance)
             expire = (datetime.utcnow() + timedelta(hours=1)).timestamp()
-            auth = outputs.AuthenticateOutput(style='token', token=None, header=None, query=None,
+            auth = outputs.AuthenticateOutput(style='token', token='', header=None, query=None,
                                               expire=int(expire), username=username, password=password,
                                               vmconnect=service_instance)
         except Exception as e:
@@ -160,13 +160,9 @@ class VmwareAdapter(BaseAdapter):
         """
         try:
             vm_name = 'gosc-instance-' + str(uuid.uuid4()) + '-&&image&&-' + params.image_id
-            deploy_settings = {'template': 'centos8_gui', 'hostname': 'gosc_003', 'ips': '10.0.200.243', 'cpus': 2,
-                               'mem': 8 * 1024}
-            deploy_settings["new_vm_name"] = vm_name
-            # what VM template to use
-            deploy_settings['template_name'] = params.image_id
-            deploy_settings['cpus'] = params.vcpu
-            deploy_settings['mem'] = params.ram
+            deploy_settings = {'template': 'centos8_gui', 'hostname': 'gosc_003', 'ips': '10.0.200.243',
+                               'cpus': params.vcpu, 'mem': params.ram, "new_vm_name": vm_name,
+                               'template_name': params.image_id}
 
             # connect to vCenter server
             service_instance = self.auth.kwargs['vmconnect']

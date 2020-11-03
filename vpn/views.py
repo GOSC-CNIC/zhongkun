@@ -33,15 +33,17 @@ class VPNView(View):
         else:
             err = 'not found service'
 
-        config_file_url = request_vpn_service(service=service, method='get_vpn_config_file_url')
-        ca_file_url = request_vpn_service(service=service, method='get_vpn_ca_file_url')
         context = {
             'active_service': service_id,
             'vpn': vpn,
-            'err': err,
-            'vpn_config_file_url': config_file_url,
-            'vpn_ca_file_url': ca_file_url
+            'err': err
         }
+        if not err:
+            config_file_url = request_vpn_service(service=service, method='get_vpn_config_file_url')
+            ca_file_url = request_vpn_service(service=service, method='get_vpn_ca_file_url')
+            context['vpn_config_file_url'] = config_file_url
+            context['vpn_ca_file_url'] = ca_file_url
+
         return render(request, 'vpn.html', context=context)
 
     @staticmethod

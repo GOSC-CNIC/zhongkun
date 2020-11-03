@@ -76,17 +76,17 @@
         </tr>
         </tbody>
     </table>
-    {% endif %}
-    {% if active_service %}
-        <div>
-            <p class="bg-light p-2">VPN相关文件下载</p>
-            {% if vpn_config_file_url %}
-                <P>配置文件：<a href="{{ vpn_config_file_url }}" target="_blank">下载</a></P>
-            {% endif %}
-            {% if vpn_ca_file_url %}
-                <P>CA证书：<a href="{{ vpn_ca_file_url }}" target="_blank">下载</a></P>
-            {% endif %}
-        </div>
+        {% if active_service %}
+            <div>
+                <p class="bg-light p-2">VPN相关文件下载</p>
+                {% if vpn_config_file_url %}
+                    <P>配置文件：<a href="{{ vpn_config_file_url }}" target="_blank">下载</a></P>
+                {% endif %}
+                {% if vpn_ca_file_url %}
+                    <P>CA证书：<a href="{{ vpn_ca_file_url }}" target="_blank">下载</a></P>
+                {% endif %}
+            </div>
+        {% endif %}
     {% endif %}
 {% endblock %}
 

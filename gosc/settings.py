@@ -165,6 +165,12 @@ THIRD_PARTY_APP_AUTH = {
     },
 }
 
+
+REST_FRAMEWORK = {
+    'PAGE_SIZE': 100,
+
+}
+
 # TinyMCE
 TINYMCE_DEFAULT_CONFIG = {
     "theme": "silver",
