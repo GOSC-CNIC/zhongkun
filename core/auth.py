@@ -50,8 +50,10 @@ class AuthCacheHandler:
         try:
             params = inputs.AuthenticateInput(username=service.username, password=service.password)
             auth = s_client.authenticate(params)
+            if not auth.ok:
+                raise exceptions.AuthenticationFailed(f'Authentication failed to service "{str(service)}"')
         except os_exceptions.AuthenticationFailed:
-            raise exceptions.AuthenticationFailed()
+            raise exceptions.AuthenticationFailed(f'Authentication failed to service "{str(service)}"')
 
         self[key] = auth
         return auth
@@ -76,8 +78,10 @@ class AuthCacheHandler:
         try:
             params = inputs.AuthenticateInput(username=service.vpn_username, password=service.vpn_password)
             auth = cli.authenticate(params)
+            if not auth.ok:
+                raise exceptions.AuthenticationFailed(f'Authentication failed to vpn of service "{str(service)}"')
         except os_exceptions.AuthenticationFailed:
-            raise exceptions.AuthenticationFailed()
+            raise exceptions.AuthenticationFailed(f'Authentication failed to vpn of service "{str(service)}"')
 
         self[key] = auth
         return auth

@@ -56,6 +56,10 @@ class EVCloudAdapter(BaseAdapter):
             params = inputs.AuthenticateInput(username=auth.username, password=auth.password)
             auth = self.authenticate(params=params)
 
+        if not auth.ok:
+            if isinstance(auth.error, exceptions.Error):
+                raise auth.error
+
         h = auth.header
         return {h.header_name: h.header_value}
 

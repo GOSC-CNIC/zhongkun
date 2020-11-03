@@ -1,5 +1,7 @@
+from collections import OrderedDict
+
 from django.utils.translation import gettext_lazy, gettext as _
-from rest_framework.permissions import IsAuthenticated, BasePermission
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -14,6 +16,7 @@ from core.quota import QuotaAPI
 from . import exceptions
 from . import serializers
 from .viewsets import CustomGenericViewSet, str_to_int_or_default
+from .paginations import ServersPagination
 
 
 def serializer_error_msg(errors, default=''):
@@ -47,15 +50,63 @@ class ServersViewSet(CustomGenericViewSet):
     虚拟服务器实例视图
     """
     permission_classes = [IsAuthenticated, ]
-    pagination_class = LimitOffsetPagination
+    pagination_class = ServersPagination
     lookup_field = 'id'
     # lookup_value_regex = '[0-9a-z-]+'
 
-    # @swagger_auto_schema(
-    #     operation_summary=gettext_lazy('服务器列表'),
-    # )
-    # def list(self, request, *args, **kwargs):
-    #     servers_qs = Server.objects.filter(user=request.user, deleted=False).all()
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举服务器实例'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='service_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                required=False,
+                description='服务端点id'
+            ),
+        ],
+        responses={
+            200: ''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        列举服务器实例
+
+            200: {
+              "count": 8,
+              "next": null,
+              "previous": null,
+              "servers": [
+                {
+                  "id": 22,
+                  "name": "gosc-instance-1cbaf0fd-20c1-4632-8e0c-7be8708591ac",
+                  "vcpus": 1,
+                  "ram": 1024,
+                  "ipv4": "10.0.200.249",
+                  "public_ip": false,
+                  "image": "centos8_gui",
+                  "creation_time": "2020-11-02T07:47:39.776384Z",
+                  "remarks": ""
+                }
+              ]
+            }
+        """
+        servers = Server.objects.filter(user=request.user)
+        service_id = request.query_params.get('service_id', None)
+        if service_id:
+            try:
+                service_id = int(service_id)
+            except ValueError:
+                exc = exceptions.InvalidArgument(message='Invalid query param "service_id"')
+                return Response(data=exc.err_data(), status=exc.status_code)
+
+            servers = servers.filter(service_id=service_id)
+
+        paginator = ServersPagination()
+        page = paginator.paginate_queryset(servers, request, view=self)
+        serializer = serializers.ServerSerializer(page, many=True)
+        return paginator.get_paginated_response(data=serializer.data)
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('创建服务器实例'),
