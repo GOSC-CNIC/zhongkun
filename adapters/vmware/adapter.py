@@ -81,7 +81,6 @@ def get_obj(content, vimtype, name):
     obj = None
     container = content.viewManager.CreateContainerView(content.rootFolder, vimtype, True)
     for c in container.view:
-        print(c.name.lower(), name.lower())
         if c.name.lower() == name.lower():
             obj = c
             break
@@ -260,15 +259,13 @@ class VmwareAdapter(BaseAdapter):
             try:
                 server_ip = {'ipv4': VM.guest.ipAddress, 'public_ipv4': None}
             except Exception as e:
-                server_ip = {'ipv4': 'ip not exist', 'public_ipv4': None}
+                server_ip = {'ipv4': None, 'public_ipv4': None}
 
             ip = outputs.ServerIP(**server_ip)
-
-            image_name = ''
             try:
                 image_name = params.server_id.split('-&&image&&-')[1]
             except Exception as e:
-                image_name = 'not found'
+                image_name = None
 
             image = outputs.ServerImage(
                 name=image_name,
@@ -378,9 +375,7 @@ class VmwareAdapter(BaseAdapter):
             service_instance = self.auth.kwargs['vmconnect']
             vm = get_obj(service_instance.content, [vim.VirtualMachine], params.server_id)
             x = vm.AcquireTicket("webmks")
-            vm_url = "wss://" + str(x.host) + ":" + str(x.port) + "/ticket/" + str(x.ticket)
-            vnc_url = '/servers/vmware?vm_url=' + vm_url
-            print(vnc_url)
+            vnc_url = "wss://" + str(x.host) + ":" + str(x.port) + "/ticket/" + str(x.ticket)
             return outputs.ServerVNCOutput(vnc=outputs.ServerVNCOutputVNC(url=vnc_url))
         except Exception as e:
             return outputs.ServerVNCOutput(ok=False, error=exceptions.Error('get vnc failed'), vnc=None)

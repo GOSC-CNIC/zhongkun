@@ -1,12 +1,11 @@
-from collections import OrderedDict
-
 from django.utils.translation import gettext_lazy, gettext as _
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.serializers import Serializer
+from rest_framework.reverse import reverse
+from rest_framework.utils.urls import replace_query_param
 from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
@@ -229,10 +228,11 @@ class ServersViewSet(CustomGenericViewSet):
             if out_server.ram:
                 server.ram = out_server.ram
 
-            server.ipv4 = out_server.ip.ipv4
-            server.image = out_server.image.name
             server.public_ip = out_server.ip.public_ipv4 if out_server.ip.public_ipv4 else False
-            server.task_status = task_status if task_status is not None else server.TASK_CREATED_OK     # 创建成功
+            server.ipv4 = out_server.ip.ipv4 if out_server.ip.ipv4 else ''
+            server.image = out_server.image.name
+            if server.ipv4 and server.image:
+                server.task_status = task_status if task_status is not None else server.TASK_CREATED_OK     # 创建成功
             server.save()
         except Exception as e:
             return False
@@ -455,7 +455,7 @@ class ServersViewSet(CustomGenericViewSet):
 
         status_code = r.status
         if status_code in outputs.ServerStatus.normal_values():     # 虚拟服务器状态正常
-            if server.task_status == server.TASK_IN_CREATING:   #
+            if (server.task_status == server.TASK_IN_CREATING) or (not server.ipv4):   #
                 self._update_server_detail(server, task_status=server.TASK_CREATED_OK)
 
         return Response(data={
@@ -511,8 +511,14 @@ class ServersViewSet(CustomGenericViewSet):
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
+        vnc = r.vnc.url
+        if not vnc.startswith('http') and service.service_type == service.SERVICE_VMWARE:
+            path = reverse('servers:vmware')
+            url = request.build_absolute_uri(location=path)
+            vnc = replace_query_param(url=url, key='vm_url', val=r.vnc.url)
+
         return Response(data={'vnc': {
-            'url': r.vnc.url
+            'url': vnc
         }})
 
     @swagger_auto_schema(
