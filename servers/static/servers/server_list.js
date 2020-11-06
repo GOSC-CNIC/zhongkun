@@ -333,11 +333,11 @@
                 window.open(vnc, '_blank');
             },
             error: function (xhr, msg, err) {
-                msg = '打开vnc失败';
+                msg = '打开vnc失败，请确认是否启动云主机';
                 try {
                     let data = xhr.responseJSON;
                     if (data.hasOwnProperty('message')) {
-                        msg = '打开vnc失败,' + data.message;
+                        msg = '打开vnc失败，请确认是否启动云主机。' + data.message;
                     }
                 }catch (e) {}
                 alert(msg);
@@ -355,7 +355,6 @@
     $('.edit_vm_remark').click(function (e) {
         e.preventDefault();
 
-        let vm_uuid = $(this).attr('data-server-id');
         let div_show = $(this).parent();
         div_show.hide();
 		div_show.next().show();

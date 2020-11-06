@@ -183,9 +183,9 @@ class OpenStackAdapter(BaseAdapter):
         service_instance = self.auth.kwargs['vmconnect']
         try:
             service_instance.compute.delete_server(params.server_id, force=True)
-            return None
+            return outputs.ServerDeleteOutput()
         except Exception as e:
-            raise e
+            return outputs.ServerDeleteOutput(ok=False, error=exceptions.Error(message=f'Failed to delete server, {str(e)}'))
 
     def server_action(self, params: inputs.ServerActionInput, **kwargs):
         """

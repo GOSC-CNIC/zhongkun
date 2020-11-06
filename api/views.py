@@ -1,3 +1,5 @@
+import random
+
 from django.utils.translation import gettext_lazy, gettext as _
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
@@ -267,9 +269,21 @@ class ServersViewSet(CustomGenericViewSet):
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
+        # 如果元数据完整，各种服务不同概率去更新元数据
         if server.ipv4 and server.image:
-            serializer = serializers.ServerSerializer(server)
-            return Response(data={'server': serializer.data})
+            need_update = False
+            if server.service.service_type == server.service.SERVICE_EVCLOUD:
+                if random.choice(range(10)) == 0:
+                    need_update = True
+            elif server.service.service_type == server.service.SERVICE_OPENSTACK:
+                if random.choice(range(5)) == 0:
+                    need_update = True
+            elif random.choice(range(2)) == 0:
+                need_update = True
+
+            if not need_update:
+                serializer = serializers.ServerSerializer(server)
+                return Response(data={'server': serializer.data})
 
         service = server.service
         params = inputs.ServerDetailInput(server_id=server.instance_id)
@@ -278,22 +292,52 @@ class ServersViewSet(CustomGenericViewSet):
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
-        server.ipv4 = out.server.ip.ipv4
-        server.image = out.server.image.name
-        pub_ip = out.server.ip.public_ipv4
-        if pub_ip is not None:
-            server.public_ip = pub_ip
+        update_fields = []
+        new_vcpu = out.server.vcpu
+        if new_vcpu and server.vcpus != new_vcpu:
+            server.vcpus = new_vcpu
+            update_fields.append('vcpus')
 
-        try:
-            server.save()
-        except Exception as e:
-            pass
+        new_ram = out.server.ram
+        if new_ram and server.ram != new_ram:
+            server.ram = new_ram
+            update_fields.append('ram')
+
+        new_ipv4 = out.server.ip.ipv4
+        if new_ipv4 and server.ipv4 != new_ipv4:
+            server.ipv4 = new_ipv4
+            update_fields.append('ipv4')
+
+        new_name = out.server.image.name
+        if new_name and server.image != new_name:
+            server.image = new_name
+            update_fields.append('image')
+
+        new_pub = out.server.ip.public_ipv4
+        if new_pub is not None and server.public_ip != new_pub:
+            server.public_ip = new_pub
+            update_fields.append('public_ip')
+
+        if update_fields:
+            try:
+                server.save(update_fields=update_fields)
+            except Exception as e:
+                pass
 
         serializer = serializers.ServerSerializer(server)
         return Response(data={'server': serializer.data})
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('删除服务器实例'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='force',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_BOOLEAN,
+                required=False,
+                description='强制删除'
+            ),
+        ],
         responses={
             204: """NO CONTENT""",
             403: """
@@ -318,17 +362,19 @@ class ServersViewSet(CustomGenericViewSet):
     )
     def destroy(self, request, *args, **kwargs):
         server_id = kwargs.get(self.lookup_field, '')
-
+        q_force = request.query_params.get('force', '')
+        if q_force.lower() == 'true':
+            force = True
+        else:
+            force = False
         try:
             server = self.get_server(server_id=server_id, user=request.user)
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
-        service = server.service
+        params = inputs.ServerDeleteInput(server_id=server.instance_id, force=force)
         try:
-            self.request_service(service, method='server_delete', server_id=server.instance_id)
-        except exceptions.AuthenticationFailed as exc:
-            return Response(data=exc.err_data(), status=500)
+            self.request_service(server.service, method='server_delete', params=params)
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 

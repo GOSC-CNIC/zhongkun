@@ -11,12 +11,11 @@ from adapters import outputs
 from adapters import exceptions
 
 import atexit
-import ssl
 
 from pyVim.connect import SmartConnectNoSSL, Disconnect
 from pyVmomi import vim
 from pyVim.task import WaitForTask
-import OpenSSL
+
 
 datetime_re = re.compile(
     r'(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<day>\d{1,2})'
@@ -292,11 +291,12 @@ class VmwareAdapter(BaseAdapter):
         """
         try:
             service_instance = self.auth.kwargs['vmconnect']
-            VM = get_obj(service_instance.content, [vim.VirtualMachine], params.server_id)
-            if format(VM.runtime.powerState) == "poweredOn":
-                TASK = VM.PowerOffVM_Task()
-                WaitForTask(service_instance, [TASK])
-            TASK = VM.Destroy_Task()
+            vm = get_obj(service_instance.content, [vim.VirtualMachine], params.server_id)
+            if format(vm.runtime.powerState) == "poweredOn":
+                task = vm.PowerOffVM_Task()
+                WaitForTask(task=task, si=service_instance)
+            task = vm.Destroy_Task()
+            WaitForTask(task=task, si=service_instance)
             return outputs.ServerActionOutput()
         except Exception as e:
             return outputs.ServerActionOutput(ok=False, error=exceptions.Error('server action failed'))
@@ -309,32 +309,27 @@ class VmwareAdapter(BaseAdapter):
         """
         try:
             service_instance = self.auth.kwargs['vmconnect']
-            VM = get_obj(service_instance.content, [vim.VirtualMachine], params.server_id)
-            if not VM:
+            vm = get_obj(service_instance.content, [vim.VirtualMachine], params.server_id)
+            if not vm:
                 return outputs.ServerActionOutput()
             if params.action == inputs.ServerAction.START:
-                TASK = VM.PowerOn()
+                task = vm.PowerOn()
                 return outputs.ServerActionOutput()
             elif params.action == inputs.ServerAction.SHUTDOWN:
-                TASK = VM.PowerOffVM_Task()
+                task = vm.PowerOffVM_Task()
                 return outputs.ServerActionOutput()
-            elif params.action == inputs.ServerAction.DELETE:
-                if format(VM.runtime.powerState) == "poweredOn":
-                    TASK = VM.PowerOffVM_Task()
-                    WaitForTask(service_instance, [TASK])
-                TASK = VM.Destroy_Task()
-                return outputs.ServerActionOutput()
-            elif params.action == inputs.ServerAction.DELETE_FORCE:
-                if format(VM.runtime.powerState) == "poweredOn":
-                    TASK = VM.PowerOffVM_Task()
-                    WaitForTask(service_instance, [TASK])
-                TASK = VM.Destroy_Task()
+            elif params.action in [inputs.ServerAction.DELETE, inputs.ServerAction.DELETE_FORCE]:
+                if format(vm.runtime.powerState) == "poweredOn":
+                    task = vm.PowerOffVM_Task()
+                    WaitForTask(task=task, si=service_instance)
+                task = vm.Destroy_Task()
+                WaitForTask(task=task, si=service_instance)
                 return outputs.ServerActionOutput()
             elif params.action == inputs.ServerAction.POWER_OFF:
-                TASK = VM.PowerOffVM_Task()
+                task = vm.PowerOffVM_Task()
                 return outputs.ServerActionOutput()
             elif params.action == inputs.ServerAction.REBOOT:
-                TASK = VM.ResetVM_Task()
+                task = vm.ResetVM_Task()
                 return outputs.ServerActionOutput()
             else:
                 return outputs.ServerActionOutput(ok=False, error=exceptions.Error('server action failed'))

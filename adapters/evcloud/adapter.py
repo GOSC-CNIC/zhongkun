@@ -155,7 +155,10 @@ class EVCloudAdapter(BaseAdapter):
         return OutputConverter.to_server_create_output(vm_id=rj['vm']['uuid'])
 
     def server_delete(self, params: inputs.ServerDeleteInput, **kwargs):
-        url = self.api_builder.vm_detail_url(vm_uuid=params.server_id, query={'force': True})
+        query = None
+        if params.force:
+            query = {'force': 'true'}
+        url = self.api_builder.vm_detail_url(vm_uuid=params.server_id, query=query)
         try:
             headers = self.get_auth_header()
             r = self.do_request(method='delete', url=url, ok_status_codes=[204, 400, 404], headers=headers)

@@ -40,6 +40,12 @@ var VM_STATUS_LABEL = {
         12: 'danger'
 };
 
+// 虚拟机detail api构建
+function build_vm_detail_api(vm_uuid){
+    let url = 'api/server/' + vm_uuid + '/';
+    return build_absolute_url(url);
+}
+
 // 虚拟机操作api构建
 function build_vm_operations_api(vm_uuid){
     let url = 'api/server/' + vm_uuid + '/action/';
@@ -53,9 +59,9 @@ function build_vm_snap_create_api(vm_uuid, remarks){
 }
 
 function get_err_msg_or_default(xhr, default_msg) {
-    msg = default_msg;
+    let msg = default_msg;
     try {
-        data = xhr.responseJSON;
+        let data = xhr.responseJSON;
         if (data.hasOwnProperty('message')) {
             msg = default_msg + data.message;
         }
@@ -171,16 +177,16 @@ function poweroff_vm_ajax(vm_uuid, before_func, complate_func){
 
 // 删除虚拟机
 function delete_vm_ajax(vm_uuid, op='delete', before_func, success_func, complate_func){
-    let api = build_vm_operations_api(vm_uuid);
+    let api = build_vm_detail_api(vm_uuid);
+    if (op === 'delete_force'){
+        api = api + '?force=true'
+    }
     if(typeof(before_func) === "function"){
         before_func();
     }
     $.ajax({
         url: api,
-        type: 'post',
-        data: {
-            'action': op,
-        },
+        type: 'delete',
         success: function (data, status_text) {
             if(typeof(success_func) === "function"){
                 success_func();
