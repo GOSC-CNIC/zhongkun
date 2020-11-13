@@ -28,8 +28,8 @@ class TestUserQuotaManager(TransactionTestCase):
 
         user = self.user
         mgr = UserQuotaManager()
-        old_quota = mgr.get_quota(user=user)
-        new_quota = mgr.increase(user=user, vcpus=vcpus_add, ram=ram_add, disk_size=disk_size_add,
+        old_quota = mgr.get_base_quota(user=user)
+        new_quota = mgr.increase(user=user, quota_id=old_quota.id, vcpus=vcpus_add, ram=ram_add, disk_size=disk_size_add,
                                  public_ip=public_ip_add, private_ip=private_ip_add)
         self.assertEqual(new_quota.vcpu_total - old_quota.vcpu_total, vcpus_add,
                          msg='UserQuotaManager increase vcpu failed')
@@ -71,7 +71,7 @@ class TestUserQuotaManager(TransactionTestCase):
         with self.assertRaises(QuotaShortageError, msg='UserQuotaManager requires private_ip failed'):
             mgr.requires(quota=new_quota, private_ip=new_quota.private_ip_total + 1)
 
-        new_quota = mgr.deduct(user=user, vcpus=vcpus_add, ram=ram_add, disk_size=disk_size_add,
+        new_quota = mgr.deduct(user=user, quota_id=old_quota.id, vcpus=vcpus_add, ram=ram_add, disk_size=disk_size_add,
                                public_ip=public_ip_add, private_ip=private_ip_add)
         self.assertEqual(new_quota.vcpu_used, vcpus_add,
                          msg='UserQuotaManager deduct vcpu failed')
@@ -84,7 +84,7 @@ class TestUserQuotaManager(TransactionTestCase):
         self.assertEqual(new_quota.private_ip_used, private_ip_add,
                          msg='UserQuotaManager deduct private_ip failed')
 
-        new_quota = mgr.release(user=user, vcpus=vcpus_add, ram=ram_add, disk_size=disk_size_add,
+        new_quota = mgr.release(user=user, quota_id=old_quota.id, vcpus=vcpus_add, ram=ram_add, disk_size=disk_size_add,
                                 public_ip=public_ip_add, private_ip=private_ip_add)
         self.assertEqual(new_quota.vcpu_used, old_quota.vcpu_used,
                          msg='UserQuotaManager release vcpu failed')
@@ -97,7 +97,7 @@ class TestUserQuotaManager(TransactionTestCase):
         self.assertEqual(new_quota.private_ip_used, old_quota.private_ip_used,
                          msg='UserQuotaManager release private_ip failed')
 
-        new_quota = mgr.decrease(user=user, vcpus=vcpus_add, ram=ram_add, disk_size=disk_size_add,
+        new_quota = mgr.decrease(user=user, quota_id=old_quota.id, vcpus=vcpus_add, ram=ram_add, disk_size=disk_size_add,
                                  public_ip=public_ip_add, private_ip=private_ip_add)
         self.assertEqual(new_quota.vcpu_total, old_quota.vcpu_total,
                          msg='UserQuotaManager deduct vcpu failed')

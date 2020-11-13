@@ -36,12 +36,15 @@ class QuotaError(Error):
     pass
 
 
+class NoSuchQuotaError(QuotaError):
+    default_message = "The specified quota does not exist."
+    default_code = "NoSuchQuota"
+    default_status_code = 404
+
+
 class QuotaShortageError(QuotaError):
     """配置不足短缺"""
     default_message = "There are not enough resources to use."
     default_code = "QuotaShortage"
     default_status_code = 409
-
-
-
 

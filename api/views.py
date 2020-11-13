@@ -166,7 +166,7 @@ class ServersViewSet(CustomGenericViewSet):
 
         # 资源配额扣除
         try:
-            use_shared_quota = QuotaAPI().server_create_quota_apply(
+            use_shared_quota, user_quota = QuotaAPI().server_create_quota_apply(
                 data_center=service.data_center, user=request.user, vcpu=flavor.vcpus, ram=flavor.ram,
                 public_ip=is_public_network)
         except exceptions.Error as exc:
@@ -180,7 +180,7 @@ class ServersViewSet(CustomGenericViewSet):
             try:
                 QuotaAPI().server_quota_release(data_center=service.data_center, user=request.user,
                                                 vcpu=flavor.vcpus, ram=flavor.ram, public_ip=is_public_network,
-                                                use_shared_quota=use_shared_quota)
+                                                use_shared_quota=use_shared_quota, user_quota_id=user_quota.id)
             except exceptions.Error:
                 pass
             return Response(data=exc.err_data(), status=exc.status_code)
@@ -197,6 +197,7 @@ class ServersViewSet(CustomGenericViewSet):
                         vcpus=flavor.vcpus,
                         ram=flavor.ram,
                         task_status=Server.TASK_IN_CREATING,
+                        user_quota=user_quota,
                         **kwargs
                         )
         server.save()
@@ -655,7 +656,7 @@ class ServersViewSet(CustomGenericViewSet):
         try:
             QuotaAPI().server_quota_release(data_center=server.service.data_center, user=server.user,
                                             vcpu=server.vcpus, ram=server.ram, public_ip=server.public_ip,
-                                            use_shared_quota=server.is_use_shared_quota)
+                                            use_shared_quota=server.is_use_shared_quota, user_quota_id=server.user_quota_id)
         except exceptions.Error as e:
             return False
 

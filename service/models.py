@@ -1,6 +1,9 @@
+from collections import OrderedDict
+
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
+from django.utils import timezone
 
 User = get_user_model()
 app_name = 'service'
@@ -149,9 +152,17 @@ class UserQuota(models.Model):
     """
     用户资源配额限制
     """
+    TAG_BASE = 1
+    TAG_PROBATION = 2
+    CHOICES_TAG = (
+        (TAG_BASE, _('普通配额')),
+        (TAG_PROBATION, _('试用配额'))
+    )
+
     id = models.AutoField(verbose_name='ID', primary_key=True)
-    user = models.OneToOneField(to=User, null=True, on_delete=models.SET_NULL,
-                                related_name='user_quota', verbose_name=_('用户'))
+    tag = models.SmallIntegerField(verbose_name=_('配额类型'), choices=CHOICES_TAG, default=TAG_BASE)
+    user = models.ForeignKey(to=User, null=True, on_delete=models.SET_NULL,
+                             related_name='user_quota', verbose_name=_('用户'))
     private_ip_total = models.IntegerField(verbose_name=_('总私网IP数'), default=0)
     private_ip_used = models.IntegerField(verbose_name=_('已用私网IP数'), default=0)
     public_ip_total = models.IntegerField(verbose_name=_('总公网IP数'), default=0)
@@ -162,12 +173,34 @@ class UserQuota(models.Model):
     ram_used = models.IntegerField(verbose_name=_('已用内存大小(MB)'), default=0)
     disk_size_total = models.IntegerField(verbose_name=_('总硬盘大小(GB)'), default=0)
     disk_size_used = models.IntegerField(verbose_name=_('已用硬盘大小(GB)'), default=0)
+    expiration_time = models.DateTimeField(verbose_name=_('过期时间'), null=True, blank=True, default=None)
+    is_email = models.BooleanField(verbose_name=_('是否邮件通知'), default=False, help_text=_('是否邮件通知用户配额即将到期'))
 
     class Meta:
         db_table = 'user_quota'
         ordering = ['-id']
         verbose_name = _('用户资源配额')
         verbose_name_plural = verbose_name
+
+    def __str__(self):
+        values = []
+        if self.vcpu_total > 0:
+            values.append(f'vCPU: {self.vcpu_total}')
+        if self.ram_total > 0:
+            values.append(f'RAM: {self.ram_total}Mb')
+        if self.disk_size_total > 0:
+            values.append(f'Disk: {self.disk_size_total}Gb')
+        if self.public_ip_total > 0:
+            values.append(f'PublicIP: {self.public_ip_total}')
+        if self.private_ip_total > 0:
+            values.append(f'PrivateIP: {self.private_ip_total}')
+
+        if values:
+            s = ', '.join(values)
+        else:
+            s = '0'
+
+        return f'[{self.get_tag_display()}]({s})'
 
     @property
     def vcpu_free_count(self):
@@ -192,3 +225,24 @@ class UserQuota(models.Model):
     @property
     def all_ip_count(self):
         return self.private_ip_total + self.public_ip_total
+
+    def is_expire_now(self):
+        """
+        资源配额现在是否过期
+        :return:
+            True    # 过期
+            False   # 未过期
+        """
+        if self.tag == self.TAG_BASE:       # base配额不检查过期时间
+            return False
+
+        if not self.expiration_time:        # 未设置过期时间
+            return False
+
+        now = timezone.now()
+        ts_now = now.timestamp()
+        ts_expire = self.expiration_time.timestamp()
+        if (ts_now + 60) > ts_expire:  # 1分钟内算过期
+            return True
+
+        return False

@@ -38,21 +38,12 @@ def home(request, *args, **kwargs):
         elif i['center_quota'] == Server.QUOTA_PRIVATE:
             private_server_count = i['server_count']
 
-    quota = UserQuotaManager().get_quota(request.user)
-    labels_server = f"""["{_('共享已建')}", "{_('共享可建')}", "{_('私有已建')}"]"""
-    if quota.all_ip_count <= 0 and shared_server_count <= 0 and private_server_count <= 0:
-        data_server = """[0.1, 0, 0]"""
-    else:
-        can_create = max(quota.all_ip_count - servers_count, 0)
-        data_server = f"[{shared_server_count}, {can_create}, {private_server_count}]"
-
+    quota = UserQuotaManager().get_quota_queryset(request.user).first()
     context = {
         'active_service': service_id,
         'is_need_vpn': is_need_vpn,
         'quota': quota,
         'shared_server_count': shared_server_count,
-        'private_server_count': private_server_count,
-        'labels_server': labels_server,
-        'data_server': data_server
+        'private_server_count': private_server_count
     }
     return render(request, 'home.html', context=context)

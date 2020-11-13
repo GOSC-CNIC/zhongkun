@@ -3,7 +3,7 @@ from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
-from service.models import ServiceConfig
+from service.models import ServiceConfig, UserQuota
 
 User = get_user_model()
 
@@ -37,7 +37,7 @@ class ServerBase(models.Model):
     public_ip = models.BooleanField(default=True, verbose_name=_('公/私网'))
     image = models.CharField(max_length=255, verbose_name=_('镜像系统名称'), default='')
     creation_time = models.DateTimeField(auto_now_add=True, verbose_name=_('创建时间'))
-    remarks = models.CharField(max_length=255, default='', verbose_name=_('备注'))
+    remarks = models.CharField(max_length=255, blank=True, default='', verbose_name=_('备注'))
     task_status = models.SmallIntegerField(verbose_name=_('创建状态'), choices=CHOICES_TASK, default=TASK_CREATED_OK)
     center_quota = models.SmallIntegerField(verbose_name=_('数据中心配额'), choices=CHOICES_QUOTA, default=QUOTA_SHARED)
 
@@ -74,6 +74,8 @@ class Server(ServerBase):
                                 verbose_name=_('接入的服务配置'))
     user = models.ForeignKey(to=User, verbose_name=_('创建者'), on_delete=models.SET_NULL, related_name='user_servers',
                              null=True)
+    user_quota = models.ForeignKey(to=UserQuota, blank=True, null=True, on_delete=models.SET_NULL, related_name='quota_servers',
+                                   verbose_name=_('所属用户配额'))
 
     class Meta:
         ordering = ['-id']
@@ -124,6 +126,7 @@ class Server(ServerBase):
             a.deleted_time = timezone.now()
             a.task_status = self.task_status
             a.center_quota = self.center_quota
+            a.user_quota = self.user_quota
             a.save()
         except Exception as e:
             return False
@@ -142,6 +145,8 @@ class ServerArchive(ServerBase):
                                 related_name='server_archive_set', verbose_name=_('接入的服务配置'))
     user = models.ForeignKey(to=User, verbose_name=_('创建者'), on_delete=models.SET_NULL,
                              related_name='user_server_archives', null=True)
+    user_quota = models.ForeignKey(to=UserQuota, null=True, on_delete=models.SET_NULL, related_name='server_archive_set',
+                                   verbose_name=_('所属用户配额'))
     deleted_time = models.DateTimeField(verbose_name=_('删除归档时间'), auto_now_add=True)
 
     class Meta:

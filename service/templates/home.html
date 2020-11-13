@@ -104,8 +104,7 @@
         let title_public = 'Public IP ({{ quota.public_ip_total }})';
         let data_private = {% if quota.private_ip_total <= 0 %}[0.1, 0]{% else %}[{{ quota.private_ip_used }}, {{ quota.private_ip_free_count }}]{% endif %};
         let title_private = 'Private IP ({{ quota.private_ip_total }})';
-        let data_server = {{ data_server|safe }};
-        let labels_server = {{ labels_server|safe }};
+        let data_server = [{{ shared_server_count }}, {{ private_server_count }}];
         {% verbatim script %}
         window.chartColors = {
             red: 'rgb(255, 99, 132)',
@@ -159,12 +158,11 @@
         let canvas_public = document.getElementById('id-chart-quota-public').getContext('2d');
         let canvas_private = document.getElementById('id-chart-quota-private').getContext('2d');
         window.chart_server = create_chart(canvas_server, 'doughnut', {
-                labels: labels_server,
+                labels: ["共享已建", "私有已建"],
                 datasets: [{
                     data: data_server,
                     backgroundColor: [
 						window.chartColors.blue,
-						window.chartColors.green,
                         window.chartColors.orange
 					],
                     borderWidth: 2

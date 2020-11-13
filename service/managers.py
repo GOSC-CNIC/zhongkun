@@ -1,7 +1,7 @@
 from django.db import transaction
 from django.utils.translation import gettext_lazy, gettext as _
 
-from core.errors import QuotaError, QuotaShortageError
+from core import errors
 from .models import UserQuota, DataCenterPrivateQuota, DataCenterShareQuota
 
 
@@ -11,8 +11,15 @@ class UserQuotaManager:
     """
     MODEL = UserQuota
 
-    def _create_quota(self, user):
-        quota = self.MODEL(user=user)
+    def _create_quota(self, user, tag: int = None, expire_time=None):
+        if tag is None:
+            tag = self.MODEL.TAG_BASE
+
+        expiration_time = None
+        if tag != self.MODEL.TAG_BASE:
+            expiration_time = expire_time
+
+        quota = self.MODEL(user=user, tag=tag, expiration_time=expiration_time)
         try:
             quota.save()
         except Exception as e:
@@ -20,24 +27,38 @@ class UserQuotaManager:
 
         return quota
 
-    def get_quota(self, user):
+    def get_quota_queryset(self, user):
         """
-        获取用户资源配额
-        :param user:
+        获取用户资源配额查询集
+
+        :param user: 用户对象
+        :return: QuerySet()
+        """
+        return self.MODEL.objects.filter(user=user).all()
+
+    def get_base_quota_queryset(self, user):
+        """
+        获取用户基本资源配额查询集
+
+        :param user:用户对象
+        :return: QuerySet()
+        """
+        return self.get_quota_queryset(user=user).filter(tag=self.MODEL.TAG_BASE).all()
+
+    def get_quota_by_id(self, quota_id: int):
+        """
+        :param quota_id: 配额id
         :return:
             UserQuota() or None
         """
-        quota = self.MODEL.objects.filter(user=user).first()
-        if not quota:
-            quota = self._create_quota(user=user)
+        return self.MODEL.objects.filter(id=quota_id).first()
 
-        return quota
-
-    def deduct(self, user, vcpus: int = 0, ram: int = 0, disk_size: int = 0, public_ip: int = 0, private_ip: int = 0):
+    def deduct(self, user, quota_id: int, vcpus: int = 0, ram: int = 0, disk_size: int = 0, public_ip: int = 0, private_ip: int = 0):
         """
         扣除(已用)资源
 
         :param user: 用户对象
+        :param quota_id: 配额id
         :param vcpus: 虚拟cpu数
         :param ram: 内存，单位Mb
         :param disk_size: 硬盘容量，单位Gb
@@ -49,69 +70,72 @@ class UserQuotaManager:
         :raises: QuotaError, QuotaShortageError
         """
         if vcpus < 0 or ram < 0 or disk_size < 0 or public_ip < 0 or private_ip < 0:
-            raise QuotaError(_('参数无效，扣除资源配额不得小于0'))
+            raise errors.QuotaError(_('参数无效，扣除资源配额不得小于0'))
 
         if not user.id:
-            raise QuotaError(_('参数无效，无效的未知用户'))
+            raise errors.QuotaError(_('参数无效，无效的未知用户'))
+
+        if quota_id <= 0:
+            raise errors.QuotaError(_('参数无效，无效的资源配额id'))
 
         with transaction.atomic():
             update_fields = []
-            quota = self.MODEL.objects.select_for_update().filter(user=user).first()
+            quota = self.MODEL.objects.select_for_update().filter(id=quota_id, user=user).first()
             if not quota:
-                quota = self._create_quota(user=user)
-                if not quota:
-                    raise QuotaError(message=_('创建用户资源配额失败'))
+                raise errors.NoSuchQuotaError(_('参数无效，用户没有指定的资源配额'))
 
-                quota = self.MODEL.objects.select_for_update().filter(user=user).first()
+            if quota.is_expire_now():
+                raise errors.QuotaShortageError(message=_('您的资源配额已过期'))
 
             if vcpus > 0:
                 if (quota.vcpu_total - quota.vcpu_used) >= vcpus:
                     quota.vcpu_used = quota.vcpu_used + vcpus
                     update_fields.append('vcpu_used')
                 else:
-                    raise QuotaShortageError(message=_('您的vCPU资源配额不足'))
+                    raise errors.QuotaShortageError(message=_('您的vCPU资源配额不足'))
 
             if ram > 0:
                 if (quota.ram_total - quota.ram_used) >= ram:
                     quota.ram_used = quota.ram_used + ram
                     update_fields.append('ram_used')
                 else:
-                    raise QuotaShortageError(message=_('您的Ram资源配额不足'))
+                    raise errors.QuotaShortageError(message=_('您的Ram资源配额不足'))
 
             if disk_size > 0:
                 if (quota.disk_size_total - quota.disk_size_used) >= disk_size:
                     quota.disk_size_used = quota.disk_size_used + disk_size
                     update_fields.append('disk_size_used')
                 else:
-                    raise QuotaShortageError(message=_('您的硬盘资源配额不足'))
+                    raise errors.QuotaShortageError(message=_('您的硬盘资源配额不足'))
 
             if public_ip > 0:
                 if (quota.public_ip_total - quota.public_ip_used) >= public_ip:
                     quota.public_ip_used = quota.public_ip_used + public_ip
                     update_fields.append('public_ip_used')
                 else:
-                    raise QuotaShortageError(message=_('您的公网IP资源配额不足'))
+                    raise errors.QuotaShortageError(message=_('您的公网IP资源配额不足'))
 
             if private_ip > 0:
                 if (quota.private_ip_total - quota.private_ip_used) >= private_ip:
                     quota.private_ip_used = quota.private_ip_used + private_ip
                     update_fields.append('private_ip_used')
                 else:
-                    raise QuotaShortageError(message=_('您的私网IP资源配额不足'))
+                    raise errors.QuotaShortageError(message=_('您的私网IP资源配额不足'))
 
             if update_fields:
                 try:
                     quota.save(update_fields=update_fields)
                 except Exception as e:
-                    raise QuotaError(message=_('扣除资源配额失败'))
+                    raise errors.QuotaError(message=_('扣除资源配额失败'))
 
         return quota
 
-    def release(self, user, vcpus: int = 0, ram: int = 0, disk_size: int = 0, public_ip: int = 0, private_ip: int = 0):
+    def release(self, user, quota_id: int, vcpus: int = 0, ram: int = 0, disk_size: int = 0, public_ip: int = 0, private_ip: int = 0):
         """
         释放(已用)资源
 
         :param user: 用户对象
+        :param quota_id: 配额id
         :param vcpus: 虚拟cpu数
         :param ram: 内存，单位Mb
         :param disk_size: 硬盘容量，单位Gb
@@ -123,20 +147,16 @@ class UserQuotaManager:
         :raises: QuotaError, QuotaShortageError
         """
         if vcpus < 0 or ram < 0 or disk_size < 0 or public_ip < 0 or private_ip < 0:
-            raise QuotaError(_('参数无效，释放资源配额不得小于0'))
+            raise errors.QuotaError(_('参数无效，释放资源配额不得小于0'))
 
         if not user.id:
-            raise QuotaError(_('参数无效，无效的未知用户'))
+            raise errors.QuotaError(_('参数无效，无效的未知用户'))
 
         with transaction.atomic():
             update_fields = []
-            quota = self.MODEL.objects.select_for_update().filter(user=user).first()
+            quota = self.MODEL.objects.select_for_update().filter(id=quota_id, user=user).first()
             if not quota:
-                quota = self._create_quota(user=user)
-                if not quota:
-                    raise QuotaError(message=_('创建用户资源配额失败'))
-
-                quota = self.MODEL.objects.select_for_update().filter(user=user).first()
+                raise errors.NoSuchQuotaError(_('参数无效，用户没有指定的资源配额'))
 
             if vcpus > 0:
                 quota.vcpu_used = max(quota.vcpu_used - vcpus, 0)
@@ -162,15 +182,16 @@ class UserQuotaManager:
                 try:
                     quota.save(update_fields=update_fields)
                 except Exception as e:
-                    raise QuotaError(message=_('释放资源配额失败'))
+                    raise errors.QuotaError(message=_('释放资源配额失败'))
 
         return quota
 
-    def increase(self, user, vcpus: int = 0, ram: int = 0, disk_size: int = 0, public_ip: int = 0, private_ip: int = 0):
+    def increase(self, user, quota_id: int, vcpus: int = 0, ram: int = 0, disk_size: int = 0, public_ip: int = 0, private_ip: int = 0):
         """
         增加资源总配额
 
         :param user: 用户对象
+        :param quota_id: 配额id
         :param vcpus: 虚拟cpu数
         :param ram: 内存，单位Mb
         :param disk_size: 硬盘容量，单位Gb
@@ -182,17 +203,13 @@ class UserQuotaManager:
         :raises: QuotaError
         """
         if vcpus < 0 or ram < 0 or disk_size < 0 or public_ip < 0 or private_ip < 0:
-            raise QuotaError(_('参数无效，增加资源配额不得小于0'))
+            raise errors.QuotaError(_('参数无效，增加资源配额不得小于0'))
 
         with transaction.atomic():
             update_fields = []
-            quota = UserQuota.objects.select_for_update().filter(user=user).first()
+            quota = self.MODEL.objects.select_for_update().filter(id=quota_id, user=user).first()
             if not quota:
-                quota = self._create_quota(user=user)
-                if not quota:
-                    raise QuotaError(message=_('添加用户资源配额失败'))
-
-                quota = UserQuota.objects.select_for_update().filter(user=user).first()
+                raise errors.NoSuchQuotaError(_('参数无效，用户没有指定的资源配额'))
 
             if vcpus > 0:
                 quota.vcpu_total = quota.vcpu_total + vcpus
@@ -218,15 +235,16 @@ class UserQuotaManager:
                 try:
                     quota.save(update_fields=update_fields)
                 except Exception as e:
-                    raise QuotaError(message=_('增加资源配额失败'))
+                    raise errors.QuotaError(message=_('增加资源配额失败'))
 
         return quota
 
-    def decrease(self, user, vcpus: int = 0, ram: int = 0, disk_size: int = 0, public_ip: int = 0, private_ip: int = 0):
+    def decrease(self, user, quota_id: int, vcpus: int = 0, ram: int = 0, disk_size: int = 0, public_ip: int = 0, private_ip: int = 0):
         """
         减少资源总配额
 
         :param user: 用户对象
+        :param quota_id: 配额id
         :param vcpus: 虚拟cpu数
         :param ram: 内存，单位Mb
         :param disk_size: 硬盘容量，单位Gb
@@ -238,17 +256,13 @@ class UserQuotaManager:
         :raises: QuotaError
         """
         if vcpus < 0 or ram < 0 or disk_size < 0 or public_ip < 0 or private_ip < 0:
-            raise QuotaError(_('参数无效，减少资源配额不得小于0'))
+            raise errors.QuotaError(_('参数无效，减少资源配额不得小于0'))
 
         with transaction.atomic():
             update_fields = []
-            quota = UserQuota.objects.select_for_update().filter(user=user).first()
+            quota = self.MODEL.objects.select_for_update().filter(id=quota_id, user=user).first()
             if not quota:
-                quota = self._create_quota(user=user)
-                if not quota:
-                    raise QuotaError(message=_('减少用户资源配额失败'))
-
-                quota = UserQuota.objects.select_for_update().filter(user=user).first()
+                raise errors.NoSuchQuotaError(_('参数无效，用户没有指定的资源配额'))
 
             if vcpus > 0:
                 quota.vcpu_total = max(quota.vcpu_total - vcpus, 0)
@@ -274,7 +288,7 @@ class UserQuotaManager:
                 try:
                     quota.save(update_fields=update_fields)
                 except Exception as e:
-                    raise QuotaError(message=_('减少资源配额失败'))
+                    raise errors.QuotaError(message=_('减少资源配额失败'))
 
         return quota
 
@@ -295,22 +309,25 @@ class UserQuotaManager:
         :raises: QuotaError, QuotaShortageError
         """
         if vcpus < 0 or ram < 0 or disk_size < 0 or public_ip < 0 or private_ip < 0:
-            raise QuotaError(_('参数无效，扣除资源配额不得小于0'))
+            raise errors.QuotaError(_('参数无效，扣除资源配额不得小于0'))
+
+        if quota.is_expire_now():
+            raise errors.QuotaShortageError(message=_('您的资源配额已过期'))
 
         if vcpus > 0 and (quota.vcpu_total - quota.vcpu_used) < vcpus:
-            raise QuotaShortageError(_('您的vCPU资源配额不足'))
+            raise errors.QuotaShortageError(_('您的vCPU资源配额不足'))
 
         if ram > 0 and (quota.ram_total - quota.ram_used) < ram:
-            raise QuotaShortageError(_('您的Ram资源配额不足'))
+            raise errors.QuotaShortageError(_('您的Ram资源配额不足'))
 
         if disk_size > 0 and (quota.disk_size_total - quota.disk_size_used) < disk_size:
-            raise QuotaShortageError(_('您的Disk资源配额不足'))
+            raise errors.QuotaShortageError(_('您的Disk资源配额不足'))
 
         if public_ip > 0 and (quota.public_ip_total - quota.public_ip_used) < public_ip:
-            raise QuotaShortageError(_('您的公网IP资源配额不足'))
+            raise errors.QuotaShortageError(_('您的公网IP资源配额不足'))
 
         if private_ip > 0 and (quota.private_ip_total - quota.private_ip_used) < private_ip:
-            raise QuotaShortageError(_('您的私网IP资源配额不足'))
+            raise errors.QuotaShortageError(_('您的私网IP资源配额不足'))
 
         return True
 
@@ -363,7 +380,7 @@ class DataCenterQuotaManagerBase:
         :raises: QuotaError
         """
         if vcpus < 0 or ram < 0 or disk_size < 0 or public_ip < 0 or private_ip < 0:
-            raise QuotaError(_('参数无效，扣除资源配额不得小于0'))
+            raise errors.QuotaError(_('参数无效，扣除资源配额不得小于0'))
 
         with transaction.atomic():
             update_fields = []
@@ -371,7 +388,7 @@ class DataCenterQuotaManagerBase:
             if not quota:
                 quota = self._create_quota(center=center)
                 if not quota:
-                    raise QuotaError(message=self._prefix_msg(_('创建资源配额失败')))
+                    raise errors.QuotaError(message=self._prefix_msg(_('创建资源配额失败')))
 
                 quota = self.MODEL.objects.select_for_update().filter(data_center=center).first()
 
@@ -380,41 +397,41 @@ class DataCenterQuotaManagerBase:
                     quota.vcpu_used = quota.vcpu_used + vcpus
                     update_fields.append('vcpu_used')
                 else:
-                    raise QuotaShortageError(message=self._prefix_msg(_('vCPU资源配额不足')))
+                    raise errors.QuotaShortageError(message=self._prefix_msg(_('vCPU资源配额不足')))
 
             if ram > 0:
                 if (quota.ram_total - quota.ram_used) >= ram:
                     quota.ram_used = quota.ram_used + ram
                     update_fields.append('ram_used')
                 else:
-                    raise QuotaShortageError(message=self._prefix_msg(_('Ram资源配额不足')))
+                    raise errors.QuotaShortageError(message=self._prefix_msg(_('Ram资源配额不足')))
 
             if disk_size > 0:
                 if (quota.disk_size_total - quota.disk_size_used) >= disk_size:
                     quota.disk_size_used = quota.disk_size_used + disk_size
                     update_fields.append('disk_size_used')
                 else:
-                    raise QuotaShortageError(message=self._prefix_msg(_('硬盘资源配额不足')))
+                    raise errors.QuotaShortageError(message=self._prefix_msg(_('硬盘资源配额不足')))
 
             if public_ip > 0:
                 if (quota.public_ip_total - quota.public_ip_used) >= public_ip:
                     quota.public_ip_used = quota.public_ip_used + public_ip
                     update_fields.append('public_ip_used')
                 else:
-                    raise QuotaShortageError(message=self._prefix_msg(_('公网IP资源配额不足')))
+                    raise errors.QuotaShortageError(message=self._prefix_msg(_('公网IP资源配额不足')))
 
             if private_ip > 0:
                 if (quota.private_ip_total - quota.private_ip_used) >= private_ip:
                     quota.private_ip_used = quota.private_ip_used + private_ip
                     update_fields.append('private_ip_used')
                 else:
-                    raise QuotaShortageError(message=self._prefix_msg(_('私网IP资源配额不足')))
+                    raise errors.QuotaShortageError(message=self._prefix_msg(_('私网IP资源配额不足')))
 
             if update_fields:
                 try:
                     quota.save(update_fields=update_fields)
                 except Exception as e:
-                    raise QuotaError(message=self._prefix_msg(_('扣除资源配额失败')))
+                    raise errors.QuotaError(message=self._prefix_msg(_('扣除资源配额失败')))
 
         return quota
 
@@ -434,7 +451,7 @@ class DataCenterQuotaManagerBase:
         :raises: QuotaError
         """
         if vcpus < 0 or ram < 0 or disk_size < 0 or public_ip < 0 or private_ip < 0:
-            raise QuotaError(_('参数无效，释放资源配额不得小于0'))
+            raise errors.QuotaError(_('参数无效，释放资源配额不得小于0'))
 
         with transaction.atomic():
             update_fields = []
@@ -442,7 +459,7 @@ class DataCenterQuotaManagerBase:
             if not quota:
                 quota = self._create_quota(center=center)
                 if not quota:
-                    raise QuotaError(message=self._prefix_msg(_('创建资源配额失败')))
+                    raise errors.QuotaError(message=self._prefix_msg(_('创建资源配额失败')))
 
                 quota = self.MODEL.objects.select_for_update().filter(data_center=center).first()
 
@@ -470,7 +487,7 @@ class DataCenterQuotaManagerBase:
                 try:
                     quota.save(update_fields=update_fields)
                 except Exception as e:
-                    raise QuotaError(message=self._prefix_msg(_('释放资源配额失败')))
+                    raise errors.QuotaError(message=self._prefix_msg(_('释放资源配额失败')))
 
         return quota
 
@@ -490,7 +507,7 @@ class DataCenterQuotaManagerBase:
         :raises: QuotaError
         """
         if vcpus < 0 or ram < 0 or disk_size < 0 or public_ip < 0 or private_ip < 0:
-            raise QuotaError(_('参数无效，增加资源配额不得小于0'))
+            raise errors.QuotaError(_('参数无效，增加资源配额不得小于0'))
 
         with transaction.atomic():
             update_fields = []
@@ -498,7 +515,7 @@ class DataCenterQuotaManagerBase:
             if not quota:
                 quota = self._create_quota(center=center)
                 if not quota:
-                    raise QuotaError(message=self._prefix_msg(_('创建资源配额失败')))
+                    raise errors.QuotaError(message=self._prefix_msg(_('创建资源配额失败')))
 
                 quota = self.MODEL.objects.select_for_update().filter(data_center=center).first()
 
@@ -526,7 +543,7 @@ class DataCenterQuotaManagerBase:
                 try:
                     quota.save(update_fields=update_fields)
                 except Exception as e:
-                    raise QuotaError(message=self._prefix_msg(_('增加资源配额失败')))
+                    raise errors.QuotaError(message=self._prefix_msg(_('增加资源配额失败')))
 
         return quota
 
@@ -546,7 +563,7 @@ class DataCenterQuotaManagerBase:
         :raises: QuotaError
         """
         if vcpus < 0 or ram < 0 or disk_size < 0 or public_ip < 0 or private_ip < 0:
-            raise QuotaError(_('参数无效，增加资源配额不得小于0'))
+            raise errors.QuotaError(_('参数无效，增加资源配额不得小于0'))
 
         with transaction.atomic():
             update_fields = []
@@ -554,7 +571,7 @@ class DataCenterQuotaManagerBase:
             if not quota:
                 quota = self._create_quota(center=center)
                 if not quota:
-                    raise QuotaError(message=self._prefix_msg(_('创建资源配额失败')))
+                    raise errors.QuotaError(message=self._prefix_msg(_('创建资源配额失败')))
 
                 quota = self.MODEL.objects.select_for_update().filter(data_center=center).first()
 
@@ -582,7 +599,7 @@ class DataCenterQuotaManagerBase:
                 try:
                     quota.save(update_fields=update_fields)
                 except Exception as e:
-                    raise QuotaError(message=self._prefix_msg(_('增加资源配额失败')))
+                    raise errors.QuotaError(message=self._prefix_msg(_('增加资源配额失败')))
 
         return quota
 
@@ -603,22 +620,22 @@ class DataCenterQuotaManagerBase:
         :raises: QuotaError, QuotaShortageError
         """
         if vcpus < 0 or ram < 0 or disk_size < 0 or public_ip < 0 or private_ip < 0:
-            raise QuotaError(_('参数无效，扣除资源配额不得小于0'))
+            raise errors.QuotaError(_('参数无效，扣除资源配额不得小于0'))
 
         if vcpus > 0 and (quota.vcpu_total - quota.vcpu_used) < vcpus:
-            raise QuotaShortageError(message=self._prefix_msg(_("vCPU资源配额不足")))
+            raise errors.QuotaShortageError(message=self._prefix_msg(_("vCPU资源配额不足")))
 
         if ram > 0 and (quota.ram_total - quota.ram_used) < ram:
-            raise QuotaShortageError(message=self._prefix_msg(_("Ram资源配额不足")))
+            raise errors.QuotaShortageError(message=self._prefix_msg(_("Ram资源配额不足")))
 
         if disk_size > 0 and (quota.disk_size_total - quota.disk_size_used) < disk_size:
-            raise QuotaShortageError(message=self._prefix_msg(_("Disk资源配额不足")))
+            raise errors.QuotaShortageError(message=self._prefix_msg(_("Disk资源配额不足")))
 
         if public_ip > 0 and (quota.public_ip_total - quota.public_ip_used) < public_ip:
-            raise QuotaShortageError(message=self._prefix_msg(_("公网IP资源配额不足")))
+            raise errors.QuotaShortageError(message=self._prefix_msg(_("公网IP资源配额不足")))
 
         if private_ip > 0 and (quota.private_ip_total - quota.private_ip_used) < private_ip:
-            raise QuotaShortageError(message=self._prefix_msg(_("私网IP资源配额不足")))
+            raise errors.QuotaShortageError(message=self._prefix_msg(_("私网IP资源配额不足")))
 
         return True
 
