@@ -10,6 +10,7 @@ class ServiceConfigAdmin(admin.ModelAdmin):
                     'add_time', 'status', 'need_vpn', 'vpn_endpoint_url', 'remarks')
     search_fields = ['name', 'endpoint_url', 'remarks']
     list_filter = ['data_center', 'service_type']
+    list_select_related = ('data_center',)
 
 
 @admin.register(DataCenter)
@@ -26,7 +27,7 @@ class DataCenterPrivateQuotaAdmin(admin.ModelAdmin):
     list_display = ('id', 'data_center', 'vcpu_total', 'vcpu_used', 'ram_total', 'ram_used', 'disk_size_total',
                     'disk_size_used', 'private_ip_total', 'private_ip_used', 'public_ip_total', 'public_ip_used',
                     'enable')
-
+    list_select_related = ('data_center',)
     list_filter = ('data_center',)
 
 
@@ -36,12 +37,13 @@ class DataCenterShareQuotaAdmin(admin.ModelAdmin):
     list_display = ('id', 'data_center', 'vcpu_total', 'vcpu_used', 'ram_total', 'ram_used', 'disk_size_total',
                     'disk_size_used', 'private_ip_total', 'private_ip_used', 'public_ip_total', 'public_ip_used',
                     'enable')
-
+    list_select_related = ('data_center',)
     list_filter = ('data_center',)
 
 
 @admin.register(UserQuota)
 class UserQuotaAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
-    list_display = ('id', 'user', 'vcpu_total', 'vcpu_used', 'ram_total', 'ram_used', 'disk_size_total',
+    list_display = ('id', 'tag', 'user', 'vcpu_total', 'vcpu_used', 'ram_total', 'ram_used', 'disk_size_total',
                     'disk_size_used', 'private_ip_total', 'private_ip_used', 'public_ip_total', 'public_ip_used')
+    list_select_related = ('user',)

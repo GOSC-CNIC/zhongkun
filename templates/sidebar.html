@@ -10,7 +10,7 @@
                 <div class="nav flex-column mt-2">
                     <div role="presentation" class="nav-item m-0 p-0">
                         <div class="nav flex-column nav-pills bg-light">
-                            <a class="nav-link {% if not active_service %}active{% endif %}" href="{% url 'service:index' %}">{% trans '全部' %}</a>
+                            <a class="nav-link {% if not active_service %}active{% endif %}" href="{% url 'servers:server-list' %}">{% trans '机构/数据中心' %}</a>
                         </div>
                     </div>
                     {% get_center_and_services as centers %}
@@ -22,7 +22,7 @@
                             <div class="collapse show bg-light" id="service-{{ c.id }}-nav-list-group">
                                 <div class="nav flex-column nav-pills">
                                     {% for s in c.services %}
-                                        <a class="nav-link {% ifequal s.id active_service %}active{% endifequal %}" href="{% url 'service:home' s.id %}">{{ s.name }}</a>
+                                        <a class="nav-link {% ifequal s.id active_service %}active{% endifequal %}" href="{% url 'servers:service-server-list' s.id %}">{{ s.name }}</a>
                                     {% endfor %}
                                 </div>
                             </div>

@@ -57,7 +57,7 @@ class Migration(migrations.Migration):
                 ('image_id', models.CharField(default='', max_length=128, verbose_name='镜像ID')),
                 ('image', models.CharField(default='', max_length=255, verbose_name='镜像系统名称')),
                 ('creation_time', models.DateTimeField(auto_now_add=True, verbose_name='创建时间')),
-                ('remarks', models.CharField(default='', max_length=255, verbose_name='备注')),
+                ('remarks', models.CharField(blank=True, default='', max_length=255, verbose_name='备注')),
                 ('deleted_time', models.DateTimeField(auto_now_add=True, verbose_name='删除归档时间')),
                 ('service', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='server_archive_set', to='service.ServiceConfig', verbose_name='接入的服务配置')),
                 ('user', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='user_server_archives', to=settings.AUTH_USER_MODEL, verbose_name='创建者')),

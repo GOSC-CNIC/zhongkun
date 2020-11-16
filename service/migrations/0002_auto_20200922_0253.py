@@ -24,8 +24,8 @@ class Migration(migrations.Migration):
             ],
             options={
                 'ordering': ['id'],
-                'verbose_name': '数据中心',
-                'verbose_name_plural': '数据中心'
+                'verbose_name': '机构',
+                'verbose_name_plural': '机构'
             },
         ),
         migrations.RemoveField(

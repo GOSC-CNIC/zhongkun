@@ -25,7 +25,7 @@ class DataCenter(models.Model):
 
     class Meta:
         ordering = ['id']
-        verbose_name = _('数据中心')
+        verbose_name = _('机构')
         verbose_name_plural = verbose_name
 
     def __str__(self):

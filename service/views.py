@@ -38,11 +38,11 @@ def home(request, *args, **kwargs):
         elif i['center_quota'] == Server.QUOTA_PRIVATE:
             private_server_count = i['server_count']
 
-    quota = UserQuotaManager().get_quota_queryset(request.user).first()
+    quotas = UserQuotaManager().get_quota_queryset(request.user)
     context = {
         'active_service': service_id,
         'is_need_vpn': is_need_vpn,
-        'quota': quota,
+        'quotas': quotas,
         'shared_server_count': shared_server_count,
         'private_server_count': private_server_count
     }

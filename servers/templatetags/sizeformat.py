@@ -55,10 +55,47 @@ def sizeformat(value, arg="B"):
 
 @register.filter
 def subtract(value, arg):
+    """相减"""
     return value - arg
 
 
 @register.filter
 def subtract_min_0(value, arg):
+    """
+    相减，最小值为0
+    """
     v = value - arg
     return 0 if v < 0 else v
+
+
+@register.filter
+def subtract_ratio(value):
+    """
+    剩余百分号比率
+    :param value: like 66%, 66
+    :return:
+        str     # xx%
+    """
+    if isinstance(value, str):
+        value = value.strip()
+        if not value:
+            return '100%'
+
+        v = value.split('%')
+        try:
+            iv = float(v[0])
+        except ValueError:
+            return ''
+
+        n = 100 - iv
+    elif isinstance(value, (float, int)):
+        if value <= 0:
+            n = 100
+        else:
+            n = max(100 - value, 0)
+    else:
+        return ''
+
+    return f'{n}%'
+
+
