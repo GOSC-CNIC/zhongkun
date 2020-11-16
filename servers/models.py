@@ -127,6 +127,7 @@ class Server(ServerBase):
             a.task_status = self.task_status
             a.center_quota = self.center_quota
             a.user_quota = self.user_quota
+            a.user_quota_tag = self.user_quota.tag
             a.save()
         except Exception as e:
             return False
@@ -141,12 +142,17 @@ class ServerArchive(ServerBase):
     """
     虚拟服务器实例归档
     """
+    TAG_BASE = UserQuota.TAG_BASE
+    TAG_PROBATION = UserQuota.TAG_PROBATION
+    CHOICES_TAG = UserQuota.CHOICES_TAG
+
     service = models.ForeignKey(to=ServiceConfig, null=True, on_delete=models.SET_NULL,
                                 related_name='server_archive_set', verbose_name=_('接入的服务配置'))
     user = models.ForeignKey(to=User, verbose_name=_('创建者'), on_delete=models.SET_NULL,
                              related_name='user_server_archives', null=True)
     user_quota = models.ForeignKey(to=UserQuota, null=True, on_delete=models.SET_NULL, related_name='server_archive_set',
                                    verbose_name=_('所属用户配额'))
+    user_quota_tag = models.SmallIntegerField(verbose_name=_('配额类型'), choices=CHOICES_TAG, default=TAG_BASE)
     deleted_time = models.DateTimeField(verbose_name=_('删除归档时间'), auto_now_add=True)
 
     class Meta:

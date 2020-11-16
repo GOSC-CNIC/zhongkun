@@ -276,6 +276,10 @@ class KJYLogin:
 
 
 class SignInView(LoginView):
+    # def get(self, request, *args, **kwargs):
+    #     url = KJYLogin.get_kjy_login_url()
+    #     return redirect(to=url)
+
     def form_valid(self, form):
         r = super().form_valid(form)
         user = form.get_user()

@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.utils.translation import gettext_lazy, gettext as _
 
 from .models import ServiceConfig, DataCenter, DataCenterPrivateQuota, DataCenterShareQuota, UserQuota
 
@@ -44,6 +45,16 @@ class DataCenterShareQuotaAdmin(admin.ModelAdmin):
 @admin.register(UserQuota)
 class UserQuotaAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
-    list_display = ('id', 'tag', 'user', 'vcpu_total', 'vcpu_used', 'ram_total', 'ram_used', 'disk_size_total',
-                    'disk_size_used', 'private_ip_total', 'private_ip_used', 'public_ip_total', 'public_ip_used')
+    list_display = ('id', 'tag', 'user', 'show_deleted', 'expiration_time', 'vcpu_total', 'vcpu_used', 'ram_total', 'ram_used',
+                    'disk_size_total', 'disk_size_used', 'private_ip_total', 'private_ip_used', 'public_ip_total', 'public_ip_used')
     list_select_related = ('user',)
+    search_fields = ['user__username']
+    # list_filter = ('show_deleted',)
+
+    def show_deleted(self, obj):
+        if obj.deleted:
+            return _("已删除")
+
+        return _('否')
+
+    show_deleted.short_description = gettext_lazy('删除')

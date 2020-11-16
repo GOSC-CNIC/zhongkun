@@ -34,7 +34,7 @@ class UserQuotaManager:
         :param user: 用户对象
         :return: QuerySet()
         """
-        return self.MODEL.objects.filter(user=user).all()
+        return self.MODEL.objects.filter(user=user, deleted=False).all()
 
     def get_base_quota_queryset(self, user):
         """

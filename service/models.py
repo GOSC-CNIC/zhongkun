@@ -175,6 +175,7 @@ class UserQuota(models.Model):
     disk_size_used = models.IntegerField(verbose_name=_('已用硬盘大小(GB)'), default=0)
     expiration_time = models.DateTimeField(verbose_name=_('过期时间'), null=True, blank=True, default=None)
     is_email = models.BooleanField(verbose_name=_('是否邮件通知'), default=False, help_text=_('是否邮件通知用户配额即将到期'))
+    deleted = models.BooleanField(verbose_name=_('删除'), default=False)
 
     class Meta:
         db_table = 'user_quota'

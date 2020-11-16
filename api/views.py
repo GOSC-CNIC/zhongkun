@@ -634,7 +634,7 @@ class ServersViewSet(CustomGenericViewSet):
 
     @staticmethod
     def get_server(server_id: int, user):
-        server = Server.objects.filter(id=server_id).select_related('service', 'user').first()
+        server = Server.objects.filter(id=server_id).select_related('service', 'user', 'user_quota').first()
         if not server:
             raise exceptions.NotFound(_('服务器实例不存在'))
 
