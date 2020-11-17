@@ -275,11 +275,7 @@ class KJYLogin:
         return redirect(to=url)
 
 
-class SignInView(LoginView):
-    # def get(self, request, *args, **kwargs):
-    #     url = KJYLogin.get_kjy_login_url()
-    #     return redirect(to=url)
-
+class LocalSignInView(LoginView):
     def form_valid(self, form):
         r = super().form_valid(form)
         user = form.get_user()
@@ -290,7 +286,6 @@ class SignInView(LoginView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['kjy_url'] = KJYLogin.get_kjy_login_url()
         return context
 
 
@@ -311,13 +306,14 @@ class SignOutView(View):
             to = resolve_url(settings.LOGOUT_REDIRECT_URL)
 
         user = request.user
-        logout(request)
-        # 科技云通行证用户登录
-        if user.third_app == User.THIRD_APP_KJY:
-            user.third_app = User.LOCAL_USER
-            user.save(update_fields=['third_app'])
-            next_url = request.build_absolute_uri(location=to)
-            return KJYLogin.kjy_logout(next_to=next_url)
+        if user.id:
+            logout(request)
+            # 科技云通行证用户登录
+            if user.third_app == User.THIRD_APP_KJY:
+                user.third_app = User.LOCAL_USER
+                user.save(update_fields=['third_app'])
+                next_url = request.build_absolute_uri(location=to)
+                return KJYLogin.kjy_logout(next_to=next_url)
 
         return redirect(to=to)
 
@@ -381,3 +377,12 @@ class ChangePasswordView(View):
             return redirect(to=login_url)
 
         return self.change(request, form)
+
+
+class SignInView(View):
+    """
+    登录
+    """
+    def get(self, request, *args, **kwargs):
+        kjy_url = KJYLogin.get_kjy_login_url()
+        return render(request, 'signin.html', context={'kjy_url': kjy_url})

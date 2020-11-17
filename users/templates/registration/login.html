@@ -4,22 +4,22 @@
 
 <html lang="zh-hans">
 <head>
-    <title>{% trans '登录' %} | GOSC</title>
+    <title>{% trans '本地登录' %}</title>
     <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <link rel="stylesheet" type="text/css" href="{% static 'bootstrap-4.5.0/css/bootstrap.min.css' %}">
 </head>
 <body>
 <div class="container-fluid">
     <div class="d-flex align-items-center justify-content-center" style="height: 80vh;">
-        <div class="card border-info" style="min-width: 400px">
-            <div class="card-header bg-info text-center">
-                <span class="card-title h5">{% trans 'GOSC登录' %}</span>
+        <div class="card border-0 shadow-sm" style="min-width: 400px">
+            <div class="bg-light p-2">
+                <span class="">{% trans '登录 中国科技云联邦' %}</span>
             </div>
             <div class="card-body">
                 {% if form.errors %}
                     <div class="text-danger">{{ form.non_field_errors }}</div>
                 {% endif %}
-                <form method="post" action="{% url 'users:login' %}" id="login-form">
+                <form method="post" action="{% url 'users:local_login' %}" id="login-form">
                     {% csrf_token %}
                     <div class="input-group form-group">
                         <div class="input-group-prepend">
@@ -38,25 +38,19 @@
                         <input type="hidden" name="this_is_the_login_form" value="1"/>
                     </div>
                     <div class="form-group">
-                        <input class="btn btn-primary" type="submit" value="{% trans '登录' %}">
+                        <input class="btn btn-primary" id="btn-submit" type="submit" value="{% trans '登录' %}">
 {#                        <a class="btn text-warning" href="{% url 'users:forget' %}">忘记密码</a>#}
-                        <a class="btn btn-info float-right" onclick="alert('暂不允许个人注册，请联系管理员');return false;">注册</a>
+                        <a class="btn btn-outline-success float-right" onclick="alert('暂不允许个人注册，请联系管理员');return false;">注册</a>
+                    </div>
+                    <div class="border-top">
+                        <a class="btn btn-sm p-2" href="{% url 'users:login' %}"><i class="fa fa-share"></i> <i class="fa fa-user"></i> {% trans '中国科技云通行证账号登录' %}</a>
                     </div>
                 </form>
-                {% if kjy_url %}
-                    <hr>
-                    <div class="third-part">
-                        <div class="text-center">{% trans '第三方帐号登录' %}:</div>
-                        <div>
-                            <h3 class="text-center"><a id="id-passport" href="{{ kjy_url }}"
-                                                       class="text-info">{% trans '中国科技云通行证' %}</a></h3>
-                        </div>
-                    </div>
-                {% endif %}
             </div>
         </div>
     </div>
 </div>
+<script type="text/javascript" src="{% static 'fontawesome-free/js/all.min.js' %}"></script>
 </body>
 </html>
 

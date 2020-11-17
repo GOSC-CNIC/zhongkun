@@ -160,7 +160,8 @@ THIRD_PARTY_APP_AUTH = {
         # 'client_secret': 'xxx',
         'client_home_url': 'http://gosc.cstcloud.cn',
         'client_callback_url': 'http://gosc.cstcloud.cn/accounts/callback/',  # 认证回调地址
-        'login_url': 'https://passport.escience.cn/oauth2/authorize?response_type=code&theme=simple',
+        # 'login_url': 'https://passport.escience.cn/oauth2/authorize?response_type=code&theme=simple',
+        'login_url': 'https://passport.escience.cn/oauth2/authorize?response_type=code&theme=embed',
         'token_url': 'https://passport.escience.cn/oauth2/token',
         'logout_url': 'https://passport.escience.cn/logout'
     },
