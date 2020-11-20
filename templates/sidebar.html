@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 {% load i18n %}
 {% load services %}
 {% load cache %}
@@ -16,13 +17,24 @@
                     {% get_center_and_services as centers %}
                     {% for c in centers %}
                         <div role="presentation" class="nav-item m-0 p-0">
-                            <li class="nav-list-toggle p-2 btn" data-toggle="collapse" data-target="#service-{{ c.id }}-nav-list-group">
+                            <li class="nav-list-toggle p-2 pl-0 btn" data-toggle="collapse" data-target="#service-{{ c.id }}-nav-list-group">
                                 <i class="fa fa-list"></i> {{ c.name }} <i class="fa fa-chevron-down"></i>
                             </li>
                             <div class="collapse show bg-light" id="service-{{ c.id }}-nav-list-group">
                                 <div class="nav flex-column nav-pills">
                                     {% for s in c.services %}
-                                        <a class="nav-link {% ifequal s.id active_service %}active{% endifequal %}" href="{% url 'servers:service-server-list' s.id %}">{{ s.name }}</a>
+                                        <div class="media">
+                                            {% if s.service_type == 0 %}
+                                                <img class="align-self-center" height="25" width="25" alt="" src="{% static 'images/logos/evcloud-logo.png' %}">
+                                            {% elif s.service_type == 1 %}
+                                                <img class="align-self-center" height="25" width="25" alt="" src="{% static 'images/logos/openstack-logo.png' %}">
+                                            {% elif s.service_type == 2 %}
+                                                <img class="align-self-center" height="25" width="25" alt="" src="{% static 'images/logos/vmware-logo.png' %}">
+                                            {% endif %}
+                                            <div class="media-body">
+                                                <a class="nav-link m-0 pl-1 {% ifequal s.id active_service %}active{% endifequal %}" href="{% url 'servers:service-server-list' s.id %}">{{ s.name }}</a>
+                                            </div>
+                                        </div>
                                     {% endfor %}
                                 </div>
                             </div>

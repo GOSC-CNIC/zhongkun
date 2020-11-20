@@ -31,7 +31,7 @@ def do_get_center_and_services():
         for c in qs:
             services = []
             for s in c.services:
-                services.append({'id': s.id, 'name': s.name})
+                services.append({'id': s.id, 'name': s.name, 'service_type': s.service_type})
 
             centers.append({'id': c.id, 'name': c.name, 'services': services})
 

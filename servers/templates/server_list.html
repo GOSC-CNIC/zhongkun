@@ -47,10 +47,11 @@
                     <thead class="bg-light">
                         <tr>
                             <th hidden></th>
+                            <th style="width: 30px;"></th>
                             <th>IP地址</th>
                             <th>镜像</th>
                             <th>CPU/MEM</th>
-                            <th width="180px">备注</th>
+                            <th style="width: 180px">备注</th>
                             <th>状态<button class="btn btn-sm btn-outline-success btn-update-vm-status"><i class="fa fa-sync"></i></button></th>
                             <th>任务</th>
                             <th>操作</th>
@@ -60,6 +61,15 @@
                     {% for vm in servers %}
                         <tr id="tr_{{ vm.id }}">
                             <td hidden><input type="checkbox" class="item-checkbox" value="{{ vm.id }}" name="select_vm"></td>
+                            <td>
+                                {% if vm.service.service_type == 0 %}
+                                    <img class="align-self-center" height="25" width="25" alt="" src="{% static 'images/logos/evcloud-logo.png' %}">
+                                {% elif vm.service.service_type == 1 %}
+                                    <img class="align-self-center" height="25" width="25" alt="" src="{% static 'images/logos/openstack-logo.png' %}">
+                                {% elif vm.service.service_type == 2 %}
+                                    <img class="align-self-center" height="25" width="25" alt="" src="{% static 'images/logos/vmware-logo.png' %}">
+                                {% endif %}
+                            </td>
                             <td title="{{ vm.id }}"><b>{{ vm.ipv4 }}</b></td>
                             <td>{{ vm.image }}</td>
                             <td>
