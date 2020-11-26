@@ -127,7 +127,7 @@ class Server(ServerBase):
             a.task_status = self.task_status
             a.center_quota = self.center_quota
             a.user_quota = self.user_quota
-            a.user_quota_tag = self.user_quota.tag
+            a.user_quota_tag = self.user_quota.tag if self.user_quota else UserQuota.TAG_BASE
             a.save()
         except Exception as e:
             return False
