@@ -379,8 +379,8 @@ class ServersViewSet(CustomGenericViewSet):
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
-        server.do_archive()     # 记录归档
-        self.release_server_quota(server=server)    # 释放资源配额
+        if server.do_archive():     # 记录归档
+            self.release_server_quota(server=server)    # 释放资源配额
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 

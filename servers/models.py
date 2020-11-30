@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Count, Sum, Q
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -136,6 +137,89 @@ class Server(ServerBase):
             a.do_delete()
 
         return True
+
+    @staticmethod
+    def count_private_quota_used(center):
+        """
+        数据中心/机构私有资源配额已用统计
+
+        :param center: 数据中心/机构
+        :return:
+            {
+                'vcpu_used_count': 1,
+                'ram_used_count': 80,
+                'public_ip_count': 0,
+                'private_ip_count': 1
+            }
+        """
+        service_ids = list(center.service_set.values_list('id', flat=True))
+        stat = Server.objects.filter(service__in=service_ids, center_quota=Server.QUOTA_PRIVATE).aggregate(
+            vcpu_used_count=Sum('vcpus'), ram_used_count=Sum('ram'),
+            public_ip_count=Count('id', filter=Q(public_ip=True)),
+            private_ip_count=Count('id', filter=Q(public_ip=False))
+        )
+        if stat.get('vcpu_used_count', 0) is None:
+            stat['vcpu_used_count'] = 0
+
+        if stat.get('ram_used_count', 0) is None:
+            stat['ram_used_count'] = 0
+
+        return stat
+
+    @staticmethod
+    def count_share_quota_used(center):
+        """
+        数据中心/机构分享资源配额已用统计
+
+        :param center: 数据中心/机构
+        :return:
+            {
+                'vcpu_used_count': 1,
+                'ram_used_count': 80,
+                'public_ip_count': 0,
+                'private_ip_count': 1
+            }
+        """
+        service_ids = list(center.service_set.values_list('id', flat=True))
+        stat = Server.objects.filter(service__in=service_ids, center_quota=Server.QUOTA_SHARED).aggregate(
+            vcpu_used_count=Sum('vcpus'), ram_used_count=Sum('ram'),
+            public_ip_count=Count('id', filter=Q(public_ip=True)),
+            private_ip_count=Count('id', filter=Q(public_ip=False))
+        )
+        if stat.get('vcpu_used_count', 0) is None:
+            stat['vcpu_used_count'] = 0
+
+        if stat.get('ram_used_count', 0) is None:
+            stat['ram_used_count'] = 0
+
+        return stat
+
+    @staticmethod
+    def count_user_quota_used(user_quota):
+        """
+        用户资源配额已用统计
+
+        :param user_quota: 用户配额
+        :return:
+            {
+                'vcpu_used_count': 1,
+                'ram_used_count': 80,
+                'public_ip_count': 0,
+                'private_ip_count': 1
+            }
+        """
+        stat = Server.objects.filter(user_quota=user_quota).aggregate(
+            vcpu_used_count=Sum('vcpus'), ram_used_count=Sum('ram'),
+            public_ip_count=Count('id', filter=Q(public_ip=True)),
+            private_ip_count=Count('id', filter=Q(public_ip=False))
+        )
+        if stat.get('vcpu_used_count', 0) is None:
+            stat['vcpu_used_count'] = 0
+
+        if stat.get('ram_used_count', 0) is None:
+            stat['ram_used_count'] = 0
+
+        return stat
 
 
 class ServerArchive(ServerBase):

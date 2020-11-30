@@ -1,6 +1,9 @@
 from django.contrib import admin
 from django.utils.translation import gettext_lazy, gettext as _
+from django.contrib import messages
+from django.db import transaction
 
+from servers.models import Server
 from .models import ServiceConfig, DataCenter, DataCenterPrivateQuota, DataCenterShareQuota, UserQuota
 
 
@@ -30,6 +33,48 @@ class DataCenterPrivateQuotaAdmin(admin.ModelAdmin):
                     'enable')
     list_select_related = ('data_center',)
     list_filter = ('data_center',)
+    actions = ['quota_used_update']
+
+    def quota_used_update(self, request, queryset):
+        failed_count = 0
+        for q in queryset:
+            r = Server.count_private_quota_used(q.data_center)
+
+            with transaction.atomic():
+                quota = DataCenterPrivateQuota.objects.select_for_update().get(id=q.id)
+                update_fields = []
+                vcpu_used_count = r.get('vcpu_used_count', None)
+                if isinstance(vcpu_used_count, int) and quota.vcpu_used != vcpu_used_count:
+                    quota.vcpu_used = vcpu_used_count
+                    update_fields.append('vcpu_used')
+
+                ram_used_count = r.get('ram_used_count', None)
+                if isinstance(ram_used_count, int) and quota.ram_used != ram_used_count:
+                    quota.ram_used = ram_used_count
+                    update_fields.append('ram_used')
+
+                public_ip_count = r.get('public_ip_count', None)
+                if isinstance(public_ip_count, int) and quota.public_ip_used != public_ip_count:
+                    quota.public_ip_used = public_ip_count
+                    update_fields.append('public_ip_used')
+
+                private_ip_used = r.get('private_ip_count', None)
+                if isinstance(private_ip_used, int) and quota.private_ip_used != private_ip_used:
+                    quota.private_ip_used = private_ip_used
+                    update_fields.append('private_ip_used')
+
+                if update_fields:
+                    try:
+                        quota.save(update_fields=update_fields)
+                    except Exception as e:
+                        failed_count += 1
+
+        if failed_count != 0:
+            self.message_user(request, _("统计更新已用配额失败") + f'({failed_count})', level=messages.ERROR)
+        else:
+            self.message_user(request, _("统计更新已用配额成功"), level=messages.SUCCESS)
+
+    quota_used_update.short_description = gettext_lazy("已用配额统计更新")
 
 
 @admin.register(DataCenterShareQuota)
@@ -40,6 +85,48 @@ class DataCenterShareQuotaAdmin(admin.ModelAdmin):
                     'enable')
     list_select_related = ('data_center',)
     list_filter = ('data_center',)
+    actions = ['quota_used_update']
+
+    def quota_used_update(self, request, queryset):
+        failed_count = 0
+        for q in queryset:
+            r = Server.count_share_quota_used(q.data_center)
+
+            with transaction.atomic():
+                quota = DataCenterShareQuota.objects.select_for_update().get(id=q.id)
+                update_fields = []
+                vcpu_used_count = r.get('vcpu_used_count', None)
+                if isinstance(vcpu_used_count, int) and quota.vcpu_used != vcpu_used_count:
+                    quota.vcpu_used = vcpu_used_count
+                    update_fields.append('vcpu_used')
+
+                ram_used_count = r.get('ram_used_count', None)
+                if isinstance(ram_used_count, int) and quota.ram_used != ram_used_count:
+                    quota.ram_used = ram_used_count
+                    update_fields.append('ram_used')
+
+                public_ip_count = r.get('public_ip_count', None)
+                if isinstance(public_ip_count, int) and quota.public_ip_used != public_ip_count:
+                    quota.public_ip_used = public_ip_count
+                    update_fields.append('public_ip_used')
+
+                private_ip_used = r.get('private_ip_count', None)
+                if isinstance(private_ip_used, int) and quota.private_ip_used != private_ip_used:
+                    quota.private_ip_used = private_ip_used
+                    update_fields.append('private_ip_used')
+
+                if update_fields:
+                    try:
+                        quota.save(update_fields=update_fields)
+                    except Exception as e:
+                        failed_count += 1
+
+        if failed_count != 0:
+            self.message_user(request, _("统计更新已用配额失败") + f'({failed_count})', level=messages.ERROR)
+        else:
+            self.message_user(request, _("统计更新已用配额成功"), level=messages.SUCCESS)
+
+    quota_used_update.short_description = gettext_lazy("已用配额统计更新")
 
 
 @admin.register(UserQuota)
@@ -49,6 +136,7 @@ class UserQuotaAdmin(admin.ModelAdmin):
                     'disk_size_total', 'disk_size_used', 'private_ip_total', 'private_ip_used', 'public_ip_total', 'public_ip_used')
     list_select_related = ('user',)
     search_fields = ['user__username']
+    actions = ['quota_used_update']
     # list_filter = ('show_deleted',)
 
     def show_deleted(self, obj):
@@ -58,3 +146,44 @@ class UserQuotaAdmin(admin.ModelAdmin):
         return _('否')
 
     show_deleted.short_description = gettext_lazy('删除')
+
+    def quota_used_update(self, request, queryset):
+        failed_count = 0
+        for q in queryset:
+            r = Server.count_user_quota_used(q)
+
+            with transaction.atomic():
+                quota = UserQuota.objects.select_for_update().get(id=q.id)
+                update_fields = []
+                vcpu_used_count = r.get('vcpu_used_count', None)
+                if isinstance(vcpu_used_count, int) and quota.vcpu_used != vcpu_used_count:
+                    quota.vcpu_used = vcpu_used_count
+                    update_fields.append('vcpu_used')
+
+                ram_used_count = r.get('ram_used_count', None)
+                if isinstance(ram_used_count, int) and quota.ram_used != ram_used_count:
+                    quota.ram_used = ram_used_count
+                    update_fields.append('ram_used')
+
+                public_ip_count = r.get('public_ip_count', None)
+                if isinstance(public_ip_count, int) and quota.public_ip_used != public_ip_count:
+                    quota.public_ip_used = public_ip_count
+                    update_fields.append('public_ip_used')
+
+                private_ip_used = r.get('private_ip_count', None)
+                if isinstance(private_ip_used, int) and quota.private_ip_used != private_ip_used:
+                    quota.private_ip_used = private_ip_used
+                    update_fields.append('private_ip_used')
+
+                if update_fields:
+                    try:
+                        quota.save(update_fields=update_fields)
+                    except Exception as e:
+                        failed_count += 1
+
+        if failed_count != 0:
+            self.message_user(request, _("统计更新已用配额失败") + f'({failed_count})', level=messages.ERROR)
+        else:
+            self.message_user(request, _("统计更新已用配额成功"), level=messages.SUCCESS)
+
+    quota_used_update.short_description = gettext_lazy("已用配额统计更新")

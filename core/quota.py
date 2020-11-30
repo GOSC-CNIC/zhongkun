@@ -104,10 +104,12 @@ class QuotaAPI:
             kwargs = {'private_ip': 1}
 
         if use_shared_quota:
-            try:
-                u_mgr.release(user=user, quota_id=user_quota_id, vcpus=vcpu, ram=ram, **kwargs)
-            except errors.QuotaError as e:
-                pass
+            if user_quota_id:
+                try:
+                    u_mgr.release(user=user, quota_id=user_quota_id, vcpus=vcpu, ram=ram, **kwargs)
+                except errors.QuotaError as e:
+                    pass
+
             DataCenterShareQuotaManager().release(center=data_center, vcpus=vcpu, ram=ram, **kwargs)
         else:
             DataCenterPrivateQuotaManager().release(center=data_center, vcpus=vcpu, ram=ram, **kwargs)
