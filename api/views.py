@@ -1,5 +1,6 @@
 import random
 
+from django.core.validators import validate_ipv4_address, ValidationError
 from django.utils.translation import gettext_lazy, gettext as _
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
@@ -46,6 +47,26 @@ def serializer_error_msg(errors, default=''):
         pass
 
     return msg
+
+
+def is_ipv4(value):
+    """
+    是否是ipv4
+
+    :param value:
+    :return:
+        True    # 是
+        False   # 不是
+    """
+    if not value:
+        return False
+
+    try:
+        validate_ipv4_address(value)
+    except ValidationError as e:
+        return False
+
+    return True
 
 
 class ServersViewSet(CustomGenericViewSet):
@@ -201,6 +222,7 @@ class ServersViewSet(CustomGenericViewSet):
                         ram=flavor.ram,
                         task_status=Server.TASK_IN_CREATING,
                         user_quota=user_quota,
+                        public_ip=is_public_network,
                         **kwargs
                         )
         server.save()
@@ -504,14 +526,19 @@ class ServersViewSet(CustomGenericViewSet):
             return Response(data=exc.err_data(), status=exc.status_code)
 
         status_code = r.status
+        status_text = r.status_mean
         if status_code in outputs.ServerStatus.normal_values():     # 虚拟服务器状态正常
-            if (server.task_status == server.TASK_IN_CREATING) or (not server.ipv4):   #
+            if (server.task_status == server.TASK_IN_CREATING) or (not is_ipv4(server.ipv4)):   #
                 self._update_server_detail(server, task_status=server.TASK_CREATED_OK)
+
+        if status_code == outputs.ServerStatus.NOSTATE and server.task_status == server.TASK_IN_CREATING:
+            status_code = outputs.ServerStatus.BUILDING
+            status_text = outputs.ServerStatus.get_mean(status_code)
 
         return Response(data={
             'status': {
                 'status_code': status_code,
-                'status_text': r.status_mean
+                'status_text': status_text
             }
         })
 

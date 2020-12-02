@@ -292,6 +292,8 @@ class VmwareAdapter(BaseAdapter):
         try:
             service_instance = self.auth.kwargs['vmconnect']
             vm = get_obj(service_instance.content, [vim.VirtualMachine], params.server_id)
+            if not vm:
+                return outputs.ServerActionOutput()
             if format(vm.runtime.powerState) == "poweredOn":
                 task = vm.PowerOffVM_Task()
                 WaitForTask(task=task, si=service_instance)
@@ -299,7 +301,10 @@ class VmwareAdapter(BaseAdapter):
             WaitForTask(task=task, si=service_instance)
             return outputs.ServerActionOutput()
         except Exception as e:
-            return outputs.ServerActionOutput(ok=False, error=exceptions.Error('server action failed'))
+            msg = 'Failed to destroy server.'
+            if hasattr(e, 'msg'):
+                msg += e.msg
+            return outputs.ServerActionOutput(ok=False, error=exceptions.Error(msg))
 
     def server_action(self, params: inputs.ServerActionInput, **kwargs):
         """
