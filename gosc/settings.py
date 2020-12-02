@@ -188,6 +188,55 @@ TINYMCE_DEFAULT_CONFIG = {
 # TINYMCE_COMPRESSOR = True
 # TINYMCE_FILEBROWSER = True
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s'
+        },
+        'simple': {
+            'format': '%(levelname)s %(message)s'
+        },
+        'dubug_formatter': {
+            'format': '%(levelname)s %(asctime)s %(message)s'
+        },
+    },
+    'filters': {
+        'require_debug_false': {
+            '()': 'django.utils.log.RequireDebugFalse',
+        },
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
+        },
+    },
+    'handlers': {
+        # # logging file settings
+        # 'file': {
+        #     'level': 'WARNING',
+        #     'class': 'concurrent_log_handler.ConcurrentRotatingFileHandler',
+        #     'filename': os.path.join(LOGGING_FILES_DIR, 'iharbor.log'),
+        #     'formatter': 'verbose',
+        #     'maxBytes': 1024*1024*200,  # 200MB
+        #     'backupCount': 10           # 最多10个文件
+        # },
+        # output to console settings
+        'console': {
+            'level': 'DEBUG',
+            'filters': ['require_debug_true'],# working with debug mode
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple'
+        }
+    },
+    'loggers': {
+        'django.db.backends': {
+            'handlers': ['console'],
+            'propagate': True,
+            'level': 'DEBUG',
+        },
+    },
+}
+
 # 安全配置导入
 from .security import *
 

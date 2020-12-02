@@ -199,9 +199,13 @@ class UserQuota(models.Model):
         if values:
             s = ', '.join(values)
         else:
-            s = '0'
+            s = 'vCPU: 0, RAM:0 Mb, 0, 0, 0'
 
         return f'[{self.get_tag_display()}]({s})'
+
+    @property
+    def display(self):
+        return self.__str__()
 
     @property
     def vcpu_free_count(self):

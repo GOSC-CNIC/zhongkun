@@ -1,5 +1,7 @@
 from django.db import transaction
 from django.utils.translation import gettext_lazy, gettext as _
+from django.db.models import Q
+from django.utils import timezone
 
 from core import errors
 from .models import UserQuota, DataCenterPrivateQuota, DataCenterShareQuota
@@ -330,6 +332,22 @@ class UserQuotaManager:
             raise errors.QuotaShortageError(_('您的私网IP资源配额不足'))
 
         return True
+
+    def filter_quota_queryset(self, user, service=None, usable=None):
+        """
+        过滤用户资源配额查询集
+
+        :param user:
+        :param service: 服务对象，暂时预留
+        :param usable:
+        :return:
+        """
+        queryset = self.get_quota_queryset(user=user)
+        if usable:
+            now = timezone.now()
+            queryset = queryset.filter(Q(tag=UserQuota.TAG_BASE) | (Q(tag=UserQuota.TAG_PROBATION) & Q(expiration_time__gt=now)))
+
+        return queryset.order_by('id')
 
 
 class DataCenterQuotaManagerBase:

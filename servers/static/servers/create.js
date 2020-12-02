@@ -79,6 +79,9 @@
             alert('请选择配置');
             return false;
         }
+        if (!obj.quota_id){
+            delete obj.quota_id;
+        }
         return true;
     }
 
@@ -218,6 +221,54 @@
         });
     }
 
+    // 加载配置下拉框渲染模板
+    function render_quota_select_items(data){
+        let ret='<option value="">--</option>';
+        let t = `<option value="{id}">
+                    [{tag}](vCPU: {vcpu}, RAM: {ram}MB, PublicIP: {publicIp}, PrivateIP: {privateIp}, Disk: {disk}Gb);有效期至：{etime}
+                 </option>'`;
+        for(let i=0; i<data.length; i++){
+            let quota = data[i];
+            let etime = isoTimeToLocal(quota.expiration_time);
+            if (!etime){
+                etime = '无';
+            }
+            let d = {
+                id: quota.id,
+                tag: quota.tag.display,
+                vcpu: quota.vcpu_total - quota.vcpu_used,
+                ram: quota.ram_total - quota.ram_used,
+                publicIp: quota.public_ip_total - quota.public_ip_used,
+                privateIp: quota.private_ip_total - quota.private_ip_used,
+                disk: quota.disk_size_total - quota.disk_size_used,
+                etime: etime
+            };
+            let s = t.format(d);
+            ret = ret.concat(s);
+        }
+        return ret;
+    }
+    function quota_select_update(){
+        let quota_select = $('select[name="quota_id"]');
+        let query_str = encode_params({usable: true});
+        $.ajax({
+            url: build_absolute_url('api/u-quota/?'+ query_str),
+            type: 'get',
+            contentType: 'application/json',
+            success: function (data, status, xhr) {
+                let html = render_quota_select_items(data['results']);
+                quota_select.html(html);
+            },
+            error: function (xhr) {
+                let msg = '获取资源配额数据失败!';
+                try{
+                    msg = msg + xhr.responseJSON.message;
+                }catch (e) {}
+                alert(msg);
+            }
+        });
+    }
+
 
      // 加载网络下拉框渲染模板
     function render_network_select_items(data){
@@ -283,6 +334,7 @@
         image_select_update();
         flavor_select_update();
         network_select_update();
+        quota_select_update();
     }
 
     $("#id-service").change(function (e) {

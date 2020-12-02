@@ -13,6 +13,7 @@ router.register(r'image', views.ImageViewSet, basename='images')
 router.register(r'network', views.NetworkViewSet, basename='networks')
 router.register(r'vpn', views.VPNViewSet, basename='vpn')
 router.register(r'flavor', views.FlavorViewSet, basename='flavor')
+router.register(r'u-quota', views.UserQuotaViewSet, basename='user-quota')
 
 
 urlpatterns = [

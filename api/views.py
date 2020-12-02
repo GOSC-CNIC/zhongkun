@@ -8,10 +8,12 @@ from rest_framework import status
 from rest_framework.serializers import Serializer
 from rest_framework.reverse import reverse
 from rest_framework.utils.urls import replace_query_param
+from rest_framework.pagination import LimitOffsetPagination
 from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
 from servers.models import Server, Flavor
+from service.managers import UserQuotaManager
 from adapters import inputs, outputs
 from core.quota import QuotaAPI
 from . import exceptions
@@ -145,6 +147,7 @@ class ServersViewSet(CustomGenericViewSet):
         flavor_id = str_to_int_or_default(data.get('flavor_id', 0), 0)
         network_id = data.get('network_id', '')
         remarks = data.get('remarks', request.user.username)
+        quota_id = data.get('quota_id', None)
 
         flavor = Flavor.objects.filter(id=flavor_id).first()
         if not flavor:
@@ -168,7 +171,7 @@ class ServersViewSet(CustomGenericViewSet):
         try:
             use_shared_quota, user_quota = QuotaAPI().server_create_quota_apply(
                 data_center=service.data_center, user=request.user, vcpu=flavor.vcpus, ram=flavor.ram,
-                public_ip=is_public_network)
+                public_ip=is_public_network, user_quota_id=quota_id)
         except exceptions.Error as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
@@ -953,4 +956,88 @@ class FlavorViewSet(CustomGenericViewSet):
             return Response(err.err_data(), status=err.status_code)
 
         return Response(data={"flavors": serializer.data})
+
+
+class UserQuotaViewSet(CustomGenericViewSet):
+    """
+    用户资源配额相关API
+    """
+    queryset = []
+    permission_classes = [IsAuthenticated]
+    pagination_class = LimitOffsetPagination
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举用户资源配额'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='service',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                required=False,
+                description=_('服务id, 过滤服务可用的资源配额')
+            ),
+            openapi.Parameter(
+                name='usable',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_BOOLEAN,
+                required=False,
+                description=_('true(过滤)，其他值（忽略）, 过滤可用的资源配额, 未过期的')
+            )
+        ],
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        列举用户资源配额
+
+            Http Code: 状态码200，返回数据：
+            {
+              "count": 1,
+              "next": null,
+              "previous": null,
+              "results": [
+                {
+                  "id": 1,
+                  "tag": {
+                    "value": 1,             # 1: 普通配额； 2：使用配额
+                    "display": "普通配额"
+                  },
+                  "user": {
+                    "id": 1,
+                    "username": "shun"
+                  },
+                  "private_ip_total": 5,
+                  "private_ip_used": 2,
+                  "public_ip_total": 5,
+                  "public_ip_used": 0,
+                  "vcpu_total": 10,
+                  "vcpu_used": 3,
+                  "ram_total": 10240,       # Mb
+                  "ram_used": 4176,
+                  "disk_size_total": 0,     # Gb
+                  "disk_size_used": 0,
+                  "expiration_time": null,
+                  "deleted": false,
+                  "display": "[普通配额](vCPU: 10, RAM: 10240Mb, PublicIP: 5, PrivateIP: 5)"
+                }
+              ]
+            }
+        """
+        service_id = request.query_params.get('service', None)
+        usable = request.query_params.get('usable', '').lower()
+        usable = True if usable == 'true' else False
+
+        try:
+            queryset = UserQuotaManager().filter_quota_queryset(user=request.user, usable=usable)
+            paginator = self.pagination_class()
+            quotas = paginator.paginate_queryset(request=request, queryset=queryset)
+            serializer = serializers.UserQuotaSerializer(quotas, many=True)
+            response = paginator.get_paginated_response(data=serializer.data)
+        except Exception as exc:
+            err = exceptions.APIException(message=str(exc))
+            return Response(err.err_data(), status=err.status_code)
+
+        return response
 

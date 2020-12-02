@@ -137,6 +137,11 @@ class QuotaAPI:
             if not quota:
                 raise errors.QuotaError(_('未找到指定的用户资源配额'))
 
+            if public_ip is True:
+                u_mgr.requires(quota, vcpus=vcpu, ram=ram, public_ip=1)
+            else:
+                u_mgr.requires(quota, vcpus=vcpu, ram=ram, private_ip=1)
+
             return quota
         else:
             user_quota_qs = u_mgr.get_quota_queryset(user=user)
