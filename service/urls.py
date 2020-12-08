@@ -7,6 +7,6 @@ from . import views
 app_name = 'service'
 
 urlpatterns = [
-    path('', login_required(views.home), name='index'),
-    path('<int:service_id>/', login_required(views.home), name='home'),
+    path('resources/', login_required(views.resources), name='resources'),
+    path('resources/<int:service_id>/', login_required(views.resources), name='service-resources'),
 ]

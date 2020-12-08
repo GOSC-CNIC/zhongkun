@@ -13,14 +13,14 @@
         <ul class="nav nav-tabs">
             <li class="nav-item">
                 {% if active_service %}
-                    <a class="nav-link" href="{% url 'service:home' active_service %}">我的资源</a>
+                    <a class="nav-link" href="{% url 'service:service-resources' active_service %}">我的资源</a>
                 {% else %}
-                    <a class="nav-link" href="{% url 'service:index' %}">我的资源</a>
+                    <a class="nav-link" href="{% url 'service:resources' %}">我的资源</a>
                 {% endif %}
             </li>
             <li class="nav-item">
                 {% if active_service %}
-                    <a class="nav-link active" href="{% url 'servers:service-server-list' active_service %}">云服务器</a>
+                    <a class="nav-link active" href="{% url 'servers:server-list' %}?service={{ active_service }}">云服务器</a>
                 {% else %}
                     <a class="nav-link active" href="{% url 'servers:server-list' %}">云服务器</a>
                 {% endif %}
@@ -89,7 +89,7 @@
                                     </span>
                                 </div>
                             </td>
-                            <td><span id="vm_status_{{ vm.id }}">fa fa-spinner fa-pulse</span></td>
+                            <td><span id="vm_status_{{ vm.id }}"></span></td>
                             <td><span id="vm_task_{{ vm.id }}"></span></td>
 
                             <td>
@@ -135,7 +135,7 @@
         </div>
 {% endblock %}
 
-{% block script %}
+{% block sidebar-script %}
     <script type="text/javascript" src="{% static 'gosc/common.js' %}"></script>
     <script type="text/javascript" src="{% static 'gosc/server_operations.js' %}"></script>
     <script type="text/javascript" src="{% static 'servers/server_list.js' %}"></script>

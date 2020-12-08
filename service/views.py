@@ -16,7 +16,7 @@ def to_int_or_default(val, default=None):
         return default
 
 
-def home(request, *args, **kwargs):
+def resources(request, *args, **kwargs):
     service_id = to_int_or_default(kwargs.get('service_id'), default=None)
     user = request.user
 
@@ -46,4 +46,4 @@ def home(request, *args, **kwargs):
         'shared_server_count': shared_server_count,
         'private_server_count': private_server_count
     }
-    return render(request, 'home.html', context=context)
+    return render(request, 'resources.html', context=context)

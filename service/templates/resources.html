@@ -21,14 +21,14 @@
         <ul class="nav nav-tabs">
             <li class="nav-item">
                 {% if active_service %}
-                    <a class="nav-link active" href="{% url 'service:home' active_service %}">我的资源</a>
+                    <a class="nav-link active" href="{% url 'service:service-resources' active_service %}">我的资源</a>
                 {% else %}
-                    <a class="nav-link active" href="{% url 'service:index' %}">我的资源</a>
+                    <a class="nav-link active" href="{% url 'service:resources' %}">我的资源</a>
                 {% endif %}
             </li>
             <li class="nav-item">
                 {% if active_service %}
-                    <a class="nav-link" href="{% url 'servers:service-server-list' active_service %}">云服务器</a>
+                    <a class="nav-link" href="{% url 'servers:server-list' %}?service={{ active_service }}">云服务器</a>
                 {% else %}
                     <a class="nav-link" href="{% url 'servers:server-list' %}">云服务器</a>
                 {% endif %}
@@ -43,12 +43,14 @@
         </ul>
     </div>
     <div class="mt-2">
-        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4">
-            <div class="col mb-2 mt-2">
-                <div class="card text-dark h-100">
-                    <div class="card-body">
-                        <div><p class="text-center">{% trans '云服务器' %} <i class="fa fa-desktop"></i> <span class="badge badge-primary badge-pill">{{ private_server_count|add:shared_server_count }}</span></p></div>
-                        <canvas id="id-chart-quota-server"></canvas>
+        <div>
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4">
+                <div class="col mb-2 mt-2">
+                    <div class="card text-dark h-100">
+                        <div class="card-body">
+                            <div><p class="text-center">{% trans '云服务器' %} <i class="fa fa-desktop"></i> <span class="badge badge-primary badge-pill">{{ private_server_count|add:shared_server_count }}</span></p></div>
+                            <canvas id="id-chart-quota-server"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -186,7 +188,7 @@
     </div>
 {% endblock %}
 
-{% block script %}
+{% block sidebar-script %}
     <script type="text/javascript" src="{% static 'chartjs/Chart-2.9.3.min.js' %}"></script>
     <script>
         let data_server = [{{ shared_server_count }}, {{ private_server_count }}];

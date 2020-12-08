@@ -5,47 +5,81 @@
 {% load cache %}
 
 {% block body %}
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-2">
-                <div class="nav flex-column mt-2">
-                    <div role="presentation" class="nav-item m-0 p-0">
-                        <div class="nav flex-column nav-pills bg-light">
-                            <a class="nav-link {% if not active_service %}active{% endif %}" href="{% url 'servers:server-list' %}">{% trans '机构/数据中心' %}</a>
-                        </div>
-                    </div>
-                    {% get_center_and_services as centers %}
-                    {% for c in centers %}
+    <div class="container-fluid m-0 p-0">
+        <div class="d-flex flex-sm-column flex-md-row flex-lg-row flex-xl-row">
+            <div class="" style="width: 20%;">
+                <div class="collapse show pl-2 pr-2"  id="sidebar-collapse">
+                    <div class="nav flex-column">
                         <div role="presentation" class="nav-item m-0 p-0">
-                            <li class="nav-list-toggle p-2 pl-0 btn" data-toggle="collapse" data-target="#service-{{ c.id }}-nav-list-group">
-                                <i class="fa fa-list"></i> {{ c.name }} <i class="fa fa-chevron-down"></i>
-                            </li>
-                            <div class="collapse show bg-light" id="service-{{ c.id }}-nav-list-group">
-                                <div class="nav flex-column nav-pills">
-                                    {% for s in c.services %}
-                                        <div class="media">
-                                            {% if s.service_type == 0 %}
-                                                <img class="align-self-center" height="25" width="25" alt="" src="{% static 'images/logos/evcloud-logo.png' %}">
-                                            {% elif s.service_type == 1 %}
-                                                <img class="align-self-center" height="25" width="25" alt="" src="{% static 'images/logos/openstack-logo.png' %}">
-                                            {% elif s.service_type == 2 %}
-                                                <img class="align-self-center" height="25" width="25" alt="" src="{% static 'images/logos/vmware-logo.png' %}">
-                                            {% endif %}
-                                            <div class="media-body">
-                                                <a class="nav-link m-0 pl-1 {% ifequal s.id active_service %}active{% endifequal %}" href="{% url 'servers:service-server-list' s.id %}">{{ s.name }}</a>
-                                            </div>
-                                        </div>
-                                    {% endfor %}
-                                </div>
+                            <div class="nav flex-column nav-pills bg-light">
+                                <a class="nav-link {% if not active_service %}active{% endif %}" href="{% url 'servers:server-list' %}">{% trans '机构/数据中心' %}</a>
                             </div>
                         </div>
-                    {% endfor %}
+                        {% get_center_and_services as centers %}
+                        {% for c in centers %}
+                            <div role="presentation" class="nav-item m-0 p-0">
+                                <li class="nav-list-toggle p-2 pl-0 nav-fill" data-toggle="collapse" data-target="#service-{{ c.id }}-nav-list-group">
+                                    <i class="fa fa-list"></i> {{ c.name }} <span class="float-right"><i class="fa fa-caret-down"></i></span>
+                                </li>
+                                <div class="collapse show bg-light center-collapse" id="service-{{ c.id }}-nav-list-group">
+                                    <div class="nav flex-column nav-pills">
+                                        {% for s in c.services %}
+                                            <div class="media">
+                                                {% if s.service_type == 0 %}
+                                                    <img class="align-self-center" height="25" width="25" alt="" src="{% static 'images/logos/evcloud-logo.png' %}">
+                                                {% elif s.service_type == 1 %}
+                                                    <img class="align-self-center" height="25" width="25" alt="" src="{% static 'images/logos/openstack-logo.png' %}">
+                                                {% elif s.service_type == 2 %}
+                                                    <img class="align-self-center" height="25" width="25" alt="" src="{% static 'images/logos/vmware-logo.png' %}">
+                                                {% endif %}
+                                                <div class="media-body">
+                                                    <a class="nav-link m-0 pl-1 {% ifequal s.id active_service %}active{% endifequal %}" href="{% url 'servers:server-list' %}?service={{ s.id }}">{{ s.name }}</a>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
                 </div>
+                <span class="btn float-right mr-2" type="button" id="sidebar-collapse-trigger"
+                      data-toggle="collapse"
+                      data-target="#sidebar-collapse"
+                      aria-expanded="false" aria-controls="idebar-collapse">
+                    <i class="fa fa-compress-arrows-alt"></i>
+                </span>
             </div>
-            <div class="col-10" id="content-display-div">
-                {% block content %}{% endblock %}
+            <div class="flex-fill" id="content-display-div">
+                <div class="container-fluid">{% block content %}{% endblock %}</div>
             </div>
         </div>
     </div>
 {% endblock %}
 
+{% block base-script %}
+    <script>
+        (function () {
+            let trigger = $('#sidebar-collapse-trigger');
+            $('#sidebar-collapse').on('hidden.bs.collapse', function (e) {
+                $(this).parent().attr('style', "min-width: 3%;");
+                trigger.html(`<i class="fa fa-bars"></i>`);
+                return false;
+            });
+            $('#sidebar-collapse').on('shown.bs.collapse', function () {
+                $(this).parent().attr('style', "width: 20%;");
+                trigger.html(`<i class="fa fa-compress-arrows-alt"></i>`);
+                return false;
+            });
+            $(".center-collapse").on('shown.bs.collapse', function (e) {
+                $(this).prev().children('span').html(`<i class="fa fa-caret-down"></i>`);
+                return false;
+            });
+            $(".center-collapse").on('hidden.bs.collapse', function (e) {
+                $(this).prev().children('span').html(`<i class="fa fa-caret-right"></i>`);
+                return false;
+            });
+        })();
+    </script>
+    {% block sidebar-script %}{% endblock %}
+{% endblock %}
