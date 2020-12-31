@@ -4,16 +4,7 @@ from django.views import View
 from api.request import request_vpn_service
 from api import exceptions
 from service.models import ServiceConfig
-from .models import Article
 from utils.time import iso_to_datetime
-
-
-def usage(request, *args, **kwags):
-    """
-    vpn使用说明视图
-    """
-    article_usage = Article.objects.filter(topic=Article.TOPIC_VPN_USAGE).first()
-    return render(request, 'article.html', context={'article': article_usage})
 
 
 class VPNView(View):

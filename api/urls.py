@@ -14,6 +14,7 @@ router.register(r'network', views.NetworkViewSet, basename='networks')
 router.register(r'vpn', views.VPNViewSet, basename='vpn')
 router.register(r'flavor', views.FlavorViewSet, basename='flavor')
 router.register(r'u-quota', views.UserQuotaViewSet, basename='user-quota')
+router.register(r'service', views.ServiceViewSet, basename='service')
 
 
 urlpatterns = [

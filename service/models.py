@@ -44,6 +44,11 @@ class ServiceConfig(models.Model):
         (SERVICE_OPENSTACK, 'OpenStack'),
         (SERVICE_VMWARE, 'Vmware'),
     )
+    SERVICE_TYPE_STRING = {
+        SERVICE_EVCLOUD: 'evcloud',
+        SERVICE_OPENSTACK: 'openstack',
+        SERVICE_VMWARE: 'vmware'
+    }
 
     STATUS_ENABLE = 1
     STATUS_DISABLE = 2
@@ -97,6 +102,13 @@ class ServiceConfig(models.Model):
             return False
 
         return True
+
+    def service_type_to_str(self, t):
+        """
+        :return:
+            str or None
+        """
+        return self.SERVICE_TYPE_STRING.get(t)
 
 
 class DataCenterQuotaBase(models.Model):

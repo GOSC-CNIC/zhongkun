@@ -83,3 +83,29 @@ class UserQuotaSerializer(serializers.Serializer):
     @staticmethod
     def get_tag(obj):
         return {'value': obj.tag, 'display': obj.get_tag_display()}
+
+
+class ServiceSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+    service_type = serializers.SerializerMethodField()
+    add_time = serializers.DateTimeField()
+    need_vpn = serializers.BooleanField()
+    status = serializers.IntegerField()
+    data_center = serializers.SerializerMethodField()
+
+    @staticmethod
+    def get_data_center(obj):
+        c = obj.data_center
+        if c is None:
+            return {'id': None, 'name': None}
+
+        return {'id': c.id, 'name': c.name}
+
+    @staticmethod
+    def get_service_type(obj):
+        s = obj.service_type_to_str(obj.service_type)
+        if s:
+            return s
+
+        return ''

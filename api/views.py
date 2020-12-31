@@ -15,6 +15,7 @@ from drf_yasg import openapi
 
 from servers.models import Server, Flavor
 from service.managers import UserQuotaManager
+from service.models import DataCenter, ServiceConfig
 from adapters import inputs, outputs
 from core.quota import QuotaAPI
 from . import exceptions
@@ -1068,3 +1069,54 @@ class UserQuotaViewSet(CustomGenericViewSet):
 
         return response
 
+
+class ServiceViewSet(CustomGenericViewSet):
+    """
+    接入的服务
+    """
+    queryset = []
+    permission_classes = [IsAuthenticated]
+    pagination_class = LimitOffsetPagination
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举已接入的服务'),
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        列举已接入的服务
+
+            Http Code: 状态码200，返回数据：
+            {
+              "count": 1,
+              "next": null,
+              "previous": null,
+              "results": [
+                {
+                  "id": 4,
+                  "name": "vmware(10.0.200.243)",
+                  "service_type": "vmware",
+                  "add_time": "2020-10-16T09:01:44.402955Z",
+                  "need_vpn": false,
+                  "status": 1,              # 1: 开启状态；2: 关闭状态;
+                  "data_center": {
+                    "id": 3,
+                    "name": "VMware测试中心"
+                  }
+                }
+              ]
+            }
+        """
+        try:
+            queryset = ServiceConfig.objects.select_related('data_center').filter(status=ServiceConfig.STATUS_ENABLE)
+            paginator = self.pagination_class()
+            quotas = paginator.paginate_queryset(request=request, queryset=queryset)
+            serializer = serializers.ServiceSerializer(quotas, many=True)
+            response = paginator.get_paginated_response(data=serializer.data)
+        except Exception as exc:
+            err = exceptions.APIException(message=str(exc))
+            return Response(err.err_data(), status=err.status_code)
+
+        return response
