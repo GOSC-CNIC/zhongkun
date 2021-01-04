@@ -39,7 +39,7 @@ INSTALLED_APPS = [
     'rest_framework',
     # 'rest_framework.authtoken',
     'drf_yasg',
-    'tinymce',
+    # 'tinymce',
 
     'users',
     'servers',
@@ -174,17 +174,17 @@ REST_FRAMEWORK = {
 }
 
 # TinyMCE
-TINYMCE_DEFAULT_CONFIG = {
-    "theme": "silver",
-    "height": 500,
-    "menubar": True,
-    "plugins": "advlist,autolink,lists,link,image imagetools,charmap,print,preview,anchor,"
-               "searchreplace,visualblocks,code,fullscreen,insertdatetime,media,table,paste,"
-               "code,help,wordcount",
-    "toolbar": "undo redo | formatselect | bold italic backcolor | alignleft aligncenter "
-               "alignright alignjustify | bullist numlist outdent indent | removeformat | preview fullscreen | help",
-    'file_picker_callback': 'file_picker_callback'
-}
+# TINYMCE_DEFAULT_CONFIG = {
+#     "theme": "silver",
+#     "height": 500,
+#     "menubar": True,
+#     "plugins": "advlist,autolink,lists,link,image imagetools,charmap,print,preview,anchor,"
+#                "searchreplace,visualblocks,code,fullscreen,insertdatetime,media,table,paste,"
+#                "code,help,wordcount",
+#     "toolbar": "undo redo | formatselect | bold italic backcolor | alignleft aligncenter "
+#                "alignright alignjustify | bullist numlist outdent indent | removeformat | preview fullscreen | help",
+#     'file_picker_callback': 'file_picker_callback'
+# }
 # TINYMCE_COMPRESSOR = True
 # TINYMCE_FILEBROWSER = True
 

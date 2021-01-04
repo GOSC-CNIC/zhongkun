@@ -1,10 +1,7 @@
 import random
 import string
 
-from django.contrib.auth import get_user_model
 
-
-User = get_user_model()
 app_name = 'vpn'
 
 

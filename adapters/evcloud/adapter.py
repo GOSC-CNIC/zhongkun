@@ -14,12 +14,12 @@ def get_failed_msg(response, msg_key='code_text'):
     """
     请求失败错误信息
 
-    :param response: requests.Reponse()
+    :param response: requests.Response()
     :param msg_key: 信息键值
     :return:
     """
     try:
-        data =response.json()
+        data = response.json()
         msg = data.get(msg_key, '')
         return msg
     except Exception:
@@ -280,10 +280,10 @@ class EVCloudAdapter(BaseAdapter):
         """
         center_id = int(params.region_id)
         public = params.public
+
+        query = {'center_id': center_id, 'available': 'true'}
         if public is not None:
-            query = {'center_id': center_id, 'public': str(public).lower()}
-        else:
-            query = {'center_id': center_id}
+            query['public'] = str(public).lower()
 
         url = self.api_builder.vlan_base_url(query=query)
         try:
