@@ -47,4 +47,3 @@ class QuotaShortageError(QuotaError):
     default_message = "There are not enough resources to use."
     default_code = "QuotaShortage"
     default_status_code = 409
-

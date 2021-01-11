@@ -1,4 +1,5 @@
 # 敏感信息配置文件security.py的demo
+from .settings import JWT
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'xxx'
@@ -38,4 +39,10 @@ EMAIL_USE_TLS = True    # 是否使用TLS安全传输协议
 EMAIL_HOST = 'xxx'
 EMAIL_HOST_USER = 'xxx'
 EMAIL_HOST_PASSWORD = 'xxx'
+
+
+# ES256 private key
+JWT['SIGNING_KEY'] = 'xxx'
+# ES256 public key
+JWT['VERIFYING_KEY'] = 'xxx'
 

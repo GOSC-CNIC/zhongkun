@@ -237,6 +237,23 @@ LOGGING = {
     },
 }
 
+JWT = {
+    'ALGORITHM': 'RS256',
+    # 'SIGNING_KEY': '',
+    # 'VERIFYING_KEY': None,
+    'AUDIENCE': None,
+    'ISSUER': None,
+
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+    'TOKEN_TYPE_CLAIM': 'token_type',
+
+    'JTI_CLAIM': 'jti'
+}
+
+
 # 安全配置导入
 from .security import *
 
