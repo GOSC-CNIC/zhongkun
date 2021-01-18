@@ -22,6 +22,7 @@ from drf_yasg import openapi
 
 from . import views
 
+
 schema_view = get_schema_view(
    openapi.Info(
       title="GOSC API",

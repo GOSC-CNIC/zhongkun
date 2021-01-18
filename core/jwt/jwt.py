@@ -32,7 +32,7 @@ class DictObjectWrapper:
         self._d[name] = value
 
 
-USER_SETTINGS = DictObjectWrapper(getattr(settings, 'JWT', None))
+USER_SETTINGS = DictObjectWrapper(getattr(settings, 'SIMPLE_JWT', None))
 
 AUTH_HEADER_TYPES = USER_SETTINGS.AUTH_HEADER_TYPES
 if not isinstance(AUTH_HEADER_TYPES, (list, tuple)):

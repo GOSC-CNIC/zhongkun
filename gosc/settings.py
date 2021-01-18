@@ -239,7 +239,7 @@ LOGGING = {
     },
 }
 
-JWT = {
+SIMPLE_JWT = {
     'ALGORITHM': 'RS256',
     # 'SIGNING_KEY': '',
     # 'VERIFYING_KEY': None,
@@ -248,7 +248,7 @@ JWT = {
 
     'AUTH_HEADER_TYPES': ('Bearer',),
     'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
-    'USER_ID_FIELD': 'id',
+    'USER_ID_FIELD': 'username',
     'USER_ID_CLAIM': 'user_id',
     'TOKEN_TYPE_CLAIM': 'token_type',
 

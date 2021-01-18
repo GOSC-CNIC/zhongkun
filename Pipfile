@@ -17,6 +17,7 @@ pyopenssl = "==19.1.0"
 openstacksdk = "==0.50.0"
 importlib-metadata = "==1.7.0"
 pyjwt = "==2.0.0"
+djangorestframework-simplejwt = "==4.6.0"
 
 [requires]
 python_version = "3.8"

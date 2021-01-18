@@ -10,6 +10,7 @@ decorator==4.4.2
 Django==3.1.5
 django-debug-toolbar==3.2
 djangorestframework==3.11.0
+djangorestframework-simplejwt==4.6.0
 dogpile.cache==1.1.1
 drf-yasg==1.17.1
 idna==2.10
