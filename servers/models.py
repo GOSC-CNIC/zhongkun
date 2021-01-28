@@ -1,3 +1,5 @@
+from uuid import uuid1
+
 from django.db import models
 from django.db.models import Count, Sum, Q
 from django.utils.translation import gettext_lazy as _
@@ -7,6 +9,10 @@ from django.utils import timezone
 from service.models import ServiceConfig, UserQuota
 
 User = get_user_model()
+
+
+def get_uuid1_str():
+    return str(uuid1())
 
 
 class ServerBase(models.Model):
@@ -29,7 +35,7 @@ class ServerBase(models.Model):
         (QUOTA_SHARED, _('共享资源配额'))
     )
 
-    id = models.AutoField(primary_key=True, verbose_name='ID')
+    id = models.CharField(max_length=36, primary_key=True, verbose_name='ID')
     name = models.CharField(max_length=255, verbose_name=_('服务器实例名称'))
     instance_id = models.CharField(max_length=128, verbose_name=_('虚拟主机ID'), help_text=_('各接入服务中虚拟主机的ID'))
     vcpus = models.IntegerField(verbose_name=_('虚拟CPU数'), default=0)
@@ -44,6 +50,13 @@ class ServerBase(models.Model):
 
     class Meta:
         abstract = True
+
+    def save(self, force_insert=False, force_update=False, using=None,
+             update_fields=None):
+        if not self.id:
+            self.id = get_uuid1_str()
+
+        super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
 
     def do_delete(self):
         """
@@ -75,8 +88,8 @@ class Server(ServerBase):
                                 verbose_name=_('接入的服务配置'))
     user = models.ForeignKey(to=User, verbose_name=_('创建者'), on_delete=models.SET_NULL, related_name='user_servers',
                              null=True)
-    user_quota = models.ForeignKey(to=UserQuota, blank=True, null=True, on_delete=models.SET_NULL, related_name='quota_servers',
-                                   verbose_name=_('所属用户配额'))
+    user_quota = models.ForeignKey(to=UserQuota, blank=True, null=True, on_delete=models.SET_NULL,
+                                   related_name='quota_servers', verbose_name=_('所属用户配额'))
 
     class Meta:
         ordering = ['-id']
@@ -234,8 +247,8 @@ class ServerArchive(ServerBase):
                                 related_name='server_archive_set', verbose_name=_('接入的服务配置'))
     user = models.ForeignKey(to=User, verbose_name=_('创建者'), on_delete=models.SET_NULL,
                              related_name='user_server_archives', null=True)
-    user_quota = models.ForeignKey(to=UserQuota, null=True, on_delete=models.SET_NULL, related_name='server_archive_set',
-                                   verbose_name=_('所属用户配额'))
+    user_quota = models.ForeignKey(to=UserQuota, null=True, on_delete=models.SET_NULL,
+                                   related_name='server_archive_set', verbose_name=_('所属用户配额'))
     user_quota_tag = models.SmallIntegerField(verbose_name=_('配额类型'), choices=CHOICES_TAG, default=TAG_BASE)
     deleted_time = models.DateTimeField(verbose_name=_('删除归档时间'), auto_now_add=True)
 
