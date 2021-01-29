@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta, timezone
-import requests
 import uuid
 import re
 from pytz import utc
@@ -110,7 +109,7 @@ class OpenStackAdapter(BaseAdapter):
                 app_version='1.0',
             )
             expire = (datetime.utcnow() + timedelta(hours=1)).timestamp()
-            auth = outputs.AuthenticateOutput(style='token', token=None, header=None, query=None,
+            auth = outputs.AuthenticateOutput(style='token', token='', header=None, query=None,
                                               expire=int(expire), username=username, password=password,
                                               vmconnect=connect)
         except Exception as e:
@@ -129,7 +128,7 @@ class OpenStackAdapter(BaseAdapter):
         try:
             flavor = self.get_or_create_flavor(params.ram, params.vcpu)
             server_re = service_instance.compute.create_server(
-                name='gosc-instance-'+str(uuid.uuid4()), image_id=params.image_id, flavor_id=flavor.id,
+                name='gosc-instance-'+str(uuid.uuid1()), image_id=params.image_id, flavor_id=flavor.id,
                 networks=[{"uuid": params.network_id}])
 
             server = outputs.ServerCreateOutputServer(

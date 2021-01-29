@@ -6,7 +6,7 @@ class ServerSerializer(serializers.Serializer):
     """
     虚拟服务器实例序列化器
     """
-    id = serializers.IntegerField()
+    id = serializers.CharField()
     name = serializers.CharField()
     vcpus = serializers.IntegerField()
     ram = serializers.IntegerField()

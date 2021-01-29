@@ -91,8 +91,8 @@ def get_obj(content, vimtype, name):
 """
 
 
-def get_obj_by_uuid(content, uuid):
-    obj = content.searchIndex.FindByUuid(None, uuid, True, True)
+def get_obj_by_uuid(content, _uuid):
+    obj = content.searchIndex.FindByUuid(None, _uuid, True, True)
     return obj
 
 
@@ -157,7 +157,7 @@ class VmwareAdapter(BaseAdapter):
             outputs.ServerCreateOutput()
         """
         try:
-            vm_name = 'gosc-instance-' + str(uuid.uuid4()) + '-&&image&&-' + params.image_id
+            vm_name = 'gosc-instance-' + str(uuid.uuid1())
             deploy_settings = {'template': 'centos8_gui', 'hostname': 'gosc_003', 'ips': '10.0.200.243',
                                'cpus': params.vcpu, 'mem': params.ram, "new_vm_name": vm_name,
                                'template_name': params.image_id}
