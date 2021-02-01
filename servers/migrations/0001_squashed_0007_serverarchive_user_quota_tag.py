@@ -7,15 +7,13 @@ import django.db.models.deletion
 
 class Migration(migrations.Migration):
 
-    replaces = [('servers', '0001_initial'), ('servers', '0002_auto_20200922_0253'), ('servers', '0003_remove_server_flavor_id'), ('servers', '0004_auto_20200930_0158'), ('servers', '0005_auto_20201019_0626'), ('servers', '0006_auto_20201113_0058'), ('servers', '0007_serverarchive_user_quota_tag')]
+    # replaces = [('servers', '0001_initial'), ('servers', '0002_auto_20200922_0253'), ('servers', '0003_remove_server_flavor_id'), ('servers', '0004_auto_20200930_0158'), ('servers', '0005_auto_20201019_0626'), ('servers', '0006_auto_20201113_0058'), ('servers', '0007_serverarchive_user_quota_tag')]
 
     initial = True
 
     dependencies = [
-        ('service', '0001_initial'),
+        ('service', '0001_squashed_0006_userquota_deleted'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('service', '0005_auto_20201113_0058'),
-        ('service', '0002_auto_20200922_0253'),
     ]
 
     operations = [

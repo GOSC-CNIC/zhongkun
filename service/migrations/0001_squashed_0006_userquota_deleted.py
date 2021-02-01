@@ -7,7 +7,7 @@ import django.db.models.deletion
 
 class Migration(migrations.Migration):
 
-    replaces = [('service', '0001_initial'), ('service', '0002_auto_20200922_0253'), ('service', '0003_auto_20200930_0158'), ('service', '0004_auto_20201009_0629'), ('service', '0005_auto_20201113_0058'), ('service', '0006_userquota_deleted')]
+    # replaces = [('service', '0001_initial'), ('service', '0002_auto_20200922_0253'), ('service', '0003_auto_20200930_0158'), ('service', '0004_auto_20201009_0629'), ('service', '0005_auto_20201113_0058'), ('service', '0006_userquota_deleted')]
 
     initial = True
 
