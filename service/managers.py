@@ -4,7 +4,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from core import errors
-from .models import UserQuota, DataCenterPrivateQuota, DataCenterShareQuota
+from .models import UserQuota, ServicePrivateQuota, ServiceShareQuota
 
 
 class UserQuotaManager:
@@ -13,7 +13,7 @@ class UserQuotaManager:
     """
     MODEL = UserQuota
 
-    def _create_quota(self, user, tag: int = None, expire_time=None):
+    def _create_quota(self, user, service, tag: int = None, expire_time=None):
         if tag is None:
             tag = self.MODEL.TAG_BASE
 
@@ -21,7 +21,7 @@ class UserQuotaManager:
         if tag != self.MODEL.TAG_BASE:
             expiration_time = expire_time
 
-        quota = self.MODEL(user=user, tag=tag, expiration_time=expiration_time)
+        quota = self.MODEL(user=user, service=service, tag=tag, expiration_time=expiration_time)
         try:
             quota.save()
         except Exception as e:
@@ -55,7 +55,8 @@ class UserQuotaManager:
         """
         return self.MODEL.objects.filter(id=quota_id).first()
 
-    def deduct(self, user, quota_id: int, vcpus: int = 0, ram: int = 0, disk_size: int = 0, public_ip: int = 0, private_ip: int = 0):
+    def deduct(self, user, quota_id: int, vcpus: int = 0, ram: int = 0,
+               disk_size: int = 0, public_ip: int = 0, private_ip: int = 0):
         """
         扣除(已用)资源
 
@@ -132,7 +133,8 @@ class UserQuotaManager:
 
         return quota
 
-    def release(self, user, quota_id: int, vcpus: int = 0, ram: int = 0, disk_size: int = 0, public_ip: int = 0, private_ip: int = 0):
+    def release(self, user, quota_id: int, vcpus: int = 0, ram: int = 0,
+                disk_size: int = 0, public_ip: int = 0, private_ip: int = 0):
         """
         释放(已用)资源
 
@@ -188,7 +190,8 @@ class UserQuotaManager:
 
         return quota
 
-    def increase(self, user, quota_id: int, vcpus: int = 0, ram: int = 0, disk_size: int = 0, public_ip: int = 0, private_ip: int = 0):
+    def increase(self, user, quota_id: int, vcpus: int = 0, ram: int = 0,
+                 disk_size: int = 0, public_ip: int = 0, private_ip: int = 0):
         """
         增加资源总配额
 
@@ -241,7 +244,8 @@ class UserQuotaManager:
 
         return quota
 
-    def decrease(self, user, quota_id: int, vcpus: int = 0, ram: int = 0, disk_size: int = 0, public_ip: int = 0, private_ip: int = 0):
+    def decrease(self, user, quota_id: int, vcpus: int = 0, ram: int = 0,
+                 disk_size: int = 0, public_ip: int = 0, private_ip: int = 0):
         """
         减少资源总配额
 
@@ -295,7 +299,8 @@ class UserQuotaManager:
         return quota
 
     @staticmethod
-    def requires(quota, vcpus: int = 0, ram: int = 0, disk_size: int = 0, public_ip: int = 0, private_ip: int = 0):
+    def requires(quota, vcpus: int = 0, ram: int = 0, disk_size: int = 0,
+                 public_ip: int = 0, private_ip: int = 0):
         """
         是否满足资源需求
 
@@ -339,29 +344,33 @@ class UserQuotaManager:
 
         :param user:
         :param service: 服务对象，暂时预留
-        :param usable:
+        :param usable: 是否过滤可用的(未过有效期的)
         :return:
         """
         queryset = self.get_quota_queryset(user=user)
+        if service:
+            queryset = queryset.filter(service=service)
+
         if usable:
             now = timezone.now()
-            queryset = queryset.filter(Q(tag=UserQuota.TAG_BASE) | (Q(tag=UserQuota.TAG_PROBATION) & Q(expiration_time__gt=now)))
+            queryset = queryset.filter(Q(tag=UserQuota.TAG_BASE) | (
+                    Q(tag=UserQuota.TAG_PROBATION) & Q(expiration_time__gt=now)))
 
         return queryset.order_by('id')
 
 
-class DataCenterQuotaManagerBase:
+class ServiceQuotaManagerBase:
     """
-    数据中心资源配额管理基类
+    服务资源配额管理基类
     """
     MODEL = None
-    ERROR_MSG_PREFIX = gettext_lazy('数据中心')
+    ERROR_MSG_PREFIX = gettext_lazy('服务')
 
     def _prefix_msg(self, msg: str):
         return self.ERROR_MSG_PREFIX + ',' + msg
 
-    def _create_quota(self, center):
-        quota = self.MODEL(data_center=center)
+    def _create_quota(self, service):
+        quota = self.MODEL(service=service)
         try:
             quota.save()
         except Exception as e:
@@ -369,24 +378,25 @@ class DataCenterQuotaManagerBase:
 
         return quota
 
-    def get_quota(self, center):
+    def get_quota(self, service):
         """
         获取服务资源配额
-        :param center: 数据中心
+        :param service: 接入服务配置
         :return:
             self.MODEL() or None
         """
-        quota = self.MODEL.objects.filter(data_center=center).first()
+        quota = self.MODEL.objects.filter(service=service).first()
         if not quota:
-            quota = self._create_quota(center=center)
+            quota = self._create_quota(service=service)
 
         return quota
 
-    def deduct(self, center, vcpus: int = 0, ram: int = 0, disk_size: int = 0, public_ip: int = 0, private_ip: int = 0):
+    def deduct(self, service, vcpus: int = 0, ram: int = 0, disk_size: int = 0,
+               public_ip: int = 0, private_ip: int = 0):
         """
         扣除资源
 
-        :param center: 数据中心对象
+        :param service: 接入服务
         :param vcpus: 虚拟cpu数
         :param ram: 内存，单位Mb
         :param disk_size: 硬盘容量，单位Gb
@@ -402,13 +412,13 @@ class DataCenterQuotaManagerBase:
 
         with transaction.atomic():
             update_fields = []
-            quota = self.MODEL.objects.select_for_update().filter(data_center=center).first()
+            quota = self.MODEL.objects.select_for_update().filter(service=service).first()
             if not quota:
-                quota = self._create_quota(center=center)
+                quota = self._create_quota(service=service)
                 if not quota:
                     raise errors.QuotaError(message=self._prefix_msg(_('创建资源配额失败')))
 
-                quota = self.MODEL.objects.select_for_update().filter(data_center=center).first()
+                quota = self.MODEL.objects.select_for_update().filter(service=service).first()
 
             if vcpus > 0:
                 if (quota.vcpu_total - quota.vcpu_used) >= vcpus:
@@ -453,11 +463,12 @@ class DataCenterQuotaManagerBase:
 
         return quota
 
-    def release(self, center, vcpus: int = 0, ram: int = 0, disk_size: int = 0, public_ip: int = 0, private_ip: int = 0):
+    def release(self, service, vcpus: int = 0, ram: int = 0, disk_size: int = 0,
+                public_ip: int = 0, private_ip: int = 0):
         """
         释放已用的资源
 
-        :param center: 数据中心对象
+        :param service: 接入服务配置对象
         :param vcpus: 虚拟cpu数
         :param ram: 内存，单位Mb
         :param disk_size: 硬盘容量，单位Gb
@@ -473,13 +484,13 @@ class DataCenterQuotaManagerBase:
 
         with transaction.atomic():
             update_fields = []
-            quota = self.MODEL.objects.select_for_update().filter(data_center=center).first()
+            quota = self.MODEL.objects.select_for_update().filter(service=service).first()
             if not quota:
-                quota = self._create_quota(center=center)
+                quota = self._create_quota(service=service)
                 if not quota:
                     raise errors.QuotaError(message=self._prefix_msg(_('创建资源配额失败')))
 
-                quota = self.MODEL.objects.select_for_update().filter(data_center=center).first()
+                quota = self.MODEL.objects.select_for_update().filter(service=service).first()
 
             if vcpus > 0:
                 quota.vcpu_used = max(quota.vcpu_used - vcpus, 0)
@@ -509,11 +520,11 @@ class DataCenterQuotaManagerBase:
 
         return quota
 
-    def increase(self, center, vcpus: int = 0, ram: int = 0, disk_size: int = 0, public_ip: int = 0, private_ip: int = 0):
+    def increase(self, service, vcpus: int = 0, ram: int = 0, disk_size: int = 0, public_ip: int = 0, private_ip: int = 0):
         """
         增加总资源配额
 
-        :param center: 数据中心对象
+        :param service: 接入服务配置对象
         :param vcpus: 虚拟cpu数
         :param ram: 内存，单位Mb
         :param disk_size: 硬盘容量，单位Gb
@@ -529,13 +540,13 @@ class DataCenterQuotaManagerBase:
 
         with transaction.atomic():
             update_fields = []
-            quota = self.MODEL.objects.select_for_update().filter(data_center=center).first()
+            quota = self.MODEL.objects.select_for_update().filter(service=service).first()
             if not quota:
-                quota = self._create_quota(center=center)
+                quota = self._create_quota(service=service)
                 if not quota:
                     raise errors.QuotaError(message=self._prefix_msg(_('创建资源配额失败')))
 
-                quota = self.MODEL.objects.select_for_update().filter(data_center=center).first()
+                quota = self.MODEL.objects.select_for_update().filter(service=service).first()
 
             if vcpus > 0:
                 quota.vcpu_total = quota.vcpu_total + vcpus
@@ -565,11 +576,11 @@ class DataCenterQuotaManagerBase:
 
         return quota
 
-    def decrease(self, center, vcpus: int = 0, ram: int = 0, disk_size: int = 0, public_ip: int = 0, private_ip: int = 0):
+    def decrease(self, service, vcpus: int = 0, ram: int = 0, disk_size: int = 0, public_ip: int = 0, private_ip: int = 0):
         """
         减少资源总配额
 
-        :param center: 数据中心对象
+        :param service: 接入服务配置对象
         :param vcpus: 虚拟cpu数
         :param ram: 内存，单位Mb
         :param disk_size: 硬盘容量，单位Gb
@@ -585,13 +596,13 @@ class DataCenterQuotaManagerBase:
 
         with transaction.atomic():
             update_fields = []
-            quota = self.MODEL.objects.select_for_update().filter(data_center=center).first()
+            quota = self.MODEL.objects.select_for_update().filter(service=service).first()
             if not quota:
-                quota = self._create_quota(center=center)
+                quota = self._create_quota(service=service)
                 if not quota:
                     raise errors.QuotaError(message=self._prefix_msg(_('创建资源配额失败')))
 
-                quota = self.MODEL.objects.select_for_update().filter(data_center=center).first()
+                quota = self.MODEL.objects.select_for_update().filter(service=service).first()
 
             if vcpus > 0:
                 quota.vcpu_total = max(quota.vcpu_total - vcpus, 0)
@@ -621,7 +632,8 @@ class DataCenterQuotaManagerBase:
 
         return quota
 
-    def requires(self, quota, vcpus: int = 0, ram: int = 0, disk_size: int = 0, public_ip: int = 0, private_ip: int = 0):
+    def requires(self, quota, vcpus: int = 0, ram: int = 0, disk_size: int = 0,
+                 public_ip: int = 0, private_ip: int = 0):
         """
         是否满足资源需求
 
@@ -658,17 +670,17 @@ class DataCenterQuotaManagerBase:
         return True
 
 
-class DataCenterPrivateQuotaManager(DataCenterQuotaManagerBase):
+class ServicePrivateQuotaManager(ServiceQuotaManagerBase):
     """
-    数据中心私有资源配额管理
+    接入服务的私有资源配额管理
     """
-    MODEL = DataCenterPrivateQuota
-    ERROR_MSG_PREFIX = gettext_lazy('数据中心私有资源配额')
+    MODEL = ServicePrivateQuota
+    ERROR_MSG_PREFIX = gettext_lazy('服务的私有资源配额')
 
 
-class DataCenterShareQuotaManager(DataCenterQuotaManagerBase):
+class ServiceShareQuotaManager(ServiceQuotaManagerBase):
     """
-    数据中心共享资源配额管理
+    接入服务的共享资源配额管理
     """
-    MODEL = DataCenterShareQuota
-    ERROR_MSG_PREFIX = gettext_lazy('数据中心共享资源配额')
+    MODEL = ServiceShareQuota
+    ERROR_MSG_PREFIX = gettext_lazy('服务的共享资源配额')

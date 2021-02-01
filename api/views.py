@@ -15,7 +15,7 @@ from drf_yasg import openapi
 
 from servers.models import Server, Flavor
 from service.managers import UserQuotaManager
-from service.models import DataCenter, ServiceConfig
+from service.models import ServiceConfig
 from adapters import inputs, outputs
 from core.quota import QuotaAPI
 from . import exceptions
@@ -44,7 +44,7 @@ def serializer_error_msg(errors, default=''):
                 val = errors[key]
                 msg = f'{key}, {str(val[0])}'
                 break
-    except:
+    except Exception:
         pass
 
     return msg
@@ -192,7 +192,7 @@ class ServersViewSet(CustomGenericViewSet):
         # 资源配额扣除
         try:
             use_shared_quota, user_quota = QuotaAPI().server_create_quota_apply(
-                data_center=service.data_center, user=request.user, vcpu=flavor.vcpus, ram=flavor.ram,
+                service=service, user=request.user, vcpu=flavor.vcpus, ram=flavor.ram,
                 public_ip=is_public_network, user_quota_id=quota_id)
         except exceptions.Error as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
@@ -203,7 +203,7 @@ class ServersViewSet(CustomGenericViewSet):
             out = self.request_service(service=service, method='server_create', params=params)
         except exceptions.APIException as exc:
             try:
-                QuotaAPI().server_quota_release(data_center=service.data_center, user=request.user,
+                QuotaAPI().server_quota_release(service=service, user=request.user,
                                                 vcpu=flavor.vcpus, ram=flavor.ram, public_ip=is_public_network,
                                                 use_shared_quota=use_shared_quota, user_quota_id=user_quota.id)
             except exceptions.Error:
@@ -685,9 +685,10 @@ class ServersViewSet(CustomGenericViewSet):
             False
         """
         try:
-            QuotaAPI().server_quota_release(data_center=server.service.data_center, user=server.user,
+            QuotaAPI().server_quota_release(service=server.service, user=server.user,
                                             vcpu=server.vcpus, ram=server.ram, public_ip=server.public_ip,
-                                            use_shared_quota=server.is_use_shared_quota, user_quota_id=server.user_quota_id)
+                                            use_shared_quota=server.is_use_shared_quota,
+                                            user_quota_id=server.user_quota_id)
         except exceptions.Error as e:
             return False
 

@@ -1,12 +1,24 @@
-from django.test import TestCase, TransactionTestCase
+from django.test import TransactionTestCase
 from django.contrib.auth import get_user_model
 
-from service.models import DataCenter
-from .managers import UserQuotaManager, DataCenterPrivateQuotaManager, DataCenterShareQuotaManager
+from service.models import DataCenter, ServiceConfig
+from .managers import UserQuotaManager, ServicePrivateQuotaManager, ServiceShareQuotaManager
 from core.errors import QuotaShortageError
 
 
 User = get_user_model()
+
+
+def get_or_create_service():
+    service = ServiceConfig.objects.filter(name='test').first()
+    if service is None:
+        center = DataCenter(name='test')
+        center.save()
+
+        service = ServiceConfig(name='test', data_center=center, endpoint_url='test', username='', password='')
+        service.save()
+
+    return service
 
 
 class TestUserQuotaManager(TransactionTestCase):
@@ -18,6 +30,7 @@ class TestUserQuotaManager(TransactionTestCase):
             user.save()
 
         self.user = user
+        self.service = get_or_create_service()
 
     def test_methods(self):
         vcpus_add = 6
@@ -28,9 +41,12 @@ class TestUserQuotaManager(TransactionTestCase):
 
         user = self.user
         mgr = UserQuotaManager()
-        old_quota = mgr.get_base_quota(user=user)
-        new_quota = mgr.increase(user=user, quota_id=old_quota.id, vcpus=vcpus_add, ram=ram_add, disk_size=disk_size_add,
-                                 public_ip=public_ip_add, private_ip=private_ip_add)
+        old_quota = mgr.get_base_quota_queryset(user=user).first()
+        if not old_quota:
+            old_quota = mgr._create_quota(user=user, service=self.service)
+
+        new_quota = mgr.increase(user=user, quota_id=old_quota.id, vcpus=vcpus_add, ram=ram_add,
+                                 disk_size=disk_size_add, public_ip=public_ip_add, private_ip=private_ip_add)
         self.assertEqual(new_quota.vcpu_total - old_quota.vcpu_total, vcpus_add,
                          msg='UserQuotaManager increase vcpu failed')
         self.assertEqual(new_quota.ram_total - old_quota.ram_total, ram_add,
@@ -97,8 +113,8 @@ class TestUserQuotaManager(TransactionTestCase):
         self.assertEqual(new_quota.private_ip_used, old_quota.private_ip_used,
                          msg='UserQuotaManager release private_ip failed')
 
-        new_quota = mgr.decrease(user=user, quota_id=old_quota.id, vcpus=vcpus_add, ram=ram_add, disk_size=disk_size_add,
-                                 public_ip=public_ip_add, private_ip=private_ip_add)
+        new_quota = mgr.decrease(user=user, quota_id=old_quota.id, vcpus=vcpus_add, ram=ram_add,
+                                 disk_size=disk_size_add, public_ip=public_ip_add, private_ip=private_ip_add)
         self.assertEqual(new_quota.vcpu_total, old_quota.vcpu_total,
                          msg='UserQuotaManager deduct vcpu failed')
         self.assertEqual(new_quota.ram_total, old_quota.ram_total,
@@ -113,12 +129,7 @@ class TestUserQuotaManager(TransactionTestCase):
 
 class TestDataCenterQuotaManager(TransactionTestCase):
     def setUp(self):
-        center = DataCenter.objects.filter(name='test').first()
-        if center is None:
-            center = DataCenter(name='test')
-            center.save()
-
-        self.center = center
+        self.service = get_or_create_service()
 
     def manager_test(self, manager_cls):
         vcpus_add = 6
@@ -128,9 +139,9 @@ class TestDataCenterQuotaManager(TransactionTestCase):
         private_ip_add = 3
 
         mgr = manager_cls()
-        center = self.center
-        old_quota = mgr.get_quota(center=center)
-        new_quota = mgr.increase(center=center, vcpus=vcpus_add, ram=ram_add, disk_size=disk_size_add,
+        service = self.service
+        old_quota = mgr.get_quota(service=service)
+        new_quota = mgr.increase(service=service, vcpus=vcpus_add, ram=ram_add, disk_size=disk_size_add,
                                  public_ip=public_ip_add, private_ip=private_ip_add)
         self.assertEqual(new_quota.vcpu_total - old_quota.vcpu_total, vcpus_add,
                          msg=f'{manager_cls} increase vcpu failed')
@@ -172,7 +183,7 @@ class TestDataCenterQuotaManager(TransactionTestCase):
         with self.assertRaises(QuotaShortageError, msg=f'{manager_cls} requires private_ip failed'):
             mgr.requires(quota=new_quota, private_ip=new_quota.private_ip_total + 1)
 
-        new_quota = mgr.deduct(center=center, vcpus=vcpus_add, ram=ram_add, disk_size=disk_size_add,
+        new_quota = mgr.deduct(service=service, vcpus=vcpus_add, ram=ram_add, disk_size=disk_size_add,
                                public_ip=public_ip_add, private_ip=private_ip_add)
         self.assertEqual(new_quota.vcpu_used, vcpus_add,
                          msg=f'{manager_cls} deduct vcpu failed')
@@ -185,7 +196,7 @@ class TestDataCenterQuotaManager(TransactionTestCase):
         self.assertEqual(new_quota.private_ip_used, private_ip_add,
                          msg=f'{manager_cls} deduct private_ip failed')
 
-        new_quota = mgr.release(center=center, vcpus=vcpus_add, ram=ram_add, disk_size=disk_size_add,
+        new_quota = mgr.release(service=service, vcpus=vcpus_add, ram=ram_add, disk_size=disk_size_add,
                                 public_ip=public_ip_add, private_ip=private_ip_add)
         self.assertEqual(new_quota.vcpu_used, old_quota.vcpu_used,
                          msg=f'{manager_cls} release vcpu failed')
@@ -198,7 +209,7 @@ class TestDataCenterQuotaManager(TransactionTestCase):
         self.assertEqual(new_quota.private_ip_used, old_quota.private_ip_used,
                          msg=f'{manager_cls} release private_ip failed')
 
-        new_quota = mgr.decrease(center=center, vcpus=vcpus_add, ram=ram_add, disk_size=disk_size_add,
+        new_quota = mgr.decrease(service=service, vcpus=vcpus_add, ram=ram_add, disk_size=disk_size_add,
                                  public_ip=public_ip_add, private_ip=private_ip_add)
         self.assertEqual(new_quota.vcpu_total, old_quota.vcpu_total,
                          msg=f'{manager_cls} deduct vcpu failed')
@@ -212,7 +223,7 @@ class TestDataCenterQuotaManager(TransactionTestCase):
                          msg=f'{manager_cls} deduct private_ip failed')
 
     def test_shared_quota_manager(self):
-        self.manager_test(DataCenterShareQuotaManager)
+        self.manager_test(ServiceShareQuotaManager)
 
     def test_private_quota_manager(self):
-        self.manager_test(DataCenterPrivateQuotaManager)
+        self.manager_test(ServicePrivateQuotaManager)

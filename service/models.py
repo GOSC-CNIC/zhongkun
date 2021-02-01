@@ -56,21 +56,28 @@ class ServiceConfig(models.Model):
     )
 
     id = models.AutoField(primary_key=True, verbose_name='ID')
-    data_center = models.ForeignKey(to=DataCenter, null=True, on_delete=models.SET_NULL, related_name='service_set', verbose_name=_('数据中心'))
+    data_center = models.ForeignKey(to=DataCenter, null=True, on_delete=models.SET_NULL,
+                                    related_name='service_set', verbose_name=_('数据中心'))
     name = models.CharField(max_length=255, verbose_name=_('服务名称'))
     region_id = models.CharField(max_length=128, default='', blank=True, verbose_name=_('服务区域/分中心ID'))
-    service_type = models.SmallIntegerField(choices=SERVICE_TYPE_CHOICES, default=SERVICE_EVCLOUD, verbose_name=_('服务平台类型'))
-    endpoint_url = models.CharField(max_length=255, verbose_name=_('服务地址url'), unique=True, help_text='http(s)://{hostname}:{port}/')
-    api_version = models.CharField(max_length=64, default='v3', verbose_name=_('API版本'), help_text=_('预留，主要EVCloud使用'))
+    service_type = models.SmallIntegerField(choices=SERVICE_TYPE_CHOICES, default=SERVICE_EVCLOUD,
+                                            verbose_name=_('服务平台类型'))
+    endpoint_url = models.CharField(max_length=255, verbose_name=_('服务地址url'), unique=True,
+                                    help_text='http(s)://{hostname}:{port}/')
+    api_version = models.CharField(max_length=64, default='v3', verbose_name=_('API版本'),
+                                   help_text=_('预留，主要EVCloud使用'))
     username = models.CharField(max_length=128, verbose_name=_('用户名'), help_text=_('用于此服务认证的用户名'))
     password = models.CharField(max_length=128, verbose_name=_('密码'))
     add_time = models.DateTimeField(auto_now_add=True, verbose_name=_('添加时间'))
     status = models.SmallIntegerField(verbose_name=_('服务状态'), choices=CHOICE_STATUS, default=STATUS_ENABLE)
     remarks = models.CharField(max_length=255, default='', blank=True, verbose_name=_('备注'))
     need_vpn = models.BooleanField(verbose_name=_('是否需要VPN'), default=True)
-    vpn_endpoint_url = models.CharField(max_length=255, blank=True, default='', verbose_name=_('服务地址url'), help_text='http(s)://{hostname}:{port}/')
-    vpn_api_version = models.CharField(max_length=64, blank=True, default='v3', verbose_name=_('API版本'), help_text=_('预留，主要EVCloud使用'))
-    vpn_username = models.CharField(max_length=128, blank=True, default='', verbose_name=_('用户名'), help_text=_('用于此服务认证的用户名'))
+    vpn_endpoint_url = models.CharField(max_length=255, blank=True, default='', verbose_name=_('服务地址url'),
+                                        help_text='http(s)://{hostname}:{port}/')
+    vpn_api_version = models.CharField(max_length=64, blank=True, default='v3', verbose_name=_('API版本'),
+                                       help_text=_('预留，主要EVCloud使用'))
+    vpn_username = models.CharField(max_length=128, blank=True, default='', verbose_name=_('用户名'),
+                                    help_text=_('用于此服务认证的用户名'))
     vpn_password = models.CharField(max_length=128, blank=True, default='', verbose_name=_('密码'))
     extra = models.CharField(max_length=1024, blank=True, default='', verbose_name=_('其他配置'), help_text=_('json格式'))
 
@@ -109,9 +116,9 @@ class ServiceConfig(models.Model):
         return self.SERVICE_TYPE_STRING.get(t)
 
 
-class DataCenterQuotaBase(models.Model):
+class ServiceQuotaBase(models.Model):
     """
-    数据中心资源配额基类
+    数据中心接入服务的资源配额基类
     """
     id = models.AutoField(verbose_name='ID', primary_key=True)
     private_ip_total = models.IntegerField(verbose_name=_('总私网IP数'), default=0)
@@ -130,31 +137,31 @@ class DataCenterQuotaBase(models.Model):
         abstract = True
 
 
-class DataCenterPrivateQuota(DataCenterQuotaBase):
+class ServicePrivateQuota(ServiceQuotaBase):
     """
-    数据中心私有资源配额和限制
+    数据中心接入服务的私有资源配额和限制
     """
-    data_center = models.OneToOneField(to=DataCenter, null=True, on_delete=models.SET_NULL,
-                                       related_name='data_center_private_quota', verbose_name=_('数据中心'))
+    service = models.OneToOneField(to=ServiceConfig, null=True, on_delete=models.SET_NULL,
+                                   related_name='service_private_quota', verbose_name=_('接入服务'))
 
     class Meta:
-        db_table = 'data_center_private_quota'
+        db_table = 'service_private_quota'
         ordering = ['-id']
-        verbose_name = _('数据中心私有资源配额')
+        verbose_name = _('接入服务的私有资源配额')
         verbose_name_plural = verbose_name
 
 
-class DataCenterShareQuota(DataCenterQuotaBase):
+class ServiceShareQuota(ServiceQuotaBase):
     """
-    数据中心分享资源配额和限制
+    接入服务的分享资源配额和限制
     """
-    data_center = models.OneToOneField(to=DataCenter, null=True, on_delete=models.SET_NULL,
-                                       related_name='data_center_share_quota', verbose_name=_('数据中心'))
+    service = models.OneToOneField(to=ServiceConfig, null=True, on_delete=models.SET_NULL,
+                                   related_name='service_share_quota', verbose_name=_('接入服务'))
 
     class Meta:
-        db_table = 'data_center_share_quota'
+        db_table = 'service_share_quota'
         ordering = ['-id']
-        verbose_name = _('数据中心分享资源配额')
+        verbose_name = _('接入服务的分享资源配额')
         verbose_name_plural = verbose_name
 
 
@@ -173,6 +180,8 @@ class UserQuota(models.Model):
     tag = models.SmallIntegerField(verbose_name=_('配额类型'), choices=CHOICES_TAG, default=TAG_BASE)
     user = models.ForeignKey(to=User, null=True, on_delete=models.SET_NULL,
                              related_name='user_quota', verbose_name=_('用户'))
+    service = models.ForeignKey(to=ServiceConfig, null=True, on_delete=models.SET_NULL,
+                                related_name='service_quota', verbose_name=_('适用服务'))
     private_ip_total = models.IntegerField(verbose_name=_('总私网IP数'), default=0)
     private_ip_used = models.IntegerField(verbose_name=_('已用私网IP数'), default=0)
     public_ip_total = models.IntegerField(verbose_name=_('总公网IP数'), default=0)

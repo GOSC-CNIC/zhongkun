@@ -1,13 +1,12 @@
 from django.utils.translation import gettext as _
 
-from service.managers import UserQuotaManager, DataCenterPrivateQuotaManager, DataCenterShareQuotaManager
+from service.managers import UserQuotaManager, ServicePrivateQuotaManager, ServiceShareQuotaManager
 from . import errors
-from service.models import DataCenter
 
 
 class QuotaAPI:
     @staticmethod
-    def server_create_quota_apply(data_center: DataCenter, user, vcpu: int, ram: int, public_ip: bool,
+    def server_create_quota_apply(service, user, vcpu: int, ram: int, public_ip: bool,
                                   user_quota_id: int = None):
         """
         检测资源配额是否满足，并申请扣除
@@ -16,7 +15,7 @@ class QuotaAPI:
             1.数据中心管理员优先使用数据中心的私有资源配额，不扣除用户资源配额；
             2.普通用户，只能使用各数据中心的共享资源配额，并扣除用户资源配额
 
-        :param data_center: 数据中心
+        :param service: 接入服务
         :param user: 用户对象
         :param vcpu: vCPU数
         :param ram: 内存大小, 单位Mb
@@ -31,10 +30,10 @@ class QuotaAPI:
         :raises: QuotaShortageError, QuotaError
         """
         # 用户是数据中心管理员，优化使用数据中心私有资源
-        pri_mgr = DataCenterPrivateQuotaManager()
-        pri_center_quota = pri_mgr.get_quota(center=data_center)
+        pri_mgr = ServicePrivateQuotaManager()
+        pri_center_quota = pri_mgr.get_quota(service=service)
         use_shared_quota = True  # 标记使用数据中心分享配额或私有配额
-        if data_center.users.filter(id=user.id).exists():
+        if service.data_center.users.filter(id=user.id).exists():
             try:
                 if public_ip is True:
                     pri_mgr.requires(pri_center_quota, vcpus=vcpu, ram=ram, public_ip=1)
@@ -52,7 +51,7 @@ class QuotaAPI:
             kwargs = {'private_ip': 1}
 
         u_mgr = UserQuotaManager()
-        share_mgr = DataCenterShareQuotaManager()
+        share_mgr = ServiceShareQuotaManager()
         # 使用共享资源时，需检测用户资源配额和数据中心共享资源配额是否满足需求
         user_quota = None
         if use_shared_quota:
@@ -60,7 +59,7 @@ class QuotaAPI:
                                                       user_quota_id=user_quota_id)
 
             # 使用共享资源配额
-            shared_center_quota = share_mgr.get_quota(center=data_center)
+            shared_center_quota = share_mgr.get_quota(service=service)
             if public_ip is True:
                 share_mgr.requires(shared_center_quota, vcpus=vcpu, ram=ram, public_ip=1)
             else:
@@ -68,25 +67,25 @@ class QuotaAPI:
 
             u_mgr.deduct(user=user, quota_id=user_quota.id, vcpus=vcpu, ram=ram, **kwargs)
             try:
-                share_mgr.deduct(center=data_center, vcpus=vcpu, ram=ram, **kwargs)
+                share_mgr.deduct(service=service, vcpus=vcpu, ram=ram, **kwargs)
             except errors.QuotaError as e:
                 u_mgr.release(user=user, vcpus=vcpu, ram=ram, **kwargs)
                 raise e
         else:
-            pri_mgr.deduct(center=data_center, vcpus=vcpu, ram=ram, **kwargs)
+            pri_mgr.deduct(service=service, vcpus=vcpu, ram=ram, **kwargs)
 
         return use_shared_quota, user_quota
 
     @staticmethod
-    def server_quota_release(data_center: DataCenter, user, vcpu: int, ram: int, public_ip: bool,
+    def server_quota_release(service, user, vcpu: int, ram: int, public_ip: bool,
                              use_shared_quota: bool, user_quota_id: int):
         """
         释放服务器占用的资源配额
 
         原则：
-            服务器使用的是数据中心的私有资源配额，与用户资源配额无关；
+            服务器使用的是接入服务的私有资源配额，与用户资源配额无关；
 
-        :param data_center: 数据中心
+        :param service: 接入的服务对象
         :param user: 用户对象
         :param vcpu: vCPU数
         :param ram: 内存大小, 单位Mb
@@ -110,9 +109,9 @@ class QuotaAPI:
                 except errors.QuotaError as e:
                     pass
 
-            DataCenterShareQuotaManager().release(center=data_center, vcpus=vcpu, ram=ram, **kwargs)
+            ServiceShareQuotaManager().release(service=service, vcpus=vcpu, ram=ram, **kwargs)
         else:
-            DataCenterPrivateQuotaManager().release(center=data_center, vcpus=vcpu, ram=ram, **kwargs)
+            ServicePrivateQuotaManager().release(service=service, vcpus=vcpu, ram=ram, **kwargs)
 
     @staticmethod
     def get_meet_user_quota(user, vcpu: int, ram: int, public_ip: bool, user_quota_id: int = None):

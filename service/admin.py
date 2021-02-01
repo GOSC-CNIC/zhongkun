@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.db import transaction
 
 from servers.models import Server
-from .models import ServiceConfig, DataCenter, DataCenterPrivateQuota, DataCenterShareQuota, UserQuota
+from .models import ServiceConfig, DataCenter, ServicePrivateQuota, ServiceShareQuota, UserQuota
 
 
 @admin.register(ServiceConfig)
@@ -25,14 +25,14 @@ class DataCenterAdmin(admin.ModelAdmin):
     filter_horizontal = ('users',)
 
 
-@admin.register(DataCenterPrivateQuota)
-class DataCenterPrivateQuotaAdmin(admin.ModelAdmin):
+@admin.register(ServicePrivateQuota)
+class ServicePrivateQuotaAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
-    list_display = ('id', 'data_center', 'vcpu_total', 'vcpu_used', 'ram_total', 'ram_used', 'disk_size_total',
+    list_display = ('id', 'service', 'vcpu_total', 'vcpu_used', 'ram_total', 'ram_used', 'disk_size_total',
                     'disk_size_used', 'private_ip_total', 'private_ip_used', 'public_ip_total', 'public_ip_used',
                     'enable')
-    list_select_related = ('data_center',)
-    list_filter = ('data_center',)
+    list_select_related = ('service',)
+    list_filter = ('service__data_center', 'service')
     actions = ['quota_used_update']
 
     def quota_used_update(self, request, queryset):
@@ -41,7 +41,7 @@ class DataCenterPrivateQuotaAdmin(admin.ModelAdmin):
             r = Server.count_private_quota_used(q.data_center)
 
             with transaction.atomic():
-                quota = DataCenterPrivateQuota.objects.select_for_update().get(id=q.id)
+                quota = ServicePrivateQuota.objects.select_for_update().get(id=q.id)
                 update_fields = []
                 vcpu_used_count = r.get('vcpu_used_count', None)
                 if isinstance(vcpu_used_count, int) and quota.vcpu_used != vcpu_used_count:
@@ -77,14 +77,14 @@ class DataCenterPrivateQuotaAdmin(admin.ModelAdmin):
     quota_used_update.short_description = gettext_lazy("已用配额统计更新")
 
 
-@admin.register(DataCenterShareQuota)
-class DataCenterShareQuotaAdmin(admin.ModelAdmin):
+@admin.register(ServiceShareQuota)
+class ServiceShareQuotaAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
-    list_display = ('id', 'data_center', 'vcpu_total', 'vcpu_used', 'ram_total', 'ram_used', 'disk_size_total',
+    list_display = ('id', 'service', 'vcpu_total', 'vcpu_used', 'ram_total', 'ram_used', 'disk_size_total',
                     'disk_size_used', 'private_ip_total', 'private_ip_used', 'public_ip_total', 'public_ip_used',
                     'enable')
-    list_select_related = ('data_center',)
-    list_filter = ('data_center',)
+    list_select_related = ('service',)
+    list_filter = ('service__data_center', 'service')
     actions = ['quota_used_update']
 
     def quota_used_update(self, request, queryset):
@@ -93,7 +93,7 @@ class DataCenterShareQuotaAdmin(admin.ModelAdmin):
             r = Server.count_share_quota_used(q.data_center)
 
             with transaction.atomic():
-                quota = DataCenterShareQuota.objects.select_for_update().get(id=q.id)
+                quota = ServiceShareQuota.objects.select_for_update().get(id=q.id)
                 update_fields = []
                 vcpu_used_count = r.get('vcpu_used_count', None)
                 if isinstance(vcpu_used_count, int) and quota.vcpu_used != vcpu_used_count:
@@ -132,7 +132,7 @@ class DataCenterShareQuotaAdmin(admin.ModelAdmin):
 @admin.register(UserQuota)
 class UserQuotaAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
-    list_display = ('id', 'tag', 'user', 'show_deleted', 'expiration_time', 'vcpu_total', 'vcpu_used', 'ram_total', 'ram_used',
+    list_display = ('id', 'tag', 'user', 'service', 'show_deleted', 'expiration_time', 'vcpu_total', 'vcpu_used', 'ram_total', 'ram_used',
                     'disk_size_total', 'disk_size_used', 'private_ip_total', 'private_ip_used', 'public_ip_total', 'public_ip_used')
     list_select_related = ('user',)
     search_fields = ['user__username']
