@@ -152,11 +152,11 @@ class Server(ServerBase):
         return True
 
     @staticmethod
-    def count_private_quota_used(center):
+    def count_private_quota_used(service):
         """
-        数据中心/机构私有资源配额已用统计
+        接入服务的私有资源配额已用统计
 
-        :param center: 数据中心/机构
+        :param service: 接入服务配置对象
         :return:
             {
                 'vcpu_used_count': 1,
@@ -165,8 +165,12 @@ class Server(ServerBase):
                 'private_ip_count': 1
             }
         """
-        service_ids = list(center.service_set.values_list('id', flat=True))
-        stat = Server.objects.filter(service__in=service_ids, center_quota=Server.QUOTA_PRIVATE).aggregate(
+        if isinstance(service, int):
+            service_id = service
+        else:
+            service_id = service.id
+
+        stat = Server.objects.filter(service=service_id, center_quota=Server.QUOTA_PRIVATE).aggregate(
             vcpu_used_count=Sum('vcpus'), ram_used_count=Sum('ram'),
             public_ip_count=Count('id', filter=Q(public_ip=True)),
             private_ip_count=Count('id', filter=Q(public_ip=False))
@@ -180,11 +184,11 @@ class Server(ServerBase):
         return stat
 
     @staticmethod
-    def count_share_quota_used(center):
+    def count_share_quota_used(service):
         """
-        数据中心/机构分享资源配额已用统计
+        接入服务的分享资源配额已用统计
 
-        :param center: 数据中心/机构
+        :param service: 接入服务配置对象
         :return:
             {
                 'vcpu_used_count': 1,
@@ -193,8 +197,12 @@ class Server(ServerBase):
                 'private_ip_count': 1
             }
         """
-        service_ids = list(center.service_set.values_list('id', flat=True))
-        stat = Server.objects.filter(service__in=service_ids, center_quota=Server.QUOTA_SHARED).aggregate(
+        if isinstance(service, int):
+            service_id = service
+        else:
+            service_id = service.id
+
+        stat = Server.objects.filter(service=service_id, center_quota=Server.QUOTA_SHARED).aggregate(
             vcpu_used_count=Sum('vcpus'), ram_used_count=Sum('ram'),
             public_ip_count=Count('id', filter=Q(public_ip=True)),
             private_ip_count=Count('id', filter=Q(public_ip=False))

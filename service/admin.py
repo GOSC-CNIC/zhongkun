@@ -38,7 +38,7 @@ class ServicePrivateQuotaAdmin(admin.ModelAdmin):
     def quota_used_update(self, request, queryset):
         failed_count = 0
         for q in queryset:
-            r = Server.count_private_quota_used(q.data_center)
+            r = Server.count_private_quota_used(q)
 
             with transaction.atomic():
                 quota = ServicePrivateQuota.objects.select_for_update().get(id=q.id)
@@ -90,7 +90,7 @@ class ServiceShareQuotaAdmin(admin.ModelAdmin):
     def quota_used_update(self, request, queryset):
         failed_count = 0
         for q in queryset:
-            r = Server.count_share_quota_used(q.data_center)
+            r = Server.count_share_quota_used(q)
 
             with transaction.atomic():
                 quota = ServiceShareQuota.objects.select_for_update().get(id=q.id)
