@@ -250,7 +250,12 @@
     }
     function quota_select_update(){
         let quota_select = $('select[name="quota_id"]');
-        let query_str = encode_params({usable: true});
+        let querys = {usable: true}
+        let service = $('select[name="service_id"]').val();
+        if (service)
+            querys.service = service;
+
+        let query_str = encode_params(querys);
         $.ajax({
             url: build_absolute_url('api/u-quota/?'+ query_str),
             type: 'get',
@@ -341,6 +346,7 @@
         e.preventDefault();
         image_select_update();
         network_select_update();
+        quota_select_update();
     });
 })();
 
