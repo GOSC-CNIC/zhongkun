@@ -134,10 +134,10 @@ class UserQuotaAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
     list_display = ('id', 'tag', 'user', 'service', 'show_deleted', 'expiration_time', 'vcpu_total', 'vcpu_used', 'ram_total', 'ram_used',
                     'disk_size_total', 'disk_size_used', 'private_ip_total', 'private_ip_used', 'public_ip_total', 'public_ip_used')
-    list_select_related = ('user',)
+    list_select_related = ('user', 'service')
     search_fields = ['user__username']
     actions = ['quota_used_update']
-    # list_filter = ('show_deleted',)
+    list_filter = ('service', 'tag')
 
     def show_deleted(self, obj):
         if obj.deleted:
