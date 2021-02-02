@@ -58,6 +58,7 @@ class UserQuotaSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     tag = serializers.SerializerMethodField()
     user = serializers.SerializerMethodField()
+    service = serializers.SerializerMethodField(method_name='get_service')
     private_ip_total = serializers.IntegerField(label=_('总私网IP数'), default=0)
     private_ip_used = serializers.IntegerField(label=_('已用私网IP数'), default=0)
     public_ip_total = serializers.IntegerField(label=_('总公网IP数'), default=0)
@@ -83,6 +84,13 @@ class UserQuotaSerializer(serializers.Serializer):
     @staticmethod
     def get_tag(obj):
         return {'value': obj.tag, 'display': obj.get_tag_display()}
+
+    @staticmethod
+    def get_service(obj):
+        if obj.service:
+            return {'id': obj.service.id, 'name': obj.service.name}
+
+        return {'id': None, 'name': None}
 
 
 class ServiceSerializer(serializers.Serializer):

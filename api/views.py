@@ -1037,6 +1037,10 @@ class UserQuotaViewSet(CustomGenericViewSet):
                     "id": 1,
                     "username": "shun"
                   },
+                  "service": {
+                    "id": 2,
+                    "name": "怀柔204机房"
+                  },
                   "private_ip_total": 5,
                   "private_ip_used": 2,
                   "public_ip_total": 5,
@@ -1059,7 +1063,7 @@ class UserQuotaViewSet(CustomGenericViewSet):
         usable = True if usable == 'true' else False
 
         try:
-            queryset = UserQuotaManager().filter_quota_queryset(user=request.user, usable=usable)
+            queryset = UserQuotaManager().filter_quota_queryset(user=request.user, service=service_id, usable=usable)
             paginator = self.pagination_class()
             quotas = paginator.paginate_queryset(request=request, queryset=queryset)
             serializer = serializers.UserQuotaSerializer(quotas, many=True)
