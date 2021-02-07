@@ -122,3 +122,23 @@ class ServiceSerializer(serializers.Serializer):
             return s
 
         return ''
+
+
+class DataCenterSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    name = serializers.CharField()
+    endpoint_vms = serializers.CharField()
+    endpoint_object = serializers.CharField()
+    endpoint_compute = serializers.CharField()
+    endpoint_monitor = serializers.CharField()
+    creation_time = serializers.DateTimeField()
+    status = serializers.SerializerMethodField(method_name='get_status')
+    desc = serializers.CharField()
+
+    @staticmethod
+    def get_status(obj):
+        s = obj.status
+        if s is None:
+            return {'code': None, 'message': None}
+
+        return {'code': s, 'message': obj.get_status_display()}

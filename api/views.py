@@ -15,7 +15,7 @@ from drf_yasg import openapi
 
 from servers.models import Server, Flavor
 from service.managers import UserQuotaManager
-from service.models import ServiceConfig
+from service.models import ServiceConfig, DataCenter
 from adapters import inputs, outputs
 from core.quota import QuotaAPI
 from . import exceptions
@@ -104,7 +104,7 @@ class ServersViewSet(CustomGenericViewSet):
               "previous": null,
               "servers": [
                 {
-                  "id": 22,
+                  "id": 9c70cbe2-690c-11eb-a4b7-c8009fe2eb10,
                   "name": "gosc-instance-1cbaf0fd-20c1-4632-8e0c-7be8708591ac",
                   "vcpus": 1,
                   "ram": 1024,
@@ -268,7 +268,7 @@ class ServersViewSet(CustomGenericViewSet):
             200: """
             {
               "server": {
-                "id": 13,
+                "id": 9c70cbe2-690c-11eb-a4b7-c8009fe2eb10,
                 "name": "bfbdcbce3e904615af49377fdc2f2ea9",
                 "vcpus": 1,
                 "ram": 1024,
@@ -714,7 +714,7 @@ class ImageViewSet(CustomGenericViewSet):
             200: """
                 [
                   {
-                    "id": "10",
+                    "id": "9c70cbe2-690c-11eb-a4b7-c8009fe2eb10",
                     "name": "空天院_ubuntu1804_radi",
                     "system": "空天院_ubuntu1804_radi",
                     "system_type": "Linux",
@@ -768,7 +768,7 @@ class NetworkViewSet(CustomGenericViewSet):
             200: """
                 [
                   {
-                    "id": "2",
+                    "id": "9c70cbe2-690c-11eb-a4b7-c8009fe2eb10",
                     "name": "private_10.108.50.0",
                     "public": false,
                     "segment": "10.108.50.0"
@@ -808,7 +808,7 @@ class NetworkViewSet(CustomGenericViewSet):
         responses={
             200: """
                   {
-                    "id": "2",
+                    "id": "9c70cbe2-690c-11eb-a4b7-c8009fe2eb10",
                     "name": "private_10.108.50.0",
                     "public": false,
                     "segment": "10.108.50.0"
@@ -964,7 +964,7 @@ class FlavorViewSet(CustomGenericViewSet):
             {
               "flavors": [
                 {
-                  "id": 4,
+                  "id": 9c70cbe2-690c-11eb-a4b7-c8009fe2eb10,
                   "vcpus": 4,
                   "ram": 4096
                 }
@@ -1022,7 +1022,7 @@ class UserQuotaViewSet(CustomGenericViewSet):
               "previous": null,
               "results": [
                 {
-                  "id": 1,
+                  "id": 9c70cbe2-690c-11eb-a4b7-c8009fe2eb10,
                   "tag": {
                     "value": 1,             # 1: 普通配额； 2：使用配额
                     "display": "普通配额"
@@ -1094,7 +1094,7 @@ class ServiceViewSet(CustomGenericViewSet):
               "previous": null,
               "results": [
                 {
-                  "id": 4,
+                  "id": 9c70cbe2-690c-11eb-a4b7-c8009fe2eb10,
                   "name": "vmware(10.0.200.243)",
                   "service_type": "vmware",
                   "add_time": "2020-10-16T09:01:44.402955Z",
@@ -1119,3 +1119,54 @@ class ServiceViewSet(CustomGenericViewSet):
             return Response(err.err_data(), status=err.status_code)
 
         return response
+
+
+class DataCenterViewSet(CustomGenericViewSet):
+    """
+    联邦成员机构
+    """
+    queryset = []
+    permission_classes = [IsAuthenticated]
+    pagination_class = None
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('联邦成员机构注册表'),
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        联邦成员机构注册表
+
+            Http Code: 状态码200，返回数据：
+            {
+              "registries": [
+                {
+                  "id": "9c70cbe2-690c-11eb-a4b7-c8009fe2eb10",
+                  "name": "网络中心",
+                  "endpoint_vms": http://xxx/,
+                  "endpoint_object": http://xxx/,
+                  "endpoint_compute": http://xxx/,
+                  "endpoint_monitor": http://xxx/,
+                  "creation_time": 2021-02-07T06:20:00Z,
+                  "status": {
+                    "code": 1,
+                    "message": "开启状态"
+                  },
+                  "desc": ""
+                }
+              ]
+            }
+        """
+        try:
+            queryset = DataCenter.objects.all()
+            serializer = serializers.DataCenterSerializer(queryset, many=True)
+            data = {
+                'registries': serializer.data
+            }
+        except Exception as exc:
+            err = exceptions.APIException(message=str(exc))
+            return Response(err.err_data(), status=err.status_code)
+
+        return Response(data=data)
