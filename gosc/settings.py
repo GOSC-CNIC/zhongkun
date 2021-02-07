@@ -172,7 +172,13 @@ THIRD_PARTY_APP_AUTH = {
 
 REST_FRAMEWORK = {
     'PAGE_SIZE': 100,
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination'
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'core.jwt.authentication.CreateUserJWTAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ),
+    'EXCEPTION_HANDLER': 'api.viewsets.exception_handler',
 }
 
 # TinyMCE
@@ -246,13 +252,33 @@ SIMPLE_JWT = {
     'AUDIENCE': None,
     'ISSUER': None,
 
-    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_HEADER_TYPES': ('JWT',),
     'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
     'USER_ID_FIELD': 'username',
-    'USER_ID_CLAIM': 'user_id',
+    'USER_ID_CLAIM': 'username',
     'TOKEN_TYPE_CLAIM': 'token_type',
 
     'JTI_CLAIM': 'jti'
+}
+
+# drf-yasg
+SWAGGER_SETTINGS = {
+    # 'LOGIN_URL': reverse_lazy('admin:login'),
+    # 'LOGOUT_URL': '/admin/logout',
+    'PERSIST_AUTH': True,
+    'REFETCH_SCHEMA_WITH_AUTH': True,
+    'REFETCH_SCHEMA_ON_LOGOUT': True,
+
+    'SECURITY_DEFINITIONS': {
+        'Basic': {
+            'type': 'basic'
+        },
+        'Bearer': {
+            'in': 'header',
+            'name': 'Authorization',
+            'type': 'apiKey',
+        }
+    },
 }
 
 

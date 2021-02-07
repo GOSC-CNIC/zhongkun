@@ -10,8 +10,10 @@ from rest_framework.serializers import Serializer
 from rest_framework.reverse import reverse
 from rest_framework.utils.urls import replace_query_param
 from rest_framework.pagination import LimitOffsetPagination
+from rest_framework import exceptions as drf_exceptions
 from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
+from rest_framework_simplejwt.views import TokenVerifyView, TokenRefreshView, TokenObtainPairView
 
 from servers.models import Server, Flavor
 from service.managers import UserQuotaManager
@@ -1170,3 +1172,112 @@ class DataCenterViewSet(CustomGenericViewSet):
             return Response(err.err_data(), status=err.status_code)
 
         return Response(data=data)
+
+
+class JWTObtainPairView(TokenObtainPairView):
+    """
+    JWT登录认证视图
+    """
+
+    @swagger_auto_schema(
+        operation_summary='登录认证，获取JWT',
+        responses={
+            200: ''''''
+        }
+    )
+    def post(self, request, *args, **kwargs):
+        """
+        登录认证，获取JWT
+
+            http 200:
+            {
+              "refresh": "xxx",     # refresh JWT, 此JWT通过刷新API可以获取新的access JWT
+              "access": "xxx"       # access JWT, 用于身份认证，如 'Authorization Bearer accessJWT'
+            }
+            http 401:
+            {
+              "code": "AuthenticationFailed",
+              "message": "No active account found with the given credentials"
+            }
+        """
+        try:
+            return super().post(request, args, kwargs)
+        except drf_exceptions.AuthenticationFailed as exc:
+            err = exceptions.AuthenticationFailed(message=str(exc))
+            return Response(data=err.err_data(), status=err.status_code)
+
+
+class JWTRefreshView(TokenRefreshView):
+    """
+    Refresh JWT视图
+    """
+    @swagger_auto_schema(
+        operation_summary='刷新access JWT',
+        responses={
+            200: '''
+                {
+                  "access": "xxx"
+                }
+            '''
+        }
+    )
+    def post(self, request, *args, **kwargs):
+        """
+        通过refresh JWT获取新的access JWT
+
+            http 200:
+            {
+              "access": "xxx"
+            }
+            http 401:
+            {
+              "code": "InvalidJWT",
+              "message": "Token is invalid or expired"
+            }
+        """
+        try:
+            return super().post(request, args, kwargs)
+        except drf_exceptions.AuthenticationFailed as exc:
+            if hasattr(exc, 'default_detail'):
+                msg = exc.default_detail
+            else:
+                msg = str(exc)
+
+            err = exceptions.InvalidJWT(message=msg)
+            return Response(data=err.err_data(), status=err.status_code)
+
+
+class JWTVerifyView(TokenVerifyView):
+    """
+    校验access JWT视图
+    """
+
+    @swagger_auto_schema(
+        operation_summary='校验access JWT是否有效',
+        responses={
+            200: '''{ }'''
+        }
+    )
+    def post(self, request, *args, **kwargs):
+        """
+        校验access JWT是否有效
+
+            http 200:
+            {
+            }
+            http 401:
+            {
+              "code": "InvalidJWT",
+              "message": "Token is invalid or expired"
+            }
+        """
+        try:
+            return super().post(request, args, kwargs)
+        except drf_exceptions.AuthenticationFailed as exc:
+            if hasattr(exc, 'default_detail'):
+                msg = exc.default_detail
+            else:
+                msg = str(exc)
+
+            err = exceptions.InvalidJWT(message=msg)
+            return Response(data=err.err_data(), status=err.status_code)

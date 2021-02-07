@@ -1,5 +1,10 @@
 from django.utils.translation import gettext as _
+from django.http import Http404
+from django.core.exceptions import PermissionDenied
 from rest_framework import viewsets
+from rest_framework.views import set_rollback
+from rest_framework.response import Response
+from rest_framework.exceptions import (APIException, NotAuthenticated, AuthenticationFailed)
 
 from service.models import ServiceConfig
 from .request import request_service, request_vpn_service
@@ -20,6 +25,40 @@ def str_to_int_or_default(val, default):
         return int(val)
     except Exception:
         return default
+
+
+def exception_handler(exc, context):
+    """
+    Returns the response that should be used for any given exception.
+
+    By default we handle the REST framework `APIException`, and also
+    Django's built-in `Http404` and `PermissionDenied` exceptions.
+
+    Any unhandled exceptions may return `None`, which will cause a 500 error
+    to be raised.
+    """
+    if isinstance(exc, exceptions.Error):
+        set_rollback()
+        return Response(exc.err_data(), status=exc.status_code)
+
+    if isinstance(exc, Http404):
+        exc = exceptions.NotFound()
+    elif isinstance(exc, PermissionDenied):
+        exc = exceptions.AccessDenied()
+    elif isinstance(exc, (NotAuthenticated, AuthenticationFailed)):
+        exc = exceptions.AuthenticationFailed()
+    elif isinstance(exc, APIException):
+        if isinstance(exc.detail, (list, dict)):
+            data = exc.detail
+        else:
+            data = {'detail': exc.detail}
+
+        exc = exceptions.Error(message=str(data), status_code=exc.status_code, code=exc.default_code)
+    else:
+        return None
+
+    set_rollback()
+    return Response(exc.err_data(), status=exc.status_code)
 
 
 class CustomGenericViewSet(viewsets.GenericViewSet):

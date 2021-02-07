@@ -8,6 +8,18 @@ class APIException(Error):
     pass
 
 
+class AuthenticationFailed(APIException):
+    default_message = 'Incorrect authentication credentials.'
+    default_code = 'AuthenticationFailed'
+    default_status_code = 401
+
+
+class InvalidJWT(APIException):
+    default_message = 'Token is invalid or expired.'
+    default_code = 'InvalidJWT'
+    default_status_code = 401
+
+
 class NotFound(APIException):
     default_message = 'Not Found.'
     default_code = 'NotFound'
@@ -51,12 +63,6 @@ class AccessDenied(APIException):
     default_message = 'Access Denied.'
     default_code = 'AccessDenied'
     default_status_code = 403
-
-
-class AuthenticationFailed(APIException):
-    default_message = 'Incorrect authentication credentials.'
-    default_code = 'AuthenticationFailed'
-    status_code = 401
 
 
 class MethodNotSupportInService(APIException):
