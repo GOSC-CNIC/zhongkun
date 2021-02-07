@@ -71,12 +71,11 @@ class CustomGenericViewSet(viewsets.GenericViewSet):
         if service_id is None:
             raise exceptions.NoFoundArgument(extend_msg=f'"{lookup}" param were not provided')
 
-        service_id = str_to_int_or_default(service_id, default=0)
-        if service_id <= 0:
+        if not service_id:
             raise exceptions.InvalidArgument(_('参数"service_id"值无效.'))
 
         service = ServiceConfig.objects.select_related('data_center').filter(id=service_id, status=ServiceConfig.STATUS_ENABLE).first()
         if not service:
-            raise exceptions.NotFound(_('服务端点不存在'))
+            raise exceptions.ServiceNotExist(_('服务端点不存在'))
 
         return service

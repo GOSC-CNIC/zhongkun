@@ -35,7 +35,7 @@ class ServerBase(models.Model):
         (QUOTA_SHARED, _('共享资源配额'))
     )
 
-    id = models.CharField(max_length=36, primary_key=True, verbose_name='ID')
+    id = models.CharField(blank=True, editable=False, max_length=36, primary_key=True, verbose_name='ID')
     name = models.CharField(max_length=255, verbose_name=_('服务器实例名称'))
     instance_id = models.CharField(max_length=128, verbose_name=_('虚拟主机ID'), help_text=_('各接入服务中虚拟主机的ID'))
     vcpus = models.IntegerField(verbose_name=_('虚拟CPU数'), default=0)
@@ -105,7 +105,7 @@ class Server(ServerBase):
             True    # has
             False   # no
         """
-        if not isinstance(user.id, int):    # 未认证用户
+        if not user.id:    # 未认证用户
             return False
 
         if user.is_superuser:
@@ -267,7 +267,7 @@ class ServerArchive(ServerBase):
 
 
 class Flavor(models.Model):
-    id = models.AutoField(primary_key=True, verbose_name='ID')
+    id = models.CharField(blank=True, editable=False, max_length=36, primary_key=True, verbose_name='ID')
     vcpus = models.IntegerField(verbose_name=_('虚拟CPU数'), default=0)
     ram = models.IntegerField(verbose_name=_('内存MB'), default=0)
     enable = models.BooleanField(verbose_name=_('可用状态'), default=True)
@@ -281,3 +281,10 @@ class Flavor(models.Model):
 
     def __str__(self):
         return f'Flavor(vcpus={self.vcpus}, ram={self.ram}Mb)'
+
+    def save(self, force_insert=False, force_update=False, using=None,
+             update_fields=None):
+        if not self.id:
+            self.id = get_uuid1_str()
+
+        super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)

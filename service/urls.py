@@ -8,5 +8,5 @@ app_name = 'service'
 
 urlpatterns = [
     path('resources/', login_required(views.resources), name='resources'),
-    path('resources/<int:service_id>/', login_required(views.resources), name='service-resources'),
+    path('resources/<service_id>/', login_required(views.resources), name='service-resources'),
 ]

@@ -13,11 +13,11 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='server',
             name='id',
-            field=models.CharField(max_length=36, primary_key=True, serialize=False, verbose_name='ID'),
+            field=models.CharField(blank=True, editable=False, max_length=36, primary_key=True, serialize=False, verbose_name='ID'),
         ),
         migrations.AlterField(
             model_name='serverarchive',
             name='id',
-            field=models.CharField(max_length=36, primary_key=True, serialize=False, verbose_name='ID'),
+            field=models.CharField(blank=True, editable=False, max_length=36, primary_key=True, serialize=False, verbose_name='ID'),
         ),
     ]

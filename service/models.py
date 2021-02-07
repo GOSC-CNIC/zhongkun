@@ -1,3 +1,5 @@
+from uuid import uuid1
+
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
@@ -15,19 +17,35 @@ class DataCenter(models.Model):
         (STATUS_DISABLE, _('关闭状态'))
     )
 
-    id = models.AutoField(verbose_name='ID', primary_key=True)
+    id = models.CharField(max_length=36, primary_key=True, blank=True, editable=False, verbose_name='ID')
     name = models.CharField(verbose_name=_('名称'), max_length=255)
+    endpoint_vms = models.CharField(max_length=255, verbose_name=_('云主机服务地址url'), unique=True,
+                                    null=True, blank=True, default=None, help_text='http(s)://{hostname}:{port}/')
+    endpoint_object = models.CharField(max_length=255, verbose_name=_('存储服务地址url'), unique=True,
+                                       null=True, blank=True, default=None, help_text='http(s)://{hostname}:{port}/')
+    endpoint_compute = models.CharField(max_length=255, verbose_name=_('计算服务地址url'), unique=True,
+                                        null=True, blank=True, default=None, help_text='http(s)://{hostname}:{port}/')
+    endpoint_monitor = models.CharField(max_length=255, verbose_name=_('检测报警服务地址url'), unique=True,
+                                        null=True, blank=True, default=None, help_text='http(s)://{hostname}:{port}/')
     users = models.ManyToManyField(to=User, verbose_name=_('用户'), blank=True, related_name='data_center_set')
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'), null=True, blank=True, default=None)
     status = models.SmallIntegerField(verbose_name=_('服务状态'), choices=CHOICE_STATUS, default=STATUS_ENABLE)
     desc = models.CharField(verbose_name=_('描述'), blank=True, max_length=255)
 
     class Meta:
-        ordering = ['id']
+        ordering = ['creation_time']
         verbose_name = _('机构')
         verbose_name_plural = verbose_name
 
     def __str__(self):
         return self.name
+
+    def save(self, force_insert=False, force_update=False, using=None,
+             update_fields=None):
+        if not self.id:
+            self.id = str(uuid1())
+
+        super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
 
 
 class ServiceConfig(models.Model):
@@ -55,7 +73,7 @@ class ServiceConfig(models.Model):
         (STATUS_DISABLE, _('关闭状态'))
     )
 
-    id = models.AutoField(primary_key=True, verbose_name='ID')
+    id = models.CharField(blank=True, editable=False, max_length=36, primary_key=True, verbose_name='ID')
     data_center = models.ForeignKey(to=DataCenter, null=True, on_delete=models.SET_NULL,
                                     related_name='service_set', verbose_name=_('数据中心'))
     name = models.CharField(max_length=255, verbose_name=_('服务名称'))
@@ -82,12 +100,19 @@ class ServiceConfig(models.Model):
     extra = models.CharField(max_length=1024, blank=True, default='', verbose_name=_('其他配置'), help_text=_('json格式'))
 
     class Meta:
-        ordering = ['-id']
+        ordering = ['-add_time']
         verbose_name = _('服务接入配置')
         verbose_name_plural = verbose_name
 
     def __str__(self):
         return self.name
+
+    def save(self, force_insert=False, force_update=False, using=None,
+             update_fields=None):
+        if not self.id:
+            self.id = str(uuid1())
+
+        super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
 
     def is_need_vpn(self):
         return self.need_vpn
@@ -120,7 +145,7 @@ class ServiceQuotaBase(models.Model):
     """
     数据中心接入服务的资源配额基类
     """
-    id = models.AutoField(verbose_name='ID', primary_key=True)
+    id = models.CharField(blank=True, editable=False, max_length=36, primary_key=True, verbose_name='ID')
     private_ip_total = models.IntegerField(verbose_name=_('总私网IP数'), default=0)
     private_ip_used = models.IntegerField(verbose_name=_('已用私网IP数'), default=0)
     public_ip_total = models.IntegerField(verbose_name=_('总公网IP数'), default=0)
@@ -131,10 +156,19 @@ class ServiceQuotaBase(models.Model):
     ram_used = models.IntegerField(verbose_name=_('已用内存大小(MB)'), default=0)
     disk_size_total = models.IntegerField(verbose_name=_('总硬盘大小(GB)'), default=0)
     disk_size_used = models.IntegerField(verbose_name=_('已用硬盘大小(GB)'), default=0)
-    enable = models.BooleanField(verbose_name=_('有效状态'), default=True, help_text=_('选中，资源配额生效；未选中，无法申请分中心资源'))
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'), null=True, blank=True, default=None)
+    enable = models.BooleanField(verbose_name=_('有效状态'), default=True,
+                                 help_text=_('选中，资源配额生效；未选中，无法申请分中心资源'))
 
     class Meta:
         abstract = True
+
+    def save(self, force_insert=False, force_update=False, using=None,
+             update_fields=None):
+        if not self.id:
+            self.id = str(uuid1())
+
+        super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
 
 
 class ServicePrivateQuota(ServiceQuotaBase):
@@ -146,7 +180,7 @@ class ServicePrivateQuota(ServiceQuotaBase):
 
     class Meta:
         db_table = 'service_private_quota'
-        ordering = ['-id']
+        ordering = ['-creation_time']
         verbose_name = _('接入服务的私有资源配额')
         verbose_name_plural = verbose_name
 
@@ -160,7 +194,7 @@ class ServiceShareQuota(ServiceQuotaBase):
 
     class Meta:
         db_table = 'service_share_quota'
-        ordering = ['-id']
+        ordering = ['-creation_time']
         verbose_name = _('接入服务的分享资源配额')
         verbose_name_plural = verbose_name
 
@@ -176,7 +210,7 @@ class UserQuota(models.Model):
         (TAG_PROBATION, _('试用配额'))
     )
 
-    id = models.AutoField(verbose_name='ID', primary_key=True)
+    id = models.CharField(blank=True, editable=False, max_length=36, primary_key=True, verbose_name='ID')
     tag = models.SmallIntegerField(verbose_name=_('配额类型'), choices=CHOICES_TAG, default=TAG_BASE)
     user = models.ForeignKey(to=User, null=True, on_delete=models.SET_NULL,
                              related_name='user_quota', verbose_name=_('用户'))
@@ -192,13 +226,14 @@ class UserQuota(models.Model):
     ram_used = models.IntegerField(verbose_name=_('已用内存大小(MB)'), default=0)
     disk_size_total = models.IntegerField(verbose_name=_('总硬盘大小(GB)'), default=0)
     disk_size_used = models.IntegerField(verbose_name=_('已用硬盘大小(GB)'), default=0)
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'), null=True, blank=True, default=None)
     expiration_time = models.DateTimeField(verbose_name=_('过期时间'), null=True, blank=True, default=None)
     is_email = models.BooleanField(verbose_name=_('是否邮件通知'), default=False, help_text=_('是否邮件通知用户配额即将到期'))
     deleted = models.BooleanField(verbose_name=_('删除'), default=False)
 
     class Meta:
         db_table = 'user_quota'
-        ordering = ['-id']
+        ordering = ['-creation_time']
         verbose_name = _('用户资源配额')
         verbose_name_plural = verbose_name
 
@@ -221,6 +256,13 @@ class UserQuota(models.Model):
             s = 'vCPU: 0, RAM:0 Mb, 0, 0, 0'
 
         return f'[{self.get_tag_display()}]({s})'
+
+    def save(self, force_insert=False, force_update=False, using=None,
+             update_fields=None):
+        if not self.id:
+            self.id = str(uuid1())
+
+        super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
 
     @property
     def display(self):

@@ -47,7 +47,7 @@ class UserQuotaManager:
         """
         return self.get_quota_queryset(user=user).filter(tag=self.MODEL.TAG_BASE).all()
 
-    def get_quota_by_id(self, quota_id: int):
+    def get_quota_by_id(self, quota_id: str):
         """
         :param quota_id: 配额id
         :return:
@@ -133,7 +133,7 @@ class UserQuotaManager:
 
         return quota
 
-    def release(self, user, quota_id: int, vcpus: int = 0, ram: int = 0,
+    def release(self, user, quota_id: str, vcpus: int = 0, ram: int = 0,
                 disk_size: int = 0, public_ip: int = 0, private_ip: int = 0):
         """
         释放(已用)资源
@@ -190,7 +190,7 @@ class UserQuotaManager:
 
         return quota
 
-    def increase(self, user, quota_id: int, vcpus: int = 0, ram: int = 0,
+    def increase(self, user, quota_id: str, vcpus: int = 0, ram: int = 0,
                  disk_size: int = 0, public_ip: int = 0, private_ip: int = 0):
         """
         增加资源总配额
@@ -244,7 +244,7 @@ class UserQuotaManager:
 
         return quota
 
-    def decrease(self, user, quota_id: int, vcpus: int = 0, ram: int = 0,
+    def decrease(self, user, quota_id: str, vcpus: int = 0, ram: int = 0,
                  disk_size: int = 0, public_ip: int = 0, private_ip: int = 0):
         """
         减少资源总配额

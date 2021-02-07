@@ -15,13 +15,18 @@ class ServerSerializer(serializers.Serializer):
     image = serializers.CharField()
     creation_time = serializers.DateTimeField()
     remarks = serializers.CharField()
+    endpoint_url = serializers.SerializerMethodField(method_name='get_vms_endpoint_url')
+
+    @staticmethod
+    def get_vms_endpoint_url(obj):
+        return ''
 
 
 class ServerCreateSerializer(serializers.Serializer):
     """
     创建虚拟服务器序列化器
     """
-    service_id = serializers.IntegerField(label=_('服务'), required=True, min_value=1, help_text=_('服务提供商配置ID'))
+    service_id = serializers.CharField(label=_('服务'), required=True, help_text=_('服务提供商配置ID'))
     image_id = serializers.CharField(label=_('镜像id'), required=True, help_text=_('系统镜像id'))
     flavor_id = serializers.CharField(label=_('配置样式id'), required=True, help_text=_('硬件配置样式ID'))
     network_id = serializers.CharField(label=_('子网id'), required=False, default='', help_text=_('子网ID'))
@@ -49,13 +54,13 @@ class NetworkSerializer(serializers.Serializer):
 
 
 class FlavorSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
+    id = serializers.CharField()
     vcpus = serializers.IntegerField(label=_('虚拟CPU数'))
     ram = serializers.IntegerField(label=_('内存MB'))
 
 
 class UserQuotaSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
+    id = serializers.CharField()
     tag = serializers.SerializerMethodField()
     user = serializers.SerializerMethodField()
     service = serializers.SerializerMethodField(method_name='get_service')
@@ -94,7 +99,7 @@ class UserQuotaSerializer(serializers.Serializer):
 
 
 class ServiceSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
+    id = serializers.CharField()
     name = serializers.CharField()
     service_type = serializers.SerializerMethodField()
     add_time = serializers.DateTimeField()

@@ -20,6 +20,11 @@ class ServerNotExist(NotFound):
     default_status_code = 404
 
 
+class ServiceNotExist(NotFound):
+    default_message = 'This service is not exist.'
+    default_code = 'ServiceNotExist'
+
+
 class BadRequest(APIException):
     default_message = 'BadRequest.'
     default_code = 'BadRequest'

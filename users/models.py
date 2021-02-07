@@ -1,3 +1,5 @@
+from uuid import uuid1
+
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
@@ -18,6 +20,7 @@ class UserProfile(AbstractUser):
         (THIRD_APP_KJY, '科技云通行证')
     )
 
+    id = models.CharField(blank=True, editable=False, max_length=36, primary_key=True, verbose_name='ID')
     telephone = models.CharField(verbose_name=_('电话'), max_length=11, default='')
     company = models.CharField(verbose_name=_('公司/单位'), max_length=255, default='')
     third_app = models.SmallIntegerField(verbose_name=_('第三方应用登录'), choices=THIRD_APP_CHOICES, default=NON_THIRD_APP)
@@ -28,6 +31,13 @@ class UserProfile(AbstractUser):
             return f'{self.first_name} {self.last_name}'.strip()
 
         return f'{self.last_name}{self.first_name}'.strip()
+
+    def save(self, force_insert=False, force_update=False, using=None,
+             update_fields=None):
+        if not self.id:
+            self.id = str(uuid1())
+
+        super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
 
 
 class Email(models.Model):

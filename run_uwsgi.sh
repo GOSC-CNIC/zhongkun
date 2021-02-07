@@ -1,1 +1,1 @@
-uwsgi --ini gosc_uwsgi.ini
+uwsgi --ini vms_uwsgi.ini

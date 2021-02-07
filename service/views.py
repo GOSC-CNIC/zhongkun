@@ -1,6 +1,5 @@
 from django.shortcuts import render
-from django.db.models import Count, Subquery
-from django.utils.translation import gettext as _
+from django.db.models import Count
 
 from servers.models import Server, ServiceConfig
 from service.managers import UserQuotaManager
@@ -17,11 +16,10 @@ def to_int_or_default(val, default=None):
 
 
 def resources(request, *args, **kwargs):
-    service_id = to_int_or_default(kwargs.get('service_id'), default=None)
+    service_id = kwargs.get('service_id')
     user = request.user
 
     servers_qs = Server.objects.filter(user=user)
-    servers_count = servers_qs.count()
     if service_id:
         service = ServiceConfig.objects.filter(id=service_id).first()
         is_need_vpn = service.is_need_vpn()

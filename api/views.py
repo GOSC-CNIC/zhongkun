@@ -85,7 +85,7 @@ class ServersViewSet(CustomGenericViewSet):
             openapi.Parameter(
                 name='service_id',
                 in_=openapi.IN_QUERY,
-                type=openapi.TYPE_INTEGER,
+                type=openapi.TYPE_STRING,
                 required=False,
                 description='服务端点id'
             ),
@@ -120,12 +120,6 @@ class ServersViewSet(CustomGenericViewSet):
         servers = Server.objects.filter(user=request.user)
         service_id = request.query_params.get('service_id', None)
         if service_id:
-            try:
-                service_id = int(service_id)
-            except ValueError:
-                exc = exceptions.InvalidArgument(message='Invalid query param "service_id"')
-                return Response(data=exc.err_data(), status=exc.status_code)
-
             servers = servers.filter(service_id=service_id)
 
         paginator = ServersPagination()
@@ -139,7 +133,7 @@ class ServersViewSet(CustomGenericViewSet):
             openapi.Parameter(
                 name='service_id',
                 in_=openapi.IN_QUERY,
-                type=openapi.TYPE_INTEGER,
+                type=openapi.TYPE_STRING,
                 required=True,
                 description='服务端点id'
             ),
@@ -664,7 +658,7 @@ class ServersViewSet(CustomGenericViewSet):
         return Serializer
 
     @staticmethod
-    def get_server(server_id: int, user):
+    def get_server(server_id: str, user):
         server = Server.objects.filter(id=server_id).select_related('service', 'user', 'user_quota').first()
         if not server:
             raise exceptions.NotFound(_('服务器实例不存在'))
@@ -711,7 +705,7 @@ class ImageViewSet(CustomGenericViewSet):
             openapi.Parameter(
                 name='service_id',
                 in_=openapi.IN_QUERY,
-                type=openapi.TYPE_INTEGER,
+                type=openapi.TYPE_STRING,
                 required=True,
                 description='服务端点id'
             ),
@@ -765,7 +759,7 @@ class NetworkViewSet(CustomGenericViewSet):
             openapi.Parameter(
                 name='service_id',
                 in_=openapi.IN_QUERY,
-                type=openapi.TYPE_INTEGER,
+                type=openapi.TYPE_STRING,
                 required=True,
                 description='服务id'
             ),
@@ -806,7 +800,7 @@ class NetworkViewSet(CustomGenericViewSet):
             openapi.Parameter(
                 name='service_id',
                 in_=openapi.IN_QUERY,
-                type=openapi.TYPE_INTEGER,
+                type=openapi.TYPE_STRING,
                 required=True,
                 description='服务id'
             ),
@@ -1001,7 +995,7 @@ class UserQuotaViewSet(CustomGenericViewSet):
             openapi.Parameter(
                 name='service',
                 in_=openapi.IN_QUERY,
-                type=openapi.TYPE_INTEGER,
+                type=openapi.TYPE_STRING,
                 required=False,
                 description=_('服务id, 过滤服务可用的资源配额')
             ),
