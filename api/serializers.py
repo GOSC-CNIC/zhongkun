@@ -17,9 +17,19 @@ class ServerSerializer(serializers.Serializer):
     remarks = serializers.CharField()
     endpoint_url = serializers.SerializerMethodField(method_name='get_vms_endpoint_url')
 
-    @staticmethod
-    def get_vms_endpoint_url(obj):
-        return ''
+    def get_vms_endpoint_url(self, obj):
+        service_id_map = self.context.get('service_id_map')
+        if not service_id_map:
+            return ''
+
+        service = service_id_map.get(obj.service_id)
+        if not service:
+            return ''
+
+        try:
+            return service.data_center.endpoint_vms
+        except AttributeError:
+            return ''
 
 
 class ServerCreateSerializer(serializers.Serializer):

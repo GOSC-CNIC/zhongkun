@@ -7,7 +7,7 @@ from rest_framework.response import Response
 class ServersPagination(CursorPagination):
     ordering = '-creation_time'
     page_size_query_param = 'page-size'
-    page_size = 2
+    page_size = 20
 
     def get_paginated_response(self, data):
         return Response(OrderedDict([

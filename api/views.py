@@ -114,7 +114,8 @@ class ServersViewSet(CustomGenericViewSet):
                   "public_ip": false,
                   "image": "centos8_gui",
                   "creation_time": "2020-11-02T07:47:39.776384Z",
-                  "remarks": ""
+                  "remarks": "",
+                  "endpoint_url": "http://159.226.235.16/"
                 }
               ]
             }
@@ -126,7 +127,12 @@ class ServersViewSet(CustomGenericViewSet):
 
         paginator = ServersPagination()
         page = paginator.paginate_queryset(servers, request, view=self)
-        serializer = serializers.ServerSerializer(page, many=True)
+        services = ServiceConfig.objects.select_related('data_center').all()
+        service_id_map = {}
+        for s in services:
+            service_id_map[s.id] = s
+
+        serializer = serializers.ServerSerializer(page, many=True, context={'service_id_map': service_id_map})
         return paginator.get_paginated_response(data=serializer.data)
 
     @swagger_auto_schema(

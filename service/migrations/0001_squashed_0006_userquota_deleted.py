@@ -7,8 +7,6 @@ import django.db.models.deletion
 
 class Migration(migrations.Migration):
 
-    # replaces = [('service', '0001_initial'), ('service', '0002_auto_20200922_0253'), ('service', '0003_auto_20200930_0158'), ('service', '0004_auto_20201009_0629'), ('service', '0005_auto_20201113_0058'), ('service', '0006_userquota_deleted')]
-
     initial = True
 
     dependencies = [
@@ -73,10 +71,10 @@ class Migration(migrations.Migration):
                 ('remarks', models.CharField(blank=True, default='', max_length=255, verbose_name='备注')),
                 ('need_vpn', models.BooleanField(default=True, verbose_name='是否需要VPN')),
                 ('status', models.SmallIntegerField(choices=[(1, '开启状态'), (2, '关闭状态')], default=1, verbose_name='服务状态')),
-                ('vpn_api_version', models.CharField(blank=True, default='v3', help_text='预留，主要EVCloud使用', max_length=64, verbose_name='API版本')),
-                ('vpn_endpoint_url', models.CharField(blank=True, default='', help_text='http(s)://{hostname}:{port}/', max_length=255, verbose_name='服务地址url')),
-                ('vpn_password', models.CharField(blank=True, default='', max_length=128, verbose_name='密码')),
-                ('vpn_username', models.CharField(blank=True, default='', help_text='用于此服务认证的用户名', max_length=128, verbose_name='用户名')),
+                ('vpn_api_version', models.CharField(blank=True, default='v3', help_text='预留，主要EVCloud使用', max_length=64, verbose_name='VPN服务API版本')),
+                ('vpn_endpoint_url', models.CharField(blank=True, default='', help_text='http(s)://{hostname}:{port}/', max_length=255, verbose_name='VPN服务地址url')),
+                ('vpn_password', models.CharField(blank=True, default='', max_length=128, verbose_name='VPN服务密码')),
+                ('vpn_username', models.CharField(blank=True, default='', help_text='用于此服务认证的用户名', max_length=128, verbose_name='VPN服务用户名')),
                 ('data_center', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='service_set', to='service.datacenter', verbose_name='数据中心')),
                 ('extra', models.CharField(blank=True, default='', help_text='json格式', max_length=1024, verbose_name='其他配置')),
             ],

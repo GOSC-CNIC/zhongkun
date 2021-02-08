@@ -90,13 +90,13 @@ class ServiceConfig(models.Model):
     status = models.SmallIntegerField(verbose_name=_('服务状态'), choices=CHOICE_STATUS, default=STATUS_ENABLE)
     remarks = models.CharField(max_length=255, default='', blank=True, verbose_name=_('备注'))
     need_vpn = models.BooleanField(verbose_name=_('是否需要VPN'), default=True)
-    vpn_endpoint_url = models.CharField(max_length=255, blank=True, default='', verbose_name=_('服务地址url'),
+    vpn_endpoint_url = models.CharField(max_length=255, blank=True, default='', verbose_name=_('VPN服务地址url'),
                                         help_text='http(s)://{hostname}:{port}/')
-    vpn_api_version = models.CharField(max_length=64, blank=True, default='v3', verbose_name=_('API版本'),
+    vpn_api_version = models.CharField(max_length=64, blank=True, default='v3', verbose_name=_('VPN服务API版本'),
                                        help_text=_('预留，主要EVCloud使用'))
-    vpn_username = models.CharField(max_length=128, blank=True, default='', verbose_name=_('用户名'),
+    vpn_username = models.CharField(max_length=128, blank=True, default='', verbose_name=_('VPN服务用户名'),
                                     help_text=_('用于此服务认证的用户名'))
-    vpn_password = models.CharField(max_length=128, blank=True, default='', verbose_name=_('密码'))
+    vpn_password = models.CharField(max_length=128, blank=True, default='', verbose_name=_('VPN服务密码'))
     extra = models.CharField(max_length=1024, blank=True, default='', verbose_name=_('其他配置'), help_text=_('json格式'))
 
     class Meta:

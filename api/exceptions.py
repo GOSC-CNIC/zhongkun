@@ -68,4 +68,4 @@ class AccessDenied(APIException):
 class MethodNotSupportInService(APIException):
     default_message = 'This method or business is not supported by this service center.'
     default_code = 'MethodNotSupportInService'
-    status_code = 405
+    default_status_code = 405
