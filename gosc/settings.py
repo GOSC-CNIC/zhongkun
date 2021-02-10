@@ -14,7 +14,7 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 #
 # # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 # BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
+from datetime import timedelta
 from pathlib import Path
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
 
@@ -249,6 +249,8 @@ SIMPLE_JWT = {
     'ALGORITHM': 'RS256',
     # 'SIGNING_KEY': '',
     # 'VERIFYING_KEY': None,
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'AUDIENCE': None,
     'ISSUER': None,
 
@@ -265,6 +267,7 @@ SIMPLE_JWT = {
 SWAGGER_SETTINGS = {
     # 'LOGIN_URL': reverse_lazy('admin:login'),
     # 'LOGOUT_URL': '/admin/logout',
+    'USE_SESSION_AUTH': True,
     'PERSIST_AUTH': True,
     'REFETCH_SCHEMA_WITH_AUTH': True,
     'REFETCH_SCHEMA_ON_LOGOUT': True,

@@ -1198,13 +1198,16 @@ class JWTObtainPairView(TokenObtainPairView):
             http 200:
             {
               "refresh": "xxx",     # refresh JWT, 此JWT通过刷新API可以获取新的access JWT
-              "access": "xxx"       # access JWT, 用于身份认证，如 'Authorization Bearer accessJWT'
+              "access": "xxx"       # access JWT, 用于身份认证，如 'Authorization JWT accessJWT'
             }
             http 401:
             {
               "code": "AuthenticationFailed",
               "message": "No active account found with the given credentials"
             }
+
+            usage: in header "Authorization", example:
+                Authorization: JWT <access token>
         """
         try:
             return super().post(request, args, kwargs)

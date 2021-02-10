@@ -9,7 +9,7 @@ verify_ssl = true
 django = "==3.1.*"
 mysqlclient = "==2.0.1"
 djangorestframework = "==3.11.0"
-drf-yasg = "==1.17.1"
+drf-yasg = "==1.20.0"
 uwsgi = "==2.0.19"
 django-debug-toolbar = "*"
 pyvmomi = "==7.0"
