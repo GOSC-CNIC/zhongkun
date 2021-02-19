@@ -55,7 +55,7 @@ class UserQuotaManager:
         """
         return self.MODEL.objects.filter(id=quota_id).first()
 
-    def deduct(self, user, quota_id: int, vcpus: int = 0, ram: int = 0,
+    def deduct(self, user, quota_id: str, vcpus: int = 0, ram: int = 0,
                disk_size: int = 0, public_ip: int = 0, private_ip: int = 0):
         """
         扣除(已用)资源
@@ -78,7 +78,7 @@ class UserQuotaManager:
         if not user.id:
             raise errors.QuotaError(_('参数无效，无效的未知用户'))
 
-        if quota_id <= 0:
+        if not quota_id:
             raise errors.QuotaError(_('参数无效，无效的资源配额id'))
 
         with transaction.atomic():
