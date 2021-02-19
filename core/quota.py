@@ -7,7 +7,7 @@ from . import errors
 class QuotaAPI:
     @staticmethod
     def server_create_quota_apply(service, user, vcpu: int, ram: int, public_ip: bool,
-                                  user_quota_id: int = None):
+                                  user_quota_id: str = None):
         """
         检测资源配额是否满足，并申请扣除
 
@@ -78,7 +78,7 @@ class QuotaAPI:
 
     @staticmethod
     def server_quota_release(service, user, vcpu: int, ram: int, public_ip: bool,
-                             use_shared_quota: bool, user_quota_id: int):
+                             use_shared_quota: bool, user_quota_id: str):
         """
         释放服务器占用的资源配额
 
@@ -114,7 +114,7 @@ class QuotaAPI:
             ServicePrivateQuotaManager().release(service=service, vcpus=vcpu, ram=ram, **kwargs)
 
     @staticmethod
-    def get_meet_user_quota(user, vcpu: int, ram: int, public_ip: bool, user_quota_id: int = None):
+    def get_meet_user_quota(user, vcpu: int, ram: int, public_ip: bool, user_quota_id: str = None):
         """
         获取满足条件的用户配额
 
@@ -129,9 +129,6 @@ class QuotaAPI:
         """
         u_mgr = UserQuotaManager()
         if user_quota_id is not None:
-            if not isinstance(user_quota_id, int) or user_quota_id <= 0:
-                raise errors.QuotaError(_('无效的用户资源配额id'))
-
             quota = u_mgr.get_quota_by_id(user_quota_id)
             if not quota:
                 raise errors.QuotaError(_('未找到指定的用户资源配额'))
