@@ -18,6 +18,7 @@ openstacksdk = "==0.50.0"
 importlib-metadata = "==1.7.0"
 pyjwt = "==2.0.0"
 djangorestframework-simplejwt = "==4.6.0"
+concurrent-log-handler = "==0.9.19"
 
 [requires]
 python_version = "3.8"

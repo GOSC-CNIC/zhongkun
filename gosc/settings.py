@@ -16,6 +16,7 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 # BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 from datetime import timedelta
 from pathlib import Path
+import os
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
 
 # Quick-start development settings - unsuitable for production
@@ -196,6 +197,10 @@ REST_FRAMEWORK = {
 # TINYMCE_COMPRESSOR = True
 # TINYMCE_FILEBROWSER = True
 
+LOGGING_FILES_DIR = '/var/log/gosc'
+if not os.path.exists(LOGGING_FILES_DIR):
+    os.makedirs(LOGGING_FILES_DIR, exist_ok=True)
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -220,18 +225,18 @@ LOGGING = {
     },
     'handlers': {
         # # logging file settings
-        # 'file': {
-        #     'level': 'WARNING',
-        #     'class': 'concurrent_log_handler.ConcurrentRotatingFileHandler',
-        #     'filename': os.path.join(LOGGING_FILES_DIR, 'iharbor.log'),
-        #     'formatter': 'verbose',
-        #     'maxBytes': 1024*1024*200,  # 200MB
-        #     'backupCount': 10           # 最多10个文件
-        # },
+        'file': {
+            'level': 'WARNING',
+            'class': 'concurrent_log_handler.ConcurrentRotatingFileHandler',
+            'filename': os.path.join(LOGGING_FILES_DIR, 'vms.log'),
+            'formatter': 'verbose',
+            'maxBytes': 1024*1024*200,  # 200MB
+            'backupCount': 10           # 最多10个文件
+        },
         # output to console settings
         'console': {
             'level': 'DEBUG',
-            'filters': ['require_debug_true'],# working with debug mode
+            'filters': ['require_debug_true'],  # working with debug mode
             'class': 'logging.StreamHandler',
             'formatter': 'simple'
         }
@@ -242,6 +247,11 @@ LOGGING = {
         #     'propagate': True,
         #     'level': 'DEBUG',
         # },
+        'django.request': {
+            'handlers': ['file', 'console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
     },
 }
 
