@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.exceptions import (APIException, NotAuthenticated, AuthenticationFailed)
 
 from service.models import ServiceConfig
-from .request import request_service, request_vpn_service
+from core.request import request_service, request_vpn_service
 from . import exceptions
 
 

@@ -20,10 +20,12 @@ from service.managers import UserQuotaManager
 from service.models import ServiceConfig, DataCenter
 from adapters import inputs, outputs
 from core.quota import QuotaAPI
+from core import request as core_request
 from . import exceptions
 from . import serializers
 from .viewsets import CustomGenericViewSet, str_to_int_or_default
 from .paginations import ServersPagination
+from core.taskqueue import server_build_status
 
 
 def serializer_error_msg(errors, default=''):
@@ -170,7 +172,7 @@ class ServersViewSet(CustomGenericViewSet):
         image_id = data.get('image_id', '')
         flavor_id = str_to_int_or_default(data.get('flavor_id', 0), 0)
         network_id = data.get('network_id', '')
-        remarks = data.get('remarks', request.user.username)
+        remarks = data.get('remarks') or request.user.username
         quota_id = data.get('quota_id', None)
 
         flavor = Flavor.objects.filter(id=flavor_id).first()
@@ -233,42 +235,15 @@ class ServersViewSet(CustomGenericViewSet):
             if self._update_server_detail(server):
                 return Response(data={'id': server.id}, status=status.HTTP_201_CREATED)
 
+        server_build_status.creat_task(server)      # 异步任务查询server创建结果，更新server信息和创建状态
         return Response(data={'id': server.id}, status=status.HTTP_202_ACCEPTED)
 
-    def _update_server_detail(self, server, task_status: int = None):
-        """
-        尝试更新服务器的详细信息
-        :param server:
-        :param task_status: 设置server的创建状态；默认None忽略
-        :return:
-            True    # success
-            False   # failed
-        """
-        # 尝试获取详细信息
-        params = inputs.ServerDetailInput(server_id=server.instance_id)
+    @staticmethod
+    def _update_server_detail(server, task_status: int = None):
         try:
-            out = self.request_service(service=server.service, method='server_detail', params=params)
-            out_server = out.server
-        except exceptions.APIException as exc:      #
-            return False
-
-        try:
-            server.name = out_server.name if out_server.name else out_server.uuid
-            if out_server.vcpu:
-                server.vcpus = out_server.vcpu
-            if out_server.ram:
-                server.ram = out_server.ram
-
-            server.public_ip = out_server.ip.public_ipv4 if out_server.ip.public_ipv4 else False
-            server.ipv4 = out_server.ip.ipv4 if out_server.ip.ipv4 else ''
-            server.image = out_server.image.name
-            if server.ipv4 and server.image:
-                server.task_status = task_status if task_status is not None else server.TASK_CREATED_OK     # 创建成功
-            server.save()
-        except Exception as e:
-            return False
-
-        return True
+            return core_request.update_server_detail(server=server, task_status=task_status)
+        except exceptions.Error as e:
+            pass
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('查询服务器实例信息'),
@@ -521,15 +496,11 @@ class ServersViewSet(CustomGenericViewSet):
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
-        params = inputs.ServerStatusInput(server_id=server.instance_id)
-        service = server.service
         try:
-            r = self.request_service(service, method='server_status', params=params)
+            status_code, status_text = core_request.server_status_code(server=server)
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
-        status_code = r.status
-        status_text = r.status_mean
         if status_code in outputs.ServerStatus.normal_values():     # 虚拟服务器状态正常
             if (server.task_status == server.TASK_IN_CREATING) or (not is_ipv4(server.ipv4)):   #
                 self._update_server_detail(server, task_status=server.TASK_CREATED_OK)
