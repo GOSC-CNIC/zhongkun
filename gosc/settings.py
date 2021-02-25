@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     # 'rest_framework.authtoken',
     'drf_yasg',
     # 'tinymce',
+    'corsheaders',
 
     'users',
     'servers',
@@ -56,6 +57,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -293,6 +295,14 @@ SWAGGER_SETTINGS = {
         }
     },
 }
+
+
+# 跨域
+# CORS_ALLOWED_ORIGINS = [
+#     "https://example.com",
+# ]
+
+CORS_ALLOW_ALL_ORIGINS = True       # 允许所有请求来源跨域
 
 
 # 安全配置导入

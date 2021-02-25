@@ -8,7 +8,8 @@ coreapi==2.3.3
 coreschema==0.0.4
 cryptography==3.4.6
 decorator==4.4.2
-Django==3.1.6
+Django==3.1.7
+django-cors-headers==3.7.0
 django-debug-toolbar==3.2
 djangorestframework==3.11.0
 djangorestframework-simplejwt==4.6.0
