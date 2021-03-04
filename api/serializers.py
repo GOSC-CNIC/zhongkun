@@ -40,7 +40,7 @@ class ServerCreateSerializer(serializers.Serializer):
     image_id = serializers.CharField(label=_('镜像id'), required=True, help_text=_('系统镜像id'))
     flavor_id = serializers.CharField(label=_('配置样式id'), required=True, help_text=_('硬件配置样式ID'))
     network_id = serializers.CharField(label=_('子网id'), required=False, default='', help_text=_('子网ID'))
-    quota_id = serializers.IntegerField(label=_('资源配额id'), required=False, allow_null=True, default=None, help_text=_('资源配额ID'))
+    quota_id = serializers.CharField(label=_('资源配额id'), required=False, allow_null=True, default=None, help_text=_('资源配额ID'))
     remarks = serializers.CharField(label=_('备注'), required=False, allow_blank=True, max_length=255, default='')
 
     def validate(self, attrs):
