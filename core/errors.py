@@ -31,6 +31,19 @@ class Error(Exception):
             'message': self.message
         }
 
+    @classmethod
+    def from_error(cls, err):
+        if isinstance(err, Error):
+            return cls(message=err.message, code=err.code, status_code=err.status_code)
+
+        return cls(message=str(err))
+
+
+class BadRequestError(Error):
+    default_message = "bad request."
+    default_code = "BadRequest"
+    default_status_code = 400
+
 
 class QuotaError(Error):
     pass

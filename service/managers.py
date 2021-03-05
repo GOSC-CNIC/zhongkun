@@ -1,10 +1,11 @@
 from django.db import transaction
 from django.utils.translation import gettext_lazy, gettext as _
-from django.db.models import Q
+from django.db.models import Q, Subquery
 from django.utils import timezone
 
 from core import errors
-from .models import UserQuota, ServicePrivateQuota, ServiceShareQuota
+from users.models import UserProfile
+from .models import UserQuota, ServicePrivateQuota, ServiceShareQuota, ServiceConfig
 
 
 class UserQuotaManager:
@@ -676,6 +677,13 @@ class ServicePrivateQuotaManager(ServiceQuotaManagerBase):
     """
     MODEL = ServicePrivateQuota
     ERROR_MSG_PREFIX = gettext_lazy('服务的私有资源配额')
+
+    def get_user_private_queryset(self, user):
+        """
+        用户可访问的服务私有资源配额
+        """
+        sq = Subquery(user.service_set.all().values_list('id', flat=True))
+        return self.MODEL.objects.filter(service__in=sq).all()
 
 
 class ServiceShareQuotaManager(ServiceQuotaManagerBase):

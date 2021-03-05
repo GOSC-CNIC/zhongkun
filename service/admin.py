@@ -16,13 +16,13 @@ class ServiceConfigAdmin(admin.ModelAdmin):
     list_filter = ['data_center', 'service_type']
     list_select_related = ('data_center',)
 
+    filter_horizontal = ('users',)
+
 
 @admin.register(DataCenter)
 class DataCenterAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
     list_display = ('id', 'name', 'status', 'desc')
-
-    filter_horizontal = ('users',)
 
 
 @admin.register(ServicePrivateQuota)
@@ -30,7 +30,7 @@ class ServicePrivateQuotaAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
     list_display = ('id', 'service', 'vcpu_total', 'vcpu_used', 'ram_total', 'ram_used', 'disk_size_total',
                     'disk_size_used', 'private_ip_total', 'private_ip_used', 'public_ip_total', 'public_ip_used',
-                    'enable')
+                    'enable', 'creation_time')
     list_select_related = ('service',)
     list_filter = ('service__data_center', 'service')
     actions = ['quota_used_update']
@@ -82,7 +82,7 @@ class ServiceShareQuotaAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
     list_display = ('id', 'service', 'vcpu_total', 'vcpu_used', 'ram_total', 'ram_used', 'disk_size_total',
                     'disk_size_used', 'private_ip_total', 'private_ip_used', 'public_ip_total', 'public_ip_used',
-                    'enable')
+                    'enable', 'creation_time')
     list_select_related = ('service',)
     list_filter = ('service__data_center', 'service')
     actions = ['quota_used_update']

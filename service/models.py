@@ -27,7 +27,7 @@ class DataCenter(models.Model):
                                         null=True, blank=True, default=None, help_text='http(s)://{hostname}:{port}/')
     endpoint_monitor = models.CharField(max_length=255, verbose_name=_('检测报警服务地址url'), unique=True,
                                         null=True, blank=True, default=None, help_text='http(s)://{hostname}:{port}/')
-    users = models.ManyToManyField(to=User, verbose_name=_('用户'), blank=True, related_name='data_center_set')
+    # users = models.ManyToManyField(to=User, verbose_name=_('用户'), blank=True, related_name='data_center_set')
     creation_time = models.DateTimeField(verbose_name=_('创建时间'), null=True, blank=True, default=None)
     status = models.SmallIntegerField(verbose_name=_('服务状态'), choices=CHOICE_STATUS, default=STATUS_ENABLE)
     desc = models.CharField(verbose_name=_('描述'), blank=True, max_length=255)
@@ -98,6 +98,7 @@ class ServiceConfig(models.Model):
                                     help_text=_('用于此服务认证的用户名'))
     vpn_password = models.CharField(max_length=128, blank=True, default='', verbose_name=_('VPN服务密码'))
     extra = models.CharField(max_length=1024, blank=True, default='', verbose_name=_('其他配置'), help_text=_('json格式'))
+    users = models.ManyToManyField(to=User, verbose_name=_('用户'), blank=True, related_name='service_set')
 
     class Meta:
         ordering = ['-add_time']
@@ -156,7 +157,7 @@ class ServiceQuotaBase(models.Model):
     ram_used = models.IntegerField(verbose_name=_('已用内存大小(MB)'), default=0)
     disk_size_total = models.IntegerField(verbose_name=_('总硬盘大小(GB)'), default=0)
     disk_size_used = models.IntegerField(verbose_name=_('已用硬盘大小(GB)'), default=0)
-    creation_time = models.DateTimeField(verbose_name=_('创建时间'), null=True, blank=True, default=None)
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'), null=True, blank=True, auto_now_add=True)
     enable = models.BooleanField(verbose_name=_('有效状态'), default=True,
                                  help_text=_('选中，资源配额生效；未选中，无法申请分中心资源'))
 
@@ -226,7 +227,7 @@ class UserQuota(models.Model):
     ram_used = models.IntegerField(verbose_name=_('已用内存大小(MB)'), default=0)
     disk_size_total = models.IntegerField(verbose_name=_('总硬盘大小(GB)'), default=0)
     disk_size_used = models.IntegerField(verbose_name=_('已用硬盘大小(GB)'), default=0)
-    creation_time = models.DateTimeField(verbose_name=_('创建时间'), null=True, blank=True, default=None)
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'), null=True, blank=True, auto_now_add=True)
     expiration_time = models.DateTimeField(verbose_name=_('过期时间'), null=True, blank=True, default=None)
     is_email = models.BooleanField(verbose_name=_('是否邮件通知'), default=False, help_text=_('是否邮件通知用户配额即将到期'))
     deleted = models.BooleanField(verbose_name=_('删除'), default=False)

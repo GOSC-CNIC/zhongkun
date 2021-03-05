@@ -58,17 +58,17 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='serviceprivatequota',
             name='creation_time',
-            field=models.DateTimeField(blank=True, default=None, null=True, verbose_name='创建时间'),
+            field=models.DateTimeField(auto_now_add=True, blank=True, null=True, verbose_name='创建时间'),
         ),
         migrations.AddField(
             model_name='servicesharequota',
             name='creation_time',
-            field=models.DateTimeField(blank=True, default=None, null=True, verbose_name='创建时间'),
+            field=models.DateTimeField(auto_now_add=True, blank=True, null=True, verbose_name='创建时间'),
         ),
         migrations.AddField(
             model_name='userquota',
             name='creation_time',
-            field=models.DateTimeField(blank=True, default=None, null=True, verbose_name='创建时间'),
+            field=models.DateTimeField(auto_now_add=True, blank=True, null=True, verbose_name='创建时间'),
         ),
         migrations.AlterField(
             model_name='datacenter',

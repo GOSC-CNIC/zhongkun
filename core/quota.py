@@ -7,12 +7,12 @@ from . import errors
 class QuotaAPI:
     @staticmethod
     def server_create_quota_apply(service, user, vcpu: int, ram: int, public_ip: bool,
-                                  user_quota_id: str = None):
+                                  user_quota_id: str = None, private_quota_id: str = None):
         """
         检测资源配额是否满足，并申请扣除
 
         原则：
-            1.数据中心管理员优先使用数据中心的私有资源配额，不扣除用户资源配额；
+            1.优先使用服务私有资源配额，不扣除用户资源配额；
             2.普通用户，只能使用各数据中心的共享资源配额，并扣除用户资源配额
 
         :param service: 接入服务
@@ -21,6 +21,7 @@ class QuotaAPI:
         :param ram: 内存大小, 单位Mb
         :param public_ip: True(公网IP); False(私网IP)
         :param user_quota_id: 指定要使用的用户资源配额id，默认不指定
+        :param private_quota_id: 指定要使用的服务的私有资源配额id，默认不指定
         :return:
             (
                 bool,               # True:使用的共享资源配额; False使用的私有资源配额
@@ -29,32 +30,30 @@ class QuotaAPI:
 
         :raises: QuotaShortageError, QuotaError
         """
-        # 用户是数据中心管理员，优化使用数据中心私有资源
-        pri_mgr = ServicePrivateQuotaManager()
-        pri_center_quota = pri_mgr.get_quota(service=service)
-        use_shared_quota = True  # 标记使用数据中心分享配额或私有配额
-        if service.data_center.users.filter(id=user.id).exists():
-            try:
-                if public_ip is True:
-                    pri_mgr.requires(pri_center_quota, vcpus=vcpu, ram=ram, public_ip=1)
-                else:
-                    pri_mgr.requires(pri_center_quota, vcpus=vcpu, ram=ram, private_ip=1)
-
-                use_shared_quota = False  # 使用私有配额
-            except errors.QuotaError as e:
-                pass
-
         # 资源配额满足要求，扣除数据中心资源或用户资源
         if public_ip:
             kwargs = {'public_ip': 1}
         else:
             kwargs = {'private_ip': 1}
 
-        u_mgr = UserQuotaManager()
-        share_mgr = ServiceShareQuotaManager()
-        # 使用共享资源时，需检测用户资源配额和数据中心共享资源配额是否满足需求
-        user_quota = None
-        if use_shared_quota:
+        # 优化使用数据中心私有资源
+        if private_quota_id:
+            pri_mgr = ServicePrivateQuotaManager()
+            pri_service_quota = pri_mgr.get_quota(service=service)
+            if private_quota_id != private_quota_id:
+                raise errors.NoSuchQuotaError(message='"private_quota_id"和指定的service服务不匹配')
+
+            if public_ip is True:
+                pri_mgr.requires(pri_service_quota, vcpus=vcpu, ram=ram, public_ip=1)
+            else:
+                pri_mgr.requires(pri_service_quota, vcpus=vcpu, ram=ram, private_ip=1)
+
+            pri_mgr.deduct(service=service, vcpus=vcpu, ram=ram, **kwargs)
+            return False, None      # 使用私有配额
+        elif user_quota_id:
+            u_mgr = UserQuotaManager()
+            share_mgr = ServiceShareQuotaManager()
+            # 使用共享资源时，需检测用户资源配额和数据中心共享资源配额是否满足需求
             user_quota = QuotaAPI.get_meet_user_quota(user=user, vcpu=vcpu, ram=ram, public_ip=public_ip,
                                                       user_quota_id=user_quota_id)
 
@@ -71,10 +70,11 @@ class QuotaAPI:
             except errors.QuotaError as e:
                 u_mgr.release(user=user, vcpus=vcpu, ram=ram, **kwargs)
                 raise e
-        else:
-            pri_mgr.deduct(service=service, vcpus=vcpu, ram=ram, **kwargs)
 
-        return use_shared_quota, user_quota
+            return True, user_quota  # 使用数据中心分享配额
+        else:
+            raise errors.QuotaError.from_error(
+                errors.BadRequestError('必须指定一个用户资源配额或服务私有资源配额'))
 
     @staticmethod
     def server_quota_release(service, user, vcpu: int, ram: int, public_ip: bool,
