@@ -134,12 +134,13 @@ class ServiceConfig(models.Model):
 
         return True
 
-    def service_type_to_str(self, t):
+    def service_type_to_str(self, t=None):
         """
         :return:
             str or None
         """
-        return self.SERVICE_TYPE_STRING.get(t)
+        key = t if t else self.service_type
+        return self.SERVICE_TYPE_STRING.get(key)
 
 
 class ServiceQuotaBase(models.Model):

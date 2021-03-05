@@ -117,7 +117,12 @@ class ServersViewSet(CustomGenericViewSet):
                   "image": "centos8_gui",
                   "creation_time": "2020-11-02T07:47:39.776384Z",
                   "remarks": "",
-                  "endpoint_url": "http://159.226.235.16/"
+                  "endpoint_url": "http://159.226.235.16/",
+                  "service": {
+                    "id": "2",
+                    "name": "怀柔204机房",
+                    "service_type": "evcloud"
+                  }
                 }
               ]
             }

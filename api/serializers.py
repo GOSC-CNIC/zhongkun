@@ -16,6 +16,7 @@ class ServerSerializer(serializers.Serializer):
     creation_time = serializers.DateTimeField()
     remarks = serializers.CharField()
     endpoint_url = serializers.SerializerMethodField(method_name='get_vms_endpoint_url')
+    service = serializers.SerializerMethodField(method_name='get_service')
 
     def get_vms_endpoint_url(self, obj):
         service_id_map = self.context.get('service_id_map')
@@ -30,6 +31,18 @@ class ServerSerializer(serializers.Serializer):
             return service.data_center.endpoint_vms
         except AttributeError:
             return ''
+
+    @staticmethod
+    def get_service(obj):
+        service = obj.service
+        if service:
+            return {
+                'id': service.id,
+                'name': service.name,
+                'service_type': service.service_type_to_str()
+            }
+
+        return None
 
 
 class ServerCreateSerializer(serializers.Serializer):
