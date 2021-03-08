@@ -4,7 +4,6 @@ from django.db.models import Q, Subquery
 from django.utils import timezone
 
 from core import errors
-from users.models import UserProfile
 from .models import UserQuota, ServicePrivateQuota, ServiceShareQuota, ServiceConfig
 
 
@@ -692,3 +691,25 @@ class ServiceShareQuotaManager(ServiceQuotaManagerBase):
     """
     MODEL = ServiceShareQuota
     ERROR_MSG_PREFIX = gettext_lazy('服务的共享资源配额')
+
+
+class ServiceManager:
+    @staticmethod
+    def filter_service(center_id: str, user=None):
+        """
+        :param center_id: 联邦成员机构id
+        :param user: 用户对象，筛选用户有可用资源配额的服务
+        """
+        if center_id:
+            queryset = ServiceConfig.objects.select_related('data_center').filter(
+                data_center=center_id, status=ServiceConfig.STATUS_ENABLE)
+        else:
+            queryset = ServiceConfig.objects.select_related('data_center').filter(
+                status=ServiceConfig.STATUS_ENABLE)
+
+        if user:
+            user_quotas = UserQuotaManager().filter_quota_queryset(user=user, usable=True)
+            queryset = queryset.filter(id__in=Subquery(
+                user_quotas.values_list('service_id', flat=True)))
+
+        return queryset

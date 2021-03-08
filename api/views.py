@@ -16,7 +16,7 @@ from drf_yasg import openapi
 from rest_framework_simplejwt.views import TokenVerifyView, TokenRefreshView, TokenObtainPairView
 
 from servers.models import Server, Flavor
-from service.managers import UserQuotaManager, ServicePrivateQuotaManager
+from service.managers import UserQuotaManager, ServicePrivateQuotaManager, ServiceManager
 from service.models import ServiceConfig, DataCenter
 from adapters import inputs, outputs
 from core.quota import QuotaAPI
@@ -499,6 +499,23 @@ class ServersViewSet(CustomGenericViewSet):
     )
     @action(methods=['get'], url_path='status', detail=True, url_name='server_status')
     def server_status(self, request, *args, **kwargs):
+        """
+        服务器状态查询
+
+            status code:
+                0       # no state
+                1       # the domain is running
+                2       # the domain is blocked on resource
+                3       # the domain is paused by user
+                4       # the domain is being shut down
+                5       # the domain is shut off
+                6       # the domain is crashed
+                7       # the domain is suspended by guest power management
+                9       # host connect failed
+                10      # domain miss
+                11      # The domain is being built
+                12      # Failed to build the domain
+        """
         server_id = kwargs.get(self.lookup_field, '')
 
         try:
@@ -1068,6 +1085,22 @@ class ServiceViewSet(CustomGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举已接入的服务'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='center_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description='联邦成员机构id'
+            ),
+            openapi.Parameter(
+                name='available_only',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_BOOLEAN,
+                required=False,
+                description='只查询用户由资源可使用的服务，提交此参数即有效（不需要赋值）'
+            ),
+        ],
         responses={
             status.HTTP_200_OK: ''
         }
@@ -1097,9 +1130,13 @@ class ServiceViewSet(CustomGenericViewSet):
               ]
             }
         """
+        center_id = request.query_params.get('center_id', None)
+        available_only = request.query_params.get('available_only', None)
+        user = None if available_only is None else request.user
+
+        queryset = ServiceManager().filter_service(center_id=center_id, user=user)
+        paginator = self.pagination_class()
         try:
-            queryset = ServiceConfig.objects.select_related('data_center').filter(status=ServiceConfig.STATUS_ENABLE)
-            paginator = self.pagination_class()
             quotas = paginator.paginate_queryset(request=request, queryset=queryset)
             serializer = serializers.ServiceSerializer(quotas, many=True)
             response = paginator.get_paginated_response(data=serializer.data)
