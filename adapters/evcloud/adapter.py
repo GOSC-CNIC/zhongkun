@@ -187,7 +187,10 @@ class EVCloudAdapter(BaseAdapter):
             return outputs.ServerActionOutput(ok=False, error=exceptions.APIInvalidParam('invalid param "action"'))
 
         if action in [inputs.ServerAction.DELETE_FORCE, inputs.ServerAction.DELETE]:
-            r = self.server_delete(params=inputs.ServerDeleteInput(server_id=params.server_id))
+            params = inputs.ServerDeleteInput(server_id=params.server_id)
+            if action == inputs.ServerAction.DELETE_FORCE:
+                params.force = True
+            r = self.server_delete(params=params)
             if r.ok:
                 return outputs.ServerActionOutput()
 
