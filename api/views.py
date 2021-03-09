@@ -9,7 +9,6 @@ from rest_framework import status
 from rest_framework.serializers import Serializer
 from rest_framework.reverse import reverse
 from rest_framework.utils.urls import replace_query_param
-from rest_framework.pagination import LimitOffsetPagination
 from rest_framework import exceptions as drf_exceptions
 from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
@@ -24,7 +23,7 @@ from core import request as core_request
 from . import exceptions
 from . import serializers
 from .viewsets import CustomGenericViewSet, str_to_int_or_default
-from .paginations import ServersPagination
+from .paginations import ServersPagination, DefaultPageNumberPagination
 from core.taskqueue import server_build_status
 
 
@@ -104,7 +103,7 @@ class ServersViewSet(CustomGenericViewSet):
 
             200: {
               "count": 8,
-              "next": null,
+              "next": "http://xxx/api/server/?page=2&page_size=2",
               "previous": null,
               "servers": [
                 {
@@ -700,7 +699,7 @@ class ImageViewSet(CustomGenericViewSet):
     系统镜像视图
     """
     permission_classes = [IsAuthenticated, ]
-    # pagination_class = LimitOffsetPagination
+    pagination_class = None
     lookup_field = 'id'
     lookup_value_regex = '[0-9a-z-]+'
     serializer_class = Serializer
@@ -754,7 +753,7 @@ class NetworkViewSet(CustomGenericViewSet):
     网络子网视图
     """
     permission_classes = [IsAuthenticated, ]
-    # pagination_class = LimitOffsetPagination
+    pagination_class = None
     lookup_field = 'network_id'
     lookup_value_regex = '[0-9a-z-]+'
     serializer_class = Serializer
@@ -954,7 +953,7 @@ class FlavorViewSet(CustomGenericViewSet):
     """
     queryset = []
     permission_classes = [IsAuthenticated]
-    # pagination_class = LimitOffsetPagination
+    pagination_class = None
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举配置样式flavor'),
@@ -993,7 +992,7 @@ class UserQuotaViewSet(CustomGenericViewSet):
     """
     queryset = []
     permission_classes = [IsAuthenticated]
-    pagination_class = LimitOffsetPagination
+    pagination_class = DefaultPageNumberPagination
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举用户资源配额'),
@@ -1081,7 +1080,7 @@ class ServiceViewSet(CustomGenericViewSet):
     """
     queryset = []
     permission_classes = [IsAuthenticated]
-    pagination_class = LimitOffsetPagination
+    pagination_class = DefaultPageNumberPagination
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举已接入的服务'),
@@ -1316,7 +1315,7 @@ class ServicePrivateQuotaViewSet(CustomGenericViewSet):
     """
     queryset = []
     permission_classes = [IsAuthenticated]
-    pagination_class = LimitOffsetPagination
+    pagination_class = DefaultPageNumberPagination
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举用户可使用的服务私有资源配额'),
