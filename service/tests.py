@@ -1,35 +1,16 @@
 from django.test import TransactionTestCase
 from django.contrib.auth import get_user_model
 
-from service.models import DataCenter, ServiceConfig
 from .managers import UserQuotaManager, ServicePrivateQuotaManager, ServiceShareQuotaManager
 from core.errors import QuotaShortageError
-
+from utils.test import get_or_create_user, get_or_create_service
 
 User = get_user_model()
 
 
-def get_or_create_service():
-    service = ServiceConfig.objects.filter(name='test').first()
-    if service is None:
-        center = DataCenter(name='test')
-        center.save()
-
-        service = ServiceConfig(name='test', data_center=center, endpoint_url='test', username='', password='')
-        service.save()
-
-    return service
-
-
 class TestUserQuotaManager(TransactionTestCase):
     def setUp(self):
-        user = User.objects.filter(username='test').first()
-        if user is None:
-            user = User(username='test')
-            user.set_password('test')
-            user.save()
-
-        self.user = user
+        self.user = get_or_create_user()
         self.service = get_or_create_service()
 
     def test_methods(self):

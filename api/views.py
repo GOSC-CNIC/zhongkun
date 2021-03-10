@@ -143,15 +143,6 @@ class ServersViewSet(CustomGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('创建服务器实例'),
-        # manual_parameters=[
-        #     openapi.Parameter(
-        #         name='service_id',
-        #         in_=openapi.IN_QUERY,
-        #         type=openapi.TYPE_STRING,
-        #         required=True,
-        #         description='服务端点id'
-        #     ),
-        # ],
         responses={
             201: '''    
                 {
@@ -616,24 +607,12 @@ class ServersViewSet(CustomGenericViewSet):
                     "remarks": "xxx"
                 }
             ''',
-            403: """
-                    {
-                        "code": "AccessDenied",
-                        "message": "xxx"
-                    }
-                    """,
-            404: """
-                    {
-                        "code": "ServerNotExist",
-                        "message": "xxx"
-                    }
-                    """,
-            500: """
-                    {
-                        "code": "InternalError",
-                        "message": "xxx"
-                    }
-                    """
+            "400, 403, 404, 500": """
+                {
+                    "code": "AccessDenied", # ServerNotExist, "InternalError"
+                    "message": "xxx"
+                }
+                """
         }
     )
     @action(methods=['patch'], url_path='remark', detail=True, url_name='server-remark')
@@ -641,7 +620,8 @@ class ServersViewSet(CustomGenericViewSet):
         server_id = kwargs.get(self.lookup_field, '')
         remarks = request.query_params.get('remark', None)
         if remarks is None:
-            return Response(data=exceptions.InvalidArgument(message='query param "remark" is required'))
+            return self.exception_reponse(
+                exceptions.InvalidArgument(message='query param "remark" is required'))
 
         try:
             server = self.get_server(server_id=server_id, user=request.user)
@@ -652,7 +632,7 @@ class ServersViewSet(CustomGenericViewSet):
             server.remarks = remarks
             server.save(update_fields=['remarks'])
         except Exception as exc:
-            return Response(data=exceptions.APIException(extend_msg=str(exc)), status=500)
+            return self.exception_reponse(exc)
 
         return Response(data={'remarks': remarks})
 

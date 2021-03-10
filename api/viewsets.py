@@ -118,3 +118,10 @@ class CustomGenericViewSet(viewsets.GenericViewSet):
             raise exceptions.ServiceNotExist(_('服务端点不存在'))
 
         return service
+
+    @staticmethod
+    def exception_reponse(exc):
+        if not isinstance(exc, exceptions.Error):
+            exc = exceptions.Error(message=str(exc))
+
+        return Response(data=exc.err_data(), status=exc.status_code)
