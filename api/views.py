@@ -392,7 +392,7 @@ class ServersViewSet(CustomGenericViewSet):
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
-                'op': openapi.Schema(
+                'action': openapi.Schema(
                     title='操作',
                     type=openapi.TYPE_STRING,
                     enum=['start', 'reboot', 'shutdown', 'poweroff', 'delete', 'delete_force'],

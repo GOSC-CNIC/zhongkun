@@ -46,3 +46,14 @@ SIMPLE_JWT['SIGNING_KEY'] = 'xxx'
 # RS256 public key
 SIMPLE_JWT['VERIFYING_KEY'] = 'xxx'
 
+# test case settings
+TEST_CASE = {
+    'SERVICE': {
+        'endpoint_url': 'http://127.0.0.1/',
+        'region_id': 1,
+        'service_type': 'evcloud',
+        'username': 'xxx',
+        'password': 'xxx',
+        'version': 'v3',
+    }
+}
