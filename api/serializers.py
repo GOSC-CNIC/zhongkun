@@ -2,6 +2,18 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 
+class UserQuotaSimpleSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    tag = serializers.SerializerMethodField(method_name='get_tag')
+    expiration_time = serializers.DateTimeField(label=_('过期时间'), default=None)
+    deleted = serializers.BooleanField(label=_('删除'), default=False)
+    display = serializers.CharField()
+
+    @staticmethod
+    def get_tag(obj):
+        return {'value': obj.tag, 'display': obj.get_tag_display()}
+
+
 class ServerSerializer(serializers.Serializer):
     """
     虚拟服务器实例序列化器
@@ -17,13 +29,16 @@ class ServerSerializer(serializers.Serializer):
     remarks = serializers.CharField()
     endpoint_url = serializers.SerializerMethodField(method_name='get_vms_endpoint_url')
     service = serializers.SerializerMethodField(method_name='get_service')
+    user_quota = UserQuotaSimpleSerializer(required=False)
+    center_quota = serializers.IntegerField()
 
     def get_vms_endpoint_url(self, obj):
         service_id_map = self.context.get('service_id_map')
-        if not service_id_map:
-            return ''
+        if service_id_map:
+            service = service_id_map.get(obj.service_id)
+        else:
+            service = obj.service
 
-        service = service_id_map.get(obj.service_id)
         if not service:
             return ''
 

@@ -126,7 +126,9 @@ class ServersTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['server'], response.data)
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
-                           "public_ip", "image", "creation_time", "remarks"], response.data['server'])
+                           "public_ip", "image", "creation_time", "remarks",
+                           "endpoint_url", "service", "user_quota",
+                           "center_quota"], response.data['server'])
 
     def test_server_list(self):
         url = reverse('api:servers-list')
@@ -136,8 +138,8 @@ class ServersTests(MyAPITestCase):
         self.assertIsInstance(response.data['servers'], list)
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
                            "public_ip", "image", "creation_time",
-                           "remarks", "endpoint_url", "service"
-                           ], response.data['servers'][0])
+                           "remarks", "endpoint_url", "service", "user_quota",
+                           "center_quota"], response.data['servers'][0])
 
     def test_server_action(self):
         url = reverse('api:servers-server-action', kwargs={'id': 'motfound'})

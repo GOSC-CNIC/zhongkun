@@ -121,12 +121,23 @@ class ServersViewSet(CustomGenericViewSet):
                     "id": "2",
                     "name": "怀柔204机房",
                     "service_type": "evcloud"
-                  }
+                  },
+                  "user_quota": {           # may be null
+                    "id": "1",
+                    "tag": {
+                      "value": 1,
+                      "display": "普通配额"
+                    },
+                    "expiration_time": "2020-11-02T07:47:39.776384Z",       # may be null,
+                    "deleted": false,
+                    "display": "[普通配额](vCPU: 10, RAM: 10240Mb, PublicIP: 5, PrivateIP: 7)"
+                  },
+                  "center_quota": 2         # 1: 服务的私有资源配额，"user_quota"=null; 2: 服务的分享资源配额
                 }
               ]
             }
         """
-        servers = Server.objects.filter(user=request.user)
+        servers = Server.objects.select_related('service', 'user_quota').filter(user=request.user)
         service_id = request.query_params.get('service_id', None)
         if service_id:
             servers = servers.filter(service_id=service_id)
@@ -248,7 +259,13 @@ class ServersViewSet(CustomGenericViewSet):
     @swagger_auto_schema(
         operation_summary=gettext_lazy('查询服务器实例信息'),
         responses={
-            200: """
+        }
+    )
+    def retrieve(self, request, *args, **kwargs):
+        """
+        查询服务器实例信息
+
+            http code 200:
             {
               "server": {
                 "id": 9c70cbe2-690c-11eb-a4b7-c8009fe2eb10,
@@ -259,17 +276,32 @@ class ServersViewSet(CustomGenericViewSet):
                 "public_ip": false,
                 "image": "CentOS_8",
                 "creation_time": "2020-09-23T07:10:14.009418Z",
-                "remarks": ""
+                "remarks": "",
+                "endpoint_url": "http://159.226.235.16/",
+                "service": {
+                    "id": "2",
+                    "name": "怀柔204机房",
+                    "service_type": "evcloud"
+                },
+                "user_quota": {           # may be null
+                    "id": "1",
+                    "tag": {
+                      "value": 1,
+                      "display": "普通配额"
+                    },
+                    "expiration_time": "2020-11-02T07:47:39.776384Z",       # may be null,
+                    "deleted": false,
+                    "display": "[普通配额](vCPU: 10, RAM: 10240Mb, PublicIP: 5, PrivateIP: 7)"
+                },
+                "center_quota": 2         # 1: 服务的私有资源配额，"user_quota"=null; 2: 服务的分享资源配额
               }
             }
-            """
-        }
-    )
-    def retrieve(self, request, *args, **kwargs):
+        """
         server_id = kwargs.get(self.lookup_field, '')
 
         try:
-            server = self.get_server(server_id=server_id, user=request.user)
+            server = self.get_server(server_id=server_id, user=request.user,
+                                     related_fields=['service__data_center'])
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
@@ -643,8 +675,14 @@ class ServersViewSet(CustomGenericViewSet):
         return Serializer
 
     @staticmethod
-    def get_server(server_id: str, user):
-        server = Server.objects.filter(id=server_id).select_related('service', 'user', 'user_quota').first()
+    def get_server(server_id: str, user, related_fields: list = None):
+        fields = ['service', 'user_quota']
+        if related_fields:
+            for f in related_fields:
+                if f not in fields:
+                    fields.append(f)
+
+        server = Server.objects.filter(id=server_id).select_related(*fields).first()
         if not server:
             raise exceptions.NotFound(_('服务器实例不存在'))
 
@@ -1009,7 +1047,7 @@ class UserQuotaViewSet(CustomGenericViewSet):
                 {
                   "id": 9c70cbe2-690c-11eb-a4b7-c8009fe2eb10,
                   "tag": {
-                    "value": 1,             # 1: 普通配额； 2：使用配额
+                    "value": 1,             # 1: 普通配额； 2：试用配额
                     "display": "普通配额"
                   },
                   "user": {
