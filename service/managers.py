@@ -353,8 +353,7 @@ class UserQuotaManager:
 
         if usable:
             now = timezone.now()
-            queryset = queryset.filter(Q(tag=UserQuota.TAG_BASE) | (
-                    Q(tag=UserQuota.TAG_PROBATION) & Q(expiration_time__gt=now)))
+            queryset = queryset.filter(Q(expiration_time__isnull=True) | Q(expiration_time__gt=now))
 
         return queryset.order_by('id')
 

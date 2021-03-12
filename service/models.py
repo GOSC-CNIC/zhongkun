@@ -301,9 +301,6 @@ class UserQuota(models.Model):
             True    # 过期
             False   # 未过期
         """
-        if self.tag == self.TAG_BASE:       # base配额不检查过期时间
-            return False
-
         if not self.expiration_time:        # 未设置过期时间
             return False
 

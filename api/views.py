@@ -14,7 +14,7 @@ from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 from rest_framework_simplejwt.views import TokenVerifyView, TokenRefreshView, TokenObtainPairView
 
-from servers.models import Server, Flavor
+from servers.models import Server, Flavor, ServerArchive
 from service.managers import UserQuotaManager, ServicePrivateQuotaManager, ServiceManager
 from service.models import ServiceConfig, DataCenter
 from adapters import inputs, outputs
@@ -1382,3 +1382,71 @@ class ServicePrivateQuotaViewSet(CustomGenericViewSet):
         except Exception as exc:
             err = exceptions.APIException(message=str(exc))
             return Response(err.err_data(), status=err.status_code)
+
+
+class ServerArchiveViewSet(CustomGenericViewSet):
+    """
+    虚拟服务器归档记录相关API
+    """
+    queryset = []
+    permission_classes = [IsAuthenticated]
+    pagination_class = DefaultPageNumberPagination
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举用户虚拟服务器归档记录'),
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        列举用户虚拟服务器归档记录
+
+            Http Code: 状态码200，返回数据：
+                {
+                  "count": 39,
+                  "next": null,
+                  "previous": null,
+                  "results": [
+                    {
+                      "id": "6184d5b2-6468-11eb-8b43-c8009fe2eb10",
+                      "name": "d1ddd55a-1fdc-44d6-bd71-d6e8b5c94bf9",
+                      "vcpus": 1,
+                      "ram": 80,
+                      "ipv4": "10.0.200.240",
+                      "public_ip": false,
+                      "image": "cirros",
+                      "creation_time": "2021-02-01T08:35:04.153252Z",
+                      "remarks": "",
+                      "service": {
+                        "id": "3",
+                        "name": "10.0.200.215",
+                        "service_type": "openstack"
+                      },
+                      "user_quota": {
+                        "id": "1",
+                        "tag": {
+                          "value": 1,
+                          "display": "普通配额"
+                        },
+                        "expiration_time": null,
+                        "deleted": false,
+                        "display": "[普通配额](vCPU: 10, RAM: 10240Mb, PublicIP: 5, PrivateIP: 7)"
+                      },
+                      "center_quota": 2,
+                      "user_quota_tag": 1,
+                      "deleted_time": "2021-02-01T08:35:04.154218Z"
+                    }
+                  ]
+                }
+        """
+        try:
+            queryset = ServerArchive.objects.select_related('service').filter(user=request.user).all()
+            paginator = self.pagination_class()
+            servers = paginator.paginate_queryset(request=request, queryset=queryset)
+            serializer = serializers.ServerArchiveSerializer(servers, many=True)
+            return paginator.get_paginated_response(data=serializer.data)
+        except Exception as exc:
+            err = exceptions.APIException(message=str(exc))
+            return Response(err.err_data(), status=err.status_code)
+

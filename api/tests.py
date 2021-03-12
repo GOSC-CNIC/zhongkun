@@ -165,6 +165,18 @@ class ServersTests(MyAPITestCase):
         response = self.client.delete(url)
         self.assertEqual(response.status_code, 204)
 
+        self.list_service_test_case()
+
+    def list_service_test_case(self):
+        url = reverse('api:server-archive-list')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "next", "previous", "results"], response.data)
+        self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
+                           "public_ip", "image", "creation_time",
+                           "remarks", "service", "user_quota",
+                           "center_quota", "user_quota_tag", "deleted_time"], response.data["results"][0])
+
 
 class ServiceTests(MyAPITestCase):
     def setUp(self):

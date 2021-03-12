@@ -14,9 +14,9 @@ class UserQuotaSimpleSerializer(serializers.Serializer):
         return {'value': obj.tag, 'display': obj.get_tag_display()}
 
 
-class ServerSerializer(serializers.Serializer):
+class ServerBaseSerializer(serializers.Serializer):
     """
-    虚拟服务器实例序列化器
+    虚拟服务器实例序列化器基类
     """
     id = serializers.CharField()
     name = serializers.CharField()
@@ -27,6 +27,12 @@ class ServerSerializer(serializers.Serializer):
     image = serializers.CharField()
     creation_time = serializers.DateTimeField()
     remarks = serializers.CharField()
+
+
+class ServerSerializer(ServerBaseSerializer):
+    """
+    虚拟服务器实例序列化器
+    """
     endpoint_url = serializers.SerializerMethodField(method_name='get_vms_endpoint_url')
     service = serializers.SerializerMethodField(method_name='get_service')
     user_quota = UserQuotaSimpleSerializer(required=False)
@@ -76,6 +82,29 @@ class ServerCreateSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         return attrs
+
+
+class ServerArchiveSerializer(ServerBaseSerializer):
+    """
+    虚拟服务器归档记录序列化器
+    """
+    service = serializers.SerializerMethodField(method_name='get_service')
+    user_quota = UserQuotaSimpleSerializer(required=False)
+    center_quota = serializers.IntegerField()
+    user_quota_tag = serializers.IntegerField()
+    deleted_time = serializers.DateTimeField()
+
+    @staticmethod
+    def get_service(obj):
+        service = obj.service
+        if service:
+            return {
+                'id': service.id,
+                'name': service.name,
+                'service_type': service.service_type_to_str()
+            }
+
+        return None
 
 
 class ImageSerializer(serializers.Serializer):
