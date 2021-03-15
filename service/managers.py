@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.db import transaction
 from django.utils.translation import gettext_lazy, gettext as _
 from django.db.models import Q, Subquery
@@ -17,10 +19,7 @@ class UserQuotaManager:
         if tag is None:
             tag = self.MODEL.TAG_BASE
 
-        expiration_time = None
-        if tag != self.MODEL.TAG_BASE:
-            expiration_time = expire_time
-
+        expiration_time = expire_time if isinstance(expire_time, datetime) else None
         quota = self.MODEL(user=user, service=service, tag=tag, expiration_time=expiration_time)
         try:
             quota.save()

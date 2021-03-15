@@ -25,6 +25,7 @@ from . import serializers
 from .viewsets import CustomGenericViewSet, str_to_int_or_default
 from .paginations import ServersPagination, DefaultPageNumberPagination
 from core.taskqueue import server_build_status
+from . import handlers
 
 
 def serializer_error_msg(errors, default=''):
@@ -1011,6 +1012,7 @@ class UserQuotaViewSet(CustomGenericViewSet):
     queryset = []
     permission_classes = [IsAuthenticated]
     pagination_class = DefaultPageNumberPagination
+    lookup_field = 'id'
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举用户资源配额'),
@@ -1075,21 +1077,55 @@ class UserQuotaViewSet(CustomGenericViewSet):
               ]
             }
         """
-        service_id = request.query_params.get('service', None)
-        usable = request.query_params.get('usable', '').lower()
-        usable = True if usable == 'true' else False
+        return handlers.UserQuotaHandler.list_quotas(view=self, request=request, kwargs=kwargs)
 
-        try:
-            queryset = UserQuotaManager().filter_quota_queryset(user=request.user, service=service_id, usable=usable)
-            paginator = self.pagination_class()
-            quotas = paginator.paginate_queryset(request=request, queryset=queryset)
-            serializer = serializers.UserQuotaSerializer(quotas, many=True)
-            response = paginator.get_paginated_response(data=serializer.data)
-        except Exception as exc:
-            err = exceptions.APIException(message=str(exc))
-            return Response(err.err_data(), status=err.status_code)
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举资源配额下的虚拟服务器'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='page',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                required=False,
+                description=_('分页页码')
+            ),
+            openapi.Parameter(
+                name='page_size',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                required=False,
+                description=_('每页返回数据数量')
+            ),
+        ],
+        responses={
+        }
+    )
+    @action(methods=['get'], detail=True, url_path='servers', url_name='quota-servers')
+    def quota_servers(self, request, *args, **kwargs):
+        """
+        列举资源配额下的虚拟服务器
 
-        return response
+            http code 200:
+            {
+              "count": 3,
+              "next": null,
+              "previous": null,
+              "results": [
+                {
+                  "id": "a24d4686-646a-11eb-b974-c8009fe2eb10",
+                  "name": "6c8e17d2-6387-48b5-be1c-d7f845a7ae57",
+                  "vcpus": 1,
+                  "ram": 1024,
+                  "ipv4": "10.0.200.235",
+                  "public_ip": false,
+                  "image": "cirros",
+                  "creation_time": "2021-02-01T08:51:11.784626Z",
+                  "remarks": ""
+                }
+              ]
+            }
+        """
+        return handlers.UserQuotaHandler.list_quota_servers(view=self, request=request, kwargs=kwargs)
 
 
 class ServiceViewSet(CustomGenericViewSet):

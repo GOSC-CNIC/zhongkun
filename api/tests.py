@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 from django.urls import reverse
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import AccessToken
@@ -6,6 +8,22 @@ from servers.models import Flavor, Server
 from service.managers import UserQuotaManager
 from utils.test import get_or_create_user, get_or_create_service, get_or_create_center
 from adapters import outputs
+
+
+def create_server_metadata(service, user, user_quota):
+    server = Server(service=service,
+                    instance_id='test',
+                    remarks='',
+                    user=user,
+                    vcpus=2,
+                    ram=1024,
+                    ipv4='127.0.0.1',
+                    image='test-image',
+                    task_status=Server.TASK_CREATED_OK,
+                    user_quota=user_quota,
+                    public_ip=False)
+    server.save()
+    return server
 
 
 class MyAPITestCase(APITestCase):
@@ -46,22 +64,44 @@ class UserQuotaTests(MyAPITestCase):
         set_auth_header(self)
         self.user = get_or_create_user()
         self.service = get_or_create_service()
-
-    def test_get_quota(self):
         mgr = UserQuotaManager()
-        old_quota = mgr.get_base_quota_queryset(user=self.user).first()
-        if not old_quota:
-            mgr._create_quota(user=self.user, service=self.service)
+        self.quota = mgr._create_quota(user=self.user, service=self.service)
+        self.expire_quota = mgr._create_quota(user=self.user, service=self.service,
+                                              expire_time=datetime.now() - timedelta(days=1))
 
+        create_server_metadata(
+            service=self.service, user=self.user, user_quota=self.quota)
+
+    def test_list_quota(self):
         url = reverse('api:user-quota-list')
         response = self.client.get(url, format='json')
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['count', 'results', "next", "previous"], response.data)
+        self.assertEqual(response.data['count'], 2)
+
+        url += f'?usable=true'
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'results', "next", "previous"], response.data)
+        self.assertEqual(response.data['count'], 1)
         self.assertKeysIn(["id", "tag", "user", "service", "private_ip_total",
                            "private_ip_used", "public_ip_total", "public_ip_used",
                            "vcpu_total", "vcpu_used", "ram_total", "ram_used",
                            "disk_size_total", "disk_size_used", "expiration_time",
                            "deleted", "display"], response.data['results'][0])
+
+    def test_list_quota_servers(self):
+        url = reverse('api:user-quota-quota-servers', kwargs={'id': 'notfound'})
+        response = self.client.get(url, format='json')
+        self.assertErrorResponse(status_code=404, response=response, code='NotFound')
+
+        url = reverse('api:user-quota-quota-servers', kwargs={'id': self.quota.id})
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'results', "next", "previous"], response.data)
+        self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
+                           "public_ip", "image", "creation_time",
+                           "remarks"], response.data['results'][0])
 
 
 class ServersTests(MyAPITestCase):
@@ -69,19 +109,13 @@ class ServersTests(MyAPITestCase):
         set_auth_header(self)
         self.user = get_or_create_user()
         self.service = get_or_create_service()
-        server = Server(service=self.service,
-                        instance_id='test',
-                        remarks='',
-                        user=self.user,
-                        vcpus=2,
-                        ram=1024,
-                        ipv4='127.0.0.1',
-                        image='test-image',
-                        task_status=Server.TASK_CREATED_OK,
-                        user_quota=None,
-                        public_ip=False)
-        server.save()
-        self.miss_server = server
+        self.miss_server = create_server_metadata(
+            service=self.service, user=self.user, user_quota=None)
+
+    def test_server_create(self):
+        url = reverse('api:servers-list')
+        response = self.client.post(url, data={})
+        self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
 
     def test_server_remark(self):
         url = reverse('api:servers-server-remark', kwargs={'id': self.miss_server.id})

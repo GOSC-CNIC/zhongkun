@@ -29,6 +29,10 @@ class ServerBaseSerializer(serializers.Serializer):
     remarks = serializers.CharField()
 
 
+class ServerSimpleSerializer(ServerBaseSerializer):
+    pass
+
+
 class ServerSerializer(ServerBaseSerializer):
     """
     虚拟服务器实例序列化器
