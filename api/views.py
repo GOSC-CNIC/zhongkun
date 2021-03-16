@@ -1,7 +1,10 @@
 import random
+import requests
+from io import BytesIO
 
 from django.core.validators import validate_ipv4_address, ValidationError
 from django.utils.translation import gettext_lazy, gettext as _
+from django.http.response import FileResponse
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -962,8 +965,68 @@ class VPNViewSet(CustomGenericViewSet):
             return Response(data=exc.err_data(), status=exc.status_code)
         return Response(data={'vpn': r})
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('vpn配置文件下载'),
+    )
+    @action(methods=['get', ], detail=True, url_path='config', url_name='vpn-config')
+    def vpn_config(self, request, *args, **kwargs):
+        """
+        vpn配置文件下载
+        """
+        try:
+            service = self.get_service(request, lookup=self.lookup_field, in_='path')
+        except exceptions.APIException as exc:
+            return Response(exc.err_data(), status=exc.status_code)
+
+        if not service.need_vpn:
+            exc = exceptions.NoSupportVPN()
+            return Response(exc.err_data(), status=exc.status_code)
+
+        url = self.request_vpn_service(service, 'get_vpn_config_file_url')
+        r = requests.get(url)
+        if r.status_code == 200:
+            response = FileResponse(BytesIO(r.content), as_attachment=True, filename='config')
+            response['Content-Type'] = r.headers.get('content-type')
+            response['Content-Disposition'] = r.headers.get('content-disposition')
+            return response
+
+        return self.exception_reponse(exceptions.Error(message=str(r.content)))
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('vpn ca证书文件下载'),
+    )
+    @action(methods=['get', ], detail=True, url_path='ca', url_name='vpn-ca')
+    def vpn_ca(self, request, *args, **kwargs):
+        """
+        vpn ca证书文件下载
+        """
+        try:
+            service = self.get_service(request, lookup=self.lookup_field, in_='path')
+        except exceptions.APIException as exc:
+            return Response(exc.err_data(), status=exc.status_code)
+
+        if not service.need_vpn:
+            exc = exceptions.NoSupportVPN()
+            return Response(exc.err_data(), status=exc.status_code)
+
+        url = self.request_vpn_service(service, 'get_vpn_ca_file_url')
+        r = requests.get(url)
+        if r.status_code == 200:
+            response = FileResponse(BytesIO(r.content), as_attachment=True, filename='ca')
+            response['Content-Type'] = r.headers.get('content-type')
+            response['Content-Disposition'] = r.headers.get('content-disposition')
+            return response
+
+        return self.exception_reponse(exceptions.Error(message=str(r.content)))
+
     def get_serializer_class(self):
         return Serializer
+
+    def get_permissions(self):
+        if self.action in []:
+            return []
+
+        return super().get_permissions()
 
 
 class FlavorViewSet(CustomGenericViewSet):

@@ -1,8 +1,8 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework.test import APITestCase
-from rest_framework_simplejwt.tokens import AccessToken
 
 from servers.models import Flavor, Server
 from service.managers import UserQuotaManager
@@ -38,9 +38,11 @@ class MyAPITestCase(APITestCase):
 
 
 def set_auth_header(test_case: APITestCase):
-    user = get_or_create_user()
-    token = AccessToken.for_user(user)
-    test_case.client.credentials(HTTP_AUTHORIZATION='JWT ' + str(token))
+    password = 'password'
+    user = get_or_create_user(password=password)
+    # token = AccessToken.for_user(user)
+    # test_case.client.credentials(HTTP_AUTHORIZATION='JWT ' + str(token))
+    test_case.client.force_login(user=user)
     test_case.user = user
 
 
@@ -67,7 +69,7 @@ class UserQuotaTests(MyAPITestCase):
         mgr = UserQuotaManager()
         self.quota = mgr._create_quota(user=self.user, service=self.service)
         self.expire_quota = mgr._create_quota(user=self.user, service=self.service,
-                                              expire_time=datetime.now() - timedelta(days=1))
+                                              expire_time=timezone.now() - timedelta(days=1))
 
         create_server_metadata(
             service=self.service, user=self.user, user_quota=self.quota)
