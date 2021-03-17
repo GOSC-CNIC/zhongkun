@@ -180,6 +180,7 @@ REST_FRAMEWORK = {
         'core.jwt.authentication.CreateUserJWTAuthentication',
         'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.SessionAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication'
     ),
     'EXCEPTION_HANDLER': 'api.viewsets.exception_handler',
 }
@@ -258,15 +259,15 @@ LOGGING = {
 }
 
 SIMPLE_JWT = {
-    'ALGORITHM': 'RS256',
+    'ALGORITHM': 'RS512',
     # 'SIGNING_KEY': '',
     # 'VERIFYING_KEY': None,
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    # 'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
+    # 'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'AUDIENCE': None,
     'ISSUER': None,
 
-    'AUTH_HEADER_TYPES': ('JWT', 'Bearer'),
+    'AUTH_HEADER_TYPES': ('JWT',),
     'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
     'USER_ID_FIELD': 'username',
     'USER_ID_CLAIM': 'username',
@@ -274,6 +275,26 @@ SIMPLE_JWT = {
 
     'JTI_CLAIM': 'jti'
 }
+
+PASSPORT_JWT = {
+    'ALGORITHM': 'RS512',
+    'SIGNING_KEY': '',
+    # 'VERIFYING_KEY': None,
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'AUDIENCE': None,
+    'ISSUER': None,
+
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
+    'USER_ID_FIELD': 'username',
+    'USER_ID_CLAIM': 'cstnetId',
+    'TOKEN_TYPE_CLAIM': 'type',
+    'EXPIRATION_CLAIM': 'exp',
+
+    # 'JTI_CLAIM': 'jti'
+}
+
 
 # drf-yasg
 SWAGGER_SETTINGS = {

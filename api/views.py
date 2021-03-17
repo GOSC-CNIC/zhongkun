@@ -18,7 +18,7 @@ from drf_yasg import openapi
 from rest_framework_simplejwt.views import TokenVerifyView, TokenRefreshView, TokenObtainPairView
 
 from servers.models import Server, Flavor, ServerArchive
-from service.managers import UserQuotaManager, ServicePrivateQuotaManager, ServiceManager
+from service.managers import ServicePrivateQuotaManager, ServiceManager
 from service.models import ServiceConfig, DataCenter
 from adapters import inputs, outputs
 from core.quota import QuotaAPI

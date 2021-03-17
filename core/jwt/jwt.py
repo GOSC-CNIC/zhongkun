@@ -7,14 +7,15 @@ from calendar import timegm
 from uuid import uuid4
 
 from django.contrib.auth import get_user_model
-import jwt
+from jwt import PyJWT
 from jwt import InvalidAlgorithmError, InvalidTokenError, algorithms
 from rest_framework.settings import settings
-from rest_framework.exceptions import AuthenticationFailed
 from rest_framework import HTTP_HEADER_ENCODING
-from rest_framework import authentication
 
 from core.errors import Error
+
+
+User = get_user_model()
 
 
 class DictObjectWrapper:
@@ -32,9 +33,9 @@ class DictObjectWrapper:
         self._d[name] = value
 
 
-USER_SETTINGS = DictObjectWrapper(getattr(settings, 'SIMPLE_JWT', None))
+JWT_SETTINGS = DictObjectWrapper(getattr(settings, 'PASSPORT_JWT', None))
 
-AUTH_HEADER_TYPES = USER_SETTINGS.AUTH_HEADER_TYPES
+AUTH_HEADER_TYPES = JWT_SETTINGS.AUTH_HEADER_TYPES
 if not isinstance(AUTH_HEADER_TYPES, (list, tuple)):
     AUTH_HEADER_TYPES = (AUTH_HEADER_TYPES,)
 
@@ -100,7 +101,7 @@ class TokenBackend:
         if algorithm in algorithms.requires_cryptography and not algorithms.has_crypto:
             raise JWTInvalidError(f"You must have cryptography installed to use {algorithm}.")
 
-    def encode(self, payload):
+    def encode(self, payload, headers=None):
         """
         Returns an encoded token for the given payload dictionary.
         """
@@ -110,7 +111,7 @@ class TokenBackend:
         if self.issuer is not None:
             jwt_payload['iss'] = self.issuer
 
-        token = jwt.encode(jwt_payload, self.signing_key, algorithm=self.algorithm)
+        token = PyJWT().encode(jwt_payload, self.signing_key, algorithm=self.algorithm, headers=headers)
         if isinstance(token, bytes):
             # For PyJWT <= 1.7.1
             return token.decode('utf-8')
@@ -125,28 +126,28 @@ class TokenBackend:
         signature check fails, or if its 'exp' claim indicates it has expired.
         """
         try:
-            return jwt.decode(token, self.verifying_key, algorithms=[self.algorithm], verify=verify,
-                              audience=self.audience, issuer=self.issuer,
-                              options={'verify_aud': self.audience is not None})
+            return PyJWT().decode_complete(token, self.verifying_key, algorithms=[self.algorithm], verify=verify,
+                                           audience=self.audience, issuer=self.issuer,
+                                           options={'verify_aud': self.audience is not None})
         except InvalidAlgorithmError as ex:
             raise JWTInvalidError('Invalid algorithm specified') from ex
         except InvalidTokenError:
             raise JWTInvalidError('Token is invalid or expired')
 
 
-token_backend = TokenBackend(USER_SETTINGS.ALGORITHM, USER_SETTINGS.SIGNING_KEY,
-                             USER_SETTINGS.VERIFYING_KEY, USER_SETTINGS.AUDIENCE, USER_SETTINGS.ISSUER)
+token_backend = TokenBackend(JWT_SETTINGS.ALGORITHM, JWT_SETTINGS.SIGNING_KEY,
+                             JWT_SETTINGS.VERIFYING_KEY, JWT_SETTINGS.AUDIENCE, JWT_SETTINGS.ISSUER)
 
 
 class Token:
     """
-    A class which validates and wraps an existing JWT or can be used to build a
-    new JWT.
+    A class which validates and wraps an existing JWT
     """
-    token_type = 'access'
+    token_type = 'accessToken'
     lifetime = timedelta(hours=1, minutes=5)
+    exp_claim = JWT_SETTINGS.EXPIRATION_CLAIM or 'exp'
 
-    def __init__(self, token=None, verify=True):
+    def __init__(self, token, verify=True):
         """
         !!!! IMPORTANT !!!! MUST raise a TokenError with a user-facing error
         message if the given token is invalid, expired, or otherwise not safe
@@ -159,20 +160,12 @@ class Token:
         self.current_time = make_utc(datetime.utcnow())
 
         # Set up token
-        if token is not None:
-            self.payload = token_backend.decode(token, verify=verify)
+        self.decode_token = token_backend.decode(token, verify=verify)
+        self.headers = self.decode_token['header']
+        self.payload = self.decode_token['payload']
 
-            if verify:
-                self.verify()
-        else:
-            # New token.  Skip all the verification steps.
-            self.payload = {USER_SETTINGS.TOKEN_TYPE_CLAIM: self.token_type}
-
-            # Set "exp" claim with default value
-            self.set_exp(from_time=self.current_time, lifetime=self.lifetime)
-
-            # Set "jti" claim
-            self.set_jti()
+        if verify:
+            self.verify()
 
     def __repr__(self):
         return repr(self.payload)
@@ -207,8 +200,8 @@ class Token:
         self.check_exp()
 
         # Ensure token id is present
-        if USER_SETTINGS.JTI_CLAIM not in self.payload:
-            raise JWTInvalidError('Token has no id')
+        # if JWT_SETTINGS.JTI_CLAIM not in self.payload:
+        #     raise JWTInvalidError('Token has no id')
 
         self.verify_token_type()
 
@@ -217,7 +210,7 @@ class Token:
         Ensures that the token type claim is present and has the correct value.
         """
         try:
-            token_type = self.payload[USER_SETTINGS.TOKEN_TYPE_CLAIM]
+            token_type = self.headers[JWT_SETTINGS.TOKEN_TYPE_CLAIM]
         except KeyError:
             raise JWTInvalidError('Token has no type')
 
@@ -232,12 +225,13 @@ class Token:
         See here:
         https://tools.ietf.org/html/rfc7519#section-4.1.7
         """
-        self.payload[USER_SETTINGS.JTI_CLAIM] = uuid4().hex
+        self.payload[JWT_SETTINGS.JTI_CLAIM] = uuid4().hex
 
-    def set_exp(self, claim='exp', from_time=None, lifetime=None):
+    def set_exp(self, from_time=None, lifetime=None):
         """
         Updates the expiration time of a token.
         """
+        claim = self.exp_claim
         if from_time is None:
             from_time = self.current_time
 
@@ -246,12 +240,13 @@ class Token:
 
         self.payload[claim] = datetime_to_epoch(from_time + lifetime)
 
-    def check_exp(self, claim='exp', current_time=None):
+    def check_exp(self, current_time=None):
         """
         Checks whether a timestamp value in the given claim has passed (since
         the given datetime value in `current_time`).  Raises a TokenError with
         a user-facing error message if so.
         """
+        claim = self.exp_claim
         if current_time is None:
             current_time = self.current_time
 
@@ -260,122 +255,10 @@ class Token:
         except KeyError:
             raise JWTInvalidError(f"Token has no '{claim}' claim")
 
-        claim_time = datetime_from_epoch(claim_value)
+        try:
+            claim_time = datetime_from_epoch(claim_value)
+        except ValueError as e:
+            raise JWTInvalidError(f"Token '{claim}' claim not valid, {str(e)}")
+
         if claim_time <= current_time:
             raise JWTInvalidError(f"Token '{claim}' claim has expired")
-
-    @classmethod
-    def for_user(cls, user):
-        """
-        Returns an authorization token for the given user that will be provided
-        after authenticating the user's credentials.
-        """
-        user_id = getattr(user, USER_SETTINGS.USER_ID_FIELD)
-        if not isinstance(user_id, int):
-            user_id = str(user_id)
-
-        token = cls()
-        token[USER_SETTINGS.USER_ID_CLAIM] = user_id
-
-        return token
-
-
-class JWTAuthentication(authentication.BaseAuthentication):
-    """
-    An authentication plugin that authenticates requests through a JSON web
-    token provided in a request header.
-    """
-    www_authenticate_realm = 'api'
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.user_model = get_user_model()
-
-    def authenticate(self, request):
-        header = self.get_header(request)
-        if header is None:
-            return None
-
-        raw_token = self.get_raw_token(header)
-        if raw_token is None:
-            return None
-
-        validated_token = self.get_validated_token(raw_token)
-
-        return self.get_user(validated_token), validated_token
-
-    def authenticate_header(self, request):
-        return '{0} realm="{1}"'.format(
-            AUTH_HEADER_TYPES[0],
-            self.www_authenticate_realm,
-        )
-
-    @staticmethod
-    def get_header(request):
-        """
-        Extracts the header containing the JSON web token from the given
-        request.
-        """
-        header = request.META.get(USER_SETTINGS.AUTH_HEADER_NAME)
-
-        if isinstance(header, str):
-            # Work around django test client oddness
-            header = header.encode(HTTP_HEADER_ENCODING)
-
-        return header
-
-    @staticmethod
-    def get_raw_token(header):
-        """
-        Extracts an unvalidated JSON web token from the given "Authorization"
-        header value.
-        """
-        parts = header.split()
-
-        if len(parts) == 0:
-            # Empty AUTHORIZATION header sent
-            return None
-
-        if parts[0] not in AUTH_HEADER_TYPE_BYTES:
-            # Assume the header does not contain a JSON web token
-            return None
-
-        if len(parts) != 2:
-            raise AuthenticationFailed(
-                'Authorization header must contain two space-delimited values',
-                code='bad_authorization_header',
-            )
-
-        return parts[1]
-
-    @staticmethod
-    def get_validated_token(raw_token):
-        """
-        Validates an encoded JSON web token and returns a validated token
-        wrapper object.
-        """
-        try:
-            return Token(raw_token)
-        except JWTInvalidError as e:
-            extend_msg = f'token_class={Token.__name__}, token_type={Token.token_type}, message={e.args[0]}'
-            raise JWTInvalidError(message='Given token not valid for any token type', extend_msg=extend_msg)
-
-    def get_user(self, validated_token):
-        """
-        Attempts to find and return a user using the given validated token.
-        """
-        try:
-            user_id = validated_token[USER_SETTINGS.USER_ID_CLAIM]
-        except KeyError:
-            raise JWTInvalidError('Token contained no recognizable user identification')
-
-        try:
-            user = self.user_model.objects.get(**{USER_SETTINGS.USER_ID_FIELD: user_id})
-        except self.user_model.DoesNotExist:
-            raise AuthenticationFailed('User not found', code='user_not_found')
-
-        if not user.is_active:
-            raise AuthenticationFailed('User is inactive', code='user_inactive')
-
-        return user
-
