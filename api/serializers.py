@@ -95,7 +95,6 @@ class ServerArchiveSerializer(ServerBaseSerializer):
     service = serializers.SerializerMethodField(method_name='get_service')
     user_quota = UserQuotaSimpleSerializer(required=False)
     center_quota = serializers.IntegerField()
-    user_quota_tag = serializers.IntegerField()
     deleted_time = serializers.DateTimeField()
 
     @staticmethod

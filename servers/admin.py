@@ -31,11 +31,11 @@ class ServerAdmin(admin.ModelAdmin):
 class ServerArchiveAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
     list_display = ('id', 'service', 'name', 'instance_id', 'vcpus', 'ram', 'ipv4', 'image',
-                    'creation_time', 'user', 'task_status', 'center_quota', 'user_quota_tag', 'remarks')
+                    'creation_time', 'user', 'task_status', 'center_quota', 'user_quota', 'remarks')
     search_fields = ['name', 'image', 'ipv4', 'remarks']
     list_filter = ['service']
     raw_id_fields = ('user',)
-    list_select_related = ('service', 'user',)
+    list_select_related = ('service', 'user', 'user_quota')
     show_full_result_count = False
 
 

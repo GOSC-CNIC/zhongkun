@@ -211,7 +211,7 @@ class ServersTests(MyAPITestCase):
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
                            "public_ip", "image", "creation_time",
                            "remarks", "service", "user_quota",
-                           "center_quota", "user_quota_tag", "deleted_time"], response.data["results"][0])
+                           "center_quota", "deleted_time"], response.data["results"][0])
 
 
 class ServiceTests(MyAPITestCase):
