@@ -279,3 +279,27 @@ class NetworkDetailOutput(OutputBase):
     def __init__(self, network: NetworkDetail = None, **kwargs):
         self.network = network
         super().__init__(**kwargs)
+
+
+class VolumeStoragePool:
+    def __init__(self, name: str,
+                 total_capacity_gb: str = 'unknown',
+                 free_capacity_gb: str = 'unknown',
+                 max_size_limit_gb: str = 'unknown'):
+        """
+        :param name: 存储池名称
+        :param total_capacity_gb: 总存储容量，单位Gb
+        :param free_capacity_gb: 可用存储容量，单位Gb
+        :param max_size_limit_gb: 一个卷volume最大容量限制，单位Gb
+        """
+        self.name = name
+        self.total_capacity_gb = total_capacity_gb
+        self.free_capacity_gb = free_capacity_gb
+        self.max_size_limit_gb = max_size_limit_gb
+
+
+class ListVolumeStoragePoolsOutput(OutputBase):
+    def __init__(self, pools: list, **kwargs):
+        self.pools = pools      # DiskStoragePool
+        super().__init__(**kwargs)
+

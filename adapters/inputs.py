@@ -136,3 +136,10 @@ class NetworkDetailInput(InputBase):
         """
         self.network_id = network_id
         super().__init__(**kwargs)
+
+
+class DiskCreateInput(InputBase):
+    def __init__(self, size: int, description: str, **kwargs):
+        self.size = size                    # Gb
+        self.description = description      # 备注，描述
+        super().__init__(**kwargs)
