@@ -575,7 +575,8 @@ class ServersViewSet(CustomGenericViewSet):
             200: '''
                 {
                   "vnc": {
-                    "url": "xxx"
+                    "url": "xxx",           # 服务提供者url
+                    "proxy_vnc": "xxx"      # 中间件代理url，可以访问内网服务；vmware服务没有此内容
                   }
                 }
                 ''',
@@ -621,8 +622,12 @@ class ServersViewSet(CustomGenericViewSet):
             url = request.build_absolute_uri(location=path)
             vnc = replace_query_param(url=url, key='vm_url', val=r.vnc.url)
 
+        proxy_vnc = request.build_absolute_uri('/vms/vnc/')
+        proxy_vnc = f'{proxy_vnc}?proxy={vnc}'
+        # proxy_vnc = replace_query_param(url=proxy_vnc, key='proxy', val=vnc)
         return Response(data={'vnc': {
-            'url': vnc
+            'url': vnc,
+            'proxy_url': proxy_vnc
         }})
 
     @swagger_auto_schema(
