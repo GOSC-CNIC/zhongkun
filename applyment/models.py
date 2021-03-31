@@ -2,13 +2,14 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 
-from service.models import ServiceConfig, DataCenter
+from service.models import ServiceConfig, DataCenter, UserQuota
 
+from utils.model import UuidModel
 
 User = get_user_model()
 
 
-class ApplyService(models.Model):
+class ApplyService(UuidModel):
     """
     服务接入申请
     """
@@ -28,7 +29,6 @@ class ApplyService(models.Model):
         (SERVICE_OPENSTACK, 'OpenStack'),
     )
 
-    id = models.AutoField(verbose_name='ID', primary_key=True)
     user = models.ForeignKey(verbose_name=_('申请用户'), to=User, null=True, on_delete=models.SET_NULL)
     creation_time = models.DateTimeField(verbose_name=_('申请时间'), auto_now_add=True)
     approve_time = models.DateTimeField(verbose_name=_('审批时间'), auto_now_add=True)
@@ -54,7 +54,7 @@ class ApplyService(models.Model):
     vpn_password = models.CharField(max_length=128, verbose_name=_('密码'))
 
     class Meta:
-        ordering = ['-id']
+        ordering = ['-creation_time']
         verbose_name = _('服务接入申请')
         verbose_name_plural = verbose_name
 
@@ -84,24 +84,27 @@ class ApplyService(models.Model):
         return service
 
 
-class ApplyQuota(models.Model):
+class ApplyQuota(UuidModel):
     """
     用户资源申请
     """
-    STATUS_WAIT = 1
-    STATUS_PASS = 2
-    STATUS_REJECT = 3
+    STATUS_WAIT = 'wait'
+    STATUS_PASS = 'pass'
+    STATUS_REJECT = 'reject'
+    STATUS_CANCEL = 'cancel'
     CHOICE_STATUS = (
         (STATUS_WAIT, _('待审批')),
         (STATUS_PASS, _('审批通过')),
-        (STATUS_REJECT, _('拒绝'))
+        (STATUS_REJECT, _('拒绝')),
+        (STATUS_CANCEL, _('取消申请')),
     )
 
-    id = models.AutoField(verbose_name='ID', primary_key=True)
     user = models.ForeignKey(verbose_name=_('申请用户'), to=User, null=True, on_delete=models.SET_NULL)
+    approve_user = models.ForeignKey(verbose_name=_('审批人'), to=User, null=True, on_delete=models.SET_NULL,
+                                     related_name='approve_apply_quota')
     creation_time = models.DateTimeField(verbose_name=_('申请时间'), auto_now_add=True)
-    approve_time = models.DateTimeField(verbose_name=_('审批时间'), auto_now_add=True)
-    status = models.SmallIntegerField(verbose_name=_('状态'), choices=CHOICE_STATUS, default=STATUS_WAIT)
+    approve_time = models.DateTimeField(verbose_name=_('审批时间'), null=True, blank=True, default=None)
+    status = models.CharField(verbose_name=_('状态'), max_length=16, choices=CHOICE_STATUS, default=STATUS_WAIT)
 
     private_ip = models.IntegerField(verbose_name=_('总私网IP数'), default=0)
     public_ip = models.IntegerField(verbose_name=_('总公网IP数'), default=0)
@@ -109,8 +112,16 @@ class ApplyQuota(models.Model):
     ram = models.IntegerField(verbose_name=_('总内存大小(MB)'), default=0)
     disk_size = models.IntegerField(verbose_name=_('总硬盘大小(GB)'), default=0)
 
+    expiration_time = models.DateTimeField(verbose_name=_('资源到期时间'), null=True, blank=True, default=None)
+    company = models.CharField(verbose_name=_('申请人单位'), max_length=64, blank=True, default='')
+    contact = models.CharField(verbose_name=_('联系方式'), max_length=64, blank=True, default='')
+    purpose = models.CharField(verbose_name=_('用途'), max_length=255, blank=True, default='')
+    user_quota = models.OneToOneField(to=UserQuota, null=True, on_delete=models.SET_NULL,
+                                      default=None, verbose_name=_('用户资源配额'),
+                                      help_text=_('资源配额申请审批通过后生成的对应的用户资源配额'))
+
     class Meta:
-        ordering = ['-id']
+        ordering = ['-creation_time']
         verbose_name = _('用户资源申请')
         verbose_name_plural = verbose_name
 

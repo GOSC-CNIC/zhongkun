@@ -6,6 +6,8 @@ from django.conf import settings
 from django.core.mail import send_mail
 from django.utils.translation import gettext_lazy as _
 
+from utils.model import UuidModel
+
 
 class UserProfile(AbstractUser):
     """
@@ -40,11 +42,10 @@ class UserProfile(AbstractUser):
         super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
 
 
-class Email(models.Model):
+class Email(UuidModel):
     """
     邮件
     """
-    id = models.AutoField(primary_key=True)
     email_host = models.CharField(max_length=255, verbose_name=_('邮件服务'))
     subject = models.CharField(max_length=255, verbose_name=_('标题'))
     sender = models.EmailField(verbose_name=_('发送者'), default='')
@@ -53,7 +54,7 @@ class Email(models.Model):
     send_time = models.DateTimeField(verbose_name=_('发送时间'), auto_now_add=True)
 
     class Meta:
-        ordering = ['-id']
+        ordering = ['-send_time']
         verbose_name = _('邮件')
         verbose_name_plural = verbose_name
 

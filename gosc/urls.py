@@ -27,7 +27,7 @@ schema_view = get_schema_view(
         title="GOSC API",
         default_version='v1',
     ),
-    url='https://vms.cstcloud.cn',
+    # url='https://vms.cstcloud.cn',
     public=False,
     permission_classes=(permissions.AllowAny,),
 )

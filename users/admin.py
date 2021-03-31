@@ -18,7 +18,7 @@ class UserProfileAdmin(UserAdmin):
         (_('权限信息'), {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
         (_('重要日期'), {'fields': ('date_joined',)}),
     )
-    ordering = None
+    ordering = ['date_joined']
 
     def fullname(self, obj):
         return obj.get_full_name()

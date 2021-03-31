@@ -39,7 +39,7 @@ class Migration(migrations.Migration):
                 ('user', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL, verbose_name='申请用户')),
             ],
             options={
-                'ordering': ['-id'],
+                'ordering': ['-creation_time'],
                 'verbose_name': '服务接入申请',
                 'verbose_name_plural': '服务接入申请'
             },
@@ -59,7 +59,7 @@ class Migration(migrations.Migration):
                 ('user', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL, verbose_name='申请用户')),
             ],
             options={
-                'ordering': ['-id'],
+                'ordering': ['-creation_time'],
                 'verbose_name': '用户资源申请',
                 'verbose_name_plural': '用户资源申请'
             },

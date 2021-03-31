@@ -44,7 +44,7 @@ class Migration(migrations.Migration):
                 ('disk_size_total', models.IntegerField(default=0, verbose_name='总硬盘大小(GB)')),
                 ('disk_size_used', models.IntegerField(default=0, verbose_name='已用硬盘大小(GB)')),
                 ('user', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='user_quota', to=settings.AUTH_USER_MODEL, verbose_name='用户')),
-                ('expiration_time', models.DateTimeField(blank=True, default=None, null=True, verbose_name='过期时间')),
+                ('expiration_time', models.DateTimeField(blank=True, default=None, null=True, verbose_name='过期时间', help_text='过期后不能再用于创建资源')),
                 ('is_email', models.BooleanField(default=False, help_text='是否邮件通知用户配额即将到期', verbose_name='是否邮件通知')),
                 ('tag', models.SmallIntegerField(choices=[(1, '普通配额'), (2, '试用配额')], default=1, verbose_name='配额类型')),
                 ('deleted', models.BooleanField(default=False, verbose_name='删除')),
