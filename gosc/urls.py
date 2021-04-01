@@ -22,12 +22,16 @@ from drf_yasg import openapi
 
 from . import views
 
+schema_url = 'https://vms.cstcloud.cn'
+if getattr(settings, 'DEBUG', False):
+    schema_url = None
+
 schema_view = get_schema_view(
     openapi.Info(
         title="GOSC API",
         default_version='v1',
     ),
-    # url='https://vms.cstcloud.cn',
+    url=schema_url,
     public=False,
     permission_classes=(permissions.AllowAny,),
 )

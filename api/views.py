@@ -184,10 +184,9 @@ class ServersViewSet(CustomGenericViewSet):
         network_id = data.get('network_id', '')
         remarks = data.get('remarks') or request.user.username
         quota_id = data.get('quota_id', None)
-        private_quota_id = data.get('private_quota_id', None)
 
-        if (not quota_id) and (not private_quota_id):
-            exc = exceptions.BadRequest(message=_('"quota_id"或者"private_quota_id" 2个参数至少提交中的一个'))
+        if not quota_id:
+            exc = exceptions.BadRequest(message=_('必须提交"quota_id"参数'))
             return Response(exc.err_data(), status=exc.status_code)
 
         flavor = Flavor.objects.filter(id=flavor_id).first()
@@ -210,9 +209,9 @@ class ServersViewSet(CustomGenericViewSet):
 
         # 资源配额扣除
         try:
-            use_shared_quota, user_quota = QuotaAPI().server_create_quota_apply(
+            user_quota = QuotaAPI().server_create_quota_apply(
                 service=service, user=request.user, vcpu=flavor.vcpus, ram=flavor.ram,
-                public_ip=is_public_network, user_quota_id=quota_id, private_quota_id=private_quota_id)
+                public_ip=is_public_network, user_quota_id=quota_id)
         except exceptions.Error as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
@@ -224,16 +223,13 @@ class ServersViewSet(CustomGenericViewSet):
             try:
                 QuotaAPI().server_quota_release(service=service, user=request.user,
                                                 vcpu=flavor.vcpus, ram=flavor.ram, public_ip=is_public_network,
-                                                use_shared_quota=use_shared_quota, user_quota_id=user_quota.id)
+                                                user_quota_id=user_quota.id)
             except exceptions.Error:
                 pass
             return Response(data=exc.err_data(), status=exc.status_code)
 
         out_server = out.server
-        if use_shared_quota:
-            kwargs = {'center_quota': Server.QUOTA_SHARED}
-        else:
-            kwargs = {'center_quota': Server.QUOTA_PRIVATE}
+        kwargs = {'center_quota': Server.QUOTA_PRIVATE}
         server = Server(service=service,
                         instance_id=out_server.uuid,
                         remarks=remarks,
@@ -713,7 +709,6 @@ class ServersViewSet(CustomGenericViewSet):
         try:
             QuotaAPI().server_quota_release(service=server.service, user=server.user,
                                             vcpu=server.vcpus, ram=server.ram, public_ip=server.public_ip,
-                                            use_shared_quota=server.is_use_shared_quota,
                                             user_quota_id=server.user_quota_id)
         except exceptions.Error as e:
             return False

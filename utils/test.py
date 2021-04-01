@@ -8,7 +8,7 @@ User = get_user_model()
 
 
 def get_or_create_user(username='test', password='password'):
-    user, created = User.objects.get_or_create(username=username, password=password)
+    user, created = User.objects.get_or_create(username=username, password=password, is_active=True)
     return user
 
 

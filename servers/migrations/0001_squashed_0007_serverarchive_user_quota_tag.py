@@ -49,7 +49,7 @@ class Migration(migrations.Migration):
                 ('user', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='user_servers', to=settings.AUTH_USER_MODEL, verbose_name='创建者')),
                 ('public_ip', models.BooleanField(default=True, verbose_name='公/私网')),
                 ('task_status', models.SmallIntegerField(choices=[(1, '创建成功'), (2, '正在创建中'), (3, '创建失败')], default=1, verbose_name='创建状态')),
-                ('center_quota', models.SmallIntegerField(choices=[(1, '私有资源配额'), (2, '共享资源配额')], default=2, verbose_name='数据中心配额')),
+                ('center_quota', models.SmallIntegerField(choices=[(1, '私有资源配额'), (2, '共享资源配额')], default=1, verbose_name='服务配额')),
                 ('user_quota', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='quota_servers', to='service.userquota', verbose_name='所属用户配额')),
             ],
             options={
@@ -75,7 +75,7 @@ class Migration(migrations.Migration):
                 ('service', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='server_archive_set', to='service.serviceconfig', verbose_name='接入的服务配置')),
                 ('user', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='user_server_archives', to=settings.AUTH_USER_MODEL, verbose_name='创建者')),
                 ('task_status', models.SmallIntegerField(choices=[(1, '创建成功'), (2, '正在创建中'), (3, '创建失败')], default=1, verbose_name='创建状态')),
-                ('center_quota', models.SmallIntegerField(choices=[(1, '私有资源配额'), (2, '共享资源配额')], default=2, verbose_name='数据中心配额')),
+                ('center_quota', models.SmallIntegerField(choices=[(1, '私有资源配额'), (2, '共享资源配额')], default=1, verbose_name='服务配额')),
                 ('user_quota', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='server_archive_set', to='service.userquota', verbose_name='所属用户配额')),
                 ('user_quota_tag', models.SmallIntegerField(choices=[(1, '普通配额'), (2, '试用配额')], default=1, verbose_name='配额类型')),
             ],

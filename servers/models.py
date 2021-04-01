@@ -46,7 +46,7 @@ class ServerBase(models.Model):
     creation_time = models.DateTimeField(auto_now_add=True, verbose_name=_('创建时间'))
     remarks = models.CharField(max_length=255, blank=True, default='', verbose_name=_('备注'))
     task_status = models.SmallIntegerField(verbose_name=_('创建状态'), choices=CHOICES_TASK, default=TASK_CREATED_OK)
-    center_quota = models.SmallIntegerField(verbose_name=_('数据中心配额'), choices=CHOICES_QUOTA, default=QUOTA_SHARED)
+    center_quota = models.SmallIntegerField(verbose_name=_('服务配额'), choices=CHOICES_QUOTA, default=QUOTA_PRIVATE)
 
     class Meta:
         abstract = True
@@ -164,7 +164,7 @@ class Server(ServerBase):
                 'private_ip_count': 1
             }
         """
-        if isinstance(service, int):
+        if not isinstance(service, models.Model):
             service_id = service
         else:
             service_id = service.id
@@ -196,7 +196,7 @@ class Server(ServerBase):
                 'private_ip_count': 1
             }
         """
-        if isinstance(service, int):
+        if not isinstance(service, models.Model):
             service_id = service
         else:
             service_id = service.id

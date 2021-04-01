@@ -1,9 +1,10 @@
 from django.test import TransactionTestCase
 from django.contrib.auth import get_user_model
 
-from .managers import UserQuotaManager, ServicePrivateQuotaManager, ServiceShareQuotaManager
 from core.errors import QuotaShortageError
+from core.quota import QuotaAPI
 from utils.test import get_or_create_user, get_or_create_service
+from .managers import UserQuotaManager, ServicePrivateQuotaManager, ServiceShareQuotaManager
 
 User = get_user_model()
 
@@ -208,3 +209,94 @@ class TestDataCenterQuotaManager(TransactionTestCase):
 
     def test_private_quota_manager(self):
         self.manager_test(ServicePrivateQuotaManager)
+
+
+class QuotaAPITests(TransactionTestCase):
+    def setUp(self):
+        self.user = get_or_create_user()
+        self.service = get_or_create_service()
+        self.user_quota = UserQuotaManager()._create_quota(
+            user=self.user, service=self.service)
+
+        mgr = ServicePrivateQuotaManager()
+        service = self.service
+        self.pri_quota = mgr.get_quota(service=service)
+
+    def test_quota_apply_and_release(self):
+        vcpus_add = 6
+        ram_add = 1024
+        disk_size_add = 2048
+        public_ip_add = 1
+        private_ip_add = 1
+
+        vcpus_apply = 2
+        ram_apply = 1024
+        is_public_ip_apply = True
+
+        # 配额都是0
+        with self.assertRaises(QuotaShortageError):
+            QuotaAPI.server_create_quota_apply(service=self.service, user=self.user,
+                                               vcpu=1, ram=1024, public_ip=True, user_quota_id=self.user_quota.id)
+
+        # 增加用户配额
+        self.user_quota = UserQuotaManager().increase(
+            user=self.user, quota_id=self.user_quota.id, vcpus=vcpus_add,
+            ram=ram_add, disk_size=disk_size_add, public_ip=public_ip_add,
+            private_ip=private_ip_add)
+
+        with self.assertRaises(QuotaShortageError):
+            QuotaAPI.server_create_quota_apply(
+                service=self.service, user=self.user, vcpu=vcpus_apply, ram=ram_apply,
+                public_ip=is_public_ip_apply, user_quota_id=self.user_quota.id)
+
+        # 增加服务私有配额
+        self.pri_quota = ServicePrivateQuotaManager().increase(
+            service=self.service, vcpus=vcpus_add, ram=ram_add, disk_size=disk_size_add,
+            public_ip=public_ip_add, private_ip=private_ip_add)
+
+        user_quota = QuotaAPI.server_create_quota_apply(
+            service=self.service, user=self.user, vcpu=vcpus_apply, ram=ram_apply,
+            public_ip=True, user_quota_id=self.user_quota.id)
+        self.assertIsInstance(user_quota, UserQuotaManager.MODEL)
+
+        self.user_quota.refresh_from_db()
+        self.assertEqual(self.user_quota.vcpu_total, vcpus_add)
+        self.assertEqual(self.user_quota.vcpu_used, vcpus_apply)
+        self.assertEqual(self.user_quota.ram_total, ram_add)
+        self.assertEqual(self.user_quota.ram_used, ram_apply)
+        self.assertEqual(self.user_quota.disk_size_total, disk_size_add)
+        self.assertEqual(self.user_quota.disk_size_used, 0)
+        self.assertEqual(self.user_quota.public_ip_total, public_ip_add)
+        self.assertEqual(self.user_quota.public_ip_used, 1)
+        self.assertEqual(self.user_quota.private_ip_total, private_ip_add)
+        self.assertEqual(self.user_quota.private_ip_used, 0)
+
+        self.pri_quota.refresh_from_db()
+        self.assertEqual(self.pri_quota.vcpu_total, vcpus_add)
+        self.assertEqual(self.pri_quota.vcpu_used, vcpus_apply)
+        self.assertEqual(self.pri_quota.ram_total, ram_add)
+        self.assertEqual(self.pri_quota.ram_used, ram_apply)
+        self.assertEqual(self.pri_quota.disk_size_total, disk_size_add)
+        self.assertEqual(self.pri_quota.disk_size_used, 0)
+        self.assertEqual(self.pri_quota.public_ip_total, public_ip_add)
+        self.assertEqual(self.pri_quota.public_ip_used, 1)
+        self.assertEqual(self.pri_quota.private_ip_total, private_ip_add)
+        self.assertEqual(self.pri_quota.private_ip_used, 0)
+
+        QuotaAPI().server_quota_release(self.service, user=self.user, vcpu=vcpus_apply,
+                                        ram=ram_apply, public_ip=is_public_ip_apply,
+                                        user_quota_id=self.user_quota.id)
+
+        self.user_quota.refresh_from_db()
+        self.assertEqual(self.user_quota.vcpu_used, 0)
+        self.assertEqual(self.user_quota.ram_used, 0)
+        self.assertEqual(self.user_quota.disk_size_used, 0)
+        self.assertEqual(self.user_quota.public_ip_used, 0)
+        self.assertEqual(self.user_quota.private_ip_used, 0)
+
+        self.pri_quota.refresh_from_db()
+        self.assertEqual(self.pri_quota.vcpu_used, 0)
+        self.assertEqual(self.pri_quota.ram_used, 0)
+        self.assertEqual(self.pri_quota.disk_size_used, 0)
+        self.assertEqual(self.pri_quota.public_ip_used, 0)
+        self.assertEqual(self.pri_quota.private_ip_used, 0)
