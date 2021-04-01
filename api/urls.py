@@ -21,7 +21,7 @@ router.register(r'registry', views.DataCenterViewSet, basename='registry')
 
 urlpatterns = [
     path('', include(router.urls)),
-    path(r'jwt/', views.JWTObtainPairView.as_view(), name='jwt-token'),
-    path(r'jwt-refresh/', views.JWTRefreshView.as_view(), name='jwt-refresh'),
-    path(r'jwt-verify/', views.JWTVerifyView.as_view(), name='jwt-verify'),
+    # path(r'jwt/', views.JWTObtainPairView.as_view(), name='jwt-token'),
+    # path(r'jwt-refresh/', views.JWTRefreshView.as_view(), name='jwt-refresh'),
+    # path(r'jwt-verify/', views.JWTVerifyView.as_view(), name='jwt-verify'),
 ]

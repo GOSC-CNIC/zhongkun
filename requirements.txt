@@ -12,7 +12,6 @@ Django==3.1.7
 django-cors-headers==3.7.0
 django-debug-toolbar==3.2
 djangorestframework==3.11.0
-djangorestframework-simplejwt==4.6.0
 dogpile.cache==1.1.2
 drf-yasg==1.20.0
 idna==2.10

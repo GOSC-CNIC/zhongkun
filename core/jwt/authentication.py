@@ -1,7 +1,6 @@
 from django.utils.translation import gettext as _
 from django.contrib.auth import get_user_model
 from rest_framework.exceptions import AuthenticationFailed
-from rest_framework_simplejwt.exceptions import AuthenticationFailed
 from rest_framework import authentication
 
 from .jwt import (JWT_SETTINGS, AUTH_HEADER_TYPES, AUTH_HEADER_TYPE_BYTES,
