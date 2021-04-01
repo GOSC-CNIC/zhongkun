@@ -17,7 +17,6 @@ router.register(r'flavor', views.FlavorViewSet, basename='flavor')
 router.register(r'u-quota', views.UserQuotaViewSet, basename='user-quota')
 router.register(r'service', views.ServiceViewSet, basename='service')
 router.register(r'registry', views.DataCenterViewSet, basename='registry')
-router.register(r'p-quota', views.ServicePrivateQuotaViewSet, basename='private-quota')
 
 
 urlpatterns = [

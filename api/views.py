@@ -18,7 +18,7 @@ from drf_yasg import openapi
 from rest_framework_simplejwt.views import TokenVerifyView, TokenRefreshView, TokenObtainPairView
 
 from servers.models import Server, Flavor, ServerArchive
-from service.managers import ServicePrivateQuotaManager, ServiceManager
+from service.managers import ServiceManager
 from service.models import ServiceConfig, DataCenter
 from adapters import inputs, outputs
 from core.quota import QuotaAPI
@@ -1424,63 +1424,6 @@ class JWTVerifyView(TokenVerifyView):
 
             err = exceptions.InvalidJWT(message=msg)
             return Response(data=err.err_data(), status=err.status_code)
-
-
-class ServicePrivateQuotaViewSet(CustomGenericViewSet):
-    """
-    服务私有资源配额相关API
-    """
-    queryset = []
-    permission_classes = [IsAuthenticated]
-    pagination_class = DefaultPageNumberPagination
-
-    @swagger_auto_schema(
-        operation_summary=gettext_lazy('列举用户可使用的服务私有资源配额'),
-        responses={
-            status.HTTP_200_OK: ''
-        }
-    )
-    def list(self, request, *args, **kwargs):
-        """
-        列举用户可使用的服务私有资源配额
-
-            Http Code: 状态码200，返回数据：
-            {
-              "count": 1,
-              "next": null,
-              "previous": null,
-              "results": [
-                {
-                  "id": "9c70cbe2-690c-11eb-a4b7-c8009fe2eb10",
-                  "private_ip_total": 10,
-                  "private_ip_used": 3,
-                  "public_ip_total": 8,
-                  "public_ip_used": 0,
-                  "vcpu_total": 20,
-                  "vcpu_used": 3,
-                  "ram_total": 10240,
-                  "ram_used": 3072,
-                  "disk_size_total": 0,
-                  "disk_size_used": 0,
-                  "creation_time": null,
-                  "enable": true,
-                  "service": {
-                    "id": "2",
-                    "name": "怀柔204机房"
-                  }
-                }
-              ]
-            }
-        """
-        try:
-            queryset = ServicePrivateQuotaManager().get_user_private_queryset(user=request.user)
-            paginator = self.pagination_class()
-            quotas = paginator.paginate_queryset(request=request, queryset=queryset)
-            serializer = serializers.PrivateServiceQuotaSerializer(quotas, many=True)
-            return paginator.get_paginated_response(data=serializer.data)
-        except Exception as exc:
-            err = exceptions.APIException(message=str(exc))
-            return Response(err.err_data(), status=err.status_code)
 
 
 class ServerArchiveViewSet(CustomGenericViewSet):
