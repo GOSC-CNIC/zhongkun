@@ -17,11 +17,9 @@ router.register(r'flavor', views.FlavorViewSet, basename='flavor')
 router.register(r'u-quota', views.UserQuotaViewSet, basename='user-quota')
 router.register(r'service', views.ServiceViewSet, basename='service')
 router.register(r'registry', views.DataCenterViewSet, basename='registry')
+router.register(r'apply/quota', views.UserQuotaApplyViewSet, basename='apply-quota')
 
 
 urlpatterns = [
     path('', include(router.urls)),
-    # path(r'jwt/', views.JWTObtainPairView.as_view(), name='jwt-token'),
-    # path(r'jwt-refresh/', views.JWTRefreshView.as_view(), name='jwt-refresh'),
-    # path(r'jwt-verify/', views.JWTVerifyView.as_view(), name='jwt-verify'),
 ]

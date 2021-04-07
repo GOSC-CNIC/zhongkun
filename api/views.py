@@ -1,10 +1,12 @@
 import random
 import requests
 from io import BytesIO
+from datetime import timedelta
 
 from django.core.validators import validate_ipv4_address, ValidationError
 from django.utils.translation import gettext_lazy, gettext as _
 from django.http.response import FileResponse
+from django.utils import timezone
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -27,32 +29,7 @@ from .viewsets import CustomGenericViewSet, str_to_int_or_default
 from .paginations import ServersPagination, DefaultPageNumberPagination
 from core.taskqueue import server_build_status
 from . import handlers
-
-
-def serializer_error_msg(errors, default=''):
-    """
-    获取一个错误信息
-
-    :param errors: serializer.errors
-    :param default:
-    :return:
-        str
-    """
-    msg = default
-    try:
-        if isinstance(errors, list):
-            for err in errors:
-                msg = str(err)
-                break
-        elif isinstance(errors, dict):
-            for key in errors:
-                val = errors[key]
-                msg = f'{key}, {str(val[0])}'
-                break
-    except Exception:
-        pass
-
-    return msg
+from .handlers import serializer_error_msg
 
 
 def is_ipv4(value):
@@ -219,15 +196,15 @@ class ServersViewSet(CustomGenericViewSet):
             out = self.request_service(service=service, method='server_create', params=params)
         except exceptions.APIException as exc:
             try:
-                QuotaAPI().server_quota_release(service=service, user=request.user,
-                                                vcpu=flavor.vcpus, ram=flavor.ram, public_ip=is_public_network,
-                                                user_quota_id=user_quota.id)
+                QuotaAPI().server_quota_release(service=service, vcpu=flavor.vcpus,
+                                                ram=flavor.ram, public_ip=is_public_network)
             except exceptions.Error:
                 pass
             return Response(data=exc.err_data(), status=exc.status_code)
 
         out_server = out.server
         kwargs = {'center_quota': Server.QUOTA_PRIVATE}
+        due_time = timezone.now() + timedelta(days=user_quota.duration_days)
         server = Server(service=service,
                         instance_id=out_server.uuid,
                         remarks=remarks,
@@ -237,6 +214,7 @@ class ServersViewSet(CustomGenericViewSet):
                         task_status=Server.TASK_IN_CREATING,
                         user_quota=user_quota,
                         public_ip=is_public_network,
+                        expiration_time=due_time,
                         **kwargs
                         )
         server.save()
@@ -705,9 +683,8 @@ class ServersViewSet(CustomGenericViewSet):
             False
         """
         try:
-            QuotaAPI().server_quota_release(service=server.service, user=server.user,
-                                            vcpu=server.vcpus, ram=server.ram, public_ip=server.public_ip,
-                                            user_quota_id=server.user_quota_id)
+            QuotaAPI().server_quota_release(service=server.service, vcpu=server.vcpus,
+                                            ram=server.ram, public_ip=server.public_ip)
         except exceptions.Error as e:
             return False
 
@@ -1378,3 +1355,275 @@ class ServerArchiveViewSet(CustomGenericViewSet):
             err = exceptions.APIException(message=str(exc))
             return Response(err.err_data(), status=err.status_code)
 
+
+class UserQuotaApplyViewSet(CustomGenericViewSet):
+    """
+    用户资源配额申请视图
+    """
+    queryset = []
+    permission_classes = [IsAuthenticated]
+    pagination_class = DefaultPageNumberPagination
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举用户资源配额申请'),
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        列举用户资源配额申请
+
+            Http Code: 状态码200，返回数据：
+            {
+              "count": 2,
+              "next": null,
+              "previous": null,
+              "results": [
+                {
+                  "id": "c41dcafe-9388-11eb-b2d3-c8009fe2eb10",
+                  "private_ip": 0,
+                  "public_ip": 0,
+                  "vcpu": 0,
+                  "ram": 0,
+                  "disk_size": 0,
+                  "duration_days": 1,
+                  "company": "string",
+                  "contact": "string",
+                  "purpose": "string",
+                  "creation_time": "2021-04-02T07:55:18.026082Z",
+                  "status": "wait",
+                  "service": {
+                    "id": "2",
+                    "name": "怀柔204机房"
+                  }
+                }
+              ]
+            }
+            补充说明:
+            "status" values:
+                wait: 待审批              # 允许申请者修改
+                pending: 审批中            # 挂起，不允许申请者修改，只允许管理者审批
+                pass: 审批通过
+                reject: 拒绝
+                cancel: 取消申请        # 只允许申请者取消
+
+        """
+        return handlers.ApplyUserQuotaHandler.list_apply(
+            view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('提交用户资源配额申请'),
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    def create(self, request, *args, **kwargs):
+        """
+        提交用户资源配额申请
+
+            Http Code: 状态码201，返回数据：
+            {
+              "id": "c41dcafe-9388-11eb-b2d3-c8009fe2eb10",
+              "private_ip": 0,
+              "public_ip": 0,
+              "vcpu": 0,
+              "ram": 0,
+              "disk_size": 0,
+              "duration_days": 1,
+              "company": "string",
+              "contact": "string",
+              "purpose": "string",
+              "creation_time": "2021-04-02T07:55:18.026082Z",
+              "status": "wait",
+              "service": {
+                "id": "2",
+                "name": "怀柔204机房"
+              }
+            }
+        """
+        return handlers.ApplyUserQuotaHandler.create_apply(
+            view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('修改用户资源配额申请'),
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    def partial_update(self, request, *args, **kwargs):
+        """
+        修改配额申请
+
+            Http Code: 状态码200:
+            {
+              "id": "c41dcafe-9388-11eb-b2d3-c8009fe2eb10",
+              "private_ip": 0,
+              "public_ip": 0,
+              "vcpu": 0,
+              "ram": 0,
+              "disk_size": 0,
+              "duration_days": 1,
+              "company": "string",
+              "contact": "string",
+              "purpose": "string",
+              "creation_time": "2021-04-02T07:55:18.026082Z",
+              "status": "wait",
+              "service": {
+                "id": "2",
+                "name": "怀柔204机房"
+              }
+            }
+        """
+        return handlers.ApplyUserQuotaHandler.modify_apply(
+            view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('挂起用户资源配额申请(审批中)'),
+        request_body=no_body,
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    @action(methods=['post'], detail=True, url_path='pending', url_name='pending_apply')
+    def pending_apply(self, request, *args, **kwargs):
+        """
+        配额申请审批挂起中
+
+            Http Code: 状态码200:
+            {
+              "id": "c41dcafe-9388-11eb-b2d3-c8009fe2eb10",
+              "private_ip": 0,
+              "public_ip": 0,
+              "vcpu": 0,
+              "ram": 0,
+              "disk_size": 0,
+              "duration_days": 1,
+              "company": "string",
+              "contact": "string",
+              "purpose": "string",
+              "creation_time": "2021-04-02T07:55:18.026082Z",
+              "status": "pending",
+              "service": {
+                "id": "2",
+                "name": "怀柔204机房"
+              }
+            }
+        """
+        return handlers.ApplyUserQuotaHandler.pending_apply(
+            view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('取消用户资源配额申请'),
+        request_body=no_body,
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    @action(methods=['post'], detail=True, url_path='cancel', url_name='cancel_apply')
+    def cancel_apply(self, request, *args, **kwargs):
+        """
+        取消配额申请
+
+            Http Code: 状态码200:
+            {
+              "id": "c41dcafe-9388-11eb-b2d3-c8009fe2eb10",
+              "private_ip": 0,
+              "public_ip": 0,
+              "vcpu": 0,
+              "ram": 0,
+              "disk_size": 0,
+              "duration_days": 1,
+              "company": "string",
+              "contact": "string",
+              "purpose": "string",
+              "creation_time": "2021-04-02T07:55:18.026082Z",
+              "status": "cancel",
+              "service": {
+                "id": "2",
+                "name": "怀柔204机房"
+              }
+            }
+        """
+        return handlers.ApplyUserQuotaHandler.cancel_apply(
+            view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('拒绝用户资源配额申请'),
+        request_body=no_body,
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    @action(methods=['post'], detail=True, url_path='reject', url_name='reject_apply')
+    def reject_apply(self, request, *args, **kwargs):
+        """
+        拒绝配额申请
+
+            Http Code: 状态码200:
+            {
+              "id": "c41dcafe-9388-11eb-b2d3-c8009fe2eb10",
+              "private_ip": 0,
+              "public_ip": 0,
+              "vcpu": 0,
+              "ram": 0,
+              "disk_size": 0,
+              "duration_days": 1,
+              "company": "string",
+              "contact": "string",
+              "purpose": "string",
+              "creation_time": "2021-04-02T07:55:18.026082Z",
+              "status": "reject",
+              "service": {
+                "id": "2",
+                "name": "怀柔204机房"
+              }
+            }
+        """
+        return handlers.ApplyUserQuotaHandler.reject_apply(
+            view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('通过用户资源配额申请'),
+        request_body=no_body,
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    @action(methods=['post'], detail=True, url_path='pass', url_name='pass_apply')
+    def pass_apply(self, request, *args, **kwargs):
+        """
+        通过配额申请
+
+            Http Code: 状态码200:
+            {
+              "id": "c41dcafe-9388-11eb-b2d3-c8009fe2eb10",
+              "private_ip": 0,
+              "public_ip": 0,
+              "vcpu": 0,
+              "ram": 0,
+              "disk_size": 0,
+              "duration_days": 1,
+              "company": "string",
+              "contact": "string",
+              "purpose": "string",
+              "creation_time": "2021-04-02T07:55:18.026082Z",
+              "status": "pass",
+              "service": {
+                "id": "2",
+                "name": "怀柔204机房"
+              }
+            }
+        """
+        return handlers.ApplyUserQuotaHandler.pass_apply(
+            view=self, request=request, kwargs=kwargs)
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return serializers.ApplyQuotaSerializer
+        elif self.action == 'create':
+            return serializers.ApplyQuotaCreateSerializer
+        elif self.action == 'partial_update':
+            return serializers.ApplyQuotaPatchSerializer
+
+        return Serializer

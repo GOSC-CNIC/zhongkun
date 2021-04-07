@@ -67,9 +67,9 @@ class UserQuotaTests(MyAPITestCase):
         self.user = get_or_create_user()
         self.service = get_or_create_service()
         mgr = UserQuotaManager()
-        self.quota = mgr._create_quota(user=self.user, service=self.service)
-        self.expire_quota = mgr._create_quota(user=self.user, service=self.service,
-                                              expire_time=timezone.now() - timedelta(days=1))
+        self.quota = mgr.create_quota(user=self.user, service=self.service)
+        self.expire_quota = mgr.create_quota(user=self.user, service=self.service,
+                                             expire_time=timezone.now() - timedelta(days=1))
 
         create_server_metadata(
             service=self.service, user=self.user, user_quota=self.quota)

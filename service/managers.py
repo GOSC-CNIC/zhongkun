@@ -15,7 +15,7 @@ class UserQuotaManager:
     """
     MODEL = UserQuota
 
-    def _create_quota(self, user, service, tag: int = None, expire_time=None):
+    def create_quota(self, user, service, tag: int = None, expire_time=None):
         if tag is None:
             tag = self.MODEL.TAG_BASE
 

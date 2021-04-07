@@ -113,7 +113,13 @@ class CustomGenericViewSet(viewsets.GenericViewSet):
         if not service_id:
             raise exceptions.InvalidArgument(_('参数"service_id"值无效.'))
 
-        service = ServiceConfig.objects.select_related('data_center').filter(id=service_id, status=ServiceConfig.STATUS_ENABLE).first()
+        return self.get_service_by_id(service_id)
+
+    @staticmethod
+    def get_service_by_id(service_id):
+        service = ServiceConfig.objects.select_related('data_center').filter(
+            id=service_id, status=ServiceConfig.STATUS_ENABLE).first()
+
         if not service:
             raise exceptions.ServiceNotExist(_('服务端点不存在'))
 

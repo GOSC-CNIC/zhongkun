@@ -127,6 +127,20 @@ class ServiceConfig(UuidModel):
         key = t if t else self.service_type
         return self.SERVICE_TYPE_STRING.get(key)
 
+    def user_has_perm(self, user):
+        """
+        用户是否有访问此服务的管理权限
+
+        :param user: 用户
+        :return:
+            True    # has
+            False   # no
+        """
+        if not user or not user.id:
+            return False
+
+        return self.users.filter(id=user.id).exists()
+
 
 class ServiceQuotaBase(UuidModel):
     """
@@ -209,8 +223,8 @@ class UserQuota(UuidModel):
                                            help_text=_('过期后不能再用于创建资源'))
     is_email = models.BooleanField(verbose_name=_('是否邮件通知'), default=False, help_text=_('是否邮件通知用户配额即将到期'))
     deleted = models.BooleanField(verbose_name=_('删除'), default=False)
-    due_time = models.DateTimeField(verbose_name=_('资源使用到期时间'), null=True, blank=True, default=None,
-                                    help_text=_('使用此配额创建的资源的到期时间'))
+    duration_days = models.IntegerField(verbose_name=_('资源使用时长'), blank=True, default=365,
+                                        help_text=_('使用此配额创建的资源的有效使用时长'))
 
     class Meta:
         db_table = 'user_quota'
@@ -230,6 +244,8 @@ class UserQuota(UuidModel):
             values.append(f'PublicIP: {self.public_ip_total}')
         if self.private_ip_total > 0:
             values.append(f'PrivateIP: {self.private_ip_total}')
+        if self.duration_days > 0:
+            values.append(f'Days: {self.duration_days}')
 
         if values:
             s = ', '.join(values)

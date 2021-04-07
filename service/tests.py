@@ -25,7 +25,7 @@ class TestUserQuotaManager(TransactionTestCase):
         mgr = UserQuotaManager()
         old_quota = mgr.get_base_quota_queryset(user=user).first()
         if not old_quota:
-            old_quota = mgr._create_quota(user=user, service=self.service)
+            old_quota = mgr.create_quota(user=user, service=self.service)
 
         new_quota = mgr.increase(user=user, quota_id=old_quota.id, vcpus=vcpus_add, ram=ram_add,
                                  disk_size=disk_size_add, public_ip=public_ip_add, private_ip=private_ip_add)
@@ -215,7 +215,7 @@ class QuotaAPITests(TransactionTestCase):
     def setUp(self):
         self.user = get_or_create_user()
         self.service = get_or_create_service()
-        self.user_quota = UserQuotaManager()._create_quota(
+        self.user_quota = UserQuotaManager().create_quota(
             user=self.user, service=self.service)
 
         mgr = ServicePrivateQuotaManager()
@@ -283,15 +283,14 @@ class QuotaAPITests(TransactionTestCase):
         self.assertEqual(self.pri_quota.private_ip_total, private_ip_add)
         self.assertEqual(self.pri_quota.private_ip_used, 0)
 
-        QuotaAPI().server_quota_release(self.service, user=self.user, vcpu=vcpus_apply,
-                                        ram=ram_apply, public_ip=is_public_ip_apply,
-                                        user_quota_id=self.user_quota.id)
+        QuotaAPI().server_quota_release(self.service, vcpu=vcpus_apply,
+                                        ram=ram_apply, public_ip=is_public_ip_apply)
 
         self.user_quota.refresh_from_db()
-        self.assertEqual(self.user_quota.vcpu_used, 0)
-        self.assertEqual(self.user_quota.ram_used, 0)
+        self.assertEqual(self.user_quota.vcpu_used, vcpus_apply)
+        self.assertEqual(self.user_quota.ram_used, ram_apply)
         self.assertEqual(self.user_quota.disk_size_used, 0)
-        self.assertEqual(self.user_quota.public_ip_used, 0)
+        self.assertEqual(self.user_quota.public_ip_used, 1)
         self.assertEqual(self.user_quota.private_ip_used, 0)
 
         self.pri_quota.refresh_from_db()

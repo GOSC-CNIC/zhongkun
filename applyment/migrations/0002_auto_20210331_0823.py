@@ -42,7 +42,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='applyquota',
             name='user_quota',
-            field=models.OneToOneField(default=None, help_text='资源配额申请审批通过后生成的对应的用户资源配额', null=True, on_delete=django.db.models.deletion.SET_NULL, to='service.userquota', verbose_name='用户资源配额'),
+            field=models.OneToOneField(default=None, help_text='资源配额申请审批通过后生成的对应的用户资源配额', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='apply_quota', to='service.userquota', verbose_name='用户资源配额'),
         ),
         migrations.AlterField(
             model_name='applyquota',

@@ -69,3 +69,14 @@ class MethodNotSupportInService(APIException):
     default_message = 'This method or business is not supported by this service center.'
     default_code = 'MethodNotSupportInService'
     default_status_code = 405
+
+
+class ConflictError(APIException):
+    default_message = '由于和被请求的资源的当前状态之间存在冲突，请求无法完成'
+    default_code = 'Conflict'
+    default_status_code = 409
+
+
+class TooManyQuotaApply(ConflictError):
+    default_message = '您已提交了多个申请，待审批，暂不能提交更多的申请'
+    default_code = 'TooManyQuotaApply'

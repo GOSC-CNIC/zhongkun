@@ -26,6 +26,7 @@ class ServerBaseSerializer(serializers.Serializer):
     public_ip = serializers.BooleanField()
     image = serializers.CharField()
     creation_time = serializers.DateTimeField()
+    expiration_time = serializers.DateTimeField()
     remarks = serializers.CharField()
 
 
@@ -148,6 +149,7 @@ class UserQuotaSerializer(serializers.Serializer):
     expiration_time = serializers.DateTimeField(label=_('过期时间'), default=None)
     deleted = serializers.BooleanField(label=_('删除'), default=False)
     display = serializers.CharField()
+    duration_days = serializers.IntegerField(label=_('资源可用时长'))
 
     @staticmethod
     def get_user(obj):
@@ -241,3 +243,95 @@ class DataCenterSerializer(serializers.Serializer):
             return {'code': None, 'message': None}
 
         return {'code': s, 'message': obj.get_status_display()}
+
+
+class ApplyQuotaCreateSerializer(serializers.Serializer):
+    """
+    用户资源配额申请
+    """
+    service_id = serializers.CharField(label=_('服务ID'), write_only=True, max_length=36, required=True)
+    private_ip = serializers.IntegerField(label=_('总私网IP数'), required=False,
+                                          allow_null=True, min_value=0, default=0)
+    public_ip = serializers.IntegerField(label=_('总公网IP数'), required=False,
+                                         allow_null=True, min_value=0, default=0)
+    vcpu = serializers.IntegerField(label=_('总CPU核数'), required=False,
+                                    allow_null=True, min_value=0, default=0)
+    ram = serializers.IntegerField(label=_('总内存大小(GB)'), required=False,
+                                   allow_null=True, min_value=0, default=0)
+    disk_size = serializers.IntegerField(label=_('总硬盘大小(GB)'), required=False,
+                                         allow_null=True, min_value=0, default=0)
+    duration_days = serializers.IntegerField(label=_('申请使用时长(天)'), required=True, min_value=1)
+    company = serializers.CharField(label=_('申请人单位'), required=False, max_length=64,
+                                    allow_null=True, allow_blank=True, default=None)
+    contact = serializers.CharField(label=_('联系方式'), required=False, max_length=64,
+                                    allow_null=True, allow_blank=True, default=None)
+    purpose = serializers.CharField(label=_('用途'), required=False, max_length=255,
+                                    allow_null=True, allow_blank=True, default=None)
+
+
+class ApplyQuotaSerializer(ApplyQuotaCreateSerializer):
+    id = serializers.CharField(label='ID', read_only=True)
+    creation_time = serializers.DateTimeField(label=_('申请时间'), read_only=True)
+    status = serializers.CharField(label=_('状态'), read_only=True)
+    service = serializers.SerializerMethodField(label=_('服务'), read_only=True,
+                                                method_name='get_service')
+
+    @staticmethod
+    def get_service(obj):
+        s = obj.service
+        if s:
+            return {'id': s.id, 'name': s.name}
+
+        return None
+
+
+class ApplyQuotaDetailSerializer(ApplyQuotaSerializer):
+    user = serializers.SerializerMethodField(label=_('申请用户'), read_only=True,
+                                             method_name='get_user')
+    approve_user = serializers.SerializerMethodField(label=_('审批人'), read_only=True,
+                                                     method_name='get_approve_user')
+    approve_time = serializers.DateTimeField(label=_('审批时间'), read_only=True)
+
+    @staticmethod
+    def get_user(obj):
+        s = obj.user
+        if s:
+            return {'id': s.id, 'name': s.name}
+
+        return None
+
+    @staticmethod
+    def get_approve_user(obj):
+        s = obj.approve_user
+        if s:
+            return {'id': s.id, 'name': s.name}
+
+        return None
+
+
+class ApplyQuotaPatchSerializer(serializers.Serializer):
+    """
+    用户资源配额申请修改
+    """
+    service_id = serializers.CharField(label=_('服务ID'), write_only=True, max_length=36, required=False,
+                                       allow_null=True, default=None)
+    private_ip = serializers.IntegerField(label=_('总私网IP数'), required=False,
+                                          allow_null=True, min_value=0, default=None)
+    public_ip = serializers.IntegerField(label=_('总公网IP数'), required=False,
+                                         allow_null=True, min_value=0, default=None)
+    vcpu = serializers.IntegerField(label=_('总CPU核数'), required=False,
+                                    allow_null=True, min_value=0, default=None)
+    ram = serializers.IntegerField(label=_('总内存大小(GB)'), required=False,
+                                   allow_null=True, min_value=0, default=None)
+    disk_size = serializers.IntegerField(label=_('总硬盘大小(GB)'), required=False,
+                                         allow_null=True, min_value=0, default=None)
+    duration_days = serializers.IntegerField(label=_('申请使用时长(天)'), required=False,
+                                             allow_null=True, min_value=1, default=None)
+    company = serializers.CharField(label=_('申请人单位'), required=False, max_length=64,
+                                    allow_null=True, allow_blank=True, default=None)
+    contact = serializers.CharField(label=_('联系方式'), required=False, max_length=64,
+                                    allow_null=True, allow_blank=True, default=None)
+    purpose = serializers.CharField(label=_('用途'), required=False, max_length=255,
+                                    allow_null=True, allow_blank=True, default=None)
+
+

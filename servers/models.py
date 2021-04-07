@@ -47,6 +47,7 @@ class ServerBase(models.Model):
     remarks = models.CharField(max_length=255, blank=True, default='', verbose_name=_('备注'))
     task_status = models.SmallIntegerField(verbose_name=_('创建状态'), choices=CHOICES_TASK, default=TASK_CREATED_OK)
     center_quota = models.SmallIntegerField(verbose_name=_('服务配额'), choices=CHOICES_QUOTA, default=QUOTA_PRIVATE)
+    expiration_time = models.DateTimeField(verbose_name=_('过期时间'), null=True, blank=True, default=None)
 
     class Meta:
         abstract = True
@@ -79,6 +80,33 @@ class ServerBase(models.Model):
         """是否使用的数据中心私有资源配额"""
         return self.center_quota == self.QUOTA_PRIVATE
 
+    @staticmethod
+    def count_user_quota_used(user_quota):
+        """
+        用户资源配额已用统计
+
+        :param user_quota: 用户配额
+        :return:
+            {
+                'vcpu_used_count': 1,
+                'ram_used_count': 80,
+                'public_ip_count': 0,
+                'private_ip_count': 1
+            }
+        """
+        stat = Server.objects.filter(user_quota=user_quota).aggregate(
+            vcpu_used_count=Sum('vcpus'), ram_used_count=Sum('ram'),
+            public_ip_count=Count('id', filter=Q(public_ip=True)),
+            private_ip_count=Count('id', filter=Q(public_ip=False))
+        )
+        if stat.get('vcpu_used_count', 0) is None:
+            stat['vcpu_used_count'] = 0
+
+        if stat.get('ram_used_count', 0) is None:
+            stat['ram_used_count'] = 0
+
+        return stat
+
 
 class Server(ServerBase):
     """
@@ -92,7 +120,7 @@ class Server(ServerBase):
                                    related_name='quota_servers', verbose_name=_('所属用户配额'))
 
     class Meta:
-        ordering = ['-id']
+        ordering = ['-creation_time']
         verbose_name = _('虚拟服务器')
         verbose_name_plural = verbose_name
 
@@ -141,6 +169,7 @@ class Server(ServerBase):
             a.task_status = self.task_status
             a.center_quota = self.center_quota
             a.user_quota = self.user_quota
+            a.expiration_time = self.expiration_time
             a.save()
         except Exception as e:
             return False
@@ -214,33 +243,6 @@ class Server(ServerBase):
 
         return stat
 
-    @staticmethod
-    def count_user_quota_used(user_quota):
-        """
-        用户资源配额已用统计
-
-        :param user_quota: 用户配额
-        :return:
-            {
-                'vcpu_used_count': 1,
-                'ram_used_count': 80,
-                'public_ip_count': 0,
-                'private_ip_count': 1
-            }
-        """
-        stat = Server.objects.filter(user_quota=user_quota).aggregate(
-            vcpu_used_count=Sum('vcpus'), ram_used_count=Sum('ram'),
-            public_ip_count=Count('id', filter=Q(public_ip=True)),
-            private_ip_count=Count('id', filter=Q(public_ip=False))
-        )
-        if stat.get('vcpu_used_count', 0) is None:
-            stat['vcpu_used_count'] = 0
-
-        if stat.get('ram_used_count', 0) is None:
-            stat['ram_used_count'] = 0
-
-        return stat
-
 
 class ServerArchive(ServerBase):
     """
@@ -252,11 +254,10 @@ class ServerArchive(ServerBase):
                              related_name='user_server_archives', null=True)
     user_quota = models.ForeignKey(to=UserQuota, null=True, on_delete=models.SET_NULL,
                                    related_name='server_archive_set', verbose_name=_('所属用户配额'))
-    # user_quota_tag = models.SmallIntegerField(verbose_name=_('配额类型'), choices=CHOICES_TAG, default=TAG_BASE)
     deleted_time = models.DateTimeField(verbose_name=_('删除归档时间'), auto_now_add=True)
 
     class Meta:
-        ordering = ['-id']
+        ordering = ['-deleted_time']
         verbose_name = _('服务器归档记录')
         verbose_name_plural = verbose_name
 
@@ -270,7 +271,7 @@ class Flavor(models.Model):
 
     class Meta:
         db_table = 'flavor'
-        ordering = ['-id']
+        ordering = ['vcpus']
         verbose_name = _('配置样式')
         verbose_name_plural = verbose_name
 
