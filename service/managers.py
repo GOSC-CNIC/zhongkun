@@ -4,6 +4,7 @@ from django.db import transaction
 from django.utils.translation import gettext_lazy, gettext as _
 from django.db.models import Q, Subquery
 from django.utils import timezone
+from django.core.cache import cache
 
 from core import errors
 from .models import UserQuota, ServicePrivateQuota, ServiceShareQuota, ServiceConfig
@@ -711,3 +712,35 @@ class ServiceManager:
                 user_quotas.values_list('service_id', flat=True)))
 
         return queryset
+
+    @staticmethod
+    def get_has_perm_service(user):
+        """
+        用户有权限管理的服务
+        """
+        return user.service_set.select_related('data_center').filter(
+            status=ServiceConfig.STATUS_ENABLE).all()
+
+    @staticmethod
+    def get_service_id_map(use_cache=False, cache_secends=60):
+        """
+        service id为key, service 实例为value的字典
+
+        :param use_cache: True: 使用缓存方式；默认不使用，实时查询数据库
+        :param cache_secends: 缓存时间秒
+        """
+        service_id_map = None
+        caches_key = 'service_id_map'
+        if use_cache:
+            service_id_map = cache.get(caches_key)
+
+        if service_id_map is None:
+            services = ServiceConfig.objects.select_related('data_center').all()
+            service_id_map = {}
+            for s in services:
+                service_id_map[s.id] = s
+
+            if use_cache:
+                cache.set(caches_key, service_id_map, timeout=cache_secends)
+
+        return service_id_map

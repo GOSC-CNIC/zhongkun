@@ -20,6 +20,7 @@ from drf_yasg import openapi
 from servers.models import Server, Flavor, ServerArchive
 from service.managers import ServiceManager
 from service.models import ServiceConfig, DataCenter
+from applyment.models import ApplyQuota
 from adapters import inputs, outputs
 from core.quota import QuotaAPI
 from core import request as core_request
@@ -121,15 +122,14 @@ class ServersViewSet(CustomGenericViewSet):
         if service_id:
             servers = servers.filter(service_id=service_id)
 
+        service_id_map = ServiceManager.get_service_id_map(use_cache=True)
         paginator = ServersPagination()
-        page = paginator.paginate_queryset(servers, request, view=self)
-        services = ServiceConfig.objects.select_related('data_center').all()
-        service_id_map = {}
-        for s in services:
-            service_id_map[s.id] = s
-
-        serializer = serializers.ServerSerializer(page, many=True, context={'service_id_map': service_id_map})
-        return paginator.get_paginated_response(data=serializer.data)
+        try:
+            page = paginator.paginate_queryset(servers, request, view=self)
+            serializer = serializers.ServerSerializer(page, many=True, context={'service_id_map': service_id_map})
+            return paginator.get_paginated_response(data=serializer.data)
+        except Exception as exc:
+            return self.exception_reponse(exceptions.convert_to_error(exc))
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('创建服务器实例'),
@@ -1170,7 +1170,6 @@ class ServiceViewSet(CustomGenericViewSet):
     """
     接入的服务
     """
-    queryset = []
     permission_classes = [IsAuthenticated]
     pagination_class = DefaultPageNumberPagination
 
@@ -1225,10 +1224,27 @@ class ServiceViewSet(CustomGenericViewSet):
         available_only = request.query_params.get('available_only', None)
         user = None if available_only is None else request.user
 
-        queryset = ServiceManager().filter_service(center_id=center_id, user=user)
-        paginator = self.pagination_class()
+        service_qs = ServiceManager().filter_service(center_id=center_id, user=user)
+        return self.paginate_service_response(request=request, qs=service_qs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举用户有管理权限的服务'),
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    @action(methods=['get'], detail=False, url_path='admin', url_name='admin-list')
+    def admin_list(self, request, *args, **kwargs):
+        """
+        列举用户有管理权限的服务
+        """
+        service_qs = ServiceManager().get_has_perm_service(user=request.user)
+        return self.paginate_service_response(request=request, qs=service_qs)
+
+    def paginate_service_response(self, request, qs):
+        paginator = self.paginator
         try:
-            quotas = paginator.paginate_queryset(request=request, queryset=queryset)
+            quotas = paginator.paginate_queryset(request=request, queryset=qs)
             serializer = serializers.ServiceSerializer(quotas, many=True)
             response = paginator.get_paginated_response(data=serializer.data)
         except Exception as exc:
@@ -1360,12 +1376,40 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
     """
     用户资源配额申请视图
     """
-    queryset = []
     permission_classes = [IsAuthenticated]
     pagination_class = DefaultPageNumberPagination
 
+    list_manual_parameters = [
+        openapi.Parameter(
+            name='deleted',
+            in_=openapi.IN_QUERY,
+            required=False,
+            type=openapi.TYPE_BOOLEAN,
+            description=gettext_lazy('筛选参数，true(只返回已删除的申请记录)；false(不包含已删除的申请记录)')
+        ),
+        openapi.Parameter(
+            name='service',
+            in_=openapi.IN_QUERY,
+            required=False,
+            type=openapi.TYPE_STRING,
+            description=gettext_lazy('筛选参数，service id，筛选指定service的申请记录')
+        ),
+        openapi.Parameter(
+            name='status',
+            in_=openapi.IN_QUERY,
+            required=False,
+            type=openapi.TYPE_ARRAY,
+            items=openapi.Items(
+                type=openapi.TYPE_STRING,
+                enum=ApplyQuota.LIST_STATUS
+            ),
+            description=gettext_lazy('筛选参数，筛选指定状态的申请记录')
+        )
+    ]
+
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举用户资源配额申请'),
+        manual_parameters=list_manual_parameters,
         responses={
             status.HTTP_200_OK: ''
         }
@@ -1373,6 +1417,56 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
     def list(self, request, *args, **kwargs):
         """
         列举用户资源配额申请
+
+            Http Code: 状态码200，返回数据：
+            {
+              "count": 2,
+              "next": null,
+              "previous": null,
+              "results": [
+                {
+                  "id": "c41dcafe-9388-11eb-b2d3-c8009fe2eb10",
+                  "private_ip": 0,
+                  "public_ip": 0,
+                  "vcpu": 0,
+                  "ram": 0,             # Mb
+                  "disk_size": 0,
+                  "duration_days": 1,
+                  "company": "string",
+                  "contact": "string",
+                  "purpose": "string",
+                  "creation_time": "2021-04-02T07:55:18.026082Z",
+                  "status": "wait",
+                  "service": {
+                    "id": "2",
+                    "name": "怀柔204机房"
+                  }
+                }
+              ]
+            }
+            补充说明:
+            "status" values:
+                wait: 待审批              # 允许申请者修改
+                pending: 审批中            # 挂起，不允许申请者修改，只允许管理者审批
+                pass: 审批通过
+                reject: 拒绝
+                cancel: 取消申请        # 只允许申请者取消
+
+        """
+        return handlers.ApplyUserQuotaHandler.list_apply(
+            view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('管理员列举有管理权限的资源配额申请'),
+        manual_parameters=list_manual_parameters,
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    @action(methods=['get'], detail=False, url_path='admin', url_name='admin-list')
+    def admin_list(self, request, *args, **kwargs):
+        """
+        管理员列举资源配额申请
 
             Http Code: 状态码200，返回数据：
             {
@@ -1409,7 +1503,7 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
                 cancel: 取消申请        # 只允许申请者取消
 
         """
-        return handlers.ApplyUserQuotaHandler.list_apply(
+        return handlers.ApplyUserQuotaHandler.admin_list_apply(
             view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
@@ -1428,7 +1522,7 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
               "private_ip": 0,
               "public_ip": 0,
               "vcpu": 0,
-              "ram": 0,
+              "ram": 0,         # Mb
               "disk_size": 0,
               "duration_days": 1,
               "company": "string",
@@ -1619,7 +1713,7 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
             view=self, request=request, kwargs=kwargs)
 
     def get_serializer_class(self):
-        if self.action == 'list':
+        if self.action in ['list', 'admin_list']:
             return serializers.ApplyQuotaSerializer
         elif self.action == 'create':
             return serializers.ApplyQuotaCreateSerializer
@@ -1627,3 +1721,39 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
             return serializers.ApplyQuotaPatchSerializer
 
         return Serializer
+
+
+class AccountViewSet(CustomGenericViewSet):
+    """
+    用户视图
+    """
+    queryset = []
+    permission_classes = [IsAuthenticated]
+    pagination_class = DefaultPageNumberPagination
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('获取用户个人信息'),
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    @action(methods=['get'], detail=False, url_path='', url_name='account')
+    def account(self, request, *args, **kwargs):
+        """
+        获取用户个人信息
+
+            Http Code: 状态码200，返回数据：
+            {
+              "id": "c172f4b8-984d-11eb-b920-90b11c06b9df",
+              "username": "admin",
+              "fullname": "",
+              "role": {
+                "role": [
+                  "ordinary", "vms-admin", "storage-admin", "federal-admin"
+                ]
+              }
+            }
+
+        """
+        serializer = serializers.UserSerializer(instance=request.user)
+        return Response(data=serializer.data)

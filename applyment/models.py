@@ -102,6 +102,7 @@ class ApplyQuota(UuidModel):
         (STATUS_REJECT, _('拒绝')),
         (STATUS_CANCEL, _('取消申请')),
     )
+    LIST_STATUS = [STATUS_WAIT, STATUS_PENDING, STATUS_PASS, STATUS_REJECT, STATUS_CANCEL]
 
     service = models.ForeignKey(verbose_name=_('服务'), to=ServiceConfig, default='',
                                 on_delete=models.DO_NOTHING, related_name='service_apply_quota_set')

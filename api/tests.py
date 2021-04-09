@@ -291,3 +291,42 @@ class RegistryTests(MyAPITestCase):
         self.assertKeysIn(["id", "name", "endpoint_vms", "endpoint_object", "endpoint_compute",
                            "endpoint_monitor", "creation_time", "status", "desc"],
                           response.data['registries'][0])
+
+
+class UserQuotaApplyTests(MyAPITestCase):
+    def setUp(self):
+        set_auth_header(self)
+        self.user = get_or_create_user()
+        self.service = get_or_create_service()
+
+    def test_create_apply(self):
+        url = reverse('api:apply-quota-list')
+        response = self.client.post(url, data={
+            'server_id': self.service.id,
+            'private_ip': 1,
+            'public_ip': 2,
+            'vcpu': 6,
+            'ram': 8,   # Gb
+            'disk_size': 2,
+            'duration_days': 10,
+            'company': 'cnic',
+            'contact': '666',
+            'purpose': 'test'
+        })
+        self.assertEqual(response.status_code, 201)
+        self.assertKeysIn(["id", "private_ip", "public_ip", "vcpu",
+                           "ram", "disk_size", "duration_days", "company",
+                           "contact", "purpose", "creation_time", "status",
+                           "service"], response.data)
+        self.assertEqual(response.data['service']['id'], self.service.id)
+        self.assertEqual(response.data['private_ip'], 1)
+        self.assertEqual(response.data['public_ip'], 2)
+        self.assertEqual(response.data['vcpu'], 6)
+        self.assertEqual(response.data['ram'], 8*1024)
+        self.assertEqual(response.data['disk_size'], 2)
+        self.assertEqual(response.data['duration_days'], 10)
+        self.assertEqual(response.data['company'], 'cnic')
+        self.assertEqual(response.data['contact'], '666')
+        self.assertEqual(response.data['purpose'], 'test')
+
+

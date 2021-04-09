@@ -1,6 +1,8 @@
 """
 异常定义
 """
+from rest_framework import exceptions as drf_exceptions
+
 from core.errors import Error
 
 
@@ -80,3 +82,21 @@ class ConflictError(APIException):
 class TooManyQuotaApply(ConflictError):
     default_message = '您已提交了多个申请，待审批，暂不能提交更多的申请'
     default_code = 'TooManyQuotaApply'
+
+
+def convert_to_error(err):
+    if isinstance(err, Error):
+        return err
+
+    if not isinstance(err, drf_exceptions.APIException):
+        return APIException.from_error(err)
+
+    message = str(err)
+    if isinstance(err, drf_exceptions.NotFound):
+        return NotFound(message=message)
+    if isinstance(err, drf_exceptions.PermissionDenied):
+        return AccessDenied(message=message)
+    if isinstance(err, drf_exceptions.NotAuthenticated):
+        return AuthenticationFailed(message=message)
+
+    return APIException.from_error(err)

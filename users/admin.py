@@ -15,7 +15,7 @@ class UserProfileAdmin(UserAdmin):
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
         (_('个人信息'), {'fields': ('first_name', 'last_name', 'email', 'company', 'telephone')}),
-        (_('权限信息'), {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
+        (_('权限信息'), {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions', 'role')}),
         (_('重要日期'), {'fields': ('date_joined',)}),
     )
     ordering = ['date_joined']

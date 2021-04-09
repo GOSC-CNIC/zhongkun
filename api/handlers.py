@@ -1,5 +1,5 @@
 from django.utils.translation import gettext as _
-from django.utils import timezone
+from django.contrib.auth import get_user_model
 from rest_framework.response import Response
 
 from servers.models import Server
@@ -8,6 +8,8 @@ from applyment.models import ApplyQuota
 from applyment.managers import ApplyQuotaManager
 from . import serializers
 from . import exceptions
+
+User = get_user_model()
 
 
 def serializer_error_msg(errors, default=''):
@@ -50,7 +52,7 @@ class UserQuotaHandler:
             serializer = serializers.UserQuotaSerializer(quotas, many=True)
             response = paginator.get_paginated_response(data=serializer.data)
         except Exception as exc:
-            err = exceptions.APIException(message=str(exc))
+            err = exceptions.convert_to_error(exc)
             return Response(err.err_data(), status=err.status_code)
 
         return response
@@ -75,25 +77,105 @@ class UserQuotaHandler:
             response = paginator.get_paginated_response(data=serializer.data)
             return response
         except Exception as exc:
-            err = exceptions.APIException(message=str(exc))
+            err = exceptions.convert_to_error(exc)
             return Response(err.err_data(), status=err.status_code)
 
 
 class ApplyUserQuotaHandler:
     @staticmethod
+    def get_apply(pk):
+        """
+        :raises: Error
+        """
+        apply = ApplyQuota.objects.select_related('service').filter(id=pk, deleted=False).first()
+        if not apply:
+            raise exceptions.NotFound(message=_('资源配额申请不存在'))
+
+        return apply
+
+    @staticmethod
+    def get_user_apply(pk, user):
+        """
+        查询用户自己的申请
+        :raises: Error
+        """
+        apply = ApplyUserQuotaHandler.get_apply(pk)
+        if not apply.user_id or apply.user_id != user.id:
+            raise exceptions.AccessDenied(message=_('你没有权限操作此配额申请'))
+
+        return apply
+
+    @staticmethod
+    def get_has_perm_apply(pk, user):
+        """
+        查询用户有权限审批的申请
+        :raises: Error
+        """
+        apply = ApplyUserQuotaHandler.get_apply(pk)
+        if not apply.service.user_has_perm(user):
+            raise exceptions.AccessDenied(message=_('没有审批操作资源配额申请的权限'))
+
+        return apply
+
+    @staticmethod
+    def get_list_queryset(request, is_admin: bool = False):
+        """
+        获取查询集
+
+        :param request:
+        :param is_admin: True: 有管理权限的申请记录查询集；False: 用户自己的申请记录查询集；
+        """
+        deleted = request.query_params.get('deleted', None)
+        service_id = request.query_params.get('service', None)
+        status = request.query_params.getlist('status', None)
+        if not status or status == ['']:
+            status = None
+
+        if deleted:
+            if deleted == 'true':
+                deleted = True
+            elif deleted == 'false':
+                deleted = False
+            else:
+                deleted = None
+
+        if is_admin:
+            return ApplyQuotaManager().admin_filter_apply_queryset(
+                user=request.user, service_id=service_id, deleted=deleted, status=status)
+        else:
+            return ApplyQuotaManager().filter_user_apply_queryset(
+                user=request.user, service_id=service_id, deleted=deleted, status=status)
+
+    @staticmethod
     def list_apply(view, request, kwargs):
         """
-        list资源配额申请
+        list user资源配额申请
         """
         try:
-            queryset = ApplyQuotaManager().get_user_apply_queryset(user=request.user)
+            queryset = ApplyUserQuotaHandler.get_list_queryset(request=request)
             paginator = view.pagination_class()
             applys = paginator.paginate_queryset(request=request, queryset=queryset)
             serializer = view.get_serializer(instance=applys, many=True)
             response = paginator.get_paginated_response(data=serializer.data)
             return response
         except Exception as exc:
-            err = exceptions.APIException(message=str(exc))
+            err = exceptions.convert_to_error(exc)
+            return Response(err.err_data(), status=err.status_code)
+
+    @staticmethod
+    def admin_list_apply(view, request, kwargs):
+        """
+        管理员list资源配额申请
+        """
+        try:
+            queryset = ApplyUserQuotaHandler.get_list_queryset(request=request, is_admin=True)
+            paginator = view.pagination_class()
+            applys = paginator.paginate_queryset(request=request, queryset=queryset)
+            serializer = view.get_serializer(instance=applys, many=True)
+            response = paginator.get_paginated_response(data=serializer.data)
+            return response
+        except Exception as exc:
+            err = exceptions.convert_to_error(exc)
             return Response(err.err_data(), status=err.status_code)
 
     @staticmethod
@@ -122,7 +204,7 @@ class ApplyUserQuotaHandler:
         apply.private_ip = data.get('private_ip', 0)
         apply.public_ip = data.get('public_ip', 0)
         apply.vcpu = data.get('vcpu', 0)
-        apply.ram = data.get('ram', 0) * 1024
+        apply.ram = data.get('ram', 0)
         apply.disk_size = data.get('disk_size', 0)
         apply.duration_days = data.get('duration_days', 1)
         apply.company = data.get('company', '')
@@ -140,15 +222,10 @@ class ApplyUserQuotaHandler:
         配额申请审批挂起中,只允许“待审批（wait）”状态的资源配额申请被服务管理者挂起
         """
         pk = kwargs.get(view.lookup_field)
-        apply = ApplyQuota.objects.select_related('service').filter(id=pk).first()
-        if not apply:
-            return view.exception_reponse(exceptions.NotFound(
-                message=_('资源配额申请不存在')))
-
-        if not apply.service.user_has_perm(request.user):
-            return view.exception_reponse(exceptions.AccessDenied(
-                message=_('没有审批操作资源配额申请的权限')
-            ))
+        try:
+            apply = ApplyUserQuotaHandler.get_has_perm_apply(pk=pk, user=request.user)
+        except Exception as exc:
+            return view.exception_reponse(exc)
 
         if not apply.is_wait_status():
             return view.exception_reponse(exceptions.ConflictError(
@@ -174,14 +251,10 @@ class ApplyUserQuotaHandler:
         取消配额申请，只允许申请者取消待审批（wait）状态的申请
         """
         pk = kwargs.get(view.lookup_field)
-        apply = ApplyQuota.objects.filter(id=pk).first()
-        if not apply:
-            return view.exception_reponse(exceptions.NotFound(
-                message=_('资源配额申请不存在')))
-
-        if not apply.user_id or apply.user_id != request.user.id:
-            return view.exception_reponse(exceptions.AccessDenied(
-                message=_('你没有权限取消资源配额申请')))
+        try:
+            apply = ApplyUserQuotaHandler.get_user_apply(pk=pk, user=request.user)
+        except Exception as exc:
+            return view.exception_reponse(exc)
 
         if apply.is_cancel_status:
             try:
@@ -220,15 +293,10 @@ class ApplyUserQuotaHandler:
             return view.exception_reponse(exceptions.BadRequest(msg))
 
         pk = kwargs.get(view.lookup_field)
-        apply = ApplyQuota.objects.filter(id=pk).first()
-        if not apply:
-            return view.exception_reponse(exceptions.NotFound(
-                message=_('资源配额申请不存在')))
-
-        # 用户只能修改自己的申请
-        if not apply.user_id or apply.user_id != request.user.id:
-            return view.exception_reponse(exceptions.AccessDenied(
-                message=_('你没有权限修改资源配额申请')))
+        try:
+            apply = ApplyUserQuotaHandler.get_user_apply(pk=pk, user=request.user)
+        except Exception as exc:
+            return view.exception_reponse(exc)
 
         if not apply.is_wait_status():
             return view.exception_reponse(exceptions.ConflictError(
@@ -264,7 +332,7 @@ class ApplyUserQuotaHandler:
 
         ram = data.get('ram', None)
         if ram is not None:
-            apply.ram = ram * 1024
+            apply.ram = ram
             update_fields.append('ram')
 
         disk_size = data.get('disk_size', None)
@@ -311,15 +379,10 @@ class ApplyUserQuotaHandler:
         :param approve: 'pass' or 'reject'
         """
         pk = kwargs.get(view.lookup_field)
-        apply = ApplyQuota.objects.select_related('service').filter(id=pk).first()
-        if not apply:
-            return view.exception_reponse(exceptions.NotFound(
-                message=_('资源配额申请不存在')))
-
-        if not apply.service.user_has_perm(request.user):
-            return view.exception_reponse(exceptions.AccessDenied(
-                message=_('没有审批操作资源配额申请的权限')
-            ))
+        try:
+            apply = ApplyUserQuotaHandler.get_has_perm_apply(pk=pk, user=request.user)
+        except Exception as exc:
+            return view.exception_reponse(exc)
 
         if not apply.is_pending_status():
             return view.exception_reponse(exceptions.ConflictError(
@@ -359,5 +422,3 @@ class ApplyUserQuotaHandler:
         """
         return ApplyUserQuotaHandler.approve_apply(view=view, request=request,
                                                    kwargs=kwargs, approve='pass')
-
-

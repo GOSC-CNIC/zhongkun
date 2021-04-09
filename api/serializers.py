@@ -256,7 +256,7 @@ class ApplyQuotaCreateSerializer(serializers.Serializer):
                                          allow_null=True, min_value=0, default=0)
     vcpu = serializers.IntegerField(label=_('总CPU核数'), required=False,
                                     allow_null=True, min_value=0, default=0)
-    ram = serializers.IntegerField(label=_('总内存大小(GB)'), required=False,
+    ram = serializers.IntegerField(label=_('总内存大小(MB)'), required=False,
                                    allow_null=True, min_value=0, default=0)
     disk_size = serializers.IntegerField(label=_('总硬盘大小(GB)'), required=False,
                                          allow_null=True, min_value=0, default=0)
@@ -321,7 +321,7 @@ class ApplyQuotaPatchSerializer(serializers.Serializer):
                                          allow_null=True, min_value=0, default=None)
     vcpu = serializers.IntegerField(label=_('总CPU核数'), required=False,
                                     allow_null=True, min_value=0, default=None)
-    ram = serializers.IntegerField(label=_('总内存大小(GB)'), required=False,
+    ram = serializers.IntegerField(label=_('总内存大小(MB)'), required=False,
                                    allow_null=True, min_value=0, default=None)
     disk_size = serializers.IntegerField(label=_('总硬盘大小(GB)'), required=False,
                                          allow_null=True, min_value=0, default=None)
@@ -334,4 +334,17 @@ class ApplyQuotaPatchSerializer(serializers.Serializer):
     purpose = serializers.CharField(label=_('用途'), required=False, max_length=255,
                                     allow_null=True, allow_blank=True, default=None)
 
+
+class UserSerializer(serializers.Serializer):
+    """
+    用户
+    """
+    id = serializers.CharField(label=_('ID'), read_only=True)
+    username = serializers.CharField(label=_('用户名'))
+    fullname = serializers.SerializerMethodField(method_name='get_fullname')
+    role = serializers.JSONField(label=_('角色'))
+
+    @staticmethod
+    def get_fullname(obj):
+        return obj.get_full_name()
 
