@@ -1441,7 +1441,8 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
                   "service": {
                     "id": "2",
                     "name": "怀柔204机房"
-                  }
+                  },
+                  "deleted": false
                 }
               ]
             }
@@ -1491,7 +1492,8 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
                   "service": {
                     "id": "2",
                     "name": "怀柔204机房"
-                  }
+                  },
+                  "deleted": false
                 }
               ]
             }
@@ -1534,10 +1536,24 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
               "service": {
                 "id": "2",
                 "name": "怀柔204机房"
-              }
+              },
+              "deleted": false
             }
         """
         return handlers.ApplyUserQuotaHandler.create_apply(
+            view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('删除配额申请记录'),
+        responses={
+            status.HTTP_204_NO_CONTENT: ''
+        }
+    )
+    def destroy(self, request, *args, **kwargs):
+        """
+        删除配额申请记录
+        """
+        return handlers.ApplyUserQuotaHandler.delete_apply(
             view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
@@ -1567,7 +1583,8 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
               "service": {
                 "id": "2",
                 "name": "怀柔204机房"
-              }
+              },
+              "deleted": false
             }
         """
         return handlers.ApplyUserQuotaHandler.modify_apply(
@@ -1602,7 +1619,8 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
               "service": {
                 "id": "2",
                 "name": "怀柔204机房"
-              }
+              },
+              "deleted": false
             }
         """
         return handlers.ApplyUserQuotaHandler.pending_apply(
@@ -1637,7 +1655,8 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
               "service": {
                 "id": "2",
                 "name": "怀柔204机房"
-              }
+              },
+              "deleted": false
             }
         """
         return handlers.ApplyUserQuotaHandler.cancel_apply(
@@ -1672,7 +1691,8 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
               "service": {
                 "id": "2",
                 "name": "怀柔204机房"
-              }
+              },
+              "deleted": false
             }
         """
         return handlers.ApplyUserQuotaHandler.reject_apply(
@@ -1707,7 +1727,8 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
               "service": {
                 "id": "2",
                 "name": "怀柔204机房"
-              }
+              },
+              "deleted": false
             }
         """
         return handlers.ApplyUserQuotaHandler.pass_apply(

@@ -275,6 +275,7 @@ class ApplyQuotaSerializer(ApplyQuotaCreateSerializer):
     status = serializers.CharField(label=_('状态'), read_only=True)
     service = serializers.SerializerMethodField(label=_('服务'), read_only=True,
                                                 method_name='get_service')
+    deleted = serializers.BooleanField(label=_('删除'), read_only=True)
 
     @staticmethod
     def get_service(obj):

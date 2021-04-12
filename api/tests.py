@@ -1,4 +1,5 @@
 from datetime import timedelta
+from urllib import parse
 
 from django.urls import reverse
 from django.utils import timezone
@@ -361,11 +362,33 @@ class UserQuotaApplyTests(MyAPITestCase):
         url = reverse('api:apply-quota-pass_apply', kwargs={'apply_id': apply_id})
         return self.client.post(url)
 
+    def delete_apply(self, apply_id):
+        url = reverse('api:apply-quota-detail', kwargs={'apply_id': apply_id})
+        return self.client.delete(url)
+
     def apply_response_data_keys_assert(self, data):
         self.assertKeysIn(["id", "private_ip", "public_ip", "vcpu",
                            "ram", "disk_size", "duration_days", "company",
                            "contact", "purpose", "creation_time", "status",
                            "service"], data)
+
+    def test_create_delete_apply(self):
+        response = self.create_apply()
+        self.assertEqual(response.status_code, 201)
+        self.apply_response_data_keys_assert(response.data)
+        apply_id = response.data['id']
+
+        response = self.delete_apply(apply_id)
+        self.assertEqual(response.status_code, 204)
+
+        base_url = reverse('api:apply-quota-list')
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "next", "previous", "results"], response.data)
+        self.assertEqual(response.data["count"], 1)
+        self.apply_response_data_keys_assert(response.data['results'][0])
+        self.assertEqual(response.data['results'][0]['status'], 'wait')
+        self.assertEqual(response.data['results'][0]['deleted'], True)
 
     def test_create_modify_cancel_apply(self):
         response = self.create_apply()
@@ -508,23 +531,94 @@ class UserQuotaApplyTests(MyAPITestCase):
         self.assertEqual(response.status_code, 409)
         self.assertEqual(response.data['code'], 'Conflict')
 
+    def list_apply_query_params(self, base_url, apply_id):
+        # query param "service_id"
+        query = parse.urlencode({'service': 'test'})
+        url = f'{base_url}?{query}'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "next", "previous", "results"], response.data)
+        self.assertEqual(response.data["count"], 0)
+
+        query = parse.urlencode({'service': self.service.id})
+        url = f'{base_url}?{query}'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "next", "previous", "results"], response.data)
+        self.assertEqual(response.data["count"], 1)
+
+        # query param "deleted"
+        url = f'{base_url}?deleted=true'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "next", "previous", "results"], response.data)
+        self.assertEqual(response.data["count"], 0)
+
+        url = f'{base_url}?deleted=false'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "next", "previous", "results"], response.data)
+        self.assertEqual(response.data["count"], 1)
+
+        # query param "status"
+        query_dict = {'status': ['pending', 'pass']}
+        query = parse.urlencode(query_dict, doseq=True)
+        url = f'{base_url}?{query}'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "next", "previous", "results"], response.data)
+        self.assertEqual(response.data["count"], 0)
+
+        query_dict = {'status': ['wait']}
+        query = parse.urlencode(query_dict, doseq=True)
+        url = f'{base_url}?{query}'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "next", "previous", "results"], response.data)
+        self.assertEqual(response.data["count"], 1)
+
+        self.cancel_apply(apply_id)
+        query_dict = {'status': ['cancel', 'pass']}
+        query = parse.urlencode(query_dict, doseq=True)
+        url = f'{base_url}?{query}'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 1)
+
     def test_admin_list_apply(self):
         response = response = self.create_apply()
         self.assertEqual(response.status_code, 201)
         apply_id = response.data['id']
 
-        url = reverse('api:apply-quota-admin-list')
-        response = self.client.get(url)
+        base_url = reverse('api:apply-quota-admin-list')
+        response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "next", "previous", "results"], response.data)
         self.assertEqual(response.data["count"], 0)
 
         self.service.users.add(self.user)  # 加管理权限
 
-        url = reverse('api:apply-quota-admin-list')
-        response = self.client.get(url)
+        response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "next", "previous", "results"], response.data)
         self.assertEqual(response.data["count"], 1)
         self.apply_response_data_keys_assert(response.data['results'][0])
         self.assertEqual(response.data['results'][0]['status'], 'wait')
+
+        self.list_apply_query_params(base_url=base_url, apply_id=apply_id)
+
+    def test_list_apply(self):
+        response = response = self.create_apply()
+        self.assertEqual(response.status_code, 201)
+        apply_id = response.data['id']
+
+        base_url = reverse('api:apply-quota-list')
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "next", "previous", "results"], response.data)
+        self.assertEqual(response.data["count"], 1)
+        self.apply_response_data_keys_assert(response.data['results'][0])
+        self.assertEqual(response.data['results'][0]['status'], 'wait')
+
+        self.list_apply_query_params(base_url=base_url, apply_id=apply_id)
+

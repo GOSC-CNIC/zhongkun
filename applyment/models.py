@@ -248,3 +248,13 @@ class ApplyQuota(UuidModel):
             self.set_pass(user=user, quota=quota)
 
         return quota
+
+    def do_soft_delete(self):
+        """
+        软删除申请记录
+        :return:
+            True    # success
+        """
+        self.deleted = True
+        self.save(update_fields=['deleted'])
+        return True

@@ -422,3 +422,21 @@ class ApplyUserQuotaHandler:
         """
         return ApplyUserQuotaHandler.approve_apply(view=view, request=request,
                                                    kwargs=kwargs, approve='pass')
+
+    @staticmethod
+    def delete_apply(view, request, kwargs):
+        """
+        删除配额申请，只允许申请者删除
+        """
+        pk = kwargs.get(view.lookup_field)
+        try:
+            apply = ApplyUserQuotaHandler.get_user_apply(pk=pk, user=request.user)
+        except Exception as exc:
+            return view.exception_reponse(exc)
+
+        try:
+            apply.do_soft_delete()
+        except Exception as exc:
+            return view.exception_reponse(exc)
+
+        return Response(status=204)
