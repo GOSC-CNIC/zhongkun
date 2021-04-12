@@ -198,7 +198,7 @@ class ApplyQuota(UuidModel):
         self.save(update_fields=['status', 'approve_time', 'approve_user'])
         return True
 
-    def set_pass(self, user):
+    def set_pass(self, user, quota):
         """
         通过申请
         :return:
@@ -211,7 +211,8 @@ class ApplyQuota(UuidModel):
         self.status = self.STATUS_PASS
         self.approve_user = user
         self.approve_time = timezone.now()
-        self.save(update_fields=['status', 'approve_time', 'approve_user'])
+        self.user_quota = quota
+        self.save(update_fields=['status', 'approve_time', 'approve_user', 'user_quota'])
         return True
 
     def set_cancel(self):
@@ -243,7 +244,7 @@ class ApplyQuota(UuidModel):
         quota.expiration_time = timezone.now() + timedelta(days=15)
         quota.duration_days = self.duration_days
         with transaction.atomic():
-            self.set_pass(user=user)
             quota.save()
+            self.set_pass(user=user, quota=quota)
 
         return quota

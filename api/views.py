@@ -155,7 +155,7 @@ class ServersViewSet(CustomGenericViewSet):
 
         data = serializer.validated_data
         image_id = data.get('image_id', '')
-        flavor_id = str_to_int_or_default(data.get('flavor_id', 0), 0)
+        flavor_id = data.get('flavor_id', '')
         network_id = data.get('network_id', '')
         remarks = data.get('remarks') or request.user.username
         quota_id = data.get('quota_id', None)
@@ -1378,6 +1378,7 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
     """
     permission_classes = [IsAuthenticated]
     pagination_class = DefaultPageNumberPagination
+    lookup_field = 'apply_id'
 
     list_manual_parameters = [
         openapi.Parameter(

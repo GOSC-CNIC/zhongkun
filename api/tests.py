@@ -6,6 +6,7 @@ from rest_framework.test import APITestCase
 
 from servers.models import Flavor, Server
 from service.managers import UserQuotaManager
+from applyment.models import ApplyQuota
 from utils.test import get_or_create_user, get_or_create_service, get_or_create_center
 from adapters import outputs
 
@@ -294,39 +295,236 @@ class RegistryTests(MyAPITestCase):
 
 
 class UserQuotaApplyTests(MyAPITestCase):
+    old_private_ip = 1
+    old_public_ip = 2
+    old_vcpu = 6
+    old_ram = 8192
+    old_disk_size = 2
+    old_duration_days = 10
+
+    new_private_ip = 6
+    new_public_ip = 1
+    new_vcpu = 6
+    new_ram = 4096
+    new_disk_size = 0
+    new_duration_days = 100
+
     def setUp(self):
         set_auth_header(self)
         self.user = get_or_create_user()
         self.service = get_or_create_service()
 
-    def test_create_apply(self):
+    def create_apply(self):
         url = reverse('api:apply-quota-list')
         response = self.client.post(url, data={
-            'server_id': self.service.id,
-            'private_ip': 1,
-            'public_ip': 2,
-            'vcpu': 6,
-            'ram': 8,   # Gb
-            'disk_size': 2,
-            'duration_days': 10,
+            'service_id': self.service.id,
+            'private_ip': self.old_private_ip,
+            'public_ip': self.old_public_ip,
+            'vcpu': self.old_vcpu,
+            'ram': self.old_ram,  # Mb
+            'disk_size': self.old_disk_size,
+            'duration_days': self.old_duration_days,
             'company': 'cnic',
             'contact': '666',
             'purpose': 'test'
         })
-        self.assertEqual(response.status_code, 201)
+        return response
+
+    def update_apply(self, apply_id):
+        url = reverse('api:apply-quota-detail', kwargs={'apply_id': apply_id})
+        response = self.client.patch(url, data={
+            'private_ip': self.new_private_ip,
+            'public_ip': self.new_public_ip,
+            'vcpu': self.new_vcpu,
+            'ram': self.new_ram,  # Mb
+            'disk_size': self.new_disk_size,
+            'duration_days': self.new_duration_days,
+            'company': 'cnic',
+            'contact': '666',
+            'purpose': 'test'
+        })
+        return response
+
+    def pending_apply(self, apply_id):
+        url = reverse('api:apply-quota-pending_apply', kwargs={'apply_id': apply_id})
+        return self.client.post(url)
+
+    def cancel_apply(self, apply_id):
+        url = reverse('api:apply-quota-cancel_apply', kwargs={'apply_id': apply_id})
+        return self.client.post(url)
+
+    def reject_apply(self, apply_id):
+        url = reverse('api:apply-quota-reject_apply', kwargs={'apply_id': apply_id})
+        return self.client.post(url)
+
+    def pass_apply(self, apply_id):
+        url = reverse('api:apply-quota-pass_apply', kwargs={'apply_id': apply_id})
+        return self.client.post(url)
+
+    def apply_response_data_keys_assert(self, data):
         self.assertKeysIn(["id", "private_ip", "public_ip", "vcpu",
                            "ram", "disk_size", "duration_days", "company",
                            "contact", "purpose", "creation_time", "status",
-                           "service"], response.data)
+                           "service"], data)
+
+    def test_create_modify_cancel_apply(self):
+        response = self.create_apply()
+        self.assertEqual(response.status_code, 201)
+        self.apply_response_data_keys_assert(response.data)
         self.assertEqual(response.data['service']['id'], self.service.id)
-        self.assertEqual(response.data['private_ip'], 1)
-        self.assertEqual(response.data['public_ip'], 2)
-        self.assertEqual(response.data['vcpu'], 6)
-        self.assertEqual(response.data['ram'], 8*1024)
-        self.assertEqual(response.data['disk_size'], 2)
-        self.assertEqual(response.data['duration_days'], 10)
+        self.assertEqual(response.data['private_ip'], self.old_private_ip)
+        self.assertEqual(response.data['public_ip'], self.old_public_ip)
+        self.assertEqual(response.data['vcpu'], self.old_vcpu)
+        self.assertEqual(response.data['ram'], self.old_ram)
+        self.assertEqual(response.data['disk_size'], self.old_disk_size)
+        self.assertEqual(response.data['duration_days'], self.old_duration_days)
         self.assertEqual(response.data['company'], 'cnic')
         self.assertEqual(response.data['contact'], '666')
         self.assertEqual(response.data['purpose'], 'test')
 
+        apply_id = response.data['id']
+        response = self.update_apply(apply_id)
+        self.assertEqual(response.status_code, 200)
+        self.apply_response_data_keys_assert(response.data)
+        self.assertEqual(response.data['service']['id'], self.service.id)
+        self.assertEqual(response.data['private_ip'], self.new_private_ip)
+        self.assertEqual(response.data['public_ip'], self.new_public_ip)
+        self.assertEqual(response.data['vcpu'], self.new_vcpu)
+        self.assertEqual(response.data['ram'], self.new_ram)
+        self.assertEqual(response.data['disk_size'], self.new_disk_size)
+        self.assertEqual(response.data['duration_days'], self.new_duration_days)
+        self.assertEqual(response.data['company'], 'cnic')
+        self.assertEqual(response.data['contact'], '666')
+        self.assertEqual(response.data['purpose'], 'test')
+        self.assertEqual(response.data['status'], 'wait')
 
+        response = self.pending_apply(apply_id)
+        self.assertEqual(response.status_code, 403)
+
+        response = self.cancel_apply(apply_id)
+        self.assertEqual(response.status_code, 200)
+
+        url = reverse('api:apply-quota-list')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "next", "previous", "results"], response.data)
+        self.assertEqual(response.data['count'], 1)
+        self.apply_response_data_keys_assert(response.data['results'][0])
+        self.assertEqual(response.data['results'][0]['status'], 'cancel')
+
+    def test_perms_pass_apply(self):
+        response = response = self.create_apply()
+        self.assertEqual(response.status_code, 201)
+        apply_id = response.data['id']
+
+        response = self.pending_apply(apply_id)
+        self.assertEqual(response.status_code, 403)
+
+        self.service.users.add(self.user)   # 加管理权限
+
+        response = self.pending_apply(apply_id)
+        self.assertEqual(response.status_code, 200)
+        self.apply_response_data_keys_assert(response.data)
+
+        response = self.pass_apply(apply_id)
+        self.assertEqual(response.status_code, 200)
+
+        response = self.update_apply(apply_id)
+        self.assertEqual(response.status_code, 409)     # 审批后不可修改
+
+        apply = ApplyQuota.objects.get(pk=apply_id)
+        self.assertEqual(apply.status, apply.STATUS_PASS)
+
+        quota = apply.user_quota
+        self.assertEqual(quota.private_ip_total, self.old_private_ip)
+        self.assertEqual(quota.public_ip_total, self.old_public_ip)
+        self.assertEqual(quota.vcpu_total, self.old_vcpu)
+        self.assertEqual(quota.ram_total, self.old_ram)
+        self.assertEqual(quota.disk_size_total, self.old_disk_size)
+        self.assertEqual(quota.duration_days, self.old_duration_days)
+
+    def test_perms_reject_apply(self):
+        response = response = self.create_apply()
+        self.assertEqual(response.status_code, 201)
+        apply_id = response.data['id']
+        self.service.users.add(self.user)  # 加管理权限
+
+        response = self.pending_apply(apply_id)
+        self.assertEqual(response.status_code, 200)
+        self.apply_response_data_keys_assert(response.data)
+
+        response = self.reject_apply(apply_id)
+        self.assertEqual(response.status_code, 200)
+
+        apply = ApplyQuota.objects.get(pk=apply_id)
+        self.assertEqual(apply.status, apply.STATUS_REJECT)
+
+    def test_apply_status_conflict(self):
+        response = response = self.create_apply()
+        self.assertEqual(response.status_code, 201)
+        apply_id = response.data['id']
+        self.service.users.add(self.user)  # 加管理权限
+
+        # wait !=> pass
+        response = self.pass_apply(apply_id)
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.data['code'], 'Conflict')
+
+        # wait !=> reject
+        response = self.reject_apply(apply_id)
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.data['code'], 'Conflict')
+
+        # wait => pending
+        response = self.pending_apply(apply_id)
+        self.assertEqual(response.status_code, 200)
+
+        # pending !=> update
+        response = self.update_apply(apply_id)
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.data['code'], 'Conflict')
+
+        # pending !=> cancel
+        response = self.cancel_apply(apply_id)
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.data['code'], 'Conflict')
+
+        # pending => reject
+        response = self.reject_apply(apply_id)
+        self.assertEqual(response.status_code, 200)
+
+        # reject !=> cancel
+        response = self.cancel_apply(apply_id)
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.data['code'], 'Conflict')
+
+        # reject !=> update
+        response = self.update_apply(apply_id)
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.data['code'], 'Conflict')
+
+        # reject !=> pass
+        response = self.pass_apply(apply_id)
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.data['code'], 'Conflict')
+
+    def test_admin_list_apply(self):
+        response = response = self.create_apply()
+        self.assertEqual(response.status_code, 201)
+        apply_id = response.data['id']
+
+        url = reverse('api:apply-quota-admin-list')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "next", "previous", "results"], response.data)
+        self.assertEqual(response.data["count"], 0)
+
+        self.service.users.add(self.user)  # 加管理权限
+
+        url = reverse('api:apply-quota-admin-list')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "next", "previous", "results"], response.data)
+        self.assertEqual(response.data["count"], 1)
+        self.apply_response_data_keys_assert(response.data['results'][0])
+        self.assertEqual(response.data['results'][0]['status'], 'wait')

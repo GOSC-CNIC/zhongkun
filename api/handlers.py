@@ -256,7 +256,7 @@ class ApplyUserQuotaHandler:
         except Exception as exc:
             return view.exception_reponse(exc)
 
-        if apply.is_cancel_status:
+        if apply.is_cancel_status():
             try:
                 r_data = serializers.ApplyQuotaSerializer(instance=apply).data
             except Exception as e:
