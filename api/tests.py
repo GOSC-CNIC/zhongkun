@@ -120,6 +120,9 @@ class ServersTests(MyAPITestCase):
         url = reverse('api:servers-list')
         response = self.client.post(url, data={})
         self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
+        response = self.client.post(url, data={
+            'service_id': 'sss', 'image_id': 'aaa', 'flavor_id': 'xxx', 'quota_id': 'sss'})
+        self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
 
     def test_server_remark(self):
         url = reverse('api:servers-server-remark', kwargs={'id': self.miss_server.id})
@@ -622,3 +625,19 @@ class UserQuotaApplyTests(MyAPITestCase):
 
         self.list_apply_query_params(base_url=base_url, apply_id=apply_id)
 
+
+class UserTests(MyAPITestCase):
+    def setUp(self):
+        set_auth_header(self)
+        self.user = get_or_create_user()
+
+    def test_account(self):
+        base_url = reverse('api:user-account')
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["id", "username", "fullname", "role"], response.data)
+
+        self.assertEqual(response.data['id'], self.user.id)
+        self.assertEqual(response.data['username'], self.user.username)
+        self.assertEqual(response.data['fullname'], self.user.get_full_name())
+        self.assertEqual(response.data['role'], self.user.role)

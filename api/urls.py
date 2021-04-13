@@ -18,7 +18,7 @@ router.register(r'u-quota', views.UserQuotaViewSet, basename='user-quota')
 router.register(r'service', views.ServiceViewSet, basename='service')
 router.register(r'registry', views.DataCenterViewSet, basename='registry')
 router.register(r'apply/quota', views.UserQuotaApplyViewSet, basename='apply-quota')
-router.register(r'account', views.AccountViewSet, basename='account')
+router.register(r'user', views.UserViewSet, basename='user')
 
 
 urlpatterns = [

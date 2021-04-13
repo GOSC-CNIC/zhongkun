@@ -19,14 +19,14 @@ from drf_yasg import openapi
 
 from servers.models import Server, Flavor, ServerArchive
 from service.managers import ServiceManager
-from service.models import ServiceConfig, DataCenter
+from service.models import DataCenter
 from applyment.models import ApplyQuota
 from adapters import inputs, outputs
 from core.quota import QuotaAPI
 from core import request as core_request
 from . import exceptions
 from . import serializers
-from .viewsets import CustomGenericViewSet, str_to_int_or_default
+from .viewsets import CustomGenericViewSet
 from .paginations import ServersPagination, DefaultPageNumberPagination
 from core.taskqueue import server_build_status
 from . import handlers
@@ -1745,11 +1745,10 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
         return Serializer
 
 
-class AccountViewSet(CustomGenericViewSet):
+class UserViewSet(CustomGenericViewSet):
     """
     用户视图
     """
-    queryset = []
     permission_classes = [IsAuthenticated]
     pagination_class = DefaultPageNumberPagination
 
@@ -1759,7 +1758,7 @@ class AccountViewSet(CustomGenericViewSet):
             status.HTTP_200_OK: ''
         }
     )
-    @action(methods=['get'], detail=False, url_path='', url_name='account')
+    @action(methods=['get'], detail=False, url_path='account', url_name='account')
     def account(self, request, *args, **kwargs):
         """
         获取用户个人信息
