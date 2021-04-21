@@ -197,7 +197,8 @@ class ServersViewSet(CustomGenericViewSet):
         except exceptions.APIException as exc:
             try:
                 QuotaAPI().server_quota_release(service=service, vcpu=flavor.vcpus,
-                                                ram=flavor.ram, public_ip=is_public_network)
+                                                ram=flavor.ram, public_ip=is_public_network,
+                                                user=request.user, user_quota_id=user_quota.id)
             except exceptions.Error:
                 pass
             return Response(data=exc.err_data(), status=exc.status_code)

@@ -1,6 +1,6 @@
 from django.utils.translation import gettext as _
 
-from service.managers import UserQuotaManager, ServicePrivateQuotaManager, ServiceShareQuotaManager
+from service.managers import UserQuotaManager, ServicePrivateQuotaManager
 from . import errors
 
 
@@ -59,14 +59,18 @@ class QuotaAPI:
         return user_quota
 
     @staticmethod
-    def server_quota_release(service, vcpu: int, ram: int, public_ip: bool):
+    def server_quota_release(service, vcpu: int, ram: int, public_ip: bool,
+                             user=None, user_quota_id=None):
         """
         释放服务器占用的服务提供者的私有资源配额
+        创建资源失败时，用户配额返还可通过参数user和user_quota_id指定，默认忽略
 
         :param service: 接入的服务对象
         :param vcpu: vCPU数
         :param ram: 内存大小, 单位Mb
         :param public_ip: True(公网IP); False(私网IP)
+        :param user: 用户对象
+        :param user_quota_id: 用户配额id
         :return:
 
         :raises: QuotaShortageError, QuotaError
@@ -75,6 +79,12 @@ class QuotaAPI:
             kwargs = {'public_ip': 1}
         else:
             kwargs = {'private_ip': 1}
+
+        if user_quota_id and user:
+            try:
+                UserQuotaManager().release(user=user, quota_id=user_quota_id, vcpus=vcpu, ram=ram, **kwargs)
+            except errors.QuotaError as e:
+                pass
 
         ServicePrivateQuotaManager().release(service=service, vcpus=vcpu, ram=ram, **kwargs)
 
