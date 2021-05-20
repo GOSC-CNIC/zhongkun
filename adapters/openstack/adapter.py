@@ -118,13 +118,16 @@ class OpenStackAdapter(BaseAdapter):
         self.auth = auth
         return auth
 
+    def _get_openstack_connect(self) -> openstack.connection.Connection:
+        return self.auth.kwargs['vmconnect']
+
     def server_create(self, params: inputs.ServerCreateInput, **kwargs):
         """
         创建虚拟服务器
         :return:
             outputs.ServerCreateOutput()
         """
-        service_instance = self.auth.kwargs['vmconnect']
+        service_instance = self._get_openstack_connect()
         try:
             flavor = self.get_or_create_flavor(params.ram, params.vcpu)
             server_re = service_instance.compute.create_server(
@@ -144,7 +147,7 @@ class OpenStackAdapter(BaseAdapter):
             outputs.ServerDetailOutput()
         """
         try:
-            service_instance = self.auth.kwargs['vmconnect']
+            service_instance = self._get_openstack_connect()
             server = service_instance.compute.get_server(params.server_id)
             try:
                 adresses = server.addresses
@@ -153,7 +156,7 @@ class OpenStackAdapter(BaseAdapter):
                 server_ip = {'ipv4': '', 'public_ipv4': None}
 
             ip = outputs.ServerIP(**server_ip)
-            image_temp=service_instance.image.get_image(server.image.id)
+            image_temp = service_instance.image.get_image(server.image.id)
 
             image = outputs.ServerImage(
                 name=image_temp.name,
@@ -179,7 +182,7 @@ class OpenStackAdapter(BaseAdapter):
         :return:
             outputs.ServerDeleteOutput()
         """
-        service_instance = self.auth.kwargs['vmconnect']
+        service_instance = self._get_openstack_connect()
         try:
             service_instance.compute.delete_server(params.server_id, force=True)
             return outputs.ServerDeleteOutput()
@@ -192,7 +195,7 @@ class OpenStackAdapter(BaseAdapter):
         :return:
             outputs.ServerActionOutput()
         """
-        service_instance = self.auth.kwargs['vmconnect']
+        service_instance = self._get_openstack_connect()
         try:
             if params.action == inputs.ServerAction.START:
                 service_instance.compute.start_server(params.server_id)
@@ -217,7 +220,7 @@ class OpenStackAdapter(BaseAdapter):
         :return:
             outputs.ServerStatusOutput()
         """
-        service_instance = self.auth.kwargs['vmconnect']
+        service_instance = self._get_openstack_connect()
         status_map = {
             'ACTIVE': 1,
             'UNKNOWN': 0,
@@ -242,7 +245,7 @@ class OpenStackAdapter(BaseAdapter):
             outputs.ServerVNCOutput()
         """
         try:
-            service_instance = self.auth.kwargs['vmconnect']
+            service_instance = self._get_openstack_connect()
             server = service_instance.compute.get_server(params.server_id)
             console = service_instance.compute.create_server_remote_console(
                 server, protocol='vnc', type='novnc')
@@ -260,7 +263,7 @@ class OpenStackAdapter(BaseAdapter):
         :return:
             output.ListImageOutput()
         """
-        service_instance = self.auth.kwargs['vmconnect']
+        service_instance = self._get_openstack_connect()
         try:
             result = []
             for image in service_instance.image.images():
@@ -273,7 +276,7 @@ class OpenStackAdapter(BaseAdapter):
             return outputs.ListImageOutput(ok=False, error=exceptions.Error('list image failed'), images=[])
 
     def get_or_create_flavor(self, ram: int, vcpu: int):
-        service_instance = self.auth.kwargs['vmconnect']
+        service_instance = self._get_openstack_connect()
         flavors = service_instance.compute.flavors()
         for flavor in flavors:
             if flavor.ram == ram and flavor.vcpus == vcpu:
@@ -287,7 +290,7 @@ class OpenStackAdapter(BaseAdapter):
         列举子网
         :return:
         """
-        service_instance = self.auth.kwargs['vmconnect']
+        service_instance = self._get_openstack_connect()
         try:
             result = []
             for net in service_instance.network.networks():
@@ -308,7 +311,7 @@ class OpenStackAdapter(BaseAdapter):
             outputs.NetworkDetailOutput()
         """
         try:
-            service_instance = self.auth.kwargs['vmconnect']
+            service_instance = self._get_openstack_connect()
 
             network = service_instance.network.get_network(params.network_id)
             subnet = service_instance.network.get_subnet(network.subnet_ids[0])
@@ -316,5 +319,18 @@ class OpenStackAdapter(BaseAdapter):
             new_net = outputs.NetworkDetail(id=params.network_id, name=network.name, public=False, segment=subnet.cidr)
 
             return outputs.NetworkDetailOutput(network=new_net)
-        except exceptions.Error as e:
+        except Exception as e:
             return outputs.NetworkDetailOutput(ok=False, error=exceptions.Error(str(e)), network=None)
+
+    def create_volume(self, params: inputs.VolumeCreateInput, **kwargs):
+        """
+        Create a new volume.
+        """
+        try:
+            service_instance = self._get_openstack_connect()
+            volume = service_instance.volume.create_volume(
+                size=params.size,
+                description=params.description
+            )
+        except Exception as e:
+            pass

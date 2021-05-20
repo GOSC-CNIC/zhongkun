@@ -138,7 +138,7 @@ class NetworkDetailInput(InputBase):
         super().__init__(**kwargs)
 
 
-class DiskCreateInput(InputBase):
+class VolumeCreateInput(InputBase):
     def __init__(self, size: int, description: str, **kwargs):
         self.size = size                    # Gb
         self.description = description      # 备注，描述

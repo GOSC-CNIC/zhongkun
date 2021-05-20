@@ -19,8 +19,7 @@ class ServerView(View):
     NUM_PER_PAGE = 20       # Show num per page
 
     def get(self, request, *args, **kwargs):
-        service_id = to_int_or_default(request.GET.get('service'), default=None)
-        # service_id = to_int_or_default(kwargs.get('service_id'), default=None)
+        service_id = request.GET.get('service')
         user = request.user
 
         if service_id:
