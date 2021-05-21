@@ -1166,6 +1166,18 @@ class UserQuotaViewSet(CustomGenericViewSet):
         """
         return handlers.UserQuotaHandler.list_quota_servers(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('删除资源配额'),
+        responses={
+        }
+    )
+    def destroy(self, request, *args, **kwargs):
+        """
+        删除资源配额
+        """
+        return handlers.UserQuotaHandler.delete_quota(
+            view=self, request=request, kwargs=kwargs)
+
 
 class ServiceViewSet(CustomGenericViewSet):
     """

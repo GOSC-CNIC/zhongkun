@@ -1,10 +1,9 @@
-from adapters.evcloud.adapter import EVCloudAdapter
-from adapters.openstack.adapter import OpenStackAdapter
-from adapters.vmware.adapter import VmwareAdapter
-
-
-from adapters.exceptions import UnsupportedServiceType, MethodNotSupportInService
 from service.models import ServiceConfig
+
+from .evcloud.adapter import EVCloudAdapter
+from .openstack.adapter import OpenStackAdapter
+from .vmware.adapter import VmwareAdapter
+from .exceptions import UnsupportedServiceType, MethodNotSupportInService
 
 
 SERVICE_TYPE_EVCLOUD = 'evcloud'

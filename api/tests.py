@@ -76,7 +76,7 @@ class UserQuotaTests(MyAPITestCase):
         create_server_metadata(
             service=self.service, user=self.user, user_quota=self.quota)
 
-    def test_list_quota(self):
+    def test_list_delete_quota(self):
         url = reverse('api:user-quota-list')
         response = self.client.get(url, format='json')
         self.assertEqual(response.status_code, 200)
@@ -93,6 +93,16 @@ class UserQuotaTests(MyAPITestCase):
                            "vcpu_total", "vcpu_used", "ram_total", "ram_used",
                            "disk_size_total", "disk_size_used", "expiration_time",
                            "deleted", "display"], response.data['results'][0])
+
+        # delete
+        url = reverse('api:user-quota-detail', kwargs={'id': self.quota.id})
+        response = self.client.delete(url, format='json')
+        self.assertEqual(response.status_code, 204)
+
+        url = reverse('api:user-quota-list')
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
 
     def test_list_quota_servers(self):
         url = reverse('api:user-quota-quota-servers', kwargs={'id': 'notfound'})

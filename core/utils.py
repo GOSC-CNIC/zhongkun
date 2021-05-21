@@ -1,6 +1,5 @@
 from service.models import ServiceConfig
-from adapters import exceptions
-from . import client
+from adapters import exceptions, client
 
 
 class InvalidServiceError(exceptions.Error):

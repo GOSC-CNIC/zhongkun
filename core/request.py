@@ -1,7 +1,6 @@
-from adapters import exceptions as apt_exceptions
+from adapters import exceptions as apt_exceptions, client as clients
 from adapters import inputs, outputs
 from .auth import auth_handler
-from . import client as clients
 from api import exceptions
 
 

@@ -60,14 +60,10 @@ class UserQuotaHandler:
     @staticmethod
     def list_quota_servers(view, request, kwargs):
         quota_id = kwargs.get(view.lookup_field)
-        quota = UserQuotaManager().get_quota_by_id(quota_id)
-        if not quota:
-            return view.exception_reponse(
-                exceptions.NotFound(message='资源配额不存在'))
-
-        if quota.user_id != request.user.id:
-            return view.exception_reponse(
-                exceptions.AccessDenied(message=_('无权访问此资源配额')))
+        try:
+            quota = UserQuotaManager().get_user_quota_by_id(quota_id, user=request.user)
+        except exceptions.Error as exc:
+            return view.exception_reponse(exc)
 
         try:
             queryset = Server.objects.filter(user_quota=quota)
@@ -79,6 +75,16 @@ class UserQuotaHandler:
         except Exception as exc:
             err = exceptions.convert_to_error(exc)
             return Response(err.err_data(), status=err.status_code)
+
+    @staticmethod
+    def delete_quota(view, request, kwargs):
+        quota_id = kwargs.get(view.lookup_field)
+        try:
+            UserQuotaManager().delete_quota_soft(quota_id, user=request.user)
+        except exceptions.Error as exc:
+            return view.exception_reponse(exc)
+
+        return Response(status=204)
 
 
 class ApplyUserQuotaHandler:

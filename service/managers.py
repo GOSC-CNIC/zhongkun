@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.core.cache import cache
 
 from core import errors
+from api import exceptions
 from .models import UserQuota, ServicePrivateQuota, ServiceShareQuota, ServiceConfig
 
 
@@ -28,6 +29,45 @@ class UserQuotaManager:
             return None
 
         return quota
+
+    def get_user_quota_by_id(self, _id: str, user):
+        """
+        查询指定用户的配额
+
+        :param _id: 配额id
+        :param user: 用户实例
+        :return:
+            UserQuota()
+
+        :raises: QuotaError
+        """
+        quota = self.get_quota_by_id(_id)
+        if not quota:
+            raise errors.QuotaError.from_error(
+                exceptions.NotFound(message='资源配额不存在'))
+
+        if quota.user_id != user.id:
+            raise errors.QuotaError.from_error(
+                exceptions.AccessDenied(message=_('无权访问此资源配额')))
+
+        return quota
+
+    def delete_quota_soft(self, _id: str, user):
+        """
+        软删除用户的配额
+
+        :retrun:
+            None                # success
+            raise QuotaError    # failed
+
+        :raises: QuotaError
+        """
+        quota = self.get_user_quota_by_id(_id=_id, user=user)
+        quota.deleted = True
+        try:
+            quota.save(update_fields=['deleted'])
+        except Exception as e:
+            raise errors.QuotaError.from_error(e)
 
     def get_quota_queryset(self, user):
         """
