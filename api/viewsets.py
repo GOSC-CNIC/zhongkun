@@ -118,7 +118,7 @@ class CustomGenericViewSet(viewsets.GenericViewSet):
     @staticmethod
     def get_service_by_id(service_id):
         service = ServiceConfig.objects.select_related('data_center').filter(
-            id=service_id, status=ServiceConfig.STATUS_ENABLE).first()
+            id=service_id, status=ServiceConfig.Status.ENABLE).first()
 
         if not service:
             raise exceptions.ServiceNotExist(_('服务端点不存在'))

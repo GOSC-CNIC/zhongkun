@@ -47,7 +47,11 @@ class AuthCacheHandler:
 
         s_client = client.get_service_client(service)
         try:
-            params = inputs.AuthenticateInput(username=service.username, password=service.password)
+            password = service.raw_password()
+            if password is None:
+                raise exceptions.AuthenticationFailed(f'Invalid password of service "{str(service)}"')
+
+            params = inputs.AuthenticateInput(username=service.username, password=password)
             auth = s_client.authenticate(params)
             if not auth.ok:
                 raise exceptions.AuthenticationFailed(f'Authentication failed to service "{str(service)}"')
@@ -58,7 +62,7 @@ class AuthCacheHandler:
         return auth
 
     def get_vpn_auth(self, service: ServiceConfig, refresh=False):
-        if service.service_type == service.SERVICE_EVCLOUD:
+        if service.service_type == service.ServiceType.EVCLOUD:
             return self.get_auth(service=service, refresh=refresh)
 
         now = datetime.utcnow().timestamp()
@@ -75,7 +79,11 @@ class AuthCacheHandler:
 
         cli = client.get_service_vpn_client(service)
         try:
-            params = inputs.AuthenticateInput(username=service.vpn_username, password=service.vpn_password)
+            vpn_password = service.raw_vpn_password()
+            if vpn_password is None:
+                raise exceptions.AuthenticationFailed(f'Invalid vpn_password of service "{str(service)}"')
+
+            params = inputs.AuthenticateInput(username=service.vpn_username, password=vpn_password)
             auth = cli.authenticate(params)
             if not auth.ok:
                 raise exceptions.AuthenticationFailed(f'Authentication failed to vpn of service "{str(service)}"')

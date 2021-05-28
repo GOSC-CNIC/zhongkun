@@ -2,12 +2,19 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
+from django.conf import settings
 
 from utils.model import UuidModel
+from utils.crypto import Encrypter
+from core import errors
 
 
 User = get_user_model()
 app_name = 'service'
+
+
+def get_encrypter():
+    return Encrypter(key=settings.SECRET_KEY)
 
 
 class DataCenter(UuidModel):
@@ -19,15 +26,14 @@ class DataCenter(UuidModel):
     )
 
     name = models.CharField(verbose_name=_('名称'), max_length=255)
-    endpoint_vms = models.CharField(max_length=255, verbose_name=_('云主机服务地址url'), unique=True,
+    endpoint_vms = models.CharField(max_length=255, verbose_name=_('云主机服务地址url'),
                                     null=True, blank=True, default=None, help_text='http(s)://{hostname}:{port}/')
-    endpoint_object = models.CharField(max_length=255, verbose_name=_('存储服务地址url'), unique=True,
+    endpoint_object = models.CharField(max_length=255, verbose_name=_('存储服务地址url'),
                                        null=True, blank=True, default=None, help_text='http(s)://{hostname}:{port}/')
-    endpoint_compute = models.CharField(max_length=255, verbose_name=_('计算服务地址url'), unique=True,
+    endpoint_compute = models.CharField(max_length=255, verbose_name=_('计算服务地址url'),
                                         null=True, blank=True, default=None, help_text='http(s)://{hostname}:{port}/')
-    endpoint_monitor = models.CharField(max_length=255, verbose_name=_('检测报警服务地址url'), unique=True,
+    endpoint_monitor = models.CharField(max_length=255, verbose_name=_('检测报警服务地址url'),
                                         null=True, blank=True, default=None, help_text='http(s)://{hostname}:{port}/')
-    # users = models.ManyToManyField(to=User, verbose_name=_('用户'), blank=True, related_name='data_center_set')
     creation_time = models.DateTimeField(verbose_name=_('创建时间'), null=True, blank=True, default=None)
     status = models.SmallIntegerField(verbose_name=_('服务状态'), choices=CHOICE_STATUS, default=STATUS_ENABLE)
     desc = models.CharField(verbose_name=_('描述'), blank=True, max_length=255)
@@ -45,41 +51,30 @@ class ServiceConfig(UuidModel):
     """
     资源服务接入配置
     """
-    SERVICE_EVCLOUD = 0
-    SERVICE_OPENSTACK = 1
-    SERVICE_VMWARE = 2
-    SERVICE_TYPE_CHOICES = (
-        (SERVICE_EVCLOUD, 'EVCloud'),
-        (SERVICE_OPENSTACK, 'OpenStack'),
-        (SERVICE_VMWARE, 'Vmware'),
-    )
-    SERVICE_TYPE_STRING = {
-        SERVICE_EVCLOUD: 'evcloud',
-        SERVICE_OPENSTACK: 'openstack',
-        SERVICE_VMWARE: 'vmware'
-    }
+    class ServiceType(models.TextChoices):
+        EVCLOUD = 'evcloud', 'EVCloud'
+        OPENSTACK = 'openstack', 'OpenStack'
+        VMWARE = 'vmware', 'VMware'
 
-    STATUS_ENABLE = 1
-    STATUS_DISABLE = 2
-    CHOICE_STATUS = (
-        (STATUS_ENABLE, _('开启状态')),
-        (STATUS_DISABLE, _('关闭状态'))
-    )
+    class Status(models.TextChoices):
+        ENABLE = 'enable', _('服务中')
+        DISABLE = 'disable', _('停止服务')
+        DELETED = 'deleted', _('删除')
 
     data_center = models.ForeignKey(to=DataCenter, null=True, on_delete=models.SET_NULL,
                                     related_name='service_set', verbose_name=_('数据中心'))
     name = models.CharField(max_length=255, verbose_name=_('服务名称'))
     region_id = models.CharField(max_length=128, default='', blank=True, verbose_name=_('服务区域/分中心ID'))
-    service_type = models.SmallIntegerField(choices=SERVICE_TYPE_CHOICES, default=SERVICE_EVCLOUD,
-                                            verbose_name=_('服务平台类型'))
+    service_type = models.CharField(max_length=32, choices=ServiceType.choices, default=ServiceType.EVCLOUD,
+                                    verbose_name=_('服务平台类型'))
     endpoint_url = models.CharField(max_length=255, verbose_name=_('服务地址url'), unique=True,
                                     help_text='http(s)://{hostname}:{port}/')
     api_version = models.CharField(max_length=64, default='v3', verbose_name=_('API版本'),
                                    help_text=_('预留，主要EVCloud使用'))
     username = models.CharField(max_length=128, verbose_name=_('用户名'), help_text=_('用于此服务认证的用户名'))
-    password = models.CharField(max_length=128, verbose_name=_('密码'))
+    password = models.CharField(max_length=255, verbose_name=_('密码'))
     add_time = models.DateTimeField(auto_now_add=True, verbose_name=_('添加时间'))
-    status = models.SmallIntegerField(verbose_name=_('服务状态'), choices=CHOICE_STATUS, default=STATUS_ENABLE)
+    status = models.CharField(verbose_name=_('服务状态'), max_length=32, choices=Status.choices, default=Status.ENABLE)
     remarks = models.CharField(max_length=255, default='', blank=True, verbose_name=_('备注'))
     need_vpn = models.BooleanField(verbose_name=_('是否需要VPN'), default=True)
     vpn_endpoint_url = models.CharField(max_length=255, blank=True, default='', verbose_name=_('VPN服务地址url'),
@@ -88,9 +83,19 @@ class ServiceConfig(UuidModel):
                                        help_text=_('预留，主要EVCloud使用'))
     vpn_username = models.CharField(max_length=128, blank=True, default='', verbose_name=_('VPN服务用户名'),
                                     help_text=_('用于此服务认证的用户名'))
-    vpn_password = models.CharField(max_length=128, blank=True, default='', verbose_name=_('VPN服务密码'))
+    vpn_password = models.CharField(max_length=255, blank=True, default='', verbose_name=_('VPN服务密码'))
     extra = models.CharField(max_length=1024, blank=True, default='', verbose_name=_('其他配置'), help_text=_('json格式'))
     users = models.ManyToManyField(to=User, verbose_name=_('用户'), blank=True, related_name='service_set')
+
+    contact_person = models.CharField(verbose_name=_('联系人名称'), max_length=128,
+                                      blank=True, default='')
+    contact_email = models.EmailField(verbose_name=_('联系人邮箱'), blank=True, default='')
+    contact_telephone = models.CharField(verbose_name=_('联系人电话'), max_length=16,
+                                         blank=True, default='')
+    contact_fixed_phone = models.CharField(verbose_name=_('联系人固定电话'), max_length=16,
+                                           blank=True, default='')
+    contact_address = models.CharField(verbose_name=_('联系人地址'), max_length=256,
+                                       blank=True, default='')
 
     class Meta:
         ordering = ['-add_time']
@@ -99,6 +104,38 @@ class ServiceConfig(UuidModel):
 
     def __str__(self):
         return self.name
+
+    def raw_password(self):
+        """
+        :return:
+            str     # success
+            None    # failed, invalid encrypted password
+        """
+        encrypter = get_encrypter()
+        try:
+            return encrypter.decrypt(self.password)
+        except encrypter.InvlidEncrypted as e:
+            return None
+
+    def set_password(self, raw_password: str):
+        encrypter = get_encrypter()
+        self.password = encrypter.encrypt(raw_password)
+
+    def raw_vpn_password(self):
+        """
+        :return:
+            str     # success
+            None    # failed, invalid encrypted password
+        """
+        encrypter = get_encrypter()
+        try:
+            return encrypter.decrypt(self.vpn_password)
+        except encrypter.InvlidEncrypted as e:
+            return None
+
+    def set_vpn_password(self, raw_password: str):
+        encrypter = get_encrypter()
+        self.vpn_password = encrypter.encrypt(raw_password)
 
     def is_need_vpn(self):
         return self.need_vpn
@@ -111,21 +148,13 @@ class ServiceConfig(UuidModel):
         if not self.is_need_vpn():
             return True
 
-        if self.service_type == self.SERVICE_EVCLOUD:
+        if self.service_type == self.ServiceType.EVCLOUD:
             return True
 
         if not self.vpn_endpoint_url or not self.vpn_password or not self.vpn_username:
             return False
 
         return True
-
-    def service_type_to_str(self, t=None):
-        """
-        :return:
-            str or None
-        """
-        key = t if t else self.service_type
-        return self.SERVICE_TYPE_STRING.get(key)
 
     def user_has_perm(self, user):
         """
@@ -299,3 +328,200 @@ class UserQuota(UuidModel):
             return True
 
         return False
+
+
+class ApplyDataCenter(UuidModel):
+    """
+    数据中心/机构申请
+    """
+    class Status(models.TextChoices):
+        WAIT = 'wait', '待审批'
+        PENDING = 'pending', '审批中'
+        REJECT = 'reject', '拒绝'
+        PASS = 'pass', '通过'
+
+    name = models.CharField(verbose_name=_('名称'), max_length=255)
+    abbreviation = models.CharField(verbose_name=_('简称'), max_length=64, default='')
+    independent_legal_person = models.BooleanField(verbose_name=_('是否独立法人单位'), default=True)
+    country = models.CharField(verbose_name=_('国家/地区'), max_length=128, default='')
+    city = models.CharField(verbose_name=_('城市'), max_length=128, default='')
+    postal_code = models.CharField(verbose_name=_('邮政编码'), max_length=32, default='')
+    address = models.CharField(verbose_name=_('单位地址'), max_length=256, default='')
+
+    endpoint_vms = models.CharField(max_length=255, verbose_name=_('云主机服务地址url'), unique=True,
+                                    null=True, blank=True, default=None, help_text='http(s)://{hostname}:{port}/')
+    endpoint_object = models.CharField(max_length=255, verbose_name=_('存储服务地址url'), unique=True,
+                                       null=True, blank=True, default=None, help_text='http(s)://{hostname}:{port}/')
+    endpoint_compute = models.CharField(max_length=255, verbose_name=_('计算服务地址url'), unique=True,
+                                        null=True, blank=True, default=None, help_text='http(s)://{hostname}:{port}/')
+    endpoint_monitor = models.CharField(max_length=255, verbose_name=_('检测报警服务地址url'), unique=True,
+                                        null=True, blank=True, default=None, help_text='http(s)://{hostname}:{port}/')
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'), null=True, blank=True, default=None)
+    status = models.CharField(verbose_name=_('状态'), max_length=16,
+                                      choices=Status.choices, default=Status.WAIT)
+    desc = models.CharField(verbose_name=_('描述'), blank=True, max_length=255)
+    data_center = models.OneToOneField(to=DataCenter, null=True, on_delete=models.SET_NULL,
+                                       related_name='apply_data_center',
+                                       default=None, verbose_name=_('机构'),
+                                       help_text=_('机构加入申请审批通过后对应的机构'))
+
+    class Meta:
+        db_table = 'vm_datacenter_apply'
+        ordering = ['creation_time']
+        verbose_name = _('机构')
+        verbose_name_plural = verbose_name
+
+    def is_pass(self):
+        return self.status == self.Status.PASS
+
+    def __str__(self):
+        return self.name
+
+
+class ApplyVmService(UuidModel):
+    """
+    服务接入申请
+    """
+    class Status(models.TextChoices):
+        WAIT = 'wait', _('待审核')
+        PENDING = 'pending', _('审核中')
+        FIRST_PASS = 'first_pass', _('初审通过')
+        FIRST_REJECT = 'first_reject', _('初审拒绝')
+        TEST_FAILED = 'test_failed', _('测试未通过')
+        TEST_PASS = 'test_pass', _('测试通过')
+        REJECT = 'reject', _('拒绝')
+        PASS = 'pass', _('通过')
+
+    class ServiceType(models.TextChoices):
+        EVCLOUD = 'evcloud', 'EVCloud'
+        OPENSTACK = 'openstack', 'OpenStack'
+        VMWARE = 'vmware', 'VMware'
+
+    user = models.ForeignKey(verbose_name=_('申请用户'), to=User, null=True, on_delete=models.SET_NULL)
+    creation_time = models.DateTimeField(verbose_name=_('申请时间'), auto_now_add=True)
+    approve_time = models.DateTimeField(verbose_name=_('审批时间'), auto_now_add=True)
+    status = models.CharField(verbose_name=_('状态'), max_length=16,
+                              choices=Status.choices, default=Status.WAIT)
+
+    data_center = models.ForeignKey(to=DataCenter, null=True, on_delete=models.SET_NULL, verbose_name=_('数据中心'))
+    center_apply = models.ForeignKey(to=ApplyDataCenter, null=True, on_delete=models.SET_NULL,
+                                     verbose_name=_('数据中心申请'))
+    longitude = models.FloatField(verbose_name=_('经度'), blank=True, default=0)
+    latitude = models.FloatField(verbose_name=_('纬度'), blank=True, default=0)
+    name = models.CharField(max_length=255, verbose_name=_('服务名称'))
+    region = models.CharField(max_length=128, default='', blank=True, verbose_name=_('服务区域'),
+                              help_text='OpenStack服务区域名称,EVCloud分中心ID')
+    service_type = models.CharField(choices=ServiceType.choices, default=ServiceType.EVCLOUD,
+                                    max_length=16, verbose_name=_('服务平台类型'))
+    endpoint_url = models.CharField(max_length=255, verbose_name=_('服务地址url'), unique=True,
+                                    help_text='http(s)://{hostname}:{port}/')
+    api_version = models.CharField(max_length=64, default='v3', verbose_name=_('API版本'), help_text=_('预留，主要EVCloud使用'))
+    username = models.CharField(max_length=128, verbose_name=_('用户名'), help_text=_('用于此服务认证的用户名'))
+    password = models.CharField(max_length=255, verbose_name=_('密码'))
+    project_name = models.CharField(
+        verbose_name='Project Name', max_length=128, blank=True, default='',
+        help_text='only required when OpenStack')
+    project_domain_name = models.CharField(
+        verbose_name='Project Domain Name', blank=True, max_length=128,
+        help_text='only required when OpenStack', default='')
+    user_domain_name = models.CharField(
+        verbose_name='User Domain Name', max_length=128, blank=True, default='',
+        help_text='only required when OpenStack')
+    remarks = models.CharField(max_length=255, default='', blank=True, verbose_name=_('备注'))
+    need_vpn = models.BooleanField(verbose_name=_('是否需要VPN'), default=True)
+
+    vpn_endpoint_url = models.CharField(max_length=255, verbose_name=_('VPN服务地址url'),
+                                        help_text='http(s)://{hostname}:{port}/')
+    vpn_api_version = models.CharField(max_length=64, default='v3', verbose_name=_('VPN API版本'))
+    vpn_username = models.CharField(max_length=128, verbose_name=_('用户名'), help_text=_('用于VPN服务认证的用户名'))
+    vpn_password = models.CharField(max_length=255, verbose_name=_('密码'))
+    service = models.OneToOneField(to=ServiceConfig, null=True, on_delete=models.SET_NULL, related_name='apply_service',
+                                   default=None, verbose_name=_('接入服务'),
+                                   help_text=_('服务接入申请审批通过后生成的对应的接入服务'))
+    deleted = models.BooleanField(verbose_name=_('删除'), default=False)
+
+    contact_person = models.CharField(verbose_name=_('联系人'), max_length=128,
+                                      blank=True, default='')
+    contact_email = models.EmailField(verbose_name=_('联系人邮箱'), blank=True, default='')
+    contact_telephone = models.CharField(verbose_name=_('联系人电话'), max_length=16,
+                                         blank=True, default='')
+    contact_fixed_phone = models.CharField(verbose_name=_('联系人固定电话'), max_length=16,
+                                           blank=True, default='')
+    contact_address = models.CharField(verbose_name=_('联系人地址'), max_length=256,
+                                       blank=True, default='')
+
+    class Meta:
+        db_table = 'vm_service_apply'
+        ordering = ['-creation_time']
+        verbose_name = _('VM服务接入申请')
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return f'ApplyService(name={self.name})'
+
+    def raw_password(self):
+        """
+        :return:
+            str     # success
+            None    # failed, invalid encrypted password
+        """
+        encrypter = get_encrypter()
+        try:
+            return encrypter.decrypt(self.password)
+        except encrypter.InvlidEncrypted as e:
+            return None
+
+    def set_password(self, raw_password: str):
+        encrypter = get_encrypter()
+        self.password = encrypter.encrypt(raw_password)
+
+    def raw_vpn_password(self):
+        """
+        :return:
+            str     # success
+            None    # failed, invalid encrypted password
+        """
+        encrypter = get_encrypter()
+        try:
+            return encrypter.decrypt(self.vpn_password)
+        except encrypter.InvlidEncrypted as e:
+            return None
+
+    def set_vpn_password(self, raw_password: str):
+        encrypter = get_encrypter()
+        self.vpn_password = encrypter.encrypt(raw_password)
+
+    def convert_to_service(self):
+        """
+        申请转为对应的ServiceConfig对象
+        :return:
+        """
+        if self.data_center_id and self.center_apply_id:
+            if self.center_apply.is_pass() and self.center_apply.data_center_id == self.data_center_id:
+                self.center_apply_id = None
+            else:
+                raise errors.DoNotKnowWhichCenterBelongToError()
+        elif not self.data_center_id and not self.center_apply_id:
+            raise errors.NoCenterBelongToError()
+        elif self.center_apply_id:
+            if not self.center_apply.is_pass():
+                raise errors.CenterApplyNotPassError(message='无法通过服务接入申请，服务接入申请所属的机构申请未通')
+
+            self.data_center_id = self.center_apply.data_center_id
+
+        service = ServiceConfig()
+        service.data_center = self.data_center_id
+        service.name = self.name
+        service.region_id = self.region
+        service.service_type = self.service_type
+        service.endpoint_url = self.endpoint_url
+        service.api_version = self.api_version
+        service.username = self.username
+        service.password = self.password
+        service.remarks = self.remarks
+        service.need_vpn = self.need_vpn
+        service.vpn_endpoint_url = self.vpn_endpoint_url
+        service.vpn_api_version = self.vpn_api_version
+        service.vpn_username = self.vpn_username
+        service.vpn_password = self.vpn_password
+        return service

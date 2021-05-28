@@ -67,6 +67,16 @@ class AccessDenied(APIException):
     default_status_code = 403
 
 
+class DataCenterNotExists(NotFound):
+    default_message = 'Data center is not exists.'
+    default_code = 'DataCenterNotExists'
+
+
+class DataCenterApplyNotExists(NotFound):
+    default_message = 'The apply of data center is not exists.'
+    default_code = 'DataCenterApplyNotExists'
+
+
 class MethodNotSupportInService(APIException):
     default_message = 'This method or business is not supported by this service center.'
     default_code = 'MethodNotSupportInService'
@@ -79,9 +89,9 @@ class ConflictError(APIException):
     default_status_code = 409
 
 
-class TooManyQuotaApply(ConflictError):
+class TooManyApply(ConflictError):
     default_message = '您已提交了多个申请，待审批，暂不能提交更多的申请'
-    default_code = 'TooManyQuotaApply'
+    default_code = 'TooManyApply'
 
 
 def convert_to_error(err):

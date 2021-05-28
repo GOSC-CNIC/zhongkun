@@ -1,14 +1,6 @@
 from django.contrib import admin
 
-from .models import ApplyService, ApplyQuota
-
-
-@admin.register(ApplyService)
-class ApplyServiceAdmin(admin.ModelAdmin):
-    list_display_links = ('id',)
-    list_display = ('id', 'data_center', 'name', 'service_type', 'status', 'user', 'creation_time', 'approve_time')
-
-    list_filter = ('data_center',)
+from .models import ApplyQuota
 
 
 @admin.register(ApplyQuota)

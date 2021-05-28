@@ -219,7 +219,7 @@ class ServersViewSet(CustomGenericViewSet):
                         **kwargs
                         )
         server.save()
-        if service.service_type == service.SERVICE_EVCLOUD:
+        if service.service_type == service.ServiceType.EVCLOUD:
             if self._update_server_detail(server):
                 return Response(data={'id': server.id}, status=status.HTTP_201_CREATED)
 
@@ -285,10 +285,10 @@ class ServersViewSet(CustomGenericViewSet):
         # 如果元数据完整，各种服务不同概率去更新元数据
         if server.ipv4 and server.image:
             need_update = False
-            if server.service.service_type == server.service.SERVICE_EVCLOUD:
+            if server.service.service_type == server.service.ServiceType.EVCLOUD:
                 if random.choice(range(10)) == 0:
                     need_update = True
-            elif server.service.service_type == server.service.SERVICE_OPENSTACK:
+            elif server.service.service_type == server.service.ServiceType.OPENSTACK:
                 if random.choice(range(5)) == 0:
                     need_update = True
             elif random.choice(range(2)) == 0:
@@ -1791,3 +1791,69 @@ class UserViewSet(CustomGenericViewSet):
         """
         serializer = serializers.UserSerializer(instance=request.user)
         return Response(data=serializer.data)
+
+
+class ApplyVmServiceViewSet(CustomGenericViewSet):
+    """
+    云主机服务接入申请视图
+    """
+    permission_classes = [IsAuthenticated]
+    pagination_class = DefaultPageNumberPagination
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('提交云主机服务接入申请'),
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    def create(self, request, *args, **kwargs):
+        """
+        提交云主机服务接入申请
+
+            Http Code: 状态码200，返回数据：
+            {
+              "id": "deec2f54-bf86-11eb-bf23-c8009fe2eb10",
+              "user": {
+                "id": "1",
+                "username": "shun"
+              },
+              "creation_time": "2021-05-28T07:32:35.153984Z",
+              "approve_time": "2021-05-28T07:32:35.154143Z",
+              "status": "wait",
+              "data_center_id": "9c70cbe2-690c-11eb-a4b7-c8009fe2eb10",
+              "center_apply_id": null,
+              "longitude": 0,
+              "latitude": 0,
+              "name": "string",
+              "region": "1",
+              "service_type": "evcloud",
+              "endpoint_url": "http://159.226.235.3",
+              "api_version": "v3",
+              "username": "string",
+              "password": "#e9xd3xa2x8exd8xd3",
+              "project_name": "string",
+              "project_domain_name": "string",
+              "user_domain_name": "string",
+              "need_vpn": true,
+              "vpn_endpoint_url": "string",
+              "vpn_api_version": "string",
+              "vpn_username": "string",
+              "vpn_password": "string",
+              "deleted": false,
+              "contact_person": "string",
+              "contact_email": "user@example.com",
+              "contact_telephone": "string",
+              "contact_fixed_phone": "string",
+              "contact_address": "string",
+              "remarks": "string"
+            }
+        """
+        return handlers.ApplyVmServiceHandler.create_apply(
+            view=self, request=request, kwargs=kwargs)
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return serializers.ApplyVmServiceCreateSerializer
+
+        return Serializer
+

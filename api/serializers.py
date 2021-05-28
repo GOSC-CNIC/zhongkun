@@ -1,5 +1,9 @@
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext, gettext_lazy as _
+from django.core.validators import URLValidator
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
+
+from service.models import ServiceConfig
 
 
 class UserQuotaSimpleSerializer(serializers.Serializer):
@@ -65,7 +69,7 @@ class ServerSerializer(ServerBaseSerializer):
             return {
                 'id': service.id,
                 'name': service.name,
-                'service_type': service.service_type_to_str()
+                'service_type': service.service_type
             }
 
         return None
@@ -103,7 +107,7 @@ class ServerArchiveSerializer(ServerBaseSerializer):
             return {
                 'id': service.id,
                 'name': service.name,
-                'service_type': service.service_type_to_str()
+                'service_type': service.service_type
             }
 
         return None
@@ -202,10 +206,10 @@ class PrivateServiceQuotaSerializer(ServiceQuotaBaseSerializer):
 class ServiceSerializer(serializers.Serializer):
     id = serializers.CharField()
     name = serializers.CharField()
-    service_type = serializers.SerializerMethodField()
+    service_type = serializers.CharField()
     add_time = serializers.DateTimeField()
     need_vpn = serializers.BooleanField()
-    status = serializers.IntegerField()
+    status = serializers.CharField()
     data_center = serializers.SerializerMethodField()
 
     @staticmethod
@@ -215,14 +219,6 @@ class ServiceSerializer(serializers.Serializer):
             return {'id': None, 'name': None}
 
         return {'id': c.id, 'name': c.name}
-
-    @staticmethod
-    def get_service_type(obj):
-        s = obj.service_type_to_str(obj.service_type)
-        if s:
-            return s
-
-        return ''
 
 
 class DataCenterSerializer(serializers.Serializer):
@@ -349,3 +345,214 @@ class UserSerializer(serializers.Serializer):
     def get_fullname(obj):
         return obj.get_full_name()
 
+
+class ApplyDataCenterSerializer(serializers.Serializer):
+    """
+    机构申请
+    """
+    name = serializers.CharField(label=_('机构名称'), max_length=255, required=True)
+    abbreviation = serializers.CharField(label=_('简称'), max_length=64, required=True)
+    independent_legal_person = serializers.BooleanField(label=_('是否独立法人单位'), required=True)
+    country = serializers.CharField(label=_('国家/地区'), max_length=128, required=True)
+    city = serializers.CharField(label=_('城市'), max_length=128, required=True)
+    postal_code = serializers.CharField(
+        label=_('邮政编码'), max_length=32, allow_null=True, allow_blank=True, default='')
+    address = serializers.CharField(label=_('单位地址'), max_length=256, required=True)
+
+    endpoint_vms = serializers.CharField(
+        label=_('云主机服务url'), required=False, allow_null=True, allow_blank=True, default=None)
+    endpoint_object = serializers.CharField(
+        label=_('对象存储服务url'), required=False, allow_null=True, allow_blank=True, default=None)
+    endpoint_compute = serializers.CharField(
+        label=_('计算服务地址url'), required=False, allow_null=True, allow_blank=True, default=None)
+    endpoint_monitor = serializers.CharField(
+        label=_('监控服务地址url'), required=False, allow_null=True, allow_blank=True, default=None)
+    desc = serializers.CharField(
+        label=_('描述'), required=False, max_length=255, allow_null=True, allow_blank=True, default=None)
+
+
+class ApplyVmServiceCreateSerializer(serializers.Serializer):
+    """
+    服务provider接入申请
+    """
+    data_center_id = serializers.CharField(
+        label=_('机构ID'), required=False, allow_null=True, default=None)
+    center_apply_id = serializers.CharField(
+        label=_('机构加入申请ID'), required=False, allow_null=True, default=None)
+    name = serializers.CharField(label=_('服务名称'), max_length=255, required=True)
+    service_type = serializers.CharField(label=_('服务类型'), required=True)
+    endpoint_url = serializers.CharField(
+        label=_('服务地址url'), max_length=255, required=True,
+        validators=[URLValidator(schemes=['http', 'https'])],
+        help_text='http(s)://{hostname}:{port}/; type OpenStack is auth url')
+    region = serializers.CharField(
+        label=_('服务区域/分中心'), max_length=128, default='', allow_blank=True, allow_null=True,
+        help_text='region name of OpenSack; center id of EVCloud; not required of VMware')
+    api_version = serializers.CharField(
+        max_length=32, default='', label=_('API版本'), allow_blank=True, allow_null=True,
+        help_text=_('api version of EVCloud and OPenStack; not required of VMware'))
+    username = serializers.CharField(
+        label=_('用户名'), required=True, help_text=_('用于此服务认证的用户名'))
+    password = serializers.CharField(label=_('密码'), required=True)
+    project_name = serializers.CharField(
+        label='Project Name', required=False, max_length=128, allow_blank=True,
+        help_text='only required when OpenStack', default='')
+    project_domain_name = serializers.CharField(
+        label='Project Domain Name', required=False, max_length=128, allow_blank=True,
+        help_text='only required when OpenStack', default='')
+    user_domain_name = serializers.CharField(
+        label='User Domain Name', required=False, max_length=128, allow_blank=True,
+        allow_null=True, default='', help_text='only required when OpenStack')
+    remarks = serializers.CharField(
+        label=_('备注'), max_length=255, required=False,
+        allow_blank=True, allow_null=True, default='')
+
+    need_vpn = serializers.BooleanField(
+        label=_('是否需要VPN'), required=True)
+    vpn_endpoint_url = serializers.CharField(
+        max_length=255, required=False, label=_('VPN服务地址url'), allow_blank=True, default='',
+        help_text='http(s)://{hostname}:{port}/; required when "need_vpn" is true; evcloud服务不需要填写')
+    vpn_api_version = serializers.CharField(
+        max_length=64, required=False, allow_blank=True, default='v3', label=_('VPN API版本'),
+        help_text='required when "need_vpn" is true;服务类型是evcloud时，不需要填写')
+    vpn_username = serializers.CharField(
+        max_length=128, required=False, label=_('用户名'), allow_blank=True, default='',
+        help_text=_('required when "need_vpn" is true;用于VPN服务认证的用户名；服务类型是evcloud时，不需要填写'))
+    vpn_password = serializers.CharField(
+        max_length=128, required=False, label=_('密码'), allow_blank=True, default='',
+        help_text='required when "need_vpn" is true;服务类型是evcloud时，不需要填写')
+
+    longitude = serializers.FloatField(
+        label=_('经度'), required=False, allow_null=True, default=0)
+    latitude = serializers.FloatField(
+        label=_('纬度'), required=False, allow_null=True, default=0)
+    contact_person = serializers.CharField(
+        label=_('联系人名称'), max_length=128, required=True)
+    contact_email = serializers.EmailField(
+        label=_('联系人邮箱'), required=True)
+    contact_telephone = serializers.CharField(
+        label=_('联系人电话'), max_length=16, required=True)
+    contact_fixed_phone = serializers.CharField(
+        label=_('联系人固定电话'), max_length=16, allow_blank=True, default='')
+    contact_address = serializers.CharField(
+        label=_('联系人地址'), max_length=256, required=True)
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        data_center_id = attrs.get('data_center_id')
+        center_apply_id = attrs.get('center_apply_id')
+        if not data_center_id and not center_apply_id:
+            raise ValidationError(detail={
+                'data_center_id': gettext('"data_center_id" and "center_apply_id"必须提交一个')})
+
+        if not data_center_id and not center_apply_id:
+            raise ValidationError(detail={
+                'data_center_id': gettext('不能同时提交"data_center_id" and "center_apply_id"，只需要提交其中的一个.')})
+
+        service_type = attrs.get('service_type', '')
+        if service_type not in ServiceConfig.ServiceType.values:
+            raise ValidationError(detail={
+                'service_type': gettext('service_type的值无效')})
+
+        region = attrs.get('region', '')
+        if service_type in [ServiceConfig.ServiceType.EVCLOUD, ServiceConfig.ServiceType.OPENSTACK]:
+            if not region:
+                raise ValidationError(detail={
+                    'region': gettext('region的值无效')})
+
+        if service_type == ServiceConfig.ServiceType.OPENSTACK:
+            project_name = attrs.get('project_name')
+            project_domain_name = attrs.get('project_domain_name')
+            user_domain_name = attrs.get('user_domain_name')
+            if not project_name:
+                raise ValidationError(detail={
+                    'project_name': gettext('当服务类型是OpenStack时，"project_name"是必须的')})
+
+            if not project_domain_name:
+                raise ValidationError(detail={
+                    'project_domain_name': gettext('当服务类型是OpenStack时，"project_domain_name"是必须的')})
+
+            if not user_domain_name:
+                raise ValidationError(detail={
+                    'user_domain_name': gettext('当服务类型是OpenStack时，"user_domain_name"是必须的')})
+
+        need_vpn = attrs.get('need_vpn')
+        if need_vpn and service_type != ServiceConfig.ServiceType.EVCLOUD:
+            vpn_endpoint_url = attrs.get('vpn_endpoint_url')
+            vpn_api_version = attrs.get('vpn_api_version')
+            vpn_username = attrs.get('vpn_username')
+            vpn_password = attrs.get('vpn_password')
+            if not vpn_endpoint_url:
+                raise ValidationError(detail={
+                    'vpn_endpoint_url': gettext('当需要vpn，接入服务类型不是EVCloud时，"vpn_endpoint_url"是必须的')})
+
+            if not vpn_api_version:
+                raise ValidationError(detail={
+                    'vpn_api_version': gettext('当需要vpn，接入服务类型不是EVCloud时，"vpn_api_version"是必须的')})
+
+            if not vpn_username:
+                raise ValidationError(detail={
+                    'vpn_username': gettext('当需要vpn，接入服务类型不是EVCloud时，"vpn_username"是必须的')})
+
+            if not vpn_password:
+                raise ValidationError(detail={
+                    'vpn_password': gettext('当需要vpn，接入服务类型不是EVCloud时，"vpn_password"是必须的')})
+
+        return attrs
+
+
+class ApplyVmServiceSerializer(serializers.Serializer):
+    """
+    服务provider接入申请
+    """
+    id = serializers.CharField()
+    user = serializers.SerializerMethodField(method_name='get_user')
+    creation_time = serializers.DateTimeField()
+    approve_time = serializers.DateTimeField()
+    status = serializers.CharField()
+
+    data_center_id = serializers.CharField()
+    center_apply_id = serializers.CharField()
+    longitude = serializers.FloatField()
+    latitude = serializers.FloatField()
+    name = serializers.CharField()
+    region = serializers.CharField()
+    service_type = serializers.CharField()
+    endpoint_url = serializers.CharField()
+    api_version = serializers.CharField()
+    username = serializers.SerializerMethodField(method_name='get_password')
+    password = serializers.CharField()
+    project_name = serializers.CharField()
+    project_domain_name = serializers.CharField()
+    user_domain_name = serializers.CharField()
+
+    need_vpn = serializers.BooleanField()
+    vpn_endpoint_url = serializers.CharField()
+    vpn_api_version = serializers.CharField()
+    vpn_username = serializers.CharField()
+    vpn_password = serializers.SerializerMethodField(method_name='get_vpn_password')
+    # service = serializers
+    deleted = serializers.BooleanField()
+
+    contact_person = serializers.CharField()
+    contact_email = serializers.EmailField()
+    contact_telephone = serializers.CharField()
+    contact_fixed_phone = serializers.CharField()
+    contact_address = serializers.CharField()
+    remarks = serializers.CharField()
+
+    @staticmethod
+    def get_user(obj):
+        user = obj.user
+        if user:
+            return {'id': user.id, 'username': user.username}
+
+        return None
+
+    @staticmethod
+    def get_password(obj):
+        return obj.raw_password()
+
+    @staticmethod
+    def get_vpn_password(obj):
+        return obj.raw_vpn_password()

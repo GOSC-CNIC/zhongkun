@@ -8,7 +8,8 @@ from django.core.cache import cache
 
 from core import errors
 from api import exceptions
-from .models import UserQuota, ServicePrivateQuota, ServiceShareQuota, ServiceConfig
+from .models import (UserQuota, ServicePrivateQuota, ServiceShareQuota,
+                     ServiceConfig, ApplyVmService, DataCenter, ApplyDataCenter)
 
 
 class UserQuotaManager:
@@ -741,10 +742,10 @@ class ServiceManager:
         """
         if center_id:
             queryset = ServiceConfig.objects.select_related('data_center').filter(
-                data_center=center_id, status=ServiceConfig.STATUS_ENABLE)
+                data_center=center_id, status=ServiceConfig.Status.ENABLE)
         else:
             queryset = ServiceConfig.objects.select_related('data_center').filter(
-                status=ServiceConfig.STATUS_ENABLE)
+                status=ServiceConfig.Status.ENABLE)
 
         if user:
             user_quotas = UserQuotaManager().filter_quota_queryset(user=user, usable=True)
@@ -759,7 +760,7 @@ class ServiceManager:
         用户有权限管理的服务
         """
         return user.service_set.select_related('data_center').filter(
-            status=ServiceConfig.STATUS_ENABLE).all()
+            status=ServiceConfig.Status.ENABLE).all()
 
     @staticmethod
     def get_service_id_map(use_cache=False, cache_secends=60):
@@ -784,3 +785,92 @@ class ServiceManager:
                 cache.set(caches_key, service_id_map, timeout=cache_secends)
 
         return service_id_map
+
+
+class VmServiceApplyManager:
+    model = ApplyVmService
+
+    @staticmethod
+    def get_apply_queryset():
+        return ApplyVmService.objects.all()
+
+    def get_not_delete_apply_queryset(self, user=None):
+        filters = {
+            'deleted': False
+        }
+        if user:
+            filters['user'] = user
+
+        qs = self.get_apply_queryset()
+        return qs.filter(**filters)
+
+    @staticmethod
+    def create_apply(data: dict, user):
+        """
+        创建一个服务接入申请
+
+        :param data: dict, ApplyVmServiceSerializer.validated_data
+        :param user:
+        :return:
+            ApplyVmService()
+
+        :raises: Error
+        """
+        apply_service = ApplyVmService()
+        data_center_id = data.get('data_center_id')
+        center_apply_id = data.get('center_apply_id')
+        if data_center_id and center_apply_id:
+            raise errors.DoNotKnowWhichCenterBelongToError()
+
+        if data_center_id:
+            center = DataCenter.objects.filter(id=data_center_id).first()
+            if center is None:
+                raise exceptions.DataCenterNotExists()
+
+            apply_service.data_center_id = data_center_id
+        elif center_apply_id:
+            center_apply = ApplyDataCenter.objects.filter(id=center_apply_id).first()
+            if center_apply is None:
+                raise exceptions.DataCenterApplyNotExists
+
+            apply_service.center_apply_id = center_apply_id
+        else:
+            raise errors.NoCenterBelongToError()
+
+        service_type = data.get('service_type')
+        if service_type not in apply_service.ServiceType.values:
+            raise exceptions.BadRequest(message='service_type值无效')
+
+        apply_service.user = user
+        apply_service.service_type = service_type
+        apply_service.name = data.get('name')
+        apply_service.endpoint_url = data.get('endpoint_url')
+        apply_service.region = data.get('region', '')
+        apply_service.api_version = data.get('api_version', '')
+        apply_service.username = data.get('username', '')
+        apply_service.set_password(data.get('password', ''))
+        apply_service.project_name = data.get('project_name', '')
+        apply_service.project_domain_name = data.get('project_domain_name', '')
+        apply_service.user_domain_name = data.get('user_domain_name', '')
+        apply_service.remarks = data.get('remarks', '')
+        apply_service.need_vpn = data.get('need_vpn')
+        apply_service.vpn_endpoint_url = data.get('vpn_endpoint_url', '')
+        apply_service.vpn_api_version = data.get('vpn_api_version', '')
+        apply_service.vpn_username = data.get('vpn_username', '')
+        apply_service.vpn_password = data.get('vpn_password', '')
+        apply_service.longitude = data.get('longitude', 0)
+        apply_service.latitude = data.get('latitude', 0)
+        apply_service.contact_person = data.get('contact_person', '')
+        apply_service.contact_email = data.get('contact_email', '')
+        apply_service.contact_telephone = data.get('contact_telephone', '')
+        apply_service.contact_fixed_phone = data.get('contact_fixed_phone', '')
+        apply_service.contact_address = data.get('contact_address', '')
+
+        try:
+            apply_service.save()
+        except Exception as e:
+            raise errors.Error.from_error(e)
+
+        return apply_service
+
+

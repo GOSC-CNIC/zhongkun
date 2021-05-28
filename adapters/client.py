@@ -13,9 +13,9 @@ SERVICE_TYPE_VMWARE = 'vmware'
 
 def get_service_client(service: ServiceConfig, **kwargs):
     style = SERVICE_TYPE_EVCLOUD
-    if service.service_type == service.SERVICE_OPENSTACK:
+    if service.service_type == service.ServiceType.OPENSTACK:
         style = SERVICE_TYPE_OPENSTACK
-    elif service.service_type == service.SERVICE_VMWARE:
+    elif service.service_type == service.ServiceType.VMWARE:
         style = SERVICE_TYPE_VMWARE
 
     return OneServiceClient(style=style, endpoint_url=service.endpoint_url, api_version=service.api_version,
@@ -23,7 +23,7 @@ def get_service_client(service: ServiceConfig, **kwargs):
 
 
 def get_service_vpn_client(service: ServiceConfig, **kwargs):
-    if service.service_type == service.SERVICE_EVCLOUD:
+    if service.service_type == service.ServiceType.EVCLOUD:
         endpoint_url = service.endpoint_url
     else:
         endpoint_url = service.vpn_endpoint_url

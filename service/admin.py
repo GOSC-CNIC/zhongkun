@@ -4,19 +4,59 @@ from django.contrib import messages
 from django.db import transaction
 
 from servers.models import Server, ServerArchive
-from .models import ServiceConfig, DataCenter, ServicePrivateQuota, ServiceShareQuota, UserQuota
+from .models import (ServiceConfig, DataCenter, ServicePrivateQuota,
+                     ServiceShareQuota, UserQuota, ApplyVmService)
 
 
 @admin.register(ServiceConfig)
 class ServiceConfigAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
     list_display = ('id', 'name', 'data_center', 'region_id', 'service_type', 'endpoint_url', 'username', 'password',
-                    'add_time', 'status', 'need_vpn', 'vpn_endpoint_url', 'remarks')
+                    'add_time', 'status', 'need_vpn', 'vpn_endpoint_url', 'vpn_password', 'remarks')
     search_fields = ['name', 'endpoint_url', 'remarks']
     list_filter = ['data_center', 'service_type']
     list_select_related = ('data_center',)
 
     filter_horizontal = ('users',)
+    readonly_fields = ('password',)
+
+    actions = ['encrypt_password', 'encrypt_vpn_password']
+
+    def encrypt_password(self, request, queryset):
+        """
+        加密密码
+        """
+        count = 0
+        for service in queryset:
+            if service.raw_password() is None:
+                service.set_password(service.password)
+                service.save(update_fields=['password'])
+                count += 1
+
+        if count > 0:
+            self.message_user(request, _("加密更新数量:") + str(count), level=messages.SUCCESS)
+        else:
+            self.message_user(request, _("没有加密更新任何数据记录"), level=messages.SUCCESS)
+
+    encrypt_password.short_description = gettext_lazy("加密用户密码")
+
+    def encrypt_vpn_password(self, request, queryset):
+        """
+        加密密码
+        """
+        count = 0
+        for service in queryset:
+            if service.raw_vpn_password() is None:
+                service.set_vpn_password(service.vpn_password)
+                service.save(update_fields=['vpn_password'])
+                count += 1
+
+        if count > 0:
+            self.message_user(request, _("加密更新数量:") + str(count), level=messages.SUCCESS)
+        else:
+            self.message_user(request, _("没有加密更新任何数据记录"), level=messages.SUCCESS)
+
+    encrypt_vpn_password.short_description = gettext_lazy("加密vpn用户密码")
 
 
 @admin.register(DataCenter)
@@ -190,3 +230,11 @@ class UserQuotaAdmin(admin.ModelAdmin):
             self.message_user(request, _("统计更新已用配额成功"), level=messages.SUCCESS)
 
     quota_used_update.short_description = gettext_lazy("已用配额统计更新")
+
+
+@admin.register(ApplyVmService)
+class ApplyServiceAdmin(admin.ModelAdmin):
+    list_display_links = ('id',)
+    list_display = ('id', 'data_center', 'name', 'service_type', 'status', 'user', 'creation_time', 'approve_time')
+
+    list_filter = ('data_center',)

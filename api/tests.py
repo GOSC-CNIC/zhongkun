@@ -38,6 +38,15 @@ class MyAPITestCase(APITestCase):
         self.assertKeysIn(['code', 'message'], response.data)
         self.assertEqual(response.data['code'], code)
 
+    def assert_is_subdict_of(self, sub: dict, d: dict):
+        for k, v in sub.items():
+            if k in d and v == d[k]:
+                continue
+            else:
+                self.fail(f'{sub} is not sub dict of {d}')
+
+        return True
+
 
 def set_auth_header(test_case: APITestCase):
     password = 'password'
@@ -242,6 +251,7 @@ class ServiceTests(MyAPITestCase):
         self.assertKeysIn(["count", "next", "previous", "results"], response.data)
         self.assertKeysIn(["id", "name", "service_type", "add_time",
                            "need_vpn", "status", "data_center"], response.data["results"][0])
+        self.assertIsInstance(response.data["results"][0]['status'], str)
 
 
 class ImageTests(MyAPITestCase):

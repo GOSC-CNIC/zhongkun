@@ -60,3 +60,21 @@ class QuotaShortageError(QuotaError):
     default_message = "There are not enough resources to use."
     default_code = "QuotaShortage"
     default_status_code = 409
+
+
+class CenterApplyNotPassError(Error):
+    default_message = '机构加入申请未通过'
+    default_code = 'CenterApplyNotPass'
+    default_status_code = 409
+
+
+class DoNotKnowWhichCenterBelongToError(Error):
+    default_message = '不确定归属于哪一个机构'
+    default_code = 'DoNotKnowWhichCenterBelongTo'
+    default_status_code = 409
+
+
+class NoCenterBelongToError(Error):
+    default_message = '没有归属的机构'
+    default_code = 'NoCenterBelongTo'
+    default_status_code = 409

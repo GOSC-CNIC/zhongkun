@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from rest_framework.response import Response
 
 from servers.models import Server
-from service.managers import UserQuotaManager
+from service.managers import UserQuotaManager, VmServiceApplyManager
 from applyment.models import ApplyQuota
 from applyment.managers import ApplyQuotaManager
 from . import serializers
@@ -30,7 +30,11 @@ def serializer_error_msg(errors, default=''):
         elif isinstance(errors, dict):
             for key in errors:
                 val = errors[key]
-                msg = f'{key}, {str(val[0])}'
+                if isinstance(val, list):
+                    msg = f'{key}, {str(val[0])}'
+                else:
+                    msg = f'{key}, {str(val)}'
+
                 break
     except Exception:
         pass
@@ -197,7 +201,7 @@ class ApplyUserQuotaHandler:
         count = ApplyQuota.objects.filter(user=request.user,
                                           status=ApplyQuota.STATUS_WAIT).count()
         if count >= 6:
-            return view.exception_reponse(exceptions.TooManyQuotaApply())
+            return view.exception_reponse(exceptions.TooManyApply())
 
         data = serializer.validated_data
         service_id = data.get('service_id', None)
@@ -446,3 +450,28 @@ class ApplyUserQuotaHandler:
             return view.exception_reponse(exc)
 
         return Response(status=204)
+
+
+class ApplyVmServiceHandler:
+    @staticmethod
+    def create_apply(view, request, kwargs):
+        """
+        提交一个服务接入申请
+        """
+        vsa_mgr = VmServiceApplyManager()
+        serializer = view.get_serializer(data=request.data)
+        if not serializer.is_valid(raise_exception=False):
+            msg = serializer_error_msg(serializer.errors)
+            return view.exception_reponse(exceptions.BadRequest(msg))
+
+        count = vsa_mgr.get_not_delete_apply_queryset(user=request.user).count()
+        if count > 6:
+            return view.exception_reponse(exceptions.TooManyApply())
+
+        try:
+            apply = vsa_mgr.create_apply(data=serializer.validated_data, user=request.user)
+        except exceptions.Error as exc:
+            return view.exception_reponse(exc)
+
+        rdata = serializers.ApplyVmServiceSerializer(instance=apply).data
+        return Response(data=rdata)

@@ -1,9 +1,10 @@
-from django.test import TransactionTestCase
+from django.test import TransactionTestCase, SimpleTestCase
 from django.contrib.auth import get_user_model
 
 from core.errors import QuotaShortageError
 from core.quota import QuotaAPI
 from utils.test import get_or_create_user, get_or_create_service
+from utils.crypto import Encrypter
 from .managers import UserQuotaManager, ServicePrivateQuotaManager, ServiceShareQuotaManager
 
 User = get_user_model()
@@ -361,3 +362,27 @@ class QuotaAPITests(TransactionTestCase):
         else:
             self.assertEqual(self.user_quota.public_ip_used, 0)
             self.assertEqual(self.user_quota.private_ip_used, 1)
+
+
+class TestEncrypter(SimpleTestCase):
+    def normal_test(self, encrypter, text):
+        encypted = encrypter.encrypt(text)
+        raw_text = encrypter.decrypt(encypted)
+        self.assertEqual(text, raw_text)
+
+    def test_encrypt(self):
+        text1 = 'iefaba!@#4567$%&^&?<<adJGKKkhafoewgfieuq:"{}HHV'
+        text2 = 'iefaba!@#4567$%&^&?<<adJGK发hi发fieuq:"{}HHV'
+        text3 = ''
+        text4 = '哈'
+        encrypter = Encrypter(key="""!2#$fk*76/';:""")
+        self.normal_test(encrypter, text1)
+        self.normal_test(encrypter, text2)
+        self.normal_test(encrypter, text3)
+        self.normal_test(encrypter, text4)
+
+        with self.assertRaises(encrypter.InvlidEncrypted):
+            encrypter.decrypt('x33')
+
+        with self.assertRaises(encrypter.InvlidEncrypted):
+            encrypter.decrypt('xsdf')
