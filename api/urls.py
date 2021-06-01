@@ -21,7 +21,11 @@ router.register(r'apply/quota', views.UserQuotaApplyViewSet, basename='apply-quo
 router.register(r'user', views.UserViewSet, basename='user')
 router.register(r'apply/service', views.ApplyVmServiceViewSet, basename='apply-service')
 
+no_slash_router = SimpleRouter(trailing_slash=False)
+no_slash_router.register(r'media', views.MediaViewSet, basename='media')
+
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('', include(no_slash_router.urls)),
 ]

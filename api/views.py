@@ -14,6 +14,7 @@ from rest_framework import status
 from rest_framework.serializers import Serializer
 from rest_framework.reverse import reverse
 from rest_framework.utils.urls import replace_query_param
+from rest_framework import parsers
 from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
@@ -1856,4 +1857,80 @@ class ApplyVmServiceViewSet(CustomGenericViewSet):
             return serializers.ApplyVmServiceCreateSerializer
 
         return Serializer
+
+
+class MediaViewSet(CustomGenericViewSet):
+    """
+    静态文件视图
+    """
+    permission_classes = [IsAuthenticated]
+    pagination_class = None
+    # parser_classes = [parsers.FileUploadParser]
+    lookup_field = 'url_path'
+    lookup_value_regex = '.+'
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('上传文件'),
+        request_body=openapi.Schema(
+            title='二进制数据',
+            type=openapi.TYPE_STRING,
+            format=openapi.FORMAT_BINARY,
+        ),
+        manual_parameters=[
+            openapi.Parameter(
+                name='Content-MD5', in_=openapi.IN_HEADER,
+                type=openapi.TYPE_STRING,
+                description=gettext_lazy("文件对象hex md5"),
+                required=True
+            ),
+        ],
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    def update(self, request, *args, **kwargs):
+        """
+        上传文件
+
+        * 必须提交标头Content-MD5、Content-Length，将根据提供的MD5值检查对象，如果不匹配，则返回错误。
+        * 数据以二进制格式直接填充请求体
+
+        * 上传logo图片，请务必使用logo前缀区分，即url_path = logo/test.png;
+
+            http code 200:
+            {
+                'url_path': 'logo/c5ff90480c7fc7c9125ca4dd86553e23.jpg'     # 上传文件对应的下载路径
+            }
+        """
+        return handlers.MediaHandler.media_upload(view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('下载文件'),
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    def retrieve(self, request, *args, **kwargs):
+        """
+        下载文件
+        """
+        return handlers.MediaHandler.media_download(view=self, request=request, kwargs=kwargs)
+
+    def get_parsers(self):
+        """
+        动态分配请求体解析器
+        """
+        method = self.request.method.lower()
+        act = self.action_map.get(method)
+        if act == 'update':
+            return [parsers.FileUploadParser()]
+
+        return super().get_parsers()
+
+    def get_permissions(self):
+        if self.action in ['retrieve']:
+            return []
+
+        return super().get_permissions()
+
 

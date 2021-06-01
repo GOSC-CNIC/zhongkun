@@ -45,6 +45,18 @@ class BadRequest(APIException):
     default_status_code = 400
 
 
+class InvalidDigest(BadRequest):
+    default_message = 'The Content-MD5 you specified is not valid.'
+    default_code = 'InvalidDigest'
+    default_status_code = 400
+
+
+class BadDigest(BadRequest):
+    default_message = 'The Content-MD5 you specified did not match what we received.'
+    default_code = 'BadDigest'
+    default_status_code = 400
+
+
 class NoSupportVPN(APIException):
     default_message = 'This service does not provide VPN support.'
     default_code = 'NoSupportVPN'

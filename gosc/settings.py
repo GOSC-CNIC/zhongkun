@@ -141,6 +141,8 @@ STATICFILES_DIRS = [
     Path('/').joinpath(BASE_DIR, 'static'),
 ]
 
+MEDIA_ROOT = Path('/').joinpath(BASE_DIR, 'media')
+
 # session 有效期设置
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # True：关闭浏览器，则Cookie失效。

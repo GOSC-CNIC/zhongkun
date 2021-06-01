@@ -1,3 +1,8 @@
+import hashlib
+import collections
+import io
+import random
+from string import printable
 from datetime import timedelta
 from urllib import parse
 
@@ -10,6 +15,54 @@ from service.managers import UserQuotaManager
 from applyment.models import ApplyQuota
 from utils.test import get_or_create_user, get_or_create_service, get_or_create_center
 from adapters import outputs
+
+
+def random_string(length: int = 10):
+    return random.choices(printable, k=length)
+
+
+def random_bytes_io(mb_num: int):
+    bio = io.BytesIO()
+    for i in range(1024):           # MB
+        s = ''.join(random_string(mb_num))
+        b = s.encode() * 1024         # KB
+        bio.write(b)
+
+    bio.seek(0)
+    return bio
+
+
+def calculate_md5(file):
+    if hasattr(file, 'seek'):
+        file.seek(0)
+
+    md5obj = hashlib.md5()
+    if isinstance(file, collections.Iterable):
+        for data in file:
+            md5obj.update(data)
+    else:
+        for data in chunks(file):
+            md5obj.update(data)
+
+    _hash = md5obj.hexdigest()
+    return _hash
+
+
+def chunks(f, chunk_size=2*2**20):
+    """
+    Read the file and yield chunks of ``chunk_size`` bytes (defaults to
+    ``File.DEFAULT_CHUNK_SIZE``).
+    """
+    try:
+        f.seek(0)
+    except AttributeError:
+        pass
+
+    while True:
+        data = f.read(chunk_size)
+        if not data:
+            break
+        yield data
 
 
 def create_server_metadata(service, user, user_quota):
@@ -661,3 +714,36 @@ class UserTests(MyAPITestCase):
         self.assertEqual(response.data['username'], self.user.username)
         self.assertEqual(response.data['fullname'], self.user.get_full_name())
         self.assertEqual(response.data['role'], self.user.role)
+
+
+class MediaApiTests(MyAPITestCase):
+    def setUp(self):
+        set_auth_header(self)
+
+    def download_media_response(self, url_path: str):
+        url = reverse('api:media-detail', kwargs={'url_path': url_path})
+        return self.client.get(url)
+
+    @staticmethod
+    def put_media_response(client, url_path: str, file):
+        """200 ok"""
+        url = reverse('api:media-detail', kwargs={'url_path': url_path})
+        file_md5 = calculate_md5(file)
+        headers = {'HTTP_Content_MD5': file_md5}
+        file.seek(0)
+        return client.put(url, data=file.read(),
+                          content_type='application/octet-stream', **headers)
+
+    def test_put_logo(self):
+        file = random_bytes_io(mb_num=8)
+        file_md5 = calculate_md5(file)
+        key = 'v2test.jpg'
+        response = self.put_media_response(self.client, url_path=f'logo/{key}', file=file)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['url_path'], f'logo/{file_md5}.jpg')
+
+        url_path = response.data['url_path']
+        response = self.download_media_response(url_path=url_path)
+        self.assertEqual(response.status_code, 200)
+        download_md5 = calculate_md5(response)
+        self.assertEqual(download_md5, file_md5, msg='Compare the MD5 of upload file and download file')
