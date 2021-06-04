@@ -52,6 +52,16 @@ class UserProfile(AbstractUser):
 
         super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
 
+    def is_federal_admin(self):
+        """
+        是否是联邦管理员
+        """
+        if hasattr(self.role, 'role') and isinstance(self.role['role'], list):
+            if self.ROLE_FEDERAL in self.role['role']:
+                return True
+
+        return False
+
 
 class Email(UuidModel):
     """

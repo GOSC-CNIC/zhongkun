@@ -1,7 +1,7 @@
 from adapters import exceptions as apt_exceptions, client as clients
 from adapters import inputs, outputs
 from .auth import auth_handler
-from api import exceptions
+from . import errors as exceptions
 
 
 def request_service(service, method: str, raise_exception=True, **kwargs):

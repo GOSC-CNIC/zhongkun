@@ -6,8 +6,8 @@ from django.db.models import Q, Subquery
 from django.utils import timezone
 from django.core.cache import cache
 
+from users.models import UserProfile
 from core import errors
-from api import exceptions
 from .models import (UserQuota, ServicePrivateQuota, ServiceShareQuota,
                      ServiceConfig, ApplyVmService, DataCenter, ApplyOrganization)
 
@@ -45,11 +45,11 @@ class UserQuotaManager:
         quota = self.get_quota_by_id(_id)
         if not quota:
             raise errors.QuotaError.from_error(
-                exceptions.NotFound(message='资源配额不存在'))
+                errors.NotFound(message='资源配额不存在'))
 
         if quota.user_id != user.id:
             raise errors.QuotaError.from_error(
-                exceptions.AccessDenied(message=_('无权访问此资源配额')))
+                errors.AccessDenied(message=_('无权访问此资源配额')))
 
         return quota
 
@@ -791,6 +791,34 @@ class OrganizationApplyManager:
     model = ApplyOrganization
 
     @staticmethod
+    def get_apply_by_id(_id: str) -> ApplyOrganization:
+        """
+        :return:
+            None                    # not exists
+            ApplyOrganization()
+        """
+        return OrganizationApplyManager.model.objects.select_related(
+            'user').filter(id=_id, deleted=False).first()
+
+    def get_user_apply(self, _id: str, user) -> ApplyOrganization:
+        """
+        查询用户的申请
+
+        :return:
+            ApplyOrganization()
+
+        :raises: Error
+        """
+        apply = self.get_apply_by_id(_id)
+        if apply is None:
+            raise errors.OrganizationApplyNotExists()
+
+        if apply.user_id and apply.user_id == user.id:
+            return apply
+
+        raise errors.AccessDenied(message=_('无权限访问此申请'))
+
+    @staticmethod
     def get_apply_queryset():
         return OrganizationApplyManager.model.objects.all()
 
@@ -854,6 +882,94 @@ class OrganizationApplyManager:
 
         return apply
 
+    def pending_apply(self, _id: str, user: UserProfile) -> ApplyOrganization:
+        """
+        挂起审批申请
+
+        :raises: Error
+        """
+        if user.is_federal_admin():
+            raise errors.AccessDenied(message=_('你没有访问权限，需要联邦管理员权限'))
+
+        apply = self.get_apply_by_id(_id=_id)
+        if apply is None:
+            raise errors.OrganizationApplyNotExists()
+
+        if apply.status == apply.Status.PENDING:
+            return apply
+        elif apply.status != apply.Status.WAIT:
+            raise errors.ConflictError(message=_('只允许挂起处于“待审批”状态的资源配额申请'))
+
+        apply.status = apply.Status.PENDING
+        try:
+            apply.save(update_fields=['status'])
+        except Exception as e:
+            raise errors.APIException(message='更新数据库失败' + str(e))
+
+        return apply
+
+    def cancel_apply(self, _id: str, user: UserProfile) -> ApplyOrganization:
+        """
+        取消申请
+
+        :raises: Error
+        """
+        apply = self.get_user_apply(_id=_id, user=user)
+
+        if apply.status == apply.Status.CANCEL:
+            return apply
+        elif apply.status != apply.Status.WAIT:
+            raise errors.ConflictError(message=_('只允取消处于“待审批”状态的资源配额申请'))
+
+        apply.status = apply.Status.CANCEL
+        try:
+            apply.save(update_fields=['status'])
+        except Exception as e:
+            raise errors.APIException(message='更新数据库失败' + str(e))
+
+        return apply
+
+    def delete_apply(self, _id: str, user: UserProfile) -> ApplyOrganization:
+        """
+        删除申请
+
+        :raises: Error
+        """
+        apply = self.get_user_apply(_id=_id, user=user)
+        apply.deleted = True
+        try:
+            apply.save(update_fields=['deleted'])
+        except Exception as e:
+            raise errors.APIException(message='更新数据库失败' + str(e))
+
+        return apply
+
+    def reject_apply(self, _id: str, user: UserProfile) -> ApplyOrganization:
+        """
+        拒绝申请
+
+        :raises: Error
+        """
+        if user.is_federal_admin():
+            raise errors.AccessDenied(message=_('你没有访问权限，需要联邦管理员权限'))
+
+        apply = self.get_apply_by_id(_id=_id)
+        if apply is None:
+            raise errors.OrganizationApplyNotExists()
+
+        if apply.status == apply.Status.REJECT:
+            return apply
+        elif apply.status != apply.Status.PENDING:
+            raise errors.ConflictError(message=_('只允拒绝处于“审批中”状态的资源配额申请'))
+
+        apply.status = apply.Status.REJECT
+        try:
+            apply.save(update_fields=['status'])
+        except Exception as e:
+            raise errors.APIException(message='更新数据库失败' + str(e))
+
+        return apply
+
 
 class VmServiceApplyManager:
     model = ApplyVmService
@@ -907,13 +1023,13 @@ class VmServiceApplyManager:
 
         center = DataCenter.objects.filter(id=data_center_id).first()
         if center is None:
-            raise exceptions.OrganizationNotExists()
+            raise errors.OrganizationNotExists()
 
         apply_service.data_center_id = data_center_id
 
         service_type = data.get('service_type')
         if service_type not in apply_service.ServiceType.values:
-            raise exceptions.BadRequest(message='service_type值无效')
+            raise errors.BadRequest(message='service_type值无效')
 
         apply_service.user = user
         apply_service.service_type = service_type

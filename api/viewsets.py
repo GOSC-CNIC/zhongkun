@@ -8,7 +8,7 @@ from rest_framework.exceptions import (APIException, NotAuthenticated, Authentic
 
 from service.models import ServiceConfig
 from core.request import request_service, request_vpn_service
-from . import exceptions
+from core import errors as exceptions
 
 
 def str_to_int_or_default(val, default):

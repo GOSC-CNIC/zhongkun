@@ -376,7 +376,7 @@ class ApplyOrganization(UuidModel):
                               choices=Status.choices, default=Status.WAIT)
     desc = models.CharField(verbose_name=_('描述'), blank=True, max_length=255)
     data_center = models.OneToOneField(to=DataCenter, null=True, on_delete=models.SET_NULL,
-                                       related_name='apply_data_center',
+                                       related_name='apply_data_center', blank=True,
                                        default=None, verbose_name=_('机构'),
                                        help_text=_('机构加入申请审批通过后对应的机构'))
 

@@ -81,7 +81,7 @@ class Migration(migrations.Migration):
                 ('id', models.CharField(blank=True, editable=False, max_length=36, primary_key=True, serialize=False, verbose_name='ID')),
                 ('creation_time', models.DateTimeField(auto_now_add=True, verbose_name='申请时间')),
                 ('approve_time', models.DateTimeField(auto_now_add=True, verbose_name='审批时间')),
-                ('status', models.CharField(choices=[('wait', '待审核'), ('pending', '审核中'), ('first_pass', '初审通过'), ('first_reject', '初审拒绝'), ('test_failed', '测试未通过'), ('test_pass', '测试通过'), ('reject', '拒绝'), ('pass', '通过')], default='wait', max_length=16, verbose_name='状态')),
+                ('status', models.CharField(choices=[('wait', '待审核'), ('cancel', '取消申请'), ('pending', '审核中'), ('first_pass', '初审通过'), ('first_reject', '初审拒绝'), ('test_failed', '测试未通过'), ('test_pass', '测试通过'), ('reject', '拒绝'), ('pass', '通过')], default='wait', max_length=16, verbose_name='状态')),
                 ('longitude', models.FloatField(blank=True, default=0, verbose_name='经度')),
                 ('latitude', models.FloatField(blank=True, default=0, verbose_name='纬度')),
                 ('name', models.CharField(max_length=255, verbose_name='服务名称')),

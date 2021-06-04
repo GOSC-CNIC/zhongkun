@@ -355,6 +355,7 @@ class ApplyOrganizationSerializer(serializers.Serializer):
     creation_time = serializers.DateTimeField(label=_('创建时间'), read_only=True)
     status = serializers.CharField(label=_('状态'), read_only=True)
     user = serializers.SerializerMethodField(method_name='get_user')
+    deleted = serializers.BooleanField(label=_('是否删除'), read_only=True)
 
     name = serializers.CharField(label=_('机构名称'), max_length=255, required=True)
     abbreviation = serializers.CharField(label=_('简称'), max_length=64, required=True)

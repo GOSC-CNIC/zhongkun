@@ -28,8 +28,8 @@ class Migration(migrations.Migration):
                 ('endpoint_object', models.CharField(blank=True, default=None, help_text='http(s)://{hostname}:{port}/', max_length=255, null=True, unique=True, verbose_name='存储服务地址url')),
                 ('endpoint_compute', models.CharField(blank=True, default=None, help_text='http(s)://{hostname}:{port}/', max_length=255, null=True, unique=True, verbose_name='计算服务地址url')),
                 ('endpoint_monitor', models.CharField(blank=True, default=None, help_text='http(s)://{hostname}:{port}/', max_length=255, null=True, unique=True, verbose_name='检测报警服务地址url')),
-                ('creation_time', models.DateTimeField(blank=True, default=None, null=True, verbose_name='创建时间')),
-                ('status', models.CharField(choices=[('wait', '待审批'), ('pending', '审批中'), ('reject', '拒绝'), ('pass', '通过')], default='wait', max_length=16, verbose_name='状态')),
+                ('creation_time', models.DateTimeField(auto_now_add=True, null=True, verbose_name='创建时间')),
+                ('status', models.CharField(choices=[('wait', '待审批'), ('cancel', '取消申请'), ('pending', '审批中'), ('reject', '拒绝'), ('pass', '通过')], default='wait', max_length=16, verbose_name='状态')),
                 ('desc', models.CharField(blank=True, max_length=255, verbose_name='描述')),
                 ('logo_url', models.CharField(blank=True, default='', max_length=256, verbose_name='LOGO url')),
                 ('certification_url', models.CharField(blank=True, default='', max_length=256, verbose_name='机构认证代码url')),
@@ -76,7 +76,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='applyorganization',
             name='data_center',
-            field=models.OneToOneField(default=None, help_text='机构加入申请审批通过后对应的机构', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='apply_data_center', to='service.datacenter', verbose_name='机构'),
+            field=models.OneToOneField(blank=True, default=None, help_text='机构加入申请审批通过后对应的机构', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='apply_data_center', to='service.datacenter', verbose_name='机构'),
         ),
         migrations.AddField(
             model_name='applyorganization',

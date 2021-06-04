@@ -25,11 +25,11 @@ from applyment.models import ApplyQuota
 from adapters import inputs, outputs
 from core.quota import QuotaAPI
 from core import request as core_request
-from . import exceptions
+from core import errors as exceptions
+from core.taskqueue import server_build_status
 from . import serializers
 from .viewsets import CustomGenericViewSet
 from .paginations import ServersPagination, DefaultPageNumberPagination
-from core.taskqueue import server_build_status
 from . import handlers
 from .handlers import serializer_error_msg
 
@@ -1820,6 +1820,7 @@ class ApplyOrganizationViewSet(CustomGenericViewSet):
                 "id": "1",
                 "username": "shun"
               },
+              "deleted": false,
               "name": "中国科学院计算机信息网络中心",
               "abbreviation": "中科院网络中心",
               "independent_legal_person": true,
@@ -1850,6 +1851,59 @@ class ApplyOrganizationViewSet(CustomGenericViewSet):
             }
         """
         return handlers.ApplyOrganizationHandler.create_apply(
+            view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('操作审批一个申请'),
+        request_body=no_body,
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    @action(methods=['POST'], detail=True, url_path='action/(?P<action>.+)', url_name='action')
+    def apply_action(self, request, *args, **kwargs):
+        """
+        操作审批一个申请
+
+            * action命令选项：
+                cancel：取消申请
+                pending：挂起申请（审核中）
+                reject：拒绝
+                pass：通过
+                delete: 删除
+
+            http code 200 ok:
+                {
+                  "id": "e7dc0622-c43e-11eb-9b23-c8009fe2eb10",
+                  "creation_time": null,
+                  "status": "pending",
+                  "user": {
+                    "id": "1",
+                    "username": "shun"
+                  },
+                  "deleted": true,
+                  "name": "中国科学院计算机信息网络中心",
+                  "abbreviation": "中科院网络中心",
+                  "independent_legal_person": true,
+                  "country": "中国",
+                  "city": "北京",
+                  "postal_code": "100083",
+                  "address": "北京市海淀区",
+                  "endpoint_vms": "https://vms.cstcloud.cn/",
+                  "endpoint_object": "",
+                  "endpoint_compute": "",
+                  "endpoint_monitor": "",
+                  "desc": "test",
+                  "logo_url": "/api/media/logo/c5ff90480c7fc7c9125ca4dd86553e23.jpg",
+                  "certification_url": "/certification/c5ff90480c7fc7c9125ca4dd86553e23.docx"
+                }
+            http code 400, 401, 403, 404, 409, 500:
+                {
+                  "code": "xxx",                # 错误码
+                  "message": "xxx"              # 错误信息
+                }
+        """
+        return handlers.ApplyOrganizationHandler.apply_action(
             view=self, request=request, kwargs=kwargs)
 
     def get_serializer_class(self):
@@ -1926,6 +1980,31 @@ class ApplyVmServiceViewSet(CustomGenericViewSet):
                 reject: 拒绝
         """
         return handlers.ApplyVmServiceHandler.create_apply(
+            view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('操作审批一个申请'),
+        request_body=no_body,
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    @action(methods=['POST'], detail=True, url_path='action/(?P<action>.+)', url_name='action')
+    def apply_action(self, request, *args, **kwargs):
+        """
+        操作审批一个申请
+
+            * action命令选项：
+                cancel：取消申请
+                pending：挂起申请（审核中）
+                first_pass：初审通过
+                first_reject：初审拒绝
+                test：测试
+                reject：拒绝
+                pass：通过
+                delete: 删除
+        """
+        return handlers.ApplyVmServiceHandler.apply_action(
             view=self, request=request, kwargs=kwargs)
 
     def get_serializer_class(self):

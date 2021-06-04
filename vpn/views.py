@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.views import View
 
 from core.request import request_vpn_service
-from api import exceptions
+from core import errors as exceptions
 from service.models import ServiceConfig
 from utils.time import iso_to_datetime
 

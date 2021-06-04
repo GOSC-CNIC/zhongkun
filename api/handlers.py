@@ -11,8 +11,9 @@ from applyment.models import ApplyQuota
 from applyment.managers import ApplyQuotaManager
 from utils import storagers
 from utils import time
+from core import errors as exceptions
 from . import serializers
-from . import exceptions
+
 
 User = get_user_model()
 
@@ -481,6 +482,95 @@ class ApplyOrganizationHandler:
         rdata = serializers.ApplyOrganizationSerializer(instance=apply).data
         return Response(data=rdata)
 
+    @staticmethod
+    def apply_action(view, request, kwargs):
+        """
+            cancel：取消申请
+            pending：挂起申请（审核中）
+            reject：拒绝
+            pass：通过
+            delete: 删除
+        """
+        _action = kwargs.get('action', '').lower()
+        if _action == 'pending':
+            return ApplyOrganizationHandler.pending_apply(view=view, request=request, kwargs=kwargs)
+        elif _action == 'cancel':
+            return ApplyOrganizationHandler.cancel_apply(view=view, request=request, kwargs=kwargs)
+        elif _action == 'reject':
+            return ApplyOrganizationHandler.reject_apply(view=view, request=request, kwargs=kwargs)
+        elif _action == 'pass':
+            return ApplyOrganizationHandler.pass_apply(view=view, request=request, kwargs=kwargs)
+        elif _action == 'delete':
+            return ApplyOrganizationHandler.delete_apply(view=view, request=request, kwargs=kwargs)
+
+        return view.exception_reponse(
+            exc=exceptions.BadRequest(message=_('不支持操作命令"{action}"').format(action=_action)))
+
+
+    @staticmethod
+    def pending_apply(view, request, kwargs):
+        """
+        挂起一个机构/数据中心创建申请
+        """
+        pk = kwargs.get(view.lookup_field)
+        try:
+            apply = OrganizationApplyManager().pending_apply(_id=pk, user=request.user)
+        except Exception as exc:
+            return view.exception_reponse(exc)
+
+        serializer = serializers.ApplyOrganizationSerializer(apply)
+        return Response(data=serializer.data)
+
+    @staticmethod
+    def cancel_apply(view, request, kwargs):
+        """
+        取消一个机构/数据中心创建申请
+        """
+        pk = kwargs.get(view.lookup_field)
+        try:
+            apply = OrganizationApplyManager().cancel_apply(_id=pk, user=request.user)
+        except Exception as exc:
+            return view.exception_reponse(exc)
+
+        serializer = serializers.ApplyOrganizationSerializer(apply)
+        return Response(data=serializer.data)
+
+    @staticmethod
+    def pass_apply(view, request, kwargs):
+        """
+        审核通过一个机构/数据中心创建申请
+        """
+        oa_mgr = OrganizationApplyManager()
+        return Response(data={})
+
+    @staticmethod
+    def reject_apply(view, request, kwargs):
+        """
+        审核拒绝一个机构/数据中心创建申请
+        """
+        pk = kwargs.get(view.lookup_field)
+        try:
+            apply = OrganizationApplyManager().reject_apply(_id=pk, user=request.user)
+        except Exception as exc:
+            return view.exception_reponse(exc)
+
+        serializer = serializers.ApplyOrganizationSerializer(apply)
+        return Response(data=serializer.data)
+
+    @staticmethod
+    def delete_apply(view, request, kwargs):
+        """
+        软删除一个机构/数据中心创建申请
+        """
+        pk = kwargs.get(view.lookup_field)
+        try:
+            apply = OrganizationApplyManager().delete_apply(_id=pk, user=request.user)
+        except Exception as exc:
+            return view.exception_reponse(exc)
+
+        serializer = serializers.ApplyOrganizationSerializer(apply)
+        return Response(data=serializer.data)
+
 
 class ApplyVmServiceHandler:
     @staticmethod
@@ -505,6 +595,22 @@ class ApplyVmServiceHandler:
 
         rdata = serializers.ApplyVmServiceSerializer(instance=apply).data
         return Response(data=rdata)
+
+    @staticmethod
+    def apply_action(view, request, kwargs):
+        """
+            cancel：取消申请
+            pending：挂起申请（审核中）
+            first_pass：初审通过
+            first_reject：初审拒绝
+            test：测试
+            reject：拒绝
+            pass：通过
+            delete: 删除
+        """
+        _action = kwargs.get('action', '').lower()
+        return view.exception_reponse(
+            exc=exceptions.BadRequest(message=_('不支持操作命令"{action}"').format(action=_action)))
 
 
 class MediaHandler:
