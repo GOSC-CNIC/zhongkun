@@ -16,6 +16,12 @@ class AuthenticationFailed(APIException):
     default_status_code = 401
 
 
+class NotAuthenticated(APIException):
+    default_message = 'Authentication credentials were not provided.'
+    default_code = 'NotAuthenticated'
+    default_status_code = 401
+
+
 class InvalidJWT(APIException):
     default_message = 'Token is invalid or expired.'
     default_code = 'InvalidJWT'
@@ -79,14 +85,14 @@ class AccessDenied(APIException):
     default_status_code = 403
 
 
-class DataCenterNotExists(NotFound):
-    default_message = 'Data center is not exists.'
-    default_code = 'DataCenterNotExists'
+class OrganizationNotExists(NotFound):
+    default_message = 'Organization is not exists.'
+    default_code = 'OrganizationNotExists'
 
 
-class DataCenterApplyNotExists(NotFound):
-    default_message = 'The apply of data center is not exists.'
-    default_code = 'DataCenterApplyNotExists'
+class OrganizationApplyNotExists(NotFound):
+    default_message = 'The apply of Organization is not exists.'
+    default_code = 'OrganizationApplyNotExists'
 
 
 class MethodNotSupportInService(APIException):

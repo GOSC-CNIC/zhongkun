@@ -1,6 +1,6 @@
 
-class Encrypter(object):
-    class InvlidEncrypted(Exception):
+class Encryptor(object):
+    class InvalidEncrypted(Exception):
         pass
 
     def __init__(self, key: str):
@@ -38,11 +38,11 @@ class Encrypter(object):
         """
         解密一个加密的字符串
 
-        :raises: InvlidEncrypted
+        :raises: InvalidEncrypted
         """
         items = []
         if not encrypted.startswith(self.prefix):
-            raise self.InvlidEncrypted()
+            raise self.InvalidEncrypted()
 
         encrypted = encrypted.lstrip(self.prefix)
         if not encrypted:
@@ -56,7 +56,7 @@ class Encrypter(object):
                 code = self._hex_to_unicode(h)
                 item = chr(code - ord(kv))
             except Exception as e:
-                raise self.InvlidEncrypted(str(e))
+                raise self.InvalidEncrypted(str(e))
 
             items.append(item)
 
@@ -68,7 +68,7 @@ class Encrypter(object):
         """
         try:
             self.decrypt(s)
-        except self.InvlidEncrypted:
+        except self.InvalidEncrypted:
             return False
 
         return True
@@ -76,15 +76,15 @@ class Encrypter(object):
 
 if __name__ == "__main__":
     def test(text):
-        encrypter = Encrypter(key="""!2#$fk*76/';:""")
-        encypted = encrypter.encrypt(text)
-        print(f"*Encypt text: {text} => {encypted}")
-        raw_text = encrypter.decrypt(encypted)
-        print(f"*Decypt: {encypted} => {raw_text}")
+        encryptor = Encryptor(key="""!2#$fk*76/';:""")
+        encrypted = encryptor.encrypt(text)
+        print(f"*Encrypt text: {text} => {encrypted}")
+        raw_text = encryptor.decrypt(encrypted)
+        print(f"*Decrypt: {encrypted} => {raw_text}")
         if text == raw_text:
-            print('[Ok] Encypt/Decypt text')
+            print('[Ok] Encrypt/Decrypt text')
         else:
-            print('[Failed] Encypt/Decypt text')
+            print('[Failed] Encrypt/Decrypt text')
 
 
     text1 = 'iefaba!@#4567$%&^&?<<adJGKKkhafoewgfieuq:"{}HHV'

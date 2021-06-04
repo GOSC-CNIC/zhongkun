@@ -5,7 +5,7 @@ from django.db import transaction
 
 from servers.models import Server, ServerArchive
 from .models import (ServiceConfig, DataCenter, ServicePrivateQuota,
-                     ServiceShareQuota, UserQuota, ApplyVmService)
+                     ServiceShareQuota, UserQuota, ApplyVmService, ApplyOrganization)
 
 
 @admin.register(ServiceConfig)
@@ -62,7 +62,7 @@ class ServiceConfigAdmin(admin.ModelAdmin):
 @admin.register(DataCenter)
 class DataCenterAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
-    list_display = ('id', 'name', 'status', 'desc')
+    list_display = ('id', 'name', 'abbreviation', 'status', 'creation_time', 'desc')
 
 
 @admin.register(ServicePrivateQuota)
@@ -238,3 +238,9 @@ class ApplyServiceAdmin(admin.ModelAdmin):
     list_display = ('id', 'data_center', 'name', 'service_type', 'status', 'user', 'creation_time', 'approve_time')
 
     list_filter = ('data_center',)
+
+
+@admin.register(ApplyOrganization)
+class ApplyOrganizationAdmin(admin.ModelAdmin):
+    list_display_links = ('id',)
+    list_display = ('id', 'name', 'abbreviation', 'status', 'user', 'deleted', 'creation_time', 'desc')

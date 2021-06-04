@@ -96,7 +96,7 @@ class MyAPITestCase(APITestCase):
             if k in d and v == d[k]:
                 continue
             else:
-                self.fail(f'{sub} is not sub dict of {d}')
+                self.fail(f'{sub} is not sub dict of {d}, Not Equal key is {k}')
 
         return True
 
@@ -721,7 +721,7 @@ class MediaApiTests(MyAPITestCase):
         set_auth_header(self)
 
     def download_media_response(self, url_path: str):
-        url = reverse('api:media-detail', kwargs={'url_path': url_path})
+        url = url_path  # reverse('api:media-detail', kwargs={'url_path': url_path})
         return self.client.get(url)
 
     @staticmethod
@@ -735,15 +735,150 @@ class MediaApiTests(MyAPITestCase):
                           content_type='application/octet-stream', **headers)
 
     def test_put_logo(self):
+        prefix = 'logo'
+        self.upload_download_test(prefix=prefix, is_return_md5_name=True)
+        prefix = 'certification'
+        self.upload_download_test(prefix=prefix, is_return_md5_name=True)
+        prefix = 'test'
+        self.upload_download_test(prefix=prefix, is_return_md5_name=False)
+
+    def upload_download_test(self, prefix: str, is_return_md5_name: bool):
         file = random_bytes_io(mb_num=8)
         file_md5 = calculate_md5(file)
-        key = 'v2test.jpg'
-        response = self.put_media_response(self.client, url_path=f'logo/{key}', file=file)
+        ext = 'jpg'
+        key = f'v2test.{ext}'
+        response = self.put_media_response(self.client, url_path=f'{prefix}/{key}', file=file)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['url_path'], f'logo/{file_md5}.jpg')
+        if is_return_md5_name:
+            filename = f'{file_md5}.{ext}'
+        else:
+            filename = key
+
+        response_url_path = reverse('api:media-detail', kwargs={'url_path': f'{prefix}/{filename}'})
+        self.assertEqual(response.data['url_path'], response_url_path)
 
         url_path = response.data['url_path']
         response = self.download_media_response(url_path=url_path)
         self.assertEqual(response.status_code, 200)
         download_md5 = calculate_md5(response)
         self.assertEqual(download_md5, file_md5, msg='Compare the MD5 of upload file and download file')
+
+
+class ApplyOrganizationTests(MyAPITestCase):
+    def setUp(self):
+        set_auth_header(self)
+
+    def test_create_apply(self):
+        data = {
+            "name": "中国科学院计算机信息网络中心",
+            "abbreviation": "中科院网络中心",
+            "independent_legal_person": True,
+            "country": "中国",
+            "city": "北京",
+            "postal_code": "100083",
+            "address": "北京市海淀区",
+            "endpoint_vms": "https://vms.cstcloud.cn/",
+            "endpoint_object": "",
+            "endpoint_compute": "",
+            "endpoint_monitor": "",
+            "desc": "test",
+            "logo_url": "/api/media/logo/c5ff90480c7fc7c9125ca4dd86553e23.jpg",
+            "certification_url": "/certification/c5ff90480c7fc7c9125ca4dd86553e23.docx"
+        }
+        url = reverse('api:apply-organization-list')
+        response = self.client.post(url, data=data)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(keys=[
+            'id', 'creation_time', 'status', 'user', 'name', 'abbreviation', 'independent_legal_person',
+            'country', 'city', 'postal_code', 'address', 'endpoint_vms', 'endpoint_object',
+            'endpoint_compute', 'endpoint_monitor', 'desc', 'logo_url', 'certification_url'
+        ], container=response.data)
+        self.assert_is_subdict_of(sub={
+            'status': 'wait', 'name': '中国科学院计算机信息网络中心',
+            'abbreviation': '中科院网络中心', 'independent_legal_person': True, 'country': '中国', 'city': '北京',
+            'postal_code': '100083', 'address': '北京市海淀区', 'endpoint_vms': 'https://vms.cstcloud.cn/',
+            'endpoint_object': '', 'endpoint_compute': '', 'endpoint_monitor': '', 'desc': 'test',
+            'logo_url': '/api/media/logo/c5ff90480c7fc7c9125ca4dd86553e23.jpg',
+            'certification_url': '/certification/c5ff90480c7fc7c9125ca4dd86553e23.docx'
+        }, d=response.data)
+
+        data['endpoint_object'] = 'test'
+        url = reverse('api:apply-organization-list')
+        response = self.client.post(url, data=data)
+        self.assertEqual(response.status_code, 400)
+        self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
+
+
+class ApplyVmServiceTests(MyAPITestCase):
+    def setUp(self):
+        set_auth_header(self)
+
+    def test_create_apply(self):
+        data = {
+            "data_center_id": "string",
+            "name": "地球大数据",
+            "service_type": "evcloud",
+            "endpoint_url": "htts:/159.226.235.3",
+            "region": "1",
+            "api_version": "v3",
+            "username": "gosc",
+            "password": "password",
+            "project_name": "",
+            "project_domain_name": "",
+            "user_domain_name": "",
+            "remarks": "string",
+            "need_vpn": True,
+            "vpn_endpoint_url": "",
+            "vpn_api_version": "",
+            "vpn_username": "",
+            "vpn_password": "",
+            "longitude": 0,
+            "latitude": 0,
+            "contact_person": "shun",
+            "contact_email": "user@example.com",
+            "contact_telephone": "string",
+            "contact_fixed_phone": "string",
+            "contact_address": "北京信息化大厦",
+            "logo_url": "/api/media/logo/c5ff90480c7fc7c9125ca4dd86553e23.jpg"
+        }
+        url = reverse('api:apply-service-list')
+        response = self.client.post(url, data=data)
+        self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
+
+        data['endpoint_url'] = "https://159.226.235.3"
+        response = self.client.post(url, data=data)
+        self.assertErrorResponse(status_code=404, code='OrganizationNotExists', response=response)
+
+        from service.models import DataCenter
+        center = DataCenter()
+        center.save()
+        data['data_center_id'] = center.id
+        response = self.client.post(url, data=data)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(keys=[
+            'id', 'user', 'creation_time', 'approve_time', 'status', 'data_center_id',
+            'longitude', 'latitude', 'name', 'region', 'service_type', 'endpoint_url',
+            'api_version', 'username', 'password', 'project_name', 'project_domain_name',
+            'user_domain_name', 'need_vpn', 'vpn_endpoint_url', 'vpn_api_version',
+            'vpn_username', 'vpn_password', 'deleted', 'contact_person', 'contact_email',
+            'contact_telephone', 'contact_fixed_phone', 'contact_address',
+            'remarks', 'logo_url'], container=response.data)
+
+        self.assert_is_subdict_of(sub={
+            'status': 'wait',
+            'data_center_id': center.id,
+            'longitude': 0.0, 'latitude': 0.0, 'name': '地球大数据',
+            'region': '1', 'service_type': 'evcloud',
+            'endpoint_url': 'https://159.226.235.3',
+            'api_version': 'v3',
+            'username': 'gosc', 'password': 'password',
+            'project_name': '',
+            'project_domain_name': '',
+            'user_domain_name': '', 'need_vpn': True,
+            'vpn_endpoint_url': '', 'vpn_api_version': '',
+            'vpn_username': '', 'vpn_password': '', 'deleted': False,
+            'contact_person': 'shun', 'contact_email': 'user@example.com',
+            'contact_telephone': 'string', 'contact_fixed_phone': 'string',
+            'contact_address': '北京信息化大厦', 'remarks': 'string',
+            'logo_url': '/api/media/logo/c5ff90480c7fc7c9125ca4dd86553e23.jpg'}, d=response.data)
+

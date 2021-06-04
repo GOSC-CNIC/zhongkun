@@ -9,7 +9,7 @@ from django.core.cache import cache
 from core import errors
 from api import exceptions
 from .models import (UserQuota, ServicePrivateQuota, ServiceShareQuota,
-                     ServiceConfig, ApplyVmService, DataCenter, ApplyDataCenter)
+                     ServiceConfig, ApplyVmService, DataCenter, ApplyOrganization)
 
 
 class UserQuotaManager:
@@ -57,7 +57,7 @@ class UserQuotaManager:
         """
         软删除用户的配额
 
-        :retrun:
+        :return:
             None                # success
             raise QuotaError    # failed
 
@@ -763,12 +763,12 @@ class ServiceManager:
             status=ServiceConfig.Status.ENABLE).all()
 
     @staticmethod
-    def get_service_id_map(use_cache=False, cache_secends=60):
+    def get_service_id_map(use_cache=False, cache_seconds=60):
         """
         service id为key, service 实例为value的字典
 
         :param use_cache: True: 使用缓存方式；默认不使用，实时查询数据库
-        :param cache_secends: 缓存时间秒
+        :param cache_seconds: 缓存时间秒
         """
         service_id_map = None
         caches_key = 'service_id_map'
@@ -782,17 +782,17 @@ class ServiceManager:
                 service_id_map[s.id] = s
 
             if use_cache:
-                cache.set(caches_key, service_id_map, timeout=cache_secends)
+                cache.set(caches_key, service_id_map, timeout=cache_seconds)
 
         return service_id_map
 
 
-class VmServiceApplyManager:
-    model = ApplyVmService
+class OrganizationApplyManager:
+    model = ApplyOrganization
 
     @staticmethod
     def get_apply_queryset():
-        return ApplyVmService.objects.all()
+        return OrganizationApplyManager.model.objects.all()
 
     def get_not_delete_apply_queryset(self, user=None):
         filters = {
@@ -803,6 +803,90 @@ class VmServiceApplyManager:
 
         qs = self.get_apply_queryset()
         return qs.filter(**filters)
+
+    def get_in_progress_apply_queryset(self, user=None):
+        """
+        处于申请中的申请查询集
+        """
+        qs = self.get_not_delete_apply_queryset(user=user)
+        in_progress = [self.model.Status.WAIT, self.model.Status.PENDING]
+        return qs.filter(status__in=in_progress)
+
+    def get_in_progress_apply_count(self, user=None):
+        """
+        处于申请中的申请数量
+        """
+        qs = self.get_in_progress_apply_queryset(user=user)
+        return qs.count()
+
+    @staticmethod
+    def create_apply(data: dict, user):
+        """
+        创建一个服务接入申请
+
+        :param data: dict, ApplyDataCenterSerializer.validated_data
+        :param user:
+        :return:
+            ApplyDataCenter()
+
+        :raises: Error
+        """
+        apply = OrganizationApplyManager.model()
+        apply.name = data.get('name')
+        apply.abbreviation = data.get('abbreviation')
+        apply.independent_legal_person = data.get('independent_legal_person')
+        apply.country = data.get('country')
+        apply.city = data.get('city')
+        apply.postal_code = data.get('postal_code')
+        apply.address = data.get('address')
+        apply.endpoint_vms = data.get('endpoint_vms')
+        apply.endpoint_object = data.get('endpoint_object')
+        apply.endpoint_compute = data.get('endpoint_compute')
+        apply.endpoint_monitor = data.get('endpoint_monitor')
+        apply.desc = data.get('desc')
+        apply.logo_url = data.get('logo_url')
+        apply.certification_url = data.get('certification_url')
+        apply.user = user
+        try:
+            apply.save()
+        except Exception as e:
+            raise errors.Error.from_error(e)
+
+        return apply
+
+
+class VmServiceApplyManager:
+    model = ApplyVmService
+
+    @staticmethod
+    def get_apply_queryset():
+        return VmServiceApplyManager.model.objects.all()
+
+    def get_not_delete_apply_queryset(self, user=None):
+        filters = {
+            'deleted': False
+        }
+        if user:
+            filters['user'] = user
+
+        qs = self.get_apply_queryset()
+        return qs.filter(**filters)
+
+    def get_in_progress_apply_queryset(self, user=None):
+        """
+        处于申请中的申请查询集
+        """
+        qs = self.get_not_delete_apply_queryset(user=user)
+        in_progress = [self.model.Status.WAIT, self.model.Status.PENDING,
+                       self.model.Status.FIRST_PASS, self.model.Status.TEST_PASS]
+        return qs.filter(status__in=in_progress)
+
+    def get_in_progress_apply_count(self, user=None):
+        """
+        处于申请中的申请数量
+        """
+        qs = self.get_in_progress_apply_queryset(user=user)
+        return qs.count()
 
     @staticmethod
     def create_apply(data: dict, user):
@@ -816,26 +900,16 @@ class VmServiceApplyManager:
 
         :raises: Error
         """
-        apply_service = ApplyVmService()
+        apply_service = VmServiceApplyManager.model()
         data_center_id = data.get('data_center_id')
-        center_apply_id = data.get('center_apply_id')
-        if data_center_id and center_apply_id:
-            raise errors.DoNotKnowWhichCenterBelongToError()
-
-        if data_center_id:
-            center = DataCenter.objects.filter(id=data_center_id).first()
-            if center is None:
-                raise exceptions.DataCenterNotExists()
-
-            apply_service.data_center_id = data_center_id
-        elif center_apply_id:
-            center_apply = ApplyDataCenter.objects.filter(id=center_apply_id).first()
-            if center_apply is None:
-                raise exceptions.DataCenterApplyNotExists
-
-            apply_service.center_apply_id = center_apply_id
-        else:
+        if not data_center_id:
             raise errors.NoCenterBelongToError()
+
+        center = DataCenter.objects.filter(id=data_center_id).first()
+        if center is None:
+            raise exceptions.OrganizationNotExists()
+
+        apply_service.data_center_id = data_center_id
 
         service_type = data.get('service_type')
         if service_type not in apply_service.ServiceType.values:
@@ -857,7 +931,7 @@ class VmServiceApplyManager:
         apply_service.vpn_endpoint_url = data.get('vpn_endpoint_url', '')
         apply_service.vpn_api_version = data.get('vpn_api_version', '')
         apply_service.vpn_username = data.get('vpn_username', '')
-        apply_service.vpn_password = data.get('vpn_password', '')
+        apply_service.set_vpn_password(data.get('vpn_password', ''))
         apply_service.longitude = data.get('longitude', 0)
         apply_service.latitude = data.get('latitude', 0)
         apply_service.contact_person = data.get('contact_person', '')
@@ -865,6 +939,7 @@ class VmServiceApplyManager:
         apply_service.contact_telephone = data.get('contact_telephone', '')
         apply_service.contact_fixed_phone = data.get('contact_fixed_phone', '')
         apply_service.contact_address = data.get('contact_address', '')
+        apply_service.logo_url = data.get('logo_url', '')
 
         try:
             apply_service.save()

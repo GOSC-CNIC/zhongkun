@@ -1,5 +1,6 @@
 from django.utils.translation import gettext, gettext_lazy as _
 from django.core.validators import URLValidator
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
@@ -346,10 +347,15 @@ class UserSerializer(serializers.Serializer):
         return obj.get_full_name()
 
 
-class ApplyDataCenterSerializer(serializers.Serializer):
+class ApplyOrganizationSerializer(serializers.Serializer):
     """
     机构申请
     """
+    id = serializers.CharField(label='id', read_only=True)
+    creation_time = serializers.DateTimeField(label=_('创建时间'), read_only=True)
+    status = serializers.CharField(label=_('状态'), read_only=True)
+    user = serializers.SerializerMethodField(method_name='get_user')
+
     name = serializers.CharField(label=_('机构名称'), max_length=255, required=True)
     abbreviation = serializers.CharField(label=_('简称'), max_length=64, required=True)
     independent_legal_person = serializers.BooleanField(label=_('是否独立法人单位'), required=True)
@@ -369,6 +375,59 @@ class ApplyDataCenterSerializer(serializers.Serializer):
         label=_('监控服务地址url'), required=False, allow_null=True, allow_blank=True, default=None)
     desc = serializers.CharField(
         label=_('描述'), required=False, max_length=255, allow_null=True, allow_blank=True, default=None)
+    logo_url = serializers.CharField(
+        label=_('LOGO url'), max_length=256, allow_blank=True, allow_null=True, default='')
+    certification_url = serializers.CharField(
+        label=_('机构认证代码url'), max_length=256, allow_blank=True, allow_null=True, default='')
+
+    @staticmethod
+    def get_user(obj):
+        user = obj.user
+        if user:
+            return {'id': user.id, 'username': user.username}
+
+        return None
+
+    def validate(self, attrs):
+        validator = URLValidator(schemes=['http', 'https'])
+        attrs = super().validate(attrs)
+        endpoint_vms = attrs.get('endpoint_vms', '')
+        if endpoint_vms:
+            try:
+                validator(endpoint_vms)
+            except DjangoValidationError as exc:
+                raise ValidationError(detail={
+                    'endpoint_vms': exc.messages[0] if exc.messages else 'invalid url'
+                })
+
+        endpoint_object = attrs.get('endpoint_object', '')
+        if endpoint_object:
+            try:
+                validator(endpoint_object)
+            except DjangoValidationError as exc:
+                raise ValidationError(detail={
+                    'endpoint_object': exc.messages[0] if exc.messages else 'invalid url'
+                })
+
+        endpoint_compute = attrs.get('endpoint_compute', '')
+        if endpoint_compute:
+            try:
+                validator(endpoint_compute)
+            except DjangoValidationError as exc:
+                raise ValidationError(detail={
+                    'endpoint_compute': exc.messages[0] if exc.messages else 'invalid url'
+                })
+
+        endpoint_monitor = attrs.get('endpoint_monitor', '')
+        if endpoint_monitor:
+            try:
+                validator(endpoint_monitor)
+            except DjangoValidationError as exc:
+                raise ValidationError(detail={
+                    'endpoint_monitor': exc.messages[0] if exc.messages else 'invalid url'
+                })
+
+        return attrs
 
 
 class ApplyVmServiceCreateSerializer(serializers.Serializer):
@@ -376,9 +435,7 @@ class ApplyVmServiceCreateSerializer(serializers.Serializer):
     服务provider接入申请
     """
     data_center_id = serializers.CharField(
-        label=_('机构ID'), required=False, allow_null=True, default=None)
-    center_apply_id = serializers.CharField(
-        label=_('机构加入申请ID'), required=False, allow_null=True, default=None)
+        label=_('机构ID'), required=True)
     name = serializers.CharField(label=_('服务名称'), max_length=255, required=True)
     service_type = serializers.CharField(label=_('服务类型'), required=True)
     endpoint_url = serializers.CharField(
@@ -436,19 +493,11 @@ class ApplyVmServiceCreateSerializer(serializers.Serializer):
         label=_('联系人固定电话'), max_length=16, allow_blank=True, default='')
     contact_address = serializers.CharField(
         label=_('联系人地址'), max_length=256, required=True)
+    logo_url = serializers.CharField(label=_('logo url'), max_length=256,
+                                     required=False, default='')
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
-        data_center_id = attrs.get('data_center_id')
-        center_apply_id = attrs.get('center_apply_id')
-        if not data_center_id and not center_apply_id:
-            raise ValidationError(detail={
-                'data_center_id': gettext('"data_center_id" and "center_apply_id"必须提交一个')})
-
-        if not data_center_id and not center_apply_id:
-            raise ValidationError(detail={
-                'data_center_id': gettext('不能同时提交"data_center_id" and "center_apply_id"，只需要提交其中的一个.')})
-
         service_type = attrs.get('service_type', '')
         if service_type not in ServiceConfig.ServiceType.values:
             raise ValidationError(detail={
@@ -512,7 +561,6 @@ class ApplyVmServiceSerializer(serializers.Serializer):
     status = serializers.CharField()
 
     data_center_id = serializers.CharField()
-    center_apply_id = serializers.CharField()
     longitude = serializers.FloatField()
     latitude = serializers.FloatField()
     name = serializers.CharField()
@@ -520,8 +568,8 @@ class ApplyVmServiceSerializer(serializers.Serializer):
     service_type = serializers.CharField()
     endpoint_url = serializers.CharField()
     api_version = serializers.CharField()
-    username = serializers.SerializerMethodField(method_name='get_password')
-    password = serializers.CharField()
+    username = serializers.CharField()
+    password = serializers.SerializerMethodField(method_name='get_password')
     project_name = serializers.CharField()
     project_domain_name = serializers.CharField()
     user_domain_name = serializers.CharField()
@@ -540,6 +588,7 @@ class ApplyVmServiceSerializer(serializers.Serializer):
     contact_fixed_phone = serializers.CharField()
     contact_address = serializers.CharField()
     remarks = serializers.CharField()
+    logo_url = serializers.CharField()
 
     @staticmethod
     def get_user(obj):

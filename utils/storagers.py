@@ -128,14 +128,21 @@ class MediaFileStorager:
     """
     上传media文件存储, 存储根目录为 settings.MEDIA_ROOT
     """
+    prefix = 'upload'
+
     def __init__(self, filename, storage_to=None):
         """
         :param storage_to: subdir
         """
         self._filename = filename
-        self._storage_to = storage_to if storage_to is not None else 'upload'
+        self._storage_to = storage_to if storage_to is not None else self.prefix
         self._absolute_storage_to = os.path.join(settings.MEDIA_ROOT, self._storage_to)
         self._file_absolute_path = os.path.join(self._absolute_storage_to, self._filename)
+
+    @classmethod
+    def is_start_prefix(cls, sub_path: str):
+        prefix = cls.prefix
+        return bool(sub_path == prefix or sub_path.startswith(prefix + '/'))
 
     def filename(self):
         return self._filename
@@ -223,16 +230,26 @@ class MediaFileStorager:
         return file_generator()
 
 
-class LogoFileStorager(MediaFileStorager):
-    def __init__(self, filename):
-        super().__init__(filename=filename, storage_to='logo')
-
+class Md5FileStorager(MediaFileStorager):
     @staticmethod
     def storage_filename(filename: str, md5: str):
         r = filename.rsplit('.', maxsplit=1)
         if len(r) == 2:
             ext = r[-1].lower()
-            if ext in ['bmp', 'jpg', 'png']:
-                return f'{md5}.{ext}'
+            return f'{md5}.{ext}'
 
         return md5
+
+
+class LogoFileStorager(Md5FileStorager):
+    prefix = 'logo'
+
+    def __init__(self, filename):
+        super().__init__(filename=filename)
+
+
+class CertificationFileStorager(Md5FileStorager):
+    prefix = 'certification'
+
+    def __init__(self, filename):
+        super().__init__(filename=filename)

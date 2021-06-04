@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from core.errors import QuotaShortageError
 from core.quota import QuotaAPI
 from utils.test import get_or_create_user, get_or_create_service
-from utils.crypto import Encrypter
+from utils.crypto import Encryptor
 from .managers import UserQuotaManager, ServicePrivateQuotaManager, ServiceShareQuotaManager
 
 User = get_user_model()
@@ -375,14 +375,14 @@ class TestEncrypter(SimpleTestCase):
         text2 = 'iefaba!@#4567$%&^&?<<adJGK发hi发fieuq:"{}HHV'
         text3 = ''
         text4 = '哈'
-        encrypter = Encrypter(key="""!2#$fk*76/';:""")
+        encrypter = Encryptor(key="""!2#$fk*76/';:""")
         self.normal_test(encrypter, text1)
         self.normal_test(encrypter, text2)
         self.normal_test(encrypter, text3)
         self.normal_test(encrypter, text4)
 
-        with self.assertRaises(encrypter.InvlidEncrypted):
+        with self.assertRaises(encrypter.InvalidEncrypted):
             encrypter.decrypt('x33')
 
-        with self.assertRaises(encrypter.InvlidEncrypted):
+        with self.assertRaises(encrypter.InvalidEncrypted):
             encrypter.decrypt('xsdf')

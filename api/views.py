@@ -1000,7 +1000,7 @@ class VPNViewSet(CustomGenericViewSet):
         return Serializer
 
     def get_permissions(self):
-        if self.action in []:
+        if self.action in ['vpn_config', 'vpn_ca']:
             return []
 
         return super().get_permissions()
@@ -1225,7 +1225,7 @@ class ServiceViewSet(CustomGenericViewSet):
                   "service_type": "vmware",
                   "add_time": "2020-10-16T09:01:44.402955Z",
                   "need_vpn": false,
-                  "status": 1,              # 1: 开启状态；2: 关闭状态;
+                  "status": "enable",              # enable: 开启状态；disable: 停止服务状态; deleted: 删除
                   "data_center": {
                     "id": 3,
                     "name": "VMware测试中心"
@@ -1794,6 +1794,71 @@ class UserViewSet(CustomGenericViewSet):
         return Response(data=serializer.data)
 
 
+class ApplyOrganizationViewSet(CustomGenericViewSet):
+    """
+    机构/数据中心申请视图
+    """
+    permission_classes = [IsAuthenticated]
+    pagination_class = DefaultPageNumberPagination
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('提交机构/数据中心创建申请'),
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    def create(self, request, *args, **kwargs):
+        """
+        提交机构/数据中心创建申请
+
+            Http Code: 状态码200，返回数据：
+            {
+              "id": "be1f706c-c43e-11eb-867e-c8009fe2eb10",
+              "creation_time": null,
+              "status": "wait",
+              "user": {
+                "id": "1",
+                "username": "shun"
+              },
+              "name": "中国科学院计算机信息网络中心",
+              "abbreviation": "中科院网络中心",
+              "independent_legal_person": true,
+              "country": "中国",
+              "city": "北京",
+              "postal_code": "100083",
+              "address": "北京市海淀区",
+              "endpoint_vms": "https://vms.cstcloud.cn/",
+              "endpoint_object": "",
+              "endpoint_compute": "",
+              "endpoint_monitor": "",
+              "desc": "test",
+              "logo_url": "/api/media/logo/c5ff90480c7fc7c9125ca4dd86553e23.jpg",
+              "certification_url": "/certification/c5ff90480c7fc7c9125ca4dd86553e23.docx"
+            }
+            补充说明:
+            "status" values:
+                wait: 待审批              # 允许申请者修改
+                cancel: 取消申请        # 只允许申请者取消
+                pending: 审批中            # 挂起，不允许申请者修改，只允许管理者审批
+                pass: 审批通过
+                reject: 拒绝
+
+            http code 400, 401, 403, 404, 409, 500:
+            {
+              "code": "xxx",            # "TooManyApply",
+              "message": "xxx"             # "您已提交了多个申请，待审批，暂不能提交更多的申请"
+            }
+        """
+        return handlers.ApplyOrganizationHandler.create_apply(
+            view=self, request=request, kwargs=kwargs)
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return serializers.ApplyOrganizationSerializer
+
+        return Serializer
+
+
 class ApplyVmServiceViewSet(CustomGenericViewSet):
     """
     云主机服务接入申请视图
@@ -1848,6 +1913,17 @@ class ApplyVmServiceViewSet(CustomGenericViewSet):
               "contact_address": "string",
               "remarks": "string"
             }
+            补充说明:
+            "status" values:
+                wait: 待审批              # 允许申请者修改
+                cancel: 取消申请        # 只允许申请者取消
+                pending: 审批中            # 挂起，不允许申请者修改，只允许管理者审批
+                first_pass: 初审通过
+                first_reject: 初审拒绝
+                test_failed: 测试未通过
+                test_pass: 测试通过
+                pass: 审批通过
+                reject: 拒绝
         """
         return handlers.ApplyVmServiceHandler.create_apply(
             view=self, request=request, kwargs=kwargs)
@@ -1896,10 +1972,11 @@ class MediaViewSet(CustomGenericViewSet):
         * 数据以二进制格式直接填充请求体
 
         * 上传logo图片，请务必使用logo前缀区分，即url_path = logo/test.png;
+        * 机构/组织独立法人单位认证码文件，请务必使用certification前缀区分，即url_path = certification/test.docx;
 
             http code 200:
             {
-                'url_path': 'logo/c5ff90480c7fc7c9125ca4dd86553e23.jpg'     # 上传文件对应的下载路径
+                'url_path': '/api/media/logo/c5ff90480c7fc7c9125ca4dd86553e23.jpg'     # 上传文件对应的下载路径
             }
         """
         return handlers.MediaHandler.media_upload(view=self, request=request, kwargs=kwargs)

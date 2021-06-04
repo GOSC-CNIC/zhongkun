@@ -2,10 +2,11 @@ from django.utils.translation import gettext as _
 from django.contrib.auth import get_user_model
 from django.utils.http import urlquote
 from django.http import FileResponse
+from django.urls import reverse
 from rest_framework.response import Response
 
 from servers.models import Server
-from service.managers import UserQuotaManager, VmServiceApplyManager
+from service.managers import (UserQuotaManager, VmServiceApplyManager, OrganizationApplyManager)
 from applyment.models import ApplyQuota
 from applyment.managers import ApplyQuotaManager
 from utils import storagers
@@ -456,6 +457,31 @@ class ApplyUserQuotaHandler:
         return Response(status=204)
 
 
+class ApplyOrganizationHandler:
+    @staticmethod
+    def create_apply(view, request, kwargs):
+        """
+        提交一个机构/数据中心创建申请
+        """
+        oa_mgr = OrganizationApplyManager()
+        serializer = view.get_serializer(data=request.data)
+        if not serializer.is_valid(raise_exception=False):
+            msg = serializer_error_msg(serializer.errors)
+            return view.exception_reponse(exceptions.BadRequest(msg))
+
+        count = oa_mgr.get_in_progress_apply_count(user=request.user)
+        if count >= 6:
+            return view.exception_reponse(exceptions.TooManyApply())
+
+        try:
+            apply = oa_mgr.create_apply(data=serializer.validated_data, user=request.user)
+        except exceptions.Error as exc:
+            return view.exception_reponse(exc)
+
+        rdata = serializers.ApplyOrganizationSerializer(instance=apply).data
+        return Response(data=rdata)
+
+
 class ApplyVmServiceHandler:
     @staticmethod
     def create_apply(view, request, kwargs):
@@ -468,8 +494,8 @@ class ApplyVmServiceHandler:
             msg = serializer_error_msg(serializer.errors)
             return view.exception_reponse(exceptions.BadRequest(msg))
 
-        count = vsa_mgr.get_not_delete_apply_queryset(user=request.user).count()
-        if count > 6:
+        count = vsa_mgr.get_in_progress_apply_count(user=request.user)
+        if count >= 6:
             return view.exception_reponse(exceptions.TooManyApply())
 
         try:
@@ -536,11 +562,14 @@ class MediaHandler:
 
     @staticmethod
     def _storage_media(view, subpath: str, filename: str, file):
-        if subpath == 'logo' or subpath.startswith('logo/'):
+        if storagers.LogoFileStorager.is_start_prefix(sub_path=subpath):
             filename = storagers.LogoFileStorager.storage_filename(filename=filename, md5=file.file_md5)
             storager = storagers.LogoFileStorager(filename=filename)
+        elif storagers.CertificationFileStorager.is_start_prefix(sub_path=subpath):
+            filename = storagers.CertificationFileStorager.storage_filename(filename=filename, md5=file.file_md5)
+            storager = storagers.CertificationFileStorager(filename=filename)
         else:
-            storager = storagers.MediaFileStorager(filename=filename)
+            storager = storagers.MediaFileStorager(filename=filename, storage_to=subpath)
 
         try:
             storager.save_file(file)
@@ -548,7 +577,8 @@ class MediaHandler:
             storager.delete()
             return view.exception_reponse(exc)
 
-        return Response(data={'url_path': storager.relative_path()})
+        api_path = reverse('api:media-detail', kwargs={'url_path': storager.relative_path()})
+        return Response(data={'url_path': api_path})
 
     @staticmethod
     def media_download(view, request, kwargs):

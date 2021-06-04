@@ -45,8 +45,10 @@ def exception_handler(exc, context):
         exc = exceptions.NotFound()
     elif isinstance(exc, PermissionDenied):
         exc = exceptions.AccessDenied()
-    elif isinstance(exc, (NotAuthenticated, AuthenticationFailed)):
+    elif isinstance(exc, AuthenticationFailed):
         exc = exceptions.AuthenticationFailed()
+    elif isinstance(exc, NotAuthenticated):
+        exc = exceptions.NotAuthenticated()
     elif isinstance(exc, APIException):
         if isinstance(exc.detail, (list, dict)):
             data = exc.detail
