@@ -26,10 +26,11 @@ class UserProfile(AbstractUser):
         (THIRD_APP_KJY, '科技云通行证')
     )
 
-    ROLE_ORDINARY = 'ordinary'
-    ROLE_VMS = 'vms-admin'
-    ROLE_STORAGE = 'storage-admin'
-    ROLE_FEDERAL = 'federal-admin'
+    class Roles(models.TextChoices):
+        ORDINARY = 'ordinary', _('普通用户')
+        VMS = 'vms-admin', _('云主机管理员')
+        STORAGE = 'storage-admin', _('存储管理员')
+        FEDERAL = 'federal-admin', _('联邦管理员')
 
     id = models.CharField(blank=True, editable=False, max_length=36, primary_key=True, verbose_name='ID')
     telephone = models.CharField(verbose_name=_('电话'), max_length=11, default='')
@@ -37,7 +38,7 @@ class UserProfile(AbstractUser):
     third_app = models.SmallIntegerField(verbose_name=_('第三方应用登录'), choices=THIRD_APP_CHOICES, default=NON_THIRD_APP)
     last_active = models.DateTimeField(verbose_name=_('最后活跃日期'), db_index=True, auto_now=True)
     role = models.JSONField(verbose_name=_('角色'), null=False, default=default_role,
-                            help_text=f'角色选项(可多选)，{[ROLE_ORDINARY, ROLE_VMS, ROLE_STORAGE, ROLE_FEDERAL]}')
+                            help_text=f'角色选项(可多选)，{Roles.values}')
 
     def get_full_name(self):
         if self.last_name.encode('UTF-8').isalpha() and self.first_name.encode('UTF-8').isalpha():
@@ -56,11 +57,45 @@ class UserProfile(AbstractUser):
         """
         是否是联邦管理员
         """
-        if hasattr(self.role, 'role') and isinstance(self.role['role'], list):
-            if self.ROLE_FEDERAL in self.role['role']:
+        if 'role' in self.role and isinstance(self.role['role'], list):
+            if self.Roles.FEDERAL in self.role['role']:
                 return True
 
         return False
+
+    def set_federal_admin(self) -> bool:
+        """
+        设为联邦管理员
+        :raises: Exception
+        """
+        return self.set_role(self.Roles.FEDERAL)
+
+    def set_role(self, role: str) -> bool:
+        """
+        设置用户角色
+
+        :raises: Exception
+        """
+        if role not in self.Roles.values:
+            raise Exception('无效的用户角色')
+
+        if self.is_federal_admin():
+            return True
+
+        if 'role' in self.role and isinstance(self.role['role'], list):
+            if role in self.role['role']:
+                return True
+
+            self.role['role'].append(role)
+        else:
+            self.role['role'] = [role]
+
+        try:
+            self.save(update_fields=['role'])
+        except Exception as e:
+            return False
+
+        return True
 
 
 class Email(UuidModel):

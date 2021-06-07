@@ -500,8 +500,6 @@ class ApplyOrganizationHandler:
             return ApplyOrganizationHandler.reject_apply(view=view, request=request, kwargs=kwargs)
         elif _action == 'pass':
             return ApplyOrganizationHandler.pass_apply(view=view, request=request, kwargs=kwargs)
-        elif _action == 'delete':
-            return ApplyOrganizationHandler.delete_apply(view=view, request=request, kwargs=kwargs)
 
         return view.exception_reponse(
             exc=exceptions.BadRequest(message=_('不支持操作命令"{action}"').format(action=_action)))
@@ -540,8 +538,14 @@ class ApplyOrganizationHandler:
         """
         审核通过一个机构/数据中心创建申请
         """
-        oa_mgr = OrganizationApplyManager()
-        return Response(data={})
+        pk = kwargs.get(view.lookup_field)
+        try:
+            apply = OrganizationApplyManager().pass_apply(_id=pk, user=request.user)
+        except Exception as exc:
+            return view.exception_reponse(exc)
+
+        serializer = serializers.ApplyOrganizationSerializer(apply)
+        return Response(data=serializer.data)
 
     @staticmethod
     def reject_apply(view, request, kwargs):

@@ -888,7 +888,7 @@ class OrganizationApplyManager:
 
         :raises: Error
         """
-        if user.is_federal_admin():
+        if not user.is_federal_admin():
             raise errors.AccessDenied(message=_('你没有访问权限，需要联邦管理员权限'))
 
         apply = self.get_apply_by_id(_id=_id)
@@ -936,6 +936,11 @@ class OrganizationApplyManager:
         :raises: Error
         """
         apply = self.get_user_apply(_id=_id, user=user)
+        if apply.status == apply.Status.PENDING:
+            raise errors.ConflictError(message=_('不能删除审批中的申请'))
+        if apply.deleted:
+            return apply
+
         apply.deleted = True
         try:
             apply.save(update_fields=['deleted'])
@@ -950,7 +955,7 @@ class OrganizationApplyManager:
 
         :raises: Error
         """
-        if user.is_federal_admin():
+        if not user.is_federal_admin():
             raise errors.AccessDenied(message=_('你没有访问权限，需要联邦管理员权限'))
 
         apply = self.get_apply_by_id(_id=_id)
@@ -965,6 +970,31 @@ class OrganizationApplyManager:
         apply.status = apply.Status.REJECT
         try:
             apply.save(update_fields=['status'])
+        except Exception as e:
+            raise errors.APIException(message='更新数据库失败' + str(e))
+
+        return apply
+
+    def pass_apply(self, _id: str, user: UserProfile) -> ApplyOrganization:
+        """
+        通过申请
+
+        :raises: Error
+        """
+        if not user.is_federal_admin():
+            raise errors.AccessDenied(message=_('你没有访问权限，需要联邦管理员权限'))
+
+        apply = self.get_apply_by_id(_id=_id)
+        if apply is None:
+            raise errors.OrganizationApplyNotExists()
+
+        if apply.is_pass():
+            return apply
+        elif apply.status != apply.Status.PENDING:
+            raise errors.ConflictError(message=_('只允通过处于“审批中”状态的资源配额申请'))
+
+        try:
+            apply.do_pass_apply()
         except Exception as e:
             raise errors.APIException(message='更新数据库失败' + str(e))
 

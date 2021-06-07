@@ -1,4 +1,5 @@
 from django.db import models
+from django.db import transaction
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
@@ -399,6 +400,31 @@ class ApplyOrganization(UuidModel):
 
     def __str__(self):
         return self.name
+
+    def do_pass_apply(self) -> DataCenter:
+        organization = DataCenter()
+        organization.name = self.name
+        organization.abbreviation = self.abbreviation
+        organization.independent_legal_person = self.independent_legal_person
+        organization.country = self.country
+        organization.city = self.city
+        organization.postal_code = self.postal_code
+        organization.address = self.address
+        organization.endpoint_vms = self.endpoint_vms
+        organization.endpoint_object = self.endpoint_object
+        organization.endpoint_compute = self.endpoint_compute
+        organization.endpoint_monitor = self.endpoint_monitor
+        organization.desc = self.desc
+        organization.logo_url = self.logo_url
+        organization.certification_url = self.certification_url
+
+        with transaction.atomic():
+            organization.save()
+            self.status = self.Status.PASS
+            self.data_center = organization
+            self.save(update_fields=['status', 'data_center'])
+
+        return organization
 
 
 class ApplyVmService(UuidModel):

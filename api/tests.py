@@ -12,6 +12,7 @@ from rest_framework.test import APITestCase
 
 from servers.models import Flavor, Server
 from service.managers import UserQuotaManager
+from service.models import ApplyOrganization, DataCenter
 from applyment.models import ApplyQuota
 from utils.test import get_or_create_user, get_or_create_service, get_or_create_center
 from adapters import outputs
@@ -765,28 +766,42 @@ class MediaApiTests(MyAPITestCase):
 
 
 class ApplyOrganizationTests(MyAPITestCase):
+    apply_data = {
+        "name": "中国科学院计算机信息网络中心",
+        "abbreviation": "中科院网络中心",
+        "independent_legal_person": True,
+        "country": "中国",
+        "city": "北京",
+        "postal_code": "100083",
+        "address": "北京市海淀区",
+        "endpoint_vms": "https://vms.cstcloud.cn/",
+        "endpoint_object": "",
+        "endpoint_compute": "",
+        "endpoint_monitor": "",
+        "desc": "test",
+        "logo_url": "/api/media/logo/c5ff90480c7fc7c9125ca4dd86553e23.jpg",
+        "certification_url": "/certification/c5ff90480c7fc7c9125ca4dd86553e23.docx"
+    }
+
     def setUp(self):
         set_auth_header(self)
+        self.federal_username = 'federal_admin'
+        self.federal_password = 'federal_password'
+        self.federal_admin = get_or_create_user(username=self.federal_username, password=self.federal_password)
 
-    def test_create_apply(self):
-        data = {
-            "name": "中国科学院计算机信息网络中心",
-            "abbreviation": "中科院网络中心",
-            "independent_legal_person": True,
-            "country": "中国",
-            "city": "北京",
-            "postal_code": "100083",
-            "address": "北京市海淀区",
-            "endpoint_vms": "https://vms.cstcloud.cn/",
-            "endpoint_object": "",
-            "endpoint_compute": "",
-            "endpoint_monitor": "",
-            "desc": "test",
-            "logo_url": "/api/media/logo/c5ff90480c7fc7c9125ca4dd86553e23.jpg",
-            "certification_url": "/certification/c5ff90480c7fc7c9125ca4dd86553e23.docx"
-        }
+    @staticmethod
+    def create_apply_response(client, data: dict):
         url = reverse('api:apply-organization-list')
-        response = self.client.post(url, data=data)
+        return client.post(url, data=data)
+
+    @staticmethod
+    def action_apply_response(client, _id: str, action: str):
+        url = reverse('api:apply-organization-action', kwargs={'id': _id, 'action': action})
+        return client.post(url)
+
+    def test_create_cancel_delete_apply(self):
+        apply_data = {k: self.apply_data[k] for k in self.apply_data.keys()}
+        response = self.create_apply_response(client=self.client, data=apply_data)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(keys=[
             'id', 'creation_time', 'status', 'user', 'name', 'abbreviation', 'independent_legal_person',
@@ -801,17 +816,116 @@ class ApplyOrganizationTests(MyAPITestCase):
             'logo_url': '/api/media/logo/c5ff90480c7fc7c9125ca4dd86553e23.jpg',
             'certification_url': '/certification/c5ff90480c7fc7c9125ca4dd86553e23.docx'
         }, d=response.data)
+        apply_id = response.data['id']
 
-        data['endpoint_object'] = 'test'
+        apply_data['endpoint_object'] = 'test'
         url = reverse('api:apply-organization-list')
-        response = self.client.post(url, data=data)
+        response = self.client.post(url, data=apply_data)
         self.assertEqual(response.status_code, 400)
         self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
+
+        # cancel
+        url = reverse('api:apply-organization-action', kwargs={'id': apply_id, 'action': 'cancel'})
+        response = self.client.post(url, data=apply_data)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['status'], ApplyOrganization.Status.CANCEL)
+
+        # delete
+        url = reverse('api:apply-organization-detail', kwargs={'id': apply_id})
+        response = self.client.delete(url, data=apply_data)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['deleted'], True)
+
+    def test_cancel_delete_pending_apply(self):
+        apply_data = {k: self.apply_data[k] for k in self.apply_data.keys()}
+        response = self.create_apply_response(client=self.client, data=apply_data)
+        self.assertEqual(response.status_code, 200)
+        apply_id = response.data['id']
+
+        # 联邦管理员权限
+        self.client.logout()
+        self.client.force_login(self.federal_admin)
+        self.federal_admin.set_federal_admin()
+
+        # cancel
+        url = reverse('api:apply-organization-action', kwargs={'id': apply_id, 'action': 'cancel'})
+        response = self.client.post(url, data=apply_data)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # pending
+        response = self.action_apply_response(client=self.client, _id=apply_id, action='pending')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['status'], ApplyOrganization.Status.PENDING)
+
+        # 普通用户
+        self.client.logout()
+        self.client.force_login(self.user)
+
+        # cancel
+        url = reverse('api:apply-organization-action', kwargs={'id': apply_id, 'action': 'cancel'})
+        response = self.client.post(url, data=apply_data)
+        self.assertErrorResponse(status_code=409, code='Conflict', response=response)
+
+        # delete
+        url = reverse('api:apply-organization-detail', kwargs={'id': apply_id})
+        response = self.client.delete(url, data=apply_data)
+        self.assertErrorResponse(status_code=409, code='Conflict', response=response)
+
+    def test_create_pending_reject_apply(self):
+        apply_data = {k: self.apply_data[k] for k in self.apply_data.keys()}
+        response = self.create_apply_response(client=self.client, data=apply_data)
+        self.assertEqual(response.status_code, 200)
+        apply_id = response.data['id']
+
+        self.client.logout()
+        self.client.force_login(self.federal_admin)
+        response = self.action_apply_response(client=self.client, _id=apply_id, action='pending')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # 联邦管理员权限
+        self.federal_admin.set_federal_admin()
+
+        # pending
+        response = self.action_apply_response(client=self.client, _id=apply_id, action='pending')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['status'], ApplyOrganization.Status.PENDING)
+
+        # reject
+        response = self.action_apply_response(client=self.client, _id=apply_id, action='reject')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['status'], ApplyOrganization.Status.REJECT)
+
+    def test_create_pending_pass_apply(self):
+        apply_data = {k: self.apply_data[k] for k in self.apply_data.keys()}
+        response = self.create_apply_response(client=self.client, data=apply_data)
+        self.assertEqual(response.status_code, 200)
+        apply_id = response.data['id']
+
+        # 联邦管理员权限
+        self.client.logout()
+        self.client.force_login(self.federal_admin)
+        self.federal_admin.set_federal_admin()
+
+        # pending
+        response = self.action_apply_response(client=self.client, _id=apply_id, action='pending')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['status'], ApplyOrganization.Status.PENDING)
+
+        # pass
+        response = self.action_apply_response(client=self.client, _id=apply_id, action='pass')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['status'], ApplyOrganization.Status.PASS)
+        apply = ApplyOrganization.objects.get(pk=apply_id)
+        organization = DataCenter.objects.get(pk=apply.data_center_id)
+        self.assertIsInstance(organization, DataCenter)
 
 
 class ApplyVmServiceTests(MyAPITestCase):
     def setUp(self):
         set_auth_header(self)
+        self.federal_username = 'federal_admin'
+        self.federal_password = 'federal_password'
+        self.federal_admin = get_or_create_user(username=self.federal_username, password=self.federal_password)
 
     def test_create_apply(self):
         data = {

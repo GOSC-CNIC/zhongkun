@@ -1800,6 +1800,7 @@ class ApplyOrganizationViewSet(CustomGenericViewSet):
     """
     permission_classes = [IsAuthenticated]
     pagination_class = DefaultPageNumberPagination
+    lookup_field = 'id'
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('提交机构/数据中心创建申请'),
@@ -1854,6 +1855,19 @@ class ApplyOrganizationViewSet(CustomGenericViewSet):
             view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
+        operation_summary=gettext_lazy('删除申请'),
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    def destroy(self, request, *args, **kwargs):
+        """
+        删除
+        """
+        return handlers.ApplyOrganizationHandler.delete_apply(
+            view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
         operation_summary=gettext_lazy('操作审批一个申请'),
         request_body=no_body,
         responses={
@@ -1870,7 +1884,6 @@ class ApplyOrganizationViewSet(CustomGenericViewSet):
                 pending：挂起申请（审核中）
                 reject：拒绝
                 pass：通过
-                delete: 删除
 
             http code 200 ok:
                 {
