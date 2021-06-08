@@ -453,7 +453,7 @@ class ApplyVmService(UuidModel):
     status = models.CharField(verbose_name=_('状态'), max_length=16,
                               choices=Status.choices, default=Status.WAIT)
 
-    data_center = models.ForeignKey(to=DataCenter, null=True, on_delete=models.SET_NULL, verbose_name=_('数据中心'))
+    organization = models.ForeignKey(to=DataCenter, null=True, on_delete=models.SET_NULL, verbose_name=_('数据中心'))
     longitude = models.FloatField(verbose_name=_('经度'), blank=True, default=0)
     latitude = models.FloatField(verbose_name=_('纬度'), blank=True, default=0)
     name = models.CharField(max_length=255, verbose_name=_('服务名称'))
@@ -541,27 +541,46 @@ class ApplyVmService(UuidModel):
         encryptor = get_encryptor()
         self.vpn_password = encryptor.encrypt(raw_password)
 
-    def convert_to_service(self):
+    def convert_to_service(self) -> ServiceConfig:
         """
         申请转为对应的ServiceConfig对象
         :return:
         """
-        if not self.data_center_id:
+        if not self.organization_id:
             raise errors.NoCenterBelongToError()
 
         service = ServiceConfig()
-        service.data_center = self.data_center_id
+        service.data_center_id = self.organization_id
         service.name = self.name
         service.region_id = self.region
         service.service_type = self.service_type
         service.endpoint_url = self.endpoint_url
         service.api_version = self.api_version
         service.username = self.username
-        service.password = self.password
+        service.set_password(self.raw_password())
         service.remarks = self.remarks
         service.need_vpn = self.need_vpn
         service.vpn_endpoint_url = self.vpn_endpoint_url
         service.vpn_api_version = self.vpn_api_version
         service.vpn_username = self.vpn_username
-        service.vpn_password = self.vpn_password
+        service.set_vpn_password(self.raw_vpn_password())
+        service.contact_person = self.contact_person
+        service.contact_email = self.contact_email
+        service.contact_telephone = self.contact_telephone
+        service.contact_fixed_phone = self.contact_fixed_phone
+        service.contact_address = self.contact_address
+        service.logo_url = self.logo_url
         return service
+
+    def do_pass_apply(self) -> ServiceConfig:
+        service = self.convert_to_service()
+        with transaction.atomic():
+            service.save()
+            service.users.add(self.user)        # 服务管理员
+            self.status = self.Status.PASS
+            self.service = service
+            self.approve_time = timezone.now()
+            self.save(update_fields=['status', 'service', 'approve_time'])
+
+        return service
+

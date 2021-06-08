@@ -1857,7 +1857,7 @@ class ApplyOrganizationViewSet(CustomGenericViewSet):
     @swagger_auto_schema(
         operation_summary=gettext_lazy('删除申请'),
         responses={
-            status.HTTP_200_OK: ''
+            status.HTTP_204_NO_CONTENT: ''
         }
     )
     def destroy(self, request, *args, **kwargs):
@@ -1932,6 +1932,7 @@ class ApplyVmServiceViewSet(CustomGenericViewSet):
     """
     permission_classes = [IsAuthenticated]
     pagination_class = DefaultPageNumberPagination
+    lookup_field = 'id'
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('提交云主机服务接入申请'),
@@ -1953,7 +1954,7 @@ class ApplyVmServiceViewSet(CustomGenericViewSet):
               "creation_time": "2021-05-28T07:32:35.153984Z",
               "approve_time": "2021-05-28T07:32:35.154143Z",
               "status": "wait",
-              "data_center_id": "9c70cbe2-690c-11eb-a4b7-c8009fe2eb10",
+              "organization_id": "9c70cbe2-690c-11eb-a4b7-c8009fe2eb10",
               "center_apply_id": null,
               "longitude": 0,
               "latitude": 0,
@@ -2015,9 +2016,65 @@ class ApplyVmServiceViewSet(CustomGenericViewSet):
                 test：测试
                 reject：拒绝
                 pass：通过
-                delete: 删除
+
+            http code 200 ok (test命令除外) response A:
+            {
+                'id': '9417080a-c7fb-11eb-8525-c8009fe2eb10',
+                'user': {'id': '94104e5c-c7fb-11eb-8525-c8009fe2eb10', 'username': 'test'},
+                'creation_time': '2021-06-08T01:48:10.020838Z',
+                'approve_time': '2021-06-08T01:48:10.070267Z',
+                'status': 'test_pass',
+                'organization_id': '94142dec-c7fb-11eb-8525-c8009fe2eb10',
+                'longitude': 0.0,
+                'latitude': 0.0,
+                'name': '地球大数据',
+                'region': '1',
+                'service_type': 'evcloud',
+                'endpoint_url': 'http://159.226.235.3/',
+                'api_version': 'v3',
+                'username': '869588058@qq.com',
+                'password': 'wangyushun',
+                'project_name': '',
+                'project_domain_name': '',
+                'user_domain_name': '',
+                'need_vpn': True,
+                'vpn_endpoint_url': '',
+                'vpn_api_version': '',
+                'vpn_username': '',
+                'vpn_password': '',
+                'deleted': False,
+                'contact_person': 'shun',
+                'contact_email': 'user@example.com',
+                'contact_telephone': 'string',
+                'contact_fixed_phone': 'string',
+                'contact_address': '北京信息化大厦',
+                'remarks': 'string',
+                'logo_url': '/api/media/logo/c5ff90480c7fc7c9125ca4dd86553e23.jpg'
+            }
+
+            * "test" action response B:
+            {
+                'ok': True,
+                'message': '',
+                'apply': {
+                    参考 response A
+                }
+            }
         """
         return handlers.ApplyVmServiceHandler.apply_action(
+            view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('删除申请'),
+        responses={
+            status.HTTP_204_NO_CONTENT: ''
+        }
+    )
+    def destroy(self, request, *args, **kwargs):
+        """
+        删除
+        """
+        return handlers.ApplyVmServiceHandler.delete_apply(
             view=self, request=request, kwargs=kwargs)
 
     def get_serializer_class(self):

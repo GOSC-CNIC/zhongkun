@@ -12,7 +12,7 @@ from rest_framework.test import APITestCase
 
 from servers.models import Flavor, Server
 from service.managers import UserQuotaManager
-from service.models import ApplyOrganization, DataCenter
+from service.models import ApplyOrganization, DataCenter, ApplyVmService, ServiceConfig
 from applyment.models import ApplyQuota
 from utils.test import get_or_create_user, get_or_create_service, get_or_create_center
 from adapters import outputs
@@ -833,8 +833,7 @@ class ApplyOrganizationTests(MyAPITestCase):
         # delete
         url = reverse('api:apply-organization-detail', kwargs={'id': apply_id})
         response = self.client.delete(url, data=apply_data)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['deleted'], True)
+        self.assertEqual(response.status_code, 204)
 
     def test_cancel_delete_pending_apply(self):
         apply_data = {k: self.apply_data[k] for k in self.apply_data.keys()}
@@ -926,17 +925,17 @@ class ApplyVmServiceTests(MyAPITestCase):
         self.federal_username = 'federal_admin'
         self.federal_password = 'federal_password'
         self.federal_admin = get_or_create_user(username=self.federal_username, password=self.federal_password)
-
-    def test_create_apply(self):
-        data = {
-            "data_center_id": "string",
+        service = get_or_create_service()
+        self.service = service
+        self.apply_data = {
+            "organization_id": "string",
             "name": "地球大数据",
-            "service_type": "evcloud",
-            "endpoint_url": "htts:/159.226.235.3",
+            "service_type": service.service_type,
+            "endpoint_url": service.endpoint_url,
             "region": "1",
             "api_version": "v3",
-            "username": "gosc",
-            "password": "password",
+            "username": service.username,
+            "password": service.raw_password(),
             "project_name": "",
             "project_domain_name": "",
             "user_domain_name": "",
@@ -955,22 +954,25 @@ class ApplyVmServiceTests(MyAPITestCase):
             "contact_address": "北京信息化大厦",
             "logo_url": "/api/media/logo/c5ff90480c7fc7c9125ca4dd86553e23.jpg"
         }
+
+    def test_create_cancel_delete_apply(self):
+        apply_data = {k: self.apply_data[k] for k in self.apply_data.keys()}
+        endpoint_url = apply_data['endpoint_url']
+
+        apply_data['endpoint_url'] = "htts://1359.226.235.3"
         url = reverse('api:apply-service-list')
-        response = self.client.post(url, data=data)
+        response = self.client.post(url, data=apply_data)
         self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
 
-        data['endpoint_url'] = "https://159.226.235.3"
-        response = self.client.post(url, data=data)
+        apply_data['endpoint_url'] = endpoint_url
+        response = self.client.post(url, data=apply_data)
         self.assertErrorResponse(status_code=404, code='OrganizationNotExists', response=response)
 
-        from service.models import DataCenter
-        center = DataCenter()
-        center.save()
-        data['data_center_id'] = center.id
-        response = self.client.post(url, data=data)
+        apply_data['organization_id'] = self.service.data_center_id
+        response = self.client.post(url, data=apply_data)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(keys=[
-            'id', 'user', 'creation_time', 'approve_time', 'status', 'data_center_id',
+            'id', 'user', 'creation_time', 'approve_time', 'status', 'organization_id',
             'longitude', 'latitude', 'name', 'region', 'service_type', 'endpoint_url',
             'api_version', 'username', 'password', 'project_name', 'project_domain_name',
             'user_domain_name', 'need_vpn', 'vpn_endpoint_url', 'vpn_api_version',
@@ -980,12 +982,13 @@ class ApplyVmServiceTests(MyAPITestCase):
 
         self.assert_is_subdict_of(sub={
             'status': 'wait',
-            'data_center_id': center.id,
+            'organization_id': self.service.data_center_id,
             'longitude': 0.0, 'latitude': 0.0, 'name': '地球大数据',
-            'region': '1', 'service_type': 'evcloud',
-            'endpoint_url': 'https://159.226.235.3',
+            'region': '1', 'service_type': self.service.service_type,
+            'endpoint_url': self.service.endpoint_url,
             'api_version': 'v3',
-            'username': 'gosc', 'password': 'password',
+            'username': self.service.username,
+            'password': self.service.raw_password(),
             'project_name': '',
             'project_domain_name': '',
             'user_domain_name': '', 'need_vpn': True,
@@ -995,4 +998,107 @@ class ApplyVmServiceTests(MyAPITestCase):
             'contact_telephone': 'string', 'contact_fixed_phone': 'string',
             'contact_address': '北京信息化大厦', 'remarks': 'string',
             'logo_url': '/api/media/logo/c5ff90480c7fc7c9125ca4dd86553e23.jpg'}, d=response.data)
+
+        apply_id = response.data['id']
+
+        # cancel
+        url = reverse('api:apply-service-action', kwargs={'id': apply_id, 'action': 'cancel'})
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(keys=[
+            'id', 'user', 'creation_time', 'approve_time', 'status', 'organization_id',
+            'longitude', 'latitude', 'name', 'region', 'service_type', 'endpoint_url',
+            'api_version', 'username', 'password', 'project_name', 'project_domain_name',
+            'user_domain_name', 'need_vpn', 'vpn_endpoint_url', 'vpn_api_version',
+            'vpn_username', 'vpn_password', 'deleted', 'contact_person', 'contact_email',
+            'contact_telephone', 'contact_fixed_phone', 'contact_address',
+            'remarks', 'logo_url'], container=response.data)
+        self.assertEqual(response.data['status'], ApplyVmService.Status.CANCEL)
+
+        # delete
+        url = reverse('api:apply-service-detail', kwargs={'id': apply_id})
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, 204)
+
+    def test_pending_reject_apply(self):
+        apply_data = {k: self.apply_data[k] for k in self.apply_data.keys()}
+        url = reverse('api:apply-service-list')
+        apply_data['organization_id'] = self.service.data_center_id
+        response = self.client.post(url, data=apply_data)
+        self.assertEqual(response.status_code, 200)
+        apply_id = response.data['id']
+
+        self.client.logout()
+        self.client.force_login(self.federal_admin)
+
+        # pending
+        url = reverse('api:apply-service-action', kwargs={'id': apply_id, 'action': 'pending'})
+        response = self.client.post(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.federal_admin.set_federal_admin()      # 联邦管理员权限
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['status'], ApplyVmService.Status.PENDING)
+
+        # first_reject
+        url = reverse('api:apply-service-action', kwargs={'id': apply_id, 'action': 'first_reject'})
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['status'], ApplyVmService.Status.FIRST_REJECT)
+
+    def test_pending_test_pass_apply(self):
+        apply_data = {k: self.apply_data[k] for k in self.apply_data.keys()}
+        url = reverse('api:apply-service-list')
+        apply_data['organization_id'] = self.service.data_center_id
+        response = self.client.post(url, data=apply_data)
+        self.assertEqual(response.status_code, 200)
+        apply_id = response.data['id']
+
+        self.client.logout()
+        self.client.force_login(self.federal_admin)
+        self.federal_admin.set_federal_admin()      # 联邦管理员权限
+
+        # pending
+        url = reverse('api:apply-service-action', kwargs={'id': apply_id, 'action': 'pending'})
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['status'], ApplyVmService.Status.PENDING)
+
+        # first_pass
+        url = reverse('api:apply-service-action', kwargs={'id': apply_id, 'action': 'first_pass'})
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['status'], ApplyVmService.Status.FIRST_PASS)
+
+        # test
+        url = reverse('api:apply-service-action', kwargs={'id': apply_id, 'action': 'test'})
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['apply', 'ok', 'message'], response.data)
+        self.assertKeysIn(keys=[
+            'id', 'user', 'creation_time', 'approve_time', 'status', 'organization_id',
+            'longitude', 'latitude', 'name', 'region', 'service_type', 'endpoint_url',
+            'api_version', 'username', 'password', 'project_name', 'project_domain_name',
+            'user_domain_name', 'need_vpn', 'vpn_endpoint_url', 'vpn_api_version',
+            'vpn_username', 'vpn_password', 'deleted', 'contact_person', 'contact_email',
+            'contact_telephone', 'contact_fixed_phone', 'contact_address',
+            'remarks', 'logo_url'], container=response.data['apply'])
+
+        if response.data['ok']:
+            self.assertEqual(response.data['apply']['status'], ApplyVmService.Status.TEST_PASS)
+        else:
+            self.assertEqual(response.data['apply']['status'], ApplyVmService.Status.TEST_FAILED)
+            print(response.data['message'])
+
+        # pass
+        self.service.delete()
+        url = reverse('api:apply-service-action', kwargs={'id': apply_id, 'action': 'pass'})
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['status'], ApplyVmService.Status.PASS)
+        apply = ApplyVmService.objects.get(pk=response.data['id'])
+        service = ServiceConfig.objects.get(pk=apply.service_id)
+        self.assertEqual(service.users.filter(id=self.user.id).exists(), True)
+
 

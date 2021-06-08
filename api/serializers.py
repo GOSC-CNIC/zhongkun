@@ -435,7 +435,7 @@ class ApplyVmServiceCreateSerializer(serializers.Serializer):
     """
     服务provider接入申请
     """
-    data_center_id = serializers.CharField(
+    organization_id = serializers.CharField(
         label=_('机构ID'), required=True)
     name = serializers.CharField(label=_('服务名称'), max_length=255, required=True)
     service_type = serializers.CharField(label=_('服务类型'), required=True)
@@ -561,7 +561,7 @@ class ApplyVmServiceSerializer(serializers.Serializer):
     approve_time = serializers.DateTimeField()
     status = serializers.CharField()
 
-    data_center_id = serializers.CharField()
+    organization_id = serializers.CharField()
     longitude = serializers.FloatField()
     latitude = serializers.FloatField()
     name = serializers.CharField()

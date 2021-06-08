@@ -235,9 +235,9 @@ class UserQuotaAdmin(admin.ModelAdmin):
 @admin.register(ApplyVmService)
 class ApplyServiceAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
-    list_display = ('id', 'data_center', 'name', 'service_type', 'status', 'user', 'creation_time', 'approve_time')
+    list_display = ('id', 'organization', 'name', 'service_type', 'status', 'user', 'creation_time', 'approve_time')
 
-    list_filter = ('data_center',)
+    list_filter = ('organization',)
 
 
 @admin.register(ApplyOrganization)

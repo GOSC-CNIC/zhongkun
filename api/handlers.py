@@ -568,12 +568,11 @@ class ApplyOrganizationHandler:
         """
         pk = kwargs.get(view.lookup_field)
         try:
-            apply = OrganizationApplyManager().delete_apply(_id=pk, user=request.user)
+            OrganizationApplyManager().delete_apply(_id=pk, user=request.user)
         except Exception as exc:
             return view.exception_reponse(exc)
 
-        serializer = serializers.ApplyOrganizationSerializer(apply)
-        return Response(data=serializer.data)
+        return Response(status=204)
 
 
 class ApplyVmServiceHandler:
@@ -610,11 +609,140 @@ class ApplyVmServiceHandler:
             test：测试
             reject：拒绝
             pass：通过
-            delete: 删除
         """
         _action = kwargs.get('action', '').lower()
+        if _action == 'cancel':
+            return ApplyVmServiceHandler.cancel_apply(view=view, request=request, kwargs=kwargs)
+        elif _action == 'pending':
+            return ApplyVmServiceHandler.pending_apply(view=view, request=request, kwargs=kwargs)
+        elif _action == 'first_reject':
+            return ApplyVmServiceHandler.first_reject_apply(view=view, request=request, kwargs=kwargs)
+        elif _action == 'first_pass':
+            return ApplyVmServiceHandler.first_pass_apply(view=view, request=request, kwargs=kwargs)
+        elif _action == 'test':
+            return ApplyVmServiceHandler.test_apply(view=view, request=request, kwargs=kwargs)
+        elif _action == 'reject':
+            return ApplyVmServiceHandler.reject_apply(view=view, request=request, kwargs=kwargs)
+        elif _action == 'pass':
+            return ApplyVmServiceHandler.pass_apply(view=view, request=request, kwargs=kwargs)
+
         return view.exception_reponse(
             exc=exceptions.BadRequest(message=_('不支持操作命令"{action}"').format(action=_action)))
+
+    @staticmethod
+    def cancel_apply(view, request, kwargs):
+        """
+        取消一个申请
+        """
+        pk = kwargs.get(view.lookup_field)
+        try:
+            apply = VmServiceApplyManager().cancel_apply(_id=pk, user=request.user)
+        except Exception as exc:
+            return view.exception_reponse(exc)
+
+        serializer = serializers.ApplyVmServiceSerializer(apply)
+        return Response(data=serializer.data)
+
+    @staticmethod
+    def pending_apply(view, request, kwargs):
+        """
+        挂起一个申请
+        """
+        pk = kwargs.get(view.lookup_field)
+        try:
+            apply = VmServiceApplyManager().pending_apply(_id=pk, user=request.user)
+        except Exception as exc:
+            return view.exception_reponse(exc)
+
+        serializer = serializers.ApplyVmServiceSerializer(apply)
+        return Response(data=serializer.data)
+
+    @staticmethod
+    def first_reject_apply(view, request, kwargs):
+        """
+        初审拒绝一个申请
+        """
+        pk = kwargs.get(view.lookup_field)
+        try:
+            apply = VmServiceApplyManager().first_reject_apply(_id=pk, user=request.user)
+        except Exception as exc:
+            return view.exception_reponse(exc)
+
+        serializer = serializers.ApplyVmServiceSerializer(apply)
+        return Response(data=serializer.data)
+
+    @staticmethod
+    def first_pass_apply(view, request, kwargs):
+        """
+        初审通过一个申请
+        """
+        pk = kwargs.get(view.lookup_field)
+        try:
+            apply = VmServiceApplyManager().first_pass_apply(_id=pk, user=request.user)
+        except Exception as exc:
+            return view.exception_reponse(exc)
+
+        serializer = serializers.ApplyVmServiceSerializer(apply)
+        return Response(data=serializer.data)
+
+    @staticmethod
+    def test_apply(view, request, kwargs):
+        """
+        测试一个申请
+        """
+        pk = kwargs.get(view.lookup_field)
+        try:
+            apply, test_msg = VmServiceApplyManager().test_apply(_id=pk, user=request.user)
+        except Exception as exc:
+            return view.exception_reponse(exc)
+
+        serializer = serializers.ApplyVmServiceSerializer(apply)
+        return Response(data={
+            'ok': False if test_msg else True,
+            'message': test_msg,
+            'apply': serializer.data
+        })
+
+    @staticmethod
+    def reject_apply(view, request, kwargs):
+        """
+        拒绝一个申请
+        """
+        pk = kwargs.get(view.lookup_field)
+        try:
+            apply = VmServiceApplyManager().reject_apply(_id=pk, user=request.user)
+        except Exception as exc:
+            return view.exception_reponse(exc)
+
+        serializer = serializers.ApplyVmServiceSerializer(apply)
+        return Response(data=serializer.data)
+
+    @staticmethod
+    def pass_apply(view, request, kwargs):
+        """
+        通过一个申请
+        """
+        pk = kwargs.get(view.lookup_field)
+        try:
+            apply = VmServiceApplyManager().pass_apply(_id=pk, user=request.user)
+        except Exception as exc:
+            return view.exception_reponse(exc)
+
+        serializer = serializers.ApplyVmServiceSerializer(apply)
+        return Response(data=serializer.data)
+
+    @staticmethod
+    def delete_apply(view, request, kwargs):
+        """
+        软删除一个申请
+        """
+        pk = kwargs.get(view.lookup_field)
+        try:
+            VmServiceApplyManager().delete_apply(_id=pk, user=request.user)
+        except Exception as exc:
+            return view.exception_reponse(exc)
+
+        return Response(status=204)
 
 
 class MediaHandler:

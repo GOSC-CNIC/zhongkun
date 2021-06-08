@@ -8,6 +8,7 @@ from django.core.cache import cache
 
 from users.models import UserProfile
 from core import errors
+from core.utils import test_service_ok, InvalidServiceError
 from .models import (UserQuota, ServicePrivateQuota, ServiceShareQuota,
                      ServiceConfig, ApplyVmService, DataCenter, ApplyOrganization)
 
@@ -1005,6 +1006,34 @@ class VmServiceApplyManager:
     model = ApplyVmService
 
     @staticmethod
+    def get_apply_by_id(_id: str) -> ApplyVmService:
+        """
+        :return:
+            None                    # not exists
+            ApplyVmService()
+        """
+        return VmServiceApplyManager.model.objects.select_related(
+            'user').filter(id=_id, deleted=False).first()
+
+    def get_user_apply(self, _id: str, user) -> ApplyVmService:
+        """
+        查询用户的申请
+
+        :return:
+            ApplyVmService()
+
+        :raises: Error
+        """
+        apply = self.get_apply_by_id(_id)
+        if apply is None:
+            raise errors.NotFound(message=_('申请不存在'))
+
+        if apply.user_id and apply.user_id == user.id:
+            return apply
+
+        raise errors.AccessDenied(message=_('无权限访问此申请'))
+
+    @staticmethod
     def get_apply_queryset():
         return VmServiceApplyManager.model.objects.all()
 
@@ -1035,7 +1064,7 @@ class VmServiceApplyManager:
         return qs.count()
 
     @staticmethod
-    def create_apply(data: dict, user):
+    def create_apply(data: dict, user) -> ApplyVmService:
         """
         创建一个服务接入申请
 
@@ -1047,15 +1076,15 @@ class VmServiceApplyManager:
         :raises: Error
         """
         apply_service = VmServiceApplyManager.model()
-        data_center_id = data.get('data_center_id')
-        if not data_center_id:
+        organization_id = data.get('organization_id')
+        if not organization_id:
             raise errors.NoCenterBelongToError()
 
-        center = DataCenter.objects.filter(id=data_center_id).first()
+        center = DataCenter.objects.filter(id=organization_id).first()
         if center is None:
             raise errors.OrganizationNotExists()
 
-        apply_service.data_center_id = data_center_id
+        apply_service.organization_id = organization_id
 
         service_type = data.get('service_type')
         if service_type not in apply_service.ServiceType.values:
@@ -1094,4 +1123,203 @@ class VmServiceApplyManager:
 
         return apply_service
 
+    def cancel_apply(self, _id: str, user: UserProfile) -> ApplyVmService:
+        """
+        取消申请
 
+        :raises: Error
+        """
+        apply = self.get_user_apply(_id=_id, user=user)
+        if apply.status == apply.Status.CANCEL:
+            return apply
+
+        if apply.status != apply.Status.WAIT:
+            raise errors.ConflictError(message=_('不能取消待审批状态的申请'))
+
+        apply.status = apply.Status.CANCEL
+        try:
+            apply.save(update_fields=['status'])
+        except Exception as e:
+            raise errors.APIException(message='更新数据库失败' + str(e))
+
+        return apply
+
+    def pending_apply(self, _id: str, user: UserProfile) -> ApplyVmService:
+        """
+        挂起申请
+
+        :raises: Error
+        """
+        if not user.is_federal_admin():
+            raise errors.AccessDenied(message=_('你没有审批权限，需要联邦管理员权限'))
+
+        apply = self.get_apply_by_id(_id=_id)
+        if apply.status == apply.Status.PENDING:
+            return apply
+
+        if apply.status != apply.Status.WAIT:
+            raise errors.ConflictError(message=_('不能挂起处于待审批状态的申请'))
+
+        apply.status = apply.Status.PENDING
+        apply.approve_time = timezone.now()
+        try:
+            apply.save(update_fields=['status', 'approve_time'])
+        except Exception as e:
+            raise errors.APIException(message='更新数据库失败' + str(e))
+
+        return apply
+
+    def first_reject_apply(self, _id: str, user: UserProfile) -> ApplyVmService:
+        """
+        初审拒绝申请
+
+        :raises: Error
+        """
+        if not user.is_federal_admin():
+            raise errors.AccessDenied(message=_('你没有审批权限，需要联邦管理员权限'))
+
+        apply = self.get_apply_by_id(_id=_id)
+        if apply.status == apply.Status.FIRST_REJECT:
+            return apply
+
+        if apply.status != apply.Status.PENDING:
+            raise errors.ConflictError(message=_('只能拒绝处于挂起状态的申请'))
+
+        apply.status = apply.Status.FIRST_REJECT
+        apply.approve_time = timezone.now()
+        try:
+            apply.save(update_fields=['status', 'approve_time'])
+        except Exception as e:
+            raise errors.APIException(message='更新数据库失败' + str(e))
+
+        return apply
+
+    def first_pass_apply(self, _id: str, user: UserProfile) -> ApplyVmService:
+        """
+        初审通过申请
+
+        :raises: Error
+        """
+        if not user.is_federal_admin():
+            raise errors.AccessDenied(message=_('你没有审批权限，需要联邦管理员权限'))
+
+        apply = self.get_apply_by_id(_id=_id)
+        if apply.status == apply.Status.FIRST_PASS:
+            return apply
+
+        if apply.status != apply.Status.PENDING:
+            raise errors.ConflictError(message=_('只能审批通过处于挂起状态的申请'))
+
+        apply.status = apply.Status.FIRST_PASS
+        apply.approve_time = timezone.now()
+        try:
+            apply.save(update_fields=['status', 'approve_time'])
+        except Exception as e:
+            raise errors.APIException(message='更新数据库失败' + str(e))
+
+        return apply
+
+    def test_apply(self, _id: str, user: UserProfile) -> (ApplyVmService, str):
+        """
+        测试申请
+
+        :raises: Error
+        """
+        if not user.is_federal_admin():
+            raise errors.AccessDenied(message=_('你没有审批权限，需要联邦管理员权限'))
+
+        apply = self.get_apply_by_id(_id=_id)
+        if apply.status not in [apply.Status.FIRST_PASS, apply.Status.TEST_PASS, apply.Status.TEST_FAILED]:
+            raise errors.ConflictError(message=_('初审通过的申请才可以测试'))
+
+        test_msg = ''
+        test_result = apply.Status.TEST_PASS
+        service = apply.convert_to_service()
+        try:
+            test_service_ok(service=service)
+        except InvalidServiceError as exc:
+            test_result = apply.Status.TEST_FAILED
+            test_msg = str(exc)
+
+        apply.status = test_result
+        try:
+            apply.save(update_fields=['status'])
+        except Exception as e:
+            raise errors.APIException(message='更新数据库失败' + str(e))
+
+        return apply, test_msg
+
+    def reject_apply(self, _id: str, user: UserProfile) -> ApplyVmService:
+        """
+        拒绝申请
+
+        :raises: Error
+        """
+        if not user.is_federal_admin():
+            raise errors.AccessDenied(message=_('你没有审批权限，需要联邦管理员权限'))
+
+        apply = self.get_apply_by_id(_id=_id)
+        if apply.status == apply.Status.REJECT:
+            return apply
+
+        if apply.status == apply.Status.PASS:
+            raise errors.ConflictError(message=_('不能再次审批已完成审批过程的申请'))
+
+        if apply.status not in [apply.Status.FIRST_PASS, apply.Status.TEST_PASS, apply.Status.TEST_FAILED]:
+            raise errors.ConflictError(message=_('只能审批通过初审的申请'))
+
+        apply.status = apply.Status.REJECT
+        apply.approve_time = timezone.now()
+        try:
+            apply.save(update_fields=['status', 'approve_time'])
+        except Exception as e:
+            raise errors.APIException(message='更新数据库失败' + str(e))
+
+        return apply
+
+    def pass_apply(self, _id: str, user: UserProfile) -> ApplyVmService:
+        """
+        通过申请
+
+        :raises: Error
+        """
+        if not user.is_federal_admin():
+            raise errors.AccessDenied(message=_('你没有审批权限，需要联邦管理员权限'))
+
+        apply = self.get_apply_by_id(_id=_id)
+        if apply.status == apply.Status.PASS:
+            return apply
+
+        if apply.status == apply.Status.REJECT:
+            raise errors.ConflictError(message=_('不能再次审批已完成审批过程的申请'))
+
+        if apply.status not in [apply.Status.FIRST_PASS, apply.Status.TEST_PASS, apply.Status.TEST_FAILED]:
+            raise errors.ConflictError(message=_('只能审批通过初审的申请'))
+
+        try:
+            apply.do_pass_apply()
+        except Exception as e:
+            raise errors.APIException(message='更新数据库失败' + str(e))
+
+        return apply
+
+    def delete_apply(self, _id: str, user: UserProfile) -> ApplyVmService:
+        """
+        删除申请
+
+        :raises: Error
+        """
+        apply = self.get_user_apply(_id=_id, user=user)
+        if apply.status in [apply.Status.PENDING, apply.Status.FIRST_PASS, apply.Status.TEST_PASS]:
+            raise errors.ConflictError(message=_('不能删除处于审批过程中的申请'))
+
+        if apply.deleted:
+            return apply
+
+        apply.deleted = True
+        try:
+            apply.save(update_fields=['deleted'])
+        except Exception as e:
+            raise errors.APIException(message='更新数据库失败' + str(e))
+
+        return apply

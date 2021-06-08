@@ -230,6 +230,11 @@ class OpenStackAdapter(BaseAdapter):
         }
         try:
             server = service_instance.compute.get_server(params.server_id)
+            if server is None:
+                status_code = outputs.ServerStatus.MISS
+                status_mean = outputs.ServerStatus.get_mean(status_code)
+                return outputs.ServerStatusOutput(status=status_code, status_mean=status_mean)
+
             status = server.status
             status_code = status_map[status]
             if status_code not in outputs.ServerStatus():
@@ -237,7 +242,9 @@ class OpenStackAdapter(BaseAdapter):
             status_mean = outputs.ServerStatus.get_mean(status_code)
             return outputs.ServerStatusOutput(status=status_code, status_mean=status_mean)
         except Exception as e:
-            return outputs.ServerStatusOutput(ok=False, error=exceptions.Error('get server status failed'))
+            return outputs.ServerStatusOutput(
+                ok=False, error=exceptions.Error(f'get server status failed, {str(e)}'),
+                status=outputs.ServerStatus.NOSTATE, status_mean='')
 
     def server_vnc(self, params: inputs.ServerVNCInput, **kwargs):
         """
@@ -255,7 +262,8 @@ class OpenStackAdapter(BaseAdapter):
                 vnc_url = self.endpoint_url + vnc_url[port_pos:len(vnc_url)]
             return outputs.ServerVNCOutput(vnc=outputs.ServerVNCOutputVNC(url=vnc_url))
         except Exception as e:
-            return outputs.ServerVNCOutput(ok=False, error=exceptions.Error('get vnc failed'), vnc=None)
+            return outputs.ServerVNCOutput(
+                ok=False, error=exceptions.Error(f'get vnc failed, {str(e)}'), vnc=None)
 
     def list_images(self, params: inputs.ListImageInput, **kwargs):
         """
@@ -312,12 +320,10 @@ class OpenStackAdapter(BaseAdapter):
         """
         try:
             service_instance = self._get_openstack_connect()
-
             network = service_instance.network.get_network(params.network_id)
             subnet = service_instance.network.get_subnet(network.subnet_ids[0])
-
-            new_net = outputs.NetworkDetail(id=params.network_id, name=network.name, public=False, segment=subnet.cidr)
-
+            new_net = outputs.NetworkDetail(id=params.network_id, name=network.name,
+                                            public=False, segment=subnet.cidr)
             return outputs.NetworkDetailOutput(network=new_net)
         except Exception as e:
             return outputs.NetworkDetailOutput(ok=False, error=exceptions.Error(str(e)), network=None)
