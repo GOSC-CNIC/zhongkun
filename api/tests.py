@@ -295,7 +295,6 @@ class ServersTests(MyAPITestCase):
 class ServiceTests(MyAPITestCase):
     def setUp(self):
         set_auth_header(self)
-        self.user = get_or_create_user()
         self.service = get_or_create_service()
 
     def test_list_service(self):
@@ -306,6 +305,66 @@ class ServiceTests(MyAPITestCase):
         self.assertKeysIn(["id", "name", "service_type", "add_time",
                            "need_vpn", "status", "data_center"], response.data["results"][0])
         self.assertIsInstance(response.data["results"][0]['status'], str)
+
+    def test_admin_list(self):
+        url = reverse('api:service-admin-list')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "next", "previous", "results"], response.data)
+        self.assertEqual(response.data['count'], 0)
+
+        self.service.users.add(self.user)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "next", "previous", "results"], response.data)
+        self.assertKeysIn(["id", "name", "service_type", "add_time",
+                           "need_vpn", "status", "data_center"], response.data["results"][0])
+        self.assertIsInstance(response.data["results"][0]['status'], str)
+
+    def service_quota_get_update(self, url):
+        # get
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.service.users.add(self.user)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["private_ip_total", "public_ip_total", "vcpu_total", "ram_total",
+                           'disk_size_total', 'private_ip_used', 'public_ip_used',
+                           'vcpu_used', 'ram_used', 'disk_size_used', 'creation_time',
+                           'enable'], response.data)
+        self.assert_is_subdict_of(sub={
+            'private_ip_total': 0, 'public_ip_total': 0, 'vcpu_total': 0, 'ram_total': 0,
+            'disk_size_total': 0, 'private_ip_used': 0, 'public_ip_used': 0, 'vcpu_used': 0,
+            'ram_used': 0, 'disk_size_used': 0, 'enable': True
+        }, d=response.data)
+
+        # update
+        response = self.client.post(url, data={
+            "private_ip_total": 1,
+            "public_ip_total": 2,
+            "vcpu_total": 3,
+            "ram_total": 4,
+            "disk_size_total": 5
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["private_ip_total", "public_ip_total", "vcpu_total", "ram_total",
+                           'disk_size_total', 'private_ip_used', 'public_ip_used',
+                           'vcpu_used', 'ram_used', 'disk_size_used', 'creation_time',
+                           'enable'], response.data)
+        self.assert_is_subdict_of(sub={
+            'private_ip_total': 1, 'public_ip_total': 2, 'vcpu_total': 3, 'ram_total': 4,
+            'disk_size_total': 5, 'private_ip_used': 0, 'public_ip_used': 0, 'vcpu_used': 0,
+            'ram_used': 0, 'disk_size_used': 0, 'enable': True
+        }, d=response.data)
+
+    def test_private_quota(self):
+        url = reverse('api:service-private-quota', kwargs={'id': self.service.id})
+        self.service_quota_get_update(url=url)
+
+    def test_share_quota(self):
+        url = reverse('api:service-share-quota', kwargs={'id': self.service.id})
+        self.service_quota_get_update(url=url)
 
 
 class ImageTests(MyAPITestCase):

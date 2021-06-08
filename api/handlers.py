@@ -6,7 +6,8 @@ from django.urls import reverse
 from rest_framework.response import Response
 
 from servers.models import Server
-from service.managers import (UserQuotaManager, VmServiceApplyManager, OrganizationApplyManager)
+from service.managers import (UserQuotaManager, VmServiceApplyManager, OrganizationApplyManager,
+                              ServicePrivateQuotaManager, ServiceShareQuotaManager, ServiceManager)
 from applyment.models import ApplyQuota
 from applyment.managers import ApplyQuotaManager
 from utils import storagers
@@ -857,3 +858,125 @@ class MediaHandler:
             response['Last-Modified'] = last_modified
 
         return response
+
+
+class VmServiceHandler:
+    @staticmethod
+    def get_user_perm_service(_id, user):
+        """
+        :raises: Error
+        """
+        service = ServiceManager().get_service_by_id(_id)
+        if service is None:
+            raise exceptions.ServiceNotExist()
+
+        if not service.user_has_perm(user):
+            raise exceptions.AccessDenied(message=_('你没有此服务的管理权限'))
+
+        return service
+
+    @staticmethod
+    def get_private_quota(view, request, kwargs):
+        """
+        查询服务私有配额
+        """
+        try:
+            service = VmServiceHandler.get_user_perm_service(
+                _id=kwargs.get(view.lookup_field), user=request.user)
+        except exceptions.Error as exc:
+            return view.exception_reponse(exc)
+
+        try:
+            quota = ServicePrivateQuotaManager().get_quota(service=service)
+        except exceptions.Error as exc:
+            return view.exception_reponse(exc)
+
+        rdata = serializers.VmServicePrivateQuotaSerializer(instance=quota).data
+        return Response(data=rdata)
+
+    @staticmethod
+    def change_private_quota(view, request, kwargs):
+        """
+        修改服务私有配额
+        """
+        serializer = view.get_serializer(data=request.data)
+        if not serializer.is_valid(raise_exception=False):
+            msg = serializer_error_msg(serializer.errors)
+            return view.exception_reponse(exceptions.BadRequest(msg))
+
+        try:
+            service = VmServiceHandler.get_user_perm_service(
+                _id=kwargs.get(view.lookup_field), user=request.user)
+        except exceptions.Error as exc:
+            return view.exception_reponse(exc)
+
+        data = serializer.validated_data
+        private_ip_total = data.get('private_ip_total')
+        public_ip_total = data.get('public_ip_total')
+        vcpu_total = data.get('vcpu_total')
+        ram_total = data.get('ram_total')
+        disk_size_total = data.get('disk_size_total')
+
+        try:
+            quota = ServicePrivateQuotaManager().update(
+                service=service, vcpus=vcpu_total, ram=ram_total, disk_size=disk_size_total,
+                public_ip=public_ip_total, private_ip=private_ip_total, only_increase=True)
+        except exceptions.Error as exc:
+            return view.exception_reponse(exc)
+
+        rdata = serializers.VmServicePrivateQuotaSerializer(instance=quota).data
+        return Response(data=rdata)
+
+    @staticmethod
+    def get_share_quota(view, request, kwargs):
+        """
+        查询服务共享配额
+        """
+        try:
+            service = VmServiceHandler.get_user_perm_service(
+                _id=kwargs.get(view.lookup_field), user=request.user)
+        except exceptions.Error as exc:
+            return view.exception_reponse(exc)
+
+        try:
+            quota = ServiceShareQuotaManager().get_quota(service=service)
+        except exceptions.Error as exc:
+            return view.exception_reponse(exc)
+
+        rdata = serializers.VmServiceShareQuotaSerializer(instance=quota).data
+        return Response(data=rdata)
+
+    @staticmethod
+    def change_share_quota(view, request, kwargs):
+        """
+        修改服务共享配额
+        """
+        serializer = view.get_serializer(data=request.data)
+        if not serializer.is_valid(raise_exception=False):
+            msg = serializer_error_msg(serializer.errors)
+            return view.exception_reponse(exceptions.BadRequest(msg))
+
+        try:
+            service = VmServiceHandler.get_user_perm_service(
+                _id=kwargs.get(view.lookup_field), user=request.user)
+        except exceptions.Error as exc:
+            return view.exception_reponse(exc)
+
+        data = serializer.validated_data
+        private_ip_total = data.get('private_ip_total')
+        public_ip_total = data.get('public_ip_total')
+        vcpu_total = data.get('vcpu_total')
+        ram_total = data.get('ram_total')
+        disk_size_total = data.get('disk_size_total')
+
+        try:
+            quota = ServiceShareQuotaManager().update(
+                service=service, vcpus=vcpu_total, ram=ram_total, disk_size=disk_size_total,
+                public_ip=public_ip_total, private_ip=private_ip_total, only_increase=True)
+        except exceptions.Error as exc:
+            return view.exception_reponse(exc)
+
+        rdata = serializers.VmServiceShareQuotaSerializer(instance=quota).data
+        return Response(data=rdata)
+
+

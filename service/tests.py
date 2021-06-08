@@ -1,7 +1,7 @@
 from django.test import TransactionTestCase, SimpleTestCase
 from django.contrib.auth import get_user_model
 
-from core.errors import QuotaShortageError
+from core.errors import QuotaShortageError, QuotaOnlyIncreaseError
 from core.quota import QuotaAPI
 from utils.test import get_or_create_user, get_or_create_service
 from utils.crypto import Encryptor
@@ -205,11 +205,69 @@ class TestServiceQuotaManager(TransactionTestCase):
         self.assertEqual(new_quota.private_ip_total, old_quota.private_ip_total,
                          msg=f'{manager_cls} deduct private_ip failed')
 
+    def update_case(self, manager_cls):
+        update_vcpu = 8
+        update_ram = 1024   # MB
+        update_disk = 2048  # Gb
+        update_private_ip = 10
+        update_public_ip =9
+
+        mgr = manager_cls()
+        service = self.service
+        mgr.update(service=service, vcpus=update_vcpu, ram=update_ram, disk_size=update_disk,
+                           public_ip=update_public_ip, private_ip=update_private_ip, only_increase=True)
+        new_quota = mgr.get_quota(service=service)
+        self.assertEqual(new_quota.vcpu_total, update_vcpu)
+        self.assertEqual(new_quota.ram_total, update_ram)
+        self.assertEqual(new_quota.disk_size_total, update_disk)
+        self.assertEqual(new_quota.public_ip_total, update_public_ip)
+        self.assertEqual(new_quota.private_ip_total, update_private_ip)
+
+        with self.assertRaises(QuotaOnlyIncreaseError):
+            mgr.update(service=service, vcpus=update_vcpu - 1, only_increase=True)
+
+        with self.assertRaises(QuotaOnlyIncreaseError):
+            mgr.update(service=service, vcpus=update_vcpu, ram=update_ram - 1, only_increase=True)
+
+        with self.assertRaises(QuotaOnlyIncreaseError):
+            mgr.update(service=service, vcpus=update_vcpu, ram=update_ram, disk_size=update_disk - 1,
+                       only_increase=True)
+
+        with self.assertRaises(QuotaOnlyIncreaseError):
+            mgr.update(service=service, vcpus=update_vcpu, ram=update_ram, disk_size=update_disk,
+                       public_ip=update_public_ip - 1, only_increase=True)
+
+        with self.assertRaises(QuotaOnlyIncreaseError):
+            mgr.update(service=service, vcpus=update_vcpu, ram=update_ram, disk_size=update_disk,
+                       public_ip=update_public_ip, private_ip=update_private_ip - 1, only_increase=True)
+
+        new_quota = mgr.get_quota(service=service)
+        self.assertEqual(new_quota.vcpu_total, update_vcpu)
+        self.assertEqual(new_quota.ram_total, update_ram)
+        self.assertEqual(new_quota.disk_size_total, update_disk)
+        self.assertEqual(new_quota.public_ip_total, update_public_ip)
+        self.assertEqual(new_quota.private_ip_total, update_private_ip)
+
+        mgr.update(service=service, vcpus=update_vcpu - 1, ram=update_ram - 1, disk_size=update_disk - 1,
+                   public_ip=update_public_ip - 1, private_ip=update_private_ip - 1, only_increase=False)
+        new_quota = mgr.get_quota(service=service)
+        self.assertEqual(new_quota.vcpu_total, update_vcpu - 1)
+        self.assertEqual(new_quota.ram_total, update_ram - 1)
+        self.assertEqual(new_quota.disk_size_total, update_disk - 1)
+        self.assertEqual(new_quota.public_ip_total, update_public_ip - 1)
+        self.assertEqual(new_quota.private_ip_total, update_private_ip - 1)
+
     def test_shared_quota_manager(self):
         self.manager_test(ServiceShareQuotaManager)
 
+    def test_shared_update(self):
+        self.update_case(ServiceShareQuotaManager)
+
     def test_private_quota_manager(self):
         self.manager_test(ServicePrivateQuotaManager)
+
+    def test_private_update(self):
+        self.update_case(ServicePrivateQuotaManager)
 
 
 class QuotaAPITests(TransactionTestCase):
@@ -364,10 +422,10 @@ class QuotaAPITests(TransactionTestCase):
             self.assertEqual(self.user_quota.private_ip_used, 1)
 
 
-class TestEncrypter(SimpleTestCase):
-    def normal_test(self, encrypter, text):
-        encypted = encrypter.encrypt(text)
-        raw_text = encrypter.decrypt(encypted)
+class TestEncryptor(SimpleTestCase):
+    def normal_test(self, encryptor, text):
+        encrypted = encryptor.encrypt(text)
+        raw_text = encryptor.decrypt(encrypted)
         self.assertEqual(text, raw_text)
 
     def test_encrypt(self):
@@ -375,14 +433,14 @@ class TestEncrypter(SimpleTestCase):
         text2 = 'iefaba!@#4567$%&^&?<<adJGK发hi发fieuq:"{}HHV'
         text3 = ''
         text4 = '哈'
-        encrypter = Encryptor(key="""!2#$fk*76/';:""")
-        self.normal_test(encrypter, text1)
-        self.normal_test(encrypter, text2)
-        self.normal_test(encrypter, text3)
-        self.normal_test(encrypter, text4)
+        encryptor = Encryptor(key="""!2#$fk*76/';:""")
+        self.normal_test(encryptor, text1)
+        self.normal_test(encryptor, text2)
+        self.normal_test(encryptor, text3)
+        self.normal_test(encryptor, text4)
 
-        with self.assertRaises(encrypter.InvalidEncrypted):
-            encrypter.decrypt('x33')
+        with self.assertRaises(encryptor.InvalidEncrypted):
+            encryptor.decrypt('x33')
 
-        with self.assertRaises(encrypter.InvalidEncrypted):
-            encrypter.decrypt('xsdf')
+        with self.assertRaises(encryptor.InvalidEncrypted):
+            encryptor.decrypt('xsdf')

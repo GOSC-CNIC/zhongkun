@@ -606,3 +606,48 @@ class ApplyVmServiceSerializer(serializers.Serializer):
     @staticmethod
     def get_vpn_password(obj):
         return obj.raw_vpn_password()
+
+
+class VmServiceBaseQuotaUpdateSerializer(serializers.Serializer):
+    private_ip_total = serializers.IntegerField(
+        label=_('总私网IP数'), min_value=0, required=False, allow_null=True, default=None,
+        help_text=_('不更改不要提交此内容'))
+    public_ip_total = serializers.IntegerField(
+        label=_('总公网IP数'), min_value=0, required=False, allow_null=True, default=None,
+        help_text=_('不更改不要提交此内容'))
+    vcpu_total = serializers.IntegerField(
+        label=_('总CPU核数'), min_value=0, required=False, allow_null=True, default=None,
+        help_text=_('不更改不要提交此内容'))
+    ram_total = serializers.IntegerField(
+        label=_('总内存大小(MB)'), min_value=0, required=False, allow_null=True, default=None,
+        help_text=_('不更改不要提交此内容'))
+    disk_size_total = serializers.IntegerField(
+        label=_('总硬盘大小(GB)'), min_value=0, required=False, allow_null=True, default=None,
+        help_text=_('不更改不要提交此内容'))
+
+
+class VmServicePrivateQuotaUpdateSerializer(VmServiceBaseQuotaUpdateSerializer):
+    pass
+
+
+class VmServiceShareQuotaUpdateSerializer(VmServiceBaseQuotaUpdateSerializer):
+    pass
+
+
+class VmServiceBaseQuotaSerializer(VmServiceBaseQuotaUpdateSerializer):
+    private_ip_used = serializers.IntegerField(label=_('已用私网IP数'), read_only=True)
+    public_ip_used = serializers.IntegerField(label=_('已用公网IP数'), read_only=True)
+    vcpu_used = serializers.IntegerField(label=_('已用CPU核数'), read_only=True)
+    ram_used = serializers.IntegerField(label=_('已用内存大小(MB)'), read_only=True)
+    disk_size_used = serializers.IntegerField(label=_('已用硬盘大小(GB)'), read_only=True)
+    creation_time = serializers.DateTimeField(label=_('创建时间'), read_only=True)
+    enable = serializers.BooleanField(label=_('有效状态'), read_only=True,
+                                 help_text=_('选中，资源配额生效；未选中，无法申请分中心资源'))
+
+
+class VmServicePrivateQuotaSerializer(VmServiceBaseQuotaSerializer):
+    pass
+
+
+class VmServiceShareQuotaSerializer(VmServiceBaseQuotaSerializer):
+    pass

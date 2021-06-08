@@ -710,6 +710,76 @@ class ServiceQuotaManagerBase:
 
         return True
 
+    def update(self, service, vcpus: int = None, ram: int = None, disk_size: int = None,
+               public_ip: int = None, private_ip: int = None, only_increase: bool = True):
+        """
+        更新资源总配额
+
+        :param service: 接入服务实例
+        :param vcpus: 虚拟cpu数
+        :param ram: 内存，单位Mb
+        :param disk_size: 硬盘容量，单位Gb
+        :param public_ip: 公网ip数
+        :param private_ip: 私网ip数
+        :param only_increase: True(只允许更新更大值，小于现有值抛出错误); False(更新任何大小的值)
+        :return:
+            self.MODEL()
+
+        :raises: QuotaError, QuotaOnlyIncreaseError
+        """
+        with transaction.atomic():
+            update_fields = []
+            quota = self.MODEL.objects.select_for_update().filter(service=service).first()
+            if not quota:
+                quota = self._create_quota(service=service)
+                if not quota:
+                    raise errors.QuotaError(message=self._prefix_msg(_('创建资源配额失败')))
+
+                quota = self.MODEL.objects.select_for_update().filter(service=service).first()
+
+            if vcpus is not None:
+                if only_increase and quota.vcpu_total > vcpus:
+                    raise errors.QuotaOnlyIncreaseError(message=self._prefix_msg(_('资源配额vcpu只允许增加')))
+
+                quota.vcpu_total = max(vcpus, 0)
+                update_fields.append('vcpu_total')
+
+            if ram is not None:
+                if only_increase and quota.ram_total > ram:
+                    raise errors.QuotaOnlyIncreaseError(message=self._prefix_msg(_('资源配额ram只允许增加')))
+
+                quota.ram_total = max(ram, 0)
+                update_fields.append('ram_total')
+
+            if disk_size is not None:
+                if only_increase and quota.disk_size_total > disk_size:
+                    raise errors.QuotaOnlyIncreaseError(message=self._prefix_msg(_('资源配额disk只允许增加')))
+
+                quota.disk_size_total = max(disk_size, 0)
+                update_fields.append('disk_size_total')
+
+            if public_ip is not None:
+                if only_increase and quota.public_ip_total > public_ip:
+                    raise errors.QuotaOnlyIncreaseError(message=self._prefix_msg(_('资源配额public ip只允许增加')))
+
+                quota.public_ip_total = max(public_ip, 0)
+                update_fields.append('public_ip_total')
+
+            if private_ip is not None:
+                if only_increase and quota.private_ip_total > private_ip:
+                    raise errors.QuotaOnlyIncreaseError(message=self._prefix_msg(_('资源配额private ip只允许增加')))
+
+                quota.private_ip_total = max(private_ip, 0)
+                update_fields.append('private_ip_total')
+
+            if update_fields:
+                try:
+                    quota.save(update_fields=update_fields)
+                except Exception as e:
+                    raise errors.QuotaError(message=self._prefix_msg(_('更新资源配额失败') + str(e)))
+
+        return quota
+
 
 class ServicePrivateQuotaManager(ServiceQuotaManagerBase):
     """
@@ -735,6 +805,10 @@ class ServiceShareQuotaManager(ServiceQuotaManagerBase):
 
 
 class ServiceManager:
+    @staticmethod
+    def get_service_by_id(_id):
+        return ServiceConfig.objects.filter(id=_id).first()
+
     @staticmethod
     def filter_service(center_id: str, user=None):
         """

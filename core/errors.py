@@ -59,9 +59,16 @@ class NoSuchQuotaError(QuotaError):
 
 
 class QuotaShortageError(QuotaError):
-    """配置不足短缺"""
+    """配额不足短缺"""
     default_message = "There are not enough resources to use."
     default_code = "QuotaShortage"
+    default_status_code = 409
+
+
+class QuotaOnlyIncreaseError(QuotaError):
+    """配额只允许增加"""
+    default_message = "The quota can only be increased."
+    default_code = "QuotaOnlyIncrease"
     default_status_code = 409
 
 

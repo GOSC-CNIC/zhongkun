@@ -1186,6 +1186,7 @@ class ServiceViewSet(CustomGenericViewSet):
     """
     permission_classes = [IsAuthenticated]
     pagination_class = DefaultPageNumberPagination
+    lookup_field = 'id'
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举已接入的服务'),
@@ -1255,6 +1256,119 @@ class ServiceViewSet(CustomGenericViewSet):
         service_qs = ServiceManager().get_has_perm_service(user=request.user)
         return self.paginate_service_response(request=request, qs=service_qs)
 
+    @action(methods=[], detail=True, url_path='p-quota', url_name='private-quota')
+    def private_quota(self, request, *args, **kwargs):
+        pass
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('修改服务私有配额'),
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    @private_quota.mapping.post
+    def change_private_quota(self, request, *args, **kwargs):
+        """
+        修改服务私有配额，需要有管理员权限
+        """
+        return handlers.VmServiceHandler.change_private_quota(
+            view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询服务私有配额'),
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    @private_quota.mapping.get
+    def get_private_quota(self, request, *args, **kwargs):
+        """
+        查询服务私有配额，需要有管理员权限
+
+            http code 200 ok:
+            {
+              "private_ip_total": 10,
+              "public_ip_total": 8,
+              "vcpu_total": 20,
+              "ram_total": 10240,       # Mb
+              "disk_size_total": 0,     # GB
+              "private_ip_used": 5,
+              "public_ip_used": 0,
+              "vcpu_used": 6,
+              "ram_used": 6144,         # Mb
+              "disk_size_used": 0,      # GB
+              "creation_time": null,
+              "enable": true
+            }
+        """
+        return handlers.VmServiceHandler.get_private_quota(
+            view=self, request=request, kwargs=kwargs)
+
+    @action(methods=[], detail=True, url_path='s-quota', url_name='share-quota')
+    def share_quota(self, request, *args, **kwargs):
+        pass
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询服务共享配额'),
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    @share_quota.mapping.get
+    def get_share_quota(self, request, *args, **kwargs):
+        """
+        查询服务共享配额，需要有管理员权限
+
+            http code 200 ok:
+            {
+              "private_ip_total": 10,
+              "public_ip_total": 8,
+              "vcpu_total": 20,
+              "ram_total": 10240,       # Mb
+              "disk_size_total": 0,     # GB
+              "private_ip_used": 5,
+              "public_ip_used": 0,
+              "vcpu_used": 6,
+              "ram_used": 6144,         # Mb
+              "disk_size_used": 0,      # GB
+              "creation_time": null,
+              "enable": true
+            }
+        """
+        return handlers.VmServiceHandler.get_share_quota(
+            view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('修改服务共享配额'),
+
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    @share_quota.mapping.post
+    def change_share_quota(self, request, *args, **kwargs):
+        """
+        修改服务共享配额，需要有管理员权限
+
+            http code 200 ok:
+            {
+              "private_ip_total": 10,
+              "public_ip_total": 8,
+              "vcpu_total": 20,
+              "ram_total": 10240,       # Mb
+              "disk_size_total": 0,     # GB
+              "private_ip_used": 5,
+              "public_ip_used": 0,
+              "vcpu_used": 6,
+              "ram_used": 6144,         # Mb
+              "disk_size_used": 0,      # GB
+              "creation_time": null,
+              "enable": true
+            }
+        """
+        return handlers.VmServiceHandler.change_share_quota(
+            view=self, request=request, kwargs=kwargs)
+
     def paginate_service_response(self, request, qs):
         paginator = self.paginator
         try:
@@ -1266,6 +1380,21 @@ class ServiceViewSet(CustomGenericViewSet):
             return Response(err.err_data(), status=err.status_code)
 
         return response
+
+    def get_serializer_class(self):
+        if self.action == 'change_private_quota':
+            return serializers.VmServicePrivateQuotaUpdateSerializer
+        elif self.action == 'change_share_quota':
+            return serializers.VmServiceShareQuotaUpdateSerializer
+
+        return Serializer
+
+    @property
+    def paginator(self):
+        if self.action in ['get_share_quota', 'get_private_quota']:
+            return None
+
+        return super().paginator
 
 
 class DataCenterViewSet(CustomGenericViewSet):
