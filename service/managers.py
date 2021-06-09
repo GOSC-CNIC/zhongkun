@@ -907,6 +907,37 @@ class OrganizationApplyManager:
         qs = self.get_apply_queryset()
         return qs.filter(**filters)
 
+    @staticmethod
+    def filter_queryset(queryset, deleted: bool = None, status: str = None):
+        if deleted is not None:
+            queryset = queryset.filter(deleted=deleted)
+
+        if status:
+            queryset = queryset.filter(status=status)
+
+        return queryset
+
+    def filter_user_apply_queryset(self, user, deleted: bool = None, status: str = None):
+        """
+        过滤用户申请查询集
+
+        :param user: 用户对象
+        :param deleted: 删除状态筛选，默认不筛选，True(已删除申请记录)，False(未删除申请记录)
+        :param status: 过滤指定状态的申请记录
+        """
+        queryset = self.get_apply_queryset().filter(user=user)
+        return self.filter_queryset(queryset=queryset, deleted=deleted, status=status)
+
+    def admin_filter_apply_queryset(self, deleted: bool = None, status: str = None):
+        """
+        管理员过滤申请查询集
+
+        :param deleted: 删除状态筛选，默认不筛选，True(已删除申请记录)，False(未删除申请记录)
+        :param status: 过滤指定状态的申请记录
+        """
+        queryset = self.get_apply_queryset()
+        return self.filter_queryset(queryset=queryset, deleted=deleted, status=status)
+
     def get_in_progress_apply_queryset(self, user=None):
         """
         处于申请中的申请查询集

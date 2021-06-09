@@ -20,7 +20,7 @@ from drf_yasg import openapi
 
 from servers.models import Server, Flavor, ServerArchive
 from service.managers import ServiceManager
-from service.models import DataCenter
+from service.models import DataCenter, ApplyOrganization, ApplyVmService
 from applyment.models import ApplyQuota
 from adapters import inputs, outputs
 from core.quota import QuotaAPI
@@ -130,7 +130,7 @@ class ServersViewSet(CustomGenericViewSet):
             serializer = serializers.ServerSerializer(page, many=True, context={'service_id_map': service_id_map})
             return paginator.get_paginated_response(data=serializer.data)
         except Exception as exc:
-            return self.exception_reponse(exceptions.convert_to_error(exc))
+            return self.exception_response(exceptions.convert_to_error(exc))
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('创建服务器实例'),
@@ -635,7 +635,7 @@ class ServersViewSet(CustomGenericViewSet):
         server_id = kwargs.get(self.lookup_field, '')
         remarks = request.query_params.get('remark', None)
         if remarks is None:
-            return self.exception_reponse(
+            return self.exception_response(
                 exceptions.InvalidArgument(message='query param "remark" is required'))
 
         try:
@@ -647,7 +647,7 @@ class ServersViewSet(CustomGenericViewSet):
             server.remarks = remarks
             server.save(update_fields=['remarks'])
         except Exception as exc:
-            return self.exception_reponse(exc)
+            return self.exception_response(exc)
 
         return Response(data={'remarks': remarks})
 
@@ -967,7 +967,7 @@ class VPNViewSet(CustomGenericViewSet):
             response['Content-Disposition'] = r.headers.get('content-disposition')
             return response
 
-        return self.exception_reponse(exceptions.Error(message=str(r.content)))
+        return self.exception_response(exceptions.Error(message=str(r.content)))
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('vpn ca证书文件下载'),
@@ -994,7 +994,7 @@ class VPNViewSet(CustomGenericViewSet):
             response['Content-Disposition'] = r.headers.get('content-disposition')
             return response
 
-        return self.exception_reponse(exceptions.Error(message=str(r.content)))
+        return self.exception_response(exceptions.Error(message=str(r.content)))
 
     def get_serializer_class(self):
         return Serializer
@@ -1930,6 +1930,86 @@ class ApplyOrganizationViewSet(CustomGenericViewSet):
     permission_classes = [IsAuthenticated]
     pagination_class = DefaultPageNumberPagination
     lookup_field = 'id'
+
+    list_manual_parameters = [
+        openapi.Parameter(
+            name='deleted',
+            in_=openapi.IN_QUERY,
+            required=False,
+            type=openapi.TYPE_BOOLEAN,
+            description=gettext_lazy('筛选参数，true(只返回已删除的申请记录)；false(不包含已删除的申请记录)')
+        ),
+        openapi.Parameter(
+            name='status',
+            in_=openapi.IN_QUERY,
+            required=False,
+            type=openapi.TYPE_STRING,
+            enum=ApplyOrganization.Status.values,
+            description=gettext_lazy('筛选参数，筛选指定状态的申请记录')
+        )
+    ]
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举机构申请'),
+        manual_parameters=list_manual_parameters,
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        列举机构申请
+
+            http code 200 ok:
+            {
+              "count": 1,
+              "next": null,
+              "previous": null,
+              "results": [
+                {
+                  "id": "69580ac6-c439-11eb-9c87-c8009fe2eb10",
+                  "creation_time": null,
+                  "status": "wait",
+                  "user": {
+                    "id": "1",
+                    "username": "shun"
+                  },
+                  "deleted": false,
+                  "name": "test",
+                  "abbreviation": "tt",
+                  "independent_legal_person": true,
+                  "country": "中国",
+                  "city": "北京",
+                  "postal_code": "274100",
+                  "address": "string",
+                  "endpoint_vms": "",
+                  "endpoint_object": "",
+                  "endpoint_compute": "",
+                  "endpoint_monitor": "",
+                  "desc": "string",
+                  "logo_url": "string",
+                  "certification_url": "string"
+                }
+              ]
+            }
+        """
+        return handlers.ApplyOrganizationHandler.list_apply(
+            view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('管理员列举机构申请'),
+        manual_parameters=list_manual_parameters,
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    @action(methods=['get'], detail=False, url_path='admin', url_name='admin-list')
+    def admin_list(self, request, *args, **kwargs):
+        """
+        联邦管理员列举机构申请
+        """
+        return handlers.ApplyOrganizationHandler.admin_list_apply(
+            view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('提交机构/数据中心创建申请'),

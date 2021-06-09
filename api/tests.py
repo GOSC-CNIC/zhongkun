@@ -863,12 +863,12 @@ class ApplyOrganizationTests(MyAPITestCase):
         response = self.create_apply_response(client=self.client, data=apply_data)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(keys=[
-            'id', 'creation_time', 'status', 'user', 'name', 'abbreviation', 'independent_legal_person',
+            'id', 'creation_time', 'status', 'user', 'deleted', 'name', 'abbreviation', 'independent_legal_person',
             'country', 'city', 'postal_code', 'address', 'endpoint_vms', 'endpoint_object',
             'endpoint_compute', 'endpoint_monitor', 'desc', 'logo_url', 'certification_url'
         ], container=response.data)
         self.assert_is_subdict_of(sub={
-            'status': 'wait', 'name': '中国科学院计算机信息网络中心',
+            'status': 'wait', 'deleted': False, 'name': '中国科学院计算机信息网络中心',
             'abbreviation': '中科院网络中心', 'independent_legal_person': True, 'country': '中国', 'city': '北京',
             'postal_code': '100083', 'address': '北京市海淀区', 'endpoint_vms': 'https://vms.cstcloud.cn/',
             'endpoint_object': '', 'endpoint_compute': '', 'endpoint_monitor': '', 'desc': 'test',
@@ -976,6 +976,114 @@ class ApplyOrganizationTests(MyAPITestCase):
         apply = ApplyOrganization.objects.get(pk=apply_id)
         organization = DataCenter.objects.get(pk=apply.data_center_id)
         self.assertIsInstance(organization, DataCenter)
+
+    @staticmethod
+    def list_response(client, queries: dict):
+        url = reverse('api:apply-organization-list')
+        if queries:
+            query = parse.urlencode(queries)
+            url = f'{url}?{query}'
+
+        return client.get(url)
+
+    @staticmethod
+    def admin_list_response(client, queries: dict):
+        url = reverse('api:apply-organization-admin-list')
+        if queries:
+            query = parse.urlencode(queries)
+            url = f'{url}?{query}'
+
+        return client.get(url)
+
+    def test_list(self):
+        apply_data = {k: self.apply_data[k] for k in self.apply_data.keys()}
+        response = self.create_apply_response(client=self.client, data=apply_data)
+        self.assertEqual(response.status_code, 200)
+        apply_id = response.data['id']
+
+        # list
+        response = self.list_response(client=self.client, queries={})
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "next", "previous", "results"], response.data)
+        self.assertEqual(response.data["count"], 1)
+        self.assertKeysIn(keys=[
+            'id', 'creation_time', 'status', 'user', 'deleted', 'name', 'abbreviation', 'independent_legal_person',
+            'country', 'city', 'postal_code', 'address', 'endpoint_vms', 'endpoint_object',
+            'endpoint_compute', 'endpoint_monitor', 'desc', 'logo_url', 'certification_url'
+        ], container=response.data['results'][0])
+        self.assert_is_subdict_of(sub={
+            'status': 'wait', 'deleted': False, 'name': '中国科学院计算机信息网络中心',
+            'abbreviation': '中科院网络中心', 'independent_legal_person': True, 'country': '中国', 'city': '北京',
+            'postal_code': '100083', 'address': '北京市海淀区', 'endpoint_vms': 'https://vms.cstcloud.cn/',
+            'endpoint_object': '', 'endpoint_compute': '', 'endpoint_monitor': '', 'desc': 'test',
+            'logo_url': '/api/media/logo/c5ff90480c7fc7c9125ca4dd86553e23.jpg',
+            'certification_url': '/certification/c5ff90480c7fc7c9125ca4dd86553e23.docx'
+        }, d=response.data['results'][0])
+
+        # list
+        response = self.list_response(client=self.client, queries={'status': 'cancel'})
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "next", "previous", "results"], response.data)
+        self.assertEqual(response.data["count"], 0)
+
+        # cancel
+        url = reverse('api:apply-organization-action', kwargs={'id': apply_id, 'action': 'cancel'})
+        response = self.client.post(url, data=apply_data)
+        self.assertEqual(response.status_code, 200)
+        # list cancel
+        response = self.list_response(client=self.client, queries={'status': 'cancel'})
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "next", "previous", "results"], response.data)
+        self.assertEqual(response.data["count"], 1)
+
+        # list deleted
+        response = self.list_response(client=self.client, queries={'deleted': True})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 0)
+        # delete
+        url = reverse('api:apply-organization-detail', kwargs={'id': apply_id})
+        response = self.client.delete(url, data=apply_data)
+        self.assertEqual(response.status_code, 204)
+        # list deleted
+        response = self.list_response(client=self.client, queries={'deleted': True})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 1)
+
+        # admin user
+        self.client.logout()
+        self.client.force_login(self.federal_admin)
+        # list
+        response = self.list_response(client=self.client, queries={'status': 'cancel'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 0)
+
+        # admin-list
+        response = self.admin_list_response(client=self.client, queries={})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.federal_admin.set_federal_admin()
+        # admin-list
+        response = self.admin_list_response(client=self.client, queries={})
+        self.assertKeysIn(["count", "next", "previous", "results"], response.data)
+        self.assertEqual(response.data["count"], 1)
+        self.assertKeysIn(keys=[
+            'id', 'creation_time', 'status', 'user', 'deleted', 'name', 'abbreviation', 'independent_legal_person',
+            'country', 'city', 'postal_code', 'address', 'endpoint_vms', 'endpoint_object',
+            'endpoint_compute', 'endpoint_monitor', 'desc', 'logo_url', 'certification_url'
+        ], container=response.data['results'][0])
+        self.assert_is_subdict_of(sub={
+            'status': 'cancel', 'deleted': True, 'name': '中国科学院计算机信息网络中心',
+            'abbreviation': '中科院网络中心', 'independent_legal_person': True, 'country': '中国', 'city': '北京',
+            'postal_code': '100083', 'address': '北京市海淀区', 'endpoint_vms': 'https://vms.cstcloud.cn/',
+            'endpoint_object': '', 'endpoint_compute': '', 'endpoint_monitor': '', 'desc': 'test',
+            'logo_url': '/api/media/logo/c5ff90480c7fc7c9125ca4dd86553e23.jpg',
+            'certification_url': '/certification/c5ff90480c7fc7c9125ca4dd86553e23.docx'
+        }, d=response.data['results'][0])
+
+        # admin-list deleted=False
+        response = self.admin_list_response(client=self.client, queries={'deleted': False})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 0)
 
 
 class ApplyVmServiceTests(MyAPITestCase):

@@ -74,7 +74,7 @@ class UserQuotaHandler:
         try:
             quota = UserQuotaManager().get_user_quota_by_id(quota_id, user=request.user)
         except exceptions.Error as exc:
-            return view.exception_reponse(exc)
+            return view.exception_response(exc)
 
         try:
             queryset = Server.objects.filter(user_quota=quota)
@@ -93,7 +93,7 @@ class UserQuotaHandler:
         try:
             UserQuotaManager().delete_quota_soft(quota_id, user=request.user)
         except exceptions.Error as exc:
-            return view.exception_reponse(exc)
+            return view.exception_response(exc)
 
         return Response(status=204)
 
@@ -203,19 +203,19 @@ class ApplyUserQuotaHandler:
         serializer = view.get_serializer(data=request.data)
         if not serializer.is_valid(raise_exception=False):
             msg = serializer_error_msg(serializer.errors)
-            return view.exception_reponse(exceptions.BadRequest(msg))
+            return view.exception_response(exceptions.BadRequest(msg))
 
         count = ApplyQuota.objects.filter(user=request.user,
                                           status=ApplyQuota.STATUS_WAIT).count()
         if count >= 6:
-            return view.exception_reponse(exceptions.TooManyApply())
+            return view.exception_response(exceptions.TooManyApply())
 
         data = serializer.validated_data
         service_id = data.get('service_id', None)
         try:
             service = view.get_service_by_id(service_id)
         except exceptions.Error as exc:
-            return view.exception_reponse(exc)
+            return view.exception_response(exc)
 
         apply = ApplyQuota()
         apply.private_ip = data.get('private_ip', 0)
@@ -242,10 +242,10 @@ class ApplyUserQuotaHandler:
         try:
             apply = ApplyUserQuotaHandler.get_has_perm_apply(pk=pk, user=request.user)
         except Exception as exc:
-            return view.exception_reponse(exc)
+            return view.exception_response(exc)
 
         if not apply.is_wait_status():
-            return view.exception_reponse(exceptions.ConflictError(
+            return view.exception_response(exceptions.ConflictError(
                 message=_('只允许“待审批”状态的资源配额申请被挂起')
             ))
 
@@ -253,7 +253,7 @@ class ApplyUserQuotaHandler:
             if not apply.set_pending(user=request.user):
                 raise Exception('挂起申请失败')
         except Exception as exc:
-            return view.exception_reponse(exc)
+            return view.exception_response(exc)
 
         try:
             r_data = serializers.ApplyQuotaSerializer(instance=apply).data
@@ -271,7 +271,7 @@ class ApplyUserQuotaHandler:
         try:
             apply = ApplyUserQuotaHandler.get_user_apply(pk=pk, user=request.user)
         except Exception as exc:
-            return view.exception_reponse(exc)
+            return view.exception_response(exc)
 
         if apply.is_cancel_status():
             try:
@@ -282,7 +282,7 @@ class ApplyUserQuotaHandler:
             return Response(data=r_data, status=200)
 
         if not apply.is_wait_status():
-            return view.exception_reponse(exceptions.ConflictError(
+            return view.exception_response(exceptions.ConflictError(
                 message=_('只允许“待审批”状态的资源配额申请被取消')
             ))
 
@@ -290,7 +290,7 @@ class ApplyUserQuotaHandler:
             if not apply.set_cancel():
                 raise Exception('取消申请失败')
         except Exception as exc:
-            return view.exception_reponse(exc)
+            return view.exception_response(exc)
 
         try:
             r_data = serializers.ApplyQuotaSerializer(instance=apply).data
@@ -307,16 +307,16 @@ class ApplyUserQuotaHandler:
         serializer = view.get_serializer(data=request.data)
         if not serializer.is_valid(raise_exception=False):
             msg = serializer_error_msg(serializer.errors)
-            return view.exception_reponse(exceptions.BadRequest(msg))
+            return view.exception_response(exceptions.BadRequest(msg))
 
         pk = kwargs.get(view.lookup_field)
         try:
             apply = ApplyUserQuotaHandler.get_user_apply(pk=pk, user=request.user)
         except Exception as exc:
-            return view.exception_reponse(exc)
+            return view.exception_response(exc)
 
         if not apply.is_wait_status():
-            return view.exception_reponse(exceptions.ConflictError(
+            return view.exception_response(exceptions.ConflictError(
                 message=_('只允许“待审批”状态的资源配额申请被修改')
             ))
 
@@ -327,7 +327,7 @@ class ApplyUserQuotaHandler:
             try:
                 service = view.get_service_by_id(service_id)
             except exceptions.Error as exc:
-                return view.exception_reponse(exc)
+                return view.exception_response(exc)
 
             apply.service = service
             update_fields.append('service')
@@ -399,10 +399,10 @@ class ApplyUserQuotaHandler:
         try:
             apply = ApplyUserQuotaHandler.get_has_perm_apply(pk=pk, user=request.user)
         except Exception as exc:
-            return view.exception_reponse(exc)
+            return view.exception_response(exc)
 
         if not apply.is_pending_status():
-            return view.exception_reponse(exceptions.ConflictError(
+            return view.exception_response(exceptions.ConflictError(
                 message=_('只允许审批处于“审批中”状态的资源配额申请')
             ))
 
@@ -415,7 +415,7 @@ class ApplyUserQuotaHandler:
             else:
                 raise Exception('无效的参数')
         except Exception as exc:
-            return view.exception_reponse(exc)
+            return view.exception_response(exc)
 
         try:
             r_data = serializers.ApplyQuotaSerializer(instance=apply).data
@@ -449,17 +449,77 @@ class ApplyUserQuotaHandler:
         try:
             apply = ApplyUserQuotaHandler.get_user_apply(pk=pk, user=request.user)
         except Exception as exc:
-            return view.exception_reponse(exc)
+            return view.exception_response(exc)
 
         try:
             apply.do_soft_delete()
         except Exception as exc:
-            return view.exception_reponse(exc)
+            return view.exception_response(exc)
 
         return Response(status=204)
 
 
 class ApplyOrganizationHandler:
+    @staticmethod
+    def get_list_queryset(request, is_admin: bool = False):
+        """
+        获取查询集
+
+        :param request:
+        :param is_admin: True: 有管理权限的申请记录查询集；False: 用户自己的申请记录查询集；
+        """
+        deleted = request.query_params.get('deleted', None)
+        status = request.query_params.get('status', None)
+
+        if deleted:
+            deleted = deleted.lower()
+            if deleted == 'true':
+                deleted = True
+            elif deleted == 'false':
+                deleted = False
+            else:
+                deleted = None
+
+        if is_admin:
+            return OrganizationApplyManager().admin_filter_apply_queryset(
+                deleted=deleted, status=status)
+        else:
+            return OrganizationApplyManager().filter_user_apply_queryset(
+                user=request.user, deleted=deleted, status=status)
+
+    @staticmethod
+    def list_apply(view, request, kwargs):
+        """
+        list user资源配额申请
+        """
+        try:
+            queryset = ApplyOrganizationHandler.get_list_queryset(request=request)
+            paginator = view.pagination_class()
+            applies = paginator.paginate_queryset(request=request, queryset=queryset)
+            serializer = serializers.ApplyOrganizationSerializer(instance=applies, many=True)
+            response = paginator.get_paginated_response(data=serializer.data)
+            return response
+        except Exception as exc:
+            return view.exception_response(exc=exceptions.convert_to_error(exc))
+
+    @staticmethod
+    def admin_list_apply(view, request, kwargs):
+        """
+        管理员list资源配额申请
+        """
+        if not request.user.is_federal_admin():
+            return view.exception_response(
+                exc=exceptions.AccessDenied(message=_('你没有访问权限，需要联邦管理员权限')))
+        try:
+            queryset = ApplyOrganizationHandler.get_list_queryset(request=request, is_admin=True)
+            paginator = view.pagination_class()
+            applies = paginator.paginate_queryset(request=request, queryset=queryset)
+            serializer = serializers.ApplyOrganizationSerializer(instance=applies, many=True)
+            response = paginator.get_paginated_response(data=serializer.data)
+            return response
+        except Exception as exc:
+            return view.exception_response(exc=exceptions.convert_to_error(exc))
+
     @staticmethod
     def create_apply(view, request, kwargs):
         """
@@ -469,16 +529,16 @@ class ApplyOrganizationHandler:
         serializer = view.get_serializer(data=request.data)
         if not serializer.is_valid(raise_exception=False):
             msg = serializer_error_msg(serializer.errors)
-            return view.exception_reponse(exceptions.BadRequest(msg))
+            return view.exception_response(exceptions.BadRequest(msg))
 
         count = oa_mgr.get_in_progress_apply_count(user=request.user)
         if count >= 6:
-            return view.exception_reponse(exceptions.TooManyApply())
+            return view.exception_response(exceptions.TooManyApply())
 
         try:
             apply = oa_mgr.create_apply(data=serializer.validated_data, user=request.user)
         except exceptions.Error as exc:
-            return view.exception_reponse(exc)
+            return view.exception_response(exc)
 
         rdata = serializers.ApplyOrganizationSerializer(instance=apply).data
         return Response(data=rdata)
@@ -502,7 +562,7 @@ class ApplyOrganizationHandler:
         elif _action == 'pass':
             return ApplyOrganizationHandler.pass_apply(view=view, request=request, kwargs=kwargs)
 
-        return view.exception_reponse(
+        return view.exception_response(
             exc=exceptions.BadRequest(message=_('不支持操作命令"{action}"').format(action=_action)))
 
 
@@ -515,7 +575,7 @@ class ApplyOrganizationHandler:
         try:
             apply = OrganizationApplyManager().pending_apply(_id=pk, user=request.user)
         except Exception as exc:
-            return view.exception_reponse(exc)
+            return view.exception_response(exc)
 
         serializer = serializers.ApplyOrganizationSerializer(apply)
         return Response(data=serializer.data)
@@ -529,7 +589,7 @@ class ApplyOrganizationHandler:
         try:
             apply = OrganizationApplyManager().cancel_apply(_id=pk, user=request.user)
         except Exception as exc:
-            return view.exception_reponse(exc)
+            return view.exception_response(exc)
 
         serializer = serializers.ApplyOrganizationSerializer(apply)
         return Response(data=serializer.data)
@@ -543,7 +603,7 @@ class ApplyOrganizationHandler:
         try:
             apply = OrganizationApplyManager().pass_apply(_id=pk, user=request.user)
         except Exception as exc:
-            return view.exception_reponse(exc)
+            return view.exception_response(exc)
 
         serializer = serializers.ApplyOrganizationSerializer(apply)
         return Response(data=serializer.data)
@@ -557,7 +617,7 @@ class ApplyOrganizationHandler:
         try:
             apply = OrganizationApplyManager().reject_apply(_id=pk, user=request.user)
         except Exception as exc:
-            return view.exception_reponse(exc)
+            return view.exception_response(exc)
 
         serializer = serializers.ApplyOrganizationSerializer(apply)
         return Response(data=serializer.data)
@@ -571,7 +631,7 @@ class ApplyOrganizationHandler:
         try:
             OrganizationApplyManager().delete_apply(_id=pk, user=request.user)
         except Exception as exc:
-            return view.exception_reponse(exc)
+            return view.exception_response(exc)
 
         return Response(status=204)
 
@@ -586,16 +646,16 @@ class ApplyVmServiceHandler:
         serializer = view.get_serializer(data=request.data)
         if not serializer.is_valid(raise_exception=False):
             msg = serializer_error_msg(serializer.errors)
-            return view.exception_reponse(exceptions.BadRequest(msg))
+            return view.exception_response(exceptions.BadRequest(msg))
 
         count = vsa_mgr.get_in_progress_apply_count(user=request.user)
         if count >= 6:
-            return view.exception_reponse(exceptions.TooManyApply())
+            return view.exception_response(exceptions.TooManyApply())
 
         try:
             apply = vsa_mgr.create_apply(data=serializer.validated_data, user=request.user)
         except exceptions.Error as exc:
-            return view.exception_reponse(exc)
+            return view.exception_response(exc)
 
         rdata = serializers.ApplyVmServiceSerializer(instance=apply).data
         return Response(data=rdata)
@@ -627,7 +687,7 @@ class ApplyVmServiceHandler:
         elif _action == 'pass':
             return ApplyVmServiceHandler.pass_apply(view=view, request=request, kwargs=kwargs)
 
-        return view.exception_reponse(
+        return view.exception_response(
             exc=exceptions.BadRequest(message=_('不支持操作命令"{action}"').format(action=_action)))
 
     @staticmethod
@@ -639,7 +699,7 @@ class ApplyVmServiceHandler:
         try:
             apply = VmServiceApplyManager().cancel_apply(_id=pk, user=request.user)
         except Exception as exc:
-            return view.exception_reponse(exc)
+            return view.exception_response(exc)
 
         serializer = serializers.ApplyVmServiceSerializer(apply)
         return Response(data=serializer.data)
@@ -653,7 +713,7 @@ class ApplyVmServiceHandler:
         try:
             apply = VmServiceApplyManager().pending_apply(_id=pk, user=request.user)
         except Exception as exc:
-            return view.exception_reponse(exc)
+            return view.exception_response(exc)
 
         serializer = serializers.ApplyVmServiceSerializer(apply)
         return Response(data=serializer.data)
@@ -667,7 +727,7 @@ class ApplyVmServiceHandler:
         try:
             apply = VmServiceApplyManager().first_reject_apply(_id=pk, user=request.user)
         except Exception as exc:
-            return view.exception_reponse(exc)
+            return view.exception_response(exc)
 
         serializer = serializers.ApplyVmServiceSerializer(apply)
         return Response(data=serializer.data)
@@ -681,7 +741,7 @@ class ApplyVmServiceHandler:
         try:
             apply = VmServiceApplyManager().first_pass_apply(_id=pk, user=request.user)
         except Exception as exc:
-            return view.exception_reponse(exc)
+            return view.exception_response(exc)
 
         serializer = serializers.ApplyVmServiceSerializer(apply)
         return Response(data=serializer.data)
@@ -695,7 +755,7 @@ class ApplyVmServiceHandler:
         try:
             apply, test_msg = VmServiceApplyManager().test_apply(_id=pk, user=request.user)
         except Exception as exc:
-            return view.exception_reponse(exc)
+            return view.exception_response(exc)
 
         serializer = serializers.ApplyVmServiceSerializer(apply)
         return Response(data={
@@ -713,7 +773,7 @@ class ApplyVmServiceHandler:
         try:
             apply = VmServiceApplyManager().reject_apply(_id=pk, user=request.user)
         except Exception as exc:
-            return view.exception_reponse(exc)
+            return view.exception_response(exc)
 
         serializer = serializers.ApplyVmServiceSerializer(apply)
         return Response(data=serializer.data)
@@ -727,7 +787,7 @@ class ApplyVmServiceHandler:
         try:
             apply = VmServiceApplyManager().pass_apply(_id=pk, user=request.user)
         except Exception as exc:
-            return view.exception_reponse(exc)
+            return view.exception_response(exc)
 
         serializer = serializers.ApplyVmServiceSerializer(apply)
         return Response(data=serializer.data)
@@ -741,7 +801,7 @@ class ApplyVmServiceHandler:
         try:
             VmServiceApplyManager().delete_apply(_id=pk, user=request.user)
         except Exception as exc:
-            return view.exception_reponse(exc)
+            return view.exception_response(exc)
 
         return Response(status=204)
 
@@ -762,11 +822,11 @@ class MediaHandler:
 
         content_md5 = view.request.headers.get('Content-MD5', '')
         if not content_md5:
-            return view.exception_reponse(exc=exceptions.InvalidDigest())
+            return view.exception_response(exc=exceptions.InvalidDigest())
 
         content_length = request.headers.get('content-length')
         if not content_length:
-            return view.exception_reponse(
+            return view.exception_response(
                 exc=exceptions.BadRequest(
                     message='header "Content-Length" is required'))
 
@@ -780,20 +840,20 @@ class MediaHandler:
             request.parser_context['kwargs']['filename'] = filename
             put_data = request.data
         except Exception as exc:
-            return view.exception_reponse(exceptions.Error.from_error(exc))
+            return view.exception_response(exceptions.Error.from_error(exc))
 
         file = put_data.get('file')
         if not file:
-            return view.exception_reponse(
+            return view.exception_response(
                 exc=exceptions.BadRequest(message='Request body is empty.'))
 
         if content_length != file.size:
-            return view.exception_reponse(
+            return view.exception_response(
                 exc=exceptions.BadRequest(
                     message='The length of body not same header "Content-Length"'))
 
         if content_md5 != file.file_md5:
-            return view.exception_reponse(
+            return view.exception_response(
                 exc=exceptions.BadDigest())
 
         return MediaHandler._storage_media(view=view, subpath=storage_to,
@@ -814,7 +874,7 @@ class MediaHandler:
             storager.save_file(file)
         except Exception as exc:
             storager.delete()
-            return view.exception_reponse(exc)
+            return view.exception_response(exc)
 
         api_path = reverse('api:media-detail', kwargs={'url_path': storager.relative_path()})
         return Response(data={'url_path': api_path})
@@ -830,7 +890,7 @@ class MediaHandler:
 
         if not bool(request.user and request.user.is_authenticated):
             if not (storage_to == 'logo' or storage_to.startswith('logo/')):
-                return view.exception_reponse(exceptions.AccessDenied(message='未认证'))
+                return view.exception_response(exceptions.AccessDenied(message='未认证'))
 
         return MediaHandler.media_download_response(
             view=view, subpath=storage_to, filename=filename)
@@ -841,7 +901,7 @@ class MediaHandler:
             filename=filename, storage_to=subpath)
 
         if not storager.is_exists():
-            return view.exception_reponse(exc=exceptions.NotFound())
+            return view.exception_response(exc=exceptions.NotFound())
 
         filesize = storager.size()
         file_generator = storager.get_file_generator()
@@ -884,12 +944,12 @@ class VmServiceHandler:
             service = VmServiceHandler.get_user_perm_service(
                 _id=kwargs.get(view.lookup_field), user=request.user)
         except exceptions.Error as exc:
-            return view.exception_reponse(exc)
+            return view.exception_response(exc)
 
         try:
             quota = ServicePrivateQuotaManager().get_quota(service=service)
         except exceptions.Error as exc:
-            return view.exception_reponse(exc)
+            return view.exception_response(exc)
 
         rdata = serializers.VmServicePrivateQuotaSerializer(instance=quota).data
         return Response(data=rdata)
@@ -902,13 +962,13 @@ class VmServiceHandler:
         serializer = view.get_serializer(data=request.data)
         if not serializer.is_valid(raise_exception=False):
             msg = serializer_error_msg(serializer.errors)
-            return view.exception_reponse(exceptions.BadRequest(msg))
+            return view.exception_response(exceptions.BadRequest(msg))
 
         try:
             service = VmServiceHandler.get_user_perm_service(
                 _id=kwargs.get(view.lookup_field), user=request.user)
         except exceptions.Error as exc:
-            return view.exception_reponse(exc)
+            return view.exception_response(exc)
 
         data = serializer.validated_data
         private_ip_total = data.get('private_ip_total')
@@ -922,7 +982,7 @@ class VmServiceHandler:
                 service=service, vcpus=vcpu_total, ram=ram_total, disk_size=disk_size_total,
                 public_ip=public_ip_total, private_ip=private_ip_total, only_increase=True)
         except exceptions.Error as exc:
-            return view.exception_reponse(exc)
+            return view.exception_response(exc)
 
         rdata = serializers.VmServicePrivateQuotaSerializer(instance=quota).data
         return Response(data=rdata)
@@ -936,12 +996,12 @@ class VmServiceHandler:
             service = VmServiceHandler.get_user_perm_service(
                 _id=kwargs.get(view.lookup_field), user=request.user)
         except exceptions.Error as exc:
-            return view.exception_reponse(exc)
+            return view.exception_response(exc)
 
         try:
             quota = ServiceShareQuotaManager().get_quota(service=service)
         except exceptions.Error as exc:
-            return view.exception_reponse(exc)
+            return view.exception_response(exc)
 
         rdata = serializers.VmServiceShareQuotaSerializer(instance=quota).data
         return Response(data=rdata)
@@ -954,13 +1014,13 @@ class VmServiceHandler:
         serializer = view.get_serializer(data=request.data)
         if not serializer.is_valid(raise_exception=False):
             msg = serializer_error_msg(serializer.errors)
-            return view.exception_reponse(exceptions.BadRequest(msg))
+            return view.exception_response(exceptions.BadRequest(msg))
 
         try:
             service = VmServiceHandler.get_user_perm_service(
                 _id=kwargs.get(view.lookup_field), user=request.user)
         except exceptions.Error as exc:
-            return view.exception_reponse(exc)
+            return view.exception_response(exc)
 
         data = serializer.validated_data
         private_ip_total = data.get('private_ip_total')
@@ -974,7 +1034,7 @@ class VmServiceHandler:
                 service=service, vcpus=vcpu_total, ram=ram_total, disk_size=disk_size_total,
                 public_ip=public_ip_total, private_ip=private_ip_total, only_increase=True)
         except exceptions.Error as exc:
-            return view.exception_reponse(exc)
+            return view.exception_response(exc)
 
         rdata = serializers.VmServiceShareQuotaSerializer(instance=quota).data
         return Response(data=rdata)

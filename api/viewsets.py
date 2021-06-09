@@ -128,7 +128,7 @@ class CustomGenericViewSet(viewsets.GenericViewSet):
         return service
 
     @staticmethod
-    def exception_reponse(exc):
+    def exception_response(exc):
         if not isinstance(exc, exceptions.Error):
             exc = exceptions.Error(message=str(exc))
 
