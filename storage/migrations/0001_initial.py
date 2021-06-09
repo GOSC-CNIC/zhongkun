@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('service', '0004_auto_20210305_0309'),
+        ('service', '0001_squashed_0006_userquota_deleted_squashed_0009_rename_data_center_applyvmservice_organization'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

@@ -7,7 +7,7 @@ import django.db.models.deletion
 
 class Migration(migrations.Migration):
 
-    replaces = [('servers', '0001_squashed_0007_serverarchive_user_quota_tag'), ('servers', '0002_auto_20210128_0133'), ('servers', '0003_auto_20210204_0724'), ('servers', '0004_remove_serverarchive_user_quota_tag'), ('servers', '0005_auto_20210407_0307'), ('servers', '0006_auto_20210407_0553')]
+    # replaces = [('servers', '0001_squashed_0007_serverarchive_user_quota_tag'), ('servers', '0002_auto_20210128_0133'), ('servers', '0003_auto_20210204_0724'), ('servers', '0004_remove_serverarchive_user_quota_tag'), ('servers', '0005_auto_20210407_0307'), ('servers', '0006_auto_20210407_0553')]
 
     dependencies = [
         ('service', '0001_squashed_0006_userquota_deleted_squashed_0009_rename_data_center_applyvmservice_organization'),

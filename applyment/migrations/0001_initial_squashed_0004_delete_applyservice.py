@@ -7,7 +7,7 @@ import django.db.models.deletion
 
 class Migration(migrations.Migration):
 
-    replaces = [('applyment', '0001_initial'), ('applyment', '0002_auto_20210331_0823'), ('applyment', '0003_auto_20210402_0738'), ('applyment', '0004_delete_applyservice')]
+    # replaces = [('applyment', '0001_initial'), ('applyment', '0002_auto_20210331_0823'), ('applyment', '0003_auto_20210402_0738'), ('applyment', '0004_delete_applyservice')]
 
     dependencies = [
         ('service', '0001_squashed_0006_userquota_deleted_squashed_0009_rename_data_center_applyvmservice_organization'),

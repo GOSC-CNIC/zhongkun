@@ -9,7 +9,7 @@ import users.models
 
 class Migration(migrations.Migration):
 
-    replaces = [('users', '0001_initial'), ('users', '0002_auto_20200917_0658'), ('users', '0003_auto_20210111_0321'), ('users', '0004_auto_20210204_0810'), ('users', '0005_auto_20210331_0814'), ('users', '0006_userprofile_role')]
+    # replaces = [('users', '0001_initial'), ('users', '0002_auto_20200917_0658'), ('users', '0003_auto_20210111_0321'), ('users', '0004_auto_20210204_0810'), ('users', '0005_auto_20210331_0814'), ('users', '0006_userprofile_role')]
 
     dependencies = [
         ('auth', '0011_update_proxy_permissions'),

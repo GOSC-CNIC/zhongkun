@@ -7,7 +7,7 @@ import django.db.models.deletion
 
 class Migration(migrations.Migration):
 
-    replaces = [('service', '0001_squashed_0006_userquota_deleted'), ('service', '0002_auto_20210201_0711'), ('service', '0003_auto_20210204_0708'), ('service', '0004_auto_20210305_0309'), ('service', '0005_userquota_due_time'), ('service', '0006_auto_20210407_0307'), ('service', '0007_auto_20210528_0155'), ('service', '0008_auto_20210603_0250_squashed_0010_auto_20210603_0736'), ('service', '0009_rename_data_center_applyvmservice_organization')]
+    # replaces = [('service', '0001_squashed_0006_userquota_deleted'), ('service', '0002_auto_20210201_0711'), ('service', '0003_auto_20210204_0708'), ('service', '0004_auto_20210305_0309'), ('service', '0005_userquota_due_time'), ('service', '0006_auto_20210407_0307'), ('service', '0007_auto_20210528_0155'), ('service', '0008_auto_20210603_0250_squashed_0010_auto_20210603_0736'), ('service', '0009_rename_data_center_applyvmservice_organization')]
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
