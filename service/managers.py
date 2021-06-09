@@ -908,16 +908,16 @@ class OrganizationApplyManager:
         return qs.filter(**filters)
 
     @staticmethod
-    def filter_queryset(queryset, deleted: bool = None, status: str = None):
+    def filter_queryset(queryset, deleted: bool = None, status: list = None):
         if deleted is not None:
             queryset = queryset.filter(deleted=deleted)
 
         if status:
-            queryset = queryset.filter(status=status)
+            queryset = queryset.filter(status__in=status)
 
         return queryset
 
-    def filter_user_apply_queryset(self, user, deleted: bool = None, status: str = None):
+    def filter_user_apply_queryset(self, user, deleted: bool = None, status: list = None):
         """
         过滤用户申请查询集
 
@@ -928,7 +928,7 @@ class OrganizationApplyManager:
         queryset = self.get_apply_queryset().filter(user=user)
         return self.filter_queryset(queryset=queryset, deleted=deleted, status=status)
 
-    def admin_filter_apply_queryset(self, deleted: bool = None, status: str = None):
+    def admin_filter_apply_queryset(self, deleted: bool = None, status: list = None):
         """
         管理员过滤申请查询集
 
@@ -1141,6 +1141,46 @@ class VmServiceApplyManager:
     @staticmethod
     def get_apply_queryset():
         return VmServiceApplyManager.model.objects.all()
+
+    @staticmethod
+    def filter_queryset(queryset, deleted: bool = None, organization_id: str = None, status: list = None):
+        if deleted is not None:
+            queryset = queryset.filter(deleted=deleted)
+
+        if organization_id:
+            queryset = queryset.filter(organization__id=organization_id)
+
+        if status:
+            queryset = queryset.filter(status__in=status)
+
+        return queryset
+
+    def filter_user_apply_queryset(self, user, deleted: bool = None,
+                                   organization_id: str = None, status: list = None):
+        """
+        过滤用户申请查询集
+
+        :param user: 用户对象
+        :param deleted: 删除状态筛选，默认不筛选，True(已删除申请记录)，False(未删除申请记录)
+        :param organization_id: 机构id
+        :param status: 过滤指定状态的申请记录
+        """
+        queryset = self.get_apply_queryset().filter(user=user)
+        return self.filter_queryset(queryset=queryset, deleted=deleted,
+                                    organization_id=organization_id, status=status)
+
+    def admin_filter_apply_queryset(self, deleted: bool = None,
+                                    organization_id: str = None, status: list = None):
+        """
+        管理员过滤申请查询集
+
+        :param deleted: 删除状态筛选，默认不筛选，True(已删除申请记录)，False(未删除申请记录)
+        :param organization_id: 机构id
+        :param status: 过滤指定状态的申请记录
+        """
+        queryset = self.get_apply_queryset()
+        return self.filter_queryset(queryset=queryset, deleted=deleted,
+                                    organization_id=organization_id, status=status)
 
     def get_not_delete_apply_queryset(self, user=None):
         filters = {

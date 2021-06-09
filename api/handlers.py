@@ -469,7 +469,12 @@ class ApplyOrganizationHandler:
         :param is_admin: True: 有管理权限的申请记录查询集；False: 用户自己的申请记录查询集；
         """
         deleted = request.query_params.get('deleted', None)
-        status = request.query_params.get('status', None)
+        status = request.query_params.getlist('status', None)
+        if not status or status == ['']:
+            status = None
+        if isinstance(status, list):
+            if not set(status).issubset(set(OrganizationApplyManager.model.Status.values)):
+                raise exceptions.InvalidArgument(message=_('参数"status"包含无效的值'))
 
         if deleted:
             deleted = deleted.lower()
@@ -490,7 +495,7 @@ class ApplyOrganizationHandler:
     @staticmethod
     def list_apply(view, request, kwargs):
         """
-        list user资源配额申请
+        list user机构加入申请
         """
         try:
             queryset = ApplyOrganizationHandler.get_list_queryset(request=request)
@@ -505,7 +510,7 @@ class ApplyOrganizationHandler:
     @staticmethod
     def admin_list_apply(view, request, kwargs):
         """
-        管理员list资源配额申请
+        管理员list机构加入申请
         """
         if not request.user.is_federal_admin():
             return view.exception_response(
@@ -637,6 +642,74 @@ class ApplyOrganizationHandler:
 
 
 class ApplyVmServiceHandler:
+    @staticmethod
+    def get_list_queryset(request, is_admin: bool = False):
+        """
+        获取查询集
+
+        :param request:
+        :param is_admin: True: 有管理权限的申请记录查询集；False: 用户自己的申请记录查询集；
+
+        :raises: Error
+        """
+        organization_id = request.query_params.get('organization', None)
+        deleted = request.query_params.get('deleted', None)
+        if deleted:
+            deleted = deleted.lower()
+            if deleted == 'true':
+                deleted = True
+            elif deleted == 'false':
+                deleted = False
+            else:
+                deleted = None
+
+        status = request.query_params.getlist('status', None)
+        if not status or status == ['']:
+            status = None
+        if isinstance(status, list):
+            if not set(status).issubset(set(VmServiceApplyManager.model.Status.values)):
+                raise exceptions.InvalidArgument(message=_('参数"status"包含无效的值'))
+
+        if is_admin:
+            return VmServiceApplyManager().admin_filter_apply_queryset(
+                deleted=deleted, organization_id=organization_id, status=status)
+        else:
+            return VmServiceApplyManager().filter_user_apply_queryset(
+                user=request.user, deleted=deleted, organization_id=organization_id, status=status)
+
+    @staticmethod
+    def list_apply(view, request, kwargs):
+        """
+        list user云主机服务接入申请
+        """
+        try:
+            queryset = ApplyVmServiceHandler.get_list_queryset(request=request)
+            paginator = view.pagination_class()
+            applies = paginator.paginate_queryset(request=request, queryset=queryset)
+            serializer = serializers.ApplyVmServiceSerializer(instance=applies, many=True)
+            response = paginator.get_paginated_response(data=serializer.data)
+            return response
+        except Exception as exc:
+            return view.exception_response(exc=exceptions.convert_to_error(exc))
+
+    @staticmethod
+    def admin_list_apply(view, request, kwargs):
+        """
+        管理员list云主机服务接入申请
+        """
+        if not request.user.is_federal_admin():
+            return view.exception_response(
+                exc=exceptions.AccessDenied(message=_('你没有访问权限，需要联邦管理员权限')))
+        try:
+            queryset = ApplyVmServiceHandler.get_list_queryset(request=request, is_admin=True)
+            paginator = view.pagination_class()
+            applies = paginator.paginate_queryset(request=request, queryset=queryset)
+            serializer = serializers.ApplyVmServiceSerializer(instance=applies, many=True)
+            response = paginator.get_paginated_response(data=serializer.data)
+            return response
+        except Exception as exc:
+            return view.exception_response(exc=exceptions.convert_to_error(exc))
+
     @staticmethod
     def create_apply(view, request, kwargs):
         """

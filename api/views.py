@@ -2143,6 +2143,109 @@ class ApplyVmServiceViewSet(CustomGenericViewSet):
     pagination_class = DefaultPageNumberPagination
     lookup_field = 'id'
 
+    list_manual_parameters = [
+        openapi.Parameter(
+            name='deleted',
+            in_=openapi.IN_QUERY,
+            required=False,
+            type=openapi.TYPE_BOOLEAN,
+            description=gettext_lazy('筛选参数，true(只返回已删除的申请记录)；false(不包含已删除的申请记录)')
+        ),
+        openapi.Parameter(
+            name='organization',
+            in_=openapi.IN_QUERY,
+            required=False,
+            type=openapi.TYPE_STRING,
+            description=gettext_lazy('筛选参数，机构id')
+        ),
+        openapi.Parameter(
+            name='status',
+            in_=openapi.IN_QUERY,
+            required=False,
+            type=openapi.TYPE_ARRAY,
+            items=openapi.Items(
+                type=openapi.TYPE_STRING,
+                enum=ApplyVmService.Status.values
+            ),
+            description=gettext_lazy('筛选参数，筛选指定状态的申请记录')
+        )
+    ]
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举云主机服务接入申请'),
+        manual_parameters=list_manual_parameters,
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        列举云主机服务接入申请
+
+            http code 200 ok:
+            {
+              "count": 1,
+              "next": null,
+              "previous": null,
+              "results": [
+                {
+                  "id": "deec2f54-bf86-11eb-bf23-c8009fe2eb10",
+                  "user": {
+                    "id": "1",
+                    "username": "shun"
+                  },
+                  "creation_time": "2021-05-28T07:32:35.153984Z",
+                  "approve_time": "2021-05-28T07:32:35.154143Z",
+                  "status": "wait",
+                  "organization_id": "9c70cbe2-690c-11eb-a4b7-c8009fe2eb10",
+                  "longitude": 0,
+                  "latitude": 0,
+                  "name": "string",
+                  "region": "1",
+                  "service_type": "evcloud",
+                  "endpoint_url": "http://159.226.235.3",
+                  "api_version": "v3",
+                  "username": "string",
+                  "password": "string",
+                  "project_name": "string",
+                  "project_domain_name": "string",
+                  "user_domain_name": "string",
+                  "need_vpn": true,
+                  "vpn_endpoint_url": "string",
+                  "vpn_api_version": "string",
+                  "vpn_username": "string",
+                  "vpn_password": null,
+                  "deleted": false,
+                  "contact_person": "string",
+                  "contact_email": "user@example.com",
+                  "contact_telephone": "string",
+                  "contact_fixed_phone": "string",
+                  "contact_address": "string",
+                  "remarks": "string",
+                  "logo_url": ""
+                }
+              ]
+            }
+        """
+        return handlers.ApplyVmServiceHandler.list_apply(view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('联邦管理员列举云主机服务接入申请'),
+        manual_parameters=list_manual_parameters,
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    @action(methods=['get'], detail=False, url_path='admin', url_name='admin-list')
+    def admin_list(self, request, *args, **kwargs):
+        """
+        联邦管理员列举云主机服务接入申请
+
+            http code 200 ok:
+
+        """
+        return handlers.ApplyVmServiceHandler.admin_list_apply(view=self, request=request, kwargs=kwargs)
+
     @swagger_auto_schema(
         operation_summary=gettext_lazy('提交云主机服务接入申请'),
         responses={
