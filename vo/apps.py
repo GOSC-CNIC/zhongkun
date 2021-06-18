@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class ServersConfig(AppConfig):
+class VoConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'servers'
+    name = 'vo'

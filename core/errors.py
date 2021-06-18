@@ -196,6 +196,11 @@ class TooManyApply(ConflictError):
     default_code = 'TooManyApply'
 
 
+class ResourceNotCleanedUp(ConflictError):
+    default_message = '资源未清理'
+    default_code = 'ResourceNotCleanedUp'
+
+
 def convert_to_error(err):
     if isinstance(err, Error):
         return err

@@ -7,6 +7,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from service.models import ServiceConfig, UserQuota
+from vo.models import VirtualOrganization
 
 User = get_user_model()
 
@@ -118,6 +119,8 @@ class Server(ServerBase):
                              null=True)
     user_quota = models.ForeignKey(to=UserQuota, blank=True, null=True, on_delete=models.SET_NULL,
                                    related_name='quota_servers', verbose_name=_('所属用户配额'))
+    vo = models.ForeignKey(to=VirtualOrganization, null=True, on_delete=models.SET_NULL, default=None,
+                           related_name='vo_server_set', verbose_name=_('项目组'))
 
     class Meta:
         ordering = ['-creation_time']
@@ -165,6 +168,7 @@ class Server(ServerBase):
             a.creation_time = self.creation_time
             a.remarks = self.remarks
             a.user_id = self.user_id
+            a.vo_id = self.vo_id
             a.deleted_time = timezone.now()
             a.task_status = self.task_status
             a.center_quota = self.center_quota
@@ -254,6 +258,8 @@ class ServerArchive(ServerBase):
                              related_name='user_server_archives', null=True)
     user_quota = models.ForeignKey(to=UserQuota, null=True, on_delete=models.SET_NULL,
                                    related_name='server_archive_set', verbose_name=_('所属用户配额'))
+    vo = models.ForeignKey(to=VirtualOrganization, null=True, on_delete=models.SET_NULL, default=None,
+                           related_name='vo_server_archive_set', verbose_name=_('项目组'))
     deleted_time = models.DateTimeField(verbose_name=_('删除归档时间'), auto_now_add=True)
 
     class Meta:

@@ -8,6 +8,7 @@ from django.conf import settings
 from utils.model import UuidModel
 from utils.crypto import Encryptor
 from core import errors
+from vo.models import VirtualOrganization
 
 
 User = get_user_model()
@@ -239,6 +240,8 @@ class ServiceShareQuota(ServiceQuotaBase):
 class UserQuota(UuidModel):
     """
     用户资源配额限制
+
+    配额属于用户或者项目组
     """
     TAG_BASE = 1
     TAG_PROBATION = 2
@@ -248,8 +251,10 @@ class UserQuota(UuidModel):
     )
 
     tag = models.SmallIntegerField(verbose_name=_('配额类型'), choices=CHOICES_TAG, default=TAG_BASE)
-    user = models.ForeignKey(to=User, null=True, on_delete=models.SET_NULL,
+    user = models.ForeignKey(to=User, null=True, on_delete=models.SET_NULL, default=None,
                              related_name='user_quota', verbose_name=_('用户'))
+    vo = models.ForeignKey(to=VirtualOrganization, null=True, on_delete=models.SET_NULL, default=None,
+                           related_name='vo_quota_set', verbose_name=_('项目组'))
     service = models.ForeignKey(to=ServiceConfig, null=True, on_delete=models.SET_NULL,
                                 related_name='service_quota', verbose_name=_('适用服务'))
     private_ip_total = models.IntegerField(verbose_name=_('总私网IP数'), default=0)
