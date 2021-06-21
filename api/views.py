@@ -2472,3 +2472,137 @@ class MediaViewSet(CustomGenericViewSet):
         return super().get_permissions()
 
 
+class VOViewSet(CustomGenericViewSet):
+    """
+    项目组视图
+    """
+    permission_classes = [IsAuthenticated]
+    pagination_class = DefaultPageNumberPagination
+    lookup_field = 'id'
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举项目组'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='owner',
+                type=openapi.TYPE_BOOLEAN,
+                in_=openapi.IN_QUERY,
+                required=False,
+                description=_('列举作为拥有者身份的组，参数不需要值，存在即有效')
+            ),
+            openapi.Parameter(
+                name='member',
+                type=openapi.TYPE_BOOLEAN,
+                in_=openapi.IN_QUERY,
+                required=False,
+                description=_('列举作为组员身份的组，参数不需要值，存在即有效')
+            )
+        ],
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        列举用户相关的（组员或组拥有者）项目组
+
+            * param "owner", "member"是或的关系，只提交其中一个参数，只列举相关身份的组；
+              同时提交时和都不提交效果相同，即列举用户作为组员或组拥有者的项目组；
+
+            http code 200 ok:
+            {
+              "count": 1,
+              "next": null,
+              "previous": null,
+              "results": [
+                {
+                  "id": "3bc1b4e8-d232-11eb-8b02-c8009fe2eb10",
+                  "name": "test",
+                  "company": "string",
+                  "description": "test desc",
+                  "creation_time": "2021-06-21T01:44:35.774210Z",
+                  "owner": {
+                    "id": "1",
+                    "username": "shun"
+                  },
+                  "status": "active"
+                }
+              ]
+            }
+        """
+        return handlers.VoHandler.list_vo(view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('创建项目组'),
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    def create(self, request, *args, **kwargs):
+        """
+        创建项目组
+
+            http code 200 ok:
+            {
+              "id": "3bc1b4e8-d232-11eb-8b02-c8009fe2eb10",
+              "name": "test",
+              "company": "string",
+              "description": "test desc",
+              "creation_time": "2021-06-21T01:44:35.774210Z",
+              "owner": {
+                "id": "1",
+                "username": "shun"
+              },
+              "status": "active"        # active：正常活动的组； disable：被禁用的组
+            }
+        """
+        return handlers.VoHandler.create(view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('删除项目组'),
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    def destroy(self, request, *args, **kwargs):
+        """
+        删除项目组
+
+        * 需要先清理组内的资源，如云主机，云硬盘等
+        """
+        return handlers.VoHandler.delete_vo(view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('修改项目组'),
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    def partial_update(self, request, *args, **kwargs):
+        """
+        修改项目组
+
+            http code 200:
+            {
+              "id": "3d7cd5fc-d236-11eb-9da9-c8009fe2eb10",
+              "name": "string666",
+              "company": "cnic",
+              "description": "测试",
+              "creation_time": "2021-06-21T02:13:16.663967Z",
+              "owner": {
+                "id": "1",
+                "username": "shun"
+              },
+              "status": "active"
+            }
+        """
+        return handlers.VoHandler.update_vo(view=self, request=request, kwargs=kwargs)
+
+    def get_serializer_class(self):
+        _action = self.action
+        if _action in ['list', 'create']:
+            return serializers.VoSerializer
+        elif _action == 'partial_update':
+            return serializers.VoUpdateSerializer
+
+        return Serializer

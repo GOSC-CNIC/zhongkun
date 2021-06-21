@@ -16,6 +16,7 @@ from service.models import ApplyOrganization, DataCenter, ApplyVmService, Servic
 from applyment.models import ApplyQuota
 from utils.test import get_or_create_user, get_or_create_service, get_or_create_center
 from adapters import outputs
+from vo.models import VirtualOrganization
 
 
 def random_string(length: int = 10):
@@ -1450,3 +1451,115 @@ class ApplyVmServiceTests(MyAPITestCase):
         response = self.admin_list_response(client=self.client, queries={
             'status': [ApplyVmService.Status.CANCEL, 'invalid']})
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+
+class VoTests(MyAPITestCase):
+    def setUp(self):
+        set_auth_header(self)
+        self.user2_username = 'user2'
+        self.user2_password = 'user2password'
+        self.user2 = get_or_create_user(username=self.user2_username, password=self.user2_password)
+
+    @staticmethod
+    def create_vo_response(client, name, company, description):
+        url = reverse('api:vo-list')
+        data = {
+            'name': name,
+            'company': company,
+            'description': description
+        }
+        return client.post(url, data=data)
+
+    @staticmethod
+    def update_vo_response(client, vo_id: str, data):
+        url = reverse('api:vo-detail', kwargs={'id': vo_id})
+        return client.patch(url, data=data)
+
+    @staticmethod
+    def delete_vo_response(client, vo_id: str):
+        url = reverse('api:vo-detail', kwargs={'id': vo_id})
+        return client.delete(url)
+
+    @staticmethod
+    def list_response(client, queries: dict):
+        url = reverse('api:vo-list')
+        if queries:
+            query = parse.urlencode(queries, doseq=True)
+            url = f'{url}?{query}'
+
+        return client.get(url)
+
+
+    def test_create_update_delete(self):
+        data = {
+            'name': 'test vo',
+            'company': 'cnic',
+            'description': '测试'
+        }
+        response = self.create_vo_response(client=self.client, name=data['name'],
+                                           company=data['company'], description=data['description'])
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(keys=['id', 'name', 'company','description', 'creation_time',
+                                'owner', 'status'], container=response.data)
+        sub = {'status': 'active'}
+        sub.update(data)
+        self.assert_is_subdict_of(sub=sub, d=response.data)
+        self.assert_is_subdict_of(sub={'id': self.user.id, 'username': self.user.username},
+                                  d=response.data['owner'])
+        vo_id = response.data['id']
+
+        # update
+        update_data = {
+            'name': 'vo1', 'company': '网络中心', 'description': '测试666'
+        }
+        response = self.update_vo_response(client=self.client, vo_id=vo_id, data=update_data)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(keys=['id', 'name', 'company', 'description', 'creation_time',
+                                'owner', 'status'], container=response.data)
+        self.assert_is_subdict_of(sub=update_data, d=response.data)
+
+        vo = VirtualOrganization.objects.select_related('owner').filter(id=vo_id).first()
+        self.assertEqual(vo.name, update_data['name'])
+        self.assertEqual(vo.company, update_data['company'])
+        self.assertEqual(vo.description, update_data['description'])
+
+        # delete
+        response = self.delete_vo_response(client=self.client, vo_id=vo_id)
+        self.assertEqual(response.status_code, 204)
+
+    def test_list(self):
+        data = {
+            'name': 'test vo',
+            'company': 'cnic',
+            'description': '测试'
+        }
+        response = self.create_vo_response(client=self.client, name=data['name'],
+                                           company=data['company'], description=data['description'])
+        self.assertEqual(response.status_code, 200)
+
+        # list
+        response = self.list_response(client=self.client, queries={})
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'next', 'previous', 'results'], response.data)
+        self.assertEqual(response.data['count'], 1)
+        self.assertKeysIn(keys=['id', 'name', 'company', 'description', 'creation_time',
+                                'owner', 'status'], container=response.data['results'][0])
+
+        # list as member
+        response = self.list_response(client=self.client, queries={'member': ''})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
+
+        # list as owner
+        response = self.list_response(client=self.client, queries={'owner': ''})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+
+        # list as owner and member
+        response = self.list_response(client=self.client, queries={'owner': '', 'member': ''})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+
+
+
+

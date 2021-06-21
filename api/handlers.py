@@ -10,6 +10,7 @@ from service.managers import (UserQuotaManager, VmServiceApplyManager, Organizat
                               ServicePrivateQuotaManager, ServiceShareQuotaManager, ServiceManager)
 from applyment.models import ApplyQuota
 from applyment.managers import ApplyQuotaManager
+from vo.managers import VoManager, VoMemberManager
 from utils import storagers
 from utils import time
 from core import errors as exceptions
@@ -1113,3 +1114,74 @@ class VmServiceHandler:
         return Response(data=rdata)
 
 
+class VoHandler:
+    @staticmethod
+    def list_vo(view, request, kwargs):
+        _owner = request.query_params.get('owner', None)
+        _member = request.query_params.get('member', None)
+        if _owner is not None:
+            _owner = True
+        if _member is not None:
+            _member = True
+
+        try:
+            queryset = VoManager().get_user_vo_queryset(user=request.user, owner=_owner, member=_member)
+            paginator = view.pagination_class()
+            vos = paginator.paginate_queryset(request=request, queryset=queryset)
+            serializer = view.get_serializer(instance=vos, many=True)
+            response = paginator.get_paginated_response(data=serializer.data)
+            return response
+        except Exception as exc:
+            return view.exception_response(exc=exceptions.convert_to_error(exc))
+
+    @staticmethod
+    def create(view, request, kwargs):
+        """
+        创建一个组
+        """
+        serializer = view.get_serializer(data=request.data)
+        if not serializer.is_valid(raise_exception=False):
+            msg = serializer_error_msg(serializer.errors)
+            return view.exception_response(exceptions.BadRequest(msg))
+
+        data = serializer.validated_data
+        name = data.get('name')
+        company = data.get('company')
+        description = data.get('description')
+
+        try:
+            vo = VoManager().create_vo(name=name, company=company, description=description, user=request.user)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        return Response(data=view.get_serializer(instance=vo).data)
+
+    @staticmethod
+    def delete_vo(view, request, kwargs):
+        vo_id = kwargs.get(view.lookup_field)
+        try:
+            VoManager().delete_vo(vo_id=vo_id, admin_user=request.user)
+        except Exception as exc:
+            return view.exception_response(exc=exceptions.convert_to_error(exc))
+
+        return Response(status=204)
+
+    @staticmethod
+    def update_vo(view, request, kwargs):
+        vo_id = kwargs.get(view.lookup_field)
+        serializer = view.get_serializer(data=request.data)
+        if not serializer.is_valid(raise_exception=False):
+            msg = serializer_error_msg(serializer.errors)
+            return view.exception_response(exceptions.BadRequest(msg))
+
+        data = serializer.validated_data
+        name = data.get('name')
+        company = data.get('company')
+        description = data.get('description')
+
+        try:
+            vo = VoManager().update_vo(vo_id=vo_id, admin_user=request.user, name=name,
+                                       company=company, description=description)
+            return Response(data=serializers.VoSerializer(instance=vo).data)
+        except Exception as exc:
+            return view.exception_response(exc=exceptions.convert_to_error(exc))

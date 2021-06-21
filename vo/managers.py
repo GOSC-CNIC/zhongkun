@@ -1,4 +1,5 @@
 from django.utils.translation import gettext as _
+from django.db.models import Q
 
 from servers.models import Server
 from core import errors
@@ -15,7 +16,7 @@ class VoManager:
         :return:
             VirtualOrganization() or None
         """
-        return VoManager.model.objects.select_related('user').filter(id=vo_id, deleted=False).first()
+        return VoManager.model.objects.select_related('owner').filter(id=vo_id, deleted=False).first()
 
     def get_has_manager_perm_vo(self, vo_id: str, user) -> (VirtualOrganization, VoMember):
         """
@@ -48,10 +49,35 @@ class VoManager:
 
     @staticmethod
     def get_queryset():
-        return VoManager.model.objects.all()
+        return VoManager.model.objects.select_related('owner').all()
 
     def get_no_delete_queryset(self):
         return self.get_queryset().filter(deleted=False)
+
+    @staticmethod
+    def get_user_vo_queryset(user, owner: bool = None, member: bool = None):
+        """
+        查询用户相关的组（组员或组拥有者）
+        * owner和member同时为None时等同于同时为True
+
+        :param user: 用户
+        :param owner: True:查询包含作为组拥有者的组;
+        :param member: True:查询包含作为组员的组;
+        """
+        queryset = VirtualOrganization.objects.select_related('owner').filter(deleted=False)
+
+        if owner and member:
+            queryset = queryset.filter(Q(vomember__user=user) | Q(owner=user))
+        elif member:
+            queryset = queryset.filter(vomember__user=user)
+        elif owner:
+            queryset = queryset.filter(owner=user)
+        elif owner is None and member is None:
+            queryset = queryset.filter(Q(vomember__user=user) | Q(owner=user))
+        else:
+            queryset = queryset.none()
+
+        return queryset
 
     def add_members(self, vo_id: str, usernames: list, admin_user):
         """
