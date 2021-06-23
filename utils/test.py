@@ -13,16 +13,16 @@ def get_or_create_user(username='test', password='password'):
 
 
 def get_or_create_center():
-    center = DataCenter.objects.filter(name='test').first()
+    center = DataCenter.objects.filter(name='test', name_en='test_en').first()
     if center is None:
-        center = DataCenter(name='test')
+        center = DataCenter(name='test', name_en='test_en')
         center.save()
 
     return center
 
 
 def get_or_create_service():
-    service = ServiceConfig.objects.filter(name='test').first()
+    service = ServiceConfig.objects.filter(name='test', name_en='test_en').first()
     if service is None:
         center = get_or_create_center()
 
@@ -39,7 +39,7 @@ def get_or_create_service():
             raise Exception('TEST_CASE.SERVICE.service_type is invalid in settings')
 
         service = ServiceConfig(
-            name='test', data_center=center,
+            name='test', name_en='test_en', data_center=center,
             endpoint_url=service_settings['endpoint_url'],
             username=service_settings['username'],
             service_type=service_type,

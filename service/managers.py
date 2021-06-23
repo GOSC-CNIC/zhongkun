@@ -954,19 +954,18 @@ class OrganizationApplyManager:
         return qs.count()
 
     @staticmethod
-    def create_apply(data: dict, user):
+    def create_apply(data: dict, user) -> ApplyOrganization:
         """
-        创建一个服务接入申请
+        创建一个机构申请
 
         :param data: dict, ApplyDataCenterSerializer.validated_data
         :param user:
-        :return:
-            ApplyDataCenter()
 
         :raises: Error
         """
         apply = OrganizationApplyManager.model()
         apply.name = data.get('name')
+        apply.name_en = data.get('name_en')
         apply.abbreviation = data.get('abbreviation')
         apply.independent_legal_person = data.get('independent_legal_person')
         apply.country = data.get('country')
@@ -1238,6 +1237,7 @@ class VmServiceApplyManager:
         apply_service.user = user
         apply_service.service_type = service_type
         apply_service.name = data.get('name')
+        apply_service.name_en = data.get('name_en')
         apply_service.endpoint_url = data.get('endpoint_url')
         apply_service.region = data.get('region', '')
         apply_service.api_version = data.get('api_version', '')

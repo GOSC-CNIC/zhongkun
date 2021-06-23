@@ -207,6 +207,7 @@ class PrivateServiceQuotaSerializer(ServiceQuotaBaseSerializer):
 class ServiceSerializer(serializers.Serializer):
     id = serializers.CharField()
     name = serializers.CharField()
+    name_en = serializers.CharField()
     service_type = serializers.CharField()
     add_time = serializers.DateTimeField()
     need_vpn = serializers.BooleanField()
@@ -225,6 +226,7 @@ class ServiceSerializer(serializers.Serializer):
 class DataCenterSerializer(serializers.Serializer):
     id = serializers.CharField()
     name = serializers.CharField()
+    name_en = serializers.CharField()
     endpoint_vms = serializers.CharField()
     endpoint_object = serializers.CharField()
     endpoint_compute = serializers.CharField()
@@ -354,10 +356,11 @@ class ApplyOrganizationSerializer(serializers.Serializer):
     id = serializers.CharField(label='id', read_only=True)
     creation_time = serializers.DateTimeField(label=_('创建时间'), read_only=True)
     status = serializers.CharField(label=_('状态'), read_only=True)
-    user = serializers.SerializerMethodField(method_name='get_user')
+    user = serializers.SerializerMethodField(method_name='get_user', read_only=True)
     deleted = serializers.BooleanField(label=_('是否删除'), read_only=True)
 
     name = serializers.CharField(label=_('机构名称'), max_length=255, required=True)
+    name_en = serializers.CharField(label=_('机构英文名称'), max_length=255, required=True, allow_blank=False)
     abbreviation = serializers.CharField(label=_('简称'), max_length=64, required=True)
     independent_legal_person = serializers.BooleanField(label=_('是否独立法人单位'), required=True)
     country = serializers.CharField(label=_('国家/地区'), max_length=128, required=True)
@@ -438,6 +441,7 @@ class ApplyVmServiceCreateSerializer(serializers.Serializer):
     organization_id = serializers.CharField(
         label=_('机构ID'), required=True)
     name = serializers.CharField(label=_('服务名称'), max_length=255, required=True)
+    name_en = serializers.CharField(label=_('服务名称'), max_length=255, required=True, allow_blank=False)
     service_type = serializers.CharField(label=_('服务类型'), required=True)
     endpoint_url = serializers.CharField(
         label=_('服务地址url'), max_length=255, required=True,
@@ -565,6 +569,7 @@ class ApplyVmServiceSerializer(serializers.Serializer):
     longitude = serializers.FloatField()
     latitude = serializers.FloatField()
     name = serializers.CharField()
+    name_en = serializers.CharField()
     region = serializers.CharField()
     service_type = serializers.CharField()
     endpoint_url = serializers.CharField()

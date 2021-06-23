@@ -28,6 +28,7 @@ class DataCenter(UuidModel):
     )
 
     name = models.CharField(verbose_name=_('名称'), max_length=255)
+    name_en = models.CharField(verbose_name=_('英文名称'), max_length=255, default='')
     abbreviation = models.CharField(verbose_name=_('简称'), max_length=64, default='')
     independent_legal_person = models.BooleanField(verbose_name=_('是否独立法人单位'), default=True)
     country = models.CharField(verbose_name=_('国家/地区'), max_length=128, default='')
@@ -78,6 +79,7 @@ class ServiceConfig(UuidModel):
     data_center = models.ForeignKey(to=DataCenter, null=True, on_delete=models.SET_NULL,
                                     related_name='service_set', verbose_name=_('数据中心'))
     name = models.CharField(max_length=255, verbose_name=_('服务名称'))
+    name_en = models.CharField(verbose_name=_('服务英文名称'), max_length=255, default='')
     region_id = models.CharField(max_length=128, default='', blank=True, verbose_name=_('服务区域/分中心ID'))
     service_type = models.CharField(max_length=32, choices=ServiceType.choices, default=ServiceType.EVCLOUD,
                                     verbose_name=_('服务平台类型'))
@@ -362,6 +364,7 @@ class ApplyOrganization(UuidModel):
         PASS = 'pass', '通过'
 
     name = models.CharField(verbose_name=_('名称'), max_length=255)
+    name_en = models.CharField(verbose_name=_('英文名称'), max_length=255, default='')
     abbreviation = models.CharField(verbose_name=_('简称'), max_length=64, default='')
     independent_legal_person = models.BooleanField(verbose_name=_('是否独立法人单位'), default=True)
     country = models.CharField(verbose_name=_('国家/地区'), max_length=128, default='')
@@ -409,6 +412,7 @@ class ApplyOrganization(UuidModel):
     def do_pass_apply(self) -> DataCenter:
         organization = DataCenter()
         organization.name = self.name
+        organization.name_en = self.name_en
         organization.abbreviation = self.abbreviation
         organization.independent_legal_person = self.independent_legal_person
         organization.country = self.country
@@ -462,6 +466,7 @@ class ApplyVmService(UuidModel):
     longitude = models.FloatField(verbose_name=_('经度'), blank=True, default=0)
     latitude = models.FloatField(verbose_name=_('纬度'), blank=True, default=0)
     name = models.CharField(max_length=255, verbose_name=_('服务名称'))
+    name_en = models.CharField(verbose_name=_('英文名称'), max_length=255, default='')
     region = models.CharField(max_length=128, default='', blank=True, verbose_name=_('服务区域'),
                               help_text='OpenStack服务区域名称,EVCloud分中心ID')
     service_type = models.CharField(choices=ServiceType.choices, default=ServiceType.EVCLOUD,
@@ -557,6 +562,7 @@ class ApplyVmService(UuidModel):
         service = ServiceConfig()
         service.data_center_id = self.organization_id
         service.name = self.name
+        service.name_en = self.name_en
         service.region_id = self.region
         service.service_type = self.service_type
         service.endpoint_url = self.endpoint_url

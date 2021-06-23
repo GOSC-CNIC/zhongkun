@@ -1224,6 +1224,7 @@ class ServiceViewSet(CustomGenericViewSet):
                 {
                   "id": 9c70cbe2-690c-11eb-a4b7-c8009fe2eb10,
                   "name": "vmware(10.0.200.243)",
+                  "name_en": "string",
                   "service_type": "vmware",
                   "add_time": "2020-10-16T09:01:44.402955Z",
                   "need_vpn": false,
@@ -1422,6 +1423,7 @@ class DataCenterViewSet(CustomGenericViewSet):
                 {
                   "id": "9c70cbe2-690c-11eb-a4b7-c8009fe2eb10",
                   "name": "网络中心",
+                  "name_en": "string",
                   "endpoint_vms": http://xxx/,
                   "endpoint_object": http://xxx/,
                   "endpoint_compute": http://xxx/,
@@ -1977,6 +1979,7 @@ class ApplyOrganizationViewSet(CustomGenericViewSet):
                   },
                   "deleted": false,
                   "name": "test",
+                  "name_en": "string",
                   "abbreviation": "tt",
                   "independent_legal_person": true,
                   "country": "中国",
@@ -2033,6 +2036,7 @@ class ApplyOrganizationViewSet(CustomGenericViewSet):
               },
               "deleted": false,
               "name": "中国科学院计算机信息网络中心",
+              "name_en": "string",
               "abbreviation": "中科院网络中心",
               "independent_legal_person": true,
               "country": "中国",
@@ -2106,6 +2110,7 @@ class ApplyOrganizationViewSet(CustomGenericViewSet):
                   },
                   "deleted": true,
                   "name": "中国科学院计算机信息网络中心",
+                  "name_en": "cnic",
                   "abbreviation": "中科院网络中心",
                   "independent_legal_person": true,
                   "country": "中国",
@@ -2202,6 +2207,7 @@ class ApplyVmServiceViewSet(CustomGenericViewSet):
                   "longitude": 0,
                   "latitude": 0,
                   "name": "string",
+                  "name_en": "string",
                   "region": "1",
                   "service_type": "evcloud",
                   "endpoint_url": "http://159.226.235.3",
@@ -2272,6 +2278,7 @@ class ApplyVmServiceViewSet(CustomGenericViewSet):
               "longitude": 0,
               "latitude": 0,
               "name": "string",
+              "name_en": "string",
               "region": "1",
               "service_type": "evcloud",
               "endpoint_url": "http://159.226.235.3",
@@ -2341,6 +2348,7 @@ class ApplyVmServiceViewSet(CustomGenericViewSet):
                 'longitude': 0.0,
                 'latitude': 0.0,
                 'name': '地球大数据',
+                "name_en": "string",
                 'region': '1',
                 'service_type': 'evcloud',
                 'endpoint_url': 'http://159.226.235.3/',
@@ -2367,8 +2375,8 @@ class ApplyVmServiceViewSet(CustomGenericViewSet):
 
             * "test" action response B:
             {
-                'ok': True,
-                'message': '',
+                'ok': bool,         # true: 测试通过；false: 测试失败
+                'message': '',      # 测试失败描述
                 'apply': {
                     参考 response A
                 }

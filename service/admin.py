@@ -11,9 +11,9 @@ from .models import (ServiceConfig, DataCenter, ServicePrivateQuota,
 @admin.register(ServiceConfig)
 class ServiceConfigAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
-    list_display = ('id', 'name', 'data_center', 'region_id', 'service_type', 'endpoint_url', 'username', 'password',
+    list_display = ('id', 'name', 'name_en', 'data_center', 'region_id', 'service_type', 'endpoint_url', 'username', 'password',
                     'add_time', 'status', 'need_vpn', 'vpn_endpoint_url', 'vpn_password', 'remarks')
-    search_fields = ['name', 'endpoint_url', 'remarks']
+    search_fields = ['name', 'name_en', 'endpoint_url', 'remarks']
     list_filter = ['data_center', 'service_type']
     list_select_related = ('data_center',)
 
@@ -62,7 +62,7 @@ class ServiceConfigAdmin(admin.ModelAdmin):
 @admin.register(DataCenter)
 class DataCenterAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
-    list_display = ('id', 'name', 'abbreviation', 'status', 'creation_time', 'desc')
+    list_display = ('id', 'name', 'name_en', 'abbreviation', 'status', 'creation_time', 'desc')
 
 
 @admin.register(ServicePrivateQuota)
@@ -235,7 +235,7 @@ class UserQuotaAdmin(admin.ModelAdmin):
 @admin.register(ApplyVmService)
 class ApplyServiceAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
-    list_display = ('id', 'organization', 'name', 'service_type', 'status', 'user', 'creation_time', 'approve_time')
+    list_display = ('id', 'organization', 'name', 'name_en', 'service_type', 'status', 'user', 'creation_time', 'approve_time')
 
     list_filter = ('organization',)
 
@@ -243,4 +243,4 @@ class ApplyServiceAdmin(admin.ModelAdmin):
 @admin.register(ApplyOrganization)
 class ApplyOrganizationAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
-    list_display = ('id', 'name', 'abbreviation', 'status', 'user', 'deleted', 'creation_time', 'desc')
+    list_display = ('id', 'name', 'name_en', 'abbreviation', 'status', 'user', 'deleted', 'creation_time', 'desc')

@@ -295,6 +295,7 @@ class ServersTests(MyAPITestCase):
 
 class ServiceTests(MyAPITestCase):
     def setUp(self):
+        self.user = None
         set_auth_header(self)
         self.service = get_or_create_service()
 
@@ -303,7 +304,7 @@ class ServiceTests(MyAPITestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "next", "previous", "results"], response.data)
-        self.assertKeysIn(["id", "name", "service_type", "add_time",
+        self.assertKeysIn(["id", "name", "name_en", "service_type", "add_time",
                            "need_vpn", "status", "data_center"], response.data["results"][0])
         self.assertIsInstance(response.data["results"][0]['status'], str)
 
@@ -318,7 +319,7 @@ class ServiceTests(MyAPITestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "next", "previous", "results"], response.data)
-        self.assertKeysIn(["id", "name", "service_type", "add_time",
+        self.assertKeysIn(["id", "name", "name_en", "service_type", "add_time",
                            "need_vpn", "status", "data_center"], response.data["results"][0])
         self.assertIsInstance(response.data["results"][0]['status'], str)
 
@@ -573,7 +574,7 @@ class UserQuotaApplyTests(MyAPITestCase):
         self.assertEqual(response.data['results'][0]['status'], 'cancel')
 
     def test_perms_pass_apply(self):
-        response = response = self.create_apply()
+        response = self.create_apply()
         self.assertEqual(response.status_code, 201)
         apply_id = response.data['id']
 
@@ -604,7 +605,7 @@ class UserQuotaApplyTests(MyAPITestCase):
         self.assertEqual(quota.duration_days, self.old_duration_days)
 
     def test_perms_reject_apply(self):
-        response = response = self.create_apply()
+        response = self.create_apply()
         self.assertEqual(response.status_code, 201)
         apply_id = response.data['id']
         self.service.users.add(self.user)  # 加管理权限
@@ -620,7 +621,7 @@ class UserQuotaApplyTests(MyAPITestCase):
         self.assertEqual(apply.status, apply.STATUS_REJECT)
 
     def test_apply_status_conflict(self):
-        response = response = self.create_apply()
+        response = self.create_apply()
         self.assertEqual(response.status_code, 201)
         apply_id = response.data['id']
         self.service.users.add(self.user)  # 加管理权限
@@ -723,7 +724,7 @@ class UserQuotaApplyTests(MyAPITestCase):
         self.assertEqual(response.data["count"], 1)
 
     def test_admin_list_apply(self):
-        response = response = self.create_apply()
+        response = self.create_apply()
         self.assertEqual(response.status_code, 201)
         apply_id = response.data['id']
 
@@ -745,7 +746,7 @@ class UserQuotaApplyTests(MyAPITestCase):
         self.list_apply_query_params(base_url=base_url, apply_id=apply_id)
 
     def test_list_apply(self):
-        response = response = self.create_apply()
+        response = self.create_apply()
         self.assertEqual(response.status_code, 201)
         apply_id = response.data['id']
 
@@ -828,6 +829,7 @@ class MediaApiTests(MyAPITestCase):
 class ApplyOrganizationTests(MyAPITestCase):
     apply_data = {
         "name": "中国科学院计算机信息网络中心",
+        "name_en": "cnic",
         "abbreviation": "中科院网络中心",
         "independent_legal_person": True,
         "country": "中国",
@@ -844,6 +846,7 @@ class ApplyOrganizationTests(MyAPITestCase):
     }
 
     def setUp(self):
+        self.user = None
         set_auth_header(self)
         self.federal_username = 'federal_admin'
         self.federal_password = 'federal_password'
@@ -864,12 +867,12 @@ class ApplyOrganizationTests(MyAPITestCase):
         response = self.create_apply_response(client=self.client, data=apply_data)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(keys=[
-            'id', 'creation_time', 'status', 'user', 'deleted', 'name', 'abbreviation', 'independent_legal_person',
+            'id', 'creation_time', 'status', 'user', 'deleted', 'name', "name_en",'abbreviation', 'independent_legal_person',
             'country', 'city', 'postal_code', 'address', 'endpoint_vms', 'endpoint_object',
             'endpoint_compute', 'endpoint_monitor', 'desc', 'logo_url', 'certification_url'
         ], container=response.data)
         self.assert_is_subdict_of(sub={
-            'status': 'wait', 'deleted': False, 'name': '中国科学院计算机信息网络中心',
+            'status': 'wait', 'deleted': False, 'name': '中国科学院计算机信息网络中心', "name_en": "cnic",
             'abbreviation': '中科院网络中心', 'independent_legal_person': True, 'country': '中国', 'city': '北京',
             'postal_code': '100083', 'address': '北京市海淀区', 'endpoint_vms': 'https://vms.cstcloud.cn/',
             'endpoint_object': '', 'endpoint_compute': '', 'endpoint_monitor': '', 'desc': 'test',
@@ -976,6 +979,8 @@ class ApplyOrganizationTests(MyAPITestCase):
         self.assertEqual(response.data['status'], ApplyOrganization.Status.PASS)
         apply = ApplyOrganization.objects.get(pk=apply_id)
         organization = DataCenter.objects.get(pk=apply.data_center_id)
+        self.assertEqual(organization.name_en, apply.name_en)
+        self.assertEqual(organization.name_en, self.apply_data['name_en'])
         self.assertIsInstance(organization, DataCenter)
 
     @staticmethod
@@ -1008,12 +1013,13 @@ class ApplyOrganizationTests(MyAPITestCase):
         self.assertKeysIn(["count", "next", "previous", "results"], response.data)
         self.assertEqual(response.data["count"], 1)
         self.assertKeysIn(keys=[
-            'id', 'creation_time', 'status', 'user', 'deleted', 'name', 'abbreviation', 'independent_legal_person',
+            'id', 'creation_time', 'status', 'user', 'deleted', 'name', "name_en", 'abbreviation', 'independent_legal_person',
             'country', 'city', 'postal_code', 'address', 'endpoint_vms', 'endpoint_object',
             'endpoint_compute', 'endpoint_monitor', 'desc', 'logo_url', 'certification_url'
         ], container=response.data['results'][0])
         self.assert_is_subdict_of(sub={
-            'status': ApplyOrganization.Status.WAIT, 'deleted': False, 'name': '中国科学院计算机信息网络中心',
+            'status': ApplyOrganization.Status.WAIT, 'deleted': False,
+            'name': '中国科学院计算机信息网络中心', "name_en": "cnic",
             'abbreviation': '中科院网络中心', 'independent_legal_person': True, 'country': '中国', 'city': '北京',
             'postal_code': '100083', 'address': '北京市海淀区', 'endpoint_vms': 'https://vms.cstcloud.cn/',
             'endpoint_object': '', 'endpoint_compute': '', 'endpoint_monitor': '', 'desc': 'test',
@@ -1071,13 +1077,13 @@ class ApplyOrganizationTests(MyAPITestCase):
         self.assertKeysIn(["count", "next", "previous", "results"], response.data)
         self.assertEqual(response.data["count"], 1)
         self.assertKeysIn(keys=[
-            'id', 'creation_time', 'status', 'user', 'deleted', 'name', 'abbreviation', 'independent_legal_person',
+            'id', 'creation_time', 'status', 'user', 'deleted', 'name', "name_en", 'abbreviation', 'independent_legal_person',
             'country', 'city', 'postal_code', 'address', 'endpoint_vms', 'endpoint_object',
             'endpoint_compute', 'endpoint_monitor', 'desc', 'logo_url', 'certification_url'
         ], container=response.data['results'][0])
         self.assert_is_subdict_of(sub={
             'status': ApplyOrganization.Status.CANCEL, 'deleted': True,
-            'name': '中国科学院计算机信息网络中心', 'abbreviation': '中科院网络中心',
+            'name': '中国科学院计算机信息网络中心', 'abbreviation': '中科院网络中心', "name_en": "cnic",
             'independent_legal_person': True, 'country': '中国', 'city': '北京',
             'postal_code': '100083', 'address': '北京市海淀区', 'endpoint_vms': 'https://vms.cstcloud.cn/',
             'endpoint_object': '', 'endpoint_compute': '', 'endpoint_monitor': '', 'desc': 'test',
@@ -1098,6 +1104,7 @@ class ApplyOrganizationTests(MyAPITestCase):
 
 class ApplyVmServiceTests(MyAPITestCase):
     def setUp(self):
+        self.user = None
         set_auth_header(self)
         self.federal_username = 'federal_admin'
         self.federal_password = 'federal_password'
@@ -1107,6 +1114,7 @@ class ApplyVmServiceTests(MyAPITestCase):
         self.apply_data = {
             "organization_id": "string",
             "name": "地球大数据",
+            "name_en": "casearth data",
             "service_type": service.service_type,
             "endpoint_url": service.endpoint_url,
             "region": "1",
@@ -1154,7 +1162,7 @@ class ApplyVmServiceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(keys=[
             'id', 'user', 'creation_time', 'approve_time', 'status', 'organization_id',
-            'longitude', 'latitude', 'name', 'region', 'service_type', 'endpoint_url',
+            'longitude', 'latitude', 'name', 'name_en', 'region', 'service_type', 'endpoint_url',
             'api_version', 'username', 'password', 'project_name', 'project_domain_name',
             'user_domain_name', 'need_vpn', 'vpn_endpoint_url', 'vpn_api_version',
             'vpn_username', 'vpn_password', 'deleted', 'contact_person', 'contact_email',
@@ -1164,7 +1172,7 @@ class ApplyVmServiceTests(MyAPITestCase):
         self.assert_is_subdict_of(sub={
             'status': 'wait',
             'organization_id': self.service.data_center_id,
-            'longitude': 0.0, 'latitude': 0.0, 'name': '地球大数据',
+            'longitude': 0.0, 'latitude': 0.0, 'name': '地球大数据', "name_en": "casearth data",
             'region': '1', 'service_type': self.service.service_type,
             'endpoint_url': self.service.endpoint_url,
             'api_version': 'v3',
@@ -1188,7 +1196,7 @@ class ApplyVmServiceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(keys=[
             'id', 'user', 'creation_time', 'approve_time', 'status', 'organization_id',
-            'longitude', 'latitude', 'name', 'region', 'service_type', 'endpoint_url',
+            'longitude', 'latitude', 'name', 'name_en', 'region', 'service_type', 'endpoint_url',
             'api_version', 'username', 'password', 'project_name', 'project_domain_name',
             'user_domain_name', 'need_vpn', 'vpn_endpoint_url', 'vpn_api_version',
             'vpn_username', 'vpn_password', 'deleted', 'contact_person', 'contact_email',
@@ -1259,7 +1267,7 @@ class ApplyVmServiceTests(MyAPITestCase):
         self.assertKeysIn(['apply', 'ok', 'message'], response.data)
         self.assertKeysIn(keys=[
             'id', 'user', 'creation_time', 'approve_time', 'status', 'organization_id',
-            'longitude', 'latitude', 'name', 'region', 'service_type', 'endpoint_url',
+            'longitude', 'latitude', 'name', 'name_en', 'region', 'service_type', 'endpoint_url',
             'api_version', 'username', 'password', 'project_name', 'project_domain_name',
             'user_domain_name', 'need_vpn', 'vpn_endpoint_url', 'vpn_api_version',
             'vpn_username', 'vpn_password', 'deleted', 'contact_person', 'contact_email',
@@ -1278,7 +1286,9 @@ class ApplyVmServiceTests(MyAPITestCase):
         response = self.client.post(url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['status'], ApplyVmService.Status.PASS)
+
         apply = ApplyVmService.objects.get(pk=response.data['id'])
+        self.assertEqual(apply.name_en, self.apply_data['name_en'])
         service = ServiceConfig.objects.get(pk=apply.service_id)
         self.assertEqual(service.users.filter(id=self.user.id).exists(), True)
 
@@ -1314,7 +1324,7 @@ class ApplyVmServiceTests(MyAPITestCase):
         self.assertEqual(response.data["count"], 1)
         self.assertKeysIn(keys=[
             'id', 'user', 'creation_time', 'approve_time', 'status', 'organization_id',
-            'longitude', 'latitude', 'name', 'region', 'service_type', 'endpoint_url',
+            'longitude', 'latitude', 'name', 'name_en', 'region', 'service_type', 'endpoint_url',
             'api_version', 'username', 'password', 'project_name', 'project_domain_name',
             'user_domain_name', 'need_vpn', 'vpn_endpoint_url', 'vpn_api_version',
             'vpn_username', 'vpn_password', 'deleted', 'contact_person', 'contact_email',
@@ -1323,7 +1333,7 @@ class ApplyVmServiceTests(MyAPITestCase):
         self.assert_is_subdict_of(sub={
             'status': ApplyVmService.Status.WAIT,
             'organization_id': self.service.data_center_id,
-            'longitude': 0.0, 'latitude': 0.0, 'name': '地球大数据',
+            'longitude': 0.0, 'latitude': 0.0, 'name': '地球大数据', "name_en": "casearth data",
             'region': '1', 'service_type': self.service.service_type,
             'endpoint_url': self.service.endpoint_url,
             'api_version': 'v3',
@@ -1405,7 +1415,7 @@ class ApplyVmServiceTests(MyAPITestCase):
         self.assertEqual(response.data["count"], 1)
         self.assertKeysIn(keys=[
             'id', 'user', 'creation_time', 'approve_time', 'status', 'organization_id',
-            'longitude', 'latitude', 'name', 'region', 'service_type', 'endpoint_url',
+            'longitude', 'latitude', 'name', "name_en", 'region', 'service_type', 'endpoint_url',
             'api_version', 'username', 'password', 'project_name', 'project_domain_name',
             'user_domain_name', 'need_vpn', 'vpn_endpoint_url', 'vpn_api_version',
             'vpn_username', 'vpn_password', 'deleted', 'contact_person', 'contact_email',
@@ -1414,7 +1424,7 @@ class ApplyVmServiceTests(MyAPITestCase):
         self.assert_is_subdict_of(sub={
             'status': ApplyVmService.Status.CANCEL,
             'organization_id': self.service.data_center_id,
-            'longitude': 0.0, 'latitude': 0.0, 'name': '地球大数据',
+            'longitude': 0.0, 'latitude': 0.0, 'name': '地球大数据', "name_en": "casearth data",
             'region': '1', 'service_type': self.service.service_type,
             'endpoint_url': self.service.endpoint_url,
             'api_version': 'v3',
@@ -1455,6 +1465,7 @@ class ApplyVmServiceTests(MyAPITestCase):
 
 class VoTests(MyAPITestCase):
     def setUp(self):
+        self.user = None
         set_auth_header(self)
         self.user2_username = 'user2'
         self.user2_password = 'user2password'
