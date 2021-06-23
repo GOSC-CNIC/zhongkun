@@ -1185,3 +1185,64 @@ class VoHandler:
             return Response(data=serializers.VoSerializer(instance=vo).data)
         except Exception as exc:
             return view.exception_response(exc=exceptions.convert_to_error(exc))
+
+    @staticmethod
+    def vo_add_members(view, request, kwargs):
+        vo_id = kwargs.get(view.lookup_field)
+        serializer = view.get_serializer(data=request.data)
+        if not serializer.is_valid(raise_exception=False):
+            msg = serializer_error_msg(serializer.errors)
+            return view.exception_response(exceptions.BadRequest(msg))
+
+        usernames = serializer.validated_data.get('usernames', [])
+        try:
+            success_members, failed_usernames = VoManager().add_members(
+                vo_id=vo_id, usernames=usernames, admin_user=request.user)
+        except Exception as exc:
+            return view.exception_response(exc=exceptions.convert_to_error(exc))
+
+        members = serializers.VoMemberSerializer(success_members, many=True).data
+        return Response(data={'success': members, 'failed': failed_usernames})
+
+    @staticmethod
+    def vo_list_members(view, request, kwargs):
+        vo_id = kwargs.get(view.lookup_field)
+        try:
+            vo, members = VoManager().get_vo_members_queryset(vo_id=vo_id, user=request.user)
+        except Exception as exc:
+            return view.exception_response(exc=exceptions.convert_to_error(exc))
+
+        data = view.get_serializer(members, many=True).data
+        return Response(data={
+            'members': data, 'owner': {'id': vo.owner.id, 'username': vo.owner.username}})
+
+    @staticmethod
+    def vo_remove_members(view, request, kwargs):
+        vo_id = kwargs.get(view.lookup_field)
+        serializer = view.get_serializer(data=request.data)
+        if not serializer.is_valid(raise_exception=False):
+            msg = serializer_error_msg(serializer.errors)
+            return view.exception_response(exceptions.BadRequest(msg))
+
+        usernames = serializer.validated_data.get('usernames', [])
+        try:
+            VoManager().remove_members(vo_id=vo_id, usernames=usernames, admin_user=request.user)
+        except Exception as exc:
+            return view.exception_response(exc=exceptions.convert_to_error(exc))
+
+        return Response(status=204)
+
+    @staticmethod
+    def vo_members_role(view, request, kwargs):
+        member_id = kwargs.get('member_id')
+        role = kwargs.get('role')
+        if not role:
+            raise exceptions.BadRequest(message=_('"role"的值无效'))
+
+        try:
+            member = VoMemberManager().change_member_role(
+                member_id=member_id, role=role, admin_user=request.user)
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        return Response(data=serializers.VoMemberSerializer(member).data)

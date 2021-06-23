@@ -79,7 +79,7 @@ class VoManager:
 
         return queryset
 
-    def add_members(self, vo_id: str, usernames: list, admin_user):
+    def add_members(self, vo_id: str, usernames: list, admin_user) -> (list, list):
         """
         向组添加组成员
 
@@ -87,41 +87,45 @@ class VoManager:
         :param usernames: 要添加的组成员用户名
         :param admin_user: 请求添加操作的用户，需要是组管理员权限
         :return:
-            [{'username': 'xxx', 'message': 'xxx'},]     # 添加失败的用户和失败原因
+            [VoMember(),], [{'username': 'xxx', 'message': 'xxx'},]     # 添加成功用户，失败的用户和失败原因
 
         :raises: Error
         """
         not_found_usernames = [u for u in usernames]
-        vo, _ = self.get_has_manager_perm_vo(vo_id=vo_id, user=admin_user)
+        vo, admin_member = self.get_has_manager_perm_vo(vo_id=vo_id, user=admin_user)
+        if vo.owner.username in usernames:        # 组长，组拥有者
+            raise errors.AccessDenied(message=_('你要添加的用户中不能包含组的拥有者（组长）'))
+
         users = User.objects.filter(username__in=usernames).all()
+
         failed_users = []
-
+        success_members = []
         exists_member = VoMember.objects.filter(vo=vo, user__username__in=usernames).all()
-        exists_user_ids = [m.user.id for m in exists_member]
-        exists_user_ids.append(vo.owner_id)     # 组长，组拥有者
-
+        exists_user_id_member_map = {m.user.id: m for m in exists_member}
         for user in users:
             if user.username in not_found_usernames:
                 not_found_usernames.remove(user.username)   # 移除存在的，剩余的都是未找到的
 
-            if user.id in exists_user_ids:
+            if user.id in exists_user_id_member_map:
+                success_members.append(exists_user_id_member_map[user.id])
                 continue
 
             member = VoMember(user=user, vo=vo, role=VoMember.Role.MEMBER,
                               inviter=admin_user.username, inviter_id=admin_user.id)
             try:
                 member.save()
+                success_members.append(member)
             except Exception as e:
                 failed_users.append({'username': user.username, 'message': str(e)})
 
         for um in not_found_usernames:
             failed_users.append({'username': um, 'message': _('用户名不存在')})
 
-        return failed_users
+        return success_members, failed_users
 
     def remove_members(self, vo_id: str, usernames: list, admin_user):
         """
-        从组移除组成员
+        从组移出组成员
 
         :param vo_id: 组id
         :param usernames: 要移除的组成员用户名
@@ -132,10 +136,13 @@ class VoManager:
         :raises: Error
         """
         vo, admin_member = self.get_has_manager_perm_vo(vo_id=vo_id, user=admin_user)
-        if admin_member.is_leader_role:
+        if vo.owner.username in usernames:        # 组长，组拥有者
+            raise errors.AccessDenied(message=_('你要移出的用户中不能包含组的拥有者（组长）'))
+
+        if admin_member and admin_member.is_leader_role:
             # 组管理员 不能移除 管理员
             if VoMember.objects.filter(vo=vo, role=VoMember.Role.LEADER,
-                                       user__username__in=usernames).exits():
+                                       user__username__in=usernames).exists():
                 raise errors.AccessDenied(message=_('你没有权限移除组管理员'))
 
         try:
@@ -143,18 +150,24 @@ class VoManager:
         except Exception as exc:
             raise errors.Error(message=_('组长移除组员错误,') + str(exc))
 
-    def get_vo_members_queryset(self, vo_id: str):
+    def get_vo_members_queryset(self, vo_id: str, user=None) -> tuple:
         """
         查询指定组的组员
 
-        :return: Queryset()
+        :param vo_id: 组id
+        :param user: 用于权限检查，user必须是组员才有权限查询；默认None不检查权限
+
+        :return: vo, Queryset()
         :raises: Error
         """
         vo = self.get_vo_by_id(vo_id=vo_id)
         if vo is None:
             raise errors.NotFound(message=_('项目组不存在'))
+        if user is not None:
+            if not vo.is_owner(user) and not vo.is_member(user):
+                raise errors.AccessDenied(message='你不属于组，无权限查询组员信息')
 
-        return vo.members.all()
+        return vo, VoMemberManager().get_vo_members_queryset(vo_id)
 
     def create_vo(self, user, name:str, company: str, description: str):
         """
@@ -181,7 +194,7 @@ class VoManager:
         :param description: 新的组描述信息；默认None，忽略
         :raises: Error
         """
-        vo, _ = self.get_has_manager_perm_vo(vo_id=vo_id, user=admin_user)
+        vo, admin_member = self.get_has_manager_perm_vo(vo_id=vo_id, user=admin_user)
         update_fields = []
         if owner is not None:
             if not vo.is_owner(admin_user):
@@ -221,7 +234,7 @@ class VoManager:
 
         :raises: Error
         """
-        vo, _ = self.get_has_manager_perm_vo(vo_id=vo_id, user=admin_user)
+        vo, admin_member = self.get_has_manager_perm_vo(vo_id=vo_id, user=admin_user)
         if not vo.is_owner(admin_user):
             raise errors.AccessDenied(message=_('你不是组拥有者，你去权限删除组'))
 
@@ -242,8 +255,41 @@ class VoMemberManager:
         """
         :return: VoMember() or None
         """
-        return VoMemberManager.model.objects.filter(**filters).first()
+        return VoMemberManager.model.objects.select_related('vo').filter(**filters).first()
 
     @staticmethod
     def get_queryset():
-        return VoManager.model.objects.all()
+        return VoMemberManager.model.objects.all()
+
+    def get_vo_members_queryset(self, vo_id: str):
+        qs = self.get_queryset()
+        return qs.filter(vo=vo_id)
+
+    def change_member_role(self, member_id: str, role: str, admin_user) -> VoMember:
+        """
+        修改组员角色
+
+        * 组拥有者（组长）可以修改任何组员角色；组管理员
+
+        :raises: Error
+        """
+        if role not in VoMember.Role.values:
+            raise errors.InvalidArgument(message=_('The value of "role" is invalid.'))
+
+        member = self.get_member_by_filters(id=member_id)
+        if member is None:
+            raise errors.NotFound(message=_('组员不存在'))
+
+        if not member.vo.is_owner(admin_user):
+            raise errors.AccessDenied(message=_('你不是组的拥有者，无权限修改组员的角色'))
+
+        if member.role == role:
+            return member
+
+        try:
+            member.role = role
+            member.save(update_fields=['role'])
+        except Exception as exc:
+            raise errors.Error.from_error(exc)
+
+        return member

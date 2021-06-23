@@ -36,12 +36,12 @@ class Migration(migrations.Migration):
             name='VoMember',
             fields=[
                 ('id', models.CharField(blank=True, editable=False, max_length=36, primary_key=True, serialize=False, verbose_name='ID')),
-                ('role', models.CharField(choices=[('leader', '组长'), ('member', '组员')], default='member', max_length=16, verbose_name='组角色')),
+                ('role', models.CharField(choices=[('leader', '组管理员'), ('member', '组员')], default='member', max_length=16, verbose_name='组角色')),
                 ('join_time', models.DateTimeField(auto_now_add=True, verbose_name='加入时间')),
                 ('inviter', models.CharField(blank=True, default='', max_length=256, verbose_name='邀请人')),
                 ('inviter_id', models.CharField(blank=True, editable=False, max_length=36, verbose_name='邀请人ID')),
                 ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL, verbose_name='用户')),
-                ('vo', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='vo.virtualorganization', verbose_name='用户')),
+                ('vo', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='vo.virtualorganization', verbose_name='组')),
             ],
             options={
                 'verbose_name': '组成员关系',

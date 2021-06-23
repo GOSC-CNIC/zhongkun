@@ -26,6 +26,7 @@ class VirtualOrganization(UuidModel):
     status = models.CharField(verbose_name=_('状态'), max_length=32,
                               choices=Status.choices, default=Status.ACTIVE)
     deleted = models.BooleanField(verbose_name=_('删除'), default=False)
+    # members_count = models.PositiveIntegerField(verbose_name=_('组员数量'), default=1)
 
     class Meta:
         db_table = 'virtual_organization'
@@ -45,11 +46,11 @@ class VirtualOrganization(UuidModel):
 
 class VoMember(UuidModel):
     class Role(models.TextChoices):
-        LEADER = 'leader', _('组长')
+        LEADER = 'leader', _('组管理员')
         MEMBER = 'member', _('组员')
 
     user = models.ForeignKey(verbose_name=_('用户'), to=User, on_delete=models.CASCADE)
-    vo = models.ForeignKey(verbose_name=_('用户'), to=VirtualOrganization, on_delete=models.CASCADE)
+    vo = models.ForeignKey(verbose_name=_('组'), to=VirtualOrganization, on_delete=models.CASCADE)
     role = models.CharField(verbose_name=_('组角色'), max_length=16, choices=Role.choices,
                             default=Role.MEMBER)
     join_time = models.DateTimeField(verbose_name=_('加入时间'), auto_now_add=True)

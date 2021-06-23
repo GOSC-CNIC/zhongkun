@@ -16,7 +16,7 @@ from service.models import ApplyOrganization, DataCenter, ApplyVmService, Servic
 from applyment.models import ApplyQuota
 from utils.test import get_or_create_user, get_or_create_service, get_or_create_center
 from adapters import outputs
-from vo.models import VirtualOrganization
+from vo.models import VirtualOrganization, VoMember
 
 
 def random_string(length: int = 10):
@@ -1489,6 +1489,25 @@ class VoTests(MyAPITestCase):
 
         return client.get(url)
 
+    @staticmethod
+    def add_members_response(client, vo_id: str, usernames: list):
+        url = reverse('api:vo-vo-add-members', kwargs={'id': vo_id})
+        return client.post(url, data={'usernames': usernames})
+
+    @staticmethod
+    def list_vo_members_response(client, vo_id: str):
+        url = reverse('api:vo-vo-list-members', kwargs={'id': vo_id})
+        return client.get(url)
+
+    @staticmethod
+    def remove_members_response(client, vo_id: str, usernames: list):
+        url = reverse('api:vo-vo-remove-members', kwargs={'id': vo_id})
+        return client.post(url, data={'usernames': usernames})
+
+    @staticmethod
+    def change_member_role_response(client, member_id: str, role: str):
+        url = reverse('api:vo-vo-members-role', kwargs={'member_id': member_id, 'role':role})
+        return client.post(url)
 
     def test_create_update_delete(self):
         data = {
@@ -1560,6 +1579,176 @@ class VoTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 1)
 
+    def test_owner_members_action(self):
+        """
+        组长管理组测试
+        """
+        usernames = ['user-test1', 'user-test2']
+        get_or_create_user(username=usernames[0], password='password')
+        get_or_create_user(username=usernames[1], password='password')
 
+        owner = self.user
+        data = {
+            'name': 'test vo',
+            'company': 'cnic',
+            'description': '测试'
+        }
+        response = self.create_vo_response(client=self.client, name=data['name'],
+                                           company=data['company'], description=data['description'])
+        self.assertEqual(response.status_code, 200)
+        vo_id = response.data['id']
 
+        # add members
+        response = self.add_members_response(client=self.client, vo_id=vo_id,
+                                             usernames=usernames + [owner.username])
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+        response = self.add_members_response(client=self.client, vo_id=vo_id,
+                                             usernames=usernames + ['notfound'])
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['success', 'failed'], response.data)
+        self.assertIsInstance(response.data['success'], list)
+        self.assertEqual(len(response.data['success']), 2)
+        self.assertKeysIn(['id', 'user', 'role', 'join_time', 'inviter'], response.data['success'][0])
+        self.assertIn(response.data['success'][0]['user']['username'], usernames)
+        self.assertEqual(response.data['success'][0]['role'], VoMember.Role.MEMBER)
+        self.assertEqual(response.data['success'][0]['inviter'], owner.username)
 
+        self.assertIsInstance(response.data['failed'], list)
+        self.assertEqual(len(response.data['failed']), 1)
+        self.assertEqual(response.data['failed'][0]['username'], 'notfound')
+
+        # list members
+        response = self.list_vo_members_response(client=self.client, vo_id=vo_id)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['members', 'owner'], response.data)
+        self.assertIsInstance(response.data['members'], list)
+        self.assertEqual(len(response.data['members']), 2)
+        self.assertKeysIn(['id', 'user', 'role', 'join_time', 'inviter'], response.data['members'][0])
+        self.assertEqual(response.data['owner'], {'id': owner.id, 'username': owner.username})
+
+        # remove members
+        response = self.remove_members_response(client=self.client, vo_id=vo_id,
+                                                usernames=usernames[0:1])
+        self.assertEqual(response.status_code, 204)
+
+        # list members
+        response = self.list_vo_members_response(client=self.client, vo_id=vo_id)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['members', 'owner'], response.data)
+        self.assertEqual(len(response.data['members']), 1)
+        self.assertKeysIn(['id', 'user', 'role', 'join_time', 'inviter'], response.data['members'][0])
+        self.assertEqual(response.data['members'][0]['user']['username'], usernames[1])
+        self.assert_is_subdict_of(sub={'role': VoMember.Role.MEMBER, 'inviter': owner.username},
+                                  d=response.data['members'][0])
+
+    def test_role_members_actions(self):
+        """
+        组角色管理组测试
+        """
+        usernames = ['user-test1', 'user-test2']
+        get_or_create_user(username=usernames[0], password='password')
+        get_or_create_user(username=usernames[1], password='password')
+
+        owner = self.user
+        data = {
+            'name': 'test vo',
+            'company': 'cnic',
+            'description': '测试'
+        }
+        response = self.create_vo_response(client=self.client, name=data['name'],
+                                           company=data['company'], description=data['description'])
+        self.assertEqual(response.status_code, 200)
+        vo_id = response.data['id']
+
+        # add member user2
+        response = self.add_members_response(client=self.client, vo_id=vo_id,
+                                             usernames=[self.user2.username])
+        self.assertEqual(response.status_code, 200)
+        user2_member_id = response.data['success'][0]['id']
+
+        # add member test1
+        response = self.add_members_response(client=self.client, vo_id=vo_id,
+                                             usernames=usernames[0:1])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['success']), 1)
+        test1_member_id = response.data['success'][0]['id']
+
+        # member role no permission add member
+        # login user2
+        self.client.logout()
+        self.client.force_login(self.user2)
+        response = self.add_members_response(client=self.client, vo_id=vo_id,
+                                             usernames=usernames)
+        self.assertErrorResponse(response=response, status_code=403, code='AccessDenied')
+
+        # user2 no permission set leader role
+        response = self.change_member_role_response(client=self.client, member_id=user2_member_id,
+                                                    role=VoMember.Role.LEADER)
+        self.assertErrorResponse(response=response, status_code=403, code='AccessDenied')
+        # login owner
+        self.client.logout()
+        self.client.force_login(owner)
+        # owner set user2 leader role
+        response = self.change_member_role_response(client=self.client, member_id=user2_member_id,
+                                                    role=VoMember.Role.LEADER)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['id', 'user', 'role', 'join_time', 'inviter'], response.data)
+        self.assertEqual(response.data['role'], VoMember.Role.LEADER)
+
+        # owner set test1 role leader
+        response = self.change_member_role_response(client=self.client, member_id=test1_member_id,
+                                                    role=VoMember.Role.LEADER)
+        self.assertEqual(response.status_code, 200)
+
+        # login leader user
+        self.client.logout()
+        self.client.force_login(self.user2)
+
+        # leader role add member test2
+        response = self.add_members_response(client=self.client, vo_id=vo_id,
+                                             usernames=usernames[1:2])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['success']), 1)
+        self.assertEqual(len(response.data['failed']), 0)
+
+        # list members
+        response = self.list_vo_members_response(client=self.client, vo_id=vo_id)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['members', 'owner'], response.data)
+        self.assertEqual(len(response.data['members']), 3)
+        member_usernames = usernames + [self.user2.username]
+        for m in response.data['members']:
+            un = m['user']['username']
+            self.assertIn(un, member_usernames)
+            member_usernames.remove(un)
+        self.assertFalse(member_usernames)
+
+        # leader role no permission remove leader role member test1
+        response = self.remove_members_response(client=self.client, vo_id=vo_id,
+                                                usernames=usernames[0:1])
+        self.assertErrorResponse(response=response, status_code=403, code='AccessDenied')
+
+        # leader role remove member test2
+        response = self.remove_members_response(client=self.client, vo_id=vo_id,
+                                                usernames=usernames[1:2])
+        self.assertEqual(response.status_code, 204)
+
+        # owner remove leader role member test1
+        # login owner
+        self.client.logout()
+        self.client.force_login(owner)
+        response = self.remove_members_response(client=self.client, vo_id=vo_id,
+                                                usernames=usernames[0:1])
+        self.assertEqual(response.status_code, 204)
+
+        # list members
+        response = self.list_vo_members_response(client=self.client, vo_id=vo_id)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['members', 'owner'], response.data)
+        self.assertEqual(len(response.data['members']), 1)
+        self.assertEqual(response.data['members'][0]['user']['username'], self.user2.username)
+
+        # owner remove owner
+        response = self.remove_members_response(client=self.client, vo_id=vo_id,
+                                                usernames=[owner.username])
+        self.assertErrorResponse(response=response, status_code=403, code='AccessDenied')

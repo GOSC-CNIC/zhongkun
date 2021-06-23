@@ -57,7 +57,7 @@ def exception_handler(exc, context):
 
         exc = exceptions.Error(message=str(data), status_code=exc.status_code, code=exc.default_code)
     else:
-        return None
+        exc = exceptions.convert_to_error(exc)
 
     set_rollback()
     return Response(exc.err_data(), status=exc.status_code)
