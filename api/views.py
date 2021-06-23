@@ -1424,6 +1424,7 @@ class DataCenterViewSet(CustomGenericViewSet):
                   "id": "9c70cbe2-690c-11eb-a4b7-c8009fe2eb10",
                   "name": "网络中心",
                   "name_en": "string",
+                  "abbreviation": "xxx"
                   "endpoint_vms": http://xxx/,
                   "endpoint_object": http://xxx/,
                   "endpoint_compute": http://xxx/,

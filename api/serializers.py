@@ -227,6 +227,7 @@ class DataCenterSerializer(serializers.Serializer):
     id = serializers.CharField()
     name = serializers.CharField()
     name_en = serializers.CharField()
+    abbreviation = serializers.CharField()
     endpoint_vms = serializers.CharField()
     endpoint_object = serializers.CharField()
     endpoint_compute = serializers.CharField()
