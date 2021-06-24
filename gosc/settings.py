@@ -51,7 +51,6 @@ INSTALLED_APPS = [
     'vpn',
     'service',
     'vo',
-    'applyment',
     'storage',
     'docs',
 ]

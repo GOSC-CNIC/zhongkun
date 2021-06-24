@@ -12,8 +12,8 @@ from rest_framework.test import APITestCase
 
 from servers.models import Flavor, Server
 from service.managers import UserQuotaManager
-from service.models import ApplyOrganization, DataCenter, ApplyVmService, ServiceConfig
-from applyment.models import ApplyQuota
+from service.models import (
+    ApplyOrganization, DataCenter, ApplyVmService, ServiceConfig, ApplyQuota)
 from utils.test import get_or_create_user, get_or_create_service, get_or_create_center
 from adapters import outputs
 from vo.models import VirtualOrganization, VoMember

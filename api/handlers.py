@@ -6,10 +6,12 @@ from django.urls import reverse
 from rest_framework.response import Response
 
 from servers.models import Server
-from service.managers import (UserQuotaManager, VmServiceApplyManager, OrganizationApplyManager,
-                              ServicePrivateQuotaManager, ServiceShareQuotaManager, ServiceManager)
-from applyment.models import ApplyQuota
-from applyment.managers import ApplyQuotaManager
+from service.managers import (
+    UserQuotaManager, VmServiceApplyManager, OrganizationApplyManager,
+    ServicePrivateQuotaManager, ServiceShareQuotaManager, ServiceManager,
+    ApplyQuotaManager
+)
+from service.models import ApplyQuota
 from vo.managers import VoManager, VoMemberManager
 from utils import storagers
 from utils import time

@@ -21,7 +21,7 @@ from drf_yasg import openapi
 from servers.models import Server, Flavor, ServerArchive
 from service.managers import ServiceManager
 from service.models import DataCenter, ApplyOrganization, ApplyVmService
-from applyment.models import ApplyQuota
+from service.models import ApplyQuota
 from adapters import inputs, outputs
 from core.quota import QuotaAPI
 from core import request as core_request

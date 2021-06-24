@@ -4,8 +4,10 @@ from django.contrib import messages
 from django.db import transaction
 
 from servers.models import Server, ServerArchive
-from .models import (ServiceConfig, DataCenter, ServicePrivateQuota,
-                     ServiceShareQuota, UserQuota, ApplyVmService, ApplyOrganization)
+from .models import (
+    ServiceConfig, DataCenter, ServicePrivateQuota, ApplyQuota,
+    ServiceShareQuota, UserQuota, ApplyVmService, ApplyOrganization
+)
 
 
 @admin.register(ServiceConfig)
@@ -244,3 +246,10 @@ class ApplyServiceAdmin(admin.ModelAdmin):
 class ApplyOrganizationAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
     list_display = ('id', 'name', 'name_en', 'abbreviation', 'status', 'user', 'deleted', 'creation_time', 'desc')
+
+
+@admin.register(ApplyQuota)
+class ApplyQuotaAdmin(admin.ModelAdmin):
+    list_display_links = ('id',)
+    list_display = ('id', 'vcpu', 'ram', 'disk_size', 'public_ip', 'private_ip', 'status', 'user', 'creation_time', 'approve_time')
+
