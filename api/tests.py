@@ -13,7 +13,8 @@ from rest_framework.test import APITestCase
 from servers.models import Flavor, Server
 from service.managers import UserQuotaManager
 from service.models import (
-    ApplyOrganization, DataCenter, ApplyVmService, ServiceConfig, ApplyQuota)
+    ApplyOrganization, DataCenter, ApplyVmService, ServiceConfig, ApplyQuota, UserQuota
+)
 from utils.test import get_or_create_user, get_or_create_service, get_or_create_center
 from adapters import outputs
 from vo.models import VirtualOrganization, VoMember
@@ -453,9 +454,9 @@ class UserQuotaApplyTests(MyAPITestCase):
         self.user = get_or_create_user()
         self.service = get_or_create_service()
 
-    def create_apply(self):
+    def create_apply(self, vo_id=None):
         url = reverse('api:apply-quota-list')
-        response = self.client.post(url, data={
+        data = {
             'service_id': self.service.id,
             'private_ip': self.old_private_ip,
             'public_ip': self.old_public_ip,
@@ -466,7 +467,11 @@ class UserQuotaApplyTests(MyAPITestCase):
             'company': 'cnic',
             'contact': '666',
             'purpose': 'test'
-        })
+        }
+        if vo_id:
+            data['vo_id'] = vo_id
+
+        response = self.client.post(url, data=data)
         return response
 
     def update_apply(self, apply_id):
@@ -504,16 +509,19 @@ class UserQuotaApplyTests(MyAPITestCase):
         url = reverse('api:apply-quota-detail', kwargs={'apply_id': apply_id})
         return self.client.delete(url)
 
-    def apply_response_data_keys_assert(self, data):
-        self.assertKeysIn(["id", "private_ip", "public_ip", "vcpu",
-                           "ram", "disk_size", "duration_days", "company",
-                           "contact", "purpose", "creation_time", "status",
-                           "service"], data)
+    def apply_response_data_keys_assert(self, data, is_detail=False):
+        keys = ["id", "private_ip", "public_ip", "vcpu",
+                "ram", "disk_size", "duration_days", "company",
+                "contact", "purpose", "creation_time", "status",
+                "service", 'deleted', 'classification']
+        if is_detail:
+            keys += ['vo', 'user', 'approve_user', 'approve_time']
+        self.assertKeysIn(keys, data)
 
     def test_create_delete_apply(self):
         response = self.create_apply()
         self.assertEqual(response.status_code, 201)
-        self.apply_response_data_keys_assert(response.data)
+        self.apply_response_data_keys_assert(response.data, is_detail=True)
         apply_id = response.data['id']
 
         response = self.delete_apply(apply_id)
@@ -531,39 +539,35 @@ class UserQuotaApplyTests(MyAPITestCase):
     def test_create_modify_cancel_apply(self):
         response = self.create_apply()
         self.assertEqual(response.status_code, 201)
-        self.apply_response_data_keys_assert(response.data)
+        self.apply_response_data_keys_assert(response.data, is_detail=True)
         self.assertEqual(response.data['service']['id'], self.service.id)
-        self.assertEqual(response.data['private_ip'], self.old_private_ip)
-        self.assertEqual(response.data['public_ip'], self.old_public_ip)
-        self.assertEqual(response.data['vcpu'], self.old_vcpu)
-        self.assertEqual(response.data['ram'], self.old_ram)
-        self.assertEqual(response.data['disk_size'], self.old_disk_size)
-        self.assertEqual(response.data['duration_days'], self.old_duration_days)
-        self.assertEqual(response.data['company'], 'cnic')
-        self.assertEqual(response.data['contact'], '666')
-        self.assertEqual(response.data['purpose'], 'test')
+        self.assert_is_subdict_of(sub={
+            'private_ip': self.old_private_ip, 'public_ip': self.old_public_ip,
+            'vcpu': self.old_vcpu, 'ram': self.old_ram,
+            'disk_size': self.old_disk_size, 'duration_days': self.old_duration_days,
+            'company': 'cnic', 'contact': '666', 'purpose': 'test', "deleted": False,
+            'status': ApplyQuota.STATUS_WAIT, 'classification': ApplyQuota.Classification.PERSONAL
+        }, d=response.data)
 
         apply_id = response.data['id']
         response = self.update_apply(apply_id)
         self.assertEqual(response.status_code, 200)
         self.apply_response_data_keys_assert(response.data)
         self.assertEqual(response.data['service']['id'], self.service.id)
-        self.assertEqual(response.data['private_ip'], self.new_private_ip)
-        self.assertEqual(response.data['public_ip'], self.new_public_ip)
-        self.assertEqual(response.data['vcpu'], self.new_vcpu)
-        self.assertEqual(response.data['ram'], self.new_ram)
-        self.assertEqual(response.data['disk_size'], self.new_disk_size)
-        self.assertEqual(response.data['duration_days'], self.new_duration_days)
-        self.assertEqual(response.data['company'], 'cnic')
-        self.assertEqual(response.data['contact'], '666')
-        self.assertEqual(response.data['purpose'], 'test')
-        self.assertEqual(response.data['status'], 'wait')
+        self.assert_is_subdict_of(sub={
+            'private_ip': self.new_private_ip, 'public_ip': self.new_public_ip,
+            'vcpu': self.new_vcpu, 'ram': self.new_ram,
+            'disk_size': self.new_disk_size, 'duration_days': self.new_duration_days,
+            'company': 'cnic', 'contact': '666', 'purpose': 'test', "deleted": False,
+            'status': ApplyQuota.STATUS_WAIT, 'classification': ApplyQuota.Classification.PERSONAL
+        }, d=response.data)
 
         response = self.pending_apply(apply_id)
         self.assertEqual(response.status_code, 403)
 
         response = self.cancel_apply(apply_id)
         self.assertEqual(response.status_code, 200)
+        self.apply_response_data_keys_assert(response.data)
 
         url = reverse('api:apply-quota-list')
         response = self.client.get(url)
@@ -589,6 +593,7 @@ class UserQuotaApplyTests(MyAPITestCase):
 
         response = self.pass_apply(apply_id)
         self.assertEqual(response.status_code, 200)
+        self.apply_response_data_keys_assert(response.data)
 
         response = self.update_apply(apply_id)
         self.assertEqual(response.status_code, 409)     # 审批后不可修改
@@ -603,6 +608,8 @@ class UserQuotaApplyTests(MyAPITestCase):
         self.assertEqual(quota.ram_total, self.old_ram)
         self.assertEqual(quota.disk_size_total, self.old_disk_size)
         self.assertEqual(quota.duration_days, self.old_duration_days)
+        self.assertEqual(quota.classification, UserQuota.Classification.PERSONAL)
+        self.assertEqual(quota.vo, None)
 
     def test_perms_reject_apply(self):
         response = self.create_apply()
@@ -759,6 +766,121 @@ class UserQuotaApplyTests(MyAPITestCase):
         self.assertEqual(response.data['results'][0]['status'], 'wait')
 
         self.list_apply_query_params(base_url=base_url, apply_id=apply_id)
+
+    def test_vo_apply_create_update_cancel_delete(self):
+        vo_data = {
+            'name': 'test vo',
+            'company': 'cnic',
+            'description': '测试'
+        }
+        response = VoTests.create_vo_response(client=self.client, name=vo_data['name'],
+                                           company=vo_data['company'], description=vo_data['description'])
+        self.assertEqual(response.status_code, 200)
+        vo_id = response.data['id']
+
+        response = self.create_apply(vo_id='notfound')
+        self.assertErrorResponse(status_code=404, code='NotFound', response=response)
+
+        # create vo quota apply
+        response = self.create_apply(vo_id=vo_id)
+        self.apply_response_data_keys_assert(data=response.data, is_detail=True)
+        self.assertEqual(response.data['service']['id'], self.service.id)
+        self.assert_is_subdict_of(sub={
+            'private_ip': self.old_private_ip, 'public_ip': self.old_public_ip,
+            'vcpu': self.old_vcpu, 'ram': self.old_ram,
+            'disk_size': self.old_disk_size, 'duration_days': self.old_duration_days,
+            'company': 'cnic', 'contact': '666', 'purpose': 'test', "deleted": False,
+            'status': ApplyQuota.STATUS_WAIT, 'classification': ApplyQuota.Classification.VO
+        }, d=response.data)
+        self.assertKeysIn(['id', 'name', 'company', 'description', 'creation_time',
+                           'owner', 'status'], response.data['vo'])
+        self.assert_is_subdict_of(sub=vo_data, d=response.data['vo'])
+        apply_id = response.data['id']
+
+        # update vo quota apply
+        response = self.update_apply(apply_id=apply_id)
+        self.assertEqual(response.status_code, 200)
+        self.apply_response_data_keys_assert(response.data)
+        self.assertEqual(response.data['service']['id'], self.service.id)
+        self.assert_is_subdict_of(sub={
+            'private_ip': self.new_private_ip, 'public_ip': self.new_public_ip,
+            'vcpu': self.new_vcpu, 'ram': self.new_ram,
+            'disk_size': self.new_disk_size, 'duration_days': self.new_duration_days,
+            'company': 'cnic', 'contact': '666', 'purpose': 'test', "deleted": False,
+            'status': ApplyQuota.STATUS_WAIT, 'classification': ApplyQuota.Classification.VO
+        }, d=response.data)
+
+        # cancel vo apply
+        response = self.cancel_apply(apply_id=apply_id)
+        self.assertEqual(response.status_code, 200)
+        self.apply_response_data_keys_assert(response.data)
+        self.assertEqual(response.data['classification'], ApplyQuota.Classification.VO)
+        self.assertEqual(response.data['status'], ApplyQuota.STATUS_CANCEL)
+
+        # -------delete vo apply-------
+        # vo add member
+        vo_user = get_or_create_user(username='admin_member', password='password')
+        response = VoTests.add_members_response(client=self.client, vo_id=vo_id,
+                                                usernames=[vo_user.username])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['success'][0]['user']['username'], vo_user.username)
+        self.assertEqual(response.data['success'][0]['role'], VoMember.Role.MEMBER)
+        member_id = response.data['success'][0]['id']
+        # vo member no permission delete vo apply
+        self.client.logout()
+        self.client.force_login(vo_user)
+        response = self.delete_apply(apply_id=apply_id)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # set vo member role
+        self.client.logout()
+        self.client.force_login(self.user)
+        response = VoTests.change_member_role_response(client=self.client, member_id=member_id,
+                                                role=VoMember.Role.LEADER)
+        self.assertEqual(response.status_code, 200)
+
+        # vo leader member delete vo apply
+        self.client.logout()
+        self.client.force_login(vo_user)
+        response = self.delete_apply(apply_id=apply_id)
+        self.assertEqual(response.status_code, 204)
+
+    def test_vo_apply_create_pass(self):
+        vo_data = {
+            'name': 'test vo',
+            'company': 'cnic',
+            'description': '测试'
+        }
+        response = VoTests.create_vo_response(client=self.client, name=vo_data['name'],
+                                           company=vo_data['company'], description=vo_data['description'])
+        self.assertEqual(response.status_code, 200)
+        vo_id = response.data['id']
+        # create vo quota apply
+        response = self.create_apply(vo_id=vo_id)
+        self.assertEqual(response.status_code, 201)
+        apply_id = response.data['id']
+
+        # pending apply
+        self.service.users.add(self.user)  # 加管理权限
+        response = self.pending_apply(apply_id)
+        self.assertEqual(response.status_code, 200)
+        self.apply_response_data_keys_assert(response.data)
+
+        # pass apply
+        response = self.pass_apply(apply_id)
+        self.assertEqual(response.status_code, 200)
+        apply = ApplyQuota.objects.get(pk=apply_id)
+        self.assertEqual(apply.status, apply.STATUS_PASS)
+        quota = apply.user_quota
+        self.assertEqual(quota.classification, UserQuota.Classification.VO)
+        self.assertIsInstance(quota.vo, VirtualOrganization)
+        self.assertEqual(quota.vo.id, vo_id)
+        self.assertEqual(quota.private_ip_total, self.old_private_ip)
+        self.assertEqual(quota.public_ip_total, self.old_public_ip)
+        self.assertEqual(quota.vcpu_total, self.old_vcpu)
+        self.assertEqual(quota.ram_total, self.old_ram)
+        self.assertEqual(quota.disk_size_total, self.old_disk_size)
+        self.assertEqual(quota.duration_days, self.old_duration_days)
 
 
 class UserTests(MyAPITestCase):

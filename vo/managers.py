@@ -18,6 +18,29 @@ class VoManager:
         """
         return VoManager.model.objects.select_related('owner').filter(id=vo_id, deleted=False).first()
 
+    @staticmethod
+    def check_manager_perm(vo, user) -> VoMember or None:
+        """
+        检测用户是否有vo组的管理权限
+
+        :return:
+            None        # 用户是vo组的拥有者
+            VoMember()  # 用户是vo组的管理员
+            raise Error # 用户是vo组的普通组员，或者用户不属于vo组
+        :raises: Error
+        """
+        if vo.owner_id == user.id:      # 组长
+            return None
+
+        member = VoMemberManager.get_member_by_filters(vo=vo, user=user)
+        if member is None:
+            raise errors.AccessDenied(message=_('你不属于此项目组，没有访问权限'))
+
+        if member.is_leader_role:
+            return member
+
+        raise errors.AccessDenied(message=_('你不是组管理员，没有组管理权限'))
+
     def get_has_manager_perm_vo(self, vo_id: str, user) -> (VirtualOrganization, VoMember):
         """
         查询用户有管理员权限的vo
@@ -34,18 +57,8 @@ class VoManager:
         if vo is None:
             raise errors.NotFound(message=_('项目组不存在'))
 
-        if vo.owner_id == user.id:      # 组长
-            return vo, None
-
-        member = VoMemberManager.get_member_by_filters(vo=vo, user=user)
-        if member is None:
-            raise errors.AccessDenied(message=_('你不属于此项目组，没有访问权限'))
-
-        if member.is_leader_role:
-            return vo, member
-
-        raise errors.AccessDenied(message=_('你不是组管理员，没有组管理权限'))
-
+        member = self.check_manager_perm(vo=vo, user=user)
+        return vo, member
 
     @staticmethod
     def get_queryset():

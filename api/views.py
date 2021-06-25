@@ -1556,7 +1556,7 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
     ]
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('列举用户资源配额申请'),
+        operation_summary=gettext_lazy('列举用户个人资源配额申请'),
         manual_parameters=list_manual_parameters,
         responses={
             status.HTTP_200_OK: ''
@@ -1564,7 +1564,7 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
     )
     def list(self, request, *args, **kwargs):
         """
-        列举用户资源配额申请
+        列举用户个人资源配额申请
 
             Http Code: 状态码200，返回数据：
             {
@@ -1589,7 +1589,8 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
                     "id": "2",
                     "name": "怀柔204机房"
                   },
-                  "deleted": false
+                  "deleted": false,
+                  "classification": "personal"  # vo：vo组配额申请；personal：用户个人配额申请
                 }
               ]
             }
@@ -1640,7 +1641,8 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
                     "id": "2",
                     "name": "怀柔204机房"
                   },
-                  "deleted": false
+                  "deleted": false,
+                  "classification": "vo"    # vo：vo组配额申请；personal：用户个人配额申请
                 }
               ]
             }
@@ -1657,34 +1659,53 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
             view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('提交用户资源配额申请'),
+        operation_summary=gettext_lazy('提交用户个人或vo组资源配额申请'),
         responses={
             status.HTTP_200_OK: ''
         }
     )
     def create(self, request, *args, **kwargs):
         """
-        提交用户资源配额申请
+        提交用户个人或vo组资源配额申请
 
             Http Code: 状态码201，返回数据：
             {
-              "id": "c41dcafe-9388-11eb-b2d3-c8009fe2eb10",
               "private_ip": 0,
               "public_ip": 0,
               "vcpu": 0,
-              "ram": 0,         # Mb
+              "ram": 0,
               "disk_size": 0,
-              "duration_days": 1,
+              "duration_days": 10,
               "company": "string",
               "contact": "string",
               "purpose": "string",
-              "creation_time": "2021-04-02T07:55:18.026082Z",
+              "id": "2d5633c4-d562-11eb-9618-c8009fe2eb10",
+              "creation_time": "2021-06-25T03:05:20.917539Z",
               "status": "wait",
               "service": {
                 "id": "2",
                 "name": "怀柔204机房"
               },
-              "deleted": false
+              "deleted": false,
+              "user": {
+                "id": "1",
+                "name": "shun"
+              },
+              "approve_user": null,
+              "approve_time": null,
+              "classification": "vo",       # vo：vo组配额申请；personal：用户个人配额申请
+              "vo": {                       # "classification"=="vo"时存在；"classification"=="personal"时为null
+                "id": "3d7cd5fc-d236-11eb-9da9-c8009fe2eb10",
+                "name": "项目组1",
+                "company": "网络中心",
+                "description": "的是",
+                "creation_time": "2021-06-21T02:13:16.663967Z",
+                "owner": {
+                  "id": "1",
+                  "username": "shun"
+                },
+                "status": "active"
+              }
             }
         """
         return handlers.ApplyUserQuotaHandler.create_apply(
@@ -1698,20 +1719,21 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
     )
     def destroy(self, request, *args, **kwargs):
         """
-        删除配额申请记录
+        删除个人配额申请，或者vo组管理员删除vo组配额申请
         """
         return handlers.ApplyUserQuotaHandler.delete_apply(
             view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('修改用户资源配额申请'),
+        operation_summary=gettext_lazy('修改资源配额申请'),
         responses={
             status.HTTP_200_OK: ''
         }
     )
     def partial_update(self, request, *args, **kwargs):
         """
-        修改配额申请
+        修改资源配额申请, 只允许申请者修改待审批（wait）状态的个人的申请，
+        或者vo组管理员修改待审批（wait）状态的vo组配额申请
 
             Http Code: 状态码200:
             {
@@ -1731,14 +1753,15 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
                 "id": "2",
                 "name": "怀柔204机房"
               },
-              "deleted": false
+              "deleted": false,
+              "classification": "vo",       # vo：vo组配额申请；personal：用户个人配额申请
             }
         """
         return handlers.ApplyUserQuotaHandler.modify_apply(
             view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('挂起用户资源配额申请(审批中)'),
+        operation_summary=gettext_lazy('挂起资源配额申请(审批中)'),
         request_body=no_body,
         responses={
             status.HTTP_200_OK: ''
@@ -1767,14 +1790,15 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
                 "id": "2",
                 "name": "怀柔204机房"
               },
-              "deleted": false
+              "deleted": false,
+              "classification": "vo",       # vo：vo组配额申请；personal：用户个人配额申请
             }
         """
         return handlers.ApplyUserQuotaHandler.pending_apply(
             view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('取消用户资源配额申请'),
+        operation_summary=gettext_lazy('取消资源配额申请'),
         request_body=no_body,
         responses={
             status.HTTP_200_OK: ''
@@ -1783,7 +1807,8 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
     @action(methods=['post'], detail=True, url_path='cancel', url_name='cancel_apply')
     def cancel_apply(self, request, *args, **kwargs):
         """
-        取消配额申请
+        取消配额申请，只允许申请者取消待审批（wait）状态的申请
+        或者vo组管理员取消待审批（wait）状态的vo组配额申请
 
             Http Code: 状态码200:
             {
@@ -1803,14 +1828,15 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
                 "id": "2",
                 "name": "怀柔204机房"
               },
-              "deleted": false
+              "deleted": false,
+              "classification": "vo",       # vo：vo组配额申请；personal：用户个人配额申请
             }
         """
         return handlers.ApplyUserQuotaHandler.cancel_apply(
             view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('拒绝用户资源配额申请'),
+        operation_summary=gettext_lazy('拒绝资源配额申请'),
         request_body=no_body,
         responses={
             status.HTTP_200_OK: ''
@@ -1839,14 +1865,15 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
                 "id": "2",
                 "name": "怀柔204机房"
               },
-              "deleted": false
+              "deleted": false,
+              "classification": "vo",       # vo：vo组配额申请；personal：用户个人配额申请
             }
         """
         return handlers.ApplyUserQuotaHandler.reject_apply(
             view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('通过用户资源配额申请'),
+        operation_summary=gettext_lazy('通过资源配额申请'),
         request_body=no_body,
         responses={
             status.HTTP_200_OK: ''
@@ -1875,7 +1902,8 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
                 "id": "2",
                 "name": "怀柔204机房"
               },
-              "deleted": false
+              "deleted": false,
+              "classification": "vo",       # vo：vo组配额申请；personal：用户个人配额申请
             }
         """
         return handlers.ApplyUserQuotaHandler.pass_apply(

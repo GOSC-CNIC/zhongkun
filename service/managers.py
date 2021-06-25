@@ -1508,14 +1508,15 @@ class ApplyQuotaManager:
     def filter_user_apply_queryset(self, user, service_id: str = None, deleted: bool = None,
                                    status: list = None):
         """
-        过滤用户申请查询集
+        过滤用户个人的申请查询集
 
         :param user: 用户对象
         :param service_id: 服务id
         :param deleted: 删除状态筛选，默认不筛选，True(已删除申请记录)，False(未删除申请记录)
         :param status: 过滤指定状态的申请记录
         """
-        queryset = self.get_apply_queryset().filter(user=user)
+        queryset = self.get_apply_queryset().select_related('service', 'user').filter(
+            user=user, classification=ApplyQuota.Classification.PERSONAL)
         return self.filter_queryset(queryset=queryset, service_id=service_id,
                                     deleted=deleted, status=status)
 
@@ -1534,6 +1535,21 @@ class ApplyQuotaManager:
         else:
             queryset = self.get_apply_queryset()
 
+        return self.filter_queryset(queryset=queryset, service_id=service_id,
+                                    deleted=deleted, status=status)
+
+    def filter_vo_apply_queryset(self, vo, service_id: str = None, deleted: bool = None,
+                                   status: list = None):
+        """
+        过滤vo组的申请查询集
+
+        :param vo: vo组对象
+        :param service_id: 服务id
+        :param deleted: 删除状态筛选，默认不筛选，True(已删除申请记录)，False(未删除申请记录)
+        :param status: 过滤指定状态的申请记录
+        """
+        queryset = self.get_apply_queryset().filter(
+            vo=vo, classification=ApplyQuota.Classification.VO)
         return self.filter_queryset(queryset=queryset, service_id=service_id,
                                     deleted=deleted, status=status)
 

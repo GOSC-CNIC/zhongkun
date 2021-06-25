@@ -254,6 +254,10 @@ class UserQuota(UuidModel):
         (TAG_PROBATION, _('试用配额'))
     )
 
+    class Classification(models.TextChoices):
+        PERSONAL = 'personal', _('个人的')
+        VO = 'vo', _('VO组的')
+
     tag = models.SmallIntegerField(verbose_name=_('配额类型'), choices=CHOICES_TAG, default=TAG_BASE)
     user = models.ForeignKey(to=User, null=True, on_delete=models.SET_NULL, default=None,
                              related_name='user_quota', verbose_name=_('用户'))
@@ -278,6 +282,9 @@ class UserQuota(UuidModel):
     deleted = models.BooleanField(verbose_name=_('删除'), default=False)
     duration_days = models.IntegerField(verbose_name=_('资源使用时长'), blank=True, default=365,
                                         help_text=_('使用此配额创建的资源的有效使用时长'))
+    classification = models.CharField(verbose_name=_('资源配额归属类型'), max_length=16,
+                                      choices=Classification.choices, default=Classification.PERSONAL,
+                                      help_text=_('标识配额属于申请者个人的，还是vo组的'))
 
     class Meta:
         db_table = 'user_quota'
@@ -616,6 +623,10 @@ class ApplyQuota(UuidModel):
     )
     LIST_STATUS = [STATUS_WAIT, STATUS_PENDING, STATUS_PASS, STATUS_REJECT, STATUS_CANCEL]
 
+    class Classification(models.TextChoices):
+        PERSONAL = 'personal', _('个人的')
+        VO = 'vo', _('VO组的')
+
     service = models.ForeignKey(verbose_name=_('服务'), to=ServiceConfig, default='',
                                 on_delete=models.DO_NOTHING, related_name='service_apply_quota_set')
     user = models.ForeignKey(verbose_name=_('申请用户'), to=User, null=True,
@@ -641,6 +652,11 @@ class ApplyQuota(UuidModel):
                                       default=None, verbose_name=_('用户资源配额'),
                                       help_text=_('资源配额申请审批通过后生成的对应的用户资源配额'))
     deleted = models.BooleanField(verbose_name=_('删除'), default=False, help_text=_('选中为删除'))
+    classification = models.CharField(verbose_name=_('资源配额归属类型'), max_length=16,
+                                      choices=Classification.choices, default=Classification.PERSONAL,
+                                      help_text=_('标识配额属于申请者个人的，还是vo组的'))
+    vo = models.ForeignKey(to=VirtualOrganization, null=True, on_delete=models.SET_NULL, default=None,
+                           related_name='vo_apply_quota_set', verbose_name=_('项目组'))
 
     class Meta:
         db_table = 'applyment_applyquota'     # 'apply_vm_quota'
@@ -756,6 +772,13 @@ class ApplyQuota(UuidModel):
         quota.disk_size_total = self.disk_size
         quota.expiration_time = timezone.now() + timedelta(days=15)
         quota.duration_days = self.duration_days
+        if self.classification == self.Classification.PERSONAL:
+            quota.classification = quota.Classification.PERSONAL
+            quota.vo = None
+        else:
+            quota.classification = quota.Classification.VO
+            quota.vo_id = self.vo_id
+
         with transaction.atomic():
             quota.save()
             self.set_pass(user=user, quota=quota)

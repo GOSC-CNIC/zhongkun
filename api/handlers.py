@@ -107,21 +107,30 @@ class ApplyUserQuotaHandler:
         """
         :raises: Error
         """
-        apply = ApplyQuota.objects.select_related('service').filter(id=pk, deleted=False).first()
+        apply = ApplyQuota.objects.select_related('service', 'vo__owner').filter(id=pk, deleted=False).first()
         if not apply:
             raise exceptions.NotFound(message=_('资源配额申请不存在'))
 
         return apply
 
     @staticmethod
-    def get_user_apply(pk, user):
+    def get_user_or_vo_apply(pk, user):
         """
-        查询用户自己的申请
+        查询用户自己的申请, 或vo组申请（用户需是vo组管理员）
         :raises: Error
         """
         apply = ApplyUserQuotaHandler.get_apply(pk)
-        if not apply.user_id or apply.user_id != user.id:
-            raise exceptions.AccessDenied(message=_('你没有权限操作此配额申请'))
+        if apply.classification == apply.Classification.PERSONAL:
+            if not apply.user_id or apply.user_id != user.id:
+                raise exceptions.AccessDenied(message=_('你没有权限操作此配额申请'))
+        elif apply.classification == apply.Classification.VO:
+            if apply.vo is None:
+                raise exceptions.ConflictError(message=_('vo组配额申请，vo组信息丢失，无法判断你是否有权限访问'))
+
+            try:
+                VoManager.check_manager_perm(vo=apply.vo, user=user)
+            except exceptions.Error as exc:
+                raise exceptions.AccessDenied(message=_('vo组配额申请,') + exc.message)
 
         return apply
 
@@ -199,6 +208,41 @@ class ApplyUserQuotaHandler:
             return Response(err.err_data(), status=err.status_code)
 
     @staticmethod
+    def create_user_apply_handle(apply: ApplyQuota, user) -> ApplyQuota:
+        """
+        个人配额申请
+        """
+        count = ApplyQuota.objects.filter(user=user,
+                                          classification=ApplyQuota.Classification.PERSONAL,
+                                          status=ApplyQuota.STATUS_WAIT).count()
+        if count >= 6:
+            raise exceptions.TooManyApply()
+
+        apply.classification = apply.Classification.PERSONAL
+        apply.vo_id = None
+
+        return apply
+
+    @staticmethod
+    def create_vo_apply_handle(apply: ApplyQuota, vo_id: str, user) -> ApplyQuota:
+        """
+        vo组配额申请
+
+        :raises: Error
+        """
+        vo, member = VoManager().get_has_manager_perm_vo(vo_id=vo_id, user=user)
+        count = ApplyQuota.objects.filter(vo=vo,
+                                          classification=ApplyQuota.Classification.VO,
+                                          status=ApplyQuota.STATUS_WAIT).count()
+        if count >= 6:
+            raise exceptions.TooManyApply(_('vo组已提交了多个申请，待审批，暂不能提交更多的申请'))
+
+        apply.classification = apply.Classification.VO
+        apply.vo = vo
+
+        return apply
+
+    @staticmethod
     def create_apply(view, request, kwargs):
         """
         提交一个资源配额申请
@@ -207,11 +251,6 @@ class ApplyUserQuotaHandler:
         if not serializer.is_valid(raise_exception=False):
             msg = serializer_error_msg(serializer.errors)
             return view.exception_response(exceptions.BadRequest(msg))
-
-        count = ApplyQuota.objects.filter(user=request.user,
-                                          status=ApplyQuota.STATUS_WAIT).count()
-        if count >= 6:
-            return view.exception_response(exceptions.TooManyApply())
 
         data = serializer.validated_data
         service_id = data.get('service_id', None)
@@ -232,8 +271,19 @@ class ApplyUserQuotaHandler:
         apply.purpose = data.get('purpose', '')
         apply.service = service
         apply.user = request.user
-        apply.save()
-        r_data = serializers.ApplyQuotaSerializer(instance=apply).data
+
+        vo_id = data.get('vo_id', None)
+        try:
+            if vo_id:
+                apply = ApplyUserQuotaHandler.create_vo_apply_handle(apply=apply, vo_id=vo_id, user=request.user)
+            else:
+                apply = ApplyUserQuotaHandler.create_user_apply_handle(apply=apply, user=request.user)
+
+            apply.save()
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        r_data = serializers.ApplyQuotaDetailWithVoSerializer(instance=apply).data
         return Response(data=r_data, status=201)
 
     @staticmethod
@@ -269,10 +319,11 @@ class ApplyUserQuotaHandler:
     def cancel_apply(view, request, kwargs):
         """
         取消配额申请，只允许申请者取消待审批（wait）状态的申请
+        或者vo组管理员取消待审批（wait）状态的vo组配额申请
         """
         pk = kwargs.get(view.lookup_field)
         try:
-            apply = ApplyUserQuotaHandler.get_user_apply(pk=pk, user=request.user)
+            apply = ApplyUserQuotaHandler.get_user_or_vo_apply(pk=pk, user=request.user)
         except Exception as exc:
             return view.exception_response(exc)
 
@@ -305,7 +356,8 @@ class ApplyUserQuotaHandler:
     @staticmethod
     def modify_apply(view, request, kwargs):
         """
-        修改资源配额申请, 只允许申请者修改待审批（wait）状态的申请
+        修改资源配额申请, 只允许申请者修改待审批（wait）状态的个人的申请，
+        或者vo组管理员修改待审批（wait）状态的vo组配额申请
         """
         serializer = view.get_serializer(data=request.data)
         if not serializer.is_valid(raise_exception=False):
@@ -314,7 +366,7 @@ class ApplyUserQuotaHandler:
 
         pk = kwargs.get(view.lookup_field)
         try:
-            apply = ApplyUserQuotaHandler.get_user_apply(pk=pk, user=request.user)
+            apply = ApplyUserQuotaHandler.get_user_or_vo_apply(pk=pk, user=request.user)
         except Exception as exc:
             return view.exception_response(exc)
 
@@ -446,11 +498,11 @@ class ApplyUserQuotaHandler:
     @staticmethod
     def delete_apply(view, request, kwargs):
         """
-        删除配额申请，只允许申请者删除
+        删除配额申请，只允许申请者删除个人配额申请，或者vo组管理员删除vo组配额申请
         """
         pk = kwargs.get(view.lookup_field)
         try:
-            apply = ApplyUserQuotaHandler.get_user_apply(pk=pk, user=request.user)
+            apply = ApplyUserQuotaHandler.get_user_or_vo_apply(pk=pk, user=request.user)
         except Exception as exc:
             return view.exception_response(exc)
 

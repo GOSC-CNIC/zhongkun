@@ -249,6 +249,9 @@ class ApplyQuotaCreateSerializer(serializers.Serializer):
     """
     用户资源配额申请
     """
+    vo_id = serializers.CharField(label=_('VO组ID'), write_only=True, required=False,
+                                  allow_null=True, allow_blank=False,
+                                  help_text=_('指示为指定的VO组配额申请；不提交此内容时属于个人资源配额申请'))
     service_id = serializers.CharField(label=_('服务ID'), write_only=True, max_length=36, required=True)
     private_ip = serializers.IntegerField(label=_('总私网IP数'), required=False,
                                           allow_null=True, min_value=0, default=0)
@@ -276,6 +279,8 @@ class ApplyQuotaSerializer(ApplyQuotaCreateSerializer):
     service = serializers.SerializerMethodField(label=_('服务'), read_only=True,
                                                 method_name='get_service')
     deleted = serializers.BooleanField(label=_('删除'), read_only=True)
+    classification = serializers.CharField(
+        label=_('资源配额归属类型'), read_only=True, help_text=_('标识配额属于申请者个人的，还是vo组的'))
 
     @staticmethod
     def get_service(obj):
@@ -297,7 +302,7 @@ class ApplyQuotaDetailSerializer(ApplyQuotaSerializer):
     def get_user(obj):
         s = obj.user
         if s:
-            return {'id': s.id, 'name': s.name}
+            return {'id': s.id, 'name': s.username}
 
         return None
 
@@ -305,7 +310,7 @@ class ApplyQuotaDetailSerializer(ApplyQuotaSerializer):
     def get_approve_user(obj):
         s = obj.approve_user
         if s:
-            return {'id': s.id, 'name': s.name}
+            return {'id': s.id, 'name': s.username}
 
         return None
 
@@ -702,3 +707,7 @@ class VoMemberSerializer(serializers.Serializer):
             return {'id': user.id, 'username': user.username}
 
         return None
+
+
+class ApplyQuotaDetailWithVoSerializer(ApplyQuotaDetailSerializer):
+    vo = VoSerializer(required=False)
