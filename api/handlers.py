@@ -208,6 +208,66 @@ class ApplyUserQuotaHandler:
             return Response(err.err_data(), status=err.status_code)
 
     @staticmethod
+    def vo_leader_list(view, request, kwargs):
+        """
+        vo组管理员列举vo组的资源配额申请
+        """
+        vo_id = kwargs.get('vo_id')
+        deleted = request.query_params.get('deleted', None)
+        service_id = request.query_params.get('service', None)
+        status = request.query_params.getlist('status', None)
+        if not status or status == ['']:
+            status = None
+
+        if deleted:
+            if deleted == 'true':
+                deleted = True
+            elif deleted == 'false':
+                deleted = False
+            else:
+                deleted = None
+
+        try:
+            vo, member = VoManager().get_has_manager_perm_vo(vo_id=vo_id, user=request.user)
+            queryset = ApplyQuotaManager().filter_vo_apply_queryset(
+                vo=vo, service_id=service_id, deleted=deleted, status=status)
+
+            paginator = view.pagination_class()
+            applies = paginator.paginate_queryset(request=request, queryset=queryset)
+            serializer = view.get_serializer(instance=applies, many=True)
+            response = paginator.get_paginated_response(data=serializer.data)
+            return response
+        except Exception as exc:
+            err = exceptions.convert_to_error(exc)
+            return Response(err.err_data(), status=err.status_code)
+
+    @staticmethod
+    def admin_detail_apply(view, request, kwargs):
+        """
+        管理员查询资源配额申请详细信息
+        """
+        pk = kwargs.get(view.lookup_field)
+        try:
+            apply = ApplyUserQuotaHandler.get_has_perm_apply(pk=pk, user=request.user)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        return Response(data=serializers.ApplyQuotaDetailWithVoSerializer(apply).data)
+
+    @staticmethod
+    def user_or_vo_apply_detail(view, request, kwargs):
+        """
+        查询用户个人或vo组资源配额申请详细信息
+        """
+        pk = kwargs.get(view.lookup_field)
+        try:
+            apply = ApplyUserQuotaHandler.get_user_or_vo_apply(pk=pk, user=request.user)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        return Response(data=serializers.ApplyQuotaDetailWithVoSerializer(apply).data)
+
+    @staticmethod
     def create_user_apply_handle(apply: ApplyQuota, user) -> ApplyQuota:
         """
         个人配额申请

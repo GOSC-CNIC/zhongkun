@@ -489,6 +489,22 @@ class UserQuotaApplyTests(MyAPITestCase):
         })
         return response
 
+    def apply_detail_response(self, apply_id: str):
+        url = reverse('api:apply-quota-detail', kwargs={'apply_id': apply_id})
+        return self.client.get(url)
+
+    def admin_apply_detail_response(self, apply_id: str):
+        url = reverse('api:apply-quota-admin-detail', kwargs={'apply_id': apply_id})
+        return self.client.get(url)
+
+    def list_vo_apply_response(self, vo_id: str, query: dict):
+        url = reverse('api:apply-quota-vo-leader-list', kwargs={'vo_id': vo_id})
+        if query:
+            query = parse.urlencode(query=query, doseq=True)
+            url = f'{url}?{query}'
+
+        return self.client.get(url)
+
     def pending_apply(self, apply_id):
         url = reverse('api:apply-quota-pending_apply', kwargs={'apply_id': apply_id})
         return self.client.post(url)
@@ -845,7 +861,7 @@ class UserQuotaApplyTests(MyAPITestCase):
         response = self.delete_apply(apply_id=apply_id)
         self.assertEqual(response.status_code, 204)
 
-    def test_vo_apply_create_pass(self):
+    def test_vo_apply_create_pass_list(self):
         vo_data = {
             'name': 'test vo',
             'company': 'cnic',
@@ -860,11 +876,29 @@ class UserQuotaApplyTests(MyAPITestCase):
         self.assertEqual(response.status_code, 201)
         apply_id = response.data['id']
 
+        # list vo apply
+        response = self.list_vo_apply_response(vo_id=vo_id, query={})
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "next", "previous", "results"], response.data)
+        self.assertEqual(response.data["count"], 1)
+        self.apply_response_data_keys_assert(response.data['results'][0])
+        self.assertEqual(response.data['results'][0]['status'], ApplyQuota.STATUS_WAIT)
+
+        # list vo apply query status
+        response = self.list_vo_apply_response(vo_id=vo_id, query={'status': ApplyQuota.STATUS_PENDING})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 0)
+
         # pending apply
         self.service.users.add(self.user)  # 加管理权限
         response = self.pending_apply(apply_id)
         self.assertEqual(response.status_code, 200)
         self.apply_response_data_keys_assert(response.data)
+
+        # list vo apply query status
+        response = self.list_vo_apply_response(vo_id=vo_id, query={'status': ApplyQuota.STATUS_PENDING})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 1)
 
         # pass apply
         response = self.pass_apply(apply_id)
@@ -881,6 +915,101 @@ class UserQuotaApplyTests(MyAPITestCase):
         self.assertEqual(quota.ram_total, self.old_ram)
         self.assertEqual(quota.disk_size_total, self.old_disk_size)
         self.assertEqual(quota.duration_days, self.old_duration_days)
+
+        # apply detail
+        response = self.apply_detail_response(apply_id=apply_id)
+        self.apply_response_data_keys_assert(data=response.data, is_detail=True)
+        self.assertEqual(response.data['service']['id'], self.service.id)
+        self.assert_is_subdict_of(sub={
+            'private_ip': self.old_private_ip, 'public_ip': self.old_public_ip,
+            'vcpu': self.old_vcpu, 'ram': self.old_ram,
+            'disk_size': self.old_disk_size, 'duration_days': self.old_duration_days,
+            'company': 'cnic', 'contact': '666', 'purpose': 'test', "deleted": False,
+            'status': ApplyQuota.STATUS_PASS,
+            'classification': ApplyQuota.Classification.VO
+        }, d=response.data)
+        self.assertKeysIn(['id', 'name', 'company', 'description', 'creation_time',
+                           'owner', 'status'], response.data['vo'])
+        self.assert_is_subdict_of(sub=vo_data, d=response.data['vo'])
+
+        # admin apply detail
+        response = self.admin_apply_detail_response(apply_id=apply_id)
+        self.apply_response_data_keys_assert(data=response.data, is_detail=True)
+        self.assertEqual(response.data['service']['id'], self.service.id)
+        self.assert_is_subdict_of(sub={
+            'private_ip': self.old_private_ip, 'public_ip': self.old_public_ip,
+            'vcpu': self.old_vcpu, 'ram': self.old_ram,
+            'disk_size': self.old_disk_size, 'duration_days': self.old_duration_days,
+            'company': 'cnic', 'contact': '666', 'purpose': 'test', "deleted": False,
+            'status': ApplyQuota.STATUS_PASS, 'classification': ApplyQuota.Classification.VO
+        }, d=response.data)
+        self.assertKeysIn(['id', 'name', 'company', 'description', 'creation_time',
+                           'owner', 'status'], response.data['vo'])
+        self.assert_is_subdict_of(sub=vo_data, d=response.data['vo'])
+
+    def test_vo_apply_detail_list_perm(self):
+        member_user = get_or_create_user(username='member')
+        vo_data = {
+            'name': 'test vo',
+            'company': 'cnic',
+            'description': '测试'
+        }
+        response = VoTests.create_vo_response(client=self.client, name=vo_data['name'],
+                                              company=vo_data['company'], description=vo_data['description'])
+        self.assertEqual(response.status_code, 200)
+        vo_id = response.data['id']
+        # create vo quota apply
+        response = self.create_apply(vo_id=vo_id)
+        self.assertEqual(response.status_code, 201)
+        apply_id = response.data['id']
+
+        self.client.logout()
+        self.client.force_login(member_user)
+
+        # admin apply detail
+        response = self.admin_apply_detail_response(apply_id=apply_id)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+        self.service.users.add(member_user)  # 加管理权限
+        response = self.admin_apply_detail_response(apply_id=apply_id)
+        self.assertEqual(response.status_code, 200)
+
+        # apply detail when is not vo member
+        response = self.apply_detail_response(apply_id=apply_id)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # list vo apply when is not vo member
+        response = self.list_vo_apply_response(vo_id=vo_id, query={})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # vo add member
+        self.client.logout()
+        self.client.force_login(self.user)
+        response = VoTests.add_members_response(client=self.client, vo_id=vo_id,
+                                                usernames=[member_user.username])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['success']), 1)
+        member_id = response.data['success'][0]['id']
+
+        # apply detail when is vo member
+        self.client.logout()
+        self.client.force_login(member_user)
+        response = self.apply_detail_response(apply_id=apply_id)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # list vo apply when is vo member
+        response = self.list_vo_apply_response(vo_id=vo_id, query={})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # apply detail when is vo leader member
+        member = VoMember.objects.get(id=member_id)
+        member.role = member.Role.LEADER
+        member.save()
+        response = self.apply_detail_response(apply_id=apply_id)
+        self.assertEqual(response.status_code, 200)
+
+        # list vo apply when is vo leader member
+        response = self.list_vo_apply_response(vo_id=vo_id, query={})
+        self.assertEqual(response.status_code, 200)
 
 
 class UserTests(MyAPITestCase):
