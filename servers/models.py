@@ -36,6 +36,10 @@ class ServerBase(models.Model):
         (QUOTA_SHARED, _('共享资源配额'))
     )
 
+    class Classification(models.TextChoices):
+        PERSONAL = 'personal', _('个人的')
+        VO = 'vo', _('VO组的')
+
     id = models.CharField(blank=True, editable=False, max_length=36, primary_key=True, verbose_name='ID')
     name = models.CharField(max_length=255, verbose_name=_('服务器实例名称'))
     instance_id = models.CharField(max_length=128, verbose_name=_('虚拟主机ID'), help_text=_('各接入服务中虚拟主机的ID'))
@@ -49,6 +53,9 @@ class ServerBase(models.Model):
     task_status = models.SmallIntegerField(verbose_name=_('创建状态'), choices=CHOICES_TASK, default=TASK_CREATED_OK)
     center_quota = models.SmallIntegerField(verbose_name=_('服务配额'), choices=CHOICES_QUOTA, default=QUOTA_PRIVATE)
     expiration_time = models.DateTimeField(verbose_name=_('过期时间'), null=True, blank=True, default=None)
+    # classification = models.CharField(verbose_name=_('资源配额归属类型'), max_length=16,
+    #                                   choices=Classification.choices, default=Classification.PERSONAL,
+    #                                   help_text=_('标识配额属于申请者个人的，还是vo组的'))
 
     class Meta:
         abstract = True
@@ -174,6 +181,7 @@ class Server(ServerBase):
             a.center_quota = self.center_quota
             a.user_quota = self.user_quota
             a.expiration_time = self.expiration_time
+            # a.classification = self.classification
             a.save()
         except Exception as e:
             return False

@@ -55,12 +55,15 @@ def serializer_error_msg(errors, default=''):
 class UserQuotaHandler:
     @staticmethod
     def list_quotas(view, request, kwargs):
+        """
+        list用户个人的资源配额
+        """
         service_id = request.query_params.get('service', None)
         usable = request.query_params.get('usable', '').lower()
         usable = True if usable == 'true' else False
 
         try:
-            queryset = UserQuotaManager().filter_quota_queryset(user=request.user, service=service_id, usable=usable)
+            queryset = UserQuotaManager().filter_user_quota_queryset(user=request.user, service=service_id, usable=usable)
             paginator = view.paginator
             quotas = paginator.paginate_queryset(request=request, queryset=queryset)
             serializer = serializers.UserQuotaSerializer(quotas, many=True)
@@ -72,10 +75,35 @@ class UserQuotaHandler:
         return response
 
     @staticmethod
+    def list_vo_quotas(view, request, kwargs):
+        """
+        list vo组的资源配额, 需vo组管理员权限
+        """
+        service_id = request.query_params.get('service', None)
+        usable = request.query_params.get('usable', '').lower()
+        usable = True if usable == 'true' else False
+        vo_id = kwargs.get('vo_id')
+
+        try:
+            vo, member = VoManager().get_has_manager_perm_vo(vo_id=vo_id,user=request.user)
+            queryset = UserQuotaManager().filter_vo_quota_queryset(
+                vo=vo, service=service_id, usable=usable)
+            paginator = view.paginator
+            quotas = paginator.paginate_queryset(request=request, queryset=queryset)
+            serializer = serializers.UserQuotaSerializer(quotas, many=True)
+            return paginator.get_paginated_response(data=serializer.data)
+        except Exception as exc:
+            err = exceptions.convert_to_error(exc)
+            return Response(err.err_data(), status=err.status_code)
+
+    @staticmethod
     def list_quota_servers(view, request, kwargs):
+        """
+        需要配额属于用户，或者属于用户所在的vo组
+        """
         quota_id = kwargs.get(view.lookup_field)
         try:
-            quota = UserQuotaManager().get_user_quota_by_id(quota_id, user=request.user)
+            quota = UserQuotaManager().get_user_read_perm_quota(quota_id, user=request.user)
         except exceptions.Error as exc:
             return view.exception_response(exc)
 
@@ -100,52 +128,19 @@ class UserQuotaHandler:
 
         return Response(status=204)
 
+    @staticmethod
+    def detail_quota(view, request, kwargs):
+        quota_id = kwargs.get(view.lookup_field)
+        try:
+            quota = UserQuotaManager().get_user_manage_perm_quota(quota_id, user=request.user)
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        data = serializers.UserQuotaDetailSerializer(instance=quota).data
+        return Response(data=data)
+
 
 class ApplyUserQuotaHandler:
-    @staticmethod
-    def get_apply(pk):
-        """
-        :raises: Error
-        """
-        apply = ApplyQuota.objects.select_related('service', 'vo__owner').filter(id=pk, deleted=False).first()
-        if not apply:
-            raise exceptions.NotFound(message=_('资源配额申请不存在'))
-
-        return apply
-
-    @staticmethod
-    def get_user_or_vo_apply(pk, user):
-        """
-        查询用户自己的申请, 或vo组申请（用户需是vo组管理员）
-        :raises: Error
-        """
-        apply = ApplyUserQuotaHandler.get_apply(pk)
-        if apply.classification == apply.Classification.PERSONAL:
-            if not apply.user_id or apply.user_id != user.id:
-                raise exceptions.AccessDenied(message=_('你没有权限操作此配额申请'))
-        elif apply.classification == apply.Classification.VO:
-            if apply.vo is None:
-                raise exceptions.ConflictError(message=_('vo组配额申请，vo组信息丢失，无法判断你是否有权限访问'))
-
-            try:
-                VoManager.check_manager_perm(vo=apply.vo, user=user)
-            except exceptions.Error as exc:
-                raise exceptions.AccessDenied(message=_('vo组配额申请,') + exc.message)
-
-        return apply
-
-    @staticmethod
-    def get_has_perm_apply(pk, user):
-        """
-        查询用户有权限审批的申请
-        :raises: Error
-        """
-        apply = ApplyUserQuotaHandler.get_apply(pk)
-        if not apply.service.user_has_perm(user):
-            raise exceptions.AccessDenied(message=_('没有审批操作资源配额申请的权限'))
-
-        return apply
-
     @staticmethod
     def get_list_queryset(request, is_admin: bool = False):
         """
@@ -248,7 +243,7 @@ class ApplyUserQuotaHandler:
         """
         pk = kwargs.get(view.lookup_field)
         try:
-            apply = ApplyUserQuotaHandler.get_has_perm_apply(pk=pk, user=request.user)
+            apply = ApplyQuotaManager().get_has_manage_perm_apply(pk=pk, user=request.user)
         except Exception as exc:
             return view.exception_response(exc)
 
@@ -261,7 +256,7 @@ class ApplyUserQuotaHandler:
         """
         pk = kwargs.get(view.lookup_field)
         try:
-            apply = ApplyUserQuotaHandler.get_user_or_vo_apply(pk=pk, user=request.user)
+            apply = ApplyQuotaManager().get_user_or_vo_apply(pk=pk, user=request.user)
         except Exception as exc:
             return view.exception_response(exc)
 
@@ -353,7 +348,7 @@ class ApplyUserQuotaHandler:
         """
         pk = kwargs.get(view.lookup_field)
         try:
-            apply = ApplyUserQuotaHandler.get_has_perm_apply(pk=pk, user=request.user)
+            apply = ApplyQuotaManager().get_has_manage_perm_apply(pk=pk, user=request.user)
         except Exception as exc:
             return view.exception_response(exc)
 
@@ -383,7 +378,7 @@ class ApplyUserQuotaHandler:
         """
         pk = kwargs.get(view.lookup_field)
         try:
-            apply = ApplyUserQuotaHandler.get_user_or_vo_apply(pk=pk, user=request.user)
+            apply = ApplyQuotaManager().get_user_or_vo_apply(pk=pk, user=request.user)
         except Exception as exc:
             return view.exception_response(exc)
 
@@ -426,7 +421,7 @@ class ApplyUserQuotaHandler:
 
         pk = kwargs.get(view.lookup_field)
         try:
-            apply = ApplyUserQuotaHandler.get_user_or_vo_apply(pk=pk, user=request.user)
+            apply = ApplyQuotaManager().get_user_or_vo_apply(pk=pk, user=request.user)
         except Exception as exc:
             return view.exception_response(exc)
 
@@ -512,7 +507,7 @@ class ApplyUserQuotaHandler:
         """
         pk = kwargs.get(view.lookup_field)
         try:
-            apply = ApplyUserQuotaHandler.get_has_perm_apply(pk=pk, user=request.user)
+            apply = ApplyQuotaManager().get_has_manage_perm_apply(pk=pk, user=request.user)
         except Exception as exc:
             return view.exception_response(exc)
 
@@ -562,7 +557,7 @@ class ApplyUserQuotaHandler:
         """
         pk = kwargs.get(view.lookup_field)
         try:
-            apply = ApplyUserQuotaHandler.get_user_or_vo_apply(pk=pk, user=request.user)
+            apply = ApplyQuotaManager().get_user_or_vo_apply(pk=pk, user=request.user)
         except Exception as exc:
             return view.exception_response(exc)
 

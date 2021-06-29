@@ -155,6 +155,8 @@ class UserQuotaSerializer(serializers.Serializer):
     deleted = serializers.BooleanField(label=_('删除'), default=False)
     display = serializers.CharField()
     duration_days = serializers.IntegerField(label=_('资源可用时长'))
+    classification = serializers.CharField(
+        label=_('资源配额归属类型'), read_only=True, help_text=_('标识配额属于申请者个人的，还是vo组的'))
 
     @staticmethod
     def get_user(obj):
@@ -710,4 +712,8 @@ class VoMemberSerializer(serializers.Serializer):
 
 
 class ApplyQuotaDetailWithVoSerializer(ApplyQuotaDetailSerializer):
+    vo = VoSerializer(required=False)
+
+
+class UserQuotaDetailSerializer(UserQuotaSerializer):
     vo = VoSerializer(required=False)

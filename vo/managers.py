@@ -19,6 +19,26 @@ class VoManager:
         return VoManager.model.objects.select_related('owner').filter(id=vo_id, deleted=False).first()
 
     @staticmethod
+    def check_read_perm(vo, user) -> VoMember or None:
+        """
+        检测用户是否有vo组的访问权限
+
+        :return:
+            None        # 用户是vo组的拥有者
+            VoMember()  # 用户是vo组的管理员
+            raise Error # 用户是vo组的普通组员，或者用户不属于vo组
+        :raises: Error
+        """
+        if vo.owner_id == user.id:  # 组长
+            return None
+
+        member = VoMemberManager.get_member_by_filters(vo=vo, user=user)
+        if member is None:
+            raise errors.AccessDenied(message=_('你不属于此项目组，没有访问权限'))
+
+        return member
+
+    @staticmethod
     def check_manager_perm(vo, user) -> VoMember or None:
         """
         检测用户是否有vo组的管理权限
@@ -29,12 +49,9 @@ class VoManager:
             raise Error # 用户是vo组的普通组员，或者用户不属于vo组
         :raises: Error
         """
-        if vo.owner_id == user.id:      # 组长
-            return None
-
-        member = VoMemberManager.get_member_by_filters(vo=vo, user=user)
+        member = VoManager.check_read_perm(vo=vo, user=user)
         if member is None:
-            raise errors.AccessDenied(message=_('你不属于此项目组，没有访问权限'))
+            return None
 
         if member.is_leader_role:
             return member

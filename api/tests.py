@@ -68,7 +68,7 @@ def chunks(f, chunk_size=2*2**20):
         yield data
 
 
-def create_server_metadata(service, user, user_quota):
+def create_server_metadata(service, user, user_quota, vo_id=None):
     server = Server(service=service,
                     instance_id='test',
                     remarks='',
@@ -79,7 +79,8 @@ def create_server_metadata(service, user, user_quota):
                     image='test-image',
                     task_status=Server.TASK_CREATED_OK,
                     user_quota=user_quota,
-                    public_ip=False)
+                    public_ip=False,
+                    vo_id=vo_id)
     server.save()
     return server
 
@@ -181,6 +182,169 @@ class UserQuotaTests(MyAPITestCase):
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
                            "public_ip", "image", "creation_time",
                            "remarks"], response.data['results'][0])
+
+
+class QuotaTests(MyAPITestCase):
+    def setUp(self):
+        set_auth_header(self)
+        self.user = get_or_create_user()
+        self.service = get_or_create_service()
+
+    def detail_quota_response(self, quota_id):
+        url = reverse('api:quota-detail', kwargs={'id': quota_id})
+        return self.client.get(url)
+
+    def test_list_delete_personal_quota(self):
+        mgr = UserQuotaManager()
+        quota = mgr.create_quota(user=self.user, service=self.service)
+        expire_quota = mgr.create_quota(user=self.user, service=self.service,
+                                             expire_time=timezone.now() - timedelta(days=1))
+
+        create_server_metadata(
+            service=self.service, user=self.user, user_quota=quota)
+
+        url = reverse('api:quota-list')
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'results', "next", "previous"], response.data)
+        self.assertEqual(response.data['count'], 2)
+
+        url += f'?usable=true'
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'results', "next", "previous"], response.data)
+        self.assertEqual(response.data['count'], 1)
+        self.assertKeysIn(["id", "tag", "user", "service", "private_ip_total",
+                           "private_ip_used", "public_ip_total", "public_ip_used",
+                           "vcpu_total", "vcpu_used", "ram_total", "ram_used",
+                           "disk_size_total", "disk_size_used", "expiration_time",
+                           "deleted", "display", "classification"], response.data['results'][0])
+
+        # delete
+        url = reverse('api:quota-detail', kwargs={'id': quota.id})
+        response = self.client.delete(url, format='json')
+        self.assertEqual(response.status_code, 204)
+
+        url = reverse('api:quota-list')
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+
+    def test_list_quota_servers(self):
+        mgr = UserQuotaManager()
+        quota = mgr.create_quota(user=self.user, service=self.service)
+        expire_quota = mgr.create_quota(user=self.user, service=self.service,
+                                             expire_time=timezone.now() - timedelta(days=1))
+
+        create_server_metadata(
+            service=self.service, user=self.user, user_quota=quota)
+
+        url = reverse('api:quota-quota-servers', kwargs={'id': 'notfound'})
+        response = self.client.get(url, format='json')
+        self.assertErrorResponse(status_code=404, response=response, code='NotFound')
+
+        url = reverse('api:quota-quota-servers', kwargs={'id': quota.id})
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'results', "next", "previous"], response.data)
+        self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
+                           "public_ip", "image", "creation_time",
+                           "remarks"], response.data['results'][0])
+
+    def test_list_delete_vo_quota(self):
+        vo_data = {
+            'name': 'test vo', 'company': '网络中心', 'description': 'unittest'
+        }
+        response = VoTests.create_vo_response(client=self.client, name=vo_data['name'],
+                                              company=vo_data['company'], description=vo_data['description'])
+        vo_id = response.data['id']
+        mgr = UserQuotaManager()
+        vo_quota = mgr.create_quota(user=self.user, service=self.service,
+            classification=UserQuota.Classification.VO, vo_id=vo_id)
+        vo_expire_quota = mgr.create_quota(user=self.user, service=self.service,
+            expire_time=timezone.now() - timedelta(days=1),
+            classification=UserQuota.Classification.VO, vo_id=vo_id)
+
+        create_server_metadata(
+            service=self.service, user=self.user, user_quota=vo_quota, vo_id=vo_id)
+
+        url = reverse('api:quota-list-vo-quota', kwargs={'vo_id': vo_id})
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 2)
+        self.assertKeysIn(['count', 'results', "next", "previous"], response.data)
+
+        response = self.client.get(f'{url}?usable=true', format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'results', "next", "previous"], response.data)
+        self.assertEqual(response.data['count'], 1)
+        self.assertKeysIn(["id", "tag", "user", "service", "private_ip_total",
+                           "private_ip_used", "public_ip_total", "public_ip_used",
+                           "vcpu_total", "vcpu_used", "ram_total", "ram_used",
+                           "disk_size_total", "disk_size_used", "expiration_time",
+                           "deleted", "display", "classification"], response.data['results'][0])
+
+        # delete
+        url = reverse('api:quota-detail', kwargs={'id': vo_quota.id})
+        response = self.client.delete(url, format='json')
+        self.assertEqual(response.status_code, 204)
+
+        url = reverse('api:quota-list-vo-quota', kwargs={'vo_id': vo_id})
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+
+        # list vo quota servers
+        url = reverse('api:quota-quota-servers', kwargs={'id': vo_quota.id})
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'results', "next", "previous"], response.data)
+        self.assertEqual(response.data['count'], 1)
+        self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
+                           "public_ip", "image", "creation_time",
+                           "remarks"], response.data['results'][0])
+
+        member_user = get_or_create_user(username='vo-member')
+        self.client.logout()
+        self.client.force_login(member_user)
+
+        # no permission when is not vo member
+        url = reverse('api:quota-quota-servers', kwargs={'id': vo_quota.id})
+        response = self.client.get(url, format='json')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # no permission get quota detail when is not vo member
+        response = self.detail_quota_response(quota_id=vo_quota.id)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # add vo member
+        member = VoMember(user=member_user, vo_id=vo_id, role=VoMember.Role.MEMBER,
+                          inviter_id=self.user.id, inviter=self.user.username)
+        member.save()
+
+        # has permission when is not vo member
+        url = reverse('api:quota-quota-servers', kwargs={'id': vo_quota.id})
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+
+        # no permission get quota detail when is vo member
+        response = self.detail_quota_response(quota_id=vo_quota.id)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # vo leader member
+        member.role = member.Role.LEADER
+        member.save()
+        # has permission get quota detail when is vo leader member
+        response = self.detail_quota_response(quota_id=vo_quota.id)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["id", "tag", "user", "service", "private_ip_total",
+                           "private_ip_used", "public_ip_total", "public_ip_used",
+                           "vcpu_total", "vcpu_used", "ram_total", "ram_used",
+                           "disk_size_total", "disk_size_used", "expiration_time",
+                           "deleted", "display", "classification", "vo"], response.data)
+        self.assertEqual(response.data['classification'], UserQuota.Classification.VO)
+        self.assert_is_subdict_of(sub=vo_data, d=response.data['vo'])
 
 
 class ServersTests(MyAPITestCase):

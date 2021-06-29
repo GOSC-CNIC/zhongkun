@@ -9,6 +9,7 @@ from django.core.cache import cache
 from users.models import UserProfile
 from core import errors
 from core.utils import test_service_ok, InvalidServiceError
+from vo.managers import VoManager
 from .models import (
     UserQuota, ServicePrivateQuota, ServiceShareQuota, ServiceConfig, ApplyVmService,
     DataCenter, ApplyOrganization, ApplyQuota
@@ -21,22 +22,30 @@ class UserQuotaManager:
     """
     MODEL = UserQuota
 
-    def create_quota(self, user, service, tag: int = None, expire_time=None):
+    def create_quota(self, user, service, tag: int = None, expire_time=None,
+                     classification=UserQuota.Classification.PERSONAL, vo_id=None):
+        """
+        :raises: QuotaError
+        """
+        if classification == UserQuota.Classification.VO and not vo_id:
+            return errors.QuotaError(message=_('当参数classification为“vo”时，参数vo不能为None'))
+
         if tag is None:
             tag = self.MODEL.TAG_BASE
 
         expiration_time = expire_time if isinstance(expire_time, datetime) else (timezone.now() + timedelta(days=15))
-        quota = self.MODEL(user=user, service=service, tag=tag, expiration_time=expiration_time)
+        quota = self.MODEL(user=user, service=service, tag=tag, expiration_time=expiration_time,
+                           classification=classification, vo_id=vo_id)
         try:
             quota.save()
         except Exception as e:
-            return None
+            return errors.QuotaError.from_error(e)
 
         return quota
 
-    def get_user_quota_by_id(self, _id: str, user):
+    def get_user_read_perm_quota(self, _id: str, user):
         """
-        查询指定用户的配额
+        查询用户有访问权限的的配额
 
         :param _id: 配额id
         :param user: 用户实例
@@ -50,15 +59,55 @@ class UserQuotaManager:
             raise errors.QuotaError.from_error(
                 errors.NotFound(message='资源配额不存在'))
 
-        if quota.user_id != user.id:
+        if quota.classification == quota.Classification.PERSONAL:
+            if not quota.user_id or quota.user_id != user.id:
+                raise errors.QuotaError.from_error(
+                    errors.AccessDenied(message=_('你没有权限访问此配额')))
+        elif quota.classification == quota.Classification.VO:
+            if quota.vo is None:
+                raise errors.ConflictError(message=_('vo组信息丢失，无法判断你是否有权限访问'))
+
+            try:
+                VoManager.check_read_perm(vo=quota.vo, user=user)
+            except errors.Error as exc:
+                raise errors.AccessDenied.from_error(exc)
+
+        return quota
+
+    def get_user_manage_perm_quota(self, _id: str, user):
+        """
+        查询用户有管理权限的的配额
+
+        :param _id: 配额id
+        :param user: 用户实例
+        :return:
+            UserQuota()
+
+        :raises: QuotaError
+        """
+        quota = self.get_quota_by_id(_id)
+        if not quota:
             raise errors.QuotaError.from_error(
-                errors.AccessDenied(message=_('无权访问此资源配额')))
+                errors.NotFound(message='资源配额不存在'))
+
+        if quota.classification == quota.Classification.PERSONAL:
+            if not quota.user_id or quota.user_id != user.id:
+                raise errors.QuotaError.from_error(
+                    errors.AccessDenied(message=_('你没有权限管理此配额')))
+        elif quota.classification == quota.Classification.VO:
+            if quota.vo is None:
+                raise errors.ConflictError(message=_('vo组信息丢失，无法判断你是否有权限访问'))
+
+            try:
+                VoManager.check_manager_perm(vo=quota.vo, user=user)
+            except errors.Error as exc:
+                raise errors.AccessDenied(message=exc.message)
 
         return quota
 
     def delete_quota_soft(self, _id: str, user):
         """
-        软删除用户的配额
+        软删除用户的个人配额或vo组的配额
 
         :return:
             None                # success
@@ -66,7 +115,7 @@ class UserQuotaManager:
 
         :raises: QuotaError
         """
-        quota = self.get_user_quota_by_id(_id=_id, user=user)
+        quota = self.get_user_manage_perm_quota(_id=_id, user=user)
         quota.deleted = True
         try:
             quota.save(update_fields=['deleted'])
@@ -80,7 +129,7 @@ class UserQuotaManager:
         :param user: 用户对象
         :return: QuerySet()
         """
-        return self.MODEL.objects.filter(user=user, deleted=False).all()
+        return self.MODEL.objects.select_related('user', 'service').filter(user=user, deleted=False).all()
 
     def get_base_quota_queryset(self, user):
         """
@@ -91,13 +140,13 @@ class UserQuotaManager:
         """
         return self.get_quota_queryset(user=user).filter(tag=self.MODEL.TAG_BASE).all()
 
-    def get_quota_by_id(self, quota_id: str):
+    def get_quota_by_id(self, quota_id: str) -> UserQuota:
         """
         :param quota_id: 配额id
         :return:
             UserQuota() or None
         """
-        return self.MODEL.objects.filter(id=quota_id).first()
+        return self.MODEL.objects.select_related('user', 'service', 'vo__owner').filter(id=quota_id).first()
 
     def deduct(self, user, quota_id: str, vcpus: int = 0, ram: int = 0,
                disk_size: int = 0, public_ip: int = 0, private_ip: int = 0):
@@ -382,16 +431,35 @@ class UserQuotaManager:
 
         return True
 
-    def filter_quota_queryset(self, user, service=None, usable=None):
+    def filter_user_quota_queryset(self, user, service=None, usable=None):
         """
-        过滤用户资源配额查询集
+        过滤用户个人的资源配额查询集
 
         :param user:
         :param service: 服务对象，暂时预留
         :param usable: 是否过滤可用的(未过有效期的)
         :return:
         """
-        queryset = self.get_quota_queryset(user=user)
+        queryset = self.get_quota_queryset(user=user).filter(classification=self.MODEL.Classification.PERSONAL)
+        if service:
+            queryset = queryset.filter(service=service)
+
+        if usable:
+            now = timezone.now()
+            queryset = queryset.filter(Q(expiration_time__isnull=True) | Q(expiration_time__gt=now))
+
+        return queryset.order_by('id')
+
+    def filter_vo_quota_queryset(self, vo, service=None, usable=None):
+        """
+        过滤vo组的资源配额查询集
+
+        :param vo: vo组
+        :param service: 服务对象，暂时预留
+        :param usable: 是否过滤可用的(未过有效期的)
+        :return:
+        """
+        queryset = self.MODEL.objects.select_related('user', 'service').filter(vo=vo, classification=ApplyQuota.Classification.VO, deleted=False)
         if service:
             queryset = queryset.filter(service=service)
 
@@ -1473,6 +1541,48 @@ class VmServiceApplyManager:
 
 
 class ApplyQuotaManager:
+    @staticmethod
+    def get_apply(pk):
+        """
+        :raises: Error
+        """
+        apply = ApplyQuota.objects.select_related('service', 'vo__owner').filter(id=pk, deleted=False).first()
+        if not apply:
+            raise errors.NotFound(message=_('资源配额申请不存在'))
+
+        return apply
+
+    def get_user_or_vo_apply(self, pk, user):
+        """
+        查询用户自己的申请, 或vo组申请（用户需是vo组管理员）
+        :raises: Error
+        """
+        apply = self.get_apply(pk)
+        if apply.classification == apply.Classification.PERSONAL:
+            if not apply.user_id or apply.user_id != user.id:
+                raise errors.AccessDenied(message=_('你没有权限操作此配额申请'))
+        elif apply.classification == apply.Classification.VO:
+            if apply.vo is None:
+                raise errors.ConflictError(message=_('vo组配额申请，vo组信息丢失，无法判断你是否有权限访问'))
+
+            try:
+                VoManager.check_manager_perm(vo=apply.vo, user=user)
+            except errors.Error as exc:
+                raise errors.AccessDenied(message=_('vo组配额申请,') + exc.message)
+
+        return apply
+
+    def get_has_manage_perm_apply(self, pk, user):
+        """
+        查询用户有权限审批的申请
+        :raises: Error
+        """
+        apply = self.get_apply(pk)
+        if not apply.service.user_has_perm(user):
+            raise errors.AccessDenied(message=_('没有审批操作资源配额申请的权限'))
+
+        return apply
+
     @staticmethod
     def get_apply_queryset():
         return ApplyQuota.objects.all()

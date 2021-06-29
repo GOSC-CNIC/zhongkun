@@ -1046,9 +1046,9 @@ class FlavorViewSet(CustomGenericViewSet):
         return Response(data={"flavors": serializer.data})
 
 
-class UserQuotaViewSet(CustomGenericViewSet):
+class QuotaViewSet(CustomGenericViewSet):
     """
-    用户资源配额相关API
+    资源配额相关API
     """
     queryset = []
     permission_classes = [IsAuthenticated]
@@ -1056,7 +1056,7 @@ class UserQuotaViewSet(CustomGenericViewSet):
     lookup_field = 'id'
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('列举用户资源配额'),
+        operation_summary=gettext_lazy('列举用户个人的资源配额'),
         manual_parameters=[
             openapi.Parameter(
                 name='service',
@@ -1079,7 +1079,7 @@ class UserQuotaViewSet(CustomGenericViewSet):
     )
     def list(self, request, *args, **kwargs):
         """
-        列举用户资源配额
+        列举用户个人的资源配额
 
             Http Code: 状态码200，返回数据：
             {
@@ -1111,9 +1111,11 @@ class UserQuotaViewSet(CustomGenericViewSet):
                   "ram_used": 4176,
                   "disk_size_total": 0,     # Gb
                   "disk_size_used": 0,
-                  "expiration_time": null,
+                  "expiration_time": "2021-03-31T08:38:00Z",
                   "deleted": false,
-                  "display": "[普通配额](vCPU: 10, RAM: 10240Mb, PublicIP: 5, PrivateIP: 5)"
+                  "display": "[普通配额](vCPU: 10, RAM: 10240Mb, PublicIP: 5, PrivateIP: 5)",
+                  "duration_days": 365,
+                  "classification": "personal"
                 }
               ]
             }
@@ -1121,7 +1123,75 @@ class UserQuotaViewSet(CustomGenericViewSet):
         return handlers.UserQuotaHandler.list_quotas(view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('列举资源配额下的虚拟服务器'),
+        operation_summary=gettext_lazy('列举vo组(需vo组管理权限)的资源配额'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='service',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=_('服务id, 过滤服务可用的资源配额')
+            ),
+            openapi.Parameter(
+                name='usable',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_BOOLEAN,
+                required=False,
+                description=_('true(过滤)，其他值（忽略）, 过滤可用的资源配额, 未过期的')
+            )
+        ],
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    @action(methods=['get'], detail=False, url_path='vo/(?P<vo_id>.+)', url_name='list-vo-quota')
+    def list_vo_quota(self, request, *args, **kwargs):
+        """
+        列举vo组(需vo组管理权限)的资源配额
+
+            Http Code: 状态码200，返回数据：
+            {
+              "count": 1,
+              "next": null,
+              "previous": null,
+              "results": [
+                {
+                  "id": 9c70cbe2-690c-11eb-a4b7-c8009fe2eb10,
+                  "tag": {
+                    "value": 1,             # 1: 普通配额； 2：试用配额
+                    "display": "普通配额"
+                  },
+                  "user": {
+                    "id": "9c70cbe2-690c-11eb-a4b7-c8009fe2eb10",
+                    "username": "shun"
+                  },
+                  "service": {
+                    "id": "9c70cbe2-690c-11eb-a4b7-c8009fe2eb10",
+                    "name": "怀柔204机房"
+                  },
+                  "private_ip_total": 5,
+                  "private_ip_used": 2,
+                  "public_ip_total": 5,
+                  "public_ip_used": 0,
+                  "vcpu_total": 10,
+                  "vcpu_used": 3,
+                  "ram_total": 10240,       # Mb
+                  "ram_used": 4176,
+                  "disk_size_total": 0,     # Gb
+                  "disk_size_used": 0,
+                  "expiration_time": "2021-03-31T08:38:00Z",
+                  "deleted": false,
+                  "display": "[普通配额](vCPU: 10, RAM: 10240Mb, PublicIP: 5, PrivateIP: 5)",
+                  "duration_days": 365,
+                  "classification": "personal"
+                }
+              ]
+            }
+        """
+        return handlers.UserQuotaHandler.list_vo_quotas(view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举资源配额(个人或vo组配额)下的虚拟服务器'),
         manual_parameters=[
             openapi.Parameter(
                 name='page',
@@ -1144,7 +1214,7 @@ class UserQuotaViewSet(CustomGenericViewSet):
     @action(methods=['get'], detail=True, url_path='servers', url_name='quota-servers')
     def quota_servers(self, request, *args, **kwargs):
         """
-        列举资源配额下的虚拟服务器
+        列举资源配额(个人或vo组配额)下的虚拟服务器
 
             http code 200:
             {
@@ -1169,16 +1239,146 @@ class UserQuotaViewSet(CustomGenericViewSet):
         return handlers.UserQuotaHandler.list_quota_servers(view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('删除资源配额'),
+        operation_summary=gettext_lazy('删除用户个人或vo组(需vo组管理权限)资源配额'),
         responses={
         }
     )
     def destroy(self, request, *args, **kwargs):
         """
-        删除资源配额
+        删除用户个人或vo组(需vo组管理权限)资源配额
         """
         return handlers.UserQuotaHandler.delete_quota(
             view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询个人或vo组(需vo组管理权限)配额详细信息'),
+        responses={
+        }
+    )
+    def retrieve(self, request, *args, **kwargs):
+        """
+        查询个人或vo组(需vo组管理权限)配额详细信息
+
+            http code 200:
+            {
+              "id": "82238e8e-d7eb-11eb-b54d-c8009fe2eb10",
+              "tag": {
+                "value": 1,
+                "display": "普通配额"
+              },
+              "user": {
+                "id": "1",
+                "username": "shun"
+              },
+              "service": {
+                "id": "2",
+                "name": "怀柔204机房"
+              },
+              "private_ip_total": 0,
+              "private_ip_used": 0,
+              "public_ip_total": 0,
+              "public_ip_used": 0,
+              "vcpu_total": 0,
+              "vcpu_used": 0,
+              "ram_total": 0,
+              "ram_used": 0,
+              "disk_size_total": 0,
+              "disk_size_used": 0,
+              "expiration_time": "2021-07-13T08:33:26.537181Z",
+              "deleted": false,
+              "display": "[普通配额](Days: 110)",
+              "duration_days": 110,
+              "classification": "vo",       # vo：vo组配额申请；personal：用户个人配额申请
+              "vo": {                       # "classification"=="vo"时存在；"classification"=="personal"时为null
+                "id": "3d7cd5fc-d236-11eb-9da9-c8009fe2eb10",
+                "name": "项目组1",
+                "company": "网络中心",
+                "description": "的是",
+                "creation_time": "2021-06-21T02:13:16.663967Z",
+                "owner": {
+                  "id": "1",
+                  "username": "shun"
+                },
+                "status": "active"
+              }
+            }
+        """
+        return handlers.UserQuotaHandler.detail_quota(
+            view=self, request=request, kwargs=kwargs)
+
+
+class UserQuotaViewSet(CustomGenericViewSet):
+    queryset = []
+    permission_classes = [IsAuthenticated]
+    pagination_class = DefaultPageNumberPagination
+    lookup_field = 'id'
+
+    page_manual_parameters = [
+        openapi.Parameter(
+            name='page',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_INTEGER,
+            required=False,
+            description=_('分页页码')
+        ),
+        openapi.Parameter(
+            name='page_size',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_INTEGER,
+            required=False,
+            description=_('每页返回数据数量')
+        ),
+    ]
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('删除用户个人或vo组资源配额'),
+        deprecated=True,
+        responses={
+        }
+    )
+    def destroy(self, request, *args, **kwargs):
+        """
+        删除用户个人或vo组资源配额
+        """
+        return handlers.UserQuotaHandler.delete_quota(
+            view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举资源配额下的虚拟服务器'),
+        deprecated=True,
+        manual_parameters=page_manual_parameters,
+        responses={
+        }
+    )
+    @action(methods=['get'], detail=True, url_path='servers', url_name='quota-servers')
+    def quota_servers(self, request, *args, **kwargs):
+        return handlers.UserQuotaHandler.list_quota_servers(view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举用户个人的资源配额'),
+        deprecated=True,
+        manual_parameters=[
+            openapi.Parameter(
+                name='service',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=_('服务id, 过滤服务可用的资源配额')
+            ),
+            openapi.Parameter(
+                name='usable',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_BOOLEAN,
+                required=False,
+                description=_('true(过滤)，其他值（忽略）, 过滤可用的资源配额, 未过期的')
+            )
+        ],
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        return handlers.UserQuotaHandler.list_quotas(view=self, request=request, kwargs=kwargs)
 
 
 class ServiceViewSet(CustomGenericViewSet):
