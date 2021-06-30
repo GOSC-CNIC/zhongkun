@@ -1705,6 +1705,15 @@ class ServerArchiveViewSet(CustomGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举用户虚拟服务器归档记录'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='service_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description='服务provider id'
+            ),
+        ],
         responses={
             status.HTTP_200_OK: ''
         }
@@ -1753,15 +1762,28 @@ class ServerArchiveViewSet(CustomGenericViewSet):
                   ]
                 }
         """
-        try:
-            queryset = ServerArchive.objects.select_related('service').filter(user=request.user).all()
-            paginator = self.pagination_class()
-            servers = paginator.paginate_queryset(request=request, queryset=queryset)
-            serializer = serializers.ServerArchiveSerializer(servers, many=True)
-            return paginator.get_paginated_response(data=serializer.data)
-        except Exception as exc:
-            err = exceptions.APIException(message=str(exc))
-            return Response(err.err_data(), status=err.status_code)
+        return handlers.ServerArchiveHandler.list_archives(
+            view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举vo组的服务器归档记录'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='service_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description='服务provider id'
+            ),
+        ],
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['get'], detail=False, url_path='vo/(?P<vo_id>.+)', url_name='list-vo-archives')
+    def list_vo_archives(self, request, *args, **kwargs):
+        return handlers.ServerArchiveHandler.list_vo_archives(
+            view=self, request=request, kwargs=kwargs)
 
 
 class UserQuotaApplyViewSet(CustomGenericViewSet):

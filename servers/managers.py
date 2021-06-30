@@ -2,7 +2,7 @@ from django.utils.translation import gettext as _
 
 from core import errors
 from vo.managers import VoManager
-from .models import Server
+from .models import Server, ServerArchive
 
 
 class ServerManager:
@@ -92,3 +92,33 @@ class ServerManager:
                                           read_only=True)
 
 
+class ServerArchiveManager:
+    @staticmethod
+    def get_archives_queryset():
+        return ServerArchive.objects.all()
+
+    def get_user_archives_queryset(self, user, service_id: str = None):
+        """
+        查询用户个人server归档记录
+        """
+        qs = self.get_archives_queryset()
+        qs = qs.select_related('service', 'user_quota').filter(
+            user=user, classification=ServerArchive.Classification.PERSONAL)
+
+        if service_id:
+            qs = qs.filter(service_id=service_id)
+
+        return qs
+
+    def get_vo_archives_queryset(self, vo_id: str, service_id: str = None):
+        """
+        查询vo组的server归档记录
+        """
+        qs = self.get_archives_queryset()
+        qs = qs.select_related('service', 'user_quota').filter(
+            vo_id=vo_id, classification=ServerArchive.Classification.VO)
+
+        if service_id:
+            qs = qs.filter(service_id=service_id)
+
+        return qs

@@ -600,7 +600,7 @@ class ServersTests(MyAPITestCase):
         response = self.client.delete(url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-    def test_delete(self):
+    def test_delete_list_archive(self):
         self.client.logout()
         self.client.force_login(self.user)
         url = reverse('api:servers-detail', kwargs={'id': 'motfound'})
@@ -615,19 +615,41 @@ class ServersTests(MyAPITestCase):
         response = self.client.delete(url)
         self.assertEqual(response.status_code, 204)
 
-        self.list_server_archive_test_case()
-
-    def list_server_archive_test_case(self):
+        # list user server archives
         url = reverse('api:server-archive-list')
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "next", "previous", "results"], response.data)
-        self.assertEqual(response.data['count'], 2)
-        self.assertEqual(len(response.data['results']), 2)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['results']), 1)
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
                            "public_ip", "image", "creation_time",
                            "remarks", "service", "user_quota",
                            "center_quota", "deleted_time", "classification", "vo_id"], response.data["results"][0])
+        self.assert_is_subdict_of(sub={
+            'classification': Server.Classification.PERSONAL,
+            'service': {'id': self.miss_server.service.id, 'name': self.miss_server.service.name,
+                        "service_type": ServiceConfig.ServiceType.EVCLOUD},
+            'vo_id': None
+        }, d=response.data['results'][0])
+
+        # list vo server archives
+        url = reverse('api:server-archive-list-vo-archives', kwargs={'vo_id': self.vo_id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "next", "previous", "results"], response.data)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
+                           "public_ip", "image", "creation_time",
+                           "remarks", "service", "user_quota",
+                           "center_quota", "deleted_time", "classification", "vo_id"], response.data["results"][0])
+        self.assert_is_subdict_of(sub={
+            'classification': Server.Classification.VO,
+            'service': {'id': self.vo_server.service.id, 'name': self.vo_server.service.name,
+                        "service_type": ServiceConfig.ServiceType.EVCLOUD},
+            'vo_id': self.vo_id
+        }, d=response.data['results'][0])
 
 
 class ServiceTests(MyAPITestCase):
