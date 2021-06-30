@@ -35,9 +35,9 @@ class QuotaAPI:
         else:
             kwargs = {'private_ip': 1}
 
-        # 用户资源配额是否满足需求
+        # 资源配额是否满足需求，用户是否有使用权限
         u_mgr = UserQuotaManager()
-        user_quota = QuotaAPI.get_meet_user_quota(user=user, vcpu=vcpu, ram=ram, public_ip=public_ip,
+        user_quota = QuotaAPI.get_perm_meet_quota(user=user, vcpu=vcpu, ram=ram, public_ip=public_ip,
                                                   user_quota_id=user_quota_id)
 
         # 数据中心私有资源配额是否满足需求
@@ -89,9 +89,9 @@ class QuotaAPI:
         ServicePrivateQuotaManager().release(service=service, vcpus=vcpu, ram=ram, **kwargs)
 
     @staticmethod
-    def get_meet_user_quota(user, vcpu: int, ram: int, public_ip: bool, user_quota_id: str = None):
+    def get_perm_meet_quota(user, vcpu: int, ram: int, public_ip: bool, user_quota_id: str):
         """
-        获取满足条件的用户配额
+        获取用户有使用权限的，并且满足条件的个人或vo组资源配额
 
         :param user: 用户对象
         :param vcpu: vCPU数
@@ -103,30 +103,14 @@ class QuotaAPI:
         :raises: QuotaShortageError, QuotaError
         """
         u_mgr = UserQuotaManager()
-        if user_quota_id is not None:
-            quota = u_mgr.get_quota_by_id(user_quota_id)
-            if not quota:
-                raise errors.QuotaError(_('未找到指定的用户资源配额'))
+        try:
+            quota = u_mgr.get_user_manage_perm_quota(user_quota_id, user=user)
+        except errors.Error as e:
+            raise errors.QuotaError.from_error(e)
 
-            if public_ip is True:
-                u_mgr.requires(quota, vcpus=vcpu, ram=ram, public_ip=1)
-            else:
-                u_mgr.requires(quota, vcpus=vcpu, ram=ram, private_ip=1)
-
-            return quota
+        if public_ip is True:
+            u_mgr.requires(quota, vcpus=vcpu, ram=ram, public_ip=1)
         else:
-            user_quota_qs = u_mgr.get_quota_queryset(user=user)
-            u_quotas = list(user_quota_qs)
+            u_mgr.requires(quota, vcpus=vcpu, ram=ram, private_ip=1)
 
-            for uq in u_quotas:
-                try:
-                    if public_ip is True:
-                        u_mgr.requires(uq, vcpus=vcpu, ram=ram, public_ip=1)
-                    else:
-                        u_mgr.requires(uq, vcpus=vcpu, ram=ram, private_ip=1)
-                except errors.QuotaError as e:
-                    continue
-
-                return uq
-
-            raise errors.QuotaShortageError(_('没有可用的资源配额'))
+        return quota

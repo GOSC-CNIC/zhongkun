@@ -6,6 +6,7 @@ from django.urls import reverse
 from rest_framework.response import Response
 
 from servers.models import Server
+from servers.managers import ServerManager
 from service.managers import (
     UserQuotaManager, VmServiceApplyManager, OrganizationApplyManager,
     ServicePrivateQuotaManager, ServiceShareQuotaManager, ServiceManager,
@@ -17,6 +18,7 @@ from utils import storagers
 from utils import time
 from core import errors as exceptions
 from . import serializers
+from . import paginations
 
 
 User = get_user_model()
@@ -1355,3 +1357,45 @@ class VoHandler:
             return view.exception_response(exc)
 
         return Response(data=serializers.VoMemberSerializer(member).data)
+
+
+class ServerHandler:
+    @staticmethod
+    def list_servers(view, request, kwargs):
+        service_id = request.query_params.get('service_id', None)
+        servers = ServerManager().get_user_servers_queryset(user=request.user, service_id=service_id)
+
+        service_id_map = ServiceManager.get_service_id_map(use_cache=True)
+        paginator = paginations.ServersPagination()
+        try:
+            page = paginator.paginate_queryset(servers, request, view=view)
+            serializer = serializers.ServerSerializer(page, many=True, context={'service_id_map': service_id_map})
+            return paginator.get_paginated_response(data=serializer.data)
+        except Exception as exc:
+            return view.exception_response(exceptions.convert_to_error(exc))
+
+    @staticmethod
+    def list_vo_servers(view, request, kwargs):
+        vo_id = kwargs.get('vo_id')
+        service_id = request.query_params.get('service_id', None)
+
+        vo_mgr = VoManager()
+        vo = vo_mgr.get_vo_by_id(vo_id)
+        if vo is None:
+            raise exceptions.NotFound(message=_('项目组不存在'))
+
+        try:
+            vo_mgr.check_read_perm(vo=vo, user=request.user)
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        servers = ServerManager().get_vo_servers_queryset(vo_id=vo_id, service_id=service_id)
+
+        service_id_map = ServiceManager.get_service_id_map(use_cache=True)
+        paginator = paginations.ServersPagination()
+        try:
+            page = paginator.paginate_queryset(servers, request, view=view)
+            serializer = serializers.ServerSerializer(page, many=True, context={'service_id_map': service_id_map})
+            return paginator.get_paginated_response(data=serializer.data)
+        except Exception as exc:
+            return view.exception_response(exceptions.convert_to_error(exc))

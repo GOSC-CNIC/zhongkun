@@ -33,6 +33,7 @@ class ServerBaseSerializer(serializers.Serializer):
     creation_time = serializers.DateTimeField()
     expiration_time = serializers.DateTimeField()
     remarks = serializers.CharField()
+    classification = serializers.CharField()
 
 
 class ServerSimpleSerializer(ServerBaseSerializer):
@@ -47,6 +48,7 @@ class ServerSerializer(ServerBaseSerializer):
     service = serializers.SerializerMethodField(method_name='get_service')
     user_quota = UserQuotaSimpleSerializer(required=False)
     center_quota = serializers.IntegerField()
+    vo_id = serializers.CharField()
 
     def get_vms_endpoint_url(self, obj):
         service_id_map = self.context.get('service_id_map')
@@ -85,7 +87,7 @@ class ServerCreateSerializer(serializers.Serializer):
     flavor_id = serializers.CharField(label=_('配置样式id'), required=True, help_text=_('硬件配置样式ID'))
     network_id = serializers.CharField(label=_('子网id'), required=False, default='', help_text=_('子网ID'))
     quota_id = serializers.CharField(label=_('资源配额id'), required=True,
-                                     help_text=_('用户资源配额ID'))
+                                     help_text=_('用户个人或vo组的资源配额ID'))
     remarks = serializers.CharField(label=_('备注'), required=False, allow_blank=True, max_length=255, default='')
 
     def validate(self, attrs):
@@ -100,6 +102,7 @@ class ServerArchiveSerializer(ServerBaseSerializer):
     user_quota = UserQuotaSimpleSerializer(required=False)
     center_quota = serializers.IntegerField()
     deleted_time = serializers.DateTimeField()
+    vo_id = serializers.CharField()
 
     @staticmethod
     def get_service(obj):

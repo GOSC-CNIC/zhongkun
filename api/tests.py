@@ -68,7 +68,8 @@ def chunks(f, chunk_size=2*2**20):
         yield data
 
 
-def create_server_metadata(service, user, user_quota, vo_id=None):
+def create_server_metadata(service, user, user_quota, vo_id=None,
+                           classification=Server.Classification.PERSONAL):
     server = Server(service=service,
                     instance_id='test',
                     remarks='',
@@ -80,6 +81,7 @@ def create_server_metadata(service, user, user_quota, vo_id=None):
                     task_status=Server.TASK_CREATED_OK,
                     user_quota=user_quota,
                     public_ip=False,
+                    classification=classification,
                     vo_id=vo_id)
     server.save()
     return server
@@ -354,6 +356,14 @@ class ServersTests(MyAPITestCase):
         self.service = get_or_create_service()
         self.miss_server = create_server_metadata(
             service=self.service, user=self.user, user_quota=None)
+        vo_data = {
+            'name': 'test vo', 'company': '网络中心', 'description': 'unittest'
+        }
+        response = VoTests.create_vo_response(client=self.client, name=vo_data['name'],
+                                              company=vo_data['company'], description=vo_data['description'])
+        self.vo_id = response.data['id']
+        self.vo_server = create_server_metadata(service=self.service, user=self.user,
+            user_quota=None, vo_id=self.vo_id, classification=Server.Classification.VO)
 
     def test_server_create(self):
         url = reverse('api:servers-list')
@@ -369,20 +379,36 @@ class ServersTests(MyAPITestCase):
         self.assertEqual(response.status_code, 400)
 
         url = reverse('api:servers-server-remark', kwargs={'id': '00'})
-        url += f'?remark=ss'
-        response = self.client.patch(url)
+        query = parse.urlencode(query={'remark': 'ss'})
+        response = self.client.patch(f'{url}?{query}')
         self.assertEqual(response.status_code, 404)
 
         remark = 'test-remarks'
         url = reverse('api:servers-server-remark', kwargs={'id': self.miss_server.id})
-        url += f'?remark={remark}'
-        response = self.client.patch(url, format='json')
+        query = parse.urlencode(query={'remark': remark})
+        response = self.client.patch(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.miss_server.refresh_from_db()
         self.assertEqual(remark, self.miss_server.remarks)
 
+        # vo server
+        remark = 'test-vo-remarks'
+        url = reverse('api:servers-server-remark', kwargs={'id': self.vo_server.id})
+        query = parse.urlencode(query={'remark': remark})
+        response = self.client.patch(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.vo_server.refresh_from_db()
+        self.assertEqual(remark, self.vo_server.remarks)
+
     def test_server_status(self):
         url = reverse('api:servers-server_status', kwargs={'id': self.miss_server.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('status', response.data)
+        self.assertEqual(response.data['status']['status_code'], outputs.ServerStatus.MISS)
+
+        # vo server
+        url = reverse('api:servers-server_status', kwargs={'id': self.vo_server.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertIn('status', response.data)
@@ -408,18 +434,64 @@ class ServersTests(MyAPITestCase):
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
                            "public_ip", "image", "creation_time", "remarks",
                            "endpoint_url", "service", "user_quota",
-                           "center_quota"], response.data['server'])
+                           "center_quota", "classification", "vo_id"], response.data['server'])
 
     def test_server_list(self):
+        vo_server = self.vo_server
+        vo_id = self.vo_id
+        # list user servers
         url = reverse('api:servers-list')
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['count', 'next', 'previous', 'servers'], response.data)
+        self.assertEqual(response.data['count'], 1)
         self.assertIsInstance(response.data['servers'], list)
+        self.assertEqual(len(response.data['servers']), 1)
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
                            "public_ip", "image", "creation_time",
                            "remarks", "endpoint_url", "service", "user_quota",
-                           "center_quota"], response.data['servers'][0])
+                           "center_quota", "classification", "vo_id"], response.data['servers'][0])
+        self.assert_is_subdict_of(sub={
+            'classification': Server.Classification.PERSONAL,
+            'service': {'id': self.miss_server.service.id, 'name': self.miss_server.service.name,
+                        "service_type": ServiceConfig.ServiceType.EVCLOUD},
+            'id': self.miss_server.id, 'vo_id': None
+        }, d=response.data['servers'][0])
+
+        # list vo servers
+        url = reverse('api:servers-list-vo-servers', kwargs={'vo_id': self.vo_id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'next', 'previous', 'servers'], response.data)
+        self.assertIsInstance(response.data['servers'], list)
+        self.assertEqual(len(response.data['servers']), 1)
+        self.assertEqual(response.data['count'], 1)
+        self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
+                           "public_ip", "image", "creation_time",
+                           "remarks", "endpoint_url", "service", "user_quota",
+                           "center_quota", "classification", "vo_id"], response.data['servers'][0])
+        self.assert_is_subdict_of(sub={
+            'classification': Server.Classification.VO,
+            'service': {'id': vo_server.service.id, 'name': vo_server.service.name,
+                        "service_type": ServiceConfig.ServiceType.EVCLOUD},
+            'id': vo_server.id, 'vo_id': vo_id
+        }, d=response.data['servers'][0])
+
+        # server vo detail
+        url = reverse('api:servers-detail', kwargs={'id': vo_server.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['server'], response.data)
+        self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
+                           "public_ip", "image", "creation_time", "remarks",
+                           "endpoint_url", "service", "user_quota",
+                           "center_quota", "classification", "vo_id"], response.data['server'])
+        self.assert_is_subdict_of(sub={
+            'classification': Server.Classification.VO,
+            'service': {'id': vo_server.service.id, 'name': vo_server.service.name,
+                        "service_type": ServiceConfig.ServiceType.EVCLOUD},
+            'id': vo_server.id, 'vo_id': vo_id
+        }, d=response.data['server'])
 
     def test_server_action(self):
         url = reverse('api:servers-server-action', kwargs={'id': 'motfound'})
@@ -436,7 +508,101 @@ class ServersTests(MyAPITestCase):
         response = self.client.post(url, data={'action': 'start'})
         self.assertErrorResponse(status_code=500, code='InternalError', response=response)
 
-    def tearDown(self):
+    def test_permission(self):
+        member_user = get_or_create_user(username='vo-member')
+        self.client.logout()
+        self.client.force_login(member_user)
+
+        # -------no permission------
+        # vo server remark
+        remark = 'test-vo-remarks'
+        url = reverse('api:servers-server-remark', kwargs={'id': self.vo_server.id})
+        query = parse.urlencode(query={'remark': remark})
+        response = self.client.patch(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # list vo servers
+        url = reverse('api:servers-list-vo-servers', kwargs={'vo_id': self.vo_id})
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # action server
+        url = reverse('api:servers-server-action', kwargs={'id': self.vo_server.id})
+        response = self.client.post(url, data={'action': 'start'})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # vo server status
+        url = reverse('api:servers-server_status', kwargs={'id': self.vo_server.id})
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # server vo detail
+        url = reverse('api:servers-detail', kwargs={'id': self.vo_server.id})
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # server vnc
+        url = reverse('api:servers-server-vnc', kwargs={'id': self.vo_server.id})
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # ----- add vo member ------
+        self.client.logout()
+        self.client.force_login(self.user)
+        response = VoTests.add_members_response(client=self.client, vo_id=self.vo_id, usernames=[member_user.username])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['success']), 1)
+        self.client.logout()
+        self.client.force_login(member_user)
+
+        # -------has permission-----
+        # vo server remark
+        remark = 'test-vo-remarks'
+        url = reverse('api:servers-server-remark', kwargs={'id': self.vo_server.id})
+        query = parse.urlencode(query={'remark': remark})
+        response = self.client.patch(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.vo_server.refresh_from_db()
+        self.assertEqual(remark, self.vo_server.remarks)
+
+        # list vo servers
+        url = reverse('api:servers-list-vo-servers', kwargs={'vo_id': self.vo_id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'next', 'previous', 'servers'], response.data)
+        self.assertEqual(len(response.data['servers']), 1)
+        self.assertEqual(response.data['count'], 1)
+
+        # action server
+        url = reverse('api:servers-server-action', kwargs={'id': self.vo_server.id})
+        response = self.client.post(url, data={'action': 'start'})
+        self.assertErrorResponse(status_code=500, code='InternalError', response=response)
+
+        # vo server status
+        url = reverse('api:servers-server_status', kwargs={'id': self.vo_server.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('status', response.data)
+        self.assertEqual(response.data['status']['status_code'], outputs.ServerStatus.MISS)
+
+        # server vo detail
+        url = reverse('api:servers-detail', kwargs={'id': self.vo_server.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+        # server vnc
+        url = reverse('api:servers-server-vnc', kwargs={'id': self.vo_server.id})
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=500, code='InternalError', response=response)
+
+        # delete vo server need vo leader role
+        url = reverse('api:servers-detail', kwargs={'id': self.vo_server.id})
+        response = self.client.delete(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+    def test_delete(self):
+        self.client.logout()
+        self.client.force_login(self.user)
         url = reverse('api:servers-detail', kwargs={'id': 'motfound'})
         response = self.client.delete(url)
         self.assertErrorResponse(status_code=404, code='NotFound', response=response)
@@ -445,17 +611,23 @@ class ServersTests(MyAPITestCase):
         response = self.client.delete(url)
         self.assertEqual(response.status_code, 204)
 
-        self.list_service_test_case()
+        url = reverse('api:servers-detail', kwargs={'id': self.vo_server.id})
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, 204)
 
-    def list_service_test_case(self):
+        self.list_server_archive_test_case()
+
+    def list_server_archive_test_case(self):
         url = reverse('api:server-archive-list')
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "next", "previous", "results"], response.data)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(len(response.data['results']), 2)
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
                            "public_ip", "image", "creation_time",
                            "remarks", "service", "user_quota",
-                           "center_quota", "deleted_time"], response.data["results"][0])
+                           "center_quota", "deleted_time", "classification", "vo_id"], response.data["results"][0])
 
 
 class ServiceTests(MyAPITestCase):

@@ -19,6 +19,7 @@ from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
 from servers.models import Server, Flavor, ServerArchive
+from servers.managers import ServerManager
 from service.managers import ServiceManager
 from service.models import DataCenter, ApplyOrganization, ApplyVmService
 from service.models import ApplyQuota
@@ -65,7 +66,7 @@ class ServersViewSet(CustomGenericViewSet):
     # lookup_value_regex = '[0-9a-z-]+'
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('列举服务器实例'),
+        operation_summary=gettext_lazy('列举用户个人服务器实例'),
         manual_parameters=[
             openapi.Parameter(
                 name='service_id',
@@ -81,7 +82,7 @@ class ServersViewSet(CustomGenericViewSet):
     )
     def list(self, request, *args, **kwargs):
         """
-        列举服务器实例
+        列举用户个人服务器实例
 
             200: {
               "count": 8,
@@ -114,24 +115,74 @@ class ServersViewSet(CustomGenericViewSet):
                     "deleted": false,
                     "display": "[普通配额](vCPU: 10, RAM: 10240Mb, PublicIP: 5, PrivateIP: 7)"
                   },
-                  "center_quota": 2         # 1: 服务的私有资源配额，"user_quota"=null; 2: 服务的分享资源配额
+                  "center_quota": 2,         # 1: 服务的私有资源配额，"user_quota"=null; 2: 服务的分享资源配额
+                  "classification": "personal",
+                  "vo_id": null
                 }
               ]
             }
         """
-        servers = Server.objects.select_related('service', 'user_quota').filter(user=request.user)
-        service_id = request.query_params.get('service_id', None)
-        if service_id:
-            servers = servers.filter(service_id=service_id)
+        return handlers.ServerHandler.list_servers(view=self, request=request, kwargs=kwargs)
 
-        service_id_map = ServiceManager.get_service_id_map(use_cache=True)
-        paginator = ServersPagination()
-        try:
-            page = paginator.paginate_queryset(servers, request, view=self)
-            serializer = serializers.ServerSerializer(page, many=True, context={'service_id_map': service_id_map})
-            return paginator.get_paginated_response(data=serializer.data)
-        except Exception as exc:
-            return self.exception_response(exceptions.convert_to_error(exc))
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举vo组的服务器实例'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='service_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description='服务端点id'
+            ),
+        ],
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['get'], detail=False, url_path='vo/(?P<vo_id>.+)')
+    def list_vo_servers(self, request, *args, **kwargs):
+        """
+        列举vo组的服务器实例
+
+            200: {
+              "count": 8,
+              "next": "http://xxx/api/server/vo/3d7cd5fc-d236-11eb-9da9-c8009fe2eb10/?page=2&page_size=2",
+              "previous": null,
+              "servers": [
+                {
+                  "id": 9c70cbe2-690c-11eb-a4b7-c8009fe2eb10,
+                  "name": "gosc-instance-1cbaf0fd-20c1-4632-8e0c-7be8708591ac",
+                  "vcpus": 1,
+                  "ram": 1024,
+                  "ipv4": "10.0.200.249",
+                  "public_ip": false,
+                  "image": "centos8_gui",
+                  "creation_time": "2020-11-02T07:47:39.776384Z",
+                  "remarks": "",
+                  "endpoint_url": "http://159.226.235.16/",
+                  "service": {
+                    "id": "2",
+                    "name": "怀柔204机房",
+                    "service_type": "evcloud"
+                  },
+                  "user_quota": {           # may be null
+                    "id": "1",
+                    "tag": {
+                      "value": 1,
+                      "display": "普通配额"
+                    },
+                    "expiration_time": "2020-11-02T07:47:39.776384Z",       # may be null,
+                    "deleted": false,
+                    "display": "[普通配额](vCPU: 10, RAM: 10240Mb, PublicIP: 5, PrivateIP: 7)"
+                  },
+                  "center_quota": 2,         # 1: 服务的私有资源配额，"user_quota"=null; 2: 服务的分享资源配额
+                  "classification": "vo"
+                  "vo_id": "3d7cd5fc-d236-11eb-9da9-c8009fe2eb10"
+                }
+              ]
+            }
+        """
+        return handlers.ServerHandler.list_vo_servers(view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('创建服务器实例'),
@@ -207,6 +258,13 @@ class ServersViewSet(CustomGenericViewSet):
 
         out_server = out.server
         kwargs = {'center_quota': Server.QUOTA_PRIVATE}
+        if user_quota.classification == user_quota.Classification.VO:
+            kwargs['classification'] = Server.Classification.VO
+            kwargs['vo_id'] = user_quota.vo_id
+        else:
+            kwargs['classification'] = Server.Classification.PERSONAL
+            kwargs['vo_id'] = None
+
         due_time = timezone.now() + timedelta(days=user_quota.duration_days)
         server = Server(service=service,
                         instance_id=out_server.uuid,
@@ -272,15 +330,17 @@ class ServersViewSet(CustomGenericViewSet):
                     "deleted": false,
                     "display": "[普通配额](vCPU: 10, RAM: 10240Mb, PublicIP: 5, PrivateIP: 7)"
                 },
-                "center_quota": 2         # 1: 服务的私有资源配额，"user_quota"=null; 2: 服务的分享资源配额
+                "center_quota": 2,         # 1: 服务的私有资源配额，"user_quota"=null; 2: 服务的分享资源配额
+                "classification": "vo",
+                "vo_id": "3d7cd5fc-d236-11eb-9da9-c8009fe2eb10"    # null when "classification"=="personal"
               }
             }
         """
         server_id = kwargs.get(self.lookup_field, '')
 
         try:
-            server = self.get_server(server_id=server_id, user=request.user,
-                                     related_fields=['service__data_center'])
+            server = ServerManager().get_read_perm_server(server_id=server_id, user=request.user,
+                related_fields=['service__data_center', 'vo__owner'])
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
@@ -383,7 +443,7 @@ class ServersViewSet(CustomGenericViewSet):
         else:
             force = False
         try:
-            server = self.get_server(server_id=server_id, user=request.user)
+            server = ServerManager().get_manage_perm_server(server_id=server_id, user=request.user)
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
@@ -450,7 +510,7 @@ class ServersViewSet(CustomGenericViewSet):
             return Response(data=exc.err_data(), status=exc.status_code)
 
         try:
-            server = self.get_server(server_id=server_id, user=request.user)
+            server = ServerManager().get_read_perm_server(server_id=server_id, user=request.user)
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
@@ -520,7 +580,7 @@ class ServersViewSet(CustomGenericViewSet):
         server_id = kwargs.get(self.lookup_field, '')
 
         try:
-            server = self.get_server(server_id=server_id, user=request.user)
+            server = ServerManager().get_read_perm_server(server_id=server_id, user=request.user)
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
@@ -575,12 +635,12 @@ class ServersViewSet(CustomGenericViewSet):
                 """
         }
     )
-    @action(methods=['get'], url_path='vnc', detail=True, url_name='server_vnc')
+    @action(methods=['get'], url_path='vnc', detail=True, url_name='server-vnc')
     def server_vnc(self, request, *args, **kwargs):
         server_id = kwargs.get(self.lookup_field, '')
 
         try:
-            server = self.get_server(server_id=server_id, user=request.user)
+            server = ServerManager().get_read_perm_server(server_id=server_id, user=request.user)
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
@@ -592,7 +652,7 @@ class ServersViewSet(CustomGenericViewSet):
             return Response(data=exc.err_data(), status=exc.status_code)
 
         vnc = r.vnc.url
-        if not vnc.startswith('http') and service.service_type == service.SERVICE_VMWARE:
+        if not vnc.startswith('http') and service.service_type == service.ServiceType.VMWARE:
             path = reverse('servers:vmware')
             url = request.build_absolute_uri(location=path)
             vnc = replace_query_param(url=url, key='vm_url', val=r.vnc.url)
@@ -640,7 +700,7 @@ class ServersViewSet(CustomGenericViewSet):
                 exceptions.InvalidArgument(message='query param "remark" is required'))
 
         try:
-            server = self.get_server(server_id=server_id, user=request.user)
+            server = ServerManager().get_read_perm_server(server_id=server_id, user=request.user)
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
@@ -657,23 +717,6 @@ class ServersViewSet(CustomGenericViewSet):
             return serializers.ServerCreateSerializer
 
         return Serializer
-
-    @staticmethod
-    def get_server(server_id: str, user, related_fields: list = None):
-        fields = ['service', 'user_quota']
-        if related_fields:
-            for f in related_fields:
-                if f not in fields:
-                    fields.append(f)
-
-        server = Server.objects.filter(id=server_id).select_related(*fields).first()
-        if not server:
-            raise exceptions.NotFound(_('服务器实例不存在'))
-
-        if not server.user_has_perms(user):
-            raise exceptions.AccessDenied(_('无权限访问此服务器实例'))
-
-        return server
 
     @staticmethod
     def release_server_quota(server):
@@ -1668,7 +1711,7 @@ class ServerArchiveViewSet(CustomGenericViewSet):
     )
     def list(self, request, *args, **kwargs):
         """
-        列举用户虚拟服务器归档记录
+        列举用户个人虚拟服务器归档记录
 
             Http Code: 状态码200，返回数据：
                 {
@@ -1703,7 +1746,9 @@ class ServerArchiveViewSet(CustomGenericViewSet):
                       },
                       "center_quota": 2,
                       "user_quota_tag": 1,
-                      "deleted_time": "2021-02-01T08:35:04.154218Z"
+                      "deleted_time": "2021-02-01T08:35:04.154218Z",
+                      "classification": "personal",
+                      "vo_id": null    # string when "classification"=="vo"
                     }
                   ]
                 }

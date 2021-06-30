@@ -3,6 +3,7 @@ from django.views import View
 
 from utils.paginators import NumsPaginator
 from .models import ServiceConfig, Server
+from .managers import ServerManager
 
 
 def to_int_or_default(val, default=None):
@@ -25,11 +26,10 @@ class ServerView(View):
         if service_id:
             service = ServiceConfig.objects.filter(id=service_id).first()
             is_need_vpn = service.is_need_vpn()
-            servers_qs = Server.objects.filter(service=service_id, user=user).all()
         else:
             is_need_vpn = False
-            servers_qs = Server.objects.filter(user=user).all()
 
+        servers_qs = ServerManager().get_user_servers_queryset(user=user, service_id=service_id)
         # 分页显示
         paginator = NumsPaginator(request, servers_qs, self.NUM_PER_PAGE)
         page_num = request.GET.get(paginator.page_query_name, 1)  # 获取页码参数，没有参数默认为1
