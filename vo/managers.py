@@ -77,6 +77,25 @@ class VoManager:
         member = self.check_manager_perm(vo=vo, user=user)
         return vo, member
 
+    def get_has_read_perm_vo(self, vo_id: str, user) -> (VirtualOrganization, VoMember):
+        """
+        查询用户有访问权限的vo
+
+        :return:
+            (
+                VirtualOrganization(),  # 组实例
+                VoMember() or None      # user对应的组员实例; None(user是组拥有者)
+            )
+
+        :raises: Error
+        """
+        vo = self.get_vo_by_id(vo_id=vo_id)
+        if vo is None:
+            raise errors.NotFound(message=_('项目组不存在'))
+
+        member = self.check_read_perm(vo=vo, user=user)
+        return vo, member
+
     @staticmethod
     def get_queryset():
         return VoManager.model.objects.select_related('owner').all()

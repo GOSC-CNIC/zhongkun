@@ -659,6 +659,17 @@ class ServiceTests(MyAPITestCase):
         self.service = get_or_create_service()
 
     def test_list_service(self):
+        vo_data = {
+            'name': 'test vo', 'company': '网络中心', 'description': 'unittest'
+        }
+        response = VoTests.create_vo_response(client=self.client, name=vo_data['name'],
+                                              company=vo_data['company'], description=vo_data['description'])
+        vo_id = response.data['id']
+        mgr = UserQuotaManager()
+        vo_expire_quota = mgr.create_quota(user=self.user, service=self.service,
+                                           expire_time=timezone.now() - timedelta(days=1),
+                                           classification=UserQuota.Classification.VO, vo_id=vo_id)
+
         url = reverse('api:service-list')
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -666,6 +677,41 @@ class ServiceTests(MyAPITestCase):
         self.assertKeysIn(["id", "name", "name_en", "service_type", "add_time",
                            "need_vpn", "status", "data_center"], response.data["results"][0])
         self.assertIsInstance(response.data["results"][0]['status'], str)
+        self.assertEqual(response.data["results"][0]['status'], ServiceConfig.Status.ENABLE)
+
+        url = reverse('api:service-list')
+        query = parse.urlencode(query={'center_id': self.service.data_center_id, 'available_only': ''})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "next", "previous", "results"], response.data)
+        self.assertEqual(response.data["count"], 0)
+
+        mgr.create_quota(user=self.user, service=self.service,
+                         classification=UserQuota.Classification.PERSONAL, vo_id=None)
+
+        url = reverse('api:service-list')
+        query = parse.urlencode(query={'center_id': self.service.data_center_id, 'available_only': ''})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 1)
+
+        # list vo service
+        url = reverse('api:service-list-vo-services', kwargs={'vo_id': vo_id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "next", "previous", "results"], response.data)
+        self.assertEqual(response.data["count"], 0)
+
+        vo_quota = mgr.create_quota(user=self.user, service=self.service,
+                                    classification=UserQuota.Classification.VO, vo_id=vo_id)
+        url = reverse('api:service-list-vo-services', kwargs={'vo_id': vo_id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "next", "previous", "results"], response.data)
+        self.assertEqual(response.data["count"], 1)
+        self.assert_is_subdict_of(sub={
+            'id': self.service.id, 'name': self.service.name
+        }, d=response.data["results"][0])
 
     def test_admin_list(self):
         url = reverse('api:service-admin-list')

@@ -1447,7 +1447,7 @@ class ServiceViewSet(CustomGenericViewSet):
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_BOOLEAN,
                 required=False,
-                description='只查询用户由资源可使用的服务，提交此参数即有效（不需要赋值）'
+                description='只查询用户由个人资源配额可使用的服务，提交此参数即有效（不需要赋值）'
             ),
         ],
         responses={
@@ -1480,12 +1480,53 @@ class ServiceViewSet(CustomGenericViewSet):
               ]
             }
         """
-        center_id = request.query_params.get('center_id', None)
-        available_only = request.query_params.get('available_only', None)
-        user = None if available_only is None else request.user
+        return handlers.VmServiceHandler.list_services(
+            view=self, request=request, kwargs=kwargs)
 
-        service_qs = ServiceManager().filter_service(center_id=center_id, user=user)
-        return self.paginate_service_response(request=request, qs=service_qs)
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举vo组有资源可使用的已接入的服务'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='center_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description='联邦成员机构id'
+            )
+        ],
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    @action(methods=['get'], detail=False, url_path='vo/(?P<vo_id>.+)', url_name='list-vo-services')
+    def list_vo_service(self, request, *args, **kwargs):
+        """
+        列举vo组有资源可使用的已接入的服务
+
+            Http Code: 状态码200，返回数据：
+            {
+              "count": 1,
+              "next": null,
+              "previous": null,
+              "results": [
+                {
+                  "id": 9c70cbe2-690c-11eb-a4b7-c8009fe2eb10,
+                  "name": "vmware(10.0.200.243)",
+                  "name_en": "string",
+                  "service_type": "vmware",
+                  "add_time": "2020-10-16T09:01:44.402955Z",
+                  "need_vpn": false,
+                  "status": "enable",              # enable: 开启状态；disable: 停止服务状态; deleted: 删除
+                  "data_center": {
+                    "id": 3,
+                    "name": "VMware测试中心"
+                  }
+                }
+              ]
+            }
+        """
+        return handlers.VmServiceHandler.list_vo_services(
+            view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举用户有管理权限的服务'),

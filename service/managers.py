@@ -450,7 +450,7 @@ class UserQuotaManager:
 
         return queryset.order_by('id')
 
-    def filter_vo_quota_queryset(self, vo, service=None, usable=None):
+    def  filter_vo_quota_queryset(self, vo, service=None, usable=None):
         """
         过滤vo组的资源配额查询集
 
@@ -885,17 +885,34 @@ class ServiceManager:
         :param center_id: 联邦成员机构id
         :param user: 用户对象，筛选用户有可用资源配额的服务
         """
+        queryset = ServiceConfig.objects.select_related('data_center').filter(
+            status=ServiceConfig.Status.ENABLE)
+
         if center_id:
-            queryset = ServiceConfig.objects.select_related('data_center').filter(
-                data_center=center_id, status=ServiceConfig.Status.ENABLE)
-        else:
-            queryset = ServiceConfig.objects.select_related('data_center').filter(
-                status=ServiceConfig.Status.ENABLE)
+            queryset = queryset.filter(data_center=center_id)
 
         if user:
-            user_quotas = UserQuotaManager().filter_quota_queryset(user=user, usable=True)
+            user_quotas = UserQuotaManager().filter_user_quota_queryset(user=user, usable=True)
             queryset = queryset.filter(id__in=Subquery(
                 user_quotas.values_list('service_id', flat=True)))
+
+        return queryset
+
+    @staticmethod
+    def filter_vo_service(center_id: str, vo):
+        """
+        :param center_id: 联邦成员机构id
+        :param vo: vo组对象,筛选vo组有可用资源配额的服务
+        """
+        queryset = ServiceConfig.objects.select_related('data_center').filter(
+            status=ServiceConfig.Status.ENABLE)
+
+        if center_id:
+            queryset = queryset.filter(data_center=center_id)
+
+        user_quotas = UserQuotaManager().filter_vo_quota_queryset(vo=vo, usable=True)
+        queryset = queryset.filter(id__in=Subquery(
+            user_quotas.values_list('service_id', flat=True)))
 
         return queryset
 
