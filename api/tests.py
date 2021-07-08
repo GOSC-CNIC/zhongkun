@@ -18,6 +18,7 @@ from service.models import (
 from utils.test import get_or_create_user, get_or_create_service, get_or_create_center
 from adapters import outputs
 from vo.models import VirtualOrganization, VoMember
+from activity.models import QuotaActivity
 
 
 def random_string(length: int = 10):
@@ -2418,3 +2419,210 @@ class VoTests(MyAPITestCase):
         response = self.remove_members_response(client=self.client, vo_id=vo_id,
                                                 usernames=[owner.username])
         self.assertErrorResponse(response=response, status_code=403, code='AccessDenied')
+
+
+class QuotaActivityTests(MyAPITestCase):
+    def setUp(self):
+        self.user = None
+        set_auth_header(self)
+        self.service = get_or_create_service()
+        self.user2_username = 'user2'
+        self.user2_password = 'user2password'
+        self.user2 = get_or_create_user(username=self.user2_username, password=self.user2_password)
+
+    @staticmethod
+    def create_activity_response(client, data):
+        url = reverse('api:quota-activity-list')
+        return client.post(url, data=data)
+
+    @staticmethod
+    def activity_get_response(client, activity_id: str):
+        url = reverse('api:quota-activity-quota-activity-get', kwargs={'id': activity_id})
+        return client.get(url)
+
+    def test_create_list_activity(self):
+        data = {
+          "service_id": "string",
+          "name": "string",
+          "name_en": "string",
+          "start_time": (timezone.now() + timedelta(hours=1)).isoformat(),
+          "end_time": (timezone.now() + timedelta(days=1)).isoformat(),
+          "count": 3,
+          "times_per_user": 2,
+          "status": QuotaActivity.Status.ACTIVE,
+          "tag": QuotaActivity.Tag.PROBATION,
+          "cpus": 1,
+          "private_ip": 0,
+          "public_ip": 0,
+          "ram": 1024,
+          "disk_size": 0,
+          "expiration_time": (timezone.now() + timedelta(days=1)).isoformat(),
+          "duration_days": 10
+        }
+        response = self.create_activity_response(client=self.client, data=data)
+        self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
+
+        data['private_ip'] = 1
+        data['public_ip'] = 2
+        response = self.create_activity_response(client=self.client, data=data)
+        self.assertErrorResponse(status_code=404, code='NotFound', response=response)
+
+        data['service_id'] = self.service.id
+        response = self.create_activity_response(client=self.client, data=data)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.service.users.add(self.user)
+        response = self.create_activity_response(client=self.client, data=data)
+        self.assertEqual(response.status_code, 200)
+        activity_id = response.data['id']
+
+        # list
+        base_url = reverse('api:quota-activity-list')
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "next", "previous", "results"], response.data)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['results']), 1)
+
+        # list query
+        query = parse.urlencode(query={'status': QuotaActivity.Status.CLOSED})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
+        self.assertEqual(len(response.data['results']), 0)
+
+        query = parse.urlencode(query={'status': QuotaActivity.Status.ACTIVE})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['results']), 1)
+
+        query = parse.urlencode(query={'status': QuotaActivity.Status.ACTIVE, 'exclude-not-start': ''})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
+        self.assertEqual(len(response.data['results']), 0)
+
+        query = parse.urlencode(query={'status': QuotaActivity.Status.ACTIVE, 'exclude-ended': ''})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['results']), 1)
+
+        query = parse.urlencode(query={
+            'status': QuotaActivity.Status.ACTIVE, 'exclude-not-start': '', 'exclude-ended': ''})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
+        self.assertEqual(len(response.data['results']), 0)
+
+        QuotaActivity.objects.filter(id=activity_id).update(start_time=timezone.now())
+        query = parse.urlencode(query={
+            'status': QuotaActivity.Status.ACTIVE, 'exclude-not-start': '', 'exclude-ended': ''})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['results']), 1)
+
+    def test_got(self):
+        count = 3
+        expiration_time = timezone.now() + timedelta(days=1)
+        data = {
+            "service_id": self.service.id,
+            "name": "string",
+            "name_en": "string",
+            "start_time": (timezone.now() + timedelta(hours=1)).isoformat(),
+            "end_time": (timezone.now() + timedelta(days=1)).isoformat(),
+            "count": 3,
+            "times_per_user": 2,
+            "status": QuotaActivity.Status.ACTIVE.value,
+            "tag": QuotaActivity.Tag.PROBATION.value,
+            "cpus": 1,
+            "private_ip": 1,
+            "public_ip": 2,
+            "ram": 1024,
+            "disk_size": 0,
+            "expiration_time": expiration_time.isoformat(),
+            "duration_days": 10
+        }
+        self.service.users.add(self.user)
+        response = self.create_activity_response(client=self.client, data=data)
+        self.assertEqual(response.status_code, 200)
+        activity_id = response.data['id']
+        activity = QuotaActivity.objects.get(id=activity_id)
+        self.assertEqual(activity.count, count)
+        self.assertEqual(activity.got_count, 0)
+        self.assertEqual(UserQuota.objects.all().count(), 0)
+
+        # user got error when not start
+        response = self.activity_get_response(client=self.client, activity_id=activity_id)
+        self.assertErrorResponse(status_code=409, code='NotStart', response=response)
+
+        activity.start_time = timezone.now()
+        activity.save()
+        # user got 1
+        response = self.activity_get_response(client=self.client, activity_id=activity_id)
+        if response.status_code == 500:
+            activity.refresh_from_db()
+            self.assertEqual(activity.count, count)
+            self.assertEqual(activity.got_count, 0)
+            self.assertEqual(UserQuota.objects.all().count(), 0)
+
+        self.assertEqual(response.status_code, 200)
+        quota_id = response.data['quota_id']
+        quota = UserQuota.objects.get(id=quota_id)
+        self.assertEqual(quota.service_id, data['service_id'])
+        self.assertEqual(quota.tag, UserQuota.TAG_PROBATION)
+        self.assertEqual(quota.vcpu_total, data['cpus'])
+        self.assertEqual(quota.private_ip_total, data['private_ip'])
+        self.assertEqual(quota.public_ip_total, data['public_ip'])
+        self.assertEqual(quota.ram_total, data['ram'])
+        self.assertEqual(quota.disk_size_total, data['disk_size'])
+        self.assertEqual(quota.expiration_time, expiration_time)
+        self.assertEqual(quota.duration_days, data['duration_days'])
+
+        activity.refresh_from_db()
+        self.assertEqual(activity.count, count)
+        self.assertEqual(activity.got_count, 1)
+        self.assertEqual(UserQuota.objects.all().count(), 1)
+
+        # user got 2
+        response = self.activity_get_response(client=self.client, activity_id=activity_id)
+        self.assertEqual(response.status_code, 200)
+        quota_id = response.data['quota_id']
+        UserQuota.objects.get(id=quota_id)
+        activity.refresh_from_db()
+        self.assertEqual(activity.count, count)
+        self.assertEqual(activity.got_count, 2)
+        self.assertEqual(UserQuota.objects.all().count(), 2)
+
+        # user got 3 error
+        response = self.activity_get_response(client=self.client, activity_id=activity_id)
+        self.assertErrorResponse(status_code=409, code='TooMany', response=response)
+        activity.refresh_from_db()
+        self.assertEqual(activity.count, count)
+        self.assertEqual(activity.got_count, 2)
+        self.assertEqual(UserQuota.objects.all().count(), 2)
+
+        # user2
+        self.client.logout()
+        self.client.force_login(self.user2)
+
+        # user2 got 1
+        response = self.activity_get_response(client=self.client, activity_id=activity_id)
+        self.assertEqual(response.status_code, 200)
+        quota_id = response.data['quota_id']
+        UserQuota.objects.get(id=quota_id)
+        activity.refresh_from_db()
+        self.assertEqual(activity.count, count)
+        self.assertEqual(activity.got_count, 3)
+        self.assertEqual(UserQuota.objects.all().count(), 3)
+
+        # user2 got 2
+        response = self.activity_get_response(client=self.client, activity_id=activity_id)
+        self.assertErrorResponse(status_code=409, code='NoneLeft', response=response)
+        activity.refresh_from_db()
+        self.assertEqual(activity.count, count)
+        self.assertEqual(activity.got_count, 3)
+        self.assertEqual(UserQuota.objects.all().count(), 3)
+

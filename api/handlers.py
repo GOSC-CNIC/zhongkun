@@ -14,6 +14,7 @@ from service.managers import (
 )
 from service.models import ApplyQuota
 from vo.managers import VoManager, VoMemberManager
+from activity.managers import QuotaActivityManager
 from utils import storagers
 from utils import time
 from core import errors as exceptions
@@ -1467,3 +1468,72 @@ class ServerArchiveHandler:
         except Exception as exc:
             return view.exception_response(exceptions.convert_to_error(exc))
 
+
+class QuotaActivityHandler:
+    @staticmethod
+    def list_activities(view, request, kwargs):
+        status = request.query_params.get('status', None)
+        exclude_not_start = request.query_params.get('exclude-not-start', None)
+        exclude_ended = request.query_params.get('exclude-ended', None)
+
+        if status is not None and status not in QuotaActivityManager.MODEL.Status.values:
+            return view.exception_response(exceptions.BadRequest(message=_('参数status的值无效')))
+
+        if exclude_not_start is not None:
+            exclude_not_start = True
+
+        if exclude_ended is not None:
+            exclude_ended = True
+
+        queryset = QuotaActivityManager().filter_queryset(
+            deleted=False, status=status, exclude_not_start=exclude_not_start, exclude_ended=exclude_ended)
+
+        paginator = view.paginator
+        try:
+            page = paginator.paginate_queryset(queryset, request=request, view=view)
+            serializer = view.get_serializer(page, many=True)
+            return paginator.get_paginated_response(data=serializer.data)
+        except Exception as exc:
+            return view.exception_response(exceptions.convert_to_error(exc))
+
+    @staticmethod
+    def create_activity(view, request, kwargs):
+        serializer = view.get_serializer(data=request.data)
+        if not serializer.is_valid(raise_exception=False):
+            msg = serializer_error_msg(serializer.errors)
+            return view.exception_response(exceptions.BadRequest(msg))
+
+        data = serializer.validated_data
+        service_id = data.get('service_id')
+        service = ServiceManager.get_service_by_id(_id=service_id)
+        if service is None:
+            return view.exception_response(exceptions.NotFound(
+                message=_('云主机服务provider不存在')))
+
+        if service.status != service.Status.ENABLE:
+            return view.exception_response(exceptions.ConflictError(
+                message=_('云主机服务provider不可用')))
+
+        if not service.user_has_perm(request.user):
+            return view.exception_response(exceptions.AccessDenied(
+                message=_('你没有云主机服务provider的管理权限，无权为此服务创建活动')))
+
+        try:
+            qa = QuotaActivityManager().create_activity(data=data, user=request.user)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        return Response(data=view.get_serializer(instance=qa).data)
+
+    @staticmethod
+    def quota_activity_get(view, request, kwargs):
+        """
+        从配额活动领取配额
+        """
+        _id = kwargs.get(view.lookup_field)
+        try:
+            quota = QuotaActivityManager().activity_got_once(_id=_id, user=request.user)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        return Response(data={'quota_id': quota.id})

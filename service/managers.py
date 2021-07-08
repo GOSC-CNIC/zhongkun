@@ -33,7 +33,11 @@ class UserQuotaManager:
         if tag is None:
             tag = self.MODEL.TAG_BASE
 
-        expiration_time = expire_time if isinstance(expire_time, datetime) else (timezone.now() + timedelta(days=30))
+        if isinstance(expire_time, datetime):
+            expiration_time = expire_time
+        else:
+            expiration_time = (timezone.now() + timedelta(days=UserQuota.EXPIRATION_DAYS))
+
         quota = self.MODEL(user=user, service=service, tag=tag, expiration_time=expiration_time,
                            classification=classification, vo_id=vo_id)
         try:

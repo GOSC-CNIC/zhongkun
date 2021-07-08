@@ -23,6 +23,7 @@ router.register(r'user', views.UserViewSet, basename='user')
 router.register(r'apply/service', views.ApplyVmServiceViewSet, basename='apply-service')
 router.register(r'apply/organization', views.ApplyOrganizationViewSet, basename='apply-organization')
 router.register(r'vo', views.VOViewSet, basename='vo')
+router.register(r'quota-activity', views.QuotaActivityViewSet, basename='quota-activity')
 
 no_slash_router = SimpleRouter(trailing_slash=False)
 no_slash_router.register(r'media', views.MediaViewSet, basename='media')

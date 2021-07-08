@@ -247,6 +247,8 @@ class UserQuota(UuidModel):
 
     配额属于用户或者项目组
     """
+    EXPIRATION_DAYS = 30    # 配额过期时长
+
     TAG_BASE = 1
     TAG_PROBATION = 2
     CHOICES_TAG = (
@@ -770,7 +772,7 @@ class ApplyQuota(UuidModel):
         quota.vcpu_total = self.vcpu
         quota.ram_total = self.ram
         quota.disk_size_total = self.disk_size
-        quota.expiration_time = timezone.now() + timedelta(days=15)
+        quota.expiration_time = timezone.now() + timedelta(days=UserQuota.EXPIRATION_DAYS)
         quota.duration_days = self.duration_days
         if self.classification == self.Classification.PERSONAL:
             quota.classification = quota.Classification.PERSONAL

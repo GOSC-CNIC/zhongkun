@@ -29,6 +29,7 @@ from core import request as core_request
 from core import errors as exceptions
 from core.taskqueue import server_build_status
 from vo.models import VoMember
+from activity.models import QuotaActivity
 from . import serializers
 from .viewsets import CustomGenericViewSet
 from .paginations import ServersPagination, DefaultPageNumberPagination
@@ -3168,5 +3169,171 @@ class VOViewSet(CustomGenericViewSet):
             return serializers.VoMembersAddSerializer
         elif _action == 'vo_members_list':
             return serializers.VoMemberSerializer
+
+        return Serializer
+
+
+class QuotaActivityViewSet(CustomGenericViewSet):
+    """
+    配额活动视图
+    """
+    permission_classes = [IsAuthenticated]
+    pagination_class = DefaultPageNumberPagination
+    lookup_field = 'id'
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举配额活动'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='status',
+                type=openapi.TYPE_STRING,
+                in_=openapi.IN_QUERY,
+                required=False,
+                description=_('查询条件，closed:只查询关闭的活动；active:只查询未关闭的活动;'
+                              ) + f'{QuotaActivity.Status.values}'
+            ),
+            openapi.Parameter(
+                name='exclude-not-start',
+                type=openapi.TYPE_BOOLEAN,
+                in_=openapi.IN_QUERY,
+                required=False,
+                description=_('查询条件，不需要值，参数存在即有效')
+            ),
+            openapi.Parameter(
+                name='exclude-ended',
+                type=openapi.TYPE_BOOLEAN,
+                in_=openapi.IN_QUERY,
+                required=False,
+                description=_('查询条件，不需要值，参数存在即有效')
+            )
+        ],
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        列举配额活动
+
+            http code 200 ok:
+            {
+              "count": 1,
+              "next": null,
+              "previous": null,
+              "results": [
+                {
+                  "id": "db19efc0-df97-11eb-ab83-c8009fe2eb10",
+                  "got_count": 2,
+                  "service": {
+                    "id": "2",
+                    "name": "怀柔204机房",
+                    "name_en": ""
+                  },
+                  "user": {
+                    "id": "1",
+                    "username": "shun"
+                  },
+                  "creation_time": "2021-07-08T02:54:47.395796Z",
+                  "name": "string",
+                  "name_en": "string",
+                  "start_time": "2021-07-08T02:50:26.553000Z",
+                  "end_time": "2021-08-08T02:50:26.553000Z",
+                  "count": 6,
+                  "times_per_user": 2,
+                  "status": "active",
+                  "tag": "probation",
+                  "cpus": 1,
+                  "private_ip": 1,
+                  "public_ip": 2,
+                  "ram": 1024,
+                  "disk_size": 0,
+                  "expiration_time": "2021-07-08T02:50:26.553000Z",
+                  "duration_days": 10
+                }
+              ]
+            }
+        """
+        return handlers.QuotaActivityHandler.list_activities(view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('为指定云主机服务创建配额活动'),
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    def create(self, request, *args, **kwargs):
+        """
+        为指定云主机服务创建配额活动，需有服务的管理权限
+
+            http code 200:
+            {
+              "id": "db19efc0-df97-11eb-ab83-c8009fe2eb10",
+              "got_count": 0,
+              "service": {
+                "id": "2",
+                "name": "怀柔204机房",
+                "name_en": ""
+              },
+              "user": {
+                "id": "1",
+                "username": "shun"
+              },
+              "creation_time": "2021-07-08T02:54:47.395796Z",
+              "name": "string",
+              "name_en": "string",
+              "start_time": "2021-07-08T02:50:26.553000Z",
+              "end_time": "2021-08-08T02:50:26.553000Z",
+              "count": 6,
+              "times_per_user": 2,
+              "status": "active",
+              "tag": "probation",
+              "cpus": 1,
+              "private_ip": 1,
+              "public_ip": 2,
+              "ram": 1024,
+              "disk_size": 0,
+              "expiration_time": "2021-07-08T02:50:26.553000Z",
+              "duration_days": 10
+            }
+        """
+        return handlers.QuotaActivityHandler.create_activity(view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('从配额活动领取配额'),
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    @action(methods=['get'], detail=True, url_path='get', url_name='quota-activity-get')
+    def quota_activity_get(self, request, *args, **kwargs):
+        """
+        从配额活动领取配额
+
+            http code 200:
+                {
+                  "quota_id": "fe0931da-df97-11eb-ad7d-c8009fe2eb10"
+                }
+            http code 404, 500:
+            {
+              "code": "NotFound",        # or "Error"
+              "message": "活动不存在"
+            }
+            http code 409:
+            {
+              "code": "TooMany",
+              "message": "不能领取更多了"
+            }
+            * code
+                'IsClosed': '活动已经关闭'
+                'NotStart': '活动还未开始'
+                'IsOver': '活动已结束'
+                'NoneLeft': '配额已经被领完了'
+                'TooMany': '不能领取更多了'
+        """
+        return handlers.QuotaActivityHandler.quota_activity_get(view=self, request=request, kwargs=kwargs)
+
+    def get_serializer_class(self):
+        if self.action in ['list', 'create']:
+            return serializers.QuotaActivitySerializer
 
         return Serializer
