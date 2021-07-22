@@ -277,7 +277,9 @@ class OpenStackAdapter(BaseAdapter):
             for image in service_instance.image.images():
                 img_obj = outputs.ListImageOutputImage(id=image.id, name=image.name, system=image.properties['os'],
                                                        desc=image.properties['description'],
-                                                       system_type=image.os_type, creation_time=image.created_at)
+                                                       system_type=image.os_type, creation_time=image.created_at,
+                                                       default_username='', default_password=''
+                                                       )
                 result.append(img_obj)
             return outputs.ListImageOutput(images=result)
         except Exception as e:

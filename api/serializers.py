@@ -125,6 +125,8 @@ class ImageSerializer(serializers.Serializer):
     system_type = serializers.CharField()
     creation_time = serializers.DateTimeField()
     desc = serializers.CharField()
+    default_user = serializers.CharField()
+    default_password = serializers.CharField()
 
 
 class NetworkSerializer(serializers.Serializer):

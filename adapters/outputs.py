@@ -221,7 +221,8 @@ class ServerVNCOutput(OutputBase):
 
 
 class ListImageOutputImage:
-    def __init__(self, id: str, name: str, system: str, system_type: str, creation_time: datetime, **kwargs):
+    def __init__(self, id: str, name: str, system: str, system_type: str, creation_time: datetime,
+                 default_username: str, default_password: str, **kwargs):
         """
         :param id:
         :param name: 镜像名称
@@ -229,6 +230,8 @@ class ListImageOutputImage:
         :param system_type: 系统类型，Windows, Linux, MacOS, Android, ...
         :param creation_time: 镜像创建时间
         :param desc: 镜像描述
+        :param default_username: 初始默认登录用户名
+        :param default_password: 初始默认登录用户密码
         """
         self.id = id
         self.name = name
@@ -236,6 +239,8 @@ class ListImageOutputImage:
         self.system_type = system_type
         self.creation_time = creation_time
         self.desc = kwargs.get('desc', '')
+        self.default_user = default_username
+        self.default_password = default_password
 
 
 class ListImageOutput(OutputBase):

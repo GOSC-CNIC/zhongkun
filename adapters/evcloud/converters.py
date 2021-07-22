@@ -148,7 +148,9 @@ class OutputConverter:
         for img in images:
             creation_time = iso_to_datetime(img['create_time'])
             new_img = outputs.ListImageOutputImage(id=img['id'], name=img['name'], system=img['name'], desc=img['desc'],
-                                                   system_type=img['sys_type']['name'], creation_time=creation_time)
+                                                   system_type=img['sys_type']['name'], creation_time=creation_time,
+                                                   default_username=img.get('default_user', ''),
+                                                   default_password=img.get('default_password'))
             new_images.append(new_img)
 
         return outputs.ListImageOutput(images=new_images)

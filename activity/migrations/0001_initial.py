@@ -37,7 +37,7 @@ class Migration(migrations.Migration):
                 ('disk_size', models.IntegerField(default=0, verbose_name='总硬盘大小(GB)')),
                 ('expiration_time', models.DateTimeField(help_text='过期后不能再用于创建资源', verbose_name='配额过期时间')),
                 ('duration_days', models.IntegerField(blank=True, default=365, help_text='使用此配额创建的资源的有效使用时长', verbose_name='资源使用时长')),
-                ('service', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='service.serviceconfig')),
+                ('service', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='service.serviceconfig', verbose_name='服务provider')),
                 ('user', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to=settings.AUTH_USER_MODEL, verbose_name='创建人')),
             ],
             options={

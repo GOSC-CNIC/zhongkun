@@ -31,7 +31,7 @@ class QuotaActivity(UuidModel):
     user = models.ForeignKey(to=User, related_name='+', on_delete=models.SET_NULL, null=True, verbose_name=_('创建人'))
 
     service = models.ForeignKey(to=ServiceConfig, on_delete=models.SET_NULL, null=True,
-                                related_name='+')
+                                related_name='+', verbose_name=_('服务provider'))
     tag = models.CharField(verbose_name=_('配额类型'), max_length=32, choices=Tag.choices, default=Tag.PROBATION)
     cpus = models.IntegerField(verbose_name=_('虚拟cpu数量'), default=1)
     private_ip = models.IntegerField(verbose_name=_('私网IP数'), default=0)
