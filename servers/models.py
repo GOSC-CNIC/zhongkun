@@ -6,7 +6,7 @@ from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
-from service.models import ServiceConfig, UserQuota
+from service.models import ServiceConfig, UserQuota, get_encryptor
 from vo.models import VirtualOrganization
 
 User = get_user_model()
@@ -48,6 +48,10 @@ class ServerBase(models.Model):
     ipv4 = models.CharField(max_length=128, verbose_name='IPV4', default='')
     public_ip = models.BooleanField(default=True, verbose_name=_('公/私网'))
     image = models.CharField(max_length=255, verbose_name=_('镜像系统名称'), default='')
+    image_id = models.CharField(max_length=64, verbose_name=_('镜像系统ID'), default='')
+    image_desc = models.CharField(max_length=255, verbose_name=_('镜像系统描述'), default='')
+    default_user = models.CharField(max_length=64, verbose_name=_('默认登录用户名'), default='')
+    default_password = models.CharField(max_length=255, blank=True, verbose_name=_('默认登录密码'), default='')
     creation_time = models.DateTimeField(auto_now_add=True, verbose_name=_('创建时间'))
     remarks = models.CharField(max_length=255, blank=True, default='', verbose_name=_('备注'))
     task_status = models.SmallIntegerField(verbose_name=_('创建状态'), choices=CHOICES_TASK, default=TASK_CREATED_OK)
@@ -114,6 +118,24 @@ class ServerBase(models.Model):
             stat['ram_used_count'] = 0
 
         return stat
+
+    @property
+    def raw_default_password(self):
+        """
+        :return:
+            str     # success
+            None    # failed, invalid encrypted password
+        """
+        encryptor = get_encryptor()
+        try:
+            return encryptor.decrypt(self.default_password)
+        except encryptor.InvalidEncrypted as e:
+            return None
+
+    @raw_default_password.setter
+    def raw_default_password(self, raw_password: str):
+        encryptor = get_encryptor()
+        self.default_password = encryptor.encrypt(raw_password)
 
 
 class Server(ServerBase):
@@ -182,6 +204,10 @@ class Server(ServerBase):
             a.user_quota = self.user_quota
             a.expiration_time = self.expiration_time
             a.classification = self.classification
+            a.image_id = self.image_id
+            a.image_desc = self.image_desc
+            a.default_user = self.default_user
+            a.default_password = self.default_password
             a.save()
         except Exception as e:
             return False

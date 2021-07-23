@@ -67,10 +67,26 @@ class OutputConverter:
         :return: outputs.ServerDetailOutputServer()
         """
         data = vm_dict
-        image = outputs.ServerImage(
-            name=data.get('image'),
-            system=data.get('image')
-        )
+        default_user = ''
+        default_password = ''
+        if 'image_info' in data:
+            image_info = data['image_info']
+            image = outputs.ServerImage(
+                _id=image_info.get('id'),
+                name=image_info.get('name'),
+                system=image_info.get('name'),
+                desc=image_info.get('desc')
+            )
+            default_user = image_info.get('default_user')
+            default_password = image_info.get('default_password')
+        else:
+            image = outputs.ServerImage(
+                _id='',
+                name=data.get('name'),
+                system=data.get('name'),
+                desc=''
+            )
+
         ip = data.get('ip')
         if ip:
             server_ip = {'ipv4': ip.get('ipv4'), 'public_ipv4': ip.get('public_ipv4')}
@@ -84,7 +100,9 @@ class OutputConverter:
             vcpu=data.get('vcpu'),
             ip=ip,
             image=image,
-            creation_time=iso_to_datetime(data.get('create_time'))
+            creation_time=iso_to_datetime(data.get('create_time')),
+            default_user=default_user,
+            default_password=default_password
         )
         return server
 

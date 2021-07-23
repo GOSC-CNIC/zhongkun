@@ -147,6 +147,9 @@ def update_server_detail(server, task_status: int = None):
         server.public_ip = out_server.ip.public_ipv4 if out_server.ip.public_ipv4 else False
         server.ipv4 = out_server.ip.ipv4 if out_server.ip.ipv4 else ''
         server.image = out_server.image.name
+        server.image_desc = out_server.image.desc
+        server.default_user = out_server.default_user
+        server.raw_default_password = out_server.default_password
         if server.ipv4 and server.image:
             server.task_status = task_status if task_status is not None else server.TASK_CREATED_OK     # 创建成功
         server.save()

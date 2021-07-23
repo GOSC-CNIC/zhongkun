@@ -267,8 +267,10 @@ class VmwareAdapter(BaseAdapter):
                 image_name = None
 
             image = outputs.ServerImage(
+                _id='',
                 name=image_name,
-                system=VM.config.guestId
+                system=VM.config.guestId,
+                desc=''
             )
 
             server = outputs.ServerDetailOutputServer(
@@ -277,7 +279,9 @@ class VmwareAdapter(BaseAdapter):
                 vcpu=VM.summary.config.numCpu,
                 ip=ip,
                 image=image,
-                creation_time=iso_to_datetime(VM.config.createDate)
+                creation_time=iso_to_datetime(VM.config.createDate),
+                default_user='',
+                default_password=''
             )
             return outputs.ServerDetailOutput(server=server)
         except exceptions.Error as e:

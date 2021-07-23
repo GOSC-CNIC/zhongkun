@@ -159,8 +159,10 @@ class OpenStackAdapter(BaseAdapter):
             image_temp = service_instance.image.get_image(server.image.id)
 
             image = outputs.ServerImage(
+                _id=server.image.id,
                 name=image_temp.name,
-                system=image_temp.properties['os']
+                system=image_temp.properties['os'],
+                desc=''
             )
 
             flavor = server.flavor
@@ -170,7 +172,9 @@ class OpenStackAdapter(BaseAdapter):
                 vcpu=flavor['vcpus'],
                 ip=ip,
                 image=image,
-                creation_time=iso_to_datetime(server.created_at)
+                creation_time=iso_to_datetime(server.created_at),
+                default_user='',
+                default_password=''
             )
             return outputs.ServerDetailOutput(server=server)
         except exceptions.Error as e:

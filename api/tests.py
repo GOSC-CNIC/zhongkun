@@ -70,6 +70,7 @@ def chunks(f, chunk_size=2*2**20):
 
 
 def create_server_metadata(service, user, user_quota, vo_id=None,
+                           default_user: str = 'root', default_password: str = 'password',
                            classification=Server.Classification.PERSONAL):
     server = Server(service=service,
                     instance_id='test',
@@ -83,7 +84,11 @@ def create_server_metadata(service, user, user_quota, vo_id=None,
                     user_quota=user_quota,
                     public_ip=False,
                     classification=classification,
-                    vo_id=vo_id)
+                    vo_id=vo_id,
+                    image_id='',
+                    image_desc='image desc',
+                    default_user=default_user)
+    server.raw_default_password = default_password
     server.save()
     return server
 
@@ -103,7 +108,7 @@ class MyAPITestCase(APITestCase):
             if k in d and v == d[k]:
                 continue
             else:
-                self.fail(f'{sub} is not sub dict of {d}, Not Equal key is {k}')
+                self.fail(f'{sub} is not sub dict of {d}, Not Equal key is {k}, {v} != {d.get(k)}')
 
         return True
 
@@ -355,16 +360,22 @@ class ServersTests(MyAPITestCase):
         set_auth_header(self)
         self.user = get_or_create_user()
         self.service = get_or_create_service()
+        self.default_user = 'root'
+        self.default_password = 'password'
         self.miss_server = create_server_metadata(
-            service=self.service, user=self.user, user_quota=None)
+            service=self.service, user=self.user, user_quota=None,
+            default_user=self.default_user, default_password=self.default_password)
         vo_data = {
             'name': 'test vo', 'company': '网络中心', 'description': 'unittest'
         }
         response = VoTests.create_vo_response(client=self.client, name=vo_data['name'],
                                               company=vo_data['company'], description=vo_data['description'])
         self.vo_id = response.data['id']
-        self.vo_server = create_server_metadata(service=self.service, user=self.user,
-            user_quota=None, vo_id=self.vo_id, classification=Server.Classification.VO)
+        self.vo_server = create_server_metadata(
+            service=self.service, user=self.user, user_quota=None, vo_id=self.vo_id,
+            classification=Server.Classification.VO, default_user=self.default_user,
+            default_password=self.default_password
+        )
 
     def test_server_create(self):
         url = reverse('api:servers-list')
@@ -435,7 +446,11 @@ class ServersTests(MyAPITestCase):
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
                            "public_ip", "image", "creation_time", "remarks",
                            "endpoint_url", "service", "user_quota",
-                           "center_quota", "classification", "vo_id"], response.data['server'])
+                           "center_quota", "classification", "vo_id",
+                           "image_id", "image_desc", "default_user", "default_password"], response.data['server'])
+        self.assert_is_subdict_of(sub={
+            "default_user": self.default_user, "default_password": self.default_password
+        }, d=response.data['server'])
 
     def test_server_list(self):
         vo_server = self.vo_server
@@ -451,7 +466,8 @@ class ServersTests(MyAPITestCase):
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
                            "public_ip", "image", "creation_time",
                            "remarks", "endpoint_url", "service", "user_quota",
-                           "center_quota", "classification", "vo_id"], response.data['servers'][0])
+                           "center_quota", "classification", "vo_id",
+                           "image_id", "image_desc", "default_user", "default_password"], response.data['servers'][0])
         self.assert_is_subdict_of(sub={
             'classification': Server.Classification.PERSONAL,
             'service': {'id': self.miss_server.service.id, 'name': self.miss_server.service.name,
@@ -470,7 +486,8 @@ class ServersTests(MyAPITestCase):
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
                            "public_ip", "image", "creation_time",
                            "remarks", "endpoint_url", "service", "user_quota",
-                           "center_quota", "classification", "vo_id"], response.data['servers'][0])
+                           "center_quota", "classification", "vo_id",
+                           "image_id", "image_desc", "default_user", "default_password"], response.data['servers'][0])
         self.assert_is_subdict_of(sub={
             'classification': Server.Classification.VO,
             'service': {'id': vo_server.service.id, 'name': vo_server.service.name,
@@ -486,7 +503,8 @@ class ServersTests(MyAPITestCase):
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
                            "public_ip", "image", "creation_time", "remarks",
                            "endpoint_url", "service", "user_quota",
-                           "center_quota", "classification", "vo_id"], response.data['server'])
+                           "center_quota", "classification", "vo_id",
+                           "image_id", "image_desc", "default_user", "default_password"], response.data['server'])
         self.assert_is_subdict_of(sub={
             'classification': Server.Classification.VO,
             'service': {'id': vo_server.service.id, 'name': vo_server.service.name,
@@ -791,7 +809,7 @@ class ImageTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.data, list)
         self.assertKeysIn(["id", "name", "system", "system_type",
-                           "creation_time", "desc"], response.data[0])
+                           "creation_time", "desc", "default_user", "default_password"], response.data[0])
 
 
 class NetworkTests(MyAPITestCase):

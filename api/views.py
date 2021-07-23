@@ -277,6 +277,7 @@ class ServersViewSet(CustomGenericViewSet):
                         user_quota=user_quota,
                         public_ip=is_public_network,
                         expiration_time=due_time,
+                        image_id=image_id,
                         **kwargs
                         )
         server.save()
@@ -393,6 +394,11 @@ class ServersViewSet(CustomGenericViewSet):
         if new_pub is not None and server.public_ip != new_pub:
             server.public_ip = new_pub
             update_fields.append('public_ip')
+
+        image_desc = out.server.image.desc
+        if image_desc and server.image_desc != image_desc:
+            server.image_desc = image_desc
+            update_fields.append('image_desc')
 
         if update_fields:
             try:

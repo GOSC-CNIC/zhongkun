@@ -122,13 +122,17 @@ class AuthenticateOutput(OutputBase):
 
 
 class ServerImage:
-    def __init__(self, name: str, system: str, **kwargs):
+    def __init__(self, _id: str, name: str, system: str, desc: str, **kwargs):
         """
+        :param _id: 镜像id
         :param name: 镜像名称
         :param system: 镜像系统，Windows10 64bit, Centos8 64bit, Ubuntu2004 ...
+        :param desc: 镜像描述信息
         """
+        self.id = _id
         self.name = name
         self.system = system
+        self.desc = desc
 
 
 class ServerIP:
@@ -160,7 +164,8 @@ class ServerCreateOutput(OutputBase):
 
 class ServerDetailOutputServer:
     def __init__(self, uuid: str, ram: int, vcpu: int, image: ServerImage,
-                 ip: ServerIP, creation_time: datetime, **kwargs):
+                 ip: ServerIP, creation_time: datetime, default_user: str,
+                 default_password: str, **kwargs):
         """
         :param uuid: id of server; type: str
         :param image: image of server
@@ -168,6 +173,8 @@ class ServerDetailOutputServer:
         :param ram: ram of server; type: int
         :param ip: ip of server
         :param creation_time: creation time of server; type: datetime
+        :param default_user: login username
+        :param default_password: login password
         :param name: name of server; type: str
         """
         self.uuid = uuid
@@ -176,6 +183,8 @@ class ServerDetailOutputServer:
         self.ram = ram
         self.ip = ip
         self.creation_time = creation_time
+        self.default_user = default_user
+        self.default_password = default_password
         self.name = kwargs.get('name', None)
 
 

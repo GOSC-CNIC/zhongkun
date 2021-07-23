@@ -35,6 +35,14 @@ class ServerBaseSerializer(serializers.Serializer):
     expiration_time = serializers.DateTimeField()
     remarks = serializers.CharField()
     classification = serializers.CharField()
+    image_id = serializers.CharField()
+    image_desc = serializers.CharField()
+    default_user = serializers.CharField()
+    default_password = serializers.SerializerMethodField(method_name='get_default_password')
+
+    @staticmethod
+    def get_default_password(obj):
+        return obj.raw_default_password
 
 
 class ServerSimpleSerializer(ServerBaseSerializer):
