@@ -58,6 +58,7 @@ class ServerSerializer(ServerBaseSerializer):
     user_quota = UserQuotaSimpleSerializer(required=False)
     center_quota = serializers.IntegerField()
     vo_id = serializers.CharField()
+    user = serializers.SerializerMethodField(method_name='get_user')
 
     def get_vms_endpoint_url(self, obj):
         service_id_map = self.context.get('service_id_map')
@@ -82,6 +83,17 @@ class ServerSerializer(ServerBaseSerializer):
                 'id': service.id,
                 'name': service.name,
                 'service_type': service.service_type
+            }
+
+        return None
+
+    @staticmethod
+    def get_user(obj):
+        user = obj.user
+        if user:
+            return {
+                'id': user.id,
+                'username': user.username
             }
 
         return None

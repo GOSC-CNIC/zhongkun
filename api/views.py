@@ -18,7 +18,7 @@ from rest_framework import parsers
 from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
-from servers.models import Server, Flavor, ServerArchive
+from servers.models import Server, Flavor
 from servers.managers import ServerManager
 from service.managers import ServiceManager
 from service.models import DataCenter, ApplyOrganization, ApplyVmService
@@ -118,7 +118,11 @@ class ServersViewSet(CustomGenericViewSet):
                   },
                   "center_quota": 2,         # 1: 服务的私有资源配额，"user_quota"=null; 2: 服务的分享资源配额
                   "classification": "personal",
-                  "vo_id": null
+                  "vo_id": null,
+                  "user": {
+                    "id": "1",
+                    "username": "shun"
+                  }
                 }
               ]
             }
@@ -178,7 +182,11 @@ class ServersViewSet(CustomGenericViewSet):
                   },
                   "center_quota": 2,         # 1: 服务的私有资源配额，"user_quota"=null; 2: 服务的分享资源配额
                   "classification": "vo"
-                  "vo_id": "3d7cd5fc-d236-11eb-9da9-c8009fe2eb10"
+                  "vo_id": "3d7cd5fc-d236-11eb-9da9-c8009fe2eb10",
+                  "user": {
+                    "id": "1",
+                    "username": "shun"
+                  }
                 }
               ]
             }
@@ -316,7 +324,7 @@ class ServersViewSet(CustomGenericViewSet):
                 "image": "CentOS_8",
                 "creation_time": "2020-09-23T07:10:14.009418Z",
                 "remarks": "",
-                "endpoint_url": "http://159.226.235.16/",
+                "endpoint_url": "https://159.226.235.16/",
                 "service": {
                     "id": "2",
                     "name": "怀柔204机房",
@@ -334,15 +342,19 @@ class ServersViewSet(CustomGenericViewSet):
                 },
                 "center_quota": 2,         # 1: 服务的私有资源配额，"user_quota"=null; 2: 服务的分享资源配额
                 "classification": "vo",
-                "vo_id": "3d7cd5fc-d236-11eb-9da9-c8009fe2eb10"    # null when "classification"=="personal"
+                "vo_id": "3d7cd5fc-d236-11eb-9da9-c8009fe2eb10",    # null when "classification"=="personal"
+                "user": {
+                    "id": "1",
+                    "username": "shun"
+                }
               }
             }
         """
         server_id = kwargs.get(self.lookup_field, '')
 
         try:
-            server = ServerManager().get_read_perm_server(server_id=server_id, user=request.user,
-                related_fields=['service__data_center', 'vo__owner'])
+            server = ServerManager().get_read_perm_server(
+                server_id=server_id, user=request.user, related_fields=['service__data_center', 'vo__owner'])
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 

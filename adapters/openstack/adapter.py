@@ -150,8 +150,8 @@ class OpenStackAdapter(BaseAdapter):
             service_instance = self._get_openstack_connect()
             server = service_instance.compute.get_server(params.server_id)
             try:
-                adresses = server.addresses
-                server_ip = {'ipv4': adresses[list(adresses.keys())[0]][0]['addr'], 'public_ipv4': None}
+                addresses = server.addresses
+                server_ip = {'ipv4': addresses[list(addresses.keys())[0]][0]['addr'], 'public_ipv4': None}
             except Exception as e:
                 server_ip = {'ipv4': '', 'public_ipv4': None}
 

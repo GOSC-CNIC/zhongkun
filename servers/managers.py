@@ -15,7 +15,7 @@ class ServerManager:
         查询用户个人server
         """
         qs = self.get_server_queryset()
-        qs = qs.select_related('service', 'user_quota').filter(
+        qs = qs.select_related('service', 'user_quota', 'user').filter(
             user=user, classification=Server.Classification.PERSONAL)
 
         if service_id:
@@ -28,7 +28,7 @@ class ServerManager:
         查询vo组的server
         """
         qs = self.get_server_queryset()
-        qs = qs.select_related('service', 'user_quota').filter(
+        qs = qs.select_related('service', 'user_quota', 'user').filter(
             vo_id=vo_id, classification=Server.Classification.VO)
 
         if service_id:
@@ -38,7 +38,7 @@ class ServerManager:
 
     @staticmethod
     def get_server(server_id: str, related_fields: list = None) -> Server:
-        fields = ['service', 'user_quota']
+        fields = ['service', 'user_quota', 'user']
         if related_fields:
             for f in related_fields:
                 if f not in fields:
@@ -51,7 +51,7 @@ class ServerManager:
         return server
 
     def get_permission_server(self, server_id: str, user, related_fields: list = None,
-                         read_only: bool = True) -> Server:
+                              read_only: bool = True) -> Server:
         """
         查询用户指定权限的虚拟服务器实例
 
