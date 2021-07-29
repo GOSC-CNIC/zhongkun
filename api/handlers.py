@@ -499,7 +499,7 @@ class ApplyUserQuotaHandler:
         return Response(data=r_data, status=200)
 
     @staticmethod
-    def approve_apply(view, request, kwargs, approve: str = 'pass'):
+    def approve_apply(view, request, kwargs, approve: str, reason: str):
         """
         审批配额申请，只允许服务管理者审批处于“审批中”状态的资源配额申请
 
@@ -507,6 +507,7 @@ class ApplyUserQuotaHandler:
         :param request:
         :param kwargs:
         :param approve: 'pass' or 'reject'
+        :param reason: 审批结果说明，拒绝理由
         """
         pk = kwargs.get(view.lookup_field)
         try:
@@ -521,7 +522,7 @@ class ApplyUserQuotaHandler:
 
         try:
             if approve == 'reject':
-                if not apply.set_reject(user=request.user):
+                if not apply.set_reject(user=request.user, reason=reason):
                     raise Exception('拒绝申请失败')
             elif approve == 'pass':
                 apply.do_pass(user=request.user)
@@ -542,8 +543,14 @@ class ApplyUserQuotaHandler:
         """
         拒绝配额申请
         """
+        serializer = view.get_serializer(data=request.data)
+        if not serializer.is_valid(raise_exception=False):
+            msg = serializer_error_msg(serializer.errors)
+            return view.exception_response(exceptions.BadRequest(msg))
+
+        reason = serializer.validated_data.get('reason')
         return ApplyUserQuotaHandler.approve_apply(view=view, request=request,
-                                                   kwargs=kwargs, approve='reject')
+                                                   kwargs=kwargs, approve='reject', reason=reason)
 
     @staticmethod
     def pass_apply(view, request, kwargs):
@@ -551,7 +558,7 @@ class ApplyUserQuotaHandler:
         通过配额申请
         """
         return ApplyUserQuotaHandler.approve_apply(view=view, request=request,
-                                                   kwargs=kwargs, approve='pass')
+                                                   kwargs=kwargs, approve='pass', reason='pass')
 
     @staticmethod
     def delete_apply(view, request, kwargs):

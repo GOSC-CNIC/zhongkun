@@ -309,6 +309,7 @@ class ApplyQuotaSerializer(ApplyQuotaCreateSerializer):
     deleted = serializers.BooleanField(label=_('删除'), read_only=True)
     classification = serializers.CharField(
         label=_('资源配额归属类型'), read_only=True, help_text=_('标识配额属于申请者个人的，还是vo组的'))
+    result_desc = serializers.CharField(label=_('审批结果描述'), max_length=255, read_only=True)
 
     @staticmethod
     def get_service(obj):
@@ -317,6 +318,10 @@ class ApplyQuotaSerializer(ApplyQuotaCreateSerializer):
             return {'id': s.id, 'name': s.name}
 
         return None
+
+
+class ApplyQuotaRejectSerializer(serializers.Serializer):
+    reason = serializers.CharField(label=_('拒绝原因'), max_length=255, required=True, allow_blank=False)
 
 
 class ApplyQuotaDetailSerializer(ApplyQuotaSerializer):

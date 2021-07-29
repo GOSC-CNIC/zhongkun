@@ -936,9 +936,9 @@ class UserQuotaApplyTests(MyAPITestCase):
         url = reverse('api:apply-quota-cancel_apply', kwargs={'apply_id': apply_id})
         return self.client.post(url)
 
-    def reject_apply(self, apply_id):
+    def reject_apply(self, apply_id, reason: str):
         url = reverse('api:apply-quota-reject_apply', kwargs={'apply_id': apply_id})
-        return self.client.post(url)
+        return self.client.post(url, data={'reason': reason})
 
     def pass_apply(self, apply_id):
         url = reverse('api:apply-quota-pass_apply', kwargs={'apply_id': apply_id})
@@ -952,7 +952,7 @@ class UserQuotaApplyTests(MyAPITestCase):
         keys = ["id", "private_ip", "public_ip", "vcpu",
                 "ram", "disk_size", "duration_days", "company",
                 "contact", "purpose", "creation_time", "status",
-                "service", 'deleted', 'classification']
+                "service", 'deleted', 'classification', 'result_desc']
         if is_detail:
             keys += ['vo', 'user', 'approve_user', 'approve_time']
         self.assertKeysIn(keys, data)
@@ -985,7 +985,8 @@ class UserQuotaApplyTests(MyAPITestCase):
             'vcpu': self.old_vcpu, 'ram': self.old_ram,
             'disk_size': self.old_disk_size, 'duration_days': self.old_duration_days,
             'company': 'cnic', 'contact': '666', 'purpose': 'test', "deleted": False,
-            'status': ApplyQuota.STATUS_WAIT, 'classification': ApplyQuota.Classification.PERSONAL
+            'status': ApplyQuota.STATUS_WAIT, 'classification': ApplyQuota.Classification.PERSONAL,
+            'result_desc': ''
         }, d=response.data)
 
         apply_id = response.data['id']
@@ -998,7 +999,8 @@ class UserQuotaApplyTests(MyAPITestCase):
             'vcpu': self.new_vcpu, 'ram': self.new_ram,
             'disk_size': self.new_disk_size, 'duration_days': self.new_duration_days,
             'company': 'cnic', 'contact': '666', 'purpose': 'test', "deleted": False,
-            'status': ApplyQuota.STATUS_WAIT, 'classification': ApplyQuota.Classification.PERSONAL
+            'status': ApplyQuota.STATUS_WAIT, 'classification': ApplyQuota.Classification.PERSONAL,
+            'result_desc': ''
         }, d=response.data)
 
         response = self.pending_apply(apply_id)
@@ -1060,13 +1062,20 @@ class UserQuotaApplyTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.apply_response_data_keys_assert(response.data)
 
-        response = self.reject_apply(apply_id)
+        reject_reason = ''
+        response = self.reject_apply(apply_id, reason=reject_reason)
+        self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
+
+        reject_reason = 'reject reason'
+        response = self.reject_apply(apply_id, reason=reject_reason)
         self.assertEqual(response.status_code, 200)
 
         apply = ApplyQuota.objects.get(pk=apply_id)
         self.assertEqual(apply.status, apply.STATUS_REJECT)
+        self.assertEqual(apply.result_desc, reject_reason)
 
     def test_apply_status_conflict(self):
+        reject_reason = 'reject reason'
         response = self.create_apply()
         self.assertEqual(response.status_code, 201)
         apply_id = response.data['id']
@@ -1078,7 +1087,7 @@ class UserQuotaApplyTests(MyAPITestCase):
         self.assertEqual(response.data['code'], 'Conflict')
 
         # wait !=> reject
-        response = self.reject_apply(apply_id)
+        response = self.reject_apply(apply_id, reason=reject_reason)
         self.assertEqual(response.status_code, 409)
         self.assertEqual(response.data['code'], 'Conflict')
 
@@ -1097,7 +1106,7 @@ class UserQuotaApplyTests(MyAPITestCase):
         self.assertEqual(response.data['code'], 'Conflict')
 
         # pending => reject
-        response = self.reject_apply(apply_id)
+        response = self.reject_apply(apply_id, reason=reject_reason)
         self.assertEqual(response.status_code, 200)
 
         # reject !=> cancel
@@ -1213,7 +1222,7 @@ class UserQuotaApplyTests(MyAPITestCase):
             'description': '测试'
         }
         response = VoTests.create_vo_response(client=self.client, name=vo_data['name'],
-                                           company=vo_data['company'], description=vo_data['description'])
+                                              company=vo_data['company'], description=vo_data['description'])
         self.assertEqual(response.status_code, 200)
         vo_id = response.data['id']
 
@@ -1229,7 +1238,8 @@ class UserQuotaApplyTests(MyAPITestCase):
             'vcpu': self.old_vcpu, 'ram': self.old_ram,
             'disk_size': self.old_disk_size, 'duration_days': self.old_duration_days,
             'company': 'cnic', 'contact': '666', 'purpose': 'test', "deleted": False,
-            'status': ApplyQuota.STATUS_WAIT, 'classification': ApplyQuota.Classification.VO
+            'status': ApplyQuota.STATUS_WAIT, 'classification': ApplyQuota.Classification.VO,
+            'result_desc': ''
         }, d=response.data)
         self.assertKeysIn(['id', 'name', 'company', 'description', 'creation_time',
                            'owner', 'status'], response.data['vo'])
@@ -1246,7 +1256,8 @@ class UserQuotaApplyTests(MyAPITestCase):
             'vcpu': self.new_vcpu, 'ram': self.new_ram,
             'disk_size': self.new_disk_size, 'duration_days': self.new_duration_days,
             'company': 'cnic', 'contact': '666', 'purpose': 'test', "deleted": False,
-            'status': ApplyQuota.STATUS_WAIT, 'classification': ApplyQuota.Classification.VO
+            'status': ApplyQuota.STATUS_WAIT, 'classification': ApplyQuota.Classification.VO,
+            'result_desc': ''
         }, d=response.data)
 
         # cancel vo apply
@@ -1275,7 +1286,7 @@ class UserQuotaApplyTests(MyAPITestCase):
         self.client.logout()
         self.client.force_login(self.user)
         response = VoTests.change_member_role_response(client=self.client, member_id=member_id,
-                                                role=VoMember.Role.LEADER)
+                                                       role=VoMember.Role.LEADER)
         self.assertEqual(response.status_code, 200)
 
         # vo leader member delete vo apply
@@ -1291,7 +1302,7 @@ class UserQuotaApplyTests(MyAPITestCase):
             'description': '测试'
         }
         response = VoTests.create_vo_response(client=self.client, name=vo_data['name'],
-                                           company=vo_data['company'], description=vo_data['description'])
+                                              company=vo_data['company'], description=vo_data['description'])
         self.assertEqual(response.status_code, 200)
         vo_id = response.data['id']
         # create vo quota apply
@@ -1349,7 +1360,8 @@ class UserQuotaApplyTests(MyAPITestCase):
             'disk_size': self.old_disk_size, 'duration_days': self.old_duration_days,
             'company': 'cnic', 'contact': '666', 'purpose': 'test', "deleted": False,
             'status': ApplyQuota.STATUS_PASS,
-            'classification': ApplyQuota.Classification.VO
+            'classification': ApplyQuota.Classification.VO,
+            'result_desc': 'pass'
         }, d=response.data)
         self.assertKeysIn(['id', 'name', 'company', 'description', 'creation_time',
                            'owner', 'status'], response.data['vo'])
@@ -1364,7 +1376,8 @@ class UserQuotaApplyTests(MyAPITestCase):
             'vcpu': self.old_vcpu, 'ram': self.old_ram,
             'disk_size': self.old_disk_size, 'duration_days': self.old_duration_days,
             'company': 'cnic', 'contact': '666', 'purpose': 'test', "deleted": False,
-            'status': ApplyQuota.STATUS_PASS, 'classification': ApplyQuota.Classification.VO
+            'status': ApplyQuota.STATUS_PASS, 'classification': ApplyQuota.Classification.VO,
+            'result_desc': 'pass'
         }, d=response.data)
         self.assertKeysIn(['id', 'name', 'company', 'description', 'creation_time',
                            'owner', 'status'], response.data['vo'])

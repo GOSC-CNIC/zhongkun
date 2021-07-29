@@ -659,6 +659,7 @@ class ApplyQuota(UuidModel):
                                       help_text=_('标识配额属于申请者个人的，还是vo组的'))
     vo = models.ForeignKey(to=VirtualOrganization, null=True, on_delete=models.SET_NULL, default=None,
                            related_name='vo_apply_quota_set', verbose_name=_('项目组'))
+    result_desc = models.CharField(verbose_name=_('审批结果描述'), max_length=255, blank=True, default='')
 
     class Meta:
         db_table = 'applyment_applyquota'     # 'apply_vm_quota'
@@ -713,7 +714,7 @@ class ApplyQuota(UuidModel):
         self.save(update_fields=['status', 'approve_time', 'approve_user'])
         return True
 
-    def set_reject(self, user):
+    def set_reject(self, user, reason: str):
         """
         拒绝申请
         :return:
@@ -726,7 +727,8 @@ class ApplyQuota(UuidModel):
         self.status = self.STATUS_REJECT
         self.approve_user = user
         self.approve_time = timezone.now()
-        self.save(update_fields=['status', 'approve_time', 'approve_user'])
+        self.result_desc = reason
+        self.save(update_fields=['status', 'approve_time', 'approve_user', 'result_desc'])
         return True
 
     def set_pass(self, user, quota):
@@ -743,7 +745,8 @@ class ApplyQuota(UuidModel):
         self.approve_user = user
         self.approve_time = timezone.now()
         self.user_quota = quota
-        self.save(update_fields=['status', 'approve_time', 'approve_user', 'user_quota'])
+        self.result_desc = 'pass'
+        self.save(update_fields=['status', 'approve_time', 'approve_user', 'user_quota', 'result_desc'])
         return True
 
     def set_cancel(self):

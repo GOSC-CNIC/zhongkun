@@ -151,7 +151,7 @@ class ServersViewSet(CustomGenericViewSet):
 
             200: {
               "count": 8,
-              "next": "http://xxx/api/server/vo/3d7cd5fc-d236-11eb-9da9-c8009fe2eb10/?page=2&page_size=2",
+              "next": "https://xxx/api/server/vo/3d7cd5fc-d236-11eb-9da9-c8009fe2eb10/?page=2&page_size=2",
               "previous": null,
               "servers": [
                 {
@@ -164,7 +164,7 @@ class ServersViewSet(CustomGenericViewSet):
                   "image": "centos8_gui",
                   "creation_time": "2020-11-02T07:47:39.776384Z",
                   "remarks": "",
-                  "endpoint_url": "http://159.226.235.16/",
+                  "endpoint_url": "https://159.226.235.16/",
                   "service": {
                     "id": "2",
                     "name": "怀柔204机房",
@@ -1917,7 +1917,8 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
                     "name": "怀柔204机房"
                   },
                   "deleted": false,
-                  "classification": "personal"  # vo：vo组配额申请；personal：用户个人配额申请
+                  "classification": "personal",  # vo：vo组配额申请；personal：用户个人配额申请
+                  "result_desc": "xxx"           # 审批结果说明
                 }
               ]
             }
@@ -1969,7 +1970,8 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
                     "name": "怀柔204机房"
                   },
                   "deleted": false,
-                  "classification": "vo"    # vo：vo组配额申请；personal：用户个人配额申请
+                  "classification": "vo",    # vo：vo组配额申请；personal：用户个人配额申请
+                  "result_desc": "xxx"       # 审批结果说明
                 }
               ]
             }
@@ -2049,6 +2051,7 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
               },
               "approve_user": null,
               "approve_time": null,
+              "result_desc": "xxx"          # 审批结果说明
               "classification": "vo",       # vo：vo组配额申请；personal：用户个人配额申请
               "vo": {                       # "classification"=="vo"时存在；"classification"=="personal"时为null
                 "id": "3d7cd5fc-d236-11eb-9da9-c8009fe2eb10",
@@ -2103,6 +2106,7 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
               "approve_user": null,
               "approve_time": null,
               "classification": "vo",       # vo：vo组配额申请；personal：用户个人配额申请
+              "result_desc": "xxx"          # 审批结果说明
               "vo": {                       # "classification"=="vo"时存在；"classification"=="personal"时为null
                 "id": "3d7cd5fc-d236-11eb-9da9-c8009fe2eb10",
                 "name": "项目组1",
@@ -2164,6 +2168,7 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
               },
               "deleted": false,
               "classification": "vo",       # vo：vo组配额申请；personal：用户个人配额申请
+              "result_desc": "xxx"          # 审批结果说明
             }
         """
         return handlers.ApplyUserQuotaHandler.modify_apply(
@@ -2201,6 +2206,7 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
               },
               "deleted": false,
               "classification": "vo",       # vo：vo组配额申请；personal：用户个人配额申请
+              "result_desc": ""
             }
         """
         return handlers.ApplyUserQuotaHandler.pending_apply(
@@ -2239,6 +2245,7 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
               },
               "deleted": false,
               "classification": "vo",       # vo：vo组配额申请；personal：用户个人配额申请
+              "result_desc": "xxx"          # 审批结果说明
             }
         """
         return handlers.ApplyUserQuotaHandler.cancel_apply(
@@ -2276,6 +2283,7 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
               },
               "deleted": false,
               "classification": "vo",       # vo：vo组配额申请；personal：用户个人配额申请
+              "result_desc": "xxx"          # 审批结果说明
             }
         """
         return handlers.ApplyUserQuotaHandler.reject_apply(
@@ -2313,6 +2321,7 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
               },
               "deleted": false,
               "classification": "vo",       # vo：vo组配额申请；personal：用户个人配额申请
+              "result_desc": "xxx"          # 审批结果说明
             }
         """
         return handlers.ApplyUserQuotaHandler.pass_apply(
@@ -2325,6 +2334,8 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
             return serializers.ApplyQuotaCreateSerializer
         elif self.action == 'partial_update':
             return serializers.ApplyQuotaPatchSerializer
+        elif self.action == 'reject_apply':
+            return serializers.ApplyQuotaRejectSerializer
 
         return Serializer
 
