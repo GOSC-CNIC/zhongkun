@@ -2145,8 +2145,8 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
     )
     def partial_update(self, request, *args, **kwargs):
         """
-        修改资源配额申请, 只允许申请者修改待审批（wait）状态的个人的申请，
-        或者vo组管理员修改待审批（wait）状态的vo组配额申请
+        修改资源配额申请, 只允许申请者修改待审批（wait）和拒绝（reject）状态的个人的申请，
+        或者vo组管理员修改待审批（wait）和拒绝（reject）状态的vo组配额申请
 
             Http Code: 状态码200:
             {
@@ -2253,7 +2253,6 @@ class UserQuotaApplyViewSet(CustomGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('拒绝资源配额申请'),
-        request_body=no_body,
         responses={
             status.HTTP_200_OK: ''
         }

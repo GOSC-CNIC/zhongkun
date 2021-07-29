@@ -414,8 +414,8 @@ class ApplyUserQuotaHandler:
     @staticmethod
     def modify_apply(view, request, kwargs):
         """
-        修改资源配额申请, 只允许申请者修改待审批（wait）状态的个人的申请，
-        或者vo组管理员修改待审批（wait）状态的vo组配额申请
+        修改资源配额申请, 只允许申请者修改待审批（wait）和拒绝（reject）状态的个人的申请，
+        或者vo组管理员修改待审批（wait）和拒绝（reject）状态的vo组配额申请
         """
         serializer = view.get_serializer(data=request.data)
         if not serializer.is_valid(raise_exception=False):
@@ -428,9 +428,9 @@ class ApplyUserQuotaHandler:
         except Exception as exc:
             return view.exception_response(exc)
 
-        if not apply.is_wait_status():
+        if not (apply.is_wait_status() or apply.is_reject_status()):
             return view.exception_response(exceptions.ConflictError(
-                message=_('只允许“待审批”状态的资源配额申请被修改')
+                message=_('只允许“待审批”和“拒绝”状态的资源配额申请被修改')
             ))
 
         update_fields = []
@@ -490,7 +490,16 @@ class ApplyUserQuotaHandler:
             apply.purpose = purpose
             update_fields.append('purpose')
 
-        apply.save(update_fields=update_fields)
+        # 修改后回到待审批状态
+        apply.status = apply.STATUS_WAIT
+        apply.result_desc = ''
+        update_fields.append('status')
+        update_fields.append('result_desc')
+        try:
+            apply.save(update_fields=update_fields)
+        except Exception as exc:
+            return view.exception_response(exc)
+
         try:
             r_data = serializers.ApplyQuotaSerializer(instance=apply).data
         except Exception as e:

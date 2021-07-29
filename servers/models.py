@@ -150,6 +150,8 @@ class Server(ServerBase):
                                    related_name='quota_servers', verbose_name=_('所属用户配额'))
     vo = models.ForeignKey(to=VirtualOrganization, null=True, on_delete=models.SET_NULL, default=None,
                            related_name='vo_server_set', verbose_name=_('项目组'))
+    # email_lasttime = models.DateTimeField(verbose_name=_('上次发送邮件时间'), null=True, default=None,
+    #                                       help_text=_('记录上次发邮件的时间，邮件通知用户配额即将到期'))
 
     class Meta:
         ordering = ['-creation_time']

@@ -1052,7 +1052,7 @@ class UserQuotaApplyTests(MyAPITestCase):
         self.assertEqual(quota.classification, UserQuota.Classification.PERSONAL)
         self.assertEqual(quota.vo, None)
 
-    def test_perms_reject_apply(self):
+    def test_perms_reject_modify_apply(self):
         response = self.create_apply()
         self.assertEqual(response.status_code, 201)
         apply_id = response.data['id']
@@ -1073,6 +1073,24 @@ class UserQuotaApplyTests(MyAPITestCase):
         apply = ApplyQuota.objects.get(pk=apply_id)
         self.assertEqual(apply.status, apply.STATUS_REJECT)
         self.assertEqual(apply.result_desc, reject_reason)
+
+        # modify from reject status
+        response = self.update_apply(apply_id)
+        self.assertEqual(response.status_code, 200)
+        self.apply_response_data_keys_assert(response.data)
+        self.assertEqual(response.data['service']['id'], self.service.id)
+        self.assert_is_subdict_of(sub={
+            'private_ip': self.new_private_ip, 'public_ip': self.new_public_ip,
+            'vcpu': self.new_vcpu, 'ram': self.new_ram,
+            'disk_size': self.new_disk_size, 'duration_days': self.new_duration_days,
+            'company': 'cnic', 'contact': '666', 'purpose': 'test', "deleted": False,
+            'status': ApplyQuota.STATUS_WAIT, 'classification': ApplyQuota.Classification.PERSONAL,
+            'result_desc': ''
+        }, d=response.data)
+
+        response = self.pending_apply(apply_id)
+        self.assertEqual(response.status_code, 200)
+        self.apply_response_data_keys_assert(response.data)
 
     def test_apply_status_conflict(self):
         reject_reason = 'reject reason'
@@ -1114,15 +1132,14 @@ class UserQuotaApplyTests(MyAPITestCase):
         self.assertEqual(response.status_code, 409)
         self.assertEqual(response.data['code'], 'Conflict')
 
-        # reject !=> update
-        response = self.update_apply(apply_id)
-        self.assertEqual(response.status_code, 409)
-        self.assertEqual(response.data['code'], 'Conflict')
-
         # reject !=> pass
         response = self.pass_apply(apply_id)
         self.assertEqual(response.status_code, 409)
         self.assertEqual(response.data['code'], 'Conflict')
+
+        # reject => update
+        response = self.update_apply(apply_id)
+        self.assertEqual(response.status_code, 200)
 
     def list_apply_query_params(self, base_url, apply_id):
         # query param "service_id"

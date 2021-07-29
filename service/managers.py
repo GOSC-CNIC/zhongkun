@@ -1670,7 +1670,7 @@ class ApplyQuotaManager:
                                     deleted=deleted, status=status)
 
     def filter_vo_apply_queryset(self, vo, service_id: str = None, deleted: bool = None,
-                                   status: list = None):
+                                 status: list = None):
         """
         过滤vo组的申请查询集
 

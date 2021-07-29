@@ -680,6 +680,15 @@ class ApplyQuota(UuidModel):
         """
         return self.status == self.STATUS_WAIT
 
+    def is_reject_status(self):
+        """
+        是否是拒绝状态
+        :return:
+            True
+            False
+        """
+        return self.status == self.STATUS_REJECT
+
     def is_pending_status(self):
         """
         是否是审批中状态
