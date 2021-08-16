@@ -15,11 +15,11 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='server',
             name='vo',
-            field=models.ForeignKey(default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='vo_server_set', to='vo.virtualorganization', verbose_name='项目组'),
+            field=models.ForeignKey(blank=True, default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='vo_server_set', to='vo.virtualorganization', verbose_name='项目组'),
         ),
         migrations.AddField(
             model_name='serverarchive',
             name='vo',
-            field=models.ForeignKey(default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='vo_server_archive_set', to='vo.virtualorganization', verbose_name='项目组'),
+            field=models.ForeignKey(blank=True, default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='vo_server_archive_set', to='vo.virtualorganization', verbose_name='项目组'),
         ),
     ]
