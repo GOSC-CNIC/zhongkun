@@ -494,7 +494,7 @@ class ApplyVmServiceCreateSerializer(serializers.Serializer):
         help_text=_('api version of EVCloud and OPenStack; not required of VMware'))
     username = serializers.CharField(
         label=_('用户名'), required=True, help_text=_('用于此服务认证的用户名'))
-    password = serializers.CharField(label=_('密码'), required=True)
+    password = serializers.CharField(label=_('密码'), required=True, min_length=6, max_length=32)
     project_name = serializers.CharField(
         label='Project Name', required=False, max_length=128, allow_blank=True,
         help_text='only required when OpenStack', default='')
@@ -520,7 +520,7 @@ class ApplyVmServiceCreateSerializer(serializers.Serializer):
         max_length=128, required=False, label=_('用户名'), allow_blank=True, default='',
         help_text=_('required when "need_vpn" is true;用于VPN服务认证的用户名；服务类型是evcloud时，不需要填写'))
     vpn_password = serializers.CharField(
-        max_length=128, required=False, label=_('密码'), allow_blank=True, default='',
+        min_length=6, max_length=32, required=False, label=_('密码'), allow_blank=True, default='',
         help_text='required when "need_vpn" is true;服务类型是evcloud时，不需要填写')
 
     longitude = serializers.FloatField(

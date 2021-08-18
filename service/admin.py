@@ -1,26 +1,53 @@
 from django.contrib import admin
+from django.urls import path, reverse
 from django.utils.translation import gettext_lazy, gettext as _
+from django.contrib.admin.utils import unquote
+from django.contrib.admin.options import IS_POPUP_VAR
 from django.contrib import messages
 from django.db import transaction
+from django.core.exceptions import PermissionDenied
+from django.http import Http404, HttpResponseRedirect
+from django.utils.html import escape
+from django.template.response import TemplateResponse
+from django.views.decorators.debug import sensitive_post_parameters
+from django.utils.decorators import method_decorator
+# sensitive_post_parameters_m = method_decorator(sensitive_post_parameters())
 
 from servers.models import Server, ServerArchive
 from .models import (
     ServiceConfig, DataCenter, ServicePrivateQuota, ApplyQuota,
     ServiceShareQuota, UserQuota, ApplyVmService, ApplyOrganization
 )
+from . import forms
 
 
 @admin.register(ServiceConfig)
 class ServiceConfigAdmin(admin.ModelAdmin):
+    form = forms.VmsProviderForm
     list_display_links = ('id',)
-    list_display = ('id', 'name', 'name_en', 'data_center', 'region_id', 'service_type', 'endpoint_url', 'username', 'password',
-                    'add_time', 'status', 'need_vpn', 'vpn_endpoint_url', 'vpn_password', 'remarks')
+    list_display = ('id', 'name', 'name_en', 'data_center', 'region_id', 'service_type', 'endpoint_url', 'username',
+                    'password', 'add_time', 'status', 'need_vpn', 'vpn_endpoint_url', 'vpn_password', 'remarks')
     search_fields = ['name', 'name_en', 'endpoint_url', 'remarks']
     list_filter = ['data_center', 'service_type']
     list_select_related = ('data_center',)
 
     filter_horizontal = ('users',)
-    readonly_fields = ('password',)
+    readonly_fields = ('password', 'vpn_password')
+    fieldsets = (
+        (_('服务配置信息'), {
+            'fields': ('data_center', 'name', 'name_en', 'service_type', 'status', 'endpoint_url', 'api_version',
+                       'region_id', 'username', 'password', 'change_password')
+        }),
+        (_('VPN配置信息'), {
+            'fields': ('need_vpn', 'vpn_endpoint_url', 'vpn_api_version', 'vpn_username',
+                       'vpn_password', 'change_vpn_password')
+        }),
+        (_('其他配置信息'), {'fields': ('extra', 'remarks', 'logo_url')}),
+        (_('服务管理员'), {'fields': ('users', )}),
+        (_('联系人信息'), {
+            'fields': ('contact_person', 'contact_email', 'contact_telephone', 'contact_fixed_phone', 'contact_address')
+        }),
+    )
 
     actions = ['encrypt_password', 'encrypt_vpn_password']
 
