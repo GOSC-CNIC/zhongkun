@@ -1,3 +1,4 @@
+import json
 from datetime import timedelta
 
 from django.db import models
@@ -9,8 +10,10 @@ from django.conf import settings
 
 from utils.model import UuidModel
 from utils.crypto import Encryptor
+from utils.validators import json_string_validator
 from core import errors
 from vo.models import VirtualOrganization
+from adapters.params import OpenStackParams
 
 
 User = get_user_model()
@@ -102,7 +105,8 @@ class ServiceConfig(UuidModel):
     vpn_username = models.CharField(max_length=128, blank=True, default='', verbose_name=_('VPN服务用户名'),
                                     help_text=_('用于此服务认证的用户名'))
     vpn_password = models.CharField(max_length=255, blank=True, default='', verbose_name=_('VPN服务密码'))
-    extra = models.CharField(max_length=1024, blank=True, default='', verbose_name=_('其他配置'), help_text=_('json格式'))
+    extra = models.CharField(max_length=1024, blank=True, default='', validators=(json_string_validator,),
+                             verbose_name=_('其他配置'), help_text=_('json格式'))
     users = models.ManyToManyField(to=User, verbose_name=_('用户'), blank=True, related_name='service_set')
 
     contact_person = models.CharField(verbose_name=_('联系人名称'), max_length=128,
@@ -189,6 +193,12 @@ class ServiceConfig(UuidModel):
             return False
 
         return self.users.filter(id=user.id).exists()
+
+    def extra_params(self) -> dict:
+        if self.extra:
+            return json.loads(self.extra)
+
+        return {}
 
 
 class ServiceQuotaBase(UuidModel):
@@ -562,6 +572,14 @@ class ApplyVmService(UuidModel):
         encryptor = get_encryptor()
         self.vpn_password = encryptor.encrypt(raw_password)
 
+    def get_extra_params_string(self):
+        params = {
+            OpenStackParams.PROJECT_NAME: self.project_name,
+            OpenStackParams.PROJECT_DOMAIN_NAME: self.project_domain_name,
+            OpenStackParams.USER_DOMAIN_NAME: self.user_domain_name,
+        }
+        return json.dumps(params)
+
     def convert_to_service(self) -> ServiceConfig:
         """
         申请转为对应的ServiceConfig对象
@@ -592,6 +610,7 @@ class ApplyVmService(UuidModel):
         service.contact_fixed_phone = self.contact_fixed_phone
         service.contact_address = self.contact_address
         service.logo_url = self.logo_url
+        service.extra = self.get_extra_params_string()
         return service
 
     def do_pass_apply(self) -> ServiceConfig:

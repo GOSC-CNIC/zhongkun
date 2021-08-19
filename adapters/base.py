@@ -23,6 +23,7 @@ class BaseAdapter:
         self.endpoint_url = endpoint_url.rstrip('/')
         self.auth = auth
         self.api_version = api_version
+        self.kwargs = kwargs
 
     def authenticate(self, params: inputs.AuthenticateInput, **kwargs):
         """

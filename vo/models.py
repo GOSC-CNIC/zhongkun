@@ -18,7 +18,7 @@ class VirtualOrganization(UuidModel):
     name = models.CharField(verbose_name=_('组名'), max_length=256)
     creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
     owner = models.ForeignKey(verbose_name=_('所有者'), to=User, related_name='owner_vo_set',
-                             on_delete=models.CASCADE)
+                              on_delete=models.CASCADE)
     members = models.ManyToManyField(to=User, through='VoMember', through_fields=('vo', 'user'),
                                      related_name='members_vo_set')
     company = models.CharField(verbose_name=_('单位'), max_length=256, default='')

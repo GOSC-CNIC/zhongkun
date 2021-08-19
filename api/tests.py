@@ -1825,9 +1825,9 @@ class ApplyVmServiceTests(MyAPITestCase):
             "api_version": "v3",
             "username": service.username,
             "password": service.raw_password(),
-            "project_name": "",
-            "project_domain_name": "",
-            "user_domain_name": "",
+            "project_name": "project",
+            "project_domain_name": "default",
+            "user_domain_name": "default",
             "remarks": "string",
             "need_vpn": True,
             "vpn_endpoint_url": "",
@@ -1882,9 +1882,9 @@ class ApplyVmServiceTests(MyAPITestCase):
             'api_version': 'v3',
             'username': self.service.username,
             'password': self.service.raw_password(),
-            'project_name': '',
-            'project_domain_name': '',
-            'user_domain_name': '', 'need_vpn': True,
+            'project_name': apply_data['project_name'],
+            'project_domain_name': apply_data['project_domain_name'],
+            'user_domain_name': apply_data['user_domain_name'], 'need_vpn': True,
             'vpn_endpoint_url': '', 'vpn_api_version': '',
             'vpn_username': '', 'vpn_password': '', 'deleted': False,
             'contact_person': 'shun', 'contact_email': 'user@example.com',
@@ -1994,6 +1994,7 @@ class ApplyVmServiceTests(MyAPITestCase):
         apply = ApplyVmService.objects.get(pk=response.data['id'])
         self.assertEqual(apply.name_en, self.apply_data['name_en'])
         service = ServiceConfig.objects.get(pk=apply.service_id)
+        self.assert_is_subdict_of(sub=service.extra_params(), d=self.apply_data)
         self.assertEqual(service.users.filter(id=self.user.id).exists(), True)
 
     @staticmethod
@@ -2043,9 +2044,9 @@ class ApplyVmServiceTests(MyAPITestCase):
             'api_version': 'v3',
             'username': self.service.username,
             'password': self.service.raw_password(),
-            'project_name': '',
-            'project_domain_name': '',
-            'user_domain_name': '', 'need_vpn': True,
+            'project_name': apply_data['project_name'],
+            'project_domain_name': apply_data['project_domain_name'],
+            'user_domain_name': apply_data['user_domain_name'], 'need_vpn': True,
             'vpn_endpoint_url': '', 'vpn_api_version': '',
             'vpn_username': '', 'vpn_password': '', 'deleted': False,
             'contact_person': 'shun', 'contact_email': 'user@example.com',
@@ -2134,9 +2135,9 @@ class ApplyVmServiceTests(MyAPITestCase):
             'api_version': 'v3',
             'username': self.service.username,
             'password': self.service.raw_password(),
-            'project_name': '',
-            'project_domain_name': '',
-            'user_domain_name': '', 'need_vpn': True,
+            'project_name': apply_data['project_name'],
+            'project_domain_name': apply_data['project_domain_name'],
+            'user_domain_name': apply_data['user_domain_name'], 'need_vpn': True,
             'vpn_endpoint_url': '', 'vpn_api_version': '',
             'vpn_username': '', 'vpn_password': '', 'deleted': True,
             'contact_person': 'shun', 'contact_email': 'user@example.com',

@@ -4,12 +4,14 @@ import re
 from pytz import utc
 
 import openstack
+from openstack import exceptions as opsk_exceptions
 
 from adapters.base import BaseAdapter
 from adapters import inputs
 from adapters import outputs
 
 from adapters import exceptions
+from adapters.params import ParamsName
 
 
 datetime_re = re.compile(
@@ -74,10 +76,11 @@ class OpenStackAdapter(BaseAdapter):
     def __init__(self,
                  endpoint_url: str,
                  auth: outputs.AuthenticateOutput = None,
-                 api_version: str = 'v3'
+                 api_version: str = '1.0',
+                 **kwargs
                  ):
-        api_version = api_version if api_version in ['v3'] else 'v3'
-        super().__init__(endpoint_url=endpoint_url, api_version=api_version, auth=auth)
+        api_version = api_version if api_version in ['1.0', '2.0'] else '1.0'
+        super().__init__(endpoint_url=endpoint_url, api_version=api_version, auth=auth, **kwargs)
 
     def authenticate(self, params: inputs.AuthenticateInput, **kwargs):
         """
@@ -90,11 +93,11 @@ class OpenStackAdapter(BaseAdapter):
         """
         username = params.username
         password = params.password
-        auth_url = self.endpoint_url + ':5000/v3/'
-        region = 'RegionOne'
-        project_name = 'admin'
-        user_domain = 'default'
-        project_domain = 'default'
+        auth_url = self.endpoint_url
+        region = self.kwargs.get(ParamsName.REGION, 'RegionOne')
+        project_name = self.kwargs.get(ParamsName.PROJECT_NAME, 'admin')
+        user_domain = self.kwargs.get(ParamsName.USER_DOMAIN_NAME, 'default')
+        project_domain = self.kwargs.get(ParamsName.PROJECT_DOMAIN_NAME, 'default')
 
         try:
             connect = openstack.connect(
@@ -106,14 +109,15 @@ class OpenStackAdapter(BaseAdapter):
                 user_domain_name=user_domain,
                 project_domain_name=project_domain,
                 app_name='examples',
-                app_version='1.0',
+                app_version=self.api_version,
             )
+            connect.compute         # Test whether the connection is successful
             expire = (datetime.utcnow() + timedelta(hours=1)).timestamp()
             auth = outputs.AuthenticateOutput(style='token', token='', header=None, query=None,
                                               expire=int(expire), username=username, password=password,
                                               vmconnect=connect)
         except Exception as e:
-            raise exceptions.AuthenticationFailed()
+            raise exceptions.AuthenticationFailed(message=str(e))
 
         self.auth = auth
         return auth
@@ -226,29 +230,33 @@ class OpenStackAdapter(BaseAdapter):
         """
         service_instance = self._get_openstack_connect()
         status_map = {
-            'ACTIVE': 1,
-            'UNKNOWN': 0,
-            'PAUSED': 3,
-            'SHUTOFF': 4,
-            'SUSPENDED': 7
+            'ACTIVE': outputs.ServerStatus.RUNNING,
+            'UNKNOWN': outputs.ServerStatus.NOSTATE,
+            'PAUSED': outputs.ServerStatus.PAUSED,
+            'SHUTOFF': outputs.ServerStatus.SHUTDOWN,
+            'SUSPENDED': outputs.ServerStatus.PMSUSPENDED
         }
         try:
             server = service_instance.compute.get_server(params.server_id)
             if server is None:
                 status_code = outputs.ServerStatus.MISS
-                status_mean = outputs.ServerStatus.get_mean(status_code)
-                return outputs.ServerStatusOutput(status=status_code, status_mean=status_mean)
-
-            status = server.status
-            status_code = status_map[status]
-            if status_code not in outputs.ServerStatus():
-                status_code = outputs.ServerStatus.NOSTATE
-            status_mean = outputs.ServerStatus.get_mean(status_code)
-            return outputs.ServerStatusOutput(status=status_code, status_mean=status_mean)
+            else:
+                status = server.status
+                if status in status_map:
+                    status_code = status_map[status]
+                else:
+                    status_code = outputs.ServerStatus.NOSTATE
+        except opsk_exceptions.ResourceNotFound as e:
+            status_code = outputs.ServerStatus.MISS
         except Exception as e:
             return outputs.ServerStatusOutput(
                 ok=False, error=exceptions.Error(f'get server status failed, {str(e)}'),
                 status=outputs.ServerStatus.NOSTATE, status_mean='')
+
+        if status_code not in outputs.ServerStatus():
+            status_code = outputs.ServerStatus.NOSTATE
+        status_mean = outputs.ServerStatus.get_mean(status_code)
+        return outputs.ServerStatusOutput(status=status_code, status_mean=status_mean)
 
     def server_vnc(self, params: inputs.ServerVNCInput, **kwargs):
         """

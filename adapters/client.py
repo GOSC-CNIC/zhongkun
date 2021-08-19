@@ -4,6 +4,7 @@ from .evcloud.adapter import EVCloudAdapter
 from .openstack.adapter import OpenStackAdapter
 from .vmware.adapter import VmwareAdapter
 from .exceptions import UnsupportedServiceType, MethodNotSupportInService
+from .params import ParamsName
 
 
 SERVICE_TYPE_EVCLOUD = 'evcloud'
@@ -18,8 +19,14 @@ def get_service_client(service: ServiceConfig, **kwargs):
     elif service.service_type == service.ServiceType.VMWARE:
         style = SERVICE_TYPE_VMWARE
 
+    params = service.extra_params()
+    if service.region_id:
+        params[ParamsName.REGION] = service.region_id
+
+    auth = kwargs.pop('auth') if 'auth' in kwargs else None
+    params.update(kwargs)
     return OneServiceClient(style=style, endpoint_url=service.endpoint_url, api_version=service.api_version,
-                            auth=kwargs.get('auth'))
+                            auth=auth, **params)
 
 
 def get_service_vpn_client(service: ServiceConfig, **kwargs):
@@ -52,14 +59,14 @@ def get_adapter_class(style: str = 'evcloud'):
 
 
 class OneServiceClient:
-    def __init__(self, style, endpoint_url, api_version, auth=None):
+    def __init__(self, style, endpoint_url, api_version, auth=None, **kwargs):
         """
         :param style: style in ['evcloud', 'openstack']
         :param endpoint_url:
         :param api_version:
         """
         adapter_class = get_adapter_class(style)
-        self.adapter = adapter_class(endpoint_url=endpoint_url, api_version=api_version, auth=auth)
+        self.adapter = adapter_class(endpoint_url=endpoint_url, api_version=api_version, auth=auth, **kwargs)
 
     def __getattr__(self, attr):
         try:

@@ -116,13 +116,13 @@ class VoManager:
         queryset = VirtualOrganization.objects.select_related('owner').filter(deleted=False)
 
         if owner and member:
-            queryset = queryset.filter(Q(vomember__user=user) | Q(owner=user))
+            queryset = queryset.filter(Q(vomember__user=user) | Q(owner=user)).distinct()
         elif member:
             queryset = queryset.filter(vomember__user=user)
         elif owner:
             queryset = queryset.filter(owner=user)
         elif owner is None and member is None:
-            queryset = queryset.filter(Q(vomember__user=user) | Q(owner=user))
+            queryset = queryset.filter(Q(vomember__user=user) | Q(owner=user)).distinct()
         else:
             queryset = queryset.none()
 
@@ -312,7 +312,7 @@ class VoMemberManager:
 
     def get_vo_members_queryset(self, vo_id: str):
         qs = self.get_queryset()
-        return qs.filter(vo=vo_id)
+        return qs.select_related('user').filter(vo=vo_id)
 
     def change_member_role(self, member_id: str, role: str, admin_user) -> VoMember:
         """

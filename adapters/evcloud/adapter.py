@@ -35,11 +35,12 @@ class EVCloudAdapter(BaseAdapter):
     def __init__(self,
                  endpoint_url: str,
                  auth: outputs.AuthenticateOutput = None,
-                 api_version: str = 'v3'
+                 api_version: str = 'v3',
+                 **kwargs
                  ):
         api_version = api_version.lower()
         api_version = api_version if api_version in ['v3'] else 'v3'
-        super().__init__(endpoint_url=endpoint_url, api_version=api_version, auth=auth)
+        super().__init__(endpoint_url=endpoint_url, api_version=api_version, auth=auth, **kwargs)
         self.api_builder = APIBuilder(endpoint_url=self.endpoint_url, api_version=self.api_version)
 
     def get_auth_header(self):
@@ -92,7 +93,7 @@ class EVCloudAdapter(BaseAdapter):
         msg = get_failed_msg(r)
         raise exceptions.APIError(msg, status_code=r.status_code)
 
-    def authenticate(self, params: inputs.AuthenticateInput, **kwargs):
+    def authenticate(self, params: inputs.AuthenticateInput, **kwargs) -> outputs.AuthenticateOutput:
         """
         认证获取 Token
 

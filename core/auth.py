@@ -54,9 +54,11 @@ class AuthCacheHandler:
             params = inputs.AuthenticateInput(username=service.username, password=password)
             auth = s_client.authenticate(params)
             if not auth.ok:
-                raise exceptions.AuthenticationFailed(f'Authentication failed to service "{str(service)}"')
-        except os_exceptions.AuthenticationFailed:
-            raise exceptions.AuthenticationFailed(f'Authentication failed to service "{str(service)}"')
+                raise exceptions.AuthenticationFailed(
+                    f'Authentication failed to service "{str(service)}", error: {str(auth.error)}')
+        except os_exceptions.AuthenticationFailed as exc:
+            raise exceptions.AuthenticationFailed(
+                f'Authentication failed to service "{str(service)}", error: {str(exc)}')
 
         self[key] = auth
         return auth

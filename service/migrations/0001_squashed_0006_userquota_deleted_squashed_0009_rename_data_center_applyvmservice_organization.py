@@ -3,6 +3,7 @@
 from django.conf import settings
 from django.db import migrations, models
 import django.db.models.deletion
+import utils.validators
 
 
 class Migration(migrations.Migration):
@@ -61,7 +62,7 @@ class Migration(migrations.Migration):
                 ('vpn_password', models.CharField(blank=True, default='', max_length=255, verbose_name='VPN服务密码')),
                 ('vpn_username', models.CharField(blank=True, default='', help_text='用于此服务认证的用户名', max_length=128, verbose_name='VPN服务用户名')),
                 ('data_center', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='service_set', to='service.datacenter', verbose_name='数据中心')),
-                ('extra', models.CharField(blank=True, default='', help_text='json格式', max_length=1024, verbose_name='其他配置')),
+                ('extra', models.CharField(blank=True, default='', help_text='json格式', max_length=1024, validators=[utils.validators.JSONStringValidator()], verbose_name='其他配置')),
                 ('users', models.ManyToManyField(blank=True, related_name='service_set', to=settings.AUTH_USER_MODEL, verbose_name='用户')),
                 ('contact_address', models.CharField(blank=True, default='', max_length=256, verbose_name='联系人地址')),
                 ('contact_email', models.EmailField(blank=True, default='', max_length=254, verbose_name='联系人邮箱')),
