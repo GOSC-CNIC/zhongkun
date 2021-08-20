@@ -2,12 +2,13 @@ from django.contrib.auth import get_user_model
 from django.conf import settings
 
 from service.models import DataCenter, ServiceConfig
+from users.models import UserProfile
 
 
 User = get_user_model()
 
 
-def get_or_create_user(username='test', password='password'):
+def get_or_create_user(username='test', password='password') -> UserProfile:
     user, created = User.objects.get_or_create(username=username, password=password, is_active=True)
     return user
 
@@ -43,9 +44,9 @@ def get_or_create_service():
             endpoint_url=service_settings['endpoint_url'],
             username=service_settings['username'],
             service_type=service_type,
-            region_id=service_settings['region_id'],
+            region_id=service_settings['region_id']
         )
-        service.set_password(service_settings['password'],)
+        service.set_password(service_settings['password'])
         service.save()
 
     return service

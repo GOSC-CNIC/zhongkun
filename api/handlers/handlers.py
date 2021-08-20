@@ -18,8 +18,9 @@ from activity.managers import QuotaActivityManager
 from utils import storagers
 from utils import time
 from core import errors as exceptions
-from . import serializers
-from . import paginations
+from api import serializers
+from api import paginations
+from api.viewsets import CustomGenericViewSet
 
 
 User = get_user_model()
@@ -1405,9 +1406,27 @@ class VoHandler:
 
 class ServerHandler:
     @staticmethod
-    def list_servers(view, request, kwargs):
+    def list_servers(view: CustomGenericViewSet, request, kwargs):
         service_id = request.query_params.get('service_id', None)
-        servers = ServerManager().get_user_servers_queryset(user=request.user, service_id=service_id)
+        user_id = request.query_params.get('user-id')
+        vo_id = request.query_params.get('vo-id')
+
+        if user_id and vo_id:
+            return view.exception_response(exceptions.BadRequest(
+                message=_('参数“user-id”和“vo-id”不能同时提交')))
+
+        if view.is_as_admin_request(request):
+            try:
+                servers = ServerManager().get_admin_servers_queryset(
+                    user=request.user, service_id=service_id, user_id=user_id, vo_id=vo_id)
+            except Exception as exc:
+                return view.exception_response(exceptions.convert_to_error(exc))
+        else:
+            if user_id or vo_id:
+                return view.exception_response(exceptions.BadRequest(
+                    message=_('参数“user-id”和“vo-id”只能和参数“as-admin”一起提交')))
+
+            servers = ServerManager().get_user_servers_queryset(user=request.user, service_id=service_id)
 
         service_id_map = ServiceManager.get_service_id_map(use_cache=True)
         paginator = paginations.ServersPagination()

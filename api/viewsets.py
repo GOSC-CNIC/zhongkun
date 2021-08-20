@@ -1,10 +1,11 @@
-from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy, gettext as _
 from django.http import Http404
 from django.core.exceptions import PermissionDenied
 from rest_framework import viewsets
 from rest_framework.views import set_rollback
 from rest_framework.response import Response
 from rest_framework.exceptions import (APIException, NotAuthenticated, AuthenticationFailed)
+from drf_yasg import openapi
 
 from service.models import ServiceConfig
 from core.request import request_service, request_vpn_service
@@ -64,6 +65,27 @@ def exception_handler(exc, context):
 
 
 class CustomGenericViewSet(viewsets.GenericViewSet):
+    PARAMETERS_AS_ADMIN = [
+        openapi.Parameter(
+            name='as-admin',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_BOOLEAN,
+            required=False,
+            description=gettext_lazy('已管理员身份请求，如果无管理员权限会返回403错误； 参数不需要值，存在即有效')
+        ),
+    ]
+
+    @staticmethod
+    def is_as_admin_request(request):
+        """
+        是否是以管理员的身份请求
+        """
+        as_admin = request.query_params.get('as-admin', None)
+        if as_admin is None:
+            return False
+
+        return True
+
     @staticmethod
     def request_service(service, method: str, **kwargs):
         """

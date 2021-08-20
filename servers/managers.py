@@ -1,4 +1,5 @@
 from django.utils.translation import gettext as _
+from django.db.models import Subquery
 
 from core import errors
 from vo.managers import VoManager
@@ -20,6 +21,41 @@ class ServerManager:
 
         if service_id:
             qs = qs.filter(service_id=service_id)
+
+        return qs
+
+    def get_admin_servers_queryset(self, user, service_id: str = None, user_id: str = None,
+                                   vo_id: str = None):
+        """
+        管理员查询server
+
+        :raises: Error
+        """
+        if user_id and vo_id:
+            return self.get_server_queryset().none()
+
+        qs = self.get_server_queryset()
+        qs = qs.select_related('service', 'user_quota', 'user')
+
+        if user_id:
+            qs = qs.filter(user_id=user_id, classification=Server.Classification.PERSONAL)
+
+        if vo_id:
+            qs = qs.filter(vo_id=vo_id, classification=Server.Classification.VO)
+
+        if user.is_federal_admin():
+            if service_id:
+                qs = qs.filter(service_id=service_id)
+        else:
+            if service_id:
+                service = user.service_set.filter(id=service_id).first()
+                if service is None:
+                    raise errors.AccessDenied(message=_('您没有指定服务的访问权限'))
+
+                qs = qs.filter(service_id=service_id)
+            else:
+                subq = Subquery(user.service_set.all().values_list('id', flat=True))
+                qs = qs.filter(service_id__in=subq)
 
         return qs
 

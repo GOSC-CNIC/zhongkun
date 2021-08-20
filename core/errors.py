@@ -196,6 +196,11 @@ class TooManyApply(ConflictError):
     default_code = 'TooManyApply'
 
 
+class TooManyVoMember(ConflictError):
+    default_message = 'VO组组员太多，不允许超过VO组组员最大数量限制'
+    default_code = 'TooManyMember'
+
+
 class ResourceNotCleanedUp(ConflictError):
     default_message = '资源未清理'
     default_code = 'ResourceNotCleanedUp'

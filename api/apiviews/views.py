@@ -30,11 +30,11 @@ from core import errors as exceptions
 from core.taskqueue import server_build_status
 from vo.models import VoMember
 from activity.models import QuotaActivity
-from . import serializers
-from .viewsets import CustomGenericViewSet
-from .paginations import ServersPagination, DefaultPageNumberPagination
-from . import handlers
-from .handlers import serializer_error_msg
+from api import serializers
+from api.viewsets import CustomGenericViewSet
+from api.paginations import ServersPagination, DefaultPageNumberPagination
+from api.handlers import handlers
+from api.handlers import serializer_error_msg
 
 
 def is_ipv4(value):
@@ -67,7 +67,7 @@ class ServersViewSet(CustomGenericViewSet):
     # lookup_value_regex = '[0-9a-z-]+'
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('列举用户个人服务器实例'),
+        operation_summary=gettext_lazy('列举用户个人服务器实例，或者以管理员身份列举服务器实例'),
         manual_parameters=[
             openapi.Parameter(
                 name='service_id',
@@ -76,14 +76,28 @@ class ServersViewSet(CustomGenericViewSet):
                 required=False,
                 description='服务端点id'
             ),
-        ],
+            openapi.Parameter(
+                name='user_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('过滤条件，用户id，此参数只有以管理员身份请求时有效，否则400 BadRequest')
+            ),
+            openapi.Parameter(
+                name='vo_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('过滤条件，vo组id，此参数只有以管理员身份请求时有效，否则400 BadRequest')
+            ),
+        ] + CustomGenericViewSet.PARAMETERS_AS_ADMIN,
         responses={
             200: ''
         }
     )
     def list(self, request, *args, **kwargs):
         """
-        列举用户个人服务器实例
+        列举用户个人服务器实例，或者以管理员身份列举服务器实例
 
             200: {
               "count": 8,

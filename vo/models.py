@@ -11,6 +11,8 @@ class VirtualOrganization(UuidModel):
     """
     虚拟组
     """
+    MAX_NUMBER_OF_MEMBERS = 1000            # A vo group has an upper limit of group members.
+
     class Status(models.TextChoices):
         ACTIVE = 'active', _('活动的')
         DISABLE = 'disable', _('禁用')

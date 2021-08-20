@@ -150,6 +150,9 @@ class VoManager:
         failed_users = []
         success_members = []
         exists_member = VoMember.objects.filter(vo=vo, user__username__in=usernames).all()
+        if (len(users) + len(exists_member)) > VirtualOrganization.MAX_NUMBER_OF_MEMBERS:
+            raise errors.TooManyVoMember()
+
         exists_user_id_member_map = {m.user.id: m for m in exists_member}
         for user in users:
             if user.username in not_found_usernames:
@@ -218,7 +221,7 @@ class VoManager:
 
         return vo, VoMemberManager().get_vo_members_queryset(vo_id)
 
-    def create_vo(self, user, name:str, company: str, description: str):
+    def create_vo(self, user, name: str, company: str, description: str):
         """
         创建一个vo组
         """

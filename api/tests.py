@@ -27,9 +27,9 @@ def random_string(length: int = 10):
 
 def random_bytes_io(mb_num: int):
     bio = io.BytesIO()
-    for i in range(1024):           # MB
+    for i in range(1024):  # MB
         s = ''.join(random_string(mb_num))
-        b = s.encode() * 1024         # KB
+        b = s.encode() * 1024  # KB
         bio.write(b)
 
     bio.seek(0)
@@ -52,7 +52,7 @@ def calculate_md5(file):
     return _hash
 
 
-def chunks(f, chunk_size=2*2**20):
+def chunks(f, chunk_size=2 * 2 ** 20):
     """
     Read the file and yield chunks of ``chunk_size`` bytes (defaults to
     ``File.DEFAULT_CHUNK_SIZE``).
@@ -206,7 +206,7 @@ class QuotaTests(MyAPITestCase):
         mgr = UserQuotaManager()
         quota = mgr.create_quota(user=self.user, service=self.service)
         expire_quota = mgr.create_quota(user=self.user, service=self.service,
-                                             expire_time=timezone.now() - timedelta(days=1))
+                                        expire_time=timezone.now() - timedelta(days=1))
 
         create_server_metadata(
             service=self.service, user=self.user, user_quota=quota)
@@ -242,7 +242,7 @@ class QuotaTests(MyAPITestCase):
         mgr = UserQuotaManager()
         quota = mgr.create_quota(user=self.user, service=self.service)
         expire_quota = mgr.create_quota(user=self.user, service=self.service,
-                                             expire_time=timezone.now() - timedelta(days=1))
+                                        expire_time=timezone.now() - timedelta(days=1))
 
         create_server_metadata(
             service=self.service, user=self.user, user_quota=quota)
@@ -268,10 +268,10 @@ class QuotaTests(MyAPITestCase):
         vo_id = response.data['id']
         mgr = UserQuotaManager()
         vo_quota = mgr.create_quota(user=self.user, service=self.service,
-            classification=UserQuota.Classification.VO, vo_id=vo_id)
+                                    classification=UserQuota.Classification.VO, vo_id=vo_id)
         vo_expire_quota = mgr.create_quota(user=self.user, service=self.service,
-            expire_time=timezone.now() - timedelta(days=1),
-            classification=UserQuota.Classification.VO, vo_id=vo_id)
+                                           expire_time=timezone.now() - timedelta(days=1),
+                                           classification=UserQuota.Classification.VO, vo_id=vo_id)
 
         create_server_metadata(
             service=self.service, user=self.user, user_quota=vo_quota, vo_id=vo_id)
@@ -511,6 +511,117 @@ class ServersTests(MyAPITestCase):
                         "service_type": ServiceConfig.ServiceType.EVCLOUD},
             'id': vo_server.id, 'vo_id': vo_id
         }, d=response.data['server'])
+
+        # ----------------admin list servers test -----------------------
+        admin_username = 'admin-user'
+        admin_password = 'admin-password'
+        admin_user = get_or_create_user(username=admin_username, password=admin_password)
+        service66 = ServiceConfig(
+            name='test66', name_en='test66_en', data_center_id=None,
+            endpoint_url='',
+            username='',
+            service_type=ServiceConfig.ServiceType.EVCLOUD,
+            region_id='',
+        )
+        service66.save()
+        admin_server66 = create_server_metadata(service=service66, user=admin_user, user_quota=None,
+                                                default_user=self.default_user, default_password=self.default_password)
+
+        self.client.logout()
+        self.client.force_login(admin_user)
+
+        # list server when not admin user
+        url = reverse('api:servers-list')
+        query_str = parse.urlencode(query={'as-admin': '', 'service_id': self.service.id})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # -------------list server when service admin---------------
+        self.service.users.add(admin_user)
+
+        url = reverse('api:servers-list')
+        query_str = parse.urlencode(query={'as-admin': ''})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'next', 'previous', 'servers'], response.data)
+        self.assertEqual(response.data['count'], 2)
+        self.assertIsInstance(response.data['servers'], list)
+        self.assertEqual(len(response.data['servers']), 2)
+
+        # list server when service admin bu query parameter 'service_id'
+        url = reverse('api:servers-list')
+        query_str = parse.urlencode(query={'as-admin': '', 'service_id': self.service.id})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(len(response.data['servers']), 2)
+
+        # list server when service admin bu query parameter 'service_id' and 'user-id'
+        url = reverse('api:servers-list')
+        query_str = parse.urlencode(query={'as-admin': '', 'service_id': self.service.id, 'user-id': admin_user.id})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
+        self.assertEqual(len(response.data['servers']), 0)
+
+        url = reverse('api:servers-list')
+        query_str = parse.urlencode(query={'as-admin': '', 'service_id': self.service.id, 'user-id': self.user.id})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['servers']), 1)
+        self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
+                           "public_ip", "image", "creation_time",
+                           "remarks", "endpoint_url", "service", "user_quota",
+                           "center_quota", "classification", "vo_id", "user",
+                           "image_id", "image_desc", "default_user", "default_password"], response.data['servers'][0])
+        self.assert_is_subdict_of(sub={
+            'classification': Server.Classification.PERSONAL,
+            'service': {'id': self.miss_server.service.id, 'name': self.miss_server.service.name,
+                        "service_type": ServiceConfig.ServiceType.EVCLOUD},
+            'id': self.miss_server.id, 'vo_id': None
+        }, d=response.data['servers'][0])
+
+        # list server when service admin bu query parameter 'service_id' and 'vo-id'
+        url = reverse('api:servers-list')
+        query_str = parse.urlencode(query={'as-admin': '', 'service_id': self.service.id, 'vo-id': self.vo_id})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['servers']), 1)
+        self.assert_is_subdict_of(sub={
+            'classification': Server.Classification.VO,
+            'service': {'id': vo_server.service.id, 'name': vo_server.service.name,
+                        "service_type": ServiceConfig.ServiceType.EVCLOUD},
+            'id': vo_server.id, 'vo_id': vo_id
+        }, d=response.data['servers'][0])
+
+        # list server when service admin bu query parameter 'user-id' and 'vo-id'
+        url = reverse('api:servers-list')
+        query_str = parse.urlencode(query={'as-admin': '', 'user-id': self.user.id, 'vo-id': self.vo_id})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
+
+        # -------------list server when federal admin---------------
+        admin_user.set_federal_admin()
+        url = reverse('api:servers-list')
+        query_str = parse.urlencode(query={'as-admin': ''})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 3)
+        self.assertEqual(len(response.data['servers']), 3)
+
+        query_str = parse.urlencode(query={'as-admin': '', 'service_id': self.service.id})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(len(response.data['servers']), 2)
+
+        query_str = parse.urlencode(query={'as-admin': '', 'service_id': self.service.id, 'vo-id': self.vo_id})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['servers']), 1)
 
     def test_server_action(self):
         url = reverse('api:servers-server-action', kwargs={'id': 'motfound'})
@@ -1026,7 +1137,7 @@ class UserQuotaApplyTests(MyAPITestCase):
         response = self.pending_apply(apply_id)
         self.assertEqual(response.status_code, 403)
 
-        self.service.users.add(self.user)   # 加管理权限
+        self.service.users.add(self.user)  # 加管理权限
 
         response = self.pending_apply(apply_id)
         self.assertEqual(response.status_code, 200)
@@ -1037,7 +1148,7 @@ class UserQuotaApplyTests(MyAPITestCase):
         self.apply_response_data_keys_assert(response.data)
 
         response = self.update_apply(apply_id)
-        self.assertEqual(response.status_code, 409)     # 审批后不可修改
+        self.assertEqual(response.status_code, 409)  # 审批后不可修改
 
         apply = ApplyQuota.objects.get(pk=apply_id)
         self.assertEqual(apply.status, apply.STATUS_PASS)
@@ -1571,7 +1682,8 @@ class ApplyOrganizationTests(MyAPITestCase):
         response = self.create_apply_response(client=self.client, data=apply_data)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(keys=[
-            'id', 'creation_time', 'status', 'user', 'deleted', 'name', "name_en",'abbreviation', 'independent_legal_person',
+            'id', 'creation_time', 'status', 'user', 'deleted', 'name', "name_en", 'abbreviation',
+            'independent_legal_person',
             'country', 'city', 'postal_code', 'address', 'endpoint_vms', 'endpoint_object',
             'endpoint_compute', 'endpoint_monitor', 'desc', 'logo_url', 'certification_url'
         ], container=response.data)
@@ -1717,7 +1829,8 @@ class ApplyOrganizationTests(MyAPITestCase):
         self.assertKeysIn(["count", "next", "previous", "results"], response.data)
         self.assertEqual(response.data["count"], 1)
         self.assertKeysIn(keys=[
-            'id', 'creation_time', 'status', 'user', 'deleted', 'name', "name_en", 'abbreviation', 'independent_legal_person',
+            'id', 'creation_time', 'status', 'user', 'deleted', 'name', "name_en", 'abbreviation',
+            'independent_legal_person',
             'country', 'city', 'postal_code', 'address', 'endpoint_vms', 'endpoint_object',
             'endpoint_compute', 'endpoint_monitor', 'desc', 'logo_url', 'certification_url'
         ], container=response.data['results'][0])
@@ -1781,7 +1894,8 @@ class ApplyOrganizationTests(MyAPITestCase):
         self.assertKeysIn(["count", "next", "previous", "results"], response.data)
         self.assertEqual(response.data["count"], 1)
         self.assertKeysIn(keys=[
-            'id', 'creation_time', 'status', 'user', 'deleted', 'name', "name_en", 'abbreviation', 'independent_legal_person',
+            'id', 'creation_time', 'status', 'user', 'deleted', 'name', "name_en", 'abbreviation',
+            'independent_legal_person',
             'country', 'city', 'postal_code', 'address', 'endpoint_vms', 'endpoint_object',
             'endpoint_compute', 'endpoint_monitor', 'desc', 'logo_url', 'certification_url'
         ], container=response.data['results'][0])
@@ -1929,7 +2043,7 @@ class ApplyVmServiceTests(MyAPITestCase):
         response = self.client.post(url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        self.federal_admin.set_federal_admin()      # 联邦管理员权限
+        self.federal_admin.set_federal_admin()  # 联邦管理员权限
         response = self.client.post(url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['status'], ApplyVmService.Status.PENDING)
@@ -1950,7 +2064,7 @@ class ApplyVmServiceTests(MyAPITestCase):
 
         self.client.logout()
         self.client.force_login(self.federal_admin)
-        self.federal_admin.set_federal_admin()      # 联邦管理员权限
+        self.federal_admin.set_federal_admin()  # 联邦管理员权限
 
         # pending
         url = reverse('api:apply-service-action', kwargs={'id': apply_id, 'action': 'pending'})
@@ -2222,7 +2336,7 @@ class VoTests(MyAPITestCase):
 
     @staticmethod
     def change_member_role_response(client, member_id: str, role: str):
-        url = reverse('api:vo-vo-members-role', kwargs={'member_id': member_id, 'role':role})
+        url = reverse('api:vo-vo-members-role', kwargs={'member_id': member_id, 'role': role})
         return client.post(url)
 
     def test_create_update_delete(self):
@@ -2234,7 +2348,7 @@ class VoTests(MyAPITestCase):
         response = self.create_vo_response(client=self.client, name=data['name'],
                                            company=data['company'], description=data['description'])
         self.assertEqual(response.status_code, 200)
-        self.assertKeysIn(keys=['id', 'name', 'company','description', 'creation_time',
+        self.assertKeysIn(keys=['id', 'name', 'company', 'description', 'creation_time',
                                 'owner', 'status'], container=response.data)
         sub = {'status': 'active'}
         sub.update(data)
@@ -2491,22 +2605,22 @@ class QuotaActivityTests(MyAPITestCase):
 
     def test_create_list_activity(self):
         data = {
-          "service_id": "string",
-          "name": "string",
-          "name_en": "string",
-          "start_time": (timezone.now() + timedelta(hours=1)).isoformat(),
-          "end_time": (timezone.now() + timedelta(days=1)).isoformat(),
-          "count": 3,
-          "times_per_user": 2,
-          "status": QuotaActivity.Status.ACTIVE,
-          "tag": QuotaActivity.Tag.PROBATION,
-          "cpus": 1,
-          "private_ip": 0,
-          "public_ip": 0,
-          "ram": 1024,
-          "disk_size": 0,
-          "expiration_time": (timezone.now() + timedelta(days=1)).isoformat(),
-          "duration_days": 10
+            "service_id": "string",
+            "name": "string",
+            "name_en": "string",
+            "start_time": (timezone.now() + timedelta(hours=1)).isoformat(),
+            "end_time": (timezone.now() + timedelta(days=1)).isoformat(),
+            "count": 3,
+            "times_per_user": 2,
+            "status": QuotaActivity.Status.ACTIVE,
+            "tag": QuotaActivity.Tag.PROBATION,
+            "cpus": 1,
+            "private_ip": 0,
+            "public_ip": 0,
+            "ram": 1024,
+            "disk_size": 0,
+            "expiration_time": (timezone.now() + timedelta(days=1)).isoformat(),
+            "duration_days": 10
         }
         response = self.create_activity_response(client=self.client, data=data)
         self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
@@ -2674,4 +2788,3 @@ class QuotaActivityTests(MyAPITestCase):
         self.assertEqual(activity.count, count)
         self.assertEqual(activity.got_count, 3)
         self.assertEqual(UserQuota.objects.all().count(), 3)
-
