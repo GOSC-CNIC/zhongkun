@@ -715,6 +715,7 @@ class VoSerializer(serializers.Serializer):
 
         return None
 
+
 class VoUpdateSerializer(serializers.Serializer):
     name = serializers.CharField(label=_('组名称'), max_length=255, required=False, allow_null=True)
     company = serializers.CharField(label=_('单位'), max_length=256, required=False, allow_null=True)

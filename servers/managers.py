@@ -111,6 +111,21 @@ class ServerManager:
 
         return server
 
+    def get_permission_server_as_admin(self, server_id: str, user, related_fields: list = None,
+                                       read_only: bool = True) -> Server:
+        """
+        查询作为管理员用户指定权限的虚拟服务器实例
+
+        :raises: Error
+        """
+        server = self.get_server(server_id=server_id, related_fields=related_fields)
+        if user.is_federal_admin():
+            return server
+        elif server.service.user_has_perm(user):
+            return server
+
+        raise errors.AccessDenied(_('您没有管理权限，无权限访问此服务器实例'))
+
     def get_manage_perm_server(self, server_id: str, user, related_fields: list = None) -> Server:
         """
         查询用户有管理权限的虚拟服务器实例
@@ -119,11 +134,14 @@ class ServerManager:
         return self.get_permission_server(server_id=server_id, user=user, related_fields=related_fields,
                                           read_only=False)
 
-    def get_read_perm_server(self, server_id: str, user, related_fields: list = None) -> Server:
+    def get_read_perm_server(self, server_id: str, user, related_fields: list = None, as_admin: bool = False) -> Server:
         """
         查询用户有访问权限的虚拟服务器实例
         :raises: Error
         """
+        if as_admin:
+            return self.get_permission_server_as_admin(server_id=server_id, user=user, related_fields=related_fields)
+
         return self.get_permission_server(server_id=server_id, user=user, related_fields=related_fields,
                                           read_only=True)
 

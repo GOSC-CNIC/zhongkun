@@ -432,6 +432,43 @@ class ServersTests(MyAPITestCase):
         self.assertKeysIn(['code', 'message'], response.data)
         self.assertEqual(response.data['code'], 'NotFound')
 
+        # ----------------admin get server status test -----------------------
+        admin_username = 'admin-user'
+        admin_password = 'admin-password'
+        admin_user = get_or_create_user(username=admin_username, password=admin_password)
+
+        # test when not admin
+        url = reverse('api:servers-server_status', kwargs={'id': self.miss_server.id})
+        query = parse.urlencode(query={'as-admin': ''})
+        response = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.client.logout()
+        self.client.force_login(admin_user)
+
+        # test when service admin
+        self.service.users.add(admin_user)
+        url = reverse('api:servers-server_status', kwargs={'id': self.miss_server.id})
+        query = parse.urlencode(query={'as-admin': ''})
+        response = self.client.get(f'{url}?{query}')
+        self.assertIn('status', response.data)
+        self.assertEqual(response.data['status']['status_code'], outputs.ServerStatus.MISS)
+
+        # test when federal admin
+        self.service.users.remove(admin_user)
+
+        url = reverse('api:servers-detail', kwargs={'id': self.miss_server.id})
+        query = parse.urlencode(query={'as-admin': ''})
+        response = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        admin_user.set_federal_admin()
+        url = reverse('api:servers-server_status', kwargs={'id': self.miss_server.id})
+        query = parse.urlencode(query={'as-admin': ''})
+        response = self.client.get(f'{url}?{query}')
+        self.assertIn('status', response.data)
+        self.assertEqual(response.data['status']['status_code'], outputs.ServerStatus.MISS)
+
     def test_server_detail(self):
         url = reverse('api:servers-detail', kwargs={'id': 'motfound'})
         response = self.client.get(url)
@@ -451,6 +488,56 @@ class ServersTests(MyAPITestCase):
         self.assert_is_subdict_of(sub={
             "default_user": self.default_user, "default_password": self.default_password
         }, d=response.data['server'])
+
+        # ----------------admin get server detail test -----------------------
+        admin_username = 'admin-user'
+        admin_password = 'admin-password'
+        admin_user = get_or_create_user(username=admin_username, password=admin_password)
+
+        # test when not admin
+        url = reverse('api:servers-detail', kwargs={'id': self.miss_server.id})
+        query = parse.urlencode(query={'as-admin': ''})
+        response = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.client.logout()
+        self.client.force_login(admin_user)
+
+        # test when service admin
+        self.service.users.add(admin_user)
+        url = reverse('api:servers-detail', kwargs={'id': self.miss_server.id})
+        query = parse.urlencode(query={'as-admin': ''})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['server'], response.data)
+        self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
+                           "public_ip", "image", "creation_time", "remarks",
+                           "endpoint_url", "service", "user_quota",
+                           "center_quota", "classification", "vo_id", "user",
+                           "image_id", "image_desc", "default_user", "default_password"], response.data['server'])
+        self.assert_is_subdict_of(sub={
+            "default_user": self.default_user, "default_password": self.default_password
+        }, d=response.data['server'])
+
+        # test when federal admin
+        self.service.users.remove(admin_user)
+
+        url = reverse('api:servers-detail', kwargs={'id': self.miss_server.id})
+        query = parse.urlencode(query={'as-admin': ''})
+        response = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        admin_user.set_federal_admin()
+        url = reverse('api:servers-detail', kwargs={'id': self.miss_server.id})
+        query = parse.urlencode(query={'as-admin': ''})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['server'], response.data)
+        self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
+                           "public_ip", "image", "creation_time", "remarks",
+                           "endpoint_url", "service", "user_quota",
+                           "center_quota", "classification", "vo_id", "user",
+                           "image_id", "image_desc", "default_user", "default_password"], response.data['server'])
 
     def test_server_list(self):
         vo_server = self.vo_server
