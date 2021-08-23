@@ -316,7 +316,7 @@ class QuotaTests(MyAPITestCase):
         self.client.logout()
         self.client.force_login(member_user)
 
-        # no permission when is not vo member
+        # no permission list vo quota servers when is not vo member
         url = reverse('api:quota-quota-servers', kwargs={'id': vo_quota.id})
         response = self.client.get(url, format='json')
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
@@ -330,15 +330,15 @@ class QuotaTests(MyAPITestCase):
                           inviter_id=self.user.id, inviter=self.user.username)
         member.save()
 
-        # has permission when is not vo member
+        # has permission list vo quota servers when is vo member
         url = reverse('api:quota-quota-servers', kwargs={'id': vo_quota.id})
         response = self.client.get(url, format='json')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 1)
 
-        # no permission get quota detail when is vo member
+        # has permission get quota detail when is vo member
         response = self.detail_quota_response(quota_id=vo_quota.id)
-        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+        self.assertEqual(response.status_code, 200)
 
         # vo leader member
         member.role = member.Role.LEADER

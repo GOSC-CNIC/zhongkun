@@ -1234,7 +1234,7 @@ class QuotaViewSet(CustomGenericViewSet):
     @action(methods=['get'], detail=False, url_path='vo/(?P<vo_id>.+)', url_name='list-vo-quota')
     def list_vo_quota(self, request, *args, **kwargs):
         """
-        列举vo组(需vo组管理权限)的资源配额
+        列举vo组(需vo组组员权限)的资源配额
 
             Http Code: 状态码200，返回数据：
             {
@@ -1344,7 +1344,7 @@ class QuotaViewSet(CustomGenericViewSet):
     )
     def retrieve(self, request, *args, **kwargs):
         """
-        查询个人或vo组(需vo组管理权限)配额详细信息
+        查询个人或vo组(需vo组组员权限)配额详细信息
 
             http code 200:
             {

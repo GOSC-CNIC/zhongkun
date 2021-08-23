@@ -81,7 +81,7 @@ class UserQuotaHandler:
     @staticmethod
     def list_vo_quotas(view, request, kwargs):
         """
-        list vo组的资源配额, 需vo组管理员权限
+        list vo组的资源配额
         """
         service_id = request.query_params.get('service', None)
         usable = request.query_params.get('usable', '').lower()
@@ -89,7 +89,7 @@ class UserQuotaHandler:
         vo_id = kwargs.get('vo_id')
 
         try:
-            vo, member = VoManager().get_has_manager_perm_vo(vo_id=vo_id,user=request.user)
+            vo, member = VoManager().get_has_read_perm_vo(vo_id=vo_id, user=request.user)
             queryset = UserQuotaManager().filter_vo_quota_queryset(
                 vo=vo, service=service_id, usable=usable)
             paginator = view.paginator
@@ -136,7 +136,7 @@ class UserQuotaHandler:
     def detail_quota(view, request, kwargs):
         quota_id = kwargs.get(view.lookup_field)
         try:
-            quota = UserQuotaManager().get_user_manage_perm_quota(quota_id, user=request.user)
+            quota = UserQuotaManager().get_user_read_perm_quota(quota_id, user=request.user)
         except exceptions.Error as exc:
             return view.exception_response(exc)
 
