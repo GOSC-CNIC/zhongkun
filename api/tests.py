@@ -137,61 +137,6 @@ class FlavorTests(MyAPITestCase):
         }]})
 
 
-class UserQuotaTests(MyAPITestCase):
-    def setUp(self):
-        set_auth_header(self)
-        self.user = get_or_create_user()
-        self.service = get_or_create_service()
-        mgr = UserQuotaManager()
-        self.quota = mgr.create_quota(user=self.user, service=self.service)
-        self.expire_quota = mgr.create_quota(user=self.user, service=self.service,
-                                             expire_time=timezone.now() - timedelta(days=1))
-
-        create_server_metadata(
-            service=self.service, user=self.user, user_quota=self.quota)
-
-    def test_list_delete_quota(self):
-        url = reverse('api:user-quota-list')
-        response = self.client.get(url, format='json')
-        self.assertEqual(response.status_code, 200)
-        self.assertKeysIn(['count', 'results', "next", "previous"], response.data)
-        self.assertEqual(response.data['count'], 2)
-
-        url += f'?usable=true'
-        response = self.client.get(url, format='json')
-        self.assertEqual(response.status_code, 200)
-        self.assertKeysIn(['count', 'results', "next", "previous"], response.data)
-        self.assertEqual(response.data['count'], 1)
-        self.assertKeysIn(["id", "tag", "user", "service", "private_ip_total",
-                           "private_ip_used", "public_ip_total", "public_ip_used",
-                           "vcpu_total", "vcpu_used", "ram_total", "ram_used",
-                           "disk_size_total", "disk_size_used", "expiration_time",
-                           "deleted", "display"], response.data['results'][0])
-
-        # delete
-        url = reverse('api:user-quota-detail', kwargs={'id': self.quota.id})
-        response = self.client.delete(url, format='json')
-        self.assertEqual(response.status_code, 204)
-
-        url = reverse('api:user-quota-list')
-        response = self.client.get(url, format='json')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['count'], 1)
-
-    def test_list_quota_servers(self):
-        url = reverse('api:user-quota-quota-servers', kwargs={'id': 'notfound'})
-        response = self.client.get(url, format='json')
-        self.assertErrorResponse(status_code=404, response=response, code='NotFound')
-
-        url = reverse('api:user-quota-quota-servers', kwargs={'id': self.quota.id})
-        response = self.client.get(url, format='json')
-        self.assertEqual(response.status_code, 200)
-        self.assertKeysIn(['count', 'results', "next", "previous"], response.data)
-        self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
-                           "public_ip", "image", "creation_time",
-                           "remarks"], response.data['results'][0])
-
-
 class QuotaTests(MyAPITestCase):
     def setUp(self):
         set_auth_header(self)
