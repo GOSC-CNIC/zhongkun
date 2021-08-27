@@ -403,7 +403,7 @@ class ServersTests(MyAPITestCase):
         self.miss_server.refresh_from_db()
         self.assertEqual(remark, self.miss_server.remarks)
 
-        # vo server
+        # vo server when vo owner
         remark = 'test-vo-remarks'
         url = reverse('api:servers-server-remark', kwargs={'id': self.vo_server.id})
         query = parse.urlencode(query={'remark': remark})
@@ -773,14 +773,6 @@ class ServersTests(MyAPITestCase):
         self.client.force_login(member_user)
 
         # -------has permission-----
-        # vo server remark
-        remark = 'test-vo-remarks'
-        url = reverse('api:servers-server-remark', kwargs={'id': self.vo_server.id})
-        query = parse.urlencode(query={'remark': remark})
-        response = self.client.patch(f'{url}?{query}')
-        self.assertEqual(response.status_code, 200)
-        self.vo_server.refresh_from_db()
-        self.assertEqual(remark, self.vo_server.remarks)
 
         # list vo servers
         url = reverse('api:servers-list-vo-servers', kwargs={'vo_id': self.vo_id})
@@ -816,6 +808,31 @@ class ServersTests(MyAPITestCase):
         url = reverse('api:servers-detail', kwargs={'id': self.vo_server.id})
         response = self.client.delete(url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # action server
+        url = reverse('api:servers-server-action', kwargs={'id': self.vo_server.id})
+        response = self.client.post(url, data={'action': 'delete'})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # vo server remark when not vo member leader
+        remark = 'test-vo-remarks'
+        url = reverse('api:servers-server-remark', kwargs={'id': self.vo_server.id})
+        query = parse.urlencode(query={'remark': remark})
+        response = self.client.patch(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # vo server remark when vo member leader
+        vo_member = VoMember.objects.filter(vo_id=self.vo_id, user_id=member_user.id).first()
+        vo_member.role = VoMember.Role.LEADER
+        vo_member.save(update_fields=['role'])
+
+        remark = 'test-vo-remarks'
+        url = reverse('api:servers-server-remark', kwargs={'id': self.vo_server.id})
+        query = parse.urlencode(query={'remark': remark})
+        response = self.client.patch(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.vo_server.refresh_from_db()
+        self.assertEqual(remark, self.vo_server.remarks)
 
     def test_delete_list_archive(self):
         self.client.logout()

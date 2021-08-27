@@ -93,6 +93,9 @@ class ServerManager:
 
         :raises: Error
         """
+        if related_fields and 'vo' not in related_fields:
+            related_fields.append('vo')
+
         server = self.get_server(server_id=server_id, related_fields=related_fields)
         if server.classification == server.Classification.PERSONAL:
             if not server.user_has_perms(user):

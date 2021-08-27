@@ -475,6 +475,9 @@ class ServersViewSet(CustomGenericViewSet):
         }
     )
     def destroy(self, request, *args, **kwargs):
+        """
+        vo组云主机的删除需要vo组管理员权限
+        """
         server_id = kwargs.get(self.lookup_field, '')
         q_force = request.query_params.get('force', '')
         if q_force.lower() == 'true':
@@ -532,6 +535,9 @@ class ServersViewSet(CustomGenericViewSet):
     )
     @action(methods=['post'], url_path='action', detail=True, url_name='server-action')
     def server_action(self, request, *args, **kwargs):
+        """
+        vo组云主机的删除操作需要vo组管理员权限
+        """
         server_id = kwargs.get(self.lookup_field, '')
         try:
             act = request.data.get('action', None)
@@ -548,8 +554,15 @@ class ServersViewSet(CustomGenericViewSet):
             exc = exceptions.InvalidArgument(_('action参数无效'))
             return Response(data=exc.err_data(), status=exc.status_code)
 
+        need_manager_perm = False
+        if act in [inputs.ServerAction.DELETE, inputs.ServerAction.DELETE_FORCE]:
+            need_manager_perm = True
+
         try:
-            server = ServerManager().get_read_perm_server(server_id=server_id, user=request.user)
+            if need_manager_perm:
+                server = ServerManager().get_manage_perm_server(server_id=server_id, user=request.user)
+            else:
+                server = ServerManager().get_read_perm_server(server_id=server_id, user=request.user)
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
@@ -737,6 +750,9 @@ class ServersViewSet(CustomGenericViewSet):
     )
     @action(methods=['patch'], url_path='remark', detail=True, url_name='server-remark')
     def server_remark(self, request, *args, **kwargs):
+        """
+        vo组云主机需要vo组管理员权限
+        """
         server_id = kwargs.get(self.lookup_field, '')
         remarks = request.query_params.get('remark', None)
         if remarks is None:
@@ -744,7 +760,7 @@ class ServersViewSet(CustomGenericViewSet):
                 exceptions.InvalidArgument(message='query param "remark" is required'))
 
         try:
-            server = ServerManager().get_read_perm_server(server_id=server_id, user=request.user)
+            server = ServerManager().get_manage_perm_server(server_id=server_id, user=request.user)
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 

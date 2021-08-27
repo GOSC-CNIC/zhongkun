@@ -13,11 +13,11 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='server',
             name='classification',
-            field=models.CharField(choices=[('personal', '个人的'), ('vo', 'VO组的')], default='personal', help_text='标识配额属于申请者个人的，还是vo组的', max_length=16, verbose_name='资源配额归属类型'),
+            field=models.CharField(choices=[('personal', '个人的'), ('vo', 'VO组的')], default='personal', help_text='标识云主机属于申请者个人的，还是vo组的', max_length=16, verbose_name='云主机归属类型'),
         ),
         migrations.AddField(
             model_name='serverarchive',
             name='classification',
-            field=models.CharField(choices=[('personal', '个人的'), ('vo', 'VO组的')], default='personal', help_text='标识配额属于申请者个人的，还是vo组的', max_length=16, verbose_name='资源配额归属类型'),
+            field=models.CharField(choices=[('personal', '个人的'), ('vo', 'VO组的')], default='personal', help_text='标识云主机属于申请者个人的，还是vo组的', max_length=16, verbose_name='云主机归属类型'),
         ),
     ]
