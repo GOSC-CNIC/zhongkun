@@ -33,7 +33,9 @@ from activity.models import QuotaActivity
 from api import serializers
 from api.viewsets import CustomGenericViewSet
 from api.paginations import ServersPagination, DefaultPageNumberPagination
-from api.handlers import handlers
+from api.handlers import (
+    handlers, ServerHandler, ServerArchiveHandler
+)
 from api.handlers import serializer_error_msg
 
 
@@ -136,12 +138,13 @@ class ServersViewSet(CustomGenericViewSet):
                   "user": {
                     "id": "1",
                     "username": "shun"
-                  }
+                  },
+                  "lock": "free"    # 'free': 无锁；'lock-delete': 锁定删除，防止删除；'lock-operation', '锁定所有操作，只允许读'
                 }
               ]
             }
         """
-        return handlers.ServerHandler.list_servers(view=self, request=request, kwargs=kwargs)
+        return ServerHandler.list_servers(view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举vo组的服务器实例'),
@@ -200,12 +203,13 @@ class ServersViewSet(CustomGenericViewSet):
                   "user": {
                     "id": "1",
                     "username": "shun"
-                  }
+                  },
+                  "lock": "free"    # 'free': 无锁；'lock-delete': 锁定删除，防止删除；'lock-operation', '锁定所有操作，只允许读'
                 }
               ]
             }
         """
-        return handlers.ServerHandler.list_vo_servers(view=self, request=request, kwargs=kwargs)
+        return ServerHandler.list_vo_servers(view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('创建服务器实例'),
@@ -361,7 +365,8 @@ class ServersViewSet(CustomGenericViewSet):
                 "user": {
                     "id": "1",
                     "username": "shun"
-                }
+                },
+                "lock": "free"    # 'free': 无锁；'lock-delete': 锁定删除，防止删除；'lock-operation', '锁定所有操作，只允许读'
               }
             }
         """
@@ -489,6 +494,11 @@ class ServersViewSet(CustomGenericViewSet):
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
+        if server.is_locked_delete():
+            return self.exception_response(exceptions.ResourceLocked(
+                message=_('无法删除，云主机已加锁锁定了删除')
+            ))
+
         params = inputs.ServerDeleteInput(server_id=server.instance_id, force=force)
         try:
             self.request_service(server.service, method='server_delete', params=params)
@@ -561,8 +571,16 @@ class ServersViewSet(CustomGenericViewSet):
         try:
             if need_manager_perm:
                 server = ServerManager().get_manage_perm_server(server_id=server_id, user=request.user)
+                if server.is_locked_delete():
+                    return self.exception_response(exceptions.ResourceLocked(
+                        message=_('无法删除，云主机已加锁锁定了删除')
+                    ))
             else:
                 server = ServerManager().get_read_perm_server(server_id=server_id, user=request.user)
+                if server.is_locked_operation():
+                    return self.exception_response(exceptions.ResourceLocked(
+                        message=_('云主机已加锁锁定了任何操作')
+                    ))
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
@@ -764,6 +782,11 @@ class ServersViewSet(CustomGenericViewSet):
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
+        if server.is_locked_operation():
+            return self.exception_response(exceptions.ResourceLocked(
+                message=_('云主机已加锁锁定了一切操作')
+            ))
+
         try:
             server.remarks = remarks
             server.save(update_fields=['remarks'])
@@ -771,6 +794,39 @@ class ServersViewSet(CustomGenericViewSet):
             return self.exception_response(exc)
 
         return Response(data={'remarks': remarks})
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('云服务器锁设置'),
+        request_body=no_body,
+        manual_parameters=[
+            openapi.Parameter(
+                name='lock',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description=f'{Server.Lock.choices}'
+            )
+        ],
+        responses={
+            200: '''
+                    {
+                        "remarks": "xxx"
+                    }
+                ''',
+            "400, 403, 404, 500": """
+                    {
+                        "code": "AccessDenied", # ServerNotExist, "InternalError"
+                        "message": "xxx"
+                    }
+                    """
+        }
+    )
+    @action(methods=['post'], url_path='lock', detail=True, url_name='server-lock')
+    def server_lock(self, request, *args, **kwargs):
+        """
+        云服务器锁设置
+        """
+        return ServerHandler.server_lock(view=self, request=request, kwargs=kwargs)
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -1863,7 +1919,7 @@ class ServerArchiveViewSet(CustomGenericViewSet):
                   ]
                 }
         """
-        return handlers.ServerArchiveHandler.list_archives(
+        return ServerArchiveHandler.list_archives(
             view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
@@ -1883,7 +1939,7 @@ class ServerArchiveViewSet(CustomGenericViewSet):
     )
     @action(methods=['get'], detail=False, url_path='vo/(?P<vo_id>.+)', url_name='list-vo-archives')
     def list_vo_archives(self, request, *args, **kwargs):
-        return handlers.ServerArchiveHandler.list_vo_archives(
+        return ServerArchiveHandler.list_vo_archives(
             view=self, request=request, kwargs=kwargs)
 
 

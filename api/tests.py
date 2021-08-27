@@ -554,7 +554,8 @@ class ServersTests(MyAPITestCase):
                            "public_ip", "image", "creation_time",
                            "remarks", "endpoint_url", "service", "user_quota",
                            "center_quota", "classification", "vo_id", "user",
-                           "image_id", "image_desc", "default_user", "default_password"], response.data['servers'][0])
+                           "image_id", "image_desc", "default_user", "default_password",
+                           "lock"], response.data['servers'][0])
         self.assert_is_subdict_of(sub={
             'classification': Server.Classification.PERSONAL,
             'service': {'id': self.miss_server.service.id, 'name': self.miss_server.service.name,
@@ -574,7 +575,8 @@ class ServersTests(MyAPITestCase):
                            "public_ip", "image", "creation_time",
                            "remarks", "endpoint_url", "service", "user_quota",
                            "center_quota", "classification", "vo_id", "user",
-                           "image_id", "image_desc", "default_user", "default_password"], response.data['servers'][0])
+                           "image_id", "image_desc", "default_user", "default_password",
+                           "lock"], response.data['servers'][0])
         self.assert_is_subdict_of(sub={
             'classification': Server.Classification.VO,
             'service': {'id': vo_server.service.id, 'name': vo_server.service.name,
@@ -591,7 +593,8 @@ class ServersTests(MyAPITestCase):
                            "public_ip", "image", "creation_time", "remarks",
                            "endpoint_url", "service", "user_quota",
                            "center_quota", "classification", "vo_id", "user",
-                           "image_id", "image_desc", "default_user", "default_password"], response.data['server'])
+                           "image_id", "image_desc", "default_user", "default_password",
+                           "lock"], response.data['server'])
         self.assert_is_subdict_of(sub={
             'classification': Server.Classification.VO,
             'service': {'id': vo_server.service.id, 'name': vo_server.service.name,
@@ -661,7 +664,8 @@ class ServersTests(MyAPITestCase):
                            "public_ip", "image", "creation_time",
                            "remarks", "endpoint_url", "service", "user_quota",
                            "center_quota", "classification", "vo_id", "user",
-                           "image_id", "image_desc", "default_user", "default_password"], response.data['servers'][0])
+                           "image_id", "image_desc", "default_user", "default_password",
+                           "lock"], response.data['servers'][0])
         self.assert_is_subdict_of(sub={
             'classification': Server.Classification.PERSONAL,
             'service': {'id': self.miss_server.service.id, 'name': self.miss_server.service.name,
@@ -725,7 +729,7 @@ class ServersTests(MyAPITestCase):
         response = self.client.post(url, data={'action': 'start'})
         self.assertErrorResponse(status_code=500, code='InternalError', response=response)
 
-    def test_permission(self):
+    def test_vo_server_permission(self):
         member_user = get_or_create_user(username='vo-member')
         self.client.logout()
         self.client.force_login(member_user)
@@ -884,6 +888,92 @@ class ServersTests(MyAPITestCase):
                         "service_type": ServiceConfig.ServiceType.EVCLOUD},
             'vo_id': self.vo_id
         }, d=response.data['results'][0])
+
+    def test_server_lock(self):
+        # server remark
+        remark = 'test-remarks'
+        url = reverse('api:servers-server-remark', kwargs={'id': self.miss_server.id})
+        query = parse.urlencode(query={'remark': remark})
+        response = self.client.patch(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.miss_server.refresh_from_db()
+        self.assertEqual(remark, self.miss_server.remarks)
+
+        # server action
+        url = reverse('api:servers-server-action', kwargs={'id': self.miss_server.id})
+        response = self.client.post(url, data={'action': 'start'})
+        self.assertErrorResponse(status_code=500, code='InternalError', response=response)
+
+        # ---- lock server delete ------
+        url = reverse('api:servers-server-lock', kwargs={'id': self.miss_server.id})
+        query = parse.urlencode(query={'lock': Server.Lock.DELETE})
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['lock'], Server.Lock.DELETE)
+
+        # server remark
+        remark = 'test-remarks'
+        url = reverse('api:servers-server-remark', kwargs={'id': self.miss_server.id})
+        query = parse.urlencode(query={'remark': remark})
+        response = self.client.patch(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.miss_server.refresh_from_db()
+        self.assertEqual(remark, self.miss_server.remarks)
+
+        # server action
+        url = reverse('api:servers-server-action', kwargs={'id': self.miss_server.id})
+        response = self.client.post(url, data={'action': 'start'})
+        self.assertErrorResponse(status_code=500, code='InternalError', response=response)
+
+        url = reverse('api:servers-detail', kwargs={'id': self.miss_server.id})
+        response = self.client.delete(url)
+        self.assertErrorResponse(status_code=409, code='ResourceLocked', response=response)
+
+        # ---- lock server all operation ------
+        url = reverse('api:servers-server-lock', kwargs={'id': self.miss_server.id})
+        query = parse.urlencode(query={'lock': Server.Lock.OPERATION})
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['lock'], Server.Lock.OPERATION)
+
+        # server remark
+        remark = 'test-remarks'
+        url = reverse('api:servers-server-remark', kwargs={'id': self.miss_server.id})
+        query = parse.urlencode(query={'remark': remark})
+        response = self.client.patch(f'{url}?{query}')
+        self.assertErrorResponse(status_code=409, code='ResourceLocked', response=response)
+
+        # server action
+        url = reverse('api:servers-server-action', kwargs={'id': self.miss_server.id})
+        response = self.client.post(url, data={'action': 'start'})
+        self.assertErrorResponse(status_code=409, code='ResourceLocked', response=response)
+
+        # server delete
+        url = reverse('api:servers-detail', kwargs={'id': self.miss_server.id})
+        response = self.client.delete(url)
+        self.assertErrorResponse(status_code=409, code='ResourceLocked', response=response)
+
+        # server action delete
+        url = reverse('api:servers-server-action', kwargs={'id': self.miss_server.id})
+        response = self.client.post(url, data={'action': 'delete'})
+        self.assertErrorResponse(status_code=409, code='ResourceLocked', response=response)
+
+        # ---- lock server free ------
+        url = reverse('api:servers-server-lock', kwargs={'id': self.miss_server.id})
+        query = parse.urlencode(query={'lock': Server.Lock.FREE})
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['lock'], Server.Lock.FREE)
+
+        # server delete
+        url = reverse('api:servers-detail', kwargs={'id': self.miss_server.id})
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, 204)
+
+        # server action delete
+        url = reverse('api:servers-server-action', kwargs={'id': self.vo_server.id})
+        response = self.client.post(url, data={'action': 'delete'})
+        self.assertEqual(response.status_code, 200)
 
 
 class ServiceTests(MyAPITestCase):

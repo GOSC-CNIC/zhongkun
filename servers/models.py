@@ -145,6 +145,11 @@ class Server(ServerBase):
     """
     虚拟服务器实例
     """
+    class Lock(models.TextChoices):
+        FREE = 'free', _('无锁')
+        DELETE = 'lock-delete', _('锁定删除')
+        OPERATION = 'lock-operation', _('锁定所有操作，只允许读')
+
     service = models.ForeignKey(to=ServiceConfig, null=True, on_delete=models.SET_NULL, related_name='server_set',
                                 verbose_name=_('接入的服务配置'))
     user = models.ForeignKey(to=User, verbose_name=_('创建者'), on_delete=models.SET_NULL, related_name='user_servers',
@@ -153,6 +158,8 @@ class Server(ServerBase):
                                    related_name='quota_servers', verbose_name=_('所属用户配额'))
     vo = models.ForeignKey(to=VirtualOrganization, null=True, on_delete=models.SET_NULL, default=None, blank=True,
                            related_name='vo_server_set', verbose_name=_('项目组'))
+    lock = models.CharField(verbose_name=_('锁'), max_length=16, choices=Lock.choices, default=Lock.FREE,
+                            help_text=_('加锁锁定云主机，防止误操作'))
     # email_lasttime = models.DateTimeField(verbose_name=_('上次发送邮件时间'), null=True, default=None,
     #                                       help_text=_('记录上次发邮件的时间，邮件通知用户配额即将到期'))
 
@@ -285,6 +292,24 @@ class Server(ServerBase):
             stat['ram_used_count'] = 0
 
         return stat
+
+    def is_locked_operation(self):
+        """
+        是否加锁, 锁定了一切操作
+        :return:
+            True        # locked
+            False       # not locked
+        """
+        return self.lock == self.Lock.OPERATION
+
+    def is_locked_delete(self):
+        """
+        检查是否加锁，是否锁定删除
+        :return:
+            True        # lock delete
+            False       # not lock delete
+        """
+        return self.lock in [self.Lock.DELETE, self.Lock.OPERATION]
 
 
 class ServerArchive(ServerBase):

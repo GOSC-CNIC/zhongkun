@@ -206,6 +206,11 @@ class ResourceNotCleanedUp(ConflictError):
     default_code = 'ResourceNotCleanedUp'
 
 
+class ResourceLocked(ConflictError):
+    default_message = '资源被锁定'
+    default_code = 'ResourceLocked'
+
+
 def convert_to_error(err):
     if isinstance(err, Error):
         return err

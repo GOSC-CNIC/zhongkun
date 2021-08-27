@@ -59,6 +59,7 @@ class ServerSerializer(ServerBaseSerializer):
     center_quota = serializers.IntegerField()
     vo_id = serializers.CharField()
     user = serializers.SerializerMethodField(method_name='get_user')
+    lock = serializers.CharField(label=_('锁'), max_length=16)
 
     def get_vms_endpoint_url(self, obj):
         service_id_map = self.context.get('service_id_map')
