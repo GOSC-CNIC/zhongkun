@@ -1,6 +1,13 @@
 from uuid import uuid1
 
 from django.db import models
+from django.conf import settings
+
+from utils.crypto import Encryptor
+
+
+def get_encryptor():
+    return Encryptor(key=settings.SECRET_KEY)
 
 
 class UuidModel(models.Model):

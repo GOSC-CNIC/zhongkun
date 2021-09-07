@@ -49,7 +49,7 @@ SIMPLE_JWT['VERIFYING_KEY'] = 'xxx'
 PASSPORT_JWT['VERIFYING_KEY'] = 'xxx'
 
 # test case settings
-TEST_CASE = {
+TEST_CASE_SECURITY = {
     'SERVICE': {
         'endpoint_url': 'http://127.0.0.1/',
         'region_id': 1,

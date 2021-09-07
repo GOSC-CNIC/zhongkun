@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'vo',
     'activity',
     'storage',
+    'monitor',
     'docs',
 ]
 
@@ -337,8 +338,22 @@ SWAGGER_SETTINGS = {
 
 CORS_ALLOW_ALL_ORIGINS = True       # 允许所有请求来源跨域
 
+
 # 安全配置导入
 from .security import *
+
+# test case settings
+TEST_CASE = {
+    # 'SERVICE': {}
+}
+
+try:
+    TEST_CASE_SECURITY
+except NameError:
+    pass
+else:
+    TEST_CASE.update(TEST_CASE_SECURITY)
+
 
 if DEBUG:
     # django debug toolbar

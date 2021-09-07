@@ -6,7 +6,8 @@ from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
-from service.models import ServiceConfig, UserQuota, get_encryptor
+from service.models import ServiceConfig, UserQuota
+from utils.model import get_encryptor
 from vo.models import VirtualOrganization
 
 User = get_user_model()

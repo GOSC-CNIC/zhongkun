@@ -257,7 +257,7 @@
 
         let query_str = encode_params(querys);
         $.ajax({
-            url: build_absolute_url('api/u-quota/?'+ query_str),
+            url: build_absolute_url('api/quota/?'+ query_str),
             type: 'get',
             contentType: 'application/json',
             success: function (data, status, xhr) {

@@ -2,6 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import SimpleRouter
 
 from .apiviews import views
+from .apiviews import monitor_views
 
 app_name = 'api'
 
@@ -21,6 +22,7 @@ router.register(r'apply/service', views.ApplyVmServiceViewSet, basename='apply-s
 router.register(r'apply/organization', views.ApplyOrganizationViewSet, basename='apply-organization')
 router.register(r'vo', views.VOViewSet, basename='vo')
 router.register(r'quota-activity', views.QuotaActivityViewSet, basename='quota-activity')
+router.register(r'monitor/ceph/query', monitor_views.MonitorCephQueryViewSet, basename='monitor-ceph-query')
 
 no_slash_router = SimpleRouter(trailing_slash=False)
 no_slash_router.register(r'media', views.MediaViewSet, basename='media')

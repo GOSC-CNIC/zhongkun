@@ -6,10 +6,8 @@ from django.db import transaction
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
-from django.conf import settings
 
-from utils.model import UuidModel
-from utils.crypto import Encryptor
+from utils.model import UuidModel, get_encryptor
 from utils.validators import json_string_validator
 from core import errors
 from vo.models import VirtualOrganization
@@ -18,10 +16,6 @@ from adapters.params import OpenStackParams
 
 User = get_user_model()
 app_name = 'service'
-
-
-def get_encryptor():
-    return Encryptor(key=settings.SECRET_KEY)
 
 
 class DataCenter(UuidModel):

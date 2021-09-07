@@ -295,7 +295,7 @@ class OpenStackAdapter(BaseAdapter):
                 result.append(img_obj)
             return outputs.ListImageOutput(images=result)
         except Exception as e:
-            return outputs.ListImageOutput(ok=False, error=exceptions.Error('list image failed'), images=[])
+            return outputs.ListImageOutput(ok=False, error=exceptions.Error(f'list image failed, {str(e)}'), images=[])
 
     def get_or_create_flavor(self, ram: int, vcpu: int):
         service_instance = self._get_openstack_connect()
