@@ -17,7 +17,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='userquota',
             name='vo',
-            field=models.ForeignKey(default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='vo_quota_set', to='vo.virtualorganization', verbose_name='项目组'),
+            field=models.ForeignKey(blank=True, default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='vo_quota_set', to='vo.virtualorganization', verbose_name='项目组'),
         ),
         migrations.AlterField(
             model_name='userquota',

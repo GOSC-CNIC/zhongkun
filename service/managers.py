@@ -109,6 +109,32 @@ class UserQuotaManager:
 
         return quota
 
+    def get_admin_read_perm_quota(self, _id: str, user):
+        """
+        管理员查询有访问权限的的配额
+
+        :param _id: 配额id
+        :param user: 用户实例
+        :return:
+            UserQuota()
+
+        :raises: QuotaError
+        """
+        quota = self.get_quota_by_id(_id)
+        if not quota:
+            raise errors.QuotaError.from_error(
+                errors.NotFound(message='资源配额不存在'))
+
+        if user.is_federal_admin():
+            return quota
+
+        if quota.service.user_has_perm(user):
+            return quota
+
+        raise errors.QuotaError.from_error(
+            errors.AccessDenied(message=_('你无权限访问此配额'))
+        )
+
     def delete_quota_soft(self, _id: str, user):
         """
         软删除用户的个人配额或vo组的配额

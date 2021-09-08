@@ -1,14 +1,11 @@
 from django.utils.translation import gettext_lazy, gettext as _
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from drf_yasg.utils import swagger_auto_schema, no_body
+from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
 from api.viewsets import CustomGenericViewSet
-from api.paginations import DefaultPageNumberPagination
 from api.handlers.monitor_ceph import MonitorCephQueryHandler
-from monitor.managers import MonitorJobCephManager, CephQueryChoices
+from monitor.managers import CephQueryChoices
 
 
 class MonitorCephQueryViewSet(CustomGenericViewSet):

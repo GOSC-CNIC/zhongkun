@@ -1411,6 +1411,7 @@ class QuotaViewSet(CustomGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('查询个人或vo组(需vo组管理权限)配额详细信息'),
+        manual_parameters=CustomGenericViewSet.PARAMETERS_AS_ADMIN,
         responses={
         }
     )

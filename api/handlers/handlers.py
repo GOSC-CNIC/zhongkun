@@ -132,8 +132,12 @@ class UserQuotaHandler:
     @staticmethod
     def detail_quota(view, request, kwargs):
         quota_id = kwargs.get(view.lookup_field)
+
         try:
-            quota = UserQuotaManager().get_user_read_perm_quota(quota_id, user=request.user)
+            if view.is_as_admin_request(request):
+                quota = UserQuotaManager().get_admin_read_perm_quota(quota_id, user=request.user)
+            else:
+                quota = UserQuotaManager().get_user_read_perm_quota(quota_id, user=request.user)
         except exceptions.Error as exc:
             return view.exception_response(exc)
 

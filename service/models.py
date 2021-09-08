@@ -267,7 +267,7 @@ class UserQuota(UuidModel):
     tag = models.SmallIntegerField(verbose_name=_('配额类型'), choices=CHOICES_TAG, default=TAG_BASE)
     user = models.ForeignKey(to=User, null=True, on_delete=models.SET_NULL, default=None,
                              related_name='user_quota', verbose_name=_('用户'))
-    vo = models.ForeignKey(to=VirtualOrganization, null=True, on_delete=models.SET_NULL, default=None,
+    vo = models.ForeignKey(to=VirtualOrganization, null=True, on_delete=models.SET_NULL, default=None, blank=True,
                            related_name='vo_quota_set', verbose_name=_('项目组'))
     service = models.ForeignKey(to=ServiceConfig, null=True, on_delete=models.SET_NULL,
                                 related_name='service_quota', verbose_name=_('适用服务'))

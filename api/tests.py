@@ -143,8 +143,11 @@ class QuotaTests(MyAPITestCase):
         self.user = get_or_create_user()
         self.service = get_or_create_service()
 
-    def detail_quota_response(self, quota_id):
+    def detail_quota_response(self, quota_id: str, as_admin: bool = False):
         url = reverse('api:quota-detail', kwargs={'id': quota_id})
+        if as_admin:
+            url = f"{url}?{parse.urlencode(query={'as-admin': ''})}"
+
         return self.client.get(url)
 
     def test_list_delete_personal_quota(self):
@@ -298,6 +301,83 @@ class QuotaTests(MyAPITestCase):
                            "deleted", "display", "classification", "vo"], response.data)
         self.assertEqual(response.data['classification'], UserQuota.Classification.VO)
         self.assert_is_subdict_of(sub=vo_data, d=response.data['vo'])
+
+    def test_detail_quota(self):
+        vo_data = {
+            'name': 'test vo', 'company': '网络中心', 'description': 'unittest'
+        }
+        response = VoTests.create_vo_response(client=self.client, name=vo_data['name'],
+                                              company=vo_data['company'], description=vo_data['description'])
+        vo_id = response.data['id']
+        mgr = UserQuotaManager()
+        vo_quota = mgr.create_quota(user=self.user, service=self.service,
+                                    classification=UserQuota.Classification.VO, vo_id=vo_id)
+        personal_quota = mgr.create_quota(user=self.user, service=self.service,
+                                          classification=UserQuota.Classification.PERSONAL)
+
+        response = self.detail_quota_response(quota_id=vo_quota.id)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["id", "tag", "user", "service", "private_ip_total",
+                           "private_ip_used", "public_ip_total", "public_ip_used",
+                           "vcpu_total", "vcpu_used", "ram_total", "ram_used",
+                           "disk_size_total", "disk_size_used", "expiration_time",
+                           "deleted", "display", "classification", "vo"], response.data)
+        self.assertEqual(response.data['classification'], UserQuota.Classification.VO)
+        self.assert_is_subdict_of(sub=vo_data, d=response.data['vo'])
+
+        response = self.detail_quota_response(quota_id=personal_quota.id)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["id", "tag", "user", "service", "private_ip_total",
+                           "private_ip_used", "public_ip_total", "public_ip_used",
+                           "vcpu_total", "vcpu_used", "ram_total", "ram_used",
+                           "disk_size_total", "disk_size_used", "expiration_time",
+                           "deleted", "display", "classification", "vo"], response.data)
+        self.assertEqual(response.data['classification'], UserQuota.Classification.PERSONAL)
+
+        # as admin when not admin
+        response = self.detail_quota_response(quota_id=vo_quota.id, as_admin=True)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+        response = self.detail_quota_response(quota_id=personal_quota.id, as_admin=True)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # set admin; as admin when is admin
+        personal_quota.service.users.add(self.user)
+        response = self.detail_quota_response(quota_id=vo_quota.id, as_admin=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["id", "tag", "user", "service", "private_ip_total",
+                           "private_ip_used", "public_ip_total", "public_ip_used",
+                           "vcpu_total", "vcpu_used", "ram_total", "ram_used",
+                           "disk_size_total", "disk_size_used", "expiration_time",
+                           "deleted", "display", "classification", "vo"], response.data)
+        self.assertEqual(response.data['classification'], UserQuota.Classification.VO)
+        self.assert_is_subdict_of(sub=vo_data, d=response.data['vo'])
+
+        response = self.detail_quota_response(quota_id=personal_quota.id)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['classification'], UserQuota.Classification.PERSONAL)
+
+        # when not admin
+        personal_quota.service.users.remove(self.user)
+        response = self.detail_quota_response(quota_id=vo_quota.id, as_admin=True)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+        response = self.detail_quota_response(quota_id=personal_quota.id, as_admin=True)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # set federal admin; as admin when is federal admin
+        self.user.set_federal_admin()
+        response = self.detail_quota_response(quota_id=vo_quota.id, as_admin=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["id", "tag", "user", "service", "private_ip_total",
+                           "private_ip_used", "public_ip_total", "public_ip_used",
+                           "vcpu_total", "vcpu_used", "ram_total", "ram_used",
+                           "disk_size_total", "disk_size_used", "expiration_time",
+                           "deleted", "display", "classification", "vo"], response.data)
+        self.assertEqual(response.data['classification'], UserQuota.Classification.VO)
+        self.assert_is_subdict_of(sub=vo_data, d=response.data['vo'])
+
+        response = self.detail_quota_response(quota_id=personal_quota.id)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['classification'], UserQuota.Classification.PERSONAL)
 
 
 class ServersTests(MyAPITestCase):
