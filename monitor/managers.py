@@ -40,14 +40,6 @@ class MonitorJobCephManager:
                         "service_id": "",
                         "creation": "2020-11-02T07:47:39.776384Z"
                     },
-                    "metric": {
-                        "__name__": "ceph_cluster_total_used_bytes",
-                        "instance": "10.0.200.100:9283",
-                        "job": "Fed-ceph",
-                        "receive_cluster": "obs",
-                        "receive_replica": "0",
-                        "tenant_id": "default-tenant"
-                    },
                     "value": [
                         1630267851.781,
                         "0"                 # "0": 正常；”1“:警告
@@ -68,9 +60,11 @@ class MonitorJobCephManager:
         for job in job_ceph_map.values():
             job_dict = MonitorJobCephSerializer(job).data
             r = self.request_data(provider=job.provider, tag=tag, job=job.job_tag)
-            data = r[0]
-            data['monitor'] = job_dict
-            ret_data.append(data)
+            if r:
+                data = r[0]
+                data.pop('metric', None)
+                data['monitor'] = job_dict
+                ret_data.append(data)
 
         return ret_data
 
@@ -79,7 +73,7 @@ class MonitorJobCephManager:
         :return:
             [
                 {
-                    "metric": {
+                    "metric": {                                         # 可能为空dict
                         "__name__": "ceph_cluster_total_used_bytes",
                         "instance": "10.0.200.100:9283",
                         "job": "Fed-ceph",

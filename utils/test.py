@@ -8,6 +8,15 @@ from users.models import UserProfile
 User = get_user_model()
 
 
+def get_test_case_settings():
+    test_settings = getattr(settings, 'TEST_CASE', None)
+    if test_settings is None:
+        raise Exception('No test settings(TEST_CASE) in file "test_settings.py", '
+                        'Check whether it is in debug mode(Debug=True)')
+
+    return test_settings
+
+
 def get_or_create_user(username='test', password='password') -> UserProfile:
     user, created = User.objects.get_or_create(username=username, password=password, is_active=True)
     return user
@@ -27,7 +36,7 @@ def get_or_create_service():
     if service is None:
         center = get_or_create_center()
 
-        test_settings = getattr(settings, 'TEST_CASE')
+        test_settings = get_test_case_settings()
         service_settings = test_settings['SERVICE']
         s_type_str = getattr(service_settings, 'service_type', 'evcloud').lower()
         if s_type_str == 'evcloud':

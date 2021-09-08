@@ -19,6 +19,7 @@ from utils.test import get_or_create_user, get_or_create_service, get_or_create_
 from adapters import outputs
 from vo.models import VirtualOrganization, VoMember
 from activity.models import QuotaActivity
+from monitor.tests import get_or_create_monitor_job_ceph
 
 
 def random_string(length: int = 10):
@@ -3007,3 +3008,47 @@ class QuotaActivityTests(MyAPITestCase):
         self.assertEqual(activity.count, count)
         self.assertEqual(activity.got_count, 3)
         self.assertEqual(UserQuota.objects.all().count(), 3)
+
+
+class MonitorCephTests(MyAPITestCase):
+    def setUp(self):
+        self.user = None
+        set_auth_header(self)
+        self.service = get_or_create_service()
+
+    def query_response(self, service_id: str, query_tag: str):
+        url = reverse('api:monitor-ceph-query-list')
+        query = parse.urlencode(query={'service_id': service_id, 'query': query_tag})
+        return self.client.get(f'{url}?{query}')
+
+    def query_ok_test(self, service_id: str, query_tag: str):
+        response = self.query_response(service_id=service_id, query_tag=query_tag)
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.data, list)
+        data_item = response.data[0]
+        self.assertKeysIn(["value", "monitor"], data_item)
+        self.assertIsInstance(data_item["value"], list)
+        self.assertEqual(len(data_item["value"]), 2)
+        self.assertKeysIn(["name", "name_en", "job_tag", "service_id", "creation"], data_item["monitor"])
+
+        return response
+
+    def test_query(self):
+        from monitor.managers import CephQueryChoices
+
+        service_id = self.service.id
+        monitor_job_ceph = get_or_create_monitor_job_ceph(service_id=service_id)
+
+        # no permission
+        response = self.query_response(service_id=service_id, query_tag=CephQueryChoices.HEALTH_STATUS.value)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # admin permission
+        self.service.users.add(self.user)
+        self.query_ok_test(service_id=service_id, query_tag=CephQueryChoices.HEALTH_STATUS.value)
+        self.query_ok_test(service_id=service_id, query_tag=CephQueryChoices.CLUSTER_TOTAL_BYTES.value)
+        self.query_ok_test(service_id=service_id, query_tag=CephQueryChoices.CLUSTER_TOTAL_USED_BYTES.value)
+        self.query_ok_test(service_id=service_id, query_tag=CephQueryChoices.OSD_IN.value)
+        self.query_ok_test(service_id=service_id, query_tag=CephQueryChoices.OSD_OUT.value)
+        self.query_ok_test(service_id=service_id, query_tag=CephQueryChoices.OSD_UP.value)
+        self.query_ok_test(service_id=service_id, query_tag=CephQueryChoices.OSD_DOWN.value)

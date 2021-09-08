@@ -71,7 +71,7 @@ class CustomGenericViewSet(viewsets.GenericViewSet):
             in_=openapi.IN_QUERY,
             type=openapi.TYPE_BOOLEAN,
             required=False,
-            description=gettext_lazy('已管理员身份请求，如果无管理员权限会返回403错误； 参数不需要值，存在即有效')
+            description=gettext_lazy('以管理员身份请求，如果无管理员权限会返回403错误； 参数不需要值，存在即有效')
         ),
     ]
 

@@ -64,7 +64,7 @@ class MonitorCephQueryAPI:
     response data example:
     [
         {
-            "metric": {
+            "metric": {                                 # maybe {}
                 "__name__": "ceph_cluster_total_used_bytes",
                 "instance": "10.0.200.100:9283",
                 "job": "Fed-ceph",
@@ -78,10 +78,13 @@ class MonitorCephQueryAPI:
             ]
         }
     ]
+    or
+    []      # if not get data
     """
     def ceph_health_status(self, provider: MonitorProvider, job: str):
         """
         :return:
+            []      # if not get data
             [
                 {
                     ...
@@ -139,7 +142,7 @@ class MonitorCephQueryAPI:
         :return:
             [
                 {
-                    ...
+                    "metric": {},
                     "value": [
                         1630920515.483,
                         "375"
@@ -158,7 +161,7 @@ class MonitorCephQueryAPI:
         :return:
             [
                 {
-                    ...
+                    "metric": {},
                     "value": [
                         1630920739.865,
                         "0"
@@ -177,7 +180,7 @@ class MonitorCephQueryAPI:
         :return:
             [
                 {
-                    ...
+                    "metric": {},
                     "value": [
                         1630920939.236,
                         "375"
@@ -196,7 +199,7 @@ class MonitorCephQueryAPI:
         :return:
             [
                 {
-                    ...
+                    "metric": {},
                     "value": [
                         1630920939.236,
                         "375"

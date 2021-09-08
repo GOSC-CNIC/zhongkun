@@ -46,14 +46,6 @@ class MonitorCephQueryViewSet(CustomGenericViewSet):
             Http Code: 状态码200，返回数据：
             [
               {
-                "metric": {
-                  "__name__": "ceph_health_status",
-                  "instance": "10.0.200.100:9283",
-                  "job": "Fed-ceph",
-                  "receive_cluster": "obs",
-                  "receive_replica": "0",
-                  "tenant_id": "default-tenant"
-                },
                 "value": [
                   1631004121.496,
                   "0"
