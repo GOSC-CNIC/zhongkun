@@ -79,7 +79,7 @@ class MonitorCephQueryAPI:
         }
     ]
     """
-    def ceph_health_status(self, provider: MonitorProvider, job: str, start: int, end: int, step: int):
+    def ceph_health_status(self, provider: MonitorProvider, job:str):
         """
         :return:
             [
@@ -94,10 +94,10 @@ class MonitorCephQueryAPI:
         :raises: Error
         """
         expression_query = ExpressionQuery().build_ceph_health_status_query(job=job)
-        api_url = self._build_query_range_api(endpoint_url=provider.endpoint_url, expression_query=expression_query, start=start, end=end, step=step) if start else self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
+        api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(api_url)
 
-    def ceph_cluster_total_bytes(self, provider: MonitorProvider, job: str, start: int, end: int, step: int):
+    def ceph_cluster_total_bytes(self, provider: MonitorProvider, job:str):
         """
         :return:
             [
@@ -112,10 +112,10 @@ class MonitorCephQueryAPI:
         :raises: Error
         """
         expression_query = ExpressionQuery().build_ceph_cluster_total_bytes_query(job=job)
-        api_url = self._build_query_range_api(endpoint_url=provider.endpoint_url, expression_query=expression_query, start=start, end=end, step=step) if start else self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
+        api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(api_url)
 
-    def ceph_cluster_total_used_bytes(self, provider: MonitorProvider, job: str, start: int, end: int, step: int):
+    def ceph_cluster_total_used_bytes(self, provider: MonitorProvider, job:str):
         """
         :return:
             [
@@ -131,10 +131,10 @@ class MonitorCephQueryAPI:
         :raises: Error
         """
         expression_query = ExpressionQuery().build_ceph_cluster_total_used_bytes_query(job=job)
-        api_url = self._build_query_range_api(endpoint_url=provider.endpoint_url, expression_query=expression_query, start=start, end=end, step=step) if start else self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
+        api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(api_url)
 
-    def ceph_osd_in(self, provider: MonitorProvider, job: str, start: int, end: int, step: int):
+    def ceph_osd_in(self, provider: MonitorProvider, job:str):
         """
         :return:
             [
@@ -150,10 +150,10 @@ class MonitorCephQueryAPI:
         :raises: Error
         """
         expression_query = ExpressionQuery().build_ceph_osd_in_query(job=job)
-        api_url = self._build_query_range_api(endpoint_url=provider.endpoint_url, expression_query=expression_query, start=start, end=end, step=step) if start else self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
+        api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(api_url)
 
-    def ceph_osd_out(self, provider: MonitorProvider, job: str, start: int, end: int, step: int):
+    def ceph_osd_out(self, provider: MonitorProvider, job:str):
         """
         :return:
             [
@@ -169,10 +169,10 @@ class MonitorCephQueryAPI:
         :raises: Error
         """
         expression_query = ExpressionQuery().build_ceph_osd_out_query(job=job)
-        api_url = self._build_query_range_api(endpoint_url=provider.endpoint_url, expression_query=expression_query, start=start, end=end, step=step) if start else self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
+        api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(api_url)
 
-    def ceph_osd_up(self, provider: MonitorProvider, job: str, start: int, end: int, step: int):
+    def ceph_osd_up(self, provider: MonitorProvider, job:str):
         """
         :return:
             [
@@ -188,10 +188,10 @@ class MonitorCephQueryAPI:
         :raises: Error
         """
         expression_query = ExpressionQuery().build_ceph_osd_up_query(job=job)
-        api_url = self._build_query_range_api(endpoint_url=provider.endpoint_url, expression_query=expression_query, start=start, end=end, step=step) if start else self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
+        api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(api_url)
 
-    def ceph_osd_down(self, provider: MonitorProvider, job: str, start: int, end: int, step: int):
+    def ceph_osd_down(self, provider: MonitorProvider, job:str):
         """
         :return:
             [
@@ -207,7 +207,138 @@ class MonitorCephQueryAPI:
         :raises: Error
         """
         expression_query = ExpressionQuery().build_ceph_osd_down_query(job=job)
-        api_url = self._build_query_range_api(endpoint_url=provider.endpoint_url, expression_query=expression_query, start=start, end=end, step=step) if start else self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
+        api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
+        return self._request_query_api(api_url)
+
+    def ceph_health_status_range(self, provider: MonitorProvider, job: str, start: int, end: int, step: int):
+        """
+        :return:
+            [
+                {
+                    ...
+                    "value": [
+                        1630267851.781,
+                        "0"                 # "0": 正常；”1“:警告
+                    ]
+                }
+            ]
+        :raises: Error
+        """
+        expression_query = ExpressionQuery().build_ceph_health_status_query(job=job)
+        api_url = self._build_query_range_api(endpoint_url=provider.endpoint_url, expression_query=expression_query, start=start, end=end, step=step)
+        return self._request_query_api(api_url)
+
+    def ceph_cluster_total_bytes_range(self, provider: MonitorProvider, job: str, start: int, end: int, step: int):
+        """
+        :return:
+            [
+                {
+                    ...
+                    "value": [
+                        1630267851.781,
+                        "1622079296241664"                 # bytes
+                    ]
+                }
+            ]
+        :raises: Error
+        """
+        expression_query = ExpressionQuery().build_ceph_cluster_total_bytes_query(job=job)
+        api_url = self._build_query_range_api(endpoint_url=provider.endpoint_url, expression_query=expression_query, start=start, end=end, step=step)
+        return self._request_query_api(api_url)
+
+    def ceph_cluster_total_used_bytes_range(self, provider: MonitorProvider, job: str, start: int, end: int, step: int):
+        """
+        :return:
+            [
+                {
+                    ...
+                    "value": [
+                        1630267851.781,
+                        "1622079296241664"                 # bytes
+                    ]
+                }
+            ]
+
+        :raises: Error
+        """
+        expression_query = ExpressionQuery().build_ceph_cluster_total_used_bytes_query(job=job)
+        api_url = self._build_query_range_api(endpoint_url=provider.endpoint_url, expression_query=expression_query, start=start, end=end, step=step)
+        return self._request_query_api(api_url)
+
+    def ceph_osd_in_range(self, provider: MonitorProvider, job: str, start: int, end: int, step: int):
+        """
+        :return:
+            [
+                {
+                    ...
+                    "value": [
+                        1630920515.483,
+                        "375"
+                    ]
+                }
+            ]
+
+        :raises: Error
+        """
+        expression_query = ExpressionQuery().build_ceph_osd_in_query(job=job)
+        api_url = self._build_query_range_api(endpoint_url=provider.endpoint_url, expression_query=expression_query, start=start, end=end, step=step)
+        return self._request_query_api(api_url)
+
+    def ceph_osd_out_range(self, provider: MonitorProvider, job: str, start: int, end: int, step: int):
+        """
+        :return:
+            [
+                {
+                    ...
+                    "value": [
+                        1630920739.865,
+                        "0"
+                    ]
+                }
+            ]
+
+        :raises: Error
+        """
+        expression_query = ExpressionQuery().build_ceph_osd_out_query(job=job)
+        api_url = self._build_query_range_api(endpoint_url=provider.endpoint_url, expression_query=expression_query, start=start, end=end, step=step)
+        return self._request_query_api(api_url)
+
+    def ceph_osd_up_range(self, provider: MonitorProvider, job: str, start: int, end: int, step: int):
+        """
+        :return:
+            [
+                {
+                    ...
+                    "value": [
+                        1630920939.236,
+                        "375"
+                    ]
+                }
+            ]
+
+        :raises: Error
+        """
+        expression_query = ExpressionQuery().build_ceph_osd_up_query(job=job)
+        api_url = self._build_query_range_api(endpoint_url=provider.endpoint_url, expression_query=expression_query, start=start, end=end, step=step)
+        return self._request_query_api(api_url)
+
+    def ceph_osd_down_range(self, provider: MonitorProvider, job: str, start: int, end: int, step: int):
+        """
+        :return:
+            [
+                {
+                    ...
+                    "value": [
+                        1630920939.236,
+                        "375"
+                    ]
+                }
+            ]
+
+        :raises: Error
+        """
+        expression_query = ExpressionQuery().build_ceph_osd_down_query(job=job)
+        api_url = self._build_query_range_api(endpoint_url=provider.endpoint_url, expression_query=expression_query, start=start, end=end, step=step)
         return self._request_query_api(api_url)
 
     def _request_query_api(self, url: str):

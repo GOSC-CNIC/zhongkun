@@ -99,13 +99,13 @@ class MonitorJobCephManager:
         params = {'provider': provider, 'job': job, 'start': start, 'end': end, 'step': step}
 
         f = {
-            CephQueryChoices.HEALTH_STATUS.value: self.backend.ceph_health_status,
-            CephQueryChoices.CLUSTER_TOTAL_BYTES.value: self.backend.ceph_cluster_total_bytes,
-            CephQueryChoices.CLUSTER_TOTAL_USED_BYTES.value: self.backend.ceph_cluster_total_used_bytes,
-            CephQueryChoices.OSD_IN.value: self.backend.ceph_osd_in,
-            CephQueryChoices.OSD_OUT.value: self.backend.ceph_osd_out,
-            CephQueryChoices.OSD_UP.value: self.backend.ceph_osd_up,
-            CephQueryChoices.OSD_DOWN.value: self.backend.ceph_osd_down
+            CephQueryChoices.HEALTH_STATUS.value: self.backend.ceph_health_status_range,
+            CephQueryChoices.CLUSTER_TOTAL_BYTES.value: self.backend.ceph_cluster_total_bytes_range,
+            CephQueryChoices.CLUSTER_TOTAL_USED_BYTES.value: self.backend.ceph_cluster_total_used_bytes_range,
+            CephQueryChoices.OSD_IN.value: self.backend.ceph_osd_in_range,
+            CephQueryChoices.OSD_OUT.value: self.backend.ceph_osd_out_range,
+            CephQueryChoices.OSD_UP.value: self.backend.ceph_osd_up_range,
+            CephQueryChoices.OSD_DOWN.value: self.backend.ceph_osd_down_range
         }[tag]
 
         return f(**params)

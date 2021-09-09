@@ -61,7 +61,7 @@ class MonitorCephQueryHandler:
             return view.exception_response(exc)
 
         try:
-            data = MonitorJobCephManager().queryrange(tag=query, service_id=service_id)
+            data = MonitorJobCephManager().queryrange(tag=query, service_id=service_id, start=start, end=end, step=step)
         except errors.Error as exc:
             return view.exception_response(exc)
 
