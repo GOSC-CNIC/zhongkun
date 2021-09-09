@@ -64,7 +64,7 @@ class MonitorCephQueryAPI:
     response data example:
     [
         {
-            "metric": {                                 # maybe {}
+            "metric": {
                 "__name__": "ceph_cluster_total_used_bytes",
                 "instance": "10.0.200.100:9283",
                 "job": "Fed-ceph",
@@ -78,13 +78,10 @@ class MonitorCephQueryAPI:
             ]
         }
     ]
-    or
-    []      # if not get data
     """
-    def ceph_health_status(self, provider: MonitorProvider, job: str):
+    def ceph_health_status(self, provider: MonitorProvider, job: str, start: int, end: int, step: int):
         """
         :return:
-            []      # if not get data
             [
                 {
                     ...
@@ -97,10 +94,10 @@ class MonitorCephQueryAPI:
         :raises: Error
         """
         expression_query = ExpressionQuery().build_ceph_health_status_query(job=job)
-        api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
+        api_url = self._build_query_range_api(endpoint_url=provider.endpoint_url, expression_query=expression_query, start=start, end=end, step=step) if start else self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(api_url)
 
-    def ceph_cluster_total_bytes(self, provider: MonitorProvider, job: str):
+    def ceph_cluster_total_bytes(self, provider: MonitorProvider, job: str, start: int, end: int, step: int):
         """
         :return:
             [
@@ -115,10 +112,10 @@ class MonitorCephQueryAPI:
         :raises: Error
         """
         expression_query = ExpressionQuery().build_ceph_cluster_total_bytes_query(job=job)
-        api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
+        api_url = self._build_query_range_api(endpoint_url=provider.endpoint_url, expression_query=expression_query, start=start, end=end, step=step) if start else self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(api_url)
 
-    def ceph_cluster_total_used_bytes(self, provider: MonitorProvider, job: str):
+    def ceph_cluster_total_used_bytes(self, provider: MonitorProvider, job: str, start: int, end: int, step: int):
         """
         :return:
             [
@@ -134,15 +131,15 @@ class MonitorCephQueryAPI:
         :raises: Error
         """
         expression_query = ExpressionQuery().build_ceph_cluster_total_used_bytes_query(job=job)
-        api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
+        api_url = self._build_query_range_api(endpoint_url=provider.endpoint_url, expression_query=expression_query, start=start, end=end, step=step) if start else self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(api_url)
 
-    def ceph_osd_in(self, provider: MonitorProvider, job: str):
+    def ceph_osd_in(self, provider: MonitorProvider, job: str, start: int, end: int, step: int):
         """
         :return:
             [
                 {
-                    "metric": {},
+                    ...
                     "value": [
                         1630920515.483,
                         "375"
@@ -153,15 +150,15 @@ class MonitorCephQueryAPI:
         :raises: Error
         """
         expression_query = ExpressionQuery().build_ceph_osd_in_query(job=job)
-        api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
+        api_url = self._build_query_range_api(endpoint_url=provider.endpoint_url, expression_query=expression_query, start=start, end=end, step=step) if start else self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(api_url)
 
-    def ceph_osd_out(self, provider: MonitorProvider, job: str):
+    def ceph_osd_out(self, provider: MonitorProvider, job: str, start: int, end: int, step: int):
         """
         :return:
             [
                 {
-                    "metric": {},
+                    ...
                     "value": [
                         1630920739.865,
                         "0"
@@ -172,15 +169,15 @@ class MonitorCephQueryAPI:
         :raises: Error
         """
         expression_query = ExpressionQuery().build_ceph_osd_out_query(job=job)
-        api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
+        api_url = self._build_query_range_api(endpoint_url=provider.endpoint_url, expression_query=expression_query, start=start, end=end, step=step) if start else self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(api_url)
 
-    def ceph_osd_up(self, provider: MonitorProvider, job: str):
+    def ceph_osd_up(self, provider: MonitorProvider, job: str, start: int, end: int, step: int):
         """
         :return:
             [
                 {
-                    "metric": {},
+                    ...
                     "value": [
                         1630920939.236,
                         "375"
@@ -191,15 +188,15 @@ class MonitorCephQueryAPI:
         :raises: Error
         """
         expression_query = ExpressionQuery().build_ceph_osd_up_query(job=job)
-        api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
+        api_url = self._build_query_range_api(endpoint_url=provider.endpoint_url, expression_query=expression_query, start=start, end=end, step=step) if start else self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(api_url)
 
-    def ceph_osd_down(self, provider: MonitorProvider, job: str):
+    def ceph_osd_down(self, provider: MonitorProvider, job: str, start: int, end: int, step: int):
         """
         :return:
             [
                 {
-                    "metric": {},
+                    ...
                     "value": [
                         1630920939.236,
                         "375"
@@ -210,7 +207,7 @@ class MonitorCephQueryAPI:
         :raises: Error
         """
         expression_query = ExpressionQuery().build_ceph_osd_down_query(job=job)
-        api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
+        api_url = self._build_query_range_api(endpoint_url=provider.endpoint_url, expression_query=expression_query, start=start, end=end, step=step) if start else self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(api_url)
 
     def _request_query_api(self, url: str):

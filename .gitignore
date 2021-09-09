@@ -10,3 +10,5 @@
 /gosc/security.py
 /data/
 /ignore*
+.DS_Store
+.python-version

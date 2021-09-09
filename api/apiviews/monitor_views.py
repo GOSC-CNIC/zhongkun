@@ -1,5 +1,7 @@
+from django.db.models.enums import Choices
 from django.utils.translation import gettext_lazy, gettext as _
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import action
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
@@ -46,6 +48,14 @@ class MonitorCephQueryViewSet(CustomGenericViewSet):
             Http Code: 状态码200，返回数据：
             [
               {
+                "metric": {
+                  "__name__": "ceph_health_status",
+                  "instance": "10.0.200.100:9283",
+                  "job": "Fed-ceph",
+                  "receive_cluster": "obs",
+                  "receive_replica": "0",
+                  "tenant_id": "default-tenant"
+                },
                 "value": [
                   1631004121.496,
                   "0"
@@ -60,6 +70,57 @@ class MonitorCephQueryViewSet(CustomGenericViewSet):
               }
             ]
         """
-        return MonitorCephQueryHandler().query(view=self, request=request, kwargs=kwargs)
+        return MonitorCephQueryHandler().query(view=self, request=request, range=False, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询Ceph集群时间段信息'),
+        manual_parameters=[
+          openapi.Parameter(
+            name='service_id',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_STRING,
+            required=True,
+            description=_('服务id，查询指定服务Ceph集群')
+          ),
+          openapi.Parameter(
+            name='query',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_STRING,
+            required=True,
+            description=f"{CephQueryChoices.choices}"
+          ),
+          openapi.Parameter(
+            name='start',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_INTEGER,
+            required=True,
+            description=_('查询起始时间点')
+          ),
+          openapi.Parameter(
+            name='end',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_INTEGER,
+            required=False,
+            description=_('查询截止时间点, 默认是当前时间')
+          ),
+          openapi.Parameter(
+            name='step',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_INTEGER,
+            required=False,
+            description=_('查询步长, 默认为300, 单位为秒')
+          )
+        ]
+    )
+    @action(methods=['get'], detail=False, url_path='range', url_name='range')
+    def range_list(self,request,*args, **kwargs):
+        """
+        查询Cpph集群范围信息
+
+            Http Code: 状态码200，返回数据：
+            [
+            ]
+        """
+        return MonitorCephQueryHandler().queryrange(view=self, request=request, range=True, kwargs=kwargs) 
 
 
