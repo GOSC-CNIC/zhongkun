@@ -287,8 +287,13 @@ class OpenStackAdapter(BaseAdapter):
         try:
             result = []
             for image in service_instance.image.images():
-                img_obj = outputs.ListImageOutputImage(id=image.id, name=image.name, system=image.properties['os'],
-                                                       desc=image.properties['description'],
+                image_name = image.name
+                desc = image.properties.get('description', '')
+                system = image.properties.get('os')
+                if not system:
+                    system = image_name
+
+                img_obj = outputs.ListImageOutputImage(id=image.id, name=image_name, system=system, desc=desc,
                                                        system_type=image.os_type, creation_time=image.created_at,
                                                        default_username='', default_password=''
                                                        )

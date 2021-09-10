@@ -86,7 +86,8 @@ class MonitorJobCephManager:
         ret_data = []
         for job in job_ceph_map.values():
             job_dict = MonitorJobCephSerializer(job).data
-            r = self.request_range_data(provider=job.provider, tag=tag, job=job.job_tag, start=start, end=end, step=step)
+            r = self.request_range_data(provider=job.provider, tag=tag, job=job.job_tag,
+                                        start=start, end=end, step=step)
             if r:
                 data = r[0]
                 data.pop('metric', None)

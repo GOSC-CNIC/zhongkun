@@ -1,4 +1,3 @@
-from django.db.models.enums import Choices
 from django.utils.translation import gettext_lazy, gettext as _
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
@@ -48,14 +47,6 @@ class MonitorCephQueryViewSet(CustomGenericViewSet):
             Http Code: 状态码200，返回数据：
             [
               {
-                "metric": {
-                  "__name__": "ceph_health_status",
-                  "instance": "10.0.200.100:9283",
-                  "job": "Fed-ceph",
-                  "receive_cluster": "obs",
-                  "receive_replica": "0",
-                  "tenant_id": "default-tenant"
-                },
                 "value": [
                   1631004121.496,
                   "0"
@@ -70,7 +61,7 @@ class MonitorCephQueryViewSet(CustomGenericViewSet):
               }
             ]
         """
-        return MonitorCephQueryHandler().query(view=self, request=request, range=False, kwargs=kwargs)
+        return MonitorCephQueryHandler().query(view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('查询Ceph集群时间段信息'),
@@ -113,14 +104,24 @@ class MonitorCephQueryViewSet(CustomGenericViewSet):
         ]
     )
     @action(methods=['get'], detail=False, url_path='range', url_name='range')
-    def range_list(self,request,*args, **kwargs):
+    def range_list(self, request, *args, **kwargs):
         """
         查询Cpph集群范围信息
 
             Http Code: 状态码200，返回数据：
             [
+              {
+                "values": [
+                  [1631004121, "0"]
+                ],
+                "monitor": {
+                  "name": "云联邦研发测试Ceph集群",
+                  "name_en": "云联邦研发测试Ceph集群",
+                  "job_tag": "Fed-ceph",
+                  "service_id": "2",
+                  "creation": "2021-09-07T08:33:11.843168Z"
+                }
+              }
             ]
         """
-        return MonitorCephQueryHandler().queryrange(view=self, request=request, range=True, kwargs=kwargs) 
-
-
+        return MonitorCephQueryHandler().queryrange(view=self, request=request, kwargs=kwargs)
