@@ -347,7 +347,13 @@ class MonitorCephQueryAPI:
         """
         :raises: Error
         """
-        r = requests.get(url=url)
+        try:
+            r = requests.get(url=url, timeout=(6, 30))
+        except requests.exceptions.Timeout:
+            raise errors.Error(message='monitor backend, ceph query api request timeout')
+        except requests.exceptions.RequestException:
+            raise errors.Error(message='monitor backend, ceph query api request error')
+
         data = r.json()
         if 300 > r.status_code >= 200:
             s = data.get('status')
