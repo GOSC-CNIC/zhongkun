@@ -12,7 +12,7 @@ from django.utils import timezone
 from rest_framework.test import APITestCase
 
 from servers.models import Flavor, Server
-from service.managers import UserQuotaManager
+from service.managers import UserQuotaManager, ServicePrivateQuotaManager
 from service.models import (
     ApplyOrganization, DataCenter, ApplyVmService, ServiceConfig, ApplyQuota, UserQuota
 )
@@ -21,6 +21,8 @@ from adapters import outputs
 from vo.models import VirtualOrganization, VoMember
 from activity.models import QuotaActivity
 from monitor.tests import get_or_create_monitor_job_ceph
+from core.quota import QuotaAPI
+from core import errors
 
 
 def random_string(length: int = 10):
@@ -411,6 +413,85 @@ class ServersTests(MyAPITestCase):
         response = self.client.post(url, data={
             'service_id': 'sss', 'image_id': 'aaa', 'flavor_id': 'xxx', 'quota_id': 'sss'})
         self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
+
+        # vo create
+        vo_data = {
+            'name': 'test vo', 'company': '网络中心', 'description': 'unittest'
+        }
+        response = VoTests.create_vo_response(client=self.client, name=vo_data['name'],
+                                              company=vo_data['company'], description=vo_data['description'])
+        vo_id = response.data['id']
+        mgr = UserQuotaManager()
+        vo_quota = mgr.create_quota(user=self.user, service=self.service,
+                                    classification=UserQuota.Classification.VO, vo_id=vo_id)
+        vcpus_add = 1
+        ram_add = 1024
+        disk_size_add = 2048
+        public_ip_add = 1
+        private_ip_add = 1
+        vo_quota = mgr.increase(user=self.user, quota_id=vo_quota.id, vcpus=vcpus_add, ram=ram_add,
+                                disk_size=disk_size_add, public_ip=public_ip_add, private_ip=private_ip_add)
+
+        with self.assertRaises(errors.QuotaShortageError):
+            quota = QuotaAPI().server_create_quota_apply(
+                service=self.service, user=self.user, vcpu=vcpus_add + 1, ram=1024,
+                public_ip=True, user_quota_id=vo_quota.id)
+
+        # mo permission when no vo member
+        vo_user = get_or_create_user(username='vo-member-user')
+        try:
+            quota = QuotaAPI().server_create_quota_apply(
+                service=self.service, user=vo_user, vcpu=vcpus_add + 1, ram=1024,
+                public_ip=True, user_quota_id=vo_quota.id)
+        except errors.QuotaError as e:
+            self.assertEqual(e.status_code, 403)
+
+        # add vo member
+        member = VoMember(user=vo_user, vo_id=vo_id, role=VoMember.Role.MEMBER,
+                          inviter_id=self.user.id, inviter=self.user.username)
+        member.save()
+
+        # no permission when is not vo leader member
+        try:
+            quota = QuotaAPI().server_create_quota_apply(
+                service=self.service, user=vo_user, vcpu=vcpus_add + 1, ram=1024,
+                public_ip=True, user_quota_id=vo_quota.id)
+        except errors.QuotaError as e:
+            self.assertEqual(e.status_code, 403)
+
+        # set vo leader member
+        member.role = VoMember.Role.LEADER
+        member.save()
+
+        # has permission when is not vo leader member
+        try:
+            quota = QuotaAPI().server_create_quota_apply(
+                service=self.service, user=vo_user, vcpu=vcpus_add + 1, ram=1024,
+                public_ip=True, user_quota_id=vo_quota.id)
+        except errors.QuotaError as e:
+            self.assertIsInstance(e, errors.QuotaShortageError)
+            self.assertEqual(e.status_code, 409)
+
+        # service quota shortage
+        try:
+            quota = QuotaAPI().server_create_quota_apply(
+                service=self.service, user=vo_user, vcpu=1, ram=1024,
+                public_ip=True, user_quota_id=vo_quota.id)
+        except errors.QuotaError as e:
+            self.assertIsInstance(e, errors.QuotaShortageError)      # service quota shortage
+
+        # service quota set
+        ServicePrivateQuotaManager().increase(
+            service=self.service, vcpus=vcpus_add, ram=ram_add, disk_size=disk_size_add,
+            public_ip=public_ip_add, private_ip=private_ip_add)
+
+        # service quota shortage
+        try:
+            quota = QuotaAPI().server_create_quota_apply(
+                service=self.service, user=vo_user, vcpu=1, ram=1024,
+                public_ip=True, user_quota_id=vo_quota.id)
+        except errors.QuotaError as e:
+            self.fail(e.detail_str())
 
     def test_server_remark(self):
         url = reverse('api:servers-server-remark', kwargs={'id': self.miss_server.id})

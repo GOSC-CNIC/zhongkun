@@ -206,9 +206,18 @@ class UserQuotaManager:
 
         with transaction.atomic():
             update_fields = []
-            quota = self.MODEL.objects.select_for_update().filter(id=quota_id, user=user).first()
+            quota = self.MODEL.objects.select_for_update().filter(id=quota_id).first()
             if not quota:
-                raise errors.NoSuchQuotaError(_('参数无效，用户没有指定的资源配额'))
+                raise errors.NoSuchQuotaError(_('参数无效，指定的资源配额不存在'))
+
+            if quota.classification == quota.Classification.PERSONAL:
+                if quota.user_id != user.id:
+                    raise errors.NoSuchQuotaError(_('参数无效，用户没有指定的资源配额'))
+            elif quota.classification == quota.Classification.VO:
+                if quota.vo_id is None:
+                    raise errors.NoSuchQuotaError(_('用户指定的vo资源配额没有vo关系'))
+            else:
+                raise errors.NoSuchQuotaError(_('用户指定的资源配额类型无法确认是个人还是vo配额'))
 
             if quota.is_expire_now():
                 raise errors.QuotaShortageError(message=_('您的资源配额已过期'))
@@ -281,9 +290,18 @@ class UserQuotaManager:
 
         with transaction.atomic():
             update_fields = []
-            quota = self.MODEL.objects.select_for_update().filter(id=quota_id, user=user).first()
+            quota = self.MODEL.objects.select_for_update().filter(id=quota_id).first()
             if not quota:
-                raise errors.NoSuchQuotaError(_('参数无效，用户没有指定的资源配额'))
+                raise errors.NoSuchQuotaError(_('参数无效，指定的资源配额不存在'))
+
+            if quota.classification == quota.Classification.PERSONAL:
+                if quota.user_id != user.id:
+                    raise errors.NoSuchQuotaError(_('参数无效，用户没有指定的资源配额'))
+            elif quota.classification == quota.Classification.VO:
+                if quota.vo_id is None:
+                    raise errors.NoSuchQuotaError(_('用户指定的vo资源配额没有vo关系'))
+            else:
+                raise errors.NoSuchQuotaError(_('用户指定的资源配额类型无法确认是个人还是vo配额'))
 
             if vcpus > 0:
                 quota.vcpu_used = max(quota.vcpu_used - vcpus, 0)
@@ -335,9 +353,18 @@ class UserQuotaManager:
 
         with transaction.atomic():
             update_fields = []
-            quota = self.MODEL.objects.select_for_update().filter(id=quota_id, user=user).first()
+            quota = self.MODEL.objects.select_for_update().filter(id=quota_id).first()
             if not quota:
-                raise errors.NoSuchQuotaError(_('参数无效，用户没有指定的资源配额'))
+                raise errors.NoSuchQuotaError(_('参数无效，指定的资源配额不存在'))
+
+            if quota.classification == quota.Classification.PERSONAL:
+                if quota.user_id != user.id:
+                    raise errors.NoSuchQuotaError(_('参数无效，用户没有指定的资源配额'))
+            elif quota.classification == quota.Classification.VO:
+                if quota.vo_id is None:
+                    raise errors.NoSuchQuotaError(_('用户指定的vo资源配额没有vo关系'))
+            else:
+                raise errors.NoSuchQuotaError(_('用户指定的资源配额类型无法确认是个人还是vo配额'))
 
             if vcpus > 0:
                 quota.vcpu_total = quota.vcpu_total + vcpus
@@ -389,9 +416,18 @@ class UserQuotaManager:
 
         with transaction.atomic():
             update_fields = []
-            quota = self.MODEL.objects.select_for_update().filter(id=quota_id, user=user).first()
+            quota = self.MODEL.objects.select_for_update().filter(id=quota_id).first()
             if not quota:
-                raise errors.NoSuchQuotaError(_('参数无效，用户没有指定的资源配额'))
+                raise errors.NoSuchQuotaError(_('参数无效，指定的资源配额不存在'))
+
+            if quota.classification == quota.Classification.PERSONAL:
+                if quota.user_id != user.id:
+                    raise errors.NoSuchQuotaError(_('参数无效，用户没有指定的资源配额'))
+            elif quota.classification == quota.Classification.VO:
+                if quota.vo_id is None:
+                    raise errors.NoSuchQuotaError(_('用户指定的vo资源配额没有vo关系'))
+            else:
+                raise errors.NoSuchQuotaError(_('用户指定的资源配额类型无法确认是个人还是vo配额'))
 
             if vcpus > 0:
                 quota.vcpu_total = max(quota.vcpu_total - vcpus, 0)
@@ -480,7 +516,7 @@ class UserQuotaManager:
 
         return queryset.order_by('id')
 
-    def  filter_vo_quota_queryset(self, vo, service=None, usable=None):
+    def filter_vo_quota_queryset(self, vo, service=None, usable=None):
         """
         过滤vo组的资源配额查询集
 
@@ -489,7 +525,8 @@ class UserQuotaManager:
         :param usable: 是否过滤可用的(未过有效期的)
         :return:
         """
-        queryset = self.MODEL.objects.select_related('user', 'service').filter(vo=vo, classification=ApplyQuota.Classification.VO, deleted=False)
+        queryset = self.MODEL.objects.select_related('user', 'service').filter(
+            vo=vo, classification=ApplyQuota.Classification.VO, deleted=False)
         if service:
             queryset = queryset.filter(service=service)
 
