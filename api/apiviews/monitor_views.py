@@ -6,7 +6,8 @@ from drf_yasg import openapi
 
 from api.viewsets import CustomGenericViewSet
 from api.handlers.monitor_ceph import MonitorCephQueryHandler
-from monitor.managers import CephQueryChoices
+from api.handlers.monitor_server import MonitorServerQueryHandler
+from monitor.managers import CephQueryChoices, ServerQueryChoices
 
 
 class MonitorCephQueryViewSet(CustomGenericViewSet):
@@ -125,3 +126,46 @@ class MonitorCephQueryViewSet(CustomGenericViewSet):
             ]
         """
         return MonitorCephQueryHandler().queryrange(view=self, request=request, kwargs=kwargs)
+
+
+class MonitorServerQueryViewSet(CustomGenericViewSet):
+    """
+    Server监控Query API
+    """
+    queryset = []
+    permission_classes = [IsAuthenticated]
+    pagination_class = None
+    lookup_field = 'id'
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询服务器集群实时信息'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='service_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description=_('服务id, 查询指定服务集群')
+            ),
+            openapi.Parameter(
+                name='query',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description=f"{ServerQueryChoices.choices}"
+            )
+        ],
+        responses={
+            200: ''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        查询主机集群当前实时信息
+
+            Http Code: 状态码200，返回数据：
+            [
+
+            ]
+        """
+        return MonitorServerQueryHandler().query(view=self, request=request, kwargs=kwargs)

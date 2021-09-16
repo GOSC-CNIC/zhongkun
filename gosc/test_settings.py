@@ -12,6 +12,16 @@ TEST_CASE = {
         'JOB_CEPH': {
             'job_tag': 'Fed-ceph'
         }
+    },
+    'MONITOR_SERVER': {
+        'PROVIDER': {
+            'endpoint_url': 'http://159.226.98.186:19192/',
+            'username': '',
+            'password': ''
+        },
+        'JOB_SERVER': {
+            'job_tag': 'AIOPS-node'
+        }
     }
 }
 

@@ -60,3 +60,25 @@ class MonitorJobCeph(UuidModel):
 
     def __str__(self):
         return self.name
+
+
+class MonitorJobServer(UuidModel):
+    """
+    主机集群监控工作节点
+    """
+    name = models.CharField(verbose_name=_('监控的主机集群名称'), max_length=255, default='')
+    name_en = models.CharField(verbose_name=_('监控的主机集群英文名称'), max_length=255, default='')
+    job_tag = models.CharField(verbose_name=_('主机集群标签名称'), max_length=255, default='')
+    provider = models.ForeignKey(to=MonitorProvider, on_delete=models.CASCADE, related_name='+',
+                                 verbose_name=_('监控服务配置'))
+    service = models.ForeignKey(to=ServiceConfig, null=True, on_delete=models.SET_NULL,
+                                related_name='monitor_job_server_set', verbose_name=_('所属的服务'))
+    creation = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
+
+    class Meta:
+        ordering = ['-creation']
+        verbose_name = _('监控服务器节点')
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return self.name

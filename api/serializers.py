@@ -830,3 +830,11 @@ class MonitorJobCephSerializer(serializers.Serializer):
     job_tag = serializers.CharField(label=_('CEPH集群标签名称'), max_length=255, default='')
     service_id = serializers.CharField(label=_('服务'))
     creation = serializers.DateTimeField(label=_('创建时间'))
+
+
+class MonitorJobServerSerializer(serializers.Serializer):
+    name = serializers.CharField(label=_('监控的主机集群'), max_length=255, default='')
+    name_en = serializers.CharField(label=_('监控的主机集群英文名'), max_length=255, default='')
+    job_tag = serializers.CharField(label=_('主机集群的标签名称'), max_length=255, default='')
+    service_id = serializers.CharField(label=_('服务'))
+    creation = serializers.DateTimeField(label=_('创建时间'))

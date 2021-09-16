@@ -23,6 +23,7 @@ router.register(r'apply/organization', views.ApplyOrganizationViewSet, basename=
 router.register(r'vo', views.VOViewSet, basename='vo')
 router.register(r'quota-activity', views.QuotaActivityViewSet, basename='quota-activity')
 router.register(r'monitor/ceph/query', monitor_views.MonitorCephQueryViewSet, basename='monitor-ceph-query')
+router.register(r'monitor/server/query', monitor_views.MonitorServerQueryViewSet, basename='monitor-server-query')
 
 no_slash_router = SimpleRouter(trailing_slash=False)
 no_slash_router.register(r'media', views.MediaViewSet, basename='media')

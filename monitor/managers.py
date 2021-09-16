@@ -1,10 +1,12 @@
 from django.db import models
 from django.utils.translation import gettext, gettext_lazy as _
 
+
 from core import errors
-from api.serializers import MonitorJobCephSerializer
-from .models import MonitorJobCeph, MonitorProvider
+from api.serializers import MonitorJobCephSerializer, MonitorJobServerSerializer
+from .models import MonitorJobCeph, MonitorProvider, MonitorJobServer
 from .backends.monitor_ceph import MonitorCephQueryAPI
+from .backends.monitor_server import MonitorServerQueryAPI
 
 
 class CephQueryChoices(models.TextChoices):
@@ -15,6 +17,15 @@ class CephQueryChoices(models.TextChoices):
     OSD_OUT = 'osd_out', _('Ceph集群外OSD数')
     OSD_UP = 'osd_up', _('Ceph集群活着且在运行OSD数')
     OSD_DOWN = 'osd_down', _('Ceph集群挂了且不再运行OSD数')
+
+
+class ServerQueryChoices(models.TextChoices):
+    HOST_COUNT = 'host_count', _('主机数量')
+    HOST_UP_COUNT = 'host_up_count', _('在线主机数量')
+    HEALTH_STATUS = 'health_status', _('主机集群健康状态')
+    CPU_USAGE = 'cpu_usage', _('集群平均CPU使用率')
+    MEM_USAGE = 'mem_usage', _('集群平均内存使用率')
+    DISK_USAGE = 'disk_usage', _('集群平均磁盘使用率')
 
 
 class MonitorJobCephManager:
@@ -146,6 +157,63 @@ class MonitorJobCephManager:
         return f(**params)
 
 
+class MonitorJobServerManager:
+    backend = MonitorServerQueryAPI()
 
+    @staticmethod
+    def get_queryset(service_id: str = None):
+        qs = MonitorJobServer.objects.select_related('provider').all()
+        if service_id:
+            qs = qs.filter(service_id=service_id)
 
+        return qs
 
+    def query(self, tag: str, service_id: str):
+        """
+        :return:
+            [
+                {
+                    "metric": {},
+                    "value": [
+                        1631585555,
+                        "13"
+                    ]
+                }
+            ]
+        :raises: Error
+        """
+        job_server_qs = self.get_queryset(service_id=service_id)
+        job_server_map = {}
+        for job in job_server_qs:
+            job_server_map[job.job_tag] = job
+
+        if len(job_server_map) == 0:
+            raise errors.ConflictError(message=_('没有配置监控'))
+
+        ret_data = []
+
+        for job in job_server_map.values():
+            job_dict = MonitorJobServerSerializer(job).data
+            r = self.request_data(provider=job.provider, tag=tag, job=job.job_tag)
+            data = r[0]
+            data['monitor'] = job_dict
+            ret_data.append(data)
+
+        return ret_data
+
+    def request_data(self, provider: MonitorProvider, tag: str, job: str):
+        """
+        :return:
+        :raises: Error
+        """
+        params = {'provider': provider, 'job': job}
+        f = {
+            ServerQueryChoices.HEALTH_STATUS.value: self.backend.server_health_status,
+            ServerQueryChoices.HOST_COUNT.value: self.backend.server_host_count,
+            ServerQueryChoices.HOST_UP_COUNT.value: self.backend.server_host_up_count,
+            ServerQueryChoices.CPU_USAGE.value: self.backend.server_cpu_usage,
+            ServerQueryChoices.MEM_USAGE.value: self.backend.server_mem_usage,
+            ServerQueryChoices.DISK_USAGE.value: self.backend.server_disk_usage,
+        }[tag]
+
+        return f(**params)

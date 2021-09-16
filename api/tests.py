@@ -20,7 +20,7 @@ from utils.test import get_or_create_user, get_or_create_service, get_or_create_
 from adapters import outputs
 from vo.models import VirtualOrganization, VoMember
 from activity.models import QuotaActivity
-from monitor.tests import get_or_create_monitor_job_ceph
+from monitor.tests import get_or_create_monitor_job_ceph, get_or_create_monitor_job_server
 
 
 def random_string(length: int = 10):
@@ -3214,3 +3214,67 @@ class MonitorCephTests(MyAPITestCase):
                                  start=start, end=end, step=step)
         self.query_range_ok_test(service_id=service_id, query_tag=CephQueryChoices.OSD_DOWN.value,
                                  start=start, end=end, step=step)
+
+
+class MonitorServerTests(MyAPITestCase):
+    def setUp(self):
+        self.user = None
+        set_auth_header(self)
+        self.service = get_or_create_service()
+
+    def query_response(self, service_id: str = None, query_tag: str = None):
+        querys = {}
+        if service_id:
+            querys['service_id'] = service_id
+
+        if query_tag:
+            querys['query'] = query_tag
+
+        url = reverse('api:monitor-server-query-list')
+        query = parse.urlencode(query=querys)
+        return self.client.get(f'{url}?{query}')
+
+    def query_ok_test(self, service_id: str, query_tag: str):
+        response = self.query_response(service_id=service_id, query_tag=query_tag)
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.data, list)
+        data_item = response.data[0]
+        self.assertKeysIn(["value", "monitor"], data_item)
+        self.assertIsInstance(data_item["value"], list)
+        self.assertEqual(len(data_item["value"]), 2)
+        self.assertKeysIn(["name", "name_en", "job_tag", "service_id", "creation"], data_item["monitor"])
+
+        return response
+
+    def test_query(self):
+        from monitor.managers import ServerQueryChoices
+
+        service_id = self.service.id
+        monitor_job_server = get_or_create_monitor_job_server(service_id=service_id)
+
+        # no permission
+        response = self.query_response(service_id=service_id, query_tag=ServerQueryChoices.CPU_USAGE.value)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # admin permission
+        self.service.users.add(self.user)
+        self.query_ok_test(service_id=service_id, query_tag=ServerQueryChoices.HEALTH_STATUS.value)
+        self.query_ok_test(service_id=service_id, query_tag=ServerQueryChoices.HOST_COUNT.value)
+        self.query_ok_test(service_id=service_id, query_tag=ServerQueryChoices.HOST_UP_COUNT.value)
+        self.query_ok_test(service_id=service_id, query_tag=ServerQueryChoices.CPU_USAGE.value)
+        self.query_ok_test(service_id=service_id, query_tag=ServerQueryChoices.MEM_USAGE.value)
+        self.query_ok_test(service_id=service_id, query_tag=ServerQueryChoices.DISK_USAGE.value)
+
+        # no permission
+        self.service.users.remove(self.user)
+        response = self.query_response(service_id=service_id, query_tag=ServerQueryChoices.CPU_USAGE.value)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # federal admin permission
+        self.user.set_federal_admin()
+        self.query_ok_test(service_id=service_id, query_tag=ServerQueryChoices.HEALTH_STATUS.value)
+        self.query_ok_test(service_id=service_id, query_tag=ServerQueryChoices.HOST_COUNT.value)
+        self.query_ok_test(service_id=service_id, query_tag=ServerQueryChoices.HOST_UP_COUNT.value)
+        self.query_ok_test(service_id=service_id, query_tag=ServerQueryChoices.CPU_USAGE.value)
+        self.query_ok_test(service_id=service_id, query_tag=ServerQueryChoices.MEM_USAGE.value)
+        self.query_ok_test(service_id=service_id, query_tag=ServerQueryChoices.DISK_USAGE.value)

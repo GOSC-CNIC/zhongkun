@@ -1,7 +1,7 @@
 from django.test import TestCase
 
 from utils.test import get_test_case_settings, get_or_create_service
-from .models import MonitorProvider, MonitorJobCeph
+from .models import MonitorProvider, MonitorJobCeph, MonitorJobServer
 
 
 def get_or_create_monitor_provider(name: str = 'test', name_en: str = 'test'):
@@ -49,3 +49,29 @@ def get_or_create_monitor_job_ceph(service_id: str, job_tag: str = None, name: s
     )
     job_ceph.save()
     return job_ceph
+
+
+def get_or_create_monitor_job_server(service_id: str, job_tag: str = None, name: str = 'test', name_en: str = 'test'):
+    if job_tag is None:
+        try:
+            test_settings = get_test_case_settings()
+            job_settings = test_settings['MONITOR_SERVER']['JOB_SERVER']
+        except Exception as e:
+            raise Exception(f'No test settings(MONITOR_SERVER.JOB_SERVER) in file "test_settings.TEST_CASE"， {str(e)}')
+
+        job_tag = job_settings['job_tag']
+        
+    if not job_tag:
+        raise Exception('invalid "job_tag"')
+
+    job_server = MonitorJobServer.objects.filter(service_id=service_id, job_tag=job_tag).first()
+    if job_server is not None:
+        return job_server
+
+    provider = get_or_create_monitor_provider()
+    job_server = MonitorJobServer(
+        name=name, name_en=name_en, job_tag=job_tag,
+        provider=provider, service_id=service_id
+    )
+    job_server.save()
+    return job_server
