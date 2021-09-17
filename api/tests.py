@@ -169,8 +169,7 @@ class QuotaTests(MyAPITestCase):
         self.assertKeysIn(['count', 'results', "next", "previous"], response.data)
         self.assertEqual(response.data['count'], 2)
 
-        url += f'?usable=true'
-        response = self.client.get(url, format='json')
+        response = self.client.get(f'{url}?usable=true', format='json')
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['count', 'results', "next", "previous"], response.data)
         self.assertEqual(response.data['count'], 1)
@@ -178,7 +177,19 @@ class QuotaTests(MyAPITestCase):
                            "private_ip_used", "public_ip_total", "public_ip_used",
                            "vcpu_total", "vcpu_used", "ram_total", "ram_used",
                            "disk_size_total", "disk_size_used", "expiration_time",
-                           "deleted", "display", "classification"], response.data['results'][0])
+                           "deleted", "display", "classification", "vo_id"], response.data['results'][0])
+
+        # deleted query param
+        url = reverse('api:quota-list')
+        query = parse.urlencode(query={'deleted': 'true'})
+        response = self.client.get(f'{url}?{query}', format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
+
+        query = parse.urlencode(query={'deleted': 'false'})
+        response = self.client.get(f'{url}?{query}', format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 2)
 
         # delete
         url = reverse('api:quota-detail', kwargs={'id': quota.id})
@@ -188,7 +199,21 @@ class QuotaTests(MyAPITestCase):
         url = reverse('api:quota-list')
         response = self.client.get(url, format='json')
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 2)
+
+        # deleted query param
+        url = reverse('api:quota-list')
+        query = parse.urlencode(query={'deleted': 'true'})
+        response = self.client.get(f'{url}?{query}', format='json')
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['results'][0]['id'], quota.id)
+
+        query = parse.urlencode(query={'deleted': 'false'})
+        response = self.client.get(f'{url}?{query}', format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['results'][0]['id'], expire_quota.id)
 
     def test_list_quota_servers(self):
         mgr = UserQuotaManager()
@@ -242,7 +267,7 @@ class QuotaTests(MyAPITestCase):
                            "private_ip_used", "public_ip_total", "public_ip_used",
                            "vcpu_total", "vcpu_used", "ram_total", "ram_used",
                            "disk_size_total", "disk_size_used", "expiration_time",
-                           "deleted", "display", "classification"], response.data['results'][0])
+                           "deleted", "display", "classification", "vo_id"], response.data['results'][0])
 
         # delete
         url = reverse('api:quota-detail', kwargs={'id': vo_quota.id})

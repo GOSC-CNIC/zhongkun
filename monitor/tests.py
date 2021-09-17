@@ -60,7 +60,7 @@ def get_or_create_monitor_job_server(service_id: str, job_tag: str = None, name:
             raise Exception(f'No test settings(MONITOR_SERVER.JOB_SERVER) in file "test_settings.TEST_CASE"， {str(e)}')
 
         job_tag = job_settings['job_tag']
-        
+
     if not job_tag:
         raise Exception('invalid "job_tag"')
 

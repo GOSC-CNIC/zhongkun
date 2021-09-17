@@ -22,11 +22,28 @@ router.register(r'apply/service', views.ApplyVmServiceViewSet, basename='apply-s
 router.register(r'apply/organization', views.ApplyOrganizationViewSet, basename='apply-organization')
 router.register(r'vo', views.VOViewSet, basename='vo')
 router.register(r'quota-activity', views.QuotaActivityViewSet, basename='quota-activity')
-router.register(r'monitor/ceph/query', monitor_views.MonitorCephQueryViewSet, basename='monitor-ceph-query')
-router.register(r'monitor/server/query', monitor_views.MonitorServerQueryViewSet, basename='monitor-server-query')
+
 
 no_slash_router = SimpleRouter(trailing_slash=False)
 no_slash_router.register(r'media', views.MediaViewSet, basename='media')
+no_slash_router.register(r'server', views.ServersViewSet, basename='servers')
+no_slash_router.register(r'server-archive', views.ServerArchiveViewSet, basename='server-archive')
+no_slash_router.register(r'image', views.ImageViewSet, basename='images')
+no_slash_router.register(r'network', views.NetworkViewSet, basename='networks')
+no_slash_router.register(r'vpn', views.VPNViewSet, basename='vpn')
+no_slash_router.register(r'flavor', views.FlavorViewSet, basename='flavor')
+no_slash_router.register(r'quota', views.QuotaViewSet, basename='quota')
+no_slash_router.register(r'service', views.ServiceViewSet, basename='service')
+no_slash_router.register(r'registry', views.DataCenterViewSet, basename='registry')
+no_slash_router.register(r'apply/quota', views.UserQuotaApplyViewSet, basename='apply-quota')
+no_slash_router.register(r'user', views.UserViewSet, basename='user')
+no_slash_router.register(r'apply/service', views.ApplyVmServiceViewSet, basename='apply-service')
+no_slash_router.register(r'apply/organization', views.ApplyOrganizationViewSet, basename='apply-organization')
+no_slash_router.register(r'vo', views.VOViewSet, basename='vo')
+no_slash_router.register(r'quota-activity', views.QuotaActivityViewSet, basename='quota-activity')
+no_slash_router.register(r'monitor/ceph/query', monitor_views.MonitorCephQueryViewSet, basename='monitor-ceph-query')
+no_slash_router.register(r'monitor/server/query', monitor_views.MonitorServerQueryViewSet,
+                         basename='monitor-server-query')
 
 
 urlpatterns = [

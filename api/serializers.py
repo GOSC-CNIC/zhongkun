@@ -184,6 +184,7 @@ class UserQuotaSerializer(serializers.Serializer):
     duration_days = serializers.IntegerField(label=_('资源可用时长'))
     classification = serializers.CharField(
         label=_('资源配额归属类型'), read_only=True, help_text=_('标识配额属于申请者个人的，还是vo组的'))
+    vo_id = serializers.CharField(label=_('vo组ID'), read_only=True)
 
     @staticmethod
     def get_user(obj):

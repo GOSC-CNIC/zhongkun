@@ -152,23 +152,36 @@ class UserQuotaManager:
         except Exception as e:
             raise errors.QuotaError.from_error(e)
 
-    def get_quota_queryset(self, user):
+    def get_quota_queryset(self, user, deleted: bool = None):
         """
         获取用户资源配额查询集
 
         :param user: 用户对象
+        :param deleted: 过滤删除状态
         :return: QuerySet()
         """
-        return self.MODEL.objects.select_related('user', 'service').filter(user=user, deleted=False).all()
+        lookup = {}
+        if user is not None:
+            lookup['user'] = user
 
-    def get_base_quota_queryset(self, user):
+        if deleted is not None:
+            lookup['deleted'] = deleted
+
+        qs = self.MODEL.objects.select_related('user', 'service').all()
+        if lookup:
+            qs = qs.filter(**lookup)
+
+        return qs
+
+    def get_base_quota_queryset(self, user, deleted: bool = None):
         """
         获取用户基本资源配额查询集
 
         :param user:用户对象
+        :param deleted: 过滤删除状态
         :return: QuerySet()
         """
-        return self.get_quota_queryset(user=user).filter(tag=self.MODEL.TAG_BASE).all()
+        return self.get_quota_queryset(user=user, deleted=deleted).filter(tag=self.MODEL.TAG_BASE).all()
 
     def get_quota_by_id(self, quota_id: str) -> UserQuota:
         """
@@ -497,18 +510,22 @@ class UserQuotaManager:
 
         return True
 
-    def filter_user_quota_queryset(self, user, service=None, usable=None):
+    def filter_user_quota_queryset(self, user, service=None, usable=None, deleted: bool = None):
         """
         过滤用户个人的资源配额查询集
 
         :param user:
         :param service: 服务对象，暂时预留
         :param usable: 是否过滤可用的(未过有效期的)
+        :param deleted: 删除状态过滤
         :return:
         """
         queryset = self.get_quota_queryset(user=user).filter(classification=self.MODEL.Classification.PERSONAL)
         if service:
             queryset = queryset.filter(service=service)
+
+        if deleted is not None:
+            queryset = queryset.filter(deleted=deleted)
 
         if usable:
             now = timezone.now()

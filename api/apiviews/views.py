@@ -1230,6 +1230,13 @@ class QuotaViewSet(CustomGenericViewSet):
                 type=openapi.TYPE_BOOLEAN,
                 required=False,
                 description=_('true(过滤)，其他值（忽略）, 过滤可用的资源配额, 未过期的')
+            ),
+            openapi.Parameter(
+                name='deleted',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_BOOLEAN,
+                required=False,
+                description=_('过滤条件，true(已删除的配额), false(未删除的)')
             )
         ],
         responses={
@@ -1274,7 +1281,8 @@ class QuotaViewSet(CustomGenericViewSet):
                   "deleted": false,
                   "display": "[普通配额](vCPU: 10, RAM: 10240Mb, PublicIP: 5, PrivateIP: 5)",
                   "duration_days": 365,
-                  "classification": "personal"
+                  "classification": "personal",
+                  "vo_id": null                         # vo id  if "classification" == "vo" else null
                 }
               ]
             }

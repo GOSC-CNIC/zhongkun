@@ -62,9 +62,17 @@ class UserQuotaHandler:
         service_id = request.query_params.get('service', None)
         usable = request.query_params.get('usable', '').lower()
         usable = True if usable == 'true' else False
+        deleted_query = request.query_params.get('deleted', None)
+        if deleted_query is None:
+            deleted = None
+        elif deleted_query.lower() == 'false':
+            deleted = False
+        else:
+            deleted = True
 
         try:
-            queryset = UserQuotaManager().filter_user_quota_queryset(user=request.user, service=service_id, usable=usable)
+            queryset = UserQuotaManager().filter_user_quota_queryset(
+                user=request.user, service=service_id, usable=usable, deleted=deleted)
             paginator = view.paginator
             quotas = paginator.paginate_queryset(request=request, queryset=queryset)
             serializer = serializers.UserQuotaSerializer(quotas, many=True)
