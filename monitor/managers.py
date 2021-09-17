@@ -26,6 +26,12 @@ class ServerQueryChoices(models.TextChoices):
     CPU_USAGE = 'cpu_usage', _('集群平均CPU使用率')
     MEM_USAGE = 'mem_usage', _('集群平均内存使用率')
     DISK_USAGE = 'disk_usage', _('集群平均磁盘使用率')
+    MIN_CPU_USAGE = 'min_cpu_usage', _('集群最小CPU使用率')
+    MAX_CPU_USAGE = 'max_cpu_usage', _('集群最大CPU使用率')
+    MIN_MEM_USAGE = 'min_mem_usage', _('集群最小内存使用率')
+    MAX_MEM_USAGE = 'max_mem_usage', _('集群最大内存使用率')
+    MIN_DISK_USAGE = 'min_disk_usage', _('集群最小磁盘使用率')
+    MAX_DISK_USAGE = 'max_disk_usage', _('集群最大磁盘使用率')
 
 
 class MonitorJobCephManager:
@@ -214,6 +220,12 @@ class MonitorJobServerManager:
             ServerQueryChoices.CPU_USAGE.value: self.backend.server_cpu_usage,
             ServerQueryChoices.MEM_USAGE.value: self.backend.server_mem_usage,
             ServerQueryChoices.DISK_USAGE.value: self.backend.server_disk_usage,
+            ServerQueryChoices.MIN_CPU_USAGE.value: self.backend.server_min_cpu_usage,
+            ServerQueryChoices.MAX_CPU_USAGE.value: self.backend.server_max_cpu_usage,
+            ServerQueryChoices.MIN_MEM_USAGE.value: self.backend.server_min_mem_usage,
+            ServerQueryChoices.MAX_MEM_USAGE.value: self.backend.server_max_mem_usage,
+            ServerQueryChoices.MIN_DISK_USAGE.value: self.backend.server_min_disk_usage,
+            ServerQueryChoices.MAX_DISK_USAGE.value: self.backend.server_max_disk_usage,
         }[tag]
 
         return f(**params)

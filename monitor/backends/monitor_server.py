@@ -19,6 +19,22 @@ class ExpressionQuery:
                         '/(node_filesystem_avail_bytes {job="$job",fstype=~"ext.?|xfs"}'\
                         '+(node_filesystem_size_bytes{job="$job",fstype=~"ext.?|xfs"}'\
                         '-node_filesystem_free_bytes{job="$job",fstype=~"ext.?|xfs"})))'
+    server_min_cpu_usage = '(1 - max(rate(node_cpu_seconds_total{job="$job",mode="idle"}[10m])))*100'
+    server_max_cpu_usage = '(1 - min(rate(node_cpu_seconds_total{job="$job",mode="idle"}[10m])))*100'
+    server_min_mem_usage = '(1-max(node_memory_MemAvailable_bytes{job="$job"} / ' \
+                           '(node_memory_MemTotal_bytes{job="$job"}))) * 100'
+    server_max_mem_usage = '(1-min(node_memory_MemAvailable_bytes{job="$job"} / ' \
+                           '(node_memory_MemTotal_bytes{job="$job"}))) * 100'
+    server_min_disk_usage = 'min((node_filesystem_size_bytes{job="$job",fstype=~"ext.?|xfs"}'\
+                            '-node_filesystem_free_bytes{job="$job",fstype=~"ext.?|xfs"}) *100'\
+                            '/(node_filesystem_avail_bytes {job="$job",fstype=~"ext.?|xfs"}'\
+                            '+(node_filesystem_size_bytes{job="$job",fstype=~"ext.?|xfs"}'\
+                            '-node_filesystem_free_bytes{job="$job",fstype=~"ext.?|xfs"})))'
+    server_max_disk_usage = 'max((node_filesystem_size_bytes{job="$job",fstype=~"ext.?|xfs"}'\
+                            '-node_filesystem_free_bytes{job="$job",fstype=~"ext.?|xfs"}) *100'\
+                            '/(node_filesystem_avail_bytes {job="$job",fstype=~"ext.?|xfs"}'\
+                            '+(node_filesystem_size_bytes{job="$job",fstype=~"ext.?|xfs"}'\
+                            '-node_filesystem_free_bytes{job="$job",fstype=~"ext.?|xfs"})))'
 
     @staticmethod
     def expression(tag: str, job: str = None):
@@ -45,6 +61,24 @@ class ExpressionQuery:
 
     def build_server_disk_usage_query(self, job: str = None):
         return self.expression(tag=self.server_disk_usage, job=job)
+
+    def build_server_min_cpu_usage_query(self, job: str = None):
+        return self.expression(tag=self.server_min_cpu_usage, job=job)
+
+    def build_server_max_cpu_usage_query(self, job: str = None):
+        return self.expression(tag=self.server_max_cpu_usage, job=job)
+
+    def build_server_min_mem_usage_query(self, job: str = None):
+        return self.expression(tag=self.server_min_mem_usage, job=job)
+
+    def build_server_max_mem_usage_query(self, job: str = None):
+        return self.expression(tag=self.server_max_mem_usage, job=job)
+
+    def build_server_min_disk_usage_query(self, job: str = None):
+        return self.expression(tag=self.server_min_disk_usage, job=job)
+
+    def build_server_max_disk_usage_query(self, job: str = None):
+        return self.expression(tag=self.server_max_disk_usage, job=job)
 
 
 class MonitorServerQueryAPI:
@@ -154,6 +188,108 @@ class MonitorServerQueryAPI:
             ]
         """
         expression_query = ExpressionQuery().build_server_disk_usage_query(job=job)
+        api_url = self._build_query_api(endpoint_url=provider.endpoint_url)
+        return self._request_query_api(url=api_url, expression_query=expression_query)
+
+    def server_min_cpu_usage(self, provider: MonitorProvider, job: str):
+        """
+        :return:
+            [
+                {
+                    "metric": {},
+                    "value": [
+                        1631585555,
+                        "26.84596010749737"
+                    ]
+                }
+            ]
+        """
+        expression_query = ExpressionQuery().build_server_min_cpu_usage_query(job=job)
+        api_url = self._build_query_api(endpoint_url=provider.endpoint_url)
+        return self._request_query_api(url=api_url, expression_query=expression_query)
+
+    def server_max_cpu_usage(self, provider: MonitorProvider, job: str):
+        """
+        :return:
+            [
+                {
+                    "metric": {},
+                    "value": [
+                        1631585555,
+                        "26.84596010749737"
+                    ]
+                }
+            ]
+        """
+        expression_query = ExpressionQuery().build_server_max_cpu_usage_query(job=job)
+        api_url = self._build_query_api(endpoint_url=provider.endpoint_url)
+        return self._request_query_api(url=api_url, expression_query=expression_query)
+
+    def server_min_mem_usage(self, provider: MonitorProvider, job: str):
+        """
+        :return:
+            [
+                {
+                    "metric": {},
+                    "value": [
+                        1631585555,
+                        "26.84596010749737"
+                    ]
+                }
+            ]
+        """
+        expression_query = ExpressionQuery().build_server_min_mem_usage_query(job=job)
+        api_url = self._build_query_api(endpoint_url=provider.endpoint_url)
+        return self._request_query_api(url=api_url, expression_query=expression_query)
+
+    def server_max_mem_usage(self, provider: MonitorProvider, job: str):
+        """
+        :return:
+            [
+                {
+                    "metric": {},
+                    "value": [
+                        1631585555,
+                        "26.84596010749737"
+                    ]
+                }
+            ]
+        """
+        expression_query = ExpressionQuery().build_server_max_mem_usage_query(job=job)
+        api_url = self._build_query_api(endpoint_url=provider.endpoint_url)
+        return self._request_query_api(url=api_url, expression_query=expression_query)
+
+    def server_min_disk_usage(self, provider: MonitorProvider, job: str):
+        """
+        :return:
+            [
+                {
+                    "metric": {},
+                    "value": [
+                        1631585555,
+                        "26.84596010749737"
+                    ]
+                }
+            ]
+        """
+        expression_query = ExpressionQuery().build_server_min_disk_usage_query(job=job)
+        api_url = self._build_query_api(endpoint_url=provider.endpoint_url)
+        return self._request_query_api(url=api_url, expression_query=expression_query)
+
+    def server_max_disk_usage(self, provider: MonitorProvider, job: str):
+        """
+        :return:
+            [
+                {
+                    "metric": {},
+                    "value": [
+                        1631585555,
+                        "26.84596010749737"
+                    ]
+                }
+            ]
+        """
+        expression_query = ExpressionQuery().build_server_max_disk_usage_query(job=job)
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url)
         return self._request_query_api(url=api_url, expression_query=expression_query)
 

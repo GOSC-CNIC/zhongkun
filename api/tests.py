@@ -20,13 +20,9 @@ from utils.test import get_or_create_user, get_or_create_service, get_or_create_
 from adapters import outputs
 from vo.models import VirtualOrganization, VoMember
 from activity.models import QuotaActivity
-<<<<<<< HEAD
-from monitor.tests import get_or_create_monitor_job_ceph, get_or_create_monitor_job_server
-=======
 from monitor.tests import get_or_create_monitor_job_ceph, get_or_create_monitor_job_server
 from core.quota import QuotaAPI
 from core import errors
->>>>>>> cfa9d00c289dfeb484e1d2def0a1cda82a12777e
 
 
 def random_string(length: int = 10):
@@ -3349,6 +3345,12 @@ class MonitorServerTests(MyAPITestCase):
         self.query_ok_test(service_id=service_id, query_tag=ServerQueryChoices.CPU_USAGE.value)
         self.query_ok_test(service_id=service_id, query_tag=ServerQueryChoices.MEM_USAGE.value)
         self.query_ok_test(service_id=service_id, query_tag=ServerQueryChoices.DISK_USAGE.value)
+        self.query_ok_test(service_id=service_id, query_tag=ServerQueryChoices.MIN_CPU_USAGE.value)
+        self.query_ok_test(service_id=service_id, query_tag=ServerQueryChoices.MAX_CPU_USAGE.value)
+        self.query_ok_test(service_id=service_id, query_tag=ServerQueryChoices.MIN_MEM_USAGE.value)
+        self.query_ok_test(service_id=service_id, query_tag=ServerQueryChoices.MAX_MEM_USAGE.value)
+        self.query_ok_test(service_id=service_id, query_tag=ServerQueryChoices.MIN_DISK_USAGE.value)
+        self.query_ok_test(service_id=service_id, query_tag=ServerQueryChoices.MAX_DISK_USAGE.value)
 
         # no permission
         self.service.users.remove(self.user)
@@ -3363,3 +3365,9 @@ class MonitorServerTests(MyAPITestCase):
         self.query_ok_test(service_id=service_id, query_tag=ServerQueryChoices.CPU_USAGE.value)
         self.query_ok_test(service_id=service_id, query_tag=ServerQueryChoices.MEM_USAGE.value)
         self.query_ok_test(service_id=service_id, query_tag=ServerQueryChoices.DISK_USAGE.value)
+        self.query_ok_test(service_id=service_id, query_tag=ServerQueryChoices.MIN_CPU_USAGE.value)
+        self.query_ok_test(service_id=service_id, query_tag=ServerQueryChoices.MAX_CPU_USAGE.value)
+        self.query_ok_test(service_id=service_id, query_tag=ServerQueryChoices.MIN_MEM_USAGE.value)
+        self.query_ok_test(service_id=service_id, query_tag=ServerQueryChoices.MAX_MEM_USAGE.value)
+        self.query_ok_test(service_id=service_id, query_tag=ServerQueryChoices.MIN_DISK_USAGE.value)
+        self.query_ok_test(service_id=service_id, query_tag=ServerQueryChoices.MAX_DISK_USAGE.value)
