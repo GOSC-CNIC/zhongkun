@@ -1,17 +1,7 @@
 from django.contrib import admin
-from django.urls import path, reverse
 from django.utils.translation import gettext_lazy, gettext as _
-from django.contrib.admin.utils import unquote
-from django.contrib.admin.options import IS_POPUP_VAR
 from django.contrib import messages
 from django.db import transaction
-from django.core.exceptions import PermissionDenied
-from django.http import Http404, HttpResponseRedirect
-from django.utils.html import escape
-from django.template.response import TemplateResponse
-from django.views.decorators.debug import sensitive_post_parameters
-from django.utils.decorators import method_decorator
-# sensitive_post_parameters_m = method_decorator(sensitive_post_parameters())
 
 from servers.models import Server, ServerArchive
 from .models import (
@@ -201,10 +191,10 @@ class ServiceShareQuotaAdmin(admin.ModelAdmin):
 @admin.register(UserQuota)
 class UserQuotaAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
-    list_display = ('id', 'tag', 'user', 'service', 'show_deleted', 'expiration_time', 'duration_days',
-                    'vcpu_total', 'vcpu_used', 'ram_total', 'ram_used', 'disk_size_total',
+    list_display = ('id', 'tag', 'user', 'service', 'show_deleted', 'expiration_time', 'duration_days', 'classification',
+                    'vo', 'vcpu_total', 'vcpu_used', 'ram_total', 'ram_used', 'disk_size_total',
                     'disk_size_used', 'private_ip_total', 'private_ip_used', 'public_ip_total', 'public_ip_used')
-    list_select_related = ('user', 'service')
+    list_select_related = ('user', 'service', 'vo')
     search_fields = ['user__username']
     actions = ['quota_used_update']
     list_filter = ('service', 'tag')
@@ -264,7 +254,8 @@ class UserQuotaAdmin(admin.ModelAdmin):
 @admin.register(ApplyVmService)
 class ApplyServiceAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
-    list_display = ('id', 'organization', 'name', 'name_en', 'service_type', 'status', 'user', 'creation_time', 'approve_time')
+    list_display = ('id', 'organization', 'name', 'name_en', 'service_type', 'status', 'user',
+                    'creation_time', 'approve_time')
 
     list_filter = ('organization',)
 
@@ -278,5 +269,6 @@ class ApplyOrganizationAdmin(admin.ModelAdmin):
 @admin.register(ApplyQuota)
 class ApplyQuotaAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
-    list_display = ('id', 'vcpu', 'ram', 'disk_size', 'public_ip', 'private_ip', 'status', 'user', 'creation_time', 'approve_time')
+    list_display = ('id', 'vcpu', 'ram', 'disk_size', 'public_ip', 'private_ip', 'status', 'user',
+                    'creation_time', 'approve_time')
 

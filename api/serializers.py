@@ -206,34 +206,6 @@ class UserQuotaSerializer(serializers.Serializer):
         return {'id': None, 'name': None}
 
 
-class ServiceQuotaBaseSerializer(serializers.Serializer):
-    id = serializers.CharField()
-    private_ip_total = serializers.IntegerField(label=_('总私网IP数'), default=0)
-    private_ip_used = serializers.IntegerField(label=_('已用私网IP数'), default=0)
-    public_ip_total = serializers.IntegerField(label=_('总公网IP数'), default=0)
-    public_ip_used = serializers.IntegerField(label=_('已用公网IP数'), default=0)
-    vcpu_total = serializers.IntegerField(label=_('总CPU核数'), default=0)
-    vcpu_used = serializers.IntegerField(label=_('已用CPU核数'), default=0)
-    ram_total = serializers.IntegerField(label=_('总内存大小(MB)'), default=0)
-    ram_used = serializers.IntegerField(label=_('已用内存大小(MB)'), default=0)
-    disk_size_total = serializers.IntegerField(label=_('总硬盘大小(GB)'), default=0)
-    disk_size_used = serializers.IntegerField(label=_('已用硬盘大小(GB)'), default=0)
-    creation_time = serializers.DateTimeField(label=_('过期时间'), default=None)
-    enable = serializers.BooleanField(label=_('删除'), default=False)
-    service = serializers.SerializerMethodField(method_name='get_service')
-
-    @staticmethod
-    def get_service(obj):
-        if obj.service:
-            return {'id': obj.service.id, 'name': obj.service.name}
-
-        return {'id': None, 'name': None}
-
-
-class PrivateServiceQuotaSerializer(ServiceQuotaBaseSerializer):
-    pass
-
-
 class ServiceSerializer(serializers.Serializer):
     id = serializers.CharField()
     name = serializers.CharField()
@@ -688,7 +660,15 @@ class VmServiceBaseQuotaSerializer(VmServiceBaseQuotaUpdateSerializer):
     disk_size_used = serializers.IntegerField(label=_('已用硬盘大小(GB)'), read_only=True)
     creation_time = serializers.DateTimeField(label=_('创建时间'), read_only=True)
     enable = serializers.BooleanField(label=_('有效状态'), read_only=True,
-                                 help_text=_('选中，资源配额生效；未选中，无法申请分中心资源'))
+                                      help_text=_('选中，资源配额生效；未选中，无法申请分中心资源'))
+    service = serializers.SerializerMethodField(method_name='get_service')
+
+    @staticmethod
+    def get_service(obj):
+        if obj.service:
+            return {'id': obj.service.id, 'name': obj.service.name}
+
+        return {'id': None, 'name': None}
 
 
 class VmServicePrivateQuotaSerializer(VmServiceBaseQuotaSerializer):

@@ -949,6 +949,13 @@ class ServicePrivateQuotaManager(ServiceQuotaManagerBase):
         sq = Subquery(user.service_set.all().values_list('id', flat=True))
         return self.MODEL.objects.filter(service__in=sq).all()
 
+    def get_privete_queryset(self, service_id: str = None):
+        qs = self.MODEL.objects.select_related('service').all()
+        if service_id:
+            qs = qs.filter(service_id=service_id)
+
+        return qs
+
 
 class ServiceShareQuotaManager(ServiceQuotaManagerBase):
     """
@@ -956,6 +963,13 @@ class ServiceShareQuotaManager(ServiceQuotaManagerBase):
     """
     MODEL = ServiceShareQuota
     ERROR_MSG_PREFIX = gettext_lazy('服务的共享资源配额')
+
+    def get_share_queryset(self, service_id: str = None):
+        qs = self.MODEL.objects.select_related('service').all()
+        if service_id:
+            qs = qs.filter(service_id=service_id)
+
+        return qs
 
 
 class ServiceManager:
