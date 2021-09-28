@@ -55,7 +55,7 @@ class MonitorJobCeph(UuidModel):
 
     class Meta:
         ordering = ['-creation']
-        verbose_name = _('监控任务节点')
+        verbose_name = _('监控任务Ceph节点')
         verbose_name_plural = verbose_name
 
     def __str__(self):

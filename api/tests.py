@@ -1907,6 +1907,7 @@ class UserTests(MyAPITestCase):
     def setUp(self):
         set_auth_header(self)
         self.user = get_or_create_user()
+        self.service = get_or_create_service()
 
     def test_account(self):
         base_url = reverse('api:user-account')
@@ -1918,6 +1919,32 @@ class UserTests(MyAPITestCase):
         self.assertEqual(response.data['username'], self.user.username)
         self.assertEqual(response.data['fullname'], self.user.get_full_name())
         self.assertEqual(response.data['role'], self.user.role)
+
+    def test_permission_policy(self):
+        base_url = reverse('api:user-permission-policy')
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["vms", "role"], response.data)
+        self.assertEqual(response.data['role'], self.user.Roles.ORDINARY)
+        vms = response.data['vms']
+        self.assertKeysIn(["service_ids", "role"], vms)
+        self.assertEqual(vms['role'], 'admin')
+        self.assertIsInstance(vms['service_ids'], list)
+        self.assertEqual(len(vms['service_ids']), 0)
+
+        self.user.set_federal_admin()
+        self.service.users.add(self.user)
+
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["vms", "role"], response.data)
+        self.assertEqual(response.data['role'], self.user.Roles.FEDERAL)
+        vms = response.data['vms']
+        self.assertKeysIn(["service_ids", "role"], vms)
+        self.assertEqual(vms['role'], 'admin')
+        self.assertIsInstance(vms['service_ids'], list)
+        self.assertEqual(len(vms['service_ids']), 1)
+        self.assertEqual(vms['service_ids'][0], self.service.id)
 
 
 class MediaApiTests(MyAPITestCase):

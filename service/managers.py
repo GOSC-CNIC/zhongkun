@@ -102,6 +102,9 @@ class UserQuotaManager:
             if quota.vo is None:
                 raise errors.ConflictError(message=_('vo组信息丢失，无法判断你是否有权限访问'))
 
+            if quota.vo.deleted:
+                raise errors.ConflictError(message=_('vo组已删除，配额无法使用'))
+
             try:
                 VoManager.check_manager_perm(vo=quota.vo, user=user)
             except errors.Error as exc:

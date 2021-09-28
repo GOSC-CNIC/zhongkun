@@ -42,8 +42,8 @@ class Migration(migrations.Migration):
                 ('service', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='monitor_job_ceph_set', to='service.serviceconfig', verbose_name='所属的服务')),
             ],
             options={
-                'verbose_name': '监控任务节点',
-                'verbose_name_plural': '监控任务节点',
+                'verbose_name': '监控任务Ceph节点',
+                'verbose_name_plural': '监控任务Ceph节点',
                 'ordering': ['-creation'],
             },
         ),

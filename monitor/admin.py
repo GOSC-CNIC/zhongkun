@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import MonitorJobCeph, MonitorProvider
+from .models import MonitorJobCeph, MonitorProvider, MonitorJobServer
 
 
 @admin.register(MonitorProvider)
@@ -12,6 +12,13 @@ class MonitorProviderAdmin(admin.ModelAdmin):
 
 @admin.register(MonitorJobCeph)
 class MonitorJobCephAdmin(admin.ModelAdmin):
+    list_display = ('name', 'name_en', 'job_tag', 'provider', 'service', 'creation')
+    list_display_links = ('name', )
+    list_select_related = ('provider', 'service')
+
+
+@admin.register(MonitorJobServer)
+class MonitorJobServerAdmin(admin.ModelAdmin):
     list_display = ('name', 'name_en', 'job_tag', 'provider', 'service', 'creation')
     list_display_links = ('name', )
     list_select_related = ('provider', 'service')
