@@ -301,11 +301,15 @@ PASSPORT_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
     'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
     'USER_ID_FIELD': 'username',
-    'USER_ID_CLAIM': 'cstnetId',
+    'USER_ID_CLAIM': 'email',              # 'cstnetId','email'
     'TOKEN_TYPE_CLAIM': 'type',
     'EXPIRATION_CLAIM': 'exp',
 
     # 'JTI_CLAIM': 'jti'
+
+    # passort jwt field
+    'ORG_NAME_FIELD': 'orgName',
+    'TRUE_NAME_FIELD': 'name'
 }
 
 

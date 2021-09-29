@@ -91,10 +91,6 @@ class CreateUserJWTAuthentication(authentication.BaseAuthentication):
         """
         Attempts to find and return a user using the given validated token.
         """
-        cid_status = validated_token.get('cstnetIdStatus', '')
-        if cid_status != 'active':
-            raise AuthenticationFailed('User is inactive', code='user_inactive')
-
         try:
             user_id = validated_token[JWT_SETTINGS.USER_ID_CLAIM]
         except KeyError:
@@ -144,15 +140,20 @@ class CreateUserJWTAuthentication(authentication.BaseAuthentication):
         return first_name, last_name
 
     def create_user(self, validated_token):
-        user_id = validated_token[JWT_SETTINGS.USER_ID_CLAIM]
+        try:
+            user_id = validated_token[JWT_SETTINGS.USER_ID_CLAIM]
+        except KeyError:
+            raise JWTInvalidError(f'Token contained no recognizable user identification "{JWT_SETTINGS.USER_ID_CLAIM}"')
+
         params = {JWT_SETTINGS.USER_ID_FIELD: user_id}
         try:
-            truename = validated_token.get('trueName', '')
+            truename = validated_token.get(JWT_SETTINGS.TRUE_NAME_FIELD, '')
             first_name, last_name = self.get_first_and_last_name(truename)
         except Exception:
             first_name, last_name = '', ''
 
-        params.update({'email': user_id, 'first_name': first_name, 'last_name': last_name})
+        org_name = validated_token.get(JWT_SETTINGS.ORG_NAME_FIELD, '')
+        params.update({'email': user_id, 'first_name': first_name, 'last_name': last_name, 'company': org_name})
         user = self.user_model(**params)
         try:
             user.save()
