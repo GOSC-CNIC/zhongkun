@@ -21,7 +21,8 @@ var VM_STATUS_CN = {
     9: '宿主机连接失败',  //宿主机连接失败
     10: '丢失',  //虚拟机丢失
     11: '正在创建',
-    12: '创建失败'
+    12: '创建失败',
+    13: '云主机错误'
 };
 
 var VM_STATUS_LABEL = {
@@ -37,7 +38,8 @@ var VM_STATUS_LABEL = {
         9: 'danger',
         10: 'warning',
         11: 'secondary',
-        12: 'danger'
+        12: 'danger',
+        13: 'danger'
 };
 
 // 虚拟机detail api构建

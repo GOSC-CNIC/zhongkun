@@ -72,6 +72,7 @@ class OpenStackAdapter(BaseAdapter):
     """
     OpenStack服务API适配器
     """
+    FLAVOR_DISK_SIZE_GB = 10
 
     def __init__(self,
                  endpoint_url: str,
@@ -234,7 +235,8 @@ class OpenStackAdapter(BaseAdapter):
             'UNKNOWN': outputs.ServerStatus.NOSTATE,
             'PAUSED': outputs.ServerStatus.PAUSED,
             'SHUTOFF': outputs.ServerStatus.SHUTDOWN,
-            'SUSPENDED': outputs.ServerStatus.PMSUSPENDED
+            'SUSPENDED': outputs.ServerStatus.PMSUSPENDED,
+            'ERROR': outputs.ServerStatus.ERROR
         }
         try:
             server = service_instance.compute.get_server(params.server_id)
@@ -302,14 +304,26 @@ class OpenStackAdapter(BaseAdapter):
         except Exception as e:
             return outputs.ListImageOutput(ok=False, error=exceptions.Error(f'list image failed, {str(e)}'), images=[])
 
+    @staticmethod
+    def _flavor_name(ram: int, vcpu: int, disk: int):
+        return f"Ram{ram}Mb-{vcpu}vcpu-{disk}Gb"
+
     def get_or_create_flavor(self, ram: int, vcpu: int):
+        name = self._flavor_name(ram=ram, vcpu=vcpu, disk=self.FLAVOR_DISK_SIZE_GB)
         service_instance = self._get_openstack_connect()
+        # flavor = service_instance.compute.find_flavor(name_or_id=name)
+        # if flavor:
+        #     return flavor
         flavors = service_instance.compute.flavors()
         for flavor in flavors:
-            if flavor.ram == ram and flavor.vcpus == vcpu:
+            if flavor.ram == ram and flavor.vcpus == vcpu and flavor.disk == self.FLAVOR_DISK_SIZE_GB:
                 return flavor
 
-        flavor = service_instance.compute.create_flavor("flavor" + str(len(flavors)), ram, vcpu, 2)
+        params = {
+            'name': name,
+            'ram': ram, 'vcpus': vcpu, 'disk': self.FLAVOR_DISK_SIZE_GB
+        }
+        flavor = service_instance.compute.create_flavor(**params)
         return flavor
 
     def list_networks(self, params: inputs.ListNetworkInput, **kwargs):
@@ -320,12 +334,15 @@ class OpenStackAdapter(BaseAdapter):
         service_instance = self._get_openstack_connect()
         try:
             result = []
-            for net in service_instance.network.networks():
-                public = False
-                subnet = service_instance.network.get_subnet(net.subnet_ids[0])
-                new_net = outputs.ListNetworkOutputNetwork(id=net.id, name=net.name, public=public,
-                                                           segment=subnet.cidr)
-                result.append(new_net)
+            networks = service_instance.network.networks()
+            for net in networks:
+                public = net.is_router_external
+                if net.subnet_ids:
+                    subnet = service_instance.network.get_subnet(net.subnet_ids[0])
+                    new_net = outputs.ListNetworkOutputNetwork(id=net.id, name=net.name, public=public,
+                                                               segment=subnet.cidr)
+                    result.append(new_net)
+
             return outputs.ListNetworkOutput(networks=result)
         except Exception as e:
             return outputs.ListNetworkOutput(ok=False, error=exceptions.Error('list networks failed'), networks=[])
@@ -341,8 +358,9 @@ class OpenStackAdapter(BaseAdapter):
             service_instance = self._get_openstack_connect()
             network = service_instance.network.get_network(params.network_id)
             subnet = service_instance.network.get_subnet(network.subnet_ids[0])
+            is_public = network.is_router_external
             new_net = outputs.NetworkDetail(id=params.network_id, name=network.name,
-                                            public=False, segment=subnet.cidr)
+                                            public=is_public, segment=subnet.cidr)
             return outputs.NetworkDetailOutput(network=new_net)
         except Exception as e:
             return outputs.NetworkDetailOutput(ok=False, error=exceptions.Error(str(e)), network=None)

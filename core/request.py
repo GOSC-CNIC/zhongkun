@@ -195,7 +195,7 @@ def server_build_status(server):
 
     if status_code in outputs.ServerStatus.normal_values():     # 虚拟服务器状态正常
         return "created"
-    elif status_code in [outputs.ServerStatus.MISS, outputs.ServerStatus.BUILT_FAILED]:
+    elif status_code in [outputs.ServerStatus.MISS, outputs.ServerStatus.BUILT_FAILED, outputs.ServerStatus.ERROR]:
         return "failed"
     else:
         return "building"

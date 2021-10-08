@@ -20,6 +20,7 @@ class ServerStatus:
     MISS = 10       # domain miss
     BUILDING = 11    # The domain is being built
     BUILT_FAILED = 12    # Failed to build the domain
+    ERROR = 13          # error
 
     __status_map = {
         NOSTATE: 'no state',
@@ -33,7 +34,8 @@ class ServerStatus:
         HOST_DOWN: 'host connect failed',
         MISS: 'miss',
         BUILDING: 'building',
-        BUILT_FAILED: 'built failed'
+        BUILT_FAILED: 'built failed',
+        ERROR: 'error'
     }
 
     __normal_values = [

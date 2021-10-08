@@ -506,7 +506,7 @@ class ServersViewSet(CustomGenericViewSet):
             return Response(data=exc.err_data(), status=exc.status_code)
 
         if server.do_archive():     # 记录归档
-            self.release_server_quota(server=server)    # 释放资源配额
+            self.release_server_quota(server=server, user=request.user)    # 释放资源配额
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -593,7 +593,7 @@ class ServersViewSet(CustomGenericViewSet):
 
         if act in ['delete', 'delete_force']:
             server.do_archive()
-            self.release_server_quota(server=server)    # 释放资源配额
+            self.release_server_quota(server=server, user=request.user)    # 释放资源配额
 
         return Response({'action': act})
 
@@ -647,7 +647,18 @@ class ServersViewSet(CustomGenericViewSet):
                 10      # domain miss
                 11      # The domain is being built
                 12      # Failed to build the domain
+                13      # An error occurred in the domain.
         """
+        def build_response(_status_code):
+            status_text = outputs.ServerStatus.get_mean(_status_code)
+            return Response(data={
+                'status': {
+                    'status_code': _status_code,
+                    'status_text': status_text
+                }
+            })
+
+
         server_id = kwargs.get(self.lookup_field, '')
 
         try:
@@ -659,25 +670,27 @@ class ServersViewSet(CustomGenericViewSet):
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
+        if server.task_status == server.TASK_CREATE_FAILED:
+            return build_response(outputs.ServerStatus.BUILT_FAILED)
+
         try:
             status_code, status_text = core_request.server_status_code(server=server)
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
         if status_code in outputs.ServerStatus.normal_values():     # 虚拟服务器状态正常
-            if (server.task_status == server.TASK_IN_CREATING) or (not is_ipv4(server.ipv4)):   #
+            if (server.task_status == server.TASK_IN_CREATING) or (not is_ipv4(server.ipv4)):
                 self._update_server_detail(server, task_status=server.TASK_CREATED_OK)
 
-        if status_code == outputs.ServerStatus.NOSTATE and server.task_status == server.TASK_IN_CREATING:
-            status_code = outputs.ServerStatus.BUILDING
-            status_text = outputs.ServerStatus.get_mean(status_code)
+        if server.task_status == server.TASK_IN_CREATING:
+            if status_code == outputs.ServerStatus.NOSTATE:
+                status_code = outputs.ServerStatus.BUILDING
+            elif status_code in [outputs.ServerStatus.ERROR, outputs.ServerStatus.BUILT_FAILED]:
+                server.task_status = server.TASK_CREATE_FAILED
+                server.save(update_fields=['task_status'])
+                status_code = outputs.ServerStatus.BUILT_FAILED
 
-        return Response(data={
-            'status': {
-                'status_code': status_code,
-                'status_text': status_text
-            }
-        })
+        return build_response(status_code)
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('服务器VNC'),
@@ -835,7 +848,7 @@ class ServersViewSet(CustomGenericViewSet):
         return Serializer
 
     @staticmethod
-    def release_server_quota(server):
+    def release_server_quota(server, user):
         """
         释放虚拟服务器资源配额
 
@@ -844,9 +857,15 @@ class ServersViewSet(CustomGenericViewSet):
             True
             False
         """
+        params = {}
+        if server.task_status == server.TASK_CREATE_FAILED:     # 创建失败，用户资源配额返还
+            params['user'] = user
+            params['user_quota_id'] = server.user_quota_id
+
         try:
             QuotaAPI().server_quota_release(service=server.service, vcpu=server.vcpus,
-                                            ram=server.ram, public_ip=server.public_ip)
+                                            ram=server.ram, public_ip=server.public_ip,
+                                            **params)
         except exceptions.Error as e:
             return False
 

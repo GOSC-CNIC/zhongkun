@@ -47,8 +47,8 @@ class ServerView(View):
 
 class ServerCreateView(View):
     def get(self, request, *args, **kwargs):
-        service_id = kwargs.get('service_id')
-        return render(request, 'create.html', context={'service_id': service_id})
+        # service_id = kwargs.get('service_id')
+        return render(request, 'create.html')
 
 
 class VmwareConsoleView(View):
