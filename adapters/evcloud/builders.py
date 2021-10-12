@@ -100,6 +100,9 @@ class APIBuilder:
     def vm_vnc_url(self, vm_uuid: str, query=None):
         return self.build_url(path=f'api/{self.api_version}/vms/{vm_uuid}/vnc/', query=query)
 
+    def vm_reset_url(self, vm_uuid: str, image_id: str, query=None):
+        return self.build_url(path=f'api/{self.api_version}/vms/{vm_uuid}/reset/{image_id}/', query=query)
+
     def vlan_base_url(self, query=None):
         return self.build_url(path=f'api/{self.api_version}/vlan/', query=query)
 

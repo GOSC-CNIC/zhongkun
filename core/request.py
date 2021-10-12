@@ -150,8 +150,9 @@ def update_server_detail(server, task_status: int = None):
         server.image_desc = out_server.image.desc
         server.default_user = out_server.default_user
         server.raw_default_password = out_server.default_password
-        if server.ipv4 and server.image:
-            server.task_status = task_status if task_status is not None else server.TASK_CREATED_OK     # 创建成功
+        if task_status:
+            if server.ipv4 and server.image:
+                server.task_status = task_status
         server.save()
     except Exception as e:
         raise exceptions.APIException(message=str(e))

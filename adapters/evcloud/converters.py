@@ -212,3 +212,13 @@ class OutputConverter:
     @staticmethod
     def to_network_detail_output_error(error):
         return outputs.NetworkDetailOutput(ok=False, error=error, network=None)
+
+    @staticmethod
+    def to_server_rebuild_output(server_id: str, image_id: str, default_user: str, default_password: str):
+        return outputs.ServerRebuildOutput(server_id=server_id, image_id=image_id, default_user=default_user,
+                                           default_password=default_password)
+
+    @staticmethod
+    def to_server_rebuild_output_error(error):
+        return outputs.ServerRebuildOutput(ok=False, error=error, server_id='', image_id='',
+                                           default_user='', default_password='')

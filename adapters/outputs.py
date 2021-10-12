@@ -231,6 +231,21 @@ class ServerVNCOutput(OutputBase):
         super().__init__(**kwargs)
 
 
+class ServerRebuildOutput(OutputBase):
+    def __init__(self, server_id: str, image_id: str, default_user: str = None, default_password: str = None, **kwargs):
+        """
+        :param server_id: 云服务器实例id
+        :param image_id: 系统镜像id; type: str; required: True
+        :param default_user: login username
+        :param default_password: login password
+        """
+        self.server_id = server_id
+        self.image_id = image_id
+        self.default_user = default_user if default_user else ''
+        self.default_password = default_password if default_password else ''
+        super().__init__(**kwargs)
+
+
 class ListImageOutputImage:
     def __init__(self, id: str, name: str, system: str, system_type: str, creation_time: datetime,
                  default_username: str, default_password: str, **kwargs):
@@ -354,7 +369,6 @@ class StorageVolume:
         self.driver = driver
         self.extra = extra
         self.state = state
-        UuidMixin.__init__(self)
 
     def attach(self, node, device=None):
         """

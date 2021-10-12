@@ -308,7 +308,7 @@ class ServersViewSet(CustomGenericViewSet):
                         )
         server.save()
         if service.service_type == service.ServiceType.EVCLOUD:
-            if self._update_server_detail(server):
+            if self._update_server_detail(server, task_status=server.TASK_CREATED_OK):
                 return Response(data={'id': server.id}, status=status.HTTP_201_CREATED)
 
         server_build_status.creat_task(server)      # 异步任务查询server创建结果，更新server信息和创建状态
@@ -320,6 +320,30 @@ class ServersViewSet(CustomGenericViewSet):
             return core_request.update_server_detail(server=server, task_status=task_status)
         except exceptions.Error as e:
             pass
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('重建服务器实例, 更换系统'),
+        responses={
+            202: '''
+                    {
+                        "id": "xxx",     # 服务器id; 已接受创建请求，正在重建中；
+                        "image_id": "xxx"
+                    }            
+                '''
+        }
+    )
+    @action(methods=['post'], detail=True, url_path='rebuild', url_name='rebuild')
+    def rebuild(self, request, *args, **kwargs):
+        """
+        重建服务器实例, 更换系统
+
+            http code 202：已接受重建请求，正在重建中；
+            {
+                "id": "xxx",     # 服务器id;
+                "image_id": "xxx"
+            }
+        """
+        return ServerHandler.server_rebuild(view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('查询服务器实例信息'),
@@ -844,6 +868,8 @@ class ServersViewSet(CustomGenericViewSet):
     def get_serializer_class(self):
         if self.action == 'create':
             return serializers.ServerCreateSerializer
+        elif self.action == 'rebuild':
+            return serializers.ServerRebuildSerializer
 
         return Serializer
 

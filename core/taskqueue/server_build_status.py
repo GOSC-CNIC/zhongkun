@@ -51,7 +51,7 @@ def task_server_build_status(server):
     marker = 0
     while True:
         try:
-            if request.update_server_detail(server):
+            if request.update_server_detail(server, task_status=server.TASK_CREATED_OK):
                 break
         except Exception as e:
             marker += 1

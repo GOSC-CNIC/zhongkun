@@ -80,6 +80,14 @@ class BaseAdapter:
         """
         raise NotImplementedError('`server_detail()` must be implemented.')
 
+    def server_rebuild(self, params: inputs.ServerRebuildInput, **kwargs):
+        """
+        重建（更换系统镜像）虚拟服务器
+        :return:
+            outputs.ServerRebuildOutput()
+        """
+        raise NotImplementedError('`server_rebuild()` must be implemented.')
+
     def list_images(self, params: inputs.ListImageInput, **kwargs):
         """
         列举镜像

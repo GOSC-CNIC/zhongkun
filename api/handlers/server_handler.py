@@ -1,7 +1,9 @@
 from django.utils.translation import gettext as _
+from django.db import transaction
 from rest_framework.response import Response
 
 from core import errors as exceptions
+from core.taskqueue import server_build_status
 from service.managers import ServiceManager
 from servers.models import Server
 from servers.managers import ServerManager, ServerArchiveManager
@@ -9,6 +11,8 @@ from api import paginations
 from api.viewsets import CustomGenericViewSet
 from api import serializers
 from vo.managers import VoManager
+from adapters import inputs
+from .handlers import serializer_error_msg
 
 
 class ServerHandler:
@@ -94,6 +98,69 @@ class ServerHandler:
             return view.exception_response(exc)
 
         return Response(data={'lock': lock})
+
+    @staticmethod
+    def server_rebuild(view, request, kwargs):
+        serializer = view.get_serializer(data=request.data)
+        if not serializer.is_valid(raise_exception=False):
+            msg = serializer_error_msg(serializer.errors)
+            return view.exception_response(exceptions.BadRequest(msg))
+
+        data = serializer.validated_data
+        image_id = data.get('image_id', '')
+        server_id = kwargs.get(view.lookup_field)
+        try:
+            server = ServerManager().get_manage_perm_server(
+                server_id=server_id, user=request.user, related_fields=['vo'])
+        except exceptions.APIException as exc:
+            return view.exception_response(exc)
+
+        if server.task_status == server.TASK_CREATE_FAILED:
+            return view.exception_response(
+                exceptions.ConflictError(message=_('创建失败的云主机不支持重建'))
+            )
+        if server.task_status == server.TASK_IN_CREATING:
+            return view.exception_response(
+                exceptions.ConflictError(message=_('正在创建中的云主机不支持重建'))
+            )
+
+        if server.is_locked_operation():
+            return view.exception_response(exceptions.ResourceLocked(
+                message=_('云主机已加锁锁定了任何操作，请解锁后重试')
+            ))
+
+        server.task_status = server.TASK_IN_CREATING
+        server.image = ''
+        server.image_id = image_id
+        server.image_desc = ''
+        server.default_user = ''
+        server.raw_default_password = ''
+        try:
+            with transaction.atomic():
+                server.save(update_fields=['task_status', 'image', 'image_id', 'image_desc',
+                                           'default_user', 'default_password'])
+
+                params = inputs.ServerRebuildInput(server_id=server.instance_id, image_id=image_id)
+                try:
+                    r = view.request_service(server.service, method='server_rebuild', params=params)
+                except exceptions.APIException as exc:
+                    raise exc
+
+                if not r.ok:
+                    raise r.error
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        if server.instance_id != r.server_id:
+            server.instance_id = r.server_id
+            server.save(update_fields=['instance_id'])
+
+        server_build_status.creat_task(server)  # 异步任务查询server创建结果，更新server信息和创建状态
+        data = {
+            'id': r.server_id,
+            'image_id': r.image_id
+        }
+        return Response(data=data, status=202)
 
 
 class ServerArchiveHandler:

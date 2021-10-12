@@ -109,6 +109,17 @@ class ServerDetailInput(InputBase):
         super().__init__(**kwargs)
 
 
+class ServerRebuildInput(InputBase):
+    def __init__(self, server_id: str, image_id: str, **kwargs):
+        """
+        :param server_id: 云服务器实例id
+        :param image_id: 系统镜像id; type: str; required: True
+        """
+        self.server_id = server_id
+        self.image_id = image_id
+        super().__init__(**kwargs)
+
+
 class ListImageInput(InputBase):
     def __init__(self, region_id: str, **kwargs):
         """

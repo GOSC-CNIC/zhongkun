@@ -139,6 +139,13 @@ class ServerArchiveSerializer(ServerBaseSerializer):
         return None
 
 
+class ServerRebuildSerializer(serializers.Serializer):
+    """
+    创建虚拟服务器序列化器
+    """
+    image_id = serializers.CharField(label=_('镜像id'), required=True, help_text=_('系统镜像id'))
+
+
 class ImageSerializer(serializers.Serializer):
     id = serializers.CharField()
     name = serializers.CharField()

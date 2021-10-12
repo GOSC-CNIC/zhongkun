@@ -92,6 +92,9 @@ class OneServiceClient:
     def server_vnc(self, *args, **kwargs):
         return self.adapter.server_vnc(*args, **kwargs)
 
+    def server_rebuild(self, params, **kwargs):
+        return self.adapter.server_rebuild(params=params, **kwargs)
+
     def server_detail(self, *args, **kwargs):
         return self.adapter.server_detail(*args, **kwargs)
 

@@ -261,6 +261,43 @@ class EVCloudAdapter(BaseAdapter):
             err = exceptions.APIError(message=msg, status_code=r.status_code)
         return OutputConverter().to_server_detail_output_error(error=err)
 
+    def server_rebuild(self, params: inputs.ServerRebuildInput, **kwargs):
+        """
+        重建（更换系统镜像）虚拟服务器
+        :return:
+            outputs.ServerRebuildOutput()
+        """
+        url = self.api_builder.vm_reset_url(vm_uuid=params.server_id, image_id=params.image_id)
+        try:
+            headers = self.get_auth_header()
+            self.server_action(params=inputs.ServerActionInput(
+                server_id=params.server_id, action=inputs.ServerAction.POWER_OFF))
+            r = self.do_request(method='post', ok_status_codes=[200, 201, 404], url=url, headers=headers)
+        except exceptions.Error as e:
+            return OutputConverter().to_server_rebuild_output_error(error=e)
+
+        if r.status_code == 201:
+            rj = r.json()
+            server_id = params.server_id
+            image_id = params.image_id
+            default_user = ''
+            default_password = ''
+            if 'vm' in rj and isinstance(rj['vm'], dict):
+                vm = rj['vm']
+                default_user = vm.get('default_user', '')
+                default_password = vm.get('default_password', '')
+            return OutputConverter().to_server_rebuild_output(
+                server_id=server_id, image_id=image_id, default_user=default_user, default_password=default_password
+            )
+
+        rj = r.json()
+        if rj.get('err_code') == 'VmNotExist':
+            err = exceptions.ServerNotExistError(status_code=404)
+        else:
+            msg = get_failed_msg(r)
+            err = exceptions.APIError(message=msg, status_code=r.status_code)
+        return OutputConverter().to_server_detail_output_error(error=err)
+
     def list_images(self, params: inputs.ListImageInput, **kwargs):
         """
         列举镜像
