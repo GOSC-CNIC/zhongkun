@@ -21,7 +21,7 @@ class TimeTestCase(TestCase):
 
 
 class JWTTestCase(TestCase):
-    token = 'eyJ0eXBlIjoiYWNjZXNzVG9rZW4iLCJ0eXAiOiJKV1QiLCJhbGciOiJSUzUxMiJ9.eyJ0cnVlTmFtZSI6IueOi-eOiemhuiIsInR5cGUiOiJjb3JlTWFpbCIsInVtdElkIjoiMTA4NDA4NjIiLCJzZWN1cml0eUVtYWlsIjpudWxsLCJjc3RuZXRJZFN0YXR1cyI6ImFjdGl2ZSIsIm9yZ05hbWUiOiLkuK3lm73np5HlrabpmaLorqHnrpfmnLrnvZHnu5zkv6Hmga_kuK3lv4MiLCJjc3RuZXRJZCI6Indhbmd5dXNodW5AY25pYy5jbiIsImV4cCI6MTYzMjg4NzQzNiwiaXNzIjoid2FuZ3l1c2h1bkBjbmljLmNuIiwiaWF0IjoxNjMyODgzODM2fQ.kqKmdVsiWnqPotEWW4fPY9pzSILCqSxUe1eAlraNqGkfN_7thk7noh3aYGmbyW5ojyoXhSeC6JOqPQ0bMwGWEkvsR4Xi3lN1oYXKOA015HNPZx-MfCnZUeZZxSEj-YyPylBVNn4hwbhzJ322Razozlomy97OrFk1vyiM1uxqXiA'
+    token = ''
 
     def test_jwt(self):
         token = 'test'

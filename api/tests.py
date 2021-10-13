@@ -1091,6 +1091,11 @@ class ServersTests(MyAPITestCase):
         response = self.client.post(url, data={'action': 'delete'})
         self.assertErrorResponse(status_code=409, code='ResourceLocked', response=response)
 
+        # server rebuild
+        url = reverse('api:servers-rebuild', kwargs={'id': self.miss_server.id})
+        response = self.client.post(url, data={'image_id': 'aaa'})
+        self.assertErrorResponse(status_code=409, code='ResourceLocked', response=response)
+
         # ---- lock server free ------
         url = reverse('api:servers-server-lock', kwargs={'id': self.miss_server.id})
         query = parse.urlencode(query={'lock': Server.Lock.FREE})
@@ -1107,6 +1112,24 @@ class ServersTests(MyAPITestCase):
         url = reverse('api:servers-server-action', kwargs={'id': self.vo_server.id})
         response = self.client.post(url, data={'action': 'delete'})
         self.assertEqual(response.status_code, 200)
+
+    def test_server_rebuild(self):
+        miss_server = self.miss_server
+        url = reverse('api:servers-rebuild', kwargs={'id': miss_server.id})
+
+        # no body
+        response = self.client.post(url, data={})
+        self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
+
+        miss_server.task_status = miss_server.TASK_IN_CREATING
+        miss_server.save(update_fields=['task_status'])
+        response = self.client.post(url, data={'image_id': 'aaa'})
+        self.assertErrorResponse(status_code=409, code='Conflict', response=response)
+
+        miss_server.task_status = miss_server.TASK_CREATED_OK
+        miss_server.save(update_fields=['task_status'])
+        response = self.client.post(url, data={'image_id': 'test'})
+        self.assertEqual(response.status_code, 500)
 
 
 class ServiceTests(MyAPITestCase):
