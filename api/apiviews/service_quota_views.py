@@ -1,21 +1,8 @@
-from django.utils.translation import gettext_lazy, gettext as _
+from django.utils.translation import gettext_lazy
 from rest_framework.permissions import IsAuthenticated
-from drf_yasg.utils import swagger_auto_schema, no_body
+from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-from servers.models import Server, Flavor
-from servers.managers import ServerManager
-from service.managers import ServiceManager
-from service.models import DataCenter, ApplyOrganization, ApplyVmService
-from service.models import ApplyQuota
-from adapters import inputs, outputs
-from core.quota import QuotaAPI
-from core import request as core_request
-from core import errors as exceptions
-from core.taskqueue import server_build_status
-from vo.models import VoMember
-from activity.models import QuotaActivity
-from api import serializers
 from api.viewsets import CustomGenericViewSet
 from api.paginations import DefaultPageNumberPagination
 from api.handlers.service_quota_handler import ServiceQuotaHandler

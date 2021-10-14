@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 from django.db import transaction
 from django.utils.translation import gettext_lazy, gettext as _
-from django.db.models import Q, Subquery
+from django.db.models import Q, Subquery, Sum
 from django.utils import timezone
 from django.core.cache import cache
 
@@ -555,6 +555,40 @@ class UserQuotaManager:
             queryset = queryset.filter(Q(expiration_time__isnull=True) | Q(expiration_time__gt=now))
 
         return queryset.order_by('id')
+
+    def stats_service_available_quota(self, service_id: str = None):
+        """
+        一个服务现有的待使用的用户资源配额统计
+        """
+        lookups = {'deleted': False}
+        if service_id:
+            lookups['service_id'] = service_id
+
+        stats_time = timezone.now()
+        stat = self.MODEL.objects.filter(**lookups).filter(
+            Q(expiration_time__gt=stats_time) | Q(expiration_time=None)
+        ).aggregate(
+            private_ip_total_count=Sum('private_ip_total'),
+            private_ip_used_count=Sum('private_ip_used'),
+            public_ip_total_count=Sum('public_ip_total'),
+            public_ip_used_count=Sum('public_ip_used'),
+            vcpu_total_count=Sum('vcpu_total'),
+            vcpu_used_count=Sum('vcpu_used'),
+            ram_total_count=Sum('ram_total'),
+            ram_used_count=Sum('ram_used'),
+            disk_size_total_count=Sum('disk_size_total'),
+            disk_size_used_count=Sum('disk_size_used')
+        )
+        for k, val in stat.items():
+            if val is None:
+                stat[k] = 0
+
+        value = stats_time.isoformat()
+        if value.endswith('+00:00'):
+            value = value[:-6] + 'Z'
+        stat['stats_time'] = value
+
+        return stat
 
 
 class ServiceQuotaManagerBase:

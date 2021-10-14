@@ -1,5 +1,7 @@
+from rest_framework.response import Response
+
 from core import errors as exceptions
-from service.managers import ServicePrivateQuotaManager, ServiceShareQuotaManager
+from service.managers import ServicePrivateQuotaManager, ServiceShareQuotaManager, UserQuotaManager
 from api.viewsets import CustomGenericViewSet
 from api import serializers
 
@@ -36,3 +38,17 @@ class ServiceQuotaHandler:
             return paginator.get_paginated_response(data=serializer.data)
         except Exception as exc:
             return view.exception_response(exceptions.convert_to_error(exc))
+
+
+class StatsQuotaHandler:
+    @staticmethod
+    def stats_user_quota(view: CustomGenericViewSet, request, kwargs):
+        service_id = request.query_params.get('service_id', None)
+
+        try:
+            stat = UserQuotaManager().stats_service_available_quota(service_id=service_id)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        stat['service_id'] = service_id
+        return Response(data=stat)

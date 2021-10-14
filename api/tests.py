@@ -3464,3 +3464,130 @@ class MonitorServerTests(MyAPITestCase):
         self.query_ok_test(service_id=service_id, query_tag=ServerQueryChoices.MAX_MEM_USAGE.value)
         self.query_ok_test(service_id=service_id, query_tag=ServerQueryChoices.MIN_DISK_USAGE.value)
         self.query_ok_test(service_id=service_id, query_tag=ServerQueryChoices.MAX_DISK_USAGE.value)
+
+
+class StatsQuotaTests(MyAPITestCase):
+    def setUp(self):
+        set_auth_header(self)
+        self.user = get_or_create_user()
+        self.service = get_or_create_service()
+
+    def test_list_delete_personal_quota(self):
+        vcpus = 8
+        ram =1024
+        public_ip = 2
+        private_ip = 1
+        disk_size = 100
+        mgr = UserQuotaManager()
+        quota1 = mgr.create_quota(user=self.user, service=self.service)
+        expire_quota = mgr.create_quota(user=self.user, service=self.service,
+                                        expire_time=timezone.now() - timedelta(days=1))
+
+        url = reverse('api:vms-stats-quota-list')
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn([
+            "private_ip_total_count", "private_ip_used_count",
+            "public_ip_total_count", "public_ip_used_count",
+            "vcpu_total_count", "vcpu_used_count",
+            "ram_total_count", "ram_used_count",
+            "disk_size_total_count", "disk_size_used_count",
+            "stats_time", "service_id"
+        ], response.data)
+        self.assert_is_subdict_of(sub={
+            "private_ip_total_count": 0,
+            "private_ip_used_count": 0,
+            "public_ip_total_count": 0,
+            "public_ip_used_count": 0,
+            "vcpu_total_count": 0,
+            "vcpu_used_count": 0,
+            "ram_total_count": 0, "ram_used_count":0,
+            "disk_size_total_count": 0, "disk_size_used_count": 0,
+            "service_id": None
+        }, d=response.data)
+
+        mgr.increase(user=self.user, quota_id=quota1.id, vcpus=vcpus, ram=ram, disk_size=disk_size,
+                     public_ip=public_ip, private_ip=private_ip)
+        url = reverse('api:vms-stats-quota-list')
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assert_is_subdict_of(sub={
+            "private_ip_total_count": private_ip,
+            "private_ip_used_count": 0,
+            "public_ip_total_count": public_ip,
+            "public_ip_used_count": 0,
+            "vcpu_total_count": vcpus,
+            "vcpu_used_count": 0,
+            "ram_total_count": ram, "ram_used_count": 0,
+            "disk_size_total_count": disk_size, "disk_size_used_count": 0,
+            "service_id": None
+        }, d=response.data)
+
+        mgr.deduct(user=self.user, quota_id=quota1.id, vcpus=vcpus, ram=ram, disk_size=disk_size,
+                   public_ip=public_ip, private_ip=private_ip)
+        url = reverse('api:vms-stats-quota-list')
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assert_is_subdict_of(sub={
+            "private_ip_total_count": private_ip,
+            "private_ip_used_count": private_ip,
+            "public_ip_total_count": public_ip,
+            "public_ip_used_count": public_ip,
+            "vcpu_total_count": vcpus,
+            "vcpu_used_count": vcpus,
+            "ram_total_count": ram, "ram_used_count": ram,
+            "disk_size_total_count": disk_size, "disk_size_used_count": disk_size,
+            "service_id": None
+        }, d=response.data)
+
+        mgr.increase(user=self.user, quota_id=expire_quota.id, vcpus=vcpus, ram=ram, disk_size=disk_size,
+                     public_ip=public_ip, private_ip=private_ip)
+        url = reverse('api:vms-stats-quota-list')
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assert_is_subdict_of(sub={
+            "private_ip_total_count": private_ip,
+            "private_ip_used_count": private_ip,
+            "public_ip_total_count": public_ip,
+            "public_ip_used_count": public_ip,
+            "vcpu_total_count": vcpus,
+            "vcpu_used_count": vcpus,
+            "ram_total_count": ram, "ram_used_count": ram,
+            "disk_size_total_count": disk_size, "disk_size_used_count": disk_size,
+            "service_id": None
+        }, d=response.data)
+
+        # 2 quota
+        quota2 = mgr.create_quota(user=self.user, service=None)
+        mgr.increase(user=self.user, quota_id=quota2.id, vcpus=vcpus, ram=ram, disk_size=disk_size,
+                     public_ip=public_ip, private_ip=private_ip)
+        url = reverse('api:vms-stats-quota-list')
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assert_is_subdict_of(sub={
+            "private_ip_total_count": private_ip * 2,
+            "private_ip_used_count": private_ip,
+            "public_ip_total_count": public_ip * 2,
+            "public_ip_used_count": public_ip,
+            "vcpu_total_count": vcpus * 2,
+            "vcpu_used_count": vcpus,
+            "ram_total_count": ram * 2, "ram_used_count": ram,
+            "disk_size_total_count": disk_size * 2, "disk_size_used_count": disk_size,
+            "service_id": None
+        }, d=response.data)
+
+        url = reverse('api:vms-stats-quota-list')
+        query = parse.urlencode(query={'service_id': self.service.id})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assert_is_subdict_of(sub={
+            "private_ip_total_count": private_ip,
+            "private_ip_used_count": private_ip,
+            "public_ip_total_count": public_ip,
+            "public_ip_used_count": public_ip,
+            "vcpu_total_count": vcpus,
+            "vcpu_used_count": vcpus,
+            "ram_total_count": ram, "ram_used_count": ram,
+            "disk_size_total_count": disk_size, "disk_size_used_count": disk_size,
+            "service_id": self.service.id
+        }, d=response.data)

@@ -2,7 +2,10 @@ from django.urls import path, include
 from rest_framework.routers import SimpleRouter
 
 from .apiviews import views
-from .apiviews import monitor_views, service_quota_views
+from .apiviews import (
+    monitor_views, service_quota_views,
+    stats_quota_views,
+)
 
 app_name = 'api'
 
@@ -48,6 +51,8 @@ no_slash_router.register(r'vms/service/p-quota', service_quota_views.ServivePriv
                          basename='vms-service-p-quota')
 no_slash_router.register(r'vms/service/s-quota', service_quota_views.ServiveShareQuotaViewSet,
                          basename='vms-service-s-quota')
+no_slash_router.register(r'stats/quota', stats_quota_views.StatsQuotaViewSet,
+                         basename='vms-stats-quota')
 
 
 urlpatterns = [
