@@ -1436,6 +1436,24 @@ class UserQuotaApplyTests(MyAPITestCase):
         self.assertEqual(response.data['results'][0]['status'], 'wait')
         self.assertEqual(response.data['results'][0]['deleted'], True)
 
+    def test_create_apply_num_limit(self):
+        apply_ids = []
+        for i in range(6):
+            response = self.create_apply()
+            if response.status_code == 201:
+                apply_id = response.data['id']
+                apply_ids.append(apply_id)
+                continue
+            if response.status_code == 409:
+                self.assertErrorResponse(status_code=409, code='TooManyApply', response=response)
+                break
+
+        apply_id = apply_ids[0]
+        response = self.delete_apply(apply_id)
+        self.assertEqual(response.status_code, 204)
+        response = self.create_apply()
+        self.assertEqual(response.status_code, 201)
+
     def test_create_modify_cancel_apply(self):
         response = self.create_apply()
         self.assertEqual(response.status_code, 201)

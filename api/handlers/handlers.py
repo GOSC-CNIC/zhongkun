@@ -280,7 +280,7 @@ class ApplyUserQuotaHandler:
         """
         个人配额申请
         """
-        count = ApplyQuota.objects.filter(user=user,
+        count = ApplyQuota.objects.filter(user=user, deleted=False,
                                           classification=ApplyQuota.Classification.PERSONAL,
                                           status=ApplyQuota.STATUS_WAIT).count()
         if count >= 6:
@@ -299,7 +299,7 @@ class ApplyUserQuotaHandler:
         :raises: Error
         """
         vo, member = VoManager().get_has_manager_perm_vo(vo_id=vo_id, user=user)
-        count = ApplyQuota.objects.filter(vo=vo,
+        count = ApplyQuota.objects.filter(vo=vo, deleted=False,
                                           classification=ApplyQuota.Classification.VO,
                                           status=ApplyQuota.STATUS_WAIT).count()
         if count >= 6:

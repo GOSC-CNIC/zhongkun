@@ -72,7 +72,7 @@ class OpenStackAdapter(BaseAdapter):
     """
     OpenStack服务API适配器
     """
-    FLAVOR_DISK_SIZE_GB = 10
+    FLAVOR_DISK_SIZE_GB = 50
 
     def __init__(self,
                  endpoint_url: str,
