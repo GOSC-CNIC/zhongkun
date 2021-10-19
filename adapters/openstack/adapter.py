@@ -162,12 +162,17 @@ class OpenStackAdapter(BaseAdapter):
 
             ip = outputs.ServerIP(**server_ip)
             image_temp = service_instance.image.get_image(server.image.id)
+            properties = {}
+            if image_temp.properties:
+                properties = image_temp.properties
+            desc = properties.get('description', '')
+            system = properties.get('os')
 
             image = outputs.ServerImage(
                 _id=server.image.id,
                 name=image_temp.name,
-                system=image_temp.properties['os'],
-                desc=''
+                system=system,
+                desc=desc
             )
 
             flavor = server.flavor
@@ -236,7 +241,8 @@ class OpenStackAdapter(BaseAdapter):
             'PAUSED': outputs.ServerStatus.PAUSED,
             'SHUTOFF': outputs.ServerStatus.SHUTDOWN,
             'SUSPENDED': outputs.ServerStatus.PMSUSPENDED,
-            'ERROR': outputs.ServerStatus.ERROR
+            'ERROR': outputs.ServerStatus.ERROR,
+            'BUILD': outputs.ServerStatus.BUILDING
         }
         try:
             server = service_instance.compute.get_server(params.server_id)
@@ -271,9 +277,9 @@ class OpenStackAdapter(BaseAdapter):
             console = service_instance.compute.create_server_remote_console(
                 server, protocol='vnc', type='novnc')
             vnc_url = console.url
-            port_pos = vnc_url.find(':', 7)
-            if port_pos != -1:
-                vnc_url = self.endpoint_url + vnc_url[port_pos:len(vnc_url)]
+            # port_pos = vnc_url.find(':', 7)
+            # if port_pos != -1:
+            #     vnc_url = self.endpoint_url + vnc_url[port_pos:len(vnc_url)]
             return outputs.ServerVNCOutput(vnc=outputs.ServerVNCOutputVNC(url=vnc_url))
         except Exception as e:
             return outputs.ServerVNCOutput(
@@ -288,10 +294,21 @@ class OpenStackAdapter(BaseAdapter):
         service_instance = self._get_openstack_connect()
         try:
             result = []
-            for image in service_instance.image.images():
+            # visibility in ['public', 'private', 'shared']
+            images = service_instance.image.images(status='active')
+            for image in images:
+                if image.status and image.status.lower() != 'active':
+                    continue
+
+                # if not (image.visibility and image.visibility.lower() == 'public'):
+                #     continue
+
                 image_name = image.name
-                desc = image.properties.get('description', '')
-                system = image.properties.get('os')
+                properties = {}
+                if image.properties:
+                    properties = image.properties
+                desc = properties.get('description', '')
+                system = properties.get('os')
                 if not system:
                     system = image_name
 

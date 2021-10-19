@@ -537,7 +537,7 @@ class ApplyVmServiceCreateSerializer(serializers.Serializer):
         if service_type == ServiceConfig.ServiceType.OPENSTACK:
             project_name = attrs.get('project_name')
             project_domain_name = attrs.get('project_domain_name')
-            user_domain_name = attrs.get('user_domain_name')
+            # user_domain_name = attrs.get('user_domain_name')
             if not project_name:
                 raise ValidationError(detail={
                     'project_name': gettext('当服务类型是OpenStack时，"project_name"是必须的')})
@@ -546,9 +546,9 @@ class ApplyVmServiceCreateSerializer(serializers.Serializer):
                 raise ValidationError(detail={
                     'project_domain_name': gettext('当服务类型是OpenStack时，"project_domain_name"是必须的')})
 
-            if not user_domain_name:
-                raise ValidationError(detail={
-                    'user_domain_name': gettext('当服务类型是OpenStack时，"user_domain_name"是必须的')})
+            # if not user_domain_name:
+            #     raise ValidationError(detail={
+            #         'user_domain_name': gettext('当服务类型是OpenStack时，"user_domain_name"是必须的')})
 
         need_vpn = attrs.get('need_vpn')
         if need_vpn and service_type != ServiceConfig.ServiceType.EVCLOUD:
