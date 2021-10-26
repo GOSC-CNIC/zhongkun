@@ -242,7 +242,11 @@ class OpenStackAdapter(BaseAdapter):
             'SHUTOFF': outputs.ServerStatus.SHUTDOWN,
             'SUSPENDED': outputs.ServerStatus.PMSUSPENDED,
             'ERROR': outputs.ServerStatus.ERROR,
-            'BUILD': outputs.ServerStatus.BUILDING
+            'BUILD': outputs.ServerStatus.BUILDING,
+            'REBUILD': outputs.ServerStatus.BUILDING,
+            'BUILDING': outputs.ServerStatus.BUILDING,
+            'DELETED': outputs.ServerStatus.MISS,
+            'SOFT_DELETED': outputs.ServerStatus.MISS
         }
         try:
             server = service_instance.compute.get_server(params.server_id)
