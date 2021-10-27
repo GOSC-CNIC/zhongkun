@@ -50,7 +50,7 @@ class ServerBase(models.Model):
     public_ip = models.BooleanField(default=True, verbose_name=_('公/私网'))
     image = models.CharField(max_length=255, verbose_name=_('镜像系统名称'), default='')
     image_id = models.CharField(max_length=64, verbose_name=_('镜像系统ID'), default='')
-    image_desc = models.CharField(max_length=255, verbose_name=_('镜像系统描述'), default='')
+    image_desc = models.CharField(max_length=255, verbose_name=_('镜像系统描述'), blank=True, default='')
     default_user = models.CharField(max_length=64, verbose_name=_('默认登录用户名'), default='')
     default_password = models.CharField(max_length=255, blank=True, verbose_name=_('默认登录密码'), default='')
     creation_time = models.DateTimeField(auto_now_add=True, verbose_name=_('创建时间'))

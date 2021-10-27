@@ -122,13 +122,13 @@
 
     // 虚拟机运行状态api构建
     function build_vm_status_api(vm_uuid){
-        let url = 'api/server/' + vm_uuid + '/status/';
+        let url = 'api/server/' + vm_uuid + '/status';
         return build_absolute_url(url);
     }
 
     // 虚拟机vnc api构建
     function build_vm_vnc_api(vm_uuid){
-        let url = 'api/server/' + vm_uuid + '/vnc/';
+        let url = 'api/server/' + vm_uuid + '/vnc';
         return build_absolute_url(url);
     }
 
@@ -370,7 +370,7 @@
 
         let query_str = encode_params({remark:remark});
         $.ajax({
-			url: '/api/server/' + vm_uuid + '/remark/?' + query_str,
+			url: '/api/server/' + vm_uuid + '/remark?' + query_str,
 			type: 'patch',
 			success:function(data){
 			    div_show.children("span:first").text(remark);

@@ -23,7 +23,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='server',
             name='image_desc',
-            field=models.CharField(default='', max_length=255, verbose_name='镜像系统描述'),
+            field=models.CharField(blank=True, default='', max_length=255, verbose_name='镜像系统描述'),
         ),
         migrations.AddField(
             model_name='server',
@@ -43,7 +43,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='serverarchive',
             name='image_desc',
-            field=models.CharField(default='', max_length=255, verbose_name='镜像系统描述'),
+            field=models.CharField(blank=True, default='', max_length=255, verbose_name='镜像系统描述'),
         ),
         migrations.AddField(
             model_name='serverarchive',

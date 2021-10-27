@@ -97,7 +97,7 @@
         if(!confirm('确定创建服务器实例？'))
             return;
 
-        let api = build_absolute_url('api/server/');
+        let api = build_absolute_url('api/server');
         let json_data = JSON.stringify(obj_data);
         let btn_submit = $(this);
         btn_submit.addClass('disabled'); //鼠标悬停时，使按钮表现为不可点击状态
@@ -160,7 +160,7 @@
         image_select.html('');
         let query_str = encode_params({service_id:service});
         $.ajax({
-            url: build_absolute_url('api/image/?'+ query_str),
+            url: build_absolute_url('api/image?'+ query_str),
             type: 'get',
             contentType: 'application/json',
             success: function (data, status, xhr) {
@@ -203,7 +203,7 @@
 
         let query_str = encode_params({service_id:service});
         $.ajax({
-            url: build_absolute_url('api/flavor/?'+ query_str),
+            url: build_absolute_url('api/flavor?'+ query_str),
             type: 'get',
             contentType: 'application/json',
             success: function (data, status, xhr) {
@@ -257,7 +257,7 @@
 
         let query_str = encode_params(querys);
         $.ajax({
-            url: build_absolute_url('api/quota/?'+ query_str),
+            url: build_absolute_url('api/quota?'+ query_str),
             type: 'get',
             contentType: 'application/json',
             success: function (data, status, xhr) {
@@ -299,7 +299,7 @@
         network_select.html('');
         let query_str = encode_params({service_id:service});
         $.ajax({
-            url: build_absolute_url('api/network/?'+ query_str),
+            url: build_absolute_url('api/network?'+ query_str),
             type: 'get',
             contentType: 'application/json',
             success: function (data, status, xhr) {
