@@ -79,7 +79,7 @@ class MonitorJobCephManager:
             job_ceph_map[job.job_tag] = job
 
         if len(job_ceph_map) == 0:
-            raise errors.ConflictError(message=_('没有配置监控'))
+            raise errors.NoMonitorJob(message=_('没有配置监控'))
 
         ret_data = []
         for job in job_ceph_map.values():
@@ -102,7 +102,7 @@ class MonitorJobCephManager:
             job_ceph_map[job.job_tag] = job
         
         if len(job_ceph_map) == 0:
-            raise errors.ConflictError(message=_('没有监控配置'))
+            raise errors.NoMonitorJob(message=_('没有监控配置'))
 
         ret_data = []
         for job in job_ceph_map.values():
@@ -207,7 +207,7 @@ class MonitorJobServerManager:
             job_server_map[job.job_tag] = job
 
         if len(job_server_map) == 0:
-            raise errors.ConflictError(message=_('没有配置监控'))
+            raise errors.NoMonitorJob(message=_('没有配置监控'))
 
         ret_data = []
 

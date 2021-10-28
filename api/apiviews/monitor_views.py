@@ -61,6 +61,12 @@ class MonitorCephQueryViewSet(CustomGenericViewSet):
                 }
               }
             ]
+
+            http code 409：
+            {
+              "code": "NoMonitorJob",
+              "message": "没有配置监控"
+            }
         """
         return MonitorCephQueryHandler().query(view=self, request=request, kwargs=kwargs)
 
@@ -124,6 +130,12 @@ class MonitorCephQueryViewSet(CustomGenericViewSet):
                 }
               }
             ]
+
+            http code 409：
+            {
+              "code": "NoMonitorJob",
+              "message": "没有配置监控"
+            }
         """
         return MonitorCephQueryHandler().queryrange(view=self, request=request, kwargs=kwargs)
 
@@ -179,5 +191,11 @@ class MonitorServerQueryViewSet(CustomGenericViewSet):
                 }
               }
             ]
+
+            http code 409：
+            {
+              "code": "NoMonitorJob",
+              "message": "没有配置监控"
+            }
         """
         return MonitorServerQueryHandler().query(view=self, request=request, kwargs=kwargs)

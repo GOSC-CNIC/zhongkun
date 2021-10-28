@@ -211,6 +211,11 @@ class ResourceLocked(ConflictError):
     default_code = 'ResourceLocked'
 
 
+class NoMonitorJob(ConflictError):
+    default_message = '没有配置监控任务'
+    default_code = 'NoMonitorJob'
+
+
 def convert_to_error(err):
     if isinstance(err, Error):
         return err
