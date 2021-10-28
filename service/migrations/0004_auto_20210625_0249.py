@@ -20,7 +20,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='applyquota',
             name='vo',
-            field=models.ForeignKey(default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='vo_apply_quota_set', to='vo.virtualorganization', verbose_name='项目组'),
+            field=models.ForeignKey(blank=True, default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='vo_apply_quota_set', to='vo.virtualorganization', verbose_name='项目组'),
         ),
         migrations.AddField(
             model_name='userquota',

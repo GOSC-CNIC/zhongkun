@@ -55,7 +55,7 @@ class Migration(migrations.Migration):
                 ('user', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL,
                                            related_name='user_apply_quota_set', to=settings.AUTH_USER_MODEL,
                                            verbose_name='申请用户')),
-                ('user_quota', models.OneToOneField(default=None, help_text='资源配额申请审批通过后生成的对应的用户资源配额', null=True,
+                ('user_quota', models.OneToOneField(blank=True, default=None, help_text='资源配额申请审批通过后生成的对应的用户资源配额', null=True,
                                                     on_delete=django.db.models.deletion.SET_NULL,
                                                     related_name='apply_quota', to='service.userquota',
                                                     verbose_name='用户资源配额')),

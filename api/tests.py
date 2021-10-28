@@ -3209,8 +3209,9 @@ class MonitorCephTests(MyAPITestCase):
         self.assertIsInstance(response.data, list)
         data_item = response.data[0]
         self.assertKeysIn(["value", "monitor"], data_item)
-        self.assertIsInstance(data_item["value"], list)
-        self.assertEqual(len(data_item["value"]), 2)
+        if data_item["value"] is not None:
+            self.assertIsInstance(data_item["value"], list)
+            self.assertEqual(len(data_item["value"]), 2)
         self.assertKeysIn(["name", "name_en", "job_tag", "service_id", "creation"], data_item["monitor"])
 
         return response
@@ -3414,8 +3415,9 @@ class MonitorServerTests(MyAPITestCase):
         self.assertIsInstance(response.data, list)
         data_item = response.data[0]
         self.assertKeysIn(["value", "monitor"], data_item)
-        self.assertIsInstance(data_item["value"], list)
-        self.assertEqual(len(data_item["value"]), 2)
+        if data_item["value"] is not None:
+            self.assertIsInstance(data_item["value"], list)
+            self.assertEqual(len(data_item["value"]), 2)
         self.assertKeysIn(["name", "name_en", "job_tag", "service_id", "creation"], data_item["monitor"])
 
         return response

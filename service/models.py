@@ -503,13 +503,14 @@ class ApplyVmService(UuidModel):
     remarks = models.CharField(max_length=255, default='', blank=True, verbose_name=_('备注'))
     need_vpn = models.BooleanField(verbose_name=_('是否需要VPN'), default=True)
 
-    vpn_endpoint_url = models.CharField(max_length=255, verbose_name=_('VPN服务地址url'),
+    vpn_endpoint_url = models.CharField(max_length=255, verbose_name=_('VPN服务地址url'), blank=True, default='',
                                         help_text='http(s)://{hostname}:{port}/')
-    vpn_api_version = models.CharField(max_length=64, default='v3', verbose_name=_('VPN API版本'))
-    vpn_username = models.CharField(max_length=128, verbose_name=_('用户名'), help_text=_('用于VPN服务认证的用户名'))
-    vpn_password = models.CharField(max_length=255, verbose_name=_('密码'))
+    vpn_api_version = models.CharField(max_length=64, blank=True, default='v3', verbose_name=_('VPN API版本'))
+    vpn_username = models.CharField(max_length=128, verbose_name=_('用户名'), blank=True, default='',
+                                    help_text=_('用于VPN服务认证的用户名'))
+    vpn_password = models.CharField(max_length=255, verbose_name=_('密码'), blank=True, default='')
     service = models.OneToOneField(to=ServiceConfig, null=True, on_delete=models.SET_NULL, related_name='apply_service',
-                                   default=None, verbose_name=_('接入服务'),
+                                   blank=True, default=None, verbose_name=_('接入服务'),
                                    help_text=_('服务接入申请审批通过后生成的对应的接入服务'))
     deleted = models.BooleanField(verbose_name=_('删除'), default=False)
 
@@ -664,13 +665,13 @@ class ApplyQuota(UuidModel):
     contact = models.CharField(verbose_name=_('联系方式'), max_length=64, blank=True, default='')
     purpose = models.CharField(verbose_name=_('用途'), max_length=255, blank=True, default='')
     user_quota = models.OneToOneField(to=UserQuota, null=True, on_delete=models.SET_NULL, related_name='apply_quota',
-                                      default=None, verbose_name=_('用户资源配额'),
+                                      blank=True, default=None, verbose_name=_('用户资源配额'),
                                       help_text=_('资源配额申请审批通过后生成的对应的用户资源配额'))
     deleted = models.BooleanField(verbose_name=_('删除'), default=False, help_text=_('选中为删除'))
     classification = models.CharField(verbose_name=_('资源配额归属类型'), max_length=16,
                                       choices=Classification.choices, default=Classification.PERSONAL,
                                       help_text=_('标识配额属于申请者个人的，还是vo组的'))
-    vo = models.ForeignKey(to=VirtualOrganization, null=True, on_delete=models.SET_NULL, default=None,
+    vo = models.ForeignKey(to=VirtualOrganization, null=True, on_delete=models.SET_NULL, blank=True, default=None,
                            related_name='vo_apply_quota_set', verbose_name=_('项目组'))
     result_desc = models.CharField(verbose_name=_('审批结果描述'), max_length=255, blank=True, default='')
 
