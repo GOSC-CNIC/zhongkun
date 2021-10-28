@@ -85,8 +85,12 @@ class MonitorJobCephManager:
         for job in job_ceph_map.values():
             job_dict = MonitorJobCephSerializer(job).data
             r = self.request_data(provider=job.provider, tag=tag, job=job.job_tag)
-            data = r[0]
-            data['monitor'] = job_dict
+            if r:
+                data = r[0]
+                data['monitor'] = job_dict
+            else:
+                data = {'monitor': job_dict, 'value': None}
+
             ret_data.append(data)
 
         return ret_data
@@ -109,9 +113,12 @@ class MonitorJobCephManager:
                 data = r[0]
                 data.pop('metric', None)
                 data['monitor'] = job_dict
-                ret_data.append(data)
+            else:
+                data = {'monitor': job_dict, 'values': []}
+
+            ret_data.append(data)
             
-            return ret_data
+        return ret_data
     
     def request_range_data(self, provider: MonitorProvider, tag: str, job: str, start: int, end: int, step: int):
         params = {'provider': provider, 'job': job, 'start': start, 'end': end, 'step': step}
@@ -179,7 +186,13 @@ class MonitorJobServerManager:
         :return:
             [
                 {
-                    "metric": {},
+                    "monitor": {
+                        "name": "大规模对象存储云主机服务物理服务器监控",
+                        "name_en": "大规模对象存储云主机服务物理服务器监控",
+                        "job_tag": "obs-node",
+                        "service_id": "1",
+                        "creation": "2021-10-28T02:09:37.639453Z"
+                    },
                     "value": [
                         1631585555,
                         "13"
@@ -201,8 +214,13 @@ class MonitorJobServerManager:
         for job in job_server_map.values():
             job_dict = MonitorJobServerSerializer(job).data
             r = self.request_data(provider=job.provider, tag=tag, job=job.job_tag)
-            data = r[0]
-            data['monitor'] = job_dict
+            if r:
+                data = r[0]
+                data.pop('metric', None)
+                data['monitor'] = job_dict
+            else:
+                data = {'monitor': job_dict, 'value': None}
+
             ret_data.append(data)
 
         return ret_data

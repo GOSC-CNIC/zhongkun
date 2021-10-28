@@ -48,7 +48,7 @@ class MonitorCephQueryViewSet(CustomGenericViewSet):
             Http Code: 状态码200，返回数据：
             [
               {
-                "value": [
+                "value": [              # maybe null
                   1631004121.496,
                   "0"
                 ],
@@ -165,7 +165,19 @@ class MonitorServerQueryViewSet(CustomGenericViewSet):
 
             Http Code: 状态码200，返回数据：
             [
-
+              {
+                "value": [              # maybe null
+                  1635387288,
+                  "198"
+                ],
+                "monitor": {
+                  "name": "大规模对象存储云主机服务物理服务器监控",
+                  "name_en": "大规模对象存储云主机服务物理服务器监控",
+                  "job_tag": "obs-node",
+                  "service_id": "1",
+                  "creation": "2021-10-28T02:09:37.639453Z"
+                }
+              }
             ]
         """
         return MonitorServerQueryHandler().query(view=self, request=request, kwargs=kwargs)
