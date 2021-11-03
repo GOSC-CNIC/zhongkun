@@ -9,7 +9,7 @@ from monitor.models import MonitorProvider
 
 class ExpressionQuery:
     server_health_status = 'count(node_uname_info{job="$job"}) - count(up{job="$job"})'
-    server_host_up_count = 'count(up{job="$job"})'
+    server_host_up_count = 'count(up{job="$job"} == 1)'
     server_host_count = 'count(node_uname_info{job="$job"})'
     server_cpu_usage = 'avg(1 - avg(rate(node_cpu_seconds_total{job="$job",mode="idle"}[30s])) by (instance))*100'
     server_mem_usage = 'avg((1 - (node_memory_MemAvailable_bytes{job="$job"} '\

@@ -431,6 +431,19 @@ class ServersTests(MyAPITestCase):
             default_password=self.default_password
         )
 
+    @staticmethod
+    def server_detail_response(client, server_id, querys: dict = None):
+        url = reverse('api:servers-detail', kwargs={'id': server_id})
+        if querys:
+            query = parse.urlencode(query=querys)
+            url = f'{url}?{query}'
+
+        response = client.get(url)
+        if response.status_code == 500:
+            print(response.data)
+
+        return response
+
     def test_server_create(self):
         url = reverse('api:servers-list')
         response = self.client.post(url, data={})
@@ -589,10 +602,8 @@ class ServersTests(MyAPITestCase):
 
         # test when federal admin
         self.service.users.remove(admin_user)
-
-        url = reverse('api:servers-detail', kwargs={'id': self.miss_server.id})
-        query = parse.urlencode(query={'as-admin': ''})
-        response = self.client.get(f'{url}?{query}')
+        response = self.server_detail_response(
+            client=self.client, server_id=self.miss_server.id, querys={'as-admin': ''})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
         admin_user.set_federal_admin()
@@ -603,14 +614,12 @@ class ServersTests(MyAPITestCase):
         self.assertEqual(response.data['status']['status_code'], outputs.ServerStatus.MISS)
 
     def test_server_detail(self):
-        url = reverse('api:servers-detail', kwargs={'id': 'motfound'})
-        response = self.client.get(url)
+        response = self.server_detail_response(client=self.client, server_id='motfound')
         self.assertEqual(response.status_code, 404)
         self.assertKeysIn(['code', 'message'], response.data)
         self.assertEqual(response.data['code'], 'NotFound')
 
-        url = reverse('api:servers-detail', kwargs={'id': self.miss_server.id})
-        response = self.client.get(url)
+        response = self.server_detail_response(client=self.client, server_id=self.miss_server.id)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['server'], response.data)
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
@@ -628,9 +637,8 @@ class ServersTests(MyAPITestCase):
         admin_user = get_or_create_user(username=admin_username, password=admin_password)
 
         # test when not admin
-        url = reverse('api:servers-detail', kwargs={'id': self.miss_server.id})
-        query = parse.urlencode(query={'as-admin': ''})
-        response = self.client.get(f'{url}?{query}')
+        response = self.server_detail_response(
+            client=self.client, server_id=self.miss_server.id, querys={'as-admin': ''})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
         self.client.logout()
@@ -638,9 +646,8 @@ class ServersTests(MyAPITestCase):
 
         # test when service admin
         self.service.users.add(admin_user)
-        url = reverse('api:servers-detail', kwargs={'id': self.miss_server.id})
-        query = parse.urlencode(query={'as-admin': ''})
-        response = self.client.get(f'{url}?{query}')
+        response = self.server_detail_response(
+            client=self.client, server_id=self.miss_server.id, querys={'as-admin': ''})
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['server'], response.data)
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
@@ -655,15 +662,13 @@ class ServersTests(MyAPITestCase):
         # test when federal admin
         self.service.users.remove(admin_user)
 
-        url = reverse('api:servers-detail', kwargs={'id': self.miss_server.id})
-        query = parse.urlencode(query={'as-admin': ''})
-        response = self.client.get(f'{url}?{query}')
+        response = self.server_detail_response(
+            client=self.client, server_id=self.miss_server.id, querys={'as-admin': ''})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
         admin_user.set_federal_admin()
-        url = reverse('api:servers-detail', kwargs={'id': self.miss_server.id})
-        query = parse.urlencode(query={'as-admin': ''})
-        response = self.client.get(f'{url}?{query}')
+        response = self.server_detail_response(
+            client=self.client, server_id=self.miss_server.id, querys={'as-admin': ''})
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['server'], response.data)
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
@@ -718,8 +723,8 @@ class ServersTests(MyAPITestCase):
         }, d=response.data['servers'][0])
 
         # server vo detail
-        url = reverse('api:servers-detail', kwargs={'id': vo_server.id})
-        response = self.client.get(url)
+        response = self.server_detail_response(
+            client=self.client, server_id=self.vo_server.id)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['server'], response.data)
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
@@ -891,8 +896,8 @@ class ServersTests(MyAPITestCase):
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
         # server vo detail
-        url = reverse('api:servers-detail', kwargs={'id': self.vo_server.id})
-        response = self.client.get(url)
+        response = self.server_detail_response(
+            client=self.client, server_id=self.vo_server.id)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
         # server vnc
@@ -932,8 +937,7 @@ class ServersTests(MyAPITestCase):
         self.assertEqual(response.data['status']['status_code'], outputs.ServerStatus.MISS)
 
         # server vo detail
-        url = reverse('api:servers-detail', kwargs={'id': self.vo_server.id})
-        response = self.client.get(url)
+        response = self.server_detail_response(client=self.client, server_id=self.vo_server.id)
         self.assertEqual(response.status_code, 200)
 
         # server vnc
@@ -1155,7 +1159,7 @@ class ServiceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "next", "previous", "results"], response.data)
         self.assertKeysIn(["id", "name", "name_en", "service_type", "add_time",
-                           "need_vpn", "status", "data_center"], response.data["results"][0])
+                           "need_vpn", "status", "data_center", 'longitude', 'latitude'], response.data["results"][0])
         self.assertIsInstance(response.data["results"][0]['status'], str)
         self.assertEqual(response.data["results"][0]['status'], ServiceConfig.Status.ENABLE)
 
@@ -1205,7 +1209,7 @@ class ServiceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "next", "previous", "results"], response.data)
         self.assertKeysIn(["id", "name", "name_en", "service_type", "add_time",
-                           "need_vpn", "status", "data_center"], response.data["results"][0])
+                           "need_vpn", "status", "data_center", 'longitude', 'latitude'], response.data["results"][0])
         self.assertIsInstance(response.data["results"][0]['status'], str)
 
     def service_quota_get_update(self, url):
@@ -1314,7 +1318,7 @@ class RegistryTests(MyAPITestCase):
         self.assertIn('registries', response.data)
         self.assertIsInstance(response.data['registries'], list)
         self.assertKeysIn(["id", "name", "endpoint_vms", "endpoint_object", "endpoint_compute",
-                           "endpoint_monitor", "creation_time", "status", "desc"],
+                           "endpoint_monitor", "creation_time", "status", "desc", 'longitude', 'latitude'],
                           response.data['registries'][0])
 
 
@@ -2052,7 +2056,9 @@ class ApplyOrganizationTests(MyAPITestCase):
         "endpoint_monitor": "",
         "desc": "test",
         "logo_url": "/api/media/logo/c5ff90480c7fc7c9125ca4dd86553e23.jpg",
-        "certification_url": "/certification/c5ff90480c7fc7c9125ca4dd86553e23.docx"
+        "certification_url": "/certification/c5ff90480c7fc7c9125ca4dd86553e23.docx",
+        "longitude": -88,
+        "latitude": 66
     }
 
     def setUp(self):
@@ -2080,7 +2086,8 @@ class ApplyOrganizationTests(MyAPITestCase):
             'id', 'creation_time', 'status', 'user', 'deleted', 'name', "name_en", 'abbreviation',
             'independent_legal_person',
             'country', 'city', 'postal_code', 'address', 'endpoint_vms', 'endpoint_object',
-            'endpoint_compute', 'endpoint_monitor', 'desc', 'logo_url', 'certification_url'
+            'endpoint_compute', 'endpoint_monitor', 'desc', 'logo_url', 'certification_url',
+            "longitude", "latitude"
         ], container=response.data)
         self.assert_is_subdict_of(sub={
             'status': 'wait', 'deleted': False, 'name': '中国科学院计算机信息网络中心', "name_en": "cnic",
@@ -2088,7 +2095,8 @@ class ApplyOrganizationTests(MyAPITestCase):
             'postal_code': '100083', 'address': '北京市海淀区', 'endpoint_vms': 'https://vms.cstcloud.cn/',
             'endpoint_object': '', 'endpoint_compute': '', 'endpoint_monitor': '', 'desc': 'test',
             'logo_url': '/api/media/logo/c5ff90480c7fc7c9125ca4dd86553e23.jpg',
-            'certification_url': '/certification/c5ff90480c7fc7c9125ca4dd86553e23.docx'
+            'certification_url': '/certification/c5ff90480c7fc7c9125ca4dd86553e23.docx',
+            "longitude": -88, "latitude": 66
         }, d=response.data)
         apply_id = response.data['id']
 
@@ -2192,6 +2200,10 @@ class ApplyOrganizationTests(MyAPITestCase):
         organization = DataCenter.objects.get(pk=apply.data_center_id)
         self.assertEqual(organization.name_en, apply.name_en)
         self.assertEqual(organization.name_en, self.apply_data['name_en'])
+        self.assertEqual(organization.longitude, self.apply_data['longitude'])
+        self.assertEqual(organization.longitude, apply.longitude)
+        self.assertEqual(organization.latitude, self.apply_data['latitude'])
+        self.assertEqual(organization.latitude, apply.latitude)
         self.assertIsInstance(organization, DataCenter)
 
     @staticmethod
@@ -2227,7 +2239,8 @@ class ApplyOrganizationTests(MyAPITestCase):
             'id', 'creation_time', 'status', 'user', 'deleted', 'name', "name_en", 'abbreviation',
             'independent_legal_person',
             'country', 'city', 'postal_code', 'address', 'endpoint_vms', 'endpoint_object',
-            'endpoint_compute', 'endpoint_monitor', 'desc', 'logo_url', 'certification_url'
+            'endpoint_compute', 'endpoint_monitor', 'desc', 'logo_url', 'certification_url',
+            "longitude", "latitude"
         ], container=response.data['results'][0])
         self.assert_is_subdict_of(sub={
             'status': ApplyOrganization.Status.WAIT, 'deleted': False,
@@ -2236,7 +2249,8 @@ class ApplyOrganizationTests(MyAPITestCase):
             'postal_code': '100083', 'address': '北京市海淀区', 'endpoint_vms': 'https://vms.cstcloud.cn/',
             'endpoint_object': '', 'endpoint_compute': '', 'endpoint_monitor': '', 'desc': 'test',
             'logo_url': '/api/media/logo/c5ff90480c7fc7c9125ca4dd86553e23.jpg',
-            'certification_url': '/certification/c5ff90480c7fc7c9125ca4dd86553e23.docx'
+            'certification_url': '/certification/c5ff90480c7fc7c9125ca4dd86553e23.docx',
+            "longitude": -88, "latitude": 66
         }, d=response.data['results'][0])
 
         # list
@@ -2292,7 +2306,8 @@ class ApplyOrganizationTests(MyAPITestCase):
             'id', 'creation_time', 'status', 'user', 'deleted', 'name', "name_en", 'abbreviation',
             'independent_legal_person',
             'country', 'city', 'postal_code', 'address', 'endpoint_vms', 'endpoint_object',
-            'endpoint_compute', 'endpoint_monitor', 'desc', 'logo_url', 'certification_url'
+            'endpoint_compute', 'endpoint_monitor', 'desc', 'logo_url', 'certification_url',
+            "longitude", "latitude"
         ], container=response.data['results'][0])
         self.assert_is_subdict_of(sub={
             'status': ApplyOrganization.Status.CANCEL, 'deleted': True,
@@ -2301,7 +2316,8 @@ class ApplyOrganizationTests(MyAPITestCase):
             'postal_code': '100083', 'address': '北京市海淀区', 'endpoint_vms': 'https://vms.cstcloud.cn/',
             'endpoint_object': '', 'endpoint_compute': '', 'endpoint_monitor': '', 'desc': 'test',
             'logo_url': '/api/media/logo/c5ff90480c7fc7c9125ca4dd86553e23.jpg',
-            'certification_url': '/certification/c5ff90480c7fc7c9125ca4dd86553e23.docx'
+            'certification_url': '/certification/c5ff90480c7fc7c9125ca4dd86553e23.docx',
+            "longitude": -88, "latitude": 66
         }, d=response.data['results'][0])
 
         # admin-list deleted=False

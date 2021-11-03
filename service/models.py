@@ -51,6 +51,8 @@ class DataCenter(UuidModel):
                                 blank=True, default='')
     certification_url = models.CharField(verbose_name=_('机构认证代码url'), max_length=256,
                                          blank=True, default='')
+    longitude = models.FloatField(verbose_name=_('经度'), blank=True, default=0)
+    latitude = models.FloatField(verbose_name=_('纬度'), blank=True, default=0)
 
     class Meta:
         ordering = ['creation_time']
@@ -114,6 +116,8 @@ class ServiceConfig(UuidModel):
                                        blank=True, default='')
     logo_url = models.CharField(verbose_name=_('LOGO url'), max_length=256,
                                 blank=True, default='')
+    longitude = models.FloatField(verbose_name=_('经度'), blank=True, default=0)
+    latitude = models.FloatField(verbose_name=_('纬度'), blank=True, default=0)
 
     class Meta:
         ordering = ['-add_time']
@@ -411,6 +415,8 @@ class ApplyOrganization(UuidModel):
 
     user = models.ForeignKey(verbose_name=_('申请用户'), to=User, null=True, on_delete=models.SET_NULL)
     deleted = models.BooleanField(verbose_name=_('删除'), default=False)
+    longitude = models.FloatField(verbose_name=_('经度'), blank=True, default=0)
+    latitude = models.FloatField(verbose_name=_('纬度'), blank=True, default=0)
 
     class Meta:
         db_table = 'organization_apply'
@@ -441,6 +447,8 @@ class ApplyOrganization(UuidModel):
         organization.desc = self.desc
         organization.logo_url = self.logo_url
         organization.certification_url = self.certification_url
+        organization.longitude = self.longitude
+        organization.latitude = self.latitude
 
         with transaction.atomic():
             organization.save()
@@ -606,6 +614,8 @@ class ApplyVmService(UuidModel):
         service.contact_address = self.contact_address
         service.logo_url = self.logo_url
         service.extra = self.get_extra_params_string()
+        service.latitude = self.latitude
+        service.longitude = self.longitude
         return service
 
     def do_pass_apply(self) -> ServiceConfig:

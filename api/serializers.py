@@ -222,6 +222,8 @@ class ServiceSerializer(serializers.Serializer):
     need_vpn = serializers.BooleanField()
     status = serializers.CharField()
     data_center = serializers.SerializerMethodField()
+    longitude = serializers.FloatField(label=_('经度'), default=0)
+    latitude = serializers.FloatField(label=_('纬度'), default=0)
 
     @staticmethod
     def get_data_center(obj):
@@ -244,6 +246,8 @@ class DataCenterSerializer(serializers.Serializer):
     creation_time = serializers.DateTimeField()
     status = serializers.SerializerMethodField(method_name='get_status')
     desc = serializers.CharField()
+    longitude = serializers.FloatField(label=_('经度'), default=0)
+    latitude = serializers.FloatField(label=_('纬度'), default=0)
 
     @staticmethod
     def get_status(obj):
@@ -388,6 +392,8 @@ class ApplyOrganizationSerializer(serializers.Serializer):
     postal_code = serializers.CharField(
         label=_('邮政编码'), max_length=32, allow_null=True, allow_blank=True, default='')
     address = serializers.CharField(label=_('单位地址'), max_length=256, required=True)
+    longitude = serializers.FloatField(label=_('经度'), min_value=-180, max_value=180, allow_null=True, default=0)
+    latitude = serializers.FloatField(label=_('纬度'), min_value=-90, max_value=90, allow_null=True, default=0)
 
     endpoint_vms = serializers.CharField(
         label=_('云主机服务url'), required=False, allow_null=True, allow_blank=True, default=None)
@@ -505,9 +511,9 @@ class ApplyVmServiceCreateSerializer(serializers.Serializer):
         help_text='required when "need_vpn" is true;服务类型是evcloud时，不需要填写')
 
     longitude = serializers.FloatField(
-        label=_('经度'), required=False, allow_null=True, default=0)
+        label=_('经度'), required=False, min_value=-180, max_value=180, allow_null=True, default=0)
     latitude = serializers.FloatField(
-        label=_('纬度'), required=False, allow_null=True, default=0)
+        label=_('纬度'), required=False, min_value=-90, max_value=90, allow_null=True, default=0)
     contact_person = serializers.CharField(
         label=_('联系人名称'), max_length=128, required=True)
     contact_email = serializers.EmailField(

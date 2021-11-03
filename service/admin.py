@@ -16,7 +16,8 @@ class ServiceConfigAdmin(admin.ModelAdmin):
     form = forms.VmsProviderForm
     list_display_links = ('id',)
     list_display = ('id', 'name', 'name_en', 'data_center', 'region_id', 'service_type', 'endpoint_url', 'username',
-                    'password', 'add_time', 'status', 'need_vpn', 'vpn_endpoint_url', 'vpn_password', 'remarks')
+                    'password', 'add_time', 'status', 'need_vpn', 'vpn_endpoint_url', 'vpn_password',
+                    'longitude', 'latitude', 'remarks')
     search_fields = ['name', 'name_en', 'endpoint_url', 'remarks']
     list_filter = ['data_center', 'service_type']
     list_select_related = ('data_center',)
@@ -81,7 +82,7 @@ class ServiceConfigAdmin(admin.ModelAdmin):
 @admin.register(DataCenter)
 class DataCenterAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
-    list_display = ('id', 'name', 'name_en', 'abbreviation', 'status', 'creation_time', 'desc')
+    list_display = ('id', 'name', 'name_en', 'abbreviation', 'status', 'creation_time', 'longitude', 'latitude', 'desc')
 
 
 @admin.register(ServicePrivateQuota)

@@ -44,19 +44,19 @@ var VM_STATUS_LABEL = {
 
 // 虚拟机detail api构建
 function build_vm_detail_api(vm_uuid){
-    let url = 'api/server/' + vm_uuid + '/';
+    let url = 'api/server/' + vm_uuid;
     return build_absolute_url(url);
 }
 
 // 虚拟机操作api构建
 function build_vm_operations_api(vm_uuid){
-    let url = 'api/server/' + vm_uuid + '/action/';
+    let url = 'api/server/' + vm_uuid + '/action';
     return build_absolute_url(url);
 }
 
 // 虚拟机系统快照创建api构建
 function build_vm_snap_create_api(vm_uuid, remarks){
-    let url = 'api/server/' + vm_uuid + '/snap/' + '?remark=' + remarks;
+    let url = 'api/server/' + vm_uuid + '/snap' + '?remark=' + remarks;
     return build_absolute_url(url);
 }
 

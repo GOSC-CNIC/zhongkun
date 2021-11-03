@@ -1202,6 +1202,8 @@ class OrganizationApplyManager:
         apply.logo_url = data.get('logo_url')
         apply.certification_url = data.get('certification_url')
         apply.user = user
+        apply.longitude = data.get('longitude', 0)
+        apply.latitude = data.get('latitude', 0)
         try:
             apply.save()
         except Exception as e:

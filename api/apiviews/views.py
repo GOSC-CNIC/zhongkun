@@ -1571,7 +1571,9 @@ class ServiceViewSet(CustomGenericViewSet):
                   "data_center": {
                     "id": 3,
                     "name": "VMware测试中心"
-                  }
+                  },
+                  "longitude": 0,
+                  "latitude": 0
                 }
               ]
             }
@@ -1814,7 +1816,9 @@ class DataCenterViewSet(CustomGenericViewSet):
                     "code": 1,
                     "message": "开启状态"
                   },
-                  "desc": ""
+                  "desc": "",
+                  "longitude": 0,
+                  "latitude": 0
                 }
               ]
             }
@@ -2554,7 +2558,9 @@ class ApplyOrganizationViewSet(CustomGenericViewSet):
                   "endpoint_monitor": "",
                   "desc": "string",
                   "logo_url": "string",
-                  "certification_url": "string"
+                  "certification_url": "string",
+                  "longitude": 0,
+                  "latitude": 0
                 }
               ]
             }
@@ -2611,7 +2617,9 @@ class ApplyOrganizationViewSet(CustomGenericViewSet):
               "endpoint_monitor": "",
               "desc": "test",
               "logo_url": "/api/media/logo/c5ff90480c7fc7c9125ca4dd86553e23.jpg",
-              "certification_url": "/certification/c5ff90480c7fc7c9125ca4dd86553e23.docx"
+              "certification_url": "/certification/c5ff90480c7fc7c9125ca4dd86553e23.docx",
+              "longitude": 0,
+              "latitude": 0
             }
             补充说明:
             "status" values:

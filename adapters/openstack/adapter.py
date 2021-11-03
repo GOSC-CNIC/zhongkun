@@ -112,7 +112,7 @@ class OpenStackAdapter(BaseAdapter):
                 app_name='examples',
                 app_version=self.api_version,
             )
-            connect.compute         # Test whether the connection is successful
+            connect.authorize()         # Test whether the connection is successful
             expire = (datetime.utcnow() + timedelta(hours=1)).timestamp()
             auth = outputs.AuthenticateOutput(style='token', token='', header=None, query=None,
                                               expire=int(expire), username=username, password=password,
