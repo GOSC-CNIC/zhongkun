@@ -2,6 +2,9 @@ from datetime import datetime, timedelta, timezone
 import uuid
 import re
 from pytz import utc
+import base64
+import string
+import random
 
 import openstack
 from openstack import exceptions as opsk_exceptions
@@ -20,6 +23,50 @@ datetime_re = re.compile(
     r'(?::(?P<second>\d{1,2})(?:\.(?P<microsecond>\d{1,6})\d{0,6})?)?'
     r'(?P<tzinfo>Z|[+-]\d{2}(?::?\d{2})?)?$'
 )
+
+
+def random_string(length: int = 8):
+    letters = string.ascii_letters + string.digits
+    items = [random.choice(letters) for _ in range(length)]
+    return ''.join(items)
+
+
+def build_user_data(username: str = 'root', password: str = 'cnic.cn'):
+    sh = f"#!/bin/bash\npasswd {username}<<EOF\n{password}\n{password}\nEOF\n" \
+         f"sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config\nservice ssh restart\n"
+    sh = base64.b64encode(sh.encode('utf-8'))
+    return sh.decode('utf-8')
+
+
+def get_admin_pass_form_user_data(user_data: str):
+    """
+    :return: tuple(str, str)
+        username, password
+    """
+    try:
+        sh = base64.b64decode(user_data.encode('utf-8'))
+        sh = sh.decode(encoding='utf-8')
+        lines = sh.splitlines()
+        index = -1
+        for i, v in enumerate(lines):
+            if v.startswith('passwd') and v.endswith('<<EOF'):
+                index = i
+                break
+
+        if index < 0:
+            return '', ''
+
+        line = lines[index]
+        line = line.rstrip('<<EOF')
+        line = line.lstrip('passwd ')
+        user = line.strip(' ')
+        password = lines[index + 1]
+        if password != lines[index + 2]:
+            password = ''
+
+        return user, password
+    except Exception as e:
+        return '', ''
 
 
 def get_fixed_timezone(offset):
@@ -132,15 +179,22 @@ class OpenStackAdapter(BaseAdapter):
         :return:
             outputs.ServerCreateOutput()
         """
-        service_instance = self._get_openstack_connect()
+        admin_user = 'root'
+        admin_pass = random_string()
+        user_data = build_user_data(username=admin_user, password=admin_pass)
+        conn = self._get_openstack_connect()
         try:
             flavor = self.get_or_create_flavor(params.ram, params.vcpu)
-            server_re = service_instance.compute.create_server(
+            server_re = conn.compute.create_server(
                 name='gosc-instance-'+str(uuid.uuid1()), image_id=params.image_id, flavor_id=flavor.id,
-                networks=[{"uuid": params.network_id}])
+                networks=[{"uuid": params.network_id}],
+                user_data=user_data,
+                admin_pass=admin_pass,
+                config_drive=True
+            )
 
             server = outputs.ServerCreateOutputServer(
-                uuid=server_re.id
+                uuid=server_re.id, default_user=admin_user, default_password=admin_pass
             )
             return outputs.ServerCreateOutput(server=server)
         except Exception as e:
@@ -152,16 +206,22 @@ class OpenStackAdapter(BaseAdapter):
             outputs.ServerDetailOutput()
         """
         try:
-            service_instance = self._get_openstack_connect()
-            server = service_instance.compute.get_server(params.server_id)
+            conn = self._get_openstack_connect()
+            instance = conn.compute.get_server(params.server_id)
             try:
-                addresses = server.addresses
-                server_ip = {'ipv4': addresses[list(addresses.keys())[0]][0]['addr'], 'public_ipv4': None}
+                addresses = instance.addresses
+                ipv4 = ''
+                if addresses:
+                    for name, ips in addresses.items():
+                        ipv4 = ips[0]['addr']
+                        break
+
+                server_ip = {'ipv4': ipv4, 'public_ipv4': None}
             except Exception as e:
                 server_ip = {'ipv4': '', 'public_ipv4': None}
 
             ip = outputs.ServerIP(**server_ip)
-            image_temp = service_instance.image.get_image(server.image.id)
+            image_temp = conn.image.get_image(instance.image.id)
             properties = {}
             if image_temp.properties:
                 properties = image_temp.properties
@@ -169,25 +229,27 @@ class OpenStackAdapter(BaseAdapter):
             system = properties.get('os')
 
             image = outputs.ServerImage(
-                _id=server.image.id,
+                _id=instance.image.id,
                 name=image_temp.name,
                 system=system,
                 desc=desc
             )
 
-            flavor = server.flavor
+            flavor = instance.flavor
+            user_data = instance.user_data
+            username, password = get_admin_pass_form_user_data(user_data)
             server = outputs.ServerDetailOutputServer(
-                uuid=server.id,
+                uuid=instance.id,
                 ram=flavor['ram'],
                 vcpu=flavor['vcpus'],
                 ip=ip,
                 image=image,
-                creation_time=iso_to_datetime(server.created_at),
-                default_user='',
-                default_password=''
+                creation_time=iso_to_datetime(instance.created_at),
+                default_user=username,
+                default_password=password
             )
             return outputs.ServerDetailOutput(server=server)
-        except exceptions.Error as e:
+        except Exception as e:
             return outputs.ServerDetailOutput(ok=False, error=exceptions.Error('server detail failed'), server=None)
 
     def server_delete(self, params: inputs.ServerDeleteInput, **kwargs):
@@ -227,7 +289,10 @@ class OpenStackAdapter(BaseAdapter):
                 return outputs.ServerActionOutput(ok=False, error=exceptions.Error('server action failed'))
             return outputs.ServerActionOutput()
         except Exception as e:
-            return outputs.ServerActionOutput(ok=False, error=exceptions.Error('server action failed'))
+            message = getattr(e, 'details', '')
+            if not message:
+                message = f'server action failed, {str(e)}'
+            return outputs.ServerActionOutput(ok=False, error=exceptions.Error(message))
 
     def server_status(self, params: inputs.ServerStatusInput, **kwargs):
         """

@@ -138,22 +138,56 @@ def update_server_detail(server, task_status: int = None):
         raise exc
 
     try:
+        update_fields = []
+
         server.name = out_server.name if out_server.name else out_server.uuid
+        update_fields.append('name')
+
         if out_server.vcpu:
             server.vcpus = out_server.vcpu
+            update_fields.append('vcpus')
+
         if out_server.ram:
             server.ram = out_server.ram
+            update_fields.append('ram')
 
-        server.public_ip = out_server.ip.public_ipv4 if out_server.ip.public_ipv4 else False
-        server.ipv4 = out_server.ip.ipv4 if out_server.ip.ipv4 else ''
-        server.image = out_server.image.name
-        server.image_desc = out_server.image.desc
-        server.default_user = out_server.default_user
-        server.raw_default_password = out_server.default_password
+        is_public_ipv4 = out_server.ip.public_ipv4
+        if is_public_ipv4 is not None:
+            server.public_ip = is_public_ipv4
+            update_fields.append('public_ip')
+
+        ipv4 = out_server.ip.ipv4
+        if ipv4:
+            server.ipv4 = ipv4
+            update_fields.append('ipv4')
+
+        image = out_server.image.name
+        if image:
+            server.image = image
+            update_fields.append('image')
+
+        image_desc = out_server.image.desc
+        if image_desc:
+            server.image_desc = image_desc
+            update_fields.append('image_desc')
+
+        default_user = out_server.default_user
+        if default_user:
+            server.default_user = default_user
+            update_fields.append('default_user')
+
+        default_password = out_server.default_password
+        if default_password:
+            server.raw_default_password = default_password
+            update_fields.append('default_password')
+
         if task_status:
             if server.ipv4 and server.image:
                 server.task_status = task_status
-        server.save()
+                update_fields.append('task_status')
+
+        if update_fields:
+            server.save(update_fields=update_fields)
     except Exception as e:
         raise exceptions.APIException(message=str(e))
 

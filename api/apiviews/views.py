@@ -304,8 +304,12 @@ class ServersViewSet(CustomGenericViewSet):
                         public_ip=is_public_network,
                         expiration_time=due_time,
                         image_id=image_id,
+                        default_user=out_server.default_user,
                         **kwargs
                         )
+        if out_server.default_password:
+            server.raw_default_password = out_server.default_password
+
         server.save()
         if service.service_type == service.ServiceType.EVCLOUD:
             if self._update_server_detail(server, task_status=server.TASK_CREATED_OK):

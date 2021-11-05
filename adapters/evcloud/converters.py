@@ -107,8 +107,9 @@ class OutputConverter:
         return server
 
     @staticmethod
-    def to_server_create_output(vm_id: str):
-        server = outputs.ServerCreateOutputServer(uuid=vm_id)
+    def to_server_create_output(data: dict):
+        vm_id = data['uuid']
+        server = outputs.ServerCreateOutputServer(uuid=vm_id, default_user='', default_password='')
         return outputs.ServerCreateOutput(server=server)
 
     @staticmethod

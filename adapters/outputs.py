@@ -148,11 +148,13 @@ class ServerIP:
 
 
 class ServerCreateOutputServer:
-    def __init__(self, uuid: str, **kwargs):
+    def __init__(self, uuid: str, default_user: str, default_password: str, **kwargs):
         """
         :param uuid: id of server; type: str
         """
         self.uuid = uuid
+        self.default_user = default_user
+        self.default_password = default_password
 
 
 class ServerCreateOutput(OutputBase):

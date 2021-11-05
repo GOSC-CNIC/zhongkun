@@ -153,7 +153,7 @@ class EVCloudAdapter(BaseAdapter):
             return OutputConverter.to_server_create_output_error(error=e)
 
         rj = r.json()
-        return OutputConverter.to_server_create_output(vm_id=rj['vm']['uuid'])
+        return OutputConverter.to_server_create_output(rj['vm'])
 
     def server_delete(self, params: inputs.ServerDeleteInput, **kwargs):
         query = None
