@@ -33,7 +33,7 @@ class ServiceConfigAdmin(admin.ModelAdmin):
             'fields': ('need_vpn', 'vpn_endpoint_url', 'vpn_api_version', 'vpn_username',
                        'vpn_password', 'change_vpn_password')
         }),
-        (_('其他配置信息'), {'fields': ('extra', 'remarks', 'logo_url')}),
+        (_('其他配置信息'), {'fields': ('extra', 'remarks', 'logo_url', 'longitude', 'latitude')}),
         (_('服务管理员'), {'fields': ('users', )}),
         (_('联系人信息'), {
             'fields': ('contact_person', 'contact_email', 'contact_telephone', 'contact_fixed_phone', 'contact_address')

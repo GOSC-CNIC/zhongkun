@@ -8,6 +8,11 @@ class VmsProviderForm(forms.ModelForm):
     change_vpn_password = forms.CharField(label=_('更改VPN用户密码输入'), required=False, min_length=6, max_length=32,
                                           help_text=_('如果要更改服务VPN认证用户密码，请在此输入新密码, 不修改请保持为空'))
 
+    class Meta:
+        widgets = {
+            'extra': forms.Textarea(attrs={'cols': 80, 'rows': 6}),
+        }
+
     def save(self, commit=True):
         change_password = self.cleaned_data.get('change_password')      # 如果输入新密码则更改
         change_vpn_password = self.cleaned_data.get('change_vpn_password')  # 如果输入新密码则更改
