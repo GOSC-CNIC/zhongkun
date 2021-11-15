@@ -79,14 +79,21 @@ class ServersViewSet(CustomGenericViewSet):
                 description='服务端点id'
             ),
             openapi.Parameter(
-                name='user_id',
+                name='user-id',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=gettext_lazy('过滤条件，用户id，此参数只有以管理员身份请求时有效，否则400 BadRequest')
+                description=gettext_lazy('过滤条件，用户id，此参数只有以管理员身份请求时有效，否则400，不能与参数“vo-id”一起提交')
             ),
             openapi.Parameter(
-                name='vo_id',
+              name='username',
+              in_=openapi.IN_QUERY,
+              type=openapi.TYPE_STRING,
+              required=False,
+              description=gettext_lazy('过滤条件，用户名，此参数只有以管理员身份请求时有效，否则400，不能与参数“vo-id”一起提交')
+            ),
+            openapi.Parameter(
+                name='vo-id',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,

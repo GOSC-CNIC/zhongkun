@@ -19,23 +19,24 @@ class ServerHandler:
     @staticmethod
     def list_servers(view: CustomGenericViewSet, request, kwargs):
         service_id = request.query_params.get('service_id', None)
+        username = request.query_params.get('username')
         user_id = request.query_params.get('user-id')
         vo_id = request.query_params.get('vo-id')
 
-        if user_id and vo_id:
+        if (username or user_id) and vo_id:
             return view.exception_response(exceptions.BadRequest(
-                message=_('参数“user-id”和“vo-id”不能同时提交')))
+                message=_('参数“vo-id”不能和“user-id”、“username”之一同时提交')))
 
         if view.is_as_admin_request(request):
             try:
                 servers = ServerManager().get_admin_servers_queryset(
-                    user=request.user, service_id=service_id, user_id=user_id, vo_id=vo_id)
+                    user=request.user, service_id=service_id, user_id=user_id, username=username, vo_id=vo_id)
             except Exception as exc:
                 return view.exception_response(exceptions.convert_to_error(exc))
         else:
-            if user_id or vo_id:
+            if user_id or username or vo_id:
                 return view.exception_response(exceptions.BadRequest(
-                    message=_('参数“user-id”和“vo-id”只能和参数“as-admin”一起提交')))
+                    message=_('参数“user-id”、“user-id”和“vo-id”只能和参数“as-admin”一起提交')))
 
             servers = ServerManager().get_user_servers_queryset(user=request.user, service_id=service_id)
 

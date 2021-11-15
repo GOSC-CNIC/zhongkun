@@ -24,23 +24,27 @@ class ServerManager:
 
         return qs
 
-    def get_admin_servers_queryset(self, user, service_id: str = None, user_id: str = None,
+    def get_admin_servers_queryset(self, user, service_id: str = None, user_id: str = None, username: str = None,
                                    vo_id: str = None):
         """
         管理员查询server
 
         :raises: Error
         """
-        if user_id and vo_id:
+        if (user_id or username) and vo_id:
             return self.get_server_queryset().none()
 
         qs = self.get_server_queryset()
         qs = qs.select_related('service', 'user_quota', 'user')
 
-        if user_id:
-            qs = qs.filter(user_id=user_id, classification=Server.Classification.PERSONAL)
-
-        if vo_id:
+        if user_id or username:
+            lookups = {'classification': Server.Classification.PERSONAL}
+            if user_id:
+                lookups['user_id'] = user_id
+            if username:
+                lookups['user__username'] = username
+            qs = qs.filter(**lookups)
+        elif vo_id:
             qs = qs.filter(vo_id=vo_id, classification=Server.Classification.VO)
 
         if user.is_federal_admin():
