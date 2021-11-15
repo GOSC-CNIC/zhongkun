@@ -173,6 +173,9 @@ class OpenStackAdapter(BaseAdapter):
     def _get_openstack_connect(self) -> openstack.connection.Connection:
         return self.auth.kwargs['vmconnect']
 
+    def _build_instance_name(self, uid: str):
+        return f'gosc-instance-{uid}'
+
     def server_create(self, params: inputs.ServerCreateInput, **kwargs):
         """
         创建虚拟服务器
@@ -184,9 +187,10 @@ class OpenStackAdapter(BaseAdapter):
         user_data = build_user_data(username=admin_user, password=admin_pass)
         conn = self._get_openstack_connect()
         try:
+            instance_name = self._build_instance_name(str(uuid.uuid1()))
             flavor = self.get_or_create_flavor(params.ram, params.vcpu)
             server_re = conn.compute.create_server(
-                name='gosc-instance-'+str(uuid.uuid1()), image_id=params.image_id, flavor_id=flavor.id,
+                name=instance_name, image_id=params.image_id, flavor_id=flavor.id,
                 networks=[{"uuid": params.network_id}],
                 user_data=user_data,
                 admin_pass=admin_pass,
@@ -353,6 +357,29 @@ class OpenStackAdapter(BaseAdapter):
         except Exception as e:
             return outputs.ServerVNCOutput(
                 ok=False, error=exceptions.Error(f'get vnc failed, {str(e)}'), vnc=None)
+
+    def server_rebuild(self, params: inputs.ServerRebuildInput, **kwargs):
+        """
+        重建（更换系统镜像）虚拟服务器
+        :return:
+            outputs.ServerRebuildOutput()
+        """
+        server_id = params.server_id
+        image_id = params.image_id
+        admin_user = 'root'
+        admin_pass = ''
+        try:
+            conn = self._get_openstack_connect()
+            instance_name = self._build_instance_name(str(uuid.uuid1()))
+            server = conn.compute.rebuild_server(
+                server=server_id, name=instance_name, image=params.image_id, admin_password=admin_pass)
+        except Exception as e:
+            return outputs.ServerRebuildOutput(
+                ok=False, error=exceptions.Error(f'rebuild server failed, {str(e)}'),
+                server_id=server_id, image_id=image_id, default_user='', default_password='')
+
+        return outputs.ServerRebuildOutput(
+            server_id=server.id, image_id=image_id, default_user=admin_user, default_password=admin_pass)
 
     def list_images(self, params: inputs.ListImageInput, **kwargs):
         """

@@ -58,6 +58,18 @@ def get_adapter_class(style: str = 'evcloud'):
     raise UnsupportedServiceType()
 
 
+def adapter_method_not_support(action=""):
+    def _decorator(func):
+        def wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except NotImplementedError as e:
+                raise MethodNotSupportInService(message=f'adapter not support this action "{action}"')
+
+        return wrapper
+    return _decorator
+
+
 class OneServiceClient:
     def __init__(self, style, endpoint_url, api_version, auth=None, **kwargs):
         """
@@ -74,36 +86,47 @@ class OneServiceClient:
         except AttributeError:
             raise MethodNotSupportInService()
 
+    @adapter_method_not_support(action='authenticate')
     def authenticate(self, *args, **kwargs):
         return self.adapter.authenticate(*args, **kwargs)
 
+    @adapter_method_not_support(action='create server')
     def server_create(self, *args, **kwargs):
         return self.adapter.server_create(*args, **kwargs)
 
+    @adapter_method_not_support(action='delete server')
     def server_delete(self, *args, **kwargs):
         return self.adapter.server_delete(*args, **kwargs)
 
+    @adapter_method_not_support(action='action server')
     def server_action(self, *args, **kwargs):
         return self.adapter.server_action(*args, **kwargs)
 
+    @adapter_method_not_support(action='get server status')
     def server_status(self, *args, **kwargs):
         return self.adapter.server_status(*args, **kwargs)
 
+    @adapter_method_not_support(action='get server vnc')
     def server_vnc(self, *args, **kwargs):
         return self.adapter.server_vnc(*args, **kwargs)
 
+    @adapter_method_not_support(action='rebuild server')
     def server_rebuild(self, params, **kwargs):
         return self.adapter.server_rebuild(params=params, **kwargs)
 
+    @adapter_method_not_support(action='get server detail')
     def server_detail(self, *args, **kwargs):
         return self.adapter.server_detail(*args, **kwargs)
 
+    @adapter_method_not_support(action='list images')
     def list_images(self, *args, **kwargs):
         return self.adapter.list_images(*args, **kwargs)
 
+    @adapter_method_not_support(action='list networks')
     def list_networks(self, *args, **kwargs):
         return self.adapter.list_networks(*args, **kwargs)
 
+    @adapter_method_not_support(action='get network detail')
     def network_detail(self, *args, **kwargs):
         return self.adapter.network_detail(*args, **kwargs)
 

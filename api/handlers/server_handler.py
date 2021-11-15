@@ -151,13 +151,24 @@ class ServerHandler:
         except Exception as exc:
             return view.exception_response(exc)
 
+        update_fields = []
+        admin_password = r.default_password
+        if admin_password:
+            server.raw_default_password = admin_password
+            server.default_user = r.default_user if r.default_user else 'root'
+            update_fields.append('default_user')
+            update_fields.append('default_password')
+
         if server.instance_id != r.server_id:
             server.instance_id = r.server_id
-            server.save(update_fields=['instance_id'])
+            update_fields.append('instance_id')
+
+        if update_fields:
+            server.save(update_fields=update_fields)
 
         server_build_status.creat_task(server)  # 异步任务查询server创建结果，更新server信息和创建状态
         data = {
-            'id': r.server_id,
+            'id': server.id,
             'image_id': r.image_id
         }
         return Response(data=data, status=202)
