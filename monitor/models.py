@@ -82,3 +82,26 @@ class MonitorJobServer(UuidModel):
 
     def __str__(self):
         return self.name
+
+
+class MonitorJobVideoMeeting(UuidModel):
+    """
+    科技云会视频会议监控工作节点
+    """
+    name = models.CharField(verbose_name=_('科技云会服务节点院所名称'), max_length=255, default='')
+    name_en = models.CharField(verbose_name=_('科技云会服务节点院所英文名称'), max_length=255, default='')
+    job_tag = models.CharField(verbose_name=_('标签名称'), max_length=255, default='')
+    ips = models.CharField(verbose_name=_('ipv4地址'), max_length=255, default='', help_text=_('多个ip用“;”分割'))
+    longitude = models.FloatField(verbose_name=_('经度'), blank=True, default=0)
+    latitude = models.FloatField(verbose_name=_('纬度'), blank=True, default=0)
+    provider = models.ForeignKey(to=MonitorProvider, on_delete=models.CASCADE, related_name='+',
+                                 verbose_name=_('监控服务配置'))
+    creation = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
+
+    class Meta:
+        ordering = ['-creation']
+        verbose_name = _('科技云会视频会议监控工作节点')
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return self.name
