@@ -38,21 +38,28 @@ def get_or_create_service():
 
         test_settings = get_test_case_settings()
         service_settings = test_settings['SERVICE']
-        s_type_str = getattr(service_settings, 'service_type', 'evcloud').lower()
-        if s_type_str == 'evcloud':
-            service_type = ServiceConfig.ServiceType.EVCLOUD
-        elif s_type_str == 'openstack':
-            service_type = ServiceConfig.ServiceType.OPENSTACK
-        elif s_type_str == 'vmware':
-            service_type = ServiceConfig.ServiceType.VMWARE
-        else:
+
+        service_type = 'evcloud'
+        if 'service_type' in service_settings:
+            service_type = service_settings['service_type']
+
+        if service_type not in ServiceConfig.ServiceType.values:
             raise Exception('TEST_CASE.SERVICE.service_type is invalid in settings')
+
+        cloud_type = 'private'
+        if 'cloud_type' in service_settings:
+            cloud_type = service_settings['cloud_type']
+
+        cloud_type = cloud_type.lower()
+        if cloud_type not in ServiceConfig.CLoudType.values:
+            raise Exception('TEST_CASE.SERVICE.cloud_type is invalid in settings')
 
         service = ServiceConfig(
             name='test', name_en='test_en', data_center=center,
             endpoint_url=service_settings['endpoint_url'],
             username=service_settings['username'],
             service_type=service_type,
+            cloud_type=cloud_type,
             region_id=service_settings['region_id']
         )
         service.set_password(service_settings['password'])

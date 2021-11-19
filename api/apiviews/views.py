@@ -1576,6 +1576,7 @@ class ServiceViewSet(CustomGenericViewSet):
                   "name": "vmware(10.0.200.243)",
                   "name_en": "string",
                   "service_type": "vmware",
+                  "cloud_type": "private",
                   "add_time": "2020-10-16T09:01:44.402955Z",
                   "need_vpn": false,
                   "status": "enable",              # enable: 开启状态；disable: 停止服务状态; deleted: 删除
@@ -1623,6 +1624,7 @@ class ServiceViewSet(CustomGenericViewSet):
                   "name": "vmware(10.0.200.243)",
                   "name_en": "string",
                   "service_type": "vmware",
+                  "cloud_type": "private",
                   "add_time": "2020-10-16T09:01:44.402955Z",
                   "need_vpn": false,
                   "status": "enable",              # enable: 开启状态；disable: 停止服务状态; deleted: 删除
@@ -2791,6 +2793,7 @@ class ApplyVmServiceViewSet(CustomGenericViewSet):
                   "name_en": "string",
                   "region": "1",
                   "service_type": "evcloud",
+                  "cloud_type": "private",
                   "endpoint_url": "http://159.226.235.3",
                   "api_version": "v3",
                   "username": "string",
@@ -2862,6 +2865,7 @@ class ApplyVmServiceViewSet(CustomGenericViewSet):
               "name_en": "string",
               "region": "1",
               "service_type": "evcloud",
+              "cloud_type": "private",
               "endpoint_url": "http://159.226.235.3",
               "api_version": "v3",
               "username": "string",

@@ -63,15 +63,31 @@ class DataCenter(UuidModel):
         return self.name
 
 
-class ServiceConfig(UuidModel):
-    """
-    资源服务接入配置
-    """
+class BaseService(UuidModel):
     class ServiceType(models.TextChoices):
         EVCLOUD = 'evcloud', 'EVCloud'
         OPENSTACK = 'openstack', 'OpenStack'
         VMWARE = 'vmware', 'VMware'
+        UNIS_CLOUD = 'unis-cloud', _('紫光云')
 
+    class CLoudType(models.TextChoices):
+        PUBLIC = 'public', _('公有云')
+        PRIVATE = 'private', _('私有云')
+        HYBRID = 'hybrid', _('混合云')
+
+    service_type = models.CharField(max_length=32, choices=ServiceType.choices, default=ServiceType.EVCLOUD,
+                                    verbose_name=_('服务平台类型'))
+    cloud_type = models.CharField(max_length=32, choices=CLoudType.choices, default=CLoudType.PRIVATE,
+                                  verbose_name=_('云服务类型'))
+
+    class Meta:
+        abstract = True
+
+
+class ServiceConfig(BaseService):
+    """
+    资源服务接入配置
+    """
     class Status(models.TextChoices):
         ENABLE = 'enable', _('服务中')
         DISABLE = 'disable', _('停止服务')
@@ -82,8 +98,6 @@ class ServiceConfig(UuidModel):
     name = models.CharField(max_length=255, verbose_name=_('服务名称'))
     name_en = models.CharField(verbose_name=_('服务英文名称'), max_length=255, default='')
     region_id = models.CharField(max_length=128, default='', blank=True, verbose_name=_('服务区域/分中心ID'))
-    service_type = models.CharField(max_length=32, choices=ServiceType.choices, default=ServiceType.EVCLOUD,
-                                    verbose_name=_('服务平台类型'))
     endpoint_url = models.CharField(max_length=255, verbose_name=_('服务地址url'), unique=True,
                                     help_text='http(s)://{hostname}:{port}/')
     api_version = models.CharField(max_length=64, default='v3', verbose_name=_('API版本'),
@@ -459,7 +473,7 @@ class ApplyOrganization(UuidModel):
         return organization
 
 
-class ApplyVmService(UuidModel):
+class ApplyVmService(BaseService):
     """
     服务接入申请
     """
@@ -474,11 +488,6 @@ class ApplyVmService(UuidModel):
         REJECT = 'reject', _('拒绝')
         PASS = 'pass', _('通过')
 
-    class ServiceType(models.TextChoices):
-        EVCLOUD = 'evcloud', 'EVCloud'
-        OPENSTACK = 'openstack', 'OpenStack'
-        VMWARE = 'vmware', 'VMware'
-
     user = models.ForeignKey(verbose_name=_('申请用户'), to=User, null=True, on_delete=models.SET_NULL)
     creation_time = models.DateTimeField(verbose_name=_('申请时间'), auto_now_add=True)
     approve_time = models.DateTimeField(verbose_name=_('审批时间'), auto_now_add=True)
@@ -492,8 +501,8 @@ class ApplyVmService(UuidModel):
     name_en = models.CharField(verbose_name=_('英文名称'), max_length=255, default='')
     region = models.CharField(max_length=128, default='', blank=True, verbose_name=_('服务区域'),
                               help_text='OpenStack服务区域名称,EVCloud分中心ID')
-    service_type = models.CharField(choices=ServiceType.choices, default=ServiceType.EVCLOUD,
-                                    max_length=16, verbose_name=_('服务平台类型'))
+    # service_type = models.CharField(choices=ServiceType.choices, default=ServiceType.EVCLOUD,
+    #                                 max_length=16, verbose_name=_('服务平台类型'))
     endpoint_url = models.CharField(max_length=255, verbose_name=_('服务地址url'), unique=True,
                                     help_text='http(s)://{hostname}:{port}/')
     api_version = models.CharField(max_length=64, default='v3', verbose_name=_('API版本'), help_text=_('预留，主要EVCloud使用'))
@@ -597,6 +606,7 @@ class ApplyVmService(UuidModel):
         service.name_en = self.name_en
         service.region_id = self.region
         service.service_type = self.service_type
+        service.cloud_type = self.cloud_type
         service.endpoint_url = self.endpoint_url
         service.api_version = self.api_version
         service.username = self.username

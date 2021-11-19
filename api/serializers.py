@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
-from service.models import ServiceConfig
+from service.models import ServiceConfig, ApplyVmService
 from activity.models import QuotaActivity
 
 
@@ -218,6 +218,7 @@ class ServiceSerializer(serializers.Serializer):
     name = serializers.CharField()
     name_en = serializers.CharField()
     service_type = serializers.CharField()
+    cloud_type = serializers.CharField()
     add_time = serializers.DateTimeField()
     need_vpn = serializers.BooleanField()
     status = serializers.CharField()
@@ -468,7 +469,10 @@ class ApplyVmServiceCreateSerializer(serializers.Serializer):
         label=_('机构ID'), required=True)
     name = serializers.CharField(label=_('服务名称'), max_length=255, required=True)
     name_en = serializers.CharField(label=_('服务名称'), max_length=255, required=True, allow_blank=False)
-    service_type = serializers.CharField(label=_('服务类型'), required=True)
+    service_type = serializers.CharField(label=_('服务类型'), max_length=32, required=True,
+                                         help_text=f'{ApplyVmService.ServiceType.choices}')
+    cloud_type = serializers.CharField(label=_('云类型'), max_length=32, required=True,
+                                       help_text=f'{ApplyVmService.CLoudType.choices}')
     endpoint_url = serializers.CharField(
         label=_('服务地址url'), max_length=255, required=True,
         validators=[URLValidator(schemes=['http', 'https'])],
@@ -529,6 +533,11 @@ class ApplyVmServiceCreateSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
+        cloud_type = attrs.get('cloud_type', '')
+        if cloud_type not in ServiceConfig.CLoudType.values:
+            raise ValidationError(detail={
+                'cloud_type': gettext('cloud_type的值无效')})
+
         service_type = attrs.get('service_type', '')
         if service_type not in ServiceConfig.ServiceType.values:
             raise ValidationError(detail={
@@ -598,6 +607,7 @@ class ApplyVmServiceSerializer(serializers.Serializer):
     name_en = serializers.CharField()
     region = serializers.CharField()
     service_type = serializers.CharField()
+    cloud_type = serializers.CharField()
     endpoint_url = serializers.CharField()
     api_version = serializers.CharField()
     username = serializers.CharField()

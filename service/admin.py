@@ -26,8 +26,8 @@ class ServiceConfigAdmin(admin.ModelAdmin):
     readonly_fields = ('password', 'vpn_password')
     fieldsets = (
         (_('服务配置信息'), {
-            'fields': ('data_center', 'name', 'name_en', 'service_type', 'status', 'endpoint_url', 'api_version',
-                       'region_id', 'username', 'password', 'change_password')
+            'fields': ('data_center', 'name', 'name_en', 'service_type', 'cloud_type', 'status', 'endpoint_url',
+                       'api_version', 'region_id', 'username', 'password', 'change_password')
         }),
         (_('VPN配置信息'), {
             'fields': ('need_vpn', 'vpn_endpoint_url', 'vpn_api_version', 'vpn_username',

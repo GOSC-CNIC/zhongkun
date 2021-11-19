@@ -1458,8 +1458,13 @@ class VmServiceApplyManager:
         if service_type not in apply_service.ServiceType.values:
             raise errors.BadRequest(message='service_type值无效')
 
+        cloud_type = data.get('cloud_type')
+        if cloud_type not in apply_service.CLoudType.values:
+            raise errors.BadRequest(message='cloud_type值无效')
+
         apply_service.user = user
         apply_service.service_type = service_type
+        apply_service.cloud_type = cloud_type
         apply_service.name = data.get('name')
         apply_service.name_en = data.get('name_en')
         apply_service.endpoint_url = data.get('endpoint_url')

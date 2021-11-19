@@ -1158,7 +1158,7 @@ class ServiceTests(MyAPITestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "next", "previous", "results"], response.data)
-        self.assertKeysIn(["id", "name", "name_en", "service_type", "add_time",
+        self.assertKeysIn(["id", "name", "name_en", "service_type", "cloud_type", "add_time",
                            "need_vpn", "status", "data_center", 'longitude', 'latitude'], response.data["results"][0])
         self.assertIsInstance(response.data["results"][0]['status'], str)
         self.assertEqual(response.data["results"][0]['status'], ServiceConfig.Status.ENABLE)
@@ -1208,7 +1208,7 @@ class ServiceTests(MyAPITestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "next", "previous", "results"], response.data)
-        self.assertKeysIn(["id", "name", "name_en", "service_type", "add_time",
+        self.assertKeysIn(["id", "name", "name_en", "service_type", "cloud_type", "add_time",
                            "need_vpn", "status", "data_center", 'longitude', 'latitude'], response.data["results"][0])
         self.assertIsInstance(response.data["results"][0]['status'], str)
 
@@ -2345,6 +2345,7 @@ class ApplyVmServiceTests(MyAPITestCase):
             "name": "地球大数据",
             "name_en": "casearth data",
             "service_type": service.service_type,
+            "cloud_type": service.cloud_type,
             "endpoint_url": service.endpoint_url,
             "region": "1",
             "api_version": "v3",
@@ -2376,6 +2377,7 @@ class ApplyVmServiceTests(MyAPITestCase):
 
     def test_create_cancel_delete_apply(self):
         apply_data = {k: self.apply_data[k] for k in self.apply_data.keys()}
+        apply_data['cloud_type'] = ApplyVmService.CLoudType.HYBRID.value
         endpoint_url = apply_data['endpoint_url']
 
         apply_data['endpoint_url'] = "htts://1359.226.235.3"
@@ -2391,7 +2393,7 @@ class ApplyVmServiceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(keys=[
             'id', 'user', 'creation_time', 'approve_time', 'status', 'organization_id',
-            'longitude', 'latitude', 'name', 'name_en', 'region', 'service_type', 'endpoint_url',
+            'longitude', 'latitude', 'name', 'name_en', 'region', 'service_type', 'cloud_type', 'endpoint_url',
             'api_version', 'username', 'password', 'project_name', 'project_domain_name',
             'user_domain_name', 'need_vpn', 'vpn_endpoint_url', 'vpn_api_version',
             'vpn_username', 'vpn_password', 'deleted', 'contact_person', 'contact_email',
@@ -2403,6 +2405,7 @@ class ApplyVmServiceTests(MyAPITestCase):
             'organization_id': self.service.data_center_id,
             'longitude': 0.0, 'latitude': 0.0, 'name': '地球大数据', "name_en": "casearth data",
             'region': '1', 'service_type': self.service.service_type,
+            'cloud_type': ApplyVmService.CLoudType.HYBRID,
             'endpoint_url': self.service.endpoint_url,
             'api_version': 'v3',
             'username': self.service.username,
@@ -2425,7 +2428,7 @@ class ApplyVmServiceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(keys=[
             'id', 'user', 'creation_time', 'approve_time', 'status', 'organization_id',
-            'longitude', 'latitude', 'name', 'name_en', 'region', 'service_type', 'endpoint_url',
+            'longitude', 'latitude', 'name', 'name_en', 'region', 'service_type', 'cloud_type', 'endpoint_url',
             'api_version', 'username', 'password', 'project_name', 'project_domain_name',
             'user_domain_name', 'need_vpn', 'vpn_endpoint_url', 'vpn_api_version',
             'vpn_username', 'vpn_password', 'deleted', 'contact_person', 'contact_email',
@@ -2496,7 +2499,7 @@ class ApplyVmServiceTests(MyAPITestCase):
         self.assertKeysIn(['apply', 'ok', 'message'], response.data)
         self.assertKeysIn(keys=[
             'id', 'user', 'creation_time', 'approve_time', 'status', 'organization_id',
-            'longitude', 'latitude', 'name', 'name_en', 'region', 'service_type', 'endpoint_url',
+            'longitude', 'latitude', 'name', 'name_en', 'region', 'service_type', 'cloud_type', 'endpoint_url',
             'api_version', 'username', 'password', 'project_name', 'project_domain_name',
             'user_domain_name', 'need_vpn', 'vpn_endpoint_url', 'vpn_api_version',
             'vpn_username', 'vpn_password', 'deleted', 'contact_person', 'contact_email',
@@ -2554,7 +2557,7 @@ class ApplyVmServiceTests(MyAPITestCase):
         self.assertEqual(response.data["count"], 1)
         self.assertKeysIn(keys=[
             'id', 'user', 'creation_time', 'approve_time', 'status', 'organization_id',
-            'longitude', 'latitude', 'name', 'name_en', 'region', 'service_type', 'endpoint_url',
+            'longitude', 'latitude', 'name', 'name_en', 'region', 'service_type', 'cloud_type', 'endpoint_url',
             'api_version', 'username', 'password', 'project_name', 'project_domain_name',
             'user_domain_name', 'need_vpn', 'vpn_endpoint_url', 'vpn_api_version',
             'vpn_username', 'vpn_password', 'deleted', 'contact_person', 'contact_email',
@@ -2565,6 +2568,7 @@ class ApplyVmServiceTests(MyAPITestCase):
             'organization_id': self.service.data_center_id,
             'longitude': 0.0, 'latitude': 0.0, 'name': '地球大数据', "name_en": "casearth data",
             'region': '1', 'service_type': self.service.service_type,
+            'cloud_type': self.service.cloud_type,
             'endpoint_url': self.service.endpoint_url,
             'api_version': 'v3',
             'username': self.service.username,
@@ -2645,7 +2649,7 @@ class ApplyVmServiceTests(MyAPITestCase):
         self.assertEqual(response.data["count"], 1)
         self.assertKeysIn(keys=[
             'id', 'user', 'creation_time', 'approve_time', 'status', 'organization_id',
-            'longitude', 'latitude', 'name', "name_en", 'region', 'service_type', 'endpoint_url',
+            'longitude', 'latitude', 'name', "name_en", 'region', 'service_type', 'cloud_type', 'endpoint_url',
             'api_version', 'username', 'password', 'project_name', 'project_domain_name',
             'user_domain_name', 'need_vpn', 'vpn_endpoint_url', 'vpn_api_version',
             'vpn_username', 'vpn_password', 'deleted', 'contact_person', 'contact_email',
@@ -2656,6 +2660,7 @@ class ApplyVmServiceTests(MyAPITestCase):
             'organization_id': self.service.data_center_id,
             'longitude': 0.0, 'latitude': 0.0, 'name': '地球大数据', "name_en": "casearth data",
             'region': '1', 'service_type': self.service.service_type,
+            'cloud_type': self.service.cloud_type,
             'endpoint_url': self.service.endpoint_url,
             'api_version': 'v3',
             'username': self.service.username,
