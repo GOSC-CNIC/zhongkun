@@ -7,7 +7,8 @@ from drf_yasg import openapi
 from api.viewsets import CustomGenericViewSet
 from api.handlers.monitor_ceph import MonitorCephQueryHandler
 from api.handlers.monitor_server import MonitorServerQueryHandler
-from monitor.managers import CephQueryChoices, ServerQueryChoices
+from api.handlers.monitor_video_meeting import MonitorVideoMeetingQueryHandler
+from monitor.managers import CephQueryChoices, ServerQueryChoices, VideoMeetingQueryChoices
 
 
 class MonitorCephQueryViewSet(CustomGenericViewSet):
@@ -199,3 +200,70 @@ class MonitorServerQueryViewSet(CustomGenericViewSet):
             }
         """
         return MonitorServerQueryHandler().query(view=self, request=request, kwargs=kwargs)
+
+
+class MonitorVideoMeetingQueryViewSet(CustomGenericViewSet):
+    """
+    Video Meeting 监控 Query API
+    """
+
+    queryset = []
+    permission_classes = [IsAuthenticated]
+    pagination_class = None
+    lookup_field = 'id'
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询视频会议节点状态'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='query',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description=f"{VideoMeetingQueryChoices.choices}"
+            )
+        ],
+        responses={
+            200: ''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        查询视频会议节点实时延迟和在线状态
+
+            Http Code： 状态码200， 返回数据：
+            [
+              {
+                "monitor": {
+                  "name": "科技云会节点监控",
+                  "name_en": "科技云会节点监控",
+                  "job_tag": "videomeeting"
+                },
+                "value": [
+                  {
+                    "value": [
+                      1637410040.435,
+                      "4.50013087"
+                    ],
+                    "metric": {
+                      "name": "空天院",
+                      "longitude": 23.5665,
+                      "latitude": 45.1231
+                    }
+                  },
+                  {
+                    "value": [
+                      1637410040.435,
+                      "4.50067842"
+                    ],
+                    "metric": {
+                      "name": "院机关",
+                      "longitude": 32.132,
+                      "latitude": 42.4141
+                    }
+                  }
+                ]
+              }
+            ]
+        """
+        return MonitorVideoMeetingQueryHandler().query(view=self, request=request, kwargs=kwargs)

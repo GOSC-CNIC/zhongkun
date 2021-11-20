@@ -3609,3 +3609,42 @@ class StatsQuotaTests(MyAPITestCase):
             "disk_size_total_count": disk_size, "disk_size_used_count": disk_size,
             "service_id": self.service.id
         }, d=response.data)
+
+
+class MonitorVideoMeetingTests(MyAPITestCase):
+    def setUp(self):
+        self.user = None
+        set_auth_header(self)
+
+    def query_response(self, query_tag: str = None):
+        querys = {}
+        if query_tag:
+            querys['query'] = query_tag
+
+        url = reverse('api:monitor-video-meeting-query-list')
+        query = parse.urlencode(query=querys)
+        return self.client.get(f'{url}?{query}')
+
+    def query_ok_test(self, query_tag: str):
+        response = self.query_response(query_tag=query_tag)
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.data, list)
+        data_item = response.data[0]
+        self.assertKeysIn(["value", "monitor"], data_item)
+        if data_item["value"] is not None:
+            self.assertIsInstance(data_item["value"], list)
+        self.assertKeysIn(["name", "name_en", "job_tag"], data_item["monitor"])
+
+        return response
+
+    def test_query(self):
+        from monitor.managers import VideoMeetingQueryChoices
+
+        # no permission
+        response = self.query_response(query_tag=VideoMeetingQueryChoices.NODE_STATUS.value)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # federal admin permission
+        self.user.set_federal_admin()
+        self.query_ok_test(query_tag=VideoMeetingQueryChoices.NODE_STATUS.value)
+        self.query_ok_test(query_tag=VideoMeetingQueryChoices.NODE_LATENCY.value)

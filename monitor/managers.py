@@ -1,12 +1,12 @@
 from django.db import models
 from django.utils.translation import gettext, gettext_lazy as _
 
-
 from core import errors
-from api.serializers import MonitorJobCephSerializer, MonitorJobServerSerializer
-from .models import MonitorJobCeph, MonitorProvider, MonitorJobServer
+from api.serializers import MonitorJobCephSerializer, MonitorJobServerSerializer, MonitorJobVideoMeetingSerializer
+from .models import MonitorJobCeph, MonitorProvider, MonitorJobServer, MonitorJobVideoMeeting
 from .backends.monitor_ceph import MonitorCephQueryAPI
 from .backends.monitor_server import MonitorServerQueryAPI
+from .backends.monitor_video_meeting import MonitorVideoMeetingQueryAPI
 
 
 class CephQueryChoices(models.TextChoices):
@@ -32,6 +32,11 @@ class ServerQueryChoices(models.TextChoices):
     MAX_MEM_USAGE = 'max_mem_usage', _('集群最大内存使用率')
     MIN_DISK_USAGE = 'min_disk_usage', _('集群最小磁盘使用率')
     MAX_DISK_USAGE = 'max_disk_usage', _('集群最大磁盘使用率')
+
+
+class VideoMeetingQueryChoices(models.TextChoices):
+    NODE_STATUS = 'node_status', _('节点在线状态')
+    NODE_LATENCY = 'node_lantency', _('节点延迟')
 
 
 class MonitorJobCephManager:
@@ -100,7 +105,7 @@ class MonitorJobCephManager:
         job_ceph_map = {}
         for job in job_ceph_qs:
             job_ceph_map[job.job_tag] = job
-        
+
         if len(job_ceph_map) == 0:
             raise errors.NoMonitorJob(message=_('没有监控配置'))
 
@@ -117,9 +122,9 @@ class MonitorJobCephManager:
                 data = {'monitor': job_dict, 'values': []}
 
             ret_data.append(data)
-            
+
         return ret_data
-    
+
     def request_range_data(self, provider: MonitorProvider, tag: str, job: str, start: int, end: int, step: int):
         params = {'provider': provider, 'job': job, 'start': start, 'end': end, 'step': step}
 
@@ -244,6 +249,84 @@ class MonitorJobServerManager:
             ServerQueryChoices.MAX_MEM_USAGE.value: self.backend.server_max_mem_usage,
             ServerQueryChoices.MIN_DISK_USAGE.value: self.backend.server_min_disk_usage,
             ServerQueryChoices.MAX_DISK_USAGE.value: self.backend.server_max_disk_usage,
+        }[tag]
+
+        return f(**params)
+
+
+class MonitorJobVideoMeetingManager:
+    backend = MonitorVideoMeetingQueryAPI()
+
+    @staticmethod
+    def get_queryset():
+        qs = MonitorJobVideoMeeting.objects.select_related('provider').all()
+        return qs
+
+    def query(self, tag):
+        job_video_meeting_qs = self.get_queryset()
+        job_video_meeting_map = {}
+        for job in job_video_meeting_qs:
+            job_video_meeting_map[job.job_tag] = job
+
+        if len(job_video_meeting_map) == 0:
+            raise errors.NoMonitorJob(message=_('没有监控配置'))
+
+        ret_data = []
+        job_dict = {
+          "name": "科技云会节点监控",
+          "name_en": "科技云会节点监控",
+          "job_tag": "videomeeting",
+        }
+        for job in job_video_meeting_map.values():
+            # 由于没有service_id所以job_dict无法生效
+            # job_dict = MonitorJobVideoMeetingSerializer(job).data
+
+            r = self.request_data(provider=job.provider, tag=tag)
+            if r:
+                #  [
+                #     {
+                #         "metric": {
+                #             "__name__": "probe_success",
+                #             "hostname": "kongtianyuan",
+                #             "instance": "159.226.38.247:9115",
+                #             "job": "shipinPing",
+                #             "monitor": "example",
+                #             "receive_cluster": "network",
+                #             "receive_replica": "0",
+                #             "tenant_id": "default-tenant"
+                #         },
+                #         "value": [
+                #             1637233827.692,
+                #             "0"
+                #         ]
+                #     },
+                #     {...}
+                # ]
+
+                for result in r:
+                    hostname = result.get('metric').get('hostname')
+                    result.pop('metric')
+                    qs = job_video_meeting_qs.filter(name_en=hostname).first()
+                    if qs:
+                        result['metric'] = {
+                            'name': qs.name,
+                            'longitude': qs.longitude,
+                            'latitude': qs.latitude
+                        }
+                        ret_data.append(result)
+                return [{'monitor': job_dict, 'value': ret_data}]
+            else:
+                return [{'monitor': job_dict, 'value': None}]
+
+    def request_data(self, provider: MonitorProvider, tag):
+        """
+        :return:
+        :raises: Error
+        """
+        params = {'provider': provider}
+        f = {
+            VideoMeetingQueryChoices.NODE_STATUS.value: self.backend.video_node_status,
+            VideoMeetingQueryChoices.NODE_LATENCY.value: self.backend.video_node_lantency,
         }[tag]
 
         return f(**params)
