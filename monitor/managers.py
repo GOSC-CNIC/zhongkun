@@ -304,9 +304,11 @@ class MonitorJobVideoMeetingManager:
                 # ]
 
                 for result in r:
+                    if result.get('metric').get('job') != "shipinPing":
+                        continue
                     hostname = result.get('metric').get('hostname')
                     result.pop('metric')
-                    qs = job_video_meeting_qs.filter(name_en=hostname).first()
+                    qs = job_video_meeting_qs.filter(job_tag=hostname).first()
                     if qs:
                         result['metric'] = {
                             'name': qs.name,
