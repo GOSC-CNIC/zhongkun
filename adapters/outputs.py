@@ -21,6 +21,7 @@ class ServerStatus:
     BUILDING = 11    # The domain is being built
     BUILT_FAILED = 12    # Failed to build the domain
     ERROR = 13          # error
+    REBUILDING = 14  # The domain is being built
 
     __status_map = {
         NOSTATE: 'no state',
@@ -35,7 +36,8 @@ class ServerStatus:
         MISS: 'miss',
         BUILDING: 'building',
         BUILT_FAILED: 'built failed',
-        ERROR: 'error'
+        ERROR: 'error',
+        REBUILDING: 'rebuilding'
     }
 
     __normal_values = [
@@ -104,7 +106,7 @@ class AuthenticateOutput(OutputBase):
                  header: AuthenticateOutputHeader, query: AuthenticateOutputQuery,
                  username: str, password: str, **kwargs):
         """
-        :param style: 'token', 'jwt', ...
+        :param style: 'token', 'jwt', 'key, ...
         :param token: token value
         :param expire: expire timestamp; type: int
         :param header: AuthenticateOutputHeader() or None
@@ -174,7 +176,7 @@ class ServerDetailOutputServer:
         :param uuid: id of server; type: str
         :param image: image of server
         :param vcpu: vcpu of server; type: int
-        :param ram: ram of server; type: int
+        :param ram: ram of server; type: int  Mb
         :param ip: ip of server
         :param creation_time: creation time of server; type: datetime
         :param default_user: login username

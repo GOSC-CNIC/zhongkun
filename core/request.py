@@ -124,7 +124,7 @@ def update_server_detail(server, task_status: int = None):
     :param server:
     :param task_status: 设置server的创建状态；默认None忽略
     :return:
-        True    # success
+        Server    # success
         raise Error   # failed
 
     :raises: Error
@@ -191,7 +191,7 @@ def update_server_detail(server, task_status: int = None):
     except Exception as e:
         raise exceptions.APIException(message=str(e))
 
-    return True
+    return server
 
 
 def server_status_code(server):

@@ -308,7 +308,7 @@ class OpenStackAdapter(BaseAdapter):
             'ACTIVE': outputs.ServerStatus.RUNNING,
             'UNKNOWN': outputs.ServerStatus.NOSTATE,
             'PAUSED': outputs.ServerStatus.PAUSED,
-            'SHUTOFF': outputs.ServerStatus.SHUTDOWN,
+            'SHUTOFF': outputs.ServerStatus.SHUTOFF,
             'SUSPENDED': outputs.ServerStatus.PMSUSPENDED,
             'ERROR': outputs.ServerStatus.ERROR,
             'BUILD': outputs.ServerStatus.BUILDING,

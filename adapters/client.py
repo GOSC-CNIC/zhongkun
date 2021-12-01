@@ -3,6 +3,7 @@ from service.models import ServiceConfig
 from .evcloud.adapter import EVCloudAdapter
 from .openstack.adapter import OpenStackAdapter
 from .vmware.adapter import VmwareAdapter
+from .uniscloud.adapter import UnisAdapter
 from .exceptions import UnsupportedServiceType, MethodNotSupportInService
 from .params import ParamsName
 
@@ -10,14 +11,21 @@ from .params import ParamsName
 SERVICE_TYPE_EVCLOUD = 'evcloud'
 SERVICE_TYPE_OPENSTACK = 'openstack'
 SERVICE_TYPE_VMWARE = 'vmware'
+SERVICE_TYPE_UNIS_CLOUD = 'unis-cloud'
 
 
 def get_service_client(service: ServiceConfig, **kwargs):
-    style = SERVICE_TYPE_EVCLOUD
-    if service.service_type == service.ServiceType.OPENSTACK:
+    service_type = service.service_type
+    if service_type == service.ServiceType.EVCLOUD:
+        style = SERVICE_TYPE_EVCLOUD
+    elif service_type == service.ServiceType.OPENSTACK:
         style = SERVICE_TYPE_OPENSTACK
-    elif service.service_type == service.ServiceType.VMWARE:
+    elif service_type == service.ServiceType.VMWARE:
         style = SERVICE_TYPE_VMWARE
+    elif service_type == service.ServiceType.UNIS_CLOUD:
+        style = SERVICE_TYPE_UNIS_CLOUD
+    else:
+        raise UnsupportedServiceType(extend_msg=service_type)
 
     params = service.extra_params()
     if service.region_id:
@@ -48,12 +56,16 @@ def get_adapter_class(style: str = 'evcloud'):
 
     :raises: UnsupportedServiceType
     """
-    if style.lower() == SERVICE_TYPE_EVCLOUD:
-        return EVCloudAdapter
-    if style.lower() == SERVICE_TYPE_OPENSTACK:
-        return OpenStackAdapter
-    if style.lower() == SERVICE_TYPE_VMWARE:
-        return VmwareAdapter
+    map_adapters = {
+        SERVICE_TYPE_EVCLOUD: EVCloudAdapter,
+        SERVICE_TYPE_OPENSTACK: OpenStackAdapter,
+        SERVICE_TYPE_VMWARE: VmwareAdapter,
+        SERVICE_TYPE_UNIS_CLOUD: UnisAdapter,
+    }
+    style = style.lower()
+
+    if style in map_adapters:
+        return map_adapters[style]
 
     raise UnsupportedServiceType()
 

@@ -319,7 +319,8 @@ class ServersViewSet(CustomGenericViewSet):
 
         server.save()
         if service.service_type == service.ServiceType.EVCLOUD:
-            if self._update_server_detail(server, task_status=server.TASK_CREATED_OK):
+            server = self._update_server_detail(server, task_status=server.TASK_CREATED_OK)
+            if server:
                 return Response(data={'id': server.id}, status=status.HTTP_201_CREATED)
 
         server_build_status.creat_task(server)      # 异步任务查询server创建结果，更新server信息和创建状态
@@ -434,50 +435,7 @@ class ServersViewSet(CustomGenericViewSet):
                 serializer = serializers.ServerSerializer(server)
                 return Response(data={'server': serializer.data})
 
-        service = server.service
-        params = inputs.ServerDetailInput(server_id=server.instance_id)
-        try:
-            out = self.request_service(service=service, method='server_detail', params=params)
-        except exceptions.APIException as exc:
-            return Response(data=exc.err_data(), status=exc.status_code)
-
-        update_fields = []
-        new_vcpu = out.server.vcpu
-        if new_vcpu and server.vcpus != new_vcpu:
-            server.vcpus = new_vcpu
-            update_fields.append('vcpus')
-
-        new_ram = out.server.ram
-        if new_ram and server.ram != new_ram:
-            server.ram = new_ram
-            update_fields.append('ram')
-
-        new_ipv4 = out.server.ip.ipv4
-        if new_ipv4 and server.ipv4 != new_ipv4:
-            server.ipv4 = new_ipv4
-            update_fields.append('ipv4')
-
-        new_name = out.server.image.name
-        if new_name and server.image != new_name:
-            server.image = new_name
-            update_fields.append('image')
-
-        new_pub = out.server.ip.public_ipv4
-        if new_pub is not None and server.public_ip != new_pub:
-            server.public_ip = new_pub
-            update_fields.append('public_ip')
-
-        image_desc = out.server.image.desc
-        if image_desc and server.image_desc != image_desc:
-            server.image_desc = image_desc
-            update_fields.append('image_desc')
-
-        if update_fields:
-            try:
-                server.save(update_fields=update_fields)
-            except Exception as e:
-                pass
-
+        server = self._update_server_detail(server=server)
         serializer = serializers.ServerSerializer(server)
         return Response(data={'server': serializer.data})
 
@@ -775,7 +733,7 @@ class ServersViewSet(CustomGenericViewSet):
             return Response(data=exc.err_data(), status=exc.status_code)
 
         vnc = r.vnc.url
-        if not vnc.startswith('http') and service.service_type == service.ServiceType.VMWARE:
+        if not vnc.startswith('http') and service.service_type in [service.ServiceType.VMWARE, service.ServiceType.UNIS_CLOUD]:
             path = reverse('servers:vmware')
             url = request.build_absolute_uri(location=path)
             vnc = replace_query_param(url=url, key='vm_url', val=r.vnc.url)
