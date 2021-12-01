@@ -15,12 +15,22 @@ TEST_CASE = {
     },
     'MONITOR_SERVER': {
         'PROVIDER': {
-            'endpoint_url': 'http://159.226.98.186:19192/',
+            'endpoint_url': 'http://159.226.98.184:19192/',
             'username': '',
             'password': ''
         },
         'JOB_SERVER': {
             'job_tag': 'AIOPS-node'
+        }
+    },
+    'MONITOR_VIDEO_MEETING': {
+        'PROVIDER': {
+            'endpoint_url': 'http://159.226.98.184:19192/',
+            'username': '',
+            'password': ''
+        },
+        'JOB_MEETING': {
+            'job_tag': 'wangluozhongxin'
         }
     }
 }

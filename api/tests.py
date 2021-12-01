@@ -20,7 +20,9 @@ from utils.test import get_or_create_user, get_or_create_service, get_or_create_
 from adapters import outputs
 from vo.models import VirtualOrganization, VoMember
 from activity.models import QuotaActivity
-from monitor.tests import get_or_create_monitor_job_ceph, get_or_create_monitor_job_server
+from monitor.tests import (
+    get_or_create_monitor_job_ceph, get_or_create_monitor_job_server, get_or_create_monitor_job_meeting
+)
 from core.quota import QuotaAPI
 from core import errors
 
@@ -3447,7 +3449,7 @@ class MonitorServerTests(MyAPITestCase):
         from monitor.managers import ServerQueryChoices
 
         service_id = self.service.id
-        monitor_job_server = get_or_create_monitor_job_server(service_id=service_id)
+        get_or_create_monitor_job_server(service_id=service_id)
 
         # no permission
         response = self.query_response(service_id=service_id, query_tag=ServerQueryChoices.CPU_USAGE.value)
@@ -3636,20 +3638,24 @@ class MonitorVideoMeetingTests(MyAPITestCase):
         self.assertIsInstance(response.data, list)
         data_item = response.data[0]
         self.assertKeysIn(["value", "monitor"], data_item)
-        if data_item["value"] is not None:
-            self.assertIsInstance(data_item["value"], list)
         self.assertKeysIn(["name", "name_en", "job_tag"], data_item["monitor"])
-
+        self.assertIsInstance(data_item["value"], list)
+        values = data_item["value"]
+        self.assertKeysIn(['value', 'metric'], values[0])
+        self.assertKeysIn(['name', 'longitude', 'latitude', 'ipv4s'], values[0]['metric'])
+        self.assertIsInstance(values[0]['metric']["ipv4s"], list)
         return response
 
     def test_query(self):
         from monitor.managers import VideoMeetingQueryChoices
 
+        get_or_create_monitor_job_meeting()
+
         # no permission
-        response = self.query_response(query_tag=VideoMeetingQueryChoices.NODE_STATUS.value)
-        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+        # response = self.query_response(query_tag=VideoMeetingQueryChoices.NODE_STATUS.value)
+        # self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
         # federal admin permission
-        self.user.set_federal_admin()
+        # self.user.set_federal_admin()
         self.query_ok_test(query_tag=VideoMeetingQueryChoices.NODE_STATUS.value)
         self.query_ok_test(query_tag=VideoMeetingQueryChoices.NODE_LATENCY.value)
