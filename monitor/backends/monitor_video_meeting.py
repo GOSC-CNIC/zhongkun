@@ -10,26 +10,26 @@ class ExpressionQuery:
     node_lantency = 'probe_duration_seconds'
 
     @staticmethod
-    def expression(tag: str):
+    def expression(tag: str, job: str):
         expression_query = tag
 
-        return f'{expression_query}'
+        return f'{expression_query}{{job="{job}"}}'
 
-    def build_node_status_query(self):
-        return self.expression(tag=self.node_status)
+    def build_node_status_query(self, job: str):
+        return self.expression(tag=self.node_status, job=job)
 
-    def build_node_lantency_query(self):
-        return self.expression(tag=self.node_lantency)
+    def build_node_lantency_query(self, job: str):
+        return self.expression(tag=self.node_lantency, job=job)
 
 
 class MonitorVideoMeetingQueryAPI:
-    def video_node_status(self, provider: MonitorProvider):
-        expression_query = ExpressionQuery().build_node_status_query()
+    def video_node_status(self, provider: MonitorProvider, job: str):
+        expression_query = ExpressionQuery().build_node_status_query(job=job)
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(api_url)
 
-    def video_node_lantency(self, provider: MonitorProvider):
-        expression_query = ExpressionQuery().build_node_lantency_query()
+    def video_node_lantency(self, provider: MonitorProvider, job: str):
+        expression_query = ExpressionQuery().build_node_lantency_query(job=job)
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(api_url)
 

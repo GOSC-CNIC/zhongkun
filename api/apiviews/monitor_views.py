@@ -248,18 +248,11 @@ class MonitorVideoMeetingQueryViewSet(CustomGenericViewSet):
                     "metric": {
                       "name": "空天院",
                       "longitude": 23.5665,
-                      "latitude": 45.1231
-                    }
-                  },
-                  {
-                    "value": [
-                      1637410040.435,
-                      "4.50067842"
-                    ],
-                    "metric": {
-                      "name": "院机关",
-                      "longitude": 32.132,
-                      "latitude": 42.4141
+                      "latitude": 45.1231,
+                      "ipv4s": [
+                        "159.226.38.98",
+                        "159.226.38.99"
+                      ]
                     }
                   }
                 ]

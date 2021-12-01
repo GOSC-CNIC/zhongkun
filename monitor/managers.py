@@ -268,7 +268,7 @@ class MonitorJobVideoMeetingManager:
         for job in job_video_meeting_qs:
             job_video_meeting_map[job.job_tag] = job
 
-        if len(job_video_meeting_map) == 0:
+        if not job_video_meeting_map:
             raise errors.NoMonitorJob(message=_('没有监控配置'))
 
         ret_data = []
@@ -277,55 +277,59 @@ class MonitorJobVideoMeetingManager:
           "name_en": "科技云会节点监控",
           "job_tag": "videomeeting",
         }
-        for job in job_video_meeting_map.values():
-            # 由于没有service_id所以job_dict无法生效
-            # job_dict = MonitorJobVideoMeetingSerializer(job).data
 
-            r = self.request_data(provider=job.provider, tag=tag)
-            if r:
-                #  [
-                #     {
-                #         "metric": {
-                #             "__name__": "probe_success",
-                #             "hostname": "kongtianyuan",
-                #             "instance": "159.226.38.247:9115",
-                #             "job": "shipinPing",
-                #             "monitor": "example",
-                #             "receive_cluster": "network",
-                #             "receive_replica": "0",
-                #             "tenant_id": "default-tenant"
-                #         },
-                #         "value": [
-                #             1637233827.692,
-                #             "0"
-                #         ]
-                #     },
-                #     {...}
-                # ]
+        provider = job_video_meeting_qs[0].provider
+        job_tag = "shipinPing"
+        r = self.request_data(provider=provider, tag=tag, job=job_tag)
+        if r:
+            for result in r:
+                if result.get('metric').get('job') != job_tag:
+                    continue
 
-                for result in r:
-                    if result.get('metric').get('job') != "shipinPing":
-                        continue
-                    hostname = result.get('metric').get('hostname')
-                    result.pop('metric')
-                    qs = job_video_meeting_qs.filter(job_tag=hostname).first()
-                    if qs:
-                        result['metric'] = {
-                            'name': qs.name,
-                            'longitude': qs.longitude,
-                            'latitude': qs.latitude
-                        }
-                        ret_data.append(result)
-                return [{'monitor': job_dict, 'value': ret_data}]
-            else:
-                return [{'monitor': job_dict, 'value': None}]
+                hostname = result.get('metric').get('hostname')
+                if hostname not in job_video_meeting_map:
+                    continue
 
-    def request_data(self, provider: MonitorProvider, tag):
+                job = job_video_meeting_map[hostname]
+                ipv4s = [i.strip(' ') for i in job.ips.split(';')]
+                item = {
+                    'metric': {
+                        'name': job.name,
+                        'longitude': job.longitude,
+                        'latitude': job.latitude,
+                        'ipv4s': ipv4s
+                    },
+                    'value': result['value']
+                }
+                ret_data.append(item)
+
+        return [{'monitor': job_dict, 'value': ret_data}]
+
+    def request_data(self, provider: MonitorProvider, tag: str, job: str):
         """
         :return:
+            [
+                {
+                    "metric": {
+                        "__name__": "probe_success",
+                        "hostname": "kongtianyuan",
+                        "instance": "159.226.38.247:9115",
+                        "job": "shipinPing",
+                        "monitor": "example",
+                        "receive_cluster": "network",
+                        "receive_replica": "0",
+                        "tenant_id": "default-tenant"
+                    },
+                    "value": [
+                        1637233827.692,
+                        "0"
+                    ]
+                },
+                {...}
+            ]
         :raises: Error
         """
-        params = {'provider': provider}
+        params = {'provider': provider, 'job': job}
         f = {
             VideoMeetingQueryChoices.NODE_STATUS.value: self.backend.video_node_status,
             VideoMeetingQueryChoices.NODE_LATENCY.value: self.backend.video_node_lantency,
