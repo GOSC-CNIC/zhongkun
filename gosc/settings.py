@@ -17,6 +17,9 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 from datetime import timedelta
 from pathlib import Path
 import os
+
+# import pymysql
+# pymysql.install_as_MySQLdb()
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
 
 # Quick-start development settings - unsuitable for production

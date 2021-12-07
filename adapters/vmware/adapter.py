@@ -1,8 +1,8 @@
-from datetime import datetime, timedelta, timezone
-
 import uuid
 import re
 from pytz import utc
+from datetime import datetime, timedelta, timezone
+from urllib3.util.url import parse_url
 
 from adapters.base import BaseAdapter
 from adapters import inputs
@@ -121,6 +121,7 @@ class VmwareAdapter(BaseAdapter):
                  ):
         api_version = api_version if api_version in ['v3'] else 'v3'
         super().__init__(endpoint_url=endpoint_url, api_version=api_version, auth=auth)
+        self.url = parse_url(self.endpoint_url)
 
     def authenticate(self, params: inputs.AuthenticateInput, **kwargs):
         """
@@ -133,12 +134,21 @@ class VmwareAdapter(BaseAdapter):
         """
         username = params.username
         password = params.password
+        port = 443
+        if self.url.port:
+            port = self.url.port
+        elif self.url.scheme == 'https':
+            port = 443
+        else:
+            port = 80
 
         try:
-            service_instance = SmartConnectNoSSL(host=self.endpoint_url,
+            service_instance = SmartConnectNoSSL(protocol=self.url.scheme,
+                                                 host=self.url.host,
+                                                 port=port,
                                                  user=username,
-                                                 pwd=password,
-                                                 port=int(443))
+                                                 pwd=password
+                                                 )
             atexit.register(Disconnect, service_instance)
             expire = (datetime.utcnow() + timedelta(hours=1)).timestamp()
             auth = outputs.AuthenticateOutput(style='token', token='', header=None, query=None,
@@ -170,7 +180,7 @@ class VmwareAdapter(BaseAdapter):
             content = service_instance.RetrieveContent()
             datacenter = get_obj(content, [vim.Datacenter], 'Datacenter')
             destfolder = datacenter.vmFolder
-            cluster = get_obj(content, [vim.ClusterComputeResource], 'gosc_cluster')
+            cluster = get_obj(content, [vim.ClusterComputeResource], 'gosc-cluster')
             resource_pool = cluster.resourcePool  # use same root resource pool that my desired cluster uses
             datastore = get_obj(content, [vim.Datastore], 'datastore1')
             template_vm = get_obj(content, [vim.VirtualMachine], deploy_settings["template_name"])
@@ -241,7 +251,7 @@ class VmwareAdapter(BaseAdapter):
             # fire the clone task
             task = template_vm.Clone(folder=destfolder, name=deploy_settings["new_vm_name"].title(), spec=clonespec)
             server = outputs.ServerCreateOutputServer(
-                uuid=vm_name
+                uuid=vm_name, default_user='', default_password=''
             )
             return outputs.ServerCreateOutput(server=server)
         except Exception as e:
