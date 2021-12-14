@@ -173,7 +173,8 @@ class OpenStackAdapter(BaseAdapter):
     def _get_openstack_connect(self) -> openstack.connection.Connection:
         return self.auth.kwargs['vmconnect']
 
-    def _build_instance_name(self, uid: str):
+    @staticmethod
+    def _build_instance_name(uid: str):
         return f'gosc-instance-{uid}'
 
     def server_create(self, params: inputs.ServerCreateInput, **kwargs):
@@ -408,7 +409,7 @@ class OpenStackAdapter(BaseAdapter):
                 if not system:
                     system = image_name
 
-                img_obj = outputs.ListImageOutputImage(id=image.id, name=image_name, system=system, desc=desc,
+                img_obj = outputs.ListImageOutputImage(_id=image.id, name=image_name, system=system, desc=desc,
                                                        system_type=image.os_type, creation_time=image.created_at,
                                                        default_username='', default_password=''
                                                        )
@@ -452,7 +453,7 @@ class OpenStackAdapter(BaseAdapter):
                 public = net.is_router_external
                 if net.subnet_ids:
                     subnet = service_instance.network.get_subnet(net.subnet_ids[0])
-                    new_net = outputs.ListNetworkOutputNetwork(id=net.id, name=net.name, public=public,
+                    new_net = outputs.ListNetworkOutputNetwork(_id=net.id, name=net.name, public=public,
                                                                segment=subnet.cidr)
                     result.append(new_net)
 
@@ -472,7 +473,7 @@ class OpenStackAdapter(BaseAdapter):
             network = service_instance.network.get_network(params.network_id)
             subnet = service_instance.network.get_subnet(network.subnet_ids[0])
             is_public = network.is_router_external
-            new_net = outputs.NetworkDetail(id=params.network_id, name=network.name,
+            new_net = outputs.NetworkDetail(_id=params.network_id, name=network.name,
                                             public=is_public, segment=subnet.cidr)
             return outputs.NetworkDetailOutput(network=new_net)
         except Exception as e:

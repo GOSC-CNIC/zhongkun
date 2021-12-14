@@ -50,12 +50,12 @@ class UnisAdapter(BaseAdapter):
         data = r.json()
         expire = (datetime.utcnow() + timedelta(hours=2)).timestamp()
         auth = outputs.AuthenticateOutput(style='key', token='', header=None, query=None,
-                                          expire=int(expire), username=params.username, password=params.password)
+                                          expire=int(expire), access_key=params.username, secret_key=params.password)
         self.auth = auth
         return auth
 
     def get_unis_client(self, region: str):
-        credentials = Credentials(access_key=self.auth.username, secret_key=self.auth.password)
+        credentials = Credentials(access_key=self.auth.access_key, secret_key=self.auth.secret_key)
         return UnisCloud(
             credentials=credentials,
             endpoint_url=self.endpoint_url,
@@ -320,7 +320,7 @@ class UnisAdapter(BaseAdapter):
         unis_images = data['images']
         for img in unis_images:
             image = outputs.ListImageOutputImage(
-                id=img['imageId'],
+                _id=img['imageId'],
                 name=img['operatingSystem'],
                 system=img['operatingSystem'],
                 system_type=img['ostype'],

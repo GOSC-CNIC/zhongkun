@@ -1,112 +1,17 @@
 import uuid
-import re
-from pytz import utc
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from urllib3.util.url import parse_url
 
-from adapters.base import BaseAdapter
-from adapters import inputs
-from adapters import outputs
-
-from adapters import exceptions
-
 import atexit
-
 from pyVim.connect import SmartConnectNoSSL, Disconnect
 from pyVmomi import vim
 from pyVim.task import WaitForTask
 
-
-datetime_re = re.compile(
-    r'(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<day>\d{1,2})'
-    r'[T ](?P<hour>\d{1,2}):(?P<minute>\d{1,2})'
-    r'(?::(?P<second>\d{1,2})(?:\.(?P<microsecond>\d{1,6})\d{0,6})?)?'
-    r'(?P<tzinfo>Z|[+-]\d{2}(?::?\d{2})?)?$'
-)
-
-
-def get_fixed_timezone(offset):
-    """Return a tzinfo instance with a fixed offset from UTC."""
-    if isinstance(offset, timedelta):
-        offset = offset.total_seconds() // 60
-    sign = '-' if offset < 0 else '+'
-    hhmm = '%02d%02d' % divmod(abs(offset), 60)
-    name = sign + hhmm
-    return timezone(timedelta(minutes=offset), name)
-
-
-def parse_datetime(value):
-    """Parse a string and return a datetime.datetime.
-
-    This function supports time zone offsets. When the input contains one,
-    the output uses a timezone with a fixed offset from UTC.
-
-    Raise ValueError if the input is well formatted but not a valid datetime.
-    Return None if the input isn't well formatted.
-    """
-    match = datetime_re.match(value)
-    if match:
-        kw = match.groupdict()
-        kw['microsecond'] = kw['microsecond'] and kw['microsecond'].ljust(6, '0')
-        tzinfo = kw.pop('tzinfo')
-        if tzinfo == 'Z':
-            tzinfo = utc
-        elif tzinfo is not None:
-            offset_mins = int(tzinfo[-2:]) if len(tzinfo) > 3 else 0
-            offset = 60 * int(tzinfo[1:3]) + offset_mins
-            if tzinfo[0] == '-':
-                offset = -offset
-            tzinfo = get_fixed_timezone(offset)
-        kw = {k: int(v) for k, v in kw.items() if v is not None}
-        kw['tzinfo'] = tzinfo
-        return datetime(**kw)
-
-
-def iso_to_datetime(value, default=datetime(year=1, month=1, day=1, hour=0, minute=0, second=0, tzinfo=utc)):
-    try:
-        parsed = parse_datetime(value)
-        if parsed is not None:
-            return default
-    except (ValueError, TypeError):
-        return default
-
-
-"""
- Get the vsphere object associated with a given text name
-"""
-
-
-def get_obj(content, vimtype, name):
-    obj = None
-    container = content.viewManager.CreateContainerView(content.rootFolder, vimtype, True)
-    for c in container.view:
-        if c.name.lower() == name.lower():
-            obj = c
-            break
-    return obj
-
-
-"""
- Get the vsphere object associated with a given text name
-"""
-
-
-def get_obj_by_uuid(content, _uuid):
-    obj = content.searchIndex.FindByUuid(None, _uuid, True, True)
-    return obj
-
-
-"""
- Get the vsphere object associated with a given text name
-"""
-
-
-def get_all_obj(content, vimtype):
-    result = []
-    container = content.viewManager.CreateContainerView(content.rootFolder, vimtype, True)
-    for c in container.view:
-        result.append(c)
-    return result
+from adapters.base import BaseAdapter
+from adapters import inputs
+from adapters import outputs
+from adapters import exceptions
+from . import helpers
 
 
 class VmwareAdapter(BaseAdapter):
@@ -160,30 +65,49 @@ class VmwareAdapter(BaseAdapter):
         self.auth = auth
         return auth
 
+    def _get_connect(self):
+        return self.auth.kwargs['vmconnect']
+
+    def _server_name(self, template_name: str):
+        return f'{template_name}&{str(uuid.uuid1())}'
+
+    def _get_template_name(self, server_name: str):
+        if '&' not in server_name:
+            return ''
+
+        template_name, _uuid = server_name.split('&', maxsplit=1)
+        try:
+            uuid.UUID(_uuid)
+        except ValueError as e:
+            return ''
+
+        return template_name
+
     def server_create(self, params: inputs.ServerCreateInput, **kwargs):
         """
         创建虚拟服务器
         :return:
             outputs.ServerCreateOutput()
         """
+        template_name = params.image_id
         try:
-            vm_name = 'gosc-instance-' + str(uuid.uuid1())
+            vm_name = self._server_name(template_name)
             deploy_settings = {'template': 'centos8_gui', 'hostname': 'gosc_003', 'ips': '10.0.200.243',
                                'cpus': params.vcpu, 'mem': params.ram, "new_vm_name": vm_name,
-                               'template_name': params.image_id}
+                               'template_name': template_name}
 
             # connect to vCenter server
-            service_instance = self.auth.kwargs['vmconnect']
+            service_instance = self._get_connect()
 
             # add a clean up routine
             atexit.register(Disconnect, service_instance)
             content = service_instance.RetrieveContent()
-            datacenter = get_obj(content, [vim.Datacenter], 'Datacenter')
+            datacenter = helpers.get_obj(content, [vim.Datacenter], 'Datacenter')
             destfolder = datacenter.vmFolder
-            cluster = get_obj(content, [vim.ClusterComputeResource], 'gosc-cluster')
+            cluster = helpers.get_obj(content, [vim.ClusterComputeResource], 'gosc-cluster')
             resource_pool = cluster.resourcePool  # use same root resource pool that my desired cluster uses
-            datastore = get_obj(content, [vim.Datastore], 'datastore1')
-            template_vm = get_obj(content, [vim.VirtualMachine], deploy_settings["template_name"])
+            datastore = helpers.get_obj(content, [vim.Datastore], 'datastore1')
+            template_vm = helpers.get_obj(content, [vim.VirtualMachine], deploy_settings["template_name"])
             # Relocation spec
             relospec = vim.vm.RelocateSpec()
             relospec.datastore = datastore
@@ -210,7 +134,7 @@ class VmwareAdapter(BaseAdapter):
             nic.device.deviceInfo.label = "Network Adapter 22"
             nic.device.deviceInfo.summary = params.network_id
             nic.device.backing = vim.vm.device.VirtualEthernetCard.NetworkBackingInfo()
-            nic.device.backing.network = get_obj(content, [vim.Network], params.network_id)
+            nic.device.backing.network = helpers.get_obj(content, [vim.Network], params.network_id)
             nic.device.backing.deviceName = params.network_id
             nic.device.backing.useAutoDetect = False
             nic.device.connectable = vim.vm.device.VirtualDevice.ConnectInfo()
@@ -263,33 +187,34 @@ class VmwareAdapter(BaseAdapter):
             outputs.ServerDetailOutput()
         """
         try:
-            service_instance = self.auth.kwargs['vmconnect']
-            VM = get_obj(service_instance.content, [vim.VirtualMachine], params.server_id)
+            service_instance = self._get_connect()
+            vm = helpers.get_obj(service_instance.content, [vim.VirtualMachine], params.server_id)
             try:
-                server_ip = {'ipv4': VM.guest.ipAddress, 'public_ipv4': None}
+                server_ip = {'ipv4': vm.guest.ipAddress, 'public_ipv4': None}
             except Exception as e:
                 server_ip = {'ipv4': None, 'public_ipv4': None}
 
             ip = outputs.ServerIP(**server_ip)
-            try:
-                image_name = params.server_id.split('-&&image&&-')[1]
-            except Exception as e:
-                image_name = None
 
+            image_name = self._get_template_name(params.server_id)
+            if not image_name:
+                image_name = helpers.get_system_name(vm)
+
+            system = helpers.get_system_name(vm)
             image = outputs.ServerImage(
                 _id='',
                 name=image_name,
-                system=VM.config.guestId,
+                system=system,
                 desc=''
             )
 
             server = outputs.ServerDetailOutputServer(
                 uuid=params.server_id,
-                ram=VM.summary.config.memorySizeMB,
-                vcpu=VM.summary.config.numCpu,
+                ram=vm.summary.config.memorySizeMB,
+                vcpu=vm.summary.config.numCpu,
                 ip=ip,
                 image=image,
-                creation_time=iso_to_datetime(VM.config.createDate),
+                creation_time=helpers.iso_to_datetime(vm.config.createDate),
                 default_user='',
                 default_password=''
             )
@@ -304,8 +229,8 @@ class VmwareAdapter(BaseAdapter):
             outputs.ServerDeleteOutput()
         """
         try:
-            service_instance = self.auth.kwargs['vmconnect']
-            vm = get_obj(service_instance.content, [vim.VirtualMachine], params.server_id)
+            service_instance = self._get_connect()
+            vm = helpers.get_obj(service_instance.content, [vim.VirtualMachine], params.server_id)
             if not vm:
                 return outputs.ServerActionOutput()
             if format(vm.runtime.powerState) == "poweredOn":
@@ -327,8 +252,8 @@ class VmwareAdapter(BaseAdapter):
             outputs.ServerActionOutput()
         """
         try:
-            service_instance = self.auth.kwargs['vmconnect']
-            vm = get_obj(service_instance.content, [vim.VirtualMachine], params.server_id)
+            service_instance = self._get_connect()
+            vm = helpers.get_obj(service_instance.content, [vim.VirtualMachine], params.server_id)
             if not vm:
                 return outputs.ServerActionOutput()
             if params.action == inputs.ServerAction.START:
@@ -361,19 +286,27 @@ class VmwareAdapter(BaseAdapter):
             outputs.ServerStatusOutput()
         """
         status_map = {
-            'running': 1,
-            'unknown': 0,
-            'notRunning': 4,
+            'running': outputs.ServerStatus.RUNNING,
+            'notRunning': outputs.ServerStatus.SHUTOFF,
+            'poweredOn': outputs.ServerStatus.RUNNING,
+            'poweredOff': outputs.ServerStatus.SHUTOFF,
+            'suspended': outputs.ServerStatus.PMSUSPENDED,
+            'unknown': outputs.ServerStatus.NOSTATE,
         }
         try:
-            service_instance = self.auth.kwargs['vmconnect']
-            vm = get_obj(service_instance.content, [vim.VirtualMachine], params.server_id)
+            service_instance = self._get_connect()
+            vm = helpers.get_obj(service_instance.content, [vim.VirtualMachine], params.server_id)
             if not vm:
                 return outputs.ServerStatusOutput(status=outputs.ServerStatus.MISS,
                                                   status_mean=outputs.ServerStatus.get_mean(outputs.ServerStatus.MISS))
-            status_code = status_map[vm.guest.guestState]
-            if status_code not in outputs.ServerStatus():
-                status_code = outputs.ServerStatus.NOSTATE
+
+            state = vm.guest.guestState
+            if state not in status_map:
+                state = vm.runtime.powerState
+                if state not in status_map:
+                    state = 'unknown'
+
+            status_code = status_map[state]
             status_mean = outputs.ServerStatus.get_mean(status_code)
             return outputs.ServerStatusOutput(status=status_code, status_mean=status_mean)
         except Exception as e:
@@ -386,8 +319,8 @@ class VmwareAdapter(BaseAdapter):
             outputs.ServerVNCOutput()
         """
         try:
-            service_instance = self.auth.kwargs['vmconnect']
-            vm = get_obj(service_instance.content, [vim.VirtualMachine], params.server_id)
+            service_instance = self._get_connect()
+            vm = helpers.get_obj(service_instance.content, [vim.VirtualMachine], params.server_id)
             x = vm.AcquireTicket("webmks")
             vnc_url = "wss://" + str(x.host) + ":" + str(x.port) + "/ticket/" + str(x.ticket)
             return outputs.ServerVNCOutput(vnc=outputs.ServerVNCOutputVNC(url=vnc_url))
@@ -401,21 +334,24 @@ class VmwareAdapter(BaseAdapter):
             output.ListImageOutput()
         """
         try:
-            service_instance = self.auth.kwargs['vmconnect']
+            service_instance = self._get_connect()
             content = service_instance.RetrieveContent()
-            all_vm = get_all_obj(content, [vim.VirtualMachine])
+            templates_folder = helpers.search_for_obj(content, [vim.Folder], name='templates')
+            all_vm = helpers.get_all_obj(content, [vim.VirtualMachine], folder=templates_folder)
             result = []
-            for vm in all_vm:
+            for vm in all_vm.values():
                 if vm.config.template == True:
-                    img_obj = outputs.ListImageOutputImage(id=vm.name, name=vm.name, system=vm.config.guestFullName,
-                                                           desc=vm.config.guestFullName,
-                                                           system_type=vm.config.guestId,
-                                                           creation_time=vm.config.createDate,
-                                                           default_username='', default_password='')
+                    img_obj = outputs.ListImageOutputImage(
+                        _id=vm.name, name=vm.name,
+                        system=helpers.get_system_name(vm),
+                        desc=vm.config.guestFullName,
+                        system_type=helpers.get_system_type(vm),
+                        creation_time=vm.config.createDate,
+                        default_username='', default_password='')
                     result.append(img_obj)
             return outputs.ListImageOutput(images=result)
         except Exception as e:
-            return outputs.ListImageOutput(ok=False, error=exceptions.Error('list image failed'), images=[])
+            return outputs.ListImageOutput(ok=False, error=exceptions.Error(f'list image failed, {str(e)}'), images=[])
 
     def list_networks(self, params: inputs.ListNetworkInput, **kwargs):
         """
@@ -423,19 +359,20 @@ class VmwareAdapter(BaseAdapter):
         :return:
         """
         try:
-            service_instance = self.auth.kwargs['vmconnect']
+            service_instance = self._get_connect()
             content = service_instance.RetrieveContent()
-            all_networks = get_all_obj(content, [vim.Network])
+            all_networks = helpers.get_all_obj(content, [vim.Network])
             result = []
-            for net in all_networks:
+            for net in all_networks.values():
                 public = False
-                new_net = outputs.ListNetworkOutputNetwork(id=net.name, name=net.name, public=public,
+                new_net = outputs.ListNetworkOutputNetwork(_id=net.name, name=net.name, public=public,
                                                            segment='0.0.0.0')
                 result.append(new_net)
             return outputs.ListNetworkOutput(networks=result)
 
         except Exception as e:
-            return outputs.ListNetworkOutput(ok=False, error=exceptions.Error('list networks failed'), networks=[])
+            return outputs.ListNetworkOutput(
+                ok=False, error=exceptions.Error(f'list networks failed, {str(e)}'), networks=[])
 
     def network_detail(self, params: inputs.NetworkDetailInput, **kwargs):
         """
@@ -445,11 +382,11 @@ class VmwareAdapter(BaseAdapter):
             outputs.NetworkDetailOutput()
         """
         try:
-            service_instance = self.auth.kwargs['vmconnect']
+            service_instance = self._get_connect()
             content = service_instance.RetrieveContent()
-            network = get_obj(content, [vim.Network], params.network_id)
+            network = helpers.get_obj(content, [vim.Network], params.network_id)
 
-            new_net = outputs.NetworkDetail(id=params.network_id, name=params.network_id, public=False,
+            new_net = outputs.NetworkDetail(_id=params.network_id, name=params.network_id, public=False,
                                             segment='0.0.0.0')
 
             return outputs.NetworkDetailOutput(network=new_net)

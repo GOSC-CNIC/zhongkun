@@ -408,4 +408,3 @@ class EVCloudAdapter(BaseAdapter):
 
     def get_vpn_ca_file_url(self, **kwargs):
         return self.api_builder.vpn_ca_file_url()
-

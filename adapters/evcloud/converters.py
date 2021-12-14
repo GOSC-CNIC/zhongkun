@@ -120,7 +120,7 @@ class OutputConverter:
     def to_authenticate_output_token(token: str, username: str, password: str):
         expire = (datetime.utcnow() + timedelta(hours=2)).timestamp()
         header = outputs.AuthenticateOutputHeader(header_name='Authorization', header_value=f'Token {token}')
-        return outputs.AuthenticateOutput(style='token', token=token, header=header, query=None, expire=expire,
+        return outputs.AuthenticateOutput(style='token', token=token, header=header, query=None, expire=int(expire),
                                           username=username, password=password)
 
     @staticmethod
@@ -166,10 +166,11 @@ class OutputConverter:
         new_images = []
         for img in images:
             creation_time = iso_to_datetime(img['create_time'])
-            new_img = outputs.ListImageOutputImage(id=img['id'], name=img['name'], system=img['name'], desc=img['desc'],
-                                                   system_type=img['sys_type']['name'], creation_time=creation_time,
-                                                   default_username=img.get('default_user', ''),
-                                                   default_password=img.get('default_password'))
+            new_img = outputs.ListImageOutputImage(
+                _id=img['id'], name=img['name'], system=img['name'], desc=img['desc'],
+                system_type=img['sys_type']['name'], creation_time=creation_time,
+                default_username=img.get('default_user', ''),
+                default_password=img.get('default_password'))
             new_images.append(new_img)
 
         return outputs.ListImageOutput(images=new_images)
@@ -183,7 +184,7 @@ class OutputConverter:
         new_networks = []
         for net in networks:
             public = {0: False, 1: True}.get(net['tag'], False) if 'tag' in net else None
-            new_net = outputs.ListNetworkOutputNetwork(id=net['id'], name=net['name'], public=public,
+            new_net = outputs.ListNetworkOutputNetwork(_id=net['id'], name=net['name'], public=public,
                                                        segment=net['subnet_ip'])
             if public_filter is None:
                 new_networks.append(new_net)
@@ -206,7 +207,7 @@ class OutputConverter:
     @staticmethod
     def to_network_detail_output(net):
         public = {0: False, 1: True}.get(net['tag'], False) if 'tag' in net else None
-        new_net = outputs.NetworkDetail(id=net['id'], name=net['name'], public=public, segment=net['subnet_ip'])
+        new_net = outputs.NetworkDetail(_id=net['id'], name=net['name'], public=public, segment=net['subnet_ip'])
 
         return outputs.NetworkDetailOutput(network=new_net)
 

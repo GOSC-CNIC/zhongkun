@@ -103,8 +103,10 @@ class OutputBase:
 
 class AuthenticateOutput(OutputBase):
     def __init__(self, style: str, token: str, expire: int,
-                 header: AuthenticateOutputHeader, query: AuthenticateOutputQuery,
-                 username: str, password: str, **kwargs):
+                 header: AuthenticateOutputHeader = None, query: AuthenticateOutputQuery = None,
+                 username: str = '', password: str = '',
+                 access_key: str = '', secret_key: str = '',
+                 **kwargs):
         """
         :param style: 'token', 'jwt', 'key, ...
         :param token: token value
@@ -122,11 +124,13 @@ class AuthenticateOutput(OutputBase):
         self.query = query
         self.username = username
         self.password = password
+        self.access_key = access_key
+        self.secret_key = secret_key
         super().__init__(**kwargs)
 
 
 class ServerImage:
-    def __init__(self, _id: str, name: str, system: str, desc: str, **kwargs):
+    def __init__(self, _id: str, name: str, system: str, desc: str):
         """
         :param _id: 镜像id
         :param name: 镜像名称
@@ -140,7 +144,7 @@ class ServerImage:
 
 
 class ServerIP:
-    def __init__(self, ipv4: str, public_ipv4: bool, **kwargs):
+    def __init__(self, ipv4: str, public_ipv4: bool):
         """
         :param ipv4: ipv4 of server
         :param public_ipv4: ipv4是否是公网ip; True(公网)，False(私网)
@@ -150,7 +154,7 @@ class ServerIP:
 
 
 class ServerCreateOutputServer:
-    def __init__(self, uuid: str, default_user: str, default_password: str, **kwargs):
+    def __init__(self, uuid: str, default_user: str, default_password: str):
         """
         :param uuid: id of server; type: str
         """
@@ -251,10 +255,10 @@ class ServerRebuildOutput(OutputBase):
 
 
 class ListImageOutputImage:
-    def __init__(self, id: str, name: str, system: str, system_type: str, creation_time: datetime,
+    def __init__(self, _id: str, name: str, system: str, system_type: str, creation_time: datetime,
                  default_username: str, default_password: str, **kwargs):
         """
-        :param id:
+        :param _id:
         :param name: 镜像名称
         :param system: 镜像系统，Windows10 64bit, Centos8 64bit, Ubuntu2004 ...
         :param system_type: 系统类型，Windows, Linux, MacOS, Android, ...
@@ -263,7 +267,7 @@ class ListImageOutputImage:
         :param default_username: 初始默认登录用户名
         :param default_password: 初始默认登录用户密码
         """
-        self.id = id
+        self.id = _id
         self.name = name
         self.system = system
         self.system_type = system_type
@@ -283,14 +287,14 @@ class ListImageOutput(OutputBase):
 
 
 class ListNetworkOutputNetwork:
-    def __init__(self, id: str, name: str, public: bool, segment: str, **kwargs):
+    def __init__(self, _id: str, name: str, public: bool, segment: str, **kwargs):
         """
-        :param id:
+        :param _id:
         :param name: 子网名称
         :param public: 公网（True）；私网（False）
         :param segment: 网段
         """
-        self.id = id
+        self.id = _id
         self.name = name
         self.public = public
         self.segment = segment
@@ -345,7 +349,7 @@ class StorageVolume:
     """
 
     def __init__(self,
-                 id,  # type: str
+                 _id,  # type: str
                  name,  # type: str
                  size,  # type: int
                  driver,  # type: NodeDriver
@@ -353,8 +357,8 @@ class StorageVolume:
                  extra=None  # type: Optional[Dict]
                  ):
         """
-        :param id: Storage volume ID.
-        :type id: ``str``
+        :param _id: Storage volume ID.
+        :type _id: ``str``
         :param name: Storage volume name.
         :type name: ``str``
         :param size: Size of this volume (in GB).
@@ -367,7 +371,7 @@ class StorageVolume:
         :param extra: Optional provider specific attributes.
         :type extra: ``dict``
         """
-        self.id = id
+        self.id = _id
         self.name = name
         self.size = size
         self.driver = driver
@@ -407,4 +411,3 @@ class StorageVolume:
     def __repr__(self):
         return '<StorageVolume id=%s size=%s driver=%s>' % (
                self.id, self.size, self.driver.name)
-

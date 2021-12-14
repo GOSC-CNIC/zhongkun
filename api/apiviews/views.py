@@ -737,6 +737,7 @@ class ServersViewSet(CustomGenericViewSet):
             path = reverse('servers:vmware')
             url = request.build_absolute_uri(location=path)
             vnc = replace_query_param(url=url, key='vm_url', val=r.vnc.url)
+            vnc = replace_query_param(url=vnc, key='server-name', val=server.name)
 
         proxy_vnc = request.build_absolute_uri('/vms/vnc/')
         proxy_vnc = f'{proxy_vnc}?proxy={vnc}'

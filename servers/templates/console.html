@@ -4,25 +4,141 @@
 <html lang="en">
 <head>
     <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <link rel="stylesheet" type="text/css" href="{% static 'servers/vmware/css/wmks-all.css' %}"/>
     <title>Console</title>
 </head>
-<body>
-<link rel="stylesheet" type="text/css" href="{% static 'servers/vmware/css/wmks-all.css' %}"/>
-<script type="text/javascript" src="{% static 'servers/vmware/jquery.min.js' %}"></script>
-<script type="text/javascript" src="{% static 'servers/vmware/jquery-ui.min.js' %}"></script>
-<script type="text/javascript" src="{% static 'servers/vmware/wmks.min.js' %}"></script>
-<div id="wmksContainer" style="position:absolute;width:100%;height:100%; background-color: #1b1e21"></div>
+<body style="background-color: #1b1e21">
+<div>
+    <div id="bar" style="display: block;height: 32px;">
+        <div style="float: right;">
+            <button id="keyboard" data-toggle="false" data-alt="Stop Enforce American keyboard" title="强制执行美式键盘布局">Enforce American keyboard</button>
+            <button id="btn-fullscreen">FullScreen</button>
+            <button id="btn-cad">Send CtrlAltDel</button>
+        </div>
+        <div style="overflow: hidden;color: #f8f8f8">{{ server_name }}</div>
+    </div>
+    <div id="wmksContainer" style="color:#f8f8f8;overflow: hidden;position: absolute;"></div>
+</div>
+<script type="text/javascript" src="{% static 'servers/vmware/js/jquery-2.2.4.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'servers/vmware/js/jquery-ui.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'servers/vmware/js/wmks.min.js' %}"></script>
 <script type="application/javascript">
-    try {
-        var wmks = WMKS.createWMKS("wmksContainer", {}).register(WMKS.CONST.Events.CONNECTION_STATE_CHANGE, function (event, data) {
-            if(data.state === WMKS.CONST.ConnectionState.DISCONNECTED){
-                alert('vmware虚拟机控制台断开，请在虚拟机列表重新获取打开地址！')
-            }
-        });
+    $(function() {
+		function layout() {
+			var w = $(window).width();
+			var h = $(window).height();
+			if(!wmks.isFullScreen()) {
+				container.css({
+					top: bar.outerHeight() + "px"
+				});
+				container.width(w).height(h - bar.outerHeight());
+				wmks.updateScreen();
+			} else {
+				container.css({
+					top: 0,
+					left: 0
+				});
+				container.width(w).height(h);
+			}
+		}
+
+		function showMessage(message) {
+			container.html(message);
+			bar.slideDown("fast", layout);
+		}
+
+		function getKeyboardLayout() {
+			var locale = "zh-CN".
+			replace("-", "_");
+			switch (locale) {
+				case "de": case "de_DE":
+					return "de-DE";
+				case "de_CH":
+					return "de-CH";
+				case "ja": case "ja_JP":
+					return "ja-JP_106/109";
+				case "it": case "it_IT":
+					return "it-IT";
+				case "es": case "es_ES":
+					return "es-ES";
+				case "pt": case "pt_PT":
+					return "pt-PT";
+				case "fr": case "fr_FR":
+					return "fr-FR";
+				case "fr_CH":
+					return "fr-CH";
+				case "sv": case "sv_SE":
+					return "sv_SE";
+				case "en_UK":
+					return "en_UK";
+				case "en-UK":
+					return "en_UK";
+				default:
+					return "en-US";
+			}
+		}
+
+		var bar = $("#bar");
+		var cad = $("#btn-cad");
+		var fullscreen = $("#btn-fullscreen");
+		var keyboard = $("#keyboard");
+		var container = $("#wmksContainer")
+
+		var wmks = WMKS.createWMKS("wmksContainer", {
+			keyboardLayoutId: getKeyboardLayout()
+		});
+		wmks.register(WMKS.CONST.Events.CONNECTION_STATE_CHANGE, function(evt, data) {
+			switch (data.state) {
+				case WMKS.CONST.ConnectionState.CONNECTING:
+					console.log("The console is connecting");
+					bar.slideUp("slow", layout);
+					break;
+				case WMKS.CONST.ConnectionState.CONNECTED:
+					console.log("The console has been connected");
+					bar.slideDown("fast", layout);
+					break;
+				case WMKS.CONST.ConnectionState.DISCONNECTED:
+					console.log("The console has been disconnected");
+					showMessage("控制台已断开连接。请关闭此窗口并重新启动控制台，以便重新连接。<br>" +
+                        "The console has been disconnected. " +
+                        "Please close this window and restart the console to reconnect.");
+					break;
+			}
+		});
+		wmks.register(WMKS.CONST.Events.ERROR, function(evt, data) {
+			console.log("Error: " + data.errorType);
+		});
+		wmks.register(WMKS.CONST.Events.REMOTE_SCREEN_SIZE_CHANGE, function(evt, data) {
+			layout();
+		});
+
+		cad.on("click", function() {
+			wmks.sendCAD();
+		});
+
+		if (wmks.canFullScreen()) {
+			fullscreen.on("click", function (evt) {
+				wmks.enterFullScreen();
+			});
+		} else {
+			fullscreen.hide();
+		}
+
+		//listen for window events
+		$(window).on("resize", layout);
         wmks.connect("{{ vm_url }}");
-    }catch(err){
-         alert('打开vmware虚拟机控制台出错，请在虚拟机列表重新获取打开地址！')
-    }
+        layout();
+
+		keyboard.on("click", function (evt) {
+			var fixANSIEquivalentKeys = keyboard.data("toggle") === "true";
+			var label = keyboard.html();
+			wmks.setOption("fixANSIEquivalentKeys", !fixANSIEquivalentKeys);
+			keyboard.html(keyboard.data("alt"));
+			keyboard.data("toggle", !fixANSIEquivalentKeys);
+			keyboard.data("alt", label);
+		});
+	});
+
 </script>
 </body>
 </html>

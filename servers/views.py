@@ -54,5 +54,6 @@ class ServerCreateView(View):
 class VmwareConsoleView(View):
     def get(self, request, *args, **kwargs):
         vm_url = request.GET.get('vm_url')
-        return render(request, 'console.html', context={'vm_url': vm_url})
+        server_name = request.GET.get('server-name', '')
+        return render(request, 'console.html', context={'vm_url': vm_url, 'server_name': server_name})
 
