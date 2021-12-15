@@ -302,6 +302,7 @@ class ServersViewSet(CustomGenericViewSet):
         due_time = timezone.now() + timedelta(days=user_quota.duration_days)
         server = Server(service=service,
                         instance_id=out_server.uuid,
+                        instance_name=out_server.name,
                         remarks=remarks,
                         user=request.user,
                         vcpus=flavor.vcpus,
@@ -492,7 +493,8 @@ class ServersViewSet(CustomGenericViewSet):
                 message=_('无法删除，云主机已加锁锁定了删除')
             ))
 
-        params = inputs.ServerDeleteInput(server_id=server.instance_id, force=force)
+        params = inputs.ServerDeleteInput(instance_id=server.instance_id, instance_name=server.instance_name,
+                                          force=force)
         try:
             self.request_service(server.service, method='server_delete', params=params)
         except exceptions.APIException as exc:
@@ -577,7 +579,8 @@ class ServersViewSet(CustomGenericViewSet):
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
-        params = inputs.ServerActionInput(server_id=server.instance_id, action=act)
+        params = inputs.ServerActionInput(
+            instance_id=server.instance_id, instance_name=server.instance_name, action=act)
         service = server.service
         try:
             r = self.request_service(service, method='server_action', params=params)
@@ -691,8 +694,7 @@ class ServersViewSet(CustomGenericViewSet):
             200: '''
                 {
                   "vnc": {
-                    "url": "xxx",           # 服务提供者url
-                    "proxy_vnc": "xxx"      # 中间件代理url，可以访问内网服务；vmware服务没有此内容
+                    "url": "xxx"           # 服务提供者url
                   }
                 }
                 ''',
@@ -726,25 +728,22 @@ class ServersViewSet(CustomGenericViewSet):
             return Response(data=exc.err_data(), status=exc.status_code)
 
         service = server.service
-        params = inputs.ServerVNCInput(server_id=server.instance_id)
+        params = inputs.ServerVNCInput(instance_id=server.instance_id, instance_name=server.instance_name)
         try:
             r = self.request_service(service, method='server_vnc', params=params)
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
         vnc = r.vnc.url
-        if not vnc.startswith('http') and service.service_type in [service.ServiceType.VMWARE, service.ServiceType.UNIS_CLOUD]:
+        if not vnc.startswith('http') and (
+                service.service_type in [service.ServiceType.VMWARE, service.ServiceType.UNIS_CLOUD]):
             path = reverse('servers:vmware')
             url = request.build_absolute_uri(location=path)
             vnc = replace_query_param(url=url, key='vm_url', val=r.vnc.url)
             vnc = replace_query_param(url=vnc, key='server-name', val=server.name)
 
-        proxy_vnc = request.build_absolute_uri('/vms/vnc/')
-        proxy_vnc = f'{proxy_vnc}?proxy={vnc}'
-        # proxy_vnc = replace_query_param(url=proxy_vnc, key='proxy', val=vnc)
         return Response(data={'vnc': {
-            'url': vnc,
-            'proxy_url': proxy_vnc
+            'url': vnc
         }})
 
     @swagger_auto_schema(

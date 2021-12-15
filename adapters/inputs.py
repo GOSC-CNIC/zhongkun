@@ -60,62 +60,57 @@ class ServerCreateInput(InputBase):
         super().__init__(**kwargs)
 
 
-class ServerActionInput(InputBase):
-    def __init__(self, server_id: str, action: str, **kwargs):
+class ServerIdNameInput(InputBase):
+    def __init__(self, instance_id: str, instance_name: str = None, **kwargs):
         """
-        :param server_id: 云服务器实例id
+        :param instance_id: 云服务器实例id
+        :param instance_name: 云服务器实例name
+        """
+        self.instance_id = instance_id
+        self.instance_name = instance_name
+        super().__init__(**kwargs)
+
+
+class ServerActionInput(ServerIdNameInput):
+    def __init__(self, action: str, **kwargs):
+        """
         :param action: 执行的操作；only value in ServerAction.values
         """
-        self.server_id = server_id
         self.action = action
         super().__init__(**kwargs)
 
 
-class ServerStatusInput(InputBase):
-    def __init__(self, server_id: str, **kwargs):
+class ServerStatusInput(ServerIdNameInput):
+    def __init__(self, **kwargs):
         """
-        :param server_id: 云服务器实例id
         """
-        self.server_id = server_id
         super().__init__(**kwargs)
 
 
-class ServerDeleteInput(InputBase):
-    def __init__(self, server_id: str, force: bool = False, **kwargs):
+class ServerDeleteInput(ServerIdNameInput):
+    def __init__(self, force: bool = False, **kwargs):
         """
-        :param server_id: 云服务器实例id
         :param force: True(强制删除); False(删除)
         """
-        self.server_id = server_id
         self.force = force
         super().__init__(**kwargs)
 
 
-class ServerVNCInput(InputBase):
-    def __init__(self, server_id: str, **kwargs):
-        """
-        :param server_id: 云服务器实例id
-        """
-        self.server_id = server_id
+class ServerVNCInput(ServerIdNameInput):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
 
-class ServerDetailInput(InputBase):
-    def __init__(self, server_id: str, **kwargs):
-        """
-        :param server_id: 云服务器实例id
-        """
-        self.server_id = server_id
+class ServerDetailInput(ServerIdNameInput):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
 
-class ServerRebuildInput(InputBase):
-    def __init__(self, server_id: str, image_id: str, **kwargs):
+class ServerRebuildInput(ServerIdNameInput):
+    def __init__(self, image_id: str, **kwargs):
         """
-        :param server_id: 云服务器实例id
         :param image_id: 系统镜像id; type: str; required: True
         """
-        self.server_id = server_id
         self.image_id = image_id
         super().__init__(**kwargs)
 

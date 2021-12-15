@@ -159,7 +159,7 @@ class EVCloudAdapter(BaseAdapter):
         query = None
         if params.force:
             query = {'force': 'true'}
-        url = self.api_builder.vm_detail_url(vm_uuid=params.server_id, query=query)
+        url = self.api_builder.vm_detail_url(vm_uuid=params.instance_id, query=query)
         try:
             headers = self.get_auth_header()
             r = self.do_request(method='delete', url=url, ok_status_codes=[204, 400, 404], headers=headers)
@@ -188,7 +188,7 @@ class EVCloudAdapter(BaseAdapter):
             return outputs.ServerActionOutput(ok=False, error=exceptions.APIInvalidParam('invalid param "action"'))
 
         if action in [inputs.ServerAction.DELETE_FORCE, inputs.ServerAction.DELETE]:
-            params = inputs.ServerDeleteInput(server_id=params.server_id)
+            params = inputs.ServerDeleteInput(instance_id=params.instance_id, instance_name=params.instance_name)
             if action == inputs.ServerAction.DELETE_FORCE:
                 params.force = True
             r = self.server_delete(params=params)
@@ -198,7 +198,7 @@ class EVCloudAdapter(BaseAdapter):
             return outputs.ServerActionOutput(ok=False, error=r.error)
 
         try:
-            url = self.api_builder.vm_action_url(vm_uuid=params.server_id)
+            url = self.api_builder.vm_action_url(vm_uuid=params.instance_id)
             headers = self.get_auth_header()
             r = self.do_request(method='patch', url=url, data={'op': action}, headers=headers)
         except exceptions.Error as e:
@@ -207,7 +207,7 @@ class EVCloudAdapter(BaseAdapter):
         return outputs.ServerActionOutput()
 
     def server_status(self, params: inputs.ServerStatusInput, **kwargs):
-        url = self.api_builder.vm_status_url(vm_uuid=params.server_id)
+        url = self.api_builder.vm_status_url(vm_uuid=params.instance_id)
         try:
             headers = self.get_auth_header()
             r = self.do_request(method='get', url=url, ok_status_codes=[200, 400, 404], headers=headers)
@@ -228,7 +228,7 @@ class EVCloudAdapter(BaseAdapter):
         return OutputConverter.to_server_status_output_error(error=error)
 
     def server_vnc(self, params: inputs.ServerVNCInput, **kwargs):
-        url = self.api_builder.vm_vnc_url(vm_uuid=params.server_id)
+        url = self.api_builder.vm_vnc_url(vm_uuid=params.instance_id)
         try:
             headers = self.get_auth_header()
             r = self.do_request(method='post', url=url, headers=headers)
@@ -243,7 +243,7 @@ class EVCloudAdapter(BaseAdapter):
         :return:
             outputs.ServerDetailOutput()
         """
-        url = self.api_builder.vm_detail_url(vm_uuid=params.server_id)
+        url = self.api_builder.vm_detail_url(vm_uuid=params.instance_id)
         try:
             headers = self.get_auth_header()
             r = self.do_request(method='get', ok_status_codes=[200, 404], url=url, headers=headers)
@@ -267,18 +267,18 @@ class EVCloudAdapter(BaseAdapter):
         :return:
             outputs.ServerRebuildOutput()
         """
-        url = self.api_builder.vm_reset_url(vm_uuid=params.server_id, image_id=params.image_id)
+        url = self.api_builder.vm_reset_url(vm_uuid=params.instance_id, image_id=params.image_id)
         try:
             headers = self.get_auth_header()
             self.server_action(params=inputs.ServerActionInput(
-                server_id=params.server_id, action=inputs.ServerAction.POWER_OFF))
+                instance_id=params.instance_id, action=inputs.ServerAction.POWER_OFF))
             r = self.do_request(method='post', ok_status_codes=[200, 201, 404], url=url, headers=headers)
         except exceptions.Error as e:
             return OutputConverter().to_server_rebuild_output_error(error=e)
 
         if r.status_code == 201:
             rj = r.json()
-            server_id = params.server_id
+            instance_id = params.instance_id
             image_id = params.image_id
             default_user = ''
             default_password = ''
@@ -287,7 +287,7 @@ class EVCloudAdapter(BaseAdapter):
                 default_user = vm.get('default_user', '')
                 default_password = vm.get('default_password', '')
             return OutputConverter().to_server_rebuild_output(
-                server_id=server_id, image_id=image_id, default_user=default_user, default_password=default_password
+                server_id=instance_id, image_id=image_id, default_user=default_user, default_password=default_password
             )
 
         rj = r.json()

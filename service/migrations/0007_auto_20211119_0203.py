@@ -13,12 +13,12 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='applyvmservice',
             name='cloud_type',
-            field=models.CharField(choices=[('public', '公有云'), ('private', '私有云'), ('hybrid ', '混合云')], default='private', max_length=32, verbose_name='云服务类型'),
+            field=models.CharField(choices=[('public', '公有云'), ('private', '私有云'), ('hybrid', '混合云')], default='private', max_length=32, verbose_name='云服务类型'),
         ),
         migrations.AddField(
             model_name='serviceconfig',
             name='cloud_type',
-            field=models.CharField(choices=[('public', '公有云'), ('private', '私有云'), ('hybrid ', '混合云')], default='private', max_length=32, verbose_name='云服务类型'),
+            field=models.CharField(choices=[('public', '公有云'), ('private', '私有云'), ('hybrid', '混合云')], default='private', max_length=32, verbose_name='云服务类型'),
         ),
         migrations.AlterField(
             model_name='applyvmservice',

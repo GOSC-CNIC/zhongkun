@@ -44,6 +44,8 @@ class ServerBase(models.Model):
     id = models.CharField(blank=True, editable=False, max_length=36, primary_key=True, verbose_name='ID')
     name = models.CharField(max_length=255, verbose_name=_('服务器实例名称'))
     instance_id = models.CharField(max_length=128, verbose_name=_('虚拟主机ID'), help_text=_('各接入服务中虚拟主机的ID'))
+    instance_name = models.CharField(max_length=255, default='', verbose_name=_('云主机名称'),
+                                     help_text=_('各接入服务中虚拟主机的名称'))
     vcpus = models.IntegerField(verbose_name=_('虚拟CPU数'), default=0)
     ram = models.IntegerField(verbose_name=_('内存MB'), default=0)
     ipv4 = models.CharField(max_length=128, verbose_name='IPV4', default='')
@@ -202,6 +204,7 @@ class Server(ServerBase):
             a.service = self.service
             a.name = self.name
             a.instance_id = self.instance_id
+            a.instance_name = self.instance_name
             a.vcpus = self.vcpus
             a.ram = self.ram
             a.ipv4 = self.ipv4

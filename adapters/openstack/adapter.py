@@ -199,7 +199,7 @@ class OpenStackAdapter(BaseAdapter):
             )
 
             server = outputs.ServerCreateOutputServer(
-                uuid=server_re.id, default_user=admin_user, default_password=admin_pass
+                uuid=server_re.id, name=server_re.name, default_user=admin_user, default_password=admin_pass
             )
             return outputs.ServerCreateOutput(server=server)
         except Exception as e:
@@ -212,7 +212,7 @@ class OpenStackAdapter(BaseAdapter):
         """
         try:
             conn = self._get_openstack_connect()
-            instance = conn.compute.get_server(params.server_id)
+            instance = conn.compute.get_server(params.instance_id)
             try:
                 addresses = instance.addresses
                 ipv4 = ''
@@ -245,6 +245,7 @@ class OpenStackAdapter(BaseAdapter):
             username, password = get_admin_pass_form_user_data(user_data)
             server = outputs.ServerDetailOutputServer(
                 uuid=instance.id,
+                name=instance.name,
                 ram=flavor['ram'],
                 vcpu=flavor['vcpus'],
                 ip=ip,
@@ -265,7 +266,7 @@ class OpenStackAdapter(BaseAdapter):
         """
         service_instance = self._get_openstack_connect()
         try:
-            service_instance.compute.delete_server(params.server_id, force=True)
+            service_instance.compute.delete_server(params.instance_id, force=True)
             return outputs.ServerDeleteOutput()
         except Exception as e:
             return outputs.ServerDeleteOutput(ok=False, error=exceptions.Error(message=f'Failed to delete server, {str(e)}'))
@@ -277,19 +278,20 @@ class OpenStackAdapter(BaseAdapter):
             outputs.ServerActionOutput()
         """
         service_instance = self._get_openstack_connect()
+        instance_id = params.instance_id
         try:
             if params.action == inputs.ServerAction.START:
-                service_instance.compute.start_server(params.server_id)
+                service_instance.compute.start_server(instance_id)
             elif params.action == inputs.ServerAction.SHUTDOWN:
-                service_instance.compute.stop_server(params.server_id)
+                service_instance.compute.stop_server(instance_id)
             elif params.action == inputs.ServerAction.DELETE:
-                service_instance.compute.delete_server(params.server_id)
+                service_instance.compute.delete_server(instance_id)
             elif params.action == inputs.ServerAction.DELETE_FORCE:
-                service_instance.compute.delete_server(params.server_id, force=True)
+                service_instance.compute.delete_server(instance_id, force=True)
             elif params.action == inputs.ServerAction.POWER_OFF:
-                service_instance.compute.stop_server(params.server_id)
+                service_instance.compute.stop_server(instance_id)
             elif params.action == inputs.ServerAction.REBOOT:
-                service_instance.compute.reboot_server(params.server_id, 'HARD')
+                service_instance.compute.reboot_server(instance_id, 'HARD')
             else:
                 return outputs.ServerActionOutput(ok=False, error=exceptions.Error('server action failed'))
             return outputs.ServerActionOutput()
@@ -319,7 +321,7 @@ class OpenStackAdapter(BaseAdapter):
             'SOFT_DELETED': outputs.ServerStatus.MISS
         }
         try:
-            server = service_instance.compute.get_server(params.server_id)
+            server = service_instance.compute.get_server(params.instance_id)
             if server is None:
                 status_code = outputs.ServerStatus.MISS
             else:
@@ -347,7 +349,7 @@ class OpenStackAdapter(BaseAdapter):
         """
         try:
             service_instance = self._get_openstack_connect()
-            server = service_instance.compute.get_server(params.server_id)
+            server = service_instance.compute.get_server(params.instance_id)
             console = service_instance.compute.create_server_remote_console(
                 server, protocol='vnc', type='novnc')
             vnc_url = console.url
@@ -365,7 +367,7 @@ class OpenStackAdapter(BaseAdapter):
         :return:
             outputs.ServerRebuildOutput()
         """
-        server_id = params.server_id
+        instance_id = params.instance_id
         image_id = params.image_id
         admin_user = 'root'
         admin_pass = ''
@@ -373,14 +375,15 @@ class OpenStackAdapter(BaseAdapter):
             conn = self._get_openstack_connect()
             instance_name = self._build_instance_name(str(uuid.uuid1()))
             server = conn.compute.rebuild_server(
-                server=server_id, name=instance_name, image=params.image_id, admin_password=admin_pass)
+                server=instance_id, name=instance_name, image=params.image_id, admin_password=admin_pass)
         except Exception as e:
             return outputs.ServerRebuildOutput(
                 ok=False, error=exceptions.Error(f'rebuild server failed, {str(e)}'),
-                server_id=server_id, image_id=image_id, default_user='', default_password='')
+                instance_id=instance_id, image_id=image_id, default_user='', default_password='')
 
         return outputs.ServerRebuildOutput(
-            server_id=server.id, image_id=image_id, default_user=admin_user, default_password=admin_pass)
+            instance_id=server.id, instance_name=server.name, image_id=image_id,
+            default_user=admin_user, default_password=admin_pass)
 
     def list_images(self, params: inputs.ListImageInput, **kwargs):
         """

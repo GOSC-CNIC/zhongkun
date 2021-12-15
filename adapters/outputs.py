@@ -154,11 +154,12 @@ class ServerIP:
 
 
 class ServerCreateOutputServer:
-    def __init__(self, uuid: str, default_user: str, default_password: str):
+    def __init__(self, uuid: str, name: str, default_user: str, default_password: str):
         """
         :param uuid: id of server; type: str
         """
         self.uuid = uuid
+        self.name = name
         self.default_user = default_user
         self.default_password = default_password
 
@@ -173,7 +174,7 @@ class ServerCreateOutput(OutputBase):
 
 
 class ServerDetailOutputServer:
-    def __init__(self, uuid: str, ram: int, vcpu: int, image: ServerImage,
+    def __init__(self, uuid: str, name: str, ram: int, vcpu: int, image: ServerImage,
                  ip: ServerIP, creation_time: datetime, default_user: str,
                  default_password: str, **kwargs):
         """
@@ -188,6 +189,7 @@ class ServerDetailOutputServer:
         :param name: name of server; type: str
         """
         self.uuid = uuid
+        self.name = name
         self.image = image
         self.vcpu = vcpu
         self.ram = ram
@@ -195,7 +197,6 @@ class ServerDetailOutputServer:
         self.creation_time = creation_time
         self.default_user = default_user
         self.default_password = default_password
-        self.name = kwargs.get('name', None)
 
 
 class ServerDetailOutput(OutputBase):
@@ -240,14 +241,17 @@ class ServerVNCOutput(OutputBase):
 
 
 class ServerRebuildOutput(OutputBase):
-    def __init__(self, server_id: str, image_id: str, default_user: str = None, default_password: str = None, **kwargs):
+    def __init__(self, instance_id: str, image_id: str, instance_name: str = '',
+                 default_user: str = None, default_password: str = None, **kwargs):
         """
-        :param server_id: 云服务器实例id
+        :param instance_id: 云服务器实例id, required: True
+        :param instance_name: 云服务器实例name, required: False, VMware required
         :param image_id: 系统镜像id; type: str; required: True
         :param default_user: login username
         :param default_password: login password
         """
-        self.server_id = server_id
+        self.instance_id = instance_id
+        self.instance_name = instance_name
         self.image_id = image_id
         self.default_user = default_user if default_user else ''
         self.default_password = default_password if default_password else ''

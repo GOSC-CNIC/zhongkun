@@ -96,6 +96,7 @@ class OutputConverter:
         ip = outputs.ServerIP(**server_ip)
         server = outputs.ServerDetailOutputServer(
             uuid=data.get('uuid'),
+            name='',
             ram=data.get('mem'),
             vcpu=data.get('vcpu'),
             ip=ip,
@@ -109,7 +110,7 @@ class OutputConverter:
     @staticmethod
     def to_server_create_output(data: dict):
         vm_id = data['uuid']
-        server = outputs.ServerCreateOutputServer(uuid=vm_id, default_user='', default_password='')
+        server = outputs.ServerCreateOutputServer(uuid=vm_id, name='', default_user='', default_password='')
         return outputs.ServerCreateOutput(server=server)
 
     @staticmethod
@@ -217,10 +218,10 @@ class OutputConverter:
 
     @staticmethod
     def to_server_rebuild_output(server_id: str, image_id: str, default_user: str, default_password: str):
-        return outputs.ServerRebuildOutput(server_id=server_id, image_id=image_id, default_user=default_user,
+        return outputs.ServerRebuildOutput(instance_id=server_id, image_id=image_id, default_user=default_user,
                                            default_password=default_password)
 
     @staticmethod
     def to_server_rebuild_output_error(error):
-        return outputs.ServerRebuildOutput(ok=False, error=error, server_id='', image_id='',
+        return outputs.ServerRebuildOutput(ok=False, error=error, instance_id='', image_id='',
                                            default_user='', default_password='')

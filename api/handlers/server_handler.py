@@ -141,7 +141,8 @@ class ServerHandler:
                 server.save(update_fields=['task_status', 'image', 'image_id', 'image_desc',
                                            'default_user', 'default_password'])
 
-                params = inputs.ServerRebuildInput(server_id=server.instance_id, image_id=image_id)
+                params = inputs.ServerRebuildInput(instance_id=server.instance_id, instance_name=server.instance_name,
+                                                   image_id=image_id)
                 try:
                     r = view.request_service(server.service, method='server_rebuild', params=params)
                 except exceptions.APIException as exc:
@@ -160,9 +161,13 @@ class ServerHandler:
             update_fields.append('default_user')
             update_fields.append('default_password')
 
-        if server.instance_id != r.server_id:
-            server.instance_id = r.server_id
+        if r.instance_id and server.instance_id != r.instance_id:
+            server.instance_id = r.instance_id
             update_fields.append('instance_id')
+
+        if r.instance_name and server.instance_name != r.instance_name:
+            server.instance_name = r.instance_name
+            update_fields.append('instance_name')
 
         if update_fields:
             server.save(update_fields=update_fields)

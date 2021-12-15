@@ -68,7 +68,7 @@ class VmwareAdapter(BaseAdapter):
     def _get_connect(self):
         return self.auth.kwargs['vmconnect']
 
-    def _server_name(self, template_name: str):
+    def _build_instance_name(self, template_name: str):
         return f'{template_name}&{str(uuid.uuid1())}'
 
     def _get_template_name(self, server_name: str):
@@ -83,6 +83,20 @@ class VmwareAdapter(BaseAdapter):
 
         return template_name
 
+    def _get_instance(self, conn, instance_id: str, instance_name: str):
+        vm = None
+        if instance_id:
+            vm = helpers.get_obj_by_uuid(conn.content, instance_id)
+
+        if instance_name:
+            if vm is not None:
+                if vm.name.lower() != instance_name.lower():
+                    vm = None
+            else:
+                vm = helpers.get_obj(conn.content, [vim.VirtualMachine], instance_name)
+
+        return vm
+
     def server_create(self, params: inputs.ServerCreateInput, **kwargs):
         """
         创建虚拟服务器
@@ -91,7 +105,7 @@ class VmwareAdapter(BaseAdapter):
         """
         template_name = params.image_id
         try:
-            vm_name = self._server_name(template_name)
+            vm_name = self._build_instance_name(template_name)
             deploy_settings = {'template': 'centos8_gui', 'hostname': 'gosc_003', 'ips': '10.0.200.243',
                                'cpus': params.vcpu, 'mem': params.ram, "new_vm_name": vm_name,
                                'template_name': template_name}
@@ -175,7 +189,7 @@ class VmwareAdapter(BaseAdapter):
             # fire the clone task
             task = template_vm.Clone(folder=destfolder, name=deploy_settings["new_vm_name"].title(), spec=clonespec)
             server = outputs.ServerCreateOutputServer(
-                uuid=vm_name, default_user='', default_password=''
+                uuid='', name=vm_name, default_user='', default_password=''
             )
             return outputs.ServerCreateOutput(server=server)
         except Exception as e:
@@ -187,8 +201,8 @@ class VmwareAdapter(BaseAdapter):
             outputs.ServerDetailOutput()
         """
         try:
-            service_instance = self._get_connect()
-            vm = helpers.get_obj(service_instance.content, [vim.VirtualMachine], params.server_id)
+            conn = self._get_connect()
+            vm = self._get_instance(conn=conn, instance_id=params.instance_id, instance_name=params.instance_name)
             try:
                 server_ip = {'ipv4': vm.guest.ipAddress, 'public_ipv4': None}
             except Exception as e:
@@ -196,7 +210,7 @@ class VmwareAdapter(BaseAdapter):
 
             ip = outputs.ServerIP(**server_ip)
 
-            image_name = self._get_template_name(params.server_id)
+            image_name = self._get_template_name(params.instance_name)
             if not image_name:
                 image_name = helpers.get_system_name(vm)
 
@@ -209,7 +223,8 @@ class VmwareAdapter(BaseAdapter):
             )
 
             server = outputs.ServerDetailOutputServer(
-                uuid=params.server_id,
+                uuid=vm.config.instanceUuid,
+                name=vm.name,
                 ram=vm.summary.config.memorySizeMB,
                 vcpu=vm.summary.config.numCpu,
                 ip=ip,
@@ -230,7 +245,8 @@ class VmwareAdapter(BaseAdapter):
         """
         try:
             service_instance = self._get_connect()
-            vm = helpers.get_obj(service_instance.content, [vim.VirtualMachine], params.server_id)
+            vm = self._get_instance(conn=service_instance, instance_id=params.instance_id,
+                                    instance_name=params.instance_name)
             if not vm:
                 return outputs.ServerActionOutput()
             if format(vm.runtime.powerState) == "poweredOn":
@@ -253,7 +269,8 @@ class VmwareAdapter(BaseAdapter):
         """
         try:
             service_instance = self._get_connect()
-            vm = helpers.get_obj(service_instance.content, [vim.VirtualMachine], params.server_id)
+            vm = self._get_instance(conn=service_instance, instance_id=params.instance_id,
+                                    instance_name=params.instance_name)
             if not vm:
                 return outputs.ServerActionOutput()
             if params.action == inputs.ServerAction.START:
@@ -295,7 +312,8 @@ class VmwareAdapter(BaseAdapter):
         }
         try:
             service_instance = self._get_connect()
-            vm = helpers.get_obj(service_instance.content, [vim.VirtualMachine], params.server_id)
+            vm = self._get_instance(conn=service_instance, instance_id=params.instance_id,
+                                    instance_name=params.instance_name)
             if not vm:
                 return outputs.ServerStatusOutput(status=outputs.ServerStatus.MISS,
                                                   status_mean=outputs.ServerStatus.get_mean(outputs.ServerStatus.MISS))
@@ -320,7 +338,8 @@ class VmwareAdapter(BaseAdapter):
         """
         try:
             service_instance = self._get_connect()
-            vm = helpers.get_obj(service_instance.content, [vim.VirtualMachine], params.server_id)
+            vm = self._get_instance(conn=service_instance, instance_id=params.instance_id,
+                                    instance_name=params.instance_name)
             x = vm.AcquireTicket("webmks")
             vnc_url = "wss://" + str(x.host) + ":" + str(x.port) + "/ticket/" + str(x.ticket)
             return outputs.ServerVNCOutput(vnc=outputs.ServerVNCOutputVNC(url=vnc_url))

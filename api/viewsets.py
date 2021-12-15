@@ -1,3 +1,5 @@
+import logging
+
 from django.utils.translation import gettext_lazy, gettext as _
 from django.http import Http404
 from django.core.exceptions import PermissionDenied
@@ -10,6 +12,9 @@ from drf_yasg import openapi
 from service.models import ServiceConfig
 from core.request import request_service, request_vpn_service
 from core import errors as exceptions
+
+
+logger = logging.getLogger('django.request')
 
 
 def str_to_int_or_default(val, default):
@@ -61,6 +66,7 @@ def exception_handler(exc, context):
         exc = exceptions.convert_to_error(exc)
 
     set_rollback()
+    logger.error(msg=str(exc))
     return Response(exc.err_data(), status=exc.status_code)
 
 

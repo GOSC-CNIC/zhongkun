@@ -80,7 +80,7 @@ class UnisAdapter(BaseAdapter):
         unis = self.get_unis_client(region=self.region)
         try:
             try:
-                status = self._get_server_status(instance_id=params.server_id)
+                status = self._get_server_status(instance_id=params.instance_id)
             except exceptions.Error as e:
                 return outputs.ServerDeleteOutput(ok=False, error=e)
 
@@ -88,11 +88,11 @@ class UnisAdapter(BaseAdapter):
                 return outputs.ServerDeleteOutput(
                     ok=False, error=exceptions.Error(f'云主机需要处于已停止/已停服状态才允许删除'))
 
-            self.server_status(inputs.ServerStatusInput(server_id=params.server_id))
-            r = unis.compute.delete_server(instance_id=params.server_id)
+            self.server_status(inputs.ServerStatusInput(instance_id=params.instance_id))
+            r = unis.compute.delete_server(instance_id=params.instance_id)
             if r.status_code == 200:
                 try:
-                    status = self._get_server_status(instance_id=params.server_id)
+                    status = self._get_server_status(instance_id=params.instance_id)
                 except exceptions.Error as e:
                     return outputs.ServerDeleteOutput(ok=False, error=e)
 
@@ -117,7 +117,7 @@ class UnisAdapter(BaseAdapter):
         :return:
             outputs.ServerActionOutput()
         """
-        instance_id = params.server_id
+        instance_id = params.instance_id
         action = params.action
         unis = self.get_unis_client(region=self.region)
         try:
@@ -126,7 +126,7 @@ class UnisAdapter(BaseAdapter):
             elif action == inputs.ServerAction.SHUTDOWN:
                 r = unis.compute.stop_server(instance_id=instance_id)
             elif action in [inputs.ServerAction.DELETE, inputs.ServerAction.DELETE_FORCE]:
-                ret = self.server_delete(params=inputs.ServerDeleteInput(server_id=instance_id))
+                ret = self.server_delete(params=inputs.ServerDeleteInput(instance_id=instance_id))
                 return outputs.ServerActionOutput(ok=ret.ok, error=ret.error)
             elif action == inputs.ServerAction.POWER_OFF:
                 r = unis.compute.stop_server(instance_id=instance_id)
@@ -200,7 +200,7 @@ class UnisAdapter(BaseAdapter):
         }
 
         try:
-            status = self._get_server_status(instance_id=params.server_id)
+            status = self._get_server_status(instance_id=params.instance_id)
         except exceptions.Error as e:
             return outputs.ServerStatusOutput(
                 ok=False, error=e, status=outputs.ServerStatus.NOSTATE, status_mean=''
@@ -222,7 +222,7 @@ class UnisAdapter(BaseAdapter):
             outputs.ServerVNCOutput()
         """
         unis = self.get_unis_client(region=self.region)
-        r = unis.compute.get_server_vnc(instance_id=params.server_id)
+        r = unis.compute.get_server_vnc(instance_id=params.instance_id)
         if r.status_code != 200:
             return outputs.ListImageOutput(
                 ok=False, error=exceptions.Error(message=r.text, status_code=r.status_code), images=[]
@@ -240,7 +240,7 @@ class UnisAdapter(BaseAdapter):
             outputs.ServerDetailOutput()
         """
         unis = self.get_unis_client(region=self.region)
-        r = unis.compute.detail_server(instance_id=params.server_id)
+        r = unis.compute.detail_server(instance_id=params.instance_id)
         if r.status_code != 200:
             return outputs.ListImageOutput(
                 ok=False, error=exceptions.Error(message=r.text, status_code=r.status_code), images=[]
@@ -249,7 +249,7 @@ class UnisAdapter(BaseAdapter):
         data = r.json()
         password = ''
         try:
-            r = unis.compute.get_server_password(instance_id=params.server_id)
+            r = unis.compute.get_server_password(instance_id=params.instance_id)
             if r.status_code == 200:
                 password = r.json()['password']
         except Exception as e:
@@ -283,6 +283,7 @@ class UnisAdapter(BaseAdapter):
 
         server = outputs.ServerDetailOutputServer(
             uuid=data['id'],
+            name=data['name'],
             ram=data['memory'] * 1024,
             vcpu=data['cpu'],
             image=image,

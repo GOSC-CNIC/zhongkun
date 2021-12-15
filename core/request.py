@@ -130,7 +130,7 @@ def update_server_detail(server, task_status: int = None):
     :raises: Error
     """
     # 尝试获取详细信息
-    params = inputs.ServerDetailInput(server_id=server.instance_id)
+    params = inputs.ServerDetailInput(instance_id=server.instance_id, instance_name=server.instance_name)
     try:
         out = request_service(service=server.service, method='server_detail', params=params)
         out_server = out.server
@@ -140,8 +140,19 @@ def update_server_detail(server, task_status: int = None):
     try:
         update_fields = []
 
-        server.name = out_server.name if out_server.name else out_server.uuid
-        update_fields.append('name')
+        if not server.name:
+            server.name = out_server.name if out_server.name else out_server.uuid
+            update_fields.append('name')
+
+        if not server.instance_id:
+            if out_server.uuid:
+                server.instance_id = out_server.uuid
+                update_fields.append('instance_id')
+
+        if not server.instance_name:
+            if out_server.name:
+                server.instance_name = out_server.name
+                update_fields.append('instance_name')
 
         if out_server.vcpu:
             server.vcpus = out_server.vcpu
@@ -203,7 +214,7 @@ def server_status_code(server):
 
     :raises: APIException
     """
-    params = inputs.ServerStatusInput(server_id=server.instance_id)
+    params = inputs.ServerStatusInput(instance_id=server.instance_id, instance_name=server.instance_name)
     service = server.service
     try:
         r = request_service(service, method='server_status', params=params)
