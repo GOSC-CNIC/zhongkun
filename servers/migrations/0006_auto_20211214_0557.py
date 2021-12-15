@@ -13,11 +13,11 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='server',
             name='instance_name',
-            field=models.CharField(default='', help_text='各接入服务中虚拟主机的名称', max_length=255, verbose_name='云主机名称'),
+            field=models.CharField(blank=True, default='', help_text='各接入服务中云主机的名称', max_length=255, verbose_name='云主机实例名称'),
         ),
         migrations.AddField(
             model_name='serverarchive',
             name='instance_name',
-            field=models.CharField(default='', help_text='各接入服务中虚拟主机的名称', max_length=255, verbose_name='云主机名称'),
+            field=models.CharField(blank=True, default='', help_text='各接入服务中云主机的名称', max_length=255, verbose_name='云主机实例名称'),
         ),
     ]

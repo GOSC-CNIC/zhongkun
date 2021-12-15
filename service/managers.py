@@ -281,12 +281,11 @@ class UserQuotaManager:
 
         return quota
 
-    def release(self, user, quota_id: str, vcpus: int = 0, ram: int = 0,
+    def release(self, quota_id: str, vcpus: int = 0, ram: int = 0,
                 disk_size: int = 0, public_ip: int = 0, private_ip: int = 0):
         """
         释放(已用)资源
 
-        :param user: 用户对象
         :param quota_id: 配额id
         :param vcpus: 虚拟cpu数
         :param ram: 内存，单位Mb
@@ -301,9 +300,6 @@ class UserQuotaManager:
         if vcpus < 0 or ram < 0 or disk_size < 0 or public_ip < 0 or private_ip < 0:
             raise errors.QuotaError(_('参数无效，释放资源配额不得小于0'))
 
-        if not user.id:
-            raise errors.QuotaError(_('参数无效，无效的未知用户'))
-
         with transaction.atomic():
             update_fields = []
             quota = self.MODEL.objects.select_for_update().filter(id=quota_id).first()
@@ -311,8 +307,7 @@ class UserQuotaManager:
                 raise errors.NoSuchQuotaError(_('参数无效，指定的资源配额不存在'))
 
             if quota.classification == quota.Classification.PERSONAL:
-                if quota.user_id != user.id:
-                    raise errors.NoSuchQuotaError(_('参数无效，用户没有指定的资源配额'))
+                pass
             elif quota.classification == quota.Classification.VO:
                 if quota.vo_id is None:
                     raise errors.NoSuchQuotaError(_('用户指定的vo资源配额没有vo关系'))

@@ -83,7 +83,7 @@ class TestUserQuotaManager(TransactionTestCase):
         self.assertEqual(new_quota.private_ip_used, private_ip_add,
                          msg='UserQuotaManager deduct private_ip failed')
 
-        new_quota = mgr.release(user=user, quota_id=old_quota.id, vcpus=vcpus_add, ram=ram_add, disk_size=disk_size_add,
+        new_quota = mgr.release(quota_id=old_quota.id, vcpus=vcpus_add, ram=ram_add, disk_size=disk_size_add,
                                 public_ip=public_ip_add, private_ip=private_ip_add)
         self.assertEqual(new_quota.vcpu_used, old_quota.vcpu_used,
                          msg='UserQuotaManager release vcpu failed')
@@ -210,12 +210,12 @@ class TestServiceQuotaManager(TransactionTestCase):
         update_ram = 1024   # MB
         update_disk = 2048  # Gb
         update_private_ip = 10
-        update_public_ip =9
+        update_public_ip = 9
 
         mgr = manager_cls()
         service = self.service
         mgr.update(service=service, vcpus=update_vcpu, ram=update_ram, disk_size=update_disk,
-                           public_ip=update_public_ip, private_ip=update_private_ip, only_increase=True)
+                   public_ip=update_public_ip, private_ip=update_private_ip, only_increase=True)
         new_quota = mgr.get_quota(service=service)
         self.assertEqual(new_quota.vcpu_total, update_vcpu)
         self.assertEqual(new_quota.ram_total, update_ram)
@@ -354,7 +354,7 @@ class QuotaAPITests(TransactionTestCase):
         # 创建失败，释放服务配额和用户配额
         QuotaAPI().server_quota_release(self.service, vcpu=vcpus_apply,
                                         ram=ram_apply, public_ip=is_public_ip_apply,
-                                        user=self.user, user_quota_id=self.user_quota.id)
+                                        user_quota_id=self.user_quota.id)
 
         self.user_quota.refresh_from_db()
         self.assertEqual(self.user_quota.vcpu_used, 0)

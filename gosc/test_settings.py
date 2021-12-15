@@ -30,7 +30,7 @@ TEST_CASE = {
             'password': ''
         },
         'JOB_MEETING': {
-            'job_tag': 'wangluozhongxin'
+            'job_tag': '45xinxihuadasha503'
         }
     }
 }

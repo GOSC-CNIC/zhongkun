@@ -869,6 +869,39 @@ class ServersTests(MyAPITestCase):
         response = self.client.post(url, data={'action': 'start'})
         self.assertErrorResponse(status_code=500, code='InternalError', response=response)
 
+        # ----------------admin action server test -----------------------
+        admin_username = 'admin-user'
+        admin_password = 'admin-password'
+        admin_user = get_or_create_user(username=admin_username, password=admin_password)
+        self.client.logout()
+        self.client.force_login(admin_user)
+
+        # test when not admin
+        url = reverse('api:servers-server-action', kwargs={'id': self.miss_server.id})
+        query = parse.urlencode(query={'as-admin': ''})
+        response = self.client.post(f'{url}?{query}', data={'action': 'start'})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # test when service admin
+        self.service.users.add(admin_user)
+        url = reverse('api:servers-server-action', kwargs={'id': self.miss_server.id})
+        query = parse.urlencode(query={'as-admin': ''})
+        response = self.client.post(f'{url}?{query}', data={'action': 'start'})
+        self.assertErrorResponse(status_code=500, code='InternalError', response=response)
+
+        # test when federal admin
+        self.service.users.remove(admin_user)
+        url = reverse('api:servers-server-action', kwargs={'id': self.miss_server.id})
+        query = parse.urlencode(query={'as-admin': ''})
+        response = self.client.post(f'{url}?{query}', data={'action': 'start'})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        admin_user.set_federal_admin()
+        url = reverse('api:servers-server-action', kwargs={'id': self.miss_server.id})
+        query = parse.urlencode(query={'as-admin': ''})
+        response = self.client.post(f'{url}?{query}', data={'action': 'start'})
+        self.assertErrorResponse(status_code=500, code='InternalError', response=response)
+
     def test_vo_server_permission(self):
         member_user = get_or_create_user(username='vo-member')
         self.client.logout()
@@ -1027,6 +1060,46 @@ class ServersTests(MyAPITestCase):
                         "service_type": ServiceConfig.ServiceType.EVCLOUD},
             'vo_id': self.vo_id
         }, d=response.data['results'][0])
+
+        # ----------------admin delete server test -----------------------
+        admin_username = 'admin-user'
+        admin_password = 'admin-password'
+        admin_user = get_or_create_user(username=admin_username, password=admin_password)
+
+        delete_server = create_server_metadata(
+            service=self.service, user=self.user, user_quota=None,
+            default_user=self.default_user, default_password=self.default_password)
+
+        self.client.logout()
+        self.client.force_login(admin_user)
+
+        # test when not admin
+        base_url = reverse('api:servers-detail', kwargs={'id': delete_server.id})
+        query = parse.urlencode(query={'as-admin': ''})
+        delete_url = f'{base_url}?{query}'
+        response = self.client.delete(delete_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # test when service admin
+        self.service.users.add(admin_user)
+        response = self.client.delete(delete_url)
+        self.assertEqual(response.status_code, 204)
+
+        # test when federal admin
+        self.service.users.remove(admin_user)
+        delete_server = create_server_metadata(
+            service=self.service, user=self.user, user_quota=None,
+            default_user=self.default_user, default_password=self.default_password)
+
+        base_url = reverse('api:servers-detail', kwargs={'id': delete_server.id})
+        query = parse.urlencode(query={'as-admin': ''})
+        delete_url = f'{base_url}?{query}'
+        response = self.client.delete(delete_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        admin_user.set_federal_admin()
+        response = self.client.delete(delete_url)
+        self.assertEqual(response.status_code, 204)
 
     def test_server_lock(self):
         # server remark

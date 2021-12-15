@@ -36,7 +36,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.CharField(blank=True, editable=False, max_length=36, primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(max_length=255, verbose_name='服务器实例名称')),
-                ('instance_id', models.CharField(help_text='各接入服务中虚拟主机的ID', max_length=128, verbose_name='虚拟主机ID')),
+                ('instance_id', models.CharField(help_text='各接入服务中云主机的ID', max_length=128, verbose_name='云主机实例ID')),
                 ('vcpus', models.IntegerField(default=0, verbose_name='虚拟CPU数')),
                 ('ram', models.IntegerField(default=0, verbose_name='内存MB')),
                 ('ipv4', models.CharField(default='', max_length=128, verbose_name='IPV4')),
@@ -62,7 +62,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.CharField(blank=True, editable=False, max_length=36, primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(max_length=255, verbose_name='服务器实例名称')),
-                ('instance_id', models.CharField(help_text='各接入服务中虚拟主机的ID', max_length=128, verbose_name='虚拟主机ID')),
+                ('instance_id', models.CharField(help_text='各接入服务中云主机的ID', max_length=128, verbose_name='云主机实例ID')),
                 ('vcpus', models.IntegerField(default=0, verbose_name='虚拟CPU数')),
                 ('ram', models.IntegerField(default=0, verbose_name='内存MB')),
                 ('ipv4', models.CharField(default='', max_length=128, verbose_name='IPV4')),

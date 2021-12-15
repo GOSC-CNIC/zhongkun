@@ -43,9 +43,9 @@ class ServerBase(models.Model):
 
     id = models.CharField(blank=True, editable=False, max_length=36, primary_key=True, verbose_name='ID')
     name = models.CharField(max_length=255, verbose_name=_('服务器实例名称'))
-    instance_id = models.CharField(max_length=128, verbose_name=_('虚拟主机ID'), help_text=_('各接入服务中虚拟主机的ID'))
-    instance_name = models.CharField(max_length=255, default='', verbose_name=_('云主机名称'),
-                                     help_text=_('各接入服务中虚拟主机的名称'))
+    instance_id = models.CharField(max_length=128, verbose_name=_('云主机实例ID'), help_text=_('各接入服务中云主机的ID'))
+    instance_name = models.CharField(max_length=255, blank=True, default='', verbose_name=_('云主机实例名称'),
+                                     help_text=_('各接入服务中云主机的名称'))
     vcpus = models.IntegerField(verbose_name=_('虚拟CPU数'), default=0)
     ram = models.IntegerField(verbose_name=_('内存MB'), default=0)
     ipv4 = models.CharField(max_length=128, verbose_name='IPV4', default='')
@@ -163,8 +163,8 @@ class Server(ServerBase):
                            related_name='vo_server_set', verbose_name=_('项目组'))
     lock = models.CharField(verbose_name=_('锁'), max_length=16, choices=Lock.choices, default=Lock.FREE,
                             help_text=_('加锁锁定云主机，防止误操作'))
-    # email_lasttime = models.DateTimeField(verbose_name=_('上次发送邮件时间'), null=True, default=None,
-    #                                       help_text=_('记录上次发邮件的时间，邮件通知用户配额即将到期'))
+    email_lasttime = models.DateTimeField(verbose_name=_('上次发送邮件时间'), null=True, blank=True, default=None,
+                                          help_text=_('记录上次发邮件的时间，邮件通知用户配额即将到期'))
 
     class Meta:
         ordering = ['-creation_time']
@@ -191,7 +191,7 @@ class Server(ServerBase):
 
         return False
 
-    def do_archive(self):
+    def do_archive(self, archive_user):
         """
         创建归档记录
         :return: True or False
@@ -224,6 +224,7 @@ class Server(ServerBase):
             a.image_desc = self.image_desc
             a.default_user = self.default_user
             a.default_password = self.default_password
+            a.archive_user = archive_user
             a.save()
         except Exception as e:
             return False
@@ -329,6 +330,8 @@ class ServerArchive(ServerBase):
     vo = models.ForeignKey(to=VirtualOrganization, null=True, on_delete=models.SET_NULL, default=None, blank=True,
                            related_name='vo_server_archive_set', verbose_name=_('项目组'))
     deleted_time = models.DateTimeField(verbose_name=_('删除归档时间'), auto_now_add=True)
+    archive_user = models.ForeignKey(to=User, verbose_name=_('归档人'), on_delete=models.SET_NULL,
+                             related_name='+', blank=True, null=True, default=None)
 
     class Meta:
         ordering = ['-deleted_time']

@@ -450,7 +450,7 @@ class ServersViewSet(CustomGenericViewSet):
                 required=False,
                 description='强制删除'
             ),
-        ],
+        ] + CustomGenericViewSet.PARAMETERS_AS_ADMIN,
         responses={
             204: """NO CONTENT""",
             403: """
@@ -483,8 +483,14 @@ class ServersViewSet(CustomGenericViewSet):
             force = True
         else:
             force = False
+
         try:
-            server = ServerManager().get_manage_perm_server(server_id=server_id, user=request.user)
+            if self.is_as_admin_request(request=request):
+                server = ServerManager().get_manage_perm_server(
+                    server_id=server_id, user=request.user, related_fields=['service__data_center'], as_admin=True)
+            else:
+                server = ServerManager().get_manage_perm_server(
+                    server_id=server_id, user=request.user, related_fields=['service__data_center', 'vo__owner'])
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
@@ -500,8 +506,8 @@ class ServersViewSet(CustomGenericViewSet):
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
-        if server.do_archive():     # 记录归档
-            self.release_server_quota(server=server, user=request.user)    # 释放资源配额
+        if server.do_archive(archive_user=request.user):     # 记录归档
+            self.release_server_quota(server=server)    # 释放资源配额
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -518,6 +524,7 @@ class ServersViewSet(CustomGenericViewSet):
                 )
             }
         ),
+        manual_parameters=CustomGenericViewSet.PARAMETERS_AS_ADMIN,
         responses={
             200: """
                 {
@@ -565,13 +572,25 @@ class ServersViewSet(CustomGenericViewSet):
 
         try:
             if need_manager_perm:
-                server = ServerManager().get_manage_perm_server(server_id=server_id, user=request.user)
+                if self.is_as_admin_request(request=request):
+                    server = ServerManager().get_manage_perm_server(
+                        server_id=server_id, user=request.user, related_fields=['service__data_center'], as_admin=True)
+                else:
+                    server = ServerManager().get_manage_perm_server(
+                        server_id=server_id, user=request.user, related_fields=['service__data_center', 'vo__owner'])
+
                 if server.is_locked_delete():
                     return self.exception_response(exceptions.ResourceLocked(
                         message=_('无法删除，云主机已加锁锁定了删除')
                     ))
             else:
-                server = ServerManager().get_read_perm_server(server_id=server_id, user=request.user)
+                if self.is_as_admin_request(request=request):
+                    server = ServerManager().get_read_perm_server(
+                        server_id=server_id, user=request.user, related_fields=['service__data_center'], as_admin=True)
+                else:
+                    server = ServerManager().get_read_perm_server(
+                        server_id=server_id, user=request.user, related_fields=['service__data_center', 'vo__owner'])
+
                 if server.is_locked_operation():
                     return self.exception_response(exceptions.ResourceLocked(
                         message=_('云主机已加锁锁定了任何操作')
@@ -581,15 +600,15 @@ class ServersViewSet(CustomGenericViewSet):
 
         params = inputs.ServerActionInput(
             instance_id=server.instance_id, instance_name=server.instance_name, action=act)
-        service = server.service
+
         try:
-            r = self.request_service(service, method='server_action', params=params)
+            r = self.request_service(server.service, method='server_action', params=params)
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
-        if act in ['delete', 'delete_force']:
-            server.do_archive()
-            self.release_server_quota(server=server, user=request.user)    # 释放资源配额
+        if act in [inputs.ServerAction.DELETE, inputs.ServerAction.DELETE_FORCE]:
+            server.do_archive(archive_user=request.user)
+            self.release_server_quota(server=server)    # 释放资源配额
 
         return Response({'action': act})
 
@@ -843,7 +862,7 @@ class ServersViewSet(CustomGenericViewSet):
         return Serializer
 
     @staticmethod
-    def release_server_quota(server, user):
+    def release_server_quota(server):
         """
         释放虚拟服务器资源配额
 
@@ -852,15 +871,14 @@ class ServersViewSet(CustomGenericViewSet):
             True
             False
         """
-        params = {}
+        user_quota_id = None
         if server.task_status == server.TASK_CREATE_FAILED:     # 创建失败，用户资源配额返还
-            params['user'] = user
-            params['user_quota_id'] = server.user_quota_id
+            user_quota_id = server.user_quota_id
 
         try:
             QuotaAPI().server_quota_release(service=server.service, vcpu=server.vcpus,
                                             ram=server.ram, public_ip=server.public_ip,
-                                            **params)
+                                            user_quota_id=user_quota_id)
         except exceptions.Error as e:
             return False
 
