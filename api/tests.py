@@ -3,6 +3,7 @@ import collections
 import io
 import random
 import time
+from datetime import datetime
 from string import printable
 from datetime import timedelta
 from urllib import parse
@@ -93,7 +94,8 @@ def create_server_metadata(service, user, user_quota, vo_id=None,
                     vo_id=vo_id,
                     image_id='',
                     image_desc='image desc',
-                    default_user=default_user)
+                    default_user=default_user,
+                    creation_time=timezone.now())
     server.raw_default_password = default_password
     server.save()
     return server
@@ -1032,16 +1034,20 @@ class ServersTests(MyAPITestCase):
         self.assertKeysIn(["count", "next", "previous", "results"], response.data)
         self.assertEqual(response.data['count'], 1)
         self.assertEqual(len(response.data['results']), 1)
+        obj = response.data['results'][0]
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
                            "public_ip", "image", "creation_time",
                            "remarks", "service", "user_quota",
-                           "center_quota", "deleted_time", "classification", "vo_id"], response.data["results"][0])
+                           "center_quota", "deleted_time", "classification", "vo_id"], obj)
         self.assert_is_subdict_of(sub={
             'classification': Server.Classification.PERSONAL,
             'service': {'id': self.miss_server.service.id, 'name': self.miss_server.service.name,
                         "service_type": ServiceConfig.ServiceType.EVCLOUD},
             'vo_id': None
-        }, d=response.data['results'][0])
+        }, d=obj)
+        UTC_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
+        self.assertEqual(datetime.strptime(obj['creation_time'], UTC_FORMAT).timestamp(),
+                         self.miss_server.creation_time.timestamp())
 
         # list vo server archives
         url = reverse('api:server-archive-list-vo-archives', kwargs={'vo_id': self.vo_id})

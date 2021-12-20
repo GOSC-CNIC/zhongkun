@@ -313,6 +313,7 @@ class ServersViewSet(CustomGenericViewSet):
                         expiration_time=due_time,
                         image_id=image_id,
                         default_user=out_server.default_user,
+                        creation_time=timezone.now(),
                         **kwargs
                         )
         if out_server.default_password:

@@ -55,7 +55,7 @@ class ServerBase(models.Model):
     image_desc = models.CharField(max_length=255, verbose_name=_('镜像系统描述'), blank=True, default='')
     default_user = models.CharField(max_length=64, verbose_name=_('默认登录用户名'), default='')
     default_password = models.CharField(max_length=255, blank=True, verbose_name=_('默认登录密码'), default='')
-    creation_time = models.DateTimeField(auto_now_add=True, verbose_name=_('创建时间'))
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'))
     remarks = models.CharField(max_length=255, blank=True, default='', verbose_name=_('备注'))
     task_status = models.SmallIntegerField(verbose_name=_('创建状态'), choices=CHOICES_TASK, default=TASK_CREATED_OK)
     center_quota = models.SmallIntegerField(verbose_name=_('服务配额'), choices=CHOICES_QUOTA, default=QUOTA_PRIVATE)
