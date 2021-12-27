@@ -78,14 +78,14 @@ def chunks(f, chunk_size=2 * 2 ** 20):
 
 def create_server_metadata(service, user, user_quota, vo_id=None,
                            default_user: str = 'root', default_password: str = 'password',
-                           classification=Server.Classification.PERSONAL):
+                           classification=Server.Classification.PERSONAL, ipv4: str = ''):
     server = Server(service=service,
                     instance_id='test',
                     remarks='',
                     user=user,
                     vcpus=2,
                     ram=1024,
-                    ipv4='127.0.0.1',
+                    ipv4=ipv4 if ipv4 else '127.0.0.1',
                     image='test-image',
                     task_status=Server.TASK_CREATED_OK,
                     user_quota=user_quota,
@@ -422,7 +422,9 @@ class ServersTests(MyAPITestCase):
         self.default_password = 'password'
         self.miss_server = create_server_metadata(
             service=self.service, user=self.user, user_quota=None,
-            default_user=self.default_user, default_password=self.default_password)
+            default_user=self.default_user, default_password=self.default_password,
+            ipv4='127.0.0.1'
+        )
         vo_data = {
             'name': 'test vo', 'company': '网络中心', 'description': 'unittest'
         }
@@ -432,7 +434,8 @@ class ServersTests(MyAPITestCase):
         self.vo_server = create_server_metadata(
             service=self.service, user=self.user, user_quota=None, vo_id=self.vo_id,
             classification=Server.Classification.VO, default_user=self.default_user,
-            default_password=self.default_password
+            default_password=self.default_password,
+            ipv4='127.0.0.12'
         )
 
     @staticmethod
@@ -705,6 +708,29 @@ class ServersTests(MyAPITestCase):
             'id': self.miss_server.id, 'vo_id': None
         }, d=response.data['servers'][0])
 
+        # param ip-contain
+        url = reverse('api:servers-list')
+        query = parse.urlencode({'ip-contain': self.miss_server.ipv4})
+        url = f'{url}?{query}'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'next', 'previous', 'servers'], response.data)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['servers']), 1)
+        self.assert_is_subdict_of(sub={
+            'classification': Server.Classification.PERSONAL,
+            'id': self.miss_server.id, 'ipv4': self.miss_server.ipv4
+        }, d=response.data['servers'][0])
+
+        url = reverse('api:servers-list')
+        query = parse.urlencode({'ip-contain': 'no-contain'})
+        url = f'{url}?{query}'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'next', 'previous', 'servers'], response.data)
+        self.assertEqual(response.data['count'], 0)
+        self.assertEqual(len(response.data['servers']), 0)
+
         # list vo servers
         url = reverse('api:servers-list-vo-servers', kwargs={'vo_id': self.vo_id})
         response = self.client.get(url)
@@ -757,7 +783,8 @@ class ServersTests(MyAPITestCase):
         )
         service66.save()
         admin_server66 = create_server_metadata(service=service66, user=admin_user, user_quota=None,
-                                                default_user=self.default_user, default_password=self.default_password)
+                                                default_user=self.default_user, default_password=self.default_password,
+                                                ipv4='159.226.235.66')
 
         self.client.logout()
         self.client.force_login(admin_user)
@@ -855,6 +882,19 @@ class ServersTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 1)
         self.assertEqual(len(response.data['servers']), 1)
+
+        query_str = parse.urlencode(query={'as-admin': '', 'ip-contain': '0.0.1'})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(len(response.data['servers']), 2)
+
+        query_str = parse.urlencode(query={'as-admin': '', 'ip-contain': admin_server66.ipv4})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['servers']), 1)
+        self.assertEqual(admin_server66.ipv4, response.data['servers'][0]['ipv4'])
 
     def test_server_action(self):
         url = reverse('api:servers-server-action', kwargs={'id': 'motfound'})

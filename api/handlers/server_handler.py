@@ -19,6 +19,7 @@ class ServerHandler:
     @staticmethod
     def list_servers(view: CustomGenericViewSet, request, kwargs):
         service_id = request.query_params.get('service_id', None)
+        ip_contain = request.query_params.get('ip-contain', None)
         username = request.query_params.get('username')
         user_id = request.query_params.get('user-id')
         vo_id = request.query_params.get('vo-id')
@@ -30,7 +31,9 @@ class ServerHandler:
         if view.is_as_admin_request(request):
             try:
                 servers = ServerManager().get_admin_servers_queryset(
-                    user=request.user, service_id=service_id, user_id=user_id, username=username, vo_id=vo_id)
+                    user=request.user, service_id=service_id, user_id=user_id, username=username, vo_id=vo_id,
+                    ipv4_contains=ip_contain
+                )
             except Exception as exc:
                 return view.exception_response(exceptions.convert_to_error(exc))
         else:
@@ -38,7 +41,8 @@ class ServerHandler:
                 return view.exception_response(exceptions.BadRequest(
                     message=_('参数“user-id”、“user-id”和“vo-id”只能和参数“as-admin”一起提交')))
 
-            servers = ServerManager().get_user_servers_queryset(user=request.user, service_id=service_id)
+            servers = ServerManager().get_user_servers_queryset(
+                user=request.user, service_id=service_id, ipv4_contains=ip_contain)
 
         service_id_map = ServiceManager.get_service_id_map(use_cache=True)
         paginator = paginations.ServersPagination()

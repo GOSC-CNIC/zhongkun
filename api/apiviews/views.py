@@ -79,6 +79,13 @@ class ServersViewSet(CustomGenericViewSet):
                 description='服务端点id'
             ),
             openapi.Parameter(
+              name='ip-contain',
+              in_=openapi.IN_QUERY,
+              type=openapi.TYPE_STRING,
+              required=False,
+              description=gettext_lazy('过滤条件，查询ip地址中包含指定字符串的服务器')
+            ),
+            openapi.Parameter(
                 name='user-id',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
