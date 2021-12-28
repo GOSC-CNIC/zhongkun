@@ -1,6 +1,6 @@
 from uuid import uuid1
 
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Count, Sum, Q
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
@@ -63,6 +63,8 @@ class ServerBase(models.Model):
     classification = models.CharField(verbose_name=_('云主机归属类型'), max_length=16,
                                       choices=Classification.choices, default=Classification.PERSONAL,
                                       help_text=_('标识云主机属于申请者个人的，还是vo组的'))
+    start_time = models.DateTimeField(verbose_name=_('计量开始时间'), default=timezone.now,
+                                      help_text=_('云主机资源使用量计量开始时间'))
 
     class Meta:
         abstract = True
@@ -199,38 +201,15 @@ class Server(ServerBase):
         if not self.id:
             return False
 
-        a = ServerArchive()
         try:
-            a.service = self.service
-            a.name = self.name
-            a.instance_id = self.instance_id
-            a.instance_name = self.instance_name
-            a.vcpus = self.vcpus
-            a.ram = self.ram
-            a.ipv4 = self.ipv4
-            a.public_ip = self.public_ip
-            a.image = self.image
-            a.creation_time = self.creation_time
-            a.remarks = self.remarks
-            a.user_id = self.user_id
-            a.vo_id = self.vo_id
-            a.deleted_time = timezone.now()
-            a.task_status = self.task_status
-            a.center_quota = self.center_quota
-            a.user_quota = self.user_quota
-            a.expiration_time = self.expiration_time
-            a.classification = self.classification
-            a.image_id = self.image_id
-            a.image_desc = self.image_desc
-            a.default_user = self.default_user
-            a.default_password = self.default_password
-            a.archive_user = archive_user
-            a.save()
+            with transaction.atomic():
+                a = ServerArchive.init_archive_fron_server(
+                    server=self, archive_user=archive_user,
+                    archive_type=ServerArchive.ArchiveType.ARCHIVE, commit=True
+                )
+                self.delete()
         except Exception as e:
             return False
-
-        if not self.do_delete():
-            a.do_delete()
 
         return True
 
@@ -321,6 +300,10 @@ class ServerArchive(ServerBase):
     """
     虚拟服务器实例归档
     """
+    class ArchiveType(models.TextChoices):
+        ARCHIVE = 'archive', _('删除归档记录')
+        REBUILD = 'rebuild', _('重建修改记录')
+
     service = models.ForeignKey(to=ServiceConfig, null=True, on_delete=models.SET_NULL,
                                 related_name='server_archive_set', verbose_name=_('接入的服务配置'))
     user = models.ForeignKey(to=User, verbose_name=_('创建者'), on_delete=models.SET_NULL,
@@ -329,14 +312,62 @@ class ServerArchive(ServerBase):
                                    related_name='server_archive_set', verbose_name=_('所属用户配额'))
     vo = models.ForeignKey(to=VirtualOrganization, null=True, on_delete=models.SET_NULL, default=None, blank=True,
                            related_name='vo_server_archive_set', verbose_name=_('项目组'))
-    deleted_time = models.DateTimeField(verbose_name=_('删除归档时间'), auto_now_add=True)
+    deleted_time = models.DateTimeField(verbose_name=_('删除归档时间'))
     archive_user = models.ForeignKey(to=User, verbose_name=_('归档人'), on_delete=models.SET_NULL,
                              related_name='+', blank=True, null=True, default=None)
+    archive_type = models.CharField(verbose_name=_('归档记录类型'), max_length=16, choices=ArchiveType.choices,
+                                      default=ArchiveType.ARCHIVE)
 
     class Meta:
         ordering = ['-deleted_time']
         verbose_name = _('服务器归档记录')
         verbose_name_plural = verbose_name
+
+    @classmethod
+    def init_archive_fron_server(cls, server, archive_user, archive_type, commit: bool = True):
+        """
+        创建归档记录
+        :return:
+            ServerArchive()
+
+        :raises: Exception
+        """
+        if archive_type not in cls.ArchiveType.values:
+            raise Exception(f'Invalid input archive_type')
+
+        a = cls()
+        a.service = server.service
+        a.name = server.name
+        a.instance_id = server.instance_id
+        a.instance_name = server.instance_name
+        a.vcpus = server.vcpus
+        a.ram = server.ram
+        a.ipv4 = server.ipv4
+        a.public_ip = server.public_ip
+        a.image = server.image
+        a.creation_time = server.creation_time
+        a.remarks = server.remarks
+        a.user_id = server.user_id
+        a.vo_id = server.vo_id
+        a.deleted_time = timezone.now()
+        a.task_status = server.task_status
+        a.center_quota = server.center_quota
+        a.user_quota = server.user_quota
+        a.expiration_time = server.expiration_time
+        a.classification = server.classification
+        a.image_id = server.image_id
+        a.image_desc = server.image_desc
+        a.default_user = server.default_user
+        a.default_password = server.default_password
+        a.archive_user = archive_user
+        a.start_time = server.start_time
+        a.archive_type = archive_type
+
+        if commit:
+            a.save()
+
+        return a
+
 
 
 class Flavor(models.Model):

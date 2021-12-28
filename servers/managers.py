@@ -176,7 +176,8 @@ class ServerArchiveManager:
         """
         qs = self.get_archives_queryset()
         qs = qs.select_related('service', 'user_quota').filter(
-            user=user, classification=ServerArchive.Classification.PERSONAL)
+            user=user, classification=ServerArchive.Classification.PERSONAL,
+            archive_type=ServerArchive.ArchiveType.ARCHIVE)
 
         if service_id:
             qs = qs.filter(service_id=service_id)
@@ -189,7 +190,8 @@ class ServerArchiveManager:
         """
         qs = self.get_archives_queryset()
         qs = qs.select_related('service', 'user_quota').filter(
-            vo_id=vo_id, classification=ServerArchive.Classification.VO)
+            vo_id=vo_id, classification=ServerArchive.Classification.VO,
+            archive_type=ServerArchive.ArchiveType.ARCHIVE)
 
         if service_id:
             qs = qs.filter(service_id=service_id)

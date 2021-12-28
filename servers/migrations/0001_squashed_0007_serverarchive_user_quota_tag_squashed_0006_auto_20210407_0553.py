@@ -70,7 +70,7 @@ class Migration(migrations.Migration):
                 ('image', models.CharField(default='', max_length=255, verbose_name='镜像系统名称')),
                 ('creation_time', models.DateTimeField(verbose_name='创建时间')),
                 ('remarks', models.CharField(blank=True, default='', max_length=255, verbose_name='备注')),
-                ('deleted_time', models.DateTimeField(auto_now_add=True, verbose_name='删除归档时间')),
+                ('deleted_time', models.DateTimeField(verbose_name='删除归档时间')),
                 ('service', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='server_archive_set', to='service.serviceconfig', verbose_name='接入的服务配置')),
                 ('user', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='user_server_archives', to=settings.AUTH_USER_MODEL, verbose_name='创建者')),
                 ('task_status', models.SmallIntegerField(choices=[(1, '创建成功'), (2, '正在创建中'), (3, '创建失败')], default=1, verbose_name='创建状态')),
