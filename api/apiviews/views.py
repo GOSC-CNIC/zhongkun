@@ -306,7 +306,8 @@ class ServersViewSet(CustomGenericViewSet):
             kwargs['classification'] = Server.Classification.PERSONAL
             kwargs['vo_id'] = None
 
-        due_time = timezone.now() + timedelta(days=user_quota.duration_days)
+        creation_time = timezone.now()
+        due_time = creation_time + timedelta(days=user_quota.duration_days)
         server = Server(service=service,
                         instance_id=out_server.uuid,
                         instance_name=out_server.name,
@@ -320,7 +321,8 @@ class ServersViewSet(CustomGenericViewSet):
                         expiration_time=due_time,
                         image_id=image_id,
                         default_user=out_server.default_user,
-                        creation_time=timezone.now(),
+                        creation_time=creation_time,
+                        start_time=creation_time,
                         **kwargs
                         )
         if out_server.default_password:
@@ -337,6 +339,11 @@ class ServersViewSet(CustomGenericViewSet):
 
     @staticmethod
     def _update_server_detail(server, task_status: int = None):
+        """
+        :return:
+            server      # success
+            None        # failed
+        """
         try:
             return core_request.update_server_detail(server=server, task_status=task_status)
         except exceptions.Error as e:
@@ -444,7 +451,7 @@ class ServersViewSet(CustomGenericViewSet):
                 serializer = serializers.ServerSerializer(server)
                 return Response(data={'server': serializer.data})
 
-        server = self._update_server_detail(server=server)
+        self._update_server_detail(server=server)
         serializer = serializers.ServerSerializer(server)
         return Response(data={'server': serializer.data})
 
