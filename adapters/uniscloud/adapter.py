@@ -333,13 +333,83 @@ class UnisAdapter(BaseAdapter):
 
         return outputs.ListImageOutput(images=images)
 
+    def _list_network_vpc(self, client):
+        """
+        :raises: Error
+        """
+        try:
+            r = client.network.vpc.list()
+        except Exception as exc:
+            raise exceptions.Error(message=str(exc), status_code=500)
+
+        if r.status_code != 200:
+            raise exceptions.Error(message=r.text, status_code=r.status_code)
+
+        data = r.json()
+        if data['Code'] != 'Network.Success':
+            msg = data['Msg']
+            raise exceptions.Error(message=msg, status_code=r.status_code)
+
+        vpc_list = []
+        for vpc in data['Res']:
+            if vpc['Status'].upper() == 'RUNNING':
+                vpc_list.append(vpc)
+
+        if len(vpc_list) == 0:
+            raise exceptions.Error(message='no VPC', status_code=r.status_code)
+
+        return vpc_list
+
+    def _list_network_vpc_subnet(self, client, vpcs: list):
+        """
+        :raises: Error
+        """
+        subnets = []
+        for vpc in vpcs:
+            try:
+                r = client.network.vpc.list_subnet(vpc_id=vpc['InstanceId'])
+            except Exception as exc:
+                raise exceptions.Error(message=str(exc), status_code=500)
+
+            if r.status_code != 200:
+                msg = self._get_response_failed_message(r, key='message')
+                raise exceptions.Error(message=msg, status_code=r.status_code)
+
+            data = r.json()
+            if data['Code'] != 'Network.Success':
+                msg = data['Msg']
+                raise exceptions.Error(message=msg, status_code=r.status_code)
+
+            subnets += data['Res']
+
+        return subnets
+
     def list_networks(self, params: inputs.ListNetworkInput, **kwargs):
         """
         列举子网
         :return:
             outputs.ListNetworkOutput()
         """
-        raise NotImplementedError('`list_networks()` must be implemented.')
+        unis = self.get_unis_client(region=params.region_id)
+        try:
+            vpc_list = self._list_network_vpc(unis)
+        except Exception as exc:
+            return outputs.ListNetworkOutput(ok=False, error=exc, networks=[])
+
+        try:
+            subnets = self._list_network_vpc_subnet(unis, vpcs=vpc_list)
+        except Exception as exc:
+            return outputs.ListNetworkOutput(ok=False, error=exc, networks=[])
+
+        networks = []
+        for subnet in subnets:
+            networks.append(
+                outputs.ListNetworkOutputNetwork(
+                    _id=subnet['Id'], name=subnet['Name'], public=False, segment=subnet['Cidr']
+                )
+            )
+
+        return outputs.ListNetworkOutput(networks=networks)
 
     def network_detail(self, params: inputs.NetworkDetailInput, **kwargs):
         """
@@ -350,10 +420,10 @@ class UnisAdapter(BaseAdapter):
         """
         raise NotImplementedError('`network_detail()` must be implemented.')
 
-    def _get_response_failed_message(self, response):
+    def _get_response_failed_message(self, response, key: str = 'Message'):
         try:
             data = response.json()
-            msg = data['Message']
+            msg = data[key]
         except Exception as e:
             msg = response.text
 

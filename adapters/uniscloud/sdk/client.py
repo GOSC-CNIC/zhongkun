@@ -1,6 +1,7 @@
 from .auth import Credentials, BaseSigner, SignV1Auth
 from .compute import Compute
 from .product import Product, UserRegion
+from .network import Network
 
 
 class UnisCloud:
@@ -25,6 +26,14 @@ class UnisCloud:
     @property
     def compute(self):
         return Compute(
+            endpoint_url=self.endpoint_url,
+            region_id=self.region_id,
+            signer=self.siger
+        )
+
+    @property
+    def network(self):
+        return Network(
             endpoint_url=self.endpoint_url,
             region_id=self.region_id,
             signer=self.siger

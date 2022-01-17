@@ -106,5 +106,3 @@ class Compute:
 
         request = self._build_request(method='GET', params=params)
         return request.do_request(self.signer)
-
-
