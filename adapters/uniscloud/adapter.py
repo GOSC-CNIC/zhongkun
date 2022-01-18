@@ -343,7 +343,8 @@ class UnisAdapter(BaseAdapter):
             raise exceptions.Error(message=str(exc), status_code=500)
 
         if r.status_code != 200:
-            raise exceptions.Error(message=r.text, status_code=r.status_code)
+            msg = self._get_response_failed_message(r)
+            raise exceptions.Error(message=msg, status_code=r.status_code)
 
         data = r.json()
         if data['Code'] != 'Network.Success':
@@ -418,7 +419,30 @@ class UnisAdapter(BaseAdapter):
         :return:
             outputs.NetworkDetailOutput()
         """
-        raise NotImplementedError('`network_detail()` must be implemented.')
+        unis = self.get_unis_client(region=self.region)
+        try:
+            vpc_list = self._list_network_vpc(unis)
+        except Exception as exc:
+            return outputs.NetworkDetailOutput(ok=False, error=exc)
+
+        try:
+            subnets = self._list_network_vpc_subnet(unis, vpcs=vpc_list)
+        except Exception as exc:
+            return outputs.NetworkDetailOutput(ok=False, error=exc)
+
+        for subnet in subnets:
+            if subnet['Id'] == params.network_id:
+                return outputs.NetworkDetailOutput(
+                    network=outputs.NetworkDetail(
+                        _id=subnet['Id'],
+                        name=subnet['Name'],
+                        public=False,
+                        segment=subnet['Cidr']
+                    )
+                )
+
+        return outputs.NetworkDetailOutput(
+            ok=False, error=exceptions.Error(message='Not found subnet', status_code=404))
 
     def _get_response_failed_message(self, response, key: str = 'Message'):
         try:
