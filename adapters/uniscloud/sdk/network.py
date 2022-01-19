@@ -43,7 +43,25 @@ class VPC(NetworkBase):
         return request.do_request(self.signer)
 
 
+class SecurityGroup(NetworkBase):
+    Location = '/networks/securitygroup'
+
+    def list(self):
+        """
+        """
+        params = {
+            'Action': 'DescribeSecurityGroup',
+            'RegionId': self.region_id
+        }
+        request = self._build_request(method='GET', params=params)
+        return request.do_request(self.signer)
+
+
 class Network(NetworkBase):
     @property
     def vpc(self):
         return VPC(endpoint_url=self.endpoint_url, region_id=self.region_id, signer=self.signer)
+
+    @property
+    def security_group(self):
+        return SecurityGroup(endpoint_url=self.endpoint_url, region_id=self.region_id, signer=self.signer)

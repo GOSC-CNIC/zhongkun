@@ -1,12 +1,71 @@
+import string
+import random
+import uuid
 from datetime import datetime, timedelta
 
 from adapters import outputs, inputs
 from adapters import exceptions
 from adapters.params import ParamsName
 from adapters.base import BaseAdapter
-from .sdk.client import UnisCloud
-from .sdk.auth import Credentials
-from .sdk.model import RequestError
+from .sdk import (
+    UnisCloud, Credentials, RequestError
+)
+from . import sdk
+
+
+def random_string(length: int = 8):
+    letters = string.ascii_letters + string.digits
+    items = [random.choice(letters) for _ in range(length)]
+    return ''.join(items)
+
+
+class UnisImagesContainer:
+    PRIVATE = 'ecs.image.private'
+    PUBLIC = 'ecs.image.public'
+
+    def __init__(self):
+        self._private = []
+        self._public = []
+
+    @property
+    def private(self):
+        return self._private
+
+    @private.setter
+    def private(self, val: list):
+        self._private = val
+
+    @property
+    def public(self):
+        return self._public
+
+    @public.setter
+    def public(self, val: list):
+        self._public = val
+
+    @property
+    def all(self):
+        return self._private + self.public
+
+    def get_image(self, image_id: str) -> (str, dict):
+        """
+        :return:
+            (               # exist
+                str,        # 镜像规格族
+                dict
+            )
+            None, None      # not exist
+
+        """
+        for img in self.private:
+            if image_id == img['imageId']:
+                return self.PRIVATE, img
+
+        for img in self.public:
+            if image_id == img['imageId']:
+                return self.PUBLIC, img
+
+        return None, None
 
 
 class UnisAdapter(BaseAdapter):
@@ -69,7 +128,112 @@ class UnisAdapter(BaseAdapter):
         :return:
             outputs.ServerCreateOutput()
         """
-        raise NotImplementedError('`server_create()` must be implemented.')
+        def return_exception(exc):
+            return outputs.ServerCreateOutput(
+                ok=False, error=exc, server=None
+            )
+
+        unis = self.get_unis_client(region=params.region_id)
+        instance_name = f'gosc-{uuid.uuid1()}'
+
+        # image
+        try:
+            images_container = self._list_images_unis(region_id=params.region_id)
+        except exceptions.Error as exc:
+            return return_exception(exc)
+        except Exception as exc:
+            return return_exception(exceptions.Error(message=str(exc), status_code=500))
+
+        image_class_code, image = images_container.get_image(params.image_id)
+        if image is None:
+            return return_exception(exceptions.Error(message='image not found', status_code=404))
+
+        system_type=image['ostype']
+        default_password = random_string()
+        default_username = 'root'
+        if system_type == 'windows':
+            default_username = 'Administrator'
+
+        # network
+        try:
+            vpc_list = self._list_network_vpc(unis)
+        except Exception as exc:
+            return return_exception(exc)
+
+        master_eni_subnet_id = params.network_id
+        vpc_id = ''
+        for vpc in vpc_list:
+            for subnet in vpc['Subnets']:
+                if subnet['Id'] == master_eni_subnet_id:
+                    vpc_id = vpc['InstanceId']
+                    break
+
+        if not vpc_id:
+            return return_exception(exceptions.Error(message='VPC subnet not found', status_code=404))
+
+        # security group
+        try:
+            r = unis.network.security_group.list()
+        except Exception as e:
+            return return_exception(exceptions.Error(message=str(e), status_code=500))
+
+        if r.status_code != 200:
+            msg = self._get_response_failed_message(r)
+            return return_exception(exceptions.Error(message=msg, status_code=r.status_code))
+
+        security_group_id = ''
+        data = r.json()
+        security_groups = data['Res']['Data']
+        if security_groups:
+            for sg in data['Res']['Data']:
+                if sg['Status'].upper() == 'RUNNING':
+                    security_group_id = sg['InstanceId']
+                    break
+
+            if not security_group_id:
+                return return_exception(exceptions.Error(message='not available security group', status_code=404))
+
+        input = sdk.CreateInstanceInput(
+            region_id=params.region_id,
+            azone_id='zz',
+            pay_type=sdk.CreateInstanceInput.PAY_TYPE_CHARGING_HOURS,
+            period=1,
+            vm_specification_code='vv',
+            sys_disk_specification_code=sdk.CreateInstanceInput.SYS_DISK_CODE_SSD,
+            sys_disk_size=40,
+            image_id=params.image_id,
+            image_specification_class_code=image_class_code,
+            instance_name=instance_name,
+            security_group_id=security_group_id,
+            vpc_id=vpc_id,
+            master_eni_subnet_id=master_eni_subnet_id,
+            base_quantity=1,
+            password=default_password,
+            description=params.remarks
+        )
+        try:
+            r = unis.compute.create_server(input=input)
+        except Exception as exc:
+            return return_exception(exceptions.Error(message=str(exc), status_code=500))
+
+        if r.status_code != 200:
+            msg = self._get_response_failed_message(r)
+            return return_exception(exceptions.Error(message=msg, status_code=r.status_code))
+
+        data = r.json()
+        try:
+            instance_id = data['instanceIds'][0]
+        except IndexError:
+            return return_exception(exceptions.Error(message='create instance failed', status_code=500))
+
+        return outputs.ServerCreateOutput(
+            server=outputs.ServerCreateOutputServer(
+                uuid=instance_id,
+                name=instance_name,
+                default_user=default_username,
+                default_password=default_password
+            )
+        )
 
     def server_delete(self, params: inputs.ServerDeleteInput, **kwargs):
         """
@@ -303,30 +467,53 @@ class UnisAdapter(BaseAdapter):
         """
         raise NotImplementedError('`server_rebuild()` must be implemented.')
 
+    def _list_images_unis(self, region_id) -> UnisImagesContainer:
+        """
+        :raises: Error
+        """
+        unis = self.get_unis_client(region=region_id)
+        r = unis.compute.list_private_images()
+        if r.status_code != 200:
+            msg = self._get_response_failed_message(r)
+            raise exceptions.Error(message=msg, status_code=r.status_code)
+
+        data = r.json()
+        container = UnisImagesContainer()
+        container.private = data['images']
+        return container
+
     def list_images(self, params: inputs.ListImageInput, **kwargs):
         """
         列举镜像
         :return:
             output.ListImageOutput()
         """
-        images = []
-        unis = self.get_unis_client(region=params.region_id)
-        r = unis.compute.list_images()
-        if r.status_code != 200:
+        try:
+            images_container = self._list_images_unis(region_id=params.region_id)
+        except exceptions.Error as exc:
             return outputs.ListImageOutput(
-                ok=False, error=exceptions.Error(message=r.text, status_code=r.status_code), images=[]
+                ok=False, error=exc, images=[]
+            )
+        except Exception as exc:
+            return outputs.ListImageOutput(
+                ok=False, error=exceptions.Error(message=str(exc), status_code=500), images=[]
             )
 
-        data = r.json()
-        unis_images = data['images']
+        unis_images = images_container.all
+        images = []
         for img in unis_images:
+            system_type=img['ostype']
+            default_username = 'root'
+            if system_type == 'windows':
+                default_username = 'Administrator'
+
             image = outputs.ListImageOutputImage(
                 _id=img['imageId'],
                 name=img['operatingSystem'],
                 system=img['operatingSystem'],
                 system_type=img['ostype'],
                 creation_time=datetime.fromtimestamp(img['creationTime'] / 1000),
-                default_username='root',
+                default_username=default_username,
                 default_password=''
             )
             images.append(image)
@@ -363,9 +550,14 @@ class UnisAdapter(BaseAdapter):
 
     def _list_network_vpc_subnet(self, client, vpcs: list):
         """
+        :return:
+            [
+                {                   # vpc
+                    'subnets': []   # vpc subnets
+                }
+            ]
         :raises: Error
         """
-        subnets = []
         for vpc in vpcs:
             try:
                 r = client.network.vpc.list_subnet(vpc_id=vpc['InstanceId'])
@@ -381,9 +573,9 @@ class UnisAdapter(BaseAdapter):
                 msg = data['Msg']
                 raise exceptions.Error(message=msg, status_code=r.status_code)
 
-            subnets += data['Res']
+            vpc['subnets'] = data['Res']
 
-        return subnets
+        return vpcs
 
     def list_networks(self, params: inputs.ListNetworkInput, **kwargs):
         """
@@ -397,18 +589,19 @@ class UnisAdapter(BaseAdapter):
         except Exception as exc:
             return outputs.ListNetworkOutput(ok=False, error=exc, networks=[])
 
-        try:
-            subnets = self._list_network_vpc_subnet(unis, vpcs=vpc_list)
-        except Exception as exc:
-            return outputs.ListNetworkOutput(ok=False, error=exc, networks=[])
+        # try:
+        #     vpc_list = self._list_network_vpc_subnet(unis, vpcs=vpc_list)
+        # except Exception as exc:
+        #     return outputs.ListNetworkOutput(ok=False, error=exc, networks=[])
 
         networks = []
-        for subnet in subnets:
-            networks.append(
-                outputs.ListNetworkOutputNetwork(
-                    _id=subnet['Id'], name=subnet['Name'], public=False, segment=subnet['Cidr']
+        for vpc in vpc_list:
+            for subnet in vpc['Subnets']:
+                networks.append(
+                    outputs.ListNetworkOutputNetwork(
+                        _id=subnet['Id'], name=subnet['Name'], public=False, segment=subnet['Cidr']
+                    )
                 )
-            )
 
         return outputs.ListNetworkOutput(networks=networks)
 
@@ -425,21 +618,21 @@ class UnisAdapter(BaseAdapter):
         except Exception as exc:
             return outputs.NetworkDetailOutput(ok=False, error=exc)
 
-        try:
-            subnets = self._list_network_vpc_subnet(unis, vpcs=vpc_list)
-        except Exception as exc:
-            return outputs.NetworkDetailOutput(ok=False, error=exc)
-
-        for subnet in subnets:
-            if subnet['Id'] == params.network_id:
-                return outputs.NetworkDetailOutput(
-                    network=outputs.NetworkDetail(
-                        _id=subnet['Id'],
-                        name=subnet['Name'],
-                        public=False,
-                        segment=subnet['Cidr']
+        # try:
+        #     subnets = self._list_network_vpc_subnet(unis, vpcs=vpc_list)
+        # except Exception as exc:
+        #     return outputs.NetworkDetailOutput(ok=False, error=exc)
+        for vpc in vpc_list:
+            for subnet in vpc['Subnets']:
+                if subnet['Id'] == params.network_id:
+                    return outputs.NetworkDetailOutput(
+                        network=outputs.NetworkDetail(
+                            _id=subnet['Id'],
+                            name=subnet['Name'],
+                            public=False,
+                            segment=subnet['Cidr']
+                        )
                     )
-                )
 
         return outputs.NetworkDetailOutput(
             ok=False, error=exceptions.Error(message='Not found subnet', status_code=404))

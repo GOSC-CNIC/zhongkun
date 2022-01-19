@@ -1,3 +1,4 @@
+import json
 import requests
 from urllib import parse
 
@@ -79,12 +80,19 @@ class Request:
         :raises:
         """
         signer.add_auth(request=self)
+        data = self.data
+        json_data = None
+        if data and self.format == 'json':
+            json_data = data
+            data = None
+
         try:
             r = requests.request(
                 method=self.method,
                 url=self.url,
                 headers=self.headers,
-                data=self.data,
+                json=json_data,
+                data=data,
                 files=self.files,
                 params=self.params
             )
