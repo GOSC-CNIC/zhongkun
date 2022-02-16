@@ -41,6 +41,11 @@ class ServerBase(models.Model):
         PERSONAL = 'personal', _('个人的')
         VO = 'vo', _('VO组的')
 
+    class PayType(models.TextChoices):
+        PREPAID = 'prepaid', _('包年包月')
+        POSTPAID = 'postpaid', _('按量计费')
+        QUOTA = 'quota', _('资源配额券')
+
     id = models.CharField(blank=True, editable=False, max_length=36, primary_key=True, verbose_name='ID')
     name = models.CharField(max_length=255, verbose_name=_('服务器实例名称'))
     instance_id = models.CharField(max_length=128, verbose_name=_('云主机实例ID'), help_text=_('各接入服务中云主机的ID'))
@@ -65,6 +70,8 @@ class ServerBase(models.Model):
                                       help_text=_('标识云主机属于申请者个人的，还是vo组的'))
     start_time = models.DateTimeField(verbose_name=_('计量开始时间'), default=timezone.now,
                                       help_text=_('云主机资源使用量计量开始时间'))
+    pay_type = models.CharField(verbose_name=_('计费方式'), max_length=16, choices=PayType.choices,
+                                default=PayType.POSTPAID)
 
     class Meta:
         abstract = True
@@ -304,6 +311,8 @@ class ServerArchive(ServerBase):
         ARCHIVE = 'archive', _('删除归档记录')
         REBUILD = 'rebuild', _('重建修改记录')
 
+    server_id = models.CharField(verbose_name=_('服务器ID'), max_length=36, blank=True, default='',
+                                 help_text=_('归档服务器的ID'))
     service = models.ForeignKey(to=ServiceConfig, null=True, on_delete=models.SET_NULL,
                                 related_name='server_archive_set', verbose_name=_('接入的服务配置'))
     user = models.ForeignKey(to=User, verbose_name=_('创建者'), on_delete=models.SET_NULL,
@@ -336,6 +345,7 @@ class ServerArchive(ServerBase):
             raise Exception(f'Invalid input archive_type')
 
         a = cls()
+        a.server_id = server.id
         a.service = server.service
         a.name = server.name
         a.instance_id = server.instance_id
@@ -362,12 +372,12 @@ class ServerArchive(ServerBase):
         a.archive_user = archive_user
         a.start_time = server.start_time
         a.archive_type = archive_type
+        a.pay_type = server.pay_type
 
         if commit:
             a.save()
 
         return a
-
 
 
 class Flavor(models.Model):

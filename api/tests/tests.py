@@ -600,7 +600,8 @@ class ServersTests(MyAPITestCase):
                            "public_ip", "image", "creation_time", "remarks",
                            "endpoint_url", "service", "user_quota",
                            "center_quota", "classification", "vo_id", "user",
-                           "image_id", "image_desc", "default_user", "default_password"], response.data['server'])
+                           "image_id", "image_desc", "default_user", "default_password", "pay_type"
+                           ], response.data['server'])
         self.assert_is_subdict_of(sub={
             "default_user": self.default_user, "default_password": self.default_password
         }, d=response.data['server'])
@@ -628,7 +629,8 @@ class ServersTests(MyAPITestCase):
                            "public_ip", "image", "creation_time", "remarks",
                            "endpoint_url", "service", "user_quota",
                            "center_quota", "classification", "vo_id", "user",
-                           "image_id", "image_desc", "default_user", "default_password"], response.data['server'])
+                           "image_id", "image_desc", "default_user", "default_password", "pay_type"
+                           ], response.data['server'])
         self.assert_is_subdict_of(sub={
             "default_user": self.default_user, "default_password": self.default_password
         }, d=response.data['server'])
@@ -649,7 +651,8 @@ class ServersTests(MyAPITestCase):
                            "public_ip", "image", "creation_time", "remarks",
                            "endpoint_url", "service", "user_quota",
                            "center_quota", "classification", "vo_id", "user",
-                           "image_id", "image_desc", "default_user", "default_password"], response.data['server'])
+                           "image_id", "image_desc", "default_user", "default_password", "pay_type"
+                           ], response.data['server'])
 
     def test_server_list(self):
         vo_server = self.vo_server
@@ -667,7 +670,7 @@ class ServersTests(MyAPITestCase):
                            "remarks", "endpoint_url", "service", "user_quota",
                            "center_quota", "classification", "vo_id", "user",
                            "image_id", "image_desc", "default_user", "default_password",
-                           "lock"], response.data['servers'][0])
+                           "lock", "pay_type"], response.data['servers'][0])
         self.assert_is_subdict_of(sub={
             'classification': Server.Classification.PERSONAL,
             'service': {'id': self.miss_server.service.id, 'name': self.miss_server.service.name,
@@ -711,7 +714,7 @@ class ServersTests(MyAPITestCase):
                            "remarks", "endpoint_url", "service", "user_quota",
                            "center_quota", "classification", "vo_id", "user",
                            "image_id", "image_desc", "default_user", "default_password",
-                           "lock"], response.data['servers'][0])
+                           "lock", "pay_type"], response.data['servers'][0])
         self.assert_is_subdict_of(sub={
             'classification': Server.Classification.VO,
             'service': {'id': vo_server.service.id, 'name': vo_server.service.name,
@@ -729,7 +732,7 @@ class ServersTests(MyAPITestCase):
                            "endpoint_url", "service", "user_quota",
                            "center_quota", "classification", "vo_id", "user",
                            "image_id", "image_desc", "default_user", "default_password",
-                           "lock"], response.data['server'])
+                           "lock", "pay_type"], response.data['server'])
         self.assert_is_subdict_of(sub={
             'classification': Server.Classification.VO,
             'service': {'id': vo_server.service.id, 'name': vo_server.service.name,
@@ -801,7 +804,7 @@ class ServersTests(MyAPITestCase):
                            "remarks", "endpoint_url", "service", "user_quota",
                            "center_quota", "classification", "vo_id", "user",
                            "image_id", "image_desc", "default_user", "default_password",
-                           "lock"], response.data['servers'][0])
+                           "lock", "pay_type"], response.data['servers'][0])
         self.assert_is_subdict_of(sub={
             'classification': Server.Classification.PERSONAL,
             'service': {'id': self.miss_server.service.id, 'name': self.miss_server.service.name,
@@ -1045,7 +1048,8 @@ class ServersTests(MyAPITestCase):
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
                            "public_ip", "image", "creation_time",
                            "remarks", "service", "user_quota",
-                           "center_quota", "deleted_time", "classification", "vo_id"], obj)
+                           "center_quota", "deleted_time", "classification", "vo_id",
+                           "pay_type", "server_id"], obj)
         self.assert_is_subdict_of(sub={
             'classification': Server.Classification.PERSONAL,
             'service': {'id': self.miss_server.service.id, 'name': self.miss_server.service.name,
@@ -1066,7 +1070,8 @@ class ServersTests(MyAPITestCase):
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
                            "public_ip", "image", "creation_time",
                            "remarks", "service", "user_quota",
-                           "center_quota", "deleted_time", "classification", "vo_id"], response.data["results"][0])
+                           "center_quota", "deleted_time", "classification", "vo_id",
+                           "pay_type", "server_id"], response.data["results"][0])
         self.assert_is_subdict_of(sub={
             'classification': Server.Classification.VO,
             'service': {'id': self.vo_server.service.id, 'name': self.vo_server.service.name,

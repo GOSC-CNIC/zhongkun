@@ -39,6 +39,7 @@ class ServerBaseSerializer(serializers.Serializer):
     image_desc = serializers.CharField()
     default_user = serializers.CharField()
     default_password = serializers.SerializerMethodField(method_name='get_default_password')
+    pay_type = serializers.CharField()
 
     @staticmethod
     def get_default_password(obj):
@@ -120,6 +121,7 @@ class ServerArchiveSerializer(ServerBaseSerializer):
     """
     虚拟服务器归档记录序列化器
     """
+    server_id = serializers.CharField()
     service = serializers.SerializerMethodField(method_name='get_service')
     user_quota = UserQuotaSimpleSerializer(required=False)
     center_quota = serializers.IntegerField()

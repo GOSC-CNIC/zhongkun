@@ -22,8 +22,8 @@ def get_service_client(service: ServiceConfig, **kwargs):
         style = SERVICE_TYPE_OPENSTACK
     elif service_type == service.ServiceType.VMWARE:
         style = SERVICE_TYPE_VMWARE
-    elif service_type == service.ServiceType.UNIS_CLOUD:
-        style = SERVICE_TYPE_UNIS_CLOUD
+    # elif service_type == service.ServiceType.UNIS_CLOUD:
+    #     style = SERVICE_TYPE_UNIS_CLOUD
     else:
         raise UnsupportedServiceType(extend_msg=service_type)
 

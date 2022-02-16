@@ -6,16 +6,12 @@ from datetime import datetime, timedelta
 from calendar import timegm
 from uuid import uuid4
 
-from django.contrib.auth import get_user_model
 from jwt import PyJWT
 from jwt import InvalidAlgorithmError, InvalidTokenError, algorithms
 from rest_framework.settings import settings
 from rest_framework import HTTP_HEADER_ENCODING
 
 from core.errors import Error
-
-
-User = get_user_model()
 
 
 class DictObjectWrapper:

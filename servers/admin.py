@@ -9,11 +9,12 @@ class ServerAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
     list_display = ('id', 'service', 'instance_id', 'vcpus', 'ram', 'ipv4', 'image',
                     'creation_time', 'start_time', 'user', 'task_status', 'center_quota', 'user_quota',
+                    'pay_type', 'classification', 'vo', 'lock',
                     'default_user', 'show_default_password', 'expiration_time', 'remarks')
     search_fields = ['name', 'image', 'ipv4', 'remarks']
-    list_filter = ['service__data_center', 'service']
+    list_filter = ['service__data_center', 'service', 'classification']
     raw_id_fields = ('user', 'user_quota')
-    list_select_related = ('service', 'user', 'user_quota')
+    list_select_related = ('service', 'user', 'user_quota', 'vo')
 
     @admin.display(
         description=_('默认登录密码')
@@ -26,12 +27,13 @@ class ServerAdmin(admin.ModelAdmin):
 class ServerArchiveAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
     list_display = ('id', 'service', 'name', 'instance_id', 'vcpus', 'ram', 'ipv4', 'image',
-                    'creation_time', 'user', 'task_status', 'center_quota', 'user_quota',
+                    'creation_time', 'user', 'task_status', 'pay_type', 'classification', 'vo',
+                    'center_quota', 'user_quota',
                     'start_time', 'deleted_time', 'archive_user', 'archive_type', 'remarks')
     search_fields = ['name', 'image', 'ipv4', 'remarks']
-    list_filter = ['service']
+    list_filter = ['service', 'classification']
     raw_id_fields = ('user',)
-    list_select_related = ('service', 'user', 'user_quota', 'archive_user')
+    list_select_related = ('service', 'user', 'user_quota', 'archive_user', 'vo')
     show_full_result_count = False
 
 
