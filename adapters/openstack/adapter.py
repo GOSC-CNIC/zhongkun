@@ -482,6 +482,19 @@ class OpenStackAdapter(BaseAdapter):
         except Exception as e:
             return outputs.NetworkDetailOutput(ok=False, error=exceptions.Error(str(e)), network=None)
 
+    def list_availability_zones(self, params: inputs.ListAvailabilityZoneInput):
+        try:
+            conn = self._get_openstack_connect()
+            a_zones = conn.compute.availability_zones()
+            zones = []
+            for zone in a_zones:
+                name = zone.name
+                zones.append(outputs.AvailabilityZone(_id=name, name=name))
+
+            return outputs.ListAvailabilityZoneOutput(zones)
+        except Exception as e:
+            return outputs.ListAvailabilityZoneOutput(ok=False, error=exceptions.Error(str(e)), zones=None)
+
     def create_volume(self, params: inputs.VolumeCreateInput, **kwargs):
         """
         Create a new volume.

@@ -4,6 +4,7 @@ import requests
 from adapters.base import BaseAdapter
 from adapters import inputs
 from adapters import outputs
+from adapters.params import ParamsName
 from .builders import APIBuilder
 from . import exceptions
 from .validators import InputValidator
@@ -42,6 +43,9 @@ class EVCloudAdapter(BaseAdapter):
         api_version = api_version if api_version in ['v3'] else 'v3'
         super().__init__(endpoint_url=endpoint_url, api_version=api_version, auth=auth, **kwargs)
         self.api_builder = APIBuilder(endpoint_url=self.endpoint_url, api_version=self.api_version)
+
+    def get_region(self):
+        return self.kwargs.get(ParamsName.REGION, '')
 
     def get_auth_header(self):
         """
@@ -353,6 +357,27 @@ class EVCloudAdapter(BaseAdapter):
 
         rj = r.json()
         return OutputConverter().to_network_detail_output(net=rj)
+
+    def list_availability_zones(self, params: inputs.ListAvailabilityZoneInput):
+        if params.region_id:
+            region_id = params.region_id
+        else:
+            region_id = self.get_region()
+
+        if not region_id:
+            return outputs.ListAvailabilityZoneOutput(
+                ok=False, error=exceptions.Error(message='param "region_id" is required'), zones=None)
+
+        try:
+            headers = self.get_auth_header()
+            data = self.list_groups(region_id=region_id, headers=headers)
+            zones = []
+            for group in data['results']:
+                zones.append(outputs.AvailabilityZone(_id=group['id'], name=group['name']))
+
+            return outputs.ListAvailabilityZoneOutput(zones)
+        except Exception as e:
+            return outputs.ListAvailabilityZoneOutput(ok=False, error=exceptions.Error(str(e)), zones=None)
 
     def list_groups(self, region_id: str, headers: dict = None):
         """

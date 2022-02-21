@@ -142,6 +142,10 @@ class OneServiceClient:
     def network_detail(self, *args, **kwargs):
         return self.adapter.network_detail(*args, **kwargs)
 
+    @adapter_method_not_support(action='list availability zones')
+    def list_availability_zones(self, *args, **kwargs):
+        return self.adapter.list_availability_zones(*args, **kwargs)
+
 
 class VPNClient:
     def __init__(self, endpoint_url, api_version='v3', auth=None):

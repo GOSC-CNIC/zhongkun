@@ -324,6 +324,18 @@ class NetworkDetailOutput(OutputBase):
         super().__init__(**kwargs)
 
 
+class AvailabilityZone:
+    def __init__(self, _id: str, name: str):
+        self.id = _id
+        self.name = name
+
+
+class ListAvailabilityZoneOutput(OutputBase):
+    def __init__(self, zones: list = None, **kwargs):
+        self.zones = zones
+        super().__init__(**kwargs)
+
+
 class VolumeStoragePool:
     def __init__(self, name: str,
                  total_capacity_gb: str = 'unknown',

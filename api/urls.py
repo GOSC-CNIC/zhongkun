@@ -4,7 +4,7 @@ from rest_framework.routers import SimpleRouter
 from .apiviews import views
 from .apiviews import (
     monitor_views, service_quota_views,
-    stats_quota_views,
+    stats_quota_views, azone_views
 )
 
 app_name = 'api'
@@ -38,6 +38,7 @@ no_slash_router.register(r'vms/service/s-quota', service_quota_views.ServiveShar
                          basename='vms-service-s-quota')
 no_slash_router.register(r'stats/quota', stats_quota_views.StatsQuotaViewSet,
                          basename='vms-stats-quota')
+no_slash_router.register(r'azone', azone_views.AvailabilityZoneViewSet, basename='availability-zone')
 
 
 urlpatterns = [

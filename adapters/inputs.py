@@ -144,6 +144,15 @@ class NetworkDetailInput(InputBase):
         super().__init__(**kwargs)
 
 
+class ListAvailabilityZoneInput(InputBase):
+    def __init__(self, region_id: str, **kwargs):
+        """
+        :param region_id: 区域/分中心id; type: str; required: False
+        """
+        self.region_id = region_id
+        super().__init__(**kwargs)
+
+
 class VolumeCreateInput(InputBase):
     def __init__(self, size: int, description: str, **kwargs):
         self.size = size                    # Gb

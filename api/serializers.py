@@ -853,3 +853,8 @@ class MonitorJobVideoMeetingSerializer(serializers.Serializer):
     creation = serializers.DateTimeField(label=_('创建时间'))
     longitude = serializers.FloatField(label=_('经度'))
     latitude = serializers.FloatField(label=_('纬度'))
+
+
+class AvailabilityZoneSerializer(serializers.Serializer):
+    id = serializers.CharField(label=_('可用区ID'))
+    name = serializers.CharField(label=_('可用区名称'))

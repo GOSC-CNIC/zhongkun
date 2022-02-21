@@ -411,3 +411,9 @@ class VmwareAdapter(BaseAdapter):
             return outputs.NetworkDetailOutput(network=new_net)
         except exceptions.Error as e:
             return outputs.NetworkDetailOutput(ok=False, error=exceptions.Error(str(e)), network=None)
+
+    def list_availability_zones(self, params: inputs.ListAvailabilityZoneInput):
+        try:
+            return outputs.ListAvailabilityZoneOutput([])
+        except Exception as e:
+            return outputs.ListAvailabilityZoneOutput(ok=False, error=exceptions.Error(str(e)), zones=None)

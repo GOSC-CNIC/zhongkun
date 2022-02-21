@@ -112,3 +112,11 @@ class BaseAdapter:
             outputs.NetworkDetailOutput()
         """
         raise NotImplementedError('`network_detail()` must be implemented.')
+
+    def list_availability_zones(self, params: inputs.ListAvailabilityZoneInput):
+        """
+        列举可用区
+        :return:
+            outputs.ListAvailabilityZoneOutput()
+        """
+        raise NotImplementedError('`list_availability_zones()` must be implemented.')
