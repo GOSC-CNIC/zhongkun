@@ -243,6 +243,9 @@ class OpenStackAdapter(BaseAdapter):
             flavor = instance.flavor
             user_data = instance.user_data
             username, password = get_admin_pass_form_user_data(user_data)
+            azone_id = ''
+            if isinstance(instance.availability_zone, str):
+                azone_id = instance.availability_zone
             server = outputs.ServerDetailOutputServer(
                 uuid=instance.id,
                 name=instance.name,
@@ -252,7 +255,8 @@ class OpenStackAdapter(BaseAdapter):
                 image=image,
                 creation_time=iso_to_datetime(instance.created_at),
                 default_user=username,
-                default_password=password
+                default_password=password,
+                azone_id=azone_id
             )
             return outputs.ServerDetailOutput(server=server)
         except Exception as e:

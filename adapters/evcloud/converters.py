@@ -94,6 +94,14 @@ class OutputConverter:
             server_ip = {'ipv4': data.get('mac_ip'), 'public_ipv4': None}
 
         ip = outputs.ServerIP(**server_ip)
+
+        azone_id = ''
+        if 'host_info' in data:
+            try:
+                azone_id = data['host_info']['group']['id']
+            except KeyError:
+                pass
+
         server = outputs.ServerDetailOutputServer(
             uuid=data.get('uuid'),
             name='',
@@ -103,7 +111,8 @@ class OutputConverter:
             image=image,
             creation_time=iso_to_datetime(data.get('create_time')),
             default_user=default_user,
-            default_password=default_password
+            default_password=default_password,
+            azone_id=azone_id
         )
         return server
 

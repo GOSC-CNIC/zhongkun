@@ -49,6 +49,7 @@ class ServerCreateInput(InputBase):
         :param region_id: 区域/分中心id; type: str; required: False
         :param network_id: 子网id; type: str; required: False
         :param remarks: 备注信息; type: str; required: False
+        :param azone_id: availability zone id
         """
         self.ram = ram
         self.vcpu = vcpu
@@ -57,6 +58,7 @@ class ServerCreateInput(InputBase):
         self.region_id = kwargs.get('region_id', None)
         self.network_id = kwargs.get('network_id', None)
         self.remarks = kwargs.get('remarks', None)
+        self.azone_id = kwargs.get('azone_id', None)
         super().__init__(**kwargs)
 
 

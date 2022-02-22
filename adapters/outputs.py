@@ -176,7 +176,7 @@ class ServerCreateOutput(OutputBase):
 class ServerDetailOutputServer:
     def __init__(self, uuid: str, name: str, ram: int, vcpu: int, image: ServerImage,
                  ip: ServerIP, creation_time: datetime, default_user: str,
-                 default_password: str, **kwargs):
+                 default_password: str, azone_id: str, **kwargs):
         """
         :param uuid: id of server; type: str
         :param image: image of server
@@ -187,6 +187,7 @@ class ServerDetailOutputServer:
         :param default_user: login username
         :param default_password: login password
         :param name: name of server; type: str
+        :param azone_id: availability zone id/code
         """
         self.uuid = uuid
         self.name = name
@@ -197,6 +198,7 @@ class ServerDetailOutputServer:
         self.creation_time = creation_time
         self.default_user = default_user
         self.default_password = default_password
+        self.azone_id = azone_id
 
 
 class ServerDetailOutput(OutputBase):
