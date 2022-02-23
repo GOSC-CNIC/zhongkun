@@ -4,6 +4,7 @@ from pytz import utc
 
 from .. import outputs
 from .utils import get_exp_jwt
+from . import exceptions
 
 
 datetime_re = re.compile(
@@ -112,7 +113,7 @@ class OutputConverter:
             creation_time=iso_to_datetime(data.get('create_time')),
             default_user=default_user,
             default_password=default_password,
-            azone_id=azone_id
+            azone_id=str(azone_id)
         )
         return server
 
@@ -124,6 +125,12 @@ class OutputConverter:
 
     @staticmethod
     def to_server_create_output_error(error=None):
+        if isinstance(error, exceptions.Error):
+            err_code = error.kwargs.get('err_code')
+            if err_code == 'AcrossGroupConflictError':
+                message = '网络和可用区资源冲突，不匹配'
+                error.message = message
+
         return outputs.ServerCreateOutput(ok=False, error=error, server=None)
 
     @staticmethod

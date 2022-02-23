@@ -197,6 +197,10 @@ def update_server_detail(server, task_status: int = None):
                 server.task_status = task_status
                 update_fields.append('task_status')
 
+        if out_server.azone_id:
+            server.azone_id = out_server.azone_id
+            update_fields.append('azone_id')
+
         if update_fields:
             server.save(update_fields=update_fields)
     except Exception as e:

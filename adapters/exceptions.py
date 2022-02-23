@@ -3,7 +3,7 @@ class Error(Exception):
     default_code = 'InternalError'
     default_status_code = 500
 
-    def __init__(self, message: str = '', code: str = '', status_code=None, extend_msg=''):
+    def __init__(self, message: str = '', code: str = '', status_code=None, extend_msg='', **kwargs):
         """
         :param message: 错误描述
         :param code: 错误代码
@@ -13,6 +13,7 @@ class Error(Exception):
         self.message = message if message else self.default_message
         self.code = code if code else self.default_code
         self.status_code = self.default_status_code if status_code is None else status_code
+        self.kwargs = kwargs
         if extend_msg:
             self.message += '&&' + extend_msg
 
@@ -54,13 +55,13 @@ class AuthenticationFailed(APIError):
 
 class NotAuthenticated(APIError):
     status_code = 401
-    default_detail = 'Authentication credentials were not provided.'
+    default_message = 'Authentication credentials were not provided.'
     default_code = 'NotAuthenticated'
 
 
 class UnsupportedServiceType(Error):
     status_code = 400
-    default_detail = 'Unsupported service type.'
+    default_message = 'Unsupported service type.'
     default_code = 'UnsupportedServiceType'
 
 

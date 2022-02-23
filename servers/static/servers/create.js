@@ -1,5 +1,6 @@
 ;'use strict';
 (function () {
+    let AZONES = {};    // 可用区
     let IMAGES = {};    // 缓存镜像信息
     let NETWORKS = {};    // 缓存网络信息
     let FLAVORS = {};    // 缓存网络信息
@@ -32,6 +33,16 @@
     }
     function set_flavor_to_cache(index, html){
         FLAVORS[index] = html;
+    }
+
+    function get_azone_from_cache(index){
+        if (AZONES.hasOwnProperty(index)){
+            return AZONES[index];
+        }
+        return null;
+    }
+    function set_azone_to_cache(index, html){
+        AZONES[index] = html;
     }
 
     //
@@ -81,6 +92,9 @@
         }
         if (!obj.quota_id){
             delete obj.quota_id;
+        }
+        if (!obj.azone_id){
+            delete obj.azone_id;
         }
         return true;
     }
@@ -148,10 +162,12 @@
 
     function image_select_update(){
         let service = $('select[name="service_id"]').val();
+        let azone_id = $('select[name="azone_id"]').val();
+        let index_key = service + '_' + azone_id;
         if (!service)
             return;
 
-        let html = get_image_from_cache(service);
+        let html = get_image_from_cache(index_key);
         let image_select = $('select[name="image_id"]');
         if (html !== null){
             image_select.html(html);
@@ -166,7 +182,7 @@
             success: function (data, status, xhr) {
                 let html = render_image_select_items(data);
                 image_select.html(html);
-                set_image_to_cache(service, html);
+                set_image_to_cache(index_key, html);
             },
             error: function (xhr) {
                 let msg = '获取镜像数据失败!';
@@ -191,11 +207,13 @@
 
     function flavor_select_update(){
         let service = $('select[name="service_id"]').val();
+        let azone_id = $('select[name="azone_id"]').val();
+        let index_key = service + '_' + azone_id;
         if (!service)
             return;
 
         let flavor_select = $('select[name="flavor_id"]');
-        let html = get_flavor_from_cache(service);
+        let html = get_flavor_from_cache(index_key);
         if (html !== null){
             flavor_select.html(html);
             return;
@@ -209,7 +227,7 @@
             success: function (data, status, xhr) {
                 let html = render_flavor_select_items(data['flavors']);
                 flavor_select.html(html);
-                set_flavor_to_cache(service, html);
+                set_flavor_to_cache(index_key, html);
             },
             error: function (xhr) {
                 let msg = '获取配置样式数据失败!';
@@ -287,10 +305,12 @@
     }
     function network_select_update(){
         let service = $('select[name="service_id"]').val();
+        let azone_id = $('select[name="azone_id"]').val();
+        let index_key = service + '_' + azone_id;
         if (!service)
             return;
 
-        let html = get_network_from_cache(service);
+        let html = get_network_from_cache(index_key);
         let network_select = $('select[name="network_id"]');
         if (html !== null){
             network_select.html(html);
@@ -305,7 +325,7 @@
             success: function (data, status, xhr) {
                 let html = render_network_select_items(data);
                 network_select.html(html);
-                set_network_to_cache(service, html)
+                set_network_to_cache(index_key, html)
             },
             error: function (xhr) {
                 let msg = '获取网络数据失败!';
@@ -335,7 +355,51 @@
         }
     });
 
+    // 加载可用区下拉框渲染模板
+    function render_azone_select_items(data){
+        let ret='<option value="">--</option>';
+        let t = '<option value="{0}">{1}</option>';
+        for(let i=0; i<data.length; i++){
+            let s = t.format([data[i]['id'], data[i]['name']]);
+            ret = ret.concat(s);
+        }
+        return ret;
+    }
+
+    function azone_select_update(){
+        let service = $('select[name="service_id"]').val();
+        if (!service)
+            return;
+
+        let azone_select = $('select[name="azone_id"]');
+        let html = get_azone_from_cache(service);
+        if (html !== null){
+            azone_select.html(html);
+            return;
+        }
+
+        let query_str = encode_params({service_id:service});
+        $.ajax({
+            url: build_absolute_url('api/azone?'+ query_str),
+            type: 'get',
+            contentType: 'application/json',
+            success: function (data, status, xhr) {
+                let html = render_azone_select_items(data['zones']);
+                azone_select.html(html);
+                set_azone_to_cache(service, html);
+            },
+            error: function (xhr) {
+                let msg = '获取服务可用区数据失败!';
+                try{
+                    msg = msg + xhr.responseJSON.message;
+                }catch (e) {}
+                alert(msg);
+            }
+        });
+    }
+
     function update_select(){
+        azone_select_update();
         image_select_update();
         flavor_select_update();
         network_select_update();
@@ -344,9 +408,17 @@
 
     $("#id-service").change(function (e) {
         e.preventDefault();
+        $('select[name="image_id"]').html('');
+        $('select[name="network_id"]').html('');
+        azone_select_update();
+    });
+
+    $("#id-azone").change(function (e) {
+        e.preventDefault();
         image_select_update();
         network_select_update();
         quota_select_update();
     });
+
 })();
 

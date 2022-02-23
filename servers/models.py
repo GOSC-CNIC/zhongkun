@@ -72,6 +72,7 @@ class ServerBase(models.Model):
                                       help_text=_('云主机资源使用量计量开始时间'))
     pay_type = models.CharField(verbose_name=_('计费方式'), max_length=16, choices=PayType.choices,
                                 default=PayType.POSTPAID)
+    azone_id = models.CharField(verbose_name=_('可用区'), max_length=36, blank=True, default='')
 
     class Meta:
         abstract = True
@@ -373,6 +374,7 @@ class ServerArchive(ServerBase):
         a.start_time = server.start_time
         a.archive_type = archive_type
         a.pay_type = server.pay_type
+        a.azone_id = server.azone_id
 
         if commit:
             a.save()

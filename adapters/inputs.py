@@ -49,7 +49,7 @@ class ServerCreateInput(InputBase):
         :param region_id: 区域/分中心id; type: str; required: False
         :param network_id: 子网id; type: str; required: False
         :param remarks: 备注信息; type: str; required: False
-        :param azone_id: availability zone id
+        :param azone_id: availability zone id; type: str
         """
         self.ram = ram
         self.vcpu = vcpu

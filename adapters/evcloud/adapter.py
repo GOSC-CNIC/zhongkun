@@ -27,6 +27,22 @@ def get_failed_msg(response, msg_key='code_text'):
         return ''
 
 
+def get_failed_err_code(response, code_key='err_code'):
+    """
+    请求失败错误码
+
+    :param response: requests.Response()
+    :param msg_key: 信息键值
+    :return:
+    """
+    try:
+        data = response.json()
+        code = data.get(code_key, '')
+        return code
+    except Exception:
+        return ''
+
+
 class EVCloudAdapter(BaseAdapter):
     """
     EVCloud服务API适配器
@@ -95,7 +111,8 @@ class EVCloudAdapter(BaseAdapter):
             raise exceptions.AuthenticationFailed()
 
         msg = get_failed_msg(r)
-        raise exceptions.APIError(msg, status_code=r.status_code)
+        err_code = get_failed_err_code(r)
+        raise exceptions.APIError(msg, status_code=r.status_code, err_code=err_code)
 
     def authenticate(self, params: inputs.AuthenticateInput, **kwargs) -> outputs.AuthenticateOutput:
         """

@@ -253,6 +253,7 @@ class ServersViewSet(CustomGenericViewSet):
         network_id = data.get('network_id', '')
         remarks = data.get('remarks') or request.user.username
         quota_id = data.get('quota_id', None)
+        azone_id = data.get('azone_id', None)
 
         if not quota_id:
             exc = exceptions.BadRequest(message=_('必须提交"quota_id"参数'))
@@ -284,7 +285,7 @@ class ServersViewSet(CustomGenericViewSet):
         except exceptions.Error as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
-        params = inputs.ServerCreateInput(ram=flavor.ram, vcpu=flavor.vcpus, image_id=image_id,
+        params = inputs.ServerCreateInput(ram=flavor.ram, vcpu=flavor.vcpus, image_id=image_id, azone_id=azone_id,
                                           region_id=service.region_id, network_id=network_id, remarks=remarks)
         try:
             out = self.request_service(service=service, method='server_create', params=params)
@@ -323,6 +324,7 @@ class ServersViewSet(CustomGenericViewSet):
                         default_user=out_server.default_user,
                         creation_time=creation_time,
                         start_time=creation_time,
+                        azone_id=azone_id if azone_id else '',
                         **kwargs
                         )
         if out_server.default_password:

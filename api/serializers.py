@@ -112,6 +112,7 @@ class ServerCreateSerializer(serializers.Serializer):
     quota_id = serializers.CharField(label=_('资源配额id'), required=True,
                                      help_text=_('用户个人或vo组的资源配额ID'))
     remarks = serializers.CharField(label=_('备注'), required=False, allow_blank=True, max_length=255, default='')
+    azone_id = serializers.CharField(label=_('可用区'), required=False, allow_null=True, max_length=36, default=None)
 
     def validate(self, attrs):
         return attrs
