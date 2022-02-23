@@ -127,13 +127,17 @@ class ListImageInput(InputBase):
 
 
 class ListNetworkInput(InputBase):
-    def __init__(self, region_id: str, public: bool = None, **kwargs):
+    def __init__(self, region_id: str, public: bool = None, azone_id: str = None, **kwargs):
         """
         :param region_id: 区域/分中心id; type: str; required: False
         :param public: 网络类型筛选条件；True(公网网段);False(私网网段);默认None(忽略)
+        :param azone_id: 可用区编码
         """
         self.region_id = region_id
+        if public not in [None, True, False]:
+            raise ValueError('None、True or False')
         self.public = public
+        self.azone_id = azone_id
         super().__init__(**kwargs)
 
 

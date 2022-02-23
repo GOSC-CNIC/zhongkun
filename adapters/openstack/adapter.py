@@ -452,12 +452,17 @@ class OpenStackAdapter(BaseAdapter):
         列举子网
         :return:
         """
+        azone_id = params.azone_id
         service_instance = self._get_openstack_connect()
         try:
             result = []
             networks = service_instance.network.networks()
             for net in networks:
                 public = net.is_router_external
+                if azone_id:
+                    if azone_id not in net.availability_zones:
+                        continue
+
                 if net.subnet_ids:
                     subnet = service_instance.network.get_subnet(net.subnet_ids[0])
                     new_net = outputs.ListNetworkOutputNetwork(_id=net.id, name=net.name, public=public,

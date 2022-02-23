@@ -340,10 +340,22 @@ class EVCloudAdapter(BaseAdapter):
         列举子网
         :return:    outputs.ListNetworkOutput()
         """
-        center_id = int(params.region_id)
-        public = params.public
+        try:
+            center_id = int(params.region_id)
+        except ValueError:
+            return OutputConverter().to_list_network_output_error(
+                exceptions.APIInvalidParam(message='参数region_id无效'))
 
         query = {'center_id': center_id, 'available': 'true'}
+        if params.azone_id:
+            try:
+                group_id = int(params.azone_id)
+                query['group_id'] = group_id
+            except ValueError:
+                return OutputConverter().to_list_network_output_error(
+                    exceptions.APIInvalidParam(message='参数azone_id无效'))
+
+        public = params.public
         if public is not None:
             query['public'] = str(public).lower()
 

@@ -976,6 +976,13 @@ class NetworkViewSet(CustomGenericViewSet):
                 required=True,
                 description='服务id'
             ),
+            openapi.Parameter(
+                name='azone_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description='可用区编码，只列举可用区内的网络'
+            ),
         ],
         responses={
             200: """
@@ -991,12 +998,17 @@ class NetworkViewSet(CustomGenericViewSet):
         }
     )
     def list(self, request, *args, **kwargs):
+        azone_id = request.query_params.get('azone_id', None)
+        if azone_id == '':
+            return self.exception_response(
+                exceptions.InvalidArgument(message='参数“azone_id”无效'))
+
         try:
             service = self.get_service(request)
         except exceptions.APIException as exc:
             return Response(exc.err_data(), status=exc.status_code)
 
-        params = inputs.ListNetworkInput(region_id=service.region_id)
+        params = inputs.ListNetworkInput(region_id=service.region_id, azone_id=azone_id)
         try:
             r = self.request_service(service, method='list_networks', params=params)
         except exceptions.AuthenticationFailed as exc:

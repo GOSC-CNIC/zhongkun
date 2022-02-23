@@ -317,7 +317,11 @@
             return;
         }
         network_select.html('');
-        let query_str = encode_params({service_id:service});
+        querys = {service_id:service}
+        if (azone_id){
+            querys['azone_id'] = azone_id
+        }
+        let query_str = encode_params(querys);
         $.ajax({
             url: build_absolute_url('api/network?'+ query_str),
             type: 'get',
@@ -377,7 +381,7 @@
             azone_select.html(html);
             return;
         }
-
+        azone_select.html('');
         let query_str = encode_params({service_id:service});
         $.ajax({
             url: build_absolute_url('api/azone?'+ query_str),
@@ -408,16 +412,14 @@
 
     $("#id-service").change(function (e) {
         e.preventDefault();
-        $('select[name="image_id"]').html('');
-        $('select[name="network_id"]').html('');
         azone_select_update();
+        image_select_update();
+        network_select_update();
     });
 
     $("#id-azone").change(function (e) {
         e.preventDefault();
-        image_select_update();
         network_select_update();
-        quota_select_update();
     });
 
 })();
