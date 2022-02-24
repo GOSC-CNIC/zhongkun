@@ -255,6 +255,10 @@ class ServersViewSet(CustomGenericViewSet):
         quota_id = data.get('quota_id', None)
         azone_id = data.get('azone_id', None)
 
+        if azone_id == '':
+            exc = exceptions.BadRequest(message=_('"azone_id"参数不能为空字符'))
+            return Response(exc.err_data(), status=exc.status_code)
+
         if not quota_id:
             exc = exceptions.BadRequest(message=_('必须提交"quota_id"参数'))
             return Response(exc.err_data(), status=exc.status_code)

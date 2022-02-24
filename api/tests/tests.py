@@ -425,6 +425,9 @@ class ServersTests(MyAPITestCase):
         response = self.client.post(url, data={
             'service_id': 'sss', 'image_id': 'aaa', 'flavor_id': 'xxx', 'quota_id': 'sss'})
         self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
+        response = self.client.post(url, data={
+            'service_id': 'sss', 'image_id': 'ss', 'flavor_id': '1', 'quota_id': 'ss', 'azone_id': ''})
+        self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
 
         # vo create
         vo_data = {
@@ -1377,11 +1380,16 @@ class NetworkTests(MyAPITestCase):
         self.service = get_or_create_service()
 
     def test_list_network(self):
-        url = reverse('api:networks-list')
-        response = self.client.get(url)
+        base_url = reverse('api:networks-list')
+        response = self.client.get(base_url)
         self.assertErrorResponse(status_code=400, code='NoFoundArgument', response=response)
 
-        url += f'?service_id={self.service.id}'
+        query = parse.urlencode({"azone_id": ''})
+        url = f'{base_url}?{query}'
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        url = f'{base_url}?service_id={self.service.id}'
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.data, list)
