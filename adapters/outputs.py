@@ -176,7 +176,7 @@ class ServerCreateOutput(OutputBase):
 class ServerDetailOutputServer:
     def __init__(self, uuid: str, name: str, ram: int, vcpu: int, image: ServerImage,
                  ip: ServerIP, creation_time: datetime, default_user: str,
-                 default_password: str, azone_id: str, **kwargs):
+                 default_password: str, azone_id: str, disk_size: int, **kwargs):
         """
         :param uuid: id of server; type: str
         :param image: image of server
@@ -188,6 +188,7 @@ class ServerDetailOutputServer:
         :param default_password: login password
         :param name: name of server; type: str
         :param azone_id: availability zone id/code
+        :param disk_size: system disk size GiB
         """
         self.uuid = uuid
         self.name = name
@@ -199,6 +200,7 @@ class ServerDetailOutputServer:
         self.default_user = default_user
         self.default_password = default_password
         self.azone_id = azone_id
+        self.disk_size = disk_size
 
 
 class ServerDetailOutput(OutputBase):

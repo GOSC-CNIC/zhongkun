@@ -232,7 +232,8 @@ class VmwareAdapter(BaseAdapter):
                 creation_time=helpers.iso_to_datetime(vm.config.createDate),
                 default_user='',
                 default_password='',
-                azone_id=''
+                azone_id='',
+                disk_size=0
             )
             return outputs.ServerDetailOutput(server=server)
         except exceptions.Error as e:

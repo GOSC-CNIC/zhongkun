@@ -256,7 +256,8 @@ class OpenStackAdapter(BaseAdapter):
                 creation_time=iso_to_datetime(instance.created_at),
                 default_user=username,
                 default_password=password,
-                azone_id=azone_id
+                azone_id=azone_id,
+                disk_size=flavor.get('disk', 0)
             )
             return outputs.ServerDetailOutput(server=server)
         except Exception as e:

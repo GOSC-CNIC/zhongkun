@@ -113,7 +113,8 @@ class OutputConverter:
             creation_time=iso_to_datetime(data.get('create_time')),
             default_user=default_user,
             default_password=default_password,
-            azone_id=str(azone_id)
+            azone_id=str(azone_id),
+            disk_size=data.get('sys_disk_size', 0)
         )
         return server
 
