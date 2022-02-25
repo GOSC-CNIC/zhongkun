@@ -73,6 +73,7 @@ class ServerBase(models.Model):
     pay_type = models.CharField(verbose_name=_('计费方式'), max_length=16, choices=PayType.choices,
                                 default=PayType.POSTPAID)
     azone_id = models.CharField(verbose_name=_('可用区'), max_length=36, blank=True, default='')
+    disk_size = models.IntegerField(verbose_name=_('系统盘GB'), default=0)
 
     class Meta:
         abstract = True
@@ -375,6 +376,7 @@ class ServerArchive(ServerBase):
         a.archive_type = archive_type
         a.pay_type = server.pay_type
         a.azone_id = server.azone_id
+        a.disk_size = server.disk_size
 
         if commit:
             a.save()

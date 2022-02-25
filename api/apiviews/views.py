@@ -329,6 +329,7 @@ class ServersViewSet(CustomGenericViewSet):
                         creation_time=creation_time,
                         start_time=creation_time,
                         azone_id=azone_id if azone_id else '',
+                        disk_size=0,
                         **kwargs
                         )
         if out_server.default_password:

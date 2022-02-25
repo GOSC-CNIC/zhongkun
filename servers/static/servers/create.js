@@ -415,6 +415,7 @@
         azone_select_update();
         image_select_update();
         network_select_update();
+        quota_select_update();
     });
 
     $("#id-azone").change(function (e) {

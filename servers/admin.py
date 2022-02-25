@@ -7,7 +7,7 @@ from .models import Server, Flavor, ServerArchive
 @admin.register(Server)
 class ServerAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
-    list_display = ('id', 'service', 'azone_id', 'instance_id', 'vcpus', 'ram', 'ipv4', 'image',
+    list_display = ('id', 'service', 'azone_id', 'instance_id', 'vcpus', 'ram', 'disk_size', 'ipv4', 'image',
                     'creation_time', 'start_time', 'user', 'task_status', 'center_quota', 'user_quota',
                     'pay_type', 'classification', 'vo', 'lock',
                     'default_user', 'show_default_password', 'expiration_time', 'remarks')
@@ -26,7 +26,7 @@ class ServerAdmin(admin.ModelAdmin):
 @admin.register(ServerArchive)
 class ServerArchiveAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
-    list_display = ('id', 'service', 'name', 'instance_id', 'vcpus', 'ram', 'ipv4', 'image',
+    list_display = ('id', 'service', 'name', 'instance_id', 'vcpus', 'ram', 'disk_size', 'ipv4', 'image',
                     'creation_time', 'user', 'task_status', 'pay_type', 'classification', 'vo',
                     'center_quota', 'user_quota',
                     'start_time', 'deleted_time', 'archive_user', 'archive_type', 'remarks')

@@ -201,6 +201,10 @@ def update_server_detail(server, task_status: int = None):
             server.azone_id = out_server.azone_id
             update_fields.append('azone_id')
 
+        if out_server.disk_size and out_server.disk_size > 0:
+            server.disk_size = out_server.disk_size
+            update_fields.append('disk_size')
+
         if update_fields:
             server.save(update_fields=update_fields)
     except Exception as e:
