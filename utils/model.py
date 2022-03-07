@@ -2,6 +2,7 @@ from uuid import uuid1
 
 from django.db import models
 from django.conf import settings
+from django.utils.translation import gettext_lazy as _
 
 from utils.crypto import Encryptor
 
@@ -25,3 +26,6 @@ class UuidModel(models.Model):
                      using=using, update_fields=update_fields)
 
 
+class OwnerType(models.TextChoices):
+    User = 'user', _('用户')
+    VO = 'vo', _('VO组')
