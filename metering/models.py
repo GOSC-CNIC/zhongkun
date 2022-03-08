@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils.translation import gettext, gettext_lazy as _
 
-from utils.model import UuidModel, OwnerType
+from utils.model import UuidModel, OwnerType, PayType
 from users.models import UserProfile
 from vo.models import VirtualOrganization
 from servers.models import Server
@@ -49,3 +49,36 @@ class MeteringServer(UuidModel):
 
     def __repr__(self):
         return gettext('云服务器资源计量') + f'[server id {self.server_id}]'
+
+
+class MeteringDisk(UuidModel):
+    """
+    云硬盘计量
+    """
+    OwnerType = OwnerType
+
+    service = models.ForeignKey(to=ServiceConfig, verbose_name=_('服务'), related_name='+',
+                                on_delete=models.DO_NOTHING, db_index=False)
+    disk_id = models.CharField(verbose_name=_('云硬盘ID'), max_length=36)
+    date = models.DateField(verbose_name=_('日期'), help_text=_('计量的资源使用量的所属日期'))
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
+    user_id = models.CharField(verbose_name=_('用户ID'), max_length=36, blank=True, default='')
+    vo_id = models.CharField(verbose_name=_('VO组ID'), max_length=36, blank=True, default='')
+    owner_type = models.CharField(verbose_name=_('所有者类型'), max_length=8, choices=OwnerType.choices)
+    size_hours = models.FloatField(
+        verbose_name=_('云硬盘GiB Hour'), blank=True, default=0, help_text=_('云硬盘Gib Hour数'))
+    snapshot_hours = models.FloatField(
+        verbose_name=_('快照GiB Hour'), blank=True, default=0, help_text=_('云硬盘快照GiB小时数'))
+    pay_type = models.CharField(verbose_name=_('云硬盘付费方式'), max_length=16, choices=PayType.choices)
+
+    class Meta:
+        verbose_name = _('云硬盘资源计量')
+        verbose_name_plural = verbose_name
+        db_table = 'metering_disk'
+        ordering = ['-creation_time']
+        constraints = [
+            models.constraints.UniqueConstraint(fields=['date', 'disk_id'], name='unique_date_disk')
+        ]
+
+    def __repr__(self):
+        return gettext('云硬盘资源计量') + f'[disk id {self.disk_id}]'

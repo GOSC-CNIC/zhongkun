@@ -29,3 +29,9 @@ class UuidModel(models.Model):
 class OwnerType(models.TextChoices):
     User = 'user', _('用户')
     VO = 'vo', _('VO组')
+
+
+class PayType(models.TextChoices):
+    PREPAID = 'prepaid', _('包年包月')
+    POSTPAID = 'postpaid', _('按量计费')
+    QUOTA = 'quota', _('资源配额券')
