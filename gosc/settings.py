@@ -57,7 +57,8 @@ INSTALLED_APPS = [
     'storage',
     'monitor',
     'docs',
-    'metering'
+    'metering',
+    'order',
 ]
 
 MIDDLEWARE = [
