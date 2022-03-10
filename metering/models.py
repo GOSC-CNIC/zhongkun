@@ -6,6 +6,7 @@ from users.models import UserProfile
 from vo.models import VirtualOrganization
 from servers.models import Server
 from service.models import ServiceConfig
+from storage.models import ObjectsService
 
 
 class MeteringServer(UuidModel):
@@ -82,3 +83,34 @@ class MeteringDisk(UuidModel):
 
     def __repr__(self):
         return gettext('云硬盘资源计量') + f'[disk id {self.disk_id}]'
+
+
+class MeteringObjectStorage(UuidModel):
+    """
+    对象存储计量
+    """
+    service = models.ForeignKey(to=ObjectsService, verbose_name=_('服务'), related_name='+',
+                                on_delete=models.DO_NOTHING, db_index=False)
+    user_id = models.CharField(verbose_name=_('用户ID'), max_length=36, blank=True)
+    bucket_id = models.CharField(verbose_name=_('存储桶ID'), max_length=36)
+    bucket_name = models.CharField(verbose_name=_('存储桶名称'), max_length=63)
+    date = models.DateField(verbose_name=_('日期'), help_text=_('计量的资源使用量的所属日期'))
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
+    storage = models.FloatField(
+        verbose_name=_('存储容量GiB'), blank=True, default=0, help_text=_('存储桶的存储容量GiB'))
+    downstream = models.FloatField(
+        verbose_name=_('下行流量GiB'), blank=True, default=0, help_text=_('存储桶的下行流量GiB'))
+    replication = models.FloatField(
+        verbose_name=_('同步流量GiB'), blank=True, default=0, help_text=_('存储桶的同步流量GiB'))
+    get_request = models.IntegerField(verbose_name=_('get请求次数'), default=0, help_text=_('存储桶的get请求次数'))
+    put_request = models.IntegerField(verbose_name=_('put请求次数'), default=0, help_text=_('存储桶的put请求次数'))
+    pay_type = models.CharField(verbose_name=_('对象存储付费方式'), max_length=16, choices=Server.PayType.choices)
+
+    class Meta:
+        verbose_name = _('对象存储资源计量')
+        verbose_name_plural = verbose_name
+        db_table = 'metering_object_storage'
+        ordering = ['-creation_time']
+        constraints = [
+            models.constraints.UniqueConstraint(fields=['date', 'service_id', 'user_id', 'bucket_name'], name='unique_date_bucket')
+        ]
