@@ -3,6 +3,7 @@ import random
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from django.core.validators import MaxValueValidator, MinValueValidator
 
 from utils.model import UuidModel, OwnerType, PayType
 
@@ -110,3 +111,63 @@ class Resource(UuidModel):
 
     def __repr__(self):
         return f'Resource([{self.resource_type}]{self.instance_id})'
+
+
+class Price(UuidModel):
+    vm_ram = models.DecimalField(
+        verbose_name=_('内存GiB每天'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
+        help_text=_('内存每GiB每天的价格'))
+    vm_cpu = models.DecimalField(
+        verbose_name=_('每CPU每天'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
+        help_text=_('每个CPU每天的价格'))
+    vm_pub_ip = models.DecimalField(
+        verbose_name=_('每公网IP每天'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
+        help_text=_('每个公网IP每天的价格'))
+    vm_disk = models.DecimalField(
+        verbose_name=_('系统盘GiB每天'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
+        help_text=_('系统盘每GiB每天的价格'))
+    vm_disk_snap = models.DecimalField(
+        verbose_name=_('云盘快照GiB每天'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
+        help_text=_('云盘快照每GiB每天的价格'))
+    vm_upstream = models.DecimalField(
+        verbose_name=_('云主机上行流量每GiB'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
+        help_text=_('云主机上行流量每GiB的价格'))
+    vm_downstream = models.DecimalField(
+        verbose_name=_('云主机下行流量每GiB'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
+        help_text=_('云主机下行流量每GiB的价格'))
+
+    disk_size = models.DecimalField(
+        verbose_name=_('云盘GiB每天'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
+        help_text=_('云盘每GiB每天的价格'))
+    disk_snap = models.DecimalField(
+        verbose_name=_('云盘快照GiB每天'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
+        help_text=_('云盘快照每GiB每天的价格'))
+
+    obj_size = models.DecimalField(
+        verbose_name=_('对象存储GiB每天'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
+        help_text=_('对象存储每GiB每天的价格'))
+    obj_upstream = models.DecimalField(
+        verbose_name=_('对象存储上行流量每GiB'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
+        help_text=_('对象存储上行流量每GiB的价格'))
+    obj_downstream = models.DecimalField(
+        verbose_name=_('对象存储下行流量每GiB'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
+        help_text=_('对象存储下行流量每GiB的价格'))
+    obj_replication = models.DecimalField(
+        verbose_name=_('对象存储同步流量每GiB'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
+        help_text=_('对象存储同步流量每GiB的价格'))
+    obj_get_request = models.DecimalField(
+        verbose_name=_('对象存储每万次get请求'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
+        help_text=_('对象存储每万次get请求'))
+    obj_put_request = models.DecimalField(
+        verbose_name=_('对象存储每万次put请求'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
+        help_text=_('对象存储每万次put请求'))
+    prepaid_discount = models.PositiveSmallIntegerField(
+        verbose_name=_('预付费折扣**%'), default=100, validators=(MaxValueValidator(100),),
+        help_text=_('0-100, 包年包月预付费价格在按量计价的基础上按此折扣计价'))
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
+
+    class Meta:
+        verbose_name = _('资源计价定价')
+        verbose_name_plural = verbose_name
+        db_table = 'price'
+        ordering = ['-creation_time']

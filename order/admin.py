@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Order, Resource
+from .models import Order, Resource, Price
 
 
 @admin.register(Order)
@@ -21,3 +21,10 @@ class ResourceAdmin(admin.ModelAdmin):
     search_fields = ('order_id', )
     raw_id_fields = ('order',)
 
+
+@admin.register(Price)
+class PriceAdmin(admin.ModelAdmin):
+    list_display = ('id', 'vm_ram', 'vm_cpu', 'vm_pub_ip', 'vm_disk', 'vm_disk_snap', 'vm_upstream',
+                    'vm_downstream', 'disk_size', 'disk_snap', 'obj_size', 'obj_upstream', 'obj_downstream',
+                    'obj_replication', 'obj_get_request', 'obj_put_request', 'prepaid_discount')
+    list_display_links = ('id',)
