@@ -21,6 +21,8 @@ from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 
 from . import views
+from . import admin_site
+
 
 schema_url = 'https://vms.cstcloud.cn'
 if getattr(settings, 'DEBUG', False):
