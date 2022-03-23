@@ -40,6 +40,7 @@ no_slash_router.register(r'stats/quota', stats_quota_views.StatsQuotaViewSet,
                          basename='vms-stats-quota')
 no_slash_router.register(r'azone', azone_views.AvailabilityZoneViewSet, basename='availability-zone')
 no_slash_router.register(r'describe-price', order_views.PriceViewSet, basename='describe-price')
+no_slash_router.register(r'order', order_views.OrderViewSet, basename='order')
 
 
 urlpatterns = [

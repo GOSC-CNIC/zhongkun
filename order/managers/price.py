@@ -4,7 +4,7 @@ from django.utils import timezone
 
 from utils.time import datetime_add_months
 from core import errors
-from .models import Price
+from order.models import Price
 
 
 class PriceManager:

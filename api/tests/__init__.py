@@ -30,3 +30,4 @@ def set_auth_header(test_case: APITestCase):
     # test_case.client.credentials(HTTP_AUTHORIZATION='JWT ' + str(token))
     test_case.client.force_login(user=user)
     test_case.user = user
+    return user
