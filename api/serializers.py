@@ -883,3 +883,15 @@ class OrderSerializer(serializers.Serializer):
     vo_id = serializers.CharField(label=_('VO组ID'), max_length=36)
     vo_name = serializers.CharField(label=_('VO组名'), max_length=256)
     owner_type = serializers.CharField(label=_('所有者类型'), max_length=8)
+
+
+class ResourceSerializer(serializers.Serializer):
+    id = serializers.CharField(label=_('ID'))
+    order_id = serializers.CharField(label=_('订单编号'))
+    resource_type = serializers.CharField(label=_('订单编号'))
+    instance_id = serializers.CharField(label=_('资源实例id'), max_length=36)
+    instance_status = serializers.CharField(label=_('资源创建结果'))
+
+
+class OrderDetailSerializer(OrderSerializer):
+    resources = ResourceSerializer(many=True)

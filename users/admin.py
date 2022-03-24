@@ -7,9 +7,10 @@ from .models import UserProfile, Email
 
 @admin.register(UserProfile)
 class UserProfileAdmin(UserAdmin):
-    list_display = ('id', 'username', 'fullname', 'company', 'telephone', 'is_active', 'is_staff', 'date_joined')
+    list_display = ('id', 'username', 'fullname', 'company', 'telephone', 'is_active', 'is_superuser',
+                    'is_staff', 'date_joined')
     list_display_links = ('id', 'username')
-    # list_filter = ('date_joined', 'is_superuser', 'is_staff')
+    list_filter = ('is_superuser', 'is_staff')
     search_fields = ('username', 'company', 'first_name', 'last_name')  # 搜索字段
 
     fieldsets = (

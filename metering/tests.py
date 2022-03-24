@@ -14,7 +14,7 @@ def create_server_metadata(
         service, user,
         vcpu: int, ram: int, disk_size: int, public_ip: bool,
         start_time, creation_time, vo_id=None,
-        classification=Server.Classification.PERSONAL,
+        classification=Server.Classification.PERSONAL.value,
         task_status=Server.TASK_CREATED_OK
 ):
     server = Server(
@@ -79,7 +79,7 @@ class MeteringServerTests(TransactionTestCase):
             public_ip=False,
             start_time=meter_time,
             creation_time=meter_time,
-            classification=Server.Classification.VO,
+            classification=Server.Classification.VO.value,
             vo_id=self.vo.id
         )
 
@@ -94,7 +94,7 @@ class MeteringServerTests(TransactionTestCase):
             start_time=meter_time,
             creation_time=meter_time,
             task_status=Server.TASK_CREATE_FAILED,
-            classification=Server.Classification.VO,
+            classification=Server.Classification.VO.value,
             vo_id=self.vo.id
         )
         # 个人的 不会会计量
@@ -126,7 +126,7 @@ class MeteringServerTests(TransactionTestCase):
         self.assertEqual(up_int(metering.cpu_hours), up_int(server1.vcpus * 24))
         self.assertEqual(up_int(metering.ram_hours), up_int(server1.ram / 1024 * 24))
         self.assertEqual(up_int(metering.disk_hours), up_int(server1.disk_size * 24))
-        self.assertEqual(metering.owner_type, metering.OwnerType.User)
+        self.assertEqual(metering.owner_type, metering.OwnerType.USER.value)
         if server1.public_ip:
             self.assertEqual(up_int(metering.public_ip_hours), up_int(24))
         else:
@@ -139,7 +139,7 @@ class MeteringServerTests(TransactionTestCase):
         self.assertEqual(up_int(metering.cpu_hours), up_int(server2.vcpus * hours))
         self.assertEqual(up_int(metering.ram_hours), up_int(server2.ram / 1024 * hours))
         self.assertEqual(up_int(metering.disk_hours), up_int(server2.disk_size * hours))
-        self.assertEqual(metering.owner_type, metering.OwnerType.VO)
+        self.assertEqual(metering.owner_type, metering.OwnerType.VO.value)
         if server2.public_ip:
             self.assertEqual(up_int(metering.public_ip_hours), up_int(hours))
         else:
@@ -171,7 +171,7 @@ class MeteringServerTests(TransactionTestCase):
         server1_id = server1.id
 
         archive = ServerArchive.init_archive_fron_server(
-            server=server1, archive_user=self.user, archive_type=ServerArchive.ArchiveType.REBUILD, commit=True)
+            server=server1, archive_user=self.user, archive_type=ServerArchive.ArchiveType.REBUILD.value, commit=True)
         new_starttime = archive.deleted_time - timedelta(days=1)
         archive.deleted_time = new_starttime
         archive.save(update_fields=['deleted_time'])

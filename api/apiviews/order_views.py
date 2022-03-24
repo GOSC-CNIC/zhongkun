@@ -184,8 +184,56 @@ class OrderViewSet(CustomGenericViewSet):
         """
         return OrderHandler().list_order(view=self, request=request)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('订单详情'),
+        request_body=no_body,
+        manual_parameters=[
+        ],
+        responses={
+            200: ''
+        }
+    )
+    def retrieve(self, request, *args, **kwargs):
+        """
+        订单详情
+
+            http code 200：
+            {
+              "id": "2022031006103240183511",
+              "order_type": "new",
+              "status": "cancelled",
+              "total_amount": "0.00",
+              "pay_amount": "0.00",
+              "service_id": "",
+              "service_name": "",
+              "resource_type": "vm",
+              "instance_config": {},
+              "period": 0,
+              "payment_time": "2022-03-10T06:05:00Z",
+              "pay_type": "postpaid",
+              "creation_time": "2022-03-10T06:10:32.478101Z",
+              "user_id": "1",
+              "username": "shun",
+              "vo_id": "",
+              "vo_name": "",
+              "owner_type": "user",
+              "resources": [
+                {
+                  "id": "81d9aad0-a03b-11ec-ba16-c8009fe2eb10",
+                  "order_id": "2022031006103240183511",
+                  "resource_type": "vm",
+                  "instance_id": "test",
+                  "instance_status": "wait"
+                }
+              ]
+            }
+        """
+        return OrderHandler().order_detail(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return serializers.OrderSerializer
+        elif self.action == 'retrieve':
+            return serializers.OrderDetailSerializer
 
         return serializers.serializers.Serializer

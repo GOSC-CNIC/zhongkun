@@ -209,11 +209,11 @@ class ServerMeasurer:
         )
         if server_base.belong_to_vo():
             metering.vo_id = vo_id
-            metering.owner_type = MeteringServer.OwnerType.VO
+            metering.owner_type = MeteringServer.OwnerType.VO.value
             metering.user_id = ''
         else:
             metering.vo_id = ''
-            metering.owner_type = MeteringServer.OwnerType.User
+            metering.owner_type = MeteringServer.OwnerType.USER.value
             metering.user_id = user_id
 
         try:
@@ -235,7 +235,7 @@ class ServerMeasurer:
         ip_hours, cpu_hours, ram_gb_hours, disk_gb_hours = 0, 0, 0, 0
 
         archives = ServerArchive.objects.filter(
-            server_id=server_id, archive_type=ServerArchive.ArchiveType.REBUILD,
+            server_id=server_id, archive_type=ServerArchive.ArchiveType.REBUILD.value,
             start_time__lt=server_start_time, deleted_time__gt=self.start_datetime
         ).all()
 
@@ -298,7 +298,7 @@ class ServerMeasurer:
         lookups = {
             'deleted_time__gt': start_datetime,
             'task_status': Server.TASK_CREATED_OK,
-            'archive_type': ServerArchive.ArchiveType.ARCHIVE
+            'archive_type': ServerArchive.ArchiveType.ARCHIVE.value
         }
         if gte_creation_time is not None:
             lookups['creation_time__gte'] = gte_creation_time

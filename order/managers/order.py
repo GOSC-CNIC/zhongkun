@@ -5,6 +5,7 @@ from django.db import transaction
 
 from utils.model import OwnerType, PayType
 from servers.models import get_uuid1_str
+from vo.managers import VoManager
 from core import errors
 from order.models import Order, Resource, ResourceType
 from .instance_configs import BaseConfig, ServerConfig, DiskConfig, BucketConfig
@@ -118,7 +119,8 @@ class OrderManager:
         return Order.objects.all()
 
     def filter_order_queryset(
-            self, resource_type: str, order_type: str, status: str, time_start, time_end, user_id: str, vo_id: str
+            self, resource_type: str, order_type: str, status: str, time_start, time_end,
+            user_id: str = None, vo_id: str = None
     ):
         """
         查询用户或vo组的订单查询集
@@ -146,3 +148,57 @@ class OrderManager:
             queryset = queryset.filter(status=status)
 
         return queryset.order_by('-creation_time')
+
+    def filter_vo_order_queryset(
+            self, resource_type: str, order_type: str, status: str, time_start, time_end, user, vo_id: str
+    ):
+        """
+        查询vo组的订单查询集
+
+        :raises: AccessDenied
+        """
+        self._has_vo_permission(vo_id=vo_id, user=user)
+        return self.filter_order_queryset(
+            resource_type=resource_type, order_type=order_type, status=status, time_start=time_start,
+            time_end=time_end, vo_id=vo_id
+        )
+
+    def get_order_detail(self, order_id: str, user):
+        """
+        查询订单详情
+
+        :return:
+            order, resources
+        """
+        queryset = self.get_order_queryset()
+        order = queryset.filter(id=order_id).first()
+        if order is None:
+            raise errors.NotFound(_('订单不存在'))
+
+        # check permission
+        if order.owner_type == OwnerType.USER.value:
+            if order.user_id and order.user_id != user.id:
+                raise errors.AccessDenied(message=_('您没有此订单访问权限'))
+        elif order.vo_id:
+            try:
+                VoManager().get_has_read_perm_vo(vo_id=order.vo_id, user=user)
+            except errors.Error as exc:
+                raise errors.AccessDenied(message=exc.message)
+
+        resources = Resource.objects.filter(order_id=order_id).all()
+        resources = list(resources)
+        return order, resources
+
+    def _has_vo_permission(self, vo_id, user, read_only: bool = True):
+        """
+        是否有vo组的权限
+
+        :raises: AccessDenied
+        """
+        try:
+            if read_only:
+                VoManager().get_has_read_perm_vo(vo_id=vo_id, user=user)
+            else:
+                VoManager().get_has_manager_perm_vo(vo_id=vo_id, user=user)
+        except errors.Error as exc:
+            raise errors.AccessDenied(message=exc.message)

@@ -11,6 +11,7 @@ from order.models import Price, Order, ResourceType
 from order.managers import OrderManager
 from order.managers.instance_configs import ServerConfig, DiskConfig
 from utils.decimal_utils import quantize_10_2
+from utils.test import get_or_create_user
 from vo.models import VirtualOrganization
 from . import set_auth_header, MyAPITestCase
 
@@ -400,3 +401,132 @@ class OrderTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 0)
         self.assertEqual(len(response.data['orders']), 0)
+
+        # user2 no vo permission test
+        user2 = get_or_create_user(username='user2')
+        self.client.logout()
+        self.client.force_login(user=user2)
+        query = parse.urlencode(query={
+            'vo_id': self.vo.id
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 403)
+
+    def test_detail_order(self):
+        omgr = OrderManager()
+
+        # invalid order id
+        url = reverse('api:order-detail', kwargs={'id': 'test'})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 400)
+
+        url = reverse('api:order-detail', kwargs={'id': '123456789123456789'})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 400)
+
+        # not found order
+        url = reverse('api:order-detail', kwargs={'id': '1234567891234567891234'})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
+
+        # create order
+        order, resource = omgr.create_order(
+            order_type=Order.OrderType.NEW.value,
+            service_id='test',
+            service_name='test',
+            resource_type=ResourceType.VM.value,
+            instance_config=ServerConfig(
+                vm_cpu=2, vm_ram=2048, systemdisk_size=100, public_ip=True
+            ),
+            period=2,
+            pay_type=PayType.PREPAID.value,
+            user_id=self.user.id,
+            username=self.user.username,
+            vo_id='', vo_name='',
+            owner_type=OwnerType.USER.value
+        )
+
+        # user order detail
+        url = reverse('api:order-detail', kwargs={'id': order.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn([
+            "id", "order_type", "status", "total_amount", "pay_amount", "service_id", "service_name",
+            "resource_type", "instance_config", "period", "payment_time", "pay_type", "creation_time",
+            "user_id", "username", "vo_id", "vo_name", "owner_type", "resources"
+        ], response.data)
+        self.assert_is_subdict_of(sub={
+            "id": order.id,
+            "order_type": Order.OrderType.NEW.value,
+            "status": Order.Status.UPPAID.value,
+            "resource_type": ResourceType.VM.value,
+            "instance_config": order.instance_config,
+            "period": 2,
+            "pay_type": PayType.PREPAID.value,
+            "user_id": self.user.id,
+            "username": self.user.username,
+            "owner_type": OwnerType.USER.value,
+        }, d=response.data)
+        self.assert_is_subdict_of({
+            "id": resource.id,
+            "order_id": order.id,
+            "resource_type": ResourceType.VM.value,
+            "instance_id": resource.instance_id,
+            "instance_status": resource.instance_status
+        }, response.data["resources"][0])
+        self.assert_is_subdict_of(order.instance_config, response.data["instance_config"])
+
+        order2, resource2 = omgr.create_order(
+            order_type=Order.OrderType.UPGRADE.value,
+            service_id='test',
+            service_name='test',
+            resource_type=ResourceType.DISK.value,
+            instance_config=DiskConfig(disk_size=166),
+            period=3,
+            pay_type=PayType.POSTPAID.value,
+            user_id='',
+            username='',
+            vo_id=self.vo.id, vo_name=self.vo.name,
+            owner_type=OwnerType.VO.value
+        )
+
+        # vo order detail
+        url = reverse('api:order-detail', kwargs={'id': order2.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn([
+            "id", "order_type", "status", "total_amount", "pay_amount", "service_id", "service_name",
+            "resource_type", "instance_config", "period", "payment_time", "pay_type", "creation_time",
+            "user_id", "username", "vo_id", "vo_name", "owner_type", "resources"
+        ], response.data)
+        self.assert_is_subdict_of(sub={
+            "id": order2.id,
+            "order_type": Order.OrderType.UPGRADE.value,
+            "status": Order.Status.UPPAID.value,
+            "resource_type": ResourceType.DISK.value,
+            "instance_config": order2.instance_config,
+            "period": 3,
+            "pay_type": PayType.POSTPAID.value,
+            "vo_id": self.vo.id,
+            "vo_name": self.vo.name,
+            "owner_type": OwnerType.VO.value,
+        }, d=response.data)
+        self.assert_is_subdict_of({
+            "id": resource2.id,
+            "order_id": order2.id,
+            "resource_type": ResourceType.DISK.value,
+            "instance_id": resource2.instance_id,
+            "instance_status": resource2.instance_status
+        }, response.data["resources"][0])
+        self.assert_is_subdict_of(order2.instance_config, response.data["instance_config"])
+
+        # user2 no vo permission test
+        user2 = get_or_create_user(username='user2')
+        self.client.logout()
+        self.client.force_login(user=user2)
+        url = reverse('api:order-detail', kwargs={'id': order.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 403)
+        url = reverse('api:order-detail', kwargs={'id': order2.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 403)

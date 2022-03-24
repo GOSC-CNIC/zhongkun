@@ -1,12 +1,12 @@
 from datetime import datetime
 
 from django.utils.translation import gettext as _
+from rest_framework.response import Response
 
 from core import errors
 from api.viewsets import CustomGenericViewSet
 from order.models import ResourceType, Order
 from order.managers import OrderManager
-from vo.managers import VoManager
 from utils.time import iso_to_datetime
 
 
@@ -18,25 +18,29 @@ class OrderHandler:
             return view.exception_response(exc)
 
         user = request.user
-        user_id = user.id
         vo_id = data['vo_id']
         if vo_id:
             try:
-                self.has_vo_permission(vo_id=vo_id, user=user)
-            except errors.Error as exc:
+                queryset = OrderManager().filter_vo_order_queryset(
+                    resource_type=data['resource_type'],
+                    order_type=data['order_type'],
+                    status=data['status'],
+                    time_start=data['time_start'],
+                    time_end=data['time_end'],
+                    user=user,
+                    vo_id=vo_id
+                )
+            except Exception as exc:
                 return view.exception_response(exc)
-
-            user_id = None
-
-        queryset = OrderManager().filter_order_queryset(
-            resource_type=data['resource_type'],
-            order_type=data['order_type'],
-            status=data['status'],
-            time_start=data['time_start'],
-            time_end=data['time_end'],
-            user_id=user_id,
-            vo_id=vo_id
-        )
+        else:
+            queryset = OrderManager().filter_order_queryset(
+                resource_type=data['resource_type'],
+                order_type=data['order_type'],
+                status=data['status'],
+                time_start=data['time_start'],
+                time_end=data['time_end'],
+                user_id=user.id
+            )
         try:
             orders = view.paginate_queryset(queryset)
             serializer = view.get_serializer(instance=orders, many=True)
@@ -44,7 +48,8 @@ class OrderHandler:
         except Exception as exc:
             return view.exception_response(exc)
 
-    def list_order_validate_params(self, request) -> dict:
+    @staticmethod
+    def list_order_validate_params(request) -> dict:
         resource_type = request.query_params.get('resource_type', None)
         order_type = request.query_params.get('order_type', None)
         status = request.query_params.get('status', None)
@@ -87,16 +92,20 @@ class OrderHandler:
             'vo_id': vo_id
         }
 
-    def has_vo_permission(self, vo_id, user, read_only: bool = True):
-        """
-        是否有vo组的权限
+    @staticmethod
+    def order_detail(view: CustomGenericViewSet, request, kwargs):
+        order_id: str = kwargs.get(view.lookup_field, '')
+        if len(order_id) != 22:
+            return view.exception_response(errors.BadRequest(_('无效的订单编号')))
 
-        :raises: AccessDenied
-        """
+        if not order_id.isdigit():
+            return view.exception_response(errors.BadRequest(_('无效的订单编号')))
+
         try:
-            if read_only:
-                VoManager().get_has_read_perm_vo(vo_id=vo_id, user=user)
-            else:
-                VoManager().get_has_manager_perm_vo(vo_id=vo_id, user=user)
+            order, resources = OrderManager().get_order_detail(order_id=order_id, user=request.user)
         except errors.Error as exc:
-            raise errors.AccessDenied(message=exc.message)
+            return view.exception_response(exc)
+
+        order.resources = resources
+        serializer = view.get_serializer(instance=order)
+        return Response(data=serializer.data)
