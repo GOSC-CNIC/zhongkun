@@ -39,6 +39,9 @@ class Order(models.Model):
         UPPAID = 'unpaid', _('未支付')
         CANCELLED = 'cancelled', _('作废')
 
+    # class PaymentMethod(models.TextChoices):
+    #     BALANCE = 'balance', _('余额')
+
     id = models.CharField(verbose_name=_('订单编号'), max_length=32, primary_key=True, editable=False)
     order_type = models.CharField(
         verbose_name=_('订单类型'), max_length=16, choices=OrderType.choices, default=OrderType.NEW)
@@ -55,7 +58,9 @@ class Order(models.Model):
     period = models.IntegerField(verbose_name=_('订购时长(月)'), blank=True, default=0)
 
     payment_time = models.DateTimeField(verbose_name=_('支付时间'), null=True, blank=True, default=None)
-    pay_type = models.CharField(verbose_name=_('付费方式'), max_length=16, choices=PayType.choices)
+    pay_type = models.CharField(verbose_name=_('结算方式'), max_length=16, choices=PayType.choices)
+    # payment_method = models.CharField(
+    #     verbose_name=_('付款方式'), max_length=16, choices=PaymentMethod.choices, default=PaymentMethod.BALANCE)
 
     creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
     user_id = models.CharField(verbose_name=_('用户ID'), max_length=36, blank=True, default='')

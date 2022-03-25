@@ -25,6 +25,13 @@ class PriceManager:
 
         return price
 
+    @staticmethod
+    def period_month_days(months: int):
+        """
+        每月按30天计算
+        """
+        return 30 * months
+
     def describe_disk_price(self, size_gib: int, is_prepaid: bool, period: int = None) -> (Decimal, Decimal):
         """
         云硬盘询价
@@ -44,10 +51,7 @@ class PriceManager:
         if period is None:
             original_price = day_price
         else:
-            now = timezone.now()
-            end = datetime_add_months(dt=now, months=period)
-            delta = end - now
-            days = delta.days
+            days = self.period_month_days(period)
             original_price = day_price * days
 
         if is_prepaid:
@@ -90,10 +94,7 @@ class PriceManager:
         if period is None:
             original_price = day_price
         else:
-            now = timezone.now()
-            end = datetime_add_months(dt=now, months=period)
-            delta = end - now
-            days = delta.days
+            days = self.period_month_days(period)
             original_price = day_price * days
 
         if is_prepaid:

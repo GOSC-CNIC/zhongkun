@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.test import TestCase
 from django.utils import timezone
 
-from utils.time import days_after_months, datetime_add_months
+from utils.time import datetime_add_months
 from utils.decimal_utils import quantize_10_2
 from .models import Price
 from .managers import PriceManager
@@ -58,7 +58,8 @@ class MeteringServerTests(TestCase):
         size_gib = 50
         price = self.price
         disk_size_day = price.disk_size.__float__()
-        days = days_after_months(timezone.now(), months=months)
+        # days = days_after_months(timezone.now(), months=months)
+        days = PriceManager.period_month_days(months)
         op_months = disk_size_day * days * size_gib
         if is_prepaid:
             tp_months = op_months * price.prepaid_discount / 100
@@ -152,7 +153,8 @@ class MeteringServerTests(TestCase):
             ram_mib=ram_mib, cpu=cpu, disk_gib=disk_gib, public_ip=public_ip, period=months, is_prepaid=is_prepaid)
         p_day = self._server_day_price(
             price=price, ram_mib=ram_mib, cpu=cpu, disk_gib=disk_gib, public_ip=public_ip, is_prepaid=False)
-        days = days_after_months(dt=timezone.now(), months=months)
+        # days = days_after_months(dt=timezone.now(), months=months)
+        days = PriceManager.period_month_days(months)
         op_months = p_day * days
         if is_prepaid:
             tp_months = op_months * Decimal.from_float(price.prepaid_discount / 100)

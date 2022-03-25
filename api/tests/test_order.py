@@ -69,14 +69,16 @@ class OrderTests(MyAPITestCase):
         self.assertEqual(response.data['count'], 0)
         self.assertEqual(len(response.data['orders']), 0)
 
+        order_instance_config = ServerConfig(
+            vm_cpu=2, vm_ram=2048, systemdisk_size=100, public_ip=True,
+            image_id='image_id', network_id='network_id', azone_id='azone_id', azone_name='azone_name'
+        )
         order, resource = omgr.create_order(
             order_type=Order.OrderType.NEW.value,
             service_id='test',
             service_name='test',
             resource_type=ResourceType.VM.value,
-            instance_config=ServerConfig(
-                vm_cpu=2, vm_ram=2048, systemdisk_size=100, public_ip=True
-            ),
+            instance_config=order_instance_config,
             period=2,
             pay_type=PayType.PREPAID.value,
             user_id=self.user.id,
@@ -112,6 +114,7 @@ class OrderTests(MyAPITestCase):
             "vo_name": order.vo_name,
             "owner_type": OwnerType.USER.value
         }, response.data['orders'][0])
+        self.assertEqual(order_instance_config, ServerConfig.from_dict(response.data['orders'][0]['instance_config']))
 
         # list vo order
         query = parse.urlencode(query={
@@ -122,12 +125,13 @@ class OrderTests(MyAPITestCase):
         self.assertEqual(response.data['count'], 0)
         self.assertEqual(len(response.data['orders']), 0)
 
+        order2_instance_config = DiskConfig(disk_size=166, azone_id='azone_id', azone_name='azone_name')
         order2, resource2 = omgr.create_order(
             order_type=Order.OrderType.UPGRADE.value,
             service_id='test',
             service_name='test',
             resource_type=ResourceType.DISK.value,
-            instance_config=DiskConfig(disk_size=166),
+            instance_config=order2_instance_config,
             period=2,
             pay_type=PayType.POSTPAID.value,
             user_id='',
@@ -168,6 +172,7 @@ class OrderTests(MyAPITestCase):
             "vo_name": self.vo.name,
             "owner_type": OwnerType.VO.value
         }, response.data['orders'][0])
+        self.assertEqual(order2_instance_config, DiskConfig.from_dict(response.data['orders'][0]['instance_config']))
 
         self.list_user_order_query_test()
         self.list_vo_order_query_test()
@@ -430,14 +435,16 @@ class OrderTests(MyAPITestCase):
         self.assertEqual(response.status_code, 404)
 
         # create order
+        order_instance_config = ServerConfig(
+            vm_cpu=2, vm_ram=2048, systemdisk_size=100, public_ip=True,
+            image_id='image_id', network_id='network_id', azone_id='azone_id', azone_name='azone_name'
+        )
         order, resource = omgr.create_order(
             order_type=Order.OrderType.NEW.value,
             service_id='test',
             service_name='test',
             resource_type=ResourceType.VM.value,
-            instance_config=ServerConfig(
-                vm_cpu=2, vm_ram=2048, systemdisk_size=100, public_ip=True
-            ),
+            instance_config=order_instance_config,
             period=2,
             pay_type=PayType.PREPAID.value,
             user_id=self.user.id,
@@ -475,13 +482,15 @@ class OrderTests(MyAPITestCase):
             "instance_status": resource.instance_status
         }, response.data["resources"][0])
         self.assert_is_subdict_of(order.instance_config, response.data["instance_config"])
+        self.assertEqual(order_instance_config, ServerConfig.from_dict(response.data['instance_config']))
 
+        order2_instance_config = DiskConfig(disk_size=166, azone_id='azone_id', azone_name='azone_name')
         order2, resource2 = omgr.create_order(
             order_type=Order.OrderType.UPGRADE.value,
             service_id='test',
             service_name='test',
             resource_type=ResourceType.DISK.value,
-            instance_config=DiskConfig(disk_size=166),
+            instance_config=order2_instance_config,
             period=3,
             pay_type=PayType.POSTPAID.value,
             user_id='',
@@ -519,6 +528,7 @@ class OrderTests(MyAPITestCase):
             "instance_status": resource2.instance_status
         }, response.data["resources"][0])
         self.assert_is_subdict_of(order2.instance_config, response.data["instance_config"])
+        self.assertEqual(order2_instance_config, DiskConfig.from_dict(response.data['instance_config']))
 
         # user2 no vo permission test
         user2 = get_or_create_user(username='user2')

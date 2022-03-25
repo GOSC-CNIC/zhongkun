@@ -6,8 +6,8 @@ from django.utils import timezone
 
 from servers.models import Flavor
 from order.models import Price
+from order.managers import PriceManager
 from utils.decimal_utils import quantize_12_4
-# from utils.time import days_after_months
 from . import set_auth_header, MyAPITestCase
 
 
@@ -80,12 +80,7 @@ class PriceTests(MyAPITestCase):
             'flavor_id': self.flavor.id, 'external_ip': True,
             'system_disk_size': 100
         })
-        dt = timezone.now()
-        if dt.month == 12:
-            end_dt = dt.replace(year=dt.year + 1, month=1)
-        else:
-            end_dt = dt.replace(month=dt.month + 1)
-        days = (end_dt - dt).days
+        days = PriceManager.period_month_days(months=1)
         original_p3 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_pub_ip + price.vm_disk * 100
         original_p3 = original_p3 * days
         trade_p3 = original_p3 * prepaid_discount
@@ -100,12 +95,7 @@ class PriceTests(MyAPITestCase):
             'flavor_id': self.flavor.id, 'external_ip': False,
             'system_disk_size': 100
         })
-        dt = timezone.now()
-        if dt.month == 12:
-            end_dt = dt.replace(year=dt.year + 1, month=1)
-        else:
-            end_dt = dt.replace(month=dt.month + 1)
-        days = (end_dt - dt).days
+        days = PriceManager.period_month_days(months=1)
         original_p4 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_disk * 100
         original_p4 = original_p4 * days
         trade_p4 = original_p4 * prepaid_discount
@@ -120,12 +110,7 @@ class PriceTests(MyAPITestCase):
             'flavor_id': self.flavor.id, 'external_ip': False,
             'system_disk_size': 50
         })
-        dt = timezone.now()
-        if dt.month == 12:
-            end_dt = dt.replace(year=dt.year + 1, month=1)
-        else:
-            end_dt = dt.replace(month=dt.month + 1)
-        days = (end_dt - dt).days
+        days = PriceManager.period_month_days(months=1)
         original_p5 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_disk * 50
         original_p5 = original_p5 * days
         trade_p5 = original_p5 * prepaid_discount
@@ -217,13 +202,7 @@ class PriceTests(MyAPITestCase):
         })
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
-        dt = timezone.now()
-        months = dt.month + period
-        if months > 12:
-            end_dt = dt.replace(year=dt.year + 1, month=months - 12)
-        else:
-            end_dt = dt.replace(month=months)
-        days = (end_dt - dt).days
+        days = PriceManager.period_month_days(months=period)
         original_p3 = price.disk_size * data_disk_size
         original_p3 = original_p3 * days
         trade_p3 = original_p3 * prepaid_discount
@@ -239,13 +218,7 @@ class PriceTests(MyAPITestCase):
         })
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
-        dt = timezone.now()
-        months = dt.month + period
-        if months > 12:
-            end_dt = dt.replace(year=dt.year + 1, month=months - 12)
-        else:
-            end_dt = dt.replace(month=months)
-        days = (end_dt - dt).days
+        days = PriceManager.period_month_days(months=period)
         original_p4 = price.disk_size * data_disk_size
         trade_p4 = original_p4 = original_p4 * days
         self.assertEqual(str(quantize_12_4(original_p4)), response.data['price']['original'])
