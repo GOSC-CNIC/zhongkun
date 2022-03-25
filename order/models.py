@@ -39,8 +39,8 @@ class Order(models.Model):
         UPPAID = 'unpaid', _('未支付')
         CANCELLED = 'cancelled', _('作废')
 
-    # class PaymentMethod(models.TextChoices):
-    #     BALANCE = 'balance', _('余额')
+    class PaymentMethod(models.TextChoices):
+        BALANCE = 'balance', _('余额')
 
     id = models.CharField(verbose_name=_('订单编号'), max_length=32, primary_key=True, editable=False)
     order_type = models.CharField(
@@ -59,10 +59,12 @@ class Order(models.Model):
 
     payment_time = models.DateTimeField(verbose_name=_('支付时间'), null=True, blank=True, default=None)
     pay_type = models.CharField(verbose_name=_('结算方式'), max_length=16, choices=PayType.choices)
-    # payment_method = models.CharField(
-    #     verbose_name=_('付款方式'), max_length=16, choices=PaymentMethod.choices, default=PaymentMethod.BALANCE)
+    payment_method = models.CharField(
+        verbose_name=_('付款方式'), max_length=16, choices=PaymentMethod.choices, default=PaymentMethod.BALANCE)
 
     creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
+    start_time = models.DateTimeField(verbose_name=_('起用时间'), null=True, blank=True, default=None)
+    end_time = models.DateTimeField(verbose_name=_('终止时间'), null=True, blank=True, default=None)
     user_id = models.CharField(verbose_name=_('用户ID'), max_length=36, blank=True, default='')
     username = models.CharField(verbose_name=_('用户名'), max_length=64, blank=True, default='')
     vo_id = models.CharField(verbose_name=_('VO组ID'), max_length=36, blank=True, default='')
