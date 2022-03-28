@@ -3,7 +3,7 @@ from django.db.models import Subquery
 
 from core import errors
 from vo.managers import VoManager
-from .models import Server, ServerArchive
+from .models import Server, ServerArchive, Flavor
 
 
 class ServerManager:
@@ -197,3 +197,8 @@ class ServerArchiveManager:
             qs = qs.filter(service_id=service_id)
 
         return qs
+
+
+class FlavorManager:
+    def get_enable_flavor(self, _id):
+        return Flavor.objects.filter(id=_id, enable=True).first()

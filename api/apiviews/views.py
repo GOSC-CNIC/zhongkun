@@ -263,7 +263,7 @@ class ServersViewSet(CustomGenericViewSet):
             exc = exceptions.BadRequest(message=_('必须提交"quota_id"参数'))
             return Response(exc.err_data(), status=exc.status_code)
 
-        flavor = Flavor.objects.filter(id=flavor_id).first()
+        flavor = Flavor.objects.filter(id=flavor_id, enable=True).first()
         if not flavor:
             exc = exceptions.BadRequest(message=_('无效的flavor id'))
             return Response(exc.err_data(), status=exc.status_code)

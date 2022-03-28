@@ -1,3 +1,4 @@
+from django.utils.translation import gettext as _
 from rest_framework import exceptions as drf_exceptions
 
 
@@ -214,6 +215,11 @@ class ResourceLocked(ConflictError):
 class NoMonitorJob(ConflictError):
     default_message = '没有配置监控任务'
     default_code = 'NoMonitorJob'
+
+
+class NoPrice(ConflictError):
+    default_message = _('没有设置资源定价价格')
+    default_code = 'NoPrice'
 
 
 def convert_to_error(err):

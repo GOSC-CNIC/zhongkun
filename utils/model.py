@@ -19,15 +19,20 @@ class UuidModel(models.Model):
 
     def save(self, force_insert=False, force_update=False, using=None,
              update_fields=None):
-        if not self.id:
-            self.id = str(uuid1())
-
+        self.enforce_id()
         super().save(force_insert=force_insert, force_update=force_update,
                      using=using, update_fields=update_fields)
 
+    def enforce_id(self):
+        """确保id有效"""
+        if not self.id:
+            self.id = str(uuid1())
+
+        return self.id
+
 
 class OwnerType(models.TextChoices):
-    User = 'user', _('用户')
+    USER = 'user', _('用户')
     VO = 'vo', _('VO组')
 
 

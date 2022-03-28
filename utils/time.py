@@ -1,4 +1,6 @@
+from datetime import datetime
 from pytz import utc
+
 from rest_framework.fields import DateTimeField
 from rest_framework import ISO_8601
 
@@ -24,3 +26,22 @@ def time_to_gmt(value):
     except Exception as e:
         return ''
 
+
+def datetime_add_months(dt: datetime, months: int) -> datetime:
+    dt_year = dt.year
+    dt_month = dt.month
+
+    year, month = divmod(months, 12)
+    year += dt_year
+    month = month + dt_month
+    if month > 12:
+        month = month - 12
+        year += 1
+
+    return dt.replace(year=year, month=month)
+
+
+def days_after_months(dt: datetime, months: int) -> int:
+    end = datetime_add_months(dt=dt, months=months)
+    delta = end - dt
+    return delta.days
