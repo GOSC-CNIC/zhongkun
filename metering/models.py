@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.db import models
 from django.utils.translation import gettext, gettext_lazy as _
 
@@ -7,6 +9,13 @@ from vo.models import VirtualOrganization
 from servers.models import Server
 from service.models import ServiceConfig
 from storage.models import ObjectsService
+from bill.models import PaymentHistory
+
+
+class PaymentStatus(models.TextChoices):
+    UNPAID = 'unpaid', _('待支付')
+    PAID = 'paid', _('已支付')
+    CANCELLED = 'cancelled', _('作废')
 
 
 class MeteringServer(UuidModel):
@@ -38,6 +47,14 @@ class MeteringServer(UuidModel):
     downstream = models.FloatField(
         verbose_name=_('下行流量GiB'), blank=True, default=0, help_text=_('云服务器的下行流量Gib'))
     pay_type = models.CharField(verbose_name=_('云服务器付费方式'), max_length=16, choices=Server.PayType.choices)
+    original_amount = models.DecimalField(
+        verbose_name=_('计费金额'), max_digits=10, decimal_places=2, default=Decimal(0))
+    trade_amount = models.DecimalField(verbose_name=_('交易金额'), max_digits=10, decimal_places=2, default=Decimal(0))
+    payment_status = models.CharField(
+        verbose_name=_('支付状态'), max_length=16, choices=PaymentStatus.choices, default=PaymentStatus.UNPAID)
+    payment_history = models.OneToOneField(
+        verbose_name=_('支付记录'), to=PaymentHistory, related_name='+',
+        null=True, on_delete=models.SET_NULL, default=None)
 
     class Meta:
         verbose_name = _('云服务器资源计量')
@@ -71,6 +88,14 @@ class MeteringDisk(UuidModel):
     snapshot_hours = models.FloatField(
         verbose_name=_('快照GiB Hour'), blank=True, default=0, help_text=_('云硬盘快照GiB小时数'))
     pay_type = models.CharField(verbose_name=_('云硬盘付费方式'), max_length=16, choices=PayType.choices)
+    original_amount = models.DecimalField(
+        verbose_name=_('计费金额'), max_digits=10, decimal_places=2, default=Decimal(0))
+    trade_amount = models.DecimalField(verbose_name=_('交易金额'), max_digits=10, decimal_places=2, default=Decimal(0))
+    payment_status = models.CharField(
+        verbose_name=_('支付状态'), max_length=16, choices=PaymentStatus.choices, default=PaymentStatus.UNPAID)
+    payment_history = models.OneToOneField(
+        verbose_name=_('支付记录'), to=PaymentHistory, related_name='+',
+        null=True, on_delete=models.SET_NULL, default=None)
 
     class Meta:
         verbose_name = _('云硬盘资源计量')
@@ -105,6 +130,14 @@ class MeteringObjectStorage(UuidModel):
     get_request = models.IntegerField(verbose_name=_('get请求次数'), default=0, help_text=_('存储桶的get请求次数'))
     put_request = models.IntegerField(verbose_name=_('put请求次数'), default=0, help_text=_('存储桶的put请求次数'))
     pay_type = models.CharField(verbose_name=_('对象存储付费方式'), max_length=16, choices=Server.PayType.choices)
+    original_amount = models.DecimalField(
+        verbose_name=_('计费金额'), max_digits=10, decimal_places=2, default=Decimal(0))
+    trade_amount = models.DecimalField(verbose_name=_('交易金额'), max_digits=10, decimal_places=2, default=Decimal(0))
+    payment_status = models.CharField(
+        verbose_name=_('支付状态'), max_length=16, choices=PaymentStatus.choices, default=PaymentStatus.UNPAID)
+    payment_history = models.OneToOneField(
+        verbose_name=_('支付记录'), to=PaymentHistory, related_name='+',
+        null=True, on_delete=models.SET_NULL, default=None)
 
     class Meta:
         verbose_name = _('对象存储资源计量')
@@ -112,5 +145,7 @@ class MeteringObjectStorage(UuidModel):
         db_table = 'metering_object_storage'
         ordering = ['-creation_time']
         constraints = [
-            models.constraints.UniqueConstraint(fields=['date', 'service_id', 'user_id', 'bucket_name'], name='unique_date_bucket')
+            models.constraints.UniqueConstraint(
+                fields=['date', 'service_id', 'user_id', 'bucket_name'], name='unique_date_bucket'
+            )
         ]
