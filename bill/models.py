@@ -1,3 +1,4 @@
+from decimal import Decimal
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -8,7 +9,7 @@ from vo.models import VirtualOrganization
 
 
 class UserPointAccount(UuidModel):
-    balance = models.DecimalField(verbose_name=_('金额'), max_digits=10, decimal_places=2)
+    balance = models.DecimalField(verbose_name=_('金额'), max_digits=10, decimal_places=2, default='0.00')
     user = models.OneToOneField(to=UserProfile, on_delete=models.SET_NULL, null=True, default=None)
     creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
 
@@ -26,7 +27,7 @@ class UserPointAccount(UuidModel):
 
 
 class VoPointAccount(UuidModel):
-    balance = models.DecimalField(verbose_name=_('金额'), max_digits=10, decimal_places=2)
+    balance = models.DecimalField(verbose_name=_('金额'), max_digits=10, decimal_places=2, default='0.00')
     vo = models.OneToOneField(to=VirtualOrganization, on_delete=models.SET_NULL, null=True, default=None)
     creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
 
@@ -85,6 +86,15 @@ class PaymentHistory(UuidModel):
         PAYMENT = 'payment', _('支付')
         REFUND = 'refund', _('退款')
 
+    class PaymentMethod(models.TextChoices):
+        BALANCE = 'balance', _('余额')
+
+    payment_account = models.CharField(
+        verbose_name=_('付款账户'), max_length=36, blank=True, default='', help_text=_('用户或VO余额ID, 及可能支持的其他账户'))
+    payment_method = models.CharField(
+        verbose_name=_('付款方式'), max_length=16, choices=PaymentMethod.choices, default=PaymentMethod.BALANCE)
+    executor = models.CharField(
+        verbose_name=_('交易执行人'), max_length=128, blank=True, default='', help_text=_('记录此次支付交易是谁执行完成的'))
     payer_id = models.CharField(verbose_name=_('付款人ID'), max_length=36, blank=True, default='',
                                 help_text='user id or vo id')
     payer_name = models.CharField(verbose_name=_('付款人名称'), max_length=255, blank=True, default='',

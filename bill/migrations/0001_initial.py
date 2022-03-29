@@ -42,7 +42,7 @@ class Migration(migrations.Migration):
             name='VoPointAccount',
             fields=[
                 ('id', models.CharField(blank=True, editable=False, max_length=36, primary_key=True, serialize=False, verbose_name='ID')),
-                ('balance', models.DecimalField(decimal_places=2, max_digits=10, verbose_name='金额')),
+                ('balance', models.DecimalField(decimal_places=2, default='0.00', max_digits=10, verbose_name='金额')),
                 ('creation_time', models.DateTimeField(auto_now_add=True, verbose_name='创建时间')),
                 ('vo', models.OneToOneField(default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, to='vo.virtualorganization')),
             ],
@@ -57,7 +57,7 @@ class Migration(migrations.Migration):
             name='UserPointAccount',
             fields=[
                 ('id', models.CharField(blank=True, editable=False, max_length=36, primary_key=True, serialize=False, verbose_name='ID')),
-                ('balance', models.DecimalField(decimal_places=2, max_digits=10, verbose_name='金额')),
+                ('balance', models.DecimalField(decimal_places=2, default='0.00', max_digits=10, verbose_name='金额')),
                 ('creation_time', models.DateTimeField(auto_now_add=True, verbose_name='创建时间')),
                 ('user', models.OneToOneField(default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
             ],

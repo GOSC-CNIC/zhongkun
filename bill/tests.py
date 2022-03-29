@@ -18,6 +18,8 @@ class PaymentManagerTests(TransactionTestCase):
 
     def test_pay_user_bill(self):
         pay_mgr = PaymentManager()
+        payer_name = self.user.username
+
         # test create bill  OwnerType
         with self.assertRaises(errors.Error):
             BillManager().create_bill(
@@ -60,7 +62,7 @@ class PaymentManagerTests(TransactionTestCase):
             vo_id=''
         )
         with self.assertRaises(errors.Error):
-            pay_mgr.pay_bill(bill=bill_unpaid1, payer_name=self.user.username, remark='')
+            pay_mgr.pay_bill(bill=bill_unpaid1, executor=self.user.username, remark='')
 
         # pay bill, type PREPAID
         bill_prepaid = BillManager().create_bill(
@@ -75,7 +77,7 @@ class PaymentManagerTests(TransactionTestCase):
             user_id=self.user.id,
             vo_id=''
         )
-        balance = pay_mgr.pay_bill(bill=bill_prepaid, payer_name=self.user.username, remark='')
+        balance = pay_mgr.pay_bill(bill=bill_prepaid, executor=self.user.username, remark='')
         self.assertEqual(balance, Decimal('-123.45'))
         bill_prepaid.refresh_from_db()
         self.assertEqual(bill_prepaid.status, Bill.Status.PREPAID)
@@ -86,6 +88,10 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(pay_history.amounts, Decimal('-123.45'))
         self.assertEqual(pay_history.before_payment, Decimal(0))
         self.assertEqual(pay_history.after_payment, Decimal('-123.45'))
+        self.assertEqual(pay_history.executor, self.user.username)
+        self.assertEqual(pay_history.payment_method, PaymentHistory.PaymentMethod.BALANCE.value)
+        self.assertEqual(pay_history.payment_account, self.user.userpointaccount.id)
+        self.assertEqual(pay_history.payer_name, payer_name)
 
         # pay bill, type REFUND
         bill_refund = BillManager().create_bill(
@@ -100,7 +106,7 @@ class PaymentManagerTests(TransactionTestCase):
             user_id=self.user.id,
             vo_id=''
         )
-        balance = pay_mgr.pay_bill(bill=bill_refund, payer_name=self.user.username, remark='')
+        balance = pay_mgr.pay_bill(bill=bill_refund, executor='executor', remark='')
         self.assertEqual(balance, Decimal(100))
         bill_refund.refresh_from_db()
         self.assertEqual(bill_refund.status, Bill.Status.PREPAID)
@@ -111,6 +117,10 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(pay_history.payer_type, OwnerType.USER.value)
         self.assertEqual(pay_history.payer_id, self.user.id)
         self.assertEqual(pay_history.type, PaymentHistory.Type.REFUND)
+        self.assertEqual(pay_history.executor, 'executor')
+        self.assertEqual(pay_history.payment_method, PaymentHistory.PaymentMethod.BALANCE.value)
+        self.assertEqual(pay_history.payment_account, self.user.userpointaccount.id)
+        self.assertEqual(pay_history.payer_name, payer_name)
 
     def test_pay_vo_bill(self):
         pay_mgr = PaymentManager()
@@ -130,7 +140,7 @@ class PaymentManagerTests(TransactionTestCase):
             vo_id='vo_id'
         )
         with self.assertRaises(errors.Error):
-            pay_mgr.pay_bill(bill=bill_unpaid1, payer_name=payer_name, remark='')
+            pay_mgr.pay_bill(bill=bill_unpaid1, executor=self.user.username, remark='')
 
         # pay bill, type PREPAID
         bill_prepaid = BillManager().create_bill(
@@ -145,7 +155,7 @@ class PaymentManagerTests(TransactionTestCase):
             user_id='',
             vo_id=self.vo.id
         )
-        balance = pay_mgr.pay_bill(bill=bill_prepaid, payer_name=payer_name, remark='')
+        balance = pay_mgr.pay_bill(bill=bill_prepaid, executor=self.user.username, remark='')
         self.assertEqual(balance, Decimal('-123.45'))
         bill_prepaid.refresh_from_db()
         self.assertEqual(bill_prepaid.status, Bill.Status.PREPAID)
@@ -156,6 +166,10 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(pay_history.payer_type, OwnerType.VO.value)
         self.assertEqual(pay_history.payer_id, self.vo.id)
         self.assertEqual(pay_history.type, PaymentHistory.Type.PAYMENT)
+        self.assertEqual(pay_history.executor, self.user.username)
+        self.assertEqual(pay_history.payment_method, PaymentHistory.PaymentMethod.BALANCE.value)
+        self.assertEqual(pay_history.payment_account, self.vo.vopointaccount.id)
+        self.assertEqual(pay_history.payer_name, payer_name)
 
         # pay bill, type REFUND
         bill_refund = BillManager().create_bill(
@@ -170,7 +184,7 @@ class PaymentManagerTests(TransactionTestCase):
             user_id='',
             vo_id=self.vo.id
         )
-        balance = pay_mgr.pay_bill(bill=bill_refund, payer_name=payer_name, remark='')
+        balance = pay_mgr.pay_bill(bill=bill_refund, executor='executor', remark='')
         self.assertEqual(balance, Decimal(100))
         bill_refund.refresh_from_db()
         self.assertEqual(bill_refund.status, Bill.Status.PREPAID)
@@ -181,3 +195,7 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(pay_history.amounts, Decimal('223.45'))
         self.assertEqual(pay_history.before_payment, Decimal('-123.45'))
         self.assertEqual(pay_history.after_payment, Decimal(100))
+        self.assertEqual(pay_history.executor, 'executor')
+        self.assertEqual(pay_history.payment_method, PaymentHistory.PaymentMethod.BALANCE.value)
+        self.assertEqual(pay_history.payment_account, self.vo.vopointaccount.id)
+        self.assertEqual(pay_history.payer_name, payer_name)
