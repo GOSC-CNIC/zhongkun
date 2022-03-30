@@ -5,7 +5,8 @@ from django.db import transaction
 
 from core import errors
 from utils.model import OwnerType
-from bill.models import Bill, PaymentHistory, UserPointAccount, VoPointAccount
+from bill.models import PaymentHistory, UserPointAccount, VoPointAccount
+from metering.models import MeteringBase, PaymentStatus
 
 
 class PaymentManager:
@@ -65,53 +66,55 @@ class PaymentManager:
         return vo_account.balance >= money_amount
 
     @staticmethod
-    def _pre_payment_inspect(bill: Bill, remark: str):
+    def _pre_payment_inspect(metering_bill: MeteringBase, remark: str):
         """
         支付bill前检查
 
         :raises: Error
         """
         # bill status
-        if bill.status == Bill.Status.PREPAID.value:
+        if metering_bill.payment_status == PaymentStatus.PAID.value:
             raise errors.Error(message=_('不能支付已支付状态的账单'))
-        elif bill.status == Bill.Status.CANCELLED.value:
+        elif metering_bill.payment_status == PaymentStatus.CANCELLED.value:
             raise errors.Error(message=_('不能支付作废状态的账单'))
-        elif bill.status != Bill.Status.UNPAID.value:
+        elif metering_bill.payment_status != PaymentStatus.UNPAID.value:
             raise errors.Error(message=_('只允许支付待支付状态的账单'))
 
-        # bill type
-        if bill.type not in Bill.Type.values:
-            raise errors.Error(message=_('账单的类型无效'))
-
-        if bill.owner_type not in OwnerType.values:
+        if metering_bill.is_owner_type_user() is None:
             raise errors.Error(message=_('支付人类型无效'))
 
         if len(remark) >= 255:
             raise errors.Error(message=_('备注信息超出允许长度'))
 
-    def pay_bill(self, bill: Bill, executor: str, remark: str) -> Decimal:
+    def pay_metering_bill(self, metering_bill: MeteringBase, executor: str, remark: str):
         """
-        支付账单
+        支付计量计费账单
 
-        :param bill: Bill()
+        :param metering_bill: MeteringBase子类对象
         :param executor: bill支付的执行人
         :param remark: 备注信息
-        :return:
-            余额
 
         :raises: Error
         """
-        self._pre_payment_inspect(bill=bill, remark=remark)
+        self._pre_payment_inspect(metering_bill=metering_bill, remark=remark)
+        if not metering_bill.is_postpaid():
+            try:
+                metering_bill.set_paid(trade_amount=Decimal(0))
+            except Exception as e:
+                raise errors.Error(message=_('计量计费账单更新为已支付状态时错误.') + str(e))
+
+            return None
 
         try:
-            if bill.owner_type == OwnerType.USER.value:
-                return self._pay_user_bill(bill=bill, payer_id=bill.user_id, executor=executor, remark=remark)
+            owner_id = metering_bill.get_owner_id()
+            if metering_bill.is_owner_type_user():
+                return self._pay_user_bill(bill=metering_bill, payer_id=owner_id, executor=executor, remark=remark)
             else:
-                return self._pay_vo_bill(bill=bill, payer_id=bill.vo_id, executor=executor, remark=remark)
+                return self._pay_vo_bill(bill=metering_bill, payer_id=owner_id, executor=executor, remark=remark)
         except Exception as exc:
             raise errors.Error.from_error(exc)
 
-    def _pay_user_bill(self, bill: Bill, payer_id: str, executor: str, remark: str) -> Decimal:
+    def _pay_user_bill(self, bill: MeteringBase, payer_id: str, executor: str, remark: str) -> Decimal:
         with transaction.atomic():
             user_account = self.get_user_point_account(user_id=payer_id, select_for_update=True)
             self.__do_pay_bill(
@@ -121,7 +124,7 @@ class PaymentManager:
 
         return user_account.balance
 
-    def _pay_vo_bill(self, bill: Bill, payer_id: str, executor: str, remark: str) -> Decimal:
+    def _pay_vo_bill(self, bill: MeteringBase, payer_id: str, executor: str, remark: str) -> Decimal:
         with transaction.atomic():
             vo_account = self.get_vo_point_account(vo_id=payer_id, select_for_update=True)
             self.__do_pay_bill(
@@ -133,17 +136,13 @@ class PaymentManager:
 
     @staticmethod
     def __do_pay_bill(
-            account, bill: Bill, payer_id: str, payer_name: str, payer_type: str, executor: str, remark: str
+            account, bill: MeteringBase, payer_id: str, payer_name: str, payer_type: str, executor: str, remark: str
     ):
         before_payment = account.balance
-        if bill.type == Bill.Type.REFUND.value:
-            history_amounts = bill.amounts
-            history_type = PaymentHistory.Type.REFUND.value
-        else:
-            history_amounts = - bill.amounts
-            history_type = PaymentHistory.Type.PAYMENT.value
-
-        after_payment = before_payment + history_amounts
+        trade_amount = bill.original_amount
+        after_payment = before_payment - trade_amount
+        history_amounts = - trade_amount
+        history_type = PaymentHistory.Type.PAYMENT.value
 
         # 账户扣款
         account.balance = after_payment
@@ -161,12 +160,14 @@ class PaymentManager:
             before_payment=before_payment,
             after_payment=after_payment,
             type=history_type,
-            bill=bill,
-            remark=remark
+            remark=remark,
+            order_id='',
+            resource_type=bill.get_resource_type(),
+            service_id=bill.get_service_id(),
+            instance_id=bill.get_instance_id()
         )
         pay_history.save(force_insert=True)
 
         # 账单支付状态
-        bill.status = Bill.Status.PREPAID
-        bill.save(update_fields=['status'])
+        bill.set_paid(trade_amount=trade_amount, payment_history_id=pay_history.id)
         return True

@@ -10,6 +10,7 @@ from servers.models import Server
 from service.models import ServiceConfig
 from storage.models import ObjectsService
 from bill.models import PaymentHistory
+from order.models import ResourceType
 
 
 class PaymentStatus(models.TextChoices):
@@ -18,7 +19,67 @@ class PaymentStatus(models.TextChoices):
     CANCELLED = 'cancelled', _('作废')
 
 
-class MeteringServer(UuidModel):
+class MeteringBase(UuidModel):
+    original_amount = models.DecimalField(
+        verbose_name=_('计费金额'), max_digits=10, decimal_places=2, default=Decimal(0))
+    trade_amount = models.DecimalField(verbose_name=_('交易金额'), max_digits=10, decimal_places=2, default=Decimal(0))
+    payment_status = models.CharField(
+        verbose_name=_('支付状态'), max_length=16, choices=PaymentStatus.choices, default=PaymentStatus.UNPAID)
+    payment_history = models.OneToOneField(
+        verbose_name=_('支付记录'), to=PaymentHistory, related_name='+',
+        null=True, on_delete=models.SET_NULL, default=None)
+
+    class Meta:
+        abstract = True
+
+    def is_owner_type_user(self):
+        """
+        所有者是否是用户，反之是vo组
+        :return:
+            True    # user
+            False   # vo
+            None    # invalid
+        """
+        raise NotImplemented('is_owner_type_user')
+
+    def get_owner_id(self) -> str:
+        """
+        返回所有者的id, user id or vo id
+        """
+        raise NotImplemented('get_owner_id')
+
+    def is_postpaid(self) -> bool:
+        """
+        是否是按量计费
+        """
+        raise NotImplemented('is_postpaid')
+
+    def get_resource_type(self) -> str:
+        """
+        计量资源的类型
+        """
+        raise NotImplemented('get_resource_type')
+
+    def get_service_id(self) -> str:
+        """
+        所属接入服务的id
+        """
+        raise NotImplemented('get_service_id')
+
+    def get_instance_id(self) -> str:
+        """
+        计量的资源实例的标识
+        """
+        raise NotImplemented('get_instance_id')
+
+    def set_paid(self, trade_amount: Decimal = None, payment_history_id: str = None):
+        self.payment_history_id = payment_history_id
+        self.trade_amount = self.original_amount if trade_amount is None else trade_amount
+        self.payment_status = PaymentStatus.PAID.value
+        self.save(update_fields=['payment_history_id', 'trade_amount', 'payment_status'])
+
+
+class MeteringServer(MeteringBase):
     """
     服务器云主机计量
     """
@@ -47,14 +108,6 @@ class MeteringServer(UuidModel):
     downstream = models.FloatField(
         verbose_name=_('下行流量GiB'), blank=True, default=0, help_text=_('云服务器的下行流量Gib'))
     pay_type = models.CharField(verbose_name=_('云服务器付费方式'), max_length=16, choices=Server.PayType.choices)
-    original_amount = models.DecimalField(
-        verbose_name=_('计费金额'), max_digits=10, decimal_places=2, default=Decimal(0))
-    trade_amount = models.DecimalField(verbose_name=_('交易金额'), max_digits=10, decimal_places=2, default=Decimal(0))
-    payment_status = models.CharField(
-        verbose_name=_('支付状态'), max_length=16, choices=PaymentStatus.choices, default=PaymentStatus.UNPAID)
-    payment_history = models.OneToOneField(
-        verbose_name=_('支付记录'), to=PaymentHistory, related_name='+',
-        null=True, on_delete=models.SET_NULL, default=None)
 
     class Meta:
         verbose_name = _('云服务器资源计量')
@@ -68,8 +121,56 @@ class MeteringServer(UuidModel):
     def __repr__(self):
         return gettext('云服务器资源计量') + f'[server id {self.server_id}]'
 
+    def is_owner_type_user(self):
+        """
+        所有者是否是用户，反之是vo组
+        :return:
+            True    # user
+            False   # vo
+            None    # invalid
+        """
+        if self.owner_type == OwnerType.USER.value:
+            return True
+        elif self.owner_type == OwnerType.VO.value:
+            return False
 
-class MeteringDisk(UuidModel):
+        return None
+
+    def get_owner_id(self) -> str:
+        """
+        返回所有者的id, user id or vo id
+        """
+        if self.is_owner_type_user():
+            return self.user_id
+
+        return self.vo_id
+
+    def is_postpaid(self) -> bool:
+        """
+        是否是按量计费
+        """
+        return self.pay_type == PayType.POSTPAID.value
+
+    def get_resource_type(self):
+        """
+        计量资源的类型
+        """
+        return ResourceType.VM.value
+
+    def get_service_id(self):
+        """
+        所属接入服务的id
+        """
+        return self.service_id
+
+    def get_instance_id(self):
+        """
+        计量的资源实例的标识
+        """
+        return self.server_id
+
+
+class MeteringDisk(MeteringBase):
     """
     云硬盘计量
     """
@@ -88,14 +189,6 @@ class MeteringDisk(UuidModel):
     snapshot_hours = models.FloatField(
         verbose_name=_('快照GiB Hour'), blank=True, default=0, help_text=_('云硬盘快照GiB小时数'))
     pay_type = models.CharField(verbose_name=_('云硬盘付费方式'), max_length=16, choices=PayType.choices)
-    original_amount = models.DecimalField(
-        verbose_name=_('计费金额'), max_digits=10, decimal_places=2, default=Decimal(0))
-    trade_amount = models.DecimalField(verbose_name=_('交易金额'), max_digits=10, decimal_places=2, default=Decimal(0))
-    payment_status = models.CharField(
-        verbose_name=_('支付状态'), max_length=16, choices=PaymentStatus.choices, default=PaymentStatus.UNPAID)
-    payment_history = models.OneToOneField(
-        verbose_name=_('支付记录'), to=PaymentHistory, related_name='+',
-        null=True, on_delete=models.SET_NULL, default=None)
 
     class Meta:
         verbose_name = _('云硬盘资源计量')
@@ -109,8 +202,56 @@ class MeteringDisk(UuidModel):
     def __repr__(self):
         return gettext('云硬盘资源计量') + f'[disk id {self.disk_id}]'
 
+    def is_owner_type_user(self):
+        """
+        所有者是否是用户，反之是vo组
+        :return:
+            True    # user
+            False   # vo
+            None    # invalid
+        """
+        if self.owner_type == OwnerType.USER.value:
+            return True
+        elif self.owner_type == OwnerType.VO.value:
+            return False
 
-class MeteringObjectStorage(UuidModel):
+        return None
+
+    def get_owner_id(self) -> str:
+        """
+        返回所有者的id, user id or vo id
+        """
+        if self.is_owner_type_user():
+            return self.user_id
+
+        return self.vo_id
+
+    def is_postpaid(self) -> bool:
+        """
+        是否是按量计费
+        """
+        return self.pay_type == PayType.POSTPAID.value
+
+    def get_resource_type(self):
+        """
+        计量资源的类型
+        """
+        return ResourceType.DISK.value
+
+    def get_service_id(self):
+        """
+        所属接入服务的id
+        """
+        return self.service_id
+
+    def get_instance_id(self):
+        """
+        计量的资源实例的标识
+        """
+        return self.disk_id
+
+
+class MeteringObjectStorage(MeteringBase):
     """
     对象存储计量
     """
@@ -130,14 +271,6 @@ class MeteringObjectStorage(UuidModel):
     get_request = models.IntegerField(verbose_name=_('get请求次数'), default=0, help_text=_('存储桶的get请求次数'))
     put_request = models.IntegerField(verbose_name=_('put请求次数'), default=0, help_text=_('存储桶的put请求次数'))
     pay_type = models.CharField(verbose_name=_('对象存储付费方式'), max_length=16, choices=Server.PayType.choices)
-    original_amount = models.DecimalField(
-        verbose_name=_('计费金额'), max_digits=10, decimal_places=2, default=Decimal(0))
-    trade_amount = models.DecimalField(verbose_name=_('交易金额'), max_digits=10, decimal_places=2, default=Decimal(0))
-    payment_status = models.CharField(
-        verbose_name=_('支付状态'), max_length=16, choices=PaymentStatus.choices, default=PaymentStatus.UNPAID)
-    payment_history = models.OneToOneField(
-        verbose_name=_('支付记录'), to=PaymentHistory, related_name='+',
-        null=True, on_delete=models.SET_NULL, default=None)
 
     class Meta:
         verbose_name = _('对象存储资源计量')
@@ -149,3 +282,39 @@ class MeteringObjectStorage(UuidModel):
                 fields=['date', 'service_id', 'user_id', 'bucket_name'], name='unique_date_bucket'
             )
         ]
+
+    def is_owner_type_user(self):
+        """
+        所有者是否是用户
+        """
+        return True
+
+    def get_owner_id(self) -> str:
+        """
+        返回所有者的id, user id
+        """
+        return self.user_id
+
+    def is_postpaid(self) -> bool:
+        """
+        是否是按量计费
+        """
+        return self.pay_type == PayType.POSTPAID.value
+
+    def get_resource_type(self):
+        """
+        计量资源的类型
+        """
+        return ResourceType.BUCKET.value
+
+    def get_service_id(self):
+        """
+        所属接入服务的id
+        """
+        return self.service_id
+
+    def get_instance_id(self):
+        """
+        计量的资源实例的标识
+        """
+        return self.bucket_name
