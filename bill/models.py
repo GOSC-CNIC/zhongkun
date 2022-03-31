@@ -74,7 +74,8 @@ class PaymentHistory(UuidModel):
     resource_type = models.CharField(
         verbose_name=_('资源类型'), max_length=16, choices=ResourceType.choices, default=ResourceType.VM)
     service_id = models.CharField(verbose_name=_('服务ID'), max_length=36, blank=True, default='')
-    instance_id = models.CharField(verbose_name=_('资源实例ID'), max_length=36, default='')
+    instance_id = models.CharField(
+        verbose_name=_('资源实例ID'), max_length=64, default='', help_text='云主机，硬盘id，存储桶名称')
 
     class Meta:
         verbose_name = _('支付记录')
