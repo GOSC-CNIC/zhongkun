@@ -17,7 +17,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='paymenthistory',
             name='instance_id',
-            field=models.CharField(default='', max_length=36, verbose_name='资源实例ID'),
+            field=models.CharField(default='', help_text='云主机，硬盘id，存储桶名称', max_length=64, verbose_name='资源实例ID'),
         ),
         migrations.AddField(
             model_name='paymenthistory',
