@@ -16,8 +16,8 @@ class Migration(migrations.Migration):
             name='Order',
             fields=[
                 ('id', models.CharField(editable=False, max_length=32, primary_key=True, serialize=False, verbose_name='订单编号')),
-                ('order_type', models.CharField(choices=[('new', '新购'), ('renewal', '续费'), ('upgrade', '升级'), ('downgrade', '降级'), ('refund', '退款')], default='new', max_length=16, verbose_name='订单类型')),
-                ('status', models.CharField(choices=[('paid', '已支付'), ('unpaid', '未支付'), ('cancelled', '作废')], default='paid', max_length=16, verbose_name='订单状态')),
+                ('order_type', models.CharField(choices=[('new', '新购'), ('renewal', '续费'), ('upgrade', '升级'), ('downgrade', '降级')], default='new', max_length=16, verbose_name='订单类型')),
+                ('status', models.CharField(choices=[('paid', '已支付'), ('unpaid', '未支付'), ('cancelled', '作废'), ('refund', '退款')], default='paid', max_length=16, verbose_name='订单状态')),
                 ('total_amount', models.DecimalField(decimal_places=2, default=0.0, max_digits=10, verbose_name='总金额')),
                 ('pay_amount', models.DecimalField(decimal_places=2, default=0.0, max_digits=10, verbose_name='实付金额')),
                 ('service_id', models.CharField(blank=True, default='', max_length=36, verbose_name='服务id')),

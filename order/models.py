@@ -33,14 +33,15 @@ class Order(models.Model):
         RENEWAL = 'renewal', _('续费')
         UPGRADE = 'upgrade', _('升级')
         DOWNGRADE = 'downgrade', _('降级')
-        REFUND = 'refund', _('退款')
 
     class Status(models.TextChoices):
         PAID = 'paid', _('已支付')
         UPPAID = 'unpaid', _('未支付')
         CANCELLED = 'cancelled', _('作废')
+        REFUND = 'refund', _('退款')
 
     class PaymentMethod(models.TextChoices):
+        UNKNOWN = 'unknown', _('未知')
         BALANCE = 'balance', _('余额')
 
     id = models.CharField(verbose_name=_('订单编号'), max_length=32, primary_key=True, editable=False)
@@ -61,7 +62,7 @@ class Order(models.Model):
     payment_time = models.DateTimeField(verbose_name=_('支付时间'), null=True, blank=True, default=None)
     pay_type = models.CharField(verbose_name=_('结算方式'), max_length=16, choices=PayType.choices)
     payment_method = models.CharField(
-        verbose_name=_('付款方式'), max_length=16, choices=PaymentMethod.choices, default=PaymentMethod.BALANCE)
+        verbose_name=_('付款方式'), max_length=16, choices=PaymentMethod.choices, default=PaymentMethod.UNKNOWN)
 
     creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
     start_time = models.DateTimeField(verbose_name=_('起用时间'), null=True, blank=True, default=None)

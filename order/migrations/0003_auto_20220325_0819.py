@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='order',
             name='payment_method',
-            field=models.CharField(choices=[('balance', '余额')], default='balance', max_length=16, verbose_name='付款方式'),
+            field=models.CharField(choices=[('unknown', '未知'), ('balance', '余额')], default='unknown', max_length=16, verbose_name='付款方式'),
         ),
         migrations.AddField(
             model_name='order',
