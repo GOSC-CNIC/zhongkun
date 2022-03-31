@@ -1,4 +1,5 @@
 import random
+from decimal import Decimal
 
 from django.db import models
 from django.utils import timezone
@@ -93,6 +94,18 @@ class Order(models.Model):
         self.enforce_order_id()
         return super().save(force_insert=force_insert, force_update=force_update,
                             using=using, update_fields=update_fields)
+
+    def set_paid(self, pay_amount: Decimal = None, payment_method: str = None):
+        if not payment_method:
+            payment_method = self.PaymentMethod.BALANCE.value
+        elif payment_method not in self.PaymentMethod.values:
+            raise ValueError(_('无效的付款方式'))
+
+        self.pay_amount = self.total_amount if pay_amount is None else pay_amount
+        self.status = self.Status.PAID.value
+        self.payment_method = payment_method
+        self.payment_time = timezone.now()
+        self.save(update_fields=['pay_amount', 'status', 'payment_method', 'payment_time'])
 
 
 class Resource(UuidModel):

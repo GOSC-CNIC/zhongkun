@@ -222,6 +222,11 @@ class NoPrice(ConflictError):
     default_code = 'NoPrice'
 
 
+class BalanceNotEnough(ConflictError):
+    default_message = _('余额不足')
+    default_code = 'BalanceNotEnough'
+
+
 def convert_to_error(err):
     if isinstance(err, Error):
         return err
