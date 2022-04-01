@@ -1,13 +1,13 @@
 from decimal import Decimal
 
-from django.utils import timezone
-
-from utils.time import datetime_add_months
 from core import errors
 from order.models import Price
 
 
 class PriceManager:
+    def __init__(self):
+        self._price = None
+
     @staticmethod
     def get_price():
         """
@@ -15,15 +15,16 @@ class PriceManager:
         """
         return Price.objects.order_by('-creation_time').first()
 
-    def enforce_price(self) -> Price:
+    def enforce_price(self, refresh: bool = False) -> Price:
         """
         :raises: NoPrice
         """
-        price = self.get_price()
-        if price is None:
-            raise errors.NoPrice()
+        if self._price is None or refresh:
+            self._price = self.get_price()
+            if self._price is None:
+                raise errors.NoPrice()
 
-        return price
+        return self._price
 
     @staticmethod
     def period_month_days(months: int):
@@ -117,3 +118,20 @@ class PriceManager:
         """
         price = self.enforce_price()
         return price.obj_size, price.obj_size
+
+    def describe_server_metering_price(
+            self,
+            ram_gib_hours: float,
+            cpu_hours: float,
+            disk_gib_hours: float,
+            public_ip_hours: float
+    ) -> Decimal:
+        """
+        按量计费云主机计价
+        """
+        price = self.enforce_price()
+        ram_amount = price.vm_ram * Decimal.from_float(ram_gib_hours / 24)
+        cpu_amount = price.vm_cpu * Decimal.from_float(cpu_hours / 24)
+        disk_amount = price.vm_disk * Decimal.from_float(disk_gib_hours / 24)
+        ip_amount = price.vm_pub_ip * Decimal.from_float(public_ip_hours / 24)
+        return ram_amount + cpu_amount + disk_amount + ip_amount

@@ -5,7 +5,9 @@ from django.utils import timezone
 from django.db import close_old_connections
 
 from servers.models import Server, ServerArchive, ServerBase
-from metering.models import MeteringServer
+from metering.models import MeteringServer, PaymentStatus
+from order.managers import PriceManager
+from utils.decimal_utils import quantize_10_2
 
 
 def wrap_close_old_connections(func):
@@ -31,6 +33,7 @@ class ServerMeasurer:
         self.end_datetime = end_datetime
         self.start_datetime = start_datetime
         self.raise_exeption = raise_exeption
+        self.price_mgr = PriceManager()
 
     def run(self, raise_exeption: bool = None):
         if raise_exeption is not None:
@@ -205,7 +208,9 @@ class ServerMeasurer:
             public_ip_hours=ip_hours,
             ram_hours=ram_gb_hours,
             disk_hours=disk_gb_hours,
-            pay_type=server_base.pay_type
+            pay_type=server_base.pay_type,
+            payment_status=PaymentStatus.UNPAID.value,
+            payment_history_id=None
         )
         if server_base.belong_to_vo():
             metering.vo_id = vo_id
@@ -216,12 +221,17 @@ class ServerMeasurer:
             metering.owner_type = MeteringServer.OwnerType.USER.value
             metering.user_id = user_id
 
+        self.metering_bill_amount(_metering=metering, auto_commit=False)
         try:
-            metering.save()
+            metering.save(force_insert=True)
         except Exception as e:
-            metering = self.server_metering_exists(metering_date=metering_date, server_id=server_id)
-            if metering is None:
+            _metering = self.server_metering_exists(metering_date=metering_date, server_id=server_id)
+            if _metering is None:
                 raise e
+            if _metering.original_amount != metering.original_amount:
+                self.metering_bill_amount(_metering=_metering, auto_commit=True)
+
+            metering = _metering
 
         return metering
 
@@ -316,3 +326,19 @@ class ServerMeasurer:
     @staticmethod
     def server_metering_exists(server_id, metering_date: date):
         return MeteringServer.objects.filter(date=metering_date, server_id=server_id).first()
+
+    def metering_bill_amount(self, _metering: MeteringServer, auto_commit: bool = True):
+        """
+        计算资源使用量的账单金额
+        """
+        amount = self.price_mgr.describe_server_metering_price(
+            ram_gib_hours=_metering.ram_hours,
+            cpu_hours=_metering.cpu_hours,
+            disk_gib_hours=_metering.disk_hours,
+            public_ip_hours=_metering.public_ip_hours
+        )
+        _metering.original_amount = quantize_10_2(amount)
+        if auto_commit:
+            _metering.save(update_fields=['original_amount'])
+
+        return _metering

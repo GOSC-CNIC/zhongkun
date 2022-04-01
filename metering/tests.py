@@ -1,13 +1,17 @@
+from decimal import Decimal
 from datetime import datetime, timedelta
 
 from django.test import TransactionTestCase
 from django.utils import timezone
 
 from utils.test import get_or_create_user, get_or_create_service
+from utils.model import PayType
+from utils.decimal_utils import quantize_10_2
 from servers.models import Server, ServerArchive
 from vo.managers import VoManager
 from metering.measurers import ServerMeasurer
-from metering.models import MeteringServer
+from metering.models import MeteringServer, PaymentStatus
+from order.models import Price
 
 
 def create_server_metadata(
@@ -15,7 +19,8 @@ def create_server_metadata(
         vcpu: int, ram: int, disk_size: int, public_ip: bool,
         start_time, creation_time, vo_id=None,
         classification=Server.Classification.PERSONAL.value,
-        task_status=Server.TASK_CREATED_OK
+        task_status=Server.TASK_CREATED_OK,
+        pay_type=PayType.PREPAID.value
 ):
     server = Server(
         service=service,
@@ -36,7 +41,8 @@ def create_server_metadata(
         image_desc='image desc',
         default_user='root',
         creation_time=creation_time,
-        start_time=start_time
+        start_time=start_time,
+        pay_type=pay_type
     )
     server.raw_default_password = ''
     server.save()
@@ -52,6 +58,25 @@ class MeteringServerTests(TransactionTestCase):
         self.user = get_or_create_user()
         self.service = get_or_create_service()
         self.vo = VoManager().create_vo(user=self.user, name='test vo', company='test', description='test')
+        self.price = Price(
+            vm_ram=Decimal('0.012'),
+            vm_cpu=Decimal('0.066'),
+            vm_disk=Decimal('0.122'),
+            vm_pub_ip=Decimal('0.66'),
+            vm_upstream=Decimal('0.33'),
+            vm_downstream=Decimal('1.44'),
+            vm_disk_snap=Decimal('0.65'),
+            disk_size=Decimal('1.02'),
+            disk_snap=Decimal('0.77'),
+            obj_size=Decimal('0'),
+            obj_upstream=Decimal('0'),
+            obj_downstream=Decimal('0'),
+            obj_replication=Decimal('0'),
+            obj_get_request=Decimal('0'),
+            obj_put_request=Decimal('0'),
+            prepaid_discount=66
+        )
+        self.price.save()
 
     def init_data_only_server(self, now: datetime):
         ago_hour_time = now - timedelta(hours=1)
@@ -67,7 +92,8 @@ class MeteringServerTests(TransactionTestCase):
             disk_size=100,
             public_ip=True,
             start_time=ago_time,
-            creation_time=ago_time
+            creation_time=ago_time,
+            pay_type=PayType.PREPAID.value
         )
         # vo的 计量 < 24h
         server2 = create_server_metadata(
@@ -80,7 +106,8 @@ class MeteringServerTests(TransactionTestCase):
             start_time=meter_time,
             creation_time=meter_time,
             classification=Server.Classification.VO.value,
-            vo_id=self.vo.id
+            vo_id=self.vo.id,
+            pay_type=PayType.POSTPAID.value
         )
 
         # vo的 不会计量
@@ -132,6 +159,13 @@ class MeteringServerTests(TransactionTestCase):
         else:
             self.assertEqual(up_int(metering.public_ip_hours), 0)
 
+        original_amount1 = (self.price.vm_cpu * 4) + (self.price.vm_ram * 4) + (
+                self.price.vm_disk * 100) + self.price.vm_pub_ip
+        self.assertEqual(metering.original_amount, quantize_10_2(original_amount1))
+        self.assertEqual(metering.trade_amount, Decimal(0))
+        self.assertEqual(metering.pay_type, PayType.PREPAID.value)
+        self.assertEqual(metering.payment_status, PaymentStatus.UNPAID.value)
+
         # server2
         hours = (metering_end_time - server2.start_time).total_seconds() / 3600
         metering = measurer.server_metering_exists(metering_date=metering_date, server_id=server2.id)
@@ -144,6 +178,13 @@ class MeteringServerTests(TransactionTestCase):
             self.assertEqual(up_int(metering.public_ip_hours), up_int(hours))
         else:
             self.assertEqual(up_int(metering.public_ip_hours), 0)
+
+        original_amount2 = (self.price.vm_cpu * 3) + (self.price.vm_ram * 3) + (self.price.vm_disk * 88)
+        original_amount2 = original_amount2 * Decimal.from_float(hours / 24)
+        self.assertEqual(metering.original_amount, quantize_10_2(original_amount2))
+        self.assertEqual(metering.trade_amount, Decimal(0))
+        self.assertEqual(metering.pay_type, PayType.POSTPAID.value)
+        self.assertEqual(metering.payment_status, PaymentStatus.UNPAID.value)
 
         measurer.run()
         count = MeteringServer.objects.all().count()
