@@ -23,25 +23,44 @@ class ServerMeasurer:
     """
     计量器
     """
-    def __init__(self, raise_exeption: bool = False):
+    def __init__(self, metering_date: date = None, raise_exeption: bool = False):
         """
+        :param metering_date: 指定计量日期
         :param raise_exeption: True(发生错误直接抛出退出)
         """
-        # 计量当前时间前一天的资源使用量
-        end_datetime = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)    # 计量结束时间
-        start_datetime = end_datetime - timedelta(days=1)  # 计量开始时间
+        if metering_date:
+            start_datetime = timezone.now().replace(
+                year=metering_date.year, month=metering_date.month, day=metering_date.day,
+                hour=0, minute=0, second=0, microsecond=0)
+            end_datetime = start_datetime + timedelta(days=1)
+        else:
+            # 计量当前时间前一天的资源使用量
+            end_datetime = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)    # 计量结束时间
+            start_datetime = end_datetime - timedelta(days=1)  # 计量开始时间
+
         self.end_datetime = end_datetime
         self.start_datetime = start_datetime
         self.raise_exeption = raise_exeption
         self.price_mgr = PriceManager()
+        self._metering_server_count = 0  # 计量云主机计数
+        self._metering_archieve_count = 0  # 计量归档云主机计数
+        self._new_count = 0      # 新产生计量账单计数
 
     def run(self, raise_exeption: bool = None):
+        print(f'Metering start, {self.start_datetime} - {self.end_datetime}')
+        if self.end_datetime >= timezone.now():
+            print('Exit, metering time invalid.')
+            return
+
         if raise_exeption is not None:
             self.raise_exeption = raise_exeption
 
         # 顺序先server后archive，因为数据库数据流向从server到archive
         self.metering_loop(loop_server=True)
         self.metering_loop(loop_server=False)
+        print(f'Metering {self._metering_server_count} servers, {self._metering_archieve_count} archieves, '
+              f'all {self._metering_archieve_count + self._metering_server_count}, '
+              f'new produce {self._new_count} metering bill.')
 
     def metering_loop(self, loop_server):
         last_creatition_time = None
@@ -73,8 +92,10 @@ class ServerMeasurer:
 
     def metering_server_or_archive(self, obj):
         if isinstance(obj, Server):
+            self._metering_server_count += 1
             return self.metering_one_server(server=obj)
 
+        self._metering_archieve_count += 1
         return self.metering_one_archive(archive=obj)
 
     def metering_one_server(self, server: Server):
@@ -224,6 +245,7 @@ class ServerMeasurer:
         self.metering_bill_amount(_metering=metering, auto_commit=False)
         try:
             metering.save(force_insert=True)
+            self._new_count += 1
         except Exception as e:
             _metering = self.server_metering_exists(metering_date=metering_date, server_id=server_id)
             if _metering is None:

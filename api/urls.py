@@ -4,7 +4,8 @@ from rest_framework.routers import SimpleRouter
 from .apiviews import views
 from .apiviews import (
     monitor_views, service_quota_views,
-    stats_quota_views, azone_views, order_views
+    stats_quota_views, azone_views, order_views,
+    metering_views
 )
 
 app_name = 'api'
@@ -41,6 +42,7 @@ no_slash_router.register(r'stats/quota', stats_quota_views.StatsQuotaViewSet,
 no_slash_router.register(r'azone', azone_views.AvailabilityZoneViewSet, basename='availability-zone')
 no_slash_router.register(r'describe-price', order_views.PriceViewSet, basename='describe-price')
 no_slash_router.register(r'order', order_views.OrderViewSet, basename='order')
+no_slash_router.register(r'metering/server', metering_views.MeteringServerViewSet, basename='metering-server')
 
 
 urlpatterns = [

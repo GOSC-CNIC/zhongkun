@@ -895,3 +895,26 @@ class ResourceSerializer(serializers.Serializer):
 
 class OrderDetailSerializer(OrderSerializer):
     resources = ResourceSerializer(many=True)
+
+
+class MeteringServerSerializer(serializers.Serializer):
+    id = serializers.CharField(label=_('订单编号'))
+    original_amount = serializers.DecimalField(label=_('计费金额'), max_digits=10, decimal_places=2)
+    trade_amount = serializers.DecimalField(label=_('交易金额'), max_digits=10, decimal_places=2)
+    payment_status = serializers.CharField(label=_('支付状态'), max_length=16)
+    payment_history_id = serializers.CharField(label=_('支付记录'))
+    service_id = serializers.CharField(label=_('服务'))
+    server_id = serializers.CharField(label=_('云服务器ID'), max_length=36)
+    date = serializers.DateField(label=_('日期'), help_text=_('计量的资源使用量的所属日期'))
+    creation_time = serializers.DateTimeField(label=_('创建时间'))
+    user_id = serializers.CharField(label=_('用户ID'), max_length=36)
+    vo_id = serializers.CharField(label=_('VO组ID'), max_length=36)
+    owner_type = serializers.CharField(label=_('所有者类型'), max_length=8)
+    cpu_hours = serializers.FloatField(label=_('CPU Hour'), help_text=_('云服务器的CPU Hour数'))
+    ram_hours = serializers.FloatField(label=_('内存GiB Hour'), help_text=_('云服务器的内存Gib Hour数'))
+    disk_hours = serializers.FloatField(label=_('系统盘GiB Hour'), help_text=_('云服务器的系统盘Gib Hour数'))
+    public_ip_hours = serializers.FloatField(label=_('IP Hour'), help_text=_('云服务器的公网IP Hour数'))
+    snapshot_hours = serializers.FloatField(label=_('快照GiB Hour'), help_text=_('云服务器的快照小时数'))
+    upstream = serializers.FloatField(label=_('上行流量GiB'), help_text=_('云服务器的上行流量Gib'))
+    downstream = serializers.FloatField(label=_('下行流量GiB'), help_text=_('云服务器的下行流量Gib'))
+    pay_type = serializers.CharField(label=_('云服务器付费方式'), max_length=16)

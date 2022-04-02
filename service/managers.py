@@ -1055,6 +1055,24 @@ class ServiceManager:
             status=ServiceConfig.Status.ENABLE).all()
 
     @staticmethod
+    def get_all_has_perm_service(user):
+        """
+        用户有权限管理的所有服务
+        """
+        return user.service_set.select_related('data_center').all()
+
+    @staticmethod
+    def get_service_if_admin(user, service_id: str):
+        """
+        用户是指定云主机服务的管理员
+
+        :return:
+            ServiceConfig()     # 是
+            None                # 不是
+        """
+        return ServiceConfig.objects.filter(id=service_id, users__id=user.id).first()
+
+    @staticmethod
     def get_service_id_map(use_cache=False, cache_seconds=60):
         """
         service id为key, service 实例为value的字典

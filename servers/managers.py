@@ -164,6 +164,22 @@ class ServerManager:
         return self.get_permission_server(server_id=server_id, user=user, related_fields=related_fields,
                                           read_only=True)
 
+    @staticmethod
+    def get_server_or_archive(server_id: str):
+        """
+        查询一个云主机或者已删除归档的云主机
+        :return:
+            Server() or ServerArchive()
+            None
+        """
+        server = Server.objects.filter(id=server_id).first()
+        if server is not None:
+            return server
+
+        archieve = ServerArchive.objects.filter(
+            server_id=server_id, archive_type=ServerArchive.ArchiveType.ARCHIVE.value).first()
+        return archieve
+
 
 class ServerArchiveManager:
     @staticmethod

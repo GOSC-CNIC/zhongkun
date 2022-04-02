@@ -12,9 +12,9 @@ from utils.validators import json_string_validator
 from core import errors
 from vo.models import VirtualOrganization
 from adapters.params import OpenStackParams
+from users.models import UserProfile as User
 
-
-User = get_user_model()
+# User = get_user_model()
 app_name = 'service'
 
 

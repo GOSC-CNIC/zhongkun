@@ -24,12 +24,13 @@ class DefaultPageNumberPagination(PageNumberPagination):
     # page_size = 20
 
 
-class OrderPageNumberPagination(PageNumberPagination):
+class NewPageNumberPagination(PageNumberPagination):
     page_size_query_param = 'page_size'
     page_size_query_description = _('每页数据数量。')
     page_query_description = _('页码。')
     page_size = 20
     max_page_size = 200
+    results_key_name = 'results'
 
     def get_paginated_response(self, data):
         page_size = self.page.paginator.per_page
@@ -40,5 +41,16 @@ class OrderPageNumberPagination(PageNumberPagination):
             ('page_size', page_size),
             # ('next', self.get_next_link()),
             # ('previous', self.get_previous_link()),
-            ('orders', data)
+            (self.results_key_name, data)
         ]))
+
+
+class OrderPageNumberPagination(NewPageNumberPagination):
+    page_size = 20
+    max_page_size = 200
+    results_key_name = 'orders'
+
+
+class MeteringPageNumberPagination(NewPageNumberPagination):
+    page_size = 100
+    max_page_size = 1000
