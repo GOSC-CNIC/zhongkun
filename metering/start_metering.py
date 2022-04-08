@@ -11,4 +11,6 @@ setup()
 
 if __name__ == "__main__":
     from metering.measurers import ServerMeasurer
+    from metering.pay_metering import PayMeteringServer
     ServerMeasurer().run()
+    PayMeteringServer().run()

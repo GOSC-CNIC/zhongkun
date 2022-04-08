@@ -6,6 +6,8 @@ from rest_framework import ISO_8601
 
 
 GMT_FORMAT = '%a, %d %b %Y %H:%M:%S GMT'
+ISO_UTC_FORMAT = '%Y-%m-%dT%H:%M:%S%z'
+ISO_UTC_MICRO_FORMAT = '%Y-%m-%dT%H:%M:%S.%f%z'
 
 
 def iso_to_datetime(iso_time: str):
@@ -13,6 +15,13 @@ def iso_to_datetime(iso_time: str):
         return DateTimeField(input_formats=[ISO_8601]).to_internal_value(iso_time)
     except Exception as e:
         return iso_time
+
+
+def iso_utc_to_datetime(iso_time: str):
+    try:
+        return datetime.strptime(iso_time, ISO_UTC_FORMAT)
+    except (ValueError, TypeError) as e:
+        return None
 
 
 def time_to_gmt(value):

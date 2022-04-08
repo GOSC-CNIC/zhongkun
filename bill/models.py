@@ -7,7 +7,19 @@ from users.models import UserProfile
 from vo.models import VirtualOrganization
 
 
-class UserPointAccount(UuidModel):
+class BasePointAccount(UuidModel):
+    class Status(models.TextChoices):
+        NORMAL = 'normal', _('正常')
+        FROZEN = 'frozen', _('冻结')
+
+    # status = models.CharField(
+    #     verbose_name=_('状态'), max_length=16, choices=Status.choices, blank=True, default=Status.NORMAL.value)
+
+    class Meta:
+        abstract = True
+
+
+class UserPointAccount(BasePointAccount):
     balance = models.DecimalField(verbose_name=_('金额'), max_digits=10, decimal_places=2, default='0.00')
     user = models.OneToOneField(to=UserProfile, on_delete=models.SET_NULL, null=True, default=None)
     creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
@@ -25,7 +37,7 @@ class UserPointAccount(UuidModel):
         return f'UserPointAccount<{self.balance}>'
 
 
-class VoPointAccount(UuidModel):
+class VoPointAccount(BasePointAccount):
     balance = models.DecimalField(verbose_name=_('金额'), max_digits=10, decimal_places=2, default='0.00')
     vo = models.OneToOneField(to=VirtualOrganization, on_delete=models.SET_NULL, null=True, default=None)
     creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)

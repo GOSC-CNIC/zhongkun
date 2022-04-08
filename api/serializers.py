@@ -918,3 +918,24 @@ class MeteringServerSerializer(serializers.Serializer):
     upstream = serializers.FloatField(label=_('上行流量GiB'), help_text=_('云服务器的上行流量Gib'))
     downstream = serializers.FloatField(label=_('下行流量GiB'), help_text=_('云服务器的下行流量Gib'))
     pay_type = serializers.CharField(label=_('云服务器付费方式'), max_length=16)
+
+
+class PaymentHistorySerializer(serializers.Serializer):
+    id = serializers.CharField(label='ID')
+    # payment_account = serializers.CharField(label=_('付款账户'), help_text=_('用户或VO余额ID, 及可能支持的其他账户'))
+    payment_method = serializers.CharField(label=_('付款方式'), max_length=16)
+    executor = serializers.CharField(label=_('交易执行人'), help_text=_('记录此次支付交易是谁执行完成的'))
+    payer_id = serializers.CharField(label=_('付款人ID'), help_text='user id or vo id')
+    payer_name = serializers.CharField(label=_('付款人名称'), help_text='username or vo name')
+    payer_type = serializers.CharField(label=_('付款人类型'), max_length=8)
+    amounts = serializers.DecimalField(label=_('金额'), max_digits=10, decimal_places=2)
+    before_payment = serializers.DecimalField(label=_('支付前余额'), max_digits=10, decimal_places=2)
+    after_payment = serializers.DecimalField(label=_('支付后余额'), max_digits=10, decimal_places=2)
+    payment_time = serializers.DateTimeField(label=_('支付时间'))
+    type = serializers.CharField(label=_('支付类型'), max_length=16)
+    remark = serializers.CharField(label=_('备注信息'), max_length=255)
+
+    order_id = serializers.CharField(label=_('订单ID'), max_length=36)
+    resource_type = serializers.CharField(label=_('资源类型'), max_length=16)
+    service_id = serializers.CharField(label=_('服务ID'), max_length=36)
+    instance_id = serializers.CharField(label=_('资源实例ID'), max_length=64, help_text='云主机，硬盘id，存储桶名称')
