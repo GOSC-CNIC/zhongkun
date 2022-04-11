@@ -939,3 +939,25 @@ class PaymentHistorySerializer(serializers.Serializer):
     resource_type = serializers.CharField(label=_('资源类型'), max_length=16)
     service_id = serializers.CharField(label=_('服务ID'), max_length=36)
     instance_id = serializers.CharField(label=_('资源实例ID'), max_length=64, help_text='云主机，硬盘id，存储桶名称')
+
+
+class BasePointAccountSerializer(serializers.Serializer):
+    id = serializers.CharField(label='ID')
+    balance = serializers.DecimalField(label=_('金额'), max_digits=10, decimal_places=2)
+    creation_time = serializers.DateTimeField(label=_('创建时间'))
+
+
+class VoPointAccountSerializer(BasePointAccountSerializer):
+    vo = serializers.SerializerMethodField(method_name='get_vo')
+
+    @staticmethod
+    def get_vo(obj):
+        return {'id': obj.vo_id}
+
+
+class UserPointAccountSerializer(BasePointAccountSerializer):
+    user = serializers.SerializerMethodField(method_name='get_user')
+
+    @staticmethod
+    def get_user(obj):
+        return {'id': obj.user_id}
