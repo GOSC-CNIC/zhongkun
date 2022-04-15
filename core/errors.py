@@ -227,6 +227,13 @@ class BalanceNotEnough(ConflictError):
     default_code = 'BalanceNotEnough'
 
 
+class NeetReleaseResource(Error):
+    """
+    服务提供者创建资源成功以后发生了错误，需要释放资源
+    """
+    pass
+
+
 def convert_to_error(err):
     if isinstance(err, Error):
         return err

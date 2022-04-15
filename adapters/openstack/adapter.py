@@ -489,8 +489,11 @@ class OpenStackAdapter(BaseAdapter):
             new_net = outputs.NetworkDetail(_id=params.network_id, name=network.name,
                                             public=is_public, segment=subnet.cidr)
             return outputs.NetworkDetailOutput(network=new_net)
+        except opsk_exceptions.ResourceNotFound as e:
+            return outputs.NetworkDetailOutput(ok=False, error=exceptions.ResourceNotFound(str(e)), network=None)
         except Exception as e:
-            return outputs.NetworkDetailOutput(ok=False, error=exceptions.Error(str(e)), network=None)
+            return outputs.NetworkDetailOutput(
+                ok=False, error=exceptions.Error(str(e), status_code=getattr(e, 'status_code', 500)), network=None)
 
     def list_availability_zones(self, params: inputs.ListAvailabilityZoneInput):
         try:

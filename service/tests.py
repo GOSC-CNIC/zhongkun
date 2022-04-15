@@ -294,8 +294,8 @@ class QuotaAPITests(TransactionTestCase):
 
         # 配额都是0
         with self.assertRaises(QuotaShortageError):
-            QuotaAPI.server_create_quota_apply(service=self.service, user=self.user,
-                                               vcpu=1, ram=1024, public_ip=True, user_quota_id=self.user_quota.id)
+            QuotaAPI.server_create_quota_apply(
+                service=self.service, vcpu=1, ram=1024, public_ip=True)
 
         # 增加用户配额
         self.user_quota = UserQuotaManager().increase(
@@ -305,8 +305,7 @@ class QuotaAPITests(TransactionTestCase):
 
         with self.assertRaises(QuotaShortageError):
             QuotaAPI.server_create_quota_apply(
-                service=self.service, user=self.user, vcpu=vcpus_apply, ram=ram_apply,
-                public_ip=is_public_ip_apply, user_quota_id=self.user_quota.id)
+                service=self.service, vcpu=vcpus_apply, ram=ram_apply, public_ip=is_public_ip_apply)
 
         # 增加服务私有配额
         self.pri_quota = ServicePrivateQuotaManager().increase(
@@ -314,26 +313,8 @@ class QuotaAPITests(TransactionTestCase):
             public_ip=public_ip_add, private_ip=private_ip_add)
 
         # 创建vm扣除配额
-        user_quota = QuotaAPI.server_create_quota_apply(
-            service=self.service, user=self.user, vcpu=vcpus_apply, ram=ram_apply,
-            public_ip=is_public_ip_apply, user_quota_id=self.user_quota.id)
-        self.assertIsInstance(user_quota, UserQuotaManager.MODEL)
-
-        self.user_quota.refresh_from_db()
-        self.assertEqual(self.user_quota.vcpu_total, vcpus_add)
-        self.assertEqual(self.user_quota.vcpu_used, vcpus_apply)
-        self.assertEqual(self.user_quota.ram_total, ram_add)
-        self.assertEqual(self.user_quota.ram_used, ram_apply)
-        self.assertEqual(self.user_quota.disk_size_total, disk_size_add)
-        self.assertEqual(self.user_quota.disk_size_used, 0)
-        self.assertEqual(self.user_quota.public_ip_total, public_ip_add)
-        self.assertEqual(self.user_quota.private_ip_total, private_ip_add)
-        if is_public_ip_apply:
-            self.assertEqual(self.user_quota.public_ip_used, 1)
-            self.assertEqual(self.user_quota.private_ip_used, 0)
-        else:
-            self.assertEqual(self.user_quota.public_ip_used, 0)
-            self.assertEqual(self.user_quota.private_ip_used, 1)
+        QuotaAPI.server_create_quota_apply(
+            service=self.service, vcpu=vcpus_apply, ram=ram_apply, public_ip=is_public_ip_apply)
 
         self.pri_quota.refresh_from_db()
         self.assertEqual(self.pri_quota.vcpu_total, vcpus_add)
@@ -353,16 +334,7 @@ class QuotaAPITests(TransactionTestCase):
 
         # 创建失败，释放服务配额和用户配额
         QuotaAPI().server_quota_release(self.service, vcpu=vcpus_apply,
-                                        ram=ram_apply, public_ip=is_public_ip_apply,
-                                        user_quota_id=self.user_quota.id)
-
-        self.user_quota.refresh_from_db()
-        self.assertEqual(self.user_quota.vcpu_used, 0)
-        self.assertEqual(self.user_quota.ram_used, 0)
-        self.assertEqual(self.user_quota.disk_size_used, 0)
-        self.assertEqual(self.user_quota.public_ip_used, 0)
-        self.assertEqual(self.user_quota.private_ip_used, 0)
-
+                                        ram=ram_apply, public_ip=is_public_ip_apply)
         self.pri_quota.refresh_from_db()
         self.assertEqual(self.pri_quota.vcpu_used, 0)
         self.assertEqual(self.pri_quota.ram_used, 0)
@@ -372,11 +344,8 @@ class QuotaAPITests(TransactionTestCase):
 
         # 创建vm扣除配额
         is_public_ip_apply = False
-        user_quota = QuotaAPI.server_create_quota_apply(
-            service=self.service, user=self.user, vcpu=vcpus_apply, ram=ram_apply,
-            public_ip=is_public_ip_apply, user_quota_id=self.user_quota.id)
-        self.assertIsInstance(user_quota, UserQuotaManager.MODEL)
-
+        QuotaAPI.server_create_quota_apply(
+            service=self.service, vcpu=vcpus_apply, ram=ram_apply, public_ip=is_public_ip_apply)
         self.pri_quota.refresh_from_db()
         self.assertEqual(self.pri_quota.vcpu_used, vcpus_apply)
         self.assertEqual(self.pri_quota.ram_used, ram_apply)
@@ -388,17 +357,6 @@ class QuotaAPITests(TransactionTestCase):
             self.assertEqual(self.pri_quota.public_ip_used, 0)
             self.assertEqual(self.pri_quota.private_ip_used, 1)
 
-        self.user_quota.refresh_from_db()
-        self.assertEqual(self.user_quota.vcpu_used, vcpus_apply)
-        self.assertEqual(self.user_quota.ram_used, ram_apply)
-        self.assertEqual(self.user_quota.disk_size_used, 0)
-        if is_public_ip_apply:
-            self.assertEqual(self.user_quota.public_ip_used, 1)
-            self.assertEqual(self.user_quota.private_ip_used, 0)
-        else:
-            self.assertEqual(self.user_quota.public_ip_used, 0)
-            self.assertEqual(self.user_quota.private_ip_used, 1)
-
         # 释放服务配额
         QuotaAPI().server_quota_release(self.service, vcpu=vcpus_apply,
                                         ram=ram_apply, public_ip=is_public_ip_apply)
@@ -409,17 +367,6 @@ class QuotaAPITests(TransactionTestCase):
         self.assertEqual(self.pri_quota.disk_size_used, 0)
         self.assertEqual(self.pri_quota.public_ip_used, 0)
         self.assertEqual(self.pri_quota.private_ip_used, 0)
-
-        self.user_quota.refresh_from_db()
-        self.assertEqual(self.user_quota.vcpu_used, vcpus_apply)
-        self.assertEqual(self.user_quota.ram_used, ram_apply)
-        self.assertEqual(self.user_quota.disk_size_used, 0)
-        if is_public_ip_apply:
-            self.assertEqual(self.user_quota.public_ip_used, 1)
-            self.assertEqual(self.user_quota.private_ip_used, 0)
-        else:
-            self.assertEqual(self.user_quota.public_ip_used, 0)
-            self.assertEqual(self.user_quota.private_ip_used, 1)
 
 
 class TestEncryptor(SimpleTestCase):

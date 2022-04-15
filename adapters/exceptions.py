@@ -71,6 +71,12 @@ class ServerNotExist(Error):
     status_code = 404
 
 
+class ResourceNotFound(Error):
+    default_message = 'This rasource is not found.'
+    default_code = 'ResourceNotFound'
+    status_code = 404
+
+
 class MethodNotSupportInService(Error):
     default_message = 'This method or business is not supported by this service center.'
     default_code = 'MethodNotSupportInService'

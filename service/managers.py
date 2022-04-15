@@ -1009,6 +1009,9 @@ class ServiceManager:
     def get_service_by_id(_id):
         return ServiceConfig.objects.filter(id=_id).first()
 
+    def get_server_service(self, _id):
+        return self.get_service_by_id(_id)
+
     @staticmethod
     def filter_service(center_id: str, user=None):
         """

@@ -226,123 +226,22 @@ class ServersViewSet(CustomGenericViewSet):
         return ServerHandler.list_vo_servers(view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('创建服务器实例'),
+        operation_summary=gettext_lazy('创建云服务器实例'),
         responses={
-            201: '''    
+            200: '''    
                 {
-                    "id": "xxx"     # 服务器id; 创建成功
+                    "order_id": "xxx",      # 订单id
+                    "server_ids": ["xxx"]     # 服务器id列表
                 }
-            ''',
-            202: '''
-                {
-                    "id": "xxx"     # 服务器id; 已接受创建请求，正在创建中；
-                }            
             '''
         }
     )
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        if not serializer.is_valid(raise_exception=False):
-            msg = serializer_error_msg(serializer.errors)
-            exc = exceptions.BadRequest(msg)
-            return Response(data=exc.err_data(), status=exc.status_code)
-
-        data = serializer.validated_data
-        image_id = data.get('image_id', '')
-        flavor_id = data.get('flavor_id', '')
-        network_id = data.get('network_id', '')
-        remarks = data.get('remarks') or request.user.username
-        quota_id = data.get('quota_id', None)
-        azone_id = data.get('azone_id', None)
-
-        if azone_id == '':
-            exc = exceptions.BadRequest(message=_('"azone_id"参数不能为空字符'))
-            return Response(exc.err_data(), status=exc.status_code)
-
-        if not quota_id:
-            exc = exceptions.BadRequest(message=_('必须提交"quota_id"参数'))
-            return Response(exc.err_data(), status=exc.status_code)
-
-        flavor = Flavor.objects.filter(id=flavor_id, enable=True).first()
-        if not flavor:
-            exc = exceptions.BadRequest(message=_('无效的flavor id'))
-            return Response(exc.err_data(), status=exc.status_code)
-
-        try:
-            service = self.get_service(request, in_='body')
-        except exceptions.APIException as exc:
-            return Response(exc.err_data(), status=exc.status_code)
-
-        params = inputs.NetworkDetailInput(network_id=network_id)
-        try:
-            out_net = self.request_service(service=service, method='network_detail', params=params)
-        except exceptions.APIException as exc:
-            return Response(data=exc.err_data(), status=exc.status_code)
-
-        is_public_network = out_net.network.public
-
-        # 资源配额扣除
-        try:
-            user_quota = QuotaAPI().server_create_quota_apply(
-                service=service, user=request.user, vcpu=flavor.vcpus, ram=flavor.ram,
-                public_ip=is_public_network, user_quota_id=quota_id)
-        except exceptions.Error as exc:
-            return Response(data=exc.err_data(), status=exc.status_code)
-
-        params = inputs.ServerCreateInput(ram=flavor.ram, vcpu=flavor.vcpus, image_id=image_id, azone_id=azone_id,
-                                          region_id=service.region_id, network_id=network_id, remarks=remarks)
-        try:
-            out = self.request_service(service=service, method='server_create', params=params)
-        except exceptions.APIException as exc:
-            try:
-                QuotaAPI().server_quota_release(service=service, vcpu=flavor.vcpus,
-                                                ram=flavor.ram, public_ip=is_public_network,
-                                                user_quota_id=user_quota.id)
-            except exceptions.Error:
-                pass
-            return Response(data=exc.err_data(), status=exc.status_code)
-
-        out_server = out.server
-        kwargs = {'center_quota': Server.QUOTA_PRIVATE}
-        if user_quota.classification == user_quota.Classification.VO:
-            kwargs['classification'] = Server.Classification.VO
-            kwargs['vo_id'] = user_quota.vo_id
-        else:
-            kwargs['classification'] = Server.Classification.PERSONAL
-            kwargs['vo_id'] = None
-
-        creation_time = timezone.now()
-        due_time = creation_time + timedelta(days=user_quota.duration_days)
-        server = Server(service=service,
-                        instance_id=out_server.uuid,
-                        instance_name=out_server.name,
-                        remarks=remarks,
-                        user=request.user,
-                        vcpus=flavor.vcpus,
-                        ram=flavor.ram,
-                        task_status=Server.TASK_IN_CREATING,
-                        user_quota=user_quota,
-                        public_ip=is_public_network,
-                        expiration_time=due_time,
-                        image_id=image_id,
-                        default_user=out_server.default_user,
-                        creation_time=creation_time,
-                        start_time=creation_time,
-                        azone_id=azone_id if azone_id else '',
-                        disk_size=0,
-                        **kwargs
-                        )
-        if out_server.default_password:
-            server.raw_default_password = out_server.default_password
-
-        server.save()
-        if service.service_type == service.ServiceType.EVCLOUD:
-            server = self._update_server_detail(server, task_status=server.TASK_CREATED_OK)
-            if server:
-                return Response(data={'id': server.id}, status=status.HTTP_201_CREATED)
-
-        server_build_status.creat_task(server)      # 异步任务查询server创建结果，更新server信息和创建状态
-        return Response(data={'id': server.id}, status=status.HTTP_202_ACCEPTED)
+        """
+        * 预付费模式时，请求成功会创建一个待支付的订单，支付订单成功后，订购的资源才会创建交付；
+        * 按量计费模式时，请求成功会创建一个已支付订单，订购的资源会立即创建交付；
+        """
+        return ServerHandler().server_order_create(view=self, request=request)
 
     @staticmethod
     def _update_server_detail(server, task_status: int = None):
@@ -695,7 +594,6 @@ class ServersViewSet(CustomGenericViewSet):
                 }
             })
 
-
         server_id = kwargs.get(self.lookup_field, '')
 
         try:
@@ -893,14 +791,9 @@ class ServersViewSet(CustomGenericViewSet):
             True
             False
         """
-        user_quota_id = None
-        if server.task_status == server.TASK_CREATE_FAILED:     # 创建失败，用户资源配额返还
-            user_quota_id = server.user_quota_id
-
         try:
             QuotaAPI().server_quota_release(service=server.service, vcpu=server.vcpus,
-                                            ram=server.ram, public_ip=server.public_ip,
-                                            user_quota_id=user_quota_id)
+                                            ram=server.ram, public_ip=server.public_ip)
         except exceptions.Error as e:
             return False
 

@@ -382,6 +382,9 @@ class EVCloudAdapter(BaseAdapter):
             headers = self.get_auth_header()
             r = self.do_request(method='get', url=url, headers=headers)
         except exceptions.Error as e:
+            if e.status_code in [400, 404]:
+                e = exceptions.ResourceNotFoundError()
+
             return OutputConverter().to_network_detail_output_error(error=e)
 
         rj = r.json()

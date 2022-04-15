@@ -105,14 +105,20 @@ class ServerCreateSerializer(serializers.Serializer):
     """
     创建虚拟服务器序列化器
     """
+    pay_type = serializers.CharField(label=_('付费模式'), required=True, max_length=16)
     service_id = serializers.CharField(label=_('服务'), required=True, help_text=_('服务提供商配置ID'))
     image_id = serializers.CharField(label=_('镜像id'), required=True, help_text=_('系统镜像id'))
     flavor_id = serializers.CharField(label=_('配置样式id'), required=True, help_text=_('硬件配置样式ID'))
-    network_id = serializers.CharField(label=_('子网id'), required=False, default='', help_text=_('子网ID'))
-    quota_id = serializers.CharField(label=_('资源配额id'), required=True,
-                                     help_text=_('用户个人或vo组的资源配额ID'))
+    network_id = serializers.CharField(label=_('子网id'), required=True, help_text=_('子网ID'))
+    # quota_id = serializers.CharField(label=_('资源配额id'), required=True, help_text=_('用户个人或vo组的资源配额ID'))
     remarks = serializers.CharField(label=_('备注'), required=False, allow_blank=True, max_length=255, default='')
-    azone_id = serializers.CharField(label=_('可用区'), required=False, allow_blank=True, max_length=36, default=None)
+    azone_id = serializers.CharField(label=_('可用区'), required=False, allow_null=True, max_length=36, default=None)
+    vo_id = serializers.CharField(
+        label=_('vo组id'), required=False, allow_null=True, max_length=36, default=None,
+        help_text=_('通过vo_id指定为vo组创建云服务器'))
+    period = serializers.IntegerField(
+        label=_('订购时长（月）'), required=False, allow_null=True, default=None,
+        help_text=_('付费模式为预付费时，必须指定订购时长'))
 
     def validate(self, attrs):
         return attrs

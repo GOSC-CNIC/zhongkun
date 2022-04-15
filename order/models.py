@@ -43,6 +43,13 @@ class Order(models.Model):
     class PaymentMethod(models.TextChoices):
         UNKNOWN = 'unknown', _('未知')
         BALANCE = 'balance', _('余额')
+        VOUCHER = 'voucher', _('代金卷')
+
+    class TradingStatus(models.TextChoices):
+        OPENING = 'opening', _('交易中')
+        UNDELIVERED= 'undelivered', _('订单资源交付失败')
+        COMPLETED = 'completed', _('交易成功')
+        CLOSED = 'closed', _('交易关闭')
 
     id = models.CharField(verbose_name=_('订单编号'), max_length=32, primary_key=True, editable=False)
     order_type = models.CharField(
@@ -72,6 +79,11 @@ class Order(models.Model):
     vo_id = models.CharField(verbose_name=_('VO组ID'), max_length=36, blank=True, default='')
     vo_name = models.CharField(verbose_name=_('VO组名'), max_length=256, blank=True, default='')
     owner_type = models.CharField(verbose_name=_('所有者类型'), max_length=8, choices=OwnerType.choices)
+
+    completion_time = models.DateTimeField(verbose_name=_('交易完成时间'), null=True, blank=True, default=None)
+    trading_status = models.CharField(
+        verbose_name=_('交易状态'), max_length=16, choices=TradingStatus.choices, default=TradingStatus.OPENING.value)
+    deleted = models.BooleanField(verbose_name=_('删除'), default=False)
 
     class Meta:
         verbose_name = _('订单')
@@ -123,6 +135,12 @@ class Resource(UuidModel):
     instance_status = models.CharField(
         verbose_name=_('资源创建结果'), max_length=16, choices=InstanceStatus.choices, default=InstanceStatus.WAIT)
     creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
+    instance_remark = models.CharField(verbose_name=_('资源实例备注'), max_length=255, blank=True, default='')
+    desc = models.CharField(verbose_name=_('资源创建结果描述'), max_length=255, blank=True, default='')
+    last_deliver_time = models.DateTimeField(
+        verbose_name=_('上次交付创建资源时间'), null=True, blank=True, default=None,
+        help_text=_('用于记录上次创建资源的时间，防止并发重复创建')
+    )
 
     class Meta:
         verbose_name = _('订单资源')

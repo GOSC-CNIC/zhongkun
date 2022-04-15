@@ -33,7 +33,7 @@ def request_service(service, method: str, raise_exception=True, **kwargs):
                 if r.ok:
                     return r
 
-                raise_exc = exceptions.APIException(message='adapter error:' + r.error.message)
+                raise_exc = convert_from_adapter_error(r.error)
                 break
             else:
                 return r
@@ -61,6 +61,21 @@ def request_service(service, method: str, raise_exception=True, **kwargs):
         raise raise_exc
 
     return None
+
+
+def convert_from_adapter_error(exc):
+    if isinstance(exc, apt_exceptions.AuthenticationFailed):
+        return exceptions.APIException(message='adapter authentication failed', extend_msg=exc.message)
+    elif isinstance(exc, apt_exceptions.MethodNotSupportInService):
+        return exceptions.MethodNotSupportInService(message="adapter error:" + exc.message)
+    elif isinstance(exc, apt_exceptions.ServerNotExist):
+        return exceptions.ServerNotExist(message=exc.message)
+    elif isinstance(exc, apt_exceptions.ResourceNotFound):
+        return exceptions.NotFound(message="adapter error:" + exc.message)
+    elif isinstance(exc, apt_exceptions.Error):
+        return exceptions.APIException(message="adapter error:" + exc.message)
+
+    return exceptions.APIException(message=str(exc))
 
 
 def request_vpn_service(service, method: str, raise_exception=True, **kwargs):

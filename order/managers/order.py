@@ -25,7 +25,8 @@ class OrderManager:
             username,
             vo_id,
             vo_name,
-            owner_type
+            owner_type,
+            remark: str = ''
     ) -> (Order, Resource):
         """
         提交一个订单
@@ -66,14 +67,18 @@ class OrderManager:
             username=username,
             vo_id=vo_id,
             vo_name=vo_name,
-            owner_type=owner_type
+            owner_type=owner_type,
+            deleted=False,
+            trading_status=Order.TradingStatus.OPENING.value,
+            completion_time=None
         )
 
         instance_id = get_uuid1_str()
         with transaction.atomic():
             order.save(force_insert=True)
             resource = Resource(
-                id=instance_id, order=order, resource_type=resource_type, instance_id=instance_id
+                id=instance_id, order=order, resource_type=resource_type,
+                instance_id=instance_id, instance_remark=remark, desc=''
             )
             resource.save(force_insert=True)
 
@@ -163,6 +168,20 @@ class OrderManager:
             time_end=time_end, vo_id=vo_id
         )
 
+    @staticmethod
+    def get_order(order_id: str, select_for_update: bool = False):
+        if select_for_update:
+            return Order.objects.filter(id=order_id).select_for_update().first()
+
+        return Order.objects.filter(id=order_id).first()
+
+    @staticmethod
+    def get_resource(resource_id: str, select_for_update: bool = False):
+        if select_for_update:
+            return Resource.objects.filter(id=resource_id).select_for_update().first()
+
+        return Resource.objects.filter(id=resource_id).first()
+
     def get_order_detail(self, order_id: str, user):
         """
         查询订单详情
@@ -170,8 +189,7 @@ class OrderManager:
         :return:
             order, resources
         """
-        queryset = self.get_order_queryset()
-        order = queryset.filter(id=order_id).first()
+        order = self.get_order(order_id=order_id)
         if order is None:
             raise errors.NotFound(_('订单不存在'))
 
@@ -202,3 +220,80 @@ class OrderManager:
                 VoManager().get_has_manager_perm_vo(vo_id=vo_id, user=user)
         except errors.Error as exc:
             raise errors.AccessDenied(message=exc.message)
+
+    @staticmethod
+    def set_order_resource_deliver_ok(order: Order, resource: Resource, start_time, due_time):
+        """
+        订单资源交付成功， 更新订单信息
+
+        :return:
+            order, resource    # success
+
+        :raises: Error
+        """
+        message = ''
+        with transaction.atomic():
+            order = Order.objects.filter(id=order.id).select_for_update().first()
+            if order.trading_status in [order.TradingStatus.CLOSED, order.TradingStatus.COMPLETED]:
+                raise errors.Error(message=_('交易关闭和交易完成状态的订单不允许修改'))
+
+            update_fields = ['trading_status']
+            if order.pay_type != PayType.POSTPAID.value:
+                order.start_time = start_time
+                order.end_time = due_time
+                update_fields += ['start_time', 'end_time']
+
+            order.trading_status = order.TradingStatus.COMPLETED.value
+            try:
+                order.save(update_fields=update_fields)
+            except Exception as e:
+                message = _('更新订单交易状态失败') + str(e)
+
+            resource.instance_status = resource.InstanceStatus.SUCCESS.value
+            resource.desc = 'success'
+            try:
+                resource.save(update_fields=['instance_status', 'desc'])
+            except Exception as e:
+                message += _('更新订单的资源创建结果失败') + str(e)
+
+        if message:
+            raise errors.Error(message=message)
+
+        return order, resource
+
+    @staticmethod
+    def set_order_resource_deliver_failed(order: Order, resource: Resource, failed_msg: str):
+        """
+        订单资源交付失败， 更新订单信息
+
+        :return:
+            order, resource    # success
+
+        :raises: Error
+        """
+        message = ''
+        if len(failed_msg) >= 255:
+            failed_msg = failed_msg[:255]
+
+        with transaction.atomic():
+            order = Order.objects.filter(id=order.id).select_for_update().first()
+            if order.trading_status in [order.TradingStatus.CLOSED, order.TradingStatus.COMPLETED]:
+                raise errors.Error(message=_('交易关闭和交易完成状态的订单不允许修改'))
+
+            try:
+                resource.instance_status = resource.InstanceStatus.FAILED.value
+                resource.desc = failed_msg
+                resource.save(update_fields=['instance_status', 'desc'])
+            except Exception as e:
+                message = _('更新订单的资源创建结果失败') + str(e)
+
+            order.trading_status = order.TradingStatus.UNDELIVERED.value
+            try:
+                order.save(update_fields=['trading_status'])
+            except Exception as e:
+                message += _('更新订单交易状态失败') + str(e)
+
+        if message:
+            return errors.Error(message=message)
+
+        return order, resource

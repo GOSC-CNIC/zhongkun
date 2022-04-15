@@ -1,5 +1,5 @@
 from ..exceptions import (Error, APIError, AuthenticationFailed as AuthF, NotAuthenticated as NotAuth,
-                          ServerNotExist)
+                          ServerNotExist, ResourceNotFound)
 
 
 class AuthenticationFailed(AuthF):
@@ -43,3 +43,5 @@ class OutputConvertError(Error):
     default_message = 'EVCloud adapter convert output object error.'
     default_code = 'OutputConvertError'
 
+class ResourceNotFoundError(ResourceNotFound):
+    pass
