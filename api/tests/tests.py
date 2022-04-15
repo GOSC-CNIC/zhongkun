@@ -1254,17 +1254,7 @@ class ServiceTests(MyAPITestCase):
         self.assertEqual(response.data["results"][0]['status'], ServiceConfig.Status.ENABLE)
 
         url = reverse('api:service-list')
-        query = parse.urlencode(query={'center_id': self.service.data_center_id, 'available_only': ''})
-        response = self.client.get(f'{url}?{query}')
-        self.assertEqual(response.status_code, 200)
-        self.assertKeysIn(["count", "next", "previous", "results"], response.data)
-        self.assertEqual(response.data["count"], 0)
-
-        mgr.create_quota(user=self.user, service=self.service,
-                         classification=UserQuota.Classification.PERSONAL, vo_id=None)
-
-        url = reverse('api:service-list')
-        query = parse.urlencode(query={'center_id': self.service.data_center_id, 'available_only': ''})
+        query = parse.urlencode(query={'center_id': self.service.data_center_id})
         response = self.client.get(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["count"], 1)

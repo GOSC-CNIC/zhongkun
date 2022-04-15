@@ -1257,10 +1257,7 @@ class VmServiceHandler:
         list接入服务provider
         """
         center_id = request.query_params.get('center_id', None)
-        available_only = request.query_params.get('available_only', None)
-        user = None if available_only is None else request.user
-
-        service_qs = ServiceManager().filter_service(center_id=center_id, user=user)
+        service_qs = ServiceManager().filter_service(center_id=center_id)
         return view.paginate_service_response(request=request, qs=service_qs)
 
     @staticmethod

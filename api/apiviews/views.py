@@ -1451,14 +1451,7 @@ class ServiceViewSet(CustomGenericViewSet):
                 type=openapi.TYPE_STRING,
                 required=False,
                 description='联邦成员机构id'
-            ),
-            openapi.Parameter(
-                name='available_only',
-                in_=openapi.IN_QUERY,
-                type=openapi.TYPE_BOOLEAN,
-                required=False,
-                description='只查询用户由个人资源配额可使用的服务，提交此参数即有效（不需要赋值）'
-            ),
+            )
         ],
         responses={
             status.HTTP_200_OK: ''
