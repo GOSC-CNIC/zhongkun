@@ -1,6 +1,8 @@
 from decimal import Decimal
+from datetime import timedelta
 
 from django.utils.translation import gettext as _
+from django.utils import timezone
 from django.db import transaction
 
 from utils.model import OwnerType, PayType
@@ -53,7 +55,7 @@ class OrderManager:
 
         order = Order(
             order_type=order_type,
-            status=Order.Status.UPPAID.value,
+            status=Order.Status.UNPAID.value,
             total_amount=total_amount,
             pay_amount=pay_amount,
             service_id=service_id,
@@ -298,3 +300,49 @@ class OrderManager:
             return errors.Error(message=message)
 
         return order, resource
+
+    def cancel_order(self, order_id: str, user):
+        """
+        取消作废订单
+
+        :return:
+            order
+        :raises: Error
+        """
+        order, resources = OrderManager().get_order_detail(order_id=order_id, user=user, check_permission=True)
+        try:
+            with transaction.atomic():
+                order = self.get_order(order_id=order.id, select_for_update=True)
+                if order.trading_status == order.TradingStatus.CLOSED.value:
+                    raise errors.OrderTradingClosed(message=_('订单交易已关闭'))
+                elif order.trading_status == order.TradingStatus.COMPLETED.value:
+                    raise errors.OrderTradingCompleted(message=_('订单交易已完成'))
+
+                if order.status == Order.Status.PAID.value:
+                    raise errors.OrderPaid(message=_('订单已支付'))
+                elif order.status == Order.Status.CANCELLED.value:
+                    raise errors.OrderCancelled(message=_('订单已作废'))
+                elif order.status == Order.Status.REFUND.value:
+                    raise errors.OrderRefund(message=_('订单已退款'))
+                elif order.status != Order.Status.UNPAID.value:
+                    raise errors.OrderStatusUnknown(message=_('未知状态的订单'))
+
+                if resources:
+                    resource = resources[0]
+                    resource = self.get_resource(resource_id=resource.id, select_for_update=True)
+
+                    time_now = timezone.now()
+                    if resource.last_deliver_time is not None:
+                        delta = time_now - resource.last_deliver_time
+                        if delta < timedelta(minutes=2):
+                            raise errors.TryAgainLater(message=_('为避免可能正在交付订单资源，请稍后重试'))
+                try:
+                    order.set_cancel()
+                except Exception as e:
+                    raise errors.Error(message=_('更新订单状态错误。') + str(e))
+
+                return order
+        except errors.Error as exc:
+            raise exc
+        except Exception as exc:
+            raise errors.Error(message=str(exc))

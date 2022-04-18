@@ -129,7 +129,7 @@ class OrderResourceDeliverer:
                 elif order.trading_status == order.TradingStatus.COMPLETED.value:
                     raise exceptions.OrderTradingCompleted(message=_('订单交易已完成'))
 
-                if order.status == Order.Status.UPPAID.value:
+                if order.status == Order.Status.UNPAID.value:
                     raise exceptions.OrderUnpaid(message=_('订单未支付'))
                 elif order.status == Order.Status.CANCELLED.value:
                     raise exceptions.OrderCancelled(message=_('订单已作废'))

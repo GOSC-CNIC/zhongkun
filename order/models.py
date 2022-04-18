@@ -36,7 +36,7 @@ class Order(models.Model):
 
     class Status(models.TextChoices):
         PAID = 'paid', _('已支付')
-        UPPAID = 'unpaid', _('未支付')
+        UNPAID = 'unpaid', _('未支付')
         CANCELLED = 'cancelled', _('作废')
         REFUND = 'refund', _('退款')
 
@@ -119,6 +119,11 @@ class Order(models.Model):
         self.payment_method = payment_method
         self.payment_time = timezone.now()
         self.save(update_fields=['pay_amount', 'status', 'payment_method', 'payment_time'])
+
+    def set_cancel(self):
+        self.status = self.Status.CANCELLED.value
+        self.trading_status = self.TradingStatus.CLOSED.value
+        self.save(update_fields=['status', 'trading_status'])
 
 
 class Resource(UuidModel):

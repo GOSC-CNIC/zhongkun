@@ -227,7 +227,7 @@ class OrderTests(MyAPITestCase):
             _self.assertEqual(_response.data['count'], 1)
             _self.assertEqual(len(_response.data['orders']), 1)
             _self.assertEqual(_response.data['orders'][0]['order_type'], Order.OrderType.NEW.value)
-            _self.assertEqual(_response.data['orders'][0]['status'], Order.Status.UPPAID.value)
+            _self.assertEqual(_response.data['orders'][0]['status'], Order.Status.UNPAID.value)
             _self.assertEqual(_response.data['orders'][0]['resource_type'], ResourceType.VM.value)
 
         # list user order, filter query "resource_type, order_type, status"
@@ -242,14 +242,14 @@ class OrderTests(MyAPITestCase):
 
         query = parse.urlencode(query={
             'resource_type': ResourceType.VM.value, 'order_type': Order.OrderType.NEW.value,
-            'status': Order.Status.UPPAID.value
+            'status': Order.Status.UNPAID.value
         })
         check_user_order_response(self, f'{base_url}?{query}')
 
         # list user order, filter query "resource_type, order_type, status, time_start"
         query = parse.urlencode(query={
             'resource_type': ResourceType.VM.value, 'order_type': Order.OrderType.NEW.value,
-            'status': Order.Status.UPPAID.value, 'time_start': timezone.now()
+            'status': Order.Status.UNPAID.value, 'time_start': timezone.now()
         })
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
@@ -258,20 +258,20 @@ class OrderTests(MyAPITestCase):
 
         query = parse.urlencode(query={
             'resource_type': ResourceType.VM.value, 'order_type': Order.OrderType.NEW.value,
-            'status': Order.Status.UPPAID.value, 'time_start': timezone.now() - timedelta(hours=1)
+            'status': Order.Status.UNPAID.value, 'time_start': timezone.now() - timedelta(hours=1)
         })
         check_user_order_response(self, f'{base_url}?{query}')
 
         # list user order, filter query "resource_type, order_type, status, time_end"
         query = parse.urlencode(query={
             'resource_type': ResourceType.VM.value, 'order_type': Order.OrderType.NEW.value,
-            'status': Order.Status.UPPAID.value, 'time_end': timezone.now()
+            'status': Order.Status.UNPAID.value, 'time_end': timezone.now()
         })
         check_user_order_response(self, f'{base_url}?{query}')
 
         query = parse.urlencode(query={
             'resource_type': ResourceType.VM.value, 'order_type': Order.OrderType.NEW.value,
-            'status': Order.Status.UPPAID.value, 'time_end': timezone.now() - timedelta(hours=1)
+            'status': Order.Status.UNPAID.value, 'time_end': timezone.now() - timedelta(hours=1)
         })
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
@@ -281,14 +281,14 @@ class OrderTests(MyAPITestCase):
         # list user order, filter query "resource_type, order_type, status, time_start, time_end"
         query = parse.urlencode(query={
             'resource_type': ResourceType.VM.value, 'order_type': Order.OrderType.NEW.value,
-            'status': Order.Status.UPPAID.value,
+            'status': Order.Status.UNPAID.value,
             'time_start': timezone.now() - timedelta(hours=1), 'time_end': timezone.now()
         })
         check_user_order_response(self, f'{base_url}?{query}')
 
         query = parse.urlencode(query={
             'resource_type': ResourceType.VM.value, 'order_type': Order.OrderType.NEW.value,
-            'status': Order.Status.UPPAID.value,
+            'status': Order.Status.UNPAID.value,
             'time_start': timezone.now(), 'time_end': timezone.now()
         })
         response = self.client.get(f'{base_url}?{query}')
@@ -343,7 +343,7 @@ class OrderTests(MyAPITestCase):
             _self.assertEqual(len(_r.data['orders']), 1)
             _self.assertEqual(_r.data['orders'][0]['resource_type'], ResourceType.DISK.value)
             _self.assertEqual(_r.data['orders'][0]['order_type'], Order.OrderType.UPGRADE.value)
-            _self.assertEqual(_r.data['orders'][0]['status'], Order.Status.UPPAID.value)
+            _self.assertEqual(_r.data['orders'][0]['status'], Order.Status.UNPAID.value)
 
         # list vo order, filter query "resource_type, order_type, status"
         query = parse.urlencode(query={
@@ -357,14 +357,14 @@ class OrderTests(MyAPITestCase):
 
         query = parse.urlencode(query={
             'vo_id': self.vo.id, 'resource_type': ResourceType.DISK.value, 'order_type': Order.OrderType.UPGRADE.value,
-            'status': Order.Status.UPPAID.value
+            'status': Order.Status.UNPAID.value
         })
         check_vo_order_response(self, f'{base_url}?{query}')
 
         # list vo order, filter query "resource_type, order_type, status, time_start"
         query = parse.urlencode(query={
             'vo_id': self.vo.id, 'resource_type': ResourceType.DISK.value, 'order_type': Order.OrderType.UPGRADE.value,
-            'status': Order.Status.UPPAID.value, 'time_start': timezone.now()
+            'status': Order.Status.UNPAID.value, 'time_start': timezone.now()
         })
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
@@ -373,20 +373,20 @@ class OrderTests(MyAPITestCase):
 
         query = parse.urlencode(query={
             'vo_id': self.vo.id, 'resource_type': ResourceType.DISK.value, 'order_type': Order.OrderType.UPGRADE.value,
-            'status': Order.Status.UPPAID.value, 'time_start': timezone.now() - timedelta(hours=1)
+            'status': Order.Status.UNPAID.value, 'time_start': timezone.now() - timedelta(hours=1)
         })
         check_vo_order_response(self, f'{base_url}?{query}')
 
         # list vo order, filter query "resource_type, order_type, status, time_end"
         query = parse.urlencode(query={
             'vo_id': self.vo.id, 'resource_type': ResourceType.DISK.value, 'order_type': Order.OrderType.UPGRADE.value,
-            'status': Order.Status.UPPAID.value, 'time_end': timezone.now()
+            'status': Order.Status.UNPAID.value, 'time_end': timezone.now()
         })
         check_vo_order_response(self, f'{base_url}?{query}')
 
         query = parse.urlencode(query={
             'vo_id': self.vo.id, 'resource_type': ResourceType.DISK.value, 'order_type': Order.OrderType.UPGRADE.value,
-            'status': Order.Status.UPPAID.value, 'time_end': timezone.now() - timedelta(hours=1)
+            'status': Order.Status.UNPAID.value, 'time_end': timezone.now() - timedelta(hours=1)
         })
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
@@ -396,14 +396,14 @@ class OrderTests(MyAPITestCase):
         # list vo order, filter query "resource_type, order_type, status, time_start, time_end"
         query = parse.urlencode(query={
             'vo_id': self.vo.id, 'resource_type': ResourceType.DISK.value, 'order_type': Order.OrderType.UPGRADE.value,
-            'status': Order.Status.UPPAID.value,
+            'status': Order.Status.UNPAID.value,
             'time_start': timezone.now() - timedelta(hours=1), 'time_end': timezone.now()
         })
         check_vo_order_response(self, f'{base_url}?{query}')
 
         query = parse.urlencode(query={
             'vo_id': self.vo.id, 'resource_type': ResourceType.DISK.value, 'order_type': Order.OrderType.UPGRADE.value,
-            'status': Order.Status.UPPAID.value,
+            'status': Order.Status.UNPAID.value,
             'time_start': timezone.now(), 'time_end': timezone.now()
         })
         response = self.client.get(f'{base_url}?{query}')
@@ -469,7 +469,7 @@ class OrderTests(MyAPITestCase):
         self.assert_is_subdict_of(sub={
             "id": order.id,
             "order_type": Order.OrderType.NEW.value,
-            "status": Order.Status.UPPAID.value,
+            "status": Order.Status.UNPAID.value,
             "resource_type": ResourceType.VM.value,
             "instance_config": order.instance_config,
             "period": 2,
@@ -515,7 +515,7 @@ class OrderTests(MyAPITestCase):
         self.assert_is_subdict_of(sub={
             "id": order2.id,
             "order_type": Order.OrderType.UPGRADE.value,
-            "status": Order.Status.UPPAID.value,
+            "status": Order.Status.UNPAID.value,
             "resource_type": ResourceType.DISK.value,
             "instance_config": order2.instance_config,
             "period": 3,
@@ -548,16 +548,11 @@ class OrderTests(MyAPITestCase):
     def test_pay_claim_order(self):
         self.client.logout()
         self.client.force_login(self.user2)
-        # get network id
-        base_url = reverse('api:networks-list')
-        response = self.client.get(f'{base_url}?service_id={self.service.id}')
-        self.assertEqual(response.status_code, 200)
-        network_id = response.data[0]['id']
 
         # prepaid mode order
         instance_config = ServerConfig(
             vm_cpu=1, vm_ram=1024, systemdisk_size=50, public_ip=True,
-            image_id='test', network_id=network_id, azone_id='', azone_name=''
+            image_id='test', network_id='network_id', azone_id='', azone_name=''
         )
         # 创建订单
         order, resource = OrderManager().create_order(
@@ -648,3 +643,116 @@ class OrderTests(MyAPITestCase):
         resource.save(update_fields=['last_deliver_time'])
         response = self.client.post(url)
         self.assertErrorResponse(status_code=409, code='QuotaShortage', response=response)
+
+    def test_cancel_order(self):
+        # prepaid mode order
+        instance_config = ServerConfig(
+            vm_cpu=1, vm_ram=1024, systemdisk_size=50, public_ip=True,
+            image_id='test', network_id='network_id', azone_id='', azone_name=''
+        )
+        # create vo order
+        order, resource = OrderManager().create_order(
+            order_type=Order.OrderType.NEW.value,
+            service_id=self.service.id,
+            service_name=self.service.name,
+            resource_type=ResourceType.VM.value,
+            instance_config=instance_config,
+            period=8,
+            pay_type=PayType.PREPAID.value,
+            user_id=self.user.id,
+            username=self.user.username,
+            vo_id=self.vo.id,
+            vo_name=self.vo.name,
+            owner_type=OwnerType.VO.value,
+            remark='testcase创建，可删除'
+        )
+        self.client.logout()
+        self.client.force_login(self.user2)
+
+        # cancel order , no permission
+        url = reverse('api:order-cancel-order', kwargs={'id': order.id})
+        response = self.client.post(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # set vo member
+        VoMember(user=self.user2, vo=self.vo, role=VoMember.Role.LEADER.value, inviter='').save(force_insert=True)
+
+        # cancel order
+        url = reverse('api:order-cancel-order', kwargs={'id': order.id})
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['order_id'], order.id)
+
+        # create user2 order
+        order2, resource2 = OrderManager().create_order(
+            order_type=Order.OrderType.NEW.value,
+            service_id=self.service.id,
+            service_name=self.service.name,
+            resource_type=ResourceType.VM.value,
+            instance_config=instance_config,
+            period=8,
+            pay_type=PayType.PREPAID.value,
+            user_id=self.user2.id,
+            username=self.user2.username,
+            vo_id='',
+            vo_name='',
+            owner_type=OwnerType.USER.value,
+            remark='testcase创建，可删除'
+        )
+        resource2.last_deliver_time = timezone.now()
+        resource2.save(update_fields=['last_deliver_time'])
+
+        # cancel order
+        url = reverse('api:order-cancel-order', kwargs={'id': order2.id})
+        response = self.client.post(url)
+        self.assertErrorResponse(status_code=409, code='TryAgainLater', response=response)
+
+        # cancel closed order
+        order2.trading_status = order2.TradingStatus.CLOSED.value
+        order2.save(update_fields=['trading_status'])
+        url = reverse('api:order-cancel-order', kwargs={'id': order2.id})
+        response = self.client.post(url)
+        self.assertErrorResponse(status_code=409, code='OrderTradingClosed', response=response)
+
+        # cancel completed order
+        order2.trading_status = order2.TradingStatus.COMPLETED.value
+        order2.save(update_fields=['trading_status'])
+        url = reverse('api:order-cancel-order', kwargs={'id': order2.id})
+        response = self.client.post(url)
+        self.assertErrorResponse(status_code=409, code='OrderTradingCompleted', response=response)
+
+        # cancel paid order
+        order2.trading_status = order2.TradingStatus.UNDELIVERED.value
+        order2.status = order2.Status.PAID.value
+        order2.save(update_fields=['trading_status', 'status'])
+        url = reverse('api:order-cancel-order', kwargs={'id': order2.id})
+        response = self.client.post(url)
+        self.assertErrorResponse(status_code=409, code='OrderPaid', response=response)
+
+        # cancel refund order
+        order2.trading_status = order2.TradingStatus.UNDELIVERED.value
+        order2.status = order2.Status.REFUND.value
+        order2.save(update_fields=['trading_status', 'status'])
+        url = reverse('api:order-cancel-order', kwargs={'id': order2.id})
+        response = self.client.post(url)
+        self.assertErrorResponse(status_code=409, code='OrderRefund', response=response)
+
+        # cancel cancelled order
+        order2.trading_status = order2.TradingStatus.UNDELIVERED.value
+        order2.status = order2.Status.CANCELLED.value
+        order2.save(update_fields=['trading_status', 'status'])
+        url = reverse('api:order-cancel-order', kwargs={'id': order2.id})
+        response = self.client.post(url)
+        self.assertErrorResponse(status_code=409, code='OrderCancelled', response=response)
+
+        # cancel order ok
+        order2.trading_status = order2.TradingStatus.OPENING.value
+        order2.status = order2.Status.UNPAID.value
+        order2.save(update_fields=['trading_status', 'status'])
+        resource2.last_deliver_time = timezone.now() - timedelta(minutes=2)
+        resource2.save(update_fields=['last_deliver_time'])
+
+        url = reverse('api:order-cancel-order', kwargs={'id': order2.id})
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['order_id'], order2.id)

@@ -280,6 +280,27 @@ class OrderViewSet(CustomGenericViewSet):
         """
         return OrderHandler().claim_order_resource(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('取消订单'),
+        request_body=no_body,
+        manual_parameters=[
+        ],
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['post'], detail=True, url_path='cancel', url_name='cancel-order')
+    def cancel_order(self, request, *args, **kwargs):
+        """
+        取消订单
+
+            http code 200：
+            {
+                "order_id": "xxx"
+            }
+        """
+        return OrderHandler().cancel_order(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return serializers.OrderSerializer

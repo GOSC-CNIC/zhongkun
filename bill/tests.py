@@ -308,7 +308,7 @@ class PaymentManagerTests(TransactionTestCase):
         pay_mgr = PaymentManager()
         order1 = Order(
             order_type=Order.OrderType.NEW,
-            status=Order.Status.UPPAID.value,
+            status=Order.Status.UNPAID.value,
             total_amount=Decimal('123.45'),
             service_id=self.service.id,
             service_name=self.service.name,
@@ -351,7 +351,7 @@ class PaymentManagerTests(TransactionTestCase):
 
         order2 = Order(
             order_type=Order.OrderType.NEW,
-            status=Order.Status.UPPAID.value,
+            status=Order.Status.UNPAID.value,
             total_amount=Decimal('321.45'),
             service_id=self.service.id,
             service_name=self.service.name,
