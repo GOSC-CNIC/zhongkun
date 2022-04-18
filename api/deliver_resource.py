@@ -123,8 +123,19 @@ class OrderResourceDeliverer:
         try:
             with transaction.atomic():
                 order = OrderManager.get_order(order_id=order.id, select_for_update=True)
-                if order.trading_status in [order.TradingStatus.CLOSED.value, order.TradingStatus.COMPLETED.value]:
-                    raise exceptions.Error(message=_('订单处于交易关闭和交易完成状态'))
+                if order.trading_status == order.TradingStatus.CLOSED.value:
+                    raise exceptions.OrderTradingClosed(message=_('订单交易已关闭'))
+                elif order.trading_status == order.TradingStatus.COMPLETED.value:
+                    raise exceptions.OrderTradingCompleted(message=_('订单交易已完成'))
+
+                if order.status == Order.Status.UPPAID.value:
+                    raise exceptions.OrderUnpaid(message=_('订单未支付'))
+                elif order.status == Order.Status.CANCELLED.value:
+                    raise exceptions.OrderCancelled(message=_('订单已作废'))
+                elif order.status == Order.Status.REFUND.value:
+                    raise exceptions.OrderRefund(message=_('订单已退款'))
+                elif order.status != Order.Status.PAID.value:
+                    raise exceptions.OrderStatusUnknown(message=_('未知状态的订单'))
 
                 resource = OrderManager.get_resource(resource_id=resource.id, select_for_update=True)
                 time_now = timezone.now()
@@ -153,7 +164,7 @@ class OrderResourceDeliverer:
 
         try:
             OrderManager.set_order_resource_deliver_ok(
-                order=order, resource=resource, start_time=server.creation_time, due_time=server.creation_time)
+                order=order, resource=resource, start_time=server.creation_time, due_time=server.expiration_time)
         except exceptions.Error:
             pass
 

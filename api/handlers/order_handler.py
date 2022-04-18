@@ -5,9 +5,12 @@ from rest_framework.response import Response
 
 from core import errors
 from api.viewsets import CustomGenericViewSet
+from api.deliver_resource import OrderResourceDeliverer
 from order.models import ResourceType, Order
 from order.managers import OrderManager
+from bill.managers import PaymentManager
 from utils.time import iso_to_datetime
+from api import request_logger
 
 
 class OrderHandler:
@@ -109,3 +112,56 @@ class OrderHandler:
         order.resources = resources
         serializer = view.get_serializer(instance=order)
         return Response(data=serializer.data)
+
+    @staticmethod
+    def pay_order(view: CustomGenericViewSet, request, kwargs):
+        """
+        支付一个订单
+        """
+        payment_method = request.query_params.get('payment_method', None)
+        order_id: str = kwargs.get(view.lookup_field, '')
+        if len(order_id) != 22:
+            return view.exception_response(errors.BadRequest(_('无效的订单编号'), code='InvalidOrderId'))
+
+        if not order_id.isdigit():
+            return view.exception_response(errors.BadRequest(_('无效的订单编号'), code='InvalidOrderId'))
+
+        if payment_method is None:
+            return view.exception_response(
+                errors.BadRequest(message=_('支付方式参数“payment_method”'), code='MissingPaymentMethod'))
+
+        if payment_method == Order.PaymentMethod.VOUCHER.value:
+            return view.exception_response(
+                errors.BadRequest(message=_('暂不支持代金卷支付方式'), code='InvalidPaymentMethod'))
+        if payment_method not in [Order.PaymentMethod.BALANCE.value, Order.PaymentMethod.VOUCHER.value]:
+            return view.exception_response(
+                errors.BadRequest(message=_('支付方式参数“payment_method”值无效'), code='InvalidPaymentMethod'))
+
+        try:
+            order, resources = OrderManager().get_order_detail(
+                order_id=order_id, user=request.user, check_permission=True)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        if order.resource_type not in [ResourceType.VM.value, ResourceType.DISK.value]:
+            return view.exception_response(
+                errors.BadRequest(message=_('订单订购的资源类型无效'), code='InvalidResourceType'))
+
+        resource = resources[0]
+        try:
+            order = PaymentManager().pay_order(
+                order=order, executor=request.user.username, remark='',
+                required_enough_balance=True
+            )
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        try:
+            if order.resource_type == ResourceType.VM.value:
+                OrderResourceDeliverer().deliver_server(order=order, resource=resource)
+        except errors.Error as exc:
+            request_logger.error(msg=f'[{type(exc)}] {str(exc)}')
+
+        return Response(data={
+            'order_id': order.id
+        })

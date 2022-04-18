@@ -182,7 +182,7 @@ class OrderManager:
 
         return Resource.objects.filter(id=resource_id).first()
 
-    def get_order_detail(self, order_id: str, user):
+    def get_order_detail(self, order_id: str, user, check_permission: bool = True):
         """
         查询订单详情
 
@@ -194,14 +194,15 @@ class OrderManager:
             raise errors.NotFound(_('订单不存在'))
 
         # check permission
-        if order.owner_type == OwnerType.USER.value:
-            if order.user_id and order.user_id != user.id:
-                raise errors.AccessDenied(message=_('您没有此订单访问权限'))
-        elif order.vo_id:
-            try:
-                VoManager().get_has_read_perm_vo(vo_id=order.vo_id, user=user)
-            except errors.Error as exc:
-                raise errors.AccessDenied(message=exc.message)
+        if check_permission:
+            if order.owner_type == OwnerType.USER.value:
+                if order.user_id and order.user_id != user.id:
+                    raise errors.AccessDenied(message=_('您没有此订单访问权限'))
+            elif order.vo_id:
+                try:
+                    VoManager().get_has_read_perm_vo(vo_id=order.vo_id, user=user)
+                except errors.Error as exc:
+                    raise errors.AccessDenied(message=exc.message)
 
         resources = Resource.objects.filter(order_id=order_id).all()
         resources = list(resources)

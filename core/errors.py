@@ -234,6 +234,46 @@ class NeetReleaseResource(Error):
     pass
 
 
+class OrderUnpaid(ConflictError):
+    default_code = 'OrderUnpaid'
+    default_message = _('订单未支付')
+
+
+class OrderNotUnpaid(ConflictError):
+    default_code = 'OrderNotUnpaid'
+    default_message = _('订单不是待支付状态')
+
+
+class OrderCancelled(ConflictError):
+    default_code = 'OrderCancelled'
+    default_message = _('订单已作废')
+
+
+class OrderRefund(ConflictError):
+    default_code = 'OrderRefund'
+    default_message = _('订单已退款')
+
+
+class OrderPaid(ConflictError):
+    default_code = 'OrderPaid'
+    default_message = _('订单已支付')
+
+
+class OrderStatusUnknown(ConflictError):
+    default_code = 'OrderStatusUnknown'
+    default_message = _('未知的订单状态')
+
+
+class OrderTradingClosed(ConflictError):
+    default_code = 'OrderTradingClosed'
+    default_message = _('订单交易已关闭')
+
+
+class OrderTradingCompleted(ConflictError):
+    default_code = 'OrderTradingCompleted'
+    default_message = _('订单交易已完成')
+
+
 def convert_to_error(err):
     if isinstance(err, Error):
         return err

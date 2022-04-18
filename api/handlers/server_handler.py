@@ -13,6 +13,7 @@ from api import paginations
 from api.viewsets import CustomGenericViewSet
 from api.deliver_resource import OrderResourceDeliverer
 from api import serializers
+from api import request_logger
 from vo.managers import VoManager
 from vo.models import VirtualOrganization
 from adapters import inputs
@@ -383,9 +384,11 @@ class ServerHandler:
             })
 
         try:
+            order = PaymentManager().pay_order(
+                order=order, executor=request.user, remark='', required_enough_balance=True)
             self._create_server(order=order, resource=resource)
         except exceptions.Error as exc:
-            pass
+            request_logger.error(msg=f'[{type(exc)}] {str(exc)}')
 
         return Response(data={
             'order_id': order.id,

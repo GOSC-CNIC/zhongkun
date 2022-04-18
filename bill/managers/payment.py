@@ -245,6 +245,11 @@ class PaymentManager:
         :raises: Error
         """
         self._pre_pay_order(order=order, remark=remark)
+        if order.total_amount == Decimal(0):
+            # 订单支付状态
+            order.set_paid(pay_amount=order.total_amount)
+            return
+
         if order.owner_type == OwnerType.USER.value:
             payer_id = order.user_id
             account = self.get_user_point_account(user_id=payer_id, select_for_update=True)
@@ -314,11 +319,18 @@ class PaymentManager:
         :raises: Error
         """
         if order.status == Order.Status.PAID.value:
-            raise errors.Error(_('不能支付已支付状态的订单'))
+            raise errors.OrderPaid(_('不能支付已支付状态的订单'))
         elif order.status == Order.Status.CANCELLED.value:
-            raise errors.Error(message=_('不能支付作废状态的订单'))
+            raise errors.OrderCancelled(message=_('不能支付作废状态的订单'))
         elif order.status != PaymentStatus.UNPAID.value:
-            raise errors.Error(message=_('只允许支付待支付状态的订单'))
+            raise errors.OrderNotUnpaid(message=_('只允许支付待支付状态的订单'))
+
+        if order.trading_status == order.TradingStatus.CLOSED.value:
+            raise errors.OrderTradingClosed(message=_('订单交易已关闭'))
+        elif order.trading_status == order.TradingStatus.COMPLETED.value:
+            raise errors.OrderTradingCompleted(message=_('订单交易已完成'))
+        if order.trading_status != Order.TradingStatus.OPENING.value:
+            raise errors.Error(message=_('订单未处于交易中'))
 
         if order.owner_type not in OwnerType.values:
             raise errors.Error(message=_('订单所有者类型无效'))

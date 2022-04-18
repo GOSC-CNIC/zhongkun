@@ -11,14 +11,17 @@ from order.models import Price, Order, ResourceType
 from order.managers import OrderManager
 from order.managers.instance_configs import ServerConfig, DiskConfig
 from utils.decimal_utils import quantize_10_2
-from utils.test import get_or_create_user
-from vo.models import VirtualOrganization
+from utils.test import get_or_create_user, get_or_create_service
+from vo.models import VirtualOrganization, VoMember
+from service.managers import ServicePrivateQuotaManager
+from bill.managers import PaymentManager
 from . import set_auth_header, MyAPITestCase
 
 
 class OrderTests(MyAPITestCase):
     def setUp(self):
         self.user = set_auth_header(self)
+        self.user2 = get_or_create_user(username='user2')
         price = Price(
             vm_ram=Decimal('0.12'),
             vm_cpu=Decimal('0.066'),
@@ -45,6 +48,7 @@ class OrderTests(MyAPITestCase):
             name='test vo', owner=self.user
         )
         self.vo.save()
+        self.service = get_or_create_service()
 
     def test_list_order(self):
         omgr = OrderManager()
@@ -540,3 +544,86 @@ class OrderTests(MyAPITestCase):
         url = reverse('api:order-detail', kwargs={'id': order2.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 403)
+
+    def test_pay_order(self):
+        self.client.logout()
+        self.client.force_login(self.user2)
+        # get network id
+        base_url = reverse('api:networks-list')
+        response = self.client.get(f'{base_url}?service_id={self.service.id}')
+        self.assertEqual(response.status_code, 200)
+        network_id = response.data[0]['id']
+
+        # prepaid mode order
+        instance_config = ServerConfig(
+            vm_cpu=1, vm_ram=1024, systemdisk_size=50, public_ip=True,
+            image_id='test', network_id=network_id, azone_id='', azone_name=''
+        )
+        # 创建订单
+        order, resource = OrderManager().create_order(
+            order_type=Order.OrderType.NEW.value,
+            service_id=self.service.id,
+            service_name=self.service.name,
+            resource_type=ResourceType.VM.value,
+            instance_config=instance_config,
+            period=8,
+            pay_type=PayType.PREPAID.value,
+            user_id=self.user.id,
+            username=self.user.username,
+            vo_id=self.vo.id,
+            vo_name=self.vo.name,
+            owner_type=OwnerType.VO.value,
+            remark='testcase创建，可删除'
+        )
+
+        # invalid order id
+        url = reverse('api:order-pay-order', kwargs={'id': 'test'})
+        response = self.client.post(url)
+        self.assertErrorResponse(status_code=400, code='InvalidOrderId', response=response)
+
+        # param "payment_method"
+        url = reverse('api:order-pay-order', kwargs={'id': '2022041810175512345678'})
+        response = self.client.post(url)
+        self.assertErrorResponse(status_code=400, code='MissingPaymentMethod', response=response)
+
+        url = reverse('api:order-pay-order', kwargs={'id': '2022041810175512345678'})
+        query = parse.urlencode(query={'payment_method': Order.PaymentMethod.VOUCHER.value})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidPaymentMethod', response=response)
+
+        # not found order
+        url = reverse('api:order-pay-order', kwargs={'id': '2022041810175512345678'})
+        query = parse.urlencode(query={'payment_method': Order.PaymentMethod.BALANCE.value})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=404, code='NotFound', response=response)
+
+        # no permission vo order
+        url = reverse('api:order-pay-order', kwargs={'id': order.id})
+        query = parse.urlencode(query={'payment_method': Order.PaymentMethod.BALANCE.value})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # set vo member
+        VoMember(user=self.user2, vo=self.vo, role=VoMember.Role.LEADER.value, inviter='').save(force_insert=True)
+
+        # vo balance not enough
+        url = reverse('api:order-pay-order', kwargs={'id': order.id})
+        query = parse.urlencode(query={'payment_method': Order.PaymentMethod.BALANCE.value})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=409, code='BalanceNotEnough', response=response)
+
+        # set vo account balance
+        vo_account = PaymentManager.get_vo_point_account(vo_id=self.vo.id)
+        vo_account.balance = Decimal('10000')
+        vo_account.save(update_fields=['balance'])
+
+        url = reverse('api:order-pay-order', kwargs={'id': order.id})
+        query = parse.urlencode(query={'payment_method': Order.PaymentMethod.BALANCE.value})
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['order_id'], order.id)
+
+        resource.refresh_from_db()
+        order.refresh_from_db()
+        self.assertEqual(order.trading_status, order.TradingStatus.UNDELIVERED.value)
+        self.assertEqual(resource.instance_status, resource.InstanceStatus.FAILED.value)

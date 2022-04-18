@@ -1,12 +1,10 @@
 import random
 import requests
 from io import BytesIO
-from datetime import timedelta
 
 from django.core.validators import validate_ipv4_address, ValidationError
 from django.utils.translation import gettext_lazy, gettext as _
 from django.http.response import FileResponse
-from django.utils import timezone
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -27,7 +25,6 @@ from adapters import inputs, outputs
 from core.quota import QuotaAPI
 from core import request as core_request
 from core import errors as exceptions
-from core.taskqueue import server_build_status
 from vo.models import VoMember
 from activity.models import QuotaActivity
 from api import serializers
@@ -36,7 +33,6 @@ from api.paginations import ServersPagination, DefaultPageNumberPagination
 from api.handlers import (
     handlers, ServerHandler, ServerArchiveHandler
 )
-from api.handlers import serializer_error_msg
 
 
 def is_ipv4(value):

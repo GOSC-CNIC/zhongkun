@@ -1,5 +1,6 @@
 from django.utils.translation import gettext_lazy
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import action
 from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
@@ -229,6 +230,33 @@ class OrderViewSet(CustomGenericViewSet):
             }
         """
         return OrderHandler().order_detail(view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('支付订单'),
+        request_body=no_body,
+        manual_parameters=[
+            openapi.Parameter(
+                name='payment_method',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description=f'支付方式，{Order.PaymentMethod.choices}'
+            ),
+        ],
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['post'], detail=True, url_path='pay', url_name='pay-order')
+    def pay_order(self, request, *args, **kwargs):
+        """
+        支付订单
+
+            http code 200：
+            {
+            }
+        """
+        return OrderHandler().pay_order(view=self, request=request, kwargs=kwargs)
 
     def get_serializer_class(self):
         if self.action == 'list':
