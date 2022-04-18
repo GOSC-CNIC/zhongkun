@@ -165,3 +165,37 @@ class OrderHandler:
         return Response(data={
             'order_id': order.id
         })
+
+    @staticmethod
+    def claim_order_resource(view: CustomGenericViewSet, request, kwargs):
+        """
+        订单支付后，自动交付订单资源失败后，尝试索要订单资源
+        """
+        order_id: str = kwargs.get(view.lookup_field, '')
+        if len(order_id) != 22:
+            return view.exception_response(errors.BadRequest(_('无效的订单编号'), code='InvalidOrderId'))
+
+        if not order_id.isdigit():
+            return view.exception_response(errors.BadRequest(_('无效的订单编号'), code='InvalidOrderId'))
+
+        try:
+            order, resources = OrderManager().get_order_detail(
+                order_id=order_id, user=request.user, check_permission=True)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        if order.resource_type not in [ResourceType.VM.value, ResourceType.DISK.value]:
+            return view.exception_response(
+                errors.BadRequest(message=_('订单订购的资源类型无效'), code='InvalidResourceType'))
+
+        resource = resources[0]
+        try:
+            if order.resource_type == ResourceType.VM.value:
+                OrderResourceDeliverer().deliver_server(order=order, resource=resource)
+        except errors.Error as exc:
+            request_logger.error(msg=f'[{type(exc)}] {str(exc)}')
+            return view.exception_response(exc)
+
+        return Response(data={
+            'order_id': order.id
+        })

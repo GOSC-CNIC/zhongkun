@@ -1,5 +1,3 @@
-import logging
-
 from django.utils.translation import gettext_lazy, gettext as _
 from django.http import Http404
 from django.core.exceptions import PermissionDenied
@@ -9,12 +7,10 @@ from rest_framework.response import Response
 from rest_framework.exceptions import (APIException, NotAuthenticated, AuthenticationFailed)
 from drf_yasg import openapi
 
-from service.models import ServiceConfig
+from service.managers import ServiceManager
 from core.request import request_service, request_vpn_service
 from core import errors as exceptions
-
-
-logger = logging.getLogger('django.request')
+from . import request_logger as logger
 
 
 def str_to_int_or_default(val, default):
@@ -147,13 +143,7 @@ class CustomGenericViewSet(viewsets.GenericViewSet):
 
     @staticmethod
     def get_service_by_id(service_id):
-        service = ServiceConfig.objects.select_related('data_center').filter(
-            id=service_id, status=ServiceConfig.Status.ENABLE).first()
-
-        if not service:
-            raise exceptions.ServiceNotExist(_('服务端点不存在'))
-
-        return service
+        return ServiceManager.get_service(service_id=service_id)
 
     @staticmethod
     def exception_response(exc):

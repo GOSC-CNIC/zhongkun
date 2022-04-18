@@ -36,9 +36,10 @@ class OrderResourceDeliverer:
         except Exception as exc:
             raise exceptions.Error(message=str(exc))
 
-        service = ServiceManager().get_server_service(order.service_id)
-        if service is None:
-            raise exceptions.Error(message=_('资源提供者服务不存在'))
+        try:
+            service = ServiceManager().get_server_service(order.service_id)
+        except exceptions.Error as exc:
+            raise exc
 
         # 资源配额扣除
         try:
@@ -142,7 +143,7 @@ class OrderResourceDeliverer:
                 if resource.last_deliver_time is not None:
                     delta = time_now - resource.last_deliver_time
                     if delta < timedelta(minutes=2):
-                        raise exceptions.ConflictError(message=_('为避免重复为订单交付资源，请2分钟后重试'))
+                        raise exceptions.TryAgainLater(message=_('为避免重复为订单交付资源，请2分钟后重试'))
 
                 resource.last_deliver_time = time_now
                 resource.save(update_fields=['last_deliver_time'])

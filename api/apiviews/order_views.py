@@ -254,9 +254,31 @@ class OrderViewSet(CustomGenericViewSet):
 
             http code 200：
             {
+                "order_id": "xxx"
             }
         """
         return OrderHandler().pay_order(view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('订单资源交付失败, 索要订单资源，主动触发交付订单资源'),
+        request_body=no_body,
+        manual_parameters=[
+        ],
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['post'], detail=True, url_path='claim', url_name='claim-order')
+    def claim_order(self, request, *args, **kwargs):
+        """
+        订单资源交付失败, 索要订单资源，主动触发再一次尝试交付订单资源
+
+            http code 200：
+            {
+                "order_id": "xxx"
+            }
+        """
+        return OrderHandler().claim_order_resource(view=self, request=request, kwargs=kwargs)
 
     def get_serializer_class(self):
         if self.action == 'list':

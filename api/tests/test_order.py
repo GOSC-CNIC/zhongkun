@@ -545,7 +545,7 @@ class OrderTests(MyAPITestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 403)
 
-    def test_pay_order(self):
+    def test_pay_claim_order(self):
         self.client.logout()
         self.client.force_login(self.user2)
         # get network id
@@ -603,8 +603,18 @@ class OrderTests(MyAPITestCase):
         response = self.client.post(f'{url}?{query}')
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
+        # 索要订单资源
+        url = reverse('api:order-claim-order', kwargs={'id': order.id})
+        response = self.client.post(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
         # set vo member
         VoMember(user=self.user2, vo=self.vo, role=VoMember.Role.LEADER.value, inviter='').save(force_insert=True)
+
+        # 索要订单资源
+        url = reverse('api:order-claim-order', kwargs={'id': order.id})
+        response = self.client.post(url)
+        self.assertErrorResponse(status_code=409, code='OrderUnpaid', response=response)
 
         # vo balance not enough
         url = reverse('api:order-pay-order', kwargs={'id': order.id})
@@ -617,6 +627,7 @@ class OrderTests(MyAPITestCase):
         vo_account.balance = Decimal('10000')
         vo_account.save(update_fields=['balance'])
 
+        # pay order
         url = reverse('api:order-pay-order', kwargs={'id': order.id})
         query = parse.urlencode(query={'payment_method': Order.PaymentMethod.BALANCE.value})
         response = self.client.post(f'{url}?{query}')
@@ -627,3 +638,13 @@ class OrderTests(MyAPITestCase):
         order.refresh_from_db()
         self.assertEqual(order.trading_status, order.TradingStatus.UNDELIVERED.value)
         self.assertEqual(resource.instance_status, resource.InstanceStatus.FAILED.value)
+
+        # 索要订单资源
+        url = reverse('api:order-claim-order', kwargs={'id': order.id})
+        response = self.client.post(url)
+        self.assertErrorResponse(status_code=409, code='TryAgainLater', response=response)
+
+        resource.last_deliver_time = resource.last_deliver_time - timedelta(minutes=2)
+        resource.save(update_fields=['last_deliver_time'])
+        response = self.client.post(url)
+        self.assertErrorResponse(status_code=409, code='QuotaShortage', response=response)

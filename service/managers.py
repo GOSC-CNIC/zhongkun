@@ -1009,8 +1009,25 @@ class ServiceManager:
     def get_service_by_id(_id):
         return ServiceConfig.objects.filter(id=_id).first()
 
+    @staticmethod
+    def get_service(service_id):
+        """
+        :raises: Error
+        """
+        service = ServiceConfig.objects.select_related('data_center').filter(id=service_id).first()
+        if not service:
+            raise errors.ServiceNotExist(_('资源提供者服务不存在'))
+
+        if service.status != ServiceConfig.Status.ENABLE.value:
+            raise errors.ServiceStopped(_('资源提供者服务停止服务'))
+
+        return service
+
     def get_server_service(self, _id):
-        return self.get_service_by_id(_id)
+        """
+        :raises: Error
+        """
+        return self.get_service(_id)
 
     @staticmethod
     def filter_service(center_id: str, user=None):

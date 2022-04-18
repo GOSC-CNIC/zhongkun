@@ -274,6 +274,16 @@ class OrderTradingCompleted(ConflictError):
     default_message = _('订单交易已完成')
 
 
+class TryAgainLater(ConflictError):
+    default_code = 'TryAgainLater'
+    default_message = _('请稍后重试')
+
+
+class ServiceStopped(ConflictError):
+    default_message = 'This service has been stopped.'
+    default_code = 'ServiceStopped'
+
+
 def convert_to_error(err):
     if isinstance(err, Error):
         return err
