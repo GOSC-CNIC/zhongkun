@@ -284,6 +284,26 @@ class ServiceStopped(ConflictError):
     default_code = 'ServiceStopped'
 
 
+class RenewPrepostOnly(ConflictError):
+    default_message = _('只允许包年包月按量计费的资源续费。')
+    default_code = 'RenewPrepostOnly'
+
+
+class RenewDeliveredOkOnly(ConflictError):
+    default_message = _('只允许为交付成功的资源续费。')
+    default_code = 'RenewDeliveredOkOnly'
+
+
+class UnknownExpirationTime(ConflictError):
+    default_message = _('资源过期时间未知。')
+    default_code = 'UnknownExpirationTime'
+
+
+class SomeOrderNeetToTrade(ConflictError):
+    default_message = _('存在未交易完成的订单。')
+    default_code = 'SomeOrderNeetToTrade'
+
+
 def convert_to_error(err):
     if isinstance(err, Error):
         return err

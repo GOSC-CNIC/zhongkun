@@ -171,7 +171,7 @@ AUTH_USER_MODEL = 'users.UserProfile'
 # APPEND_SLASH=False
 
 # 登陆url
-LOGIN_URL = '/accounts/login/'
+LOGIN_URL = '/accounts/local_login/'
 LOGOUT_URL = '/accounts/logout/'
 LOGIN_REDIRECT_URL = '/'    # 默认重定向url
 LOGOUT_REDIRECT_URL = '/'

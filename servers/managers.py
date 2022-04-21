@@ -84,14 +84,17 @@ class ServerManager:
         return qs
 
     @staticmethod
-    def get_server(server_id: str, related_fields: list = None) -> Server:
-        fields = ['service', 'user_quota', 'user']
+    def get_server(server_id: str, related_fields: list = None, select_for_update: bool = False) -> Server:
+        fields = ['service', 'user']
         if related_fields:
             for f in related_fields:
                 if f not in fields:
                     fields.append(f)
+        qs = Server.objects.filter(id=server_id).select_related(*fields)
+        if select_for_update:
+            qs = qs.select_for_update()
 
-        server = Server.objects.filter(id=server_id).select_related(*fields).first()
+        server = qs.first()
         if not server:
             raise errors.NotFound(_('服务器实例不存在'))
 

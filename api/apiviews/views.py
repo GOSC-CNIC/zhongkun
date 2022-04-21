@@ -239,6 +239,40 @@ class ServersViewSet(CustomGenericViewSet):
         """
         return ServerHandler().server_order_create(view=self, request=request)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('续费云服务器实例'),
+        request_body=no_body,
+        manual_parameters=[
+            openapi.Parameter(
+                name='period',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                required=False,
+                description=_('续费时长（月），不得与参数“renew_to_time”同时提交')
+            ),
+            openapi.Parameter(
+                name='renew_to_time',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=_('续费到指定日期，ISO8601格式：YYYY-MM-ddTHH:mm:ssZ，不得与参数“period”同时提交')
+            )
+        ],
+        responses={
+            200: '''    
+                    {
+                        "order_id": "xxx",      # 订单id
+                    }
+                '''
+        }
+    )
+    @action(methods=['POST'], detail=True, url_path='renew', url_name='renew-server')
+    def renew_server(self, request, *args, **kwargs):
+        """
+        续费包年包月预付费模式云服务器，请求成功会创建一个待支付的订单，支付订单成功后，会自动延长实例的过期时间
+        """
+        return ServerHandler().renew_server(view=self, request=request, kwargs=kwargs)
+
     @staticmethod
     def _update_server_detail(server, task_status: int = None):
         """

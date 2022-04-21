@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 from django.db import transaction
 from django.utils.translation import gettext as _
@@ -8,6 +8,7 @@ from core.quota import QuotaAPI
 from core import request as core_request
 from service.managers import ServiceManager
 from servers.models import Server
+from servers. managers import ServerManager
 from adapters import inputs
 from utils.model import PayType, OwnerType
 from order.models import ResourceType, Order, Resource
@@ -18,6 +19,21 @@ class OrderResourceDeliverer:
     """
     订单资源创建交付管理器
     """
+    @staticmethod
+    def deliver_order(order: Order, resource: Resource):
+        if order.order_type == Order.OrderType.NEW.value:   # 新购
+            if order.resource_type == ResourceType.VM.value:
+                OrderResourceDeliverer().deliver_new_server(order=order, resource=resource)
+            else:
+                raise exceptions.Error(message=_('订购的资源类型无法交付，资源类型服务不支持。'))
+        elif order.order_type == Order.OrderType.RENEWAL.value:     # 续费
+            if order.resource_type == ResourceType.VM.value:
+                OrderResourceDeliverer().deliver_renewal_server(order=order, resource=resource)
+            else:
+                raise exceptions.Error(message=_('订购的资源类型无法交付，资源类型服务不支持。'))
+        else:
+            raise exceptions.Error(message=_('订购的类型不支持交付。'))
+
     @staticmethod
     def create_server_resource_for_order(order: Order, resource: Resource):
         """
@@ -114,12 +130,15 @@ class OrderResourceDeliverer:
 
         return service, server
 
-    def deliver_server(self, order: Order, resource: Resource):
+    @staticmethod
+    def _pre_check_deliver(order: Order, resource: Resource):
         """
-        :return:
-            service, server            # success
+        交付订单资源前检查
 
-        :raises: Error, NeetReleaseResource
+        :return:
+            order, resource
+
+        :raises: Error
         """
         try:
             with transaction.atomic():
@@ -152,6 +171,17 @@ class OrderResourceDeliverer:
         except Exception as exc:
             raise exceptions.Error(message=_('检查订单交易状态，或检查更新资源上次交付时间错误。') + str(exc))
 
+        return order, resource
+
+    def deliver_new_server(self, order: Order, resource: Resource):
+        """
+        :return:
+            service, server            # success
+
+        :raises: Error, NeetReleaseResource
+        """
+        order, resource = self._pre_check_deliver(order=order, resource=resource)
+
         try:
             service, server = self.create_server_resource_for_order(order=order, resource=resource)
         except exceptions.Error as exc:
@@ -170,3 +200,80 @@ class OrderResourceDeliverer:
             pass
 
         return service, server
+
+    @staticmethod
+    def renewal_server_resource_for_order(order: Order, resource: Resource):
+        """
+        为订单续费云服务器资源
+
+        :return:
+            server
+
+        :raises: Error
+        """
+        if order.resource_type != ResourceType.VM.value:
+            raise exceptions.Error(message=_('订单的资源类型不是云服务器'))
+
+        if isinstance(order.start_time, datetime) and isinstance(order.end_time, datetime):
+            if order.start_time >= order.end_time:
+                raise exceptions.Error(message=_('续费订单续费时长或时段无效。'))
+
+        try:
+            with transaction.atomic():
+                server = ServerManager.get_server(server_id=resource.instance_id, select_for_update=True)
+                if server.pay_type != PayType.PREPAID.value:
+                    raise exceptions.Error(message=_('云服务器不是包年包月预付费模式，无法完成续费。'))
+                elif not isinstance(server.expiration_time, datetime):
+                    raise exceptions.Error(message=_('云服务器没有过期时间，无法完成续费。'))
+                try:
+                    config = ServerConfig.from_dict(order.instance_config)
+                except Exception as exc:
+                    raise exceptions.Error(message=_('续费订单中云服务器配置信息有误。') + str(exc))
+
+                if (config.vm_ram != server.ram) or (config.vm_cpu != server.vcpus):
+                    raise exceptions.Error(message=_('续费订单中云服务器配置信息与云服务器配置规格不一致。'))
+
+                if order.period > 0 and (order.start_time is None and order.end_time is None):
+                    start_time = server.expiration_time
+                    end_time = start_time + timedelta(days=PriceManager.period_month_days(order.period))
+                elif order.period <= 0 and (
+                        isinstance(order.start_time, datetime) and isinstance(order.end_time, datetime)):
+                    if order.start_time != server.expiration_time:
+                        delta_seconds = abs((order.start_time - server.expiration_time).total_seconds())
+                        if delta_seconds > 60:
+                            raise exceptions.Error(message=_('续费订单续费时长或时段与云服务器过期时间有冲突。'))
+
+                    start_time = order.start_time
+                    end_time = order.end_time
+                else:
+                    raise exceptions.Error(message=_('续费订单续费时长或时段无效。'))
+
+                server.expiration_time = end_time
+                server.save(update_fields=['expiration_time'])
+                OrderManager.set_order_resource_deliver_ok(
+                    order=order, resource=resource, start_time=start_time, due_time=end_time)
+                return server
+        except Exception as e:
+            raise exceptions.Error.from_error(e)
+
+    def deliver_renewal_server(self, order: Order, resource: Resource):
+        """
+        云服务器续费交付
+        :return:
+            server            # success
+
+        :raises: Error
+        """
+        order, resource = self._pre_check_deliver(order=order, resource=resource)
+        try:
+            server = self.renewal_server_resource_for_order(order=order, resource=resource)
+        except exceptions.Error as exc:
+            try:
+                OrderManager.set_order_resource_deliver_failed(
+                    order=order, resource=resource, failed_msg='无法为订单创建云服务器资源, ' + str(exc))
+            except exceptions.Error:
+                pass
+
+            raise exc
+
+        return server

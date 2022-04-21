@@ -28,7 +28,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='resource',
             name='desc',
-            field=models.CharField(blank=True, default='', max_length=255, verbose_name='资源创建结果描述'),
+            field=models.CharField(blank=True, default='', max_length=255, verbose_name='资源交付结果描述'),
         ),
         migrations.AddField(
             model_name='resource',
@@ -38,6 +38,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='resource',
             name='last_deliver_time',
-            field=models.DateTimeField(blank=True, default=None, help_text='用于记录上次创建资源的时间，防止并发重复创建', null=True, verbose_name='上次交付创建资源时间'),
+            field=models.DateTimeField(blank=True, default=None, help_text='用于记录上次交付资源的时间，防止并发重复交付', null=True, verbose_name='上次交付创建资源时间'),
         ),
     ]

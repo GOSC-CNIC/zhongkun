@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.utils.translation import gettext as _
 from django.db import transaction
 from rest_framework.response import Response
@@ -18,6 +20,7 @@ from vo.managers import VoManager
 from vo.models import VirtualOrganization
 from adapters import inputs
 from utils.model import PayType, OwnerType
+from utils.time import iso_utc_to_datetime
 from order.models import ResourceType, Order, Resource
 from order.managers import OrderManager, ServerConfig
 from bill.managers import PaymentManager
@@ -334,7 +337,7 @@ class ServerHandler:
         if pay_type == PayType.POSTPAID.value:
             # 计算按量付费一天的计费
             original_price, trade_price = omgr.calculate_amount_money(
-                resource_type=ResourceType.VM.value, config=instance_config, is_prepaid=False, period=None
+                resource_type=ResourceType.VM.value, config=instance_config, is_prepaid=False, period=0, days=1
             )
             if owner_type == OwnerType.USER.value:
                 account = PaymentManager().get_user_point_account(user_id=user.id)
@@ -404,7 +407,7 @@ class ServerHandler:
         :raises: Error
         """
         try:
-            service, server = OrderResourceDeliverer().deliver_server(order=order, resource=resource)
+            service, server = OrderResourceDeliverer().deliver_new_server(order=order, resource=resource)
         except exceptions.Error as exc:
             raise exc
 
@@ -418,6 +421,123 @@ class ServerHandler:
 
         server_build_status.creat_task(server)  # 异步任务查询server创建结果，更新server信息和创建状态
         return
+
+    def renew_server(self, view, request, kwargs):
+        """
+        续费云服务器
+        """
+        try:
+            data = ServerHandler._renew_server_validate_params(request=request)
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        period = data['period']
+        renew_to_time = data['renew_to_time']
+
+        server_id = kwargs.get(view.lookup_field, '')
+
+        try:
+            server = ServerManager().get_manage_perm_server(server_id=server_id, user=request.user)
+        except exceptions.APIException as exc:
+            return view.exception_response(exc)
+
+        if server.expiration_time is None:
+            return view.exception_response(exceptions.UnknownExpirationTime(message=_('没有过期时间的云服务器无法续费。')))
+
+        if renew_to_time:
+            if server.expiration_time >= renew_to_time:
+                return view.exception_response(exceptions.ConflictError(
+                    message=_('指定的续费终止日期必须在云服务器的过期时间之后。'), code='InvalidRenewToTime'))
+
+        if server.is_locked_operation():
+            return view.exception_response(exceptions.ResourceLocked(
+                message=_('云主机已加锁锁定了一切操作')
+            ))
+
+        if server.pay_type != PayType.PREPAID.value:
+            return view.exception_response(exceptions.RenewPrepostOnly(message=_('只允许包年包月按量计费的云服务器续费。')))
+
+        if server.task_status != server.TASK_CREATED_OK:
+            return view.exception_response(exceptions.RenewDeliveredOkOnly(message=_('只允许为创建成功的云服务器续费。')))
+
+        _order = Order.objects.filter(
+            resource_type=ResourceType.VM.value, resource_set__instance_id=server.id,
+            trading_status__in=[Order.TradingStatus.OPENING.value, Order.TradingStatus.UNDELIVERED.value]
+        ).order_by('-creation_time').first()
+        if _order is not None:
+            return view.exception_response(exceptions.SomeOrderNeetToTrade(
+                message=_('此云服务器存在未完成的订单（%s）, 请先完成已有订单后再提交新的订单。') % _order.id))
+
+        with transaction.atomic():
+            server = ServerManager.get_server_queryset().select_related(
+                'service', 'user', 'vo').select_for_update().get(id=server_id)
+
+            start_time = None
+            end_time = None
+            if renew_to_time:
+                start_time = server.expiration_time
+                end_time = renew_to_time
+                period = 0
+
+            if server.belong_to_vo():
+                owner_type = OwnerType.VO.value
+                vo_id = server.vo_id
+                vo_name = server.vo.name
+            else:
+                owner_type = OwnerType.USER.value
+                vo_id = ''
+                vo_name = ''
+
+            instance_config = ServerConfig(
+                vm_cpu=server.vcpus, vm_ram=server.ram, systemdisk_size=server.disk_size, public_ip=server.public_ip,
+                image_id=server.image_id, network_id='', azone_id=server.azone_id, azone_name=''
+            )
+            order, resource = OrderManager().create_renew_order(
+                service_id=server.service_id,
+                service_name=server.service.name,
+                resource_type=ResourceType.VM.value,
+                instance_id=server.id,
+                instance_config=instance_config,
+                period=period,
+                start_time=start_time,
+                end_time=end_time,
+                user_id=request.user.id,
+                username=request.user.username,
+                vo_id=vo_id,
+                vo_name=vo_name,
+                owner_type=owner_type
+            )
+
+        return Response(data={'order_id': order.id})
+
+    @staticmethod
+    def _renew_server_validate_params(request):
+        period = request.query_params.get('period', None)
+        renew_to_time = request.query_params.get('renew_to_time', None)
+        if period is not None and renew_to_time is not None:
+            raise exceptions.BadRequest(message=_('参数“period”和“renew_to_time”不能同时提交'))
+
+        if period is None and renew_to_time is None:
+            raise exceptions.BadRequest(message=_('参数“period”不得为空'), code='MissingPeriod')
+
+        if period is not None:
+            try:
+                period = int(period)
+                if period <= 0:
+                    raise ValueError
+            except ValueError:
+                raise exceptions.InvalidArgument(message=_('参数“period”的值无效'), code='InvalidPeriod')
+
+        if renew_to_time is not None:
+            renew_to_time = iso_utc_to_datetime(renew_to_time)
+            if not isinstance(renew_to_time, datetime):
+                raise exceptions.InvalidArgument(
+                    message=_('参数“renew_to_time”的值无效的时间格式'), code='InvalidRenewToTime')
+
+        return {
+            'period': period,
+            'renew_to_time': renew_to_time
+        }
 
 
 class ServerArchiveHandler:

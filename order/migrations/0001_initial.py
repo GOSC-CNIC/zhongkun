@@ -47,7 +47,7 @@ class Migration(migrations.Migration):
                 ('id', models.CharField(blank=True, editable=False, max_length=36, primary_key=True, serialize=False, verbose_name='ID')),
                 ('resource_type', models.CharField(choices=[('vm', '云主机'), ('disk', '云硬盘'), ('bucket', '存储桶')], max_length=16, verbose_name='资源类型')),
                 ('instance_id', models.CharField(blank=True, default='', max_length=36, verbose_name='资源实例id')),
-                ('instance_status', models.CharField(choices=[('wait', '待创建'), ('success', '创建成功'), ('failed', '创建失败')], default='wait', max_length=16, verbose_name='资源创建结果')),
+                ('instance_status', models.CharField(choices=[('wait', '待交付'), ('success', '交付成功'), ('failed', '交付失败')], default='wait', max_length=16, verbose_name='资源交付结果')),
                 ('creation_time', models.DateTimeField(auto_now_add=True, verbose_name='创建时间')),
                 ('order', models.ForeignKey(on_delete=django.db.models.deletion.DO_NOTHING, related_name='resource_set', to='order.order', verbose_name='订单')),
             ],

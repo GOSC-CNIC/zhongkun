@@ -13,7 +13,6 @@ from order.managers.instance_configs import ServerConfig, DiskConfig
 from utils.decimal_utils import quantize_10_2
 from utils.test import get_or_create_user, get_or_create_service
 from vo.models import VirtualOrganization, VoMember
-from service.managers import ServicePrivateQuotaManager
 from bill.managers import PaymentManager
 from . import set_auth_header, MyAPITestCase
 

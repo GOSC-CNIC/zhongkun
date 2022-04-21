@@ -128,9 +128,9 @@ class Order(models.Model):
 
 class Resource(UuidModel):
     class InstanceStatus(models.TextChoices):
-        WAIT = 'wait', _('待创建')
-        SUCCESS = 'success', _('创建成功')
-        FAILED = 'failed', _('创建失败')
+        WAIT = 'wait', _('待交付')
+        SUCCESS = 'success', _('交付成功')
+        FAILED = 'failed', _('交付失败')
 
     order = models.ForeignKey(
         to=Order, on_delete=models.DO_NOTHING, related_name='resource_set', verbose_name=_('订单'))
@@ -138,13 +138,13 @@ class Resource(UuidModel):
         verbose_name=_('资源类型'), max_length=16, choices=ResourceType.choices)
     instance_id = models.CharField(verbose_name=_('资源实例id'), max_length=36, blank=True, default='')
     instance_status = models.CharField(
-        verbose_name=_('资源创建结果'), max_length=16, choices=InstanceStatus.choices, default=InstanceStatus.WAIT)
+        verbose_name=_('资源交付结果'), max_length=16, choices=InstanceStatus.choices, default=InstanceStatus.WAIT)
     creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
     instance_remark = models.CharField(verbose_name=_('资源实例备注'), max_length=255, blank=True, default='')
-    desc = models.CharField(verbose_name=_('资源创建结果描述'), max_length=255, blank=True, default='')
+    desc = models.CharField(verbose_name=_('资源交付结果描述'), max_length=255, blank=True, default='')
     last_deliver_time = models.DateTimeField(
         verbose_name=_('上次交付创建资源时间'), null=True, blank=True, default=None,
-        help_text=_('用于记录上次创建资源的时间，防止并发重复创建')
+        help_text=_('用于记录上次交付资源的时间，防止并发重复交付')
     )
 
     class Meta:

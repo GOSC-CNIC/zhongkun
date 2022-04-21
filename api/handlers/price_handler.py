@@ -24,19 +24,22 @@ class DescribePriceHandler:
             external_ip = data['external_ip']
             system_disk_size = data['system_disk_size']
             period = data['period']
+            days = 1 if period is None else 0
+
             flavor = Flavor.objects.filter(id=flavor_id, enable=True).first()
             if not flavor:
                 return view.exception_response(errors.BadRequest(message=_('无效的flavor id')))
 
             original_price, trade_price = pmgr.describe_server_price(
                 ram_mib=flavor.ram, cpu=flavor.vcpus, disk_gib=system_disk_size, public_ip=external_ip,
-                is_prepaid=(pay_type == 'prepaid'), period=period)
+                is_prepaid=(pay_type == 'prepaid'), period=period, days=days)
         elif resource_type == ResourceType.DISK:
             pay_type = data['pay_type']
             data_disk_size = data['data_disk_size']
             period = data['period']
+            days = 1 if period is None else 0
             original_price, trade_price = pmgr.describe_disk_price(
-                size_gib=data_disk_size, is_prepaid=(pay_type == 'prepaid'), period=period)
+                size_gib=data_disk_size, is_prepaid=(pay_type == 'prepaid'), period=period, days=days)
         else:
             original_price, trade_price = pmgr.describe_bucket_price()
 

@@ -157,8 +157,7 @@ class OrderHandler:
             return view.exception_response(exc)
 
         try:
-            if order.resource_type == ResourceType.VM.value:
-                OrderResourceDeliverer().deliver_server(order=order, resource=resource)
+            OrderResourceDeliverer().deliver_order(order=order, resource=resource)
         except errors.Error as exc:
             request_logger.error(msg=f'[{type(exc)}] {str(exc)}')
 
@@ -190,8 +189,7 @@ class OrderHandler:
 
         resource = resources[0]
         try:
-            if order.resource_type == ResourceType.VM.value:
-                OrderResourceDeliverer().deliver_server(order=order, resource=resource)
+            OrderResourceDeliverer().deliver_order(order=order, resource=resource)
         except errors.Error as exc:
             request_logger.error(msg=f'[{type(exc)}] {str(exc)}')
             return view.exception_response(exc)

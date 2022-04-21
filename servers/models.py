@@ -152,7 +152,7 @@ class ServerBase(models.Model):
         self.default_password = encryptor.encrypt(raw_password)
 
     def belong_to_vo(self):
-        return self.classification == self.Classification.VO
+        return self.classification == self.Classification.VO.value
 
 
 class Server(ServerBase):

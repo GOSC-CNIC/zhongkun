@@ -33,13 +33,16 @@ class PriceManager:
         """
         return 30 * months
 
-    def describe_disk_price(self, size_gib: int, is_prepaid: bool, period: int = None) -> (Decimal, Decimal):
+    def describe_disk_price(
+            self, size_gib: int, is_prepaid: bool, period: int, days: float
+    ) -> (Decimal, Decimal):
         """
         云硬盘询价
-
+        总时长 = period + days
         :param size_gib: disk size GiB
         :param is_prepaid: True(包年包月预付费)，False(按量计费)
-        :param period: 时长，单位月数，默认None(一天)
+        :param period: 时长，单位月数
+        :param days: 时长天数，默认一天
         :return:
             (
                 original_price,    # 原价
@@ -47,14 +50,14 @@ class PriceManager:
             )
         :raises: NoPrice
         """
+        total_days = days
+        if period and period > 0:
+            period_days = self.period_month_days(period)
+            total_days += period_days
+
         price = self.enforce_price()
         day_price = price.disk_size * size_gib
-        if period is None:
-            original_price = day_price
-        else:
-            days = self.period_month_days(period)
-            original_price = day_price * days
-
+        original_price = day_price * Decimal.from_float(total_days)
         if is_prepaid:
             trade_price = original_price * Decimal.from_float(price.prepaid_discount / 100)
         else:
@@ -69,14 +72,19 @@ class PriceManager:
             disk_gib: int,
             public_ip: bool,
             is_prepaid: bool,
-            period: int = None
+            period: int,
+            days: float
     ) -> (Decimal, Decimal):
         """
         云主机询价
-
-        :param size_gib: disk size GiB
+        总时长 = period + days
+        :param ram_mib:
+        :param cpu:
+        :param disk_gib: disk size GiB
+        :param public_ip:
         :param is_prepaid: True(包年包月预付费)，False(按量计费)
-        :param period: 时长，单位月数，默认None(一天)
+        :param period: 时长，单位月数
+        :param days: 时长天数，默认一天
         :return:
             (
                 original_price,    # 原价
@@ -84,6 +92,11 @@ class PriceManager:
             )
         :raises: NoPrice
         """
+        total_days = days
+        if period and period > 0:
+            period_days = self.period_month_days(period)
+            total_days += period_days
+
         price = self.enforce_price()
         p_ram = price.vm_ram * Decimal.from_float(ram_mib / 1024)
         p_cpu = price.vm_cpu * Decimal.from_float(cpu)
@@ -92,11 +105,7 @@ class PriceManager:
         if public_ip:
             day_price += price.vm_pub_ip
 
-        if period is None:
-            original_price = day_price
-        else:
-            days = self.period_month_days(period)
-            original_price = day_price * days
+        original_price = day_price * Decimal.from_float(total_days)
 
         if is_prepaid:
             trade_price = original_price * Decimal.from_float(price.prepaid_discount / 100)

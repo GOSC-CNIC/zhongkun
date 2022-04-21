@@ -1,5 +1,5 @@
 from decimal import Decimal
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 from django.utils.translation import gettext as _
 from django.utils import timezone
@@ -49,7 +49,7 @@ class OrderManager:
             raise errors.Error(message=_('无法创建订单，资源计费方式pay_type无效'))
         if pay_type == PayType.PREPAID.value:         # 预付费
             total_amount, pay_amount = self.calculate_amount_money(
-                resource_type=resource_type, config=instance_config, is_prepaid=True, period=period)
+                resource_type=resource_type, config=instance_config, is_prepaid=True, period=period, days=0)
         else:
             total_amount = pay_amount = Decimal(0)
 
@@ -86,15 +86,112 @@ class OrderManager:
 
         return order, resource
 
+    def create_renew_order(
+            self,
+            service_id,
+            service_name,
+            resource_type,
+            instance_id: str,
+            instance_config,
+            period,
+            start_time: datetime,
+            end_time: datetime,
+            user_id,
+            username,
+            vo_id,
+            vo_name,
+            owner_type
+    ) -> (Order, Resource):
+        """
+        提交一个续费订单
+
+        如果指定续费时长period, 必须start_time = end_time = None；
+        如果指定续费到期日期，start_time 和 end_time必须同时有效， period=0
+
+        :param instance_id: 续费的实例id of (server, disk)
+        :param instance_config: BaseConfig
+        :return:
+            order, resource
+
+        :raises: Error
+        """
+        if period and (start_time or end_time):
+            raise errors.Error(message=_('无法创建订单，不能同时指定时段起止时间和时长。'))
+
+        if period:
+            if period <= 0:
+                raise errors.Error(message=_('无法创建订单，时长必须大于0。'))
+
+            days = 0
+        elif start_time or end_time:
+            if not (start_time and end_time):
+                raise errors.Error(message=_('无法创建订单，必须同时指定时段起始和终止时间。'))
+
+            if period and period != 0:
+                raise errors.Error(message=_('无法创建订单，不能同时指定时段起止时间和时长。'))
+
+            if end_time <= start_time:
+                raise errors.Error(message=_('无法创建订单，时间段不合法，时段终止时间不应小于起始时间。'))
+
+            delta = end_time - start_time
+            days = delta.days + delta.seconds / (3600 * 24)
+            period = 0
+        else:
+            raise errors.Error(message=_('无法创建订单，必须指定时段或者时长。'))
+
+        if owner_type not in OwnerType.values:
+            raise errors.Error(message=_('无法创建订单，订单所属类型无效'))
+
+        if resource_type not in ResourceType.values:
+            raise errors.Error(message=_('无法创建订单，资源类型无效'))
+
+        total_amount, pay_amount = self.calculate_amount_money(
+            resource_type=resource_type, config=instance_config, is_prepaid=True, period=period, days=days)
+
+        order = Order(
+            order_type=Order.OrderType.RENEWAL.value,
+            status=Order.Status.UNPAID.value,
+            total_amount=total_amount,
+            pay_amount=pay_amount,
+            service_id=service_id,
+            service_name=service_name,
+            resource_type=resource_type,
+            instance_config=instance_config.to_dict(),
+            period=period,
+            pay_type=PayType.PREPAID.value,
+            payment_time=None,
+            start_time=start_time,
+            end_time=end_time,
+            user_id=user_id,
+            username=username,
+            vo_id=vo_id,
+            vo_name=vo_name,
+            owner_type=owner_type,
+            deleted=False,
+            trading_status=Order.TradingStatus.OPENING.value,
+            completion_time=None
+        )
+
+        with transaction.atomic():
+            order.save(force_insert=True)
+            resource = Resource(
+                order=order, resource_type=resource_type,
+                instance_id=instance_id, instance_remark='renew', desc=''
+            )
+            resource.save(force_insert=True)
+
+        return order, resource
+
     @staticmethod
     def calculate_amount_money(
-            resource_type, config: BaseConfig, is_prepaid, period: int = None
+            resource_type, config: BaseConfig, is_prepaid, period: int, days: float
     ) -> (Decimal, Decimal):
         """
         计算资源金额
-
+        总时长 = period + days
         :param is_prepaid: True(预付费)， False(按量计费)
-        :param period: 预付费时长（月），默认None(时长一天)
+        :param period: 预付费时长（月）
+        :param days: 预付费时长天数
         """
         if resource_type == ResourceType.VM.value:
             if not isinstance(config, ServerConfig):
@@ -102,14 +199,14 @@ class OrderManager:
 
             original_price, trade_price = PriceManager().describe_server_price(
                 ram_mib=config.vm_ram, cpu=config.vm_cpu, disk_gib=config.vm_systemdisk_size,
-                public_ip=config.vm_public_ip, is_prepaid=is_prepaid, period=period
+                public_ip=config.vm_public_ip, is_prepaid=is_prepaid, period=period, days=days
             )
         elif resource_type == ResourceType.DISK.value:
             if not isinstance(config, DiskConfig):
                 raise errors.Error(message=_('无法计算资源金额，资源类型和资源规格配置不匹配'))
 
             original_price, trade_price = PriceManager().describe_disk_price(
-                size_gib=config.disk_size, is_prepaid=is_prepaid, period=period
+                size_gib=config.disk_size, is_prepaid=is_prepaid, period=period, days=days
             )
         elif resource_type == ResourceType.BUCKET.value:
             if not isinstance(config, BucketConfig):
@@ -257,7 +354,7 @@ class OrderManager:
             try:
                 resource.save(update_fields=['instance_status', 'desc'])
             except Exception as e:
-                message += _('更新订单的资源创建结果失败') + str(e)
+                message += _('更新订单的资源交付结果失败') + str(e)
 
         if message:
             raise errors.Error(message=message)

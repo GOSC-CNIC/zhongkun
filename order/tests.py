@@ -67,7 +67,7 @@ class MeteringServerTests(TestCase):
             tp_months = op_months
 
         original_price, trade_price = PriceManager().describe_disk_price(
-            size_gib=size_gib, period=months, is_prepaid=is_prepaid)
+            size_gib=size_gib, period=months, is_prepaid=is_prepaid, days=0)
         self.assertEqual(quantize_10_2(original_price), quantize_10_2(Decimal(f'{op_months:.2f}')),
                          msg=f'months={months}')
         self.assertEqual(quantize_10_2(trade_price), quantize_10_2(Decimal(f'{tp_months:.2f}')),
@@ -79,7 +79,7 @@ class MeteringServerTests(TestCase):
 
         # one day prepaid
         size_gib = 0
-        original_price, trade_price = pm.describe_disk_price(size_gib=size_gib, is_prepaid=True)
+        original_price, trade_price = pm.describe_disk_price(size_gib=size_gib, is_prepaid=True, period=0, days=1)
         tp = self._disk_day_price(price=price, size_gib=size_gib, is_prepaid=True)
         op = self._disk_day_price(price=price, size_gib=size_gib, is_prepaid=False)
         self.assertEqual(quantize_10_2(original_price), quantize_10_2(Decimal(0)))
@@ -88,26 +88,26 @@ class MeteringServerTests(TestCase):
         self.assertEqual(quantize_10_2(trade_price), quantize_10_2(tp))
 
         size_gib = 50
-        original_price, trade_price = pm.describe_disk_price(size_gib=size_gib, is_prepaid=True)
+        original_price, trade_price = pm.describe_disk_price(size_gib=size_gib, is_prepaid=True, period=0, days=1)
         tp = self._disk_day_price(price=price, size_gib=size_gib, is_prepaid=True)
         op = self._disk_day_price(price=price, size_gib=size_gib, is_prepaid=False)
         self.assertEqual(quantize_10_2(original_price), quantize_10_2(op))
         self.assertEqual(quantize_10_2(trade_price), quantize_10_2(tp))
 
         size_gib = 150
-        original_price, trade_price = pm.describe_disk_price(size_gib=size_gib, is_prepaid=True)
+        original_price, trade_price = pm.describe_disk_price(size_gib=size_gib, is_prepaid=True, period=0, days=1)
         tp = self._disk_day_price(price=price, size_gib=size_gib, is_prepaid=True)
         op = self._disk_day_price(price=price, size_gib=size_gib, is_prepaid=False)
         self.assertEqual(quantize_10_2(original_price), quantize_10_2(op))
         self.assertEqual(quantize_10_2(trade_price), quantize_10_2(tp))
 
         # one day postpaid
-        original_price, trade_price = pm.describe_disk_price(size_gib=50, is_prepaid=False)
+        original_price, trade_price = pm.describe_disk_price(size_gib=50, is_prepaid=False, period=0, days=1)
         op = self._disk_day_price(price=price, size_gib=50, is_prepaid=False)
         self.assertEqual(quantize_10_2(original_price), quantize_10_2(op))
         self.assertEqual(quantize_10_2(trade_price), quantize_10_2(op))
 
-        original_price, trade_price = pm.describe_disk_price(size_gib=150, is_prepaid=False)
+        original_price, trade_price = pm.describe_disk_price(size_gib=150, is_prepaid=False, period=0, days=1)
         op = self._disk_day_price(price=price, size_gib=150, is_prepaid=False)
         self.assertEqual(quantize_10_2(original_price), quantize_10_2(op))
         self.assertEqual(quantize_10_2(trade_price), quantize_10_2(op))
@@ -132,7 +132,7 @@ class MeteringServerTests(TestCase):
     def _server_day_price_test(self, price: Price, ram_mib, cpu, disk_gib, public_ip, is_prepaid: bool):
         pm = PriceManager()
         original_price, trade_price = pm.describe_server_price(
-            ram_mib=ram_mib, cpu=cpu, disk_gib=disk_gib, public_ip=public_ip, is_prepaid=is_prepaid)
+            ram_mib=ram_mib, cpu=cpu, disk_gib=disk_gib, public_ip=public_ip, is_prepaid=is_prepaid, period=0, days=1)
         op = self._server_day_price(
             price=price, ram_mib=ram_mib, cpu=cpu, disk_gib=disk_gib, public_ip=public_ip, is_prepaid=False)
 
@@ -150,7 +150,8 @@ class MeteringServerTests(TestCase):
                                           is_prepaid: bool):
         pm = PriceManager()
         original_price, trade_price = pm.describe_server_price(
-            ram_mib=ram_mib, cpu=cpu, disk_gib=disk_gib, public_ip=public_ip, period=months, is_prepaid=is_prepaid)
+            ram_mib=ram_mib, cpu=cpu, disk_gib=disk_gib, public_ip=public_ip, period=months, days=0,
+            is_prepaid=is_prepaid)
         p_day = self._server_day_price(
             price=price, ram_mib=ram_mib, cpu=cpu, disk_gib=disk_gib, public_ip=public_ip, is_prepaid=False)
         # days = days_after_months(dt=timezone.now(), months=months)
