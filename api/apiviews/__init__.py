@@ -1,14 +1,14 @@
 from .views import (
     ServersViewSet, ImageViewSet, NetworkViewSet, VPNViewSet, FlavorViewSet,
-    QuotaViewSet, UserViewSet, ServiceViewSet, DataCenterViewSet, ServerArchiveViewSet,
-    UserQuotaApplyViewSet, ApplyOrganizationViewSet, ApplyVmServiceViewSet,
-    MediaViewSet, VOViewSet, QuotaActivityViewSet
+    UserViewSet, ServiceViewSet, DataCenterViewSet, ServerArchiveViewSet,
+    ApplyOrganizationViewSet, ApplyVmServiceViewSet,
+    MediaViewSet, VOViewSet
 )
 
 
 __all__ = [
     'ServersViewSet', 'ImageViewSet', 'NetworkViewSet', 'VPNViewSet', 'FlavorViewSet',
-    'QuotaViewSet', 'UserViewSet', 'ServiceViewSet', 'DataCenterViewSet', 'ServerArchiveViewSet',
-    'UserQuotaApplyViewSet', 'ApplyOrganizationViewSet', 'ApplyVmServiceViewSet',
-    'MediaViewSet', 'VOViewSet', 'QuotaActivityViewSet'
+    'UserViewSet', 'ServiceViewSet', 'DataCenterViewSet', 'ServerArchiveViewSet',
+    'ApplyOrganizationViewSet', 'ApplyVmServiceViewSet',
+    'MediaViewSet', 'VOViewSet'
 ]

@@ -8,18 +8,6 @@ from service.models import ServiceConfig, ApplyVmService
 from activity.models import QuotaActivity
 
 
-class UserQuotaSimpleSerializer(serializers.Serializer):
-    id = serializers.CharField()
-    tag = serializers.SerializerMethodField(method_name='get_tag')
-    expiration_time = serializers.DateTimeField(label=_('过期时间'), default=None)
-    deleted = serializers.BooleanField(label=_('删除'), default=False)
-    display = serializers.CharField()
-
-    @staticmethod
-    def get_tag(obj):
-        return {'value': obj.tag, 'display': obj.get_tag_display()}
-
-
 class ServerBaseSerializer(serializers.Serializer):
     """
     虚拟服务器实例序列化器基类
@@ -56,7 +44,6 @@ class ServerSerializer(ServerBaseSerializer):
     """
     endpoint_url = serializers.SerializerMethodField(method_name='get_vms_endpoint_url')
     service = serializers.SerializerMethodField(method_name='get_service')
-    user_quota = UserQuotaSimpleSerializer(required=False)
     center_quota = serializers.IntegerField()
     vo_id = serializers.CharField()
     user = serializers.SerializerMethodField(method_name='get_user')
@@ -130,7 +117,6 @@ class ServerArchiveSerializer(ServerBaseSerializer):
     """
     server_id = serializers.CharField()
     service = serializers.SerializerMethodField(method_name='get_service')
-    user_quota = UserQuotaSimpleSerializer(required=False)
     center_quota = serializers.IntegerField()
     deleted_time = serializers.DateTimeField()
     vo_id = serializers.CharField()
@@ -179,49 +165,6 @@ class FlavorSerializer(serializers.Serializer):
     ram = serializers.IntegerField(label=_('内存MB'))
 
 
-class UserQuotaSerializer(serializers.Serializer):
-    id = serializers.CharField()
-    tag = serializers.SerializerMethodField()
-    user = serializers.SerializerMethodField()
-    service = serializers.SerializerMethodField(method_name='get_service')
-    private_ip_total = serializers.IntegerField(label=_('总私网IP数'), default=0)
-    private_ip_used = serializers.IntegerField(label=_('已用私网IP数'), default=0)
-    public_ip_total = serializers.IntegerField(label=_('总公网IP数'), default=0)
-    public_ip_used = serializers.IntegerField(label=_('已用公网IP数'), default=0)
-    vcpu_total = serializers.IntegerField(label=_('总CPU核数'), default=0)
-    vcpu_used = serializers.IntegerField(label=_('已用CPU核数'), default=0)
-    ram_total = serializers.IntegerField(label=_('总内存大小(MB)'), default=0)
-    ram_used = serializers.IntegerField(label=_('已用内存大小(MB)'), default=0)
-    disk_size_total = serializers.IntegerField(label=_('总硬盘大小(GB)'), default=0)
-    disk_size_used = serializers.IntegerField(label=_('已用硬盘大小(GB)'), default=0)
-    expiration_time = serializers.DateTimeField(label=_('过期时间'), default=None)
-    deleted = serializers.BooleanField(label=_('删除'), default=False)
-    display = serializers.CharField()
-    duration_days = serializers.IntegerField(label=_('资源可用时长'))
-    classification = serializers.CharField(
-        label=_('资源配额归属类型'), read_only=True, help_text=_('标识配额属于申请者个人的，还是vo组的'))
-    vo_id = serializers.CharField(label=_('vo组ID'), read_only=True)
-
-    @staticmethod
-    def get_user(obj):
-        user = obj.user
-        if user is None:
-            return {'id': None, 'username': None}
-
-        return {'id': user.id, 'username': user.username}
-
-    @staticmethod
-    def get_tag(obj):
-        return {'value': obj.tag, 'display': obj.get_tag_display()}
-
-    @staticmethod
-    def get_service(obj):
-        if obj.service:
-            return {'id': obj.service.id, 'name': obj.service.name}
-
-        return {'id': None, 'name': None}
-
-
 class ServiceSerializer(serializers.Serializer):
     id = serializers.CharField()
     name = serializers.CharField()
@@ -266,107 +209,6 @@ class DataCenterSerializer(serializers.Serializer):
             return {'code': None, 'message': None}
 
         return {'code': s, 'message': obj.get_status_display()}
-
-
-class ApplyQuotaCreateSerializer(serializers.Serializer):
-    """
-    用户资源配额申请
-    """
-    vo_id = serializers.CharField(label=_('VO组ID'), write_only=True, required=False,
-                                  allow_null=True, allow_blank=False,
-                                  help_text=_('指示为指定的VO组配额申请；不提交此内容时属于个人资源配额申请'))
-    service_id = serializers.CharField(label=_('服务ID'), write_only=True, max_length=36, required=True)
-    private_ip = serializers.IntegerField(label=_('总私网IP数'), required=False,
-                                          allow_null=True, min_value=0, default=0)
-    public_ip = serializers.IntegerField(label=_('总公网IP数'), required=False,
-                                         allow_null=True, min_value=0, default=0)
-    vcpu = serializers.IntegerField(label=_('总CPU核数'), required=False,
-                                    allow_null=True, min_value=0, default=0)
-    ram = serializers.IntegerField(label=_('总内存大小(MB)'), required=False,
-                                   allow_null=True, min_value=0, default=0)
-    disk_size = serializers.IntegerField(label=_('总硬盘大小(GB)'), required=False,
-                                         allow_null=True, min_value=0, default=0)
-    duration_days = serializers.IntegerField(label=_('申请使用时长(天)'), required=True, min_value=1)
-    company = serializers.CharField(label=_('申请人单位'), required=False, max_length=64,
-                                    allow_null=True, allow_blank=True, default=None)
-    contact = serializers.CharField(label=_('联系方式'), required=False, max_length=64,
-                                    allow_null=True, allow_blank=True, default=None)
-    purpose = serializers.CharField(label=_('用途'), required=False, max_length=255,
-                                    allow_null=True, allow_blank=True, default=None)
-
-
-class ApplyQuotaSerializer(ApplyQuotaCreateSerializer):
-    id = serializers.CharField(label='ID', read_only=True)
-    creation_time = serializers.DateTimeField(label=_('申请时间'), read_only=True)
-    status = serializers.CharField(label=_('状态'), read_only=True)
-    service = serializers.SerializerMethodField(label=_('服务'), read_only=True,
-                                                method_name='get_service')
-    deleted = serializers.BooleanField(label=_('删除'), read_only=True)
-    classification = serializers.CharField(
-        label=_('资源配额归属类型'), read_only=True, help_text=_('标识配额属于申请者个人的，还是vo组的'))
-    result_desc = serializers.CharField(label=_('审批结果描述'), max_length=255, read_only=True)
-
-    @staticmethod
-    def get_service(obj):
-        s = obj.service
-        if s:
-            return {'id': s.id, 'name': s.name}
-
-        return None
-
-
-class ApplyQuotaRejectSerializer(serializers.Serializer):
-    reason = serializers.CharField(label=_('拒绝原因'), max_length=255, required=True, allow_blank=False)
-
-
-class ApplyQuotaDetailSerializer(ApplyQuotaSerializer):
-    user = serializers.SerializerMethodField(label=_('申请用户'), read_only=True,
-                                             method_name='get_user')
-    approve_user = serializers.SerializerMethodField(label=_('审批人'), read_only=True,
-                                                     method_name='get_approve_user')
-    approve_time = serializers.DateTimeField(label=_('审批时间'), read_only=True)
-
-    @staticmethod
-    def get_user(obj):
-        s = obj.user
-        if s:
-            return {'id': s.id, 'name': s.username}
-
-        return None
-
-    @staticmethod
-    def get_approve_user(obj):
-        s = obj.approve_user
-        if s:
-            return {'id': s.id, 'name': s.username}
-
-        return None
-
-
-class ApplyQuotaPatchSerializer(serializers.Serializer):
-    """
-    用户资源配额申请修改
-    """
-    service_id = serializers.CharField(label=_('服务ID'), write_only=True, max_length=36, required=False,
-                                       allow_null=True, default=None)
-    private_ip = serializers.IntegerField(label=_('总私网IP数'), required=False,
-                                          allow_null=True, min_value=0, default=None)
-    public_ip = serializers.IntegerField(label=_('总公网IP数'), required=False,
-                                         allow_null=True, min_value=0, default=None)
-    vcpu = serializers.IntegerField(label=_('总CPU核数'), required=False,
-                                    allow_null=True, min_value=0, default=None)
-    ram = serializers.IntegerField(label=_('总内存大小(MB)'), required=False,
-                                   allow_null=True, min_value=0, default=None)
-    disk_size = serializers.IntegerField(label=_('总硬盘大小(GB)'), required=False,
-                                         allow_null=True, min_value=0, default=None)
-    duration_days = serializers.IntegerField(label=_('申请使用时长(天)'), required=False,
-                                             allow_null=True, min_value=1, default=None)
-    company = serializers.CharField(label=_('申请人单位'), required=False, max_length=64,
-                                    allow_null=True, allow_blank=True, default=None)
-    contact = serializers.CharField(label=_('联系方式'), required=False, max_length=64,
-                                    allow_null=True, allow_blank=True, default=None)
-    purpose = serializers.CharField(label=_('用途'), required=False, max_length=255,
-                                    allow_null=True, allow_blank=True, default=None)
 
 
 class UserSerializer(serializers.Serializer):
@@ -755,14 +597,6 @@ class VoMemberSerializer(serializers.Serializer):
             return {'id': user.id, 'username': user.username}
 
         return None
-
-
-class ApplyQuotaDetailWithVoSerializer(ApplyQuotaDetailSerializer):
-    vo = VoSerializer(required=False)
-
-
-class UserQuotaDetailSerializer(UserQuotaSerializer):
-    vo = VoSerializer(required=False)
 
 
 class QuotaActivitySerializer(serializers.Serializer):

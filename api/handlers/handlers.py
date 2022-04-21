@@ -1260,21 +1260,6 @@ class VmServiceHandler:
         service_qs = ServiceManager().filter_service(center_id=center_id)
         return view.paginate_service_response(request=request, qs=service_qs)
 
-    @staticmethod
-    def list_vo_services(view, request, kwargs):
-        """
-        list指定vo组有资源配额可用的服务provider
-        """
-        center_id = request.query_params.get('center_id', None)
-        vo_id = kwargs.get('vo_id')
-        try:
-            vo, member = VoManager().get_has_read_perm_vo(vo_id=vo_id, user=request.user)
-        except Exception as exc:
-            return view.exception_response(exc)
-
-        service_qs = ServiceManager().filter_vo_service(vo=vo, center_id=center_id)
-        return view.paginate_service_response(request=request, qs=service_qs)
-
 
 class VoHandler:
     @staticmethod
