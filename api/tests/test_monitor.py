@@ -237,6 +237,8 @@ class MonitorServerTests(MyAPITestCase):
 
     def query_ok_test(self, service_id: str, query_tag: str):
         response = self.query_response(service_id=service_id, query_tag=query_tag)
+        if response.status_code != 200:
+            print(response.data)
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.data, list)
         data_item = response.data[0]

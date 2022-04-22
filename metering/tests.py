@@ -33,7 +33,6 @@ def create_server_metadata(
         ipv4='127.0.0.1',
         image='test-image',
         task_status=task_status,
-        user_quota=None,
         public_ip=public_ip,
         classification=classification,
         vo_id=vo_id,
@@ -211,6 +210,7 @@ class MeteringServerTests(TransactionTestCase):
 
         server1_id = server1.id
 
+        # 构建server1 计量日的rebuild记录
         archive = ServerArchive.init_archive_fron_server(
             server=server1, archive_user=self.user, archive_type=ServerArchive.ArchiveType.REBUILD.value, commit=True)
         new_starttime = archive.deleted_time - timedelta(days=1)

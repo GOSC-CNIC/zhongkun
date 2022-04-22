@@ -6,7 +6,7 @@ from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
-from service.models import ServiceConfig, UserQuota
+from service.models import ServiceConfig
 from utils.model import get_encryptor
 from vo.models import VirtualOrganization
 
@@ -106,33 +106,6 @@ class ServerBase(models.Model):
         """是否使用的数据中心私有资源配额"""
         return self.center_quota == self.QUOTA_PRIVATE
 
-    @staticmethod
-    def count_user_quota_used(user_quota):
-        """
-        用户资源配额已用统计
-
-        :param user_quota: 用户配额
-        :return:
-            {
-                'vcpu_used_count': 1,
-                'ram_used_count': 80,
-                'public_ip_count': 0,
-                'private_ip_count': 1
-            }
-        """
-        stat = Server.objects.filter(user_quota=user_quota).aggregate(
-            vcpu_used_count=Sum('vcpus'), ram_used_count=Sum('ram'),
-            public_ip_count=Count('id', filter=Q(public_ip=True)),
-            private_ip_count=Count('id', filter=Q(public_ip=False))
-        )
-        if stat.get('vcpu_used_count', 0) is None:
-            stat['vcpu_used_count'] = 0
-
-        if stat.get('ram_used_count', 0) is None:
-            stat['ram_used_count'] = 0
-
-        return stat
-
     @property
     def raw_default_password(self):
         """
@@ -168,8 +141,6 @@ class Server(ServerBase):
                                 verbose_name=_('接入的服务配置'))
     user = models.ForeignKey(to=User, verbose_name=_('创建者'), on_delete=models.SET_NULL, related_name='user_servers',
                              null=True)
-    user_quota = models.ForeignKey(to=UserQuota, blank=True, null=True, on_delete=models.SET_NULL,
-                                   related_name='quota_servers', verbose_name=_('所属用户配额'))
     vo = models.ForeignKey(to=VirtualOrganization, null=True, on_delete=models.SET_NULL, default=None, blank=True,
                            related_name='vo_server_set', verbose_name=_('项目组'))
     lock = models.CharField(verbose_name=_('锁'), max_length=16, choices=Lock.choices, default=Lock.FREE,
@@ -319,15 +290,13 @@ class ServerArchive(ServerBase):
                                 related_name='server_archive_set', verbose_name=_('接入的服务配置'))
     user = models.ForeignKey(to=User, verbose_name=_('创建者'), on_delete=models.SET_NULL,
                              related_name='user_server_archives', null=True)
-    user_quota = models.ForeignKey(to=UserQuota, null=True, on_delete=models.SET_NULL,
-                                   related_name='server_archive_set', verbose_name=_('所属用户配额'))
     vo = models.ForeignKey(to=VirtualOrganization, null=True, on_delete=models.SET_NULL, default=None, blank=True,
                            related_name='vo_server_archive_set', verbose_name=_('项目组'))
     deleted_time = models.DateTimeField(verbose_name=_('删除归档时间'))
     archive_user = models.ForeignKey(to=User, verbose_name=_('归档人'), on_delete=models.SET_NULL,
-                             related_name='+', blank=True, null=True, default=None)
-    archive_type = models.CharField(verbose_name=_('归档记录类型'), max_length=16, choices=ArchiveType.choices,
-                                      default=ArchiveType.ARCHIVE)
+                                     related_name='+', blank=True, null=True, default=None)
+    archive_type = models.CharField(
+        verbose_name=_('归档记录类型'), max_length=16, choices=ArchiveType.choices, default=ArchiveType.ARCHIVE)
 
     class Meta:
         ordering = ['-deleted_time']
@@ -364,7 +333,6 @@ class ServerArchive(ServerBase):
         a.deleted_time = timezone.now()
         a.task_status = server.task_status
         a.center_quota = server.center_quota
-        a.user_quota = server.user_quota
         a.expiration_time = server.expiration_time
         a.classification = server.classification
         a.image_id = server.image_id

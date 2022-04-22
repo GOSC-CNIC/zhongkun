@@ -276,8 +276,7 @@ class ServerOrderTests(MyAPITestCase):
             pay_type=PayType.POSTPAID.value,
             lock=Server.Lock.OPERATION.value,
             azone_id='',
-            disk_size=0,
-            user_quota_id=None
+            disk_size=0
         )
         user_server.save(force_insert=True)
 
@@ -405,8 +404,7 @@ class ServerOrderTests(MyAPITestCase):
             pay_type=PayType.PREPAID.value,
             lock=Server.Lock.FREE.value,
             azone_id='',
-            disk_size=0,
-            user_quota_id=None
+            disk_size=0
         )
         vo_server.save(force_insert=True)
         renew_to_time = (vo_server_expiration_time + timedelta(days=200)).astimezone(pytz.utc).isoformat()

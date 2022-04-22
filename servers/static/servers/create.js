@@ -266,31 +266,6 @@
         }
         return ret;
     }
-    function quota_select_update(){
-        let quota_select = $('select[name="quota_id"]');
-        let querys = {usable: true}
-        let service = $('select[name="service_id"]').val();
-        if (service)
-            querys.service = service;
-
-        let query_str = encode_params(querys);
-        $.ajax({
-            url: build_absolute_url('api/quota?'+ query_str),
-            type: 'get',
-            contentType: 'application/json',
-            success: function (data, status, xhr) {
-                let html = render_quota_select_items(data['results']);
-                quota_select.html(html);
-            },
-            error: function (xhr) {
-                let msg = '获取资源配额数据失败!';
-                try{
-                    msg = msg + xhr.responseJSON.message;
-                }catch (e) {}
-                alert(msg);
-            }
-        });
-    }
 
 
      // 加载网络下拉框渲染模板
@@ -407,7 +382,6 @@
         image_select_update();
         flavor_select_update();
         network_select_update();
-        quota_select_update();
     }
 
     $("#id-service").change(function (e) {
@@ -415,7 +389,6 @@
         azone_select_update();
         image_select_update();
         network_select_update();
-        quota_select_update();
     });
 
     $("#id-azone").change(function (e) {

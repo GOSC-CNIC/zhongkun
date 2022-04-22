@@ -4,23 +4,18 @@ import io
 import random
 from datetime import datetime
 from string import printable
-from datetime import timedelta
 from urllib import parse
 
 from django.urls import reverse
 from django.utils import timezone
 
 from servers.models import Flavor, Server
-from service.managers import UserQuotaManager, ServicePrivateQuotaManager
 from service.models import (
-    ApplyOrganization, DataCenter, ApplyVmService, ServiceConfig, ApplyQuota, UserQuota
+    ApplyOrganization, DataCenter, ApplyVmService, ServiceConfig
 )
 from utils.test import get_or_create_user, get_or_create_service, get_or_create_center
 from adapters import outputs
 from vo.models import VirtualOrganization, VoMember
-from activity.models import QuotaActivity
-from core.quota import QuotaAPI
-from core import errors
 from . import MyAPITestCase, set_auth_header
 
 
@@ -72,7 +67,7 @@ def chunks(f, chunk_size=2 * 2 ** 20):
         yield data
 
 
-def create_server_metadata(service, user, user_quota, vo_id=None,
+def create_server_metadata(service, user, vo_id=None,
                            default_user: str = 'root', default_password: str = 'password',
                            classification=Server.Classification.PERSONAL, ipv4: str = ''):
     server = Server(service=service,
@@ -84,7 +79,6 @@ def create_server_metadata(service, user, user_quota, vo_id=None,
                     ipv4=ipv4 if ipv4 else '127.0.0.1',
                     image='test-image',
                     task_status=Server.TASK_CREATED_OK,
-                    user_quota=user_quota,
                     public_ip=False,
                     classification=classification,
                     vo_id=vo_id,
@@ -120,7 +114,7 @@ class ServersTests(MyAPITestCase):
         self.default_user = 'root'
         self.default_password = 'password'
         self.miss_server = create_server_metadata(
-            service=self.service, user=self.user, user_quota=None,
+            service=self.service, user=self.user,
             default_user=self.default_user, default_password=self.default_password,
             ipv4='127.0.0.1'
         )
@@ -131,7 +125,7 @@ class ServersTests(MyAPITestCase):
                                               company=vo_data['company'], description=vo_data['description'])
         self.vo_id = response.data['id']
         self.vo_server = create_server_metadata(
-            service=self.service, user=self.user, user_quota=None, vo_id=self.vo_id,
+            service=self.service, user=self.user, vo_id=self.vo_id,
             classification=Server.Classification.VO, default_user=self.default_user,
             default_password=self.default_password,
             ipv4='127.0.0.12'
@@ -397,7 +391,7 @@ class ServersTests(MyAPITestCase):
             region_id='',
         )
         service66.save()
-        admin_server66 = create_server_metadata(service=service66, user=admin_user, user_quota=None,
+        admin_server66 = create_server_metadata(service=service66, user=admin_user,
                                                 default_user=self.default_user, default_password=self.default_password,
                                                 ipv4='159.226.235.66')
 
@@ -730,7 +724,7 @@ class ServersTests(MyAPITestCase):
         admin_user = get_or_create_user(username=admin_username, password=admin_password)
 
         delete_server = create_server_metadata(
-            service=self.service, user=self.user, user_quota=None,
+            service=self.service, user=self.user,
             default_user=self.default_user, default_password=self.default_password)
 
         self.client.logout()
@@ -751,7 +745,7 @@ class ServersTests(MyAPITestCase):
         # test when federal admin
         self.service.users.remove(admin_user)
         delete_server = create_server_metadata(
-            service=self.service, user=self.user, user_quota=None,
+            service=self.service, user=self.user,
             default_user=self.default_user, default_password=self.default_password)
 
         base_url = reverse('api:servers-detail', kwargs={'id': delete_server.id})
@@ -881,17 +875,6 @@ class ServiceTests(MyAPITestCase):
         self.service = get_or_create_service()
 
     def test_list_service(self):
-        vo_data = {
-            'name': 'test vo', 'company': '网络中心', 'description': 'unittest'
-        }
-        response = VoTests.create_vo_response(client=self.client, name=vo_data['name'],
-                                              company=vo_data['company'], description=vo_data['description'])
-        vo_id = response.data['id']
-        mgr = UserQuotaManager()
-        vo_expire_quota = mgr.create_quota(user=self.user, service=self.service,
-                                           expire_time=timezone.now() - timedelta(days=1),
-                                           classification=UserQuota.Classification.VO, vo_id=vo_id)
-
         url = reverse('api:service-list')
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -906,6 +889,12 @@ class ServiceTests(MyAPITestCase):
         response = self.client.get(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["count"], 1)
+
+        url = reverse('api:service-list')
+        query = parse.urlencode(query={'center_id': 'test'})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 0)
 
     def test_admin_list(self):
         url = reverse('api:service-admin-list')

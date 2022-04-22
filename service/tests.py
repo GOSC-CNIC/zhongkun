@@ -5,109 +5,9 @@ from core.errors import QuotaShortageError, QuotaOnlyIncreaseError
 from core.quota import QuotaAPI
 from utils.test import get_or_create_user, get_or_create_service
 from utils.crypto import Encryptor
-from .managers import UserQuotaManager, ServicePrivateQuotaManager, ServiceShareQuotaManager
+from .managers import ServicePrivateQuotaManager, ServiceShareQuotaManager
 
 User = get_user_model()
-
-
-class TestUserQuotaManager(TransactionTestCase):
-    def setUp(self):
-        self.user = get_or_create_user()
-        self.service = get_or_create_service()
-
-    def test_methods(self):
-        vcpus_add = 6
-        ram_add = 1024
-        disk_size_add = 2048
-        public_ip_add = 2
-        private_ip_add = 3
-
-        user = self.user
-        mgr = UserQuotaManager()
-        old_quota = mgr.get_base_quota_queryset(user=user).first()
-        if not old_quota:
-            old_quota = mgr.create_quota(user=user, service=self.service)
-
-        new_quota = mgr.increase(user=user, quota_id=old_quota.id, vcpus=vcpus_add, ram=ram_add,
-                                 disk_size=disk_size_add, public_ip=public_ip_add, private_ip=private_ip_add)
-        self.assertEqual(new_quota.vcpu_total - old_quota.vcpu_total, vcpus_add,
-                         msg='UserQuotaManager increase vcpu failed')
-        self.assertEqual(new_quota.ram_total - old_quota.ram_total, ram_add,
-                         msg='UserQuotaManager increase ram failed')
-        self.assertEqual(new_quota.disk_size_total - old_quota.disk_size_total, disk_size_add,
-                         msg='UserQuotaManager increase disk_size failed')
-        self.assertEqual(new_quota.public_ip_total - old_quota.public_ip_total, public_ip_add,
-                         msg='UserQuotaManager increase public_ip failed')
-        self.assertEqual(new_quota.private_ip_total - old_quota.private_ip_total, private_ip_add,
-                         msg='UserQuotaManager increase private_ip failed')
-
-        ok = mgr.requires(quota=new_quota, vcpus=vcpus_add, ram=ram_add, disk_size=disk_size_add,
-                          public_ip=public_ip_add, private_ip=private_ip_add)
-        self.assertTrue(ok, 'UserQuotaManager requires failed')
-
-        ok = mgr.requires(quota=new_quota, vcpus=vcpus_add)
-        self.assertTrue(ok, 'UserQuotaManager requires vcpus failed')
-        with self.assertRaises(QuotaShortageError, msg='UserQuotaManager requires vcpus failed'):
-            mgr.requires(quota=new_quota, vcpus=new_quota.vcpu_total + 1)
-
-        ok = mgr.requires(quota=new_quota, ram=ram_add)
-        self.assertTrue(ok, 'UserQuotaManager requires ram failed')
-        with self.assertRaises(QuotaShortageError, msg='UserQuotaManager requires ram failed'):
-            mgr.requires(quota=new_quota, ram=new_quota.ram_total + 1)
-
-        ok = mgr.requires(quota=new_quota, disk_size=disk_size_add)
-        self.assertTrue(ok, 'UserQuotaManager requires disk_size failed')
-        with self.assertRaises(QuotaShortageError, msg='UserQuotaManager requires ram failed'):
-            mgr.requires(quota=new_quota, disk_size=new_quota.disk_size_total + 1)
-
-        ok = mgr.requires(quota=new_quota, public_ip=public_ip_add)
-        self.assertTrue(ok, 'UserQuotaManager requires public_ip failed')
-        with self.assertRaises(QuotaShortageError, msg='UserQuotaManager requires public_ip failed'):
-            mgr.requires(quota=new_quota, public_ip=new_quota.public_ip_total + 1)
-
-        ok = mgr.requires(quota=new_quota, private_ip=private_ip_add)
-        self.assertTrue(ok, 'UserQuotaManager requires private_ip failed')
-        with self.assertRaises(QuotaShortageError, msg='UserQuotaManager requires private_ip failed'):
-            mgr.requires(quota=new_quota, private_ip=new_quota.private_ip_total + 1)
-
-        new_quota = mgr.deduct(user=user, quota_id=old_quota.id, vcpus=vcpus_add, ram=ram_add, disk_size=disk_size_add,
-                               public_ip=public_ip_add, private_ip=private_ip_add)
-        self.assertEqual(new_quota.vcpu_used, vcpus_add,
-                         msg='UserQuotaManager deduct vcpu failed')
-        self.assertEqual(new_quota.ram_used, ram_add,
-                         msg='UserQuotaManager deduct ram failed')
-        self.assertEqual(new_quota.disk_size_used, disk_size_add,
-                         msg='UserQuotaManager deduct disk_size failed')
-        self.assertEqual(new_quota.public_ip_used, public_ip_add,
-                         msg='UserQuotaManager deduct public_ip failed')
-        self.assertEqual(new_quota.private_ip_used, private_ip_add,
-                         msg='UserQuotaManager deduct private_ip failed')
-
-        new_quota = mgr.release(quota_id=old_quota.id, vcpus=vcpus_add, ram=ram_add, disk_size=disk_size_add,
-                                public_ip=public_ip_add, private_ip=private_ip_add)
-        self.assertEqual(new_quota.vcpu_used, old_quota.vcpu_used,
-                         msg='UserQuotaManager release vcpu failed')
-        self.assertEqual(new_quota.ram_used, old_quota.ram_used,
-                         msg='UserQuotaManager release ram failed')
-        self.assertEqual(new_quota.disk_size_used, old_quota.disk_size_used,
-                         msg='UserQuotaManager release disk_size failed')
-        self.assertEqual(new_quota.public_ip_used, old_quota.public_ip_used,
-                         msg='UserQuotaManager release public_ip failed')
-        self.assertEqual(new_quota.private_ip_used, old_quota.private_ip_used,
-                         msg='UserQuotaManager release private_ip failed')
-
-        new_quota = mgr.decrease(user=user, quota_id=old_quota.id, vcpus=vcpus_add, ram=ram_add,
-                                 disk_size=disk_size_add, public_ip=public_ip_add, private_ip=private_ip_add)
-        self.assertEqual(new_quota.vcpu_total, old_quota.vcpu_total,
-                         msg='UserQuotaManager deduct vcpu failed')
-        self.assertEqual(new_quota.ram_total, old_quota.ram_total,
-                         msg='UserQuotaManager deduct ram failed')
-        self.assertEqual(new_quota.disk_size_total, old_quota.disk_size_total,
-                         msg='UserQuotaManager deduct disk_size failed')
-        self.assertEqual(new_quota.public_ip_total, old_quota.public_ip_total,
-                         msg='UserQuotaManager deduct public_ip failed')
-        self.assertEqual(new_quota.private_ip_total, old_quota.private_ip_total,
-                         msg='UserQuotaManager deduct private_ip failed')
 
 
 class TestServiceQuotaManager(TransactionTestCase):
@@ -274,9 +174,6 @@ class QuotaAPITests(TransactionTestCase):
     def setUp(self):
         self.user = get_or_create_user()
         self.service = get_or_create_service()
-        self.user_quota = UserQuotaManager().create_quota(
-            user=self.user, service=self.service)
-
         mgr = ServicePrivateQuotaManager()
         service = self.service
         self.pri_quota = mgr.get_quota(service=service)
@@ -296,12 +193,6 @@ class QuotaAPITests(TransactionTestCase):
         with self.assertRaises(QuotaShortageError):
             QuotaAPI.server_create_quota_apply(
                 service=self.service, vcpu=1, ram=1024, public_ip=True)
-
-        # 增加用户配额
-        self.user_quota = UserQuotaManager().increase(
-            user=self.user, quota_id=self.user_quota.id, vcpus=vcpus_add,
-            ram=ram_add, disk_size=disk_size_add, public_ip=public_ip_add,
-            private_ip=private_ip_add)
 
         with self.assertRaises(QuotaShortageError):
             QuotaAPI.server_create_quota_apply(
@@ -332,7 +223,7 @@ class QuotaAPITests(TransactionTestCase):
             self.assertEqual(self.pri_quota.public_ip_used, 0)
             self.assertEqual(self.pri_quota.private_ip_used, 1)
 
-        # 创建失败，释放服务配额和用户配额
+        # 创建失败，释放服务配额
         QuotaAPI().server_quota_release(self.service, vcpu=vcpus_apply,
                                         ram=ram_apply, public_ip=is_public_ip_apply)
         self.pri_quota.refresh_from_db()

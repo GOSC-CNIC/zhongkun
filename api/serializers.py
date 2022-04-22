@@ -5,7 +5,6 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
 from service.models import ServiceConfig, ApplyVmService
-from activity.models import QuotaActivity
 
 
 class ServerBaseSerializer(serializers.Serializer):
@@ -595,78 +594,6 @@ class VoMemberSerializer(serializers.Serializer):
         user = obj.user
         if user:
             return {'id': user.id, 'username': user.username}
-
-        return None
-
-
-class QuotaActivitySerializer(serializers.Serializer):
-    """
-    配额活动序列化器
-    """
-    id = serializers.CharField(label=_('id'), max_length=36, read_only=True)
-    got_count = serializers.IntegerField(label=_('已领取数量'), default=0, read_only=True)
-    service = serializers.SerializerMethodField(method_name='get_service', read_only=True)
-    user = serializers.SerializerMethodField(method_name='get_user', read_only=True)
-    creation_time = serializers.DateTimeField(label=_('活动创建时间'), read_only=True)
-    service_id = serializers.CharField(label=_('服务id'), max_length=36, write_only=True, required=True,
-                                       help_text=_('接入的云主机服务provider id'))
-
-    name = serializers.CharField(label=_('配额活动名称'), max_length=255, required=True)
-    name_en = serializers.CharField(label=_('配额活动英文名称'), max_length=255, required=True)
-    start_time = serializers.DateTimeField(label=_('活动开始时间'), required=True)
-    end_time = serializers.DateTimeField(label=_('活动结束时间'), required=True)
-    count = serializers.IntegerField(label=_('总数量'), min_value=1, required=True)
-    times_per_user = serializers.IntegerField(label=_('每人可领取次数'), min_value=1, required=True,
-                                              help_text=_('每个用户可领取次数'))
-    status = serializers.CharField(label=_('活动状态'), max_length=16, required=True,
-                                   help_text=_('可选值') + f'{QuotaActivity.Status.values}')
-
-    tag = serializers.CharField(label=_('配额类型'), max_length=32, required=True,
-                                help_text=_('可选值') + f'{QuotaActivity.Tag.values}')
-    cpus = serializers.IntegerField(label=_('虚拟cpu数量'), min_value=1, max_value=1000, required=True)
-    private_ip = serializers.IntegerField(label=_('私网IP数'), min_value=0, required=True)
-    public_ip = serializers.IntegerField(label=_('公网IP数'), min_value=0, required=True)
-    ram = serializers.IntegerField(label=_('内存大小(MB)'), min_value=1024, required=True)
-    disk_size = serializers.IntegerField(label=_('总硬盘大小(GB)'), min_value=0, required=True)
-    expiration_time = serializers.DateTimeField(label=_('配额过期时间'), required=True,
-                                                help_text=_('过期后不能再用于创建资源'))
-    duration_days = serializers.IntegerField(label=_('资源使用时长'), min_value=1, required=True,
-                                             help_text=_('使用此配额创建的资源的有效使用时长'))
-
-    def validate(self, attrs):
-        status = attrs.get('status')
-        tag = attrs.get('tag')
-        if status not in QuotaActivity.Status.values:
-            raise ValidationError(detail={
-                'status': gettext('status的值无效')
-            })
-
-        if tag not in QuotaActivity.Tag.values:
-            raise ValidationError(detail={
-                'tag': gettext('tag的值无效')
-            })
-
-        private_ip = attrs.get('private_ip')
-        public_ip = attrs.get('public_ip')
-        disk_size = attrs.get('disk_size')
-        if private_ip == 0 and public_ip == 0 and disk_size == 0:
-            raise ValidationError(detail={
-                'private_ip': gettext('private_ip、public_ip和disk_size不能都为0，否则配额没有使用意义')
-            })
-
-        return attrs
-
-    @staticmethod
-    def get_user(obj):
-        if obj.user:
-            return {'id': obj.user.id, 'username': obj.user.username}
-
-        return None
-
-    @staticmethod
-    def get_service(obj):
-        if obj.service:
-            return {'id': obj.service.id, 'name': obj.service.name, 'name_en': obj.service.name_en}
 
         return None
 

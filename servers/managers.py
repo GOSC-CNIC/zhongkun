@@ -20,7 +20,7 @@ class ServerManager:
             lookups['ipv4__contains'] = ipv4_contains
 
         qs = self.get_server_queryset()
-        qs = qs.select_related('service', 'user_quota', 'user').filter(
+        qs = qs.select_related('service', 'user').filter(
             user=user, classification=Server.Classification.PERSONAL, **lookups)
 
         if service_id:
@@ -39,7 +39,7 @@ class ServerManager:
             return self.get_server_queryset().none()
 
         qs = self.get_server_queryset()
-        qs = qs.select_related('service', 'user_quota', 'user')
+        qs = qs.select_related('service', 'user')
 
         if user_id or username:
             lookups = {'classification': Server.Classification.PERSONAL}
@@ -75,7 +75,7 @@ class ServerManager:
         查询vo组的server
         """
         qs = self.get_server_queryset()
-        qs = qs.select_related('service', 'user_quota', 'user').filter(
+        qs = qs.select_related('service', 'user').filter(
             vo_id=vo_id, classification=Server.Classification.VO)
 
         if service_id:
@@ -194,7 +194,7 @@ class ServerArchiveManager:
         查询用户个人server归档记录
         """
         qs = self.get_archives_queryset()
-        qs = qs.select_related('service', 'user_quota').filter(
+        qs = qs.select_related('service').filter(
             user=user, classification=ServerArchive.Classification.PERSONAL,
             archive_type=ServerArchive.ArchiveType.ARCHIVE)
 
@@ -208,7 +208,7 @@ class ServerArchiveManager:
         查询vo组的server归档记录
         """
         qs = self.get_archives_queryset()
-        qs = qs.select_related('service', 'user_quota').filter(
+        qs = qs.select_related('service').filter(
             vo_id=vo_id, classification=ServerArchive.Classification.VO,
             archive_type=ServerArchive.ArchiveType.ARCHIVE)
 

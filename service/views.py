@@ -2,7 +2,6 @@ from django.shortcuts import render
 from django.db.models import Count
 
 from servers.models import Server, ServiceConfig
-from service.managers import UserQuotaManager
 
 
 def to_int_or_default(val, default=None):
@@ -36,11 +35,9 @@ def resources(request, *args, **kwargs):
         elif i['center_quota'] == Server.QUOTA_PRIVATE:
             private_server_count = i['server_count']
 
-    quotas = UserQuotaManager().get_quota_queryset(request.user)
     context = {
         'active_service': service_id,
         'is_need_vpn': is_need_vpn,
-        'quotas': quotas,
         'shared_server_count': shared_server_count,
         'private_server_count': private_server_count
     }

@@ -1,7 +1,4 @@
-from django.utils.translation import gettext as _
-
-from service.managers import UserQuotaManager, ServicePrivateQuotaManager
-from . import errors
+from service.managers import ServicePrivateQuotaManager
 
 
 class QuotaAPI:
@@ -51,33 +48,6 @@ class QuotaAPI:
             kwargs = {'private_ip': 1}
 
         ServicePrivateQuotaManager().release(service=service, vcpus=vcpu, ram=ram, **kwargs)
-
-    @staticmethod
-    def get_perm_meet_quota(user, vcpu: int, ram: int, public_ip: bool, user_quota_id: str):
-        """
-        获取用户有使用权限的，并且满足条件的个人或vo组资源配额
-
-        :param user: 用户对象
-        :param vcpu: vCPU数
-        :param ram: 内存大小, 单位Mb
-        :param public_ip: True(公网IP); False(私网IP)
-        :param user_quota_id: server所属的用户资源配额id
-        :return:
-
-        :raises: QuotaShortageError, QuotaError
-        """
-        u_mgr = UserQuotaManager()
-        try:
-            quota = u_mgr.get_user_manage_perm_quota(user_quota_id, user=user)
-        except errors.Error as e:
-            raise errors.QuotaError.from_error(e)
-
-        if public_ip is True:
-            u_mgr.requires(quota, vcpus=vcpu, ram=ram, public_ip=1)
-        else:
-            u_mgr.requires(quota, vcpus=vcpu, ram=ram, private_ip=1)
-
-        return quota
 
     @staticmethod
     def service_private_quota_meet(service, vcpu: int, ram: int, public_ip: bool):
