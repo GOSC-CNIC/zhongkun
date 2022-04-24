@@ -188,7 +188,10 @@ class OutputConverter:
                 _id=img['id'], name=img['name'], system=img['name'], desc=img['desc'],
                 system_type=img['sys_type']['name'], creation_time=creation_time,
                 default_username=img.get('default_user', ''),
-                default_password=img.get('default_password'))
+                default_password=img.get('default_password', ''),
+                min_sys_disk_gb=img.get('size', 0),
+                min_ram_mb=0
+            )
             new_images.append(new_img)
 
         return outputs.ListImageOutput(images=new_images)

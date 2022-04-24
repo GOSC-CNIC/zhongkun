@@ -368,7 +368,9 @@ class VmwareAdapter(BaseAdapter):
                         desc=vm.config.guestFullName,
                         system_type=helpers.get_system_type(vm),
                         creation_time=vm.config.createDate,
-                        default_username='', default_password='')
+                        default_username='', default_password='',
+                        min_sys_disk_gb=0, min_ram_mb=0
+                    )
                     result.append(img_obj)
             return outputs.ListImageOutput(images=result)
         except Exception as e:

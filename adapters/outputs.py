@@ -264,7 +264,7 @@ class ServerRebuildOutput(OutputBase):
 
 class ListImageOutputImage:
     def __init__(self, _id: str, name: str, system: str, system_type: str, creation_time: datetime,
-                 default_username: str, default_password: str, **kwargs):
+                 default_username: str, default_password: str, min_sys_disk_gb: int, min_ram_mb: int, **kwargs):
         """
         :param _id:
         :param name: 镜像名称
@@ -274,6 +274,8 @@ class ListImageOutputImage:
         :param desc: 镜像描述
         :param default_username: 初始默认登录用户名
         :param default_password: 初始默认登录用户密码
+        :param min_sys_disk_gb: 需要最小系统盘大小
+        :param min_ram_mb: 需要最小内存大小
         """
         self.id = _id
         self.name = name
@@ -283,6 +285,8 @@ class ListImageOutputImage:
         self.desc = kwargs.get('desc', '')
         self.default_user = default_username
         self.default_password = default_password
+        self.min_sys_disk_gb = min_sys_disk_gb
+        self.min_ram_mb = min_ram_mb
 
 
 class ListImageOutput(OutputBase):

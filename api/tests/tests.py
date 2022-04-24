@@ -973,7 +973,8 @@ class ImageTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.data, list)
         self.assertKeysIn(["id", "name", "system", "system_type",
-                           "creation_time", "desc", "default_user", "default_password"], response.data[0])
+                           "creation_time", "desc", "default_user", "default_password", "min_sys_disk_gb", "min_ram_mb"
+                           ], response.data[0])
 
 
 class NetworkTests(MyAPITestCase):

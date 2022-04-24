@@ -149,6 +149,8 @@ class ImageSerializer(serializers.Serializer):
     desc = serializers.CharField()
     default_user = serializers.CharField()
     default_password = serializers.CharField()
+    min_sys_disk_gb = serializers.IntegerField()
+    min_ram_mb = serializers.IntegerField()
 
 
 class NetworkSerializer(serializers.Serializer):

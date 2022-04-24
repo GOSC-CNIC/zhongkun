@@ -417,10 +417,11 @@ class OpenStackAdapter(BaseAdapter):
                 if not system:
                     system = image_name
 
-                img_obj = outputs.ListImageOutputImage(_id=image.id, name=image_name, system=system, desc=desc,
-                                                       system_type=image.os_type, creation_time=image.created_at,
-                                                       default_username='', default_password=''
-                                                       )
+                img_obj = outputs.ListImageOutputImage(
+                    _id=image.id, name=image_name, system=system, desc=desc, system_type=image.os_type,
+                    creation_time=image.created_at, default_username='', default_password='',
+                    min_sys_disk_gb=image.min_disk, min_ram_mb=image.min_ram
+                )
                 result.append(img_obj)
             return outputs.ListImageOutput(images=result)
         except Exception as e:
