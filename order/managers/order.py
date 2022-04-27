@@ -322,7 +322,7 @@ class OrderManager:
             raise errors.AccessDenied(message=exc.message)
 
     @staticmethod
-    def set_order_resource_deliver_ok(order: Order, resource: Resource, start_time, due_time):
+    def set_order_resource_deliver_ok(order: Order, resource: Resource, start_time, due_time, instance_id: str = None):
         """
         订单资源交付成功， 更新订单信息
 
@@ -351,8 +351,12 @@ class OrderManager:
 
             resource.instance_status = resource.InstanceStatus.SUCCESS.value
             resource.desc = 'success'
+            update_fields = ['instance_status', 'desc']
+            if instance_id:
+                resource.instance_id = instance_id
+                update_fields.append('instance_id')
             try:
-                resource.save(update_fields=['instance_status', 'desc'])
+                resource.save(update_fields=update_fields)
             except Exception as e:
                 message += _('更新订单的资源交付结果失败') + str(e)
 

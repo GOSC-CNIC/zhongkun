@@ -382,8 +382,7 @@ class ServerHandler:
         # 预付费模式时
         if pay_type == PayType.PREPAID.value:
             return Response(data={
-                'order_id': order.id,
-                'server_ids': [resource.instance_id]
+                'order_id': order.id
             })
 
         try:
@@ -394,15 +393,14 @@ class ServerHandler:
             request_logger.error(msg=f'[{type(exc)}] {str(exc)}')
 
         return Response(data={
-            'order_id': order.id,
-            'server_ids': [resource.instance_id]
+            'order_id': order.id
         })
 
     @staticmethod
     def _create_server(order: Order, resource: Resource):
         """
         :return:
-            None            # success
+            server            # success
 
         :raises: Error
         """
@@ -417,10 +415,10 @@ class ServerHandler:
             except exceptions.Error as e:
                 pass
             else:
-                return
+                return server
 
         server_build_status.creat_task(server)  # 异步任务查询server创建结果，更新server信息和创建状态
-        return
+        return server
 
     def renew_server(self, view, request, kwargs):
         """

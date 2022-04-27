@@ -118,15 +118,21 @@ class OrderResourceDeliverer:
         try:
             server.save(force_insert=True)
         except Exception as e:
-            message = f'向服务({service.id})请求创建云主机{out_server.uuid}成功，创建云主机记录元素据失败，{str(e)}。'
-            params = inputs.ServerDeleteInput(
-                instance_id=server.instance_id, instance_name=server.instance_name, force=True)
             try:
-                core_request.request_service(server.service, method='server_delete', params=params)
-            except exceptions.APIException as exc:
-                message += f'尝试向服务请求删除云主机失败，{str(exc)}'
+                if Server.objects.filter(id=server.id).exists():
+                    server.id = None  # 清除id，save时会更新id
 
-            raise exceptions.NeetReleaseResource(message=message)
+                server.save(force_insert=True)
+            except Exception:
+                message = f'向服务({service.id})请求创建云主机{out_server.uuid}成功，创建云主机记录元素据失败，{str(e)}。'
+                params = inputs.ServerDeleteInput(
+                    instance_id=server.instance_id, instance_name=server.instance_name, force=True)
+                try:
+                    core_request.request_service(server.service, method='server_delete', params=params)
+                except exceptions.APIException as exc:
+                    message += f'尝试向服务请求删除云主机失败，{str(exc)}'
+
+                raise exceptions.NeetReleaseResource(message=message)
 
         return service, server
 
@@ -195,7 +201,9 @@ class OrderResourceDeliverer:
 
         try:
             OrderManager.set_order_resource_deliver_ok(
-                order=order, resource=resource, start_time=server.creation_time, due_time=server.expiration_time)
+                order=order, resource=resource, start_time=server.creation_time,
+                due_time=server.expiration_time, instance_id=server.id
+            )
         except exceptions.Error:
             pass
 

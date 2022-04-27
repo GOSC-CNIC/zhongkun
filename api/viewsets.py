@@ -67,6 +67,9 @@ def exception_handler(exc, context):
 
 
 class CustomGenericViewSet(viewsets.GenericViewSet):
+    from django.db.models import QuerySet
+    queryset = QuerySet().none()
+
     PARAMETERS_AS_ADMIN = [
         openapi.Parameter(
             name='as-admin',

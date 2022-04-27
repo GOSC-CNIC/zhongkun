@@ -205,7 +205,6 @@ class ServersViewSet(CustomGenericViewSet):
             200: '''    
                 {
                     "order_id": "xxx",      # 订单id
-                    "server_ids": ["xxx"]     # 服务器id列表
                 }
             '''
         }

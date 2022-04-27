@@ -16,10 +16,10 @@ from order.managers import OrderManager
 from order.models import Price, Order, Resource
 from order.managers import ServerConfig
 from bill.managers import PaymentManager
-from . import MyAPITestCase, set_auth_header
+from . import MyAPITransactionTestCase, set_auth_header
 
 
-class ServerOrderTests(MyAPITestCase):
+class ServerOrderTests(MyAPITransactionTestCase):
     def setUp(self):
         set_auth_header(self)
         self.user = get_or_create_user()
@@ -158,17 +158,13 @@ class ServerOrderTests(MyAPITestCase):
             'remarks': 'testcase创建，可删除'
         })
         self.assertEqual(response.status_code, 200)
-        server_id = response.data['server_ids'][0]
         try:
-            self.assertKeysIn(['order_id', 'server_ids'], response.data)
-            self.assertIsInstance(response.data['server_ids'], list)
+            self.assertKeysIn(['order_id'], response.data)
             order_id = response.data['order_id']
             order, resources = OrderManager().get_order_detail(order_id=order_id, user=self.user)
-            self.assertEqual(response.data['server_ids'][0], resources[0].instance_id)
+            self.try_delete_server(server_id=resources[0].instance_id)
         except Exception as e:
             raise e
-        finally:
-            self.try_delete_server(server_id=server_id)
 
         # create user server postpaid mode, no balance
         response = self.client.post(url, data={
@@ -188,21 +184,17 @@ class ServerOrderTests(MyAPITestCase):
             'remarks': 'testcase创建，可删除'
         })
         self.assertEqual(response.status_code, 200)
-        server_id = response.data['server_ids'][0]
         try:
-            self.assertKeysIn(['order_id', 'server_ids'], response.data)
-            self.assertIsInstance(response.data['server_ids'], list)
+            self.assertKeysIn(['order_id'], response.data)
             order_id = response.data['order_id']
             order, resources = OrderManager().get_order_detail(order_id=order_id, user=self.user)
-            self.assertEqual(response.data['server_ids'][0], server_id)
+            self.try_delete_server(server_id=resources[0].instance_id)
             self.assertEqual(resources[0].instance_status, resources[0].InstanceStatus.FAILED.value)
             self.assertEqual(order.trading_status, order.TradingStatus.UNDELIVERED.value)
             self.assertEqual(order.owner_type, OwnerType.USER.value)
             self.assertEqual(order.user_id, self.user.id)
         except Exception as e:
             raise e
-        finally:
-            self.try_delete_server(server_id=server_id)
 
         # --------vo-------------
         # create vo server postpaid mode, no vo permission
@@ -236,21 +228,17 @@ class ServerOrderTests(MyAPITestCase):
             'remarks': 'testcase创建，可删除', 'vo_id': self.vo.id
         })
         self.assertEqual(response.status_code, 200)
-        server_id = response.data['server_ids'][0]
         try:
-            self.assertKeysIn(['order_id', 'server_ids'], response.data)
-            self.assertIsInstance(response.data['server_ids'], list)
+            self.assertKeysIn(['order_id'], response.data)
             order_id = response.data['order_id']
             order, resources = OrderManager().get_order_detail(order_id=order_id, user=self.user)
-            self.assertEqual(response.data['server_ids'][0], server_id)
+            self.try_delete_server(server_id=resources[0].instance_id)
             self.assertEqual(order.trading_status, order.TradingStatus.UNDELIVERED.value)
             self.assertEqual(order.owner_type, OwnerType.VO.value)
             self.assertEqual(order.vo_id, self.vo.id)
             self.assertEqual(resources[0].instance_status, resources[0].InstanceStatus.FAILED.value)
         except Exception as e:
             raise e
-        finally:
-            self.try_delete_server(server_id=server_id)
 
     def test_renew_server(self):
         now_time = timezone.now()
