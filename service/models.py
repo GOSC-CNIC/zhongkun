@@ -515,3 +515,118 @@ class ApplyVmService(BaseService):
             self.save(update_fields=['status', 'service', 'approve_time'])
 
         return service
+
+
+class UserQuota(UuidModel):
+    """
+    用户资源配额限制
+
+    配额属于用户或者项目组
+    """
+    EXPIRATION_DAYS = 30    # 配额过期时长
+
+    TAG_BASE = 1
+    TAG_PROBATION = 2
+    CHOICES_TAG = (
+        (TAG_BASE, _('普通配额')),
+        (TAG_PROBATION, _('试用配额'))
+    )
+
+    class Classification(models.TextChoices):
+        PERSONAL = 'personal', _('个人的')
+        VO = 'vo', _('VO组的')
+
+    tag = models.SmallIntegerField(verbose_name=_('配额类型'), choices=CHOICES_TAG, default=TAG_BASE)
+    user = models.ForeignKey(to=User, null=True, on_delete=models.SET_NULL, default=None,
+                             related_name='user_quota', verbose_name=_('用户'))
+    vo = models.ForeignKey(to=VirtualOrganization, null=True, on_delete=models.SET_NULL, default=None, blank=True,
+                           related_name='vo_quota_set', verbose_name=_('项目组'))
+    service = models.ForeignKey(to=ServiceConfig, null=True, on_delete=models.SET_NULL,
+                                related_name='service_quota', verbose_name=_('适用服务'))
+    private_ip_total = models.IntegerField(verbose_name=_('总私网IP数'), default=0)
+    private_ip_used = models.IntegerField(verbose_name=_('已用私网IP数'), default=0)
+    public_ip_total = models.IntegerField(verbose_name=_('总公网IP数'), default=0)
+    public_ip_used = models.IntegerField(verbose_name=_('已用公网IP数'), default=0)
+    vcpu_total = models.IntegerField(verbose_name=_('总CPU核数'), default=0)
+    vcpu_used = models.IntegerField(verbose_name=_('已用CPU核数'), default=0)
+    ram_total = models.IntegerField(verbose_name=_('总内存大小(MB)'), default=0)
+    ram_used = models.IntegerField(verbose_name=_('已用内存大小(MB)'), default=0)
+    disk_size_total = models.IntegerField(verbose_name=_('总硬盘大小(GB)'), default=0)
+    disk_size_used = models.IntegerField(verbose_name=_('已用硬盘大小(GB)'), default=0)
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'), null=True, blank=True, auto_now_add=True)
+    expiration_time = models.DateTimeField(verbose_name=_('过期时间'), null=True, blank=True, default=None,
+                                           help_text=_('过期后不能再用于创建资源'))
+    is_email = models.BooleanField(verbose_name=_('是否邮件通知'), default=False, help_text=_('是否邮件通知用户配额即将到期'))
+    deleted = models.BooleanField(verbose_name=_('删除'), default=False)
+    duration_days = models.IntegerField(verbose_name=_('资源使用时长'), blank=True, default=365,
+                                        help_text=_('使用此配额创建的资源的有效使用时长'))
+    classification = models.CharField(verbose_name=_('资源配额归属类型'), max_length=16,
+                                      choices=Classification.choices, default=Classification.PERSONAL,
+                                      help_text=_('标识配额属于申请者个人的，还是vo组的'))
+
+    class Meta:
+        db_table = 'user_quota'
+        ordering = ['-creation_time']
+        verbose_name = _('用户资源配额')
+        verbose_name_plural = verbose_name
+
+
+class ApplyQuota(UuidModel):
+    """
+    用户资源申请
+    """
+    STATUS_WAIT = 'wait'
+    STATUS_PENDING = 'pending'
+    STATUS_PASS = 'pass'
+    STATUS_REJECT = 'reject'
+    STATUS_CANCEL = 'cancel'
+    CHOICE_STATUS = (
+        (STATUS_WAIT, _('待审批')),
+        (STATUS_PENDING, _('审批中')),
+        (STATUS_PASS, _('审批通过')),
+        (STATUS_REJECT, _('拒绝')),
+        (STATUS_CANCEL, _('取消申请')),
+    )
+    LIST_STATUS = [STATUS_WAIT, STATUS_PENDING, STATUS_PASS, STATUS_REJECT, STATUS_CANCEL]
+
+    class Classification(models.TextChoices):
+        PERSONAL = 'personal', _('个人的')
+        VO = 'vo', _('VO组的')
+
+    service = models.ForeignKey(verbose_name=_('服务'), to=ServiceConfig, default='',
+                                on_delete=models.DO_NOTHING, related_name='service_apply_quota_set')
+    user = models.ForeignKey(verbose_name=_('申请用户'), to=User, null=True,
+                             on_delete=models.SET_NULL, related_name='user_apply_quota_set')
+    approve_user = models.ForeignKey(verbose_name=_('审批人'), to=User, null=True, on_delete=models.SET_NULL,
+                                     related_name='approve_apply_quota', default=None)
+    creation_time = models.DateTimeField(verbose_name=_('申请时间'), auto_now_add=True)
+    approve_time = models.DateTimeField(verbose_name=_('审批时间'), null=True, blank=True, default=None)
+    status = models.CharField(verbose_name=_('状态'), max_length=16, choices=CHOICE_STATUS, default=STATUS_WAIT)
+
+    private_ip = models.IntegerField(verbose_name=_('总私网IP数'), default=0)
+    public_ip = models.IntegerField(verbose_name=_('总公网IP数'), default=0)
+    vcpu = models.IntegerField(verbose_name=_('总CPU核数'), default=0)
+    ram = models.IntegerField(verbose_name=_('总内存大小(MB)'), default=0)
+    disk_size = models.IntegerField(verbose_name=_('总硬盘大小(GB)'), default=0)
+
+    duration_days = models.IntegerField(verbose_name=_('申请使用时长(天)'), blank=True, default=0,
+                                        help_text=_('审批通过后到配额到期期间的时长，单位天'))
+    company = models.CharField(verbose_name=_('申请人单位'), max_length=64, blank=True, default='')
+    contact = models.CharField(verbose_name=_('联系方式'), max_length=64, blank=True, default='')
+    purpose = models.CharField(verbose_name=_('用途'), max_length=255, blank=True, default='')
+    user_quota = models.OneToOneField(to=UserQuota, null=True, on_delete=models.SET_NULL, related_name='apply_quota',
+                                      blank=True, default=None, verbose_name=_('用户资源配额'),
+                                      help_text=_('资源配额申请审批通过后生成的对应的用户资源配额'))
+    deleted = models.BooleanField(verbose_name=_('删除'), default=False, help_text=_('选中为删除'))
+    classification = models.CharField(verbose_name=_('资源配额归属类型'), max_length=16,
+                                      choices=Classification.choices, default=Classification.PERSONAL,
+                                      help_text=_('标识配额属于申请者个人的，还是vo组的'))
+    vo = models.ForeignKey(to=VirtualOrganization, null=True, on_delete=models.SET_NULL, blank=True, default=None,
+                           related_name='vo_apply_quota_set', verbose_name=_('项目组'))
+    result_desc = models.CharField(verbose_name=_('审批结果描述'), max_length=255, blank=True, default='')
+
+    class Meta:
+        db_table = 'applyment_applyquota'     # 'apply_vm_quota'
+        ordering = ['-creation_time']
+        verbose_name = _('用户资源配额申请')
+        verbose_name_plural = verbose_name

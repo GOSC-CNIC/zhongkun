@@ -10,22 +10,22 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name='userquota',
-            name='service',
-        ),
-        migrations.RemoveField(
-            model_name='userquota',
-            name='user',
-        ),
-        migrations.RemoveField(
-            model_name='userquota',
-            name='vo',
-        ),
-        migrations.DeleteModel(
-            name='ApplyQuota',
-        ),
-        migrations.DeleteModel(
-            name='UserQuota',
-        ),
+        # migrations.RemoveField(
+        #     model_name='userquota',
+        #     name='service',
+        # ),
+        # migrations.RemoveField(
+        #     model_name='userquota',
+        #     name='user',
+        # ),
+        # migrations.RemoveField(
+        #     model_name='userquota',
+        #     name='vo',
+        # ),
+        # migrations.DeleteModel(
+        #     name='ApplyQuota',
+        # ),
+        # migrations.DeleteModel(
+        #     name='UserQuota',
+        # ),
     ]
