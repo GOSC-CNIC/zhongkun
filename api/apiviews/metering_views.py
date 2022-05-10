@@ -1,5 +1,7 @@
 from django.utils.translation import gettext_lazy
+from django.db.models import QuerySet
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import action
 from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
@@ -10,7 +12,7 @@ from api import serializers
 
 
 class MeteringServerViewSet(CustomGenericViewSet):
-
+    queryset = QuerySet().none()
     permission_classes = [IsAuthenticated, ]
     pagination_class = MeteringPageNumberPagination
     lookup_field = 'id'
@@ -102,6 +104,79 @@ class MeteringServerViewSet(CustomGenericViewSet):
             }
         """
         return MeteringHandler().list_server_metering(view=self, request=request)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('按云主机uuid显示云主机计量计费聚合列表'),
+        request_body=no_body,
+        manual_parameters=[
+            openapi.Parameter(
+                name='date_start',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'聚合日期起，默认当前月起始日期，ISO8601格式：YYYY-MM-dd'
+            ),
+            openapi.Parameter(
+                name='date_end',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'聚合日期止，默认当前月当前日期，ISO8601格式：YYYY-MM-dd'
+            ),
+            openapi.Parameter(
+                name='vo_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'查询指定VO组的聚合计量计费信息，需要vo组权限, 或管理员权限，不能与user_id同时使用'
+            ),
+            openapi.Parameter(
+                name='user_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'查询指定用户的聚合计量计费信息，仅以管理员身份查询时使用'
+            ),
+            openapi.Parameter(
+                name='service_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'查询指定服务'
+            ),
+        ] + CustomGenericViewSet.PARAMETERS_AS_ADMIN,
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['GET'], detail=False, url_path='aggregation/server', url_name='aggregation-by-server')
+    def aggregation_by_server(self, request, *args, **kwargs):
+        """
+        列举指定时间段内每个server计量计费单聚合
+
+            http code 200:
+            {
+              "count": 240,
+              "page_num": 1,
+              "page_size": 100,
+              "results": [
+                "server_id": "006621ec-36f8-11ec-bc59-c8009fe2eb03",
+                "total_cpu_hours": 19200.0,
+                "total_ram_hours": 38400.0,
+                "total_disk_hours": 0.0,
+                "total_public_ip_hours": 2400.0,
+                "total_original_amount": 3810.0,
+                "service_name": "科技云联邦研发与运行",           
+                "server": {                                   
+                    "id": "006621ec-36f8-11ec-bc59-c8009fe2eb03",
+                    "ipv4": "159.226.235.52",
+                    "ram": 16384,
+                    "vcpus": 8
+                }
+              ]
+            }
+        """
+        return MeteringHandler().list_aggregation_by_server(view=self, request=request)
 
     def get_serializer_class(self):
         if self.action == 'list':

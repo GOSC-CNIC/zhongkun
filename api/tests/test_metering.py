@@ -10,7 +10,8 @@ from service.models import ServiceConfig
 from vo.models import VirtualOrganization
 from metering.models import MeteringServer, PaymentStatus
 from . import set_auth_header, MyAPITestCase
-
+from servers.models import Server, ServerArchive 
+from django.utils import timezone
 
 class MeteringServerTests(MyAPITestCase):
     def setUp(self):
@@ -310,3 +311,327 @@ class MeteringServerTests(MyAPITestCase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data["count"], 1)
         self.assertEqual(len(r.data['results']), 1)
+
+    def test_aggregate_metering_by_uuid(self):
+        server = Server(
+            id='server', ipv4='1.1.1.1', vcpus=1, ram=11, service_id=self.service.id, creation_time=timezone.now())
+        server.save(force_insert=True)
+        server2 = ServerArchive(
+            server_id='server2', ipv4='2.2.2.2', vcpus=2, ram=22, service_id=self.service2.id,
+            creation_time=timezone.now(), deleted_time=timezone.now(),
+            archive_type=ServerArchive.ArchiveType.ARCHIVE.value
+        )
+        server2.save(force_insert=True)
+        server3 = Server(id='server3', ipv4='3.3.3.3', vcpus=3, ram=33, creation_time=timezone.now())
+        server3.save(force_insert=True)
+
+        metering1 = MeteringServer(
+            cpu_hours = float(5.1),
+            service_id=self.service.id,
+            server_id=server.id,
+            date=date(year=2022, month=3, day=29),
+            user_id=self.user.id,
+            vo_id='',
+            owner_type=OwnerType.USER.value,
+        )
+        metering1.save(force_insert=True)
+
+        metering2 = MeteringServer(
+            cpu_hours = float(6),
+            service_id=self.service.id,
+            server_id=server.id,
+            date=date(year=2022, month=4, day=1),
+            user_id=self.user.id,
+            vo_id='',
+            owner_type=OwnerType.USER.value,
+        )
+        metering2.save(force_insert=True)
+
+        metering3 = MeteringServer(
+            cpu_hours = float(6.1),
+            service_id=self.service.id,
+            server_id=server.id,
+            date=date(year=2022, month=4, day=30),
+            user_id=self.user.id,
+            vo_id='',
+            owner_type=OwnerType.USER.value,
+        )
+        metering3.save(force_insert=True)
+
+        metering4 = MeteringServer(
+            cpu_hours = float(7),
+            service_id=self.service2.id,
+            server_id=server2.server_id,
+            date=date(year=2022, month=3, day=20),
+            user_id=self.user.id,
+            vo_id='',
+            owner_type=OwnerType.USER.value,
+        )
+        metering4.save(force_insert=True)
+
+        metering5 = MeteringServer(
+            cpu_hours = float(8),
+            service_id=self.service2.id,
+            server_id=server2.server_id,
+            date=date(year=2022, month=3, day=29),
+            user_id='',
+            vo_id=self.vo.id,
+            owner_type=OwnerType.VO.value,
+        )
+        metering5.save(force_insert=True)
+
+        metering6 = MeteringServer(
+            cpu_hours = float(9),
+            service_id=self.service2.id,
+            server_id=server2.server_id,
+            date=date(year=2022, month=4, day=1),
+            user_id='',
+            vo_id='vo1',
+            owner_type=OwnerType.VO.value,
+        )
+        metering6.save(force_insert=True)        
+
+        metering7 = MeteringServer(
+            cpu_hours = float(10),
+            service_id=self.service.id,
+            server_id=server3.id,
+            date=date(year=2022, month=4, day=1),
+            user_id='user2',
+            vo_id='',
+            owner_type=OwnerType.USER.value,
+        )
+        metering7.save(force_insert=True)   
+
+        metering8 = MeteringServer(
+            cpu_hours = float(10.1),
+            service_id=self.service2.id,
+            server_id=server3.id,
+            date=date(year=2022, month=4, day=2),
+            user_id='',
+            vo_id='vo1',
+            owner_type=OwnerType.VO.value,
+        )
+        metering8.save(force_insert=True)  
+
+        base_url = reverse('api:metering-server-aggregation-by-server')
+        
+        # list user aggregate metering, default current month
+        r = self.client.get(base_url)
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(["count", "page_num", "page_size", "results"], r.data)
+        self.assertEqual(r.data["count"], 0)
+        self.assertEqual(len(r.data['results']), 0) 
+        
+        # list user aggregate metering, date_start - date_end
+        query = parse.urlencode(query={
+            'date_start': '2022-03-01', 'date_end': '2022-03-31',
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 2)
+        self.assertEqual(len(r.data['results']), 2) 
+        self.assertEqual(r.data['results'][0]['total_cpu_hours'], 5.1)
+        self.assertEqual(r.data['results'][0]['server']['ipv4'], '1.1.1.1')
+        self.assertEqual(r.data['results'][1]['total_cpu_hours'], 7)
+        self.assertEqual(r.data['results'][1]['server']['ipv4'], '2.2.2.2')
+        self.assertEqual(r.data['results'][1]['server']['vcpus'], 2)
+        
+        # list user aggregate metering, invalid date_start
+        query = parse.urlencode(query={
+            'date_start': '2022-02-31'
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 400)
+
+        # list user aggregate metering, invalid date_end
+        query = parse.urlencode(query={
+            'date_end': '2022-2-1'
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 400)        
+
+        # list user aggregate metering, query page_size
+        query = parse.urlencode(query={
+            'date_start': '2022-03-01', 'date_end': '2022-04-01', 'page_size': 1
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 2)
+        self.assertEqual(r.data["page_size"], 1)
+        self.assertEqual(len(r.data['results']), 1)
+        
+        # list vo aggregate metering
+        query = parse.urlencode(query={
+            'date_start': '2022-03-01', 'date_end': '2022-04-02', 'vo_id': self.vo.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 1)
+        self.assertEqual(len(r.data['results']), 1)   
+        self.assertEqual(r.data['results'][0]['total_cpu_hours'], 8)  
+        self.assertEqual(r.data['results'][0]['server']['vcpus'], 2)
+        self.assertEqual(r.data['results'][0]['service_name'], 'test2')     
+
+        # service admin
+        query = parse.urlencode(query={
+            'date_start': '2022-03-01', 'date_end': '2022-04-02', 'as-admin': ''
+        })       
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 0)
+        self.assertEqual(len(r.data['results']), 0)
+        
+        # service admin, no permission service
+        query = parse.urlencode(query={
+            'date_start': '2022-04-01', 'date_end': '2022-05-01', 'as-admin': '', 'service_id':self.service.id
+        })           
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 403)
+        
+        # service admin, has permission service
+        self.service.users.add(self.user)
+        query = parse.urlencode(query={
+            'date_start': '2022-03-01', 'date_end': '2022-03-31', 'as-admin': ''
+        })    
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 1)
+        self.assertEqual(len(r.data['results']), 1)       
+        self.assertEqual(r.data['results'][0]['total_cpu_hours'], 5.1)
+        
+        query = parse.urlencode(query={
+            'date_start': '2022-03-01', 'date_end': '2022-04-02', 'as-admin': ''
+        })    
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 2)
+        self.assertEqual(len(r.data['results']), 2)       
+        self.assertEqual(r.data['results'][0]['total_cpu_hours'], 11.1)
+        self.assertEqual(r.data['results'][1]['total_cpu_hours'], 10)
+        
+        # service admin, no permission service2
+        query = parse.urlencode(query={
+            'date_start': '2022-04-01', 'date_end': '2022-04-30', 'as-admin': '', 'service_id': self.service2.id
+        })    
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 403)  
+
+        # service admin, list user aggregate metering
+        query = parse.urlencode(query={
+            'date_start': '2022-03-01', 'date_end': '2022-04-02', 'as-admin': '',
+            'service_id': self.service.id, 'user_id':'user2'
+        })    
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 1)
+        self.assertEqual(len(r.data['results']), 1)       
+        self.assertEqual(r.data['results'][0]['total_cpu_hours'], 10)
+        self.assertEqual(r.data['results'][0]['server']['ipv4'], '3.3.3.3')
+        
+        query = parse.urlencode(query={
+            'date_start': '2022-03-01', 'date_end': '2022-04-02', 'as-admin': '',
+            'user_id':self.user.id
+        })    
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 1)
+        self.assertEqual(len(r.data['results']), 1)       
+        self.assertEqual(r.data['results'][0]['total_cpu_hours'], 11.1)
+        self.assertEqual(r.data['results'][0]['server']['ipv4'], '1.1.1.1')
+        
+        # service admin, list vo aggregate metering
+        self.service2.users.add(self.user)
+        query = parse.urlencode(query={
+            'date_start': '2022-03-01', 'date_end': '2022-04-02', 'as-admin': '',
+            'vo_id': self.vo.id
+        })    
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 1)
+        self.assertEqual(len(r.data['results']), 1)       
+        self.assertEqual(r.data['results'][0]['total_cpu_hours'], 8)
+        
+        # service admin, list vo aggregate metering, param "vo_id" and "user_id" togethor
+        query = parse.urlencode(query={
+            'date_start': '2022-03-01', 'date_end': '2022-04-02', 'as-admin': '',
+            'vo_id': self.vo.id, 'user_id': self.user.id 
+        })    
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 400)
+        
+        # federal admin, list all
+        self.user.set_federal_admin()
+        query = parse.urlencode(query={
+            'date_start': '2022-03-01', 'date_end': '2022-04-02', 'as-admin': ''
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 3)
+        self.assertEqual(len(r.data['results']), 3)  
+        
+        # federal admin, vo_id
+        query = parse.urlencode(query={
+            'date_start': '2022-03-01', 'date_end': '2022-04-02', 'as-admin': '', 'vo_id': self.vo.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 1)
+        self.assertEqual(len(r.data['results']), 1)  
+        self.assertEqual(r.data['results'][0]['total_cpu_hours'], 8)
+        self.assertEqual(r.data['results'][0]['server']['ipv4'], '2.2.2.2')
+
+        # federal admin, service_id
+        query = parse.urlencode(query={
+            'date_start': '2022-03-01', 'date_end': '2022-04-02', 'as-admin': '', 'service_id': self.service.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 2)
+        self.assertEqual(len(r.data['results']), 2)  
+        self.assertEqual(r.data['results'][0]['total_cpu_hours'], 11.1)
+        self.assertEqual(r.data['results'][1]['total_cpu_hours'], 10)
+                
+        query = parse.urlencode(query={
+            'date_start': '2022-03-01', 'date_end': '2022-04-02', 'as-admin': '', 'service_id': self.service2.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 2)
+        self.assertEqual(len(r.data['results']), 2)  
+        self.assertEqual(r.data['results'][0]['total_cpu_hours'], 24)
+        self.assertEqual(r.data['results'][0]['server']['ipv4'], '2.2.2.2')
+        self.assertEqual(r.data['results'][1]['total_cpu_hours'], 10.1)
+        self.assertEqual(r.data['results'][1]['server']['ipv4'], '3.3.3.3')
+        
+        # federal admin, user_id
+        query = parse.urlencode(query={
+            'date_start': '2022-04-01', 'date_end': '2022-04-30', 'as-admin': '', 'user_id': 'user2'
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 1)
+        self.assertEqual(len(r.data['results']), 1)  
+        self.assertEqual(r.data['results'][0]['total_cpu_hours'], 10)
+        
+        # federal admin, user_id, service_id
+        query = parse.urlencode(query={
+            'date_start': '2022-03-01', 'date_end': '2022-04-02', 'as-admin': '', 'user_id': self.user.id,
+            'service_id': self.service.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 1)
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertEqual(r.data['results'][0]['total_cpu_hours'], 11.1)
+
+        # federal admin, vo_id, service_id
+        query = parse.urlencode(query={
+            'date_start': '2022-03-01', 'date_end': '2022-04-02', 'as-admin': '', 'vo_id': 'vo1',
+            'service_id': self.service2.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 2)
+        self.assertEqual(len(r.data['results']), 2)       
+        self.assertEqual(r.data['results'][0]['total_cpu_hours'], 9)
+        self.assertEqual(r.data['results'][1]['total_cpu_hours'], 10.1)
