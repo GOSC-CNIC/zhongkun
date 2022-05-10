@@ -7,6 +7,45 @@ from activity.managers import CashCouponManager
 
 
 class CashCouponHandler:
+    def list_cash_coupon(self, view: CustomGenericViewSet, request):
+        try:
+            data = self.list_cash_coupon_validate_params(request=request)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        vo_id = data['vo_id']
+        available = data['available']
+
+        mgr = CashCouponManager()
+        if vo_id:
+            queryset = mgr.get_vo_cash_coupon_queryset(
+                user=request.user, vo_id=vo_id, available=available
+            )
+        else:
+            queryset = mgr.get_user_cash_coupon_queryset(
+                user_id=request.user.id, available=available
+            )
+
+        try:
+            coupons = view.paginate_queryset(queryset)
+            serializer = view.get_serializer(instance=coupons, many=True)
+            return view.get_paginated_response(serializer.data)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+    @staticmethod
+    def list_cash_coupon_validate_params(request):
+        vo_id = request.query_params.get('vo_id', None)
+        available = request.query_params.get('available', None)
+
+        if vo_id == '':
+            raise errors.BadRequest(message=_('参数“vo_id”值无效'), code='InvalidVoId')
+
+        return {
+            'vo_id': vo_id,
+            'available': available is not None
+        }
+
     def draw_cash_coupon(self, view: CustomGenericViewSet, request):
         try:
             coupon_id, coupon_code, vo_id = self.draw_cash_coupon_validate_params(request=request)

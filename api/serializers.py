@@ -730,3 +730,50 @@ class UserPointAccountSerializer(BasePointAccountSerializer):
     @staticmethod
     def get_user(obj):
         return {'id': obj.user_id}
+
+
+class CashCouponSerializer(serializers.Serializer):
+    id = serializers.CharField(label='ID')
+    face_value = serializers.DecimalField(label=_('面额'), max_digits=10, decimal_places=2)
+    creation_time = serializers.DateTimeField(label=_('创建时间'))
+    effective_time = serializers.DateTimeField(label=_('生效时间'))
+    expiration_time = serializers.DateTimeField(label=_('过期时间'))
+    coupon_type = serializers.CharField(label=_('券类型'), max_length=16)
+    applicable_resource = serializers.JSONField(label=_('适用资源'), help_text=_('空表示通用'))
+    balance = serializers.DecimalField(label=_('余额'), max_digits=10, decimal_places=2)
+    status = serializers.CharField(label=_('状态'), max_length=16)
+    granted_time = serializers.DateTimeField(label=_('领取/发放时间'))
+    owner_type = serializers.CharField(label=_('所属类型'), max_length=16)
+    # coupon_code = serializers.CharField(label=_('券密码'))
+    service = serializers.SerializerMethodField(label=_('适用服务'))
+    user = serializers.SerializerMethodField(label=_('用户'))
+    vo = serializers.SerializerMethodField(label=_('VO组'))
+    activity = serializers.SerializerMethodField(label=_('活动'))
+
+    @staticmethod
+    def get_service(obj):
+        if obj.service is None:
+            return None
+
+        return {'id': obj.service.id, 'name': obj.service.name}
+
+    @staticmethod
+    def get_user(obj):
+        if obj.user is None:
+            return None
+
+        return {'id': obj.user.id, 'username': obj.user.username}
+
+    @staticmethod
+    def get_vo(obj):
+        if obj.vo is None:
+            return None
+
+        return {'id': obj.vo.id, 'name': obj.vo.name}
+
+    @staticmethod
+    def get_activity(obj):
+        if obj.activity is None:
+            return None
+
+        return {'id': obj.activity.id, 'name': obj.activity.name}

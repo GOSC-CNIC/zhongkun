@@ -76,3 +76,33 @@ class CashCouponManager:
             coupon.save(update_fields=['user_id', 'status', 'granted_time', 'vo_id', 'owner_type'])
 
         return coupon
+
+    def get_user_cash_coupon_queryset(self, user_id: str, available: bool = None):
+        queryset = self.get_queryset()
+        queryset = queryset.filter(
+            user_id=user_id, owner_type=OwnerType.USER.value,
+            status=CashCoupon.Status.AVAILABLE.value
+        ).select_related('vo', 'user', 'activity', 'service')
+
+        if available:
+            now = timezone.now()
+            queryset = queryset.filter(effective_time__lt=now, expiration_time__gt=now)
+
+        return queryset
+
+    def get_vo_cash_coupon_queryset(self, user, vo_id: str, available: bool = None):
+        """
+        :raises: Error
+        """
+        VoManager().get_has_manager_perm_vo(vo_id=vo_id, user=user)
+        queryset = self.get_queryset()
+        queryset = queryset.filter(
+            vo_id=vo_id, owner_type=OwnerType.VO.value,
+            status=CashCoupon.Status.AVAILABLE.value
+        ).select_related('vo', 'user', 'activity', 'service')
+
+        if available:
+            now = timezone.now()
+            queryset = queryset.filter(effective_time__lt=now, expiration_time__gt=now)
+
+        return queryset
