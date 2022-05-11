@@ -133,7 +133,7 @@ class Resource(UuidModel):
         FAILED = 'failed', _('交付失败')
 
     order = models.ForeignKey(
-        to=Order, on_delete=models.DO_NOTHING, related_name='resource_set', verbose_name=_('订单'))
+        to=Order, on_delete=models.SET_NULL, related_name='resource_set', null=True, verbose_name=_('订单'))
     resource_type = models.CharField(
         verbose_name=_('资源类型'), max_length=16, choices=ResourceType.choices)
     instance_id = models.CharField(verbose_name=_('资源实例id'), max_length=36, blank=True, default='')

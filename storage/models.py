@@ -92,8 +92,8 @@ class BucketBase(UuidModel):
 class Bucket(BucketBase):
     user = models.ForeignKey(to=User, null=True, related_name='bucket_set', on_delete=models.SET_NULL,
                              verbose_name=_('所属用户'))
-    service = models.ForeignKey(to=ObjectsService, related_name='bucket_set',
-                                on_delete=models.DO_NOTHING, verbose_name=_('所属服务'))
+    service = models.ForeignKey(to=ObjectsService, related_name='bucket_set', null=True,
+                                on_delete=models.SET_NULL, verbose_name=_('所属服务'))
     token = models.CharField(max_length=36, verbose_name=_('桶读写token'))
 
     class Meta:

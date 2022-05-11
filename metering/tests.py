@@ -78,7 +78,7 @@ class MeteringServerTests(TransactionTestCase):
         self.price.save()
 
     def init_data_only_server(self, now: datetime):
-        ago_hour_time = now - timedelta(hours=1)
+        ago_hour_time = now - timedelta(hours=1)    # utc时间00:00（北京时间08:00）之后的1hour之内，测试会通不过，server4会被计量
         meter_time = now - timedelta(days=1)
         ago_time = now - timedelta(days=2)
 
@@ -134,7 +134,10 @@ class MeteringServerTests(TransactionTestCase):
             start_time=ago_hour_time,
             creation_time=ago_hour_time
         )
-
+        print(f'server1={server1.id}')
+        print(f'server2={server2.id}')
+        print(f'server3={server3.id}')
+        print(f'server4={server4.id}')
         return server1, server2, server3, server4
 
     def do_assert_server(self, now: datetime, server1: Server, server2: Server):
@@ -142,6 +145,10 @@ class MeteringServerTests(TransactionTestCase):
         metering_end_time = now.replace(hour=0, minute=0, second=0, microsecond=0)    # 计量结束时间
         measurer = ServerMeasurer(raise_exeption=True)
         measurer.run()
+
+        for i in MeteringServer.objects.all():
+            d = {'id': i.id, 'server_id': i.server_id}
+            print(f'metering({d})')
 
         count = MeteringServer.objects.all().count()
         self.assertEqual(count, 2)

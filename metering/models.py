@@ -85,8 +85,8 @@ class MeteringServer(MeteringBase):
     """
     OwnerType = OwnerType
 
-    service = models.ForeignKey(to=ServiceConfig, verbose_name=_('服务'), related_name='+',
-                                on_delete=models.DO_NOTHING, db_index=False)
+    service = models.ForeignKey(to=ServiceConfig, verbose_name=_('服务'), related_name='+', null=True,
+                                on_delete=models.SET_NULL, db_index=False)
     server_id = models.CharField(verbose_name=_('云服务器ID'), max_length=36)
     date = models.DateField(verbose_name=_('日期'), help_text=_('计量的资源使用量的所属日期'))
     creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
@@ -176,8 +176,8 @@ class MeteringDisk(MeteringBase):
     """
     OwnerType = OwnerType
 
-    service = models.ForeignKey(to=ServiceConfig, verbose_name=_('服务'), related_name='+',
-                                on_delete=models.DO_NOTHING, db_index=False)
+    service = models.ForeignKey(to=ServiceConfig, verbose_name=_('服务'), related_name='+', null=True,
+                                on_delete=models.SET_NULL, db_index=False)
     disk_id = models.CharField(verbose_name=_('云硬盘ID'), max_length=36)
     date = models.DateField(verbose_name=_('日期'), help_text=_('计量的资源使用量的所属日期'))
     creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
@@ -255,8 +255,8 @@ class MeteringObjectStorage(MeteringBase):
     """
     对象存储计量
     """
-    service = models.ForeignKey(to=ObjectsService, verbose_name=_('服务'), related_name='+',
-                                on_delete=models.DO_NOTHING, db_index=False)
+    service = models.ForeignKey(to=ObjectsService, verbose_name=_('服务'), related_name='+', null=True,
+                                on_delete=models.SET_NULL, db_index=False)
     user_id = models.CharField(verbose_name=_('用户ID'), max_length=36, blank=True)
     bucket_id = models.CharField(verbose_name=_('存储桶ID'), max_length=36)
     bucket_name = models.CharField(verbose_name=_('存储桶名称'), max_length=63)
