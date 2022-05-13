@@ -27,7 +27,7 @@ class CashCouponTests(MyAPITestCase):
             face_value=Decimal('66.6'),
             balance=Decimal('66.6'),
             effective_time=timezone.now(),
-            expiration_time = timezone.now(),
+            expiration_time=timezone.now(),
             status=CashCoupon.Status.WAIT.value
         )
         coupon1.save(force_insert=True)
@@ -120,7 +120,7 @@ class CashCouponTests(MyAPITestCase):
             face_value=Decimal('66.6'),
             balance=Decimal('66.6'),
             effective_time=now_time - timedelta(days=1),
-            expiration_time = now_time + timedelta(days=1),
+            expiration_time=now_time + timedelta(days=1),
             status=CashCoupon.Status.WAIT.value
         )
         coupon1.save(force_insert=True)
@@ -283,3 +283,107 @@ class CashCouponTests(MyAPITestCase):
                 'vo': {'id': self.vo.id, 'name': self.vo.name}
             }, results[0]
         )
+
+    def test_delete_cash_coupon(self):
+        now_time = timezone.now()
+        coupon1 = CashCoupon(
+            face_value=Decimal('66.6'),
+            balance=Decimal('66.6'),
+            effective_time=now_time - timedelta(days=1),
+            expiration_time=now_time + timedelta(days=1),
+            status=CashCoupon.Status.WAIT.value
+        )
+        coupon1.save(force_insert=True)
+
+        coupon2_user = CashCoupon(
+            face_value=Decimal('88.8'),
+            balance=Decimal('88.8'),
+            effective_time=now_time - timedelta(days=2),
+            expiration_time=now_time + timedelta(days=30),
+            status=CashCoupon.Status.AVAILABLE.value,
+            granted_time=now_time,
+            owner_type=OwnerType.USER.value,
+            user=self.user
+        )
+        coupon2_user.save(force_insert=True)
+
+        coupon3_user = CashCoupon(
+            face_value=Decimal('188.8'),
+            balance=Decimal('168.8'),
+            effective_time=now_time - timedelta(days=20),
+            expiration_time=now_time - timedelta(days=1),  # 过期
+            status=CashCoupon.Status.AVAILABLE.value,
+            granted_time=now_time,
+            owner_type=OwnerType.USER.value,
+            user=self.user
+        )
+        coupon3_user.save(force_insert=True)
+
+        coupon4_user2 = CashCoupon(
+            face_value=Decimal('288.8'),
+            balance=Decimal('258.8'),
+            effective_time=now_time - timedelta(days=2),
+            expiration_time=now_time + timedelta(days=30),
+            status=CashCoupon.Status.CANCELLED.value,
+            granted_time=now_time,
+            owner_type=OwnerType.USER.value,
+            user=self.user2
+        )
+        coupon4_user2.save(force_insert=True)
+
+        coupon5_vo = CashCoupon(
+            face_value=Decimal('388.8'),
+            balance=Decimal('358.8'),
+            effective_time=now_time - timedelta(days=3),
+            expiration_time=now_time + timedelta(days=20),
+            status=CashCoupon.Status.AVAILABLE.value,
+            granted_time=now_time,
+            owner_type=OwnerType.VO.value,
+            user=self.user,
+            vo=self.vo
+        )
+        coupon5_vo.save(force_insert=True)
+
+        # delete status "WAIT" coupon
+        url = reverse('api:cashcoupon-detail', kwargs={'id': coupon1.id})
+        response = self.client.delete(url)
+        self.assertErrorResponse(status_code=404, code='NoSuchCoupon', response=response)
+
+        # need force delete
+        url = reverse('api:cashcoupon-detail', kwargs={'id': coupon2_user.id})
+        response = self.client.delete(url)
+        self.assertErrorResponse(status_code=409, code='BalanceRemain', response=response)
+        query = parse.urlencode(query={'force': ''})
+        response = self.client.delete(f'{url}?{query}')
+        self.assertEqual(response.status_code, 204)
+        coupon2_user.refresh_from_db()
+        self.assertEqual(coupon2_user.status, CashCoupon.Status.DELETED.value)
+
+        # delete expired coupon
+        url = reverse('api:cashcoupon-detail', kwargs={'id': coupon3_user.id})
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, 204)
+        coupon3_user.refresh_from_db()
+        self.assertEqual(coupon3_user.status, CashCoupon.Status.DELETED.value)
+
+        # delete user2 coupon
+        url = reverse('api:cashcoupon-detail', kwargs={'id': coupon4_user2.id})
+        response = self.client.delete(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+        coupon4_user2.refresh_from_db()
+        self.assertEqual(coupon4_user2.status, CashCoupon.Status.CANCELLED.value)
+
+        # delete vo coupon
+        url = reverse('api:cashcoupon-detail', kwargs={'id': coupon5_vo.id})
+        response = self.client.delete(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+        VoMember(user=self.user, vo=self.vo, role=VoMember.Role.LEADER.value, inviter='').save(force_insert=True)
+        response = self.client.delete(url)
+        self.assertErrorResponse(status_code=409, code='BalanceRemain', response=response)
+
+        coupon5_vo.balance = Decimal(0)
+        coupon5_vo.save(update_fields=['balance'])
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, 204)
+        coupon5_vo.refresh_from_db()
+        self.assertEqual(coupon5_vo.status, CashCoupon.Status.DELETED.value)

@@ -127,6 +127,26 @@ class CashCouponViewSet(CustomGenericViewSet):
         """
         return CashCouponHandler().draw_cash_coupon(view=self, request=request)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('删除代金券'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='force',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description='强制删除，未过期的、有剩余余额的代金券；参数不需要值存在即有效'
+            )
+        ]
+    )
+    def destroy(self, request, *args, **kwargs):
+        """
+        删除代金券
+
+            http code 204
+        """
+        return CashCouponHandler().delete_cash_coupon(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return serializers.CashCouponSerializer

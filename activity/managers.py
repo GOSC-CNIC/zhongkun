@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.utils.translation import gettext as _
 from django.db import transaction
 from django.utils import timezone
@@ -106,3 +108,35 @@ class CashCouponManager:
             queryset = queryset.filter(effective_time__lt=now, expiration_time__gt=now)
 
         return queryset
+
+    def delete_cash_coupon(self, coupon_id: str, user, force: bool = False):
+        """
+        删除代金券
+        :raises: Error
+        """
+        coupon = self.get_cash_coupon(coupon_id=coupon_id)
+        if coupon is None:
+            raise errors.NotFound(message=_('代金券不存在'), code='NoSuchCoupon')
+
+        if coupon.status not in [CashCoupon.Status.AVAILABLE.value, CashCoupon.Status.CANCELLED.value]:
+            raise errors.NotFound(message=_('代金券不存在'), code='NoSuchCoupon')
+
+        if coupon.owner_type == OwnerType.USER.value:
+            if coupon.user_id != user.id:
+                raise errors.AccessDenied(message=_('你没有此代金券的访问权限'))
+        elif coupon.owner_type == OwnerType.VO.value:
+            VoManager().get_has_manager_perm_vo(vo_id=coupon.vo_id, user=user)
+        else:
+            raise errors.ConflictError(message=_('代金券拥有者类型未知'), code='UnknownOwnCoupon')
+
+        if not force:
+            if (
+                coupon.status == CashCoupon.Status.AVAILABLE.value and
+                coupon.expiration_time > timezone.now()
+            ):    # 未过期
+                if coupon.balance > Decimal(0):
+                    raise errors.ConflictError(message=_('代金券有剩余余额未消费'), code='BalanceRemain')
+
+        coupon.status = CashCoupon.Status.DELETED.value
+        coupon.save(update_fields=['status'])
+        return coupon
