@@ -190,3 +190,182 @@ class MeteringHandler:
             'service_id': service_id,
             'vo_id': vo_id
         }
+    
+    def list_aggregation_by_user(self, view: CustomGenericViewSet, request):
+        """
+        列举用户的云主机计量计费聚合信息
+        """
+        try:
+            params = self.list_aggregation_by_user_validate_params(view=view, request=request)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        date_start = params['date_start']
+        date_end = params['date_end']
+        service_id = params['service_id']
+
+        ms_mgr = MeteringServerManager()
+        if view.is_as_admin_request(request):           
+            queryset = ms_mgr.aggregate_server_metering_by_userid_by_admin(
+                user=request.user, date_start=date_start, date_end=date_end, 
+                service_id=service_id
+            )
+        else:
+            return view.exception_response(errors.BadRequest(message=_('只允许以管理员身份请求')))
+
+        try:
+            data = view.paginate_queryset(queryset)
+            data = ms_mgr.aggregate_by_user_mixin_data(data)
+            return view.get_paginated_response(data)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+    @staticmethod
+    def list_aggregation_by_user_validate_params(view: CustomGenericViewSet, request) -> dict:  
+        date_start = request.query_params.get('date_start', None)
+        date_end = request.query_params.get('date_end', None)
+        service_id = request.query_params.get('service_id', None)
+
+        now_date = timezone.now().date()
+
+        if date_start is not None:
+            try:
+                date_start = date.fromisoformat(date_start)
+            except (TypeError, ValueError):
+                raise errors.InvalidArgument(message=_('参数“date_start”的值无效的日期格式'))
+        else:                       # 默认当月起始时间
+            date_start = now_date.replace(day=1)
+
+        if date_end is not None:
+            try:
+                date_end = date.fromisoformat(date_end)
+            except (TypeError, ValueError):
+                raise errors.InvalidArgument(message=_('参数“date_end”的值无效的日期格式'))
+        else:
+            date_end = now_date     # 默认当月当前日期
+
+        if service_id is not None and not service_id:
+            raise errors.InvalidArgument(message=_('参数“service_id”的值无效'))
+
+        return {
+            'date_start': date_start,
+            'date_end':  date_end,
+            'service_id': service_id,
+        }
+
+    def list_aggregation_by_vo(self, view: CustomGenericViewSet, request):
+        """
+        列举vo组的云主机计量计费聚合信息
+        """
+        try:
+            params = self.list_aggregation_by_vo_validate_params(view=view, request=request)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        date_start = params['date_start']
+        date_end = params['date_end']
+        service_id = params['service_id']
+
+        ms_mgr = MeteringServerManager()
+        if view.is_as_admin_request(request):           
+            queryset = ms_mgr.aggregate_server_metering_by_void_by_admin(
+                user=request.user, date_start=date_start, date_end=date_end, 
+                service_id=service_id
+            )
+        else:
+            return view.exception_response(errors.BadRequest(message=_('只允许以管理员身份请求')))
+
+        try:
+            data = view.paginate_queryset(queryset)
+            data = ms_mgr.aggregate_by_vo_mixin_data(data)
+            return view.get_paginated_response(data)
+        except Exception as exc:
+            return view.exception_response(exc)
+        
+    @staticmethod
+    def list_aggregation_by_vo_validate_params(view: CustomGenericViewSet, request) -> dict:  
+        date_start = request.query_params.get('date_start', None)
+        date_end = request.query_params.get('date_end', None)
+        service_id = request.query_params.get('service_id', None)
+
+        now_date = timezone.now().date()
+
+        if date_start is not None:
+            try:
+                date_start = date.fromisoformat(date_start)
+            except (TypeError, ValueError):
+                raise errors.InvalidArgument(message=_('参数“date_start”的值无效的日期格式'))
+        else:                       # 默认当月起始时间
+            date_start = now_date.replace(day=1)
+
+        if date_end is not None:
+            try:
+                date_end = date.fromisoformat(date_end)
+            except (TypeError, ValueError):
+                raise errors.InvalidArgument(message=_('参数“date_end”的值无效的日期格式'))
+        else:
+            date_end = now_date     # 默认当月当前日期
+
+        if service_id is not None and not service_id:
+            raise errors.InvalidArgument(message=_('参数“service_id”的值无效'))
+
+        return {
+            'date_start': date_start,
+            'date_end':  date_end,
+            'service_id': service_id,
+        }
+        
+    def list_aggregation_by_service(self, view: CustomGenericViewSet, request):
+        """
+        列举服务节点的云主机计量计费聚合信息
+        """
+        try:
+            params = self.list_aggregation_by_service_validate_params(view=view, request=request)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        date_start = params['date_start']
+        date_end = params['date_end']
+
+        ms_mgr = MeteringServerManager()
+        if view.is_as_admin_request(request):         
+            queryset = ms_mgr.aggregate_server_metering_by_serviceid_by_admin(
+                user=request.user, date_start=date_start, date_end=date_end, 
+            )
+        else:
+            return view.exception_response(errors.BadRequest(message=_('只允许以管理员身份请求')))
+
+        try:
+            data = view.paginate_queryset(queryset)
+            data = ms_mgr.aggregate_by_service_mixin_data(data)
+            return view.get_paginated_response(data)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+    @staticmethod
+    def list_aggregation_by_service_validate_params(view: CustomGenericViewSet, request) -> dict:  
+        date_start = request.query_params.get('date_start', None)
+        date_end = request.query_params.get('date_end', None)
+
+        now_date = timezone.now().date()
+
+        if date_start is not None:
+            try:
+                date_start = date.fromisoformat(date_start)
+            except (TypeError, ValueError):
+                raise errors.InvalidArgument(message=_('参数“date_start”的值无效的日期格式'))
+        else:                       # 默认当月起始时间
+            date_start = now_date.replace(day=1)
+
+        if date_end is not None:
+            try:
+                date_end = date.fromisoformat(date_end)
+            except (TypeError, ValueError):
+                raise errors.InvalidArgument(message=_('参数“date_end”的值无效的日期格式'))
+        else:
+            date_end = now_date     # 默认当月当前日期
+
+        return {
+            'date_start': date_start,
+            'date_end':  date_end,
+        }
