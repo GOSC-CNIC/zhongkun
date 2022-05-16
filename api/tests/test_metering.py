@@ -12,6 +12,8 @@ from metering.models import MeteringServer, PaymentStatus
 from . import set_auth_header, MyAPITestCase
 from servers.models import Server, ServerArchive 
 from django.utils import timezone
+from users.models import UserProfile
+
 
 class MeteringServerTests(MyAPITestCase):
     def setUp(self):
@@ -326,7 +328,7 @@ class MeteringServerTests(MyAPITestCase):
         server3.save(force_insert=True)
 
         metering1 = MeteringServer(
-            cpu_hours = float(5.1),
+            cpu_hours=float(5.1),
             service_id=self.service.id,
             server_id=server.id,
             date=date(year=2022, month=3, day=29),
@@ -337,7 +339,7 @@ class MeteringServerTests(MyAPITestCase):
         metering1.save(force_insert=True)
 
         metering2 = MeteringServer(
-            cpu_hours = float(6),
+            cpu_hours=float(6),
             service_id=self.service.id,
             server_id=server.id,
             date=date(year=2022, month=4, day=1),
@@ -348,7 +350,7 @@ class MeteringServerTests(MyAPITestCase):
         metering2.save(force_insert=True)
 
         metering3 = MeteringServer(
-            cpu_hours = float(6.1),
+            cpu_hours=float(6.1),
             service_id=self.service.id,
             server_id=server.id,
             date=date(year=2022, month=4, day=30),
@@ -359,7 +361,7 @@ class MeteringServerTests(MyAPITestCase):
         metering3.save(force_insert=True)
 
         metering4 = MeteringServer(
-            cpu_hours = float(7),
+            cpu_hours=float(7),
             service_id=self.service2.id,
             server_id=server2.server_id,
             date=date(year=2022, month=3, day=20),
@@ -370,7 +372,7 @@ class MeteringServerTests(MyAPITestCase):
         metering4.save(force_insert=True)
 
         metering5 = MeteringServer(
-            cpu_hours = float(8),
+            cpu_hours=float(8),
             service_id=self.service2.id,
             server_id=server2.server_id,
             date=date(year=2022, month=3, day=29),
@@ -381,7 +383,7 @@ class MeteringServerTests(MyAPITestCase):
         metering5.save(force_insert=True)
 
         metering6 = MeteringServer(
-            cpu_hours = float(9),
+            cpu_hours=float(9),
             service_id=self.service2.id,
             server_id=server2.server_id,
             date=date(year=2022, month=4, day=1),
@@ -392,7 +394,7 @@ class MeteringServerTests(MyAPITestCase):
         metering6.save(force_insert=True)        
 
         metering7 = MeteringServer(
-            cpu_hours = float(10),
+            cpu_hours=float(10),
             service_id=self.service.id,
             server_id=server3.id,
             date=date(year=2022, month=4, day=1),
@@ -403,7 +405,7 @@ class MeteringServerTests(MyAPITestCase):
         metering7.save(force_insert=True)   
 
         metering8 = MeteringServer(
-            cpu_hours = float(10.1),
+            cpu_hours=float(10.1),
             service_id=self.service2.id,
             server_id=server3.id,
             date=date(year=2022, month=4, day=2),
@@ -483,7 +485,7 @@ class MeteringServerTests(MyAPITestCase):
         
         # service admin, no permission service
         query = parse.urlencode(query={
-            'date_start': '2022-04-01', 'date_end': '2022-05-01', 'as-admin': '', 'service_id':self.service.id
+            'date_start': '2022-04-01', 'date_end': '2022-05-01', 'as-admin': '', 'service_id': self.service.id
         })           
         r = self.client.get(f'{base_url}?{query}')
         self.assertEqual(r.status_code, 403)
@@ -519,7 +521,7 @@ class MeteringServerTests(MyAPITestCase):
         # service admin, list user aggregate metering
         query = parse.urlencode(query={
             'date_start': '2022-03-01', 'date_end': '2022-04-02', 'as-admin': '',
-            'service_id': self.service.id, 'user_id':'user2'
+            'service_id': self.service.id, 'user_id': 'user2'
         })    
         r = self.client.get(f'{base_url}?{query}')
         self.assertEqual(r.status_code, 200)
@@ -530,7 +532,7 @@ class MeteringServerTests(MyAPITestCase):
         
         query = parse.urlencode(query={
             'date_start': '2022-03-01', 'date_end': '2022-04-02', 'as-admin': '',
-            'user_id':self.user.id
+            'user_id': self.user.id
         })    
         r = self.client.get(f'{base_url}?{query}')
         self.assertEqual(r.status_code, 200)
@@ -635,3 +637,600 @@ class MeteringServerTests(MyAPITestCase):
         self.assertEqual(len(r.data['results']), 2)       
         self.assertEqual(r.data['results'][0]['total_cpu_hours'], 9)
         self.assertEqual(r.data['results'][1]['total_cpu_hours'], 10.1)
+
+    def test_aggregate_metering_by_user(self):
+        user2 = UserProfile(id='user2', username='username2', company='c2')
+        user2.save(force_insert=True)
+        user3 = UserProfile(id='user3', username='username3', company='c3')
+        user3.save(force_insert=True)
+
+        metering1 = MeteringServer(
+            user_id=self.user.id,
+            server_id='server1',
+            owner_type=OwnerType.USER.value,
+            service_id=self.service.id,
+            original_amount=Decimal('1.11'),
+            trade_amount=Decimal('1'),
+            date=date(year=2022, month=3, day=1),      
+        )
+        metering1.save(force_insert=True)
+
+        metering2 = MeteringServer(
+            user_id=self.user.id,
+            server_id='server1',
+            owner_type=OwnerType.USER.value,
+            service_id=self.service.id,
+            original_amount=Decimal('2.22'),
+            trade_amount=Decimal('2'),
+            date=date(year=2022, month=3, day=2),      
+        )
+        metering2.save(force_insert=True)
+
+        metering3 = MeteringServer(
+            user_id=self.user.id,
+            server_id='server1',
+            owner_type=OwnerType.USER.value,
+            service_id=self.service2.id,
+            original_amount=Decimal('3.33'),
+            trade_amount=Decimal('3'),
+            date=date(year=2022, month=3, day=3),      
+        )
+        metering3.save(force_insert=True)
+
+        metering4 = MeteringServer(
+            user_id=self.user.id,
+            server_id='server2',
+            owner_type=OwnerType.USER.value,
+            service_id=self.service2.id,
+            original_amount=Decimal('4.44'),
+            trade_amount=Decimal('4'),
+            date=date(year=2022, month=4, day=1),      
+        )
+        metering4.save(force_insert=True)
+
+        metering5 = MeteringServer(
+            user_id=user2.id,
+            server_id='server3',
+            owner_type=OwnerType.USER.value,
+            service_id=self.service.id,
+            original_amount=Decimal('5.55'),
+            trade_amount=Decimal('5'),
+            date=date(year=2022, month=4, day=1),      
+        )
+        metering5.save(force_insert=True)
+
+        metering6 = MeteringServer(
+            user_id=user3.id,
+            server_id='server4',
+            owner_type=OwnerType.USER.value,
+            service_id=self.service2.id,
+            original_amount=Decimal('6.66'),
+            trade_amount=Decimal('6'),
+            date=date(year=2022, month=4, day=1),      
+        )
+        metering6.save(force_insert=True)
+
+        metering7 = MeteringServer(
+            vo_id='vo1',
+            server_id='server5',
+            owner_type=OwnerType.VO.value,
+            service_id=self.service2.id,
+            original_amount=Decimal('7.77'),
+            trade_amount=Decimal('7'),
+            date=date(year=2022, month=4, day=1),      
+        )
+        metering7.save(force_insert=True)
+
+        base_url = reverse('api:metering-server-aggregation-by-user')
+
+        # no param 'as-admin'
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01'
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 400)
+
+        # invalid date_start
+        query = parse.urlencode(query={
+            'date_start': '2022-02-1', 'date_end': '2022-04-01', 'as-admin': ''
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 400)
+
+        # invalid date_end
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-32', 'as-admin': ''
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 400)
+
+        # service admin
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01', 'as-admin': ''
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 0)
+        self.assertEqual(len(r.data['results']), 0)
+
+        # service admin, no permission service
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01', 'as-admin': '', 'service_id': self.service.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 403)        
+
+        # service admin, has permission service
+        self.service2.users.add(self.user)
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01', 'as-admin': '', 'service_id': self.service2.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)        
+        self.assertEqual(r.data["count"], 2)
+        self.assertEqual(len(r.data['results']), 2)       
+        self.assertEqual(r.data['results'][0]['total_server'], 2)
+        self.assertEqual(r.data['results'][0]['total_original_amount'], Decimal('7.77'))
+        self.assertEqual(r.data['results'][0]['total_trade_amount'], Decimal('7'))
+        self.assertEqual(r.data['results'][0]['user']['id'], self.user.id)    
+        self.assertEqual(r.data['results'][1]['total_server'], 1)
+        self.assertEqual(r.data['results'][1]['total_original_amount'], Decimal('6.66'))
+        self.assertEqual(r.data['results'][1]['total_trade_amount'], Decimal('6'))
+        self.assertEqual(r.data['results'][1]['user']['id'], user3.id)  
+
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01', 'as-admin': ''
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)        
+        self.assertEqual(r.data["count"], 2)
+        self.assertEqual(len(r.data['results']), 2)       
+        self.assertEqual(r.data['results'][0]['total_server'], 2)
+        self.assertEqual(r.data['results'][0]['total_original_amount'], Decimal('7.77'))
+        self.assertEqual(r.data['results'][0]['total_trade_amount'], Decimal('7'))
+        self.assertEqual(r.data['results'][0]['user']['id'], self.user.id)    
+        self.assertEqual(r.data['results'][1]['total_server'], 1)
+        self.assertEqual(r.data['results'][1]['total_original_amount'], Decimal('6.66'))
+        self.assertEqual(r.data['results'][1]['total_trade_amount'], Decimal('6'))
+        self.assertEqual(r.data['results'][1]['user']['id'], user3.id)  
+
+        # service admin, default current month
+        query = parse.urlencode(query={
+            'as-admin': ''
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)        
+        self.assertEqual(r.data["count"], 0)
+        self.assertEqual(len(r.data['results']), 0) 
+
+        # service admin, no permission service
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01', 'as-admin': '', 'service_id': self.service.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 403)
+
+        # federal admin, list all
+        self.user.set_federal_admin()
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01', 'as-admin': ''
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 3)
+        self.assertEqual(len(r.data['results']), 3)
+        self.assertEqual(r.data['results'][0]['total_server'], 2)
+        self.assertEqual(r.data['results'][0]['total_original_amount'], Decimal('11.10'))
+        self.assertEqual(r.data['results'][0]['user']['id'], self.user.id)    
+        self.assertEqual(r.data['results'][1]['total_server'], 1)
+        self.assertEqual(r.data['results'][1]['total_original_amount'], Decimal('5.55'))
+        self.assertEqual(r.data['results'][1]['user']['id'], user2.id)  
+        self.assertEqual(r.data['results'][2]['total_server'], 1)
+        self.assertEqual(r.data['results'][2]['total_original_amount'], Decimal('6.66'))
+        self.assertEqual(r.data['results'][2]['user']['id'], user3.id)  
+
+        # federal admin, service_id
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01', 'as-admin': '', 'service_id': self.service.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 2)
+        self.assertEqual(len(r.data['results']), 2)
+        self.assertEqual(r.data['results'][0]['total_server'], 1)
+        self.assertEqual(r.data['results'][0]['total_original_amount'], Decimal('3.33'))
+        self.assertEqual(r.data['results'][0]['user']['id'], self.user.id)  
+        self.assertEqual(r.data['results'][1]['total_server'], 1)
+        self.assertEqual(r.data['results'][1]['total_original_amount'], Decimal('5.55'))
+        self.assertEqual(r.data['results'][1]['user']['id'], user2.id) 
+
+        query = parse.urlencode(query={
+            'date_start': '2022-04-01', 'as-admin': '', 'service_id': self.service2.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 2)
+        self.assertEqual(len(r.data['results']), 2)
+        self.assertEqual(r.data['results'][0]['total_server'], 1)
+        self.assertEqual(r.data['results'][0]['total_original_amount'], Decimal('4.44'))
+        self.assertEqual(r.data['results'][0]['user']['id'], self.user.id)  
+        self.assertEqual(r.data['results'][1]['total_server'], 1)
+        self.assertEqual(r.data['results'][1]['total_original_amount'], Decimal('6.66'))
+        self.assertEqual(r.data['results'][1]['user']['id'], user3.id) 
+
+    def test_aggregate_metering_by_vo(self):
+        vo1 = VirtualOrganization(id='vo1', name='name1', company='company1', owner_id='owner1')
+        vo1.save(force_insert=True)
+        vo2 = VirtualOrganization(id='vo2', name='name2', company='company2', owner_id='owner2')
+        vo2.save(force_insert=True)
+        vo3 = VirtualOrganization(id='vo3', name='name3', company='company3', owner_id='owner3')
+        vo3.save(force_insert=True)
+
+        metering1 = MeteringServer(
+            vo_id=vo1.id,
+            server_id='server1',
+            owner_type=OwnerType.VO.value,
+            service_id=self.service.id,
+            original_amount=Decimal('1.11'),
+            trade_amount=Decimal('1'),
+            date=date(year=2022, month=3, day=1),      
+        )
+        metering1.save(force_insert=True)
+
+        metering2 = MeteringServer(
+            vo_id=vo1.id,
+            server_id='server1',
+            owner_type=OwnerType.VO.value,
+            service_id=self.service.id,
+            original_amount=Decimal('2.22'),
+            trade_amount=Decimal('2'),
+            date=date(year=2022, month=3, day=2),      
+        )
+        metering2.save(force_insert=True)
+
+        metering3 = MeteringServer(
+            vo_id=vo1.id,
+            server_id='server1',
+            owner_type=OwnerType.VO.value,
+            service_id=self.service2.id,
+            original_amount=Decimal('3.33'),
+            trade_amount=Decimal('3'),
+            date=date(year=2022, month=3, day=3),      
+        )
+        metering3.save(force_insert=True)
+
+        metering4 = MeteringServer(
+            vo_id=vo1.id,
+            server_id='server2',
+            owner_type=OwnerType.VO.value,
+            service_id=self.service2.id,
+            original_amount=Decimal('4.44'),
+            trade_amount=Decimal('4'),
+            date=date(year=2022, month=4, day=1),      
+        )
+        metering4.save(force_insert=True)
+
+        metering5 = MeteringServer(
+            vo_id=vo2.id,
+            server_id='server3',
+            owner_type=OwnerType.VO.value,
+            service_id=self.service.id,
+            original_amount=Decimal('5.55'),
+            trade_amount=Decimal('5'),
+            date=date(year=2022, month=4, day=1),      
+        )
+        metering5.save(force_insert=True)
+
+        metering6 = MeteringServer(
+            vo_id=vo3.id,
+            server_id='server4',
+            owner_type=OwnerType.VO.value,
+            service_id=self.service2.id,
+            original_amount=Decimal('6.66'),
+            trade_amount=Decimal('6'),
+            date=date(year=2022, month=4, day=1),      
+        )
+        metering6.save(force_insert=True)
+
+        metering7 = MeteringServer(
+            user_id=self.user.id,
+            server_id='server5',
+            owner_type=OwnerType.USER.value,
+            service_id=self.service2.id,
+            original_amount=Decimal('7.77'),
+            trade_amount=Decimal('7'),
+            date=date(year=2022, month=4, day=1),      
+        )
+        metering7.save(force_insert=True)
+
+        base_url = reverse('api:metering-server-aggregation-by-vo')
+        
+        # no param 'as-admin'
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01'
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 400)
+        
+        # invalid date_start
+        query = parse.urlencode(query={
+            'date_start': '2022-02-1', 'date_end': '2022-04-01', 'as-admin': ''
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 400)
+
+        # invalid date_end
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-32', 'as-admin': ''
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 400)
+        
+        # service admin
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01', 'as-admin': ''
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 0)
+        self.assertEqual(len(r.data['results']), 0) 
+        
+        # service admin, no permission service
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01', 'as-admin': '', 'service_id': self.service.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 403)        
+        
+        # service admin, has permission service2
+        self.service2.users.add(self.user)
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01', 'as-admin': '', 'service_id': self.service2.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)        
+        self.assertEqual(r.data["count"], 2)
+        self.assertEqual(len(r.data['results']), 2)       
+        self.assertEqual(r.data['results'][0]['total_server'], 2)
+        self.assertEqual(r.data['results'][0]['total_original_amount'], Decimal('7.77'))
+        self.assertEqual(r.data['results'][0]['total_trade_amount'], Decimal('7'))
+        self.assertEqual(r.data['results'][0]['vo']['id'], vo1.id)    
+        self.assertEqual(r.data['results'][1]['total_server'], 1)
+        self.assertEqual(r.data['results'][1]['total_original_amount'], Decimal('6.66'))
+        self.assertEqual(r.data['results'][1]['total_trade_amount'], Decimal('6'))
+        self.assertEqual(r.data['results'][1]['vo']['id'], vo3.id)  
+        
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01', 'as-admin': ''
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)        
+        self.assertEqual(r.data["count"], 2)
+        self.assertEqual(len(r.data['results']), 2)       
+        self.assertEqual(r.data['results'][0]['total_server'], 2)
+        self.assertEqual(r.data['results'][0]['total_original_amount'], Decimal('7.77'))
+        self.assertEqual(r.data['results'][0]['total_trade_amount'], Decimal('7'))
+        self.assertEqual(r.data['results'][0]['vo']['id'], vo1.id)    
+        self.assertEqual(r.data['results'][1]['total_server'], 1)
+        self.assertEqual(r.data['results'][1]['total_original_amount'], Decimal('6.66'))
+        self.assertEqual(r.data['results'][1]['total_trade_amount'], Decimal('6'))
+        self.assertEqual(r.data['results'][1]['vo']['id'], vo3.id)  
+
+        # service admin, default current month
+        query = parse.urlencode(query={
+            'as-admin': ''
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)        
+        self.assertEqual(r.data["count"], 0)
+        self.assertEqual(len(r.data['results']), 0) 
+
+        # service admin, no permission service
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01', 'as-admin': '', 'service_id': self.service.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 403)   
+        
+        # federal admin, list all
+        self.user.set_federal_admin()
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01', 'as-admin': ''
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 3)
+        self.assertEqual(len(r.data['results']), 3)
+        self.assertEqual(r.data['results'][0]['total_server'], 2)
+        self.assertEqual(r.data['results'][0]['total_original_amount'], Decimal('11.10'))
+        self.assertEqual(r.data['results'][0]['vo']['id'], vo1.id) 
+        self.assertEqual(r.data['results'][0]['vo']['company'], vo1.company)      
+        self.assertEqual(r.data['results'][1]['total_server'], 1)
+        self.assertEqual(r.data['results'][1]['total_original_amount'], Decimal('5.55'))
+        self.assertEqual(r.data['results'][1]['vo']['id'], vo2.id)  
+        self.assertEqual(r.data['results'][1]['vo']['company'], vo2.company)      
+        self.assertEqual(r.data['results'][2]['total_server'], 1)
+        self.assertEqual(r.data['results'][2]['total_original_amount'], Decimal('6.66'))
+        self.assertEqual(r.data['results'][2]['vo']['id'], vo3.id)  
+        self.assertEqual(r.data['results'][2]['vo']['company'], vo3.company)      
+        
+        # federal admin, service_id
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01', 'as-admin': '', 'service_id': self.service.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 2)
+        self.assertEqual(len(r.data['results']), 2)
+        self.assertEqual(r.data['results'][0]['total_server'], 1)
+        self.assertEqual(r.data['results'][0]['total_original_amount'], Decimal('3.33'))
+        self.assertEqual(r.data['results'][0]['vo']['id'], vo1.id)  
+        self.assertEqual(r.data['results'][0]['vo']['name'], vo1.name)
+        self.assertEqual(r.data['results'][1]['total_server'], 1)
+        self.assertEqual(r.data['results'][1]['total_original_amount'], Decimal('5.55'))
+        self.assertEqual(r.data['results'][1]['vo']['id'], vo2.id) 
+        self.assertEqual(r.data['results'][1]['vo']['name'], vo2.name) 
+        
+        query = parse.urlencode(query={
+            'date_start': '2022-04-01', 'as-admin': '', 'service_id': self.service2.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 2)
+        self.assertEqual(len(r.data['results']), 2)
+        self.assertEqual(r.data['results'][0]['total_server'], 1)
+        self.assertEqual(r.data['results'][0]['total_original_amount'], Decimal('4.44'))
+        self.assertEqual(r.data['results'][0]['vo']['id'], vo1.id)  
+        self.assertEqual(r.data['results'][1]['total_server'], 1)
+        self.assertEqual(r.data['results'][1]['total_original_amount'], Decimal('6.66'))
+        self.assertEqual(r.data['results'][1]['vo']['id'], vo3.id) 
+
+    def test_aggregate_metering_by_service(self):
+        service3 = ServiceConfig(id='service3', name='name3')
+        service3.save(force_insert=True)
+
+        metering1 = MeteringServer(
+            service_id=self.service.id,
+            vo_id='vo1',
+            server_id='server1',
+            owner_type=OwnerType.VO.value,
+            original_amount=Decimal('1.11'),
+            trade_amount=Decimal('1'),
+            date=date(year=2022, month=3, day=1),      
+        )
+        metering1.save(force_insert=True)
+
+        metering2 = MeteringServer(
+            service_id=self.service.id,
+            user_id='user1',
+            server_id='server1',
+            owner_type=OwnerType.USER.value,
+            original_amount=Decimal('2.22'),
+            trade_amount=Decimal('2'),
+            date=date(year=2022, month=3, day=2),      
+        )
+        metering2.save(force_insert=True)    
+
+        metering3 = MeteringServer(
+            service_id=self.service.id,
+            user_id='user1',
+            server_id='server2',
+            owner_type=OwnerType.USER.value,
+            original_amount=Decimal('3.33'),
+            trade_amount=Decimal('3'),
+            date=date(year=2022, month=3, day=1),      
+        )
+        metering3.save(force_insert=True) 
+
+        metering4 = MeteringServer(
+            service_id=self.service2.id,
+            user_id='user2',
+            server_id='server3',
+            owner_type=OwnerType.USER.value,
+            original_amount=Decimal('4.44'),
+            trade_amount=Decimal('4'),
+            date=date(year=2022, month=3, day=1),      
+        )
+        metering4.save(force_insert=True)     
+
+        metering5 = MeteringServer(
+            service_id=service3.id,
+            user_id='user2',
+            server_id='server3',
+            owner_type=OwnerType.USER.value,
+            original_amount=Decimal('5.55'),
+            trade_amount=Decimal('5'),
+            date=date(year=2022, month=4, day=1),      
+        )
+        metering5.save(force_insert=True)  
+
+        base_url = reverse('api:metering-server-aggregation-by-service')
+
+        # no param 'as-admin'
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01'
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 400)
+        
+        # invalid date_start
+        query = parse.urlencode(query={
+            'date_start': '2022-02-1', 'date_end': '2022-04-01', 'as-admin': ''
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 400)
+
+        # invalid date_end
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-32', 'as-admin': ''
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 400)
+        
+        # service admin
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01', 'as-admin': ''
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 0)
+        self.assertEqual(len(r.data['results']), 0) 
+            
+        # service admin, has permission service
+        self.service.users.add(self.user)
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01', 'as-admin': '',
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)        
+        self.assertEqual(r.data["count"], 1)
+        self.assertEqual(len(r.data['results']), 1)       
+        self.assertEqual(r.data['results'][0]['total_server'], 2)
+        self.assertEqual(r.data['results'][0]['total_original_amount'], Decimal('6.66'))
+        self.assertEqual(r.data['results'][0]['total_trade_amount'], Decimal('6'))
+        
+        # service admin, has permission service and service2
+        self.service2.users.add(self.user)
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01', 'as-admin': '',
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)         
+        self.assertEqual(r.data["count"], 2)
+        self.assertEqual(len(r.data['results']), 2)  
+        self.assertEqual(r.data['results'][0]['total_server'], 2)
+        self.assertEqual(r.data['results'][0]['total_original_amount'], Decimal('6.66'))
+        self.assertEqual(r.data['results'][0]['total_trade_amount'], Decimal('6'))   
+        self.assertEqual(r.data['results'][1]['total_server'], 1)
+        self.assertEqual(r.data['results'][1]['total_original_amount'], Decimal('4.44'))
+        self.assertEqual(r.data['results'][1]['total_trade_amount'], Decimal('4'))            
+
+        # service admin, default current month
+        query = parse.urlencode(query={
+            'as-admin': ''
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)        
+        self.assertEqual(r.data["count"], 0)
+        self.assertEqual(len(r.data['results']), 0) 
+        
+        # federal admin, list all
+        self.user.set_federal_admin()
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01', 'as-admin': ''
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 3)
+        self.assertEqual(len(r.data['results']), 3)
+        self.assertEqual(r.data['results'][0]['total_server'], 2)
+        self.assertEqual(r.data['results'][0]['total_original_amount'], Decimal('6.66'))
+        self.assertEqual(r.data['results'][0]['service']['id'], self.service.id)
+        self.assertEqual(r.data['results'][1]['total_server'], 1)
+        self.assertEqual(r.data['results'][1]['total_original_amount'], Decimal('4.44'))
+        self.assertEqual(r.data['results'][1]['service']['id'], self.service2.id)  
+        self.assertEqual(r.data['results'][2]['total_server'], 1)
+        self.assertEqual(r.data['results'][2]['total_original_amount'], Decimal('5.55'))
+        self.assertEqual(r.data['results'][2]['service']['id'], service3.id)  
+        self.assertEqual(r.data['results'][2]['service']['name'], service3.name)      
+  

@@ -1,7 +1,7 @@
 from datetime import date
 
 from django.utils.translation import gettext as _
-from django.db.models import Subquery, Sum
+from django.db.models import Subquery, Sum, Count
 
 from core import errors
 from service.managers import ServiceManager
@@ -10,6 +10,9 @@ from servers.models import Server, ServerArchive
 from vo.managers import VoManager
 from utils.model import OwnerType
 from .models import MeteringServer
+from users.models import UserProfile
+from vo.models import VirtualOrganization
+from service.models import ServiceConfig
 
 
 class MeteringServerManager:
@@ -208,12 +211,13 @@ class MeteringServerManager:
         """
         聚合云主机计量数据
         """
-        queryset = queryset.values('server_id').annotate(
+        queryset = queryset.values('server_id').annotate(   
             total_cpu_hours=Sum('cpu_hours'),
             total_ram_hours=Sum('ram_hours'),
             total_disk_hours=Sum('disk_hours'),
             total_public_ip_hours=Sum('public_ip_hours'),
-            total_original_amount=Sum('original_amount')
+            total_original_amount=Sum('original_amount'),
+            total_trade_amount=Sum('trade_amount')
         ).order_by('server_id')
 
         return queryset
@@ -254,5 +258,185 @@ class MeteringServerManager:
             else:
                 i['service_name'] = None
                 i['server'] = None
+
+        return data
+
+    def aggregate_server_metering_by_userid_by_admin(
+            self, user,
+            date_start: date = None,
+            date_end: date = None,
+            service_id: str = None,
+    ):
+        """
+            管理员获取以user_id聚合的查询集
+        """
+        queryset = self.filter_server_metering_queryset(   
+            date_start=date_start, date_end=date_end, service_id=service_id
+        ).filter(owner_type=OwnerType.USER.value)             
+               
+        if user.is_federal_admin():     
+            return self.aggregate_queryset_by_user(queryset)    
+        
+        if service_id:     
+            service = ServiceManager.get_service_if_admin(user=user, service_id=service_id)
+            if service is None:
+                raise errors.AccessDenied(message=_('您没有指定服务的访问权限'))
+        else:               
+            qs = ServiceManager.get_all_has_perm_service(user)  
+            subq = Subquery(qs.values_list('id', flat=True))   
+            queryset = queryset.filter(service_id__in=subq)
+
+        return self.aggregate_queryset_by_user(queryset)
+
+    @staticmethod
+    def aggregate_queryset_by_user(queryset):
+        """
+        聚合用户的云主机计量数据
+        """
+        queryset = queryset.values('user_id').annotate(
+            total_original_amount=Sum('original_amount'),
+            total_trade_amount=Sum('trade_amount'),
+            total_server=Count('server_id', distinct=True),
+        ).order_by('user_id')
+
+        return queryset
+
+    @staticmethod
+    def aggregate_by_user_mixin_data(data: list):
+        """
+        按user id聚合数据分页后混合其他数据
+        """
+        user_ids = [i['user_id'] for i in data]     
+        users = UserProfile.objects.filter(id__in=user_ids).values('id', 'username', 'company')
+
+        user_dict = {}
+        for user in users:
+            user_id = user['id']
+            u = {
+                'user': user
+            }
+            user_dict[user_id] = u
+
+        for i in data:
+            i: dict
+            i.update(user_dict[i['user_id']])
+
+        return data
+
+    def aggregate_server_metering_by_void_by_admin(
+            self, user,
+            date_start: date = None,
+            date_end: date = None,
+            service_id: str = None,
+    ):
+        """
+            管理员获取以vo_id聚合的查询集
+        """
+        queryset = self.filter_server_metering_queryset(   
+            date_start=date_start, date_end=date_end, service_id=service_id
+        ).filter(owner_type=OwnerType.VO.value)              
+        
+        if user.is_federal_admin():     
+            return self.aggregate_queryset_by_vo(queryset)   
+        
+        if service_id:      
+            service = ServiceManager.get_service_if_admin(user=user, service_id=service_id)
+            if service is None:
+                raise errors.AccessDenied(message=_('您没有指定服务的访问权限'))
+        else:       
+            qs = ServiceManager.get_all_has_perm_service(user)  
+            subq = Subquery(qs.values_list('id', flat=True))   
+            queryset = queryset.filter(service_id__in=subq)
+
+        return self.aggregate_queryset_by_vo(queryset)
+
+    @staticmethod
+    def aggregate_queryset_by_vo(queryset):
+        """
+        聚合vo组的云主机计量数据
+        """
+        queryset = queryset.values('vo_id').annotate(
+            total_original_amount=Sum('original_amount'),
+            total_trade_amount=Sum('trade_amount'),
+            total_server=Count('server_id', distinct=True),
+        ).order_by('vo_id')
+
+        return queryset
+
+    @staticmethod
+    def aggregate_by_vo_mixin_data(data: list):
+        """
+        按vo id聚合数据分页后混合其他数据
+        """
+        vo_ids = [i['vo_id'] for i in data]    
+        vos = VirtualOrganization.objects.filter(id__in=vo_ids).values('id', 'name', 'company')
+
+        vo_dict = {}
+        for vo in vos:
+            vo_id = vo['id']
+            v = {
+                'vo': vo
+            }
+            vo_dict[vo_id] = v
+
+        for i in data:
+            i: dict
+            i.update(vo_dict[i['vo_id']])
+
+        return data
+    
+    def aggregate_server_metering_by_serviceid_by_admin(
+            self, user,
+            date_start: date = None,
+            date_end: date = None,
+    ):
+        """
+            管理员获取以service_id聚合的查询集
+        """
+        queryset = self.filter_server_metering_queryset(    
+            date_start=date_start, date_end=date_end, 
+        )      
+        
+        if user.is_federal_admin():     
+            return self.aggregate_queryset_by_service(queryset)    
+        
+        qs = ServiceManager.get_all_has_perm_service(user)  
+        subq = Subquery(qs.values_list('id', flat=True))   
+        queryset = queryset.filter(service_id__in=subq)
+
+        return self.aggregate_queryset_by_service(queryset)
+
+    @staticmethod
+    def aggregate_queryset_by_service(queryset):
+        """
+        聚合服务节点的云主机计量数据
+        """
+        queryset = queryset.values('service_id').annotate(
+            total_original_amount=Sum('original_amount'),
+            total_trade_amount=Sum('trade_amount'),
+            total_server=Count('server_id', distinct=True),
+        ).order_by('service_id')
+
+        return queryset
+
+    @staticmethod
+    def aggregate_by_service_mixin_data(data: list):
+        """
+        按service id聚合数据分页后混合其他数据
+        """
+        service_ids = [i['service_id'] for i in data]    
+        services = ServiceConfig.objects.filter(id__in=service_ids).values('id', 'name')
+
+        service_dict = {}
+        for service in services:
+            service_id = service['id']
+            s = {
+                'service': service
+            }
+            service_dict[service_id] = s
+
+        for i in data:
+            i: dict
+            i.update(service_dict[i['service_id']])
 
         return data

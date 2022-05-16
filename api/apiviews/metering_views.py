@@ -178,6 +178,166 @@ class MeteringServerViewSet(CustomGenericViewSet):
         """
         return MeteringHandler().list_aggregation_by_server(view=self, request=request)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('按用户id显示云主机计量计费聚合列表'),
+        request_body=no_body,
+        manual_parameters=[
+            openapi.Parameter(
+                name='date_start',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'聚合日期起，默认当前月起始日期，ISO8601格式：YYYY-MM-dd'
+            ),
+            openapi.Parameter(
+                name='date_end',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'聚合日期止，默认当前月当前日期，ISO8601格式：YYYY-MM-dd'
+            ),   
+            openapi.Parameter(
+                name='service_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'查询指定服务'
+            ),                   
+        ] + CustomGenericViewSet.PARAMETERS_AS_ADMIN,
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['GET'], detail=False, url_path='aggregation/user', url_name='aggregation-by-user')
+    def aggregation_by_user(self, request, *args, **kwargs):
+        """
+        列举指定时间段内每个用户所有server计量计费单聚合
+
+            {
+              "count": 62,
+              "page_num": 1,
+              "page_size": 100,
+              "results": [
+                {
+                  "user_id": "0443ba18-0093-11ec-9a41-c8009fe2eb03",
+                  "total_original_amount": 62613.84,
+                  "total_trade_amount": 0,
+                  "total_server": 7,
+                  "user": {
+                    "id": "0443ba18-0093-11ec-9a41-c8009fe2eb03",
+                    "username": "zhouquan@cnic.cn",
+                    "company": "cnic"
+                  }
+                }
+              ]
+            }
+        """
+        return MeteringHandler().list_aggregation_by_user(view=self, request=request)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('按vo组显示云主机计量计费聚合列表'),
+        request_body=no_body,
+        manual_parameters=[
+            openapi.Parameter(
+                name='date_start',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'聚合日期起，默认当前月起始日期，ISO8601格式：YYYY-MM-dd'
+            ),
+            openapi.Parameter(
+                name='date_end',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'聚合日期止，默认当前月当前日期，ISO8601格式：YYYY-MM-dd'
+            ),   
+            openapi.Parameter(
+                name='service_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'查询指定服务'
+            ),                   
+        ] + CustomGenericViewSet.PARAMETERS_AS_ADMIN,
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['GET'], detail=False, url_path='aggregation/vo', url_name='aggregation-by-vo')
+    def aggregation_by_vo(self, request, *args, **kwargs):
+        """
+        列举指定时间段内每个vo组所有server计量计费单聚合
+
+            {
+              "count": 8,
+              "page_num": 1,
+              "page_size": 100,
+              "results": [
+                {
+                  "vo_id": "1d35892c-36d3-11ec-8e3b-c8009fe2eb03",
+                  "total_original_amount": 2885.39,
+                  "total_trade_amount": 0,
+                  "total_server": 3,
+                  "vo": {
+                    "id": "1d35892c-36d3-11ec-8e3b-c8009fe2eb03",
+                    "name": "科研计算云联邦演示",
+                    "company": "中国科学院计算机网络信息中心"
+                  }
+                }
+              ]
+            }
+        """
+        return MeteringHandler().list_aggregation_by_vo(view=self, request=request)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('按服务节点显示云主机计量计费聚合列表'),
+        request_body=no_body,
+        manual_parameters=[
+            openapi.Parameter(
+                name='date_start',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'聚合日期起，默认当前月起始日期，ISO8601格式：YYYY-MM-dd'
+            ),
+            openapi.Parameter(
+                name='date_end',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'聚合日期止，默认当前月当前日期，ISO8601格式：YYYY-MM-dd'
+            ),                   
+        ] + CustomGenericViewSet.PARAMETERS_AS_ADMIN,
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['GET'], detail=False, url_path='aggregation/service', url_name='aggregation-by-service')
+    def aggregation_by_service(self, request, *args, **kwargs):
+        """
+        列举指定时间段内每个服务节点所有server计量计费单聚合
+
+            {
+              "count": 4,
+              "page_num": 1,
+              "page_size": 100,
+              "results": [
+                {
+                  "service_id": "1",
+                  "total_original_amount": 508142.16,
+                  "total_trade_amount": 0,
+                  "total_server": 182,
+                  "service": {
+                    "id": "1",
+                    "name": "科技云联邦研发与运行"
+                  }
+                }
+              ]
+            }
+        """
+        return MeteringHandler().list_aggregation_by_service(view=self, request=request)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return serializers.MeteringServerSerializer
