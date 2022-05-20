@@ -1,4 +1,5 @@
 from decimal import Decimal
+from typing import List
 
 from django.utils.translation import gettext as _
 from django.db import transaction
@@ -7,7 +8,7 @@ from django.utils import timezone
 from core import errors
 from utils.model import OwnerType
 from vo.managers import VoManager
-from .models import CashCoupon
+from .models import CashCoupon, CouponType
 
 
 class CashCouponManager:
@@ -140,3 +141,125 @@ class CashCouponManager:
         coupon.status = CashCoupon.Status.DELETED.value
         coupon.save(update_fields=['status'])
         return coupon
+
+    def get_user_cash_coupons(self, user_id: str, coupon_ids: list, select_for_update: bool = False) -> List[CashCoupon]:
+        """
+        指定coupon_ids按coupon_ids排序，否者按券过期时间先后排序
+
+        :param user_id: 查询此用户的券
+        :param coupon_ids: 查询指定id的券
+        :param select_for_update: True(需要在事务中使用)
+        :return:
+            [CashCoupon(),]
+
+        :raises: Error
+        """
+        return self._get_cash_coupons(
+            queryset=CashCoupon.objects.filter(owner_type=OwnerType.USER.value, user_id=user_id),
+            coupon_ids=coupon_ids,
+            select_for_update=select_for_update
+        )
+
+    def get_vo_cash_coupons(self, vo_id: str, coupon_ids: list, select_for_update: bool = False) -> List[CashCoupon]:
+        """
+        指定coupon_ids按coupon_ids排序，否者按券过期时间先后排序
+
+        :param vo_id: 查询此vo的券
+        :param coupon_ids: 查询指定id的券
+        :param select_for_update: True(需要在事务中使用)
+        :return:
+            [CashCoupon(),]
+
+        :raises: Error
+        """
+        return self._get_cash_coupons(
+            queryset=CashCoupon.objects.filter(owner_type=OwnerType.VO.value, vo_id=vo_id),
+            coupon_ids=coupon_ids,
+            select_for_update=select_for_update
+        )
+
+    @staticmethod
+    def _get_cash_coupons(queryset, coupon_ids: list, select_for_update: bool = False):
+        """
+        查询有效可用的券
+
+        指定coupon_ids按coupon_ids排序，否者按券过期时间先后排序
+
+        :param queryset: 代金券查询集
+        :param coupon_ids: 查询指定id的券
+        :param select_for_update: True(需要在事务中使用)
+        :return:
+            [CashCoupon(),]
+
+        :raises: Error
+        """
+        now = timezone.now()
+        coupons_qs = queryset.order_by('expiration_time')
+
+        if select_for_update:
+            coupons_qs = coupons_qs.select_for_update()
+
+        if not coupon_ids:
+            coupons_qs = coupons_qs.filter(
+                status=CashCoupon.Status.AVAILABLE.value,
+                balance__gte=Decimal(0),
+                effective_time__lt=now,
+                expiration_time__gt=now
+            )
+            try:
+                return list(coupons_qs)
+            except Exception as e:
+                raise errors.Error(message=str(e))
+
+        coupons_qs = coupons_qs.filter(id__in=coupon_ids)
+        try:
+            coupons_dict = {c.id: c for c in coupons_qs}
+        except Exception as e:
+            raise errors.Error(message=str(e))
+
+        coupons = []
+        for c_id in coupon_ids:
+            if c_id not in coupons_dict:
+                raise errors.NotFound(message=_('代金券%(value)s不存在') % {'value': c_id}, code='NoSuchCoupon')
+
+            coupon = coupons_dict[c_id]
+            if coupon.status != CashCoupon.Status.AVAILABLE.value:
+                raise errors.ConflictError(message=_('代金券%(value)s无效') % {'value': c_id}, code='NotAvailable')
+
+            if coupon.effective_time and coupon.effective_time > now:
+                raise errors.ConflictError(
+                    message=_('代金券%(value)s未到生效时间') % {'value': c_id}, code='NotEffective')
+
+            if not coupon.expiration_time or coupon.expiration_time < now:
+                raise errors.ConflictError(message=_('代金券%(value)s已过期') % {'value': c_id}, code='ExpiredCoupon')
+
+            coupons.append(coupon)
+
+        return coupons
+
+    @staticmethod
+    def sorting_usable_coupons(coupons: List[CashCoupon], service_id: str, resource_type: str):
+        """
+        分拣适用指定资源的券
+        """
+        # 适用的券
+        usable_coupons = []
+        unusable_coupons = []
+        for coupon in coupons:
+            if coupon.coupon_type == CouponType.UNIVERSAL.value:
+                if (
+                    coupon.is_applicable_resource_universal() or
+                    (resource_type and resource_type in coupon.applicable_resource)
+                ):
+                    usable_coupons.append(coupon)
+                else:
+                    unusable_coupons.append(coupon)
+            elif coupon.coupon_type == CouponType.SPECIAL.value:
+                if service_id and service_id == coupon.service_id:
+                    usable_coupons.append(coupon)
+                else:
+                    unusable_coupons.append(coupon)
+            else:
+                unusable_coupons.append(coupon)
+
+        return usable_coupons, unusable_coupons

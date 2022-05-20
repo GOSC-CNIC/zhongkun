@@ -1,6 +1,8 @@
 import string
 import random
 
+from django.utils import timezone
+
 
 def random_string(length: int):
     """
@@ -34,3 +36,14 @@ def random_hexdigit_string(length: int):
     """
     items = [random.choice(string.hexdigits) for _ in range(length)]
     return ''.join(items)
+
+
+def timestamp20_rand4_sn():
+    """
+    生成时间+随机数的流水号
+    长24位: 日期+纳秒+4位随机数
+    """
+    t = timezone.now()
+    rand = random.randint(0, 9999)
+    return f"{t.year:04}{t.month:02}{t.day:02}{t.hour:02}{t.minute:02}{t.second:02}{t.microsecond:06}{rand:04}"
+

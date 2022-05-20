@@ -16,7 +16,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.CharField(blank=True, editable=False, max_length=36, primary_key=True, serialize=False, verbose_name='ID')),
                 ('payment_account', models.CharField(blank=True, default='', help_text='用户或VO余额ID, 及可能支持的其他账户', max_length=36, verbose_name='付款账户')),
-                ('payment_method', models.CharField(choices=[('balance', '余额')], default='balance', max_length=16, verbose_name='付款方式')),
+                ('payment_method', models.CharField(choices=[('balance', '余额'), ('coupon', '代金卷'), ('balance+coupon', '余额+代金卷')], default='balance', max_length=16, verbose_name='付款方式')),
                 ('executor', models.CharField(blank=True, default='', help_text='记录此次支付交易是谁执行完成的', max_length=128, verbose_name='交易执行人')),
                 ('payer_id', models.CharField(blank=True, default='', help_text='user id or vo id', max_length=36, verbose_name='付款人ID')),
                 ('payer_name', models.CharField(blank=True, default='', help_text='username or vo name', max_length=255, verbose_name='付款人名称')),

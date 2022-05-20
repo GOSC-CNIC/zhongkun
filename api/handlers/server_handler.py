@@ -387,7 +387,10 @@ class ServerHandler:
 
         try:
             order = PaymentManager().pay_order(
-                order=order, executor=request.user, remark='', required_enough_balance=True)
+                order=order, executor=request.user, remark='',
+                coupon_ids=[], only_coupon=False,
+                required_enough_balance=True
+            )
             self._create_server(order=order, resource=resource)
         except exceptions.Error as exc:
             request_logger.error(msg=f'[{type(exc)}] {str(exc)}')

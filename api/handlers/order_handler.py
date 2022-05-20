@@ -151,6 +151,7 @@ class OrderHandler:
         try:
             order = PaymentManager().pay_order(
                 order=order, executor=request.user.username, remark='',
+                coupon_ids=[], only_coupon=False,
                 required_enough_balance=True
             )
         except errors.Error as exc:
