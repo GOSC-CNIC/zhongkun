@@ -241,6 +241,8 @@ class CashCouponManager:
     def sorting_usable_coupons(coupons: List[CashCoupon], service_id: str, resource_type: str):
         """
         分拣适用指定资源的券
+
+        * 非通用券，非通用适用资源券，不指定参数“service_id”或“resource_type”时，判定为不可用券
         """
         # 适用的券
         usable_coupons = []

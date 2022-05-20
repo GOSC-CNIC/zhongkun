@@ -51,7 +51,10 @@ class PaymentManager:
 
         return vo_account
 
-    def has_enough_balance_user(self, user_id: str, money_amount: Decimal):
+    def has_enough_balance_user(
+            self, user_id: str, money_amount: Decimal,
+            with_coupons: bool, resource_type: str, service_id: str
+    ):
         """
         用户是否有足够的余额
         :return:
@@ -59,9 +62,26 @@ class PaymentManager:
             False
         """
         user_account = self.get_user_point_account(user_id=user_id)
-        return user_account.balance >= money_amount
+        total_coupon_balance = user_account.balance
+        if with_coupons:
+            coupons = CashCouponManager().get_user_cash_coupons(
+                user_id=user_id, coupon_ids=[], select_for_update=False
+            )
 
-    def has_enough_balance_vo(self, vo_id: str, money_amount: Decimal):
+            # 适用的券
+            usable_coupons, unusable_coupons = CashCouponManager.sorting_usable_coupons(
+                coupons=coupons, resource_type=resource_type, service_id=service_id
+            )
+
+            for c in usable_coupons:
+                total_coupon_balance += c.balance
+
+        return total_coupon_balance >= money_amount
+
+    def has_enough_balance_vo(
+            self, vo_id: str, money_amount: Decimal,
+            with_coupons: bool, resource_type: str, service_id: str
+    ):
         """
         vo组是否有足够的余额
         :return:
@@ -69,10 +89,23 @@ class PaymentManager:
             False
         """
         vo_account = self.get_vo_point_account(vo_id=vo_id)
-        return vo_account.balance >= money_amount
+        total_coupon_balance = vo_account.balance
+        if with_coupons:
+            coupons = CashCouponManager().get_vo_cash_coupons(
+                vo_id=vo_id, coupon_ids=[], select_for_update=False
+            )
+            # 适用的券
+            usable_coupons, unusable_coupons = CashCouponManager.sorting_usable_coupons(
+                coupons=coupons, resource_type=resource_type, service_id=service_id
+            )
+
+            for c in usable_coupons:
+                total_coupon_balance += c.balance
+
+        return total_coupon_balance >= money_amount
 
     @staticmethod
-    def _pre_payment_inspect(metering_bill: MeteringBase, remark: str):
+    def _pre_payment_bill_inspect(metering_bill: MeteringBase, remark: str):
         """
         支付bill前检查
 
@@ -102,7 +135,7 @@ class PaymentManager:
         :param executor: bill支付的执行人
         :param remark: 支付记录备注信息
         :param required_enough_balance: 是否要求余额必须足够支付，默认True(必须有足够的余额支付)，False(允许余额为负)
-
+        :return: None
         :raises: Error
         """
         with transaction.atomic():
@@ -121,10 +154,10 @@ class PaymentManager:
         :param metering_bill: MeteringBase子类对象
         :param executor: bill支付的执行人
         :param remark: 备注信息
-
+        :return: None
         :raises: Error, BalanceNotEnough
         """
-        self._pre_payment_inspect(metering_bill=metering_bill, remark=remark)
+        self._pre_payment_bill_inspect(metering_bill=metering_bill, remark=remark)
         if not metering_bill.is_postpaid():
             try:
                 metering_bill.set_paid(trade_amount=Decimal(0))
@@ -135,89 +168,34 @@ class PaymentManager:
 
         try:
             owner_id = metering_bill.get_owner_id()
+            resource_type = metering_bill.get_resource_type()
+            service_id = metering_bill.get_service_id()
+            instance_id = metering_bill.get_instance_id()
             if metering_bill.is_owner_type_user():
-                return self._pay_user_bill(
-                    bill=metering_bill, payer_id=owner_id, executor=executor, remark=remark,
-                    required_enough_balance=required_enough_balance
+                pay_history = self.pay_by_user(
+                    user_id=owner_id, amounts=metering_bill.original_amount, executor=executor,
+                    remark=remark, order_id='', resource_type=resource_type,
+                    service_id=service_id, instance_id=instance_id,
+                    required_enough_balance=required_enough_balance,
+                    coupon_ids=[], only_coupon=False
                 )
             else:
-                return self._pay_vo_bill(
-                    bill=metering_bill, payer_id=owner_id, executor=executor, remark=remark,
-                    required_enough_balance=required_enough_balance
+                pay_history = self.pay_by_vo(
+                    vo_id=owner_id, amounts=metering_bill.original_amount, executor=executor,
+                    remark=remark, order_id='', resource_type=resource_type,
+                    service_id=service_id, instance_id=instance_id,
+                    required_enough_balance=required_enough_balance,
+                    coupon_ids=[], only_coupon=False
                 )
+
+            # 订单支付状态
+            pay_amount = -(pay_history.amounts + pay_history.coupon_amount)
+            # 账单支付状态
+            metering_bill.set_paid(trade_amount=pay_amount, payment_history_id=pay_history.id)
         except errors.Error as exc:
             raise exc
         except Exception as exc:
             raise errors.Error.from_error(exc)
-
-    def _pay_user_bill(
-            self, bill: MeteringBase, payer_id: str, executor: str, remark: str, required_enough_balance: bool
-    ) -> Decimal:
-        user_account = self.get_user_point_account(user_id=payer_id, select_for_update=True)
-        self.__do_pay_bill(
-            account=user_account, bill=bill, payer_id=payer_id, payer_name=user_account.user.username,
-            payer_type=OwnerType.USER.value, executor=executor, remark=remark,
-            required_enough_balance=required_enough_balance
-        )
-
-        return user_account.balance
-
-    def _pay_vo_bill(
-            self, bill: MeteringBase, payer_id: str, executor: str, remark: str, required_enough_balance: bool
-    ) -> Decimal:
-        vo_account = self.get_vo_point_account(vo_id=payer_id, select_for_update=True)
-        self.__do_pay_bill(
-            account=vo_account, bill=bill, payer_id=payer_id, payer_name=vo_account.vo.name,
-            payer_type=OwnerType.VO.value, executor=executor, remark=remark,
-            required_enough_balance=required_enough_balance
-        )
-
-        return vo_account.balance
-
-    @staticmethod
-    def __do_pay_bill(
-            account, bill: MeteringBase, payer_id: str, payer_name: str, payer_type: str, executor: str, remark: str,
-            required_enough_balance: bool
-    ):
-        before_payment = account.balance
-        trade_amount = bill.original_amount
-
-        # 确认余额是否足够支付
-        if required_enough_balance:
-            if account.balance < trade_amount:
-                raise errors.BalanceNotEnough()
-
-        after_payment = before_payment - trade_amount
-        history_amounts = - trade_amount
-        history_type = PaymentHistory.Type.PAYMENT.value
-
-        # 账户扣款
-        account.balance = after_payment
-        account.save(update_fields=['balance'])
-
-        # 支付记录
-        pay_history = PaymentHistory(
-            payment_account=account.id,
-            payment_method=PaymentHistory.PaymentMethod.BALANCE.value,
-            executor=executor,
-            payer_id=payer_id,
-            payer_name=payer_name,
-            payer_type=payer_type,
-            amounts=history_amounts,
-            before_payment=before_payment,
-            after_payment=after_payment,
-            type=history_type,
-            remark=remark,
-            order_id='',
-            resource_type=bill.get_resource_type(),
-            service_id=bill.get_service_id(),
-            instance_id=bill.get_instance_id()
-        )
-        pay_history.save(force_insert=True)
-
-        # 账单支付状态
-        bill.set_paid(trade_amount=trade_amount, payment_history_id=pay_history.id)
-        return True
 
     def pay_order(
             self, order,

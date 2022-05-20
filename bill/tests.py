@@ -28,7 +28,7 @@ class PaymentManagerTests(TransactionTestCase):
         # pay bill, invalid user id
         metering_bill_postpaid1 = MeteringServer(
             service_id=self.service.id,
-            server_id='server_id',
+            server_id='server_id2',
             date=timezone.now().date(),
             owner_type=OwnerType.USER.value,
             user_id='user_id',
@@ -53,12 +53,13 @@ class PaymentManagerTests(TransactionTestCase):
             )
 
         # pay bill, pay_type POSTPAID
-        balance = pay_mgr.pay_metering_bill(
+        pay_mgr.pay_metering_bill(
             metering_bill=metering_bill_postpaid1, executor=self.user.username, remark='',
             required_enough_balance=False
         )
-        self.assertEqual(balance, Decimal('-123.45'))
-        user_balance = balance
+        self.user.userpointaccount.refresh_from_db()
+        user_balance = self.user.userpointaccount.balance
+        self.assertEqual(user_balance, Decimal('-123.45'))
         metering_bill_postpaid1.refresh_from_db()
         self.assertEqual(metering_bill_postpaid1.original_amount, Decimal('123.45'))
         self.assertEqual(metering_bill_postpaid1.trade_amount, Decimal('123.45'))
@@ -67,12 +68,13 @@ class PaymentManagerTests(TransactionTestCase):
         pay_history.refresh_from_db()
         self.assertEqual(pay_history.type, PaymentHistory.Type.PAYMENT)
         self.assertEqual(pay_history.amounts, Decimal('-123.45'))
+        self.assertEqual(pay_history.coupon_amount, Decimal('0'))
         self.assertEqual(pay_history.before_payment, Decimal(0))
         self.assertEqual(pay_history.after_payment, Decimal('-123.45'))
         self.assertEqual(pay_history.payer_name, payer_name)
         self.assertEqual(pay_history.resource_type, ResourceType.VM.value)
         self.assertEqual(pay_history.service_id, self.service.id)
-        self.assertEqual(pay_history.instance_id, 'server_id')
+        self.assertEqual(pay_history.instance_id, 'server_id2')
         self.assertEqual(pay_history.payer_type, OwnerType.USER.value)
         self.assertEqual(pay_history.payer_id, self.user.id)
         self.assertEqual(pay_history.executor, self.user.username)
@@ -94,11 +96,10 @@ class PaymentManagerTests(TransactionTestCase):
             payment_history_id=None
         )
         metering_bill_prepaid.save(force_insert=True)
-        balance2 = pay_mgr.pay_metering_bill(
+        pay_mgr.pay_metering_bill(
             metering_bill=metering_bill_prepaid, executor=self.user.username, remark='',
             required_enough_balance=False
         )
-        self.assertIs(balance2, None)
         metering_bill_prepaid.refresh_from_db()
         self.user.userpointaccount.refresh_from_db()
         self.assertEqual(self.user.userpointaccount.balance, user_balance)
@@ -122,24 +123,24 @@ class PaymentManagerTests(TransactionTestCase):
             payment_history_id=None
         )
         metering_bill_postpaid2.save(force_insert=True)
-        balance3 = pay_mgr.pay_metering_bill(
+        pay_mgr.pay_metering_bill(
             metering_bill=metering_bill_postpaid2, executor=self.user.username, remark='',
             required_enough_balance=False
         )
-        self.assertEqual(balance3, user_balance - Decimal('66.88'))
-        user_balance = balance3
+        self.user.userpointaccount.refresh_from_db()
+        user_balance = self.user.userpointaccount.balance
+        self.assertEqual(user_balance, Decimal('-123.45') - Decimal('66.88'))
         metering_bill_postpaid2.refresh_from_db()
         self.assertEqual(metering_bill_postpaid2.payment_status, PaymentStatus.PAID.value)
         self.assertEqual(metering_bill_postpaid2.original_amount, Decimal('66.88'))
         self.assertEqual(metering_bill_postpaid2.trade_amount, Decimal('66.88'))
-        self.user.userpointaccount.refresh_from_db()
-        self.assertEqual(self.user.userpointaccount.balance, user_balance)
 
         pay_history = metering_bill_postpaid2.payment_history
         pay_history.refresh_from_db()
         self.assertEqual(pay_history.amounts, Decimal('-66.88'))
+        self.assertEqual(pay_history.coupon_amount, Decimal('0'))
         self.assertEqual(pay_history.before_payment, Decimal('-123.45'))
-        self.assertEqual(pay_history.after_payment, Decimal('-123.45') - Decimal('66.88'))
+        self.assertEqual(pay_history.after_payment, Decimal('-190.33'))
         self.assertEqual(pay_history.executor, self.user.username)
         self.assertEqual(pay_history.payer_type, OwnerType.USER.value)
         self.assertEqual(pay_history.payer_id, self.user.id)
@@ -150,6 +151,101 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(pay_history.resource_type, ResourceType.VM.value)
         self.assertEqual(pay_history.service_id, self.service.id)
         self.assertEqual(pay_history.instance_id, 'server2_id')
+
+        # ------- test coupon --------
+        now_time = timezone.now()
+        # 通用有效
+        coupon1_user = CashCoupon(
+            face_value=Decimal('20'),
+            balance=Decimal('20'),
+            effective_time=now_time - timedelta(days=1),
+            expiration_time=now_time + timedelta(days=10),
+            coupon_type=CouponType.UNIVERSAL.value,
+            service_id=None,
+            _applicable_resource=[ApplicableResourceField.UNIVERSAL_VALUE],
+            status=CashCoupon.Status.AVAILABLE.value,
+            owner_type=OwnerType.USER.value,
+            user_id=self.user.id, vo_id=None
+        )
+        coupon1_user.save(force_insert=True)
+
+        # 通用有效，只适用于云硬盘
+        coupon2_user = CashCoupon(
+            face_value=Decimal('33'),
+            balance=Decimal('33'),
+            effective_time=now_time - timedelta(days=2),
+            expiration_time=now_time + timedelta(days=10),
+            coupon_type=CouponType.UNIVERSAL.value,
+            service_id=None,
+            _applicable_resource=[ResourceType.DISK.value],
+            status=CashCoupon.Status.AVAILABLE.value,
+            owner_type=OwnerType.USER.value,
+            user_id=self.user.id, vo_id=None
+        )
+        coupon2_user.save(force_insert=True)
+
+        # 通用有效
+        coupon3_vo = CashCoupon(
+            face_value=Decimal('50'),
+            balance=Decimal('50'),
+            effective_time=now_time - timedelta(days=1),
+            expiration_time=now_time + timedelta(days=10),
+            coupon_type=CouponType.UNIVERSAL.value,
+            service_id=None,
+            _applicable_resource=[ApplicableResourceField.UNIVERSAL_VALUE],
+            status=CashCoupon.Status.AVAILABLE.value,
+            owner_type=OwnerType.VO.value,
+            user_id=None, vo_id=self.vo.id
+        )
+        coupon3_vo.save(force_insert=True)
+
+        # pay bill, pay_type POSTPAID
+        metering_bill_postpaid3 = MeteringServer(
+            service_id=self.service.id,
+            server_id='server3_id',
+            date=(timezone.now() - timedelta(days=2)),
+            owner_type=OwnerType.USER.value,
+            user_id=self.user.id,
+            vo_id='',
+            pay_type=PayType.POSTPAID.value,
+            original_amount=Decimal('88.8'),
+            trade_amount=Decimal(0),
+            payment_status=PaymentStatus.UNPAID.value,
+            payment_history_id=None
+        )
+        metering_bill_postpaid3.save(force_insert=True)
+
+        self.user.userpointaccount.refresh_from_db()
+        user_balance = self.user.userpointaccount.balance
+        self.assertEqual(user_balance, Decimal('-190.33'))
+        pay_mgr.pay_metering_bill(
+            metering_bill=metering_bill_postpaid3, executor=self.user.username, remark='',
+            required_enough_balance=False
+        )
+        self.user.userpointaccount.refresh_from_db()
+        user_balance = self.user.userpointaccount.balance
+        self.assertEqual(user_balance, Decimal('-190.33') - Decimal('88.8') + Decimal('20'))  # coupon 20
+        metering_bill_postpaid3.refresh_from_db()
+        self.assertEqual(metering_bill_postpaid3.payment_status, PaymentStatus.PAID.value)
+        self.assertEqual(metering_bill_postpaid3.original_amount, Decimal('88.8'))
+        self.assertEqual(metering_bill_postpaid3.trade_amount, Decimal('88.8'))
+
+        pay_history = metering_bill_postpaid3.payment_history
+        pay_history.refresh_from_db()
+        self.assertEqual(pay_history.amounts, Decimal('-68.8'))
+        self.assertEqual(pay_history.coupon_amount, Decimal('-20'))
+        self.assertEqual(pay_history.before_payment, Decimal('-190.33'))
+        self.assertEqual(pay_history.after_payment, Decimal('-259.13'))
+        self.assertEqual(pay_history.executor, self.user.username)
+        self.assertEqual(pay_history.payer_type, OwnerType.USER.value)
+        self.assertEqual(pay_history.payer_id, self.user.id)
+        self.assertEqual(pay_history.type, PaymentHistory.Type.PAYMENT)
+        self.assertEqual(pay_history.payment_method, PaymentHistory.PaymentMethod.BALANCE_COUPON.value)
+        self.assertEqual(pay_history.payment_account, self.user.userpointaccount.id)
+        self.assertEqual(pay_history.payer_name, payer_name)
+        self.assertEqual(pay_history.resource_type, ResourceType.VM.value)
+        self.assertEqual(pay_history.service_id, self.service.id)
+        self.assertEqual(pay_history.instance_id, 'server3_id')
 
     def test_pay_vo_bill(self):
         pay_mgr = PaymentManager()
@@ -183,12 +279,13 @@ class PaymentManagerTests(TransactionTestCase):
             )
 
         # pay bill, pay_type POSTPAID
-        balance = pay_mgr.pay_metering_bill(
+        pay_mgr.pay_metering_bill(
             metering_bill=metering_bill_postpaid1, executor=self.user.username, remark='',
             required_enough_balance=False
         )
-        self.assertEqual(balance, Decimal('-123.45'))
-        user_balance = balance
+
+        user_balance = pay_mgr.get_vo_point_account(vo_id=self.vo.id).balance
+        self.assertEqual(user_balance, Decimal('-123.45'))
         metering_bill_postpaid1.refresh_from_db()
         self.assertEqual(metering_bill_postpaid1.payment_status, PaymentStatus.PAID.value)
         self.assertEqual(metering_bill_postpaid1.original_amount, Decimal('123.45'))
@@ -224,18 +321,17 @@ class PaymentManagerTests(TransactionTestCase):
             payment_history_id=None
         )
         metering_bill_prepaid.save(force_insert=True)
-        balance2 = pay_mgr.pay_metering_bill(
+        pay_mgr.pay_metering_bill(
             metering_bill=metering_bill_prepaid, executor=self.user.username, remark='',
             required_enough_balance=False
         )
-        self.assertIs(balance2, None)
         metering_bill_prepaid.refresh_from_db()
         self.assertEqual(metering_bill_prepaid.payment_status, PaymentStatus.PAID.value)
         self.assertEqual(metering_bill_prepaid.original_amount, Decimal('223.45'))
         self.assertEqual(metering_bill_prepaid.trade_amount, Decimal(0))
         self.assertIs(metering_bill_prepaid.payment_history, None)
         self.vo.vopointaccount.refresh_from_db()
-        self.assertEqual(self.vo.vopointaccount.balance, user_balance)
+        self.assertEqual(self.vo.vopointaccount.balance, Decimal('-123.45'))
 
         # pay bill, pay_type POSTPAID
         metering_bill_postpaid2 = MeteringDisk(
@@ -252,14 +348,12 @@ class PaymentManagerTests(TransactionTestCase):
             payment_history_id=None
         )
         metering_bill_postpaid2.save(force_insert=True)
-        balance3 = pay_mgr.pay_metering_bill(
+        pay_mgr.pay_metering_bill(
             metering_bill=metering_bill_postpaid2, executor=self.user.username, remark='',
             required_enough_balance=False
         )
-        self.assertEqual(balance3, user_balance - Decimal('66.88'))
-        user_balance = balance3
         self.vo.vopointaccount.refresh_from_db()
-        self.assertEqual(self.vo.vopointaccount.balance, user_balance)
+        self.assertEqual(self.vo.vopointaccount.balance, Decimal('-123.45') - Decimal('66.88'))
         metering_bill_postpaid2.refresh_from_db()
         self.assertEqual(metering_bill_postpaid2.payment_status, PaymentStatus.PAID.value)
         self.assertEqual(metering_bill_postpaid2.original_amount, Decimal('66.88'))
@@ -304,6 +398,101 @@ class PaymentManagerTests(TransactionTestCase):
         with self.assertRaises(errors.Error):
             pay_mgr.pay_metering_bill(
                 metering_bill=metering_bill_paid, executor=self.user.username, remark='')
+
+        # ------- test coupon --------
+        now_time = timezone.now()
+        # 通用有效
+        coupon1_vo = CashCoupon(
+            face_value=Decimal('20'),
+            balance=Decimal('20'),
+            effective_time=now_time - timedelta(days=1),
+            expiration_time=now_time + timedelta(days=10),
+            coupon_type=CouponType.UNIVERSAL.value,
+            service_id=None,
+            _applicable_resource=[ApplicableResourceField.UNIVERSAL_VALUE],
+            status=CashCoupon.Status.AVAILABLE.value,
+            owner_type=OwnerType.VO.value,
+            user_id=None, vo_id=self.vo.id
+        )
+        coupon1_vo.save(force_insert=True)
+
+        # 通用有效，只适用于云硬盘
+        coupon2_vo = CashCoupon(
+            face_value=Decimal('33'),
+            balance=Decimal('33'),
+            effective_time=now_time - timedelta(days=2),
+            expiration_time=now_time + timedelta(days=10),
+            coupon_type=CouponType.UNIVERSAL.value,
+            service_id=None,
+            _applicable_resource=[ResourceType.DISK.value],
+            status=CashCoupon.Status.AVAILABLE.value,
+            owner_type=OwnerType.VO.value,
+            user_id=None, vo_id=self.vo.id
+        )
+        coupon2_vo.save(force_insert=True)
+
+        # 通用有效
+        coupon3_user = CashCoupon(
+            face_value=Decimal('50'),
+            balance=Decimal('50'),
+            effective_time=now_time - timedelta(days=1),
+            expiration_time=now_time + timedelta(days=10),
+            coupon_type=CouponType.UNIVERSAL.value,
+            service_id=None,
+            _applicable_resource=[ApplicableResourceField.UNIVERSAL_VALUE],
+            status=CashCoupon.Status.AVAILABLE.value,
+            owner_type=OwnerType.USER.value,
+            user_id=self.user.id, vo_id=None
+        )
+        coupon3_user.save(force_insert=True)
+
+        # pay bill, pay_type POSTPAID
+        metering_bill_postpaid3 = MeteringServer(
+            service_id=self.service.id,
+            server_id='server3_id',
+            date=(timezone.now() - timedelta(days=2)),
+            owner_type=OwnerType.VO.value,
+            user_id='',
+            vo_id=self.vo.id,
+            pay_type=PayType.POSTPAID.value,
+            original_amount=Decimal('88.8'),
+            trade_amount=Decimal(0),
+            payment_status=PaymentStatus.UNPAID.value,
+            payment_history_id=None
+        )
+        metering_bill_postpaid3.save(force_insert=True)
+
+        self.vo.vopointaccount.refresh_from_db()
+        vo_balance = self.vo.vopointaccount.balance
+        self.assertEqual(vo_balance, Decimal('-123.45') - Decimal('66.88'))
+        pay_mgr.pay_metering_bill(
+            metering_bill=metering_bill_postpaid3, executor=self.user.username, remark='',
+            required_enough_balance=False
+        )
+        self.vo.vopointaccount.refresh_from_db()
+        vo_balance = self.vo.vopointaccount.balance
+        self.assertEqual(vo_balance, Decimal('-190.33') - Decimal('88.8') + Decimal('20'))  # coupon 20
+        metering_bill_postpaid3.refresh_from_db()
+        self.assertEqual(metering_bill_postpaid3.payment_status, PaymentStatus.PAID.value)
+        self.assertEqual(metering_bill_postpaid3.original_amount, Decimal('88.8'))
+        self.assertEqual(metering_bill_postpaid3.trade_amount, Decimal('88.8'))
+
+        pay_history = metering_bill_postpaid3.payment_history
+        pay_history.refresh_from_db()
+        self.assertEqual(pay_history.amounts, Decimal('-68.8'))
+        self.assertEqual(pay_history.coupon_amount, Decimal('-20'))
+        self.assertEqual(pay_history.before_payment, Decimal('-190.33'))
+        self.assertEqual(pay_history.after_payment, Decimal('-259.13'))
+        self.assertEqual(pay_history.executor, self.user.username)
+        self.assertEqual(pay_history.payer_type, OwnerType.VO.value)
+        self.assertEqual(pay_history.payer_id, self.vo.id)
+        self.assertEqual(pay_history.type, PaymentHistory.Type.PAYMENT)
+        self.assertEqual(pay_history.payment_method, PaymentHistory.PaymentMethod.BALANCE_COUPON.value)
+        self.assertEqual(pay_history.payment_account, self.vo.vopointaccount.id)
+        self.assertEqual(pay_history.payer_name, self.vo.name)
+        self.assertEqual(pay_history.resource_type, ResourceType.VM.value)
+        self.assertEqual(pay_history.service_id, self.service.id)
+        self.assertEqual(pay_history.instance_id, 'server3_id')
 
     def test_pay_order_no_coupon(self):
         pay_mgr = PaymentManager()
