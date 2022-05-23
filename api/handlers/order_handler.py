@@ -130,10 +130,10 @@ class OrderHandler:
             return view.exception_response(
                 errors.BadRequest(message=_('支付方式参数“payment_method”'), code='MissingPaymentMethod'))
 
-        if payment_method == Order.PaymentMethod.VOUCHER.value:
+        if payment_method == Order.PaymentMethod.CASH_COUPON.value:
             return view.exception_response(
                 errors.BadRequest(message=_('暂不支持代金卷支付方式'), code='InvalidPaymentMethod'))
-        if payment_method not in [Order.PaymentMethod.BALANCE.value, Order.PaymentMethod.VOUCHER.value]:
+        if payment_method not in [Order.PaymentMethod.BALANCE.value, Order.PaymentMethod.CASH_COUPON.value]:
             return view.exception_response(
                 errors.BadRequest(message=_('支付方式参数“payment_method”值无效'), code='InvalidPaymentMethod'))
 

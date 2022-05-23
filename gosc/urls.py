@@ -24,16 +24,12 @@ from . import views
 from . import admin_site
 
 
-schema_url = 'https://vms.cstcloud.cn'
-if getattr(settings, 'DEBUG', False):
-    schema_url = None
-
 schema_view = get_schema_view(
     openapi.Info(
-        title="GOSC API",
+        title="VMS API",
         default_version='v1',
     ),
-    url=schema_url,
+    url=getattr(settings, 'SWAGGER_SCHEMA_URL', None),
     public=False,
     permission_classes=(permissions.AllowAny,),
 )

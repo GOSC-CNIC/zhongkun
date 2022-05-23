@@ -43,7 +43,7 @@ class Order(models.Model):
     class PaymentMethod(models.TextChoices):
         UNKNOWN = 'unknown', _('未知')
         BALANCE = 'balance', _('余额')
-        VOUCHER = 'voucher', _('代金卷')
+        CASH_COUPON = 'cashcoupon', _('代金卷')
 
     class TradingStatus(models.TextChoices):
         OPENING = 'opening', _('交易中')

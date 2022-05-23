@@ -581,7 +581,7 @@ class OrderTests(MyAPITestCase):
         self.assertErrorResponse(status_code=400, code='MissingPaymentMethod', response=response)
 
         url = reverse('api:order-pay-order', kwargs={'id': '2022041810175512345678'})
-        query = parse.urlencode(query={'payment_method': Order.PaymentMethod.VOUCHER.value})
+        query = parse.urlencode(query={'payment_method': Order.PaymentMethod.CASH_COUPON.value})
         response = self.client.post(f'{url}?{query}')
         self.assertErrorResponse(status_code=400, code='InvalidPaymentMethod', response=response)
 

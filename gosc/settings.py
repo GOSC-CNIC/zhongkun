@@ -339,6 +339,9 @@ SWAGGER_SETTINGS = {
     },
 }
 
+# swagger api在线文档地址配置
+SWAGGER_SCHEMA_URL = None     # 'https://xxx.xxx'
+
 
 # 跨域
 # CORS_ALLOWED_ORIGINS = [

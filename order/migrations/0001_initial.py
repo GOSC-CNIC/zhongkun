@@ -28,7 +28,7 @@ class Migration(migrations.Migration):
                 ('period', models.IntegerField(blank=True, default=0, verbose_name='订购时长(月)')),
                 ('payment_time', models.DateTimeField(blank=True, default=None, null=True, verbose_name='支付时间')),
                 ('pay_type', models.CharField(choices=[('prepaid', '包年包月'), ('postpaid', '按量计费'), ('quota', '资源配额券')], max_length=16, verbose_name='结算方式')),
-                ('payment_method', models.CharField(choices=[('unknown', '未知'), ('balance', '余额'), ('voucher', '代金卷')], default='unknown', max_length=16, verbose_name='付款方式')),
+                ('payment_method', models.CharField(choices=[('unknown', '未知'), ('balance', '余额'), ('cashcoupon', '代金卷')], default='unknown', max_length=16, verbose_name='付款方式')),
                 ('creation_time', models.DateTimeField(auto_now_add=True, verbose_name='创建时间')),
                 ('start_time', models.DateTimeField(blank=True, default=None, null=True, verbose_name='起用时间')),
                 ('end_time', models.DateTimeField(blank=True, default=None, null=True, verbose_name='终止时间')),
