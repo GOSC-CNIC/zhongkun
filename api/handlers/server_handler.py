@@ -391,8 +391,8 @@ class ServerHandler:
 
         try:
             order = PaymentManager().pay_order(
-                order=order, executor=request.user, remark='',
-                coupon_ids=[], only_coupon=False,
+                order=order, executor=request.user.username, remark='',
+                coupon_ids=None, only_coupon=False,
                 required_enough_balance=True
             )
             self._create_server(order=order, resource=resource)

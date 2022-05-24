@@ -142,12 +142,12 @@ class CashCouponManager:
         coupon.save(update_fields=['status'])
         return coupon
 
-    def get_user_cash_coupons(self, user_id: str, coupon_ids: list, select_for_update: bool = False) -> List[CashCoupon]:
+    def get_user_cash_coupons(self, user_id: str, coupon_ids: list = None, select_for_update: bool = False) -> List[CashCoupon]:
         """
         指定coupon_ids按coupon_ids排序，否者按券过期时间先后排序
 
         :param user_id: 查询此用户的券
-        :param coupon_ids: 查询指定id的券
+        :param coupon_ids: 查询指定id的券；None(不指定券，查所有券)；[](空，指定不使用券)；
         :param select_for_update: True(需要在事务中使用)
         :return:
             [CashCoupon(),]
@@ -160,12 +160,12 @@ class CashCouponManager:
             select_for_update=select_for_update
         )
 
-    def get_vo_cash_coupons(self, vo_id: str, coupon_ids: list, select_for_update: bool = False) -> List[CashCoupon]:
+    def get_vo_cash_coupons(self, vo_id: str, coupon_ids: list = None, select_for_update: bool = False) -> List[CashCoupon]:
         """
         指定coupon_ids按coupon_ids排序，否者按券过期时间先后排序
 
         :param vo_id: 查询此vo的券
-        :param coupon_ids: 查询指定id的券
+        :param coupon_ids: 查询指定id的券；None(不指定券，查所有券)；[](空，指定不使用券)；
         :param select_for_update: True(需要在事务中使用)
         :return:
             [CashCoupon(),]
@@ -186,13 +186,16 @@ class CashCouponManager:
         指定coupon_ids按coupon_ids排序，否者按券过期时间先后排序
 
         :param queryset: 代金券查询集
-        :param coupon_ids: 查询指定id的券
+        :param coupon_ids: 查询指定id的券；None(不指定券，查所有券)；[](空，指定不使用券)；
         :param select_for_update: True(需要在事务中使用)
         :return:
             [CashCoupon(),]
 
         :raises: Error
         """
+        if coupon_ids == []:
+            return []
+
         now = timezone.now()
         coupons_qs = queryset.order_by('expiration_time')
 

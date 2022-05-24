@@ -13,6 +13,9 @@ from utils.time import iso_to_datetime
 from api import request_logger
 
 
+CASH_COUPON_BALANCE = 'coupon_balance'
+
+
 class OrderHandler:
     def list_order(self, view: CustomGenericViewSet, request):
         try:
@@ -114,28 +117,65 @@ class OrderHandler:
         return Response(data=serializer.data)
 
     @staticmethod
+    def _pre_pay_order_validate_params(view: CustomGenericViewSet, request, kwargs):
+        """
+        支付一个订单参数验证
+        :raises: Error
+        """
+        payment_method = request.query_params.get('payment_method', None)
+        coupon_ids = request.query_params.getlist('coupon_ids', [])
+        order_id: str = kwargs.get(view.lookup_field, '')
+
+        if coupon_ids == []:
+            coupon_ids = None
+
+        if len(order_id) != 22:
+            raise errors.BadRequest(_('无效的订单编号'), code='InvalidOrderId')
+
+        if not order_id.isdigit():
+            raise errors.BadRequest(_('无效的订单编号'), code='InvalidOrderId')
+
+        if payment_method is None:
+            raise errors.BadRequest(message=_('支付方式参数“payment_method”'), code='MissingPaymentMethod')
+
+        if payment_method == Order.PaymentMethod.BALANCE.value:
+            if coupon_ids:
+                raise errors.BadRequest(message=_('仅余额支付方式不能指定代金券'), code='CouponIDsShouldNotExist')
+            only_coupon = False
+            coupon_ids = []
+        elif payment_method == Order.PaymentMethod.CASH_COUPON.value:
+            if not coupon_ids:
+                raise errors.BadRequest(message=_('仅代金券支付方式必须指定代金券'), code='MissingCouponIDs')
+            only_coupon = True
+        elif payment_method == CASH_COUPON_BALANCE:
+            only_coupon = False
+        else:
+            raise errors.BadRequest(message=_('支付方式参数“payment_method”值无效'), code='InvalidPaymentMethod')
+
+        if coupon_ids:
+            coupon_set = set(coupon_ids)
+            if not all(coupon_set):
+                raise errors.BadRequest(message=_('参数“coupon_ids”的值不能为空'), code='InvalidCouponIDs')
+
+            if len(coupon_ids) > 5:
+                raise errors.BadRequest(message=_('最多可以指定使用5个代金券'), code='TooManyCouponIDs')
+
+            if len(coupon_set) != len(coupon_ids):
+                raise errors.BadRequest(message=_('指定的代金券有重复'), code='DuplicateCouponIDExist')
+
+        return order_id, coupon_ids, only_coupon
+
+    @staticmethod
     def pay_order(view: CustomGenericViewSet, request, kwargs):
         """
         支付一个订单
         """
-        payment_method = request.query_params.get('payment_method', None)
-        order_id: str = kwargs.get(view.lookup_field, '')
-        if len(order_id) != 22:
-            return view.exception_response(errors.BadRequest(_('无效的订单编号'), code='InvalidOrderId'))
-
-        if not order_id.isdigit():
-            return view.exception_response(errors.BadRequest(_('无效的订单编号'), code='InvalidOrderId'))
-
-        if payment_method is None:
-            return view.exception_response(
-                errors.BadRequest(message=_('支付方式参数“payment_method”'), code='MissingPaymentMethod'))
-
-        if payment_method == Order.PaymentMethod.CASH_COUPON.value:
-            return view.exception_response(
-                errors.BadRequest(message=_('暂不支持代金卷支付方式'), code='InvalidPaymentMethod'))
-        if payment_method not in [Order.PaymentMethod.BALANCE.value, Order.PaymentMethod.CASH_COUPON.value]:
-            return view.exception_response(
-                errors.BadRequest(message=_('支付方式参数“payment_method”值无效'), code='InvalidPaymentMethod'))
+        try:
+            order_id, coupon_ids, only_coupon = OrderHandler._pre_pay_order_validate_params(
+                view=view, request=request, kwargs=kwargs
+            )
+        except errors.Error as exc:
+            return view.exception_response(exc)
 
         try:
             order, resources = OrderManager().get_order_detail(
@@ -151,7 +191,7 @@ class OrderHandler:
         try:
             order = PaymentManager().pay_order(
                 order=order, executor=request.user.username, remark='',
-                coupon_ids=[], only_coupon=False,
+                coupon_ids=coupon_ids, only_coupon=only_coupon,
                 required_enough_balance=True
             )
         except errors.Error as exc:

@@ -8,7 +8,7 @@ from api.viewsets import CustomGenericViewSet
 from order.models import ResourceType, Order
 from api.paginations import OrderPageNumberPagination
 from api.handlers.price_handler import DescribePriceHandler
-from api.handlers.order_handler import OrderHandler
+from api.handlers.order_handler import OrderHandler, CASH_COUPON_BALANCE
 from api import serializers
 
 
@@ -240,7 +240,24 @@ class OrderViewSet(CustomGenericViewSet):
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=True,
-                description=f'支付方式，{Order.PaymentMethod.choices}'
+                description=f"""支付方式，
+                {Order.PaymentMethod.BALANCE.value}: 只使用账户余额, 
+                {Order.PaymentMethod.CASH_COUPON.value}: 只使用代金券, 
+                {CASH_COUPON_BALANCE}: 代金券和余额混合支付，优先使用代金券；
+                可以通过“coupon_ids”参数指定使用哪些代金券，不指定默认使用所有代金券（过期时间近的优先）。
+                """
+            ),
+            openapi.Parameter(
+                name='coupon_ids',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_ARRAY,
+                items=openapi.Items(
+                    type=openapi.TYPE_STRING
+                ),
+                collectionFormat='multi',
+                maxLength=5,
+                required=False,
+                description=f'指定使用哪些代金券支付；支付方式为代金券时必须指定此参数'
             ),
         ],
         responses={
@@ -256,6 +273,27 @@ class OrderViewSet(CustomGenericViewSet):
             {
                 "order_id": "xxx"
             }
+
+            * 可能的错误码：
+            400：
+                InvalidOrderId：无效的订单编号
+                MissingPaymentMethod：支付方式参数“payment_method”
+                CouponIDsShouldNotExist：仅余额支付方式不能指定代金券
+                MissingCouponIDs：仅代金券支付方式必须指定代金券
+                InvalidPaymentMethod：支付方式参数“payment_method”值无效
+                InvalidCouponIDs：参数“coupon_ids”的值不能为空
+                TooManyCouponIDs：最多可以指定使用5个代金券
+                DuplicateCouponIDExist：指定的代金券有重复
+                InvalidResourceType： 订单订购的资源类型无效
+            409：
+                CouponBalanceNotEnough：代金券的余额不足
+                BalanceNotEnough：余额不足
+                CouponNotApplicable：指定的券不能用于此资源的支付
+                CouponNoBalance：指定的券没有可用余额
+                NoSuchCoupon：代金券不存在
+                NotAvailable：代金券无效
+                NotEffective：代金券未到生效时间
+                ExpiredCoupon：代金券已过期
         """
         return OrderHandler().pay_order(view=self, request=request, kwargs=kwargs)
 

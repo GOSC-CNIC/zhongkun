@@ -65,7 +65,7 @@ class PaymentManager:
         total_coupon_balance = user_account.balance
         if with_coupons:
             coupons = CashCouponManager().get_user_cash_coupons(
-                user_id=user_id, coupon_ids=[], select_for_update=False
+                user_id=user_id, coupon_ids=None, select_for_update=False
             )
 
             # 适用的券
@@ -92,7 +92,7 @@ class PaymentManager:
         total_coupon_balance = vo_account.balance
         if with_coupons:
             coupons = CashCouponManager().get_vo_cash_coupons(
-                vo_id=vo_id, coupon_ids=[], select_for_update=False
+                vo_id=vo_id, coupon_ids=None, select_for_update=False
             )
             # 适用的券
             usable_coupons, unusable_coupons = CashCouponManager.sorting_usable_coupons(
@@ -177,7 +177,7 @@ class PaymentManager:
                     remark=remark, order_id='', resource_type=resource_type,
                     service_id=service_id, instance_id=instance_id,
                     required_enough_balance=required_enough_balance,
-                    coupon_ids=[], only_coupon=False
+                    coupon_ids=None, only_coupon=False
                 )
             else:
                 pay_history = self.pay_by_vo(
@@ -185,7 +185,7 @@ class PaymentManager:
                     remark=remark, order_id='', resource_type=resource_type,
                     service_id=service_id, instance_id=instance_id,
                     required_enough_balance=required_enough_balance,
-                    coupon_ids=[], only_coupon=False
+                    coupon_ids=None, only_coupon=False
                 )
 
             # 订单支付状态
@@ -201,7 +201,7 @@ class PaymentManager:
             self, order,
             executor: str,
             remark: str,
-            coupon_ids: list,
+            coupon_ids: list = None,
             only_coupon: bool = False,
             required_enough_balance: bool = True
     ):
@@ -211,7 +211,7 @@ class PaymentManager:
         :param order: Order()
         :param executor: 支付执行人
         :param remark: 支付记录备注信息
-        :param coupon_ids: 指定使用的代金券
+        :param coupon_ids: 支付使用指定id的券；None(不指定券，使用所有券)；[](空，指定不使用券，只使用余额)；
         :param only_coupon: True(只是用代金券支付)
         :param required_enough_balance: 是否要求余额必须足够支付，默认True(必须有足够的余额支付)，False(允许余额为负)
         :return: Order()
@@ -247,7 +247,7 @@ class PaymentManager:
         self._pre_pay_order(order=order, remark=remark)
         if order.total_amount == Decimal(0):
             # 订单支付状态
-            order.set_paid(pay_amount=order.total_amount)
+            order.set_paid(pay_amount=order.total_amount, payment_method=Order.PaymentMethod.UNKNOWN.value)
             return order
 
         if order.owner_type == OwnerType.USER.value:
@@ -269,7 +269,11 @@ class PaymentManager:
 
         # 订单支付状态
         pay_amount = -(pay_history.amounts + pay_history.coupon_amount)
-        order.set_paid(pay_amount=pay_amount)
+        if pay_history.amounts == Decimal('0'):
+            payment_method = Order.PaymentMethod.CASH_COUPON.value
+        else:
+            payment_method = Order.PaymentMethod.BALANCE.value
+        order.set_paid(pay_amount=pay_amount, payment_method=payment_method)
         return order
 
     @staticmethod
@@ -306,10 +310,13 @@ class PaymentManager:
             resource_type: str,
             service_id: str,
             instance_id: str,
-            coupon_ids: list,
+            coupon_ids: list = None,
             only_coupon: bool = False,
             required_enough_balance: bool = True
     ):
+        """
+        * coupon_ids: 支付使用指定id的券；None(不指定券，使用所有券)；[](空，指定不使用券)；
+        """
         with transaction.atomic():
             return self._pay_by_user_or_vo(
                 user_id=user_id,
@@ -335,10 +342,13 @@ class PaymentManager:
             resource_type: str,
             service_id: str,
             instance_id: str,
-            coupon_ids: List[CashCoupon],
+            coupon_ids: List[CashCoupon] = None,
             only_coupon: bool = False,
             required_enough_balance: bool = True
     ):
+        """
+        * coupon_ids: 支付使用指定id的券；None(不指定券，使用所有券)；[](空，指定不使用券)；
+        """
         with transaction.atomic():
             return self._pay_by_user_or_vo(
                 user_id='',
@@ -360,11 +370,12 @@ class PaymentManager:
             vo_id: str,
             resource_type: str,
             service_id: str,
-            coupon_ids: List[CashCoupon]
+            coupon_ids: List[CashCoupon] = None
     ):
         """
         支付前检查验证
 
+        :param coupon_ids: 支付使用指定id的券；None(不指定券，使用所有券)；[](空，指定不使用券)；
         :raises: Error
         """
         if user_id and vo_id:

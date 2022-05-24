@@ -515,7 +515,7 @@ class PaymentManagerTests(TransactionTestCase):
         with self.assertRaises(errors.BalanceNotEnough):
             pay_mgr.pay_order(
                 order=order1, executor=self.user.username, remark='',
-                coupon_ids=[], only_coupon=False,
+                coupon_ids=None, only_coupon=False,
                 required_enough_balance=True
             )
 
@@ -523,7 +523,7 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(self.user.userpointaccount.balance, Decimal(0))
         order1 = pay_mgr.pay_order(
             order=order1, executor=self.user.username, remark='',
-            coupon_ids=[], only_coupon=False,
+            coupon_ids=None, only_coupon=False,
             required_enough_balance=False
         )
         self.user.userpointaccount.refresh_from_db()
@@ -566,7 +566,7 @@ class PaymentManagerTests(TransactionTestCase):
         with self.assertRaises(errors.BalanceNotEnough):
             pay_mgr.pay_order(
                 order=order2, executor=self.user.username, remark='',
-                coupon_ids=[], only_coupon=False,
+                coupon_ids=None, only_coupon=False,
                 required_enough_balance=True
             )
 
@@ -574,7 +574,7 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(self.vo.vopointaccount.balance, Decimal(0))
         order2 = pay_mgr.pay_order(
             order=order2, executor=self.user.username, remark='',
-            coupon_ids=[], only_coupon=False,
+            coupon_ids=None, only_coupon=False,
             required_enough_balance=False
         )
         self.vo.vopointaccount.refresh_from_db()
