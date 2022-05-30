@@ -8,6 +8,8 @@ from servers.models import Server, ServerArchive, ServerBase
 from metering.models import MeteringServer, PaymentStatus
 from order.managers import PriceManager
 from utils.decimal_utils import quantize_10_2
+from vo.models import VirtualOrganization
+from users.models import UserProfile
 
 
 def wrap_close_old_connections(func):
@@ -87,6 +89,7 @@ class ServerMeasurer:
                     last_creatition_time = s.creation_time
                     last_id = s.id
             except Exception as e:
+                print(str(e))
                 if self.raise_exeption:
                     raise e
 
@@ -237,10 +240,16 @@ class ServerMeasurer:
             metering.vo_id = vo_id
             metering.owner_type = MeteringServer.OwnerType.VO.value
             metering.user_id = ''
+            vo = VirtualOrganization.objects.filter(id=vo_id).first()
+            vo_name = vo.name if vo else ''
+            metering.vo_name = vo_name
         else:
             metering.vo_id = ''
             metering.owner_type = MeteringServer.OwnerType.USER.value
             metering.user_id = user_id
+            user = UserProfile.objects.filter(id=user_id).first()
+            username = user.username if user else ''
+            metering.username = username
 
         self.metering_bill_amount(_metering=metering, auto_commit=False)
         try:

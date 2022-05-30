@@ -90,8 +90,10 @@ class MeteringServerViewSet(CustomGenericViewSet):
                   "date": "2021-12-15",
                   "creation_time": "2022-04-02T09:14:07.754058Z",
                   "user_id": "1",
+                  "username": "admin",
                   "vo_id": "",
-                  "owner_type": "user",
+                  "vo_name": "",
+                  "owner_type": "user",     # user: 属于用户；vo: 属于vo组
                   "cpu_hours": 45.64349609833334,
                   "ram_hours": 91.28699219666667,
                   "disk_hours": 0,

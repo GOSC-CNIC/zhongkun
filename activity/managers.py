@@ -205,7 +205,7 @@ class CashCouponManager:
         if not coupon_ids:
             coupons_qs = coupons_qs.filter(
                 status=CashCoupon.Status.AVAILABLE.value,
-                balance__gte=Decimal(0),
+                balance__gt=Decimal(0),
                 effective_time__lt=now,
                 expiration_time__gt=now
             )

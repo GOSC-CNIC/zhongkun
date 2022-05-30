@@ -530,6 +530,9 @@ class PaymentManager:
         # 代金券扣款记录
         remain_pay_amount = money_amount
         for coupon in coupons:
+            if coupon.balance <= Decimal('0'):
+                continue
+
             if coupon.balance >= remain_pay_amount:
                 pay_amount = remain_pay_amount
                 before_payment = coupon.balance

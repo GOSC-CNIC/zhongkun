@@ -913,6 +913,7 @@ class OrderTests(MyAPITestCase):
         self.assertEqual(pay_history2.instance_id, '')
         # 券支付记录
         cc_historys = pay_history2.cashcouponpaymenthistory_set.all().order_by('creation_time')
+        self.assertEqual(len(cc_historys), 1)
         self.assertEqual(cc_historys[0].payment_history_id, pay_history2.id)
         self.assertEqual(cc_historys[0].cash_coupon_id, coupon2_user.id)
         self.assertEqual(cc_historys[0].before_payment, Decimal('5'))

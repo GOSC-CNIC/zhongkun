@@ -39,7 +39,9 @@ class MeteringServerTests(MyAPITestCase):
             server_id='server1',
             date=date(year=2022, month=2, day=16),
             user_id=self.user.id,
+            username=self.user.username,
             vo_id='',
+            vo_name='',
             owner_type=OwnerType.USER.value,
             pay_type=PayType.POSTPAID.value
         )
@@ -54,7 +56,9 @@ class MeteringServerTests(MyAPITestCase):
             server_id='server1',
             date=date(year=2022, month=3, day=16),
             user_id=self.user.id,
+            username=self.user.username,
             vo_id='',
+            vo_name='',
             owner_type=OwnerType.USER.value,
             pay_type=PayType.POSTPAID.value
         )
@@ -69,7 +73,9 @@ class MeteringServerTests(MyAPITestCase):
             server_id='server2',
             date=date(year=2022, month=2, day=8),
             user_id='',
+            username='',
             vo_id=self.vo.id,
+            vo_name=self.vo.name,
             owner_type=OwnerType.VO.value,
             pay_type=PayType.POSTPAID.value
         )
@@ -84,7 +90,9 @@ class MeteringServerTests(MyAPITestCase):
             server_id='server2',
             date=date(year=2022, month=3, day=8),
             user_id='',
+            username='',
             vo_id='vo1',
+            vo_name='vo1 test',
             owner_type=OwnerType.VO.value,
             pay_type=PayType.PREPAID.value
         )
@@ -99,7 +107,9 @@ class MeteringServerTests(MyAPITestCase):
             server_id='server2',
             date=date(year=2022, month=3, day=18),
             user_id=self.user.id,
+            username=self.user.username,
             vo_id='',
+            vo_name='',
             owner_type=OwnerType.USER.value,
             pay_type=PayType.PREPAID.value
         )
@@ -115,6 +125,7 @@ class MeteringServerTests(MyAPITestCase):
             date=date(year=2022, month=3, day=9),
             user_id='',
             vo_id=self.vo.id,
+            vo_name=self.vo.name,
             owner_type=OwnerType.VO.value,
             pay_type=PayType.PREPAID.value
         )
@@ -142,7 +153,8 @@ class MeteringServerTests(MyAPITestCase):
             "payment_history_id", "service_id", "server_id", "date",
             "creation_time", "user_id", "vo_id", "owner_type",
             "cpu_hours", "ram_hours", "disk_hours", "public_ip_hours",
-            "snapshot_hours", "upstream", "downstream", "pay_type"
+            "snapshot_hours", "upstream", "downstream", "pay_type",
+            "username", "vo_name"
         ], r.data['results'][0])
 
         # list user metering, invalid date_start

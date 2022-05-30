@@ -213,6 +213,42 @@ class ServersViewSet(CustomGenericViewSet):
         """
         * 预付费模式时，请求成功会创建一个待支付的订单，支付订单成功后，订购的资源才会创建交付；
         * 按量计费模式时，请求成功会创建一个已支付订单，订购的资源会立即创建交付；
+
+            http Code 200 Ok:
+                {
+                    "order_id": "xxx"
+                }
+
+            Http Code 400, 409, 500:
+                {
+                    "code": "BadRequest",
+                    "message": "xxxx"
+                }
+
+                可能的错误码：
+                400:
+                BadRequest: 请求出现语法错误
+                InvalidAzoneId: "azone_id"参数不能为空字符
+                MissingPayType: 必须指定付费模式参数"pay_type"
+                InvalidPayType: 付费模式参数"pay_type"值无效
+                InvalidPeriod: 订购时长参数"period"值必须大于0 / 订购时长最长为5年
+                MissingPeriod： 预付费模式时，必须指定订购时长
+                InvalidFlavorId: 无效的配置规格flavor id
+                InvalidVoId: vo不存在
+                MissingServiceId：参数service_id不得为空
+                InvalidServiceId：无效的服务id
+                InvalidNetworkId: 指定网络不存在
+                InvalidAzoneId: 指定的可用区azone_id不存在
+
+                403:
+                AccessDenied: 你不是组管理员，没有组管理权限
+
+                409:
+                BalanceNotEnough: 余额不足
+                QuotaShortage: 指定服务无法提供足够的资源
+
+                500:
+                InternalError: xxx
         """
         return ServerHandler().server_order_create(view=self, request=request)
 
@@ -247,6 +283,33 @@ class ServersViewSet(CustomGenericViewSet):
     def renew_server(self, request, *args, **kwargs):
         """
         续费包年包月预付费模式云服务器，请求成功会创建一个待支付的订单，支付订单成功后，会自动延长实例的过期时间
+
+            Http Code 200:
+                {
+                    "order_id": "xxx",      # 订单id
+                }
+
+            Http Code 400, 409, 500:
+                {
+                    "code": "BadRequest",
+                    "message": "xxxx"
+                }
+
+                可能的错误码：
+                400:
+                BadRequest: 请求出现语法错误
+                MissingPeriod: 参数“period”不得为空
+                InvalidPeriod: 参数“period”的值无效
+                InvalidRenewToTime: 参数“renew_to_time”的值无效的时间格式
+
+                409:
+                UnknownExpirationTime: 没有过期时间的云服务器无法续费
+                InvalidRenewToTime: 指定的续费终止日期必须在云服务器的过期时间之后
+                ResourceLocked: 云主机已加锁锁定了一切操作
+                RenewPrepostOnly: 只允许包年包月按量计费的云服务器续费
+                RenewDeliveredOkOnly: 只允许为创建成功的云服务器续费
+                SomeOrderNeetToTrade: 此云服务器存在未完成的订单, 请先完成已有订单后再提交新的订单
+
         """
         return ServerHandler().renew_server(view=self, request=request, kwargs=kwargs)
 
@@ -808,7 +871,7 @@ class ImageViewSet(CustomGenericViewSet):
     serializer_class = Serializer
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('镜像列表'),
+        operation_summary=gettext_lazy('列举镜像'),
         manual_parameters=[
             openapi.Parameter(
                 name='service_id',
@@ -819,21 +882,29 @@ class ImageViewSet(CustomGenericViewSet):
             ),
         ],
         responses={
-            200: """
-                [
-                  {
-                    "id": "9c70cbe2-690c-11eb-a4b7-c8009fe2eb10",
-                    "name": "空天院_ubuntu1804_radi",
-                    "system": "空天院_ubuntu1804_radi",
-                    "system_type": "Linux",
-                    "creation_time": "2020-09-23T07:15:20.087505Z",
-                    "desc": "空天院_ubuntu1804_radi"
-                  }
-                ]
-            """
+            200: """"""
         }
     )
     def list(self, request, *args, **kwargs):
+        """
+        列举镜像
+
+            200：
+            [
+              {
+                "id": "18",
+                "name": "Ubuntu 2004",
+                "system": "Ubuntu 2004",
+                "system_type": "Linux",
+                "creation_time": "0001-01-01T00:00:00Z",
+                "desc": "Ubuntu 2004 旧镜像",
+                "default_user": "root",
+                "default_password": "cnic.cn",
+                "min_sys_disk_gb": 200,
+                "min_ram_mb": 0
+              }
+            ]
+        """
         try:
             service = self.get_service(request)
         except exceptions.APIException as exc:

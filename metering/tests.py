@@ -134,10 +134,7 @@ class MeteringServerTests(TransactionTestCase):
             start_time=ago_hour_time,
             creation_time=ago_hour_time
         )
-        print(f'server1={server1.id}')
-        print(f'server2={server2.id}')
-        print(f'server3={server3.id}')
-        print(f'server4={server4.id}')
+
         return server1, server2, server3, server4
 
     def do_assert_server(self, now: datetime, server1: Server, server2: Server):
@@ -145,10 +142,6 @@ class MeteringServerTests(TransactionTestCase):
         metering_end_time = now.replace(hour=0, minute=0, second=0, microsecond=0)    # 计量结束时间
         measurer = ServerMeasurer(raise_exeption=True)
         measurer.run()
-
-        for i in MeteringServer.objects.all():
-            d = {'id': i.id, 'server_id': i.server_id}
-            print(f'metering({d})')
 
         count = MeteringServer.objects.all().count()
         self.assertEqual(count, 2)
@@ -160,6 +153,8 @@ class MeteringServerTests(TransactionTestCase):
         self.assertEqual(up_int(metering.ram_hours), up_int(server1.ram / 1024 * 24))
         self.assertEqual(up_int(metering.disk_hours), up_int(server1.disk_size * 24))
         self.assertEqual(metering.owner_type, metering.OwnerType.USER.value)
+        self.assertEqual(metering.user_id, self.user.id)
+        self.assertEqual(metering.username, self.user.username)
         if server1.public_ip:
             self.assertEqual(up_int(metering.public_ip_hours), up_int(24))
         else:
@@ -180,6 +175,8 @@ class MeteringServerTests(TransactionTestCase):
         self.assertEqual(up_int(metering.ram_hours), up_int(server2.ram / 1024 * hours))
         self.assertEqual(up_int(metering.disk_hours), up_int(server2.disk_size * hours))
         self.assertEqual(metering.owner_type, metering.OwnerType.VO.value)
+        self.assertEqual(metering.vo_id, self.vo.id)
+        self.assertEqual(metering.vo_name, self.vo.name)
         if server2.public_ip:
             self.assertEqual(up_int(metering.public_ip_hours), up_int(hours))
         else:
