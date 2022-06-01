@@ -23,6 +23,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='meteringobjectstorage',
             name='payment_history',
-            field=models.OneToOneField(default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='bill.paymenthistory', verbose_name='支付记录'),
+            field=models.OneToOneField(blank=True, default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='bill.paymenthistory', verbose_name='支付记录'),
         ),
     ]

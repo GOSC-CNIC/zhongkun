@@ -16,3 +16,7 @@ def quantize_10_2(value: Decimal):
 
 def quantize_12_4(value: Decimal):
     return quantize(value=value, max_digits=12, decimal_places=4)
+
+
+def quantize_18_2(value: Decimal):
+    return quantize(value=value, max_digits=18, decimal_places=2)

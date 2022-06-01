@@ -146,10 +146,15 @@ class MeteringServerViewSet(CustomGenericViewSet):
                 required=False,
                 description=f'查询指定服务'
             ),
-        ] + CustomGenericViewSet.PARAMETERS_AS_ADMIN,
-        responses={
-            200: ''
-        }
+        ] + CustomGenericViewSet.PARAMETERS_AS_ADMIN + [
+            openapi.Parameter(
+                name='download',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_BOOLEAN,
+                required=False,
+                description=f'下载文件'
+            ),
+        ]
     )
     @action(methods=['GET'], detail=False, url_path='aggregation/server', url_name='aggregation-by-server')
     def aggregation_by_server(self, request, *args, **kwargs):
@@ -168,6 +173,7 @@ class MeteringServerViewSet(CustomGenericViewSet):
                 "total_disk_hours": 0.0,
                 "total_public_ip_hours": 2400.0,
                 "total_original_amount": 3810.0,
+                "total_trade_amount": 123.00,
                 "service_name": "科技云联邦研发与运行",           
                 "server": {                                   
                     "id": "006621ec-36f8-11ec-bc59-c8009fe2eb03",

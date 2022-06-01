@@ -85,7 +85,7 @@ class Migration(migrations.Migration):
                 ('upstream', models.FloatField(blank=True, default=0, help_text='云服务器的上行流量Gib', verbose_name='上行流量GiB')),
                 ('downstream', models.FloatField(blank=True, default=0, help_text='云服务器的下行流量Gib', verbose_name='下行流量GiB')),
                 ('pay_type', models.CharField(choices=[('prepaid', '包年包月'), ('postpaid', '按量计费'), ('quota', '资源配额券')], max_length=16, verbose_name='云服务器付费方式')),
-                ('payment_history', models.OneToOneField(default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='bill.paymenthistory', verbose_name='支付记录')),
+                ('payment_history', models.OneToOneField(blank=True, default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='bill.paymenthistory', verbose_name='支付记录')),
             ],
             options={
                 'verbose_name': '云服务器资源计量',

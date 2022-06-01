@@ -1,11 +1,19 @@
+import io
+import math
 from datetime import date
 
 from django.utils.translation import gettext as _
 from django.utils import timezone
+from django.utils.http import urlquote
+from django.http import StreamingHttpResponse
+from rest_framework.response import Response
 
 from core import errors
 from api.viewsets import CustomGenericViewSet
 from metering.managers import MeteringServerManager
+from utils.report_file import CSVFileInMemory
+from utils import rand_utils
+from utils.decimal_utils import quantize_18_2
 
 
 class MeteringHandler:
@@ -85,7 +93,7 @@ class MeteringHandler:
         else:
             date_end = now_date
 
-        if date_start >= date_end:
+        if date_start > date_end:
             raise errors.BadRequest(message=_('参数“date_start”时间必须超前“date_end”时间'))
 
         # 时间段不得超过一年
@@ -121,6 +129,7 @@ class MeteringHandler:
         user_id = params['user_id']
         service_id = params['service_id']
         vo_id = params['vo_id']
+        download = params['download']
 
         ms_mgr = MeteringServerManager()
         if view.is_as_admin_request(request):       
@@ -138,6 +147,11 @@ class MeteringHandler:
                 user=request.user, date_start=date_start, date_end=date_end, service_id=service_id
             )
 
+        if download:
+            return self.list_aggregation_by_server_download(
+                queryset=queryset, date_start=date_start, date_end=date_end
+            )
+
         try:
             data = view.paginate_queryset(queryset)
             data = ms_mgr.aggregate_by_server_mixin_data(data)
@@ -152,6 +166,7 @@ class MeteringHandler:
         user_id = request.query_params.get('user_id', None)
         service_id = request.query_params.get('service_id', None)
         vo_id = request.query_params.get('vo_id', None)
+        download = request.query_params.get('download', None)
 
         now_date = timezone.now().date()
 
@@ -188,8 +203,86 @@ class MeteringHandler:
             'date_end':  date_end,
             'user_id': user_id,
             'service_id': service_id,
-            'vo_id': vo_id
+            'vo_id': vo_id,
+            'download': download is not None
         }
+
+    def list_aggregation_by_server_download(self, queryset, date_start, date_end):
+        count = queryset.count()
+        if count > 100000:
+            exc = errors.ConflictError(message=_('数据量太多'), code='TooManyData')
+            return Response(data=exc.err_data(), status=exc.status_code)
+
+        filename = rand_utils.timestamp14_sn()
+        csv_file = CSVFileInMemory(filename=filename)
+        csv_file.writerow(['#' + _('按云主机列举计量计费聚合统计') + f'[{date_start} - {date_end}]'])
+        csv_file.writerow(['#--------------' + _('数据明细列表') + '---------------'])
+        csv_file.writerow([
+            _('云主机id'), 'IPv4', 'RAM (Mb)', 'CPU', _('服务'), _('CPU (核*小时)'), _('内存 (Gb*小时数)'),
+            _('系统盘 (Gb*小时)'), _('公网IP (个*小时)'), _('计费总金额'), _('实际扣费金额')
+        ])
+        per_page = 1
+        is_end_page = False
+        for number in range(1, math.ceil(count / per_page) + 1):
+            bottom = (number - 1) * per_page
+            top = bottom + per_page
+            if top >= count:
+                top = count
+                is_end_page = True
+
+            data = list(queryset[bottom:top])
+            data = MeteringServerManager.aggregate_by_server_mixin_data(data)
+            rows = []
+            for item in data:
+                s = item['server']
+                line_items = [
+                    str(item['server_id']), str(s['ipv4']), str(s['ram']), str(s['vcpus']), str(item['service_name']),
+                    str(item['total_cpu_hours']), str(item['total_ram_hours']), str(item['total_disk_hours']),
+                    str(item['total_public_ip_hours']),
+                    str(quantize_18_2(item['total_trade_amount'])),
+                    str(quantize_18_2(item['total_trade_amount']))
+                ]
+                rows.append(line_items)
+
+            csv_file.writerows(rows)
+            if is_end_page:
+                break
+
+        csv_file.writerow(['#--------------' + _('数据明细列表结束') + '---------------'])
+        csv_file.writerow(['#' + _('下载时间') + f': {timezone.now()}'])
+        csv_file.writerow(['#' + _('数据总数') + f': {count}'])
+
+        filename = csv_file.filename
+        data = csv_file.to_bytes()
+        csv_file.close()
+        return self._wrap_csv_file_response(filename=filename, data=data)
+
+    @staticmethod
+    def _wrap_csv_file_response(filename: str, data):
+        """
+        :param data: bytes, BytesIO， StringIO
+        """
+        if isinstance(data, bytes):
+            content_type = 'application/octet-stream'
+            content_length = len(data)
+            data = io.BytesIO(data)
+        elif isinstance(data, io.StringIO):
+            content_type = 'text/csv'
+            content_length = None
+            data.seek(0)
+        else:
+            content_type = 'application/octet-stream'
+            content_length = data.seek(0, io.SEEK_END)
+            data.seek(0)
+
+        filename = urlquote(filename)  # 中文文件名需要
+        response = StreamingHttpResponse(data, charset='utf-8', status=200)
+        if content_length:
+            response['Content-Length'] = content_length           # byte length
+
+        response['Content-Type'] = content_type
+        response['Content-Disposition'] = f"attachment;filename*=utf-8''{filename}"  # 注意filename 这个是下载后的名字
+        return response
     
     def list_aggregation_by_user(self, view: CustomGenericViewSet, request):
         """

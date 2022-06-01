@@ -47,3 +47,7 @@ def timestamp20_rand4_sn():
     rand = random.randint(0, 9999)
     return f"{t.year:04}{t.month:02}{t.day:02}{t.hour:02}{t.minute:02}{t.second:02}{t.microsecond:06}{rand:04}"
 
+
+def timestamp14_sn():
+    t = timezone.now()
+    return f"{t.year:04}{t.month:02}{t.day:02}{t.hour:02}{t.minute:02}{t.second:02}"

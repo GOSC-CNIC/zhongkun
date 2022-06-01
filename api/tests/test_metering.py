@@ -650,6 +650,14 @@ class MeteringServerTests(MyAPITestCase):
         self.assertEqual(r.data['results'][0]['total_cpu_hours'], 9)
         self.assertEqual(r.data['results'][1]['total_cpu_hours'], 10.1)
 
+        # param 'download'
+        query = parse.urlencode(query={
+            'date_start': '2022-03-01', 'date_end': '2022-04-02', 'as-admin': '', 'download': ''
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertIs(r.streaming, True)
+        self.assertEqual(r.status_code, 200)
+
     def test_aggregate_metering_by_user(self):
         user2 = UserProfile(id='user2', username='username2', company='c2')
         user2.save(force_insert=True)

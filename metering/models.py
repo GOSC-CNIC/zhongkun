@@ -27,7 +27,7 @@ class MeteringBase(UuidModel):
         verbose_name=_('支付状态'), max_length=16, choices=PaymentStatus.choices, default=PaymentStatus.UNPAID)
     payment_history = models.OneToOneField(
         verbose_name=_('支付记录'), to=PaymentHistory, related_name='+',
-        null=True, on_delete=models.SET_NULL, default=None)
+        null=True, on_delete=models.SET_NULL, blank=True, default=None)
 
     class Meta:
         abstract = True
