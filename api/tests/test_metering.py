@@ -326,6 +326,14 @@ class MeteringServerTests(MyAPITestCase):
         self.assertEqual(r.data["count"], 1)
         self.assertEqual(len(r.data['results']), 1)
 
+        # param 'download'
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-06', 'as-admin': '', 'download': ''
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertIs(r.streaming, True)
+        self.assertEqual(r.status_code, 200)
+
     def test_aggregate_metering_by_uuid(self):
         server = Server(
             id='server', ipv4='1.1.1.1', vcpus=1, ram=11, service_id=self.service.id, creation_time=timezone.now())
@@ -876,7 +884,15 @@ class MeteringServerTests(MyAPITestCase):
         self.assertEqual(r.data['results'][0]['user']['id'], self.user.id)  
         self.assertEqual(r.data['results'][1]['total_server'], 1)
         self.assertEqual(r.data['results'][1]['total_original_amount'], Decimal('6.66'))
-        self.assertEqual(r.data['results'][1]['user']['id'], user3.id) 
+        self.assertEqual(r.data['results'][1]['user']['id'], user3.id)
+
+        # param 'download'
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01', 'as-admin': '', 'download': ''
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertIs(r.streaming, True)
+        self.assertEqual(r.status_code, 200)
 
     def test_aggregate_metering_by_vo(self):
         vo1 = VirtualOrganization(id='vo1', name='name1', company='company1', owner_id='owner1')
@@ -1103,7 +1119,15 @@ class MeteringServerTests(MyAPITestCase):
         self.assertEqual(r.data['results'][0]['vo']['id'], vo1.id)  
         self.assertEqual(r.data['results'][1]['total_server'], 1)
         self.assertEqual(r.data['results'][1]['total_original_amount'], Decimal('6.66'))
-        self.assertEqual(r.data['results'][1]['vo']['id'], vo3.id) 
+        self.assertEqual(r.data['results'][1]['vo']['id'], vo3.id)
+
+        # param 'download'
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01', 'as-admin': '', 'download': ''
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertIs(r.streaming, True)
+        self.assertEqual(r.status_code, 200)
 
     def test_aggregate_metering_by_service(self):
         service3 = ServiceConfig(id='service3', name='name3')
@@ -1252,5 +1276,12 @@ class MeteringServerTests(MyAPITestCase):
         self.assertEqual(r.data['results'][2]['total_server'], 1)
         self.assertEqual(r.data['results'][2]['total_original_amount'], Decimal('5.55'))
         self.assertEqual(r.data['results'][2]['service']['id'], service3.id)  
-        self.assertEqual(r.data['results'][2]['service']['name'], service3.name)      
-  
+        self.assertEqual(r.data['results'][2]['service']['name'], service3.name)
+
+        # param 'download'
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01', 'as-admin': '', 'download': ''
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertIs(r.streaming, True)
+        self.assertEqual(r.status_code, 200)

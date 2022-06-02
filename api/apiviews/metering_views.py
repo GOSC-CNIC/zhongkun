@@ -34,37 +34,45 @@ class MeteringServerViewSet(CustomGenericViewSet):
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=f'查询指定云主机'
+                description=gettext_lazy('查询指定云主机')
             ),
             openapi.Parameter(
                 name='date_start',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=f'计费账单日期起，默认当前月起始日期，ISO8601格式：YYYY-MM-dd'
+                description=gettext_lazy('计费账单日期起，默认当前月起始日期，ISO8601格式：YYYY-MM-dd')
             ),
             openapi.Parameter(
                 name='date_end',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=f'计费账单日期止，默认当前月当前日期，ISO8601格式：YYYY-MM-dd'
+                description=gettext_lazy('计费账单日期止，默认当前月当前日期，ISO8601格式：YYYY-MM-dd')
             ),
             openapi.Parameter(
                 name='vo_id',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=f'查询指定VO组的计费账单，需要vo组权限, 或管理员权限，不能与user_id同时使用'
+                description=gettext_lazy('查询指定VO组的计费账单，需要vo组权限, 或管理员权限，不能与user_id同时使用')
             ),
             openapi.Parameter(
                 name='user_id',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=f'查询指定用户的计费账单，仅以管理员身份查询时使用'
+                description=gettext_lazy('查询指定用户的计费账单，仅以管理员身份查询时使用')
             ),
-        ] + CustomGenericViewSet.PARAMETERS_AS_ADMIN,
+        ] + CustomGenericViewSet.PARAMETERS_AS_ADMIN + [
+            openapi.Parameter(
+                name='download',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_BOOLEAN,
+                required=False,
+                description=gettext_lazy('查询结果以文件方式下载文件；分页参数无效，不分页返回所有数据')
+            ),
+        ],
         responses={
             200: ''
         }
@@ -116,35 +124,35 @@ class MeteringServerViewSet(CustomGenericViewSet):
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=f'聚合日期起，默认当前月起始日期，ISO8601格式：YYYY-MM-dd'
+                description=gettext_lazy('聚合日期起，默认当前月起始日期，ISO8601格式：YYYY-MM-dd')
             ),
             openapi.Parameter(
                 name='date_end',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=f'聚合日期止，默认当前月当前日期，ISO8601格式：YYYY-MM-dd'
+                description=gettext_lazy('聚合日期止，默认当前月当前日期，ISO8601格式：YYYY-MM-dd')
             ),
             openapi.Parameter(
                 name='vo_id',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=f'查询指定VO组的聚合计量计费信息，需要vo组权限, 或管理员权限，不能与user_id同时使用'
+                description=gettext_lazy('查询指定VO组的聚合计量计费信息，需要vo组权限, 或管理员权限，不能与user_id同时使用')
             ),
             openapi.Parameter(
                 name='user_id',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=f'查询指定用户的聚合计量计费信息，仅以管理员身份查询时使用'
+                description=gettext_lazy('查询指定用户的聚合计量计费信息，仅以管理员身份查询时使用')
             ),
             openapi.Parameter(
                 name='service_id',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=f'查询指定服务'
+                description=gettext_lazy('查询指定服务')
             ),
         ] + CustomGenericViewSet.PARAMETERS_AS_ADMIN + [
             openapi.Parameter(
@@ -152,7 +160,7 @@ class MeteringServerViewSet(CustomGenericViewSet):
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_BOOLEAN,
                 required=False,
-                description=f'下载文件'
+                description=gettext_lazy('查询结果以文件方式下载文件；分页参数无效，不分页返回所有数据')
             ),
         ]
     )
@@ -195,32 +203,38 @@ class MeteringServerViewSet(CustomGenericViewSet):
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=f'聚合日期起，默认当前月起始日期，ISO8601格式：YYYY-MM-dd'
+                description=gettext_lazy('聚合日期起，默认当前月起始日期，ISO8601格式：YYYY-MM-dd')
             ),
             openapi.Parameter(
                 name='date_end',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=f'聚合日期止，默认当前月当前日期，ISO8601格式：YYYY-MM-dd'
+                description=gettext_lazy('聚合日期止，默认当前月当前日期，ISO8601格式：YYYY-MM-dd')
             ),   
             openapi.Parameter(
                 name='service_id',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=f'查询指定服务'
+                description=gettext_lazy('查询指定服务')
             ),                   
-        ] + CustomGenericViewSet.PARAMETERS_AS_ADMIN,
-        responses={
-            200: ''
-        }
+        ] + CustomGenericViewSet.PARAMETERS_AS_ADMIN + [
+            openapi.Parameter(
+                name='download',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_BOOLEAN,
+                required=False,
+                description=gettext_lazy('查询结果以文件方式下载文件；分页参数无效，不分页返回所有数据')
+            ),
+        ]
     )
     @action(methods=['GET'], detail=False, url_path='aggregation/user', url_name='aggregation-by-user')
     def aggregation_by_user(self, request, *args, **kwargs):
         """
         列举指定时间段内每个用户所有server计量计费单聚合
 
+            200:
             {
               "count": 62,
               "page_num": 1,
@@ -251,32 +265,38 @@ class MeteringServerViewSet(CustomGenericViewSet):
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=f'聚合日期起，默认当前月起始日期，ISO8601格式：YYYY-MM-dd'
+                description=gettext_lazy('聚合日期起，默认当前月起始日期，ISO8601格式：YYYY-MM-dd')
             ),
             openapi.Parameter(
                 name='date_end',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=f'聚合日期止，默认当前月当前日期，ISO8601格式：YYYY-MM-dd'
+                description=gettext_lazy('聚合日期止，默认当前月当前日期，ISO8601格式：YYYY-MM-dd')
             ),   
             openapi.Parameter(
                 name='service_id',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=f'查询指定服务'
+                description=gettext_lazy('查询指定服务')
             ),                   
-        ] + CustomGenericViewSet.PARAMETERS_AS_ADMIN,
-        responses={
-            200: ''
-        }
+        ] + CustomGenericViewSet.PARAMETERS_AS_ADMIN + [
+            openapi.Parameter(
+                name='download',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_BOOLEAN,
+                required=False,
+                description=gettext_lazy('查询结果以文件方式下载文件；分页参数无效，不分页返回所有数据')
+            ),
+        ]
     )
     @action(methods=['GET'], detail=False, url_path='aggregation/vo', url_name='aggregation-by-vo')
     def aggregation_by_vo(self, request, *args, **kwargs):
         """
         列举指定时间段内每个vo组所有server计量计费单聚合
 
+            200：
             {
               "count": 8,
               "page_num": 1,
@@ -307,25 +327,31 @@ class MeteringServerViewSet(CustomGenericViewSet):
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=f'聚合日期起，默认当前月起始日期，ISO8601格式：YYYY-MM-dd'
+                description=gettext_lazy('聚合日期起，默认当前月起始日期，ISO8601格式：YYYY-MM-dd')
             ),
             openapi.Parameter(
                 name='date_end',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=f'聚合日期止，默认当前月当前日期，ISO8601格式：YYYY-MM-dd'
+                description=gettext_lazy('聚合日期止，默认当前月当前日期，ISO8601格式：YYYY-MM-dd')
             ),                   
-        ] + CustomGenericViewSet.PARAMETERS_AS_ADMIN,
-        responses={
-            200: ''
-        }
+        ] + CustomGenericViewSet.PARAMETERS_AS_ADMIN + [
+            openapi.Parameter(
+                name='download',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_BOOLEAN,
+                required=False,
+                description=gettext_lazy('查询结果以文件方式下载文件；分页参数无效，不分页返回所有数据')
+            ),
+        ]
     )
     @action(methods=['GET'], detail=False, url_path='aggregation/service', url_name='aggregation-by-service')
     def aggregation_by_service(self, request, *args, **kwargs):
         """
         列举指定时间段内每个服务节点所有server计量计费单聚合
 
+            200:
             {
               "count": 4,
               "page_num": 1,

@@ -32,6 +32,7 @@ class MeteringHandler:
         date_end = params['date_end']
         vo_id = params['vo_id']
         user_id = params['user_id']
+        download = params['download']
 
         ms_mgr = MeteringServerManager()
         if view.is_as_admin_request(request):   
@@ -50,9 +51,14 @@ class MeteringHandler:
                 date_end=date_end
             )
 
+        if download:
+            return self.list_server_metering_download(
+                queryset=queryset, date_start=date_start, date_end=date_end
+            )
+
         try:
-            orders = view.paginate_queryset(queryset)
-            serializer = view.get_serializer(instance=orders, many=True)
+            meterings = view.paginate_queryset(queryset)
+            serializer = view.get_serializer(instance=meterings, many=True)
             return view.get_paginated_response(serializer.data)
         except Exception as exc:
             return view.exception_response(exc)
@@ -65,6 +71,7 @@ class MeteringHandler:
         date_end = request.query_params.get('date_end', None)
         vo_id = request.query_params.get('vo_id', None)
         user_id = request.query_params.get('user_id', None)
+        download = request.query_params.get('download', None)
 
         now_date = timezone.now().date()
 
@@ -112,8 +119,57 @@ class MeteringHandler:
             'vo_id': vo_id,
             'service_id': service_id,
             'server_id': server_id,
-            'user_id': user_id
+            'user_id': user_id,
+            'download': download is not None
         }
+
+    def list_server_metering_download(self, queryset, date_start, date_end):
+        count = queryset.count()
+        if count > 100000:
+            exc = errors.ConflictError(message=_('数据量太多'), code='TooManyData')
+            return Response(data=exc.err_data(), status=exc.status_code)
+
+        filename = rand_utils.timestamp14_sn()
+        csv_file = CSVFileInMemory(filename=filename)
+        csv_file.writerow(['#' + _('列举云服务器计量计费明细') + f'[{date_start} - {date_end}]'])
+        csv_file.writerow(['#--------------' + _('数据明细列表') + '---------------'])
+        csv_file.writerow([
+            _('云服务器ID'), _('计费日期'), _('所有者类型'), _('用户名'), _('VO组名'),
+            _('CPU (核*小时)'), _('内存 (Gb*小时数)'), _('系统盘 (Gb*小时)'), _('公网IP (个*小时)'),
+            _('计费总金额'), _('实际扣费总金额'), _('扣费状态')
+        ])
+        per_page = 1000
+        is_end_page = False
+        for number in range(1, math.ceil(count / per_page) + 1):
+            bottom = (number - 1) * per_page
+            top = bottom + per_page
+            if top >= count:
+                top = count
+                is_end_page = True
+
+            meterings = queryset[bottom:top]
+            rows = []
+            for m in meterings:
+                line_items = [
+                    str(m.server_id), str(m.date), m.get_owner_type_display(), str(m.username),
+                    str(m.vo_name), str(m.cpu_hours), str(m.ram_hours), str(m.disk_hours),
+                    str(m.public_ip_hours), str(quantize_18_2(m.original_amount)),
+                    str(quantize_18_2(m.trade_amount)), str(m.get_payment_status_display())
+                ]
+                rows.append(line_items)
+
+            csv_file.writerows(rows)
+            if is_end_page:
+                break
+
+        csv_file.writerow(['#--------------' + _('数据明细列表结束') + '---------------'])
+        csv_file.writerow(['#' + _('数据总数') + f': {count}'])
+        csv_file.writerow(['#' + _('下载时间') + f': {timezone.now()}'])
+
+        filename = csv_file.filename
+        data = csv_file.to_bytes()
+        csv_file.close()
+        return self._wrap_csv_file_response(filename=filename, data=data)
 
     def list_aggregation_by_server(self, view: CustomGenericViewSet, request):
         """
@@ -221,7 +277,7 @@ class MeteringHandler:
             _('云主机id'), 'IPv4', 'RAM (Mb)', 'CPU', _('服务'), _('CPU (核*小时)'), _('内存 (Gb*小时数)'),
             _('系统盘 (Gb*小时)'), _('公网IP (个*小时)'), _('计费总金额'), _('实际扣费金额')
         ])
-        per_page = 1
+        per_page = 100
         is_end_page = False
         for number in range(1, math.ceil(count / per_page) + 1):
             bottom = (number - 1) * per_page
@@ -239,7 +295,7 @@ class MeteringHandler:
                     str(item['server_id']), str(s['ipv4']), str(s['ram']), str(s['vcpus']), str(item['service_name']),
                     str(item['total_cpu_hours']), str(item['total_ram_hours']), str(item['total_disk_hours']),
                     str(item['total_public_ip_hours']),
-                    str(quantize_18_2(item['total_trade_amount'])),
+                    str(quantize_18_2(item['total_original_amount'])),
                     str(quantize_18_2(item['total_trade_amount']))
                 ]
                 rows.append(line_items)
@@ -249,8 +305,8 @@ class MeteringHandler:
                 break
 
         csv_file.writerow(['#--------------' + _('数据明细列表结束') + '---------------'])
-        csv_file.writerow(['#' + _('下载时间') + f': {timezone.now()}'])
         csv_file.writerow(['#' + _('数据总数') + f': {count}'])
+        csv_file.writerow(['#' + _('下载时间') + f': {timezone.now()}'])
 
         filename = csv_file.filename
         data = csv_file.to_bytes()
@@ -296,6 +352,7 @@ class MeteringHandler:
         date_start = params['date_start']
         date_end = params['date_end']
         service_id = params['service_id']
+        download = params['download']
 
         ms_mgr = MeteringServerManager()
         if view.is_as_admin_request(request):           
@@ -305,6 +362,11 @@ class MeteringHandler:
             )
         else:
             return view.exception_response(errors.BadRequest(message=_('只允许以管理员身份请求')))
+
+        if download:
+            return self.list_aggregation_by_user_download(
+                queryset=queryset, date_start=date_start, date_end=date_end
+            )
 
         try:
             data = view.paginate_queryset(queryset)
@@ -318,6 +380,7 @@ class MeteringHandler:
         date_start = request.query_params.get('date_start', None)
         date_end = request.query_params.get('date_end', None)
         service_id = request.query_params.get('service_id', None)
+        download = request.query_params.get('download', None)
 
         now_date = timezone.now().date()
 
@@ -344,7 +407,55 @@ class MeteringHandler:
             'date_start': date_start,
             'date_end':  date_end,
             'service_id': service_id,
+            'download': download is not None
         }
+
+    def list_aggregation_by_user_download(self, queryset, date_start, date_end):
+        count = queryset.count()
+        if count > 100000:
+            exc = errors.ConflictError(message=_('数据量太多'), code='TooManyData')
+            return Response(data=exc.err_data(), status=exc.status_code)
+
+        filename = rand_utils.timestamp14_sn()
+        csv_file = CSVFileInMemory(filename=filename)
+        csv_file.writerow(['#' + _('按用户列举计量计费聚合统计') + f'[{date_start} - {date_end}]'])
+        csv_file.writerow(['#--------------' + _('数据明细列表') + '---------------'])
+        csv_file.writerow([
+            _('用户名'), _('单位/公司'), _('云服务器数'), _('计费总金额'), _('实际扣费总金额')
+        ])
+        per_page = 100
+        is_end_page = False
+        for number in range(1, math.ceil(count / per_page) + 1):
+            bottom = (number - 1) * per_page
+            top = bottom + per_page
+            if top >= count:
+                top = count
+                is_end_page = True
+
+            data = list(queryset[bottom:top])
+            data = MeteringServerManager.aggregate_by_user_mixin_data(data)
+            rows = []
+            for item in data:
+                u = item['user']
+                line_items = [
+                    str(u['username']), str(u['company']), str(item['total_server']),
+                    str(quantize_18_2(item['total_original_amount'])),
+                    str(quantize_18_2(item['total_trade_amount']))
+                ]
+                rows.append(line_items)
+
+            csv_file.writerows(rows)
+            if is_end_page:
+                break
+
+        csv_file.writerow(['#--------------' + _('数据明细列表结束') + '---------------'])
+        csv_file.writerow(['#' + _('数据总数') + f': {count}'])
+        csv_file.writerow(['#' + _('下载时间') + f': {timezone.now()}'])
+
+        filename = csv_file.filename
+        data = csv_file.to_bytes()
+        csv_file.close()
+        return self._wrap_csv_file_response(filename=filename, data=data)
 
     def list_aggregation_by_vo(self, view: CustomGenericViewSet, request):
         """
@@ -358,6 +469,7 @@ class MeteringHandler:
         date_start = params['date_start']
         date_end = params['date_end']
         service_id = params['service_id']
+        download = params['download']
 
         ms_mgr = MeteringServerManager()
         if view.is_as_admin_request(request):           
@@ -367,6 +479,11 @@ class MeteringHandler:
             )
         else:
             return view.exception_response(errors.BadRequest(message=_('只允许以管理员身份请求')))
+
+        if download:
+            return self.list_aggregation_by_vo_download(
+                queryset=queryset, date_start=date_start, date_end=date_end
+            )
 
         try:
             data = view.paginate_queryset(queryset)
@@ -380,6 +497,7 @@ class MeteringHandler:
         date_start = request.query_params.get('date_start', None)
         date_end = request.query_params.get('date_end', None)
         service_id = request.query_params.get('service_id', None)
+        download = request.query_params.get('download', None)
 
         now_date = timezone.now().date()
 
@@ -406,7 +524,55 @@ class MeteringHandler:
             'date_start': date_start,
             'date_end':  date_end,
             'service_id': service_id,
+            'download': download is not None
         }
+
+    def list_aggregation_by_vo_download(self, queryset, date_start, date_end):
+        count = queryset.count()
+        if count > 100000:
+            exc = errors.ConflictError(message=_('数据量太多'), code='TooManyData')
+            return Response(data=exc.err_data(), status=exc.status_code)
+
+        filename = rand_utils.timestamp14_sn()
+        csv_file = CSVFileInMemory(filename=filename)
+        csv_file.writerow(['#' + _('按VO组列举计量计费聚合统计') + f'[{date_start} - {date_end}]'])
+        csv_file.writerow(['#--------------' + _('数据明细列表') + '---------------'])
+        csv_file.writerow([
+            _('VO组名'), _('单位/公司'), _('云服务器数'), _('计费总金额'), _('实际扣费总金额')
+        ])
+        per_page = 100
+        is_end_page = False
+        for number in range(1, math.ceil(count / per_page) + 1):
+            bottom = (number - 1) * per_page
+            top = bottom + per_page
+            if top >= count:
+                top = count
+                is_end_page = True
+
+            data = list(queryset[bottom:top])
+            data = MeteringServerManager.aggregate_by_vo_mixin_data(data)
+            rows = []
+            for item in data:
+                v = item['vo']
+                line_items = [
+                    str(v['name']), str(v['company']), str(item['total_server']),
+                    str(quantize_18_2(item['total_original_amount'])),
+                    str(quantize_18_2(item['total_trade_amount']))
+                ]
+                rows.append(line_items)
+
+            csv_file.writerows(rows)
+            if is_end_page:
+                break
+
+        csv_file.writerow(['#--------------' + _('数据明细列表结束') + '---------------'])
+        csv_file.writerow(['#' + _('数据总数') + f': {count}'])
+        csv_file.writerow(['#' + _('下载时间') + f': {timezone.now()}'])
+
+        filename = csv_file.filename
+        data = csv_file.to_bytes()
+        csv_file.close()
+        return self._wrap_csv_file_response(filename=filename, data=data)
         
     def list_aggregation_by_service(self, view: CustomGenericViewSet, request):
         """
@@ -419,6 +585,7 @@ class MeteringHandler:
 
         date_start = params['date_start']
         date_end = params['date_end']
+        download = params['download']
 
         ms_mgr = MeteringServerManager()
         if view.is_as_admin_request(request):         
@@ -427,6 +594,11 @@ class MeteringHandler:
             )
         else:
             return view.exception_response(errors.BadRequest(message=_('只允许以管理员身份请求')))
+
+        if download:
+            return self.list_aggregation_by_service_download(
+                queryset=queryset, date_start=date_start, date_end=date_end
+            )
 
         try:
             data = view.paginate_queryset(queryset)
@@ -439,6 +611,7 @@ class MeteringHandler:
     def list_aggregation_by_service_validate_params(view: CustomGenericViewSet, request) -> dict:  
         date_start = request.query_params.get('date_start', None)
         date_end = request.query_params.get('date_end', None)
+        download = request.query_params.get('download', None)
 
         now_date = timezone.now().date()
 
@@ -461,4 +634,52 @@ class MeteringHandler:
         return {
             'date_start': date_start,
             'date_end':  date_end,
+            'download': download is not None
         }
+
+    def list_aggregation_by_service_download(self, queryset, date_start, date_end):
+        count = queryset.count()
+        if count > 100000:
+            exc = errors.ConflictError(message=_('数据量太多'), code='TooManyData')
+            return Response(data=exc.err_data(), status=exc.status_code)
+
+        filename = rand_utils.timestamp14_sn()
+        csv_file = CSVFileInMemory(filename=filename)
+        csv_file.writerow(['#' + _('按服务列举计量计费聚合统计') + f'[{date_start} - {date_end}]'])
+        csv_file.writerow(['#--------------' + _('数据明细列表') + '---------------'])
+        csv_file.writerow([
+            _('服务名称'), _('云服务器数'), _('计费总金额'), _('实际扣费总金额')
+        ])
+        per_page = 100
+        is_end_page = False
+        for number in range(1, math.ceil(count / per_page) + 1):
+            bottom = (number - 1) * per_page
+            top = bottom + per_page
+            if top >= count:
+                top = count
+                is_end_page = True
+
+            data = list(queryset[bottom:top])
+            data = MeteringServerManager.aggregate_by_service_mixin_data(data)
+            rows = []
+            for item in data:
+                s = item['service']
+                line_items = [
+                    str(s['name']), str(item['total_server']),
+                    str(quantize_18_2(item['total_original_amount'])),
+                    str(quantize_18_2(item['total_trade_amount']))
+                ]
+                rows.append(line_items)
+
+            csv_file.writerows(rows)
+            if is_end_page:
+                break
+
+        csv_file.writerow(['#--------------' + _('数据明细列表结束') + '---------------'])
+        csv_file.writerow(['#' + _('数据总数') + f': {count}'])
+        csv_file.writerow(['#' + _('下载时间') + f': {timezone.now()}'])
+
+        filename = csv_file.filename
+        data = csv_file.to_bytes()
+        csv_file.close()
+        return self._wrap_csv_file_response(filename=filename, data=data)
