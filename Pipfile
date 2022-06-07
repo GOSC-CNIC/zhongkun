@@ -6,17 +6,17 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
-django = "==3.2.5"
-mysqlclient = "==2.0.1"
-djangorestframework = "==3.12.4"
+django = "==3.2.13"
+mysqlclient = "==2.1.0"
+djangorestframework = "==3.13.1"
 drf-yasg = "==1.20.0"
-uwsgi = "==2.0.19"
+uwsgi = "==2.0.20"
 django-debug-toolbar = "*"
 pyvmomi = "==7.0"
 pyopenssl = "==19.1.0"
 openstacksdk = "==0.50.0"
 importlib-metadata = "==1.7.0"
-pyjwt = "==2.0.0"
+pyjwt = "==2.4.0"
 concurrent-log-handler = "==0.9.19"
 django-cors-headers = "==3.7.0"
 
