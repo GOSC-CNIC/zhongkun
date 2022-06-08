@@ -114,17 +114,22 @@ class TokenBackend:
         # For PyJWT >= 2.0.0a1
         return token
 
-    def decode(self, token, verify=True):
+    def decode(self, token, verify_signature=True):
         """
         Performs a validation of the given token and returns its payload
         dictionary.
-        Raises a `TokenBackendError` if the token is malformed, if its
+        Raises a `JWTInvalidError` if the token is malformed, if its
         signature check fails, or if its 'exp' claim indicates it has expired.
         """
         try:
-            return PyJWT().decode_complete(token, self.verifying_key, algorithms=[self.algorithm], verify=verify,
-                                           audience=self.audience, issuer=self.issuer,
-                                           options={'verify_aud': self.audience is not None})
+            return PyJWT().decode_complete(
+                token, self.verifying_key, algorithms=[self.algorithm],
+                audience=self.audience, issuer=self.issuer,
+                options={
+                    'verify_aud': self.audience is not None,
+                    'verify_signature': verify_signature
+                }
+            )
         except InvalidAlgorithmError as ex:
             raise JWTInvalidError('Invalid algorithm specified') from ex
         except InvalidTokenError:
@@ -143,12 +148,13 @@ class Token:
     lifetime = timedelta(hours=1, minutes=5)
     exp_claim = JWT_SETTINGS.EXPIRATION_CLAIM or 'exp'
 
-    def __init__(self, token, verify=True):
+    def __init__(self, token, verify=True, backend: TokenBackend = None):
         """
         !!!! IMPORTANT !!!! MUST raise a TokenError with a user-facing error
         message if the given token is invalid, expired, or otherwise not safe
         to use.
         """
+        self.token_backend = backend if backend else token_backend
         if self.token_type is None or self.lifetime is None:
             raise JWTInvalidError('Cannot create token with no type or lifetime')
 
@@ -156,12 +162,23 @@ class Token:
         self.current_time = make_utc(datetime.utcnow())
 
         # Set up token
-        self.decode_token = token_backend.decode(token, verify=verify)
-        self.headers = self.decode_token['header']
-        self.payload = self.decode_token['payload']
+        if token is not None:
+            self.decode_token = self.token_backend.decode(token, verify_signature=verify)
+            self.headers = self.decode_token['header']
+            self.payload = self.decode_token['payload']
 
-        if verify:
-            self.verify()
+            if verify:
+                self.verify()
+        else:
+            # New token.  Skip all the verification steps.
+            self.headers = {JWT_SETTINGS.TOKEN_TYPE_CLAIM: self.token_type}
+            self.payload = {}
+
+            # Set "exp" claim with default value
+            self.set_exp(from_time=self.current_time, lifetime=self.lifetime)
+
+            # Set "jti" claim
+            self.set_jti()
 
     def __repr__(self):
         return repr(self.payload)
@@ -185,7 +202,7 @@ class Token:
         """
         Signs and returns a token as a base64 encoded string.
         """
-        return token_backend.encode(self.payload)
+        return self.token_backend.encode(payload=self.payload, headers=self.headers)
 
     def verify(self):
         """
@@ -221,7 +238,9 @@ class Token:
         See here:
         https://tools.ietf.org/html/rfc7519#section-4.1.7
         """
-        self.payload[JWT_SETTINGS.JTI_CLAIM] = uuid4().hex
+        jti = getattr(JWT_SETTINGS, 'JTI_CLAIM', None)
+        if jti:
+            self.payload[jti] = uuid4().hex
 
     def set_exp(self, from_time=None, lifetime=None):
         """
