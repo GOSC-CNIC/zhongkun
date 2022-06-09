@@ -125,6 +125,22 @@ class Order(models.Model):
         self.trading_status = self.TradingStatus.CLOSED.value
         self.save(update_fields=['status', 'trading_status'])
 
+    def build_subject(self):
+        resource_type = '未知资源'
+        if self.resource_type == ResourceType.VM.value:
+            resource_type = _('云服务器')
+        elif self.resource_type == ResourceType.DISK.value:
+            resource_type = _('云硬盘')
+        elif self.resource_type == ResourceType.BUCKET.value:
+            resource_type = _('存储桶')
+
+        order_type = self.get_order_type_display()
+        subject = f'{resource_type}({order_type})'
+        if self.period > 0:
+            subject += _('时长%d月') % (self.period,)
+
+        return subject
+
 
 class Resource(UuidModel):
     class InstanceStatus(models.TextChoices):

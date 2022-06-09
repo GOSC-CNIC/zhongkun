@@ -126,12 +126,15 @@ class PaymentManager:
             raise errors.Error(message=_('备注信息超出允许长度'))
 
     def pay_metering_bill(
-            self, metering_bill: MeteringBase, executor: str, remark: str, required_enough_balance: bool = True
+            self, metering_bill: MeteringBase, app_id: str, subject: str,
+            executor: str, remark: str, required_enough_balance: bool = True
     ):
         """
         支付计量计费账单
 
         :param metering_bill: MeteringBase子类对象
+        :param app_id:
+        :param subject: 标题
         :param executor: bill支付的执行人
         :param remark: 支付记录备注信息
         :param required_enough_balance: 是否要求余额必须足够支付，默认True(必须有足够的余额支付)，False(允许余额为负)
@@ -141,12 +144,14 @@ class PaymentManager:
         with transaction.atomic():
             bill = type(metering_bill).objects.select_for_update().get(id=metering_bill.id)
             return self._pay_metering_bill(
-                metering_bill=bill, executor=executor, remark=remark,
+                metering_bill=bill, app_id=app_id, subject=subject,
+                executor=executor, remark=remark,
                 required_enough_balance=required_enough_balance
             )
 
     def _pay_metering_bill(
-            self, metering_bill: MeteringBase, executor: str, remark: str, required_enough_balance: bool
+            self, metering_bill: MeteringBase, app_id: str, subject: str,
+            executor: str, remark: str, required_enough_balance: bool
     ):
         """
         支付计量计费账单
@@ -173,7 +178,8 @@ class PaymentManager:
             instance_id = metering_bill.get_instance_id()
             if metering_bill.is_owner_type_user():
                 pay_history = self.pay_by_user(
-                    user_id=owner_id, amounts=metering_bill.original_amount, executor=executor,
+                    user_id=owner_id, app_id=app_id, subject=subject,
+                    amounts=metering_bill.original_amount, executor=executor,
                     remark=remark, order_id='', resource_type=resource_type,
                     service_id=service_id, instance_id=instance_id,
                     required_enough_balance=required_enough_balance,
@@ -181,7 +187,8 @@ class PaymentManager:
                 )
             else:
                 pay_history = self.pay_by_vo(
-                    vo_id=owner_id, amounts=metering_bill.original_amount, executor=executor,
+                    vo_id=owner_id, app_id=app_id, subject=subject,
+                    amounts=metering_bill.original_amount, executor=executor,
                     remark=remark, order_id='', resource_type=resource_type,
                     service_id=service_id, instance_id=instance_id,
                     required_enough_balance=required_enough_balance,
@@ -199,6 +206,8 @@ class PaymentManager:
 
     def pay_order(
             self, order,
+            app_id: str,
+            subject: str,
             executor: str,
             remark: str,
             coupon_ids: list = None,
@@ -209,6 +218,8 @@ class PaymentManager:
         支付一个订单
 
         :param order: Order()
+        :param app_id:
+        :param subject: 标题
         :param executor: 支付执行人
         :param remark: 支付记录备注信息
         :param coupon_ids: 支付使用指定id的券；None(不指定券，使用所有券)；[](空，指定不使用券，只使用余额)；
@@ -221,7 +232,8 @@ class PaymentManager:
             with transaction.atomic():
                 order = Order.objects.select_for_update().get(id=order.id)
                 order = self._pay_order(
-                    order=order, executor=executor, remark=remark,
+                    order=order, app_id=app_id, subject=subject,
+                    executor=executor, remark=remark,
                     coupon_ids=coupon_ids, only_coupon=only_coupon,
                     required_enough_balance=required_enough_balance
                 )
@@ -233,6 +245,8 @@ class PaymentManager:
 
     def _pay_order(
             self, order: Order,
+            app_id: str,
+            subject: str,
             executor: str,
             remark: str,
             coupon_ids: list,
@@ -252,7 +266,8 @@ class PaymentManager:
 
         if order.owner_type == OwnerType.USER.value:
             pay_history = self.pay_by_user(
-                user_id=order.user_id, amounts=order.total_amount, executor=executor,
+                user_id=order.user_id, app_id=app_id, subject=subject,
+                amounts=order.total_amount, executor=executor,
                 remark=remark, order_id=order.id, resource_type=order.resource_type,
                 service_id=order.service_id, instance_id='',
                 required_enough_balance=required_enough_balance,
@@ -260,7 +275,8 @@ class PaymentManager:
             )
         else:
             pay_history = self.pay_by_vo(
-                vo_id=order.vo_id, amounts=order.total_amount, executor=executor,
+                vo_id=order.vo_id, app_id=app_id, subject=subject,
+                amounts=order.total_amount, executor=executor,
                 remark=remark, order_id=order.id, resource_type=order.resource_type,
                 service_id=order.service_id, instance_id='',
                 required_enough_balance=required_enough_balance,
@@ -303,6 +319,8 @@ class PaymentManager:
 
     def pay_by_user(
             self, user_id: str,
+            app_id: str,
+            subject: str,
             amounts: Decimal,
             executor: str,
             remark: str,
@@ -321,6 +339,8 @@ class PaymentManager:
             return self._pay_by_user_or_vo(
                 user_id=user_id,
                 vo_id='',
+                app_id=app_id,
+                subject=subject,
                 amounts=amounts,
                 coupon_ids=coupon_ids,
                 executor=executor,
@@ -335,6 +355,8 @@ class PaymentManager:
 
     def pay_by_vo(
             self, vo_id: str,
+            app_id: str,
+            subject: str,
             amounts: Decimal,
             executor: str,
             remark: str,
@@ -353,6 +375,8 @@ class PaymentManager:
             return self._pay_by_user_or_vo(
                 user_id='',
                 vo_id=vo_id,
+                app_id=app_id,
+                subject=subject,
                 amounts=amounts,
                 coupon_ids=coupon_ids,
                 executor=executor,
@@ -421,8 +445,11 @@ class PaymentManager:
         )
 
     def _pay_by_user_or_vo(
-            self, user_id: str,
+            self,
+            user_id: str,
             vo_id: str,
+            app_id: str,
+            subject: str,
             amounts: Decimal,
             executor: str,
             remark: str,
@@ -496,7 +523,9 @@ class PaymentManager:
             order_id=order_id,
             resource_type=resource_type,
             service_id=service_id,
-            instance_id=instance_id
+            instance_id=instance_id,
+            app_id=app_id,
+            subject=subject
         )
         pay_history.save(force_insert=True)
         if coupon_amount > Decimal('0'):

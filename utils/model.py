@@ -11,7 +11,7 @@ def get_encryptor():
     return Encryptor(key=settings.SECRET_KEY)
 
 
-class UuidModel(models.Model):
+class CustomIdModel(models.Model):
     id = models.CharField(blank=True, editable=False, max_length=36, primary_key=True, verbose_name='ID')
 
     class Meta:
@@ -26,9 +26,20 @@ class UuidModel(models.Model):
     def enforce_id(self):
         """确保id有效"""
         if not self.id:
-            self.id = str(uuid1())
+            self.id = self.generate_id()
 
         return self.id
+
+    def generate_id(self) -> str:
+        raise NotImplementedError('`generate_id()` must be implemented.')
+
+
+class UuidModel(CustomIdModel):
+    class Meta:
+        abstract = True
+
+    def generate_id(self):
+        return str(uuid1())
 
 
 class OwnerType(models.TextChoices):

@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from utils.model import UuidModel, OwnerType
+from utils.model import UuidModel, OwnerType, CustomIdModel
 from utils import rand_utils
 from order.models import ResourceType
 from users.models import UserProfile
@@ -57,7 +57,7 @@ class VoPointAccount(BasePointAccount):
         return f'VoPointAccount<{self.balance}>'
 
 
-class PaymentHistory(UuidModel):
+class PaymentHistory(CustomIdModel):
     class Type(models.TextChoices):
         RECHARGE = 'recharge', _('充值')
         PAYMENT = 'payment', _('支付')
@@ -95,25 +95,27 @@ class PaymentHistory(UuidModel):
         verbose_name=_('资源实例ID'), max_length=64, default='', help_text='云主机，硬盘id，存储桶名称')
     coupon_amount = models.DecimalField(
         verbose_name=_('券金额'), max_digits=10, decimal_places=2, help_text=_('代金券或者抵扣金额'), default=Decimal('0'))
+    subject = models.CharField(verbose_name=_('标题'), max_length=256, default='')
+    app_id = models.CharField(verbose_name=_('应用ID'), max_length=36, blank=True, default='')
 
     class Meta:
         verbose_name = _('支付记录')
         verbose_name_plural = verbose_name
         db_table = 'payment_history'
         ordering = ['-payment_time']
+        indexes = [
+            models.Index(fields=['payer_id', 'payer_name'], name='idx_payer_type_name'),
+            models.Index(fields=['order_id'], name='idx_order_id')
+        ]
 
     def __repr__(self):
         return f'PaymentHistory[{self.id}]<{self.get_type_display()}, {self.amounts}>'
 
-    def enforce_id(self):
-        """确保id有效"""
-        if not self.id:
-            self.id = rand_utils.timestamp20_rand4_sn()
-
-        return self.id
+    def generate_id(self):
+        return rand_utils.timestamp20_rand4_sn()
 
 
-class CashCouponPaymentHistory(UuidModel):
+class CashCouponPaymentHistory(CustomIdModel):
     payment_history = models.ForeignKey(to=PaymentHistory, on_delete=models.SET_NULL, null=True)
     cash_coupon = models.ForeignKey(to=CashCoupon, on_delete=models.SET_NULL, null=True)
     creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
@@ -127,9 +129,29 @@ class CashCouponPaymentHistory(UuidModel):
         db_table = 'cash_coupon_payment'
         ordering = ['-creation_time']
 
-    def enforce_id(self):
-        """确保id有效"""
-        if not self.id:
-            self.id = rand_utils.timestamp20_rand4_sn()
+    def generate_id(self):
+        return rand_utils.timestamp20_rand4_sn()
 
-        return self.id
+
+class PayApp(CustomIdModel):
+    class Status(models.TextChoices):
+        UNAUDITED = 'unaudited', _('未审核')
+        NORMAL = 'normal', _('正常')
+        BAN = 'ban', _('禁止')
+
+    name = models.CharField(verbose_name=_('应用名称'), max_length=256)
+    app_url = models.CharField(verbose_name=_('应用网址'), max_length=256, blank=True, default='')
+    app_desc = models.CharField(verbose_name=_('应用描述'), max_length=1024, blank=True, default='')
+    rsa_public_key = models.CharField(verbose_name=_('RSA公钥'), max_length=2000, blank=True, default='')
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
+    status = models.CharField(verbose_name=_('应用状态'), max_length=16, choices=Status.choices,
+                              default=Status.UNAUDITED.value)
+
+    class Meta:
+        verbose_name = _('支付应用APP')
+        verbose_name_plural = verbose_name
+        db_table = 'app'
+        ordering = ['-creation_time']
+
+    def generate_id(self):
+        return rand_utils.timestamp14_sn()

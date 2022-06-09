@@ -89,6 +89,4 @@ class JWTTestCase(TestCase):
         rsa = SHA256WithRSA(private_key=self.private_key, public_key=self.public_key)
         data = '1234abcd二位分为。xx'.encode(encoding='utf-8')
         signature = rsa.sign(data=data)
-        print(f'signature={signature}')
-        r = rsa.verify(signature=signature, data=data)
-        print(f'verify={r}')
+        rsa.verify(signature=signature, data=data)

@@ -48,6 +48,11 @@ SIMPLE_JWT['VERIFYING_KEY'] = 'xxx'
 
 PASSPORT_JWT['VERIFYING_KEY'] = 'xxx'
 
+# 余额支付配置
+PAYMENT_BALANCE = {
+    'app_id': 'xxx'
+}
+
 # test case settings
 TEST_CASE_SECURITY = {
     'SERVICE': {

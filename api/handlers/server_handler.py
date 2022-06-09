@@ -2,6 +2,7 @@ from datetime import datetime
 
 from django.utils.translation import gettext as _
 from django.db import transaction
+from django.conf import settings
 from rest_framework.response import Response
 
 from core import errors as exceptions
@@ -390,8 +391,10 @@ class ServerHandler:
             })
 
         try:
+            subject = order.build_subject()
             order = PaymentManager().pay_order(
-                order=order, executor=request.user.username, remark='',
+                order=order, app_id=settings.PAYMENT_BALANCE['app_id'], subject=subject,
+                executor=request.user.username, remark='',
                 coupon_ids=None, only_coupon=False,
                 required_enough_balance=True
             )

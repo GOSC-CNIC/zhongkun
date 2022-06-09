@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import PaymentHistory, UserPointAccount, VoPointAccount
+from .models import PaymentHistory, UserPointAccount, VoPointAccount, PayApp
 
 
 @admin.register(PaymentHistory)
@@ -22,7 +22,13 @@ class UserPointAccountAdmin(admin.ModelAdmin):
 
 @admin.register(VoPointAccount)
 class VoPointAccountAdmin(admin.ModelAdmin):
-    list_display = ('id', 'balance', 'vo',)
+    list_display = ('id', 'balance', 'vo')
     list_display_links = ('id',)
     list_select_related = ('vo',)
     readonly_fields = ('balance',)
+
+
+@admin.register(PayApp)
+class PayAppAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'status', 'creation_time', 'app_url')
+    list_display_links = ('id',)

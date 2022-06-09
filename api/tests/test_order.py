@@ -4,6 +4,7 @@ from datetime import timedelta
 
 from django.urls import reverse
 from django.utils import timezone
+from django.conf import settings
 
 from servers.models import Flavor
 from utils.model import PayType, OwnerType
@@ -832,6 +833,8 @@ class OrderTests(MyAPITestCase):
         self.assertEqual(pay_history1.resource_type, ResourceType.VM.value)
         self.assertEqual(pay_history1.service_id, self.service.id)
         self.assertEqual(pay_history1.instance_id, '')
+        self.assertEqual(pay_history1.app_id, settings.PAYMENT_BALANCE['app_id'])
+        self.assertEqual(pay_history1.subject, order1.build_subject())
         # 券支付记录
         cc_historys = pay_history1.cashcouponpaymenthistory_set.all().order_by('creation_time')
         self.assertEqual(cc_historys[0].payment_history_id, pay_history1.id)
@@ -911,6 +914,8 @@ class OrderTests(MyAPITestCase):
         self.assertEqual(pay_history2.resource_type, ResourceType.VM.value)
         self.assertEqual(pay_history2.service_id, self.service.id)
         self.assertEqual(pay_history2.instance_id, '')
+        self.assertEqual(pay_history2.app_id, settings.PAYMENT_BALANCE['app_id'])
+        self.assertEqual(pay_history2.subject, order2.build_subject())
         # 券支付记录
         cc_historys = pay_history2.cashcouponpaymenthistory_set.all().order_by('creation_time')
         self.assertEqual(len(cc_historys), 1)

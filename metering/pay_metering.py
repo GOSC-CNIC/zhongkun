@@ -3,6 +3,9 @@ from metering.models import MeteringServer, PaymentStatus
 
 
 class PayMeteringServer:
+    def __init__(self, app_id: str):
+        self.app_id = app_id
+
     def run(self):
         last_creation_time = None
         pay_mgr = PaymentManager()
@@ -13,7 +16,8 @@ class PayMeteringServer:
 
             for m in meterings:
                 pay_mgr.pay_metering_bill(
-                    metering_bill=m, executor='metering', remark='按量计费', required_enough_balance=False
+                    metering_bill=m, app_id=self.app_id, subject='云服务器计费',
+                    executor='metering', remark='按量计费', required_enough_balance=False
                 )
                 last_creation_time = m.creation_time
 

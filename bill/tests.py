@@ -41,21 +41,23 @@ class PaymentManagerTests(TransactionTestCase):
         )
         metering_bill_postpaid1.save(force_insert=True)
         with self.assertRaises(errors.Error):
-            pay_mgr.pay_metering_bill(metering_bill=metering_bill_postpaid1, executor=self.user.username, remark='')
+            pay_mgr.pay_metering_bill(
+                metering_bill=metering_bill_postpaid1, app_id='app_id', subject='云服务器计费',
+                executor=self.user.username, remark='')
 
         # pay bill, pay_type POSTPAID, when no enough balance
         metering_bill_postpaid1.user_id = self.user.id
         metering_bill_postpaid1.save(update_fields=['user_id'])
         with self.assertRaises(errors.BalanceNotEnough):
             pay_mgr.pay_metering_bill(
-                metering_bill=metering_bill_postpaid1, executor=self.user.username, remark='',
-                required_enough_balance=True
+                metering_bill=metering_bill_postpaid1, app_id='app_id', subject='云服务器计费',
+                executor=self.user.username, remark='', required_enough_balance=True
             )
 
         # pay bill, pay_type POSTPAID
         pay_mgr.pay_metering_bill(
-            metering_bill=metering_bill_postpaid1, executor=self.user.username, remark='',
-            required_enough_balance=False
+            metering_bill=metering_bill_postpaid1, app_id='app_id', subject='云服务器计费',
+            executor=self.user.username, remark='', required_enough_balance=False
         )
         self.user.userpointaccount.refresh_from_db()
         user_balance = self.user.userpointaccount.balance
@@ -97,8 +99,8 @@ class PaymentManagerTests(TransactionTestCase):
         )
         metering_bill_prepaid.save(force_insert=True)
         pay_mgr.pay_metering_bill(
-            metering_bill=metering_bill_prepaid, executor=self.user.username, remark='',
-            required_enough_balance=False
+            metering_bill=metering_bill_prepaid, app_id='app_id', subject='云服务器计费',
+            executor=self.user.username, remark='', required_enough_balance=False
         )
         metering_bill_prepaid.refresh_from_db()
         self.user.userpointaccount.refresh_from_db()
@@ -124,8 +126,8 @@ class PaymentManagerTests(TransactionTestCase):
         )
         metering_bill_postpaid2.save(force_insert=True)
         pay_mgr.pay_metering_bill(
-            metering_bill=metering_bill_postpaid2, executor=self.user.username, remark='',
-            required_enough_balance=False
+            metering_bill=metering_bill_postpaid2, app_id='app_id', subject='云服务器计费',
+            executor=self.user.username, remark='', required_enough_balance=False
         )
         self.user.userpointaccount.refresh_from_db()
         user_balance = self.user.userpointaccount.balance
@@ -219,8 +221,8 @@ class PaymentManagerTests(TransactionTestCase):
         user_balance = self.user.userpointaccount.balance
         self.assertEqual(user_balance, Decimal('-190.33'))
         pay_mgr.pay_metering_bill(
-            metering_bill=metering_bill_postpaid3, executor=self.user.username, remark='',
-            required_enough_balance=False
+            metering_bill=metering_bill_postpaid3, app_id='app_id', subject='云服务器计费',
+            executor=self.user.username, remark='', required_enough_balance=False
         )
         self.user.userpointaccount.refresh_from_db()
         user_balance = self.user.userpointaccount.balance
@@ -267,21 +269,24 @@ class PaymentManagerTests(TransactionTestCase):
         )
         metering_bill_postpaid1.save(force_insert=True)
         with self.assertRaises(errors.Error):
-            pay_mgr.pay_metering_bill(metering_bill=metering_bill_postpaid1, executor=self.user.username, remark='')
+            pay_mgr.pay_metering_bill(
+                metering_bill=metering_bill_postpaid1, app_id='app_id', subject='云服务器计费',
+                executor=self.user.username, remark=''
+            )
 
         # pay bill, pay_type POSTPAID, when not enough balance
         metering_bill_postpaid1.vo_id = self.vo.id
         metering_bill_postpaid1.save(update_fields=['vo_id'])
         with self.assertRaises(errors.BalanceNotEnough):
             pay_mgr.pay_metering_bill(
-                metering_bill=metering_bill_postpaid1, executor=self.user.username, remark='',
-                required_enough_balance=True
+                metering_bill=metering_bill_postpaid1, app_id='app_id', subject='云服务器计费',
+                executor=self.user.username, remark='', required_enough_balance=True
             )
 
         # pay bill, pay_type POSTPAID
         pay_mgr.pay_metering_bill(
-            metering_bill=metering_bill_postpaid1, executor=self.user.username, remark='',
-            required_enough_balance=False
+            metering_bill=metering_bill_postpaid1, app_id='app_id', subject='云服务器计费',
+            executor=self.user.username, remark='', required_enough_balance=False
         )
 
         user_balance = pay_mgr.get_vo_point_account(vo_id=self.vo.id).balance
@@ -322,8 +327,8 @@ class PaymentManagerTests(TransactionTestCase):
         )
         metering_bill_prepaid.save(force_insert=True)
         pay_mgr.pay_metering_bill(
-            metering_bill=metering_bill_prepaid, executor=self.user.username, remark='',
-            required_enough_balance=False
+            metering_bill=metering_bill_prepaid, app_id='app_id', subject='云服务器计费',
+            executor=self.user.username, remark='', required_enough_balance=False
         )
         metering_bill_prepaid.refresh_from_db()
         self.assertEqual(metering_bill_prepaid.payment_status, PaymentStatus.PAID.value)
@@ -349,8 +354,8 @@ class PaymentManagerTests(TransactionTestCase):
         )
         metering_bill_postpaid2.save(force_insert=True)
         pay_mgr.pay_metering_bill(
-            metering_bill=metering_bill_postpaid2, executor=self.user.username, remark='',
-            required_enough_balance=False
+            metering_bill=metering_bill_postpaid2, app_id='app_id', subject='云服务器计费',
+            executor=self.user.username, remark='', required_enough_balance=False
         )
         self.vo.vopointaccount.refresh_from_db()
         self.assertEqual(self.vo.vopointaccount.balance, Decimal('-123.45') - Decimal('66.88'))
@@ -391,13 +396,17 @@ class PaymentManagerTests(TransactionTestCase):
         metering_bill_paid.save(force_insert=True)
         with self.assertRaises(errors.Error):
             pay_mgr.pay_metering_bill(
-                metering_bill=metering_bill_paid, executor=self.user.username, remark='')
+                metering_bill=metering_bill_paid, app_id='app_id', subject='云服务器计费',
+                executor=self.user.username, remark=''
+            )
 
         metering_bill_paid.payment_status = PaymentStatus.CANCELLED.value
         metering_bill_paid.save(update_fields=['payment_status'])
         with self.assertRaises(errors.Error):
             pay_mgr.pay_metering_bill(
-                metering_bill=metering_bill_paid, executor=self.user.username, remark='')
+                metering_bill=metering_bill_paid, app_id='app_id', subject='云服务器计费',
+                executor=self.user.username, remark=''
+            )
 
         # ------- test coupon --------
         now_time = timezone.now()
@@ -466,8 +475,8 @@ class PaymentManagerTests(TransactionTestCase):
         vo_balance = self.vo.vopointaccount.balance
         self.assertEqual(vo_balance, Decimal('-123.45') - Decimal('66.88'))
         pay_mgr.pay_metering_bill(
-            metering_bill=metering_bill_postpaid3, executor=self.user.username, remark='',
-            required_enough_balance=False
+            metering_bill=metering_bill_postpaid3, app_id='app_id', subject='云服务器计费',
+            executor=self.user.username, remark='', required_enough_balance=False
         )
         self.vo.vopointaccount.refresh_from_db()
         vo_balance = self.vo.vopointaccount.balance
@@ -514,7 +523,8 @@ class PaymentManagerTests(TransactionTestCase):
         # user order, no enough balance, when required enough balance
         with self.assertRaises(errors.BalanceNotEnough):
             pay_mgr.pay_order(
-                order=order1, executor=self.user.username, remark='',
+                order=order1, app_id='app_id', subject='云服务器计费',
+                executor=self.user.username, remark='',
                 coupon_ids=None, only_coupon=False,
                 required_enough_balance=True
             )
@@ -522,7 +532,8 @@ class PaymentManagerTests(TransactionTestCase):
         pay_mgr.get_user_point_account(user_id=self.user.id)
         self.assertEqual(self.user.userpointaccount.balance, Decimal(0))
         order1 = pay_mgr.pay_order(
-            order=order1, executor=self.user.username, remark='',
+            order=order1, app_id='app_id', subject='云服务器计费',
+            executor=self.user.username, remark='',
             coupon_ids=None, only_coupon=False,
             required_enough_balance=False
         )
@@ -565,7 +576,8 @@ class PaymentManagerTests(TransactionTestCase):
         # vo order, no enough balance, when required enough balance
         with self.assertRaises(errors.BalanceNotEnough):
             pay_mgr.pay_order(
-                order=order2, executor=self.user.username, remark='',
+                order=order2, app_id='app_id', subject='云服务器计费',
+                executor=self.user.username, remark='',
                 coupon_ids=None, only_coupon=False,
                 required_enough_balance=True
             )
@@ -573,7 +585,8 @@ class PaymentManagerTests(TransactionTestCase):
         pay_mgr.get_vo_point_account(vo_id=self.vo.id)
         self.assertEqual(self.vo.vopointaccount.balance, Decimal(0))
         order2 = pay_mgr.pay_order(
-            order=order2, executor=self.user.username, remark='',
+            order=order2, app_id='app_id', subject='云服务器计费',
+            executor=self.user.username, remark='',
             coupon_ids=None, only_coupon=False,
             required_enough_balance=False
         )
@@ -742,7 +755,8 @@ class PaymentManagerTests(TransactionTestCase):
         # 指定不存在的券
         with self.assertRaises(errors.Error) as cm:
             pay_mgr.pay_order(
-                order=order1, executor=self.user.username, remark='',
+                order=order1, app_id='app_id', subject='云服务器计费',
+                executor=self.user.username, remark='',
                 coupon_ids=[
                     coupon1_user.id, 'notfound'
                 ], only_coupon=False,
@@ -753,7 +767,8 @@ class PaymentManagerTests(TransactionTestCase):
         # 指定不属于自己的券
         with self.assertRaises(errors.Error) as cm:
             pay_mgr.pay_order(
-                order=order1, executor=self.user.username, remark='',
+                order=order1, app_id='app_id', subject='云服务器计费',
+                executor=self.user.username, remark='',
                 coupon_ids=[
                     coupon1_user.id, coupon6_vo.id
                 ], only_coupon=False,
@@ -764,7 +779,8 @@ class PaymentManagerTests(TransactionTestCase):
         # 指定未生效的券
         with self.assertRaises(errors.Error) as cm:
             pay_mgr.pay_order(
-                order=order1, executor=self.user.username, remark='',
+                order=order1, app_id='app_id', subject='云服务器计费',
+                executor=self.user.username, remark='',
                 coupon_ids=[
                     coupon1_user.id, coupon5_user.id
                 ], only_coupon=False,
@@ -775,7 +791,8 @@ class PaymentManagerTests(TransactionTestCase):
         # 指定过期的券
         with self.assertRaises(errors.Error) as cm:
             pay_mgr.pay_order(
-                order=order1, executor=self.user.username, remark='',
+                order=order1, app_id='app_id', subject='云服务器计费',
+                executor=self.user.username, remark='',
                 coupon_ids=[
                     coupon1_user.id, coupon4_user.id
                 ], only_coupon=False,
@@ -786,7 +803,8 @@ class PaymentManagerTests(TransactionTestCase):
         # 指定不适用资源类型的券
         with self.assertRaises(errors.Error) as cm:
             pay_mgr.pay_order(
-                order=order1, executor=self.user.username, remark='',
+                order=order1, app_id='app_id', subject='云服务器计费',
+                executor=self.user.username, remark='',
                 coupon_ids=[
                     coupon1_user.id, coupon3_user.id
                 ], only_coupon=False,
@@ -797,7 +815,8 @@ class PaymentManagerTests(TransactionTestCase):
         # 指定余额为0的券
         with self.assertRaises(errors.Error) as cm:
             pay_mgr.pay_order(
-                order=order1, executor=self.user.username, remark='',
+                order=order1, app_id='app_id', subject='云服务器计费',
+                executor=self.user.username, remark='',
                 coupon_ids=[
                     coupon1_user.id, coupon7_user.id
                 ], only_coupon=False,
@@ -808,7 +827,8 @@ class PaymentManagerTests(TransactionTestCase):
         # 只用指定券支付，券余额50（20 + 30），订单金额 100
         with self.assertRaises(errors.Error) as cm:
             pay_mgr.pay_order(
-                order=order1, executor=self.user.username, remark='',
+                order=order1, app_id='app_id', subject='云服务器计费',
+                executor=self.user.username, remark='',
                 coupon_ids=[
                     coupon1_user.id, coupon2_user.id
                 ], only_coupon=True,
@@ -818,7 +838,8 @@ class PaymentManagerTests(TransactionTestCase):
 
         # 指定券+账户余额支付，券余额45（20 + 25），订单金额 100
         pay_mgr.pay_order(
-            order=order1, executor=self.user.username, remark='',
+            order=order1, app_id='app_id', subject='云服务器计费',
+            executor=self.user.username, remark='',
             coupon_ids=[
                 coupon1_user.id, coupon2_user.id
             ], only_coupon=False,
@@ -872,7 +893,8 @@ class PaymentManagerTests(TransactionTestCase):
         # 支付已支付状态的订单
         with self.assertRaises(errors.Error) as cm:
             pay_mgr.pay_order(
-                order=order1, executor=self.user.username, remark='',
+                order=order1, app_id='app_id', subject='云服务器',
+                executor=self.user.username, remark='',
                 coupon_ids=[], only_coupon=True,
                 required_enough_balance=True
             )
@@ -882,7 +904,8 @@ class PaymentManagerTests(TransactionTestCase):
         # 不指定券，只用券支付
         with self.assertRaises(errors.Error) as cm:
             pay_mgr.pay_order(
-                order=order2, executor=self.user.username, remark='',
+                order=order2, app_id='app_id', subject='云服务器',
+                executor=self.user.username, remark='',
                 coupon_ids=[], only_coupon=True,
                 required_enough_balance=True
             )
@@ -891,7 +914,8 @@ class PaymentManagerTests(TransactionTestCase):
         # 余额不足
         with self.assertRaises(errors.Error) as cm:
             pay_mgr.pay_order(
-                order=order2, executor=self.user.username, remark='',
+                order=order2, app_id='app_id', subject='云服务器',
+                executor=self.user.username, remark='',
                 coupon_ids=[], only_coupon=False,
                 required_enough_balance=True
             )
@@ -899,7 +923,8 @@ class PaymentManagerTests(TransactionTestCase):
 
         # 订单金额 288.88
         pay_mgr.pay_order(
-            order=order2, executor=self.user.username, remark='',
+            order=order2, app_id='app_id', subject='云服务器',
+            executor=self.user.username, remark='',
             coupon_ids=[], only_coupon=False,
             required_enough_balance=False
         )
@@ -1077,7 +1102,8 @@ class PaymentManagerTests(TransactionTestCase):
         # 指定不存在的券
         with self.assertRaises(errors.Error) as cm:
             pay_mgr.pay_order(
-                order=order1, executor=self.user.username, remark='',
+                order=order1, app_id='app_id', subject='云服务器',
+                executor=self.user.username, remark='',
                 coupon_ids=[
                     coupon1_vo.id, 'notfound'
                 ], only_coupon=False,
@@ -1088,7 +1114,8 @@ class PaymentManagerTests(TransactionTestCase):
         # 指定不属于自己的券
         with self.assertRaises(errors.Error) as cm:
             pay_mgr.pay_order(
-                order=order1, executor=self.user.username, remark='',
+                order=order1, app_id='app_id', subject='云服务器',
+                executor=self.user.username, remark='',
                 coupon_ids=[
                     coupon1_vo.id, coupon7_user.id
                 ], only_coupon=False,
@@ -1099,7 +1126,8 @@ class PaymentManagerTests(TransactionTestCase):
         # 指定未生效的券
         with self.assertRaises(errors.Error) as cm:
             pay_mgr.pay_order(
-                order=order1, executor=self.user.username, remark='',
+                order=order1, app_id='app_id', subject='资源订单',
+                executor=self.user.username, remark='',
                 coupon_ids=[
                     coupon1_vo.id, coupon5_vo.id
                 ], only_coupon=False,
@@ -1110,7 +1138,8 @@ class PaymentManagerTests(TransactionTestCase):
         # 指定过期的券
         with self.assertRaises(errors.Error) as cm:
             pay_mgr.pay_order(
-                order=order1, executor=self.user.username, remark='',
+                order=order1, app_id='app_id', subject='资源订单',
+                executor=self.user.username, remark='',
                 coupon_ids=[
                     coupon1_vo.id, coupon4_vo.id
                 ], only_coupon=False,
@@ -1121,7 +1150,8 @@ class PaymentManagerTests(TransactionTestCase):
         # 指定不适用资源类型的券
         with self.assertRaises(errors.Error) as cm:
             pay_mgr.pay_order(
-                order=order1, executor=self.user.username, remark='',
+                order=order1, app_id='app_id', subject='资源订单',
+                executor=self.user.username, remark='',
                 coupon_ids=[
                     coupon1_vo.id, coupon3_vo.id
                 ], only_coupon=False,
@@ -1132,7 +1162,8 @@ class PaymentManagerTests(TransactionTestCase):
         # 指定余额为0的券
         with self.assertRaises(errors.Error) as cm:
             pay_mgr.pay_order(
-                order=order1, executor=self.user.username, remark='',
+                order=order1, app_id='app_id', subject='资源订单',
+                executor=self.user.username, remark='',
                 coupon_ids=[
                     coupon1_vo.id, coupon6_vo.id
                 ], only_coupon=False,
@@ -1143,7 +1174,8 @@ class PaymentManagerTests(TransactionTestCase):
         # 只用指定券支付，券余额50（20 + 30），订单金额 100
         with self.assertRaises(errors.Error) as cm:
             pay_mgr.pay_order(
-                order=order1, executor=self.user.username, remark='',
+                order=order1, app_id='app_id', subject='资源订单',
+                executor=self.user.username, remark='',
                 coupon_ids=[
                     coupon1_vo.id, coupon2_vo.id
                 ], only_coupon=True,
@@ -1153,7 +1185,8 @@ class PaymentManagerTests(TransactionTestCase):
 
         # 指定券+账户余额支付，券余额45（20 + 25），订单金额 100
         pay_mgr.pay_order(
-            order=order1, executor=self.user.username, remark='',
+            order=order1, app_id='app_id', subject='资源订单',
+            executor=self.user.username, remark='',
             coupon_ids=[
                 coupon1_vo.id, coupon2_vo.id
             ], only_coupon=False,
@@ -1191,6 +1224,8 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(pay_history1.resource_type, ResourceType.VM.value)
         self.assertEqual(pay_history1.service_id, self.service.id)
         self.assertEqual(pay_history1.instance_id, '')
+        self.assertEqual(pay_history1.app_id, 'app_id')
+        self.assertEqual(pay_history1.subject, '资源订单')
         # 券支付记录
         cc_historys = pay_history1.cashcouponpaymenthistory_set.all().order_by('creation_time')
         self.assertEqual(cc_historys[0].payment_history_id, pay_history1.id)
@@ -1207,7 +1242,8 @@ class PaymentManagerTests(TransactionTestCase):
         # 支付已支付状态的订单
         with self.assertRaises(errors.Error) as cm:
             pay_mgr.pay_order(
-                order=order1, executor=self.user.username, remark='',
+                order=order1, app_id='app_id', subject='资源订单',
+                executor=self.user.username, remark='',
                 coupon_ids=[], only_coupon=True,
                 required_enough_balance=True
             )
@@ -1217,7 +1253,8 @@ class PaymentManagerTests(TransactionTestCase):
         # 不指定券，只用券支付
         with self.assertRaises(errors.Error) as cm:
             pay_mgr.pay_order(
-                order=order2, executor=self.user.username, remark='',
+                order=order2, app_id='app_id', subject='资源订单',
+                executor=self.user.username, remark='',
                 coupon_ids=[], only_coupon=True,
                 required_enough_balance=True
             )
@@ -1226,7 +1263,8 @@ class PaymentManagerTests(TransactionTestCase):
         # 余额不足
         with self.assertRaises(errors.Error) as cm:
             pay_mgr.pay_order(
-                order=order2, executor=self.user.username, remark='',
+                order=order2, app_id='app_id', subject='资源订单',
+                executor=self.user.username, remark='',
                 coupon_ids=[], only_coupon=False,
                 required_enough_balance=True
             )
@@ -1234,7 +1272,8 @@ class PaymentManagerTests(TransactionTestCase):
 
         # 订单金额 288.88
         pay_mgr.pay_order(
-            order=order2, executor=self.user.username, remark='',
+            order=order2, app_id='app_id', subject='资源订单',
+            executor=self.user.username, remark='',
             coupon_ids=[], only_coupon=False,
             required_enough_balance=False
         )
@@ -1264,6 +1303,8 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(pay_history2.resource_type, ResourceType.VM.value)
         self.assertEqual(pay_history2.service_id, self.service.id)
         self.assertEqual(pay_history2.instance_id, '')
+        self.assertEqual(pay_history2.app_id, 'app_id')
+        self.assertEqual(pay_history2.subject, '资源订单')
         # 券支付记录
         cc_historys = pay_history2.cashcouponpaymenthistory_set.all().order_by('creation_time')
         self.assertEqual(len(cc_historys), 0)

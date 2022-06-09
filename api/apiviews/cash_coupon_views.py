@@ -1,7 +1,7 @@
 from django.utils.translation import gettext_lazy
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.serializers import Serializer
-from drf_yasg.utils import swagger_auto_schema
+from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
 from api.viewsets import CustomGenericViewSet
@@ -89,6 +89,7 @@ class CashCouponViewSet(CustomGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('领取/兑换代金券'),
+        request_body=no_body,
         manual_parameters=[
             openapi.Parameter(
                 name='id',
