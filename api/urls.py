@@ -5,7 +5,8 @@ from .apiviews import views
 from .apiviews import (
     monitor_views, service_quota_views,
     azone_views, order_views,
-    metering_views, bill_views, account_views, cash_coupon_views
+    metering_views, bill_views, account_views, cash_coupon_views,
+    trade_test_views
 )
 
 app_name = 'api'
@@ -41,6 +42,7 @@ no_slash_router.register(r'metering/server', metering_views.MeteringServerViewSe
 no_slash_router.register(r'payment-history', bill_views.PaymentHistoryViewSet, basename='payment-history')
 no_slash_router.register(r'account/balance', account_views.BalanceAccountViewSet, basename='account-balance')
 no_slash_router.register(r'cashcoupon', cash_coupon_views.CashCouponViewSet, basename='cashcoupon')
+no_slash_router.register(r'trade/test', trade_test_views.TradeTestViewSet, basename='trade-test')
 
 
 urlpatterns = [

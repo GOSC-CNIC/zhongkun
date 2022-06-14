@@ -22,13 +22,10 @@ from drf_yasg import openapi
 
 from . import views
 from . import admin_site
+from . import check
 
 
-payment_balance = getattr(settings, 'PAYMENT_BALANCE', {})
-app_id = payment_balance.get('app_id')
-if not app_id:
-    raise (f'Not set PAYMENT_BALANCE app_id')
-
+check.check_setting()
 
 schema_view = get_schema_view(
     openapi.Info(

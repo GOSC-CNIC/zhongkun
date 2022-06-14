@@ -1,6 +1,7 @@
 from django.utils.translation import gettext_lazy, gettext as _
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
+from rest_framework.serializers import Serializer
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
@@ -139,6 +140,9 @@ class MonitorCephQueryViewSet(CustomGenericViewSet):
             }
         """
         return MonitorCephQueryHandler().queryrange(view=self, request=request, kwargs=kwargs)
+
+    def get_serializer_class(self):
+        return Serializer
 
 
 class MonitorServerQueryViewSet(CustomGenericViewSet):

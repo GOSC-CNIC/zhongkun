@@ -1,6 +1,7 @@
 from django.utils.translation import gettext_lazy, gettext as _
 from django.http import Http404
 from django.core.exceptions import PermissionDenied
+from django.conf import settings
 from rest_framework import viewsets
 from rest_framework.views import set_rollback
 from rest_framework.response import Response
@@ -11,6 +12,8 @@ from service.managers import ServiceManager
 from core.request import request_service, request_vpn_service
 from core import errors as exceptions
 from . import request_logger as logger
+from .signers import SignatureResponse, SignatureRequest, SignatureParser
+from bill.models import PayApp
 
 
 def str_to_int_or_default(val, default):
@@ -154,3 +157,65 @@ class CustomGenericViewSet(viewsets.GenericViewSet):
             exc = exceptions.Error(message=str(exc))
 
         return Response(data=exc.err_data(), status=exc.status_code)
+
+
+class PaySignGenericViewSet(CustomGenericViewSet):
+    """
+    仅限JSON格式数据api视图使用
+    """
+    def finalize_response(self, request, response, *args, **kwargs):
+        response = super().finalize_response(request, response, *args, **kwargs)
+        signer = SignatureResponse(private_key=settings.PAYMENT_RSA2048['private_key'])
+        response = signer.add_sign(response=response)
+        return response
+
+    def initialize_request(self, request, *args, **kwargs):
+        request = super().initialize_request(request, *args, **kwargs)
+        # 因为json parse时直接转成字典格式了，所以在json parse之前读取body以保存原始body bytes
+        # 在视图之前有可能会触发json parse，比如CSRF会读django.POST
+        body = request.body
+        return request
+
+    @staticmethod
+    def check_request_sign(request):
+        """
+        :raise: Error
+        """
+        parser = SignatureParser(sign_type=SignatureRequest.SING_TYPE)
+        token = parser.get_token_in_header(request)
+        auth_type, app_id, timestamp, signature = parser.parse_token(token)
+        app = PayApp.objects.filter(id=app_id).first()
+        if app is None:
+            raise exceptions.NotFound(
+                message=_('app_id不存在'), code='NoSuchAPPID'
+            )
+
+        if app.status == PayApp.Status.UNAUDITED.value:
+            raise exceptions.ConflictError(
+                message=_('应用处于未审核状态'), code='AppStatusUnaudited'
+            )
+        elif app.status == PayApp.Status.BAN.value:
+            raise exceptions.ConflictError(
+                message=_('应用处于禁止状态'), code='AppStatusBan'
+            )
+
+        if not app.rsa_public_key:
+            raise exceptions.ConflictError(
+                message=_('app未配置RSA公钥'), code='NoSetPublicKey'
+            )
+        try:
+            sr = SignatureRequest(request=request, public_key=app.rsa_public_key)
+        except exceptions.Error as e:
+            raise e
+
+        method = request.method.upper()
+        uri = request.get_full_path()
+        body = request.body
+        ok = sr.verify_signature(
+            timestamp=timestamp, method=method, uri=uri,
+            body=body.decode(encoding='utf-8'), sig=signature
+        )
+        if not ok:
+            raise exceptions.AuthenticationFailed(
+                message=_('签名无效'), code='InvalidSignature'
+            )
