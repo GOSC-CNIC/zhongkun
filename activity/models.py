@@ -52,40 +52,14 @@ class ApplicableResourceField(models.JSONField):
                 )
 
 
-class CouponType(models.TextChoices):
-    UNIVERSAL = 'universal', _('通用')
-    SPECIAL = 'special', _('专用')
-
-
 class CashCouponBase(models.Model):
     face_value = models.DecimalField(verbose_name=_('面额'), max_digits=10, decimal_places=2)
     creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
     effective_time = models.DateTimeField(verbose_name=_('生效时间'))
     expiration_time = models.DateTimeField(verbose_name=_('过期时间'))
-    coupon_type = models.CharField(
-        verbose_name=_('券类型'), max_length=16, choices=CouponType.choices, default=CouponType.UNIVERSAL.value)
-    _applicable_resource = ApplicableResourceField(
-        verbose_name=_('适用资源'), db_column='applicable_resource', blank=True, default=list, help_text=_('空表示通用'))
 
     class Meta:
         abstract = True
-
-    @property
-    def applicable_resource(self):
-        return self._applicable_resource
-
-    @applicable_resource.setter
-    def applicable_resource(self, value: list):
-        values = ResourceType.values
-        values.append(ApplicableResourceField.UNIVERSAL_VALUE)
-        for i in value:
-            if i not in values:
-                raise exceptions.ValidationError(message=_('无效的资源类型') + str(i))
-
-        self._applicable_resource = value
-
-    def is_applicable_resource_universal(self):
-        return (not self.applicable_resource) or (ApplicableResourceField.UNIVERSAL_VALUE in self.applicable_resource)
 
 
 class CashCouponActivity(UuidModel, CashCouponBase):
@@ -103,6 +77,7 @@ class CashCouponActivity(UuidModel, CashCouponBase):
     grant_status = models.CharField(
         verbose_name=_('发放状态'), max_length=16, choices=GrantStatus.choices, default=GrantStatus.WAIT.value)
     desc = models.CharField(verbose_name=_('描述信息'), max_length=255, blank=True, default='')
+    creator = models.CharField(verbose_name=_('创建人'), max_length=128, blank=True, default='')
 
     class Meta:
         verbose_name = _('代金券活动')

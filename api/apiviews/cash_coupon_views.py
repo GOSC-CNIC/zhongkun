@@ -57,10 +57,6 @@ class CashCouponViewSet(CustomGenericViewSet):
                         "creation_time": "2022-05-07T06:33:39.496411Z",
                         "effective_time": "2022-05-07T06:32:00Z",
                         "expiration_time": "2022-05-07T06:32:00Z",
-                        "coupon_type": "special",   # universal: 通用; special: 专用, 只能用于指定service
-                        "applicable_resource": [    # 空数组或者包含universal表示”通用“
-                            "vm"                    # 适用资源项："vm"、”disk“、”bucket“
-                        ],
                         "balance": "555.00",
                         "status": "available",      # wait：未领取；available：有效；cancelled：作废；deleted：删除
                         "granted_time": "2022-05-07T06:36:31.296470Z",  # maybe None

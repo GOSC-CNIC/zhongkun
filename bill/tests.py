@@ -10,7 +10,8 @@ from utils.model import OwnerType, PayType
 from order.models import ResourceType, Order
 from vo.managers import VoManager
 from metering.models import MeteringServer, MeteringDisk, PaymentStatus
-from activity.models import CashCoupon, CouponType, ApplicableResourceField
+from activity.models import CashCoupon
+from service.models import ServiceConfig
 from .models import PaymentHistory
 from .managers import PaymentManager
 
@@ -20,6 +21,10 @@ class PaymentManagerTests(TransactionTestCase):
         self.user = get_or_create_user()
         self.service = get_or_create_service()
         self.vo = VoManager().create_vo(user=self.user, name='test vo', company='test', description='test')
+        self.service2 = ServiceConfig(
+            name='test2', data_center_id=self.service.data_center_id, endpoint_url='test2', username='', password='',
+            need_vpn=False
+        )
 
     def test_pay_user_bill(self):
         pay_mgr = PaymentManager()
@@ -156,45 +161,39 @@ class PaymentManagerTests(TransactionTestCase):
 
         # ------- test coupon --------
         now_time = timezone.now()
-        # 通用有效
+        # 有效, service
         coupon1_user = CashCoupon(
             face_value=Decimal('20'),
             balance=Decimal('20'),
             effective_time=now_time - timedelta(days=1),
             expiration_time=now_time + timedelta(days=10),
-            coupon_type=CouponType.UNIVERSAL.value,
-            service_id=None,
-            _applicable_resource=[ApplicableResourceField.UNIVERSAL_VALUE],
+            service_id=self.service.id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.USER.value,
             user_id=self.user.id, vo_id=None
         )
         coupon1_user.save(force_insert=True)
 
-        # 通用有效，只适用于云硬盘
+        # 有效，只适用于service2
         coupon2_user = CashCoupon(
             face_value=Decimal('33'),
             balance=Decimal('33'),
             effective_time=now_time - timedelta(days=2),
             expiration_time=now_time + timedelta(days=10),
-            coupon_type=CouponType.UNIVERSAL.value,
-            service_id=None,
-            _applicable_resource=[ResourceType.DISK.value],
+            service_id=self.service2.id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.USER.value,
             user_id=self.user.id, vo_id=None
         )
         coupon2_user.save(force_insert=True)
 
-        # 通用有效
+        # 有效, service
         coupon3_vo = CashCoupon(
             face_value=Decimal('50'),
             balance=Decimal('50'),
             effective_time=now_time - timedelta(days=1),
             expiration_time=now_time + timedelta(days=10),
-            coupon_type=CouponType.UNIVERSAL.value,
-            service_id=None,
-            _applicable_resource=[ApplicableResourceField.UNIVERSAL_VALUE],
+            service_id=self.service.id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.VO.value,
             user_id=None, vo_id=self.vo.id
@@ -410,45 +409,39 @@ class PaymentManagerTests(TransactionTestCase):
 
         # ------- test coupon --------
         now_time = timezone.now()
-        # 通用有效
+        # 有效, service
         coupon1_vo = CashCoupon(
             face_value=Decimal('20'),
             balance=Decimal('20'),
             effective_time=now_time - timedelta(days=1),
             expiration_time=now_time + timedelta(days=10),
-            coupon_type=CouponType.UNIVERSAL.value,
-            service_id=None,
-            _applicable_resource=[ApplicableResourceField.UNIVERSAL_VALUE],
+            service_id=self.service.id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.VO.value,
             user_id=None, vo_id=self.vo.id
         )
         coupon1_vo.save(force_insert=True)
 
-        # 通用有效，只适用于云硬盘
+        # 有效，service2
         coupon2_vo = CashCoupon(
             face_value=Decimal('33'),
             balance=Decimal('33'),
             effective_time=now_time - timedelta(days=2),
             expiration_time=now_time + timedelta(days=10),
-            coupon_type=CouponType.UNIVERSAL.value,
-            service_id=None,
-            _applicable_resource=[ResourceType.DISK.value],
+            service_id=self.service2.id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.VO.value,
             user_id=None, vo_id=self.vo.id
         )
         coupon2_vo.save(force_insert=True)
 
-        # 通用有效
+        # 有效, service
         coupon3_user = CashCoupon(
             face_value=Decimal('50'),
             balance=Decimal('50'),
             effective_time=now_time - timedelta(days=1),
             expiration_time=now_time + timedelta(days=10),
-            coupon_type=CouponType.UNIVERSAL.value,
-            service_id=None,
-            _applicable_resource=[ApplicableResourceField.UNIVERSAL_VALUE],
+            service_id=self.service.id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.USER.value,
             user_id=self.user.id, vo_id=None
@@ -647,105 +640,91 @@ class PaymentManagerTests(TransactionTestCase):
         order2.save(force_insert=True)
 
         now_time = timezone.now()
-        # 通用有效
+        # 有效, service
         coupon1_user = CashCoupon(
             face_value=Decimal('20'),
             balance=Decimal('20'),
             effective_time=now_time - timedelta(days=1),
             expiration_time=now_time + timedelta(days=10),
-            coupon_type=CouponType.UNIVERSAL.value,
-            service_id=None,
-            _applicable_resource=[ApplicableResourceField.UNIVERSAL_VALUE],
+            service_id=self.service.id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.USER.value,
             user_id=self.user.id, vo_id=None
         )
         coupon1_user.save(force_insert=True)
 
-        # 专用有效
+        # 有效, service
         coupon2_user = CashCoupon(
             face_value=Decimal('25'),
             balance=Decimal('25'),
             effective_time=now_time - timedelta(days=2),
             expiration_time=now_time + timedelta(days=10),
-            coupon_type=CouponType.SPECIAL.value,
             service_id=self.service.id,
-            _applicable_resource=[],
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.USER.value,
             user_id=self.user.id, vo_id=None
         )
         coupon2_user.save(force_insert=True)
 
-        # 通用有效，只适用于云硬盘
+        # 有效，只适用于service2
         coupon3_user = CashCoupon(
             face_value=Decimal('33'),
             balance=Decimal('33'),
             effective_time=now_time - timedelta(days=2),
             expiration_time=now_time + timedelta(days=10),
-            coupon_type=CouponType.UNIVERSAL.value,
-            service_id=None,
-            _applicable_resource=[ResourceType.DISK.value],
+            service_id=self.service2.id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.USER.value,
             user_id=self.user.id, vo_id=None
         )
         coupon3_user.save(force_insert=True)
 
-        # 通用过期
+        # 过期, service
         coupon4_user = CashCoupon(
             face_value=Decimal('40'),
             balance=Decimal('40'),
             effective_time=now_time - timedelta(days=10),
             expiration_time=now_time - timedelta(days=1),
-            coupon_type=CouponType.UNIVERSAL.value,
-            service_id=None,
-            _applicable_resource=[ApplicableResourceField.UNIVERSAL_VALUE],
+            service_id=self.service.id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.USER.value,
             user_id=self.user.id, vo_id=None
         )
         coupon4_user.save(force_insert=True)
 
-        # 通用，时间未生效
+        # 时间未生效, service
         coupon5_user = CashCoupon(
             face_value=Decimal('45'),
             balance=Decimal('45'),
             effective_time=now_time + timedelta(days=1),
             expiration_time=now_time + timedelta(days=11),
-            coupon_type=CouponType.UNIVERSAL.value,
-            service_id=None,
-            _applicable_resource=[ApplicableResourceField.UNIVERSAL_VALUE],
+            service_id=self.service.id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.USER.value,
             user_id=self.user.id, vo_id=None
         )
         coupon5_user.save(force_insert=True)
 
-        # 通用有效
+        # 有效, service
         coupon6_vo = CashCoupon(
             face_value=Decimal('50'),
             balance=Decimal('50'),
             effective_time=now_time - timedelta(days=1),
             expiration_time=now_time + timedelta(days=10),
-            coupon_type=CouponType.UNIVERSAL.value,
-            service_id=None,
-            _applicable_resource=[ApplicableResourceField.UNIVERSAL_VALUE],
+            service_id=self.service.id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.VO.value,
             user_id=None, vo_id=self.vo.id
         )
         coupon6_vo.save(force_insert=True)
 
-        # 通用有效, 余额0
+        # 有效,service, 余额0
         coupon7_user = CashCoupon(
             face_value=Decimal('20'),
             balance=Decimal('0'),
             effective_time=now_time - timedelta(days=1),
             expiration_time=now_time + timedelta(days=10),
-            coupon_type=CouponType.UNIVERSAL.value,
-            service_id=None,
-            _applicable_resource=[ApplicableResourceField.UNIVERSAL_VALUE],
+            service_id=self.service.id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.USER.value,
             user_id=self.user.id, vo_id=None
@@ -800,7 +779,7 @@ class PaymentManagerTests(TransactionTestCase):
             )
         self.assertEqual(cm.exception.code, 'ExpiredCoupon')
 
-        # 指定不适用资源类型的券
+        # 指定不适用服务的券
         with self.assertRaises(errors.Error) as cm:
             pay_mgr.pay_order(
                 order=order1, app_id='app_id', subject='云服务器计费',
@@ -994,105 +973,91 @@ class PaymentManagerTests(TransactionTestCase):
         order2.save(force_insert=True)
 
         now_time = timezone.now()
-        # 通用有效
+        # 有效, service
         coupon1_vo = CashCoupon(
             face_value=Decimal('20'),
             balance=Decimal('20'),
             effective_time=now_time - timedelta(days=1),
             expiration_time=now_time + timedelta(days=10),
-            coupon_type=CouponType.UNIVERSAL.value,
-            service_id=None,
-            _applicable_resource=[ApplicableResourceField.UNIVERSAL_VALUE],
+            service_id=self.service.id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.VO.value,
             user_id=None, vo_id=self.vo.id
         )
         coupon1_vo.save(force_insert=True)
 
-        # 专用有效
+        # 有效, service
         coupon2_vo = CashCoupon(
             face_value=Decimal('25'),
             balance=Decimal('25'),
             effective_time=now_time - timedelta(days=2),
             expiration_time=now_time + timedelta(days=10),
-            coupon_type=CouponType.SPECIAL.value,
             service_id=self.service.id,
-            _applicable_resource=[],
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.VO.value,
             user_id=None, vo_id=self.vo.id
         )
         coupon2_vo.save(force_insert=True)
 
-        # 通用有效，只适用于云硬盘
+        # 有效，只适用于service2
         coupon3_vo = CashCoupon(
             face_value=Decimal('33'),
             balance=Decimal('33'),
             effective_time=now_time - timedelta(days=2),
             expiration_time=now_time + timedelta(days=10),
-            coupon_type=CouponType.UNIVERSAL.value,
-            service_id=None,
-            _applicable_resource=[ResourceType.DISK.value],
+            service_id=self.service2.id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.VO.value,
             user_id=None, vo_id=self.vo.id
         )
         coupon3_vo.save(force_insert=True)
 
-        # 通用过期
+        # 过期, service
         coupon4_vo = CashCoupon(
             face_value=Decimal('40'),
             balance=Decimal('40'),
             effective_time=now_time - timedelta(days=10),
             expiration_time=now_time - timedelta(days=1),
-            coupon_type=CouponType.UNIVERSAL.value,
-            service_id=None,
-            _applicable_resource=[ApplicableResourceField.UNIVERSAL_VALUE],
+            service_id=self.service.id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.VO.value,
             user_id=None, vo_id=self.vo.id
         )
         coupon4_vo.save(force_insert=True)
 
-        # 通用，时间未生效
+        # 时间未生效, service
         coupon5_vo = CashCoupon(
             face_value=Decimal('45'),
             balance=Decimal('45'),
             effective_time=now_time + timedelta(days=1),
             expiration_time=now_time + timedelta(days=11),
-            coupon_type=CouponType.UNIVERSAL.value,
-            service_id=None,
-            _applicable_resource=[ApplicableResourceField.UNIVERSAL_VALUE],
+            service_id=self.service.id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.VO.value,
             user_id=None, vo_id=self.vo.id
         )
         coupon5_vo.save(force_insert=True)
 
-        # 通用有效, 余额0
+        # 有效, service, 余额0
         coupon6_vo = CashCoupon(
             face_value=Decimal('20'),
             balance=Decimal('0'),
             effective_time=now_time - timedelta(days=1),
             expiration_time=now_time + timedelta(days=10),
-            coupon_type=CouponType.UNIVERSAL.value,
-            service_id=None,
-            _applicable_resource=[ApplicableResourceField.UNIVERSAL_VALUE],
+            service_id=self.service.id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.VO.value,
             user_id=None, vo_id=self.vo.id
         )
         coupon6_vo.save(force_insert=True)
 
-        # 通用有效
+        # 有效, service
         coupon7_user = CashCoupon(
             face_value=Decimal('50'),
             balance=Decimal('50'),
             effective_time=now_time - timedelta(days=1),
             expiration_time=now_time + timedelta(days=10),
-            coupon_type=CouponType.UNIVERSAL.value,
-            service_id=None,
-            _applicable_resource=[ApplicableResourceField.UNIVERSAL_VALUE],
+            service_id=self.service.id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.USER.value,
             user_id=self.user.id, vo_id=None

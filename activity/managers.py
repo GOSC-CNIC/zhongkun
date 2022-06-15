@@ -8,7 +8,7 @@ from django.utils import timezone
 from core import errors
 from utils.model import OwnerType
 from vo.managers import VoManager
-from .models import CashCoupon, CouponType
+from .models import CashCoupon
 
 
 class CashCouponManager:
@@ -142,7 +142,9 @@ class CashCouponManager:
         coupon.save(update_fields=['status'])
         return coupon
 
-    def get_user_cash_coupons(self, user_id: str, coupon_ids: list = None, select_for_update: bool = False) -> List[CashCoupon]:
+    def get_user_cash_coupons(
+            self, user_id: str, coupon_ids: list = None, select_for_update: bool = False
+    ) -> List[CashCoupon]:
         """
         指定coupon_ids按coupon_ids排序，否者按券过期时间先后排序
 
@@ -160,7 +162,9 @@ class CashCouponManager:
             select_for_update=select_for_update
         )
 
-    def get_vo_cash_coupons(self, vo_id: str, coupon_ids: list = None, select_for_update: bool = False) -> List[CashCoupon]:
+    def get_vo_cash_coupons(
+            self, vo_id: str, coupon_ids: list = None, select_for_update: bool = False
+    ) -> List[CashCoupon]:
         """
         指定coupon_ids按coupon_ids排序，否者按券过期时间先后排序
 
@@ -241,29 +245,16 @@ class CashCouponManager:
         return coupons
 
     @staticmethod
-    def sorting_usable_coupons(coupons: List[CashCoupon], service_id: str, resource_type: str):
+    def sorting_usable_coupons(coupons: List[CashCoupon], service_id: str):
         """
-        分拣适用指定资源的券
-
-        * 非通用券，非通用适用资源券，不指定参数“service_id”或“resource_type”时，判定为不可用券
+        分拣适用指定服务的券
         """
         # 适用的券
         usable_coupons = []
         unusable_coupons = []
         for coupon in coupons:
-            if coupon.coupon_type == CouponType.UNIVERSAL.value:
-                if (
-                    coupon.is_applicable_resource_universal() or
-                    (resource_type and resource_type in coupon.applicable_resource)
-                ):
-                    usable_coupons.append(coupon)
-                else:
-                    unusable_coupons.append(coupon)
-            elif coupon.coupon_type == CouponType.SPECIAL.value:
-                if service_id and service_id == coupon.service_id:
-                    usable_coupons.append(coupon)
-                else:
-                    unusable_coupons.append(coupon)
+            if service_id == coupon.service_id:
+                usable_coupons.append(coupon)
             else:
                 unusable_coupons.append(coupon)
 

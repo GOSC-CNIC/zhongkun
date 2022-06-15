@@ -16,8 +16,9 @@ from utils.test import get_or_create_user, get_or_create_service
 from vo.models import VirtualOrganization, VoMember
 from bill.managers import PaymentManager
 from bill.models import PaymentHistory
-from activity.models import CashCoupon, CouponType, ApplicableResourceField
+from activity.models import CashCoupon
 from api.handlers.order_handler import CASH_COUPON_BALANCE
+from service.models import ServiceConfig
 from . import set_auth_header, MyAPITestCase
 
 
@@ -643,6 +644,10 @@ class OrderTests(MyAPITestCase):
         self.assertErrorResponse(status_code=409, code='QuotaShortage', response=response)
 
     def test_pay_order_with_coupon(self):
+        service2 = ServiceConfig(
+            name='test2', data_center_id=self.service.data_center_id, endpoint_url='test2', username='', password='',
+            need_vpn=False
+        )
         now_time = timezone.now()
         # 通用有效
         coupon1_user = CashCoupon(
@@ -650,9 +655,7 @@ class OrderTests(MyAPITestCase):
             balance=Decimal('10'),
             effective_time=now_time - timedelta(days=1),
             expiration_time=now_time + timedelta(days=10),
-            coupon_type=CouponType.UNIVERSAL.value,
-            service_id=None,
-            _applicable_resource=[ApplicableResourceField.UNIVERSAL_VALUE],
+            service_id=self.service.id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.USER.value,
             user_id=self.user.id, vo_id=None
@@ -665,24 +668,20 @@ class OrderTests(MyAPITestCase):
             balance=Decimal('20'),
             effective_time=now_time - timedelta(days=2),
             expiration_time=now_time + timedelta(days=10),
-            coupon_type=CouponType.SPECIAL.value,
             service_id=self.service.id,
-            _applicable_resource=[],
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.USER.value,
             user_id=self.user.id, vo_id=None
         )
         coupon2_user.save(force_insert=True)
 
-        # 通用有效，只适用于云硬盘
+        # 通用有效，只适用于service2
         coupon3_user = CashCoupon(
             face_value=Decimal('30'),
             balance=Decimal('30'),
             effective_time=now_time - timedelta(days=2),
             expiration_time=now_time + timedelta(days=10),
-            coupon_type=CouponType.UNIVERSAL.value,
-            service_id=None,
-            _applicable_resource=[ResourceType.DISK.value],
+            service_id=service2.id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.USER.value,
             user_id=self.user.id, vo_id=None

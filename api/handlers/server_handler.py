@@ -342,15 +342,13 @@ class ServerHandler:
             )
             if owner_type == OwnerType.USER.value:
                 if not PaymentManager().has_enough_balance_user(
-                    user_id=user.id, money_amount=original_price, with_coupons=True,
-                    resource_type=ResourceType.VM.value, service_id=service.id
+                    user_id=user.id, money_amount=original_price, with_coupons=True, service_id=service.id
                 ):
                     return view.exception_response(
                         exceptions.BalanceNotEnough(message=_('余额不足')))
             else:
                 if not PaymentManager().has_enough_balance_vo(
-                        vo_id=vo_id, money_amount=original_price, with_coupons=True,
-                        resource_type=ResourceType.VM.value, service_id=service.id
+                        vo_id=vo_id, money_amount=original_price, with_coupons=True, service_id=service.id
                 ):
                     return view.exception_response(
                         exceptions.BalanceNotEnough(message=_('余额不足'), code='VoBalanceNotEnough'))
