@@ -1,15 +1,15 @@
+from uuid import uuid1
 from decimal import Decimal
 
 from django.db import models
 from django.utils.translation import gettext, gettext_lazy as _
 
-from utils.model import UuidModel, OwnerType, PayType
+from utils.model import OwnerType, PayType, CustomIdModel
 from users.models import UserProfile
 from vo.models import VirtualOrganization
 from servers.models import Server
 from service.models import ServiceConfig
 from storage.models import ObjectsService
-from bill.models import PaymentHistory
 from order.models import ResourceType
 
 
@@ -19,18 +19,19 @@ class PaymentStatus(models.TextChoices):
     CANCELLED = 'cancelled', _('作废')
 
 
-class MeteringBase(UuidModel):
+class MeteringBase(CustomIdModel):
     original_amount = models.DecimalField(
         verbose_name=_('计费金额'), max_digits=10, decimal_places=2, default=Decimal(0))
     trade_amount = models.DecimalField(verbose_name=_('交易金额'), max_digits=10, decimal_places=2, default=Decimal(0))
     payment_status = models.CharField(
         verbose_name=_('支付状态'), max_length=16, choices=PaymentStatus.choices, default=PaymentStatus.UNPAID)
-    payment_history = models.OneToOneField(
-        verbose_name=_('支付记录'), to=PaymentHistory, related_name='+',
-        null=True, on_delete=models.SET_NULL, blank=True, default=None)
+    payment_history_id = models.CharField(verbose_name=_('支付记录ID'), max_length=36, default='')
 
     class Meta:
         abstract = True
+
+    def generate_id(self):
+        return uuid1().hex
 
     def is_owner_type_user(self):
         """
@@ -73,7 +74,7 @@ class MeteringBase(UuidModel):
         raise NotImplemented('get_instance_id')
 
     def set_paid(self, trade_amount: Decimal = None, payment_history_id: str = None):
-        self.payment_history_id = payment_history_id
+        self.payment_history_id = payment_history_id if payment_history_id else ''
         self.trade_amount = self.original_amount if trade_amount is None else trade_amount
         self.payment_status = PaymentStatus.PAID.value
         self.save(update_fields=['payment_history_id', 'trade_amount', 'payment_status'])
@@ -122,6 +123,9 @@ class MeteringServer(MeteringBase):
 
     def __repr__(self):
         return gettext('云服务器资源计量') + f'[server id {self.server_id}]'
+
+    def generate_id(self):
+        return f's-{uuid1().hex}'       # 保证（订单号，云主机、云硬盘、对象存储计量id）唯一
 
     def is_owner_type_user(self):
         """
@@ -206,6 +210,9 @@ class MeteringDisk(MeteringBase):
     def __repr__(self):
         return gettext('云硬盘资源计量') + f'[disk id {self.disk_id}]'
 
+    def generate_id(self):
+        return f'd-{uuid1().hex}'       # 保证（订单号，云主机、云硬盘、对象存储计量id）唯一
+
     def is_owner_type_user(self):
         """
         所有者是否是用户，反之是vo组
@@ -287,6 +294,9 @@ class MeteringObjectStorage(MeteringBase):
                 fields=['date', 'service_id', 'user_id', 'bucket_name'], name='unique_date_bucket'
             )
         ]
+
+    def generate_id(self):
+        return f'b-{uuid1().hex}'       # 保证（订单号，云主机、云硬盘、对象存储计量id）唯一
 
     def is_owner_type_user(self):
         """

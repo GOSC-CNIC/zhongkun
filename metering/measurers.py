@@ -234,7 +234,7 @@ class ServerMeasurer:
             disk_hours=disk_gb_hours,
             pay_type=server_base.pay_type,
             payment_status=PaymentStatus.UNPAID.value,
-            payment_history_id=None
+            payment_history_id=''
         )
         if server_base.belong_to_vo():
             metering.vo_id = vo_id

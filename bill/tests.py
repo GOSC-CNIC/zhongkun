@@ -42,7 +42,7 @@ class PaymentManagerTests(TransactionTestCase):
             original_amount=Decimal('123.45'),
             trade_amount=Decimal(0),
             payment_status=PaymentStatus.UNPAID.value,
-            payment_history_id=None
+            payment_history_id=''
         )
         metering_bill_postpaid1.save(force_insert=True)
         with self.assertRaises(errors.Error):
@@ -71,7 +71,8 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(metering_bill_postpaid1.original_amount, Decimal('123.45'))
         self.assertEqual(metering_bill_postpaid1.trade_amount, Decimal('123.45'))
         self.assertEqual(metering_bill_postpaid1.payment_status, PaymentStatus.PAID.value)
-        pay_history = metering_bill_postpaid1.payment_history
+        pay_history_id = metering_bill_postpaid1.payment_history_id
+        pay_history = PaymentHistory.objects.get(id=pay_history_id)
         pay_history.refresh_from_db()
         self.assertEqual(pay_history.type, PaymentHistory.Type.PAYMENT)
         self.assertEqual(pay_history.amounts, Decimal('-123.45'))
@@ -100,7 +101,7 @@ class PaymentManagerTests(TransactionTestCase):
             original_amount=Decimal('223.45'),
             trade_amount=Decimal(0),
             payment_status=PaymentStatus.UNPAID.value,
-            payment_history_id=None
+            payment_history_id=''
         )
         metering_bill_prepaid.save(force_insert=True)
         pay_mgr.pay_metering_bill(
@@ -113,7 +114,7 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(metering_bill_prepaid.payment_status, PaymentStatus.PAID.value)
         self.assertEqual(metering_bill_prepaid.original_amount, Decimal('223.45'))
         self.assertEqual(metering_bill_prepaid.trade_amount, Decimal(0))
-        self.assertIs(metering_bill_prepaid.payment_history, None)
+        self.assertEqual(metering_bill_prepaid.payment_history_id, '')
 
         # pay bill, pay_type POSTPAID
         metering_bill_postpaid2 = MeteringServer(
@@ -127,7 +128,7 @@ class PaymentManagerTests(TransactionTestCase):
             original_amount=Decimal('66.88'),
             trade_amount=Decimal(0),
             payment_status=PaymentStatus.UNPAID.value,
-            payment_history_id=None
+            payment_history_id=''
         )
         metering_bill_postpaid2.save(force_insert=True)
         pay_mgr.pay_metering_bill(
@@ -142,7 +143,8 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(metering_bill_postpaid2.original_amount, Decimal('66.88'))
         self.assertEqual(metering_bill_postpaid2.trade_amount, Decimal('66.88'))
 
-        pay_history = metering_bill_postpaid2.payment_history
+        pay_history_id = metering_bill_postpaid2.payment_history_id
+        pay_history = PaymentHistory.objects.get(id=pay_history_id)
         pay_history.refresh_from_db()
         self.assertEqual(pay_history.amounts, Decimal('-66.88'))
         self.assertEqual(pay_history.coupon_amount, Decimal('0'))
@@ -212,7 +214,7 @@ class PaymentManagerTests(TransactionTestCase):
             original_amount=Decimal('88.8'),
             trade_amount=Decimal(0),
             payment_status=PaymentStatus.UNPAID.value,
-            payment_history_id=None
+            payment_history_id=''
         )
         metering_bill_postpaid3.save(force_insert=True)
 
@@ -231,7 +233,8 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(metering_bill_postpaid3.original_amount, Decimal('88.8'))
         self.assertEqual(metering_bill_postpaid3.trade_amount, Decimal('88.8'))
 
-        pay_history = metering_bill_postpaid3.payment_history
+        pay_history_id = metering_bill_postpaid3.payment_history_id
+        pay_history = PaymentHistory.objects.get(id=pay_history_id)
         pay_history.refresh_from_db()
         self.assertEqual(pay_history.amounts, Decimal('-68.8'))
         self.assertEqual(pay_history.coupon_amount, Decimal('-20'))
@@ -264,7 +267,7 @@ class PaymentManagerTests(TransactionTestCase):
             original_amount=Decimal('123.45'),
             trade_amount=Decimal(0),
             payment_status=PaymentStatus.UNPAID.value,
-            payment_history_id=None
+            payment_history_id=''
         )
         metering_bill_postpaid1.save(force_insert=True)
         with self.assertRaises(errors.Error):
@@ -294,7 +297,8 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(metering_bill_postpaid1.payment_status, PaymentStatus.PAID.value)
         self.assertEqual(metering_bill_postpaid1.original_amount, Decimal('123.45'))
         self.assertEqual(metering_bill_postpaid1.trade_amount, Decimal('123.45'))
-        pay_history = metering_bill_postpaid1.payment_history
+        pay_history_id = metering_bill_postpaid1.payment_history_id
+        pay_history = PaymentHistory.objects.get(id=pay_history_id)
         pay_history.refresh_from_db()
         self.assertEqual(pay_history.payer_type, OwnerType.VO.value)
         self.assertEqual(pay_history.payer_id, self.vo.id)
@@ -322,7 +326,7 @@ class PaymentManagerTests(TransactionTestCase):
             original_amount=Decimal('223.45'),
             trade_amount=Decimal(0),
             payment_status=PaymentStatus.UNPAID.value,
-            payment_history_id=None
+            payment_history_id=''
         )
         metering_bill_prepaid.save(force_insert=True)
         pay_mgr.pay_metering_bill(
@@ -333,7 +337,7 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(metering_bill_prepaid.payment_status, PaymentStatus.PAID.value)
         self.assertEqual(metering_bill_prepaid.original_amount, Decimal('223.45'))
         self.assertEqual(metering_bill_prepaid.trade_amount, Decimal(0))
-        self.assertIs(metering_bill_prepaid.payment_history, None)
+        self.assertEqual(metering_bill_prepaid.payment_history_id, '')
         self.vo.vopointaccount.refresh_from_db()
         self.assertEqual(self.vo.vopointaccount.balance, Decimal('-123.45'))
 
@@ -349,7 +353,7 @@ class PaymentManagerTests(TransactionTestCase):
             original_amount=Decimal('66.88'),
             trade_amount=Decimal(0),
             payment_status=PaymentStatus.UNPAID.value,
-            payment_history_id=None
+            payment_history_id=''
         )
         metering_bill_postpaid2.save(force_insert=True)
         pay_mgr.pay_metering_bill(
@@ -362,7 +366,8 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(metering_bill_postpaid2.payment_status, PaymentStatus.PAID.value)
         self.assertEqual(metering_bill_postpaid2.original_amount, Decimal('66.88'))
         self.assertEqual(metering_bill_postpaid2.trade_amount, Decimal('66.88'))
-        pay_history = metering_bill_postpaid2.payment_history
+        pay_history_id = metering_bill_postpaid2.payment_history_id
+        pay_history = PaymentHistory.objects.get(id=pay_history_id)
         pay_history.refresh_from_db()
         self.assertEqual(pay_history.payer_type, OwnerType.VO.value)
         self.assertEqual(pay_history.payer_id, self.vo.id)
@@ -390,7 +395,7 @@ class PaymentManagerTests(TransactionTestCase):
             original_amount=Decimal('166.88'),
             trade_amount=Decimal(0),
             payment_status=PaymentStatus.PAID.value,
-            payment_history_id=None
+            payment_history_id=''
         )
         metering_bill_paid.save(force_insert=True)
         with self.assertRaises(errors.Error):
@@ -460,7 +465,7 @@ class PaymentManagerTests(TransactionTestCase):
             original_amount=Decimal('88.8'),
             trade_amount=Decimal(0),
             payment_status=PaymentStatus.UNPAID.value,
-            payment_history_id=None
+            payment_history_id=''
         )
         metering_bill_postpaid3.save(force_insert=True)
 
@@ -479,7 +484,8 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(metering_bill_postpaid3.original_amount, Decimal('88.8'))
         self.assertEqual(metering_bill_postpaid3.trade_amount, Decimal('88.8'))
 
-        pay_history = metering_bill_postpaid3.payment_history
+        pay_history_id = metering_bill_postpaid3.payment_history_id
+        pay_history = PaymentHistory.objects.get(id=pay_history_id)
         pay_history.refresh_from_db()
         self.assertEqual(pay_history.amounts, Decimal('-68.8'))
         self.assertEqual(pay_history.coupon_amount, Decimal('-20'))

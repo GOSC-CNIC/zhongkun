@@ -57,6 +57,30 @@ class VoPointAccount(BasePointAccount):
         return f'VoPointAccount<{self.balance}>'
 
 
+class PayApp(CustomIdModel):
+    class Status(models.TextChoices):
+        UNAUDITED = 'unaudited', _('未审核')
+        NORMAL = 'normal', _('正常')
+        BAN = 'ban', _('禁止')
+
+    name = models.CharField(verbose_name=_('应用名称'), max_length=256)
+    app_url = models.CharField(verbose_name=_('应用网址'), max_length=256, blank=True, default='')
+    app_desc = models.CharField(verbose_name=_('应用描述'), max_length=1024, blank=True, default='')
+    rsa_public_key = models.CharField(verbose_name=_('RSA公钥'), max_length=2000, blank=True, default='')
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
+    status = models.CharField(verbose_name=_('应用状态'), max_length=16, choices=Status.choices,
+                              default=Status.UNAUDITED.value)
+
+    class Meta:
+        verbose_name = _('支付应用APP')
+        verbose_name_plural = verbose_name
+        db_table = 'app'
+        ordering = ['-creation_time']
+
+    def generate_id(self):
+        return rand_utils.timestamp14_sn()
+
+
 class PaymentHistory(CustomIdModel):
     class Type(models.TextChoices):
         RECHARGE = 'recharge', _('充值')
@@ -104,8 +128,7 @@ class PaymentHistory(CustomIdModel):
         db_table = 'payment_history'
         ordering = ['-payment_time']
         indexes = [
-            models.Index(fields=['payer_id', 'payer_name'], name='idx_payer_type_name'),
-            models.Index(fields=['order_id'], name='idx_order_id')
+            models.Index(fields=['payer_id'], name='idx_payer_id'),
         ]
 
     def __repr__(self):
@@ -131,27 +154,3 @@ class CashCouponPaymentHistory(CustomIdModel):
 
     def generate_id(self):
         return rand_utils.timestamp20_rand4_sn()
-
-
-class PayApp(CustomIdModel):
-    class Status(models.TextChoices):
-        UNAUDITED = 'unaudited', _('未审核')
-        NORMAL = 'normal', _('正常')
-        BAN = 'ban', _('禁止')
-
-    name = models.CharField(verbose_name=_('应用名称'), max_length=256)
-    app_url = models.CharField(verbose_name=_('应用网址'), max_length=256, blank=True, default='')
-    app_desc = models.CharField(verbose_name=_('应用描述'), max_length=1024, blank=True, default='')
-    rsa_public_key = models.CharField(verbose_name=_('RSA公钥'), max_length=2000, blank=True, default='')
-    creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
-    status = models.CharField(verbose_name=_('应用状态'), max_length=16, choices=Status.choices,
-                              default=Status.UNAUDITED.value)
-
-    class Meta:
-        verbose_name = _('支付应用APP')
-        verbose_name_plural = verbose_name
-        db_table = 'app'
-        ordering = ['-creation_time']
-
-    def generate_id(self):
-        return rand_utils.timestamp14_sn()

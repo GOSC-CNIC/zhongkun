@@ -8,7 +8,7 @@ from utils.model import OwnerType
 from utils.test import get_or_create_service
 from service.models import ServiceConfig
 from vo.models import VirtualOrganization
-from metering.models import PaymentHistory
+from bill.models import PaymentHistory
 from order.models import ResourceType
 from . import set_auth_header, MyAPITestCase
 
