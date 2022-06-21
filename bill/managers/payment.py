@@ -6,11 +6,10 @@ from django.db import transaction
 
 from core import errors
 from utils.model import OwnerType
-from bill.models import PaymentHistory, UserPointAccount, VoPointAccount, CashCouponPaymentHistory
+from bill.models import PaymentHistory, UserPointAccount, VoPointAccount, CashCouponPaymentHistory, CashCoupon
 from metering.models import MeteringBase, PaymentStatus
 from order.models import Order
-from activity.managers import CashCouponManager
-from activity.models import CashCoupon
+from .cash_coupon import CashCouponManager
 
 
 class PaymentManager:

@@ -3,7 +3,7 @@ from rest_framework.response import Response
 
 from core import errors
 from api.viewsets import CustomGenericViewSet
-from activity.managers import CashCouponManager
+from bill.managers import CashCouponManager
 
 
 class CashCouponHandler:

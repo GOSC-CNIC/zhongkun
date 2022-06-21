@@ -8,7 +8,7 @@ from django.utils import timezone
 from utils.model import OwnerType
 from utils.test import get_or_create_service, get_or_create_user
 from vo.models import VirtualOrganization, VoMember
-from activity.models import CashCoupon
+from bill.models import CashCoupon
 from . import set_auth_header, MyAPITestCase
 
 

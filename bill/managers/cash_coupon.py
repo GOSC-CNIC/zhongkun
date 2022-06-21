@@ -8,7 +8,7 @@ from django.utils import timezone
 from core import errors
 from utils.model import OwnerType
 from vo.managers import VoManager
-from .models import CashCoupon
+from bill.models import CashCoupon
 
 
 class CashCouponManager:

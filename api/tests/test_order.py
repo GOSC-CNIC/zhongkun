@@ -16,7 +16,7 @@ from utils.test import get_or_create_user, get_or_create_service
 from vo.models import VirtualOrganization, VoMember
 from bill.managers import PaymentManager
 from bill.models import PaymentHistory
-from activity.models import CashCoupon
+from bill.models import CashCoupon
 from api.handlers.order_handler import CASH_COUPON_BALANCE
 from service.models import ServiceConfig
 from . import set_auth_header, MyAPITestCase
