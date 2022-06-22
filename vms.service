@@ -1,0 +1,14 @@
+[Unit]
+Description=VMS's web service
+After=network.target
+
+[Service]
+Type=forking
+PIDFile=/home/uwsgi/vms/uwsgi-master.pid
+ExecStart=/bin/bash /home/uwsgi/vms/run_uwsgi.sh
+ExecReload=/bin/bash /home/uwsgi/vms/reload_uwsgi.sh
+ExecStop=/bin/bash /home/uwsgi/vms/stop_uwsgi.sh
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

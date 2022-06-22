@@ -1,1 +1,1 @@
-uwsgi --reload uwsgi-master.pid
+uwsgi --reload /home/uwsgi/vms/uwsgi-master.pid
