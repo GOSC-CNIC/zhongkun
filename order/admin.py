@@ -5,7 +5,8 @@ from .models import Order, Resource, Price
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ('id', 'order_type', 'status', 'total_amount', 'pay_amount', 'service_name',
+    list_display = ('id', 'order_type', 'status', 'total_amount', 'payable_amount', 'pay_amount',
+                    'balance_amount', 'coupon_amount', 'service_name',
                     'resource_type', 'period', 'pay_type', 'payment_time',
                     'creation_time', 'trading_status', 'completion_time', 'deleted',
                     'owner_type', 'username', 'vo_name')

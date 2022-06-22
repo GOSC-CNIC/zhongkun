@@ -508,6 +508,7 @@ class PaymentManagerTests(TransactionTestCase):
             order_type=Order.OrderType.NEW,
             status=Order.Status.UNPAID.value,
             total_amount=Decimal('123.45'),
+            payable_amount=Decimal('123.45'),
             service_id=self.service.id,
             service_name=self.service.name,
             resource_type=ResourceType.VM.value,
@@ -540,7 +541,10 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(self.user.userpointaccount.balance, Decimal('-123.45'))
         self.assertEqual(order1.status, Order.Status.PAID.value)
         self.assertEqual(order1.payment_method, Order.PaymentMethod.BALANCE.value)
+        self.assertEqual(order1.payable_amount, Decimal('123.45'))
         self.assertEqual(order1.pay_amount, Decimal('123.45'))
+        self.assertEqual(order1.balance_amount, Decimal('123.45'))
+        self.assertEqual(order1.coupon_amount, Decimal('0'))
         self.assertIsInstance(order1.payment_time, datetime)
         pay_history = PaymentHistory.objects.filter(order_id=order1.id).first()
         self.assertEqual(pay_history.type, PaymentHistory.Type.PAYMENT)
@@ -560,7 +564,8 @@ class PaymentManagerTests(TransactionTestCase):
         order2 = Order(
             order_type=Order.OrderType.NEW,
             status=Order.Status.UNPAID.value,
-            total_amount=Decimal('321.45'),
+            total_amount=Decimal('421.45'),
+            payable_amount=Decimal('321.45'),
             service_id=self.service.id,
             service_name=self.service.name,
             resource_type=ResourceType.DISK.value,
@@ -590,10 +595,13 @@ class PaymentManagerTests(TransactionTestCase):
             required_enough_balance=False
         )
         self.vo.vopointaccount.refresh_from_db()
+        order2.refresh_from_db()
         self.assertEqual(self.vo.vopointaccount.balance, Decimal('-321.45'))
         self.assertEqual(order2.status, Order.Status.PAID.value)
         self.assertEqual(order2.payment_method, Order.PaymentMethod.BALANCE.value)
         self.assertEqual(order2.pay_amount, Decimal('321.45'))
+        self.assertEqual(order2.balance_amount, Decimal('321.45'))
+        self.assertEqual(order2.coupon_amount, Decimal('0'))
         self.assertIsInstance(order2.payment_time, datetime)
         pay_history2 = PaymentHistory.objects.filter(order_id=order2.id).first()
         self.assertEqual(pay_history2.type, PaymentHistory.Type.PAYMENT)
@@ -619,6 +627,7 @@ class PaymentManagerTests(TransactionTestCase):
             order_type=Order.OrderType.NEW,
             status=Order.Status.UNPAID.value,
             total_amount=Decimal('100'),
+            payable_amount=Decimal('100'),
             service_id=self.service.id,
             service_name=self.service.name,
             resource_type=ResourceType.VM.value,
@@ -633,7 +642,8 @@ class PaymentManagerTests(TransactionTestCase):
         order2 = Order(
             order_type=Order.OrderType.NEW,
             status=Order.Status.UNPAID.value,
-            total_amount=Decimal('288.88'),
+            total_amount=Decimal('388.88'),
+            payable_amount=Decimal('288.88'),
             service_id=self.service.id,
             service_name=self.service.name,
             resource_type=ResourceType.VM.value,
@@ -842,9 +852,12 @@ class PaymentManagerTests(TransactionTestCase):
 
         order1.refresh_from_db()
         self.assertEqual(order1.status, Order.Status.PAID.value)
-        self.assertEqual(order1.payment_method, Order.PaymentMethod.BALANCE.value)
+        self.assertEqual(order1.payment_method, Order.PaymentMethod.MIXED.value)
+        self.assertEqual(order1.payable_amount, Decimal('100'))
         self.assertEqual(order1.pay_amount, Decimal('100'))
         self.assertIsInstance(order1.payment_time, datetime)
+        self.assertEqual(order1.balance_amount, Decimal('55'))
+        self.assertEqual(order1.coupon_amount, Decimal('45'))
 
         # 支付记录确认
         pay_history1 = PaymentHistory.objects.filter(order_id=order1.id).first()
@@ -922,6 +935,8 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(order2.payment_method, Order.PaymentMethod.BALANCE.value)
         self.assertEqual(order2.pay_amount, Decimal('288.88'))
         self.assertIsInstance(order2.payment_time, datetime)
+        self.assertEqual(order2.balance_amount, Decimal('288.88'))
+        self.assertEqual(order2.coupon_amount, Decimal('0'))
 
         # 支付记录确认
         pay_history2 = PaymentHistory.objects.filter(order_id=order2.id).first()
@@ -951,7 +966,7 @@ class PaymentManagerTests(TransactionTestCase):
         order1 = Order(
             order_type=Order.OrderType.NEW,
             status=Order.Status.UNPAID.value,
-            total_amount=Decimal('100'),
+            payable_amount=Decimal('100'),
             service_id=self.service.id,
             service_name=self.service.name,
             resource_type=ResourceType.VM.value,
@@ -967,6 +982,7 @@ class PaymentManagerTests(TransactionTestCase):
             order_type=Order.OrderType.NEW,
             status=Order.Status.UNPAID.value,
             total_amount=Decimal('288.88'),
+            payable_amount=Decimal('288.88'),
             service_id=self.service.id,
             service_name=self.service.name,
             resource_type=ResourceType.VM.value,
@@ -1175,9 +1191,12 @@ class PaymentManagerTests(TransactionTestCase):
 
         order1.refresh_from_db()
         self.assertEqual(order1.status, Order.Status.PAID.value)
-        self.assertEqual(order1.payment_method, Order.PaymentMethod.BALANCE.value)
+        self.assertEqual(order1.payment_method, Order.PaymentMethod.MIXED.value)
+        self.assertEqual(order1.payable_amount, Decimal('100'))
         self.assertEqual(order1.pay_amount, Decimal('100'))
         self.assertIsInstance(order1.payment_time, datetime)
+        self.assertEqual(order1.balance_amount, Decimal('55'))
+        self.assertEqual(order1.coupon_amount, Decimal('45'))
 
         # 支付记录确认
         pay_history1 = PaymentHistory.objects.filter(order_id=order1.id).first()
@@ -1257,6 +1276,8 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(order2.payment_method, Order.PaymentMethod.BALANCE.value)
         self.assertEqual(order2.pay_amount, Decimal('288.88'))
         self.assertIsInstance(order2.payment_time, datetime)
+        self.assertEqual(order2.balance_amount, Decimal('288.88'))
+        self.assertEqual(order2.coupon_amount, Decimal('0'))
 
         # 支付记录确认
         pay_history2 = PaymentHistory.objects.filter(order_id=order2.id).first()

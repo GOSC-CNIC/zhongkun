@@ -110,6 +110,9 @@ class OrderTests(MyAPITestCase):
             "status": order.status,
             "total_amount": str(quantize_10_2(order.total_amount)),
             "pay_amount": str(quantize_10_2(order.pay_amount)),
+            "payable_amount": str(quantize_10_2(order.payable_amount)),
+            "balance_amount": str(quantize_10_2(order.balance_amount)),
+            "coupon_amount": str(quantize_10_2(order.coupon_amount)),
             "service_id": order.service_id,
             "service_name": order.service_name,
             "resource_type": ResourceType.VM.value,
@@ -168,6 +171,9 @@ class OrderTests(MyAPITestCase):
             "status": order2.status,
             "total_amount": str(quantize_10_2(order2.total_amount)),
             "pay_amount": str(quantize_10_2(order2.pay_amount)),
+            "payable_amount": str(quantize_10_2(order.payable_amount)),
+            "balance_amount": str(quantize_10_2(order.balance_amount)),
+            "coupon_amount": str(quantize_10_2(order.coupon_amount)),
             "service_id": order2.service_id,
             "service_name": order2.service_name,
             "resource_type": ResourceType.DISK.value,
@@ -468,7 +474,8 @@ class OrderTests(MyAPITestCase):
         self.assertKeysIn([
             "id", "order_type", "status", "total_amount", "pay_amount", "service_id", "service_name",
             "resource_type", "instance_config", "period", "payment_time", "pay_type", "creation_time",
-            "user_id", "username", "vo_id", "vo_name", "owner_type", "resources"
+            "user_id", "username", "vo_id", "vo_name", "owner_type", "resources",
+            "payable_amount", "balance_amount", "coupon_amount"
         ], response.data)
         self.assert_is_subdict_of(sub={
             "id": order.id,
@@ -514,7 +521,8 @@ class OrderTests(MyAPITestCase):
         self.assertKeysIn([
             "id", "order_type", "status", "total_amount", "pay_amount", "service_id", "service_name",
             "resource_type", "instance_config", "period", "payment_time", "pay_type", "creation_time",
-            "user_id", "username", "vo_id", "vo_name", "owner_type", "resources"
+            "user_id", "username", "vo_id", "vo_name", "owner_type", "resources",
+            "payable_amount", "balance_amount", "coupon_amount"
         ], response.data)
         self.assert_is_subdict_of(sub={
             "id": order2.id,
@@ -709,8 +717,8 @@ class OrderTests(MyAPITestCase):
             owner_type=OwnerType.USER.value,
             remark='testcase创建，可删除'
         )
-        order1.total_amount = Decimal('25')
-        order1.save(update_fields=['total_amount'])
+        order1.payable_amount = Decimal('25')
+        order1.save(update_fields=['payable_amount'])
 
         order2, resource2 = OrderManager().create_order(
             order_type=Order.OrderType.NEW.value,
@@ -727,8 +735,8 @@ class OrderTests(MyAPITestCase):
             owner_type=OwnerType.USER.value,
             remark='testcase创建，可删除'
         )
-        order2.total_amount = Decimal('100')
-        order2.save(update_fields=['total_amount'])
+        order2.payable_amount = Decimal('100')
+        order2.save(update_fields=['payable_amount'])
 
         # test param "payment_method"
         url = reverse('api:order-pay-order', kwargs={'id': order1.id})
@@ -802,6 +810,8 @@ class OrderTests(MyAPITestCase):
 
         # pay order1(25) by cash coupon, coupon1(10 - 10), coupon2(20 - 15)
         url = reverse('api:order-pay-order', kwargs={'id': order1.id})
+        coupon1_user.refresh_from_db()
+        coupon2_user.refresh_from_db()
         query = parse.urlencode(query={
             'payment_method': Order.PaymentMethod.CASH_COUPON.value,
             'coupon_ids': [coupon1_user.id, coupon2_user.id]
@@ -816,6 +826,9 @@ class OrderTests(MyAPITestCase):
         self.assertEqual(order1.status, Order.Status.PAID.value)
         self.assertEqual(order1.payment_method, Order.PaymentMethod.CASH_COUPON.value)
         self.assertEqual(order1.pay_amount, Decimal('25'))
+        self.assertEqual(order1.payable_amount, Decimal('25'))
+        self.assertEqual(order1.balance_amount, Decimal('0'))
+        self.assertEqual(order1.coupon_amount, Decimal('25'))
         # 支付记录确认
         pay_history1 = PaymentHistory.objects.filter(order_id=order1.id).first()
         self.assertEqual(pay_history1.type, PaymentHistory.Type.PAYMENT)
@@ -895,8 +908,12 @@ class OrderTests(MyAPITestCase):
         self.assertEqual(coupon2_user.balance, Decimal('0'))
         order2.refresh_from_db()
         self.assertEqual(order2.status, Order.Status.PAID.value)
-        self.assertEqual(order2.payment_method, Order.PaymentMethod.BALANCE.value)
+        self.assertEqual(order2.payment_method, Order.PaymentMethod.MIXED.value)
         self.assertEqual(order2.pay_amount, Decimal('100'))
+        self.assertEqual(order2.payable_amount, Decimal('100'))
+        self.assertEqual(order2.balance_amount, Decimal('95'))
+        self.assertEqual(order2.coupon_amount, Decimal('5'))
+
         # 支付记录确认
         pay_history2 = PaymentHistory.objects.filter(order_id=order2.id).first()
         self.assertEqual(pay_history2.type, PaymentHistory.Type.PAYMENT)

@@ -164,8 +164,11 @@ class OrderViewSet(CustomGenericViewSet):
                   "id": "2022031006103240183511",
                   "order_type": "new",
                   "status": "cancelled",
-                  "total_amount": "0.00",
-                  "pay_amount": "0.00",
+                  "total_amount": "0.00",   # 原价
+                  "pay_amount": "0.00",     # 实付金额
+                  "payable_amount": "0.00", # 应付金额
+                  "balance_amount": "0.00", # 余额支付金额
+                  "coupon_amount": "0.00",  # 券支付金额
                   "service_id": "xxx",
                   "service_name": "xxx",
                   "resource_type": "vm",
@@ -203,8 +206,11 @@ class OrderViewSet(CustomGenericViewSet):
               "id": "2022031006103240183511",
               "order_type": "new",
               "status": "cancelled",
-              "total_amount": "0.00",
-              "pay_amount": "0.00",
+              "total_amount": "0.00",   # 原价
+              "pay_amount": "0.00",     # 实付金额
+              "payable_amount": "0.00", # 应付金额
+              "balance_amount": "0.00", # 余额支付金额
+              "coupon_amount": "0.00",  # 券支付金额
               "service_id": "",
               "service_name": "",
               "resource_type": "vm",

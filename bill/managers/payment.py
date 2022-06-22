@@ -259,15 +259,15 @@ class PaymentManager:
         :raises: Error
         """
         self._pre_pay_order(order=order, remark=remark)
-        if order.total_amount == Decimal(0):
+        if order.payable_amount == Decimal(0):
             # 订单支付状态
-            order.set_paid(pay_amount=order.total_amount, payment_method=Order.PaymentMethod.UNKNOWN.value)
+            order.set_paid(pay_amount=Decimal('0'), balance_amount=Decimal('0'), coupon_amount=Decimal('0'))
             return order
 
         if order.owner_type == OwnerType.USER.value:
             pay_history = self.pay_by_user(
                 user_id=order.user_id, app_id=app_id, subject=subject,
-                amounts=order.total_amount, executor=executor,
+                amounts=order.payable_amount, executor=executor,
                 remark=remark, order_id=order.id,
                 service_id=order.service_id, resource_type=order.resource_type, instance_id='',
                 required_enough_balance=required_enough_balance,
@@ -276,7 +276,7 @@ class PaymentManager:
         else:
             pay_history = self.pay_by_vo(
                 vo_id=order.vo_id, app_id=app_id, subject=subject,
-                amounts=order.total_amount, executor=executor,
+                amounts=order.payable_amount, executor=executor,
                 remark=remark, order_id=order.id,
                 service_id=order.service_id, resource_type=order.resource_type, instance_id='',
                 required_enough_balance=required_enough_balance,
@@ -284,12 +284,14 @@ class PaymentManager:
             )
 
         # 订单支付状态
-        pay_amount = -(pay_history.amounts + pay_history.coupon_amount)
-        if pay_history.amounts == Decimal('0'):
-            payment_method = Order.PaymentMethod.CASH_COUPON.value
-        else:
-            payment_method = Order.PaymentMethod.BALANCE.value
-        order.set_paid(pay_amount=pay_amount, payment_method=payment_method)
+        balance_amount = -pay_history.amounts
+        coupon_amount = -pay_history.coupon_amount
+        pay_amount = balance_amount + coupon_amount
+        order.set_paid(
+            pay_amount=pay_amount,
+            balance_amount=balance_amount,
+            coupon_amount=coupon_amount
+        )
         return order
 
     @staticmethod

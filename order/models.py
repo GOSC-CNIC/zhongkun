@@ -44,6 +44,7 @@ class Order(models.Model):
         UNKNOWN = 'unknown', _('未知')
         BALANCE = 'balance', _('余额')
         CASH_COUPON = 'cashcoupon', _('代金卷')
+        MIXED = 'mixed', _('混合支付')
 
     class TradingStatus(models.TextChoices):
         OPENING = 'opening', _('交易中')
@@ -56,8 +57,22 @@ class Order(models.Model):
         verbose_name=_('订单类型'), max_length=16, choices=OrderType.choices, default=OrderType.NEW)
     status = models.CharField(
         verbose_name=_('订单状态'), max_length=16, choices=Status.choices, default=Status.PAID)
-    total_amount = models.DecimalField(verbose_name=_('总金额'), max_digits=10, decimal_places=2, default=0.0)
-    pay_amount = models.DecimalField(verbose_name=_('实付金额'), max_digits=10, decimal_places=2, default=0.0)
+    total_amount = models.DecimalField(
+        verbose_name=_('原价金额'), max_digits=10, decimal_places=2, default=Decimal('0'),
+        help_text=_('原价，折扣前的价格')
+    )
+    payable_amount = models.DecimalField(
+        verbose_name=_('应付金额'), max_digits=10, decimal_places=2, default=Decimal('0'),
+        help_text=_('需要支付的金额，扣除优惠或折扣后的金额')
+    )
+    pay_amount = models.DecimalField(
+        verbose_name=_('实付金额'), max_digits=10, decimal_places=2, default=Decimal('0'),
+        help_text=_('实际交易金额')
+    )
+    balance_amount = models.DecimalField(
+        verbose_name=_('余额支付金额'), max_digits=10, decimal_places=2, default=Decimal('0'))
+    coupon_amount = models.DecimalField(
+        verbose_name=_('券支付金额'), max_digits=10, decimal_places=2, default=Decimal('0'))
 
     service_id = models.CharField(verbose_name=_('服务id'), max_length=36, blank=True, default='')
     service_name = models.CharField(verbose_name=_('服务名称'), max_length=255, blank=True, default='')
@@ -108,17 +123,32 @@ class Order(models.Model):
         return super().save(force_insert=force_insert, force_update=force_update,
                             using=using, update_fields=update_fields)
 
-    def set_paid(self, pay_amount: Decimal = None, payment_method: str = None):
-        if not payment_method:
-            payment_method = self.PaymentMethod.BALANCE.value
-        elif payment_method not in self.PaymentMethod.values:
-            raise ValueError(_('无效的付款方式'))
+    def set_paid(
+            self, pay_amount: Decimal,
+            balance_amount: Decimal,
+            coupon_amount: Decimal
+    ):
+        if balance_amount < Decimal('0') or coupon_amount < Decimal('0'):
+            raise Exception(_('更新订单支付状态错误，balance_amount和coupon_amount不能为负数'))
 
-        self.pay_amount = self.total_amount if pay_amount is None else pay_amount
+        if balance_amount > Decimal('0') and coupon_amount == Decimal('0'):
+            payment_method = self.PaymentMethod.BALANCE.value
+        elif balance_amount == Decimal('0') and coupon_amount > Decimal('0'):
+            payment_method = self.PaymentMethod.CASH_COUPON.value
+        elif balance_amount > Decimal('0') and coupon_amount > Decimal('0'):
+            payment_method = self.PaymentMethod.MIXED.value
+        else:
+            payment_method = self.PaymentMethod.UNKNOWN.value
+
+        self.pay_amount = pay_amount
+        self.balance_amount = balance_amount
+        self.coupon_amount = coupon_amount
         self.status = self.Status.PAID.value
         self.payment_method = payment_method
         self.payment_time = timezone.now()
-        self.save(update_fields=['pay_amount', 'status', 'payment_method', 'payment_time'])
+        self.save(update_fields=[
+            'pay_amount', 'balance_amount', 'coupon_amount', 'status', 'payment_method', 'payment_time'
+        ])
 
     def set_cancel(self):
         self.status = self.Status.CANCELLED.value

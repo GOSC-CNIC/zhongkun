@@ -636,6 +636,9 @@ class OrderSerializer(serializers.Serializer):
     status = serializers.CharField(label=_('订单状态'), max_length=16)
     total_amount = serializers.DecimalField(label=_('总金额'), max_digits=10, decimal_places=2, default=0.0)
     pay_amount = serializers.DecimalField(label=_('实付金额'), max_digits=10, decimal_places=2, default=0.0)
+    payable_amount = serializers.DecimalField(label=_('应付金额'), max_digits=10, decimal_places=2)
+    balance_amount = serializers.DecimalField(label=_('余额支付金额'), max_digits=10, decimal_places=2)
+    coupon_amount = serializers.DecimalField(label=_('券支付金额'), max_digits=10, decimal_places=2)
 
     service_id = serializers.CharField(label=_('服务id'), max_length=36)
     service_name = serializers.CharField(label=_('服务名称'), max_length=255)

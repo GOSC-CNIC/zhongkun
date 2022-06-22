@@ -48,16 +48,19 @@ class OrderManager:
         if pay_type not in PayType.values:
             raise errors.Error(message=_('无法创建订单，资源计费方式pay_type无效'))
         if pay_type == PayType.PREPAID.value:         # 预付费
-            total_amount, pay_amount = self.calculate_amount_money(
+            total_amount, trade_price = self.calculate_amount_money(
                 resource_type=resource_type, config=instance_config, is_prepaid=True, period=period, days=0)
         else:
-            total_amount = pay_amount = Decimal(0)
+            total_amount = trade_price = Decimal(0)
 
         order = Order(
             order_type=order_type,
             status=Order.Status.UNPAID.value,
             total_amount=total_amount,
-            pay_amount=pay_amount,
+            payable_amount=trade_price,
+            pay_amount=Decimal('0'),
+            balance_amount=Decimal('0'),
+            coupon_amount=Decimal('0'),
             service_id=service_id,
             service_name=service_name,
             resource_type=resource_type,
@@ -145,14 +148,17 @@ class OrderManager:
         if resource_type not in ResourceType.values:
             raise errors.Error(message=_('无法创建订单，资源类型无效'))
 
-        total_amount, pay_amount = self.calculate_amount_money(
+        total_amount, trade_price = self.calculate_amount_money(
             resource_type=resource_type, config=instance_config, is_prepaid=True, period=period, days=days)
 
         order = Order(
             order_type=Order.OrderType.RENEWAL.value,
             status=Order.Status.UNPAID.value,
             total_amount=total_amount,
-            pay_amount=pay_amount,
+            payable_amount=trade_price,
+            pay_amount=Decimal('0'),
+            balance_amount=Decimal('0'),
+            coupon_amount=Decimal('0'),
             service_id=service_id,
             service_name=service_name,
             resource_type=resource_type,
