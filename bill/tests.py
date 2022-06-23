@@ -12,7 +12,7 @@ from vo.managers import VoManager
 from metering.models import MeteringServer, MeteringDisk, PaymentStatus
 from bill.models import CashCoupon
 from service.models import ServiceConfig
-from .models import PaymentHistory
+from .models import PaymentHistory, PayAppService, PayApp, PayOrgnazition
 from .managers import PaymentManager
 
 
@@ -20,11 +20,30 @@ class PaymentManagerTests(TransactionTestCase):
     def setUp(self):
         self.user = get_or_create_user()
         self.service = get_or_create_service()
+
+        # 余额支付有关配置
+        app = PayApp(name='app')
+        app.save()
+        po = PayOrgnazition(name='机构')
+        po.save()
+        self.app_service1 = PayAppService(
+            name='service1', app=app, orgnazition=po
+        )
+        self.app_service1.save()
+        self.app_service2 = PayAppService(
+            name='service2', app=app, orgnazition=po
+        )
+        self.app_service2.save()
+
+        self.service.pay_app_service_id = self.app_service1.id
+        self.service.save(update_fields=['pay_app_service_id'])
+
         self.vo = VoManager().create_vo(user=self.user, name='test vo', company='test', description='test')
         self.service2 = ServiceConfig(
             name='test2', data_center_id=self.service.data_center_id, endpoint_url='test2', username='', password='',
-            need_vpn=False
+            need_vpn=False, pay_app_service_id=self.app_service2.id
         )
+        self.service2.save()
 
     def test_pay_user_bill(self):
         pay_mgr = PaymentManager()
@@ -81,7 +100,7 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(pay_history.after_payment, Decimal('-123.45'))
         self.assertEqual(pay_history.payer_name, payer_name)
         self.assertEqual(pay_history.resource_type, ResourceType.VM.value)
-        self.assertEqual(pay_history.service_id, self.service.id)
+        self.assertEqual(pay_history.app_service_id, self.service.pay_app_service_id)
         self.assertEqual(pay_history.instance_id, 'server_id2')
         self.assertEqual(pay_history.payer_type, OwnerType.USER.value)
         self.assertEqual(pay_history.payer_id, self.user.id)
@@ -158,7 +177,7 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(pay_history.payment_account, self.user.userpointaccount.id)
         self.assertEqual(pay_history.payer_name, payer_name)
         self.assertEqual(pay_history.resource_type, ResourceType.VM.value)
-        self.assertEqual(pay_history.service_id, self.service.id)
+        self.assertEqual(pay_history.app_service_id, self.service.pay_app_service_id)
         self.assertEqual(pay_history.instance_id, 'server2_id')
 
         # ------- test coupon --------
@@ -169,7 +188,7 @@ class PaymentManagerTests(TransactionTestCase):
             balance=Decimal('20'),
             effective_time=now_time - timedelta(days=1),
             expiration_time=now_time + timedelta(days=10),
-            service_id=self.service.id,
+            app_service_id=self.service.pay_app_service_id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.USER.value,
             user_id=self.user.id, vo_id=None
@@ -182,7 +201,7 @@ class PaymentManagerTests(TransactionTestCase):
             balance=Decimal('33'),
             effective_time=now_time - timedelta(days=2),
             expiration_time=now_time + timedelta(days=10),
-            service_id=self.service2.id,
+            app_service_id=self.service2.pay_app_service_id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.USER.value,
             user_id=self.user.id, vo_id=None
@@ -195,7 +214,7 @@ class PaymentManagerTests(TransactionTestCase):
             balance=Decimal('50'),
             effective_time=now_time - timedelta(days=1),
             expiration_time=now_time + timedelta(days=10),
-            service_id=self.service.id,
+            app_service_id=self.service.pay_app_service_id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.VO.value,
             user_id=None, vo_id=self.vo.id
@@ -248,7 +267,7 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(pay_history.payment_account, self.user.userpointaccount.id)
         self.assertEqual(pay_history.payer_name, payer_name)
         self.assertEqual(pay_history.resource_type, ResourceType.VM.value)
-        self.assertEqual(pay_history.service_id, self.service.id)
+        self.assertEqual(pay_history.app_service_id, self.service.pay_app_service_id)
         self.assertEqual(pay_history.instance_id, 'server3_id')
 
     def test_pay_vo_bill(self):
@@ -311,7 +330,7 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(pay_history.payment_account, self.vo.vopointaccount.id)
         self.assertEqual(pay_history.payer_name, payer_name)
         self.assertEqual(pay_history.resource_type, ResourceType.DISK.value)
-        self.assertEqual(pay_history.service_id, self.service.id)
+        self.assertEqual(pay_history.app_service_id, self.service.pay_app_service_id)
         self.assertEqual(pay_history.instance_id, 'disk_id')
 
         # pay bill, pay_type PREPAID
@@ -380,7 +399,7 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(pay_history.payment_account, self.vo.vopointaccount.id)
         self.assertEqual(pay_history.payer_name, payer_name)
         self.assertEqual(pay_history.resource_type, ResourceType.DISK.value)
-        self.assertEqual(pay_history.service_id, self.service.id)
+        self.assertEqual(pay_history.app_service_id, self.service.pay_app_service_id)
         self.assertEqual(pay_history.instance_id, 'disk2_id')
 
         # pay bill, status PAID
@@ -420,7 +439,7 @@ class PaymentManagerTests(TransactionTestCase):
             balance=Decimal('20'),
             effective_time=now_time - timedelta(days=1),
             expiration_time=now_time + timedelta(days=10),
-            service_id=self.service.id,
+            app_service_id=self.service.pay_app_service_id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.VO.value,
             user_id=None, vo_id=self.vo.id
@@ -433,7 +452,7 @@ class PaymentManagerTests(TransactionTestCase):
             balance=Decimal('33'),
             effective_time=now_time - timedelta(days=2),
             expiration_time=now_time + timedelta(days=10),
-            service_id=self.service2.id,
+            app_service_id=self.service2.pay_app_service_id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.VO.value,
             user_id=None, vo_id=self.vo.id
@@ -446,7 +465,7 @@ class PaymentManagerTests(TransactionTestCase):
             balance=Decimal('50'),
             effective_time=now_time - timedelta(days=1),
             expiration_time=now_time + timedelta(days=10),
-            service_id=self.service.id,
+            app_service_id=self.service.pay_app_service_id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.USER.value,
             user_id=self.user.id, vo_id=None
@@ -499,7 +518,7 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(pay_history.payment_account, self.vo.vopointaccount.id)
         self.assertEqual(pay_history.payer_name, self.vo.name)
         self.assertEqual(pay_history.resource_type, ResourceType.VM.value)
-        self.assertEqual(pay_history.service_id, self.service.id)
+        self.assertEqual(pay_history.app_service_id, self.service.pay_app_service_id)
         self.assertEqual(pay_history.instance_id, 'server3_id')
 
     def test_pay_order_no_coupon(self):
@@ -553,7 +572,7 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(pay_history.after_payment, Decimal('-123.45'))
         self.assertEqual(pay_history.payer_name, self.user.username)
         self.assertEqual(pay_history.resource_type, ResourceType.VM.value)
-        self.assertEqual(pay_history.service_id, self.service.id)
+        self.assertEqual(pay_history.app_service_id, self.service.pay_app_service_id)
         self.assertEqual(pay_history.instance_id, '')
         self.assertEqual(pay_history.payer_type, OwnerType.USER.value)
         self.assertEqual(pay_history.payer_id, self.user.id)
@@ -615,7 +634,7 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(pay_history2.payment_method, PaymentHistory.PaymentMethod.BALANCE.value)
         self.assertEqual(pay_history2.payment_account, self.vo.vopointaccount.id)
         self.assertEqual(pay_history2.resource_type, ResourceType.DISK.value)
-        self.assertEqual(pay_history2.service_id, self.service.id)
+        self.assertEqual(pay_history2.app_service_id, self.service.pay_app_service_id)
         self.assertEqual(pay_history2.instance_id, '')
 
     def test_user_pay_order_with_coupon(self):
@@ -662,7 +681,7 @@ class PaymentManagerTests(TransactionTestCase):
             balance=Decimal('20'),
             effective_time=now_time - timedelta(days=1),
             expiration_time=now_time + timedelta(days=10),
-            service_id=self.service.id,
+            app_service_id=self.service.pay_app_service_id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.USER.value,
             user_id=self.user.id, vo_id=None
@@ -675,7 +694,7 @@ class PaymentManagerTests(TransactionTestCase):
             balance=Decimal('25'),
             effective_time=now_time - timedelta(days=2),
             expiration_time=now_time + timedelta(days=10),
-            service_id=self.service.id,
+            app_service_id=self.service.pay_app_service_id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.USER.value,
             user_id=self.user.id, vo_id=None
@@ -688,7 +707,7 @@ class PaymentManagerTests(TransactionTestCase):
             balance=Decimal('33'),
             effective_time=now_time - timedelta(days=2),
             expiration_time=now_time + timedelta(days=10),
-            service_id=self.service2.id,
+            app_service_id=self.service2.pay_app_service_id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.USER.value,
             user_id=self.user.id, vo_id=None
@@ -701,7 +720,7 @@ class PaymentManagerTests(TransactionTestCase):
             balance=Decimal('40'),
             effective_time=now_time - timedelta(days=10),
             expiration_time=now_time - timedelta(days=1),
-            service_id=self.service.id,
+            app_service_id=self.service.pay_app_service_id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.USER.value,
             user_id=self.user.id, vo_id=None
@@ -714,7 +733,7 @@ class PaymentManagerTests(TransactionTestCase):
             balance=Decimal('45'),
             effective_time=now_time + timedelta(days=1),
             expiration_time=now_time + timedelta(days=11),
-            service_id=self.service.id,
+            app_service_id=self.service.pay_app_service_id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.USER.value,
             user_id=self.user.id, vo_id=None
@@ -727,7 +746,7 @@ class PaymentManagerTests(TransactionTestCase):
             balance=Decimal('50'),
             effective_time=now_time - timedelta(days=1),
             expiration_time=now_time + timedelta(days=10),
-            service_id=self.service.id,
+            app_service_id=self.service.pay_app_service_id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.VO.value,
             user_id=None, vo_id=self.vo.id
@@ -740,7 +759,7 @@ class PaymentManagerTests(TransactionTestCase):
             balance=Decimal('0'),
             effective_time=now_time - timedelta(days=1),
             expiration_time=now_time + timedelta(days=10),
-            service_id=self.service.id,
+            app_service_id=self.service.pay_app_service_id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.USER.value,
             user_id=self.user.id, vo_id=None
@@ -873,7 +892,7 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(pay_history1.payment_method, PaymentHistory.PaymentMethod.BALANCE_COUPON.value)
         self.assertEqual(pay_history1.payment_account, user_account.id)
         self.assertEqual(pay_history1.resource_type, ResourceType.VM.value)
-        self.assertEqual(pay_history1.service_id, self.service.id)
+        self.assertEqual(pay_history1.app_service_id, self.service.pay_app_service_id)
         self.assertEqual(pay_history1.instance_id, '')
         # 券支付记录
         cc_historys = pay_history1.cashcouponpaymenthistory_set.all().order_by('creation_time')
@@ -952,7 +971,7 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(pay_history2.payment_method, PaymentHistory.PaymentMethod.BALANCE.value)
         self.assertEqual(pay_history2.payment_account, user_account.id)
         self.assertEqual(pay_history2.resource_type, ResourceType.VM.value)
-        self.assertEqual(pay_history2.service_id, self.service.id)
+        self.assertEqual(pay_history2.app_service_id, self.service.pay_app_service_id)
         self.assertEqual(pay_history2.instance_id, '')
         # 券支付记录
         cc_historys = pay_history2.cashcouponpaymenthistory_set.all().order_by('creation_time')
@@ -1001,7 +1020,7 @@ class PaymentManagerTests(TransactionTestCase):
             balance=Decimal('20'),
             effective_time=now_time - timedelta(days=1),
             expiration_time=now_time + timedelta(days=10),
-            service_id=self.service.id,
+            app_service_id=self.service.pay_app_service_id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.VO.value,
             user_id=None, vo_id=self.vo.id
@@ -1014,7 +1033,7 @@ class PaymentManagerTests(TransactionTestCase):
             balance=Decimal('25'),
             effective_time=now_time - timedelta(days=2),
             expiration_time=now_time + timedelta(days=10),
-            service_id=self.service.id,
+            app_service_id=self.service.pay_app_service_id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.VO.value,
             user_id=None, vo_id=self.vo.id
@@ -1027,7 +1046,7 @@ class PaymentManagerTests(TransactionTestCase):
             balance=Decimal('33'),
             effective_time=now_time - timedelta(days=2),
             expiration_time=now_time + timedelta(days=10),
-            service_id=self.service2.id,
+            app_service_id=self.service2.pay_app_service_id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.VO.value,
             user_id=None, vo_id=self.vo.id
@@ -1040,7 +1059,7 @@ class PaymentManagerTests(TransactionTestCase):
             balance=Decimal('40'),
             effective_time=now_time - timedelta(days=10),
             expiration_time=now_time - timedelta(days=1),
-            service_id=self.service.id,
+            app_service_id=self.service.pay_app_service_id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.VO.value,
             user_id=None, vo_id=self.vo.id
@@ -1053,7 +1072,7 @@ class PaymentManagerTests(TransactionTestCase):
             balance=Decimal('45'),
             effective_time=now_time + timedelta(days=1),
             expiration_time=now_time + timedelta(days=11),
-            service_id=self.service.id,
+            app_service_id=self.service.pay_app_service_id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.VO.value,
             user_id=None, vo_id=self.vo.id
@@ -1066,7 +1085,7 @@ class PaymentManagerTests(TransactionTestCase):
             balance=Decimal('0'),
             effective_time=now_time - timedelta(days=1),
             expiration_time=now_time + timedelta(days=10),
-            service_id=self.service.id,
+            app_service_id=self.service.pay_app_service_id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.VO.value,
             user_id=None, vo_id=self.vo.id
@@ -1079,7 +1098,7 @@ class PaymentManagerTests(TransactionTestCase):
             balance=Decimal('50'),
             effective_time=now_time - timedelta(days=1),
             expiration_time=now_time + timedelta(days=10),
-            service_id=self.service.id,
+            app_service_id=self.service.pay_app_service_id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.USER.value,
             user_id=self.user.id, vo_id=None
@@ -1212,7 +1231,7 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(pay_history1.payment_method, PaymentHistory.PaymentMethod.BALANCE_COUPON.value)
         self.assertEqual(pay_history1.payment_account, vo_account.id)
         self.assertEqual(pay_history1.resource_type, ResourceType.VM.value)
-        self.assertEqual(pay_history1.service_id, self.service.id)
+        self.assertEqual(pay_history1.app_service_id, self.service.pay_app_service_id)
         self.assertEqual(pay_history1.instance_id, '')
         self.assertEqual(pay_history1.app_id, 'app_id')
         self.assertEqual(pay_history1.subject, '资源订单')
@@ -1293,7 +1312,7 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(pay_history2.payment_method, PaymentHistory.PaymentMethod.BALANCE.value)
         self.assertEqual(pay_history2.payment_account, vo_account.id)
         self.assertEqual(pay_history2.resource_type, ResourceType.VM.value)
-        self.assertEqual(pay_history2.service_id, self.service.id)
+        self.assertEqual(pay_history2.app_service_id, self.service.pay_app_service_id)
         self.assertEqual(pay_history2.instance_id, '')
         self.assertEqual(pay_history2.app_id, 'app_id')
         self.assertEqual(pay_history2.subject, '资源订单')

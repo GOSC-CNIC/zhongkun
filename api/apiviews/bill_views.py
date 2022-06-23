@@ -27,7 +27,7 @@ class PaymentHistoryViewSet(CustomGenericViewSet):
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=f'查询指定VO组的支付记录，需要vo组权限, 或管理员权限，不能与user_id同时使用'
+                description=f'查询指定VO组的支付记录，需要vo组权限'
             ),
             openapi.Parameter(
                 name='payment_type',
@@ -51,27 +51,13 @@ class PaymentHistoryViewSet(CustomGenericViewSet):
                 description=f'支付时间段止，ISO8601格式：YYYY-MM-ddTHH:mm:ssZ'
             ),
             openapi.Parameter(
-                name='resource_type',
-                in_=openapi.IN_QUERY,
-                type=openapi.TYPE_STRING,
-                required=False,
-                description=f'产品类型, {ResourceType.choices}'
-            ),
-            openapi.Parameter(
-              name='service_id',
+              name='app_service_id',
               in_=openapi.IN_QUERY,
               type=openapi.TYPE_STRING,
               required=False,
-              description=f'服务id, 以管理员身份请求时需要有管理权限'
+              description=f'app服务id'
             ),
-            openapi.Parameter(
-                name='user_id',
-                in_=openapi.IN_QUERY,
-                type=openapi.TYPE_STRING,
-                required=False,
-                description=f'查询指定用户的支付记录，仅以管理员身份查询时使用'
-            ),
-        ] + CustomGenericViewSet.PARAMETERS_AS_ADMIN,
+        ],
         responses={
             200: ''
         }
@@ -88,22 +74,21 @@ class PaymentHistoryViewSet(CustomGenericViewSet):
               "next_marker": "cD0yMDIyLTA0LTA3KzA3JTNBNTklM0EyMy41NzY5NjElMkIwMCUzQTAw",
               "results": [
                 {
-                  "id": "9f30d8d0-b713-11ec-bb91-c8009fe2eb10",
+                  "id": "xxxx",
+                  "subject": "云主机（订购）8个月",
                   "payment_method": "balance",
                   "executor": "metering",
                   "payer_id": "1",
                   "payer_name": "shun",
                   "payer_type": "user",     # user or vo
                   "amounts": "-2.68",
-                  "before_payment": "-197.49",
-                  "after_payment": "-200.17",
+                  "coupon_amount": "-197.49",
                   "payment_time": "2022-04-07T07:59:23.598408Z",
                   "type": "payment",
                   "remark": "按量计费",
-                  "order_id": "",
-                  "resource_type": "vm",
-                  "service_id": "1ff0a8a0-490b-11ec-8e98-c8009fe2eb10",
-                  "instance_id": "d1d10b24-4c25-11ec-a2dc-c8009fe2eb10"
+                  "order_id": "xxx",
+                  "app_service_id": "sxxxx",
+                  "app_id": "xxxx"
                 }
               ]
             }

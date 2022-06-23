@@ -51,3 +51,13 @@ def timestamp20_rand4_sn():
 def timestamp14_sn():
     t = timezone.now()
     return f"{t.year:04}{t.month:02}{t.day:02}{t.hour:02}{t.minute:02}{t.second:02}"
+
+
+def date8_random_digit_string(rand_length: int):
+    """
+    生成日期+随机数的流水号
+    长24位: 日期8 + rand_length位随机数
+    """
+    t = timezone.now()
+    s = random_digit_string(rand_length)
+    return f"{t.year:04}{t.month:02}{t.day:02}{s}"

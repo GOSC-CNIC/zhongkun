@@ -17,9 +17,11 @@ class PaymentHistoryTests(MyAPITestCase):
     def setUp(self):
         self.user = set_auth_header(self)
         self.service = get_or_create_service()
+        self.service.pay_app_service_id = 'app_service1_id'
+        self.service.save(update_fields=['pay_app_service_id'])
         self.service2 = ServiceConfig(
             name='test2', data_center_id=self.service.data_center_id, endpoint_url='test2', username='', password='',
-            need_vpn=False
+            need_vpn=False, pay_app_service_id='app_service2'
         )
         self.service2.save(force_insert=True)
         self.vo = VirtualOrganization(
@@ -30,6 +32,7 @@ class PaymentHistoryTests(MyAPITestCase):
     def init_payment_history_data(self):
         time_now = timezone.now()
         history1 = PaymentHistory(
+            subject='subject1',
             payment_account=self.user.id,
             payment_method=PaymentHistory.PaymentMethod.BALANCE,
             executor='test',
@@ -41,7 +44,7 @@ class PaymentHistoryTests(MyAPITestCase):
             after_payment=Decimal(0),
             type=PaymentHistory.Type.PAYMENT.value,
             resource_type=ResourceType.VM.value,
-            service_id=self.service.id,
+            app_service_id=self.service.pay_app_service_id,
             instance_id=''
         )
         history1.save(force_insert=True)
@@ -49,6 +52,7 @@ class PaymentHistoryTests(MyAPITestCase):
         history1.save(update_fields=['payment_time'])
 
         history2 = PaymentHistory(
+            subject='subject2',
             payment_account=self.user.id,
             payment_method=PaymentHistory.PaymentMethod.BALANCE,
             executor='test',
@@ -60,7 +64,7 @@ class PaymentHistoryTests(MyAPITestCase):
             after_payment=Decimal(0),
             type=PaymentHistory.Type.PAYMENT.value,
             resource_type=ResourceType.DISK.value,
-            service_id=self.service.id,
+            app_service_id=self.service.pay_app_service_id,
             instance_id=''
         )
         history2.save(force_insert=True)
@@ -68,6 +72,7 @@ class PaymentHistoryTests(MyAPITestCase):
         history2.save(update_fields=['payment_time'])
 
         history3 = PaymentHistory(
+            subject='subject3',
             payment_account=self.vo.id,
             payment_method=PaymentHistory.PaymentMethod.BALANCE,
             executor='test',
@@ -79,7 +84,7 @@ class PaymentHistoryTests(MyAPITestCase):
             after_payment=Decimal(0),
             type=PaymentHistory.Type.PAYMENT.value,
             resource_type=ResourceType.VM.value,
-            service_id=self.service.id,
+            app_service_id=self.service.pay_app_service_id,
             instance_id=''
         )
         history3.save(force_insert=True)
@@ -87,6 +92,7 @@ class PaymentHistoryTests(MyAPITestCase):
         history3.save(update_fields=['payment_time'])
 
         history4 = PaymentHistory(
+            subject='subject4',
             payment_account=self.vo.id,
             payment_method=PaymentHistory.PaymentMethod.BALANCE,
             executor='test',
@@ -98,7 +104,7 @@ class PaymentHistoryTests(MyAPITestCase):
             after_payment=Decimal(0),
             type=PaymentHistory.Type.PAYMENT.value,
             resource_type=ResourceType.VM.value,
-            service_id=self.service.id,
+            app_service_id=self.service.pay_app_service_id,
             instance_id=''
         )
         history4.save(force_insert=True)
@@ -106,6 +112,7 @@ class PaymentHistoryTests(MyAPITestCase):
         history4.save(update_fields=['payment_time'])
 
         history5 = PaymentHistory(
+            subject='subject5',
             payment_account=self.vo.id,
             payment_method=PaymentHistory.PaymentMethod.BALANCE,
             executor='test',
@@ -117,7 +124,7 @@ class PaymentHistoryTests(MyAPITestCase):
             after_payment=Decimal(0),
             type=PaymentHistory.Type.REFUND.value,
             resource_type=ResourceType.DISK.value,
-            service_id=self.service2.id,
+            app_service_id=self.service2.pay_app_service_id,
             instance_id=''
         )
         history5.save(force_insert=True)
@@ -125,6 +132,7 @@ class PaymentHistoryTests(MyAPITestCase):
         history5.save(update_fields=['payment_time'])
 
         history6 = PaymentHistory(
+            subject='subject6',
             payment_account=self.user.id,
             payment_method=PaymentHistory.PaymentMethod.BALANCE,
             executor='test',
@@ -136,7 +144,7 @@ class PaymentHistoryTests(MyAPITestCase):
             after_payment=Decimal(0),
             type=PaymentHistory.Type.PAYMENT.value,
             resource_type=ResourceType.DISK.value,
-            service_id=self.service2.id,
+            app_service_id=self.service2.pay_app_service_id,
             instance_id=''
         )
         history6.save(force_insert=True)
@@ -144,6 +152,7 @@ class PaymentHistoryTests(MyAPITestCase):
         history6.save(update_fields=['payment_time'])
 
         history7 = PaymentHistory(
+            subject='subject7',
             payment_account=self.user.id,
             payment_method=PaymentHistory.PaymentMethod.BALANCE,
             executor='test',
@@ -155,7 +164,7 @@ class PaymentHistoryTests(MyAPITestCase):
             after_payment=Decimal(0),
             type=PaymentHistory.Type.RECHARGE.value,
             resource_type='',
-            service_id='',
+            app_service_id='',
             instance_id=''
         )
         history7.save(force_insert=True)
@@ -183,9 +192,9 @@ class PaymentHistoryTests(MyAPITestCase):
         self.assertEqual(len(r.data['results']), 2)
         self.assertKeysIn([
             "id", "payment_method", "executor", "payer_id", "payer_name",
-            "payer_type", "amounts", "before_payment", "after_payment",
+            "payer_type", "amounts", "coupon_amount",
             "payment_time", "type", "remark", "order_id",
-            "resource_type", "service_id", "instance_id"
+            "subject", "app_service_id", "app_id"
         ], r.data['results'][0])
 
         # list user payment history, invalid time_start
@@ -258,24 +267,24 @@ class PaymentHistoryTests(MyAPITestCase):
         self.assertEqual(len(r.data['results']), 1)
         self.assertEqual(r.data['results'][0]['amounts'], '7.77')
 
-        # query 'resource_type'
+        # param service1_id
         query = parse.urlencode(query={
-            'time_start': '2022-01-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
-            'resource_type': ResourceType.VM.value
-        })
-        r = self.client.get(f'{base_url}?{query}')
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(len(r.data['results']), 1)
-        self.assertEqual(r.data['results'][0]['amounts'], '-1.11')
-        query = parse.urlencode(query={
-            'time_start': '2022-01-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
-            'resource_type': ResourceType.DISK.value
+            'time_start': '2022-02-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
+            'app_service_id': self.service.pay_app_service_id
         })
         r = self.client.get(f'{base_url}?{query}')
         self.assertEqual(r.status_code, 200)
         self.assertEqual(len(r.data['results']), 2)
+
+        # param service2_id
+        query = parse.urlencode(query={
+            'time_start': '2022-02-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
+            'app_service_id': self.service2.pay_app_service_id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data['results']), 1)
         self.assertEqual(r.data['results'][0]['amounts'], '-6.66')
-        self.assertEqual(r.data['results'][1]['amounts'], '-2.22')
 
         # --------------list vo-------------
         # list vo payment history
@@ -304,184 +313,29 @@ class PaymentHistoryTests(MyAPITestCase):
         self.assertEqual(len(r.data['results']), 1)
         self.assertEqual(r.data['results'][0]['amounts'], '-5.55')
 
-        # query 'resource_type'
+        # param service1_id
         query = parse.urlencode(query={
-            'time_start': '2022-01-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
-            'vo_id': self.vo.id, 'resource_type': ResourceType.VM.value
+            'time_start': '2022-02-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
+            'vo_id': self.vo.id, 'app_service_id': self.service.pay_app_service_id
         })
         r = self.client.get(f'{base_url}?{query}')
         self.assertEqual(r.status_code, 200)
         self.assertEqual(len(r.data['results']), 1)
-        self.assertEqual(r.data['results'][0]['amounts'], '-3.33')
+
+        # param service2_id
+        query = parse.urlencode(query={
+            'time_start': '2022-02-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
+            'vo_id': self.vo.id, 'app_service_id': self.service2.pay_app_service_id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data['results']), 0)
+
         query = parse.urlencode(query={
             'time_start': '2022-01-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
-            'vo_id': self.vo.id, 'resource_type': ResourceType.DISK.value
+            'vo_id': self.vo.id, 'app_service_id': self.service2.pay_app_service_id
         })
         r = self.client.get(f'{base_url}?{query}')
         self.assertEqual(r.status_code, 200)
         self.assertEqual(len(r.data['results']), 1)
         self.assertEqual(r.data['results'][0]['amounts'], '-5.55')
-
-        # -----------------service admin-------------------
-        query = parse.urlencode(query={
-            'time_start': '2022-02-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z', 'as-admin': ''
-        })
-        r = self.client.get(f'{base_url}?{query}')
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(len(r.data['results']), 0)
-
-        # service admin, no permission service
-        query = parse.urlencode(query={
-            'time_start': '2022-02-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
-            'as-admin': '', 'service_id': self.service.id
-        })
-        r = self.client.get(f'{base_url}?{query}')
-        self.assertEqual(r.status_code, 403)
-
-        # service admin, has permission service
-        self.service.users.add(self.user)
-        query = parse.urlencode(query={
-            'time_start': '2022-02-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
-            'as-admin': '', 'service_id': self.service.id
-        })
-        r = self.client.get(f'{base_url}?{query}')
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(len(r.data['results']), 3)
-
-        # service admin, list user payment history
-        query = parse.urlencode(query={
-            'time_start': '2022-02-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
-            'as-admin': '', 'user_id': self.user.id
-        })
-        r = self.client.get(f'{base_url}?{query}')
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(len(r.data['results']), 2)
-        self.assertEqual(r.data['results'][0]['payer_id'], self.user.id)
-        self.assertEqual(r.data['results'][0]['payer_type'], OwnerType.USER.value)
-
-        # service admin, list vo payment history
-        query = parse.urlencode(query={
-            'time_start': '2022-02-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z', 'as-admin': '',
-            'vo_id': self.vo.id
-        })
-        r = self.client.get(f'{base_url}?{query}')
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(len(r.data['results']), 1)
-        self.assertEqual(r.data['results'][0]['payer_id'], self.vo.id)
-        self.assertEqual(r.data['results'][0]['payer_type'], OwnerType.VO.value)
-
-        # service admin, list vo payment history, param "vo_id" and "user_id" togethor
-        query = parse.urlencode(query={
-            'time_start': '2022-02-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z', 'as-admin': '',
-            'vo_id': self.vo.id, 'user_id': self.user.id
-        })
-        r = self.client.get(f'{base_url}?{query}')
-        self.assertEqual(r.status_code, 400)
-
-        # service admin, no permission service2
-        query = parse.urlencode(query={
-            'time_start': '2022-02-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
-            'as-admin': '', 'service_id': self.service2.id
-        })
-        r = self.client.get(f'{base_url}?{query}')
-        self.assertEqual(r.status_code, 403)
-
-        self.service.users.remove(self.user)
-
-        # --------federal admin-----------
-        # federal admin， list all
-        self.user.set_federal_admin()
-        query = parse.urlencode(query={
-            'time_start': '2022-01-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z', 'as-admin': ''
-        })
-        r = self.client.get(f'{base_url}?{query}')
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(len(r.data['results']), 6)
-
-        # list all, query 'payment_type'
-        self.user.set_federal_admin()
-        query = parse.urlencode(query={
-            'time_start': '2022-01-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z', 'as-admin': '',
-            'payment_type': PaymentHistory.Type.PAYMENT.value
-        })
-        r = self.client.get(f'{base_url}?{query}')
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(len(r.data['results']), 4)
-        self.assertEqual(r.data['results'][0]['amounts'], '-6.66')
-        self.assertEqual(r.data['results'][1]['amounts'], '-3.33')
-        self.assertEqual(r.data['results'][2]['amounts'], '-2.22')
-        self.assertEqual(r.data['results'][3]['amounts'], '-1.11')
-
-        # federal admin, service_id
-        query = parse.urlencode(query={
-            'time_start': '2022-02-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
-            'as-admin': '', 'service_id': self.service.id
-        })
-        r = self.client.get(f'{base_url}?{query}')
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(len(r.data['results']), 3)
-
-        query = parse.urlencode(query={
-            'time_start': '2022-02-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
-            'as-admin': '', 'service_id': self.service2.id
-        })
-        r = self.client.get(f'{base_url}?{query}')
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(len(r.data['results']), 1)
-        self.assertEqual(r.data['results'][0]['amounts'], '-6.66')
-
-        # federal admin, user_id
-        query = parse.urlencode(query={
-            'time_start': '2022-02-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
-            'as-admin': '', 'user_id': self.user.id
-        })
-        r = self.client.get(f'{base_url}?{query}')
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(len(r.data['results']), 3)
-        self.assertEqual(r.data['results'][0]['payer_type'], OwnerType.USER.value)
-
-        # federal admin, user_id, service_id
-        query = parse.urlencode(query={
-            'time_start': '2022-02-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
-            'as-admin': '', 'user_id': self.user.id,
-            'service_id': self.service.id
-        })
-        r = self.client.get(f'{base_url}?{query}')
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(len(r.data['results']), 2)
-
-        # federal admin, vo_id
-        query = parse.urlencode(query={
-            'time_start': '2022-02-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
-            'as-admin': '', 'vo_id': self.vo.id
-        })
-        r = self.client.get(f'{base_url}?{query}')
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(len(r.data['results']), 1)
-        self.assertEqual(r.data['results'][0]['amounts'], '-3.33')
-        query = parse.urlencode(query={
-            'time_start': '2022-01-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
-            'as-admin': '', 'vo_id': self.vo.id
-        })
-        r = self.client.get(f'{base_url}?{query}')
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(len(r.data['results']), 2)
-        self.assertEqual(r.data['results'][0]['amounts'], '-3.33')
-        self.assertEqual(r.data['results'][1]['amounts'], '-5.55')
-
-        # query vo_id, payment_type
-        query = parse.urlencode(query={
-            'time_start': '2022-01-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
-            'as-admin': '', 'vo_id': self.vo.id, 'payment_type': PaymentHistory.Type.PAYMENT.value
-        })
-        r = self.client.get(f'{base_url}?{query}')
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(len(r.data['results']), 1)
-        self.assertEqual(r.data['results'][0]['amounts'], '-3.33')
-        query = parse.urlencode(query={
-            'time_start': '2022-01-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
-            'as-admin': '', 'vo_id': self.vo.id, 'payment_type': PaymentHistory.Type.RECHARGE.value
-        })
-        r = self.client.get(f'{base_url}?{query}')
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(len(r.data['results']), 0)

@@ -15,8 +15,7 @@ from utils.decimal_utils import quantize_10_2
 from utils.test import get_or_create_user, get_or_create_service
 from vo.models import VirtualOrganization, VoMember
 from bill.managers import PaymentManager
-from bill.models import PaymentHistory
-from bill.models import CashCoupon
+from bill.models import PaymentHistory, CashCoupon, PayAppService, PayApp, PayOrgnazition
 from api.handlers.order_handler import CASH_COUPON_BALANCE
 from service.models import ServiceConfig
 from . import set_auth_header, MyAPITestCase
@@ -171,9 +170,9 @@ class OrderTests(MyAPITestCase):
             "status": order2.status,
             "total_amount": str(quantize_10_2(order2.total_amount)),
             "pay_amount": str(quantize_10_2(order2.pay_amount)),
-            "payable_amount": str(quantize_10_2(order.payable_amount)),
-            "balance_amount": str(quantize_10_2(order.balance_amount)),
-            "coupon_amount": str(quantize_10_2(order.coupon_amount)),
+            "payable_amount": str(quantize_10_2(order2.payable_amount)),
+            "balance_amount": str(quantize_10_2(order2.balance_amount)),
+            "coupon_amount": str(quantize_10_2(order2.coupon_amount)),
             "service_id": order2.service_id,
             "service_name": order2.service_name,
             "resource_type": ResourceType.DISK.value,
@@ -652,10 +651,29 @@ class OrderTests(MyAPITestCase):
         self.assertErrorResponse(status_code=409, code='QuotaShortage', response=response)
 
     def test_pay_order_with_coupon(self):
+        # 余额支付有关配置
+        app = PayApp(name='app')
+        app.save()
+        po = PayOrgnazition(name='机构')
+        po.save()
+        app_service1 = PayAppService(
+            id='123', name='service1', app=app, orgnazition=po
+        )
+        app_service1.save()
+        self.service.pay_app_service_id = app_service1.id
+        self.service.save(update_fields=['pay_app_service_id'])
+
+        self.app_service2 = PayAppService(
+            name='service2', app=app, orgnazition=po
+        )
+        self.app_service2.save()
+
         service2 = ServiceConfig(
             name='test2', data_center_id=self.service.data_center_id, endpoint_url='test2', username='', password='',
-            need_vpn=False
+            need_vpn=False, pay_app_service_id=self.app_service2.id
         )
+        service2.save()
+
         now_time = timezone.now()
         # 通用有效
         coupon1_user = CashCoupon(
@@ -663,7 +681,7 @@ class OrderTests(MyAPITestCase):
             balance=Decimal('10'),
             effective_time=now_time - timedelta(days=1),
             expiration_time=now_time + timedelta(days=10),
-            service_id=self.service.id,
+            app_service_id=self.service.pay_app_service_id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.USER.value,
             user_id=self.user.id, vo_id=None
@@ -676,7 +694,7 @@ class OrderTests(MyAPITestCase):
             balance=Decimal('20'),
             effective_time=now_time - timedelta(days=2),
             expiration_time=now_time + timedelta(days=10),
-            service_id=self.service.id,
+            app_service_id=self.service.pay_app_service_id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.USER.value,
             user_id=self.user.id, vo_id=None
@@ -689,7 +707,7 @@ class OrderTests(MyAPITestCase):
             balance=Decimal('30'),
             effective_time=now_time - timedelta(days=2),
             expiration_time=now_time + timedelta(days=10),
-            service_id=service2.id,
+            app_service_id=service2.pay_app_service_id,
             status=CashCoupon.Status.AVAILABLE.value,
             owner_type=OwnerType.USER.value,
             user_id=self.user.id, vo_id=None
@@ -843,7 +861,7 @@ class OrderTests(MyAPITestCase):
         self.assertEqual(pay_history1.payment_method, PaymentHistory.PaymentMethod.CASH_COUPON.value)
         self.assertEqual(pay_history1.payment_account, '')
         self.assertEqual(pay_history1.resource_type, ResourceType.VM.value)
-        self.assertEqual(pay_history1.service_id, self.service.id)
+        self.assertEqual(pay_history1.app_service_id, self.service.pay_app_service_id)
         self.assertEqual(pay_history1.instance_id, '')
         self.assertEqual(pay_history1.app_id, settings.PAYMENT_BALANCE['app_id'])
         self.assertEqual(pay_history1.subject, order1.build_subject())
@@ -928,7 +946,7 @@ class OrderTests(MyAPITestCase):
         self.assertEqual(pay_history2.payment_method, PaymentHistory.PaymentMethod.BALANCE_COUPON.value)
         self.assertEqual(pay_history2.payment_account, self.user.userpointaccount.id)
         self.assertEqual(pay_history2.resource_type, ResourceType.VM.value)
-        self.assertEqual(pay_history2.service_id, self.service.id)
+        self.assertEqual(pay_history2.app_service_id, self.service.pay_app_service_id)
         self.assertEqual(pay_history2.instance_id, '')
         self.assertEqual(pay_history2.app_id, settings.PAYMENT_BALANCE['app_id'])
         self.assertEqual(pay_history2.subject, order2.build_subject())

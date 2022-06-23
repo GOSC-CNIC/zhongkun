@@ -79,6 +79,12 @@ class MeteringBase(CustomIdModel):
         self.payment_status = PaymentStatus.PAID.value
         self.save(update_fields=['payment_history_id', 'trade_amount', 'payment_status'])
 
+    def get_pay_app_service_id(self) -> str:
+        """
+        所属服务对应的余额结算中的app服务id
+        """
+        raise NotImplemented('get_pay_app_service_id')
+
 
 class MeteringServer(MeteringBase):
     """
@@ -175,6 +181,14 @@ class MeteringServer(MeteringBase):
         """
         return self.server_id
 
+    def get_pay_app_service_id(self) -> str:
+        """
+        所属服务对应的余额结算中的app服务id
+        """
+        from service.managers import ServiceManager
+        s = ServiceManager.get_service_by_id(self.service_id)
+        return s.pay_app_service_id
+
 
 class MeteringDisk(MeteringBase):
     """
@@ -260,6 +274,14 @@ class MeteringDisk(MeteringBase):
         计量的资源实例的标识
         """
         return self.disk_id
+
+    def get_pay_app_service_id(self) -> str:
+        """
+        所属服务对应的余额结算中的app服务id
+        """
+        from service.managers import ServiceManager
+        s = ServiceManager.get_service_by_id(self.service_id)
+        return s.pay_app_service_id
 
 
 class MeteringObjectStorage(MeteringBase):

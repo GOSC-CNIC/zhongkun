@@ -85,7 +85,7 @@ class CashCouponManager:
         queryset = queryset.filter(
             user_id=user_id, owner_type=OwnerType.USER.value,
             status=CashCoupon.Status.AVAILABLE.value
-        ).select_related('vo', 'user', 'activity', 'service')
+        ).select_related('vo', 'user', 'activity', 'app_service')
 
         if available:
             now = timezone.now()
@@ -102,7 +102,7 @@ class CashCouponManager:
         queryset = queryset.filter(
             vo_id=vo_id, owner_type=OwnerType.VO.value,
             status=CashCoupon.Status.AVAILABLE.value
-        ).select_related('vo', 'user', 'activity', 'service')
+        ).select_related('vo', 'user', 'activity', 'app_service')
 
         if available:
             now = timezone.now()
@@ -245,7 +245,7 @@ class CashCouponManager:
         return coupons
 
     @staticmethod
-    def sorting_usable_coupons(coupons: List[CashCoupon], service_id: str):
+    def sorting_usable_coupons(coupons: List[CashCoupon], app_service_id: str):
         """
         分拣适用指定服务的券
         """
@@ -253,7 +253,7 @@ class CashCouponManager:
         usable_coupons = []
         unusable_coupons = []
         for coupon in coupons:
-            if service_id == coupon.service_id:
+            if app_service_id == coupon.app_service_id:
                 usable_coupons.append(coupon)
             else:
                 unusable_coupons.append(coupon)

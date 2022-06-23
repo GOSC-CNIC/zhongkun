@@ -81,6 +81,94 @@ class PayApp(CustomIdModel):
     def generate_id(self):
         return rand_utils.timestamp14_sn()
 
+    def __str__(self):
+        return self.name
+
+
+class PayOrgnazition(CustomIdModel):
+    """
+    机构组织
+    """
+    name = models.CharField(verbose_name=_('名称'), max_length=255)
+    name_en = models.CharField(verbose_name=_('英文名称'), max_length=255, default='')
+    abbreviation = models.CharField(verbose_name=_('简称'), max_length=64, default='')
+    independent_legal_person = models.BooleanField(verbose_name=_('是否独立法人单位'), default=True)
+    country = models.CharField(verbose_name=_('国家/地区'), max_length=128, default='')
+    city = models.CharField(verbose_name=_('城市'), max_length=128, default='')
+    postal_code = models.CharField(verbose_name=_('邮政编码'), max_length=32, default='')
+    address = models.CharField(verbose_name=_('单位地址'), max_length=256, default='')
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'), null=True, blank=True, default=None)
+    desc = models.CharField(verbose_name=_('描述'), blank=True, max_length=255)
+
+    logo_url = models.CharField(verbose_name=_('LOGO url'), max_length=256,
+                                blank=True, default='')
+    certification_url = models.CharField(verbose_name=_('机构认证代码url'), max_length=256,
+                                         blank=True, default='')
+    longitude = models.FloatField(verbose_name=_('经度'), blank=True, default=0)
+    latitude = models.FloatField(verbose_name=_('纬度'), blank=True, default=0)
+    user = models.ForeignKey(to=UserProfile, on_delete=models.SET_NULL, related_name='+', null=True, default=None)
+
+    class Meta:
+        ordering = ['creation_time']
+        db_table = 'pay_orgnazition'
+        verbose_name = _('机构')
+        verbose_name_plural = verbose_name
+
+    def generate_id(self):
+        return f'o{rand_utils.timestamp14_sn()}'
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return f'PayOrgnazition({self.name})'
+
+
+class PayAppService(CustomIdModel):
+    class Status(models.TextChoices):
+        UNAUDITED = 'unaudited', _('未审核')
+        NORMAL = 'normal', _('正常')
+        BAN = 'ban', _('禁止')
+
+    orgnazition = models.ForeignKey(
+        verbose_name=_('机构|组织'), to=PayOrgnazition, on_delete=models.CASCADE, related_name='+')
+    app = models.ForeignKey(verbose_name=_('应用APP'), to=PayApp, on_delete=models.CASCADE, related_name='+')
+    name = models.CharField(verbose_name=_('服务名称'), max_length=256)
+    name_en = models.CharField(verbose_name=_('服务英文名称'), max_length=255, default='')
+    resources = models.CharField(verbose_name=_('服务提供的资源'), max_length=128, default='')
+    desc = models.CharField(verbose_name=_('服务描述'), max_length=1024, blank=True, default='')
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
+    status = models.CharField(verbose_name=_('服务状态'), max_length=16, choices=Status.choices,
+                              default=Status.UNAUDITED.value)
+    contact_person = models.CharField(verbose_name=_('联系人名称'), max_length=128,
+                                      blank=True, default='')
+    contact_email = models.EmailField(verbose_name=_('联系人邮箱'), blank=True, default='')
+    contact_telephone = models.CharField(verbose_name=_('联系人电话'), max_length=16,
+                                         blank=True, default='')
+    contact_fixed_phone = models.CharField(verbose_name=_('联系人固定电话'), max_length=16,
+                                           blank=True, default='')
+    contact_address = models.CharField(verbose_name=_('联系人地址'), max_length=256,
+                                       blank=True, default='')
+    longitude = models.FloatField(verbose_name=_('经度'), blank=True, default=0)
+    latitude = models.FloatField(verbose_name=_('纬度'), blank=True, default=0)
+    user = models.ForeignKey(
+        verbose_name=_('用户'), to=UserProfile, on_delete=models.SET_NULL, related_name='+', null=True, default=None)
+
+    class Meta:
+        verbose_name = _('应用APP子服务')
+        verbose_name_plural = verbose_name
+        db_table = 'app_service'
+        ordering = ['-creation_time']
+
+    def generate_id(self):
+        return f's{rand_utils.date8_random_digit_string(6)}'
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return f'PayAppService({self.name})'
+
 
 class CashCouponBase(models.Model):
     face_value = models.DecimalField(verbose_name=_('面额'), max_digits=10, decimal_places=2)
@@ -99,8 +187,8 @@ class CashCouponActivity(UuidModel, CashCouponBase):
         COMPLETED = 'completed', _('发放完毕')
 
     name = models.CharField(verbose_name=_('活动名称'), max_length=255)
-    service = models.ForeignKey(
-        verbose_name=_('适用服务'), to=ServiceConfig, on_delete=models.SET_NULL, related_name='+',
+    app_service = models.ForeignKey(
+        verbose_name=_('适用服务'), to=PayAppService, on_delete=models.SET_NULL, related_name='+',
         null=True, blank=True, default=None)
     grant_total = models.IntegerField(verbose_name=_('发放总数量'), default=0)
     granted_count = models.IntegerField(verbose_name=_('已发放数量'), default=0)
@@ -127,8 +215,8 @@ class CashCoupon(CashCouponBase):
         DELETED = 'deleted', _('删除')
 
     id = models.CharField(verbose_name=_('编码'), max_length=32, primary_key=True, editable=False)
-    service = models.ForeignKey(
-        verbose_name=_('适用服务'), to=ServiceConfig, on_delete=models.SET_NULL, related_name='+',
+    app_service = models.ForeignKey(
+        verbose_name=_('适用服务'), to=PayAppService, on_delete=models.SET_NULL, related_name='+',
         null=True, blank=True, default=None)
     balance = models.DecimalField(verbose_name=_('余额'), max_digits=10, decimal_places=2)
     status = models.CharField(verbose_name=_('状态'), max_length=16, choices=Status.choices, default=Status.WAIT.value)
@@ -221,7 +309,7 @@ class PaymentHistory(CustomIdModel):
     order_id = models.CharField(verbose_name=_('订单ID'), max_length=36, blank=True, default='')
     resource_type = models.CharField(
         verbose_name=_('资源类型'), max_length=16, choices=ResourceType.choices, default=ResourceType.VM)
-    service_id = models.CharField(verbose_name=_('服务ID'), max_length=36, blank=True, default='')
+    app_service_id = models.CharField(verbose_name=_('APP服务ID'), max_length=36, blank=True, default='')
     instance_id = models.CharField(
         verbose_name=_('资源实例ID'), max_length=64, default='', help_text='云主机，硬盘id，存储桶名称')
     coupon_amount = models.DecimalField(

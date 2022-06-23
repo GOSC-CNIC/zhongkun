@@ -130,6 +130,9 @@ class ServiceConfig(BaseService):
                                 blank=True, default='')
     longitude = models.FloatField(verbose_name=_('经度'), blank=True, default=0)
     latitude = models.FloatField(verbose_name=_('纬度'), blank=True, default=0)
+    pay_app_service_id = models.CharField(
+        verbose_name=_('余额结算APP服务ID'), max_length=36, default='',
+        help_text=_('此服务对应的APP服务（注册在余额结算中的APP服务）id，扣费时需要此id，用于指定哪个服务发生的扣费'))
 
     class Meta:
         ordering = ['-add_time']

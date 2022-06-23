@@ -1,14 +1,16 @@
 from django.contrib import admin
 
 from .models import (
-    PaymentHistory, UserPointAccount, VoPointAccount, PayApp, CashCouponActivity, CashCoupon
+    PaymentHistory, UserPointAccount, VoPointAccount, PayApp, CashCouponActivity, CashCoupon,
+    PayOrgnazition, PayAppService
 )
 
 
 @admin.register(PaymentHistory)
 class PaymentHistoryAdmin(admin.ModelAdmin):
-    list_display = ('id', 'type', 'amounts', 'before_payment', 'after_payment', 'payment_time',
-                    'payer_type', 'payer_id', 'payer_name', 'payment_method', 'payment_account', 'executor')
+    list_display = ('id', 'subject', 'type', 'payment_method', 'amounts', 'coupon_amount',
+                    'before_payment', 'after_payment', 'payment_time', 'app_id',
+                    'payer_type', 'payer_id', 'payer_name', 'payment_account', 'executor')
     list_display_links = ('id',)
     list_filter = ('type', 'payer_type')
     search_fields = ('id', 'payer_id', 'payer_name')
@@ -39,18 +41,35 @@ class PayAppAdmin(admin.ModelAdmin):
 @admin.register(CashCouponActivity)
 class CashCouponActivityAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'face_value', 'effective_time', 'expiration_time',
-                    'service', 'grant_total', 'granted_count',
+                    'app_service', 'grant_total', 'granted_count',
                     'grant_status', 'creation_time', 'desc')
     list_display_links = ('name',)
-    list_select_related = ('service',)
+    list_select_related = ('app_service',)
 
 
 @admin.register(CashCoupon)
 class CashCouponAdmin(admin.ModelAdmin):
     list_display = ('id', 'activity', 'face_value', 'balance', 'effective_time', 'expiration_time', 'status',
-                    'service', 'user', 'vo', 'owner_type',
+                    'app_service', 'user', 'vo', 'owner_type',
                     'granted_time', 'coupon_code', 'creation_time')
     list_display_links = ('id',)
-    list_select_related = ('service', 'user', 'vo', 'activity')
+    list_select_related = ('app_service', 'user', 'vo', 'activity')
     raw_id_fields = ('activity', 'user', 'vo')
     readonly_fields = ('_coupon_code',)
+
+
+@admin.register(PayOrgnazition)
+class PayOrgnazitionAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'name_en', 'abbreviation', 'independent_legal_person', 'country',
+                    'city', 'postal_code', 'address', 'creation_time', 'desc')
+    list_display_links = ('id',)
+    raw_id_fields = ('user',)
+
+
+@admin.register(PayAppService)
+class PayAppServiceAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'name_en', 'creation_time', 'status', 'resources', 'contact_person',
+                    'contact_email', 'contact_telephone', 'desc')
+    list_display_links = ('id',)
+    list_select_related = ('orgnazition', 'app')
+    raw_id_fields = ('user',)

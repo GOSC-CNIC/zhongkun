@@ -5,7 +5,6 @@ from core import errors
 from api.viewsets import CustomGenericViewSet
 from bill.models import PaymentHistory
 from bill.managers import PaymentHistoryManager
-from order.models import ResourceType
 from utils.time import iso_utc_to_datetime
 
 
@@ -18,27 +17,20 @@ class PaymentHistoryHandler:
 
         user = request.user
         vo_id = data['vo_id']
-        user_id = data['user_id']
         time_start = data['time_start']
         time_end = data['time_end']
         payment_type = data['payment_type']
-        resource_type = data['resource_type']
-        service_id = data['service_id']
+        app_service_id = data['app_service_id']
         phm = PaymentHistoryManager()
-        if view.is_as_admin_request(request=request):
-            queryset = phm.get_payment_history_as_admin(
-                user=user, user_id=user_id, vo_id=vo_id, time_start=time_start, time_end=time_end,
-                _type=payment_type, resource_type=resource_type, service_id=service_id
-            )
-        elif vo_id:
+        if vo_id:
             queryset = phm.get_vo_payment_history(
                 user=user, vo_id=vo_id, time_start=time_start, time_end=time_end,
-                _type=payment_type, resource_type=resource_type, service_id=service_id
+                _type=payment_type, app_service_id=app_service_id
             )
         else:
             queryset = phm.get_user_payment_history(
                 user=user, time_start=time_start, time_end=time_end,
-                _type=payment_type, resource_type=resource_type, service_id=service_id
+                _type=payment_type, app_service_id=app_service_id
             )
 
         try:
@@ -55,19 +47,15 @@ class PaymentHistoryHandler:
         time_start = request.query_params.get('time_start', None)
         time_end = request.query_params.get('time_end', None)
         payment_type = request.query_params.get('payment_type', None)
-        resource_type = request.query_params.get('resource_type', None)
-        service_id = request.query_params.get('service_id', None)
+        app_service_id = request.query_params.get('app_service_id', None)
 
         now_time = timezone.now()
 
         if payment_type and payment_type not in PaymentHistory.Type.values:
             raise errors.InvalidArgument(message=_('参数“payment_type”的值无效'))
 
-        if resource_type and resource_type not in ResourceType.values:
-            raise errors.InvalidArgument(message=_('参数“resource_type”的值无效'))
-
-        if service_id is not None and not service_id:
-            raise errors.InvalidArgument(message=_('参数“service_id”的值无效'))
+        if app_service_id is not None and not app_service_id:
+            raise errors.InvalidArgument(message=_('参数“app_service_id”的值无效'))
 
         if user_id is not None and not view.is_as_admin_request(request):
             raise errors.BadRequest(message=_('参数“user_id”仅以管理员身份查询时允许使用'))
@@ -103,6 +91,5 @@ class PaymentHistoryHandler:
             'time_start': time_start,
             'time_end': time_end,
             'payment_type': payment_type,
-            'resource_type': resource_type,
-            'service_id': service_id
+            'app_service_id': app_service_id
         }

@@ -895,11 +895,18 @@ class MeteringServerTests(MyAPITestCase):
         self.assertEqual(r.status_code, 200)
 
     def test_aggregate_metering_by_vo(self):
-        vo1 = VirtualOrganization(id='vo1', name='name1', company='company1', owner_id='owner1')
+        owner1 = UserProfile(id='owner1', username='owner1')
+        owner1.save(force_insert=True)
+        owner2 = UserProfile(id='owner2', username='owner2')
+        owner2.save(force_insert=True)
+        owner3 = UserProfile(id='owner3', username='owner3')
+        owner3.save(force_insert=True)
+
+        vo1 = VirtualOrganization(id='vo1', name='name1', company='company1', owner_id=owner1.id)
         vo1.save(force_insert=True)
-        vo2 = VirtualOrganization(id='vo2', name='name2', company='company2', owner_id='owner2')
+        vo2 = VirtualOrganization(id='vo2', name='name2', company='company2', owner_id=owner2.id)
         vo2.save(force_insert=True)
-        vo3 = VirtualOrganization(id='vo3', name='name3', company='company3', owner_id='owner3')
+        vo3 = VirtualOrganization(id='vo3', name='name3', company='company3', owner_id=owner3.id)
         vo3.save(force_insert=True)
 
         metering1 = MeteringServer(

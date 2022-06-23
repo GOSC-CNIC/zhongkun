@@ -52,7 +52,7 @@ class PaymentManager:
 
     def has_enough_balance_user(
             self, user_id: str, money_amount: Decimal,
-            with_coupons: bool, service_id: str
+            with_coupons: bool, app_service_id: str
     ):
         """
         用户是否有足够的余额
@@ -69,7 +69,7 @@ class PaymentManager:
 
             # 适用的券
             usable_coupons, unusable_coupons = CashCouponManager.sorting_usable_coupons(
-                coupons=coupons, service_id=service_id
+                coupons=coupons, app_service_id=app_service_id
             )
 
             for c in usable_coupons:
@@ -79,7 +79,7 @@ class PaymentManager:
 
     def has_enough_balance_vo(
             self, vo_id: str, money_amount: Decimal,
-            with_coupons: bool, service_id: str
+            with_coupons: bool, app_service_id: str
     ):
         """
         vo组是否有足够的余额
@@ -95,7 +95,7 @@ class PaymentManager:
             )
             # 适用的券
             usable_coupons, unusable_coupons = CashCouponManager.sorting_usable_coupons(
-                coupons=coupons, service_id=service_id
+                coupons=coupons, app_service_id=app_service_id
             )
 
             for c in usable_coupons:
@@ -172,16 +172,16 @@ class PaymentManager:
 
         try:
             owner_id = metering_bill.get_owner_id()
-            service_id = metering_bill.get_service_id()
             instance_id = metering_bill.get_instance_id()
             resource_type = metering_bill.get_resource_type()
+            app_service_id = metering_bill.get_pay_app_service_id()
             order_id = metering_bill.id
             if metering_bill.is_owner_type_user():
                 pay_history = self.pay_by_user(
                     user_id=owner_id, app_id=app_id, subject=subject,
                     amounts=metering_bill.original_amount, executor=executor,
                     remark=remark, order_id=order_id,
-                    service_id=service_id, resource_type=resource_type, instance_id=instance_id,
+                    app_service_id=app_service_id, resource_type=resource_type, instance_id=instance_id,
                     required_enough_balance=required_enough_balance,
                     coupon_ids=None, only_coupon=False
                 )
@@ -190,7 +190,7 @@ class PaymentManager:
                     vo_id=owner_id, app_id=app_id, subject=subject,
                     amounts=metering_bill.original_amount, executor=executor,
                     remark=remark, order_id=order_id,
-                    service_id=service_id, resource_type=resource_type, instance_id=instance_id,
+                    app_service_id=app_service_id, resource_type=resource_type, instance_id=instance_id,
                     required_enough_balance=required_enough_balance,
                     coupon_ids=None, only_coupon=False
                 )
@@ -264,12 +264,13 @@ class PaymentManager:
             order.set_paid(pay_amount=Decimal('0'), balance_amount=Decimal('0'), coupon_amount=Decimal('0'))
             return order
 
+        app_service_id = order.get_pay_app_service_id()
         if order.owner_type == OwnerType.USER.value:
             pay_history = self.pay_by_user(
                 user_id=order.user_id, app_id=app_id, subject=subject,
                 amounts=order.payable_amount, executor=executor,
                 remark=remark, order_id=order.id,
-                service_id=order.service_id, resource_type=order.resource_type, instance_id='',
+                app_service_id=app_service_id, resource_type=order.resource_type, instance_id='',
                 required_enough_balance=required_enough_balance,
                 coupon_ids=coupon_ids, only_coupon=only_coupon
             )
@@ -278,7 +279,7 @@ class PaymentManager:
                 vo_id=order.vo_id, app_id=app_id, subject=subject,
                 amounts=order.payable_amount, executor=executor,
                 remark=remark, order_id=order.id,
-                service_id=order.service_id, resource_type=order.resource_type, instance_id='',
+                app_service_id=app_service_id, resource_type=order.resource_type, instance_id='',
                 required_enough_balance=required_enough_balance,
                 coupon_ids=coupon_ids, only_coupon=only_coupon
             )
@@ -327,7 +328,7 @@ class PaymentManager:
             executor: str,
             remark: str,
             order_id: str,
-            service_id: str,
+            app_service_id: str,
             resource_type: str,
             instance_id: str,
             coupon_ids: list = None,
@@ -349,7 +350,7 @@ class PaymentManager:
                 remark=remark,
                 order_id=order_id,
                 resource_type=resource_type,
-                service_id=service_id,
+                app_service_id=app_service_id,
                 instance_id=instance_id,
                 only_coupon=only_coupon,
                 required_enough_balance=required_enough_balance
@@ -363,7 +364,7 @@ class PaymentManager:
             executor: str,
             remark: str,
             order_id: str,
-            service_id: str,
+            app_service_id: str,
             resource_type: str,
             instance_id: str,
             coupon_ids: List[CashCoupon] = None,
@@ -385,7 +386,7 @@ class PaymentManager:
                 remark=remark,
                 order_id=order_id,
                 resource_type=resource_type,
-                service_id=service_id,
+                app_service_id=app_service_id,
                 instance_id=instance_id,
                 only_coupon=only_coupon,
                 required_enough_balance=required_enough_balance
@@ -394,7 +395,7 @@ class PaymentManager:
     def _pre_pay_by_user_or_vo(
             self, user_id: str,
             vo_id: str,
-            service_id: str,
+            app_service_id: str,
             coupon_ids: List[CashCoupon] = None
     ):
         """
@@ -425,7 +426,7 @@ class PaymentManager:
 
         # 适用的券
         usable_coupons, unusable_coupons = CashCouponManager.sorting_usable_coupons(
-            coupons=coupons, service_id=service_id
+            coupons=coupons, app_service_id=app_service_id
         )
         if coupon_ids:
             if unusable_coupons:
@@ -455,7 +456,7 @@ class PaymentManager:
             executor: str,
             remark: str,
             order_id: str,
-            service_id: str,
+            app_service_id: str,
             resource_type: str,
             instance_id: str,
             coupon_ids: List[CashCoupon],
@@ -466,7 +467,7 @@ class PaymentManager:
         * 发生错误时，函数中已操作修改的数据库数据不会手动回滚，此函数需要在事务中调用以保证数据一致性
         """
         account, usable_coupons, payer_id, payer_name, payer_type = self._pre_pay_by_user_or_vo(
-            user_id=user_id, vo_id=vo_id, coupon_ids=coupon_ids, service_id=service_id
+            user_id=user_id, vo_id=vo_id, coupon_ids=coupon_ids, app_service_id=app_service_id
         )
 
         total_coupon_balance = Decimal(0)
@@ -522,7 +523,7 @@ class PaymentManager:
             remark=remark,
             order_id=order_id,
             resource_type=resource_type,
-            service_id=service_id,
+            app_service_id=app_service_id,
             instance_id=instance_id,
             app_id=app_id,
             subject=subject

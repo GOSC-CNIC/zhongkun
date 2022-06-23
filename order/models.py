@@ -171,6 +171,11 @@ class Order(models.Model):
 
         return subject
 
+    def get_pay_app_service_id(self):
+        from service.managers import ServiceManager
+        s = ServiceManager.get_service_by_id(self.service_id)
+        return s.pay_app_service_id
+
 
 class Resource(UuidModel):
     class InstanceStatus(models.TextChoices):
