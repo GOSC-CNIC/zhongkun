@@ -15,15 +15,16 @@ class CashCouponHandler:
 
         vo_id = data['vo_id']
         available = data['available']
+        app_service_id = data['app_service_id']
 
         mgr = CashCouponManager()
         if vo_id:
             queryset = mgr.get_vo_cash_coupon_queryset(
-                user=request.user, vo_id=vo_id, available=available
+                user=request.user, vo_id=vo_id, available=available, app_service_id=app_service_id
             )
         else:
             queryset = mgr.get_user_cash_coupon_queryset(
-                user_id=request.user.id, available=available
+                user_id=request.user.id, available=available, app_service_id=app_service_id
             )
 
         try:
@@ -37,13 +38,15 @@ class CashCouponHandler:
     def list_cash_coupon_validate_params(request):
         vo_id = request.query_params.get('vo_id', None)
         available = request.query_params.get('available', None)
+        app_service_id = request.query_params.get('app_service_id', None)
 
         if vo_id == '':
             raise errors.BadRequest(message=_('参数“vo_id”值无效'), code='InvalidVoId')
 
         return {
             'vo_id': vo_id,
-            'available': available is not None
+            'available': available is not None,
+            'app_service_id': app_service_id
         }
 
     def draw_cash_coupon(self, view: CustomGenericViewSet, request):

@@ -23,6 +23,13 @@ class CashCouponViewSet(CustomGenericViewSet):
         operation_summary=gettext_lazy('列举代金券'),
         manual_parameters=[
             openapi.Parameter(
+                name='app_service_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description='app子服务可用的券'
+            ),
+            openapi.Parameter(
                 name='vo_id',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,

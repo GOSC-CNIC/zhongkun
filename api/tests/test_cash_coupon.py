@@ -8,7 +8,7 @@ from django.utils import timezone
 from utils.model import OwnerType
 from utils.test import get_or_create_service, get_or_create_user
 from vo.models import VirtualOrganization, VoMember
-from bill.models import CashCoupon
+from bill.models import CashCoupon, PayAppService, PayApp, PayOrgnazition
 from . import set_auth_header, MyAPITestCase
 
 
@@ -21,6 +21,20 @@ class CashCouponTests(MyAPITestCase):
             name='test vo', owner=self.user2
         )
         self.vo.save()
+
+        # 余额支付有关配置
+        app = PayApp(name='app')
+        app.save()
+        po = PayOrgnazition(name='机构')
+        po.save()
+        self.app_service1 = PayAppService(
+            name='service1', app=app, orgnazition=po
+        )
+        self.app_service1.save()
+        self.app_service2 = PayAppService(
+            name='service2', app=app, orgnazition=po
+        )
+        self.app_service2.save()
 
     def test_draw_cash_coupon(self):
         coupon1 = CashCoupon(
@@ -121,7 +135,8 @@ class CashCouponTests(MyAPITestCase):
             balance=Decimal('66.6'),
             effective_time=now_time - timedelta(days=1),
             expiration_time=now_time + timedelta(days=1),
-            status=CashCoupon.Status.WAIT.value
+            status=CashCoupon.Status.WAIT.value,
+            app_service_id=self.app_service1.id
         )
         coupon1.save(force_insert=True)
 
@@ -133,7 +148,8 @@ class CashCouponTests(MyAPITestCase):
             status=CashCoupon.Status.AVAILABLE.value,
             granted_time=now_time,
             owner_type=OwnerType.USER.value,
-            user=self.user
+            user=self.user,
+            app_service_id=self.app_service1.id
         )
         coupon2_user.save(force_insert=True)
         # 过期
@@ -145,7 +161,8 @@ class CashCouponTests(MyAPITestCase):
             status=CashCoupon.Status.AVAILABLE.value,
             granted_time=now_time,
             owner_type=OwnerType.USER.value,
-            user=self.user
+            user=self.user,
+            app_service_id=self.app_service2.id
         )
         coupon3_user.save(force_insert=True)
 
@@ -157,7 +174,8 @@ class CashCouponTests(MyAPITestCase):
             status=CashCoupon.Status.CANCELLED.value,
             granted_time=now_time,
             owner_type=OwnerType.USER.value,
-            user=self.user2
+            user=self.user2,
+            app_service_id=self.app_service2.id
         )
         coupon4_user2.save(force_insert=True)
 
@@ -170,7 +188,8 @@ class CashCouponTests(MyAPITestCase):
             granted_time=now_time,
             owner_type=OwnerType.VO.value,
             user=self.user,
-            vo=self.vo
+            vo=self.vo,
+            app_service_id=self.app_service1.id
         )
         coupon5_vo.save(force_insert=True)
 
@@ -183,7 +202,8 @@ class CashCouponTests(MyAPITestCase):
             granted_time=now_time,
             owner_type=OwnerType.VO.value,
             user=self.user,
-            vo=self.vo
+            vo=self.vo,
+            app_service_id=self.app_service2.id
         )
         coupon6_vo.save(force_insert=True)
 
@@ -251,6 +271,34 @@ class CashCouponTests(MyAPITestCase):
             }, response.data['results'][0]
         )
 
+        # list user own coupon, paran "app_service_id"
+        query = parse.urlencode(query={'app_service_id': self.app_service1.id})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['results'][0]['id'], coupon2_user.id)
+        self.assertEqual(response.data['results'][0]['face_value'], '88.80')
+
+        query = parse.urlencode(query={'app_service_id': self.app_service2.id})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['results'][0]['id'], coupon3_user.id)
+        self.assertEqual(response.data['results'][0]['face_value'], '188.80')
+
+        # list user own coupon, paran "app_service_id" "available"
+        query = parse.urlencode(query={'app_service_id': self.app_service1.id, 'available': ''})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['results'][0]['id'], coupon2_user.id)
+        self.assertEqual(response.data['results'][0]['face_value'], '88.80')
+
+        query = parse.urlencode(query={'app_service_id': self.app_service2.id, 'available': ''})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
+
         # list vo coupon
         query = parse.urlencode(query={'vo_id': 'test'})
         response = self.client.get(f'{base_url}?{query}')
@@ -283,6 +331,27 @@ class CashCouponTests(MyAPITestCase):
                 'vo': {'id': self.vo.id, 'name': self.vo.name}
             }, results[0]
         )
+
+        # list vo coupon, paran "app_service_id"
+        query = parse.urlencode(query={'vo_id': self.vo.id, 'app_service_id': self.app_service1.id})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['results'][0]['id'], coupon5_vo.id)
+        self.assertEqual(response.data['results'][0]['face_value'], '388.80')
+
+        query = parse.urlencode(query={'vo_id': self.vo.id, 'app_service_id': self.app_service2.id})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
+
+        # list user own coupon, paran "app_service_id" "available"
+        query = parse.urlencode(query={'vo_id': self.vo.id, 'app_service_id': self.app_service1.id, 'available': ''})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['results'][0]['id'], coupon5_vo.id)
+        self.assertEqual(response.data['results'][0]['face_value'], '388.80')
 
     def test_delete_cash_coupon(self):
         now_time = timezone.now()
