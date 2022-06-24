@@ -9,7 +9,7 @@ class OrderAdmin(admin.ModelAdmin):
                     'balance_amount', 'coupon_amount', 'service_name',
                     'resource_type', 'period', 'pay_type', 'payment_time',
                     'creation_time', 'trading_status', 'completion_time', 'deleted',
-                    'owner_type', 'username', 'vo_name')
+                    'owner_type', 'username', 'vo_name', 'cancelled_time', 'app_service_id')
     list_display_links = ('id',)
     list_filter = ('owner_type', 'resource_type', 'pay_type', 'status', 'order_type', 'trading_status', 'deleted')
     search_fields = ('id', 'username', 'vo_name')
@@ -17,7 +17,7 @@ class OrderAdmin(admin.ModelAdmin):
 
 @admin.register(Resource)
 class ResourceAdmin(admin.ModelAdmin):
-    list_display = ('id', 'order_id', 'resource_type', 'instance_id', 'instance_status',
+    list_display = ('id', 'order_id', 'resource_type', 'instance_id', 'instance_status', 'delivered_time',
                     'desc', 'instance_remark', 'creation_time')
     list_display_links = ('id',)
     list_filter = ('resource_type', 'instance_status')

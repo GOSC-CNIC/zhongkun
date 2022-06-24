@@ -105,10 +105,23 @@ class ServerOrderTests(MyAPITransactionTestCase):
         })
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        # param "network_id"
+        # set vo permission
         member = VoMember(user_id=self.user.id, vo_id=self.vo.id, role=VoMember.Role.LEADER,
                           inviter=self.user2.username, inviter_id=self.user2.id)
         member.save(force_insert=True)
+
+        # service not set pay_app_service_id
+        response = self.client.post(url, data={
+            'pay_type': PayType.PREPAID.value, 'service_id': self.service.id,
+            'image_id': 'ss', 'period': 12, 'flavor_id': self.flavor.id,
+            'vo_id': self.vo.id, 'network_id': 'test'
+        })
+        self.assertErrorResponse(status_code=409, code='ServiceNoPayAppServiceId', response=response)
+
+        self.service.pay_app_service_id = 'app_service_id'
+        self.service.save(update_fields=['pay_app_service_id'])
+
+        # param "network_id"
         response = self.client.post(url, data={
             'pay_type': PayType.PREPAID.value, 'service_id': self.service.id,
             'image_id': 'ss', 'period': 12, 'flavor_id': self.flavor.id,
@@ -137,6 +150,18 @@ class ServerOrderTests(MyAPITransactionTestCase):
         response = self.client.get(f'{base_url}?service_id={self.service.id}')
         self.assertEqual(response.status_code, 200)
         network_id = response.data[0]['id']
+
+        # service not set pay_app_service_id
+        url = reverse('api:servers-list')
+        response = self.client.post(url, data={
+            'pay_type': PayType.PREPAID.value, 'service_id': self.service.id,
+            'image_id': 'ss', 'period': 12, 'flavor_id': self.flavor.id, 'network_id': network_id,
+            'remarks': 'testcase创建，可删除'
+        })
+        self.assertErrorResponse(status_code=409, code='ServiceNoPayAppServiceId', response=response)
+
+        self.service.pay_app_service_id = 'app_service_id'
+        self.service.save(update_fields=['pay_app_service_id'])
 
         # service privete quota not enough
         url = reverse('api:servers-list')
@@ -318,6 +343,15 @@ class ServerOrderTests(MyAPITransactionTestCase):
 
         user_server.task_status = Server.TASK_CREATED_OK
         user_server.save(update_fields=['task_status'])
+
+        # service not set pay_app_service_id
+        period = 10
+        query = parse.urlencode(query={'period': period})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=409, code='ServiceNoPayAppServiceId', response=response)
+
+        self.service.pay_app_service_id = 'app_service_id'
+        self.service.save(update_fields=['pay_app_service_id'])
 
         # renew user server ok
         period = 10

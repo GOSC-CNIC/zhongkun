@@ -181,7 +181,9 @@ class OrderViewSet(CustomGenericViewSet):
                   "username": "shun",
                   "vo_id": "",
                   "vo_name": "",
-                  "owner_type": "user"
+                  "owner_type": "user",
+                  "cancelled_time": "2022-03-10T06:10:32.478101Z",  # 订单作废/取消时间
+                  "app_service_id": "xxx"               # service对应的注册于余额结算系统中的APP子服务id
                 }
               ]
             }
@@ -224,13 +226,16 @@ class OrderViewSet(CustomGenericViewSet):
               "vo_id": "",
               "vo_name": "",
               "owner_type": "user",
+              "cancelled_time": "2022-03-10T06:10:32.478101Z",  # 订单作废/取消时间
+              "app_service_id": "xxx"               # service对应的注册于余额结算系统中的APP子服务id,
               "resources": [
                 {
                   "id": "81d9aad0-a03b-11ec-ba16-c8009fe2eb10",
                   "order_id": "2022031006103240183511",
                   "resource_type": "vm",
                   "instance_id": "test",
-                  "instance_status": "wait"
+                  "instance_status": "wait",
+                  "delivered_time": "2022-03-10T06:10:32.478101Z"
                 }
               ]
             }

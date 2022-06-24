@@ -18,6 +18,7 @@ class OrderManager:
     def create_order(
             self, order_type,
             service_id,
+            pay_app_service_id: str,
             service_name,
             resource_type,
             instance_config,
@@ -61,6 +62,7 @@ class OrderManager:
             pay_amount=Decimal('0'),
             balance_amount=Decimal('0'),
             coupon_amount=Decimal('0'),
+            app_service_id=pay_app_service_id,
             service_id=service_id,
             service_name=service_name,
             resource_type=resource_type,
@@ -91,6 +93,7 @@ class OrderManager:
 
     def create_renew_order(
             self,
+            pay_app_service_id: str,
             service_id,
             service_name,
             resource_type,
@@ -159,6 +162,7 @@ class OrderManager:
             pay_amount=Decimal('0'),
             balance_amount=Decimal('0'),
             coupon_amount=Decimal('0'),
+            app_service_id=pay_app_service_id,
             service_id=service_id,
             service_name=service_name,
             resource_type=resource_type,
@@ -357,7 +361,8 @@ class OrderManager:
 
             resource.instance_status = resource.InstanceStatus.SUCCESS.value
             resource.desc = 'success'
-            update_fields = ['instance_status', 'desc']
+            resource.delivered_time = timezone.now()
+            update_fields = ['instance_status', 'desc', 'delivered_time']
             if instance_id:
                 resource.instance_id = instance_id
                 update_fields.append('instance_id')

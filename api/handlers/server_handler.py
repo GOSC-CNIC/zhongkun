@@ -252,6 +252,9 @@ class ServerHandler:
         except exceptions.APIException as exc:
             raise exceptions.BadRequest(message=str(exc), code='InvalidServiceId')
 
+        if not service.pay_app_service_id:
+            raise exceptions.ConflictError(message=_('服务未配置对应的结算系统APP服务id'), code='ServiceNoPayAppServiceId')
+
         try:
             out_net = view.request_service(
                 service=service, method='network_detail', params=inputs.NetworkDetailInput(network_id=network_id))
@@ -370,6 +373,7 @@ class ServerHandler:
         # 创建订单
         order, resource = omgr.create_order(
             order_type=Order.OrderType.NEW.value,
+            pay_app_service_id=service.pay_app_service_id,
             service_id=service.id,
             service_name=service.name,
             resource_type=ResourceType.VM.value,
@@ -468,6 +472,14 @@ class ServerHandler:
         if server.task_status != server.TASK_CREATED_OK:
             return view.exception_response(exceptions.RenewDeliveredOkOnly(message=_('只允许为创建成功的云服务器续费。')))
 
+        try:
+            service = ServiceManager.get_service(server.service_id)
+            if not service.pay_app_service_id:
+                raise exceptions.ConflictError(
+                    message=_('云主机服务未配置对应的结算系统APP服务id'), code='ServiceNoPayAppServiceId')
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
         _order = Order.objects.filter(
             resource_type=ResourceType.VM.value, resource_set__instance_id=server.id,
             trading_status__in=[Order.TradingStatus.OPENING.value, Order.TradingStatus.UNDELIVERED.value]
@@ -501,6 +513,7 @@ class ServerHandler:
                 image_id=server.image_id, network_id='', azone_id=server.azone_id, azone_name=''
             )
             order, resource = OrderManager().create_renew_order(
+                pay_app_service_id=service.pay_app_service_id,
                 service_id=server.service_id,
                 service_name=server.service.name,
                 resource_type=ResourceType.VM.value,

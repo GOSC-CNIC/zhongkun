@@ -82,6 +82,7 @@ class OrderTests(MyAPITestCase):
         )
         order, resource = omgr.create_order(
             order_type=Order.OrderType.NEW.value,
+            pay_app_service_id='test',
             service_id='test',
             service_name='test',
             resource_type=ResourceType.VM.value,
@@ -102,7 +103,7 @@ class OrderTests(MyAPITestCase):
         self.assertKeysIn(["id", "order_type", "status", "total_amount", "pay_amount",
                            "service_id", "service_name", "resource_type", "instance_config", "period",
                            "payment_time", "pay_type", "creation_time", "user_id", "username",
-                           "vo_id", "vo_name", "owner_type"], response.data['orders'][0])
+                           "vo_id", "vo_name", "owner_type", "cancelled_time", "app_service_id"], response.data['orders'][0])
         self.assert_is_subdict_of({
             "id": order.id,
             "order_type": order.order_type,
@@ -122,7 +123,9 @@ class OrderTests(MyAPITestCase):
             "username": self.user.username,
             "vo_id": order.vo_id,
             "vo_name": order.vo_name,
-            "owner_type": OwnerType.USER.value
+            "owner_type": OwnerType.USER.value,
+            "cancelled_time": None,
+            "app_service_id": 'test'
         }, response.data['orders'][0])
         self.assertEqual(order_instance_config, ServerConfig.from_dict(response.data['orders'][0]['instance_config']))
 
@@ -138,6 +141,7 @@ class OrderTests(MyAPITestCase):
         order2_instance_config = DiskConfig(disk_size=166, azone_id='azone_id', azone_name='azone_name')
         order2, resource2 = omgr.create_order(
             order_type=Order.OrderType.UPGRADE.value,
+            pay_app_service_id='test',
             service_id='test',
             service_name='test',
             resource_type=ResourceType.DISK.value,
@@ -149,6 +153,9 @@ class OrderTests(MyAPITestCase):
             vo_id=self.vo.id, vo_name=self.vo.name,
             owner_type=OwnerType.VO.value
         )
+        cancelled_time = timezone.now()
+        order2.cancelled_time = cancelled_time
+        order2.save(update_fields=['cancelled_time'])
 
         # list user order
         response = self.client.get(base_url)
@@ -183,7 +190,8 @@ class OrderTests(MyAPITestCase):
             "username": order2.username,
             "vo_id": self.vo.id,
             "vo_name": self.vo.name,
-            "owner_type": OwnerType.VO.value
+            "owner_type": OwnerType.VO.value,
+            "cancelled_time": cancelled_time.isoformat().split('+')[0] + 'Z'
         }, response.data['orders'][0])
         self.assertEqual(order2_instance_config, DiskConfig.from_dict(response.data['orders'][0]['instance_config']))
 
@@ -454,6 +462,7 @@ class OrderTests(MyAPITestCase):
         )
         order, resource = omgr.create_order(
             order_type=Order.OrderType.NEW.value,
+            pay_app_service_id='app_id',
             service_id='test',
             service_name='test',
             resource_type=ResourceType.VM.value,
@@ -474,7 +483,7 @@ class OrderTests(MyAPITestCase):
             "id", "order_type", "status", "total_amount", "pay_amount", "service_id", "service_name",
             "resource_type", "instance_config", "period", "payment_time", "pay_type", "creation_time",
             "user_id", "username", "vo_id", "vo_name", "owner_type", "resources",
-            "payable_amount", "balance_amount", "coupon_amount"
+            "payable_amount", "balance_amount", "coupon_amount", "cancelled_time", "app_service_id"
         ], response.data)
         self.assert_is_subdict_of(sub={
             "id": order.id,
@@ -493,7 +502,8 @@ class OrderTests(MyAPITestCase):
             "order_id": order.id,
             "resource_type": ResourceType.VM.value,
             "instance_id": resource.instance_id,
-            "instance_status": resource.instance_status
+            "instance_status": resource.instance_status,
+            "delivered_time": None
         }, response.data["resources"][0])
         self.assert_is_subdict_of(order.instance_config, response.data["instance_config"])
         self.assertEqual(order_instance_config, ServerConfig.from_dict(response.data['instance_config']))
@@ -501,6 +511,7 @@ class OrderTests(MyAPITestCase):
         order2_instance_config = DiskConfig(disk_size=166, azone_id='azone_id', azone_name='azone_name')
         order2, resource2 = omgr.create_order(
             order_type=Order.OrderType.UPGRADE.value,
+            pay_app_service_id='app_id',
             service_id='test',
             service_name='test',
             resource_type=ResourceType.DISK.value,
@@ -521,7 +532,7 @@ class OrderTests(MyAPITestCase):
             "id", "order_type", "status", "total_amount", "pay_amount", "service_id", "service_name",
             "resource_type", "instance_config", "period", "payment_time", "pay_type", "creation_time",
             "user_id", "username", "vo_id", "vo_name", "owner_type", "resources",
-            "payable_amount", "balance_amount", "coupon_amount"
+            "payable_amount", "balance_amount", "coupon_amount", "cancelled_time", "app_service_id"
         ], response.data)
         self.assert_is_subdict_of(sub={
             "id": order2.id,
@@ -568,6 +579,7 @@ class OrderTests(MyAPITestCase):
         # 创建订单
         order, resource = OrderManager().create_order(
             order_type=Order.OrderType.NEW.value,
+            pay_app_service_id=self.service.pay_app_service_id,
             service_id=self.service.id,
             service_name=self.service.name,
             resource_type=ResourceType.VM.value,
@@ -722,6 +734,7 @@ class OrderTests(MyAPITestCase):
         # 创建订单
         order1, resource1 = OrderManager().create_order(
             order_type=Order.OrderType.NEW.value,
+            pay_app_service_id=self.service.pay_app_service_id,
             service_id=self.service.id,
             service_name=self.service.name,
             resource_type=ResourceType.VM.value,
@@ -740,6 +753,7 @@ class OrderTests(MyAPITestCase):
 
         order2, resource2 = OrderManager().create_order(
             order_type=Order.OrderType.NEW.value,
+            pay_app_service_id=self.service.pay_app_service_id,
             service_id=self.service.id,
             service_name=self.service.name,
             resource_type=ResourceType.VM.value,
@@ -968,6 +982,7 @@ class OrderTests(MyAPITestCase):
         # create vo order
         order, resource = OrderManager().create_order(
             order_type=Order.OrderType.NEW.value,
+            pay_app_service_id=self.service.pay_app_service_id,
             service_id=self.service.id,
             service_name=self.service.name,
             resource_type=ResourceType.VM.value,
@@ -1001,6 +1016,7 @@ class OrderTests(MyAPITestCase):
         # create user2 order
         order2, resource2 = OrderManager().create_order(
             order_type=Order.OrderType.NEW.value,
+            pay_app_service_id=self.service.pay_app_service_id,
             service_id=self.service.id,
             service_name=self.service.name,
             resource_type=ResourceType.VM.value,

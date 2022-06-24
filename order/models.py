@@ -99,6 +99,8 @@ class Order(models.Model):
     trading_status = models.CharField(
         verbose_name=_('交易状态'), max_length=16, choices=TradingStatus.choices, default=TradingStatus.OPENING.value)
     deleted = models.BooleanField(verbose_name=_('删除'), default=False)
+    cancelled_time = models.DateTimeField(verbose_name=_('作废时间'), null=True, blank=True, default=None)
+    app_service_id = models.CharField(verbose_name=_('app服务id'), max_length=36, blank=True, default='')
 
     class Meta:
         verbose_name = _('订单')
@@ -153,7 +155,8 @@ class Order(models.Model):
     def set_cancel(self):
         self.status = self.Status.CANCELLED.value
         self.trading_status = self.TradingStatus.CLOSED.value
-        self.save(update_fields=['status', 'trading_status'])
+        self.cancelled_time = timezone.now()
+        self.save(update_fields=['status', 'trading_status', 'cancelled_time'])
 
     def build_subject(self):
         resource_type = '未知资源'
@@ -172,9 +175,7 @@ class Order(models.Model):
         return subject
 
     def get_pay_app_service_id(self):
-        from service.managers import ServiceManager
-        s = ServiceManager.get_service_by_id(self.service_id)
-        return s.pay_app_service_id
+        return self.app_service_id
 
 
 class Resource(UuidModel):
@@ -197,6 +198,7 @@ class Resource(UuidModel):
         verbose_name=_('上次交付创建资源时间'), null=True, blank=True, default=None,
         help_text=_('用于记录上次交付资源的时间，防止并发重复交付')
     )
+    delivered_time = models.DateTimeField(verbose_name=_('资源交付时间'), null=True, blank=True, default=None)
 
     class Meta:
         verbose_name = _('订单资源')
