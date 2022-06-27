@@ -68,7 +68,7 @@ class CashCouponViewSet(CustomGenericViewSet):
                         "status": "available",      # wait：未领取；available：有效；cancelled：作废；deleted：删除
                         "granted_time": "2022-05-07T06:36:31.296470Z",  # maybe None
                         "owner_type": "vo",
-                        "service": {                                # maybe None
+                        "app_service": {                                # maybe None
                             "id": "2",
                             "name": "怀柔204机房研发测试"
                         },

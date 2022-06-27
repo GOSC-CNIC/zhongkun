@@ -220,7 +220,7 @@ class CashCouponTests(MyAPITestCase):
         self.assertKeysIn([
             "id", "face_value", "creation_time", "effective_time", "expiration_time",
             "balance", "status", "granted_time",
-            "owner_type", "service", "user", "vo", "activity"], results[0]
+            "owner_type", "app_service", "user", "vo", "activity"], results[0]
         )
         self.assert_is_subdict_of(
             {
@@ -318,7 +318,7 @@ class CashCouponTests(MyAPITestCase):
         self.assertKeysIn([
             "id", "face_value", "creation_time", "effective_time", "expiration_time",
             "balance", "status", "granted_time",
-            "owner_type", "service", "user", "vo", "activity"], results[0]
+            "owner_type", "app_service", "user", "vo", "activity"], results[0]
         )
         self.assert_is_subdict_of(
             {

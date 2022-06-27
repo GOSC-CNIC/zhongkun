@@ -749,13 +749,13 @@ class CashCouponSerializer(serializers.Serializer):
     status = serializers.CharField(label=_('状态'), max_length=16)
     granted_time = serializers.DateTimeField(label=_('领取/发放时间'))
     owner_type = serializers.CharField(label=_('所属类型'), max_length=16)
-    service = serializers.SerializerMethodField(label=_('适用服务'))
+    app_service = serializers.SerializerMethodField(label=_('适用服务'))
     user = serializers.SerializerMethodField(label=_('用户'))
     vo = serializers.SerializerMethodField(label=_('VO组'))
     activity = serializers.SerializerMethodField(label=_('活动'))
 
     @staticmethod
-    def get_service(obj):
+    def get_app_service(obj):
         if obj.app_service is None:
             return None
 
