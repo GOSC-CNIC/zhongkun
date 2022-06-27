@@ -880,7 +880,8 @@ class ServiceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "next", "previous", "results"], response.data)
         self.assertKeysIn(["id", "name", "name_en", "service_type", "cloud_type", "add_time",
-                           "need_vpn", "status", "data_center", 'longitude', 'latitude'], response.data["results"][0])
+                           "need_vpn", "status", "data_center", 'longitude', 'latitude', 'pay_app_service_id'
+                           ], response.data["results"][0])
         self.assertIsInstance(response.data["results"][0]['status'], str)
         self.assertEqual(response.data["results"][0]['status'], ServiceConfig.Status.ENABLE)
 
@@ -908,7 +909,8 @@ class ServiceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "next", "previous", "results"], response.data)
         self.assertKeysIn(["id", "name", "name_en", "service_type", "cloud_type", "add_time",
-                           "need_vpn", "status", "data_center", 'longitude', 'latitude'], response.data["results"][0])
+                           "need_vpn", "status", "data_center", 'longitude', 'latitude', 'pay_app_service_id'
+                           ], response.data["results"][0])
         self.assertIsInstance(response.data["results"][0]['status'], str)
 
     def service_quota_get_update(self, url):

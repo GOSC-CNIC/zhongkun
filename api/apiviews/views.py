@@ -1279,7 +1279,8 @@ class ServiceViewSet(CustomGenericViewSet):
                     "name": "VMware测试中心"
                   },
                   "longitude": 0,
-                  "latitude": 0
+                  "latitude": 0,
+                  "pay_app_service_id": "xxx"      # 通过此id可以查询在余额结算系统中此服务可用的券
                 }
               ]
             }

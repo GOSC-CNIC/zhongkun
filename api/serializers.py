@@ -178,6 +178,7 @@ class ServiceSerializer(serializers.Serializer):
     data_center = serializers.SerializerMethodField()
     longitude = serializers.FloatField(label=_('经度'), default=0)
     latitude = serializers.FloatField(label=_('纬度'), default=0)
+    pay_app_service_id = serializers.CharField(label=_('余额结算APP服务ID'), max_length=36)
 
     @staticmethod
     def get_data_center(obj):
