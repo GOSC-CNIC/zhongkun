@@ -334,7 +334,8 @@ class ServerHandler:
 
         instance_config = ServerConfig(
             vm_cpu=flavor.vcpus, vm_ram=flavor.ram, systemdisk_size=50, public_ip=is_public_network,
-            image_id=image_id, network_id=network.id, azone_id=azone_id, azone_name=azone_name
+            image_id=image_id, image_name='', network_id=network.id, network_name=network.name,
+            azone_id=azone_id, azone_name=azone_name
         )
         omgr = OrderManager()
         # 按量付费模式时，检查是否有余额
@@ -510,7 +511,8 @@ class ServerHandler:
 
             instance_config = ServerConfig(
                 vm_cpu=server.vcpus, vm_ram=server.ram, systemdisk_size=server.disk_size, public_ip=server.public_ip,
-                image_id=server.image_id, network_id='', azone_id=server.azone_id, azone_name=''
+                image_id=server.image_id, image_name=server.image, network_id='', network_name=server.ipv4,
+                azone_id=server.azone_id, azone_name=''
             )
             order, resource = OrderManager().create_renew_order(
                 pay_app_service_id=service.pay_app_service_id,

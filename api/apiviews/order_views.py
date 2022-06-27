@@ -187,6 +187,26 @@ class OrderViewSet(CustomGenericViewSet):
                 }
               ]
             }
+
+            * "instance_config"字段内容说明:
+                资源类型为云主机， "resource_type": "vm":
+                {
+                    "vm_cpu": 8,
+                    "vm_ram": 16384,            # Mb
+                    "vm_systemdisk_size": 50,   # Gb
+                    "vm_public_ip": false,
+                    "vm_image_id": "24",
+                    "vm_network_id": 1,
+                    "vm_azone_id": "",
+                    "vm_azone_name": ""
+                }
+
+                资源类型为云硬盘， "resource_type": "disk":
+                {
+                    "disk_size": 100,           # Gb
+                    "disk_azone_id": "xxx",
+                    "disk_azone_name": "xxx"
+                }
         """
         return OrderHandler().list_order(view=self, request=request)
 

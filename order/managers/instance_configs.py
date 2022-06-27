@@ -25,20 +25,34 @@ class ServerConfig(BaseConfig):
     KEY_DISK_SIZE = 'vm_systemdisk_size'
     KEY_PUBLIC_IP = 'vm_public_ip'
     KEY_IMAGE_ID = 'vm_image_id'
+    KEY_IMAGE_NAME = 'vm_image_name'        # 不重要，不需要放到KEYS中
     KEY_NETWORK_ID = 'vm_network_id'
+    KEY_NETWORK_NAME = 'vm_network_name'    # 不重要，不需要放到KEYS中
     KEY_AZONE_ID = 'vm_azone_id'
     KEY_AZONE_NAME = 'vm_azone_name'       # 可用区名称是可变的，不重要，不需要放到KEYS中
     KEYS = (KEY_CPU, KEY_RAM, KEY_DISK_SIZE, KEY_PUBLIC_IP, KEY_IMAGE_ID, KEY_NETWORK_ID, KEY_AZONE_ID)
 
-    def __init__(self, vm_cpu: int, vm_ram: int, systemdisk_size: int, public_ip: bool,
-                 image_id: str, network_id: str, azone_id: str, azone_name: str):
+    def __init__(
+            self, vm_cpu: int,
+            vm_ram: int,
+            systemdisk_size: int,
+            public_ip: bool,
+            image_id: str,
+            image_name: str,
+            network_id: str,
+            network_name: str,
+            azone_id: str,
+            azone_name: str
+    ):
         """
         :param vm_cpu
         :param vm_ram: MiB
         :param systemdisk_size: Gib
         :param public_ip: 是否是公网ip
         :param image_id:
+        :param image_name:
         :param network_id:
+        :param network_name:
         :param azone_id: 可用区id
         """
         self.vm_cpu = vm_cpu
@@ -46,7 +60,9 @@ class ServerConfig(BaseConfig):
         self.vm_systemdisk_size = systemdisk_size
         self.vm_public_ip = public_ip
         self.vm_image_id = image_id
+        self.vm_image_name = image_name
         self.vm_network_id = network_id
+        self.vm_network_name = network_name
         self.vm_azone_id = azone_id
         self.vm_azone_name = azone_name
 
@@ -57,7 +73,9 @@ class ServerConfig(BaseConfig):
             self.KEY_DISK_SIZE: self.vm_systemdisk_size,
             self.KEY_PUBLIC_IP: self.vm_public_ip,
             self.KEY_IMAGE_ID: self.vm_image_id,
+            self.KEY_IMAGE_NAME: self.vm_image_name,
             self.KEY_NETWORK_ID: self.vm_network_id,
+            self.KEY_NETWORK_NAME: self.vm_network_name,
             self.KEY_AZONE_ID: self.vm_azone_id,
             self.KEY_AZONE_NAME: self.vm_azone_name
         }
@@ -74,7 +92,9 @@ class ServerConfig(BaseConfig):
             systemdisk_size=config[cls.KEY_DISK_SIZE],
             public_ip=config[cls.KEY_PUBLIC_IP],
             image_id=config[cls.KEY_IMAGE_ID],
+            image_name=config.get(cls.KEY_IMAGE_NAME, ''),
             network_id=config[cls.KEY_NETWORK_ID],
+            network_name=config.get(cls.KEY_NETWORK_NAME, ''),
             azone_id=config[cls.KEY_AZONE_ID],
             azone_name=config.get(cls.KEY_AZONE_NAME, '')
         )

@@ -78,7 +78,8 @@ class OrderTests(MyAPITestCase):
 
         order_instance_config = ServerConfig(
             vm_cpu=2, vm_ram=2048, systemdisk_size=100, public_ip=True,
-            image_id='image_id', network_id='network_id', azone_id='azone_id', azone_name='azone_name'
+            image_id='image_id', image_name='', network_id='network_id', network_name='',
+            azone_id='azone_id', azone_name='azone_name'
         )
         order, resource = omgr.create_order(
             order_type=Order.OrderType.NEW.value,
@@ -458,7 +459,8 @@ class OrderTests(MyAPITestCase):
         # create order
         order_instance_config = ServerConfig(
             vm_cpu=2, vm_ram=2048, systemdisk_size=100, public_ip=True,
-            image_id='image_id', network_id='network_id', azone_id='azone_id', azone_name='azone_name'
+            image_id='image_id', image_name='', network_id='network_id', network_name='',
+            azone_id='azone_id', azone_name='azone_name'
         )
         order, resource = omgr.create_order(
             order_type=Order.OrderType.NEW.value,
@@ -574,7 +576,8 @@ class OrderTests(MyAPITestCase):
         # prepaid mode order
         instance_config = ServerConfig(
             vm_cpu=1, vm_ram=1024, systemdisk_size=50, public_ip=True,
-            image_id='test', network_id='network_id', azone_id='', azone_name=''
+            image_id='test', image_name='', network_id='network_id', network_name='',
+            azone_id='', azone_name=''
         )
         # 创建订单
         order, resource = OrderManager().create_order(
@@ -729,7 +732,8 @@ class OrderTests(MyAPITestCase):
         # prepaid mode order
         instance_config = ServerConfig(
             vm_cpu=1, vm_ram=1024, systemdisk_size=50, public_ip=True,
-            image_id='test', network_id='network_id', azone_id='', azone_name=''
+            image_id='test', image_name='', network_id='network_id', network_name='',
+            azone_id='', azone_name=''
         )
         # 创建订单
         order1, resource1 = OrderManager().create_order(
@@ -977,7 +981,8 @@ class OrderTests(MyAPITestCase):
         # prepaid mode order
         instance_config = ServerConfig(
             vm_cpu=1, vm_ram=1024, systemdisk_size=50, public_ip=True,
-            image_id='test', network_id='network_id', azone_id='', azone_name=''
+            image_id='test', image_name='', network_id='network_id', network_name='',
+            azone_id='', azone_name=''
         )
         # create vo order
         order, resource = OrderManager().create_order(
