@@ -88,7 +88,7 @@ class OrderResourceDeliverer:
             kwargs['vo_id'] = None
 
         creation_time = timezone.now()
-        if order.pay_type == PayType.POSTPAID.value:
+        if order.pay_type == PayType.PREPAID.value:
             due_time = creation_time + timedelta(PriceManager.period_month_days(order.period))
         else:
             due_time = None
