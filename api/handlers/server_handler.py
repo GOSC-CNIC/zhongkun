@@ -481,6 +481,19 @@ class ServerHandler:
         except exceptions.Error as exc:
             return view.exception_response(exc)
 
+        network_id = server.network_id
+        network_name = ''
+        if network_id:
+            try:
+                out_net = view.request_service(
+                    service=service, method='network_detail', params=inputs.NetworkDetailInput(network_id=network_id))
+                network_name = out_net.network.name
+            except Exception as exc:
+                pass
+
+        if not network_name:
+            network_name = server.ipv4
+
         _order = Order.objects.filter(
             resource_type=ResourceType.VM.value, resource_set__instance_id=server.id,
             trading_status__in=[Order.TradingStatus.OPENING.value, Order.TradingStatus.UNDELIVERED.value]
@@ -511,7 +524,7 @@ class ServerHandler:
 
             instance_config = ServerConfig(
                 vm_cpu=server.vcpus, vm_ram=server.ram, systemdisk_size=server.disk_size, public_ip=server.public_ip,
-                image_id=server.image_id, image_name=server.image, network_id='', network_name=server.ipv4,
+                image_id=server.image_id, image_name=server.image, network_id=network_id, network_name=network_name,
                 azone_id=server.azone_id, azone_name=''
             )
             order, resource = OrderManager().create_renew_order(

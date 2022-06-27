@@ -111,6 +111,7 @@ class OrderResourceDeliverer:
             start_time=creation_time,
             azone_id=config.vm_azone_id,
             disk_size=0,
+            network_id=config.vm_network_id,
             **kwargs
         )
         if out_server.default_password:
