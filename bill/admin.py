@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.utils.translation import gettext_lazy as _
 
 from .models import (
     PaymentHistory, UserPointAccount, VoPointAccount, PayApp, CashCouponActivity, CashCoupon,
@@ -51,11 +52,15 @@ class CashCouponActivityAdmin(admin.ModelAdmin):
 class CashCouponAdmin(admin.ModelAdmin):
     list_display = ('id', 'activity', 'face_value', 'balance', 'effective_time', 'expiration_time', 'status',
                     'app_service', 'user', 'vo', 'owner_type',
-                    'granted_time', 'coupon_code', 'creation_time')
+                    'granted_time', 'exchange_code', 'creation_time')
     list_display_links = ('id',)
     list_select_related = ('app_service', 'user', 'vo', 'activity')
     raw_id_fields = ('activity', 'user', 'vo')
     readonly_fields = ('_coupon_code',)
+
+    @admin.display(description=_('兑换码'))
+    def exchange_code(self, obj):
+        return obj.one_exchange_code
 
 
 @admin.register(PayOrgnazition)

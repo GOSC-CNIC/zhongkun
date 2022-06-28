@@ -249,7 +249,7 @@ class CashCoupon(CashCouponBase):
 
     @staticmethod
     def generate_cash_coupon_id():
-        return rand_utils.random_digit_string(16)
+        return rand_utils.random_digit_string(12)
 
     def save(self, force_insert=False, force_update=False, using=None,
              update_fields=None):
@@ -258,7 +258,7 @@ class CashCoupon(CashCouponBase):
             force_insert = True
 
         if not self.coupon_code:
-            self.coupon_code = rand_utils.random_letter_digit_string(8)
+            self.coupon_code = rand_utils.random_letter_digit_string(4)
 
         super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
 
@@ -274,6 +274,13 @@ class CashCoupon(CashCouponBase):
     def coupon_code(self, value: str):
         encryptor = get_encryptor()
         self._coupon_code = encryptor.encrypt(value)
+
+    @property
+    def one_exchange_code(self):
+        """
+        券编码和验证码拼接成一个兑换码
+        """
+        return f'{self.id}#{self.coupon_code}'
 
 
 class PaymentHistory(CustomIdModel):

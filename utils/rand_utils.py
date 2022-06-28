@@ -19,6 +19,10 @@ def random_letter_digit_string(length: int):
     """
     letters = string.ascii_letters + string.digits
     items = [random.choice(letters) for _ in range(length)]
+    if items[0] == '0':
+        letters = letters.replace('0', '')
+        items[0] = random.choice(letters)
+
     return ''.join(items)
 
 
@@ -27,6 +31,9 @@ def random_digit_string(length: int):
     数字 随机字符串
     """
     items = [random.choice(string.digits) for _ in range(length)]
+    if items[0] == '0':
+        items[0] = random.choice('123456789')
+
     return ''.join(items)
 
 
@@ -35,6 +42,10 @@ def random_hexdigit_string(length: int):
     十六进制字符 随机字符串
     """
     items = [random.choice(string.hexdigits) for _ in range(length)]
+    if items[0] == '0':
+        hexdigits = string.hexdigits.replace('0', '')
+        items[0] = random.choice(hexdigits)
+
     return ''.join(items)
 
 
