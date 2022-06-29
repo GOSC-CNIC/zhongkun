@@ -1,31 +1,85 @@
+from datetime import date
+
 from bill.managers import PaymentManager
 from metering.models import MeteringServer, PaymentStatus
 
 
 class PayMeteringServer:
-    def __init__(self, app_id: str):
+    def __init__(self, app_id: str, pay_date: date = None):
+        """
+        :param pay_date: 指定只扣费那个计费日的计费单
+        """
         self.app_id = app_id
+        self.pay_date = pay_date
+        self.count = 0
+        self.success_count = 0
+        self.failed_count = 0
+
+    def start_print(self):
+        print('开始扣费计量计费单')
+        if self.pay_date:
+            print(f'指定只扣费{self.pay_date}日期的计费单')
+
+        print(f'本次要扣费的计量计费单总数：{self.count}')
 
     def run(self):
+        queryset = self.get_metering_queryset()
+        self.count = queryset.count()
+        self.start_print()
+
         last_creation_time = None
-        pay_mgr = PaymentManager()
         while True:
             meterings  = self.get_metering(creation_time_gt=last_creation_time)
-            if len(meterings) == 0:
+            m_length = len(meterings)
+            if m_length == 0:
                 break
 
             for m in meterings:
-                pay_mgr.pay_metering_bill(
-                    metering_bill=m, app_id=self.app_id, subject='云服务器计费',
-                    executor='metering', remark='按量计费', required_enough_balance=False
-                )
+                ok = self.do_pay_one_bill(bill=m)
+                if ok:
+                    self.success_count += 1
+                else:
+                    self.failed_count += 1
+
                 last_creation_time = m.creation_time
 
+            print(f'Pay {m_length} meterings OK')
+
+        print(f'总数：{self.count}, 扣费成功：{self.success_count}, 扣费失败：{self.failed_count}.')
+
     def get_metering(self, creation_time_gt=None, limit: int = 100):
-        queryset = MeteringServer.objects.filter(payment_status=PaymentStatus.UNPAID.value)
+        queryset = self.get_metering_queryset()
+
         if creation_time_gt:
             queryset = queryset.filter(creation_time__gt=creation_time_gt)
 
         queryset = queryset.order_by('creation_time')
         return queryset[0:limit]
+
+    def get_metering_queryset(self):
+        queryset = MeteringServer.objects.filter(payment_status=PaymentStatus.UNPAID.value)
+        if self.pay_date:
+            queryset = queryset.filter(date=self.pay_date)
+
+        return queryset
+
+    def do_pay_one_bill(self, bill: MeteringServer):
+        pay_mgr = PaymentManager()
+        remark = f'server id={bill.server_id}, {bill.date}'
+        try:
+            pay_mgr.pay_metering_bill(
+                metering_bill=bill, app_id=self.app_id, subject='云服务器按量计费',
+                executor='metering', remark=remark, required_enough_balance=False
+            )
+        except Exception as exc:
+            try:
+                pay_mgr.pay_metering_bill(
+                    metering_bill=bill, app_id=self.app_id, subject='云服务器按量计费',
+                    executor='metering', remark=remark, required_enough_balance=False
+                )
+            except Exception as exc:
+                print(f'[Failed] 云主机计量计费单（id={bill.id}）扣费失败，{exc}')
+                return False
+
+        return True
 

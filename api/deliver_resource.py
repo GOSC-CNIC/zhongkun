@@ -112,6 +112,7 @@ class OrderResourceDeliverer:
             azone_id=config.vm_azone_id,
             disk_size=0,
             network_id=config.vm_network_id,
+            pay_type=order.pay_type,
             **kwargs
         )
         if out_server.default_password:
