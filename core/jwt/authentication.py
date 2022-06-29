@@ -145,7 +145,12 @@ class CreateUserJWTAuthentication(authentication.BaseAuthentication):
         except KeyError:
             raise JWTInvalidError(f'Token contained no recognizable user identification "{JWT_SETTINGS.USER_ID_CLAIM}"')
 
-        params = {JWT_SETTINGS.USER_ID_FIELD: user_id}
+        try:
+            aai_user_id = validated_token[JWT_SETTINGS.AAI_USER_ID]
+        except KeyError:
+            raise JWTInvalidError(f'Token contained no recognizable user identification "{JWT_SETTINGS.AAI_USER_ID}"')
+
+        params = {JWT_SETTINGS.USER_ID_FIELD: user_id, 'id': str(aai_user_id)}
         try:
             truename = validated_token.get(JWT_SETTINGS.TRUE_NAME_FIELD, '')
             first_name, last_name = self.get_first_and_last_name(truename)
@@ -156,7 +161,7 @@ class CreateUserJWTAuthentication(authentication.BaseAuthentication):
         params.update({'email': user_id, 'first_name': first_name, 'last_name': last_name, 'company': org_name})
         user = self.user_model(**params)
         try:
-            user.save()
+            user.save(force_insert=True)
         except Exception as e:
             raise AuthenticationFailed(_('User create failed') + f';error: {str(e)}', code='user_create_failed')
 

@@ -305,6 +305,7 @@ PASSPORT_JWT = {
     'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
     'USER_ID_FIELD': 'username',
     'USER_ID_CLAIM': 'email',              # 'cstnetId','email'
+    'AAI_USER_ID': 'id',                     # 科技云通行证/AAI中user id在jwt中的字段名称
     'TOKEN_TYPE_CLAIM': 'type',
     'EXPIRATION_CLAIM': 'exp',
 

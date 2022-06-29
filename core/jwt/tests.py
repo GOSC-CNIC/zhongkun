@@ -6,6 +6,7 @@ from django.http.request import HttpRequest
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
 
+from users.models import UserProfile
 from . import jwt
 from .authentication import CreateUserJWTAuthentication, JWTInvalidError
 
@@ -55,6 +56,9 @@ class JWTTestCase(TestCase):
         request.META = {'HTTP_AUTHORIZATION': f'Bearer {token}'}
         user, t = CreateUserJWTAuthentication().authenticate(request=request)
         print(t.payload)
+        u = UserProfile.objects.first()
+        self.assertEqual(u.id, t.payload['id'])
+        print(f'user id={u.id}, name={u.username}')
 
     def test_jwt_token_backend(self):
         token_backend = jwt.TokenBackend(
