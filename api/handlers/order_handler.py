@@ -7,11 +7,12 @@ from rest_framework.response import Response
 from core import errors
 from api.viewsets import CustomGenericViewSet
 from api.deliver_resource import OrderResourceDeliverer
-from order.models import ResourceType, Order
+from order.models import ResourceType, Order, Resource
 from order.managers import OrderManager
 from bill.managers import PaymentManager
 from utils.time import iso_to_datetime
 from api import request_logger
+from servers. managers import ServerManager
 
 
 CASH_COUPON_BALANCE = 'coupon_balance'
@@ -167,6 +168,24 @@ class OrderHandler:
         return order_id, coupon_ids, only_coupon
 
     @staticmethod
+    def _pre_pay_order_check(order: Order, resource: Resource):
+        """
+        支付订单前的一些检测工作
+
+        :raises: Error
+        """
+        if order.resource_type == ResourceType.VM.value:
+            if order.order_type == Order.OrderType.RENEWAL.value:
+                if isinstance(order.start_time, datetime) and isinstance(order.end_time, datetime):
+                    if order.start_time >= order.end_time:
+                        raise errors.Error(message=_('续费订单续费时长或时段无效。'))
+
+                server = ServerManager.get_server(server_id=resource.instance_id, select_for_update=False)
+                OrderResourceDeliverer.check_pre_renewal_server_resource(
+                    order=order, server=server
+                )
+
+    @staticmethod
     def pay_order(view: CustomGenericViewSet, request, kwargs):
         """
         支付一个订单
@@ -184,11 +203,16 @@ class OrderHandler:
         except errors.Error as exc:
             return view.exception_response(exc)
 
-        if order.resource_type not in [ResourceType.VM.value, ResourceType.DISK.value]:
-            return view.exception_response(
-                errors.BadRequest(message=_('订单订购的资源类型无效'), code='InvalidResourceType'))
-
         resource = resources[0]
+        try:
+            if order.resource_type not in [ResourceType.VM.value, ResourceType.DISK.value]:
+                return view.exception_response(
+                    errors.BadRequest(message=_('订单订购的资源类型无效'), code='InvalidResourceType'))
+
+            OrderHandler._pre_pay_order_check(order=order, resource=resource)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
         try:
             subject = order.build_subject()
             order = PaymentManager().pay_order(

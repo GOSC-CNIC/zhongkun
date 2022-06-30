@@ -212,6 +212,45 @@ class OrderResourceDeliverer:
         return service, server
 
     @staticmethod
+    def check_pre_renewal_server_resource(order: Order, server):
+        """
+        检查是否满足云主机续费的条件
+
+        :return:
+            start_time, end_time    # 此订单续费的起始和截止时间
+
+        :raises: Error
+        """
+        if server.pay_type != PayType.PREPAID.value:
+            raise exceptions.Error(message=_('云服务器不是包年包月预付费模式，无法完成续费。'))
+        elif not isinstance(server.expiration_time, datetime):
+            raise exceptions.Error(message=_('云服务器没有过期时间，无法完成续费。'))
+        try:
+            config = ServerConfig.from_dict(order.instance_config)
+        except Exception as exc:
+            raise exceptions.Error(message=_('续费订单中云服务器配置信息有误。') + str(exc))
+
+        if (config.vm_ram != server.ram) or (config.vm_cpu != server.vcpus):
+            raise exceptions.Error(message=_('续费订单中云服务器配置信息与云服务器配置规格不一致。'))
+
+        if order.period > 0 and (order.start_time is None and order.end_time is None):
+            start_time = server.expiration_time
+            end_time = start_time + timedelta(days=PriceManager.period_month_days(order.period))
+        elif order.period <= 0 and (
+                isinstance(order.start_time, datetime) and isinstance(order.end_time, datetime)):
+            if order.start_time != server.expiration_time:
+                delta_seconds = abs((order.start_time - server.expiration_time).total_seconds())
+                if delta_seconds > 60:
+                    raise exceptions.Error(message=_('续费订单续费时长或时段与云服务器过期时间有冲突。'))
+
+            start_time = order.start_time
+            end_time = order.end_time
+        else:
+            raise exceptions.Error(message=_('续费订单续费时长或时段无效。'))
+
+        return start_time, end_time
+
+    @staticmethod
     def renewal_server_resource_for_order(order: Order, resource: Resource):
         """
         为订单续费云服务器资源
@@ -231,33 +270,9 @@ class OrderResourceDeliverer:
         try:
             with transaction.atomic():
                 server = ServerManager.get_server(server_id=resource.instance_id, select_for_update=True)
-                if server.pay_type != PayType.PREPAID.value:
-                    raise exceptions.Error(message=_('云服务器不是包年包月预付费模式，无法完成续费。'))
-                elif not isinstance(server.expiration_time, datetime):
-                    raise exceptions.Error(message=_('云服务器没有过期时间，无法完成续费。'))
-                try:
-                    config = ServerConfig.from_dict(order.instance_config)
-                except Exception as exc:
-                    raise exceptions.Error(message=_('续费订单中云服务器配置信息有误。') + str(exc))
-
-                if (config.vm_ram != server.ram) or (config.vm_cpu != server.vcpus):
-                    raise exceptions.Error(message=_('续费订单中云服务器配置信息与云服务器配置规格不一致。'))
-
-                if order.period > 0 and (order.start_time is None and order.end_time is None):
-                    start_time = server.expiration_time
-                    end_time = start_time + timedelta(days=PriceManager.period_month_days(order.period))
-                elif order.period <= 0 and (
-                        isinstance(order.start_time, datetime) and isinstance(order.end_time, datetime)):
-                    if order.start_time != server.expiration_time:
-                        delta_seconds = abs((order.start_time - server.expiration_time).total_seconds())
-                        if delta_seconds > 60:
-                            raise exceptions.Error(message=_('续费订单续费时长或时段与云服务器过期时间有冲突。'))
-
-                    start_time = order.start_time
-                    end_time = order.end_time
-                else:
-                    raise exceptions.Error(message=_('续费订单续费时长或时段无效。'))
-
+                start_time, end_time = OrderResourceDeliverer.check_pre_renewal_server_resource(
+                    order=order, server=server
+                )
                 server.expiration_time = end_time
                 server.save(update_fields=['expiration_time'])
                 OrderManager.set_order_resource_deliver_ok(

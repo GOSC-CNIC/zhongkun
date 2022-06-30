@@ -393,14 +393,38 @@ class ServerOrderTests(MyAPITransactionTestCase):
         user_server.refresh_from_db()
         self.assertEqual(user_server.expiration_time, user_server_expiration_time + timedelta(days=period * 30))
 
-        # renew user server again
+        # renew user server "renew_to_time" 续费到指定日期
+        expiration_time = user_server.expiration_time
+        renew_to_time = expiration_time.replace(microsecond=0) + timedelta(days=2)
+        renew_to_time_utc = renew_to_time.astimezone(tz=pytz.utc)
+        self.assertEqual(renew_to_time, renew_to_time_utc)
+        renew_to_time_utc_str = renew_to_time_utc.isoformat()
+        renew_to_time_utc_str = renew_to_time_utc_str[0:19] + 'Z'
+
         url = reverse('api:servers-renew-server', kwargs={'id': user_server.id})
-        query = parse.urlencode(query={'period': 11})
+        query = parse.urlencode(query={'renew_to_time': renew_to_time_utc_str})
         response = self.client.post(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
         order_id = response.data['order_id']
         order = Order.objects.get(id=order_id)
-        self.assertEqual(order.period, 11)
+        self.assertEqual(order.period, 0)
+        self.assertEqual(order.start_time, expiration_time)
+        self.assertEqual(order.end_time, renew_to_time_utc)
+
+        # pay renewal order
+        url = reverse('api:order-pay-order', kwargs={'id': order_id})
+        query = parse.urlencode(query={'payment_method': Order.PaymentMethod.BALANCE.value})
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['order_id'], order.id)
+
+        order.refresh_from_db()
+        self.assertEqual(order.trading_status, order.TradingStatus.COMPLETED.value)
+        self.assertEqual(order.start_time, expiration_time)
+        self.assertEqual(order.end_time, renew_to_time_utc)
+
+        user_server.refresh_from_db()
+        self.assertEqual(user_server.expiration_time, renew_to_time_utc)
 
         # ----------renew vo server-----------
         now_time = timezone.now()
