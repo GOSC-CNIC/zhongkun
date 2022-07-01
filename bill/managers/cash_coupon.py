@@ -100,7 +100,7 @@ class CashCouponManager:
         """
         :raises: Error
         """
-        VoManager().get_has_manager_perm_vo(vo_id=vo_id, user=user)
+        VoManager().get_has_read_perm_vo(vo_id=vo_id, user=user)
         queryset = self.get_queryset()
         queryset = queryset.filter(
             vo_id=vo_id, owner_type=OwnerType.VO.value,

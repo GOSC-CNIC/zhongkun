@@ -199,7 +199,7 @@ class OrderHandler:
 
         try:
             order, resources = OrderManager().get_order_detail(
-                order_id=order_id, user=request.user, check_permission=True)
+                order_id=order_id, user=request.user, check_permission=True, read_only=False)
         except errors.Error as exc:
             return view.exception_response(exc)
 
@@ -247,7 +247,7 @@ class OrderHandler:
 
         try:
             order, resources = OrderManager().get_order_detail(
-                order_id=order_id, user=request.user, check_permission=True)
+                order_id=order_id, user=request.user, check_permission=True, read_only=False)
         except errors.Error as exc:
             return view.exception_response(exc)
 

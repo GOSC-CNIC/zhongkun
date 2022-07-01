@@ -288,7 +288,7 @@ class VoManager:
         """
         vo, admin_member = self.get_has_manager_perm_vo(vo_id=vo_id, user=admin_user)
         if not vo.is_owner(admin_user):
-            raise errors.AccessDenied(message=_('你不是组拥有者，你去权限删除组'))
+            raise errors.AccessDenied(message=_('你不是组拥有者，你没有权限删除组'))
 
         if Server.objects.filter(vo=vo).exists():
             raise errors.ResourceNotCleanedUp(message=_('无法删除组，组内有云主机资源未清理'))

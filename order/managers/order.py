@@ -291,10 +291,12 @@ class OrderManager:
 
         return Resource.objects.filter(id=resource_id).first()
 
-    def get_order_detail(self, order_id: str, user, check_permission: bool = True):
+    def get_order_detail(self, order_id: str, user, check_permission: bool = True, read_only: bool = True):
         """
         查询订单详情
 
+        :param check_permission: 是否检测权限
+        :param read_only: 用于vo组权限检测；True：只需要访问权限；False: 需要管理权限
         :return:
             order, resources
         """
@@ -309,7 +311,10 @@ class OrderManager:
                     raise errors.AccessDenied(message=_('您没有此订单访问权限'))
             elif order.vo_id:
                 try:
-                    VoManager().get_has_read_perm_vo(vo_id=order.vo_id, user=user)
+                    if read_only:
+                        VoManager().get_has_read_perm_vo(vo_id=order.vo_id, user=user)
+                    else:
+                        VoManager().get_has_manager_perm_vo(vo_id=order.vo_id, user=user)
                 except errors.Error as exc:
                     raise errors.AccessDenied(message=exc.message)
 
@@ -421,7 +426,9 @@ class OrderManager:
             order
         :raises: Error
         """
-        order, resources = OrderManager().get_order_detail(order_id=order_id, user=user, check_permission=True)
+        order, resources = OrderManager().get_order_detail(
+            order_id=order_id, user=user, check_permission=True, read_only=False
+        )
         try:
             with transaction.atomic():
                 order = self.get_order(order_id=order.id, select_for_update=True)
