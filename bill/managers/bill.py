@@ -3,7 +3,7 @@ from datetime import datetime
 from django.utils.translation import gettext as _
 
 from core import errors
-from bill.models import PaymentHistory
+from bill.models import PaymentHistory, CashCouponPaymentHistory
 from utils.model import OwnerType
 from vo.managers import VoManager
 
@@ -12,6 +12,26 @@ class PaymentHistoryManager:
     @staticmethod
     def get_queryset():
         return PaymentHistory.objects.all()
+
+    def get_payment_history(self, payment_id: str, user):
+        """
+        查询用户有访问权限的支付记录
+        :return: PaymentHistory()
+        :raises: Error
+        """
+        payment = PaymentHistory.objects.filter(id=payment_id).first()
+        if payment is None:
+            raise errors.NotFound(message=_('支付记录不存在'))
+
+        if payment.payer_type == OwnerType.USER.value:
+            if payment.payer_id != user.id:
+                raise errors.AccessDenied(message=_('你没有此支付记录的访问权限'))
+        elif payment.payer_type == OwnerType.VO.value:
+            VoManager().get_has_read_perm_vo(vo_id=payment.payer_id, user=user)
+        else:
+            raise errors.ConflictError(message=_('支付记录拥有者类型未知'), code='UnknownOwnPayment')
+
+        return payment
 
     def get_user_payment_history(
             self,
@@ -101,3 +121,9 @@ class PaymentHistoryManager:
             queryset = queryset.filter(type=_type)
 
         return queryset.order_by('-payment_time')
+
+    def get_payment_history_detail(self, payment_id: str, user):
+        payment = self.get_payment_history(payment_id=payment_id, user=user)
+        qs = CashCouponPaymentHistory.objects.filter(payment_history_id=payment.id).all()
+        coupon_historys = list(qs)
+        return payment, coupon_historys

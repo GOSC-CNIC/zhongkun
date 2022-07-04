@@ -7,10 +7,10 @@ from django.utils import timezone
 from utils.model import OwnerType
 from utils.test import get_or_create_service
 from service.models import ServiceConfig
-from vo.models import VirtualOrganization
-from bill.models import PaymentHistory
+from vo.models import VirtualOrganization, VoMember
+from bill.models import PaymentHistory, CashCouponPaymentHistory
 from order.models import ResourceType
-from . import set_auth_header, MyAPITestCase
+from . import set_auth_header, MyAPITestCase, get_or_create_user
 
 
 class PaymentHistoryTests(MyAPITestCase):
@@ -339,3 +339,98 @@ class PaymentHistoryTests(MyAPITestCase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(len(r.data['results']), 1)
         self.assertEqual(r.data['results'][0]['amounts'], '-5.55')
+
+    def test_detail_payment_history(self):
+        history1 = PaymentHistory(
+            subject='subject1',
+            payment_account=self.user.id,
+            payment_method=PaymentHistory.PaymentMethod.BALANCE_COUPON.value,
+            executor='test',
+            payer_id=self.user.id,
+            payer_name=self.user.username,
+            payer_type=OwnerType.USER.value,
+            amounts=Decimal('-1.11'),
+            before_payment=Decimal(0),
+            after_payment=Decimal(0),
+            type=PaymentHistory.Type.PAYMENT.value,
+            resource_type=ResourceType.VM.value,
+            app_service_id=self.service.pay_app_service_id,
+            instance_id=''
+        )
+        history1.save(force_insert=True)
+
+        cph = CashCouponPaymentHistory(
+            payment_history_id=history1.id,
+            cash_coupon_id=None,
+            amounts=Decimal('-1.00'),
+            before_payment=Decimal('6'),
+            after_payment=Decimal('5')
+        )
+        cph.save(force_insert=True)
+
+        # user payment history detail
+        base_url = reverse('api:payment-history-detail', kwargs={'id': history1.id})
+        r = self.client.get(base_url)
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn([
+            "id", "payment_method", "executor", "payer_id", "payer_name",
+            "payer_type", "amounts", "coupon_amount",
+            "payment_time", "type", "remark", "order_id",
+            "subject", "app_service_id", "app_id", "coupon_historys"
+        ], r.data)
+        self.assertEqual(r.data['amounts'], '-1.11')
+        self.assertIsInstance(r.data['coupon_historys'], list)
+        self.assertEqual(len(r.data['coupon_historys']), 1)
+        self.assertKeysIn([
+            "cash_coupon_id", "amounts", "before_payment", "after_payment", "creation_time"
+        ], r.data['coupon_historys'][0])
+
+        # ----- vo ------
+        history_vo = PaymentHistory(
+            subject='subject2',
+            payment_account=self.vo.id,
+            payment_method=PaymentHistory.PaymentMethod.BALANCE.value,
+            executor='test',
+            payer_id=self.vo.id,
+            payer_name=self.vo.name,
+            payer_type='',
+            amounts=Decimal('-6.88'),
+            before_payment=Decimal(0),
+            after_payment=Decimal(0),
+            type=PaymentHistory.Type.PAYMENT.value,
+            resource_type=ResourceType.VM.value,
+            app_service_id=self.service.pay_app_service_id,
+            instance_id=''
+        )
+        history_vo.save(force_insert=True)
+        user2 = get_or_create_user(username='test2')
+        self.client.logout()
+        self.client.force_login(user2)
+
+        # user payment history detail
+        base_url = reverse('api:payment-history-detail', kwargs={'id': history_vo.id})
+        response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=409, code='UnknownOwnPayment', response=response)
+
+        history_vo.payer_type = OwnerType.VO.value
+        history_vo.save(update_fields=['payer_type'])
+
+        base_url = reverse('api:payment-history-detail', kwargs={'id': history_vo.id})
+        response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # set vo member
+        VoMember(user=user2, vo=self.vo, role=VoMember.Role.MEMBER.value, inviter='').save(force_insert=True)
+
+        base_url = reverse('api:payment-history-detail', kwargs={'id': history_vo.id})
+        r = self.client.get(base_url)
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn([
+            "id", "payment_method", "executor", "payer_id", "payer_name",
+            "payer_type", "amounts", "coupon_amount",
+            "payment_time", "type", "remark", "order_id",
+            "subject", "app_service_id", "app_id", "coupon_historys"
+        ], r.data)
+        self.assertEqual(r.data['amounts'], '-6.88')
+        self.assertIsInstance(r.data['coupon_historys'], list)
+        self.assertEqual(len(r.data['coupon_historys']), 0)

@@ -788,7 +788,7 @@ class CashCouponSerializer(serializers.Serializer):
         return {'id': obj.activity.id, 'name': obj.activity.name}
 
 
-class CashCouponPaymentSerializer(serializers.Serializer):
+class BaseCashCouponPaymentSerializer(serializers.Serializer):
     """
     券扣费记录序列化器
     """
@@ -797,4 +797,10 @@ class CashCouponPaymentSerializer(serializers.Serializer):
     before_payment = serializers.DecimalField(label=_('支付前余额'), max_digits=10, decimal_places=2)
     after_payment = serializers.DecimalField(label=_('支付后余额'), max_digits=10, decimal_places=2)
     creation_time = serializers.DateTimeField(label=_('创建时间'))
+
+
+class CashCouponPaymentSerializer(BaseCashCouponPaymentSerializer):
+    """
+    券扣费记录序列化器
+    """
     payment_history = PaymentHistorySerializer(allow_null=True)

@@ -1,8 +1,10 @@
 from django.utils.translation import gettext as _
 from django.utils import timezone
+from rest_framework.response import Response
 
 from core import errors
 from api.viewsets import CustomGenericViewSet
+from api import serializers
 from bill.models import PaymentHistory
 from bill.managers import PaymentHistoryManager
 from utils.time import iso_utc_to_datetime
@@ -93,3 +95,16 @@ class PaymentHistoryHandler:
             'payment_type': payment_type,
             'app_service_id': app_service_id
         }
+
+    def detail_payment_history(self, view: CustomGenericViewSet, request, kwargs):
+        history_id = kwargs.get(view.lookup_field)
+        try:
+            payment, coupon_historys = PaymentHistoryManager().get_payment_history_detail(
+                payment_id=history_id, user=request.user
+            )
+            payment_data = serializers.PaymentHistorySerializer(payment).data
+            coupon_historys_data = serializers.BaseCashCouponPaymentSerializer(instance=coupon_historys, many=True).data
+            payment_data['coupon_historys'] = coupon_historys_data
+            return Response(data=payment_data)
+        except Exception as exc:
+            return view.exception_response(exc)

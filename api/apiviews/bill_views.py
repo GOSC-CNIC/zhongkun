@@ -95,6 +95,46 @@ class PaymentHistoryViewSet(CustomGenericViewSet):
         """
         return PaymentHistoryHandler().list_payment_history(view=self, request=request)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('支付记录详细信息'),
+        responses={
+            200: ''
+        }
+    )
+    def retrieve(self, request, *args, **kwargs):
+        """
+        支付记录详细信息
+
+            http code 200：
+            {
+              "id": "202207040607159512716434",
+              "subject": "云服务器按量计费",
+              "payment_method": "coupon",
+              "executor": "metering",
+              "payer_id": "1",
+              "payer_name": "shun",
+              "payer_type": "user",
+              "amounts": "0.00",
+              "coupon_amount": "-15.97",
+              "payment_time": "2022-07-04T06:07:15.951537Z",
+              "type": "payment",
+              "remark": "server id=0e475786-9ac1-11ec-857b-c8009fe2eb10, 2022-07-03",
+              "order_id": "s-8aa93412fb5f11ec8ac1c8009fe2ebbc",
+              "app_id": "xxx",
+              "app_service_id": "s20220623023119",
+              "coupon_historys": [
+                {
+                  "cash_coupon_id": "144765530930",
+                  "amounts": "-15.97",
+                  "before_payment": "1000.00",
+                  "after_payment": "984.03",
+                  "creation_time": "2022-07-04T06:07:15.955151Z"
+                }
+              ]
+            }
+        """
+        return PaymentHistoryHandler().detail_payment_history(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return serializers.PaymentHistorySerializer
