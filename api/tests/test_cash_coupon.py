@@ -28,7 +28,7 @@ class CashCouponTests(MyAPITestCase):
         po = PayOrgnazition(name='机构')
         po.save()
         self.app_service1 = PayAppService(
-            name='service1', app=app, orgnazition=po
+            name='service1', app=app, orgnazition=po, service=self.service
         )
         self.app_service1.save()
         self.app_service2 = PayAppService(
@@ -222,6 +222,11 @@ class CashCouponTests(MyAPITestCase):
             "balance", "status", "granted_time",
             "owner_type", "app_service", "user", "vo", "activity"], results[0]
         )
+        self.assertKeysIn([
+            "id", "name", "name_en", "service_id"], results[0]['app_service']
+        )
+        self.assertEqual(None, results[0]['app_service']['service_id'])
+        self.assertEqual(self.service.id, results[1]['app_service']['service_id'])  # 288.8
         self.assert_is_subdict_of(
             {
                 'id': coupon3_user.id,
@@ -320,6 +325,10 @@ class CashCouponTests(MyAPITestCase):
             "balance", "status", "granted_time",
             "owner_type", "app_service", "user", "vo", "activity"], results[0]
         )
+        self.assertKeysIn([
+            "id", "name", "name_en", "service_id"], results[0]['app_service']
+        )
+        self.assertEqual(self.service.id, results[0]['app_service']['service_id'])  # 388.8
         self.assert_is_subdict_of(
             {
                 'id': coupon5_vo.id,

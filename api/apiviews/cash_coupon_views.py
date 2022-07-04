@@ -70,7 +70,8 @@ class CashCouponViewSet(CustomGenericViewSet):
                         "owner_type": "vo",
                         "app_service": {                                # maybe None
                             "id": "2",
-                            "name": "怀柔204机房研发测试"
+                            "name": "怀柔204机房研发测试",
+                            "service_id": "xx"              # maybe None
                         },
                         "user": {                                   # maybe None
                             "id": "1",

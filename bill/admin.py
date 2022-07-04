@@ -73,8 +73,8 @@ class PayOrgnazitionAdmin(admin.ModelAdmin):
 
 @admin.register(PayAppService)
 class PayAppServiceAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'name_en', 'creation_time', 'status', 'resources', 'contact_person',
-                    'contact_email', 'contact_telephone', 'desc')
+    list_display = ('id', 'name', 'name_en', 'category', 'service', 'creation_time', 'status',
+                    'resources', 'contact_person', 'contact_email', 'contact_telephone', 'desc')
     list_display_links = ('id',)
-    list_select_related = ('orgnazition', 'app')
+    list_select_related = ('orgnazition', 'app', 'service')
     raw_id_fields = ('user',)

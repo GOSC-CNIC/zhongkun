@@ -130,6 +130,13 @@ class PayAppService(CustomIdModel):
         NORMAL = 'normal', _('正常')
         BAN = 'ban', _('禁止')
 
+    class Category(models.TextChoices):
+        VMS_SERVER = 'vms-server', _('VMS云服务器')
+        VMS_OBJECT = 'vms-object', _('VMS对象存储')
+        HIGH_CLOUD = 'high-cloud', _('高等级云')
+        HPC = 'hpc', _('高性能计算')
+        OTHER = 'other', _('其他')
+
     orgnazition = models.ForeignKey(
         verbose_name=_('机构|组织'), to=PayOrgnazition, on_delete=models.CASCADE, related_name='+')
     app = models.ForeignKey(verbose_name=_('应用APP'), to=PayApp, on_delete=models.CASCADE, related_name='+')
@@ -153,6 +160,11 @@ class PayAppService(CustomIdModel):
     latitude = models.FloatField(verbose_name=_('纬度'), blank=True, default=0)
     user = models.ForeignKey(
         verbose_name=_('用户'), to=UserProfile, on_delete=models.SET_NULL, related_name='+', null=True, default=None)
+    category = models.CharField(
+        verbose_name=_('服务类别'), max_length=16, choices=Category.choices, default=Category.OTHER.value)
+    service = models.OneToOneField(
+        verbose_name=_('对应的VMS服务'), to=ServiceConfig,
+        on_delete=models.SET_NULL, null=True, blank=True, default=None)
 
     class Meta:
         verbose_name = _('应用APP子服务')

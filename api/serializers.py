@@ -759,7 +759,12 @@ class CashCouponSerializer(serializers.Serializer):
         if obj.app_service is None:
             return None
 
-        return {'id': obj.app_service.id, 'name': obj.app_service.name}
+        return {
+            'id': obj.app_service.id,
+            'name': obj.app_service.name,
+            'name_en': obj.app_service.name_en,
+            'service_id': obj.app_service.service_id
+        }
 
     @staticmethod
     def get_user(obj):
