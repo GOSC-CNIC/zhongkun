@@ -8,7 +8,7 @@ from django.utils import timezone
 from core import errors
 from utils.model import OwnerType
 from vo.managers import VoManager
-from bill.models import CashCoupon
+from bill.models import CashCoupon, CashCouponPaymentHistory
 
 
 class CashCouponManager:
@@ -265,3 +265,28 @@ class CashCouponManager:
                 unusable_coupons.append(coupon)
 
         return usable_coupons, unusable_coupons
+
+    def get_cash_coupon_payment_queryset(self, coupon_id: str, user):
+        """
+        代金券扣费记录查询集
+
+        :return: QuerySet
+        :raises: Error
+        """
+        coupon = self.get_cash_coupon(coupon_id=coupon_id)
+        if coupon is None:
+            raise errors.NotFound(message=_('代金券不存在'), code='NoSuchCoupon')
+
+        if coupon.status not in [CashCoupon.Status.AVAILABLE.value, CashCoupon.Status.CANCELLED.value]:
+            raise errors.NotFound(message=_('代金券不存在'), code='NoSuchCoupon')
+
+        if coupon.owner_type == OwnerType.USER.value:
+            if coupon.user_id != user.id:
+                raise errors.AccessDenied(message=_('你没有此代金券的访问权限'))
+        elif coupon.owner_type == OwnerType.VO.value:
+            VoManager().get_has_read_perm_vo(vo_id=coupon.vo_id, user=user)
+        else:
+            raise errors.ConflictError(message=_('代金券拥有者类型未知'), code='UnknownOwnCoupon')
+
+        queryset = CashCouponPaymentHistory.objects.select_related('payment_history').filter(cash_coupon_id=coupon.id)
+        return queryset

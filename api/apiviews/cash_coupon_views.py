@@ -1,6 +1,7 @@
 from django.utils.translation import gettext_lazy
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.serializers import Serializer
+from rest_framework.decorators import action
 from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
@@ -152,8 +153,69 @@ class CashCouponViewSet(CustomGenericViewSet):
         """
         return CashCouponHandler().delete_cash_coupon(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举代金券扣费记录'),
+        manual_parameters=[
+            openapi.Parameter(
+                name=NewPageNumberPagination.page_query_param,
+                required=False,
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                description='页码'
+            ),
+            openapi.Parameter(
+                name=NewPageNumberPagination.page_size_query_param,
+                required=False,
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                description='每页数据数量'
+            )
+        ]
+    )
+    @action(methods=['get'], detail=True, url_path='payment', url_name='list-payment')
+    def list_coupon_payment(self, request, *args, **kwargs):
+        """
+        列举代金券扣费记录
+
+            http code 200:
+            {
+              "count": 1,
+              "page_num": 1,
+              "page_size": 20,
+              "results": [
+                {
+                  "creation_time": "2022-07-04T06:07:15.955151Z",
+                  "amounts": "-15.97",
+                  "before_payment": "1000.00",
+                  "after_payment": "984.03",
+                  "cash_coupon_id": "144765530930",
+                  "payment_history": {
+                    "id": "202207040607159512716434",
+                    "subject": "云服务器按量计费",
+                    "payment_method": "coupon",
+                    "executor": "metering",
+                    "payer_id": "1",
+                    "payer_name": "shun",
+                    "payer_type": "user",
+                    "amounts": "0.00",
+                    "coupon_amount": "-15.97",
+                    "payment_time": "2022-07-04T06:07:15.951537Z",
+                    "type": "payment",
+                    "remark": "server id=0e475786-9ac1-11ec-857b-c8009fe2eb10, 2022-07-03",
+                    "order_id": "s-8aa93412fb5f11ec8ac1c8009fe2ebbc",
+                    "app_id": "xxx",
+                    "app_service_id": "s20220623023119"
+                  }
+                }
+              ]
+            }
+        """
+        return CashCouponHandler().list_cash_coupon_payment(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return serializers.CashCouponSerializer
+        elif self.action == 'list_coupon_payment':
+            return serializers.CashCouponPaymentSerializer
 
         return Serializer
