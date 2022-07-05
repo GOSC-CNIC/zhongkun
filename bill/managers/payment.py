@@ -261,7 +261,8 @@ class PaymentManager:
         self._pre_pay_order(order=order, remark=remark)
         if order.payable_amount == Decimal(0):
             # 订单支付状态
-            order.set_paid(pay_amount=Decimal('0'), balance_amount=Decimal('0'), coupon_amount=Decimal('0'))
+            order.set_paid(pay_amount=Decimal('0'), balance_amount=Decimal('0'), coupon_amount=Decimal('0'),
+                           payment_history_id='')
             return order
 
         app_service_id = order.get_pay_app_service_id()
@@ -291,7 +292,8 @@ class PaymentManager:
         order.set_paid(
             pay_amount=pay_amount,
             balance_amount=balance_amount,
-            coupon_amount=coupon_amount
+            coupon_amount=coupon_amount,
+            payment_history_id=pay_history.id
         )
         return order
 

@@ -101,6 +101,7 @@ class Order(models.Model):
     deleted = models.BooleanField(verbose_name=_('删除'), default=False)
     cancelled_time = models.DateTimeField(verbose_name=_('作废时间'), null=True, blank=True, default=None)
     app_service_id = models.CharField(verbose_name=_('app服务id'), max_length=36, blank=True, default='')
+    payment_history_id = models.CharField(verbose_name=_('支付记录id'), max_length=36, blank=True, default='')
 
     class Meta:
         verbose_name = _('订单')
@@ -128,7 +129,8 @@ class Order(models.Model):
     def set_paid(
             self, pay_amount: Decimal,
             balance_amount: Decimal,
-            coupon_amount: Decimal
+            coupon_amount: Decimal,
+            payment_history_id: str
     ):
         if balance_amount < Decimal('0') or coupon_amount < Decimal('0'):
             raise Exception(_('更新订单支付状态错误，balance_amount和coupon_amount不能为负数'))
@@ -148,8 +150,10 @@ class Order(models.Model):
         self.status = self.Status.PAID.value
         self.payment_method = payment_method
         self.payment_time = timezone.now()
+        self.payment_history_id = payment_history_id
         self.save(update_fields=[
-            'pay_amount', 'balance_amount', 'coupon_amount', 'status', 'payment_method', 'payment_time'
+            'pay_amount', 'balance_amount', 'coupon_amount', 'status', 'payment_method', 'payment_time',
+            'payment_history_id'
         ])
 
     def set_cancel(self):
