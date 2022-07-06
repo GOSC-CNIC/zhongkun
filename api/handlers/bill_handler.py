@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from core import errors
 from api.viewsets import CustomGenericViewSet
-from api import serializers
+from api.serializers import serializers
 from bill.models import PaymentHistory
 from bill.managers import PaymentHistoryManager
 from utils.time import iso_utc_to_datetime

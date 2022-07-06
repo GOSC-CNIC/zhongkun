@@ -1,6 +1,7 @@
 from django.utils.translation import gettext_lazy
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
+from rest_framework.serializers import Serializer
 from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
@@ -9,7 +10,7 @@ from order.models import ResourceType, Order
 from api.paginations import OrderPageNumberPagination
 from api.handlers.price_handler import DescribePriceHandler
 from api.handlers.order_handler import OrderHandler, CASH_COUPON_BALANCE
-from api import serializers
+from api.serializers import serializers
 
 
 class PriceViewSet(CustomGenericViewSet):
@@ -376,4 +377,4 @@ class OrderViewSet(CustomGenericViewSet):
         elif self.action == 'retrieve':
             return serializers.OrderDetailSerializer
 
-        return serializers.serializers.Serializer
+        return Serializer

@@ -15,7 +15,7 @@ from servers.managers import ServerManager, ServerArchiveManager
 from api import paginations
 from api.viewsets import CustomGenericViewSet
 from api.deliver_resource import OrderResourceDeliverer
-from api import serializers
+from api.serializers import serializers
 from api import request_logger
 from vo.managers import VoManager
 from vo.models import VirtualOrganization

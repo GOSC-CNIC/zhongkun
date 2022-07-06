@@ -8,7 +8,7 @@ from drf_yasg import openapi
 from api.viewsets import CustomGenericViewSet
 from api.paginations import NewPageNumberPagination
 from api.handlers.cash_coupon_handler import CashCouponHandler
-from api import serializers
+from api.serializers import serializers
 
 
 class CashCouponViewSet(CustomGenericViewSet):

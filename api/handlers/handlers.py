@@ -13,7 +13,7 @@ from vo.managers import VoManager, VoMemberManager
 from utils import storagers
 from utils import time
 from core import errors as exceptions
-from api import serializers
+from api.serializers import serializers
 
 
 User = get_user_model()

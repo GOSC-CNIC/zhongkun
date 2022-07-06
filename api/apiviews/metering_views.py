@@ -2,13 +2,14 @@ from django.utils.translation import gettext_lazy
 from django.db.models import QuerySet
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
+from rest_framework.serializers import Serializer
 from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
 from api.viewsets import CustomGenericViewSet
 from api.paginations import MeteringPageNumberPagination
 from api.handlers.metering_handler import MeteringHandler
-from api import serializers
+from api.serializers import serializers
 
 
 class MeteringServerViewSet(CustomGenericViewSet):
@@ -376,4 +377,4 @@ class MeteringServerViewSet(CustomGenericViewSet):
         if self.action == 'list':
             return serializers.MeteringServerSerializer
 
-        return serializers.serializers.Serializer
+        return Serializer

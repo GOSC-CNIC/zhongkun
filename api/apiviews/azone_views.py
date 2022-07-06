@@ -6,7 +6,7 @@ from drf_yasg import openapi
 
 from core import errors
 from api.viewsets import CustomGenericViewSet
-from api import serializers
+from api.serializers import serializers
 from adapters import inputs
 
 

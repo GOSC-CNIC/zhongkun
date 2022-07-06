@@ -1,8 +1,10 @@
 from django.db import models
-from django.utils.translation import gettext, gettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from core import errors
-from api.serializers import MonitorJobCephSerializer, MonitorJobServerSerializer, MonitorJobVideoMeetingSerializer
+from api.serializers.serializers import (
+    MonitorJobCephSerializer, MonitorJobServerSerializer
+)
 from .models import MonitorJobCeph, MonitorProvider, MonitorJobServer, MonitorJobVideoMeeting
 from .backends.monitor_ceph import MonitorCephQueryAPI
 from .backends.monitor_server import MonitorServerQueryAPI

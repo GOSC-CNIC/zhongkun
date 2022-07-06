@@ -1,12 +1,13 @@
 from django.utils.translation import gettext_lazy
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.serializers import Serializer
 from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
 from api.viewsets import CustomGenericViewSet
 from api.paginations import PaymentHistoryPagination
 from api.handlers.bill_handler import PaymentHistoryHandler
-from api import serializers
+from api.serializers import serializers
 from order.models import ResourceType
 from bill.models import PaymentHistory
 
@@ -139,4 +140,4 @@ class PaymentHistoryViewSet(CustomGenericViewSet):
         if self.action == 'list':
             return serializers.PaymentHistorySerializer
 
-        return serializers.serializers.Serializer
+        return Serializer

@@ -25,7 +25,7 @@ from core.quota import QuotaAPI
 from core import request as core_request
 from core import errors as exceptions
 from vo.models import VoMember
-from api import serializers
+from api.serializers import serializers
 from api.viewsets import CustomGenericViewSet
 from api.paginations import ServersPagination, DefaultPageNumberPagination
 from api.handlers import (

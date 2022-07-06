@@ -1,7 +1,7 @@
 from core import errors as exceptions
 from service.managers import ServicePrivateQuotaManager, ServiceShareQuotaManager
 from api.viewsets import CustomGenericViewSet
-from api import serializers
+from api.serializers import serializers
 
 
 class ServiceQuotaHandler:

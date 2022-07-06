@@ -2,10 +2,11 @@ from django.utils.translation import gettext_lazy, gettext as _
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.serializers import Serializer
 from drf_yasg.utils import swagger_auto_schema, no_body
 
 from api.viewsets import CustomGenericViewSet
-from api import serializers
+from api.serializers import serializers
 from bill.managers import PaymentManager
 from core import errors
 from vo.managers import VoManager
@@ -80,4 +81,4 @@ class BalanceAccountViewSet(CustomGenericViewSet):
         elif self.action == 'get_user_balance':
             return serializers.UserPointAccountSerializer
 
-        return serializers.serializers.Serializer
+        return Serializer
