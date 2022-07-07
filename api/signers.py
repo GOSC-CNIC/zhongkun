@@ -9,6 +9,13 @@ from utils.crypto.rsa import SHA256WithRSA
 from core import errors
 
 
+def uri_encode(s: str, encode_slash=False):
+    if encode_slash:
+        return quote(s, safe='')
+
+    return quote(s, safe='/')
+
+
 class SignatureParser:
     def __init__(self, sign_type: str):
         self.sign_type = sign_type
@@ -32,6 +39,11 @@ class SignatureParser:
         Extracts an unvalidated token from the given "Authorization"
         header value.
         """
+        if not header:
+            raise errors.NotAuthenticated(
+                message=_('未提供身份认证标头"Authorization"')
+            )
+
         parts = header.split()
 
         if len(parts) == 0:
@@ -83,9 +95,9 @@ class SignatureParser:
 
         now_timestamp = datetime.now().timestamp()
         now_timestamp = int(now_timestamp)
-        if abs(now_timestamp - timestamp) > 60:
+        if abs(now_timestamp - timestamp) > 3600:
             raise errors.AuthenticationFailed(
-                message=_('授权标头值无效，时间戳一分钟内有效。')
+                message=_('授权标头值无效，请求时间戳和服务系统时间误差太大, 服务系统时间戳' + str(now_timestamp))
             )
 
         return sign_type, app_id, timestamp, signature
@@ -105,19 +117,36 @@ class SignatureRequest:
             )
 
     @staticmethod
-    def string_to_sign(method: str, uri: str, timestamp: int, body: str):
+    def query_string_to_sign(params: dict):
+        li = []
+        names = params.keys()
+        for name in sorted(names):
+            value = str(params[name])
+            li.append('%s=%s' % (uri_encode(name, encode_slash=True), uri_encode(value, encode_slash=True)))
+
+        cqs = '&'.join(li)
+        return cqs
+
+    @staticmethod
+    def string_to_sign(method: str, uri: str, querys: dict, timestamp: int, body: str):
         """
         认证类型\n
         请求时间戳\n
         HTTP请求方法\n
         URI\n
+        QueryString\n
         请求报文主体\n
+
+        QueryString, sorted by query param, format:
+        UriEncode(param) + "=" + UriEncode(value) + "&" UriEncode(param) + "=" + UriEncode(value)
         """
+        query_str = SignatureRequest.query_string_to_sign(params=querys)
         return '\n'.join([
             SignatureRequest.SING_TYPE,
             str(timestamp),
             method.upper(),
-            quote(uri),
+            uri_encode(uri),
+            query_str,
             body
         ])
 
@@ -127,13 +156,13 @@ class SignatureRequest:
         return rsa.sign(sign_string.encode('utf-8'))
 
     @staticmethod
-    def built_token(app_id: str, method: str, uri: str, body: str, private_key: str):
+    def built_token(app_id: str, method: str, uri: str, querys: dict, body: str, private_key: str):
         """
         authentication_type,app_id,timestamp,signature
         """
         timestamp = datetime.now().timestamp()
         sign_string = SignatureRequest.string_to_sign(
-            method=method, uri=uri, timestamp=int(timestamp), body=body
+            method=method, uri=uri, querys=querys, timestamp=int(timestamp), body=body
         )
         signature = SignatureRequest.sign(sign_string=sign_string, private_key=private_key)
         return ','.join([
@@ -151,14 +180,14 @@ class SignatureRequest:
         """
         return self.rsa.verify(signature=sig, data=data)
 
-    def verify_signature(self, timestamp: int, method: str, uri: str, body: str, sig: str):
+    def verify_signature(self, timestamp: int, method: str, uri: str, querys: dict, body: str, sig: str):
         """
         :return:
             True
             False
         """
         sign_string = self.string_to_sign(
-            method=method, uri=uri, timestamp=timestamp, body=body
+            method=method, uri=uri, querys=querys, timestamp=timestamp, body=body
         )
         return self.verify(data=sign_string.encode('utf-8'), sig=sig)
 
@@ -174,7 +203,7 @@ class SignatureResponse:
         """
         认证类型\n
         应答时间戳\n
-        请求报文主体\n
+        响应报文主体
         """
         return '\n'.join([
             sign_type,

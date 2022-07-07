@@ -209,13 +209,16 @@ class PaySignGenericViewSet(CustomGenericViewSet):
             raise e
 
         method = request.method.upper()
-        uri = request.get_full_path()
+        uri = request.path      # 为编码的
         body = request.body
         ok = sr.verify_signature(
             timestamp=timestamp, method=method, uri=uri,
+            querys=request.query_params,
             body=body.decode(encoding='utf-8'), sig=signature
         )
         if not ok:
             raise exceptions.AuthenticationFailed(
                 message=_('签名无效'), code='InvalidSignature'
             )
+
+        return app

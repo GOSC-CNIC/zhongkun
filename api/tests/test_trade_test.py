@@ -53,7 +53,8 @@ class TradeTestTests(MyAPITestCase):
         token = SignatureRequest.built_token(
             app_id=self.app.id,
             method='POST',
-            uri=url,
+            uri=parse.unquote(base_url),
+            querys=params,
             body=body_json,
             private_key=self.user_private_key
         )
