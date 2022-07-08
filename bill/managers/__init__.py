@@ -1,7 +1,7 @@
 from .payment import PaymentManager
 from .bill import PaymentHistoryManager
-from .cash_coupon import CashCouponManager
+from .cash_coupon import CashCouponManager, CashCouponActivityManager
 
 __all__ = [
-    PaymentManager, PaymentHistoryManager, CashCouponManager
+    PaymentManager, PaymentHistoryManager, CashCouponManager, CashCouponActivityManager
 ]

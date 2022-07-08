@@ -8,7 +8,7 @@ from django.utils import timezone
 from core import errors
 from utils.model import OwnerType
 from vo.managers import VoManager
-from bill.models import CashCoupon, CashCouponPaymentHistory
+from bill.models import CashCoupon, CashCouponPaymentHistory, CashCouponActivity
 
 
 class CashCouponManager:
@@ -16,7 +16,7 @@ class CashCouponManager:
     def get_queryset():
         return CashCoupon.objects.all()
 
-    def get_cash_coupon(self, coupon_id: str, select_for_update: bool = False) -> CashCoupon:
+    def get_cash_coupon(self, coupon_id: str, select_for_update: bool = False):
         """
         :return: CashCoupon() or None
         """
@@ -290,3 +290,103 @@ class CashCouponManager:
 
         queryset = CashCouponPaymentHistory.objects.select_related('payment_history').filter(cash_coupon_id=coupon.id)
         return queryset
+
+
+class CashCouponActivityManager:
+    @staticmethod
+    def get_queryset():
+        return CashCouponActivity.objects.all()
+
+    @staticmethod
+    def get_activity(activity_id: str) -> CashCouponActivity:
+        return CashCouponActivity.objects.select_related('app_service').filter(id=activity_id).first()
+
+    def clone_coupon_from_template(self, activity_id: str, user) -> CashCoupon:
+        """
+        从券活动/模板克隆一个券
+
+        :raises: Error
+        """
+        activity = self.get_activity(activity_id)
+        if activity is None:
+            raise errors.NotFound(message=_('券活动模板不存在'))
+
+        # check permission
+        if not self.has_coupon_template_perm(activity=activity, user=user):
+            raise errors.AccessDenied(message=_('你没有此券模板的券的发放权限'))
+
+        coupon = activity.clone_coupon()
+        return coupon
+
+    @staticmethod
+    def has_coupon_template_perm(activity: CashCouponActivity, user):
+        """
+        是否有券模板的访问权限，是否有权限从模板创建券
+        """
+        if not activity.app_service:
+            return False
+
+        if activity.app_service.user_id == user.id:
+            return True
+
+        service = activity.app_service.service
+        if service is None:
+            return False
+
+        return service.user_has_perm(user)
+
+    def create_coupons_for_template(self, activity_id: str, user, max_count: int = 1000):
+        """
+        为券活动/模板创建券
+
+        :param activity_id: 券模板/活动id
+        :param user:
+        :param max_count: 本次券最大发放数量
+        :return:
+            (
+                CashCouponActivity(),
+                count,          # 本次生成券数量
+                error           # None or Error(),是否发生错误
+            )
+        :raises: Error
+        """
+        activity = self.get_activity(activity_id)
+        if activity is None:
+            raise errors.NotFound(message=_('券活动模板不存在'))
+
+        if activity.grant_status == CashCouponActivity.GrantStatus.COMPLETED.value:
+            raise errors.ConflictError(message=_('已发放完成状态券模板不允许再创建券'))
+
+        granted_count = CashCoupon.objects.filter(activity_id=activity.id).count()
+        if activity.grant_total <= granted_count:
+            raise errors.ConflictError(message=_('发放的券数量已达到券模板规定的发放数量'))
+
+        # 券模板的有效性
+        try:
+            activity.validate_availability()
+        except errors.Error as exc:
+            raise errors.ConflictError(message=_('券模板可用性检验未通过，不能生成券') + str(exc))
+
+        # check permission
+        if not self.has_coupon_template_perm(activity=activity, user=user):
+            raise errors.AccessDenied(message=_('你没有此券模板的券的发放权限'))
+
+        count = min(activity.grant_total - granted_count, max_count)
+        index = 0
+        raise_exc = None
+        try:
+            for index in range(1, count + 1):
+                activity.clone_coupon()
+        except Exception as exc:
+            raise_exc = exc
+
+        granted_count = granted_count + index
+        if granted_count >= activity.grant_total:
+            activity.grant_status = CashCouponActivity.GrantStatus.COMPLETED.value
+        else:
+            activity.grant_status = CashCouponActivity.GrantStatus.GRANT.value
+
+        activity.granted_count = granted_count
+        activity.save(update_fields=['granted_count', 'grant_status'])
+
+        return activity, index, raise_exc

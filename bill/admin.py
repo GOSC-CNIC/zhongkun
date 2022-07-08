@@ -1,10 +1,11 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.utils.translation import gettext_lazy as _
 
 from .models import (
     PaymentHistory, UserPointAccount, VoPointAccount, PayApp, CashCouponActivity, CashCoupon,
     PayOrgnazition, PayAppService
 )
+from .managers import CashCouponActivityManager
 
 
 @admin.register(PaymentHistory)
@@ -46,6 +47,34 @@ class CashCouponActivityAdmin(admin.ModelAdmin):
                     'grant_status', 'creation_time', 'desc')
     list_display_links = ('name',)
     list_select_related = ('app_service',)
+    actions = ['create_coupon_for_activity']
+
+    @admin.action(description=_('为券模板/活动生成券'))
+    def create_coupon_for_activity(self, request, queryset):
+        length = len(queryset)
+        if length == 0:
+            self.message_user(request=request, message='你没有选中任何一个券模板/活动', level=messages.ERROR)
+            return
+        if length > 1:
+            self.message_user(request=request, message='每次只能选中一个券模板/活动', level=messages.ERROR)
+            return
+
+        obj = queryset[0]
+        try:
+            ay, count, err = CashCouponActivityManager().create_coupons_for_template(
+                activity_id=obj.id, user=request.user, max_count=2
+            )
+            if err is not None:
+                msg = '为券模板/活动生成券错误（%(error)s），本次成功生成券数量:%(count)d个。' % {
+                    'error': str(err), 'count': count
+                }
+                self.message_user(request=request, message=msg, level=messages.ERROR)
+                return
+        except Exception as e:
+            self.message_user(request=request, message=f'为券模板/活动生成券错误，{str(e)}', level=messages.ERROR)
+            return
+
+        self.message_user(request=request, message=_('成功生成券') + f':{count}', level=messages.SUCCESS)
 
 
 @admin.register(CashCoupon)

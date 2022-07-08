@@ -10,10 +10,10 @@ from utils.model import OwnerType, PayType
 from order.models import ResourceType, Order
 from vo.managers import VoManager
 from metering.models import MeteringServer, MeteringDisk, PaymentStatus
-from bill.models import CashCoupon
+from bill.models import CashCoupon, CashCouponActivity
 from service.models import ServiceConfig
 from .models import PaymentHistory, PayAppService, PayApp, PayOrgnazition
-from .managers import PaymentManager
+from .managers import PaymentManager, CashCouponActivityManager
 
 
 class PaymentManagerTests(TransactionTestCase):
@@ -1325,3 +1325,72 @@ class PaymentManagerTests(TransactionTestCase):
         # 券支付记录
         cc_historys = pay_history2.cashcouponpaymenthistory_set.all().order_by('creation_time')
         self.assertEqual(len(cc_historys), 0)
+
+
+class CashCouponActivityTests(TransactionTestCase):
+    def setUp(self):
+        self.user = get_or_create_user()
+        self.service = get_or_create_service()
+
+        # 余额支付有关配置
+        app = PayApp(name='app')
+        app.save()
+        po = PayOrgnazition(name='机构')
+        po.save()
+        self.app_service1 = PayAppService(
+            name='service1', app=app, orgnazition=po, service=self.service
+        )
+        self.app_service1.save()
+        self.service.pay_app_service_id = self.app_service1.id
+        self.service.save(update_fields=['pay_app_service_id'])
+
+    def test_create_coupons_for_template(self):
+        now_time = timezone.now()
+        activity = CashCouponActivity(
+            face_value=Decimal('668'),
+            effective_time=now_time,
+            expiration_time=now_time + timedelta(days=10),
+            app_service_id=self.app_service1.id,
+            grant_total=10,
+            granted_count=0
+        )
+        activity.save(force_insert=True)
+        ccam = CashCouponActivityManager()
+        with self.assertRaises(errors.NotFound):
+            ccam.create_coupons_for_template(activity_id='sss', user=self.user, max_count=2)
+
+        with self.assertRaises(errors.AccessDenied):
+            ccam.create_coupons_for_template(activity_id=activity.id, user=self.user, max_count=2)
+
+        self.app_service1.user_id = self.user
+        self.app_service1.save(update_fields=['user_id'])
+        ay, c, err = ccam.create_coupons_for_template(activity_id=activity.id, user=self.user, max_count=2)
+        self.assertEqual(c, 2)
+        count = CashCoupon.objects.filter(activity_id=activity.id).count()
+        self.assertEqual(count, 2)
+        self.assertEqual(ay.granted_count, 2)
+        self.assertEqual(ay.grant_status, CashCouponActivity.GrantStatus.GRANT.value)
+
+        self.app_service1.user_id = None
+        self.app_service1.save(update_fields=['user_id'])
+        with self.assertRaises(errors.AccessDenied):
+            ccam.create_coupons_for_template(activity_id=activity.id, user=self.user, max_count=2)
+
+        self.service.users.add(self.user)
+        ay, c, err = ccam.create_coupons_for_template(activity_id=activity.id, user=self.user, max_count=2)
+        self.assertEqual(c, 2)
+        self.assertEqual(ay.granted_count, 4)
+        self.assertEqual(ay.grant_status, CashCouponActivity.GrantStatus.GRANT.value)
+
+        ay, c, err = ccam.create_coupons_for_template(activity_id=activity.id, user=self.user, max_count=10)
+        self.assertEqual(c, 6)
+        self.assertEqual(ay.granted_count, 10)
+        self.assertEqual(ay.grant_status, CashCouponActivity.GrantStatus.COMPLETED.value)
+        count = CashCoupon.objects.filter(activity_id=activity.id).count()
+        self.assertEqual(count, 10)
+
+        coupon = CashCoupon.objects.filter(activity_id=activity.id).first()
+        self.assertEqual(coupon.face_value, activity.face_value)
+        self.assertEqual(coupon.balance, activity.face_value)
+        self.assertEqual(coupon.effective_time, activity.effective_time)
+        self.assertEqual(coupon.expiration_time, activity.expiration_time)

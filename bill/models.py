@@ -1,7 +1,8 @@
 from decimal import Decimal
 
 from django.db import models
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext, gettext_lazy as _
+from django.utils import timezone
 
 from utils.model import UuidModel, OwnerType, CustomIdModel
 from utils.model import UuidModel, get_encryptor
@@ -10,6 +11,7 @@ from order.models import ResourceType
 from users.models import UserProfile
 from vo.models import VirtualOrganization
 from service.models import ServiceConfig
+from core import errors
 
 
 class BasePointAccount(UuidModel):
@@ -210,13 +212,54 @@ class CashCouponActivity(UuidModel, CashCouponBase):
     creator = models.CharField(verbose_name=_('创建人'), max_length=128, blank=True, default='')
 
     class Meta:
-        verbose_name = _('代金券活动')
+        verbose_name = _('代金券活动/模板')
         verbose_name_plural = verbose_name
         db_table = 'cash_coupon_activity'
         ordering = ['-creation_time']
 
     def __str__(self):
         return self.name
+
+    def save(self, force_insert=False, force_update=False, using=None,
+             update_fields=None):
+        self.validate_availability()
+        super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
+
+    def validate_availability(self):
+        """
+        检验合理性可用性
+        """
+        if self.face_value <= Decimal('0'):
+            raise errors.ValidationError(message=gettext('券面额必须大于0'))
+
+        if self.effective_time is None or self.expiration_time is None:
+            raise errors.ValidationError(message=gettext('生效时间或过期时间不能为空'))
+
+        if self.effective_time >= self.expiration_time:
+            raise errors.ValidationError(message=gettext('生效时间必须小于过期时间'))
+
+        if self.expiration_time <= timezone.now():
+            raise errors.ValidationError(message=gettext('过期时间必须大于当前时间'))
+
+        if not self.app_service_id:
+            raise errors.ValidationError(message=gettext('券必须绑定一个服务'))
+
+    def clone_coupon(self):
+        """
+        创建一个券
+        """
+        coupon = CashCoupon(
+            face_value=self.face_value,
+            effective_time=self.effective_time,
+            expiration_time=self.expiration_time,
+            app_service_id=self.app_service_id,
+            balance=self.face_value,
+            status=CashCoupon.Status.WAIT.value,
+            granted_time=timezone.now(),
+            activity_id=self.id
+        )
+        coupon.save(force_insert=True)
+        return coupon
 
 
 class CashCoupon(CashCouponBase):

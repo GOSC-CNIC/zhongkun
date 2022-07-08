@@ -54,8 +54,8 @@ class Migration(migrations.Migration):
                 ('creator', models.CharField(blank=True, default='', max_length=128, verbose_name='创建人')),
             ],
             options={
-                'verbose_name': '代金券活动',
-                'verbose_name_plural': '代金券活动',
+                'verbose_name': '代金券活动/模板',
+                'verbose_name_plural': '代金券活动/模板',
                 'db_table': 'cash_coupon_activity',
                 'ordering': ['-creation_time'],
             },

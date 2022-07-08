@@ -123,6 +123,11 @@ class NoFoundArgument(BadRequest):
     default_code = 'NoFoundArgument'
 
 
+class ValidationError(BadRequest):
+    default_message = 'Validation Error.'
+    default_code = 'ValidationError'
+
+
 class AuthenticationFailed(APIException):
     default_message = 'Incorrect authentication credentials.'
     default_code = 'AuthenticationFailed'
