@@ -2,9 +2,10 @@ import hashlib
 import collections
 import io
 import random
-from datetime import datetime
+from datetime import datetime, timedelta
 from string import printable
 from urllib import parse
+from decimal import Decimal
 
 from django.urls import reverse
 from django.utils import timezone
@@ -553,6 +554,63 @@ class ServersTests(MyAPITestCase):
         response = self.client.post(f'{url}?{query}', data={'action': 'start'})
         self.assertErrorResponse(status_code=500, code='InternalError', response=response)
 
+        # ------ 过期停服停机挂起的云主机测试 -----------
+        self.client.logout()
+        self.client.force_login(user=self.user)
+        user_server = create_server_metadata(
+            service=self.service, user=self.user,
+            default_user=self.default_user, default_password=self.default_password,
+            ipv4='127.0.0.1'
+        )
+        user_server.expiration_time = timezone.now()
+        user_server.situation = Server.Situation.EXPIRED.value
+        user_server.save(update_fields=['situation', 'expiration_time'])
+        user_server.refresh_from_db()
+        self.assertEqual(user_server.situation, Server.Situation.EXPIRED.value)
+
+        url = reverse('api:servers-server-action', kwargs={'id': user_server.id})
+        response = self.client.post(url, data={'action': 'start'})
+        self.assertErrorResponse(status_code=409, code='ExpiredSuspending', response=response)
+        user_server.refresh_from_db()
+        self.assertEqual(user_server.situation, Server.Situation.EXPIRED.value)
+
+        user_server.expiration_time = timezone.now() + timedelta(days=1)
+        user_server.save(update_fields=['expiration_time'])
+        response = self.client.post(url, data={'action': 'start'})
+        self.assertErrorResponse(status_code=500, code='InternalError', response=response)
+        user_server.refresh_from_db()
+        self.assertEqual(user_server.situation, Server.Situation.NORMAL.value)
+
+        # ------ 欠费停服停机挂起的云主机测试 -----------
+        service = self.vo_server.service
+        service.pay_app_service_id = 'test'
+        service.save(update_fields=['pay_app_service_id'])
+
+        self.vo_server.situation = Server.Situation.ARREARAGE.value
+        self.vo_server.save(update_fields=['situation'])
+        self.vo_server.refresh_from_db()
+        self.assertEqual(self.vo_server.situation, Server.Situation.ARREARAGE.value)
+
+        url = reverse('api:servers-server-action', kwargs={'id': self.vo_server.id})
+        response = self.client.post(url, data={'action': 'start'})
+        self.assertErrorResponse(status_code=500, code='InternalError', response=response)
+        self.vo_server.refresh_from_db()
+        self.assertEqual(self.vo_server.situation, Server.Situation.NORMAL.value)
+
+        vopointaccount = self.vo_server.vo.vopointaccount
+        vopointaccount.balance = Decimal('-1')
+        vopointaccount.save(update_fields=['balance'])
+        self.vo_server.situation = Server.Situation.ARREARAGE.value
+        self.vo_server.save(update_fields=['situation'])
+        self.vo_server.refresh_from_db()
+        self.assertEqual(self.vo_server.situation, Server.Situation.ARREARAGE.value)
+
+        url = reverse('api:servers-server-action', kwargs={'id': self.vo_server.id})
+        response = self.client.post(url, data={'action': 'start'})
+        self.assertErrorResponse(status_code=409, code='ArrearageSuspending', response=response)
+        self.vo_server.refresh_from_db()
+        self.assertEqual(self.vo_server.situation, Server.Situation.ARREARAGE.value)
+
     def test_vo_server_permission(self):
         member_user = get_or_create_user(username='vo-member')
         self.client.logout()
@@ -866,6 +924,33 @@ class ServersTests(MyAPITestCase):
         miss_server.save(update_fields=['task_status'])
         response = self.client.post(url, data={'image_id': 'test'})
         self.assertEqual(response.status_code, 500)
+
+        # ------ 过期停服停机挂起的云主机测试 -----------
+        self.client.logout()
+        self.client.force_login(user=self.user)
+        user_server = create_server_metadata(
+            service=self.service, user=self.user,
+            default_user=self.default_user, default_password=self.default_password,
+            ipv4='127.0.0.1'
+        )
+        user_server.expiration_time = timezone.now()
+        user_server.situation = Server.Situation.EXPIRED.value
+        user_server.save(update_fields=['situation', 'expiration_time'])
+        user_server.refresh_from_db()
+        self.assertEqual(user_server.situation, Server.Situation.EXPIRED.value)
+
+        url = reverse('api:servers-rebuild', kwargs={'id': user_server.id})
+        response = self.client.post(url, data={'image_id': 'test'})
+        self.assertErrorResponse(status_code=409, code='ExpiredSuspending', response=response)
+        user_server.refresh_from_db()
+        self.assertEqual(user_server.situation, Server.Situation.EXPIRED.value)
+
+        user_server.expiration_time = timezone.now() + timedelta(days=1)
+        user_server.save(update_fields=['expiration_time'])
+        response = self.client.post(url, data={'image_id': 'test'})
+        self.assertErrorResponse(status_code=500, code='InternalError', response=response)
+        user_server.refresh_from_db()
+        self.assertEqual(user_server.situation, Server.Situation.NORMAL.value)
 
 
 class ServiceTests(MyAPITestCase):

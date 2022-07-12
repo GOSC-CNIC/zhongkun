@@ -10,6 +10,7 @@ from service.models import ServiceConfig
 from utils.model import get_encryptor
 from vo.models import VirtualOrganization
 
+
 User = get_user_model()
 
 
@@ -46,6 +47,11 @@ class ServerBase(models.Model):
         POSTPAID = 'postpaid', _('按量计费')
         QUOTA = 'quota', _('资源配额券')
 
+    class Situation(models.TextChoices):
+        NORMAL = 'normal', _('正常')
+        EXPIRED = 'expired', _('过期停机')
+        ARREARAGE = 'arrearage', _('欠费停机')
+
     id = models.CharField(blank=True, editable=False, max_length=36, primary_key=True, verbose_name='ID')
     name = models.CharField(max_length=255, verbose_name=_('服务器实例名称'))
     instance_id = models.CharField(max_length=128, verbose_name=_('云主机实例ID'), help_text=_('各接入服务中云主机的ID'))
@@ -75,6 +81,12 @@ class ServerBase(models.Model):
     azone_id = models.CharField(verbose_name=_('可用区'), max_length=36, blank=True, default='')
     disk_size = models.IntegerField(verbose_name=_('系统盘GB'), default=0)
     network_id = models.CharField(max_length=64, verbose_name=_('网络ID'), default='')
+    situation = models.CharField(
+        verbose_name=_('过期欠费管控情况'), max_length=16, choices=Situation.choices, default=Situation.NORMAL.value,
+        help_text=_('过期欠费等状态下云主机的停机管控情况')
+    )
+    situation_time = models.DateTimeField(
+        verbose_name=_('管控情况时间'), null=True, blank=True, default=None, help_text=_('过期欠费管控开始时间'))
 
     class Meta:
         abstract = True
@@ -127,6 +139,18 @@ class ServerBase(models.Model):
 
     def belong_to_vo(self):
         return self.classification == self.Classification.VO.value
+
+    def set_situation_normal(self):
+        if self.situation == self.Situation.NORMAL.value:
+            return True
+
+        self.situation = self.Situation.NORMAL.value
+        try:
+            self.save(update_fields=['situation'])
+        except Exception as e:
+            return False
+
+        return True
 
 
 class Server(ServerBase):
@@ -347,6 +371,8 @@ class ServerArchive(ServerBase):
         a.azone_id = server.azone_id
         a.disk_size = server.disk_size
         a.network_id = server.network_id
+        a.situation = server.situation
+        a.situation_time = server.situation_time
 
         if commit:
             a.save()

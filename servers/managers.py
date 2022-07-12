@@ -1,9 +1,14 @@
+from decimal import Decimal
+
 from django.utils.translation import gettext as _
 from django.db.models import Subquery
+from django.utils import timezone
 
 from core import errors
 from vo.managers import VoManager
+from bill.managers import PaymentManager
 from .models import Server, ServerArchive, Flavor
+from .server_instance import ServerInstance
 
 
 class ServerManager:
@@ -182,6 +187,84 @@ class ServerManager:
         archieve = ServerArchive.objects.filter(
             server_id=server_id, archive_type=ServerArchive.ArchiveType.ARCHIVE.value).first()
         return archieve
+
+    @staticmethod
+    def check_situation_suspend(server: Server):
+        """
+        检测云主机是否过期，欠费被停服挂起
+        * 如果云主机处于欠费挂起状态，查询用户是否补交欠款，不再欠费，不再欠费的话就停止云主机“停服挂起“状态恢复正常；
+        * 如果云主机处于过期挂起状态，查询云主机是否续费，不再过期的话就停止云主机“停服挂起“状态恢复正常；
+
+        :raises: Error
+        """
+        if server.situation == Server.Situation.NORMAL.value:
+            return
+        elif server.situation == Server.Situation.EXPIRED.value:
+            if server.expiration_time and server.expiration_time <= timezone.now():
+                raise errors.ExpiredSuspending(message=_('云主机过期停机停服挂起中'))
+            server.set_situation_normal()
+        elif server.situation == Server.Situation.ARREARAGE.value:
+            if server.service is None:
+                raise errors.ArrearageSuspending(
+                    message=_('云主机欠费停机停服挂起中，云主机所属服务未知，无法查询用户或vo组是否还欠费'))
+            elif not server.service.pay_app_service_id:
+                raise errors.ArrearageSuspending(
+                    message=_('云主机欠费停机停服挂起中，云主机所属服务没有配置余额结算系统app服务id，无法查询用户或vo组是否还欠费'))
+
+            if server.belong_to_vo():
+                ok = PaymentManager().has_enough_balance_vo(
+                    vo_id=server.vo_id, money_amount=Decimal('0'), with_coupons=True,
+                    app_service_id=server.service.pay_app_service_id
+                )
+            else:
+                ok = PaymentManager().has_enough_balance_user(
+                    user_id=server.user_id, money_amount=Decimal('0'), with_coupons=True,
+                    app_service_id=server.service.pay_app_service_id
+                )
+            if ok:
+                server.set_situation_normal()
+            else:
+                raise errors.ArrearageSuspending(message=_('云主机欠费停机停服挂起中'))
+        else:
+            raise errors.ConflictError(message=_('云主机管控状态未知'))
+
+    def do_arrearage_suspend_server(self, server: Server):
+        """
+        云服务器欠费，关机挂起
+
+        :raises: Error
+        """
+        self.do_suspend_server(server=server,situation=Server.Situation.ARREARAGE.value)
+
+    def do_expired_suspend_server(self, server: Server):
+        """
+        云服务器过期，关机挂起
+
+        :raises: Error
+        """
+        self.do_suspend_server(server=server,situation=Server.Situation.EXPIRED.value)
+
+    def do_suspend_server(self, server: Server, situation: str):
+        """
+        云服务器欠费或过期，关机挂起
+
+        :raises: Error
+        """
+        if situation not in Server.Situation.values:
+            raise errors.Error(message=_('设置过期欠费管控状态值无效'))
+
+        si = ServerInstance(server)
+        si.action(act=si.ServerAction.POWER_OFF)
+        status_code, status_text = si.status()
+        if status_code not in [si.ServerStatus.SHUTOFF, si.ServerStatus.SHUTDOWN]:
+            si.action(act=si.ServerAction.POWER_OFF)
+
+        server.situation = Server.Situation.ARREARAGE.value
+        server.situation_time = timezone.now()
+        try:
+            server.save(update_fields=['situation', 'situation_time'])
+        except Exception as exc:
+            raise errors.Error.from_error(exc)
 
 
 class ServerArchiveManager:

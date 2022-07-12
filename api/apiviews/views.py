@@ -579,6 +579,13 @@ class ServersViewSet(CustomGenericViewSet):
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
+        # 过期，欠费挂起，不允许开机，需要检查是否续费，是否不再欠费
+        if act in [inputs.ServerAction.START, inputs.ServerAction.REBOOT]:
+            try:
+                ServerManager.check_situation_suspend(server=server)
+            except exceptions.Error as exc:
+                return self.exception_response(exc)
+
         params = inputs.ServerActionInput(
             instance_id=server.instance_id, instance_name=server.instance_name, action=act)
 

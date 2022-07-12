@@ -142,6 +142,12 @@ class ServerHandler:
                 message=_('云主机已加锁锁定了任何操作，请解锁后重试')
             ))
 
+        # 过期，欠费挂起，不允许重建，需要检查是否续费，是否不再欠费
+        try:
+            ServerManager.check_situation_suspend(server=server)
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
         server.task_status = server.TASK_IN_CREATING
         server.image = ''
         server.image_id = image_id

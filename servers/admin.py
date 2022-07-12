@@ -9,7 +9,7 @@ class ServerAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
     list_display = ('id', 'service', 'azone_id', 'instance_id', 'vcpus', 'ram', 'disk_size', 'ipv4', 'image',
                     'creation_time', 'start_time', 'user', 'task_status', 'center_quota',
-                    'pay_type', 'classification', 'vo', 'lock',
+                    'pay_type', 'classification', 'vo', 'lock', 'situation', 'situation_time',
                     'default_user', 'show_default_password', 'expiration_time', 'remarks')
     search_fields = ['name', 'image', 'ipv4', 'remarks']
     list_filter = ['service__data_center', 'service', 'classification']

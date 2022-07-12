@@ -309,6 +309,16 @@ class SomeOrderNeetToTrade(ConflictError):
     default_code = 'SomeOrderNeetToTrade'
 
 
+class ExpiredSuspending(ConflictError):
+    default_message = _('过期停服挂起中。')
+    default_code = 'ExpiredSuspending'
+
+
+class ArrearageSuspending(ConflictError):
+    default_message = _('欠费停服挂起中。')
+    default_code = 'ArrearageSuspending'
+
+
 def convert_to_error(err):
     if isinstance(err, Error):
         return err
