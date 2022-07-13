@@ -1326,6 +1326,244 @@ class PaymentManagerTests(TransactionTestCase):
         cc_historys = pay_history2.cashcouponpaymenthistory_set.all().order_by('creation_time')
         self.assertEqual(len(cc_historys), 0)
 
+    def test_has_enough_balance_user(self):
+        pm = PaymentManager()
+        # no coupon, no enough balance
+        ok = pm.has_enough_balance_user(
+            user_id=self.user.id, money_amount=Decimal('10'), with_coupons=True, app_service_id=self.app_service1.id
+        )
+        self.assertEqual(ok, False)
+
+        # no coupon, 不欠费
+        ok = pm.has_enough_balance_user(
+            user_id=self.user.id, money_amount=Decimal('0'), with_coupons=True, app_service_id=self.app_service1.id
+        )
+        self.assertEqual(ok, True)
+
+        userpointaccount = self.user.userpointaccount
+        userpointaccount.balance = Decimal('20')
+        userpointaccount.save(update_fields=['balance'])
+
+        # no coupon, enough balance
+        ok = pm.has_enough_balance_user(
+            user_id=self.user.id, money_amount=Decimal('10'), with_coupons=True, app_service_id=self.app_service1.id
+        )
+        self.assertEqual(ok, True)
+
+        # no coupon, no enough balance
+        ok = pm.has_enough_balance_user(
+            user_id=self.user.id, money_amount=Decimal('21'), with_coupons=True, app_service_id=self.app_service1.id
+        )
+        self.assertEqual(ok, False)
+
+        # no coupon, 不欠费enough balance
+        ok = pm.has_enough_balance_user(
+            user_id=self.user.id, money_amount=Decimal('0'), with_coupons=True, app_service_id=self.app_service1.id
+        )
+        self.assertEqual(ok, True)
+
+        # create coupon
+        now_time = timezone.now()
+        # 有效, service
+        coupon1_user = CashCoupon(
+            face_value=Decimal('20'),
+            balance=Decimal('20'),
+            effective_time=now_time - timedelta(days=1),
+            expiration_time=now_time + timedelta(days=10),
+            app_service_id=self.service.pay_app_service_id,
+            status=CashCoupon.Status.AVAILABLE.value,
+            owner_type=OwnerType.USER.value,
+            user_id=self.user.id, vo_id=None
+        )
+        coupon1_user.save(force_insert=True)
+
+        # 过期, service
+        coupon2_user = CashCoupon(
+            face_value=Decimal('25'),
+            balance=Decimal('25'),
+            effective_time=now_time - timedelta(days=2),
+            expiration_time=now_time - timedelta(days=1),
+            app_service_id=self.service.pay_app_service_id,
+            status=CashCoupon.Status.AVAILABLE.value,
+            owner_type=OwnerType.USER.value,
+            user_id=self.user.id, vo_id=None
+        )
+        coupon2_user.save(force_insert=True)
+
+        # has coupon, balance 20 + coupon 20, enough balance
+        ok = pm.has_enough_balance_user(
+            user_id=self.user.id, money_amount=Decimal('30'), with_coupons=True, app_service_id=self.app_service1.id
+        )
+        self.assertEqual(ok, True)
+
+        # has coupon, balance 20 + coupon 20, no enough balance
+        ok = pm.has_enough_balance_user(
+            user_id=self.user.id, money_amount=Decimal('41'), with_coupons=True, app_service_id=self.app_service1.id
+        )
+        self.assertEqual(ok, False)
+
+        # has coupon, 不欠费enough balance
+        ok = pm.has_enough_balance_user(
+            user_id=self.user.id, money_amount=Decimal('0'), with_coupons=True, app_service_id=self.app_service1.id
+        )
+        self.assertEqual(ok, True)
+
+        userpointaccount = self.user.userpointaccount
+        userpointaccount.balance = Decimal('-25')
+        userpointaccount.save(update_fields=['balance'])
+
+        # has coupon, balance -25 + coupon 20, enough balance
+        ok = pm.has_enough_balance_user(
+            user_id=self.user.id, money_amount=Decimal('20'), with_coupons=True, app_service_id=self.app_service1.id
+        )
+        self.assertEqual(ok, True)
+
+        # has coupon, balance -25 + coupon 20, no enough balance
+        ok = pm.has_enough_balance_user(
+            user_id=self.user.id, money_amount=Decimal('21'), with_coupons=True, app_service_id=self.app_service1.id
+        )
+        self.assertEqual(ok, False)
+
+        # has coupon, 不欠费enough balance
+        ok = pm.has_enough_balance_user(
+            user_id=self.user.id, money_amount=Decimal('0'), with_coupons=True, app_service_id=self.app_service1.id
+        )
+        self.assertEqual(ok, True)
+
+        coupon1_user.balance = Decimal('0')
+        coupon1_user.save(update_fields=['balance'])
+
+        # has coupon, balance -25 + coupon 0, not enough balance
+        ok = pm.has_enough_balance_user(
+            user_id=self.user.id, money_amount=Decimal('1'), with_coupons=True, app_service_id=self.app_service1.id
+        )
+        self.assertEqual(ok, False)
+
+        # has coupon, 欠费not enough balance
+        ok = pm.has_enough_balance_user(
+            user_id=self.user.id, money_amount=Decimal('0'), with_coupons=True, app_service_id=self.app_service1.id
+        )
+        self.assertEqual(ok, False)
+
+    def test_has_enough_balance_vo(self):
+        pm = PaymentManager()
+        # no coupon, no enough balance
+        ok = pm.has_enough_balance_vo(
+            vo_id=self.vo.id, money_amount=Decimal('10'), with_coupons=True, app_service_id=self.app_service1.id
+        )
+        self.assertEqual(ok, False)
+
+        # no coupon, 不欠费
+        ok = pm.has_enough_balance_vo(
+            vo_id=self.vo.id, money_amount=Decimal('0'), with_coupons=True, app_service_id=self.app_service1.id
+        )
+        self.assertEqual(ok, True)
+
+        vopointaccount = self.vo.vopointaccount
+        vopointaccount.balance = Decimal('20')
+        vopointaccount.save(update_fields=['balance'])
+
+        # no coupon, enough balance
+        ok = pm.has_enough_balance_vo(
+            vo_id=self.vo.id, money_amount=Decimal('10'), with_coupons=True, app_service_id=self.app_service1.id
+        )
+        self.assertEqual(ok, True)
+
+        # no coupon, no enough balance
+        ok = pm.has_enough_balance_vo(
+            vo_id=self.vo.id, money_amount=Decimal('21'), with_coupons=True, app_service_id=self.app_service1.id
+        )
+        self.assertEqual(ok, False)
+
+        # no coupon, 不欠费enough balance
+        ok = pm.has_enough_balance_vo(
+            vo_id=self.vo.id, money_amount=Decimal('0'), with_coupons=True, app_service_id=self.app_service1.id
+        )
+        self.assertEqual(ok, True)
+
+        # create coupon
+        now_time = timezone.now()
+        # 有效, service
+        coupon1_vo = CashCoupon(
+            face_value=Decimal('20'),
+            balance=Decimal('20'),
+            effective_time=now_time - timedelta(days=1),
+            expiration_time=now_time + timedelta(days=10),
+            app_service_id=self.service.pay_app_service_id,
+            status=CashCoupon.Status.AVAILABLE.value,
+            owner_type=OwnerType.VO.value,
+            vo_id=self.vo.id, user_id=None
+        )
+        coupon1_vo.save(force_insert=True)
+
+        # 过期, service
+        coupon2_vo = CashCoupon(
+            face_value=Decimal('25'),
+            balance=Decimal('25'),
+            effective_time=now_time - timedelta(days=2),
+            expiration_time=now_time - timedelta(days=1),
+            app_service_id=self.service.pay_app_service_id,
+            status=CashCoupon.Status.AVAILABLE.value,
+            owner_type=OwnerType.VO.value,
+            vo_id=self.vo.id, user_id=None
+        )
+        coupon2_vo.save(force_insert=True)
+
+        # has coupon, balance 20 + coupon 20, enough balance
+        ok = pm.has_enough_balance_vo(
+            vo_id=self.vo.id, money_amount=Decimal('30'), with_coupons=True, app_service_id=self.app_service1.id
+        )
+        self.assertEqual(ok, True)
+
+        # has coupon, balance 20 + coupon 20, no enough balance
+        ok = pm.has_enough_balance_vo(
+            vo_id=self.vo.id, money_amount=Decimal('41'), with_coupons=True, app_service_id=self.app_service1.id
+        )
+        self.assertEqual(ok, False)
+
+        # has coupon, 不欠费enough balance
+        ok = pm.has_enough_balance_vo(
+            vo_id=self.vo.id, money_amount=Decimal('0'), with_coupons=True, app_service_id=self.app_service1.id
+        )
+        self.assertEqual(ok, True)
+
+        vopointaccount = self.vo.vopointaccount
+        vopointaccount.balance = Decimal('-25')
+        vopointaccount.save(update_fields=['balance'])
+
+        # has coupon, balance -25 + coupon 20, enough balance
+        ok = pm.has_enough_balance_vo(
+            vo_id=self.vo.id, money_amount=Decimal('20'), with_coupons=True, app_service_id=self.app_service1.id
+        )
+        self.assertEqual(ok, True)
+
+        # has coupon, balance -25 + coupon 20, no enough balance
+        ok = pm.has_enough_balance_vo(
+            vo_id=self.vo.id, money_amount=Decimal('21'), with_coupons=True, app_service_id=self.app_service1.id
+        )
+        self.assertEqual(ok, False)
+
+        # has coupon, 不欠费enough balance
+        ok = pm.has_enough_balance_vo(
+            vo_id=self.vo.id, money_amount=Decimal('0'), with_coupons=True, app_service_id=self.app_service1.id
+        )
+        self.assertEqual(ok, True)
+
+        coupon1_vo.balance = Decimal('0')
+        coupon1_vo.save(update_fields=['balance'])
+
+        # has coupon, balance -25 + coupon 0, not enough balance
+        ok = pm.has_enough_balance_vo(
+            vo_id=self.vo.id, money_amount=Decimal('1'), with_coupons=True, app_service_id=self.app_service1.id
+        )
+        self.assertEqual(ok, False)
+
+        # has coupon, 欠费not enough balance
+        ok = pm.has_enough_balance_vo(
+            vo_id=self.vo.id, money_amount=Decimal('0'), with_coupons=True, app_service_id=self.app_service1.id
+        )
+        self.assertEqual(ok, False)
+
 
 class CashCouponActivityTests(TransactionTestCase):
     def setUp(self):

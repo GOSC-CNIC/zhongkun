@@ -56,26 +56,46 @@ class PaymentManager:
     ):
         """
         用户是否有足够的余额
+
+        * 如果使用券，要同时指定with_coupons和app_service_id
+
+        :param vo_id: vo id
+        :param money_amount: Decimal('0')可以判断是否欠费
+        :param with_coupons: 是否用券
+        :param app_service_id: service_id对应的余额结算中app service id
         :return:
             True        # 满足
             False
         """
+        if money_amount < Decimal('0'):
+            return errors.InvalidArgument(message=_('查询是否有足够的余额，金额不能小于0'))
+
         user_account = self.get_user_point_account(user_id=user_id)
-        total_coupon_balance = user_account.balance
-        if with_coupons:
-            coupons = CashCouponManager().get_user_cash_coupons(
-                user_id=user_id, coupon_ids=None, select_for_update=False
-            )
+        if not with_coupons:
+            return user_account.balance >= money_amount
 
-            # 适用的券
-            usable_coupons, unusable_coupons = CashCouponManager.sorting_usable_coupons(
-                coupons=coupons, app_service_id=app_service_id
-            )
+        coupons = CashCouponManager().get_user_cash_coupons(
+            user_id=user_id, coupon_ids=None, select_for_update=False
+        )
 
-            for c in usable_coupons:
-                total_coupon_balance += c.balance
+        # 适用的券
+        usable_coupons, unusable_coupons = CashCouponManager.sorting_usable_coupons(
+            coupons=coupons, app_service_id=app_service_id
+        )
 
-        return total_coupon_balance >= money_amount
+        total_coupon_balance = Decimal('0')
+        for c in usable_coupons:
+            total_coupon_balance += c.balance
+
+        if total_coupon_balance <= Decimal('0'):  # 没有可用有券
+            return user_account.balance >= money_amount
+
+        if user_account.balance >= Decimal('0'):  # 有余额（正），券余额+余额
+            total_balance = total_coupon_balance + user_account.balance
+        else:
+            total_balance = total_coupon_balance    # 没余额（负或0），券余额
+
+        return total_balance >= money_amount
 
     def has_enough_balance_vo(
             self, vo_id: str, money_amount: Decimal,
@@ -83,25 +103,45 @@ class PaymentManager:
     ):
         """
         vo组是否有足够的余额
+
+        * 如果使用券，要同时指定with_coupons和app_service_id
+
+        :param vo_id: vo id
+        :param money_amount: Decimal('0')可以判断是否欠费
+        :param with_coupons: 是否用券
+        :param app_service_id: service_id对应的余额结算中app service id
         :return:
             True        # 满足
             False
         """
+        if money_amount < Decimal('0'):
+            return errors.InvalidArgument(message=_('查询是否有足够的余额，金额不能小于0'))
+
         vo_account = self.get_vo_point_account(vo_id=vo_id)
-        total_coupon_balance = vo_account.balance
-        if with_coupons:
-            coupons = CashCouponManager().get_vo_cash_coupons(
-                vo_id=vo_id, coupon_ids=None, select_for_update=False
-            )
-            # 适用的券
-            usable_coupons, unusable_coupons = CashCouponManager.sorting_usable_coupons(
-                coupons=coupons, app_service_id=app_service_id
-            )
+        if not with_coupons:
+            return vo_account.balance >= money_amount
 
-            for c in usable_coupons:
-                total_coupon_balance += c.balance
+        coupons = CashCouponManager().get_vo_cash_coupons(
+            vo_id=vo_id, coupon_ids=None, select_for_update=False
+        )
+        # 适用的券
+        usable_coupons, unusable_coupons = CashCouponManager.sorting_usable_coupons(
+            coupons=coupons, app_service_id=app_service_id
+        )
 
-        return total_coupon_balance >= money_amount
+        total_coupon_balance = Decimal('0')
+        for c in usable_coupons:
+            total_coupon_balance += c.balance
+
+        if total_coupon_balance <= Decimal('0'):  # 没有可用有券
+            return vo_account.balance >= money_amount
+
+        if vo_account.balance >= Decimal('0'):  # 有余额（正），券余额+余额
+            total_balance = total_coupon_balance + vo_account.balance
+        else:
+            total_balance = total_coupon_balance  # 没余额（负或0），券余额
+
+        return total_balance >= money_amount
 
     @staticmethod
     def _pre_payment_bill_inspect(metering_bill: MeteringBase, remark: str):
