@@ -139,8 +139,8 @@ class PriceManager:
         按量计费云主机计价
         """
         price = self.enforce_price()
-        ram_amount = price.vm_ram * Decimal.from_float(ram_gib_hours / 24)
-        cpu_amount = price.vm_cpu * Decimal.from_float(cpu_hours / 24)
-        disk_amount = price.vm_disk * Decimal.from_float(disk_gib_hours / 24)
-        ip_amount = price.vm_pub_ip * Decimal.from_float(public_ip_hours / 24)
+        ram_amount = price.vm_ram * Decimal.from_float(ram_gib_hours)
+        cpu_amount = price.vm_cpu * Decimal.from_float(cpu_hours)
+        disk_amount = price.vm_disk * Decimal.from_float(disk_gib_hours)
+        ip_amount = price.vm_pub_ip * Decimal.from_float(public_ip_hours)
         return ram_amount + cpu_amount + disk_amount + ip_amount

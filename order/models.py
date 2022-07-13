@@ -216,20 +216,20 @@ class Resource(UuidModel):
 
 class Price(UuidModel):
     vm_ram = models.DecimalField(
-        verbose_name=_('内存GiB每天'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
-        help_text=_('内存每GiB每天的价格'))
+        verbose_name=_('内存GiB每小时'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
+        help_text=_('内存每GiB每小时的价格'))
     vm_cpu = models.DecimalField(
-        verbose_name=_('每CPU每天'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
-        help_text=_('每个CPU每天的价格'))
+        verbose_name=_('每CPU每小时'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
+        help_text=_('每个CPU每小时的价格'))
     vm_pub_ip = models.DecimalField(
-        verbose_name=_('每公网IP每天'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
-        help_text=_('每个公网IP每天的价格'))
+        verbose_name=_('每公网IP每小时'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
+        help_text=_('每个公网IP每小时的价格'))
     vm_disk = models.DecimalField(
-        verbose_name=_('系统盘GiB每天'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
-        help_text=_('系统盘每GiB每天的价格'))
+        verbose_name=_('系统盘GiB每小时'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
+        help_text=_('系统盘每GiB每小时的价格'))
     vm_disk_snap = models.DecimalField(
-        verbose_name=_('云盘快照GiB每天'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
-        help_text=_('云盘快照每GiB每天的价格'))
+        verbose_name=_('系统盘快照GiB每小时'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
+        help_text=_('系统盘快照每GiB每小时的价格'))
     vm_upstream = models.DecimalField(
         verbose_name=_('云主机上行流量每GiB'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
         help_text=_('云主机上行流量每GiB的价格'))
