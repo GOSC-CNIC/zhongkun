@@ -162,6 +162,7 @@ class MeteringServerTests(TransactionTestCase):
 
         original_amount1 = (self.price.vm_cpu * 4) + (self.price.vm_ram * 4) + (
                 self.price.vm_disk * 100) + self.price.vm_pub_ip
+        original_amount1 = original_amount1 * 24
         self.assertEqual(metering.original_amount, quantize_10_2(original_amount1))
         self.assertEqual(metering.trade_amount, Decimal(0))
         self.assertEqual(metering.pay_type, PayType.PREPAID.value)
@@ -183,7 +184,7 @@ class MeteringServerTests(TransactionTestCase):
             self.assertEqual(up_int(metering.public_ip_hours), 0)
 
         original_amount2 = (self.price.vm_cpu * 3) + (self.price.vm_ram * 3) + (self.price.vm_disk * 88)
-        original_amount2 = original_amount2 * Decimal.from_float(hours / 24)
+        original_amount2 = original_amount2 * Decimal.from_float(hours)
         self.assertEqual(metering.original_amount, quantize_10_2(original_amount2))
         self.assertEqual(metering.trade_amount, Decimal(0))
         self.assertEqual(metering.pay_type, PayType.POSTPAID.value)

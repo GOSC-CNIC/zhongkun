@@ -45,6 +45,16 @@ class TradeTestViewSet(PaySignGenericViewSet):
         """
         加签验签测试
 
+            ## 接入余额结算准备条件
+                * 需要先注册APP，再注册app service，一个app下可以有多个app service，至少要有一个app service，
+                  支付扣费交易时需要指定app service id；
+                * app service可以理解为在app下进一步细分了一个层级，例如一个接入的app下有云主机和存储2种资源服务，结算的时候2种资源的订单费用
+                  想分别结算，就可以分别注册一个app service 1和app service 2，不想分开结算就注册一个app service，支付交易记录会记录
+                  app service id。
+                * 余额结算系统有代金券，一个代金券绑定到一个app service，券的结算使用限制在对应的app service，在app下细分一
+                  个app service层级，也是为了细分代金券的结算使用范围（有的券只能用于云主机资源订单费用抵扣，有的券只能用于存储资源订单费用抵扣）。
+                * 月结算系统每个app需要配置app接入者一方的RSA2048密钥对的公钥，用于双方的签名认证。
+
             ## 请求签名生成规则：
 
             ### 待签名字符串(string_to_sign)的具体格式如下，无论各部分内容是否为空，各部分间的分割符“\\n“不能缺少。
@@ -65,7 +75,7 @@ class TradeTestViewSet(PaySignGenericViewSet):
                 1. 以此api为例 URI: /api/trade/test
                 2. api有3个query参数: param1=test param1 ; param2=参数2 ; param3=66
                    QueryString: param1=test%20param1&param2=%E5%8F%82%E6%95%B02&param3=66
-                3. 请求报文主体body: {uri: 'a': 1, 'b': 'test', 'c': '测试'}
+                3. 请求报文主体body: {'a': 1, 'b': 'test', 'c': '测试'}
                 4. 最后得到的待签名字符串如下：
                 ```
                 SHA256-RSA2048\\n
@@ -95,6 +105,7 @@ class TradeTestViewSet(PaySignGenericViewSet):
                 G3xZe2kIhto-z45Q21kM-vIGjthlmmH0_Z-VMo2cBSlLmcLOwNFN4cVachPYYJWeB5bAjem6lUVDKsoDP3Q
 
             ## 应答验签签名规则：
+            
             ### 应答签名通过3个标头header返回：
                 标头 Pay-Sign-Type：SHA256-RSA2048     # 认证类型
                 标头 Pay-Timestamp：1657184002         # 响应时间戳

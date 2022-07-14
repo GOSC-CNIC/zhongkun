@@ -7,6 +7,7 @@ from django.utils import timezone
 from core import errors
 from vo.managers import VoManager
 from bill.managers import PaymentManager
+from utils.model import PayType
 from .models import Server, ServerArchive, Flavor
 from .server_instance import ServerInstance
 
@@ -204,6 +205,10 @@ class ServerManager:
                 raise errors.ExpiredSuspending(message=_('云主机过期停机停服挂起中'))
             server.set_situation_normal()
         elif server.situation == Server.Situation.ARREARAGE.value:
+            if server.pay_type == PayType.PREPAID.value:    # 包年包月预付费不应该欠费挂起
+                server.set_situation_normal()
+                return
+
             if server.service is None:
                 raise errors.ArrearageSuspending(
                     message=_('云主机欠费停机停服挂起中，云主机所属服务未知，无法查询用户或vo组是否还欠费'))
