@@ -44,12 +44,14 @@ class TradeTestTests(MyAPITestCase):
         params = {
             'param1': 'test param1',
             'param2': '参数2',
-            'param3': 66
+            'param3': 66,
+            'sign': 'test sign'
         }
         base_url = reverse('api:trade-test-list')
         query_str = parse.urlencode(params)
         url = f'{base_url}?{query_str}'
         body_json = json.dumps(body)
+        params.pop('sign', None)
         token = SignatureRequest.built_token(
             app_id=self.app.id,
             method='POST',

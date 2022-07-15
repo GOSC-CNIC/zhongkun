@@ -53,6 +53,19 @@ class OrderTests(MyAPITestCase):
         self.vo.save()
         self.service = get_or_create_service()
 
+        # 余额支付有关配置
+        self.app = PayApp(name='app', id=settings.PAYMENT_BALANCE['app_id'])
+        self.app.save(force_insert=True)
+        self.po = PayOrgnazition(name='机构')
+        self.po.save()
+        app_service1 = PayAppService(
+            id='123', name='service1', app=self.app, orgnazition=self.po
+        )
+        app_service1.save()
+        self.app_service1 = app_service1
+        self.service.pay_app_service_id = app_service1.id
+        self.service.save(update_fields=['pay_app_service_id'])
+
     def test_list_order(self):
         omgr = OrderManager()
         base_url = reverse('api:order-list')
@@ -464,7 +477,7 @@ class OrderTests(MyAPITestCase):
         )
         order, resource = omgr.create_order(
             order_type=Order.OrderType.NEW.value,
-            pay_app_service_id='app_id',
+            pay_app_service_id=self.service.pay_app_service_id,
             service_id='test',
             service_name='test',
             resource_type=ResourceType.VM.value,
@@ -513,7 +526,7 @@ class OrderTests(MyAPITestCase):
         order2_instance_config = DiskConfig(disk_size=166, azone_id='azone_id', azone_name='azone_name')
         order2, resource2 = omgr.create_order(
             order_type=Order.OrderType.UPGRADE.value,
-            pay_app_service_id='app_id',
+            pay_app_service_id=self.service.pay_app_service_id,
             service_id='test',
             service_name='test',
             resource_type=ResourceType.DISK.value,
@@ -666,20 +679,8 @@ class OrderTests(MyAPITestCase):
         self.assertErrorResponse(status_code=409, code='QuotaShortage', response=response)
 
     def test_pay_order_with_coupon(self):
-        # 余额支付有关配置
-        app = PayApp(name='app')
-        app.save()
-        po = PayOrgnazition(name='机构')
-        po.save()
-        app_service1 = PayAppService(
-            id='123', name='service1', app=app, orgnazition=po
-        )
-        app_service1.save()
-        self.service.pay_app_service_id = app_service1.id
-        self.service.save(update_fields=['pay_app_service_id'])
-
         self.app_service2 = PayAppService(
-            name='service2', app=app, orgnazition=po
+            name='service2', app=self.app, orgnazition=self.po
         )
         self.app_service2.save()
 

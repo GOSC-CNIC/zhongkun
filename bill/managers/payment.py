@@ -6,7 +6,10 @@ from django.db import transaction
 
 from core import errors
 from utils.model import OwnerType
-from bill.models import PaymentHistory, UserPointAccount, VoPointAccount, CashCouponPaymentHistory, CashCoupon
+from bill.models import (
+    PaymentHistory, UserPointAccount, VoPointAccount, CashCouponPaymentHistory, CashCoupon,
+    PayAppService
+)
 from metering.models import MeteringBase, PaymentStatus
 from order.models import Order
 from .cash_coupon import CashCouponManager
@@ -379,6 +382,8 @@ class PaymentManager:
     ):
         """
         * coupon_ids: 支付使用指定id的券；None(不指定券，使用所有券)；[](空，指定不使用券)；
+        :return:
+            PaymentHistory()
         """
         with transaction.atomic():
             return self._pay_by_user_or_vo(
@@ -415,6 +420,8 @@ class PaymentManager:
     ):
         """
         * coupon_ids: 支付使用指定id的券；None(不指定券，使用所有券)；[](空，指定不使用券)；
+        :return:
+            PaymentHistory()
         """
         with transaction.atomic():
             return self._pay_by_user_or_vo(
@@ -437,7 +444,9 @@ class PaymentManager:
     def _pre_pay_by_user_or_vo(
             self, user_id: str,
             vo_id: str,
+            app_id: str,
             app_service_id: str,
+            order_id: str,
             coupon_ids: List[CashCoupon] = None
     ):
         """
@@ -448,6 +457,23 @@ class PaymentManager:
         """
         if user_id and vo_id:
             raise errors.ConflictError(message=_('不能能同时指定参数"user_id"和“vo_id”，无法确认使用用户还是vo组账户支付'))
+
+        app_service = PayAppService.objects.filter(id=app_service_id).first()
+        if app_service is None:
+            raise errors.ConflictError(
+                message=_('无效的app_service_id，指定的APP子服务不存在'), code='InvalidAppServiceId'
+            )
+
+        if app_service.app_id != app_id:
+            raise errors.ConflictError(
+                message=_('无效的app_service_id，指定的APP子服务不属于你的APP'), code='InvalidAppServiceId'
+            )
+
+        ok = PaymentHistory.objects.filter(order_id=order_id, app_id=app_id).exists()
+        if ok:
+            raise errors.ConflictError(
+                message=_('已存在订单编号为%(value)s的交易记录') % {'value': order_id}, code='OrderIdExist'
+            )
 
         if vo_id:
             coupons = CashCouponManager().get_vo_cash_coupons(
@@ -507,9 +533,12 @@ class PaymentManager:
     ):
         """
         * 发生错误时，函数中已操作修改的数据库数据不会手动回滚，此函数需要在事务中调用以保证数据一致性
+        :return:
+            PaymentHistory()
         """
         account, usable_coupons, payer_id, payer_name, payer_type = self._pre_pay_by_user_or_vo(
-            user_id=user_id, vo_id=vo_id, coupon_ids=coupon_ids, app_service_id=app_service_id
+            user_id=user_id, vo_id=vo_id, coupon_ids=coupon_ids, app_service_id=app_service_id,
+            app_id=app_id, order_id=order_id
         )
 
         total_coupon_balance = Decimal(0)
@@ -586,6 +615,8 @@ class PaymentManager:
         :param coupons: 代金券列表
         :param money_amount: 扣除金额
         :param pay_history_id: 支付记录id
+        :return:
+            [CashCouponPaymentHistory()]
 
         :raises: Error(Conflict、CouponBalanceNotEnough、CouponBalanceNotEnough)
         """
@@ -601,6 +632,7 @@ class PaymentManager:
 
         # 代金券扣款记录
         remain_pay_amount = money_amount
+        cc_historys = []
         for coupon in coupons:
             if coupon.balance <= Decimal('0'):
                 continue
@@ -626,9 +658,12 @@ class PaymentManager:
                 after_payment=after_payment
             )
             ccph.save(force_insert=True)
+            cc_historys.append(ccph)
 
             if remain_pay_amount <= Decimal('0'):
                 break
 
         if remain_pay_amount > Decimal('0'):
             raise errors.BalanceNotEnough(message=_('未能从代金券中扣除完指定金额'), code='DeductFormCouponsNotEnough')
+
+        return cc_historys

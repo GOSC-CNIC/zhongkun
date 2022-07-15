@@ -105,6 +105,7 @@ class SignatureParser:
 
 class SignatureRequest:
     SING_TYPE = 'SHA256-RSA2048'
+    exclude_query_params = ['sign']     # 不参数加密的query参数
 
     def __init__(self, request, public_key: str):
         self.request = request
@@ -121,6 +122,9 @@ class SignatureRequest:
         li = []
         names = params.keys()
         for name in sorted(names):
+            if name in SignatureRequest.exclude_query_params:
+                continue
+
             value = str(params[name])
             li.append('%s=%s' % (uri_encode(name, encode_slash=True), uri_encode(value, encode_slash=True)))
 

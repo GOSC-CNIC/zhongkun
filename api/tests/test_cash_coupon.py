@@ -10,6 +10,7 @@ from utils.test import get_or_create_service, get_or_create_user
 from vo.models import VirtualOrganization, VoMember
 from bill.models import CashCoupon, PayAppService, PayApp, PayOrgnazition
 from bill.managers import PaymentManager
+from core import errors
 from . import set_auth_header, MyAPITestCase
 
 
@@ -534,12 +535,28 @@ class CashCouponTests(MyAPITestCase):
         self.assertEqual('-66.66', results[0]["payment_history"]['coupon_amount'])
         self.assertEqual('0.00', results[0]["payment_history"]['amounts'])
 
+        with self.assertRaises(errors.ConflictError) as cm:
+            PaymentManager().pay_by_user(
+                user_id=self.user.id, app_id=self.app.id,
+                subject='test user pay', amounts=Decimal('66'),
+                executor='test',
+                remark='test',
+                order_id='123',
+                app_service_id=self.app_service1.id,
+                resource_type='',
+                instance_id='',
+                coupon_ids=None,
+                only_coupon=False,
+                required_enough_balance=False
+            )
+            self.assertEqual(cm.exception.code, 'OrderIdExist')
+
         PaymentManager().pay_by_user(
             user_id=self.user.id, app_id=self.app.id,
             subject='test user pay', amounts=Decimal('66'),
             executor='test',
             remark='test',
-            order_id='123',
+            order_id='456',
             app_service_id=self.app_service1.id,
             resource_type='',
             instance_id='',
@@ -565,7 +582,7 @@ class CashCouponTests(MyAPITestCase):
             subject='test user pay', amounts=Decimal('66.66'),
             executor='test',
             remark='test',
-            order_id='123',
+            order_id='789',
             app_service_id=self.app_service1.id,
             resource_type='',
             instance_id='',
@@ -608,7 +625,7 @@ class CashCouponTests(MyAPITestCase):
             subject='test user pay', amounts=Decimal('66'),
             executor='test',
             remark='test',
-            order_id='123',
+            order_id='12356',
             app_service_id=self.app_service1.id,
             resource_type='',
             instance_id='',

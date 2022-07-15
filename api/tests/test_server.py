@@ -1,10 +1,11 @@
+import pytz
 from urllib import parse
 from decimal import Decimal
 from datetime import timedelta
 
 from django.urls import reverse
 from django.utils import timezone
-import pytz
+from django.conf import settings
 
 from service.managers import ServicePrivateQuotaManager
 from servers.models import Flavor, Server
@@ -16,6 +17,7 @@ from order.managers import OrderManager
 from order.models import Price, Order, Resource
 from order.managers import ServerConfig
 from bill.managers import PaymentManager
+from bill.models import PayApp, PayAppService, PayOrgnazition
 from . import MyAPITransactionTestCase, set_auth_header
 
 
@@ -266,6 +268,16 @@ class ServerOrderTests(MyAPITransactionTestCase):
             raise e
 
     def test_renew_server(self):
+        # 余额支付有关配置
+        app = PayApp(name='app', id=settings.PAYMENT_BALANCE['app_id'])
+        app.save()
+        po = PayOrgnazition(name='机构')
+        po.save()
+        app_service1 = PayAppService(
+            name='service1', app=app, orgnazition=po, service=self.service
+        )
+        app_service1.save(force_insert=True)
+
         now_time = timezone.now()
         user_server_expiration_time = now_time + timedelta(days=100)
         user_server = Server(
@@ -350,7 +362,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         response = self.client.post(f'{url}?{query}')
         self.assertErrorResponse(status_code=409, code='ServiceNoPayAppServiceId', response=response)
 
-        self.service.pay_app_service_id = 'app_service_id'
+        self.service.pay_app_service_id = app_service1.id
         self.service.save(update_fields=['pay_app_service_id'])
 
         # renew user server ok
