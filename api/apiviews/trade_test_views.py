@@ -105,7 +105,7 @@ class TradeTestViewSet(PaySignGenericViewSet):
                 G3xZe2kIhto-z45Q21kM-vIGjthlmmH0_Z-VMo2cBSlLmcLOwNFN4cVachPYYJWeB5bAjem6lUVDKsoDP3Q
 
             ## 应答验签签名规则：
-            
+
             ### 应答签名通过3个标头header返回：
                 标头 Pay-Sign-Type：SHA256-RSA2048     # 认证类型
                 标头 Pay-Timestamp：1657184002         # 响应时间戳

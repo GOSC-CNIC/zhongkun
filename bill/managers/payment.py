@@ -469,7 +469,8 @@ class PaymentManager:
                 message=_('无效的app_service_id，指定的APP子服务不属于你的APP'), code='InvalidAppServiceId'
             )
 
-        ok = PaymentHistory.objects.filter(order_id=order_id, app_id=app_id).exists()
+        ok = PaymentHistory.objects.filter(
+            order_id=order_id, app_id=app_id, type=PaymentHistory.Type.PAYMENT.value).exists()
         if ok:
             raise errors.ConflictError(
                 message=_('已存在订单编号为%(value)s的交易记录') % {'value': order_id}, code='OrderIdExist'
