@@ -100,7 +100,11 @@ class ServerHandler:
                 exceptions.InvalidArgument(message=_('参数"lock"的值无效')))
 
         try:
-            server = ServerManager().get_read_perm_server(server_id=server_id, user=request.user)
+            if view.is_as_admin_request(request=request):
+                server = ServerManager().get_read_perm_server(
+                    server_id=server_id, user=request.user, as_admin=True)
+            else:
+                server = ServerManager().get_read_perm_server(server_id=server_id, user=request.user)
         except exceptions.APIException as exc:
             return view.exception_response(exc)
 

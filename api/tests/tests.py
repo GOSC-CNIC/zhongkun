@@ -897,7 +897,48 @@ class ServersTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['lock'], Server.Lock.FREE)
 
+        # ----as admin------
+        admin_username = 'admin-user'
+        admin_password = 'admin-password'
+        admin_user = get_or_create_user(username=admin_username, password=admin_password)
+
+        self.client.logout()
+        self.client.force_login(admin_user)
+
+        url = reverse('api:servers-server-lock', kwargs={'id': self.miss_server.id})
+        query = parse.urlencode(query={'lock': Server.Lock.OPERATION.value, 'as-admin': ''})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # service admin
+        self.service.users.add(admin_user)
+        query = parse.urlencode(query={'lock': Server.Lock.OPERATION.value, 'as-admin': ''})
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['lock'], Server.Lock.OPERATION.value)
+
+        url = reverse('api:servers-server-lock', kwargs={'id': self.vo_server.id})
+        query = parse.urlencode(query={'lock': Server.Lock.FREE.value, 'as-admin': ''})
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['lock'], Server.Lock.FREE.value)
+
+        # federal admin
+        self.service.users.remove(admin_user)
+        url = reverse('api:servers-server-lock', kwargs={'id': self.miss_server.id})
+        query = parse.urlencode(query={'lock': Server.Lock.FREE.value, 'as-admin': ''})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        admin_user.set_federal_admin()
+        query = parse.urlencode(query={'lock': Server.Lock.FREE.value, 'as-admin': ''})
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['lock'], Server.Lock.FREE.value)
+
         # server delete
+        self.client.logout()
+        self.client.force_login(self.user)
         url = reverse('api:servers-detail', kwargs={'id': self.miss_server.id})
         response = self.client.delete(url)
         self.assertEqual(response.status_code, 204)

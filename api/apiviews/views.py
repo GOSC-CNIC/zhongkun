@@ -818,7 +818,7 @@ class ServersViewSet(CustomGenericViewSet):
                 required=True,
                 description=f'{Server.Lock.choices}'
             )
-        ],
+        ] + CustomGenericViewSet.PARAMETERS_AS_ADMIN,
         responses={
             200: '''
                     {
