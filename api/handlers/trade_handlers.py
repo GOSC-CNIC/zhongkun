@@ -114,3 +114,26 @@ class TradeHandler:
 
         s = PaymentHistorySerializer(instance=phistory)
         return Response(data=s.data)
+
+    @staticmethod
+    def trade_query_order_id(view: PaySignGenericViewSet, request, kwargs):
+        """
+        通过订单id查询交易记录
+
+        :return: Response()
+        """
+        try:
+            app = view.check_request_sign(request)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        order_id = kwargs.get('order_id', '')
+        try:
+            phistory = PaymentHistoryManager.get_payment_history_by_order_id(order_id=order_id, app_id=app.id)
+        except errors.NotFound:
+            return view.exception_response(errors.NotFound(
+                message=_('查询的交易记录不存在'), code='NoSuchTrade'
+            ))
+
+        s = PaymentHistorySerializer(instance=phistory)
+        return Response(data=s.data)

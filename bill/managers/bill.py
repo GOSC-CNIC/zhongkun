@@ -21,6 +21,14 @@ class PaymentHistoryManager:
 
         return payment
 
+    @staticmethod
+    def get_payment_history_by_order_id(app_id: str, order_id: str):
+        payment = PaymentHistory.objects.filter(order_id=order_id, app_id=app_id).first()
+        if payment is None:
+            raise errors.NotFound(message=_('支付记录不存在'))
+
+        return payment
+
     def get_payment_history(self, payment_id: str, user):
         """
         查询用户有访问权限的支付记录

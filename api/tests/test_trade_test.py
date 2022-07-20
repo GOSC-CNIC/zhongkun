@@ -363,3 +363,17 @@ class TradeTests(MyAPITestCase):
             'id', 'subject', 'payment_method', 'executor', 'payer_id', 'payer_name', 'payer_type', 'amounts',
             'coupon_amount', 'payment_time', 'type', 'remark', 'order_id', 'app_id', 'app_service_id'
         ], container=response.data)
+
+        # test query by order id
+        order_id = 'orderid2'
+        url = reverse('api:trade-query-order-id', kwargs={'order_id': 'notfound'})
+        response = self.do_request(method='get', base_url=url, body={}, params={})
+        self.assertErrorResponse(status_code=404, code='NoSuchTrade', response=response)
+        url = reverse('api:trade-query-order-id', kwargs={'order_id': order_id})
+        response = self.do_request(method='get', base_url=url, body={}, params={})
+        self.assertEqual(response.status_code, 200)
+        self.response_sign_assert(response)
+        self.assertKeysIn(keys=[
+            'id', 'subject', 'payment_method', 'executor', 'payer_id', 'payer_name', 'payer_type', 'amounts',
+            'coupon_amount', 'payment_time', 'type', 'remark', 'order_id', 'app_id', 'app_service_id'
+        ], container=response.data)
