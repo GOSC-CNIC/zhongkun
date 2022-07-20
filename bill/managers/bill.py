@@ -13,6 +13,14 @@ class PaymentHistoryManager:
     def get_queryset():
         return PaymentHistory.objects.all()
 
+    @staticmethod
+    def get_payment_history_by_id(payment_id: str):
+        payment = PaymentHistory.objects.filter(id=payment_id).first()
+        if payment is None:
+            raise errors.NotFound(message=_('支付记录不存在'))
+
+        return payment
+
     def get_payment_history(self, payment_id: str, user):
         """
         查询用户有访问权限的支付记录

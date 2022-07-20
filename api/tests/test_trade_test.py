@@ -181,11 +181,15 @@ class TradeTests(MyAPITestCase):
     def do_request(self, method: str, base_url: str, body: dict, params: dict):
         query_str = parse.urlencode(params)
         url = f'{base_url}?{query_str}'
-        body_json = json.dumps(body)
+        if body:
+            body_json = json.dumps(body)
+        else:
+            body_json = ''
+
         params.pop('sign', None)
         token = SignatureRequest.built_token(
             app_id=self.app.id,
-            method='POST',
+            method=method.upper(),
             uri=parse.unquote(base_url),
             querys=params,
             body=body_json,
@@ -195,6 +199,19 @@ class TradeTests(MyAPITestCase):
         func = getattr(self.client, method.lower())
         r = func(url, data=body_json, content_type='application/json', **headers)
         return r
+
+    def response_sign_assert(self, r):
+        """
+        响应验签
+        """
+        r_body: bytes = r.rendered_content
+        timestamp = int(r['Pay-Timestamp'])
+        signature = r['Pay-Signature']
+        sign_type = r['Pay-Sign-Type']
+        parts = [sign_type, str(timestamp), r_body.decode('utf-8')]
+        data = '\n'.join(parts)
+        ok = SignatureResponse.verify(data.encode('utf-8'), sig=signature, public_key=self.vms_public_key)
+        self.assertIs(ok, True)
 
     def test_trade_pay(self):
         rs512_private_key, rs512_public_key = self.get_aai_jwt_rsa_key()
@@ -241,14 +258,7 @@ class TradeTests(MyAPITestCase):
         body['amounts'] = '99999999.99'
         r = self.do_request(method='post', base_url=base_url, body=body, params=params)
         self.assertErrorResponse(status_code=409, code='BalanceNotEnough', response=r)
-        r_body: bytes = r.rendered_content
-        timestamp = int(r['Pay-Timestamp'])
-        signature = r['Pay-Signature']
-        sign_type = r['Pay-Sign-Type']
-        parts = [sign_type, str(timestamp), r_body.decode('utf-8')]
-        data = '\n'.join(parts)
-        ok = SignatureResponse.verify(data.encode('utf-8'), sig=signature, public_key=self.vms_public_key)
-        self.assertIs(ok, True)
+        self.response_sign_assert(r)
 
         userpointaccount = PaymentManager().get_user_point_account(user_id=self.user.id)
         userpointaccount.balance = Decimal('100')
@@ -257,14 +267,7 @@ class TradeTests(MyAPITestCase):
         body['amounts'] = '1.99'
         r = self.do_request(method='post', base_url=base_url, body=body, params=params)
         self.assertEqual(r.status_code, 200)
-        r_body: bytes = r.rendered_content
-        timestamp = int(r['Pay-Timestamp'])
-        signature = r['Pay-Signature']
-        sign_type = r['Pay-Sign-Type']
-        parts = [sign_type, str(timestamp), r_body.decode('utf-8')]
-        data = '\n'.join(parts)
-        ok = SignatureResponse.verify(data.encode('utf-8'), sig=signature, public_key=self.vms_public_key)
-        self.assertIs(ok, True)
+        self.response_sign_assert(r)
         userpointaccount.refresh_from_db()
         self.assertEqual(userpointaccount.balance, Decimal('98.01'))
         self.assertKeysIn(keys=[
@@ -332,14 +335,7 @@ class TradeTests(MyAPITestCase):
 
         r = self.do_request(method='post', base_url=base_url, body=body, params=params)
         self.assertEqual(r.status_code, 200)
-        r_body: bytes = r.rendered_content
-        timestamp = int(r['Pay-Timestamp'])
-        signature = r['Pay-Signature']
-        sign_type = r['Pay-Sign-Type']
-        parts = [sign_type, str(timestamp), r_body.decode('utf-8')]
-        data = '\n'.join(parts)
-        ok = SignatureResponse.verify(data.encode('utf-8'), sig=signature, public_key=self.vms_public_key)
-        self.assertIs(ok, True)
+        self.response_sign_assert(r)
         self.assertKeysIn(keys=[
             'id', 'subject', 'payment_method', 'executor', 'payer_id', 'payer_name', 'payer_type', 'amounts',
             'coupon_amount', 'payment_time', 'type', 'remark', 'order_id', 'app_id', 'app_service_id'
@@ -353,3 +349,17 @@ class TradeTests(MyAPITestCase):
         }, d=r.data)
         userpointaccount.refresh_from_db()
         self.assertEqual(userpointaccount.balance, Decimal('48.01'))
+
+        # test query by id
+        trade_id = r.data['id']
+        url = reverse('api:trade-query-trade-id', kwargs={'trade_id': 'notfound'})
+        response = self.do_request(method='get', base_url=url, body={}, params={})
+        self.assertErrorResponse(status_code=404, code='NoSuchTrade', response=response)
+        url = reverse('api:trade-query-trade-id', kwargs={'trade_id': trade_id})
+        response = self.do_request(method='get', base_url=url, body={}, params={})
+        self.assertEqual(response.status_code, 200)
+        self.response_sign_assert(response)
+        self.assertKeysIn(keys=[
+            'id', 'subject', 'payment_method', 'executor', 'payer_id', 'payer_name', 'payer_type', 'amounts',
+            'coupon_amount', 'payment_time', 'type', 'remark', 'order_id', 'app_id', 'app_service_id'
+        ], container=response.data)

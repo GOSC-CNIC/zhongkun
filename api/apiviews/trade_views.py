@@ -6,6 +6,7 @@ from drf_yasg.utils import swagger_auto_schema
 from api.viewsets import PaySignGenericViewSet
 from api.paginations import NewPageNumberPagination
 from api.serializers import trade as trade_serializers
+from api.serializers.serializers import PaymentHistorySerializer
 from api.handlers.trade_handlers import TradeHandler
 
 
@@ -47,11 +48,81 @@ class TradeViewSet(PaySignGenericViewSet):
                 "app_id": "20220719060807",
                 "app_service_id": "123"
             }
+
+            http 400, 401, 409:
+            {
+                "code": "xxx",
+                "message": "xxx"
+            }
+
+            * 可能的错误码：
+            400：
+                BadRequest: 参数有误
+                InvalidJWT: Token is invalid or expired.
+            401:
+                NoSuchAPPID：app_id不存在
+                AppStatusUnaudited：应用app处于未审核状态
+                AppStatusBan: 应用处于禁止状态
+                NoSetPublicKey: app未配置RSA公钥
+                InvalidSignature: 签名无效
+            409：
+                BalanceNotEnough：余额不足
         """
         return TradeHandler().trade_pay(view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('交易记录编号查询交易记录'),
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['GET'], detail=False, url_path=r'query/trade/(?P<trade_id>[^/.]+)', url_name='query-trade-id')
+    def trade_query(self, request, *args, **kwargs):
+        """
+        交易记录编号查询交易记录
+
+            http code 200：
+            {
+                "id": "202207190608088519002990",
+                "subject": "云主机（订购）8个月",
+                "payment_method": "balance",    # balance(余额支付)；coupon(代金券支付)；balance+coupon(余额+代金卷)
+                "executor": "",
+                "payer_id": "28b94370-0729-11ed-8d9d-c8009fe2ebbc", # 支付者id
+                "payer_name": "lilei@xx.com",       # 支付者名称
+                "payer_type": "user",               # user(支付者是用户)；vo(支付者是VO组)
+                "amounts": "-1.99",         # 余额扣费金额
+                "coupon_amount": "0.00",    # 代金券扣费金额
+                "payment_time": "2022-07-19T06:08:08.852251Z",
+                "type": "payment",          #
+                "remark": "test remark",
+                "order_id": "order_id",
+                "app_id": "20220719060807",
+                "app_service_id": "123"
+            }
+
+            http 400, 401:
+            {
+                "code": "xxx",
+                "message": "xxx"
+            }
+
+            * 可能的错误码：
+            404:
+                NoSuchTrade: 查询的交易记录不存在
+                NotOwnTrade: 交易记录存在，但交易记录不属于你app
+            401:
+                NoSuchAPPID：app_id不存在
+                AppStatusUnaudited：应用app处于未审核状态
+                AppStatusBan: 应用处于禁止状态
+                NoSetPublicKey: app未配置RSA公钥
+                InvalidSignature: 签名无效
+        """
+        return TradeHandler().trade_query_trade_id(view=self, request=request, kwargs=kwargs)
 
     def get_serializer_class(self):
         if self.action == 'trade_pay':
             return trade_serializers.TradePaySerializer
+        elif self.action == 'trade_query':
+            return PaymentHistorySerializer
 
         return Serializer

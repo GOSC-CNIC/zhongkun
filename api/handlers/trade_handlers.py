@@ -10,6 +10,7 @@ from api.viewsets import PaySignGenericViewSet
 from api.handlers import serializer_error_msg
 from api.serializers.serializers import PaymentHistorySerializer
 from bill.managers.payment import PaymentManager
+from bill.managers.bill import PaymentHistoryManager
 from core.jwt.jwt import JWTInvalidError
 
 
@@ -85,3 +86,31 @@ class TradeHandler:
 
         data['user'] = user
         return data
+
+    @staticmethod
+    def trade_query_trade_id(view: PaySignGenericViewSet, request, kwargs):
+        """
+        查询交易记录
+
+        :return: Response()
+        """
+        try:
+            app = view.check_request_sign(request)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        trade_id = kwargs.get('trade_id', '')
+        try:
+            phistory = PaymentHistoryManager.get_payment_history_by_id(payment_id=trade_id)
+        except errors.NotFound:
+            return view.exception_response(errors.NotFound(
+                message=_('查询的交易记录不存在'), code='NoSuchTrade'
+            ))
+
+        if phistory.app_id != app.id:
+            return view.exception_response(errors.NotFound(
+                message=_('无权访问此交易记录'), code='NotOwnTrade'
+            ))
+
+        s = PaymentHistorySerializer(instance=phistory)
+        return Response(data=s.data)
