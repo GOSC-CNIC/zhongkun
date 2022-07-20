@@ -840,6 +840,34 @@ class ServersViewSet(CustomGenericViewSet):
         """
         return ServerHandler.server_lock(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('管理员关机挂起欠费、过期的云服务器'),
+        request_body=no_body,
+        manual_parameters=[
+            openapi.Parameter(
+              name='act',
+              in_=openapi.IN_QUERY,
+              type=openapi.TYPE_STRING,
+              required=True,
+              description=f'{Server.Situation.choices}'
+            )
+        ],
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['post'], url_path='suspend', detail=True, url_name='server-suspend')
+    def server_suspend(self, request, *args, **kwargs):
+        """
+        管理员关机挂起欠费、过期的云服务器
+
+            http code 200:
+            {
+                "act": "xxx"
+            }
+        """
+        return ServerHandler.server_suspend(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action == 'create':
             return serializers.ServerCreateSerializer

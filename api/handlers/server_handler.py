@@ -585,6 +585,32 @@ class ServerHandler:
             'renew_to_time': renew_to_time
         }
 
+    @staticmethod
+    def server_suspend(view, request, kwargs):
+        """云服务器过期、欠费停机挂起"""
+        server_id = kwargs.get(view.lookup_field, '')
+        act = request.query_params.get('act', None)
+        if act is None:
+            return view.exception_response(
+                exceptions.InvalidArgument(message=_('参数"act"必须提交')))
+
+        if act not in Server.Situation.values:
+            return view.exception_response(
+                exceptions.InvalidArgument(message=_('参数"act"的值无效')))
+
+        try:
+            server = ServerManager().get_read_perm_server(
+                server_id=server_id, user=request.user, as_admin=True)
+        except exceptions.APIException as exc:
+            return view.exception_response(exc)
+
+        try:
+            ServerManager.do_suspend_server(server=server, situation=act)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        return Response(data={'act': act})
+
 
 class ServerArchiveHandler:
     @staticmethod

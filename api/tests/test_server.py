@@ -519,3 +519,71 @@ class ServerOrderTests(MyAPITransactionTestCase):
             print(f'Delete Ok, server({server_id}) not found.')
         else:
             print(f'Delete server({server_id}) Failed.')
+
+    def test_suspend_server(self):
+        now_time = timezone.now()
+        user_server = Server(
+            service_id=self.service.id,
+            name='user_server',
+            instance_id='000000',
+            instance_name='instance_user',
+            vcpus=2,
+            ram=2048,
+            ipv4='127.0.0.1',
+            public_ip=True,
+            image='',
+            image_id='image_id',
+            task_status=Server.TASK_CREATE_FAILED,
+            expiration_time=None,
+            classification=Server.Classification.PERSONAL.value,
+            user_id=self.user.id,
+            vo_id=None,
+            creation_time=now_time,
+            start_time=now_time,
+            pay_type=PayType.POSTPAID.value,
+            lock=Server.Lock.OPERATION.value,
+            situation=Server.Situation.ARREARAGE.value,
+            azone_id='',
+            disk_size=0
+        )
+        user_server.save(force_insert=True)
+
+        url = reverse('api:servers-server-suspend', kwargs={'id': user_server.id})
+        query = parse.urlencode(query={'act': 'act'})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        url = reverse('api:servers-server-suspend', kwargs={'id': user_server.id})
+        query = parse.urlencode(query={'act': Server.Situation.EXPIRED.value})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # service admin
+        self.service.users.add(self.user)
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=500, code='InternalError', response=response)
+
+        url = reverse('api:servers-server-suspend', kwargs={'id': user_server.id})
+        query = parse.urlencode(query={'act': Server.Situation.NORMAL.value})
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        user_server.refresh_from_db()
+        self.assertEqual(user_server.situation, Server.Situation.NORMAL.value)
+
+        self.service.users.remove(self.user)
+        url = reverse('api:servers-server-suspend', kwargs={'id': user_server.id})
+        query = parse.urlencode(query={'act': Server.Situation.EXPIRED.value})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # federal admin
+        self.user.set_federal_admin()
+        url = reverse('api:servers-server-suspend', kwargs={'id': user_server.id})
+        query = parse.urlencode(query={'act': Server.Situation.NORMAL.value})
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+
+        url = reverse('api:servers-server-suspend', kwargs={'id': user_server.id})
+        query = parse.urlencode(query={'act': Server.Situation.ARREARAGE.value})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=500, code='InternalError', response=response)

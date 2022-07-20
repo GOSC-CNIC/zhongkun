@@ -249,7 +249,16 @@ class ServerManager:
         """
         self.do_suspend_server(server=server,situation=Server.Situation.EXPIRED.value)
 
-    def do_suspend_server(self, server: Server, situation: str):
+    def do_suspend_server_normal(self, server: Server):
+        """
+        取消云服务器过期，关机挂起状态
+
+        :raises: Error
+        """
+        self.do_suspend_server(server=server,situation=Server.Situation.NORMAL.value)
+
+    @staticmethod
+    def do_suspend_server(server: Server, situation: str):
         """
         云服务器欠费或过期，关机挂起
 
@@ -258,13 +267,14 @@ class ServerManager:
         if situation not in Server.Situation.values:
             raise errors.Error(message=_('设置过期欠费管控状态值无效'))
 
-        si = ServerInstance(server)
-        si.action(act=si.ServerAction.POWER_OFF)
-        status_code, status_text = si.status()
-        if status_code not in [si.ServerStatus.SHUTOFF, si.ServerStatus.SHUTDOWN]:
+        if situation in [Server.Situation.EXPIRED.value, Server.Situation.ARREARAGE.value]:
+            si = ServerInstance(server)
             si.action(act=si.ServerAction.POWER_OFF)
+            status_code, status_text = si.status()
+            if status_code not in [si.ServerStatus.SHUTOFF, si.ServerStatus.SHUTDOWN]:
+                si.action(act=si.ServerAction.POWER_OFF)
 
-        server.situation = Server.Situation.ARREARAGE.value
+        server.situation = situation
         server.situation_time = timezone.now()
         try:
             server.save(update_fields=['situation', 'situation_time'])
