@@ -43,7 +43,8 @@ no_slash_router.register(r'payment-history', bill_views.PaymentHistoryViewSet, b
 no_slash_router.register(r'account/balance', account_views.BalanceAccountViewSet, basename='account-balance')
 no_slash_router.register(r'cashcoupon', cash_coupon_views.CashCouponViewSet, basename='cashcoupon')
 no_slash_router.register(r'trade/test', trade_test_views.TradeTestViewSet, basename='trade-test')
-no_slash_router.register(r'trade', trade_views.TradeViewSet, basename='trade')
+no_slash_router.register(r'trade/pay', trade_views.TradePayViewSet, basename='trade-pay')
+no_slash_router.register(r'trade/query', trade_views.TradeQueryViewSet, basename='trade-query')
 
 
 urlpatterns = [

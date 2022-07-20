@@ -9,7 +9,7 @@ from api.serializers.serializers import PaymentHistorySerializer
 from api.handlers.trade_handlers import TradeHandler
 
 
-class TradeViewSet(PaySignGenericViewSet):
+class TradePayViewSet(PaySignGenericViewSet):
     """
     支付交易视图
     """
@@ -24,8 +24,7 @@ class TradeViewSet(PaySignGenericViewSet):
             200: ''
         }
     )
-    @action(methods=['POST'], detail=False, url_path='pay', url_name='pay')
-    def trade_pay(self, request, *args, **kwargs):
+    def create(self, request, *args, **kwargs):
         """
         扣费
 
@@ -69,13 +68,29 @@ class TradeViewSet(PaySignGenericViewSet):
         """
         return TradeHandler().trade_pay(view=self, request=request, kwargs=kwargs)
 
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return trade_serializers.TradePaySerializer
+
+        return Serializer
+
+
+class TradeQueryViewSet(PaySignGenericViewSet):
+    """
+    支付交易记录查询视图
+    """
+    permission_classes = []
+    pagination_class = None
+    lookup_field = 'id'
+    # lookup_value_regex = '[0-9a-z-]+'
+
     @swagger_auto_schema(
         operation_summary=gettext_lazy('交易记录编号查询交易记录'),
         responses={
             200: ''
         }
     )
-    @action(methods=['GET'], detail=False, url_path=r'query/trade/(?P<trade_id>[^/.]+)', url_name='query-trade-id')
+    @action(methods=['GET'], detail=False, url_path=r'trade/(?P<trade_id>[^/.]+)', url_name='trade-id')
     def trade_query(self, request, *args, **kwargs):
         """
         交易记录编号查询交易记录
@@ -124,7 +139,7 @@ class TradeViewSet(PaySignGenericViewSet):
             200: ''
         }
     )
-    @action(methods=['GET'], detail=False, url_path=r'query/out-order/(?P<order_id>[^/.]+)', url_name='query-order-id')
+    @action(methods=['GET'], detail=False, url_path=r'out-order/(?P<order_id>[^/.]+)', url_name='order-id')
     def trade_query_order_id(self, request, *args, **kwargs):
         """
         订单编号查询交易记录
@@ -167,9 +182,7 @@ class TradeViewSet(PaySignGenericViewSet):
         return TradeHandler().trade_query_order_id(view=self, request=request, kwargs=kwargs)
 
     def get_serializer_class(self):
-        if self.action == 'trade_pay':
-            return trade_serializers.TradePaySerializer
-        elif self.action in ['trade_query', 'trade_query_order_id']:
+        if self.action in ['trade_query', 'trade_query_order_id']:
             return PaymentHistorySerializer
 
         return Serializer

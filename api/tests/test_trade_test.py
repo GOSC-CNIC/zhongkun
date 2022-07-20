@@ -228,7 +228,7 @@ class TradeTests(MyAPITestCase):
             'remark': 'test remark'
         }
         params = {}
-        base_url = reverse('api:trade-pay')
+        base_url = reverse('api:trade-pay-list')
         r = self.do_request(method='post', base_url=base_url, body=body, params=params)
         self.assertErrorResponse(status_code=409, code='BalanceNotEnough', response=r)
 
