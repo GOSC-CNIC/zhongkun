@@ -81,8 +81,8 @@ class Migration(migrations.Migration):
                 ('logo_url', models.CharField(blank=True, default='', max_length=256, verbose_name='LOGO url')),
             ],
             options={
-                'verbose_name': 'VM服务接入申请',
-                'verbose_name_plural': 'VM服务接入申请',
+                'verbose_name': 'VM服务单元接入申请',
+                'verbose_name_plural': 'VM服务单元接入申请',
                 'db_table': 'vm_service_apply',
                 'ordering': ['-creation_time'],
             },
@@ -150,8 +150,8 @@ class Migration(migrations.Migration):
                 ('data_center', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='service_set', to='service.datacenter', verbose_name='数据中心')),
             ],
             options={
-                'verbose_name': '服务接入配置',
-                'verbose_name_plural': '服务接入配置',
+                'verbose_name': '服务单元接入配置',
+                'verbose_name_plural': '服务单元接入配置',
                 'ordering': ['-add_time'],
             },
         ),
@@ -174,8 +174,8 @@ class Migration(migrations.Migration):
                 ('service', models.OneToOneField(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='service_share_quota', to='service.serviceconfig', verbose_name='接入服务')),
             ],
             options={
-                'verbose_name': '接入服务的分享资源配额',
-                'verbose_name_plural': '接入服务的分享资源配额',
+                'verbose_name': '服务单元的分享资源配额',
+                'verbose_name_plural': '服务单元的分享资源配额',
                 'db_table': 'service_share_quota',
                 'ordering': ['-creation_time'],
             },
@@ -199,8 +199,8 @@ class Migration(migrations.Migration):
                 ('service', models.OneToOneField(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='service_private_quota', to='service.serviceconfig', verbose_name='接入服务')),
             ],
             options={
-                'verbose_name': '接入服务的私有资源配额',
-                'verbose_name_plural': '接入服务的私有资源配额',
+                'verbose_name': '服务单元的私有资源配额',
+                'verbose_name_plural': '服务单元的私有资源配额',
                 'db_table': 'service_private_quota',
                 'ordering': ['-creation_time'],
             },

@@ -136,7 +136,7 @@ class ServiceConfig(BaseService):
 
     class Meta:
         ordering = ['-add_time']
-        verbose_name = _('服务接入配置')
+        verbose_name = _('服务单元接入配置')
         verbose_name_plural = verbose_name
 
     def __str__(self):
@@ -246,7 +246,7 @@ class ServicePrivateQuota(ServiceQuotaBase):
     class Meta:
         db_table = 'service_private_quota'
         ordering = ['-creation_time']
-        verbose_name = _('接入服务的私有资源配额')
+        verbose_name = _('服务单元的私有资源配额')
         verbose_name_plural = verbose_name
 
 
@@ -260,7 +260,7 @@ class ServiceShareQuota(ServiceQuotaBase):
     class Meta:
         db_table = 'service_share_quota'
         ordering = ['-creation_time']
-        verbose_name = _('接入服务的分享资源配额')
+        verbose_name = _('服务单元的分享资源配额')
         verbose_name_plural = verbose_name
 
 
@@ -425,7 +425,7 @@ class ApplyVmService(BaseService):
     class Meta:
         db_table = 'vm_service_apply'
         ordering = ['-creation_time']
-        verbose_name = _('VM服务接入申请')
+        verbose_name = _('VM服务单元接入申请')
         verbose_name_plural = verbose_name
 
     def __str__(self):

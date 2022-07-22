@@ -25,6 +25,7 @@ class ServiceConfigAdmin(admin.ModelAdmin):
     filter_horizontal = ('users',)
     readonly_fields = ('password', 'vpn_password')
     fieldsets = (
+        (_('说明、备注'), {'fields': ('remarks',)}),
         (_('服务配置信息'), {
             'fields': ('data_center', 'name', 'name_en', 'service_type', 'cloud_type', 'status', 'endpoint_url',
                        'api_version', 'region_id', 'username', 'password', 'change_password')
@@ -34,7 +35,7 @@ class ServiceConfigAdmin(admin.ModelAdmin):
                        'vpn_password', 'change_vpn_password')
         }),
         (_('支付结算信息'), {'fields': ('pay_app_service_id',)}),
-        (_('其他配置信息'), {'fields': ('extra', 'remarks', 'logo_url', 'longitude', 'latitude')}),
+        (_('其他配置信息'), {'fields': ('extra', 'logo_url', 'longitude', 'latitude')}),
         (_('服务管理员'), {'fields': ('users', )}),
         (_('联系人信息'), {
             'fields': ('contact_person', 'contact_email', 'contact_telephone', 'contact_fixed_phone', 'contact_address')

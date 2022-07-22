@@ -11,6 +11,7 @@ class VmsProviderForm(forms.ModelForm):
     class Meta:
         widgets = {
             'extra': forms.Textarea(attrs={'cols': 80, 'rows': 6}),
+            'remarks': forms.Textarea(attrs={'cols': 80, 'rows': 6}),
         }
 
     def save(self, commit=True):
