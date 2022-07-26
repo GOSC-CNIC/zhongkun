@@ -53,7 +53,7 @@ class TradeTestViewSet(PaySignGenericViewSet):
                   app service id。
                 * 余额结算系统有代金券，一个代金券绑定到一个app service，券的结算使用限制在对应的app service，在app下细分一
                   个app service层级，也是为了细分代金券的结算使用范围（有的券只能用于云主机资源订单费用抵扣，有的券只能用于存储资源订单费用抵扣）。
-                * 月结算系统每个app需要配置app接入者一方的RSA2048密钥对的公钥，用于双方的签名认证。
+                * 余额结算系统每个app需要配置app接入者一方的RSA2048密钥对的公钥，用于双方的签名认证。
 
             ## 请求签名生成规则：
 

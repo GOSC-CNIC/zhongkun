@@ -36,6 +36,8 @@ class ServerHandler:
         username = request.query_params.get('username')
         user_id = request.query_params.get('user-id')
         vo_id = request.query_params.get('vo-id')
+        expired = request.query_params.get('expired', None)
+        expired = expired is not None
 
         if (username or user_id) and vo_id:
             return view.exception_response(exceptions.BadRequest(
@@ -45,7 +47,7 @@ class ServerHandler:
             try:
                 servers = ServerManager().get_admin_servers_queryset(
                     user=request.user, service_id=service_id, user_id=user_id, username=username, vo_id=vo_id,
-                    ipv4_contains=ip_contain
+                    ipv4_contains=ip_contain, expired=expired
                 )
             except Exception as exc:
                 return view.exception_response(exceptions.convert_to_error(exc))

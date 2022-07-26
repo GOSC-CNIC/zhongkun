@@ -70,7 +70,8 @@ def chunks(f, chunk_size=2 * 2 ** 20):
 
 def create_server_metadata(service, user, vo_id=None,
                            default_user: str = 'root', default_password: str = 'password',
-                           classification=Server.Classification.PERSONAL, ipv4: str = ''):
+                           classification=Server.Classification.PERSONAL, ipv4: str = '',
+                           expiration_time=None):
     server = Server(service=service,
                     instance_id='test',
                     remarks='',
@@ -88,6 +89,9 @@ def create_server_metadata(service, user, vo_id=None,
                     default_user=default_user,
                     creation_time=timezone.now())
     server.raw_default_password = default_password
+    if expiration_time:
+        server.expiration_time = expiration_time
+
     server.save()
     return server
 
@@ -394,7 +398,7 @@ class ServersTests(MyAPITestCase):
         service66.save()
         admin_server66 = create_server_metadata(service=service66, user=admin_user,
                                                 default_user=self.default_user, default_password=self.default_password,
-                                                ipv4='159.226.235.66')
+                                                ipv4='159.226.235.66', expiration_time=timezone.now())
 
         self.client.logout()
         self.client.force_login(admin_user)
@@ -416,6 +420,13 @@ class ServersTests(MyAPITestCase):
         self.assertEqual(response.data['count'], 2)
         self.assertIsInstance(response.data['servers'], list)
         self.assertEqual(len(response.data['servers']), 2)
+
+        # query 'expired'
+        query_str = parse.urlencode(query={'as-admin': '', 'expired': ''})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
+        self.assertEqual(len(response.data['servers']), 0)
 
         # list server when service admin bu query parameter 'service_id'
         url = reverse('api:servers-list')
@@ -480,6 +491,14 @@ class ServersTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 3)
         self.assertEqual(len(response.data['servers']), 3)
+
+        # query 'expired'
+        query_str = parse.urlencode(query={'as-admin': '', 'expired': ''})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['servers']), 1)
+        self.assertEqual(admin_server66.ipv4, response.data['servers'][0]['ipv4'])
 
         query_str = parse.urlencode(query={'as-admin': '', 'service_id': self.service.id})
         response = self.client.get(f'{url}?{query_str}')

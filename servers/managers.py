@@ -17,7 +17,7 @@ class ServerManager:
     def get_server_queryset():
         return Server.objects.all()
 
-    def get_user_servers_queryset(self, user, service_id: str = None, ipv4_contains: str = None):
+    def get_user_servers_queryset(self, user, service_id: str = None, ipv4_contains: str = None, expired: bool = None):
         """
         查询用户个人server
         """
@@ -25,17 +25,20 @@ class ServerManager:
         if ipv4_contains:
             lookups['ipv4__contains'] = ipv4_contains
 
+        if service_id:
+            lookups['service_id'] = service_id
+
+        if expired:
+            lookups['expiration_time__lt'] = timezone.now()
+
         qs = self.get_server_queryset()
         qs = qs.select_related('service', 'user').filter(
             user=user, classification=Server.Classification.PERSONAL, **lookups)
 
-        if service_id:
-            qs = qs.filter(service_id=service_id)
-
         return qs
 
     def get_admin_servers_queryset(self, user, service_id: str = None, user_id: str = None, username: str = None,
-                                   vo_id: str = None, ipv4_contains: str = None):
+                                   vo_id: str = None, ipv4_contains: str = None, expired: bool = None):
         """
         管理员查询server
 
@@ -70,6 +73,9 @@ class ServerManager:
             else:
                 subq = Subquery(user.service_set.all().values_list('id', flat=True))
                 qs = qs.filter(service_id__in=subq)
+
+        if expired:
+            qs = qs.filter(expiration_time__lt=timezone.now())
 
         if ipv4_contains:
             qs = qs.filter(ipv4__contains=ipv4_contains)
