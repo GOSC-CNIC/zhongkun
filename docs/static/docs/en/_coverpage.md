@@ -1,5 +1,5 @@
-# China Science and technology cloud Federation
-[GitHub](https://github.com/GOSC-CNIC)
+# China Science and Technology Cloud Integrated Cloud Service Platform
+[Gitee](https://gitee.com/gosc-cnic)
 [Get Started](#readme)
 <a href="/apidocs/" target="_blank">API documents</a>
 <!-- 背景色 -->
