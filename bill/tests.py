@@ -8,8 +8,10 @@ from core import errors
 from utils.test import get_or_create_user, get_or_create_service
 from utils.model import OwnerType, PayType
 from order.models import ResourceType, Order
+from order.managers import OrderPaymentManager
 from vo.managers import VoManager
 from metering.models import MeteringServer, MeteringDisk, PaymentStatus
+from metering.payment import MeteringPaymentManager
 from bill.models import CashCoupon, CashCouponActivity
 from service.models import ServiceConfig
 from .models import PaymentHistory, PayAppService, PayApp, PayOrgnazition
@@ -47,7 +49,7 @@ class PaymentManagerTests(TransactionTestCase):
         self.service2.save()
 
     def test_pay_user_bill(self):
-        pay_mgr = PaymentManager()
+        pay_mgr = MeteringPaymentManager()
         payer_name = self.user.username
 
         app_id = self.app.id
@@ -273,7 +275,7 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(pay_history.instance_id, 'server3_id')
 
     def test_pay_vo_bill(self):
-        pay_mgr = PaymentManager()
+        pay_mgr = MeteringPaymentManager()
         payer_name = self.vo.name
         app_id = self.app.id
 
@@ -313,7 +315,7 @@ class PaymentManagerTests(TransactionTestCase):
             executor=self.user.username, remark='', required_enough_balance=False
         )
 
-        user_balance = pay_mgr.get_vo_point_account(vo_id=self.vo.id).balance
+        user_balance = pay_mgr.payment.get_vo_point_account(vo_id=self.vo.id).balance
         self.assertEqual(user_balance, Decimal('-123.45'))
         metering_bill_postpaid1.refresh_from_db()
         self.assertEqual(metering_bill_postpaid1.payment_status, PaymentStatus.PAID.value)
@@ -525,7 +527,7 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(pay_history.instance_id, 'server3_id')
 
     def test_pay_order_no_coupon(self):
-        pay_mgr = PaymentManager()
+        pay_mgr = OrderPaymentManager()
         order1 = Order(
             order_type=Order.OrderType.NEW,
             status=Order.Status.UNPAID.value,
@@ -553,7 +555,7 @@ class PaymentManagerTests(TransactionTestCase):
                 required_enough_balance=True
             )
 
-        pay_mgr.get_user_point_account(user_id=self.user.id)
+        pay_mgr.payment.get_user_point_account(user_id=self.user.id)
         self.assertEqual(self.user.userpointaccount.balance, Decimal(0))
         order1 = pay_mgr.pay_order(
             order=order1, app_id=app_id, subject='云服务器计费',
@@ -611,7 +613,7 @@ class PaymentManagerTests(TransactionTestCase):
                 required_enough_balance=True
             )
 
-        pay_mgr.get_vo_point_account(vo_id=self.vo.id)
+        pay_mgr.payment.get_vo_point_account(vo_id=self.vo.id)
         self.assertEqual(self.vo.vopointaccount.balance, Decimal(0))
         order2 = pay_mgr.pay_order(
             order=order2, app_id=app_id, subject='云服务器计费',
@@ -644,8 +646,8 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(pay_history2.instance_id, '')
 
     def test_user_pay_order_with_coupon(self):
-        pay_mgr = PaymentManager()
-        account = pay_mgr.get_user_point_account(self.user.id)
+        pay_mgr = OrderPaymentManager()
+        account = PaymentManager().get_user_point_account(self.user.id)
         account.balance = Decimal('200')
         account.save(update_fields=['balance'])
         order1 = Order(
@@ -987,8 +989,8 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(len(cc_historys), 0)
 
     def test_vo_pay_order_with_coupon(self):
-        pay_mgr = PaymentManager()
-        account = pay_mgr.get_vo_point_account(self.vo.id)
+        pay_mgr = OrderPaymentManager()
+        account = pay_mgr.payment.get_vo_point_account(self.vo.id)
         account.balance = Decimal('200')
         account.save(update_fields=['balance'])
         order1 = Order(

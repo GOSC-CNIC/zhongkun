@@ -23,7 +23,7 @@ from adapters import inputs
 from utils.model import PayType, OwnerType
 from utils.time import iso_utc_to_datetime
 from order.models import ResourceType, Order, Resource
-from order.managers import OrderManager, ServerConfig
+from order.managers import OrderManager, ServerConfig, OrderPaymentManager
 from bill.managers import PaymentManager
 from .handlers import serializer_error_msg
 
@@ -409,7 +409,7 @@ class ServerHandler:
 
         try:
             subject = order.build_subject()
-            order = PaymentManager().pay_order(
+            order = OrderPaymentManager().pay_order(
                 order=order, app_id=settings.PAYMENT_BALANCE['app_id'], subject=subject,
                 executor=request.user.username, remark='',
                 coupon_ids=None, only_coupon=False,

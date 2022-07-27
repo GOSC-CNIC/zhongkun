@@ -131,7 +131,7 @@ class MeteringServer(MeteringBase):
         return gettext('云服务器资源计量') + f'[server id {self.server_id}]'
 
     def generate_id(self):
-        return f's-{uuid1().hex}'       # 保证（订单号，云主机、云硬盘、对象存储计量id）唯一
+        return f's{uuid1().hex}'       # 保证（订单号，云主机、云硬盘、对象存储计量id）唯一
 
     def is_owner_type_user(self):
         """
@@ -225,7 +225,7 @@ class MeteringDisk(MeteringBase):
         return gettext('云硬盘资源计量') + f'[disk id {self.disk_id}]'
 
     def generate_id(self):
-        return f'd-{uuid1().hex}'       # 保证（订单号，云主机、云硬盘、对象存储计量id）唯一
+        return f'd{uuid1().hex}'       # 保证（订单号，云主机、云硬盘、对象存储计量id）唯一
 
     def is_owner_type_user(self):
         """
@@ -318,7 +318,7 @@ class MeteringObjectStorage(MeteringBase):
         ]
 
     def generate_id(self):
-        return f'b-{uuid1().hex}'       # 保证（订单号，云主机、云硬盘、对象存储计量id）唯一
+        return f'b{uuid1().hex}'       # 保证（订单号，云主机、云硬盘、对象存储计量id）唯一
 
     def is_owner_type_user(self):
         """

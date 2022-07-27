@@ -8,8 +8,7 @@ from core import errors
 from api.viewsets import CustomGenericViewSet
 from api.deliver_resource import OrderResourceDeliverer
 from order.models import ResourceType, Order, Resource
-from order.managers import OrderManager
-from bill.managers import PaymentManager
+from order.managers import OrderManager, OrderPaymentManager
 from utils.time import iso_to_datetime
 from api import request_logger
 from servers. managers import ServerManager
@@ -215,7 +214,7 @@ class OrderHandler:
 
         try:
             subject = order.build_subject()
-            order = PaymentManager().pay_order(
+            order = OrderPaymentManager().pay_order(
                 order=order, app_id=settings.PAYMENT_BALANCE['app_id'], subject=subject,
                 executor=request.user.username, remark='',
                 coupon_ids=coupon_ids, only_coupon=only_coupon,

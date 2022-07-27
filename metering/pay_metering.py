@@ -1,7 +1,7 @@
 from datetime import date
 
-from bill.managers import PaymentManager
 from metering.models import MeteringServer, PaymentStatus
+from metering.payment import MeteringPaymentManager
 
 
 class PayMeteringServer:
@@ -43,7 +43,7 @@ class PayMeteringServer:
 
                 last_creation_time = m.creation_time
 
-            print(f'Pay {m_length} meterings OK')
+            print(f'Pay {m_length} meterings.')
 
         print(f'总数：{self.count}, 扣费成功：{self.success_count}, 扣费失败：{self.failed_count}.')
 
@@ -64,7 +64,7 @@ class PayMeteringServer:
         return queryset
 
     def do_pay_one_bill(self, bill: MeteringServer):
-        pay_mgr = PaymentManager()
+        pay_mgr = MeteringPaymentManager()
         remark = f'server id={bill.server_id}, {bill.date}'
         try:
             pay_mgr.pay_metering_bill(
@@ -82,4 +82,3 @@ class PayMeteringServer:
                 return False
 
         return True
-
