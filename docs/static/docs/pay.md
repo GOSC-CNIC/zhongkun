@@ -192,7 +192,7 @@ Pay-Signature：xxx                # 应答签名
 > 此接口适用要求：支持AAI/科技云通行证登录认证的APP，APP服务中扣费过程需要用户交互确认，即能拿到用户AAI/科技云通行证jwt。
 
 + **请求url**
->https://vms.cstcloud.cn/api/trade/pay
+>https://vms.cstcloud.cn/api/trade/charge/jwt
 
 + **请求方式**
 >POST
@@ -205,12 +205,12 @@ Pay-Signature：xxx                # 应答签名
 
 | 参数 | 必选  | 参数类型 |   描述   |
 | :------: | :---: | :------: | :------: |
-| subject |  是   |  sring   |   标题   |
-| order_id |  是   |  sring   |   外部订单ID，应用系统内部唯一   |
-| amounts  |  是   |  sring   | 支付扣费金额，精确到小数点后2位，0.01 |
-| app_service_id  |  是   |  sring   | APP服务ID |
+| subject |  是   |  sring(255)   |   标题   |
+| order_id |  是   |  sring(36)   |   外部订单ID，应用系统内部唯一   |
+| amounts  |  是   |  sring(decial)   | 支付扣费金额，整数最大8位，小数点后2位，精确到0.01 |
+| app_service_id  |  是   |  sring(36)   | APP服务ID |
 | aai_jwt  |  是   |  sring   | AAI/科技云通行证用户认证JWT，用于指定付款用户，并验证付款用户的有效性 |
-| remark  |  否   |  sring   | 备注信息 |
+| remark  |  否   |  sring(255)   | 备注信息 |
 
 ***
 
@@ -236,7 +236,7 @@ Pay-Signature：xxx                # 应答签名
 | payment_method  |  sring   | 支付方式 | balance(余额支付)；coupon(代金券支付)；balance+coupon(余额+代金卷)           |
 | executor |  sring   | 交易执行人，可忽略 | |
 | payer_id |  sring  | 支付者id | |
-| payer_name |  sring  | 支付者名程 | |
+| payer_name |  sring  | 支付者名称 | |
 | payer_type |  sring  | 支付者类型 | user(支付者是用户)；vo(支付者是VO组) |
 | amounts | string | 余额扣费金额 | |
 | coupon_amount | string |  代金券扣费金额 | |
@@ -303,7 +303,7 @@ Pay-Signature：xxx                # 应答签名
 > 用于APP对应的服务内扣费过程中无用户参与，即无法拿到AAI/科技云通行证用户认证JWT的场景。
 
 + **请求url**
->https://vms.cstcloud.cn/api/trade/charge
+>https://vms.cstcloud.cn/api/trade/charge/account
 
 + **请求方式**
 >POST
@@ -316,12 +316,12 @@ Pay-Signature：xxx                # 应答签名
 
 | 参数 | 必选  | 参数类型 |   描述   |
 | :------: | :---: | :------: | :------: |
-| subject |  是   |  sring   |   标题   |
-| order_id |  是   |  sring   |   外部订单ID，应用系统内部唯一   |
-| amounts  |  是   |  sring   | 支付扣费金额，精确到小数点后2位，0.01 |
-| app_service_id  |  是   |  sring   | APP服务ID |
-| username  |  是   |  sring   | AAI/科技云通行证用户邮箱，用于指定付款用户 |
-| remark  |  否   |  sring   | 备注信息 |
+| subject |  是   |  sring(255)   |   标题   |
+| order_id |  是   |  sring(36)   |   外部订单ID，应用系统内部唯一   |
+| amounts  |  是   |  sring(decial)   | 支付扣费金额，整数最大8位，小数点后2位，精确到0.01 |
+| app_service_id  |  是   |  sring(36)   | APP服务ID |
+| username  |  是   |  sring(128)   | AAI/科技云通行证用户邮箱，用于指定付款用户 |
+| remark  |  否   |  sring(255)   | 备注信息 |
 
 ***
 
@@ -333,7 +333,7 @@ Pay-Signature：xxx                # 应答签名
   "order_id": "string",
   "amounts": "string",
   "app_service_id": "string",
-  "username": "string",
+  "username": "lilei@xx.com",
   "remark": "string"
 }
 ```
@@ -345,9 +345,9 @@ Pay-Signature：xxx                # 应答签名
 | id  |  sring   | 支付记录编号 | |
 | subject |   sring    | 标题 | |
 | payment_method  |  sring   | 支付方式 | balance(余额支付)；coupon(代金券支付)；balance+coupon(余额+代金卷)           |
-| executor |  sring   | 交易执行人，可忽略 | |
+| executor |  sring   | 交易执行人 | 主要用于记录vo组扣费支付交易时的执行人 |
 | payer_id |  sring  | 支付者id | |
-| payer_name |  sring  | 支付者名程 | |
+| payer_name |  sring  | 支付者名称 | |
 | payer_type |  sring  | 支付者类型 | user(支付者是用户)；vo(支付者是VO组) |
 | amounts | string | 余额扣费金额 | 此次支付交易从余额账户扣除的金额 |
 | coupon_amount | string |  代金券扣费金额 | 此次支付交易从代金券扣费（抵扣）的金额 |

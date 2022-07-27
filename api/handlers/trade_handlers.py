@@ -12,6 +12,7 @@ from api.serializers.serializers import PaymentHistorySerializer
 from bill.managers.payment import PaymentManager
 from bill.managers.bill import PaymentHistoryManager
 from core.jwt.jwt import JWTInvalidError
+from users.models import UserProfile
 
 
 class TradeHandler:
@@ -86,6 +87,73 @@ class TradeHandler:
 
         data['user'] = user
         return data
+
+    @staticmethod
+    def _trade_charge_validate(view, request):
+        """
+        :raises: Error
+        """
+        serializer = view.get_serializer(data=request.data)
+        if not serializer.is_valid(raise_exception=False):
+            msg = serializer_error_msg(serializer.errors)
+            raise errors.BadRequest(msg)
+
+        data = serializer.validated_data
+        amounts = data.get('amounts')
+        username = data.get('username')
+
+        if amounts <= Decimal('0'):
+            raise errors.BadRequest(message=_('交易金额必须大于0'))
+
+        user = UserProfile.objects.filter(username=username).first()
+        if user is None:
+            raise errors.NotFound(message=_('指定的付款人不存在'), code='NoSuchBalanceAccount')
+
+        data['user'] = user
+        return data
+
+    @staticmethod
+    def trade_charge(view: PaySignGenericViewSet, request, kwargs):
+        """
+        扣费
+
+        :return: Response()
+        """
+        try:
+            app = view.check_request_sign(request)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        try:
+            data = TradeHandler._trade_charge_validate(view=view, request=request)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        subject = data.get('subject')
+        order_id = data.get('order_id')
+        amounts = data.get('amounts')
+        app_service_id = data.get('app_service_id')
+        user = data.get('user')
+        remark = data.get('remark')
+
+        try:
+            history = PaymentManager().pay_by_user(
+                user_id=user.id,
+                app_id=app.id,
+                subject=subject,
+                amounts=amounts,
+                executor='',
+                remark=remark,
+                order_id=order_id,
+                app_service_id=app_service_id,
+                resource_type='',
+                instance_id=''
+            )
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        s = PaymentHistorySerializer(instance=history)
+        return Response(data=s.data)
 
     @staticmethod
     def trade_query_trade_id(view: PaySignGenericViewSet, request, kwargs):

@@ -213,33 +213,34 @@ class TradeTests(MyAPITestCase):
         ok = SignatureResponse.verify(data.encode('utf-8'), sig=signature, public_key=self.vms_public_key)
         self.assertIs(ok, True)
 
-    def test_trade_pay(self):
-        rs512_private_key, rs512_public_key = self.get_aai_jwt_rsa_key()
-        aai_jwt = self.get_aai_jwt(rs512_private_key)
-        from core.jwt import jwt
-        jwt.token_backend.verifying_key = rs512_public_key
+    def _query_trade_test(self, trade_id: str, order_id: str):
+        # test query by id
+        url = reverse('api:trade-query-trade-id', kwargs={'trade_id': 'notfound'})
+        response = self.do_request(method='get', base_url=url, body={}, params={})
+        self.assertErrorResponse(status_code=404, code='NoSuchTrade', response=response)
+        url = reverse('api:trade-query-trade-id', kwargs={'trade_id': trade_id})
+        response = self.do_request(method='get', base_url=url, body={}, params={})
+        self.assertEqual(response.status_code, 200)
+        self.response_sign_assert(response)
+        self.assertKeysIn(keys=[
+            'id', 'subject', 'payment_method', 'executor', 'payer_id', 'payer_name', 'payer_type', 'amounts',
+            'coupon_amount', 'payment_time', 'type', 'remark', 'order_id', 'app_id', 'app_service_id'
+        ], container=response.data)
 
-        body = {
-            'subject': 'pay test',
-            'order_id': 'order_id1',
-            'amounts': '6.66',
-            'app_service_id': self.app_service1.id,
-            'aai_jwt': aai_jwt,
-            'remark': 'test remark'
-        }
-        params = {}
-        base_url = reverse('api:trade-pay-list')
-        r = self.do_request(method='post', base_url=base_url, body=body, params=params)
-        self.assertErrorResponse(status_code=409, code='BalanceNotEnough', response=r)
+        # test query by order id
+        url = reverse('api:trade-query-order-id', kwargs={'order_id': 'notfound'})
+        response = self.do_request(method='get', base_url=url, body={}, params={})
+        self.assertErrorResponse(status_code=404, code='NoSuchTrade', response=response)
+        url = reverse('api:trade-query-order-id', kwargs={'order_id': order_id})
+        response = self.do_request(method='get', base_url=url, body={}, params={})
+        self.assertEqual(response.status_code, 200)
+        self.response_sign_assert(response)
+        self.assertKeysIn(keys=[
+            'id', 'subject', 'payment_method', 'executor', 'payer_id', 'payer_name', 'payer_type', 'amounts',
+            'coupon_amount', 'payment_time', 'type', 'remark', 'order_id', 'app_id', 'app_service_id'
+        ], container=response.data)
 
-        ts = int(timezone.now().timestamp())
-        ts -= int(timedelta(hours=1).total_seconds())
-        expired_aai_jwt = self.get_aai_jwt(rs512_private_key, now_timestamp=ts)
-        body['aai_jwt'] = expired_aai_jwt
-        r = self.do_request(method='post', base_url=base_url, body=body, params=params)
-        self.assertErrorResponse(status_code=400, code='InvalidJWT', response=r)
-
-        body['aai_jwt'] = aai_jwt
+    def _charge_ok_test(self, base_url: str, body: dict, params: dict):
         r = self.do_request(method='post', base_url=base_url, body=body, params=params)
         self.assertErrorResponse(status_code=409, code='BalanceNotEnough', response=r)
 
@@ -285,8 +286,9 @@ class TradeTests(MyAPITestCase):
         r = self.do_request(method='post', base_url=base_url, body=body, params=params)
         self.assertErrorResponse(status_code=409, code='OrderIdExist', response=r)
 
+        order_id2 = 'orderid2'
         body['amounts'] = '200'
-        body['order_id'] = 'orderid2'
+        body['order_id'] = order_id2
         r = self.do_request(method='post', base_url=base_url, body=body, params=params)
         self.assertErrorResponse(status_code=409, code='BalanceNotEnough', response=r)
 
@@ -349,31 +351,53 @@ class TradeTests(MyAPITestCase):
         }, d=r.data)
         userpointaccount.refresh_from_db()
         self.assertEqual(userpointaccount.balance, Decimal('48.01'))
-
-        # test query by id
         trade_id = r.data['id']
-        url = reverse('api:trade-query-trade-id', kwargs={'trade_id': 'notfound'})
-        response = self.do_request(method='get', base_url=url, body={}, params={})
-        self.assertErrorResponse(status_code=404, code='NoSuchTrade', response=response)
-        url = reverse('api:trade-query-trade-id', kwargs={'trade_id': trade_id})
-        response = self.do_request(method='get', base_url=url, body={}, params={})
-        self.assertEqual(response.status_code, 200)
-        self.response_sign_assert(response)
-        self.assertKeysIn(keys=[
-            'id', 'subject', 'payment_method', 'executor', 'payer_id', 'payer_name', 'payer_type', 'amounts',
-            'coupon_amount', 'payment_time', 'type', 'remark', 'order_id', 'app_id', 'app_service_id'
-        ], container=response.data)
+        return trade_id, order_id2
 
-        # test query by order id
-        order_id = 'orderid2'
-        url = reverse('api:trade-query-order-id', kwargs={'order_id': 'notfound'})
-        response = self.do_request(method='get', base_url=url, body={}, params={})
-        self.assertErrorResponse(status_code=404, code='NoSuchTrade', response=response)
-        url = reverse('api:trade-query-order-id', kwargs={'order_id': order_id})
-        response = self.do_request(method='get', base_url=url, body={}, params={})
-        self.assertEqual(response.status_code, 200)
-        self.response_sign_assert(response)
-        self.assertKeysIn(keys=[
-            'id', 'subject', 'payment_method', 'executor', 'payer_id', 'payer_name', 'payer_type', 'amounts',
-            'coupon_amount', 'payment_time', 'type', 'remark', 'order_id', 'app_id', 'app_service_id'
-        ], container=response.data)
+    def test_trade_charge_jwt(self):
+        rs512_private_key, rs512_public_key = self.get_aai_jwt_rsa_key()
+        aai_jwt = self.get_aai_jwt(rs512_private_key)
+        from core.jwt import jwt
+        jwt.token_backend.verifying_key = rs512_public_key
+
+        body = {
+            'subject': 'pay test',
+            'order_id': 'order_id1',
+            'amounts': '6.66',
+            'app_service_id': self.app_service1.id,
+            'aai_jwt': aai_jwt,
+            'remark': 'test remark'
+        }
+        params = {}
+        base_url = reverse('api:trade-charge-jwt')
+        r = self.do_request(method='post', base_url=base_url, body=body, params=params)
+        self.assertErrorResponse(status_code=409, code='BalanceNotEnough', response=r)
+
+        ts = int(timezone.now().timestamp())
+        ts -= int(timedelta(hours=1).total_seconds())
+        expired_aai_jwt = self.get_aai_jwt(rs512_private_key, now_timestamp=ts)
+        body['aai_jwt'] = expired_aai_jwt
+        r = self.do_request(method='post', base_url=base_url, body=body, params=params)
+        self.assertErrorResponse(status_code=400, code='InvalidJWT', response=r)
+
+        body['aai_jwt'] = aai_jwt
+        trade_id, order_id = self._charge_ok_test(base_url=base_url, body=body, params=params)
+        self._query_trade_test(trade_id=trade_id, order_id=order_id)
+
+    def test_trade_charge_account(self):
+        body = {
+            'subject': 'pay test',
+            'order_id': 'order_id1',
+            'amounts': '6.66',
+            'app_service_id': self.app_service1.id,
+            'username': 'notfount',
+            'remark': 'test remark'
+        }
+        params = {}
+        base_url = reverse('api:trade-charge-account')
+        r = self.do_request(method='post', base_url=base_url, body=body, params=params)
+        self.assertErrorResponse(status_code=404, code='NoSuchBalanceAccount', response=r)
+
+        body['username'] = self.user.username
+        trade_id, order_id = self._charge_ok_test(base_url=base_url, body=body, params=params)
+        self._query_trade_test(trade_id=trade_id, order_id=order_id)
