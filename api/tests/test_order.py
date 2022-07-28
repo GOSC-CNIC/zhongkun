@@ -653,7 +653,7 @@ class OrderTests(MyAPITestCase):
 
         # set vo account balance
         vo_account = PaymentManager.get_vo_point_account(vo_id=self.vo.id)
-        vo_account.balance = Decimal('10000')
+        vo_account.balance = Decimal('50000')
         vo_account.save(update_fields=['balance'])
 
         # pay order

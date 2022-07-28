@@ -56,8 +56,8 @@ class PriceManager:
             total_days += period_days
 
         price = self.enforce_price()
-        day_price = price.disk_size * size_gib
-        original_price = day_price * Decimal.from_float(total_days)
+        hour_price = price.disk_size * size_gib
+        original_price = hour_price * Decimal.from_float(total_days * 24)
         if is_prepaid:
             trade_price = original_price * Decimal.from_float(price.prepaid_discount / 100)
         else:
@@ -101,11 +101,11 @@ class PriceManager:
         p_ram = price.vm_ram * Decimal.from_float(ram_mib / 1024)
         p_cpu = price.vm_cpu * Decimal.from_float(cpu)
         p_disk = price.vm_disk * Decimal.from_float(disk_gib)
-        day_price = p_ram + p_disk + p_cpu
+        hour_price = p_ram + p_disk + p_cpu
         if public_ip:
-            day_price += price.vm_pub_ip
+            hour_price += price.vm_pub_ip
 
-        original_price = day_price * Decimal.from_float(total_days)
+        original_price = hour_price * Decimal.from_float(total_days * 24)
 
         if is_prepaid:
             trade_price = original_price * Decimal.from_float(price.prepaid_discount / 100)
@@ -126,7 +126,8 @@ class PriceManager:
         :raises: NoPrice
         """
         price = self.enforce_price()
-        return price.obj_size, price.obj_size
+        day_price = price.obj_size * Decimal('24')
+        return day_price, day_price
 
     def describe_server_metering_price(
             self,

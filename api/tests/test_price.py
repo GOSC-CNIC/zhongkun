@@ -58,6 +58,7 @@ class PriceTests(MyAPITestCase):
         self.assertKeysIn(['price'], response.data)
         self.assertKeysIn(['original', 'trade'], response.data['price'])
         original_p = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_pub_ip + price.vm_disk * 100
+        original_p *= 24
         trade_p = original_p * prepaid_discount
         self.assertEqual(str(quantize_12_4(original_p)), response.data['price']['original'])
         self.assertEqual(str(quantize_12_4(trade_p)), response.data['price']['trade'])
@@ -71,6 +72,7 @@ class PriceTests(MyAPITestCase):
         response = self.client.get(f'{base_url}?{query2}')
         self.assertEqual(response.status_code, 200)
         original_p2 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_pub_ip + price.vm_disk * 100
+        original_p2 *= 24
         self.assertEqual(str(quantize_12_4(original_p2)), response.data['price']['original'])
         self.assertEqual(str(quantize_12_4(original_p2)), response.data['price']['trade'])
 
@@ -82,7 +84,7 @@ class PriceTests(MyAPITestCase):
         })
         days = PriceManager.period_month_days(months=1)
         original_p3 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_pub_ip + price.vm_disk * 100
-        original_p3 = original_p3 * days
+        original_p3 = original_p3 * days * 24
         trade_p3 = original_p3 * prepaid_discount
         response = self.client.get(f'{base_url}?{query3}')
         self.assertEqual(response.status_code, 200)
@@ -97,7 +99,7 @@ class PriceTests(MyAPITestCase):
         })
         days = PriceManager.period_month_days(months=1)
         original_p4 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_disk * 100
-        original_p4 = original_p4 * days
+        original_p4 = original_p4 * days * 24
         trade_p4 = original_p4 * prepaid_discount
         response = self.client.get(f'{base_url}?{query4}')
         self.assertEqual(response.status_code, 200)
@@ -112,7 +114,7 @@ class PriceTests(MyAPITestCase):
         })
         days = PriceManager.period_month_days(months=1)
         original_p5 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_disk * 50
-        original_p5 = original_p5 * days
+        original_p5 = original_p5 * days * 24
         trade_p5 = original_p5 * prepaid_discount
         response = self.client.get(f'{base_url}?{query5}')
         self.assertEqual(response.status_code, 200)
@@ -136,6 +138,7 @@ class PriceTests(MyAPITestCase):
         response = self.client.get(f'{base_url}?{query7}')
         self.assertEqual(response.status_code, 200)
         original_p7 = price.vm_cpu * 2 + price.vm_ram * 4
+        original_p7 *= 24
         self.assertEqual(str(quantize_12_4(original_p7)), response.data['price']['original'])
         self.assertEqual(str(quantize_12_4(original_p7)), response.data['price']['trade'])
 
@@ -147,6 +150,7 @@ class PriceTests(MyAPITestCase):
         response = self.client.get(f'{base_url}?{query8}')
         self.assertEqual(response.status_code, 200)
         original_p8 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_pub_ip
+        original_p8 *= 24
         self.assertEqual(str(quantize_12_4(original_p8)), response.data['price']['original'])
         self.assertEqual(str(quantize_12_4(original_p8)), response.data['price']['trade'])
 
@@ -158,6 +162,7 @@ class PriceTests(MyAPITestCase):
         response = self.client.get(f'{base_url}?{query9}')
         self.assertEqual(response.status_code, 200)
         original_p9 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_pub_ip
+        original_p9 *= 24
         trade_p9 = original_p9 * prepaid_discount
         self.assertEqual(str(quantize_12_4(original_p9)), response.data['price']['original'])
         self.assertEqual(str(quantize_12_4(trade_p9)), response.data['price']['trade'])
@@ -176,7 +181,7 @@ class PriceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['price'], response.data)
         self.assertKeysIn(['original', 'trade'], response.data['price'])
-        original_p = price.disk_size * 100
+        original_p = price.disk_size * 100 * 24
         trade_p = original_p * prepaid_discount
         self.assertEqual(str(quantize_12_4(original_p)), response.data['price']['original'])
         self.assertEqual(str(quantize_12_4(trade_p)), response.data['price']['trade'])
@@ -188,7 +193,7 @@ class PriceTests(MyAPITestCase):
         })
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
-        original_p = price.disk_size * 100
+        original_p = price.disk_size * 100 * 24
         trade_p = original_p
         self.assertEqual(str(quantize_12_4(original_p)), response.data['price']['original'])
         self.assertEqual(str(quantize_12_4(trade_p)), response.data['price']['trade'])
@@ -204,7 +209,7 @@ class PriceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         days = PriceManager.period_month_days(months=period)
         original_p3 = price.disk_size * data_disk_size
-        original_p3 = original_p3 * days
+        original_p3 = original_p3 * 24 * days
         trade_p3 = original_p3 * prepaid_discount
         self.assertEqual(str(quantize_12_4(original_p3)), response.data['price']['original'])
         self.assertEqual(str(quantize_12_4(trade_p3)), response.data['price']['trade'])
@@ -220,7 +225,7 @@ class PriceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         days = PriceManager.period_month_days(months=period)
         original_p4 = price.disk_size * data_disk_size
-        trade_p4 = original_p4 = original_p4 * days
+        trade_p4 = original_p4 = original_p4 * 24 * days
         self.assertEqual(str(quantize_12_4(original_p4)), response.data['price']['original'])
         self.assertEqual(str(quantize_12_4(trade_p4)), response.data['price']['trade'])
 
@@ -250,7 +255,7 @@ class PriceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['price'], response.data)
         self.assertKeysIn(['original', 'trade'], response.data['price'])
-        trade_p = original_p = price.obj_size
+        trade_p = original_p = price.obj_size * 24
         self.assertEqual(str(quantize_12_4(original_p)), response.data['price']['original'])
         self.assertEqual(str(quantize_12_4(trade_p)), response.data['price']['trade'])
 
