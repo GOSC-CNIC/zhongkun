@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from django.utils.translation import gettext as _
-from django.db.models import Subquery
+from django.db.models import Subquery, Q
 from django.utils import timezone
 
 from core import errors
@@ -20,6 +20,12 @@ class ServerManager:
     def get_user_servers_queryset(self, user, service_id: str = None, ipv4_contains: str = None, expired: bool = None):
         """
         查询用户个人server
+
+        :param user: 用户过滤
+        :param service_id: 服务单元id过滤
+        :param ipv4_contains: ip包含过滤
+        :param expired: True(过期过滤)；False(未过期过滤)：默认None不过滤
+        :return: QuerySet()
         """
         lookups = {}
         if ipv4_contains:
@@ -28,12 +34,14 @@ class ServerManager:
         if service_id:
             lookups['service_id'] = service_id
 
-        if expired:
-            lookups['expiration_time__lt'] = timezone.now()
-
         qs = self.get_server_queryset()
         qs = qs.select_related('service', 'user').filter(
             user=user, classification=Server.Classification.PERSONAL, **lookups)
+
+        if expired is True:
+            qs = qs.filter(expiration_time__lte=timezone.now())
+        elif expired is False:
+            qs = qs.filter(~Q(expiration_time__lte=timezone.now()))     # 取反的方式，存在expiration_time == None
 
         return qs
 
@@ -42,6 +50,14 @@ class ServerManager:
         """
         管理员查询server
 
+        :param user: 管理员用户
+        :param service_id: 服务单元id过滤
+        :param user_id: 过滤用户
+        :param username: 过滤用户名
+        :prram vo_id: 过滤vo
+        :param ipv4_contains: ip包含过滤
+        :param expired: True(过期过滤)；False(未过期过滤)：默认None不过滤
+        :return: QuerySet()
         :raises: Error
         """
         if (user_id or username) and vo_id:
@@ -74,15 +90,17 @@ class ServerManager:
                 subq = Subquery(user.service_set.all().values_list('id', flat=True))
                 qs = qs.filter(service_id__in=subq)
 
-        if expired:
-            qs = qs.filter(expiration_time__lt=timezone.now())
+        if expired is True:
+            qs = qs.filter(expiration_time__lte=timezone.now())
+        elif expired is False:
+            qs = qs.filter(~Q(expiration_time__lte=timezone.now()))
 
         if ipv4_contains:
             qs = qs.filter(ipv4__contains=ipv4_contains)
 
         return qs
 
-    def get_vo_servers_queryset(self, vo_id: str, service_id: str = None):
+    def get_vo_servers_queryset(self, vo_id: str, service_id: str = None, expired: bool = None):
         """
         查询vo组的server
         """
@@ -92,6 +110,11 @@ class ServerManager:
 
         if service_id:
             qs = qs.filter(service_id=service_id)
+
+        if expired is True:
+            qs = qs.filter(expiration_time__lte=timezone.now())
+        elif expired is False:
+            qs = qs.filter(~Q(expiration_time__lte=timezone.now()))
 
         return qs
 

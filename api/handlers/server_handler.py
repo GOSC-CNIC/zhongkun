@@ -37,7 +37,15 @@ class ServerHandler:
         user_id = request.query_params.get('user-id')
         vo_id = request.query_params.get('vo-id')
         expired = request.query_params.get('expired', None)
-        expired = expired is not None
+
+        if expired is not None:
+            if expired.lower() == 'true':
+                expired = True
+            elif expired.lower() == 'false':
+                expired = False
+            else:
+                return view.exception_response(exceptions.InvalidArgument(
+                    message=_('参数“expired”值无效，必须为true或者false')))
 
         if (username or user_id) and vo_id:
             return view.exception_response(exceptions.BadRequest(
@@ -57,7 +65,7 @@ class ServerHandler:
                     message=_('参数“user-id”、“user-id”和“vo-id”只能和参数“as-admin”一起提交')))
 
             servers = ServerManager().get_user_servers_queryset(
-                user=request.user, service_id=service_id, ipv4_contains=ip_contain)
+                user=request.user, service_id=service_id, ipv4_contains=ip_contain, expired=expired)
 
         service_id_map = ServiceManager.get_service_id_map(use_cache=True)
         paginator = paginations.ServersPagination()
@@ -72,13 +80,23 @@ class ServerHandler:
     def list_vo_servers(view, request, kwargs):
         vo_id = kwargs.get('vo_id')
         service_id = request.query_params.get('service_id', None)
+        expired = request.query_params.get('expired', None)
+
+        if expired is not None:
+            if expired.lower() == 'true':
+                expired = True
+            elif expired.lower() == 'false':
+                expired = False
+            else:
+                return view.exception_response(exceptions.InvalidArgument(
+                    message=_('参数“expired”值无效，必须为true或者false')))
 
         try:
             VoManager().get_has_read_perm_vo(vo_id=vo_id, user=request.user)
         except exceptions.Error as exc:
             return view.exception_response(exc)
 
-        servers = ServerManager().get_vo_servers_queryset(vo_id=vo_id, service_id=service_id)
+        servers = ServerManager().get_vo_servers_queryset(vo_id=vo_id, service_id=service_id, expired=expired)
 
         service_id_map = ServiceManager.get_service_id_map(use_cache=True)
         paginator = paginations.ServersPagination()

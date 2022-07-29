@@ -345,6 +345,27 @@ class ServersTests(MyAPITestCase):
         self.assertEqual(response.data['count'], 0)
         self.assertEqual(len(response.data['servers']), 0)
 
+        # query 'expired' invalid
+        url = reverse('api:servers-list')
+        query_str = parse.urlencode(query={'expired': ''})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # query expired
+        query_str = parse.urlencode(query={'expired': 'true'})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
+        self.assertEqual(len(response.data['servers']), 0)
+
+        # query not expired
+        query_str = parse.urlencode(query={'expired': 'false'})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['servers']), 1)
+        self.assertEqual(self.miss_server.ipv4, response.data['servers'][0]['ipv4'])
+
         # list vo servers
         url = reverse('api:servers-list-vo-servers', kwargs={'vo_id': self.vo_id})
         response = self.client.get(url)
@@ -365,6 +386,27 @@ class ServersTests(MyAPITestCase):
                         "service_type": ServiceConfig.ServiceType.EVCLOUD},
             'id': vo_server.id, 'vo_id': vo_id
         }, d=response.data['servers'][0])
+
+        # query 'expired' invalid
+        url = reverse('api:servers-list-vo-servers', kwargs={'vo_id': self.vo_id})
+        query_str = parse.urlencode(query={'expired': ''})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # query expired
+        query_str = parse.urlencode(query={'expired': 'true'})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
+        self.assertEqual(len(response.data['servers']), 0)
+
+        # query not expired
+        query_str = parse.urlencode(query={'expired': 'false'})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['servers']), 1)
+        self.assertEqual(self.vo_server.ipv4, response.data['servers'][0]['ipv4'])
 
         # server vo detail
         response = self.server_detail_response(
@@ -421,12 +463,24 @@ class ServersTests(MyAPITestCase):
         self.assertIsInstance(response.data['servers'], list)
         self.assertEqual(len(response.data['servers']), 2)
 
-        # query 'expired'
+        # query 'expired' invalid
         query_str = parse.urlencode(query={'as-admin': '', 'expired': ''})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # query expired
+        query_str = parse.urlencode(query={'as-admin': '', 'expired': 'true'})
         response = self.client.get(f'{url}?{query_str}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 0)
         self.assertEqual(len(response.data['servers']), 0)
+
+        # query not expired
+        query_str = parse.urlencode(query={'as-admin': '', 'expired': 'false'})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(len(response.data['servers']), 2)
 
         # list server when service admin bu query parameter 'service_id'
         url = reverse('api:servers-list')
@@ -492,13 +546,25 @@ class ServersTests(MyAPITestCase):
         self.assertEqual(response.data['count'], 3)
         self.assertEqual(len(response.data['servers']), 3)
 
-        # query 'expired'
+        # query 'expired' invalid
         query_str = parse.urlencode(query={'as-admin': '', 'expired': ''})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # query expired
+        query_str = parse.urlencode(query={'as-admin': '', 'expired': 'true'})
         response = self.client.get(f'{url}?{query_str}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 1)
         self.assertEqual(len(response.data['servers']), 1)
         self.assertEqual(admin_server66.ipv4, response.data['servers'][0]['ipv4'])
+
+        # query not expired
+        query_str = parse.urlencode(query={'as-admin': '', 'expired': 'false'})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(len(response.data['servers']), 2)
 
         query_str = parse.urlencode(query={'as-admin': '', 'service_id': self.service.id})
         response = self.client.get(f'{url}?{query_str}')

@@ -84,7 +84,7 @@ class ServersViewSet(CustomGenericViewSet):
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=gettext_lazy('过滤条件，查询过期的服务器')
+                description=gettext_lazy('过滤条件，“true”:查询过期的服务器; "false": 查询未过期的')
             ),
             openapi.Parameter(
                 name='user-id',
@@ -160,6 +160,13 @@ class ServersViewSet(CustomGenericViewSet):
                 type=openapi.TYPE_STRING,
                 required=False,
                 description='服务端点id'
+            ),
+            openapi.Parameter(
+                name='expired',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('过滤条件，“true”:查询过期的服务器; "false": 查询未过期的')
             ),
         ],
         responses={

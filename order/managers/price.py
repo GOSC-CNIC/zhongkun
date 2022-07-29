@@ -98,14 +98,22 @@ class PriceManager:
             total_days += period_days
 
         price = self.enforce_price()
-        p_ram = price.vm_ram * Decimal.from_float(ram_mib / 1024)
-        p_cpu = price.vm_cpu * Decimal.from_float(cpu)
-        p_disk = price.vm_disk * Decimal.from_float(disk_gib)
-        hour_price = p_ram + p_disk + p_cpu
+        total_hours = 24 * total_days
+        ram_gib_hours = ram_mib / 1024 * total_hours
+        cpu_hours = cpu * total_hours
+        disk_gib_hours = disk_gib * total_hours
         if public_ip:
-            hour_price += price.vm_pub_ip
+            public_ip_hours = total_hours
+        else:
+            public_ip_hours = 0
 
-        original_price = hour_price * Decimal.from_float(total_days * 24)
+        original_price = self.calculate_server_amount(
+            price=price,
+            ram_gib_hours=ram_gib_hours,
+            cpu_hours=cpu_hours,
+            disk_gib_hours=disk_gib_hours,
+            public_ip_hours=public_ip_hours
+        )
 
         if is_prepaid:
             trade_price = original_price * Decimal.from_float(price.prepaid_discount / 100)
@@ -140,6 +148,25 @@ class PriceManager:
         按量计费云主机计价
         """
         price = self.enforce_price()
+        return self.calculate_server_amount(
+            price=price,
+            ram_gib_hours=ram_gib_hours,
+            cpu_hours=cpu_hours,
+            disk_gib_hours=disk_gib_hours,
+            public_ip_hours=public_ip_hours
+        )
+
+    @staticmethod
+    def calculate_server_amount(
+            price: Price,
+            ram_gib_hours: float,
+            cpu_hours: float,
+            disk_gib_hours: float,
+            public_ip_hours: float
+    ) -> Decimal:
+        """
+        计算金额
+        """
         ram_amount = price.vm_ram * Decimal.from_float(ram_gib_hours)
         cpu_amount = price.vm_cpu * Decimal.from_float(cpu_hours)
         disk_amount = price.vm_disk * Decimal.from_float(disk_gib_hours)

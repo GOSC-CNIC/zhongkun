@@ -222,8 +222,8 @@ class Price(UuidModel):
         verbose_name=_('每CPU每小时'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
         help_text=_('每个CPU每小时的价格'))
     vm_pub_ip = models.DecimalField(
-        verbose_name=_('每公网IP每小时'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
-        help_text=_('每个公网IP每小时的价格'))
+        verbose_name=_('每公网IP每小时保有费'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
+        help_text=_('每个公网IP每小时的保有费价格'))
     vm_disk = models.DecimalField(
         verbose_name=_('系统盘GiB每小时'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
         help_text=_('系统盘每GiB每小时的价格'))
