@@ -17,6 +17,7 @@ from service.models import (
 from utils.test import get_or_create_user, get_or_create_service, get_or_create_center
 from adapters import outputs
 from vo.models import VirtualOrganization, VoMember
+from bill.managers.payment import PaymentManager
 from . import MyAPITestCase, set_auth_header
 
 
@@ -2089,13 +2090,24 @@ class VoTests(MyAPITestCase):
         self.assert_is_subdict_of(sub=update_data, d=response.data)
 
         vo = VirtualOrganization.objects.select_related('owner').filter(id=vo_id).first()
+        self.assertEqual(vo.deleted, False)
         self.assertEqual(vo.name, update_data['name'])
         self.assertEqual(vo.company, update_data['company'])
         self.assertEqual(vo.description, update_data['description'])
 
         # delete
+        vo_account = PaymentManager.get_vo_point_account(vo_id=vo_id)
+        vo_account.balance = Decimal('-1')
+        vo_account.save(update_fields=['balance'])
+        response = self.delete_vo_response(client=self.client, vo_id=vo_id)
+        self.assertErrorResponse(status_code=409, code='BalanceArrearage', response=response)
+
+        vo_account.balance = Decimal('0')
+        vo_account.save(update_fields=['balance'])
         response = self.delete_vo_response(client=self.client, vo_id=vo_id)
         self.assertEqual(response.status_code, 204)
+        vo.refresh_from_db()
+        self.assertEqual(vo.deleted, True)
 
     def test_list(self):
         data = {

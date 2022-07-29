@@ -45,6 +45,10 @@ class VirtualOrganization(UuidModel):
     def is_owner(self, user):
         return self.owner_id == user.id
 
+    def soft_delete(self):
+        self.deleted = True
+        self.save(update_fields=['deleted'])
+
 
 class VoMember(UuidModel):
     class Role(models.TextChoices):

@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.utils.translation import gettext as _
 from django.db.models import Q
 
@@ -286,6 +288,7 @@ class VoManager:
 
         :raises: Error
         """
+        from bill.managers.payment import PaymentManager
         vo, admin_member = self.get_has_manager_perm_vo(vo_id=vo_id, user=admin_user)
         if not vo.is_owner(admin_user):
             raise errors.AccessDenied(message=_('你不是组拥有者，你没有权限删除组'))
@@ -293,8 +296,12 @@ class VoManager:
         if Server.objects.filter(vo=vo).exists():
             raise errors.ResourceNotCleanedUp(message=_('无法删除组，组内有云主机资源未清理'))
 
+        vo_account = PaymentManager.get_vo_point_account(vo_id=vo_id)
+        if vo_account.balance < Decimal('0'):
+            raise errors.BalanceArrearage(message=_('无法删除组，组余额账户欠费'))
+
         try:
-            vo.delete()
+            vo.soft_delete()
         except Exception as exc:
             raise errors.Error.from_error(exc)
 

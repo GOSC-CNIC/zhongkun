@@ -319,6 +319,11 @@ class ArrearageSuspending(ConflictError):
     default_code = 'ArrearageSuspending'
 
 
+class BalanceArrearage(ConflictError):
+    default_message = _('余额账户欠费。')
+    default_code = 'BalanceArrearage'
+
+
 def convert_to_error(err):
     if isinstance(err, Error):
         return err

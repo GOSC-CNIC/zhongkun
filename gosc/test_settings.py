@@ -25,7 +25,7 @@ TEST_CASE = {
     },
     'MONITOR_VIDEO_MEETING': {
         'PROVIDER': {
-            'endpoint_url': 'http://159.226.98.184:19192/',
+            'endpoint_url': 'http://159.226.235.30:19192/',
             'username': '',
             'password': ''
         },
