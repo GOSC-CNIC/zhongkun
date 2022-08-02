@@ -62,7 +62,7 @@ class CashCouponActivityAdmin(admin.ModelAdmin):
         obj = queryset[0]
         try:
             ay, count, err = CashCouponActivityManager().create_coupons_for_template(
-                activity_id=obj.id, user=request.user, max_count=2
+                activity_id=obj.id, user=request.user, max_count=50
             )
             if err is not None:
                 msg = '为券模板/活动生成券错误（%(error)s），本次成功生成券数量:%(count)d个。' % {

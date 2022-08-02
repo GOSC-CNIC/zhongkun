@@ -8,7 +8,8 @@ from django.utils import timezone
 from core import errors
 from utils.model import OwnerType
 from vo.managers import VoManager
-from bill.models import CashCoupon, CashCouponPaymentHistory, CashCouponActivity
+from bill.models import CashCoupon, CashCouponPaymentHistory, CashCouponActivity, PayAppService
+from users.models import UserProfile
 
 
 class CashCouponManager:
@@ -289,6 +290,55 @@ class CashCouponManager:
             raise errors.ConflictError(message=_('代金券拥有者类型未知'), code='UnknownOwnCoupon')
 
         queryset = CashCouponPaymentHistory.objects.select_related('payment_history').filter(cash_coupon_id=coupon.id)
+        return queryset
+
+    def admin_list_coupon_queryset(self, user: UserProfile, template_id: str = None, app_service_id: str = None, status: str = None):
+        if user.is_federal_admin():
+            return self.filter_coupon_queryset(
+                template_id=template_id, app_service_id=app_service_id, status=status
+            )
+
+        if not template_id and not app_service_id:
+            raise errors.AccessDenied(message=_('参数“template_id”和“app_service_id”必须指定一个'))
+
+        if template_id:
+            template = CashCouponActivityManager.get_activity(activity_id=template_id)
+            if template is None:
+                raise errors.NotFound(message=_('券活动模板不存在'))
+
+            # check permission
+            if not CashCouponActivityManager.has_coupon_template_perm(activity=template, user=user):
+                raise errors.AccessDenied(message=_('你没有此券模板的权限'))
+
+        if app_service_id:
+            app_service = PayAppService.objects.filter(id=app_service_id).first()
+            if app_service is None:
+                raise errors.NotFound(message=_('App子服务不存在'))
+
+            if app_service.user_id != user.id:
+                raise errors.AccessDenied(message=_('你没有此App子服务的权限'))
+
+            service = app_service.service
+            if service is None:
+                raise errors.AccessDenied(message=_('你没有此App子服务的权限'))
+
+            if not service.user_has_perm(user):
+                raise errors.AccessDenied(message=_('你没有此App子服务的权限'))
+
+        return self.filter_coupon_queryset(template_id=template_id, app_service_id=app_service_id, status=status)
+
+    @staticmethod
+    def filter_coupon_queryset(template_id: str = None, app_service_id: str = None, status: str = None):
+        queryset = CashCoupon.objects.select_related('app_service', 'activity').all()
+        if template_id:
+            queryset = queryset.filter(activity_id=template_id)
+
+        if app_service_id:
+            queryset = queryset.filter(app_service_id=app_service_id)
+
+        if status:
+            queryset = queryset.filter(status=status)
+
         return queryset
 
 

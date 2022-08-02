@@ -45,6 +45,7 @@ no_slash_router.register(r'cashcoupon', cash_coupon_views.CashCouponViewSet, bas
 no_slash_router.register(r'trade/test', trade_test_views.TradeTestViewSet, basename='trade-test')
 no_slash_router.register(r'trade/query', trade_views.TradeQueryViewSet, basename='trade-query')
 no_slash_router.register(r'trade/charge', trade_views.TradeChargeViewSet, basename='trade-charge')
+no_slash_router.register(r'admin/cashcoupon', cash_coupon_views.AdminCashCouponViewSet, basename='admin-coupon')
 
 
 urlpatterns = [

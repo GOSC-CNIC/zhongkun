@@ -9,6 +9,7 @@ from api.viewsets import CustomGenericViewSet
 from api.paginations import NewPageNumberPagination
 from api.handlers.cash_coupon_handler import CashCouponHandler
 from api.serializers import serializers
+from bill.models import CashCoupon
 
 
 class CashCouponViewSet(CustomGenericViewSet):
@@ -217,5 +218,100 @@ class CashCouponViewSet(CustomGenericViewSet):
             return serializers.CashCouponSerializer
         elif self.action == 'list_coupon_payment':
             return serializers.CashCouponPaymentSerializer
+
+        return Serializer
+
+
+class AdminCashCouponViewSet(CustomGenericViewSet):
+    """
+    服务单元管理员代金券视图
+    """
+    permission_classes = [IsAuthenticated, ]
+    pagination_class = NewPageNumberPagination
+    lookup_field = 'id'
+    # lookup_value_regex = '[0-9a-z-]+'
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('服务单元管理员列举代金券'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='app_service_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description='app子服务可用的券'
+            ),
+            openapi.Parameter(
+                name='status',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'券状态，{CashCoupon.Status.choices}'
+            ),
+            openapi.Parameter(
+                name='template_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description='券模板id'
+            ),
+            openapi.Parameter(
+                name='download',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description='以文件形式下载'
+            )
+        ],
+        responses={
+            200: ''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        服务单元管理员列举代金券
+
+            http code 200：
+            {
+                "count": 1,
+                "page_num": 1,
+                "page_size": 20,
+                "results": [
+                    {
+                        "id": "7873425381443472",
+                        "face_value": "666.00",
+                        "creation_time": "2022-05-07T06:33:39.496411Z",
+                        "effective_time": "2022-05-07T06:32:00Z",
+                        "expiration_time": "2022-05-07T06:32:00Z",
+                        "balance": "555.00",
+                        "status": "available",      # wait：未领取；available：有效；cancelled：作废；deleted：删除
+                        "granted_time": "2022-05-07T06:36:31.296470Z",  # maybe None
+                        "owner_type": "vo",
+                        "app_service": {                                # maybe None
+                            "id": "2",
+                            "name": "怀柔204机房研发测试",
+                            "service_id": "xx"              # maybe None
+                        },
+                        "user": {                                   # maybe None
+                            "id": "1",
+                            "username": "shun"
+                        },
+                        "vo": {                                     # maybe None
+                            "id": "3d7cd5fc-d236-11eb-9da9-c8009fe2eb10",
+                            "name": "项目组1"
+                        },
+                        "activity": {                                # maybe None
+                            "id": "75b63eee-cda9-11ec-8660-c8009fe2eb10",
+                            "name": "test"
+                        }
+                    }
+                ]
+            }
+        """
+        return CashCouponHandler().admin_list_cash_coupon(view=self, request=request)
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return serializers.CashCouponSerializer
 
         return Serializer
