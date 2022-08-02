@@ -3,6 +3,7 @@ from datetime import datetime
 from django.utils.translation import gettext as _
 from django.db import transaction
 from django.conf import settings
+from django.db.models import TextChoices
 from rest_framework.response import Response
 
 from core import errors as exceptions
@@ -28,12 +29,32 @@ from bill.managers import PaymentManager
 from .handlers import serializer_error_msg
 
 
+def str_to_true_false(val: str):
+    if not isinstance(val, str):
+        return val
+
+    if val.lower() == 'true':
+        return True
+    elif val.lower() == 'false':
+        return False
+    else:
+        raise exceptions.InvalidArgument(
+            message=_('值无效，必须为true或者false'))
+
+
 class ServerHandler:
+    class ListServerQueryStatus(TextChoices):
+        EXPIRED = 'expired', _('过期')
+        PREPAID = 'prepaid', _('预付费')
+        POSTPAID = 'postpaid', _('后付费')
+
     @staticmethod
     def _list_servers_validate_params(view, request):
         service_id = request.query_params.get('service_id', None)
         ip_contain = request.query_params.get('ip-contain', None)
-        expired = request.query_params.get('expired', None)
+        public = request.query_params.get('public', None)
+        remark = request.query_params.get('remark', None)
+        status = request.query_params.get('status', None)
         username = request.query_params.get('username', None)
         user_id = request.query_params.get('user-id', None)
         vo_id = request.query_params.get('vo-id', None)
@@ -59,14 +80,23 @@ class ServerHandler:
         else:
             exclude_vo = False
 
-        if expired is not None:
-            if expired.lower() == 'true':
+        expired = None
+        pay_type = None
+        if status is not None:
+            if status == ServerHandler.ListServerQueryStatus.EXPIRED.value:
                 expired = True
-            elif expired.lower() == 'false':
-                expired = False
+            elif status == ServerHandler.ListServerQueryStatus.PREPAID.value:
+                pay_type = PayType.PREPAID.value
+            elif status == ServerHandler.ListServerQueryStatus.POSTPAID.value:
+                pay_type = PayType.POSTPAID.value
             else:
-                raise exceptions.InvalidArgument(
-                    message=_('参数“expired”值无效，必须为true或者false'))
+                raise exceptions.InvalidArgument(message=_('参数“status”的值无效'))
+
+        try:
+            public = str_to_true_false(public)
+        except exceptions.Error as e:
+            raise exceptions.InvalidArgument(
+                message=_('参数“public”') + str(e))
 
         if not view.is_as_admin_request(request):
             if username is not None:
@@ -92,8 +122,11 @@ class ServerHandler:
             'user_id': user_id,
             'vo_id': vo_id,
             'vo_name': vo_name,
-            'expired': expired,
-            'exclude_vo': exclude_vo
+            'expired': expired,     # True or None
+            'exclude_vo': exclude_vo,
+            'public': public,
+            'remark': remark,
+            'pay_type': pay_type
         }
 
     @staticmethod
@@ -111,18 +144,24 @@ class ServerHandler:
         vo_name = params['vo_name']
         expired = params['expired']
         exclude_vo = params['exclude_vo']
+        public = params['public']
+        remark = params['remark']
+        pay_type = params['pay_type']
 
         if view.is_as_admin_request(request):
             try:
                 servers = ServerManager().get_admin_servers_queryset(
                     user=request.user, service_id=service_id, user_id=user_id, username=username, vo_id=vo_id,
-                    ipv4_contains=ip_contain, expired=expired, vo_name=vo_name, exclude_vo=exclude_vo
+                    ipv4_contains=ip_contain, expired=expired, vo_name=vo_name, exclude_vo=exclude_vo,
+                    public=public, remark=remark, pay_type=pay_type
                 )
             except Exception as exc:
                 return view.exception_response(exceptions.convert_to_error(exc))
         else:
             servers = ServerManager().get_user_servers_queryset(
-                user=request.user, service_id=service_id, ipv4_contains=ip_contain, expired=expired)
+                user=request.user, service_id=service_id, ipv4_contains=ip_contain, expired=expired,
+                public=public, remark=remark, pay_type=pay_type
+            )
 
         service_id_map = ServiceManager.get_service_id_map(use_cache=True)
         paginator = paginations.ServersPagination()

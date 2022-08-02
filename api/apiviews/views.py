@@ -80,11 +80,25 @@ class ServersViewSet(CustomGenericViewSet):
               description=gettext_lazy('过滤条件，查询ip地址中包含指定字符串的服务器')
             ),
             openapi.Parameter(
-                name='expired',
+                name='public',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=gettext_lazy('过滤条件，“true”:查询过期的服务器; "false": 查询未过期的')
+                description=gettext_lazy('过滤条件，“true”:ip为公网的服务器; "false": ip为私网的服务器')
+            ),
+            openapi.Parameter(
+                name='remark',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('过滤条件，服务器备注模糊查询')
+            ),
+            openapi.Parameter(
+                name='status',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('过滤条件') + str(ServerHandler.ListServerQueryStatus.choices)
             ),
             openapi.Parameter(
                 name='user-id',

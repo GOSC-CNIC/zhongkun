@@ -17,7 +17,10 @@ class ServerManager:
     def get_server_queryset():
         return Server.objects.all()
 
-    def get_user_servers_queryset(self, user, service_id: str = None, ipv4_contains: str = None, expired: bool = None):
+    def get_user_servers_queryset(
+            self, user, service_id: str = None, ipv4_contains: str = None, expired: bool = None,
+            public: bool = None, remark: str = None, pay_type: str = None
+    ):
         """
         查询用户个人server
 
@@ -25,14 +28,26 @@ class ServerManager:
         :param service_id: 服务单元id过滤
         :param ipv4_contains: ip包含过滤
         :param expired: True(过期过滤)；False(未过期过滤)：默认None不过滤
+        :param public: True(公网ip), False(私网ip)
+        :param remark: 备注模糊查询
+        :param pay_type: 付费模式
         :return: QuerySet()
         """
         lookups = {}
+        if public is not None:
+            lookups['public_ip'] = public
+
         if ipv4_contains:
             lookups['ipv4__contains'] = ipv4_contains
 
         if service_id:
             lookups['service_id'] = service_id
+
+        if pay_type is not None:
+            lookups['pay_type'] = pay_type
+
+        if remark:
+            lookups['remarks__icontains'] = remark
 
         qs = self.get_server_queryset()
         qs = qs.select_related('service', 'user').filter(
@@ -48,7 +63,7 @@ class ServerManager:
     def get_admin_servers_queryset(
             self, user, service_id: str = None, ipv4_contains: str = None, expired: bool = None,
             vo_id: str = None, vo_name: str = None, user_id: str = None, username: str = None,
-            exclude_vo: bool = None
+            exclude_vo: bool = None, public: bool = None, remark: str = None, pay_type: str = None
     ):
         """
         管理员查询server
@@ -62,6 +77,9 @@ class ServerManager:
         :param expired: True(过期过滤)；False(未过期过滤)：默认None不过滤
         :param vo_name: 过滤vo组名,模糊查询
         :param exclude_vo: True(排除vo组的server)，其他忽略
+        :param public: True(公网ip), False(私网ip)
+        :param remark: 备注模糊查询
+        :param pay_type: 付费模式
         :return: QuerySet()
         :raises: Error
         """
@@ -79,6 +97,14 @@ class ServerManager:
 
         if exclude_vo:
             qs = qs.filter(classification=Server.Classification.PERSONAL.value)
+
+        if public is True:
+            qs = qs.filter(public_ip=True)
+        elif public is False:
+            qs = qs.filter(public_ip=False)
+
+        if pay_type is not None:
+            qs = qs.filter(pay_type=pay_type)
 
         if vo_id or vo_name:
             lookups = {'classification': Server.Classification.VO.value}
@@ -109,6 +135,9 @@ class ServerManager:
 
         if ipv4_contains:
             qs = qs.filter(ipv4__contains=ipv4_contains)
+
+        if remark:
+            qs = qs.filter(remarks__icontains=remark)
 
         return qs
 

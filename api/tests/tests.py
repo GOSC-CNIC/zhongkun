@@ -10,6 +10,7 @@ from decimal import Decimal
 from django.urls import reverse
 from django.utils import timezone
 
+from utils.model import PayType
 from servers.models import Flavor, Server
 from service.models import (
     ApplyOrganization, DataCenter, ApplyVmService, ServiceConfig
@@ -72,22 +73,24 @@ def chunks(f, chunk_size=2 * 2 ** 20):
 def create_server_metadata(service, user, vo_id=None,
                            default_user: str = 'root', default_password: str = 'password',
                            classification=Server.Classification.PERSONAL, ipv4: str = '',
-                           expiration_time=None):
+                           expiration_time=None, public_ip: bool = False, remarks: str = '',
+                           pay_type: str = PayType.POSTPAID.value):
     server = Server(service=service,
                     instance_id='test',
-                    remarks='',
+                    remarks=remarks,
                     user=user,
                     vcpus=2,
                     ram=1024,
                     ipv4=ipv4 if ipv4 else '127.0.0.1',
                     image='test-image',
                     task_status=Server.TASK_CREATED_OK,
-                    public_ip=False,
+                    public_ip=public_ip,
                     classification=classification,
                     vo_id=vo_id,
                     image_id='',
                     image_desc='image desc',
                     default_user=default_user,
+                    pay_type=pay_type,
                     creation_time=timezone.now())
     server.raw_default_password = default_password
     if expiration_time:
@@ -122,7 +125,7 @@ class ServersTests(MyAPITestCase):
         self.miss_server = create_server_metadata(
             service=self.service, user=self.user,
             default_user=self.default_user, default_password=self.default_password,
-            ipv4='127.0.0.1'
+            ipv4='127.0.0.1', remarks='test miss server', pay_type=PayType.PREPAID.value
         )
         vo_data = {
             'name': 'test vo', 'company': '网络中心', 'description': 'unittest'
@@ -134,7 +137,7 @@ class ServersTests(MyAPITestCase):
             service=self.service, user=self.user, vo_id=self.vo_id,
             classification=Server.Classification.VO, default_user=self.default_user,
             default_password=self.default_password,
-            ipv4='127.0.0.12'
+            ipv4='127.0.0.12', remarks='test'
         )
 
     @staticmethod
@@ -346,26 +349,61 @@ class ServersTests(MyAPITestCase):
         self.assertEqual(response.data['count'], 0)
         self.assertEqual(len(response.data['servers']), 0)
 
-        # query 'expired' invalid
+        # query 'status' invalid
         url = reverse('api:servers-list')
-        query_str = parse.urlencode(query={'expired': ''})
+        query_str = parse.urlencode(query={'status': 's'})
         response = self.client.get(f'{url}?{query_str}')
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
 
-        # query expired
-        query_str = parse.urlencode(query={'expired': 'true'})
+        # query status
+        query_str = parse.urlencode(query={'status': 'expired'})
         response = self.client.get(f'{url}?{query_str}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 0)
         self.assertEqual(len(response.data['servers']), 0)
 
-        # query not expired
-        query_str = parse.urlencode(query={'expired': 'false'})
+        query_str = parse.urlencode(query={'status': 'prepaid'})
         response = self.client.get(f'{url}?{query_str}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 1)
         self.assertEqual(len(response.data['servers']), 1)
-        self.assertEqual(self.miss_server.ipv4, response.data['servers'][0]['ipv4'])
+        self.assertEqual(response.data['servers'][0]['id'], self.miss_server.id)
+        query_str = parse.urlencode(query={'status': 'postpaid'})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
+        self.assertEqual(len(response.data['servers']), 0)
+
+        # query "public"
+        query_str = parse.urlencode(query={'public': 'tr'})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+        query_str = parse.urlencode(query={'public': 'true'})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.data['count'], 0)
+        self.assertEqual(len(response.data['servers']), 0)
+        query_str = parse.urlencode(query={'public': 'false'})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['servers']), 1)
+        self.assertEqual(response.data['servers'][0]['id'], self.miss_server.id)
+
+        # param "remark
+        url = reverse('api:servers-list')
+        query = parse.urlencode({'remark': 'miss'})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['servers']), 1)
+        self.assert_is_subdict_of(sub={
+            'classification': Server.Classification.PERSONAL,
+            'id': self.miss_server.id, 'ipv4': self.miss_server.ipv4
+        }, d=response.data['servers'][0])
+        query = parse.urlencode({'remark': 'ssmiss'})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
 
         # query 'user-id' only as-admin
         url = reverse('api:servers-list')
@@ -461,9 +499,11 @@ class ServersTests(MyAPITestCase):
             region_id='',
         )
         service66.save()
-        admin_server66 = create_server_metadata(service=service66, user=admin_user,
-                                                default_user=self.default_user, default_password=self.default_password,
-                                                ipv4='159.226.235.66', expiration_time=timezone.now())
+        admin_server66 = create_server_metadata(
+            service=service66, user=admin_user, remarks='admin test',
+            default_user=self.default_user, default_password=self.default_password,
+            ipv4='159.226.235.66', expiration_time=timezone.now(), public_ip=True
+        )
 
         self.client.logout()
         self.client.force_login(admin_user)
@@ -486,24 +526,61 @@ class ServersTests(MyAPITestCase):
         self.assertIsInstance(response.data['servers'], list)
         self.assertEqual(len(response.data['servers']), 2)
 
-        # query 'expired' invalid
-        query_str = parse.urlencode(query={'as-admin': '', 'expired': ''})
+        # query 'status' invalid
+        query_str = parse.urlencode(query={'as-admin': '', 'status': 'dd'})
         response = self.client.get(f'{url}?{query_str}')
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
 
-        # query expired
-        query_str = parse.urlencode(query={'as-admin': '', 'expired': 'true'})
+        # query status
+        query_str = parse.urlencode(query={'as-admin': '', 'status': 'expired'})
         response = self.client.get(f'{url}?{query_str}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 0)
         self.assertEqual(len(response.data['servers']), 0)
 
-        # query not expired
-        query_str = parse.urlencode(query={'as-admin': '', 'expired': 'false'})
+        query_str = parse.urlencode(query={'as-admin': '', 'status': 'prepaid'})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['servers']), 1)
+        self.assertEqual(response.data['servers'][0]['id'], self.miss_server.id)
+        query_str = parse.urlencode(query={'as-admin': '', 'status': 'postpaid'})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['servers']), 1)
+        self.assertEqual(response.data['servers'][0]['id'], self.vo_server.id)
+
+        # query "public"
+        query_str = parse.urlencode(query={'as-admin': '', 'public': 'tr'})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+        query_str = parse.urlencode(query={'as-admin': '', 'public': 'true'})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.data['count'], 0)
+        self.assertEqual(len(response.data['servers']), 0)
+        query_str = parse.urlencode(query={'as-admin': '', 'public': 'false'})
         response = self.client.get(f'{url}?{query_str}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 2)
         self.assertEqual(len(response.data['servers']), 2)
+
+        # param "remark
+        url = reverse('api:servers-list')
+        query = parse.urlencode(query={'as-admin': '', 'remark': 'miss'})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['servers']), 1)
+        self.assertEqual(response.data['servers'][0]['id'], self.miss_server.id)
+        query = parse.urlencode(query={'as-admin': '', 'remark': 'admin'})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
+        query = parse.urlencode(query={'as-admin': '', 'remark': 'test'})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 2)
 
         # list server when service admin bu query parameter 'service_id'
         url = reverse('api:servers-list')
@@ -649,25 +726,63 @@ class ServersTests(MyAPITestCase):
         self.assertEqual(len(response.data['servers']), 1)
         self.assertEqual(response.data['servers'][0]['id'], self.vo_server.id)
 
-        # query 'expired' invalid
-        query_str = parse.urlencode(query={'as-admin': '', 'expired': ''})
+        # query 'status' invalid
+        query_str = parse.urlencode(query={'as-admin': '', 'status': 'ss'})
         response = self.client.get(f'{url}?{query_str}')
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
 
-        # query expired
-        query_str = parse.urlencode(query={'as-admin': '', 'expired': 'true'})
+        # query "status"
+        query_str = parse.urlencode(query={'as-admin': '', 'status': 'expired'})
         response = self.client.get(f'{url}?{query_str}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 1)
         self.assertEqual(len(response.data['servers']), 1)
         self.assertEqual(admin_server66.ipv4, response.data['servers'][0]['ipv4'])
 
-        # query not expired
-        query_str = parse.urlencode(query={'as-admin': '', 'expired': 'false'})
+        query_str = parse.urlencode(query={'as-admin': '', 'status': 'prepaid'})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['servers']), 1)
+        self.assertEqual(response.data['servers'][0]['id'], self.miss_server.id)
+        query_str = parse.urlencode(query={'as-admin': '', 'status': 'postpaid'})
         response = self.client.get(f'{url}?{query_str}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 2)
         self.assertEqual(len(response.data['servers']), 2)
+
+        # query "public"
+        query_str = parse.urlencode(query={'as-admin': '', 'public': 'tr'})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+        query_str = parse.urlencode(query={'as-admin': '', 'public': 'true'})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['servers']), 1)
+        self.assertEqual(response.data['servers'][0]['id'], admin_server66.id)
+        query_str = parse.urlencode(query={'as-admin': '', 'public': 'false'})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(len(response.data['servers']), 2)
+
+        # param "remark
+        url = reverse('api:servers-list')
+        query = parse.urlencode(query={'as-admin': '', 'remark': 'miss'})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['servers']), 1)
+        self.assertEqual(response.data['servers'][0]['id'], self.miss_server.id)
+        query = parse.urlencode(query={'as-admin': '', 'remark': 'admin'})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['servers'][0]['id'], admin_server66.id)
+        query = parse.urlencode(query={'as-admin': '', 'remark': 'test'})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 3)
 
         query_str = parse.urlencode(query={'as-admin': '', 'service_id': self.service.id})
         response = self.client.get(f'{url}?{query_str}')
