@@ -2359,6 +2359,29 @@ class VoTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 1)
 
+        # query "name"
+        response = self.list_response(client=self.client, queries={'name': 'ss'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
+        response = self.list_response(client=self.client, queries={'name': 'test'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+
+        # --------admin test----------
+        self.client.logout()
+        self.client.force_login(self.user2)
+        response = self.list_response(client=self.client, queries={})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
+
+        response = self.list_response(client=self.client, queries={'as-admin': ''})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.user2.set_federal_admin()
+        response = self.list_response(client=self.client, queries={'as-admin': ''})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+
     def test_owner_members_action(self):
         """
         组长管理组测试

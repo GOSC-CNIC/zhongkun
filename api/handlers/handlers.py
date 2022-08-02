@@ -14,6 +14,7 @@ from utils import storagers
 from utils import time
 from core import errors as exceptions
 from api.serializers import serializers
+from api.viewsets import CustomGenericViewSet
 
 
 User = get_user_model()
@@ -714,16 +715,26 @@ class VmServiceHandler:
 
 class VoHandler:
     @staticmethod
-    def list_vo(view, request, kwargs):
+    def list_vo(view: CustomGenericViewSet, request, kwargs):
         _owner = request.query_params.get('owner', None)
         _member = request.query_params.get('member', None)
+        _name = request.query_params.get('name', None)
+
         if _owner is not None:
             _owner = True
         if _member is not None:
             _member = True
 
         try:
-            queryset = VoManager().get_user_vo_queryset(user=request.user, owner=_owner, member=_member)
+            if view.is_as_admin_request(request=request):
+                queryset = VoManager().get_admin_vo_queryset(
+                    user=request.user, owner=_owner, member=_member, name=_name
+                )
+            else:
+                queryset = VoManager().get_user_vo_queryset(
+                    user=request.user, owner=_owner, member=_member, name=_name
+                )
+
             paginator = view.pagination_class()
             vos = paginator.paginate_queryset(request=request, queryset=queryset)
             serializer = view.get_serializer(instance=vos, many=True)

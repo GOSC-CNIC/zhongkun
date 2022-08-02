@@ -106,7 +106,7 @@ class VoManager:
         return self.get_queryset().filter(deleted=False)
 
     @staticmethod
-    def get_user_vo_queryset(user, owner: bool = None, member: bool = None):
+    def get_user_vo_queryset(user, owner: bool = None, member: bool = None, name: str = None):
         """
         查询用户相关的组（组员或组拥有者）
         * owner和member同时为None时等同于同时为True
@@ -114,6 +114,7 @@ class VoManager:
         :param user: 用户
         :param owner: True:查询包含作为组拥有者的组;
         :param member: True:查询包含作为组员的组;
+        :param name: vo组名关键字查询
         """
         queryset = VirtualOrganization.objects.select_related('owner').filter(deleted=False)
 
@@ -127,6 +128,37 @@ class VoManager:
             queryset = queryset.filter(Q(vomember__user=user) | Q(owner=user)).distinct()
         else:
             queryset = queryset.none()
+
+        if name:
+            queryset = queryset.filter(name__icontains=name)
+
+        return queryset
+
+    @staticmethod
+    def get_admin_vo_queryset(user: User, owner: bool = None, member: bool = None, name: str = None):
+        """
+        管理员查询组，只允许联邦管理员
+        * owner和member同时为None时查询所有
+
+        :param user: 用户
+        :param owner: True:查询包含作为组拥有者的组;
+        :param member: True:查询包含作为组员的组;
+        :param name: vo组名关键字查询
+        """
+        if not user.is_federal_admin():
+            raise errors.AccessDenied(message=_('你没有联邦管理员权限'))
+
+        queryset = VirtualOrganization.objects.select_related('owner').filter(deleted=False)
+
+        if owner and member:
+            queryset = queryset.filter(Q(vomember__user=user) | Q(owner=user)).distinct()
+        elif member:
+            queryset = queryset.filter(vomember__user=user)
+        elif owner:
+            queryset = queryset.filter(owner=user)
+
+        if name:
+            queryset = queryset.filter(name__icontains=name)
 
         return queryset
 

@@ -82,7 +82,7 @@ class ServersViewSet(CustomGenericViewSet):
             openapi.Parameter(
                 name='public',
                 in_=openapi.IN_QUERY,
-                type=openapi.TYPE_STRING,
+                type=openapi.TYPE_BOOLEAN,
                 required=False,
                 description=gettext_lazy('过滤条件，“true”:ip为公网的服务器; "false": ip为私网的服务器')
             ),
@@ -2324,15 +2324,22 @@ class VOViewSet(CustomGenericViewSet):
                 in_=openapi.IN_QUERY,
                 required=False,
                 description=_('列举作为组员身份的组，参数不需要值，存在即有效')
+            ),
+            openapi.Parameter(
+                name='name',
+                type=openapi.TYPE_BOOLEAN,
+                in_=openapi.IN_QUERY,
+                required=False,
+                description=_('vo组名关键字查询')
             )
-        ],
+        ] + CustomGenericViewSet.PARAMETERS_AS_ADMIN,
         responses={
             status.HTTP_200_OK: ''
         }
     )
     def list(self, request, *args, **kwargs):
         """
-        列举用户相关的（组员或组拥有者）项目组
+        列举用户相关的（组员或组拥有者）项目组，联邦管理员列举所有组
 
             * param "owner", "member"是或的关系，只提交其中一个参数，只列举相关身份的组；
               同时提交时和都不提交效果相同，即列举用户作为组员或组拥有者的项目组；
