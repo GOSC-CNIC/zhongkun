@@ -91,21 +91,36 @@ class ServersViewSet(CustomGenericViewSet):
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=gettext_lazy('过滤条件，用户id，此参数只有以管理员身份请求时有效，否则400，不能与参数“vo-id”一起提交')
+                description=gettext_lazy('过滤条件，用户id，此参数只有以管理员身份请求时有效，否则400，不能与参数“username”一起提交')
             ),
             openapi.Parameter(
               name='username',
               in_=openapi.IN_QUERY,
               type=openapi.TYPE_STRING,
               required=False,
-              description=gettext_lazy('过滤条件，用户名，此参数只有以管理员身份请求时有效，否则400，不能与参数“vo-id”一起提交')
+              description=gettext_lazy('过滤条件，用户名，此参数只有以管理员身份请求时有效，否则400，不能与参数“user-id”一起提交')
             ),
             openapi.Parameter(
                 name='vo-id',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=gettext_lazy('过滤条件，vo组id，此参数只有以管理员身份请求时有效，否则400 BadRequest')
+                description=gettext_lazy('过滤条件，vo组id，此参数只有以管理员身份请求时有效，否则400，不能与参数“vo-name”一起提交')
+            ),
+            openapi.Parameter(
+                name='vo-name',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('过滤条件，vo组名称，此参数只有以管理员身份请求时有效，否则400，不能与参数“vo-id”一起提交')
+            ),
+            openapi.Parameter(
+                name='exclude-vo',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('过滤条件，排除vo组只查询个人，此参数不需要值，此参数只有以管理员身份请求时有效，否则400，'
+                                         '不能与参数“vo-id”、“vo-name”一起提交')
             ),
         ] + CustomGenericViewSet.PARAMETERS_AS_ADMIN,
         responses={

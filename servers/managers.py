@@ -45,18 +45,23 @@ class ServerManager:
 
         return qs
 
-    def get_admin_servers_queryset(self, user, service_id: str = None, user_id: str = None, username: str = None,
-                                   vo_id: str = None, ipv4_contains: str = None, expired: bool = None):
+    def get_admin_servers_queryset(
+            self, user, service_id: str = None, ipv4_contains: str = None, expired: bool = None,
+            vo_id: str = None, vo_name: str = None, user_id: str = None, username: str = None,
+            exclude_vo: bool = None
+    ):
         """
         管理员查询server
 
         :param user: 管理员用户
         :param service_id: 服务单元id过滤
-        :param user_id: 过滤用户
-        :param username: 过滤用户名
+        :param user_id: 过滤用户, 包括vo内的用户创建的
+        :param username: 过滤用户名,模糊查询, 包括vo内的用户创建的
         :prram vo_id: 过滤vo
         :param ipv4_contains: ip包含过滤
         :param expired: True(过期过滤)；False(未过期过滤)：默认None不过滤
+        :param vo_name: 过滤vo组名,模糊查询
+        :param exclude_vo: True(排除vo组的server)，其他忽略
         :return: QuerySet()
         :raises: Error
         """
@@ -66,15 +71,22 @@ class ServerManager:
         qs = self.get_server_queryset()
         qs = qs.select_related('service', 'user')
 
-        if user_id or username:
-            lookups = {'classification': Server.Classification.PERSONAL}
-            if user_id:
-                lookups['user_id'] = user_id
-            if username:
-                lookups['user__username'] = username
+        if user_id:
+            qs = qs.filter(user_id=user_id)
+
+        if username:
+            qs = qs.filter(user__username__icontains=username)
+
+        if exclude_vo:
+            qs = qs.filter(classification=Server.Classification.PERSONAL.value)
+
+        if vo_id or vo_name:
+            lookups = {'classification': Server.Classification.VO.value}
+            if vo_id:
+                lookups['vo_id'] = vo_id
+            if vo_name:
+                lookups['vo__name__icontains'] = vo_name
             qs = qs.filter(**lookups)
-        elif vo_id:
-            qs = qs.filter(vo_id=vo_id, classification=Server.Classification.VO)
 
         if user.is_federal_admin():
             if service_id:

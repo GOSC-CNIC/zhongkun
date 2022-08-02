@@ -367,6 +367,28 @@ class ServersTests(MyAPITestCase):
         self.assertEqual(len(response.data['servers']), 1)
         self.assertEqual(self.miss_server.ipv4, response.data['servers'][0]['ipv4'])
 
+        # query 'user-id' only as-admin
+        url = reverse('api:servers-list')
+        query_str = parse.urlencode(query={'user-id': 'c'})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+        # query 'username' only as-admin
+        query_str = parse.urlencode(query={'username': 'c'})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+        # query 'vo-id' only as-admin
+        query_str = parse.urlencode(query={'vo-id': 'c'})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+        # query 'vo-name' only as-admin
+        query_str = parse.urlencode(query={'vo-name': 'c'})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+        # query 'exclude-vo' only as-admin
+        query_str = parse.urlencode(query={'exclude-vo': None})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
         # list vo servers
         url = reverse('api:servers-list-vo-servers', kwargs={'vo_id': self.vo_id})
         response = self.client.get(url)
@@ -500,7 +522,8 @@ class ServersTests(MyAPITestCase):
         self.assertEqual(len(response.data['servers']), 0)
 
         url = reverse('api:servers-list')
-        query_str = parse.urlencode(query={'as-admin': '', 'service_id': self.service.id, 'user-id': self.user.id})
+        query_str = parse.urlencode(query={'as-admin': '', 'service_id': self.service.id, 'user-id': self.user.id,
+                                           'exclude-vo': ''})
         response = self.client.get(f'{url}?{query_str}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 1)
@@ -532,9 +555,27 @@ class ServersTests(MyAPITestCase):
             'id': vo_server.id, 'vo_id': vo_id
         }, d=response.data['servers'][0])
 
-        # list server when service admin bu query parameter 'user-id' and 'vo-id'
+        # list server when service admin by query parameter 'user-id' and 'username'
         url = reverse('api:servers-list')
-        query_str = parse.urlencode(query={'as-admin': '', 'user-id': self.user.id, 'vo-id': self.vo_id})
+        query_str = parse.urlencode(query={'as-admin': '', 'user-id': self.user.id, 'username': self.user.username})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
+
+        # list server when service admin by query parameter 'vo-id' and 'vo-name'
+        url = reverse('api:servers-list')
+        query_str = parse.urlencode(query={'as-admin': '', 'vo-id': self.vo_id, 'vo-name': 'dd'})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
+
+        # list server when service admin by query parameter 'vo-id' and 'exclude-vo'
+        url = reverse('api:servers-list')
+        query_str = parse.urlencode(query={'as-admin': '', 'vo-id': self.vo_id, 'exclude-vo': ''})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
+
+        # list server when service admin by query parameter 'vo-name' and 'exclude-vo'
+        url = reverse('api:servers-list')
+        query_str = parse.urlencode(query={'as-admin': '', 'exclude-vo': '', 'vo-name': 'dd'})
         response = self.client.get(f'{url}?{query_str}')
         self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
 
@@ -546,6 +587,67 @@ class ServersTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 3)
         self.assertEqual(len(response.data['servers']), 3)
+
+        # query "exclude-vo"
+        query_str = parse.urlencode(query={'as-admin': '', 'exclude-vo': ''})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(len(response.data['servers']), 2)
+
+        # query "username"
+        query_str = parse.urlencode(query={'as-admin': '', 'username': self.user.username})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(len(response.data['servers']), 2)
+
+        # query "username" and "exclude-vo"
+        query_str = parse.urlencode(query={'as-admin': '', 'username': self.user.username, 'exclude-vo': ''})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['servers']), 1)
+        self.assertEqual(response.data['servers'][0]['id'], self.miss_server.id)
+
+        # query "user-id"
+        query_str = parse.urlencode(query={'as-admin': '', 'user-id': self.user.id})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(len(response.data['servers']), 2)
+
+        # query "user-id" and "exclude-vo"
+        query_str = parse.urlencode(query={'as-admin': '', 'user-id': self.user.id, 'exclude-vo': ''})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['servers']), 1)
+        self.assertEqual(response.data['servers'][0]['id'], self.miss_server.id)
+
+        # query "user-id"
+        query_str = parse.urlencode(query={'as-admin': '', 'user-id': admin_user.id})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['servers']), 1)
+        self.assertEqual(response.data['servers'][0]['id'], admin_server66.id)
+
+        # query "vo-id"
+        query_str = parse.urlencode(query={'as-admin': '', 'vo-id': self.vo_id})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['servers']), 1)
+        self.assertEqual(response.data['servers'][0]['id'], self.vo_server.id)
+
+        # query "vo-name"
+        query_str = parse.urlencode(query={'as-admin': '', 'vo-name': self.vo_server.vo.name})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['servers']), 1)
+        self.assertEqual(response.data['servers'][0]['id'], self.vo_server.id)
 
         # query 'expired' invalid
         query_str = parse.urlencode(query={'as-admin': '', 'expired': ''})

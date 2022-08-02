@@ -30,13 +30,34 @@ from .handlers import serializer_error_msg
 
 class ServerHandler:
     @staticmethod
-    def list_servers(view: CustomGenericViewSet, request, kwargs):
+    def _list_servers_validate_params(view, request):
         service_id = request.query_params.get('service_id', None)
         ip_contain = request.query_params.get('ip-contain', None)
-        username = request.query_params.get('username')
-        user_id = request.query_params.get('user-id')
-        vo_id = request.query_params.get('vo-id')
         expired = request.query_params.get('expired', None)
+        username = request.query_params.get('username', None)
+        user_id = request.query_params.get('user-id', None)
+        vo_id = request.query_params.get('vo-id', None)
+        vo_name = request.query_params.get('vo-name', None)
+        exclude_vo = request.query_params.get('exclude-vo', None)
+
+        if user_id is not None and username is not None:
+            raise exceptions.BadRequest(
+                message=_('参数“user-id”和“username”不允许同时提交')
+            )
+
+        if vo_id is not None and vo_name is not None:
+            raise exceptions.BadRequest(
+                message=_('参数“vo-id”和“vo-name”不允许同时提交')
+            )
+
+        if exclude_vo is not None:
+            exclude_vo = True
+            if vo_id is not None or vo_name is not None:
+                raise exceptions.BadRequest(
+                    message=_('参数"exclude-vo"不允许与参数“vo-id”和“vo-name”同时提交')
+                )
+        else:
+            exclude_vo = False
 
         if expired is not None:
             if expired.lower() == 'true':
@@ -44,26 +65,62 @@ class ServerHandler:
             elif expired.lower() == 'false':
                 expired = False
             else:
-                return view.exception_response(exceptions.InvalidArgument(
-                    message=_('参数“expired”值无效，必须为true或者false')))
+                raise exceptions.InvalidArgument(
+                    message=_('参数“expired”值无效，必须为true或者false'))
 
-        if (username or user_id) and vo_id:
-            return view.exception_response(exceptions.BadRequest(
-                message=_('参数“vo-id”不能和“user-id”、“username”之一同时提交')))
+        if not view.is_as_admin_request(request):
+            if username is not None:
+                raise exceptions.InvalidArgument(
+                    message=_('参数"username"只有以管理员身份请求时有效'))
+            if user_id is not None:
+                raise exceptions.InvalidArgument(
+                    message=_('参数"user-id"只有以管理员身份请求时有效'))
+            if vo_id is not None:
+                raise exceptions.InvalidArgument(
+                    message=_('参数"vo-id"只有以管理员身份请求时有效'))
+            if vo_name is not None:
+                raise exceptions.InvalidArgument(
+                    message=_('参数"vo-name"只有以管理员身份请求时有效'))
+            if exclude_vo:
+                raise exceptions.InvalidArgument(
+                    message=_('参数"exclude_vo"只有以管理员身份请求时有效'))
+
+        return {
+            'service_id': service_id,
+            'ip_contain': ip_contain,
+            'username': username,
+            'user_id': user_id,
+            'vo_id': vo_id,
+            'vo_name': vo_name,
+            'expired': expired,
+            'exclude_vo': exclude_vo
+        }
+
+    @staticmethod
+    def list_servers(view: CustomGenericViewSet, request, kwargs):
+        try:
+            params = ServerHandler._list_servers_validate_params(view=view, request=request)
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        service_id = params['service_id']
+        ip_contain = params['ip_contain']
+        username = params['username']
+        user_id = params['user_id']
+        vo_id = params['vo_id']
+        vo_name = params['vo_name']
+        expired = params['expired']
+        exclude_vo = params['exclude_vo']
 
         if view.is_as_admin_request(request):
             try:
                 servers = ServerManager().get_admin_servers_queryset(
                     user=request.user, service_id=service_id, user_id=user_id, username=username, vo_id=vo_id,
-                    ipv4_contains=ip_contain, expired=expired
+                    ipv4_contains=ip_contain, expired=expired, vo_name=vo_name, exclude_vo=exclude_vo
                 )
             except Exception as exc:
                 return view.exception_response(exceptions.convert_to_error(exc))
         else:
-            if user_id or username or vo_id:
-                return view.exception_response(exceptions.BadRequest(
-                    message=_('参数“user-id”、“user-id”和“vo-id”只能和参数“as-admin”一起提交')))
-
             servers = ServerManager().get_user_servers_queryset(
                 user=request.user, service_id=service_id, ipv4_contains=ip_contain, expired=expired)
 

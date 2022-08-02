@@ -1,6 +1,7 @@
 from decimal import Decimal
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 
+import pytz
 from django.test import TransactionTestCase
 from django.utils import timezone
 
@@ -143,8 +144,17 @@ class MeteringServerTests(TransactionTestCase):
         measurer = ServerMeasurer(raise_exeption=True)
         measurer.run()
 
+        # utc时间00:00（北京时间08:00）之后的1hour之内，server4会被计量
+        utc_now = now.astimezone(pytz.utc)
+        in_utc_0_1 = False
+        if time(hour=0, minute=0, second=0) <= utc_now.time() <= time(hour=1, minute=0, second=0):
+            in_utc_0_1 = True
+
         count = MeteringServer.objects.all().count()
-        self.assertEqual(count, 2)
+        if in_utc_0_1:
+            self.assertEqual(count, 3)
+        else:
+            self.assertEqual(count, 2)
 
         # server1
         metering = measurer.server_metering_exists(metering_date=metering_date, server_id=server1.id)
@@ -192,7 +202,10 @@ class MeteringServerTests(TransactionTestCase):
 
         measurer.run()
         count = MeteringServer.objects.all().count()
-        self.assertEqual(count, 2)
+        if in_utc_0_1:
+            self.assertEqual(count, 3)
+        else:
+            self.assertEqual(count, 2)
 
     def test_only_server(self):
         now = timezone.now()
