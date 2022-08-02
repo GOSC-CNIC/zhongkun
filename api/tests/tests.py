@@ -718,6 +718,14 @@ class ServersTests(MyAPITestCase):
         self.assertEqual(len(response.data['servers']), 1)
         self.assertEqual(response.data['servers'][0]['id'], self.vo_server.id)
 
+        # query "vo-id" and "user-id"
+        query_str = parse.urlencode(query={'as-admin': '', 'vo-id': self.vo_id, 'user-id': self.user.id})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['servers']), 1)
+        self.assertEqual(response.data['servers'][0]['id'], self.vo_server.id)
+
         # query "vo-name"
         query_str = parse.urlencode(query={'as-admin': '', 'vo-name': self.vo_server.vo.name})
         response = self.client.get(f'{url}?{query_str}')

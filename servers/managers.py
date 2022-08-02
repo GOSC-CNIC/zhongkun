@@ -83,9 +83,6 @@ class ServerManager:
         :return: QuerySet()
         :raises: Error
         """
-        if (user_id or username) and vo_id:
-            return self.get_server_queryset().none()
-
         qs = self.get_server_queryset()
         qs = qs.select_related('service', 'user')
 
