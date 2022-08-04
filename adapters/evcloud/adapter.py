@@ -335,6 +335,28 @@ class EVCloudAdapter(BaseAdapter):
         rj = r.json()
         return OutputConverter().to_list_image_output(rj['results'])
 
+    def image_detail(self, params: inputs.ImageDetailInput, **kwargs):
+        """
+        查询镜像信息
+        :return:
+            output.ImageDetailOutput()
+        """
+        try:
+            image_id = int(params.image_id)
+        except ValueError:
+            return OutputConverter().to_image_detail_output_error(
+                error=exceptions.ResourceNotFound()
+            )
+
+        url = self.api_builder.image_detail_url(image_id=image_id)
+        try:
+            headers = self.get_auth_header()
+            r = self.do_request(method='get', url=url, headers=headers)
+        except exceptions.Error as e:
+            return OutputConverter().to_image_detail_output_error(error=e)
+        rj = r.json()
+        return OutputConverter().to_image_detail_output(rj)
+
     def list_networks(self, params: inputs.ListNetworkInput, **kwargs):
         """
         列举子网

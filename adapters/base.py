@@ -96,6 +96,14 @@ class BaseAdapter:
         """
         raise NotImplementedError('`list_images()` must be implemented.')
 
+    def image_detail(self, params: inputs.ImageDetailInput, **kwargs):
+        """
+        查询镜像信息
+        :return:
+            output.ImageDetailOutput()
+        """
+        raise NotImplementedError('`image_detail()` must be implemented.')
+
     def list_networks(self, params: inputs.ListNetworkInput, **kwargs):
         """
         列举子网

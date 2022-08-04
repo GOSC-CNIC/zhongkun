@@ -126,6 +126,17 @@ class ListImageInput(InputBase):
         super().__init__(**kwargs)
 
 
+class ImageDetailInput(InputBase):
+    def __init__(self, image_id: str, region_id: str, **kwargs):
+        """
+        :param image_id: 镜像id; type: str; required: True
+        :param region_id: 区域/分中心id; type: str; required: False
+        """
+        self.image_id = image_id
+        self.region_id = region_id
+        super().__init__(**kwargs)
+
+
 class ListNetworkInput(InputBase):
     def __init__(self, region_id: str, public: bool = None, azone_id: str = None, **kwargs):
         """

@@ -408,24 +408,47 @@ class OpenStackAdapter(BaseAdapter):
                 # if not (image.visibility and image.visibility.lower() == 'public'):
                 #     continue
 
-                image_name = image.name
-                properties = {}
-                if image.properties:
-                    properties = image.properties
-                desc = properties.get('description', '')
-                system = properties.get('os')
-                if not system:
-                    system = image_name
-
-                img_obj = outputs.ListImageOutputImage(
-                    _id=image.id, name=image_name, system=system, desc=desc, system_type=image.os_type,
-                    creation_time=image.created_at, default_username='', default_password='',
-                    min_sys_disk_gb=image.min_disk, min_ram_mb=image.min_ram
-                )
+                img_obj = self._output_image_obj(image)
                 result.append(img_obj)
             return outputs.ListImageOutput(images=result)
         except Exception as e:
             return outputs.ListImageOutput(ok=False, error=exceptions.Error(f'list image failed, {str(e)}'), images=[])
+
+    @staticmethod
+    def _output_image_obj(image):
+        """
+        :return: outputs.ListImageOutputImage()
+        """
+        image_name = image.name
+        properties = {}
+        if image.properties:
+            properties = image.properties
+        desc = properties.get('description', '')
+        system = properties.get('os')
+        if not system:
+            system = image_name
+
+        img_obj = outputs.ListImageOutputImage(
+            _id=image.id, name=image_name, system=system, desc=desc, system_type=image.os_type,
+            creation_time=image.created_at, default_username='', default_password='',
+            min_sys_disk_gb=image.min_disk, min_ram_mb=image.min_ram
+        )
+        return img_obj
+
+    def image_detail(self, params: inputs.ImageDetailInput, **kwargs):
+        """
+        查询镜像信息
+        :return:
+            output.ImageDetailOutput()
+        """
+        image_id = params.image_id
+        try:
+            conn = self._get_openstack_connect()
+            image = conn.image.get_image(image_id)
+            img_obj = self._output_image_obj(image)
+            return outputs.ImageDetailOutput(image=img_obj)
+        except Exception as e:
+            return outputs.ImageDetailOutput(ok=False, error=exceptions.Error(f'get image failed, {str(e)}'))
 
     @staticmethod
     def _flavor_name(ram: int, vcpu: int, disk: int):

@@ -454,7 +454,9 @@ class UnisAdapter(BaseAdapter):
             ip=ip,
             creation_time=datetime.fromtimestamp(data['startTime'] / 1000),
             default_user='root',
-            default_password=password
+            default_password=password,
+            azone_id='',
+            disk_size=0
         )
 
         return outputs.ServerDetailOutput(server=server)
@@ -502,7 +504,7 @@ class UnisAdapter(BaseAdapter):
         unis_images = images_container.all
         images = []
         for img in unis_images:
-            system_type=img['ostype']
+            system_type = img['ostype']
             default_username = 'root'
             if system_type == 'windows':
                 default_username = 'Administrator'
@@ -514,7 +516,9 @@ class UnisAdapter(BaseAdapter):
                 system_type=img['ostype'],
                 creation_time=datetime.fromtimestamp(img['creationTime'] / 1000),
                 default_username=default_username,
-                default_password=''
+                default_password='',
+                min_ram_mb=0,
+                min_sys_disk_gb=0
             )
             images.append(image)
 

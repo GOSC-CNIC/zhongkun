@@ -68,10 +68,12 @@ class VmwareAdapter(BaseAdapter):
     def _get_connect(self):
         return self.auth.kwargs['vmconnect']
 
-    def _build_instance_name(self, template_name: str):
+    @staticmethod
+    def _build_instance_name(template_name: str):
         return f'{template_name}&{str(uuid.uuid1())}'
 
-    def _get_template_name(self, server_name: str):
+    @staticmethod
+    def _get_template_name(server_name: str):
         if '&' not in server_name:
             return ''
 
@@ -83,7 +85,8 @@ class VmwareAdapter(BaseAdapter):
 
         return template_name
 
-    def _get_instance(self, conn, instance_id: str, instance_name: str):
+    @staticmethod
+    def _get_instance(conn, instance_id: str, instance_name: str):
         vm = None
         if instance_id:
             vm = helpers.get_obj_by_uuid(conn.content, instance_id)
@@ -375,6 +378,23 @@ class VmwareAdapter(BaseAdapter):
             return outputs.ListImageOutput(images=result)
         except Exception as e:
             return outputs.ListImageOutput(ok=False, error=exceptions.Error(f'list image failed, {str(e)}'), images=[])
+
+    def image_detail(self, params: inputs.ImageDetailInput, **kwargs):
+        """
+        查询镜像信息
+        :return:
+            output.ImageDetailOutput()
+        """
+        image_id = params.image_id
+        r = self.list_images(params=inputs.ListImageInput(region_id=params.region_id))
+        if not r.ok:
+            return outputs.ImageDetailOutput(ok=False, error=r.error, image=None)
+
+        for img in r.images:
+            if img.id == image_id:
+                return outputs.ImageDetailOutput(image=img)
+
+        return outputs.ImageDetailOutput(ok=False, error=exceptions.ResourceNotFound(), image=None)
 
     def list_networks(self, params: inputs.ListNetworkInput, **kwargs):
         """

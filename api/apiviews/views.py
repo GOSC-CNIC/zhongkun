@@ -945,7 +945,7 @@ class ImageViewSet(CustomGenericViewSet):
     permission_classes = [IsAuthenticated, ]
     pagination_class = None
     lookup_field = 'id'
-    lookup_value_regex = '[0-9a-z-]+'
+    # lookup_value_regex = '[0-9a-z-]+'
     serializer_class = Serializer
 
     @swagger_auto_schema(
@@ -997,6 +997,56 @@ class ImageViewSet(CustomGenericViewSet):
             return Response(data=exc.err_data(), status=exc.status_code)
 
         serializer = serializers.ImageSerializer(r.images, many=True)
+        return Response(data=serializer.data)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举镜像'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='service_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description='服务端点id'
+            ),
+        ],
+        responses={
+            200: """"""
+        }
+    )
+    def retrieve(self, request, *args, **kwargs):
+        """
+        查询镜像信息
+
+            200：
+            {
+                "id": "18",
+                "name": "Ubuntu 2004",
+                "system": "Ubuntu 2004",
+                "system_type": "Linux",
+                "creation_time": "0001-01-01T00:00:00Z",
+                "desc": "Ubuntu 2004 旧镜像",
+                "default_user": "root",
+                "default_password": "cnic.cn",
+                "min_sys_disk_gb": 200,
+                "min_ram_mb": 0
+            }
+        """
+        image_id = kwargs.get(self.lookup_field)
+        try:
+            service = self.get_service(request)
+        except exceptions.APIException as exc:
+            return Response(exc.err_data(), status=exc.status_code)
+
+        params = inputs.ImageDetailInput(image_id=image_id, region_id=service.region_id)
+        try:
+            r = self.request_service(service, method='image_detail', params=params)
+        except exceptions.AuthenticationFailed as exc:
+            return Response(data=exc.err_data(), status=500)
+        except exceptions.APIException as exc:
+            return Response(data=exc.err_data(), status=exc.status_code)
+
+        serializer = serializers.ImageSerializer(instance=r.image, many=False)
         return Response(data=serializer.data)
 
 

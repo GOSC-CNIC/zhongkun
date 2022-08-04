@@ -1415,6 +1415,20 @@ class ImageTests(MyAPITestCase):
                            "creation_time", "desc", "default_user", "default_password", "min_sys_disk_gb", "min_ram_mb"
                            ], response.data[0])
 
+        # image detail
+        image_id = response.data[0]['id']
+        url = reverse('api:images-detail', kwargs={'id': image_id})
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=400, code='NoFoundArgument', response=response)
+
+        url = reverse('api:images-detail', kwargs={'id': image_id})
+        query = parse.urlencode(query={'service_id': self.service.id})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["id", "name", "system", "system_type",
+                           "creation_time", "desc", "default_user", "default_password", "min_sys_disk_gb", "min_ram_mb"
+                           ], response.data)
+
 
 class NetworkTests(MyAPITestCase):
     def setUp(self):

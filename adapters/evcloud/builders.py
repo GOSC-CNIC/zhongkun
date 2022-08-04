@@ -85,6 +85,9 @@ class APIBuilder:
     def image_base_url(self, query=None):
         return self.build_url(path=f'api/{self.api_version}/image', query=query)
 
+    def image_detail_url(self, image_id: int, query=None):
+        return self.build_url(path=f'api/{self.api_version}/image/{image_id}/', query=query)
+
     def vm_base_url(self, query=None):
         return self.build_url(path=f'api/{self.api_version}/vms', query=query)
 

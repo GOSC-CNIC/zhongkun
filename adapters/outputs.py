@@ -1,6 +1,7 @@
 """
 适配器各接口输出类定义
 """
+from typing import List
 from collections import namedtuple
 from datetime import datetime
 
@@ -290,11 +291,20 @@ class ListImageOutputImage:
 
 
 class ListImageOutput(OutputBase):
-    def __init__(self, images: list, **kwargs):
+    def __init__(self, images: List[ListImageOutputImage], **kwargs):
         """
         :param images: [ListImageOutputImage(), ]
         """
         self.images = images
+        super().__init__(**kwargs)
+
+
+class ImageDetailOutput(OutputBase):
+    def __init__(self, image: ListImageOutputImage = None, **kwargs):
+        """
+        :param image: ListImageOutputImage()
+        """
+        self.image = image
         super().__init__(**kwargs)
 
 
