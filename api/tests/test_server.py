@@ -138,10 +138,26 @@ class ServerOrderTests(MyAPITransactionTestCase):
         self.assertEqual(response.status_code, 200)
         network_id = response.data[0]['id']
 
-        # param "azone_id"
+        # param "image_id"
         response = self.client.post(url, data={
             'pay_type': PayType.PREPAID.value, 'service_id': self.service.id,
             'image_id': 'ss', 'period': 12, 'flavor_id': self.flavor.id,
+            'vo_id': self.vo.id, 'network_id': network_id, 'azone_id': 'test'
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidImageId', response=response)
+
+        # get image_id
+        url = reverse('api:images-list')
+        query = parse.urlencode(query={'service_id': self.service.id})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        image_id = response.data[0]['id']
+
+        # param "azone_id"
+        url = reverse('api:servers-list')
+        response = self.client.post(url, data={
+            'pay_type': PayType.PREPAID.value, 'service_id': self.service.id,
+            'image_id': image_id, 'period': 12, 'flavor_id': self.flavor.id,
             'vo_id': self.vo.id, 'network_id': network_id, 'azone_id': 'test'
         })
         self.assertErrorResponse(status_code=400, code='InvalidAzoneId', response=response)
@@ -165,11 +181,18 @@ class ServerOrderTests(MyAPITransactionTestCase):
         self.service.pay_app_service_id = 'app_service_id'
         self.service.save(update_fields=['pay_app_service_id'])
 
+        # get image_id
+        url = reverse('api:images-list')
+        query = parse.urlencode(query={'service_id': self.service.id})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        image_id = response.data[0]['id']
+
         # service privete quota not enough
         url = reverse('api:servers-list')
         response = self.client.post(url, data={
             'pay_type': PayType.PREPAID.value, 'service_id': self.service.id,
-            'image_id': 'ss', 'period': 12, 'flavor_id': self.flavor.id, 'network_id': network_id,
+            'image_id': image_id, 'period': 12, 'flavor_id': self.flavor.id, 'network_id': network_id,
             'remarks': 'testcase创建，可删除'
         })
         self.assertErrorResponse(status_code=409, code='QuotaShortage', response=response)
@@ -181,7 +204,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         # create user server prepaid mode
         response = self.client.post(url, data={
             'pay_type': PayType.PREPAID.value, 'service_id': self.service.id,
-            'image_id': 'ss', 'period': 12, 'flavor_id': self.flavor.id, 'network_id': network_id,
+            'image_id': image_id, 'period': 12, 'flavor_id': self.flavor.id, 'network_id': network_id,
             'remarks': 'testcase创建，可删除'
         })
         self.assertEqual(response.status_code, 200)
@@ -196,7 +219,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         # create user server postpaid mode, no balance
         response = self.client.post(url, data={
             'pay_type': PayType.POSTPAID.value, 'service_id': self.service.id,
-            'image_id': 'ss', 'period': 12, 'flavor_id': self.flavor.id, 'network_id': network_id,
+            'image_id': image_id, 'period': 12, 'flavor_id': self.flavor.id, 'network_id': network_id,
             'remarks': 'testcase创建，可删除'
         })
         self.assertErrorResponse(status_code=409, code='BalanceNotEnough', response=response)
@@ -206,14 +229,35 @@ class ServerOrderTests(MyAPITransactionTestCase):
         user_account.balance = Decimal('10000')
         user_account.save()
         response = self.client.post(url, data={
-            'pay_type': PayType.POSTPAID.value, 'service_id': self.service.id,
-            'image_id': 'ss', 'period': 12, 'flavor_id': self.flavor.id, 'network_id': network_id,
+            'pay_type': PayType.PREPAID.value, 'service_id': self.service.id,
+            'image_id': image_id, 'period': 12, 'flavor_id': self.flavor.id, 'network_id': network_id,
             'remarks': 'testcase创建，可删除'
         })
         self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['order_id'], response.data)
+        order_id = response.data['order_id']
+        order, resources = OrderManager().get_order_detail(order_id=order_id, user=self.user)
+        self.assertEqual(resources[0].instance_status, resources[0].InstanceStatus.WAIT.value)
+        self.assertEqual(order.trading_status, order.TradingStatus.OPENING.value)
+        self.assertEqual(order.owner_type, OwnerType.USER.value)
+        self.assertEqual(order.user_id, self.user.id)
+
+        # 修改镜像id，让订单交付资源失败
+        s_config = ServerConfig.from_dict(order.instance_config)
+        s_config.vm_image_id = 'test'
+        order.instance_config = s_config.to_dict()
+        order.save(update_fields=['instance_config'])
+
+        # 订单交付资源
+        order.payable_amount = Decimal(0)
+        order.save(update_fields=['payable_amount'])
+        pay_url = reverse('api:order-pay-order', kwargs={'id': order_id})
+        query = parse.urlencode(query={
+            'payment_method': Order.PaymentMethod.BALANCE.value
+        })
+        response = self.client.post(f'{pay_url}?{query}')
+        self.assertEqual(response.status_code, 200)
         try:
-            self.assertKeysIn(['order_id'], response.data)
-            order_id = response.data['order_id']
             order, resources = OrderManager().get_order_detail(order_id=order_id, user=self.user)
             self.try_delete_server(server_id=resources[0].instance_id)
             self.assertEqual(resources[0].instance_status, resources[0].InstanceStatus.FAILED.value)
@@ -225,6 +269,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
 
         # --------vo-------------
         # create vo server postpaid mode, no vo permission
+        url = reverse('api:servers-list')
         response = self.client.post(url, data={
             'pay_type': PayType.POSTPAID.value, 'service_id': self.service.id,
             'image_id': 'ss', 'period': 12, 'flavor_id': self.flavor.id, 'network_id': network_id,
@@ -240,24 +285,49 @@ class ServerOrderTests(MyAPITransactionTestCase):
         # create vo server postpaid mode, no balance
         response = self.client.post(url, data={
             'pay_type': PayType.POSTPAID.value, 'service_id': self.service.id,
-            'image_id': 'ss', 'period': 12, 'flavor_id': self.flavor.id, 'network_id': network_id,
+            'image_id': image_id, 'period': 12, 'flavor_id': self.flavor.id, 'network_id': network_id,
             'remarks': 'testcase创建，可删除', 'vo_id': self.vo.id
         })
         self.assertErrorResponse(status_code=409, code='VoBalanceNotEnough', response=response)
 
         # create vo server postpaid mode, invalid image_id
-        vo_account = PaymentManager().get_vo_point_account(vo_id=self.vo.id)
-        vo_account.balance = Decimal('10000')
-        vo_account.save()
+        # vo_account = PaymentManager().get_vo_point_account(vo_id=self.vo.id)
+        # vo_account.balance = Decimal('10000')
+        # vo_account.save()
+
+        # create order
         response = self.client.post(url, data={
-            'pay_type': PayType.POSTPAID.value, 'service_id': self.service.id,
-            'image_id': 'ss', 'period': 12, 'flavor_id': self.flavor.id, 'network_id': network_id,
+            'pay_type': PayType.PREPAID.value, 'service_id': self.service.id,
+            'image_id': image_id, 'period': 12, 'flavor_id': self.flavor.id, 'network_id': network_id,
             'remarks': 'testcase创建，可删除', 'vo_id': self.vo.id
         })
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['order_id'], response.data)
+        order_id = response.data['order_id']
+        order, resources = OrderManager().get_order_detail(order_id=order_id, user=self.user)
+        self.assertEqual(resources[0].instance_status, resources[0].InstanceStatus.WAIT.value)
+        self.assertEqual(order.trading_status, order.TradingStatus.OPENING.value)
+        self.assertEqual(order.owner_type, OwnerType.VO.value)
+        self.assertEqual(order.vo_id, self.vo.id)
+        self.assertEqual(order.user_id, self.user.id)
+
+        # 修改镜像id，让订单交付资源失败
+        s_config = ServerConfig.from_dict(order.instance_config)
+        s_config.vm_image_id = 'test'
+        order.instance_config = s_config.to_dict()
+        order.save(update_fields=['instance_config'])
+
+        # 支付订单交付资源
+        order.payable_amount = Decimal(0)
+        order.save(update_fields=['payable_amount'])
+        pay_url = reverse('api:order-pay-order', kwargs={'id': order_id})
+        query = parse.urlencode(query={
+            'payment_method': Order.PaymentMethod.BALANCE.value
+        })
+        response = self.client.post(f'{pay_url}?{query}')
+        self.assertEqual(response.status_code, 200)
         try:
-            self.assertKeysIn(['order_id'], response.data)
-            order_id = response.data['order_id']
             order, resources = OrderManager().get_order_detail(order_id=order_id, user=self.user)
             self.try_delete_server(server_id=resources[0].instance_id)
             self.assertEqual(order.trading_status, order.TradingStatus.UNDELIVERED.value)

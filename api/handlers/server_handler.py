@@ -21,6 +21,7 @@ from api import request_logger
 from vo.managers import VoManager
 from vo.models import VirtualOrganization
 from adapters import inputs
+from adapters.openstack.adapter import OpenStackAdapter
 from utils.model import PayType, OwnerType
 from utils.time import iso_utc_to_datetime
 from order.models import ResourceType, Order, Resource
@@ -392,6 +393,22 @@ class ServerHandler:
 
         network = out_net.network
 
+        # image
+        if service.service_type == service.ServiceType.OPENSTACK.value:
+            systemdisk_size = OpenStackAdapter.FLAVOR_DISK_SIZE_GB
+        else:
+            params = inputs.ImageDetailInput(image_id=image_id, region_id=service.region_id)
+            try:
+                r = view.request_service(service, method='image_detail', params=params)
+                if not r.ok:
+                    raise exceptions.BadRequest(message=_('查询镜像错误') + str(r.error), code='InvalidImageId')
+
+                systemdisk_size = r.image.min_sys_disk_gb
+                if systemdisk_size < 50:
+                    systemdisk_size = 50
+            except exceptions.APIException as exc:
+                raise exceptions.BadRequest(message=_('查询镜像错误') + str(exc), code='InvalidImageId')
+
         if azone_id:
             try:
                 out_azones = view.request_service(
@@ -424,7 +441,8 @@ class ServerHandler:
             'vo': vo,
             'remarks': remarks,
             'service': service,
-            'period': period
+            'period': period,
+            'systemdisk_size': systemdisk_size
         }
 
     def server_order_create(self, view, request):
@@ -446,6 +464,7 @@ class ServerHandler:
         remarks = data['remarks']
         service = data['service']
         period = data['period']
+        systemdisk_size = data['systemdisk_size']
 
         user = request.user
         is_public_network = network.public
@@ -459,7 +478,7 @@ class ServerHandler:
             owner_type = OwnerType.USER.value
 
         instance_config = ServerConfig(
-            vm_cpu=flavor.vcpus, vm_ram=flavor.ram, systemdisk_size=50, public_ip=is_public_network,
+            vm_cpu=flavor.vcpus, vm_ram=flavor.ram, systemdisk_size=systemdisk_size, public_ip=is_public_network,
             image_id=image_id, image_name='', network_id=network.id, network_name=network.name,
             azone_id=azone_id, azone_name=azone_name
         )
