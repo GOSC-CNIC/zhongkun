@@ -119,8 +119,6 @@ class OpenStackAdapter(BaseAdapter):
     """
     OpenStack服务API适配器
     """
-    FLAVOR_DISK_SIZE_GB = 50
-
     def __init__(self,
                  endpoint_url: str,
                  auth: outputs.AuthenticateOutput = None,
@@ -188,8 +186,18 @@ class OpenStackAdapter(BaseAdapter):
         user_data = build_user_data(username=admin_user, password=admin_pass)
         conn = self._get_openstack_connect()
         try:
+            if params.systemdisk_size:
+                if params.systemdisk_size < self.SYSTEM_DISK_MIN_SIZE_GB:
+                    return outputs.ServerCreateOutput(
+                        ok=False, error=exceptions.Error(message=f'系统盘大小不能小于{self.SYSTEM_DISK_MIN_SIZE_GB} GiB'),
+                        server=None)
+
+                systemdisk_size = params.systemdisk_size
+            else:
+                systemdisk_size = self.SYSTEM_DISK_MIN_SIZE_GB
+
             instance_name = self._build_instance_name(str(uuid.uuid1()))
-            flavor = self.get_or_create_flavor(params.ram, params.vcpu)
+            flavor = self.get_or_create_flavor(params.ram, params.vcpu, systemdisk_size=systemdisk_size)
             server_re = conn.compute.create_server(
                 name=instance_name, image_id=params.image_id, flavor_id=flavor.id,
                 networks=[{"uuid": params.network_id}],
@@ -454,20 +462,20 @@ class OpenStackAdapter(BaseAdapter):
     def _flavor_name(ram: int, vcpu: int, disk: int):
         return f"Ram{ram}Mb-{vcpu}vcpu-{disk}Gb"
 
-    def get_or_create_flavor(self, ram: int, vcpu: int):
-        name = self._flavor_name(ram=ram, vcpu=vcpu, disk=self.FLAVOR_DISK_SIZE_GB)
+    def get_or_create_flavor(self, ram: int, vcpu: int, systemdisk_size: int):
+        name = self._flavor_name(ram=ram, vcpu=vcpu, disk=systemdisk_size)
         service_instance = self._get_openstack_connect()
         # flavor = service_instance.compute.find_flavor(name_or_id=name)
         # if flavor:
         #     return flavor
         flavors = service_instance.compute.flavors()
         for flavor in flavors:
-            if flavor.ram == ram and flavor.vcpus == vcpu and flavor.disk == self.FLAVOR_DISK_SIZE_GB:
+            if flavor.ram == ram and flavor.vcpus == vcpu and flavor.disk == systemdisk_size:
                 return flavor
 
         params = {
             'name': name,
-            'ram': ram, 'vcpus': vcpu, 'disk': self.FLAVOR_DISK_SIZE_GB
+            'ram': ram, 'vcpus': vcpu, 'disk': systemdisk_size
         }
         flavor = service_instance.compute.create_flavor(**params)
         return flavor

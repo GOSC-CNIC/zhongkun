@@ -41,3 +41,4 @@ class ServerArchiveAdmin(admin.ModelAdmin):
 class FlavorAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
     list_display = ('id', 'vcpus', 'ram', 'enable', 'creation_time')
+    ordering = ('vcpus', 'ram')

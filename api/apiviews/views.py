@@ -1351,7 +1351,7 @@ class FlavorViewSet(CustomGenericViewSet):
             }
         """
         try:
-            flavors = Flavor.objects.filter(enable=True).order_by('vcpus').all()
+            flavors = Flavor.objects.filter(enable=True).order_by('vcpus', 'ram').all()
             serializer = serializers.FlavorSerializer(flavors, many=True)
         except Exception as exc:
             err = exceptions.APIException(message=str(exc))

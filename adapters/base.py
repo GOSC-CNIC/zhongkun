@@ -10,6 +10,7 @@ class BaseAdapter:
     不同类型的服务平台的api适配器的基类
     """
     adapter_name = 'adapter'
+    SYSTEM_DISK_MIN_SIZE_GB = 50        # 系统盘最小尺寸，单位GiB
 
     def __str__(self):
         return self.adapter_name

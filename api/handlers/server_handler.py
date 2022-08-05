@@ -21,7 +21,7 @@ from api import request_logger
 from vo.managers import VoManager
 from vo.models import VirtualOrganization
 from adapters import inputs
-from adapters.openstack.adapter import OpenStackAdapter
+from adapters.openstack.adapter import BaseAdapter
 from utils.model import PayType, OwnerType
 from utils.time import iso_utc_to_datetime
 from order.models import ResourceType, Order, Resource
@@ -395,7 +395,7 @@ class ServerHandler:
 
         # image
         if service.service_type == service.ServiceType.OPENSTACK.value:
-            systemdisk_size = OpenStackAdapter.FLAVOR_DISK_SIZE_GB
+            systemdisk_size = BaseAdapter.SYSTEM_DISK_MIN_SIZE_GB
         else:
             params = inputs.ImageDetailInput(image_id=image_id, region_id=service.region_id)
             try:

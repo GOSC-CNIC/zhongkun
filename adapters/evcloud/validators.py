@@ -39,6 +39,12 @@ class InputValidator:
         else:
             raise exceptions.APIInvalidParam(extend_msg='no found param "ram" and "vcpu"')
 
+        if params.systemdisk_size is not None:
+            try:
+                data['sys_disk_size'] = int(params.systemdisk_size)
+            except ValueError as e:
+                raise exceptions.APIInvalidParam(extend_msg=str(e))
+
         if group_id:
             data['group_id'] = group_id
 

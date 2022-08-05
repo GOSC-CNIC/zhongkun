@@ -166,7 +166,7 @@ class ServerCreateOutputServer:
 
 
 class ServerCreateOutput(OutputBase):
-    def __init__(self, server: ServerCreateOutputServer, **kwargs):
+    def __init__(self, server: ServerCreateOutputServer = None, **kwargs):
         """
         :param server: server; type: CreateServerOutputServer
         """

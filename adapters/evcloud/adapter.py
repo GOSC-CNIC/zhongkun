@@ -167,6 +167,15 @@ class EVCloudAdapter(BaseAdapter):
         """
         url = self.api_builder.vm_base_url()
         try:
+            if params.systemdisk_size:
+                if params.systemdisk_size < self.SYSTEM_DISK_MIN_SIZE_GB:
+                    return outputs.ServerCreateOutput(
+                        ok=False, error=exceptions.Error(message=f'系统盘大小不能小于{self.SYSTEM_DISK_MIN_SIZE_GB} GiB'),
+                        server=None
+                    )
+            else:
+                params.systemdisk_size = None
+
             data = InputValidator.create_server_validate(params)
             headers = self.get_auth_header()
             r = self.do_request(method='post', url=url, data=data, ok_status_codes=[201], headers=headers)

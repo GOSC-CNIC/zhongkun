@@ -187,6 +187,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         response = self.client.get(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
         image_id = response.data[0]['id']
+        min_sys_disk_gb = response.data[0]['min_sys_disk_gb']
 
         # service privete quota not enough
         url = reverse('api:servers-list')
@@ -314,6 +315,9 @@ class ServerOrderTests(MyAPITransactionTestCase):
 
         # 修改镜像id，让订单交付资源失败
         s_config = ServerConfig.from_dict(order.instance_config)
+        self.assertEqual(s_config.vm_systemdisk_size, min_sys_disk_gb)
+        self.assertGreater(s_config.vm_systemdisk_size, 50)
+        print(f"SytemDiskSize: {s_config.vm_systemdisk_size} GiB")
         s_config.vm_image_id = 'test'
         order.instance_config = s_config.to_dict()
         order.save(update_fields=['instance_config'])

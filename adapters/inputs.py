@@ -40,11 +40,12 @@ class AuthenticateInput(InputBase):
 
 
 class ServerCreateInput(InputBase):
-    def __init__(self, ram: int, vcpu: int, image_id: str, **kwargs):
+    def __init__(self, ram: int, vcpu: int, image_id: str, systemdisk_size: int, **kwargs):
         """
         :param ram: 内存大小，单位GB; required: True
         :param vcpu: 虚拟CPU数; required: True
         :param image_id: 系统镜像id; type: str; required: True
+        :param systemdisk_size: 系统盘大小，单位GB，默认未指定大小，各适配器根据各自的情况定义默认大小; required: False
         :param public_ip: 指定分配公网(True)或私网(False)IP; type: bool; required: False
         :param region_id: 区域/分中心id; type: str; required: False
         :param network_id: 子网id; type: str; required: False
@@ -54,6 +55,7 @@ class ServerCreateInput(InputBase):
         self.ram = ram
         self.vcpu = vcpu
         self.image_id = image_id
+        self.systemdisk_size = systemdisk_size
         self.public_ip = kwargs.get('public_ip', None)
         self.region_id = kwargs.get('region_id', None)
         self.network_id = kwargs.get('network_id', None)

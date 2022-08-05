@@ -66,7 +66,9 @@ class OrderResourceDeliverer:
 
         params = inputs.ServerCreateInput(
             ram=config.vm_ram, vcpu=config.vm_cpu, image_id=config.vm_image_id, azone_id=config.vm_azone_id,
-            region_id=service.region_id, network_id=config.vm_network_id, remarks=resource.instance_remark)
+            region_id=service.region_id, network_id=config.vm_network_id, remarks=resource.instance_remark,
+            systemdisk_size=config.vm_systemdisk_size
+        )
         try:
             out = core_request.request_service(service=service, method='server_create', params=params)
         except exceptions.APIException as exc:
