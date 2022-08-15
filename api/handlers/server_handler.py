@@ -21,7 +21,7 @@ from api import request_logger
 from vo.managers import VoManager
 from vo.models import VirtualOrganization
 from adapters import inputs
-from adapters.openstack.adapter import BaseAdapter
+from adapters.client import get_service_client
 from utils.model import PayType, OwnerType
 from utils.time import iso_utc_to_datetime
 from order.models import ResourceType, Order, Resource
@@ -320,6 +320,9 @@ class ServerHandler:
 
     @staticmethod
     def _server_create_validate_params(view, request):
+        """
+        :raises: Error
+        """
         serializer = view.get_serializer(data=request.data)
         if not serializer.is_valid(raise_exception=False):
             msg = serializer_error_msg(serializer.errors)
@@ -334,6 +337,7 @@ class ServerHandler:
         azone_id = data.get('azone_id', None)
         vo_id = data.get('vo_id', None)
         period = data.get('period', None)
+        systemdisk_size = data.get('systemdisk_size', None)
 
         if azone_id == '':
             raise exceptions.BadRequest(message=_('"azone_id"参数不能为空字符'), code='InvalidAzoneId')
@@ -393,21 +397,9 @@ class ServerHandler:
 
         network = out_net.network
 
-        # image
-        if service.service_type == service.ServiceType.OPENSTACK.value:
-            systemdisk_size = BaseAdapter.SYSTEM_DISK_MIN_SIZE_GB
-        else:
-            params = inputs.ImageDetailInput(image_id=image_id, region_id=service.region_id)
-            try:
-                r = view.request_service(service, method='image_detail', params=params)
-                if not r.ok:
-                    raise exceptions.BadRequest(message=_('查询镜像错误') + str(r.error), code='InvalidImageId')
-
-                systemdisk_size = r.image.min_sys_disk_gb
-                if systemdisk_size < 50:
-                    systemdisk_size = 50
-            except exceptions.APIException as exc:
-                raise exceptions.BadRequest(message=_('查询镜像错误') + str(exc), code='InvalidImageId')
+        systemdisk_size = ServerHandler._validate_systemdisk_size(
+            view=view, service=service, image_id=image_id, systemdisk_size=systemdisk_size
+        )
 
         if azone_id:
             try:
@@ -444,6 +436,40 @@ class ServerHandler:
             'period': period,
             'systemdisk_size': systemdisk_size
         }
+
+    @staticmethod
+    def _validate_systemdisk_size(view, service, image_id: str, systemdisk_size) -> int:
+        """
+        :raises: Error
+        """
+        if systemdisk_size:
+            if (systemdisk_size % 50) != 0:
+                raise exceptions.BadRequest(
+                    message=_('系统盘大小必须是50的倍数值'), code='InvalidSystemDiskSize'
+                )
+
+        params = inputs.ImageDetailInput(image_id=image_id, region_id=service.region_id)
+        try:
+            r = view.request_service(service, method='image_detail', params=params)
+            if not r.ok:
+                raise exceptions.BadRequest(message=_('查询镜像错误') + str(r.error), code='InvalidImageId')
+
+            min_sys_disk_gb = r.image.min_sys_disk_gb
+            _adapter_client = get_service_client(service)
+            min_sys_disk_gb = max(min_sys_disk_gb, _adapter_client.adapter.SYSTEM_DISK_MIN_SIZE_GB)
+        except exceptions.APIException as exc:
+            raise exceptions.BadRequest(message=_('查询镜像错误') + str(exc), code='InvalidImageId')
+
+        if systemdisk_size is None:
+            return min_sys_disk_gb
+
+        if systemdisk_size < min_sys_disk_gb:
+            raise exceptions.BadRequest(
+                message=_('镜像要求系统盘大小不得小于%(value)dGiB') % {'value': min_sys_disk_gb},
+                code='MinSystemDiskSize'
+            )
+
+        return systemdisk_size
 
     def server_order_create(self, view, request):
         """

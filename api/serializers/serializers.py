@@ -96,7 +96,9 @@ class ServerCreateSerializer(serializers.Serializer):
     image_id = serializers.CharField(label=_('镜像id'), required=True, help_text=_('系统镜像id'))
     flavor_id = serializers.CharField(label=_('配置样式id'), required=True, help_text=_('硬件配置样式ID'))
     network_id = serializers.CharField(label=_('子网id'), required=True, help_text=_('子网ID'))
-    # quota_id = serializers.CharField(label=_('资源配额id'), required=True, help_text=_('用户个人或vo组的资源配额ID'))
+    systemdisk_size = serializers.IntegerField(
+        label=_('系统盘大小（GiB）'), min_value=50, max_value=500, required=False, allow_null=True,
+        help_text=_('指定云服务期的系统盘大小，单位GiB，只允许50的倍数值，50、100、150等'), default=None)
     remarks = serializers.CharField(label=_('备注'), required=False, allow_blank=True, max_length=255, default='')
     azone_id = serializers.CharField(label=_('可用区'), required=False, allow_null=True, max_length=36, default=None)
     vo_id = serializers.CharField(

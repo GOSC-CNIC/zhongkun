@@ -18,6 +18,7 @@ from order.models import Price, Order, Resource
 from order.managers import ServerConfig
 from bill.managers import PaymentManager
 from bill.models import PayApp, PayAppService, PayOrgnazition
+from adapters.evcloud import EVCloudAdapter
 from . import MyAPITransactionTestCase, set_auth_header
 
 
@@ -225,14 +226,34 @@ class ServerOrderTests(MyAPITransactionTestCase):
         })
         self.assertErrorResponse(status_code=409, code='BalanceNotEnough', response=response)
 
-        # create user server postpaid mode, invalid image_id
+        # create user server postpaid mode, test "systemdisk_size"
+        response = self.client.post(url, data={
+            'pay_type': PayType.POSTPAID.value, 'service_id': self.service.id,
+            'image_id': image_id, 'period': 12, 'flavor_id': self.flavor.id, 'network_id': network_id,
+            'remarks': 'testcase创建，可删除', 'systemdisk_size': 51
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidSystemDiskSize', response=response)
+        response = self.client.post(url, data={
+            'pay_type': PayType.POSTPAID.value, 'service_id': self.service.id,
+            'image_id': image_id, 'period': 12, 'flavor_id': self.flavor.id, 'network_id': network_id,
+            'remarks': 'testcase创建，可删除', 'systemdisk_size': 'a'
+        })
+        self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
+        response = self.client.post(url, data={
+            'pay_type': PayType.POSTPAID.value, 'service_id': self.service.id,
+            'image_id': image_id, 'period': 12, 'flavor_id': self.flavor.id, 'network_id': network_id,
+            'remarks': 'testcase创建，可删除', 'systemdisk_size': 50
+        })
+        self.assertErrorResponse(status_code=400, code='MinSystemDiskSize', response=response)
+
+        # create user server postpaid mode
         user_account = PaymentManager().get_user_point_account(user_id=self.user.id)
         user_account.balance = Decimal('10000')
         user_account.save()
         response = self.client.post(url, data={
             'pay_type': PayType.PREPAID.value, 'service_id': self.service.id,
             'image_id': image_id, 'period': 12, 'flavor_id': self.flavor.id, 'network_id': network_id,
-            'remarks': 'testcase创建，可删除'
+            'remarks': 'testcase创建，可删除', 'systemdisk_size': 250
         })
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['order_id'], response.data)
@@ -245,6 +266,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
 
         # 修改镜像id，让订单交付资源失败
         s_config = ServerConfig.from_dict(order.instance_config)
+        self.assertEqual(s_config.vm_systemdisk_size, 250)
         s_config.vm_image_id = 'test'
         order.instance_config = s_config.to_dict()
         order.save(update_fields=['instance_config'])
@@ -316,8 +338,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         # 修改镜像id，让订单交付资源失败
         s_config = ServerConfig.from_dict(order.instance_config)
         self.assertEqual(s_config.vm_systemdisk_size, min_sys_disk_gb)
-        self.assertGreater(s_config.vm_systemdisk_size, 50)
-        print(f"SytemDiskSize: {s_config.vm_systemdisk_size} GiB")
+        self.assertGreater(s_config.vm_systemdisk_size, EVCloudAdapter.SYSTEM_DISK_MIN_SIZE_GB)
         s_config.vm_image_id = 'test'
         order.instance_config = s_config.to_dict()
         order.save(update_fields=['instance_config'])

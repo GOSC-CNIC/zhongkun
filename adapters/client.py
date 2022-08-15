@@ -14,7 +14,7 @@ SERVICE_TYPE_VMWARE = 'vmware'
 SERVICE_TYPE_UNIS_CLOUD = 'unis-cloud'
 
 
-def get_service_client(service: ServiceConfig, **kwargs):
+def get_service_style(service: ServiceConfig):
     service_type = service.service_type
     if service_type == service.ServiceType.EVCLOUD:
         style = SERVICE_TYPE_EVCLOUD
@@ -27,6 +27,11 @@ def get_service_client(service: ServiceConfig, **kwargs):
     else:
         raise UnsupportedServiceType(extend_msg=service_type)
 
+    return style
+
+
+def get_service_client(service: ServiceConfig, **kwargs):
+    style = get_service_style(service)
     params = service.extra_params()
     if service.region_id:
         params[ParamsName.REGION] = service.region_id
