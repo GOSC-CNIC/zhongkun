@@ -1,18 +1,23 @@
 from decimal import Decimal
 from urllib import parse
+from datetime import timedelta
 
+import pytz
 from django.urls import reverse
 from django.utils import timezone
 
 from servers.models import Flavor
 from order.models import Price
 from order.managers import PriceManager
-from utils.decimal_utils import quantize_12_4
+from utils.decimal_utils import quantize_10_2
+from utils.model import PayType
 from . import set_auth_header, MyAPITestCase
+from .tests import create_server_metadata
 
 
 class PriceTests(MyAPITestCase):
     def setUp(self):
+        self.user = None
         set_auth_header(self)
         price = Price(
             vm_ram=Decimal('0.012'),
@@ -60,8 +65,8 @@ class PriceTests(MyAPITestCase):
         original_p = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_pub_ip + price.vm_disk * 100
         original_p *= 24
         trade_p = original_p * prepaid_discount
-        self.assertEqual(str(quantize_12_4(original_p)), response.data['price']['original'])
-        self.assertEqual(str(quantize_12_4(trade_p)), response.data['price']['trade'])
+        self.assertEqual(str(quantize_10_2(original_p)), response.data['price']['original'])
+        self.assertEqual(str(quantize_10_2(trade_p)), response.data['price']['trade'])
 
         # postpaid
         query2 = parse.urlencode(query={
@@ -73,8 +78,8 @@ class PriceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         original_p2 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_pub_ip + price.vm_disk * 100
         original_p2 *= 24
-        self.assertEqual(str(quantize_12_4(original_p2)), response.data['price']['original'])
-        self.assertEqual(str(quantize_12_4(original_p2)), response.data['price']['trade'])
+        self.assertEqual(str(quantize_10_2(original_p2)), response.data['price']['original'])
+        self.assertEqual(str(quantize_10_2(original_p2)), response.data['price']['trade'])
 
         # period
         query3 = parse.urlencode(query={
@@ -88,8 +93,8 @@ class PriceTests(MyAPITestCase):
         trade_p3 = original_p3 * prepaid_discount
         response = self.client.get(f'{base_url}?{query3}')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(str(quantize_12_4(original_p3)), response.data['price']['original'])
-        self.assertEqual(str(quantize_12_4(trade_p3)), response.data['price']['trade'])
+        self.assertEqual(str(quantize_10_2(original_p3)), response.data['price']['original'])
+        self.assertEqual(str(quantize_10_2(trade_p3)), response.data['price']['trade'])
 
         # external_ip
         query4 = parse.urlencode(query={
@@ -103,8 +108,8 @@ class PriceTests(MyAPITestCase):
         trade_p4 = original_p4 * prepaid_discount
         response = self.client.get(f'{base_url}?{query4}')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(str(quantize_12_4(original_p4)), response.data['price']['original'])
-        self.assertEqual(str(quantize_12_4(trade_p4)), response.data['price']['trade'])
+        self.assertEqual(str(quantize_10_2(original_p4)), response.data['price']['original'])
+        self.assertEqual(str(quantize_10_2(trade_p4)), response.data['price']['trade'])
 
         # system_disk_size
         query5 = parse.urlencode(query={
@@ -118,8 +123,8 @@ class PriceTests(MyAPITestCase):
         trade_p5 = original_p5 * prepaid_discount
         response = self.client.get(f'{base_url}?{query5}')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(str(quantize_12_4(original_p5)), response.data['price']['original'])
-        self.assertEqual(str(quantize_12_4(trade_p5)), response.data['price']['trade'])
+        self.assertEqual(str(quantize_10_2(original_p5)), response.data['price']['original'])
+        self.assertEqual(str(quantize_10_2(trade_p5)), response.data['price']['trade'])
 
         # flavor_id
         query6 = parse.urlencode(query={
@@ -139,8 +144,8 @@ class PriceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         original_p7 = price.vm_cpu * 2 + price.vm_ram * 4
         original_p7 *= 24
-        self.assertEqual(str(quantize_12_4(original_p7)), response.data['price']['original'])
-        self.assertEqual(str(quantize_12_4(original_p7)), response.data['price']['trade'])
+        self.assertEqual(str(quantize_10_2(original_p7)), response.data['price']['original'])
+        self.assertEqual(str(quantize_10_2(original_p7)), response.data['price']['trade'])
 
         # postpaid, only flavor_id, external_ip
         query8 = parse.urlencode(query={
@@ -151,8 +156,8 @@ class PriceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         original_p8 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_pub_ip
         original_p8 *= 24
-        self.assertEqual(str(quantize_12_4(original_p8)), response.data['price']['original'])
-        self.assertEqual(str(quantize_12_4(original_p8)), response.data['price']['trade'])
+        self.assertEqual(str(quantize_10_2(original_p8)), response.data['price']['original'])
+        self.assertEqual(str(quantize_10_2(original_p8)), response.data['price']['trade'])
 
         # prepaid, only flavor_id, external_ip
         query9 = parse.urlencode(query={
@@ -164,8 +169,8 @@ class PriceTests(MyAPITestCase):
         original_p9 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_pub_ip
         original_p9 *= 24
         trade_p9 = original_p9 * prepaid_discount
-        self.assertEqual(str(quantize_12_4(original_p9)), response.data['price']['original'])
-        self.assertEqual(str(quantize_12_4(trade_p9)), response.data['price']['trade'])
+        self.assertEqual(str(quantize_10_2(original_p9)), response.data['price']['original'])
+        self.assertEqual(str(quantize_10_2(trade_p9)), response.data['price']['trade'])
 
     def describe_price_disk(self):
         price = self.price
@@ -183,8 +188,8 @@ class PriceTests(MyAPITestCase):
         self.assertKeysIn(['original', 'trade'], response.data['price'])
         original_p = price.disk_size * 100 * 24
         trade_p = original_p * prepaid_discount
-        self.assertEqual(str(quantize_12_4(original_p)), response.data['price']['original'])
-        self.assertEqual(str(quantize_12_4(trade_p)), response.data['price']['trade'])
+        self.assertEqual(str(quantize_10_2(original_p)), response.data['price']['original'])
+        self.assertEqual(str(quantize_10_2(trade_p)), response.data['price']['trade'])
 
         # postpaid
         query = parse.urlencode(query={
@@ -195,8 +200,8 @@ class PriceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         original_p = price.disk_size * 100 * 24
         trade_p = original_p
-        self.assertEqual(str(quantize_12_4(original_p)), response.data['price']['original'])
-        self.assertEqual(str(quantize_12_4(trade_p)), response.data['price']['trade'])
+        self.assertEqual(str(quantize_10_2(original_p)), response.data['price']['original'])
+        self.assertEqual(str(quantize_10_2(trade_p)), response.data['price']['trade'])
 
         # prepaid period
         period = 2          # must be 1 - 12
@@ -211,8 +216,8 @@ class PriceTests(MyAPITestCase):
         original_p3 = price.disk_size * data_disk_size
         original_p3 = original_p3 * 24 * days
         trade_p3 = original_p3 * prepaid_discount
-        self.assertEqual(str(quantize_12_4(original_p3)), response.data['price']['original'])
-        self.assertEqual(str(quantize_12_4(trade_p3)), response.data['price']['trade'])
+        self.assertEqual(str(quantize_10_2(original_p3)), response.data['price']['original'])
+        self.assertEqual(str(quantize_10_2(trade_p3)), response.data['price']['trade'])
 
         # postpaid period
         period = 10  # must be 1 - 12
@@ -226,8 +231,8 @@ class PriceTests(MyAPITestCase):
         days = PriceManager.period_month_days(months=period)
         original_p4 = price.disk_size * data_disk_size
         trade_p4 = original_p4 = original_p4 * 24 * days
-        self.assertEqual(str(quantize_12_4(original_p4)), response.data['price']['original'])
-        self.assertEqual(str(quantize_12_4(trade_p4)), response.data['price']['trade'])
+        self.assertEqual(str(quantize_10_2(original_p4)), response.data['price']['original'])
+        self.assertEqual(str(quantize_10_2(trade_p4)), response.data['price']['trade'])
 
         # 400
         query = parse.urlencode(query={
@@ -256,11 +261,158 @@ class PriceTests(MyAPITestCase):
         self.assertKeysIn(['price'], response.data)
         self.assertKeysIn(['original', 'trade'], response.data['price'])
         trade_p = original_p = price.obj_size * 24
-        self.assertEqual(str(quantize_12_4(original_p)), response.data['price']['original'])
-        self.assertEqual(str(quantize_12_4(trade_p)), response.data['price']['trade'])
+        self.assertEqual(str(quantize_10_2(original_p)), response.data['price']['original'])
+        self.assertEqual(str(quantize_10_2(trade_p)), response.data['price']['trade'])
 
         query = parse.urlencode(query={
             'resource_type': 'test'
         })
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 400)
+
+    def test_describe_renewal_price(self):
+        price = self.price
+        prepaid_discount = Decimal.from_float(price.prepaid_discount / 100)
+        base_url = reverse('api:describe-price-renewal-price')
+
+        # missing "resource_type"
+        query = parse.urlencode(query={
+            'instance_id': '', 'period': 1, 'renew_to_time': ''
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='MissingResourceType', response=response)
+
+        # invalid "resource_type"
+        query = parse.urlencode(query={
+            'resource_type': '', 'instance_id': '', 'period': 1, 'renew_to_time': ''
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidResourceType', response=response)
+
+        # missing "instance_id"
+        query = parse.urlencode(query={
+            'resource_type': 'vm', 'period': 1, 'renew_to_time': ''
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='MissingInstanceId', response=response)
+
+        # invalid "instance_id"
+        query = parse.urlencode(query={
+            'resource_type': 'vm', 'instance_id': '', 'period': 1, 'renew_to_time': ''
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidInstanceId', response=response)
+
+        # conflict "period" and "renew_to_time"
+        query = parse.urlencode(query={
+            'resource_type': 'vm', 'instance_id': 'xxx', 'period': 1, 'renew_to_time': ''
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='PeriodConflictRenewToTime', response=response)
+
+        # missing "period" and "renew_to_time"
+        query = parse.urlencode(query={
+            'resource_type': 'vm', 'instance_id': 'xxx'
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='MissingPeriod', response=response)
+
+        # invalid "period"
+        query = parse.urlencode(query={
+            'resource_type': 'vm', 'instance_id': 'xxx', 'period': 'a'
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidPeriod', response=response)
+
+        # invalid "renew_to_time"
+        query = parse.urlencode(query={
+            'resource_type': 'vm', 'instance_id': 'xxx', 'renew_to_time': ''
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidRenewToTime', response=response)
+
+        # not found "instance"
+        query = parse.urlencode(query={
+            'resource_type': 'vm', 'instance_id': 'xxx', 'period': 1
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=404, code='NotFoundInstanceId', response=response)
+
+        now_time = timezone.now()
+        expiration_time = now_time + timedelta(days=10)
+        renew_to_time = expiration_time + timedelta(days=30)
+        server = create_server_metadata(
+            service=None, user=self.user, vo_id=None, pay_type=PayType.PREPAID.value,
+            expiration_time=expiration_time, public_ip=True, vcpus=2, ram=2048, disk_size=100
+        )
+
+        # invalid "renew_to_time"
+        rtt_utc = now_time.astimezone(tz=pytz.utc)
+        rtt_utc_str = rtt_utc.isoformat()[0:19] + "Z"
+        query = parse.urlencode(query={
+            'resource_type': 'vm', 'instance_id': server.id, 'renew_to_time': rtt_utc_str
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=409, code='InvalidRenewToTime', response=response)
+
+        # ok renew_to_time
+        renew_to_time_str = renew_to_time.isoformat()[0:19] + "Z"
+        query = parse.urlencode(query={
+            'resource_type': 'vm', 'instance_id': server.id, 'renew_to_time': renew_to_time_str
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(keys=['original', 'trade'], container=response.data['price'])
+
+        original_p = price.vm_cpu * 2 + price.vm_ram * 2 + price.vm_pub_ip + price.vm_disk * 100
+        original_p *= 24 * 30
+        trade_p = original_p * prepaid_discount
+        self.assertEqual(response.data['price']['original'], str(quantize_10_2(original_p)))
+        self.assertEqual(response.data['price']['trade'], str(quantize_10_2(trade_p)))
+
+        # ok period
+        query = parse.urlencode(query={
+            'resource_type': 'vm', 'instance_id': server.id, 'period': 2
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(keys=['original', 'trade'], container=response.data['price'])
+
+        original_p = price.vm_cpu * 2 + price.vm_ram * 2 + price.vm_pub_ip + price.vm_disk * 100
+        original_p *= 24 * 60
+        trade_p = original_p * prepaid_discount
+        self.assertEqual(response.data['price']['original'], str(quantize_10_2(original_p)))
+        self.assertEqual(response.data['price']['trade'], str(quantize_10_2(trade_p)))
+
+        # ok period, postpaid server
+        server.pay_type = PayType.POSTPAID.value
+        server.expiration_time = None
+        server.save(update_fields=['pay_type', 'expiration_time'])
+
+        query = parse.urlencode(query={
+            'resource_type': 'vm', 'instance_id': server.id, 'period': 2
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(keys=['original', 'trade'], container=response.data['price'])
+
+        original_p = price.vm_cpu * 2 + price.vm_ram * 2 + price.vm_pub_ip + price.vm_disk * 100
+        original_p *= 24 * 60
+        trade_p = original_p
+        self.assertEqual(response.data['price']['original'], str(quantize_10_2(original_p)))
+        self.assertEqual(response.data['price']['trade'], str(quantize_10_2(trade_p)))
+
+        # ok renew_to_time, postpaid server
+        renew_to_time_str = renew_to_time.isoformat()[0:19] + "Z"
+        query = parse.urlencode(query={
+            'resource_type': 'vm', 'instance_id': server.id, 'renew_to_time': renew_to_time_str
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(keys=['original', 'trade'], container=response.data['price'])
+
+        original_p = price.vm_cpu * 2 + price.vm_ram * 2 + price.vm_pub_ip + price.vm_disk * 100
+        original_p *= 24 * 40
+        trade_p = original_p
+        self.assertEqual(response.data['price']['original'], str(quantize_10_2(original_p)))
+        self.assertEqual(response.data['price']['trade'], str(quantize_10_2(trade_p)))

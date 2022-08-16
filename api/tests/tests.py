@@ -70,17 +70,21 @@ def chunks(f, chunk_size=2 * 2 ** 20):
         yield data
 
 
-def create_server_metadata(service, user, vo_id=None,
-                           default_user: str = 'root', default_password: str = 'password',
-                           classification=Server.Classification.PERSONAL, ipv4: str = '',
-                           expiration_time=None, public_ip: bool = False, remarks: str = '',
-                           pay_type: str = PayType.POSTPAID.value):
+def create_server_metadata(
+        service, user, vo_id=None,
+        default_user: str = 'root', default_password: str = 'password',
+        classification=Server.Classification.PERSONAL, ipv4: str = '',
+        expiration_time=None, public_ip: bool = False, remarks: str = '',
+        pay_type: str = PayType.POSTPAID.value, vcpus: int = 2, ram: int = 1024,
+        disk_size: int = 100
+):
     server = Server(service=service,
                     instance_id='test',
                     remarks=remarks,
                     user=user,
-                    vcpus=2,
-                    ram=1024,
+                    vcpus=vcpus,
+                    ram=ram,
+                    disk_size=disk_size,
                     ipv4=ipv4 if ipv4 else '127.0.0.1',
                     image='test-image',
                     task_status=Server.TASK_CREATED_OK,

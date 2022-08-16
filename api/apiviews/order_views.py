@@ -85,12 +85,88 @@ class PriceViewSet(CustomGenericViewSet):
             http code 200：
             {
               "price": {
-                "original": "1277.5000",
-                "trade": "843.1500"
+                "original": "1277.50",
+                "trade": "843.15"
               }
             }
         """
         return DescribePriceHandler().describe_price(view=self, request=request)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('续费询价'),
+        request_body=no_body,
+        manual_parameters=[
+            openapi.Parameter(
+                name='resource_type',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description=f'资源类型, {ResourceType.choices}'
+            ),
+            openapi.Parameter(
+                name='instance_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                required=True,
+                description='查询续费价格的资源实例ID，云主机、云硬盘id'
+            ),
+            openapi.Parameter(
+                name='period',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                required=False,
+                description='时长，单位月'
+            ),
+            openapi.Parameter(
+                name='renew_to_time',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'续费到指定日期，ISO8601格式：YYYY-MM-ddTHH:mm:ssZ，不得与参数“period”同时提交'
+            ),
+        ],
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['GET'], detail=False, url_path='renewal', url_name='renewal-price')
+    def describe_renewal_price(self, request, *args, **kwargs):
+        """
+        续费询价
+
+            * 询价的资源实例是按量付费方式时，返回询价时长按量计费的总价格
+                询价时长 = period、或者当前时间至renew_to_time时间差
+
+            http code 200：
+            {
+              "price": {
+                "original": "1277.50",
+                "trade": "843.15"
+              }
+            }
+
+            http code 400, 404, 409, ...:
+            {
+                "code": "MissingResourceType",
+                "message": "参数“resource_type”未设置"
+            }
+
+            错误码：
+            400:
+                MissingResourceType: 参数“resource_type”未设置
+                InvalidResourceType: 无效的资源类型
+                MissingInstanceId: 参数“instance_id”未设置
+                InvalidInstanceId: 参数“instance_id”的值无效
+                PeriodConflictRenewToTime: 参数“period”和“renew_to_time”不能同时提交
+                MissingPeriod: 参数“period”不得为空   # 参数“period”和“renew_to_time”都没有提交时
+                InvalidPeriod: 参数“period”的值无效，必须是正整数
+                InvalidRenewToTime: 参数“renew_to_time”的值无效的时间格式
+            404:
+                NotFoundInstanceId: 资源实例不存在
+            409:
+                InvalidRenewToTime: 参数“renew_to_time”指定的日期不能在资源实例的过期时间之前
+        """
+        return DescribePriceHandler().describe_renewal_price(view=self, request=request)
 
 
 class OrderViewSet(CustomGenericViewSet):
