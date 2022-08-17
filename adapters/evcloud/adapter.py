@@ -436,7 +436,7 @@ class EVCloudAdapter(BaseAdapter):
             data = self.list_groups(region_id=region_id, headers=headers)
             zones = []
             for group in data['results']:
-                zones.append(outputs.AvailabilityZone(_id=group['id'], name=group['name']))
+                zones.append(outputs.AvailabilityZone(_id=str(group['id']), name=group['name']))
 
             return outputs.ListAvailabilityZoneOutput(zones)
         except Exception as e:

@@ -66,6 +66,25 @@
                         </div>
                     </div>
                     <div class="form-group row">
+                        <label for="id-pay-type" class="col-sm-2 text-right col-form-label">{% trans '付费方式' %}</label>
+                        <div class="col-sm-7">
+                            <select name="pay_type" class="form-control" id="id-pay-type">
+                                <option value="prepaid">包年包月</option>
+                                <option value="postpaid">按量付费</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="id-period" class="col-sm-2 text-right col-form-label">订购时长</label>
+                        <div class="col-sm-7 input-group">
+                            <input name="period" type="text" class="form-control"
+                                   onkeyup="value=value.replace(/^(0+)|[^\d]+/g,'')" aria-label="RAM">
+                            <div class="input-group-append">
+                                <span class="input-group-text">月</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group row">
                         <label for="id-remarks" class="col-sm-2 text-right col-form-label">备注</label>
                         <div class="col-sm-7">
                             <input name="remarks" type="text" class="form-control" id="id-remarks">

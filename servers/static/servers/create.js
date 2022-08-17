@@ -96,6 +96,9 @@
         if (!obj.azone_id){
             delete obj.azone_id;
         }
+        if (obj.pay_type !== 'prepaid'){
+            delete obj.period;
+        }
         return true;
     }
 
@@ -122,12 +125,8 @@
             data: json_data,
             contentType: 'application/json',
             success: function (data, status, xhr) {
-                if (xhr.status === 201){
-                    if(confirm('创建成功,是否去服务器列表看看？')){
-                        window.location = '/servers/';
-                    }
-                }else if (xhr.status === 202) {
-                    if (confirm('请求成功, 正在创建服务器,是否去服务器列表查看服务器状态？')) {
+                if (xhr.status === 200){
+                    if(confirm('订购云主机成功,是否去服务器列表看看？')){
                         window.location = '/servers/';
                     }
                 }else{
