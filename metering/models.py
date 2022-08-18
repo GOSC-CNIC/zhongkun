@@ -22,10 +22,8 @@ class PaymentStatus(models.TextChoices):
 class MeteringBase(CustomIdModel):
     original_amount = models.DecimalField(
         verbose_name=_('计费金额'), max_digits=10, decimal_places=2, default=Decimal(0))
-    trade_amount = models.DecimalField(verbose_name=_('交易金额'), max_digits=10, decimal_places=2, default=Decimal(0))
-    payment_status = models.CharField(
-        verbose_name=_('支付状态'), max_length=16, choices=PaymentStatus.choices, default=PaymentStatus.UNPAID)
-    payment_history_id = models.CharField(verbose_name=_('支付记录ID'), max_length=36, default='')
+    trade_amount = models.DecimalField(verbose_name=_('应付金额'), max_digits=10, decimal_places=2, default=Decimal(0))
+    daily_statement_id = models.CharField(verbose_name=_('日结算单ID'), max_length=36, default='')
 
     class Meta:
         abstract = True
@@ -54,36 +52,6 @@ class MeteringBase(CustomIdModel):
         是否是按量计费
         """
         raise NotImplemented('is_postpaid')
-
-    def get_resource_type(self) -> str:
-        """
-        计量资源的类型
-        """
-        raise NotImplemented('get_resource_type')
-
-    def get_service_id(self) -> str:
-        """
-        所属接入服务的id
-        """
-        raise NotImplemented('get_service_id')
-
-    def get_instance_id(self) -> str:
-        """
-        计量的资源实例的标识
-        """
-        raise NotImplemented('get_instance_id')
-
-    def set_paid(self, trade_amount: Decimal = None, payment_history_id: str = None):
-        self.payment_history_id = payment_history_id if payment_history_id else ''
-        self.trade_amount = self.original_amount if trade_amount is None else trade_amount
-        self.payment_status = PaymentStatus.PAID.value
-        self.save(update_fields=['payment_history_id', 'trade_amount', 'payment_status'])
-
-    def get_pay_app_service_id(self) -> str:
-        """
-        所属服务对应的余额结算中的app服务id
-        """
-        raise NotImplemented('get_pay_app_service_id')
 
 
 class MeteringServer(MeteringBase):
@@ -163,32 +131,6 @@ class MeteringServer(MeteringBase):
         """
         return self.pay_type == PayType.POSTPAID.value
 
-    def get_resource_type(self):
-        """
-        计量资源的类型
-        """
-        return ResourceType.VM.value
-
-    def get_service_id(self):
-        """
-        所属接入服务的id
-        """
-        return self.service_id
-
-    def get_instance_id(self):
-        """
-        计量的资源实例的标识
-        """
-        return self.server_id
-
-    def get_pay_app_service_id(self) -> str:
-        """
-        所属服务对应的余额结算中的app服务id
-        """
-        from service.managers import ServiceManager
-        s = ServiceManager.get_service_by_id(self.service_id)
-        return s.pay_app_service_id
-
 
 class MeteringDisk(MeteringBase):
     """
@@ -257,32 +199,6 @@ class MeteringDisk(MeteringBase):
         """
         return self.pay_type == PayType.POSTPAID.value
 
-    def get_resource_type(self):
-        """
-        计量资源的类型
-        """
-        return ResourceType.DISK.value
-
-    def get_service_id(self):
-        """
-        所属接入服务的id
-        """
-        return self.service_id
-
-    def get_instance_id(self):
-        """
-        计量的资源实例的标识
-        """
-        return self.disk_id
-
-    def get_pay_app_service_id(self) -> str:
-        """
-        所属服务对应的余额结算中的app服务id
-        """
-        from service.managers import ServiceManager
-        s = ServiceManager.get_service_by_id(self.service_id)
-        return s.pay_app_service_id
-
 
 class MeteringObjectStorage(MeteringBase):
     """
@@ -338,20 +254,112 @@ class MeteringObjectStorage(MeteringBase):
         """
         return self.pay_type == PayType.POSTPAID.value
 
+
+class DailyStatementBase(CustomIdModel):
+    original_amount = models.DecimalField(
+        verbose_name=_('计费金额'), max_digits=10, decimal_places=2, default=Decimal(0))
+    payable_amount = models.DecimalField(verbose_name=_('应付金额'), max_digits=10, decimal_places=2, default=Decimal(0))
+    trade_amount = models.DecimalField(verbose_name=_('实付金额'), max_digits=10, decimal_places=2, default=Decimal(0))
+    payment_status = models.CharField(
+        verbose_name=_('支付状态'), max_length=16, choices=PaymentStatus.choices, default=PaymentStatus.UNPAID.value)
+    payment_history_id = models.CharField(verbose_name=_('支付记录ID'), max_length=36, blank=True, default='')
+
+    class Meta:
+        abstract = True
+
+    def generate_id(self):
+        return uuid1().hex
+
+    def is_owner_type_user(self):
+        """
+        所有者是否是用户，反之是vo组
+        :return:
+            True    # user
+            False   # vo
+            None    # invalid
+        """
+        raise NotImplemented('is_owner_type_user')
+
+    def get_owner_id(self) -> str:
+        """
+        返回所有者的id, user id or vo id
+        """
+        raise NotImplemented('get_owner_id')
+
+    def get_resource_type(self) -> str:
+        """
+        计量资源的类型
+        """
+        raise NotImplemented('get_resource_type')
+
+    def set_paid(self, trade_amount: Decimal = None, payment_history_id: str = None):
+        self.payment_history_id = payment_history_id if payment_history_id else ''
+        self.trade_amount = self.payable_amount if trade_amount is None else trade_amount
+        self.payment_status = PaymentStatus.PAID.value
+        self.save(update_fields=['payment_history_id', 'trade_amount', 'payment_status'])
+
+    def get_pay_app_service_id(self) -> str:
+        """
+        所属服务对应的余额结算中的app服务id
+        """
+        raise NotImplemented('get_pay_app_service_id')
+
+
+class DailyStatementServer(DailyStatementBase):
+    service = models.ForeignKey(to=ServiceConfig, verbose_name=_('服务'), related_name='+', null=True,
+                                on_delete=models.SET_NULL, db_index=False)
+    date = models.DateField(verbose_name=_('计费日期'), help_text=_('资源使用计量计费的日期'))
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
+    user_id = models.CharField(verbose_name=_('用户ID'), max_length=36, blank=True, default='')
+    username = models.CharField(verbose_name=_('用户名'), max_length=128, blank=True, default='')
+    vo_id = models.CharField(verbose_name=_('VO组ID'), max_length=36, blank=True, default='')
+    vo_name = models.CharField(verbose_name=_('VO组名'), max_length=255, blank=True, default='')
+    owner_type = models.CharField(verbose_name=_('所有者类型'), max_length=8, choices=OwnerType.choices)
+
+    class Meta:
+        verbose_name = _('云服务器日结算单')
+        verbose_name_plural = verbose_name
+        db_table = 'daily_statement_server'
+        ordering = ['-creation_time']
+
+    def generate_id(self):
+        return f's{uuid1().hex}'       # 保证（订单号，云主机、云硬盘、对象存储计量id）唯一
+
+    def get_pay_app_service_id(self) -> str:
+        """
+        所属服务对应的余额结算中的app服务id
+        """
+        if self.service:
+            return self.service.pay_app_service_id
+
+        return ''
+
+    def is_owner_type_user(self):
+        """
+        所有者是否是用户，反之是vo组
+        :return:
+            True    # user
+            False   # vo
+            None    # invalid
+        """
+        if self.owner_type == OwnerType.USER.value:
+            return True
+        elif self.owner_type == OwnerType.VO.value:
+            return False
+
+        return None
+
+    def get_owner_id(self) -> str:
+        """
+        返回所有者的id, user id or vo id
+        """
+        if self.is_owner_type_user():
+            return self.user_id
+
+        return self.vo_id
+
     def get_resource_type(self):
         """
         计量资源的类型
         """
-        return ResourceType.BUCKET.value
-
-    def get_service_id(self):
-        """
-        所属接入服务的id
-        """
-        return self.service_id
-
-    def get_instance_id(self):
-        """
-        计量的资源实例的标识
-        """
-        return self.bucket_name
+        return ResourceType.VM.value

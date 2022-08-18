@@ -106,7 +106,7 @@ class PriceViewSet(CustomGenericViewSet):
             openapi.Parameter(
                 name='instance_id',
                 in_=openapi.IN_QUERY,
-                type=openapi.TYPE_INTEGER,
+                type=openapi.TYPE_STRING,
                 required=True,
                 description='查询续费价格的资源实例ID，云主机、云硬盘id'
             ),

@@ -1,6 +1,6 @@
 from datetime import date
 
-from metering.models import MeteringServer, PaymentStatus
+from metering.models import PaymentStatus, DailyStatementServer
 from metering.payment import MeteringPaymentManager
 
 
@@ -57,24 +57,24 @@ class PayMeteringServer:
         return queryset[0:limit]
 
     def get_metering_queryset(self):
-        queryset = MeteringServer.objects.filter(payment_status=PaymentStatus.UNPAID.value)
+        queryset = DailyStatementServer.objects.filter(payment_status=PaymentStatus.UNPAID.value)
         if self.pay_date:
             queryset = queryset.filter(date=self.pay_date)
 
         return queryset
 
-    def do_pay_one_bill(self, bill: MeteringServer):
+    def do_pay_one_bill(self, bill: DailyStatementServer):
         pay_mgr = MeteringPaymentManager()
-        remark = f'server id={bill.server_id}, {bill.date}'
+        remark = f'server, {bill.date}'
         try:
-            pay_mgr.pay_metering_bill(
-                metering_bill=bill, app_id=self.app_id, subject='云服务器按量计费',
+            pay_mgr.pay_daily_statement_bill(
+                daily_statement=bill, app_id=self.app_id, subject='云服务器按量计费',
                 executor='metering', remark=remark, required_enough_balance=False
             )
         except Exception as exc:
             try:
-                pay_mgr.pay_metering_bill(
-                    metering_bill=bill, app_id=self.app_id, subject='云服务器按量计费',
+                pay_mgr.pay_daily_statement_bill(
+                    daily_statement=bill, app_id=self.app_id, subject='云服务器按量计费',
                     executor='metering', remark=remark, required_enough_balance=False
                 )
             except Exception as exc:

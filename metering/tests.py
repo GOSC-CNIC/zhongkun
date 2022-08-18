@@ -6,13 +6,17 @@ from django.test import TransactionTestCase
 from django.utils import timezone
 
 from utils.test import get_or_create_user, get_or_create_service
-from utils.model import PayType
+from utils.model import PayType, OwnerType
 from utils.decimal_utils import quantize_10_2
+from core import errors
 from servers.models import Server, ServerArchive
 from vo.managers import VoManager
-from metering.measurers import ServerMeasurer
-from metering.models import MeteringServer, PaymentStatus
-from order.models import Price
+from order.models import Price, ResourceType
+from bill.models import CashCoupon, PaymentHistory, PayAppService, PayApp, PayOrgnazition
+from service.models import ServiceConfig
+from .measurers import ServerMeasurer
+from .models import MeteringServer, PaymentStatus, DailyStatementServer
+from .payment import MeteringPaymentManager
 
 
 def create_server_metadata(
@@ -176,7 +180,6 @@ class MeteringServerTests(TransactionTestCase):
         self.assertEqual(metering.original_amount, quantize_10_2(original_amount1))
         self.assertEqual(metering.trade_amount, Decimal(0))
         self.assertEqual(metering.pay_type, PayType.PREPAID.value)
-        self.assertEqual(metering.payment_status, PaymentStatus.UNPAID.value)
 
         # server2
         hours = (metering_end_time - server2.start_time).total_seconds() / 3600
@@ -198,7 +201,6 @@ class MeteringServerTests(TransactionTestCase):
         self.assertEqual(metering.original_amount, quantize_10_2(original_amount2))
         self.assertEqual(metering.trade_amount, Decimal(0))
         self.assertEqual(metering.pay_type, PayType.POSTPAID.value)
-        self.assertEqual(metering.payment_status, PaymentStatus.UNPAID.value)
 
         measurer.run()
         count = MeteringServer.objects.all().count()
@@ -241,3 +243,503 @@ class MeteringServerTests(TransactionTestCase):
         self.assertIs(ok, True)
         server1.id = server1_id
         self.do_assert_server(now=now, server1=server1, server2=server2)
+
+
+class MeteringPaymentManagerTests(TransactionTestCase):
+    def setUp(self):
+        self.user = get_or_create_user()
+        self.service = get_or_create_service()
+
+        # 余额支付有关配置
+        app = PayApp(name='app')
+        app.save()
+        self.app = app
+        po = PayOrgnazition(name='机构')
+        po.save()
+        self.app_service1 = PayAppService(
+            name='service1', app=app, orgnazition=po
+        )
+        self.app_service1.save()
+        self.app_service2 = PayAppService(
+            name='service2', app=app, orgnazition=po
+        )
+        self.app_service2.save()
+
+        self.service.pay_app_service_id = self.app_service1.id
+        self.service.save(update_fields=['pay_app_service_id'])
+
+        self.vo = VoManager().create_vo(user=self.user, name='test vo', company='test', description='test')
+        self.service2 = ServiceConfig(
+            name='test2', data_center_id=self.service.data_center_id, endpoint_url='test2', username='', password='',
+            need_vpn=False, pay_app_service_id=self.app_service2.id
+        )
+        self.service2.save()
+
+    def test_pay_user_daily_statement_server(self):
+        pay_mgr = MeteringPaymentManager()
+        payer_name = self.user.username
+
+        app_id = self.app.id
+        # pay bill, invalid user id
+        dss_bill1 = DailyStatementServer(
+            service_id=self.service.id,
+            date=timezone.now().date(),
+            owner_type=OwnerType.USER.value,
+            user_id='user_id',
+            vo_id='',
+            original_amount=Decimal('123.45'),
+            payable_amount=Decimal('123.45'),
+            trade_amount=Decimal(0),
+            payment_status=PaymentStatus.UNPAID.value,
+            payment_history_id=''
+        )
+        dss_bill1.save(force_insert=True)
+        with self.assertRaises(errors.Error):
+            pay_mgr.pay_daily_statement_bill(
+                daily_statement=dss_bill1, app_id=app_id, subject='云服务器计费',
+                executor=self.user.username, remark='')
+
+        # pay bill, pay_type POSTPAID, when no enough balance
+        dss_bill1.user_id = self.user.id
+        dss_bill1.save(update_fields=['user_id'])
+        with self.assertRaises(errors.BalanceNotEnough):
+            pay_mgr.pay_daily_statement_bill(
+                daily_statement=dss_bill1, app_id=app_id, subject='云服务器计费',
+                executor=self.user.username, remark='', required_enough_balance=True
+            )
+
+        # pay bill, pay_type POSTPAID
+        pay_mgr.pay_daily_statement_bill(
+            daily_statement=dss_bill1, app_id=app_id, subject='云服务器计费',
+            executor=self.user.username, remark='', required_enough_balance=False
+        )
+        self.user.userpointaccount.refresh_from_db()
+        user_balance = self.user.userpointaccount.balance
+        self.assertEqual(user_balance, Decimal('-123.45'))
+        dss_bill1.refresh_from_db()
+        self.assertEqual(dss_bill1.original_amount, Decimal('123.45'))
+        self.assertEqual(dss_bill1.trade_amount, Decimal('123.45'))
+        self.assertEqual(dss_bill1.payment_status, PaymentStatus.PAID.value)
+        pay_history_id = dss_bill1.payment_history_id
+        pay_history = PaymentHistory.objects.get(id=pay_history_id)
+        pay_history.refresh_from_db()
+        self.assertEqual(pay_history.type, PaymentHistory.Type.PAYMENT)
+        self.assertEqual(pay_history.amounts, Decimal('-123.45'))
+        self.assertEqual(pay_history.coupon_amount, Decimal('0'))
+        self.assertEqual(pay_history.before_payment, Decimal(0))
+        self.assertEqual(pay_history.after_payment, Decimal('-123.45'))
+        self.assertEqual(pay_history.payer_name, payer_name)
+        self.assertEqual(pay_history.app_service_id, self.service.pay_app_service_id)
+        self.assertEqual(pay_history.instance_id, '')
+        self.assertEqual(pay_history.payer_type, OwnerType.USER.value)
+        self.assertEqual(pay_history.payer_id, self.user.id)
+        self.assertEqual(pay_history.executor, self.user.username)
+        self.assertEqual(pay_history.payment_method, PaymentHistory.PaymentMethod.BALANCE.value)
+        self.assertEqual(pay_history.payment_account, self.user.userpointaccount.id)
+
+        # pay bill
+        dss_bill2 = DailyStatementServer(
+            service_id=self.service.id,
+            date=(timezone.now() - timedelta(days=1)).date(),
+            owner_type=OwnerType.USER.value,
+            user_id=self.user.id,
+            vo_id='',
+            original_amount=Decimal('223.45'),
+            payable_amount=Decimal('0'),
+            trade_amount=Decimal('0'),
+            payment_status=PaymentStatus.UNPAID.value,
+            payment_history_id=''
+        )
+        dss_bill2.save(force_insert=True)
+        pay_mgr.pay_daily_statement_bill(
+            daily_statement=dss_bill2, app_id=app_id, subject='云服务器计费',
+            executor=self.user.username, remark='', required_enough_balance=False
+        )
+        dss_bill2.refresh_from_db()
+        self.user.userpointaccount.refresh_from_db()
+        self.assertEqual(self.user.userpointaccount.balance, user_balance)
+        self.assertEqual(dss_bill2.payment_status, PaymentStatus.PAID.value)
+        self.assertEqual(dss_bill2.original_amount, Decimal('223.45'))
+        self.assertEqual(dss_bill2.payable_amount, Decimal(0))
+        self.assertEqual(dss_bill2.trade_amount, Decimal(0))
+        self.assertEqual(dss_bill2.payment_history_id, '')
+
+        # pay bill, pay_type POSTPAID
+        dss_bill3 = DailyStatementServer(
+            service_id=self.service.id,
+            date=(timezone.now() - timedelta(days=2)),
+            owner_type=OwnerType.USER.value,
+            user_id=self.user.id,
+            vo_id='',
+            original_amount=Decimal('66.88'),
+            payable_amount=Decimal('66.88'),
+            trade_amount=Decimal(0),
+            payment_status=PaymentStatus.UNPAID.value,
+            payment_history_id=''
+        )
+        dss_bill3.save(force_insert=True)
+        pay_mgr.pay_daily_statement_bill(
+            daily_statement=dss_bill3, app_id=app_id, subject='云服务器计费',
+            executor=self.user.username, remark='', required_enough_balance=False
+        )
+        self.user.userpointaccount.refresh_from_db()
+        user_balance = self.user.userpointaccount.balance
+        self.assertEqual(user_balance, Decimal('-123.45') - Decimal('66.88'))
+        dss_bill3.refresh_from_db()
+        self.assertEqual(dss_bill3.payment_status, PaymentStatus.PAID.value)
+        self.assertEqual(dss_bill3.original_amount, Decimal('66.88'))
+        self.assertEqual(dss_bill3.trade_amount, Decimal('66.88'))
+
+        pay_history_id = dss_bill3.payment_history_id
+        pay_history = PaymentHistory.objects.get(id=pay_history_id)
+        pay_history.refresh_from_db()
+        self.assertEqual(pay_history.amounts, Decimal('-66.88'))
+        self.assertEqual(pay_history.coupon_amount, Decimal('0'))
+        self.assertEqual(pay_history.before_payment, Decimal('-123.45'))
+        self.assertEqual(pay_history.after_payment, Decimal('-190.33'))
+        self.assertEqual(pay_history.executor, self.user.username)
+        self.assertEqual(pay_history.payer_type, OwnerType.USER.value)
+        self.assertEqual(pay_history.payer_id, self.user.id)
+        self.assertEqual(pay_history.type, PaymentHistory.Type.PAYMENT)
+        self.assertEqual(pay_history.payment_method, PaymentHistory.PaymentMethod.BALANCE.value)
+        self.assertEqual(pay_history.payment_account, self.user.userpointaccount.id)
+        self.assertEqual(pay_history.payer_name, payer_name)
+        self.assertEqual(pay_history.resource_type, ResourceType.VM.value)
+        self.assertEqual(pay_history.app_service_id, self.service.pay_app_service_id)
+        self.assertEqual(pay_history.instance_id, '')
+
+        # ------- test coupon --------
+        now_time = timezone.now()
+        # 有效, service
+        coupon1_user = CashCoupon(
+            face_value=Decimal('20'),
+            balance=Decimal('20'),
+            effective_time=now_time - timedelta(days=1),
+            expiration_time=now_time + timedelta(days=10),
+            app_service_id=self.service.pay_app_service_id,
+            status=CashCoupon.Status.AVAILABLE.value,
+            owner_type=OwnerType.USER.value,
+            user_id=self.user.id, vo_id=None
+        )
+        coupon1_user.save(force_insert=True)
+
+        # 有效，只适用于service2
+        coupon2_user = CashCoupon(
+            face_value=Decimal('33'),
+            balance=Decimal('33'),
+            effective_time=now_time - timedelta(days=2),
+            expiration_time=now_time + timedelta(days=10),
+            app_service_id=self.service2.pay_app_service_id,
+            status=CashCoupon.Status.AVAILABLE.value,
+            owner_type=OwnerType.USER.value,
+            user_id=self.user.id, vo_id=None
+        )
+        coupon2_user.save(force_insert=True)
+
+        # 有效, service
+        coupon3_vo = CashCoupon(
+            face_value=Decimal('50'),
+            balance=Decimal('50'),
+            effective_time=now_time - timedelta(days=1),
+            expiration_time=now_time + timedelta(days=10),
+            app_service_id=self.service.pay_app_service_id,
+            status=CashCoupon.Status.AVAILABLE.value,
+            owner_type=OwnerType.VO.value,
+            user_id=None, vo_id=self.vo.id
+        )
+        coupon3_vo.save(force_insert=True)
+
+        # pay bill, pay_type POSTPAID
+        dss_bill4 = DailyStatementServer(
+            service_id=self.service.id,
+            date=(timezone.now() - timedelta(days=2)),
+            owner_type=OwnerType.USER.value,
+            user_id=self.user.id,
+            vo_id='',
+            original_amount=Decimal('88.8'),
+            payable_amount=Decimal('88.8'),
+            trade_amount=Decimal(0),
+            payment_status=PaymentStatus.UNPAID.value,
+            payment_history_id=''
+        )
+        dss_bill4.save(force_insert=True)
+
+        self.user.userpointaccount.refresh_from_db()
+        user_balance = self.user.userpointaccount.balance
+        self.assertEqual(user_balance, Decimal('-190.33'))
+        pay_mgr.pay_daily_statement_bill(
+            daily_statement=dss_bill4, app_id=app_id, subject='云服务器计费',
+            executor=self.user.username, remark='', required_enough_balance=False
+        )
+        self.user.userpointaccount.refresh_from_db()
+        user_balance = self.user.userpointaccount.balance
+        self.assertEqual(user_balance, Decimal('-190.33') - Decimal('88.8') + Decimal('20'))  # coupon 20
+        dss_bill4.refresh_from_db()
+        self.assertEqual(dss_bill4.payment_status, PaymentStatus.PAID.value)
+        self.assertEqual(dss_bill4.original_amount, Decimal('88.8'))
+        self.assertEqual(dss_bill4.trade_amount, Decimal('88.8'))
+
+        pay_history_id = dss_bill4.payment_history_id
+        pay_history = PaymentHistory.objects.get(id=pay_history_id)
+        pay_history.refresh_from_db()
+        self.assertEqual(pay_history.amounts, Decimal('-68.8'))
+        self.assertEqual(pay_history.coupon_amount, Decimal('-20'))
+        self.assertEqual(pay_history.before_payment, Decimal('-190.33'))
+        self.assertEqual(pay_history.after_payment, Decimal('-259.13'))
+        self.assertEqual(pay_history.executor, self.user.username)
+        self.assertEqual(pay_history.payer_type, OwnerType.USER.value)
+        self.assertEqual(pay_history.payer_id, self.user.id)
+        self.assertEqual(pay_history.type, PaymentHistory.Type.PAYMENT)
+        self.assertEqual(pay_history.payment_method, PaymentHistory.PaymentMethod.BALANCE_COUPON.value)
+        self.assertEqual(pay_history.payment_account, self.user.userpointaccount.id)
+        self.assertEqual(pay_history.payer_name, payer_name)
+        self.assertEqual(pay_history.resource_type, ResourceType.VM.value)
+        self.assertEqual(pay_history.app_service_id, self.service.pay_app_service_id)
+        self.assertEqual(pay_history.instance_id, '')
+
+    def test_pay_vo_daily_statement_server(self):
+        pay_mgr = MeteringPaymentManager()
+        payer_name = self.vo.name
+        app_id = self.app.id
+
+        # pay bill, invalid vo id
+        dss_bill1 = DailyStatementServer(
+            service_id=self.service.id,
+            date=timezone.now().date(),
+            owner_type=OwnerType.VO.value,
+            user_id='',
+            vo_id='vo_id',
+            original_amount=Decimal('123.45'),
+            payable_amount=Decimal('123.45'),
+            trade_amount=Decimal(0),
+            payment_status=PaymentStatus.UNPAID.value,
+            payment_history_id=''
+        )
+        dss_bill1.save(force_insert=True)
+        with self.assertRaises(errors.Error):
+            pay_mgr.pay_daily_statement_bill(
+                daily_statement=dss_bill1, app_id=app_id, subject='云服务器计费',
+                executor=self.user.username, remark=''
+            )
+
+        # pay bill, pay_type POSTPAID, when not enough balance
+        dss_bill1.vo_id = self.vo.id
+        dss_bill1.save(update_fields=['vo_id'])
+        with self.assertRaises(errors.BalanceNotEnough):
+            pay_mgr.pay_daily_statement_bill(
+                daily_statement=dss_bill1, app_id=app_id, subject='云服务器计费',
+                executor=self.user.username, remark='', required_enough_balance=True
+            )
+
+        # pay bill, pay_type POSTPAID
+        pay_mgr.pay_daily_statement_bill(
+            daily_statement=dss_bill1, app_id=app_id, subject='云服务器计费',
+            executor=self.user.username, remark='', required_enough_balance=False
+        )
+
+        user_balance = pay_mgr.payment.get_vo_point_account(vo_id=self.vo.id).balance
+        self.assertEqual(user_balance, Decimal('-123.45'))
+        dss_bill1.refresh_from_db()
+        self.assertEqual(dss_bill1.payment_status, PaymentStatus.PAID.value)
+        self.assertEqual(dss_bill1.original_amount, Decimal('123.45'))
+        self.assertEqual(dss_bill1.trade_amount, Decimal('123.45'))
+        pay_history_id = dss_bill1.payment_history_id
+        pay_history = PaymentHistory.objects.get(id=pay_history_id)
+        pay_history.refresh_from_db()
+        self.assertEqual(pay_history.payer_type, OwnerType.VO.value)
+        self.assertEqual(pay_history.payer_id, self.vo.id)
+        self.assertEqual(pay_history.type, PaymentHistory.Type.PAYMENT)
+        self.assertEqual(pay_history.amounts, Decimal('-123.45'))
+        self.assertEqual(pay_history.before_payment, Decimal(0))
+        self.assertEqual(pay_history.after_payment, Decimal('-123.45'))
+        self.assertEqual(pay_history.executor, self.user.username)
+        self.assertEqual(pay_history.payment_method, PaymentHistory.PaymentMethod.BALANCE.value)
+        self.assertEqual(pay_history.payment_account, self.vo.vopointaccount.id)
+        self.assertEqual(pay_history.payer_name, payer_name)
+        self.assertEqual(pay_history.resource_type, ResourceType.VM.value)
+        self.assertEqual(pay_history.app_service_id, self.service.pay_app_service_id)
+        self.assertEqual(pay_history.instance_id, '')
+
+        # pay bill, pay_type PREPAID
+        dss_bill2 = DailyStatementServer(
+            service_id=self.service.id,
+            date=(timezone.now() - timedelta(days=1)).date(),
+            owner_type=OwnerType.VO.value,
+            user_id='',
+            vo_id=self.vo.id,
+            original_amount=Decimal('223.45'),
+            payable_amount=Decimal(0),
+            trade_amount=Decimal(0),
+            payment_status=PaymentStatus.UNPAID.value,
+            payment_history_id=''
+        )
+        dss_bill2.save(force_insert=True)
+        pay_mgr.pay_daily_statement_bill(
+            daily_statement=dss_bill2, app_id=app_id, subject='云服务器计费',
+            executor=self.user.username, remark='', required_enough_balance=False
+        )
+        dss_bill2.refresh_from_db()
+        self.assertEqual(dss_bill2.payment_status, PaymentStatus.PAID.value)
+        self.assertEqual(dss_bill2.original_amount, Decimal('223.45'))
+        self.assertEqual(dss_bill2.trade_amount, Decimal(0))
+        self.assertEqual(dss_bill2.payment_history_id, '')
+        self.vo.vopointaccount.refresh_from_db()
+        self.assertEqual(self.vo.vopointaccount.balance, Decimal('-123.45'))
+
+        # pay bill, pay_type POSTPAID
+        dss_bill3 = DailyStatementServer(
+            service_id=self.service.id,
+            date=(timezone.now() - timedelta(days=2)),
+            owner_type=OwnerType.VO.value,
+            user_id='',
+            vo_id=self.vo.id,
+            original_amount=Decimal('66.88'),
+            payable_amount=Decimal('66.88'),
+            trade_amount=Decimal(0),
+            payment_status=PaymentStatus.UNPAID.value,
+            payment_history_id=''
+        )
+        dss_bill3.save(force_insert=True)
+        pay_mgr.pay_daily_statement_bill(
+            daily_statement=dss_bill3, app_id=app_id, subject='云服务器计费',
+            executor=self.user.username, remark='', required_enough_balance=False
+        )
+        self.vo.vopointaccount.refresh_from_db()
+        self.assertEqual(self.vo.vopointaccount.balance, Decimal('-123.45') - Decimal('66.88'))
+        dss_bill3.refresh_from_db()
+        self.assertEqual(dss_bill3.payment_status, PaymentStatus.PAID.value)
+        self.assertEqual(dss_bill3.original_amount, Decimal('66.88'))
+        self.assertEqual(dss_bill3.trade_amount, Decimal('66.88'))
+        pay_history_id = dss_bill3.payment_history_id
+        pay_history = PaymentHistory.objects.get(id=pay_history_id)
+        pay_history.refresh_from_db()
+        self.assertEqual(pay_history.payer_type, OwnerType.VO.value)
+        self.assertEqual(pay_history.payer_id, self.vo.id)
+        self.assertEqual(pay_history.type, PaymentHistory.Type.PAYMENT)
+        self.assertEqual(pay_history.amounts, Decimal('-66.88'))
+        self.assertEqual(pay_history.before_payment, Decimal('-123.45'))
+        self.assertEqual(pay_history.after_payment, Decimal('-123.45') - Decimal('66.88'))
+        self.assertEqual(pay_history.executor, self.user.username)
+        self.assertEqual(pay_history.payment_method, PaymentHistory.PaymentMethod.BALANCE.value)
+        self.assertEqual(pay_history.payment_account, self.vo.vopointaccount.id)
+        self.assertEqual(pay_history.payer_name, payer_name)
+        self.assertEqual(pay_history.resource_type, ResourceType.VM.value)
+        self.assertEqual(pay_history.app_service_id, self.service.pay_app_service_id)
+        self.assertEqual(pay_history.instance_id, '')
+
+        # pay bill, status PAID
+        dss_bill4_paid = DailyStatementServer(
+            service_id=self.service.id,
+            date=(timezone.now() - timedelta(days=3)),
+            owner_type=OwnerType.VO.value,
+            user_id='',
+            vo_id=self.vo.id,
+            original_amount=Decimal('166.88'),
+            payable_amount=Decimal('166.88'),
+            trade_amount=Decimal(0),
+            payment_status=PaymentStatus.PAID.value,
+            payment_history_id=''
+        )
+        dss_bill4_paid.save(force_insert=True)
+        with self.assertRaises(errors.Error):
+            pay_mgr.pay_daily_statement_bill(
+                daily_statement=dss_bill4_paid, app_id=app_id, subject='云服务器计费',
+                executor=self.user.username, remark=''
+            )
+
+        dss_bill4_paid.payment_status = PaymentStatus.CANCELLED.value
+        dss_bill4_paid.save(update_fields=['payment_status'])
+        with self.assertRaises(errors.Error):
+            pay_mgr.pay_daily_statement_bill(
+                daily_statement=dss_bill4_paid, app_id=app_id, subject='云服务器计费',
+                executor=self.user.username, remark=''
+            )
+
+        # ------- test coupon --------
+        now_time = timezone.now()
+        # 有效, service
+        coupon1_vo = CashCoupon(
+            face_value=Decimal('20'),
+            balance=Decimal('20'),
+            effective_time=now_time - timedelta(days=1),
+            expiration_time=now_time + timedelta(days=10),
+            app_service_id=self.service.pay_app_service_id,
+            status=CashCoupon.Status.AVAILABLE.value,
+            owner_type=OwnerType.VO.value,
+            user_id=None, vo_id=self.vo.id
+        )
+        coupon1_vo.save(force_insert=True)
+
+        # 有效，service2
+        coupon2_vo = CashCoupon(
+            face_value=Decimal('33'),
+            balance=Decimal('33'),
+            effective_time=now_time - timedelta(days=2),
+            expiration_time=now_time + timedelta(days=10),
+            app_service_id=self.service2.pay_app_service_id,
+            status=CashCoupon.Status.AVAILABLE.value,
+            owner_type=OwnerType.VO.value,
+            user_id=None, vo_id=self.vo.id
+        )
+        coupon2_vo.save(force_insert=True)
+
+        # 有效, service
+        coupon3_user = CashCoupon(
+            face_value=Decimal('50'),
+            balance=Decimal('50'),
+            effective_time=now_time - timedelta(days=1),
+            expiration_time=now_time + timedelta(days=10),
+            app_service_id=self.service.pay_app_service_id,
+            status=CashCoupon.Status.AVAILABLE.value,
+            owner_type=OwnerType.USER.value,
+            user_id=self.user.id, vo_id=None
+        )
+        coupon3_user.save(force_insert=True)
+
+        # pay bill
+        dss_bill5 = DailyStatementServer(
+            service_id=self.service.id,
+            date=(timezone.now() - timedelta(days=2)),
+            owner_type=OwnerType.VO.value,
+            user_id='',
+            vo_id=self.vo.id,
+            original_amount=Decimal('88.8'),
+            payable_amount=Decimal('88.8'),
+            trade_amount=Decimal(0),
+            payment_status=PaymentStatus.UNPAID.value,
+            payment_history_id=''
+        )
+        dss_bill5.save(force_insert=True)
+
+        self.vo.vopointaccount.refresh_from_db()
+        vo_balance = self.vo.vopointaccount.balance
+        self.assertEqual(vo_balance, Decimal('-123.45') - Decimal('66.88'))
+        pay_mgr.pay_daily_statement_bill(
+            daily_statement=dss_bill5, app_id=app_id, subject='云服务器计费',
+            executor=self.user.username, remark='', required_enough_balance=False
+        )
+        self.vo.vopointaccount.refresh_from_db()
+        vo_balance = self.vo.vopointaccount.balance
+        self.assertEqual(vo_balance, Decimal('-190.33') - Decimal('88.8') + Decimal('20'))  # coupon 20
+        dss_bill5.refresh_from_db()
+        self.assertEqual(dss_bill5.payment_status, PaymentStatus.PAID.value)
+        self.assertEqual(dss_bill5.original_amount, Decimal('88.8'))
+        self.assertEqual(dss_bill5.trade_amount, Decimal('88.8'))
+
+        pay_history_id = dss_bill5.payment_history_id
+        pay_history = PaymentHistory.objects.get(id=pay_history_id)
+        pay_history.refresh_from_db()
+        self.assertEqual(pay_history.amounts, Decimal('-68.8'))
+        self.assertEqual(pay_history.coupon_amount, Decimal('-20'))
+        self.assertEqual(pay_history.before_payment, Decimal('-190.33'))
+        self.assertEqual(pay_history.after_payment, Decimal('-259.13'))
+        self.assertEqual(pay_history.executor, self.user.username)
+        self.assertEqual(pay_history.payer_type, OwnerType.VO.value)
+        self.assertEqual(pay_history.payer_id, self.vo.id)
+        self.assertEqual(pay_history.type, PaymentHistory.Type.PAYMENT)
+        self.assertEqual(pay_history.payment_method, PaymentHistory.PaymentMethod.BALANCE_COUPON.value)
+        self.assertEqual(pay_history.payment_account, self.vo.vopointaccount.id)
+        self.assertEqual(pay_history.payer_name, self.vo.name)
+        self.assertEqual(pay_history.resource_type, ResourceType.VM.value)
+        self.assertEqual(pay_history.app_service_id, self.service.pay_app_service_id)
+        self.assertEqual(pay_history.instance_id, '')

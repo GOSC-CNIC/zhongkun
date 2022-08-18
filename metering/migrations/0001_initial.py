@@ -20,7 +20,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.CharField(blank=True, editable=False, max_length=36, primary_key=True, serialize=False, verbose_name='ID')),
                 ('original_amount', models.DecimalField(decimal_places=2, default=Decimal('0'), max_digits=10, verbose_name='计费金额')),
-                ('trade_amount', models.DecimalField(decimal_places=2, default=Decimal('0'), max_digits=10, verbose_name='交易金额')),
+                ('trade_amount', models.DecimalField(decimal_places=2, default=Decimal('0'), max_digits=10, verbose_name='应付金额')),
                 ('payment_status', models.CharField(choices=[('unpaid', '待支付'), ('paid', '已支付'), ('cancelled', '作废')], default='unpaid', max_length=16, verbose_name='支付状态')),
                 ('payment_history_id', models.CharField(default='', max_length=36, verbose_name='支付记录ID')),
                 ('server_id', models.CharField(max_length=36, verbose_name='云服务器ID')),
@@ -53,7 +53,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.CharField(blank=True, editable=False, max_length=36, primary_key=True, serialize=False, verbose_name='ID')),
                 ('original_amount', models.DecimalField(decimal_places=2, default=Decimal('0'), max_digits=10, verbose_name='计费金额')),
-                ('trade_amount', models.DecimalField(decimal_places=2, default=Decimal('0'), max_digits=10, verbose_name='交易金额')),
+                ('trade_amount', models.DecimalField(decimal_places=2, default=Decimal('0'), max_digits=10, verbose_name='应付金额')),
                 ('payment_status', models.CharField(choices=[('unpaid', '待支付'), ('paid', '已支付'), ('cancelled', '作废')], default='unpaid', max_length=16, verbose_name='支付状态')),
                 ('payment_history_id', models.CharField(default='', max_length=36, verbose_name='支付记录ID')),
                 ('user_id', models.CharField(blank=True, max_length=36, verbose_name='用户ID')),
@@ -82,7 +82,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.CharField(blank=True, editable=False, max_length=36, primary_key=True, serialize=False, verbose_name='ID')),
                 ('original_amount', models.DecimalField(decimal_places=2, default=Decimal('0'), max_digits=10, verbose_name='计费金额')),
-                ('trade_amount', models.DecimalField(decimal_places=2, default=Decimal('0'), max_digits=10, verbose_name='交易金额')),
+                ('trade_amount', models.DecimalField(decimal_places=2, default=Decimal('0'), max_digits=10, verbose_name='应付金额')),
                 ('payment_status', models.CharField(choices=[('unpaid', '待支付'), ('paid', '已支付'), ('cancelled', '作废')], default='unpaid', max_length=16, verbose_name='支付状态')),
                 ('payment_history_id', models.CharField(default='', max_length=36, verbose_name='支付记录ID')),
                 ('disk_id', models.CharField(max_length=36, verbose_name='云硬盘ID')),

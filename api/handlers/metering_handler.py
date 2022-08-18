@@ -136,7 +136,7 @@ class MeteringHandler:
         csv_file.writerow([
             _('云服务器ID'), _('计费日期'), _('所有者类型'), _('用户名'), _('VO组名'),
             _('CPU (核*小时)'), _('内存 (Gb*小时数)'), _('系统盘 (Gb*小时)'), _('公网IP (个*小时)'),
-            _('计费总金额'), _('实际扣费总金额'), _('扣费状态')
+            _('计费总金额'), _('应付总金额')
         ])
         per_page = 1000
         is_end_page = False
@@ -154,7 +154,7 @@ class MeteringHandler:
                     str(m.server_id), str(m.date), m.get_owner_type_display(), str(m.username),
                     str(m.vo_name), str(m.cpu_hours), str(m.ram_hours), str(m.disk_hours),
                     str(m.public_ip_hours), str(quantize_18_2(m.original_amount)),
-                    str(quantize_18_2(m.trade_amount)), str(m.get_payment_status_display())
+                    str(quantize_18_2(m.trade_amount))
                 ]
                 rows.append(line_items)
 

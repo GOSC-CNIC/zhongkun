@@ -8,7 +8,7 @@ from utils.model import PayType, OwnerType
 from utils.test import get_or_create_service
 from service.models import ServiceConfig
 from vo.models import VirtualOrganization
-from metering.models import MeteringServer, PaymentStatus
+from metering.models import MeteringServer
 from . import set_auth_header, MyAPITestCase
 from servers.models import Server, ServerArchive 
 from django.utils import timezone
@@ -33,8 +33,7 @@ class MeteringServerTests(MyAPITestCase):
         metering1 = MeteringServer(
             original_amount=Decimal('1.11'),
             trade_amount=Decimal('1.11'),
-            payment_status=PaymentStatus.PAID.value,
-            payment_history_id='',
+            daily_statement_id='',
             service_id=self.service.id,
             server_id='server1',
             date=date(year=2022, month=2, day=16),
@@ -50,8 +49,7 @@ class MeteringServerTests(MyAPITestCase):
         metering2 = MeteringServer(
             original_amount=Decimal('2.22'),
             trade_amount=Decimal('0'),
-            payment_status=PaymentStatus.UNPAID.value,
-            payment_history_id='',
+            daily_statement_id='',
             service_id=self.service.id,
             server_id='server1',
             date=date(year=2022, month=3, day=16),
@@ -67,8 +65,7 @@ class MeteringServerTests(MyAPITestCase):
         metering3 = MeteringServer(
             original_amount=Decimal('3.33'),
             trade_amount=Decimal('0'),
-            payment_status=PaymentStatus.UNPAID.value,
-            payment_history_id='',
+            daily_statement_id='',
             service_id=self.service.id,
             server_id='server2',
             date=date(year=2022, month=2, day=8),
@@ -84,8 +81,7 @@ class MeteringServerTests(MyAPITestCase):
         metering4 = MeteringServer(
             original_amount=Decimal('4.44'),
             trade_amount=Decimal('4.44'),
-            payment_status=PaymentStatus.PAID.value,
-            payment_history_id='',
+            daily_statement_id='',
             service_id=self.service.id,
             server_id='server2',
             date=date(year=2022, month=3, day=8),
@@ -101,8 +97,7 @@ class MeteringServerTests(MyAPITestCase):
         metering5 = MeteringServer(
             original_amount=Decimal('5.55'),
             trade_amount=Decimal('5.55'),
-            payment_status=PaymentStatus.PAID.value,
-            payment_history_id='',
+            daily_statement_id='',
             service_id=self.service2.id,
             server_id='server2',
             date=date(year=2022, month=3, day=18),
@@ -118,8 +113,7 @@ class MeteringServerTests(MyAPITestCase):
         metering6 = MeteringServer(
             original_amount=Decimal('6.66'),
             trade_amount=Decimal('6.66'),
-            payment_status=PaymentStatus.PAID.value,
-            payment_history_id='',
+            daily_statement_id='',
             service_id=self.service2.id,
             server_id='server6',
             date=date(year=2022, month=3, day=9),
@@ -149,8 +143,8 @@ class MeteringServerTests(MyAPITestCase):
         self.assertEqual(r.data["count"], 3)
         self.assertEqual(len(r.data['results']), 3)
         self.assertKeysIn([
-            "id", "original_amount", "trade_amount", "payment_status",
-            "payment_history_id", "service_id", "server_id", "date",
+            "id", "original_amount", "trade_amount",
+            "daily_statement_id", "service_id", "server_id", "date",
             "creation_time", "user_id", "vo_id", "owner_type",
             "cpu_hours", "ram_hours", "disk_hours", "public_ip_hours",
             "snapshot_hours", "upstream", "downstream", "pay_type",
