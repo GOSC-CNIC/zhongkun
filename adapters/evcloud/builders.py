@@ -132,3 +132,9 @@ class APIBuilder:
 
     def vpn_ca_file_url(self):
         return self.build_url(path=f'vpn/vpnfile/ca', trailing_slash=False)
+
+    def vpn_active_url(self, username: str, query=None):
+        return self.build_url(path=f'api/{self.api_version}/vpn/{username}/active/', query=query)
+
+    def vpn_deactive_url(self, username: str, query=None):
+        return self.build_url(path=f'api/{self.api_version}/vpn/{username}/deactive/', query=query)

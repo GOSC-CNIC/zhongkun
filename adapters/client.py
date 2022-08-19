@@ -170,20 +170,26 @@ class VPNClient:
     def authenticate(self, *args, **kwargs):
         return self.adapter.authenticate(*args, **kwargs)
 
-    def get_vpn(self, *args, **kwargs):
-        return self.adapter.get_vpn(*args, **kwargs)
+    def get_vpn(self, username: str):
+        return self.adapter.get_vpn(username=username)
 
-    def create_vpn(self, *args, **kwargs):
-        return self.adapter.create_vpn(*args, **kwargs)
+    def create_vpn(self, username: str, password: str = None):
+        return self.adapter.create_vpn(username=username, password=password)
 
-    def get_vpn_or_create(self, *args, **kwargs):
-        return self.adapter.get_vpn_or_create(*args, **kwargs)
+    def get_vpn_or_create(self, username: str):
+        return self.adapter.get_vpn_or_create(username=username)
 
-    def vpn_change_password(self, *args, **kwargs):
-        return self.adapter.vpn_change_password(*args, **kwargs)
+    def vpn_change_password(self, username: str, password: str):
+        return self.adapter.vpn_change_password(username=username, password=password)
 
     def get_vpn_config_file_url(self, *args, **kwargs):
         return self.adapter.get_vpn_config_file_url()
 
     def get_vpn_ca_file_url(self, *args, **kwargs):
         return self.adapter.get_vpn_ca_file_url()
+
+    def active_vpn(self, username: str):
+        return self.adapter.vpn_active(username=username)
+
+    def deactive_vpn(self, username: str):
+        return self.adapter.vpn_deactive(username=username)

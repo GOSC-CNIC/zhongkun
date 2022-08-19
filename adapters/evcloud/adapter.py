@@ -496,3 +496,15 @@ class EVCloudAdapter(BaseAdapter):
 
     def get_vpn_ca_file_url(self, **kwargs):
         return self.api_builder.vpn_ca_file_url()
+
+    def vpn_active(self, username: str):
+        url = self.api_builder.vpn_active_url(username=username)
+        headers = self.get_auth_header()
+        r = self.do_request(method='post', url=url, headers=headers)
+        return r.json()
+
+    def vpn_deactive(self, username: str):
+        url = self.api_builder.vpn_deactive_url(username=username)
+        headers = self.get_auth_header()
+        r = self.do_request(method='post', url=url, headers=headers)
+        return r.json()
