@@ -97,7 +97,8 @@ class CashCouponHandler:
 
         return coupon_id, coupon_code, vo_id
 
-    def delete_cash_coupon(self, view: CustomGenericViewSet, request, kwargs):
+    @staticmethod
+    def delete_cash_coupon(view: CustomGenericViewSet, request, kwargs):
         coupon_id = kwargs.get(view.lookup_field, None)
         force = request.query_params.get('force', None)
         force = force is not None
@@ -109,7 +110,8 @@ class CashCouponHandler:
 
         return Response(status=204)
 
-    def list_cash_coupon_payment(self, view: CustomGenericViewSet, request, kwargs):
+    @staticmethod
+    def list_cash_coupon_payment(view: CustomGenericViewSet, request, kwargs):
         """
         列举券支付记录
         """
@@ -247,3 +249,40 @@ class CashCouponHandler:
         response['Content-Type'] = content_type
         response['Content-Disposition'] = f"attachment;filename*=utf-8''{filename}"  # 注意filename 这个是下载后的名字
         return response
+
+    def exchange_cash_coupon(self, view: CustomGenericViewSet, request):
+        """兑换码兑换代金券"""
+        try:
+            code, vo_id = self._exchange_cash_coupon_validate_params(request=request)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        coupon_id, coupon_code = CashCoupon.parse_exchange_code(code=code)
+
+        try:
+            coupon = CashCouponManager().draw_cash_coupon(
+                coupon_id=coupon_id, coupon_code=coupon_code, user=request.user, vo_id=vo_id
+            )
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        return Response(data={'id': coupon.id})
+
+    @staticmethod
+    def _exchange_cash_coupon_validate_params(request) -> tuple:
+        code = request.query_params.get('code', None)
+        vo_id = request.query_params.get('vo_id', None)
+
+        if code is None:
+            raise errors.BadRequest(message=_('参数“code”必须指定'), code='MissingCode')
+
+        if not code:
+            raise errors.BadRequest(message=_('参数“code”值无效'), code='InvalidCode')
+
+        if len(code) < 10:
+            raise errors.BadRequest(message=_('参数“code”值无效'), code='InvalidCode')
+
+        if vo_id is not None and not vo_id:
+            raise errors.BadRequest(message=_('参数“vo_id”值无效'), code='InvalidVoId')
+
+        return code, vo_id

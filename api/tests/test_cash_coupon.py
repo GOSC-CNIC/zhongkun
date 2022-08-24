@@ -644,3 +644,90 @@ class CashCouponTests(MyAPITestCase):
         self.assertEqual('-66.00', results[0]["amounts"])
         self.assertEqual('-66.00', results[0]["payment_history"]['coupon_amount'])
         self.assertEqual('0.00', results[0]["payment_history"]['amounts'])
+
+    def test_exchange_cash_coupon(self):
+        coupon1 = CashCoupon(
+            face_value=Decimal('66.6'),
+            balance=Decimal('66.6'),
+            effective_time=timezone.now(),
+            expiration_time=timezone.now(),
+            status=CashCoupon.Status.WAIT.value
+        )
+        coupon1.save(force_insert=True)
+
+        coupon2 = CashCoupon(
+            face_value=Decimal('88.8'),
+            balance=Decimal('88.8'),
+            effective_time=timezone.now(),
+            expiration_time=timezone.now(),
+            status=CashCoupon.Status.WAIT.value
+        )
+        coupon2.save(force_insert=True)
+
+        base_url = reverse('api:cashcoupon-exchange-coupon')
+
+        # required param "code"
+        query = parse.urlencode(query={'id': coupon1.id})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='MissingCode', response=response)
+
+        query = parse.urlencode(query={'code': ''})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidCode', response=response)
+
+        query = parse.urlencode(query={'code': 'test'})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidCode', response=response)
+
+        # param "vo_id"
+        query = parse.urlencode(query={'code': 'testtesteset', 'vo_id': ''})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidVoId', response=response)
+
+        # not cash coupon
+        query = parse.urlencode(query={'code': 'testtesteset'})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=404, code='NoSuchCoupon', response=response)
+
+        # invalid coupon code
+        query = parse.urlencode(query={'code': f'{coupon1.id}#test'})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=409, code='InvalidCouponCode', response=response)
+
+        # ok
+        query = parse.urlencode(query={'code': f'{coupon1.id}#{coupon1.coupon_code}'})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['id'], coupon1.id)
+        coupon1.refresh_from_db()
+        self.assertEqual(coupon1.user_id, self.user.id)
+        self.assertEqual(coupon1.owner_type, OwnerType.USER.value)
+        self.assertEqual(coupon1.vo_id, None)
+        self.assertEqual(coupon1.status, CashCoupon.Status.AVAILABLE.value)
+
+        # failed if again
+        query = parse.urlencode(query={'code': coupon1.one_exchange_code})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=409, code='AlreadyGranted', response=response)
+
+        # not vo
+        query = parse.urlencode(query={'code': coupon2.one_exchange_code, 'vo_id': 'test'})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 404)
+
+        # no vo permission
+        query = parse.urlencode(query={'code': coupon2.one_exchange_code, 'vo_id': self.vo.id})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # set vo member
+        VoMember(user=self.user, vo=self.vo, role=VoMember.Role.LEADER.value, inviter='').save(force_insert=True)
+        query = parse.urlencode(query={'code': coupon2.one_exchange_code, 'vo_id': self.vo.id})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['id'], coupon2.id)
+        coupon2.refresh_from_db()
+        self.assertEqual(coupon2.user_id, self.user.id)
+        self.assertEqual(coupon2.owner_type, OwnerType.VO.value)
+        self.assertEqual(coupon2.vo_id, self.vo.id)
+        self.assertEqual(coupon2.status, CashCoupon.Status.AVAILABLE.value)

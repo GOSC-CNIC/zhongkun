@@ -179,6 +179,11 @@ class OrganizationApplyNotExists(NotFound):
     default_code = 'OrganizationApplyNotExists'
 
 
+class VoNotExist(NotFound):
+    default_message = 'vo is not exists.'
+    default_code = 'VoNotExist'
+
+
 class NoSupportVPN(APIException):
     default_message = 'This service does not provide VPN support.'
     default_code = 'NoSupportVPN'

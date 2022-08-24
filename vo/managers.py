@@ -74,7 +74,7 @@ class VoManager:
         """
         vo = self.get_vo_by_id(vo_id=vo_id)
         if vo is None:
-            raise errors.NotFound(message=_('项目组不存在'))
+            raise errors.VoNotExist(message=_('项目组不存在'))
 
         member = self.check_manager_perm(vo=vo, user=user)
         return vo, member

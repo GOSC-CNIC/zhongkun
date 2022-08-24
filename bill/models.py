@@ -258,7 +258,13 @@ class CashCouponActivity(UuidModel, CashCouponBase):
             granted_time=timezone.now(),
             activity_id=self.id
         )
-        coupon.save(force_insert=True)
+        try:
+            coupon.save(force_insert=True)
+        except Exception as e:
+            if CashCoupon.objects.filter(id=coupon.id).exists():
+                coupon.id = None
+                coupon.save(force_insert=True)
+
         return coupon
 
 
@@ -289,6 +295,7 @@ class CashCoupon(CashCouponBase):
         verbose_name=_('活动'), to=CashCouponActivity, on_delete=models.SET_NULL, related_name='+',
         null=True, blank=True, default=None
     )
+    # creator = models.CharField(verbose_name=_('创建人'), max_length=128, blank=True, default='')
 
     class Meta:
         verbose_name = _('代金券')
@@ -313,7 +320,7 @@ class CashCoupon(CashCouponBase):
             force_insert = True
 
         if not self.coupon_code:
-            self.coupon_code = rand_utils.random_letter_digit_string(4)
+            self.coupon_code = rand_utils.random_digit_string(6)
 
         super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
 
@@ -335,7 +342,17 @@ class CashCoupon(CashCouponBase):
         """
         券编码和验证码拼接成一个兑换码
         """
-        return f'{self.id}#{self.coupon_code}'
+        return f'{self.id}{self.coupon_code}'
+
+    @staticmethod
+    def parse_exchange_code(code: str):
+        if len(code) <= 6:
+            return '', code
+
+        if '#' in code:     # 兼容以前格式的兑换码
+            return code.rsplit('#', maxsplit=1)
+
+        return code[0:-6], code[-6:]
 
 
 class PaymentHistory(CustomIdModel):

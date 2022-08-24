@@ -213,6 +213,62 @@ class CashCouponViewSet(CustomGenericViewSet):
         """
         return CashCouponHandler().list_cash_coupon_payment(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('兑换码兑换代金券'),
+        request_body=no_body,
+        manual_parameters=[
+            openapi.Parameter(
+                name='code',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description='兑换码'
+            ),
+            openapi.Parameter(
+                name='vo_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description='为指定VO组领取代金券, 需要有vo组管理权限'
+            )
+        ],
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['post'], detail=False, url_path='exchange', url_name='exchange-coupon')
+    def exchange_coupon(self, request, *args, **kwargs):
+        """
+        兑换码兑换代金券
+
+            http code 200：
+            {
+                "id": "7873425381443472"
+            }
+
+            http code 400,403,404,409:
+            {
+                "code": "xxx",
+                "message": "xxx"
+            }
+
+            400:
+                MissingCode: 参数“code”必须指定
+                InvalidCode: 兑换码无效
+                InvalidVoId: 参数“vo_id”值无效
+            403:
+                AccessDenied: 没有组管理权限
+            404:
+                VoNotExist: 项目组不存在
+                NoSuchCoupon: 兑换码错误/代金券不存在
+            409:
+                InvalidCouponCode: 兑换码错误/券验证码错误
+                AlreadyCancelled: 代金券已作废
+                AlreadyDeleted: 代金券已删除
+                AlreadyGranted: 代金券已被领取
+        """
+        return CashCouponHandler().exchange_cash_coupon(view=self, request=request)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return serializers.CashCouponSerializer
