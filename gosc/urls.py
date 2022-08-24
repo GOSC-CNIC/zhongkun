@@ -49,6 +49,7 @@ urlpatterns = [
     path('apidocs/', schema_view.with_ui('swagger', cache_timeout=0), name='apidocs'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='redoc'),
     path('docs/', include('docs.urls', namespace='docs')),
+    path('about/', views.about, name='about'),
 ]
 
 if settings.DEBUG:

@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans '关于' %}{% endblock %}
+
+{% block body %}
+    <div class="d-flex justify-content-center align-items-center h-100 bg-light">
+        <div class="card border-0 col-md-8 col-lg-6">
+            <div class="card-body">
+                <div class="p-2">
+                    <h5 class="card-title">{% trans '关于VMS' %}</h5>
+                    <p>{% trans 'VMS是中国科技云一体化云服务的后端中间件服务，包含云服务器、云硬盘、计量结算和监控等功能。' %}</p>
+                </div>
+                <div class="p-2">
+                    <h5>{% trans '版本' %}</h5>
+                    <p>{{ version }} &emsp;
+                        {% if version_timestamp %}
+                            <span>{{ version_timestamp }}</span>&emsp;
+                        {% endif %}
+                        <span><a href="{% url 'docs:docs' %}#/changelog" target="view_window">
+                            {% trans '变更日志' %}</a>
+                        </span>
+                    </p>
+                </div>
+                <div class="p-2">
+                    <h5>{% trans '关于我们' %}</h5>
+                    <p>{% trans '中国科学院计算机网络信息中心，科技云部。' %}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

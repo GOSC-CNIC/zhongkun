@@ -56,6 +56,7 @@
                         <a class="dropdown-item" href="{% url 'apidocs' %}" target="view_window" >API交互文档</a>
                         <a class="dropdown-item" href="{% url 'redoc' %}" target="view_window" >API文档</a>
                         <a class="dropdown-item" href="{% url 'docs:docs' %}" target="view_window">文档</a>
+                        <a class="dropdown-item" href="{% url 'about' %}">关于</a>
                     </div>
                 </li>
                 {% if user.is_authenticated %}
