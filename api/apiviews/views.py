@@ -29,7 +29,7 @@ from api.serializers import serializers
 from api.viewsets import CustomGenericViewSet
 from api.paginations import ServersPagination, DefaultPageNumberPagination
 from api.handlers import (
-    handlers, ServerHandler, ServerArchiveHandler
+    handlers, ServerHandler, ServerArchiveHandler, VPNHandler
 )
 
 
@@ -1310,6 +1310,72 @@ class VPNViewSet(CustomGenericViewSet):
             return response
 
         return self.exception_response(exceptions.Error(message=str(r.content)))
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('激活VPN账户'),
+        request_body=no_body,
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    @action(methods=['POST'], detail=True, url_path='active', url_name='active-vpn')
+    def active_vpn(self, request, *args, **kwargs):
+        """
+        激活VPN账户
+
+            Http Code: 200，成功返回数据：
+            {}
+
+            Http Code: 400,404,405, 409,500等失败：
+            {
+                "code": 'xxx',
+                "message": "xxx"
+            }
+
+            404:
+                ServiceNotExist: 服务单元不存在
+            405:
+                NoSupportVPN: 服务单元未提供VPN服务
+            409:
+                ServiceStopped: 服务单元停止服务
+                NoResourcesInService：您和您所在的VO组在此服务单元中没有资源可用，不允许激活此服务单元的VPN账户
+            500:
+                InternalError： xxx
+        """
+        return VPNHandler.active_vpn(view=self, request=request)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('停用VPN账户'),
+        request_body=no_body,
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    @action(methods=['POST'], detail=True, url_path='deactive', url_name='deactive-vpn')
+    def deactive_vpn(self, request, *args, **kwargs):
+        """
+        停用VPN账户
+
+            Http Code: 200，成功返回数据：
+            {}
+
+            Http Code: 400,404,405, 409,500等失败：
+            {
+                "code": 'xxx',
+                "message": "xxx"
+            }
+
+            404:
+                ServiceNotExist: 服务单元不存在
+            405:
+                NoSupportVPN: 服务单元未提供VPN服务
+            409:
+                ServiceStopped: 服务单元停止服务
+                NoResourcesInService：您和您所在的VO组在此服务单元中没有资源可用，不允许激活此服务单元的VPN账户
+            500:
+                InternalError： xxx
+        """
+        return VPNHandler.deactive_vpn(view=self, request=request)
 
     def get_serializer_class(self):
         return Serializer

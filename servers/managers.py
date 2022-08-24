@@ -72,7 +72,7 @@ class ServerManager:
         :param service_id: 服务单元id过滤
         :param user_id: 过滤用户, 包括vo内的用户创建的
         :param username: 过滤用户名,模糊查询, 包括vo内的用户创建的
-        :prram vo_id: 过滤vo
+        :param vo_id: 过滤vo
         :param ipv4_contains: ip包含过滤
         :param expired: True(过期过滤)；False(未过期过滤)：默认None不过滤
         :param vo_name: 过滤vo组名,模糊查询
@@ -347,6 +347,26 @@ class ServerManager:
             server.save(update_fields=['situation', 'situation_time'])
         except Exception as exc:
             raise errors.Error.from_error(exc)
+
+    @staticmethod
+    def has_server_in_service(service_id: str, user_id: str) -> bool:
+        """
+        用户在指定服务中是否拥有云主机资源
+        """
+        return Server.objects.filter(
+            service_id=service_id, user_id=user_id, classification=Server.Classification.PERSONAL.value
+        ).exists()
+
+    @staticmethod
+    def has_vo_server_in_service(service_id: str, user) -> bool:
+        """
+        用户所在的vo组在指定服务中是否拥有云主机资源
+        """
+        queryset = VoManager().get_user_vo_queryset(user=user, owner=True, member=True)
+        vo_ids = queryset.values_list('id', flat=True)
+        return Server.objects.filter(
+            service_id=service_id, vo_id__in=vo_ids, classification=Server.Classification.VO.value
+        ).exists()
 
 
 class ServerArchiveManager:
