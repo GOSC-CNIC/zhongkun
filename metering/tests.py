@@ -1,5 +1,7 @@
+from __future__ import print_function
 from decimal import Decimal
-from datetime import datetime, timedelta, time
+from datetime import date, datetime, timedelta, time
+from unicodedata import decimal
 
 import pytz
 from django.test import TransactionTestCase
@@ -17,7 +19,8 @@ from service.models import ServiceConfig
 from .measurers import ServerMeasurer
 from .models import MeteringServer, PaymentStatus, DailyStatementServer
 from .payment import MeteringPaymentManager
-
+from .generate_daily_statement import GenerateDailyStatementServer
+from users.models import UserProfile
 
 def create_server_metadata(
         service, user,
@@ -51,6 +54,39 @@ def create_server_metadata(
     server.raw_default_password = ''
     server.save()
     return server
+
+
+def create_metering_server_metadata(
+        service, server_id, date, 
+        original_amount: Decimal, trade_amount= Decimal, daily_statement_id='',
+        owner_type=OwnerType.USER.value, user_id='', username='', vo_id='', vo_name='',
+        pay_type=PayType.POSTPAID.value, 
+        cpu_hours=0, ram_hours=0, disk_hours=0, public_ip_hours=0,
+        snapshot_hours=0, upstream=0, downstream=0
+):
+    metering = MeteringServer(
+        service=service,
+        server_id=server_id,
+        date=date,
+        owner_type=owner_type,
+        user_id=user_id,
+        username=username,
+        vo_id=vo_id,
+        vo_name=vo_name,
+        original_amount=original_amount,
+        trade_amount=trade_amount,
+        daily_statement_id=daily_statement_id,
+        pay_type=pay_type,
+        cpu_hours=cpu_hours,
+        ram_hours=ram_hours,
+        disk_hours=disk_hours,
+        public_ip_hours=public_ip_hours,
+        snapshot_hours=snapshot_hours,
+        upstream=upstream,
+        downstream=downstream
+    )
+    metering.save()
+    return metering
 
 
 def up_int(val, base=100):
@@ -743,3 +779,352 @@ class MeteringPaymentManagerTests(TransactionTestCase):
         self.assertEqual(pay_history.resource_type, ResourceType.VM.value)
         self.assertEqual(pay_history.app_service_id, self.service.pay_app_service_id)
         self.assertEqual(pay_history.instance_id, '')
+
+
+class DailyStatementTests(TransactionTestCase):
+    def setUp(self):
+        self.user = get_or_create_user()
+        self.user2 = UserProfile(id='user2', username='username2')
+        self.user2.save(force_insert=True)
+
+        self.vo = VoManager().create_vo(user=self.user, name='vo', company='vo', description='test')
+        self.vo2 = VoManager().create_vo(user=self.user, name='vo2', company='vo2', description='test')
+        
+        self.service = get_or_create_service()
+        self.service2 = ServiceConfig(
+            name='service2', data_center_id=self.service.data_center_id, endpoint_url='service2', username='', password='',
+            need_vpn=False
+        )
+        self.service2.save(force_insert=True)
+        self.service3 = ServiceConfig(
+            name='service3', data_center_id=self.service.data_center_id, endpoint_url='service3', username='', password='',
+            need_vpn=False
+        )
+        self.service3.save(force_insert=True)
+
+    def init_data(self, st_date: str = '2022-01-01'):
+        n_st_date = '2022-01-02'
+
+        ### user:
+        # self.user-self.service
+        for idx in range(1, 6):     # 1-5
+            create_metering_server_metadata(
+                service=self.service,
+                server_id='server' + str(idx),
+                date=st_date,
+                owner_type=OwnerType.USER.value,
+                user_id=self.user.id,
+                username=self.user.username,
+                original_amount=idx+0.1,
+                trade_amount=idx+0.11,
+                pay_type=PayType.POSTPAID.value
+            )
+        # self.user-self.service2
+        for idx in range(6, 10):     # 6-9
+            create_metering_server_metadata(
+                service=self.service2,
+                server_id='server' + str(idx),
+                date=st_date,
+                owner_type=OwnerType.USER.value,
+                user_id=self.user.id,
+                username=self.user.username,
+                original_amount=idx+0.1,
+                trade_amount=idx+0.11,
+                pay_type=PayType.POSTPAID.value
+            )     
+        # self.user-self.service3
+        for idx in range(10, 11):     # 10
+            create_metering_server_metadata(
+                service=self.service3,
+                server_id='server' + str(idx),
+                date=st_date,
+                owner_type=OwnerType.USER.value,
+                user_id=self.user.id,
+                username=self.user.username,
+                original_amount=idx+0.1,
+                trade_amount=idx+0.11,
+                pay_type=PayType.POSTPAID.value
+            )     
+
+        for idx in range(11, 12):     # 11 无效date
+            create_metering_server_metadata(
+                service=self.service3,
+                server_id='server' + str(idx),
+                date=n_st_date,
+                owner_type=OwnerType.USER.value,
+                user_id=self.user.id,
+                username=self.user.username,
+                original_amount=idx+0.1,
+                trade_amount=idx+0.11,
+                pay_type=PayType.POSTPAID.value
+            )   
+        for idx in range(12, 13):     # 12 无效pay_type
+            create_metering_server_metadata(
+                service=self.service3,
+                server_id='server' + str(idx),
+                date=st_date,
+                owner_type=OwnerType.USER.value,
+                user_id=self.user.id,
+                username=self.user.username,
+                original_amount=idx+0.1,
+                trade_amount=idx+0.11,
+                pay_type=PayType.PREPAID.value
+            )      
+
+        # self.user2-self.service
+        for idx in range(13, 15):     # 13-14
+            create_metering_server_metadata(
+                service=self.service,
+                server_id='server' + str(idx),
+                date=st_date,
+                owner_type=OwnerType.USER.value,
+                user_id=self.user2.id,
+                username=self.user2.username,
+                original_amount=idx+0.1,
+                trade_amount=idx+0.11,
+                pay_type=PayType.POSTPAID.value
+            )
+
+        ### vo:
+        # self.vo-self.service
+        for idx in range(15, 20):     # 15-19
+            create_metering_server_metadata(
+                service=self.service,
+                server_id='server' + str(idx),
+                date=st_date,
+                owner_type=OwnerType.VO.value,
+                vo_id=self.vo.id,
+                vo_name=self.vo.name,
+                original_amount=idx+0.1,
+                trade_amount=idx+0.11,
+                pay_type=PayType.POSTPAID.value
+            )
+        # self.vo-self.service2
+        for idx in range(20, 24):     # 20-23
+            create_metering_server_metadata(
+                service=self.service2,
+                server_id='server' + str(idx),
+                date=st_date,
+                owner_type=OwnerType.VO.value,
+                vo_id=self.vo.id,
+                vo_name=self.vo.name,
+                original_amount=idx+0.1,
+                trade_amount=idx+0.11,
+                pay_type=PayType.POSTPAID.value
+            )
+        # self.vo-self.service3
+        for idx in range(24, 25):     # 24
+            create_metering_server_metadata(
+                service=self.service3,
+                server_id='server' + str(idx),
+                date=st_date,
+                owner_type=OwnerType.VO.value,
+                vo_id=self.vo.id,
+                vo_name=self.vo.name,
+                original_amount=idx+0.1,
+                trade_amount=idx+0.11,
+                pay_type=PayType.POSTPAID.value
+            )
+        for idx in range(25, 26):     # 25 无效date
+            create_metering_server_metadata(
+                service=self.service3,
+                server_id='server' + str(idx),
+                date=n_st_date,
+                owner_type=OwnerType.VO.value,
+                vo_id=self.vo.id,
+                vo_name=self.vo.name,
+                original_amount=idx+0.1,
+                trade_amount=idx+0.11,
+                pay_type=PayType.POSTPAID.value
+            )
+        for idx in range(26, 27):     # 26 无效pay_type
+            create_metering_server_metadata(
+                service=self.service3,
+                server_id='server' + str(idx),
+                date=st_date,
+                owner_type=OwnerType.VO.value,
+                vo_id=self.vo.id,
+                vo_name=self.vo.name,
+                original_amount=idx+0.1,
+                trade_amount=idx+0.11,
+                pay_type=PayType.PREPAID.value
+            )
+        # self.vo2-self.service
+        for idx in range(27, 30):     # 27-29
+            create_metering_server_metadata(
+                service=self.service,
+                server_id='server' + str(idx),
+                date=st_date,
+                owner_type=OwnerType.VO.value,
+                vo_id=self.vo2.id,
+                vo_name=self.vo2.name,
+                original_amount=idx+0.1,
+                trade_amount=idx+0.11,
+                pay_type=PayType.POSTPAID.value
+            )
+
+    def do_assert_a_user_daily_statement(self, range_a, range_b, user, service, generate_daily_statement, meterings, st_date):
+        original_amount = 0
+        payable_amount = 0
+        for idx in range(range_a, range_b):
+            original_amount += Decimal(str(int(idx)+0.1))
+            payable_amount += Decimal(str(int(idx)+0.11))
+        daily_statement = generate_daily_statement.daily_statement_exists(statement_date=st_date, service_id=service.id, user_id=user.id)
+        self.assertIsNotNone(daily_statement)
+        self.assertEqual(daily_statement.date, st_date)
+        self.assertEqual(daily_statement.owner_type, OwnerType.USER.value)
+        self.assertEqual(daily_statement.user_id, user.id)
+        self.assertEqual(daily_statement.username, user.username)
+        self.assertEqual(daily_statement.service, service)
+        self.assertEqual(daily_statement.original_amount, original_amount)
+        self.assertEqual(daily_statement.payable_amount, payable_amount)
+        self.assertEqual(daily_statement.trade_amount, Decimal(0))
+        self.assertEqual(daily_statement.payment_status, PaymentStatus.UNPAID.value)
+        self.assertEqual(daily_statement.payment_history_id, '')
+
+        cnt = 0
+        for m in meterings:
+            if m.user_id == user.id and m.service == service and m.date == st_date and m.pay_type == PayType.POSTPAID.value:
+                cnt += 1
+                self.assertEqual(m.daily_statement_id, daily_statement.id)
+            else:
+                self.assertNotEqual(m.daily_statement_id, daily_statement.id)
+        self.assertEqual(cnt, range_b-range_a)
+
+    def do_assert_a_vo_daily_statement(self, range_a, range_b, vo, service, generate_daily_statement, meterings, st_date):
+        original_amount = 0
+        payable_amount = 0
+        for idx in range(range_a, range_b):
+            original_amount += Decimal(str(int(idx)+0.1))
+            payable_amount += Decimal(str(int(idx)+0.11))
+        daily_statement = generate_daily_statement.daily_statement_exists(statement_date=st_date, service_id=service.id, vo_id=vo.id)
+        self.assertIsNotNone(daily_statement)
+        self.assertEqual(daily_statement.date, st_date)
+        self.assertEqual(daily_statement.owner_type, OwnerType.VO.value)
+        self.assertEqual(daily_statement.vo_id, vo.id)
+        self.assertEqual(daily_statement.vo_name, vo.name)
+        self.assertEqual(daily_statement.service, service)
+        self.assertEqual(daily_statement.original_amount, original_amount)
+        self.assertEqual(daily_statement.payable_amount, payable_amount)
+        self.assertEqual(daily_statement.trade_amount, Decimal(0))
+        self.assertEqual(daily_statement.payment_status, PaymentStatus.UNPAID.value)
+        self.assertEqual(daily_statement.payment_history_id, '')
+
+        cnt = 0
+        for m in meterings:
+            if m.vo_id == vo.id and m.service == service and m.date == st_date and m.pay_type == PayType.POSTPAID.value:
+                cnt += 1
+                self.assertEqual(m.daily_statement_id, daily_statement.id)
+            else:
+                self.assertNotEqual(m.daily_statement_id, daily_statement.id)
+        self.assertEqual(cnt, range_b-range_a)
+
+    def test_daily_statement(self, st_date: str = '2022-01-01'):
+        meterings = self.init_data(st_date=st_date)
+
+        st_date = datetime.strptime(st_date, '%Y-%m-%d').date()
+        generate_daily_statement = GenerateDailyStatementServer(statement_date=st_date, raise_exception=True)
+        generate_daily_statement.run()
+
+        count = DailyStatementServer.objects.all().count()
+        self.assertEqual(count, 8)
+
+        meterings = MeteringServer.objects.all()
+
+        # 2022.01.01-user-service
+        self.do_assert_a_user_daily_statement(
+            range_a=1, range_b=6, user=self.user, service=self.service,
+            generate_daily_statement=generate_daily_statement, meterings=meterings, st_date=st_date
+        )
+        # 2022.01.01-user-service2
+        self.do_assert_a_user_daily_statement(
+            range_a=6, range_b=10, user=self.user, service=self.service2,
+            generate_daily_statement=generate_daily_statement, meterings=meterings, st_date=st_date
+        )
+        # 2022.01.01-user-service3
+        self.do_assert_a_user_daily_statement(
+            range_a=10, range_b=11, user=self.user, service=self.service3,
+            generate_daily_statement=generate_daily_statement, meterings=meterings, st_date=st_date
+        )
+        # 2022.01.01-user2-service
+        self.do_assert_a_user_daily_statement(
+            range_a=13, range_b=15, user=self.user2, service=self.service,
+            generate_daily_statement=generate_daily_statement, meterings=meterings, st_date=st_date
+        )
+        # 2022.01.01-vo-service
+        self.do_assert_a_vo_daily_statement(
+            range_a=15, range_b=20, vo=self.vo, service=self.service,
+            generate_daily_statement=generate_daily_statement, meterings=meterings, st_date=st_date
+        )
+        # 2022.01.01-vo-service2
+        self.do_assert_a_vo_daily_statement(
+            range_a=20, range_b=24, vo=self.vo, service=self.service2,
+            generate_daily_statement=generate_daily_statement, meterings=meterings, st_date=st_date
+        )
+        # 2022.01.01-vo-service3
+        self.do_assert_a_vo_daily_statement(
+            range_a=24, range_b=25, vo=self.vo, service=self.service3,
+            generate_daily_statement=generate_daily_statement, meterings=meterings, st_date=st_date
+        )
+        # 2022.01.01-vo2-service
+        self.do_assert_a_vo_daily_statement(
+            range_a=27, range_b=30, vo=self.vo2, service=self.service,
+            generate_daily_statement=generate_daily_statement, meterings=meterings, st_date=st_date
+        )
+
+        # 无效date和pay_type
+        cnt = 0
+        for m in meterings:
+            if m.date != st_date or m.pay_type != PayType.POSTPAID.value:
+                cnt += 1
+                self.assertEqual(m.daily_statement_id, '')
+        self.assertEqual(cnt, 4)
+
+        # 异常：二次运行
+        # 2022.01.01-user-service
+        added_metering = create_metering_server_metadata(   
+            service=self.service,
+            server_id='server_user_added',
+            date=st_date,
+            owner_type=OwnerType.USER.value,
+            user_id=self.user.id,
+            username=self.user.username,
+            original_amount=Decimal('0.1'),
+            trade_amount=Decimal('0.11'),
+            pay_type=PayType.POSTPAID.value
+        )
+        original_amount = added_metering.original_amount
+        payable_amount = added_metering.trade_amount
+        for idx in range(1, 6):
+            original_amount += Decimal(str(int(idx)+0.1))
+            payable_amount += Decimal(str(int(idx)+0.11))
+
+        generate_daily_statement2 = GenerateDailyStatementServer(statement_date=st_date, raise_exception=True)
+        generate_daily_statement2.run()
+        daily_statement2 = generate_daily_statement2.daily_statement_exists(statement_date=st_date, service_id=self.service.id, user_id=self.user.id)
+        self.assertEqual(daily_statement2.original_amount, original_amount)
+        self.assertEqual(daily_statement2.payable_amount, payable_amount)
+
+        # 2022.01.01-vo-service
+        added_metering = create_metering_server_metadata(   
+            service=self.service,
+            server_id='server_vo_added',
+            date=st_date,
+            owner_type=OwnerType.VO.value,
+            vo_id=self.vo.id,
+            vo_name=self.vo.name,
+            original_amount=Decimal('0.2'),
+            trade_amount=Decimal('0.22'),
+            pay_type=PayType.POSTPAID.value
+        )
+        original_amount = added_metering.original_amount
+        payable_amount = added_metering.trade_amount
+        for idx in range(15, 20):
+            original_amount += Decimal(str(int(idx)+0.1))
+            payable_amount += Decimal(str(int(idx)+0.11))
+
+        generate_daily_statement3 = GenerateDailyStatementServer(statement_date=st_date, raise_exception=True)
+        generate_daily_statement3.run()
+        daily_statement3 = generate_daily_statement3.daily_statement_exists(statement_date=st_date, service_id=self.service.id, vo_id=self.vo.id)
+        self.assertEqual(daily_statement3.original_amount, original_amount)
+        self.assertEqual(daily_statement3.payable_amount, payable_amount)     
