@@ -1,13 +1,15 @@
 from datetime import datetime, timedelta, date
 from functools import wraps
+from decimal import Decimal
 
 from django.utils import timezone
 from django.db import close_old_connections
 
 from servers.models import Server, ServerArchive, ServerBase
-from metering.models import MeteringServer, PaymentStatus
+from metering.models import MeteringServer
 from order.managers import PriceManager
 from utils.decimal_utils import quantize_10_2
+from utils.model import PayType
 from vo.models import VirtualOrganization
 from users.models import UserProfile
 
@@ -368,7 +370,12 @@ class ServerMeasurer:
             public_ip_hours=_metering.public_ip_hours
         )
         _metering.original_amount = quantize_10_2(amount)
+        if _metering.pay_type == PayType.POSTPAID.value:
+            _metering.trade_amount = _metering.original_amount
+        else:
+            _metering.trade_amount = Decimal('0')
+
         if auto_commit:
-            _metering.save(update_fields=['original_amount'])
+            _metering.save(update_fields=['original_amount', 'trade_amount'])
 
         return _metering

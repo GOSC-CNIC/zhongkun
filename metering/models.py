@@ -54,6 +54,9 @@ class MeteringBase(CustomIdModel):
         raise NotImplemented('is_postpaid')
 
     def set_daily_statement_id(self, daily_statement_id: str = None):
+        if self.daily_statement_id == daily_statement_id:
+            return
+
         self.daily_statement_id = daily_statement_id if daily_statement_id else ''
         self.save(update_fields=['daily_statement_id'])
 
