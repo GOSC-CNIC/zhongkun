@@ -4,8 +4,8 @@ from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
 
 from service.models import DataCenter
+from utils.model import UuidModel, get_encryptor
 
-from utils.model import UuidModel
 
 User = get_user_model()
 
@@ -14,26 +14,21 @@ class ObjectsService(UuidModel):
     """
     对象存储接入服务配置
     """
-    SERVICE_IHARBOR = 'iharbor'
-    SERVICE_SWIFT = 'swift'
-    SERVICE_S3 = 's3'
-    SERVICE_TYPE_CHOICES = (
-        (SERVICE_IHARBOR, 'iHarhor'),
-        (SERVICE_SWIFT, 'Swift'),
-        (SERVICE_S3, 'S3'),
-    )
+    class ServiceType(models.TextChoices):
+        IHARBOR = 'iharbor', 'iHarbor'
+        SWIFT = 'swift', 'Swift'
+        S3 = 's3', 'S3'
 
-    STATUS_SERVING = 'serving'
-    STATUS_OUT_OF = 'out_of'
-    CHOICE_STATUS = (
-        (STATUS_SERVING, _('服务中')),
-        (STATUS_OUT_OF, _('停止服务'))
-    )
+    class Status(models.TextChoices):
+        ENABLE = 'enable', _('服务中')
+        DISABLE = 'disable', _('停止服务')
+        DELETED = 'deleted', _('删除')
 
     data_center = models.ForeignKey(to=DataCenter, null=True, on_delete=models.SET_NULL,
                                     related_name='object_service_set', verbose_name=_('数据中心'))
     name = models.CharField(max_length=255, verbose_name=_('服务名称'))
-    service_type = models.CharField(max_length=16, choices=SERVICE_TYPE_CHOICES, default=SERVICE_IHARBOR,
+    name_en = models.CharField(verbose_name=_('服务英文名称'), max_length=255, default='')
+    service_type = models.CharField(max_length=16, choices=ServiceType.choices, default=ServiceType.IHARBOR.value,
                                     verbose_name=_('服务平台类型'))
     endpoint_url = models.CharField(max_length=255, verbose_name=_('服务地址url'), unique=True,
                                     help_text='http(s)://{hostname}:{port}/')
@@ -42,45 +37,66 @@ class ObjectsService(UuidModel):
     username = models.CharField(max_length=128, verbose_name=_('用户名'), help_text=_('用于此服务认证的用户名'))
     password = models.CharField(max_length=128, verbose_name=_('密码'))
     add_time = models.DateTimeField(auto_now_add=True, verbose_name=_('添加时间'))
-    status = models.CharField(max_length=16, verbose_name=_('服务状态'), choices=CHOICE_STATUS, default=STATUS_SERVING)
+    status = models.CharField(max_length=16, verbose_name=_('服务状态'), choices=Status.choices,
+                              default=Status.ENABLE.value)
     remarks = models.CharField(max_length=255, default='', blank=True, verbose_name=_('备注'))
     extra = models.CharField(max_length=1024, blank=True, default='', verbose_name=_('其他配置'), help_text=_('json格式'))
     users = models.ManyToManyField(to=User, verbose_name=_('用户'), blank=True, related_name='object_service_set')
 
+    provide_ftp = models.BooleanField(verbose_name=_('是否提供FTP服务'), default=True)
+    ftp_domains = models.CharField(max_length=1024, blank=True, default='', verbose_name=_('FTP服务域名或IP'),
+                                   help_text=_('多个域名时以,分割'))
+    contact_person = models.CharField(verbose_name=_('联系人名称'), max_length=128,
+                                      blank=True, default='')
+    contact_email = models.EmailField(verbose_name=_('联系人邮箱'), blank=True, default='')
+    contact_telephone = models.CharField(verbose_name=_('联系人电话'), max_length=16,
+                                         blank=True, default='')
+    contact_fixed_phone = models.CharField(verbose_name=_('联系人固定电话'), max_length=16,
+                                           blank=True, default='')
+    contact_address = models.CharField(verbose_name=_('联系人地址'), max_length=256,
+                                       blank=True, default='')
+    logo_url = models.CharField(verbose_name=_('LOGO url'), max_length=256,
+                                blank=True, default='')
+    longitude = models.FloatField(verbose_name=_('经度'), blank=True, default=0)
+    latitude = models.FloatField(verbose_name=_('纬度'), blank=True, default=0)
+    pay_app_service_id = models.CharField(
+        verbose_name=_('余额结算APP服务ID'), max_length=36, default='',
+        help_text=_('此服务对应的APP服务（注册在余额结算中的APP服务）id，扣费时需要此id，用于指定哪个服务发生的扣费'))
+
     class Meta:
         db_table = 'object_service'
         ordering = ['-add_time']
-        verbose_name = _('对象存储服务接入配置')
+        verbose_name = _('对象存储服务单元接入配置')
         verbose_name_plural = verbose_name
 
     def __str__(self):
         return self.name
 
+    @property
+    def raw_password(self):
+        """
+        :return:
+            str     # success
+            None    # failed, invalid encrypted password
+        """
+        encryptor = get_encryptor()
+        try:
+            return encryptor.decrypt(self.password)
+        except encryptor.InvalidEncrypted as e:
+            return None
+
+    def set_password(self, raw_password: str):
+        encryptor = get_encryptor()
+        self.password = encryptor.encrypt(raw_password)
+
+    def ftp_domains_list(self):
+        return self.ftp_domains.split(',')
+
 
 class BucketBase(UuidModel):
-    ACCESS_PUBLIC = 'public'
-    ACCESS_PRIVATE = 'private'
-    CHOICES_ACCESS = (
-        (ACCESS_PUBLIC, _('公有')),
-        (ACCESS_PRIVATE, _('私有'))
-    )
-
-    LOCK_READONLY = 'readonly'
-    LOCK_READWRITE = 'readwrite'
-    LOCK_FORBIDDEN = 'forbidden'
-    CHOICES_LOCK = (
-        (LOCK_READWRITE, _('可读可写')),
-        (LOCK_READONLY, _('只读')),
-        (LOCK_FORBIDDEN, _('禁止访问'))
-    )
-
-    bucket_id = models.CharField(max_length=36, verbose_name=_('存储桶ID'))
+    bucket_id = models.CharField(max_length=36, verbose_name=_('存储桶ID'), help_text=_('存储桶在对象存储服务单元中的id'))
     name = models.CharField(max_length=63, verbose_name=_('存储桶名称'))
-    creation_time = models.DateTimeField(auto_now_add=True, verbose_name=_('创建时间'))
-    access_perm = models.CharField(max_length=16, verbose_name='访问权限',
-                                   choices=CHOICES_ACCESS, default=ACCESS_PRIVATE)
-    lock = models.CharField(max_length=16, choices=CHOICES_LOCK,
-                            default=LOCK_READWRITE, verbose_name=_('读写锁'))
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'))
 
     class Meta:
         abstract = True
@@ -90,11 +106,10 @@ class BucketBase(UuidModel):
 
 
 class Bucket(BucketBase):
-    user = models.ForeignKey(to=User, null=True, related_name='bucket_set', on_delete=models.SET_NULL,
+    user = models.ForeignKey(to=User, null=True, related_name='+', on_delete=models.SET_NULL,
                              verbose_name=_('所属用户'))
-    service = models.ForeignKey(to=ObjectsService, related_name='bucket_set', null=True,
+    service = models.ForeignKey(to=ObjectsService, related_name='+', null=True,
                                 on_delete=models.SET_NULL, verbose_name=_('所属服务'))
-    token = models.CharField(max_length=36, verbose_name=_('桶读写token'))
 
     class Meta:
         db_table = 'bucket'
@@ -102,23 +117,22 @@ class Bucket(BucketBase):
         verbose_name = _('存储桶')
         verbose_name_plural = verbose_name
 
-    def do_archive(self, raise_exception: bool = False):
+    def do_archive(self, archiver: str, raise_exception: bool = False):
         """
         删除归档存储桶
         """
         arc = BucketArchive()
-        arc.id = self.id
+        arc.original_id = self.id
         arc.bucket_id = self.bucket_id
         arc.name = self.name
         arc.creation_time = self.creation_time
-        arc.access_perm = self.access_perm
-        arc.lock = self.lock
         arc.user_id = self.user_id
         arc.service_id = self.service_id
+        arc.archiver = archiver
 
         try:
             with transaction.atomic():
-                arc.save()
+                arc.save(force_insert=True)
                 self.delete()
         except Exception as e:
             if raise_exception:
@@ -130,12 +144,14 @@ class Bucket(BucketBase):
 
 
 class BucketArchive(BucketBase):
-    bucket_id = models.CharField(max_length=36, verbose_name=_('存储桶ID'))
-    delete_time = models.DateTimeField(auto_now_add=True, verbose_name=_('删除时间'))
-    user = models.ForeignKey(to=User, null=True, related_name='bucket_archive_set', on_delete=models.SET_NULL,
+    original_id = models.CharField(max_length=36, verbose_name=_('存储桶删除前原始id'), default='',
+                                   help_text=_('存储桶删除前在存储桶表中原始id'))
+    user = models.ForeignKey(to=User, null=True, related_name='+', on_delete=models.SET_NULL,
                              verbose_name=_('所属用户'))
-    service = models.ForeignKey(to=ObjectsService, null=True, related_name='bucket_archive_set',
+    service = models.ForeignKey(to=ObjectsService, null=True, related_name='+',
                                 on_delete=models.SET_NULL, verbose_name=_('所属服务'))
+    delete_time = models.DateTimeField(auto_now_add=True, verbose_name=_('删除时间'))
+    archiver = models.CharField(verbose_name=_('删除归档人'), max_length=128, blank=True, default='')
 
     class Meta:
         db_table = 'bucket_archive'

@@ -16,7 +16,7 @@ class Migration(migrations.Migration):
             name='Bucket',
             fields=[
                 ('id', models.CharField(blank=True, editable=False, max_length=36, primary_key=True, serialize=False, verbose_name='ID')),
-                ('bucket_id', models.CharField(max_length=36, verbose_name='存储桶ID')),
+                ('bucket_id', models.CharField(max_length=36, help_text='存储桶在对象存储服务单元中的id', verbose_name='存储桶ID')),
                 ('name', models.CharField(max_length=63, verbose_name='存储桶名称')),
                 ('creation_time', models.DateTimeField(auto_now_add=True, verbose_name='创建时间')),
                 ('access_perm', models.CharField(choices=[('public', '公有'), ('private', '私有')], default='private', max_length=16, verbose_name='访问权限')),
@@ -38,7 +38,7 @@ class Migration(migrations.Migration):
                 ('creation_time', models.DateTimeField(auto_now_add=True, verbose_name='创建时间')),
                 ('access_perm', models.CharField(choices=[('public', '公有'), ('private', '私有')], default='private', max_length=16, verbose_name='访问权限')),
                 ('lock', models.CharField(choices=[('readwrite', '可读可写'), ('readonly', '只读'), ('forbidden', '禁止访问')], default='readwrite', max_length=16, verbose_name='读写锁')),
-                ('bucket_id', models.CharField(max_length=36, verbose_name='存储桶ID')),
+                ('bucket_id', models.CharField(max_length=36, help_text='存储桶在对象存储服务单元中的id', verbose_name='存储桶ID')),
                 ('delete_time', models.DateTimeField(auto_now_add=True, verbose_name='删除时间')),
             ],
             options={
@@ -64,8 +64,8 @@ class Migration(migrations.Migration):
                 ('extra', models.CharField(blank=True, default='', help_text='json格式', max_length=1024, verbose_name='其他配置')),
             ],
             options={
-                'verbose_name': '对象存储服务接入配置',
-                'verbose_name_plural': '对象存储服务接入配置',
+                'verbose_name': '对象存储服务单元接入配置',
+                'verbose_name_plural': '对象存储服务单元接入配置',
                 'db_table': 'object_service',
                 'ordering': ['-add_time'],
             },
