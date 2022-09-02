@@ -7,7 +7,7 @@ from metering.payment import MeteringPaymentManager
 class PayMeteringServer:
     def __init__(self, app_id: str, pay_date: date = None):
         """
-        :param pay_date: 指定只扣费那个计费日的计费单
+        :param pay_date: 指定只扣费那个计费日的云主机日结算单
         """
         self.app_id = app_id
         self.pay_date = pay_date
@@ -16,11 +16,11 @@ class PayMeteringServer:
         self.failed_count = 0
 
     def start_print(self):
-        print('开始扣费计量计费单')
+        print('开始扣费云主机日结算单')
         if self.pay_date:
-            print(f'指定只扣费{self.pay_date}日期的计费单')
+            print(f'指定只扣费{self.pay_date}日期的云主机日结算单')
 
-        print(f'本次要扣费的计量计费单总数：{self.count}')
+        print(f'本次要扣费的云主机日结算单总数：{self.count}')
 
     def run(self):
         queryset = self.get_metering_queryset()
@@ -29,7 +29,7 @@ class PayMeteringServer:
 
         last_creation_time = None
         while True:
-            meterings  = self.get_metering(creation_time_gt=last_creation_time)
+            meterings = self.get_metering(creation_time_gt=last_creation_time)
             m_length = len(meterings)
             if m_length == 0:
                 break
@@ -78,7 +78,7 @@ class PayMeteringServer:
                     executor='metering', remark=remark, required_enough_balance=False
                 )
             except Exception as exc:
-                print(f'[Failed] 云主机计量计费单（id={bill.id}）扣费失败，{exc}')
+                print(f'[Failed] 云主机日结算单（id={bill.id}）扣费失败，{exc}')
                 return False
 
         return True
