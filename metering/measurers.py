@@ -80,7 +80,9 @@ class ServerMeasurer:
 
                 if len(servers) == 0:
                     break
-                if len(servers) == 1 and servers[0].id == last_id:
+
+                # 多个creation_time相同数据时，会查询获取到多个数据（计量过也会重复查询到）
+                if servers[len(servers) - 1].id == last_id:
                     break
 
                 for s in servers:
@@ -321,7 +323,7 @@ class ServerMeasurer:
         if gte_creation_time is not None:
             lookups['creation_time__gte'] = gte_creation_time
 
-        queryset = Server.objects.filter(**lookups).order_by('creation_time')
+        queryset = Server.objects.filter(**lookups).order_by('creation_time', 'id')
         return queryset
 
     @wrap_close_old_connections
@@ -345,7 +347,7 @@ class ServerMeasurer:
         if gte_creation_time is not None:
             lookups['creation_time__gte'] = gte_creation_time
 
-        return ServerArchive.objects.filter(**lookups).order_by('creation_time')
+        return ServerArchive.objects.filter(**lookups).order_by('creation_time', 'id')
 
     @wrap_close_old_connections
     def get_archives(self, start_datetime, gte_creation_time=None, limit: int = 100):
