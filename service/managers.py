@@ -415,6 +415,7 @@ class ServicePrivateQuotaManager(ServiceQuotaManagerBase):
         if service_id:
             qs = qs.filter(service_id=service_id)
 
+        qs = qs.exclude(service__status=ServiceConfig.Status.DELETED.value)
         return qs
 
 
@@ -430,6 +431,7 @@ class ServiceShareQuotaManager(ServiceQuotaManagerBase):
         if service_id:
             qs = qs.filter(service_id=service_id)
 
+        qs = qs.exclude(service__status=ServiceConfig.Status.DELETED.value)
         return qs
 
 

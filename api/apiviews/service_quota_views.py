@@ -57,7 +57,8 @@ class ServivePrivateQuotaViewSet(CustomGenericViewSet):
                   "enable": true,
                   "service": {
                     "id": "1",
-                    "name": "地球大数据怀柔分中心"
+                    "name": "地球大数据怀柔分中心",
+                    "name_en": "xxx"
                   }
                 }
               ]
@@ -115,7 +116,8 @@ class ServiveShareQuotaViewSet(CustomGenericViewSet):
                   "enable": true,
                   "service": {
                     "id": "1",
-                    "name": "地球大数据怀柔分中心"
+                    "name": "地球大数据怀柔分中心",
+                    "name_en": "xxx"
                   }
                 }
               ]

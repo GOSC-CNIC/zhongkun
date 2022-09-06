@@ -544,9 +544,9 @@ class VmServiceBaseQuotaSerializer(VmServiceBaseQuotaUpdateSerializer):
     @staticmethod
     def get_service(obj):
         if obj.service:
-            return {'id': obj.service.id, 'name': obj.service.name}
+            return {'id': obj.service.id, 'name': obj.service.name, 'name_en': obj.service.name_en}
 
-        return {'id': None, 'name': None}
+        return {'id': None, 'name': None, 'name_en': None}
 
 
 class VmServicePrivateQuotaSerializer(VmServiceBaseQuotaSerializer):
