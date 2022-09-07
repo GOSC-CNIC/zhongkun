@@ -43,7 +43,7 @@ class PayMeteringServer:
 
                 last_creation_time = m.creation_time
 
-            print(f'Pay {m_length} meterings.')
+            print(f'扣费 {m_length} 云主机日结算单.')
 
         print(f'总数：{self.count}, 扣费成功：{self.success_count}, 扣费失败：{self.failed_count}.')
 
@@ -57,7 +57,8 @@ class PayMeteringServer:
         return queryset[0:limit]
 
     def get_metering_queryset(self):
-        queryset = DailyStatementServer.objects.filter(payment_status=PaymentStatus.UNPAID.value)
+        queryset = DailyStatementServer.objects.select_related(
+            'service').filter(payment_status=PaymentStatus.UNPAID.value)
         if self.pay_date:
             queryset = queryset.filter(date=self.pay_date)
 

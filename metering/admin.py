@@ -1,6 +1,8 @@
 from django.contrib import admin
 
-from .models import MeteringServer, MeteringDisk, MeteringObjectStorage, DailyStatementServer
+from .models import (
+    MeteringServer, MeteringDisk, MeteringObjectStorage, DailyStatementServer, DailyStatementObjectStorage
+)
 
 
 @admin.register(MeteringServer)
@@ -29,7 +31,7 @@ class MeteringDiskAdmin(admin.ModelAdmin):
 @admin.register(MeteringObjectStorage)
 class MeteringObjectStorageAdmin(admin.ModelAdmin):
     list_display = ('id', 'date', 'storage', 'downstream', 'replication', 'get_request',
-                    'put_request', 'pay_type', 'service', 'bucket_name', 'bucket_id',
+                    'put_request', 'service', 'bucket_name', 'storage_bucket_id',
                     'original_amount', 'trade_amount', 'daily_statement_id',
                     'creation_time', 'user_id', 'username')
     list_display_links = ('id',)
@@ -46,4 +48,15 @@ class DailyStatementServerAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
     list_filter = ('owner_type', 'payment_status')
     search_fields = ('username', 'vo_name')
+    list_select_related = ('service',)
+
+
+@admin.register(DailyStatementObjectStorage)
+class DailyStatementObjectStorageAdmin(admin.ModelAdmin):
+    list_display = ('id', 'date', 'service',
+                    'original_amount', 'payable_amount', 'trade_amount', 'payment_status', 'payment_history_id',
+                    'creation_time', 'user_id', 'username')
+    list_display_links = ('id',)
+    list_filter = ('payment_status',)
+    search_fields = ('username',)
     list_select_related = ('service',)

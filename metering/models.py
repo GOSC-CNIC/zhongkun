@@ -214,7 +214,9 @@ class MeteringObjectStorage(MeteringBase):
     service = models.ForeignKey(to=ObjectsService, verbose_name=_('服务'), related_name='+', null=True,
                                 on_delete=models.SET_NULL, db_index=False)
     user_id = models.CharField(verbose_name=_('用户ID'), max_length=36, blank=True)
-    bucket_id = models.CharField(verbose_name=_('存储桶ID'), max_length=36)
+    username = models.CharField(verbose_name=_('用户名'), max_length=128, blank=True, default='')
+    storage_bucket_id = models.CharField(
+        verbose_name=_('存储桶实例ID'), max_length=36, default='', help_text=_('对象存储中间件存储桶实例id'))
     bucket_name = models.CharField(verbose_name=_('存储桶名称'), max_length=63)
     date = models.DateField(verbose_name=_('日期'), help_text=_('计量的资源使用量的所属日期'))
     creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
@@ -226,8 +228,6 @@ class MeteringObjectStorage(MeteringBase):
         verbose_name=_('同步流量GiB'), blank=True, default=0, help_text=_('存储桶的同步流量GiB'))
     get_request = models.IntegerField(verbose_name=_('get请求次数'), default=0, help_text=_('存储桶的get请求次数'))
     put_request = models.IntegerField(verbose_name=_('put请求次数'), default=0, help_text=_('存储桶的put请求次数'))
-    pay_type = models.CharField(verbose_name=_('对象存储付费方式'), max_length=16, choices=Server.PayType.choices)
-    username = models.CharField(verbose_name=_('用户名'), max_length=128, blank=True, default='')
 
     class Meta:
         verbose_name = _('对象存储资源计量')
@@ -236,7 +236,7 @@ class MeteringObjectStorage(MeteringBase):
         ordering = ['-creation_time']
         constraints = [
             models.constraints.UniqueConstraint(
-                fields=['date', 'service_id', 'user_id', 'bucket_name'], name='unique_date_bucket'
+                fields=['date', 'storage_bucket_id'], name='unique_date_bucket'
             )
         ]
 
@@ -259,7 +259,7 @@ class MeteringObjectStorage(MeteringBase):
         """
         是否是按量计费
         """
-        return self.pay_type == PayType.POSTPAID.value
+        return True
 
 
 class DailyStatementBase(CustomIdModel):
@@ -370,3 +370,52 @@ class DailyStatementServer(DailyStatementBase):
         计量资源的类型
         """
         return ResourceType.VM.value
+
+
+class DailyStatementObjectStorage(DailyStatementBase):
+    service = models.ForeignKey(to=ObjectsService, verbose_name=_('对象存储服务单元'), related_name='+', null=True,
+                                on_delete=models.SET_NULL, db_index=False)
+    date = models.DateField(verbose_name=_('计费日期'), help_text=_('资源使用计量计费的日期'))
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
+    user_id = models.CharField(verbose_name=_('用户ID'), max_length=36, blank=True, default='')
+    username = models.CharField(verbose_name=_('用户名'), max_length=128, blank=True, default='')
+
+    class Meta:
+        verbose_name = _('对象存储日结算单')
+        verbose_name_plural = verbose_name
+        db_table = 'daily_statement_storage'
+        ordering = ['-creation_time']
+
+    def generate_id(self):
+        return f'o{uuid1().hex}'       # 保证（订单号，云主机、云硬盘、对象存储计量id）唯一
+
+    def get_pay_app_service_id(self) -> str:
+        """
+        所属服务对应的余额结算中的app服务id
+        """
+        if self.service:
+            return self.service.pay_app_service_id
+
+        return ''
+
+    def is_owner_type_user(self):
+        """
+        所有者是否是用户，反之是vo组
+        :return:
+            True    # user
+            False   # vo
+            None    # invalid
+        """
+        return True
+
+    def get_owner_id(self) -> str:
+        """
+        返回所有者的id, user id or vo id
+        """
+        return self.user_id
+
+    def get_resource_type(self):
+        """
+        计量资源的类型
+        """
+        return ResourceType.BUCKET.value
