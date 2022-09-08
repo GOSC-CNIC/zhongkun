@@ -1349,6 +1349,9 @@ class ServiceTests(MyAPITestCase):
         self.service = get_or_create_service()
 
     def test_list_service(self):
+        service2 = ServiceConfig(name='service2', name_en='service2 en')
+        service2.save(force_insert=True)
+
         url = reverse('api:service-list')
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -1370,6 +1373,40 @@ class ServiceTests(MyAPITestCase):
         response = self.client.get(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["count"], 0)
+
+        # invalid param 'status'
+        url = reverse('api:service-list')
+        query = parse.urlencode(query={'status': 'test'})
+        response = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidStatus', response=response)
+
+        # param 'status'
+        url = reverse('api:service-list')
+        query = parse.urlencode(query={'status': 'enable'})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 2)
+
+        service2.status = ServiceConfig.Status.DELETED.value
+        service2.save(update_fields=['status'])
+        query = parse.urlencode(query={'status': ServiceConfig.Status.ENABLE.value})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(response.data['results'][0]['id'], self.service.id)
+        self.assertEqual(response.data['results'][0]['status'], ServiceConfig.Status.ENABLE.value)
+
+        query = parse.urlencode(query={'status': ServiceConfig.Status.DISABLE.value})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 0)
+
+        query = parse.urlencode(query={'status': ServiceConfig.Status.DELETED.value})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(response.data['results'][0]['id'], service2.id)
+        self.assertEqual(response.data['results'][0]['status'], ServiceConfig.Status.DELETED.value)
 
     def test_admin_list(self):
         url = reverse('api:service-admin-list')

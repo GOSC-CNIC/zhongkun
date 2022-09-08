@@ -19,7 +19,7 @@ from drf_yasg import openapi
 from servers.models import Server, Flavor
 from servers.managers import ServerManager
 from service.managers import ServiceManager
-from service.models import DataCenter, ApplyOrganization, ApplyVmService
+from service.models import DataCenter, ApplyOrganization, ApplyVmService, ServiceConfig
 from adapters import inputs, outputs
 from core.quota import QuotaAPI
 from core import request as core_request
@@ -1446,6 +1446,13 @@ class ServiceViewSet(CustomGenericViewSet):
                 type=openapi.TYPE_STRING,
                 required=False,
                 description='联邦成员机构id'
+            ),
+            openapi.Parameter(
+                name='status',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'查询条件，服务单元服务状态, {ServiceConfig.Status.choices}'
             )
         ],
         responses={

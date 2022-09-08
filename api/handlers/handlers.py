@@ -9,6 +9,7 @@ from service.managers import (
     VmServiceApplyManager, OrganizationApplyManager,
     ServicePrivateQuotaManager, ServiceShareQuotaManager, ServiceManager,
 )
+from service.models import ServiceConfig
 from vo.managers import VoManager, VoMemberManager
 from utils import storagers
 from utils import time
@@ -709,7 +710,15 @@ class VmServiceHandler:
         list接入服务provider
         """
         center_id = request.query_params.get('center_id', None)
-        service_qs = ServiceManager().filter_service(center_id=center_id)
+        status = request.query_params.get('status', None)
+
+        if status is not None:
+            if status not in ServiceConfig.Status.values:
+                return view.exception_response(
+                    exceptions.InvalidArgument(message=_('服务单元服务状态查询参数值无效'), code='InvalidStatus')
+                )
+
+        service_qs = ServiceManager().filter_service(center_id=center_id, status=status)
         return view.paginate_service_response(request=request, qs=service_qs)
 
 

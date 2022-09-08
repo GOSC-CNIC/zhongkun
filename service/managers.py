@@ -461,12 +461,15 @@ class ServiceManager:
         return self.get_service(_id)
 
     @staticmethod
-    def filter_service(center_id: str):
+    def filter_service(center_id: str, status: str):
         """
         :param center_id: 联邦成员机构id
+        :param status: 服务单元服务状态
         """
-        queryset = ServiceConfig.objects.select_related('data_center').filter(
-            status=ServiceConfig.Status.ENABLE)
+        queryset = ServiceConfig.objects.select_related('data_center').all()
+
+        if status:
+            queryset = queryset.filter(status=status)
 
         if center_id:
             queryset = queryset.filter(data_center=center_id)
