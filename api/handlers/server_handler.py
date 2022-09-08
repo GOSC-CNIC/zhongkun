@@ -263,6 +263,12 @@ class ServerHandler:
                 message=_('云主机已加锁锁定了任何操作，请解锁后重试')
             ))
 
+        service = server.service
+        if service.status != service.Status.ENABLE.value:
+            return view.exception_response(
+                exceptions.ConflictError(message=_('提供此云服务器资源的服务单元停止服务，无法重建'))
+            )
+
         # 过期，欠费挂起，不允许重建，需要检查是否续费，是否不再欠费
         try:
             ServerManager.check_situation_suspend(server=server)
@@ -651,6 +657,11 @@ class ServerHandler:
                     message=_('云主机服务未配置对应的结算系统APP服务id'), code='ServiceNoPayAppServiceId')
         except exceptions.Error as exc:
             return view.exception_response(exc)
+
+        if service.status != service.Status.ENABLE.value:
+            return view.exception_response(
+                exceptions.ConflictError(message=_('提供此云服务器资源的服务单元停止服务，不允许续费'))
+            )
 
         network_id = server.network_id
         network_name = ''
