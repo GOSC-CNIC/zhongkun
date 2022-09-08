@@ -164,6 +164,7 @@ class ServersViewSet(CustomGenericViewSet):
                   "service": {
                     "id": "2",
                     "name": "怀柔204机房",
+                    "name_en": "xxx",
                     "service_type": "evcloud"
                   },
                   "center_quota": 2,         # 1: 服务的私有资源配额，"user_quota"=null; 2: 服务的分享资源配额
@@ -226,6 +227,7 @@ class ServersViewSet(CustomGenericViewSet):
                   "service": {
                     "id": "2",
                     "name": "怀柔204机房",
+                    "name_en": "xxx",
                     "service_type": "evcloud"
                   },
                   "center_quota": 2,         # 1: 服务的私有资源配额，"user_quota"=null; 2: 服务的分享资源配额
@@ -418,6 +420,7 @@ class ServersViewSet(CustomGenericViewSet):
                 "service": {
                     "id": "2",
                     "name": "怀柔204机房",
+                    "name_en": "xxx",
                     "service_type": "evcloud"
                 },
                 "center_quota": 2,         # 1: 服务的私有资源配额，"user_quota"=null; 2: 服务的分享资源配额

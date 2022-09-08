@@ -70,6 +70,7 @@ class ServerSerializer(ServerBaseSerializer):
             return {
                 'id': service.id,
                 'name': service.name,
+                'name_en': service.name_en,
                 'service_type': service.service_type
             }
 
@@ -129,6 +130,7 @@ class ServerArchiveSerializer(ServerBaseSerializer):
             return {
                 'id': service.id,
                 'name': service.name,
+                'name_en': service.name_en,
                 'service_type': service.service_type
             }
 

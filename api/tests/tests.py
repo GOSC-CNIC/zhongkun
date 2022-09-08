@@ -254,6 +254,7 @@ class ServersTests(MyAPITestCase):
                            "center_quota", "classification", "vo_id", "user",
                            "image_id", "image_desc", "default_user", "default_password", "pay_type"
                            ], response.data['server'])
+        self.assertKeysIn(["id", "name", "name_en", "service_type"], response.data['server']['service'])
         self.assert_is_subdict_of(sub={
             "default_user": self.default_user, "default_password": self.default_password
         }, d=response.data['server'])
@@ -323,10 +324,13 @@ class ServersTests(MyAPITestCase):
                            "center_quota", "classification", "vo_id", "user",
                            "image_id", "image_desc", "default_user", "default_password",
                            "lock", "pay_type"], response.data['servers'][0])
+        self.assertKeysIn(["id", "name", "name_en", "service_type"], response.data['servers'][0]['service'])
         self.assert_is_subdict_of(sub={
             'classification': Server.Classification.PERSONAL,
-            'service': {'id': self.miss_server.service.id, 'name': self.miss_server.service.name,
-                        "service_type": ServiceConfig.ServiceType.EVCLOUD},
+            'service': {
+                'id': self.miss_server.service.id, 'name': self.miss_server.service.name,
+                "service_type": ServiceConfig.ServiceType.EVCLOUD, 'name_en': self.miss_server.service.name_en
+            },
             'id': self.miss_server.id, 'vo_id': None
         }, d=response.data['servers'][0])
 
@@ -447,8 +451,10 @@ class ServersTests(MyAPITestCase):
                            "lock", "pay_type"], response.data['servers'][0])
         self.assert_is_subdict_of(sub={
             'classification': Server.Classification.VO,
-            'service': {'id': vo_server.service.id, 'name': vo_server.service.name,
-                        "service_type": ServiceConfig.ServiceType.EVCLOUD},
+            'service': {
+                'id': vo_server.service.id, 'name': vo_server.service.name,
+                "service_type": ServiceConfig.ServiceType.EVCLOUD, 'name_en': vo_server.service.name_en
+            },
             'id': vo_server.id, 'vo_id': vo_id
         }, d=response.data['servers'][0])
 
@@ -486,8 +492,10 @@ class ServersTests(MyAPITestCase):
                            "lock", "pay_type"], response.data['server'])
         self.assert_is_subdict_of(sub={
             'classification': Server.Classification.VO,
-            'service': {'id': vo_server.service.id, 'name': vo_server.service.name,
-                        "service_type": ServiceConfig.ServiceType.EVCLOUD},
+            'service': {
+                'id': vo_server.service.id, 'name': vo_server.service.name,
+                "service_type": ServiceConfig.ServiceType.EVCLOUD, 'name_en': vo_server.service.name_en
+            },
             'id': vo_server.id, 'vo_id': vo_id
         }, d=response.data['server'])
 
@@ -617,8 +625,10 @@ class ServersTests(MyAPITestCase):
                            "lock", "pay_type"], response.data['servers'][0])
         self.assert_is_subdict_of(sub={
             'classification': Server.Classification.PERSONAL,
-            'service': {'id': self.miss_server.service.id, 'name': self.miss_server.service.name,
-                        "service_type": ServiceConfig.ServiceType.EVCLOUD},
+            'service': {
+                'id': self.miss_server.service.id, 'name': self.miss_server.service.name,
+                "service_type": ServiceConfig.ServiceType.EVCLOUD, 'name_en': self.miss_server.service.name_en
+            },
             'id': self.miss_server.id, 'vo_id': None
         }, d=response.data['servers'][0])
 
@@ -631,8 +641,10 @@ class ServersTests(MyAPITestCase):
         self.assertEqual(len(response.data['servers']), 1)
         self.assert_is_subdict_of(sub={
             'classification': Server.Classification.VO,
-            'service': {'id': vo_server.service.id, 'name': vo_server.service.name,
-                        "service_type": ServiceConfig.ServiceType.EVCLOUD},
+            'service': {
+                'id': vo_server.service.id, 'name': vo_server.service.name,
+                "service_type": ServiceConfig.ServiceType.EVCLOUD, 'name_en': vo_server.service.name_en
+            },
             'id': vo_server.id, 'vo_id': vo_id
         }, d=response.data['servers'][0])
 
@@ -982,6 +994,22 @@ class ServersTests(MyAPITestCase):
         self.assertKeysIn(['count', 'next', 'previous', 'servers'], response.data)
         self.assertEqual(len(response.data['servers']), 1)
         self.assertEqual(response.data['count'], 1)
+        self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
+                           "public_ip", "image", "creation_time", "remarks",
+                           "endpoint_url", "service",
+                           "center_quota", "classification", "vo_id", "user",
+                           "image_id", "image_desc", "default_user", "default_password",
+                           "lock", "pay_type"], response.data['servers'][0])
+        vo_server = self.vo_server
+        self.assert_is_subdict_of(sub={
+            'classification': Server.Classification.VO,
+            'service': {
+                'id': vo_server.service.id, 'name': vo_server.service.name,
+                "service_type": ServiceConfig.ServiceType.EVCLOUD, 'name_en': vo_server.service.name_en
+            },
+            'id': vo_server.id, 'vo_id': self.vo_id
+        }, d=response.data['servers'][0])
+        self.assertKeysIn(["id", "name", "name_en", "service_type"], response.data['servers'][0]['service'])
 
         # action server
         url = reverse('api:servers-server-action', kwargs={'id': self.vo_server.id})
@@ -1062,10 +1090,13 @@ class ServersTests(MyAPITestCase):
                            "remarks", "service",
                            "center_quota", "deleted_time", "classification", "vo_id",
                            "pay_type", "server_id"], obj)
+        self.assertKeysIn(["id", "name", "name_en", "service_type"], obj['service'])
         self.assert_is_subdict_of(sub={
             'classification': Server.Classification.PERSONAL,
-            'service': {'id': self.miss_server.service.id, 'name': self.miss_server.service.name,
-                        "service_type": ServiceConfig.ServiceType.EVCLOUD},
+            'service': {
+                'id': self.miss_server.service.id, 'name': self.miss_server.service.name,
+                "service_type": ServiceConfig.ServiceType.EVCLOUD, 'name_en': self.miss_server.service.name_en
+            },
             'vo_id': None
         }, d=obj)
         UTC_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
@@ -1086,8 +1117,10 @@ class ServersTests(MyAPITestCase):
                            "pay_type", "server_id"], response.data["results"][0])
         self.assert_is_subdict_of(sub={
             'classification': Server.Classification.VO,
-            'service': {'id': self.vo_server.service.id, 'name': self.vo_server.service.name,
-                        "service_type": ServiceConfig.ServiceType.EVCLOUD},
+            'service': {
+                'id': self.vo_server.service.id, 'name': self.vo_server.service.name,
+                "service_type": ServiceConfig.ServiceType.EVCLOUD, 'name_en': self.vo_server.service.name_en
+            },
             'vo_id': self.vo_id
         }, d=response.data['results'][0])
 
