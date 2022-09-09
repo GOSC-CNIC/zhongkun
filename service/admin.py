@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.db import transaction
 
 from servers.models import Server
+from utils.model import NoDeleteSelectModelAdmin
 from .models import (
     ServiceConfig, DataCenter, ServicePrivateQuota,
     ServiceShareQuota, ApplyVmService, ApplyOrganization
@@ -12,7 +13,7 @@ from . import forms
 
 
 @admin.register(ServiceConfig)
-class ServiceConfigAdmin(admin.ModelAdmin):
+class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
     form = forms.VmsProviderForm
     list_display_links = ('id',)
     list_display = ('id', 'name', 'name_en', 'data_center', 'region_id', 'service_type', 'endpoint_url', 'username',
@@ -44,6 +45,7 @@ class ServiceConfigAdmin(admin.ModelAdmin):
 
     actions = ['encrypt_password', 'encrypt_vpn_password']
 
+    @admin.action(description=gettext_lazy("加密用户密码"))
     def encrypt_password(self, request, queryset):
         """
         加密密码
@@ -60,8 +62,7 @@ class ServiceConfigAdmin(admin.ModelAdmin):
         else:
             self.message_user(request, _("没有加密更新任何数据记录"), level=messages.SUCCESS)
 
-    encrypt_password.short_description = gettext_lazy("加密用户密码")
-
+    @admin.action(description=gettext_lazy("加密vpn用户密码"))
     def encrypt_vpn_password(self, request, queryset):
         """
         加密密码
@@ -78,11 +79,9 @@ class ServiceConfigAdmin(admin.ModelAdmin):
         else:
             self.message_user(request, _("没有加密更新任何数据记录"), level=messages.SUCCESS)
 
-    encrypt_vpn_password.short_description = gettext_lazy("加密vpn用户密码")
-
 
 @admin.register(DataCenter)
-class DataCenterAdmin(admin.ModelAdmin):
+class DataCenterAdmin(NoDeleteSelectModelAdmin):
     list_display_links = ('id',)
     list_display = ('id', 'name', 'name_en', 'abbreviation', 'status', 'creation_time', 'longitude', 'latitude', 'desc')
 
@@ -97,6 +96,7 @@ class ServicePrivateQuotaAdmin(admin.ModelAdmin):
     list_filter = ('service__data_center', 'service')
     actions = ['quota_used_update']
 
+    @admin.action(description=gettext_lazy("已用配额统计更新"))
     def quota_used_update(self, request, queryset):
         failed_count = 0
         for q in queryset:
@@ -136,8 +136,6 @@ class ServicePrivateQuotaAdmin(admin.ModelAdmin):
         else:
             self.message_user(request, _("统计更新已用配额成功"), level=messages.SUCCESS)
 
-    quota_used_update.short_description = gettext_lazy("已用配额统计更新")
-
 
 @admin.register(ServiceShareQuota)
 class ServiceShareQuotaAdmin(admin.ModelAdmin):
@@ -149,6 +147,7 @@ class ServiceShareQuotaAdmin(admin.ModelAdmin):
     list_filter = ('service__data_center', 'service')
     actions = ['quota_used_update']
 
+    @admin.action(description=gettext_lazy("已用配额统计更新"))
     def quota_used_update(self, request, queryset):
         failed_count = 0
         for q in queryset:
@@ -187,8 +186,6 @@ class ServiceShareQuotaAdmin(admin.ModelAdmin):
             self.message_user(request, _("统计更新已用配额失败") + f'({failed_count})', level=messages.ERROR)
         else:
             self.message_user(request, _("统计更新已用配额成功"), level=messages.SUCCESS)
-
-    quota_used_update.short_description = gettext_lazy("已用配额统计更新")
 
 
 @admin.register(ApplyVmService)

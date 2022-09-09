@@ -1,6 +1,7 @@
 from django.contrib import admin, messages
 from django.utils.translation import gettext_lazy as _
 
+from utils.model import NoDeleteSelectModelAdmin
 from .models import (
     PaymentHistory, UserPointAccount, VoPointAccount, PayApp, CashCouponActivity, CashCoupon,
     PayOrgnazition, PayAppService
@@ -35,7 +36,7 @@ class VoPointAccountAdmin(admin.ModelAdmin):
 
 
 @admin.register(PayApp)
-class PayAppAdmin(admin.ModelAdmin):
+class PayAppAdmin(NoDeleteSelectModelAdmin):
     list_display = ('id', 'name', 'status', 'creation_time', 'app_url')
     list_display_links = ('id',)
 
@@ -101,7 +102,7 @@ class PayOrgnazitionAdmin(admin.ModelAdmin):
 
 
 @admin.register(PayAppService)
-class PayAppServiceAdmin(admin.ModelAdmin):
+class PayAppServiceAdmin(NoDeleteSelectModelAdmin):
     list_display = ('id', 'name', 'name_en', 'category', 'service', 'creation_time', 'status',
                     'resources', 'contact_person', 'contact_email', 'contact_telephone', 'desc')
     list_display_links = ('id',)

@@ -1,6 +1,7 @@
 from uuid import uuid1
 
 from django.db import models
+from django.contrib import admin
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
@@ -51,3 +52,12 @@ class PayType(models.TextChoices):
     PREPAID = 'prepaid', _('包年包月')
     POSTPAID = 'postpaid', _('按量计费')
     QUOTA = 'quota', _('资源配额券')
+
+
+class NoDeleteSelectModelAdmin(admin.ModelAdmin):
+    def get_actions(self, request):
+        actions = super(NoDeleteSelectModelAdmin, self).get_actions(request)
+        if 'delete_selected' in actions:
+            del actions['delete_selected']
+
+        return actions
