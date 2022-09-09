@@ -184,6 +184,11 @@ class VoNotExist(NotFound):
     default_code = 'VoNotExist'
 
 
+class BucketNotExist(NotFound):
+    default_message = 'This bucket is not exist.'
+    default_code = 'BucketNotExist'
+
+
 class NoSupportVPN(APIException):
     default_message = 'This service does not provide VPN support.'
     default_code = 'NoSupportVPN'
@@ -327,6 +332,11 @@ class ArrearageSuspending(ConflictError):
 class BalanceArrearage(ConflictError):
     default_message = _('余额账户欠费。')
     default_code = 'BalanceArrearage'
+
+
+class BucketAlreadyExists(ConflictError):
+    default_message = _('存储桶已存在，请更换另一个存储桶名程后再重试。')
+    default_code = 'BucketAlreadyExists'
 
 
 def convert_to_error(err):
