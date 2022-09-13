@@ -64,3 +64,9 @@ class APIBuilder:
             path=f'api/{self.api_version}/admin/bucket',
             query=query, trailing_slash=False
         )
+
+    def bucket_delete_url(self, bucket_name: str, username: str, query=None):
+        return self.build_url(
+            path=f'api/{self.api_version}/admin/bucket/{bucket_name}/user/{username}',
+            query=query, trailing_slash=False
+        )

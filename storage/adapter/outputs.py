@@ -73,3 +73,7 @@ class BucketCreateOutput(OutputBase):
         self.bucket_name = bucket_name
         self.username = username
         super().__init__(**kwargs)
+
+
+class BucketDeleteOutput(OutputBase):
+    pass

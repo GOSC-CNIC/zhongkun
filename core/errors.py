@@ -339,6 +339,11 @@ class BucketAlreadyExists(ConflictError):
     default_code = 'BucketAlreadyExists'
 
 
+class BucketNotOwned(ConflictError):
+    default_message = _('存储桶不属于你。')
+    default_code = 'BucketNotOwned'
+
+
 def convert_to_error(err):
     if isinstance(err, Error):
         return err

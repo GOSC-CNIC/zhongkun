@@ -54,3 +54,15 @@ class BucketCreateInput(InputBase):
         self.bucket_name = bucket_name
         self.username = username
         super().__init__(**kwargs)
+
+
+class BucketDeleteInput(InputBase):
+    def __init__(self, bucket_name: str, username: str, **kwargs):
+        """
+        :param bucket_name:
+        :param username:
+        :param kwargs:
+        """
+        self.bucket_name = bucket_name
+        self.username = username
+        super().__init__(**kwargs)

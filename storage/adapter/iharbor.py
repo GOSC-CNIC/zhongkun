@@ -185,3 +185,30 @@ class IHarborClient:
             error = errors.APIException(message=msg, status_code=r.status_code, code=err_code)
 
         return OutputConverter.to_bucket_create_output_error(error)
+
+    def bucket_delete(self, params: inputs.BucketDeleteInput) -> outputs.BucketDeleteOutput:
+        url = self.api_builder.bucket_delete_url(bucket_name=params.bucket_name, username=params.username)
+        try:
+            headers = self.get_auth_header()
+            r = self.do_request(
+                method='delete', url=url,
+                ok_status_codes=[204, 403, 404, 409], headers=headers
+            )
+        except errors.Error as e:
+            return outputs.BucketDeleteOutput(ok=False, error=e)
+
+        if r.status_code == 204:
+            return outputs.BucketDeleteOutput(ok=True)
+
+        err_code = get_failed_err_code(r)
+        msg = get_failed_msg(r)
+        if r.status_code == 403 and err_code == 'AccessDenied':
+            error = errors.AccessDenied(message=msg)
+        elif r.status_code == 404 and err_code == 'NoSuchBucket':
+            error = errors.BucketNotExist()
+        elif r.status_code == 409 and err_code == 'BucketNotOwnedUser':
+            error = errors.BucketNotOwned()
+        else:
+            error = errors.APIException(message=msg, status_code=r.status_code, code=err_code)
+
+        return outputs.BucketDeleteOutput(ok=False, error=error)
