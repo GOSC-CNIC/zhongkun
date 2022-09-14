@@ -2,18 +2,17 @@ from django.utils.translation import gettext_lazy
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.serializers import Serializer
-from drf_yasg.utils import swagger_auto_schema, no_body
-from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
 
 from api.viewsets import StorageGenericViewSet
-from api.paginations import PageNumberPagination
+from api.paginations import DefaultPageNumberPagination
 from api.serializers import storage as storage_serializers
 from api.handlers import BucketHandler
 
 
 class BucketViewSet(StorageGenericViewSet):
     permission_classes = [IsAuthenticated, ]
-    pagination_class = PageNumberPagination
+    pagination_class = DefaultPageNumberPagination
     lookup_field = 'bucket_name'
     # lookup_value_regex = '[^/]+'
 
