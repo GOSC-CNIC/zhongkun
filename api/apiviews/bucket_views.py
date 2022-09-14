@@ -15,7 +15,7 @@ class BucketViewSet(StorageGenericViewSet):
     permission_classes = [IsAuthenticated, ]
     pagination_class = PageNumberPagination
     lookup_field = 'bucket_name'
-    # lookup_value_regex = '[0-9a-z-]+'
+    # lookup_value_regex = '[^/]+'
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('指定服务单元创建一个存储桶'),
@@ -39,8 +39,60 @@ class BucketViewSet(StorageGenericViewSet):
                     "name_en": "en iharbor"
                 }
             }
+            http code 400, 404, 409, 500：
+            {
+                "code": "BucketAlreadyExists",
+                "message": "存储桶已存在，请更换另一个存储桶名程后再重试。"
+            }
+
+            * code:
+            400：
+                InvalidName: 无效的存储桶名
+            404：
+                ServiceNotExist： 资源提供者服务单元不存在。
+            409：
+                BucketAlreadyExists：存储桶已存在，请更换另一个存储桶名程后再重试。
+                BalanceNotEnough: 创建存储桶要求余额或代金券余额大于100
+                ServiceStopped: 资源提供者服务单元暂停服务
+            500：
+                Adapter.AuthenticationFailed：请求服务单元时身份认证失败
+                Adapter.AccessDenied: 请求服务单元时无权限
+                Adapter.BadRequest: 请求服务单元时请求有误
+                Adapter.BucketAlreadyExists: 存储桶已存在，请更换另一个存储桶名程后再重试。
         """
         return BucketHandler().create_bucket(view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('删除指定服务单元中的一个存储桶'),
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['DELETE'], detail=True, url_path=r'service/(?P<service_id>[^/]+)', url_name='delete-bucket')
+    def delete_bucket(self, request, *args, **kwargs):
+        """
+        删除指定服务单元中的一个存储桶
+
+            http code 204：
+            {}
+            http code 400, 404, 409, 500：
+            {
+                "code": "BucketNotExist",
+                "message": "存储桶不存在"
+            }
+
+            * code:
+            404：
+                ServiceNotExist： 资源提供者服务单元不存在。
+            409：
+                BucketNotExist：存储桶不存在
+                ServiceStopped: 资源提供者服务单元暂停服务
+            500：
+                Adapter.AuthenticationFailed：请求服务单元时身份认证失败
+                Adapter.AccessDenied: 请求服务单元时无权限
+                Adapter.BadRequest: 请求服务单元时请求有误
+        """
+        return BucketHandler().delete_bucket(view=self, request=request, kwargs=kwargs)
 
     def get_serializer_class(self):
         if self.action == 'create':

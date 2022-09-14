@@ -207,7 +207,7 @@ class IHarborClient:
         if r.status_code == 403 and err_code == 'AccessDenied':
             error = errors.AccessDenied(message=msg)
         elif r.status_code == 404 and err_code == 'NoSuchBucket':
-            error = errors.BucketNotExist()
+            return outputs.BucketDeleteOutput(ok=True)
         elif r.status_code == 409 and err_code == 'BucketNotOwnedUser':
             error = errors.BucketNotOwned()
         else:

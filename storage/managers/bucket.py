@@ -29,6 +29,17 @@ class BucketManager:
         return bucket
 
     @staticmethod
+    def get_user_bucket(service_id: str, bucket_name: str, user):
+        """
+        :raises: BucketNotExist, BucketNotOwned
+        """
+        bucket = BucketManager.get_bucket(service_id=service_id, bucket_name=bucket_name)
+        if bucket.user_id != user.id:
+            raise errors.BucketNotOwned(message=_('你无权访问此存储桶'))
+
+        return bucket
+
+    @staticmethod
     def create_bucket(bucket_name, bucket_id: str, user_id: str, service_id: str) -> Bucket:
         """
         :param bucket_name: 桶名称

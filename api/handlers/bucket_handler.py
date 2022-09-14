@@ -22,7 +22,6 @@ class BucketHandler:
             return view.exception_response(exc)
 
         bucket_name = params['name']
-        service_id = params['service_id']
         user = request.user
 
         try:
@@ -38,7 +37,7 @@ class BucketHandler:
                 exceptions.BalanceNotEnough(message=_('创建存储桶要求余额或代金券余额大于100')))
 
         try:
-            bucket = BucketManager.get_bucket(service_id=service_id, bucket_name=bucket_name)
+            bucket = BucketManager.get_bucket(service_id=service.id, bucket_name=bucket_name)
             if bucket:
                 return view.exception_response(exceptions.BucketAlreadyExists())
         except exceptions.BucketNotExist:
@@ -63,8 +62,14 @@ class BucketHandler:
         """
         serializer = view.get_serializer(data=request.data)
         if not serializer.is_valid(raise_exception=False):
-            msg = serializer_error_msg(serializer.errors)
-            raise exceptions.BadRequest(msg)
+            s_errors = serializer.errors
+            if 'name' in s_errors:
+                exc = exceptions.BadRequest(message=_('无效的存储桶名。') + s_errors['name'][0], code='InvalidName')
+            else:
+                msg = serializer_error_msg(serializer.errors)
+                exc = exceptions.BadRequest(message=msg)
+
+            raise exc
 
         data = serializer.validated_data
         name = data['name']
@@ -77,3 +82,30 @@ class BucketHandler:
             'name': name,
             'service_id': service_id
         }
+
+    @staticmethod
+    def delete_bucket(view: StorageGenericViewSet, request, kwargs):
+        bucket_name = kwargs.get(view.lookup_field)
+        user = request.user
+
+        try:
+            service = view.get_service(request=request, lookup='service_id', in_='path')
+        except Exception as exc:
+            return view.exception_response(exceptions.convert_to_error(exc))
+
+        try:
+            bucket = BucketManager.get_user_bucket(service_id=service.id, bucket_name=bucket_name, user=user)
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        try:
+            params = inputs.BucketDeleteInput(bucket_name=bucket.name, username=user.username)
+            r = view.request_service(service=service, method='bucket_delete', params=params)
+        except exceptions.Error as exc:
+            if 'Adapter.BucketNotOwned' != exc.code:
+                return view.exception_response(exc)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        bucket.do_archive(archiver=user.username)
+        return Response(data={}, status=204)

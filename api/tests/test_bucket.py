@@ -52,3 +52,25 @@ class BucketTests(MyAPITestCase):
 
         r = self.client.post(url, data={'name': 'test_-', 'service_id': self.service.id})
         self.assertErrorResponse(status_code=500, code='Adapter.BadRequest', response=r)
+
+    def test_delete_bucket(self):
+        bucket_name = 'test-bucket'
+        url = reverse('api:bucket-delete-bucket', kwargs={'bucket_name': 'test1', 'service_id': 'test'})
+        r = self.client.delete(url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+
+        self.client.force_login(self.user)
+        url = reverse('api:bucket-delete-bucket', kwargs={'bucket_name': bucket_name, 'service_id': 'test'})
+        r = self.client.delete(url)
+        self.assertErrorResponse(status_code=404, code='ServiceNotExist', response=r)
+
+        url = reverse('api:bucket-delete-bucket', kwargs={'bucket_name': bucket_name, 'service_id': self.service.id})
+        r = self.client.delete(url)
+        self.assertErrorResponse(status_code=404, code='BucketNotExist', response=r)
+
+        bucket = BucketManager.create_bucket(
+            bucket_name=bucket_name, bucket_id='1', user_id=self.user.id, service_id=self.service.id)
+
+        url = reverse('api:bucket-delete-bucket', kwargs={'bucket_name': bucket_name, 'service_id': self.service.id})
+        r = self.client.delete(url)
+        self.assertEqual(r.status_code, 204)

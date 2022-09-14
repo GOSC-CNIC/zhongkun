@@ -19,7 +19,9 @@ def request_service(service, method: str, raise_exception=True, **kwargs):
         auth_obj = auth_handler.get_auth(service)
     except errors.AuthenticationFailed as exc:
         if raise_exception:
-            raise errors.APIException(message='adapter authentication failed', extend_msg=exc.message)
+            raise errors.APIException(
+                code='Adapter.AuthenticationFailed',
+                message='adapter authentication failed', extend_msg=exc.message)
 
         return None
 
@@ -72,8 +74,8 @@ def convert_from_adapter_error(exc):
         return errors.APIException(
             code='Adapter.AuthenticationFailed',
             message='adapter authentication failed', extend_msg=exc.message)
-    elif isinstance(exc, errors.BucketAlreadyExists):
-        return exc
+    # elif isinstance(exc, errors.BucketAlreadyExists):
+    #     return exc
     elif isinstance(exc, errors.Error):
         return errors.APIException(code=f'Adapter.{exc.code}', message="adapter error:" + exc.message)
 
