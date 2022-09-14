@@ -62,5 +62,12 @@ TEST_CASE_SECURITY = {
         'username': 'xxx',
         'password': 'xxx',
         'version': 'v3',
+    },
+    'STORAGE_SERVICE': {
+        'endpoint_url': 'http://159.226.235.188:8001/',
+        'service_type': 'iharbor',
+        'username': 'test',
+        'password': 'test123456',
+        'version': 'v1',
     }
 }

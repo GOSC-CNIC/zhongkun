@@ -72,7 +72,7 @@ class OutputConverter:
     def to_bucket_create_output(data: dict):
         username = data.get('user', {}).get('username', '')
         return outputs.BucketCreateOutput(
-            bucket_id=data['id'], bucket_name=data['name'], username=username
+            bucket_id=str(data['id']), bucket_name=data['name'], username=username
         )
 
     @staticmethod

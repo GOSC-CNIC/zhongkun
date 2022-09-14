@@ -41,18 +41,24 @@ def request_service(service, method: str, raise_exception=True, **kwargs):
             try:
                 auth_obj = auth_handler.get_auth(service, refresh=True)
             except errors.AuthenticationFailed as exc:
-                raise_exc = errors.APIException(message='adapter authentication failed', extend_msg=exc.message)
+                raise_exc = errors.APIException(
+                    code='Adapter.AuthenticationFailed',
+                    message='adapter authentication failed', extend_msg=exc.message)
                 break
 
             continue
         except errors.MethodNotSupportInService as exc:
-            raise_exc = errors.MethodNotSupportInService(message="adapter error:" + exc.message)
+            raise_exc = errors.MethodNotSupportInService(
+                code='Adapter.MethodNotSupportInService',
+                message="adapter error:" + exc.message)
             break
         except errors.Error as exc:
-            raise_exc = errors.APIException(message="adapter error:" + exc.message)
+            raise_exc = errors.APIException(
+                code=f'Adapter.{exc.code}',
+                message="adapter error:" + exc.message)
             break
         except Exception as exc:
-            raise_exc = errors.APIException(message=str(exc))
+            raise_exc = errors.APIException(code='Adapter.Error', message=str(exc))
             break
 
     if raise_exception:
@@ -63,10 +69,12 @@ def request_service(service, method: str, raise_exception=True, **kwargs):
 
 def convert_from_adapter_error(exc):
     if isinstance(exc, errors.AuthenticationFailed):
-        return errors.APIException(message='adapter authentication failed', extend_msg=exc.message)
+        return errors.APIException(
+            code='Adapter.AuthenticationFailed',
+            message='adapter authentication failed', extend_msg=exc.message)
     elif isinstance(exc, errors.BucketAlreadyExists):
         return exc
     elif isinstance(exc, errors.Error):
-        return errors.APIException(message="adapter error:" + exc.message)
+        return errors.APIException(code=f'Adapter.{exc.code}', message="adapter error:" + exc.message)
 
-    return errors.APIException(message=str(exc))
+    return errors.APIException(code='Adapter.Error', message=str(exc))

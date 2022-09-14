@@ -6,7 +6,7 @@ from .apiviews import (
     monitor_views, service_quota_views,
     azone_views, order_views,
     metering_views, bill_views, account_views, cash_coupon_views,
-    trade_test_views, trade_views
+    trade_test_views, trade_views, bucket_views
 )
 
 app_name = 'api'
@@ -46,6 +46,8 @@ no_slash_router.register(r'trade/test', trade_test_views.TradeTestViewSet, basen
 no_slash_router.register(r'trade/query', trade_views.TradeQueryViewSet, basename='trade-query')
 no_slash_router.register(r'trade/charge', trade_views.TradeChargeViewSet, basename='trade-charge')
 no_slash_router.register(r'admin/cashcoupon', cash_coupon_views.AdminCashCouponViewSet, basename='admin-coupon')
+
+no_slash_router.register(r'storage/bucket', bucket_views.BucketViewSet, basename='bucket')
 
 
 urlpatterns = [

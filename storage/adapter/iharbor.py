@@ -177,7 +177,9 @@ class IHarborClient:
 
         err_code = get_failed_err_code(r)
         msg = get_failed_msg(r)
-        if r.status_code == 403 and err_code == 'AccessDenied':
+        if r.status_code == 400:
+            error = errors.BadRequest(message=msg)
+        elif r.status_code == 403 and err_code == 'AccessDenied':
             error = errors.AccessDenied(message=msg)
         elif r.status_code == 409 and err_code == 'BucketAlreadyExists':
             error = errors.BucketAlreadyExists()

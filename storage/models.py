@@ -32,7 +32,7 @@ class ObjectsService(UuidModel):
                                     verbose_name=_('服务平台类型'))
     endpoint_url = models.CharField(max_length=255, verbose_name=_('服务地址url'), unique=True,
                                     help_text='http(s)://{hostname}:{port}/')
-    api_version = models.CharField(max_length=64, default='v3', verbose_name=_('API版本'),
+    api_version = models.CharField(max_length=64, default='v1', verbose_name=_('API版本'),
                                    help_text=_('预留，主要iHarbor使用'))
     username = models.CharField(max_length=128, verbose_name=_('用户名'), help_text=_('用于此服务认证的用户名'))
     password = models.CharField(max_length=128, verbose_name=_('密码'))

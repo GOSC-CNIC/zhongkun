@@ -276,6 +276,8 @@ class KJYLogin:
 
 
 class LocalSignInView(LoginView):
+    redirect_authenticated_user = True
+
     def form_valid(self, form):
         r = super().form_valid(form)
         user = form.get_user()

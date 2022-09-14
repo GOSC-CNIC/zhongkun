@@ -55,7 +55,7 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(max_length=255, verbose_name='服务名称')),
                 ('service_type', models.CharField(choices=[('iharbor', 'iHarhor'), ('swift', 'Swift'), ('s3', 'S3')], default='iharbor', max_length=16, verbose_name='服务平台类型')),
                 ('endpoint_url', models.CharField(help_text='http(s)://{hostname}:{port}/', max_length=255, unique=True, verbose_name='服务地址url')),
-                ('api_version', models.CharField(default='v3', help_text='预留，主要iHarbor使用', max_length=64, verbose_name='API版本')),
+                ('api_version', models.CharField(default='v1', help_text='预留，主要iHarbor使用', max_length=64, verbose_name='API版本')),
                 ('username', models.CharField(help_text='用于此服务认证的用户名', max_length=128, verbose_name='用户名')),
                 ('password', models.CharField(max_length=128, verbose_name='密码')),
                 ('add_time', models.DateTimeField(auto_now_add=True, verbose_name='添加时间')),

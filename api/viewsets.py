@@ -8,9 +8,12 @@ from rest_framework.response import Response
 from rest_framework.exceptions import (APIException, NotAuthenticated, AuthenticationFailed)
 from drf_yasg import openapi
 
-from service.managers import ServiceManager
 from core.request import request_service, request_vpn_service
 from core import errors as exceptions
+from service.managers import ServiceManager
+from storage.request import request_service as storage_request_service
+from storage.models import ObjectsService
+from storage.managers import ObjectsServiceManager
 from . import request_logger as logger
 from .signers import SignatureResponse, SignatureRequest, SignatureParser
 from bill.models import PayApp
@@ -69,10 +72,7 @@ def exception_handler(exc, context):
     return Response(exc.err_data(), status=exc.status_code)
 
 
-class CustomGenericViewSet(viewsets.GenericViewSet):
-    from django.db.models import QuerySet
-    queryset = QuerySet().none()
-
+class CustomGenericViewSetMixin:
     PARAMETERS_AS_ADMIN = [
         openapi.Parameter(
             name='as-admin',
@@ -93,6 +93,18 @@ class CustomGenericViewSet(viewsets.GenericViewSet):
             return False
 
         return True
+
+    @staticmethod
+    def exception_response(exc):
+        if not isinstance(exc, exceptions.Error):
+            exc = exceptions.Error(message=str(exc))
+
+        return Response(data=exc.err_data(), status=exc.status_code)
+
+
+class CustomGenericViewSet(CustomGenericViewSetMixin, viewsets.GenericViewSet):
+    from django.db.models import QuerySet
+    queryset = QuerySet().none()
 
     @staticmethod
     def request_service(service, method: str, **kwargs):
@@ -151,18 +163,14 @@ class CustomGenericViewSet(viewsets.GenericViewSet):
     def get_service_by_id(service_id):
         return ServiceManager.get_service(service_id=service_id)
 
-    @staticmethod
-    def exception_response(exc):
-        if not isinstance(exc, exceptions.Error):
-            exc = exceptions.Error(message=str(exc))
 
-        return Response(data=exc.err_data(), status=exc.status_code)
-
-
-class PaySignGenericViewSet(CustomGenericViewSet):
+class PaySignGenericViewSet(CustomGenericViewSetMixin, viewsets.GenericViewSet):
     """
     仅限JSON格式数据api视图使用
     """
+    from django.db.models import QuerySet
+    queryset = QuerySet().none()
+
     def finalize_response(self, request, response, *args, **kwargs):
         response = super().finalize_response(request, response, *args, **kwargs)
         signer = SignatureResponse(private_key=settings.PAYMENT_RSA2048['private_key'])
@@ -222,3 +230,51 @@ class PaySignGenericViewSet(CustomGenericViewSet):
             )
 
         return app
+
+
+class StorageGenericViewSet(CustomGenericViewSetMixin, viewsets.GenericViewSet):
+    from django.db.models import QuerySet
+    queryset = QuerySet().none()
+
+    @staticmethod
+    def request_service(service: ObjectsService, method: str, **kwargs):
+        """
+        向服务发送请求
+
+        :param service: 接入的服务配置对象
+        :param method:
+        :param kwargs:
+        :return:
+
+        :raises: APIException
+        """
+        return storage_request_service(service=service, method=method, **kwargs)
+
+    def get_service(self, request, lookup='service_id', in_='query') -> ObjectsService:
+        """
+
+        :param request:
+        :param lookup:
+        :param in_: ['query', 'body', 'path']
+        :return:
+
+        :raises: APIException
+        """
+        if in_ == 'query':
+            service_id = request.query_params.get(lookup, None)
+        elif in_ == 'body':
+            service_id = request.data.get(lookup, None)
+        else:
+            service_id = self.kwargs.get(lookup, None)
+
+        if service_id is None:
+            raise exceptions.NoFoundArgument(extend_msg=f'"{lookup}" param were not provided')
+
+        if not service_id:
+            raise exceptions.InvalidArgument(_('参数"service_id"值无效.'))
+
+        return self.get_service_by_id(service_id)
+
+    @staticmethod
+    def get_service_by_id(service_id: str):
+        return ObjectsServiceManager.get_service(service_id=service_id)

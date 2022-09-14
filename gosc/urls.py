@@ -33,7 +33,7 @@ schema_view = get_schema_view(
         default_version='v1',
     ),
     url=getattr(settings, 'SWAGGER_SCHEMA_URL', None),
-    public=False,
+    public=True,
     permission_classes=(permissions.AllowAny,),
 )
 

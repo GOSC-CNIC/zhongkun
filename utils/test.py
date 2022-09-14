@@ -3,6 +3,7 @@ from django.conf import settings
 
 from service.models import DataCenter, ServiceConfig
 from users.models import UserProfile
+from storage.models import ObjectsService
 
 
 User = get_user_model()
@@ -67,3 +68,30 @@ def get_or_create_service():
 
     return service
 
+
+def get_or_create_storage_service():
+    service = ObjectsService.objects.filter(name='test', name_en='test_en').first()
+    if service is None:
+        center = get_or_create_center()
+
+        test_settings = get_test_case_settings()
+        service_settings = test_settings['STORAGE_SERVICE']
+
+        service_type = 'iharbor'
+        if 'service_type' in service_settings:
+            service_type = service_settings['service_type']
+
+        if service_type not in ObjectsService.ServiceType.values:
+            raise Exception('TEST_CASE.STORAGE_SERVICE.service_type is invalid in settings')
+
+        service = ObjectsService(
+            name='test', name_en='test_en', data_center=center,
+            endpoint_url=service_settings['endpoint_url'],
+            username=service_settings['username'],
+            service_type=service_type,
+            api_version=service_settings['version']
+        )
+        service.set_password(service_settings['password'])
+        service.save()
+
+    return service
