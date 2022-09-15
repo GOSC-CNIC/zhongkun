@@ -3,10 +3,11 @@
 
 ## 环境搭建(CentOS)
 ### 1 安装python和Git
-请自行安装python3.6和Git。
+请自行安装python3.9和Git。
 使用Git拉取代码： 
 ```
-git clone https://github.com/GOSC-CNIC/gosc.git
+git clone https://gitee.com/gosc-cnic/vms.git
+git clone https://github.com/GOSC-CNIC/gosc.git     # 备用
 ```
 ### 2 安装python运行环境
 #### （1） 使用python虚拟环境
@@ -23,7 +24,8 @@ pipenv install
 ```pip3 install -r requirements.txt```
 
 ### 3 安全敏感信息配置文件
-安全信息配置demo文件security_demo.py修改文件名为security.py，根据自己情况完成配置。
+安全信息配置demo文件security_demo.py修改文件名为security.py，根据自己情况完成配置。   
+余额结算支付配置PAYMENT_BALANCE需要启动服务后配置，具体请看下面“余额结算”小节说明；
 
 ### 4 数据库安装
 请自行安装mysql数据库，根据自己的情况修改security.py文件中数据库的配置项。 
@@ -54,4 +56,11 @@ python3 manage.py migrate
 python3 manage.py runserver 0:80
 ```   
 如果一切正常，打开浏览器输入url(主机IP, 如：127.0.0.1)即可查看站点;
+
+
+### 余额结算
+云服务器功能模块的资源订购支付和计量扣费依赖余额结算模块，云服务器功能模块对应于余额结算模块中
+的一个应用APP，所以需要在余额结算模块中先注册一个APP，启动服务后，在后台添加一个APP即可。  
+然后配置安全信息配置security.py中余额结算支付配置项PAYMENT_BALANCE，
+"app_id"需要配置成上面注册的云服务器APP的id。
 

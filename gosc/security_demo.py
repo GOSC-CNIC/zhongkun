@@ -46,6 +46,7 @@ SIMPLE_JWT['SIGNING_KEY'] = 'xxx'
 # RS256 public key
 SIMPLE_JWT['VERIFYING_KEY'] = 'xxx'
 
+# 科技云通行证JWT认证公钥
 PASSPORT_JWT['VERIFYING_KEY'] = 'xxx'
 
 # 余额支付配置
