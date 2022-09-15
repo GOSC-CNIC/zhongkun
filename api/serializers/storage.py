@@ -12,7 +12,15 @@ class BucketSerializer(serializers.Serializer):
     name = serializers.CharField(label=_('存储桶名称'))
     creation_time = serializers.DateTimeField(label=_('创建时间'))
     user_id = serializers.CharField(label=_('用户id'))
+    username = serializers.SerializerMethodField(method_name='get_username')
     service = serializers.SerializerMethodField(method_name='get_service')
+
+    @staticmethod
+    def get_username(obj):
+        if obj.user:
+            return obj.user.username
+
+        return ''
 
     @staticmethod
     def get_service(obj):

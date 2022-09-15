@@ -3,6 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.serializers import Serializer
 from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 from api.viewsets import StorageGenericViewSet
 from api.paginations import DefaultPageNumberPagination
@@ -32,6 +33,7 @@ class BucketViewSet(StorageGenericViewSet):
                 "name": "string",
                 "creation_time": "2022-09-13T09:40:49.144926Z",
                 "user_id": "1",
+                "username": "shun",
                 "service": {
                     "id": "4fa94896-29a6-11ed-861f-c8009fe2ebbc",
                     "name": "test iharbor",
@@ -93,8 +95,51 @@ class BucketViewSet(StorageGenericViewSet):
         """
         return BucketHandler().delete_bucket(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举存储桶'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='service_id',
+                in_=openapi.IN_QUERY,
+                required=False,
+                type=openapi.TYPE_STRING,
+                description=gettext_lazy('对象存储服务单元ID')
+            )
+        ],
+        responses={
+            200: ''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        列举存储桶
+
+            {
+              "count": 1,
+              "next": null,
+              "previous": null,
+              "results": [
+                {
+                  "id": "2b03fd40-33cb-11ed-aec0-c8009fe2ebbc",
+                  "name": "string1",
+                  "creation_time": "2022-09-14T01:18:40.166221Z",
+                  "user_id": "1",
+                  "username": "shun",
+                  "service": {
+                    "id": "4fa94896-29a6-11ed-861f-c8009fe2ebbc",
+                    "name": "test iharbor",
+                    "name_en": "en iharbor"
+                  }
+                }
+              ]
+            }
+        """
+        return BucketHandler.list_bucket(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
-        if self.action == 'create':
+        if self.action == 'list':
+            return storage_serializers.BucketSerializer
+        elif self.action == 'create':
             return storage_serializers.BucketCreateSerializer
 
         return Serializer

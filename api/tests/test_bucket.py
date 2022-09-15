@@ -74,3 +74,39 @@ class BucketTests(MyAPITestCase):
         url = reverse('api:bucket-delete-bucket', kwargs={'bucket_name': bucket_name, 'service_id': self.service.id})
         r = self.client.delete(url)
         self.assertEqual(r.status_code, 204)
+
+    def test_list_bucket(self):
+        self.client.force_login(self.user)
+        url = reverse('api:bucket-list')
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=['count', 'next', 'previous', 'results'], container=r.data)
+        self.assertEqual(r.data['count'], 0)
+        self.assertEqual(len(r.data['results']), 0)
+
+        bucket1 = BucketManager.create_bucket(
+            bucket_name='bucket1', bucket_id='1', user_id=self.user.id, service_id=self.service.id)
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=['count', 'next', 'previous', 'results'], container=r.data)
+        self.assertEqual(r.data['count'], 1)
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertKeysIn(keys=[
+            'id', 'name', 'creation_time', 'user_id', 'username', 'service'
+        ], container=r.data['results'][0])
+        self.assertKeysIn(keys=['id', 'name', 'name_en'], container=r.data['results'][0]['service'])
+
+        # query 'service_id'
+        url = reverse('api:bucket-list')
+        query = parse.urlencode(query={'service_id': 'ss'})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=['count', 'next', 'previous', 'results'], container=r.data)
+        self.assertEqual(r.data['count'], 0)
+        self.assertEqual(len(r.data['results']), 0)
+
+        query = parse.urlencode(query={'service_id': self.service.id})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 1)
+        self.assertEqual(len(r.data['results']), 1)
