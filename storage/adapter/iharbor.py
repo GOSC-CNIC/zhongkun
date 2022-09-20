@@ -214,3 +214,31 @@ class IHarborClient:
             error = errors.APIException(message=msg, status_code=r.status_code, code=err_code)
 
         return outputs.BucketDeleteOutput(ok=False, error=error)
+
+    def bucket_stats(self, params: inputs.BucketStatsInput) -> outputs.BucketStatsOutput:
+        """
+        :error: AccessDenied, BucketNotExist, APIException
+        """
+        url = self.api_builder.bucket_stats_url(bucket_name=params.bucket_name)
+        try:
+            headers = self.get_auth_header()
+            r = self.do_request(
+                method='get', url=url,
+                ok_status_codes=[200, 403, 404], headers=headers
+            )
+        except errors.Error as e:
+            return OutputConverter.to_bucket_stats_output_error(e)
+
+        if r.status_code == 200:
+            return OutputConverter.to_bucket_stats_output(r.json())
+
+        err_code = get_failed_err_code(r)
+        msg = get_failed_msg(r)
+        if r.status_code == 403 and err_code == 'AccessDenied':
+            error = errors.AccessDenied(message=msg)
+        elif r.status_code == 404 and err_code == 'NoSuchBucket':
+            error = errors.BucketNotExist(message=msg)
+        else:
+            error = errors.APIException(message=msg, status_code=r.status_code, code=err_code)
+
+        return OutputConverter.to_bucket_stats_output_error(error)

@@ -80,3 +80,16 @@ class OutputConverter:
         return outputs.BucketCreateOutput(
             ok=False, error=error, bucket_id='', bucket_name='', username=''
         )
+
+    @staticmethod
+    def to_bucket_stats_output_error(error):
+        return outputs.BucketStatsOutput(
+            ok=False, error=error, bucket_name='', username='', bucket_size_byte=0, objects_count=0
+        )
+
+    @staticmethod
+    def to_bucket_stats_output(data: dict):
+        return outputs.BucketStatsOutput(
+            ok=True, bucket_name=data['bucket_name'], username=data['username'],
+            bucket_size_byte=data['stats']['space'], objects_count=data['stats']['count']
+        )

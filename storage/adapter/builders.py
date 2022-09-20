@@ -70,3 +70,9 @@ class APIBuilder:
             path=f'api/{self.api_version}/admin/bucket/{bucket_name}/user/{username}',
             query=query, trailing_slash=False
         )
+
+    def bucket_stats_url(self, bucket_name: str, query=None):
+        return self.build_url(
+            path=f'api/{self.api_version}/stats/bucket/{bucket_name}',
+            query=query, trailing_slash=True
+        )
