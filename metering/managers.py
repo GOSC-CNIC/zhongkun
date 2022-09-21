@@ -7,6 +7,7 @@ from core import errors
 from service.managers import ServiceManager
 from servers.managers import ServerManager
 from servers.models import Server, ServerArchive
+from metering.models import DailyStatementServer
 from vo.managers import VoManager
 from utils.model import OwnerType
 from .models import MeteringServer
@@ -440,3 +441,100 @@ class MeteringServerManager:
             i.update(service_dict[i['service_id']])
 
         return data
+
+class StatementServerManager:
+    @staticmethod
+    def get_statement_server_queryset():
+        return DailyStatementServer.objects.all()
+    
+    def filter_statement_server_queryset(
+            self, payment_status: str, date_start, date_end,
+            user_id: str = None, vo_id: str = None
+    ):
+        """
+        查询用户或vo组的日结算单查询集
+        """
+        queryset = self.get_statement_server_queryset()
+        if user_id:
+            queryset = queryset.filter(user_id=user_id, owner_type=OwnerType.USER.value)
+
+        if vo_id:
+            queryset = queryset.filter(vo_id=vo_id, owner_type=OwnerType.VO.value)
+
+        if date_start:
+            queryset = queryset.filter(date__gte=date_start)       
+
+        if date_end:
+            queryset = queryset.filter(date__lte=date_end)
+
+        if payment_status:
+            queryset = queryset.filter(payment_status=payment_status)
+
+        return queryset.order_by('-creation_time')
+
+    
+    def filter_vo_statement_server_queryset(
+        self, payment_status: str, date_start, date_end, user, vo_id: str
+    ):
+        """
+        查询vo组的日结算单查询集
+
+        :raises: AccessDenied
+        """
+        self._has_vo_permission(vo_id=vo_id, user=user)
+        return self.filter_statement_server_queryset(
+            payment_status=payment_status, date_start=date_start,
+            date_end=date_end, vo_id=vo_id
+        )
+
+    def _has_vo_permission(self, vo_id, user, read_only: bool = True):
+        """
+        是否有vo组的权限
+
+        :raises: AccessDenied
+        """
+        try:
+            if read_only:
+                VoManager().get_has_read_perm_vo(vo_id=vo_id, user=user)
+            else:
+                VoManager().get_has_manager_perm_vo(vo_id=vo_id, user=user)
+        except errors.Error as exc:
+            raise errors.AccessDenied(message=exc.message)
+
+    @staticmethod
+    def get_statement_server(statement_id: str, select_for_update: bool = False):
+        if select_for_update:
+            return DailyStatementServer.objects.filter(id=statement_id).select_for_update().first()
+
+        return DailyStatementServer.objects.filter(id=statement_id).first()
+
+    def get_statement_server_detail(self, statement_id: str, user, check_permission: bool = True, read_only: bool = True):
+        """
+        查询日结算单详情
+
+        :param check_permission: 是否检测权限
+        :param read_only: 用于vo组权限检测；True：只需要访问权限；False: 需要管理权限
+        :return:
+            statement_server
+        """
+        statement = self.get_statement_server(statement_id=statement_id)
+        if statement is None:
+            raise errors.NotFound(_('日结算单不存在'))
+
+        # check permission
+        if check_permission:
+            if statement.owner_type == OwnerType.USER.value:
+                if statement.user_id and statement.user_id != user.id:
+                    raise errors.AccessDenied(message=_('您没有此日结算单访问权限'))
+            elif statement.vo_id:
+                try:
+                    if read_only:
+                        VoManager().get_has_read_perm_vo(vo_id=statement.vo_id, user=user)
+                    else:
+                        VoManager().get_has_manager_perm_vo(vo_id=statement.vo_id, user=user)
+                except errors.Error as exc:
+                    raise errors.AccessDenied(message=exc.message)
+
+        service = ServiceConfig.objects.filter(id=statement.service_id).first()
+
+        return statement, service

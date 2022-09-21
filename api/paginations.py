@@ -99,3 +99,9 @@ class MarkerCursorPagination(CursorPagination):
 
 class PaymentHistoryPagination(MarkerCursorPagination):
     ordering = '-payment_time'
+
+
+class StatementPageNumberPagination(NewPageNumberPagination):
+    page_size = 20
+    max_page_size = 200
+    results_key_name = 'statements'

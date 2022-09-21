@@ -10,7 +10,8 @@ from rest_framework.response import Response
 
 from core import errors
 from api.viewsets import CustomGenericViewSet
-from metering.managers import MeteringServerManager
+from metering.models import PaymentStatus
+from metering.managers import MeteringServerManager, StatementServerManager
 from utils.report_file import CSVFileInMemory
 from utils import rand_utils
 from utils.decimal_utils import quantize_18_2
@@ -683,3 +684,89 @@ class MeteringHandler:
         data = csv_file.to_bytes()
         csv_file.close()
         return self._wrap_csv_file_response(filename=filename, data=data)
+
+
+class StatementHandler:
+    def list_statement_server(self, view: CustomGenericViewSet, request):
+        try:
+            data = self.list_statement_server_validate_params(request)     
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        user = request.user
+        vo_id = data['vo_id']
+        if vo_id:       
+            try:
+                queryset = StatementServerManager().filter_vo_statement_server_queryset(
+                    payment_status=data['payment_status'],
+                    date_start=data['date_start'],
+                    date_end=data['date_end'],
+                    user=user,
+                    vo_id=vo_id
+                )
+            except Exception as exc:
+                return view.exception_response(exc)
+        else:
+            queryset = StatementServerManager().filter_statement_server_queryset(
+                payment_status=data['payment_status'],
+                date_start=data['date_start'],
+                date_end=data['date_end'],
+                user_id=user.id
+            )
+        try:
+            statements = view.paginate_queryset(queryset)
+            serializer = view.get_serializer(instance=statements, many=True)
+            return view.get_paginated_response(serializer.data)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+    @staticmethod
+    def list_statement_server_validate_params(request) -> dict:
+
+        payment_status = request.query_params.get('payment_status', None)
+        date_start = request.query_params.get('date_start', None)
+        date_end = request.query_params.get('date_end', None)
+        vo_id = request.query_params.get('vo_id', None)
+
+        if payment_status is not None and payment_status not in PaymentStatus:
+            raise errors.InvalidArgument(message=_('参数“payment_status”的值无效'))
+
+        if date_start is not None:
+            try:
+                date_start = date.fromisoformat(date_start)
+            except (TypeError, ValueError):
+                raise errors.InvalidArgument(message=_('参数“date_start”的值无效的日期格式'))
+
+        if date_end is not None:
+            try:
+                date_end = date.fromisoformat(date_end)
+            except (TypeError, ValueError):
+                raise errors.InvalidArgument(message=_('参数“date_end”的值无效的日期格式'))
+
+        if date_start and date_end:
+            if date_start > date_end:
+                raise errors.InvalidArgument(message=_('参数“date_start”时间必须超前“date_end”时间'))
+
+        if vo_id is not None and not vo_id:
+            raise errors.InvalidArgument(message=_('参数“vo_id”的值无效'))
+
+        return {
+            'payment_status': payment_status,
+            'date_start': date_start,
+            'date_end': date_end,
+            'vo_id': vo_id
+        } 
+
+    @staticmethod
+    def statement_server_detail(view: CustomGenericViewSet, request, kwargs):
+        statement_id: str = kwargs.get(view.lookup_field, '')
+
+        try:
+            statement, service = StatementServerManager().get_statement_server_detail(statement_id=statement_id, user=request.user)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+        
+        statement.service = service
+        serializer = view.get_serializer(instance=statement)
+        
+        return Response(data=serializer.data)
