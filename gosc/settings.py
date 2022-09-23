@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'metering',
     'order',
     'bill',
+    'ticket',
 ]
 
 MIDDLEWARE = [
