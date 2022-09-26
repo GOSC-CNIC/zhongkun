@@ -74,7 +74,7 @@ class Ticket(CustomIdModel):
     )
     # 在工单处理完成后，关闭工单时填充此工单的解决方案
     resolution = models.TextField(
-        verbose_name=_('解决方案'), blank=True, null=True,
+        verbose_name=_('解决方案'), blank=True, default='',
         help_text=_('向客户提供的解决方案。'),
     )
 

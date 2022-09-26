@@ -344,6 +344,11 @@ class BucketNotOwned(ConflictError):
     default_code = 'BucketNotOwned'
 
 
+class TooManyTicket(ConflictError):
+    default_message = _('您已提交了多个工单，待解决，暂不能提交更多的工单。')
+    default_code = 'TooManyTicket'
+
+
 def convert_to_error(err):
     if isinstance(err, Error):
         return err

@@ -278,3 +278,15 @@ class StorageGenericViewSet(CustomGenericViewSetMixin, viewsets.GenericViewSet):
     @staticmethod
     def get_service_by_id(service_id: str):
         return ObjectsServiceManager.get_service(service_id=service_id)
+
+
+class NormalGenericViewSet(viewsets.GenericViewSet):
+    from django.db.models import QuerySet
+    queryset = QuerySet().none()
+
+    @staticmethod
+    def exception_response(exc):
+        if not isinstance(exc, exceptions.Error):
+            exc = exceptions.Error(message=str(exc))
+
+        return Response(data=exc.err_data(), status=exc.status_code)

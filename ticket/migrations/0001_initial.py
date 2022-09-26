@@ -41,7 +41,7 @@ class Migration(migrations.Migration):
                 ('modified_time', models.DateTimeField(auto_now=True, help_text='工单最近修改的时间', verbose_name='修改时间')),
                 ('username', models.CharField(blank=True, default='', max_length=128, verbose_name='提交人用户名')),
                 ('contact', models.CharField(blank=True, default='', help_text='工单提交人联系方式', max_length=128, verbose_name='联系方式')),
-                ('resolution', models.TextField(blank=True, help_text='向客户提供的解决方案。', null=True, verbose_name='解决方案')),
+                ('resolution', models.TextField(blank=True, default='', help_text='向客户提供的解决方案。', verbose_name='解决方案')),
                 ('assigned_to', models.ForeignKey(blank=True, default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to=settings.AUTH_USER_MODEL, verbose_name='分配给')),
                 ('submitter', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to=settings.AUTH_USER_MODEL, verbose_name='工单提交人')),
             ],
