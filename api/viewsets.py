@@ -280,9 +280,41 @@ class StorageGenericViewSet(CustomGenericViewSetMixin, viewsets.GenericViewSet):
         return ObjectsServiceManager.get_service(service_id=service_id)
 
 
-class NormalGenericViewSet(viewsets.GenericViewSet):
+class AsRoleGenericViewSet(viewsets.GenericViewSet):
     from django.db.models import QuerySet
     queryset = QuerySet().none()
+
+    AS_ROLE_ADMIN = 'admin'
+
+    PARAMETERS_AS_ROLE = [
+        openapi.Parameter(
+            name='as_role',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_STRING,
+            required=False,
+            description=gettext_lazy('以指定的身份请求，如果无对应权限会返回403错误。') + f'[{AS_ROLE_ADMIN}]'
+        ),
+    ]
+
+    def check_as_role_request(self, request):
+        """
+        是否是以指定的身份请求
+
+        :return:
+            {
+                bool,       # True: 指定身份请求；False: 未指定身份请求
+                str         # 指定的身份参数值
+            }
+        :raises: Error
+        """
+        as_role = request.query_params.get('as_role', None)
+        if as_role is None:
+            return False, None
+
+        if as_role not in [self.AS_ROLE_ADMIN]:
+            raise exceptions.InvalidArgument(message=_('指定的身份无效'), code='InvalidAsRole')
+
+        return True, as_role
 
     @staticmethod
     def exception_response(exc):

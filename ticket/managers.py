@@ -35,3 +35,31 @@ class TicketManager:
         """
         nr_status = [Ticket.Status.OPEN.value, Ticket.Status.PROGRESS.value, Ticket.Status.REOPENED.value]
         return Ticket.objects.filter(submitter_id=user_id, status__in=nr_status).count()
+
+    @staticmethod
+    def get_tickets_queryset(
+            submitter_id: str = None,
+            status: str = None,
+            service_type: str = None,
+            severity: str = None
+    ):
+        lookups = {}
+
+        if submitter_id:
+            lookups['submitter_id'] = submitter_id
+
+        if status:
+            lookups['status'] = status
+
+        if service_type:
+            lookups['service_type'] = service_type
+
+        if severity:
+            lookups['severity'] = severity
+
+        return Ticket.objects.select_related('submitter', 'assigned_to').filter(**lookups).order_by('-submit_time')
+
+    def get_user_tickets_queryset(self, user, status: str = None, service_type: str = None, severity: str = None):
+        return self.get_tickets_queryset(
+            submitter_id=user.id, status=status, service_type=service_type, severity=severity
+        )

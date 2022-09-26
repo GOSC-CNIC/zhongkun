@@ -118,6 +118,11 @@ class InvalidArgument(BadRequest):
     default_code = 'InvalidArgument'
 
 
+class ParameterConflict(BadRequest):
+    default_message = _('参数冲突')
+    default_code = 'ParameterConflict'
+
+
 class NoFoundArgument(BadRequest):
     default_message = 'No Found Argument.'
     default_code = 'NoFoundArgument'
