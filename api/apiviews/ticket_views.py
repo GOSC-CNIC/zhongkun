@@ -148,10 +148,58 @@ class TicketViewSet(AsRoleGenericViewSet):
         """
         return TicketHandler().list_tickets(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询一个工单详情'),
+        responses={
+            200: ''
+        }
+    )
+    def retrieve(self, request, *args, **kwargs):
+        """
+        查询一个工单详情
+
+            http code 200：
+            {
+                "id": "202209260203353120246310",
+                "title": "test 工单，我遇到一个问题",
+                "description": "这里是问题的描述，不能少于10个字符",
+                "status": "progress",
+                "service_type": "server",
+                "severity": "normal",
+                "submit_time": "2022-09-26T01:36:03.802351Z",
+                "modified_time": "2022-09-26T01:36:03.802414Z",
+                "contact": "string",
+                "resolution": "",
+                "submitter": {
+                    "id": "xxx",
+                    "username": "shun"
+                },
+                "assigned_to": {
+                    "id": "xxx",
+                    "username": "test"
+                }
+            }
+
+            http code 400, 403, 404, 500:
+            {
+                "code": "TicketNotExist",
+                "message": "工单不存在"
+            }
+            400:
+                InvalidAsRole: 指定的身份无效
+            403:
+                AccessDenied: 你没有联邦管理员权限 / 你没有此工单的访问权限
+            404:
+                TicketNotExist: 工单不存在
+            500:
+                InternalError: 查询工单错误
+        """
+        return TicketHandler().ticket_detial(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action == 'create':
             return ticket_serializers.TicketCreateSerializer
-        elif self.action == 'list':
+        elif self.action in ['list', 'retrieve']:
             return ticket_serializers.TicketSerializer
 
         return Serializer

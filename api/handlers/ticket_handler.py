@@ -81,7 +81,7 @@ class TicketHandler:
         except exceptions.Error as exc:
             return view.exception_response(exc)
 
-        user: UserProfile = request.user
+        user = request.user
         has_role = params['has_role']
         role = params['role']
         if has_role:
@@ -137,3 +137,27 @@ class TicketHandler:
             'has_role': has_role,
             'role': role
         }
+
+    @staticmethod
+    def ticket_detial(view: AsRoleGenericViewSet, request, kwargs):
+        ticket_id = kwargs[view.lookup_field]
+        try:
+            has_role, role = view.check_as_role_request(request=request)
+            ticket = TicketManager.get_ticket(ticket_id=ticket_id)
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        user = request.user
+        if has_role:
+            if role == view.AS_ROLE_ADMIN and user.is_federal_admin():
+                pass
+            else:
+                return view.exception_response(exceptions.AccessDenied(message='你没有联邦管理员权限'))
+        elif ticket.submitter_id != request.user.id:
+            return view.exception_response(exceptions.AccessDenied(message='你没有此工单的访问权限'))
+
+        try:
+            serializer = view.get_serializer(instance=ticket)
+            return Response(data=serializer.data)
+        except Exception as exc:
+            return view.exception_response(exc)

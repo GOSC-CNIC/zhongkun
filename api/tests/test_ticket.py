@@ -256,3 +256,77 @@ class TicketTests(MyAPITestCase):
         self.assertEqual(r.data['count'], 1)
         self.assertEqual(len(r.data['results']), 1)
         self.assertEqual(r.data['results'][0]['id'], ticket4_user2.id)
+
+    def test_detail_ticket(self):
+        ticket1_user = Ticket(
+            title='工单1',
+            description='工单1问题描述',
+            service_type=Ticket.ServiceType.BILL.value,
+            contact='',
+            status=Ticket.Status.OPEN.value,
+            severity=Ticket.Severity.NORMAL.value,
+            submitter=self.user,
+            username=self.user.username
+        )
+        ticket1_user.save(force_insert=True)
+        ticket2_user2 = Ticket(
+            title='工单3',
+            description='工单3问题描述',
+            service_type=Ticket.ServiceType.STORAGE.value,
+            contact='',
+            status=Ticket.Status.OPEN.value,
+            severity=Ticket.Severity.NORMAL.value,
+            submitter=self.user2,
+            username=self.user2.username
+        )
+        ticket2_user2.save(force_insert=True)
+
+        # user, NotAuthenticated
+        url = reverse('api:support-ticket-detail', kwargs={'id': 'test'})
+        r = self.client.get(url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+
+        self.client.force_login(self.user)
+
+        # user, TicketNotExist
+        url = reverse('api:support-ticket-detail', kwargs={'id': 'test'})
+        r = self.client.get(url)
+        self.assertErrorResponse(status_code=404, code='TicketNotExist', response=r)
+
+        # user, ok
+        url = reverse('api:support-ticket-detail', kwargs={'id': ticket1_user.id})
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=[
+            'id', 'title', 'description', 'status', 'service_type', 'severity', 'submit_time',
+            'modified_time', 'contact', 'resolution', 'submitter', 'assigned_to'
+        ], container=r.data)
+        self.assertEqual(r.data['id'], ticket1_user.id)
+
+        # user, AccessDenied
+        url = reverse('api:support-ticket-detail', kwargs={'id': ticket2_user2.id})
+        r = self.client.get(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        # user, invalid "as_role"
+        url = reverse('api:support-ticket-detail', kwargs={'id': ticket2_user2.id})
+        query = parse.urlencode(query={'as_role': 'test'})
+        r = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidAsRole', response=r)
+
+        # user, "as_role", not federal admin
+        query = parse.urlencode(query={'as_role': 'admin'})
+        r = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        # user, "as_role", federal admin, ok
+        self.user.set_federal_admin()
+        url = reverse('api:support-ticket-detail', kwargs={'id': ticket2_user2.id})
+        query = parse.urlencode(query={'as_role': 'admin'})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=[
+            'id', 'title', 'description', 'status', 'service_type', 'severity', 'submit_time',
+            'modified_time', 'contact', 'resolution', 'submitter', 'assigned_to'
+        ], container=r.data)
+        self.assertEqual(r.data['id'], ticket2_user2.id)

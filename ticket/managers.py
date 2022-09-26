@@ -1,4 +1,4 @@
-
+from core import errors
 from .models import Ticket
 
 
@@ -6,6 +6,17 @@ class TicketManager:
     @staticmethod
     def get_queryset():
         return Ticket.objects.all()
+
+    @staticmethod
+    def get_ticket(ticket_id: str):
+        """
+        :raises: TicketNotExist
+        """
+        ticket = Ticket.objects.select_related('submitter', 'assigned_to').filter(id=ticket_id).first()
+        if ticket is None:
+            raise errors.TicketNotExist()
+
+        return ticket
 
     @staticmethod
     def create_ticket(

@@ -194,6 +194,11 @@ class BucketNotExist(NotFound):
     default_code = 'BucketNotExist'
 
 
+class TicketNotExist(NotFound):
+    default_message = _('工单不存在')
+    default_code = 'TicketNotExist'
+
+
 class NoSupportVPN(APIException):
     default_message = 'This service does not provide VPN support.'
     default_code = 'NoSupportVPN'
