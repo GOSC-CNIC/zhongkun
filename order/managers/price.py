@@ -172,3 +172,13 @@ class PriceManager:
         disk_amount = price.vm_disk * Decimal.from_float(disk_gib_hours)
         ip_amount = price.vm_pub_ip * Decimal.from_float(public_ip_hours)
         return ram_amount + cpu_amount + disk_amount + ip_amount
+
+    @staticmethod
+    def calculate_bucket_amounts(
+            price: Price,
+            storage_gib_hours: float
+    ) -> Decimal:
+        """
+        计算金额
+        """
+        return price.obj_size / Decimal('24') * Decimal.from_float(storage_gib_hours)

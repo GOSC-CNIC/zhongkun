@@ -21,9 +21,9 @@ if not app_id:
 
 
 if __name__ == "__main__":
-    from metering.measurers import ServerMeasurer
-    from metering.pay_metering import PayMeteringServer
-    from metering.generate_daily_statement import GenerateDailyStatementServer
+    from metering.measurers import ServerMeasurer, StorageMeasure
+    from metering.pay_metering import PayMeteringServer, PayMeteringObjectStorage
+    from metering.generate_daily_statement import GenerateDailyStatementServer, GenerateDailyStatementObjectStorage
 
     now_date = datetime.utcnow().astimezone(utc).date() - timedelta(days=1)
     # start_date = date(year=2022, month=6, day=1)
@@ -45,8 +45,11 @@ if __name__ == "__main__":
         print(f'[{metering_date}]')
         try:
             ServerMeasurer(metering_date=metering_date).run(raise_exeption=True)
+            StorageMeasure(metering_data=metering_date).run(raise_exception=True)
             GenerateDailyStatementServer(statement_date=metering_date).run(raise_exception=True)
+            GenerateDailyStatementObjectStorage(statement_date=metering_date).run(raise_exception=True)
             PayMeteringServer(app_id=app_id, pay_date=metering_date).run()
+            PayMeteringObjectStorage(app_id=app_id, pay_date=metering_date).run()
             print(f'OK, {metering_date}')
         except Exception as e:
             print(f'FAILED, {metering_date}, {str(e)}')

@@ -10,6 +10,7 @@ setup()
 
 
 if __name__ == "__main__":
-    from metering.generate_daily_statement import GenerateDailyStatementServer
+    from metering.generate_daily_statement import GenerateDailyStatementServer, GenerateDailyStatementObjectStorage
     # GenerateDailyStatementServer(statement_date=datetime.datetime.strptime('2022-01-01', '%Y-%m-%d').date()).run()
     GenerateDailyStatementServer().run()
+    GenerateDailyStatementObjectStorage().run()

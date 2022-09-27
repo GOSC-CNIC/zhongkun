@@ -6,12 +6,15 @@ from django.utils import timezone
 from django.db import close_old_connections
 
 from servers.models import Server, ServerArchive, ServerBase
-from metering.models import MeteringServer
+from metering.models import MeteringServer, MeteringObjectStorage
 from order.managers import PriceManager
 from utils.decimal_utils import quantize_10_2
 from utils.model import PayType
 from vo.models import VirtualOrganization
 from users.models import UserProfile
+from storage.models import Bucket
+from storage.adapter import inputs
+from storage import request
 
 
 def wrap_close_old_connections(func):
@@ -27,6 +30,7 @@ class ServerMeasurer:
     """
     计量器
     """
+
     def __init__(self, metering_date: date = None, raise_exeption: bool = False):
         """
         :param metering_date: 指定计量日期
@@ -39,7 +43,7 @@ class ServerMeasurer:
             end_datetime = start_datetime + timedelta(days=1)
         else:
             # 计量当前时间前一天的资源使用量
-            end_datetime = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)    # 计量结束时间
+            end_datetime = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)  # 计量结束时间
             start_datetime = end_datetime - timedelta(days=1)  # 计量开始时间
 
         self.end_datetime = end_datetime
@@ -48,7 +52,7 @@ class ServerMeasurer:
         self.price_mgr = PriceManager()
         self._metering_server_count = 0  # 计量云主机计数
         self._metering_archieve_count = 0  # 计量归档云主机计数
-        self._new_count = 0      # 新产生计量账单计数
+        self._new_count = 0  # 新产生计量账单计数
 
     def run(self, raise_exeption: bool = None):
         print(f'Metering start, {self.start_datetime} - {self.end_datetime}')
@@ -118,7 +122,7 @@ class ServerMeasurer:
         # server计费开始时间 在计量日期之间
         elif server.start_time < self.end_datetime:
             hours = self.delta_hours(end=self.end_datetime, start=server.start_time)
-            if server.creation_time < server.start_time:    # 计量可能要包含server配置修改记录部分
+            if server.creation_time < server.start_time:  # 计量可能要包含server配置修改记录部分
                 need_rebuild = True
         else:
             return None
@@ -148,12 +152,12 @@ class ServerMeasurer:
             return metering
 
         need_rebuild = False
-        end = min(archive.deleted_time, self.end_datetime)      # server计费结束时间
+        end = min(archive.deleted_time, self.end_datetime)  # server计费结束时间
         if archive.start_time <= self.start_datetime:
             start = self.start_datetime
         elif archive.start_time < self.end_datetime:
             start = archive.start_time
-            if archive.creation_time < archive.start_time:    # 计量可能要包含server配置修改记录部分
+            if archive.creation_time < archive.start_time:  # 计量可能要包含server配置修改记录部分
                 need_rebuild = True
         else:
             return None
@@ -381,3 +385,188 @@ class ServerMeasurer:
             _metering.save(update_fields=['original_amount', 'trade_amount'])
 
         return _metering
+
+
+class StorageMeasure:
+    """
+    对象存储计量
+    """
+
+    def __init__(self, metering_data: date = None, raise_exception: bool = False):
+        """
+        :param metering_data: 指定计量日期
+        :param raise_exception: True 发生错误直接抛出
+        """
+        if metering_data:
+            start_datetime = timezone.now().replace(
+                year=metering_data.year, month=metering_data.month, day=metering_data.day,
+                hour=0, minute=0, second=0, microsecond=0)
+            end_datetime = start_datetime + timedelta(days=1)
+        else:
+            # 计量当前时间的前一天的资源使用量
+            end_datetime = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+            start_datetime = end_datetime - timedelta(days=1)
+
+        self.end_datatime = end_datetime
+        self.start_datetime = start_datetime
+        self.raise_exception = raise_exception
+        self.price_mgr = PriceManager()
+        self._metering_bucket_count = 0  # 计量的桶的数目 这里暂时不用考虑归档的桶
+        self._new_count = 0  # 新产生的计量账单的数目
+
+    def run(self, raise_exception: bool = None):
+        print(f'Storage Metering start, {self.start_datetime} - {self.end_datatime}')
+        if self.end_datatime >= timezone.now():
+            print('Exit, metering time invalid')
+            return
+
+        if raise_exception is not None:
+            self.raise_exception = raise_exception
+
+        self.metering_loop()
+
+        print(f'Metering {self._metering_bucket_count} buckets, new produce {self._new_count} metering bill')
+
+    def metering_loop(self):
+        last_creation_time = None
+        last_id = ''
+        while True:
+            try:
+                buckets = self.get_buckets(
+                    gte_creation_time=last_creation_time, end_datetime=self.end_datatime)
+                if len(buckets) == 0:
+                    break
+                # 多个creation_time 的数据相同时，会查询到多个数据 (计量过的也会重复查询到)
+                if buckets[len(buckets) - 1].id == last_id:
+                    break
+                for b in buckets:
+                    if b.id == last_id:
+                        continue
+                    self.metering_bucket(b)
+                    last_creation_time = b.creation_time
+                    last_id = b.id
+            except Exception as e:
+                print(str(e))
+                if self.raise_exception:
+                    raise e
+
+    def metering_bucket(self, obj):
+        self._metering_bucket_count += 1
+        return self.metering_one_bucket(bucket=obj)
+
+    def metering_one_bucket(self, bucket: Bucket):
+        metering_date = self.start_datetime.date()
+        metering = self.bucket_metering_exists(metering_date=metering_date, bucket_id=bucket.id)
+        if metering is not None:
+            return metering
+        '''
+        这里和云主机的区别在于 没有start_time 的字段
+        需要统计的是 桶中的对象的size大小
+        '''
+        if bucket.creation_time >= self.end_datatime:
+            return None
+        else:
+            storage = self.get_bucket_metering_size(bucket=bucket)
+        metering = self.save_bucket_metering_record(
+            bucket=bucket, storage=storage
+        )
+        return metering
+
+    def save_bucket_metering_record(self, bucket: Bucket, storage):
+        return self.save_metering_record(
+            service=bucket.service, user_id=bucket.user_id, storage_bucket_id=bucket.id,
+            bucket_name=bucket.name, creation_time=bucket.creation_time, storage=storage
+        )
+
+    def save_metering_record(self, service, user_id, storage_bucket_id, bucket_name, creation_time, storage):
+        """
+           创建当前日期的桶的计量记录
+           :return MeteringObjectStorage
+        """
+        metering_date = self.start_datetime.date()
+        username = UserProfile.objects.filter(id=user_id).first()
+        metering = MeteringObjectStorage(
+            service=service,
+            user_id=user_id,
+            username=username,
+            storage_bucket_id=storage_bucket_id,
+            bucket_name=bucket_name,
+            date=metering_date,
+            creation_time=creation_time,
+            storage=storage,
+            daily_statement_id=''
+        )
+        self.metering_bill_amount(_metering=metering, auto_commit=False)
+
+        try:
+            metering.save(force_insert=True)
+            self._new_count += 1
+        except Exception as e:
+            _metering = self.bucket_metering_exists(bucket_id=storage_bucket_id, metering_date=metering_date)
+            if _metering is None:
+                raise e
+            if _metering.original_amount != metering.original_amount:
+                self.metering_bill_amount(_metering=_metering, auto_commit=True)
+            metering = _metering
+
+        return metering
+
+    @staticmethod
+    def delta_hours(end, start):
+        delta = end - start
+        seconds = delta.total_seconds()
+        seconds = max(seconds, 0)
+        return seconds / 3600
+
+    def metering_bill_amount(self, _metering: MeteringObjectStorage, auto_commit: bool = True):
+        """
+        计算资源使用量的账单金额
+        """
+        if _metering.creation_time <= self.start_datetime:
+            hours = 24
+        else:
+            hours = self.delta_hours(end=self.end_datatime, start=_metering.creation_time)
+
+        price = self.price_mgr.enforce_price()
+        _metering.original_amount = self.price_mgr.calculate_bucket_amounts(price=price,
+                                                                            storage_gib_hours=_metering.storage * hours)
+        _metering.trade_amount = _metering.original_amount
+
+        if auto_commit:
+            _metering.save(update_fields=['original_amount', 'trade_amount'])
+
+        return _metering
+
+    @staticmethod
+    def get_bucket_metering_size(bucket: Bucket):
+        bucket_name = bucket.name
+        bucket_service = bucket.service
+        try:
+            params = inputs.BucketStatsInput(bucket_name=bucket_name)
+            r = request.request_service(service=bucket_service, method='bucket_stats', params=params)
+        except Exception as e:
+            raise e
+        return r.bucket_size_byte
+
+    @wrap_close_old_connections
+    def get_buckets(self, gte_creation_time, end_datetime, limit: int = 100):
+        queryset = self.get_buckets_queryset(gte_creation_time=gte_creation_time, end_datetime=end_datetime)
+        return queryset[0:limit]
+
+    @staticmethod
+    def bucket_metering_exists(bucket_id, metering_date: date):
+        return MeteringObjectStorage.objects.filter(date=metering_date, storage_bucket_id=bucket_id).first()
+
+    @staticmethod
+    def get_buckets_queryset(end_datetime, gte_creation_time=None):
+        """
+        查询bucket的集合， 按照创建的时间 以及 id 正序排序
+        :param end_datetime: 计量日结束的时间点
+        :param gte_creation_time: 大于等于给定的创建时间，用于断点查询
+        """
+        lookups = {}
+        if gte_creation_time is not None:
+            lookups['creation_time__gte'] = gte_creation_time
+
+        queryset = Bucket.objects.filter(**lookups).order_by('creation_time', 'id')
+        return queryset

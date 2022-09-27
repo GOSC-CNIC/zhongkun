@@ -19,5 +19,6 @@ if not app_id:
 
 
 if __name__ == "__main__":
-    from metering.pay_metering import PayMeteringServer
+    from metering.pay_metering import PayMeteringServer, PayMeteringObjectStorage
     PayMeteringServer(app_id=app_id).run()
+    PayMeteringObjectStorage(app_id=app_id).run()
