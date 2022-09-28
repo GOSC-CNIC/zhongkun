@@ -295,6 +295,56 @@ class TicketViewSet(AsRoleGenericViewSet):
         """
         return TicketHandler().ticket_severity_change(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('更改一个工单的状态'),
+        request_body=no_body,
+        manual_parameters=[
+            openapi.Parameter(
+                name='status',
+                in_=openapi.IN_PATH,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description=gettext_lazy('工单状态。') + f'{Ticket.Status.choices}'
+            ),
+        ] + AsRoleGenericViewSet.PARAMETERS_AS_ROLE,
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['POST'], detail=True, url_path=r'status/(?P<status>[^/]+)', url_name='ticket-status-change')
+    def ticket_status_change(self, request, *args, **kwargs):
+        """
+        更改一个工单的状态
+
+            * 工单提交人只允许更改 canceled和open的状态；
+                open -> canceled;
+                canceled -> open ;
+            * 联邦管理员 允许更改 除 canceled之外的状态；
+
+            http code 200：
+            {
+                "status": "xxx"
+            }
+
+            http code 400, 403, 404, 409, 500:
+            {
+                "code": "TicketNotExist",
+                "message": "工单不存在"
+            }
+            400:
+                InvalidAsRole: 指定的身份无效
+                InvalidStatus: 指定的工单状态无效
+            403:
+                AccessDenied: 你没有此工单的访问权限
+            404:
+                TicketNotExist: 工单不存在
+            409:
+                ConflictTicketStatus: 不允许（无权限）更改当前状态下的工单状态 / 不允许（无权限）把工单的状态更改为指定的状态
+            500:
+                InternalError: 更改工单错误
+        """
+        return TicketHandler().ticket_status_change(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action in ['create', 'update_ticket']:
             return ticket_serializers.TicketCreateSerializer

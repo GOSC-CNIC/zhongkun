@@ -262,3 +262,56 @@ class TicketHandler:
             return view.exception_response(exceptions.Error(message=_('更改工单严重程度失败。') + str(exc)))
 
         return Response(data={'severity': new_severity})
+
+    @staticmethod
+    def ticket_status_change(view: AsRoleGenericViewSet, request, kwargs):
+        ticket_id = kwargs[view.lookup_field]
+        new_status = kwargs.get('status', '')
+
+        if new_status not in Ticket.Status.values:
+            return view.exception_response(
+                exceptions.InvalidArgument(message=_('指定的工单状态无效。'), code='InvalidStatus'))
+
+        try:
+            has_role, role = view.check_as_role_request(request=request)
+            ticket = TicketManager.get_ticket(ticket_id=ticket_id)
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        user = request.user
+        if has_role:
+            if role == view.AS_ROLE_ADMIN and user.is_federal_admin():
+                if ticket.status == Ticket.Status.CANCELED.value:
+                    return view.exception_response(
+                        exceptions.ConflictTicketStatus(message=_('您不允许更改“已取消”状态的工单。')))
+            else:
+                return view.exception_response(exceptions.AccessDenied(message=_('你没有联邦管理员权限')))
+        else:
+            if ticket.submitter_id != request.user.id:
+                return view.exception_response(exceptions.AccessDenied(message=_('你没有此工单的访问权限')))
+
+            if ticket.status not in [Ticket.Status.OPEN.value, Ticket.Status.CANCELED.value]:
+                return view.exception_response(
+                    exceptions.ConflictTicketStatus(message=_('您只允许更改“打开”和“已取消”状态的工单。')))
+
+            if new_status not in [Ticket.Status.OPEN.value, Ticket.Status.CANCELED.value]:
+                return view.exception_response(
+                    exceptions.ConflictTicketStatus(message=_('您只允许更改工单的状态为“打开”或“已取消”。')))
+
+        if new_status == ticket.status:
+            return Response(data={'status': new_status})
+
+        try:
+            with transaction.atomic():
+                old_status = ticket.status
+                ticket.status = new_status
+                ticket.save(update_fields=['status', 'modified_time'])
+                TicketManager.create_followup_action(
+                    user=request.user, ticket_id=ticket.id,
+                    field_name=TicketChange.TicketField.STATUS.value,
+                    old_value=old_status, new_value=new_status, atomic=False
+                )
+        except Exception as exc:
+            return view.exception_response(exceptions.Error(message=_('更改工单状态失败。') + str(exc)))
+
+        return Response(data={'status': new_status})

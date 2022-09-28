@@ -547,3 +547,189 @@ class TicketTests(MyAPITestCase):
         self.assertEqual(ticket1_user.severity, Ticket.Severity.HIGH.value)
         fus = FollowUp.objects.select_related('ticket_change').all()
         self.assertEqual(len(fus), 1)
+
+    def test_change_ticket_status(self):
+        ticket_data = {
+            'title': '工单1abcdef标题',
+            'description': '工单1问题描述, 不少于10个字符长度',
+            'service_type': Ticket.ServiceType.BILL.value,
+            'contact': '联系方式'
+        }
+        ticket1_user = Ticket(
+            title=ticket_data['title'],
+            description=ticket_data['description'],
+            service_type=ticket_data['service_type'],
+            contact=ticket_data['contact'],
+            status=Ticket.Status.OPEN.value,
+            severity=Ticket.Severity.NORMAL.value,
+            submitter=self.user,
+            username=self.user.username,
+            assigned_to=self.user2
+        )
+        ticket1_user.save(force_insert=True)
+
+        # user, NotAuthenticated
+        url = reverse('api:support-ticket-ticket-status-change', kwargs={'id': 'test', 'status': 'ss'})
+        r = self.client.post(url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+
+        self.client.force_login(self.user)
+
+        # user, InvalidStatus
+        url = reverse('api:support-ticket-ticket-status-change', kwargs={'id': 'test', 'status': 'ss'})
+        r = self.client.post(url)
+        self.assertErrorResponse(status_code=400, code='InvalidStatus', response=r)
+
+        # user, TicketNotExist
+        url = reverse('api:support-ticket-ticket-status-change', kwargs={
+            'id': 'test', 'status': Ticket.Status.CANCELED.value})
+        r = self.client.post(url)
+        self.assertErrorResponse(status_code=404, code='TicketNotExist', response=r)
+
+        # user, ok, open -> canceled
+        url = reverse('api:support-ticket-ticket-status-change', kwargs={
+            'id': ticket1_user.id, 'status': Ticket.Status.CANCELED.value})
+        r = self.client.post(url)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['status'], Ticket.Status.CANCELED.value)
+        ticket1_user.refresh_from_db()
+        self.assertEqual(ticket1_user.status, Ticket.Status.CANCELED.value)
+        fus = FollowUp.objects.select_related('ticket_change').all()
+        self.assertEqual(len(fus), 1)
+        fu = fus[0]
+        self.assertEqual(fu.fu_type, FollowUp.FuType.ACTION.value)
+        tc: TicketChange = fu.ticket_change
+        self.assertEqual(tc.ticket_field, TicketChange.TicketField.STATUS.value)
+        self.assertEqual(tc.old_value, Ticket.Status.OPEN.value)
+        self.assertEqual(tc.new_value, Ticket.Status.CANCELED.value)
+
+        # user, ok, canceled -> canceled
+        url = reverse('api:support-ticket-ticket-status-change', kwargs={
+            'id': ticket1_user.id, 'status': Ticket.Status.CANCELED.value})
+        r = self.client.post(url)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['status'], Ticket.Status.CANCELED.value)
+        ticket1_user.refresh_from_db()
+        self.assertEqual(ticket1_user.status, Ticket.Status.CANCELED.value)
+        count = FollowUp.objects.select_related('ticket_change').count()
+        self.assertEqual(count, 1)
+
+        # user, ok, canceled -> open
+        url = reverse('api:support-ticket-ticket-status-change', kwargs={
+            'id': ticket1_user.id, 'status': Ticket.Status.OPEN.value})
+        r = self.client.post(url)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['status'], Ticket.Status.OPEN.value)
+        ticket1_user.refresh_from_db()
+        self.assertEqual(ticket1_user.status, Ticket.Status.OPEN.value)
+        fu = FollowUp.objects.select_related('ticket_change').first()
+        self.assertEqual(fu.fu_type, FollowUp.FuType.ACTION.value)
+        tc: TicketChange = fu.ticket_change
+        self.assertEqual(tc.ticket_field, TicketChange.TicketField.STATUS.value)
+        self.assertEqual(tc.old_value, Ticket.Status.CANCELED.value)
+        self.assertEqual(tc.new_value, Ticket.Status.OPEN.value)
+
+        # user, ConflictTicketStatus
+        ticket1_user.status = Ticket.Status.PROGRESS.value
+        ticket1_user.save(update_fields=['status'])
+        url = reverse('api:support-ticket-ticket-status-change', kwargs={
+            'id': ticket1_user.id, 'status': Ticket.Status.CANCELED.value})
+        r = self.client.post(url)
+        self.assertErrorResponse(status_code=409, code='ConflictTicketStatus', response=r)
+
+        ticket1_user.status = Ticket.Status.CLOSED.value
+        ticket1_user.save(update_fields=['status'])
+        url = reverse('api:support-ticket-ticket-status-change', kwargs={
+            'id': ticket1_user.id, 'status': Ticket.Status.CANCELED.value})
+        r = self.client.post(url)
+        self.assertErrorResponse(status_code=409, code='ConflictTicketStatus', response=r)
+
+        ticket1_user.status = Ticket.Status.RESOLVED.value
+        ticket1_user.save(update_fields=['status'])
+        url = reverse('api:support-ticket-ticket-status-change', kwargs={
+            'id': ticket1_user.id, 'status': Ticket.Status.CANCELED.value})
+        r = self.client.post(url)
+        self.assertErrorResponse(status_code=409, code='ConflictTicketStatus', response=r)
+
+        # user, as_role, AccessDenied
+        url = reverse('api:support-ticket-ticket-status-change', kwargs={
+            'id': ticket1_user.id, 'status': Ticket.Status.CANCELED.value})
+        query = parse.urlencode(query={'as_role': 'admin'})
+        r = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        # user2, AccessDenied
+        self.client.logout()
+        self.client.force_login(self.user2)
+        ticket1_user.status = Ticket.Status.OPEN.value
+        ticket1_user.save(update_fields=['status'])
+        url = reverse('api:support-ticket-ticket-status-change', kwargs={
+            'id': ticket1_user.id, 'status': Ticket.Status.CANCELED.value})
+        r = self.client.post(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        # --------- as_role ---------
+        # user2, InvalidAsRole
+        url = reverse('api:support-ticket-ticket-status-change', kwargs={
+            'id': ticket1_user.id, 'status': Ticket.Status.CANCELED.value})
+        query = parse.urlencode(query={'as_role': 'test'})
+        r = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidAsRole', response=r)
+
+        self.user2.set_federal_admin()
+
+        # user2, TicketNotExist
+        url = reverse('api:support-ticket-ticket-status-change', kwargs={
+            'id': 'test', 'status': Ticket.Status.OPEN.value})
+        query = parse.urlencode(query={'as_role': 'admin'})
+        r = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=404, code='TicketNotExist', response=r)
+
+        # user2, ok, open -> progress
+        self._status_change_test_as_role(
+            ticket=ticket1_user, old_value=Ticket.Status.OPEN.value,
+            new_value=Ticket.Status.PROGRESS.value
+        )
+        # user2, ok, progress -> closed
+        self._status_change_test_as_role(
+            ticket=ticket1_user, old_value=Ticket.Status.PROGRESS.value,
+            new_value=Ticket.Status.CLOSED.value
+        )
+        # user2, ok, closed -> RESOLVED
+        self._status_change_test_as_role(
+            ticket=ticket1_user, old_value=Ticket.Status.CLOSED.value,
+            new_value=Ticket.Status.RESOLVED.value
+        )
+        # user2, ok, RESOLVED -> REOPENED
+        self._status_change_test_as_role(
+            ticket=ticket1_user, old_value=Ticket.Status.RESOLVED.value,
+            new_value=Ticket.Status.REOPENED.value
+        )
+        # user2, ok, REOPENED -> CANCELED
+        self._status_change_test_as_role(
+            ticket=ticket1_user, old_value=Ticket.Status.REOPENED.value,
+            new_value=Ticket.Status.CANCELED.value
+        )
+
+        # user2, ConflictTicketStatus, CANCELED -> open
+        url = reverse('api:support-ticket-ticket-status-change', kwargs={
+            'id': ticket1_user.id, 'status': Ticket.Status.OPEN.value})
+        query = parse.urlencode(query={'as_role': 'admin'})
+        r = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=409, code='ConflictTicketStatus', response=r)
+
+    def _status_change_test_as_role(self, ticket, old_value, new_value):
+        url = reverse('api:support-ticket-ticket-status-change', kwargs={
+            'id': ticket.id, 'status': new_value})
+        query = parse.urlencode(query={'as_role': 'admin'})
+        r = self.client.post(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['status'], new_value)
+        ticket.refresh_from_db()
+        self.assertEqual(ticket.status, new_value)
+        fu = FollowUp.objects.select_related('ticket_change').first()
+        self.assertEqual(fu.fu_type, FollowUp.FuType.ACTION.value)
+        tc: TicketChange = fu.ticket_change
+        self.assertEqual(tc.ticket_field, TicketChange.TicketField.STATUS.value)
+        self.assertEqual(tc.old_value, old_value)
+        self.assertEqual(tc.new_value, new_value)
