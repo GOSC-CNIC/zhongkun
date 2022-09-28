@@ -3,7 +3,7 @@ from urllib import parse
 from django.urls import reverse
 
 from utils.test import get_or_create_user
-from ticket.models import Ticket
+from ticket.models import Ticket, FollowUp, TicketChange
 from . import MyAPITestCase
 
 
@@ -266,7 +266,8 @@ class TicketTests(MyAPITestCase):
             status=Ticket.Status.OPEN.value,
             severity=Ticket.Severity.NORMAL.value,
             submitter=self.user,
-            username=self.user.username
+            username=self.user.username,
+            assigned_to=self.user2
         )
         ticket1_user.save(force_insert=True)
         ticket2_user2 = Ticket(
@@ -301,6 +302,8 @@ class TicketTests(MyAPITestCase):
             'id', 'title', 'description', 'status', 'service_type', 'severity', 'submit_time',
             'modified_time', 'contact', 'resolution', 'submitter', 'assigned_to'
         ], container=r.data)
+        self.assertEqual(r.data['submitter'], {'id': self.user.id, 'username': self.user.username})
+        self.assertEqual(r.data['assigned_to'], {'id': self.user2.id, 'username': self.user2.username})
         self.assertEqual(r.data['id'], ticket1_user.id)
 
         # user, AccessDenied
@@ -330,3 +333,142 @@ class TicketTests(MyAPITestCase):
             'modified_time', 'contact', 'resolution', 'submitter', 'assigned_to'
         ], container=r.data)
         self.assertEqual(r.data['id'], ticket2_user2.id)
+
+    def test_update_ticket(self):
+        ticket_data = {
+            'title': '工单1abcdef标题',
+            'description': '工单1问题描述, 不少于10个字符长度',
+            'service_type': Ticket.ServiceType.BILL.value,
+            'contact': '联系方式'
+        }
+        ticket1_user = Ticket(
+            title=ticket_data['title'],
+            description=ticket_data['description'],
+            service_type=ticket_data['service_type'],
+            contact=ticket_data['contact'],
+            status=Ticket.Status.OPEN.value,
+            severity=Ticket.Severity.NORMAL.value,
+            submitter=self.user,
+            username=self.user.username,
+            assigned_to=self.user2
+        )
+        ticket1_user.save(force_insert=True)
+        ticket2_user2 = Ticket(
+            title='工单2',
+            description='工单2问题描述',
+            service_type=Ticket.ServiceType.STORAGE.value,
+            contact='',
+            status=Ticket.Status.OPEN.value,
+            severity=Ticket.Severity.NORMAL.value,
+            submitter=self.user2,
+            username=self.user2.username
+        )
+        ticket2_user2.save(force_insert=True)
+
+        # user, NotAuthenticated
+        url = reverse('api:support-ticket-update-ticket', kwargs={'id': 'test'})
+        r = self.client.post(url, data=ticket_data)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+
+        self.client.force_login(self.user)
+
+        # user, TicketNotExist
+        url = reverse('api:support-ticket-update-ticket', kwargs={'id': 'test'})
+        r = self.client.post(url, data=ticket_data)
+        self.assertErrorResponse(status_code=404, code='TicketNotExist', response=r)
+
+        # user, InvalidTitle
+        data = ticket_data.copy()
+        data['title'] = '标题少于10字符'
+        url = reverse('api:support-ticket-update-ticket', kwargs={'id': ticket1_user.id})
+        r = self.client.post(url, data=data)
+        self.assertErrorResponse(status_code=400, code='InvalidTitle', response=r)
+
+        # user, InvalidDescription
+        data = ticket_data.copy()
+        data['description'] = '描述少于10字符'
+        url = reverse('api:support-ticket-update-ticket', kwargs={'id': ticket1_user.id})
+        r = self.client.post(url, data=data)
+        self.assertErrorResponse(status_code=400, code='InvalidDescription', response=r)
+
+        # user, InvalidServiceType
+        data = ticket_data.copy()
+        data['service_type'] = 'test'
+        url = reverse('api:support-ticket-update-ticket', kwargs={'id': ticket1_user.id})
+        r = self.client.post(url, data=data)
+        self.assertErrorResponse(status_code=400, code='InvalidServiceType', response=r)
+
+        # user, AccessDenied
+        url = reverse('api:support-ticket-update-ticket', kwargs={'id': ticket2_user2.id})
+        r = self.client.post(url, data=ticket_data)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        # user, no change, ok
+        url = reverse('api:support-ticket-update-ticket', kwargs={'id': ticket1_user.id})
+        r = self.client.post(url, data=ticket_data)
+        self.assertEqual(r.status_code, 200)
+        self.assert_is_subdict_of(sub=ticket_data, d=r.data)
+
+        # user, no change, ok
+        url = reverse('api:support-ticket-update-ticket', kwargs={'id': ticket1_user.id})
+        r = self.client.post(url, data=ticket_data)
+        self.assertEqual(r.status_code, 200)
+        sub = ticket_data.copy()
+        sub['status'] = Ticket.Status.OPEN.value
+        self.assert_is_subdict_of(sub=sub, d=r.data)
+
+        # user, open status, change all, ok
+        new_ticket_data = {
+            'title': '工单1abcdef标题ggg',
+            'description': '工单1问题描述, 不少于10个字符长度sss',
+            'service_type': Ticket.ServiceType.ACCOUNT.value,
+            'contact': '联系方式dd'
+        }
+        url = reverse('api:support-ticket-update-ticket', kwargs={'id': ticket1_user.id})
+        r = self.client.post(url, data=new_ticket_data)
+        self.assertEqual(r.status_code, 200)
+        new_ticket_data['status'] = Ticket.Status.OPEN.value
+        self.assert_is_subdict_of(sub=new_ticket_data, d=r.data)
+        # open status, no action FollowUp
+        count = FollowUp.objects.all().count()
+        self.assertEqual(count, 0)
+
+        # user, "progress" status, change all, ok
+        ticket1_user.status = Ticket.Status.PROGRESS.value
+        ticket1_user.save(update_fields=['status'])
+        new_ticket_data2 = {
+            'title': '工单1abcdef标题ggg好还是',
+            'description': '呃呃工单1问题描述, 不少于10个字符长度sss',
+            'service_type': Ticket.ServiceType.STORAGE.value,
+            'contact': '联系方式ddhjj'
+        }
+        url = reverse('api:support-ticket-update-ticket', kwargs={'id': ticket1_user.id})
+        r = self.client.post(url, data=new_ticket_data2)
+        self.assertEqual(r.status_code, 200)
+        new_ticket_data2['status'] = Ticket.Status.PROGRESS.value
+        self.assert_is_subdict_of(sub=new_ticket_data2, d=r.data)
+        fus = FollowUp.objects.select_related('ticket_change').all()
+        self.assertEqual(len(fus), 2)
+        for fu in fus:
+            self.assertEqual(fu.fu_type, FollowUp.FuType.ACTION.value)
+            tc: TicketChange = fu.ticket_change
+            if tc.ticket_field == TicketChange.TicketField.TITLE.value:
+                self.assertEqual(tc.old_value, new_ticket_data['title'])
+                self.assertEqual(tc.new_value, new_ticket_data2['title'])
+            else:
+                self.assertEqual(tc.ticket_field, TicketChange.TicketField.DESCRIPTION.value)
+                self.assertEqual(tc.old_value, new_ticket_data['description'])
+                self.assertEqual(tc.new_value, new_ticket_data2['description'])
+
+        # user, "resolved" status, not allow change
+        ticket1_user.status = Ticket.Status.RESOLVED.value
+        ticket1_user.save(update_fields=['status'])
+        new_ticket_data2 = {
+            'title': '工单1abcdef标题ggg好还是',
+            'description': '呃呃工单1问题描述, 不少于10个字符长度sss',
+            'service_type': Ticket.ServiceType.STORAGE.value,
+            'contact': '联系方式ddhjj'
+        }
+        url = reverse('api:support-ticket-update-ticket', kwargs={'id': ticket1_user.id})
+        r = self.client.post(url, data=new_ticket_data2)
+        self.assertErrorResponse(status_code=409, code='ConflictTicketStatus', response=r)

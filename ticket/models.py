@@ -132,9 +132,9 @@ class TicketChange(CustomIdModel):
         if not new_value_disp:
             out += gettext('移除')
         elif not old_value_disp:
-            out += gettext('变更为 "%s"') % new_value_disp
+            out += gettext('更改为 "%s"') % new_value_disp
         else:
-            out += gettext('从 "%(old_value)s" 变更为 "%(new_value)s"') % {
+            out += gettext('从 "%(old_value)s" 更改为 "%(new_value)s"') % {
                 'old_value': old_value_disp,
                 'new_value': new_value_disp
             }
@@ -165,7 +165,7 @@ class TicketChange(CustomIdModel):
             return self._display_template(
                 field_disp=field_disp, old_value_disp=self.old_value, new_value_disp=self.new_value)
         else:
-            return gettext('%s 发生了变更') % field_disp
+            return gettext('%s 发生了更改') % field_disp
 
 
 class FollowUp(CustomIdModel):

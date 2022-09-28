@@ -1,5 +1,7 @@
+from django.db import transaction
+
 from core import errors
-from .models import Ticket
+from .models import Ticket, FollowUp, TicketChange
 
 
 class TicketManager:
@@ -74,3 +76,38 @@ class TicketManager:
         return self.get_tickets_queryset(
             submitter_id=user.id, status=status, service_type=service_type, severity=severity
         )
+
+    @staticmethod
+    def create_followup_action(user, ticket_id: str, field_name: str, old_value: str, new_value: str, atomic: bool = True):
+        """
+        工单更改记录 跟进动态  事务 原子操作
+        """
+        if not atomic:
+            return TicketManager._create_followup_action(
+                user=user, ticket_id=ticket_id, field_name=field_name, old_value=old_value, new_value=new_value
+            )
+
+        with transaction.atomic():
+            return TicketManager._create_followup_action(
+                user=user, ticket_id=ticket_id, field_name=field_name, old_value=old_value, new_value=new_value
+            )
+
+    @staticmethod
+    def _create_followup_action(user, ticket_id: str, field_name: str, old_value: str, new_value: str):
+        tc = TicketChange(
+            ticket_field=field_name, old_value=old_value, new_value=new_value
+        )
+        tc.save(force_insert=True)
+        title = tc.display
+        if len(title) > 250:
+            title = title[:250]
+
+        fu = FollowUp(
+            ticket_id=ticket_id,
+            fu_type=FollowUp.FuType.ACTION.value,
+            title=title,
+            user_id=user.id,
+            ticket_change=tc
+        )
+        fu.save(force_insert=True)
+        return fu

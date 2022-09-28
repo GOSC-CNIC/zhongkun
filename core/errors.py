@@ -359,6 +359,11 @@ class TooManyTicket(ConflictError):
     default_code = 'TooManyTicket'
 
 
+class ConflictTicketStatus(ConflictError):
+    default_message = _('工单当前的状态不允许此请求。')
+    default_code = 'ConflictTicketStatus'
+
+
 def convert_to_error(err):
     if isinstance(err, Error):
         return err

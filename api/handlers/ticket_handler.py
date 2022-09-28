@@ -4,9 +4,8 @@ from rest_framework.response import Response
 from core import errors as exceptions
 from api.viewsets import AsRoleGenericViewSet
 from api.serializers import ticket as ticket_serializers
-from ticket.models import Ticket
+from ticket.models import Ticket, TicketChange
 from ticket.managers import TicketManager
-from users.models import UserProfile
 
 from .handlers import serializer_error_msg
 
@@ -73,6 +72,70 @@ class TicketHandler:
             raise exceptions.BadRequest(message=_('问题相关的服务无效'), code='InvalidServiceType')
 
         return data
+
+    @staticmethod
+    def update_ticket(view: AsRoleGenericViewSet, request, kwargs):
+        ticket_id = kwargs[view.lookup_field]
+
+        try:
+            params = TicketHandler._ticket_create_validate_params(view=view, request=request)
+            ticket = TicketManager.get_ticket(ticket_id=ticket_id)
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        new_title = params['title']
+        new_description = params['description']
+        new_service_type = params['service_type']
+        new_contact = params['contact']
+
+        if ticket.submitter_id != request.user.id:
+            return view.exception_response(exceptions.AccessDenied(message='你没有此工单的访问权限'))
+
+        if ticket.status not in [Ticket.Status.OPEN.value, Ticket.Status.PROGRESS.value]:
+            return view.exception_response(exceptions.ConflictTicketStatus(message='只允许更改状态为“打开”和“处理中”的工单'))
+
+        no_changes = all([
+            new_title == ticket.title,
+            new_description == ticket.description,
+            new_service_type == ticket.service_type,
+            new_contact == ticket.contact
+        ])
+        if no_changes:
+            return Response(data=ticket_serializers.TicketSerializer(instance=ticket).data)
+
+        update_fields = []
+        ticket_chenges = []
+        if new_title != ticket.title:
+            update_fields.append('title')
+            ticket_chenges.append([TicketChange.TicketField.TITLE.value, ticket.title, new_title])
+            ticket.title = new_title
+
+        if new_description != ticket.description:
+            update_fields.append('description')
+            ticket_chenges.append([TicketChange.TicketField.DESCRIPTION.value, ticket.description, new_description])
+            ticket.description = new_description
+
+        if new_service_type != ticket.service_type:
+            update_fields.append('service_type')
+            ticket.service_type = new_service_type
+
+        if new_contact != ticket.contact:
+            update_fields.append('contact')
+            ticket.contact = new_contact
+
+        try:
+            ticket.save(update_fields=update_fields)
+            # open状态的工单更改不产生 更改记录
+            if ticket.status != Ticket.Status.OPEN.value and ticket_chenges:
+                for field, old_value, new_value in ticket_chenges:
+                    TicketManager.create_followup_action(
+                        user=request.user, ticket_id=ticket.id, field_name=field,
+                        old_value=old_value, new_value=new_value, atomic=False
+                    )
+        except Exception as exc:
+            return view.exception_response(exceptions.Error(message=_('更改工单失败。') + str(exc)))
+
+        return Response(data=ticket_serializers.TicketSerializer(instance=ticket).data)
 
     @staticmethod
     def list_tickets(view: AsRoleGenericViewSet, request, kwargs):
