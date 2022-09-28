@@ -45,3 +45,32 @@ class TicketSerializer(serializers.Serializer):
             return {'id': obj.assigned_to.id, 'username': obj.assigned_to.username}
 
         return None
+
+
+class TicketChangeSerializer(serializers.Serializer):
+    id = serializers.CharField(label='id')
+    ticket_field = serializers.CharField(label=_('字段'))
+    old_value = serializers.CharField(label=_('旧值'))
+    new_value = serializers.CharField(label=_('新值'))
+
+
+class FollowUpCreateSerializer(serializers.Serializer):
+    comment = serializers.CharField(label=_('回复/评论'), required=True)
+
+
+class FollowUpSerializer(serializers.Serializer):
+    id = serializers.CharField(label='id')
+    title = serializers.CharField(label=_('标题'), max_length=250, help_text=_('疑问或问题的简述'))
+    comment = serializers.CharField(label=_('回复/评论'), required=True)
+    submit_time = serializers.DateTimeField(label=_('提交时间'))
+    fu_type = serializers.CharField(label=_('类型'))
+    ticket_id = serializers.CharField(label=_('工单ID'))
+    user = serializers.SerializerMethodField(label=_('提交人'), method_name='get_user')
+    ticket_change = TicketChangeSerializer(required=False)
+
+    @staticmethod
+    def get_user(obj):
+        if obj.user:
+            return {'id': obj.user.id, 'username': obj.user.username}
+
+        return None

@@ -419,7 +419,7 @@ class TicketTests(MyAPITestCase):
 
         # user, open status, change all, ok
         new_ticket_data = {
-            'title': '工单1abcdef标题ggg',
+            'title': 'abcdefghij' * 20,     # length 200
             'description': '工单1问题描述, 不少于10个字符长度sss',
             'service_type': Ticket.ServiceType.ACCOUNT.value,
             'contact': '联系方式dd'
@@ -437,7 +437,7 @@ class TicketTests(MyAPITestCase):
         ticket1_user.status = Ticket.Status.PROGRESS.value
         ticket1_user.save(update_fields=['status'])
         new_ticket_data2 = {
-            'title': '工单1abcdef标题ggg好还是',
+            'title': '工单1abcdef标题ggg好还是123' * 10,       # length 200
             'description': '呃呃工单1问题描述, 不少于10个字符长度sss',
             'service_type': Ticket.ServiceType.STORAGE.value,
             'contact': '联系方式ddhjj'
@@ -733,3 +733,128 @@ class TicketTests(MyAPITestCase):
         self.assertEqual(tc.ticket_field, TicketChange.TicketField.STATUS.value)
         self.assertEqual(tc.old_value, old_value)
         self.assertEqual(tc.new_value, new_value)
+
+    def test_add_followup(self):
+        ticket_data = {
+            'title': '工单1abcdef标题',
+            'description': '工单1问题描述, 不少于10个字符长度',
+            'service_type': Ticket.ServiceType.BILL.value,
+            'contact': '联系方式'
+        }
+        ticket1_user = Ticket(
+            title=ticket_data['title'],
+            description=ticket_data['description'],
+            service_type=ticket_data['service_type'],
+            contact=ticket_data['contact'],
+            status=Ticket.Status.OPEN.value,
+            severity=Ticket.Severity.NORMAL.value,
+            submitter=self.user,
+            username=self.user.username,
+            assigned_to=self.user2
+        )
+        ticket1_user.save(force_insert=True)
+
+        # user, NotAuthenticated
+        url = reverse('api:support-ticket-add-followup', kwargs={'id': 'test'})
+        r = self.client.post(url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+
+        self.client.force_login(self.user)
+
+        # user, InvalidComment
+        url = reverse('api:support-ticket-add-followup', kwargs={'id': ticket1_user.id})
+        r = self.client.post(url)
+        self.assertErrorResponse(status_code=400, code='InvalidComment', response=r)
+
+        url = reverse('api:support-ticket-add-followup', kwargs={'id': ticket1_user.id})
+        r = self.client.post(url, data={'comment': ''})
+        self.assertErrorResponse(status_code=400, code='InvalidComment', response=r)
+
+        # user, TicketNotExist
+        url = reverse('api:support-ticket-add-followup', kwargs={'id': 'test'})
+        r = self.client.post(url, data={'comment': '测试test回复'})
+        self.assertErrorResponse(status_code=404, code='TicketNotExist', response=r)
+
+        # user, ok add followup
+        url = reverse('api:support-ticket-add-followup', kwargs={'id': ticket1_user.id})
+        r = self.client.post(url, data={'comment': '测试test回复2'})
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=[
+            'id', 'title', 'comment', 'submit_time', 'fu_type', 'ticket_id', 'user', 'ticket_change'
+        ], container=r.data)
+        self.assertEqual(r.data['user'], {'id': self.user.id, 'username': self.user.username})
+        self.assertIsNone(r.data['ticket_change'])
+        self.assertEqual(r.data['comment'], '测试test回复2')
+
+        # user, CANCELED ticket, ConflictTicketStatus
+        ticket1_user.status = Ticket.Status.CANCELED.value
+        ticket1_user.save(update_fields=['status'])
+        url = reverse('api:support-ticket-add-followup', kwargs={'id': ticket1_user.id})
+        r = self.client.post(url, data={'comment': 'adada测试test回复2'})
+        self.assertErrorResponse(status_code=409, code='ConflictTicketStatus', response=r)
+
+        # user, CLOSED ticket, ConflictTicketStatus
+        ticket1_user.status = Ticket.Status.CLOSED.value
+        ticket1_user.save(update_fields=['status'])
+        url = reverse('api:support-ticket-add-followup', kwargs={'id': ticket1_user.id})
+        r = self.client.post(url, data={'comment': 'adada测试test回复2'})
+        self.assertErrorResponse(status_code=409, code='ConflictTicketStatus', response=r)
+
+        # user2, AccessDenied
+        self.client.logout()
+        self.client.force_login(self.user2)
+
+        ticket1_user.status = Ticket.Status.PROGRESS.value
+        ticket1_user.save(update_fields=['status'])
+        url = reverse('api:support-ticket-add-followup', kwargs={'id': ticket1_user.id})
+        r = self.client.post(url, data={'comment': 'adada测试test回复2'})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        # ---- as_role ------
+        # user2, InvalidAsRole
+        url = reverse('api:support-ticket-add-followup', kwargs={'id': ticket1_user.id})
+        query = parse.urlencode(query={'as_role': 'test'})
+        r = self.client.post(f'{url}?{query}', data={'comment': 'adada测试test回复2'})
+        self.assertErrorResponse(status_code=400, code='InvalidAsRole', response=r)
+
+        # user2, as_role, AccessDenied
+        url = reverse('api:support-ticket-add-followup', kwargs={'id': ticket1_user.id})
+        query = parse.urlencode(query={'as_role': 'admin'})
+        r = self.client.post(f'{url}?{query}', data={'comment': 'adada测试test回复2'})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        self.user2.set_federal_admin()
+
+        # user2, as_role, ok
+        url = reverse('api:support-ticket-add-followup', kwargs={'id': ticket1_user.id})
+        query = parse.urlencode(query={'as_role': 'admin'})
+        r = self.client.post(f'{url}?{query}', data={'comment': 'user2 adada测试test回复2'})
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=[
+            'id', 'title', 'comment', 'submit_time', 'fu_type', 'ticket_id', 'user', 'ticket_change'
+        ], container=r.data)
+        self.assertEqual(r.data['user'], {'id': self.user2.id, 'username': self.user2.username})
+        self.assertIsNone(r.data['ticket_change'])
+        self.assertEqual(r.data['comment'], 'user2 adada测试test回复2')
+
+        # user2, as_role, ConflictTicketStatus
+        ticket1_user.status = Ticket.Status.CANCELED.value
+        ticket1_user.save(update_fields=['status'])
+        url = reverse('api:support-ticket-add-followup', kwargs={'id': ticket1_user.id})
+        query = parse.urlencode(query={'as_role': 'admin'})
+        r = self.client.post(f'{url}?{query}', data={'comment': 'user2 adada测试test回复2'})
+        self.assertErrorResponse(status_code=409, code='ConflictTicketStatus', response=r)
+
+        ticket1_user.status = Ticket.Status.CLOSED.value
+        ticket1_user.save(update_fields=['status'])
+        url = reverse('api:support-ticket-add-followup', kwargs={'id': ticket1_user.id})
+        query = parse.urlencode(query={'as_role': 'admin'})
+        r = self.client.post(f'{url}?{query}', data={'comment': 'user2 adada测试test回复2'})
+        self.assertErrorResponse(status_code=409, code='ConflictTicketStatus', response=r)
+
+        ticket1_user.status = Ticket.Status.RESOLVED.value
+        ticket1_user.save(update_fields=['status'])
+        url = reverse('api:support-ticket-add-followup', kwargs={'id': ticket1_user.id})
+        query = parse.urlencode(query={'as_role': 'admin'})
+        r = self.client.post(f'{url}?{query}', data={'comment': 'user2 adada测试test回复2'})
+        self.assertErrorResponse(status_code=409, code='ConflictTicketStatus', response=r)

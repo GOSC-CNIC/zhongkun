@@ -345,10 +345,62 @@ class TicketViewSet(AsRoleGenericViewSet):
         """
         return TicketHandler().ticket_status_change(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('向工单提交一个回复/评论'),
+        manual_parameters=AsRoleGenericViewSet.PARAMETERS_AS_ROLE,
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['POST'], detail=True, url_path='followup', url_name='add-followup')
+    def add_followup(self, request, *args, **kwargs):
+        """
+        向工单提交一个回复/评论
+
+            * 工单提交人向自己的工单提交一个回复/评论
+            * 以 联邦管理员 身份 向工单提交一个回复/评论
+            * ”已解决“、”已关闭“和”已取消/作废“状态的工单不允许提交回复
+
+            http code 200：
+            {
+                "id": "202209280718342325534973",
+                "title": "",
+                "comment": "test测试回复",
+                "submit_time": "2022-09-28T07:18:34.233310Z",
+                "fu_type": "reply",
+                "ticket_id": "202209260136038015666375",
+                "user": {
+                    "id": "1",
+                    "username": "shun"
+                },
+                "ticket_change": null
+            }
+
+            http code 400, 403, 404, 409, 500:
+            {
+                "code": "TicketNotExist",
+                "message": "工单不存在"
+            }
+            400:
+                InvalidAsRole: 指定的身份无效
+                InvalidComment: 回复内容无效 / 不能为空
+            403:
+                AccessDenied: 你没有此工单的访问权限 / 你没有联邦管理员权限
+            404:
+                TicketNotExist: 工单不存在
+            409:
+                ConflictTicketStatus: xxx状态的工单不允许提交回复
+            500:
+                InternalError: 添加工单回复错误
+        """
+        return TicketHandler().add_followup(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action in ['create', 'update_ticket']:
             return ticket_serializers.TicketCreateSerializer
         elif self.action in ['list', 'retrieve']:
             return ticket_serializers.TicketSerializer
+        elif self.action == 'add_followup':
+            return ticket_serializers.FollowUpCreateSerializer
 
         return Serializer

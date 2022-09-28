@@ -111,3 +111,19 @@ class TicketManager:
         )
         fu.save(force_insert=True)
         return fu
+
+    @staticmethod
+    def create_followup_reply(user, ticket_id: str, comment: str):
+        """
+        添加工单跟进动态
+        """
+        fu = FollowUp(
+            ticket_id=ticket_id,
+            fu_type=FollowUp.FuType.REPLY.value,
+            title='',
+            comment=comment,
+            user_id=user.id,
+            ticket_change=None
+        )
+        fu.save(force_insert=True)
+        return fu

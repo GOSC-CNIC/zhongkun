@@ -315,3 +315,66 @@ class TicketHandler:
             return view.exception_response(exceptions.Error(message=_('更改工单状态失败。') + str(exc)))
 
         return Response(data={'status': new_status})
+
+    @staticmethod
+    def add_followup(view: AsRoleGenericViewSet, request, kwargs):
+        ticket_id = kwargs[view.lookup_field]
+        try:
+            params = TicketHandler._add_followup_validate_params(view=view, request=request)
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        try:
+            has_role, role = view.check_as_role_request(request=request)
+            ticket = TicketManager.get_ticket(ticket_id=ticket_id)
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        comment = params['comment']
+        user = request.user
+        if has_role:
+            if role == view.AS_ROLE_ADMIN and user.is_federal_admin():
+                pass
+            else:
+                return view.exception_response(exceptions.AccessDenied(message=_('你没有联邦管理员权限')))
+        elif ticket.submitter_id != request.user.id:
+            return view.exception_response(exceptions.AccessDenied(message=_('你没有此工单的访问权限')))
+
+        if ticket.status in [Ticket.Status.CANCELED.value, Ticket.Status.RESOLVED.value, Ticket.Status.CLOSED.value]:
+            return view.exception_response(
+                exceptions.ConflictTicketStatus(
+                    message=_('”%(value)s“状态的工单不允许提交回复。') % {'value': ticket.get_status_display()}
+                ))
+
+        try:
+            folowup = TicketManager.create_followup_reply(
+                ticket_id=ticket.id, user=user, comment=comment
+            )
+        except Exception as exc:
+            return view.exception_response(exceptions.Error(message=_('添加工单回复错误。') + str(exc)))
+
+        return Response(data=ticket_serializers.FollowUpSerializer(instance=folowup).data)
+
+    @staticmethod
+    def _add_followup_validate_params(view, request):
+        """
+        :raises: Error
+        """
+        serializer = view.get_serializer(data=request.data)
+        if not serializer.is_valid(raise_exception=False):
+            s_errors = serializer.errors
+            if 'comment' in s_errors:
+                exc = exceptions.BadRequest(message=_('无效的回复。') + s_errors['comment'][0], code='InvalidComment')
+            else:
+                msg = serializer_error_msg(serializer.errors)
+                exc = exceptions.BadRequest(message=msg)
+
+            raise exc
+
+        data = serializer.validated_data
+        comment = data['comment']
+
+        if not comment:
+            raise exceptions.BadRequest(message=_('回复内容不能为空。'), code='InvalidComment')
+
+        return data
