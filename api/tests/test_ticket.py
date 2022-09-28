@@ -472,3 +472,78 @@ class TicketTests(MyAPITestCase):
         url = reverse('api:support-ticket-update-ticket', kwargs={'id': ticket1_user.id})
         r = self.client.post(url, data=new_ticket_data2)
         self.assertErrorResponse(status_code=409, code='ConflictTicketStatus', response=r)
+
+    def test_change_ticket_severity(self):
+        ticket_data = {
+            'title': '工单1abcdef标题',
+            'description': '工单1问题描述, 不少于10个字符长度',
+            'service_type': Ticket.ServiceType.BILL.value,
+            'contact': '联系方式'
+        }
+        ticket1_user = Ticket(
+            title=ticket_data['title'],
+            description=ticket_data['description'],
+            service_type=ticket_data['service_type'],
+            contact=ticket_data['contact'],
+            status=Ticket.Status.OPEN.value,
+            severity=Ticket.Severity.NORMAL.value,
+            submitter=self.user,
+            username=self.user.username,
+            assigned_to=self.user2
+        )
+        ticket1_user.save(force_insert=True)
+
+        # user, NotAuthenticated
+        url = reverse('api:support-ticket-ticket-severity-change', kwargs={'id': 'test', 'severity': 'ss'})
+        r = self.client.post(url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+
+        self.client.force_login(self.user)
+
+        # user, InvalidSeverity
+        url = reverse('api:support-ticket-ticket-severity-change', kwargs={'id': 'test', 'severity': 'ss'})
+        r = self.client.post(url)
+        self.assertErrorResponse(status_code=400, code='InvalidSeverity', response=r)
+
+        # user, AccessDenied
+        url = reverse('api:support-ticket-ticket-severity-change', kwargs={
+            'id': 'test', 'severity': Ticket.Severity.HIGH.value})
+        r = self.client.post(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        self.user.set_federal_admin()
+
+        # user, TicketNotExist
+        url = reverse('api:support-ticket-ticket-severity-change', kwargs={
+            'id': 'test', 'severity': Ticket.Severity.HIGH.value})
+        r = self.client.post(url)
+        self.assertErrorResponse(status_code=404, code='TicketNotExist', response=r)
+
+        # user, ok
+        url = reverse('api:support-ticket-ticket-severity-change', kwargs={
+            'id': ticket1_user.id, 'severity': Ticket.Severity.HIGH.value})
+        r = self.client.post(url)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['severity'], Ticket.Severity.HIGH.value)
+        old_severity = ticket1_user.severity
+        ticket1_user.refresh_from_db()
+        self.assertEqual(ticket1_user.severity, Ticket.Severity.HIGH.value)
+        fus = FollowUp.objects.select_related('ticket_change').all()
+        self.assertEqual(len(fus), 1)
+        for fu in fus:
+            self.assertEqual(fu.fu_type, FollowUp.FuType.ACTION.value)
+            tc: TicketChange = fu.ticket_change
+            self.assertEqual(tc.ticket_field, TicketChange.TicketField.SEVERITY.value)
+            self.assertEqual(tc.old_value, old_severity)
+            self.assertEqual(tc.new_value, Ticket.Severity.HIGH.value)
+
+        # same severity again ok
+        url = reverse('api:support-ticket-ticket-severity-change', kwargs={
+            'id': ticket1_user.id, 'severity': Ticket.Severity.HIGH.value})
+        r = self.client.post(url)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['severity'], Ticket.Severity.HIGH.value)
+        ticket1_user.refresh_from_db()
+        self.assertEqual(ticket1_user.severity, Ticket.Severity.HIGH.value)
+        fus = FollowUp.objects.select_related('ticket_change').all()
+        self.assertEqual(len(fus), 1)

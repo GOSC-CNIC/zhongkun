@@ -251,6 +251,50 @@ class TicketViewSet(AsRoleGenericViewSet):
         """
         return TicketHandler().update_ticket(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('更改一个工单的严重程度'),
+        request_body=no_body,
+        manual_parameters=[
+            openapi.Parameter(
+                name='severity',
+                in_=openapi.IN_PATH,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description=gettext_lazy('工单严重程度。') + f'{Ticket.Severity.choices}'
+            ),
+        ],
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['POST'], detail=True, url_path=r'severity/(?P<severity>[^/]+)', url_name='ticket-severity-change')
+    def ticket_severity_change(self, request, *args, **kwargs):
+        """
+        更改一个工单的严重程度
+
+            * 只允许联邦管理员修改工单的严重程度
+
+            http code 200：
+            {
+                "severity": "xxx"
+            }
+
+            http code 400, 403, 404, 500:
+            {
+                "code": "TicketNotExist",
+                "message": "工单不存在"
+            }
+            400:
+                InvalidSeverity: 指定的工单严重程度无效
+            403:
+                AccessDenied: 你没有此工单的访问权限
+            404:
+                TicketNotExist: 工单不存在
+            500:
+                InternalError: 更改工单错误
+        """
+        return TicketHandler().ticket_severity_change(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action in ['create', 'update_ticket']:
             return ticket_serializers.TicketCreateSerializer

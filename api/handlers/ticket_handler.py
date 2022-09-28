@@ -1,4 +1,5 @@
 from django.utils.translation import gettext as _
+from django.db import transaction
 from rest_framework.response import Response
 
 from core import errors as exceptions
@@ -89,10 +90,11 @@ class TicketHandler:
         new_contact = params['contact']
 
         if ticket.submitter_id != request.user.id:
-            return view.exception_response(exceptions.AccessDenied(message='你没有此工单的访问权限'))
+            return view.exception_response(exceptions.AccessDenied(message=_('你没有此工单的访问权限')))
 
         if ticket.status not in [Ticket.Status.OPEN.value, Ticket.Status.PROGRESS.value]:
-            return view.exception_response(exceptions.ConflictTicketStatus(message='只允许更改状态为“打开”和“处理中”的工单'))
+            return view.exception_response(
+                exceptions.ConflictTicketStatus(message=_('只允许更改状态为“打开”和“处理中”的工单')))
 
         no_changes = all([
             new_title == ticket.title,
@@ -103,7 +105,7 @@ class TicketHandler:
         if no_changes:
             return Response(data=ticket_serializers.TicketSerializer(instance=ticket).data)
 
-        update_fields = []
+        update_fields = ['modified_time']
         ticket_chenges = []
         if new_title != ticket.title:
             update_fields.append('title')
@@ -124,14 +126,15 @@ class TicketHandler:
             ticket.contact = new_contact
 
         try:
-            ticket.save(update_fields=update_fields)
-            # open状态的工单更改不产生 更改记录
-            if ticket.status != Ticket.Status.OPEN.value and ticket_chenges:
-                for field, old_value, new_value in ticket_chenges:
-                    TicketManager.create_followup_action(
-                        user=request.user, ticket_id=ticket.id, field_name=field,
-                        old_value=old_value, new_value=new_value, atomic=False
-                    )
+            with transaction.atomic():
+                ticket.save(update_fields=update_fields)
+                # open状态的工单更改不产生 更改记录
+                if ticket.status != Ticket.Status.OPEN.value and ticket_chenges:
+                    for field, old_value, new_value in ticket_chenges:
+                        TicketManager.create_followup_action(
+                            user=request.user, ticket_id=ticket.id, field_name=field,
+                            old_value=old_value, new_value=new_value, atomic=False
+                        )
         except Exception as exc:
             return view.exception_response(exceptions.Error(message=_('更改工单失败。') + str(exc)))
 
@@ -215,12 +218,47 @@ class TicketHandler:
             if role == view.AS_ROLE_ADMIN and user.is_federal_admin():
                 pass
             else:
-                return view.exception_response(exceptions.AccessDenied(message='你没有联邦管理员权限'))
+                return view.exception_response(exceptions.AccessDenied(message=_('你没有联邦管理员权限')))
         elif ticket.submitter_id != request.user.id:
-            return view.exception_response(exceptions.AccessDenied(message='你没有此工单的访问权限'))
+            return view.exception_response(exceptions.AccessDenied(message=_('你没有此工单的访问权限')))
 
         try:
             serializer = view.get_serializer(instance=ticket)
             return Response(data=serializer.data)
         except Exception as exc:
             return view.exception_response(exc)
+
+    @staticmethod
+    def ticket_severity_change(view: AsRoleGenericViewSet, request, kwargs):
+        ticket_id = kwargs[view.lookup_field]
+        new_severity = kwargs.get('severity', '')
+
+        if new_severity not in Ticket.Severity.values:
+            return view.exception_response(
+                exceptions.InvalidArgument(message=_('指定的工单严重程度无效。'), code='InvalidSeverity'))
+
+        if not request.user.is_federal_admin():
+            return view.exception_response(exceptions.AccessDenied(message=_('你没有此工单的访问权限。')))
+
+        try:
+            ticket = TicketManager.get_ticket(ticket_id=ticket_id)
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        if new_severity == ticket.severity:
+            return Response(data={'severity': new_severity})
+
+        try:
+            with transaction.atomic():
+                old_severity = ticket.severity
+                ticket.severity = new_severity
+                ticket.save(update_fields=['severity', 'modified_time'])
+                TicketManager.create_followup_action(
+                    user=request.user, ticket_id=ticket.id,
+                    field_name=TicketChange.TicketField.SEVERITY.value,
+                    old_value=old_severity, new_value=new_severity, atomic=False
+                )
+        except Exception as exc:
+            return view.exception_response(exceptions.Error(message=_('更改工单严重程度失败。') + str(exc)))
+
+        return Response(data={'severity': new_severity})
