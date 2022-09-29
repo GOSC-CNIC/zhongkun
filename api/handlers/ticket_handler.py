@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from core import errors as exceptions
 from api.viewsets import AsRoleGenericViewSet
 from api.serializers import ticket as ticket_serializers
+from api.paginations import FollowUpMarkerCursorPagination
 from ticket.models import Ticket, TicketChange
 from ticket.managers import TicketManager
 
@@ -378,3 +379,31 @@ class TicketHandler:
             raise exceptions.BadRequest(message=_('回复内容不能为空。'), code='InvalidComment')
 
         return data
+
+    @staticmethod
+    def list_followup(view: AsRoleGenericViewSet, request, kwargs):
+        ticket_id = kwargs[view.lookup_field]
+
+        try:
+            has_role, role = view.check_as_role_request(request=request)
+            ticket = TicketManager.get_ticket(ticket_id=ticket_id)
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        user = request.user
+        if has_role:
+            if role == view.AS_ROLE_ADMIN and user.is_federal_admin():
+                pass
+            else:
+                return view.exception_response(exceptions.AccessDenied(message=_('你没有联邦管理员权限')))
+        elif ticket.submitter_id != request.user.id:
+            return view.exception_response(exceptions.AccessDenied(message=_('你没有此工单的访问权限')))
+
+        queryset = TicketManager.get_ticket_followup_queryset(ticket_id=ticket.id)
+        paginator = FollowUpMarkerCursorPagination()
+        try:
+            followups = paginator.paginate_queryset(queryset=queryset, request=request, view=view)
+            serializer = ticket_serializers.FollowUpSerializer(followups, many=True)
+            return paginator.get_paginated_response(data=serializer.data)
+        except Exception as exc:
+            return view.exception_response(exc)

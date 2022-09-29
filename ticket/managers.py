@@ -127,3 +127,11 @@ class TicketManager:
         )
         fu.save(force_insert=True)
         return fu
+
+    @staticmethod
+    def get_followup_queryset():
+        return FollowUp.objects.all()
+
+    @staticmethod
+    def get_ticket_followup_queryset(ticket_id: str):
+        return FollowUp.objects.select_related('ticket_change').filter(ticket_id=ticket_id).all()

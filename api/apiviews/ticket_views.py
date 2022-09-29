@@ -6,7 +6,7 @@ from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
 from api.viewsets import AsRoleGenericViewSet
-from api.paginations import NewPageNumberPagination
+from api.paginations import NewPageNumberPagination, FollowUpMarkerCursorPagination
 from api.serializers import ticket as ticket_serializers
 from api.handlers.ticket_handler import TicketHandler
 from ticket.models import Ticket
@@ -17,7 +17,7 @@ class TicketViewSet(AsRoleGenericViewSet):
     permission_classes = [IsAuthenticated, ]
     pagination_class = NewPageNumberPagination
     lookup_field = 'id'
-    # lookup_value_regex = '[0-9a-z-]+'
+    # lookup_value_regex = '[^/]+'
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('提交一个工单'),
@@ -352,7 +352,7 @@ class TicketViewSet(AsRoleGenericViewSet):
             200: ''
         }
     )
-    @action(methods=['POST'], detail=True, url_path='followup', url_name='add-followup')
+    @action(methods=['POST'], detail=True, url_path='followup/add', url_name='add-followup')
     def add_followup(self, request, *args, **kwargs):
         """
         向工单提交一个回复/评论
@@ -395,6 +395,93 @@ class TicketViewSet(AsRoleGenericViewSet):
         """
         return TicketHandler().add_followup(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举工单的跟进动态/回复'),
+        manual_parameters=[
+            openapi.Parameter(
+                name=FollowUpMarkerCursorPagination.cursor_query_param,
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=FollowUpMarkerCursorPagination.cursor_query_description
+            ),
+            openapi.Parameter(
+                name=FollowUpMarkerCursorPagination.page_size_query_param,
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=FollowUpMarkerCursorPagination.page_size_query_description
+            ),
+        ] + AsRoleGenericViewSet.PARAMETERS_AS_ROLE,
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['GET'], detail=True, url_path='followup/list', url_name='list-followup')
+    def list_followup(self, request, *args, **kwargs):
+        """
+        列举工单的跟进动态/回复
+
+            * 工单提交人列举自己的工单的回复/评论
+            * 以 联邦管理员 身份 列举工单的回复/评论
+
+            http code 200：
+            {
+                "has_next": true,
+                "page_size": 2,
+                "marker": null,
+                "next_marker": "cD0yMDIyLTA5LTI4KzA3JTNBMjElM0EzMS41OTA5ODElMkIwMCUzQTAw",
+                "results": [
+                    {
+                        "id": "202209290244317663482751",
+                        "title": "工单严重程度 从 \"一般\" 更改为 \"高\"",
+                        "comment": "",
+                        "submit_time": "2022-09-29T02:44:31.767969Z",
+                        "fu_type": "action",
+                        "ticket_id": "202209260136038015666375",
+                        "user": {
+                            "id": "1",
+                            "username": "shun"
+                        },
+                        "ticket_change": {
+                            "id": "202209290244317507774253",
+                            "ticket_field": "severity",
+                            "old_value": "normal",
+                            "new_value": "high"
+                        }
+                    },
+                    {
+                        "id": "202209280721315902450529",
+                        "title": "",
+                        "comment": "test测试回复、n方式佛啊哎u去",
+                        "submit_time": "2022-09-28T07:21:31.590981Z",
+                        "fu_type": "reply",
+                        "ticket_id": "202209260136038015666375",
+                        "user": {
+                            "id": "1",
+                            "username": "shun"
+                        },
+                        "ticket_change": null
+                    }
+                ]
+            }
+
+            http code 400, 403, 404, 409, 500:
+            {
+                "code": "TicketNotExist",
+                "message": "工单不存在"
+            }
+            400:
+                InvalidAsRole: 指定的身份无效
+            403:
+                AccessDenied: 你没有此工单的访问权限 / 你没有联邦管理员权限
+            404:
+                TicketNotExist: 工单不存在
+            500:
+                InternalError: 服务内部错误
+        """
+        return TicketHandler().list_followup(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action in ['create', 'update_ticket']:
             return ticket_serializers.TicketCreateSerializer
@@ -404,3 +491,6 @@ class TicketViewSet(AsRoleGenericViewSet):
             return ticket_serializers.FollowUpCreateSerializer
 
         return Serializer
+
+    # def paginator(self):
+    #     super().paginator

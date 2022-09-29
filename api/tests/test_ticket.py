@@ -4,6 +4,7 @@ from django.urls import reverse
 
 from utils.test import get_or_create_user
 from ticket.models import Ticket, FollowUp, TicketChange
+from ticket.managers import TicketManager
 from . import MyAPITestCase
 
 
@@ -858,3 +859,142 @@ class TicketTests(MyAPITestCase):
         query = parse.urlencode(query={'as_role': 'admin'})
         r = self.client.post(f'{url}?{query}', data={'comment': 'user2 adada测试test回复2'})
         self.assertErrorResponse(status_code=409, code='ConflictTicketStatus', response=r)
+
+    def test_list_followup(self):
+        ticket_data = {
+            'title': '工单1abcdef标题',
+            'description': '工单1问题描述, 不少于10个字符长度',
+            'service_type': Ticket.ServiceType.BILL.value,
+            'contact': '联系方式'
+        }
+        ticket1_user = Ticket(
+            title=ticket_data['title'],
+            description=ticket_data['description'],
+            service_type=ticket_data['service_type'],
+            contact=ticket_data['contact'],
+            status=Ticket.Status.OPEN.value,
+            severity=Ticket.Severity.NORMAL.value,
+            submitter=self.user,
+            username=self.user.username,
+            assigned_to=self.user2
+        )
+        ticket1_user.save(force_insert=True)
+
+        fu1 = TicketManager.create_followup_reply(user=self.user, ticket_id=ticket1_user.id, comment='test reply')
+        fu2 = TicketManager.create_followup_action(
+            user=self.user2, ticket_id=ticket1_user.id, field_name=TicketChange.TicketField.STATUS.value,
+            old_value=Ticket.Status.OPEN.value, new_value=Ticket.Status.PROGRESS.value
+        )
+        fu3 = TicketManager.create_followup_reply(user=self.user2, ticket_id=ticket1_user.id, comment='rereply test')
+
+        # user, NotAuthenticated
+        url = reverse('api:support-ticket-list-followup', kwargs={'id': 'test'})
+        r = self.client.get(url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+
+        self.client.force_login(self.user)
+
+        # user, TicketNotExist
+        url = reverse('api:support-ticket-list-followup', kwargs={'id': 'test'})
+        r = self.client.get(url)
+        self.assertErrorResponse(status_code=404, code='TicketNotExist', response=r)
+
+        # user, ok list followup
+        url = reverse('api:support-ticket-list-followup', kwargs={'id': ticket1_user.id})
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=[
+            'has_next', 'page_size', 'marker', 'next_marker', 'results'
+        ], container=r.data)
+        self.assertEqual(len(r.data['results']), 3)
+        self.assertKeysIn(keys=[
+            'id', 'title', 'comment', 'submit_time', 'fu_type', 'ticket_id', 'user', 'ticket_change'
+        ], container=r.data['results'][1])
+        self.assertEqual(r.data['results'][1]['id'], fu2.id)
+        self.assertEqual(r.data['results'][1]['user'], {'id': self.user2.id, 'username': self.user2.username})
+        self.assertEqual(r.data['results'][1]['ticket_change'], {
+            'id': fu2.ticket_change.id, 'ticket_field': TicketChange.TicketField.STATUS.value,
+            'old_value': Ticket.Status.OPEN.value, 'new_value': Ticket.Status.PROGRESS.value
+        })
+
+        # user, page_size
+        url = reverse('api:support-ticket-list-followup', kwargs={'id': ticket1_user.id})
+        query = parse.urlencode(query={'page_size': 1})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertEqual(r.data['results'][0]['id'], fu3.id)
+        self.assertIs(r.data['has_next'], True)
+        self.assertEqual(r.data['page_size'], 1)
+        next_marker = r.data['next_marker']
+
+        # user, page_size, marker
+        url = reverse('api:support-ticket-list-followup', kwargs={'id': ticket1_user.id})
+        query = parse.urlencode(query={'page_size': 2, 'marker': next_marker})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data['results']), 2)
+        self.assertEqual(r.data['results'][0]['id'], fu2.id)
+        self.assertEqual(r.data['results'][1]['id'], fu1.id)
+        self.assertIs(r.data['has_next'], False)
+        self.assertEqual(r.data['page_size'], 2)
+        self.assertIsNone(r.data['next_marker'])
+
+        # user2, AccessDenied
+        self.client.logout()
+        self.client.force_login(self.user2)
+
+        url = reverse('api:support-ticket-list-followup', kwargs={'id': ticket1_user.id})
+        r = self.client.get(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        # ---- as_role ------
+        # user2, InvalidAsRole
+        url = reverse('api:support-ticket-list-followup', kwargs={'id': ticket1_user.id})
+        query = parse.urlencode(query={'as_role': 'test'})
+        r = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidAsRole', response=r)
+
+        # user2, as_role, AccessDenied
+        url = reverse('api:support-ticket-list-followup', kwargs={'id': ticket1_user.id})
+        query = parse.urlencode(query={'as_role': 'admin'})
+        r = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        self.user2.set_federal_admin()
+
+        # user2, as_role, ok
+        url = reverse('api:support-ticket-list-followup', kwargs={'id': ticket1_user.id})
+        query = parse.urlencode(query={'as_role': 'admin'})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=[
+            'has_next', 'page_size', 'marker', 'next_marker', 'results'
+        ], container=r.data)
+        self.assertEqual(len(r.data['results']), 3)
+        self.assertEqual(r.data['results'][1]['id'], fu2.id)
+        self.assertEqual(r.data['results'][1]['user'], {'id': self.user2.id, 'username': self.user2.username})
+        self.assertIsNotNone(r.data['results'][1]['ticket_change'], None)
+
+        # user2, as_role, page_size
+        url = reverse('api:support-ticket-list-followup', kwargs={'id': ticket1_user.id})
+        query = parse.urlencode(query={'page_size': 1, 'as_role': 'admin'})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertEqual(r.data['results'][0]['id'], fu3.id)
+        self.assertIsNone(r.data['results'][0]['ticket_change'], None)
+        self.assertIs(r.data['has_next'], True)
+        self.assertEqual(r.data['page_size'], 1)
+        next_marker = r.data['next_marker']
+
+        # user2, as_role, page_size, marker
+        url = reverse('api:support-ticket-list-followup', kwargs={'id': ticket1_user.id})
+        query = parse.urlencode(query={'page_size': 1, 'marker': next_marker, 'as_role': 'admin'})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertEqual(r.data['results'][0]['id'], fu2.id)
+        self.assertIs(r.data['has_next'], True)
+        self.assertEqual(r.data['page_size'], 1)
+        self.assertIsNotNone(r.data['next_marker'])
