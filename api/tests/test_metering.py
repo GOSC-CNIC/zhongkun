@@ -3,7 +3,6 @@ from urllib import parse
 from datetime import date
 
 from django.urls import reverse
-import service
 
 from utils.model import PayType, OwnerType
 from utils.test import get_or_create_service, get_or_create_user
@@ -14,7 +13,7 @@ from . import set_auth_header, MyAPITestCase
 from servers.models import Server, ServerArchive 
 from django.utils import timezone
 from users.models import UserProfile
-from metering.managers import StatementServerManager
+
 
 class MeteringServerTests(MyAPITestCase):
     def setUp(self):
@@ -1307,8 +1306,8 @@ class StatementServerTests(MyAPITestCase):
         self.service2.save()
 
     def create_statement_server(self):
-        ### user
-        ## user
+        # ## user
+        # # user
         # 2022-1-1 service
         u_st0 = DailyStatementServer(
             original_amount='1.11',
@@ -1360,7 +1359,7 @@ class StatementServerTests(MyAPITestCase):
         )
         u_st2.save(force_insert=True)
 
-        ## user2
+        # # user2
         u_st3 = DailyStatementServer(
             original_amount='4.44',
             payable_amount='4.44',
@@ -1377,7 +1376,7 @@ class StatementServerTests(MyAPITestCase):
         )
         u_st3.save(force_insert=True) 
 
-        ### vo
+        # ## vo
         # 2022-1-1 service
         v_st0 = DailyStatementServer(
             original_amount='5.55',
@@ -1456,14 +1455,14 @@ class StatementServerTests(MyAPITestCase):
         # create statement server
         u_st0, u_st1, u_st2, u_st3, v_st0, v_st1, v_st2 = self.create_statement_server()
 
-        ### list user 
+        # ------ list user -------
         # no params
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 3)
         self.assertEqual(len(response.data['statements']), 3)
         self.assertKeysIn(["id", "original_amount", "payable_amount", "trade_amount",
-                           "payment_status", "payment_history_id", "service_id", "date", "creation_time",
+                           "payment_status", "payment_history_id", "service", "date", "creation_time",
                            "user_id", "username", "vo_id", "vo_name", "owner_type"], response.data['statements'][0])
 
         self.assertEqual(response.data['statements'][0]['original_amount'], u_st2.original_amount)
@@ -1511,8 +1510,7 @@ class StatementServerTests(MyAPITestCase):
         self.assertEqual(response.data['count'], 2)
         self.assertEqual(len(response.data['statements']), 2)
 
-
-        ### list vo 
+        # ---- list vo ------
         query = parse.urlencode(query={
             'vo_id': self.vo.id
         })
@@ -1521,8 +1519,9 @@ class StatementServerTests(MyAPITestCase):
         self.assertEqual(response.data['count'], 3)
         self.assertEqual(len(response.data['statements']), 3)
         self.assertKeysIn(["id", "original_amount", "payable_amount", "trade_amount",
-                           "payment_status", "payment_history_id", "service_id", "date", "creation_time",
+                           "payment_status", "payment_history_id", "service", "date", "creation_time",
                            "user_id", "username", "vo_id", "vo_name", "owner_type"], response.data['statements'][0])
+        self.assertKeysIn(["id", "name", "name_en", "service_type"], response.data['statements'][0]['service'])
         self.assertEqual(response.data['statements'][0]['original_amount'], v_st2.original_amount)
         self.assertEqual(response.data['statements'][1]['original_amount'], v_st1.original_amount)
         self.assertEqual(response.data['statements'][2]['original_amount'], v_st0.original_amount)
@@ -1587,7 +1586,7 @@ class StatementServerTests(MyAPITestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["id", "original_amount", "payable_amount", "trade_amount",
-                           "payment_status", "payment_history_id", "service_id", "date", "creation_time",
+                           "payment_status", "payment_history_id", "service", "date", "creation_time",
                            "user_id", "username", "vo_id", "vo_name", "owner_type", "service"], response.data)
         self.assertKeysIn(["id", "name", "name_en", "service_type"], response.data['service'])
 
@@ -1598,7 +1597,6 @@ class StatementServerTests(MyAPITestCase):
             "trade_amount": u_st0.trade_amount,
             "payment_status": u_st0.payment_status,
             "payment_history_id": u_st0.payment_history_id,
-            "service_id": u_st0.service_id,
             "user_id": self.user.id,
             "username": self.user.username,
             "vo_id": '',
@@ -1617,7 +1615,7 @@ class StatementServerTests(MyAPITestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["id", "original_amount", "payable_amount", "trade_amount",
-                           "payment_status", "payment_history_id", "service_id", "date", "creation_time",
+                           "payment_status", "payment_history_id", "service", "date", "creation_time",
                            "user_id", "username", "vo_id", "vo_name", "owner_type", "service"], response.data)
         self.assertKeysIn(["id", "name", "name_en", "service_type"], response.data['service'])
         self.assertEqual(response.data['original_amount'], v_st0.original_amount)
@@ -1641,4 +1639,3 @@ class StatementServerTests(MyAPITestCase):
         url = reverse('api:statement-server-detail', kwargs={'id': v_st1.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 403)
-

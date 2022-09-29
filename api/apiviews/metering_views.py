@@ -441,14 +441,19 @@ class StatementServerViewSet(CustomGenericViewSet):
                   "trade_amount": "0.00",
                   "payment_status": "unpaid",
                   "payment_history_id": "",
-                  "service_id": "89bb16e4-36d2-11ec-bb60-c8009fe2eb03",
                   "date": "2022-01-01",
                   "creation_time": "2022-08-26T03:52:10.358606Z",
                   "user_id": "",
                   "username": "",
                   "vo_id": "1d35892c-36d3-11ec-8e3b-c8009fe2eb03",
                   "vo_name": "科研计算云联邦演示",
-                  "owner_type": "vo"
+                  "owner_type": "vo",
+                  "service": {
+                    "id": "1d35892c-36d3-11ec-8e3b-c8009fe2eb03",
+                    "name": "科技云联邦研发与运行",
+                    "name_en": "CSTCloud Federation Dev & Ops",
+                    "service_type": "evcloud"
+                  }
                 }
               ]
             }
@@ -476,7 +481,6 @@ class StatementServerViewSet(CustomGenericViewSet):
               "trade_amount": "0.00",
               "payment_status": "unpaid",
               "payment_history_id": "",
-              "service_id": "1",
               "date": "2022-01-01",
               "creation_time": "2022-08-26T03:52:10.341058Z",
               "user_id": "",
@@ -496,7 +500,7 @@ class StatementServerViewSet(CustomGenericViewSet):
 
     def get_serializer_class(self):
         if self.action == 'list':
-            return serializers.DailyStatementServerSerializer
+            return serializers.DailyStatementServerDetailSerializer
         elif self.action == 'retrieve':
             return serializers.DailyStatementServerDetailSerializer
 

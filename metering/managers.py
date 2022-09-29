@@ -442,6 +442,7 @@ class MeteringServerManager:
 
         return data
 
+
 class StatementServerManager:
     @staticmethod
     def get_statement_server_queryset():
@@ -472,7 +473,6 @@ class StatementServerManager:
 
         return queryset.order_by('-creation_time')
 
-    
     def filter_vo_statement_server_queryset(
         self, payment_status: str, date_start, date_end, user, vo_id: str
     ):
@@ -487,7 +487,8 @@ class StatementServerManager:
             date_end=date_end, vo_id=vo_id
         )
 
-    def _has_vo_permission(self, vo_id, user, read_only: bool = True):
+    @staticmethod
+    def _has_vo_permission(vo_id, user, read_only: bool = True):
         """
         是否有vo组的权限
 
@@ -504,11 +505,15 @@ class StatementServerManager:
     @staticmethod
     def get_statement_server(statement_id: str, select_for_update: bool = False):
         if select_for_update:
-            return DailyStatementServer.objects.filter(id=statement_id).select_for_update().first()
+            return DailyStatementServer.objects.filter(
+                id=statement_id
+            ).select_related('service').select_for_update().first()
 
-        return DailyStatementServer.objects.filter(id=statement_id).first()
+        return DailyStatementServer.objects.filter(id=statement_id).select_related('service').first()
 
-    def get_statement_server_detail(self, statement_id: str, user, check_permission: bool = True, read_only: bool = True):
+    def get_statement_server_detail(
+            self, statement_id: str, user, check_permission: bool = True, read_only: bool = True
+    ):
         """
         查询日结算单详情
 
@@ -535,6 +540,4 @@ class StatementServerManager:
                 except errors.Error as exc:
                     raise errors.AccessDenied(message=exc.message)
 
-        service = ServiceConfig.objects.filter(id=statement.service_id).first()
-
-        return statement, service
+        return statement

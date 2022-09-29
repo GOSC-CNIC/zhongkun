@@ -762,11 +762,10 @@ class StatementHandler:
         statement_id: str = kwargs.get(view.lookup_field, '')
 
         try:
-            statement, service = StatementServerManager().get_statement_server_detail(statement_id=statement_id, user=request.user)
+            statement = StatementServerManager().get_statement_server_detail(
+                statement_id=statement_id, user=request.user)
         except errors.Error as exc:
             return view.exception_response(exc)
-        
-        statement.service = service
+
         serializer = view.get_serializer(instance=statement)
-        
         return Response(data=serializer.data)
