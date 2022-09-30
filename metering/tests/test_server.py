@@ -15,10 +15,10 @@ from vo.managers import VoManager
 from order.models import Price, ResourceType
 from bill.models import CashCoupon, PaymentHistory, PayAppService, PayApp, PayOrgnazition
 from service.models import ServiceConfig
-from .measurers import ServerMeasurer
-from .models import MeteringServer, PaymentStatus, DailyStatementServer
-from .payment import MeteringPaymentManager
-from .generate_daily_statement import GenerateDailyStatementServer
+from metering.measurers import ServerMeasurer
+from metering.models import MeteringServer, PaymentStatus, DailyStatementServer
+from metering.payment import MeteringPaymentManager
+from metering.generate_daily_statement import GenerateDailyStatementServer
 from users.models import UserProfile
 
 

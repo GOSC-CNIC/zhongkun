@@ -61,7 +61,7 @@ class Migration(migrations.Migration):
                 ('bucket_name', models.CharField(max_length=63, verbose_name='存储桶名称')),
                 ('date', models.DateField(help_text='计量的资源使用量的所属日期', verbose_name='日期')),
                 ('creation_time', models.DateTimeField(auto_now_add=True, verbose_name='创建时间')),
-                ('storage', models.FloatField(blank=True, default=0, help_text='存储桶的存储容量GiB', verbose_name='存储容量GiB')),
+                ('storage', models.FloatField(blank=True, default=0, help_text='存储桶的存储容量GiB小时数', verbose_name='存储容量GiB*hours')),
                 ('downstream', models.FloatField(blank=True, default=0, help_text='存储桶的下行流量GiB', verbose_name='下行流量GiB')),
                 ('replication', models.FloatField(blank=True, default=0, help_text='存储桶的同步流量GiB', verbose_name='同步流量GiB')),
                 ('get_request', models.IntegerField(default=0, help_text='存储桶的get请求次数', verbose_name='get请求次数')),

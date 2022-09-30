@@ -221,7 +221,7 @@ class MeteringObjectStorage(MeteringBase):
     date = models.DateField(verbose_name=_('日期'), help_text=_('计量的资源使用量的所属日期'))
     creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
     storage = models.FloatField(
-        verbose_name=_('存储容量GiB'), blank=True, default=0, help_text=_('存储桶的存储容量GiB'))
+        verbose_name=_('存储容量GiB*hours'), blank=True, default=0, help_text=_('存储桶的存储容量GiB小时数'))
     downstream = models.FloatField(
         verbose_name=_('下行流量GiB'), blank=True, default=0, help_text=_('存储桶的下行流量GiB'))
     replication = models.FloatField(

@@ -84,12 +84,13 @@ class PayMeteringServer:
 
         return True
 
+
 class PayMeteringObjectStorage:
     def __init__(self, app_id: str, pay_date: date = None):
-        '''
+        """
         :param app_id 支付的app
-        :param pay_date 指定只扣费那个计费日的云主机结算单
-        '''
+        :param pay_date 指定只扣费那个计费日的对象存储结算单
+        """
         self.app_id = app_id
         self.pay_date = pay_date
         self.count = 0
@@ -97,7 +98,7 @@ class PayMeteringObjectStorage:
         self.fail_count = 0
 
     def start_print(self):
-        print('开始扣费对象存储云结算单')
+        print('开始扣费对象存储结算单')
         if self.pay_date:
             print(f'指定只扣费{self.pay_date}日期的对象存储日结算单')
 
@@ -139,10 +140,12 @@ class PayMeteringObjectStorage:
         return queryset[0:limit]
 
     def get_metering_queryset(self):
-        queryset = DailyStatementObjectStorage.objects.select_related('service').filter(payment_status=PaymentStatus.UNPAID.value)
+        queryset = DailyStatementObjectStorage.objects.select_related('service').filter(
+            payment_status=PaymentStatus.UNPAID.value)
         if self.pay_date:
             queryset = queryset.filter(date=self.pay_date)
-        return  queryset
+
+        return queryset
 
     def do_pay_one_bill(self, bill: DailyStatementObjectStorage):
         pay_mgr = MeteringPaymentManager()

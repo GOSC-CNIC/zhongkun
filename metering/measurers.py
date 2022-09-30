@@ -15,6 +15,7 @@ from users.models import UserProfile
 from storage.models import Bucket
 from storage.adapter import inputs
 from storage import request
+from core import errors
 
 
 def wrap_close_old_connections(func):
@@ -413,6 +414,7 @@ class StorageMeasure:
         self.price_mgr = PriceManager()
         self._metering_bucket_count = 0  # 计量的桶的数目 这里暂时不用考虑归档的桶
         self._new_count = 0  # 新产生的计量账单的数目
+        self._error_http_count = 0   # 请求桶容量的错误的数目
 
     def run(self, raise_exception: bool = None):
         print(f'Storage Metering start, {self.start_datetime} - {self.end_datatime}')
@@ -425,7 +427,8 @@ class StorageMeasure:
 
         self.metering_loop()
 
-        print(f'Metering {self._metering_bucket_count} buckets, new produce {self._new_count} metering bill')
+        print(f'Metering {self._metering_bucket_count} buckets, new produce {self._new_count} metering bill，'
+              f'Error http request about bucket {self._error_http_count}.')
 
     def metering_loop(self):
         last_creation_time = None
@@ -463,22 +466,35 @@ class StorageMeasure:
         这里和云主机的区别在于 没有start_time 的字段
         需要统计的是 桶中的对象的size大小
         '''
-        if bucket.creation_time >= self.end_datatime:
-            return None
+        if bucket.creation_time <= self.start_datetime:
+            hours = 24
+        elif bucket.creation_time < self.end_datatime:
+            hours = self.delta_hours(end=self.end_datatime, start=bucket.creation_time)
         else:
-            storage = self.get_bucket_metering_size(bucket=bucket)
+            return None
+
+        try:
+            storage_size_gib = self.get_bucket_metering_size(bucket=bucket)
+        except Exception as exc:
+            self._error_http_count += 1
+            print(f'Error stats bucket({bucket.id}, {bucket.name}) request, {str(exc)}')
+            return None
+
+        if storage_size_gib is None:
+            return None
+
         metering = self.save_bucket_metering_record(
-            bucket=bucket, storage=storage
+            bucket=bucket, storage_gib_hours=storage_size_gib * hours
         )
         return metering
 
-    def save_bucket_metering_record(self, bucket: Bucket, storage):
+    def save_bucket_metering_record(self, bucket: Bucket, storage_gib_hours):
         return self.save_metering_record(
             service=bucket.service, user_id=bucket.user_id, storage_bucket_id=bucket.id,
-            bucket_name=bucket.name, creation_time=bucket.creation_time, storage=storage
+            bucket_name=bucket.name, creation_time=bucket.creation_time, storage_gib_hours=storage_gib_hours
         )
 
-    def save_metering_record(self, service, user_id, storage_bucket_id, bucket_name, creation_time, storage):
+    def save_metering_record(self, service, user_id, storage_bucket_id, bucket_name, creation_time, storage_gib_hours):
         """
            创建当前日期的桶的计量记录
            :return MeteringObjectStorage
@@ -493,7 +509,7 @@ class StorageMeasure:
             bucket_name=bucket_name,
             date=metering_date,
             creation_time=creation_time,
-            storage=storage,
+            storage=storage_gib_hours,
             daily_statement_id=''
         )
         self.metering_bill_amount(_metering=metering, auto_commit=False)
@@ -522,14 +538,9 @@ class StorageMeasure:
         """
         计算资源使用量的账单金额
         """
-        if _metering.creation_time <= self.start_datetime:
-            hours = 24
-        else:
-            hours = self.delta_hours(end=self.end_datatime, start=_metering.creation_time)
-
         price = self.price_mgr.enforce_price()
-        _metering.original_amount = self.price_mgr.calculate_bucket_amounts(price=price,
-                                                                            storage_gib_hours=_metering.storage * hours)
+        _metering.original_amount = self.price_mgr.calculate_bucket_amounts(
+            price=price, storage_gib_hours=_metering.storage)
         _metering.trade_amount = _metering.original_amount
 
         if auto_commit:
@@ -539,14 +550,27 @@ class StorageMeasure:
 
     @staticmethod
     def get_bucket_metering_size(bucket: Bucket):
+        """
+        :return:
+            None    # 桶记录和对象存储服务中桶数据可能不一致, 不计费
+            int     # ok
+        """
         bucket_name = bucket.name
         bucket_service = bucket.service
+        params = inputs.BucketStatsInput(bucket_name=bucket_name)
         try:
-            params = inputs.BucketStatsInput(bucket_name=bucket_name)
             r = request.request_service(service=bucket_service, method='bucket_stats', params=params)
-        except Exception as e:
-            raise e
-        return r.bucket_size_byte
+        except errors.APIException as exc:
+            if exc.code in ['Adapter.NoSuchBucket', 'Adapter.AuthenticationFailed', 'Adapter.AccessDenied']:
+                raise exc
+            else:
+                r = request.request_service(service=bucket_service, method='bucket_stats', params=params)
+
+        # 桶记录和对象存储服务中桶数据可能不一致
+        if r.username and r.username != bucket.user.username:
+            return None
+
+        return r.bucket_size_gib
 
     @wrap_close_old_connections
     def get_buckets(self, gte_creation_time, end_datetime, limit: int = 100):
@@ -568,5 +592,5 @@ class StorageMeasure:
         if gte_creation_time is not None:
             lookups['creation_time__gte'] = gte_creation_time
 
-        queryset = Bucket.objects.filter(**lookups).order_by('creation_time', 'id')
+        queryset = Bucket.objects.select_related('service').filter(**lookups).order_by('creation_time', 'id')
         return queryset

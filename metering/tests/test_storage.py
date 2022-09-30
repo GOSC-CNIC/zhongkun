@@ -11,20 +11,22 @@ from utils.model import OwnerType
 from core import errors
 from order.models import Price, ResourceType
 from bill.models import CashCoupon, PaymentHistory, PayAppService, PayApp, PayOrgnazition
-from .measurers import StorageMeasure
-from .models import PaymentStatus, MeteringObjectStorage, DailyStatementObjectStorage
-from .payment import MeteringPaymentManager
-from .generate_daily_statement import GenerateDailyStatementObjectStorage
+from metering.measurers import StorageMeasure
+from metering.models import PaymentStatus, MeteringObjectStorage, DailyStatementObjectStorage
+from metering.payment import MeteringPaymentManager
+from metering.generate_daily_statement import GenerateDailyStatementObjectStorage
 from users.models import UserProfile
 from storage.models import Bucket, ObjectsService
 
 
-def create_bucket_metadata(service, user, creation_time):
-    bucket = Bucket(service=service,
-                    user=user,
-                    creation_time=creation_time,
-                    )
-    bucket.save()
+def create_bucket_metadata(name: str, service, user, creation_time):
+    bucket = Bucket(
+        name=name,
+        service=service,
+        user=user,
+        creation_time=creation_time,
+    )
+    bucket.save(force_insert=True)
     return bucket
 
 
@@ -61,35 +63,29 @@ class MeteringObjectStorageTests(TransactionTestCase):
         meter_time = now - timedelta(days=1)
         ago_time = now - timedelta(days=2)
 
-        meter_time.replace(hour=12, minute=0, second=0, microsecond=0)
-
         # 该桶是处于今天的计费范围 而当前计费的是昨天到今天的使用情况
         bucket1 = create_bucket_metadata(
+            name='bucket1',
             service=self.service,
             user=self.user,
             creation_time=ago_hour_time
         )
 
-        bucket1.name = 'bucket1'
-        bucket1.save()
-
+        # < 24 hours
         bucket2 = create_bucket_metadata(
+            name='bucket2',
             service=self.service,
             user=self.user,
             creation_time=meter_time
         )
 
-        bucket2.name = 'bucket2'
-        bucket2.save()
-
+        # 24 hours
         bucket3 = create_bucket_metadata(
+            name='bucket3',
             service=self.service,
             user=self.user,
             creation_time=ago_time
         )
-
-        bucket3.name = 'bucket3'
-        bucket3.save()
 
         return bucket1, bucket2, bucket3
 
@@ -100,7 +96,11 @@ class MeteringObjectStorageTests(TransactionTestCase):
         seconds = max(seconds, 0)
         return seconds / 3600
 
-    def do_assert_bucket(self, now: datetime, bucket2: Bucket, bucket3: Bucket, cnt: int):
+    def test_only_bucket(self):
+        now = timezone.now()
+        bucket1, bucket2, bucket3 = self.init_data_only_bucket(now)
+        # bucket1不会参与计费
+
         metering_date = (now - timedelta(days=1)).date()
         metering_end_time = now.replace(hour=0, minute=0, second=0, microsecond=0)
         measure = StorageMeasure(raise_exception=True)
@@ -112,23 +112,24 @@ class MeteringObjectStorageTests(TransactionTestCase):
             uin_utc_0_1 = True
 
         count = MeteringObjectStorage.objects.count()
-
         if uin_utc_0_1:
-            self.assertEqual(count, cnt)
+            self.assertEqual(count, 3 - measure._error_http_count)
         else:
-            self.assertEqual(count, cnt - 1)
+            self.assertEqual(count, 2 - measure._error_http_count)
+
+        if count == 0:      # 请求iHarbor服务失败，没有产生计量数据
+            return
 
         # bucket2 是不满一天的情况
         metering = measure.bucket_metering_exists(metering_date=metering_date, bucket_id=bucket2.id)
         self.assertIsNotNone(metering)
         # 这里是将 iharbor中的storage 都设置成为了50
-        self.assertEqual(up_int(metering.storage), up_int(50))
+        self.assertEqual(up_int(metering.storage), up_int(50 * 10))
         self.assertEqual(metering.user_id, self.user.id)
         self.assertEqual(metering.username, self.user.username)
 
         # bucket2 是 不满一天的测试情况
-        end = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        hours = self.delta_hours(end=end, start=bucket2.creation_time)
+        hours = self.delta_hours(end=metering_end_time, start=bucket2.creation_time)
         original_amount1 = (self.price.obj_size / Decimal('24') * Decimal.from_float(50 * hours))
         original_amount1 = Decimal(original_amount1).quantize(Decimal('0.00'))
         self.assertEqual(metering.original_amount, original_amount1)
@@ -138,7 +139,7 @@ class MeteringObjectStorageTests(TransactionTestCase):
         metering = measure.bucket_metering_exists(metering_date=metering_date, bucket_id=bucket3.id)
         self.assertIsNotNone(metering)
         # 这里是将 iharbor中的storage 都设置成为了50
-        self.assertEqual(up_int(metering.storage), up_int(50))
+        self.assertEqual(up_int(metering.storage), up_int(50 * 24))
         self.assertEqual(metering.user_id, self.user.id)
         self.assertEqual(metering.username, self.user.username)
 
@@ -147,26 +148,60 @@ class MeteringObjectStorageTests(TransactionTestCase):
         self.assertEqual(metering.original_amount, original_amount1)
         self.assertEqual(metering.trade_amount, original_amount1)
 
+    def test_bucket_no_http_request(self):
+        gib_size = 10
+        now = timezone.now()
+        bucket1, bucket2, bucket3 = self.init_data_only_bucket(now)
+
+        metering_date = (now - timedelta(days=1)).date()
+        measure = StorageMeasure(raise_exception=True)
+        measure.get_bucket_metering_size = lambda bucket: gib_size        # 替换网络请求
+        measure.run()
+
+        utc_now = now.astimezone(pytz.utc)
+        uin_utc_0_1 = False
+        if time(hour=0, minute=0, second=0) <= utc_now.time() <= time(hour=1, minute=0, second=0):
+            uin_utc_0_1 = True
+
+        count = MeteringObjectStorage.objects.count()
+        if uin_utc_0_1:
+            self.assertEqual(count, 3)
+        else:
+            self.assertEqual(count, 2)
+
+        # bucket2 是不满一天的情况
+        end = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        hours = self.delta_hours(end=end, start=bucket2.creation_time)
+        metering = measure.bucket_metering_exists(metering_date=metering_date, bucket_id=bucket2.id)
+        self.assertIsNotNone(metering)
+        self.assertEqual(up_int(metering.storage), up_int(hours * gib_size))
+        self.assertEqual(metering.user_id, self.user.id)
+        self.assertEqual(metering.username, self.user.username)
+        original_amount1 = (self.price.obj_size / Decimal('24') * Decimal.from_float(gib_size * hours))
+        original_amount1 = Decimal(original_amount1).quantize(Decimal('0.00'))
+        self.assertEqual(metering.original_amount, original_amount1)
+        self.assertEqual(metering.trade_amount, original_amount1)
+
+        # bucket3 是满一天的情况
+        metering = measure.bucket_metering_exists(metering_date=metering_date, bucket_id=bucket3.id)
+        self.assertIsNotNone(metering)
+        # 这里是将 iharbor中的storage 都设置成为了50
+        self.assertEqual(up_int(metering.storage), up_int(24 * gib_size))
+        self.assertEqual(metering.user_id, self.user.id)
+        self.assertEqual(metering.username, self.user.username)
+
+        # 数据库中的数据
+        original_amount1 = (self.price.obj_size / Decimal('24') * gib_size * 24)
+        self.assertEqual(metering.original_amount, original_amount1)
+        self.assertEqual(metering.trade_amount, original_amount1)
+
         # 测试是否会重复计费
         measure.run()
         count = MeteringObjectStorage.objects.count()
         if uin_utc_0_1:
-            self.assertEqual(count, cnt)
+            self.assertEqual(count, 3)
         else:
-            self.assertEqual(count, cnt - 1)
-
-    def test_only_bucket(self):
-        now = timezone.now()
-        bucket1, bucket2, bucket3 = self.init_data_only_bucket(now)
-        # bucket1不会参与计费
-        self.do_assert_bucket(now=now, bucket2=bucket2, bucket3=bucket3, cnt=3)
-
-    def test_archive_bucket(self):
-        now = timezone.now()
-        bucket1, bucket2, bucket3 = self.init_data_only_bucket(now)
-
-        ok = bucket2.do_archive(archiver=self.user)
-        self.assertIs(ok, True)
+            self.assertEqual(count, 2)
 
 
 def create_metering_bucket_matedata(
