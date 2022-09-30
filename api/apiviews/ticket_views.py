@@ -130,6 +130,31 @@ class TicketViewSet(AsRoleGenericViewSet):
               ]
             }
 
+            * 字段 severity, 问题严重程度
+                critical：严重
+                high： 高
+                normal：一般
+                low：低
+                verylow：很低
+
+            * 字段 status，工单状态
+                open：打开
+                canceled：已取消
+                progress：处理中
+                resolved：已解决
+                closed：已关闭
+                reopened：重新打开
+
+            * 字段 service_type，工单相关服务
+                account：账户
+                server：云服务器
+                storage：对象存储
+                bill：计量账单
+                monitor：监控
+                hpc：高性能计算
+                hsc：高安全等级云
+                other：其他
+
             http code 400, 403, 500:
             {
                 "code": "InvalidStatus",
@@ -465,6 +490,13 @@ class TicketViewSet(AsRoleGenericViewSet):
                     }
                 ]
             }
+
+            * 字段 ticket_field，工单更改的字段
+                title：工单标题
+                status：工单状态
+                severity：工单严重程度
+                description：工单描述
+                assigned_to：工单流转处理人
 
             http code 400, 403, 404, 409, 500:
             {

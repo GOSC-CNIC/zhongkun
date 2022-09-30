@@ -1,3 +1,10 @@
+## v0.3.0
+* 新增云服务器日结算单接口ListStatementServer、DetailStatementServer；
+* 对象存储桶的计量计费、日结算单和扣费代码实现；
+* 新增工单app, 模型定义，新增工单相关接口CreateTicket、ListTicket、TicketDetail、
+  UpdateTicket、TicketSeverityChange、TicketStatusChange、TicketFolowUpAdd、
+  TicketFollowupList；
+
 ## v0.2.0
 * 对象存储model定义和修改，对象存储日结算单model定义；
 * add api ListBucket、DeleteBucket、CreateBucket、ListStorageService and testcase;
