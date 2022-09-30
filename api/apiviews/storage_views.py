@@ -13,7 +13,7 @@ from storage.models import ObjectsService
 
 
 class ObjectsServiceViewSet(StorageGenericViewSet):
-    permission_classes = [IsAuthenticated, ]
+    permission_classes = []
     pagination_class = DefaultPageNumberPagination
     lookup_field = 'id'
     # lookup_value_regex = '[^/]+'
@@ -42,7 +42,7 @@ class ObjectsServiceViewSet(StorageGenericViewSet):
     )
     def list(self, request, *args, **kwargs):
         """
-        列举对象存储服务单元
+        列举对象存储服务单元，无需身份认证
 
             http code 200：
             {

@@ -3,7 +3,8 @@
 * 对象存储桶的计量计费、日结算单和扣费代码实现；
 * 新增工单app, 模型定义，新增工单相关接口CreateTicket、ListTicket、TicketDetail、
   UpdateTicket、TicketSeverityChange、TicketStatusChange、TicketFolowUpAdd、
-  TicketFollowupList；
+  TicketFollowupList；  
+* 列举对象存储服务单元接口不再要求身份认证。
 
 ## v0.2.0
 * 对象存储model定义和修改，对象存储日结算单model定义；
