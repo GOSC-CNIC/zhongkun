@@ -9,7 +9,7 @@ from utils.test import get_or_create_service, get_or_create_user, get_or_create_
 from service.models import ServiceConfig
 from storage.models import ObjectsService
 from vo.models import VirtualOrganization
-from metering.models import MeteringServer, DailyStatementServer, PaymentStatus, MeteringObjectStorage
+from metering.models import MeteringServer, DailyStatementServer, PaymentStatus, MeteringObjectStorage, DailyStatementObjectStorage
 from . import set_auth_header, MyAPITestCase
 from servers.models import Server, ServerArchive 
 from django.utils import timezone
@@ -1739,3 +1739,174 @@ class MeteringObsTests(MyAPITestCase):
         r = self.client.get(f'{base_url}?{query}')
         self.assertIs(r.streaming, True)
         self.assertEqual(r.status_code, 200)
+
+class StatementStorageTests(MyAPITestCase):
+    def setUp(self) :
+        self.user = set_auth_header(self)
+        self.user2 = get_or_create_user(username='user2')
+
+        self.service = get_or_create_storage_service()
+        self.service2 = ObjectsService(
+            name='service2', data_center_id=self.service.data_center_id,
+            endpoint_url='service2', username='', password=''
+        )
+        self.service2.save()
+
+    def create_statement_storage(self):
+        # user 2022-1-1 service
+        u_st0 = DailyStatementObjectStorage(
+            original_amount='1.11',
+            trade_amount='1.11',
+            payable_amount='1.11',
+            payment_status=PaymentStatus.PAID.value,
+            payment_history_id='',
+            service_id=self.service.id,
+            date=date(year=2022, month=1, day=1),
+            user_id=self.user.id,
+            username=self.user.username
+        )
+        u_st0.save(force_insert=True)
+
+        # user service2 2022-1-1
+        u_st1 = DailyStatementObjectStorage(
+            original_amount='2.22',
+            trade_amount='0',
+            payable_amount='2.22',
+            payment_status=PaymentStatus.UNPAID.value,
+            payment_history_id='',
+            service_id=self.service2.id,
+            date=date(year=2022, month=1, day=1),
+            user_id=self.user.id,
+            username=self.user.username
+        )
+        u_st1.save(force_insert=True)
+
+        # user 2022-1-2 service
+        u_st2 = DailyStatementObjectStorage(
+            original_amount='3.33',
+            trade_amount='0',
+            payable_amount='3.33',
+            payment_status=PaymentStatus.UNPAID.value,
+            payment_history_id='',
+            service_id=self.service.id,
+            date=date(year=2022, month=1, day=2),
+            user_id=self.user.id,
+            username=self.user.username
+        )
+        u_st2.save(force_insert=True)
+
+        # user2 service 2022-1-2
+        u_st3 = DailyStatementObjectStorage(
+            original_amount='4.44',
+            trade_amount='0',
+            payable_amount='4.44',
+            payment_status=PaymentStatus.UNPAID.value,
+            payment_history_id='',
+            service_id=self.service.id,
+            date=date(year=2022, month=1, day=2),
+            user_id=self.user2.id,
+            username=self.user2.username
+        )
+        u_st3.save(force_insert=True)
+
+        return u_st0, u_st1, u_st2, u_st3
+
+    def test_list_statement_storage(self):
+        base_url = reverse('api:statement-storage-list')
+        # list user statement-storage
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'page_num', 'page_size', 'statements'], response.data)
+        self.assertIsInstance(response.data['statements'], list)
+        self.assertEqual(response.data['count'], 0)
+        self.assertEqual(len(response.data['statements']), 0)
+        # create statement server
+        u_st0, u_st1, u_st2, u_st3 = self.create_statement_storage()
+        # ------ list user -------
+        # no params
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 3)
+        self.assertEqual(len(response.data['statements']), 3)
+        self.assertKeysIn(["id", "original_amount", "payable_amount", "trade_amount",
+                           "payment_status", "payment_history_id", "service", "date", "creation_time",
+                           "user_id", "username"], response.data['statements'][0])
+        self.assertEqual(response.data['statements'][0]['original_amount'], u_st2.original_amount)
+        self.assertEqual(response.data['statements'][1]['original_amount'], u_st1.original_amount)
+        self.assertEqual(response.data['statements'][2]['original_amount'], u_st0.original_amount)
+
+        # date_start - date_end
+        query = parse.urlencode(query={
+            'date_start': '2022-01-02', 'time_end': '2022-01-02'
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['statements']), 1)
+        self.assertEqual(response.data['statements'][0]['user_id'], self.user.id)
+        self.assertEqual(response.data['statements'][0]['user_id'], u_st2.user_id)
+        self.assertEqual(response.data['statements'][0]['original_amount'], u_st2.original_amount)
+
+        query = parse.urlencode(query={
+            'date_start': '2022-01-01', 'time_end': '2022-01-02'
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 3)
+        self.assertEqual(len(response.data['statements']), 3)
+
+        # payment_status
+        query = parse.urlencode(query={
+            'payment_status': PaymentStatus.PAID.value,
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['statements']), 1)
+        self.assertEqual(response.data['statements'][0]['original_amount'], u_st0.original_amount)
+
+        # date_start - date_end  && payment_status
+        query = parse.urlencode(query={
+            'date_start': '2022-01-01', 'time_end': '2022-01-02',
+            'payment_status': PaymentStatus.UNPAID.value,
+
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(len(response.data['statements']), 2)
+
+    def test_detail_statement_storage(self):
+        # not found
+        url = reverse('api:order-detail', kwargs={'id': '1234567891234567891234'})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
+
+        # create statement server
+        u_st0, u_st1, u_st2, u_st3 = self.create_statement_storage()
+
+        # user statement server detail
+        url = reverse('api:statement-storage-detail', kwargs={'id': u_st0.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["id", "original_amount", "payable_amount", "trade_amount",
+                           "payment_status", "payment_history_id", "service", "date", "creation_time",
+                           "user_id", "username", "service"], response.data)
+        self.assertKeysIn(["id", "name", "name_en", "service_type"], response.data['service'])
+
+        self.assert_is_subdict_of(sub={
+            "id": u_st0.id,
+            "original_amount": u_st0.original_amount,
+            "payable_amount": u_st0.payable_amount,
+            "trade_amount": u_st0.trade_amount,
+            "payment_status": u_st0.payment_status,
+            "payment_history_id": u_st0.payment_history_id,
+            "user_id": self.user.id,
+            "username": self.user.username,
+        }, d=response.data)
+        self.assert_is_subdict_of(sub={
+            "id": self.service.id,
+            "name": self.service.name,
+            "name_en": self.service.name_en,
+            "service_type": self.service.service_type,
+        }, d=response.data['service'])

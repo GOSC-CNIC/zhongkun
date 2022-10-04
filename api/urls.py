@@ -12,7 +12,6 @@ from .apiviews import (
 
 app_name = 'api'
 
-
 no_slash_router = SimpleRouter(trailing_slash=False)
 no_slash_router.register(r'media', views.MediaViewSet, basename='media')
 no_slash_router.register(r'server', views.ServersViewSet, basename='servers')
@@ -41,6 +40,7 @@ no_slash_router.register(r'describe-price', order_views.PriceViewSet, basename='
 no_slash_router.register(r'order', order_views.OrderViewSet, basename='order')
 no_slash_router.register(r'metering/server', metering_views.MeteringServerViewSet, basename='metering-server')
 no_slash_router.register(r'statement/server', metering_views.StatementServerViewSet, basename='statement-server')
+no_slash_router.register(r'statement/storage', storage_metering_views.StatementStorageViewSet, basename='statement-storage')
 no_slash_router.register(r'payment-history', bill_views.PaymentHistoryViewSet, basename='payment-history')
 no_slash_router.register(r'account/balance', account_views.BalanceAccountViewSet, basename='account-balance')
 no_slash_router.register(r'cashcoupon', cash_coupon_views.CashCouponViewSet, basename='cashcoupon')

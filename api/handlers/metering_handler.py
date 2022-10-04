@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from core import errors
 from api.viewsets import CustomGenericViewSet
 from metering.models import PaymentStatus
-from metering.managers import MeteringServerManager, StatementServerManager, MeteringStorageManager
+from metering.managers import MeteringServerManager, StatementServerManager, MeteringStorageManager, StatementStorageManager
 from utils.report_file import CSVFileInMemory
 from utils import rand_utils
 from utils.decimal_utils import quantize_18_2
@@ -932,3 +932,71 @@ class MeteringObsHandler:
             'user_id': user_id,
             'download': download is not None
         }
+
+class StorageStatementHandler:
+    def list_statement_storage(self, view: CustomGenericViewSet, request):
+        try:
+            data = self.list_statement_storage_validate_params(request)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        user = request.user
+
+        queryset = StatementStorageManager().filter_statement_storage_queryset(
+            payment_status=data['payment_status'],
+            date_start=data['date_start'],
+            date_end=data['date_end'],
+            user_id=user.id
+        )
+
+        try:
+            statements = view.paginate_queryset(queryset)
+            serializer = view.get_serializer(instance=statements, many=True)
+            return view.get_paginated_response(serializer.data)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+    @staticmethod
+    def list_statement_storage_validate_params(request) -> dict:
+
+        payment_status = request.query_params.get('payment_status', None)
+        date_start = request.query_params.get('date_start', None)
+        date_end = request.query_params.get('date_end', None)
+
+        if payment_status is not None and payment_status not in PaymentStatus:
+            raise errors.InvalidArgument(message='参数"payment_status" 值无效')
+
+        if date_start is not None:
+            try:
+                date_start = date.fromisoformat(date_start)
+            except (TypeError, ValueError):
+                raise errors.InvalidArgument(message='参数"date_start" 是无效的日期格式')
+
+        if date_end is not None:
+            try:
+                date_start = date.fromisoformat(date_end)
+            except (TypeError, ValueError):
+                raise errors.InvalidArgument(message='参数"date_end" 是无效的日期格式')
+
+        if date_start and date_end:
+            if date_start > date_end:
+                raise  errors.InvalidArgument(message='参数"date_start" 必须提前于 "date_end"时间 ')
+
+        return {
+            'payment_status': payment_status,
+            'date_start': date_start,
+            'date_end': date_end
+        }
+
+    @staticmethod
+    def statement_storage_detail(view: CustomGenericViewSet, request, kwargs):
+        statement_id: str = kwargs.get(view.lookup_field, '')
+        try:
+            statement = StatementStorageManager().get_statement_storage_detail(
+                statement_id=statement_id, user=request.user)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        serializer = view.get_serializer(instance=statement)
+        return Response(data=serializer.data)
+

@@ -7,7 +7,7 @@ from core import errors
 from service.managers import ServiceManager
 from servers.managers import ServerManager
 from servers.models import Server, ServerArchive
-from metering.models import DailyStatementServer
+from metering.models import DailyStatementServer, DailyStatementObjectStorage
 from vo.managers import VoManager
 from utils.model import OwnerType
 from .models import MeteringServer, MeteringObjectStorage
@@ -585,3 +585,44 @@ class MeteringStorageManager:
 
         queryset = self.get_metering_obs_queryset()
         return queryset.filter(**lookups).order_by('-creation_time')
+
+class StatementStorageManager:
+    @staticmethod
+    def get_statement_storage_queryset():
+        return DailyStatementObjectStorage.objects.all()
+
+    def filter_statement_storage_queryset(
+            self, payment_status: str, date_start, date_end,
+            user_id: str = None
+    ):
+        queryset = self.get_statement_storage_queryset()
+        if user_id:
+            queryset = queryset.filter(user_id=user_id)
+
+        if date_start:
+            queryset = queryset.filter(date__gte=date_start)
+
+        if date_end:
+            queryset = queryset.filter(date__lte=date_end)
+
+        if payment_status:
+            queryset = queryset.filter(payment_status=payment_status)
+
+        return queryset.order_by('-creation_time')
+
+    @staticmethod
+    def get_statement_storage(statement_id: str, select_for_update: bool = False):
+        if select_for_update:
+            return  DailyStatementObjectStorage.objects.filter(
+                id=statement_id
+            ).select_related('service').select_for_update().first()
+        return  DailyStatementObjectStorage.objects.filter(id=statement_id).select_related('service').first()
+
+    def get_statement_storage_detail(
+            self, statement_id: str, user, check_permission: bool = True
+    ):
+        statement = self.get_statement_storage(statement_id=statement_id)
+        if check_permission:
+            if statement.user_id and statement.user_id != user.id:
+                raise errors.AccessDenied(message=_('您没有权限访问该结算单'))
+        return statement
