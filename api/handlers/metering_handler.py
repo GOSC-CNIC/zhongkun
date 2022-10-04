@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from core import errors
 from api.viewsets import CustomGenericViewSet
 from metering.models import PaymentStatus
-from metering.managers import MeteringServerManager, StatementServerManager
+from metering.managers import MeteringServerManager, StatementServerManager, MeteringStorageManager
 from utils.report_file import CSVFileInMemory
 from utils import rand_utils
 from utils.decimal_utils import quantize_18_2
@@ -769,3 +769,166 @@ class StatementHandler:
 
         serializer = view.get_serializer(instance=statement)
         return Response(data=serializer.data)
+
+class MeteringObsHandler:
+    def list_bucket_metering(self, view: CustomGenericViewSet, request):
+        """
+        列举对象存储的计量账单
+        """
+        try:
+            params = self.list_bucket_metering_validate_params(view=view, request=request)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        service_id = params['service_id']
+        bucket_id = params['bucket_id']
+        date_start = params['date_start']
+        date_end = params['date_end']
+        user_id = params['user_id']
+        download = params['download']
+
+        ms_mgr = MeteringStorageManager()
+        queryset = ms_mgr.filter_user_obs_metering(
+            user=request.user, service_id=service_id, bucket_id=bucket_id, date_start=date_start,
+            date_end=date_end
+        )
+
+        if download:
+            return self.list_bucket_metering_download(
+                queryset=queryset, date_start=date_start, date_end=date_end
+            )
+        try:
+            meterings = view.paginate_queryset(queryset)
+            serializer = view.get_serializer(instance=meterings, many=True)
+            return view.get_paginated_response(serializer.data)
+        except Exception as exc:
+            print(exc)
+            return view.exception_response(exc)
+
+    def list_bucket_metering_download(self, queryset, date_start, date_end):
+        count = queryset.count()
+        if count > 100000:
+            exc = errors.ConflictError(message=_('数据量太多'), code='TooManyData')
+            return Response(data=exc.err_data(), status=exc.status_code)
+
+        filename = rand_utils.timestamp14_sn()
+        csv_file = CSVFileInMemory(filename=filename)
+        csv_file.writerow(['#' + _('列对象存储计量计费明细') + f'[{date_start} - {date_end}]'])
+        csv_file.writerow(['#--------------' + _('数据明细列表') + '---------------'])
+        csv_file.writerow([
+            _('存储桶ID'), _('计费日期'), _('用户名'),
+            _('存储容量 (GiB)'),
+            _('计费总金额'), _('应付总金额')
+        ])
+        per_page = 1000
+        is_end_page = False
+        for number in range(1, math.ceil(count / per_page) + 1):
+            bottom = (number - 1) * per_page
+            top = bottom + per_page
+            if top >= count:
+                top = count
+                is_end_page = True
+
+            meterings = queryset[bottom:top]
+            rows = []
+            for m in meterings:
+                line_items = [
+                    str(m.storage_bucket_id), str(m.date), str(m.username),
+                    str(quantize_18_2(m.original_amount)),
+                    str(quantize_18_2(m.trade_amount))
+                ]
+                rows.append(line_items)
+
+            csv_file.writerows(rows)
+            if is_end_page:
+                break
+
+        csv_file.writerow(['#--------------' + _('数据明细列表结束') + '---------------'])
+        csv_file.writerow(['#' + _('数据总数') + f': {count}'])
+        csv_file.writerow(['#' + _('下载时间') + f': {timezone.now()}'])
+
+        filename = csv_file.filename
+        data = csv_file.to_bytes()
+        csv_file.close()
+        return self._wrap_csv_file_response(filename=filename, data=data)
+
+    @staticmethod
+    def _wrap_csv_file_response(filename: str, data):
+        """
+        :param data: bytes, BytesIO， StringIO
+        """
+        if isinstance(data, bytes):
+            content_type = 'application/octet-stream'
+            content_length = len(data)
+            data = io.BytesIO(data)
+        elif isinstance(data, io.StringIO):
+            content_type = 'text/csv'
+            content_length = None
+            data.seek(0)
+        else:
+            content_type = 'application/octet-stream'
+            content_length = data.seek(0, io.SEEK_END)
+            data.seek(0)
+
+        filename = urlquote(filename)  # 中文文件名需要
+        response = StreamingHttpResponse(data, charset='utf-8', status=200)
+        if content_length:
+            response['Content-Length'] = content_length  # byte length
+
+        response['Content-Type'] = content_type
+        response['Content-Disposition'] = f"attachment;filename*=utf-8''{filename}"  # 注意filename 这个是下载后的名字
+        return response
+
+    @staticmethod
+    def list_bucket_metering_validate_params(view: CustomGenericViewSet, request)->dict:
+        service_id = request.query_params.get('service_id', None)
+        bucket_id = request.query_params.get('bucket_id', None)
+        date_start = request.query_params.get('date_start', None)
+        date_end = request.query_params.get('date_end', None)
+        user_id = request.query_params.get('user_id',None)
+        download = request.query_params.get('download', None)
+
+        now_date = timezone.now().date()
+
+        if service_id is not None and not service_id:
+            raise errors.InvalidArgument(message='参数“service_id"的值无效')
+
+        if bucket_id is not None and not bucket_id:
+            raise errors.InvalidArgument(message='参数bucket_id"的值无效')
+
+        if date_start is not None:
+            try:
+                date_start = date.fromisoformat(date_start)
+            except (TypeError, ValueError):
+                raise errors.InvalidArgument(message='参数"date_start"的值无效')
+        else:
+            # 默认是当月的起始时间
+            date_start = now_date.replace(day=1)
+
+        if date_end is not None:
+            try:
+                date_end = date.fromisoformat(date_end)
+            except (TypeError, ValueError):
+                raise errors.InvalidArgument(message='参数"date_end"的值无效')
+        else:
+            # 默认是当月的起始时间
+            date_end = now_date
+
+        if date_start > date_end:
+            raise errors.BadRequest(message='参数“date_start”时间必须超前“date_end”时间')
+
+        # 时间段不得超过一年
+        if date_start.replace(year=date_start.year + 1)<date_end:
+            raise errors.BadRequest(message='起止时间不得超过一年')
+
+        if user_id is not None and not view.is_as_admin_request(request):
+            raise errors.BadRequest(message='参数"user_id"只有管理员身份才能允许查询')
+
+        return {
+            'date_start': date_start,
+            'date_end': date_end,
+            'service_id': service_id,
+            'bucket_id': bucket_id,
+            'user_id': user_id,
+            'download': download is not None
+        }

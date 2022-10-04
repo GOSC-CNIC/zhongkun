@@ -7,7 +7,7 @@ from .apiviews import (
     azone_views, order_views,
     metering_views, bill_views, account_views, cash_coupon_views,
     trade_test_views, trade_views, bucket_views, storage_views,
-    ticket_views
+    ticket_views,storage_metering_views
 )
 
 app_name = 'api'
@@ -52,7 +52,7 @@ no_slash_router.register(r'admin/cashcoupon', cash_coupon_views.AdminCashCouponV
 no_slash_router.register(r'storage/bucket', bucket_views.BucketViewSet, basename='bucket')
 no_slash_router.register(r'storage/service', storage_views.ObjectsServiceViewSet, basename='storage-service')
 no_slash_router.register(r'support/ticket', ticket_views.TicketViewSet, basename='support-ticket')
-
+no_slash_router.register(r'storage/metering',storage_metering_views.MeteringStorageViewSet, basename='storage-metering')
 
 urlpatterns = [
     path('', include(no_slash_router.urls)),

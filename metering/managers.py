@@ -10,7 +10,7 @@ from servers.models import Server, ServerArchive
 from metering.models import DailyStatementServer
 from vo.managers import VoManager
 from utils.model import OwnerType
-from .models import MeteringServer
+from .models import MeteringServer, MeteringObjectStorage
 from users.models import UserProfile
 from vo.models import VirtualOrganization
 from service.models import ServiceConfig
@@ -541,3 +541,47 @@ class StatementServerManager:
                     raise errors.AccessDenied(message=exc.message)
 
         return statement
+
+class MeteringStorageManager:
+    @staticmethod
+    def get_metering_obs_queryset():
+        return MeteringObjectStorage.objects.all()
+
+    def filter_user_obs_metering(
+            self, user,
+            service_id: str = None,
+            bucket_id: str = None,
+            date_start: date = None,
+            date_end: date = None
+    ):
+        """
+        查询用户的对象存储的计量账单的查询集合
+        """
+        return self.filter_obs_metering_queryset(
+            service_id=service_id, bucket_id=bucket_id,date_start=date_start,
+            date_end=date_end, user_id=user.id
+        )
+
+
+    def filter_obs_metering_queryset(
+            self, service_id: str = None,
+            bucket_id: str = None,
+            date_start: date = None,
+            date_end: date = None,
+            user_id: str = None
+    ):
+        lookups = {}
+        if date_start:
+            lookups['date__gte'] = date_start
+
+        if date_end:
+            lookups['date__lte'] = date_end
+
+        if service_id:
+            lookups['service_id'] = service_id
+
+        if bucket_id:
+            lookups['storage_bucket_id'] = bucket_id
+
+        queryset = self.get_metering_obs_queryset()
+        return queryset.filter(**lookups).order_by('-creation_time')

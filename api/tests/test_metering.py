@@ -5,10 +5,11 @@ from datetime import date
 from django.urls import reverse
 
 from utils.model import PayType, OwnerType
-from utils.test import get_or_create_service, get_or_create_user
+from utils.test import get_or_create_service, get_or_create_user, get_or_create_storage_service
 from service.models import ServiceConfig
+from storage.models import ObjectsService
 from vo.models import VirtualOrganization
-from metering.models import MeteringServer, DailyStatementServer, PaymentStatus
+from metering.models import MeteringServer, DailyStatementServer, PaymentStatus, MeteringObjectStorage
 from . import set_auth_header, MyAPITestCase
 from servers.models import Server, ServerArchive 
 from django.utils import timezone
@@ -1639,3 +1640,102 @@ class StatementServerTests(MyAPITestCase):
         url = reverse('api:statement-server-detail', kwargs={'id': v_st1.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 403)
+
+class MeteringObsTests(MyAPITestCase):
+    def setUp(self):
+        self.user = set_auth_header(self)
+        self.service = get_or_create_storage_service()
+        self.service2 = ObjectsService(
+            name='service2', data_center_id=self.service.data_center_id,
+            endpoint_url='service2', username='', password=''
+        )
+        self.service2.save()
+
+    def test_list_metering(self):
+        metering1 = MeteringObjectStorage(
+            original_amount=Decimal('1.11'),
+            trade_amount=Decimal('1.11'),
+            daily_statement_id='',
+            service_id=self.service.id,
+            storage_bucket_id='bucket1',
+            date=date(year=2022, month=10, day=1),
+            user_id=self.user.id,
+            username=self.user.username
+        )
+        metering1.save(force_insert=True)
+
+        metering2 = MeteringObjectStorage(
+            original_amount=Decimal('2.22'),
+            trade_amount=Decimal('0'),
+            daily_statement_id='',
+            service_id=self.service.id,
+            storage_bucket_id='bucket1',
+            date=date(year=2022, month=10, day=2),
+            user_id=self.user.id,
+            username=self.user.username
+        )
+        metering2.save(force_insert=True)
+
+        # list user metering
+        base_url = reverse('api:storage-metering-list')
+        r = self.client.get(base_url)
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(["count", "page_num", "page_size", "results"], r.data)
+        self.assertEqual(r.data["count"], 2)
+        self.assertEqual(len(r.data["results"]),2)
+
+        # list user metering date_start->date_end
+        query = parse.urlencode(query={
+            'date_start': '2022-10-01', 'date_end': '2022-10-03'
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(["count", "page_num", "page_size", "results"], r.data)
+        self.assertEqual(r.data["count"], 2)
+        self.assertEqual(len(r.data["results"]), 2)
+        self.assertKeysIn([
+            "id", "original_amount", "trade_amount", "daily_statement_id",
+            "service_id", "storage_bucket_id", "date", "creation_time", "user_id",
+            "username", "storage"
+        ],r.data['results'][0])
+
+
+        # list user metering invalid date_start
+        query = parse.urlencode(query={
+            'date_start': '2022-02-30'
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 400)
+
+        # list user metering invalid date end
+        query = parse.urlencode(query={
+            'date_end': '2022-2-01'
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 400)
+
+        # list user metering timedelta more than one year
+        query = parse.urlencode(query={
+            'date_start': '2021-02-01', 'date_end': ' 2022-02-06'
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 400)
+
+        # list user metering, query page_size
+        query = parse.urlencode(query={
+            'date_start': '2022-10-01', 'date_end': '2022-10-03', "page_size": 1
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(["count", "page_num", "page_size", "results"], r.data)
+        self.assertEqual(r.data["count"], 2)
+        self.assertEqual(len(r.data["results"]), 1)
+        self.assertEqual(r.data['page_size'], 1)
+
+        # param 'download'
+        query = parse.urlencode(query={
+            'date_start': '2022-10-01', 'date_end': '2022-10-03', 'download': ''
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertIs(r.streaming, True)
+        self.assertEqual(r.status_code, 200)

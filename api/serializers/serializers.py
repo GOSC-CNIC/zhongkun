@@ -842,3 +842,24 @@ class DailyStatementServerDetailSerializer(DailyStatementServerSerializer):
             }
 
         return None
+
+class MeteringStorageSerializer(serializers.Serializer):
+    """
+    对象存储序列化器
+    """
+    id = serializers.CharField(label=_('订单编号'))
+    original_amount = serializers.DecimalField(label=_('计费金额'), max_digits=10, decimal_places=2)
+    trade_amount = serializers.DecimalField(label=_('交易金额'), max_digits=10, decimal_places=2)
+    daily_statement_id = serializers.CharField(label=_('日结算单ID'))
+    service_id = serializers.CharField(label=_('服务'))
+    bucket_name = serializers.CharField(label=_('存储桶名字'))
+    storage_bucket_id = serializers.CharField(label=_('存储桶ID'), max_length=36)
+    date = serializers.DateField(label=_('日期'), help_text=_('计量的资源使用量的所属日期'))
+    creation_time = serializers.DateTimeField(label=_('创建时间'))
+    user_id = serializers.CharField(label=_('用户ID'), max_length=36)
+    username = serializers.CharField(label=_('用户名'), max_length=128)
+    storage = serializers.FloatField(label=_('存储容量GiB'), help_text=_('存储桶中使用的容量'))
+    downstream = serializers.FloatField(label=_('下行流量GiB'), help_text=_('存储桶的下行流量GiB'))
+    replication = serializers.FloatField(label=_('下行流量GiB'), help_text=_('存储桶的同步流量GiB'))
+    get_request = serializers.IntegerField(label=_('同步流量GiB'), help_text=_('存储桶的get请求次数') )
+    put_request = serializers.IntegerField(label=_('put请求次数'), help_text=_('存储桶的put请求次数'))
