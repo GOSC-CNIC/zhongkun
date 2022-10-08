@@ -14,7 +14,8 @@ class ObjectsServiceTests(MyAPITestCase):
     def test_create_bucket(self):
         url = reverse('api:storage-service-list')
         r = self.client.get(url)
-        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+        self.assertEqual(r.status_code, 200)    # 不需要登录认证
+        # self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
 
         self.client.force_login(self.user)
         r = self.client.get(url)

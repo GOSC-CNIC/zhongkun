@@ -11,7 +11,7 @@ class ServerAdmin(admin.ModelAdmin):
                     'creation_time', 'start_time', 'user', 'task_status', 'center_quota',
                     'pay_type', 'classification', 'vo', 'lock', 'situation', 'situation_time',
                     'default_user', 'show_default_password', 'expiration_time', 'remarks')
-    search_fields = ['name', 'image', 'ipv4', 'remarks']
+    search_fields = ['id', 'name', 'image', 'ipv4', 'remarks']
     list_filter = ['service__data_center', 'service', 'classification']
     raw_id_fields = ('user', )
     list_select_related = ('service', 'user', 'vo')
@@ -30,7 +30,7 @@ class ServerArchiveAdmin(admin.ModelAdmin):
                     'creation_time', 'user', 'task_status', 'pay_type', 'classification', 'vo',
                     'center_quota',
                     'start_time', 'deleted_time', 'archive_user', 'archive_type', 'remarks')
-    search_fields = ['name', 'image', 'ipv4', 'remarks']
+    search_fields = ['id', 'name', 'image', 'ipv4', 'remarks']
     list_filter = ['service', 'classification']
     raw_id_fields = ('user',)
     list_select_related = ('service', 'user', 'archive_user', 'vo')

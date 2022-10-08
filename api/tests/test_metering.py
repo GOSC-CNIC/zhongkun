@@ -1641,6 +1641,7 @@ class StatementServerTests(MyAPITestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 403)
 
+
 class MeteringObsTests(MyAPITestCase):
     def setUp(self):
         self.user = set_auth_header(self)
@@ -1697,8 +1698,7 @@ class MeteringObsTests(MyAPITestCase):
             "id", "original_amount", "trade_amount", "daily_statement_id",
             "service_id", "storage_bucket_id", "date", "creation_time", "user_id",
             "username", "storage"
-        ],r.data['results'][0])
-
+        ], r.data['results'][0])
 
         # list user metering invalid date_start
         query = parse.urlencode(query={
@@ -1740,8 +1740,9 @@ class MeteringObsTests(MyAPITestCase):
         self.assertIs(r.streaming, True)
         self.assertEqual(r.status_code, 200)
 
+
 class StatementStorageTests(MyAPITestCase):
-    def setUp(self) :
+    def setUp(self):
         self.user = set_auth_header(self)
         self.user2 = get_or_create_user(username='user2')
 

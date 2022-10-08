@@ -2,6 +2,7 @@ from django.utils.translation import gettext_lazy, gettext as _
 from django.http import Http404
 from django.core.exceptions import PermissionDenied
 from django.conf import settings
+from django.db.models import QuerySet
 from rest_framework import viewsets
 from rest_framework.views import set_rollback
 from rest_framework.response import Response
@@ -103,7 +104,6 @@ class CustomGenericViewSetMixin:
 
 
 class CustomGenericViewSet(CustomGenericViewSetMixin, viewsets.GenericViewSet):
-    from django.db.models import QuerySet
     queryset = QuerySet().none()
 
     @staticmethod
@@ -233,7 +233,6 @@ class PaySignGenericViewSet(CustomGenericViewSetMixin, viewsets.GenericViewSet):
 
 
 class StorageGenericViewSet(CustomGenericViewSetMixin, viewsets.GenericViewSet):
-    from django.db.models import QuerySet
     queryset = QuerySet().none()
 
     @staticmethod

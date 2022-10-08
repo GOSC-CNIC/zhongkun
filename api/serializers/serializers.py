@@ -1,4 +1,3 @@
-from cProfile import label
 from django.utils.translation import gettext, gettext_lazy as _
 from django.core.validators import URLValidator
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -826,6 +825,7 @@ class DailyStatementServerSerializer(serializers.Serializer):
     vo_name = serializers.CharField(label=_('VO组名'), max_length=256)
     owner_type = serializers.CharField(label=_('所有者类型'), max_length=8)
 
+
 class DailyStatementStorageSerializer(serializers.Serializer):
     id = serializers.CharField(label=_('日结算单编号'))
     original_amount = serializers.DecimalField(label=_('计费金额'), max_digits=10, decimal_places=2, default=0.0)
@@ -838,6 +838,7 @@ class DailyStatementStorageSerializer(serializers.Serializer):
     creation_time = serializers.DateTimeField(label=_('创建时间'))
     user_id = serializers.CharField(label=_('用户ID'), max_length=36)
     username = serializers.CharField(label=_('用户名'), max_length=64)
+
 
 class DailyStatementServerDetailSerializer(DailyStatementServerSerializer):
     service = serializers.SerializerMethodField(method_name='get_service')
@@ -855,8 +856,10 @@ class DailyStatementServerDetailSerializer(DailyStatementServerSerializer):
 
         return None
 
+
 class DailyStatementStorageDetailSerializer(DailyStatementStorageSerializer):
     service = serializers.SerializerMethodField(method_name='get_service')
+
     @staticmethod
     def get_service(obj):
         service = obj.service
@@ -868,6 +871,7 @@ class DailyStatementStorageDetailSerializer(DailyStatementStorageSerializer):
                 'service_type': service.service_type
             }
         return None
+
 
 class MeteringStorageSerializer(serializers.Serializer):
     """
@@ -887,5 +891,5 @@ class MeteringStorageSerializer(serializers.Serializer):
     storage = serializers.FloatField(label=_('存储容量GiB'), help_text=_('存储桶中使用的容量'))
     downstream = serializers.FloatField(label=_('下行流量GiB'), help_text=_('存储桶的下行流量GiB'))
     replication = serializers.FloatField(label=_('下行流量GiB'), help_text=_('存储桶的同步流量GiB'))
-    get_request = serializers.IntegerField(label=_('同步流量GiB'), help_text=_('存储桶的get请求次数') )
+    get_request = serializers.IntegerField(label=_('同步流量GiB'), help_text=_('存储桶的get请求次数'))
     put_request = serializers.IntegerField(label=_('put请求次数'), help_text=_('存储桶的put请求次数'))

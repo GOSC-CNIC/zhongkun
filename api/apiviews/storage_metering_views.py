@@ -1,5 +1,4 @@
 from django.utils.translation import gettext_lazy
-from django.db.models import QuerySet
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.serializers import Serializer
@@ -9,11 +8,11 @@ from drf_yasg import openapi
 from api.viewsets import CustomGenericViewSet
 from metering.models import PaymentStatus
 from api.paginations import MeteringPageNumberPagination, StatementPageNumberPagination
-from api.handlers.metering_handler import MeteringObsHandler, StatementHandler, StorageStatementHandler
+from api.handlers.metering_handler import MeteringObsHandler, StorageStatementHandler
 from api.serializers import serializers
 
+
 class MeteringStorageViewSet(CustomGenericViewSet):
-    queryset = QuerySet().none()
     permission_classes = [IsAuthenticated, ]
     pagination_class = MeteringPageNumberPagination
     lookup_field = 'id'
@@ -22,50 +21,50 @@ class MeteringStorageViewSet(CustomGenericViewSet):
         operation_summary=gettext_lazy('列举对象存储用量计费账单'),
         request_body=no_body,
         manual_parameters=[
-                              openapi.Parameter(
-                                  name='service_id',
-                                  in_=openapi.IN_QUERY,
-                                  type=openapi.TYPE_STRING,
-                                  required=False,
-                                  description=f'查询指定服务'
-                              ),
-                              openapi.Parameter(
-                                  name='bucket_id',
-                                  in_=openapi.IN_QUERY,
-                                  type=openapi.TYPE_STRING,
-                                  required=False,
-                                  description=gettext_lazy('查询指定存储桶')
-                              ),
-                              openapi.Parameter(
-                                  name='date_start',
-                                  in_=openapi.IN_QUERY,
-                                  type=openapi.TYPE_STRING,
-                                  required=False,
-                                  description=gettext_lazy('计费账单日期起，默认当前月起始日期，ISO8601格式：YYYY-MM-dd')
-                              ),
-                              openapi.Parameter(
-                                  name='date_end',
-                                  in_=openapi.IN_QUERY,
-                                  type=openapi.TYPE_STRING,
-                                  required=False,
-                                  description=gettext_lazy('计费账单日期止，默认当前月当前日期，ISO8601格式：YYYY-MM-dd')
-                              ),
-                              openapi.Parameter(
-                                  name='user_id',
-                                  in_=openapi.IN_QUERY,
-                                  type=openapi.TYPE_STRING,
-                                  required=False,
-                                  description=gettext_lazy('查询指定用户的计费账单，仅以管理员身份查询时使用')
-                              ),
-                          ] + CustomGenericViewSet.PARAMETERS_AS_ADMIN + [
-                              openapi.Parameter(
-                                  name='download',
-                                  in_=openapi.IN_QUERY,
-                                  type=openapi.TYPE_BOOLEAN,
-                                  required=False,
-                                  description=gettext_lazy('查询结果以文件方式下载文件；分页参数无效，不分页返回所有数据')
-                              ),
-                          ],
+            openapi.Parameter(
+                name='service_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'查询指定服务'
+            ),
+            openapi.Parameter(
+                name='bucket_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('查询指定存储桶')
+            ),
+            openapi.Parameter(
+                name='date_start',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('计费账单日期起，默认当前月起始日期，ISO8601格式：YYYY-MM-dd')
+            ),
+            openapi.Parameter(
+                name='date_end',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('计费账单日期止，默认当前月当前日期，ISO8601格式：YYYY-MM-dd')
+            ),
+            openapi.Parameter(
+                name='user_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('查询指定用户的计费账单，仅以管理员身份查询时使用')
+            ),
+        ] + CustomGenericViewSet.PARAMETERS_AS_ADMIN + [
+            openapi.Parameter(
+                name='download',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_BOOLEAN,
+                required=False,
+                description=gettext_lazy('查询结果以文件方式下载文件；分页参数无效，不分页返回所有数据')
+            ),
+        ],
         responses={
             200: ''
         }
@@ -73,6 +72,7 @@ class MeteringStorageViewSet(CustomGenericViewSet):
     def list(self, request, *args, **kwargs):
         """
         列举对象存储用量计费账单
+
             http code 200：
             {
               "count": 1,
@@ -102,10 +102,12 @@ class MeteringStorageViewSet(CustomGenericViewSet):
 
         return Serializer
 
+
 class StatementStorageViewSet(CustomGenericViewSet):
     permission_classes = [IsAuthenticated, ]
     pagination_class = StatementPageNumberPagination
     lookup_field = 'id'
+
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举日结算单'),
         request_body=no_body,
@@ -139,6 +141,7 @@ class StatementStorageViewSet(CustomGenericViewSet):
     def list(self, request, *args, **kwargs):
         """
         列举日结算单
+
             http code 200：
             {
               "count": 1,
@@ -171,8 +174,6 @@ class StatementStorageViewSet(CustomGenericViewSet):
     @swagger_auto_schema(
         operation_summary=gettext_lazy('日结算单详情'),
         request_body=no_body,
-        manual_parameters=[
-        ],
         responses={
             200: ''
         }
@@ -180,6 +181,7 @@ class StatementStorageViewSet(CustomGenericViewSet):
     def retrieve(self, request, *args, **kwargs):
         """
         日结算单详情
+
             http code 200：
             {
               "id": "s7647061824f211ed88b9c8009fe2eb44",

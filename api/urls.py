@@ -12,6 +12,7 @@ from .apiviews import (
 
 app_name = 'api'
 
+
 no_slash_router = SimpleRouter(trailing_slash=False)
 no_slash_router.register(r'media', views.MediaViewSet, basename='media')
 no_slash_router.register(r'server', views.ServersViewSet, basename='servers')
