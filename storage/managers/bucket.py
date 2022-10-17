@@ -54,9 +54,11 @@ class BucketManager:
         bucket.save(force_insert=True)
         return bucket
 
-    def filter_bucket_queryset(self, service_id: str = None):
+    def filter_bucket_queryset(self, user_id: str, service_id: str = None):
         queryset = self.get_bucket_queryset()
         queryset = queryset.select_related('service', 'user')
+        queryset = queryset.filter(user_id=user_id)
+
         if service_id:
             queryset = queryset.filter(service_id=service_id)
 

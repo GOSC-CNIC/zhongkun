@@ -76,6 +76,7 @@ class BucketTests(MyAPITestCase):
         self.assertEqual(r.status_code, 204)
 
     def test_list_bucket(self):
+        user2 = get_or_create_user(username='tom@xx.com')
         self.client.force_login(self.user)
         url = reverse('api:bucket-list')
         r = self.client.get(url)
@@ -86,6 +87,8 @@ class BucketTests(MyAPITestCase):
 
         bucket1 = BucketManager.create_bucket(
             bucket_name='bucket1', bucket_id='1', user_id=self.user.id, service_id=self.service.id)
+        bucket2 = BucketManager.create_bucket(
+            bucket_name='bucket2', bucket_id='2', user_id=user2.id, service_id=self.service.id)
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn(keys=['count', 'next', 'previous', 'results'], container=r.data)

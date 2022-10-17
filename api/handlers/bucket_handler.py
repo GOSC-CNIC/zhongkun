@@ -114,7 +114,7 @@ class BucketHandler:
     def list_bucket(view: StorageGenericViewSet, request, kwargs):
         service_id = request.query_params.get('service_id', None)
 
-        queryset = BucketManager().filter_bucket_queryset(service_id=service_id)
+        queryset = BucketManager().filter_bucket_queryset(user_id=request.user.id, service_id=service_id)
         try:
             services = view.paginate_queryset(queryset=queryset)
             serializer = view.get_serializer(services, many=True)
