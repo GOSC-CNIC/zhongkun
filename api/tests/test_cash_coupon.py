@@ -31,11 +31,12 @@ class CashCouponTests(MyAPITestCase):
         po = PayOrgnazition(name='机构')
         po.save()
         self.app_service1 = PayAppService(
-            name='service1', app=app, orgnazition=po, service=self.service
+            name='service1', app=app, orgnazition=po, service=self.service,
+            category=PayAppService.Category.VMS_SERVER.value
         )
         self.app_service1.save()
         self.app_service2 = PayAppService(
-            name='service2', app=app, orgnazition=po
+            name='service2', app=app, orgnazition=po, category=PayAppService.Category.VMS_OBJECT.value
         )
         self.app_service2.save()
 
@@ -226,10 +227,10 @@ class CashCouponTests(MyAPITestCase):
             "owner_type", "app_service", "user", "vo", "activity"], results[0]
         )
         self.assertKeysIn([
-            "id", "name", "name_en", "service_id"], results[0]['app_service']
+            "id", "name", "name_en", "service_id", "category"], results[0]['app_service']
         )
-        self.assertEqual(None, results[0]['app_service']['service_id'])
-        self.assertEqual(self.service.id, results[1]['app_service']['service_id'])  # 288.8
+        self.assertEqual(None, results[0]['app_service']['service_id'])     # 188.80
+        self.assertEqual(self.service.id, results[1]['app_service']['service_id'])  # 88.80
         self.assert_is_subdict_of(
             {
                 'id': coupon3_user.id,
@@ -329,7 +330,7 @@ class CashCouponTests(MyAPITestCase):
             "owner_type", "app_service", "user", "vo", "activity"], results[0]
         )
         self.assertKeysIn([
-            "id", "name", "name_en", "service_id"], results[0]['app_service']
+            "id", "name", "name_en", "service_id", "category"], results[0]['app_service']
         )
         self.assertEqual(self.service.id, results[0]['app_service']['service_id'])  # 388.8
         self.assert_is_subdict_of(
@@ -357,8 +358,37 @@ class CashCouponTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 0)
 
-        # list user own coupon, paran "app_service_id" "available"
+        # list vo coupon, paran "app_service_id" "available"
         query = parse.urlencode(query={'vo_id': self.vo.id, 'app_service_id': self.app_service1.id, 'available': ''})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['results'][0]['id'], coupon5_vo.id)
+        self.assertEqual(response.data['results'][0]['face_value'], '388.80')
+
+        # invalid paran "app_service_category"
+        query = parse.urlencode(query={'app_service_category': 'test'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidAppServiceCategory', response=response)
+
+        # list user own coupon, paran "app_service_category"
+        query = parse.urlencode(query={'app_service_category': PayAppService.Category.VMS_SERVER.value})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['results'][0]['id'], coupon2_user.id)
+        self.assertEqual(response.data['results'][0]['face_value'], '88.80')
+
+        query = parse.urlencode(query={'app_service_category': PayAppService.Category.VMS_OBJECT.value})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['results'][0]['id'], coupon3_user.id)
+        self.assertEqual(response.data['results'][0]['face_value'], '188.80')
+
+        # list vo coupon, paran "app_service_category"
+        query = parse.urlencode(query={
+            'vo_id': self.vo.id, 'app_service_category': PayAppService.Category.VMS_SERVER.value})
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 1)

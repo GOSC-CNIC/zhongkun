@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from core import errors
 from api.viewsets import CustomGenericViewSet
 from bill.managers import CashCouponManager
-from bill.models import CashCoupon
+from bill.models import CashCoupon, PayAppService
 from utils.report_file import CSVFileInMemory
 from utils import rand_utils
 from utils.decimal_utils import quantize_10_2
@@ -26,15 +26,18 @@ class CashCouponHandler:
         vo_id = data['vo_id']
         available = data['available']
         app_service_id = data['app_service_id']
+        app_service_category = data['app_service_category']
 
         mgr = CashCouponManager()
         if vo_id:
             queryset = mgr.get_vo_cash_coupon_queryset(
-                user=request.user, vo_id=vo_id, available=available, app_service_id=app_service_id
+                user=request.user, vo_id=vo_id, available=available, app_service_id=app_service_id,
+                app_service_category=app_service_category
             )
         else:
             queryset = mgr.get_user_cash_coupon_queryset(
-                user_id=request.user.id, available=available, app_service_id=app_service_id
+                user_id=request.user.id, available=available, app_service_id=app_service_id,
+                app_service_category=app_service_category
             )
 
         try:
@@ -49,14 +52,19 @@ class CashCouponHandler:
         vo_id = request.query_params.get('vo_id', None)
         available = request.query_params.get('available', None)
         app_service_id = request.query_params.get('app_service_id', None)
+        app_service_category = request.query_params.get('app_service_category', None)
 
         if vo_id == '':
             raise errors.BadRequest(message=_('参数“vo_id”值无效'), code='InvalidVoId')
 
+        if app_service_category and app_service_category not in PayAppService.Category.values:
+            raise errors.InvalidArgument(message=_('参数“app_service_category”值无效'), code='InvalidAppServiceCategory')
+
         return {
             'vo_id': vo_id,
             'available': available is not None,
-            'app_service_id': app_service_id
+            'app_service_id': app_service_id,
+            'app_service_category': app_service_category
         }
 
     def draw_cash_coupon(self, view: CustomGenericViewSet, request):

@@ -9,7 +9,7 @@ from api.viewsets import CustomGenericViewSet
 from api.paginations import NewPageNumberPagination
 from api.handlers.cash_coupon_handler import CashCouponHandler
 from api.serializers import serializers
-from bill.models import CashCoupon
+from bill.models import CashCoupon, PayAppService
 
 
 class CashCouponViewSet(CustomGenericViewSet):
@@ -44,6 +44,13 @@ class CashCouponViewSet(CustomGenericViewSet):
                 type=openapi.TYPE_STRING,
                 required=False,
                 description='在有效期内的，未过期的'
+            ),
+            openapi.Parameter(
+                name='app_service_category',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'服务类别, {PayAppService.Category.choices}'
             )
         ],
         responses={
@@ -73,6 +80,8 @@ class CashCouponViewSet(CustomGenericViewSet):
                         "app_service": {                                # maybe None
                             "id": "2",
                             "name": "怀柔204机房研发测试",
+                            "name_en": "怀柔204机房研发测试",
+                            "category": "vms-server",
                             "service_id": "xx"              # maybe None
                         },
                         "user": {                                   # maybe None

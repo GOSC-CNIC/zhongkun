@@ -5,6 +5,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
 from service.models import ServiceConfig, ApplyVmService
+from bill.models import PayAppService
 
 
 class ServerBaseSerializer(serializers.Serializer):
@@ -762,11 +763,17 @@ class CashCouponSerializer(serializers.Serializer):
         if obj.app_service is None:
             return None
 
+        if obj.app_service.category == PayAppService.Category.VMS_SERVER.value:
+            service_id = obj.app_service.service_id
+        else:
+            service_id = None
+
         return {
             'id': obj.app_service.id,
             'name': obj.app_service.name,
             'name_en': obj.app_service.name_en,
-            'service_id': obj.app_service.service_id
+            'category': obj.app_service.category,
+            'service_id': service_id
         }
 
     @staticmethod

@@ -81,7 +81,10 @@ class CashCouponManager:
 
         return coupon
 
-    def get_user_cash_coupon_queryset(self, user_id: str, app_service_id: str = None, available: bool = None):
+    def get_user_cash_coupon_queryset(
+            self, user_id: str, app_service_id: str = None, available: bool = None,
+            app_service_category: str = None
+    ):
         queryset = self.get_queryset()
         queryset = queryset.filter(
             user_id=user_id, owner_type=OwnerType.USER.value,
@@ -91,13 +94,19 @@ class CashCouponManager:
         if app_service_id:
             queryset = queryset.filter(app_service_id=app_service_id)
 
+        if app_service_category:
+            queryset = queryset.filter(app_service__category=app_service_category)
+
         if available:
             now = timezone.now()
             queryset = queryset.filter(effective_time__lt=now, expiration_time__gt=now)
 
         return queryset
 
-    def get_vo_cash_coupon_queryset(self, user, vo_id: str, app_service_id: str = None, available: bool = None):
+    def get_vo_cash_coupon_queryset(
+            self, user, vo_id: str, app_service_id: str = None, available: bool = None,
+            app_service_category: str = None
+    ):
         """
         :raises: Error
         """
@@ -110,6 +119,9 @@ class CashCouponManager:
 
         if app_service_id:
             queryset = queryset.filter(app_service_id=app_service_id)
+
+        if app_service_category:
+            queryset = queryset.filter(app_service__category=app_service_category)
 
         if available:
             now = timezone.now()
