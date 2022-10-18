@@ -1653,6 +1653,8 @@ class MeteringObsTests(MyAPITestCase):
         self.service2.save()
 
     def test_list_metering(self):
+        user2 = get_or_create_user(username='lilei@cnic.cn')
+
         metering1 = MeteringObjectStorage(
             original_amount=Decimal('1.11'),
             trade_amount=Decimal('1.11'),
@@ -1661,7 +1663,8 @@ class MeteringObsTests(MyAPITestCase):
             storage_bucket_id='bucket1',
             date=date(year=2022, month=10, day=1),
             user_id=self.user.id,
-            username=self.user.username
+            username=self.user.username,
+            storage=1.2345
         )
         metering1.save(force_insert=True)
 
@@ -1669,21 +1672,35 @@ class MeteringObsTests(MyAPITestCase):
             original_amount=Decimal('2.22'),
             trade_amount=Decimal('0'),
             daily_statement_id='',
-            service_id=self.service.id,
-            storage_bucket_id='bucket1',
+            service_id=self.service2.id,
+            storage_bucket_id='bucket2',
             date=date(year=2022, month=10, day=2),
             user_id=self.user.id,
-            username=self.user.username
+            username=self.user.username,
+            storage=2.2345
         )
         metering2.save(force_insert=True)
 
+        metering3 = MeteringObjectStorage(
+            original_amount=Decimal('2.22'),
+            trade_amount=Decimal('0'),
+            daily_statement_id='',
+            service_id=self.service2.id,
+            storage_bucket_id='bucket3',
+            date=date(year=2022, month=10, day=3),
+            user_id=user2.id,
+            username=user2.username,
+            storage=3.2345
+        )
+        metering3.save(force_insert=True)
+
         # list user metering
-        base_url = reverse('api:storage-metering-list')
+        base_url = reverse('api:metering-storage-list')
         r = self.client.get(base_url)
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn(["count", "page_num", "page_size", "results"], r.data)
         self.assertEqual(r.data["count"], 2)
-        self.assertEqual(len(r.data["results"]),2)
+        self.assertEqual(len(r.data["results"]), 2)
 
         # list user metering date_start->date_end
         query = parse.urlencode(query={
@@ -1739,6 +1756,66 @@ class MeteringObsTests(MyAPITestCase):
         r = self.client.get(f'{base_url}?{query}')
         self.assertIs(r.streaming, True)
         self.assertEqual(r.status_code, 200)
+
+        # param 'service_id'
+        query = parse.urlencode(query={
+            'date_start': '2022-10-01', 'date_end': '2022-10-10', 'service_id': self.service.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data["results"]), 1)
+        self.assertEqual(r.data['results'][0]['id'], metering1.id)
+
+        query = parse.urlencode(query={
+            'date_start': '2022-10-01', 'date_end': '2022-10-10', 'service_id': self.service2.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data["results"]), 1)
+        self.assertEqual(r.data['results'][0]['id'], metering2.id)
+
+        # param 'bucket_id'
+        query = parse.urlencode(query={
+            'date_start': '2022-10-01', 'date_end': '2022-10-10', 'bucket_id': 'bucket2'
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data["results"]), 1)
+        self.assertEqual(r.data['results'][0]['id'], metering2.id)
+
+        # param 'user_id'
+        query = parse.urlencode(query={
+            'date_start': '2022-10-01', 'date_end': '2022-10-10', 'user_id': user2.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='BadRequest', response=r)
+
+        # > 1 year
+        query = parse.urlencode(query={
+            'date_start': '2021-10-01', 'date_end': '2022-10-10'
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='BadRequest', response=r)
+
+        # param 'admin'
+        query = parse.urlencode(query={
+            'date_start': '2022-10-01', 'date_end': '2022-10-10', 'as-admin': ''
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        self.user.set_federal_admin()
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data["results"]), 3)
+
+        # param 'admin' 'user_id'
+        query = parse.urlencode(query={
+            'date_start': '2022-10-01', 'date_end': '2022-10-10', 'as-admin': '', 'user_id': user2.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(len(r.data["results"]), 1)
+        self.assertEqual(r.data['results'][0]['id'], metering3.id)
 
 
 class StatementStorageTests(MyAPITestCase):

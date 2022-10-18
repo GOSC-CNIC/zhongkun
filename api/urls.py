@@ -40,8 +40,11 @@ no_slash_router.register(r'azone', azone_views.AvailabilityZoneViewSet, basename
 no_slash_router.register(r'describe-price', order_views.PriceViewSet, basename='describe-price')
 no_slash_router.register(r'order', order_views.OrderViewSet, basename='order')
 no_slash_router.register(r'metering/server', metering_views.MeteringServerViewSet, basename='metering-server')
+no_slash_router.register(
+    r'metering/storage', storage_metering_views.MeteringStorageViewSet, basename='metering-storage')
 no_slash_router.register(r'statement/server', metering_views.StatementServerViewSet, basename='statement-server')
-no_slash_router.register(r'statement/storage', storage_metering_views.StatementStorageViewSet, basename='statement-storage')
+no_slash_router.register(
+    r'statement/storage', storage_metering_views.StatementStorageViewSet, basename='statement-storage')
 no_slash_router.register(r'payment-history', bill_views.PaymentHistoryViewSet, basename='payment-history')
 no_slash_router.register(r'account/balance', account_views.BalanceAccountViewSet, basename='account-balance')
 no_slash_router.register(r'cashcoupon', cash_coupon_views.CashCouponViewSet, basename='cashcoupon')
@@ -53,7 +56,6 @@ no_slash_router.register(r'admin/cashcoupon', cash_coupon_views.AdminCashCouponV
 no_slash_router.register(r'storage/bucket', bucket_views.BucketViewSet, basename='bucket')
 no_slash_router.register(r'storage/service', storage_views.ObjectsServiceViewSet, basename='storage-service')
 no_slash_router.register(r'support/ticket', ticket_views.TicketViewSet, basename='support-ticket')
-no_slash_router.register(r'storage/metering',storage_metering_views.MeteringStorageViewSet, basename='storage-metering')
 
 urlpatterns = [
     path('', include(no_slash_router.urls)),

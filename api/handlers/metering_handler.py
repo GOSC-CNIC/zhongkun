@@ -770,6 +770,7 @@ class StatementHandler:
         serializer = view.get_serializer(instance=statement)
         return Response(data=serializer.data)
 
+
 class MeteringObsHandler:
     def list_bucket_metering(self, view: CustomGenericViewSet, request):
         """
@@ -788,10 +789,19 @@ class MeteringObsHandler:
         download = params['download']
 
         ms_mgr = MeteringStorageManager()
-        queryset = ms_mgr.filter_user_obs_metering(
-            user=request.user, service_id=service_id, bucket_id=bucket_id, date_start=date_start,
-            date_end=date_end
-        )
+        if view.is_as_admin_request(request):
+            try:
+                queryset = ms_mgr.filter_storage_metering_by_admin(
+                    user=request.user, service_id=service_id, bucket_id=bucket_id, date_start=date_start,
+                    date_end=date_end, user_id=user_id
+                )
+            except errors.Error as exc:
+                return view.exception_response(exc)
+        else:
+            queryset = ms_mgr.filter_user_storage_metering(
+                user=request.user, service_id=service_id, bucket_id=bucket_id, date_start=date_start,
+                date_end=date_end
+            )
 
         if download:
             return self.list_bucket_metering_download(
@@ -817,7 +827,7 @@ class MeteringObsHandler:
         csv_file.writerow(['#--------------' + _('数据明细列表') + '---------------'])
         csv_file.writerow([
             _('存储桶ID'), _('计费日期'), _('用户名'),
-            _('存储容量 (GiB)'),
+            _('存储容量 (GiB*Hours)'),
             _('计费总金额'), _('应付总金额')
         ])
         per_page = 1000
@@ -834,6 +844,7 @@ class MeteringObsHandler:
             for m in meterings:
                 line_items = [
                     str(m.storage_bucket_id), str(m.date), str(m.username),
+                    str(f'{m.storage: .2f}'),
                     str(quantize_18_2(m.original_amount)),
                     str(quantize_18_2(m.trade_amount))
                 ]
@@ -880,12 +891,12 @@ class MeteringObsHandler:
         return response
 
     @staticmethod
-    def list_bucket_metering_validate_params(view: CustomGenericViewSet, request)->dict:
+    def list_bucket_metering_validate_params(view: CustomGenericViewSet, request) -> dict:
         service_id = request.query_params.get('service_id', None)
         bucket_id = request.query_params.get('bucket_id', None)
         date_start = request.query_params.get('date_start', None)
         date_end = request.query_params.get('date_end', None)
-        user_id = request.query_params.get('user_id',None)
+        user_id = request.query_params.get('user_id', None)
         download = request.query_params.get('download', None)
 
         now_date = timezone.now().date()
@@ -918,7 +929,7 @@ class MeteringObsHandler:
             raise errors.BadRequest(message='参数“date_start”时间必须超前“date_end”时间')
 
         # 时间段不得超过一年
-        if date_start.replace(year=date_start.year + 1)<date_end:
+        if date_start.replace(year=date_start.year + 1) < date_end:
             raise errors.BadRequest(message='起止时间不得超过一年')
 
         if user_id is not None and not view.is_as_admin_request(request):
@@ -932,6 +943,7 @@ class MeteringObsHandler:
             'user_id': user_id,
             'download': download is not None
         }
+
 
 class StorageStatementHandler:
     def list_statement_storage(self, view: CustomGenericViewSet, request):
@@ -999,4 +1011,3 @@ class StorageStatementHandler:
 
         serializer = view.get_serializer(instance=statement)
         return Response(data=serializer.data)
-

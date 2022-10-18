@@ -542,12 +542,13 @@ class StatementServerManager:
 
         return statement
 
+
 class MeteringStorageManager:
     @staticmethod
     def get_metering_obs_queryset():
         return MeteringObjectStorage.objects.all()
 
-    def filter_user_obs_metering(
+    def filter_user_storage_metering(
             self, user,
             service_id: str = None,
             bucket_id: str = None,
@@ -558,10 +559,30 @@ class MeteringStorageManager:
         查询用户的对象存储的计量账单的查询集合
         """
         return self.filter_obs_metering_queryset(
-            service_id=service_id, bucket_id=bucket_id,date_start=date_start,
+            service_id=service_id, bucket_id=bucket_id, date_start=date_start,
             date_end=date_end, user_id=user.id
         )
 
+    def filter_storage_metering_by_admin(
+            self, user,
+            service_id: str = None,
+            bucket_id: str = None,
+            date_start: date = None,
+            date_end: date = None,
+            user_id: str = None
+    ):
+        """
+        查询用户的对象存储的计量账单的查询集合
+        :return: QuerySet()
+        :raises: Error
+        """
+        if user.is_federal_admin():
+            return self.filter_obs_metering_queryset(
+                service_id=service_id, bucket_id=bucket_id, date_start=date_start,
+                date_end=date_end, user_id=user_id
+            )
+
+        raise errors.AccessDenied(message=_('您没有管理员权限'))
 
     def filter_obs_metering_queryset(
             self, service_id: str = None,
@@ -571,11 +592,8 @@ class MeteringStorageManager:
             user_id: str = None
     ):
         lookups = {}
-        if date_start:
-            lookups['date__gte'] = date_start
-
-        if date_end:
-            lookups['date__lte'] = date_end
+        if user_id:
+            lookups['user_id'] = user_id
 
         if service_id:
             lookups['service_id'] = service_id
@@ -583,8 +601,15 @@ class MeteringStorageManager:
         if bucket_id:
             lookups['storage_bucket_id'] = bucket_id
 
+        if date_start:
+            lookups['date__gte'] = date_start
+
+        if date_end:
+            lookups['date__lte'] = date_end
+
         queryset = self.get_metering_obs_queryset()
         return queryset.filter(**lookups).order_by('-creation_time')
+
 
 class StatementStorageManager:
     @staticmethod
@@ -613,10 +638,10 @@ class StatementStorageManager:
     @staticmethod
     def get_statement_storage(statement_id: str, select_for_update: bool = False):
         if select_for_update:
-            return  DailyStatementObjectStorage.objects.filter(
+            return DailyStatementObjectStorage.objects.filter(
                 id=statement_id
             ).select_related('service').select_for_update().first()
-        return  DailyStatementObjectStorage.objects.filter(id=statement_id).select_related('service').first()
+        return DailyStatementObjectStorage.objects.filter(id=statement_id).select_related('service').first()
 
     def get_statement_storage_detail(
             self, statement_id: str, user, check_permission: bool = True
