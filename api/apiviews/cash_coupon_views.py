@@ -369,7 +369,8 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
                         "activity": {                                # maybe None
                             "id": "75b63eee-cda9-11ec-8660-c8009fe2eb10",
                             "name": "test"
-                        }
+                        },
+                        "exchange_code": "771570982053927857"
                     }
                 ]
             }
@@ -385,7 +386,7 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
     def create(self, request, *args, **kwargs):
         """
         App服务单元管理员创建一个代金券，可直接发放给指定用户
-        
+
             http code 200：
             {
               "id": "771570982053",
@@ -409,14 +410,15 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
                 "username": "shun"
               },
               "vo": null,
-              "activity": null
+              "activity": null,
+              "exchange_code": "771570982053927857"
             }
         """
         return CashCouponHandler.admin_create_cash_coupon(view=self, request=request)
 
     def get_serializer_class(self):
         if self.action == 'list':
-            return serializers.CashCouponSerializer
+            return serializers.AdminCashCouponSerializer
         elif self.action == 'create':
             return trade_serializers.CashCouponCreateSerializer
 

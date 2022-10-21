@@ -907,7 +907,7 @@ class AdminCashCouponTests(MyAPITestCase):
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn(keys=[
             'id', 'face_value', 'creation_time', 'effective_time', 'expiration_time', 'balance', 'status',
-            'granted_time', 'owner_type', 'app_service', 'user', 'vo', 'activity'
+            'granted_time', 'owner_type', 'app_service', 'user', 'vo', 'activity', 'exchange_code'
         ], container=r.data)
         self.assertKeysIn(keys=[
             'id', 'name', 'name_en', 'category', 'service_id'

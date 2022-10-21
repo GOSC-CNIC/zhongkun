@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from users.managers import get_user_by_name
 from core import errors
 from api.viewsets import CustomGenericViewSet
-from api.serializers.serializers import CashCouponSerializer
+from api.serializers.serializers import AdminCashCouponSerializer
 from bill.managers import CashCouponManager
 from bill.managers.cash_coupon import get_app_service_by_admin
 from bill.models import CashCoupon, PayAppService
@@ -335,7 +335,7 @@ class CashCouponHandler:
         except Exception as exc:
             return view.exception_response(exc)
 
-        return Response(data=CashCouponSerializer(instance=coupon).data)
+        return Response(data=AdminCashCouponSerializer(instance=coupon).data)
 
     @staticmethod
     def _admin_create_cash_coupon_validate_params(view: CustomGenericViewSet, request):

@@ -798,6 +798,14 @@ class CashCouponSerializer(serializers.Serializer):
         return {'id': obj.activity.id, 'name': obj.activity.name}
 
 
+class AdminCashCouponSerializer(CashCouponSerializer):
+    exchange_code = serializers.SerializerMethodField(label=_('兑换码'), method_name='get_exchange_code')
+
+    @staticmethod
+    def get_exchange_code(obj):
+        return obj.one_exchange_code
+
+
 class BaseCashCouponPaymentSerializer(serializers.Serializer):
     """
     券扣费记录序列化器
