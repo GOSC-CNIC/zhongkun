@@ -1,5 +1,6 @@
 import math
 import io
+from datetime import timedelta
 
 from django.utils.http import urlquote
 from django.utils import timezone
@@ -7,13 +8,17 @@ from django.http import StreamingHttpResponse
 from django.utils.translation import gettext as _
 from rest_framework.response import Response
 
+from users.managers import get_user_by_name
 from core import errors
 from api.viewsets import CustomGenericViewSet
+from api.serializers.serializers import CashCouponSerializer
 from bill.managers import CashCouponManager
+from bill.managers.cash_coupon import get_app_service_by_admin
 from bill.models import CashCoupon, PayAppService
 from utils.report_file import CSVFileInMemory
 from utils import rand_utils
 from utils.decimal_utils import quantize_10_2
+from .handlers import serializer_error_msg
 
 
 class CashCouponHandler:
@@ -294,3 +299,97 @@ class CashCouponHandler:
             raise errors.BadRequest(message=_('参数“vo_id”值无效'), code='InvalidVoId')
 
         return code, vo_id
+
+    @staticmethod
+    def admin_create_cash_coupon(view: CustomGenericViewSet, request):
+        """
+        App服务单元管理员创建一个代金券，可直接发放给指定用户
+        """
+        try:
+            data = CashCouponHandler._admin_create_cash_coupon_validate_params(view=view, request=request)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        face_value = data['face_value']
+        effective_time = data['effective_time']
+        expiration_time = data['expiration_time']
+        app_service = data['app_service']
+        user = data['user']
+
+        try:
+            if user is None:
+                coupon = CashCouponManager().create_wait_draw_coupon(
+                    app_service_id=app_service.id,
+                    face_value=face_value,
+                    effective_time=effective_time,
+                    expiration_time=expiration_time
+                )
+            else:
+                coupon = CashCouponManager().create_one_coupon_to_user(
+                    user=user,
+                    app_service_id=app_service.id,
+                    face_value=face_value,
+                    effective_time=effective_time,
+                    expiration_time=expiration_time
+                )
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        return Response(data=CashCouponSerializer(instance=coupon).data)
+
+    @staticmethod
+    def _admin_create_cash_coupon_validate_params(view: CustomGenericViewSet, request):
+        serializer = view.get_serializer(data=request.data)
+        if not serializer.is_valid(raise_exception=False):
+            s_errors = serializer.errors
+            if 'face_value' in s_errors:
+                exc = errors.BadRequest(
+                    message=_('代金券面额无效。') + s_errors['face_value'][0], code='InvalidFaceValue')
+            elif 'effective_time' in s_errors:
+                exc = errors.BadRequest(
+                    message=_('代金券生效时间无效。') + s_errors['effective_time'][0], code='InvalidEffectiveTime')
+            elif 'expiration_time' in s_errors:
+                exc = errors.BadRequest(
+                    message=_('代金券过期时间无效。') + s_errors['expiration_time'][0], code='InvalidExpirationTime')
+            else:
+                msg = serializer_error_msg(serializer.errors)
+                exc = errors.BadRequest(message=msg)
+
+            raise exc
+
+        data = serializer.validated_data
+        face_value = data['face_value']
+        effective_time = data['effective_time']
+        expiration_time = data['expiration_time']
+        app_service_id = data['app_service_id']
+        username = data.get('username', None)
+
+        if face_value < 0 or face_value > 100000:
+            raise errors.BadRequest(message=_('代金券面额必须大于0，不得大于100000'), code='InvalidFaceValue')
+
+        now_time = timezone.now()
+        if (expiration_time - now_time) < timedelta(hours=1):
+            raise errors.BadRequest(message=_('代金券的过期时间与当前时间的时间差必须大于1小时'), code='InvalidExpirationTime')
+
+        if effective_time:
+            if (expiration_time - effective_time) < timedelta(hours=1):
+                raise errors.BadRequest(
+                    message=_('代金券的过期时间与生效时间的时间差必须大于1小时'), code='InvalidExpirationTime')
+        else:
+            effective_time = now_time
+
+        # AppServiceNotExist, AccessDenied
+        app_service = get_app_service_by_admin(_id=app_service_id, user=request.user)
+
+        if username:
+            user = get_user_by_name(username=username)      # UserNotExist
+        else:
+            user = None
+
+        return {
+            'face_value': face_value,
+            'effective_time': effective_time,
+            'expiration_time': expiration_time,
+            'app_service': app_service,
+            'user': user
+        }

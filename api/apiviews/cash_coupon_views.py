@@ -9,6 +9,7 @@ from api.viewsets import CustomGenericViewSet
 from api.paginations import NewPageNumberPagination
 from api.handlers.cash_coupon_handler import CashCouponHandler
 from api.serializers import serializers
+from api.serializers import trade as trade_serializers
 from bill.models import CashCoupon, PayAppService
 
 
@@ -375,8 +376,48 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
         """
         return CashCouponHandler().admin_list_cash_coupon(view=self, request=request)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('App服务单元管理员创建一个代金券，可直接发放给指定用户'),
+        responses={
+            200: ''
+        }
+    )
+    def create(self, request, *args, **kwargs):
+        """
+        App服务单元管理员创建一个代金券，可直接发放给指定用户
+        
+            http code 200：
+            {
+              "id": "771570982053",
+              "face_value": "66.88",
+              "creation_time": "2022-10-20T09:01:07.638813Z",
+              "effective_time": "2022-10-20T08:52:54.352000Z",
+              "expiration_time": "2022-10-26T08:52:54.352000Z",
+              "balance": "66.88",
+              "status": "available",
+              "granted_time": "2022-10-20T09:01:29.623582Z",
+              "owner_type": "user",
+              "app_service": {
+                "id": "s20220623023119",
+                "name": "怀柔204机房研发测试",
+                "name_en": "怀柔204机房研发测试",
+                "category": "vms-server",
+                "service_id": "2"
+              },
+              "user": {
+                "id": "1",
+                "username": "shun"
+              },
+              "vo": null,
+              "activity": null
+            }
+        """
+        return CashCouponHandler.admin_create_cash_coupon(view=self, request=request)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return serializers.CashCouponSerializer
+        elif self.action == 'create':
+            return trade_serializers.CashCouponCreateSerializer
 
         return Serializer

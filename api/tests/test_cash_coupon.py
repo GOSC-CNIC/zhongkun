@@ -14,6 +14,10 @@ from core import errors
 from . import set_auth_header, MyAPITestCase
 
 
+def to_isoformat(value):
+    return value.isoformat(timespec='seconds').split('+')[0] + 'Z'
+
+
 class CashCouponTests(MyAPITestCase):
     def setUp(self):
         self.user = set_auth_header(self)
@@ -761,3 +765,175 @@ class CashCouponTests(MyAPITestCase):
         self.assertEqual(coupon2.owner_type, OwnerType.VO.value)
         self.assertEqual(coupon2.vo_id, self.vo.id)
         self.assertEqual(coupon2.status, CashCoupon.Status.AVAILABLE.value)
+
+
+class AdminCashCouponTests(MyAPITestCase):
+    def setUp(self):
+        self.user = set_auth_header(self)
+        self.user2 = get_or_create_user(username='user2')
+        self.service = get_or_create_service()
+
+        # 余额支付有关配置
+        app = PayApp(name='app')
+        app.save()
+        self.app = app
+        po = PayOrgnazition(name='机构')
+        po.save()
+        self.app_service1 = PayAppService(
+            name='service1', app=app, orgnazition=po, service=self.service,
+            category=PayAppService.Category.VMS_SERVER.value
+        )
+        self.app_service1.save()
+        self.app_service2 = PayAppService(
+            name='service2', app=app, orgnazition=po, category=PayAppService.Category.VMS_OBJECT.value
+        )
+        self.app_service2.save()
+
+    def test_admin_create_coupon(self):
+        now_time = timezone.now()
+        url = reverse('api:admin-coupon-list')
+
+        # InvalidFaceValue
+        data = {
+            "face_value": "string",
+            "effective_time": "2022-10-21T05:56:35.930Z",
+            "expiration_time": "2022-10-21T05:56:35.930Z",
+            "app_service_id": "string",
+            "username": "string"
+        }
+        r = self.client.post(url, data=data)
+        self.assertErrorResponse(status_code=400, code='InvalidFaceValue', response=r)
+        data['face_value'] = '-10.12'
+        r = self.client.post(url, data=data)
+        self.assertErrorResponse(status_code=400, code='InvalidFaceValue', response=r)
+        data['face_value'] = '10.123'
+        r = self.client.post(url, data=data)
+        self.assertErrorResponse(status_code=400, code='InvalidFaceValue', response=r)
+
+        # InvalidEffectiveTime
+        data = {
+            "face_value": "66.88",
+            "effective_time": "2022-10-21T5:56:",
+            "expiration_time": "2022-10-21T05:56:35.930Z",
+            "app_service_id": "string",
+            "username": "string"
+        }
+        r = self.client.post(url, data=data)
+        self.assertErrorResponse(status_code=400, code='InvalidEffectiveTime', response=r)
+
+        # InvalidExpirationTime
+
+        now_time_str = to_isoformat(now_time)
+        data = {
+            "face_value": "66.88",
+            "effective_time": now_time_str,
+            "expiration_time": "2022-10-21T05:56:35.",
+            "app_service_id": "string",
+            "username": "string"
+        }
+        r = self.client.post(url, data=data)
+        self.assertErrorResponse(status_code=400, code='InvalidExpirationTime', response=r)
+
+        # expiration_time < now
+        data['expiration_time'] = to_isoformat(now_time - timedelta(minutes=30))
+        r = self.client.post(url, data=data)
+        self.assertErrorResponse(status_code=400, code='InvalidExpirationTime', response=r)
+
+        # expiration_time < now
+        data['expiration_time'] = to_isoformat(now_time - timedelta(hours=1, minutes=30))
+        r = self.client.post(url, data=data)
+        self.assertErrorResponse(status_code=400, code='InvalidExpirationTime', response=r)
+
+        # expiration_time - now < 1 h
+        data['expiration_time'] = now_time_str
+        r = self.client.post(url, data=data)
+        self.assertErrorResponse(status_code=400, code='InvalidExpirationTime', response=r)
+
+        data['expiration_time'] = to_isoformat(now_time + timedelta(minutes=59))
+        r = self.client.post(url, data=data)
+        self.assertErrorResponse(status_code=400, code='InvalidExpirationTime', response=r)
+
+        # expiration_time - now > 1 h
+        data['expiration_time'] = to_isoformat(now_time + timedelta(hours=1, minutes=30))
+        r = self.client.post(url, data=data)
+        self.assertErrorResponse(status_code=404, code='AppServiceNotExist', response=r)
+
+        # expiration_time - effective_time < 1 h
+        data['effective_time'] = to_isoformat(now_time + timedelta(minutes=59))
+        r = self.client.post(url, data=data)
+        self.assertErrorResponse(status_code=400, code='InvalidExpirationTime', response=r)
+
+        # app_service1 AccessDenied
+        data = {
+            "face_value": "66.88",
+            "effective_time": now_time_str,
+            "expiration_time": to_isoformat(now_time + timedelta(hours=1, minutes=30)),
+            "app_service_id": self.app_service1.id,
+            "username": "string"
+        }
+        r = self.client.post(url, data=data)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        # app_service1 has permission
+        self.app_service1.user_id = self.user.id
+        self.app_service1.save(update_fields=['user_id'])
+        r = self.client.post(url, data=data)
+        self.assertErrorResponse(status_code=404, code='UserNotExist', response=r)
+
+        self.app_service1.user_id = None
+        self.app_service1.save(update_fields=['user_id'])
+        r = self.client.post(url, data=data)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        self.service.users.add(self.user)
+        r = self.client.post(url, data=data)
+        self.assertErrorResponse(status_code=404, code='UserNotExist', response=r)
+
+        # app_service2 AccessDenied
+        data['app_service_id'] = self.app_service2.id
+        r = self.client.post(url, data=data)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        # ok, create to user2
+        expiration_time_str = to_isoformat(now_time + timedelta(hours=1, minutes=30))
+        data = {
+            "face_value": "66.88",
+            "effective_time": now_time_str,
+            "expiration_time": expiration_time_str,
+            "app_service_id": self.app_service1.id,
+            "username": self.user2.username
+        }
+        r = self.client.post(url, data=data)
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=[
+            'id', 'face_value', 'creation_time', 'effective_time', 'expiration_time', 'balance', 'status',
+            'granted_time', 'owner_type', 'app_service', 'user', 'vo', 'activity'
+        ], container=r.data)
+        self.assertKeysIn(keys=[
+            'id', 'name', 'name_en', 'category', 'service_id'
+        ], container=r.data['app_service'])
+        self.assert_is_subdict_of(sub={
+            'face_value': '66.88', 'balance': '66.88', 'owner_type': 'user', 'effective_time': now_time_str,
+            'expiration_time': expiration_time_str, 'status': 'available', 'vo': None, 'activity': None
+        }, d=r.data)
+        self.assertEqual(r.data['app_service']['id'], self.app_service1.id)
+        self.assertEqual(r.data['app_service']['service_id'], self.service.id)
+        self.assertEqual(r.data['user']['id'], self.user2.id)
+
+        # ok, create no username
+        expiration_time_str = to_isoformat(now_time + timedelta(hours=1, minutes=30))
+        data = {
+            "face_value": "166.88",
+            "effective_time": now_time_str,
+            "expiration_time": expiration_time_str,
+            "app_service_id": self.app_service1.id
+        }
+        r = self.client.post(url, data=data)
+        self.assertEqual(r.status_code, 200)
+        self.assert_is_subdict_of(sub={
+            'face_value': '166.88', 'balance': '166.88', 'owner_type': '', 'effective_time': now_time_str,
+            'expiration_time': expiration_time_str, 'status': 'wait', 'vo': None, 'activity': None
+        }, d=r.data)
+        self.assertEqual(r.data['app_service']['id'], self.app_service1.id)
+        self.assertEqual(r.data['app_service']['service_id'], self.service.id)
+        self.assertIsNone(r.data['user'])

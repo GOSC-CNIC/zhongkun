@@ -1,5 +1,6 @@
 from decimal import Decimal
 from typing import List
+from datetime import datetime
 
 from django.utils.translation import gettext as _
 from django.db import transaction
@@ -10,6 +11,29 @@ from utils.model import OwnerType
 from vo.managers import VoManager
 from bill.models import CashCoupon, CashCouponPaymentHistory, CashCouponActivity, PayAppService
 from users.models import UserProfile
+
+
+def get_app_service_by_admin(_id: str, user):
+    """
+    查询app service，检测用户管理权限
+
+    :rraise: AppServiceNotExist, AccessDenied
+    """
+    app_service = PayAppService.objects.filter(id=_id).first()
+    if app_service is None:
+        raise errors.AppServiceNotExist(message=_('App子服务不存在'))
+
+    if app_service.user_id == user.id:
+        return app_service
+
+    service = app_service.service
+    if service is None:
+        raise errors.AccessDenied(message=_('你没有此App子服务的权限'))
+
+    if not service.user_has_perm(user):
+        raise errors.AccessDenied(message=_('你没有此App子服务的权限'))
+
+    return app_service
 
 
 class CashCouponManager:
@@ -36,6 +60,14 @@ class CashCouponManager:
         if coupon is None:
             raise errors.NotFound(message=_('代金券不存在'), code='NoSuchCoupon')
 
+        self.ensure_wait_draw_cash_coupon(coupon=coupon)
+        return coupon
+
+    @staticmethod
+    def ensure_wait_draw_cash_coupon(coupon):
+        """
+        检查确保代金券未领取状态
+        """
         if coupon.status == CashCoupon.Status.CANCELLED.value:
             raise errors.ConflictError(message=_('代金券已作废'), code='AlreadyCancelled')
 
@@ -49,8 +81,6 @@ class CashCouponManager:
             coupon.owner_type != ''
         ):
             raise errors.ConflictError(message=_('代金券已被领取'), code='AlreadyGranted')
-
-        return coupon
 
     def draw_cash_coupon(self, coupon_id: str, coupon_code: str, user, vo_id: str = None) -> CashCoupon:
         """
@@ -78,6 +108,61 @@ class CashCouponManager:
                 coupon.owner_type = OwnerType.USER.value
 
             coupon.save(update_fields=['user_id', 'status', 'granted_time', 'vo_id', 'owner_type'])
+
+        return coupon
+
+    @staticmethod
+    def create_wait_draw_coupon(
+            app_service_id: str,
+            face_value: Decimal,
+            effective_time: datetime,
+            expiration_time: datetime,
+            activity_id: str = None
+    ):
+        """
+        创建一个待领取的券
+        """
+        return CashCoupon.create_wait_draw_coupon(
+            face_value=face_value,
+            effective_time=effective_time,
+            expiration_time=expiration_time,
+            app_service_id=app_service_id,
+            activity_id=activity_id
+        )
+
+    def grant_cash_coupon_to_user(self, coupon: CashCoupon, user):
+        """
+        把待领取的代金券发放给指定用户
+        """
+        self.ensure_wait_draw_cash_coupon(coupon=coupon)
+        coupon.user = user
+        coupon.status = CashCoupon.Status.AVAILABLE.value
+        coupon.granted_time = timezone.now()
+        coupon.vo_id = None
+        coupon.owner_type = OwnerType.USER.value
+        coupon.save(update_fields=['user_id', 'status', 'granted_time', 'vo_id', 'owner_type'])
+        return coupon
+
+    def create_one_coupon_to_user(
+            self, user,
+            app_service_id: str,
+            face_value: Decimal,
+            effective_time: datetime,
+            expiration_time: datetime,
+            activity_id: str = None
+    ):
+        """
+        创建一个券，并发放给指定用户
+        """
+        with transaction.atomic():
+            coupon = self.create_wait_draw_coupon(
+                app_service_id=app_service_id,
+                face_value=face_value,
+                effective_time=effective_time,
+                expiration_time=expiration_time,
+                activity_id=activity_id
+            )
+            self.grant_cash_coupon_to_user(coupon=coupon, user=user)
 
         return coupon
 
@@ -304,7 +389,9 @@ class CashCouponManager:
         queryset = CashCouponPaymentHistory.objects.select_related('payment_history').filter(cash_coupon_id=coupon.id)
         return queryset
 
-    def admin_list_coupon_queryset(self, user: UserProfile, template_id: str = None, app_service_id: str = None, status: str = None):
+    def admin_list_coupon_queryset(
+            self, user: UserProfile, template_id: str = None, app_service_id: str = None, status: str = None
+    ):
         if user.is_federal_admin():
             return self.filter_coupon_queryset(
                 template_id=template_id, app_service_id=app_service_id, status=status
@@ -323,19 +410,7 @@ class CashCouponManager:
                 raise errors.AccessDenied(message=_('你没有此券模板的权限'))
 
         if app_service_id:
-            app_service = PayAppService.objects.filter(id=app_service_id).first()
-            if app_service is None:
-                raise errors.NotFound(message=_('App子服务不存在'))
-
-            if app_service.user_id != user.id:
-                raise errors.AccessDenied(message=_('你没有此App子服务的权限'))
-
-            service = app_service.service
-            if service is None:
-                raise errors.AccessDenied(message=_('你没有此App子服务的权限'))
-
-            if not service.user_has_perm(user):
-                raise errors.AccessDenied(message=_('你没有此App子服务的权限'))
+            get_app_service_by_admin(_id=app_service_id, user=user)
 
         return self.filter_coupon_queryset(template_id=template_id, app_service_id=app_service_id, status=status)
 

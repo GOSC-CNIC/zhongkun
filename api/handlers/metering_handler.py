@@ -975,7 +975,7 @@ class StorageStatementHandler:
         date_start = request.query_params.get('date_start', None)
         date_end = request.query_params.get('date_end', None)
 
-        if payment_status is not None and payment_status not in PaymentStatus:
+        if payment_status is not None and payment_status not in PaymentStatus.values:
             raise errors.InvalidArgument(message='参数"payment_status" 值无效')
 
         if date_start is not None:
@@ -992,7 +992,7 @@ class StorageStatementHandler:
 
         if date_start and date_end:
             if date_start > date_end:
-                raise  errors.InvalidArgument(message='参数"date_start" 必须提前于 "date_end"时间 ')
+                raise errors.InvalidArgument(message='参数"date_start" 必须提前于 "date_end"时间')
 
         return {
             'payment_status': payment_status,

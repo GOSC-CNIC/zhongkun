@@ -1,4 +1,5 @@
 from decimal import Decimal
+from datetime import datetime
 
 from django.db import models
 from django.utils.translation import gettext, gettext_lazy as _
@@ -248,23 +249,13 @@ class CashCouponActivity(UuidModel, CashCouponBase):
         """
         创建一个券
         """
-        coupon = CashCoupon(
+        coupon = CashCoupon.create_wait_draw_coupon(
             face_value=self.face_value,
             effective_time=self.effective_time,
             expiration_time=self.expiration_time,
             app_service_id=self.app_service_id,
-            balance=self.face_value,
-            status=CashCoupon.Status.WAIT.value,
-            granted_time=timezone.now(),
             activity_id=self.id
         )
-        try:
-            coupon.save(force_insert=True)
-        except Exception as e:
-            if CashCoupon.objects.filter(id=coupon.id).exists():
-                coupon.id = None
-                coupon.save(force_insert=True)
-
         return coupon
 
 
@@ -353,6 +344,37 @@ class CashCoupon(CashCouponBase):
             return code.rsplit('#', maxsplit=1)
 
         return code[0:-6], code[-6:]
+
+    @classmethod
+    def create_wait_draw_coupon(
+            cls,
+            app_service_id,
+            face_value: Decimal,
+            effective_time: datetime,
+            expiration_time: datetime,
+            activity_id: str = None
+    ):
+        """
+        创建一个待领取的券
+        """
+        coupon = cls(
+            face_value=face_value,
+            effective_time=effective_time,
+            expiration_time=expiration_time,
+            app_service_id=app_service_id,
+            balance=face_value,
+            status=CashCoupon.Status.WAIT.value,
+            granted_time=timezone.now(),
+            activity_id=activity_id
+        )
+        try:
+            coupon.save(force_insert=True)
+        except Exception as e:
+            if cls.objects.filter(id=coupon.id).exists():
+                coupon.id = None
+                coupon.save(force_insert=True)
+
+        return coupon
 
 
 class PaymentHistory(CustomIdModel):

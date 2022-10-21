@@ -199,6 +199,16 @@ class TicketNotExist(NotFound):
     default_code = 'TicketNotExist'
 
 
+class AppServiceNotExist(NotFound):
+    default_message = _('App子服务不存在')
+    default_code = 'AppServiceNotExist'
+
+
+class UserNotExist(NotFound):
+    default_message = _('用户不存在')
+    default_code = 'UserNotExist'
+
+
 class NoSupportVPN(APIException):
     default_message = 'This service does not provide VPN support.'
     default_code = 'NoSupportVPN'

@@ -31,3 +31,11 @@ class TradeChargeSerializer(BaseTradePaySerializer):
         label=_('AAI/科技云通行证用户认证JWT'), max_length=128, required=True,
         help_text=_('用于指定付款用户，并验证付款用户的有效性')
     )
+
+
+class CashCouponCreateSerializer(serializers.Serializer):
+    face_value = serializers.DecimalField(label=_('面额'), max_digits=10, decimal_places=2)
+    effective_time = serializers.DateTimeField(label=_('生效时间'), required=False, help_text=_('默认为当前时间'))
+    expiration_time = serializers.DateTimeField(label=_('过期时间'), required=True)
+    app_service_id = serializers.CharField(label=_('APP服务ID'), max_length=36, required=True)
+    username = serializers.CharField(label=_('用户名'), max_length=128, required=False, help_text=_('代金券发给此用户'))

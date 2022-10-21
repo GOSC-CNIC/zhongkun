@@ -175,6 +175,7 @@ class TicketViewSet(AsRoleGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('查询一个工单详情'),
+        manual_parameters=AsRoleGenericViewSet.PARAMETERS_AS_ROLE,
         responses={
             200: ''
         }
