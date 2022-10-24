@@ -1073,3 +1073,76 @@ class TicketTests(MyAPITestCase):
         url = reverse('api:support-ticket-take-ticket', kwargs={'id': ticket1_user.id})
         r = self.client.post(url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+    def test_ticket_assigned_to(self):
+        ticket1_user = Ticket(
+            title='test',
+            description='description',
+            service_type=Ticket.ServiceType.SERVER.value,
+            contact='text',
+            status=Ticket.Status.CANCELED.value,
+            severity=Ticket.Severity.NORMAL.value,
+            submitter=self.user,
+            username=self.user.username,
+            assigned_to_id=None
+        )
+        ticket1_user.save(force_insert=True)
+
+        url = reverse('api:support-ticket-ticket-assigned-to', kwargs={'id': 'test', 'username': 'testuser'})
+        r = self.client.post(url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+
+        self.client.force_login(self.user)
+        url = reverse('api:support-ticket-ticket-assigned-to', kwargs={'id': 'test', 'username': 'testuser'})
+        r = self.client.post(url)
+        self.assertErrorResponse(status_code=404, code='TicketNotExist', response=r)
+
+        url = reverse('api:support-ticket-ticket-assigned-to', kwargs={'id': ticket1_user.id, 'username': 'testuser'})
+        r = self.client.post(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        self.user.set_federal_admin()
+        url = reverse('api:support-ticket-ticket-assigned-to', kwargs={'id': ticket1_user.id, 'username': 'testuser'})
+        r = self.client.post(url)
+        self.assertErrorResponse(status_code=404, code='UserNotExist', response=r)
+
+        # assigned to user2 ( not federal admin )
+        url = reverse(
+            'api:support-ticket-ticket-assigned-to', kwargs={'id': ticket1_user.id, 'username': self.user2.username})
+        r = self.client.post(url)
+        self.assertErrorResponse(status_code=409, code='Conflict', response=r)
+
+        # assigned to user2 ok
+        self.user2.set_federal_admin()
+        url = reverse(
+            'api:support-ticket-ticket-assigned-to', kwargs={'id': ticket1_user.id, 'username': self.user2.username})
+        r = self.client.post(url)
+        self.assertEqual(r.status_code, 200)
+        ticket1_user.refresh_from_db()
+        self.assertEqual(ticket1_user.assigned_to_id, self.user2.id)
+        fu = FollowUp.objects.filter(ticket_id=ticket1_user.id, fu_type=FollowUp.FuType.ACTION.value).first()
+        self.assertEqual(fu.user_id, self.user.id)
+        self.assertEqual(fu.ticket_change.ticket_field, TicketChange.TicketField.ASSIGNED_TO.value)
+        self.assertEqual(fu.ticket_change.old_value, '')
+        self.assertEqual(fu.ticket_change.new_value, self.user2.username)
+
+        # user assigned to user, no permission
+        url = reverse(
+            'api:support-ticket-ticket-assigned-to', kwargs={'id': ticket1_user.id, 'username': self.user.username})
+        r = self.client.post(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        # user2 assigned to user, ok
+        self.client.logout()
+        self.client.force_login(self.user2)
+        url = reverse(
+            'api:support-ticket-ticket-assigned-to', kwargs={'id': ticket1_user.id, 'username': self.user.username})
+        r = self.client.post(url)
+        self.assertEqual(r.status_code, 200)
+        ticket1_user.refresh_from_db()
+        self.assertEqual(ticket1_user.assigned_to_id, self.user.id)
+        fu = FollowUp.objects.filter(ticket_id=ticket1_user.id, fu_type=FollowUp.FuType.ACTION.value).first()
+        self.assertEqual(fu.user_id, self.user2.id)
+        self.assertEqual(fu.ticket_change.ticket_field, TicketChange.TicketField.ASSIGNED_TO.value)
+        self.assertEqual(fu.ticket_change.old_value, self.user2.username)
+        self.assertEqual(fu.ticket_change.new_value, self.user.username)

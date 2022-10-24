@@ -549,6 +549,44 @@ class TicketViewSet(AsRoleGenericViewSet):
         """
         return TicketHandler().take_ticket(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('把工单转交给其他人处理'),
+        request_body=no_body,
+        responses={
+            200: ''
+        }
+    )
+    @action(
+        methods=['POST'], detail=True,
+        url_path=r'assigned_to/username/(?P<username>[^/]+)', url_name='ticket-assigned-to'
+    )
+    def ticket_assigned_to(self, request, *args, **kwargs):
+        """
+        把工单转交给其他人处理
+
+            * 只允许工单指派处理人 把工单转交给其他人处理
+
+            http code 200：
+            {}
+
+            http code 400, 403, 404, 500:
+            {
+                "code": "TicketNotExist",
+                "message": "工单不存在"
+            }
+
+            403:
+                AccessDenied: 你不是此工单的指派处理人 / 你没有此工单的分配权限
+            404:
+                TicketNotExist: 工单不存在
+                UserNotExist: 用户不存在
+            409:
+                Conflict: 工单只允许转交给联邦管理员
+            500:
+                InternalError: 更改工单处理人错误
+        """
+        return TicketHandler().ticket_assigned_to(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action in ['create', 'update_ticket']:
             return ticket_serializers.TicketCreateSerializer

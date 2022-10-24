@@ -8,6 +8,7 @@ from api.serializers import ticket as ticket_serializers
 from api.paginations import FollowUpMarkerCursorPagination
 from ticket.models import Ticket, TicketChange
 from ticket.managers import TicketManager
+from users.managers import get_user_by_name
 
 from .handlers import serializer_error_msg
 
@@ -442,5 +443,41 @@ class TicketHandler:
             TicketManager.ticket_assigned_to_user(user=request.user, ticket=ticket, assigned_to=request.user)
         except Exception as exc:
             return view.exception_response(exc)
+
+        return Response(data={})
+
+    @staticmethod
+    def ticket_assigned_to(view: AsRoleGenericViewSet, request, kwargs):
+        ticket_id = kwargs[view.lookup_field]
+        username = kwargs.get('username', '')
+
+        try:
+            ticket = TicketManager.get_ticket(ticket_id=ticket_id)
+            if ticket.assigned_to_id:
+                if ticket.assigned_to_id != request.user.id:
+                    return view.exception_response(
+                        exceptions.AccessDenied(message=_('你不是此工单的指派处理人。')))
+            else:
+                if not request.user.is_federal_admin():
+                    return view.exception_response(
+                        exceptions.AccessDenied(message=_('你没有此工单的分配权限。')))
+
+            # UserNotExist
+            assigned_to_user = get_user_by_name(username=username)
+            if not assigned_to_user.is_federal_admin():
+                return view.exception_response(
+                    exceptions.ConflictError(message=_('工单只允许转交给联邦管理员。')))
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        if ticket.assigned_to_id == assigned_to_user.id:
+            return Response(data={})
+
+        try:
+            TicketManager.ticket_assigned_to_user(
+                user=request.user, ticket=ticket, assigned_to=assigned_to_user
+            )
+        except Exception as exc:
+            return view.exception_response(exceptions.Error(message=_('更改工单处理人失败。') + str(exc)))
 
         return Response(data={})
