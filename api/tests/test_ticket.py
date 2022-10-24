@@ -998,3 +998,50 @@ class TicketTests(MyAPITestCase):
         self.assertIs(r.data['has_next'], True)
         self.assertEqual(r.data['page_size'], 1)
         self.assertIsNotNone(r.data['next_marker'])
+
+    def test_take_ticket(self):
+        ticket1_user = Ticket(
+            title='test',
+            description='description',
+            service_type=Ticket.ServiceType.SERVER.value,
+            contact='text',
+            status=Ticket.Status.CANCELED.value,
+            severity=Ticket.Severity.NORMAL.value,
+            submitter=self.user,
+            username=self.user.username,
+            assigned_to_id=None
+        )
+        ticket1_user.save(force_insert=True)
+
+        url = reverse('api:support-ticket-take-ticket', kwargs={'id': 'test'})
+        r = self.client.post(url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+
+        self.client.force_login(self.user)
+        url = reverse('api:support-ticket-take-ticket', kwargs={'id': 'test'})
+        r = self.client.post(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        self.user.set_federal_admin()
+        r = self.client.post(url)
+        self.assertErrorResponse(status_code=404, code='TicketNotExist', response=r)
+
+        url = reverse('api:support-ticket-take-ticket', kwargs={'id': ticket1_user.id})
+        r = self.client.post(url)
+        self.assertErrorResponse(status_code=409, code='ConflictTicketStatus', response=r)
+
+        ticket1_user.status = Ticket.Status.OPEN.value
+        ticket1_user.save(update_fields=['status'])
+        url = reverse('api:support-ticket-take-ticket', kwargs={'id': ticket1_user.id})
+        r = self.client.post(url)
+        self.assertEqual(r.status_code, 200)
+        ticket1_user.refresh_from_db()
+        self.assertEqual(ticket1_user.assigned_to_id, self.user.id)
+        fu = FollowUp.objects.filter(ticket_id=ticket1_user.id, fu_type=FollowUp.FuType.ACTION.value).first()
+        self.assertEqual(fu.ticket_change.ticket_field, TicketChange.TicketField.ASSIGNED_TO.value)
+        self.assertEqual(fu.ticket_change.old_value, '')
+        self.assertEqual(fu.ticket_change.new_value, self.user.username)
+
+        url = reverse('api:support-ticket-take-ticket', kwargs={'id': ticket1_user.id})
+        r = self.client.post(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)

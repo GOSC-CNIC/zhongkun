@@ -135,3 +135,20 @@ class TicketManager:
     @staticmethod
     def get_ticket_followup_queryset(ticket_id: str):
         return FollowUp.objects.select_related('ticket_change').filter(ticket_id=ticket_id).all()
+
+    @staticmethod
+    def ticket_assigned_to_user(user, ticket, assigned_to):
+        if ticket.assigned_to:
+            old_username = ticket.assigned_to.username
+        else:
+            old_username = ''
+
+        with transaction.atomic():
+            fu = TicketManager.create_followup_action(
+                user=user, ticket_id=ticket.id, field_name=TicketChange.TicketField.ASSIGNED_TO.value,
+                old_value=old_username, new_value=assigned_to.username, atomic=False
+            )
+            ticket.assigned_to_id = assigned_to.id
+            ticket.save(update_fields=['assigned_to_id'])
+
+        return ticket, fu

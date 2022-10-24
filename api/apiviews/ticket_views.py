@@ -515,6 +515,40 @@ class TicketViewSet(AsRoleGenericViewSet):
         """
         return TicketHandler().list_followup(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('领取一个待处理的工单'),
+        request_body=no_body,
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['POST'], detail=True, url_path='take', url_name='take-ticket')
+    def take_ticket(self, request, *args, **kwargs):
+        """
+        领取一个待处理的工单
+
+            * 只允许联邦管理员领取一个待处理的工单
+
+            http code 200：
+            {}
+
+            http code 400, 403, 404, 500:
+            {
+                "code": "TicketNotExist",
+                "message": "工单不存在"
+            }
+
+            403:
+                AccessDenied: 你没有联邦管理员权限 / 工单已指派了处理人。
+            404:
+                TicketNotExist: 工单不存在
+            409:
+                ConflictTicketStatus: 只能领取“打开”和“处理中”的工单
+            500:
+                InternalError: 更改工单处理人错误
+        """
+        return TicketHandler().take_ticket(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action in ['create', 'update_ticket']:
             return ticket_serializers.TicketCreateSerializer

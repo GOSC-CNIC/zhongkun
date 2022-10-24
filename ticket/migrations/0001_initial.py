@@ -35,7 +35,7 @@ class Migration(migrations.Migration):
                 ('title', models.CharField(help_text='疑问或问题的简述', max_length=250, verbose_name='标题')),
                 ('description', models.TextField(blank=True, default='', help_text='客户的疑问或问题的描述', verbose_name='问题描述')),
                 ('status', models.CharField(choices=[('open', '打开'), ('canceled', '已取消'), ('progress', '处理中'), ('resolved', '已解决'), ('closed', '已关闭'), ('reopened', '重新打开')], default='open', max_length=16, verbose_name='状态')),
-                ('service_type', models.CharField(choices=[('account', '账户'), ('server', '云服务器'), ('storage', '对象存储'), ('bill', '计量账单'), ('monitor', '监控'), ('hpc', '高性能计算'), ('hsc', '高安全等级云'), ('other', '其他')], default='other', max_length=16, verbose_name='工单相关服务')),
+                ('service_type', models.CharField(choices=[('account', '账户'), ('server', '云服务器'), ('storage', '对象存储'), ('bill', '计量账单'), ('monitor', '监控'), ('hpc', '高性能计算'), ('hsc', '高安全等级云'), ('develop', '开发'), ('other', '其他')], default='other', max_length=16, verbose_name='工单相关服务')),
                 ('severity', models.CharField(blank=True, choices=[('critical', '严重'), ('high', '高'), ('normal', '一般'), ('low', '低'), ('verylow', '很低')], default='normal', max_length=16, verbose_name='严重程度')),
                 ('submit_time', models.DateTimeField(auto_now_add=True, help_text='工单提交的时间', verbose_name='提交时间')),
                 ('modified_time', models.DateTimeField(auto_now=True, help_text='工单最近修改的时间', verbose_name='修改时间')),

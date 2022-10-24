@@ -18,6 +18,7 @@ class Ticket(CustomIdModel):
         MONITOR = 'monitor', _('监控')
         HPC = 'hpc', _('高性能计算')
         HSC = 'hsc', _('高安全等级云')
+        DEVELOP = 'develop', _('开发')
         OTHER = 'other', _('其他')
 
     class Status(models.TextChoices):

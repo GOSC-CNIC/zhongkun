@@ -407,3 +407,33 @@ class TicketHandler:
             return paginator.get_paginated_response(data=serializer.data)
         except Exception as exc:
             return view.exception_response(exc)
+
+    @staticmethod
+    def take_ticket(view: AsRoleGenericViewSet, request, kwargs):
+        """
+        领取一个待处理的工单
+        """
+        ticket_id = kwargs[view.lookup_field]
+
+        if not request.user.is_federal_admin():
+            return view.exception_response(exceptions.AccessDenied(message=_('你没有联邦管理员权限')))
+
+        try:
+            ticket = TicketManager.get_ticket(ticket_id=ticket_id)
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        if ticket.assigned_to_id:
+            return view.exception_response(
+                exceptions.AccessDenied(message=_('工单已指派了处理人。')))
+
+        if ticket.status not in [Ticket.Status.OPEN.value, Ticket.Status.PROGRESS.value]:
+            return view.exception_response(
+                exceptions.ConflictTicketStatus(message=_('只能领取“打开”和“处理中”的工单')))
+
+        try:
+            TicketManager.ticket_assigned_to_user(user=request.user, ticket=ticket, assigned_to=request.user)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        return Response(data={})
