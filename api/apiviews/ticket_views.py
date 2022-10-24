@@ -298,7 +298,7 @@ class TicketViewSet(AsRoleGenericViewSet):
         """
         更改一个工单的严重程度
 
-            * 只允许联邦管理员修改工单的严重程度
+            * 只允许指派工单处理人（联邦管理员）修改工单的严重程度
 
             http code 200：
             {
@@ -345,7 +345,7 @@ class TicketViewSet(AsRoleGenericViewSet):
             * 工单提交人只允许更改 canceled和open的状态；
                 open -> canceled;
                 canceled -> open ;
-            * 联邦管理员 允许更改 除 canceled之外的状态；
+            * 指派工单处理人（联邦管理员） 允许更改 除 canceled之外的状态；
 
             http code 200：
             {
@@ -384,7 +384,7 @@ class TicketViewSet(AsRoleGenericViewSet):
         向工单提交一个回复/评论
 
             * 工单提交人向自己的工单提交一个回复/评论
-            * 以 联邦管理员 身份 向工单提交一个回复/评论
+            * 工单指派处理人 以 联邦管理员 身份 向工单提交一个回复/评论
             * ”已解决“、”已关闭“和”已取消/作废“状态的工单不允许提交回复
 
             http code 200：

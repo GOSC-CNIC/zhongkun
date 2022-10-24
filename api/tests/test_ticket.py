@@ -490,7 +490,7 @@ class TicketTests(MyAPITestCase):
             severity=Ticket.Severity.NORMAL.value,
             submitter=self.user,
             username=self.user.username,
-            assigned_to=self.user2
+            assigned_to=None
         )
         ticket1_user.save(force_insert=True)
 
@@ -519,6 +519,15 @@ class TicketTests(MyAPITestCase):
             'id': 'test', 'severity': Ticket.Severity.HIGH.value})
         r = self.client.post(url)
         self.assertErrorResponse(status_code=404, code='TicketNotExist', response=r)
+
+        # only ticket assigned_to user has permission
+        url = reverse('api:support-ticket-ticket-severity-change', kwargs={
+            'id': ticket1_user.id, 'severity': Ticket.Severity.HIGH.value})
+        r = self.client.post(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        ticket1_user.assigned_to_id = self.user.id
+        ticket1_user.save(update_fields=['assigned_to_id'])
 
         # user, ok
         url = reverse('api:support-ticket-ticket-severity-change', kwargs={
@@ -565,7 +574,7 @@ class TicketTests(MyAPITestCase):
             severity=Ticket.Severity.NORMAL.value,
             submitter=self.user,
             username=self.user.username,
-            assigned_to=self.user2
+            assigned_to=None
         )
         ticket1_user.save(force_insert=True)
 
@@ -686,6 +695,16 @@ class TicketTests(MyAPITestCase):
         r = self.client.post(f'{url}?{query}')
         self.assertErrorResponse(status_code=404, code='TicketNotExist', response=r)
 
+        # only ticket assigned_to user has permission
+        url = reverse('api:support-ticket-ticket-status-change', kwargs={
+            'id': ticket1_user.id, 'status': Ticket.Status.PROGRESS.value})
+        query = parse.urlencode(query={'as_role': 'admin'})
+        r = self.client.post(f'{url}?{query}')
+        self.assertEqual(r.status_code, 403)
+
+        ticket1_user.assigned_to_id = self.user2.id
+        ticket1_user.save(update_fields=['assigned_to_id'])
+
         # user2, ok, open -> progress
         self._status_change_test_as_role(
             ticket=ticket1_user, old_value=Ticket.Status.OPEN.value,
@@ -751,7 +770,7 @@ class TicketTests(MyAPITestCase):
             severity=Ticket.Severity.NORMAL.value,
             submitter=self.user,
             username=self.user.username,
-            assigned_to=self.user2
+            assigned_to=None
         )
         ticket1_user.save(force_insert=True)
 
@@ -825,6 +844,15 @@ class TicketTests(MyAPITestCase):
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
 
         self.user2.set_federal_admin()
+
+        # only ticket assigned_to user has permission
+        url = reverse('api:support-ticket-add-followup', kwargs={'id': ticket1_user.id})
+        query = parse.urlencode(query={'as_role': 'admin'})
+        r = self.client.post(f'{url}?{query}', data={'comment': 'adada测试test回复2'})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        ticket1_user.assigned_to_id = self.user2.id
+        ticket1_user.save(update_fields=['assigned_to_id'])
 
         # user2, as_role, ok
         url = reverse('api:support-ticket-add-followup', kwargs={'id': ticket1_user.id})

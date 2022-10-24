@@ -246,6 +246,9 @@ class TicketHandler:
         except exceptions.Error as exc:
             return view.exception_response(exc)
 
+        if ticket.assigned_to_id != request.user.id:
+            return view.exception_response(exceptions.AccessDenied(message=_('你不是此工单的指派处理人。')))
+
         if new_severity == ticket.severity:
             return Response(data={'severity': new_severity})
 
@@ -282,6 +285,9 @@ class TicketHandler:
         user = request.user
         if has_role:
             if role == view.AS_ROLE_ADMIN and user.is_federal_admin():
+                if ticket.assigned_to_id != request.user.id:
+                    return view.exception_response(exceptions.AccessDenied(message=_('你不是此工单的指派处理人。')))
+
                 if ticket.status == Ticket.Status.CANCELED.value:
                     return view.exception_response(
                         exceptions.ConflictTicketStatus(message=_('您不允许更改“已取消”状态的工单。')))
@@ -335,7 +341,8 @@ class TicketHandler:
         user = request.user
         if has_role:
             if role == view.AS_ROLE_ADMIN and user.is_federal_admin():
-                pass
+                if ticket.assigned_to_id != request.user.id:
+                    return view.exception_response(exceptions.AccessDenied(message=_('你不是此工单的指派处理人。')))
             else:
                 return view.exception_response(exceptions.AccessDenied(message=_('你没有联邦管理员权限')))
         elif ticket.submitter_id != request.user.id:
