@@ -7,7 +7,7 @@ from .apiviews import (
     azone_views, order_views,
     metering_views, bill_views, account_views, cash_coupon_views,
     trade_test_views, trade_views, bucket_views, storage_views,
-    ticket_views,storage_metering_views
+    ticket_views, storage_metering_views, user_views
 )
 
 app_name = 'api'
@@ -23,7 +23,7 @@ no_slash_router.register(r'vpn', views.VPNViewSet, basename='vpn')
 no_slash_router.register(r'flavor', views.FlavorViewSet, basename='flavor')
 no_slash_router.register(r'service', views.ServiceViewSet, basename='service')
 no_slash_router.register(r'registry', views.DataCenterViewSet, basename='registry')
-no_slash_router.register(r'user', views.UserViewSet, basename='user')
+no_slash_router.register(r'user', user_views.UserViewSet, basename='user')
 no_slash_router.register(r'apply/service', views.ApplyVmServiceViewSet, basename='apply-service')
 no_slash_router.register(r'apply/organization', views.ApplyOrganizationViewSet, basename='apply-organization')
 no_slash_router.register(r'vo', views.VOViewSet, basename='vo')
