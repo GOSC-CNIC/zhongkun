@@ -326,7 +326,7 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description='以文件形式下载'
+                description='以文件形式下载，不需要值'
             )
         ],
         responses={
@@ -336,6 +336,8 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
     def list(self, request, *args, **kwargs):
         """
         服务单元管理员列举代金券
+
+            * 参数template_id和app_service_id必须指定一个；
 
             http code 200：
             {

@@ -8,10 +8,10 @@ from django.utils import timezone
 from utils.model import OwnerType
 from utils.test import get_or_create_service, get_or_create_user
 from vo.models import VirtualOrganization, VoMember
-from bill.models import CashCoupon, PayAppService, PayApp, PayOrgnazition
+from bill.models import CashCoupon, PayAppService, PayApp, PayOrgnazition, CashCouponActivity
 from bill.managers import PaymentManager
 from core import errors
-from . import set_auth_header, MyAPITestCase
+from . import set_auth_header, MyAPITestCase, MyAPITransactionTestCase
 
 
 def to_isoformat(value):
@@ -767,7 +767,7 @@ class CashCouponTests(MyAPITestCase):
         self.assertEqual(coupon2.status, CashCoupon.Status.AVAILABLE.value)
 
 
-class AdminCashCouponTests(MyAPITestCase):
+class AdminCashCouponTests(MyAPITransactionTestCase):
     def setUp(self):
         self.user = set_auth_header(self)
         self.user2 = get_or_create_user(username='user2')
@@ -937,3 +937,98 @@ class AdminCashCouponTests(MyAPITestCase):
         self.assertEqual(r.data['app_service']['id'], self.app_service1.id)
         self.assertEqual(r.data['app_service']['service_id'], self.service.id)
         self.assertIsNone(r.data['user'])
+
+    def test_admin_list_coupon(self):
+        template = CashCouponActivity(
+            name='test template', app_service_id=self.app_service1.id,
+            face_value=Decimal('66'), effective_time=timezone.now(), expiration_time=timezone.now() + timedelta(days=1)
+        )
+        template.save(force_insert=True)
+        wait_coupon1 = template.clone_coupon()
+
+        coupon2 = CashCoupon(
+            face_value=Decimal('66.6'),
+            balance=Decimal('66.6'),
+            effective_time=timezone.now(),
+            expiration_time=timezone.now(),
+            status=CashCoupon.Status.AVAILABLE.value,
+            app_service_id=self.app_service1.id,
+            user_id=self.user.id
+        )
+        coupon2.save(force_insert=True)
+
+        coupon3 = CashCoupon(
+            face_value=Decimal('66.68'),
+            balance=Decimal('66.68'),
+            effective_time=timezone.now(),
+            expiration_time=timezone.now(),
+            status=CashCoupon.Status.AVAILABLE.value,
+            app_service_id=self.app_service2.id,
+            user_id=self.user2.id
+        )
+        coupon3.save(force_insert=True)
+
+        # user no permission of app_service1
+        url = reverse('api:admin-coupon-list')
+        query = parse.urlencode(query={'app_service_id': self.app_service1.id})
+        r = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        url = reverse('api:admin-coupon-list')
+        query = parse.urlencode(query={'template_id': template.id})
+        r = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        # user has permission of app_service1, query "app_service_id"
+        self.app_service1.user_id = self.user.id
+        self.app_service1.save(update_fields=['user_id'])
+
+        query = parse.urlencode(query={'app_service_id': self.app_service1.id})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=['count', 'page_num', 'page_size', 'results'], container=r.data)
+        self.assertEqual(r.data['count'], 2)
+        self.assertEqual(len(r.data['results']), 2)
+        self.assertKeysIn(keys=[
+            'id', 'face_value', 'creation_time', 'effective_time', 'expiration_time', 'balance', 'status',
+            'granted_time', 'owner_type', 'app_service', 'user', 'vo', 'activity', 'exchange_code'
+        ], container=r.data['results'][0])
+
+        # user has permission of app_service1, query "app_service_id", "status"
+        self.app_service1.user_id = self.user.id
+        self.app_service1.save(update_fields=['user_id'])
+
+        query = parse.urlencode(query={
+            'app_service_id': self.app_service1.id, 'status': CashCoupon.Status.AVAILABLE.value})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 1)
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertEqual(r.data['results'][0]['id'], coupon2.id)
+
+        # user no permission of app_service1, query "template_id"
+        self.app_service1.user_id = None
+        self.app_service1.save(update_fields=['user_id'])
+        query = parse.urlencode(query={'template_id': template.id})
+        r = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        # user has permission of app_service1, query "template_id"
+        self.service.users.add(self.user)
+        query = parse.urlencode(query={'template_id': template.id})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=['count', 'page_num', 'page_size', 'results'], container=r.data)
+        self.assertEqual(r.data['count'], 1)
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertKeysIn(keys=[
+            'id', 'face_value', 'creation_time', 'effective_time', 'expiration_time', 'balance', 'status',
+            'granted_time', 'owner_type', 'app_service', 'user', 'vo', 'activity', 'exchange_code'
+        ], container=r.data['results'][0])
+        self.assertEqual(r.data['results'][0]['id'], wait_coupon1.id)
+
+        # user has permission of app_service1, query "template_id", "download"
+        query = parse.urlencode(query={'template_id': template.id, 'download': ''})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertIs(r.streaming, True)
