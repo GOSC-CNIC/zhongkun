@@ -74,6 +74,7 @@ class TicketTests(MyAPITestCase):
                 self.assertErrorResponse(status_code=409, code='TooManyTicket', response=r)
 
     def test_list_tickets(self):
+        role_user = get_or_create_user(username='role@xx.com')
         ticket1_user = Ticket(
             title='工单1',
             description='工单1问题描述',
@@ -82,7 +83,8 @@ class TicketTests(MyAPITestCase):
             status=Ticket.Status.OPEN.value,
             severity=Ticket.Severity.NORMAL.value,
             submitter=self.user,
-            username=self.user.username
+            username=self.user.username,
+            assigned_to_id=role_user.id
         )
         ticket1_user.save(force_insert=True)
         ticket2_user = Ticket(
@@ -104,7 +106,8 @@ class TicketTests(MyAPITestCase):
             status=Ticket.Status.OPEN.value,
             severity=Ticket.Severity.NORMAL.value,
             submitter=self.user2,
-            username=self.user2.username
+            username=self.user2.username,
+            assigned_to_id=self.user.id
         )
         ticket3_user2.save(force_insert=True)
         ticket4_user2 = Ticket(
@@ -115,7 +118,8 @@ class TicketTests(MyAPITestCase):
             status=Ticket.Status.CLOSED.value,
             severity=Ticket.Severity.CRITICAL.value,
             submitter=self.user2,
-            username=self.user2.username
+            username=self.user2.username,
+            assigned_to_id=role_user.id
         )
         ticket4_user2.save(force_insert=True)
 
@@ -257,6 +261,31 @@ class TicketTests(MyAPITestCase):
         self.assertEqual(r.data['count'], 1)
         self.assertEqual(len(r.data['results']), 1)
         self.assertEqual(r.data['results'][0]['id'], ticket4_user2.id)
+
+        # user, query "assigned_to" no "as_role"
+        query = parse.urlencode(query={'assigned_to': ''})
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='ParameterConflict', response=r)
+
+        # user, query "assigned_to" 、 "as_role"
+        query = parse.urlencode(query={'assigned_to': '', 'as_role': 'admin'})
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 1)
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertEqual(r.data['results'][0]['id'], ticket3_user2.id)
+
+        # role_user, query "assigned_to" 、 "as_role"
+        role_user.set_federal_admin()
+        self.client.logout()
+        self.client.force_login(role_user)
+        query = parse.urlencode(query={'assigned_to': '', 'as_role': 'admin'})
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 2)
+        self.assertEqual(len(r.data['results']), 2)
+        self.assertEqual(r.data['results'][0]['id'], ticket4_user2.id)
+        self.assertEqual(r.data['results'][1]['id'], ticket1_user.id)
 
     def test_detail_ticket(self):
         ticket1_user = Ticket(

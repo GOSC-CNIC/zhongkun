@@ -156,7 +156,8 @@ class TicketHandler:
             if role == view.AS_ROLE_ADMIN and user.is_federal_admin():
                 queryset = TicketManager().get_tickets_queryset(
                     submitter_id=params['submitter_id'], status=params['status'],
-                    service_type=params['service_type'], severity=params['severity']
+                    service_type=params['service_type'], severity=params['severity'],
+                    assigned_to_id=params['assigned_to_user_id']
                 )
             else:
                 return view.exception_response(exceptions.AccessDenied(message='你没有联邦管理员权限'))
@@ -182,6 +183,7 @@ class TicketHandler:
         service_type = request.query_params.get('service_type', None)
         submitter_id = request.query_params.get('submitter_id', None)
         severity = request.query_params.get('severity', None)
+        assigned_to = request.query_params.get('assigned_to', None)
 
         if status_ is not None and status_ not in Ticket.Status.values:
             raise exceptions.InvalidArgument(message=_('指定的工单状态无效'), code='InvalidStatus')
@@ -197,13 +199,23 @@ class TicketHandler:
             raise exceptions.ParameterConflict(
                 message=_('查询指定提交人的工单参数“submitter_id”，只允许与参数“as_role”一起提交。'))
 
+        if assigned_to is not None:
+            if not has_role:
+                raise exceptions.ParameterConflict(
+                    message=_('查询分配给自己的工单参数“assigned_to”，只允许与参数“as_role”一起提交。'))
+
+            assigned_to_user_id = request.user.id
+        else:
+            assigned_to_user_id = None
+
         return {
             'status': status_,
             'service_type': service_type,
             'severity': severity,
             'submitter_id': submitter_id,
             'has_role': has_role,
-            'role': role
+            'role': role,
+            'assigned_to_user_id': assigned_to_user_id
         }
 
     @staticmethod

@@ -95,6 +95,13 @@ class TicketViewSet(AsRoleGenericViewSet):
                 required=False,
                 description=gettext_lazy('筛选提交人的工单，只能和参数“as_role”一起提交。')
             ),
+            openapi.Parameter(
+                name='assigned_to',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('筛选分配给自己处理的工单，只能和参数“as_role”一起提交。')
+            ),
         ] + AsRoleGenericViewSet.PARAMETERS_AS_ROLE,
         responses={
             200: ''
@@ -153,6 +160,7 @@ class TicketViewSet(AsRoleGenericViewSet):
                 monitor：监控
                 hpc：高性能计算
                 hsc：高安全等级云
+                develop: 开发
                 other：其他
 
             http code 400, 403, 500:

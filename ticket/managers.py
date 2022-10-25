@@ -54,9 +54,13 @@ class TicketManager:
             submitter_id: str = None,
             status: str = None,
             service_type: str = None,
-            severity: str = None
+            severity: str = None,
+            assigned_to_id: str = None
     ):
         lookups = {}
+
+        if assigned_to_id:
+            lookups['assigned_to_id'] = assigned_to_id
 
         if submitter_id:
             lookups['submitter_id'] = submitter_id
