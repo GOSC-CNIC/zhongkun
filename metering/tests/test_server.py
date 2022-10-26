@@ -267,7 +267,7 @@ class MeteringServerTests(TransactionTestCase):
         server1_id = server1.id
 
         # 构建server1 计量日的rebuild记录
-        archive = ServerArchive.init_archive_fron_server(
+        archive = ServerArchive.init_archive_from_server(
             server=server1, archive_user=self.user, archive_type=ServerArchive.ArchiveType.REBUILD.value, commit=True)
         new_starttime = archive.deleted_time - timedelta(days=1)
         archive.deleted_time = new_starttime

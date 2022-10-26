@@ -6,9 +6,10 @@ from django.contrib.admin.models import LogEntry
 @admin.register(LogEntry)
 class LogEntryAdmin(admin.ModelAdmin):
     list_display = ('action_time', 'user', 'content_type', 'object_repr', 'action_flag', 'get_change_message')
-    search_fields = ('user__username',)  # 搜索字段
+    search_fields = ('user__username', 'object_id')  # 搜索字段
 
-    def get_change_message(self, obj):
+    @staticmethod
+    def get_change_message(obj):
         return obj.get_change_message()
 
 

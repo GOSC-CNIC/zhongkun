@@ -208,7 +208,7 @@ class Server(ServerBase):
 
         try:
             with transaction.atomic():
-                a = ServerArchive.init_archive_fron_server(
+                a = ServerArchive.init_archive_from_server(
                     server=self, archive_user=archive_user,
                     archive_type=ServerArchive.ArchiveType.ARCHIVE, commit=True
                 )
@@ -329,7 +329,7 @@ class ServerArchive(ServerBase):
         verbose_name_plural = verbose_name
 
     @classmethod
-    def init_archive_fron_server(cls, server, archive_user, archive_type, commit: bool = True):
+    def init_archive_from_server(cls, server, archive_user, archive_type, commit: bool = True):
         """
         创建归档记录
         :return:

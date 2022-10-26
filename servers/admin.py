@@ -1,11 +1,12 @@
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 
+from utils.model import NoDeleteSelectModelAdmin
 from .models import Server, Flavor, ServerArchive
 
 
 @admin.register(Server)
-class ServerAdmin(admin.ModelAdmin):
+class ServerAdmin(NoDeleteSelectModelAdmin):
     list_display_links = ('id',)
     list_display = ('id', 'service', 'azone_id', 'instance_id', 'vcpus', 'ram', 'disk_size', 'ipv4', 'image',
                     'creation_time', 'start_time', 'user', 'task_status', 'center_quota',
@@ -22,9 +23,18 @@ class ServerAdmin(admin.ModelAdmin):
     def show_default_password(self, obj):
         return obj.raw_default_password
 
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def delete_model(self, request, obj):
+        """
+        Given a model instance delete it from the database.
+        """
+        raise Exception(_('不允许从后台删除。'))
+
 
 @admin.register(ServerArchive)
-class ServerArchiveAdmin(admin.ModelAdmin):
+class ServerArchiveAdmin(NoDeleteSelectModelAdmin):
     list_display_links = ('id',)
     list_display = ('id', 'service', 'name', 'instance_id', 'vcpus', 'ram', 'disk_size', 'ipv4', 'image',
                     'creation_time', 'user', 'task_status', 'pay_type', 'classification', 'vo',
