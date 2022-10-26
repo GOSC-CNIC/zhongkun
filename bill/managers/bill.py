@@ -29,7 +29,8 @@ class PaymentHistoryManager:
 
         return payment
 
-    def get_payment_history(self, payment_id: str, user):
+    @staticmethod
+    def get_payment_history(payment_id: str, user):
         """
         查询用户有访问权限的支付记录
         :return: PaymentHistory()
@@ -84,7 +85,7 @@ class PaymentHistoryManager:
             self,
             user_id: str = None,
             vo_id: str = None,
-            _type: str= None,
+            _type: str = None,
             time_start: datetime = None,
             time_end: datetime = None,
             app_service_ids: list = None
@@ -100,7 +101,6 @@ class PaymentHistoryManager:
         :param _type: 支付记录类型
         :param time_start: 支付时间段起（包含）
         :param time_end: 支付时间段止（不包含）
-        :param resource_type: 资源类型
         :param app_service_ids: 所属APP服务
         :return:
             QuerySet
