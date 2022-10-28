@@ -14,7 +14,7 @@ from bill.models import PayAppService
 from utils.crypto.rsa import generate_rsa_key
 
 
-class AppViewSet(CustomGenericViewSet):
+class AppRSAKeyViewSet(CustomGenericViewSet):
     """
     app
     """
@@ -30,11 +30,12 @@ class AppViewSet(CustomGenericViewSet):
             200: ''
         }
     )
-    @action(methods=['post'], detail=False, url_path='rsakey/generate', url_name='generate-rsakey')
+    @action(methods=['post'], detail=False, url_path='generate', url_name='generate')
     def generate_rsakey(self, request, *args, **kwargs):
         """
         生成一个RSA密钥对
 
+            http code 200:
             {
               "key_size": 2048,
               "private_key": "-----BEGIN PRIVATE KEY-----xxx-----END PRIVATE KEY-----",

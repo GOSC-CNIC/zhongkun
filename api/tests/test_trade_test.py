@@ -401,3 +401,18 @@ class TradeTests(MyAPITestCase):
         body['username'] = self.user.username
         trade_id, order_id = self._charge_ok_test(base_url=base_url, body=body, params=params)
         self._query_trade_test(trade_id=trade_id, order_id=order_id)
+
+
+class TradeSignKeyTests(MyAPITestCase):
+    def setUp(self):
+        self.user = get_or_create_user(username='tom@cnic.cn')
+
+    def test_rsa_key_generate(self):
+        base_url = reverse('api:trade-signkey-public-key')
+        r = self.client.get(base_url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+
+        self.client.force_login(self.user)
+        r = self.client.get(base_url)
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=['public_key'], container=r.data)

@@ -51,9 +51,10 @@ no_slash_router.register(r'cashcoupon', cash_coupon_views.CashCouponViewSet, bas
 no_slash_router.register(r'trade/test', trade_test_views.TradeTestViewSet, basename='trade-test')
 no_slash_router.register(r'trade/query', trade_views.TradeQueryViewSet, basename='trade-query')
 no_slash_router.register(r'trade/charge', trade_views.TradeChargeViewSet, basename='trade-charge')
+no_slash_router.register(r'trade/sign', trade_views.TradeSignKeyViewSet, basename='trade-signkey')
 no_slash_router.register(r'admin/cashcoupon', cash_coupon_views.AdminCashCouponViewSet, basename='admin-coupon')
-no_slash_router.register(r'app_service', app_service_views.AppServiceViewSet, basename='app-service')
-no_slash_router.register(r'app', app_service_views.AppViewSet, basename='app')
+no_slash_router.register(r'trade/app_service', app_service_views.AppServiceViewSet, basename='app-service')
+no_slash_router.register(r'trade/rsakey', app_service_views.AppRSAKeyViewSet, basename='trade-rsakey')
 
 no_slash_router.register(r'storage/bucket', bucket_views.BucketViewSet, basename='bucket')
 no_slash_router.register(r'storage/service', storage_views.ObjectsServiceViewSet, basename='storage-service')

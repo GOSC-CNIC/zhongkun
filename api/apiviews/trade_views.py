@@ -1,12 +1,15 @@
 from django.utils.translation import gettext_lazy
+from django.conf import settings
 from rest_framework.serializers import Serializer
 from rest_framework.decorators import action
+from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
 
 from api.viewsets import PaySignGenericViewSet
 from api.serializers import trade as trade_serializers
 from api.serializers.serializers import PaymentHistorySerializer
 from api.handlers.trade_handlers import TradeHandler
+from core import errors
 
 
 class TradeChargeViewSet(PaySignGenericViewSet):
@@ -243,3 +246,43 @@ class TradeQueryViewSet(PaySignGenericViewSet):
             return PaymentHistorySerializer
 
         return Serializer
+
+
+class TradeSignKeyViewSet(PaySignGenericViewSet):
+    """
+    结算验签公钥
+    """
+    permission_classes = []
+    pagination_class = None
+    lookup_field = 'id'
+    # lookup_value_regex = '[0-9a-z-]+'
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询结算服务验签RSA公钥'),
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['GET'], detail=False, url_path=r'public-key', url_name='public-key')
+    def get_public_key(self, request, *args, **kwargs):
+        """
+        查询结算服务验签RSA公钥
+
+            * 同时支持 通行证jwt认证 和 APP RSA加密签名认证
+
+            http code 200:
+            {
+              "private_key": "-----BEGIN PRIVATE KEY-----xxx-----END PRIVATE KEY-----"
+            }
+        """
+        if not bool(request.user and request.user.is_authenticated):
+            try:
+                self.check_request_sign(request)
+            except errors.Error as exc:
+                return self.exception_response(exc)
+
+        private_key = getattr(settings, 'PAYMENT_RSA2048', {}).get('public_key')
+        if not private_key:
+            return self.exception_response(errors.ConflictError(message='结算服务未配置RSA公钥'))
+
+        return Response(data={'public_key': private_key})

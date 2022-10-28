@@ -93,7 +93,7 @@ class AppTests(MyAPITestCase):
         self.user = get_or_create_user(username='tom@cnic.cn')
 
     def test_rsa_key_generate(self):
-        base_url = reverse('api:app-generate-rsakey')
+        base_url = reverse('api:trade-rsakey-generate')
         r = self.client.post(base_url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
 

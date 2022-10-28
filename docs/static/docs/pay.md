@@ -20,7 +20,7 @@ app service id。
   结算服务密钥对，结算服务使用私钥对api的响应结果进行签名，api请求方可使用公钥进行验签。
   
   结算服务提供了一个生成RSA密钥对的接口，具体信息可以查看在线文档：  
-  `POST / https://vms.cstcloud.cn/api/app/rsakey/generate`
+  `POST / https://vms.cstcloud.cn/api/trade/rsakey/generate`
 
 #### 结算服务示意图 
 ![](images/pay.png)
