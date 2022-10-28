@@ -2,13 +2,59 @@ from django.utils.translation import gettext_lazy
 from django.db.models import Q
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.serializers import Serializer
-from drf_yasg.utils import swagger_auto_schema
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
 from api.viewsets import CustomGenericViewSet
 from api.paginations import NewPageNumberPagination
 from api.serializers import trade as trade_serializers
 from bill.models import PayAppService
+from utils.crypto.rsa import generate_rsa_key
+
+
+class AppViewSet(CustomGenericViewSet):
+    """
+    app
+    """
+    permission_classes = [IsAuthenticated, ]
+    pagination_class = NewPageNumberPagination
+    lookup_field = 'id'
+    # lookup_value_regex = '[0-9a-z-]+'
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('生成一个RSA密钥对'),
+        request_body=no_body,
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['post'], detail=False, url_path='rsakey/generate', url_name='generate-rsakey')
+    def generate_rsakey(self, request, *args, **kwargs):
+        """
+        生成一个RSA密钥对
+
+            {
+              "key_size": 2048,
+              "private_key": "-----BEGIN PRIVATE KEY-----xxx-----END PRIVATE KEY-----",
+              "public_key": "-----BEGIN PUBLIC KEY-----xxx-----END PUBLIC KEY-----"
+            }
+        """
+        key_size = 2048
+        try:
+            private_key, public_key = generate_rsa_key(key_size=key_size)
+        except Exception as exc:
+            return self.exception_response(exc)
+
+        return Response(data={
+            'key_size': key_size,
+            'private_key': private_key,
+            'public_key': public_key
+        })
+
+    def get_serializer_class(self):
+        return Serializer
 
 
 class AppServiceViewSet(CustomGenericViewSet):

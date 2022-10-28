@@ -10,10 +10,19 @@ app service id。
 > 余额结算系统每个app需要配置app接入者一方的RSA2048密钥对的公钥，用于双方的签名认证;
 > app方需要拿到余额结算服务的RSA公钥，用于请求api时响应结果的验签。
 
-> **app和app service的注册请联系技术支持人员。**  
+> **app和app service的注册请联系技术支持人员。**
 
-* 结算服务示意图   
+#### 加签和验签密钥对   
+  加签和验签采用RSA加密算法，长度2048 bit，私钥编码方式为PEM，格式为PKCS#8不加密，
+  公钥编码方式为PEM，格式为X.509 subject Public Key Info with PKCS#1，公钥指数（publicExponent）是固定值65537。     
+  密钥对分为APP密钥对（用于API请求签名认证）和结算服务密钥对（用于api响应结果的验签）。     
+  APP密钥对，APP方使用私钥生成签名，结算服务使用APP密钥的公钥进行验签。  
+  结算服务密钥对，结算服务使用私钥对api的响应结果进行签名，api请求方可使用公钥进行验签。
+  
+  结算服务提供了一个生成RSA密钥对的接口，具体信息可以查看在线文档：  
+  `POST / https://vms.cstcloud.cn/api/app/rsakey/generate`
 
+#### 结算服务示意图 
 ![](images/pay.png)
 
 ## 2 请求签名

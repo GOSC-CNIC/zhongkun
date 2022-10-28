@@ -86,3 +86,18 @@ class AppServiceTests(MyAPITestCase):
         self.assertEqual(r.data['count'], 1)
         self.assertEqual(len(r.data['results']), 1)
         self.assertEqual(r.data['results'][0]['id'], self.app_service2.id)
+
+
+class AppTests(MyAPITestCase):
+    def setUp(self):
+        self.user = get_or_create_user(username='tom@cnic.cn')
+
+    def test_rsa_key_generate(self):
+        base_url = reverse('api:app-generate-rsakey')
+        r = self.client.post(base_url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+
+        self.client.force_login(self.user)
+        r = self.client.post(base_url)
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=['key_size', 'private_key', 'public_key'], container=r.data)

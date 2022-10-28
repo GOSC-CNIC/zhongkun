@@ -1,9 +1,28 @@
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from cryptography.hazmat.primitives import serialization
 from cryptography.exceptions import InvalidSignature
 
 from .b64 import base64url_decode, base64url_encode
+
+
+def generate_rsa_key(key_size: int = 2048):
+    pri_rsa = rsa.generate_private_key(public_exponent=65537, key_size=key_size)
+    bytes_private_key = pri_rsa.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption()
+    )
+    private_key = bytes_private_key.decode('utf-8')
+
+    public_rsa = pri_rsa.public_key()
+    bytes_public_key = public_rsa.public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo
+    )
+    public_key = bytes_public_key.decode('utf-8')
+
+    return private_key, public_key
 
 
 class SHA256WithRSA:
