@@ -274,7 +274,7 @@ class TradeSignKeyViewSet(PaySignGenericViewSet):
 
             http code 200:
             {
-              "private_key": "-----BEGIN PRIVATE KEY-----xxx-----END PRIVATE KEY-----"
+              "public_key": "-----BEGIN PUBLIC  KEY-----xxx-----END PUBLIC  KEY-----"
             }
         """
         if not bool(request.user and request.user.is_authenticated):
