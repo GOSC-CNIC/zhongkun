@@ -14,6 +14,7 @@ class TradeTestViewSet(PaySignGenericViewSet):
     """
     支付交易test视图
     """
+    authentication_classes = []
     permission_classes = []
     pagination_class = NewPageNumberPagination
     lookup_field = 'id'

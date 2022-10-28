@@ -16,6 +16,7 @@ class TradeChargeViewSet(PaySignGenericViewSet):
     """
     支付交易视图
     """
+    authentication_classes = []
     permission_classes = []
     pagination_class = None
     lookup_field = 'id'
@@ -139,6 +140,7 @@ class TradeQueryViewSet(PaySignGenericViewSet):
     """
     支付交易记录查询视图
     """
+    authentication_classes = []
     permission_classes = []
     pagination_class = None
     lookup_field = 'id'
