@@ -130,8 +130,8 @@ class TicketHandler:
         try:
             with transaction.atomic():
                 ticket.save(update_fields=update_fields)
-                # open状态的工单更改不产生 更改记录
-                if ticket.status != Ticket.Status.OPEN.value and ticket_chenges:
+                # open状态的工单（已指派处理人的工单除外）更改不产生 更改记录
+                if (ticket.status != Ticket.Status.OPEN.value or ticket.assigned_to_id) and ticket_chenges:
                     for field, old_value, new_value in ticket_chenges:
                         TicketManager.create_followup_action(
                             user=request.user, ticket_id=ticket.id, field_name=field,

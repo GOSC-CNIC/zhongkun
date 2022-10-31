@@ -380,7 +380,7 @@ class TicketTests(MyAPITestCase):
             severity=Ticket.Severity.NORMAL.value,
             submitter=self.user,
             username=self.user.username,
-            assigned_to=self.user2
+            assigned_to=None
         )
         ticket1_user.save(force_insert=True)
         ticket2_user2 = Ticket(
@@ -463,6 +463,30 @@ class TicketTests(MyAPITestCase):
         count = FollowUp.objects.all().count()
         self.assertEqual(count, 0)
 
+        # user, open status but assigned_to user2, change title, ok
+        ticket1_user.assigned_to_id = self.user2.id
+        ticket1_user.save(update_fields=['assigned_to_id'])
+        new_ticket_data1 = {
+            'title': 'abcdefghijdds',  # length 200
+            'description': '工单1问题描述, 不少于10个字符长度sss',
+            'service_type': Ticket.ServiceType.ACCOUNT.value,
+            'contact': '联系方式dd'
+        }
+        url = reverse('api:support-ticket-update-ticket', kwargs={'id': ticket1_user.id})
+        r = self.client.post(url, data=new_ticket_data1)
+        self.assertEqual(r.status_code, 200)
+        new_ticket_data1['status'] = Ticket.Status.OPEN.value
+        self.assert_is_subdict_of(sub=new_ticket_data1, d=r.data)
+        # open status, assigned_to user2, has action FollowUp
+        fus = FollowUp.objects.select_related('ticket_change').all()
+        self.assertEqual(len(fus), 1)
+        fu = fus[0]
+        self.assertEqual(fu.fu_type, FollowUp.FuType.ACTION.value)
+        tc = fu.ticket_change
+        self.assertEqual(tc.ticket_field, TicketChange.TicketField.TITLE.value)
+        self.assertEqual(tc.old_value, new_ticket_data['title'])
+        self.assertEqual(tc.new_value, new_ticket_data1['title'])
+
         # user, "progress" status, change all, ok
         ticket1_user.status = Ticket.Status.PROGRESS.value
         ticket1_user.save(update_fields=['status'])
@@ -478,12 +502,12 @@ class TicketTests(MyAPITestCase):
         new_ticket_data2['status'] = Ticket.Status.PROGRESS.value
         self.assert_is_subdict_of(sub=new_ticket_data2, d=r.data)
         fus = FollowUp.objects.select_related('ticket_change').all()
-        self.assertEqual(len(fus), 2)
-        for fu in fus:
+        self.assertEqual(len(fus), 3)
+        for fu in fus[0:2]:
             self.assertEqual(fu.fu_type, FollowUp.FuType.ACTION.value)
             tc: TicketChange = fu.ticket_change
             if tc.ticket_field == TicketChange.TicketField.TITLE.value:
-                self.assertEqual(tc.old_value, new_ticket_data['title'])
+                self.assertEqual(tc.old_value, new_ticket_data1['title'])
                 self.assertEqual(tc.new_value, new_ticket_data2['title'])
             else:
                 self.assertEqual(tc.ticket_field, TicketChange.TicketField.DESCRIPTION.value)

@@ -28,8 +28,8 @@ class TradeChargeSerializer(BaseTradePaySerializer):
     付款扣款
     """
     username = serializers.CharField(
-        label=_('AAI/科技云通行证用户认证JWT'), max_length=128, required=True,
-        help_text=_('用于指定付款用户，并验证付款用户的有效性')
+        label=_('AAI/科技云通行证用户名'), max_length=128, required=True,
+        help_text=_('用于指定付款用户')
     )
 
 
