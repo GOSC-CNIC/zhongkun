@@ -41,6 +41,8 @@ class BucketAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'bucket_id', 'service', 'creation_time', 'user')
     list_select_related = ('service', 'user')
     raw_id_fields = ('user',)
+    list_filter = ['service']
+    search_fields = ['name', 'user__username', 'id']
 
 
 @admin.register(models.BucketArchive)
