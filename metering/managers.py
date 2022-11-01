@@ -546,7 +546,7 @@ class StatementServerManager:
 class MeteringStorageManager:
     @staticmethod
     def get_metering_obs_queryset():
-        return MeteringObjectStorage.objects.all()
+        return MeteringObjectStorage.objects.select_related('service').all()
 
     def filter_user_storage_metering(
             self, user,

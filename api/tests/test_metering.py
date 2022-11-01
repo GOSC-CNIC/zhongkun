@@ -1699,8 +1699,8 @@ class MeteringObsTests(MyAPITestCase):
         r = self.client.get(base_url)
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn(["count", "page_num", "page_size", "results"], r.data)
-        self.assertEqual(r.data["count"], 2)
-        self.assertEqual(len(r.data["results"]), 2)
+        self.assertEqual(r.data["count"], 0)
+        self.assertEqual(len(r.data["results"]), 0)
 
         # list user metering date_start->date_end
         query = parse.urlencode(query={
@@ -1714,8 +1714,9 @@ class MeteringObsTests(MyAPITestCase):
         self.assertKeysIn([
             "id", "original_amount", "trade_amount", "daily_statement_id",
             "service_id", "storage_bucket_id", "date", "creation_time", "user_id",
-            "username", "storage"
+            "username", "storage", 'service'
         ], r.data['results'][0])
+        self.assertKeysIn(["id", "name", "name_en"], r.data['results'][0]['service'])
 
         # list user metering invalid date_start
         query = parse.urlencode(query={

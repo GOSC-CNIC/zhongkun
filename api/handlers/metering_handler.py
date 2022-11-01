@@ -812,7 +812,6 @@ class MeteringObsHandler:
             serializer = view.get_serializer(instance=meterings, many=True)
             return view.get_paginated_response(serializer.data)
         except Exception as exc:
-            print(exc)
             return view.exception_response(exc)
 
     def list_bucket_metering_download(self, queryset, date_start, date_end):

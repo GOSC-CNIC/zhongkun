@@ -90,7 +90,12 @@ class MeteringStorageViewSet(CustomGenericViewSet):
                   "creation_time": "2022-04-02T09:14:07.754058Z",
                   "user_id": "1",
                   "username": "admin",
-                  "storage": 45.64349609833334
+                  "storage": 45.64349609833334,
+                  "service": {
+                    'id': '287bd860-5994-11ed-ae92-c8009fe2ebbc',
+                    'name': 'service2',
+                    'name_en': 'xxx'
+                  }
                 }
             }
         """
