@@ -46,7 +46,7 @@ class TicketManager:
         """
         用户提交的未解决的工单的数量
         """
-        nr_status = [Ticket.Status.OPEN.value, Ticket.Status.PROGRESS.value, Ticket.Status.REOPENED.value]
+        nr_status = [Ticket.Status.OPEN.value, Ticket.Status.PROGRESS.value]
         return Ticket.objects.filter(submitter_id=user_id, status__in=nr_status).count()
 
     @staticmethod
@@ -152,7 +152,13 @@ class TicketManager:
                 user=user, ticket_id=ticket.id, field_name=TicketChange.TicketField.ASSIGNED_TO.value,
                 old_value=old_username, new_value=assigned_to.username, atomic=False
             )
+
+            update_fields = ['assigned_to_id']
             ticket.assigned_to_id = assigned_to.id
-            ticket.save(update_fields=['assigned_to_id'])
+            if ticket.status == Ticket.Status.OPEN.value:
+                ticket.status = Ticket.Status.PROGRESS.value
+                update_fields.append('status')
+
+            ticket.save(update_fields=update_fields)
 
         return ticket, fu

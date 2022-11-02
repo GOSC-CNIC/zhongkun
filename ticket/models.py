@@ -23,11 +23,8 @@ class Ticket(CustomIdModel):
 
     class Status(models.TextChoices):
         OPEN = 'open', _('打开')
-        CANCELED = 'canceled', _('已取消')
         PROGRESS = 'progress', _('处理中')
-        RESOLVED = 'resolved', _('已解决')
         CLOSED = 'closed', _('已关闭')
-        REOPENED = 'reopened', _('重新打开')
 
     class Severity(models.TextChoices):
         CRITICAL = 'critical', _('严重')

@@ -295,28 +295,24 @@ class TicketHandler:
         except exceptions.Error as exc:
             return view.exception_response(exc)
 
+        if ticket.status == Ticket.Status.CLOSED.value:
+            return view.exception_response(
+                exceptions.ConflictTicketStatus(message=_('您不允许更改“已关闭”状态的工单。')))
+
         user = request.user
         if has_role:
             if role == view.AS_ROLE_ADMIN and user.is_federal_admin():
                 if ticket.assigned_to_id != request.user.id:
                     return view.exception_response(exceptions.AccessDenied(message=_('你不是此工单的指派处理人。')))
-
-                if ticket.status == Ticket.Status.CANCELED.value:
-                    return view.exception_response(
-                        exceptions.ConflictTicketStatus(message=_('您不允许更改“已取消”状态的工单。')))
             else:
                 return view.exception_response(exceptions.AccessDenied(message=_('你没有联邦管理员权限')))
         else:
             if ticket.submitter_id != request.user.id:
                 return view.exception_response(exceptions.AccessDenied(message=_('你没有此工单的访问权限')))
 
-            if ticket.status not in [Ticket.Status.OPEN.value, Ticket.Status.CANCELED.value]:
+            if new_status != Ticket.Status.CLOSED.value:
                 return view.exception_response(
-                    exceptions.ConflictTicketStatus(message=_('您只允许更改“打开”和“已取消”状态的工单。')))
-
-            if new_status not in [Ticket.Status.OPEN.value, Ticket.Status.CANCELED.value]:
-                return view.exception_response(
-                    exceptions.ConflictTicketStatus(message=_('您只允许更改工单的状态为“打开”或“已取消”。')))
+                    exceptions.ConflictTicketStatus(message=_('您只允许关闭工单。')))
 
         if new_status == ticket.status:
             return Response(data={'status': new_status})
@@ -361,11 +357,9 @@ class TicketHandler:
         elif ticket.submitter_id != request.user.id:
             return view.exception_response(exceptions.AccessDenied(message=_('你没有此工单的访问权限')))
 
-        if ticket.status in [Ticket.Status.CANCELED.value, Ticket.Status.RESOLVED.value, Ticket.Status.CLOSED.value]:
+        if ticket.status == Ticket.Status.CLOSED.value:
             return view.exception_response(
-                exceptions.ConflictTicketStatus(
-                    message=_('”%(value)s“状态的工单不允许提交回复。') % {'value': ticket.get_status_display()}
-                ))
+                exceptions.ConflictTicketStatus(message=_('”已关闭“状态的工单不允许提交回复。')))
 
         try:
             folowup = TicketManager.create_followup_reply(
@@ -465,14 +459,9 @@ class TicketHandler:
 
         try:
             ticket = TicketManager.get_ticket(ticket_id=ticket_id)
-            if ticket.assigned_to_id:
-                if ticket.assigned_to_id != request.user.id:
-                    return view.exception_response(
-                        exceptions.AccessDenied(message=_('你不是此工单的指派处理人。')))
-            else:
-                if not request.user.is_federal_admin():
-                    return view.exception_response(
-                        exceptions.AccessDenied(message=_('你没有此工单的分配权限。')))
+            if not request.user.is_federal_admin():
+                return view.exception_response(
+                    exceptions.AccessDenied(message=_('你没有此工单的分配权限。')))
 
             # UserNotExist
             assigned_to_user = get_user_by_name(username=username)

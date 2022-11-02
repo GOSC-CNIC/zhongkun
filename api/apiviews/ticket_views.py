@@ -146,11 +146,8 @@ class TicketViewSet(AsRoleGenericViewSet):
 
             * 字段 status，工单状态
                 open：打开
-                canceled：已取消
                 progress：处理中
-                resolved：已解决
                 closed：已关闭
-                reopened：重新打开
 
             * 字段 service_type，工单相关服务
                 account：账户
@@ -350,10 +347,12 @@ class TicketViewSet(AsRoleGenericViewSet):
         """
         更改一个工单的状态
 
-            * 工单提交人只允许更改 canceled和open的状态；
-                open -> canceled;
-                canceled -> open ;
-            * 指派工单处理人（联邦管理员） 允许更改 除 canceled之外的状态；
+            * 工单提交人只允许更改的状态；
+                open -> closed;
+                progress -> closed;
+            * 指派工单处理人（联邦管理员） 允许更改的状态；
+                open -> closed;
+                progress -> closed;
 
             http code 200：
             {
@@ -393,7 +392,7 @@ class TicketViewSet(AsRoleGenericViewSet):
 
             * 工单提交人向自己的工单提交一个回复/评论
             * 工单指派处理人 以 联邦管理员 身份 向工单提交一个回复/评论
-            * ”已解决“、”已关闭“和”已取消/作废“状态的工单不允许提交回复
+            * ”已关闭“状态的工单不允许提交回复
 
             http code 200：
             {
@@ -572,7 +571,7 @@ class TicketViewSet(AsRoleGenericViewSet):
         """
         把工单转交给其他人处理
 
-            * 只允许工单指派处理人 把工单转交给其他人处理
+            * 联邦管理员 把工单转交给其他人处理
 
             http code 200：
             {}
@@ -584,7 +583,7 @@ class TicketViewSet(AsRoleGenericViewSet):
             }
 
             403:
-                AccessDenied: 你不是此工单的指派处理人 / 你没有此工单的分配权限
+                AccessDenied: 你没有此工单的分配权限
             404:
                 TicketNotExist: 工单不存在
                 UserNotExist: 用户不存在
@@ -604,6 +603,3 @@ class TicketViewSet(AsRoleGenericViewSet):
             return ticket_serializers.FollowUpCreateSerializer
 
         return Serializer
-
-    # def paginator(self):
-    #     super().paginator

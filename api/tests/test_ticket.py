@@ -92,7 +92,7 @@ class TicketTests(MyAPITestCase):
             description='工单2问题描述',
             service_type=Ticket.ServiceType.SERVER.value,
             contact='',
-            status=Ticket.Status.REOPENED.value,
+            status=Ticket.Status.PROGRESS.value,
             severity=Ticket.Severity.HIGH.value,
             submitter=self.user,
             username=self.user.username
@@ -514,8 +514,8 @@ class TicketTests(MyAPITestCase):
                 self.assertEqual(tc.old_value, new_ticket_data['description'])
                 self.assertEqual(tc.new_value, new_ticket_data2['description'])
 
-        # user, "resolved" status, not allow change
-        ticket1_user.status = Ticket.Status.RESOLVED.value
+        # user, "CLOSED" status, not allow change
+        ticket1_user.status = Ticket.Status.CLOSED.value
         ticket1_user.save(update_fields=['status'])
         new_ticket_data2 = {
             'title': '工单1abcdef标题ggg好还是',
@@ -645,18 +645,18 @@ class TicketTests(MyAPITestCase):
 
         # user, TicketNotExist
         url = reverse('api:support-ticket-ticket-status-change', kwargs={
-            'id': 'test', 'status': Ticket.Status.CANCELED.value})
+            'id': 'test', 'status': Ticket.Status.OPEN.value})
         r = self.client.post(url)
         self.assertErrorResponse(status_code=404, code='TicketNotExist', response=r)
 
-        # user, ok, open -> canceled
+        # user, ok, open -> closed
         url = reverse('api:support-ticket-ticket-status-change', kwargs={
-            'id': ticket1_user.id, 'status': Ticket.Status.CANCELED.value})
+            'id': ticket1_user.id, 'status': Ticket.Status.CLOSED.value})
         r = self.client.post(url)
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.data['status'], Ticket.Status.CANCELED.value)
+        self.assertEqual(r.data['status'], Ticket.Status.CLOSED.value)
         ticket1_user.refresh_from_db()
-        self.assertEqual(ticket1_user.status, Ticket.Status.CANCELED.value)
+        self.assertEqual(ticket1_user.status, Ticket.Status.CLOSED.value)
         fus = FollowUp.objects.select_related('ticket_change').all()
         self.assertEqual(len(fus), 1)
         fu = fus[0]
@@ -664,59 +664,44 @@ class TicketTests(MyAPITestCase):
         tc: TicketChange = fu.ticket_change
         self.assertEqual(tc.ticket_field, TicketChange.TicketField.STATUS.value)
         self.assertEqual(tc.old_value, Ticket.Status.OPEN.value)
-        self.assertEqual(tc.new_value, Ticket.Status.CANCELED.value)
+        self.assertEqual(tc.new_value, Ticket.Status.CLOSED.value)
 
-        # user, ok, canceled -> canceled
-        url = reverse('api:support-ticket-ticket-status-change', kwargs={
-            'id': ticket1_user.id, 'status': Ticket.Status.CANCELED.value})
-        r = self.client.post(url)
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.data['status'], Ticket.Status.CANCELED.value)
-        ticket1_user.refresh_from_db()
-        self.assertEqual(ticket1_user.status, Ticket.Status.CANCELED.value)
-        count = FollowUp.objects.select_related('ticket_change').count()
-        self.assertEqual(count, 1)
-
-        # user, ok, canceled -> open
+        # user, ConflictTicketStatus, closed -> open
         url = reverse('api:support-ticket-ticket-status-change', kwargs={
             'id': ticket1_user.id, 'status': Ticket.Status.OPEN.value})
         r = self.client.post(url)
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.data['status'], Ticket.Status.OPEN.value)
-        ticket1_user.refresh_from_db()
-        self.assertEqual(ticket1_user.status, Ticket.Status.OPEN.value)
-        fu = FollowUp.objects.select_related('ticket_change').first()
-        self.assertEqual(fu.fu_type, FollowUp.FuType.ACTION.value)
-        tc: TicketChange = fu.ticket_change
-        self.assertEqual(tc.ticket_field, TicketChange.TicketField.STATUS.value)
-        self.assertEqual(tc.old_value, Ticket.Status.CANCELED.value)
-        self.assertEqual(tc.new_value, Ticket.Status.OPEN.value)
+        self.assertErrorResponse(status_code=409, code='ConflictTicketStatus', response=r)
 
-        # user, ConflictTicketStatus
+        # user, ok, progress -> closed
         ticket1_user.status = Ticket.Status.PROGRESS.value
         ticket1_user.save(update_fields=['status'])
         url = reverse('api:support-ticket-ticket-status-change', kwargs={
-            'id': ticket1_user.id, 'status': Ticket.Status.CANCELED.value})
+            'id': ticket1_user.id, 'status': Ticket.Status.CLOSED.value})
         r = self.client.post(url)
-        self.assertErrorResponse(status_code=409, code='ConflictTicketStatus', response=r)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['status'], Ticket.Status.CLOSED.value)
+        ticket1_user.refresh_from_db()
+        self.assertEqual(ticket1_user.status, Ticket.Status.CLOSED.value)
+        fus = FollowUp.objects.select_related('ticket_change').all()
+        self.assertEqual(len(fus), 2)
+        fu = fus[0]
+        self.assertEqual(fu.fu_type, FollowUp.FuType.ACTION.value)
+        tc: TicketChange = fu.ticket_change
+        self.assertEqual(tc.ticket_field, TicketChange.TicketField.STATUS.value)
+        self.assertEqual(tc.old_value, Ticket.Status.PROGRESS.value)
+        self.assertEqual(tc.new_value, Ticket.Status.CLOSED.value)
 
-        ticket1_user.status = Ticket.Status.CLOSED.value
+        # user, ConflictTicketStatus, progress -> open
+        ticket1_user.status = Ticket.Status.PROGRESS.value
         ticket1_user.save(update_fields=['status'])
         url = reverse('api:support-ticket-ticket-status-change', kwargs={
-            'id': ticket1_user.id, 'status': Ticket.Status.CANCELED.value})
-        r = self.client.post(url)
-        self.assertErrorResponse(status_code=409, code='ConflictTicketStatus', response=r)
-
-        ticket1_user.status = Ticket.Status.RESOLVED.value
-        ticket1_user.save(update_fields=['status'])
-        url = reverse('api:support-ticket-ticket-status-change', kwargs={
-            'id': ticket1_user.id, 'status': Ticket.Status.CANCELED.value})
+            'id': ticket1_user.id, 'status': Ticket.Status.OPEN.value})
         r = self.client.post(url)
         self.assertErrorResponse(status_code=409, code='ConflictTicketStatus', response=r)
 
         # user, as_role, AccessDenied
         url = reverse('api:support-ticket-ticket-status-change', kwargs={
-            'id': ticket1_user.id, 'status': Ticket.Status.CANCELED.value})
+            'id': ticket1_user.id, 'status': Ticket.Status.CLOSED.value})
         query = parse.urlencode(query={'as_role': 'admin'})
         r = self.client.post(f'{url}?{query}')
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
@@ -727,14 +712,14 @@ class TicketTests(MyAPITestCase):
         ticket1_user.status = Ticket.Status.OPEN.value
         ticket1_user.save(update_fields=['status'])
         url = reverse('api:support-ticket-ticket-status-change', kwargs={
-            'id': ticket1_user.id, 'status': Ticket.Status.CANCELED.value})
+            'id': ticket1_user.id, 'status': Ticket.Status.CLOSED.value})
         r = self.client.post(url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
 
         # --------- as_role ---------
         # user2, InvalidAsRole
         url = reverse('api:support-ticket-ticket-status-change', kwargs={
-            'id': ticket1_user.id, 'status': Ticket.Status.CANCELED.value})
+            'id': ticket1_user.id, 'status': Ticket.Status.CLOSED.value})
         query = parse.urlencode(query={'as_role': 'test'})
         r = self.client.post(f'{url}?{query}')
         self.assertErrorResponse(status_code=400, code='InvalidAsRole', response=r)
@@ -768,28 +753,21 @@ class TicketTests(MyAPITestCase):
             ticket=ticket1_user, old_value=Ticket.Status.PROGRESS.value,
             new_value=Ticket.Status.CLOSED.value
         )
-        # user2, ok, closed -> RESOLVED
-        self._status_change_test_as_role(
-            ticket=ticket1_user, old_value=Ticket.Status.CLOSED.value,
-            new_value=Ticket.Status.RESOLVED.value
-        )
-        # user2, ok, RESOLVED -> REOPENED
-        self._status_change_test_as_role(
-            ticket=ticket1_user, old_value=Ticket.Status.RESOLVED.value,
-            new_value=Ticket.Status.REOPENED.value
-        )
-        # user2, ok, REOPENED -> CANCELED
-        self._status_change_test_as_role(
-            ticket=ticket1_user, old_value=Ticket.Status.REOPENED.value,
-            new_value=Ticket.Status.CANCELED.value
-        )
 
-        # user2, ConflictTicketStatus, CANCELED -> open
+        # user2, ConflictTicketStatus, closed -> open
         url = reverse('api:support-ticket-ticket-status-change', kwargs={
             'id': ticket1_user.id, 'status': Ticket.Status.OPEN.value})
         query = parse.urlencode(query={'as_role': 'admin'})
         r = self.client.post(f'{url}?{query}')
         self.assertErrorResponse(status_code=409, code='ConflictTicketStatus', response=r)
+
+        # user2, ok, progress -> open
+        ticket1_user.status = Ticket.Status.PROGRESS.value
+        ticket1_user.save(update_fields=['status'])
+        self._status_change_test_as_role(
+            ticket=ticket1_user, old_value=Ticket.Status.PROGRESS.value,
+            new_value=Ticket.Status.OPEN.value
+        )
 
     def _status_change_test_as_role(self, ticket, old_value, new_value):
         url = reverse('api:support-ticket-ticket-status-change', kwargs={
@@ -859,13 +837,6 @@ class TicketTests(MyAPITestCase):
         self.assertIsNone(r.data['ticket_change'])
         self.assertEqual(r.data['comment'], '测试test回复2')
 
-        # user, CANCELED ticket, ConflictTicketStatus
-        ticket1_user.status = Ticket.Status.CANCELED.value
-        ticket1_user.save(update_fields=['status'])
-        url = reverse('api:support-ticket-add-followup', kwargs={'id': ticket1_user.id})
-        r = self.client.post(url, data={'comment': 'adada测试test回复2'})
-        self.assertErrorResponse(status_code=409, code='ConflictTicketStatus', response=r)
-
         # user, CLOSED ticket, ConflictTicketStatus
         ticket1_user.status = Ticket.Status.CLOSED.value
         ticket1_user.save(update_fields=['status'])
@@ -920,21 +891,7 @@ class TicketTests(MyAPITestCase):
         self.assertEqual(r.data['comment'], 'user2 adada测试test回复2')
 
         # user2, as_role, ConflictTicketStatus
-        ticket1_user.status = Ticket.Status.CANCELED.value
-        ticket1_user.save(update_fields=['status'])
-        url = reverse('api:support-ticket-add-followup', kwargs={'id': ticket1_user.id})
-        query = parse.urlencode(query={'as_role': 'admin'})
-        r = self.client.post(f'{url}?{query}', data={'comment': 'user2 adada测试test回复2'})
-        self.assertErrorResponse(status_code=409, code='ConflictTicketStatus', response=r)
-
         ticket1_user.status = Ticket.Status.CLOSED.value
-        ticket1_user.save(update_fields=['status'])
-        url = reverse('api:support-ticket-add-followup', kwargs={'id': ticket1_user.id})
-        query = parse.urlencode(query={'as_role': 'admin'})
-        r = self.client.post(f'{url}?{query}', data={'comment': 'user2 adada测试test回复2'})
-        self.assertErrorResponse(status_code=409, code='ConflictTicketStatus', response=r)
-
-        ticket1_user.status = Ticket.Status.RESOLVED.value
         ticket1_user.save(update_fields=['status'])
         url = reverse('api:support-ticket-add-followup', kwargs={'id': ticket1_user.id})
         query = parse.urlencode(query={'as_role': 'admin'})
@@ -1086,7 +1043,7 @@ class TicketTests(MyAPITestCase):
             description='description',
             service_type=Ticket.ServiceType.SERVER.value,
             contact='text',
-            status=Ticket.Status.CANCELED.value,
+            status=Ticket.Status.CLOSED.value,
             severity=Ticket.Severity.NORMAL.value,
             submitter=self.user,
             username=self.user.username,
@@ -1118,6 +1075,7 @@ class TicketTests(MyAPITestCase):
         self.assertEqual(r.status_code, 200)
         ticket1_user.refresh_from_db()
         self.assertEqual(ticket1_user.assigned_to_id, self.user.id)
+        self.assertEqual(ticket1_user.status, Ticket.Status.PROGRESS.value)
         fu = FollowUp.objects.filter(ticket_id=ticket1_user.id, fu_type=FollowUp.FuType.ACTION.value).first()
         self.assertEqual(fu.ticket_change.ticket_field, TicketChange.TicketField.ASSIGNED_TO.value)
         self.assertEqual(fu.ticket_change.old_value, '')
@@ -1133,7 +1091,7 @@ class TicketTests(MyAPITestCase):
             description='description',
             service_type=Ticket.ServiceType.SERVER.value,
             contact='text',
-            status=Ticket.Status.CANCELED.value,
+            status=Ticket.Status.OPEN.value,
             severity=Ticket.Severity.NORMAL.value,
             submitter=self.user,
             username=self.user.username,
@@ -1165,7 +1123,7 @@ class TicketTests(MyAPITestCase):
         r = self.client.post(url)
         self.assertErrorResponse(status_code=409, code='Conflict', response=r)
 
-        # assigned to user2 ok
+        # user from none assigned to user2 ok
         self.user2.set_federal_admin()
         url = reverse(
             'api:support-ticket-ticket-assigned-to', kwargs={'id': ticket1_user.id, 'username': self.user2.username})
@@ -1173,29 +1131,45 @@ class TicketTests(MyAPITestCase):
         self.assertEqual(r.status_code, 200)
         ticket1_user.refresh_from_db()
         self.assertEqual(ticket1_user.assigned_to_id, self.user2.id)
-        fu = FollowUp.objects.filter(ticket_id=ticket1_user.id, fu_type=FollowUp.FuType.ACTION.value).first()
+        fus = FollowUp.objects.filter(
+            ticket_id=ticket1_user.id, fu_type=FollowUp.FuType.ACTION.value).order_by('-submit_time')
+        self.assertEqual(len(fus), 1)
+        fu = fus[0]
         self.assertEqual(fu.user_id, self.user.id)
         self.assertEqual(fu.ticket_change.ticket_field, TicketChange.TicketField.ASSIGNED_TO.value)
         self.assertEqual(fu.ticket_change.old_value, '')
         self.assertEqual(fu.ticket_change.new_value, self.user2.username)
 
-        # user assigned to user, no permission
-        url = reverse(
-            'api:support-ticket-ticket-assigned-to', kwargs={'id': ticket1_user.id, 'username': self.user.username})
-        r = self.client.post(url)
-        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
-
-        # user2 assigned to user, ok
-        self.client.logout()
-        self.client.force_login(self.user2)
+        # user, from user2 assigned to user, ok
         url = reverse(
             'api:support-ticket-ticket-assigned-to', kwargs={'id': ticket1_user.id, 'username': self.user.username})
         r = self.client.post(url)
         self.assertEqual(r.status_code, 200)
         ticket1_user.refresh_from_db()
         self.assertEqual(ticket1_user.assigned_to_id, self.user.id)
-        fu = FollowUp.objects.filter(ticket_id=ticket1_user.id, fu_type=FollowUp.FuType.ACTION.value).first()
-        self.assertEqual(fu.user_id, self.user2.id)
+        fus = FollowUp.objects.filter(
+            ticket_id=ticket1_user.id, fu_type=FollowUp.FuType.ACTION.value).order_by('-submit_time')
+        self.assertEqual(len(fus), 2)
+        fu = fus[0]
+        self.assertEqual(fu.user_id, self.user.id)
         self.assertEqual(fu.ticket_change.ticket_field, TicketChange.TicketField.ASSIGNED_TO.value)
         self.assertEqual(fu.ticket_change.old_value, self.user2.username)
         self.assertEqual(fu.ticket_change.new_value, self.user.username)
+
+        # user2, from user assigned to user2, ok
+        self.client.logout()
+        self.client.force_login(self.user2)
+        url = reverse(
+            'api:support-ticket-ticket-assigned-to', kwargs={'id': ticket1_user.id, 'username': self.user2.username})
+        r = self.client.post(url)
+        self.assertEqual(r.status_code, 200)
+        ticket1_user.refresh_from_db()
+        self.assertEqual(ticket1_user.assigned_to_id, self.user2.id)
+        fus = FollowUp.objects.filter(
+            ticket_id=ticket1_user.id, fu_type=FollowUp.FuType.ACTION.value).order_by('-submit_time')
+        self.assertEqual(len(fus), 3)
+        fu = fus[0]
+        self.assertEqual(fu.user_id, self.user2.id)
+        self.assertEqual(fu.ticket_change.ticket_field, TicketChange.TicketField.ASSIGNED_TO.value)
+        self.assertEqual(fu.ticket_change.old_value, self.user.username)
+        self.assertEqual(fu.ticket_change.new_value, self.user2.username)
