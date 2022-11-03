@@ -208,4 +208,4 @@ class FollowUp(CustomIdModel):
         return self.title
 
     def generate_id(self) -> str:
-        return rand_utils.timestamp20_rand4_sn()
+        return rand_utils.timestamp20_sn()

@@ -64,6 +64,15 @@ def timestamp14_sn():
     return f"{t.year:04}{t.month:02}{t.day:02}{t.hour:02}{t.minute:02}{t.second:02}"
 
 
+def timestamp20_sn():
+    """
+    生成时间的流水号
+    长20位: 日期+纳秒
+    """
+    t = timezone.now()
+    return f"{t.year:04}{t.month:02}{t.day:02}{t.hour:02}{t.minute:02}{t.second:02}{t.microsecond:06}"
+
+
 def date8_random_digit_string(rand_length: int):
     """
     生成日期+随机数的流水号
