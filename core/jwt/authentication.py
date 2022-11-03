@@ -158,6 +158,7 @@ class CreateUserJWTAuthentication(authentication.BaseAuthentication):
             first_name, last_name = '', ''
 
         org_name = validated_token.get(JWT_SETTINGS.ORG_NAME_FIELD, '')
+        org_name = org_name if org_name else ''
         params.update({'email': user_id, 'first_name': first_name, 'last_name': last_name, 'company': org_name})
         user = self.user_model(**params)
         try:
