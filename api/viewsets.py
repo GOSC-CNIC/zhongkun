@@ -53,11 +53,11 @@ def exception_handler(exc, context):
     if isinstance(exc, Http404):
         exc = exceptions.NotFound()
     elif isinstance(exc, PermissionDenied):
-        exc = exceptions.AccessDenied()
+        exc = exceptions.AccessDenied(message=str(exc))
     elif isinstance(exc, AuthenticationFailed):
-        exc = exceptions.AuthenticationFailed()
+        exc = exceptions.AuthenticationFailed(message=str(exc))
     elif isinstance(exc, NotAuthenticated):
-        exc = exceptions.NotAuthenticated()
+        exc = exceptions.NotAuthenticated(message=str(exc))
     elif isinstance(exc, APIException):
         if isinstance(exc.detail, (list, dict)):
             data = exc.detail
