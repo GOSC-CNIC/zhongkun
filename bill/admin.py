@@ -1,5 +1,6 @@
 from django.contrib import admin, messages
 from django.utils.translation import gettext_lazy as _
+from django import forms
 
 from utils.model import NoDeleteSelectModelAdmin
 from .models import (
@@ -7,6 +8,13 @@ from .models import (
     PayOrgnazition, PayAppService
 )
 from .managers import CashCouponActivityManager
+
+
+class PayAppForm(forms.ModelForm):
+    class Meta:
+        widgets = {
+            'rsa_public_key': forms.Textarea(attrs={'cols': 80, 'rows': 6}),
+        }
 
 
 @admin.register(PaymentHistory)
@@ -37,6 +45,7 @@ class VoPointAccountAdmin(admin.ModelAdmin):
 
 @admin.register(PayApp)
 class PayAppAdmin(NoDeleteSelectModelAdmin):
+    form = PayAppForm
     list_display = ('id', 'name', 'status', 'creation_time', 'app_url')
     list_display_links = ('id',)
 
