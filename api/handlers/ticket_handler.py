@@ -262,6 +262,9 @@ class TicketHandler:
         if ticket.assigned_to_id != request.user.id:
             return view.exception_response(exceptions.AccessDenied(message=_('你不是此工单的指派处理人。')))
 
+        if ticket.status == Ticket.Status.CLOSED.value:
+            return view.exception_response(exceptions.ConflictTicketStatus(message=_('工单已关闭。')))
+
         if new_severity == ticket.severity:
             return Response(data={'severity': new_severity})
 
@@ -459,6 +462,9 @@ class TicketHandler:
 
         try:
             ticket = TicketManager.get_ticket(ticket_id=ticket_id)
+            if ticket.status == Ticket.Status.CLOSED.value:
+                return view.exception_response(exceptions.ConflictTicketStatus(message=_('工单已关闭。')))
+
             if not request.user.is_federal_admin():
                 return view.exception_response(
                     exceptions.AccessDenied(message=_('你没有此工单的分配权限。')))

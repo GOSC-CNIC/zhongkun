@@ -62,7 +62,7 @@ class TicketTests(MyAPITestCase):
         sub.update(data)
         self.assert_is_subdict_of(sub=sub, d=r.data)
         self.assertEqual(len(r.data['id']), 16)
-        
+
         # TooManyTicket
         for i in range(2, 7):
             data = {
@@ -618,6 +618,14 @@ class TicketTests(MyAPITestCase):
         self.assertEqual(ticket1_user.severity, Ticket.Severity.HIGH.value)
         fus = FollowUp.objects.select_related('ticket_change').all()
         self.assertEqual(len(fus), 1)
+
+        # 'closed' ticket, ConflictTicketStatus
+        ticket1_user.status = Ticket.Status.CLOSED.value
+        ticket1_user.save(update_fields=['status'])
+        url = reverse('api:support-ticket-ticket-severity-change', kwargs={
+            'id': ticket1_user.id, 'severity': Ticket.Severity.HIGH.value})
+        r = self.client.post(url)
+        self.assertErrorResponse(status_code=409, code='ConflictTicketStatus', response=r)
 
     def test_change_ticket_status(self):
         ticket_data = {
@@ -1181,3 +1189,11 @@ class TicketTests(MyAPITestCase):
         self.assertEqual(fu.ticket_change.ticket_field, TicketChange.TicketField.ASSIGNED_TO.value)
         self.assertEqual(fu.ticket_change.old_value, self.user.username)
         self.assertEqual(fu.ticket_change.new_value, self.user2.username)
+
+        # user2, from user assigned to user2, 'closed' ticket, ConflictTicketStatus
+        ticket1_user.status = Ticket.Status.CLOSED.value
+        ticket1_user.save(update_fields=['status'])
+        url = reverse(
+            'api:support-ticket-ticket-assigned-to', kwargs={'id': ticket1_user.id, 'username': self.user2.username})
+        r = self.client.post(url)
+        self.assertErrorResponse(status_code=409, code='ConflictTicketStatus', response=r)
