@@ -1,3 +1,5 @@
+import base64
+
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from cryptography.hazmat.primitives import serialization
@@ -53,12 +55,12 @@ class SHA256WithRSA:
             padding=padding.PKCS1v15(),
             algorithm=hashes.SHA256()
         )
-        signature = base64url_encode(signature)
+        signature = base64.b64encode(signature)
         signature = signature.decode('utf-8')
         return signature
 
     def verify(self, signature: str, data: bytes):
-        signature = base64url_decode(signature.encode('utf-8'))
+        signature = base64.b64decode(signature.encode('utf-8'))
         try:
             self.public_rsa.verify(
                 signature=signature,
