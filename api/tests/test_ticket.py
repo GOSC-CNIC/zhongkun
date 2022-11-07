@@ -293,6 +293,35 @@ class TicketTests(MyAPITestCase):
         self.assertEqual(r.data['results'][0]['id'], ticket4_user2.id)
         self.assertEqual(r.data['results'][1]['id'], ticket1_user.id)
 
+        # role_user, query notfound, "assigned_to" 、 "as_role"
+        query = parse.urlencode(query={'assigned_to': 'notfound', 'as_role': 'admin'})
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=404, code='UserNotExist', response=r)
+
+        # role_user, query user, "assigned_to" 、 "as_role"
+        query = parse.urlencode(query={'assigned_to': self.user.username, 'as_role': 'admin'})
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 1)
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertEqual(r.data['results'][0]['id'], ticket3_user2.id)
+
+        # role_user, query role_user, "assigned_to" 、 "as_role"
+        query = parse.urlencode(query={'assigned_to': role_user.username, 'as_role': 'admin'})
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 2)
+        self.assertEqual(len(r.data['results']), 2)
+        self.assertEqual(r.data['results'][0]['id'], ticket4_user2.id)
+        self.assertEqual(r.data['results'][1]['id'], ticket1_user.id)
+
+        # role_user, query user2, "assigned_to" 、 "as_role"
+        query = parse.urlencode(query={'assigned_to': self.user2.username, 'as_role': 'admin'})
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 0)
+        self.assertEqual(len(r.data['results']), 0)
+
     def test_detail_ticket(self):
         ticket1_user = Ticket(
             title='工单1',

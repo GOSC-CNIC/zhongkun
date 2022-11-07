@@ -204,7 +204,14 @@ class TicketHandler:
                 raise exceptions.ParameterConflict(
                     message=_('查询分配给自己的工单参数“assigned_to”，只允许与参数“as_role”一起提交。'))
 
-            assigned_to_user_id = request.user.id
+            if assigned_to:
+                if assigned_to == request.user.username:
+                    assigned_to_user_id = request.user.id
+                else:   # UserNotExist
+                    user = get_user_by_name(username=assigned_to)
+                    assigned_to_user_id = user.id
+            else:       # 值为空时，查询自己
+                assigned_to_user_id = request.user.id
         else:
             assigned_to_user_id = None
 

@@ -100,7 +100,10 @@ class TicketViewSet(AsRoleGenericViewSet):
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=gettext_lazy('筛选分配给自己处理的工单，只能和参数“as_role”一起提交。')
+                description=gettext_lazy(
+                    '筛选分配给指定处理人（用户名）处理的工单，当值为空时查询自己；'
+                    '只能和参数“as_role”一起提交，指定处理人不存在时返回404错误。'
+                )
             ),
         ] + AsRoleGenericViewSet.PARAMETERS_AS_ROLE,
         responses={
@@ -173,6 +176,8 @@ class TicketViewSet(AsRoleGenericViewSet):
                 InvalidSeverity: 指定的问题严重程度值无效
             403:
                 AccessDenied: 你没有联邦管理员权限
+            404:
+                UserNotExist: 用户不存在
             500:
                 InternalError: 创建工单错误
         """
