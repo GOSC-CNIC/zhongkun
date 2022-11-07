@@ -1,3 +1,4 @@
+import time
 from urllib import parse
 
 from django.urls import reverse
@@ -60,13 +61,15 @@ class TicketTests(MyAPITestCase):
         }
         sub.update(data)
         self.assert_is_subdict_of(sub=sub, d=r.data)
-
+        self.assertEqual(len(r.data['id']), 16)
+        
         # TooManyTicket
         for i in range(2, 7):
             data = {
                 'title': 'test 标题, 不能少于10个字符', 'description': '这里是问题的描述，不少于10个字符',
                 'service_type': Ticket.ServiceType.SERVER.value, 'contact': 'test'
             }
+            time.sleep(0.1)
             r = self.client.post(url, data=data)
             if i < 6:
                 self.assertEqual(r.status_code, 200)
@@ -87,6 +90,7 @@ class TicketTests(MyAPITestCase):
             assigned_to_id=role_user.id
         )
         ticket1_user.save(force_insert=True)
+        time.sleep(0.1)
         ticket2_user = Ticket(
             title='工单2',
             description='工单2问题描述',
@@ -98,6 +102,7 @@ class TicketTests(MyAPITestCase):
             username=self.user.username
         )
         ticket2_user.save(force_insert=True)
+        time.sleep(0.1)
         ticket3_user2 = Ticket(
             title='工单3',
             description='工单3问题描述',
@@ -110,6 +115,7 @@ class TicketTests(MyAPITestCase):
             assigned_to_id=self.user.id
         )
         ticket3_user2.save(force_insert=True)
+        time.sleep(0.1)
         ticket4_user2 = Ticket(
             title='工单2',
             description='工单2问题描述',
@@ -300,6 +306,7 @@ class TicketTests(MyAPITestCase):
             assigned_to=self.user2
         )
         ticket1_user.save(force_insert=True)
+        time.sleep(0.1)
         ticket2_user2 = Ticket(
             title='工单3',
             description='工单3问题描述',
@@ -383,6 +390,7 @@ class TicketTests(MyAPITestCase):
             assigned_to=None
         )
         ticket1_user.save(force_insert=True)
+        time.sleep(0.1)
         ticket2_user2 = Ticket(
             title='工单2',
             description='工单2问题描述',

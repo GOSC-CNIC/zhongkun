@@ -81,3 +81,13 @@ def date8_random_digit_string(rand_length: int):
     t = timezone.now()
     s = random_digit_string(rand_length)
     return f"{t.year:04}{t.month:02}{t.day:02}{s}"
+
+
+def timestamp14_microsecond2_sn():
+    """
+    生成时间的流水号
+    长16位: 日期+2位微妙
+    """
+    t = timezone.now()
+    microsecond = f'{t.microsecond:06}'
+    return f"{t.year:04}{t.month:02}{t.day:02}{t.hour:02}{t.minute:02}{t.second:02}{microsecond[0:2]}"
