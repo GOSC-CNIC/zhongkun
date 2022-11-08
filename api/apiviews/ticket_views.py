@@ -599,6 +599,52 @@ class TicketViewSet(AsRoleGenericViewSet):
         """
         return TicketHandler().ticket_assigned_to(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('工单提交人向关闭的工单提交一个评价'),
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['POST'], detail=True, url_path='rating/add', url_name='add-rating')
+    def add_ticket_rating(self, request, *args, **kwargs):
+        """
+        工单提交人向关闭的工单提交一个评价
+
+            * 只允许评价已关闭的工单，每个工单只能评价一次
+
+            http code 200：
+            {
+                'id': '202211080608554330032594',
+                'score': 5,
+                'comment': 'xxxx',
+                'ticket_id': '2022110806085502',
+                'submit_time': '2022-11-08T06:08:55.433531Z',
+                'modified_time': '2022-11-08T06:08:55.433610Z',
+                'user_id': 'd3384ba2-5f2b-11ed-89b8-c8009fe2ebbc',
+                'username': 'tom@xx.com',
+                'is_sys_submit': False      # 是否系统默认提交
+            }
+
+            http code 400, 403, 404, 409, 500:
+            {
+                "code": "TicketNotExist",
+                "message": "工单不存在"
+            }
+            400:
+                InvalidScore: 无效评分，评分只允许1-5。
+                InvalidComment: 评论字符长度不得超过1024
+            403:
+                AccessDenied: 你没有此工单的访问权限
+            404:
+                TicketNotExist: 工单不存在
+            409:
+                ConflictTicketStatus: 只允许评价”已关闭“状态的工单
+                TargetAlreadyExists: 工单已评价
+            500:
+                InternalError: 添加工单评价错误
+        """
+        return TicketHandler().add_ticket_rating(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action in ['create', 'update_ticket']:
             return ticket_serializers.TicketCreateSerializer
@@ -606,5 +652,7 @@ class TicketViewSet(AsRoleGenericViewSet):
             return ticket_serializers.TicketSerializer
         elif self.action == 'add_followup':
             return ticket_serializers.FollowUpCreateSerializer
+        elif self.action == 'add_ticket_rating':
+            return ticket_serializers.TicketRatingSerializer
 
         return Serializer

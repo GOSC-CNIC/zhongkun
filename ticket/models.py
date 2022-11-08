@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils.translation import gettext, gettext_lazy as _
+from django.core import validators
 
 from utils.model import CustomIdModel
 from utils import rand_utils
@@ -206,6 +207,42 @@ class FollowUp(CustomIdModel):
 
     def __str__(self):
         return self.title
+
+    def generate_id(self) -> str:
+        return rand_utils.timestamp20_rand4_sn()
+
+
+class TicketRating(CustomIdModel):
+    """
+    工单评价
+    """
+    ticket = models.OneToOneField(
+        to=Ticket, verbose_name=_('工单'),
+        on_delete=models.CASCADE, related_name='ticket_rating'
+    )
+    score = models.SmallIntegerField(
+        verbose_name=_('评分'), help_text=_('1-5'), default=5,
+        validators=(validators.MinValueValidator(1), validators.MinValueValidator(5))
+    )
+    comment = models.CharField(verbose_name=_('评论'), max_length=1024, blank=True, default='')
+    submit_time = models.DateTimeField(
+        verbose_name=_('提交时间'), blank=True, auto_now_add=True, help_text=_('提交的时间')
+    )
+    modified_time = models.DateTimeField(
+        verbose_name=_('修改时间'), blank=True, auto_now=True, help_text=_('最近修改的时间')
+    )
+    user_id = models.CharField(verbose_name=_('评价提交人id'), max_length=36, blank=True, default='')
+    username = models.CharField(verbose_name=_('提交人用户名'), max_length=128, blank=True, default='')
+    is_sys_submit = models.BooleanField(verbose_name=_('系统默认提交'), default=False)
+
+    class Meta:
+        db_table = 'ticket_rating'
+        ordering = ['-submit_time']
+        verbose_name = _('工单评价')
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return str(self.score)
 
     def generate_id(self) -> str:
         return rand_utils.timestamp20_rand4_sn()

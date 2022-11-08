@@ -6,7 +6,7 @@ from core import errors as exceptions
 from api.viewsets import AsRoleGenericViewSet
 from api.serializers import ticket as ticket_serializers
 from api.paginations import FollowUpMarkerCursorPagination
-from ticket.models import Ticket, TicketChange
+from ticket.models import Ticket, TicketChange, TicketRating
 from ticket.managers import TicketManager
 from users.managers import get_user_by_name
 
@@ -495,3 +495,58 @@ class TicketHandler:
             return view.exception_response(exceptions.Error(message=_('更改工单处理人失败。') + str(exc)))
 
         return Response(data={})
+
+    @staticmethod
+    def add_ticket_rating(view: AsRoleGenericViewSet, request, kwargs):
+        """
+        提交工单评价
+        """
+        ticket_id = kwargs[view.lookup_field]
+        user = request.user
+
+        try:
+            serializer = view.get_serializer(data=request.data)
+            if not serializer.is_valid(raise_exception=False):
+                s_errors = serializer.errors
+                if 'comment' in s_errors:
+                    exc = exceptions.BadRequest(message=_('无效的评论。') + s_errors['comment'][0], code='InvalidComment')
+                elif 'score' in s_errors:
+                    exc = exceptions.BadRequest(
+                        message=_('无效评分，评分只允许1-5。') + s_errors['score'][0], code='InvalidScore')
+                else:
+                    msg = serializer_error_msg(serializer.errors)
+                    exc = exceptions.BadRequest(message=msg)
+
+                raise exc
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        data = serializer.validated_data
+        comment = data['comment']
+        score = data['score']
+
+        try:
+            ticket = TicketManager.get_ticket(ticket_id=ticket_id)
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        if ticket.submitter_id != user.id:
+            return view.exception_response(exceptions.AccessDenied(message=_('你没有此工单的访问权限')))
+
+        if ticket.status != Ticket.Status.CLOSED.value:
+            return view.exception_response(
+                exceptions.ConflictTicketStatus(message=_('只允许评价”已关闭“状态的工单。')))
+
+        rat = TicketRating.objects.filter(ticket_id=ticket.id).first()
+        if rat is not None:
+            return view.exception_response(
+                exceptions.TargetAlreadyExists(message=_('工单已评价。')))
+
+        try:
+            rating = TicketManager.create_ticket_rating(
+                ticket=ticket, score=score, comment=comment, user=user
+            )
+        except Exception as exc:
+            return view.exception_response(exceptions.Error(message=_('添加工单评价错误。') + str(exc)))
+
+        return Response(data=ticket_serializers.TicketRatingSerializer(instance=rating).data)

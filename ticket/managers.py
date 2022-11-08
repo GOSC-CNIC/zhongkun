@@ -1,7 +1,8 @@
 from django.db import transaction
+from django.utils.translation import gettext as _
 
 from core import errors
-from .models import Ticket, FollowUp, TicketChange
+from .models import Ticket, FollowUp, TicketChange, TicketRating
 
 
 class TicketManager:
@@ -162,3 +163,43 @@ class TicketManager:
             ticket.save(update_fields=update_fields)
 
         return ticket, fu
+
+    @staticmethod
+    def create_ticket_rating(ticket: Ticket, score: int, comment: str, user=None) -> TicketRating:
+        """
+        创建一个工单评价
+
+        :param ticket: 工单
+        :param score: 评分， 1-5
+        :param comment: 评论
+        :param user: 评论人；默认None时系统自动提交
+        :return:
+            TicketRating()
+
+        :raises: Error
+        """
+        if ticket.status != Ticket.Status.CLOSED.value:
+            raise errors.ConflictTicketStatus(message=_('只允许评价”已关闭“状态的工单。'))
+
+        if score < 1 or score > 5:
+            raise errors.BadRequest(message=_('评分只允许在1至5之间。'))
+
+        if user:
+            user_id = user.id
+            username = user.username
+            is_sys_submit = False
+        else:
+            user_id = ''
+            username = ''
+            is_sys_submit = True
+
+        rating = TicketRating(
+            ticket_id=ticket.id,
+            score=score,
+            comment=comment,
+            user_id=user_id,
+            username=username,
+            is_sys_submit=is_sys_submit
+        )
+        rating.save(force_insert=True)
+        return rating

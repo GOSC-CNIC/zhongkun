@@ -374,6 +374,11 @@ class ConflictTicketStatus(ConflictError):
     default_code = 'ConflictTicketStatus'
 
 
+class TargetAlreadyExists(ConflictError):
+    default_message = _('目标已存在。')
+    default_code = 'TargetAlreadyExists'
+
+
 def convert_to_error(err):
     if isinstance(err, Error):
         return err

@@ -1226,3 +1226,90 @@ class TicketTests(MyAPITestCase):
             'api:support-ticket-ticket-assigned-to', kwargs={'id': ticket1_user.id, 'username': self.user2.username})
         r = self.client.post(url)
         self.assertErrorResponse(status_code=409, code='ConflictTicketStatus', response=r)
+
+    def test_ticket_rating(self):
+        ticket1_user = Ticket(
+            title='test',
+            description='description',
+            service_type=Ticket.ServiceType.SERVER.value,
+            contact='text',
+            status=Ticket.Status.OPEN.value,
+            severity=Ticket.Severity.NORMAL.value,
+            submitter=self.user2,
+            username=self.user2.username,
+            assigned_to_id=self.user.id
+        )
+        ticket1_user.save(force_insert=True)
+
+        url = reverse('api:support-ticket-add-rating', kwargs={'id': 'test'})
+        r = self.client.post(url, data={"score": 6, "comment": ""})
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+
+        self.client.force_login(self.user)
+
+        # user, InvalidScore
+        url = reverse('api:support-ticket-add-rating', kwargs={'id': ticket1_user.id})
+        r = self.client.post(url)
+        self.assertErrorResponse(status_code=400, code='InvalidScore', response=r)
+        r = self.client.post(url, data={"score": 0, "comment": ""})
+        self.assertErrorResponse(status_code=400, code='InvalidScore', response=r)
+        r = self.client.post(url, data={"score": 6, "comment": ""})
+        self.assertErrorResponse(status_code=400, code='InvalidScore', response=r)
+
+        # TicketNotExist
+        url = reverse('api:support-ticket-add-rating', kwargs={'id': 'test'})
+        r = self.client.post(url, data={"score": 5, "comment": ""})
+        self.assertErrorResponse(status_code=404, code='TicketNotExist', response=r)
+
+        # user, AccessDenied
+        url = reverse('api:support-ticket-add-rating', kwargs={'id': ticket1_user.id})
+        r = self.client.post(url, data={"score": 5, "comment": ""})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        # user2, ticket not closed
+        self.client.logout()
+        self.client.force_login(self.user2)
+        url = reverse('api:support-ticket-add-rating', kwargs={'id': ticket1_user.id})
+        r = self.client.post(url, data={"score": 5, "comment": ""})
+        self.assertErrorResponse(status_code=409, code='ConflictTicketStatus', response=r)
+
+        # user2, ticket closed, ok
+        ticket1_user.status = Ticket.Status.CLOSED.value
+        ticket1_user.save(update_fields=['status'])
+        url = reverse('api:support-ticket-add-rating', kwargs={'id': ticket1_user.id})
+        r = self.client.post(url, data={"score": 5, "comment": ""})
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=[
+            'id', 'score', 'comment', 'ticket_id', 'submit_time', 'modified_time',
+            'user_id', 'username', 'is_sys_submit'
+        ], container=r.data)
+        self.assertEqual(r.data['score'], 5)
+        self.assertEqual(r.data['comment'], '')
+
+        # user2, one ticket only one rating
+        url = reverse('api:support-ticket-add-rating', kwargs={'id': ticket1_user.id})
+        r = self.client.post(url, data={"score": 4, "comment": "test奥法后"})
+        self.assertErrorResponse(status_code=409, code='TargetAlreadyExists', response=r)
+
+        # user2, delete add again, ok
+        ticket1_user.ticket_rating.delete()
+        comment = 'test奥法后' * 10
+        url = reverse('api:support-ticket-add-rating', kwargs={'id': ticket1_user.id})
+        r = self.client.post(url, data={"score": 4, "comment": comment})
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=[
+            'id', 'score', 'comment', 'ticket_id', 'submit_time', 'modified_time',
+            'user_id', 'username', 'is_sys_submit'
+        ], container=r.data)
+        self.assertEqual(r.data['score'], 4)
+        self.assertEqual(r.data['comment'], comment)
+
+        # user2, InvalidComment
+        url = reverse('api:support-ticket-add-rating', kwargs={'id': ticket1_user.id})
+        comment = 'testtest' * 128
+        r = self.client.post(url, data={"score": 3, "comment": comment})
+        self.assertErrorResponse(status_code=409, code='TargetAlreadyExists', response=r)
+
+        # user2, InvalidComment, max length 1024
+        r = self.client.post(url, data={"score": 3, "comment": comment + 'a'})
+        self.assertErrorResponse(status_code=400, code='InvalidComment', response=r)

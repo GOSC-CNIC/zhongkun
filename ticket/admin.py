@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from .models import (
-    Ticket, TicketChange, FollowUp
+    Ticket, TicketChange, FollowUp, TicketRating
 )
 
 
@@ -29,3 +29,11 @@ class TicketChangeAdmin(admin.ModelAdmin):
     list_display = ('id', 'ticket_field', 'display')
     list_display_links = ('id',)
     search_fields = ('id',)
+
+
+@admin.register(TicketRating)
+class TicketRatingAdmin(admin.ModelAdmin):
+    list_display = ('id', 'ticket_id', 'score', 'submit_time', 'username', 'is_sys_submit')
+    list_display_links = ('id',)
+    search_fields = ('id', 'ticket_id')
+    list_filter = ('is_sys_submit',)

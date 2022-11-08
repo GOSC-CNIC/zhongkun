@@ -74,3 +74,16 @@ class FollowUpSerializer(serializers.Serializer):
             return {'id': obj.user.id, 'username': obj.user.username}
 
         return None
+
+
+class TicketRatingSerializer(serializers.Serializer):
+    id = serializers.CharField(label='id', read_only=True)
+    score = serializers.IntegerField(label=_('评分'), min_value=1, max_value=5, help_text=_('评分 1-5'))
+    comment = serializers.CharField(label=_('评论'), max_length=1024, allow_blank=True, default='')
+
+    ticket_id = serializers.CharField(label=_('工单编号'), read_only=True)
+    submit_time = serializers.DateTimeField(label=_('提交时间'), read_only=True)
+    modified_time = serializers.DateTimeField(label=_('修改时间'), read_only=True)
+    user_id = serializers.CharField(label=_('评价提交人id'), read_only=True)
+    username = serializers.CharField(label=_('提交人用户名'), read_only=True)
+    is_sys_submit = serializers.BooleanField(label=_('系统默认提交'), read_only=True)
