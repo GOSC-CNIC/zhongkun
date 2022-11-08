@@ -33,7 +33,7 @@ class Migration(migrations.Migration):
                 ('id', models.CharField(blank=True, editable=False, max_length=36, primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(default='', max_length=255, verbose_name='监控服务名称')),
                 ('name_en', models.CharField(default='', max_length=255, verbose_name='监控服务名称')),
-                ('endpoint_url', models.CharField(default='', help_text='http(s)://example.cn/', max_length=255, verbose_name='服务url地址')),
+                ('endpoint_url', models.CharField(default='', help_text='http(s)://example.cn/', max_length=255, verbose_name='查询接口')),
                 ('username', models.CharField(blank=True, default='', help_text='用于此服务认证的用户名', max_length=128, verbose_name='认证用户名')),
                 ('password', models.CharField(blank=True, default='', max_length=255, verbose_name='认证密码')),
                 ('creation', models.DateTimeField(auto_now_add=True, verbose_name='创建时间')),

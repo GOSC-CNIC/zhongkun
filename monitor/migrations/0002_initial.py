@@ -17,7 +17,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='monitorjobserver',
             name='service',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='monitor_job_server_set', to='service.serviceconfig', verbose_name='所属的服务'),
+            field=models.ForeignKey(blank=True, default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='monitor_job_server_set', to='service.serviceconfig', verbose_name='所属的服务'),
         ),
         migrations.AddField(
             model_name='monitorjobceph',
@@ -27,6 +27,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='monitorjobceph',
             name='service',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='monitor_job_ceph_set', to='service.serviceconfig', verbose_name='所属的服务'),
+            field=models.ForeignKey(blank=True, default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='monitor_job_ceph_set', to='service.serviceconfig', verbose_name='所属的服务'),
         ),
     ]

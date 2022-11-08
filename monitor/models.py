@@ -8,12 +8,21 @@ from utils.model import UuidModel, get_encryptor
 class MonitorProvider(UuidModel):
     name = models.CharField(verbose_name=_('监控服务名称'), max_length=255, default='')
     name_en = models.CharField(verbose_name=_('监控服务名称'), max_length=255, default='')
-    endpoint_url = models.CharField(verbose_name=_('服务url地址'), max_length=255, default='',
+    endpoint_url = models.CharField(verbose_name=_('查询接口'), max_length=255, default='',
                                     help_text=_('http(s)://example.cn/'))
     username = models.CharField(max_length=128, verbose_name=_('认证用户名'), blank=True, default='',
                                 help_text=_('用于此服务认证的用户名'))
     password = models.CharField(max_length=255, verbose_name=_('认证密码'), blank=True, default='')
     creation = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
+    receive_url = models.CharField(
+        verbose_name=_('接收接口'), max_length=255, blank=True, default='', help_text=_('http(s)://example.cn/'))
+    bucket_service_name = models.CharField(
+        max_length=128, verbose_name=_('存储桶所在对象存储服务名称'), blank=True, default='')
+    bucket_service_url = models.CharField(
+        verbose_name=_('存储桶所在对象存储服务地址'), max_length=255, blank=True, default='',
+        help_text=_('http(s)://example.cn/'))
+    bucket_name = models.CharField(max_length=128, verbose_name=_('存储桶名称'), blank=True, default='')
+    remark = models.TextField(verbose_name=_('备注'), blank=True, default='')
 
     class Meta:
         ordering = ['-creation']
@@ -49,7 +58,9 @@ class MonitorJobCeph(UuidModel):
     job_tag = models.CharField(verbose_name=_('CEPH集群标签名称'), max_length=255, default='')
     provider = models.ForeignKey(to=MonitorProvider, on_delete=models.CASCADE, related_name='+',
                                  verbose_name=_('监控服务配置'))
-    service = models.ForeignKey(to=ServiceConfig, null=True, on_delete=models.SET_NULL,
+    prometheus = models.CharField(
+        verbose_name=_('Prometheus接口'), max_length=255, blank=True, default='', help_text=_('http(s)://example.cn/'))
+    service = models.ForeignKey(to=ServiceConfig, blank=True, null=True, default=None, on_delete=models.SET_NULL,
                                 related_name='monitor_job_ceph_set', verbose_name=_('所属的服务'))
     creation = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
     remark = models.TextField(verbose_name=_('备注'), blank=True, default='')
@@ -72,7 +83,9 @@ class MonitorJobServer(UuidModel):
     job_tag = models.CharField(verbose_name=_('主机集群标签名称'), max_length=255, default='')
     provider = models.ForeignKey(to=MonitorProvider, on_delete=models.CASCADE, related_name='+',
                                  verbose_name=_('监控服务配置'))
-    service = models.ForeignKey(to=ServiceConfig, null=True, on_delete=models.SET_NULL,
+    prometheus = models.CharField(
+        verbose_name=_('Prometheus接口'), max_length=255, blank=True, default='', help_text=_('http(s)://example.cn/'))
+    service = models.ForeignKey(to=ServiceConfig, blank=True, null=True, default=None, on_delete=models.SET_NULL,
                                 related_name='monitor_job_server_set', verbose_name=_('所属的服务'))
     creation = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
     remark = models.TextField(verbose_name=_('备注'), blank=True, default='')
@@ -98,7 +111,10 @@ class MonitorJobVideoMeeting(UuidModel):
     latitude = models.FloatField(verbose_name=_('纬度'), blank=True, default=0)
     provider = models.ForeignKey(to=MonitorProvider, on_delete=models.CASCADE, related_name='+',
                                  verbose_name=_('监控服务配置'))
+    prometheus = models.CharField(
+        verbose_name=_('Prometheus接口'), max_length=255, blank=True, default='', help_text=_('http(s)://example.cn/'))
     creation = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
+    remark = models.CharField(verbose_name=_('备注'), max_length=1024, blank=True, default='')
 
     class Meta:
         ordering = ['-creation']
