@@ -52,6 +52,7 @@ class MonitorJobCeph(UuidModel):
     service = models.ForeignKey(to=ServiceConfig, null=True, on_delete=models.SET_NULL,
                                 related_name='monitor_job_ceph_set', verbose_name=_('所属的服务'))
     creation = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
+    remark = models.TextField(verbose_name=_('备注'), blank=True, default='')
 
     class Meta:
         ordering = ['-creation']
@@ -74,6 +75,7 @@ class MonitorJobServer(UuidModel):
     service = models.ForeignKey(to=ServiceConfig, null=True, on_delete=models.SET_NULL,
                                 related_name='monitor_job_server_set', verbose_name=_('所属的服务'))
     creation = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
+    remark = models.TextField(verbose_name=_('备注'), blank=True, default='')
 
     class Meta:
         ordering = ['-creation']
