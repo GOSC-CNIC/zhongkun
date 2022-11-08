@@ -1227,7 +1227,7 @@ class TicketTests(MyAPITestCase):
         r = self.client.post(url)
         self.assertErrorResponse(status_code=409, code='ConflictTicketStatus', response=r)
 
-    def test_ticket_rating(self):
+    def test_ticket_rating_add_query(self):
         ticket1_user = Ticket(
             title='test',
             description='description',
@@ -1255,6 +1255,19 @@ class TicketTests(MyAPITestCase):
         self.assertErrorResponse(status_code=400, code='InvalidScore', response=r)
         r = self.client.post(url, data={"score": 6, "comment": ""})
         self.assertErrorResponse(status_code=400, code='InvalidScore', response=r)
+
+        # user, query ticket rating
+        url = reverse('api:support-ticket-query-rating', kwargs={'id': 'test'})
+        r = self.client.get(url)
+        self.assertIn('ratings', r.data)
+        self.assertIsInstance(r.data['ratings'], list)
+        self.assertEqual(len(r.data['ratings']), 0)
+
+        url = reverse('api:support-ticket-query-rating', kwargs={'id': ticket1_user.id})
+        r = self.client.get(url)
+        self.assertIn('ratings', r.data)
+        self.assertIsInstance(r.data['ratings'], list)
+        self.assertEqual(len(r.data['ratings']), 0)
 
         # TicketNotExist
         url = reverse('api:support-ticket-add-rating', kwargs={'id': 'test'})
@@ -1285,6 +1298,17 @@ class TicketTests(MyAPITestCase):
         ], container=r.data)
         self.assertEqual(r.data['score'], 5)
         self.assertEqual(r.data['comment'], '')
+
+        # user2, query ticket rating
+        url = reverse('api:support-ticket-query-rating', kwargs={'id': ticket1_user.id})
+        r = self.client.get(url)
+        self.assertIn('ratings', r.data)
+        self.assertIsInstance(r.data['ratings'], list)
+        self.assertEqual(len(r.data['ratings']), 1)
+        self.assertKeysIn(keys=[
+            'id', 'score', 'comment', 'ticket_id', 'submit_time', 'modified_time',
+            'user_id', 'username', 'is_sys_submit'
+        ], container=r.data['ratings'][0])
 
         # user2, one ticket only one rating
         url = reverse('api:support-ticket-add-rating', kwargs={'id': ticket1_user.id})

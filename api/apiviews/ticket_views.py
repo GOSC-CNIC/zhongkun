@@ -645,6 +645,36 @@ class TicketViewSet(AsRoleGenericViewSet):
         """
         return TicketHandler().add_ticket_rating(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询一个工单的评价'),
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['GET'], detail=True, url_path='rating/query', url_name='query-rating')
+    def query_ticket_rating(self, request, *args, **kwargs):
+        """
+        查询一个工单的评价
+
+            http code 200：
+            {
+                ratings:[           # 为空，未评价
+                    {
+                        'id': '202211080608554330032594',
+                        'score': 5,
+                        'comment': 'xxxx',
+                        'ticket_id': '2022110806085502',
+                        'submit_time': '2022-11-08T06:08:55.433531Z',
+                        'modified_time': '2022-11-08T06:08:55.433610Z',
+                        'user_id': 'd3384ba2-5f2b-11ed-89b8-c8009fe2ebbc',
+                        'username': 'tom@xx.com',
+                        'is_sys_submit': False      # 是否系统默认提交
+                    }
+                ]
+            }
+        """
+        return TicketHandler().query_ticket_rating(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action in ['create', 'update_ticket']:
             return ticket_serializers.TicketCreateSerializer

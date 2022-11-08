@@ -550,3 +550,20 @@ class TicketHandler:
             return view.exception_response(exceptions.Error(message=_('添加工单评价错误。') + str(exc)))
 
         return Response(data=ticket_serializers.TicketRatingSerializer(instance=rating).data)
+
+    @staticmethod
+    def query_ticket_rating(view: AsRoleGenericViewSet, request, kwargs):
+        """
+        提交工单评价
+
+            * 登录用户都有权限查询
+        """
+        ticket_id = kwargs[view.lookup_field]
+        rating = TicketRating.objects.filter(ticket_id=ticket_id).first()
+
+        ratings = []
+        if rating is not None:
+            rat = ticket_serializers.TicketRatingSerializer(instance=rating).data
+            ratings.append(rat)
+
+        return Response(data={'ratings': ratings})
