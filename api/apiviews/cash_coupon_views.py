@@ -276,6 +276,8 @@ class CashCouponViewSet(CustomGenericViewSet):
                 AlreadyCancelled: 代金券已作废
                 AlreadyDeleted: 代金券已删除
                 AlreadyGranted: 代金券已被领取
+                InvalidCoupon: 代金券无效，没有绑定适用的APP子服务。
+                NotAllowToVo: 绑定的适用APP子服务类型为云主机服务的代金券才允许VO组兑换。
         """
         return CashCouponHandler().exchange_cash_coupon(view=self, request=request)
 

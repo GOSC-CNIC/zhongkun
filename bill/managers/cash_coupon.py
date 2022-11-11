@@ -93,6 +93,15 @@ class CashCouponManager:
 
         with transaction.atomic():
             coupon = self.get_wait_draw_cash_coupon(coupon_id=coupon_id, select_for_update=True)
+
+            if coupon.app_service is None:
+                raise errors.ConflictError(message=_('代金券无效，没有绑定适用的APP子服务。'), code='InvalidCoupon')
+
+            # vo组只能兑换云主机的适用券
+            if vo_id and coupon.app_service.category != PayAppService.Category.VMS_SERVER.value:
+                raise errors.ConflictError(
+                    message=_('绑定的适用APP子服务类型为云主机服务的代金券才允许VO组兑换。'), code='NotAllowToVo')
+
             if coupon.coupon_code != coupon_code:
                 raise errors.ConflictError(message=_('券验证码错误'), code='InvalidCouponCode')
 

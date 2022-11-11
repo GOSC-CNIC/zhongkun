@@ -93,6 +93,14 @@ class CashCouponTests(MyAPITestCase):
         response = self.client.post(f'{base_url}?{query}')
         self.assertErrorResponse(status_code=404, code='NoSuchCoupon', response=response)
 
+        # no bind app_service, InvalidCoupon
+        query = parse.urlencode(query={'id': coupon1.id, 'coupon_code': coupon1.coupon_code})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=409, code='InvalidCoupon', response=response)
+
+        coupon1.app_service_id = self.app_service1.id
+        coupon1.save(update_fields=['app_service_id'])
+
         # invalid coupon code
         query = parse.urlencode(query={'id': coupon1.id, 'coupon_code': 'test'})
         response = self.client.post(f'{base_url}?{query}')
@@ -126,6 +134,22 @@ class CashCouponTests(MyAPITestCase):
 
         # set vo member
         VoMember(user=self.user, vo=self.vo, role=VoMember.Role.LEADER.value, inviter='').save(force_insert=True)
+
+        # no bind app_service, InvalidCoupon
+        query = parse.urlencode(query={'id': coupon2.id, 'coupon_code': coupon2.coupon_code})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=409, code='InvalidCoupon', response=response)
+
+        # only coupon that binded app_server is vms-server can to vo
+        coupon2.app_service_id = self.app_service2.id
+        coupon2.save(update_fields=['app_service_id'])
+        query = parse.urlencode(query={'id': coupon2.id, 'coupon_code': coupon2.coupon_code, 'vo_id': self.vo.id})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=409, code='NotAllowToVo', response=response)
+
+        # ok
+        coupon2.app_service_id = self.app_service1.id
+        coupon2.save(update_fields=['app_service_id'])
         query = parse.urlencode(query={'id': coupon2.id, 'coupon_code': coupon2.coupon_code, 'vo_id': self.vo.id})
         response = self.client.post(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
@@ -723,6 +747,14 @@ class CashCouponTests(MyAPITestCase):
         response = self.client.post(f'{base_url}?{query}')
         self.assertErrorResponse(status_code=404, code='NoSuchCoupon', response=response)
 
+        # no bind app_service, InvalidCoupon
+        query = parse.urlencode(query={'code': f'{coupon1.id}#test'})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=409, code='InvalidCoupon', response=response)
+
+        coupon1.app_service_id = self.app_service1.id
+        coupon1.save(update_fields=['app_service_id'])
+
         # invalid coupon code
         query = parse.urlencode(query={'code': f'{coupon1.id}#test'})
         response = self.client.post(f'{base_url}?{query}')
@@ -756,6 +788,23 @@ class CashCouponTests(MyAPITestCase):
 
         # set vo member
         VoMember(user=self.user, vo=self.vo, role=VoMember.Role.LEADER.value, inviter='').save(force_insert=True)
+
+        # no bind app_service, InvalidCoupon
+        query = parse.urlencode(query={'code': coupon2.one_exchange_code, 'vo_id': self.vo.id})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=409, code='InvalidCoupon', response=response)
+
+        # only coupon that binded app_server is vms-server can to vo
+        coupon2.app_service_id = self.app_service2.id
+        coupon2.save(update_fields=['app_service_id'])
+        query = parse.urlencode(query={'code': coupon2.one_exchange_code, 'vo_id': self.vo.id})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=409, code='NotAllowToVo', response=response)
+
+        # ok
+        coupon2.app_service_id = self.app_service1.id
+        coupon2.save(update_fields=['app_service_id'])
+
         query = parse.urlencode(query={'code': coupon2.one_exchange_code, 'vo_id': self.vo.id})
         response = self.client.post(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
