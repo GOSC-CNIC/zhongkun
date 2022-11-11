@@ -982,23 +982,17 @@ class TicketTests(MyAPITestCase):
         r = self.client.get(url)
         self.assertErrorResponse(status_code=404, code='TicketNotExist', response=r)
 
-        # user, ok list followup
+        # user, ok list followup, only reply
         url = reverse('api:support-ticket-list-followup', kwargs={'id': ticket1_user.id})
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn(keys=[
             'has_next', 'page_size', 'marker', 'next_marker', 'results'
         ], container=r.data)
-        self.assertEqual(len(r.data['results']), 3)
+        self.assertEqual(len(r.data['results']), 2)
         self.assertKeysIn(keys=[
             'id', 'title', 'comment', 'submit_time', 'fu_type', 'ticket_id', 'user', 'ticket_change'
         ], container=r.data['results'][1])
-        self.assertEqual(r.data['results'][1]['id'], fu2.id)
-        self.assertEqual(r.data['results'][1]['user'], {'id': self.user2.id, 'username': self.user2.username})
-        self.assertEqual(r.data['results'][1]['ticket_change'], {
-            'id': fu2.ticket_change.id, 'ticket_field': TicketChange.TicketField.STATUS.value,
-            'old_value': Ticket.Status.OPEN.value, 'new_value': Ticket.Status.PROGRESS.value
-        })
 
         # user, page_size
         url = reverse('api:support-ticket-list-followup', kwargs={'id': ticket1_user.id})
@@ -1016,9 +1010,9 @@ class TicketTests(MyAPITestCase):
         query = parse.urlencode(query={'page_size': 2, 'marker': next_marker})
         r = self.client.get(f'{url}?{query}')
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(len(r.data['results']), 2)
-        self.assertEqual(r.data['results'][0]['id'], fu2.id)
-        self.assertEqual(r.data['results'][1]['id'], fu1.id)
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertEqual(r.data['results'][0]['id'], fu1.id)
+        # self.assertEqual(r.data['results'][1]['id'], fu1.id)
         self.assertIs(r.data['has_next'], False)
         self.assertEqual(r.data['page_size'], 2)
         self.assertIsNone(r.data['next_marker'])
@@ -1058,6 +1052,10 @@ class TicketTests(MyAPITestCase):
         self.assertEqual(r.data['results'][1]['id'], fu2.id)
         self.assertEqual(r.data['results'][1]['user'], {'id': self.user2.id, 'username': self.user2.username})
         self.assertIsNotNone(r.data['results'][1]['ticket_change'], None)
+        self.assertEqual(r.data['results'][1]['ticket_change'], {
+            'id': fu2.ticket_change.id, 'ticket_field': TicketChange.TicketField.STATUS.value,
+            'old_value': Ticket.Status.OPEN.value, 'new_value': Ticket.Status.PROGRESS.value
+        })
 
         # user2, as_role, page_size
         url = reverse('api:support-ticket-list-followup', kwargs={'id': ticket1_user.id})

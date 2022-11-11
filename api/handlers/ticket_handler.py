@@ -423,7 +423,7 @@ class TicketHandler:
         elif ticket.submitter_id != request.user.id:
             return view.exception_response(exceptions.AccessDenied(message=_('你没有此工单的访问权限')))
 
-        queryset = TicketManager.get_ticket_followup_queryset(ticket_id=ticket.id)
+        queryset = TicketManager.get_ticket_followup_queryset(ticket_id=ticket.id, is_only_replay=not has_role)
         paginator = FollowUpMarkerCursorPagination()
         try:
             followups = paginator.paginate_queryset(queryset=queryset, request=request, view=view)

@@ -138,8 +138,12 @@ class TicketManager:
         return FollowUp.objects.all()
 
     @staticmethod
-    def get_ticket_followup_queryset(ticket_id: str):
-        return FollowUp.objects.select_related('ticket_change').filter(ticket_id=ticket_id).all()
+    def get_ticket_followup_queryset(ticket_id: str, is_only_replay: bool = False):
+        qs = FollowUp.objects.select_related('ticket_change').filter(ticket_id=ticket_id)
+        if is_only_replay:
+            qs = qs.filter(fu_type=FollowUp.FuType.REPLY.value)
+
+        return qs
 
     @staticmethod
     def ticket_assigned_to_user(user, ticket, assigned_to):
