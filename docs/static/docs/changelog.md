@@ -1,3 +1,21 @@
+## v0.5.0
+2022-11-11   
+* ListTicketFollowUp接口修改，工单提交人只能查询回复信息，处理人能查询所有回复和工单修改记录信息;  
+* 代金券兑换api优化，只允许云主机的券兑换给vo组； 
+* 监控相关model增加一些字段；
+* 依赖包版本升级pyOpenSSL==21.0.0；
+* 新增接口TicketRatingQuery（工单评价查询），TicketRatingAdd（工单提交评价）和测试用例； 
+* ListTicket api通过参数'assigned_to'查询指定处理人的工单； 
+* rsa加密签名字符串格式修改，不做url特殊字符转换；
+* 工单id长度修改，关闭的工单不允许修改工单的状态和转交工单； 
+* add command 'update_app_public_key'；app公钥改为多行文本输入框
+* 优化command 'generate_rsa_key'；
+* 通行证jwt用户单位字段为null时认证失败的bug修复；
+* 简化工单状态选项数量，以及对应的api修改；工单指定处理人后工单状态改为‘处理中’；转交工单权限修改，允许所
+有管理员转交工单；
+* add command 'importbucket' and 'list_storage_service'；
+* ListMeteringStorage接口响应内容增加'service'数据；
+
 ## v0.4.1
 2022-10-31
 * admin后台server列表不允许删除操作;  
