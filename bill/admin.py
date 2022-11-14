@@ -96,6 +96,8 @@ class CashCouponAdmin(admin.ModelAdmin):
     list_select_related = ('app_service', 'user', 'vo', 'activity')
     raw_id_fields = ('activity', 'user', 'vo')
     readonly_fields = ('_coupon_code',)
+    list_filter = ('app_service', 'app_service__category')
+    search_fields = ('id', 'user__username')
 
     @admin.display(description=_('兑换码'))
     def exchange_code(self, obj):
