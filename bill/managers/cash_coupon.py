@@ -126,18 +126,51 @@ class CashCouponManager:
             face_value: Decimal,
             effective_time: datetime,
             expiration_time: datetime,
+            coupon_num: int,
             activity_id: str = None
     ):
         """
         创建一个待领取的券
+
+        :coupon_num: 券日编号，大于0有效，其他默认使用当前时间微妙数
+        :return:{
+            coupon,             # 券对象
+            coupon_num: int     # 当前券日编号
+        }
         """
-        return CashCoupon.create_wait_draw_coupon(
+        if coupon_num <= 0:
+            num = CashCouponManager.get_date_coupon_count(date=timezone.now().date())
+            coupon_num = num + 1
+
+        for i in range(6):
+            try:
+                coupon = CashCoupon.create_wait_draw_coupon(
+                    face_value=face_value,
+                    effective_time=effective_time,
+                    expiration_time=expiration_time,
+                    app_service_id=app_service_id,
+                    activity_id=activity_id,
+                    coupon_num=coupon_num
+                )
+                return coupon, coupon_num
+            except Exception as e:
+                num = CashCouponManager.get_date_coupon_count(date=timezone.now().date())
+                if num > coupon_num:
+                    coupon_num = num
+
+                coupon_num += 1
+                continue
+
+        # 再尝试一次随机
+        coupon = CashCoupon.create_wait_draw_coupon(
             face_value=face_value,
             effective_time=effective_time,
             expiration_time=expiration_time,
             app_service_id=app_service_id,
-            activity_id=activity_id
+            activity_id=activity_id,
+            coupon_num=coupon_num
         )
+        return coupon, coupon_num
 
     def grant_cash_coupon_to_user(self, coupon: CashCoupon, user):
         """
@@ -163,13 +196,15 @@ class CashCouponManager:
         """
         创建一个券，并发放给指定用户
         """
+        num = CashCouponManager.get_date_coupon_count(date=timezone.now().date())
         with transaction.atomic():
-            coupon = self.create_wait_draw_coupon(
+            coupon, coupon_num = self.create_wait_draw_coupon(
                 app_service_id=app_service_id,
                 face_value=face_value,
                 effective_time=effective_time,
                 expiration_time=expiration_time,
-                activity_id=activity_id
+                activity_id=activity_id,
+                coupon_num=num + 1
             )
             self.grant_cash_coupon_to_user(coupon=coupon, user=user)
 
@@ -437,6 +472,10 @@ class CashCouponManager:
 
         return queryset
 
+    @staticmethod
+    def get_date_coupon_count(date):
+        return CashCoupon.objects.filter(creation_time__date=date).count()
+
 
 class CashCouponActivityManager:
     @staticmethod
@@ -461,7 +500,7 @@ class CashCouponActivityManager:
         if not self.has_coupon_template_perm(activity=activity, user=user):
             raise errors.AccessDenied(message=_('你没有此券模板的券的发放权限'))
 
-        coupon = activity.clone_coupon()
+        coupon, coupon_num = self.clone_coupon(activity=activity, coupon_num=0)
         return coupon
 
     @staticmethod
@@ -521,8 +560,13 @@ class CashCouponActivityManager:
         index = 0
         raise_exc = None
         try:
+            coupon_num = 0
             for index in range(1, count + 1):
-                activity.clone_coupon()
+                try:
+                    c, coupon_num = self.clone_coupon(activity=activity, coupon_num=coupon_num)
+                    coupon_num += 1
+                except Exception as e:
+                    raise e
         except Exception as exc:
             raise_exc = exc
 
@@ -536,3 +580,27 @@ class CashCouponActivityManager:
         activity.save(update_fields=['granted_count', 'grant_status'])
 
         return activity, index, raise_exc
+
+    @staticmethod
+    def clone_coupon(activity, coupon_num: int):
+        """
+        尝试多次尽量确保创建券成功
+
+        :param activity: 券模板
+        :param coupon_num: 券日编号，大于0有效，其他默认使用当前时间微妙数
+        :return:{
+            coupon,             # 券对象
+            coupon_num: int     # 当前券日编号
+        }
+
+        :raises: Exception
+        """
+        coupon, coupon_num = CashCouponManager.create_wait_draw_coupon(
+            app_service_id=activity.app_service_id,
+            face_value=activity.face_value,
+            effective_time=activity.effective_time,
+            expiration_time=activity.expiration_time,
+            coupon_num=coupon_num,
+            activity_id=activity.id
+        )
+        return coupon, coupon_num

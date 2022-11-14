@@ -318,11 +318,12 @@ class CashCouponHandler:
 
         try:
             if user is None:
-                coupon = CashCouponManager().create_wait_draw_coupon(
+                coupon, coupon_num = CashCouponManager().create_wait_draw_coupon(
                     app_service_id=app_service.id,
                     face_value=face_value,
                     effective_time=effective_time,
-                    expiration_time=expiration_time
+                    expiration_time=expiration_time,
+                    coupon_num=0
                 )
             else:
                 coupon = CashCouponManager().create_one_coupon_to_user(

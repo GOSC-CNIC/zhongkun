@@ -245,19 +245,6 @@ class CashCouponActivity(UuidModel, CashCouponBase):
         if not self.app_service_id:
             raise errors.ValidationError(message=gettext('券必须绑定一个服务'))
 
-    def clone_coupon(self):
-        """
-        创建一个券
-        """
-        coupon = CashCoupon.create_wait_draw_coupon(
-            face_value=self.face_value,
-            effective_time=self.effective_time,
-            expiration_time=self.expiration_time,
-            app_service_id=self.app_service_id,
-            activity_id=self.id
-        )
-        return coupon
-
 
 class CashCoupon(CashCouponBase):
     class Status(models.TextChoices):
@@ -301,8 +288,17 @@ class CashCoupon(CashCouponBase):
         return self.id
 
     @staticmethod
-    def generate_cash_coupon_id():
-        return rand_utils.random_digit_string(12)
+    def generate_cash_coupon_id(num: int = 0):
+        """
+        2-3位年 + 月 + 日 + 微妙数 或 一个指定整数
+        """
+        t = datetime.utcnow()
+        if num > 0:
+            s = f'{num:06}'
+        else:
+            s = f"{t.microsecond:06}"
+
+        return f"{t.year % 1000}{t.month:02}{t.day:02}{s}"
 
     def save(self, force_insert=False, force_update=False, using=None,
              update_fields=None):
@@ -352,10 +348,15 @@ class CashCoupon(CashCouponBase):
             face_value: Decimal,
             effective_time: datetime,
             expiration_time: datetime,
+            coupon_num: int,
             activity_id: str = None
     ):
         """
         创建一个待领取的券
+
+        coupon_num: 券日编号，大于0有效，其他默认使用当前时间微妙数
+
+        :raises: Exception
         """
         coupon = cls(
             face_value=face_value,
@@ -367,12 +368,14 @@ class CashCoupon(CashCouponBase):
             granted_time=timezone.now(),
             activity_id=activity_id
         )
+
+        if coupon_num:
+            coupon.id = cls.generate_cash_coupon_id(num=coupon_num)
+
         try:
             coupon.save(force_insert=True)
         except Exception as e:
-            if cls.objects.filter(id=coupon.id).exists():
-                coupon.id = None
-                coupon.save(force_insert=True)
+            raise e
 
         return coupon
 

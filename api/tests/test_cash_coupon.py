@@ -9,7 +9,7 @@ from utils.model import OwnerType
 from utils.test import get_or_create_service, get_or_create_user
 from vo.models import VirtualOrganization, VoMember
 from bill.models import CashCoupon, PayAppService, PayApp, PayOrgnazition, CashCouponActivity
-from bill.managers import PaymentManager
+from bill.managers import PaymentManager, CashCouponActivityManager
 from core import errors
 from . import set_auth_header, MyAPITestCase, MyAPITransactionTestCase
 
@@ -993,7 +993,7 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
             face_value=Decimal('66'), effective_time=timezone.now(), expiration_time=timezone.now() + timedelta(days=1)
         )
         template.save(force_insert=True)
-        wait_coupon1 = template.clone_coupon()
+        wait_coupon1, coupon_num = CashCouponActivityManager.clone_coupon(activity=template, coupon_num=0)
 
         coupon2 = CashCoupon(
             face_value=Decimal('66.6'),

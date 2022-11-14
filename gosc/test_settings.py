@@ -5,27 +5,27 @@ from .security import TEST_CASE_SECURITY
 TEST_CASE = {
     'MONITOR_CEPH': {
         'PROVIDER': {
-            'endpoint_url': 'http://159.226.98.184:19192/',
+            'endpoint_url': 'http://223.193.36.46:19193',
             'username': '',
             'password': ''
         },
         'JOB_CEPH': {
-            'job_tag': 'Fed-ceph'
+            'job_tag': 'aiops-ceph'
         }
     },
     'MONITOR_SERVER': {
         'PROVIDER': {
-            'endpoint_url': 'http://159.226.98.184:19192/',
+            'endpoint_url': 'http://223.193.36.46:19193',
             'username': '',
             'password': ''
         },
         'JOB_SERVER': {
-            'job_tag': 'AIOPS-node'
+            'job_tag': 'aiops-node-hosts'
         }
     },
     'MONITOR_VIDEO_MEETING': {
         'PROVIDER': {
-            'endpoint_url': 'http://159.226.235.30:19192/',
+            'endpoint_url': 'http://223.193.36.46:19192',
             'username': '',
             'password': ''
         },
