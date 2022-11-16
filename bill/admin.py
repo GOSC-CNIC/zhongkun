@@ -26,21 +26,51 @@ class PaymentHistoryAdmin(admin.ModelAdmin):
     list_filter = ('status', 'payer_type')
     search_fields = ('id', 'payer_id', 'payer_name')
 
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
 
 @admin.register(UserPointAccount)
-class UserPointAccountAdmin(admin.ModelAdmin):
+class UserPointAccountAdmin(NoDeleteSelectModelAdmin):
     list_display = ('id', 'balance', 'user',)
     list_display_links = ('id',)
     list_select_related = ('user',)
     readonly_fields = ('balance',)
 
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def delete_model(self, request, obj):
+        """
+        Given a model instance delete it from the database.
+        """
+        raise Exception(_('不允许从后台删除。'))
+
 
 @admin.register(VoPointAccount)
-class VoPointAccountAdmin(admin.ModelAdmin):
+class VoPointAccountAdmin(NoDeleteSelectModelAdmin):
     list_display = ('id', 'balance', 'vo')
     list_display_links = ('id',)
     list_select_related = ('vo',)
     readonly_fields = ('balance',)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def delete_model(self, request, obj):
+        """
+        Given a model instance delete it from the database.
+        """
+        raise Exception(_('不允许从后台删除。'))
 
 
 @admin.register(PayApp)
@@ -122,10 +152,22 @@ class PayAppServiceAdmin(NoDeleteSelectModelAdmin):
 
 
 @admin.register(TransactionBill)
-class TransactionBillAdmin(admin.ModelAdmin):
+class TransactionBillAdmin(NoDeleteSelectModelAdmin):
     list_display = ('id', 'subject', 'trade_type', 'trade_id', 'amounts', 'coupon_amount',
                     'after_balance', 'creation_time', 'app_id',
                     'owner_type', 'owner_id', 'owner_name', 'app_service_id')
     list_display_links = ('id',)
     list_filter = ('trade_type', 'owner_type')
     search_fields = ('id', 'owner_id', 'owner_name', 'trade_id')
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def delete_model(self, request, obj):
+        """
+        Given a model instance delete it from the database.
+        """
+        raise Exception(_('不允许从后台删除。'))
