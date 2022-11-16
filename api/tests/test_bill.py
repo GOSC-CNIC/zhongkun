@@ -9,7 +9,6 @@ from utils.test import get_or_create_service
 from service.models import ServiceConfig
 from vo.models import VirtualOrganization, VoMember
 from bill.models import PaymentHistory, CashCouponPaymentHistory
-from order.models import ResourceType
 from . import set_auth_header, MyAPITestCase, get_or_create_user
 
 
@@ -39,17 +38,15 @@ class PaymentHistoryTests(MyAPITestCase):
             payer_id=self.user.id,
             payer_name=self.user.username,
             payer_type=OwnerType.USER.value,
+            payable_amounts=Decimal('1.11'),
             amounts=Decimal('-1.11'),
-            before_payment=Decimal(0),
-            after_payment=Decimal(0),
-            type=PaymentHistory.Type.PAYMENT.value,
-            resource_type=ResourceType.VM.value,
             app_service_id=self.service.pay_app_service_id,
-            instance_id=''
+            instance_id='',
+            creation_time=time_now.replace(year=2022, month=2, day=8),
+            payment_time=time_now.replace(year=2022, month=2, day=8),
+            status=PaymentHistory.Status.SUCCESS.value
         )
         history1.save(force_insert=True)
-        history1.payment_time = time_now.replace(year=2022, month=2, day=8)
-        history1.save(update_fields=['payment_time'])
 
         history2 = PaymentHistory(
             subject='subject2',
@@ -59,17 +56,15 @@ class PaymentHistoryTests(MyAPITestCase):
             payer_id=self.user.id,
             payer_name=self.user.username,
             payer_type=OwnerType.USER.value,
+            payable_amounts=Decimal('2.22'),
             amounts=Decimal('-2.22'),
-            before_payment=Decimal(0),
-            after_payment=Decimal(0),
-            type=PaymentHistory.Type.PAYMENT.value,
-            resource_type=ResourceType.DISK.value,
             app_service_id=self.service.pay_app_service_id,
-            instance_id=''
+            instance_id='',
+            creation_time=time_now.replace(year=2022, month=3, day=7),
+            payment_time=time_now.replace(year=2022, month=3, day=7),
+            status=PaymentHistory.Status.SUCCESS.value
         )
         history2.save(force_insert=True)
-        history2.payment_time = time_now.replace(year=2022, month=3, day=7)
-        history2.save(update_fields=['payment_time'])
 
         history3 = PaymentHistory(
             subject='subject3',
@@ -79,17 +74,15 @@ class PaymentHistoryTests(MyAPITestCase):
             payer_id=self.vo.id,
             payer_name=self.vo.name,
             payer_type=OwnerType.VO.value,
+            payable_amounts=Decimal('3.33'),
             amounts=Decimal('-3.33'),
-            before_payment=Decimal(0),
-            after_payment=Decimal(0),
-            type=PaymentHistory.Type.PAYMENT.value,
-            resource_type=ResourceType.VM.value,
             app_service_id=self.service.pay_app_service_id,
-            instance_id=''
+            instance_id='',
+            creation_time=time_now.replace(year=2022, month=3, day=8),
+            payment_time=time_now.replace(year=2022, month=3, day=8),
+            status=PaymentHistory.Status.SUCCESS.value
         )
         history3.save(force_insert=True)
-        history3.payment_time = time_now.replace(year=2022, month=3, day=8)
-        history3.save(update_fields=['payment_time'])
 
         history4 = PaymentHistory(
             subject='subject4',
@@ -99,17 +92,15 @@ class PaymentHistoryTests(MyAPITestCase):
             payer_id=self.vo.id,
             payer_name=self.vo.name,
             payer_type=OwnerType.VO.value,
+            payable_amounts=Decimal('4.44'),
             amounts=Decimal('-4.44'),
-            before_payment=Decimal(0),
-            after_payment=Decimal(0),
-            type=PaymentHistory.Type.PAYMENT.value,
-            resource_type=ResourceType.VM.value,
             app_service_id=self.service.pay_app_service_id,
-            instance_id=''
+            instance_id='',
+            creation_time=time_now.replace(year=2021, month=4, day=8),
+            payment_time=time_now.replace(year=2021, month=4, day=8),
+            status=PaymentHistory.Status.SUCCESS.value
         )
         history4.save(force_insert=True)
-        history4.payment_time = time_now.replace(year=2021, month=4, day=8)
-        history4.save(update_fields=['payment_time'])
 
         history5 = PaymentHistory(
             subject='subject5',
@@ -119,17 +110,15 @@ class PaymentHistoryTests(MyAPITestCase):
             payer_id=self.vo.id,
             payer_name=self.vo.name,
             payer_type=OwnerType.VO.value,
+            payable_amounts=Decimal('5.55'),
             amounts=Decimal('-5.55'),
-            before_payment=Decimal(0),
-            after_payment=Decimal(0),
-            type=PaymentHistory.Type.REFUND.value,
-            resource_type=ResourceType.DISK.value,
             app_service_id=self.service2.pay_app_service_id,
-            instance_id=''
+            instance_id='',
+            creation_time=time_now.replace(year=2022, month=1, day=8),
+            payment_time=time_now.replace(year=2022, month=1, day=8),
+            status=PaymentHistory.Status.WAIT.value
         )
         history5.save(force_insert=True)
-        history5.payment_time = time_now.replace(year=2022, month=1, day=8)
-        history5.save(update_fields=['payment_time'])
 
         history6 = PaymentHistory(
             subject='subject6',
@@ -140,16 +129,13 @@ class PaymentHistoryTests(MyAPITestCase):
             payer_name=self.user.username,
             payer_type=OwnerType.USER.value,
             amounts=Decimal('-6.66'),
-            before_payment=Decimal(0),
-            after_payment=Decimal(0),
-            type=PaymentHistory.Type.PAYMENT.value,
-            resource_type=ResourceType.DISK.value,
             app_service_id=self.service2.pay_app_service_id,
-            instance_id=''
+            instance_id='',
+            creation_time=time_now.replace(year=2022, month=3, day=9),
+            payment_time=time_now.replace(year=2022, month=3, day=9),
+            status=PaymentHistory.Status.CLOSED.value
         )
         history6.save(force_insert=True)
-        history6.payment_time = time_now.replace(year=2022, month=3, day=9)
-        history6.save(update_fields=['payment_time'])
 
         history7 = PaymentHistory(
             subject='subject7',
@@ -159,17 +145,15 @@ class PaymentHistoryTests(MyAPITestCase):
             payer_id=self.user.id,
             payer_name=self.user.username,
             payer_type=OwnerType.USER.value,
-            amounts=Decimal('7.77'),
-            before_payment=Decimal(0),
-            after_payment=Decimal(0),
-            type=PaymentHistory.Type.RECHARGE.value,
-            resource_type='',
+            payable_amounts=Decimal('7.77'),
+            amounts=Decimal('-7.77'),
             app_service_id='',
-            instance_id=''
+            instance_id='',
+            creation_time=time_now.replace(year=2022, month=1, day=1),
+            payment_time=time_now.replace(year=2022, month=1, day=1),
+            status=PaymentHistory.Status.ERROR.value
         )
         history7.save(force_insert=True)
-        history7.payment_time = time_now.replace(year=2022, month=1, day=1)
-        history7.save(update_fields=['payment_time'])
         return [history1, history2, history3, history4, history5, history6, history7]
 
     def test_list_payment_history(self):
@@ -193,8 +177,8 @@ class PaymentHistoryTests(MyAPITestCase):
         self.assertKeysIn([
             "id", "payment_method", "executor", "payer_id", "payer_name",
             "payer_type", "amounts", "coupon_amount",
-            "payment_time", "type", "remark", "order_id",
-            "subject", "app_service_id", "app_id"
+            "payment_time", "remark", "order_id", "subject", "app_service_id", "app_id",
+            "status", 'status_desc', 'creation_time', 'payable_amounts'
         ], r.data['results'][0])
 
         # list user payment history, invalid time_start
@@ -250,22 +234,22 @@ class PaymentHistoryTests(MyAPITestCase):
         self.assertFalse(r.data['next_marker'])
         self.assertEqual(len(r.data['results']), 3)
 
-        # query 'payment_type'
+        # query 'status'
         query = parse.urlencode(query={
             'time_start': '2022-01-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
-            'payment_type': PaymentHistory.Type.PAYMENT.value
+            'status': PaymentHistory.Status.SUCCESS.value
         })
         r = self.client.get(f'{base_url}?{query}')
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(len(r.data['results']), 3)
+        self.assertEqual(len(r.data['results']), 2)
         query = parse.urlencode(query={
             'time_start': '2022-01-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
-            'payment_type': PaymentHistory.Type.RECHARGE.value
+            'status': PaymentHistory.Status.ERROR.value
         })
         r = self.client.get(f'{base_url}?{query}')
         self.assertEqual(r.status_code, 200)
         self.assertEqual(len(r.data['results']), 1)
-        self.assertEqual(r.data['results'][0]['amounts'], '7.77')
+        self.assertEqual(r.data['results'][0]['amounts'], '-7.77')
 
         # param service1_id
         query = parse.urlencode(query={
@@ -295,10 +279,10 @@ class PaymentHistoryTests(MyAPITestCase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(len(r.data['results']), 1)
 
-        # query 'payment_type'
+        # query 'status'
         query = parse.urlencode(query={
             'time_start': '2022-01-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
-            'vo_id': self.vo.id, 'payment_type': PaymentHistory.Type.PAYMENT.value
+            'vo_id': self.vo.id, 'status': PaymentHistory.Status.SUCCESS.value
         })
         r = self.client.get(f'{base_url}?{query}')
         self.assertEqual(r.status_code, 200)
@@ -306,7 +290,7 @@ class PaymentHistoryTests(MyAPITestCase):
         self.assertEqual(r.data['results'][0]['amounts'], '-3.33')
         query = parse.urlencode(query={
             'time_start': '2022-01-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
-            'vo_id': self.vo.id, 'payment_type': PaymentHistory.Type.REFUND.value
+            'vo_id': self.vo.id, 'status': PaymentHistory.Status.WAIT.value
         })
         r = self.client.get(f'{base_url}?{query}')
         self.assertEqual(r.status_code, 200)
@@ -349,13 +333,12 @@ class PaymentHistoryTests(MyAPITestCase):
             payer_id=self.user.id,
             payer_name=self.user.username,
             payer_type=OwnerType.USER.value,
+            payable_amounts=Decimal(0),
             amounts=Decimal('-1.11'),
-            before_payment=Decimal(0),
-            after_payment=Decimal(0),
-            type=PaymentHistory.Type.PAYMENT.value,
-            resource_type=ResourceType.VM.value,
             app_service_id=self.service.pay_app_service_id,
-            instance_id=''
+            instance_id='',
+            creation_time=timezone.now(),
+            payment_time=timezone.now()
         )
         history1.save(force_insert=True)
 
@@ -375,8 +358,9 @@ class PaymentHistoryTests(MyAPITestCase):
         self.assertKeysIn([
             "id", "payment_method", "executor", "payer_id", "payer_name",
             "payer_type", "amounts", "coupon_amount",
-            "payment_time", "type", "remark", "order_id",
-            "subject", "app_service_id", "app_id", "coupon_historys"
+            "payment_time", "remark", "order_id",
+            "subject", "app_service_id", "app_id", "coupon_historys",
+            "status", 'status_desc', 'creation_time', 'payable_amounts'
         ], r.data)
         self.assertEqual(r.data['amounts'], '-1.11')
         self.assertIsInstance(r.data['coupon_historys'], list)
@@ -394,13 +378,12 @@ class PaymentHistoryTests(MyAPITestCase):
             payer_id=self.vo.id,
             payer_name=self.vo.name,
             payer_type='',
+            payable_amounts=Decimal('6.88'),
             amounts=Decimal('-6.88'),
-            before_payment=Decimal(0),
-            after_payment=Decimal(0),
-            type=PaymentHistory.Type.PAYMENT.value,
-            resource_type=ResourceType.VM.value,
             app_service_id=self.service.pay_app_service_id,
-            instance_id=''
+            instance_id='',
+            creation_time=timezone.now(),
+            payment_time=timezone.now()
         )
         history_vo.save(force_insert=True)
         user2 = get_or_create_user(username='test2')
@@ -428,8 +411,9 @@ class PaymentHistoryTests(MyAPITestCase):
         self.assertKeysIn([
             "id", "payment_method", "executor", "payer_id", "payer_name",
             "payer_type", "amounts", "coupon_amount",
-            "payment_time", "type", "remark", "order_id",
-            "subject", "app_service_id", "app_id", "coupon_historys"
+            "payment_time", "remark", "order_id",
+            "subject", "app_service_id", "app_id", "coupon_historys",
+            "status", 'status_desc', 'creation_time', 'payable_amounts'
         ], r.data)
         self.assertEqual(r.data['amounts'], '-6.88')
         self.assertIsInstance(r.data['coupon_historys'], list)

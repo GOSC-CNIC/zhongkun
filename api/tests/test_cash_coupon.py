@@ -8,7 +8,9 @@ from django.utils import timezone
 from utils.model import OwnerType
 from utils.test import get_or_create_service, get_or_create_user
 from vo.models import VirtualOrganization, VoMember
-from bill.models import CashCoupon, PayAppService, PayApp, PayOrgnazition, CashCouponActivity
+from bill.models import (
+    CashCoupon, PayAppService, PayApp, PayOrgnazition, CashCouponActivity, TransactionBill, PaymentHistory
+)
 from bill.managers import PaymentManager, CashCouponActivityManager
 from core import errors
 from . import set_auth_header, MyAPITestCase, MyAPITransactionTestCase
@@ -563,7 +565,6 @@ class CashCouponTests(MyAPITestCase):
             remark='test',
             order_id='123',
             app_service_id=self.app_service1.id,
-            resource_type='',
             instance_id='',
             coupon_ids=None,
             only_coupon=False,
@@ -585,7 +586,8 @@ class CashCouponTests(MyAPITestCase):
         )
         self.assertKeysIn([
             "id", "subject", "payment_method", "executor", "payer_id", "payer_name", "payer_type", "amounts",
-            "coupon_amount", "payment_time", "type", "remark", "order_id", "app_id", "app_service_id"
+            "coupon_amount", "payment_time", "remark", "order_id", "app_id", "app_service_id",
+            'payable_amounts', 'creation_time', 'status', 'status_desc'
         ], results[0]["payment_history"])
         self.assertEqual('88.80', results[0]["before_payment"])
         self.assertEqual('-66.66', results[0]["amounts"])
@@ -601,7 +603,6 @@ class CashCouponTests(MyAPITestCase):
                 remark='test',
                 order_id='123',
                 app_service_id=self.app_service1.id,
-                resource_type='',
                 instance_id='',
                 coupon_ids=None,
                 only_coupon=False,
@@ -616,7 +617,6 @@ class CashCouponTests(MyAPITestCase):
             remark='test',
             order_id='456',
             app_service_id=self.app_service1.id,
-            resource_type='',
             instance_id='',
             coupon_ids=None,
             only_coupon=False,
@@ -642,7 +642,6 @@ class CashCouponTests(MyAPITestCase):
             remark='test',
             order_id='789',
             app_service_id=self.app_service1.id,
-            resource_type='',
             instance_id='',
             coupon_ids=None,
             only_coupon=False,
@@ -670,7 +669,8 @@ class CashCouponTests(MyAPITestCase):
         )
         self.assertKeysIn([
             "id", "subject", "payment_method", "executor", "payer_id", "payer_name", "payer_type", "amounts",
-            "coupon_amount", "payment_time", "type", "remark", "order_id", "app_id", "app_service_id"
+            "coupon_amount", "payment_time", "remark", "order_id", "app_id", "app_service_id",
+            'payable_amounts', 'creation_time', 'status', 'status_desc'
         ], results[0]["payment_history"])
         self.assertEqual('-66.66', results[0]["amounts"])
         self.assertEqual('188.80', results[0]["before_payment"])
@@ -678,14 +678,13 @@ class CashCouponTests(MyAPITestCase):
         self.assertEqual('-66.66', results[0]["payment_history"]['coupon_amount'])
         self.assertEqual('0.00', results[0]["payment_history"]['amounts'])
 
-        PaymentManager().pay_by_vo(
+        pay_history2 = PaymentManager().pay_by_vo(
             vo_id=self.vo.id, app_id=self.app.id,
             subject='test user pay', amounts=Decimal('66'),
             executor='test',
             remark='test',
             order_id='12356',
             app_service_id=self.app_service1.id,
-            resource_type='',
             instance_id='',
             coupon_ids=None,
             only_coupon=False,
@@ -702,6 +701,24 @@ class CashCouponTests(MyAPITestCase):
         self.assertEqual('-66.00', results[0]["amounts"])
         self.assertEqual('-66.00', results[0]["payment_history"]['coupon_amount'])
         self.assertEqual('0.00', results[0]["payment_history"]['amounts'])
+        self.assertEqual(results[0]["payment_history"]['status'], PaymentHistory.Status.SUCCESS.value)
+
+        # 交易流水
+        tbills = TransactionBill.objects.filter(
+            trade_type=TransactionBill.TradeType.PAYMENT.value, trade_id=pay_history2.id).all()
+        tbill: TransactionBill = tbills[0]
+        self.vo.vopointaccount.refresh_from_db()
+        self.assertEqual(tbill.account, '')     # 全部代金券支付时为空
+        self.assertEqual(tbill.coupon_amount, Decimal('-66'))
+        self.assertEqual(tbill.amounts, Decimal('0.00'))
+        self.assertEqual(tbill.after_balance, self.vo.vopointaccount.balance)
+        self.assertEqual(tbill.owner_type, OwnerType.VO.value)
+        self.assertEqual(tbill.owner_id, self.vo.id)
+        self.assertEqual(tbill.owner_name, self.vo.name)
+        self.assertEqual(tbill.app_service_id, self.app_service1.id)
+        self.assertEqual(tbill.app_id, pay_history2.app_id)
+        self.assertEqual(tbill.trade_type, TransactionBill.TradeType.PAYMENT.value)
+        self.assertEqual(tbill.trade_id, pay_history2.id)
 
     def test_exchange_cash_coupon(self):
         coupon1 = CashCoupon(

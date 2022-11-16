@@ -8,7 +8,6 @@ from django.utils import timezone
 from utils.model import UuidModel, OwnerType, CustomIdModel
 from utils.model import UuidModel, get_encryptor
 from utils import rand_utils
-from order.models import ResourceType
 from users.models import UserProfile
 from vo.models import VirtualOrganization
 from service.models import ServiceConfig
@@ -381,10 +380,11 @@ class CashCoupon(CashCouponBase):
 
 
 class PaymentHistory(CustomIdModel):
-    class Type(models.TextChoices):
-        RECHARGE = 'recharge', _('充值')
-        PAYMENT = 'payment', _('支付')
-        REFUND = 'refund', _('退款')
+    class Status(models.TextChoices):
+        WAIT = 'wait', _('等待支付')
+        SUCCESS = 'success', _('支付成功')
+        ERROR = 'error', _('支付失败')
+        CLOSED = 'closed', _('交易关闭')
 
     class PaymentMethod(models.TextChoices):
         BALANCE = 'balance', _('余额')
@@ -403,23 +403,23 @@ class PaymentHistory(CustomIdModel):
     payer_name = models.CharField(verbose_name=_('付款人名称'), max_length=255, blank=True, default='',
                                   help_text='username or vo name')
     payer_type = models.CharField(verbose_name=_('付款人类型'), max_length=8, choices=OwnerType.choices)
+    payable_amounts = models.DecimalField(
+        verbose_name=_('需付金额'), max_digits=10, decimal_places=2, default=Decimal('0'))
     amounts = models.DecimalField(verbose_name=_('金额'), max_digits=10, decimal_places=2)
-    before_payment = models.DecimalField(verbose_name=_('支付前余额'), max_digits=10, decimal_places=2)
-    after_payment = models.DecimalField(verbose_name=_('支付后余额'), max_digits=10, decimal_places=2)
-    payment_time = models.DateTimeField(verbose_name=_('支付时间'), auto_now_add=True)
-    type = models.CharField(verbose_name=_('支付类型'), max_length=16, choices=Type.choices)
-    remark = models.CharField(verbose_name=_('备注信息'), max_length=255, blank=True, default='')
-
-    order_id = models.CharField(verbose_name=_('订单ID'), max_length=36, blank=True, default='')
-    resource_type = models.CharField(
-        verbose_name=_('资源类型'), max_length=16, choices=ResourceType.choices, default=ResourceType.VM)
-    app_service_id = models.CharField(verbose_name=_('APP服务ID'), max_length=36, blank=True, default='')
-    instance_id = models.CharField(
-        verbose_name=_('资源实例ID'), max_length=64, default='', help_text='云主机，硬盘id，存储桶名称')
     coupon_amount = models.DecimalField(
         verbose_name=_('券金额'), max_digits=10, decimal_places=2, help_text=_('代金券或者抵扣金额'), default=Decimal('0'))
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'))
+    payment_time = models.DateTimeField(verbose_name=_('支付时间'), null=True, default=None)
+    status = models.CharField(
+        verbose_name=_('支付状态'), max_length=16, choices=Status.choices, default=Status.WAIT.value)
+    status_desc = models.CharField(verbose_name=_('支付状态描述'), max_length=255, default='')
     subject = models.CharField(verbose_name=_('标题'), max_length=256, default='')
+    remark = models.CharField(verbose_name=_('备注信息'), max_length=255, blank=True, default='')
+    order_id = models.CharField(verbose_name=_('订单ID'), max_length=36, blank=True, default='')
+    app_service_id = models.CharField(verbose_name=_('APP服务ID'), max_length=36, blank=True, default='')
     app_id = models.CharField(verbose_name=_('应用ID'), max_length=36, blank=True, default='')
+    instance_id = models.CharField(
+        verbose_name=_('资源实例ID'), max_length=64, default='', help_text='云主机，硬盘id，存储桶名称')
 
     class Meta:
         verbose_name = _('支付记录')
@@ -428,10 +428,11 @@ class PaymentHistory(CustomIdModel):
         ordering = ['-payment_time']
         indexes = [
             models.Index(fields=['payer_id'], name='idx_payer_id'),
+            models.Index(fields=['order_id'], name='idx_order_id'),
         ]
 
     def __repr__(self):
-        return f'PaymentHistory[{self.id}]<{self.get_type_display()}, {self.amounts}>'
+        return f'PaymentHistory[{self.id}]<{self.get_status_display()}, {self.amounts}>'
 
     def generate_id(self):
         return rand_utils.timestamp20_rand4_sn()
@@ -450,6 +451,51 @@ class CashCouponPaymentHistory(CustomIdModel):
         verbose_name_plural = verbose_name
         db_table = 'cash_coupon_payment'
         ordering = ['-creation_time']
+
+    def generate_id(self):
+        return rand_utils.timestamp20_rand4_sn()
+
+
+class TransactionBill(CustomIdModel):
+    """交易流水账单"""
+
+    class TradeType(models.TextChoices):
+        PAYMENT = 'payment', _('支付')
+        RECHARGE = 'recharge', _('充值')
+        REFUND = 'refund', _('退款')
+
+    account = models.CharField(
+        verbose_name=_('付款账户'), max_length=36, blank=True, default='',
+        help_text=_('用户或VO余额ID, 及可能支持的其他账户'))
+    subject = models.CharField(verbose_name=_('标题'), max_length=256, default='')
+    trade_type = models.CharField(verbose_name=_('交易类型'), max_length=16, choices=TradeType.choices)
+    trade_id = models.CharField(verbose_name=_('交易id'), max_length=36, help_text=_('支付、退款、充值ID'))
+    amounts = models.DecimalField(verbose_name=_('金额'), max_digits=10, decimal_places=2, help_text='16.66, -8.88')
+    coupon_amount = models.DecimalField(
+        verbose_name=_('券金额'), max_digits=10, decimal_places=2, default=Decimal('0'), help_text=_('代金券或者抵扣金额'))
+    after_balance = models.DecimalField(verbose_name=_('交易后余额'), max_digits=10, decimal_places=2)
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'))
+    remark = models.CharField(verbose_name=_('备注信息'), max_length=255, blank=True, default='')
+    owner_id = models.CharField(verbose_name=_('所属人ID'), max_length=36, blank=True, default='',
+                                help_text='user id or vo id')
+    owner_name = models.CharField(verbose_name=_('所属人名称'), max_length=255, blank=True, default='',
+                                  help_text='username or vo name')
+    owner_type = models.CharField(verbose_name=_('所属人类型'), max_length=8, choices=OwnerType.choices)
+    app_service_id = models.CharField(verbose_name=_('APP服务ID'), max_length=36, blank=True, default='')
+    app_id = models.CharField(verbose_name=_('应用ID'), max_length=36, blank=True, default='')
+
+    class Meta:
+        verbose_name = _('交易流水账单')
+        verbose_name_plural = verbose_name
+        db_table = 'transaction_bill'
+        ordering = ['-creation_time']
+        indexes = [
+            models.Index(fields=['owner_id'], name='idx_owner_id'),
+            models.Index(fields=['trade_id'], name='idx_trade_id'),
+        ]
+
+    def __repr__(self):
+        return f'TransactionBill[{self.id}]<{self.get_trade_type_display()}, {self.amounts}>'
 
     def generate_id(self):
         return rand_utils.timestamp20_rand4_sn()

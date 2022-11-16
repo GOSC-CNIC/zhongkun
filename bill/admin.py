@@ -5,7 +5,7 @@ from django import forms
 from utils.model import NoDeleteSelectModelAdmin
 from .models import (
     PaymentHistory, UserPointAccount, VoPointAccount, PayApp, CashCouponActivity, CashCoupon,
-    PayOrgnazition, PayAppService
+    PayOrgnazition, PayAppService, TransactionBill
 )
 from .managers import CashCouponActivityManager
 
@@ -19,11 +19,11 @@ class PayAppForm(forms.ModelForm):
 
 @admin.register(PaymentHistory)
 class PaymentHistoryAdmin(admin.ModelAdmin):
-    list_display = ('id', 'subject', 'type', 'payment_method', 'amounts', 'coupon_amount',
-                    'before_payment', 'after_payment', 'payment_time', 'app_id',
+    list_display = ('id', 'subject', 'payment_method', 'payable_amounts', 'amounts', 'coupon_amount',
+                    'creation_time', 'payment_time', 'status', 'status_desc', 'app_id',
                     'payer_type', 'payer_id', 'payer_name', 'payment_account', 'executor')
     list_display_links = ('id',)
-    list_filter = ('type', 'payer_type')
+    list_filter = ('status', 'payer_type')
     search_fields = ('id', 'payer_id', 'payer_name')
 
 
@@ -119,3 +119,13 @@ class PayAppServiceAdmin(NoDeleteSelectModelAdmin):
     list_display_links = ('id',)
     list_select_related = ('orgnazition', 'app', 'service', 'user')
     raw_id_fields = ('user',)
+
+
+@admin.register(TransactionBill)
+class TransactionBillAdmin(admin.ModelAdmin):
+    list_display = ('id', 'subject', 'trade_type', 'trade_id', 'amounts', 'coupon_amount',
+                    'after_balance', 'creation_time', 'app_id',
+                    'owner_type', 'owner_id', 'owner_name', 'app_service_id')
+    list_display_links = ('id',)
+    list_filter = ('trade_type', 'owner_type')
+    search_fields = ('id', 'owner_id', 'owner_name', 'trade_id')

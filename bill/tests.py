@@ -12,7 +12,7 @@ from order.managers import OrderPaymentManager
 from vo.managers import VoManager
 from bill.models import CashCoupon, CashCouponActivity
 from service.models import ServiceConfig
-from .models import PaymentHistory, PayAppService, PayApp, PayOrgnazition
+from .models import PaymentHistory, PayAppService, PayApp, PayOrgnazition, TransactionBill
 from .managers import PaymentManager, CashCouponActivityManager
 
 
@@ -93,12 +93,10 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(order1.coupon_amount, Decimal('0'))
         self.assertIsInstance(order1.payment_time, datetime)
         pay_history = PaymentHistory.objects.filter(order_id=order1.id).first()
-        self.assertEqual(pay_history.type, PaymentHistory.Type.PAYMENT)
+        self.assertEqual(pay_history.status, PaymentHistory.Status.SUCCESS.value)
+        self.assertEqual(pay_history.payable_amounts, Decimal('123.45'))
         self.assertEqual(pay_history.amounts, Decimal('-123.45'))
-        self.assertEqual(pay_history.before_payment, Decimal(0))
-        self.assertEqual(pay_history.after_payment, Decimal('-123.45'))
         self.assertEqual(pay_history.payer_name, self.user.username)
-        self.assertEqual(pay_history.resource_type, ResourceType.VM.value)
         self.assertEqual(pay_history.app_service_id, self.service.pay_app_service_id)
         self.assertEqual(pay_history.instance_id, '')
         self.assertEqual(pay_history.payer_type, OwnerType.USER.value)
@@ -106,6 +104,21 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(pay_history.executor, self.user.username)
         self.assertEqual(pay_history.payment_method, PaymentHistory.PaymentMethod.BALANCE.value)
         self.assertEqual(pay_history.payment_account, self.user.userpointaccount.id)
+
+        # 交易流水
+        tbills = TransactionBill.objects.all()
+        tbill: TransactionBill = tbills[0]
+        self.assertEqual(tbill.account, self.user.userpointaccount.id)
+        self.assertEqual(tbill.coupon_amount, Decimal('0'))
+        self.assertEqual(tbill.amounts, Decimal('-123.45'))
+        self.assertEqual(tbill.after_balance, Decimal('-123.45'))
+        self.assertEqual(tbill.owner_type, OwnerType.USER.value)
+        self.assertEqual(tbill.owner_id, self.user.id)
+        self.assertEqual(tbill.owner_name, self.user.username)
+        self.assertEqual(tbill.app_service_id, self.service.pay_app_service_id)
+        self.assertEqual(tbill.app_id, pay_history.app_id)
+        self.assertEqual(tbill.trade_type, TransactionBill.TradeType.PAYMENT.value)
+        self.assertEqual(tbill.trade_id, pay_history.id)
 
         order2 = Order(
             order_type=Order.OrderType.NEW,
@@ -151,19 +164,33 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(order2.coupon_amount, Decimal('0'))
         self.assertIsInstance(order2.payment_time, datetime)
         pay_history2 = PaymentHistory.objects.filter(order_id=order2.id).first()
-        self.assertEqual(pay_history2.type, PaymentHistory.Type.PAYMENT)
+        self.assertEqual(pay_history2.status, PaymentHistory.Status.SUCCESS.value)
+        self.assertEqual(pay_history2.payable_amounts, Decimal('321.45'))
         self.assertEqual(pay_history2.amounts, Decimal('-321.45'))
-        self.assertEqual(pay_history2.before_payment, Decimal(0))
-        self.assertEqual(pay_history2.after_payment, Decimal('-321.45'))
         self.assertEqual(pay_history2.payer_type, OwnerType.VO.value)
         self.assertEqual(pay_history2.payer_id, self.vo.id)
         self.assertEqual(pay_history2.payer_name, self.vo.name)
         self.assertEqual(pay_history2.executor, self.user.username)
         self.assertEqual(pay_history2.payment_method, PaymentHistory.PaymentMethod.BALANCE.value)
         self.assertEqual(pay_history2.payment_account, self.vo.vopointaccount.id)
-        self.assertEqual(pay_history2.resource_type, ResourceType.DISK.value)
         self.assertEqual(pay_history2.app_service_id, self.service.pay_app_service_id)
         self.assertEqual(pay_history2.instance_id, '')
+
+        # 交易流水
+        tbills = TransactionBill.objects.filter(
+            trade_type=TransactionBill.TradeType.PAYMENT.value, trade_id=pay_history2.id).all()
+        tbill: TransactionBill = tbills[0]
+        self.assertEqual(tbill.account, self.vo.vopointaccount.id)
+        self.assertEqual(tbill.coupon_amount, Decimal('0'))
+        self.assertEqual(tbill.amounts, Decimal('-321.45'))
+        self.assertEqual(tbill.after_balance, Decimal('-321.45'))
+        self.assertEqual(tbill.owner_type, OwnerType.VO.value)
+        self.assertEqual(tbill.owner_id, self.vo.id)
+        self.assertEqual(tbill.owner_name, self.vo.name)
+        self.assertEqual(tbill.app_service_id, self.service.pay_app_service_id)
+        self.assertEqual(tbill.app_id, pay_history2.app_id)
+        self.assertEqual(tbill.trade_type, TransactionBill.TradeType.PAYMENT.value)
+        self.assertEqual(tbill.trade_id, pay_history2.id)
 
     def test_user_pay_order_with_coupon(self):
         pay_mgr = OrderPaymentManager()
@@ -411,18 +438,16 @@ class PaymentManagerTests(TransactionTestCase):
 
         # 支付记录确认
         pay_history1 = PaymentHistory.objects.filter(order_id=order1.id).first()
-        self.assertEqual(pay_history1.type, PaymentHistory.Type.PAYMENT)
+        self.assertEqual(pay_history1.status, PaymentHistory.Status.SUCCESS.value)
+        self.assertEqual(pay_history1.payable_amounts, Decimal('100'))
         self.assertEqual(pay_history1.amounts, Decimal('-55'))
         self.assertEqual(pay_history1.coupon_amount, Decimal('-45'))
-        self.assertEqual(pay_history1.before_payment, Decimal('200'))
-        self.assertEqual(pay_history1.after_payment, Decimal('145'))
         self.assertEqual(pay_history1.payer_type, OwnerType.USER.value)
         self.assertEqual(pay_history1.payer_id, self.user.id)
         self.assertEqual(pay_history1.payer_name, self.user.username)
         self.assertEqual(pay_history1.executor, self.user.username)
         self.assertEqual(pay_history1.payment_method, PaymentHistory.PaymentMethod.BALANCE_COUPON.value)
         self.assertEqual(pay_history1.payment_account, user_account.id)
-        self.assertEqual(pay_history1.resource_type, ResourceType.VM.value)
         self.assertEqual(pay_history1.app_service_id, self.service.pay_app_service_id)
         self.assertEqual(pay_history1.instance_id, '')
         # 券支付记录
@@ -437,6 +462,22 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(cc_historys[1].before_payment, Decimal('25'))
         self.assertEqual(cc_historys[1].amounts, Decimal('-25'))
         self.assertEqual(cc_historys[1].after_payment, Decimal('0'))
+
+        # 交易流水
+        tbills = TransactionBill.objects.filter(
+            trade_type=TransactionBill.TradeType.PAYMENT.value, trade_id=pay_history1.id).all()
+        tbill: TransactionBill = tbills[0]
+        self.assertEqual(tbill.account, self.user.userpointaccount.id)
+        self.assertEqual(tbill.coupon_amount, Decimal('-45'))
+        self.assertEqual(tbill.amounts, Decimal('-55'))
+        self.assertEqual(tbill.after_balance, Decimal('145'))
+        self.assertEqual(tbill.owner_type, OwnerType.USER.value)
+        self.assertEqual(tbill.owner_id, self.user.id)
+        self.assertEqual(tbill.owner_name, self.user.username)
+        self.assertEqual(tbill.app_service_id, self.service.pay_app_service_id)
+        self.assertEqual(tbill.app_id, pay_history1.app_id)
+        self.assertEqual(tbill.trade_type, TransactionBill.TradeType.PAYMENT.value)
+        self.assertEqual(tbill.trade_id, pay_history1.id)
 
         # 支付已支付状态的订单
         with self.assertRaises(errors.Error) as cm:
@@ -490,23 +531,37 @@ class PaymentManagerTests(TransactionTestCase):
 
         # 支付记录确认
         pay_history2 = PaymentHistory.objects.filter(order_id=order2.id).first()
-        self.assertEqual(pay_history2.type, PaymentHistory.Type.PAYMENT)
+        self.assertEqual(pay_history2.status, PaymentHistory.Status.SUCCESS.value)
+        self.assertEqual(pay_history2.payable_amounts, Decimal('288.88'))
         self.assertEqual(pay_history2.amounts, Decimal('-288.88'))
         self.assertEqual(pay_history2.coupon_amount, Decimal('0'))
-        self.assertEqual(pay_history2.before_payment, Decimal('145'))
-        self.assertEqual(pay_history2.after_payment, Decimal('-143.88'))
         self.assertEqual(pay_history2.payer_type, OwnerType.USER.value)
         self.assertEqual(pay_history2.payer_id, self.user.id)
         self.assertEqual(pay_history2.payer_name, self.user.username)
         self.assertEqual(pay_history2.executor, self.user.username)
         self.assertEqual(pay_history2.payment_method, PaymentHistory.PaymentMethod.BALANCE.value)
         self.assertEqual(pay_history2.payment_account, user_account.id)
-        self.assertEqual(pay_history2.resource_type, ResourceType.VM.value)
         self.assertEqual(pay_history2.app_service_id, self.service.pay_app_service_id)
         self.assertEqual(pay_history2.instance_id, '')
         # 券支付记录
         cc_historys = pay_history2.cashcouponpaymenthistory_set.all().order_by('creation_time')
         self.assertEqual(len(cc_historys), 0)
+
+        # 交易流水
+        tbills = TransactionBill.objects.filter(
+            trade_type=TransactionBill.TradeType.PAYMENT.value, trade_id=pay_history2.id).all()
+        tbill: TransactionBill = tbills[0]
+        self.assertEqual(tbill.account, self.user.userpointaccount.id)
+        self.assertEqual(tbill.coupon_amount, Decimal('0'))
+        self.assertEqual(tbill.amounts, Decimal('-288.88'))
+        self.assertEqual(tbill.after_balance, Decimal('-143.88'))
+        self.assertEqual(tbill.owner_type, OwnerType.USER.value)
+        self.assertEqual(tbill.owner_id, self.user.id)
+        self.assertEqual(tbill.owner_name, self.user.username)
+        self.assertEqual(tbill.app_service_id, self.service.pay_app_service_id)
+        self.assertEqual(tbill.app_id, pay_history2.app_id)
+        self.assertEqual(tbill.trade_type, TransactionBill.TradeType.PAYMENT.value)
+        self.assertEqual(tbill.trade_id, pay_history2.id)
 
     def test_vo_pay_order_with_coupon(self):
         pay_mgr = OrderPaymentManager()
@@ -753,18 +808,16 @@ class PaymentManagerTests(TransactionTestCase):
 
         # 支付记录确认
         pay_history1 = PaymentHistory.objects.filter(order_id=order1.id).first()
-        self.assertEqual(pay_history1.type, PaymentHistory.Type.PAYMENT)
+        self.assertEqual(pay_history1.status, PaymentHistory.Status.SUCCESS.value)
+        self.assertEqual(pay_history1.payable_amounts, Decimal('100'))
         self.assertEqual(pay_history1.amounts, Decimal('-55'))
         self.assertEqual(pay_history1.coupon_amount, Decimal('-45'))
-        self.assertEqual(pay_history1.before_payment, Decimal('200'))
-        self.assertEqual(pay_history1.after_payment, Decimal('145'))
         self.assertEqual(pay_history1.payer_type, OwnerType.VO.value)
         self.assertEqual(pay_history1.payer_id, self.vo.id)
         self.assertEqual(pay_history1.payer_name, self.vo.name)
         self.assertEqual(pay_history1.executor, self.user.username)
         self.assertEqual(pay_history1.payment_method, PaymentHistory.PaymentMethod.BALANCE_COUPON.value)
         self.assertEqual(pay_history1.payment_account, vo_account.id)
-        self.assertEqual(pay_history1.resource_type, ResourceType.VM.value)
         self.assertEqual(pay_history1.app_service_id, self.service.pay_app_service_id)
         self.assertEqual(pay_history1.instance_id, '')
         self.assertEqual(pay_history1.app_id, app_id)
@@ -781,6 +834,22 @@ class PaymentManagerTests(TransactionTestCase):
         self.assertEqual(cc_historys[1].before_payment, Decimal('25'))
         self.assertEqual(cc_historys[1].amounts, Decimal('-25'))
         self.assertEqual(cc_historys[1].after_payment, Decimal('0'))
+
+        # 交易流水
+        tbills = TransactionBill.objects.filter(
+            trade_type=TransactionBill.TradeType.PAYMENT.value, trade_id=pay_history1.id).all()
+        tbill: TransactionBill = tbills[0]
+        self.assertEqual(tbill.account, self.vo.vopointaccount.id)
+        self.assertEqual(tbill.coupon_amount, Decimal('-45'))
+        self.assertEqual(tbill.amounts, Decimal('-55'))
+        self.assertEqual(tbill.after_balance, Decimal('145'))
+        self.assertEqual(tbill.owner_type, OwnerType.VO.value)
+        self.assertEqual(tbill.owner_id, self.vo.id)
+        self.assertEqual(tbill.owner_name, self.vo.name)
+        self.assertEqual(tbill.app_service_id, self.service.pay_app_service_id)
+        self.assertEqual(tbill.app_id, pay_history1.app_id)
+        self.assertEqual(tbill.trade_type, TransactionBill.TradeType.PAYMENT.value)
+        self.assertEqual(tbill.trade_id, pay_history1.id)
 
         # 支付已支付状态的订单
         with self.assertRaises(errors.Error) as cm:
@@ -834,18 +903,16 @@ class PaymentManagerTests(TransactionTestCase):
 
         # 支付记录确认
         pay_history2 = PaymentHistory.objects.filter(order_id=order2.id).first()
-        self.assertEqual(pay_history2.type, PaymentHistory.Type.PAYMENT)
+        self.assertEqual(pay_history2.status, PaymentHistory.Status.SUCCESS.value)
+        self.assertEqual(pay_history2.payable_amounts, Decimal('288.88'))
         self.assertEqual(pay_history2.amounts, Decimal('-288.88'))
         self.assertEqual(pay_history2.coupon_amount, Decimal('0'))
-        self.assertEqual(pay_history2.before_payment, Decimal('145'))
-        self.assertEqual(pay_history2.after_payment, Decimal('-143.88'))
         self.assertEqual(pay_history2.payer_type, OwnerType.VO.value)
         self.assertEqual(pay_history2.payer_id, self.vo.id)
         self.assertEqual(pay_history2.payer_name, self.vo.name)
         self.assertEqual(pay_history2.executor, self.user.username)
         self.assertEqual(pay_history2.payment_method, PaymentHistory.PaymentMethod.BALANCE.value)
         self.assertEqual(pay_history2.payment_account, vo_account.id)
-        self.assertEqual(pay_history2.resource_type, ResourceType.VM.value)
         self.assertEqual(pay_history2.app_service_id, self.service.pay_app_service_id)
         self.assertEqual(pay_history2.instance_id, '')
         self.assertEqual(pay_history2.app_id, app_id)
@@ -853,6 +920,22 @@ class PaymentManagerTests(TransactionTestCase):
         # 券支付记录
         cc_historys = pay_history2.cashcouponpaymenthistory_set.all().order_by('creation_time')
         self.assertEqual(len(cc_historys), 0)
+
+        # 交易流水
+        tbills = TransactionBill.objects.filter(
+            trade_type=TransactionBill.TradeType.PAYMENT.value, trade_id=pay_history2.id).all()
+        tbill: TransactionBill = tbills[0]
+        self.assertEqual(tbill.account, self.vo.vopointaccount.id)
+        self.assertEqual(tbill.coupon_amount, Decimal('0'))
+        self.assertEqual(tbill.amounts, Decimal('-288.88'))
+        self.assertEqual(tbill.after_balance, Decimal('-143.88'))
+        self.assertEqual(tbill.owner_type, OwnerType.VO.value)
+        self.assertEqual(tbill.owner_id, self.vo.id)
+        self.assertEqual(tbill.owner_name, self.vo.name)
+        self.assertEqual(tbill.app_service_id, self.service.pay_app_service_id)
+        self.assertEqual(tbill.app_id, pay_history2.app_id)
+        self.assertEqual(tbill.trade_type, TransactionBill.TradeType.PAYMENT.value)
+        self.assertEqual(tbill.trade_id, pay_history2.id)
 
     def test_has_enough_balance_user(self):
         pm = PaymentManager()

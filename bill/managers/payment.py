@@ -2,14 +2,16 @@ from decimal import Decimal
 from typing import List
 
 from django.utils.translation import gettext as _
+from django.utils import timezone
 from django.db import transaction
 
 from core import errors
 from utils.model import OwnerType
 from bill.models import (
     PaymentHistory, UserPointAccount, VoPointAccount, CashCouponPaymentHistory, CashCoupon,
-    PayAppService
+    PayAppService, TransactionBill
 )
+from bill.managers.bill import TransactionBillManager
 from .cash_coupon import CashCouponManager
 
 
@@ -153,7 +155,6 @@ class PaymentManager:
             remark: str,
             order_id: str,
             app_service_id: str,
-            resource_type: str,
             instance_id: str,
             coupon_ids: list = None,
             only_coupon: bool = False,
@@ -175,7 +176,6 @@ class PaymentManager:
                 executor=executor,
                 remark=remark,
                 order_id=order_id,
-                resource_type=resource_type,
                 app_service_id=app_service_id,
                 instance_id=instance_id,
                 only_coupon=only_coupon,
@@ -191,7 +191,6 @@ class PaymentManager:
             remark: str,
             order_id: str,
             app_service_id: str,
-            resource_type: str,
             instance_id: str,
             coupon_ids: List[CashCoupon] = None,
             only_coupon: bool = False,
@@ -213,7 +212,6 @@ class PaymentManager:
                 executor=executor,
                 remark=remark,
                 order_id=order_id,
-                resource_type=resource_type,
                 app_service_id=app_service_id,
                 instance_id=instance_id,
                 only_coupon=only_coupon,
@@ -248,8 +246,7 @@ class PaymentManager:
                 message=_('无效的app_service_id，指定的APP子服务不属于你的APP'), code='InvalidAppServiceId'
             )
 
-        ok = PaymentHistory.objects.filter(
-            order_id=order_id, app_id=app_id, type=PaymentHistory.Type.PAYMENT.value).exists()
+        ok = PaymentHistory.objects.filter(order_id=order_id, app_id=app_id).exists()
         if ok:
             raise errors.ConflictError(
                 message=_('已存在订单编号为%(value)s的交易记录') % {'value': order_id}, code='OrderIdExist'
@@ -305,7 +302,6 @@ class PaymentManager:
             remark: str,
             order_id: str,
             app_service_id: str,
-            resource_type: str,
             instance_id: str,
             coupon_ids: List[CashCoupon],
             only_coupon: bool = False,
@@ -366,23 +362,32 @@ class PaymentManager:
             payer_id=payer_id,
             payer_name=payer_name,
             payer_type=payer_type,
+            payable_amounts=amounts,
             amounts=-account_amount,
             coupon_amount=-coupon_amount,
-            before_payment=before_payment,
-            after_payment=after_payment,
-            type=PaymentHistory.Type.PAYMENT.value,
+            status=PaymentHistory.Status.SUCCESS.value,
+            status_desc=_('支付成功'),
             remark=remark,
             order_id=order_id,
-            resource_type=resource_type,
             app_service_id=app_service_id,
             instance_id=instance_id,
             app_id=app_id,
-            subject=subject
+            subject=subject,
+            creation_time=timezone.now(),
+            payment_time=timezone.now()
         )
         pay_history.save(force_insert=True)
         if coupon_amount > Decimal('0'):
             self._deduct_form_coupons(coupons=usable_coupons, money_amount=coupon_amount, pay_history_id=pay_history.id)
 
+        # 交易流水
+        tbill = TransactionBillManager.create_transaction_bill(
+            subject=subject, account=payment_account, trade_type=TransactionBill.TradeType.PAYMENT.value,
+            trade_id=pay_history.id, amounts=pay_history.amounts, coupon_amount=pay_history.coupon_amount,
+            after_balance=after_payment, owner_type=pay_history.payer_type, owner_id=pay_history.payer_id,
+            owner_name=pay_history.payer_name, app_service_id=pay_history.app_service_id, app_id=pay_history.app_id,
+            remark=remark, creation_time=pay_history.payment_time
+        )
         return pay_history
 
     @staticmethod

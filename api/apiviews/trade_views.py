@@ -43,10 +43,13 @@ class TradeChargeViewSet(PaySignGenericViewSet):
                 "payer_id": "28b94370-0729-11ed-8d9d-c8009fe2ebbc", # 支付者id
                 "payer_name": "lilei@xx.com",       # 支付者名称
                 "payer_type": "user",               # user(支付者是用户)；vo(支付者是VO组)
+                "payable_amounts": "1.99",    # 应付金额
                 "amounts": "-1.99",         # 余额扣费金额
                 "coupon_amount": "0.00",    # 代金券扣费金额
-                "payment_time": "2022-07-19T06:08:08.852251Z",
-                "type": "payment",          #
+                "creation_time": "2022-04-07T07:59:22.695692Z",       # 创建时间
+                "payment_time": "2022-07-19T06:08:08.852251Z",      # 支付完成时间，未支付成功时为空
+                "status": "success",  # wait: 未支付；success: 成功；error: 支付失败；closed: 交易关闭
+                "status_desc": "",    # 状态描述
                 "remark": "test remark",
                 "order_id": "order_id",
                 "app_id": "20220719060807",
@@ -94,10 +97,13 @@ class TradeChargeViewSet(PaySignGenericViewSet):
                 "payer_id": "28b94370-0729-11ed-8d9d-c8009fe2ebbc", # 支付者id
                 "payer_name": "lilei@xx.com",       # 支付者名称
                 "payer_type": "user",               # user(支付者是用户)；vo(支付者是VO组)
+                "payable_amounts": "1.99",    # 应付金额
                 "amounts": "-1.99",         # 余额扣费金额
                 "coupon_amount": "0.00",    # 代金券扣费金额
-                "payment_time": "2022-07-19T06:08:08.852251Z",
-                "type": "payment",          #
+                "creation_time": "2022-04-07T07:59:22.695692Z",       # 创建时间
+                "payment_time": "2022-07-19T06:08:08.852251Z",      # 支付完成时间，未支付成功时为空
+                "status": "success",  # wait: 未支付；success: 成功；error: 支付失败；closed: 交易关闭
+                "status_desc": "",    # 状态描述
                 "remark": "test remark",
                 "order_id": "order_id",
                 "app_id": "20220719060807",
@@ -166,10 +172,13 @@ class TradeQueryViewSet(PaySignGenericViewSet):
                 "payer_id": "28b94370-0729-11ed-8d9d-c8009fe2ebbc", # 支付者id
                 "payer_name": "lilei@xx.com",       # 支付者名称
                 "payer_type": "user",               # user(支付者是用户)；vo(支付者是VO组)
+                "payable_amounts": "1.99",    # 应付金额
                 "amounts": "-1.99",         # 余额扣费金额
                 "coupon_amount": "0.00",    # 代金券扣费金额
-                "payment_time": "2022-07-19T06:08:08.852251Z",
-                "type": "payment",          #
+                "creation_time": "2022-04-07T07:59:22.695692Z",       # 创建时间
+                "payment_time": "2022-07-19T06:08:08.852251Z",      # 支付完成时间，未支付成功时为空
+                "status": "success",  # wait: 未支付；success: 成功；error: 支付失败；closed: 交易关闭
+                "status_desc": "",    # 状态描述
                 "remark": "test remark",
                 "order_id": "order_id",
                 "app_id": "20220719060807",
@@ -215,10 +224,13 @@ class TradeQueryViewSet(PaySignGenericViewSet):
                 "payer_id": "28b94370-0729-11ed-8d9d-c8009fe2ebbc", # 支付者id
                 "payer_name": "lilei@xx.com",       # 支付者名称
                 "payer_type": "user",               # user(支付者是用户)；vo(支付者是VO组)
+                "payable_amounts": "1.99",    # 应付金额
                 "amounts": "-1.99",         # 余额扣费金额
                 "coupon_amount": "0.00",    # 代金券扣费金额
-                "payment_time": "2022-07-19T06:08:08.852251Z",
-                "type": "payment",          #
+                "creation_time": "2022-04-07T07:59:22.695692Z",       # 创建时间
+                "payment_time": "2022-07-19T06:08:08.852251Z",      # 支付完成时间，未支付成功时为空
+                "status": "success",  # wait: 未支付；success: 成功；error: 支付失败；closed: 交易关闭
+                "status_desc": "",    # 状态描述
                 "remark": "test remark",
                 "order_id": "order_id",
                 "app_id": "20220719060807",

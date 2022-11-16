@@ -8,7 +8,6 @@ from api.viewsets import CustomGenericViewSet
 from api.paginations import PaymentHistoryPagination
 from api.handlers.bill_handler import PaymentHistoryHandler
 from api.serializers import serializers
-from order.models import ResourceType
 from bill.models import PaymentHistory
 
 
@@ -31,11 +30,11 @@ class PaymentHistoryViewSet(CustomGenericViewSet):
                 description=f'查询指定VO组的支付记录，需要vo组权限'
             ),
             openapi.Parameter(
-                name='payment_type',
+                name='status',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=f'支付记录类型, {PaymentHistory.Type.choices}'
+                description=f'支付状态, {PaymentHistory.Status.choices}'
             ),
             openapi.Parameter(
                 name='time_start',
@@ -82,10 +81,13 @@ class PaymentHistoryViewSet(CustomGenericViewSet):
                   "payer_id": "1",
                   "payer_name": "shun",
                   "payer_type": "user",     # user or vo
-                  "amounts": "-2.68",
-                  "coupon_amount": "-197.49",
-                  "payment_time": "2022-04-07T07:59:23.598408Z",
-                  "type": "payment",
+                  "payable_amounts": "160.00",    # 应付金额
+                  "amounts": "-60.00",           # 余额支付金额
+                  "coupon_amount": "-100.00",   # 代金券支付金额
+                  "creation_time": "2022-04-07T07:59:22.695692Z",       # 创建时间
+                  "payment_time": "2022-04-07T07:59:23.598408Z",        # 支付完成时间，未支付成功时为空
+                  "status": "success",  # wait: 未支付；success: 成功；error: 支付失败；closed: 交易关闭
+                  "status_desc": "",    # 状态描述
                   "remark": "按量计费",
                   "order_id": "xxx",
                   "app_service_id": "sxxxx",
@@ -115,10 +117,13 @@ class PaymentHistoryViewSet(CustomGenericViewSet):
               "payer_id": "1",
               "payer_name": "shun",
               "payer_type": "user",
-              "amounts": "0.00",
-              "coupon_amount": "-15.97",
-              "payment_time": "2022-07-04T06:07:15.951537Z",
-              "type": "payment",
+              "payable_amounts": "160.00",    # 应付金额
+              "amounts": "-60.00",           # 余额支付金额
+              "coupon_amount": "-100.00",   # 代金券支付金额
+              "creation_time": "2022-04-07T07:59:22.695692Z",       # 创建时间
+              "payment_time": "2022-04-07T07:59:23.598408Z",        # 支付完成时间，未支付成功时为空
+              "status": "success",  # wait: 未支付；success: 成功；error: 支付失败；closed: 交易关闭
+              "status_desc": "",    # 状态描述
               "remark": "server id=0e475786-9ac1-11ec-857b-c8009fe2eb10, 2022-07-03",
               "order_id": "s-8aa93412fb5f11ec8ac1c8009fe2ebbc",
               "app_id": "xxx",

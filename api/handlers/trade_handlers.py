@@ -50,7 +50,6 @@ class TradeHandler:
                 remark=remark,
                 order_id=order_id,
                 app_service_id=app_service_id,
-                resource_type='',
                 instance_id=''
             )
         except errors.Error as exc:
@@ -146,7 +145,6 @@ class TradeHandler:
                 remark=remark,
                 order_id=order_id,
                 app_service_id=app_service_id,
-                resource_type='',
                 instance_id=''
             )
         except errors.Error as exc:

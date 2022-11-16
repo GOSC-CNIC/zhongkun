@@ -81,7 +81,7 @@ class OrderPaymentManager:
                 user_id=order.user_id, app_id=app_id, subject=subject,
                 amounts=order.payable_amount, executor=executor,
                 remark=remark, order_id=order.id,
-                app_service_id=app_service_id, resource_type=order.resource_type, instance_id='',
+                app_service_id=app_service_id, instance_id='',
                 required_enough_balance=required_enough_balance,
                 coupon_ids=coupon_ids, only_coupon=only_coupon
             )
@@ -90,7 +90,7 @@ class OrderPaymentManager:
                 vo_id=order.vo_id, app_id=app_id, subject=subject,
                 amounts=order.payable_amount, executor=executor,
                 remark=remark, order_id=order.id,
-                app_service_id=app_service_id, resource_type=order.resource_type, instance_id='',
+                app_service_id=app_service_id, instance_id='',
                 required_enough_balance=required_enough_balance,
                 coupon_ids=coupon_ids, only_coupon=only_coupon
             )

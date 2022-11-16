@@ -247,10 +247,13 @@ Pay-Signature：xxx                # 应答签名
 | payer_id |  sring  | 支付者id | |
 | payer_name |  sring  | 支付者名称 | |
 | payer_type |  sring  | 支付者类型 | user(支付者是用户)；vo(支付者是VO组) |
-| amounts | string | 余额扣费金额 | |
-| coupon_amount | string |  代金券扣费金额 | |
-| payment_time | string | 支付时间 | |
-| type | string | 支付类型 | recharge：充值；payment：支付；refund：退款 |
+| payable_amounts | string | 应付金额 | 需要支付的、要扣除的金额， 例如 66.66 |
+| amounts | string | 余额扣费金额 | 此次支付交易从余额账户扣除的金额， 例如 -66.66 |
+| coupon_amount | string |  代金券扣费金额 | 此次支付交易从代金券扣费（抵扣）的金额， 例如 -66.66 |
+| creation_time | string | 创建时间 | 接收扣费请求的时间 |
+| payment_time | string | 支付成功完成时间 | |
+| status | string | 支付状态 | wait：未支付；success：支付成功；error：支付失败；closed: 交易关闭（未支付时撤销了扣费） |
+| status_desc | string | 支付状态描述 | 比如支付失败的原因 |
 | remark | string | 备注 |  |
 | order_id | string | 外部订单编号 |  |
 | app_id | string | 应用id |  |
@@ -273,10 +276,13 @@ Pay-Signature：xxx                # 应答签名
     "payer_id": "28b94370-0729-11ed-8d9d-c8009fe2ebbc",
     "payer_name": "lilei@xx.com",
     "payer_type": "user",   
+    "payable_amounts": "1.99",
     "amounts": "-1.99",       
     "coupon_amount": "0.00", 
+    "creation_time": "2022-07-19T06:08:08.852251Z",
     "payment_time": "2022-07-19T06:08:08.852251Z",
-    "type": "payment",
+    "status": "success",
+    "status_desc": "支付成功",
     "remark": "test remark",
     "order_id": "123456789",
     "app_id": "20220719060807",
@@ -358,10 +364,13 @@ Pay-Signature：xxx                # 应答签名
 | payer_id |  sring  | 支付者id | |
 | payer_name |  sring  | 支付者名称 | |
 | payer_type |  sring  | 支付者类型 | user(支付者是用户)；vo(支付者是VO组) |
-| amounts | string | 余额扣费金额 | 此次支付交易从余额账户扣除的金额 |
-| coupon_amount | string |  代金券扣费金额 | 此次支付交易从代金券扣费（抵扣）的金额 |
-| payment_time | string | 支付时间 | |
-| type | string | 支付类型 | recharge：充值；payment：支付；refund：退款 |
+| payable_amounts | string | 应付金额 | 需要支付的、要扣除的金额， 例如 66.66 |
+| amounts | string | 余额扣费金额 | 此次支付交易从余额账户扣除的金额， 例如 -66.66 |
+| coupon_amount | string |  代金券扣费金额 | 此次支付交易从代金券扣费（抵扣）的金额， 例如 -66.66 |
+| creation_time | string | 创建时间 | 接收扣费请求的时间 |
+| payment_time | string | 支付成功完成时间 | |
+| status | string | 支付状态 | wait：未支付；success：支付成功；error：支付失败；closed: 交易关闭（未支付时撤销了扣费） |
+| status_desc | string | 支付状态描述 | 比如支付失败的原因 |
 | remark | string | 备注 |  |
 | order_id | string | 外部订单编号 |  |
 | app_id | string | 应用id |  |
@@ -384,10 +393,13 @@ Pay-Signature：xxx                # 应答签名
     "payer_id": "28b94370-0729-11ed-8d9d-c8009fe2ebbc",
     "payer_name": "lilei@xx.com",
     "payer_type": "user",   
+    "payable_amounts": "1.99",
     "amounts": "-1.99",       
     "coupon_amount": "0.00", 
+    "creation_time": "2022-07-19T06:08:08.852251Z",
     "payment_time": "2022-07-19T06:08:08.852251Z",
-    "type": "payment",
+    "status": "success",
+    "status_desc": "支付成功",
     "remark": "test remark",
     "order_id": "123456789",
     "app_id": "20220719060807",
@@ -459,10 +471,13 @@ https://vms.cstcloud.cn/api/trade/query/trade/202207190608088519002990
 | payer_id |  sring  | 支付者id | |
 | payer_name |  sring  | 支付者名程 | |
 | payer_type |  sring  | 支付者类型 | user(支付者是用户)；vo(支付者是VO组) |
-| amounts | string | 余额扣费金额 | |
-| coupon_amount | string |  代金券扣费金额 | |
-| payment_time | string | 支付时间 | |
-| type | string | 支付类型 | recharge：充值；payment：支付；refund：退款 |
+| payable_amounts | string | 应付金额 | 需要支付的、要扣除的金额， 例如 66.66 |
+| amounts | string | 余额扣费金额 | 例如 -66.66|
+| coupon_amount | string |  代金券扣费金额 | 例如 -88.00 |
+| creation_time | string | 创建时间 | 接收扣费请求的时间 |
+| payment_time | string | 支付成功完成时间 | |
+| status | string | 支付状态 | wait：未支付；success：支付成功；error：支付失败；closed: 交易关闭（未支付时撤销了扣费） |
+| status_desc | string | 支付状态描述 | 比如支付失败的原因 |
 | remark | string | 备注 |  |
 | order_id | string | 外部订单编号 |  |
 | app_id | string | 应用id |  |
@@ -485,10 +500,13 @@ Pay-Signature：xxx                # 应答签名
     "payer_id": "28b94370-0729-11ed-8d9d-c8009fe2ebbc",
     "payer_name": "lilei@xx.com",
     "payer_type": "user",   
+    "payable_amounts": "1.99",
     "amounts": "-1.99",       
     "coupon_amount": "0.00", 
+    "creation_time": "2022-07-19T06:08:08.852251Z",
     "payment_time": "2022-07-19T06:08:08.852251Z",
-    "type": "payment",
+    "status": "success",
+    "status_desc": "支付成功",
     "remark": "test remark",
     "order_id": "123456789",
     "app_id": "20220719060807",
@@ -559,10 +577,13 @@ https://vms.cstcloud.cn/api/trade/query/out-order/123456789
 | payer_id |  sring  | 支付者id | |
 | payer_name |  sring  | 支付者名程 | |
 | payer_type |  sring  | 支付者类型 | user(支付者是用户)；vo(支付者是VO组) |
-| amounts | string | 余额扣费金额 | |
-| coupon_amount | string |  代金券扣费金额 | |
-| payment_time | string | 支付时间 | |
-| type | string | 支付类型 | recharge：充值；payment：支付；refund：退款 |
+| payable_amounts | string | 应付金额 | 需要支付的、要扣除的金额， 例如 66.66 |
+| amounts | string | 余额扣费金额 | 例如 -66.66|
+| coupon_amount | string |  代金券扣费金额 | 例如 -88.00 |
+| creation_time | string | 创建时间 | 接收扣费请求的时间 |
+| payment_time | string | 支付成功完成时间 | |
+| status | string | 支付状态 | wait：未支付；success：支付成功；error：支付失败；closed: 交易关闭（未支付时撤销了扣费） |
+| status_desc | string | 支付状态描述 | 比如支付失败的原因 |
 | remark | string | 备注 |  |
 | order_id | string | 外部订单编号 |  |
 | app_id | string | 应用id |  |
@@ -584,11 +605,14 @@ Pay-Signature：xxx                # 应答签名
     "executor": "",
     "payer_id": "28b94370-0729-11ed-8d9d-c8009fe2ebbc",
     "payer_name": "lilei@xx.com",
-    "payer_type": "user",   
+    "payer_type": "user", 
+    "payable_amounts": "1.99",
     "amounts": "-1.99",       
     "coupon_amount": "0.00", 
+    "creation_time": "2022-07-19T06:08:08.852251Z",
     "payment_time": "2022-07-19T06:08:08.852251Z",
-    "type": "payment",
+    "status": "success",
+    "status_desc": "支付成功",
     "remark": "test remark",
     "order_id": "123456789",
     "app_id": "20220719060807",
@@ -613,3 +637,66 @@ Pay-Signature：xxx                # 应答签名
 | 401  |  NoSetPublicKey   | app未配置RSA公钥 | |
 | 401  |  InvalidSignature   | 签名无效 | 检查签名生产过程是否有误，检查APP的私钥和RSA公钥是否匹配 |
 | 404  |  NoSuchTrade   | 查询的交易记录不存在 | |
+
+
+## 9 退款申请
+***
+
++ **说明**
+> 对扣费订单发起一笔退款申请。   
+> 退款支持单笔交易分多次退款，每笔退款需要提交原支付交易的外部订单号（或钱包交易id）和一个退款单号（唯一）。
+> 申请退款总金额不能超过订单金额。
+
++ **请求url**
+> https://vms.cstcloud.cn/api/trade/refund
+
++ **请求方式**
+>POST
+
++ **Path参数**
+>无
+
+***
++ **Query参数**
+>无
+
++ **请求体参数**
+
+| 参数 | 必选  | 参数类型 |   描述   |
+| :------: | :---: | :------: | :------: |
+| out_order_id |  否   |  sring   |   原支付交易对应的应用APP内的订单编号，与钱包支付交易编号 trade_id 二选一  |  
+| trade_id |  否   |  sring   |   钱包支付交易编号，与订单编号 out_order_id 二选一  | 
+| refund_amount |  是   |  sring   |   申请退款金额，支持两位小数  |
+| subject | 否 | string | 标题 |
+| refund_reason | 否 | string | 退款原因 |
+
+***
+
+
+## 10 退款查询
+***
+
++ **说明**
+> 查询退款状态。
+
++ **请求url**
+> https://vms.cstcloud.cn/api/trade/query/refund
+
++ **请求方式**
+>GET
+
++ **Path参数**
+>无
+
+***
++ **Query参数**
+
+| 参数 | 必选  | 参数类型 |   描述   |
+| :------: | :---: | :------: | :------: |
+| out_refund_id |  否   |  sring   |   应用APP内的退款编号，与钱包退款交易编号 refund_id 二选一  |  
+| refund_id |  否   |  sring   |   钱包退款交易编号，与外部退款编号 out_refund_id 二选一，同时存在优先使用refund_id  |
+
++ **请求体参数**
+> 无
+
+***

@@ -21,18 +21,18 @@ class PaymentHistoryHandler:
         vo_id = data['vo_id']
         time_start = data['time_start']
         time_end = data['time_end']
-        payment_type = data['payment_type']
+        status = data['status']
         app_service_id = data['app_service_id']
         phm = PaymentHistoryManager()
         if vo_id:
             queryset = phm.get_vo_payment_history(
                 user=user, vo_id=vo_id, time_start=time_start, time_end=time_end,
-                _type=payment_type, app_service_id=app_service_id
+                status=status, app_service_id=app_service_id
             )
         else:
             queryset = phm.get_user_payment_history(
                 user=user, time_start=time_start, time_end=time_end,
-                _type=payment_type, app_service_id=app_service_id
+                status=status, app_service_id=app_service_id
             )
 
         try:
@@ -48,13 +48,13 @@ class PaymentHistoryHandler:
         vo_id = request.query_params.get('vo_id', None)
         time_start = request.query_params.get('time_start', None)
         time_end = request.query_params.get('time_end', None)
-        payment_type = request.query_params.get('payment_type', None)
+        status = request.query_params.get('status', None)
         app_service_id = request.query_params.get('app_service_id', None)
 
         now_time = timezone.now()
 
-        if payment_type and payment_type not in PaymentHistory.Type.values:
-            raise errors.InvalidArgument(message=_('参数“payment_type”的值无效'))
+        if status and status not in PaymentHistory.Status.values:
+            raise errors.InvalidArgument(message=_('参数“status”的值无效'))
 
         if app_service_id is not None and not app_service_id:
             raise errors.InvalidArgument(message=_('参数“app_service_id”的值无效'))
@@ -92,11 +92,12 @@ class PaymentHistoryHandler:
             'vo_id': vo_id,
             'time_start': time_start,
             'time_end': time_end,
-            'payment_type': payment_type,
+            'status': status,
             'app_service_id': app_service_id
         }
 
-    def detail_payment_history(self, view: CustomGenericViewSet, request, kwargs):
+    @staticmethod
+    def detail_payment_history(view: CustomGenericViewSet, request, kwargs):
         history_id = kwargs.get(view.lookup_field)
         try:
             payment, coupon_historys = PaymentHistoryManager().get_payment_history_detail(

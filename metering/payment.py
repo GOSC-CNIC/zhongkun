@@ -81,7 +81,6 @@ class MeteringPaymentManager:
 
         try:
             owner_id = daily_statement.get_owner_id()
-            resource_type = daily_statement.get_resource_type()
             app_service_id = daily_statement.get_pay_app_service_id()
             order_id = daily_statement.id
             if daily_statement.is_owner_type_user():
@@ -89,7 +88,7 @@ class MeteringPaymentManager:
                     user_id=owner_id, app_id=app_id, subject=subject,
                     amounts=daily_statement.payable_amount, executor=executor,
                     remark=remark, order_id=order_id,
-                    app_service_id=app_service_id, resource_type=resource_type, instance_id='',
+                    app_service_id=app_service_id, instance_id='',
                     required_enough_balance=required_enough_balance,
                     coupon_ids=None, only_coupon=False
                 )
@@ -98,7 +97,7 @@ class MeteringPaymentManager:
                     vo_id=owner_id, app_id=app_id, subject=subject,
                     amounts=daily_statement.payable_amount, executor=executor,
                     remark=remark, order_id=order_id,
-                    app_service_id=app_service_id, resource_type=resource_type, instance_id='',
+                    app_service_id=app_service_id, instance_id='',
                     required_enough_balance=required_enough_balance,
                     coupon_ids=None, only_coupon=False
                 )

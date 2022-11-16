@@ -224,7 +224,8 @@ class TradeTests(MyAPITestCase):
         self.response_sign_assert(response)
         self.assertKeysIn(keys=[
             'id', 'subject', 'payment_method', 'executor', 'payer_id', 'payer_name', 'payer_type', 'amounts',
-            'coupon_amount', 'payment_time', 'type', 'remark', 'order_id', 'app_id', 'app_service_id'
+            'coupon_amount', 'payment_time', 'remark', 'order_id', 'app_id', 'app_service_id',
+            "status", 'status_desc', 'creation_time', 'payable_amounts'
         ], container=response.data)
 
         # test query by order id
@@ -237,7 +238,8 @@ class TradeTests(MyAPITestCase):
         self.response_sign_assert(response)
         self.assertKeysIn(keys=[
             'id', 'subject', 'payment_method', 'executor', 'payer_id', 'payer_name', 'payer_type', 'amounts',
-            'coupon_amount', 'payment_time', 'type', 'remark', 'order_id', 'app_id', 'app_service_id'
+            'coupon_amount', 'payment_time', 'remark', 'order_id', 'app_id', 'app_service_id',
+            "status", 'status_desc', 'creation_time', 'payable_amounts'
         ], container=response.data)
 
     def _charge_ok_test(self, base_url: str, body: dict, params: dict):
@@ -273,14 +275,15 @@ class TradeTests(MyAPITestCase):
         self.assertEqual(userpointaccount.balance, Decimal('98.01'))
         self.assertKeysIn(keys=[
             'id', 'subject', 'payment_method', 'executor', 'payer_id', 'payer_name', 'payer_type', 'amounts',
-            'coupon_amount', 'payment_time', 'type', 'remark', 'order_id', 'app_id', 'app_service_id'
+            'coupon_amount', 'payment_time', 'remark', 'order_id', 'app_id', 'app_service_id',
+            "status", 'status_desc', 'creation_time', 'payable_amounts'
         ], container=r.data)
         self.assert_is_subdict_of(sub={
             "subject": body['subject'], "payment_method": PaymentHistory.PaymentMethod.BALANCE.value,
             "payer_id": self.user.id, "payer_name": self.user.username, "payer_type": "user",
-            "amounts": "-1.99", "coupon_amount": "0.00", "type": PaymentHistory.Type.PAYMENT.value,
+            "amounts": "-1.99", "coupon_amount": "0.00", "status": PaymentHistory.Status.SUCCESS.value,
             "remark": body['remark'], "order_id": body['order_id'], "app_id": self.app.id,
-            "app_service_id": self.app_service1.id
+            "app_service_id": self.app_service1.id, 'payable_amounts': '1.99'
         }, d=r.data)
 
         r = self.do_request(method='post', base_url=base_url, body=body, params=params)
@@ -340,14 +343,15 @@ class TradeTests(MyAPITestCase):
         self.response_sign_assert(r)
         self.assertKeysIn(keys=[
             'id', 'subject', 'payment_method', 'executor', 'payer_id', 'payer_name', 'payer_type', 'amounts',
-            'coupon_amount', 'payment_time', 'type', 'remark', 'order_id', 'app_id', 'app_service_id'
+            'coupon_amount', 'payment_time', 'remark', 'order_id', 'app_id', 'app_service_id',
+            "status", 'status_desc', 'creation_time', 'payable_amounts'
         ], container=r.data)
         self.assert_is_subdict_of(sub={
             "subject": body['subject'], "payment_method": PaymentHistory.PaymentMethod.BALANCE_COUPON.value,
             "payer_id": self.user.id, "payer_name": self.user.username, "payer_type": "user",
-            "amounts": "-50.00", "coupon_amount": "-150.00", "type": PaymentHistory.Type.PAYMENT.value,
+            "amounts": "-50.00", "coupon_amount": "-150.00", "status": PaymentHistory.Status.SUCCESS.value,
             "remark": body['remark'], "order_id": body['order_id'], "app_id": self.app.id,
-            "app_service_id": self.app_service1.id
+            "app_service_id": self.app_service1.id, 'payable_amounts': '200.00'
         }, d=r.data)
         userpointaccount.refresh_from_db()
         self.assertEqual(userpointaccount.balance, Decimal('48.01'))
