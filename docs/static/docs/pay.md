@@ -1,3 +1,7 @@
+## 说明
+以下文档中描述的接口均可在在线文档中“trade”部分查看，为避免此文档更新不及时造成困扰，或者如果遇到问题，可以查看
+<a href="/apidocs/" target="_blank">在线API文档</a>。
+
 ## 1 接入余额结算准备条件
 ***
 > 需要先注册APP，再注册app service，一个app下可以有多个app service，至少要有一个app service，
@@ -57,7 +61,7 @@ app service id。
 4. 最后得到的待签名字符串如下：
 ```
    SHA256-RSA2048\n
-   1657097510\n
+   1668677356\n
    POST\n
    /api/trade/test\n
    param1=test%20param1&param2=%E5%8F%82%E6%95%B02&param3=66\n
@@ -65,22 +69,24 @@ app service id。
 ```
 #### 对签名字符串进行签名生成signature
     使用SHA256WithRSA签名函数用APP的私钥对待签名字符串进行签名，并进行 Base64 编码，得到签名字符串signature如下：   
-    GVbT13tSkxqhH2wl11TxKAdVA-DJsyTg5gTT6mvvARk4lzTC3RbdVg2O1q5PFpStIi-oLUIb9P7V5iXjEILJEMHIwoYZ51dcE0n
-    IxqBru4sVZ0IdWg8Y7r8hMHaI2BYJffSO1LOMKsfVZssOjadt7TL14FDlwESBvCveAbBtp8zNBx1xZOBaLmvRh_SFvtPGgiAN0J
-    yKaHdhgV6fF4wxzSyD2lXcx5L8uMsvTd1BY9h358ErWPpvchG1pMrXYJPE7TcG3xZe2kIhto-z45Q21kM-vIGjthlmmH0_Z-VMo
-    2cBSlLmcLOwNFN4cVachPYYJWeB5bAjem6lUVDKsoDP3Q
+    lXI3baDfR9hCHahi06HKZDC4L9iaq+r6VuwN
+    ABHo4QvBSeqPLDHd9b4yKnaCyxXrPfL2xrAhEyM+vYYen/5v6L8KBqVP4fCO0fSTsJlsD5gOnzwQK
+    WCoqylDa8ZtoQQ8i7ZdXvZ0zbnQ5iRy940H+M9FfCkvZ5xPtAM74Ffxn7zKkEKj/poPxvBJuIENEY
+    QBPYbALbxYxg3OGSjDeezjhaBbFP3TWmUp52Tb4yPERgmfVLVhme+BYHauRjnPbsDApeLvjspIi1V
+    JKIzXewhmw75w3y1MLW9hR4iZA/Yy/U+Fc4mZTgc354FHkjZukQMLEzyGeK5sO/tY/hrbwAO+PA==
 
 #### 最终签名sign格式，以下4部分以分割符“,”拼接。
     认证类型,                # SHA256-RSA2048
-    请求时间戳,              # 1657097510; 请保持自身系统的时间准确，时间戳误差1小时内有效
+    请求时间戳,              # 1668677356; 请保持自身系统的时间准确，时间戳误差1小时内有效
     app_id,                 # 20220615085208
     signature
 
     最后得到sign:
-    SHA256-RSA2048,1657097510,20220615085208,GVbT13tSkxqhH2wl11TxKAdVA-DJsyTg5gTT6mvvARk4lzTC3RbdVg2O1q5
-    PFpStIi-oLUIb9P7V5iXjEILJEMHIwoYZ51dcE0nIxqBru4sVZ0IdWg8Y7r8hMHaI2BYJffSO1LOMKsfVZssOjadt7TL14FDlwES
-    BvCveAbBtp8zNBx1xZOBaLmvRh_SFvtPGgiAN0JyKaHdhgV6fF4wxzSyD2lXcx5L8uMsvTd1BY9h358ErWPpvchG1pMrXYJPE7Tc
-    G3xZe2kIhto-z45Q21kM-vIGjthlmmH0_Z-VMo2cBSlLmcLOwNFN4cVachPYYJWeB5bAjem6lUVDKsoDP3Q
+    SHA256-RSA2048,20221117092916,1668677356,lXI3baDfR9hCHahi06HKZDC4L9iaq+r6VuwN
+    ABHo4QvBSeqPLDHd9b4yKnaCyxXrPfL2xrAhEyM+vYYen/5v6L8KBqVP4fCO0fSTsJlsD5gOnzwQK
+    WCoqylDa8ZtoQQ8i7ZdXvZ0zbnQ5iRy940H+M9FfCkvZ5xPtAM74Ffxn7zKkEKj/poPxvBJuIENEY
+    QBPYbALbxYxg3OGSjDeezjhaBbFP3TWmUp52Tb4yPERgmfVLVhme+BYHauRjnPbsDApeLvjspIi1V
+    JKIzXewhmw75w3y1MLW9hR4iZA/Yy/U+Fc4mZTgc354FHkjZukQMLEzyGeK5sO/tY/hrbwAO+PA==
 
 ## 3 应答签名
 ***
@@ -100,10 +106,11 @@ app service id。
     标头 Pay-Sign-Type：SHA256-RSA2048     # 认证类型
     标头 Pay-Timestamp：1657184002         # 响应时间戳
     标头 Pay-Signature：                   # 应答签名
-    UZz94tSxywv2ZfanJ_WURXmsnvM6yA8xoUfoddDQX7Rxw9b_HPWSdc1WdMZLSnfE9mAazETG1gjCdD9MfhJHR2tKF6hW
-    4-qBVaoQ4bsnSHeDjGTgSNoXNbn8zuadxITGnDwHvrGgtrLMUi6iwDU4I4NYwRRzteVfJU71MsLbKwNtWpHok9hqljVI
-    6tn7nFKUzHq-HImv6oKpSrBaVi1c5PW6PUDPrwjmOjxx876TrxKM7_3W0ztVF0ACEfAHPtXzPt4gP4AoRGeYtmWVypMK
-    0xTlo2OeKTXej9GdUkdJWsRm_rcHtAYdOSHdF47hIuU-puKfuhg2WVUzLpwdJd4D-g
+    UZz94tSxywv2ZfanJ/WURXmsnvM6yA8xoUfoddDQX7Rxw9b/HPWSdc1WdMZLSnfE9mAazETG1gj
+    CdD9MfhJHR2tKF6hW4+qBVaoQ4bsnSHeDjGTgSNoXNbn8zuadxITGnDwHvrGgtrLMUi6iwDU4I4
+    NYwRRzteVfJU71MsLbKwNtWpHok9hqljVI6tn7nFKUzHq+HImv6oKpSrBaVi1c5PW6PUDPrwjmO
+    jxx876TrxKM7/3W0ztVF0ACEfAHPtXzPt4gP4AoRGeYtmWVypMK0xTlo2OeKTXej9GdUkdJWsRm
+    /rcHtAYdOSHdF47hIuU+puKfuhg2WVUzLpwdJd4D+g==
 
     响应报文主体：{'a': 1, 'b': 'test', 'c': '测试'}
 
@@ -662,16 +669,95 @@ Pay-Signature：xxx                # 应答签名
 
 + **请求体参数**
 
-| 参数 | 必选  | 参数类型 |   描述   |
-| :------: | :---: | :------: | :------: |
-| out_order_id |  否   |  sring   |   原支付交易对应的应用APP内的订单编号，与钱包支付交易编号 trade_id 二选一  |  
-| trade_id |  否   |  sring   |   钱包支付交易编号，与订单编号 out_order_id 二选一  | 
-| refund_amount |  是   |  sring   |   申请退款金额，支持两位小数  |
-| subject | 否 | string | 标题 |
-| refund_reason | 否 | string | 退款原因 |
+| 参数 | 必选  | 参数类型 | 最大长度 |   描述   |
+| :------: | :---: | :------: | :------: | :------: |
+| out_order_id |  否   |  sring | 36 |   原支付交易对应的应用APP内的订单编号，与钱包支付交易编号 trade_id 二选一  |  
+| trade_id |  否   |  sring   | 36 |   钱包支付交易编号，与订单编号 out_order_id 二选一  | 
+| refund_amounts |  是   |  sring  | 十位整数 |   申请退款金额，支持两位小数  |
+| refund_reason | 是 | string | 255 | 退款原因 |
+| out_refund_id | 是 | string | 64 | 应用APP内的退款编号，必须唯一 |
+| remark | 否 | string | 255 | 备注信息 |
 
 ***
 
++ **请求示例**   
+```
+https://vms.cstcloud.cn/api/trade/refund
+```
+
++ **响应示例**
+
+| 参数 | 参数类型 |    最大长度  |       参数名             | 描述 |
+| :------: | :------: | :--------------------------: | :------: | :------: |
+| id  |  sring   | 36 | 钱包退款交易编号 | |
+| trade_id |   sring  | 36 | 钱包支付交易记录编号 | |
+| out_order_id  |  sring | 36 | 外部订单编号 | 原支付交易对应的订单号 |
+| out_refund_id |  sring | 64  | 外部退款编号 | app内部的退款单号，app系统内部唯一|
+| refund_reason | string | 255 | 退款原因 |  |
+| total_amounts | string | 十位整数 | 退款对应的交易订单总金额 | 例如 66.66 |
+| refund_amounts | string | 十位整数 | 申请退款金额 | 例如 66.66|
+| real_refund | string | 十位整数 | 实际退款金额 | 例如 56.66|
+| coupon_refund | string| 十位整数 |  代金券或者优惠抵扣金额，此金额不退 | 例如 10.00 |
+| creation_time | string | | 创建时间 | 接收退款请求的时间 |
+| success_time | string | | 退款成功时间 | |
+| status | string | 16 | 退款状态 | wait：未退款；success：退款成功；error：退款失败；closed: 交易关闭（未退款时撤销了退款） |
+| status_desc | string | 255 | 退款状态描述 | 比如退款失败的原因 |
+| remark | string | 255 | 备注 |  |
+| owner_id |  sring | 36 | 退款入账者ID | |
+| owner_name |  sring | 255 | 退款入账者名 | |
+| owner_type |  sring | 16 | 退款入账者类型 | user(用户)；vo(VO组) |
+ 
+响应标头  
+```
+Pay-Sign-Type：SHA256-RSA2048     # 认证类型
+Pay-Timestamp：1657184002         # 响应时间戳
+Pay-Signature：xxx                # 应答签名
+```
+
+请求成功响应示例
+```json
+{
+    "id": "202211170816462378919617",
+    "trade_id": "202211234433555",
+    "out_order_id": "osd111111333556",
+    "out_refund_id": "sfhwofwfj219191",
+    "refund_reason": "预付费云主机退订",
+    "total_amounts": "66.66",
+    "refund_amounts": "56.66",
+    "real_refund": "46.66",
+    "coupon_refund": "10.00",
+    "creation_time": "2022-11-17T08:16:46.237777Z",
+    "success_time": "2022-11-17T08:16:46.237784Z",
+    "status": "success",
+    "status_desc": "退款成功",
+    "remark": "备注",
+    "owner_id": "48779638-bc67-11ec-873e-c8009fe2eb10",
+    "owner_name": "lilei@cnic.cn",
+    "owner_type": "user"
+}
+```
+请求错误响应示例    
+```json
+{
+    "code": "xxx",
+    "message": "xxx"
+}
+```
+错误码   
+
+| 状态码 | 错误码 |             描述             | 解决方案 |
+| :------: | :------: | :--------------------------: | :------: |
+| 400  |  BadRequest   | 请求数据有误 | |
+| 401  |  NoSuchAPPID   | app_id不存在 | |
+| 401  |  AppStatusUnaudited   | 应用app处于未审核状态 | 联系服务技术支持人员 |
+| 401  |  AppStatusBan   | 应用处于禁止状态 | 联系服务技术支持人员 |
+| 401  |  NoSetPublicKey   | app未配置RSA公钥 | |
+| 401  |  InvalidSignature   | 签名无效 | 检查签名生产过程是否有误，检查APP的私钥和RSA公钥是否匹配 |
+| 404  |  NoSuchTrade   | 查询的交易记录不存在 | |
+| 404  |  NotOwnTrade   | 交易记录存在，但交易记录不属于你app | |
+| 404  |  NoSuchOutOrderId   | 订单号交易记录不存在 | |
+| 409  |  OutRefundIdExists   | 退款单号已存在 | 退款单号必须唯一 |
+| 409  |  RefundAmountsExceedTotal   | 退款金额超过了原订单金额 | 一笔支付成功的订单可以有多笔退款，所有退款金额不得超过订单总金额 |
 
 ## 10 退款查询
 ***
@@ -700,3 +786,81 @@ Pay-Signature：xxx                # 应答签名
 > 无
 
 ***
+
++ **请求示例**   
+```
+https://vms.cstcloud.cn/api/trade/refund
+```
+
++ **响应示例**
+
+| 参数 | 参数类型 |    最大长度  |       参数名             | 描述 |
+| :------: | :------: | :--------------------------: | :------: | :------: |
+| id  |  sring   | 36 | 钱包退款交易编号 | |
+| trade_id |   sring  | 36 | 钱包支付交易记录编号 | |
+| out_order_id  |  sring | 36 | 外部订单编号 | 原支付交易对应的订单号 |
+| out_refund_id |  sring | 64  | 外部退款编号 | app内部的退款单号，app系统内部唯一|
+| refund_reason | string | 255 | 退款原因 |  |
+| total_amounts | string | 十位整数 | 退款对应的交易订单总金额 | 例如 66.66 |
+| refund_amounts | string | 十位整数 | 申请退款金额 | 例如 66.66|
+| real_refund | string | 十位整数 | 实际退款金额 | 例如 56.66|
+| coupon_refund | string| 十位整数 |  代金券或者优惠抵扣金额，此金额不退 | 例如 10.00 |
+| creation_time | string | | 创建时间 | 接收退款请求的时间 |
+| success_time | string | | 退款成功时间 | |
+| status | string | 16 | 退款状态 | wait：未退款；success：退款成功；error：退款失败；closed: 交易关闭（未退款时撤销了退款） |
+| status_desc | string | 255 | 退款状态描述 | 比如退款失败的原因 |
+| remark | string | 255 | 备注 |  |
+| owner_id |  sring | 36 | 退款入账者ID | |
+| owner_name |  sring | 255 | 退款入账者名 | |
+| owner_type |  sring | 16 | 退款入账者类型 | user(用户)；vo(VO组) |
+ 
+响应标头  
+```
+Pay-Sign-Type：SHA256-RSA2048     # 认证类型
+Pay-Timestamp：1657184002         # 响应时间戳
+Pay-Signature：xxx                # 应答签名
+```
+
+请求成功响应示例
+```json
+{
+    "id": "202211170816462378919617",
+    "trade_id": "202211234433555",
+    "out_order_id": "osd111111333556",
+    "out_refund_id": "sfhwofwfj219191",
+    "refund_reason": "预付费云主机退订",
+    "total_amounts": "66.66",
+    "refund_amounts": "56.66",
+    "real_refund": "46.66",
+    "coupon_refund": "10.00",
+    "creation_time": "2022-11-17T08:16:46.237777Z",
+    "success_time": "2022-11-17T08:16:46.237784Z",
+    "status": "success",
+    "status_desc": "退款成功",
+    "remark": "备注",
+    "owner_id": "48779638-bc67-11ec-873e-c8009fe2eb10",
+    "owner_name": "lilei@cnic.cn",
+    "owner_type": "user"
+}
+```
+请求错误响应示例    
+```json
+{
+    "code": "xxx",
+    "message": "xxx"
+}
+```
+
+错误码   
+
+| 状态码 | 错误码 |             描述             | 解决方案 |
+| :------: | :------: | :--------------------------: | :------: |
+| 400  |  BadRequest   | 请求数据有误 | |
+| 401  |  NoSuchAPPID   | app_id不存在 | |
+| 401  |  AppStatusUnaudited   | 应用app处于未审核状态 | 联系服务技术支持人员 |
+| 401  |  AppStatusBan   | 应用处于禁止状态 | 联系服务技术支持人员 |
+| 401  |  NoSetPublicKey   | app未配置RSA公钥 | |
+| 401  |  InvalidSignature   | 签名无效 | 检查签名生产过程是否有误，检查APP的私钥和RSA公钥是否匹配 |
+| 404  |  NoSuchTrade   | 查询的交易记录不存在 | |
+| 404  |  NotOwnTrade   | 交易记录存在，但交易记录不属于你app | |
+| 404  |  NoSuchOutRefundId   | 退款单号交易记录不存在 | |
