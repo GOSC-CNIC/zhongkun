@@ -386,6 +386,8 @@ class Flavor(models.Model):
     ram = models.IntegerField(verbose_name=_('内存MB'), default=0)
     enable = models.BooleanField(verbose_name=_('可用状态'), default=True)
     creation_time = models.DateTimeField(auto_now_add=True, verbose_name=_('创建时间'))
+    service = models.ForeignKey(to=ServiceConfig, on_delete=models.SET_NULL, db_constraint=False,
+                                related_name='+', null=True, blank=True, default=None, verbose_name=_('服务单元'))
 
     class Meta:
         db_table = 'flavor'

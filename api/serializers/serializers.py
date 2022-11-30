@@ -169,6 +169,7 @@ class FlavorSerializer(serializers.Serializer):
     id = serializers.CharField()
     vcpus = serializers.IntegerField(label=_('虚拟CPU数'))
     ram = serializers.IntegerField(label=_('内存MB'))
+    service_id = serializers.CharField(label=_('服务单元id'))
 
 
 class ServiceSerializer(serializers.Serializer):

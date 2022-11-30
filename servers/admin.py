@@ -50,5 +50,6 @@ class ServerArchiveAdmin(NoDeleteSelectModelAdmin):
 @admin.register(Flavor)
 class FlavorAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
-    list_display = ('id', 'vcpus', 'ram', 'enable', 'creation_time')
+    list_display = ('id', 'vcpus', 'ram', 'enable', 'service', 'creation_time')
     ordering = ('vcpus', 'ram')
+    list_filter = ['service']

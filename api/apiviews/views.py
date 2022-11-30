@@ -1400,6 +1400,15 @@ class FlavorViewSet(CustomGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举配置样式flavor'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='service_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description='云主机服务单元id'
+            ),
+        ],
         responses={
             status.HTTP_200_OK: ''
         }
@@ -1414,13 +1423,15 @@ class FlavorViewSet(CustomGenericViewSet):
                 {
                   "id": 9c70cbe2-690c-11eb-a4b7-c8009fe2eb10,
                   "vcpus": 4,
-                  "ram": 4096
+                  "ram": 4096,
+                  "service_id": "xxx"
                 }
               ]
             }
         """
+        service_id = request.query_params.get('service_id', None)
         try:
-            flavors = Flavor.objects.filter(enable=True).order_by('vcpus', 'ram').all()
+            flavors = Flavor.objects.filter(service_id=service_id, enable=True).order_by('vcpus', 'ram').all()
             serializer = serializers.FlavorSerializer(flavors, many=True)
         except Exception as exc:
             err = exceptions.APIException(message=str(exc))
