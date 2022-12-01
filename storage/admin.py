@@ -35,6 +35,9 @@ class ObjectsServiceAdmin(admin.ModelAdmin):
         }),
     )
 
+    def has_delete_permission(self, request, obj=None):
+        return False
+
 
 @admin.register(models.Bucket)
 class BucketAdmin(admin.ModelAdmin):
@@ -50,3 +53,7 @@ class BucketArchiveAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'service', 'creation_time', 'user', 'delete_time', 'archiver')
     list_select_related = ('service', 'user')
     raw_id_fields = ('user',)
+    search_fields = ['name', 'user__username', 'original_id']
+
+    def has_delete_permission(self, request, obj=None):
+        return False

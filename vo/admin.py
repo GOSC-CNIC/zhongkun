@@ -20,6 +20,9 @@ class VoAdmin(admin.ModelAdmin):
 
         return 'no'
 
+    def has_delete_permission(self, request, obj=None):
+        return False
+
 
 @admin.register(VoMember)
 class VoMemberAdmin(admin.ModelAdmin):

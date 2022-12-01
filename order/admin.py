@@ -14,6 +14,9 @@ class OrderAdmin(admin.ModelAdmin):
     list_filter = ('owner_type', 'resource_type', 'pay_type', 'status', 'order_type', 'trading_status', 'deleted')
     search_fields = ('id', 'username', 'vo_name')
 
+    def has_delete_permission(self, request, obj=None):
+        return False
+
 
 @admin.register(Resource)
 class ResourceAdmin(admin.ModelAdmin):
@@ -23,6 +26,9 @@ class ResourceAdmin(admin.ModelAdmin):
     list_filter = ('resource_type', 'instance_status')
     search_fields = ('order_id', )
     raw_id_fields = ('order',)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(Price)

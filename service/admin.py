@@ -79,6 +79,9 @@ class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
         else:
             self.message_user(request, _("没有加密更新任何数据记录"), level=messages.SUCCESS)
 
+    def has_delete_permission(self, request, obj=None):
+        return False
+
 
 @admin.register(DataCenter)
 class DataCenterAdmin(NoDeleteSelectModelAdmin):

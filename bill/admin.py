@@ -79,6 +79,9 @@ class PayAppAdmin(NoDeleteSelectModelAdmin):
     list_display = ('id', 'name', 'status', 'creation_time', 'app_url')
     list_display_links = ('id',)
 
+    def has_delete_permission(self, request, obj=None):
+        return False
+
 
 @admin.register(CashCouponActivity)
 class CashCouponActivityAdmin(admin.ModelAdmin):
@@ -149,6 +152,9 @@ class PayAppServiceAdmin(NoDeleteSelectModelAdmin):
     list_display_links = ('id',)
     list_select_related = ('orgnazition', 'app', 'service', 'user')
     raw_id_fields = ('user',)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(TransactionBill)

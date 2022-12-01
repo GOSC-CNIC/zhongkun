@@ -14,6 +14,9 @@ class TicketAdmin(admin.ModelAdmin):
     search_fields = ('title',)
     list_select_related = ('submitter', 'assigned_to')
 
+    def has_delete_permission(self, request, obj=None):
+        return False
+
 
 @admin.register(FollowUp)
 class FollowUpAdmin(admin.ModelAdmin):
