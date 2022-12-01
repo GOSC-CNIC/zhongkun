@@ -72,3 +72,39 @@ class AppServiceSerializer(serializers.Serializer):
             }
 
         return None
+
+
+class RefundPostSerializer(serializers.Serializer):
+    """
+    退款申请
+    """
+    out_refund_id = serializers.CharField(label=_('外部退款编号'), max_length=64, required=True)
+    trade_id = serializers.CharField(
+        label=_('钱包支付交易记录编号'), max_length=36, required=False, help_text=_('原支付交易对应的应用APP内的订单编号'))
+    out_order_id = serializers.CharField(label=_('订单编号'), max_length=36, required=False)
+    refund_amount = serializers.DecimalField(
+        label=_('退款金额'), max_digits=10, decimal_places=2, required=True, min_value=Decimal('0.01'))
+    refund_reason = serializers.CharField(label=_('退款原因'), max_length=255, required=True)
+    remark = serializers.CharField(label=_('备注信息'), max_length=255, default='')
+
+
+class RefundRecordSerializer(serializers.Serializer):
+    id = serializers.CharField(label=_('钱包退款交易编号'), max_length=36)
+    trade_id = serializers.CharField(label=_('钱包支付交易记录编号'), max_length=36)
+    out_order_id = serializers.CharField(label=_('外部订单编号'), max_length=36)
+    out_refund_id = serializers.CharField(label=_('外部退款单编号'), max_length=64)
+    refund_reason = serializers.CharField(label=_('退款原因'), max_length=255)
+    total_amounts = serializers.DecimalField(label=_('退款对应的交易订单总金额'), max_digits=10, decimal_places=2)
+    refund_amounts = serializers.DecimalField(label=_('申请退款金额'), max_digits=10, decimal_places=2)
+    real_refund = serializers.DecimalField(label=_('实际退款金额'), max_digits=10, decimal_places=2)
+    coupon_refund = serializers.DecimalField(
+        label=_('代金券退款金额'), max_digits=10, decimal_places=2, default=Decimal('0'),
+        help_text=_('代金券或者优惠抵扣金额，此金额不退'))
+    creation_time = serializers.DateTimeField(label=_('创建时间'))
+    success_time = serializers.DateTimeField(label=_('退款成功时间'))
+    status = serializers.CharField(label=_('退款状态'), max_length=16)
+    status_desc = serializers.CharField(label=_('退款状态描述'), max_length=255)
+    remark = serializers.CharField(label=_('备注信息'), max_length=256, default='')
+    owner_id = serializers.CharField(label=_('所属人ID'), max_length=36, help_text='user id or vo id')
+    owner_name = serializers.CharField(label=_('所属人名称'), max_length=255, help_text='username or vo name')
+    owner_type = serializers.CharField(label=_('所属人类型'), max_length=8)

@@ -9,6 +9,7 @@ from core.jwt.authentication import CreateUserJWTAuthentication
 from api.viewsets import PaySignGenericViewSet
 from api.handlers import serializer_error_msg
 from api.serializers.serializers import PaymentHistorySerializer
+from api.serializers import trade as trade_serializers
 from bill.managers.payment import PaymentManager
 from bill.managers.bill import PaymentHistoryManager
 from core.jwt.jwt import JWTInvalidError
@@ -203,3 +204,106 @@ class TradeHandler:
 
         s = PaymentHistorySerializer(instance=phistory)
         return Response(data=s.data)
+
+    @staticmethod
+    def trade_refund(view: PaySignGenericViewSet, request, kwargs):
+        """
+        退款
+
+        :return: Response()
+        """
+        try:
+            app = view.check_request_sign(request)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        try:
+            data = TradeHandler._trade_refund_validate(view=view, request=request)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        trade_id = data.get('trade_id')
+        out_order_id = data.get('out_order_id')
+        refund_amount = data.get('refund_amount')
+        out_refund_id = data.get('out_refund_id')
+        refund_reason = data.get('refund_reason')
+        remark = data.get('remark')
+
+        if trade_id:
+            try:
+                payment_history = PaymentHistoryManager.get_payment_history_by_id(trade_id)
+            except errors.NotFound:
+                return view.exception_response(exc=errors.NoSuchTrade())
+        else:
+            try:
+                payment_history = PaymentHistoryManager.get_payment_history_by_order_id(
+                    app_id=app.id, order_id=out_order_id)
+            except errors.NotFound:
+                return view.exception_response(exc=errors.NoSuchOutOrderId())
+
+        try:
+            refund = PaymentManager().refund_for_payment(
+                app_id=app.id,
+                payment_history=payment_history,
+                out_refund_id=out_refund_id,
+                refund_amounts=refund_amount,
+                refund_reason=refund_reason,
+                remark=remark,
+            )
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        s = trade_serializers.RefundRecordSerializer(instance=refund)
+        return Response(data=s.data)
+
+    @staticmethod
+    def _trade_refund_validate(view, request):
+        """
+        :raises: Error
+        out_refund_id
+        trade_id
+
+        out_order_id
+        refund_amount
+        refund_reason
+        """
+        serializer = view.get_serializer(data=request.data)
+        if not serializer.is_valid(raise_exception=False):
+            s_errors = serializer.errors
+            if 'refund_amount' in s_errors:
+                exc = errors.BadRequest(
+                    message=_('退款金额无效无效。') + s_errors['refund_amount'][0], code='InvalidRefundAmount')
+            elif 'refund_reason' in s_errors:
+                exc = errors.BadRequest(
+                    message=_('退款原因无效。') + s_errors['refund_reason'][0], code='InvalidRefundReason')
+            elif 'remark' in s_errors:
+                exc = errors.BadRequest(
+                    message=_('备注信息无效。') + s_errors['remark'][0], code='InvalidRemark')
+            else:
+                msg = serializer_error_msg(serializer.errors)
+                exc = errors.BadRequest(message=msg)
+
+            raise exc
+
+        data = serializer.validated_data
+        trade_id = data.get('trade_id')
+        out_order_id = data.get('out_order_id')
+        refund_amount = data.get('refund_amount')
+        out_refund_id = data.get('out_refund_id')
+        refund_reason = data.get('refund_reason')
+        remark = data.get('remark')
+
+        if refund_amount <= Decimal('0'):
+            raise errors.BadRequest(message=_('退款金额必须大于0'), code='InvalidRefundAmount')
+
+        if not trade_id and not out_order_id:
+            raise errors.BadRequest(message=_('订单编号或者订单的交易编号必须提供一个。'), code='MissingTradeId')
+
+        return {
+            'trade_id': trade_id,
+            'out_order_id': out_order_id,
+            'refund_amount': refund_amount,
+            'out_refund_id': out_refund_id,
+            'refund_reason': refund_reason,
+            'remark': remark
+        }

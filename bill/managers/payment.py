@@ -4,12 +4,14 @@ from typing import List
 from django.utils.translation import gettext as _
 from django.utils import timezone
 from django.db import transaction
+from django.db.models import Sum
 
 from core import errors
 from utils.model import OwnerType
+from utils.decimal_utils import quantize_10_2
 from bill.models import (
     PaymentHistory, UserPointAccount, VoPointAccount, CashCouponPaymentHistory, CashCoupon,
-    PayAppService, TransactionBill
+    PayAppService, TransactionBill, RefundRecord
 )
 from bill.managers.bill import TransactionBillManager
 from .cash_coupon import CashCouponManager
@@ -17,14 +19,21 @@ from .cash_coupon import CashCouponManager
 
 class PaymentManager:
     @staticmethod
-    def get_user_point_account(user_id: str, select_for_update: bool = False):
+    def get_user_point_account(user_id: str, select_for_update: bool = False, is_create: bool = True):
+        """
+        :param user_id:
+        :param select_for_update: 是否加锁
+        :param is_create: 账户不存在是否创建
+        :return:
+            UserPointAccount() or None
+        """
         if select_for_update:
             user_account = UserPointAccount.objects.select_for_update().select_related('user').filter(
                 user_id=user_id).first()
         else:
             user_account = UserPointAccount.objects.select_related('user').filter(user_id=user_id).first()
 
-        if user_account is None:
+        if user_account is None and is_create:
             upa = UserPointAccount(user_id=user_id, balance=Decimal(0))
             upa.save(force_insert=True)
             if select_for_update:
@@ -36,13 +45,20 @@ class PaymentManager:
         return user_account
 
     @staticmethod
-    def get_vo_point_account(vo_id: str, select_for_update: bool = False):
+    def get_vo_point_account(vo_id: str, select_for_update: bool = False, is_create: bool = True):
+        """
+        :param vo_id:
+        :param select_for_update: 是否加锁
+        :param is_create: 账户不存在是否创建
+        :return:
+            VoPointAccount() or None
+        """
         if select_for_update:
             vo_account = VoPointAccount.objects.select_for_update().select_related('vo').filter(vo_id=vo_id).first()
         else:
             vo_account = VoPointAccount.objects.select_related('vo').filter(vo_id=vo_id).first()
 
-        if vo_account is None:
+        if vo_account is None and is_create:
             vpa = VoPointAccount(vo_id=vo_id, balance=Decimal(0))
             vpa.save(force_insert=True)
             if select_for_update:
@@ -62,7 +78,7 @@ class PaymentManager:
 
         * 如果使用券，要同时指定with_coupons和app_service_id
 
-        :param vo_id: vo id
+        :param user_id: user id
         :param money_amount: Decimal('0')可以判断是否欠费
         :param with_coupons: 是否用券
         :param app_service_id: service_id对应的余额结算中app service id
@@ -452,3 +468,220 @@ class PaymentManager:
             raise errors.BalanceNotEnough(message=_('未能从代金券中扣除完指定金额'), code='DeductFormCouponsNotEnough')
 
         return cc_historys
+
+    def refund_for_payment(
+            self,
+            app_id: str,
+            payment_history: PaymentHistory,
+            out_refund_id: str,
+            refund_amounts: Decimal,
+            refund_reason: str,
+            remark: str,
+    ):
+        """
+        支付订单 发起一笔退款
+
+        :return: RefundRecord()
+
+        :raises: Error
+        """
+        owner_id = payment_history.payer_id
+        owner_name = payment_history.payer_name
+        owner_type = payment_history.payer_type
+
+        refund, created, return_exc = self._create_refund_record_pre_refund(
+            app_id=app_id, payment_history=payment_history,
+            out_refund_id=out_refund_id,
+            refund_amounts=refund_amounts,
+            refund_reason=refund_reason,
+            remark=remark,
+            owner_id=owner_id,
+            owner_name=owner_name,
+            owner_type=owner_type
+        )
+        # 退款，可能是旧的退款，也可能是本次新的退款
+        refund_new = self._refund(refund_id=refund.id)
+
+        # 本次新的退款，返回退款结果
+        if created:
+            # 退款未发生错误，返回最新的退款记录
+            if refund_new is not None:
+                return refund_new
+
+            # 退款发生错误，返回待退款状态，让用户稍后查询确认
+            refund.status = RefundRecord.Status.WAIT.value
+            return refund
+
+        # 是旧退款， 返回本次退款请求的错误
+        raise return_exc
+
+    @staticmethod
+    def _create_refund_record_pre_refund(
+            app_id,
+            payment_history: PaymentHistory,
+            out_refund_id: str,
+            refund_amounts: Decimal,
+            refund_reason: str,
+            remark: str,
+            owner_id: str,
+            owner_name: str,
+            owner_type: str
+    ):
+        """
+        检查是否满足退款条件，并创建退款记录单
+
+        :param app_id:
+        :param payment_history: 退款记录对象实例
+        :param out_refund_id: 外部app的退款单号
+        :param refund_amounts: 退款金额
+        :param refund_reason: 退款原因
+        :param remark: 备注信息
+        :param owner_id: 退款账户所有人id; user id or vo id
+        :param owner_name: 退款账户所有人名称; username or vo name
+        :param owner_type: 所有人类型；user or vo
+        :return: (
+            refund,     # RefundRecord
+            created,    # bool；True(新的退款，exc=None); False(旧退款记录，触发继续旧的退款，本次退款请求返回exc)
+            exc         # Error
+        )
+
+        :raises: Error
+        """
+        if payment_history.app_id != app_id:
+            raise errors.NotOwnTrade()
+
+        if payment_history.status != PaymentHistory.Status.SUCCESS.value:
+            raise errors.TradeStatusInvalid(message=_('非支付成功状态的交易订单无法退款。'))
+
+        # 退款的支付订单支付总金额
+        paid_amounts = -(payment_history.amounts + payment_history.coupon_amount)
+        if refund_amounts > paid_amounts:
+            raise errors.RefundAmountsExceedTotal()
+
+        with transaction.atomic():
+            pay_history = PaymentHistory.objects.select_for_update().filter(id=payment_history.id).first()
+            refund_rd = RefundRecord.objects.filter(app_id=app_id, out_refund_id=out_refund_id).first()
+            if refund_rd is not None:
+                if refund_rd.status in [RefundRecord.Status.SUCCESS.value, RefundRecord.Status.CLOSED.value]:
+                    raise errors.OutRefundIdExists(extend_msg=f'status={refund_rd.status}')
+
+                # 退款失败和待退款时，退款对应的支付记录不是当前支付记录，退款单号已存在
+                if refund_rd.trade_id != payment_history.id:
+                    raise errors.OutRefundIdExists(extend_msg=f'status={refund_rd.status}')
+
+                # 待退款状态，返回退款单号已存在错误，继续完成旧退款记录
+                if refund_rd.status == RefundRecord.Status.WAIT.value:
+                    return refund_rd, False, errors.OutRefundIdExists(extend_msg=f'status={refund_rd.status}')
+
+                # 退款失败状态的删除，创建新的退款记录完成退款
+                if refund_rd.status == RefundRecord.Status.ERROR.value:
+                    refund_rd.delete()
+
+            # 已退款金额
+            r = RefundRecord.objects.filter(
+                trade_id=pay_history.id, app_id=app_id,
+                status__in=[RefundRecord.Status.SUCCESS.value, RefundRecord.Status.WAIT.value]
+            ).aggregate(refund_total_amounts=Sum('refund_amounts'))
+            refunded_total_amounts = r.get('refund_total_amounts', Decimal('0'))
+            if refunded_total_amounts is None:
+                refunded_total_amounts = Decimal('0')
+            elif not isinstance(refunded_total_amounts, Decimal):
+                refunded_total_amounts = Decimal.from_float(refunded_total_amounts)
+
+            # 退款总金额 超出了 支付订单支付总金额
+            if (refunded_total_amounts + refund_amounts) > paid_amounts:
+                raise errors.RefundAmountsExceedTotal()
+
+            # 余额和券应退款金额计算
+            real_refund = ((-payment_history.amounts) / paid_amounts) * refund_amounts
+            real_refund = quantize_10_2(real_refund)
+            coupon_refund = refund_amounts - real_refund
+            coupon_refund = quantize_10_2(coupon_refund)
+
+            refund = RefundRecord(
+                app_id=app_id,
+                trade_id=pay_history.id,
+                out_order_id=pay_history.order_id,
+                out_refund_id=out_refund_id,
+                refund_reason=refund_reason,
+                total_amounts=paid_amounts,
+                refund_amounts=refund_amounts,
+                real_refund=real_refund,
+                coupon_refund=coupon_refund,
+                creation_time=timezone.now(),
+                success_time=None,
+                status=RefundRecord.Status.WAIT.value,
+                status_desc='',
+                remark=remark,
+                app_service_id=pay_history.app_service_id,
+                in_account='',
+                owner_id=owner_id,
+                owner_name=owner_name,
+                owner_type=owner_type
+            )
+            refund.save(force_insert=True)
+            return refund, True, None
+
+    def _refund(self, refund_id: str):
+        """
+        不能抛出错误，返回新的退款记录状态
+
+        :return:
+            RefundRecord() or None      # None: 退款记录不存在
+        """
+        try:
+            with transaction.atomic():
+                refund = RefundRecord.objects.select_for_update().filter(id=refund_id).first()
+                if refund is None:
+                    return None
+
+                if refund.status != RefundRecord.Status.WAIT.value:
+                    return refund
+
+                refund = self.__refund(refund=refund)
+        except Exception as exc:
+            refund = RefundRecord.objects.filter(id=refund_id).first()
+            if refund is None:
+                return None
+
+            refund.status = RefundRecord.Status.ERROR.value
+            msg = str(exc)
+            refund.status_desc = msg[0:254]
+            refund.save(update_fields=['status', 'status_desc'])
+
+        return refund
+
+    def __refund(self, refund: RefundRecord):
+        """
+        退款，生成交易流水，次函数必须放在一个事务保证数据一致性
+        """
+        # 退款入账账户
+        if refund.owner_type == OwnerType.USER.value:
+            account = self.get_user_point_account(user_id=refund.owner_id, select_for_update=True, is_create=False)
+            if account is None:
+                raise errors.ConflictError(message=_('无法完成退款，用户的余额账户未开通。'))
+        else:
+            account = self.get_vo_point_account(vo_id=refund.owner_id, select_for_update=True, is_create=False)
+            if account is None:
+                raise errors.ConflictError(message=_('无法完成退款，VO项目组的余额账户未开通。'))
+
+        # 退款至余额账户
+        if refund.real_refund > Decimal('0'):
+            account.balance = account.balance + refund.real_refund
+            account.save(update_fields=['balance'])
+
+        # 退款记录
+        refund.set_refund_sucsess(in_account=account.id)
+
+        # 交易流水
+        TransactionBillManager.create_transaction_bill(
+            subject=refund.refund_reason, account=refund.in_account,
+            trade_type=TransactionBill.TradeType.REFUND.value,
+            trade_id=refund.id, amounts=refund.real_refund,
+            coupon_amount=Decimal('0'),  # 券金额不退
+            after_balance=account.balance, owner_type=refund.owner_type, owner_id=refund.owner_id,
+            owner_name=refund.owner_name, app_service_id=refund.app_service_id, app_id=refund.app_id,
+            remark=refund.remark, creation_time=refund.success_time
+        )
+
+        return refund

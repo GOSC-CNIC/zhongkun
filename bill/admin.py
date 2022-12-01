@@ -5,7 +5,7 @@ from django import forms
 from utils.model import NoDeleteSelectModelAdmin
 from .models import (
     PaymentHistory, UserPointAccount, VoPointAccount, PayApp, CashCouponActivity, CashCoupon,
-    PayOrgnazition, PayAppService, TransactionBill
+    PayOrgnazition, PayAppService, TransactionBill, RefundRecord
 )
 from .managers import CashCouponActivityManager
 
@@ -166,8 +166,31 @@ class TransactionBillAdmin(NoDeleteSelectModelAdmin):
     def has_change_permission(self, request, obj=None):
         return False
 
+    def has_add_permission(self, request, obj=None):
+        return False
+
     def delete_model(self, request, obj):
         """
         Given a model instance delete it from the database.
         """
         raise Exception(_('不允许从后台删除。'))
+
+
+@admin.register(RefundRecord)
+class RefundRecordAdmin(admin.ModelAdmin):
+    list_display = ('id', 'trade_id', 'out_order_id', 'out_refund_id', 'refund_reason',
+                    'total_amounts', 'refund_amounts', 'real_refund', 'coupon_refund',
+                    'status', 'status_desc', 'app_id', 'creation_time', 'success_time',
+                    'owner_id', 'owner_name', 'owner_type', 'in_account')
+    list_display_links = ('id',)
+    list_filter = ('status', 'owner_type')
+    search_fields = ('id', 'owner_id', 'owner_name', 'out_order_id', 'out_refund_id', 'payment_id')
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_add_permission(self, request, obj=None):
+        return False

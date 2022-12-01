@@ -748,6 +748,10 @@ Pay-Signature：xxx                # 应答签名
 | 状态码 | 错误码 |             描述             | 解决方案 |
 | :------: | :------: | :--------------------------: | :------: |
 | 400  |  BadRequest   | 请求数据有误 | |
+| 400  |  InvalidRemark   | 备注信息无效，字符太长。 | |
+| 400  |  InvalidRefundReason   | 退款原因无效，字符太长。 | |
+| 400  |  InvalidRefundAmount   | 退款金额无效无效 | 大于0.01，整数部分最大8位，精确到小数点后2位 |
+| 400  |  MissingTradeId   | 订单编号或者订单的交易编号必须提供一个 | |
 | 401  |  NoSuchAPPID   | app_id不存在 | |
 | 401  |  AppStatusUnaudited   | 应用app处于未审核状态 | 联系服务技术支持人员 |
 | 401  |  AppStatusBan   | 应用处于禁止状态 | 联系服务技术支持人员 |
@@ -757,7 +761,9 @@ Pay-Signature：xxx                # 应答签名
 | 404  |  NotOwnTrade   | 交易记录存在，但交易记录不属于你app | |
 | 404  |  NoSuchOutOrderId   | 订单号交易记录不存在 | |
 | 409  |  OutRefundIdExists   | 退款单号已存在 | 退款单号必须唯一 |
+| 409  |  TradeStatusInvalid  | 非支付成功状态的交易订单无法退款 | 必须是交易成功的订单才可以退款 |
 | 409  |  RefundAmountsExceedTotal   | 退款金额超过了原订单金额 | 一笔支付成功的订单可以有多笔退款，所有退款金额不得超过订单总金额 |
+
 
 ## 10 退款查询
 ***
@@ -766,7 +772,7 @@ Pay-Signature：xxx                # 应答签名
 > 查询退款状态。
 
 + **请求url**
-> https://vms.cstcloud.cn/api/trade/query/refund
+> https://vms.cstcloud.cn/api/trade/refund/query
 
 + **请求方式**
 >GET
@@ -789,7 +795,7 @@ Pay-Signature：xxx                # 应答签名
 
 + **请求示例**   
 ```
-https://vms.cstcloud.cn/api/trade/refund
+https://vms.cstcloud.cn/api/trade/refund/query?refund_id=xxx
 ```
 
 + **响应示例**

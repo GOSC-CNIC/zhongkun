@@ -499,3 +499,63 @@ class TransactionBill(CustomIdModel):
 
     def generate_id(self):
         return rand_utils.timestamp20_rand4_sn()
+
+
+class RefundRecord(CustomIdModel):
+    """退款记录"""
+
+    class Status(models.TextChoices):
+        WAIT = 'wait', _('等待退款')
+        SUCCESS = 'success', _('退款成功')
+        ERROR = 'error', _('退款失败')
+        CLOSED = 'closed', _('交易关闭')
+
+    trade_id = models.CharField(verbose_name=_('支付交易记录ID'), max_length=36, blank=True, default='')
+    out_order_id = models.CharField(verbose_name=_('外部订单编号'), max_length=36, blank=True, default='')
+    out_refund_id = models.CharField(verbose_name=_('外部退款单编号'), max_length=64, blank=True, default='')
+    refund_reason = models.CharField(verbose_name=_('退款原因'), max_length=255, blank=True, default='')
+    total_amounts = models.DecimalField(verbose_name=_('退款对应的交易订单总金额'), max_digits=10, decimal_places=2)
+    refund_amounts = models.DecimalField(verbose_name=_('申请退款金额'), max_digits=10, decimal_places=2)
+    real_refund = models.DecimalField(verbose_name=_('实际退款金额'), max_digits=10, decimal_places=2)
+    coupon_refund = models.DecimalField(
+        verbose_name=_('代金券退款金额'), max_digits=10, decimal_places=2, default=Decimal('0'),
+        help_text=_('代金券或者优惠抵扣金额，此金额不退'))
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'))
+    success_time = models.DateTimeField(verbose_name=_('退款成功时间'), null=True, default=None)
+    status = models.CharField(
+        verbose_name=_('退款状态'), max_length=16, choices=Status.choices, default=Status.WAIT.value)
+    status_desc = models.CharField(verbose_name=_('退款状态描述'), max_length=255, default='')
+    remark = models.CharField(verbose_name=_('备注信息'), max_length=256, default='')
+    app_service_id = models.CharField(verbose_name=_('APP服务ID'), max_length=36, blank=True, default='')
+    app_id = models.CharField(verbose_name=_('应用ID'), max_length=36, blank=True, default='')
+    in_account = models.CharField(
+        verbose_name=_('入账账户'), max_length=36, blank=True, default='',
+        help_text=_('用户或VO余额ID, 及可能支持的其他账户'))
+    owner_id = models.CharField(verbose_name=_('所属人ID'), max_length=36, blank=True, default='',
+                                help_text='user id or vo id')
+    owner_name = models.CharField(verbose_name=_('所属人名称'), max_length=255, blank=True, default='',
+                                  help_text='username or vo name')
+    owner_type = models.CharField(verbose_name=_('所属人类型'), max_length=8, choices=OwnerType.choices)
+
+    class Meta:
+        verbose_name = _('退款记录')
+        verbose_name_plural = verbose_name
+        db_table = 'refund_record'
+        ordering = ['-creation_time']
+        indexes = [
+            models.Index(fields=['trade_id'], name='idx_refund_trade_id'),
+            models.Index(fields=['out_refund_id'], name='idx_refund_out_refund_id'),
+        ]
+
+    def __repr__(self):
+        return f'RefundRecord[{self.id}]<{self.get_status_display()}, {self.real_refund}>'
+
+    def generate_id(self):
+        return rand_utils.timestamp20_rand4_sn()
+
+    def set_refund_sucsess(self, in_account: str):
+        self.status = self.Status.SUCCESS.value
+        self.success_time = timezone.now()
+        self.status_desc = '退款成功'
+        self.in_account = in_account
+        self.save(update_fields=['status', 'success_time', 'status_desc', 'in_account'])

@@ -300,3 +300,81 @@ class TradeSignKeyViewSet(PaySignGenericViewSet):
             return self.exception_response(errors.ConflictError(message='结算服务未配置RSA公钥'))
 
         return Response(data={'public_key': private_key})
+
+
+class TradeRefundViewSet(PaySignGenericViewSet):
+    """
+    退款交易视图
+    """
+    authentication_classes = []
+    permission_classes = []
+    pagination_class = None
+    lookup_field = 'id'
+    # lookup_value_regex = '[0-9a-z-]+'
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('申请退款'),
+        responses={
+            200: ''
+        }
+    )
+    def create(self, request, *args, **kwargs):
+        """
+        申请退款
+
+            http code 200：
+            {
+                "id": "202212010212042076503331",   # 钱包退款交易编号
+                "trade_id": "202212010212033498546649", # 钱包支付交易记录编号
+                "out_order_id": "order_id",     # 外部订单编号
+                "out_refund_id": "out_refund_id1",  # 外部退款编号
+                "refund_reason": "reason1",
+                "total_amounts": "100.00",  # 退款对应的交易订单总金额
+                "refund_amounts": "10.00",  # 请求退款金额
+                "real_refund": "6.00",      # 实际退款金额
+                "coupon_refund": "4.00",    # 本次退款代金券占比金额，此金额不退。
+                "creation_time": "2022-12-01T02:12:04.207445Z",
+                "success_time": "2022-12-01T02:12:04.221869Z",
+                "status": "success",    # wait：未退款；success：退款成功；error：退款失败；closed: 交易关闭（未退款时撤销了退款）
+                "status_desc": "退款成功",
+                "remark": "remark1",
+                "owner_id": "8be680b2-711d-11ed-908d-c8009fe2ebbc",
+                "owner_name": "lilei@cnic.cn",
+                "owner_type": "user"
+            }
+
+            http 400, 401，404, 409:
+            {
+                "code": "xxx",
+                "message": "xxx"
+            }
+
+            * 可能的错误码：
+            400：
+                BadRequest: 参数有误
+                InvalidRemark: 备注信息无效，字符太长。
+                InvalidRefundReason：退款原因无效，字符太长。
+                InvalidRefundAmount：退款金额无效无效，大于0.01，整数部分最大8位，精确到小数点后2位
+                MissingTradeId：订单编号或者订单的交易编号必须提供一个。
+            401:
+                NoSuchAPPID：app_id不存在
+                AppStatusUnaudited：应用app处于未审核状态
+                AppStatusBan: 应用处于禁止状态
+                NoSetPublicKey: app未配置RSA公钥
+                InvalidSignature: 签名无效
+            404：
+                NoSuchTrade：交易记录不存在
+                NotOwnTrade: 交易记录不属于你
+                NoSuchOutOrderId：订单号交易记录不存在
+            409：
+                TradeStatusInvalid：非支付成功状态的交易订单无法退款
+                RefundAmountsExceedTotal：总退款金额（本次退款和历史已退款）超过了原订单金额
+                OutRefundIdExists：退款单号已存在
+        """
+        return TradeHandler().trade_refund(view=self, request=request, kwargs=kwargs)
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return trade_serializers.RefundPostSerializer
+
+        return Serializer

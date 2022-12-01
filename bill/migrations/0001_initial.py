@@ -107,7 +107,7 @@ class Migration(migrations.Migration):
                 ('amounts', models.DecimalField(decimal_places=2, max_digits=10, verbose_name='金额')),
                 ('before_payment', models.DecimalField(decimal_places=2, max_digits=10, verbose_name='支付前余额')),
                 ('after_payment', models.DecimalField(decimal_places=2, max_digits=10, verbose_name='支付后余额')),
-                ('payment_time', models.DateTimeField(auto_now_add=True, verbose_name='支付时间')),
+                ('payment_time', models.DateTimeField(verbose_name='支付时间')),
                 ('type', models.CharField(choices=[('recharge', '充值'), ('payment', '支付'), ('refund', '退款')], max_length=16, verbose_name='支付类型')),
                 ('remark', models.CharField(blank=True, default='', max_length=255, verbose_name='备注信息')),
                 ('order_id', models.CharField(blank=True, default='', max_length=36, verbose_name='订单ID')),

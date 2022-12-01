@@ -209,6 +209,21 @@ class UserNotExist(NotFound):
     default_code = 'UserNotExist'
 
 
+class NotOwnTrade(NotFound):
+    default_message = _('交易记录不属于你。')
+    default_code = 'NotOwnTrade'
+
+
+class NoSuchTrade(NotFound):
+    default_message = _('交易记录不存在。')
+    default_code = 'NoSuchTrade'
+
+
+class NoSuchOutOrderId(NotFound):
+    default_message = _('订单号交易记录不存在。')
+    default_code = 'NoSuchOutOrderId'
+
+
 class NoSupportVPN(APIException):
     default_message = 'This service does not provide VPN support.'
     default_code = 'NoSupportVPN'
@@ -352,6 +367,21 @@ class ArrearageSuspending(ConflictError):
 class BalanceArrearage(ConflictError):
     default_message = _('余额账户欠费。')
     default_code = 'BalanceArrearage'
+
+
+class RefundAmountsExceedTotal(ConflictError):
+    default_message = _('退款金额超过了原订单金额。')
+    default_code = 'RefundAmountsExceedTotal'
+
+
+class OutRefundIdExists(ConflictError):
+    default_message = _('退款单号已存在。')
+    default_code = 'OutRefundIdExists'
+
+
+class TradeStatusInvalid(ConflictError):
+    default_message = _('订单交易状态无效。')
+    default_code = 'TradeStatusInvalid'
 
 
 class BucketAlreadyExists(ConflictError):
