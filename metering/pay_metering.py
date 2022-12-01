@@ -133,7 +133,7 @@ class PayMeteringObjectStorage:
         queryset = self.get_metering_queryset()
 
         if creation_time_gt:
-            queryset = queryset.filter(creation_time_gt=creation_time_gt)
+            queryset = queryset.filter(creation_time__gt=creation_time_gt)
 
         queryset = queryset.order_by('creation_time')
 

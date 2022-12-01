@@ -694,10 +694,10 @@ https://vms.cstcloud.cn/api/trade/refund
 | out_order_id  |  sring | 36 | 外部订单编号 | 原支付交易对应的订单号 |
 | out_refund_id |  sring | 64  | 外部退款编号 | app内部的退款单号，app系统内部唯一|
 | refund_reason | string | 255 | 退款原因 |  |
-| total_amounts | string | 十位整数 | 退款对应的交易订单总金额 | 例如 66.66 |
-| refund_amounts | string | 十位整数 | 申请退款金额 | 例如 66.66|
-| real_refund | string | 十位整数 | 实际退款金额 | 例如 56.66|
-| coupon_refund | string| 十位整数 |  代金券或者优惠抵扣金额，此金额不退 | 例如 10.00 |
+| total_amounts | string | 8位整数，2位小数 | 退款对应的交易订单总金额 | 例如 66.66 |
+| refund_amounts | string | 8位整数，2位小数 | 申请退款金额 | 例如 66.66|
+| real_refund | string | 8位整数，2位小数 | 实际退款金额 | 例如 56.66|
+| coupon_refund | string| 8位整数，2位小数 |  代金券或者优惠抵扣金额，此金额不退 | 例如 10.00 |
 | creation_time | string | | 创建时间 | 接收退款请求的时间 |
 | success_time | string | | 退款成功时间 | |
 | status | string | 16 | 退款状态 | wait：未退款；success：退款成功；error：退款失败；closed: 交易关闭（未退款时撤销了退款） |
@@ -807,10 +807,10 @@ https://vms.cstcloud.cn/api/trade/refund/query?refund_id=xxx
 | out_order_id  |  sring | 36 | 外部订单编号 | 原支付交易对应的订单号 |
 | out_refund_id |  sring | 64  | 外部退款编号 | app内部的退款单号，app系统内部唯一|
 | refund_reason | string | 255 | 退款原因 |  |
-| total_amounts | string | 十位整数 | 退款对应的交易订单总金额 | 例如 66.66 |
-| refund_amounts | string | 十位整数 | 申请退款金额 | 例如 66.66|
-| real_refund | string | 十位整数 | 实际退款金额 | 例如 56.66|
-| coupon_refund | string| 十位整数 |  代金券或者优惠抵扣金额，此金额不退 | 例如 10.00 |
+| total_amounts | string | 8位整数，2位小数 | 退款对应的交易订单总金额 | 例如 66.66 |
+| refund_amounts | string | 8位整数，2位小数 | 申请退款金额 | 例如 66.66|
+| real_refund | string | 8位整数，2位小数 | 实际退款金额 | 例如 56.66|
+| coupon_refund | string| 8位整数，2位小数 |  代金券或者优惠抵扣金额，此金额不退 | 例如 10.00 |
 | creation_time | string | | 创建时间 | 接收退款请求的时间 |
 | success_time | string | | 退款成功时间 | |
 | status | string | 16 | 退款状态 | wait：未退款；success：退款成功；error：退款失败；closed: 交易关闭（未退款时撤销了退款） |
