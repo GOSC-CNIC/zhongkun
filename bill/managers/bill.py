@@ -4,7 +4,7 @@ from decimal import Decimal
 from django.utils.translation import gettext as _
 
 from core import errors
-from bill.models import PaymentHistory, CashCouponPaymentHistory, TransactionBill
+from bill.models import PaymentHistory, CashCouponPaymentHistory, TransactionBill, RefundRecord
 from utils.model import OwnerType
 from vo.managers import VoManager
 
@@ -179,3 +179,25 @@ class TransactionBillManager:
         )
         bill.save(force_insert=True)
         return bill
+
+
+class RefundRecordManager:
+    @staticmethod
+    def get_queryset():
+        return RefundRecord.objects.all()
+
+    @staticmethod
+    def get_refund_by_id(refund_id: str):
+        refund = RefundRecord.objects.filter(id=refund_id).first()
+        if refund is None:
+            raise errors.NotFound(message=_('退款记录不存在'))
+
+        return refund
+
+    @staticmethod
+    def get_refund_by_out_refund_id(app_id: str, out_refund_id: str):
+        refund = RefundRecord.objects.filter(out_refund_id=out_refund_id, app_id=app_id).first()
+        if refund is None:
+            raise errors.NotFound(message=_('退款记录不存在'))
+
+        return refund

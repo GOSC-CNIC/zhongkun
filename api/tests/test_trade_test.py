@@ -488,7 +488,7 @@ class RefundRecordTests(MyAPITestCase):
         response_sign_assert(test_case=testcase, r=r, wallet_public_key=wallet_public_key)
         return r
 
-    def test_refund(self):
+    def test_refund_and_query(self):
         user = get_or_create_user(username='lilei@cnic.cn')
         # 创建用户账户，否者退款失败
         PaymentManager.get_user_point_account(user_id=user.id, is_create=True)
@@ -624,6 +624,24 @@ class RefundRecordTests(MyAPITestCase):
         self.assertEqual(bill.owner_id, payment1.payer_id)
         self.assertEqual(bill.owner_type, OwnerType.USER.value)
 
+        query_base_url = reverse('api:trade-refund-refund-query')
+        # query refund by refund_id
+        r = self.do_request(testcase=self, wallet_public_key=self.vms_public_key,
+                            client=self.client, app_id=self.app.id, private_key=self.user_private_key,
+                            method='get', base_url=query_base_url, body={}, params={'refund_id': trade_refund_id})
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=[
+            'id', 'trade_id', 'out_order_id', 'out_refund_id', 'refund_reason', 'total_amounts',
+            'refund_amounts', 'real_refund', 'coupon_refund', 'creation_time', 'success_time',
+            'status', 'status_desc', 'remark', 'owner_id', 'owner_name', 'owner_type'
+        ], container=r.data)
+        self.assert_is_subdict_of(sub={
+            'trade_id': payment1.id, 'out_order_id': payment1.order_id, 'out_refund_id': out_refund_id1,
+            'refund_reason': body['refund_reason'], 'total_amounts': '100.00', 'refund_amounts': '10.00',
+            'real_refund': '6.00', 'coupon_refund': '4.00', 'status': RefundRecord.Status.SUCCESS.value,
+            'remark': body['remark'], 'owner_id': payment1.payer_id, 'owner_type': payment1.payer_type
+        }, d=r.data)
+
         # ok, balance + 0.01
         out_refund_id2 = 'out_refund_id2'
         body = {
@@ -674,6 +692,19 @@ class RefundRecordTests(MyAPITestCase):
         self.assertEqual(bill.after_balance, user.userpointaccount.balance)
         self.assertEqual(bill.owner_id, payment1.payer_id)
         self.assertEqual(bill.owner_type, OwnerType.USER.value)
+
+        # query refund by out_refund_id
+        r = self.do_request(testcase=self, wallet_public_key=self.vms_public_key,
+                            client=self.client, app_id=self.app.id, private_key=self.user_private_key,
+                            method='get', base_url=query_base_url, body={},
+                            params={'out_refund_id': out_refund_id2})
+        self.assertEqual(r.status_code, 200)
+        self.assert_is_subdict_of(sub={
+            'trade_id': payment1.id, 'out_order_id': payment1.order_id, 'out_refund_id': out_refund_id2,
+            'refund_reason': body['refund_reason'], 'total_amounts': '100.00', 'refund_amounts': '0.01',
+            'real_refund': '0.01', 'coupon_refund': '0.00', 'status': RefundRecord.Status.SUCCESS.value,
+            'remark': body['remark'], 'owner_id': payment1.payer_id, 'owner_type': payment1.payer_type
+        }, d=r.data)
 
         # RefundAmountsExceedTotal
         body = {
@@ -775,6 +806,19 @@ class RefundRecordTests(MyAPITestCase):
         self.assertEqual(bill.after_balance, user.userpointaccount.balance)
         self.assertEqual(bill.owner_id, payment2.payer_id)
         self.assertEqual(bill.owner_type, OwnerType.USER.value)
+
+        # query refund by out_refund_id
+        r = self.do_request(testcase=self, wallet_public_key=self.vms_public_key,
+                            client=self.client, app_id=self.app.id, private_key=self.user_private_key,
+                            method='get', base_url=query_base_url, body={},
+                            params={'out_refund_id': out_refund_id3})
+        self.assertEqual(r.status_code, 200)
+        self.assert_is_subdict_of(sub={
+            'trade_id': payment2.id, 'out_order_id': payment2.order_id, 'out_refund_id': out_refund_id3,
+            'refund_reason': body['refund_reason'], 'total_amounts': '66.00', 'refund_amounts': '0.02',
+            'real_refund': '0.00', 'coupon_refund': '0.02', 'status': RefundRecord.Status.SUCCESS.value,
+            'remark': body['remark'], 'owner_id': payment2.payer_id, 'owner_type': payment2.payer_type
+        }, d=r.data)
 
         # --- vo ---
         vo = VirtualOrganization(name='test vo', owner=user)
@@ -889,6 +933,19 @@ class RefundRecordTests(MyAPITestCase):
         refund = RefundRecord.objects.filter(id=refund4_failed.id, app_id=self.app.id).first()
         self.assertIsNone(refund)
 
+        # query refund by out_refund_id
+        r = self.do_request(testcase=self, wallet_public_key=self.vms_public_key,
+                            client=self.client, app_id=self.app.id, private_key=self.user_private_key,
+                            method='get', base_url=query_base_url, body={},
+                            params={'out_refund_id': out_refund_id4})
+        self.assertEqual(r.status_code, 200)
+        self.assert_is_subdict_of(sub={
+            'trade_id': payment3.id, 'out_order_id': payment3.order_id, 'out_refund_id': out_refund_id4,
+            'refund_reason': body['refund_reason'], 'total_amounts': '88.88', 'refund_amounts': '1.01',
+            'real_refund': '1.01', 'coupon_refund': '0.00', 'status': RefundRecord.Status.SUCCESS.value,
+            'remark': body['remark'], 'owner_id': payment3.payer_id, 'owner_type': payment3.payer_type
+        }, d=r.data)
+
         # --------------------- app2 ---------------------------
         app_rsa = rsa.generate_private_key(public_exponent=65537, key_size=2048)
         bytes_private_key = app_rsa.private_bytes(
@@ -982,3 +1039,59 @@ class RefundRecordTests(MyAPITestCase):
         self.assertEqual(bill.after_balance, user.userpointaccount.balance)
         self.assertEqual(bill.owner_id, payment4.payer_id)
         self.assertEqual(bill.owner_type, OwnerType.USER.value)
+
+        # app2 query app refund by out_refund_id，NoSuchOutRefundId
+        r = self.do_request(testcase=self, wallet_public_key=self.vms_public_key,
+                            client=self.client, app_id=app2.id, private_key=app2_private_key,
+                            method='get', base_url=query_base_url, body={},
+                            params={'out_refund_id': out_refund_id2})
+        self.assertErrorResponse(status_code=404, code='NoSuchOutRefundId', response=r)
+
+        # app2 query refund by out_refund_id
+        r = self.do_request(testcase=self, wallet_public_key=self.vms_public_key,
+                            client=self.client, app_id=app2.id, private_key=app2_private_key,
+                            method='get', base_url=query_base_url, body={},
+                            params={'out_refund_id': out_refund_id5})
+        self.assertEqual(r.status_code, 200)
+        self.assert_is_subdict_of(sub={
+            'trade_id': payment4.id, 'out_order_id': payment4.order_id, 'out_refund_id': out_refund_id5,
+            'refund_reason': body['refund_reason'], 'total_amounts': '99.00', 'refund_amounts': '99.00',
+            'real_refund': '50.00', 'coupon_refund': '49.00', 'status': RefundRecord.Status.SUCCESS.value,
+            'remark': body['remark'], 'owner_id': payment4.payer_id, 'owner_type': payment4.payer_type
+        }, d=r.data)
+
+        # app2 query refund by refund_id
+        r = self.do_request(testcase=self, wallet_public_key=self.vms_public_key,
+                            client=self.client, app_id=app2.id, private_key=app2_private_key,
+                            method='get', base_url=query_base_url, body={},
+                            params={'refund_id': trade_refund_id5})
+        self.assertEqual(r.status_code, 200)
+        self.assert_is_subdict_of(sub={
+            'trade_id': payment4.id, 'out_order_id': payment4.order_id, 'out_refund_id': out_refund_id5,
+            'refund_reason': body['refund_reason'], 'total_amounts': '99.00', 'refund_amounts': '99.00',
+            'real_refund': '50.00', 'coupon_refund': '49.00', 'status': RefundRecord.Status.SUCCESS.value,
+            'remark': body['remark'], 'owner_id': payment4.payer_id, 'owner_type': payment4.payer_type
+        }, d=r.data)
+
+        # ------------query api test ----------------
+        query_base_url = reverse('api:trade-refund-refund-query')
+
+        # MissingTradeId
+        r = self.do_request(testcase=self, wallet_public_key=self.vms_public_key,
+                            client=self.client, app_id=self.app.id, private_key=self.user_private_key,
+                            method='get', base_url=query_base_url, body={}, params={})
+        self.assertErrorResponse(status_code=400, code='MissingTradeId', response=r)
+
+        # NoSuchTrade
+        r = self.do_request(testcase=self, wallet_public_key=self.vms_public_key,
+                            client=self.client, app_id=self.app.id, private_key=self.user_private_key,
+                            method='get', base_url=query_base_url, body={},
+                            params={'refund_id': 'ahfha'})
+        self.assertErrorResponse(status_code=404, code='NoSuchTrade', response=r)
+
+        # NoSuchOutRefundId
+        r = self.do_request(testcase=self, wallet_public_key=self.vms_public_key,
+                            client=self.client, app_id=self.app.id, private_key=self.user_private_key,
+                            method='get', base_url=query_base_url, body={},
+                            params={'out_refund_id': 'ahfhaaa'})
+        self.assertErrorResponse(status_code=404, code='NoSuchOutRefundId', response=r)

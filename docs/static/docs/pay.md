@@ -862,6 +862,7 @@ Pay-Signature：xxx                # 应答签名
 | 状态码 | 错误码 |             描述             | 解决方案 |
 | :------: | :------: | :--------------------------: | :------: |
 | 400  |  BadRequest   | 请求数据有误 | |
+| 400  |  MissingTradeId   | 外部退款单号或者钱包退款的交易编号必须提供一个。 | Query参数“out_refund_id”和“refund_id”必须有一个有效|
 | 401  |  NoSuchAPPID   | app_id不存在 | |
 | 401  |  AppStatusUnaudited   | 应用app处于未审核状态 | 联系服务技术支持人员 |
 | 401  |  AppStatusBan   | 应用处于禁止状态 | 联系服务技术支持人员 |

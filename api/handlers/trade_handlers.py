@@ -11,7 +11,7 @@ from api.handlers import serializer_error_msg
 from api.serializers.serializers import PaymentHistorySerializer
 from api.serializers import trade as trade_serializers
 from bill.managers.payment import PaymentManager
-from bill.managers.bill import PaymentHistoryManager
+from bill.managers.bill import PaymentHistoryManager, RefundRecordManager
 from core.jwt.jwt import JWTInvalidError
 from users.models import UserProfile
 
@@ -307,3 +307,40 @@ class TradeHandler:
             'refund_reason': refund_reason,
             'remark': remark
         }
+
+    @staticmethod
+    def trade_refund_query(view: PaySignGenericViewSet, request, kwargs):
+        """
+        退款查询
+
+        :return: Response()
+        """
+        refund_id = request.query_params.get('refund_id', None)
+        out_refund_id = request.query_params.get('out_refund_id', None)
+
+        if not refund_id and not out_refund_id:
+            return view.exception_response(exc=errors.BadRequest(
+                message=_('外部退款单号或者钱包退款的交易编号必须提供一个。'), code='MissingTradeId'))
+
+        try:
+            app = view.check_request_sign(request)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        if refund_id:
+            try:
+                refund = RefundRecordManager.get_refund_by_id(refund_id)
+            except errors.NotFound:
+                return view.exception_response(exc=errors.NoSuchTrade())
+        else:
+            try:
+                refund = RefundRecordManager.get_refund_by_out_refund_id(
+                    app_id=app.id, out_refund_id=out_refund_id)
+            except errors.NotFound:
+                return view.exception_response(exc=errors.NoSuchOutRefundId())
+
+        if refund.app_id != app.id:
+            return view.exception_response(exc=errors.NotOwnTrade())
+
+        s = trade_serializers.RefundRecordSerializer(instance=refund)
+        return Response(data=s.data)

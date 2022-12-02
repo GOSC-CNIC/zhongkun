@@ -3,7 +3,8 @@ from django.conf import settings
 from rest_framework.serializers import Serializer
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from drf_yasg.utils import swagger_auto_schema
+from drf_yasg.utils import swagger_auto_schema, no_body
+from drf_yasg import openapi
 
 from api.viewsets import PaySignGenericViewSet
 from api.serializers import trade as trade_serializers
@@ -373,8 +374,81 @@ class TradeRefundViewSet(PaySignGenericViewSet):
         """
         return TradeHandler().trade_refund(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('退款查询'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='refund_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('钱包退款交易编号，与外部退款编号 out_refund_id 二选一，同时存在优先使用refund_id')
+            ),
+            openapi.Parameter(
+                name='out_refund_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('应用APP内的退款编号，与钱包退款交易编号 refund_id 二选一')
+            ),
+        ],
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['get'], detail=False, url_path='query', url_name='refund-query')
+    def refund_query(self, request, *args, **kwargs):
+        """
+        退款查询
+
+            http code 200：
+            {
+                "id": "202212010212042076503331",   # 钱包退款交易编号
+                "trade_id": "202212010212033498546649", # 钱包支付交易记录编号
+                "out_order_id": "order_id",     # 外部订单编号
+                "out_refund_id": "out_refund_id1",  # 外部退款编号
+                "refund_reason": "reason1",
+                "total_amounts": "100.00",  # 退款对应的交易订单总金额
+                "refund_amounts": "10.00",  # 请求退款金额
+                "real_refund": "6.00",      # 实际退款金额
+                "coupon_refund": "4.00",    # 本次退款代金券占比金额，此金额不退。
+                "creation_time": "2022-12-01T02:12:04.207445Z",
+                "success_time": "2022-12-01T02:12:04.221869Z",
+                "status": "success",    # wait：未退款；success：退款成功；error：退款失败；closed: 交易关闭（未退款时撤销了退款）
+                "status_desc": "退款成功",
+                "remark": "remark1",
+                "owner_id": "8be680b2-711d-11ed-908d-c8009fe2ebbc",
+                "owner_name": "lilei@cnic.cn",
+                "owner_type": "user"
+            }
+
+            http 400, 401，404:
+            {
+                "code": "xxx",
+                "message": "xxx"
+            }
+
+            * 可能的错误码：
+            400：
+                BadRequest: 参数有误
+                MissingTradeId：外部退款单号或者钱包退款的交易编号必须提供一个。
+            401:
+                NoSuchAPPID：app_id不存在
+                AppStatusUnaudited：应用app处于未审核状态
+                AppStatusBan: 应用处于禁止状态
+                NoSetPublicKey: app未配置RSA公钥
+                InvalidSignature: 签名无效
+            404：
+                NoSuchTrade：交易记录不存在
+                NotOwnTrade: 交易记录不属于你
+                NoSuchOutRefundId：退款单号交易记录不存在
+        """
+        return TradeHandler().trade_refund_query(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action == 'create':
             return trade_serializers.RefundPostSerializer
+        elif self.action == 'refund_query':
+            return trade_serializers.RefundRecordSerializer
 
         return Serializer

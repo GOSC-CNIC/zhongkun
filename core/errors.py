@@ -224,6 +224,11 @@ class NoSuchOutOrderId(NotFound):
     default_code = 'NoSuchOutOrderId'
 
 
+class NoSuchOutRefundId(NotFound):
+    default_message = _('退款单号交易记录不存在。')
+    default_code = 'NoSuchOutRefundId'
+
+
 class NoSupportVPN(APIException):
     default_message = 'This service does not provide VPN support.'
     default_code = 'NoSupportVPN'
