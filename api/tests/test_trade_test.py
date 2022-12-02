@@ -22,6 +22,20 @@ from vo.models import VirtualOrganization
 from . import MyAPITestCase
 
 
+def response_sign_assert(test_case, r, wallet_public_key: str):
+    """
+    响应验签
+    """
+    r_body: bytes = r.rendered_content
+    timestamp = int(r['Pay-Timestamp'])
+    signature = r['Pay-Signature']
+    sign_type = r['Pay-Sign-Type']
+    parts = [sign_type, str(timestamp), r_body.decode('utf-8')]
+    data = '\n'.join(parts)
+    ok = SignatureResponse.verify(data.encode('utf-8'), sig=signature, public_key=wallet_public_key)
+    test_case.assertIs(ok, True)
+
+
 class TradeTestTests(MyAPITestCase):
     def setUp(self):
         user_rsa = rsa.generate_private_key(public_exponent=65537, key_size=2048)
@@ -450,7 +464,8 @@ class RefundRecordTests(MyAPITestCase):
         self.vms_public_key = settings.PAYMENT_RSA2048['public_key']
 
     @staticmethod
-    def do_request(client, app_id: str, private_key: str, method: str, base_url: str, body: dict, params: dict):
+    def do_request(testcase, client, app_id: str, private_key: str, method: str,
+                   base_url: str, body: dict, params: dict, wallet_public_key: str):
         query_str = parse.urlencode(params)
         url = f'{base_url}?{query_str}'
         if body:
@@ -470,6 +485,7 @@ class RefundRecordTests(MyAPITestCase):
         headers = {'HTTP_AUTHORIZATION': f'{SignatureRequest.SING_TYPE} ' + token}
         func = getattr(client, method.lower())
         r = func(url, data=body_json, content_type='application/json', **headers)
+        response_sign_assert(test_case=testcase, r=r, wallet_public_key=wallet_public_key)
         return r
 
     def test_refund(self):
@@ -510,7 +526,8 @@ class RefundRecordTests(MyAPITestCase):
         base_url = reverse('api:trade-refund-list')
 
         # AppStatusUnaudited
-        r = self.do_request(client=self.client, app_id=self.app.id, private_key=self.user_private_key,
+        r = self.do_request(testcase=self, wallet_public_key=self.vms_public_key,
+                            client=self.client, app_id=self.app.id, private_key=self.user_private_key,
                             method='post', base_url=base_url, body=body, params={})
         self.assertErrorResponse(status_code=409, code='AppStatusUnaudited', response=r)
 
@@ -519,7 +536,8 @@ class RefundRecordTests(MyAPITestCase):
         self.app.save(update_fields=['status'])
 
         # InvalidSignature
-        r = self.do_request(client=self.client, app_id=self.app.id, private_key=self.user_private_key,
+        r = self.do_request(testcase=self, wallet_public_key=self.vms_public_key,
+                            client=self.client, app_id=self.app.id, private_key=self.user_private_key,
                             method='post', base_url=f'{base_url}?a=1', body=body, params={})
         self.assertErrorResponse(status_code=401, code='InvalidSignature', response=r)
 
@@ -527,21 +545,24 @@ class RefundRecordTests(MyAPITestCase):
         data = body.copy()
         data.pop('trade_id', None)
         data.pop('out_order_id', None)
-        r = self.do_request(client=self.client, app_id=self.app.id, private_key=self.user_private_key,
+        r = self.do_request(testcase=self, wallet_public_key=self.vms_public_key,
+                            client=self.client, app_id=self.app.id, private_key=self.user_private_key,
                             method='post', base_url=base_url, body=data, params={})
         self.assertErrorResponse(status_code=400, code='MissingTradeId', response=r)
 
         # InvalidRefundAmount
         data = body.copy()
         data['refund_amount'] = '-1'
-        r = self.do_request(client=self.client, app_id=self.app.id, private_key=self.user_private_key,
+        r = self.do_request(testcase=self, wallet_public_key=self.vms_public_key,
+                            client=self.client, app_id=self.app.id, private_key=self.user_private_key,
                             method='post', base_url=base_url, body=data, params={})
         self.assertErrorResponse(status_code=400, code='InvalidRefundAmount', response=r)
 
         # NoSuchTrade
         no_trade_data = body.copy()
         no_trade_data['trade_id'] = 'notfound'
-        r = self.do_request(client=self.client, app_id=self.app.id, private_key=self.user_private_key,
+        r = self.do_request(testcase=self, wallet_public_key=self.vms_public_key,
+                            client=self.client, app_id=self.app.id, private_key=self.user_private_key,
                             method='post', base_url=base_url, body=no_trade_data, params={})
         self.assertErrorResponse(status_code=404, code='NoSuchTrade', response=r)
 
@@ -555,7 +576,8 @@ class RefundRecordTests(MyAPITestCase):
             "refund_reason": "reason1",
             "remark": "remark1"
         }
-        r = self.do_request(client=self.client, app_id=self.app.id, private_key=self.user_private_key,
+        r = self.do_request(testcase=self, wallet_public_key=self.vms_public_key,
+                            client=self.client, app_id=self.app.id, private_key=self.user_private_key,
                             method='post', base_url=base_url, body=body, params={})
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn(keys=[
@@ -575,7 +597,7 @@ class RefundRecordTests(MyAPITestCase):
         self.assertEqual(user.userpointaccount.balance, Decimal('6'))
 
         # 退款记录确认
-        refund: RefundRecord = RefundRecord.objects.filter(id=trade_refund_id).first()
+        refund: RefundRecord = RefundRecord.objects.filter(id=trade_refund_id, app_id=self.app.id).first()
         self.assertEqual(refund.app_id, self.app.id)
         self.assertEqual(refund.out_order_id, payment1.order_id)
         self.assertEqual(refund.out_refund_id, out_refund_id1)
@@ -590,7 +612,8 @@ class RefundRecordTests(MyAPITestCase):
 
         # 交易流水确认
         bill: TransactionBill = TransactionBill.objects.filter(
-            trade_id=trade_refund_id, trade_type=TransactionBill.TradeType.REFUND.value).first()
+            trade_id=trade_refund_id, app_id=self.app.id,
+            trade_type=TransactionBill.TradeType.REFUND.value).first()
         self.assertEqual(bill.subject, refund.refund_reason)
         self.assertEqual(bill.account, refund.in_account)
         self.assertEqual(bill.app_service_id, refund.app_service_id)
@@ -610,7 +633,8 @@ class RefundRecordTests(MyAPITestCase):
             "refund_reason": "reason好久2",
             "remark": "remark回来3"
         }
-        r = self.do_request(client=self.client, app_id=self.app.id, private_key=self.user_private_key,
+        r = self.do_request(testcase=self, wallet_public_key=self.vms_public_key,
+                            client=self.client, app_id=self.app.id, private_key=self.user_private_key,
                             method='post', base_url=base_url, body=body, params={})
         self.assertEqual(r.status_code, 200)
         self.assert_is_subdict_of(sub={
@@ -625,7 +649,7 @@ class RefundRecordTests(MyAPITestCase):
         self.assertEqual(user.userpointaccount.balance, Decimal('6.01'))
 
         # 退款记录确认
-        refund: RefundRecord = RefundRecord.objects.filter(id=trade_refund_id2).first()
+        refund: RefundRecord = RefundRecord.objects.filter(id=trade_refund_id2, app_id=self.app.id).first()
         self.assertEqual(refund.out_order_id, payment1.order_id)
         self.assertEqual(refund.out_refund_id, out_refund_id2)
         self.assertEqual(refund.total_amounts, Decimal('100'))
@@ -639,7 +663,8 @@ class RefundRecordTests(MyAPITestCase):
 
         # 交易流水确认
         bill: TransactionBill = TransactionBill.objects.filter(
-            trade_id=trade_refund_id2, trade_type=TransactionBill.TradeType.REFUND.value).first()
+            trade_id=trade_refund_id2, app_id=self.app.id,
+            trade_type=TransactionBill.TradeType.REFUND.value).first()
         self.assertEqual(bill.subject, refund.refund_reason)
         self.assertEqual(bill.account, refund.in_account)
         self.assertEqual(bill.app_service_id, refund.app_service_id)
@@ -658,7 +683,8 @@ class RefundRecordTests(MyAPITestCase):
             "refund_reason": "reason好久2",
             "remark": "remark回来3"
         }
-        r = self.do_request(client=self.client, app_id=self.app.id, private_key=self.user_private_key,
+        r = self.do_request(testcase=self, wallet_public_key=self.vms_public_key,
+                            client=self.client, app_id=self.app.id, private_key=self.user_private_key,
                             method='post', base_url=base_url, body=body, params={})
         self.assertErrorResponse(status_code=409, code='RefundAmountsExceedTotal', response=r)
 
@@ -670,7 +696,8 @@ class RefundRecordTests(MyAPITestCase):
             "refund_reason": "reason好久2",
             "remark": "remark回来3"
         }
-        r = self.do_request(client=self.client, app_id=self.app.id, private_key=self.user_private_key,
+        r = self.do_request(testcase=self, wallet_public_key=self.vms_public_key,
+                            client=self.client, app_id=self.app.id, private_key=self.user_private_key,
                             method='post', base_url=base_url, body=body, params={})
         self.assertErrorResponse(status_code=409, code='OutRefundIdExists', response=r)
 
@@ -707,7 +734,8 @@ class RefundRecordTests(MyAPITestCase):
             "refund_reason": "reason好久2",
             "remark": "remark回来3"
         }
-        r = self.do_request(client=self.client, app_id=self.app.id, private_key=self.user_private_key,
+        r = self.do_request(testcase=self, wallet_public_key=self.vms_public_key,
+                            client=self.client, app_id=self.app.id, private_key=self.user_private_key,
                             method='post', base_url=base_url, body=body, params={})
         self.assertEqual(r.status_code, 200)
         self.assert_is_subdict_of(sub={
@@ -722,7 +750,7 @@ class RefundRecordTests(MyAPITestCase):
         self.assertEqual(user.userpointaccount.balance, Decimal('6.01'))
 
         # 退款记录确认
-        refund: RefundRecord = RefundRecord.objects.filter(id=trade_refund_id3).first()
+        refund: RefundRecord = RefundRecord.objects.filter(id=trade_refund_id3, app_id=self.app.id).first()
         self.assertEqual(refund.out_order_id, payment2.order_id)
         self.assertEqual(refund.out_refund_id, out_refund_id3)
         self.assertEqual(refund.total_amounts, Decimal('66.00'))
@@ -736,7 +764,8 @@ class RefundRecordTests(MyAPITestCase):
 
         # 交易流水确认
         bill: TransactionBill = TransactionBill.objects.filter(
-            trade_id=trade_refund_id3, trade_type=TransactionBill.TradeType.REFUND.value).first()
+            trade_id=trade_refund_id3, app_id=self.app.id,
+            trade_type=TransactionBill.TradeType.REFUND.value).first()
         self.assertEqual(bill.subject, refund.refund_reason)
         self.assertEqual(bill.account, refund.in_account)
         self.assertEqual(bill.app_service_id, refund.app_service_id)
@@ -782,7 +811,8 @@ class RefundRecordTests(MyAPITestCase):
             "refund_reason": "reason好久2",
             "remark": "remark回来3"
         }
-        r = self.do_request(client=self.client, app_id=self.app.id, private_key=self.user_private_key,
+        r = self.do_request(testcase=self, wallet_public_key=self.vms_public_key,
+                            client=self.client, app_id=self.app.id, private_key=self.user_private_key,
                             method='post', base_url=base_url, body=body, params={})
         self.assertEqual(r.status_code, 200)
         self.assert_is_subdict_of(sub={
@@ -793,11 +823,13 @@ class RefundRecordTests(MyAPITestCase):
         }, d=r.data)
         trade_refund_id4_failed = r.data['id']
         # 退款记录确认
-        refund4_failed: RefundRecord = RefundRecord.objects.filter(id=trade_refund_id4_failed).first()
+        refund4_failed: RefundRecord = RefundRecord.objects.filter(
+            id=trade_refund_id4_failed, app_id=self.app.id).first()
         self.assertEqual(refund4_failed.status, RefundRecord.Status.ERROR.value)
         # 交易流水确认, 不存在
         bill = TransactionBill.objects.filter(
-            trade_id=trade_refund_id4_failed, trade_type=TransactionBill.TradeType.REFUND.value).first()
+            trade_id=trade_refund_id4_failed, app_id=self.app.id,
+            trade_type=TransactionBill.TradeType.REFUND.value).first()
         self.assertIsNone(bill)
 
         # 创建vo账户，否者退款失败
@@ -810,7 +842,8 @@ class RefundRecordTests(MyAPITestCase):
             "refund_reason": "reason好久2",
             "remark": "remark回来3"
         }
-        r = self.do_request(client=self.client, app_id=self.app.id, private_key=self.user_private_key,
+        r = self.do_request(testcase=self, wallet_public_key=self.vms_public_key,
+                            client=self.client, app_id=self.app.id, private_key=self.user_private_key,
                             method='post', base_url=base_url, body=body, params={})
         self.assertEqual(r.status_code, 200)
         self.assert_is_subdict_of(sub={
@@ -827,7 +860,7 @@ class RefundRecordTests(MyAPITestCase):
         self.assertEqual(vo.vopointaccount.balance, Decimal('1.01'))
 
         # 退款记录确认
-        refund: RefundRecord = RefundRecord.objects.filter(id=trade_refund_id4).first()
+        refund: RefundRecord = RefundRecord.objects.filter(id=trade_refund_id4, app_id=self.app.id).first()
         self.assertEqual(refund.out_order_id, payment3.order_id)
         self.assertEqual(refund.out_refund_id, out_refund_id4)
         self.assertEqual(refund.total_amounts, Decimal('88.88'))
@@ -841,7 +874,7 @@ class RefundRecordTests(MyAPITestCase):
 
         # 交易流水确认
         bill: TransactionBill = TransactionBill.objects.filter(
-            trade_id=trade_refund_id4, trade_type=TransactionBill.TradeType.REFUND.value).first()
+            trade_id=trade_refund_id4, trade_type=TransactionBill.TradeType.REFUND.value, app_id=self.app.id).first()
         self.assertEqual(bill.subject, refund.refund_reason)
         self.assertEqual(bill.account, refund.in_account)
         self.assertEqual(bill.app_service_id, refund.app_service_id)
@@ -853,5 +886,99 @@ class RefundRecordTests(MyAPITestCase):
         self.assertEqual(bill.owner_type, OwnerType.VO.value)
 
         # 同一个退款单号，旧的退款失败的退款记录会被删除
-        refund = RefundRecord.objects.filter(id=refund4_failed.id).first()
+        refund = RefundRecord.objects.filter(id=refund4_failed.id, app_id=self.app.id).first()
         self.assertIsNone(refund)
+
+        # --------------------- app2 ---------------------------
+        app_rsa = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        bytes_private_key = app_rsa.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption()
+        )
+        app2_private_key = bytes_private_key.decode('utf-8')
+        public_rsa = app_rsa.public_key()
+        bytes_public_key = public_rsa.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        )
+        app2_public_key = bytes_public_key.decode('utf-8')
+        app2 = PayApp(
+            name='APP name2', app_url='', app_desc='test2', rsa_public_key=app2_public_key,
+            status=PayApp.Status.NORMAL.value
+        )
+        app2.save(force_insert=True)
+
+        payment4 = PaymentHistory(
+            payment_account='',
+            payment_method=PaymentHistory.PaymentMethod.BALANCE_COUPON.value,
+            executor='executor',
+            payer_id=user.id,
+            payer_name=user.username,
+            payer_type=OwnerType.USER.value,
+            payable_amounts=Decimal('99.00'),
+            amounts=Decimal('-50.00'),
+            coupon_amount=Decimal('-49.00'),
+            status=PaymentHistory.Status.SUCCESS.value,
+            status_desc='支付成功',
+            remark='remark',
+            order_id='order_id',
+            app_service_id='',
+            instance_id='',
+            app_id=app2.id,
+            subject='subject',
+            creation_time=timezone.now(),
+            payment_time=timezone.now()
+        )
+        payment4.save(force_insert=True)
+
+        # ok, balance + 50.00
+        out_refund_id5 = out_refund_id1
+        body = {
+            "out_refund_id": out_refund_id5,
+            "out_order_id": payment4.order_id,
+            "refund_amount": "99",
+            "refund_reason": "reasonada好久2",
+            "remark": "remark回来3666"
+        }
+        r = self.do_request(testcase=self, wallet_public_key=self.vms_public_key,
+                            client=self.client, app_id=app2.id, private_key=app2_private_key,
+                            method='post', base_url=base_url, body=body, params={})
+        self.assertEqual(r.status_code, 200)
+        self.assert_is_subdict_of(sub={
+            'trade_id': payment4.id, 'out_order_id': payment4.order_id, 'out_refund_id': out_refund_id5,
+            'refund_reason': body['refund_reason'], 'total_amounts': '99.00', 'refund_amounts': '99.00',
+            'real_refund': '50.00', 'coupon_refund': '49.00', 'status': RefundRecord.Status.SUCCESS.value,
+            'remark': body['remark'], 'owner_id': payment4.payer_id, 'owner_type': payment4.payer_type
+        }, d=r.data)
+        trade_refund_id5 = r.data['id']
+        # 确认余额
+        user.userpointaccount.refresh_from_db()
+        self.assertEqual(user.userpointaccount.balance, Decimal('56.01'))
+
+        # 退款记录确认
+        refund: RefundRecord = RefundRecord.objects.filter(id=trade_refund_id5, app_id=app2.id).first()
+        self.assertEqual(refund.out_order_id, payment4.order_id)
+        self.assertEqual(refund.out_refund_id, out_refund_id5)
+        self.assertEqual(refund.total_amounts, Decimal('99.00'))
+        self.assertEqual(refund.refund_amounts, Decimal('99'))
+        self.assertEqual(refund.real_refund, Decimal('50.00'))
+        self.assertEqual(refund.coupon_refund, Decimal('49.0'))
+        self.assertEqual(refund.status, RefundRecord.Status.SUCCESS.value)
+        self.assertEqual(refund.owner_id, payment4.payer_id)
+        self.assertEqual(refund.owner_type, payment4.payer_type)
+        self.assertEqual(refund.in_account, user.userpointaccount.id)
+
+        # 交易流水确认
+        bill: TransactionBill = TransactionBill.objects.filter(
+            trade_id=trade_refund_id5, app_id=app2.id,
+            trade_type=TransactionBill.TradeType.REFUND.value).first()
+        self.assertEqual(bill.subject, refund.refund_reason)
+        self.assertEqual(bill.account, refund.in_account)
+        self.assertEqual(bill.app_service_id, refund.app_service_id)
+        self.assertEqual(bill.app_id, app2.id)
+        self.assertEqual(bill.amounts, Decimal('50.00'))
+        self.assertEqual(bill.coupon_amount, Decimal('0'))
+        self.assertEqual(bill.after_balance, user.userpointaccount.balance)
+        self.assertEqual(bill.owner_id, payment4.payer_id)
+        self.assertEqual(bill.owner_type, OwnerType.USER.value)
