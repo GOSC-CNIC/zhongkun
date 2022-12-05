@@ -142,7 +142,7 @@ class TicketTests(MyAPITestCase):
         self.assertEqual(len(r.data['results']), 2)
         self.assertKeysIn(keys=[
             'id', 'title', 'description', 'status', 'service_type', 'severity', 'submit_time',
-            'modified_time', 'contact', 'resolution', 'submitter', 'assigned_to'
+            'modified_time', 'contact', 'resolution', 'submitter', 'assigned_to', 'rating'
         ], container=r.data['results'][0])
         self.assertEqual(r.data['results'][0]['id'], ticket2_user.id)
 
@@ -366,7 +366,7 @@ class TicketTests(MyAPITestCase):
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn(keys=[
             'id', 'title', 'description', 'status', 'service_type', 'severity', 'submit_time',
-            'modified_time', 'contact', 'resolution', 'submitter', 'assigned_to'
+            'modified_time', 'contact', 'resolution', 'submitter', 'assigned_to', 'rating'
         ], container=r.data)
         self.assertEqual(r.data['submitter'], {'id': self.user.id, 'username': self.user.username})
         self.assertEqual(r.data['assigned_to'], {'id': self.user2.id, 'username': self.user2.username})
@@ -396,7 +396,7 @@ class TicketTests(MyAPITestCase):
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn(keys=[
             'id', 'title', 'description', 'status', 'service_type', 'severity', 'submit_time',
-            'modified_time', 'contact', 'resolution', 'submitter', 'assigned_to'
+            'modified_time', 'contact', 'resolution', 'submitter', 'assigned_to', 'rating'
         ], container=r.data)
         self.assertEqual(r.data['id'], ticket2_user2.id)
 

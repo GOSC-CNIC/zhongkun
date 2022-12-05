@@ -15,7 +15,7 @@ class TicketManager:
         """
         :raises: TicketNotExist
         """
-        ticket = Ticket.objects.select_related('submitter', 'assigned_to').filter(id=ticket_id).first()
+        ticket = Ticket.objects.select_related('submitter', 'assigned_to', 'ticket_rating').filter(id=ticket_id).first()
         if ticket is None:
             raise errors.TicketNotExist()
 
@@ -75,7 +75,7 @@ class TicketManager:
         if severity:
             lookups['severity'] = severity
 
-        return Ticket.objects.select_related('submitter', 'assigned_to').filter(**lookups).order_by('-submit_time')
+        return Ticket.objects.select_related('submitter', 'assigned_to', 'ticket_rating').filter(**lookups).order_by('-submit_time')
 
     def get_user_tickets_queryset(self, user, status: str = None, service_type: str = None, severity: str = None):
         return self.get_tickets_queryset(

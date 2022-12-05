@@ -135,7 +135,10 @@ class TicketViewSet(AsRoleGenericViewSet):
                     "id": "1",
                     "username": "shun"
                   },
-                  "assigned_to": null
+                  "assigned_to": null,
+                  "rating": {        # null: 未评价
+                    "score": 0      # 评分
+                  }
                 }
               ]
             }
@@ -213,6 +216,9 @@ class TicketViewSet(AsRoleGenericViewSet):
                 "assigned_to": {
                     "id": "xxx",
                     "username": "test"
+                },
+                "rating": {        # null: 未评价
+                    "score": 0      # 评分
                 }
             }
 
@@ -679,7 +685,7 @@ class TicketViewSet(AsRoleGenericViewSet):
         if self.action in ['create', 'update_ticket']:
             return ticket_serializers.TicketCreateSerializer
         elif self.action in ['list', 'retrieve']:
-            return ticket_serializers.TicketSerializer
+            return ticket_serializers.TicketWithRatingSerializer
         elif self.action == 'add_followup':
             return ticket_serializers.FollowUpCreateSerializer
         elif self.action == 'add_ticket_rating':

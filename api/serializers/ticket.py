@@ -47,6 +47,18 @@ class TicketSerializer(serializers.Serializer):
         return None
 
 
+class TicketWithRatingSerializer(TicketSerializer):
+    rating = serializers.SerializerMethodField(label=_('工单评价'), method_name='get_ticket_rating')
+
+    @staticmethod
+    def get_ticket_rating(obj: Ticket):
+        ticket_rating = getattr(obj, 'ticket_rating', None)
+        if ticket_rating:
+            return {'score': obj.ticket_rating.score}
+
+        return None
+
+
 class TicketChangeSerializer(serializers.Serializer):
     id = serializers.CharField(label='id')
     ticket_field = serializers.CharField(label=_('字段'))
