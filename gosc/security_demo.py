@@ -15,10 +15,13 @@ DATABASES = {
         'PORT': '3306',  # 数据库使用的端口
         'USER': 'xxx',  # 数据库用户名
         'PASSWORD': 'xxx',  # 密码
-        'OPTIONS': {'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"},
+        'OPTIONS': {
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES';",   # SET foreign_key_checks = 0;
+            'charset': 'utf8mb4'
+        },
         'TEST': {
-            'NAME': 'testdatabase',     # unit test database
-            'CHARSET': 'utf8'
+            'NAME': 'testvms',     # unit test database
+            'CHARSET': 'utf8mb4'
         },
     },
 }
@@ -48,6 +51,22 @@ SIMPLE_JWT['VERIFYING_KEY'] = 'xxx'
 
 # 科技云通行证JWT认证公钥
 PASSPORT_JWT['VERIFYING_KEY'] = 'xxx'
+
+
+# 钱包结算服务RSA Key，加签验签
+PAYMENT_RSA2048 = {
+    'private_key': """
+-----BEGIN PRIVATE KEY-----
+xxx
+-----END PRIVATE KEY-----
+""",
+    'public_key': """
+-----BEGIN PUBLIC KEY-----
+xxx
+-----END PUBLIC KEY-----  
+"""
+}
+
 
 # 余额支付配置
 PAYMENT_BALANCE = {
