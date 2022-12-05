@@ -180,6 +180,94 @@ class TransactionBillManager:
         bill.save(force_insert=True)
         return bill
 
+    def get_user_transaction_bill_queryset(
+            self,
+            user,
+            trade_type: str = None,
+            time_start: datetime = None,
+            time_end: datetime = None,
+            app_service_id: str = None
+    ):
+        service_ids = [app_service_id, ] if app_service_id else None
+        return self.filter_queryset(
+            user_id=user.id, trade_type=trade_type, time_start=time_start, time_end=time_end, app_service_ids=service_ids
+        )
+
+    def get_vo_transaction_bill_queryset(
+            self,
+            user,
+            vo_id: str,
+            trade_type: str = None,
+            time_start: datetime = None,
+            time_end: datetime = None,
+            app_service_id: str = None
+    ):
+        """
+        :raises: Error
+        """
+        VoManager().get_has_read_perm_vo(vo_id=vo_id, user=user)
+        service_ids = [app_service_id, ] if app_service_id else None
+        return self.filter_queryset(
+            vo_id=vo_id, trade_type=trade_type, time_start=time_start, time_end=time_end, app_service_ids=service_ids
+        )
+
+    @staticmethod
+    def filter_queryset(
+            user_id: str = None,
+            vo_id: str = None,
+            trade_type: str = None,
+            time_start: datetime = None,
+            time_end: datetime = None,
+            app_service_ids: list = None
+    ):
+        """
+        交易流水查询集
+
+        * user_id和vo_id不能同时查询
+        * time_start和time_end必须同时为None 或者同时是有效时间，time_end > time_start
+
+        :param user_id: 所属用户
+        :param vo_id: 所属vo组
+        :param trade_type: 交易类型
+        :param time_start: 支付时间段起（包含）
+        :param time_end: 支付时间段止（不包含）
+        :param app_service_ids: 所属APP服务
+        :return:
+            QuerySet
+        :raises: Error
+        """
+        if trade_type and trade_type not in TransactionBill.TradeType.values:
+            raise errors.Error(message=_('无效的交易类型'))
+
+        if user_id and vo_id:
+            raise errors.Error(message=_('不能查询同时属于用户和vo组的支付记录'))
+
+        queryset = TransactionBill.objects.all()
+        if time_start is not None or time_end is not None:
+            if not (time_start and time_end):
+                raise errors.Error(message=_('time_start和time_end必须同时是有效时间'))
+
+            if time_start >= time_end:
+                raise errors.Error(message=_('时间time_end必须大于time_start'))
+            queryset = queryset.filter(creation_time__gte=time_start, creation_time__lt=time_end)
+
+        if app_service_ids:
+            if len(app_service_ids) == 1:
+                queryset = queryset.filter(app_service_id=app_service_ids[0])
+            else:
+                queryset = queryset.filter(app_service_id__in=app_service_ids)
+
+        if user_id:
+            queryset = queryset.filter(owner_id=user_id, owner_type=OwnerType.USER.value)
+
+        if vo_id:
+            queryset = queryset.filter(owner_id=vo_id, owner_type=OwnerType.VO.value)
+
+        if trade_type:
+            queryset = queryset.filter(trade_type=trade_type)
+
+        return queryset.order_by('-creation_time')
+
 
 class RefundRecordManager:
     @staticmethod

@@ -7,7 +7,8 @@ from .apiviews import (
     azone_views, order_views,
     metering_views, bill_views, account_views, cash_coupon_views,
     trade_test_views, trade_views, bucket_views, storage_views,
-    ticket_views, storage_metering_views, user_views, app_service_views
+    ticket_views, storage_metering_views, user_views, app_service_views,
+    tradebill_views
 )
 
 app_name = 'api'
@@ -48,14 +49,15 @@ no_slash_router.register(
 no_slash_router.register(r'payment-history', bill_views.PaymentHistoryViewSet, basename='payment-history')
 no_slash_router.register(r'account/balance', account_views.BalanceAccountViewSet, basename='account-balance')
 no_slash_router.register(r'cashcoupon', cash_coupon_views.CashCouponViewSet, basename='cashcoupon')
+no_slash_router.register(r'admin/cashcoupon', cash_coupon_views.AdminCashCouponViewSet, basename='admin-coupon')
 no_slash_router.register(r'trade/test', trade_test_views.TradeTestViewSet, basename='trade-test')
 no_slash_router.register(r'trade/query', trade_views.TradeQueryViewSet, basename='trade-query')
 no_slash_router.register(r'trade/charge', trade_views.TradeChargeViewSet, basename='trade-charge')
 no_slash_router.register(r'trade/sign', trade_views.TradeSignKeyViewSet, basename='trade-signkey')
-no_slash_router.register(r'admin/cashcoupon', cash_coupon_views.AdminCashCouponViewSet, basename='admin-coupon')
 no_slash_router.register(r'trade/app_service', app_service_views.AppServiceViewSet, basename='app-service')
 no_slash_router.register(r'trade/rsakey', app_service_views.AppRSAKeyViewSet, basename='trade-rsakey')
 no_slash_router.register(r'trade/refund', trade_views.TradeRefundViewSet, basename='trade-refund')
+no_slash_router.register(r'trade/tradebill', tradebill_views.TradeBillViewSet, basename='tradebill')
 
 no_slash_router.register(r'storage/bucket', bucket_views.BucketViewSet, basename='bucket')
 no_slash_router.register(r'storage/service', storage_views.ObjectsServiceViewSet, basename='storage-service')

@@ -108,3 +108,21 @@ class RefundRecordSerializer(serializers.Serializer):
     owner_id = serializers.CharField(label=_('所属人ID'), max_length=36, help_text='user id or vo id')
     owner_name = serializers.CharField(label=_('所属人名称'), max_length=255, help_text='username or vo name')
     owner_type = serializers.CharField(label=_('所属人类型'), max_length=8)
+
+
+class TransactionBillSerializer(serializers.Serializer):
+    id = serializers.CharField(label=_('交易流水编号'), max_length=36)
+    subject = serializers.CharField(label=_('标题'), max_length=256, default='')
+    trade_type = serializers.CharField(label=_('交易类型'), max_length=16)
+    trade_id = serializers.CharField(label=_('交易id'), max_length=36, help_text=_('支付、退款、充值ID'))
+    amounts = serializers.DecimalField(label=_('金额'), max_digits=10, decimal_places=2, help_text='16.66, -8.88')
+    coupon_amount = serializers.DecimalField(label=_('券金额'), max_digits=10, decimal_places=2)
+    after_balance = serializers.DecimalField(label=_('交易后余额'), max_digits=10, decimal_places=2)
+    creation_time = serializers.DateTimeField(label=_('创建时间'))
+    remark = serializers.CharField(label=_('备注信息'), max_length=255)
+    owner_id = serializers.CharField(label=_('所属人ID'), max_length=36, help_text='user id or vo id')
+    owner_name = serializers.CharField(label=_('所属人名称'), max_length=255, help_text='username or vo name')
+    owner_type = serializers.CharField(label=_('所属人类型'), max_length=8)
+    app_service_id = serializers.CharField(label=_('APP服务ID'), max_length=36)
+    # app_id = serializers.CharField(label=_('应用ID'), max_length=36)
+    # account = serializers.CharField(label=_('付款账户'), max_length=36, help_text=_('用户或VO余额ID, 及可能支持的其他账户'))

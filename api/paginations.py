@@ -109,3 +109,7 @@ class StatementPageNumberPagination(NewPageNumberPagination):
 
 class FollowUpMarkerCursorPagination(MarkerCursorPagination):
     ordering = '-submit_time'
+
+
+class TradeBillPagination(MarkerCursorPagination):
+    ordering = '-creation_time'

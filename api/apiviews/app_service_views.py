@@ -86,6 +86,7 @@ class AppServiceViewSet(CustomGenericViewSet):
         """
         列举有管理权限的 app子服务
 
+            * 通过科技云通行证jwt和session认证
             http code 200：
             {
               "count": 1,

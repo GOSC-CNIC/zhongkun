@@ -321,3 +321,11 @@ class AsRoleGenericViewSet(viewsets.GenericViewSet):
             exc = exceptions.Error(message=str(exc))
 
         return Response(data=exc.err_data(), status=exc.status_code)
+
+
+class TradeGenericViewSet(CustomGenericViewSetMixin, viewsets.GenericViewSet):
+    """
+    交易视图
+    """
+    from django.db.models import QuerySet
+    queryset = QuerySet().none()
