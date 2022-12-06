@@ -1,3 +1,5 @@
+import base64
+
 from django.utils.translation import gettext_lazy, gettext as _
 from django.http import Http404
 from django.core.exceptions import PermissionDenied
@@ -192,6 +194,15 @@ class PaySignGenericViewSet(CustomGenericViewSetMixin, viewsets.GenericViewSet):
         parser = SignatureParser(sign_type=SignatureRequest.SING_TYPE)
         token = parser.get_token_in_header(request)
         auth_type, app_id, timestamp, signature = parser.parse_token(token)
+
+        # 检查base
+        try:
+            base64.b64decode(signature.encode('utf-8'))
+        except Exception:
+            raise exceptions.AuthenticationFailed(
+                message=_('签名无效'), code='InvalidSignature'
+            )
+
         app = PayApp.objects.filter(id=app_id).first()
         if app is None:
             raise exceptions.NotFound(
