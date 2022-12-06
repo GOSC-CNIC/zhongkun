@@ -985,7 +985,7 @@ class StorageStatementHandler:
 
         if date_end is not None:
             try:
-                date_start = date.fromisoformat(date_end)
+                date_end = date.fromisoformat(date_end)
             except (TypeError, ValueError):
                 raise errors.InvalidArgument(message='参数"date_end" 是无效的日期格式')
 

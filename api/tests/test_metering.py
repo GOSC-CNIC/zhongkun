@@ -1916,7 +1916,7 @@ class StatementStorageTests(MyAPITestCase):
 
         # date_start - date_end
         query = parse.urlencode(query={
-            'date_start': '2022-01-02', 'time_end': '2022-01-02'
+            'date_start': '2022-01-02', 'date_end': '2022-01-02'
         })
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
@@ -1927,7 +1927,7 @@ class StatementStorageTests(MyAPITestCase):
         self.assertEqual(response.data['statements'][0]['original_amount'], u_st2.original_amount)
 
         query = parse.urlencode(query={
-            'date_start': '2022-01-01', 'time_end': '2022-01-02'
+            'date_start': '2022-01-01', 'date_end': '2022-01-02'
         })
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
@@ -1946,7 +1946,7 @@ class StatementStorageTests(MyAPITestCase):
 
         # date_start - date_end  && payment_status
         query = parse.urlencode(query={
-            'date_start': '2022-01-01', 'time_end': '2022-01-02',
+            'date_start': '2022-01-01', 'date_end': '2022-01-02',
             'payment_status': PaymentStatus.UNPAID.value,
 
         })
