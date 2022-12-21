@@ -53,3 +53,19 @@ class MonitorServerQueryHandler:
             return monitor_unit
 
         raise errors.AccessDenied(message=_('你没有监控单元的管理权限'))
+
+    @staticmethod
+    def list_server_unit(view, request):
+        """list server 监控单元"""
+        user = request.user
+        if user.is_federal_admin():
+            queryset = MonitorJobServer.objects.all()
+        else:
+            queryset = MonitorJobServer.objects.filter(users__id=user.id).all()
+
+        try:
+            meterings = view.paginate_queryset(queryset)
+            serializer = view.get_serializer(instance=meterings, many=True)
+            return view.get_paginated_response(serializer.data)
+        except Exception as exc:
+            return view.exception_response(exc)

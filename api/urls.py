@@ -30,6 +30,7 @@ no_slash_router.register(r'apply/organization', views.ApplyOrganizationViewSet, 
 no_slash_router.register(r'vo', views.VOViewSet, basename='vo')
 
 no_slash_router.register(r'monitor/unit/ceph', monitor_views.MonitorUnitCephViewSet, basename='monitor-unit-ceph')
+no_slash_router.register(r'monitor/unit/server', monitor_views.MonitorUnitServerViewSet, basename='monitor-unit-server')
 no_slash_router.register(r'monitor/ceph/query', monitor_views.MonitorCephQueryViewSet, basename='monitor-ceph-query')
 no_slash_router.register(r'monitor/server/query', monitor_views.MonitorServerQueryViewSet,
                          basename='monitor-server-query')

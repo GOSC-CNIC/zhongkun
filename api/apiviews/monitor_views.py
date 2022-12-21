@@ -316,3 +316,53 @@ class MonitorUnitCephViewSet(CustomGenericViewSet):
             return monitor_serializers.MonitorUnitCephSerializer
 
         return Serializer
+
+
+class MonitorUnitServerViewSet(CustomGenericViewSet):
+    """
+    server监控单元视图集
+    """
+    queryset = []
+    permission_classes = [IsAuthenticated]
+    pagination_class = MonitorPageNumberPagination
+    lookup_field = 'id'
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举有访问权限的服务器监控单元'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        列举有访问权限的服务器监控单元
+
+            Http Code: 状态码200，返回数据：
+            {
+              "count": 1,
+              "page_num": 1,
+              "page_size": 100,
+              "results": [
+                {
+                  "id": "7fd4bd5c-3794-11ec-93e9-c8009fe2eb10",
+                  "name": "智能运管云主机服务云主机监控",
+                  "name_en": "智能运管云主机服务云主机监控",
+                  "job_tag": "AIOPS-vm-node",
+                  "creation": "2021-10-28T02:12:28.118004Z",
+                  "remark": "",
+                  "sort_weight": 10,
+                  "grafana_url": "",
+                  "dashboard_url": ""
+                },
+              ]
+            }
+        """
+        return MonitorServerQueryHandler().list_server_unit(view=self, request=request)
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return monitor_serializers.MonitorUnitServerSerializer
+
+        return Serializer

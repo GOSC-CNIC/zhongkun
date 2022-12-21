@@ -6,7 +6,7 @@ from django.urls import reverse
 from monitor.tests import (
     get_or_create_monitor_job_ceph, get_or_create_monitor_job_server, get_or_create_monitor_job_meeting
 )
-from monitor.models import MonitorJobCeph, MonitorProvider
+from monitor.models import MonitorJobCeph, MonitorProvider, MonitorJobServer
 from utils.test import get_or_create_user
 from . import set_auth_header, MyAPITestCase
 
@@ -456,3 +456,111 @@ class MonitorUnitCephTests(MyAPITestCase):
         self.assertEqual(unit_ceph4.id, response.data['results'][1]['id'])
         self.assertEqual(unit_ceph2.id, response.data['results'][2]['id'])
         self.assertEqual(unit_ceph3.id, response.data['results'][3]['id'])
+
+
+class MonitorUnitServerTests(MyAPITestCase):
+    def setUp(self):
+        self.user = get_or_create_user(password='password')
+
+    def test_list_server_unit(self):
+        provider = MonitorProvider()
+        provider.save(force_insert=True)
+
+        unit_server1 = MonitorJobServer(
+            name='name1', name_en='name_en1', job_tag='job_tag1', sort_weight=10,
+            provider=provider
+        )
+        unit_server1.save(force_insert=True)
+
+        unit_server2 = MonitorJobServer(
+            name='name2', name_en='name_en2', job_tag='job_tag2', sort_weight=6,
+            provider=provider
+        )
+        unit_server2.save(force_insert=True)
+
+        unit_server3 = MonitorJobServer(
+            name='name3', name_en='name_en3', job_tag='job_tag3', sort_weight=3,
+            provider=provider
+        )
+        unit_server3.save(force_insert=True)
+
+        unit_server4 = MonitorJobServer(
+            name='name4', name_en='name_en4', job_tag='job_tag4',  sort_weight=8,
+            provider=provider
+        )
+        unit_server4.save(force_insert=True)
+
+        # 未认证
+        url = reverse('api:monitor-unit-server-list')
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
+
+        # 没有管理权限
+        self.client.force_login(self.user)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "page_num", "page_size", 'results'], response.data)
+        self.assertEqual(response.data['count'], 0)
+        self.assertEqual(len(response.data['results']), 0)
+
+        # unit_server4
+        unit_server4.users.add(self.user)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "page_num", "page_size", 'results'], response.data)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 100)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertKeysIn(['id', "name", "name_en", "job_tag", 'creation', 'remark',
+                           'sort_weight', 'grafana_url', 'dashboard_url'], response.data['results'][0])
+        self.assertEqual(unit_server4.id, response.data['results'][0]['id'])
+
+        # unit_server1, unit_server4
+        unit_server1.users.add(self.user)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "page_num", "page_size", 'results'], response.data)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 100)
+        self.assertEqual(len(response.data['results']), 2)
+        self.assertEqual(unit_server1.id, response.data['results'][0]['id'])
+
+        # unit_server1, unit_server4, unit_server2
+        unit_server2.users.add(self.user)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "page_num", "page_size", 'results'], response.data)
+        self.assertEqual(response.data['count'], 3)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 100)
+        self.assertEqual(len(response.data['results']), 3)
+        self.assertEqual(unit_server1.id, response.data['results'][0]['id'])
+        self.assertEqual(unit_server4.id, response.data['results'][1]['id'])
+        self.assertEqual(unit_server2.id, response.data['results'][2]['id'])
+
+        # page_size
+        query = parse.urlencode(query={'page': 1, 'page_size': 2})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "page_num", "page_size", 'results'], response.data)
+        self.assertEqual(response.data['count'], 3)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 2)
+        self.assertEqual(len(response.data['results']), 2)
+        self.assertEqual(unit_server1.id, response.data['results'][0]['id'])
+
+        # federal_admin
+        self.user.set_federal_admin()
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "page_num", "page_size", 'results'], response.data)
+        self.assertEqual(response.data['count'], 4)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 100)
+        self.assertEqual(len(response.data['results']), 4)
+        self.assertEqual(unit_server1.id, response.data['results'][0]['id'])
+        self.assertEqual(unit_server4.id, response.data['results'][1]['id'])
+        self.assertEqual(unit_server2.id, response.data['results'][2]['id'])
+        self.assertEqual(unit_server3.id, response.data['results'][3]['id'])
