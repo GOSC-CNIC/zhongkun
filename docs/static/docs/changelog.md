@@ -1,3 +1,12 @@
+## v0.7.0
+2022-12-21
+* ListTickets、DetailTicket接口响应增加'rating'评分内容;   
+* 结算认证优化，拿到签名字符串后先做base64解码验证有效性;    
+* 修复ListStatementStorage接口传入参数'date_end'报错的问题;  
+* 监控单元Ceph、server模型修改，可访问权限可单独配置，去除service字段；  
+* 增加ListCephMonitorUnit、ListServerMonitorUnit api和测试用例；  
+* 修改3个原监控查询api，参数“service_id”改为“monitor_unit_id”；  
+
 ## v0.6.0
 2022-12-05    
 * 修改支付记录model，增加交易流水账单model，内部支付扣费函数接口修改，对应的列举支付记录、查询支付记录详情、

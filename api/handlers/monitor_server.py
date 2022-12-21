@@ -63,6 +63,7 @@ class MonitorServerQueryHandler:
         else:
             queryset = MonitorJobServer.objects.filter(users__id=user.id).all()
 
+        queryset = queryset.order_by('-sort_weight')
         try:
             meterings = view.paginate_queryset(queryset)
             serializer = view.get_serializer(instance=meterings, many=True)
