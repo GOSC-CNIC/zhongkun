@@ -678,7 +678,7 @@ class PaymentManager:
             subject=refund.refund_reason, account=refund.in_account,
             trade_type=TransactionBill.TradeType.REFUND.value,
             trade_id=refund.id, amounts=refund.real_refund,
-            coupon_amount=Decimal('0'),  # 券金额不退
+            coupon_amount=refund.coupon_refund,  # 券金额不退
             after_balance=account.balance, owner_type=refund.owner_type, owner_id=refund.owner_id,
             owner_name=refund.owner_name, app_service_id=refund.app_service_id, app_id=refund.app_id,
             remark=refund.remark, creation_time=refund.success_time
