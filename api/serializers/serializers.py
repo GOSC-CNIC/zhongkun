@@ -607,31 +607,6 @@ class VoMemberSerializer(serializers.Serializer):
         return None
 
 
-class MonitorJobCephSerializer(serializers.Serializer):
-    name = serializers.CharField(label=_('监控的CEPH集群名称'), max_length=255, default='')
-    name_en = serializers.CharField(label=_('监控的CEPH集群英文名称'), max_length=255, default='')
-    job_tag = serializers.CharField(label=_('CEPH集群标签名称'), max_length=255, default='')
-    service_id = serializers.CharField(label=_('服务'))
-    creation = serializers.DateTimeField(label=_('创建时间'))
-
-
-class MonitorJobServerSerializer(serializers.Serializer):
-    name = serializers.CharField(label=_('监控的主机集群'), max_length=255, default='')
-    name_en = serializers.CharField(label=_('监控的主机集群英文名'), max_length=255, default='')
-    job_tag = serializers.CharField(label=_('主机集群的标签名称'), max_length=255, default='')
-    service_id = serializers.CharField(label=_('服务'))
-    creation = serializers.DateTimeField(label=_('创建时间'))
-
-
-class MonitorJobVideoMeetingSerializer(serializers.Serializer):
-    name = serializers.CharField(label=_('科技云会服务节点院所名称'), max_length=255, default='')
-    name_en = serializers.CharField(label=_('科技云会服务节点院所英名称'), max_length=255, default='')
-    job_tag = serializers.CharField(label=_('视频会议节点的标签名称'), max_length=255, default='')
-    creation = serializers.DateTimeField(label=_('创建时间'))
-    longitude = serializers.FloatField(label=_('经度'))
-    latitude = serializers.FloatField(label=_('纬度'))
-
-
 class AvailabilityZoneSerializer(serializers.Serializer):
     id = serializers.CharField(label=_('可用区ID'))
     name = serializers.CharField(label=_('可用区名称'))

@@ -113,3 +113,8 @@ class FollowUpMarkerCursorPagination(MarkerCursorPagination):
 
 class TradeBillPagination(MarkerCursorPagination):
     ordering = '-creation_time'
+
+
+class MonitorPageNumberPagination(NewPageNumberPagination):
+    page_size = 100
+    max_page_size = 1000

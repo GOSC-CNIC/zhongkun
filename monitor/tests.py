@@ -23,7 +23,7 @@ def get_or_create_monitor_provider(alias: str, name: str = 'test', name_en: str 
     return provider
 
 
-def get_or_create_monitor_job_ceph(service_id: str, job_tag: str = None, name: str = 'test', name_en: str = 'test'):
+def get_or_create_monitor_job_ceph(job_tag: str = None, name: str = 'test', name_en: str = 'test'):
     if job_tag is None:
         try:
             test_settings = get_test_case_settings()
@@ -36,20 +36,20 @@ def get_or_create_monitor_job_ceph(service_id: str, job_tag: str = None, name: s
     if not job_tag:
         raise Exception('invalid "job_tag"')
 
-    job_ceph = MonitorJobCeph.objects.filter(service_id=service_id, job_tag=job_tag).first()
+    job_ceph = MonitorJobCeph.objects.filter(job_tag=job_tag).first()
     if job_ceph is not None:
         return job_ceph
 
     provider = get_or_create_monitor_provider(alias='MONITOR_CEPH')
     job_ceph = MonitorJobCeph(
         name=name, name_en=name_en, job_tag=job_tag,
-        provider=provider, service_id=service_id
+        provider=provider
     )
     job_ceph.save()
     return job_ceph
 
 
-def get_or_create_monitor_job_server(service_id: str, job_tag: str = None, name: str = 'test', name_en: str = 'test'):
+def get_or_create_monitor_job_server(job_tag: str = None, name: str = 'test', name_en: str = 'test'):
     if job_tag is None:
         try:
             test_settings = get_test_case_settings()
@@ -62,14 +62,14 @@ def get_or_create_monitor_job_server(service_id: str, job_tag: str = None, name:
     if not job_tag:
         raise Exception('invalid "job_tag"')
 
-    job_server = MonitorJobServer.objects.filter(service_id=service_id, job_tag=job_tag).first()
+    job_server = MonitorJobServer.objects.filter(job_tag=job_tag).first()
     if job_server is not None:
         return job_server
 
     provider = get_or_create_monitor_provider(alias='MONITOR_SERVER')
     job_server = MonitorJobServer(
         name=name, name_en=name_en, job_tag=job_tag,
-        provider=provider, service_id=service_id
+        provider=provider
     )
     job_server.save()
     return job_server

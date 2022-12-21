@@ -2,7 +2,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from core import errors
-from api.serializers.serializers import (
+from api.serializers.monitor import (
     MonitorJobCephSerializer, MonitorJobServerSerializer
 )
 from .models import MonitorJobCeph, MonitorProvider, MonitorJobServer, MonitorJobVideoMeeting
@@ -52,7 +52,7 @@ class MonitorJobCephManager:
 
         return qs
 
-    def query(self, tag: str, service_id: str):
+    def query(self, tag: str, monitor_unit: MonitorJobCeph):
         """
         :return:
             [
@@ -61,7 +61,7 @@ class MonitorJobCephManager:
                         "name": "",
                         "name_en": "",
                         "job_tag": "",
-                        "service_id": "",
+                        "id": "",
                         "creation": "2020-11-02T07:47:39.776384Z"
                     },
                     "metric": {
@@ -80,14 +80,7 @@ class MonitorJobCephManager:
             ]
         :raises: Error
         """
-        job_ceph_qs = self.get_queryset(service_id=service_id)
-        job_ceph_map = {}
-        for job in job_ceph_qs:
-            job_ceph_map[job.job_tag] = job
-
-        if len(job_ceph_map) == 0:
-            raise errors.NoMonitorJob(message=_('没有配置监控'))
-
+        job_ceph_map = {monitor_unit.job_tag: monitor_unit}
         ret_data = []
         for job in job_ceph_map.values():
             job_dict = MonitorJobCephSerializer(job).data
@@ -102,15 +95,8 @@ class MonitorJobCephManager:
 
         return ret_data
 
-    def queryrange(self, tag: str, service_id: str, start: int, end: int, step: int):
-        job_ceph_qs = self.get_queryset(service_id=service_id)
-        job_ceph_map = {}
-        for job in job_ceph_qs:
-            job_ceph_map[job.job_tag] = job
-
-        if len(job_ceph_map) == 0:
-            raise errors.NoMonitorJob(message=_('没有监控配置'))
-
+    def queryrange(self, tag: str, monitor_unit: MonitorJobCeph, start: int, end: int, step: int):
+        job_ceph_map = {monitor_unit.job_tag: monitor_unit}
         ret_data = []
         for job in job_ceph_map.values():
             job_dict = MonitorJobCephSerializer(job).data
@@ -188,7 +174,7 @@ class MonitorJobServerManager:
 
         return qs
 
-    def query(self, tag: str, service_id: str):
+    def query(self, tag: str, monitor_unit: MonitorJobServer):
         """
         :return:
             [
@@ -197,7 +183,7 @@ class MonitorJobServerManager:
                         "name": "大规模对象存储云主机服务物理服务器监控",
                         "name_en": "大规模对象存储云主机服务物理服务器监控",
                         "job_tag": "obs-node",
-                        "service_id": "1",
+                        "id": "xxx",
                         "creation": "2021-10-28T02:09:37.639453Z"
                     },
                     "value": [
@@ -208,14 +194,7 @@ class MonitorJobServerManager:
             ]
         :raises: Error
         """
-        job_server_qs = self.get_queryset(service_id=service_id)
-        job_server_map = {}
-        for job in job_server_qs:
-            job_server_map[job.job_tag] = job
-
-        if len(job_server_map) == 0:
-            raise errors.NoMonitorJob(message=_('没有配置监控'))
-
+        job_server_map = {monitor_unit.job_tag: monitor_unit}
         ret_data = []
 
         for job in job_server_map.values():

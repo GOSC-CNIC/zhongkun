@@ -4,12 +4,13 @@ from rest_framework.response import Response
 
 from core import errors
 from monitor.managers import MonitorJobCephManager, CephQueryChoices
+from monitor.models import MonitorJobCeph
 
 
 class MonitorCephQueryHandler:
     def query(self, view, request, kwargs):
         query = request.query_params.get('query', None)
-        service_id = request.query_params.get('service_id', None)
+        monitor_unit_id = request.query_params.get('monitor_unit_id', None)
 
         if query is None:
             return view.exception_response(errors.BadRequest(message=_('参数"query"是必须提交的')))
@@ -17,16 +18,16 @@ class MonitorCephQueryHandler:
         if query not in CephQueryChoices.values:
             return view.exception_response(errors.InvalidArgument(message=_('参数"query"的值无效')))
 
-        if service_id is None:
-            return view.exception_response(errors.BadRequest(message=_('参数"service_id"是必须提交的')))
+        if monitor_unit_id is None:
+            return view.exception_response(errors.BadRequest(message=_('参数"monitor_unit_id"是必须提交的')))
 
         try:
-            self.check_permission(view=view, service_id=service_id, user=request.user)
+            monitor_unit = self.get_ceph_monitor_unit(monitor_unit_id=monitor_unit_id, user=request.user)
         except errors.Error as exc:
             return view.exception_response(exc)
 
         try:
-            data = MonitorJobCephManager().query(tag=query, service_id=service_id)
+            data = MonitorJobCephManager().query(tag=query, monitor_unit=monitor_unit)
         except errors.Error as exc:
             return view.exception_response(exc)
 
@@ -34,35 +35,40 @@ class MonitorCephQueryHandler:
     
     def queryrange(self, view, request, kwargs):
         try:
-            service_id, query, start, end, step = self.validate_query_range_params(request)
-            self.check_permission(view=view, service_id=service_id, user=request.user)
+            monitor_unit_id, query, start, end, step = self.validate_query_range_params(request)
+            monitor_unit = self.get_ceph_monitor_unit(monitor_unit_id=monitor_unit_id, user=request.user)
         except errors.Error as exc:
             return view.exception_response(exc)
 
         try:
             data = MonitorJobCephManager().queryrange(
-                tag=query, service_id=service_id, start=start, end=end, step=step)
+                tag=query, monitor_unit=monitor_unit, start=start, end=end, step=step)
         except errors.Error as exc:
             return view.exception_response(exc)
 
         return Response(data=data, status=200)
 
     @staticmethod
-    def check_permission(view, service_id: str, user):
+    def get_ceph_monitor_unit(monitor_unit_id: str, user):
         """
+        查询ceph监控单元，并验证权限
+
         :return:
-            service
+            MonitorJobCeph()
+
         :raises: Error
         """
-        try:
-            service = view.get_service_by_id(service_id)
-        except errors.Error as exc:
-            raise exc
+        ceph_unit: MonitorJobCeph = MonitorJobCeph.objects.select_related('provider').filter(id=monitor_unit_id).first()
+        if ceph_unit is None:
+            raise errors.NotFound(message=_('查询的监控单元不存在。'))
 
-        if user.is_federal_admin() or service.user_has_perm(user):     # 服务管理员权限
-            return service
+        if user.is_federal_admin():
+            return ceph_unit
 
-        raise errors.AccessDenied(message=gettext('你没有指定服务的管理权限'))
+        if ceph_unit.user_has_perm(user):
+            return ceph_unit
+
+        raise errors.AccessDenied(message=gettext('你没有监控单元的管理权限'))
 
     @staticmethod
     def validate_query_range_params(request):
@@ -73,7 +79,7 @@ class MonitorCephQueryHandler:
         :raises: Error
         """
         query = request.query_params.get('query', None)
-        service_id = request.query_params.get('service_id', None)
+        monitor_unit_id = request.query_params.get('monitor_unit_id', None)
         start = request.query_params.get('start', None)
         end = request.query_params.get('end', int(time.time()))
         step = request.query_params.get('step', 300)
@@ -84,8 +90,8 @@ class MonitorCephQueryHandler:
         if query not in CephQueryChoices.values:
             raise errors.InvalidArgument(message=_('参数"query"的值无效'))
 
-        if service_id is None:
-            raise errors.BadRequest(message=_('参数"service_id"是必须提交的'))
+        if monitor_unit_id is None:
+            raise errors.BadRequest(message=_('参数"monitor_unit_id"是必须提交的'))
 
         if start is None:
             raise errors.BadRequest(message=_('参数"start"必须提交'))
@@ -120,4 +126,20 @@ class MonitorCephQueryHandler:
         if resolution > 11000:
             raise errors.BadRequest(message=_('超过了每个时间序列11000点的最大分辨率。尝试降低查询分辨率（？step=XX）'))
 
-        return service_id, query, start, end, step
+        return monitor_unit_id, query, start, end, step
+
+    @staticmethod
+    def list_ceph_unit(view, request):
+        """list ceph 监控单元"""
+        user = request.user
+        if user.is_federal_admin():
+            queryset = MonitorJobCeph.objects.all()
+        else:
+            queryset = MonitorJobCeph.objects.filter(users__id=user.id).all()
+
+        try:
+            meterings = view.paginate_queryset(queryset)
+            serializer = view.get_serializer(instance=meterings, many=True)
+            return view.get_paginated_response(serializer.data)
+        except Exception as exc:
+            return view.exception_response(exc)

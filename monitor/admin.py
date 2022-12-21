@@ -13,16 +13,20 @@ class MonitorProviderAdmin(admin.ModelAdmin):
 
 @admin.register(MonitorJobCeph)
 class MonitorJobCephAdmin(admin.ModelAdmin):
-    list_display = ('name', 'name_en', 'job_tag', 'provider', 'prometheus', 'service', 'creation')
+    list_display = ('name', 'name_en', 'job_tag', 'provider', 'prometheus', 'sort_weight', 'creation')
     list_display_links = ('name', )
-    list_select_related = ('provider', 'service')
+    list_select_related = ('provider',)
+    list_editable = ('sort_weight',)
+    filter_horizontal = ('users',)
 
 
 @admin.register(MonitorJobServer)
 class MonitorJobServerAdmin(admin.ModelAdmin):
-    list_display = ('name', 'name_en', 'job_tag', 'provider', 'prometheus', 'service', 'creation')
+    list_display = ('name', 'name_en', 'job_tag', 'provider', 'prometheus', 'sort_weight', 'creation')
     list_display_links = ('name', )
-    list_select_related = ('provider', 'service')
+    list_select_related = ('provider',)
+    list_editable = ('sort_weight',)
+    filter_horizontal = ('users',)
 
 
 @admin.register(MonitorJobVideoMeeting)

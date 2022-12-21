@@ -3,6 +3,7 @@ from django.utils.translation import gettext_lazy as _
 
 from service.models import ServiceConfig
 from utils.model import UuidModel, get_encryptor
+from users.models import UserProfile
 
 
 class MonitorProvider(UuidModel):
@@ -60,23 +61,41 @@ class MonitorJobCeph(UuidModel):
                                  verbose_name=_('监控服务配置'))
     prometheus = models.CharField(
         verbose_name=_('Prometheus接口'), max_length=255, blank=True, default='', help_text=_('http(s)://example.cn/'))
-    service = models.ForeignKey(to=ServiceConfig, blank=True, null=True, default=None, on_delete=models.SET_NULL,
-                                related_name='monitor_job_ceph_set', verbose_name=_('所属的服务'))
     creation = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
     remark = models.TextField(verbose_name=_('备注'), blank=True, default='')
+    users = models.ManyToManyField(
+        to=UserProfile, db_table='monitor_ceph_users', related_name='+',
+        db_constraint=False, verbose_name=_('管理用户'))
+    sort_weight = models.IntegerField(verbose_name=_('排序权重'), default=0, help_text=_('值越大排序越靠前'))
+    grafana_url = models.CharField(verbose_name=_('Grafana连接'), max_length=255, blank=True, default='')
+    dashboard_url = models.CharField(verbose_name=_('Dashboard连接'), max_length=255, blank=True, default='')
 
     class Meta:
-        ordering = ['-creation']
-        verbose_name = _('监控任务Ceph节点')
+        ordering = ['-sort_weight']
+        verbose_name = _('Ceph监控单元')
         verbose_name_plural = verbose_name
 
     def __str__(self):
         return self.name
 
+    def user_has_perm(self, user):
+        """
+        用户是否有访问此服务的管理权限
+
+        :param user: 用户
+        :return:
+            True    # has
+            False   # no
+        """
+        if not user or not user.id:
+            return False
+
+        return self.users.filter(id=user.id).exists()
+
 
 class MonitorJobServer(UuidModel):
     """
-    主机集群监控工作节点
+    主机集群监控单元
     """
     name = models.CharField(verbose_name=_('监控的主机集群名称'), max_length=255, default='')
     name_en = models.CharField(verbose_name=_('监控的主机集群英文名称'), max_length=255, default='')
@@ -85,18 +104,36 @@ class MonitorJobServer(UuidModel):
                                  verbose_name=_('监控服务配置'))
     prometheus = models.CharField(
         verbose_name=_('Prometheus接口'), max_length=255, blank=True, default='', help_text=_('http(s)://example.cn/'))
-    service = models.ForeignKey(to=ServiceConfig, blank=True, null=True, default=None, on_delete=models.SET_NULL,
-                                related_name='monitor_job_server_set', verbose_name=_('所属的服务'))
     creation = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
     remark = models.TextField(verbose_name=_('备注'), blank=True, default='')
+    users = models.ManyToManyField(
+        to=UserProfile, db_table='monitor_server_users', related_name='+',
+        db_constraint=False, verbose_name=_('管理用户'))
+    sort_weight = models.IntegerField(verbose_name=_('排序权重'), default=0, help_text=_('值越大排序越靠前'))
+    grafana_url = models.CharField(verbose_name=_('Grafana连接'), max_length=255, blank=True, default='')
+    dashboard_url = models.CharField(verbose_name=_('Dashboard连接'), max_length=255, blank=True, default='')
 
     class Meta:
-        ordering = ['-creation']
-        verbose_name = _('监控服务器节点')
+        ordering = ['-sort_weight']
+        verbose_name = _('服务器监控单元')
         verbose_name_plural = verbose_name
 
     def __str__(self):
         return self.name
+
+    def user_has_perm(self, user):
+        """
+        用户是否有访问此服务的管理权限
+
+        :param user: 用户
+        :return:
+            True    # has
+            False   # no
+        """
+        if not user or not user.id:
+            return False
+
+        return self.users.filter(id=user.id).exists()
 
 
 class MonitorJobVideoMeeting(UuidModel):

@@ -9,6 +9,8 @@ from api.viewsets import CustomGenericViewSet
 from api.handlers.monitor_ceph import MonitorCephQueryHandler
 from api.handlers.monitor_server import MonitorServerQueryHandler
 from api.handlers.monitor_video_meeting import MonitorVideoMeetingQueryHandler
+from api.serializers import monitor as monitor_serializers
+from api.paginations import MonitorPageNumberPagination
 from monitor.managers import CephQueryChoices, ServerQueryChoices, VideoMeetingQueryChoices
 
 
@@ -25,11 +27,11 @@ class MonitorCephQueryViewSet(CustomGenericViewSet):
         operation_summary=gettext_lazy('查询Cpph集群当前实时信息'),
         manual_parameters=[
             openapi.Parameter(
-                name='service_id',
+                name='monitor_unit_id',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=True,
-                description=_('服务id, 查询指定服务Cpph集群')
+                description=_('CEPH监控单元id, 查询指定Cpph集群')
             ),
             openapi.Parameter(
                 name='query',
@@ -54,11 +56,11 @@ class MonitorCephQueryViewSet(CustomGenericViewSet):
                   1631004121.496,
                   "0"
                 ],
-                "monitor": {
+                "monitor": {        # 监控单元
+                  "id": "xxx",
                   "name": "云联邦研发测试Ceph集群",
                   "name_en": "云联邦研发测试Ceph集群",
                   "job_tag": "Fed-ceph",
-                  "service_id": "2",
                   "creation": "2021-09-07T08:33:11.843168Z"
                 }
               }
@@ -76,11 +78,11 @@ class MonitorCephQueryViewSet(CustomGenericViewSet):
         operation_summary=gettext_lazy('查询Ceph集群时间段信息'),
         manual_parameters=[
           openapi.Parameter(
-            name='service_id',
+            name='monitor_unit_id',
             in_=openapi.IN_QUERY,
             type=openapi.TYPE_STRING,
             required=True,
-            description=_('服务id，查询指定服务Ceph集群')
+            description=_('CEPH监控单元id，查询指定Ceph集群')
           ),
           openapi.Parameter(
             name='query',
@@ -123,11 +125,11 @@ class MonitorCephQueryViewSet(CustomGenericViewSet):
                 "values": [
                   [1631004121, "0"]
                 ],
-                "monitor": {
+                "monitor": {        # 监控单元
+                  "id": "xxx",
                   "name": "云联邦研发测试Ceph集群",
                   "name_en": "云联邦研发测试Ceph集群",
                   "job_tag": "Fed-ceph",
-                  "service_id": "2",
                   "creation": "2021-09-07T08:33:11.843168Z"
                 }
               }
@@ -158,11 +160,11 @@ class MonitorServerQueryViewSet(CustomGenericViewSet):
         operation_summary=gettext_lazy('查询服务器集群实时信息'),
         manual_parameters=[
             openapi.Parameter(
-                name='service_id',
+                name='monitor_unit_id',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=True,
-                description=_('服务id, 查询指定服务集群')
+                description=_('服务器监控单元id, 查询指定服务集群')
             ),
             openapi.Parameter(
                 name='query',
@@ -187,11 +189,11 @@ class MonitorServerQueryViewSet(CustomGenericViewSet):
                   1635387288,
                   "198"
                 ],
-                "monitor": {
+                "monitor": {        # 监控单元
+                  "id": "xxx",
                   "name": "大规模对象存储云主机服务物理服务器监控",
                   "name_en": "大规模对象存储云主机服务物理服务器监控",
                   "job_tag": "obs-node",
-                  "service_id": "1",
                   "creation": "2021-10-28T02:09:37.639453Z"
                 }
               }
@@ -264,3 +266,53 @@ class MonitorVideoMeetingQueryViewSet(CustomGenericViewSet):
             ]
         """
         return MonitorVideoMeetingQueryHandler().query(view=self, request=request, kwargs=kwargs)
+
+
+class MonitorUnitCephViewSet(CustomGenericViewSet):
+    """
+    ceph监控单元视图集
+    """
+    queryset = []
+    permission_classes = [IsAuthenticated]
+    pagination_class = MonitorPageNumberPagination
+    lookup_field = 'id'
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举有访问权限的Ceph监控单元'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        列举有访问权限的Ceph监控单元
+
+            Http Code: 状态码200，返回数据：
+            {
+              "count": 1,
+              "page_num": 1,
+              "page_size": 100,
+              "results": [
+                {
+                  "id": "1be0db7e-378e-11ec-aa15-c8009fe2eb10",
+                  "name": "大规模对象存储Ceph集群",
+                  "name_en": "大规模对象存储Ceph集群",
+                  "job_tag": "obs-ceph",
+                  "creation": "2021-10-28T01:26:43.498367Z",
+                  "remark": "test",
+                  "sort_weight": 10,
+                  "grafana_url": "xxx",
+                  "dashboard_url": "xxx"
+                }
+              ]
+            }
+        """
+        return MonitorCephQueryHandler().list_ceph_unit(view=self, request=request)
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return monitor_serializers.MonitorUnitCephSerializer
+
+        return Serializer
