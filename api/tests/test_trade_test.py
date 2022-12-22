@@ -303,6 +303,7 @@ class TradeTests(MyAPITestCase):
             "remark": body['remark'], "order_id": body['order_id'], "app_id": self.app.id,
             "app_service_id": self.app_service1.id, 'payable_amounts': '1.99'
         }, d=r.data)
+        trade_id1 = r.data['id']
 
         r = self.do_request(method='post', base_url=base_url, body=body, params=params)
         self.assertErrorResponse(status_code=409, code='OrderIdExist', response=r)
@@ -373,8 +374,8 @@ class TradeTests(MyAPITestCase):
         }, d=r.data)
         userpointaccount.refresh_from_db()
         self.assertEqual(userpointaccount.balance, Decimal('48.01'))
-        trade_id = r.data['id']
-        return trade_id, order_id2
+        trade_id2 = r.data['id']
+        return trade_id1, trade_id2, order_id2
 
     def test_trade_charge_jwt(self):
         rs512_private_key, rs512_public_key = self.get_aai_jwt_rsa_key()
@@ -382,9 +383,10 @@ class TradeTests(MyAPITestCase):
         from core.jwt import jwt
         jwt.token_backend.verifying_key = rs512_public_key
 
+        out_order_id1 = 'order_id1'
         body = {
             'subject': 'pay test',
-            'order_id': 'order_id1',
+            'order_id': out_order_id1,
             'amounts': '6.66',
             'app_service_id': self.app_service1.id,
             'aai_jwt': aai_jwt,
@@ -403,13 +405,53 @@ class TradeTests(MyAPITestCase):
         self.assertErrorResponse(status_code=400, code='InvalidJWT', response=r)
 
         body['aai_jwt'] = aai_jwt
-        trade_id, order_id = self._charge_ok_test(base_url=base_url, body=body, params=params)
-        self._query_trade_test(trade_id=trade_id, order_id=order_id)
+        trade_id1, trade_id2, out_order_id2 = self._charge_ok_test(base_url=base_url, body=body, params=params)
+        self._query_trade_test(trade_id=trade_id2, order_id=out_order_id2)
+
+        # 支付记录1
+        pay_history1 = PaymentHistory.objects.get(id=trade_id1)
+        self.assertEqual(pay_history1.payable_amounts, Decimal('1.99'))
+        self.assertEqual(pay_history1.amounts, Decimal('-1.99'))
+        self.assertEqual(pay_history1.coupon_amount, Decimal('0'))
+
+        # 交易流水1确认
+        bill: TransactionBill = TransactionBill.objects.filter(
+            trade_id=trade_id1, app_id=self.app.id,
+            trade_type=TransactionBill.TradeType.PAYMENT.value).first()
+        self.assertEqual(bill.app_service_id, self.app_service1.id)
+        self.assertEqual(bill.app_id, self.app.id)
+        self.assertEqual(bill.out_trade_no, out_order_id1)
+        self.assertEqual(bill.trade_amounts, Decimal('-1.99'))
+        self.assertEqual(bill.amounts, Decimal('-1.99'))
+        self.assertEqual(bill.coupon_amount, Decimal('0'))
+        self.assertEqual(bill.owner_id, self.user.id)
+        self.assertEqual(bill.owner_type, OwnerType.USER.value)
+
+        # 支付记录2
+        pay_history2 = PaymentHistory.objects.get(id=trade_id2)
+        self.assertEqual(pay_history2.payable_amounts, Decimal('200'))
+        self.assertEqual(pay_history2.amounts, Decimal('-50'))
+        self.assertEqual(pay_history2.coupon_amount, Decimal('-150'))
+
+        # 交易流水2确认
+        bill: TransactionBill = TransactionBill.objects.filter(
+            trade_id=trade_id2, app_id=self.app.id,
+            trade_type=TransactionBill.TradeType.PAYMENT.value).first()
+        self.assertEqual(bill.app_service_id, self.app_service1.id)
+        self.assertEqual(bill.app_id, self.app.id)
+        self.assertEqual(bill.out_trade_no, out_order_id2)
+        self.assertEqual(bill.trade_amounts, Decimal('-200'))
+        self.assertEqual(bill.amounts, Decimal('-50.00'))
+        self.assertEqual(bill.coupon_amount, Decimal('-150'))
+        self.assertEqual(bill.after_balance, self.user.userpointaccount.balance)
+        self.assertEqual(bill.owner_id, self.user.id)
+        self.assertEqual(bill.owner_type, OwnerType.USER.value)
 
     def test_trade_charge_account(self):
+        out_order_id1 = 'order_id1'
         body = {
             'subject': 'pay test',
-            'order_id': 'order_id1',
+            'order_id': out_order_id1,
             'amounts': '6.66',
             'app_service_id': self.app_service1.id,
             'username': 'notfount',
@@ -421,8 +463,47 @@ class TradeTests(MyAPITestCase):
         self.assertErrorResponse(status_code=404, code='NoSuchBalanceAccount', response=r)
 
         body['username'] = self.user.username
-        trade_id, order_id = self._charge_ok_test(base_url=base_url, body=body, params=params)
-        self._query_trade_test(trade_id=trade_id, order_id=order_id)
+        trade_id1, trade_id2, out_order_id2 = self._charge_ok_test(base_url=base_url, body=body, params=params)
+        self._query_trade_test(trade_id=trade_id2, order_id=out_order_id2)
+
+        # 支付记录1
+        pay_history1 = PaymentHistory.objects.get(id=trade_id1)
+        self.assertEqual(pay_history1.payable_amounts, Decimal('1.99'))
+        self.assertEqual(pay_history1.amounts, Decimal('-1.99'))
+        self.assertEqual(pay_history1.coupon_amount, Decimal('0'))
+
+        # 交易流水1确认
+        bill: TransactionBill = TransactionBill.objects.filter(
+            trade_id=trade_id1, app_id=self.app.id,
+            trade_type=TransactionBill.TradeType.PAYMENT.value).first()
+        self.assertEqual(bill.app_service_id, self.app_service1.id)
+        self.assertEqual(bill.app_id, self.app.id)
+        self.assertEqual(bill.out_trade_no, out_order_id1)
+        self.assertEqual(bill.trade_amounts, Decimal('-1.99'))
+        self.assertEqual(bill.amounts, Decimal('-1.99'))
+        self.assertEqual(bill.coupon_amount, Decimal('0'))
+        self.assertEqual(bill.owner_id, self.user.id)
+        self.assertEqual(bill.owner_type, OwnerType.USER.value)
+
+        # 支付记录2
+        pay_history2 = PaymentHistory.objects.get(id=trade_id2)
+        self.assertEqual(pay_history2.payable_amounts, Decimal('200'))
+        self.assertEqual(pay_history2.amounts, Decimal('-50'))
+        self.assertEqual(pay_history2.coupon_amount, Decimal('-150'))
+
+        # 交易流水2确认
+        bill: TransactionBill = TransactionBill.objects.filter(
+            trade_id=trade_id2, app_id=self.app.id,
+            trade_type=TransactionBill.TradeType.PAYMENT.value).first()
+        self.assertEqual(bill.app_service_id, self.app_service1.id)
+        self.assertEqual(bill.app_id, self.app.id)
+        self.assertEqual(bill.out_trade_no, out_order_id2)
+        self.assertEqual(bill.trade_amounts, Decimal('-200'))
+        self.assertEqual(bill.amounts, Decimal('-50.00'))
+        self.assertEqual(bill.coupon_amount, Decimal('-150'))
+        self.assertEqual(bill.after_balance, self.user.userpointaccount.balance)
+        self.assertEqual(bill.owner_id, self.user.id)
+        self.assertEqual(bill.owner_type, OwnerType.USER.value)
 
 
 class TradeSignKeyTests(MyAPITestCase):
@@ -618,6 +699,8 @@ class RefundRecordTests(MyAPITestCase):
         self.assertEqual(bill.account, refund.in_account)
         self.assertEqual(bill.app_service_id, refund.app_service_id)
         self.assertEqual(bill.app_id, self.app.id)
+        self.assertEqual(bill.out_trade_no, out_refund_id1)
+        self.assertEqual(bill.trade_amounts, Decimal('10'))
         self.assertEqual(bill.amounts, Decimal('6'))
         self.assertEqual(bill.coupon_amount, Decimal('4'))
         self.assertEqual(bill.after_balance, user.userpointaccount.balance)
@@ -687,6 +770,8 @@ class RefundRecordTests(MyAPITestCase):
         self.assertEqual(bill.account, refund.in_account)
         self.assertEqual(bill.app_service_id, refund.app_service_id)
         self.assertEqual(bill.app_id, self.app.id)
+        self.assertEqual(bill.out_trade_no, out_refund_id2)
+        self.assertEqual(bill.trade_amounts, Decimal('0.01'))
         self.assertEqual(bill.amounts, Decimal('0.01'))
         self.assertEqual(bill.coupon_amount, Decimal('0'))
         self.assertEqual(bill.after_balance, user.userpointaccount.balance)
@@ -801,6 +886,8 @@ class RefundRecordTests(MyAPITestCase):
         self.assertEqual(bill.account, refund.in_account)
         self.assertEqual(bill.app_service_id, refund.app_service_id)
         self.assertEqual(bill.app_id, self.app.id)
+        self.assertEqual(bill.out_trade_no, out_refund_id3)
+        self.assertEqual(bill.trade_amounts, Decimal('0.02'))
         self.assertEqual(bill.amounts, Decimal('0.00'))
         self.assertEqual(bill.coupon_amount, Decimal('0.02'))
         self.assertEqual(bill.after_balance, user.userpointaccount.balance)
@@ -923,6 +1010,8 @@ class RefundRecordTests(MyAPITestCase):
         self.assertEqual(bill.account, refund.in_account)
         self.assertEqual(bill.app_service_id, refund.app_service_id)
         self.assertEqual(bill.app_id, self.app.id)
+        self.assertEqual(bill.out_trade_no, out_refund_id4)
+        self.assertEqual(bill.trade_amounts, Decimal('1.01'))
         self.assertEqual(bill.amounts, Decimal('1.01'))
         self.assertEqual(bill.coupon_amount, Decimal('0'))
         self.assertEqual(bill.after_balance, vo.vopointaccount.balance)
@@ -1034,6 +1123,8 @@ class RefundRecordTests(MyAPITestCase):
         self.assertEqual(bill.account, refund.in_account)
         self.assertEqual(bill.app_service_id, refund.app_service_id)
         self.assertEqual(bill.app_id, app2.id)
+        self.assertEqual(bill.out_trade_no, out_refund_id5)
+        self.assertEqual(bill.trade_amounts, Decimal('99'))
         self.assertEqual(bill.amounts, Decimal('50.00'))
         self.assertEqual(bill.coupon_amount, Decimal('49'))
         self.assertEqual(bill.after_balance, user.userpointaccount.balance)

@@ -154,6 +154,7 @@ class TransactionBillManager:
     @staticmethod
     def create_transaction_bill(
             subject: str, account: str, trade_type: str, trade_id: str,
+            out_trade_no: str, trade_amounts: Decimal,
             amounts: Decimal, coupon_amount: Decimal, after_balance: Decimal,
             owner_type: str, owner_id: str, owner_name: str, app_service_id: str, app_id: str,
             remark: str, creation_time: datetime
@@ -166,6 +167,8 @@ class TransactionBillManager:
             account=account,
             trade_type=trade_type,
             trade_id=trade_id,
+            out_trade_no=out_trade_no,
+            trade_amounts=trade_amounts,
             amounts=amounts,
             coupon_amount=coupon_amount,
             after_balance=after_balance,

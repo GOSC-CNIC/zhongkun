@@ -399,7 +399,8 @@ class PaymentManager:
         # 交易流水
         tbill = TransactionBillManager.create_transaction_bill(
             subject=subject, account=payment_account, trade_type=TransactionBill.TradeType.PAYMENT.value,
-            trade_id=pay_history.id, amounts=pay_history.amounts, coupon_amount=pay_history.coupon_amount,
+            trade_id=pay_history.id, out_trade_no=pay_history.order_id, trade_amounts=-pay_history.payable_amounts,
+            amounts=pay_history.amounts, coupon_amount=pay_history.coupon_amount,
             after_balance=after_payment, owner_type=pay_history.payer_type, owner_id=pay_history.payer_id,
             owner_name=pay_history.payer_name, app_service_id=pay_history.app_service_id, app_id=pay_history.app_id,
             remark=remark, creation_time=pay_history.payment_time
@@ -677,7 +678,8 @@ class PaymentManager:
         TransactionBillManager.create_transaction_bill(
             subject=refund.refund_reason, account=refund.in_account,
             trade_type=TransactionBill.TradeType.REFUND.value,
-            trade_id=refund.id, amounts=refund.real_refund,
+            trade_id=refund.id, out_trade_no=refund.out_refund_id,
+            trade_amounts=refund.refund_amounts, amounts=refund.real_refund,
             coupon_amount=refund.coupon_refund,  # 券金额不退
             after_balance=account.balance, owner_type=refund.owner_type, owner_id=refund.owner_id,
             owner_name=refund.owner_name, app_service_id=refund.app_service_id, app_id=refund.app_id,

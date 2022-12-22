@@ -126,3 +126,20 @@ class TransactionBillSerializer(serializers.Serializer):
     app_service_id = serializers.CharField(label=_('APP服务ID'), max_length=36)
     # app_id = serializers.CharField(label=_('应用ID'), max_length=36)
     # account = serializers.CharField(label=_('付款账户'), max_length=36, help_text=_('用户或VO余额ID, 及可能支持的其他账户'))
+
+
+class AppTransactionBillSerializer(serializers.Serializer):
+    id = serializers.CharField(label=_('交易流水编号'), max_length=36)
+    subject = serializers.CharField(label=_('标题'), max_length=256, default='')
+    trade_type = serializers.CharField(label=_('交易类型'), max_length=16)
+    trade_id = serializers.CharField(label=_('交易id'), max_length=36, help_text=_('支付、退款、充值ID'))
+    out_trade_no = serializers.CharField(
+        label=_('外部交易编号'), max_length=64, help_text=_('支付订单号、退款单号'))
+    trade_amounts = serializers.DecimalField(
+        label=_('交易总金额'), max_digits=10, decimal_places=2, help_text=_('余额+券金额'))
+    amounts = serializers.DecimalField(label=_('金额'), max_digits=10, decimal_places=2, help_text='16.66, -8.88')
+    coupon_amount = serializers.DecimalField(label=_('券金额'), max_digits=10, decimal_places=2)
+    creation_time = serializers.DateTimeField(label=_('创建时间'))
+    remark = serializers.CharField(label=_('备注信息'), max_length=255)
+    app_service_id = serializers.CharField(label=_('APP服务ID'), max_length=36)
+    app_id = serializers.CharField(label=_('应用ID'), max_length=36)
