@@ -5,12 +5,10 @@ from django.urls import reverse
 from django.utils import timezone
 
 from utils.model import OwnerType
-from utils.test import get_or_create_service
-from service.models import ServiceConfig
-from vo.models import VirtualOrganization, VoMember
+from vo.models import VirtualOrganization
 from bill.models import TransactionBill
 from bill.managers.bill import TransactionBillManager
-from . import set_auth_header, MyAPITestCase, get_or_create_user
+from . import MyAPITestCase, get_or_create_user
 
 
 class TradeBillTests(MyAPITestCase):
@@ -29,6 +27,8 @@ class TradeBillTests(MyAPITestCase):
             subject='subject标题1', account='',
             trade_type=TransactionBill.TradeType.PAYMENT.value,
             trade_id='ss',
+            out_trade_no='out_trade_no1',
+            trade_amounts=Decimal('-1.11'),
             amounts=Decimal('-1.11'),
             coupon_amount=Decimal('0'),
             after_balance=Decimal('1'),
@@ -43,6 +43,8 @@ class TradeBillTests(MyAPITestCase):
             subject='subject标题2', account='',
             trade_type=TransactionBill.TradeType.PAYMENT.value,
             trade_id='ssff',
+            out_trade_no='out_trade_no2',
+            trade_amounts=Decimal('-2.22'),
             amounts=Decimal('-2.22'),
             coupon_amount=Decimal('0'),
             after_balance=Decimal('2'),
@@ -57,6 +59,8 @@ class TradeBillTests(MyAPITestCase):
             subject='subject标题3', account='',
             trade_type=TransactionBill.TradeType.PAYMENT.value,
             trade_id='ssff',
+            out_trade_no='out_trade_no3',
+            trade_amounts=Decimal('-3.33'),
             amounts=Decimal('-3.33'),
             coupon_amount=Decimal('0'),
             after_balance=Decimal('3'),
@@ -71,6 +75,8 @@ class TradeBillTests(MyAPITestCase):
             subject='subject标题3', account='',
             trade_type=TransactionBill.TradeType.PAYMENT.value,
             trade_id='ssff',
+            out_trade_no='out_trade_no4',
+            trade_amounts=Decimal('-4.44'),
             amounts=Decimal('-4.44'),
             coupon_amount=Decimal('0'),
             after_balance=Decimal('4'),
@@ -85,6 +91,8 @@ class TradeBillTests(MyAPITestCase):
             subject='subject标题3', account='',
             trade_type=TransactionBill.TradeType.REFUND.value,
             trade_id='ssff',
+            out_trade_no='out_trade_no5',
+            trade_amounts=Decimal('5.55'),
             amounts=Decimal('5.55'),
             coupon_amount=Decimal('0'),
             after_balance=Decimal('5'),
@@ -99,6 +107,8 @@ class TradeBillTests(MyAPITestCase):
             subject='subject标题3', account='',
             trade_type=TransactionBill.TradeType.RECHARGE.value,
             trade_id='ssff',
+            out_trade_no='out_trade_no6',
+            trade_amounts=Decimal('6.66'),
             amounts=Decimal('6.66'),
             coupon_amount=Decimal('0'),
             after_balance=Decimal('6'),
@@ -114,6 +124,8 @@ class TradeBillTests(MyAPITestCase):
             subject='subject标题3', account='',
             trade_type=TransactionBill.TradeType.REFUND.value,
             trade_id='ssff',
+            out_trade_no='out_trade_no7',
+            trade_amounts=Decimal('7.77'),
             amounts=Decimal('7.77'),
             coupon_amount=Decimal('0'),
             after_balance=Decimal('7'),
@@ -150,7 +162,7 @@ class TradeBillTests(MyAPITestCase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(len(r.data['results']), 2)
         self.assertKeysIn([
-            "id", "subject", "trade_type", "trade_id", "amounts",
+            "id", "subject", "trade_type", "trade_id", 'out_trade_no', 'trade_amounts', "amounts",
             "coupon_amount", "after_balance", "creation_time",
             "remark", "owner_id", "owner_name", "owner_type", "app_service_id"
         ], r.data['results'][0])

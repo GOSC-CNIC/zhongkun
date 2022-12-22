@@ -115,6 +115,10 @@ class TransactionBillSerializer(serializers.Serializer):
     subject = serializers.CharField(label=_('标题'), max_length=256, default='')
     trade_type = serializers.CharField(label=_('交易类型'), max_length=16)
     trade_id = serializers.CharField(label=_('交易id'), max_length=36, help_text=_('支付、退款、充值ID'))
+    out_trade_no = serializers.CharField(
+        label=_('外部交易编号'), max_length=64, help_text=_('支付订单号、退款单号'))
+    trade_amounts = serializers.DecimalField(
+        label=_('交易总金额'), max_digits=10, decimal_places=2, help_text=_('余额+券金额'))
     amounts = serializers.DecimalField(label=_('金额'), max_digits=10, decimal_places=2, help_text='16.66, -8.88')
     coupon_amount = serializers.DecimalField(label=_('券金额'), max_digits=10, decimal_places=2)
     after_balance = serializers.DecimalField(label=_('交易后余额'), max_digits=10, decimal_places=2)

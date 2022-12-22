@@ -81,6 +81,8 @@ class TradeBillViewSet(TradeGenericViewSet):
                         "subject": "subject标题3",
                         "trade_type": "recharge",
                         "trade_id": "ssff",
+                        "out_trade_no": "xxx",
+                        "trade_amounts": "6.66",
                         "amounts": "6.66",
                         "coupon_amount": "0.00",
                         "after_balance": "6.00",
