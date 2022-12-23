@@ -871,3 +871,120 @@ Pay-Signature：xxx                # 应答签名
 | 404  |  NoSuchTrade   | 查询的交易记录不存在 | |
 | 404  |  NotOwnTrade   | 交易记录存在，但交易记录不属于你app | |
 | 404  |  NoSuchOutRefundId   | 退款单号交易记录不存在 | |
+
+
+## 11 交易流水查询
+***
+
++ **说明**
+> 查询交易流水记录。
+
++ **请求url**
+> https://vms.cstcloud.cn/api/trade/bill/transaction
+
++ **请求方式**
+>GET
+
++ **Path参数**
+>无
+
+***
++ **Query参数**
+
+| 参数 | 必选  | 参数类型 |   描述   |
+| :------: | :---: | :------: | :------: |
+| trade_time_start |  是   |  sring   | 交易时间段起始时间（含），ISO8601格式：YYYY-MM-ddTHH:mm:ssZ，例如 2022-12-06T00:00:00Z |  
+| trade_time_start |  是   |  sring   | 交易时间段终止时间（不含），ISO8601格式：YYYY-MM-ddTHH:mm:ssZ，例如 2022-12-07T00:00:00Z |  
+| trade_type |  否   |  sring   | 交易类型，默认返回所有支付和退款流水记录， payment（支付）、refund（退款） |
+| marker | 否 | string | 分页标记，响应内容中“next_marker” |
+| page_size | 否 | int | 每页数据数，默认100，最大1000 |
+
++ **请求体参数**
+> 无
+
+***
+
++ **请求示例**   
+```
+https://vms.cstcloud.cn/api/trade/bill/transaction?trade_time_start=2022-12-06T00%3A00%3A00Z&trade_time_end=2022-12-07T00%3A00%3A00Z&trade_type=payment
+```
+
++ **响应示例**
+
+| 参数 | 参数类型 |    最大长度  |       参数名             | 描述 |
+| :------: | :------: | :--------------------------: | :------: | :------: |
+| has_next  |  bool   |  | 是否有下一页数据 | true: 有下一页数据 |
+| page_size |  int | 1000  | 每页数据量 |  |
+| marker | string |  | 当前页标记 | 可能为null |
+| next_marker | string |  | 下一页标记 | 没有下一页数据时为null |
+| results | array |  | 当页的数据 | 交易流水记录对象列表 |
+
+
+交易流水记录对象结构：  
+
+| 参数 | 参数类型 |    最大长度  |       参数名             | 描述 |
+| :------: | :------: | :--------------------------: | :------: | :------: |
+| id  |  sring   | 36 | 交易流水编号 | |
+| subject |  sring | 255  | 标题 | 交易的描述信息 |
+| trade_type  |  sring | 36 | 交易类型 | payment（支付）、refund（退款） |
+| trade_id |   sring  | 36 | 钱包交易记录编号 | 支付交易编号，或者退款交易编号|
+| out_trade_no | string| 64 |  外部交易编号 | 订单号、退款编号 |
+| trade_amounts | string| 8位整数，2位小数 | 本次交易金额 | = amounts + coupon_amount |
+| amounts | string | 8位整数，2位小数 | 交易金额 | 支付金额 -6.66、退款金额 88.80 |
+| coupon_amount | string | 8位整数，2位小数 | 代金券金额 | 代金券支付金额 -66.66， 代金券退款金额 1.23 |
+| creation_time | string |  | 交易完成时间 | 2022-03-09T01:08:32.988635Z |
+| remark | string | 255 | 备注 |  |
+| app_service_id | string | 32 | APP服务ID | |
+| app_id | string| 32 |  app id |  |
+ 
+响应标头  
+```
+Pay-Sign-Type：SHA256-RSA2048     # 认证类型
+Pay-Timestamp：1657184002         # 响应时间戳
+Pay-Signature：xxx                # 应答签名
+```
+
+请求成功响应示例
+```json
+{
+  "has_next": false,
+  "page_size": 100,
+  "marker": null,
+  "next_marker": null,
+  "results": [
+    {
+      "id": "202212220549046719007545",
+      "subject": "pay test",
+      "trade_type": "payment",
+      "trade_id": "202212220549046662686838",
+      "out_trade_no": "orderid2",
+      "trade_amounts": "-200.00",
+      "amounts": "-50.00",
+      "coupon_amount": "-150.00",
+      "creation_time": "2022-12-22T05:49:04.666123Z",
+      "remark": "test remark",
+      "app_service_id": "123",
+      "app_id": "20221222054903"
+    }
+  ]
+}
+```
+请求错误响应示例    
+```json
+{
+    "code": "xxx",
+    "message": "xxx"
+}
+```
+
+错误码   
+
+| 状态码 | 错误码 |             描述             | 解决方案 |
+| :------: | :------: | :--------------------------: | :------: |
+| 400  |  BadRequest   | 请求数据有误 | |
+| 400  |  InvalidArgument   | 参数值无效。 | |
+| 401  |  NoSuchAPPID   | app_id不存在 | |
+| 401  |  AppStatusUnaudited   | 应用app处于未审核状态 | 联系服务技术支持人员 |
+| 401  |  AppStatusBan   | 应用处于禁止状态 | 联系服务技术支持人员 |
+| 401  |  NoSetPublicKey   | app未配置RSA公钥 | |
+| 401  |  InvalidSignature   | 签名无效 | 检查签名生产过程是否有误，检查APP的私钥和RSA公钥是否匹配 |

@@ -15,7 +15,7 @@ from bill.models import (
     PayApp, PayOrgnazition, PayAppService, PaymentHistory, CashCoupon, RefundRecord,
     TransactionBill
 )
-from bill.managers.payment import PaymentManager
+from bill.managers.payment import PaymentManager, TransactionBillManager
 from utils.test import get_or_create_user
 from utils.model import OwnerType
 from vo.models import VirtualOrganization
@@ -1186,3 +1186,328 @@ class RefundRecordTests(MyAPITestCase):
                             method='get', base_url=query_base_url, body={},
                             params={'out_refund_id': 'ahfhaaa'})
         self.assertErrorResponse(status_code=404, code='NoSuchOutRefundId', response=r)
+
+
+class AppTradeBillTests(MyAPITestCase):
+    def setUp(self):
+        self.user = get_or_create_user(username='lilei@cnic.cn')
+        user_rsa = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        bytes_private_key = user_rsa.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption()
+        )
+        self.user_private_key = bytes_private_key.decode('utf-8')
+        public_rsa = user_rsa.public_key()
+        bytes_public_key = public_rsa.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        )
+        self.user_public_key = bytes_public_key.decode('utf-8')
+        self.app = PayApp(
+            name='APP name', app_url='', app_desc='test', rsa_public_key=self.user_public_key,
+            status=PayApp.Status.UNAUDITED.value
+        )
+        self.app.save(force_insert=True)
+
+        self.vms_public_key = settings.PAYMENT_RSA2048['public_key']
+
+    @staticmethod
+    def do_request(testcase, client, app_id: str, private_key: str, method: str,
+                   base_url: str, body: dict, params: dict, wallet_public_key: str):
+        query_str = parse.urlencode(params)
+        url = f'{base_url}?{query_str}'
+        if body:
+            body_json = json.dumps(body)
+        else:
+            body_json = ''
+
+        params.pop('sign', None)
+        token = SignatureRequest.built_token(
+            app_id=app_id,
+            method=method.upper(),
+            uri=parse.unquote(base_url),
+            querys=params,
+            body=body_json,
+            private_key=private_key
+        )
+        headers = {'HTTP_AUTHORIZATION': f'{SignatureRequest.SING_TYPE} ' + token}
+        func = getattr(client, method.lower())
+        r = func(url, data=body_json, content_type='application/json', **headers)
+        response_sign_assert(test_case=testcase, r=r, wallet_public_key=wallet_public_key)
+        return r
+
+    def init_bill_data(self):
+        time_now = timezone.now()
+        bill1 = TransactionBillManager.create_transaction_bill(
+            subject='subject标题1', account='',
+            trade_type=TransactionBill.TradeType.PAYMENT.value,
+            trade_id='ss',
+            out_trade_no='out_trade_no1',
+            trade_amounts=Decimal('-1.11'),
+            amounts=Decimal('-1.11'),
+            coupon_amount=Decimal('0'),
+            after_balance=Decimal('1'),
+            owner_type=OwnerType.USER.value,
+            owner_id=self.user.id,
+            owner_name=self.user.username,
+            app_service_id='pay_app_service1_id', app_id=self.app.id,
+            remark='发接口',
+            creation_time=time_now.replace(year=2022, month=1, day=1)
+        )
+        bill2 = TransactionBillManager.create_transaction_bill(
+            subject='subject标题2', account='',
+            trade_type=TransactionBill.TradeType.PAYMENT.value,
+            trade_id='ssff',
+            out_trade_no='out_trade_no2',
+            trade_amounts=Decimal('-2.22'),
+            amounts=Decimal('-2.22'),
+            coupon_amount=Decimal('0'),
+            after_balance=Decimal('2'),
+            owner_type=OwnerType.USER.value,
+            owner_id=self.user.id,
+            owner_name=self.user.username,
+            app_service_id='pay_app_service1_id', app_id=self.app.id,
+            remark='发了',
+            creation_time=time_now.replace(year=2022, month=1, day=2)
+        )
+        bill3 = TransactionBillManager.create_transaction_bill(
+            subject='subject标题3', account='',
+            trade_type=TransactionBill.TradeType.PAYMENT.value,
+            trade_id='ssff',
+            out_trade_no='out_trade_no3',
+            trade_amounts=Decimal('-3.33'),
+            amounts=Decimal('-3.33'),
+            coupon_amount=Decimal('0'),
+            after_balance=Decimal('3'),
+            owner_type=OwnerType.USER.value,
+            owner_id=self.user.id,
+            owner_name=self.user.username,
+            app_service_id='pay_app_service1_id', app_id='app2',
+            remark='阿卡',
+            creation_time=time_now.replace(year=2022, month=3, day=8)
+        )
+        bill4 = TransactionBillManager.create_transaction_bill(
+            subject='subject标题3', account='',
+            trade_type=TransactionBill.TradeType.PAYMENT.value,
+            trade_id='ssff',
+            out_trade_no='out_trade_no4',
+            trade_amounts=Decimal('-4.44'),
+            amounts=Decimal('-4.44'),
+            coupon_amount=Decimal('0'),
+            after_balance=Decimal('4'),
+            owner_type=OwnerType.USER.value,
+            owner_id=self.user.id,
+            owner_name=self.user.username,
+            app_service_id='pay_app_service1_id', app_id='app2',
+            remark='i武器',
+            creation_time=time_now.replace(year=2022, month=4, day=8)
+        )
+        bill5 = TransactionBillManager.create_transaction_bill(
+            subject='subject标题3', account='',
+            trade_type=TransactionBill.TradeType.REFUND.value,
+            trade_id='ssff',
+            out_trade_no='out_trade_no5',
+            trade_amounts=Decimal('5.55'),
+            amounts=Decimal('5.55'),
+            coupon_amount=Decimal('0'),
+            after_balance=Decimal('5'),
+            owner_type=OwnerType.USER.value,
+            owner_id=self.user.id,
+            owner_name=self.user.username,
+            app_service_id='pay_app_service2_id', app_id=self.app.id,
+            remark='还去',
+            creation_time=time_now.replace(year=2022, month=5, day=18)
+        )
+        bill6 = TransactionBillManager.create_transaction_bill(
+            subject='subject标题3', account='',
+            trade_type=TransactionBill.TradeType.RECHARGE.value,
+            trade_id='ssff',
+            out_trade_no='out_trade_no6',
+            trade_amounts=Decimal('6.66'),
+            amounts=Decimal('6.66'),
+            coupon_amount=Decimal('0'),
+            after_balance=Decimal('6'),
+            owner_type=OwnerType.USER.value,
+            owner_id=self.user.id,
+            owner_name=self.user.username,
+            app_service_id='pay_app_service2_id', app_id=self.app.id,
+            remark='加进去',
+            creation_time=time_now.replace(year=2022, month=6, day=9)
+        )
+
+        bill7 = TransactionBillManager.create_transaction_bill(
+            subject='subject标题3', account='',
+            trade_type=TransactionBill.TradeType.REFUND.value,
+            trade_id='ssff',
+            out_trade_no='out_trade_no7',
+            trade_amounts=Decimal('7.77'),
+            amounts=Decimal('7.77'),
+            coupon_amount=Decimal('0'),
+            after_balance=Decimal('7'),
+            owner_type=OwnerType.USER.value,
+            owner_id=self.user.id,
+            owner_name=self.user.username,
+            app_service_id='pay_app_service2_id', app_id='app2',
+            remark='飞回去',
+            creation_time=time_now.replace(year=2022, month=7, day=1)
+        )
+
+        return [bill1, bill2, bill3, bill4, bill5, bill6, bill7]
+
+    def test_list_bills(self):
+        bill1, bill2, bill3, bill4, bill5, bill6, bill7 = self.init_bill_data()
+
+        base_url = reverse('api:app-tradebill-list')
+        r = self.do_request(
+            testcase=self, wallet_public_key=self.vms_public_key, client=self.client,
+            app_id=self.app.id, private_key=self.user_private_key,
+            method='get', base_url=base_url, body={}, params={
+                'trade_time_start': '2022-01-01T00:00:00Z', 'trade_time_end': '2022-01-02T00:00:00Z',
+            }
+        )
+        self.assertErrorResponse(status_code=409, code='AppStatusUnaudited', response=r)
+
+        # set app normal
+        self.app.status = PayApp.Status.NORMAL.value
+        self.app.save(update_fields=['status'])
+
+        r = self.do_request(
+            testcase=self, wallet_public_key=self.vms_public_key, client=self.client,
+            app_id=self.app.id, private_key=self.user_private_key,
+            method='get', base_url=base_url, body={}, params={
+                'trade_time_start': '2022-01-01T00:00:00Z', 'trade_time_end': '2022-01-02T00:00:00Z',
+            }
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertKeysIn(["has_next", "marker", "next_marker", "page_size", "results"], r.data)
+        self.assertKeysIn([
+            "id", "subject", "trade_type", "trade_id", 'out_trade_no', 'trade_amounts', "amounts",
+            "coupon_amount", "creation_time", "remark", "app_service_id", "app_id"
+        ], r.data['results'][0])
+        self.assertEqual(bill1.id, r.data['results'][0]['id'])
+
+        # invalid "trade_type"
+        r = self.do_request(
+            testcase=self, wallet_public_key=self.vms_public_key, client=self.client,
+            app_id=self.app.id, private_key=self.user_private_key,
+            method='get', base_url=base_url, body={}, params={
+                'trade_time_start': '2022-01-01T00:00:00Z', 'trade_time_end': '2022-01-03T00:00:00Z',
+                'trade_type': 'ddd'
+            }
+        )
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
+
+        # invalid "trade_time_start"
+        r = self.do_request(
+            testcase=self, wallet_public_key=self.vms_public_key, client=self.client,
+            app_id=self.app.id, private_key=self.user_private_key,
+            method='get', base_url=base_url, body={}, params={
+                'trade_time_start': '2022-01-01T00:00:00', 'trade_time_end': '2022-01-03T00:00:00Z'
+            }
+        )
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
+
+        # invalid "trade_time_end"
+        r = self.do_request(
+            testcase=self, wallet_public_key=self.vms_public_key, client=self.client,
+            app_id=self.app.id, private_key=self.user_private_key,
+            method='get', base_url=base_url, body={}, params={
+                'trade_time_start': '2022-01-01T00:00:00Z', 'trade_time_end': '2022-01-03T:00:00Z'
+            }
+        )
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
+
+        #
+        r = self.do_request(
+            testcase=self, wallet_public_key=self.vms_public_key, client=self.client,
+            app_id=self.app.id, private_key=self.user_private_key,
+            method='get', base_url=base_url, body={}, params={
+                'trade_time_start': '2022-01-01T00:00:00Z', 'trade_time_end': '2022-01-03T00:00:00Z'
+            }
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data['results']), 2)
+        self.assertEqual(bill2.id, r.data['results'][0]['id'])
+        self.assertEqual(bill1.id, r.data['results'][1]['id'])
+
+        r = self.do_request(
+            testcase=self, wallet_public_key=self.vms_public_key, client=self.client,
+            app_id=self.app.id, private_key=self.user_private_key,
+            method='get', base_url=base_url, body={}, params={
+                'trade_time_start': '2022-01-01T00:00:00Z', 'trade_time_end': '2022-07-03T00:00:00Z'
+            }
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data['results']), 4)
+        self.assertEqual(bill6.id, r.data['results'][0]['id'])
+        self.assertEqual(bill5.id, r.data['results'][1]['id'])
+        self.assertEqual(bill2.id, r.data['results'][2]['id'])
+        self.assertEqual(bill1.id, r.data['results'][3]['id'])
+
+        # query "trade_type"
+        r = self.do_request(
+            testcase=self, wallet_public_key=self.vms_public_key, client=self.client,
+            app_id=self.app.id, private_key=self.user_private_key,
+            method='get', base_url=base_url, body={}, params={
+                'trade_time_start': '2022-01-01T00:00:00Z', 'trade_time_end': '2022-07-03T00:00:00Z',
+                'trade_type': TransactionBill.TradeType.PAYMENT.value
+            }
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data['results']), 2)
+        self.assertEqual(bill2.id, r.data['results'][0]['id'])
+        self.assertEqual(bill1.id, r.data['results'][1]['id'])
+
+        #
+        r = self.do_request(
+            testcase=self, wallet_public_key=self.vms_public_key, client=self.client,
+            app_id=self.app.id, private_key=self.user_private_key,
+            method='get', base_url=base_url, body={}, params={
+                'trade_time_start': '2022-01-01T00:00:00Z', 'trade_time_end': '2022-01-03T00:00:00Z'
+            }
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data['results']), 2)
+        self.assertEqual(bill2.id, r.data['results'][0]['id'])
+        self.assertEqual(bill1.id, r.data['results'][1]['id'])
+
+        # page_size
+        r = self.do_request(
+            testcase=self, wallet_public_key=self.vms_public_key, client=self.client,
+            app_id=self.app.id, private_key=self.user_private_key,
+            method='get', base_url=base_url, body={}, params={
+                'trade_time_start': '2022-01-01T00:00:00Z', 'trade_time_end': '2022-07-03T00:00:00Z',
+                'page_size': 1
+            }
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertEqual(bill6.id, r.data['results'][0]['id'])
+        next_marker = r.data['next_marker']
+
+        # page_size, marker
+        r = self.do_request(
+            testcase=self, wallet_public_key=self.vms_public_key, client=self.client,
+            app_id=self.app.id, private_key=self.user_private_key,
+            method='get', base_url=base_url, body={}, params={
+                'trade_time_start': '2022-01-01T00:00:00Z', 'trade_time_end': '2022-07-03T00:00:00Z',
+                'page_size': 2, 'marker': next_marker
+            }
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data['results']), 2)
+        self.assertEqual(bill5.id, r.data['results'][0]['id'])
+        self.assertEqual(bill2.id, r.data['results'][1]['id'])
+
+        # invalid marker
+        r = self.do_request(
+            testcase=self, wallet_public_key=self.vms_public_key, client=self.client,
+            app_id=self.app.id, private_key=self.user_private_key,
+            method='get', base_url=base_url, body={}, params={
+                'trade_time_start': '2022-01-01T00:00:00Z', 'trade_time_end': '2022-07-03T00:00:00Z',
+                'page_size': 2, 'marker': 'invalid'
+            }
+        )
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)

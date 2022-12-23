@@ -60,6 +60,7 @@ no_slash_router.register(r'trade/sign', trade_views.TradeSignKeyViewSet, basenam
 no_slash_router.register(r'trade/app_service', app_service_views.AppServiceViewSet, basename='app-service')
 no_slash_router.register(r'trade/rsakey', app_service_views.AppRSAKeyViewSet, basename='trade-rsakey')
 no_slash_router.register(r'trade/refund', trade_views.TradeRefundViewSet, basename='trade-refund')
+no_slash_router.register(r'trade/bill/transaction', tradebill_views.AppTradeBillViewSet, basename='app-tradebill')
 no_slash_router.register(r'trade/tradebill', tradebill_views.TradeBillViewSet, basename='tradebill')
 
 no_slash_router.register(r'storage/bucket', bucket_views.BucketViewSet, basename='bucket')

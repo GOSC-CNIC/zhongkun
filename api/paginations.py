@@ -112,6 +112,8 @@ class FollowUpMarkerCursorPagination(MarkerCursorPagination):
 
 
 class TradeBillPagination(MarkerCursorPagination):
+    page_size = 100
+    max_page_size = 1000
     ordering = '-creation_time'
 
 

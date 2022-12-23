@@ -1,10 +1,9 @@
 from django.utils.translation import gettext as _
 from django.utils import timezone
-from rest_framework.response import Response
+from rest_framework.exceptions import NotFound
 
 from core import errors
-from api.viewsets import TradeGenericViewSet
-from api.serializers import serializers
+from api.viewsets import TradeGenericViewSet, PaySignGenericViewSet
 from bill.models import TransactionBill
 from bill.managers.bill import TransactionBillManager
 from utils.time import iso_utc_to_datetime
@@ -90,4 +89,61 @@ class TradeBillHandler:
             'time_end': time_end,
             'trade_type': trade_type,
             'app_service_id': app_service_id
+        }
+
+    @staticmethod
+    def list_app_transaction_bills(view: PaySignGenericViewSet, request):
+
+        try:
+            app = view.check_request_sign(request)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        try:
+            data = TradeBillHandler.list_app_transaction_bills_validate_params(view=view, request=request)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        queryset = TransactionBillManager.get_app_transaction_bill_queryset(
+            app_id=app.id, time_start=data['trade_time_start'],
+            time_end=data['trade_time_end'], trade_type=data['trade_type']
+        )
+
+        try:
+            bills = view.paginate_queryset(queryset)
+            serializer = view.get_serializer(instance=bills, many=True)
+            return view.get_paginated_response(serializer.data)
+        except NotFound as exc:
+            return view.exception_response(errors.InvalidArgument(str(exc)))
+        except Exception as exc:
+            return view.exception_response(exc)
+
+    @staticmethod
+    def list_app_transaction_bills_validate_params(view, request) -> dict:
+        trade_time_start = request.query_params.get('trade_time_start', None)
+        trade_time_end = request.query_params.get('trade_time_end', None)
+        trade_type = request.query_params.get('trade_type', None)
+
+        if trade_type and trade_type not in TransactionBill.TradeType.values:
+            raise errors.InvalidArgument(message=_('参数“trade_type”的值无效'))
+
+        trade_time_start = iso_utc_to_datetime(trade_time_start)
+        if trade_time_start is None:
+            raise errors.InvalidArgument(message=_('参数“time_start”的值无效的时间格式'))
+
+        trade_time_end = iso_utc_to_datetime(trade_time_end)
+        if trade_time_end is None:
+            raise errors.InvalidArgument(message=_('参数“time_end”的值无效的时间格式'))
+
+        if trade_time_start >= trade_time_end:
+            raise errors.InvalidArgument(message=_('参数“time_start”时间必须超前“time_end”时间'))
+
+        # 时间段不得超过一年
+        if trade_time_start.replace(year=trade_time_start.year + 1) < trade_time_end:
+            raise errors.BadRequest(message=_('起止日期范围不得超过一年'))
+
+        return {
+            'trade_time_start': trade_time_start,
+            'trade_time_end': trade_time_end,
+            'trade_type': trade_type
         }

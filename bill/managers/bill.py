@@ -271,6 +271,38 @@ class TransactionBillManager:
 
         return queryset.order_by('-creation_time')
 
+    @staticmethod
+    def get_app_transaction_bill_queryset(
+            app_id: str,
+            trade_type: str,
+            time_start: datetime,
+            time_end: datetime
+    ):
+        """
+        交易流水查询集
+
+        * user_id和vo_id不能同时查询
+        * time_start和time_end必须同时为None 或者同时是有效时间，time_end > time_start
+
+        :param app_id: 所属app
+        :param trade_type: 交易类型
+        :param time_start: 交易时间段起（包含）
+        :param time_end: 交易时间段止（不包含）
+        :return:
+            QuerySet
+        :raises: Error
+        """
+        if trade_type and trade_type not in TransactionBill.TradeType.values:
+            raise errors.Error(message=_('无效的交易类型'))
+
+        queryset = TransactionBill.objects.filter(
+            app_id=app_id, creation_time__gte=time_start, creation_time__lt=time_end).all()
+
+        if trade_type:
+            queryset = queryset.filter(trade_type=trade_type)
+
+        return queryset
+
 
 class RefundRecordManager:
     @staticmethod
