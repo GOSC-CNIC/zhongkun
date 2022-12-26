@@ -100,7 +100,8 @@ class Command(BaseCommand):
         TransactionBillManager.create_transaction_bill(
             subject=payment.subject, account=payment.payment_account,
             trade_type=TransactionBill.TradeType.PAYMENT.value,
-            trade_id=payment.id, amounts=pay_history.amounts, coupon_amount=pay_history.coupon_amount,
+            trade_id=payment.id, out_trade_no=payment.order_id, trade_amounts=-payment.payable_amounts,
+            amounts=pay_history.amounts, coupon_amount=pay_history.coupon_amount,
             after_balance=Decimal('0'), owner_type=pay_history.payer_type, owner_id=pay_history.payer_id,
             owner_name=pay_history.payer_name, app_service_id=pay_history.app_service_id, app_id=pay_history.app_id,
             remark=pay_history.remark, creation_time=pay_history.payment_time

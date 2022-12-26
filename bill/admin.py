@@ -159,7 +159,8 @@ class PayAppServiceAdmin(NoDeleteSelectModelAdmin):
 
 @admin.register(TransactionBill)
 class TransactionBillAdmin(NoDeleteSelectModelAdmin):
-    list_display = ('id', 'subject', 'trade_type', 'trade_id', 'amounts', 'coupon_amount',
+    list_display = ('id', 'subject', 'trade_type', 'trade_id', 'out_trade_no',
+                    'trade_amounts', 'amounts', 'coupon_amount',
                     'after_balance', 'creation_time', 'app_id',
                     'owner_type', 'owner_id', 'owner_name', 'app_service_id')
     list_display_links = ('id',)
