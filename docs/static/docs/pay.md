@@ -454,8 +454,11 @@ Pay-Signature：xxx                # 应答签名
 | trade_id |  是   |  sring   |   结算服务支付/交易记录编号(id)   |
 
 ***
-+ **Query参数**
->无
++ **Query参数**  
+
+| 参数 | 必选  | 参数类型 |   描述   |
+| :------: | :---: | :------: | :------: |
+| query_refunded |  否   |  sring   | 请求返回内容返回额外的已退款金额信息，此参数不需要值 |
 
 + **请求体参数**
 >无   
@@ -464,7 +467,7 @@ Pay-Signature：xxx                # 应答签名
 
 + **请求示例**   
 ```
-https://vms.cstcloud.cn/api/trade/query/trade/202207190608088519002990
+https://vms.cstcloud.cn/api/trade/query/trade/202207190608088519002990?query_refunded
 ```
 
 + **响应示例**
@@ -489,6 +492,7 @@ https://vms.cstcloud.cn/api/trade/query/trade/202207190608088519002990
 | order_id | string | 外部订单编号 |  |
 | app_id | string | 应用id |  |
 | app_service_id | string | 应用子服务id |  |
+| refunded_amounts | string | 已退款总金额（包含正在退款的金额） | 例如 66.66，传递参数“query_refunded”时，才返回已退款内容 |
  
 响应标头  
 ```
@@ -517,7 +521,8 @@ Pay-Signature：xxx                # 应答签名
     "remark": "test remark",
     "order_id": "123456789",
     "app_id": "20220719060807",
-    "app_service_id": "123"
+    "app_service_id": "123",
+    "refunded_amounts": "1.66"
 }
 ```
 请求错误响应示例    

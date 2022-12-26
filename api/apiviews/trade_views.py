@@ -155,6 +155,15 @@ class TradeQueryViewSet(PaySignGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('交易记录编号查询交易记录'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='query_refunded',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description='请求返回已退款金额信息，此参数不需要值存在有效'
+            )
+        ],
         responses={
             200: ''
         }
@@ -183,7 +192,8 @@ class TradeQueryViewSet(PaySignGenericViewSet):
                 "remark": "test remark",
                 "order_id": "order_id",
                 "app_id": "20220719060807",
-                "app_service_id": "123"
+                "app_service_id": "123",
+                "refunded_amounts": "0.00"      # 已退款金额，提交参数query_refunded时此内容才会存在
             }
 
             http 400, 401, 404:

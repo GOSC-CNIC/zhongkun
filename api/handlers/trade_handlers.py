@@ -12,8 +12,10 @@ from api.serializers.serializers import PaymentHistorySerializer
 from api.serializers import trade as trade_serializers
 from bill.managers.payment import PaymentManager
 from bill.managers.bill import PaymentHistoryManager, RefundRecordManager
+from bill.models import PaymentHistory
 from core.jwt.jwt import JWTInvalidError
 from users.models import UserProfile
+from utils.decimal_utils import quantize_10_2
 
 
 class TradeHandler:
@@ -167,6 +169,8 @@ class TradeHandler:
             return view.exception_response(exc)
 
         trade_id = kwargs.get('trade_id', '')
+        query_refunded = request.query_params.get('query_refunded', None)
+
         try:
             phistory = PaymentHistoryManager.get_payment_history_by_id(payment_id=trade_id)
         except errors.NotFound:
@@ -180,7 +184,20 @@ class TradeHandler:
             ))
 
         s = PaymentHistorySerializer(instance=phistory)
-        return Response(data=s.data)
+        data = s.data
+        if query_refunded is not None:
+            if phistory.status in [PaymentHistory.Status.WAIT.value, PaymentHistory.Status.ERROR.value]:
+                refunded_total_amounts = Decimal('0')
+            else:
+                # 已退款金额
+                refunded_total_amounts = RefundRecordManager.get_trade_refunded_total_amounts(
+                    app_id=app.id, trade_id=phistory.id
+                )
+
+            refunded_amounts = quantize_10_2(refunded_total_amounts)
+            data['refunded_amounts'] = '{:f}'.format(refunded_amounts)
+
+        return Response(data=data)
 
     @staticmethod
     def trade_query_order_id(view: PaySignGenericViewSet, request, kwargs):

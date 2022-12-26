@@ -2,6 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from django.utils.translation import gettext as _
+from django.db.models import Sum
 
 from core import errors
 from bill.models import PaymentHistory, CashCouponPaymentHistory, TransactionBill, RefundRecord
@@ -324,3 +325,21 @@ class RefundRecordManager:
             raise errors.NotFound(message=_('退款记录不存在'))
 
         return refund
+
+    @staticmethod
+    def get_trade_refunded_total_amounts(app_id: str, trade_id: str) -> Decimal:
+        """
+        查询支付交易已退款的总金额
+        """
+        # 已退款金额
+        r = RefundRecord.objects.filter(
+            trade_id=trade_id, app_id=app_id,
+            status__in=[RefundRecord.Status.SUCCESS.value, RefundRecord.Status.WAIT.value]
+        ).aggregate(refund_total_amounts=Sum('refund_amounts'))
+        refunded_total_amounts = r.get('refund_total_amounts', Decimal('0'))
+        if refunded_total_amounts is None:
+            refunded_total_amounts = Decimal('0')
+        elif not isinstance(refunded_total_amounts, Decimal):
+            refunded_total_amounts = Decimal.from_float(refunded_total_amounts)
+
+        return refunded_total_amounts

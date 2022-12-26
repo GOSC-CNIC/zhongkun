@@ -4,7 +4,6 @@ from typing import List
 from django.utils.translation import gettext as _
 from django.utils import timezone
 from django.db import transaction
-from django.db.models import Sum
 
 from core import errors
 from utils.model import OwnerType
@@ -13,7 +12,7 @@ from bill.models import (
     PaymentHistory, UserPointAccount, VoPointAccount, CashCouponPaymentHistory, CashCoupon,
     PayAppService, TransactionBill, RefundRecord
 )
-from bill.managers.bill import TransactionBillManager
+from bill.managers.bill import TransactionBillManager, RefundRecordManager
 from .cash_coupon import CashCouponManager
 
 
@@ -579,15 +578,9 @@ class PaymentManager:
                     refund_rd.delete()
 
             # 已退款金额
-            r = RefundRecord.objects.filter(
-                trade_id=pay_history.id, app_id=app_id,
-                status__in=[RefundRecord.Status.SUCCESS.value, RefundRecord.Status.WAIT.value]
-            ).aggregate(refund_total_amounts=Sum('refund_amounts'))
-            refunded_total_amounts = r.get('refund_total_amounts', Decimal('0'))
-            if refunded_total_amounts is None:
-                refunded_total_amounts = Decimal('0')
-            elif not isinstance(refunded_total_amounts, Decimal):
-                refunded_total_amounts = Decimal.from_float(refunded_total_amounts)
+            refunded_total_amounts = RefundRecordManager.get_trade_refunded_total_amounts(
+                app_id=app_id, trade_id=pay_history.id
+            )
 
             # 退款总金额 超出了 支付订单支付总金额
             if (refunded_total_amounts + refund_amounts) > paid_amounts:
