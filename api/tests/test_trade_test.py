@@ -249,7 +249,7 @@ class TradeTests(MyAPITestCase):
 
         # query "query_refunded"
         url = reverse('api:trade-query-trade-id', kwargs={'trade_id': trade_id})
-        response = self.do_request(method='get', base_url=url, body={}, params={'query_refunded': None})
+        response = self.do_request(method='get', base_url=url, body={}, params={'query_refunded': ''})
         self.assertEqual(response.status_code, 200)
         self.response_sign_assert(response)
         self.assertKeysIn(keys=[
@@ -272,6 +272,18 @@ class TradeTests(MyAPITestCase):
             'coupon_amount', 'payment_time', 'remark', 'order_id', 'app_id', 'app_service_id',
             "status", 'status_desc', 'creation_time', 'payable_amounts'
         ], container=response.data)
+        self.assertNotIn('refunded_amounts', response.data)
+
+        # query "query_refunded"
+        response = self.do_request(method='get', base_url=url, body={}, params={'query_refunded': ''})
+        self.assertEqual(response.status_code, 200)
+        self.response_sign_assert(response)
+        self.assertKeysIn(keys=[
+            'id', 'subject', 'payment_method', 'executor', 'payer_id', 'payer_name', 'payer_type', 'amounts',
+            'coupon_amount', 'payment_time', 'remark', 'order_id', 'app_id', 'app_service_id',
+            "status", 'status_desc', 'creation_time', 'payable_amounts', 'refunded_amounts'
+        ], container=response.data)
+        self.assertEqual(response.data['refunded_amounts'], '0.00')
 
     def _charge_ok_test(self, base_url: str, body: dict, params: dict):
         r = self.do_request(method='post', base_url=base_url, body=body, params=params)
@@ -835,6 +847,19 @@ class RefundRecordTests(MyAPITestCase):
         ], container=response.data)
         self.assertEqual(response.data['refunded_amounts'], '10.01')
 
+        url = reverse('api:trade-query-order-id', kwargs={'order_id': payment1.order_id})
+        response = self.do_request(
+            testcase=self, wallet_public_key=self.vms_public_key,
+            client=self.client, app_id=self.app.id, private_key=self.user_private_key,
+            method='get', base_url=url, body={}, params={'query_refunded': ''})
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(keys=[
+            'id', 'subject', 'payment_method', 'executor', 'payer_id', 'payer_name', 'payer_type', 'amounts',
+            'coupon_amount', 'payment_time', 'remark', 'order_id', 'app_id', 'app_service_id',
+            "status", 'status_desc', 'creation_time', 'payable_amounts', 'refunded_amounts'
+        ], container=response.data)
+        self.assertEqual(response.data['refunded_amounts'], '10.01')
+
         # OutRefundIdExists
         body = {
             "out_refund_id": out_refund_id2,
@@ -1197,6 +1222,19 @@ class RefundRecordTests(MyAPITestCase):
 
         # 支付记录查询已退款金额( 99)， "query_refunded"
         url = reverse('api:trade-query-trade-id', kwargs={'trade_id': payment4.id})
+        response = self.do_request(
+            testcase=self, wallet_public_key=self.vms_public_key,
+            client=self.client, app_id=app2.id, private_key=app2_private_key,
+            method='get', base_url=url, body={}, params={'query_refunded': ''})
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(keys=[
+            'id', 'subject', 'payment_method', 'executor', 'payer_id', 'payer_name', 'payer_type', 'amounts',
+            'coupon_amount', 'payment_time', 'remark', 'order_id', 'app_id', 'app_service_id',
+            "status", 'status_desc', 'creation_time', 'payable_amounts', 'refunded_amounts'
+        ], container=response.data)
+        self.assertEqual(response.data['refunded_amounts'], '99.00')
+
+        url = reverse('api:trade-query-order-id', kwargs={'order_id': payment4.order_id})
         response = self.do_request(
             testcase=self, wallet_public_key=self.vms_public_key,
             client=self.client, app_id=app2.id, private_key=app2_private_key,

@@ -157,6 +157,24 @@ class TradeHandler:
         return Response(data=s.data)
 
     @staticmethod
+    def _add_refunded_amounts(data: dict, app_id: str, phistory: PaymentHistory):
+        """
+        支付记录增加已退款金额信息
+        """
+        if phistory.status in [PaymentHistory.Status.WAIT.value, PaymentHistory.Status.ERROR.value]:
+            refunded_total_amounts = Decimal('0')
+        else:
+            # 已退款金额
+            refunded_total_amounts = RefundRecordManager.get_trade_refunded_total_amounts(
+                app_id=app_id, trade_id=phistory.id
+            )
+
+        refunded_amounts = quantize_10_2(refunded_total_amounts)
+        data['refunded_amounts'] = '{:f}'.format(refunded_amounts)
+
+        return data
+
+    @staticmethod
     def trade_query_trade_id(view: PaySignGenericViewSet, request, kwargs):
         """
         查询交易记录
@@ -186,16 +204,7 @@ class TradeHandler:
         s = PaymentHistorySerializer(instance=phistory)
         data = s.data
         if query_refunded is not None:
-            if phistory.status in [PaymentHistory.Status.WAIT.value, PaymentHistory.Status.ERROR.value]:
-                refunded_total_amounts = Decimal('0')
-            else:
-                # 已退款金额
-                refunded_total_amounts = RefundRecordManager.get_trade_refunded_total_amounts(
-                    app_id=app.id, trade_id=phistory.id
-                )
-
-            refunded_amounts = quantize_10_2(refunded_total_amounts)
-            data['refunded_amounts'] = '{:f}'.format(refunded_amounts)
+            data = TradeHandler._add_refunded_amounts(data=data, app_id=app.id, phistory=phistory)
 
         return Response(data=data)
 
@@ -212,6 +221,7 @@ class TradeHandler:
             return view.exception_response(exc)
 
         order_id = kwargs.get('order_id', '')
+        query_refunded = request.query_params.get('query_refunded', None)
         try:
             phistory = PaymentHistoryManager.get_payment_history_by_order_id(order_id=order_id, app_id=app.id)
         except errors.NotFound:
@@ -220,7 +230,11 @@ class TradeHandler:
             ))
 
         s = PaymentHistorySerializer(instance=phistory)
-        return Response(data=s.data)
+        data = s.data
+        if query_refunded is not None:
+            data = TradeHandler._add_refunded_amounts(data=data, app_id=app.id, phistory=phistory)
+
+        return Response(data=data)
 
     @staticmethod
     def trade_refund(view: PaySignGenericViewSet, request, kwargs):

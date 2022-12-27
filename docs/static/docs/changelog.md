@@ -1,3 +1,12 @@
+## v0.7.1
+2022-12-27
+* 增加查询app交易流水记录api和测试用例;  
+* 支付记录查询2个api增加参数‘query_refunded’返回已退款金额信息;  
+* add command 'tradebill_trade_amounts_fill';
+* ListTradeBill接口响应内容增加'out_trade_no','trade_amounts'内容；  
+* 交易流水增加交易总金额和外部交易单号字段；  
+* 退款交易流水记录中记录应退券金额；  
+
 ## v0.7.0
 2022-12-21
 * ListTickets、DetailTicket接口响应增加'rating'评分内容;   
