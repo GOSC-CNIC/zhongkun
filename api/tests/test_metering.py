@@ -1967,13 +1967,29 @@ class StatementStorageTests(MyAPITestCase):
         u_st0, u_st1, u_st2, u_st3 = self.create_statement_storage()
 
         # user statement server detail
+        metering1 = MeteringObjectStorage(
+            original_amount=Decimal('2.22'),
+            trade_amount=Decimal('0'),
+            daily_statement_id=u_st0.id,
+            service_id=self.service2.id,
+            storage_bucket_id='bucket3',
+            date=u_st0.date,
+            user_id=self.user.id,
+            username=self.user.username,
+            storage=3.2345
+        )
+        metering1.save(force_insert=True)
+
         url = reverse('api:statement-storage-detail', kwargs={'id': u_st0.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["id", "original_amount", "payable_amount", "trade_amount",
                            "payment_status", "payment_history_id", "service", "date", "creation_time",
-                           "user_id", "username", "service"], response.data)
+                           "user_id", "username", "service", 'meterings'], response.data)
         self.assertKeysIn(["id", "name", "name_en", "service_type"], response.data['service'])
+        self.assertIsInstance(response.data['meterings'], list)
+        self.assertEqual(len(response.data['meterings']), 1)
+        self.assertEqual(response.data['meterings'][0]['id'], metering1.id)
 
         self.assert_is_subdict_of(sub={
             "id": u_st0.id,

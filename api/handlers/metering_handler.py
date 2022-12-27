@@ -10,7 +10,7 @@ from rest_framework.response import Response
 
 from core import errors
 from api.viewsets import CustomGenericViewSet
-from api.serializers.serializers import MeteringServerSerializer
+from api.serializers.serializers import MeteringServerSerializer, MeteringStorageSimpleSerializer
 from metering.models import PaymentStatus
 from metering.managers import (
     MeteringServerManager, StatementServerManager, MeteringStorageManager, StatementStorageManager
@@ -1017,4 +1017,9 @@ class StorageStatementHandler:
             return view.exception_response(exc)
 
         serializer = view.get_serializer(instance=statement)
-        return Response(data=serializer.data)
+        data = serializer.data
+        metering_qs = MeteringStorageManager.get_meterings_by_statement_id(
+            statement_id=statement.id, _date=statement.date)
+        meterings = MeteringStorageSimpleSerializer(instance=metering_qs, many=True).data
+        data['meterings'] = meterings
+        return Response(data=data)

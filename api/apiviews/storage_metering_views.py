@@ -204,7 +204,27 @@ class StatementStorageViewSet(CustomGenericViewSet):
                     "name": "iharbor",
                     "name_en": "iharbor",
                     "service_type": "iharbor"
-              }
+              },
+              "meterings": [
+                {
+                    "id": "b4956242685b011eda211c8009fe2ebbc",
+                    "original_amount": "2.22",
+                    "trade_amount": "0.00",
+                    "daily_statement_id": "o4954f7b885b011eda211c8009fe2ebbc",
+                    "service_id": "493890dc-85b0-11ed-a211-c8009fe2ebbc",
+                    "bucket_name": "",
+                    "storage_bucket_id": "bucket3",
+                    "date": "2022-01-01",
+                    "creation_time": "2022-12-27T06:32:50.948133Z",
+                    "user_id": "492c51dc-85b0-11ed-a211-c8009fe2ebbc",
+                    "username": "test",
+                    "storage": 3.2345,
+                    "downstream": 0.0,
+                    "replication": 0.0,
+                    "get_request": 0,
+                    "put_request": 0
+                }
+              ]
             }
         """
         return StorageStatementHandler().statement_storage_detail(view=self, request=request, kwargs=kwargs)

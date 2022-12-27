@@ -867,7 +867,7 @@ class DailyStatementStorageDetailSerializer(DailyStatementStorageSerializer):
         return None
 
 
-class MeteringStorageSerializer(serializers.Serializer):
+class MeteringStorageSimpleSerializer(serializers.Serializer):
     """
     对象存储序列化器
     """
@@ -887,6 +887,12 @@ class MeteringStorageSerializer(serializers.Serializer):
     replication = serializers.FloatField(label=_('下行流量GiB'), help_text=_('存储桶的同步流量GiB'))
     get_request = serializers.IntegerField(label=_('同步流量GiB'), help_text=_('存储桶的get请求次数'))
     put_request = serializers.IntegerField(label=_('put请求次数'), help_text=_('存储桶的put请求次数'))
+
+
+class MeteringStorageSerializer(MeteringStorageSimpleSerializer):
+    """
+    对象存储序列化器
+    """
     service = serializers.SerializerMethodField(label=_('服务'), method_name='get_service')
 
     @staticmethod

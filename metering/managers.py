@@ -442,6 +442,11 @@ class MeteringServerManager:
 
         return data
 
+    @staticmethod
+    def get_meterings_by_statement_id(statement_id: str, _date: date):
+        queryset = MeteringServerManager.get_metering_server_queryset()
+        return queryset.filter(date=_date, daily_statement_id=statement_id)
+
 
 class StatementServerManager:
     @staticmethod
@@ -609,6 +614,10 @@ class MeteringStorageManager:
 
         queryset = self.get_metering_obs_queryset()
         return queryset.filter(**lookups).order_by('-creation_time')
+
+    @staticmethod
+    def get_meterings_by_statement_id(statement_id: str, _date: date):
+        return MeteringObjectStorage.objects.filter(date=_date, daily_statement_id=statement_id)
 
 
 class StatementStorageManager:
