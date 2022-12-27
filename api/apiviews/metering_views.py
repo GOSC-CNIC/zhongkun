@@ -493,7 +493,32 @@ class StatementServerViewSet(CustomGenericViewSet):
                 "name": "科技云联邦研发与运行",
                 "name_en": "CSTCloud Federation Dev & Ops",
                 "service_type": "evcloud"
-              }
+              },
+              "meterings": [
+                {
+                  "id": "sd99ab976658e11eda3bac8009fe2ebbc",
+                  "original_amount": "72.24",
+                  "trade_amount": "72.24",
+                  "daily_statement_id": "s15b4e94a658f11edb8adc8009fe2ebbc",
+                  "service_id": "8d725d6a-30b5-11ec-a8e6-c8009fe2eb10",
+                  "server_id": "5fc60df0-9445-11ec-a91e-c8009fe2eb10",
+                  "date": "2022-11-15",
+                  "creation_time": "2022-11-16T09:12:52.891427Z",
+                  "user_id": "1",
+                  "username": "shun",
+                  "vo_id": "",
+                  "vo_name": "",
+                  "owner_type": "user",
+                  "cpu_hours": 48,
+                  "ram_hours": 96,
+                  "disk_hours": 0,
+                  "public_ip_hours": 24,
+                  "snapshot_hours": 0,
+                  "upstream": 0,
+                  "downstream": 0,
+                  "pay_type": "postpaid"
+                }
+              ]
             }
         """
         return StatementHandler().statement_server_detail(view=self, request=request, kwargs=kwargs)   

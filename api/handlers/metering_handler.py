@@ -10,8 +10,11 @@ from rest_framework.response import Response
 
 from core import errors
 from api.viewsets import CustomGenericViewSet
+from api.serializers.serializers import MeteringServerSerializer
 from metering.models import PaymentStatus
-from metering.managers import MeteringServerManager, StatementServerManager, MeteringStorageManager, StatementStorageManager
+from metering.managers import (
+    MeteringServerManager, StatementServerManager, MeteringStorageManager, StatementStorageManager
+)
 from utils.report_file import CSVFileInMemory
 from utils import rand_utils
 from utils.decimal_utils import quantize_18_2
@@ -768,7 +771,12 @@ class StatementHandler:
             return view.exception_response(exc)
 
         serializer = view.get_serializer(instance=statement)
-        return Response(data=serializer.data)
+        data = serializer.data
+        metering_qs = MeteringServerManager.get_meterings_by_statement_id(
+            statement_id=statement.id, _date=statement.date)
+        meterings = MeteringServerSerializer(instance=metering_qs, many=True).data
+        data['meterings'] = meterings
+        return Response(data=data)
 
 
 class MeteringObsHandler:

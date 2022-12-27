@@ -1617,7 +1617,9 @@ class StatementServerTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["id", "original_amount", "payable_amount", "trade_amount",
                            "payment_status", "payment_history_id", "service", "date", "creation_time",
-                           "user_id", "username", "vo_id", "vo_name", "owner_type", "service"], response.data)
+                           "user_id", "username", "vo_id", "vo_name", "owner_type", "service",
+                           'meterings'], response.data)
+        self.assertIsInstance(response.data['meterings'], list)
         self.assertKeysIn(["id", "name", "name_en", "service_type"], response.data['service'])
         self.assertEqual(response.data['original_amount'], v_st0.original_amount)
         self.assertEqual(response.data['payable_amount'], v_st0.payable_amount)
