@@ -301,6 +301,9 @@ class TransactionBillManager:
 
         if trade_type:
             queryset = queryset.filter(trade_type=trade_type)
+        else:
+            queryset = queryset.filter(trade_type__in=[
+                TransactionBill.TradeType.PAYMENT.value, TransactionBill.TradeType.REFUND.value])
 
         return queryset
 

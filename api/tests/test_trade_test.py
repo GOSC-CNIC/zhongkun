@@ -1485,11 +1485,10 @@ class AppTradeBillTests(MyAPITestCase):
             }
         )
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(len(r.data['results']), 4)
-        self.assertEqual(bill6.id, r.data['results'][0]['id'])
-        self.assertEqual(bill5.id, r.data['results'][1]['id'])
-        self.assertEqual(bill2.id, r.data['results'][2]['id'])
-        self.assertEqual(bill1.id, r.data['results'][3]['id'])
+        self.assertEqual(len(r.data['results']), 3)
+        self.assertEqual(bill5.id, r.data['results'][0]['id'])
+        self.assertEqual(bill2.id, r.data['results'][1]['id'])
+        self.assertEqual(bill1.id, r.data['results'][2]['id'])
 
         # query "trade_type"
         r = self.do_request(
@@ -1529,7 +1528,7 @@ class AppTradeBillTests(MyAPITestCase):
         )
         self.assertEqual(r.status_code, 200)
         self.assertEqual(len(r.data['results']), 1)
-        self.assertEqual(bill6.id, r.data['results'][0]['id'])
+        self.assertEqual(bill5.id, r.data['results'][0]['id'])
         next_marker = r.data['next_marker']
 
         # page_size, marker
@@ -1543,8 +1542,10 @@ class AppTradeBillTests(MyAPITestCase):
         )
         self.assertEqual(r.status_code, 200)
         self.assertEqual(len(r.data['results']), 2)
-        self.assertEqual(bill5.id, r.data['results'][0]['id'])
-        self.assertEqual(bill2.id, r.data['results'][1]['id'])
+        self.assertEqual(bill2.id, r.data['results'][0]['id'])
+        self.assertEqual(bill1.id, r.data['results'][1]['id'])
+        self.assertEqual(next_marker, r.data['marker'])
+        self.assertIsNone(r.data['next_marker'])
 
         # invalid marker
         r = self.do_request(
