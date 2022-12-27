@@ -373,6 +373,47 @@ class MeteringServerViewSet(CustomGenericViewSet):
         """
         return MeteringHandler().list_aggregation_by_service(view=self, request=request)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('计量单详情查询')
+    )
+    def retrieve(self, request, *args, **kwargs):
+        """
+        计量单详情查询
+
+            http 200:
+            {
+              "id": "21a45a76-b264-11ec-a1ba-c8009fe2eb10",
+              "original_amount": "15.97",
+              "trade_amount": "15.97",
+              "daily_statement_id": "",
+              "service_id": "2",
+              "server_id": "0e475786-9ac1-11ec-857b-c8009fe2eb10",
+              "date": "2022-12-15",
+              "creation_time": "2022-04-02T09:06:07.254196Z",
+              "user_id": "1",
+              "username": "",
+              "vo_id": "",
+              "vo_name": "",
+              "owner_type": "user",
+              "cpu_hours": 48,
+              "ram_hours": 48,
+              "disk_hours": 4800,
+              "public_ip_hours": 24,
+              "snapshot_hours": 0,
+              "upstream": 0,
+              "downstream": 0,
+              "pay_type": "postpaid",
+              "server": {
+                "ipv4": "159.226.235.132",
+                "ram": 2048,
+                "vcpus": 2,
+                "disk_size": 200,
+                "id": "0e475786-9ac1-11ec-857b-c8009fe2eb10"
+              }
+            }
+        """
+        return MeteringHandler().get_server_metering_detail(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return serializers.MeteringServerSerializer

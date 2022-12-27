@@ -21,6 +21,29 @@ class MeteringServerManager:
     def get_metering_server_queryset():
         return MeteringServer.objects.all()
 
+    @staticmethod
+    def get_metering_by_id(metering_id: str) -> MeteringServer:
+        return MeteringServer.objects.filter(id=metering_id).first()
+
+    @staticmethod
+    def get_metering(metering_id: str, user):
+        """
+        查询一个计量单，检查权限
+
+        :raises: Error
+        """
+        metering = MeteringServerManager.get_metering_by_id(metering_id=metering_id)
+        if metering is None:
+            raise errors.NotFound(message=_('计量单不存在。'))
+
+        if metering.owner_type == metering.OwnerType.USER.value:
+            if metering.user_id != user.id:
+                raise errors.AccessDenied(message=_('无计量单的访问权限。'))
+        elif metering.owner_type == metering.OwnerType.VO.value:
+            VoManager().get_has_read_perm_vo(vo_id=metering.vo_id, user=user)
+
+        return metering
+
     def filter_user_server_metering(
             self, user,
             service_id: str = None,

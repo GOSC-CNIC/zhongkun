@@ -15,6 +15,7 @@ from metering.models import PaymentStatus
 from metering.managers import (
     MeteringServerManager, StatementServerManager, MeteringStorageManager, StatementStorageManager
 )
+from servers.models import Server, ServerArchive
 from utils.report_file import CSVFileInMemory
 from utils import rand_utils
 from utils.decimal_utils import quantize_18_2
@@ -687,6 +688,34 @@ class MeteringHandler:
         data = csv_file.to_bytes()
         csv_file.close()
         return self._wrap_csv_file_response(filename=filename, data=data)
+
+    @staticmethod
+    def get_server_metering_detail(view: CustomGenericViewSet, request, kwargs):
+        """
+        计量计费单详细信息查询
+        """
+        metering_id = kwargs.get(view.lookup_field)
+
+        try:
+            metering = MeteringServerManager.get_metering(metering_id=metering_id, user=request.user)
+        except errors.Error as exc:
+            return view.exception_response(exc=exc)
+
+        server = Server.objects.filter(id=metering.server_id).values(
+            'id', 'ipv4', 'ram', 'vcpus', 'disk_size').first()
+        if not server:
+            archive = ServerArchive.objects.filter(
+                server_id=metering.server_id, archive_type=ServerArchive.ArchiveType.ARCHIVE.value
+            ).values('server_id', 'ipv4', 'ram', 'vcpus', 'disk_size').first()
+            if archive:
+                archive['id'] = archive.pop('server_id', '')
+                server = archive
+            else:
+                server = {'id': '', 'ipv4': '', 'ram': 0, 'vcpus': 0, 'disk_size': 0}
+
+        data = MeteringServerSerializer(instance=metering).data
+        data['server'] = server
+        return Response(data=data)
 
 
 class StatementHandler:
