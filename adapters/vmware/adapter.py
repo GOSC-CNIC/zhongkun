@@ -109,8 +109,7 @@ class VmwareAdapter(BaseAdapter):
         template_name = params.image_id
         try:
             vm_name = self._build_instance_name(template_name)
-            deploy_settings = {'template': 'centos8_gui', 'hostname': 'gosc_003', 'ips': '10.0.200.243',
-                               'cpus': params.vcpu, 'mem': params.ram, "new_vm_name": vm_name,
+            deploy_settings = {'cpus': params.vcpu, 'mem': params.ram, "new_vm_name": vm_name,
                                'template_name': template_name}
 
             # connect to vCenter server
@@ -365,14 +364,23 @@ class VmwareAdapter(BaseAdapter):
             result = []
             for vm in all_vm.values():
                 if vm.config.template == True:
+                    default_username = ''
+                    default_password = ''
+                    for field_value in vm.value:
+                        for field in vm.availableField:
+                            if field.name == 'default_user' and field.key == field_value.key:
+                                default_username = field_value.value
+                            elif field.name == 'default_password' and field.key == field_value.key:
+                                default_password = field_value.value
+                    disk_size = vm.storage.perDatastoreUsage[0].unshared / (1024 * 1024 * 1024)  # byte大小转GB
                     img_obj = outputs.ListImageOutputImage(
                         _id=vm.name, name=vm.name,
                         system=helpers.get_system_name(vm),
                         desc=vm.config.guestFullName,
                         system_type=helpers.get_system_type(vm),
                         creation_time=vm.config.createDate,
-                        default_username='', default_password='',
-                        min_sys_disk_gb=0, min_ram_mb=0
+                        default_username=default_username, default_password=default_password,
+                        min_sys_disk_gb=disk_size, min_ram_mb=0
                     )
                     result.append(img_obj)
             return outputs.ListImageOutput(images=result)
@@ -408,8 +416,12 @@ class VmwareAdapter(BaseAdapter):
             result = []
             for net in all_networks.values():
                 public = False
-                new_net = outputs.ListNetworkOutputNetwork(_id=net.name, name=net.name, public=public,
+                net_data_center = net.parent.parent.name
+                new_net_name = net.name + '(' + net_data_center + ')'
+                new_net = outputs.ListNetworkOutputNetwork(_id=net.name, name=new_net_name, public=public,
                                                            segment='0.0.0.0')
+                if params.azone_id and net_data_center != params.azone_id:
+                    continue
                 result.append(new_net)
             return outputs.ListNetworkOutput(networks=result)
 
@@ -438,6 +450,12 @@ class VmwareAdapter(BaseAdapter):
 
     def list_availability_zones(self, params: inputs.ListAvailabilityZoneInput):
         try:
-            return outputs.ListAvailabilityZoneOutput([])
+            zones = []
+            service_instance = self._get_connect()
+            content = service_instance.RetrieveContent()
+            datacenters = helpers.get_all_obj(content, [vim.Datacenter])
+            for center in datacenters.values():
+                zones.append(outputs.AvailabilityZone(_id=str(center.name), name=center.name))
+            return outputs.ListAvailabilityZoneOutput(zones)
         except Exception as e:
             return outputs.ListAvailabilityZoneOutput(ok=False, error=exceptions.Error(str(e)), zones=None)
