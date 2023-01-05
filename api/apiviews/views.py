@@ -1491,7 +1491,8 @@ class ServiceViewSet(CustomGenericViewSet):
                   "status": "enable",              # enable: 开启状态；disable: 停止服务状态; deleted: 删除
                   "data_center": {
                     "id": 3,
-                    "name": "VMware测试中心"
+                    "name": "VMware测试中心",
+                    "name_en": "xxx"
                   },
                   "longitude": 0,
                   "latitude": 0,

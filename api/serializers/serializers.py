@@ -190,9 +190,9 @@ class ServiceSerializer(serializers.Serializer):
     def get_data_center(obj):
         c = obj.data_center
         if c is None:
-            return {'id': None, 'name': None}
+            return {'id': None, 'name': None, 'name_en': None}
 
-        return {'id': c.id, 'name': c.name}
+        return {'id': c.id, 'name': c.name, 'name_en': c.name_en}
 
 
 class DataCenterSerializer(serializers.Serializer):
