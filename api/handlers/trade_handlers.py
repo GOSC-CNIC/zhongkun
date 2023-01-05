@@ -303,7 +303,7 @@ class TradeHandler:
             s_errors = serializer.errors
             if 'refund_amount' in s_errors:
                 exc = errors.BadRequest(
-                    message=_('退款金额无效无效。') + s_errors['refund_amount'][0], code='InvalidRefundAmount')
+                    message=_('退款金额无效。') + s_errors['refund_amount'][0], code='InvalidRefundAmount')
             elif 'refund_reason' in s_errors:
                 exc = errors.BadRequest(
                     message=_('退款原因无效。') + s_errors['refund_reason'][0], code='InvalidRefundReason')

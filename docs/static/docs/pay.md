@@ -684,7 +684,7 @@ Pay-Signature：xxx                # 应答签名
 | :------: | :---: | :------: | :------: | :------: |
 | out_order_id |  否   |  sring | 36 |   原支付交易对应的应用APP内的订单编号，与钱包支付交易编号 trade_id 二选一  |  
 | trade_id |  否   |  sring   | 36 |   钱包支付交易编号，与订单编号 out_order_id 二选一  | 
-| refund_amounts |  是   |  sring  | 十位整数 |   申请退款金额，支持两位小数  |
+| refund_amount |  是   |  sring  | 8位整数，2位小数 |   申请退款金额，支持两位小数  |
 | refund_reason | 是 | string | 255 | 退款原因 |
 | out_refund_id | 是 | string | 64 | 应用APP内的退款编号，必须唯一 |
 | remark | 否 | string | 255 | 备注信息 |
@@ -823,7 +823,7 @@ https://vms.cstcloud.cn/api/trade/refund/query?refund_id=xxx
 | real_refund | string | 8位整数，2位小数 | 实际退款金额 | 例如 56.66|
 | coupon_refund | string| 8位整数，2位小数 |  代金券或者优惠抵扣金额，此金额不退 | 例如 10.00 |
 | creation_time | string | | 创建时间 | 接收退款请求的时间，ISO8601格式 |
-| success_time | string | | 退款成功时间 | ISO8601格式，示例 "2022-12-01T02:12:04.221869Z" |
+| success_time | string | | 退款成功时间 | ISO8601格式，示例 `"2022-12-01T02:12:04.221869Z"` |
 | status | string | 16 | 退款状态 | wait：未退款；success：退款成功；error：退款失败；closed: 交易关闭（未退款时撤销了退款） |
 | status_desc | string | 255 | 退款状态描述 | 比如退款失败的原因 |
 | remark | string | 255 | 备注 |  |
@@ -904,8 +904,8 @@ Pay-Signature：xxx                # 应答签名
 
 | 参数 | 必选  | 参数类型 |   描述   |
 | :------: | :---: | :------: | :------: |
-| trade_time_start |  是   |  sring   | 交易时间段起始时间（含），ISO8601格式：YYYY-MM-ddTHH:mm:ssZ，例如 2022-12-06T00:00:00Z |  
-| trade_time_end |  是   |  sring   | 交易时间段终止时间（不含），ISO8601格式：YYYY-MM-ddTHH:mm:ssZ，例如 2022-12-07T00:00:00Z |  
+| trade_time_start |  是   |  sring   | 交易时间段起始时间（含），ISO8601格式：`YYYY-MM-ddTHH:mm:ssZ`，例如 `2022-12-06T00:00:00Z` |  
+| trade_time_end |  是   |  sring   | 交易时间段终止时间（不含），ISO8601格式：`YYYY-MM-ddTHH:mm:ssZ`，例如 `2022-12-07T00:00:00Z` |  
 | trade_type |  否   |  sring   | 交易类型，默认返回所有支付和退款流水记录， payment（支付）、refund（退款） |
 | marker | 否 | string | 分页标记，响应内容中“next_marker” |
 | page_size | 否 | int | 每页数据数，默认100，最大1000 |
@@ -943,7 +943,7 @@ https://vms.cstcloud.cn/api/trade/bill/transaction?trade_time_start=2022-12-06T0
 | trade_amounts | string| 8位整数，2位小数 | 本次交易金额 | = amounts + coupon_amount |
 | amounts | string | 8位整数，2位小数 | 交易金额 | 支付金额 -6.66、退款金额 88.80 |
 | coupon_amount | string | 8位整数，2位小数 | 代金券金额 | 代金券支付金额 -66.66， 代金券退款金额 1.23 |
-| creation_time | string |  | 交易完成时间 | ISO8601格式，示例 2022-03-09T01:08:32.988635Z |
+| creation_time | string |  | 交易完成时间 | ISO8601格式，示例 `2022-03-09T01:08:32.988635Z` |
 | remark | string | 255 | 备注 |  |
 | app_service_id | string | 32 | APP服务ID | |
 | app_id | string| 32 |  app id |  |
