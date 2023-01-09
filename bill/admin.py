@@ -191,7 +191,7 @@ class RefundRecordAdmin(admin.ModelAdmin):
                     'owner_id', 'owner_name', 'owner_type', 'in_account')
     list_display_links = ('id',)
     list_filter = ('status', 'owner_type')
-    search_fields = ('id', 'owner_id', 'owner_name', 'out_order_id', 'out_refund_id', 'payment_id')
+    search_fields = ('id', 'owner_id', 'owner_name', 'out_order_id', 'out_refund_id', 'trade_id')
 
     def has_delete_permission(self, request, obj=None):
         return False
