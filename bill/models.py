@@ -160,13 +160,14 @@ class PayAppService(CustomIdModel):
                                        blank=True, default='')
     longitude = models.FloatField(verbose_name=_('经度'), blank=True, default=0)
     latitude = models.FloatField(verbose_name=_('纬度'), blank=True, default=0)
-    user = models.ForeignKey(
-        verbose_name=_('用户'), to=UserProfile, on_delete=models.SET_NULL, related_name='+', null=True, default=None)
     category = models.CharField(
         verbose_name=_('服务类别'), max_length=16, choices=Category.choices, default=Category.OTHER.value)
     service = models.OneToOneField(
         verbose_name=_('对应的VMS服务'), to=ServiceConfig,
         on_delete=models.SET_NULL, null=True, blank=True, default=None)
+    users = models.ManyToManyField(
+        verbose_name=_('管理用户'), to=UserProfile, related_name='+', blank=True,
+        db_constraint=False, db_table='pay_app_service_users')
 
     class Meta:
         verbose_name = _('应用APP子服务')
@@ -182,6 +183,20 @@ class PayAppService(CustomIdModel):
 
     def __repr__(self):
         return f'PayAppService({self.name})'
+
+    def user_has_perm(self, user):
+        """
+        用户是否有访问此服务的管理权限
+
+        :param user: 用户
+        :return:
+            True    # has
+            False   # no
+        """
+        if not user or not user.id:
+            return False
+
+        return self.users.filter(id=user.id).exists()
 
 
 class CashCouponBase(models.Model):

@@ -128,7 +128,7 @@ class AppServiceViewSet(CustomGenericViewSet):
         user_id = request.user.id
         queryset = PayAppService.objects.select_related(
             'orgnazition'
-        ).filter(**lookups).filter(Q(user_id=user_id) | Q(service__users__id=user_id))
+        ).filter(**lookups).filter(users__id=user_id)
 
         try:
             tickets = self.paginate_queryset(queryset=queryset)

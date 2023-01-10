@@ -147,11 +147,12 @@ class PayOrgnazitionAdmin(admin.ModelAdmin):
 
 @admin.register(PayAppService)
 class PayAppServiceAdmin(NoDeleteSelectModelAdmin):
-    list_display = ('id', 'name', 'name_en', 'category', 'service', 'creation_time', 'status', 'user',
+    list_display = ('id', 'name', 'name_en', 'category', 'service', 'creation_time', 'status',
                     'resources', 'contact_person', 'contact_email', 'contact_telephone', 'desc')
     list_display_links = ('id',)
-    list_select_related = ('orgnazition', 'app', 'service', 'user')
-    raw_id_fields = ('user',)
+    list_select_related = ('orgnazition', 'app', 'service')
+    filter_horizontal = ('users',)
+    # raw_id_fields = ('users',)
 
     def has_delete_permission(self, request, obj=None):
         return False

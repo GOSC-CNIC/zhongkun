@@ -44,8 +44,7 @@ class AppServiceTests(MyAPITestCase):
         self.assertEqual(len(r.data['results']), 0)
 
         # set app_service2 user
-        self.app_service2.user_id = self.user.id
-        self.app_service2.save(update_fields=['user_id'])
+        self.app_service2.users.add(self.user)
         r = self.client.get(base_url)
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn(keys=['count', 'page_num', 'page_size', 'results'], container=r.data)
@@ -59,7 +58,7 @@ class AppServiceTests(MyAPITestCase):
         self.assertEqual(r.data['results'][0]['id'], self.app_service2.id)
 
         # set app_service1.service user
-        self.app_service1.service.users.add(self.user)
+        self.app_service1.users.add(self.user)
         r = self.client.get(base_url)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data['count'], 2)

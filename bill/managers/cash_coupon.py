@@ -23,14 +23,7 @@ def get_app_service_by_admin(_id: str, user):
     if app_service is None:
         raise errors.AppServiceNotExist(message=_('App子服务不存在'))
 
-    if app_service.user_id == user.id:
-        return app_service
-
-    service = app_service.service
-    if service is None:
-        raise errors.AccessDenied(message=_('你没有此App子服务的权限'))
-
-    if not service.user_has_perm(user):
+    if not app_service.user_has_perm(user):
         raise errors.AccessDenied(message=_('你没有此App子服务的权限'))
 
     return app_service
@@ -511,14 +504,7 @@ class CashCouponActivityManager:
         if not activity.app_service:
             return False
 
-        if activity.app_service.user_id == user.id:
-            return True
-
-        service = activity.app_service.service
-        if service is None:
-            return False
-
-        return service.user_has_perm(user)
+        return activity.app_service.user_has_perm(user)
 
     def create_coupons_for_template(self, activity_id: str, user, max_count: int = 1000):
         """

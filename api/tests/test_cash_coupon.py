@@ -941,17 +941,7 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
 
         # app_service1 has permission
-        self.app_service1.user_id = self.user.id
-        self.app_service1.save(update_fields=['user_id'])
-        r = self.client.post(url, data=data)
-        self.assertErrorResponse(status_code=404, code='UserNotExist', response=r)
-
-        self.app_service1.user_id = None
-        self.app_service1.save(update_fields=['user_id'])
-        r = self.client.post(url, data=data)
-        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
-
-        self.service.users.add(self.user)
+        self.app_service1.users.add(self.user)
         r = self.client.post(url, data=data)
         self.assertErrorResponse(status_code=404, code='UserNotExist', response=r)
 
@@ -1046,8 +1036,7 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
 
         # user has permission of app_service1, query "app_service_id"
-        self.app_service1.user_id = self.user.id
-        self.app_service1.save(update_fields=['user_id'])
+        self.app_service1.users.add(self.user)
 
         query = parse.urlencode(query={'app_service_id': self.app_service1.id})
         r = self.client.get(f'{url}?{query}')
@@ -1061,9 +1050,6 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         ], container=r.data['results'][0])
 
         # user has permission of app_service1, query "app_service_id", "status"
-        self.app_service1.user_id = self.user.id
-        self.app_service1.save(update_fields=['user_id'])
-
         query = parse.urlencode(query={
             'app_service_id': self.app_service1.id, 'status': CashCoupon.Status.AVAILABLE.value})
         r = self.client.get(f'{url}?{query}')
@@ -1073,14 +1059,13 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assertEqual(r.data['results'][0]['id'], coupon2.id)
 
         # user no permission of app_service1, query "template_id"
-        self.app_service1.user_id = None
-        self.app_service1.save(update_fields=['user_id'])
+        self.app_service1.users.remove(self.user)
         query = parse.urlencode(query={'template_id': template.id})
         r = self.client.get(f'{url}?{query}')
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
 
         # user has permission of app_service1, query "template_id"
-        self.service.users.add(self.user)
+        self.app_service1.users.add(self.user)
         query = parse.urlencode(query={'template_id': template.id})
         r = self.client.get(f'{url}?{query}')
         self.assertEqual(r.status_code, 200)
