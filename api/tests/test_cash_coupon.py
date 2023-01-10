@@ -37,7 +37,7 @@ class CashCouponTests(MyAPITestCase):
         po = PayOrgnazition(name='机构')
         po.save()
         self.app_service1 = PayAppService(
-            name='service1', app=app, orgnazition=po, service=self.service,
+            name='service1', app=app, orgnazition=po, service_id=self.service.id,
             category=PayAppService.Category.VMS_SERVER.value
         )
         self.app_service1.save()
@@ -259,7 +259,7 @@ class CashCouponTests(MyAPITestCase):
         self.assertKeysIn([
             "id", "name", "name_en", "service_id", "category"], results[0]['app_service']
         )
-        self.assertEqual(None, results[0]['app_service']['service_id'])     # 188.80
+        self.assertEqual('', results[0]['app_service']['service_id'])     # 188.80
         self.assertEqual(self.service.id, results[1]['app_service']['service_id'])  # 88.80
         self.assert_is_subdict_of(
             {
@@ -846,7 +846,7 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         po = PayOrgnazition(name='机构')
         po.save()
         self.app_service1 = PayAppService(
-            name='service1', app=app, orgnazition=po, service=self.service,
+            name='service1', app=app, orgnazition=po, service_id=self.service.id,
             category=PayAppService.Category.VMS_SERVER.value
         )
         self.app_service1.save()

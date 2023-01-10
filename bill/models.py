@@ -10,7 +10,6 @@ from utils.model import UuidModel, get_encryptor
 from utils import rand_utils
 from users.models import UserProfile
 from vo.models import VirtualOrganization
-from service.models import ServiceConfig
 from core import errors
 
 
@@ -162,9 +161,7 @@ class PayAppService(CustomIdModel):
     latitude = models.FloatField(verbose_name=_('纬度'), blank=True, default=0)
     category = models.CharField(
         verbose_name=_('服务类别'), max_length=16, choices=Category.choices, default=Category.OTHER.value)
-    service = models.OneToOneField(
-        verbose_name=_('对应的VMS服务'), to=ServiceConfig,
-        on_delete=models.SET_NULL, null=True, blank=True, default=None)
+    service_id = models.CharField(verbose_name=_('对应的服务单元ID'), max_length=64, blank=True, default='')
     users = models.ManyToManyField(
         verbose_name=_('管理用户'), to=UserProfile, related_name='+', blank=True,
         db_constraint=False, db_table='pay_app_service_users')

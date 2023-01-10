@@ -1187,7 +1187,7 @@ class CashCouponActivityTests(TransactionTestCase):
         po = PayOrgnazition(name='机构')
         po.save()
         self.app_service1 = PayAppService(
-            name='service1', app=app, orgnazition=po, service=self.service
+            name='service1', app=app, orgnazition=po, service_id=self.service.id
         )
         self.app_service1.save()
         self.service.pay_app_service_id = self.app_service1.id
@@ -1211,8 +1211,12 @@ class CashCouponActivityTests(TransactionTestCase):
         with self.assertRaises(errors.AccessDenied):
             ccam.create_coupons_for_template(activity_id=activity.id, user=self.user, max_count=2)
 
-        self.app_service1.user_id = self.user
-        self.app_service1.save(update_fields=['user_id'])
+        # app_serive跟service的管理员权限无关
+        self.service.users.add(self.user)
+        with self.assertRaises(errors.AccessDenied):
+            ccam.create_coupons_for_template(activity_id=activity.id, user=self.user, max_count=2)
+
+        self.app_service1.users.add(self.user)
         ay, c, err = ccam.create_coupons_for_template(activity_id=activity.id, user=self.user, max_count=2)
         self.assertEqual(c, 2)
         count = CashCoupon.objects.filter(activity_id=activity.id).count()
@@ -1220,12 +1224,11 @@ class CashCouponActivityTests(TransactionTestCase):
         self.assertEqual(ay.granted_count, 2)
         self.assertEqual(ay.grant_status, CashCouponActivity.GrantStatus.GRANT.value)
 
-        self.app_service1.user_id = None
-        self.app_service1.save(update_fields=['user_id'])
+        self.app_service1.users.remove(self.user)
         with self.assertRaises(errors.AccessDenied):
             ccam.create_coupons_for_template(activity_id=activity.id, user=self.user, max_count=2)
 
-        self.service.users.add(self.user)
+        self.app_service1.users.add(self.user)
         ay, c, err = ccam.create_coupons_for_template(activity_id=activity.id, user=self.user, max_count=2)
         self.assertEqual(c, 2)
         self.assertEqual(ay.granted_count, 4)

@@ -147,10 +147,11 @@ class PayOrgnazitionAdmin(admin.ModelAdmin):
 
 @admin.register(PayAppService)
 class PayAppServiceAdmin(NoDeleteSelectModelAdmin):
-    list_display = ('id', 'name', 'name_en', 'category', 'service', 'creation_time', 'status',
+    list_display = ('id', 'name', 'name_en', 'category', 'app', 'creation_time', 'status', 'service_id',
                     'resources', 'contact_person', 'contact_email', 'contact_telephone', 'desc')
     list_display_links = ('id',)
-    list_select_related = ('orgnazition', 'app', 'service')
+    list_select_related = ('orgnazition', 'app',)
+    list_filter = ('category', 'status')
     filter_horizontal = ('users',)
     # raw_id_fields = ('users',)
 

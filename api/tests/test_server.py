@@ -371,7 +371,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         po = PayOrgnazition(name='机构')
         po.save()
         app_service1 = PayAppService(
-            name='service1', app=app, orgnazition=po, service=self.service
+            name='service1', app=app, orgnazition=po, service_id=self.service.id
         )
         app_service1.save(force_insert=True)
 

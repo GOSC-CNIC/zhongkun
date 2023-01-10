@@ -22,7 +22,7 @@ class AppServiceTests(MyAPITestCase):
         po = PayOrgnazition(name='机构')
         po.save(force_insert=True)
         self.app_service1 = PayAppService(
-            name='service1', app=app, orgnazition=po, service=self.service,
+            name='service1', app=app, orgnazition=po, service_id=self.service.id,
             category=PayAppService.Category.VMS_SERVER.value
         )
         self.app_service1.save(force_insert=True)
@@ -65,7 +65,7 @@ class AppServiceTests(MyAPITestCase):
         self.assertEqual(len(r.data['results']), 2)
 
         # query "app_id"
-        self.app_service1.service.users.add(self.user)
+        self.app_service1.users.add(self.user)
         query = parse.urlencode(query={'app_id': 'test'})
         r = self.client.get(f'{base_url}?{query}')
         self.assertEqual(r.status_code, 200)
