@@ -1,11 +1,14 @@
-from django.db import models
+from django.db import models, transaction
 from django.utils.translation import gettext_lazy as _
 
 from core import errors
 from api.serializers.monitor import (
     MonitorJobCephSerializer, MonitorJobServerSerializer
 )
-from .models import MonitorJobCeph, MonitorProvider, MonitorJobServer, MonitorJobVideoMeeting
+from .models import (
+    MonitorJobCeph, MonitorProvider, MonitorJobServer, MonitorJobVideoMeeting,
+    MonitorWebsite, MonitorWebsiteTask, MonitorWebsiteVersionProvider, get_str_hash
+)
 from .backends.monitor_ceph import MonitorCephQueryAPI
 from .backends.monitor_server import MonitorServerQueryAPI
 from .backends.monitor_video_meeting import MonitorVideoMeetingQueryAPI
@@ -317,3 +320,135 @@ class MonitorJobVideoMeetingManager:
         }[tag]
 
         return f(**params)
+
+
+class MonitorWebsiteManager:
+    @staticmethod
+    def add_website_task(name: str, url: str, remark: str, user_id: str):
+        """
+        :raises: Error
+        """
+        user_website = MonitorWebsite(name=name, url=url, remark=remark, user_id=user_id)
+        MonitorWebsiteManager.do_add_website_task(user_website)
+
+    @staticmethod
+    def do_add_website_task(user_website: MonitorWebsite):
+        """
+        :raises: Error
+        """
+        url_hash = get_str_hash(user_website.url)
+        _website = MonitorWebsite.objects.filter(user_id=user_website.user_id, url_hash=url_hash).first()
+        if _website is not None:
+            raise errors.TargetAlreadyExists(message=_('已存在相同的网址。'))
+
+        try:
+            with transaction.atomic():
+                version = MonitorWebsiteVersionProvider.get_instance(select_for_update=True)
+                user_website.save(force_insert=True)
+
+                # 监控任务表是否已存在相同网址，不存在就添加任务，更新任务版本
+                task = MonitorWebsiteTask.objects.filter(url_hash=url_hash).first()
+                if task is None:
+                    task = MonitorWebsiteTask(url=user_website.url)
+                    task.save(force_insert=True)
+                    version.version_add_1()
+        except Exception as exc:
+            raise errors.Error(message=str(exc))
+
+        return user_website
+
+    @staticmethod
+    def delete_website_task(_id: str, user):
+        """
+        :raises: Error
+        """
+        user_website: MonitorWebsite = MonitorWebsite.objects.filter(id=_id).first()
+        if user_website is None:
+            raise errors.NotFound(message=_('指定监控站点不存在。'))
+
+        if user_website.user_id != user.id:
+            raise errors.AccessDenied(message=_('无权限访问指定监控站点。'))
+
+        MonitorWebsiteManager.do_delete_website_task(user_website)
+
+    @staticmethod
+    def do_delete_website_task(user_website: MonitorWebsite):
+        try:
+            with transaction.atomic():
+                version = MonitorWebsiteVersionProvider.get_instance(select_for_update=True)
+                user_website.delete()
+                # 除了要移除的站点，是否还有监控网址相同的 监控任务
+                count = MonitorWebsite.objects.filter(url_hash=user_website.url_hash, url=user_website.url).count()
+                if count == 0:
+                    # 监控任务表移除任务，更新任务版本
+                    MonitorWebsiteTask.objects.filter(url_hash=user_website.url_hash, url=user_website.url).delete()
+                    version.version_add_1()
+        except Exception as exc:
+            raise errors.Error(message=str(exc))
+
+    @staticmethod
+    def change_website_task(_id: str, user, name: str = '', url: str = '', remark: str = ''):
+        """
+        :raises: Error
+        """
+        user_website: MonitorWebsite = MonitorWebsite.objects.filter(id=_id).first()
+        if user_website is None:
+            raise errors.NotFound(message=_('指定监控站点不存在。'))
+
+        if user_website.user_id != user.id:
+            raise errors.AccessDenied(message=_('无权限访问指定监控站点。'))
+
+        if name:
+            user_website.name = name
+
+        if remark:
+            user_website.remark = remark
+
+        MonitorWebsiteManager.do_change_website_task(user_website, new_url=url)
+        return user_website
+
+    @staticmethod
+    def do_change_website_task(user_website: MonitorWebsite, new_url: str):
+        """
+        url有更改的任务处理，user_website对象会全更新
+        """
+        old_url = user_website.url
+
+        if new_url:
+            user_website.url = new_url
+
+        # url有更改，可能需要修改监控任务表和版本编号
+        if old_url and old_url != new_url:
+            try:
+                with transaction.atomic():
+                    version = MonitorWebsiteVersionProvider.get_instance(select_for_update=True)
+                    user_website.save(force_update=True)
+
+                    neet_change_version = False
+                    # 修改站点地址后，是否还有旧监控网址相同的 监控任务
+                    old_url_hash = get_str_hash(old_url)
+                    count = MonitorWebsite.objects.filter(url_hash=old_url_hash, url=old_url).count()
+                    if count == 0:
+                        # 监控任务表移除任务，需要更新任务版本
+                        MonitorWebsiteTask.objects.filter(url_hash=old_url_hash, url=old_url).delete()
+                        neet_change_version = True
+
+                    # 修改站点地址后，是否需要增加新的监控网址 监控任务
+                    new_url_hash = get_str_hash(new_url)
+                    count = MonitorWebsiteTask.objects.filter(url_hash=new_url_hash, url=new_url).count()
+                    if count == 0:
+                        task = MonitorWebsiteTask(url=new_url)
+                        task.save(force_insert=True)
+                        neet_change_version = True
+
+                    if neet_change_version:
+                        version.version_add_1()
+            except Exception as exc:
+                raise errors.Error(message=str(exc))
+        else:
+            try:
+                user_website.save(force_update=True)
+            except Exception as exc:
+                raise errors.Error(message=str(exc))
+
+        return user_website
