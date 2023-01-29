@@ -36,6 +36,9 @@ no_slash_router.register(r'monitor/server/query', monitor_views.MonitorServerQue
                          basename='monitor-server-query')
 no_slash_router.register(r'monitor/video-meeting/query', monitor_views.MonitorVideoMeetingQueryViewSet,
                          basename='monitor-video-meeting-query')
+no_slash_router.register(r'monitor/website', monitor_views.MonitorWebsiteTaskViewSet,
+                         basename='monitor-website')
+
 no_slash_router.register(r'vms/service/p-quota', service_quota_views.ServivePrivateQuotaViewSet,
                          basename='vms-service-p-quota')
 no_slash_router.register(r'vms/service/s-quota', service_quota_views.ServiveShareQuotaViewSet,

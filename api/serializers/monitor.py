@@ -41,3 +41,14 @@ class MonitorJobVideoMeetingSerializer(serializers.Serializer):
     creation = serializers.DateTimeField(label=_('创建时间'))
     longitude = serializers.FloatField(label=_('经度'))
     latitude = serializers.FloatField(label=_('纬度'))
+
+
+class MonitorWebsiteSerializer(serializers.Serializer):
+    id = serializers.CharField(label=_('ID'), read_only=True)
+
+    name = serializers.CharField(label=_('网站名称'), max_length=255, required=True)
+    url = serializers.URLField(label=_('要监控的网址'), max_length=2048, required=True, help_text='http(s)://xxx.xxx')
+    remark = serializers.CharField(label=_('备注'), max_length=255, allow_blank=True, default='')
+
+    url_hash = serializers.CharField(label=_('网址hash值'), max_length=64, read_only=True)
+    creation = serializers.DateTimeField(label=_('创建时间'), read_only=True)

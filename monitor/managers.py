@@ -1,5 +1,6 @@
 from django.db import models, transaction
 from django.utils.translation import gettext_lazy as _
+from django.utils import timezone
 
 from core import errors
 from api.serializers.monitor import (
@@ -328,8 +329,12 @@ class MonitorWebsiteManager:
         """
         :raises: Error
         """
-        user_website = MonitorWebsite(name=name, url=url, remark=remark, user_id=user_id)
-        MonitorWebsiteManager.do_add_website_task(user_website)
+        nt = timezone.now()
+        user_website = MonitorWebsite(
+            name=name, url=url, remark=remark, user_id=user_id,
+            creation=nt, modification=nt
+        )
+        return MonitorWebsiteManager.do_add_website_task(user_website)
 
     @staticmethod
     def do_add_website_task(user_website: MonitorWebsite):

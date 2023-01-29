@@ -9,6 +9,7 @@ from api.viewsets import CustomGenericViewSet
 from api.handlers.monitor_ceph import MonitorCephQueryHandler
 from api.handlers.monitor_server import MonitorServerQueryHandler
 from api.handlers.monitor_video_meeting import MonitorVideoMeetingQueryHandler
+from api.handlers.monitor_website import MonitorWebsiteHandler
 from api.serializers import monitor as monitor_serializers
 from api.paginations import MonitorPageNumberPagination
 from monitor.managers import CephQueryChoices, ServerQueryChoices, VideoMeetingQueryChoices
@@ -364,5 +365,45 @@ class MonitorUnitServerViewSet(CustomGenericViewSet):
     def get_serializer_class(self):
         if self.action == 'list':
             return monitor_serializers.MonitorUnitServerSerializer
+
+        return Serializer
+
+
+class MonitorWebsiteTaskViewSet(CustomGenericViewSet):
+    """
+    站点监控任务
+    """
+    queryset = []
+    permission_classes = [IsAuthenticated]
+    pagination_class = MonitorPageNumberPagination
+    lookup_field = 'id'
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('创建一个站点监控任务'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ''
+        }
+    )
+    def create(self, request, *args, **kwargs):
+        """
+        创建一个站点监控任务
+
+            Http Code: 状态码200，返回数据：
+            {
+              "id": "7fd4bd5c-3794-11ec-93e9-c8009fe2eb10",
+              "name": "testdev",
+              "url": "https://xxx.com",
+              "remark": "string",
+              "url_hash": "232c139d4ddfce0b1e94ae8a1aea85dd9547a060",
+              "creation": "2023-01-13T09:29:32.543642Z"
+            }
+        """
+        return MonitorWebsiteHandler().create_website_task(view=self, request=request)
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return monitor_serializers.MonitorWebsiteSerializer
 
         return Serializer

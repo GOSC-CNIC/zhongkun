@@ -6,7 +6,10 @@ from django.urls import reverse
 from monitor.tests import (
     get_or_create_monitor_job_ceph, get_or_create_monitor_job_server, get_or_create_monitor_job_meeting
 )
-from monitor.models import MonitorJobCeph, MonitorProvider, MonitorJobServer
+from monitor.models import (
+    MonitorJobCeph, MonitorProvider, MonitorJobServer,
+    MonitorWebsite, MonitorWebsiteTask, MonitorWebsiteVersionProvider, get_str_hash
+)
 from utils.test import get_or_create_user
 from . import set_auth_header, MyAPITestCase
 
@@ -564,3 +567,129 @@ class MonitorUnitServerTests(MyAPITestCase):
         self.assertEqual(unit_server4.id, response.data['results'][1]['id'])
         self.assertEqual(unit_server2.id, response.data['results'][2]['id'])
         self.assertEqual(unit_server3.id, response.data['results'][3]['id'])
+
+
+class MonitorWebsiteTests(MyAPITestCase):
+    def setUp(self):
+        self.user = get_or_create_user(password='password')
+        self.user2 = get_or_create_user(username='tom@cnic.cn', password='password')
+
+    def test_create_website_task(self):
+        # NotAuthenticated
+        url = reverse('api:monitor-website-list')
+        r = self.client.post(path=url, data={
+            'name': 'name-test', 'url': 'https://test.c', 'remark': 'test'
+        }, content_type='application/json')
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+
+        # InvalidUrl
+        self.client.force_login(self.user)
+        r = self.client.post(path=url, data={
+            'name': 'name-test', 'url': 'https://test.c', 'remark': 'test'
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidUrl', response=r)
+
+        # user, 1 ok
+        self.client.force_login(self.user)
+        website_url = 'https://test.cn'
+        r = self.client.post(path=url, data={
+            'name': 'name-test', 'url': website_url, 'remark': 'test'
+        })
+        self.assertKeysIn(keys=['id', 'name', 'url', 'remark', 'url_hash', 'creation'], container=r.data)
+        self.assert_is_subdict_of(sub={
+            'name': 'name-test', 'url': website_url,
+            'remark': 'test', 'url_hash': get_str_hash(website_url)
+        }, d=r.data)
+
+        website_id = r.data['id']
+        self.assertEqual(MonitorWebsite.objects.count(), 1)
+        website: MonitorWebsite = MonitorWebsite.objects.get(id=website_id)
+        self.assertEqual(website.name, 'name-test')
+        self.assertEqual(website.url, website_url)
+        self.assertEqual(website.remark, 'test')
+
+        self.assertEqual(MonitorWebsiteTask.objects.count(), 1)
+        task: MonitorWebsiteTask = MonitorWebsiteTask.objects.order_by('-creation').first()
+        self.assertEqual(task.url, website_url)
+
+        version = MonitorWebsiteVersionProvider.get_instance()
+        self.assertEqual(version.version, 1)
+
+        # user, 2 ok
+        website_url2 = 'https://test66.com'
+        r = self.client.post(path=url, data={
+            'name': 'name-test666', 'url': website_url2, 'remark': '测试t88'
+        })
+        self.assertKeysIn(keys=['id', 'name', 'url', 'remark', 'url_hash', 'creation'], container=r.data)
+        self.assert_is_subdict_of(sub={
+            'name': 'name-test666', 'url': website_url2,
+            'remark': '测试t88', 'url_hash': get_str_hash(website_url2)
+        }, d=r.data)
+
+        website_id2 = r.data['id']
+        self.assertEqual(MonitorWebsite.objects.count(), 2)
+        website: MonitorWebsite = MonitorWebsite.objects.get(id=website_id2)
+        self.assertEqual(website.name, 'name-test666')
+        self.assertEqual(website.url, website_url2)
+        self.assertEqual(website.remark, '测试t88')
+
+        self.assertEqual(MonitorWebsiteTask.objects.count(), 2)
+        task: MonitorWebsiteTask = MonitorWebsiteTask.objects.order_by('-creation').first()
+        self.assertEqual(website.url, website_url2)
+
+        version = MonitorWebsiteVersionProvider.get_instance()
+        self.assertEqual(version.version, 2)
+
+        # user2, 1 ok
+        self.client.logout()
+        self.client.force_login(self.user2)
+        website_url3 = 'https://test3.cnn'
+        r = self.client.post(path=url, data={
+            'name': 'name3-test', 'url': website_url3, 'remark': '3test'
+        })
+        self.assertKeysIn(keys=['id', 'name', 'url', 'remark', 'url_hash', 'creation'], container=r.data)
+        self.assert_is_subdict_of(sub={
+            'name': 'name3-test', 'url': website_url3,
+            'remark': '3test', 'url_hash': get_str_hash(website_url3)
+        }, d=r.data)
+
+        website_id3 = r.data['id']
+        self.assertEqual(MonitorWebsite.objects.count(), 3)
+        website: MonitorWebsite = MonitorWebsite.objects.get(id=website_id3)
+        self.assertEqual(website.name, 'name3-test')
+        self.assertEqual(website.url, website_url3)
+        self.assertEqual(website.remark, '3test')
+
+        self.assertEqual(MonitorWebsiteTask.objects.count(), 3)
+        task: MonitorWebsiteTask = MonitorWebsiteTask.objects.order_by('-creation').first()
+        self.assertEqual(task.url, website_url3)
+
+        version = MonitorWebsiteVersionProvider.get_instance()
+        self.assertEqual(version.version, 3)
+
+        # user2, TargetAlreadyExists
+        r = self.client.post(path=url, data={
+            'name': 'name4-test', 'url': website_url3, 'remark': '4test'
+        })
+        self.assertErrorResponse(status_code=409, code='TargetAlreadyExists', response=r)
+
+        # user2, 2 ok, url == website_url2
+        r = self.client.post(path=url, data={
+            'name': 'name4-test', 'url': website_url2, 'remark': '4test'
+        })
+        self.assertKeysIn(keys=['id', 'name', 'url', 'remark', 'url_hash', 'creation'], container=r.data)
+        self.assert_is_subdict_of(sub={
+            'name': 'name4-test', 'url': website_url2,
+            'remark': '4test', 'url_hash': get_str_hash(website_url2)
+        }, d=r.data)
+
+        website_id4 = r.data['id']
+        self.assertEqual(MonitorWebsite.objects.count(), 4)
+        website: MonitorWebsite = MonitorWebsite.objects.get(id=website_id4)
+        self.assertEqual(website.name, 'name4-test')
+        self.assertEqual(website.url, website_url2)
+        self.assertEqual(website.remark, '4test')
+
+        self.assertEqual(MonitorWebsiteTask.objects.count(), 3)
+        version = MonitorWebsiteVersionProvider.get_instance()
+        self.assertEqual(version.version, 3)

@@ -257,7 +257,7 @@ class MonitorWebsiteVersionProvider(models.Model):
             return inst
 
         nt = timezone.now()
-        inst = cls(id=cls.INSTANCE_ID, version=1, creation=nt, modification=nt)
+        inst = cls(id=cls.INSTANCE_ID, version=0, creation=nt, modification=nt)
         inst.save(force_insert=True)
         if select_for_update:
             inst = cls.objects.select_for_update().filter(id=cls.INSTANCE_ID).first()
