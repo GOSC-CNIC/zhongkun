@@ -457,3 +457,7 @@ class MonitorWebsiteManager:
                 raise errors.Error(message=str(exc))
 
         return user_website
+
+    @staticmethod
+    def get_user_website(user_id: str):
+        return MonitorWebsite.objects.select_related('user').filter(user_id=user_id).all()

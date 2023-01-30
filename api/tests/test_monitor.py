@@ -2,6 +2,7 @@ import time
 from urllib import parse
 
 from django.urls import reverse
+from django.utils import timezone
 
 from monitor.tests import (
     get_or_create_monitor_job_ceph, get_or_create_monitor_job_server, get_or_create_monitor_job_meeting
@@ -693,3 +694,89 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(MonitorWebsiteTask.objects.count(), 3)
         version = MonitorWebsiteVersionProvider.get_instance()
         self.assertEqual(version.version, 3)
+
+    def test_list_website_task(self):
+        # NotAuthenticated
+        base_url = reverse('api:monitor-website-list')
+        r = self.client.get(path=base_url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+
+        # ok, no data
+        self.client.force_login(self.user)
+        r = self.client.get(path=base_url)
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=['count', 'page_num', 'page_size', 'results'], container=r.data)
+        self.assertEqual(r.data['count'], 0)
+        self.assertEqual(r.data['page_num'], 1)
+        self.assertIsInstance(r.data['results'], list)
+        self.assertEqual(len(r.data['results']), 0)
+
+        # add data
+        nt = timezone.now()
+        user_website1 = MonitorWebsite(
+            name='name1', url='https://11.com', remark='remark1', user_id=self.user.id,
+            creation=nt, modification=nt
+        )
+        user_website1.save(force_insert=True)
+
+        nt = timezone.now()
+        user_website2 = MonitorWebsite(
+            name='name2', url='https://222.com', remark='remark2', user_id=self.user.id,
+            creation=nt, modification=nt
+        )
+        user_website2.save(force_insert=True)
+
+        nt = timezone.now()
+        user2_website1 = MonitorWebsite(
+            name='name3', url='https://333.com', remark='remark3', user_id=self.user2.id,
+            creation=nt, modification=nt
+        )
+        user2_website1.save(force_insert=True)
+
+        nt = timezone.now()
+        user_website6 = MonitorWebsite(
+            name='name66', url='https://666.com', remark='remark66', user_id=self.user.id,
+            creation=nt, modification=nt
+        )
+        user_website6.save(force_insert=True)
+
+        # ok, list
+        r = self.client.get(path=base_url)
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=['count', 'page_num', 'page_size', 'results'], container=r.data)
+        self.assertEqual(r.data['count'], 3)
+        self.assertEqual(r.data['page_num'], 1)
+        self.assertIsInstance(r.data['results'], list)
+        self.assertEqual(len(r.data['results']), 3)
+        self.assertKeysIn(keys=[
+            'id', 'name', 'url', 'remark', 'url_hash', 'creation', 'user'
+        ], container=r.data['results'][0])
+        self.assert_is_subdict_of(sub={
+            'name': user_website6.name, 'url': user_website6.url,
+            'remark': user_website6.remark, 'url_hash': user_website6.url_hash
+        }, d=r.data['results'][0])
+        self.assertEqual(r.data['results'][0]['user']['id'], self.user.id)
+        self.assertEqual(r.data['results'][0]['user']['username'], self.user.username)
+
+        # ok, list, page_size
+        query = parse.urlencode(query={'page_size': 2})
+        r = self.client.get(path=f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=['count', 'page_num', 'page_size', 'results'], container=r.data)
+        self.assertEqual(r.data['count'], 3)
+        self.assertEqual(r.data['page_num'], 1)
+        self.assertEqual(r.data['page_size'], 2)
+        self.assertEqual(len(r.data['results']), 2)
+        self.assertEqual(r.data['results'][0]['id'], user_website6.id)
+        self.assertEqual(r.data['results'][1]['id'], user_website2.id)
+
+        # ok, list, page, page_size
+        query = parse.urlencode(query={'page': 2, 'page_size': 2})
+        r = self.client.get(path=f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=['count', 'page_num', 'page_size', 'results'], container=r.data)
+        self.assertEqual(r.data['count'], 3)
+        self.assertEqual(r.data['page_num'], 2)
+        self.assertEqual(r.data['page_size'], 2)
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertEqual(r.data['results'][0]['id'], user_website1.id)

@@ -51,3 +51,17 @@ class MonitorWebsiteHandler:
             raise exc
 
         return serializer.validated_data
+
+    @staticmethod
+    def list_website_task(view: CustomGenericViewSet, request):
+        """
+        列举用户站点监控任务
+        """
+        try:
+            queryset = MonitorWebsiteManager.get_user_website(user_id=request.user.id)
+            websites = view.paginate_queryset(queryset=queryset)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        data = view.get_serializer(instance=websites, many=True).data
+        return view.get_paginated_response(data=data)

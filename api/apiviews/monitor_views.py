@@ -402,8 +402,45 @@ class MonitorWebsiteTaskViewSet(CustomGenericViewSet):
         """
         return MonitorWebsiteHandler().create_website_task(view=self, request=request)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举站点监控'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        列举站点监控
+
+            Http Code: 状态码200，返回数据：
+            {
+              "count": 5,
+              "page_num": 3,
+              "page_size": 2,
+              "results": [
+                {
+                  "id": "727cee5a-9f70-11ed-aba9-c8009fe2ebbc",
+                  "name": "name-string",
+                  "url": "https://vms.com",
+                  "remark": "string",
+                  "url_hash": "8bb5f2cff06fa7a4cdc449e66b9d0c0377a19ede",
+                  "creation": "2023-01-29T01:01:22.403887Z",
+                  "user": {
+                    "id": "1",
+                    "username": "shun"
+                  }
+                }
+              ]
+            }
+        """
+        return MonitorWebsiteHandler().list_website_task(view=self, request=request)
+
     def get_serializer_class(self):
         if self.action == 'create':
             return monitor_serializers.MonitorWebsiteSerializer
+        elif self.action == 'list':
+            return monitor_serializers.MonitorWebsiteWithUserSerializer
 
         return Serializer

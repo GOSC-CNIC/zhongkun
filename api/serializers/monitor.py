@@ -52,3 +52,15 @@ class MonitorWebsiteSerializer(serializers.Serializer):
 
     url_hash = serializers.CharField(label=_('网址hash值'), max_length=64, read_only=True)
     creation = serializers.DateTimeField(label=_('创建时间'), read_only=True)
+
+
+class MonitorWebsiteWithUserSerializer(MonitorWebsiteSerializer):
+    user = serializers.SerializerMethodField(method_name='get_user', read_only=True)
+
+    @staticmethod
+    def get_user(obj):
+        user = obj.user
+        if user:
+            return {'id': user.id, 'username': user.username}
+
+        return {'id': '', 'username': ''}
