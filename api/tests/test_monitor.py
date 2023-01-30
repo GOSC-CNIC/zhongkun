@@ -780,3 +780,74 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(r.data['page_size'], 2)
         self.assertEqual(len(r.data['results']), 1)
         self.assertEqual(r.data['results'][0]['id'], user_website1.id)
+
+    def test_delete_website_task(self):
+        # NotAuthenticated
+        url = reverse('api:monitor-website-detail', kwargs={'id': 'test'})
+        r = self.client.delete(path=url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+
+        # add data
+        nt = timezone.now()
+        website_url1 = 'https://11.com'
+        user_website1 = MonitorWebsite(
+            name='name1', url=website_url1, remark='remark1', user_id=self.user.id,
+            creation=nt, modification=nt
+        )
+        user_website1.save(force_insert=True)
+        task1 = MonitorWebsiteTask(url=website_url1)
+        task1.save(force_insert=True)
+
+        nt = timezone.now()
+        website_url2 = 'https://222.com'
+        user_website2 = MonitorWebsite(
+            name='name2', url=website_url2, remark='remark2', user_id=self.user.id,
+            creation=nt, modification=nt
+        )
+        user_website2.save(force_insert=True)
+        task1 = MonitorWebsiteTask(url=website_url2)
+        task1.save(force_insert=True)
+
+        nt = timezone.now()
+        user2_website2 = MonitorWebsite(
+            name='name22', url=website_url2, remark='remark22', user_id=self.user2.id,
+            creation=nt, modification=nt
+        )
+        user2_website2.save(force_insert=True)
+
+        version = MonitorWebsiteVersionProvider.get_instance()
+        self.assertEqual(version.version, 0)
+        self.assertEqual(MonitorWebsite.objects.count(), 3)
+        self.assertEqual(MonitorWebsiteTask.objects.count(), 2)
+
+        # ok, NotFound
+        self.client.force_login(self.user)
+        r = self.client.delete(path=url)
+        self.assertErrorResponse(status_code=404, code='NotFound', response=r)
+
+        # AccessDenied, user delete user2's website
+        url = reverse('api:monitor-website-detail', kwargs={'id': user2_website2.id})
+        r = self.client.delete(path=url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        # user delete website1 ok
+        url = reverse('api:monitor-website-detail', kwargs={'id': user_website1.id})
+        r = self.client.delete(path=url)
+        self.assertEqual(r.status_code, 204)
+
+        version = MonitorWebsiteVersionProvider.get_instance()
+        self.assertEqual(version.version, 1)
+        self.assertEqual(MonitorWebsite.objects.count(), 2)
+        self.assertEqual(MonitorWebsiteTask.objects.count(), 1)
+
+        # user delete website2 ok
+        url = reverse('api:monitor-website-detail', kwargs={'id': user_website2.id})
+        r = self.client.delete(path=url)
+        self.assertEqual(r.status_code, 204)
+
+        version = MonitorWebsiteVersionProvider.get_instance()
+        self.assertEqual(version.version, 1)
+        self.assertEqual(MonitorWebsite.objects.count(), 1)
+        self.assertEqual(MonitorWebsiteTask.objects.count(), 1)
+        task = MonitorWebsiteTask.objects.first()
+        self.assertEqual(task.url, user2_website2.url)

@@ -325,6 +325,26 @@ class MonitorJobVideoMeetingManager:
 
 class MonitorWebsiteManager:
     @staticmethod
+    def get_website_by_id(website_id: str) -> MonitorWebsite:
+        return MonitorWebsite.objects.filter(id=website_id).first()
+
+    @staticmethod
+    def get_user_website(website_id: str, user_id: str):
+        """
+        查询用户的指定站点监控任务
+
+        :raises: Error
+        """
+        website = MonitorWebsiteManager.get_website_by_id(website_id)
+        if website is None:
+            raise errors.NotFound(message=_('站点监控任务不存在。'))
+
+        if website.user_id != user_id:
+            raise errors.AccessDenied(message=_('无权限访问此站点监控任务。'))
+
+        return website
+
+    @staticmethod
     def add_website_task(name: str, url: str, remark: str, user_id: str):
         """
         :raises: Error
@@ -459,5 +479,5 @@ class MonitorWebsiteManager:
         return user_website
 
     @staticmethod
-    def get_user_website(user_id: str):
+    def get_user_website_queryset(user_id: str):
         return MonitorWebsite.objects.select_related('user').filter(user_id=user_id).all()

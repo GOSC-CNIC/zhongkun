@@ -437,6 +437,34 @@ class MonitorWebsiteTaskViewSet(CustomGenericViewSet):
         """
         return MonitorWebsiteHandler().list_website_task(view=self, request=request)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('删除站点监控'),
+        manual_parameters=[
+        ],
+        responses={
+            204: ''
+        }
+    )
+    def destroy(self, request, *args, **kwargs):
+        """
+        删除站点监控
+
+            Http Code: 状态码204, OK
+
+            http code 403, 404：
+            {
+              "code": "NotFound",
+              "message": "指定监控站点不存在"
+            }
+
+            * 可能的错误码：
+            403:
+                AccessDenied: 无权限访问指定监控站点
+            404:
+                NotFound: 指定监控站点不存在
+        """
+        return MonitorWebsiteHandler().delete_website_task(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action == 'create':
             return monitor_serializers.MonitorWebsiteSerializer
