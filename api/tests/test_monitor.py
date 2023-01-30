@@ -851,3 +851,64 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(MonitorWebsiteTask.objects.count(), 1)
         task = MonitorWebsiteTask.objects.first()
         self.assertEqual(task.url, user2_website2.url)
+
+    def test_task_version_list(self):
+        url = reverse('api:monitor-website-task-version')
+        r = self.client.get(path=url)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['version'], 0)
+
+        v = MonitorWebsiteVersionProvider.get_instance()
+        v.version = 66
+        v.save(update_fields=['version'])
+
+        r = self.client.get(path=url)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['version'], 66)
+
+        task1 = MonitorWebsiteTask(url='https://11.com')
+        task1.save(force_insert=True)
+        task2 = MonitorWebsiteTask(url='https://22.com')
+        task2.save(force_insert=True)
+        task3 = MonitorWebsiteTask(url='https://33.com')
+        task3.save(force_insert=True)
+        task4 = MonitorWebsiteTask(url='https://44.com')
+        task4.save(force_insert=True)
+
+        # list task
+        base_url = reverse('api:monitor-website-task-list')
+        r = self.client.get(path=base_url)
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=[
+            'has_next', 'page_size', 'marker', 'next_marker', 'results'
+        ], container=r.data)
+        self.assertEqual(r.data['has_next'], False)
+        self.assertEqual(r.data['page_size'], 2000)
+        self.assertIsNone(r.data['marker'])
+        self.assertIsNone(r.data['next_marker'])
+        self.assertEqual(len(r.data['results']), 4)
+        self.assertKeysIn(keys=['url', 'url_hash', 'creation'], container=r.data['results'][0])
+        self.assertEqual(r.data['results'][0]['url'], task4.url)
+
+        # list task, query "page_size"
+        query = parse.urlencode(query={'page_size': 2})
+        r = self.client.get(path=f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['has_next'], True)
+        self.assertEqual(r.data['page_size'], 2)
+        self.assertIsNone(r.data['marker'])
+        self.assertIsNotNone(r.data['next_marker'])
+        self.assertEqual(len(r.data['results']), 2)
+        self.assertEqual(r.data['results'][0]['url'], task4.url)
+        next_marker = r.data['next_marker']
+
+        # list task, query "page_size" and "marker"
+        query = parse.urlencode(query={'page_size': 2, 'marker': next_marker})
+        r = self.client.get(path=f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['has_next'], False)
+        self.assertEqual(r.data['page_size'], 2)
+        self.assertEqual(r.data['marker'], next_marker)
+        self.assertIsNone(r.data['next_marker'])
+        self.assertEqual(len(r.data['results']), 2)
+        self.assertEqual(r.data['results'][0]['url'], task2.url)

@@ -64,3 +64,10 @@ class MonitorWebsiteWithUserSerializer(MonitorWebsiteSerializer):
             return {'id': user.id, 'username': user.username}
 
         return {'id': '', 'username': ''}
+
+
+class MonitorWebsiteTaskSerializer(serializers.Serializer):
+    # id = serializers.CharField(label=_('ID'), read_only=True)
+    url = serializers.URLField(label=_('要监控的网址'), max_length=2048, required=True, help_text='http(s)://xxx.xxx')
+    url_hash = serializers.CharField(label=_('网址hash值'), max_length=64, read_only=True)
+    creation = serializers.DateTimeField(label=_('创建时间'), read_only=True)

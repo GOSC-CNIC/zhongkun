@@ -11,7 +11,7 @@ from api.handlers.monitor_server import MonitorServerQueryHandler
 from api.handlers.monitor_video_meeting import MonitorVideoMeetingQueryHandler
 from api.handlers.monitor_website import MonitorWebsiteHandler
 from api.serializers import monitor as monitor_serializers
-from api.paginations import MonitorPageNumberPagination
+from api.paginations import MonitorPageNumberPagination, MonitorWebsiteTaskPagination
 from monitor.managers import CephQueryChoices, ServerQueryChoices, VideoMeetingQueryChoices
 
 
@@ -369,7 +369,7 @@ class MonitorUnitServerViewSet(CustomGenericViewSet):
         return Serializer
 
 
-class MonitorWebsiteTaskViewSet(CustomGenericViewSet):
+class MonitorWebsiteViewSet(CustomGenericViewSet):
     """
     站点监控任务
     """
@@ -403,7 +403,7 @@ class MonitorWebsiteTaskViewSet(CustomGenericViewSet):
         return MonitorWebsiteHandler().create_website_task(view=self, request=request)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('列举站点监控'),
+        operation_summary=gettext_lazy('列举用户站点监控'),
         manual_parameters=[
         ],
         responses={
@@ -412,7 +412,7 @@ class MonitorWebsiteTaskViewSet(CustomGenericViewSet):
     )
     def list(self, request, *args, **kwargs):
         """
-        列举站点监控
+        列举用户站点监控
 
             Http Code: 状态码200，返回数据：
             {
@@ -470,5 +470,68 @@ class MonitorWebsiteTaskViewSet(CustomGenericViewSet):
             return monitor_serializers.MonitorWebsiteSerializer
         elif self.action == 'list':
             return monitor_serializers.MonitorWebsiteWithUserSerializer
+
+        return Serializer
+
+
+class MonitorWebsiteTaskViewSet(CustomGenericViewSet):
+    """
+    站点监控任务
+    """
+    queryset = []
+    permission_classes = []
+    pagination_class = MonitorWebsiteTaskPagination
+    lookup_field = 'id'
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('监控服务拉取站点监控任务'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        监控服务拉取站点监控任务
+
+            Http Code: 状态码200，返回数据：
+            {
+              "has_next": false,        # true：有下一页，false：无下一页
+              "page_size": 2000,        # 默认每页2000条数据，可通过参数“page_size”指定每页数量，最大10000
+              "marker": null,           # 当前页标记
+              "next_marker": null,      # 下一页标记
+              "results": [
+                {
+                  "url": "http://vms.com",
+                  "url_hash": "8bb5f2cff06fa7a4cdc449e66b9d0c0377a19ede",
+                  "creation": "2023-01-29T01:01:22.439153Z"
+                }
+              ]
+            }
+        """
+        return MonitorWebsiteHandler().monitor_list_website_task(view=self, request=request)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('监控服务拉取站点监控任务'),
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['get'], detail=False, url_path='version', url_name='version')
+    def task_version(self, request, *args, **kwargs):
+        """
+        站点监控任务当前版本号
+
+            Http Code: 状态码200，返回数据：
+            {
+              "version": 5,
+            }
+        """
+        return MonitorWebsiteHandler().get_website_task_version(view=self, request=request)
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return monitor_serializers.MonitorWebsiteTaskSerializer
 
         return Serializer

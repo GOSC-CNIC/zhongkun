@@ -120,3 +120,9 @@ class TradeBillPagination(MarkerCursorPagination):
 class MonitorPageNumberPagination(NewPageNumberPagination):
     page_size = 100
     max_page_size = 1000
+
+
+class MonitorWebsiteTaskPagination(MarkerCursorPagination):
+    page_size = 2000
+    max_page_size = 10000
+    ordering = '-creation'

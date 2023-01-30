@@ -2,8 +2,8 @@ from django.utils.translation import gettext as _
 from rest_framework.response import Response
 
 from core import errors
-from monitor.managers import MonitorJobServerManager, ServerQueryChoices, MonitorWebsiteManager
-from monitor.models import MonitorJobServer
+from monitor.managers import MonitorWebsiteManager
+from monitor.models import MonitorWebsiteTask, MonitorWebsiteVersionProvider
 from api.viewsets import CustomGenericViewSet
 from .handlers import serializer_error_msg
 
@@ -78,3 +78,22 @@ class MonitorWebsiteHandler:
             return view.exception_response(exc)
 
         return Response(status=204)
+
+    @staticmethod
+    def get_website_task_version(view: CustomGenericViewSet, request):
+        ins = MonitorWebsiteVersionProvider.get_instance()
+        return Response(data={'version': ins.version})
+
+    @staticmethod
+    def monitor_list_website_task(view: CustomGenericViewSet, request):
+        """
+        拉取站点监控任务
+        """
+        try:
+            queryset = MonitorWebsiteTask.objects.all()
+            tasks = view.paginate_queryset(queryset=queryset)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        data = view.get_serializer(instance=tasks, many=True).data
+        return view.get_paginated_response(data=data)
