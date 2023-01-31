@@ -465,8 +465,47 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
         """
         return MonitorWebsiteHandler().delete_website_task(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('修改站点监控信息'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ''
+        }
+    )
+    def update(self, request, *args, **kwargs):
+        """
+        修改站点监控信息
+
+            Http Code: 状态码200, OK:
+            {
+              "id": "727cee5a-9f70-11ed-aba9-c8009fe2ebbc",
+              "name": "string66",
+              "url": "https://666.cn",
+              "remark": "string788",
+              "url_hash": "67e473e075648ca8305e3ceafca60c0efca9abf7",
+              "creation": "2023-01-29T01:01:22.403887Z"
+            }
+
+            http code 400, 403, 404：
+            {
+              "code": "NotFound",
+              "message": "指定监控站点不存在"
+            }
+
+            * 可能的错误码：
+            400:
+                BadRequest: 请求格式无效
+                InvalidUrl: url网址无效
+            403:
+                AccessDenied: 无权限访问指定监控站点
+            404:
+                NotFound: 指定监控站点不存在
+        """
+        return MonitorWebsiteHandler().change_website_task(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
-        if self.action == 'create':
+        if self.action in ['create', 'update']:
             return monitor_serializers.MonitorWebsiteSerializer
         elif self.action == 'list':
             return monitor_serializers.MonitorWebsiteWithUserSerializer

@@ -53,6 +53,27 @@ class MonitorWebsiteHandler:
         return serializer.validated_data
 
     @staticmethod
+    def change_website_task(view: CustomGenericViewSet, request, kwargs):
+        """
+        修改站点监控信息任务
+        """
+        website_id = kwargs.get(view.lookup_field)
+        try:
+            params = MonitorWebsiteHandler._create_website_validate_params(view=view, request=request)
+            task = MonitorWebsiteManager.change_website_task(
+                _id=website_id,
+                name=params['name'],
+                url=params['url'],
+                remark=params['remark'],
+                user=request.user
+            )
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        data = view.get_serializer(instance=task).data
+        return Response(data=data)
+
+    @staticmethod
     def list_website_task(view: CustomGenericViewSet, request):
         """
         列举用户站点监控任务

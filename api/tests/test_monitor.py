@@ -912,3 +912,124 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertIsNone(r.data['next_marker'])
         self.assertEqual(len(r.data['results']), 2)
         self.assertEqual(r.data['results'][0]['url'], task2.url)
+
+    def test_change_website_task(self):
+        # NotAuthenticated
+        url = reverse('api:monitor-website-detail', kwargs={'id': 'test'})
+        r = self.client.put(path=url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+
+        # add data
+        nt = timezone.now()
+        website_url1 = 'https://111.com'
+        user_website1 = MonitorWebsite(
+            name='name1', url=website_url1, remark='remark1', user_id=self.user.id,
+            creation=nt, modification=nt
+        )
+        user_website1.save(force_insert=True)
+        task1 = MonitorWebsiteTask(url=website_url1)
+        task1.save(force_insert=True)
+
+        nt = timezone.now()
+        website_url2 = 'https://2222.com'
+        user_website2 = MonitorWebsite(
+            name='name2', url=website_url2, remark='remark2', user_id=self.user.id,
+            creation=nt, modification=nt
+        )
+        user_website2.save(force_insert=True)
+        task1 = MonitorWebsiteTask(url=website_url2)
+        task1.save(force_insert=True)
+
+        nt = timezone.now()
+        user2_website2 = MonitorWebsite(
+            name='name222', url=website_url2, remark='remark222', user_id=self.user2.id,
+            creation=nt, modification=nt
+        )
+        user2_website2.save(force_insert=True)
+
+        version = MonitorWebsiteVersionProvider.get_instance()
+        self.assertEqual(version.version, 0)
+        self.assertEqual(MonitorWebsite.objects.count(), 3)
+        tasks = MonitorWebsiteTask.objects.order_by('-creation').all()
+        self.assertEqual(len(tasks), 2)
+        self.assertEqual(tasks[0].url, website_url2)
+        self.assertEqual(tasks[1].url, website_url1)
+
+        # ok, NotFound
+        self.client.force_login(self.user)
+        url = reverse('api:monitor-website-detail', kwargs={'id': 'test'})
+
+        # no "name"， BadRequest
+        r = self.client.put(path=url, data={'url': 'https://ccc.com', 'remark': ''})
+        self.assertErrorResponse(status_code=400, code='BadRequest', response=r)
+
+        # InvalidUrl
+        r = self.client.put(path=url, data={'name': 'nametest', 'url': 'https://ccc', 'remark': ''})
+        self.assertErrorResponse(status_code=400, code='InvalidUrl', response=r)
+
+        # NotFound
+        data = {'name': 'test', 'url': 'https://ccc.com', 'remark': ''}
+        r = self.client.put(path=url, data=data)
+        self.assertErrorResponse(status_code=404, code='NotFound', response=r)
+
+        # AccessDenied, user change user2's website
+        url = reverse('api:monitor-website-detail', kwargs={'id': user2_website2.id})
+        r = self.client.put(path=url, data=data)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        # user change website1 name, ok
+        data = {'name': 'change name', 'url': user_website1.url, 'remark': user_website1.remark}
+        url = reverse('api:monitor-website-detail', kwargs={'id': user_website1.id})
+        r = self.client.put(path=url, data=data)
+        self.assertEqual(r.status_code, 200)
+        website1 = MonitorWebsite.objects.get(id=user_website1.id)
+        self.assertEqual(website1.name, 'change name')
+        self.assertEqual(website1.url, user_website1.url)
+        self.assertEqual(website1.remark, user_website1.remark)
+
+        version = MonitorWebsiteVersionProvider.get_instance()
+        self.assertEqual(version.version, 0)
+        self.assertEqual(MonitorWebsite.objects.count(), 3)
+        tasks = MonitorWebsiteTask.objects.order_by('-creation').all()
+        self.assertEqual(len(tasks), 2)
+        self.assertEqual(tasks[0].url, website_url2)
+        self.assertEqual(tasks[1].url, website_url1)
+
+        # user change website1 "name" and "url", ok
+        new_website_url1 = 'https://666.cn'
+        data = {'name': user_website1.name, 'url': new_website_url1, 'remark': user_website1.remark}
+        url = reverse('api:monitor-website-detail', kwargs={'id': user_website1.id})
+        r = self.client.put(path=url, data=data)
+        self.assertEqual(r.status_code, 200)
+        website1 = MonitorWebsite.objects.get(id=user_website1.id)
+        self.assertEqual(website1.name, user_website1.name)
+        self.assertEqual(website1.url, new_website_url1)
+        self.assertEqual(website1.remark, user_website1.remark)
+
+        version = MonitorWebsiteVersionProvider.get_instance()
+        self.assertEqual(version.version, 1)
+        self.assertEqual(MonitorWebsite.objects.count(), 3)
+        tasks = MonitorWebsiteTask.objects.order_by('-creation').all()
+        self.assertEqual(len(tasks), 2)
+        self.assertEqual(tasks[1].url, website_url2)
+        self.assertEqual(tasks[0].url, new_website_url1)
+
+        # user change website2 "remark" and "url", ok
+        new_website_url2 = 'https://888.cn'
+        data = {'name': user_website2.name, 'url': new_website_url2, 'remark': '新的 remark'}
+        url = reverse('api:monitor-website-detail', kwargs={'id': user_website2.id})
+        r = self.client.put(path=url, data=data)
+        self.assertEqual(r.status_code, 200)
+        website2 = MonitorWebsite.objects.get(id=user_website2.id)
+        self.assertEqual(website2.name, user_website2.name)
+        self.assertEqual(website2.url, new_website_url2)
+        self.assertEqual(website2.remark, '新的 remark')
+
+        version = MonitorWebsiteVersionProvider.get_instance()
+        self.assertEqual(version.version, 2)
+        self.assertEqual(MonitorWebsite.objects.count(), 3)
+        tasks = MonitorWebsiteTask.objects.order_by('-creation').all()
+        self.assertEqual(len(tasks), 3)
+        self.assertEqual(tasks[0].url, new_website_url2)
+        self.assertEqual(tasks[1].url, new_website_url1)
+        self.assertEqual(tasks[2].url, website_url2)
