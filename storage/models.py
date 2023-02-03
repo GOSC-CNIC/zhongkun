@@ -30,7 +30,7 @@ class ObjectsService(UuidModel):
     name_en = models.CharField(verbose_name=_('服务英文名称'), max_length=255, default='')
     service_type = models.CharField(max_length=16, choices=ServiceType.choices, default=ServiceType.IHARBOR.value,
                                     verbose_name=_('服务平台类型'))
-    endpoint_url = models.CharField(max_length=255, verbose_name=_('服务地址url'), unique=True,
+    endpoint_url = models.CharField(max_length=255, verbose_name=_('服务地址url'),
                                     help_text='http(s)://{hostname}:{port}/')
     api_version = models.CharField(max_length=64, default='v1', verbose_name=_('API版本'),
                                    help_text=_('预留，主要iHarbor使用'))

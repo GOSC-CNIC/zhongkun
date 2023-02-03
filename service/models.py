@@ -96,7 +96,7 @@ class ServiceConfig(BaseService):
     name = models.CharField(max_length=255, verbose_name=_('服务名称'))
     name_en = models.CharField(verbose_name=_('服务英文名称'), max_length=255, default='')
     region_id = models.CharField(max_length=128, default='', blank=True, verbose_name=_('服务区域/分中心ID'))
-    endpoint_url = models.CharField(max_length=255, verbose_name=_('服务地址url'), unique=True,
+    endpoint_url = models.CharField(max_length=255, verbose_name=_('服务地址url'),
                                     help_text='http(s)://{hostname}:{port}/')
     api_version = models.CharField(max_length=64, default='v3', verbose_name=_('API版本'),
                                    help_text=_('预留，主要EVCloud使用'))
