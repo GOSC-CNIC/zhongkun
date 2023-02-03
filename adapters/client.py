@@ -4,6 +4,7 @@ from .evcloud.adapter import EVCloudAdapter
 from .openstack.adapter import OpenStackAdapter
 from .vmware.adapter import VmwareAdapter
 from .uniscloud.adapter import UnisAdapter
+from .aliyun.adapter import AliyunAdapter
 from .exceptions import UnsupportedServiceType, MethodNotSupportInService
 from .params import ParamsName
 
@@ -12,7 +13,7 @@ SERVICE_TYPE_EVCLOUD = 'evcloud'
 SERVICE_TYPE_OPENSTACK = 'openstack'
 SERVICE_TYPE_VMWARE = 'vmware'
 SERVICE_TYPE_UNIS_CLOUD = 'unis-cloud'
-
+SERVICE_TYPE_ALIYUN = 'aliyun'
 
 def get_service_style(service: ServiceConfig):
     service_type = service.service_type
@@ -22,6 +23,8 @@ def get_service_style(service: ServiceConfig):
         style = SERVICE_TYPE_OPENSTACK
     elif service_type == service.ServiceType.VMWARE:
         style = SERVICE_TYPE_VMWARE
+    elif service_type == service.ServiceType.ALIYUN:
+        style = SERVICE_TYPE_ALIYUN
     # elif service_type == service.ServiceType.UNIS_CLOUD:
     #     style = SERVICE_TYPE_UNIS_CLOUD
     else:
@@ -66,6 +69,7 @@ def get_adapter_class(style: str = 'evcloud'):
         SERVICE_TYPE_OPENSTACK: OpenStackAdapter,
         SERVICE_TYPE_VMWARE: VmwareAdapter,
         SERVICE_TYPE_UNIS_CLOUD: UnisAdapter,
+        SERVICE_TYPE_ALIYUN: AliyunAdapter,
     }
     style = style.lower()
 

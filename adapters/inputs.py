@@ -155,10 +155,11 @@ class ListNetworkInput(InputBase):
 
 
 class NetworkDetailInput(InputBase):
-    def __init__(self, network_id: str, **kwargs):
+    def __init__(self, network_id: str, azone_id: str = None, **kwargs):
         """
         :param network_id: 网络网段id; type: str; required: False
         """
+        self.azone_id = azone_id
         self.network_id = network_id
         super().__init__(**kwargs)
 

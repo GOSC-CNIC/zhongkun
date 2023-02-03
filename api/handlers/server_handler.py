@@ -394,7 +394,7 @@ class ServerHandler:
 
         try:
             out_net = view.request_service(
-                service=service, method='network_detail', params=inputs.NetworkDetailInput(network_id=network_id))
+                service=service, method='network_detail', params=inputs.NetworkDetailInput(network_id=network_id, azone_id=azone_id))
         except exceptions.APIException as exc:
             if exc.status_code in [400, 404]:
                 raise exceptions.BadRequest(message=_('指定网络不存在.'), code='InvalidNetworkId')
