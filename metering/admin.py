@@ -35,7 +35,7 @@ class MeteringObjectStorageAdmin(admin.ModelAdmin):
                     'original_amount', 'trade_amount', 'daily_statement_id',
                     'creation_time', 'user_id', 'username')
     list_display_links = ('id',)
-    list_filter = ('user_id',)
+    list_filter = ('service',)
     search_fields = ('bucket_name', 'user_id')
     list_select_related = ('service',)
 
@@ -47,7 +47,7 @@ class DailyStatementServerAdmin(admin.ModelAdmin):
                     'creation_time', 'owner_type', 'user_id', 'username', 'vo_id', 'vo_name')
     list_display_links = ('id',)
     list_filter = ('owner_type', 'payment_status')
-    search_fields = ('username', 'vo_name')
+    search_fields = ('username', 'user_id', 'vo_id')
     list_select_related = ('service',)
 
 

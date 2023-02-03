@@ -1,3 +1,13 @@
+## v0.8.0
+* 增加server计量计费单详情查询API;
+* 完善VMware适配器;
+* ListService api响应内容data_center部分增加name_en信息;
+* app_service移除外键user，增加users多对多字段标记用户管理权限;
+* app_service模型外键字段service改为service_id字符串型字段;
+* 站点监控model定义，实现站点监控任务创建、修改、删除等管理接口；
+* 实现供监控服务查询站点监控任务变动版本和拉取监控任务接口；
+* 云主机和对象存储服务单元配置网址字段移除唯一性限制;
+
 ## v0.7.1
 2022-12-27
 * 增加查询app交易流水记录api和测试用例;  
