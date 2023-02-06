@@ -66,7 +66,7 @@ class BaseService(UuidModel):
         EVCLOUD = 'evcloud', 'EVCloud'
         OPENSTACK = 'openstack', 'OpenStack'
         VMWARE = 'vmware', 'VMware'
-        ALIYUN = 'aliyun', 'Aliyun'
+        ALIYUN = 'aliyun', '阿里云'
         UNIS_CLOUD = 'unis-cloud', _('紫光云')
 
     class CLoudType(models.TextChoices):

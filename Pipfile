@@ -20,6 +20,8 @@ pyjwt = "==2.4.0"
 concurrent-log-handler = "==0.9.19"
 django-cors-headers = "==3.7.0"
 cryptography = "==37.0.4"
+alibabacloud-vpc20160428 = "==2.0.20"
+alibabacloud-ecs20140526 = "==3.0.2"
 
 [requires]
 python_version = "3.9"

@@ -49,7 +49,7 @@ class Migration(migrations.Migration):
             name='ApplyVmService',
             fields=[
                 ('id', models.CharField(blank=True, editable=False, max_length=36, primary_key=True, serialize=False, verbose_name='ID')),
-                ('service_type', models.CharField(choices=[('evcloud', 'EVCloud'), ('openstack', 'OpenStack'), ('vmware', 'VMware'), ('unis-cloud', '紫光云')], default='evcloud', max_length=32, verbose_name='服务平台类型')),
+                ('service_type', models.CharField(choices=[('evcloud', 'EVCloud'), ('openstack', 'OpenStack'), ('vmware', 'VMware'), ('aliyun', '阿里云'), ('unis-cloud', '紫光云')], default='evcloud', max_length=32, verbose_name='服务平台类型')),
                 ('cloud_type', models.CharField(choices=[('public', '公有云'), ('private', '私有云'), ('hybrid', '混合云')], default='private', max_length=32, verbose_name='云服务类型')),
                 ('creation_time', models.DateTimeField(auto_now_add=True, verbose_name='申请时间')),
                 ('approve_time', models.DateTimeField(auto_now_add=True, verbose_name='审批时间')),
@@ -121,7 +121,7 @@ class Migration(migrations.Migration):
             name='ServiceConfig',
             fields=[
                 ('id', models.CharField(blank=True, editable=False, max_length=36, primary_key=True, serialize=False, verbose_name='ID')),
-                ('service_type', models.CharField(choices=[('evcloud', 'EVCloud'), ('openstack', 'OpenStack'), ('vmware', 'VMware'), ('unis-cloud', '紫光云')], default='evcloud', max_length=32, verbose_name='服务平台类型')),
+                ('service_type', models.CharField(choices=[('evcloud', 'EVCloud'), ('openstack', 'OpenStack'), ('vmware', 'VMware'), ('aliyun', '阿里云'), ('unis-cloud', '紫光云')], default='evcloud', max_length=32, verbose_name='服务平台类型')),
                 ('cloud_type', models.CharField(choices=[('public', '公有云'), ('private', '私有云'), ('hybrid', '混合云')], default='private', max_length=32, verbose_name='云服务类型')),
                 ('name', models.CharField(max_length=255, verbose_name='服务名称')),
                 ('name_en', models.CharField(default='', max_length=255, verbose_name='服务英文名称')),
