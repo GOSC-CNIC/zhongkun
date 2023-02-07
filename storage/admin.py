@@ -1,6 +1,11 @@
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
+from django.contrib import messages
 
+from storage.request import request_service
+from storage.adapter import inputs
+from core import errors
+from utils.model import NoDeleteSelectModelAdmin
 from . import models
 from . import forms
 
@@ -40,12 +45,27 @@ class ObjectsServiceAdmin(admin.ModelAdmin):
 
 
 @admin.register(models.Bucket)
-class BucketAdmin(admin.ModelAdmin):
+class BucketAdmin(NoDeleteSelectModelAdmin):
     list_display = ('id', 'name', 'bucket_id', 'service', 'creation_time', 'user')
     list_select_related = ('service', 'user')
     raw_id_fields = ('user',)
     list_filter = ['service']
     search_fields = ['name', 'user__username', 'id']
+
+    def delete_model(self, request, obj):
+        bucket = obj
+
+        try:
+            params = inputs.BucketDeleteInput(bucket_name=bucket.name, username=bucket.user.username)
+            r = request_service(service=bucket.service, method='bucket_delete', params=params)
+            bucket.do_archive(archiver=request.user.username)
+        except errors.Error as exc:
+            if 'Adapter.BucketNotOwned' != exc.code:
+                self.message_user(request=request, message='删除失败，' + str(exc), level=messages.ERROR)
+                raise exc
+        except Exception as exc:
+            self.message_user(request=request, message='删除失败，' + str(exc), level=messages.ERROR)
+            raise exc
 
 
 @admin.register(models.BucketArchive)
