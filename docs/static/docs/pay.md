@@ -2,6 +2,8 @@
 以下文档中描述的接口均可在在线文档中“trade”部分查看，为避免此文档更新不及时造成困扰，或者如果遇到问题，可以查看
 <a href="/apidocs/" target="_blank">在线API文档</a>。
 
+服务域名Host：`servicebackend.cstcloud.cn`，对应文档中有关接口url的示例中的{Host}。
+
 ## 1 接入余额结算准备条件
 ***
 > 需要先注册APP，再注册app service，一个app下可以有多个app service，至少要有一个app service，
@@ -24,7 +26,7 @@ app service id。
   结算服务密钥对，结算服务使用私钥对api的响应结果进行签名，api请求方可使用公钥进行验签。
   
   结算服务提供了一个生成RSA密钥对的接口，具体信息可以查看在线文档：  
-  `POST / https://vms.cstcloud.cn/api/trade/rsakey/generate`
+  `POST / https://servicebackend.cstcloud.cn/api/trade/rsakey/generate`
 
 #### 结算服务示意图 
 ![](images/pay.png)
@@ -133,7 +135,7 @@ app service id。
 `Authorization: 'SHA256-RSA2048 sign'`
 
 + **请求url**
->https://vms.cstcloud.cn/api/trade/test
+>https://{Host}/api/trade/test
 
 + **请求方式**
 >POST
@@ -154,7 +156,7 @@ app service id。
 可随意添加
 
 + **请求示例**    
-https://vms.cstcloud.cn/api/trade/test?param1=test%20param1&param2=%E5%8F%82%E6%95%B02&param3=66
+https://{Host}/api/trade/test?param1=test%20param1&param2=%E5%8F%82%E6%95%B02&param3=66
 ```json
 {
   "name1": "string",
@@ -208,7 +210,7 @@ Pay-Signature：xxx                # 应答签名
 > 此接口适用要求：支持AAI/科技云通行证登录认证的APP，APP服务中扣费过程需要用户交互确认，即能拿到用户AAI/科技云通行证jwt。
 
 + **请求url**
->https://vms.cstcloud.cn/api/trade/charge/jwt
+>https://{Host}/api/trade/charge/jwt
 
 + **请求方式**
 >POST
@@ -325,7 +327,7 @@ Pay-Signature：xxx                # 应答签名
 > 用于APP对应的服务内扣费过程中无用户参与，即无法拿到AAI/科技云通行证用户认证JWT的场景。
 
 + **请求url**
->https://vms.cstcloud.cn/api/trade/charge/account
+>https://{Host}/api/trade/charge/account
 
 + **请求方式**
 >POST
@@ -442,7 +444,7 @@ Pay-Signature：xxx                # 应答签名
 > 支付交易记录编号查询支付交易记录
 
 + **请求url**
->https://vms.cstcloud.cn/api/trade/query/trade/{trade_id}
+>https://{Host}/api/trade/query/trade/{trade_id}
 
 + **请求方式**
 >GET
@@ -467,7 +469,7 @@ Pay-Signature：xxx                # 应答签名
 
 + **请求示例**   
 ```
-https://vms.cstcloud.cn/api/trade/query/trade/202207190608088519002990?query_refunded
+https://{Host}/api/trade/query/trade/202207190608088519002990?query_refunded
 ```
 
 + **响应示例**
@@ -553,7 +555,7 @@ Pay-Signature：xxx                # 应答签名
 > 订单编号查询支付交易记录，可用于查询确认订单对应的支付/扣费是否成功或完成。
 
 + **请求url**
-> https://vms.cstcloud.cn/api/trade/query/out-order/{order_id}
+> https://{Host}/api/trade/query/out-order/{order_id}
 
 + **请求方式**
 >GET
@@ -579,7 +581,7 @@ Pay-Signature：xxx                # 应答签名
 
 + **请求示例**   
 ```
-https://vms.cstcloud.cn/api/trade/query/out-order/123456789?query_refunded
+https://{Host}/api/trade/query/out-order/123456789?query_refunded
 ```
 
 + **响应示例**
@@ -666,7 +668,7 @@ Pay-Signature：xxx                # 应答签名
 > 申请退款总金额不能超过订单金额。
 
 + **请求url**
-> https://vms.cstcloud.cn/api/trade/refund
+> https://{Host}/api/trade/refund
 
 + **请求方式**
 >POST
@@ -693,7 +695,7 @@ Pay-Signature：xxx                # 应答签名
 
 + **请求示例**   
 ```
-https://vms.cstcloud.cn/api/trade/refund
+https://{Host}/api/trade/refund
 ```
 
 + **响应示例**
@@ -783,7 +785,7 @@ Pay-Signature：xxx                # 应答签名
 > 查询退款状态。
 
 + **请求url**
-> https://vms.cstcloud.cn/api/trade/refund/query
+> https://{Host}/api/trade/refund/query
 
 + **请求方式**
 >GET
@@ -806,7 +808,7 @@ Pay-Signature：xxx                # 应答签名
 
 + **请求示例**   
 ```
-https://vms.cstcloud.cn/api/trade/refund/query?refund_id=xxx
+https://{Host}/api/trade/refund/query?refund_id=xxx
 ```
 
 + **响应示例**
@@ -891,7 +893,7 @@ Pay-Signature：xxx                # 应答签名
 > 查询交易流水记录。
 
 + **请求url**
-> https://vms.cstcloud.cn/api/trade/bill/transaction
+> https://{Host}/api/trade/bill/transaction
 
 + **请求方式**
 >GET
@@ -917,7 +919,7 @@ Pay-Signature：xxx                # 应答签名
 
 + **请求示例**   
 ```
-https://vms.cstcloud.cn/api/trade/bill/transaction?trade_time_start=2022-12-06T00%3A00%3A00Z&trade_time_end=2022-12-07T00%3A00%3A00Z&trade_type=payment
+https://{Host}/api/trade/bill/transaction?trade_time_start=2022-12-06T00%3A00%3A00Z&trade_time_end=2022-12-07T00%3A00%3A00Z&trade_type=payment
 ```
 
 + **响应示例**

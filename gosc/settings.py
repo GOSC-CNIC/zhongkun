@@ -26,7 +26,7 @@ BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
 
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['*']
 INTERNAL_IPS = []
@@ -182,8 +182,8 @@ THIRD_PARTY_APP_AUTH = {
     'SCIENCE_CLOUD': {
         # 'client_id': 000,
         # 'client_secret': 'xxx',
-        'client_home_url': 'https://vms.cstcloud.cn',
-        'client_callback_url': 'https://vms.cstcloud.cn/accounts/callback/',  # 认证回调地址
+        'client_home_url': 'https://servicebackend.cstcloud.cn',
+        'client_callback_url': 'https://servicebackend.cstcloud.cn/accounts/callback/',  # 认证回调地址
         # 'login_url': 'https://passport.escience.cn/oauth2/authorize?response_type=code&theme=simple',
         'login_url': 'https://passport.escience.cn/oauth2/authorize?response_type=code&theme=embed',
         'token_url': 'https://passport.escience.cn/oauth2/token',
