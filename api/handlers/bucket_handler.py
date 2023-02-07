@@ -72,14 +72,21 @@ class BucketHandler:
             raise exc
 
         data = serializer.validated_data
-        name = data['name']
+        name: str = data['name']
         service_id = data['service_id']
 
         if len(name) < 3:
             raise exceptions.BadRequest(message=_('存储桶名称长度不能少于3个字符'), code='InvalidName')
 
+        if name.startswith('-') or name.endswith('-'):
+            raise exceptions.BadRequest(message=_('存储桶名称不允许以字符“-”开头或结尾'), code='InvalidName')
+
+        b_name = name.lower()
+        if b_name != name:
+            raise exceptions.BadRequest(message=_('存储桶名称不允许使用大写字母'), code='InvalidName')
+
         return {
-            'name': name,
+            'name': b_name,
             'service_id': service_id
         }
 
