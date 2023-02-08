@@ -32,6 +32,10 @@ class UserProfile(AbstractUser):
         STORAGE = 'storage-admin', _('存储管理员')
         FEDERAL = 'federal-admin', _('联邦管理员')
 
+    class SupporterRole(models.TextChoices):
+        NONE = '', _('空')
+        SUPPORTER = 'supporter', _('客服支持人员')
+
     id = models.CharField(blank=True, editable=False, max_length=36, primary_key=True, verbose_name='ID')
     telephone = models.CharField(verbose_name=_('电话'), max_length=11, default='')
     company = models.CharField(verbose_name=_('公司/单位'), max_length=255, default='')
@@ -39,6 +43,8 @@ class UserProfile(AbstractUser):
     last_active = models.DateTimeField(verbose_name=_('最后活跃日期'), db_index=True, auto_now=True)
     role = models.JSONField(verbose_name=_('角色'), null=False, default=default_role,
                             help_text=f'角色选项(可多选)，{Roles.values}')
+    # supporter_role = models.CharField(
+    #     verbose_name=_('客服支持人员角色'), max_length=32, choices=SupporterRole.choices, default=SupporterRole.NONE.value)
 
     def get_full_name(self):
         if self.last_name.encode('UTF-8').isalpha() and self.first_name.encode('UTF-8').isalpha():
@@ -89,6 +95,37 @@ class UserProfile(AbstractUser):
             self.role['role'].append(role)
         else:
             self.role['role'] = [role]
+
+        try:
+            self.save(update_fields=['role'])
+        except Exception as e:
+            return False
+
+        return True
+
+    def unset_federal_admin(self) -> bool:
+        """
+        去除联邦管理员角色
+        :raises: Exception
+        """
+        return self.unset_role(self.Roles.FEDERAL)
+
+    def unset_role(self, role: str) -> bool:
+        """
+        设置用户角色
+
+        :raises: Exception
+        """
+        if role not in self.Roles.values:
+            raise Exception('无效的用户角色')
+
+        if 'role' not in self.role or not isinstance(self.role['role'], list):
+            return True
+
+        if role not in self.role['role']:
+            return True
+
+        self.role['role'].remove(role)
 
         try:
             self.save(update_fields=['role'])
