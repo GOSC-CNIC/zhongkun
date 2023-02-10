@@ -12,7 +12,8 @@ from api.handlers.monitor_video_meeting import MonitorVideoMeetingQueryHandler
 from api.handlers.monitor_website import MonitorWebsiteHandler
 from api.serializers import monitor as monitor_serializers
 from api.paginations import MonitorPageNumberPagination, MonitorWebsiteTaskPagination
-from monitor.managers import CephQueryChoices, ServerQueryChoices, VideoMeetingQueryChoices
+from monitor.managers import CephQueryChoices, ServerQueryChoices, VideoMeetingQueryChoices, WebsiteQueryChoices
+from utils.paginators import NoPaginatorInspector
 
 
 class MonitorCephQueryViewSet(CustomGenericViewSet):
@@ -466,7 +467,7 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
         return MonitorWebsiteHandler().delete_website_task(view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('修改站点监控信息'),
+        operation_summary=gettext_lazy('修改站点监控任务'),
         manual_parameters=[
         ],
         responses={
@@ -475,7 +476,7 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
     )
     def update(self, request, *args, **kwargs):
         """
-        修改站点监控信息
+        修改站点监控任务
 
             Http Code: 状态码200, OK:
             {
@@ -503,6 +504,129 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
                 NotFound: 指定监控站点不存在
         """
         return MonitorWebsiteHandler().change_website_task(view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询站点的监控数据'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='query',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description=f'{WebsiteQueryChoices.choices}'
+            )
+        ],
+        paginator_inspectors=[NoPaginatorInspector],
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['get'], detail=True, url_path='query', url_name='data-query')
+    def data_query(self, request, *args, **kwargs):
+        """
+        查询站点的监控数据
+
+            Http Code: 状态码200，返回数据：
+            [                           # 数组可能为空
+                {
+                  "metric": {
+                    "__name__": "probe_duration_seconds",
+                    "group": "web",
+                    "instance": "http_status",
+                    "job": "http_status",
+                    "monitor": "example",
+                    "receive_cluster": "webmonitor",
+                    "receive_replica": "0",
+                    "tenant_id": "default-tenant",
+                    "url": "http://www.xtbg.cas.cn"
+                  },
+                  "values": [
+                    [1675923823.556, "0.021883576"],
+                    [1675923838.556, "0.018265911"]
+                  ]
+                }
+            ]
+
+            http code 400, 403, 404, 409：
+            {
+              "code": "Conflict",
+              "message": "未配置监控数据查询服务信息"
+            }
+        """
+        return MonitorWebsiteHandler().query_monitor_data(view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询指定时间段内的站点的监控数据'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='query',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description=f'{WebsiteQueryChoices.choices}'
+            ),
+            openapi.Parameter(
+                name='start',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                required=True,
+                description=_('查询起始时间戳')
+            ),
+            openapi.Parameter(
+                name='end',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                required=False,
+                description=_('查询截止时间戳, 默认是当前时间')
+            ),
+            openapi.Parameter(
+                name='step',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                required=False,
+                description=_('查询步长, 默认为300, 单位为秒')
+            )
+        ],
+        paginator_inspectors=[NoPaginatorInspector],
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['get'], detail=True, url_path='query/range', url_name='data-query-range')
+    def data_query_range(self, request, *args, **kwargs):
+        """
+        查询指定时间段内的站点的监控数据
+
+            * 数据量 = ( end - start ) / step ， 最大数据量10000，超出会报错，情根据参数“end”和“start”合理选择参数“step”的值
+
+            Http Code: 状态码200，返回数据：
+            [
+              {
+                "metric": {
+                  "__name__": "probe_duration_seconds",
+                  "group": "web",
+                  "instance": "http_status",
+                  "job": "http_status",
+                  "monitor": "example",
+                  "receive_cluster": "webmonitor",
+                  "receive_replica": "0",
+                  "tenant_id": "default-tenant",
+                  "url": "http://www.xtbg.cas.cn"
+                },
+                "values": [
+                  [1675992095, "0.018773782"],
+                  [1675992107, "0.018449363"]
+                ]
+              }
+            ]
+
+            http code 409：
+            {
+              "code": "Conflict",
+              "message": "未配置监控数据查询服务信息"
+            }
+        """
+        return MonitorWebsiteHandler().query_range_monitor_data(view=self, request=request, kwargs=kwargs)
 
     def get_serializer_class(self):
         if self.action in ['create', 'update']:

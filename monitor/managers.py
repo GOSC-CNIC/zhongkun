@@ -1,6 +1,7 @@
 from django.db import models, transaction
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
+from django.core.cache import cache as django_cache
 
 from core import errors
 from api.serializers.monitor import (
@@ -13,6 +14,7 @@ from .models import (
 from .backends.monitor_ceph import MonitorCephQueryAPI
 from .backends.monitor_server import MonitorServerQueryAPI
 from .backends.monitor_video_meeting import MonitorVideoMeetingQueryAPI
+from .backends.monitor_website import MonitorWebsiteQueryAPI
 
 
 class CephQueryChoices(models.TextChoices):
@@ -43,6 +45,12 @@ class ServerQueryChoices(models.TextChoices):
 class VideoMeetingQueryChoices(models.TextChoices):
     NODE_STATUS = 'node_status', _('节点在线状态')
     NODE_LATENCY = 'node_lantency', _('节点延迟')
+
+
+class WebsiteQueryChoices(models.TextChoices):
+    HTTP_STATUS_STATUS = 'http_status_code', _('请求状态码')
+    DURATION_SECONDS = 'duration_seconds', _('请求耗时')
+    # HTTP_DURATION_SECONDS = 'http_duration_seconds', _('http请求各个部分耗时')
 
 
 class MonitorJobCephManager:
@@ -324,12 +332,14 @@ class MonitorJobVideoMeetingManager:
 
 
 class MonitorWebsiteManager:
+    backend = MonitorWebsiteQueryAPI()
+
     @staticmethod
     def get_website_by_id(website_id: str) -> MonitorWebsite:
         return MonitorWebsite.objects.filter(id=website_id).first()
 
     @staticmethod
-    def get_user_website(website_id: str, user_id: str):
+    def get_user_website(website_id: str, user):
         """
         查询用户的指定站点监控任务
 
@@ -339,7 +349,7 @@ class MonitorWebsiteManager:
         if website is None:
             raise errors.NotFound(message=_('站点监控任务不存在。'))
 
-        if website.user_id != user_id:
+        if website.user_id != user.id:
             raise errors.AccessDenied(message=_('无权限访问此站点监控任务。'))
 
         return website
@@ -481,3 +491,99 @@ class MonitorWebsiteManager:
     @staticmethod
     def get_user_website_queryset(user_id: str):
         return MonitorWebsite.objects.select_related('user').filter(user_id=user_id).all()
+
+    @staticmethod
+    def get_provider():
+        """
+        :raises: Error
+        """
+        _key = 'monitor_website_provider'
+        provider = django_cache.get(_key)
+        if provider is None:
+            inst = MonitorWebsiteVersionProvider.get_instance()
+            provider = inst.provider
+            if not provider:
+                raise errors.ConflictError(message=_('未配置监控数据查询服务信息'))
+
+            django_cache.set(_key, provider, 120)
+
+        return provider
+
+    def query(self, website: MonitorWebsite, tag: str):
+        """
+        :raises: Error
+        """
+        provider = self.get_provider()
+        return self.request_data(provider=provider, tag=tag, url=website.url)
+
+    def request_data(self, provider: MonitorProvider, tag: str, url: str):
+        """
+        :return:
+            [
+                {
+                    "metric": {
+                        "__name__": "probe_success",
+                        "hostname": "kongtianyuan",
+                        "instance": "159.226.38.247:9115",
+                        "job": "shipinPing",
+                        "monitor": "example",
+                        "receive_cluster": "network",
+                        "receive_replica": "0",
+                        "tenant_id": "default-tenant"
+                    },
+                    "value": [
+                        1637233827.692,
+                        "0"
+                    ]
+                },
+                {...}
+            ]
+        :raises: Error
+        """
+        params = {'provider': provider, 'url': url}
+        f = {
+            WebsiteQueryChoices.HTTP_STATUS_STATUS.value: self.backend.http_status_code_period,
+            WebsiteQueryChoices.DURATION_SECONDS.value: self.backend.duration_seconds_period,
+            # WebsiteQueryChoices.HTTP_DURATION_SECONDS.value: self.backend.http_duration_seconds
+        }[tag]
+
+        return f(**params)
+
+    def query_range(self, website: MonitorWebsite, tag: str, start: int, end: int, step: int):
+        """
+        :raises: Error
+        """
+        provider = self.get_provider()
+        return self.request_range_data(provider=provider, tag=tag, url=website.url, start=start, end=end, step=step)
+
+    def request_range_data(self, provider: MonitorProvider, tag: str, url: str, start: int, end: int, step: int):
+        """
+        :return:
+            [
+                {
+                    "metric": {
+                        "__name__": "probe_success",
+                        "hostname": "kongtianyuan",
+                        "instance": "159.226.38.247:9115",
+                        "job": "shipinPing",
+                        "monitor": "example",
+                        "receive_cluster": "network",
+                        "receive_replica": "0",
+                        "tenant_id": "default-tenant"
+                    },
+                    "values": [
+                        [1637233827.692, "0"]
+                    ]
+                },
+                {...}
+            ]
+        :raises: Error
+        """
+        params = {'provider': provider, 'url': url, 'start': start, 'end': end, 'step': step}
+        f = {
+            WebsiteQueryChoices.HTTP_STATUS_STATUS.value: self.backend.http_status_code_range,
+            WebsiteQueryChoices.DURATION_SECONDS.value: self.backend.duration_seconds_range,
+            # WebsiteQueryChoices.HTTP_DURATION_SECONDS.value: self.backend.http_duration_seconds_range
+        }[tag]
+
+        return f(**params)

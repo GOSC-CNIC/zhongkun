@@ -1,4 +1,5 @@
 from django.core.paginator import Paginator
+from drf_yasg.inspectors import PaginatorInspector
 
 
 class NumsPaginator(Paginator):
@@ -93,3 +94,8 @@ class NumsPaginator(Paginator):
         querys = self.request.GET.copy()
         querys.setlist(self.page_query_name, [page_num])
         return querys.urlencode()
+
+
+class NoPaginatorInspector(PaginatorInspector):
+    def get_paginator_parameters(self, paginator):
+        return []

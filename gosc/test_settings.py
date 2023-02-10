@@ -32,6 +32,14 @@ TEST_CASE = {
         'JOB_MEETING': {
             'job_tag': '45xinxihuadasha503'
         }
+    },
+    'MONITOR_WEBSITE': {
+        'PROVIDER': {
+            'endpoint_url': 'http://thanoswrite.cstcloud.cn:19192/',
+            'username': '',
+            'password': ''
+        },
+        'WEBSITE_URL': "http://www.acas.ac.cn/"
     }
 }
 

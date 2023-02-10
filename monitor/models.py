@@ -18,7 +18,7 @@ def get_str_hash(s: str):
 
 class MonitorProvider(UuidModel):
     name = models.CharField(verbose_name=_('监控服务名称'), max_length=255, default='')
-    name_en = models.CharField(verbose_name=_('监控服务名称'), max_length=255, default='')
+    name_en = models.CharField(verbose_name=_('监控服务英文名称'), max_length=255, default='')
     endpoint_url = models.CharField(verbose_name=_('查询接口'), max_length=255, default='',
                                     help_text=_('http(s)://example.cn/'))
     username = models.CharField(max_length=128, verbose_name=_('认证用户名'), blank=True, default='',
