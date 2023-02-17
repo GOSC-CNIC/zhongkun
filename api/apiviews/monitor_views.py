@@ -282,6 +282,13 @@ class MonitorUnitCephViewSet(CustomGenericViewSet):
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举有访问权限的Ceph监控单元'),
         manual_parameters=[
+            openapi.Parameter(
+                name='organization_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('监控机构筛选')
+            )
         ],
         responses={
             200: ''

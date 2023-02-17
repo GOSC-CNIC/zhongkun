@@ -439,6 +439,18 @@ class MonitorUnitCephTests(MyAPITestCase):
         self.assertEqual(unit_ceph4.id, response.data['results'][1]['id'])
         self.assertEqual(unit_ceph2.id, response.data['results'][2]['id'])
 
+        # query "organization_id"
+        query = parse.urlencode(query={'organization_id': org.id})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "page_num", "page_size", 'results'], response.data)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 100)
+        self.assertEqual(len(response.data['results']), 2)
+        self.assertEqual(unit_ceph1.id, response.data['results'][0]['id'])
+        self.assertEqual(unit_ceph2.id, response.data['results'][1]['id'])
+
         # page_size
         query = parse.urlencode(query={'page': 1, 'page_size': 2})
         response = self.client.get(f'{url}?{query}')
@@ -463,6 +475,18 @@ class MonitorUnitCephTests(MyAPITestCase):
         self.assertEqual(unit_ceph4.id, response.data['results'][1]['id'])
         self.assertEqual(unit_ceph2.id, response.data['results'][2]['id'])
         self.assertEqual(unit_ceph3.id, response.data['results'][3]['id'])
+
+        # query "organization_id"
+        query = parse.urlencode(query={'organization_id': org.id})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "page_num", "page_size", 'results'], response.data)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 100)
+        self.assertEqual(len(response.data['results']), 2)
+        self.assertEqual(unit_ceph1.id, response.data['results'][0]['id'])
+        self.assertEqual(unit_ceph2.id, response.data['results'][1]['id'])
 
 
 class MonitorUnitServerTests(MyAPITestCase):

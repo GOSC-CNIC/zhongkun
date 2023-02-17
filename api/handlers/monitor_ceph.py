@@ -132,8 +132,13 @@ class MonitorCephQueryHandler:
     @staticmethod
     def list_ceph_unit(view, request):
         """list ceph 监控单元"""
+        organization_id = request.query_params.get('organization_id', None)
         user = request.user
+
         queryset = MonitorJobCeph.objects.select_related('organization').order_by('-sort_weight').all()
+        if organization_id:
+            queryset = queryset.filter(organization_id=organization_id)
+
         if user.is_federal_admin():
             pass
         else:
