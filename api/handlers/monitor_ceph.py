@@ -133,12 +133,12 @@ class MonitorCephQueryHandler:
     def list_ceph_unit(view, request):
         """list ceph 监控单元"""
         user = request.user
+        queryset = MonitorJobCeph.objects.select_related('organization').order_by('-sort_weight').all()
         if user.is_federal_admin():
-            queryset = MonitorJobCeph.objects.all()
+            pass
         else:
-            queryset = MonitorJobCeph.objects.filter(users__id=user.id).all()
+            queryset = queryset.filter(users__id=user.id)
 
-        queryset = queryset.order_by('-sort_weight')
         try:
             meterings = view.paginate_queryset(queryset)
             serializer = view.get_serializer(instance=meterings, many=True)

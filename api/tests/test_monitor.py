@@ -358,16 +358,19 @@ class MonitorUnitCephTests(MyAPITestCase):
     def test_list_unit(self):
         provider = MonitorProvider()
         provider.save(force_insert=True)
-
+        org = MonitorOrganization(
+            name='test', name_en='test en', abbreviation='t', modification=timezone.now()
+        )
+        org.save(force_insert=True)
         unit_ceph1 = MonitorJobCeph(
             name='name1', name_en='name_en1', job_tag='job_tag1', sort_weight=10,
-            provider=provider
+            provider=provider, organization=org
         )
         unit_ceph1.save(force_insert=True)
 
         unit_ceph2 = MonitorJobCeph(
             name='name2', name_en='name_en2', job_tag='job_tag2', sort_weight=6,
-            provider=provider
+            provider=provider, organization=org
         )
         unit_ceph2.save(force_insert=True)
 
@@ -406,8 +409,9 @@ class MonitorUnitCephTests(MyAPITestCase):
         self.assertEqual(response.data['page_size'], 100)
         self.assertEqual(len(response.data['results']), 1)
         self.assertKeysIn(['id', "name", "name_en", "job_tag", 'creation', 'remark',
-                           'sort_weight', 'grafana_url', 'dashboard_url'], response.data['results'][0])
+                           'sort_weight', 'grafana_url', 'dashboard_url', 'organization'], response.data['results'][0])
         self.assertEqual(unit_ceph4.id, response.data['results'][0]['id'])
+        self.assertIsNone(response.data['results'][0]['organization'])
 
         # unit_ceph1, unit_ceph4
         unit_ceph1.users.add(self.user)
@@ -419,6 +423,8 @@ class MonitorUnitCephTests(MyAPITestCase):
         self.assertEqual(response.data['page_size'], 100)
         self.assertEqual(len(response.data['results']), 2)
         self.assertEqual(unit_ceph1.id, response.data['results'][0]['id'])
+        self.assertKeysIn(['id', "name", "name_en", "abbreviation", 'creation', 'sort_weight'
+                           ], response.data['results'][0]['organization'])
 
         # unit_ceph1, unit_ceph4, unit_ceph2
         unit_ceph2.users.add(self.user)

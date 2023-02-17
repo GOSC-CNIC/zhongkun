@@ -304,9 +304,17 @@ class MonitorUnitCephViewSet(CustomGenericViewSet):
                   "job_tag": "obs-ceph",
                   "creation": "2021-10-28T01:26:43.498367Z",
                   "remark": "test",
-                  "sort_weight": 10,
+                  "sort_weight": 10,                        # 排序权重，倒序 由大到小
                   "grafana_url": "xxx",
-                  "dashboard_url": "xxx"
+                  "dashboard_url": "xxx",
+                  "organization": {                 # may be null
+                    "id": "0e3169d4-ae5d-11ed-a9ab-c8009fe2ebbc",
+                    "name": "test",
+                    "name_en": "test en",
+                    "abbreviation": "t",
+                    "sort_weight": 2,
+                    "creation": "2023-02-17T00:50:21.188064Z"
+                  }
                 }
               ]
             }
@@ -732,7 +740,7 @@ class MonitorOrganizationViewSet(CustomGenericViewSet):
                   "name": "test",
                   "name_en": "test en",
                   "abbreviation": "t",
-                  "sort_weight": 2,
+                  "sort_weight": 2,             # 排序权重，倒序 由大到小
                   "creation": "2023-02-17T00:50:21.188064Z",
                   "country": "中国",
                   "city": "北京",

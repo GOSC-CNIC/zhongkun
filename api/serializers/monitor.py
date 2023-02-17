@@ -36,6 +36,7 @@ class MonitorUnitCephSerializer(MonitorJobCephSerializer):
     sort_weight = serializers.IntegerField(label=_('排序权重'), default=0, help_text=_('值越大排序越靠前'))
     grafana_url = serializers.CharField(label=_('Grafana连接'), max_length=255)
     dashboard_url = serializers.CharField(label=_('Dashboard连接'), max_length=255)
+    organization = MonitorOrganizationSimpleSerializer(required=False)
 
 
 class MonitorJobServerSerializer(serializers.Serializer):
