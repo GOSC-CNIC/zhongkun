@@ -347,6 +347,13 @@ class MonitorUnitServerViewSet(CustomGenericViewSet):
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举有访问权限的服务器监控单元'),
         manual_parameters=[
+            openapi.Parameter(
+                name='organization_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('监控机构筛选')
+            )
         ],
         responses={
             200: ''
@@ -371,7 +378,15 @@ class MonitorUnitServerViewSet(CustomGenericViewSet):
                   "remark": "",
                   "sort_weight": 10,
                   "grafana_url": "",
-                  "dashboard_url": ""
+                  "dashboard_url": "",
+                  "organization": {                 # may be null
+                    "id": "0e3169d4-ae5d-11ed-a9ab-c8009fe2ebbc",
+                    "name": "test",
+                    "name_en": "test en",
+                    "abbreviation": "t",
+                    "sort_weight": 2,
+                    "creation": "2023-02-17T00:50:21.188064Z"
+                  }
                 },
               ]
             }

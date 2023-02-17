@@ -496,16 +496,20 @@ class MonitorUnitServerTests(MyAPITestCase):
     def test_list_server_unit(self):
         provider = MonitorProvider()
         provider.save(force_insert=True)
+        org = MonitorOrganization(
+            name='test', name_en='test en', abbreviation='t', modification=timezone.now()
+        )
+        org.save(force_insert=True)
 
         unit_server1 = MonitorJobServer(
             name='name1', name_en='name_en1', job_tag='job_tag1', sort_weight=10,
-            provider=provider
+            provider=provider, organization=org
         )
         unit_server1.save(force_insert=True)
 
         unit_server2 = MonitorJobServer(
             name='name2', name_en='name_en2', job_tag='job_tag2', sort_weight=6,
-            provider=provider
+            provider=provider, organization=org
         )
         unit_server2.save(force_insert=True)
 
@@ -546,6 +550,7 @@ class MonitorUnitServerTests(MyAPITestCase):
         self.assertKeysIn(['id', "name", "name_en", "job_tag", 'creation', 'remark',
                            'sort_weight', 'grafana_url', 'dashboard_url'], response.data['results'][0])
         self.assertEqual(unit_server4.id, response.data['results'][0]['id'])
+        self.assertIsNone(response.data['results'][0]['organization'])
 
         # unit_server1, unit_server4
         unit_server1.users.add(self.user)
@@ -557,6 +562,8 @@ class MonitorUnitServerTests(MyAPITestCase):
         self.assertEqual(response.data['page_size'], 100)
         self.assertEqual(len(response.data['results']), 2)
         self.assertEqual(unit_server1.id, response.data['results'][0]['id'])
+        self.assertKeysIn(['id', "name", "name_en", "abbreviation", 'creation', 'sort_weight'
+                           ], response.data['results'][0]['organization'])
 
         # unit_server1, unit_server4, unit_server2
         unit_server2.users.add(self.user)
@@ -570,6 +577,18 @@ class MonitorUnitServerTests(MyAPITestCase):
         self.assertEqual(unit_server1.id, response.data['results'][0]['id'])
         self.assertEqual(unit_server4.id, response.data['results'][1]['id'])
         self.assertEqual(unit_server2.id, response.data['results'][2]['id'])
+
+        # query "organization_id"
+        query = parse.urlencode(query={'organization_id': org.id})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "page_num", "page_size", 'results'], response.data)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 100)
+        self.assertEqual(len(response.data['results']), 2)
+        self.assertEqual(unit_server1.id, response.data['results'][0]['id'])
+        self.assertEqual(unit_server2.id, response.data['results'][1]['id'])
 
         # page_size
         query = parse.urlencode(query={'page': 1, 'page_size': 2})
@@ -595,6 +614,18 @@ class MonitorUnitServerTests(MyAPITestCase):
         self.assertEqual(unit_server4.id, response.data['results'][1]['id'])
         self.assertEqual(unit_server2.id, response.data['results'][2]['id'])
         self.assertEqual(unit_server3.id, response.data['results'][3]['id'])
+
+        # query "organization_id"
+        query = parse.urlencode(query={'organization_id': org.id})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "page_num", "page_size", 'results'], response.data)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 100)
+        self.assertEqual(len(response.data['results']), 2)
+        self.assertEqual(unit_server1.id, response.data['results'][0]['id'])
+        self.assertEqual(unit_server2.id, response.data['results'][1]['id'])
 
 
 class MonitorWebsiteTests(MyAPITestCase):

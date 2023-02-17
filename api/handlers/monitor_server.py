@@ -57,13 +57,18 @@ class MonitorServerQueryHandler:
     @staticmethod
     def list_server_unit(view, request):
         """list server 监控单元"""
+        organization_id = request.query_params.get('organization_id', None)
         user = request.user
-        if user.is_federal_admin():
-            queryset = MonitorJobServer.objects.all()
-        else:
-            queryset = MonitorJobServer.objects.filter(users__id=user.id).all()
 
-        queryset = queryset.order_by('-sort_weight')
+        queryset = MonitorJobServer.objects.select_related('organization').order_by('-sort_weight').all()
+        if organization_id:
+            queryset = queryset.filter(organization_id=organization_id)
+
+        if user.is_federal_admin():
+            pass
+        else:
+            queryset = queryset.filter(users__id=user.id)
+
         try:
             meterings = view.paginate_queryset(queryset)
             serializer = view.get_serializer(instance=meterings, many=True)
