@@ -2,6 +2,26 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 
+class MonitorOrganizationSimpleSerializer(serializers.Serializer):
+    id = serializers.CharField(label=_('监控机构id'))
+    name = serializers.CharField(label=_('监控机构名称'), max_length=255, default='')
+    name_en = serializers.CharField(label=_('监控机构英文名称'), max_length=255, default='')
+    abbreviation = serializers.CharField(label=_('简称'), max_length=64, default='')
+    sort_weight = serializers.IntegerField(label=_('排序权重'), help_text=_('值越大排序越靠前'))
+    creation = serializers.DateTimeField(label=_('创建时间'))
+
+
+class MonitorOrganizationSerializer(MonitorOrganizationSimpleSerializer):
+    country = serializers.CharField(label=_('国家/地区'), max_length=128, default='')
+    city = serializers.CharField(label=_('城市'), max_length=128, default='')
+    postal_code = serializers.CharField(label=_('邮政编码'), max_length=32, default='')
+    address = serializers.CharField(label=_('单位地址'), max_length=256, default='')
+    longitude = serializers.FloatField(label=_('经度'), default=0)
+    latitude = serializers.FloatField(label=_('纬度'), default=0)
+    modification = serializers.DateTimeField(label=_('修改时间'))
+    remark = serializers.CharField(label=_('备注'), default='')
+
+
 class MonitorJobCephSerializer(serializers.Serializer):
     id = serializers.CharField(label=_('监控单元id'))
     name = serializers.CharField(label=_('监控的CEPH集群名称'), max_length=255, default='')

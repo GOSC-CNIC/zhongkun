@@ -8,9 +8,17 @@ from utils.model import NoDeleteSelectModelAdmin
 from .models import (
     MonitorJobCeph, MonitorProvider, MonitorJobServer, MonitorJobVideoMeeting,
     MonitorWebsite, MonitorWebsiteTask, MonitorWebsiteVersionProvider,
-    get_str_hash
+    get_str_hash, MonitorOrganization
 )
 from .managers import MonitorWebsiteManager
+
+
+@admin.register(MonitorOrganization)
+class MonitorOrganizationAdmin(admin.ModelAdmin):
+    list_display = ('name', 'name_en', 'abbreviation', 'country', 'city', 'sort_weight',
+                    'longitude', 'latitude', 'creation', 'modification')
+    list_display_links = ('name', )
+    search_fields = ('name',)
 
 
 @admin.register(MonitorProvider)
@@ -23,19 +31,21 @@ class MonitorProviderAdmin(admin.ModelAdmin):
 
 @admin.register(MonitorJobCeph)
 class MonitorJobCephAdmin(admin.ModelAdmin):
-    list_display = ('name', 'name_en', 'job_tag', 'provider', 'prometheus', 'sort_weight', 'creation')
+    list_display = ('name', 'name_en', 'organization', 'job_tag', 'provider', 'prometheus', 'sort_weight', 'creation')
     list_display_links = ('name', )
-    list_select_related = ('provider',)
+    list_select_related = ('provider', 'organization')
     list_editable = ('sort_weight',)
+    list_filter = ('organization',)
     filter_horizontal = ('users',)
 
 
 @admin.register(MonitorJobServer)
 class MonitorJobServerAdmin(admin.ModelAdmin):
-    list_display = ('name', 'name_en', 'job_tag', 'provider', 'prometheus', 'sort_weight', 'creation')
+    list_display = ('name', 'name_en', 'organization', 'job_tag', 'provider', 'prometheus', 'sort_weight', 'creation')
     list_display_links = ('name', )
-    list_select_related = ('provider',)
+    list_select_related = ('provider', 'organization')
     list_editable = ('sort_weight',)
+    list_filter = ('organization',)
     filter_horizontal = ('users',)
 
 

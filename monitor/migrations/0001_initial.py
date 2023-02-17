@@ -39,8 +39,8 @@ class Migration(migrations.Migration):
                 ('creation', models.DateTimeField(auto_now_add=True, verbose_name='创建时间')),
             ],
             options={
-                'verbose_name': '监控服务配置信息',
-                'verbose_name_plural': '监控服务配置信息',
+                'verbose_name': '监控数据查询提供者服务',
+                'verbose_name_plural': '监控数据查询提供者服务',
                 'ordering': ['-creation'],
             },
         ),
