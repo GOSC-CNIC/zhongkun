@@ -27,7 +27,7 @@ from core import errors as exceptions
 from vo.models import VoMember
 from api.serializers import serializers
 from api.viewsets import CustomGenericViewSet
-from api.paginations import ServersPagination, DefaultPageNumberPagination
+from api.paginations import ServersPagination, DefaultPageNumberPagination, ImagesPagination
 from api.handlers import (
     handlers, ServerHandler, ServerArchiveHandler, VPNHandler
 )
@@ -60,83 +60,84 @@ class ServersViewSet(CustomGenericViewSet):
     permission_classes = [IsAuthenticated, ]
     pagination_class = ServersPagination
     lookup_field = 'id'
+
     # lookup_value_regex = '[0-9a-z-]+'
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举用户个人服务器实例，或者以管理员身份列举服务器实例'),
         manual_parameters=[
-            openapi.Parameter(
-                name='service_id',
-                in_=openapi.IN_QUERY,
-                type=openapi.TYPE_STRING,
-                required=False,
-                description='服务端点id'
-            ),
-            openapi.Parameter(
-              name='ip-contain',
-              in_=openapi.IN_QUERY,
-              type=openapi.TYPE_STRING,
-              required=False,
-              description=gettext_lazy('过滤条件，查询ip地址中包含指定字符串的服务器')
-            ),
-            openapi.Parameter(
-                name='public',
-                in_=openapi.IN_QUERY,
-                type=openapi.TYPE_BOOLEAN,
-                required=False,
-                description=gettext_lazy('过滤条件，“true”:ip为公网的服务器; "false": ip为私网的服务器')
-            ),
-            openapi.Parameter(
-                name='remark',
-                in_=openapi.IN_QUERY,
-                type=openapi.TYPE_STRING,
-                required=False,
-                description=gettext_lazy('过滤条件，服务器备注模糊查询')
-            ),
-            openapi.Parameter(
-                name='status',
-                in_=openapi.IN_QUERY,
-                type=openapi.TYPE_STRING,
-                required=False,
-                description=gettext_lazy('过滤条件') + str(ServerHandler.ListServerQueryStatus.choices)
-            ),
-            openapi.Parameter(
-                name='user-id',
-                in_=openapi.IN_QUERY,
-                type=openapi.TYPE_STRING,
-                required=False,
-                description=gettext_lazy('过滤条件，用户id，此参数只有以管理员身份请求时有效，否则400，不能与参数“username”一起提交')
-            ),
-            openapi.Parameter(
-              name='username',
-              in_=openapi.IN_QUERY,
-              type=openapi.TYPE_STRING,
-              required=False,
-              description=gettext_lazy('过滤条件，用户名，此参数只有以管理员身份请求时有效，否则400，不能与参数“user-id”一起提交')
-            ),
-            openapi.Parameter(
-                name='vo-id',
-                in_=openapi.IN_QUERY,
-                type=openapi.TYPE_STRING,
-                required=False,
-                description=gettext_lazy('过滤条件，vo组id，此参数只有以管理员身份请求时有效，否则400，不能与参数“vo-name”一起提交')
-            ),
-            openapi.Parameter(
-                name='vo-name',
-                in_=openapi.IN_QUERY,
-                type=openapi.TYPE_STRING,
-                required=False,
-                description=gettext_lazy('过滤条件，vo组名称，此参数只有以管理员身份请求时有效，否则400，不能与参数“vo-id”一起提交')
-            ),
-            openapi.Parameter(
-                name='exclude-vo',
-                in_=openapi.IN_QUERY,
-                type=openapi.TYPE_STRING,
-                required=False,
-                description=gettext_lazy('过滤条件，排除vo组只查询个人，此参数不需要值，此参数只有以管理员身份请求时有效，否则400，'
-                                         '不能与参数“vo-id”、“vo-name”一起提交')
-            ),
-        ] + CustomGenericViewSet.PARAMETERS_AS_ADMIN,
+                              openapi.Parameter(
+                                  name='service_id',
+                                  in_=openapi.IN_QUERY,
+                                  type=openapi.TYPE_STRING,
+                                  required=False,
+                                  description='服务端点id'
+                              ),
+                              openapi.Parameter(
+                                  name='ip-contain',
+                                  in_=openapi.IN_QUERY,
+                                  type=openapi.TYPE_STRING,
+                                  required=False,
+                                  description=gettext_lazy('过滤条件，查询ip地址中包含指定字符串的服务器')
+                              ),
+                              openapi.Parameter(
+                                  name='public',
+                                  in_=openapi.IN_QUERY,
+                                  type=openapi.TYPE_BOOLEAN,
+                                  required=False,
+                                  description=gettext_lazy('过滤条件，“true”:ip为公网的服务器; "false": ip为私网的服务器')
+                              ),
+                              openapi.Parameter(
+                                  name='remark',
+                                  in_=openapi.IN_QUERY,
+                                  type=openapi.TYPE_STRING,
+                                  required=False,
+                                  description=gettext_lazy('过滤条件，服务器备注模糊查询')
+                              ),
+                              openapi.Parameter(
+                                  name='status',
+                                  in_=openapi.IN_QUERY,
+                                  type=openapi.TYPE_STRING,
+                                  required=False,
+                                  description=gettext_lazy('过滤条件') + str(ServerHandler.ListServerQueryStatus.choices)
+                              ),
+                              openapi.Parameter(
+                                  name='user-id',
+                                  in_=openapi.IN_QUERY,
+                                  type=openapi.TYPE_STRING,
+                                  required=False,
+                                  description=gettext_lazy('过滤条件，用户id，此参数只有以管理员身份请求时有效，否则400，不能与参数“username”一起提交')
+                              ),
+                              openapi.Parameter(
+                                  name='username',
+                                  in_=openapi.IN_QUERY,
+                                  type=openapi.TYPE_STRING,
+                                  required=False,
+                                  description=gettext_lazy('过滤条件，用户名，此参数只有以管理员身份请求时有效，否则400，不能与参数“user-id”一起提交')
+                              ),
+                              openapi.Parameter(
+                                  name='vo-id',
+                                  in_=openapi.IN_QUERY,
+                                  type=openapi.TYPE_STRING,
+                                  required=False,
+                                  description=gettext_lazy('过滤条件，vo组id，此参数只有以管理员身份请求时有效，否则400，不能与参数“vo-name”一起提交')
+                              ),
+                              openapi.Parameter(
+                                  name='vo-name',
+                                  in_=openapi.IN_QUERY,
+                                  type=openapi.TYPE_STRING,
+                                  required=False,
+                                  description=gettext_lazy('过滤条件，vo组名称，此参数只有以管理员身份请求时有效，否则400，不能与参数“vo-id”一起提交')
+                              ),
+                              openapi.Parameter(
+                                  name='exclude-vo',
+                                  in_=openapi.IN_QUERY,
+                                  type=openapi.TYPE_STRING,
+                                  required=False,
+                                  description=gettext_lazy('过滤条件，排除vo组只查询个人，此参数不需要值，此参数只有以管理员身份请求时有效，否则400，'
+                                                           '不能与参数“vo-id”、“vo-name”一起提交')
+                              ),
+                          ] + CustomGenericViewSet.PARAMETERS_AS_ADMIN,
         responses={
             200: ''
         }
@@ -470,14 +471,14 @@ class ServersViewSet(CustomGenericViewSet):
     @swagger_auto_schema(
         operation_summary=gettext_lazy('删除服务器实例'),
         manual_parameters=[
-            openapi.Parameter(
-                name='force',
-                in_=openapi.IN_QUERY,
-                type=openapi.TYPE_BOOLEAN,
-                required=False,
-                description='强制删除'
-            ),
-        ] + CustomGenericViewSet.PARAMETERS_AS_ADMIN,
+                              openapi.Parameter(
+                                  name='force',
+                                  in_=openapi.IN_QUERY,
+                                  type=openapi.TYPE_BOOLEAN,
+                                  required=False,
+                                  description='强制删除'
+                              ),
+                          ] + CustomGenericViewSet.PARAMETERS_AS_ADMIN,
         responses={
             204: """NO CONTENT""",
             403: """
@@ -533,8 +534,8 @@ class ServersViewSet(CustomGenericViewSet):
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
-        if server.do_archive(archive_user=request.user):     # 记录归档
-            self.release_server_quota(server=server)    # 释放资源配额
+        if server.do_archive(archive_user=request.user):  # 记录归档
+            self.release_server_quota(server=server)  # 释放资源配额
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -584,7 +585,7 @@ class ServersViewSet(CustomGenericViewSet):
             exc = exceptions.InvalidArgument(_('参数有误') + ',' + str(e))
             return Response(data=exc.err_data(), status=exc.status_code)
 
-        actions = inputs.ServerAction.values    # ['start', 'reboot', 'shutdown', 'poweroff', 'delete', 'delete_force']
+        actions = inputs.ServerAction.values  # ['start', 'reboot', 'shutdown', 'poweroff', 'delete', 'delete_force']
         if act is None:
             exc = exceptions.InvalidArgument(_('action参数是必须的'))
             return Response(data=exc.err_data(), status=exc.status_code)
@@ -642,7 +643,7 @@ class ServersViewSet(CustomGenericViewSet):
 
         if act in [inputs.ServerAction.DELETE, inputs.ServerAction.DELETE_FORCE]:
             server.do_archive(archive_user=request.user)
-            self.release_server_quota(server=server)    # 释放资源配额
+            self.release_server_quota(server=server)  # 释放资源配额
 
         return Response({'action': act})
 
@@ -698,6 +699,7 @@ class ServersViewSet(CustomGenericViewSet):
                 12      # Failed to build the domain
                 13      # An error occurred in the domain.
         """
+
         def build_response(_status_code):
             status_text = outputs.ServerStatus.get_mean(_status_code)
             return Response(data={
@@ -726,7 +728,7 @@ class ServersViewSet(CustomGenericViewSet):
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
-        if status_code in outputs.ServerStatus.normal_values():     # 虚拟服务器状态正常
+        if status_code in outputs.ServerStatus.normal_values():  # 虚拟服务器状态正常
             if (server.task_status == server.TASK_IN_CREATING) or (not is_ipv4(server.ipv4)):
                 self._update_server_detail(server, task_status=server.TASK_CREATED_OK)
 
@@ -857,14 +859,14 @@ class ServersViewSet(CustomGenericViewSet):
         operation_summary=gettext_lazy('云服务器锁设置'),
         request_body=no_body,
         manual_parameters=[
-            openapi.Parameter(
-                name='lock',
-                in_=openapi.IN_QUERY,
-                type=openapi.TYPE_STRING,
-                required=True,
-                description=f'{Server.Lock.choices}'
-            )
-        ] + CustomGenericViewSet.PARAMETERS_AS_ADMIN,
+                              openapi.Parameter(
+                                  name='lock',
+                                  in_=openapi.IN_QUERY,
+                                  type=openapi.TYPE_STRING,
+                                  required=True,
+                                  description=f'{Server.Lock.choices}'
+                              )
+                          ] + CustomGenericViewSet.PARAMETERS_AS_ADMIN,
         responses={
             200: '''
                     {
@@ -891,11 +893,11 @@ class ServersViewSet(CustomGenericViewSet):
         request_body=no_body,
         manual_parameters=[
             openapi.Parameter(
-              name='act',
-              in_=openapi.IN_QUERY,
-              type=openapi.TYPE_STRING,
-              required=True,
-              description=f'{Server.Situation.choices}'
+                name='act',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description=f'{Server.Situation.choices}'
             )
         ],
         responses={
@@ -946,7 +948,7 @@ class ImageViewSet(CustomGenericViewSet):
     系统镜像视图
     """
     permission_classes = [IsAuthenticated, ]
-    pagination_class = None
+    pagination_class = ImagesPagination
     lookup_field = 'id'
     # lookup_value_regex = '[0-9a-z-]+'
     serializer_class = Serializer
@@ -954,6 +956,13 @@ class ImageViewSet(CustomGenericViewSet):
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举镜像'),
         manual_parameters=[
+            openapi.Parameter(
+                name='flavor_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description='配置ID（针对阿里云，规格与镜像存在依赖关系）'
+            ),
             openapi.Parameter(
                 name='service_id',
                 in_=openapi.IN_QUERY,
@@ -975,8 +984,10 @@ class ImageViewSet(CustomGenericViewSet):
               {
                 "id": "18",
                 "name": "Ubuntu 2004",
-                "system": "Ubuntu 2004",
-                "system_type": "Linux",
+                "release": 系统发行版本，取值空间为{"Windows Desktop", "Windows Server", "Ubuntu", "Fedora", "Centos", "Unknown"},
+                "version":系统发行编号（64字符内），取值空间为{"win10","win11","2021","2019","2204","2004","36","37","7","8","9","Unknown",....}
+                "architecture":系统架构，取值空间为{"x86-64","i386","arm-64","Unknown"}
+                "system_type": 系统类型，取值空间为{"Linux",“Windows","Unknown"}
                 "creation_time": "0001-01-01T00:00:00Z",
                 "desc": "Ubuntu 2004 旧镜像",
                 "default_user": "root",
@@ -991,16 +1002,25 @@ class ImageViewSet(CustomGenericViewSet):
         except exceptions.APIException as exc:
             return Response(exc.err_data(), status=exc.status_code)
 
-        params = inputs.ListImageInput(region_id=service.region_id)
         try:
+            page_num = self.paginator.get_page_number(request, self.paginator)
+            page_size = self.paginator.get_page_size(request)
+            flavor_id = request.query_params.get('flavor_id', '')
+            flavor = Flavor.objects.get(id=flavor_id)
+
+            params = inputs.ListImageInput(region_id=service.region_id, page_num=page_num, page_size=page_size,
+                                           flavor_id=flavor.flavor_id)
             r = self.request_service(service, method='list_images', params=params)
+
+            serializer = serializers.ImageSerializer(r.images, many=True)
+            response = self.paginator.get_paginated_response(data=serializer.data, count=r.count,
+                                                             page_num=int(page_num), page_size=page_size)
         except exceptions.AuthenticationFailed as exc:
             return Response(data=exc.err_data(), status=500)
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
-        serializer = serializers.ImageSerializer(r.images, many=True)
-        return Response(data=serializer.data)
+        return response
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举镜像'),
@@ -1422,8 +1442,10 @@ class FlavorViewSet(CustomGenericViewSet):
               "flavors": [
                 {
                   "id": 9c70cbe2-690c-11eb-a4b7-c8009fe2eb10,
+                  "flavor_id": "ecs.s3.medium"
                   "vcpus": 4,
                   "ram": 4096,
+                  "disk": 17
                   "service_id": "xxx"
                 }
               ]
@@ -2377,28 +2399,28 @@ class VOViewSet(CustomGenericViewSet):
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举项目组'),
         manual_parameters=[
-            openapi.Parameter(
-                name='owner',
-                type=openapi.TYPE_BOOLEAN,
-                in_=openapi.IN_QUERY,
-                required=False,
-                description=_('列举作为拥有者身份的组，参数不需要值，存在即有效')
-            ),
-            openapi.Parameter(
-                name='member',
-                type=openapi.TYPE_BOOLEAN,
-                in_=openapi.IN_QUERY,
-                required=False,
-                description=_('列举作为组员身份的组，参数不需要值，存在即有效')
-            ),
-            openapi.Parameter(
-                name='name',
-                type=openapi.TYPE_BOOLEAN,
-                in_=openapi.IN_QUERY,
-                required=False,
-                description=_('vo组名关键字查询')
-            )
-        ] + CustomGenericViewSet.PARAMETERS_AS_ADMIN,
+                              openapi.Parameter(
+                                  name='owner',
+                                  type=openapi.TYPE_BOOLEAN,
+                                  in_=openapi.IN_QUERY,
+                                  required=False,
+                                  description=_('列举作为拥有者身份的组，参数不需要值，存在即有效')
+                              ),
+                              openapi.Parameter(
+                                  name='member',
+                                  type=openapi.TYPE_BOOLEAN,
+                                  in_=openapi.IN_QUERY,
+                                  required=False,
+                                  description=_('列举作为组员身份的组，参数不需要值，存在即有效')
+                              ),
+                              openapi.Parameter(
+                                  name='name',
+                                  type=openapi.TYPE_BOOLEAN,
+                                  in_=openapi.IN_QUERY,
+                                  required=False,
+                                  description=_('vo组名关键字查询')
+                              )
+                          ] + CustomGenericViewSet.PARAMETERS_AS_ADMIN,
         responses={
             status.HTTP_200_OK: ''
         }

@@ -20,6 +20,20 @@ class ServersPagination(PageNumberPagination):
         ]))
 
 
+class ImagesPagination(PageNumberPagination):
+    page_size_query_param = 'page_size'
+    page_size = 20
+    results_key_name = 'results'
+
+    def get_paginated_response(self, data, count: int, page_num: int, page_size: int):
+        return Response(OrderedDict([
+            ('count', count),
+            ('page_num', page_num),
+            ('page_size', page_size),
+            (self.results_key_name, data)
+        ]))
+
+
 class DefaultPageNumberPagination(PageNumberPagination):
     page_size_query_param = 'page_size'
     # page_size = 20
