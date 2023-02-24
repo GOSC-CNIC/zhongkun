@@ -48,6 +48,13 @@
                         </div>
                     </div>
                     <div class="form-group row">
+                        <label for="id-flavor" class="col-sm-2 text-right col-form-label">{% trans '配置' %}</label>
+                        <div class="col-sm-7 form-inline">
+                            <select name="flavor_id" class="form-control" id="id-flavor" required>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group row">
                         <label for="id-image" class="col-sm-2 text-right col-form-label">{% trans '系统镜像' %}</label>
                         <div class="col-sm-7">
                             <select name="image_id" class="form-control" id="id-image" required>
@@ -55,13 +62,6 @@
                                 {% for i in images %}
                                     <option value="{{ i.id }}">{{ i.name }}</option>
                                 {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-group row">
-                        <label for="id-flavor" class="col-sm-2 text-right col-form-label">{% trans '配置' %}</label>
-                        <div class="col-sm-7 form-inline">
-                            <select name="flavor_id" class="form-control" id="id-flavor" required>
                             </select>
                         </div>
                     </div>

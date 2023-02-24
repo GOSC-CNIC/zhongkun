@@ -8,7 +8,7 @@ from core.quota import QuotaAPI
 from core import request as core_request
 from service.managers import ServiceManager
 from servers.models import Server
-from servers. managers import ServerManager
+from servers.managers import ServerManager
 from adapters import inputs
 from utils.model import PayType, OwnerType
 from order.models import ResourceType, Order, Resource
@@ -19,14 +19,15 @@ class OrderResourceDeliverer:
     """
     订单资源创建交付管理器
     """
+
     @staticmethod
     def deliver_order(order: Order, resource: Resource):
-        if order.order_type == Order.OrderType.NEW.value:   # 新购
+        if order.order_type == Order.OrderType.NEW.value:  # 新购
             if order.resource_type == ResourceType.VM.value:
                 OrderResourceDeliverer().deliver_new_server(order=order, resource=resource)
             else:
                 raise exceptions.Error(message=_('订购的资源类型无法交付，资源类型服务不支持。'))
-        elif order.order_type == Order.OrderType.RENEWAL.value:     # 续费
+        elif order.order_type == Order.OrderType.RENEWAL.value:  # 续费
             if order.resource_type == ResourceType.VM.value:
                 OrderResourceDeliverer().deliver_renewal_server(order=order, resource=resource)
             else:
@@ -67,7 +68,7 @@ class OrderResourceDeliverer:
         params = inputs.ServerCreateInput(
             ram=config.vm_ram, vcpu=config.vm_cpu, image_id=config.vm_image_id, azone_id=config.vm_azone_id,
             region_id=service.region_id, network_id=config.vm_network_id, remarks=resource.instance_remark,
-            systemdisk_size=config.vm_systemdisk_size
+            systemdisk_size=config.vm_systemdisk_size, flavor_id=config.vm_flavor_id
         )
         try:
             out = core_request.request_service(service=service, method='server_create', params=params)

@@ -150,7 +150,7 @@
 
     // 加载系统镜像下拉框渲染模板
     function render_image_select_items(data){
-        let ret='';
+        let ret='<option value="">--</option>';
         let t = '<option value="{0}">{1}</option>';
         for(let i=0; i<data.length; i++){
             let s = t.format([data[i]['id'], data[i]['name']]);
@@ -159,9 +159,16 @@
         return ret;
     }
 
+    function image_select_clear(){
+        let html='<option value="">--</option>';
+        let image_select = $('select[name="image_id"]');
+        image_select.html(html);
+    }
+
     function image_select_update(){
         let service = $('select[name="service_id"]').val();
         let azone_id = $('select[name="azone_id"]').val();
+        let flavor_id = $('select[name="flavor_id"]').val();
         let index_key = service + '_' + azone_id;
         if (!service)
             return;
@@ -173,13 +180,13 @@
             return;
         }
         image_select.html('');
-        let query_str = encode_params({service_id:service});
+        let query_str = encode_params({service_id:service, flavor_id: flavor_id});
         $.ajax({
             url: build_absolute_url('api/image?'+ query_str),
             type: 'get',
             contentType: 'application/json',
             success: function (data, status, xhr) {
-                let html = render_image_select_items(data);
+                let html = render_image_select_items(data.results);
                 image_select.html(html);
                 set_image_to_cache(index_key, html);
             },
@@ -195,7 +202,7 @@
 
     // 加载配置下拉框渲染模板
     function render_flavor_select_items(data){
-        let ret='';
+        let ret='<option value="">--</option>';
         let t = '<option value="{0}">vCPU:{1}/RAM:{2}MB</option>';
         for(let i=0; i<data.length; i++){
             let s = t.format([data[i]['id'], data[i]['vcpus'], data[i]['ram']]);
@@ -378,7 +385,8 @@
 
     function update_select(){
         azone_select_update();
-        image_select_update();
+        // image_select_update();
+        image_select_clear();
         flavor_select_update();
         network_select_update();
     }
@@ -386,13 +394,19 @@
     $("#id-service").change(function (e) {
         e.preventDefault();
         azone_select_update();
-        image_select_update();
+        // image_select_update();
+        image_select_clear();
         network_select_update();
     });
 
     $("#id-azone").change(function (e) {
         e.preventDefault();
         network_select_update();
+    });
+
+    $("#id-flavor").change(function (e) {
+        e.preventDefault();
+        image_select_update();
     });
 
 })();

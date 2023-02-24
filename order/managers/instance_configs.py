@@ -23,6 +23,7 @@ class ServerConfig(BaseConfig):
     KEY_CPU = 'vm_cpu'
     KEY_RAM = 'vm_ram'
     KEY_DISK_SIZE = 'vm_systemdisk_size'
+    KEY_FLAVOR_ID = 'vm_flavor_id'           # 针对阿里云，服务端规格ID
     KEY_PUBLIC_IP = 'vm_public_ip'
     KEY_IMAGE_ID = 'vm_image_id'
     KEY_IMAGE_NAME = 'vm_image_name'        # 不重要，不需要放到KEYS中
@@ -30,12 +31,13 @@ class ServerConfig(BaseConfig):
     KEY_NETWORK_NAME = 'vm_network_name'    # 不重要，不需要放到KEYS中
     KEY_AZONE_ID = 'vm_azone_id'
     KEY_AZONE_NAME = 'vm_azone_name'       # 可用区名称是可变的，不重要，不需要放到KEYS中
-    KEYS = (KEY_CPU, KEY_RAM, KEY_DISK_SIZE, KEY_PUBLIC_IP, KEY_IMAGE_ID, KEY_NETWORK_ID, KEY_AZONE_ID)
+    KEYS = (KEY_CPU, KEY_RAM, KEY_DISK_SIZE, KEY_PUBLIC_IP, KEY_IMAGE_ID, KEY_NETWORK_ID, KEY_AZONE_ID, KEY_FLAVOR_ID)
 
     def __init__(
             self, vm_cpu: int,
             vm_ram: int,
             systemdisk_size: int,
+            flavor_id: str,
             public_ip: bool,
             image_id: str,
             image_name: str,
@@ -58,6 +60,7 @@ class ServerConfig(BaseConfig):
         self.vm_cpu = vm_cpu
         self.vm_ram = vm_ram
         self.vm_systemdisk_size = systemdisk_size
+        self.vm_flavor_id = flavor_id
         self.vm_public_ip = public_ip
         self.vm_image_id = image_id
         self.vm_image_name = image_name
@@ -77,7 +80,8 @@ class ServerConfig(BaseConfig):
             self.KEY_NETWORK_ID: self.vm_network_id,
             self.KEY_NETWORK_NAME: self.vm_network_name,
             self.KEY_AZONE_ID: self.vm_azone_id,
-            self.KEY_AZONE_NAME: self.vm_azone_name
+            self.KEY_AZONE_NAME: self.vm_azone_name,
+            self.KEY_FLAVOR_ID: self.vm_flavor_id
         }
 
     @classmethod
@@ -96,7 +100,8 @@ class ServerConfig(BaseConfig):
             network_id=config[cls.KEY_NETWORK_ID],
             network_name=config.get(cls.KEY_NETWORK_NAME, ''),
             azone_id=config[cls.KEY_AZONE_ID],
-            azone_name=config.get(cls.KEY_AZONE_NAME, '')
+            azone_name=config.get(cls.KEY_AZONE_NAME, ''),
+            flavor_id =config.get(cls.KEY_FLAVOR_ID, '')
         )
 
 

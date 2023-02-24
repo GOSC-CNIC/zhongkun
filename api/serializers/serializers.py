@@ -148,7 +148,9 @@ class ServerRebuildSerializer(serializers.Serializer):
 class ImageSerializer(serializers.Serializer):
     id = serializers.CharField()
     name = serializers.CharField()
-    system = serializers.CharField()
+    release = serializers.CharField()
+    version = serializers.CharField()
+    architecture = serializers.CharField()
     system_type = serializers.CharField()
     creation_time = serializers.DateTimeField()
     desc = serializers.CharField()
@@ -167,8 +169,10 @@ class NetworkSerializer(serializers.Serializer):
 
 class FlavorSerializer(serializers.Serializer):
     id = serializers.CharField()
+    flavor_id = serializers.CharField(label=_('服务端规格ID'))
     vcpus = serializers.IntegerField(label=_('虚拟CPU数'))
     ram = serializers.IntegerField(label=_('内存MB'))
+    disk = serializers.IntegerField(label=_('硬盘GB'))
     service_id = serializers.CharField(label=_('服务单元id'))
 
 
@@ -587,7 +591,8 @@ class VoUpdateSerializer(serializers.Serializer):
 
 
 class VoMembersAddSerializer(serializers.Serializer):
-    usernames = serializers.ListField(label=_('用户名'), max_length=1000, required=True, allow_null=False, allow_empty=False)
+    usernames = serializers.ListField(label=_('用户名'), max_length=1000, required=True, allow_null=False,
+                                      allow_empty=False)
 
 
 class VoMemberSerializer(serializers.Serializer):

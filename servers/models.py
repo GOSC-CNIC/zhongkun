@@ -10,7 +10,6 @@ from service.models import ServiceConfig
 from utils.model import get_encryptor
 from vo.models import VirtualOrganization
 
-
 User = get_user_model()
 
 
@@ -157,6 +156,7 @@ class Server(ServerBase):
     """
     虚拟服务器实例
     """
+
     class Lock(models.TextChoices):
         FREE = 'free', _('无锁')
         DELETE = 'lock-delete', _('锁定删除')
@@ -187,7 +187,7 @@ class Server(ServerBase):
             True    # has
             False   # no
         """
-        if not user.id:    # 未认证用户
+        if not user.id:  # 未认证用户
             return False
 
         if user.is_superuser:
@@ -305,6 +305,7 @@ class ServerArchive(ServerBase):
     """
     虚拟服务器实例归档
     """
+
     class ArchiveType(models.TextChoices):
         ARCHIVE = 'archive', _('删除归档记录')
         REBUILD = 'rebuild', _('重建修改记录')
@@ -382,8 +383,11 @@ class ServerArchive(ServerBase):
 
 class Flavor(models.Model):
     id = models.CharField(blank=True, editable=False, max_length=36, primary_key=True, verbose_name='ID')
+    flavor_id = models.CharField(blank=True, max_length=256, verbose_name='服务端规格ID')
     vcpus = models.IntegerField(verbose_name=_('虚拟CPU数'), default=0)
     ram = models.IntegerField(verbose_name=_('内存MB'), default=0)
+    disk = models.IntegerField(verbose_name=_('硬盘GB'), default=0)
+    desc = models.CharField(max_length=255, verbose_name=_('Tag描述'), blank=True, default='')
     enable = models.BooleanField(verbose_name=_('可用状态'), default=True)
     creation_time = models.DateTimeField(auto_now_add=True, verbose_name=_('创建时间'))
     service = models.ForeignKey(to=ServiceConfig, on_delete=models.SET_NULL, db_constraint=False,

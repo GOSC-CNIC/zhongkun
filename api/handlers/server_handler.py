@@ -123,7 +123,7 @@ class ServerHandler:
             'user_id': user_id,
             'vo_id': vo_id,
             'vo_name': vo_name,
-            'expired': expired,     # True or None
+            'expired': expired,  # True or None
             'exclude_vo': exclude_vo,
             'public': public,
             'remark': remark,
@@ -394,7 +394,8 @@ class ServerHandler:
 
         try:
             out_net = view.request_service(
-                service=service, method='network_detail', params=inputs.NetworkDetailInput(network_id=network_id, azone_id=azone_id))
+                service=service, method='network_detail',
+                params=inputs.NetworkDetailInput(network_id=network_id, azone_id=azone_id))
         except exceptions.APIException as exc:
             if exc.status_code in [400, 404]:
                 raise exceptions.BadRequest(message=_('指定网络不存在.'), code='InvalidNetworkId')
@@ -512,7 +513,7 @@ class ServerHandler:
         instance_config = ServerConfig(
             vm_cpu=flavor.vcpus, vm_ram=flavor.ram, systemdisk_size=systemdisk_size, public_ip=is_public_network,
             image_id=image_id, image_name='', network_id=network.id, network_name=network.name,
-            azone_id=azone_id, azone_name=azone_name
+            azone_id=azone_id, azone_name=azone_name, flavor_id=flavor.flavor_id
         )
         omgr = OrderManager()
         # 按量付费模式时，检查是否有余额
@@ -523,8 +524,8 @@ class ServerHandler:
             )
             if owner_type == OwnerType.USER.value:
                 if not PaymentManager().has_enough_balance_user(
-                    user_id=user.id, money_amount=original_price, with_coupons=True,
-                    app_service_id=service.pay_app_service_id
+                        user_id=user.id, money_amount=original_price, with_coupons=True,
+                        app_service_id=service.pay_app_service_id
                 ):
                     return view.exception_response(
                         exceptions.BalanceNotEnough(message=_('余额不足')))

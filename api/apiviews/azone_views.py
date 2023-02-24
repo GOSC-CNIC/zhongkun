@@ -11,10 +11,10 @@ from adapters import inputs
 
 
 class AvailabilityZoneViewSet(CustomGenericViewSet):
-
     permission_classes = [IsAuthenticated, ]
     pagination_class = None
     lookup_field = 'id'
+
     # lookup_value_regex = '[0-9a-z-]+'
 
     @swagger_auto_schema(
@@ -52,7 +52,7 @@ class AvailabilityZoneViewSet(CustomGenericViewSet):
         except errors.APIException as exc:
             return Response(exc.err_data(), status=exc.status_code)
 
-        params = inputs.ListImageInput(region_id=service.region_id)
+        params = inputs.ListAzoneInput(region_id=service.region_id)
         try:
             r = self.request_service(service, method='list_availability_zones', params=params)
         except errors.AuthenticationFailed as exc:
