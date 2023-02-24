@@ -335,14 +335,17 @@ class EVCloudAdapter(BaseAdapter):
             outputs.ListImageOutput()
         """
         center_id = int(params.region_id)
-        url = self.api_builder.image_base_url(query={'center_id': center_id, 'tag': 1})
+        offset = (int(params.page_num) - 1) * int(params.page_size)
+        limit = params.page_size
+        url = self.api_builder.image_base_url(
+            query={'center_id': center_id, 'tag': 1, 'offset': offset, 'limit': limit})
         try:
             headers = self.get_auth_header()
             r = self.do_request(method='get', url=url, headers=headers)
         except exceptions.Error as e:
             return OutputConverter().to_list_image_output_error(error=e)
         rj = r.json()
-        return OutputConverter().to_list_image_output(rj['results'])
+        return OutputConverter().to_list_image_output(rj['results'], rj['count'])
 
     def image_detail(self, params: inputs.ImageDetailInput, **kwargs):
         """

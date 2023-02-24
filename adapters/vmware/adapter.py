@@ -375,7 +375,8 @@ class VmwareAdapter(BaseAdapter):
                     disk_size = vm.storage.perDatastoreUsage[0].unshared / (1024 * 1024 * 1024)  # byte大小转GB
                     img_obj = outputs.ListImageOutputImage(
                         _id=vm.name, name=vm.name,
-                        system=helpers.get_system_name(vm),
+                        release=helpers.get_system_name(vm),
+                        version=vm.config.guestFullName, architecture=vm.config.guestFullName,
                         desc=vm.config.guestFullName,
                         system_type=helpers.get_system_type(vm),
                         creation_time=vm.config.createDate,
@@ -394,7 +395,7 @@ class VmwareAdapter(BaseAdapter):
             output.ImageDetailOutput()
         """
         image_id = params.image_id
-        r = self.list_images(params=inputs.ListImageInput(region_id=params.region_id))
+        r = self.list_images(params=inputs.ListImageInput(region_id=params.region_id, page_num=1, page_size=1))
         if not r.ok:
             return outputs.ImageDetailOutput(ok=False, error=r.error, image=None)
 

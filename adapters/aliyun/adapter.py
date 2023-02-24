@@ -4,7 +4,6 @@ from urllib3.util.url import parse_url
 import string
 import random
 
-
 from alibabacloud_ecs20140526.client import Client as Ecs20140526Client
 from alibabacloud_ecs20140526 import models as ecs_20140526_models
 from alibabacloud_tea_util import models as util_models
@@ -102,8 +101,11 @@ class AliyunAdapter(BaseAdapter):
         """
         try:
 
+            aliyun_instance_type = params.flavor_id
+            if not aliyun_instance_type:
+                return outputs.ServerCreateOutput(ok=False, error=exceptions.Error('阿里云适配器：缺少服务端规格ID参数（flavor_id)'),
+                                                  server=None)
             vm_name = self._build_instance_name(params.image_id)
-            aliyun_instance_type = None
 
             security_group_id = None
 
@@ -118,38 +120,48 @@ class AliyunAdapter(BaseAdapter):
             for group in response.body.security_groups.security_group:
                 security_group_id = group.security_group_id
 
-            describe_available_resource_request = ecs_20140526_models.DescribeAvailableResourceRequest(
-                region_id=params.region_id,
-                instance_charge_type='PostPaid',
-                zone_id=params.azone_id,
-                cores=params.vcpu,
-                memory=params.ram / 1024,
-                destination_resource='InstanceType'
-            )
+            # describe_available_resource_request = ecs_20140526_models.DescribeAvailableResourceRequest(
+            #     region_id=params.region_id,
+            #     instance_charge_type='PostPaid',
+            #     zone_id=params.azone_id,
+            #     cores=params.vcpu,
+            #     memory=params.ram / 1024,
+            #     destination_resource='InstanceType'
+            # )
+            #
+            # response = conn.describe_available_resource_with_options(describe_available_resource_request, runtime)
+            # for zone in response.body.available_zones.available_zone:
+            #     for resource in zone.available_resources.available_resource:
+            #         for support_res in resource.supported_resources.supported_resource:
+            #             aliyun_instance_type = support_res.value
+            #             break
+            #         break
+            #     break
+            # if not aliyun_instance_type:
+            #     return outputs.ServerCreateOutput(ok=False, error=exceptions.Error('该区不支持选择的资源配置'), server=None)
 
-            response = conn.describe_available_resource_with_options(describe_available_resource_request, runtime)
-            for zone in response.body.available_zones.available_zone:
-                for resource in zone.available_resources.available_resource:
-                    for support_res in resource.supported_resources.supported_resource:
-                        aliyun_instance_type = support_res.value
-                        break
-                    break
-                break
-            if not aliyun_instance_type:
-                return outputs.ServerCreateOutput(ok=False, error=exceptions.Error('该区不支持选择的资源配置'), server=None)
+            system_disk = ecs_20140526_models.RunInstancesRequestSystemDisk(
+                size=str(params.systemdisk_size)
+            )
+            os_default_password = "".join(random.sample(string.ascii_uppercase, 2)) + "".join(
+                random.sample(string.ascii_lowercase, 2)) + "".join(random.sample(string.digits, 2)) + "".join(
+                random.sample(string.punctuation, 2))
             run_instances_request = ecs_20140526_models.RunInstancesRequest(
                 region_id=params.region_id,
                 image_id=params.image_id,
                 instance_name=vm_name,
                 instance_type=aliyun_instance_type,
                 security_group_id=security_group_id,
-                v_switch_id=params.network_id
+                v_switch_id=params.network_id,
+                password=os_default_password,
+                system_disk=system_disk
             )
             response = conn.run_instances_with_options(run_instances_request, runtime)
             if response.status_code == 200:
                 for vm_id in response.body.instance_id_sets.instance_id_set:
                     server = outputs.ServerCreateOutputServer(
-                        uuid=vm_id, name=vm_name, default_user='', default_password=''
+                        uuid=vm_id, name=vm_name, default_user='root/administrator',
+                        default_password=os_default_password
                     )
                     return outputs.ServerCreateOutput(server=server)
             return outputs.ServerCreateOutput(ok=False, error=exceptions.Error('创建云主机失败'), server=None)
@@ -365,16 +377,27 @@ class AliyunAdapter(BaseAdapter):
             output.ListImageOutput()
         """
         try:
+            if params.page_size > 100:
+                return outputs.ListImageOutput(ok=False, error=exceptions.Error(f'阿里云适配器，pagesize不能大于100'),
+                                               images=[])
             service_instance = self._get_connect()
-            # , page_number=1,page_size=2000
-            describe_images_request = ecs_20140526_models.DescribeImagesRequest(region_id=params.region_id)
+            if not params.flavor_id or params.flavor_id == '':
+                return outputs.ServerCreateOutput(ok=False, error=exceptions.Error('阿里云适配器：缺少服务端规格ID参数（flavor_id)'),
+                                                  server=None)
+            else:
+                describe_images_request = ecs_20140526_models.DescribeImagesRequest(region_id=params.region_id,
+                                                                                    page_size=params.page_size,
+                                                                                    instance_type=params.flavor_id,
+                                                                                    page_number=params.page_num)
             runtime = util_models.RuntimeOptions()
             response = service_instance.describe_images_with_options(describe_images_request, runtime)
             result = []
             for image_aliyun in response.body.images.image:
                 img_obj = outputs.ListImageOutputImage(
-                    _id=image_aliyun.image_id, name=image_aliyun.image_name,
-                    system=image_aliyun.osname,
+                    _id=image_aliyun.image_id, name=image_aliyun.osname,
+                    release=image_aliyun.platform,
+                    version="Unknown",
+                    architecture=image_aliyun.architecture,
                     desc=image_aliyun.description,
                     system_type=image_aliyun.ostype,
                     creation_time=image_aliyun.creation_time,
@@ -382,7 +405,7 @@ class AliyunAdapter(BaseAdapter):
                     min_sys_disk_gb=image_aliyun.size, min_ram_mb=0
                 )
                 result.append(img_obj)
-            return outputs.ListImageOutput(images=result)
+            return outputs.ListImageOutput(images=result, count=response.body.total_count)
         except Exception as e:
             return outputs.ListImageOutput(ok=False, error=exceptions.Error(f'list image failed, {str(e)}'), images=[])
 
@@ -402,8 +425,10 @@ class AliyunAdapter(BaseAdapter):
         response = service_instance.describe_images_with_options(describe_images_request, runtime)
         for image_aliyun in response.body.images.image:
             img_obj = outputs.ListImageOutputImage(
-                _id=image_aliyun.image_id, name=image_aliyun.image_name,
-                system=image_aliyun.osname,
+                _id=image_aliyun.image_id, name=image_aliyun.osname,
+                release=image_aliyun.platform,
+                version="Unknown",
+                architecture=image_aliyun.architecture,
                 desc=image_aliyun.description,
                 system_type=image_aliyun.ostype,
                 creation_time=image_aliyun.creation_time,

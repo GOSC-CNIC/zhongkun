@@ -5,6 +5,7 @@ from pytz import utc
 import base64
 import string
 import random
+from django.core.paginator import Paginator
 
 import openstack
 from openstack import exceptions as opsk_exceptions
@@ -15,7 +16,6 @@ from adapters import outputs
 
 from adapters import exceptions
 from adapters.params import ParamsName
-
 
 datetime_re = re.compile(
     r'(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<day>\d{1,2})'
@@ -119,6 +119,7 @@ class OpenStackAdapter(BaseAdapter):
     """
     OpenStack服务API适配器
     """
+
     def __init__(self,
                  endpoint_url: str,
                  auth: outputs.AuthenticateOutput = None,
@@ -157,7 +158,7 @@ class OpenStackAdapter(BaseAdapter):
                 app_name='examples',
                 app_version=self.api_version,
             )
-            connect.authorize()         # Test whether the connection is successful
+            connect.authorize()  # Test whether the connection is successful
             expire = (datetime.utcnow() + timedelta(hours=1)).timestamp()
             auth = outputs.AuthenticateOutput(style='token', token='', header=None, query=None,
                                               expire=int(expire), username=username, password=password,
@@ -282,7 +283,8 @@ class OpenStackAdapter(BaseAdapter):
             service_instance.compute.delete_server(params.instance_id, force=True)
             return outputs.ServerDeleteOutput()
         except Exception as e:
-            return outputs.ServerDeleteOutput(ok=False, error=exceptions.Error(message=f'Failed to delete server, {str(e)}'))
+            return outputs.ServerDeleteOutput(ok=False,
+                                              error=exceptions.Error(message=f'Failed to delete server, {str(e)}'))
 
     def server_action(self, params: inputs.ServerActionInput, **kwargs):
         """
@@ -418,26 +420,47 @@ class OpenStackAdapter(BaseAdapter):
 
                 img_obj = self._output_image_obj(image)
                 result.append(img_obj)
-            return outputs.ListImageOutput(images=result)
+            paginator = Paginator(result, params.page_size)
+            page_result = paginator.page(params.page_num).object_list
+            return outputs.ListImageOutput(images=page_result, count=paginator.count)
         except Exception as e:
             return outputs.ListImageOutput(ok=False, error=exceptions.Error(f'list image failed, {str(e)}'), images=[])
 
     @staticmethod
-    def _output_image_obj(image):
+    def _get_property_of_image(image, prop_name):
+        openstack_property_value = None
+        if 'desc' != prop_name:
+            openstack_name_mapping = {'system_type': 'os_type', 'release': 'os_distro',
+                                      'architecture': 'architecture', 'version': 'os_version'}
+            openstack_property_value = image.get(openstack_name_mapping[prop_name], None)
+        if not openstack_property_value:
+            if not image.properties:
+                if 'desc' == prop_name:
+                    openstack_property_value = ''
+                else:
+                    openstack_property_value = 'Unknown'
+            else:
+                egi_name_mapping = {'desc': 'description', 'system_type': 'sl:os', 'release': 'sl:osname',
+                                    'architecture': 'sl:arch', 'version': 'sl:osversion'}
+                openstack_property_value = image.properties.get(egi_name_mapping[prop_name], 'Unknown')
+                if 'desc' == prop_name and openstack_property_value == 'Unknown':
+                    openstack_property_value = ''
+        return str(openstack_property_value)
+
+    def _output_image_obj(self, image):
         """
         :return: outputs.ListImageOutputImage()
         """
         image_name = image.name
-        properties = {}
-        if image.properties:
-            properties = image.properties
-        desc = properties.get('description', '')
-        system = properties.get('os')
-        if not system:
-            system = image_name
+        desc = self._get_property_of_image(image, 'desc')
+        system_type = self._get_property_of_image(image, 'system_type')
+        release = self._get_property_of_image(image, 'release')
+        architecture = self._get_property_of_image(image, 'architecture')
+        version = self._get_property_of_image(image, 'version')
 
         img_obj = outputs.ListImageOutputImage(
-            _id=image.id, name=image_name, system=system, desc=desc, system_type=image.os_type,
+            _id=image.id, name=image_name, release=release, version=version, architecture=architecture, desc=desc,
+            system_type=system_type,
             creation_time=image.created_at, default_username='', default_password='',
             min_sys_disk_gb=image.min_disk, min_ram_mb=image.min_ram
         )

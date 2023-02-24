@@ -6,7 +6,6 @@ from .. import outputs
 from .utils import get_exp_jwt
 from . import exceptions
 
-
 datetime_re = re.compile(
     r'(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<day>\d{1,2})'
     r'[T ](?P<hour>\d{1,2}):(?P<minute>\d{1,2})'
@@ -180,12 +179,16 @@ class OutputConverter:
         return outputs.ListImageOutput(ok=False, error=error, images=[])
 
     @staticmethod
-    def to_list_image_output(images: list):
+    def to_list_image_output(images: list, count: int):
         new_images = []
         for img in images:
             creation_time = iso_to_datetime(img['create_time'])
+            # 兼容旧版本EVCloud，过段时间移除
+            release = 'Unknown' if (img.get('release', None) is None) else (img.get('release'))['name']
+            architecture = 'Unknown' if (img.get('architecture', None) is None) else (img.get('architecture'))['name']
             new_img = outputs.ListImageOutputImage(
-                _id=img['id'], name=img['name'], system=img['name'], desc=img['desc'],
+                _id=img['id'], name=img['name'], release=release, version=img['version'],
+                architecture=architecture, desc=img['desc'],
                 system_type=img['sys_type']['name'], creation_time=creation_time,
                 default_username=img.get('default_user', ''),
                 default_password=img.get('default_password', ''),
@@ -194,7 +197,7 @@ class OutputConverter:
             )
             new_images.append(new_img)
 
-        return outputs.ListImageOutput(images=new_images)
+        return outputs.ListImageOutput(images=new_images, count=count)
 
     @staticmethod
     def to_image_detail_output_error(error):
@@ -203,8 +206,11 @@ class OutputConverter:
     @staticmethod
     def to_image_detail_output(img: dict):
         creation_time = iso_to_datetime(img['create_time'])
+        release = 'Unknown' if (img.get('release', None) is None) else (img.get('release'))['name']
+        architecture = 'Unknown' if (img.get('architecture', None) is None) else (img.get('architecture'))['name']
         new_img = outputs.ListImageOutputImage(
-            _id=img['id'], name=img['name'], system=img['name'], desc=img['desc'],
+            _id=img['id'], name=img['name'], release=release, version=img['version'],
+            architecture=architecture, desc=img['desc'],
             system_type=img['sys_type']['name'], creation_time=creation_time,
             default_username=img.get('default_user', ''),
             default_password=img.get('default_password', ''),

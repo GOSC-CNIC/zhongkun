@@ -61,6 +61,7 @@ class ServerCreateInput(InputBase):
         self.network_id = kwargs.get('network_id', None)
         self.remarks = kwargs.get('remarks', None)
         self.azone_id = kwargs.get('azone_id', None)
+        self.flavor_id = kwargs.get('flavor_id', None)
         super().__init__(**kwargs)
 
 
@@ -120,6 +121,18 @@ class ServerRebuildInput(ServerIdNameInput):
 
 
 class ListImageInput(InputBase):
+    def __init__(self, region_id: str, page_num: int, page_size: int, flavor_id: str = '', **kwargs):
+        """
+        :param region_id: 区域/分中心id; type: str; required: False
+        """
+        self.region_id = region_id
+        self.page_num = page_num
+        self.page_size = page_size
+        self.flavor_id = flavor_id
+        super().__init__(**kwargs)
+
+
+class ListAzoneInput(InputBase):
     def __init__(self, region_id: str, **kwargs):
         """
         :param region_id: 区域/分中心id; type: str; required: False
@@ -175,6 +188,6 @@ class ListAvailabilityZoneInput(InputBase):
 
 class VolumeCreateInput(InputBase):
     def __init__(self, size: int, description: str, **kwargs):
-        self.size = size                    # Gb
-        self.description = description      # 备注，描述
+        self.size = size  # Gb
+        self.description = description  # 备注，描述
         super().__init__(**kwargs)

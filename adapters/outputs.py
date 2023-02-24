@@ -9,19 +9,19 @@ from .exceptions import Error
 
 
 class ServerStatus:
-    NOSTATE = 0     # no state
-    RUNNING = 1     # the domain is running
-    BLOCKED = 2     # the domain is blocked on resource
-    PAUSED = 3      # the domain is paused by user
-    SHUTDOWN = 4    # the domain is being shut down
-    SHUTOFF = 5     # the domain is shut off
-    CRASHED = 6     # the domain is crashed
+    NOSTATE = 0  # no state
+    RUNNING = 1  # the domain is running
+    BLOCKED = 2  # the domain is blocked on resource
+    PAUSED = 3  # the domain is paused by user
+    SHUTDOWN = 4  # the domain is being shut down
+    SHUTOFF = 5  # the domain is shut off
+    CRASHED = 6  # the domain is crashed
     PMSUSPENDED = 7  # the domain is suspended by guest power management
-    HOST_DOWN = 9   # host connect failed
-    MISS = 10       # domain miss
-    BUILDING = 11    # The domain is being built
-    BUILT_FAILED = 12    # Failed to build the domain
-    ERROR = 13          # error
+    HOST_DOWN = 9  # host connect failed
+    MISS = 10  # domain miss
+    BUILDING = 11  # The domain is being built
+    BUILT_FAILED = 12  # Failed to build the domain
+    ERROR = 13  # error
     REBUILDING = 14  # The domain is being built
 
     __status_map = {
@@ -76,10 +76,10 @@ class ServerStatus:
         return cls.__normal_values
 
 
-AuthenticateOutputHeader = namedtuple('AuthHeaderClass', ['header_name',         # example: 'Authorization'
-                                                          'header_value'         # example: 'Token xxx', 'JWT xxx'
+AuthenticateOutputHeader = namedtuple('AuthHeaderClass', ['header_name',  # example: 'Authorization'
+                                                          'header_value'  # example: 'Token xxx', 'JWT xxx'
                                                           ])
-AuthenticateOutputQuery = namedtuple('AuthQueryClass', ['query_name',            # example: 'token', 'jwt'
+AuthenticateOutputQuery = namedtuple('AuthQueryClass', ['query_name',  # example: 'token', 'jwt'
                                                         'query_value'
                                                         ])
 
@@ -264,12 +264,15 @@ class ServerRebuildOutput(OutputBase):
 
 
 class ListImageOutputImage:
-    def __init__(self, _id: str, name: str, system: str, system_type: str, creation_time: datetime,
+    def __init__(self, _id: str, name: str, release: str, version: str, architecture: str, system_type: str,
+                 creation_time: datetime,
                  default_username: str, default_password: str, min_sys_disk_gb: int, min_ram_mb: int, **kwargs):
         """
         :param _id:
         :param name: 镜像名称
-        :param system: 镜像系统，Windows10 64bit, Centos8 64bit, Ubuntu2004 ...
+        :param release: 系统发行版本，取值空间为{Windows Desktop, Windows Server, Ubuntu, Fedora, Centos, Unknown}
+        :param version: 系统发行编号（64字符内），取值空间为{win10,win11,2021,2019,2204,2004,36,37,7,8,9,....}
+        :param architecture: 系统架构，取值空间为{x86-64,i386,arm-64,unknown}
         :param system_type: 系统类型，Windows, Linux, MacOS, Android, ...
         :param creation_time: 镜像创建时间
         :param desc: 镜像描述
@@ -280,7 +283,9 @@ class ListImageOutputImage:
         """
         self.id = _id
         self.name = name
-        self.system = system
+        self.release = release
+        self.version = version
+        self.architecture = architecture
         self.system_type = system_type
         self.creation_time = creation_time
         self.desc = kwargs.get('desc', '')
@@ -289,13 +294,41 @@ class ListImageOutputImage:
         self.min_sys_disk_gb = min_sys_disk_gb
         self.min_ram_mb = min_ram_mb
 
+        # 大小写转换格式化，将未识别的设置为Unknown，根据name匹配一下
+        system_type_choices = {"windows": "Windows", "linux": "Linux", "unix": "Unix", "macos": "MacOS",
+                               "unknown": "Unknown", "ubuntu": "Linux", "fedora": "Linux", "centos": "Linux"}
+        release_choices = {"windows": "Windows Desktop", "windows desktop": "Windows Desktop",
+                           "windows server": "Windows Server", "ubuntu": "Ubuntu", "fedora": "Fedora",
+                           "centos": "Centos", "unknown": "Unknown"}
+        architecture_choices = {"64 bit": "x86-64", "64-bit": "x86-64", "amd64": "x86-64", "64位": "x86-64",
+                                "x64": "x86-64", "x86_64": "x86-64", "x86-64": "x86-64",
+                                "i386": "i386",
+                                "arm-64": "arm-64", "unknown": "Unknown"}
+        tips = self.name + ' ' + self.version
+        self.architecture = self._format_image_property(self.architecture, architecture_choices, tips)
+        self.release = self._format_image_property(self.release, release_choices, tips)
+        self.system_type = self._format_image_property(self.system_type, system_type_choices, tips)
+
+    @staticmethod
+    def _format_image_property(prop_value, prop_choices, tips):
+        result = 'Unknown'
+        if ('Unknown' != prop_value) and (prop_value.lower() in prop_choices.keys()):
+            result = prop_choices[prop_value.lower()]
+        else:
+            for key in prop_choices.keys():
+                if (tips.lower()).find(key.lower()) != -1:
+                    result = prop_choices[key]
+                    break
+        return result
+
 
 class ListImageOutput(OutputBase):
-    def __init__(self, images: List[ListImageOutputImage], **kwargs):
+    def __init__(self, images: List[ListImageOutputImage], count: int = 0, **kwargs):
         """
         :param images: [ListImageOutputImage(), ]
         """
         self.images = images
+        self.count = count
         super().__init__(**kwargs)
 
 
@@ -373,7 +406,7 @@ class VolumeStoragePool:
 
 class ListVolumeStoragePoolsOutput(OutputBase):
     def __init__(self, pools: list, **kwargs):
-        self.pools = pools      # DiskStoragePool
+        self.pools = pools  # DiskStoragePool
         super().__init__(**kwargs)
 
 
@@ -444,4 +477,4 @@ class StorageVolume:
 
     def __repr__(self):
         return '<StorageVolume id=%s size=%s driver=%s>' % (
-               self.id, self.size, self.driver.name)
+            self.id, self.size, self.driver.name)
