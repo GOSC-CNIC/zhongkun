@@ -7,43 +7,19 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
+        ('service', '0004_alter_serviceconfig_endpoint_url'),
         ('monitor', '0006_monitorwebsite'),
     ]
 
     operations = [
-        migrations.CreateModel(
-            name='MonitorOrganization',
-            fields=[
-                ('id', models.CharField(blank=True, editable=False, max_length=36, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(default='', max_length=255, verbose_name='监控机构名称')),
-                ('name_en', models.CharField(default='', max_length=255, verbose_name='监控机构英文名称')),
-                ('abbreviation', models.CharField(default='', max_length=64, verbose_name='简称')),
-                ('country', models.CharField(default='', max_length=128, verbose_name='国家/地区')),
-                ('city', models.CharField(default='', max_length=128, verbose_name='城市')),
-                ('postal_code', models.CharField(default='', max_length=32, verbose_name='邮政编码')),
-                ('address', models.CharField(default='', max_length=256, verbose_name='单位地址')),
-                ('longitude', models.FloatField(blank=True, default=0, verbose_name='经度')),
-                ('latitude', models.FloatField(blank=True, default=0, verbose_name='纬度')),
-                ('sort_weight', models.IntegerField(default=0, help_text='值越大排序越靠前', verbose_name='排序权重')),
-                ('creation', models.DateTimeField(auto_now_add=True, verbose_name='创建时间')),
-                ('modification', models.DateTimeField(verbose_name='修改时间')),
-                ('remark', models.TextField(blank=True, default='', verbose_name='备注')),
-            ],
-            options={
-                'verbose_name': '监控机构',
-                'verbose_name_plural': '监控机构',
-                'db_table': 'monitor_organization',
-                'ordering': ['-sort_weight'],
-            },
-        ),
         migrations.AddField(
             model_name='monitorjobceph',
             name='organization',
-            field=models.ForeignKey(db_constraint=False, default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='monitor.monitororganization', verbose_name='监控机构'),
+            field=models.ForeignKey(db_constraint=False, default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='service.datacenter', verbose_name='监控机构'),
         ),
         migrations.AddField(
             model_name='monitorjobserver',
             name='organization',
-            field=models.ForeignKey(db_constraint=False, default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='monitor.monitororganization', verbose_name='监控机构'),
+            field=models.ForeignKey(db_constraint=False, default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='service.datacenter', verbose_name='监控机构'),
         ),
     ]

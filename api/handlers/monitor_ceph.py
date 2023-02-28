@@ -4,8 +4,7 @@ from rest_framework.response import Response
 
 from core import errors
 from monitor.managers import MonitorJobCephManager, CephQueryChoices
-from monitor.models import MonitorJobCeph, MonitorOrganization
-from api.viewsets import CustomGenericViewSet
+from monitor.models import MonitorJobCeph
 
 
 class MonitorCephQueryHandler:
@@ -144,19 +143,6 @@ class MonitorCephQueryHandler:
         else:
             queryset = queryset.filter(users__id=user.id)
 
-        try:
-            meterings = view.paginate_queryset(queryset)
-            serializer = view.get_serializer(instance=meterings, many=True)
-            return view.get_paginated_response(serializer.data)
-        except Exception as exc:
-            return view.exception_response(exc)
-
-
-class MonitorOrganizationHandler:
-    @staticmethod
-    def list_monitor_organizations(view: CustomGenericViewSet, request):
-        """list监控机构"""
-        queryset = MonitorOrganization.objects.order_by('-sort_weight').all()
         try:
             meterings = view.paginate_queryset(queryset)
             serializer = view.get_serializer(instance=meterings, many=True)

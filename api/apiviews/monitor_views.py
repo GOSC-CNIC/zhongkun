@@ -6,7 +6,7 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
 from api.viewsets import CustomGenericViewSet
-from api.handlers.monitor_ceph import MonitorCephQueryHandler, MonitorOrganizationHandler
+from api.handlers.monitor_ceph import MonitorCephQueryHandler
 from api.handlers.monitor_server import MonitorServerQueryHandler
 from api.handlers.monitor_video_meeting import MonitorVideoMeetingQueryHandler
 from api.handlers.monitor_website import MonitorWebsiteHandler
