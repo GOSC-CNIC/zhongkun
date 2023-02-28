@@ -8,17 +8,9 @@ from utils.model import NoDeleteSelectModelAdmin
 from .models import (
     MonitorJobCeph, MonitorProvider, MonitorJobServer, MonitorJobVideoMeeting,
     MonitorWebsite, MonitorWebsiteTask, MonitorWebsiteVersionProvider,
-    get_str_hash, MonitorOrganization
+    get_str_hash
 )
 from .managers import MonitorWebsiteManager
-
-
-@admin.register(MonitorOrganization)
-class MonitorOrganizationAdmin(admin.ModelAdmin):
-    list_display = ('name', 'name_en', 'abbreviation', 'country', 'city', 'sort_weight',
-                    'longitude', 'latitude', 'creation', 'modification')
-    list_display_links = ('name', )
-    search_fields = ('name',)
 
 
 @admin.register(MonitorProvider)

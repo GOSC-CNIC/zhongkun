@@ -4,7 +4,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 
-from service.models import ServiceConfig
+from service.models import DataCenter
 from utils.model import UuidModel, get_encryptor
 from users.models import UserProfile
 
@@ -105,7 +105,7 @@ class MonitorJobCeph(UuidModel):
     grafana_url = models.CharField(verbose_name=_('Grafana连接'), max_length=255, blank=True, default='')
     dashboard_url = models.CharField(verbose_name=_('Dashboard连接'), max_length=255, blank=True, default='')
     organization = models.ForeignKey(
-        verbose_name=_('监控机构'), to=MonitorOrganization, related_name='+', db_constraint=False,
+        verbose_name=_('监控机构'), to=DataCenter, related_name='+', db_constraint=False,
         on_delete=models.SET_NULL, null=True, default=None
     )
 
@@ -152,7 +152,7 @@ class MonitorJobServer(UuidModel):
     grafana_url = models.CharField(verbose_name=_('Grafana连接'), max_length=255, blank=True, default='')
     dashboard_url = models.CharField(verbose_name=_('Dashboard连接'), max_length=255, blank=True, default='')
     organization = models.ForeignKey(
-        verbose_name=_('监控机构'), to=MonitorOrganization, related_name='+', db_constraint=False,
+        verbose_name=_('监控机构'), to=DataCenter, related_name='+', db_constraint=False,
         on_delete=models.SET_NULL, null=True, default=None
     )
 

@@ -5,12 +5,13 @@ from django.urls import reverse
 from django.utils import timezone
 from django.core.cache import cache as django_cache
 
+from service.models import DataCenter
 from monitor.tests import (
     get_or_create_monitor_job_ceph, get_or_create_monitor_job_server, get_or_create_monitor_job_meeting,
     get_or_create_monitor_provider
 )
 from monitor.models import (
-    MonitorJobCeph, MonitorProvider, MonitorJobServer, MonitorOrganization,
+    MonitorJobCeph, MonitorProvider, MonitorJobServer,
     MonitorWebsite, MonitorWebsiteTask, MonitorWebsiteVersionProvider, get_str_hash
 )
 from monitor.managers import (
@@ -358,8 +359,8 @@ class MonitorUnitCephTests(MyAPITestCase):
     def test_list_unit(self):
         provider = MonitorProvider()
         provider.save(force_insert=True)
-        org = MonitorOrganization(
-            name='test', name_en='test en', abbreviation='t', modification=timezone.now()
+        org = DataCenter(
+            name='test', name_en='test en', abbreviation='t', creation_time=timezone.now()
         )
         org.save(force_insert=True)
         unit_ceph1 = MonitorJobCeph(
@@ -423,7 +424,7 @@ class MonitorUnitCephTests(MyAPITestCase):
         self.assertEqual(response.data['page_size'], 100)
         self.assertEqual(len(response.data['results']), 2)
         self.assertEqual(unit_ceph1.id, response.data['results'][0]['id'])
-        self.assertKeysIn(['id', "name", "name_en", "abbreviation", 'creation', 'sort_weight'
+        self.assertKeysIn(['id', "name", "name_en", "abbreviation", 'creation_time'
                            ], response.data['results'][0]['organization'])
 
         # unit_ceph1, unit_ceph4, unit_ceph2
@@ -496,8 +497,8 @@ class MonitorUnitServerTests(MyAPITestCase):
     def test_list_server_unit(self):
         provider = MonitorProvider()
         provider.save(force_insert=True)
-        org = MonitorOrganization(
-            name='test', name_en='test en', abbreviation='t', modification=timezone.now()
+        org = DataCenter(
+            name='test', name_en='test en', abbreviation='t', creation_time=timezone.now()
         )
         org.save(force_insert=True)
 
@@ -562,7 +563,7 @@ class MonitorUnitServerTests(MyAPITestCase):
         self.assertEqual(response.data['page_size'], 100)
         self.assertEqual(len(response.data['results']), 2)
         self.assertEqual(unit_server1.id, response.data['results'][0]['id'])
-        self.assertKeysIn(['id', "name", "name_en", "abbreviation", 'creation', 'sort_weight'
+        self.assertKeysIn(['id', "name", "name_en", "abbreviation", 'creation_time'
                            ], response.data['results'][0]['organization'])
 
         # unit_server1, unit_server4, unit_server2
@@ -1306,79 +1307,3 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
             self.assertEqual(len(data_item["values"][0]), 2)
 
         return response
-
-
-class MonitorOrganizationTests(MyAPITestCase):
-    def setUp(self):
-        self.user = get_or_create_user(username='tom@cnic.cn', password='password')
-
-    def test_list(self):
-        base_url = reverse('api:monitor-organization-list')
-        # NotAuthenticated
-        r = self.client.get(path=base_url)
-        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
-
-        self.client.force_login(self.user)
-
-        # ok, 0
-        r = self.client.get(path=base_url)
-        self.assertEqual(r.status_code, 200)
-        self.assertKeysIn(keys=['count', 'page_num', 'page_size', 'results'], container=r.data)
-        self.assertEqual(r.data['count'], 0)
-        self.assertEqual(r.data['page_num'], 1)
-        self.assertEqual(r.data['page_size'], 100)
-        self.assertIsInstance(r.data['results'], list)
-        self.assertEqual(len(r.data['results']), 0)
-
-        # add data
-        org1 = MonitorOrganization(
-            name='测试test1', name_en='test英文1', abbreviation='test1', sort_weight=66, modification=timezone.now()
-        )
-        org1.save(force_insert=True)
-        org2 = MonitorOrganization(
-            name='测试test2', name_en='test英文2', abbreviation='test2', sort_weight=88, modification=timezone.now()
-        )
-        org2.save(force_insert=True)
-        org3 = MonitorOrganization(
-            name='测试test3', name_en='test英文3', abbreviation='test3', sort_weight=68, modification=timezone.now()
-        )
-        org3.save(force_insert=True)
-
-        # ok, 3
-        r = self.client.get(path=base_url)
-        self.assertEqual(r.status_code, 200)
-        self.assertKeysIn(keys=['count', 'page_num', 'page_size', 'results'], container=r.data)
-        self.assertEqual(r.data['count'], 3)
-        self.assertEqual(r.data['page_num'], 1)
-        self.assertEqual(r.data['page_size'], 100)
-        self.assertIsInstance(r.data['results'], list)
-        self.assertEqual(len(r.data['results']), 3)
-        self.assertKeysIn(keys=[
-            "id", "name", "name_en", "abbreviation", "sort_weight", "creation", "country", "city",
-            "postal_code", "address", "longitude", "latitude", "modification", "remark"
-        ], container=r.data['results'][0])
-        self.assertEqual(r.data['results'][0]['id'], org2.id)
-        self.assertEqual(r.data['results'][1]['id'], org3.id)
-        self.assertEqual(r.data['results'][2]['id'], org1.id)
-
-        # ok, "page", "page_size"
-        query = parse.urlencode(query={'page': 2, 'page_size': 1})
-        r = self.client.get(path=f"{base_url}?{query}")
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.data['count'], 3)
-        self.assertEqual(r.data['page_num'], 2)
-        self.assertEqual(r.data['page_size'], 1)
-        self.assertIsInstance(r.data['results'], list)
-        self.assertEqual(len(r.data['results']), 1)
-        self.assertEqual(r.data['results'][0]['id'], org3.id)
-
-        query = parse.urlencode(query={'page': 1, 'page_size': 2})
-        r = self.client.get(path=f"{base_url}?{query}")
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.data['count'], 3)
-        self.assertEqual(r.data['page_num'], 1)
-        self.assertEqual(r.data['page_size'], 2)
-        self.assertIsInstance(r.data['results'], list)
-        self.assertEqual(len(r.data['results']), 2)
-        self.assertEqual(r.data['results'][0]['id'], org2.id)
-        self.assertEqual(r.data['results'][1]['id'], org3.id)
