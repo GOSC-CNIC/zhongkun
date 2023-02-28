@@ -160,6 +160,14 @@ class ImageSerializer(serializers.Serializer):
     min_ram_mb = serializers.IntegerField()
 
 
+class ImageOldSerializer(ImageSerializer):
+    system = serializers.SerializerMethodField(method_name='get_system')
+
+    @staticmethod
+    def get_system(obj):
+        return obj.release
+
+
 class NetworkSerializer(serializers.Serializer):
     id = serializers.CharField()
     name = serializers.CharField()

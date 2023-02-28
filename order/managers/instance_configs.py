@@ -101,7 +101,7 @@ class ServerConfig(BaseConfig):
             network_name=config.get(cls.KEY_NETWORK_NAME, ''),
             azone_id=config[cls.KEY_AZONE_ID],
             azone_name=config.get(cls.KEY_AZONE_NAME, ''),
-            flavor_id =config.get(cls.KEY_FLAVOR_ID, '')
+            flavor_id=config.get(cls.KEY_FLAVOR_ID, '')
         )
 
 

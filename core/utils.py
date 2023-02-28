@@ -34,7 +34,7 @@ def test_service_ok(service: ServiceConfig):
         raise AuthenticationFailed(message=f'测试认证错误，用户名、密码或服务地址有误，{r.error.message}',
                                    code=r.error.code, status_code=r.error.status_code)
 
-    params = inputs.ListImageInput(region_id=service.region_id)
+    params = inputs.ListImageInput(region_id=service.region_id, page_num=1, page_size=6)
     r = cli.list_images(params=params)
     if not r.ok:
         raise InvalidServiceError(message=f'测试列举系统镜像失败，{r.error.message}',

@@ -1520,9 +1520,65 @@ class ImageTests(MyAPITestCase):
         query = parse.urlencode(query={'service_id': self.service.id})
         response = self.client.get(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
-        self.assertKeysIn(["id", "name", "system", "system_type",
+        self.assertKeysIn(["id", "name", "system_type", "release", "version", "architecture",
                            "creation_time", "desc", "default_user", "default_password", "min_sys_disk_gb", "min_ram_mb"
                            ], response.data)
+
+    def test_list_image_paginate(self):
+        url = reverse('api:images-paginate-list')
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=400, code='NoFoundArgument', response=response)
+
+        query = parse.urlencode(query={'service_id': self.service.id})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn([
+            "count", "page_num", "page_size", "results"
+        ], response.data)
+        self.assertIsInstance(response.data['results'], list)
+        self.assertKeysIn([
+            "id", "name", "release", "version", "architecture", "system_type",
+            "creation_time", "desc", "default_user", "default_password", "min_sys_disk_gb",
+            "min_ram_mb"
+        ], response.data['results'][0])
+
+        default_get_length = len(response.data['results'])
+
+        # query "page_size"
+        page_size = max(default_get_length - 1, 1)
+        url = reverse('api:images-paginate-list')
+        query = parse.urlencode(query={
+            'service_id': self.service.id, 'page_num': 1,
+            'page_size': page_size
+        })
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn([
+            "count", "page_num", "page_size", "results"
+        ], response.data)
+        self.assertIsInstance(response.data['results'], list)
+        self.assertEqual(len(response.data['results']), page_size)
+        self.assertKeysIn([
+            "id", "name", "release", "version", "architecture", "system_type",
+            "creation_time", "desc", "default_user", "default_password", "min_sys_disk_gb",
+            "min_ram_mb"
+        ], response.data['results'][0])
+
+        # image detail
+        image_id = response.data['results'][0]['id']
+        url = reverse('api:images-detail', kwargs={'id': image_id})
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=400, code='NoFoundArgument', response=response)
+
+        url = reverse('api:images-detail', kwargs={'id': image_id})
+        query = parse.urlencode(query={'service_id': self.service.id})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn([
+            "id", "name", "release", "version", "architecture", "system_type",
+            "creation_time", "desc", "default_user", "default_password", "min_sys_disk_gb",
+            "min_ram_mb"
+        ], response.data)
 
 
 class NetworkTests(MyAPITestCase):

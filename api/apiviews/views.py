@@ -957,13 +957,6 @@ class ImageViewSet(CustomGenericViewSet):
         operation_summary=gettext_lazy('列举镜像'),
         manual_parameters=[
             openapi.Parameter(
-                name='flavor_id',
-                in_=openapi.IN_QUERY,
-                type=openapi.TYPE_STRING,
-                required=False,
-                description='配置ID（针对阿里云，规格与镜像存在依赖关系）'
-            ),
-            openapi.Parameter(
                 name='service_id',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
@@ -1003,13 +996,83 @@ class ImageViewSet(CustomGenericViewSet):
             return Response(exc.err_data(), status=exc.status_code)
 
         try:
+            params = inputs.ListImageInput(region_id=service.region_id, page_num=1, page_size=100,
+                                           flavor_id='')
+            r = self.request_service(service, method='list_images', params=params)
+            serializer = serializers.ImageOldSerializer(r.images, many=True)
+            return Response(data=serializer.data)
+        except exceptions.AuthenticationFailed as exc:
+            return Response(data=exc.err_data(), status=500)
+        except exceptions.APIException as exc:
+            return Response(data=exc.err_data(), status=exc.status_code)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('分页列举镜像'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='flavor_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description='配置ID（针对阿里云，规格与镜像存在依赖关系）'
+            ),
+            openapi.Parameter(
+                name='service_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description='服务端点id'
+            ),
+        ],
+        responses={
+            200: """"""
+        }
+    )
+    @action(methods=['GET'], detail=False, url_path='paginate', url_name='paginate-list')
+    def paginate_list(self, request, *args, **kwargs):
+        """
+        列举镜像
+
+            200：
+            {
+                "count": 10,
+                "page_num": 1,
+                "page_size": 20,
+                "results":[
+                  {
+                    "id": "18",
+                    "name": "Ubuntu 2004",
+                    "release": 系统发行版本，取值空间为{"Windows Desktop", "Windows Server", "Ubuntu", "Fedora", "Centos", "Unknown"},
+                    "version":系统发行编号（64字符内），取值空间为{"win10","win11","2021","2019","2204","2004","36","37","7","8","9","Unknown",....}
+                    "architecture":系统架构，取值空间为{"x86-64","i386","arm-64","Unknown"}
+                    "system_type": 系统类型，取值空间为{"Linux",“Windows","Unknown"}
+                    "creation_time": "0001-01-01T00:00:00Z",
+                    "desc": "Ubuntu 2004 旧镜像",
+                    "default_user": "root",
+                    "default_password": "cnic.cn",
+                    "min_sys_disk_gb": 200,
+                    "min_ram_mb": 0
+                  }
+                ]
+            }
+        """
+        try:
+            service = self.get_service(request)
+        except exceptions.APIException as exc:
+            return Response(exc.err_data(), status=exc.status_code)
+
+        try:
             page_num = self.paginator.get_page_number(request, self.paginator)
             page_size = self.paginator.get_page_size(request)
             flavor_id = request.query_params.get('flavor_id', '')
-            flavor = Flavor.objects.get(id=flavor_id)
+            service_flavor_id = ''
+            if flavor_id:
+                flavor = Flavor.objects.filter(id=flavor_id).first()
+                if flavor:
+                    service_flavor_id = flavor.flavor_id
 
             params = inputs.ListImageInput(region_id=service.region_id, page_num=page_num, page_size=page_size,
-                                           flavor_id=flavor.flavor_id)
+                                           flavor_id=service_flavor_id)
             r = self.request_service(service, method='list_images', params=params)
 
             serializer = serializers.ImageSerializer(r.images, many=True)
@@ -1023,7 +1086,7 @@ class ImageViewSet(CustomGenericViewSet):
         return response
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('列举镜像'),
+        operation_summary=gettext_lazy('查询镜像信息'),
         manual_parameters=[
             openapi.Parameter(
                 name='service_id',
@@ -1045,7 +1108,9 @@ class ImageViewSet(CustomGenericViewSet):
             {
                 "id": "18",
                 "name": "Ubuntu 2004",
-                "system": "Ubuntu 2004",
+                "release": 系统发行版本，取值空间为{"Windows Desktop", "Windows Server", "Ubuntu", "Fedora", "Centos", "Unknown"},
+                "version":系统发行编号（64字符内），取值空间为{"win10","win11","2021","2019","2204","2004","36","37","7","8","9","Unknown",....}
+                "architecture":系统架构，取值空间为{"x86-64","i386","arm-64","Unknown"}
                 "system_type": "Linux",
                 "creation_time": "0001-01-01T00:00:00Z",
                 "desc": "Ubuntu 2004 旧镜像",

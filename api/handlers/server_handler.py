@@ -708,7 +708,7 @@ class ServerHandler:
             instance_config = ServerConfig(
                 vm_cpu=server.vcpus, vm_ram=server.ram, systemdisk_size=server.disk_size, public_ip=server.public_ip,
                 image_id=server.image_id, image_name=server.image, network_id=network_id, network_name=network_name,
-                azone_id=server.azone_id, azone_name=''
+                azone_id=server.azone_id, azone_name='', flavor_id=''
             )
             order, resource = OrderManager().create_renew_order(
                 pay_app_service_id=service.pay_app_service_id,

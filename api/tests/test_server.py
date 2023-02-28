@@ -148,11 +148,11 @@ class ServerOrderTests(MyAPITransactionTestCase):
         self.assertErrorResponse(status_code=400, code='InvalidImageId', response=response)
 
         # get image_id
-        url = reverse('api:images-list')
+        url = reverse('api:images-paginate-list')
         query = parse.urlencode(query={'service_id': self.service.id})
         response = self.client.get(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
-        image_id = response.data[0]['id']
+        image_id = response.data['results'][0]['id']
 
         # param "azone_id"
         url = reverse('api:servers-list')
@@ -183,12 +183,12 @@ class ServerOrderTests(MyAPITransactionTestCase):
         self.service.save(update_fields=['pay_app_service_id'])
 
         # get image_id
-        url = reverse('api:images-list')
+        url = reverse('api:images-paginate-list')
         query = parse.urlencode(query={'service_id': self.service.id})
         response = self.client.get(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
-        image_id = response.data[0]['id']
-        min_sys_disk_gb = response.data[0]['min_sys_disk_gb']
+        image_id = response.data['results'][0]['id']
+        min_sys_disk_gb = response.data['results'][0]['min_sys_disk_gb']
 
         # service privete quota not enough
         url = reverse('api:servers-list')
