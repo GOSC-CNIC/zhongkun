@@ -13,14 +13,32 @@
                 </div>
                 <div class="p-2">
                     <h5>{% trans '版本' %}</h5>
-                    <p>{{ version }} &emsp;
-                        {% if version_timestamp %}
-                            <span>{{ version_timestamp }}</span>&emsp;
+                    <p>
+                        <i class="fa fa-tag"></i>
+                        <span class="text-dark font-weight-bold">{{ version }}</span> &emsp;
+                        {% if git_changeset %}
+                            <i class="fa fa-clock"></i> <span>{{ git_changeset.timestamp|date:'Y-m-d H:i:s' }}</span>&emsp;
                         {% endif %}
                         <span><a href="{% url 'docs:docs' %}#/changelog" target="view_window">
                             {% trans '变更日志' %}</a>
                         </span>
                     </p>
+
+                    {% if git_tagset %}
+                        <div>
+                        {% for tag in git_tagset %}
+                            <hr>
+                            <div>
+                                <p class="text-info font-weight-bold"><i class="fa fa-tag"></i> {{ tag.0 }}</p>
+                                <p>
+                                    <i class="fa fa-clock"></i> <span>{{ tag.1|date:'Y-m-d H:i:s' }}</span>&emsp;
+                                    <i class="fa fa-user"></i> <span>{{ tag.2 }} {{ tag.3 }}</span>
+                                </p>
+                                <pre style="white-space: pre-wrap;word-wrap: break-word">{{ tag.4 }}</pre>
+                            </div>
+                        {% endfor %}
+                        </div>
+                    {% endif %}
                 </div>
                 <div class="p-2">
                     <h5>{% trans '关于我们' %}</h5>
