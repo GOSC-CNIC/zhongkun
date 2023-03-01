@@ -832,6 +832,99 @@ class CashCouponTests(MyAPITestCase):
         self.assertEqual(coupon2.vo_id, self.vo.id)
         self.assertEqual(coupon2.status, CashCoupon.Status.AVAILABLE.value)
 
+    def test_detail_cash_coupon(self):
+        now_time = timezone.now()
+        coupon1_user = CashCoupon(
+            face_value=Decimal('88.8'),
+            balance=Decimal('88.8'),
+            effective_time=now_time - timedelta(days=2),
+            expiration_time=now_time + timedelta(days=30),
+            status=CashCoupon.Status.AVAILABLE.value,
+            granted_time=now_time,
+            owner_type=OwnerType.USER.value,
+            user=self.user,
+            app_service_id=self.app_service1.id
+        )
+        coupon1_user.save(force_insert=True)
+
+        coupon1_vo = CashCoupon(
+            face_value=Decimal('188.8'),
+            balance=Decimal('188.8'),
+            effective_time=now_time - timedelta(days=2),
+            expiration_time=now_time + timedelta(days=30),
+            status=CashCoupon.Status.AVAILABLE.value,
+            granted_time=now_time,
+            owner_type=OwnerType.VO.value,
+            vo=self.vo,
+            app_service_id=self.app_service1.id
+        )
+        coupon1_vo.save(force_insert=True)
+
+        # NotAuthenticated
+        self.client.logout()
+        url = reverse('api:cashcoupon-detail', kwargs={'id': 66})
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
+
+        # user2, NoSuchCoupon
+        self.client.force_login(self.user2)
+        url = reverse('api:cashcoupon-detail', kwargs={'id': 66})
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=404, code='NoSuchCoupon', response=response)
+
+        # user2, AccessDenied
+        url = reverse('api:cashcoupon-detail', kwargs={'id': coupon1_user.id})
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # user2, vo, ok
+        url = reverse('api:cashcoupon-detail', kwargs={'id': coupon1_vo.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn([
+            "id", "face_value", "creation_time", "effective_time", "expiration_time",
+            "balance", "status", "granted_time",
+            "owner_type", "app_service", "user", "vo", "activity"], response.data
+        )
+        self.assertKeysIn([
+            "id", "name", "name_en", "service_id", "category"], response.data['app_service']
+        )
+        self.assertKeysIn(["id", "name"], response.data['vo'])
+        self.assertIsNone(response.data['user'])
+        self.assertIsNone(response.data['activity'])
+
+        # user1, NoSuchCoupon
+        self.client.logout()
+        self.client.force_login(self.user)
+        url = reverse('api:cashcoupon-detail', kwargs={'id': 66})
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=404, code='NoSuchCoupon', response=response)
+
+        # user1, vo, AccessDenied
+        self.client.logout()
+        self.client.force_login(self.user)
+        url = reverse('api:cashcoupon-detail', kwargs={'id': coupon1_vo.id})
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # user1, ok
+        self.client.logout()
+        self.client.force_login(self.user)
+        url = reverse('api:cashcoupon-detail', kwargs={'id': coupon1_user.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn([
+            "id", "face_value", "creation_time", "effective_time", "expiration_time",
+            "balance", "status", "granted_time",
+            "owner_type", "app_service", "user", "vo", "activity"], response.data
+        )
+        self.assertKeysIn([
+            "id", "name", "name_en", "service_id", "category"], response.data['app_service']
+        )
+        self.assertKeysIn(["id", "username"], response.data['user'])
+        self.assertIsNone(response.data['vo'])
+        self.assertIsNone(response.data['activity'])
+
 
 class AdminCashCouponTests(MyAPITransactionTestCase):
     def setUp(self):

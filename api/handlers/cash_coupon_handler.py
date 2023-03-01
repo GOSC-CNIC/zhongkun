@@ -394,3 +394,22 @@ class CashCouponHandler:
             'app_service': app_service,
             'user': user
         }
+
+    @staticmethod
+    def detail_cash_coupon(view: CustomGenericViewSet, request, kwargs):
+        """
+        查询代金券详情
+        """
+        coupon_id = kwargs.get(view.lookup_field)
+
+        ccmgr = CashCouponManager()
+        try:
+            coupon = ccmgr.get_cash_coupon(
+                coupon_id=coupon_id, select_for_update=False,
+                related_fields=['vo', 'user', 'activity', 'app_service']
+            )
+            ccmgr.has_read_perm_cash_coupon(coupon=coupon, user=request.user)
+            serializer = view.get_serializer(instance=coupon)
+            return Response(data=serializer.data)
+        except Exception as exc:
+            return view.exception_response(exc)

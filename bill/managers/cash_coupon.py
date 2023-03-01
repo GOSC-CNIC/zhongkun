@@ -34,15 +34,42 @@ class CashCouponManager:
     def get_queryset():
         return CashCoupon.objects.all()
 
-    def get_cash_coupon(self, coupon_id: str, select_for_update: bool = False):
+    def get_cash_coupon(self, coupon_id: str, select_for_update: bool = False, related_fields: list = None):
         """
         :return: CashCoupon() or None
         """
         queryset = self.get_queryset()
+        if related_fields:
+            queryset = queryset.select_related(*related_fields)
+
         if select_for_update:
             queryset = queryset.select_for_update()
 
         return queryset.filter(id=coupon_id).first()
+
+    @staticmethod
+    def has_read_perm_cash_coupon(coupon: CashCoupon, user):
+        """
+        用户是否代金券查询权限
+
+        :return: True
+        :raises: Error
+        """
+        if coupon is None:
+            raise errors.NotFound(message=_('代金券不存在'), code='NoSuchCoupon')
+
+        if coupon.status not in [CashCoupon.Status.AVAILABLE.value, CashCoupon.Status.CANCELLED.value]:
+            raise errors.NotFound(message=_('代金券不存在'), code='NoSuchCoupon')
+
+        if coupon.owner_type == OwnerType.USER.value:
+            if coupon.user_id != user.id:
+                raise errors.AccessDenied(message=_('你没有此代金券的访问权限'))
+        elif coupon.owner_type == OwnerType.VO.value:
+            VoManager().get_has_read_perm_vo(vo_id=coupon.vo_id, user=user)
+        else:
+            raise errors.ConflictError(message=_('代金券拥有者类型未知'), code='UnknownOwnCoupon')
+
+        return coupon
 
     def get_wait_draw_cash_coupon(self, coupon_id: str, select_for_update: bool = False) -> CashCoupon:
         """

@@ -284,8 +284,55 @@ class CashCouponViewSet(CustomGenericViewSet):
         """
         return CashCouponHandler().exchange_cash_coupon(view=self, request=request)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询代金券详情'),
+        request_body=no_body,
+        manual_parameters=[
+        ],
+        responses={
+            200: ''
+        }
+    )
+    def retrieve(self, request, *args, **kwargs):
+        """
+        查询代金券详情
+
+            Http Code 200 OK:
+            {
+                "id": "7873425381443472",
+                "face_value": "666.00",
+                "creation_time": "2022-05-07T06:33:39.496411Z",
+                "effective_time": "2022-05-07T06:32:00Z",
+                "expiration_time": "2022-05-07T06:32:00Z",
+                "balance": "555.00",
+                "status": "available",      # wait：未领取；available：有效；cancelled：作废；deleted：删除
+                "granted_time": "2022-05-07T06:36:31.296470Z",  # maybe None
+                "owner_type": "vo",
+                "app_service": {                                # maybe None
+                    "id": "2",
+                    "name": "怀柔204机房研发测试",
+                    "name_en": "怀柔204机房研发测试",
+                    "category": "vms-server",
+                    "service_id": "xx"              # maybe None
+                },
+                "user": {                                   # maybe None
+                    "id": "1",
+                    "username": "shun"
+                },
+                "vo": {                                     # maybe None
+                    "id": "3d7cd5fc-d236-11eb-9da9-c8009fe2eb10",
+                    "name": "项目组1"
+                },
+                "activity": {                                # maybe None
+                    "id": "75b63eee-cda9-11ec-8660-c8009fe2eb10",
+                    "name": "test"
+                }
+            }
+        """
+        return CashCouponHandler().detail_cash_coupon(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
-        if self.action == 'list':
+        if self.action in ['list', 'retrieve']:
             return serializers.CashCouponSerializer
         elif self.action == 'list_coupon_payment':
             return serializers.CashCouponPaymentSerializer

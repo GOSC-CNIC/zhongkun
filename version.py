@@ -41,7 +41,8 @@ def get_git_tagset():
     repo_dir = os.path.dirname(os.path.abspath(__file__))
     git_log = subprocess.run(
         "git for-each-ref --count=3 --sort='-taggerdate' "
-        "--format='%(refname:short) || %(taggerdate:format:%s) || %(*authorname) || %(*authoremail) || %(subject)'",
+        "--format='%(refname:short) || %(taggerdate:format:%s) || %(*authorname) || %(*authoremail) || %(subject)'"
+        " refs/tags/*",
         capture_output=True,
         shell=True,
         cwd=repo_dir,
@@ -51,12 +52,14 @@ def get_git_tagset():
     try:
         cmd_output = git_log.stdout
         lines = cmd_output.split('\n')[0:3]
-        tags = [item.split('||') for item in lines if item]
         tz = datetime.timezone.utc
-        for tag in tags:
-            tag[1] = datetime.datetime.fromtimestamp(int(tag[1]), tz=tz)
-            desc = tag[4]
-            tag[4] = desc.replace('*', '\n*')
+        tags = []
+        for line in lines:
+            tag = line.split('||')
+            if len(tag) == 5:
+                tag[1] = datetime.datetime.fromtimestamp(int(tag[1]), tz=tz)
+                tag[4] = tag[4].replace('*', '\n*')
+                tags.append(tag)
 
     except ValueError:
         return None
