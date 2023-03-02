@@ -424,3 +424,14 @@ class CashCouponHandler:
             return Response(data=serializer.data)
         except Exception as exc:
             return view.exception_response(exc)
+
+    @staticmethod
+    def admin_delete_cash_coupon(view: CustomGenericViewSet, request, kwargs):
+        coupon_id = kwargs.get(view.lookup_field, None)
+
+        try:
+            CashCouponManager().admin_delete_cash_coupon(coupon_id=coupon_id, user=request.user)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        return Response(status=204)

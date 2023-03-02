@@ -470,6 +470,33 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
         """
         return CashCouponHandler.admin_create_cash_coupon(view=self, request=request)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('管理员删除代金券'),
+        responses={
+            204: ''
+        }
+    )
+    def destroy(self, request, *args, **kwargs):
+        """
+        删除代金券，联邦管理员，或者券所绑定的APP子服务管理员
+
+            http code 204 OK: 无数据
+
+            http code 401, 403,404:
+            {
+                "code": "xxx",
+                "message": "xxx"
+            }
+
+            401:
+                NotAuthenticated: 身份未认证
+            403:
+                AccessDenied: 没有管理权限
+            404:
+                NoSuchCoupon: 代金券不存在
+        """
+        return CashCouponHandler.admin_delete_cash_coupon(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return serializers.AdminCashCouponSerializer

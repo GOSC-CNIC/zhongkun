@@ -1191,3 +1191,65 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         r = self.client.get(f'{url}?{query}')
         self.assertEqual(r.status_code, 200)
         self.assertIs(r.streaming, True)
+
+    def test_delete_cash_coupon(self):
+        coupon2 = CashCoupon(
+            face_value=Decimal('66.6'),
+            balance=Decimal('66.6'),
+            effective_time=timezone.now(),
+            expiration_time=timezone.now(),
+            status=CashCoupon.Status.WAIT.value,
+            app_service_id=self.app_service1.id,
+            user_id=self.user.id
+        )
+        coupon2.save(force_insert=True)
+
+        coupon3 = CashCoupon(
+            face_value=Decimal('66.68'),
+            balance=Decimal('66.68'),
+            effective_time=timezone.now(),
+            expiration_time=timezone.now(),
+            status=CashCoupon.Status.AVAILABLE.value,
+            app_service_id=self.app_service2.id,
+            user_id=self.user2.id
+        )
+        coupon3.save(force_insert=True)
+
+        # NotAuthenticated
+        self.client.logout()
+        url = reverse('api:admin-coupon-detail', kwargs={'id': 'notfound'})
+        response = self.client.delete(url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
+
+        # NoSuchCoupon
+        self.client.force_login(self.user)
+        url = reverse('api:admin-coupon-detail', kwargs={'id': 'notfound'})
+        response = self.client.delete(url)
+        self.assertErrorResponse(status_code=404, code='NoSuchCoupon', response=response)
+
+        # AccessDenied
+        url = reverse('api:admin-coupon-detail', kwargs={'id': coupon2.id})
+        response = self.client.delete(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # delete coupon2 ok, app_service1 admin
+        coupon2.app_service.users.add(self.user)
+        self.assertEqual(coupon2.status, CashCoupon.Status.WAIT.value)
+        url = reverse('api:admin-coupon-detail', kwargs={'id': coupon2.id})
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, 204)
+        coupon2.refresh_from_db()
+        self.assertEqual(coupon2.status, CashCoupon.Status.DELETED.value)
+
+        # delete coupon3, AccessDenied
+        url = reverse('api:admin-coupon-detail', kwargs={'id': coupon3.id})
+        response = self.client.delete(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # delete coupon3 ok, federal admin
+        self.user.set_federal_admin()
+        self.assertEqual(coupon3.status, CashCoupon.Status.AVAILABLE.value)
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, 204)
+        coupon3.refresh_from_db()
+        self.assertEqual(coupon3.status, CashCoupon.Status.DELETED.value)

@@ -264,20 +264,10 @@ class CashCouponManager:
             status=CashCoupon.Status.AVAILABLE.value
         ).select_related('vo', 'user', 'activity', 'app_service')
 
-        if app_service_id:
-            queryset = queryset.filter(app_service_id=app_service_id)
-
-        if app_service_category:
-            queryset = queryset.filter(app_service__category=app_service_category)
-
-        if valid is True:
-            now = timezone.now()
-            queryset = queryset.filter(effective_time__lt=now, expiration_time__gt=now)
-        elif valid is False:
-            now = timezone.now()
-            queryset = queryset.filter(Q(effective_time__gt=now) | Q(expiration_time__lte=now))
-
-        return queryset
+        return self._filter_cash_coupon_queryset(
+            queryset=queryset, app_service_id=app_service_id,
+            valid=valid, app_service_category=app_service_category
+        )
 
     def get_vo_cash_coupon_queryset(
             self, user, vo_id: str, app_service_id: str = None, valid: bool = None,
@@ -294,20 +284,10 @@ class CashCouponManager:
             status=CashCoupon.Status.AVAILABLE.value
         ).select_related('vo', 'user', 'activity', 'app_service')
 
-        if app_service_id:
-            queryset = queryset.filter(app_service_id=app_service_id)
-
-        if app_service_category:
-            queryset = queryset.filter(app_service__category=app_service_category)
-
-        if valid is True:
-            now = timezone.now()
-            queryset = queryset.filter(effective_time__lt=now, expiration_time__gt=now)
-        elif valid is False:
-            now = timezone.now()
-            queryset = queryset.filter(Q(effective_time__gt=now) | Q(expiration_time__lte=now))
-
-        return queryset
+        return self._filter_cash_coupon_queryset(
+            queryset=queryset, app_service_id=app_service_id,
+            valid=valid, app_service_category=app_service_category
+        )
 
     def delete_cash_coupon(self, coupon_id: str, user, force: bool = False):
         """
@@ -336,6 +316,32 @@ class CashCouponManager:
             ):    # 未过期
                 if coupon.balance > Decimal(0):
                     raise errors.ConflictError(message=_('代金券有剩余余额未消费'), code='BalanceRemain')
+
+        coupon.status = CashCoupon.Status.DELETED.value
+        coupon.save(update_fields=['status'])
+        return coupon
+
+    def admin_delete_cash_coupon(self, coupon_id: str, user):
+        """
+        管理员删除代金券
+        :raises: Error
+        """
+        coupon: CashCoupon = self.get_cash_coupon(coupon_id=coupon_id, related_fields=['app_service'])
+        if coupon is None:
+            raise errors.NotFound(message=_('代金券不存在'), code='NoSuchCoupon')
+
+        if coupon.status not in [
+            CashCoupon.Status.AVAILABLE.value, CashCoupon.Status.CANCELLED.value, CashCoupon.Status.WAIT.value
+        ]:
+            raise errors.NotFound(message=_('代金券不存在'), code='NoSuchCoupon')
+
+        if user.is_federal_admin():
+            pass
+        elif coupon.app_service:
+            if not coupon.app_service.user_has_perm(user):
+                raise errors.AccessDenied(message=_('你没有此代金券适用子服务的管理权限'))
+        else:
+            raise errors.AccessDenied(message=_('此代金券未指定适用子服务，你没有权限管理此代金券。'))
 
         coupon.status = CashCoupon.Status.DELETED.value
         coupon.save(update_fields=['status'])
