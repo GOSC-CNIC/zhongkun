@@ -426,6 +426,25 @@ class CashCouponHandler:
             return view.exception_response(exc)
 
     @staticmethod
+    def admin_detail_cash_coupon(view: CustomGenericViewSet, request, kwargs):
+        """
+        管理员查询代金券详情
+        """
+        coupon_id = kwargs.get(view.lookup_field)
+
+        ccmgr = CashCouponManager()
+        try:
+            coupon = ccmgr.get_cash_coupon(
+                coupon_id=coupon_id, select_for_update=False,
+                related_fields=['vo', 'user', 'activity', 'app_service']
+            )
+            ccmgr.has_admin_perm_cash_coupon(coupon=coupon, user=request.user)
+            serializer = view.get_serializer(instance=coupon)
+            return Response(data=serializer.data)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+    @staticmethod
     def admin_delete_cash_coupon(view: CustomGenericViewSet, request, kwargs):
         coupon_id = kwargs.get(view.lookup_field, None)
 

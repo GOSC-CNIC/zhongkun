@@ -1253,3 +1253,82 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assertEqual(response.status_code, 204)
         coupon3.refresh_from_db()
         self.assertEqual(coupon3.status, CashCoupon.Status.DELETED.value)
+
+    def test_detail_cash_coupon(self):
+        vo1 = VirtualOrganization(name='test vo', owner_id=self.user.id)
+        vo1.save(force_insert=True)
+
+        coupon2 = CashCoupon(
+            face_value=Decimal('66.6'),
+            balance=Decimal('66.6'),
+            effective_time=timezone.now(),
+            expiration_time=timezone.now(),
+            status=CashCoupon.Status.WAIT.value,
+            app_service_id=self.app_service1.id,
+            owner_type=OwnerType.USER.value,
+            user_id=self.user.id
+        )
+        coupon2.save(force_insert=True)
+
+        coupon3 = CashCoupon(
+            face_value=Decimal('166.68'),
+            balance=Decimal('66.68'),
+            effective_time=timezone.now(),
+            expiration_time=timezone.now(),
+            status=CashCoupon.Status.AVAILABLE.value,
+            app_service_id=self.app_service2.id,
+            owner_type=OwnerType.VO.value,
+            user_id=self.user2.id,
+            vo_id=vo1.id
+        )
+        coupon3.save(force_insert=True)
+
+        # NotAuthenticated
+        self.client.logout()
+        url = reverse('api:admin-coupon-detail', kwargs={'id': 'notfound'})
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
+
+        # NoSuchCoupon
+        self.client.force_login(self.user)
+        url = reverse('api:admin-coupon-detail', kwargs={'id': 'notfound'})
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=404, code='NoSuchCoupon', response=response)
+
+        # AccessDenied
+        url = reverse('api:admin-coupon-detail', kwargs={'id': coupon2.id})
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # get coupon2 ok, app_service1 admin
+        coupon2.app_service.users.add(self.user)
+        url = reverse('api:admin-coupon-detail', kwargs={'id': coupon2.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(keys=[
+            'id', 'face_value', 'creation_time', 'effective_time', 'expiration_time', 'balance', 'status',
+            'granted_time', 'owner_type', 'app_service', 'user', 'vo', 'activity', 'exchange_code'
+        ], container=response.data)
+        self.assertKeysIn(keys=['id', 'name', 'service_id'], container=response.data['app_service'])
+        self.assertKeysIn(keys=['id', 'username'], container=response.data['user'])
+        self.assertEqual(response.data['id'], coupon2.id)
+        self.assertEqual(response.data['face_value'], '66.60')
+
+        # get coupon3, AccessDenied
+        url = reverse('api:admin-coupon-detail', kwargs={'id': coupon3.id})
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # get coupon3 ok, federal admin
+        self.user.set_federal_admin()
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(keys=[
+            'id', 'face_value', 'creation_time', 'effective_time', 'expiration_time', 'balance', 'status',
+            'granted_time', 'owner_type', 'app_service', 'user', 'vo', 'activity', 'exchange_code'
+        ], container=response.data)
+        self.assertKeysIn(keys=['id', 'name', 'service_id'], container=response.data['app_service'])
+        self.assertKeysIn(keys=['id', 'username'], container=response.data['user'])
+        self.assertKeysIn(keys=['id', 'name'], container=response.data['vo'])
+        self.assertEqual(response.data['id'], coupon3.id)
+        self.assertEqual(response.data['face_value'], '166.68')

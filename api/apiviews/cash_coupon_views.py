@@ -497,8 +497,64 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
         """
         return CashCouponHandler.admin_delete_cash_coupon(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('管理员查询代金券详情'),
+        responses={
+            200: ''
+        }
+    )
+    def retrieve(self, request, *args, **kwargs):
+        """
+        管理员查询代金券详情，联邦管理员，或者券所绑定的APP子服务管理员
+
+            http code 200 OK:
+            {
+                "id": "7873425381443472",
+                "face_value": "666.00",
+                "creation_time": "2022-05-07T06:33:39.496411Z",
+                "effective_time": "2022-05-07T06:32:00Z",
+                "expiration_time": "2022-05-07T06:32:00Z",
+                "balance": "555.00",
+                "status": "available",      # wait：未领取；available：有效；cancelled：作废；deleted：删除
+                "granted_time": "2022-05-07T06:36:31.296470Z",  # maybe None
+                "owner_type": "vo",
+                "app_service": {                                # maybe None
+                    "id": "2",
+                    "name": "怀柔204机房研发测试",
+                    "service_id": "xx"              # maybe None
+                },
+                "user": {                                   # maybe None
+                    "id": "1",
+                    "username": "shun"
+                },
+                "vo": {                                     # maybe None
+                    "id": "3d7cd5fc-d236-11eb-9da9-c8009fe2eb10",
+                    "name": "项目组1"
+                },
+                "activity": {                                # maybe None
+                    "id": "75b63eee-cda9-11ec-8660-c8009fe2eb10",
+                    "name": "test"
+                },
+                "exchange_code": "771570982053927857"
+            }
+
+            http code 401, 403,404:
+            {
+                "code": "xxx",
+                "message": "xxx"
+            }
+
+            401:
+                NotAuthenticated: 身份未认证
+            403:
+                AccessDenied: 没有管理权限
+            404:
+                NoSuchCoupon: 代金券不存在
+        """
+        return CashCouponHandler.admin_detail_cash_coupon(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
-        if self.action == 'list':
+        if self.action in ['list', 'retrieve']:
             return serializers.AdminCashCouponSerializer
         elif self.action == 'create':
             return trade_serializers.CashCouponCreateSerializer

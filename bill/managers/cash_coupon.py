@@ -72,6 +72,56 @@ class CashCouponManager:
 
         return coupon
 
+    @staticmethod
+    def has_manage_perm_cash_coupon(coupon: CashCoupon, user):
+        """
+        用户是否有代金券管理权限
+
+        :return: True
+        :raises: Error
+        """
+        if coupon is None:
+            raise errors.NotFound(message=_('代金券不存在'), code='NoSuchCoupon')
+
+        if coupon.status not in [CashCoupon.Status.AVAILABLE.value, CashCoupon.Status.CANCELLED.value]:
+            raise errors.NotFound(message=_('代金券不存在'), code='NoSuchCoupon')
+
+        if coupon.owner_type == OwnerType.USER.value:
+            if coupon.user_id != user.id:
+                raise errors.AccessDenied(message=_('你没有此代金券的访问权限'))
+        elif coupon.owner_type == OwnerType.VO.value:
+            VoManager().get_has_manager_perm_vo(vo_id=coupon.vo_id, user=user)
+        else:
+            raise errors.ConflictError(message=_('代金券拥有者类型未知'), code='UnknownOwnCoupon')
+
+        return coupon
+
+    @staticmethod
+    def has_admin_perm_cash_coupon(coupon: CashCoupon, user):
+        """
+        用户是否有代金券管理员权限
+
+        :return: True
+        :raises: NotFound，AccessDenied
+        """
+        if coupon is None:
+            raise errors.NotFound(message=_('代金券不存在'), code='NoSuchCoupon')
+
+        if coupon.status not in [
+            CashCoupon.Status.AVAILABLE.value, CashCoupon.Status.CANCELLED.value, CashCoupon.Status.WAIT.value
+        ]:
+            raise errors.NotFound(message=_('代金券不存在'), code='NoSuchCoupon')
+
+        if user.is_federal_admin():
+            pass
+        elif coupon.app_service:
+            if not coupon.app_service.user_has_perm(user):
+                raise errors.AccessDenied(message=_('你没有此代金券适用子服务的管理权限'))
+        else:
+            raise errors.AccessDenied(message=_('此代金券未指定适用子服务，你没有权限管理此代金券。'))
+
+        return coupon
+
     def get_wait_draw_cash_coupon(self, coupon_id: str, select_for_update: bool = False) -> CashCoupon:
         """
         查询待领取的券
@@ -295,19 +345,7 @@ class CashCouponManager:
         :raises: Error
         """
         coupon = self.get_cash_coupon(coupon_id=coupon_id)
-        if coupon is None:
-            raise errors.NotFound(message=_('代金券不存在'), code='NoSuchCoupon')
-
-        if coupon.status not in [CashCoupon.Status.AVAILABLE.value, CashCoupon.Status.CANCELLED.value]:
-            raise errors.NotFound(message=_('代金券不存在'), code='NoSuchCoupon')
-
-        if coupon.owner_type == OwnerType.USER.value:
-            if coupon.user_id != user.id:
-                raise errors.AccessDenied(message=_('你没有此代金券的访问权限'))
-        elif coupon.owner_type == OwnerType.VO.value:
-            VoManager().get_has_manager_perm_vo(vo_id=coupon.vo_id, user=user)
-        else:
-            raise errors.ConflictError(message=_('代金券拥有者类型未知'), code='UnknownOwnCoupon')
+        self.has_manage_perm_cash_coupon(coupon=coupon, user=user)
 
         if not force:
             if (
@@ -327,22 +365,7 @@ class CashCouponManager:
         :raises: Error
         """
         coupon: CashCoupon = self.get_cash_coupon(coupon_id=coupon_id, related_fields=['app_service'])
-        if coupon is None:
-            raise errors.NotFound(message=_('代金券不存在'), code='NoSuchCoupon')
-
-        if coupon.status not in [
-            CashCoupon.Status.AVAILABLE.value, CashCoupon.Status.CANCELLED.value, CashCoupon.Status.WAIT.value
-        ]:
-            raise errors.NotFound(message=_('代金券不存在'), code='NoSuchCoupon')
-
-        if user.is_federal_admin():
-            pass
-        elif coupon.app_service:
-            if not coupon.app_service.user_has_perm(user):
-                raise errors.AccessDenied(message=_('你没有此代金券适用子服务的管理权限'))
-        else:
-            raise errors.AccessDenied(message=_('此代金券未指定适用子服务，你没有权限管理此代金券。'))
-
+        self.has_admin_perm_cash_coupon(coupon=coupon, user=user)
         coupon.status = CashCoupon.Status.DELETED.value
         coupon.save(update_fields=['status'])
         return coupon
@@ -473,20 +496,7 @@ class CashCouponManager:
         :raises: Error
         """
         coupon = self.get_cash_coupon(coupon_id=coupon_id)
-        if coupon is None:
-            raise errors.NotFound(message=_('代金券不存在'), code='NoSuchCoupon')
-
-        if coupon.status not in [CashCoupon.Status.AVAILABLE.value, CashCoupon.Status.CANCELLED.value]:
-            raise errors.NotFound(message=_('代金券不存在'), code='NoSuchCoupon')
-
-        if coupon.owner_type == OwnerType.USER.value:
-            if coupon.user_id != user.id:
-                raise errors.AccessDenied(message=_('你没有此代金券的访问权限'))
-        elif coupon.owner_type == OwnerType.VO.value:
-            VoManager().get_has_read_perm_vo(vo_id=coupon.vo_id, user=user)
-        else:
-            raise errors.ConflictError(message=_('代金券拥有者类型未知'), code='UnknownOwnCoupon')
-
+        self.has_read_perm_cash_coupon(coupon=coupon, user=user)
         queryset = CashCouponPaymentHistory.objects.select_related('payment_history').filter(cash_coupon_id=coupon.id)
         return queryset
 
