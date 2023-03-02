@@ -1,5 +1,5 @@
 ## v0.9.0
-2023-02-28  
+2023-03-02  
 shun <869588058@qq.com>
 
 * ListMonitorCephUnit api增加筛选参数'organization_id'，响应数据增加监控机构信息；
@@ -7,6 +7,9 @@ shun <869588058@qq.com>
 * 适配器镜像接口修改，增加一些标准化字段；
 * 增加一个分页列举镜像的api和测试用例；
 * Flavor增加资源提供者服务端规格ID、Disk字段；修改Flavor相关的订单与创建参数；
+* 增加 AdminListCashCouponPayment、AdminGetCashCoupon、AdminDeleteCashCoupon api和测试用例；
+* ListCashCoupon api移除参数'available'，增加参数'valid'
+* 增加 用户查询代金券详情（GetCashCoupon） api 和测试用例；
 
 
 ## v0.8.0
