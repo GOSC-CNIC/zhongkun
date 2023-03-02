@@ -40,11 +40,11 @@ class CashCouponViewSet(CustomGenericViewSet):
                 description='列举指定VO组的代金券, 需要有vo组访问权限'
             ),
             openapi.Parameter(
-                name='available',
+                name='valid',
                 in_=openapi.IN_QUERY,
-                type=openapi.TYPE_STRING,
+                type=openapi.TYPE_BOOLEAN,
                 required=False,
-                description='在有效期内的，未过期的'
+                description='筛选条件，true(有效期内)；false(未生效或已过期)；不提交此参数(全部)'
             ),
             openapi.Parameter(
                 name='app_service_category',

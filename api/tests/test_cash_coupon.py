@@ -293,8 +293,12 @@ class CashCouponTests(MyAPITestCase):
         self.assertEqual(response.data['page_size'], 1)
         self.assertEqual(len(response.data['results']), 1)
 
-        # list user own coupon, paran "available"
-        query = parse.urlencode(query={'available': ''})
+        # list user own coupon, paran "valid"
+        query = parse.urlencode(query={'valid': ''})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidValid', response=response)
+
+        query = parse.urlencode(query={'valid': True})
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 1)
@@ -309,6 +313,12 @@ class CashCouponTests(MyAPITestCase):
                 'vo': None
             }, response.data['results'][0]
         )
+
+        query = parse.urlencode(query={'valid': False})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['results'][0]['id'], coupon3_user.id)
 
         # list user own coupon, paran "app_service_id"
         query = parse.urlencode(query={'app_service_id': self.app_service1.id})
@@ -325,15 +335,15 @@ class CashCouponTests(MyAPITestCase):
         self.assertEqual(response.data['results'][0]['id'], coupon3_user.id)
         self.assertEqual(response.data['results'][0]['face_value'], '188.80')
 
-        # list user own coupon, paran "app_service_id" "available"
-        query = parse.urlencode(query={'app_service_id': self.app_service1.id, 'available': ''})
+        # list user own coupon, paran "app_service_id" "valid"
+        query = parse.urlencode(query={'app_service_id': self.app_service1.id, 'valid': True})
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 1)
         self.assertEqual(response.data['results'][0]['id'], coupon2_user.id)
         self.assertEqual(response.data['results'][0]['face_value'], '88.80')
 
-        query = parse.urlencode(query={'app_service_id': self.app_service2.id, 'available': ''})
+        query = parse.urlencode(query={'app_service_id': self.app_service2.id, 'valid': True})
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 0)
@@ -388,13 +398,18 @@ class CashCouponTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 0)
 
-        # list vo coupon, paran "app_service_id" "available"
-        query = parse.urlencode(query={'vo_id': self.vo.id, 'app_service_id': self.app_service1.id, 'available': ''})
+        # list vo coupon, paran "app_service_id" "valid"
+        query = parse.urlencode(query={'vo_id': self.vo.id, 'app_service_id': self.app_service1.id, 'valid': True})
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 1)
         self.assertEqual(response.data['results'][0]['id'], coupon5_vo.id)
         self.assertEqual(response.data['results'][0]['face_value'], '388.80')
+
+        query = parse.urlencode(query={'vo_id': self.vo.id, 'app_service_id': self.app_service1.id, 'valid': False})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
 
         # invalid paran "app_service_category"
         query = parse.urlencode(query={'app_service_category': 'test'})

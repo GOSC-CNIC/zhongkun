@@ -4,6 +4,7 @@ from datetime import datetime
 
 from django.utils.translation import gettext as _
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from core import errors
@@ -230,10 +231,33 @@ class CashCouponManager:
 
         return coupon
 
-    def get_user_cash_coupon_queryset(
-            self, user_id: str, app_service_id: str = None, available: bool = None,
+    @staticmethod
+    def _filter_cash_coupon_queryset(
+            queryset, app_service_id: str = None, valid: bool = None,
             app_service_category: str = None
     ):
+        if app_service_id:
+            queryset = queryset.filter(app_service_id=app_service_id)
+
+        if app_service_category:
+            queryset = queryset.filter(app_service__category=app_service_category)
+
+        if valid is True:
+            now = timezone.now()
+            queryset = queryset.filter(effective_time__lt=now, expiration_time__gt=now)
+        elif valid is False:
+            now = timezone.now()
+            queryset = queryset.filter(Q(effective_time__gt=now) | Q(expiration_time__lte=now))
+
+        return queryset
+
+    def get_user_cash_coupon_queryset(
+            self, user_id: str, app_service_id: str = None, valid: bool = None,
+            app_service_category: str = None
+    ):
+        """
+        :valid: True(有效期内)；False(未生效或已过期)；None（不筛选）
+        """
         queryset = self.get_queryset()
         queryset = queryset.filter(
             user_id=user_id, owner_type=OwnerType.USER.value,
@@ -246,17 +270,21 @@ class CashCouponManager:
         if app_service_category:
             queryset = queryset.filter(app_service__category=app_service_category)
 
-        if available:
+        if valid is True:
             now = timezone.now()
             queryset = queryset.filter(effective_time__lt=now, expiration_time__gt=now)
+        elif valid is False:
+            now = timezone.now()
+            queryset = queryset.filter(Q(effective_time__gt=now) | Q(expiration_time__lte=now))
 
         return queryset
 
     def get_vo_cash_coupon_queryset(
-            self, user, vo_id: str, app_service_id: str = None, available: bool = None,
+            self, user, vo_id: str, app_service_id: str = None, valid: bool = None,
             app_service_category: str = None
     ):
         """
+        :valid: True(有效期内)；False(未生效或已过期)；None（不筛选）
         :raises: Error
         """
         VoManager().get_has_read_perm_vo(vo_id=vo_id, user=user)
@@ -272,9 +300,12 @@ class CashCouponManager:
         if app_service_category:
             queryset = queryset.filter(app_service__category=app_service_category)
 
-        if available:
+        if valid is True:
             now = timezone.now()
             queryset = queryset.filter(effective_time__lt=now, expiration_time__gt=now)
+        elif valid is False:
+            now = timezone.now()
+            queryset = queryset.filter(Q(effective_time__gt=now) | Q(expiration_time__lte=now))
 
         return queryset
 

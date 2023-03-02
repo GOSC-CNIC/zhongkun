@@ -29,19 +29,19 @@ class CashCouponHandler:
             return view.exception_response(exc)
 
         vo_id = data['vo_id']
-        available = data['available']
+        valid = data['valid']
         app_service_id = data['app_service_id']
         app_service_category = data['app_service_category']
 
         mgr = CashCouponManager()
         if vo_id:
             queryset = mgr.get_vo_cash_coupon_queryset(
-                user=request.user, vo_id=vo_id, available=available, app_service_id=app_service_id,
+                user=request.user, vo_id=vo_id, valid=valid, app_service_id=app_service_id,
                 app_service_category=app_service_category
             )
         else:
             queryset = mgr.get_user_cash_coupon_queryset(
-                user_id=request.user.id, available=available, app_service_id=app_service_id,
+                user_id=request.user.id, valid=valid, app_service_id=app_service_id,
                 app_service_category=app_service_category
             )
 
@@ -55,7 +55,7 @@ class CashCouponHandler:
     @staticmethod
     def list_cash_coupon_validate_params(request):
         vo_id = request.query_params.get('vo_id', None)
-        available = request.query_params.get('available', None)
+        valid = request.query_params.get('valid', None)
         app_service_id = request.query_params.get('app_service_id', None)
         app_service_category = request.query_params.get('app_service_category', None)
 
@@ -65,9 +65,20 @@ class CashCouponHandler:
         if app_service_category and app_service_category not in PayAppService.Category.values:
             raise errors.InvalidArgument(message=_('参数“app_service_category”值无效'), code='InvalidAppServiceCategory')
 
+        if isinstance(valid, str):
+            valid = valid.lower()
+            if valid == 'true':
+                valid = True
+            elif valid == 'false':
+                valid = False
+            else:
+                raise errors.InvalidArgument(message=_('参数“valid”值无效'), code='InvalidValid')
+        else:
+            valid = None
+
         return {
             'vo_id': vo_id,
-            'available': available is not None,
+            'valid': valid,
             'app_service_id': app_service_id,
             'app_service_category': app_service_category
         }
