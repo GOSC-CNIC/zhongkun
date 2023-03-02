@@ -500,6 +500,18 @@ class CashCouponManager:
         queryset = CashCouponPaymentHistory.objects.select_related('payment_history').filter(cash_coupon_id=coupon.id)
         return queryset
 
+    def admin_get_cash_coupon_payment_queryset(self, coupon_id: str, user):
+        """
+        管理员查询代金券扣费记录查询集
+
+        :return: QuerySet
+        :raises: Error
+        """
+        coupon = self.get_cash_coupon(coupon_id=coupon_id)
+        self.has_admin_perm_cash_coupon(coupon=coupon, user=user)
+        queryset = CashCouponPaymentHistory.objects.select_related('payment_history').filter(cash_coupon_id=coupon.id)
+        return queryset
+
     def admin_list_coupon_queryset(
             self, user: UserProfile, template_id: str = None, app_service_id: str = None, status: str = None
     ):

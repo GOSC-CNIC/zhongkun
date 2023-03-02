@@ -454,3 +454,22 @@ class CashCouponHandler:
             return view.exception_response(exc)
 
         return Response(status=204)
+
+    @staticmethod
+    def admin_list_cash_coupon_payment(view: CustomGenericViewSet, request, kwargs):
+        """
+        列举券支付记录
+        """
+        coupon_id = kwargs.get(view.lookup_field)
+        try:
+            queryset = CashCouponManager().admin_get_cash_coupon_payment_queryset(
+                coupon_id=coupon_id, user=request.user)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        try:
+            coupons = view.paginate_queryset(queryset)
+            serializer = view.get_serializer(instance=coupons, many=True)
+            return view.get_paginated_response(serializer.data)
+        except Exception as exc:
+            return view.exception_response(errors.convert_to_error(exc))

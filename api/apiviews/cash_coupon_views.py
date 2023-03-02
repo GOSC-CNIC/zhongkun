@@ -553,10 +553,74 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
         """
         return CashCouponHandler.admin_detail_cash_coupon(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('管理员列举代金券扣费记录'),
+        manual_parameters=[
+            openapi.Parameter(
+                name=NewPageNumberPagination.page_query_param,
+                required=False,
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                description='页码'
+            ),
+            openapi.Parameter(
+                name=NewPageNumberPagination.page_size_query_param,
+                required=False,
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                description='每页数据数量'
+            )
+        ]
+    )
+    @action(methods=['get'], detail=True, url_path='payment', url_name='list-payment')
+    def list_coupon_payment(self, request, *args, **kwargs):
+        """
+        管理员列举代金券扣费记录，联邦管理员，或者券所绑定的APP子服务管理员
+
+            http code 200:
+            {
+              "count": 1,
+              "page_num": 1,
+              "page_size": 20,
+              "results": [
+                {
+                  "creation_time": "2022-07-04T06:07:15.955151Z",
+                  "amounts": "-15.97",
+                  "before_payment": "1000.00",
+                  "after_payment": "984.03",
+                  "cash_coupon_id": "144765530930",
+                  "payment_history": {
+                    "id": "202207040607159512716434",
+                    "subject": "云服务器按量计费",
+                    "payment_method": "coupon",
+                    "executor": "metering",
+                    "payer_id": "1",
+                    "payer_name": "shun",
+                    "payer_type": "user",
+                    "payable_amounts": "160.00",    # 应付金额
+                    "amounts": "-60.00",           # 余额支付金额
+                    "coupon_amount": "-100.00",   # 代金券支付金额
+                    "creation_time": "2022-04-07T07:59:22.695692Z",       # 创建时间
+                    "payment_time": "2022-04-07T07:59:23.598408Z",        # 支付完成时间，未支付成功时为空
+                    "status": "success",  # wait: 未支付；success: 成功；error: 支付失败；closed: 交易关闭
+                    "status_desc": "",    # 状态描述
+                    "remark": "server id=0e475786-9ac1-11ec-857b-c8009fe2eb10, 2022-07-03",
+                    "order_id": "s-8aa93412fb5f11ec8ac1c8009fe2ebbc",
+                    "app_id": "xxx",
+                    "app_service_id": "s20220623023119"
+                  }
+                }
+              ]
+            }
+        """
+        return CashCouponHandler().admin_list_cash_coupon_payment(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve']:
             return serializers.AdminCashCouponSerializer
         elif self.action == 'create':
             return trade_serializers.CashCouponCreateSerializer
+        elif self.action == 'list_coupon_payment':
+            return serializers.CashCouponPaymentSerializer
 
         return Serializer

@@ -1332,3 +1332,219 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assertKeysIn(keys=['id', 'name'], container=response.data['vo'])
         self.assertEqual(response.data['id'], coupon3.id)
         self.assertEqual(response.data['face_value'], '166.68')
+
+    def test_admin_list_coupon_payments(self):
+        vo1 = VirtualOrganization(name='test vo', owner_id=self.user.id)
+        vo1.save(force_insert=True)
+
+        now_time = timezone.now()
+        coupon1_user = CashCoupon(
+            face_value=Decimal('88.8'),
+            balance=Decimal('88.8'),
+            effective_time=now_time - timedelta(days=2),
+            expiration_time=now_time + timedelta(days=30),
+            status=CashCoupon.Status.AVAILABLE.value,
+            granted_time=now_time,
+            owner_type=OwnerType.USER.value,
+            user=self.user,
+            app_service_id=self.app_service1.id
+        )
+        coupon1_user.save(force_insert=True)
+
+        coupon1_vo = CashCoupon(
+            face_value=Decimal('188.8'),
+            balance=Decimal('188.8'),
+            effective_time=now_time - timedelta(days=2),
+            expiration_time=now_time + timedelta(days=30),
+            status=CashCoupon.Status.AVAILABLE.value,
+            granted_time=now_time,
+            owner_type=OwnerType.VO.value,
+            vo=vo1,
+            app_service_id=self.app_service2.id
+        )
+        coupon1_vo.save(force_insert=True)
+
+        # NotAuthenticated
+        self.client.logout()
+        url = reverse('api:admin-coupon-list-payment', kwargs={'id': 'notfound'})
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
+
+        # NoSuchCoupon
+        self.client.force_login(self.user)
+        url = reverse('api:admin-coupon-list-payment', kwargs={'id': 'notfound'})
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=404, code='NoSuchCoupon', response=response)
+
+        # AccessDenied
+        url = reverse('api:admin-coupon-list-payment', kwargs={'id': coupon1_user.id})
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # ------- list user coupon payment historys -------
+        coupon1_user.app_service.users.add(self.user)
+        # list user coupon payment
+        base_url = reverse('api:admin-coupon-list-payment', kwargs={'id': coupon1_user.id})
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
+
+        PaymentManager().pay_by_user(
+            user_id=self.user.id, app_id=self.app.id,
+            subject='test user pay', amounts=Decimal('66.66'),
+            executor='test',
+            remark='test',
+            order_id='123',
+            app_service_id=self.app_service1.id,
+            instance_id='',
+            coupon_ids=None,
+            only_coupon=False,
+            required_enough_balance=False
+        )
+
+        # list user coupon payment
+        base_url = reverse('api:admin-coupon-list-payment', kwargs={'id': coupon1_user.id})
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)
+        results = response.data['results']
+        self.assertEqual(len(results), 1)
+        self.assertKeysIn([
+            "cash_coupon_id", "amounts", "before_payment", "after_payment", "creation_time",
+            "payment_history"], results[0]
+        )
+        self.assertKeysIn([
+            "id", "subject", "payment_method", "executor", "payer_id", "payer_name", "payer_type", "amounts",
+            "coupon_amount", "payment_time", "remark", "order_id", "app_id", "app_service_id",
+            'payable_amounts', 'creation_time', 'status', 'status_desc'
+        ], results[0]["payment_history"])
+        self.assertEqual('88.80', results[0]["before_payment"])
+        self.assertEqual('-66.66', results[0]["amounts"])
+        self.assertEqual('22.14', results[0]["after_payment"])
+        self.assertEqual('-66.66', results[0]["payment_history"]['coupon_amount'])
+        self.assertEqual('0.00', results[0]["payment_history"]['amounts'])
+
+        with self.assertRaises(errors.ConflictError) as cm:
+            PaymentManager().pay_by_user(
+                user_id=self.user.id, app_id=self.app.id,
+                subject='test user pay', amounts=Decimal('66'),
+                executor='test',
+                remark='test',
+                order_id='123',
+                app_service_id=self.app_service1.id,
+                instance_id='',
+                coupon_ids=None,
+                only_coupon=False,
+                required_enough_balance=False
+            )
+            self.assertEqual(cm.exception.code, 'OrderIdExist')
+
+        PaymentManager().pay_by_user(
+            user_id=self.user.id, app_id=self.app.id,
+            subject='test user pay', amounts=Decimal('66'),
+            executor='test',
+            remark='test',
+            order_id='456',
+            app_service_id=self.app_service1.id,
+            instance_id='',
+            coupon_ids=None,
+            only_coupon=False,
+            required_enough_balance=False
+        )
+        base_url = reverse('api:admin-coupon-list-payment', kwargs={'id': coupon1_user.id})
+        response = self.client.get(f"{base_url}?{parse.urlencode(query={'page_size': 1})}")
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['count'], 2)
+        results = response.data['results']
+        self.assertEqual(len(results), 1)
+        self.assertEqual('-22.14', results[0]["amounts"])
+        self.assertEqual('-22.14', results[0]["payment_history"]['coupon_amount'])
+        self.assertEqual('-43.86', results[0]["payment_history"]['amounts'])
+
+        # ------- list vo coupon payment historys -------
+        PaymentManager().pay_by_vo(
+            vo_id=vo1.id, app_id=self.app.id,
+            subject='test user pay', amounts=Decimal('66.66'),
+            executor='test',
+            remark='test',
+            order_id='789',
+            app_service_id=self.app_service2.id,
+            instance_id='',
+            coupon_ids=None,
+            only_coupon=False,
+            required_enough_balance=False
+        )
+
+        # list vo coupon payment
+        base_url = reverse('api:admin-coupon-list-payment', kwargs={'id': coupon1_vo.id})
+        response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.user.set_federal_admin()
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['page_num'], 1)
+        results = response.data['results']
+        self.assertEqual(len(results), 1)
+        self.assertKeysIn([
+            "cash_coupon_id", "amounts", "before_payment", "after_payment", "creation_time",
+            "payment_history"], results[0]
+        )
+        self.assertKeysIn([
+            "id", "subject", "payment_method", "executor", "payer_id", "payer_name", "payer_type", "amounts",
+            "coupon_amount", "payment_time", "remark", "order_id", "app_id", "app_service_id",
+            'payable_amounts', 'creation_time', 'status', 'status_desc'
+        ], results[0]["payment_history"])
+        self.assertEqual('-66.66', results[0]["amounts"])
+        self.assertEqual('188.80', results[0]["before_payment"])
+        self.assertEqual('122.14', results[0]["after_payment"])
+        self.assertEqual('-66.66', results[0]["payment_history"]['coupon_amount'])
+        self.assertEqual('0.00', results[0]["payment_history"]['amounts'])
+
+        pay_history2 = PaymentManager().pay_by_vo(
+            vo_id=vo1.id, app_id=self.app.id,
+            subject='test user pay', amounts=Decimal('66'),
+            executor='test',
+            remark='test',
+            order_id='12356',
+            app_service_id=self.app_service2.id,
+            instance_id='',
+            coupon_ids=None,
+            only_coupon=False,
+            required_enough_balance=False
+        )
+        base_url = reverse('api:admin-coupon-list-payment', kwargs={'id': coupon1_vo.id})
+        response = self.client.get(f"{base_url}?{parse.urlencode(query={'page_size': 1})}")
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(response.data['page_num'], 1)
+        results = response.data['results']
+        self.assertEqual(len(results), 1)
+        self.assertEqual('-66.00', results[0]["amounts"])
+        self.assertEqual('-66.00', results[0]["payment_history"]['coupon_amount'])
+        self.assertEqual('0.00', results[0]["payment_history"]['amounts'])
+        self.assertEqual(results[0]["payment_history"]['status'], PaymentHistory.Status.SUCCESS.value)
+
+        # 交易流水
+        tbills = TransactionBill.objects.filter(
+            trade_type=TransactionBill.TradeType.PAYMENT.value, trade_id=pay_history2.id).all()
+        tbill: TransactionBill = tbills[0]
+        vo1.vopointaccount.refresh_from_db()
+        self.assertEqual(tbill.account, '')     # 全部代金券支付时为空
+        self.assertEqual(tbill.coupon_amount, Decimal('-66'))
+        self.assertEqual(tbill.amounts, Decimal('0.00'))
+        self.assertEqual(tbill.after_balance, vo1.vopointaccount.balance)
+        self.assertEqual(tbill.owner_type, OwnerType.VO.value)
+        self.assertEqual(tbill.owner_id, vo1.id)
+        self.assertEqual(tbill.owner_name, vo1.name)
+        self.assertEqual(tbill.app_service_id, self.app_service2.id)
+        self.assertEqual(tbill.app_id, pay_history2.app_id)
+        self.assertEqual(tbill.trade_type, TransactionBill.TradeType.PAYMENT.value)
+        self.assertEqual(tbill.trade_id, pay_history2.id)
