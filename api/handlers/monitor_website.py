@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from core import errors
 from monitor.managers import MonitorWebsiteManager, WebsiteQueryChoices
-from monitor.models import MonitorWebsiteTask, MonitorWebsiteVersionProvider
+from monitor.models import MonitorWebsiteTask, MonitorWebsiteVersionProvider, MonitorWebsite
 from api.viewsets import CustomGenericViewSet
 from .handlers import serializer_error_msg
 
@@ -18,6 +18,12 @@ class MonitorWebsiteHandler:
         """
         try:
             params = MonitorWebsiteHandler._create_website_validate_params(view=view, request=request)
+            user = request.user
+            if not user.is_federal_admin():
+                count = MonitorWebsite.objects.filter(user_id=user.id).count()
+                if count >= 2:
+                    raise errors.ConflictError(message=_('已达到允许创建监控任务数量上限。'), code='TooManyTask')
+
             task = MonitorWebsiteManager.add_website_task(
                 name=params['name'],
                 url=params['url'],
