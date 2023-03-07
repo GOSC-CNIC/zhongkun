@@ -38,7 +38,7 @@ class BothHttpAndHttpsSchemaGenerator(OpenAPISchemaGenerator):
 
 schema_view = get_schema_view(
     openapi.Info(
-        title="VMS API",
+        title="一体化云服务 API",
         default_version='v1',
     ),
     url=getattr(settings, 'SWAGGER_SCHEMA_URL', None),

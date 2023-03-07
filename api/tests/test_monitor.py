@@ -1138,6 +1138,7 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
         # ok
         self.query_ok_test(website_id=website.id, query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value)
         self.query_ok_test(website_id=website.id, query_tag=WebsiteQueryChoices.DURATION_SECONDS.value)
+        self.query_ok_test(website_id=website.id, query_tag=WebsiteQueryChoices.HTTP_DURATION_SECONDS.value, list_len=5)
 
         # NotFound
         self.client.logout()
@@ -1150,10 +1151,11 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
         query = parse.urlencode(query={'query': query_tag})
         return self.client.get(f'{url}?{query}')
 
-    def query_ok_test(self, website_id: str, query_tag: str):
+    def query_ok_test(self, website_id: str, query_tag: str, list_len=1):
         response = self.query_response(website_id=website_id, query_tag=query_tag)
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.data, list)
+        self.assertEqual(len(response.data), list_len)
         data_item = response.data[0]
         self.assertKeysIn(["values", "metric"], data_item)
         self.assertEqual(self.website.url, data_item['metric']['url'])
@@ -1262,6 +1264,10 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
             website_id=website.id, query_tag=WebsiteQueryChoices.DURATION_SECONDS.value,
             start=start, end=end, step=step
         )
+        self.query_range_ok_test(
+            website_id=website.id, query_tag=WebsiteQueryChoices.HTTP_DURATION_SECONDS.value,
+            start=start, end=end, step=step, list_len=5
+        )
 
         # NotFound
         self.client.logout()
@@ -1292,12 +1298,13 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
         query = parse.urlencode(query=querys)
         return self.client.get(f'{url}?{query}')
 
-    def query_range_ok_test(self, website_id: str, query_tag: str, start: int, end: int, step: int):
+    def query_range_ok_test(self, website_id: str, query_tag: str, start: int, end: int, step: int, list_len=1):
         values_len = (end - start) // step + 1
         response = self.query_range_response(
             website_id=website_id, query_tag=query_tag, start=start, end=end, step=step)
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.data, list)
+        self.assertEqual(len(response.data), list_len)
         data_item = response.data[0]
         self.assertKeysIn(["values", "metric"], data_item)
         self.assertEqual(self.website.url, data_item['metric']['url'])
