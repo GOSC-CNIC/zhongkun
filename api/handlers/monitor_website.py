@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from core import errors
 from monitor.managers import MonitorWebsiteManager, WebsiteQueryChoices
-from monitor.models import MonitorWebsiteTask, MonitorWebsiteVersionProvider, MonitorWebsite
+from monitor.models import MonitorWebsiteTask, MonitorWebsiteVersionProvider, MonitorWebsite, WebsiteDetectionPoint
 from api.viewsets import CustomGenericViewSet
 from .handlers import serializer_error_msg
 
@@ -228,3 +228,30 @@ class MonitorWebsiteHandler:
             raise errors.BadRequest(message=_('超过了每个时间序列10000点的最大分辨率。尝试降低查询分辨率（？step=XX）'))
 
         return query, start, end, step
+
+    @staticmethod
+    def list_website_detection_point(view: CustomGenericViewSet, request):
+        """
+        列举站点监控探测点
+        """
+        enable = request.query_params.get('enable', None)
+        if isinstance(enable, str):
+            enable = enable.lower()
+            if enable == 'true':
+                enable = True
+            elif enable == 'false':
+                enable = False
+            else:
+                return view.exception_response(errors.InvalidArgument('参数“enable”的值无效。'))
+
+        queryset = WebsiteDetectionPoint.objects.all()
+        if enable is not None:
+            queryset = WebsiteDetectionPoint.objects.filter(enable=enable)
+
+        try:
+            points = view.paginate_queryset(queryset=queryset)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        data = view.get_serializer(instance=points, many=True).data
+        return view.get_paginated_response(data=data)

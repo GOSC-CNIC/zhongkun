@@ -656,11 +656,59 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
         """
         return MonitorWebsiteHandler().query_range_monitor_data(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举站点监控探测点'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='enable',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_BOOLEAN,
+                required=False,
+                description=gettext_lazy('筛选条件，true(启用状态的)，false(未启用的)')
+            )
+        ],
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['get'], detail=False, url_path='detection-point', url_name='detection-point')
+    def list_detection_point(self, request, *args, **kwargs):
+        """
+        列举站点监控探测点
+
+            Http Code: 状态码200，返回数据：
+            {
+              "count": 1,
+              "page_num": 1,
+              "page_size": 100,
+              "results": [
+                {
+                  "id": "e21c643a-bd83-11ed-87e9-c8009fe2ebbc",
+                  "name": "test",
+                  "name_en": "test en",
+                  "creation": "2023-03-08T07:34:00Z",
+                  "modification": "2023-03-08T07:34:00Z",
+                  "remark": "备注信息",
+                  "enable": true
+                }
+              ]
+            }
+
+            http code 400, 403, 404, 409：
+            {
+              "code": "Conflict",
+              "message": "未配置监控数据查询服务信息"
+            }
+        """
+        return MonitorWebsiteHandler().list_website_detection_point(view=self, request=request)
+
     def get_serializer_class(self):
         if self.action in ['create', 'update']:
             return monitor_serializers.MonitorWebsiteSerializer
         elif self.action == 'list':
             return monitor_serializers.MonitorWebsiteWithUserSerializer
+        elif self.action == 'list_detection_point':
+            return monitor_serializers.MonitorWebsiteDetectionPointSerializer
 
         return Serializer
 

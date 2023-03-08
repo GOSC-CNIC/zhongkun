@@ -82,3 +82,13 @@ class MonitorWebsiteTaskSerializer(serializers.Serializer):
     url = serializers.URLField(label=_('要监控的网址'), max_length=2048, required=True, help_text='http(s)://xxx.xxx')
     url_hash = serializers.CharField(label=_('网址hash值'), max_length=64, read_only=True)
     creation = serializers.DateTimeField(label=_('创建时间'), read_only=True)
+
+
+class MonitorWebsiteDetectionPointSerializer(serializers.Serializer):
+    id = serializers.CharField(label=_('ID'), read_only=True)
+    name = serializers.CharField(label=_('监控探测点名称'), max_length=128)
+    name_en = serializers.CharField(label=_('监控探测点英文名称'), max_length=128)
+    creation = serializers.DateTimeField(label=_('创建时间'))
+    modification = serializers.DateTimeField(label=_('修改时间'))
+    remark = serializers.CharField(label=_('备注'), max_length=255)
+    enable = serializers.BooleanField(label=_('使用启用'))

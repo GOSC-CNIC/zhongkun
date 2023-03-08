@@ -16,31 +16,6 @@ def get_str_hash(s: str):
     return hashlib.sha1(s.encode(encoding='utf-8')).hexdigest()
 
 
-# class MonitorOrganization(UuidModel):
-#     name = models.CharField(verbose_name=_('监控机构名称'), max_length=255, default='')
-#     name_en = models.CharField(verbose_name=_('监控机构英文名称'), max_length=255, default='')
-#     abbreviation = models.CharField(verbose_name=_('简称'), max_length=64, default='')
-#     country = models.CharField(verbose_name=_('国家/地区'), max_length=128, default='')
-#     city = models.CharField(verbose_name=_('城市'), max_length=128, default='')
-#     postal_code = models.CharField(verbose_name=_('邮政编码'), max_length=32, default='')
-#     address = models.CharField(verbose_name=_('单位地址'), max_length=256, default='')
-#     longitude = models.FloatField(verbose_name=_('经度'), blank=True, default=0)
-#     latitude = models.FloatField(verbose_name=_('纬度'), blank=True, default=0)
-#     sort_weight = models.IntegerField(verbose_name=_('排序权重'), default=0, help_text=_('值越大排序越靠前'))
-#     creation = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
-#     modification = models.DateTimeField(verbose_name=_('修改时间'))
-#     remark = models.TextField(verbose_name=_('备注'), blank=True, default='')
-#
-#     class Meta:
-#         db_table = 'monitor_organization'
-#         ordering = ['-sort_weight']
-#         verbose_name = _('监控机构')
-#         verbose_name_plural = verbose_name
-#
-#     def __str__(self):
-#         return self.name
-
-
 class MonitorProvider(UuidModel):
     name = models.CharField(verbose_name=_('监控服务名称'), max_length=255, default='')
     name_en = models.CharField(verbose_name=_('监控服务英文名称'), max_length=255, default='')
@@ -301,3 +276,24 @@ class MonitorWebsiteVersionProvider(models.Model):
         self.version += 1
         self.modification = timezone.now()
         self.save(update_fields=['version', 'modification'])
+
+
+class WebsiteDetectionPoint(UuidModel):
+    name = models.CharField(verbose_name=_('监控探测点名称'), max_length=128, default='')
+    name_en = models.CharField(verbose_name=_('监控探测点英文名称'), max_length=128, default='')
+    creation = models.DateTimeField(verbose_name=_('创建时间'))
+    modification = models.DateTimeField(verbose_name=_('修改时间'))
+    provider = models.ForeignKey(
+        to=MonitorProvider, verbose_name=_('监控查询服务配置信息'), on_delete=models.SET_NULL,
+        related_name='+', db_constraint=False, null=True, default=None)
+    remark = models.CharField(verbose_name=_('备注'), max_length=255, blank=True, default='')
+    enable = models.BooleanField(verbose_name=_('是否启用'), default=True)
+
+    class Meta:
+        db_table = 'website_detection_point'
+        ordering = ['-creation']
+        verbose_name = _('网站监控探测点')
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return self.name

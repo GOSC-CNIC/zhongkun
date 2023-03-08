@@ -8,7 +8,7 @@ from utils.model import NoDeleteSelectModelAdmin
 from .models import (
     MonitorJobCeph, MonitorProvider, MonitorJobServer, MonitorJobVideoMeeting,
     MonitorWebsite, MonitorWebsiteTask, MonitorWebsiteVersionProvider,
-    get_str_hash
+    get_str_hash, WebsiteDetectionPoint
 )
 from .managers import MonitorWebsiteManager
 
@@ -117,3 +117,11 @@ class MonitorWebsiteVersionProviderAdmin(NoDeleteSelectModelAdmin):
             vers.modification = timezone.now()
             vers.provider_id = obj.provider_id
             vers.save(force_update=True)
+
+
+@admin.register(WebsiteDetectionPoint)
+class WebsiteDetectionPointAdmin(NoDeleteSelectModelAdmin):
+    list_display = ('id', 'name', 'name_en', 'provider', 'enable', 'creation', 'modification')
+    list_display_links = ('id', )
+    list_select_related = ('provider',)
+    list_filter = ('enable',)

@@ -11,7 +11,7 @@ from monitor.tests import (
     get_or_create_monitor_provider
 )
 from monitor.models import (
-    MonitorJobCeph, MonitorProvider, MonitorJobServer,
+    MonitorJobCeph, MonitorProvider, MonitorJobServer, WebsiteDetectionPoint,
     MonitorWebsite, MonitorWebsiteTask, MonitorWebsiteVersionProvider, get_str_hash
 )
 from monitor.managers import (
@@ -1092,6 +1092,91 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(tasks[0].url, new_website_url2)
         self.assertEqual(tasks[1].url, new_website_url1)
         self.assertEqual(tasks[2].url, website_url2)
+
+    def test_list_website_detection_point(self):
+        # NotAuthenticated
+        base_url = reverse('api:monitor-website-detection-point')
+        r = self.client.get(path=base_url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+
+        # ok, no data
+        self.client.force_login(self.user)
+        r = self.client.get(path=base_url)
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=['count', 'page_num', 'page_size', 'results'], container=r.data)
+        self.assertEqual(r.data['count'], 0)
+        self.assertEqual(r.data['page_num'], 1)
+        self.assertIsInstance(r.data['results'], list)
+        self.assertEqual(len(r.data['results']), 0)
+
+        # add data
+        nt = timezone.now()
+        detection_point1 = WebsiteDetectionPoint(
+            name='name1', name_en='name en1', creation=nt, modification=nt, remark='remark1', enable=True
+        )
+        detection_point1.save(force_insert=True)
+
+        nt = timezone.now()
+        detection_point2 = WebsiteDetectionPoint(
+            name='name2', name_en='name en2', creation=nt, modification=nt, remark='remark2', enable=False
+        )
+        detection_point2.save(force_insert=True)
+
+        # ok, list
+        r = self.client.get(path=base_url)
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=['count', 'page_num', 'page_size', 'results'], container=r.data)
+        self.assertEqual(r.data['count'], 2)
+        self.assertEqual(r.data['page_num'], 1)
+        self.assertIsInstance(r.data['results'], list)
+        self.assertEqual(len(r.data['results']), 2)
+
+        # ok, list, page_size
+        query = parse.urlencode(query={'page_size': 1})
+        r = self.client.get(path=f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=['count', 'page_num', 'page_size', 'results'], container=r.data)
+        self.assertEqual(r.data['count'], 2)
+        self.assertEqual(r.data['page_num'], 1)
+        self.assertEqual(r.data['page_size'], 1)
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertEqual(r.data['results'][0]['id'], detection_point2.id)
+
+        # ok, list, page, page_size
+        query = parse.urlencode(query={'page': 2, 'page_size': 1})
+        r = self.client.get(path=f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=['count', 'page_num', 'page_size', 'results'], container=r.data)
+        self.assertEqual(r.data['count'], 2)
+        self.assertEqual(r.data['page_num'], 2)
+        self.assertEqual(r.data['page_size'], 1)
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertEqual(r.data['results'][0]['id'], detection_point1.id)
+
+        # query "enable" true
+        query = parse.urlencode(query={'enable': True})
+        r = self.client.get(path=f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=['count', 'page_num', 'page_size', 'results'], container=r.data)
+        self.assertEqual(r.data['count'], 1)
+        self.assertEqual(r.data['page_num'], 1)
+        self.assertEqual(r.data['page_size'], 100)
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertEqual(r.data['results'][0]['id'], detection_point1.id)
+        self.assertKeysIn(keys=[
+            'id', 'name', 'name_en', 'remark', 'modification', 'creation', 'enable'
+        ], container=r.data['results'][0])
+
+        # query "enable" false
+        query = parse.urlencode(query={'enable': False})
+        r = self.client.get(path=f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=['count', 'page_num', 'page_size', 'results'], container=r.data)
+        self.assertEqual(r.data['count'], 1)
+        self.assertEqual(r.data['page_num'], 1)
+        self.assertEqual(r.data['page_size'], 100)
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertEqual(r.data['results'][0]['id'], detection_point2.id)
 
 
 class MonitorWebsiteQueryTests(MyAPITestCase):
