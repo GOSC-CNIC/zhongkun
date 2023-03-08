@@ -148,3 +148,36 @@ class AppTransactionBillSerializer(serializers.Serializer):
     remark = serializers.CharField(label=_('备注信息'), max_length=255)
     app_service_id = serializers.CharField(label=_('APP服务ID'), max_length=36)
     app_id = serializers.CharField(label=_('应用ID'), max_length=36)
+
+
+class RechargeManualSerializer(serializers.Serializer):
+    amount = serializers.DecimalField(label=_('充值总金额'), max_digits=10, decimal_places=2, required=True)
+    username = serializers.CharField(
+        label=_('充值用户'), max_length=128, required=False, allow_null=True, default=None,
+        help_text='向那个用户余额账户充值')
+    vo_id = serializers.CharField(
+        label=_('充值VO组ID'), max_length=36, required=False, allow_null=True, default=None,
+        help_text='向那个vo组余额账户充值')
+    remark = serializers.CharField(label=_('备注信息'), max_length=256, allow_blank=True, default='')
+
+
+class RechargeSerializer(serializers.Serializer):
+    id = serializers.CharField(label=_('充值记录编号'), max_length=36)
+    trade_channel = serializers.CharField(label=_('交易渠道'), max_length=16)
+    out_trade_no = serializers.CharField(label=_('外部交易编号'), max_length=64)
+    channel_account = serializers.CharField(label=_('交易渠道账户编号'), max_length=64)
+    channel_fee = serializers.DecimalField(label=_('交易渠道费用'), max_digits=10, decimal_places=2)
+    total_amount = serializers.DecimalField(label=_('充值总金额'), max_digits=10, decimal_places=2)
+    receipt_amount = serializers.DecimalField(
+        label=_('实收金额'), max_digits=10, decimal_places=2, help_text=_('交易渠道中我方账户实际收到的款项'))
+    creation_time = serializers.DateTimeField(label=_('创建时间'))
+    success_time = serializers.DateTimeField(label=_('充值成功时间'))
+    status = serializers.CharField(label=_('充值状态'), max_length=16)
+    status_desc = serializers.CharField(label=_('充值状态描述'), max_length=255)
+    in_account = serializers.CharField(
+        label=_('入账账户'), max_length=36, help_text=_('用户或VO余额ID, 及可能支持的其他账户'))
+    owner_id = serializers.CharField(label=_('所属人ID'), max_length=36, help_text='user id or vo id')
+    owner_name = serializers.CharField(label=_('所属人名称'), max_length=255, help_text='username or vo name')
+    owner_type = serializers.CharField(label=_('所属人类型'), max_length=8)
+    remark = serializers.CharField(label=_('备注信息'), max_length=256)
+    executor = serializers.CharField(label=_('交易执行人'), max_length=128, help_text=_('记录此次支付交易是谁执行完成的'))

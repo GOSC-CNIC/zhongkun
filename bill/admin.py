@@ -5,7 +5,7 @@ from django import forms
 from utils.model import NoDeleteSelectModelAdmin
 from .models import (
     PaymentHistory, UserPointAccount, VoPointAccount, PayApp, CashCouponActivity, CashCoupon,
-    PayOrgnazition, PayAppService, TransactionBill, RefundRecord
+    PayOrgnazition, PayAppService, TransactionBill, RefundRecord, Recharge
 )
 from .managers import CashCouponActivityManager
 
@@ -194,6 +194,25 @@ class RefundRecordAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
     list_filter = ('status', 'owner_type')
     search_fields = ('id', 'owner_id', 'owner_name', 'out_order_id', 'out_refund_id', 'trade_id')
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(Recharge)
+class RechargeAdmin(admin.ModelAdmin):
+    list_display = ('id', 'total_amount', 'receipt_amount', 'creation_time', 'status',
+                    'trade_channel', 'out_trade_no', 'channel_account',
+                    'channel_fee', 'owner_type', 'owner_id', 'owner_name', 'executor', 'in_account')
+    list_display_links = ('id',)
+    list_filter = ('status', 'owner_type', 'trade_channel')
+    search_fields = ('id', 'owner_id', 'owner_name', 'out_trade_no')
 
     def has_delete_permission(self, request, obj=None):
         return False

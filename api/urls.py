@@ -8,7 +8,7 @@ from .apiviews import (
     metering_views, bill_views, account_views, cash_coupon_views,
     trade_test_views, trade_views, bucket_views, storage_views,
     ticket_views, storage_metering_views, user_views, app_service_views,
-    tradebill_views
+    tradebill_views, recharge_views
 )
 
 app_name = 'api'
@@ -67,6 +67,7 @@ no_slash_router.register(r'trade/rsakey', app_service_views.AppRSAKeyViewSet, ba
 no_slash_router.register(r'trade/refund', trade_views.TradeRefundViewSet, basename='trade-refund')
 no_slash_router.register(r'trade/bill/transaction', tradebill_views.AppTradeBillViewSet, basename='app-tradebill')
 no_slash_router.register(r'trade/tradebill', tradebill_views.TradeBillViewSet, basename='tradebill')
+no_slash_router.register(r'trade/recharge', recharge_views.RechargeViewSet, basename='trade-recharge')
 
 no_slash_router.register(r'storage/bucket', bucket_views.BucketViewSet, basename='bucket')
 no_slash_router.register(r'storage/service', storage_views.ObjectsServiceViewSet, basename='storage-service')

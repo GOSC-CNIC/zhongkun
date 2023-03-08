@@ -576,3 +576,59 @@ class RefundRecord(CustomIdModel):
         self.status_desc = '退款成功'
         self.in_account = in_account
         self.save(update_fields=['status', 'success_time', 'status_desc', 'in_account'])
+
+
+class Recharge(CustomIdModel):
+    """充值记录"""
+
+    class Status(models.TextChoices):
+        WAIT = 'wait', _('待充值')     # 待支付（支付宝或微信）
+        SUCCESS = 'success', _('支付成功')  # 支付宝或微信支付成功
+        ERROR = 'error', _('支付失败')  # 支付宝或微信支付失败
+        CLOSED = 'closed', _('交易关闭')    # 关闭了本次充值
+        COMPLETE = 'complete', _('充值完成')    # 成功充值到用户余额账户
+
+    class TradeChannel(models.TextChoices):
+        MANUAL = 'manual', _('人工充值')
+        WECHAT = 'wechat', _('微信支付')
+        ALIPAY = 'alipay', _('支付宝')
+
+    trade_channel = models.CharField(
+        verbose_name=_('交易渠道'), max_length=16, choices=TradeChannel.choices, default=TradeChannel.MANUAL.value)
+    out_trade_no = models.CharField(verbose_name=_('外部交易编号'), max_length=64, blank=True, default='')
+    channel_account = models.CharField(verbose_name=_('交易渠道账户编号'), max_length=64, blank=True, default='')
+    channel_fee = models.DecimalField(verbose_name=_('交易渠道费用'), max_digits=10, decimal_places=2)
+    total_amount = models.DecimalField(verbose_name=_('充值总金额'), max_digits=10, decimal_places=2)
+    receipt_amount = models.DecimalField(
+        verbose_name=_('实收金额'), max_digits=10, decimal_places=2, help_text=_('交易渠道中我方账户实际收到的款项'))
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'))
+    success_time = models.DateTimeField(verbose_name=_('充值成功时间'), null=True, default=None)
+    status = models.CharField(
+        verbose_name=_('充值状态'), max_length=16, choices=Status.choices, default=Status.WAIT.value)
+    status_desc = models.CharField(verbose_name=_('充值状态描述'), max_length=255, default='')
+    in_account = models.CharField(
+        verbose_name=_('入账账户'), max_length=36, blank=True, default='',
+        help_text=_('用户或VO余额ID, 及可能支持的其他账户'))
+    owner_id = models.CharField(verbose_name=_('所属人ID'), max_length=36, blank=True, default='',
+                                help_text='user id or vo id')
+    owner_name = models.CharField(verbose_name=_('所属人名称'), max_length=255, blank=True, default='',
+                                  help_text='username or vo name')
+    owner_type = models.CharField(verbose_name=_('所属人类型'), max_length=8, choices=OwnerType.choices)
+    remark = models.CharField(verbose_name=_('备注信息'), max_length=256, default='')
+    executor = models.CharField(
+        verbose_name=_('交易执行人'), max_length=128, blank=True, default='', help_text=_('记录此次支付交易是谁执行完成的'))
+
+    class Meta:
+        verbose_name = _('充值记录')
+        verbose_name_plural = verbose_name
+        db_table = 'wallet_recharge'
+        ordering = ['-creation_time']
+        indexes = [
+            models.Index(fields=['owner_id'], name='idx_recharge_owner_id'),
+        ]
+
+    def __repr__(self):
+        return f'Recharge[{self.id}]<{self.get_status_display()}, {self.total_amount}>'
+
+    def generate_id(self):
+        return rand_utils.timestamp20_rand4_sn()

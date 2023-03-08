@@ -19,7 +19,7 @@ from bill.managers.payment import PaymentManager, TransactionBillManager
 from utils.test import get_or_create_user
 from utils.model import OwnerType
 from vo.models import VirtualOrganization
-from . import MyAPITestCase
+from . import MyAPITestCase, MyAPITransactionTestCase
 
 
 def response_sign_assert(test_case, r, wallet_public_key: str):
@@ -114,7 +114,7 @@ class TradeTestTests(MyAPITestCase):
         self.assertEqual(r.data, body)
 
 
-class TradeTests(MyAPITestCase):
+class TradeTests(MyAPITransactionTestCase):
     def setUp(self):
         user_rsa = rsa.generate_private_key(public_exponent=65537, key_size=2048)
         bytes_private_key = user_rsa.private_bytes(
@@ -546,7 +546,7 @@ class TradeSignKeyTests(MyAPITestCase):
         self.assertKeysIn(keys=['public_key'], container=r.data)
 
 
-class RefundRecordTests(MyAPITestCase):
+class RefundRecordTests(MyAPITransactionTestCase):
     def setUp(self):
         user_rsa = rsa.generate_private_key(public_exponent=65537, key_size=2048)
         bytes_private_key = user_rsa.private_bytes(
