@@ -542,6 +542,13 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
                 type=openapi.TYPE_STRING,
                 required=True,
                 description=f'{WebsiteQueryChoices.choices}'
+            ),
+            openapi.Parameter(
+                name='detection_point_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description=_('探测点ID，指定从那个探测点查询数据')
             )
         ],
         paginator_inspectors=[NoPaginatorInspector],
@@ -555,7 +562,7 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
         查询站点的监控数据
 
             Http Code: 状态码200，返回数据：
-            [                           # 数组可能为空
+            [                           # 数组可能为空, 可能有多个数据项， 比如查询参数 query = http_duration_seconds
                 {
                   "metric": {
                     "__name__": "probe_duration_seconds",
@@ -580,6 +587,18 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
               "code": "Conflict",
               "message": "未配置监控数据查询服务信息"
             }
+
+            错误码：
+            400：
+                BadRequest：请求有误，比如缺少参数
+                InvalidArgument： 参数值无效
+            403：
+                AccessDenied：无权限访问此站点监控任务
+            404：
+                NotFound：站点监控任务不存在
+                NoSuchDetectionPoint: 指定的探测点不存在
+            409：
+                Conflict：网站监控探测点暂未启用；/ 探测点未配置监控数据查询服务信息
         """
         return MonitorWebsiteHandler().query_monitor_data(view=self, request=request, kwargs=kwargs)
 
@@ -613,6 +632,13 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
                 type=openapi.TYPE_INTEGER,
                 required=False,
                 description=_('查询步长, 默认为300, 单位为秒')
+            ),
+            openapi.Parameter(
+                name='detection_point_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description=_('探测点ID，指定从那个探测点查询数据')
             )
         ],
         paginator_inspectors=[NoPaginatorInspector],
@@ -628,7 +654,7 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
             * 数据量 = ( end - start ) / step ， 最大数据量10000，超出会报错，情根据参数“end”和“start”合理选择参数“step”的值
 
             Http Code: 状态码200，返回数据：
-            [
+            [                                   # 数组可能为空, 可能有多个数据项， 比如查询参数 query = http_duration_seconds
               {
                 "metric": {
                   "__name__": "probe_duration_seconds",
@@ -653,6 +679,18 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
               "code": "Conflict",
               "message": "未配置监控数据查询服务信息"
             }
+
+            错误码：
+            400：
+                BadRequest：请求有误，比如缺少参数
+                InvalidArgument： 参数值无效
+            403：
+                AccessDenied：无权限访问此站点监控任务
+            404：
+                NotFound：站点监控任务不存在
+                NoSuchDetectionPoint: 指定的探测点不存在
+            409：
+                Conflict：网站监控探测点暂未启用；/ 探测点未配置监控数据查询服务信息
         """
         return MonitorWebsiteHandler().query_range_monitor_data(view=self, request=request, kwargs=kwargs)
 

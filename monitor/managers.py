@@ -9,7 +9,8 @@ from api.serializers.monitor import (
 )
 from .models import (
     MonitorJobCeph, MonitorProvider, MonitorJobServer, MonitorJobVideoMeeting,
-    MonitorWebsite, MonitorWebsiteTask, MonitorWebsiteVersionProvider, get_str_hash
+    MonitorWebsite, MonitorWebsiteTask, MonitorWebsiteVersionProvider, get_str_hash,
+    WebsiteDetectionPoint
 )
 from .backends.monitor_ceph import MonitorCephQueryAPI
 from .backends.monitor_server import MonitorServerQueryAPI
@@ -332,6 +333,8 @@ class MonitorJobVideoMeetingManager:
 
 
 class MonitorWebsiteManager:
+    CACHE_KEY_DETECTION_POINT = 'monitor_website_detection_ponit_list'
+
     backend = MonitorWebsiteQueryAPI()
 
     @staticmethod
@@ -509,11 +512,45 @@ class MonitorWebsiteManager:
 
         return provider
 
-    def query(self, website: MonitorWebsite, tag: str):
+    @staticmethod
+    def get_detection_ponits() -> dict:
+        """
+        查询所有探测点
+        """
+        _key = MonitorWebsiteManager.CACHE_KEY_DETECTION_POINT
+        dict_dps = django_cache.get(_key)
+        if dict_dps is None:
+            queryset = WebsiteDetectionPoint.objects.select_related('provider').all()
+            dict_dps = {point.id: point for point in queryset}
+            django_cache.set(_key, dict_dps, 120)
+
+        return dict_dps
+
+    def get_detection_ponit(self, dp_id: str):
+        """
+        查询指定的探测点实例
+
+        :param dp_id: 探测点id; None or '' 时选择一个可用的
+        """
+        dict_dps = self.get_detection_ponits()
+        detection_ponit = dict_dps.get(dp_id)
+        if not detection_ponit:
+            raise errors.NotFound(message=_('网站监控探测点不存在。'), code='NoSuchDetectionPoint')
+
+        if not detection_ponit.enable:
+            raise errors.ConflictError(message=_('网站监控探测点暂未启用。'))
+
+        if not detection_ponit.provider:
+            raise errors.ConflictError(message=_('探测点未配置监控数据查询服务信息。'))
+
+        return detection_ponit
+
+    def query(self, website: MonitorWebsite, tag: str, dp_id: str):
         """
         :raises: Error
         """
-        provider = self.get_provider()
+        detection_point = self.get_detection_ponit(dp_id=dp_id)
+        provider = detection_point.provider
         return self.request_data(provider=provider, tag=tag, url=website.url)
 
     def request_data(self, provider: MonitorProvider, tag: str, url: str):
@@ -549,11 +586,12 @@ class MonitorWebsiteManager:
 
         return f(**params)
 
-    def query_range(self, website: MonitorWebsite, tag: str, start: int, end: int, step: int):
+    def query_range(self, website: MonitorWebsite, tag: str, start: int, end: int, step: int, dp_id: str):
         """
         :raises: Error
         """
-        provider = self.get_provider()
+        detection_point = self.get_detection_ponit(dp_id=dp_id)
+        provider = detection_point.provider
         return self.request_range_data(provider=provider, tag=tag, url=website.url, start=start, end=end, step=step)
 
     def request_range_data(self, provider: MonitorProvider, tag: str, url: str, start: int, end: int, step: int):

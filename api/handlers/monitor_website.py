@@ -134,6 +134,11 @@ class MonitorWebsiteHandler:
         """
         website_id = kwargs.get(view.lookup_field)
         query = request.query_params.get('query', None)
+        detection_point_id = request.query_params.get('detection_point_id', None)
+
+        if not detection_point_id:
+            return view.exception_response(
+                errors.BadRequest(message=_('必须指定探测点，参数“detection_ponit_id”是必须的')))
 
         if query is None:
             return view.exception_response(errors.BadRequest(message=_('参数"query"是必须提交的')))
@@ -148,7 +153,7 @@ class MonitorWebsiteHandler:
             return view.exception_response(exc)
 
         try:
-            data = mgr.query(website=website, tag=query)
+            data = mgr.query(website=website, tag=query, dp_id=detection_point_id)
         except errors.Error as exc:
             return view.exception_response(exc)
 
@@ -163,13 +168,14 @@ class MonitorWebsiteHandler:
 
         mgr = MonitorWebsiteManager()
         try:
-            query, start, end, step = MonitorWebsiteHandler.validate_query_range_params(request)
+            query, start, end, step, detection_point_id = MonitorWebsiteHandler.validate_query_range_params(request)
             website = mgr.get_user_website(website_id=website_id, user=request.user)
         except errors.Error as exc:
             return view.exception_response(exc)
 
         try:
-            data = mgr.query_range(website=website, tag=query, start=start, end=end, step=step)
+            data = mgr.query_range(
+                website=website, tag=query, start=start, end=end, step=step, dp_id=detection_point_id)
         except errors.Error as exc:
             return view.exception_response(exc)
         
@@ -187,6 +193,10 @@ class MonitorWebsiteHandler:
         start = request.query_params.get('start', None)
         end = request.query_params.get('end', int(time.time()))
         step = request.query_params.get('step', 300)
+        detection_point_id = request.query_params.get('detection_point_id', None)
+
+        if not detection_point_id:
+            raise errors.BadRequest(message=_('必须指定探测点，参数“detection_ponit_id”是必须的'))
 
         if query is None:
             raise errors.BadRequest(message=_('参数"query"是必须提交的'))
@@ -227,7 +237,7 @@ class MonitorWebsiteHandler:
         if resolution > 10000:
             raise errors.BadRequest(message=_('超过了每个时间序列10000点的最大分辨率。尝试降低查询分辨率（？step=XX）'))
 
-        return query, start, end, step
+        return query, start, end, step, detection_point_id
 
     @staticmethod
     def list_website_detection_point(view: CustomGenericViewSet, request):

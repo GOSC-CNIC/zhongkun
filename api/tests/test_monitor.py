@@ -15,7 +15,8 @@ from monitor.models import (
     MonitorWebsite, MonitorWebsiteTask, MonitorWebsiteVersionProvider, get_str_hash
 )
 from monitor.managers import (
-    CephQueryChoices, ServerQueryChoices, VideoMeetingQueryChoices, WebsiteQueryChoices
+    CephQueryChoices, ServerQueryChoices, VideoMeetingQueryChoices, WebsiteQueryChoices,
+    MonitorWebsiteManager
 )
 from utils.test import get_or_create_user, get_test_case_settings
 from . import set_auth_header, MyAPITestCase
@@ -1194,50 +1195,95 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
 
     def test_query(self):
         website = self.website
+
+        nt = timezone.now()
+        detection_point1 = WebsiteDetectionPoint(
+            name='name1', name_en='name en1', creation=nt, modification=nt, remark='remark1', enable=True
+        )
+        detection_point1.save(force_insert=True)
+
+        nt = timezone.now()
+        detection_point2 = WebsiteDetectionPoint(
+            name='name2', name_en='name en1', creation=nt, modification=nt,
+            remark='remark1', enable=False, provider=self.provider
+        )
+        detection_point2.save(force_insert=True)
+
         # NotAuthenticated
-        r = self.query_response(website_id=website.id, query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value)
+        r = self.query_response(
+            website_id=website.id, detection_point_id='',
+            query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
 
         self.client.force_login(self.user)
 
         # InvalidArgument
-        r = self.query_response(website_id=website.id, query_tag='InvalidArgument')
+        r = self.query_response(
+            website_id=website.id, detection_point_id='detection_point_id',
+            query_tag='InvalidArgument')
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
 
-        # 清除 可能的 provider 缓存
-        django_cache.delete('monitor_website_provider')
+        # 清除 可能的 探测点 缓存
+        django_cache.delete(MonitorWebsiteManager.CACHE_KEY_DETECTION_POINT)
 
         # Conflict, not set provider
-        r = self.query_response(website_id=website.id, query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value)
+        r = self.query_response(
+            website_id=website.id, detection_point_id=detection_point1.id,
+            query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value)
         self.assertErrorResponse(status_code=409, code='Conflict', response=r)
 
+        # set provider
+        detection_point1.provider_id = self.provider.id
+        detection_point1.save(update_fields=['provider_id'])
+
+        # 清除 可能的 探测点 缓存
+        django_cache.delete(MonitorWebsiteManager.CACHE_KEY_DETECTION_POINT)
+
         # NotFound
-        r = self.query_response(website_id='websiteid', query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value)
+        r = self.query_response(
+            website_id='websiteid', detection_point_id=detection_point1.id,
+            query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value)
         self.assertErrorResponse(status_code=404, code='NotFound', response=r)
 
-        # set provider
-        ins = MonitorWebsiteVersionProvider.get_instance()
-        ins.provider_id = self.provider.id
-        ins.save(update_fields=['provider_id'])
+        # NoSuchDetectionPoint
+        r = self.query_response(
+            website_id=website.id, detection_point_id='detection_point1.id',
+            query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value)
+        self.assertErrorResponse(status_code=404, code='NoSuchDetectionPoint', response=r)
+
+        # Conflict, detection_point2 not enable
+        r = self.query_response(
+            website_id=website.id, detection_point_id=detection_point2.id,
+            query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value)
+        self.assertErrorResponse(status_code=409, code='Conflict', response=r)
 
         # ok
-        self.query_ok_test(website_id=website.id, query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value)
-        self.query_ok_test(website_id=website.id, query_tag=WebsiteQueryChoices.DURATION_SECONDS.value)
-        self.query_ok_test(website_id=website.id, query_tag=WebsiteQueryChoices.HTTP_DURATION_SECONDS.value, list_len=5)
+        self.query_ok_test(
+            website_id=website.id, detection_point_id=detection_point1.id,
+            query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value)
+        self.query_ok_test(
+            website_id=website.id, detection_point_id=detection_point1.id,
+            query_tag=WebsiteQueryChoices.DURATION_SECONDS.value)
+        self.query_ok_test(
+            website_id=website.id, detection_point_id=detection_point1.id,
+            query_tag=WebsiteQueryChoices.HTTP_DURATION_SECONDS.value, list_len=5)
 
         # NotFound
         self.client.logout()
         self.client.force_login(self.user2)
-        r = self.query_response(website_id=website.id, query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value)
+        r = self.query_response(
+            website_id=website.id, query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value,
+            detection_point_id=detection_point1.id)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
 
-    def query_response(self, website_id: str, query_tag: str):
+    def query_response(self, website_id: str, query_tag: str, detection_point_id: str):
         url = reverse('api:monitor-website-data-query', kwargs={'id': website_id})
-        query = parse.urlencode(query={'query': query_tag})
+        query = parse.urlencode(query={'query': query_tag, 'detection_point_id': detection_point_id})
         return self.client.get(f'{url}?{query}')
 
-    def query_ok_test(self, website_id: str, query_tag: str, list_len=1):
-        response = self.query_response(website_id=website_id, query_tag=query_tag)
+    def query_ok_test(self, website_id: str, query_tag: str, detection_point_id: str, list_len=1):
+        response = self.query_response(
+            website_id=website_id, query_tag=query_tag, detection_point_id=detection_point_id)
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.data, list)
         self.assertEqual(len(response.data), list_len)
@@ -1257,10 +1303,23 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
         step = 300
 
         website = self.website
+        nt = timezone.now()
+        detection_point1 = WebsiteDetectionPoint(
+            name='name1', name_en='name en1', creation=nt, modification=nt, remark='remark1', enable=True
+        )
+        detection_point1.save(force_insert=True)
+
+        nt = timezone.now()
+        detection_point2 = WebsiteDetectionPoint(
+            name='name2', name_en='name en1', creation=nt, modification=nt,
+            remark='remark1', enable=False, provider=self.provider
+        )
+        detection_point2.save(force_insert=True)
+
         # NotAuthenticated
         r = self.query_range_response(
             website_id=website.id, query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value,
-            start=start, end=end, step=step
+            start=start, end=end, step=step, detection_point_id=detection_point1.id
         )
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
 
@@ -1269,89 +1328,104 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
         # BadRequest, param "start"
         r = self.query_range_response(
             website_id=website.id, query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value,
-            end=end, step=step
+            end=end, step=step, detection_point_id=detection_point1.id
         )
         self.assertErrorResponse(status_code=400, code='BadRequest', response=r)
         r = self.query_range_response(
             website_id=website.id, query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value,
-            start='bad', end=end, step=step)
+            start='bad', end=end, step=step, detection_point_id=detection_point1.id)
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
         r = self.query_range_response(
             website_id=website.id, query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value,
-            start=-1, end=end, step=step)
+            start=-1, end=end, step=step, detection_point_id=detection_point1.id)
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
 
         # param "end"
         response = self.query_range_response(
             website_id=website.id, query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value,
-            start=start, end='bad', step=step)
+            start=start, end='bad', step=step, detection_point_id=detection_point1.id)
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
         response = self.query_range_response(
             website_id=website.id, query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value,
-            start=start, end=-1, step=step)
+            start=start, end=-1, step=step, detection_point_id=detection_point1.id)
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
 
         # param "step"
         response = self.query_range_response(
             website_id=website.id, query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value,
-            start=start, end=end, step=-1)
+            start=start, end=end, step=-1, detection_point_id=detection_point1.id)
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
         response = self.query_range_response(
             website_id=website.id, query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value,
-            start=start, end=end, step=0)
+            start=start, end=end, step=0, detection_point_id=detection_point1.id)
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
 
         # param "end" >= "start" required
         response = self.query_range_response(
             website_id=website.id, query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value,
-            start=end + 1, end=end, step=step)
+            start=end + 1, end=end, step=step, detection_point_id=detection_point1.id)
         self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
 
         # 每个时间序列10000点的最大分辨率
         response = self.query_range_response(
             website_id=website.id, query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value,
-            start=start - 11000, end=end, step=1)
+            start=start - 11000, end=end, step=1, detection_point_id=detection_point1.id)
         self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
 
         # InvalidArgument
         r = self.query_range_response(
-            website_id=website.id, query_tag='InvalidArgument', start=start, end=end, step=step)
+            website_id=website.id, query_tag='InvalidArgument', start=start, end=end, step=step,
+            detection_point_id=detection_point1.id)
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
 
         # NotFound
         r = self.query_range_response(
             website_id='websiteid', query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value,
-            start=start, end=end, step=step
+            start=start, end=end, step=step, detection_point_id=detection_point1.id
         )
         self.assertErrorResponse(status_code=404, code='NotFound', response=r)
 
-        # 清楚 可能的 provider 缓存
-        django_cache.delete('monitor_website_provider')
+        # 清除 可能的 探测点 缓存
+        django_cache.delete(MonitorWebsiteManager.CACHE_KEY_DETECTION_POINT)
 
         # Conflict, not set provider
         r = self.query_range_response(
             website_id=website.id, query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value,
-            start=start, end=end, step=step
+            start=start, end=end, step=step, detection_point_id=detection_point1.id
         )
         self.assertErrorResponse(status_code=409, code='Conflict', response=r)
 
         # set provider
-        ins = MonitorWebsiteVersionProvider.get_instance()
-        ins.provider_id = self.provider.id
-        ins.save(update_fields=['provider_id'])
+        detection_point1.provider_id = self.provider.id
+        detection_point1.save(update_fields=['provider_id'])
+
+        # 清除 可能的 探测点 缓存
+        django_cache.delete(MonitorWebsiteManager.CACHE_KEY_DETECTION_POINT)
+
+        # NoSuchDetectionPoint
+        r = self.query_response(
+            website_id=website.id, detection_point_id='detection_point1.id',
+            query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value)
+        self.assertErrorResponse(status_code=404, code='NoSuchDetectionPoint', response=r)
+
+        # Conflict, detection_point2 not enable
+        r = self.query_response(
+            website_id=website.id, detection_point_id=detection_point2.id,
+            query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value)
+        self.assertErrorResponse(status_code=409, code='Conflict', response=r)
 
         # ok
         self.query_range_ok_test(
             website_id=website.id, query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value,
-            start=start, end=end, step=step
+            start=start, end=end, step=step, detection_point_id=detection_point1.id
         )
         self.query_range_ok_test(
             website_id=website.id, query_tag=WebsiteQueryChoices.DURATION_SECONDS.value,
-            start=start, end=end, step=step
+            start=start, end=end, step=step, detection_point_id=detection_point1.id
         )
         self.query_range_ok_test(
             website_id=website.id, query_tag=WebsiteQueryChoices.HTTP_DURATION_SECONDS.value,
-            start=start, end=end, step=step, list_len=5
+            start=start, end=end, step=step, list_len=5, detection_point_id=detection_point1.id
         )
 
         # NotFound
@@ -1359,14 +1433,15 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
         self.client.force_login(self.user2)
         r = self.query_range_response(
             website_id=website.id, query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value,
-            start=start, end=end, step=step
+            start=start, end=end, step=step, detection_point_id=detection_point1.id
         )
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
 
     def query_range_response(
-            self, website_id: str, query_tag: str, start: int = None, end: int = None, step: int = None
+            self, website_id: str, detection_point_id: str,
+            query_tag: str, start: int = None, end: int = None, step: int = None,
     ):
-        querys = {}
+        querys = {'detection_point_id': detection_point_id}
         if query_tag:
             querys['query'] = query_tag
 
@@ -1383,10 +1458,14 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
         query = parse.urlencode(query=querys)
         return self.client.get(f'{url}?{query}')
 
-    def query_range_ok_test(self, website_id: str, query_tag: str, start: int, end: int, step: int, list_len=1):
+    def query_range_ok_test(
+            self, website_id: str, detection_point_id: str,
+            query_tag: str, start: int, end: int, step: int, list_len=1
+    ):
         values_len = (end - start) // step + 1
         response = self.query_range_response(
-            website_id=website_id, query_tag=query_tag, start=start, end=end, step=step)
+            website_id=website_id, detection_point_id=detection_point_id,
+            query_tag=query_tag, start=start, end=end, step=step)
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.data, list)
         self.assertEqual(len(response.data), list_len)
