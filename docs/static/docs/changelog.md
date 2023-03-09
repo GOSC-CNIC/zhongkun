@@ -1,3 +1,16 @@
+## v1.0.0
+2023-03-09  
+shun <869588058@qq.com>
+
+* 增加列举网站监控探测点接口（ListWebsiteDetectionPoint）和测试用例;
+* 增加人工充值接口（RechargeManual）和测试用例;
+* WebsiteQuery、WebSiteQueryRange接口增加参数'http_duration_seconds';
+* 非管理员限制创建2个站点监控任务;
+* 站点监控版本模型类重命名，并且移除字段‘provider’，站点监控任务模型增加特别关注
+字段‘is_attention’;
+* MonitorWebsiteQuery、MonitorWebsiteQueryRange接口增加参数‘detection_point_id’，指定从那个探测点查询数据；
+* 增加列举站点监控探测点（ListWebsiteDetectionPoint）接口和测试用例；
+
 ## v0.9.0
 2023-03-02  
 shun <869588058@qq.com>
