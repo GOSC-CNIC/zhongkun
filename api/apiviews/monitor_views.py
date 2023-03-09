@@ -4,6 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.serializers import Serializer
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from drf_yasg.utils import no_body
 
 from api.viewsets import CustomGenericViewSet
 from api.handlers.monitor_ceph import MonitorCephQueryHandler
@@ -746,8 +747,57 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
         """
         return MonitorWebsiteHandler().list_website_detection_point(view=self, request=request)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('站点监控任务特别关注标记'),
+        request_body=no_body,
+        manual_parameters=[
+            openapi.Parameter(
+                name='action',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description=_('操作参数,只允许选择“标记（mark）”和“取消标记（unmark）”')
+            )
+        ],
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['POST'], detail=True, url_path='attention', url_name='mark-attention')
+    def mark_attention(self, request, *args, **kwargs):
+        """
+        站点监控任务特别关注标记
+
+            Http Code: 状态码200, OK:
+            {
+              "id": "727cee5a-9f70-11ed-aba9-c8009fe2ebbc",
+              "name": "string66",
+              "url": "https://666.cn",
+              "remark": "string788",
+              "url_hash": "67e473e075648ca8305e3ceafca60c0efca9abf7",
+              "creation": "2023-01-29T01:01:22.403887Z",
+              "modification": "2023-01-29T01:01:00Z",
+              "is_attention": true
+            }
+
+            http code 400, 403, 404：
+            {
+              "code": "NotFound",
+              "message": "指定监控站点不存在"
+            }
+
+            * 可能的错误码：
+            400:
+                InvalidArgument: 请求格式无效
+            403:
+                AccessDenied: 无权限访问指定监控站点
+            404:
+                NotFound: 指定监控站点不存在
+        """
+        return MonitorWebsiteHandler().website_task_attention_mark(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
-        if self.action in ['create', 'update']:
+        if self.action in ['create', 'update', 'mark_attention']:
             return monitor_serializers.MonitorWebsiteSerializer
         elif self.action == 'list':
             return monitor_serializers.MonitorWebsiteWithUserSerializer

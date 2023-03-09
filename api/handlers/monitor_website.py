@@ -109,6 +109,36 @@ class MonitorWebsiteHandler:
         return Response(status=204)
 
     @staticmethod
+    def website_task_attention_mark(view: CustomGenericViewSet, request, kwargs):
+        """
+        站点监控任务特别关注标记
+        """
+        website_id = kwargs.get(view.lookup_field)
+        action_ = request.query_params.get('action', '')
+        action_ = action_.lower()
+        if action_ == 'mark':
+            is_attention = True
+        elif action_ == 'unmark':
+            is_attention = False
+        else:
+            return view.exception_response(
+                exc=errors.InvalidArgument(message=_('操作参数的值无效，只允许选择“标记（mark）”和“取消标记（unmark）”。')))
+
+        try:
+            task = MonitorWebsiteManager.get_user_website(
+                website_id=website_id,
+                user=request.user
+            )
+            if task.is_attention != is_attention:
+                task.is_attention = is_attention
+                task.save(update_fields=['is_attention'])
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        data = view.get_serializer(instance=task).data
+        return Response(data=data)
+
+    @staticmethod
     def get_website_task_version(view: CustomGenericViewSet, request):
         ins = MonitorWebsiteVersion.get_instance()
         return Response(data={'version': ins.version})

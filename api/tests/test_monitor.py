@@ -1186,6 +1186,75 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(len(r.data['results']), 1)
         self.assertEqual(r.data['results'][0]['id'], detection_point2.id)
 
+    def test_website_task_attention_mark(self):
+        # NotAuthenticated
+        url = reverse('api:monitor-website-mark-attention', kwargs={'id': 'test'})
+        r = self.client.post(path=url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+
+        # add data
+        nt = timezone.now()
+        website_url1 = 'https://111.com'
+        user_website1 = MonitorWebsite(
+            name='name1', url=website_url1, remark='remark1', user_id=self.user.id,
+            creation=nt, modification=nt, is_attention=False
+        )
+        user_website1.save(force_insert=True)
+
+        self.client.force_login(self.user2)
+
+        # query "action"
+        url = reverse('api:monitor-website-mark-attention', kwargs={'id': 'test'})
+        r = self.client.post(path=url)
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
+
+        query = parse.urlencode(query={'action': ''})
+        r = self.client.post(path=f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
+
+        query = parse.urlencode(query={'action': 'marttt'})
+        r = self.client.post(path=f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
+
+        # NotFound
+        url = reverse('api:monitor-website-mark-attention', kwargs={'id': 'test'})
+        query = parse.urlencode(query={'action': 'mark'})
+        r = self.client.post(path=f'{url}?{query}')
+        self.assertErrorResponse(status_code=404, code='NotFound', response=r)
+
+        # AccessDenied, user2 change user's website
+        url = reverse('api:monitor-website-mark-attention', kwargs={'id': user_website1.id})
+        query = parse.urlencode(query={'action': 'mark'})
+        r = self.client.post(path=f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        self.client.logout()
+        self.client.force_login(self.user)
+
+        # user2 mark website1, ok
+        url = reverse('api:monitor-website-mark-attention', kwargs={'id': user_website1.id})
+        query = parse.urlencode(query={'action': 'mark'})
+        r = self.client.post(path=f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=[
+            'id', 'name', 'url', 'remark', 'url_hash', 'creation', 'modification', 'is_attention'
+        ], container=r.data)
+
+        user_website1.refresh_from_db()
+        self.assertIs(user_website1.is_attention, True)
+
+        # user2 unmark website1, ok
+        url = reverse('api:monitor-website-mark-attention', kwargs={'id': user_website1.id})
+        query = parse.urlencode(query={'action': 'unMark'})
+        r = self.client.post(path=f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=[
+            'id', 'name', 'url', 'remark', 'url_hash', 'creation', 'modification', 'is_attention'
+        ], container=r.data)
+
+        user_website1.refresh_from_db()
+        self.assertIs(user_website1.is_attention, False)
+
 
 class MonitorWebsiteQueryTests(MyAPITestCase):
     def setUp(self):
