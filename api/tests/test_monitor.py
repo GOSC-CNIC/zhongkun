@@ -12,7 +12,7 @@ from monitor.tests import (
 )
 from monitor.models import (
     MonitorJobCeph, MonitorProvider, MonitorJobServer, WebsiteDetectionPoint,
-    MonitorWebsite, MonitorWebsiteTask, MonitorWebsiteVersionProvider, get_str_hash
+    MonitorWebsite, MonitorWebsiteTask, MonitorWebsiteVersion, get_str_hash
 )
 from monitor.managers import (
     CephQueryChoices, ServerQueryChoices, VideoMeetingQueryChoices, WebsiteQueryChoices,
@@ -673,7 +673,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         task: MonitorWebsiteTask = MonitorWebsiteTask.objects.order_by('-creation').first()
         self.assertEqual(task.url, website_url)
 
-        version = MonitorWebsiteVersionProvider.get_instance()
+        version = MonitorWebsiteVersion.get_instance()
         self.assertEqual(version.version, 1)
 
         # user, 2 ok
@@ -698,7 +698,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         task: MonitorWebsiteTask = MonitorWebsiteTask.objects.order_by('-creation').first()
         self.assertEqual(task.url, website_url2)
 
-        version = MonitorWebsiteVersionProvider.get_instance()
+        version = MonitorWebsiteVersion.get_instance()
         self.assertEqual(version.version, 2)
 
         # user2, 1 ok
@@ -725,7 +725,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         task: MonitorWebsiteTask = MonitorWebsiteTask.objects.order_by('-creation').first()
         self.assertEqual(task.url, website_url3)
 
-        version = MonitorWebsiteVersionProvider.get_instance()
+        version = MonitorWebsiteVersion.get_instance()
         self.assertEqual(version.version, 3)
 
         # user2, TargetAlreadyExists
@@ -752,7 +752,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(website.remark, '4test')
 
         self.assertEqual(MonitorWebsiteTask.objects.count(), 3)
-        version = MonitorWebsiteVersionProvider.get_instance()
+        version = MonitorWebsiteVersion.get_instance()
         self.assertEqual(version.version, 3)
 
     def test_list_website_task(self):
@@ -875,7 +875,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         )
         user2_website2.save(force_insert=True)
 
-        version = MonitorWebsiteVersionProvider.get_instance()
+        version = MonitorWebsiteVersion.get_instance()
         self.assertEqual(version.version, 0)
         self.assertEqual(MonitorWebsite.objects.count(), 3)
         self.assertEqual(MonitorWebsiteTask.objects.count(), 2)
@@ -895,7 +895,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         r = self.client.delete(path=url)
         self.assertEqual(r.status_code, 204)
 
-        version = MonitorWebsiteVersionProvider.get_instance()
+        version = MonitorWebsiteVersion.get_instance()
         self.assertEqual(version.version, 1)
         self.assertEqual(MonitorWebsite.objects.count(), 2)
         self.assertEqual(MonitorWebsiteTask.objects.count(), 1)
@@ -905,7 +905,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         r = self.client.delete(path=url)
         self.assertEqual(r.status_code, 204)
 
-        version = MonitorWebsiteVersionProvider.get_instance()
+        version = MonitorWebsiteVersion.get_instance()
         self.assertEqual(version.version, 1)
         self.assertEqual(MonitorWebsite.objects.count(), 1)
         self.assertEqual(MonitorWebsiteTask.objects.count(), 1)
@@ -918,7 +918,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data['version'], 0)
 
-        v = MonitorWebsiteVersionProvider.get_instance()
+        v = MonitorWebsiteVersion.get_instance()
         v.version = 66
         v.save(update_fields=['version'])
 
@@ -1007,7 +1007,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         )
         user2_website2.save(force_insert=True)
 
-        version = MonitorWebsiteVersionProvider.get_instance()
+        version = MonitorWebsiteVersion.get_instance()
         self.assertEqual(version.version, 0)
         self.assertEqual(MonitorWebsite.objects.count(), 3)
         tasks = MonitorWebsiteTask.objects.order_by('-creation').all()
@@ -1047,7 +1047,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(website1.url, user_website1.url)
         self.assertEqual(website1.remark, user_website1.remark)
 
-        version = MonitorWebsiteVersionProvider.get_instance()
+        version = MonitorWebsiteVersion.get_instance()
         self.assertEqual(version.version, 0)
         self.assertEqual(MonitorWebsite.objects.count(), 3)
         tasks = MonitorWebsiteTask.objects.order_by('-creation').all()
@@ -1066,7 +1066,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(website1.url, new_website_url1)
         self.assertEqual(website1.remark, user_website1.remark)
 
-        version = MonitorWebsiteVersionProvider.get_instance()
+        version = MonitorWebsiteVersion.get_instance()
         self.assertEqual(version.version, 1)
         self.assertEqual(MonitorWebsite.objects.count(), 3)
         tasks = MonitorWebsiteTask.objects.order_by('-creation').all()
@@ -1085,7 +1085,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(website2.url, new_website_url2)
         self.assertEqual(website2.remark, '新的 remark')
 
-        version = MonitorWebsiteVersionProvider.get_instance()
+        version = MonitorWebsiteVersion.get_instance()
         self.assertEqual(version.version, 2)
         self.assertEqual(MonitorWebsite.objects.count(), 3)
         tasks = MonitorWebsiteTask.objects.order_by('-creation').all()

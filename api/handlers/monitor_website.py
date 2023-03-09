@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from core import errors
 from monitor.managers import MonitorWebsiteManager, WebsiteQueryChoices
-from monitor.models import MonitorWebsiteTask, MonitorWebsiteVersionProvider, MonitorWebsite, WebsiteDetectionPoint
+from monitor.models import MonitorWebsiteTask, MonitorWebsiteVersion, MonitorWebsite, WebsiteDetectionPoint
 from api.viewsets import CustomGenericViewSet
 from .handlers import serializer_error_msg
 
@@ -110,7 +110,7 @@ class MonitorWebsiteHandler:
 
     @staticmethod
     def get_website_task_version(view: CustomGenericViewSet, request):
-        ins = MonitorWebsiteVersionProvider.get_instance()
+        ins = MonitorWebsiteVersion.get_instance()
         return Response(data={'version': ins.version})
 
     @staticmethod

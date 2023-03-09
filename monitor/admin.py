@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 from utils.model import NoDeleteSelectModelAdmin
 from .models import (
     MonitorJobCeph, MonitorProvider, MonitorJobServer, MonitorJobVideoMeeting,
-    MonitorWebsite, MonitorWebsiteTask, MonitorWebsiteVersionProvider,
+    MonitorWebsite, MonitorWebsiteTask, MonitorWebsiteVersion,
     get_str_hash, WebsiteDetectionPoint
 )
 from .managers import MonitorWebsiteManager
@@ -68,7 +68,7 @@ class MonitorWebsiteForm(ModelForm):
 class MonitorWebsiteAdmin(NoDeleteSelectModelAdmin):
     form = MonitorWebsiteForm
 
-    list_display = ('id', 'name', 'url', 'url_hash', 'creation', 'modification', 'user')
+    list_display = ('id', 'name', 'url', 'is_attention', 'url_hash', 'creation', 'modification', 'user')
     list_display_links = ('id', 'name')
     list_select_related = ('user',)
     raw_id_fields = ('user',)
@@ -99,23 +99,21 @@ class MonitorWebsiteTaskAdmin(admin.ModelAdmin):
         return False
 
 
-@admin.register(MonitorWebsiteVersionProvider)
+@admin.register(MonitorWebsiteVersion)
 class MonitorWebsiteVersionProviderAdmin(NoDeleteSelectModelAdmin):
-    list_display = ('id', 'version', 'creation', 'modification', 'provider')
+    list_display = ('id', 'version', 'creation', 'modification')
     list_display_links = ('id', )
-    list_select_related = ('provider',)
     readonly_fields = ('id', 'creation', 'modification')
 
-    def save_model(self, request, obj: MonitorWebsiteVersionProvider, form, change):
+    def save_model(self, request, obj: MonitorWebsiteVersion, form, change):
         # 确保版本编号无误，防止并发
         with transaction.atomic():
-            vers = MonitorWebsiteVersionProvider.get_instance(select_for_update=True)
+            vers = MonitorWebsiteVersion.get_instance(select_for_update=True)
             # 后台填写的版本号大于当前版本号时，+1，防止后台填入一个很大的数值
             if vers.version < obj.version:
                 vers.version += 1
 
             vers.modification = timezone.now()
-            vers.provider_id = obj.provider_id
             vers.save(force_update=True)
 
 

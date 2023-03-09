@@ -193,6 +193,7 @@ class MonitorWebsite(UuidModel):
     user = models.ForeignKey(
         verbose_name=_('用户'), to=UserProfile, related_name='+',
         on_delete=models.SET_NULL, blank=True, null=True, db_constraint=False)
+    is_attention = models.BooleanField(verbose_name=_('特别关注'), default=False)
 
     class Meta:
         db_table = 'monitor_website'
@@ -233,9 +234,9 @@ class MonitorWebsiteTask(UuidModel):
         super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
 
 
-class MonitorWebsiteVersionProvider(models.Model):
+class MonitorWebsiteVersion(models.Model):
     """
-    网站监控任务变动最新版本和查询服务提供者信息
+    网站监控任务变动最新版本
     """
     INSTANCE_ID = 1
 
@@ -244,14 +245,11 @@ class MonitorWebsiteVersionProvider(models.Model):
         verbose_name=_('监控任务版本号'), default=1, help_text=_('用于区分网站监控任务表是否有变化'))
     creation = models.DateTimeField(verbose_name=_('创建时间'))
     modification = models.DateTimeField(verbose_name=_('修改时间'))
-    provider = models.ForeignKey(
-        to=MonitorProvider, verbose_name=_('监控查询服务配置信息'), on_delete=models.SET_NULL,
-        related_name='+', db_constraint=False, null=True, blank=True, default=None)
 
     class Meta:
         db_table = 'monitor_website_version_provider'
         ordering = ['-creation']
-        verbose_name = _('网站监控任务版本和监控查询服务配置')
+        verbose_name = _('网站监控任务版本')
         verbose_name_plural = verbose_name
 
     @classmethod
@@ -259,7 +257,7 @@ class MonitorWebsiteVersionProvider(models.Model):
         if select_for_update:
             inst = cls.objects.select_for_update().filter(id=cls.INSTANCE_ID).first()
         else:
-            inst = cls.objects.select_related('provider').filter(id=cls.INSTANCE_ID).first()
+            inst = cls.objects.filter(id=cls.INSTANCE_ID).first()
 
         if inst is not None:
             return inst

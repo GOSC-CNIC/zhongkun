@@ -9,7 +9,7 @@ from api.serializers.monitor import (
 )
 from .models import (
     MonitorJobCeph, MonitorProvider, MonitorJobServer, MonitorJobVideoMeeting,
-    MonitorWebsite, MonitorWebsiteTask, MonitorWebsiteVersionProvider, get_str_hash,
+    MonitorWebsite, MonitorWebsiteTask, MonitorWebsiteVersion, get_str_hash,
     WebsiteDetectionPoint
 )
 from .backends.monitor_ceph import MonitorCephQueryAPI
@@ -381,7 +381,7 @@ class MonitorWebsiteManager:
 
         try:
             with transaction.atomic():
-                version = MonitorWebsiteVersionProvider.get_instance(select_for_update=True)
+                version = MonitorWebsiteVersion.get_instance(select_for_update=True)
                 user_website.save(force_insert=True)
 
                 # 监控任务表是否已存在相同网址，不存在就添加任务，更新任务版本
@@ -413,7 +413,7 @@ class MonitorWebsiteManager:
     def do_delete_website_task(user_website: MonitorWebsite):
         try:
             with transaction.atomic():
-                version = MonitorWebsiteVersionProvider.get_instance(select_for_update=True)
+                version = MonitorWebsiteVersion.get_instance(select_for_update=True)
                 user_website.delete()
                 # 除了要移除的站点，是否还有监控网址相同的 监控任务
                 count = MonitorWebsite.objects.filter(url_hash=user_website.url_hash, url=user_website.url).count()
@@ -459,7 +459,7 @@ class MonitorWebsiteManager:
         if old_url and old_url != new_url:
             try:
                 with transaction.atomic():
-                    version = MonitorWebsiteVersionProvider.get_instance(select_for_update=True)
+                    version = MonitorWebsiteVersion.get_instance(select_for_update=True)
                     user_website.save(force_update=True)
 
                     neet_change_version = False
@@ -494,23 +494,6 @@ class MonitorWebsiteManager:
     @staticmethod
     def get_user_website_queryset(user_id: str):
         return MonitorWebsite.objects.select_related('user').filter(user_id=user_id).all()
-
-    @staticmethod
-    def get_provider():
-        """
-        :raises: Error
-        """
-        _key = 'monitor_website_provider'
-        provider = django_cache.get(_key)
-        if provider is None:
-            inst = MonitorWebsiteVersionProvider.get_instance()
-            provider = inst.provider
-            if not provider:
-                raise errors.ConflictError(message=_('未配置监控数据查询服务信息'))
-
-            django_cache.set(_key, provider, 120)
-
-        return provider
 
     @staticmethod
     def get_detection_ponits() -> dict:

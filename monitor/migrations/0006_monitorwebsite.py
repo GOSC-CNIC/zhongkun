@@ -29,7 +29,7 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name='MonitorWebsiteVersionProvider',
+            name='MonitorWebsiteVersion',
             fields=[
                 ('id', models.IntegerField(default=1, primary_key=True, serialize=False)),
                 ('version', models.BigIntegerField(default=1, help_text='用于区分网站监控任务表是否有变化', verbose_name='监控任务版本号')),
@@ -38,8 +38,8 @@ class Migration(migrations.Migration):
                 ('provider', models.ForeignKey(blank=True, db_constraint=False, default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='monitor.monitorprovider', verbose_name='监控查询服务配置信息')),
             ],
             options={
-                'verbose_name': '网站监控任务版本和监控查询服务配置',
-                'verbose_name_plural': '网站监控任务版本和监控查询服务配置',
+                'verbose_name': '网站监控任务版本',
+                'verbose_name_plural': '网站监控任务版本',
                 'db_table': 'monitor_website_version_provider',
                 'ordering': ['-creation'],
             },
