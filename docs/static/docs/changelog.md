@@ -9,7 +9,6 @@ shun <869588058@qq.com>
 * 站点监控版本模型类重命名，并且移除字段‘provider’，站点监控任务模型增加特别关注
 字段‘is_attention’;
 * MonitorWebsiteQuery、MonitorWebsiteQueryRange接口增加参数‘detection_point_id’，指定从那个探测点查询数据；
-* 增加列举站点监控探测点（ListWebsiteDetectionPoint）接口和测试用例；
 
 ## v0.9.0
 2023-03-02  

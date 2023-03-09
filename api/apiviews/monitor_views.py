@@ -426,7 +426,9 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
               "url": "https://xxx.com",
               "remark": "string",
               "url_hash": "232c139d4ddfce0b1e94ae8a1aea85dd9547a060",
-              "creation": "2023-01-13T09:29:32.543642Z"
+              "creation": "2023-01-13T09:29:32.543642Z",
+              "modification": "2023-01-29T01:01:00Z",
+              "is_attention": true
             }
         """
         return MonitorWebsiteHandler().create_website_task(view=self, request=request)
@@ -456,10 +458,12 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
                   "remark": "string",
                   "url_hash": "8bb5f2cff06fa7a4cdc449e66b9d0c0377a19ede",
                   "creation": "2023-01-29T01:01:22.403887Z",
+                  "modification": "2023-01-29T01:01:00Z",
                   "user": {
                     "id": "1",
                     "username": "shun"
-                  }
+                  },
+                  "is_attention": false
                 }
               ]
             }
@@ -513,7 +517,9 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
               "url": "https://666.cn",
               "remark": "string788",
               "url_hash": "67e473e075648ca8305e3ceafca60c0efca9abf7",
-              "creation": "2023-01-29T01:01:22.403887Z"
+              "creation": "2023-01-29T01:01:22.403887Z",
+              "modification": "2023-01-29T01:01:00Z",
+              "is_attention": true
             }
 
             http code 400, 403, 404：

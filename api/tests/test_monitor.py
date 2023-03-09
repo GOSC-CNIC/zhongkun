@@ -656,7 +656,8 @@ class MonitorWebsiteTests(MyAPITestCase):
         r = self.client.post(path=url, data={
             'name': 'name-test', 'url': website_url, 'remark': 'test'
         })
-        self.assertKeysIn(keys=['id', 'name', 'url', 'remark', 'url_hash', 'creation'], container=r.data)
+        self.assertKeysIn(keys=[
+            'id', 'name', 'url', 'remark', 'url_hash', 'creation', 'modification', 'is_attention'], container=r.data)
         self.assert_is_subdict_of(sub={
             'name': 'name-test', 'url': website_url,
             'remark': 'test', 'url_hash': get_str_hash(website_url)
@@ -681,7 +682,8 @@ class MonitorWebsiteTests(MyAPITestCase):
         r = self.client.post(path=url, data={
             'name': 'name-test666', 'url': website_url2, 'remark': '测试t88'
         })
-        self.assertKeysIn(keys=['id', 'name', 'url', 'remark', 'url_hash', 'creation'], container=r.data)
+        self.assertKeysIn(keys=[
+            'id', 'name', 'url', 'remark', 'url_hash', 'creation', 'modification', 'is_attention'], container=r.data)
         self.assert_is_subdict_of(sub={
             'name': 'name-test666', 'url': website_url2,
             'remark': '测试t88', 'url_hash': get_str_hash(website_url2)
@@ -708,7 +710,8 @@ class MonitorWebsiteTests(MyAPITestCase):
         r = self.client.post(path=url, data={
             'name': 'name3-test', 'url': website_url3, 'remark': '3test'
         })
-        self.assertKeysIn(keys=['id', 'name', 'url', 'remark', 'url_hash', 'creation'], container=r.data)
+        self.assertKeysIn(keys=[
+            'id', 'name', 'url', 'remark', 'url_hash', 'creation', 'modification', 'is_attention'], container=r.data)
         self.assert_is_subdict_of(sub={
             'name': 'name3-test', 'url': website_url3,
             'remark': '3test', 'url_hash': get_str_hash(website_url3)
@@ -738,7 +741,8 @@ class MonitorWebsiteTests(MyAPITestCase):
         r = self.client.post(path=url, data={
             'name': 'name4-test', 'url': website_url2, 'remark': '4test'
         })
-        self.assertKeysIn(keys=['id', 'name', 'url', 'remark', 'url_hash', 'creation'], container=r.data)
+        self.assertKeysIn(keys=[
+            'id', 'name', 'url', 'remark', 'url_hash', 'creation', 'modification', 'is_attention'], container=r.data)
         self.assert_is_subdict_of(sub={
             'name': 'name4-test', 'url': website_url2,
             'remark': '4test', 'url_hash': get_str_hash(website_url2)
@@ -809,7 +813,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertIsInstance(r.data['results'], list)
         self.assertEqual(len(r.data['results']), 3)
         self.assertKeysIn(keys=[
-            'id', 'name', 'url', 'remark', 'url_hash', 'creation', 'user'
+            'id', 'name', 'url', 'remark', 'url_hash', 'creation', 'user', 'modification', 'is_attention'
         ], container=r.data['results'][0])
         self.assert_is_subdict_of(sub={
             'name': user_website6.name, 'url': user_website6.url,
@@ -1065,6 +1069,9 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(website1.name, user_website1.name)
         self.assertEqual(website1.url, new_website_url1)
         self.assertEqual(website1.remark, user_website1.remark)
+        self.assertKeysIn(keys=[
+            'id', 'name', 'url', 'remark', 'url_hash', 'creation', 'modification', 'is_attention'
+        ], container=r.data)
 
         version = MonitorWebsiteVersion.get_instance()
         self.assertEqual(version.version, 1)

@@ -63,6 +63,8 @@ class MonitorWebsiteSerializer(serializers.Serializer):
 
     url_hash = serializers.CharField(label=_('网址hash值'), max_length=64, read_only=True)
     creation = serializers.DateTimeField(label=_('创建时间'), read_only=True)
+    modification = serializers.DateTimeField(label=_('修改时间'), read_only=True)
+    is_attention = serializers.BooleanField(label=_('特别关注'), read_only=True)
 
 
 class MonitorWebsiteWithUserSerializer(MonitorWebsiteSerializer):
