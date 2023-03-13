@@ -51,6 +51,8 @@ no_slash_router.register(r'order', order_views.OrderViewSet, basename='order')
 no_slash_router.register(r'metering/server', metering_views.MeteringServerViewSet, basename='metering-server')
 no_slash_router.register(
     r'metering/storage', storage_metering_views.MeteringStorageViewSet, basename='metering-storage')
+no_slash_router.register(
+    r'metering/admin/storage', storage_metering_views.AdminMeteringStorageViewSet, basename='admin-metering-storage')
 no_slash_router.register(r'statement/server', metering_views.StatementServerViewSet, basename='statement-server')
 no_slash_router.register(
     r'statement/storage', storage_metering_views.StatementStorageViewSet, basename='statement-storage')

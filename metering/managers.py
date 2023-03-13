@@ -5,15 +5,18 @@ from django.db.models import Subquery, Sum, Count
 
 from core import errors
 from service.managers import ServiceManager
+from service.models import ServiceConfig
 from servers.managers import ServerManager
 from servers.models import Server, ServerArchive
 from metering.models import DailyStatementServer, DailyStatementObjectStorage
-from vo.managers import VoManager
 from utils.model import OwnerType
-from .models import MeteringServer, MeteringObjectStorage
 from users.models import UserProfile
 from vo.models import VirtualOrganization
-from service.models import ServiceConfig
+from vo.managers import VoManager
+from storage.managers.objects_service import ObjectsServiceManager
+from storage.models import Bucket, BucketArchive
+
+from .models import MeteringServer, MeteringObjectStorage
 
 
 class MeteringServerManager:
@@ -641,6 +644,112 @@ class MeteringStorageManager:
     @staticmethod
     def get_meterings_by_statement_id(statement_id: str, _date: date):
         return MeteringObjectStorage.objects.filter(date=_date, daily_statement_id=statement_id)
+
+    def admin_aggregate_metering_by_bucket(
+            self, user,
+            date_start: date = None,
+            date_end: date = None,
+            user_id: str = None,
+            service_id: str = None,
+            bucket_id: str = None,
+            order_by: str = None
+    ):
+        """
+            管理员获取以bucket聚合的查询集
+        """
+        if user.is_federal_admin():
+            queryset = self.filter_obs_metering_queryset(
+                service_id=service_id, date_start=date_start, date_end=date_end, user_id=user_id, bucket_id=bucket_id
+            )
+            return self._aggregate_queryset_by_bucket(queryset, order_by=order_by)
+
+        if service_id:
+            service = ObjectsServiceManager.get_service_if_admin(user=user, service_id=service_id)
+            if service is None:
+                raise errors.AccessDenied(message=_('您没有指定服务的访问权限'))
+
+        queryset = self.filter_obs_metering_queryset(
+            service_id=service_id, date_start=date_start, date_end=date_end, user_id=user_id, bucket_id=bucket_id
+        )
+
+        if not service_id:
+            qs = ObjectsServiceManager.get_all_has_perm_service(user)
+            subq = Subquery(qs.values_list('id', flat=True))
+            queryset = queryset.filter(service_id__in=subq)
+
+        return self._aggregate_queryset_by_bucket(queryset, order_by=order_by)
+
+    AGGREGATION_BUCKET_ORDER_BY_CHOICES = [
+        'total_original_amount', '-total_original_amount', 'total_storage_hours', '-total_storage_hours'
+    ]
+
+    @staticmethod
+    def _aggregate_queryset_by_bucket(queryset, order_by: str):
+        """
+        聚合bucket计量数据
+        """
+        if not order_by:
+            order_by = 'storage_bucket_id'
+
+        queryset = queryset.values('storage_bucket_id').annotate(
+            total_storage_hours=Sum('storage'),
+            total_downstream=Sum('downstream'),
+            total_get_request=Sum('get_request'),
+            total_original_amount=Sum('original_amount'),
+            total_trade_amount=Sum('trade_amount')
+        ).order_by(order_by)
+
+        return queryset
+
+    @staticmethod
+    def aggregate_by_bucket_mixin_data(data: list):
+        """
+        按bucket聚合数据分页后混合其他数据
+        """
+        bucket_ids = [i['storage_bucket_id'] for i in data]
+        buckets = Bucket.objects.filter(
+            id__in=bucket_ids).values('id', 'name', 'user__id', 'user__username', 'service__id', 'service__name')
+        archives = BucketArchive.objects.filter(
+            original_id__in=bucket_ids,
+        ).values('original_id', 'name', 'user__id', 'user__username', 'service__id', 'service__name')
+
+        buckets_dict = {}
+        for s in buckets:
+            user = {'id': s.pop('user__id', None), 'username': s.pop('user__username', None)}
+            service = {'id': s.pop('service__id', None), 'name': s.pop('service__name', None)}
+            d = {
+                'service': service,
+                'user': user,
+                'bucket': s
+            }
+            buckets_dict[s['id']] = d
+
+        for a in archives:
+            server_id = a['id'] = a.pop('original_id', None)
+            if server_id and server_id not in buckets_dict:
+                user = {'id': a.pop('user__id', None), 'username': a.pop('user__username', None)}
+                service = {'id': a.pop('service__id', None), 'name': a.pop('service__name', None)}
+                d = {
+                    'service': service,
+                    'user': user,
+                    'bucket': a
+                }
+                buckets_dict[server_id] = d
+
+        for i in data:
+            # Decimal to string
+            i['total_original_amount'] = '{:f}'.format(i['total_original_amount'])
+            i['total_trade_amount'] = '{:f}'.format(i['total_trade_amount'])
+
+            bid = i['storage_bucket_id']
+            if bid in buckets_dict:
+                i.update(buckets_dict[bid])
+            else:
+                i['service'] = None
+                i['bucket'] = None
+                i['user'] = None
+
+        return data
 
 
 class StatementStorageManager:

@@ -809,6 +809,8 @@ class StatementHandler:
 
 
 class MeteringObsHandler:
+    AGGREGATION_BUCKET_ORDER_BY_CHOICES = MeteringStorageManager.AGGREGATION_BUCKET_ORDER_BY_CHOICES
+
     def list_bucket_metering(self, view: CustomGenericViewSet, request):
         """
         列举对象存储的计量账单
@@ -978,6 +980,79 @@ class MeteringObsHandler:
             'bucket_id': bucket_id,
             'user_id': user_id,
             'download': download is not None
+        }
+
+    def list_aggregation_by_bucket(self, view: CustomGenericViewSet, request):
+        """
+        列举云主机计量计费聚合信息
+        """
+        try:
+            params = self._list_aggregation_by_bucket_validate_params(view=view, request=request)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        date_start = params['date_start']
+        date_end = params['date_end']
+        user_id = params['user_id']
+        service_id = params['service_id']
+        bucket_id = params['bucket_id']
+        order_by = params['order_by']
+        # download = params['download']
+
+        ms_mgr = MeteringStorageManager()
+        queryset = ms_mgr.admin_aggregate_metering_by_bucket(
+            user=request.user, date_start=date_start, date_end=date_end, user_id=user_id,
+            service_id=service_id, bucket_id=bucket_id, order_by=order_by
+        )
+
+        try:
+            data = view.paginate_queryset(queryset)
+            data = ms_mgr.aggregate_by_bucket_mixin_data(data)
+            return view.get_paginated_response(data)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+    @staticmethod
+    def _list_aggregation_by_bucket_validate_params(view: CustomGenericViewSet, request) -> dict:
+        date_start = request.query_params.get('date_start', None)
+        date_end = request.query_params.get('date_end', None)
+        user_id = request.query_params.get('user_id', None)
+        service_id = request.query_params.get('service_id', None)
+        bucket_id = request.query_params.get('bucket_id', None)
+        order_by = request.query_params.get('order_by', None)
+        # download = request.query_params.get('download', None)
+
+        now_date = timezone.now().date()
+        if date_start is not None:
+            try:
+                date_start = date.fromisoformat(date_start)
+            except (TypeError, ValueError):
+                raise errors.InvalidArgument(message=_('参数“date_start”的值无效的日期格式'))
+        else:  # 默认当月起始时间
+            date_start = now_date.replace(day=1)
+
+        if date_end is not None:
+            try:
+                date_end = date.fromisoformat(date_end)
+            except (TypeError, ValueError):
+                raise errors.InvalidArgument(message=_('参数“date_end”的值无效的日期格式'))
+        else:
+            date_end = now_date  # 默认当月当前日期
+
+        if service_id is not None and not service_id:
+            raise errors.InvalidArgument(message=_('参数“service_id”的值无效'))
+
+        if order_by is not None and order_by not in MeteringStorageManager.AGGREGATION_BUCKET_ORDER_BY_CHOICES:
+            raise errors.InvalidArgument(message=_('参数“order_by”的值无效'))
+
+        return {
+            'date_start': date_start,
+            'date_end': date_end,
+            'user_id': user_id,
+            'service_id': service_id,
+            'bucket_id': bucket_id,
+            'order_by': order_by
+            # 'download': download is not None
         }
 
 
