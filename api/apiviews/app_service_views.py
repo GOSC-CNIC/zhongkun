@@ -102,7 +102,7 @@ class AppServiceViewSet(CustomGenericViewSet):
                   "resources": "云主机，云硬盘",
                   "desc": "",
                   "creation_time": "2022-06-23T07:35:44.784474Z",
-                  "status": "normal",
+                  "status": "normal",   # unaudited(未审核); normal(正常); ban(禁止)
                   "longitude": 0,
                   "latitude": 0,
                   "category": "vms-server",

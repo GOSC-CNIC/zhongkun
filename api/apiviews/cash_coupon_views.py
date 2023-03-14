@@ -439,7 +439,7 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
     )
     def create(self, request, *args, **kwargs):
         """
-        App服务单元管理员创建一个代金券，可直接发放给指定用户
+        App服务单元管理员、联邦管理员 创建一个代金券，可直接发放给指定用户
 
             http code 200：
             {

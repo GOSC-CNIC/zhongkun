@@ -1102,6 +1102,31 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assertEqual(r.data['app_service']['service_id'], self.service.id)
         self.assertIsNone(r.data['user'])
 
+        # no permission
+        self.app_service1.users.remove(self.user)
+        expiration_time_str = to_isoformat(now_time + timedelta(hours=1, minutes=30))
+        data = {
+            "face_value": "66.88",
+            "effective_time": now_time_str,
+            "expiration_time": expiration_time_str,
+            "app_service_id": self.app_service1.id,
+            "username": self.user2.username
+        }
+        r = self.client.post(url, data=data)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        # federal admin
+        self.user.set_federal_admin()
+        data = {
+            "face_value": "66.88",
+            "effective_time": now_time_str,
+            "expiration_time": expiration_time_str,
+            "app_service_id": self.app_service1.id,
+            "username": self.user2.username
+        }
+        r = self.client.post(url, data=data)
+        self.assertEqual(r.status_code, 200)
+
     def test_admin_list_coupon(self):
         template = CashCouponActivity(
             name='test template', app_service_id=self.app_service1.id,

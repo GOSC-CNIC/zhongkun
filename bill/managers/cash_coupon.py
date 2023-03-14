@@ -24,6 +24,9 @@ def get_app_service_by_admin(_id: str, user):
     if app_service is None:
         raise errors.AppServiceNotExist(message=_('App子服务不存在'))
 
+    if user.is_federal_admin():
+        return app_service
+
     if not app_service.user_has_perm(user):
         raise errors.AccessDenied(message=_('你没有此App子服务的权限'))
 
