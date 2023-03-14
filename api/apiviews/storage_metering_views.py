@@ -204,6 +204,143 @@ class AdminMeteringStorageViewSet(CustomGenericViewSet):
         """
         return MeteringObsHandler().list_aggregation_by_bucket(view=self, request=request)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询指定时间段内用户的存储桶计量计费聚合数据'),
+        request_body=no_body,
+        manual_parameters=[
+            openapi.Parameter(
+                name='date_start',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('聚合日期起，默认当前月起始日期，ISO8601格式：YYYY-MM-dd')
+            ),
+            openapi.Parameter(
+                name='date_end',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('聚合日期止，默认当前月当前日期，ISO8601格式：YYYY-MM-dd')
+            ),
+            openapi.Parameter(
+                name='user_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('查询指定用户的聚合计量计费信息，仅以管理员身份查询时使用')
+            ),
+            openapi.Parameter(
+                name='service_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('查询指定存储服务单元')
+            ),
+            openapi.Parameter(
+                name='order_by',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'指定排序，默认按桶id正序，{MeteringObsHandler.AGGREGATION_USER_ORDER_BY_CHOICES}'
+            ),
+        ]
+    )
+    @action(methods=['GET'], detail=False, url_path='aggregation/user', url_name='aggregation-by-user')
+    def aggregation_by_user(self, request, *args, **kwargs):
+        """
+        查询指定时间段内用户的存储桶计量计费聚合数据
+
+            http code 200:
+            {
+                "count": 18,
+                "page_num": 1,
+                "page_size": 100,
+                "results": [
+                    {
+                        "user_id": "c50c81ea-59bf-11ed-97e1-c8009fe2eb03",
+                        "username": "wxz@cnic.cn"
+                        "total_storage_hours": 182151079.65071514,
+                        "total_downstream": 0.0,
+                        "total_get_request": 0,
+                        "total_original_amount": "0.00",    # 计费金额
+                        "total_trade_amount": "0.00",       # 应付金额 / 实付金额
+                        "bucket_count": 10                  # 时间段内计量的桶的数量
+                    }
+                ]
+            }
+        """
+        return MeteringObsHandler().list_aggregation_by_user(view=self, request=request)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询指定时间段内服务单元的存储桶计量计费聚合数据'),
+        request_body=no_body,
+        manual_parameters=[
+            openapi.Parameter(
+                name='date_start',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('聚合日期起，默认当前月起始日期，ISO8601格式：YYYY-MM-dd')
+            ),
+            openapi.Parameter(
+                name='date_end',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('聚合日期止，默认当前月当前日期，ISO8601格式：YYYY-MM-dd')
+            ),
+            openapi.Parameter(
+                name='service_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('查询指定存储服务单元')
+            ),
+            openapi.Parameter(
+                name='order_by',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'指定排序，默认按桶id正序，{MeteringObsHandler.AGGREGATION_SERVICE_ORDER_BY_CHOICES}'
+            ),
+            # openapi.Parameter(
+            #     name='download',
+            #     in_=openapi.IN_QUERY,
+            #     type=openapi.TYPE_BOOLEAN,
+            #     required=False,
+            #     description=gettext_lazy('查询结果以文件方式下载文件；分页参数无效，不分页返回所有数据')
+            # ),
+        ]
+    )
+    @action(methods=['GET'], detail=False, url_path='aggregation/service', url_name='aggregation-by-service')
+    def aggregation_by_service(self, request, *args, **kwargs):
+        """
+        查询指定时间段内服务单元的存储桶计量计费聚合数据
+
+            http code 200:
+            {
+                "count": 18,
+                "page_num": 1,
+                "page_size": 100,
+                "results": [
+                    {
+                        "service_id": "c50c81ea-59bf-11ed-97e1-c8009fe2eb03",
+                        "total_storage_hours": 182151079.65071514,
+                        "total_downstream": 0.0,
+                        "total_get_request": 0,
+                        "total_original_amount": "0.00",    # 计费金额
+                        "total_trade_amount": "0.00",       # 应付金额 / 实付金额
+                        "bucket_count": 10                  # 时间段内计量的服务单元桶的数量
+                        "service": {
+                            "id": "xxx",
+                            "name": "xxx",
+                        }
+                    }
+                ]
+            }
+        """
+        return MeteringObsHandler().list_aggregation_by_service(view=self, request=request)
+
     def get_serializer_class(self):
         return Serializer
 

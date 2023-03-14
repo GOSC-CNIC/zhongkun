@@ -14,7 +14,7 @@ from users.models import UserProfile
 from vo.models import VirtualOrganization
 from vo.managers import VoManager
 from storage.managers.objects_service import ObjectsServiceManager
-from storage.models import Bucket, BucketArchive
+from storage.models import Bucket, BucketArchive, ObjectsService
 
 from .models import MeteringServer, MeteringObjectStorage
 
@@ -748,6 +748,168 @@ class MeteringStorageManager:
                 i['service'] = None
                 i['bucket'] = None
                 i['user'] = None
+
+        return data
+
+    def admin_aggregate_metering_by_user(
+            self, user,
+            date_start: date = None,
+            date_end: date = None,
+            user_id: str = None,
+            service_id: str = None,
+            order_by: str = None
+    ):
+        """
+            管理员获取以 user 聚合的查询集
+        """
+        if user.is_federal_admin():
+            queryset = self.filter_obs_metering_queryset(
+                service_id=service_id, date_start=date_start, date_end=date_end, user_id=user_id, bucket_id=None
+            )
+            return self._aggregate_queryset_by_user(queryset, order_by=order_by)
+
+        if service_id:
+            service = ObjectsServiceManager.get_service_if_admin(user=user, service_id=service_id)
+            if service is None:
+                raise errors.AccessDenied(message=_('您没有指定服务的访问权限'))
+
+        queryset = self.filter_obs_metering_queryset(
+            service_id=service_id, date_start=date_start, date_end=date_end, user_id=user_id, bucket_id=None
+        )
+
+        if not service_id:
+            qs = ObjectsServiceManager.get_all_has_perm_service(user)
+            subq = Subquery(qs.values_list('id', flat=True))
+            queryset = queryset.filter(service_id__in=subq)
+
+        return self._aggregate_queryset_by_user(queryset, order_by=order_by)
+
+    AGGREGATION_USER_ORDER_BY_CHOICES = [
+        'total_original_amount', '-total_original_amount', 'total_storage_hours', '-total_storage_hours'
+    ]
+
+    @staticmethod
+    def _aggregate_queryset_by_user(queryset, order_by: str):
+        """
+        按 user 聚合bucket计量数据
+        """
+        if not order_by:
+            order_by = 'user_id'
+
+        queryset = queryset.values('user_id').annotate(
+            total_storage_hours=Sum('storage'),
+            total_downstream=Sum('downstream'),
+            total_get_request=Sum('get_request'),
+            total_original_amount=Sum('original_amount'),
+            total_trade_amount=Sum('trade_amount'),
+            bucket_count=Count('storage_bucket_id', distinct=True)
+        ).order_by(order_by)
+
+        return queryset
+
+    @staticmethod
+    def aggregate_by_user_mixin_data(data: list):
+        """
+        按 user 聚合数据分页后混合其他数据
+        """
+        user_ids = [i['user_id'] for i in data]
+        users = UserProfile.objects.filter(
+            id__in=user_ids).values('id', 'username')
+
+        users_dict = {}
+        for u in users:
+            users_dict[u['id']] = u.get('username', '')
+
+        for i in data:
+            # Decimal to string
+            i['total_original_amount'] = '{:f}'.format(i['total_original_amount'])
+            i['total_trade_amount'] = '{:f}'.format(i['total_trade_amount'])
+
+            uid = i['user_id']
+            if uid in users_dict:
+                i['username'] = users_dict[uid]
+            else:
+                i['username'] = ''
+
+        return data
+
+    def admin_aggregate_metering_by_service(
+            self, user,
+            date_start: date = None,
+            date_end: date = None,
+            service_id: str = None,
+            order_by: str = None
+    ):
+        """
+            管理员获取以 service 聚合的查询集
+        """
+        if user.is_federal_admin():
+            queryset = self.filter_obs_metering_queryset(
+                service_id=service_id, date_start=date_start, date_end=date_end, user_id=None, bucket_id=None
+            )
+            return self._aggregate_queryset_by_service(queryset, order_by=order_by)
+
+        if service_id:
+            service = ObjectsServiceManager.get_service_if_admin(user=user, service_id=service_id)
+            if service is None:
+                raise errors.AccessDenied(message=_('您没有指定服务的访问权限'))
+
+        queryset = self.filter_obs_metering_queryset(
+            service_id=service_id, date_start=date_start, date_end=date_end, user_id=None, bucket_id=None
+        )
+
+        if not service_id:
+            qs = ObjectsServiceManager.get_all_has_perm_service(user)
+            subq = Subquery(qs.values_list('id', flat=True))
+            queryset = queryset.filter(service_id__in=subq)
+
+        return self._aggregate_queryset_by_service(queryset, order_by=order_by)
+
+    AGGREGATION_SERVICE_ORDER_BY_CHOICES = [
+        'total_original_amount', '-total_original_amount', 'total_storage_hours', '-total_storage_hours'
+    ]
+
+    @staticmethod
+    def _aggregate_queryset_by_service(queryset, order_by: str):
+        """
+        按 service 聚合bucket计量数据
+        """
+        if not order_by:
+            order_by = 'service_id'
+
+        queryset = queryset.values('service_id').annotate(
+            total_storage_hours=Sum('storage'),
+            total_downstream=Sum('downstream'),
+            total_get_request=Sum('get_request'),
+            total_original_amount=Sum('original_amount'),
+            total_trade_amount=Sum('trade_amount'),
+            bucket_count=Count('storage_bucket_id', distinct=True)
+        ).order_by(order_by)
+
+        return queryset
+
+    @staticmethod
+    def aggregate_by_service_mixin_data(data: list):
+        """
+        按 service 聚合数据分页后混合其他数据
+        """
+        service_ids = [i['service_id'] for i in data]
+        services = ObjectsService.objects.filter(id__in=service_ids).values('id', 'name')
+
+        services_dict = {}
+        for s in services:
+            services_dict[s['id']] = s
+
+        for i in data:
+            # Decimal to string
+            i['total_original_amount'] = '{:f}'.format(i['total_original_amount'])
+            i['total_trade_amount'] = '{:f}'.format(i['total_trade_amount'])
+
+            sid = i['service_id']
+            if sid in services_dict:
+                i['service'] = services_dict[sid]
+            else:
+                i['service'] = None
 
         return data
 
