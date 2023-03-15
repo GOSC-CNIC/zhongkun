@@ -1,3 +1,17 @@
+## v1.1.0
+2023-03-15  
+shun <869588058@qq.com>
+
+* 增加 站点监控任务特别关注标记（WebsiteTaskAttentionMark）接口和测试用例;
+* 站点监控任务创建、列举和更改接口响应增加‘modification’、‘is_attention’字段内容;
+* 新增管理员查询对象存储计量计费聚合信息接口和测试用例，分别按bucket、user、service进行聚合；
+* AdminCreateCashCoupon api权限修改，允许联邦管理员创建所有app子服务的代金券；
+* ListCashCoupon api修改参数‘valid’的值可选项； 
+* AdminListCashCoupon api增加参数‘valid_status’；
+* AdminListCashCoupon api 增加参数‘issuer’和‘redeemer’；
+* 代金券model增加发放人字段“issuer”，券列举查询和查询详情等有关api响应内容增加“issuer”内容；
+
+
 ## v1.0.0
 2023-03-09  
 shun <869588058@qq.com>
