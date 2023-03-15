@@ -1154,7 +1154,8 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
             expiration_time=timezone.now(),
             status=CashCoupon.Status.AVAILABLE.value,
             app_service_id=self.app_service1.id,
-            user_id=self.user.id
+            user_id=self.user.id,
+            issuer='test@cnic.cn'
         )
         coupon2.save(force_insert=True)
 
@@ -1165,7 +1166,8 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
             expiration_time=timezone.now() + timedelta(days=2),
             status=CashCoupon.Status.AVAILABLE.value,
             app_service_id=self.app_service2.id,
-            user_id=self.user2.id
+            user_id=self.user2.id,
+            issuer='test@cnic.cn'
         )
         coupon3.save(force_insert=True)
 
@@ -1180,9 +1182,39 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         r = self.client.get(f'{url}?{query}')
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
 
-        # user has permission of app_service1, query "app_service_id"
+        # no query
+        query = parse.urlencode(query={})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=['count', 'page_num', 'page_size', 'results'], container=r.data)
+        self.assertEqual(r.data['count'], 0)
+        self.assertEqual(len(r.data['results']), 0)
+
+        # user has permission of app_service1
         self.app_service1.users.add(self.user)
 
+        # no query
+        query = parse.urlencode(query={})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=['count', 'page_num', 'page_size', 'results'], container=r.data)
+        self.assertEqual(r.data['count'], 2)
+        self.assertEqual(len(r.data['results']), 2)
+        self.assertEqual(r.data['results'][0]['app_service']['id'], self.app_service1.id)
+        self.assertEqual(r.data['results'][0]['id'], coupon2.id)
+        self.assertEqual(r.data['results'][1]['app_service']['id'], self.app_service1.id)
+        self.assertEqual(r.data['results'][1]['id'], wait_coupon1.id)
+
+        # query "page_size"
+        query = parse.urlencode(query={'app_service_id': self.app_service1.id, 'page_size': 1})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=['count', 'page_num', 'page_size', 'results'], container=r.data)
+        self.assertEqual(r.data['count'], 2)
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertEqual(r.data['results'][0]['id'], coupon2.id)
+
+        # query "app_service_id"
         query = parse.urlencode(query={'app_service_id': self.app_service1.id})
         r = self.client.get(f'{url}?{query}')
         self.assertEqual(r.status_code, 200)
@@ -1233,7 +1265,10 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.app_service1.users.remove(self.user)
         query = parse.urlencode(query={})
         r = self.client.get(f'{url}?{query}')
-        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=['count', 'page_num', 'page_size', 'results'], container=r.data)
+        self.assertEqual(r.data['count'], 0)
+        self.assertEqual(len(r.data['results']), 0)
 
         # federal admin
         self.user.set_federal_admin()
@@ -1266,6 +1301,54 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assertEqual(r.data['count'], 1)
         self.assertEqual(len(r.data['results']), 1)
         self.assertEqual(r.data['results'][0]['id'], coupon2.id)
+
+        # query "issuer"、 "redeemer"
+        query = parse.urlencode(query={'issuer': ''})
+        r = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
+
+        query = parse.urlencode(query={'redeemer': ''})
+        r = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
+
+        query = parse.urlencode(query={'redeemer': 'notfount'})
+        r = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=404, code='UserNotExist', response=r)
+
+        query = parse.urlencode(query={'issuer': 'test@cnic.cn'})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 2)
+        self.assertEqual(len(r.data['results']), 2)
+        self.assertEqual(r.data['results'][0]['id'], coupon3.id)
+        self.assertEqual(r.data['results'][1]['id'], coupon2.id)
+
+        query = parse.urlencode(query={'issuer': 'fff'})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 0)
+        self.assertEqual(len(r.data['results']), 0)
+
+        query = parse.urlencode(query={'issuer': self.user2.username})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 1)
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertEqual(r.data['results'][0]['id'], wait_coupon1.id)
+
+        query = parse.urlencode(query={'redeemer': self.user.username})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 1)
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertEqual(r.data['results'][0]['id'], coupon2.id)
+
+        query = parse.urlencode(query={'redeemer': self.user2.username})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 1)
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertEqual(r.data['results'][0]['id'], coupon3.id)
 
     def test_delete_cash_coupon(self):
         coupon2 = CashCoupon(

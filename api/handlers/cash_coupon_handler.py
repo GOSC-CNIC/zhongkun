@@ -165,16 +165,19 @@ class CashCouponHandler:
         status = data['status']
         app_service_id = data['app_service_id']
         valid = data['valid']
+        redeemer = data['redeemer']
+        issuer = data['issuer']
         download = data['download']
 
-        queryset = CashCouponManager().admin_list_coupon_queryset(
-            user=request.user, template_id=template_id, app_service_id=app_service_id, status=status, valid=valid
-        )
-
-        if download:
-            return self.admin_list_coupon_download(queryset=queryset)
-
         try:
+            queryset = CashCouponManager().admin_list_coupon_queryset(
+                user=request.user, template_id=template_id, app_service_id=app_service_id, status=status, valid=valid,
+                issuer=issuer, redeemer=redeemer
+            )
+
+            if download:
+                return self.admin_list_coupon_download(queryset=queryset)
+
             coupons = view.paginate_queryset(queryset)
             serializer = view.get_serializer(instance=coupons, many=True)
             return view.get_paginated_response(serializer.data)
@@ -187,7 +190,15 @@ class CashCouponHandler:
         status = request.query_params.get('status', None)
         app_service_id = request.query_params.get('app_service_id', None)
         valid_status = request.query_params.get('valid_status', None)
+        redeemer = request.query_params.get('redeemer', None)
+        issuer = request.query_params.get('issuer', None)
         download = request.query_params.get('download', None)
+
+        if issuer is not None and not issuer:
+            raise errors.InvalidArgument(message=_('指定的发放人不能为空'))
+
+        if redeemer is not None and not redeemer:
+            raise errors.InvalidArgument(message=_('指定的兑换人不能为空'))
 
         if status and status not in CashCoupon.Status.values:
             raise errors.InvalidArgument(message=_('参数“status”的值无效'))
@@ -204,6 +215,8 @@ class CashCouponHandler:
             'status': status,
             'valid': valid,
             'app_service_id': app_service_id,
+            'issuer': issuer,
+            'redeemer': redeemer,
             'download': download is not None
         }
 

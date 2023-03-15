@@ -529,18 +529,17 @@ class CashCouponManager:
 
     def admin_list_coupon_queryset(
             self, user: UserProfile, template_id: str = None, app_service_id: str = None, status: str = None,
-            valid: str = None
+            valid: str = None, issuer: str = None, redeemer: str = None
     ):
         """
         :valid: notyet(未起效), valid(有效期内), expired(已过期)；None（不筛选）
         """
         if user.is_federal_admin():
+            app_service_ids = [app_service_id] if app_service_id else None
             return self.filter_coupon_queryset(
-                template_id=template_id, app_service_id=app_service_id, status=status, valid=valid
+                template_id=template_id, app_service_ids=app_service_ids, status=status, valid=valid,
+                issuer=issuer, redeemer=redeemer
             )
-
-        if not template_id and not app_service_id:
-            raise errors.AccessDenied(message=_('参数“template_id”和“app_service_id”必须指定一个'))
 
         if template_id:
             template = CashCouponActivityManager.get_activity(activity_id=template_id)
@@ -553,14 +552,22 @@ class CashCouponManager:
 
         if app_service_id:
             get_app_service_by_admin(_id=app_service_id, user=user)
+            app_service_ids = [app_service_id] if app_service_id else None
+        else:
+            app_service_ids = PayAppService.objects.filter(users__id=user.id).values_list('id', flat=True)
+            if not app_service_ids:
+                return CashCoupon.objects.none()
 
         return self.filter_coupon_queryset(
-            template_id=template_id, app_service_id=app_service_id, status=status, valid=valid
+            template_id=template_id, app_service_ids=app_service_ids, status=status, valid=valid,
+            issuer=issuer, redeemer=redeemer
         )
 
     @staticmethod
     def filter_coupon_queryset(
-            template_id: str = None, app_service_id: str = None, status: str = None, valid: str = None):
+            template_id: str = None, app_service_ids: list = None, status: str = None, valid: str = None,
+            issuer: str = None, redeemer: str = None
+    ):
         """
         :valid: notyet(未起效), valid(有效期内), expired(已过期)；None（不筛选）
         """
@@ -568,8 +575,11 @@ class CashCouponManager:
         if template_id:
             queryset = queryset.filter(activity_id=template_id)
 
-        if app_service_id:
-            queryset = queryset.filter(app_service_id=app_service_id)
+        if app_service_ids:
+            if len(app_service_ids) == 1:
+                queryset = queryset.filter(app_service_id=app_service_ids[0])
+            else:
+                queryset = queryset.filter(app_service_id__in=app_service_ids)
 
         if status:
             queryset = queryset.filter(status=status)
@@ -584,6 +594,16 @@ class CashCouponManager:
                 queryset = queryset.filter(expiration_time__lte=now)
             else:
                 raise errors.Error(message=_('参数“valid”值无效'))
+
+        if issuer is not None:
+            queryset = queryset.filter(issuer=issuer)
+
+        if redeemer:
+            redeemer_user = UserProfile.objects.filter(username=redeemer).first()
+            if redeemer_user is None:
+                raise errors.UserNotExist(message=_('指定的兑换人不存在'))
+
+            queryset = queryset.filter(user_id=redeemer_user.id)
 
         return queryset
 

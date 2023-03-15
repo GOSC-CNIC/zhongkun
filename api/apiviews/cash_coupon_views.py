@@ -352,7 +352,7 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
     # lookup_value_regex = '[0-9a-z-]+'
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('服务单元管理员列举代金券'),
+        operation_summary=gettext_lazy('管理员列举代金券'),
         manual_parameters=[
             openapi.Parameter(
                 name='app_service_id',
@@ -383,6 +383,20 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
                 description=f'筛选条件，{QueryCouponValidChoices.choices}；不提交此参数(全部)'
             ),
             openapi.Parameter(
+                name='issuer',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'筛选条件，查询指定发放人的券'
+            ),
+            openapi.Parameter(
+                name='redeemer',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'筛选条件，查询指定兑换人的券'
+            ),
+            openapi.Parameter(
                 name='download',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
@@ -397,8 +411,6 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
     def list(self, request, *args, **kwargs):
         """
         服务单元管理员列举代金券
-
-            * 参数template_id和app_service_id必须指定一个；
 
             http code 200：
             {
