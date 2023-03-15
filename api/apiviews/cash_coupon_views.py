@@ -7,7 +7,7 @@ from drf_yasg import openapi
 
 from api.viewsets import CustomGenericViewSet
 from api.paginations import NewPageNumberPagination
-from api.handlers.cash_coupon_handler import CashCouponHandler
+from api.handlers.cash_coupon_handler import CashCouponHandler, QueryCouponValidChoices
 from api.serializers import serializers
 from api.serializers import trade as trade_serializers
 from bill.models import CashCoupon, PayAppService
@@ -42,9 +42,9 @@ class CashCouponViewSet(CustomGenericViewSet):
             openapi.Parameter(
                 name='valid',
                 in_=openapi.IN_QUERY,
-                type=openapi.TYPE_BOOLEAN,
+                type=openapi.TYPE_STRING,
                 required=False,
-                description='筛选条件，true(有效期内)；false(未生效或已过期)；不提交此参数(全部)'
+                description=f'筛选条件，{QueryCouponValidChoices.choices}；不提交此参数(全部)'
             ),
             openapi.Parameter(
                 name='app_service_category',
@@ -372,6 +372,13 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
                 type=openapi.TYPE_STRING,
                 required=False,
                 description='券模板id'
+            ),
+            openapi.Parameter(
+                name='valid_status',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'筛选条件，{QueryCouponValidChoices.choices}；不提交此参数(全部)'
             ),
             openapi.Parameter(
                 name='download',

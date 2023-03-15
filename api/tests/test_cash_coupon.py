@@ -12,6 +12,7 @@ from bill.models import (
     CashCoupon, PayAppService, PayApp, PayOrgnazition, CashCouponActivity, TransactionBill, PaymentHistory
 )
 from bill.managers import PaymentManager, CashCouponActivityManager
+from api.handlers.cash_coupon_handler import QueryCouponValidChoices
 from core import errors
 from . import set_auth_header, MyAPITestCase, MyAPITransactionTestCase
 
@@ -298,7 +299,7 @@ class CashCouponTests(MyAPITestCase):
         response = self.client.get(f'{base_url}?{query}')
         self.assertErrorResponse(status_code=400, code='InvalidValid', response=response)
 
-        query = parse.urlencode(query={'valid': True})
+        query = parse.urlencode(query={'valid': QueryCouponValidChoices.VALID.value})
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 1)
@@ -314,11 +315,16 @@ class CashCouponTests(MyAPITestCase):
             }, response.data['results'][0]
         )
 
-        query = parse.urlencode(query={'valid': False})
+        query = parse.urlencode(query={'valid': QueryCouponValidChoices.EXPIRED.value})
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 1)
         self.assertEqual(response.data['results'][0]['id'], coupon3_user.id)
+
+        query = parse.urlencode(query={'valid': QueryCouponValidChoices.NOT_YET.value})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
 
         # list user own coupon, paran "app_service_id"
         query = parse.urlencode(query={'app_service_id': self.app_service1.id})
@@ -336,14 +342,16 @@ class CashCouponTests(MyAPITestCase):
         self.assertEqual(response.data['results'][0]['face_value'], '188.80')
 
         # list user own coupon, paran "app_service_id" "valid"
-        query = parse.urlencode(query={'app_service_id': self.app_service1.id, 'valid': True})
+        query = parse.urlencode(query={
+            'app_service_id': self.app_service1.id, 'valid': QueryCouponValidChoices.VALID.value})
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 1)
         self.assertEqual(response.data['results'][0]['id'], coupon2_user.id)
         self.assertEqual(response.data['results'][0]['face_value'], '88.80')
 
-        query = parse.urlencode(query={'app_service_id': self.app_service2.id, 'valid': True})
+        query = parse.urlencode(query={
+            'app_service_id': self.app_service2.id, 'valid': QueryCouponValidChoices.VALID.value})
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 0)
@@ -399,14 +407,17 @@ class CashCouponTests(MyAPITestCase):
         self.assertEqual(response.data['count'], 0)
 
         # list vo coupon, paran "app_service_id" "valid"
-        query = parse.urlencode(query={'vo_id': self.vo.id, 'app_service_id': self.app_service1.id, 'valid': True})
+        query = parse.urlencode(query={
+            'vo_id': self.vo.id, 'app_service_id': self.app_service1.id, 'valid': QueryCouponValidChoices.VALID.value})
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 1)
         self.assertEqual(response.data['results'][0]['id'], coupon5_vo.id)
         self.assertEqual(response.data['results'][0]['face_value'], '388.80')
 
-        query = parse.urlencode(query={'vo_id': self.vo.id, 'app_service_id': self.app_service1.id, 'valid': False})
+        query = parse.urlencode(query={
+            'vo_id': self.vo.id, 'app_service_id': self.app_service1.id,
+            'valid': QueryCouponValidChoices.EXPIRED.value})
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 0)
@@ -1138,7 +1149,7 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         coupon2 = CashCoupon(
             face_value=Decimal('66.6'),
             balance=Decimal('66.6'),
-            effective_time=timezone.now(),
+            effective_time=timezone.now() - timedelta(days=1),
             expiration_time=timezone.now(),
             status=CashCoupon.Status.AVAILABLE.value,
             app_service_id=self.app_service1.id,
@@ -1149,8 +1160,8 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         coupon3 = CashCoupon(
             face_value=Decimal('66.68'),
             balance=Decimal('66.68'),
-            effective_time=timezone.now(),
-            expiration_time=timezone.now(),
+            effective_time=timezone.now() + timedelta(days=1),
+            expiration_time=timezone.now() + timedelta(days=2),
             status=CashCoupon.Status.AVAILABLE.value,
             app_service_id=self.app_service2.id,
             user_id=self.user2.id
@@ -1216,6 +1227,44 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         r = self.client.get(f'{url}?{query}')
         self.assertEqual(r.status_code, 200)
         self.assertIs(r.streaming, True)
+
+        # no permission
+        self.app_service1.users.remove(self.user)
+        query = parse.urlencode(query={})
+        r = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        # federal admin
+        self.user.set_federal_admin()
+
+        query = parse.urlencode(query={})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=['count', 'page_num', 'page_size', 'results'], container=r.data)
+        self.assertEqual(r.data['count'], 3)
+        self.assertEqual(len(r.data['results']), 3)
+
+        # query "valid_status"
+        query = parse.urlencode(query={'valid_status': QueryCouponValidChoices.NOT_YET.value})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 1)
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertEqual(r.data['results'][0]['id'], coupon3.id)
+
+        query = parse.urlencode(query={'valid_status': QueryCouponValidChoices.VALID.value})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 1)
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertEqual(r.data['results'][0]['id'], wait_coupon1.id)
+
+        query = parse.urlencode(query={'valid_status': QueryCouponValidChoices.EXPIRED.value})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 1)
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertEqual(r.data['results'][0]['id'], coupon2.id)
 
     def test_delete_cash_coupon(self):
         coupon2 = CashCoupon(

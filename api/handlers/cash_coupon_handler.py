@@ -6,6 +6,7 @@ from django.utils.http import urlquote
 from django.utils import timezone
 from django.http import StreamingHttpResponse
 from django.utils.translation import gettext as _
+from django.db.models import TextChoices
 from rest_framework.response import Response
 
 from users.managers import get_user_by_name
@@ -19,6 +20,12 @@ from utils.report_file import CSVFileInMemory
 from utils import rand_utils
 from utils.decimal_utils import quantize_10_2
 from .handlers import serializer_error_msg
+
+
+class QueryCouponValidChoices(TextChoices):
+    NOT_YET = 'notyet', '未起效'
+    VALID = 'valid', '有效期内'
+    EXPIRED = 'expired', '已过期'
 
 
 class CashCouponHandler:
@@ -67,11 +74,7 @@ class CashCouponHandler:
 
         if isinstance(valid, str):
             valid = valid.lower()
-            if valid == 'true':
-                valid = True
-            elif valid == 'false':
-                valid = False
-            else:
+            if valid not in QueryCouponValidChoices.values:
                 raise errors.InvalidArgument(message=_('参数“valid”值无效'), code='InvalidValid')
         else:
             valid = None
@@ -161,10 +164,11 @@ class CashCouponHandler:
         template_id = data['template_id']
         status = data['status']
         app_service_id = data['app_service_id']
+        valid = data['valid']
         download = data['download']
 
         queryset = CashCouponManager().admin_list_coupon_queryset(
-            user=request.user, template_id=template_id, app_service_id=app_service_id, status=status
+            user=request.user, template_id=template_id, app_service_id=app_service_id, status=status, valid=valid
         )
 
         if download:
@@ -182,14 +186,23 @@ class CashCouponHandler:
         template_id = request.query_params.get('template_id', None)
         status = request.query_params.get('status', None)
         app_service_id = request.query_params.get('app_service_id', None)
+        valid_status = request.query_params.get('valid_status', None)
         download = request.query_params.get('download', None)
 
         if status and status not in CashCoupon.Status.values:
             raise errors.InvalidArgument(message=_('参数“status”的值无效'))
 
+        if isinstance(valid_status, str):
+            valid = valid_status.lower()
+            if valid not in QueryCouponValidChoices.values:
+                raise errors.InvalidArgument(message=_('参数“valid”值无效'), code='InvalidValid')
+        else:
+            valid = None
+
         return {
             'template_id': template_id,
             'status': status,
+            'valid': valid,
             'app_service_id': app_service_id,
             'download': download is not None
         }

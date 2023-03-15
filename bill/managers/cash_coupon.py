@@ -286,30 +286,37 @@ class CashCouponManager:
 
     @staticmethod
     def _filter_cash_coupon_queryset(
-            queryset, app_service_id: str = None, valid: bool = None,
+            queryset, app_service_id: str = None, valid: str = None,
             app_service_category: str = None
     ):
+        """
+        :valid: notyet(未起效), valid(有效期内), expired(已过期)；None（不筛选）
+        """
         if app_service_id:
             queryset = queryset.filter(app_service_id=app_service_id)
 
         if app_service_category:
             queryset = queryset.filter(app_service__category=app_service_category)
 
-        if valid is True:
+        if valid:
             now = timezone.now()
-            queryset = queryset.filter(effective_time__lt=now, expiration_time__gt=now)
-        elif valid is False:
-            now = timezone.now()
-            queryset = queryset.filter(Q(effective_time__gt=now) | Q(expiration_time__lte=now))
+            if valid == 'valid':
+                queryset = queryset.filter(effective_time__lt=now, expiration_time__gt=now)
+            elif valid == 'notyet':
+                queryset = queryset.filter(effective_time__gt=now)
+            elif valid == 'expired':
+                queryset = queryset.filter(expiration_time__lte=now)
+            else:
+                raise errors.Error(message=_('参数“valid”值无效'))
 
         return queryset
 
     def get_user_cash_coupon_queryset(
-            self, user_id: str, app_service_id: str = None, valid: bool = None,
+            self, user_id: str, app_service_id: str = None, valid: str = None,
             app_service_category: str = None
     ):
         """
-        :valid: True(有效期内)；False(未生效或已过期)；None（不筛选）
+        :valid: notyet(未起效), valid(有效期内), expired(已过期)；None（不筛选）
         """
         queryset = self.get_queryset()
         queryset = queryset.filter(
@@ -323,11 +330,11 @@ class CashCouponManager:
         )
 
     def get_vo_cash_coupon_queryset(
-            self, user, vo_id: str, app_service_id: str = None, valid: bool = None,
+            self, user, vo_id: str, app_service_id: str = None, valid: str = None,
             app_service_category: str = None
     ):
         """
-        :valid: True(有效期内)；False(未生效或已过期)；None（不筛选）
+        :valid: notyet(未起效), valid(有效期内), expired(已过期)；None（不筛选）
         :raises: Error
         """
         VoManager().get_has_read_perm_vo(vo_id=vo_id, user=user)
@@ -516,11 +523,15 @@ class CashCouponManager:
         return queryset
 
     def admin_list_coupon_queryset(
-            self, user: UserProfile, template_id: str = None, app_service_id: str = None, status: str = None
+            self, user: UserProfile, template_id: str = None, app_service_id: str = None, status: str = None,
+            valid: str = None
     ):
+        """
+        :valid: notyet(未起效), valid(有效期内), expired(已过期)；None（不筛选）
+        """
         if user.is_federal_admin():
             return self.filter_coupon_queryset(
-                template_id=template_id, app_service_id=app_service_id, status=status
+                template_id=template_id, app_service_id=app_service_id, status=status, valid=valid
             )
 
         if not template_id and not app_service_id:
@@ -538,10 +549,16 @@ class CashCouponManager:
         if app_service_id:
             get_app_service_by_admin(_id=app_service_id, user=user)
 
-        return self.filter_coupon_queryset(template_id=template_id, app_service_id=app_service_id, status=status)
+        return self.filter_coupon_queryset(
+            template_id=template_id, app_service_id=app_service_id, status=status, valid=valid
+        )
 
     @staticmethod
-    def filter_coupon_queryset(template_id: str = None, app_service_id: str = None, status: str = None):
+    def filter_coupon_queryset(
+            template_id: str = None, app_service_id: str = None, status: str = None, valid: str = None):
+        """
+        :valid: notyet(未起效), valid(有效期内), expired(已过期)；None（不筛选）
+        """
         queryset = CashCoupon.objects.select_related('app_service', 'activity').all()
         if template_id:
             queryset = queryset.filter(activity_id=template_id)
@@ -551,6 +568,17 @@ class CashCouponManager:
 
         if status:
             queryset = queryset.filter(status=status)
+
+        if valid:
+            now = timezone.now()
+            if valid == 'valid':
+                queryset = queryset.filter(effective_time__lt=now, expiration_time__gt=now)
+            elif valid == 'notyet':
+                queryset = queryset.filter(effective_time__gt=now)
+            elif valid == 'expired':
+                queryset = queryset.filter(expiration_time__lte=now)
+            else:
+                raise errors.Error(message=_('参数“valid”值无效'))
 
         return queryset
 
