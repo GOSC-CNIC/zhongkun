@@ -96,7 +96,8 @@ class CashCouponViewSet(CustomGenericViewSet):
                         "activity": {                                # maybe None
                             "id": "75b63eee-cda9-11ec-8660-c8009fe2eb10",
                             "name": "test"
-                        }
+                        },
+                        "issuer": "test@cnic.cn"
                     }
                 ]
             }
@@ -326,7 +327,8 @@ class CashCouponViewSet(CustomGenericViewSet):
                 "activity": {                                # maybe None
                     "id": "75b63eee-cda9-11ec-8660-c8009fe2eb10",
                     "name": "test"
-                }
+                },
+                "issuer": "test@cnic.cn"
             }
         """
         return CashCouponHandler().detail_cash_coupon(view=self, request=request, kwargs=kwargs)
@@ -431,7 +433,8 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
                             "id": "75b63eee-cda9-11ec-8660-c8009fe2eb10",
                             "name": "test"
                         },
-                        "exchange_code": "771570982053927857"
+                        "exchange_code": "771570982053927857",
+                        "issuer": "test@cnic.cn"
                     }
                 ]
             }
@@ -472,7 +475,8 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
               },
               "vo": null,
               "activity": null,
-              "exchange_code": "771570982053927857"
+              "exchange_code": "771570982053927857",
+              "issuer": "test@cnic.cn"
             }
         """
         return CashCouponHandler.admin_create_cash_coupon(view=self, request=request)
@@ -542,7 +546,8 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
                     "id": "75b63eee-cda9-11ec-8660-c8009fe2eb10",
                     "name": "test"
                 },
-                "exchange_code": "771570982053927857"
+                "exchange_code": "771570982053927857",
+                "issuer": "test@cnic.cn"
             }
 
             http code 401, 403,404:

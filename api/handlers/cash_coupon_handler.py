@@ -347,7 +347,8 @@ class CashCouponHandler:
                     face_value=face_value,
                     effective_time=effective_time,
                     expiration_time=expiration_time,
-                    coupon_num=0
+                    coupon_num=0,
+                    issuer=request.user.username
                 )
             else:
                 coupon = CashCouponManager().create_one_coupon_to_user(
@@ -355,7 +356,8 @@ class CashCouponHandler:
                     app_service_id=app_service.id,
                     face_value=face_value,
                     effective_time=effective_time,
-                    expiration_time=expiration_time
+                    expiration_time=expiration_time,
+                    issuer=request.user.username
                 )
         except Exception as exc:
             return view.exception_response(exc)

@@ -284,7 +284,7 @@ class CashCoupon(CashCouponBase):
         verbose_name=_('活动'), to=CashCouponActivity, on_delete=models.SET_NULL, related_name='+',
         null=True, blank=True, default=None
     )
-    # creator = models.CharField(verbose_name=_('创建人'), max_length=128, blank=True, default='')
+    issuer = models.CharField(verbose_name=_('发放人'), max_length=128, blank=True, default='')
 
     class Meta:
         verbose_name = _('代金券')
@@ -360,6 +360,7 @@ class CashCoupon(CashCouponBase):
             effective_time: datetime,
             expiration_time: datetime,
             coupon_num: int,
+            issuer: str,
             activity_id: str = None
     ):
         """
@@ -377,7 +378,8 @@ class CashCoupon(CashCouponBase):
             balance=face_value,
             status=CashCoupon.Status.WAIT.value,
             granted_time=timezone.now(),
-            activity_id=activity_id
+            activity_id=activity_id,
+            issuer=issuer,
         )
 
         if coupon_num:

@@ -749,6 +749,7 @@ class CashCouponSerializer(serializers.Serializer):
     user = serializers.SerializerMethodField(label=_('用户'))
     vo = serializers.SerializerMethodField(label=_('VO组'))
     activity = serializers.SerializerMethodField(label=_('活动'))
+    issuer = serializers.CharField(label=_('发放人'))
 
     @staticmethod
     def get_app_service(obj):

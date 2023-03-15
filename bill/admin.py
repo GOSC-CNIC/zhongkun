@@ -123,7 +123,7 @@ class CashCouponActivityAdmin(admin.ModelAdmin):
 @admin.register(CashCoupon)
 class CashCouponAdmin(admin.ModelAdmin):
     list_display = ('id', 'activity', 'face_value', 'balance', 'effective_time', 'expiration_time', 'status',
-                    'app_service', 'user', 'vo', 'owner_type',
+                    'app_service', 'user', 'vo', 'owner_type', 'issuer',
                     'granted_time', 'exchange_code', 'creation_time')
     list_display_links = ('id',)
     list_select_related = ('app_service', 'user', 'vo', 'activity')

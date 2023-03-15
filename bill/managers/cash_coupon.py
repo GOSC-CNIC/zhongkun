@@ -201,6 +201,7 @@ class CashCouponManager:
             effective_time: datetime,
             expiration_time: datetime,
             coupon_num: int,
+            issuer: str,
             activity_id: str = None
     ):
         """
@@ -224,7 +225,8 @@ class CashCouponManager:
                     expiration_time=expiration_time,
                     app_service_id=app_service_id,
                     activity_id=activity_id,
-                    coupon_num=coupon_num
+                    coupon_num=coupon_num,
+                    issuer=issuer
                 )
                 return coupon, coupon_num
             except Exception as e:
@@ -242,7 +244,8 @@ class CashCouponManager:
             expiration_time=expiration_time,
             app_service_id=app_service_id,
             activity_id=activity_id,
-            coupon_num=coupon_num
+            coupon_num=coupon_num,
+            issuer=issuer
         )
         return coupon, coupon_num
 
@@ -265,6 +268,7 @@ class CashCouponManager:
             face_value: Decimal,
             effective_time: datetime,
             expiration_time: datetime,
+            issuer: str,
             activity_id: str = None
     ):
         """
@@ -278,7 +282,8 @@ class CashCouponManager:
                 effective_time=effective_time,
                 expiration_time=expiration_time,
                 activity_id=activity_id,
-                coupon_num=num + 1
+                coupon_num=num + 1,
+                issuer=issuer
             )
             self.grant_cash_coupon_to_user(coupon=coupon, user=user)
 
@@ -610,7 +615,7 @@ class CashCouponActivityManager:
         if not self.has_coupon_template_perm(activity=activity, user=user):
             raise errors.AccessDenied(message=_('你没有此券模板的券的发放权限'))
 
-        coupon, coupon_num = self.clone_coupon(activity=activity, coupon_num=0)
+        coupon, coupon_num = self.clone_coupon(activity=activity, coupon_num=0, issuer=user.username)
         return coupon
 
     @staticmethod
@@ -666,7 +671,7 @@ class CashCouponActivityManager:
             coupon_num = 0
             for index in range(1, count + 1):
                 try:
-                    c, coupon_num = self.clone_coupon(activity=activity, coupon_num=coupon_num)
+                    c, coupon_num = self.clone_coupon(activity=activity, coupon_num=coupon_num, issuer=user.username)
                     coupon_num += 1
                 except Exception as e:
                     raise e
@@ -685,12 +690,13 @@ class CashCouponActivityManager:
         return activity, index, raise_exc
 
     @staticmethod
-    def clone_coupon(activity, coupon_num: int):
+    def clone_coupon(activity, coupon_num: int, issuer: str):
         """
         尝试多次尽量确保创建券成功
 
         :param activity: 券模板
         :param coupon_num: 券日编号，大于0有效，其他默认使用当前时间微妙数
+        :param issuer: 券发放人
         :return:{
             coupon,             # 券对象
             coupon_num: int     # 当前券日编号
@@ -704,6 +710,7 @@ class CashCouponActivityManager:
             effective_time=activity.effective_time,
             expiration_time=activity.expiration_time,
             coupon_num=coupon_num,
-            activity_id=activity.id
+            activity_id=activity.id,
+            issuer=issuer
         )
         return coupon, coupon_num
