@@ -1,3 +1,4 @@
+from decimal import Decimal
 from datetime import datetime
 
 from django.utils.translation import gettext as _
@@ -522,20 +523,13 @@ class ServerHandler:
             original_price, trade_price = omgr.calculate_amount_money(
                 resource_type=ResourceType.VM.value, config=instance_config, is_prepaid=False, period=0, days=1
             )
-            if owner_type == OwnerType.USER.value:
-                if not PaymentManager().has_enough_balance_user(
-                        user_id=user.id, money_amount=original_price, with_coupons=True,
-                        app_service_id=service.pay_app_service_id
-                ):
-                    return view.exception_response(
-                        exceptions.BalanceNotEnough(message=_('余额不足')))
-            else:
-                if not PaymentManager().has_enough_balance_vo(
-                        vo_id=vo_id, money_amount=original_price, with_coupons=True,
-                        app_service_id=service.pay_app_service_id
-                ):
-                    return view.exception_response(
-                        exceptions.BalanceNotEnough(message=_('余额不足'), code='VoBalanceNotEnough'))
+
+            try:
+                self.__check_balance_create_server_order(
+                    service=service, owner_type=owner_type, user=user, vo_id=vo_id, day_price=original_price
+                )
+            except Exception as exc:
+                return view.exception_response(exc)
 
         # 服务私有资源配额是否满足需求
         try:
@@ -588,6 +582,43 @@ class ServerHandler:
         return Response(data={
             'order_id': order.id
         })
+
+    @staticmethod
+    def __check_balance_create_server_order(service, owner_type: str, user, vo_id: str, day_price: Decimal):
+        """
+        按量付费模式云主机订购时，检查余额是否满足限制条件
+
+            * 余额和券金额 / 按量一天计费金额 = 服务单元可以创建的按量付费云主机数量
+
+        :raises: Error, BalanceNotEnough
+        """
+
+        if owner_type == OwnerType.USER.value:
+            qs = ServerManager().get_user_servers_queryset(
+                user=user, service_id=service.id, pay_type=PayType.POSTPAID.value)
+            s_count = qs.count()
+            money_amount = day_price * (s_count + 1)
+
+            if not PaymentManager().has_enough_balance_user(
+                    user_id=user.id, money_amount=money_amount, with_coupons=True,
+                    app_service_id=service.pay_app_service_id
+            ):
+                raise exceptions.BalanceNotEnough(
+                    message=_('你在指定服务单元中已拥有%(value)d台按量计费的云主机，你的余额不足，不能订购更多的云主机。'
+                              ) % {'value': s_count})
+        else:
+            qs = ServerManager().get_vo_servers_queryset(
+                vo_id=vo_id, service_id=service.id, pay_type=PayType.POSTPAID.value)
+            s_count = qs.count()
+            money_amount = day_price * (s_count + 1)
+
+            if not PaymentManager().has_enough_balance_vo(
+                    vo_id=vo_id, money_amount=money_amount, with_coupons=True,
+                    app_service_id=service.pay_app_service_id
+            ):
+                raise exceptions.BalanceNotEnough(
+                    message=_('项目组在指定服务单元中已拥有%(value)d台按量计费的云主机，项目组的余额不足，不能订购更多的云主机。'
+                              ) % {'value': s_count}, code='VoBalanceNotEnough')
 
     @staticmethod
     def _create_server(order: Order, resource: Resource):

@@ -138,7 +138,7 @@ class ServerManager:
 
         return qs
 
-    def get_vo_servers_queryset(self, vo_id: str, service_id: str = None, expired: bool = None):
+    def get_vo_servers_queryset(self, vo_id: str, service_id: str = None, expired: bool = None, pay_type: str = None):
         """
         查询vo组的server
         """
@@ -153,6 +153,9 @@ class ServerManager:
             qs = qs.filter(expiration_time__lte=timezone.now())
         elif expired is False:
             qs = qs.filter(~Q(expiration_time__lte=timezone.now()))
+
+        if pay_type:
+            qs = qs.filter(pay_type=pay_type)
 
         return qs
 
