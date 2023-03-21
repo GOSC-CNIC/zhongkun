@@ -167,13 +167,17 @@ class IHarborClient:
             data = {'name': params.bucket_name, 'username': params.username}
             r = self.do_request(
                 method='post', url=url, data=data,
-                ok_status_codes=[200, 400, 403, 409], headers=headers
+                ok_status_codes=[200, 400, 403, 409, 504], headers=headers
             )
         except errors.Error as e:
             return OutputConverter.to_bucket_create_output_error(e)
 
         if r.status_code == 200:
             return OutputConverter.to_bucket_create_output(r.json())
+
+        if r.status_code == 504:
+            return OutputConverter.to_bucket_create_output_error(
+                errors.GatewayTimeout(message='创建存储桶请求超时'))
 
         err_code = get_failed_err_code(r)
         msg = get_failed_msg(r)

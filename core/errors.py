@@ -414,6 +414,12 @@ class TargetAlreadyExists(ConflictError):
     default_code = 'TargetAlreadyExists'
 
 
+class GatewayTimeout(APIException):
+    default_message = '请求超时'
+    default_code = 'GatewayTimeout'
+    default_status_code = 504
+
+
 def convert_to_error(err):
     if isinstance(err, Error):
         return err

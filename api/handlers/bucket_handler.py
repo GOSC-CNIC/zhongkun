@@ -10,6 +10,7 @@ from api.serializers import storage as storage_serializers
 from bill.managers import PaymentManager
 from storage.adapter import inputs
 from storage.managers import BucketManager
+from storage.models import Bucket
 from .handlers import serializer_error_msg
 
 
@@ -29,12 +30,16 @@ class BucketHandler:
         except Exception as exc:
             return view.exception_response(exceptions.convert_to_error(exc))
 
+        bcount = BucketManager.get_user_service_bucket_count(service_id=service.id, user=user)
+        money_amount = Decimal('100') * (bcount + 1)
         if not PaymentManager().has_enough_balance_user(
-                user_id=user.id, money_amount=Decimal('100'), with_coupons=True,
+                user_id=user.id, money_amount=money_amount, with_coupons=True,
                 app_service_id=service.pay_app_service_id
         ):
             return view.exception_response(
-                exceptions.BalanceNotEnough(message=_('创建存储桶要求余额或代金券余额大于100')))
+                exceptions.BalanceNotEnough(
+                    message=_('你已经拥有%(value)d个存储桶在指定服务单元中，') % {
+                        'value': bcount} + _('您的余额或代金券余额不足，不能创建更多的存储桶。')))
 
         try:
             bucket = BucketManager.get_bucket(service_id=service.id, bucket_name=bucket_name)
@@ -47,11 +52,18 @@ class BucketHandler:
             params = inputs.BucketCreateInput(bucket_name=bucket_name, username=user.username)
             r = view.request_service(service=service, method='bucket_create', params=params)
         except Exception as exc:
+            if isinstance(exc, exceptions.Error):
+                if exc.code == 'Adapter.GatewayTimeout':
+                    BucketManager.create_bucket(
+                        bucket_name=bucket_name, bucket_id='', user_id=user.id,
+                        service_id=service.id, task_status=Bucket.TaskStatus.CREATING.value
+                    )
+
             return view.exception_response(exceptions.convert_to_error(exc))
 
         bucket = BucketManager.create_bucket(
             bucket_name=bucket_name, bucket_id=r.bucket_id, user_id=user.id,
-            service_id=service.id
+            service_id=service.id, task_status=Bucket.TaskStatus.SUCCESS.value
         )
         return Response(data=storage_serializers.BucketSerializer(instance=bucket).data)
 

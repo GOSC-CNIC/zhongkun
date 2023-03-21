@@ -94,9 +94,28 @@ class ObjectsService(UuidModel):
 
 
 class BucketBase(UuidModel):
+
+    class TaskStatus(models.TextChoices):
+        SUCCESS = 'created', _('创建成功')
+        CREATING = 'creating', _('正在创建中')
+        FAILED = 'failed', _('创建失败')
+
+    class Situation(models.TextChoices):
+        NORMAL = 'normal', _('正常')
+        ARREARAGE = 'arrearage', _('欠费')
+        LOCK = 'lock', _('欠费锁定')
+
     bucket_id = models.CharField(max_length=36, verbose_name=_('存储桶ID'), help_text=_('存储桶在对象存储服务单元中的id'))
     name = models.CharField(max_length=63, verbose_name=_('存储桶名称'))
     creation_time = models.DateTimeField(verbose_name=_('创建时间'))
+    task_status = models.CharField(
+        verbose_name=_('创建状态'), max_length=16, choices=TaskStatus.choices, default=TaskStatus.SUCCESS.value)
+    situation = models.CharField(
+        verbose_name=_('过期欠费管控情况'), max_length=16, choices=Situation.choices, default=Situation.NORMAL.value,
+        help_text=_('欠费状态下存储桶读写锁定管控情况')
+    )
+    situation_time = models.DateTimeField(
+        verbose_name=_('管控情况时间'), null=True, blank=True, default=None, help_text=_('欠费管控开始时间'))
 
     class Meta:
         abstract = True
@@ -129,6 +148,9 @@ class Bucket(BucketBase):
         arc.user_id = self.user_id
         arc.service_id = self.service_id
         arc.archiver = archiver
+        arc.task_status = self.task_status
+        arc.situation = self.situation
+        arc.situation_time = self.situation_time
 
         try:
             with transaction.atomic():

@@ -555,6 +555,7 @@ class CashCouponManager:
             app_service_ids = [app_service_id] if app_service_id else None
         else:
             app_service_ids = PayAppService.objects.filter(users__id=user.id).values_list('id', flat=True)
+            app_service_ids = list(app_service_ids)
             if not app_service_ids:
                 return CashCoupon.objects.none()
 

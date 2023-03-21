@@ -51,6 +51,9 @@ class BucketTests(MyAPITestCase):
         self.assertErrorResponse(status_code=409, code='BucketAlreadyExists', response=r)
 
         r = self.client.post(url, data={'name': 'test_-', 'service_id': self.service.id})
+        self.assertErrorResponse(status_code=400, code='InvalidName', response=r)
+
+        r = self.client.post(url, data={'name': 'test_dev', 'service_id': self.service.id})
         self.assertErrorResponse(status_code=500, code='Adapter.BadRequest', response=r)
 
     def test_delete_bucket(self):

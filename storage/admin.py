@@ -46,10 +46,11 @@ class ObjectsServiceAdmin(admin.ModelAdmin):
 
 @admin.register(models.Bucket)
 class BucketAdmin(NoDeleteSelectModelAdmin):
-    list_display = ('id', 'name', 'bucket_id', 'service', 'creation_time', 'user')
+    list_display = ('id', 'name', 'bucket_id', 'service', 'creation_time', 'user',
+                    'task_status', 'situation', 'situation_time')
     list_select_related = ('service', 'user')
     raw_id_fields = ('user',)
-    list_filter = ['service']
+    list_filter = ['service', 'situation', 'task_status']
     search_fields = ['name', 'user__username', 'id']
 
     def delete_model(self, request, obj):
@@ -70,7 +71,8 @@ class BucketAdmin(NoDeleteSelectModelAdmin):
 
 @admin.register(models.BucketArchive)
 class BucketArchiveAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'service', 'creation_time', 'user', 'delete_time', 'archiver')
+    list_display = ('id', 'name', 'service', 'creation_time', 'user', 'delete_time', 'archiver',
+                    'task_status', 'situation', 'situation_time')
     list_select_related = ('service', 'user')
     raw_id_fields = ('user',)
     search_fields = ['name', 'user__username', 'original_id']
