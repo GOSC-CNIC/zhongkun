@@ -5,7 +5,7 @@ from django import forms
 from utils.model import NoDeleteSelectModelAdmin
 from .models import (
     PaymentHistory, UserPointAccount, VoPointAccount, PayApp, CashCouponActivity, CashCoupon,
-    PayOrgnazition, PayAppService, TransactionBill, RefundRecord, Recharge
+    PayOrgnazition, PayAppService, TransactionBill, RefundRecord, Recharge, CashCouponPaymentHistory
 )
 from .managers import CashCouponActivityManager
 
@@ -30,6 +30,24 @@ class PaymentHistoryAdmin(admin.ModelAdmin):
         return False
 
     def has_change_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(CashCouponPaymentHistory)
+class CashCouponPaymentHistoryAdmin(admin.ModelAdmin):
+    list_display = ('id', 'payment_history', 'cash_coupon', 'amounts', 'before_payment', 'after_payment',
+                    'creation_time')
+    list_display_links = ('id',)
+    list_select_related = ('payment_history', 'cash_coupon')
+    search_fields = ('id', 'cash_coupon__id', 'payment_history__id')
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_add_permission(self, request, obj=None):
         return False
 
 
