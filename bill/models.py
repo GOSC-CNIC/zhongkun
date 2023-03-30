@@ -285,6 +285,8 @@ class CashCoupon(CashCouponBase):
         null=True, blank=True, default=None
     )
     issuer = models.CharField(verbose_name=_('发放人'), max_length=128, blank=True, default='')
+    balance_notice_time = models.DateTimeField(verbose_name=_('余额不足通知时间'), null=True, blank=True, default=None)
+    expire_notice_time = models.DateTimeField(verbose_name=_('过期通知时间'), null=True, blank=True, default=None)
 
     class Meta:
         verbose_name = _('代金券')

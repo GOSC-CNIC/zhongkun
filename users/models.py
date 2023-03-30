@@ -151,34 +151,35 @@ class Email(UuidModel):
         verbose_name = _('邮件')
         verbose_name_plural = verbose_name
 
-    def send_email(self, subject='GOSC', receiver=None, message=None):
+    @classmethod
+    def send_email(cls, subject: str, receivers: list, message: str, fail_silently=True):
         """
         发送用户激活邮件
 
         :param subject: 标题
-        :param receiver: 接收者邮箱
+        :param receivers: 接收者邮箱
         :param message: 邮件内容
-        :return: True(发送成功)；False(发送失败)
+        :param fail_silently: 是否抛出异常
+        :return:
+            Email()     # 发送成功
+            None        # 发送失败
         """
-        self.subject = subject
-        if receiver:
-            self.receiver = receiver
-        if message:
-            self.message = message
-
-        self.sender = settings.EMAIL_HOST_USER
-        self.email_host = settings.EMAIL_HOST
+        email = cls(
+            subject=subject, receiver=receivers[0], message=message,
+            sender=settings.EMAIL_HOST_USER,
+            email_host=settings.EMAIL_HOST
+        )
 
         ok = send_mail(
-            subject=self.subject,  # 标题
-            message=self.message,  # 内容
-            from_email=self.sender,  # 发送者
-            recipient_list=[self.receiver],  # 接收者
-            # html_message=self.message,        # 内容
-            fail_silently=True,  # 不抛出异常
+            subject=email.subject,  # 标题
+            message=email.message,  # 内容
+            from_email=email.sender,  # 发送者
+            recipient_list=receivers,  # 接收者
+            # html_message=self.message,    # 内容
+            fail_silently=fail_silently,
         )
         if ok == 0:
-            return False
+            return None
 
-        self.save()  # 邮件记录
-        return True
+        email.save(force_insert=True)  # 邮件记录
+        return email
