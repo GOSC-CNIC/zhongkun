@@ -12,4 +12,4 @@ setup()
 from scripts.coupon.coupon_notifier import CouponNotifier
 
 if __name__ == "__main__":
-    CouponNotifier().run()
+    CouponNotifier(log_stdout=False).run()
