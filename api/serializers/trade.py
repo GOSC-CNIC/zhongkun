@@ -133,6 +133,10 @@ class TransactionBillSerializer(serializers.Serializer):
     # account = serializers.CharField(label=_('付款账户'), max_length=36, help_text=_('用户或VO余额ID, 及可能支持的其他账户'))
 
 
+class AdminTransactionBillSerializer(TransactionBillSerializer):
+    operator = serializers.CharField(label=_('交易操作人'), max_length=128, help_text=_('记录此次支付交易是谁执行完成的'))
+
+
 class AppTransactionBillSerializer(serializers.Serializer):
     id = serializers.CharField(label=_('交易流水编号'), max_length=36)
     subject = serializers.CharField(label=_('标题'), max_length=256, default='')

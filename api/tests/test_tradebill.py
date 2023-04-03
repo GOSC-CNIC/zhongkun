@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from utils.model import OwnerType
 from vo.models import VirtualOrganization
-from bill.models import TransactionBill
+from bill.models import TransactionBill, PayAppService, PayOrgnazition, PayApp
 from bill.managers.bill import TransactionBillManager
 from . import MyAPITestCase, get_or_create_user
 
@@ -20,6 +20,21 @@ class TradeBillTests(MyAPITestCase):
             name='test vo', owner=self.user
         )
         self.vo.save()
+
+        app = PayApp(name='app')
+        app.save()
+        po = PayOrgnazition(name='机构')
+        po.save()
+        self.app_service1 = PayAppService(
+            id=self.pay_app_service1_id, name='service1', name_en='service1 en', app=app, orgnazition=po, service_id='',
+            category=PayAppService.Category.VMS_SERVER.value
+        )
+        self.app_service1.save(force_insert=True)
+        self.app_service2 = PayAppService(
+            id=self.pay_app_service2_id, name='service2', name_en='service2 en', app=app, orgnazition=po, service_id='',
+            category=PayAppService.Category.VMS_OBJECT.value
+        )
+        self.app_service2.save(force_insert=True)
 
     def init_bill_data(self):
         time_now = timezone.now()
@@ -326,3 +341,272 @@ class TradeBillTests(MyAPITestCase):
         self.assertEqual(len(r.data['results']), 1)
         self.assertEqual(r.data['results'][0]['id'], bill5.id)
         self.assertEqual(r.data['results'][0]['amounts'], '5.55')
+
+    def test_admin_list_bills(self):
+        bill1, bill2, bill3, bill4, bill5, bill6, bill7 = self.init_bill_data()
+
+        base_url = reverse('api:admin-tradebill-list')
+        r = self.client.get(base_url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+
+        # default current month
+        self.client.force_login(self.user)
+        r = self.client.get(base_url)
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(["has_next", "marker", "next_marker", "page_size", "results"], r.data)
+        self.assertEqual(len(r.data['results']), 0)
+
+        # date_start - date_end
+        query = parse.urlencode(query={
+            'time_start': '2022-03-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z'
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data['results']), 0)
+
+        # service1 admin
+        self.app_service1.users.add(self.user)
+        query = parse.urlencode(query={
+            'time_start': '2022-03-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z'
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data['results']), 2)
+        self.assertKeysIn([
+            "id", "subject", "trade_type", "trade_id", 'out_trade_no', 'trade_amounts', "amounts",
+            "coupon_amount", "after_balance", "creation_time",
+            "remark", "owner_id", "owner_name", "owner_type", "app_service_id", "operator"
+        ], r.data['results'][0])
+        self.assertEqual(bill3.id, r.data['results'][0]['id'])
+        self.assertEqual(bill2.id, r.data['results'][1]['id'])
+
+        # invalid time_end
+        query = parse.urlencode(query={
+            'time_end': '2022-04-01T00:00:01'
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 400)
+
+        # invalid time_start
+        query = parse.urlencode(query={
+            'time_start': '2022-02-30T00:00:00Z'
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 400)
+
+        # date_start date_end timedelta less than one year
+        query = parse.urlencode(query={
+            'time_start': '2021-03-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z'
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 400)
+
+        # query page_size
+        query = parse.urlencode(query={
+            'time_start': '2022-03-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z', 'page_size': 2
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertIs(r.data["has_next"], False)
+        self.assertEqual(r.data["page_size"], 2)
+        self.assertEqual(r.data['marker'], None)
+        self.assertIs(r.data['next_marker'], None)
+        self.assertEqual(len(r.data['results']), 2)
+
+        query = parse.urlencode(query={
+            'time_start': '2022-03-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z', 'page_size': 1
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertIs(r.data["has_next"], True)
+        self.assertEqual(r.data["page_size"], 1)
+        self.assertEqual(r.data['marker'], None)
+        self.assertTrue(r.data['next_marker'])
+        self.assertEqual(len(r.data['results']), 1)
+
+        query = parse.urlencode(query={
+            'time_start': '2022-02-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z', 'page_size': 4
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertIs(r.data["has_next"], False)
+        self.assertEqual(r.data["page_size"], 4)
+        self.assertEqual(r.data['marker'], None)
+        self.assertFalse(r.data['next_marker'])
+        self.assertEqual(len(r.data['results']), 3)
+
+        # query 'trade_type'
+        query = parse.urlencode(query={
+            'time_start': '2022-01-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
+            'trade_type': TransactionBill.TradeType.PAYMENT.value
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data['results']), 3)
+        self.assertEqual(r.data['results'][0]['id'], bill3.id)
+        self.assertEqual(r.data['results'][1]['id'], bill2.id)
+        self.assertEqual(r.data['results'][2]['id'], bill1.id)
+
+        query = parse.urlencode(query={
+            'time_start': '2022-01-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
+            'trade_type': TransactionBill.TradeType.REFUND.value
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data['results']), 0)
+
+        # param service1_id
+        query = parse.urlencode(query={
+            'time_start': '2022-02-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
+            'app_service_id': self.app_service1.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data['results']), 3)
+        self.assertEqual(r.data['results'][0]['id'], bill3.id)
+        self.assertEqual(r.data['results'][1]['id'], bill2.id)
+        self.assertEqual(r.data['results'][2]['id'], bill1.id)
+
+        # param service2_id
+        query = parse.urlencode(query={
+            'time_start': '2022-02-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
+            'app_service_id': self.pay_app_service2_id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        # param 'vo_id'
+        query = parse.urlencode(query={
+            'time_start': '2022-02-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
+            'vo_id': self.vo.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertEqual(r.data['results'][0]['id'], bill3.id)
+
+        # param 'user_id'
+        query = parse.urlencode(query={
+            'time_start': '2022-02-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
+            'user_id': self.user.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data['results']), 2)
+        self.assertEqual(r.data['results'][0]['id'], bill2.id)
+        self.assertEqual(r.data['results'][1]['id'], bill1.id)
+
+        # param 'user_id' and 'vo_id
+        query = parse.urlencode(query={
+            'time_start': '2022-02-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
+            'user_id': self.user.id, 'vo_id': self.vo.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='BadRequest', response=r)
+
+        # -------------- federal admin -------------
+        self.user.set_federal_admin()
+
+        query = parse.urlencode(query={
+            'time_start': '2022-02-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z'
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data['results']), 4)
+        self.assertEqual(r.data['results'][0]['id'], bill6.id)
+        self.assertEqual(r.data['results'][1]['id'], bill3.id)
+        self.assertEqual(r.data['results'][2]['id'], bill2.id)
+        self.assertEqual(r.data['results'][3]['id'], bill1.id)
+
+        # app_service_id
+        query = parse.urlencode(query={
+            'time_start': '2022-02-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
+            'app_service_id': self.app_service2.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertEqual(r.data['results'][0]['id'], bill6.id)
+
+        # app_service_id
+        query = parse.urlencode(query={
+            'time_start': '2022-01-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
+            'app_service_id': self.app_service2.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data['results']), 3)
+        self.assertEqual(r.data['results'][0]['id'], bill6.id)
+        self.assertEqual(r.data['results'][1]['id'], bill5.id)
+        self.assertEqual(r.data['results'][2]['id'], bill7.id)
+
+        # app_service_id, user_id
+        query = parse.urlencode(query={
+            'time_start': '2022-01-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
+            'app_service_id': self.app_service2.id, 'user_id': self.user.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data['results']), 2)
+        self.assertEqual(r.data['results'][0]['id'], bill6.id)
+        self.assertEqual(r.data['results'][1]['id'], bill7.id)
+
+        # 'vo_id
+        query = parse.urlencode(query={
+            'time_start': '2022-02-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z', 'vo_id': self.vo.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertEqual(r.data['results'][0]['id'], bill3.id)
+        self.assertEqual(r.data['results'][0]['amounts'], '-3.33')
+
+        # query 'trade_type'
+        query = parse.urlencode(query={
+            'time_start': '2022-01-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
+            'vo_id': self.vo.id, 'trade_type': TransactionBill.TradeType.PAYMENT.value
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertEqual(r.data['results'][0]['id'], bill3.id)
+        self.assertEqual(r.data['results'][0]['amounts'], '-3.33')
+
+        query = parse.urlencode(query={
+            'time_start': '2022-01-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
+            'vo_id': self.vo.id, 'trade_type': TransactionBill.TradeType.REFUND.value
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertEqual(r.data['results'][0]['id'], bill5.id)
+        self.assertEqual(r.data['results'][0]['amounts'], '5.55')
+
+        # query page_size
+        query = parse.urlencode(query={
+            'time_start': '2022-02-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z', 'page_size': 3
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertIs(r.data["has_next"], True)
+        self.assertEqual(r.data["page_size"], 3)
+        self.assertEqual(r.data['marker'], None)
+        self.assertIsNotNone(r.data['next_marker'], None)
+        self.assertEqual(len(r.data['results']), 3)
+        self.assertEqual(r.data['results'][0]['id'], bill6.id)
+        self.assertEqual(r.data['results'][1]['id'], bill3.id)
+        self.assertEqual(r.data['results'][2]['id'], bill2.id)
+        next_marker = r.data['next_marker']
+
+        query = parse.urlencode(query={
+            'time_start': '2022-02-01T00:00:00Z', 'time_end': '2022-04-01T00:00:00Z',
+            'marker': next_marker, 'page_size': 3
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertIs(r.data["has_next"], False)
+        self.assertEqual(r.data["page_size"], 3)
+        self.assertEqual(r.data['marker'], next_marker)
+        self.assertIs(r.data['next_marker'], None)
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertEqual(r.data['results'][0]['id'], bill1.id)

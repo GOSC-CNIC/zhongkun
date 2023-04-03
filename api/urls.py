@@ -76,6 +76,7 @@ no_slash_router.register(r'support/ticket', ticket_views.TicketViewSet, basename
 
 no_slash_router.register(r'admin/cashcoupon', cash_coupon_views.AdminCashCouponViewSet, basename='admin-coupon')
 no_slash_router.register(r'admin/storage/bucket', bucket_views.AdminBucketViewSet, basename='admin-bucket')
+no_slash_router.register(r'admin/trade/tradebill', tradebill_views.AdminTradeBillViewSet, basename='admin-tradebill')
 
 urlpatterns = [
     path('', include(no_slash_router.urls)),

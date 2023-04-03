@@ -92,6 +92,47 @@ class TradeBillHandler:
         }
 
     @staticmethod
+    def admin_list_transaction_bills(view: TradeGenericViewSet, request):
+        try:
+            data = TradeBillHandler.admin_list_transaction_bills_validate_params(view=view, request=request)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        admin_user = request.user
+        vo_id = data['vo_id']
+        user_id = data['user_id']
+        time_start = data['time_start']
+        time_end = data['time_end']
+        trade_type = data['trade_type']
+        app_service_id = data['app_service_id']
+        tbm = TransactionBillManager()
+
+        try:
+            queryset = tbm.admin_transaction_bill_queryset(
+                admin_user=admin_user, vo_id=vo_id, user_id=user_id, time_start=time_start, time_end=time_end,
+                trade_type=trade_type, app_service_id=app_service_id
+            )
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        try:
+            bills = view.paginate_queryset(queryset)
+            serializer = view.get_serializer(instance=bills, many=True)
+            return view.get_paginated_response(serializer.data)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+    @staticmethod
+    def admin_list_transaction_bills_validate_params(view, request) -> dict:
+        user_id = request.query_params.get('user_id', None)
+        data = TradeBillHandler.list_transaction_bills_validate_params(view=view, request=request)
+        if data['vo_id'] and user_id:
+            raise errors.BadRequest(message=_('不能同时查询用户和VO组的流水账单。'))
+
+        data['user_id'] = user_id
+        return data
+
+    @staticmethod
     def list_app_transaction_bills(view: PaySignGenericViewSet, request):
 
         try:

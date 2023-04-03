@@ -5,7 +5,7 @@ from django.utils.translation import gettext as _
 from django.db.models import Sum
 
 from core import errors
-from bill.models import PaymentHistory, CashCouponPaymentHistory, TransactionBill, RefundRecord
+from bill.models import PaymentHistory, CashCouponPaymentHistory, TransactionBill, RefundRecord, PayAppService
 from utils.model import OwnerType
 from vo.managers import VoManager
 
@@ -272,6 +272,36 @@ class TransactionBillManager:
             queryset = queryset.filter(trade_type=trade_type)
 
         return queryset.order_by('-creation_time')
+
+    def admin_transaction_bill_queryset(
+            self,
+            admin_user,
+            user_id: str,
+            vo_id: str,
+            trade_type: str = None,
+            time_start: datetime = None,
+            time_end: datetime = None,
+            app_service_id: str = None
+    ):
+        """
+        :raises: Error
+        """
+        service_ids = [app_service_id, ] if app_service_id else None
+        if not admin_user.is_federal_admin():
+            if app_service_id:
+                app_service = PayAppService.objects.filter(id=app_service_id, users__id=admin_user.id).first()
+                if app_service is None:
+                    raise errors.AccessDenied(message=_('你没有指定app子服务的管理权限。'))
+            else:
+                app_service_ids = PayAppService.objects.filter(users__id=admin_user.id).values_list('id', flat=True)
+                service_ids = list(app_service_ids)
+                if not service_ids:
+                    return TransactionBill.objects.none()
+
+        return self.filter_queryset(
+            vo_id=vo_id, user_id=user_id, trade_type=trade_type, time_start=time_start, time_end=time_end,
+            app_service_ids=service_ids
+        )
 
     @staticmethod
     def get_app_transaction_bill_queryset(
