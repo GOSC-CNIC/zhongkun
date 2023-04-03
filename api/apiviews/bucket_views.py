@@ -202,6 +202,32 @@ class AdminBucketViewSet(StorageGenericViewSet):
         """
         return BucketHandler.admin_list_bucket(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('管理员查询存储桶统计信息'),
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['GET'], detail=True, url_path=r'stats/service/(?P<service_id>[^/]+)', url_name='stats-bucket')
+    def stats_bucket(self, request, *args, **kwargs):
+        """
+        管理员查询存储桶统计信息
+
+            {
+              "bucket": {
+                "id": "3a642594-59be-11ed-83d1-c8009fe2ebbc",
+                "name": "test2",
+                "service_id": "2cd1d0a8-388e-11ed-bbc7-c8009fe2ebbc",
+                "service_name": "开发环境"
+              },
+              "stats": {
+                "objects_count": 2,
+                "bucket_size_byte": 72975
+              }
+            }
+        """
+        return BucketHandler.admin_stats_bucket(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return storage_serializers.AdminBucketSerializer

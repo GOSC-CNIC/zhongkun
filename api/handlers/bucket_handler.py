@@ -154,3 +154,30 @@ class BucketHandler:
             return view.get_paginated_response(data=serializer.data)
         except Exception as exc:
             return view.exception_response(exc)
+
+    @staticmethod
+    def admin_stats_bucket(view: StorageGenericViewSet, request, kwargs):
+        service_id = kwargs.get('service_id', None)
+        bucket_name = kwargs.get(view.lookup_field, '')
+
+        from storage.models import ObjectsService
+        try:
+            bucket = BucketManager().get_bucket(service_id=service_id, bucket_name=bucket_name)
+            service: ObjectsService = bucket.service
+            if not request.user.is_federal_admin():
+                if not service.is_admin_user(user_id=request.user.id):
+                    raise exceptions.AccessDenied(message=_('你没有指定服务单元的管理权限。'))
+
+            params = inputs.BucketStatsInput(bucket_name=bucket.name)
+            r = view.request_service(service=service, method='bucket_stats', params=params)
+            return Response(data={
+                'bucket': {
+                    'id': bucket.id, 'name': bucket.name, 'service_id': service.id, 'service_name': service.name
+                },
+                'stats': {
+                    'objects_count': r.objects_count,
+                    'bucket_size_byte': r.bucket_size_byte
+                }
+            })
+        except Exception as exc:
+            return view.exception_response(exc)
