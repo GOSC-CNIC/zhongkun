@@ -142,7 +142,7 @@ class Email(UuidModel):
     email_host = models.CharField(max_length=255, verbose_name=_('邮件服务'))
     subject = models.CharField(max_length=255, verbose_name=_('标题'))
     sender = models.EmailField(verbose_name=_('发送者'), default='')
-    receiver = models.EmailField(verbose_name=_('接收者'))
+    receiver = models.CharField(verbose_name=_('接收者'), max_length=254)
     message = models.TextField(verbose_name=_('邮件内容'))
     send_time = models.DateTimeField(verbose_name=_('发送时间'), auto_now_add=True)
 

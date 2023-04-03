@@ -23,7 +23,7 @@ class Migration(migrations.Migration):
                 ('email_host', models.CharField(max_length=255, verbose_name='邮件服务')),
                 ('subject', models.CharField(max_length=255, verbose_name='标题')),
                 ('sender', models.EmailField(default='', max_length=254, verbose_name='发送者')),
-                ('receiver', models.EmailField(max_length=254, verbose_name='接收者')),
+                ('receiver', models.CharField(max_length=254, verbose_name='接收者')),
                 ('message', models.TextField(verbose_name='邮件内容')),
                 ('send_time', models.DateTimeField(auto_now_add=True, verbose_name='发送时间')),
             ],
