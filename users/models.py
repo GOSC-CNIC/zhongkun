@@ -164,8 +164,13 @@ class Email(UuidModel):
             Email()     # 发送成功
             None        # 发送失败
         """
+        receiver_str = ';'.join(receivers)
+        if len(receiver_str) >= 254:
+            receiver_str = receiver_str[:254]
+            receiver_str = receiver_str.rsplit(';', maxsplit=1)[0]
+
         email = cls(
-            subject=subject, receiver=receivers[0], message=message,
+            subject=subject, receiver=receiver_str, message=message,
             sender=settings.EMAIL_HOST_USER,
             email_host=settings.EMAIL_HOST
         )
