@@ -143,3 +143,67 @@ class BucketViewSet(StorageGenericViewSet):
             return storage_serializers.BucketCreateSerializer
 
         return Serializer
+
+
+class AdminBucketViewSet(StorageGenericViewSet):
+    permission_classes = [IsAuthenticated, ]
+    pagination_class = DefaultPageNumberPagination
+    lookup_field = 'bucket_name'
+    # lookup_value_regex = '[^/]+'
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('管理员列举存储桶'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='service_id',
+                in_=openapi.IN_QUERY,
+                required=False,
+                type=openapi.TYPE_STRING,
+                description=gettext_lazy('对象存储服务单元ID')
+            ),
+            openapi.Parameter(
+                name='user_id',
+                in_=openapi.IN_QUERY,
+                required=False,
+                type=openapi.TYPE_STRING,
+                description=gettext_lazy('查询指定用户的桶')
+            )
+        ],
+        responses={
+            200: ''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        管理员列举存储桶
+
+            {
+              "count": 1,
+              "next": null,
+              "previous": null,
+              "results": [
+                {
+                  "id": "3a642594-59be-11ed-83d1-c8009fe2ebbc",
+                  "name": "test2",
+                  "creation_time": "2022-10-27T08:09:26.911670Z",
+                  "user_id": "1",
+                  "username": "shun",
+                  "service": {
+                    "id": "2cd1d0a8-388e-11ed-bbc7-c8009fe2ebbc",
+                    "name": "开发环境",
+                    "name_en": "dev"
+                  },
+                  "task_status": "created",
+                  "situation": "normal",    # normal(正常), arrearage(欠费), lock(欠费锁定)
+                  "situation_time": null
+                }
+              ]
+            }
+        """
+        return BucketHandler.admin_list_bucket(view=self, request=request, kwargs=kwargs)
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return storage_serializers.AdminBucketSerializer
+
+        return Serializer

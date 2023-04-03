@@ -59,7 +59,6 @@ no_slash_router.register(
 no_slash_router.register(r'payment-history', bill_views.PaymentHistoryViewSet, basename='payment-history')
 no_slash_router.register(r'account/balance', account_views.BalanceAccountViewSet, basename='account-balance')
 no_slash_router.register(r'cashcoupon', cash_coupon_views.CashCouponViewSet, basename='cashcoupon')
-no_slash_router.register(r'admin/cashcoupon', cash_coupon_views.AdminCashCouponViewSet, basename='admin-coupon')
 no_slash_router.register(r'trade/test', trade_test_views.TradeTestViewSet, basename='trade-test')
 no_slash_router.register(r'trade/query', trade_views.TradeQueryViewSet, basename='trade-query')
 no_slash_router.register(r'trade/charge', trade_views.TradeChargeViewSet, basename='trade-charge')
@@ -74,6 +73,9 @@ no_slash_router.register(r'trade/recharge', recharge_views.RechargeViewSet, base
 no_slash_router.register(r'storage/bucket', bucket_views.BucketViewSet, basename='bucket')
 no_slash_router.register(r'storage/service', storage_views.ObjectsServiceViewSet, basename='storage-service')
 no_slash_router.register(r'support/ticket', ticket_views.TicketViewSet, basename='support-ticket')
+
+no_slash_router.register(r'admin/cashcoupon', cash_coupon_views.AdminCashCouponViewSet, basename='admin-coupon')
+no_slash_router.register(r'admin/storage/bucket', bucket_views.AdminBucketViewSet, basename='admin-bucket')
 
 urlpatterns = [
     path('', include(no_slash_router.urls)),

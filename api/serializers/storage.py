@@ -30,6 +30,12 @@ class BucketSerializer(serializers.Serializer):
         return {'id': None, 'name': None, 'name_en': None}
 
 
+class AdminBucketSerializer(BucketSerializer):
+    task_status = serializers.CharField(label='创建状态', max_length=16)
+    situation = serializers.CharField(label='过期欠费管控情况', max_length=16, help_text='欠费状态下存储桶读写锁定管控情况')
+    situation_time = serializers.DateTimeField(label='管控情况时间', help_text='欠费管控开始时间')
+
+
 class ObjectsServiceSerializer(serializers.Serializer):
     id = serializers.CharField(label=_('存储桶ID'))
     name = serializers.CharField(label=_('服务名称'))

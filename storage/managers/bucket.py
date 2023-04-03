@@ -2,7 +2,7 @@ from django.utils.translation import gettext as _
 from django.utils import timezone
 
 from core import errors
-from storage.models import Bucket
+from storage.models import Bucket, ObjectsService
 
 
 class BucketManager:
@@ -70,5 +70,26 @@ class BucketManager:
 
         if service_id:
             queryset = queryset.filter(service_id=service_id)
+
+        return queryset
+
+    def admin_filter_bucket_queryset(self, admin_user, service_id: str = None, user_id: str = None):
+        queryset = self.get_bucket_queryset()
+        queryset = queryset.select_related('service', 'user')
+
+        if not admin_user.is_federal_admin():
+            if service_id:
+                s = ObjectsService.objects.filter(id=service_id, users__id=admin_user.id).first()
+                if s is None:
+                    raise errors.AccessDenied(message=_('你没有指定服务单元的管理权限。'))
+            else:
+                service_ids = ObjectsService.objects.filter(users__id=admin_user.id).values_list('id', flat=True)
+                queryset = queryset.filter(service_id__in=service_ids)
+
+        if service_id:
+            queryset = queryset.filter(service_id=service_id)
+
+        if user_id:
+            queryset = queryset.filter(user_id=user_id)
 
         return queryset

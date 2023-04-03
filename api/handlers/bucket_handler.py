@@ -140,3 +140,17 @@ class BucketHandler:
             return view.get_paginated_response(data=serializer.data)
         except Exception as exc:
             return view.exception_response(exc)
+
+    @staticmethod
+    def admin_list_bucket(view: StorageGenericViewSet, request, kwargs):
+        service_id = request.query_params.get('service_id', None)
+        user_id = request.query_params.get('user_id', None)
+
+        queryset = BucketManager().admin_filter_bucket_queryset(
+            admin_user=request.user, service_id=service_id, user_id=user_id)
+        try:
+            services = view.paginate_queryset(queryset=queryset)
+            serializer = view.get_serializer(services, many=True)
+            return view.get_paginated_response(data=serializer.data)
+        except Exception as exc:
+            return view.exception_response(exc)
