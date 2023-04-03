@@ -402,7 +402,7 @@ class PaymentManager:
             amounts=pay_history.amounts, coupon_amount=pay_history.coupon_amount,
             after_balance=after_payment, owner_type=pay_history.payer_type, owner_id=pay_history.payer_id,
             owner_name=pay_history.payer_name, app_service_id=pay_history.app_service_id, app_id=pay_history.app_id,
-            remark=remark, creation_time=pay_history.payment_time
+            remark=remark, creation_time=pay_history.payment_time, operator=pay_history.executor
         )
         return pay_history
 
@@ -611,7 +611,8 @@ class PaymentManager:
                 in_account='',
                 owner_id=owner_id,
                 owner_name=owner_name,
-                owner_type=owner_type
+                owner_type=owner_type,
+                operator=''
             )
             refund.save(force_insert=True)
             return refund, True, None
@@ -676,7 +677,7 @@ class PaymentManager:
             coupon_amount=refund.coupon_refund,  # 券金额不退
             after_balance=account.balance, owner_type=refund.owner_type, owner_id=refund.owner_id,
             owner_name=refund.owner_name, app_service_id=refund.app_service_id, app_id=refund.app_id,
-            remark=refund.remark, creation_time=refund.success_time
+            remark=refund.remark, creation_time=refund.success_time, operator=refund.operator
         )
 
         return refund

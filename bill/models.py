@@ -504,6 +504,8 @@ class TransactionBill(CustomIdModel):
     owner_type = models.CharField(verbose_name=_('所属人类型'), max_length=8, choices=OwnerType.choices)
     app_service_id = models.CharField(verbose_name=_('APP服务ID'), max_length=36, blank=True, default='')
     app_id = models.CharField(verbose_name=_('应用ID'), max_length=36, blank=True, default='')
+    operator = models.CharField(
+        verbose_name=_('交易操作人'), max_length=128, blank=True, default='', help_text=_('记录此次支付交易是谁执行完成的'))
 
     class Meta:
         verbose_name = _('交易流水账单')
@@ -557,6 +559,8 @@ class RefundRecord(CustomIdModel):
     owner_name = models.CharField(verbose_name=_('所属人名称'), max_length=255, blank=True, default='',
                                   help_text='username or vo name')
     owner_type = models.CharField(verbose_name=_('所属人类型'), max_length=8, choices=OwnerType.choices)
+    operator = models.CharField(
+        verbose_name=_('交易操作人'), max_length=128, blank=True, default='', help_text=_('记录此次支付交易是谁执行完成的'))
 
     class Meta:
         verbose_name = _('退款记录')

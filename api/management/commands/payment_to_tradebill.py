@@ -104,6 +104,6 @@ class Command(BaseCommand):
             amounts=pay_history.amounts, coupon_amount=pay_history.coupon_amount,
             after_balance=Decimal('0'), owner_type=pay_history.payer_type, owner_id=pay_history.payer_id,
             owner_name=pay_history.payer_name, app_service_id=pay_history.app_service_id, app_id=pay_history.app_id,
-            remark=pay_history.remark, creation_time=pay_history.payment_time
+            remark=pay_history.remark, creation_time=pay_history.payment_time, operator=pay_history.executor
         )
         return True

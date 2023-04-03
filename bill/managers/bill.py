@@ -158,7 +158,7 @@ class TransactionBillManager:
             out_trade_no: str, trade_amounts: Decimal,
             amounts: Decimal, coupon_amount: Decimal, after_balance: Decimal,
             owner_type: str, owner_id: str, owner_name: str, app_service_id: str, app_id: str,
-            remark: str, creation_time: datetime
+            remark: str, creation_time: datetime, operator: str = ''
     ):
         if trade_type not in TransactionBill.TradeType.values:
             raise errors.Error(message=_('创建交易流水账单记录错误，无效的交易类型"%(value)s"。') % {'value': trade_type})
@@ -179,7 +179,8 @@ class TransactionBillManager:
             app_service_id=app_service_id,
             app_id=app_id,
             remark=remark,
-            creation_time=creation_time
+            creation_time=creation_time,
+            operator=operator
         )
         bill.save(force_insert=True)
         return bill

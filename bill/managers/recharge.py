@@ -175,7 +175,7 @@ class RechargeManager:
             coupon_amount=Decimal('0'),  # 券金额
             after_balance=account.balance, owner_type=recharge.owner_type, owner_id=recharge.owner_id,
             owner_name=recharge.owner_name, app_service_id='', app_id='',
-            remark=recharge.remark, creation_time=recharge.success_time
+            remark=recharge.remark, creation_time=recharge.success_time, operator=recharge.executor
         )
 
         return recharge

@@ -182,7 +182,7 @@ class TransactionBillAdmin(NoDeleteSelectModelAdmin):
     list_display = ('id', 'subject', 'trade_type', 'trade_id', 'out_trade_no',
                     'trade_amounts', 'amounts', 'coupon_amount',
                     'after_balance', 'creation_time', 'app_id',
-                    'owner_type', 'owner_id', 'owner_name', 'app_service_id')
+                    'owner_type', 'owner_id', 'owner_name', 'operator', 'app_service_id')
     list_display_links = ('id',)
     list_filter = ('trade_type', 'owner_type')
     search_fields = ('id', 'owner_id', 'owner_name', 'trade_id')
@@ -208,7 +208,7 @@ class RefundRecordAdmin(admin.ModelAdmin):
     list_display = ('id', 'trade_id', 'out_order_id', 'out_refund_id', 'refund_reason',
                     'total_amounts', 'refund_amounts', 'real_refund', 'coupon_refund',
                     'status', 'status_desc', 'app_id', 'creation_time', 'success_time',
-                    'owner_id', 'owner_name', 'owner_type', 'in_account')
+                    'owner_id', 'owner_name', 'owner_type', 'in_account', 'operator')
     list_display_links = ('id',)
     list_filter = ('status', 'owner_type')
     search_fields = ('id', 'owner_id', 'owner_name', 'out_order_id', 'out_refund_id', 'trade_id')
