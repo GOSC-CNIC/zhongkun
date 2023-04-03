@@ -397,6 +397,20 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
                 description=f'筛选条件，查询指定兑换人的券'
             ),
             openapi.Parameter(
+                name='time_start',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'支付时间段起（含），ISO8601格式：YYYY-MM-ddTHH:mm:ssZ'
+            ),
+            openapi.Parameter(
+                name='time_end',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'支付时间段止（不含），ISO8601格式：YYYY-MM-ddTHH:mm:ssZ'
+            ),
+            openapi.Parameter(
                 name='download',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,

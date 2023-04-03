@@ -17,6 +17,7 @@ from bill.managers import CashCouponManager
 from bill.managers.cash_coupon import get_app_service_by_admin
 from bill.models import CashCoupon, PayAppService
 from utils.report_file import CSVFileInMemory
+from utils.time import iso_utc_to_datetime
 from utils import rand_utils
 from utils.decimal_utils import quantize_10_2
 from .handlers import serializer_error_msg
@@ -168,11 +169,13 @@ class CashCouponHandler:
         redeemer = data['redeemer']
         issuer = data['issuer']
         download = data['download']
+        time_start = data['time_start']
+        time_end = data['time_end']
 
         try:
             queryset = CashCouponManager().admin_list_coupon_queryset(
                 user=request.user, template_id=template_id, app_service_id=app_service_id, status=status, valid=valid,
-                issuer=issuer, redeemer=redeemer
+                issuer=issuer, redeemer=redeemer, createtime_start=time_start, createtime_end=time_end
             )
 
             if download:
@@ -193,6 +196,8 @@ class CashCouponHandler:
         redeemer = request.query_params.get('redeemer', None)
         issuer = request.query_params.get('issuer', None)
         download = request.query_params.get('download', None)
+        time_start = request.query_params.get('time_start', None)
+        time_end = request.query_params.get('time_end', None)
 
         if issuer is not None and not issuer:
             raise errors.InvalidArgument(message=_('指定的发放人不能为空'))
@@ -210,6 +215,20 @@ class CashCouponHandler:
         else:
             valid = None
 
+        if time_start is not None:
+            time_start = iso_utc_to_datetime(time_start)
+            if time_start is None:
+                raise errors.InvalidArgument(message=_('参数“time_start”的值无效的时间格式'))
+
+        if time_end is not None:
+            time_end = iso_utc_to_datetime(time_end)
+            if time_end is None:
+                raise errors.InvalidArgument(message=_('参数“time_end”的值无效的时间格式'))
+
+        if time_start and time_end:
+            if time_start >= time_end:
+                raise errors.InvalidArgument(message=_('参数“time_start”时间必须超前“time_end”时间'))
+
         return {
             'template_id': template_id,
             'status': status,
@@ -217,7 +236,9 @@ class CashCouponHandler:
             'app_service_id': app_service_id,
             'issuer': issuer,
             'redeemer': redeemer,
-            'download': download is not None
+            'download': download is not None,
+            'time_start': time_start,
+            'time_end': time_end
         }
 
     def admin_list_coupon_download(self, queryset):

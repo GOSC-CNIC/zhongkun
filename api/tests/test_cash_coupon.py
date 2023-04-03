@@ -1350,6 +1350,63 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assertEqual(len(r.data['results']), 1)
         self.assertEqual(r.data['results'][0]['id'], coupon3.id)
 
+        # query "time_start"
+        url = reverse('api:admin-coupon-list')
+        query = parse.urlencode(query={'time_start': '2023-04-01T08:08:01'})
+        r = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
+
+        nt = timezone.now()
+        tstart = (nt - timedelta(days=1)).strftime('%Y-%m-%dT%H:%M:%SZ')
+        query = parse.urlencode(query={'time_start': tstart})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 3)
+        self.assertEqual(len(r.data['results']), 3)
+
+        tstart = (nt + timedelta(days=1)).strftime('%Y-%m-%dT%H:%M:%SZ')
+        query = parse.urlencode(query={'time_start': tstart})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 0)
+        self.assertEqual(len(r.data['results']), 0)
+
+        # query "time_end"
+        url = reverse('api:admin-coupon-list')
+        query = parse.urlencode(query={'time_end': '2023-04-01T08:08:01'})
+        r = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
+
+        nt = timezone.now()
+        tend = (nt - timedelta(days=1)).strftime('%Y-%m-%dT%H:%M:%SZ')
+        query = parse.urlencode(query={'time_end': tend})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 0)
+        self.assertEqual(len(r.data['results']), 0)
+
+        tend = (nt + timedelta(days=1)).strftime('%Y-%m-%dT%H:%M:%SZ')
+        query = parse.urlencode(query={'time_end': tend})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 3)
+        self.assertEqual(len(r.data['results']), 3)
+
+        # query "time_start", "time_end"
+        url = reverse('api:admin-coupon-list')
+        nt = timezone.now()
+        tstart = (nt - timedelta(days=1)).strftime('%Y-%m-%dT%H:%M:%SZ')
+        tend = (nt + timedelta(days=1)).strftime('%Y-%m-%dT%H:%M:%SZ')
+        query = parse.urlencode(query={'time_start': tend, 'time_end': tstart})
+        r = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
+
+        query = parse.urlencode(query={'time_start': tstart, 'time_end': tend})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 3)
+        self.assertEqual(len(r.data['results']), 3)
+
     def test_delete_cash_coupon(self):
         coupon2 = CashCoupon(
             face_value=Decimal('66.6'),
