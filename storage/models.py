@@ -109,7 +109,8 @@ class BucketBase(UuidModel):
     class Situation(models.TextChoices):
         NORMAL = 'normal', _('正常')
         ARREARAGE = 'arrearage', _('欠费')
-        LOCK = 'lock', _('欠费锁定')
+        ARREARS_LOCK = 'arrears-lock', _('欠费锁定')
+        LOCK = 'lock', _('锁定')
 
     bucket_id = models.CharField(max_length=36, verbose_name=_('存储桶ID'), help_text=_('存储桶在对象存储服务单元中的id'))
     name = models.CharField(max_length=63, verbose_name=_('存储桶名称'))

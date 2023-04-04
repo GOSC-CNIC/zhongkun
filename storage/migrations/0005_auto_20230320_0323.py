@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='bucket',
             name='situation',
-            field=models.CharField(choices=[('normal', '正常'), ('arrearage', '欠费'), ('lock', '欠费锁定')], default='normal', help_text='欠费状态下存储桶读写锁定管控情况', max_length=16, verbose_name='过期欠费管控情况'),
+            field=models.CharField(choices=[('normal', '正常'), ('arrearage', '欠费'), ('arrears-lock', '欠费锁定'), ('lock', '锁定')], default='normal', help_text='欠费状态下存储桶读写锁定管控情况', max_length=16, verbose_name='过期欠费管控情况'),
         ),
         migrations.AddField(
             model_name='bucket',
@@ -28,7 +28,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='bucketarchive',
             name='situation',
-            field=models.CharField(choices=[('normal', '正常'), ('arrearage', '欠费'), ('lock', '欠费锁定')], default='normal', help_text='欠费状态下存储桶读写锁定管控情况', max_length=16, verbose_name='过期欠费管控情况'),
+            field=models.CharField(choices=[('normal', '正常'), ('arrearage', '欠费'), ('arrears-lock', '欠费锁定'), ('lock', '锁定')], default='normal', help_text='欠费状态下存储桶读写锁定管控情况', max_length=16, verbose_name='过期欠费管控情况'),
         ),
         migrations.AddField(
             model_name='bucketarchive',
