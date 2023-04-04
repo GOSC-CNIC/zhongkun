@@ -51,9 +51,10 @@ class DataCenter(UuidModel):
                                          blank=True, default='')
     longitude = models.FloatField(verbose_name=_('经度'), blank=True, default=0)
     latitude = models.FloatField(verbose_name=_('纬度'), blank=True, default=0)
+    sort_weight = models.IntegerField(verbose_name=_('排序权重'), default=0, help_text=_('值越大排序越靠前'))
 
     class Meta:
-        ordering = ['creation_time']
+        ordering = ['-sort_weight']
         verbose_name = _('机构')
         verbose_name_plural = verbose_name
 

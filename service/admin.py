@@ -86,7 +86,9 @@ class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
 @admin.register(DataCenter)
 class DataCenterAdmin(NoDeleteSelectModelAdmin):
     list_display_links = ('id',)
-    list_display = ('id', 'name', 'name_en', 'abbreviation', 'status', 'creation_time', 'longitude', 'latitude', 'desc')
+    list_display = ('id', 'name', 'name_en', 'abbreviation', 'status', 'sort_weight',
+                    'creation_time', 'longitude', 'latitude', 'desc')
+    list_editable = ('sort_weight', )
 
 
 @admin.register(ServicePrivateQuota)
@@ -193,29 +195,12 @@ class ServiceShareQuotaAdmin(admin.ModelAdmin):
 
 @admin.register(ApplyVmService)
 class ApplyServiceAdmin(admin.ModelAdmin):
-    form = forms.VmsProviderForm
     list_display_links = ('id',)
     list_display = ('id', 'organization', 'name', 'name_en', 'service_type', 'status', 'user',
                     'creation_time', 'approve_time')
 
     list_filter = ('organization',)
-    readonly_fields = ('password', 'vpn_password', 'creation_time', 'approve_time')
-    fieldsets = (
-        (_('说明、备注'), {'fields': ('remarks',)}),
-        (_('申请人信息'), {'fields': ('user', 'creation_time', 'approve_time')}),
-        (_('服务配置信息'), {
-            'fields': ('organization', 'name', 'name_en', 'service_type', 'cloud_type', 'status', 'endpoint_url',
-                       'api_version', 'region', 'username', 'password', 'change_password')
-        }),
-        (_('VPN配置信息'), {
-            'fields': ('need_vpn', 'vpn_endpoint_url', 'vpn_api_version', 'vpn_username',
-                       'vpn_password', 'change_vpn_password')
-        }),
-        (_('其他配置信息'), {'fields': ('logo_url', 'longitude', 'latitude')}),
-        (_('联系人信息'), {
-            'fields': ('contact_person', 'contact_email', 'contact_telephone', 'contact_fixed_phone', 'contact_address')
-        }),
-    )
+
 
 @admin.register(ApplyOrganization)
 class ApplyOrganizationAdmin(admin.ModelAdmin):

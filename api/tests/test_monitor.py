@@ -425,7 +425,7 @@ class MonitorUnitCephTests(MyAPITestCase):
         self.assertEqual(response.data['page_size'], 100)
         self.assertEqual(len(response.data['results']), 2)
         self.assertEqual(unit_ceph1.id, response.data['results'][0]['id'])
-        self.assertKeysIn(['id', "name", "name_en", "abbreviation", 'creation_time'
+        self.assertKeysIn(['id', "name", "name_en", "abbreviation", 'creation_time', 'sort_weight'
                            ], response.data['results'][0]['organization'])
 
         # unit_ceph1, unit_ceph4, unit_ceph2
@@ -564,7 +564,7 @@ class MonitorUnitServerTests(MyAPITestCase):
         self.assertEqual(response.data['page_size'], 100)
         self.assertEqual(len(response.data['results']), 2)
         self.assertEqual(unit_server1.id, response.data['results'][0]['id'])
-        self.assertKeysIn(['id', "name", "name_en", "abbreviation", 'creation_time'
+        self.assertKeysIn(['id', "name", "name_en", "abbreviation", 'creation_time', 'sort_weight'
                            ], response.data['results'][0]['organization'])
 
         # unit_server1, unit_server4, unit_server2

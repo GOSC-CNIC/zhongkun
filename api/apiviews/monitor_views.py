@@ -320,7 +320,8 @@ class MonitorUnitCephViewSet(CustomGenericViewSet):
                     "name": "test",
                     "name_en": "test en",
                     "abbreviation": "t",
-                    "creation_time": "2023-02-17T00:50:21.188064Z"
+                    "creation_time": "2023-02-17T00:50:21.188064Z",
+                    "sort_weight": 6                        # 排序权重，倒序 由大到小
                   }
                 }
               ]
@@ -384,7 +385,8 @@ class MonitorUnitServerViewSet(CustomGenericViewSet):
                     "name": "test",
                     "name_en": "test en",
                     "abbreviation": "t",
-                    "creation_time": "2023-02-17T00:50:21.188064Z"
+                    "creation_time": "2023-02-17T00:50:21.188064Z",
+                    "sort_weight": 6                        # 排序权重，倒序 由大到小
                   }
                 },
               ]

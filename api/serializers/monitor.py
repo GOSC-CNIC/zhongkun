@@ -7,7 +7,7 @@ class MonitorOrganizationSimpleSerializer(serializers.Serializer):
     name = serializers.CharField(label=_('监控机构名称'), max_length=255, default='')
     name_en = serializers.CharField(label=_('监控机构英文名称'), max_length=255, default='')
     abbreviation = serializers.CharField(label=_('简称'), max_length=64, default='')
-    # sort_weight = serializers.IntegerField(label=_('排序权重'), help_text=_('值越大排序越靠前'))
+    sort_weight = serializers.IntegerField(label=_('排序权重'), help_text=_('值越大排序越靠前'))
     creation_time = serializers.DateTimeField(label=_('创建时间'))
 
 
