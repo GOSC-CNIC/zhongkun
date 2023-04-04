@@ -1783,7 +1783,8 @@ class DataCenterViewSet(CustomGenericViewSet):
                   },
                   "desc": "",
                   "longitude": 0,
-                  "latitude": 0
+                  "latitude": 0,
+                  "sort_weight": 6                        # 排序权重，倒序 由大到小
                 }
               ]
             }

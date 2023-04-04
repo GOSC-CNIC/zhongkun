@@ -1639,7 +1639,7 @@ class RegistryTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('registries', response.data)
         self.assertIsInstance(response.data['registries'], list)
-        self.assertKeysIn(["id", "name", "endpoint_vms", "endpoint_object", "endpoint_compute",
+        self.assertKeysIn(["id", "name", "endpoint_vms", "endpoint_object", "endpoint_compute", "sort_weight",
                            "endpoint_monitor", "creation_time", "status", "desc", 'longitude', 'latitude'],
                           response.data['registries'][0])
 

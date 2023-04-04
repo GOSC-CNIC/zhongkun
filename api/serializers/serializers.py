@@ -221,6 +221,7 @@ class DataCenterSerializer(serializers.Serializer):
     desc = serializers.CharField()
     longitude = serializers.FloatField(label=_('经度'), default=0)
     latitude = serializers.FloatField(label=_('纬度'), default=0)
+    sort_weight = serializers.IntegerField()
 
     @staticmethod
     def get_status(obj):
