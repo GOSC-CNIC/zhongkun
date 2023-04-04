@@ -1,7 +1,6 @@
 from decimal import Decimal
 
 from django.utils.translation import gettext as _
-from django.utils import timezone
 from rest_framework.response import Response
 
 from core import errors as exceptions
@@ -10,7 +9,7 @@ from api.serializers import storage as storage_serializers
 from bill.managers import PaymentManager
 from storage.adapter import inputs
 from storage.managers import BucketManager
-from storage.models import Bucket
+from storage.models import Bucket, ObjectsService
 from .handlers import serializer_error_msg
 
 
@@ -160,7 +159,6 @@ class BucketHandler:
         service_id = kwargs.get('service_id', None)
         bucket_name = kwargs.get(view.lookup_field, '')
 
-        from storage.models import ObjectsService
         try:
             bucket = BucketManager().get_bucket(service_id=service_id, bucket_name=bucket_name)
             service: ObjectsService = bucket.service
@@ -181,3 +179,28 @@ class BucketHandler:
             })
         except Exception as exc:
             return view.exception_response(exc)
+
+    @staticmethod
+    def admin_delete_bucket(view: StorageGenericViewSet, request, kwargs):
+        bucket_name = kwargs.get(view.lookup_field, '')
+        service_id = request.query_params.get('service_id', None)
+
+        if not service_id:
+            return view.exception_response(
+                exceptions.InvalidArgument(message=_('必须指定服务单元id。'))
+            )
+
+        try:
+            bucket = BucketManager().get_bucket(service_id=service_id, bucket_name=bucket_name)
+            service: ObjectsService = bucket.service
+            if not request.user.is_federal_admin():
+                if not service.is_admin_user(user_id=request.user.id):
+                    raise exceptions.AccessDenied(message=_('你没有指定服务单元的管理权限。'))
+
+            params = inputs.BucketDeleteInput(bucket_name=bucket.name, username=bucket.user.username)
+            r = view.request_service(service=service, method='bucket_delete', params=params)
+            bucket.do_archive(archiver=request.user.username)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        return Response(status=204)

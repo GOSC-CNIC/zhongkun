@@ -74,8 +74,7 @@ class BucketViewSet(StorageGenericViewSet):
         """
         删除指定服务单元中的一个存储桶
 
-            http code 204：
-            {}
+            http code 204：无响应数据
             http code 400, 404, 409, 500：
             {
                 "code": "BucketNotExist",
@@ -227,6 +226,46 @@ class AdminBucketViewSet(StorageGenericViewSet):
             }
         """
         return BucketHandler.admin_stats_bucket(view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('管理员删除存储桶'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='service_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description='存储服务单元id'
+            )
+        ],
+        responses={
+            204: ''
+        }
+    )
+    def destroy(self, request, *args, **kwargs):
+        """
+        管理员删除存储桶
+
+            http code 204：无响应数据
+            http code 400, 403, 404, 500：
+            {
+                "code": "BucketNotExist",
+                "message": "存储桶不存在"
+            }
+
+            * code:
+            400：
+                InvalidArgument： 存储服务单元id未指定。
+            403：
+                AccessDenied：没有存储桶的管理权限
+            404：
+                BucketNotExist：存储桶不存在
+            500：
+                Adapter.AuthenticationFailed：请求服务单元时身份认证失败
+                Adapter.AccessDenied: 请求服务单元时无权限
+                Adapter.BadRequest: 请求服务单元时请求有误
+        """
+        return BucketHandler.admin_delete_bucket(view=self, request=request, kwargs=kwargs)
 
     def get_serializer_class(self):
         if self.action == 'list':

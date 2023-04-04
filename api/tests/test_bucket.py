@@ -285,3 +285,66 @@ class AdminBucketTests(MyAPITestCase):
         self.assertEqual(r.data['count'], 1)
         self.assertEqual(len(r.data['results']), 1)
         self.assertEqual(r.data['results'][0]['id'], b4_u2_s2.id)
+
+    def test_delete_bucket(self):
+        bucket = BucketManager.create_bucket(
+            bucket_name='test-bucket', bucket_id='1', user_id=self.user.id, service_id=self.service1.id)
+
+        url = reverse('api:admin-bucket-detail', kwargs={'bucket_name': bucket.name})
+        query = parse.urlencode(query={'service_id': 'test'})
+        r = self.client.delete(f'{url}?{query}')
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+
+        self.client.force_login(self.user)
+        r = self.client.delete(f'{url}?{query}')
+        self.assertErrorResponse(status_code=404, code='BucketNotExist', response=r)
+
+        url = reverse('api:admin-bucket-detail', kwargs={'bucket_name': 'test1'})
+        query = parse.urlencode(query={'service_id': self.service1.id})
+        r = self.client.delete(f'{url}?{query}')
+        self.assertErrorResponse(status_code=404, code='BucketNotExist', response=r)
+
+        # AccessDenied
+        url = reverse('api:admin-bucket-detail', kwargs={'bucket_name': bucket.name})
+        query = parse.urlencode(query={'service_id': self.service1.id})
+        r = self.client.delete(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        # set service admin
+        self.service1.users.add(self.user)
+        r = self.client.delete(f'{url}?{query}')
+        self.assertEqual(r.status_code, 204)
+
+    def test_stats_bucket(self):
+        bucket = BucketManager.create_bucket(
+            bucket_name='test-bucket', bucket_id='1', user_id=self.user.id, service_id=self.service1.id)
+
+        url = reverse('api:admin-bucket-stats-bucket', kwargs={'bucket_name': bucket.name, 'service_id': 'test'})
+        r = self.client.get(url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+
+        self.client.force_login(self.user)
+        r = self.client.get(url)
+        self.assertErrorResponse(status_code=404, code='BucketNotExist', response=r)
+
+        # AccessDenied
+        url = reverse('api:admin-bucket-stats-bucket', kwargs={
+            'bucket_name': bucket.name, 'service_id': self.service1.id})
+        r = self.client.get(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        # set service admin
+        self.service1.users.add(self.user)
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 500)
+        self.assertEqual(r.data['code'], 'Adapter.BucketNotExist')
+
+        # set federal admin
+        self.service1.users.remove(self.user)
+        r = self.client.get(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        self.user.set_federal_admin()
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 500)
+        self.assertEqual(r.data['code'], 'Adapter.BucketNotExist')
