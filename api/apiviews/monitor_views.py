@@ -11,6 +11,7 @@ from api.handlers.monitor_ceph import MonitorCephQueryHandler
 from api.handlers.monitor_server import MonitorServerQueryHandler
 from api.handlers.monitor_video_meeting import MonitorVideoMeetingQueryHandler
 from api.handlers.monitor_website import MonitorWebsiteHandler
+from api.handlers.monitor_tidb import MonitorTiDBQueryHandler
 from api.serializers import monitor as monitor_serializers
 from api.paginations import MonitorPageNumberPagination, MonitorWebsiteTaskPagination
 from monitor.managers import CephQueryChoices, ServerQueryChoices, VideoMeetingQueryChoices, WebsiteQueryChoices
@@ -868,5 +869,70 @@ class MonitorWebsiteTaskViewSet(CustomGenericViewSet):
     def get_serializer_class(self):
         if self.action == 'list':
             return monitor_serializers.MonitorWebsiteTaskSerializer
+
+        return Serializer
+
+
+class MonitorUnitTiDBViewSet(CustomGenericViewSet):
+    """
+    TiDB监控单元视图集
+    """
+    queryset = []
+    permission_classes = [IsAuthenticated]
+    pagination_class = MonitorPageNumberPagination
+    lookup_field = 'id'
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举有访问权限的TiDB监控单元'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='organization_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('监控机构筛选')
+            )
+        ],
+        responses={
+            200: ''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        列举有访问权限的TiDB监控单元
+
+            Http Code: 状态码200，返回数据：
+            {
+              "count": 1,
+              "page_num": 1,
+              "page_size": 100,
+              "results": [
+                {
+                  "id": "1be0db7e-378e-11ec-aa15-c8009fe2eb10",
+                  "name": "大规模对象存储TiDB集群",
+                  "name_en": "大规模对象存储TiDB集群",
+                  "job_tag": "obs-tidb",
+                  "creation": "2021-10-28T01:26:43.498367Z",
+                  "remark": "test",
+                  "sort_weight": 10,                        # 排序权重，倒序 由大到小
+                  "grafana_url": "xxx",
+                  "dashboard_url": "xxx",
+                  "organization": {                 # may be null
+                    "id": "0e3169d4-ae5d-11ed-a9ab-c8009fe2ebbc",
+                    "name": "test",
+                    "name_en": "test en",
+                    "abbreviation": "t",
+                    "creation_time": "2023-02-17T00:50:21.188064Z",
+                    "sort_weight": 6                        # 排序权重，倒序 由大到小
+                  }
+                }
+              ]
+            }
+        """
+        return MonitorTiDBQueryHandler().list_tidb_unit(view=self, request=request)
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return monitor_serializers.MonitorUnitTiDBSerializer
 
         return Serializer

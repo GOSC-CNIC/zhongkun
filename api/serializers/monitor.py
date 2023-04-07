@@ -94,3 +94,20 @@ class MonitorWebsiteDetectionPointSerializer(serializers.Serializer):
     modification = serializers.DateTimeField(label=_('修改时间'))
     remark = serializers.CharField(label=_('备注'), max_length=255)
     enable = serializers.BooleanField(label=_('使用启用'))
+
+
+class MonitorJobTiDBSimpleSerializer(serializers.Serializer):
+    id = serializers.CharField(label=_('监控单元id'))
+    name = serializers.CharField(label=_('监控的TiDB集群'), max_length=255, default='')
+    name_en = serializers.CharField(label=_('监控的TiDB集群英文名'), max_length=255, default='')
+    job_tag = serializers.CharField(label=_('TiDB集群的标签名称'), max_length=255, default='')
+    creation = serializers.DateTimeField(label=_('创建时间'))
+
+
+class MonitorUnitTiDBSerializer(MonitorJobTiDBSimpleSerializer):
+    """TiDB监控单元"""
+    remark = serializers.CharField(label=_('备注'))
+    sort_weight = serializers.IntegerField(label=_('排序权重'), default=0, help_text=_('值越大排序越靠前'))
+    grafana_url = serializers.CharField(label=_('Grafana连接'), max_length=255)
+    dashboard_url = serializers.CharField(label=_('Dashboard连接'), max_length=255)
+    organization = MonitorOrganizationSimpleSerializer(required=False)

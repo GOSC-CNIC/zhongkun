@@ -295,3 +295,55 @@ class WebsiteDetectionPoint(UuidModel):
 
     def __str__(self):
         return self.name
+
+
+class MonitorJobTiDB(UuidModel):
+    """
+    TiDB集群监控工作节点
+    """
+    name = models.CharField(verbose_name=_('监控的TiDB集群名称'), max_length=255, default='')
+    name_en = models.CharField(verbose_name=_('监控的TiDB集群英文名称'), max_length=255, default='')
+    job_tag = models.CharField(verbose_name=_('TiDB集群标签名称'), max_length=255, default='')
+    provider = models.ForeignKey(to=MonitorProvider, on_delete=models.CASCADE, related_name='+',
+                                 verbose_name=_('监控服务配置'))
+    prometheus = models.CharField(
+        verbose_name=_('Prometheus接口'), max_length=255, blank=True, default='', help_text=_('http(s)://example.cn/'))
+    creation = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
+    remark = models.TextField(verbose_name=_('备注'), blank=True, default='')
+    users = models.ManyToManyField(
+        to=UserProfile, db_table='monitor_tidb_users', related_name='+',
+        db_constraint=False, verbose_name=_('管理用户'), blank=True)
+    sort_weight = models.IntegerField(verbose_name=_('排序权重'), default=0, help_text=_('值越大排序越靠前'))
+    grafana_url = models.CharField(verbose_name=_('Grafana连接'), max_length=255, blank=True, default='')
+    dashboard_url = models.CharField(verbose_name=_('Dashboard连接'), max_length=255, blank=True, default='')
+    organization = models.ForeignKey(
+        verbose_name=_('监控机构'), to=DataCenter, related_name='+', db_constraint=False,
+        on_delete=models.SET_NULL, null=True, default=None
+    )
+
+    class Meta:
+        db_table = 'monitor_unit_tidb'
+        ordering = ['-sort_weight']
+        verbose_name = _('TiDB监控单元')
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return self.name
+
+    def user_has_perm(self, user):
+        """
+        用户是否有访问此服务的管理权限
+
+        :param user: 用户
+        :return:
+            True    # has
+            False   # no
+        """
+        if not user or not user.id:
+            return False
+
+        return self.users.filter(id=user.id).exists()
+
+    @classmethod
+    def get_user_unit_queryset(cls, user_id: str):
+        return cls.objects.filter(users__id=user_id).all()

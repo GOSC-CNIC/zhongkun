@@ -149,3 +149,5 @@ class MonitorCephQueryHandler:
             return view.get_paginated_response(serializer.data)
         except Exception as exc:
             return view.exception_response(exc)
+
+
