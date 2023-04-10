@@ -63,10 +63,11 @@ class ObjectsService(UuidModel):
     pay_app_service_id = models.CharField(
         verbose_name=_('余额结算APP服务ID'), max_length=36, default='',
         help_text=_('此服务对应的APP服务（注册在余额结算中的APP服务）id，扣费时需要此id，用于指定哪个服务发生的扣费'))
+    sort_weight = models.IntegerField(verbose_name=_('排序权重'), default=0, help_text=_('值越大排序越靠前'))
 
     class Meta:
         db_table = 'object_service'
-        ordering = ['-add_time']
+        ordering = ['-sort_weight']
         verbose_name = _('对象存储服务单元接入配置')
         verbose_name_plural = verbose_name
 

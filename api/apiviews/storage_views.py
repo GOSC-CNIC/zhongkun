@@ -64,10 +64,12 @@ class ObjectsServiceViewSet(StorageGenericViewSet):
                   "longitude": 0,
                   "latitude": 0,
                   "pay_app_service_id": "ss",
+                  "sort_weight": 8,
                   "data_center": {
                     "id": "1",
                     "name": "网络中心",
-                    "name_en": "cnic"
+                    "name_en": "cnic",
+                    "sort_weight": -1
                   }
                 }
               ]

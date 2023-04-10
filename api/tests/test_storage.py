@@ -11,7 +11,7 @@ class ObjectsServiceTests(MyAPITestCase):
         self.service = get_or_create_storage_service()
         self.user = get_or_create_user(username='lilei@xx.com')
 
-    def test_create_bucket(self):
+    def test_list_service(self):
         url = reverse('api:storage-service-list')
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)    # 不需要登录认证
@@ -24,9 +24,9 @@ class ObjectsServiceTests(MyAPITestCase):
         self.assertEqual(r.data['count'], 1)
         self.assertKeysIn(keys=[
             'id', 'name', 'name_en', 'service_type', 'endpoint_url', 'add_time', 'status', 'remarks', 'provide_ftp',
-            'ftp_domains', 'longitude', 'latitude', 'pay_app_service_id', 'data_center'
+            'ftp_domains', 'longitude', 'latitude', 'pay_app_service_id', 'data_center', 'sort_weight'
         ], container=r.data['results'][0])
-        self.assertKeysIn(keys=['id', 'name', 'name_en'], container=r.data['results'][0]['data_center'])
+        self.assertKeysIn(keys=['id', 'name', 'name_en', 'sort_weight'], container=r.data['results'][0]['data_center'])
         self.assertIsInstance(r.data['results'][0]['ftp_domains'], list)
 
         # query 'center_id'

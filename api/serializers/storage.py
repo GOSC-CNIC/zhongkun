@@ -51,6 +51,7 @@ class ObjectsServiceSerializer(serializers.Serializer):
     latitude = serializers.FloatField(label=_('纬度'))
     pay_app_service_id = serializers.CharField(label=_('余额结算APP服务ID'))
     data_center = serializers.SerializerMethodField(method_name='get_data_center')
+    sort_weight = serializers.IntegerField(label=_('排序权重'), default=0, help_text=_('值越大排序越靠前'))
 
     @staticmethod
     def get_ftp_domains(obj):
@@ -59,6 +60,7 @@ class ObjectsServiceSerializer(serializers.Serializer):
     @staticmethod
     def get_data_center(obj):
         if obj.data_center:
-            return {'id': obj.data_center.id, 'name': obj.data_center.name, 'name_en': obj.data_center.name_en}
+            return {'id': obj.data_center.id, 'name': obj.data_center.name, 'name_en': obj.data_center.name_en,
+                    'sort_weight': obj.data_center.sort_weight}
 
         return None

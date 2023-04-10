@@ -14,17 +14,19 @@ from . import forms
 class ObjectsServiceAdmin(admin.ModelAdmin):
     form = forms.ObjectsServiceForm
 
-    list_display = ('id', 'name', 'name_en', 'data_center', 'service_type', 'endpoint_url', 'add_time', 'status',
+    list_display = ('id', 'name', 'name_en', 'data_center', 'service_type', 'sort_weight', 'endpoint_url',
+                    'add_time', 'status',
                     'username', 'raw_password', 'provide_ftp', 'pay_app_service_id')
 
     search_fields = ['name', 'name_en', 'endpoint_url', 'remarks']
     list_filter = ['data_center', 'service_type']
     list_select_related = ('data_center',)
+    list_editable = ('sort_weight',)
 
     filter_horizontal = ('users',)
     readonly_fields = ('password', )
     fieldsets = (
-        (_('说明、备注'), {'fields': ('remarks',)}),
+        (_('说明、备注'), {'fields': ('remarks', 'sort_weight')}),
         (_('服务配置信息'), {
             'fields': ('data_center', 'name', 'name_en', 'service_type', 'status', 'endpoint_url',
                        'api_version', 'username', 'password', 'change_password')
