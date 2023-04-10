@@ -474,7 +474,7 @@ class ServiceManager:
         if center_id:
             queryset = queryset.filter(data_center=center_id)
 
-        return queryset
+        return queryset.order_by('-add_time')
 
     @staticmethod
     def get_has_perm_service(user):
@@ -482,7 +482,7 @@ class ServiceManager:
         用户有权限管理的服务
         """
         return user.service_set.select_related('data_center').filter(
-            status=ServiceConfig.Status.ENABLE).all()
+            status=ServiceConfig.Status.ENABLE).order_by('-add_time')
 
     @staticmethod
     def get_all_has_perm_service(user):

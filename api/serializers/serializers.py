@@ -197,14 +197,15 @@ class ServiceSerializer(serializers.Serializer):
     longitude = serializers.FloatField(label=_('经度'), default=0)
     latitude = serializers.FloatField(label=_('纬度'), default=0)
     pay_app_service_id = serializers.CharField(label=_('余额结算APP服务ID'), max_length=36)
+    sort_weight = serializers.IntegerField(label=_('排序权重'), default=0, help_text=_('值越大排序越靠前'))
 
     @staticmethod
     def get_data_center(obj):
         c = obj.data_center
         if c is None:
-            return {'id': None, 'name': None, 'name_en': None}
+            return {'id': None, 'name': None, 'name_en': None, 'sort_weight': 0}
 
-        return {'id': c.id, 'name': c.name, 'name_en': c.name_en}
+        return {'id': c.id, 'name': c.name, 'name_en': c.name_en, 'sort_weight': c.sort_weight}
 
 
 class DataCenterSerializer(serializers.Serializer):

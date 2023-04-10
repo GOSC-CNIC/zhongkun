@@ -1579,11 +1579,13 @@ class ServiceViewSet(CustomGenericViewSet):
                   "data_center": {
                     "id": 3,
                     "name": "VMware测试中心",
-                    "name_en": "xxx"
+                    "name_en": "xxx",
+                    "sort_weight": 6
                   },
                   "longitude": 0,
                   "latitude": 0,
-                  "pay_app_service_id": "xxx"      # 通过此id可以查询在余额结算系统中此服务可用的券
+                  "pay_app_service_id": "xxx",      # 通过此id可以查询在余额结算系统中此服务可用的券
+                  "sort_weight": 8
                 }
               ]
             }

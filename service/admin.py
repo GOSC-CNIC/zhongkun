@@ -16,17 +16,19 @@ from . import forms
 class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
     form = forms.VmsProviderForm
     list_display_links = ('id',)
-    list_display = ('id', 'name', 'name_en', 'data_center', 'region_id', 'service_type', 'endpoint_url', 'username',
+    list_display = ('id', 'name', 'name_en', 'data_center', 'sort_weight', 'region_id', 'service_type',
+                    'endpoint_url', 'username',
                     'password', 'add_time', 'status', 'need_vpn', 'vpn_endpoint_url', 'vpn_password',
                     'longitude', 'latitude', 'remarks')
     search_fields = ['name', 'name_en', 'endpoint_url', 'remarks']
     list_filter = ['data_center', 'service_type']
     list_select_related = ('data_center',)
+    list_editable = ('sort_weight',)
 
     filter_horizontal = ('users',)
     readonly_fields = ('password', 'vpn_password')
     fieldsets = (
-        (_('说明、备注'), {'fields': ('remarks',)}),
+        (_('说明、备注'), {'fields': ('remarks', 'sort_weight')}),
         (_('服务配置信息'), {
             'fields': ('data_center', 'name', 'name_en', 'service_type', 'cloud_type', 'status', 'endpoint_url',
                        'api_version', 'region_id', 'username', 'password', 'change_password')
