@@ -7,6 +7,7 @@ from bill.models import PayApp, PayOrgnazition, PayAppService
 from utils.test import get_or_create_user, get_or_create_storage_service
 from storage.managers import BucketManager
 from storage.models import ObjectsService
+from api.handlers.bucket_handler import BucketHandler
 from . import MyAPITestCase
 
 
@@ -346,5 +347,56 @@ class AdminBucketTests(MyAPITestCase):
 
         self.user.set_federal_admin()
         r = self.client.get(url)
+        self.assertEqual(r.status_code, 500)
+        self.assertEqual(r.data['code'], 'Adapter.BucketNotExist')
+
+    def test_lock_bucket(self):
+        bucket = BucketManager.create_bucket(
+            bucket_name='test-bucket', bucket_id='1', user_id=self.user.id, service_id=self.service1.id)
+
+        url = reverse('api:admin-bucket-lock', kwargs={'bucket_name': 'bucket'})
+        query = parse.urlencode(query={'service_id': 'test'})
+        r = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+
+        self.client.force_login(self.user)
+        r = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='MissingParam', response=r)
+
+        query = parse.urlencode(query={'service_id': 'test', 'action': 'test'})
+        r = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
+
+        query = parse.urlencode(query={
+            'service_id': self.service1.id, 'action': BucketHandler.LockActionChoices.ARREARS_LOCK.value})
+        r = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=404, code='BucketNotExist', response=r)
+
+        url = reverse('api:admin-bucket-lock', kwargs={'bucket_name': bucket.name})
+        query = parse.urlencode(query={
+            'service_id': 'test', 'action': BucketHandler.LockActionChoices.ARREARS_LOCK.value})
+        r = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=404, code='BucketNotExist', response=r)
+
+        # AccessDenied
+        url = reverse('api:admin-bucket-lock', kwargs={'bucket_name': bucket.name})
+        query = parse.urlencode(query={
+            'service_id': self.service1.id, 'action': BucketHandler.LockActionChoices.ARREARS_LOCK.value})
+        r = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        # set service admin
+        self.service1.users.add(self.user)
+        r = self.client.post(f'{url}?{query}')
+        self.assertEqual(r.status_code, 500)
+        self.assertEqual(r.data['code'], 'Adapter.BucketNotExist')
+
+        # set federal admin
+        self.service1.users.remove(self.user)
+        r = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        self.user.set_federal_admin()
+        r = self.client.post(f'{url}?{query}')
         self.assertEqual(r.status_code, 500)
         self.assertEqual(r.data['code'], 'Adapter.BucketNotExist')

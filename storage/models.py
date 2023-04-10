@@ -2,6 +2,7 @@ from django.db import models
 from django.db import transaction
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 
 from service.models import DataCenter
 from utils.model import UuidModel, get_encryptor
@@ -129,6 +130,11 @@ class BucketBase(UuidModel):
 
     def __str__(self):
         return self.name
+
+    def set_situation(self, status: str):
+        self.situation = status
+        self.situation_time = timezone.now()
+        self.save(update_fields=['situation', 'situation_time'])
 
 
 class Bucket(BucketBase):

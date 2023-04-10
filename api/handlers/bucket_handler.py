@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from django.utils.translation import gettext as _
+from django.db import models
 from rest_framework.response import Response
 
 from core import errors as exceptions
@@ -14,6 +15,11 @@ from .handlers import serializer_error_msg
 
 
 class BucketHandler:
+    class LockActionChoices(models.TextChoices):
+        NORMAL = 'normal', _('正常')
+        ARREARS_LOCK = 'arrears-lock', _('欠费锁定')
+        LOCK = 'lock', _('锁定')
+
     @staticmethod
     def create_bucket(view: StorageGenericViewSet, request, kwargs):
         try:
@@ -204,3 +210,50 @@ class BucketHandler:
             return view.exception_response(exc)
 
         return Response(status=204)
+
+    @staticmethod
+    def admin_lock_bucket(view: StorageGenericViewSet, request, kwargs):
+        bucket_name = kwargs.get(view.lookup_field, '')
+        service_id = request.query_params.get('service_id', None)
+        act = request.query_params.get('action', None)
+
+        if not service_id:
+            return view.exception_response(
+                exceptions.InvalidArgument(message=_('必须指定服务单元id。'), code='MissingParam')
+            )
+
+        if not act:
+            return view.exception_response(
+                exceptions.InvalidArgument(message=_('必须指定操作选项。'), code='MissingParam')
+            )
+
+        if act not in BucketHandler.LockActionChoices.values:
+            return view.exception_response(
+                exceptions.InvalidArgument(message=_('操作选项无效。'))
+            )
+
+        try:
+            bucket = BucketManager().get_bucket(service_id=service_id, bucket_name=bucket_name)
+            service: ObjectsService = bucket.service
+            if not request.user.is_federal_admin():
+                if not service.is_admin_user(user_id=request.user.id):
+                    raise exceptions.AccessDenied(message=_('你没有指定服务单元的管理权限。'))
+
+            lock = {
+                BucketHandler.LockActionChoices.NORMAL.value: inputs.BucketLockInput.LOCK_FREE,
+                BucketHandler.LockActionChoices.ARREARS_LOCK.value: inputs.BucketLockInput.LOCK_READWRITE,
+                BucketHandler.LockActionChoices.LOCK.value: inputs.BucketLockInput.LOCK_READWRITE
+            }[act]
+            params = inputs.BucketLockInput(bucket_name=bucket.name, lock=lock)
+            r = view.request_service(service=service, method='bucket_lock', params=params)
+
+            status = {
+                BucketHandler.LockActionChoices.NORMAL.value: Bucket.Situation.NORMAL.value,
+                BucketHandler.LockActionChoices.ARREARS_LOCK.value: Bucket.Situation.ARREARS_LOCK.value,
+                BucketHandler.LockActionChoices.LOCK.value: Bucket.Situation.LOCK.value
+            }[act]
+            bucket.set_situation(status=status)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        return Response(data={'action': act}, status=200)

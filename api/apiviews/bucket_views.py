@@ -2,7 +2,7 @@ from django.utils.translation import gettext_lazy
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.serializers import Serializer
-from drf_yasg.utils import swagger_auto_schema
+from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
 from api.viewsets import StorageGenericViewSet
@@ -266,6 +266,56 @@ class AdminBucketViewSet(StorageGenericViewSet):
                 Adapter.BadRequest: 请求服务单元时请求有误
         """
         return BucketHandler.admin_delete_bucket(view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('管理员加锁或解锁存储桶'),
+        request_body=no_body,
+        manual_parameters=[
+            openapi.Parameter(
+                name='service_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description='存储服务单元id'
+            ),
+            openapi.Parameter(
+                name='action',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description=f'{BucketHandler.LockActionChoices.choices}'
+            )
+        ],
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['POST'], detail=True, url_path='lock', url_name='lock')
+    def bucket_lock(self, request, *args, **kwargs):
+        """
+        管理员加锁或解锁存储桶
+
+            http code 204：无响应数据
+            http code 400, 403, 404, 500：
+            {
+                "code": "BucketNotExist",
+                "message": "存储桶不存在"
+            }
+
+            * code:
+            400：
+                MissingParam：存储服务单元id未指定 / 必须指定操作选项 /
+                InvalidArgument：操作选项无效
+            403：
+                AccessDenied：没有存储桶的管理权限
+            404：
+                BucketNotExist：存储桶不存在
+            500：
+                Adapter.AuthenticationFailed：请求服务单元时身份认证失败
+                Adapter.AccessDenied: 请求服务单元时无权限
+                Adapter.BadRequest: 请求服务单元时请求有误
+        """
+        return BucketHandler.admin_lock_bucket(view=self, request=request, kwargs=kwargs)
 
     def get_serializer_class(self):
         if self.action == 'list':
