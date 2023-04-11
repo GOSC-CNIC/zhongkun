@@ -8,6 +8,7 @@ from api.serializers import ticket as ticket_serializers
 from api.paginations import FollowUpMarkerCursorPagination
 from ticket.models import Ticket, TicketChange, TicketRating
 from ticket.managers import TicketManager
+from ticket.notifiers import TicketEmailNotifier
 from users.managers import get_user_by_name
 
 from .handlers import serializer_error_msg
@@ -37,6 +38,11 @@ class TicketHandler:
             )
         except Exception as exc:
             return view.exception_response(exceptions.Error(message=_('创建工单错误。') + str(exc)))
+
+        try:
+            TicketEmailNotifier.new_ticket_notice(ticket=ticket)
+        except Exception as exc:
+            pass
 
         return Response(data=ticket_serializers.TicketSerializer(instance=ticket).data)
 
@@ -377,6 +383,17 @@ class TicketHandler:
             )
         except Exception as exc:
             return view.exception_response(exceptions.Error(message=_('添加工单回复错误。') + str(exc)))
+
+        try:
+            if user.id == ticket.submitter_id:
+                receivers = [ticket.assigned_to.username] if ticket.assigned_to else []
+            else:
+                receivers = [ticket.username]
+
+            if receivers:
+                TicketEmailNotifier.new_followup_notice(receivers=receivers, ticket=ticket, folowup=folowup)
+        except Exception as exc:
+            pass
 
         return Response(data=ticket_serializers.FollowUpSerializer(instance=folowup).data)
 

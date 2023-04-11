@@ -152,7 +152,7 @@ class Email(UuidModel):
         verbose_name_plural = verbose_name
 
     @classmethod
-    def send_email(cls, subject: str, receivers: list, message: str, fail_silently=True):
+    def send_email(cls, subject: str, receivers: list, message: str, fail_silently=True, save_db: bool = True):
         """
         发送用户激活邮件
 
@@ -160,6 +160,7 @@ class Email(UuidModel):
         :param receivers: 接收者邮箱
         :param message: 邮件内容
         :param fail_silently: 是否抛出异常
+        :param save_db: True(保存邮件记录到数据库)；False(不保存)
         :return:
             Email()     # 发送成功
             None        # 发送失败
@@ -186,5 +187,7 @@ class Email(UuidModel):
         if ok == 0:
             return None
 
-        email.save(force_insert=True)  # 邮件记录
+        if save_db:
+            email.save(force_insert=True)  # 邮件记录
+
         return email
