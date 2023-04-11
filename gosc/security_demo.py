@@ -1,5 +1,5 @@
 # 敏感信息配置文件security.py的demo
-from .settings import SIMPLE_JWT, PASSPORT_JWT
+from .settings import PASSPORT_JWT
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'xxx'
@@ -43,11 +43,6 @@ EMAIL_HOST = 'xxx'
 EMAIL_HOST_USER = 'xxx'
 EMAIL_HOST_PASSWORD = 'xxx'
 
-
-# RS256 private key
-SIMPLE_JWT['SIGNING_KEY'] = 'xxx'
-# RS256 public key
-SIMPLE_JWT['VERIFYING_KEY'] = 'xxx'
 
 # 科技云通行证JWT认证公钥
 PASSPORT_JWT['VERIFYING_KEY'] = 'xxx'

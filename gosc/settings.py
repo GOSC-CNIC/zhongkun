@@ -202,20 +202,6 @@ REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'api.viewsets.exception_handler',
 }
 
-# TinyMCE
-# TINYMCE_DEFAULT_CONFIG = {
-#     "theme": "silver",
-#     "height": 500,
-#     "menubar": True,
-#     "plugins": "advlist,autolink,lists,link,image imagetools,charmap,print,preview,anchor,"
-#                "searchreplace,visualblocks,code,fullscreen,insertdatetime,media,table,paste,"
-#                "code,help,wordcount",
-#     "toolbar": "undo redo | formatselect | bold italic backcolor | alignleft aligncenter "
-#                "alignright alignjustify | bullist numlist outdent indent | removeformat | preview fullscreen | help",
-#     'file_picker_callback': 'file_picker_callback'
-# }
-# TINYMCE_COMPRESSOR = True
-# TINYMCE_FILEBROWSER = True
 
 LOGGING_FILES_DIR = '/var/log/gosc'
 if not os.path.exists(LOGGING_FILES_DIR):
@@ -275,23 +261,6 @@ LOGGING = {
     },
 }
 
-SIMPLE_JWT = {
-    'ALGORITHM': 'RS512',
-    # 'SIGNING_KEY': '',
-    # 'VERIFYING_KEY': None,
-    # 'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
-    # 'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
-    'AUDIENCE': None,
-    'ISSUER': None,
-
-    'AUTH_HEADER_TYPES': ('JWT',),
-    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
-    'USER_ID_FIELD': 'username',
-    'USER_ID_CLAIM': 'username',
-    'TOKEN_TYPE_CLAIM': 'token_type',
-
-    'JTI_CLAIM': 'jti'
-}
 
 PASSPORT_JWT = {
     'ALGORITHM': 'RS512',
