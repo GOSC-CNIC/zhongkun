@@ -1,7 +1,9 @@
 from django.utils.translation import gettext, gettext_lazy as _
+from rest_framework.response import Response
 
 from core import errors
 from monitor.models import MonitorJobTiDB
+from monitor.managers import TiDBQueryChoices, MonitorJobTiDBManager
 
 
 class MonitorTiDBQueryHandler:
@@ -49,4 +51,27 @@ class MonitorTiDBQueryHandler:
         except Exception as exc:
             return view.exception_response(exc)
 
+    def query(self, view, request, kwargs):
+        query = request.query_params.get('query', None)
+        monitor_unit_id = request.query_params.get('monitor_unit_id', None)
 
+        if query is None:
+            return view.exception_response(errors.BadRequest(message=_('参数"query"是必须提交的')))
+
+        if query not in TiDBQueryChoices.values:
+            return view.exception_response(errors.InvalidArgument(message=_('参数"query"的值无效')))
+
+        if monitor_unit_id is None:
+            return view.exception_response(errors.BadRequest(message=_('参数"monitor_unit_id"是必须提交的')))
+
+        try:
+            monitor_unit = self.get_tidb_monitor_unit(monitor_unit_id=monitor_unit_id, user=request.user)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        try:
+            data = MonitorJobTiDBManager().query(tag=query, monitor_unit=monitor_unit)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        return Response(data=data, status=200)

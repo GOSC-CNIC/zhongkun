@@ -41,6 +41,7 @@ no_slash_router.register(r'monitor/website', monitor_views.MonitorWebsiteViewSet
                          basename='monitor-website')
 no_slash_router.register(r'monitor/website-task', monitor_views.MonitorWebsiteTaskViewSet,
                          basename='monitor-website-task')
+no_slash_router.register(r'monitor/tidb/query', monitor_views.MonitorTiDBQueryViewSet, basename='monitor-tidb-query')
 
 no_slash_router.register(r'vms/service/p-quota', service_quota_views.ServivePrivateQuotaViewSet,
                          basename='vms-service-p-quota')

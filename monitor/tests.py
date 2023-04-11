@@ -1,5 +1,5 @@
 from utils.test import get_test_case_settings
-from .models import MonitorProvider, MonitorJobCeph, MonitorJobServer, MonitorJobVideoMeeting
+from .models import MonitorProvider, MonitorJobCeph, MonitorJobServer, MonitorJobVideoMeeting, MonitorJobTiDB
 
 
 def get_or_create_monitor_provider(alias: str, name: str = 'test', name_en: str = 'test'):
@@ -101,3 +101,29 @@ def get_or_create_monitor_job_meeting(job_tag: str = None, name: str = 'test', n
     )
     job_meeting.save()
     return job_meeting
+
+
+def get_or_create_monitor_job_tidb(job_tag: str = None, name: str = 'test', name_en: str = 'test'):
+    if job_tag is None:
+        try:
+            test_settings = get_test_case_settings()
+            job_settings = test_settings['MONITOR_TIDB']['JOB_TIDB']
+        except Exception as e:
+            raise Exception(f'No test settings(MONITOR_TIDB.JOB_TIDB) in file "test_settings.TEST_CASE"， {str(e)}')
+
+        job_tag = job_settings['job_tag']
+
+    if not job_tag:
+        raise Exception('invalid "job_tag"')
+
+    job_tidb = MonitorJobTiDB.objects.filter(job_tag=job_tag).first()
+    if job_tidb is not None:
+        return job_tidb
+
+    provider = get_or_create_monitor_provider(alias='MONITOR_TIDB', name='tidb')
+    job_tidb = MonitorJobTiDB(
+        name=name, name_en=name_en, job_tag=job_tag,
+        provider=provider
+    )
+    job_tidb.save(force_insert=True)
+    return job_tidb

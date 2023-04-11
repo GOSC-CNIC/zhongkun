@@ -40,6 +40,16 @@ TEST_CASE = {
             'password': ''
         },
         'WEBSITE_URL': "http://www.acas.ac.cn/"
+    },
+    'MONITOR_TIDB': {
+        'PROVIDER': {
+            'endpoint_url': 'http://223.193.36.46:19193',
+            'username': '',
+            'password': ''
+        },
+        'JOB_TIDB': {
+            'job_tag': 'aiops-tidb'
+        }
     }
 }
 

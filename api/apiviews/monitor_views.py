@@ -14,7 +14,10 @@ from api.handlers.monitor_website import MonitorWebsiteHandler
 from api.handlers.monitor_tidb import MonitorTiDBQueryHandler
 from api.serializers import monitor as monitor_serializers
 from api.paginations import MonitorPageNumberPagination, MonitorWebsiteTaskPagination
-from monitor.managers import CephQueryChoices, ServerQueryChoices, VideoMeetingQueryChoices, WebsiteQueryChoices
+from monitor.managers import (
+    CephQueryChoices, ServerQueryChoices, VideoMeetingQueryChoices, WebsiteQueryChoices,
+    TiDBQueryChoices
+)
 from utils.paginators import NoPaginatorInspector
 
 
@@ -935,4 +938,72 @@ class MonitorUnitTiDBViewSet(CustomGenericViewSet):
         if self.action == 'list':
             return monitor_serializers.MonitorUnitTiDBSerializer
 
+        return Serializer
+
+
+class MonitorTiDBQueryViewSet(CustomGenericViewSet):
+    """
+    tidb 监控query API
+    """
+    queryset = []
+    permission_classes = [IsAuthenticated]
+    pagination_class = None
+    lookup_field = 'id'
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询TiDB集群当前实时信息'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='monitor_unit_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description=_('TiDB监控单元id, 查询指定TiDB集群')
+            ),
+            openapi.Parameter(
+                name='query',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description=f"{TiDBQueryChoices.choices}"
+            )
+        ],
+        responses={
+            200: ''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        查询TiDB集群当前实时信息
+
+            Http Code: 状态码200，返回数据：
+            [                           # 数组，可能为空，单项，多项
+              {
+                "metric": {                 # 此项的数据内容随查询数据类型变化
+                  "instance": "10.16.1.26:2379",
+                  "type": "storage_capacity"
+                },
+                "value": [
+                  1631004121.496,
+                  "0"
+                ],
+                "monitor": {        # 监控单元
+                  "id": "xxx",
+                  "name": "云联邦研发测试Ceph集群",
+                  "name_en": "云联邦研发测试Ceph集群",
+                  "job_tag": "Fed-ceph",
+                  "creation": "2021-09-07T08:33:11.843168Z"
+                }
+              }
+            ]
+
+            http code 409：
+            {
+              "code": "NoMonitorJob",
+              "message": "没有配置监控"
+            }
+        """
+        return MonitorTiDBQueryHandler().query(view=self, request=request, kwargs=kwargs)
+
+    def get_serializer_class(self):
         return Serializer

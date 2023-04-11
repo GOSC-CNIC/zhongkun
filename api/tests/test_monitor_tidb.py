@@ -7,7 +7,8 @@ from service.models import DataCenter
 from monitor.models import (
     MonitorJobTiDB, MonitorProvider
 )
-
+from monitor.managers import TiDBQueryChoices
+from monitor.tests import get_or_create_monitor_job_tidb
 from utils.test import get_or_create_user
 from . import MyAPITestCase
 
@@ -148,3 +149,103 @@ class MonitorUnitTiDBTests(MyAPITestCase):
         self.assertEqual(len(response.data['results']), 2)
         self.assertEqual(unit_tidb1.id, response.data['results'][0]['id'])
         self.assertEqual(unit_tidb2.id, response.data['results'][1]['id'])
+
+    def query_response(self, monitor_unit_id: str = None, query_tag: str = None):
+        querys = {}
+        if monitor_unit_id:
+            querys['monitor_unit_id'] = monitor_unit_id
+
+        if query_tag:
+            querys['query'] = query_tag
+
+        url = reverse('api:monitor-tidb-query-list')
+        query = parse.urlencode(query=querys)
+        return self.client.get(f'{url}?{query}')
+
+    def query_ok_test(self, monitor_unit_id: str, query_tag: str):
+        response = self.query_response(monitor_unit_id=monitor_unit_id, query_tag=query_tag)
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.data, list)
+        if response.data:
+            data_item = response.data[0]
+            self.assertKeysIn(["metric", "value", "monitor"], data_item)
+            if data_item["value"] is not None:
+                self.assertIsInstance(data_item["value"], list)
+                self.assertEqual(len(data_item["value"]), 2)
+            self.assertKeysIn(["name", "name_en", "job_tag", "id", "creation"], data_item["monitor"])
+
+        return response
+
+    def test_query(self):
+        monitor_job_tidb = get_or_create_monitor_job_tidb()
+
+        # 未认证
+        response = self.query_response(
+            monitor_unit_id=monitor_job_tidb.id, query_tag=TiDBQueryChoices.QPS.value)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
+
+        self.client.force_login(self.user)
+
+        response = self.query_response(
+            monitor_unit_id=monitor_job_tidb.id, query_tag='test')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        response = self.query_response(
+            monitor_unit_id='notfound', query_tag=TiDBQueryChoices.QPS.value)
+        self.assertErrorResponse(status_code=404, code='NotFound', response=response)
+
+        # no permission
+        response = self.query_response(
+            monitor_unit_id=monitor_job_tidb.id, query_tag=TiDBQueryChoices.QPS.value)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # admin permission
+        monitor_job_tidb.users.add(self.user)
+        self.query_ok_test(monitor_unit_id=monitor_job_tidb.id, query_tag=TiDBQueryChoices.SERVER_DISK_USAGE.value)
+        self.query_ok_test(monitor_unit_id=monitor_job_tidb.id, query_tag=TiDBQueryChoices.SERVER_MEM_USAGE.value)
+        self.query_ok_test(
+            monitor_unit_id=monitor_job_tidb.id, query_tag=TiDBQueryChoices.SERVER_CPU_USAGE.value)
+        self.query_ok_test(monitor_unit_id=monitor_job_tidb.id, query_tag=TiDBQueryChoices.CURRENT_STORAGE_SIZE.value)
+        self.query_ok_test(monitor_unit_id=monitor_job_tidb.id, query_tag=TiDBQueryChoices.STORAGE_CAPACITY.value)
+        self.query_ok_test(monitor_unit_id=monitor_job_tidb.id, query_tag=TiDBQueryChoices.REGION_HEALTH.value)
+        self.query_ok_test(monitor_unit_id=monitor_job_tidb.id, query_tag=TiDBQueryChoices.REGION_COUNT.value)
+        self.query_ok_test(monitor_unit_id=monitor_job_tidb.id, query_tag=TiDBQueryChoices.QPS.value)
+        self.query_ok_test(monitor_unit_id=monitor_job_tidb.id, query_tag=TiDBQueryChoices.CONNECTIONS_COUNT.value)
+        self.query_ok_test(monitor_unit_id=monitor_job_tidb.id, query_tag=TiDBQueryChoices.TIKV_NODES.value)
+        self.query_ok_test(monitor_unit_id=monitor_job_tidb.id, query_tag=TiDBQueryChoices.TIDB_NODES.value)
+        self.query_ok_test(monitor_unit_id=monitor_job_tidb.id, query_tag=TiDBQueryChoices.PD_NODES.value)
+
+        # no permission
+        monitor_job_tidb.users.remove(self.user)
+        response = self.query_response(
+            monitor_unit_id=monitor_job_tidb.id, query_tag=TiDBQueryChoices.QPS.value)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # federal admin permission
+        self.user.set_federal_admin()
+        r = self.query_ok_test(monitor_unit_id=monitor_job_tidb.id, query_tag=TiDBQueryChoices.SERVER_DISK_USAGE.value)
+        self.assertTrue(len(r.data) > 1)
+        r = self.query_ok_test(monitor_unit_id=monitor_job_tidb.id, query_tag=TiDBQueryChoices.SERVER_MEM_USAGE.value)
+        self.assertTrue(len(r.data) > 1)
+        r = self.query_ok_test(monitor_unit_id=monitor_job_tidb.id, query_tag=TiDBQueryChoices.QPS.value)
+        self.assertTrue(len(r.data) > 6)
+        r = self.query_ok_test(
+            monitor_unit_id=monitor_job_tidb.id, query_tag=TiDBQueryChoices.SERVER_CPU_USAGE.value)
+        self.assertTrue(len(r.data) > 1)
+        r = self.query_ok_test(monitor_unit_id=monitor_job_tidb.id, query_tag=TiDBQueryChoices.CONNECTIONS_COUNT.value)
+        self.assertTrue(len(r.data) > 1)
+        r = self.query_ok_test(
+            monitor_unit_id=monitor_job_tidb.id, query_tag=TiDBQueryChoices.CURRENT_STORAGE_SIZE.value)
+        self.assertTrue(len(r.data) == 1)
+        r = self.query_ok_test(monitor_unit_id=monitor_job_tidb.id, query_tag=TiDBQueryChoices.STORAGE_CAPACITY.value)
+        self.assertTrue(len(r.data) == 1)
+        r = self.query_ok_test(monitor_unit_id=monitor_job_tidb.id, query_tag=TiDBQueryChoices.REGION_HEALTH.value)
+        self.assertTrue(len(r.data) >= 6)
+        r = self.query_ok_test(monitor_unit_id=monitor_job_tidb.id, query_tag=TiDBQueryChoices.REGION_COUNT.value)
+        self.assertTrue(len(r.data) == 1)
+        r = self.query_ok_test(monitor_unit_id=monitor_job_tidb.id, query_tag=TiDBQueryChoices.TIKV_NODES.value)
+        self.assertTrue(len(r.data) == 0 or len(r.data) >= 3)
+        r = self.query_ok_test(monitor_unit_id=monitor_job_tidb.id, query_tag=TiDBQueryChoices.TIDB_NODES.value)
+        self.assertTrue(len(r.data) == 0 or len(r.data) >= 3)
+        r = self.query_ok_test(monitor_unit_id=monitor_job_tidb.id, query_tag=TiDBQueryChoices.PD_NODES.value)
+        self.assertTrue(len(r.data) == 0 or len(r.data) >= 3)
