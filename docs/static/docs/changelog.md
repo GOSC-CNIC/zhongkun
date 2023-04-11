@@ -1,5 +1,16 @@
+## v1.3.0
+2023-04-11  
+shun <869588058@qq.com>
+
+* 对象存储、云主机服务单元配置模型增加排序权重字段‘sort_weight’，列举服务单元接口响应数据增加此排序字段；
+* 增加tidb监控单元model，新增ListUnitTidb、MonitorTiDBQuery接口和测试用例;
+* Bucket模型管控状态字段可选项修改；
+* 新增AdminLockBucket、AdminDeleteBucket接口和测试用例；
+* 工单新建和回复动态发送邮件通知；
+
+
 ## v1.2.0
-2023-04-04
+2023-04-04  
 shun <869588058@qq.com>
 
 * 桶model增加创建状态，欠费管控状态字段；
