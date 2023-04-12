@@ -20,12 +20,13 @@ class TicketEmailNotifier:
 用户 {ticket.username} 新提交了一个工单。
 
 工单标题为:
-{ticket.title}
- 
+  {ticket.title}
+
 工单问题描述：
-{ticket.description}
-        
-谢谢
+  {ticket.description}
+
+
+祝好
 中国科技云一体化云服务平台(https://service.cstcloud.cn)
         """
         future = taskqueue.submit_task(
@@ -44,15 +45,16 @@ class TicketEmailNotifier:
 工单有了新的动态，用户 {ticket.username} 回复了工单。
 
 工单标题为:
-{ticket.title}
+  {ticket.title}
 
 工单问题描述：
-{ticket.description}
+  {ticket.description}
 
 回复内容：
-{folowup.comment}
+  {folowup.comment}
 
-谢谢
+
+祝好
 中国科技云一体化云服务平台(https://service.cstcloud.cn)
             """
         future = taskqueue.submit_task(
