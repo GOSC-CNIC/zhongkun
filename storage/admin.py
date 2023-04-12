@@ -78,6 +78,7 @@ class BucketArchiveAdmin(admin.ModelAdmin):
     list_select_related = ('service', 'user')
     raw_id_fields = ('user',)
     search_fields = ['name', 'user__username', 'original_id']
+    list_filter = ['service', 'situation', 'task_status']
 
     def has_delete_permission(self, request, obj=None):
         return False

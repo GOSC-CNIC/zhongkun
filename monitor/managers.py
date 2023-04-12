@@ -65,6 +65,7 @@ class TiDBQueryChoices(models.TextChoices):
     REGION_HEALTH = 'region_health', _('副本状态')
     STORAGE_CAPACITY = 'storage_capacity', _('存储总容量')
     CURRENT_STORAGE_SIZE = 'current_storage_size', _('当前存储容量')
+    STORAGE = 'storage', _('存储总容量和当前已用容量')
     SERVER_CPU_USAGE = 'server_cpu_usage', _('主机CPU使用率')
     SERVER_MEM_USAGE = 'server_mem_usage', _('主机内存使用率')
     SERVER_DISK_USAGE = 'server_disk_usage', _('主机硬盘使用率')
@@ -709,6 +710,7 @@ class MonitorJobTiDBManager:
             TiDBQueryChoices.SERVER_MEM_USAGE.value: self.backend.server_mem_usage,
             TiDBQueryChoices.SERVER_DISK_USAGE.value: self.backend.server_disk_usage,
             TiDBQueryChoices.QPS.value: self.backend.qps_count,
+            TiDBQueryChoices.STORAGE.value: self.backend.storage,
         }[tag]
 
         return f(**params)

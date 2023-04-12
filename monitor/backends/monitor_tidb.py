@@ -20,6 +20,8 @@ class ExpressionQuery:
 
     storage_capacity = 'pd_cluster_status{job="$job", type="storage_capacity"}'
     current_storage_size = 'pd_cluster_status{job="$job", type="storage_size"}'
+    storage = 'pd_cluster_status{job="$job", type="storage_capacity"} or ' \
+              'pd_cluster_status{job="$job", type="storage_size"}'
     server_cpu_usage = '100 - avg by (instance) (irate(node_cpu_seconds_total{job="$job", mode="idle"}[1m]) ) * 100'
     server_mem_usage = '100 - avg by (instance) (node_memory_MemAvailable_bytes{job="$job"} / ' \
                        'node_memory_MemTotal_bytes{job="$job"}) * 100'
@@ -60,6 +62,9 @@ class ExpressionQuery:
 
     def build_current_storage_size_query(self, job: str = None):
         return self.expression(query_temp=self.current_storage_size, job=job)
+
+    def build_storage_query(self, job: str = None):
+        return self.expression(query_temp=self.storage, job=job)
 
     def build_server_cpu_usage_query(self, job: str = None):
         return self.expression(query_temp=self.server_cpu_usage, job=job)
@@ -177,6 +182,14 @@ class MonitorTiDBQueryAPI:
         :return:
         """
         expression_query = self._query_builder.build_current_storage_size_query(job=job)
+        api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
+        return self._request_query_api(url=api_url)
+
+    def storage(self, provider: MonitorProvider, job: str):
+        """
+        :return:
+        """
+        expression_query = self._query_builder.build_storage_query(job=job)
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(url=api_url)
 
