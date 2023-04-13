@@ -9,9 +9,9 @@ from monitor.models import MonitorProvider
 
 
 class ExpressionQuery:
-    pd_nodes = 'probe_success{job="$job", group="pd"}'
-    tidb_nodes = 'probe_success{job="$job", group="tidb"}'
-    tikv_nodes = 'probe_success{job="$job", group="tikv"}'
+    pd_nodes = 'up{job="$job", group_type="pd"}'
+    tidb_nodes = 'up{job="$job", group_type="tidb"}'
+    tikv_nodes = 'up{job="$job", group_type="tikv"}'
 
     connections_count = 'tidb_server_connections{job="$job"}'
     qps_count = 'sum(rate(tidb_executor_statement_total{job="$job"}[1m])) by (type)'
