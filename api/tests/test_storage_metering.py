@@ -138,7 +138,8 @@ class AdminMeteringStorageTests(MyAPITestCase):
         ], r.data['results'][0])
         self.assertKeysIn(['id', 'name'], r.data['results'][0]['service'])
         self.assertKeysIn(['id', 'username'], r.data['results'][0]['user'])
-        self.assertKeysIn(['id', 'name'], r.data['results'][0]['bucket'])
+        self.assertKeysIn([
+            'id', 'name', 'storage_size', 'object_count', 'stats_time', 'tag'], r.data['results'][0]['bucket'])
 
         # --------- 2023-02-01 - 2023-02-28 ----------
         # service1(bucket1/3), date_start - date_end, order_by

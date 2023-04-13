@@ -196,7 +196,11 @@ class AdminMeteringStorageViewSet(CustomGenericViewSet):
                         },
                         "bucket": {
                             "id": "c50c81ea-59bf-11ed-97e1-c8009fe2eb03",
-                            "name": "databox-arc"
+                            "name": "databox-arc",
+                            "storage_size": 11534336,   # 桶存储容量byte
+                            "object_count": 1,          # 桶内对象数量
+                            "stats_time": "2023-04-13T06:40:21.661900Z", # 桶存储容量和对象数量的统计时间
+                            "tag": ""   # special（专项）
                         }
                     }
                 ]

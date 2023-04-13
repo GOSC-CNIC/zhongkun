@@ -708,10 +708,14 @@ class MeteringStorageManager:
         """
         bucket_ids = [i['storage_bucket_id'] for i in data]
         buckets = Bucket.objects.filter(
-            id__in=bucket_ids).values('id', 'name', 'user__id', 'user__username', 'service__id', 'service__name')
+            id__in=bucket_ids).values(
+            'id', 'name', 'storage_size', 'object_count', 'stats_time', 'tag',
+            'user__id', 'user__username', 'service__id', 'service__name')
         archives = BucketArchive.objects.filter(
             original_id__in=bucket_ids,
-        ).values('original_id', 'name', 'user__id', 'user__username', 'service__id', 'service__name')
+        ).values(
+            'original_id', 'name', 'storage_size', 'object_count', 'stats_time', 'tag',
+            'user__id', 'user__username', 'service__id', 'service__name')
 
         buckets_dict = {}
         for s in buckets:
