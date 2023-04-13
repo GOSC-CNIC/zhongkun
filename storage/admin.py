@@ -49,10 +49,11 @@ class ObjectsServiceAdmin(admin.ModelAdmin):
 @admin.register(models.Bucket)
 class BucketAdmin(NoDeleteSelectModelAdmin):
     list_display = ('id', 'name', 'bucket_id', 'service', 'creation_time', 'user',
-                    'task_status', 'situation', 'situation_time')
+                    'task_status', 'situation', 'situation_time', 'storage_size', 'object_count',
+                    'stats_time', 'tag')
     list_select_related = ('service', 'user')
     raw_id_fields = ('user',)
-    list_filter = ['service', 'situation', 'task_status']
+    list_filter = ['service', 'situation', 'task_status', 'tag']
     search_fields = ['name', 'user__username', 'id']
 
     def delete_model(self, request, obj):
@@ -74,11 +75,12 @@ class BucketAdmin(NoDeleteSelectModelAdmin):
 @admin.register(models.BucketArchive)
 class BucketArchiveAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'service', 'creation_time', 'user', 'delete_time', 'archiver',
-                    'task_status', 'situation', 'situation_time')
+                    'task_status', 'situation', 'situation_time', 'storage_size', 'object_count',
+                    'stats_time', 'tag')
     list_select_related = ('service', 'user')
     raw_id_fields = ('user',)
     search_fields = ['name', 'user__username', 'original_id']
-    list_filter = ['service', 'situation', 'task_status']
+    list_filter = ['service', 'situation', 'task_status', 'tag']
 
     def has_delete_permission(self, request, obj=None):
         return False

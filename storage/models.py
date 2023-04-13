@@ -114,6 +114,10 @@ class BucketBase(UuidModel):
         ARREARS_LOCK = 'arrears-lock', _('欠费锁定')
         LOCK = 'lock', _('锁定')
 
+    class Tags(models.TextChoices):
+        NONE = '', _('无')
+        SPECIAL = 'special', _('专项')
+
     bucket_id = models.CharField(max_length=36, verbose_name=_('存储桶ID'), help_text=_('存储桶在对象存储服务单元中的id'))
     name = models.CharField(max_length=63, verbose_name=_('存储桶名称'))
     creation_time = models.DateTimeField(verbose_name=_('创建时间'))
@@ -125,6 +129,11 @@ class BucketBase(UuidModel):
     )
     situation_time = models.DateTimeField(
         verbose_name=_('管控情况时间'), null=True, blank=True, default=None, help_text=_('欠费管控开始时间'))
+    storage_size = models.BigIntegerField(verbose_name=_('桶存储容量'), blank=True, default=0)
+    object_count = models.IntegerField(verbose_name=_('桶对象数量'), blank=True, default=0)
+    stats_time = models.DateTimeField(verbose_name=_('桶资源统计时间'), null=True, blank=True, default=None)
+    tag = models.CharField(
+        verbose_name=_('标签'), max_length=32, choices=Tags.choices, blank=True, default=Tags.NONE.value)
 
     class Meta:
         abstract = True
@@ -165,6 +174,10 @@ class Bucket(BucketBase):
         arc.task_status = self.task_status
         arc.situation = self.situation
         arc.situation_time = self.situation_time
+        arc.storage_size = self.storage_size
+        arc.object_count = self.object_count
+        arc.stats_time = self.stats_time
+        arc.tag = self.tag
 
         try:
             with transaction.atomic():
