@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from django.utils.translation import gettext as _
 from django.db import models
+from django.utils import timezone
 from rest_framework.response import Response
 
 from core import errors as exceptions
@@ -174,13 +175,25 @@ class BucketHandler:
 
             params = inputs.BucketStatsInput(bucket_name=bucket.name)
             r = view.request_service(service=service, method='bucket_stats', params=params)
+
+            stats_time = r.stats_time or timezone.now()
+            try:
+                if bucket.stats_time is None or bucket.stats_time != r.stats_time:
+                    bucket.storage_size = r.bucket_size_byte
+                    bucket.object_count = r.objects_count
+                    bucket.stats_time = stats_time
+                    bucket.save(update_fields=['storage_size', 'object_count', 'stats_time'])
+            except Exception as exc:
+                pass
+
             return Response(data={
                 'bucket': {
                     'id': bucket.id, 'name': bucket.name, 'service_id': service.id, 'service_name': service.name
                 },
                 'stats': {
                     'objects_count': r.objects_count,
-                    'bucket_size_byte': r.bucket_size_byte
+                    'bucket_size_byte': r.bucket_size_byte,
+                    'stats_time': stats_time.isoformat()
                 }
             })
         except Exception as exc:

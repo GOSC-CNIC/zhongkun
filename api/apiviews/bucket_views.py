@@ -221,7 +221,8 @@ class AdminBucketViewSet(StorageGenericViewSet):
               },
               "stats": {
                 "objects_count": 2,
-                "bucket_size_byte": 72975
+                "bucket_size_byte": 72975,
+                "stats_time": "2023-04-13T15:33:59.615146+08:00"
               }
             }
         """
