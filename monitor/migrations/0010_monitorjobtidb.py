@@ -24,7 +24,7 @@ class Migration(migrations.Migration):
                 ('prometheus', models.CharField(blank=True, default='', help_text='http(s)://example.cn/', max_length=255, verbose_name='Prometheus接口')),
                 ('creation', models.DateTimeField(auto_now_add=True, verbose_name='创建时间')),
                 ('remark', models.TextField(blank=True, default='', verbose_name='备注')),
-                ('sort_weight', models.IntegerField(default=0, help_text='值越大排序越靠前', verbose_name='排序权重')),
+                ('sort_weight', models.IntegerField(default=0, help_text='值越小排序越靠前', verbose_name='排序值')),
                 ('grafana_url', models.CharField(blank=True, default='', max_length=255, verbose_name='Grafana连接')),
                 ('dashboard_url', models.CharField(blank=True, default='', max_length=255, verbose_name='Dashboard连接')),
                 ('organization', models.ForeignKey(db_constraint=False, default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='service.datacenter', verbose_name='监控机构')),
@@ -35,7 +35,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'TiDB监控单元',
                 'verbose_name_plural': 'TiDB监控单元',
                 'db_table': 'monitor_unit_tidb',
-                'ordering': ['-sort_weight'],
+                'ordering': ['sort_weight'],
             },
         ),
     ]

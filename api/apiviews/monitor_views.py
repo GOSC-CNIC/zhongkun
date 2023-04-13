@@ -316,7 +316,7 @@ class MonitorUnitCephViewSet(CustomGenericViewSet):
                   "job_tag": "obs-ceph",
                   "creation": "2021-10-28T01:26:43.498367Z",
                   "remark": "test",
-                  "sort_weight": 10,                        # 排序权重，倒序 由大到小
+                  "sort_weight": 10,                        # 排序值，正序 由小到大
                   "grafana_url": "xxx",
                   "dashboard_url": "xxx",
                   "organization": {                 # may be null
@@ -325,7 +325,7 @@ class MonitorUnitCephViewSet(CustomGenericViewSet):
                     "name_en": "test en",
                     "abbreviation": "t",
                     "creation_time": "2023-02-17T00:50:21.188064Z",
-                    "sort_weight": 6                        # 排序权重，倒序 由大到小
+                    "sort_weight": 6                        # 排序值，正序 由小到大
                   }
                 }
               ]
@@ -390,7 +390,7 @@ class MonitorUnitServerViewSet(CustomGenericViewSet):
                     "name_en": "test en",
                     "abbreviation": "t",
                     "creation_time": "2023-02-17T00:50:21.188064Z",
-                    "sort_weight": 6                        # 排序权重，倒序 由大到小
+                    "sort_weight": 6                        # 排序值，正序 由小到大
                   }
                 },
               ]
@@ -917,7 +917,7 @@ class MonitorUnitTiDBViewSet(CustomGenericViewSet):
                   "job_tag": "obs-tidb",
                   "creation": "2021-10-28T01:26:43.498367Z",
                   "remark": "test",
-                  "sort_weight": 10,                        # 排序权重，倒序 由大到小
+                  "sort_weight": 10,                        # 排序值，正序 由小到大
                   "grafana_url": "xxx",
                   "dashboard_url": "xxx",
                   "organization": {                 # may be null
@@ -926,7 +926,7 @@ class MonitorUnitTiDBViewSet(CustomGenericViewSet):
                     "name_en": "test en",
                     "abbreviation": "t",
                     "creation_time": "2023-02-17T00:50:21.188064Z",
-                    "sort_weight": 6                        # 排序权重，倒序 由大到小
+                    "sort_weight": 6                        # 排序值，正序 由小到大
                   }
                 }
               ]

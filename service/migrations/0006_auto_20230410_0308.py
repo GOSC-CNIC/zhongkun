@@ -12,11 +12,11 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AlterModelOptions(
             name='serviceconfig',
-            options={'ordering': ['-sort_weight'], 'verbose_name': '服务单元接入配置', 'verbose_name_plural': '服务单元接入配置'},
+            options={'ordering': ['sort_weight'], 'verbose_name': '服务单元接入配置', 'verbose_name_plural': '服务单元接入配置'},
         ),
         migrations.AddField(
             model_name='serviceconfig',
             name='sort_weight',
-            field=models.IntegerField(default=0, help_text='值越大排序越靠前', verbose_name='排序权重'),
+            field=models.IntegerField(default=0, help_text='值越小排序越靠前', verbose_name='排序值'),
         ),
     ]

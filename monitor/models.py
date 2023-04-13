@@ -76,7 +76,7 @@ class MonitorJobCeph(UuidModel):
     users = models.ManyToManyField(
         to=UserProfile, db_table='monitor_ceph_users', related_name='+',
         db_constraint=False, verbose_name=_('管理用户'), blank=True)
-    sort_weight = models.IntegerField(verbose_name=_('排序权重'), default=0, help_text=_('值越大排序越靠前'))
+    sort_weight = models.IntegerField(verbose_name=_('排序值'), default=0, help_text=_('值越小排序越靠前'))
     grafana_url = models.CharField(verbose_name=_('Grafana连接'), max_length=255, blank=True, default='')
     dashboard_url = models.CharField(verbose_name=_('Dashboard连接'), max_length=255, blank=True, default='')
     organization = models.ForeignKey(
@@ -85,7 +85,7 @@ class MonitorJobCeph(UuidModel):
     )
 
     class Meta:
-        ordering = ['-sort_weight']
+        ordering = ['sort_weight']
         verbose_name = _('Ceph监控单元')
         verbose_name_plural = verbose_name
 
@@ -123,7 +123,7 @@ class MonitorJobServer(UuidModel):
     users = models.ManyToManyField(
         to=UserProfile, db_table='monitor_server_users', related_name='+',
         db_constraint=False, verbose_name=_('管理用户'), blank=True)
-    sort_weight = models.IntegerField(verbose_name=_('排序权重'), default=0, help_text=_('值越大排序越靠前'))
+    sort_weight = models.IntegerField(verbose_name=_('排序值'), default=0, help_text=_('值越小排序越靠前'))
     grafana_url = models.CharField(verbose_name=_('Grafana连接'), max_length=255, blank=True, default='')
     dashboard_url = models.CharField(verbose_name=_('Dashboard连接'), max_length=255, blank=True, default='')
     organization = models.ForeignKey(
@@ -132,7 +132,7 @@ class MonitorJobServer(UuidModel):
     )
 
     class Meta:
-        ordering = ['-sort_weight']
+        ordering = ['sort_weight']
         verbose_name = _('服务器监控单元')
         verbose_name_plural = verbose_name
 
@@ -313,7 +313,7 @@ class MonitorJobTiDB(UuidModel):
     users = models.ManyToManyField(
         to=UserProfile, db_table='monitor_tidb_users', related_name='+',
         db_constraint=False, verbose_name=_('管理用户'), blank=True)
-    sort_weight = models.IntegerField(verbose_name=_('排序权重'), default=0, help_text=_('值越大排序越靠前'))
+    sort_weight = models.IntegerField(verbose_name=_('排序值'), default=0, help_text=_('值越小排序越靠前'))
     grafana_url = models.CharField(verbose_name=_('Grafana连接'), max_length=255, blank=True, default='')
     dashboard_url = models.CharField(verbose_name=_('Dashboard连接'), max_length=255, blank=True, default='')
     organization = models.ForeignKey(
@@ -323,7 +323,7 @@ class MonitorJobTiDB(UuidModel):
 
     class Meta:
         db_table = 'monitor_unit_tidb'
-        ordering = ['-sort_weight']
+        ordering = ['sort_weight']
         verbose_name = _('TiDB监控单元')
         verbose_name_plural = verbose_name
 

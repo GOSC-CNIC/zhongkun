@@ -14,11 +14,11 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AlterModelOptions(
             name='monitorjobceph',
-            options={'ordering': ['-sort_weight'], 'verbose_name': 'Ceph监控单元', 'verbose_name_plural': 'Ceph监控单元'},
+            options={'ordering': ['sort_weight'], 'verbose_name': 'Ceph监控单元', 'verbose_name_plural': 'Ceph监控单元'},
         ),
         migrations.AlterModelOptions(
             name='monitorjobserver',
-            options={'ordering': ['-sort_weight'], 'verbose_name': '服务器监控单元', 'verbose_name_plural': '服务器监控单元'},
+            options={'ordering': ['sort_weight'], 'verbose_name': '服务器监控单元', 'verbose_name_plural': '服务器监控单元'},
         ),
         migrations.RemoveField(
             model_name='monitorjobceph',
@@ -41,7 +41,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='monitorjobceph',
             name='sort_weight',
-            field=models.IntegerField(default=0, help_text='值越大排序越靠前', verbose_name='排序权重'),
+            field=models.IntegerField(default=0, help_text='值越小排序越靠前', verbose_name='排序值'),
         ),
         migrations.AddField(
             model_name='monitorjobceph',
@@ -61,7 +61,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='monitorjobserver',
             name='sort_weight',
-            field=models.IntegerField(default=0, help_text='值越大排序越靠前', verbose_name='排序权重'),
+            field=models.IntegerField(default=0, help_text='值越小排序越靠前', verbose_name='排序值'),
         ),
         migrations.AddField(
             model_name='monitorjobserver',

@@ -12,11 +12,11 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AlterModelOptions(
             name='datacenter',
-            options={'ordering': ['-sort_weight'], 'verbose_name': '机构', 'verbose_name_plural': '机构'},
+            options={'ordering': ['sort_weight'], 'verbose_name': '机构', 'verbose_name_plural': '机构'},
         ),
         migrations.AddField(
             model_name='datacenter',
             name='sort_weight',
-            field=models.IntegerField(default=0, help_text='值越大排序越靠前', verbose_name='排序权重'),
+            field=models.IntegerField(default=0, help_text='值越小排序越靠前', verbose_name='排序值'),
         ),
     ]
