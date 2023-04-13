@@ -570,6 +570,14 @@ class StorageMeasure:
         if r.username and r.username != bucket.user.username:
             return None
 
+        try:
+            bucket.storage_size = r.bucket_size_byte
+            bucket.object_count = r.objects_count
+            bucket.stats_time = r.stats_time or timezone.now()
+            bucket.save(update_fields=['storage_size', 'object_count', 'stats_time'])
+        except Exception as exc:
+            pass
+
         return r.bucket_size_gib
 
     @wrap_close_old_connections

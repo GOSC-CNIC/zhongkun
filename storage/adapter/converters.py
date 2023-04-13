@@ -48,7 +48,17 @@ def get_exp_jwt(jwt: str):
         return 0
 
 
+def iso_to_datetime(tstr: str):
+    try:
+        if tstr.endswith('Z'):
+            tstr = tstr.rsplit('Z', maxsplit=1)[0] + '+00:00'
+        return datetime.fromisoformat(tstr)
+    except Exception as e:
+        return None
+
+
 class OutputConverter:
+
     @staticmethod
     def to_authenticate_output_jwt(token: str, username: str, password: str):
         expire = get_exp_jwt(token) - 60  # 过期时间提前60s
@@ -84,12 +94,13 @@ class OutputConverter:
     @staticmethod
     def to_bucket_stats_output_error(error):
         return outputs.BucketStatsOutput(
-            ok=False, error=error, bucket_name='', username='', bucket_size_byte=0, objects_count=0
+            ok=False, error=error, bucket_name='', username='', bucket_size_byte=0, objects_count=0, stats_time=None
         )
 
     @staticmethod
     def to_bucket_stats_output(data: dict):
         return outputs.BucketStatsOutput(
             ok=True, bucket_name=data['bucket_name'], username=data['username'],
-            bucket_size_byte=data['stats']['space'], objects_count=data['stats']['count']
+            bucket_size_byte=data['stats']['space'], objects_count=data['stats']['count'],
+            stats_time=iso_to_datetime(data['stats_time'])
         )

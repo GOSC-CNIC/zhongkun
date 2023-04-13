@@ -86,6 +86,7 @@ class BucketStatsOutput(OutputBase):
             username: str,
             objects_count: int,
             bucket_size_byte: int,
+            stats_time,
             **kwargs
     ):
         """
@@ -93,11 +94,13 @@ class BucketStatsOutput(OutputBase):
         :param username: 存储桶的所有者名
         :param objects_count: 存储桶内对象数量
         :param bucket_size_byte: 存储桶内对象总大小，单位字节
+        :param stats_time: 统计时间，datetime
         """
         self.bucket_name = bucket_name
         self.username = username
         self.objects_count = objects_count
         self.bucket_size_byte = bucket_size_byte
+        self.stats_time = stats_time
         super().__init__(**kwargs)
 
     @property
