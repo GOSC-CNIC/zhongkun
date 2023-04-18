@@ -127,7 +127,8 @@ class WebsiteDetectionPointAdmin(NoDeleteSelectModelAdmin):
 
 @admin.register(MonitorJobTiDB)
 class MonitorJobTiDBAdmin(admin.ModelAdmin):
-    list_display = ('name', 'name_en', 'organization', 'sort_weight', 'job_tag', 'provider', 'prometheus', 'creation')
+    list_display = ('name', 'name_en', 'organization', 'sort_weight', 'version', 'job_tag',
+                    'provider', 'prometheus', 'creation')
     list_display_links = ('name', )
     list_select_related = ('provider', 'organization')
     list_editable = ('sort_weight',)

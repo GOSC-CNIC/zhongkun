@@ -70,7 +70,7 @@ class MonitorUnitTiDBTests(MyAPITestCase):
         self.assertEqual(response.data['page_num'], 1)
         self.assertEqual(response.data['page_size'], 100)
         self.assertEqual(len(response.data['results']), 1)
-        self.assertKeysIn(['id', "name", "name_en", "job_tag", 'creation', 'remark',
+        self.assertKeysIn(['id', "name", "name_en", "job_tag", 'creation', 'remark', 'version',
                            'sort_weight', 'grafana_url', 'dashboard_url', 'organization'], response.data['results'][0])
         self.assertEqual(unit_tidb4.id, response.data['results'][0]['id'])
         self.assertIsNone(response.data['results'][0]['organization'])

@@ -111,3 +111,4 @@ class MonitorUnitTiDBSerializer(MonitorJobTiDBSimpleSerializer):
     grafana_url = serializers.CharField(label=_('Grafana连接'), max_length=255)
     dashboard_url = serializers.CharField(label=_('Dashboard连接'), max_length=255)
     organization = MonitorOrganizationSimpleSerializer(required=False)
+    version = serializers.CharField(label=_('TiDB版本'), max_length=32, help_text='xx.xx.xx')

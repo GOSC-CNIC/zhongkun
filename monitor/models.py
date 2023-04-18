@@ -320,6 +320,7 @@ class MonitorJobTiDB(UuidModel):
         verbose_name=_('监控机构'), to=DataCenter, related_name='+', db_constraint=False,
         on_delete=models.SET_NULL, null=True, default=None
     )
+    version = models.CharField(verbose_name=_('TiDB版本'), max_length=32, blank=True, default='', help_text='xx.xx.xx')
 
     class Meta:
         db_table = 'monitor_unit_tidb'

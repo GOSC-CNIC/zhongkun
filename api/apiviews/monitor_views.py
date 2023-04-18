@@ -927,7 +927,8 @@ class MonitorUnitTiDBViewSet(CustomGenericViewSet):
                     "abbreviation": "t",
                     "creation_time": "2023-02-17T00:50:21.188064Z",
                     "sort_weight": 6                        # 排序值，正序 由小到大
-                  }
+                  },
+                  "version": "6.5.3"
                 }
               ]
             }
