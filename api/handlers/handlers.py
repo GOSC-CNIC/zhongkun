@@ -4,6 +4,7 @@ from django.utils.http import urlquote
 from django.http import FileResponse
 from django.urls import reverse
 from rest_framework.response import Response
+from rest_framework.serializers import DecimalField
 
 from service.managers import (
     VmServiceApplyManager, OrganizationApplyManager,
@@ -13,9 +14,14 @@ from service.models import ServiceConfig
 from vo.managers import VoManager, VoMemberManager
 from utils import storagers
 from utils import time
+from utils.model import OwnerType
 from core import errors as exceptions
 from api.serializers import serializers
 from api.viewsets import CustomGenericViewSet
+from servers.managers import ServerManager
+from order.managers import OrderManager
+from bill.models import CashCoupon
+from bill.managers import PaymentManager
 
 
 User = get_user_model()
@@ -161,7 +167,6 @@ class ApplyOrganizationHandler:
 
         return view.exception_response(
             exc=exceptions.BadRequest(message=_('不支持操作命令"{action}"').format(action=_action)))
-
 
     @staticmethod
     def pending_apply(view, request, kwargs):
@@ -864,3 +869,39 @@ class VoHandler:
             return view.exception_response(exc)
 
         return Response(data=serializers.VoMemberSerializer(member).data)
+
+    @staticmethod
+    def vo_statistic(view, request, kwargs):
+        vo_id = kwargs.get(view.lookup_field)
+
+        try:
+            vo, member = VoManager().get_has_read_perm_vo(vo_id=vo_id, user=request.user)
+            vo_member_qs = VoMemberManager().get_vo_members_queryset(vo_id=vo_id)
+            vo_member_count = vo_member_qs.count() + 1
+
+            vo_servers = ServerManager().get_vo_servers_queryset(vo_id=vo_id)
+            vo_servers_count = vo_servers.count()
+
+            vo_orders = OrderManager().filter_order_queryset(
+                vo_id=vo_id, resource_type='', order_type='', status='', time_start=None, time_end=None)
+            vo_orders_count = vo_orders.count()
+
+            coupons_qs = CashCoupon.objects.filter(
+                vo_id=vo_id, owner_type=OwnerType.VO.value,
+                status=CashCoupon.Status.AVAILABLE.value
+            )
+            vo_coupons_count = coupons_qs.count()
+
+            vo_balance = PaymentManager().get_vo_point_account(vo_id=vo_id)
+            data = {
+                'vo': {'id': vo.id, 'name': vo.name},
+                'member_count': vo_member_count,
+                'server_count': vo_servers_count,
+                'order_count': vo_orders_count,
+                'coupon_count': vo_coupons_count,
+                'balance': DecimalField(max_digits=10, decimal_places=2).to_representation(vo_balance.balance)
+            }
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        return Response(data=data)

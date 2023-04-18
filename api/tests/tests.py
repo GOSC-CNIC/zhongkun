@@ -10,7 +10,7 @@ from decimal import Decimal
 from django.urls import reverse
 from django.utils import timezone
 
-from utils.model import PayType
+from utils.model import PayType, OwnerType
 from servers.models import Flavor, Server
 from service.models import (
     ApplyOrganization, DataCenter, ApplyVmService, ServiceConfig
@@ -19,6 +19,9 @@ from utils.test import get_or_create_user, get_or_create_service, get_or_create_
 from adapters import outputs
 from vo.models import VirtualOrganization, VoMember
 from bill.managers.payment import PaymentManager
+from order.managers import OrderManager
+from order.models import Order, ResourceType
+from order.managers.instance_configs import ServerConfig
 from . import MyAPITestCase, set_auth_header
 
 
@@ -2684,3 +2687,81 @@ class VoTests(MyAPITestCase):
         response = self.remove_members_response(client=self.client, vo_id=vo_id,
                                                 usernames=[owner.username])
         self.assertErrorResponse(response=response, status_code=403, code='AccessDenied')
+
+    def test_vo_statistic(self):
+        vo1 = VirtualOrganization(
+            name='test vo1', owner=self.user2
+        )
+        vo1.save(force_insert=True)
+
+        url = reverse('api:vo-vo-statistic', kwargs={'id': 'test'})
+        r = self.client.get(url)
+        self.assertErrorResponse(status_code=404, code='NotFound', response=r)
+
+        url = reverse('api:vo-vo-statistic', kwargs={'id': vo1.id})
+        r = self.client.get(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        member = VoMember(user_id=self.user.id, vo_id=vo1.id)
+        member.save(force_insert=True)
+
+        url = reverse('api:vo-vo-statistic', kwargs={'id': vo1.id})
+        r = self.client.get(url)
+        self.assertKeysIn(keys=[
+            'vo', 'member_count', 'server_count', 'order_count', 'coupon_count', 'balance'], container=r.data)
+        self.assertEqual(r.data['vo']['id'], vo1.id)
+        self.assertEqual(r.data['member_count'], 2)
+        self.assertEqual(r.data['server_count'], 0)
+        self.assertEqual(r.data['order_count'], 0)
+        self.assertEqual(r.data['coupon_count'], 0)
+        self.assertEqual(r.data['balance'], '0.00')
+
+        vo1_account = PaymentManager.get_vo_point_account(vo_id=vo1.id)
+        vo1_account.balance = Decimal('-1.23')
+        vo1_account.save(update_fields=['balance'])
+
+        order_instance_config = ServerConfig(
+            vm_cpu=2, vm_ram=2048, systemdisk_size=100, public_ip=True,
+            image_id='image_id', image_name='', network_id='network_id', network_name='',
+            azone_id='azone_id', azone_name='azone_name', flavor_id=''
+        )
+        order1, resource1 = OrderManager().create_order(
+            order_type=Order.OrderType.NEW.value,
+            pay_app_service_id='test',
+            service_id='test',
+            service_name='test',
+            resource_type=ResourceType.VM.value,
+            instance_config=order_instance_config,
+            period=2,
+            pay_type=PayType.POSTPAID.value,
+            user_id=self.user.id,
+            username=self.user.username,
+            vo_id='', vo_name='',
+            owner_type=OwnerType.USER.value
+        )
+
+        order2, resource2 = OrderManager().create_order(
+            order_type=Order.OrderType.NEW.value,
+            pay_app_service_id='test',
+            service_id='test',
+            service_name='test',
+            resource_type=ResourceType.VM.value,
+            instance_config=order_instance_config,
+            period=2,
+            pay_type=PayType.POSTPAID.value,
+            user_id=self.user.id,
+            username=self.user.username,
+            vo_id=vo1.id, vo_name=vo1.name,
+            owner_type=OwnerType.VO.value
+        )
+
+        url = reverse('api:vo-vo-statistic', kwargs={'id': vo1.id})
+        r = self.client.get(url)
+        self.assertKeysIn(keys=[
+            'vo', 'member_count', 'server_count', 'order_count', 'coupon_count', 'balance'], container=r.data)
+        self.assertEqual(r.data['vo']['id'], vo1.id)
+        self.assertEqual(r.data['member_count'], 2)
+        self.assertEqual(r.data['server_count'], 0)
+        self.assertEqual(r.data['order_count'], 1)
+        self.assertEqual(r.data['coupon_count'], 0)
+        self.assertEqual(r.data['balance'], '-1.23')

@@ -2721,6 +2721,32 @@ class VOViewSet(CustomGenericViewSet):
         """
         return handlers.VoHandler.vo_members_role(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询vo组的统计信息'),
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    @action(methods=['get'], detail=True, url_path='statistic', url_name='vo-statistic')
+    def vo_statistic(self, request, *args, **kwargs):
+        """
+        查询vo组的统计信息
+
+            http code 200:
+            {
+              "vo": {
+                "id": "3d7cd5fc-d236-11eb-9da9-c8009fe2eb10",
+                "name": "项目组1"
+              },
+              "member_count": 5,
+              "server_count": 0,
+              "order_count": 0,
+              "coupon_count": 1,
+              "balance": "0.00"
+            }
+        """
+        return handlers.VoHandler.vo_statistic(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         _action = self.action
         if _action in ['list', 'create']:
