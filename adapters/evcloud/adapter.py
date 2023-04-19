@@ -132,7 +132,7 @@ class EVCloudAdapter(BaseAdapter):
     def authenticate_jwt(self, username, password):
         url = self.api_builder.jwt_base_url()
         try:
-            r = requests.post(url, data={'username': username, 'password': password})
+            r = requests.post(url, data={'username': username, 'password': password}, timeout=(6, 60))
         except Exception as e:
             return OutputConverter().to_authenticate_output_error(error=exceptions.Error(str(e)), style='jwt')
 
@@ -147,7 +147,7 @@ class EVCloudAdapter(BaseAdapter):
     def authenticate_token(self, username, password):
         url = self.api_builder.token_base_url()
         try:
-            r = requests.post(url, data={'username': username, 'password': password})
+            r = requests.post(url, data={'username': username, 'password': password}, timeout=(6, 60))
         except Exception as e:
             return OutputConverter().to_authenticate_output_error(error=exceptions.Error(str(e)), style='token')
 
