@@ -10,8 +10,8 @@ from service.managers import ServiceManager
 from servers.models import Server
 from servers.managers import ServerManager
 from adapters import inputs
-from utils.model import PayType, OwnerType
-from order.models import ResourceType, Order, Resource
+from utils.model import PayType, OwnerType, ResourceType
+from order.models import Order, Resource
 from order.managers import OrderManager, ServerConfig, PriceManager
 
 

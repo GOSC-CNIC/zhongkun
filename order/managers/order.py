@@ -429,9 +429,13 @@ class OrderManager:
         order, resources = OrderManager().get_order_detail(
             order_id=order_id, user=user, check_permission=True, read_only=False
         )
+
+        return self.do_cancel_order(order_id=order.id, resources=resources)
+
+    def do_cancel_order(self, order_id: str, resources: list = None):
         try:
             with transaction.atomic():
-                order = self.get_order(order_id=order.id, select_for_update=True)
+                order = self.get_order(order_id=order_id, select_for_update=True)
                 if order.trading_status == order.TradingStatus.CLOSED.value:
                     raise errors.OrderTradingClosed(message=_('订单交易已关闭'))
                 elif order.trading_status == order.TradingStatus.COMPLETED.value:

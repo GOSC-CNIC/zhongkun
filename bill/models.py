@@ -5,8 +5,7 @@ from django.db import models
 from django.utils.translation import gettext, gettext_lazy as _
 from django.utils import timezone
 
-from utils.model import UuidModel, OwnerType, CustomIdModel
-from utils.model import UuidModel, get_encryptor
+from utils.model import UuidModel, OwnerType, CustomIdModel, get_encryptor
 from utils import rand_utils
 from users.models import UserProfile
 from vo.models import VirtualOrganization

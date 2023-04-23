@@ -7,8 +7,8 @@ from django.utils import timezone
 from django.conf import settings
 
 from servers.models import Flavor
-from utils.model import PayType, OwnerType
-from order.models import Price, Order, ResourceType
+from utils.model import PayType, OwnerType, ResourceType
+from order.models import Price, Order
 from order.managers import OrderManager
 from order.managers.instance_configs import ServerConfig, DiskConfig
 from utils.decimal_utils import quantize_10_2

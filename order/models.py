@@ -6,7 +6,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.core.validators import MaxValueValidator, MinValueValidator
 
-from utils.model import UuidModel, OwnerType, PayType
+from utils.model import UuidModel, OwnerType, PayType, ResourceType
 
 
 def generate_order_sn():
@@ -17,12 +17,6 @@ def generate_order_sn():
     t = timezone.now()
     rand = random.randint(0, 99)
     return f"{t.year:04}{t.month:02}{t.day:02}{t.hour:02}{t.minute:02}{t.second:02}{t.microsecond:06}{rand:02}"
-
-
-class ResourceType(models.TextChoices):
-    VM = 'vm', _('云主机')
-    DISK = 'disk', _('云硬盘')
-    BUCKET = 'bucket', _('存储桶')
 
 
 class Order(models.Model):
@@ -48,7 +42,7 @@ class Order(models.Model):
 
     class TradingStatus(models.TextChoices):
         OPENING = 'opening', _('交易中')
-        UNDELIVERED= 'undelivered', _('订单资源交付失败')
+        UNDELIVERED = 'undelivered', _('订单资源交付失败')
         COMPLETED = 'completed', _('交易成功')
         CLOSED = 'closed', _('交易关闭')
 

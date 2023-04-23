@@ -61,3 +61,9 @@ class NoDeleteSelectModelAdmin(admin.ModelAdmin):
             del actions['delete_selected']
 
         return actions
+
+
+class ResourceType(models.TextChoices):
+    VM = 'vm', _('云主机')
+    DISK = 'disk', _('云硬盘')
+    BUCKET = 'bucket', _('存储桶')

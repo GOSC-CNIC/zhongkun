@@ -4,13 +4,12 @@ from decimal import Decimal
 from django.db import models
 from django.utils.translation import gettext, gettext_lazy as _
 
-from utils.model import OwnerType, PayType, CustomIdModel
+from utils.model import OwnerType, PayType, CustomIdModel, ResourceType
 from users.models import UserProfile
 from vo.models import VirtualOrganization
 from servers.models import Server
 from service.models import ServiceConfig
 from storage.models import ObjectsService
-from order.models import ResourceType
 
 
 class PaymentStatus(models.TextChoices):
