@@ -53,7 +53,7 @@ class OrderTimeoutTask:
                     try:
                         OrderManager().do_cancel_order(order_id=od.id)
                     except Exception as exc:
-                        self.logger.error(f'do cancel order error, {str(exc)}')
+                        self.logger.error(f'do cancel order({od.id}) error, {str(exc)}')
 
                     last_creation_time = od.creation_time
             except Exception as exc:

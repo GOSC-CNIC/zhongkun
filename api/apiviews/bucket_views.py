@@ -194,7 +194,10 @@ class AdminBucketViewSet(StorageGenericViewSet):
                   },
                   "task_status": "created",
                   "situation": "normal",    # normal(正常), arrearage(欠费), lock(欠费锁定)
-                  "situation_time": null
+                  "situation_time": null,
+                  "storage_size": 66347638,
+                  "object_count": 456,
+                  "stats_time": "2022-10-27T08:09:26.911670Z"
                 }
               ]
             }

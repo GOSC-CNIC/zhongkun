@@ -171,7 +171,7 @@ class AdminBucketTests(MyAPITestCase):
         self.assertEqual(len(r.data['results']), 2)
         self.assertKeysIn(keys=[
             'id', 'name', 'creation_time', 'user_id', 'username', 'service',
-            'task_status', 'situation', 'situation_time'
+            'task_status', 'situation', 'situation_time', 'storage_size', 'object_count', 'stats_time'
         ], container=r.data['results'][0])
         self.assertKeysIn(keys=['id', 'name', 'name_en'], container=r.data['results'][0]['service'])
         self.assertEqual(r.data['results'][0]['id'], b2_u2_s1.id)
