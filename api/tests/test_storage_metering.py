@@ -730,7 +730,7 @@ class AdminMeteringStorageTests(MyAPITestCase):
         ], r.data)
         self.assertKeysIn([
             'service_id', 'total_storage_hours', 'total_downstream', 'total_get_request',
-            'total_original_amount', 'total_trade_amount', 'service', 'bucket_count'
+            'total_original_amount', 'total_trade_amount', 'service', 'bucket_count', 'serving_user_count'
         ], r.data['results'][0])
         self.assertKeysIn(['id', 'name'], r.data['results'][0]['service'])
 
@@ -780,6 +780,7 @@ class AdminMeteringStorageTests(MyAPITestCase):
         self.assertEqual(Decimal(sm1['total_trade_amount']), total_trade_amount1 + total_trade_amount3)
         self.assertEqual(sm1['service']['name'], self.service1.name)
         self.assertEqual(sm1['bucket_count'], 2)
+        self.assertEqual(sm1['serving_user_count'], 2)
 
         # federal admin
         self.user1.set_federal_admin()
@@ -819,6 +820,7 @@ class AdminMeteringStorageTests(MyAPITestCase):
         self.assertEqual(Decimal(sm1['total_trade_amount']), total_trade_amount1 + total_trade_amount3)
         self.assertEqual(sm1['service']['name'], self.service1.name)
         self.assertEqual(sm1['bucket_count'], 2)
+        self.assertEqual(sm1['serving_user_count'], 2)
 
         self.assertEqual(sm2['service_id'], self.service2.id)
         self.assertEqual(sm2['total_storage_hours'], total_storage2)  # 552
@@ -829,6 +831,7 @@ class AdminMeteringStorageTests(MyAPITestCase):
         self.assertEqual(Decimal(sm2['total_trade_amount']), total_trade_amount2)
         self.assertEqual(sm2['service']['name'], self.service2.name)
         self.assertEqual(sm2['bucket_count'], 1)
+        self.assertEqual(sm2['serving_user_count'], 1)
 
         # order_by
         query = parse.urlencode(query={

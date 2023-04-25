@@ -887,7 +887,8 @@ class MeteringStorageManager:
             total_get_request=Sum('get_request'),
             total_original_amount=Sum('original_amount'),
             total_trade_amount=Sum('trade_amount'),
-            bucket_count=Count('storage_bucket_id', distinct=True)
+            bucket_count=Count('storage_bucket_id', distinct=True),
+            serving_user_count=Count('user_id', distinct=True)
         ).order_by(order_by)
 
         return queryset

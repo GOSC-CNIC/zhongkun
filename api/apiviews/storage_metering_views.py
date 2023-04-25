@@ -335,6 +335,7 @@ class AdminMeteringStorageViewSet(CustomGenericViewSet):
                         "total_original_amount": "0.00",    # 计费金额
                         "total_trade_amount": "0.00",       # 应付金额 / 实付金额
                         "bucket_count": 10                  # 时间段内计量的服务单元桶的数量
+                        "serving_user_count": 66,           # 服务多少用户
                         "service": {
                             "id": "xxx",
                             "name": "xxx",
