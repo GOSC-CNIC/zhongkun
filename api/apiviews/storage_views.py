@@ -140,6 +140,8 @@ class StorageStatisticsViewSet(StorageGenericViewSet):
         """
         查询对象存储统计信息
 
+            * 需要联邦管理员权限
+
             http code 200：
             {
               "current_bucket_count": 3,    # 当前存储桶总数量
@@ -177,6 +179,9 @@ class StorageStatisticsViewSet(StorageGenericViewSet):
             lookups['creation_time__lte'] = time_end
 
         try:
+            if not request.user.is_federal_admin():
+                raise errors.AccessDenied(message=_('你不是联邦管理员，没有访问权限。'))
+
             bucket_count = Bucket.objects.count()
             if lookups:
                 new_bucket_count = Bucket.objects.filter(**lookups).count()

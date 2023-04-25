@@ -77,6 +77,10 @@ class StorageStatisticsTests(MyAPITestCase):
 
         self.client.force_login(self.user)
         r = self.client.get(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        self.user.set_federal_admin()
+        r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn(keys=[
             'current_bucket_count', 'new_bucket_count', 'new_bucket_delete_count',
