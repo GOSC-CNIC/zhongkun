@@ -69,6 +69,7 @@ class StorageStatisticsTests(MyAPITestCase):
     def setUp(self):
         self.service = get_or_create_storage_service()
         self.user = get_or_create_user(username='lilei@xx.com')
+        self.user2 = get_or_create_user(username='张三@xx.com')
 
     def test_storage_statistics(self):
         url = reverse('api:admin-storage-statistics-list')
@@ -87,6 +88,7 @@ class StorageStatisticsTests(MyAPITestCase):
             'total_storage_size', 'total_object_count'
         ], container=r.data)
         self.assertEqual(r.data['current_bucket_count'], 0)
+        self.assertEqual(r.data['serving_user_count'], 0)
         self.assertEqual(r.data['new_bucket_count'], 0)
         self.assertEqual(r.data['new_bucket_delete_count'], 0)
         self.assertEqual(r.data['total_storage_size'], 0)
@@ -113,6 +115,7 @@ class StorageStatisticsTests(MyAPITestCase):
         r = self.client.get(f'{url}?{query}')
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data['current_bucket_count'], 0)
+        self.assertEqual(r.data['serving_user_count'], 0)
         self.assertEqual(r.data['new_bucket_count'], 0)
         self.assertEqual(r.data['new_bucket_delete_count'], 0)
         self.assertEqual(r.data['total_storage_size'], 0)
@@ -122,42 +125,42 @@ class StorageStatisticsTests(MyAPITestCase):
         bucket1 = Bucket(
             name='bucket-name1', bucket_id='1', task_status=Bucket.TaskStatus.SUCCESS.value,
             storage_size=111, object_count=1,
-            user_id=None, service_id=None, creation_time=nt
+            user_id=self.user.id, service_id=None, creation_time=nt
         )
         bucket1.save(force_insert=True)
 
         bucket2 = Bucket(
             name='bucket-name2', bucket_id='2', task_status=Bucket.TaskStatus.SUCCESS.value,
             storage_size=222, object_count=2,
-            user_id=None, service_id=None, creation_time=nt - timedelta(days=1)
+            user_id=self.user.id, service_id=self.service.id, creation_time=nt - timedelta(days=1)
         )
         bucket2.save(force_insert=True)
 
         bucket3 = Bucket(
             name='bucket-name3', bucket_id='3', task_status=Bucket.TaskStatus.SUCCESS.value,
             storage_size=333, object_count=3,
-            user_id=None, service_id=None, creation_time=nt - timedelta(days=6)
+            user_id=self.user.id, service_id=self.service.id, creation_time=nt - timedelta(days=6)
         )
         bucket3.save(force_insert=True)
 
         bucket4 = Bucket(
             name='bucket-name4', bucket_id='4', task_status=Bucket.TaskStatus.SUCCESS.value,
             storage_size=444, object_count=4,
-            user_id=None, service_id=None, creation_time=nt - timedelta(days=8)
+            user_id=self.user2.id, service_id=None, creation_time=nt - timedelta(days=8)
         )
         bucket4.save(force_insert=True)
 
         bucket5 = Bucket(
             name='bucket-name5', bucket_id='5', task_status=Bucket.TaskStatus.SUCCESS.value,
             storage_size=555, object_count=5,
-            user_id=None, service_id=None, creation_time=nt - timedelta(days=30)
+            user_id=self.user.id, service_id=None, creation_time=nt - timedelta(days=30)
         )
         bucket5.save(force_insert=True)
 
         bucket6 = Bucket(
             name='bucket-name6', bucket_id='6', task_status=Bucket.TaskStatus.SUCCESS.value,
             storage_size=666, object_count=6,
-            user_id=None, service_id=None, creation_time=nt - timedelta(days=60)
+            user_id=None, service_id=self.service.id, creation_time=nt - timedelta(days=60)
         )
         bucket6.save(force_insert=True)
 
@@ -165,10 +168,36 @@ class StorageStatisticsTests(MyAPITestCase):
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data['current_bucket_count'], 6)
+        self.assertEqual(r.data['serving_user_count'], 2)
         self.assertEqual(r.data['new_bucket_count'], 6)
         self.assertEqual(r.data['new_bucket_delete_count'], 0)
         self.assertEqual(r.data['total_storage_size'], 111 + 222 + 333 + 444 + 555 + 666)
         self.assertEqual(r.data['total_object_count'], 1 + 2 + 3 + 4 + 5 + 6)
+
+        # query "service_id"
+        query = parse.urlencode(query={
+            'service_id': 'test'
+        })
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['current_bucket_count'], 0)
+        self.assertEqual(r.data['serving_user_count'], 0)
+        self.assertEqual(r.data['new_bucket_count'], 0)
+        self.assertEqual(r.data['new_bucket_delete_count'], 0)
+        self.assertEqual(r.data['total_storage_size'], 0)
+        self.assertEqual(r.data['total_object_count'], 0)
+
+        query = parse.urlencode(query={
+            'service_id': self.service.id
+        })
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['current_bucket_count'], 3)
+        self.assertEqual(r.data['serving_user_count'], 1)
+        self.assertEqual(r.data['new_bucket_count'], 3)
+        self.assertEqual(r.data['new_bucket_delete_count'], 0)
+        self.assertEqual(r.data['total_storage_size'], 222 + 333 + 666)
+        self.assertEqual(r.data['total_object_count'], 2 + 3 + 6)
 
         # query "time_start" "time_end"
         query = parse.urlencode(query={
@@ -177,6 +206,7 @@ class StorageStatisticsTests(MyAPITestCase):
         r = self.client.get(f'{url}?{query}')
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data['current_bucket_count'], 6)
+        self.assertEqual(r.data['serving_user_count'], 2)
         self.assertEqual(r.data['new_bucket_count'], 4)
         self.assertEqual(r.data['new_bucket_delete_count'], 0)
         self.assertEqual(r.data['total_storage_size'], 111 + 222 + 333 + 444)
@@ -189,10 +219,39 @@ class StorageStatisticsTests(MyAPITestCase):
         r = self.client.get(f'{url}?{query}')
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data['current_bucket_count'], 6)
+        self.assertEqual(r.data['serving_user_count'], 2)
         self.assertEqual(r.data['new_bucket_count'], 2)
         self.assertEqual(r.data['new_bucket_delete_count'], 0)
         self.assertEqual(r.data['total_storage_size'], 333 + 444)
         self.assertEqual(r.data['total_object_count'], 3 + 4)
+
+        # query "time_start"、 "time_end" 、 "service_id"
+        query = parse.urlencode(query={
+            'time_start': (nt - timedelta(days=10)).isoformat()[0:19] + 'Z',
+            'service_id': self.service.id
+        })
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['current_bucket_count'], 3)
+        self.assertEqual(r.data['serving_user_count'], 1)
+        self.assertEqual(r.data['new_bucket_count'], 2)
+        self.assertEqual(r.data['new_bucket_delete_count'], 0)
+        self.assertEqual(r.data['total_storage_size'], 222 + 333)
+        self.assertEqual(r.data['total_object_count'], 2 + 3)
+
+        query = parse.urlencode(query={
+            'time_start': (nt - timedelta(days=10)).isoformat()[0:19] + 'Z',
+            'time_end': (nt - timedelta(days=2)).isoformat()[0:19] + 'Z',
+            'service_id': self.service.id
+        })
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['current_bucket_count'], 3)
+        self.assertEqual(r.data['serving_user_count'], 1)
+        self.assertEqual(r.data['new_bucket_count'], 1)
+        self.assertEqual(r.data['new_bucket_delete_count'], 0)
+        self.assertEqual(r.data['total_storage_size'], 333)
+        self.assertEqual(r.data['total_object_count'], 3)
 
         bucket3.do_archive(archiver='test')
         bucket5.do_archive(archiver='test')
@@ -201,10 +260,24 @@ class StorageStatisticsTests(MyAPITestCase):
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data['current_bucket_count'], 4)
+        self.assertEqual(r.data['serving_user_count'], 2)
         self.assertEqual(r.data['new_bucket_count'], 4)
         self.assertEqual(r.data['new_bucket_delete_count'], 2)
         self.assertEqual(r.data['total_storage_size'], 111 + 222 + 444 + 666)
         self.assertEqual(r.data['total_object_count'], 1 + 2 + 4 + 6)
+
+        # query "service_id"
+        query = parse.urlencode(query={
+            'service_id': self.service.id
+        })
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['current_bucket_count'], 2)
+        self.assertEqual(r.data['serving_user_count'], 1)
+        self.assertEqual(r.data['new_bucket_count'], 2)
+        self.assertEqual(r.data['new_bucket_delete_count'], 1)
+        self.assertEqual(r.data['total_storage_size'], 222 + 666)
+        self.assertEqual(r.data['total_object_count'], 2 + 6)
 
         # query "time_start" "time_end"
         query = parse.urlencode(query={
@@ -213,6 +286,7 @@ class StorageStatisticsTests(MyAPITestCase):
         r = self.client.get(f'{url}?{query}')
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data['current_bucket_count'], 4)
+        self.assertEqual(r.data['serving_user_count'], 2)
         self.assertEqual(r.data['new_bucket_count'], 3)  # bucket 1 2 4
         self.assertEqual(r.data['new_bucket_delete_count'], 1)  # bucket 3
         self.assertEqual(r.data['total_storage_size'], 111 + 222 + 444)
@@ -225,7 +299,36 @@ class StorageStatisticsTests(MyAPITestCase):
         r = self.client.get(f'{url}?{query}')
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data['current_bucket_count'], 4)
+        self.assertEqual(r.data['serving_user_count'], 2)
         self.assertEqual(r.data['new_bucket_count'], 1)  # bucket 4
         self.assertEqual(r.data['new_bucket_delete_count'], 1)  # bucket 3
         self.assertEqual(r.data['total_storage_size'], 444)
         self.assertEqual(r.data['total_object_count'], 4)
+
+        # query "time_start" "time_end" "service_id"
+        query = parse.urlencode(query={
+            'time_start': (nt - timedelta(days=10)).isoformat()[0:19] + 'Z',
+            'service_id': self.service.id
+        })
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['current_bucket_count'], 2)
+        self.assertEqual(r.data['serving_user_count'], 1)
+        self.assertEqual(r.data['new_bucket_count'], 1)  # bucket 2
+        self.assertEqual(r.data['new_bucket_delete_count'], 1)  # bucket 3
+        self.assertEqual(r.data['total_storage_size'], 222)
+        self.assertEqual(r.data['total_object_count'], 2)
+
+        query = parse.urlencode(query={
+            'time_start': (nt - timedelta(days=10)).isoformat()[0:19] + 'Z',
+            'time_end': (nt - timedelta(days=2)).isoformat()[0:19] + 'Z',
+            'service_id': self.service.id
+        })
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['current_bucket_count'], 2)
+        self.assertEqual(r.data['serving_user_count'], 1)
+        self.assertEqual(r.data['new_bucket_count'], 0)
+        self.assertEqual(r.data['new_bucket_delete_count'], 1)  # bucket 3
+        self.assertEqual(r.data['total_storage_size'], 0)
+        self.assertEqual(r.data['total_object_count'], 0)
