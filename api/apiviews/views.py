@@ -285,6 +285,7 @@ class ServersViewSet(CustomGenericViewSet):
                 InvalidServiceId：无效的服务id
                 InvalidNetworkId: 指定网络不存在
                 InvalidAzoneId: 指定的可用区azone_id不存在
+                FlavorServiceMismatch: 配置规格和服务单元不匹配
 
                 403:
                 AccessDenied: 你不是组管理员，没有组管理权限

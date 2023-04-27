@@ -326,7 +326,7 @@ class ServerHandler:
         return Response(data=data, status=202)
 
     @staticmethod
-    def _server_create_validate_params(view, request):
+    def _server_create_validate_params(view: CustomGenericViewSet, request):
         """
         :raises: Error
         """
@@ -392,6 +392,9 @@ class ServerHandler:
 
         if not service.pay_app_service_id:
             raise exceptions.ConflictError(message=_('服务未配置对应的结算系统APP服务id'), code='ServiceNoPayAppServiceId')
+
+        if flavor.service_id and flavor.service_id != service.id:
+            raise exceptions.BadRequest(message=_('配置规格和服务单元不匹配'), code='FlavorServiceMismatch')
 
         try:
             out_net = view.request_service(

@@ -8,6 +8,7 @@ from django.utils import timezone
 from django.conf import settings
 
 from service.managers import ServicePrivateQuotaManager
+from service.models import ServiceConfig
 from servers.models import Flavor, Server
 from utils.test import get_or_create_user, get_or_create_service
 from utils.model import PayType, OwnerType
@@ -123,6 +124,21 @@ class ServerOrderTests(MyAPITransactionTestCase):
 
         self.service.pay_app_service_id = 'app_service_id'
         self.service.save(update_fields=['pay_app_service_id'])
+
+        # flavor2 of service2
+        service2 = ServiceConfig(
+            name='test2', data_center_id=self.service.data_center_id, endpoint_url='test2', username='', password='',
+            need_vpn=False
+        )
+        service2.save(force_insert=True)
+        flavor2 = Flavor(vcpus=1, ram=1024, enable=True, service_id=service2.id)
+        flavor2.save(force_insert=True)
+        response = self.client.post(url, data={
+            'pay_type': PayType.PREPAID.value, 'service_id': self.service.id,
+            'image_id': 'ss', 'period': 12, 'flavor_id': flavor2.id,
+            'vo_id': self.vo.id, 'network_id': 'test'
+        })
+        self.assertErrorResponse(status_code=400, code='FlavorServiceMismatch', response=response)
 
         # param "network_id"
         response = self.client.post(url, data={
