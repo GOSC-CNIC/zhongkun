@@ -39,7 +39,7 @@ class PriceTests(MyAPITestCase):
         )
         price.save()
         self.price = price
-        self.flavor = Flavor(vcpus=2, ram=4 * 1024)
+        self.flavor = Flavor(vcpus=2, ram=4)
         self.flavor.save()
 
     def test_describe_price(self):

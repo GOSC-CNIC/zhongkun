@@ -113,9 +113,9 @@ class FlavorTests(MyAPITestCase):
 
     def test_get_flavor(self):
         service = get_or_create_service()
-        f = Flavor(vcpus=1, ram=1024, enable=True, service_id=None)
+        f = Flavor(vcpus=1, ram=1, enable=True, service_id=None)
         f.save(force_insert=True)
-        f2 = Flavor(vcpus=2, ram=2048, enable=True, service_id=service.id)
+        f2 = Flavor(vcpus=2, ram=2, enable=True, service_id=service.id)
         f2.save(force_insert=True)
 
         url = reverse('api:flavor-list')
@@ -125,7 +125,7 @@ class FlavorTests(MyAPITestCase):
         self.assertIsInstance(flavors, list)
         self.assertEqual(len(flavors), 1)
         self.assert_is_subdict_of(sub={
-            'id': f.id, 'vcpus': f.vcpus, 'ram': 1024, 'service_id': None
+            'id': f.id, 'vcpus': f.vcpus, 'ram': 1024, 'service_id': None, 'ram_gib': 1
         }, d=flavors[0])
 
         # query param "service_id"
@@ -137,7 +137,7 @@ class FlavorTests(MyAPITestCase):
         self.assertIsInstance(flavors, list)
         self.assertEqual(len(flavors), 1)
         self.assert_is_subdict_of(sub={
-            'id': f2.id, 'vcpus': 2, 'ram': 2048, 'service_id': service.id
+            'id': f2.id, 'vcpus': 2, 'ram': 2048, 'service_id': service.id, 'ram_gib': 2
         }, d=flavors[0])
 
 

@@ -385,7 +385,7 @@ class Flavor(models.Model):
     id = models.CharField(blank=True, editable=False, max_length=36, primary_key=True, verbose_name='ID')
     flavor_id = models.CharField(blank=True, max_length=256, verbose_name='服务端规格ID')
     vcpus = models.IntegerField(verbose_name=_('虚拟CPU数'), default=0)
-    ram = models.IntegerField(verbose_name=_('内存MB'), default=0)
+    ram = models.IntegerField(verbose_name=_('内存GiB'), default=0)
     disk = models.IntegerField(verbose_name=_('硬盘GB'), default=0)
     desc = models.CharField(max_length=255, verbose_name=_('Tag描述'), blank=True, default='')
     enable = models.BooleanField(verbose_name=_('可用状态'), default=True)
@@ -400,7 +400,11 @@ class Flavor(models.Model):
         verbose_name_plural = verbose_name
 
     def __str__(self):
-        return f'Flavor(vcpus={self.vcpus}, ram={self.ram}Mb)'
+        return f'Flavor(vcpus={self.vcpus}, ram={self.ram_mib}Mb)'
+
+    @property
+    def ram_mib(self):
+        return self.ram * 1024
 
     def save(self, force_insert=False, force_update=False, using=None,
              update_fields=None):

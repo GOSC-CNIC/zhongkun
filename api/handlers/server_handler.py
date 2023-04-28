@@ -515,7 +515,7 @@ class ServerHandler:
             owner_type = OwnerType.USER.value
 
         instance_config = ServerConfig(
-            vm_cpu=flavor.vcpus, vm_ram=flavor.ram, systemdisk_size=systemdisk_size, public_ip=is_public_network,
+            vm_cpu=flavor.vcpus, vm_ram=flavor.ram_mib, systemdisk_size=systemdisk_size, public_ip=is_public_network,
             image_id=image_id, image_name='', network_id=network.id, network_name=network.name,
             azone_id=azone_id, azone_name=azone_name, flavor_id=flavor.flavor_id
         )

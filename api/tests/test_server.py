@@ -13,8 +13,9 @@ from servers.models import Flavor, Server
 from utils.test import get_or_create_user, get_or_create_service
 from utils.model import PayType, OwnerType
 from utils.time import iso_utc_to_datetime
+from utils.decimal_utils import quantize_10_2
 from vo.models import VirtualOrganization, VoMember
-from order.managers import OrderManager
+from order.managers import OrderManager, PriceManager
 from order.models import Price, Order, Resource
 from order.managers import ServerConfig
 from bill.managers import PaymentManager
@@ -31,7 +32,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         self.service = get_or_create_service()
         self.default_user = 'root'
         self.default_password = 'password'
-        self.flavor = Flavor(vcpus=1, ram=1024, enable=True)
+        self.flavor = Flavor(vcpus=1, ram=1, enable=True)
         self.flavor.save(force_insert=True)
         self.vo = VirtualOrganization(
             name='test vo', owner=self.user2
@@ -185,6 +186,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         response = self.client.get(f'{base_url}?service_id={self.service.id}')
         self.assertEqual(response.status_code, 200)
         network_id = response.data[0]['id']
+        is_public_network = response.data[0]['public']
 
         # service not set pay_app_service_id
         url = reverse('api:servers-list')
@@ -281,6 +283,11 @@ class ServerOrderTests(MyAPITransactionTestCase):
         self.assertEqual(order.trading_status, order.TradingStatus.OPENING.value)
         self.assertEqual(order.owner_type, OwnerType.USER.value)
         self.assertEqual(order.user_id, self.user.id)
+
+        original_price, trade_price = PriceManager().describe_server_price(
+            ram_mib=1024, cpu=1, disk_gib=250, public_ip=is_public_network, is_prepaid=True, period=12, days=0)
+        self.assertEqual(order.total_amount, quantize_10_2(original_price))
+        self.assertEqual(order.payable_amount, quantize_10_2(trade_price))
 
         # 修改镜像id，让订单交付资源失败
         s_config = ServerConfig.from_dict(order.instance_config)

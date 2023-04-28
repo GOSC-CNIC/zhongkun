@@ -1510,9 +1510,10 @@ class FlavorViewSet(CustomGenericViewSet):
                   "id": 9c70cbe2-690c-11eb-a4b7-c8009fe2eb10,
                   "flavor_id": "ecs.s3.medium"
                   "vcpus": 4,
-                  "ram": 4096,
+                  "ram": 4096,      # MiB
                   "disk": 17
-                  "service_id": "xxx"
+                  "service_id": "xxx",
+                  "ram_gib": 4      # Gib
                 }
               ]
             }

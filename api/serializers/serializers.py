@@ -179,9 +179,18 @@ class FlavorSerializer(serializers.Serializer):
     id = serializers.CharField()
     flavor_id = serializers.CharField(label=_('服务端规格ID'))
     vcpus = serializers.IntegerField(label=_('虚拟CPU数'))
-    ram = serializers.IntegerField(label=_('内存MB'))
+    ram = serializers.SerializerMethodField(method_name='get_ram_mib', label=_('内存MB'))
     disk = serializers.IntegerField(label=_('硬盘GB'))
     service_id = serializers.CharField(label=_('服务单元id'))
+    ram_gib = serializers.SerializerMethodField(method_name='get_ram_gib', label=_('内存GiB'))
+
+    @staticmethod
+    def get_ram_gib(obj):
+        return obj.ram
+
+    @staticmethod
+    def get_ram_mib(obj):
+        return obj.ram_mib
 
 
 class ServiceSerializer(serializers.Serializer):

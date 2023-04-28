@@ -36,7 +36,7 @@ class DescribePriceHandler:
                 return view.exception_response(errors.BadRequest(message=_('无效的flavor id')))
 
             original_price, trade_price = pmgr.describe_server_price(
-                ram_mib=flavor.ram, cpu=flavor.vcpus, disk_gib=system_disk_size, public_ip=external_ip,
+                ram_mib=flavor.ram_mib, cpu=flavor.vcpus, disk_gib=system_disk_size, public_ip=external_ip,
                 is_prepaid=(pay_type == 'prepaid'), period=period, days=days)
         elif resource_type == ResourceType.DISK:
             pay_type = data['pay_type']
