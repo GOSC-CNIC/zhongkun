@@ -81,6 +81,9 @@ no_slash_router.register(r'admin/storage/bucket', bucket_views.AdminBucketViewSe
 no_slash_router.register(
     r'admin/storage/statistics', storage_views.StorageStatisticsViewSet, basename='admin-storage-statistics')
 no_slash_router.register(r'admin/trade/tradebill', tradebill_views.AdminTradeBillViewSet, basename='admin-tradebill')
+no_slash_router.register(
+    r'admin/metering/storage/statistics', storage_metering_views.AdminMeteringStorageStatisticsViewSet,
+    basename='admin-metering-storage-statistics')
 
 urlpatterns = [
     path('', include(no_slash_router.urls)),

@@ -24,7 +24,7 @@ class ResourceAdmin(admin.ModelAdmin):
                     'desc', 'instance_remark', 'creation_time')
     list_display_links = ('id',)
     list_filter = ('resource_type', 'instance_status')
-    search_fields = ('order_id', )
+    search_fields = ('order__id', 'instance_id')
     raw_id_fields = ('order',)
 
     def has_delete_permission(self, request, obj=None):

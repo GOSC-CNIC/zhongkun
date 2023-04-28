@@ -918,6 +918,16 @@ class MeteringStorageManager:
 
         return data
 
+    def get_metering_statistics(self, service_id: str = None, date_start: date = None, date_end: date = None,):
+        qs = self.filter_obs_metering_queryset(
+            date_start=date_start, date_end=date_end, service_id=service_id
+        )
+        return qs.aggregate(
+            total_storage_hours=Sum('storage'),
+            total_original_amount=Sum('original_amount'),
+            total_trade_amount=Sum('trade_amount'),
+        )
+
 
 class StatementStorageManager:
     @staticmethod

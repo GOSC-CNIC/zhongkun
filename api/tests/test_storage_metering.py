@@ -935,3 +935,93 @@ class AdminMeteringStorageTests(MyAPITestCase):
         self.assertEqual(len(r.data['results']), 1)
         self.assertEqual(r.data['results'][0]['service_id'], self.service1.id)
         self.assertEqual(r.data['results'][0]['bucket_count'], 1)
+
+    def test_metering_statistics(self):
+        self.init_data()
+        base_url = reverse('api:admin-metering-storage-statistics-list')
+
+        # NotAuthenticated
+        r = self.client.get(base_url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+
+        self.client.force_login(self.user1)
+
+        # invalid date_start
+        query = parse.urlencode(query={
+            'date_start': '2022-02-31'
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 400)
+
+        # invalid date_end
+        query = parse.urlencode(query={
+            'date_end': '2022-2-1'
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 400)
+
+        # AccessDenied, user1 no permission of service1
+        query = parse.urlencode(query={'service_id': self.service1.id})
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        self.user1.set_federal_admin()
+
+        # --------- 2023-02-01 - 2023-02-28 ----------
+        # service1(bucket1/3), date_start - date_end, order_by
+        # bucket1 2023-02-10 - 02-28, 19 days
+        total_storage1 = 0  # 171
+        total_downstream1 = 0  # 190
+        total_get_request1 = 0  # 1710
+        total_original_amount1 = Decimal('0')  # 190
+        total_trade_amount1 = Decimal('0')  # 171
+        for i in range(19):
+            total_storage1 += i
+            total_downstream1 += i + 1
+            total_get_request1 += 10 * i
+            total_original_amount1 += Decimal.from_float(i + 1)
+            total_trade_amount1 += Decimal.from_float(i)
+
+        # bucket3 2023-02-01 - 02-18, 18 days
+        total_storage3 = 0  # 1107
+        total_downstream3 = 0  # 1125
+        total_get_request3 = 0  # 11070
+        total_original_amount3 = Decimal('0')  # 1215
+        total_trade_amount3 = Decimal('0')  # 1125
+        for i in range(30 - 18, 30):
+            total_storage3 += 3 * i
+            total_downstream3 += 3 * i + 1
+            total_get_request3 += i * 30
+            total_original_amount3 += Decimal.from_float(3 * i + 6)
+            total_trade_amount3 += Decimal.from_float(3 * i + 1)
+
+        # bucket2_archive 2023-02-05 - 02-28, 24 days
+        total_storage2 = 0  # 552
+        total_downstream2 = 0  # 576
+        total_get_request2 = 0  # 5520
+        total_original_amount2 = Decimal('0')  # 420
+        total_trade_amount2 = Decimal('0')  # 300
+        for i in range(0, 24):
+            total_storage2 += 2 * i
+            total_downstream2 += 2 * i + 1
+            total_get_request2 += i * 20
+            total_original_amount2 += Decimal.from_float(i + 6)
+            total_trade_amount2 += Decimal.from_float(i + 1)
+
+        query = parse.urlencode(query={
+            'date_start': '2023-02-01', 'date_end': '2023-02-28',
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["total_storage_hours"], Decimal.from_float(171 + 1107 + 552))
+        self.assertEqual(r.data['total_original_amount'], Decimal.from_float(190 + 1215 + 420))
+        self.assertEqual(r.data['total_trade_amount'], Decimal.from_float(171 + 1125 + 300))
+
+        query = parse.urlencode(query={
+            'date_start': '2023-02-01', 'date_end': '2023-02-28', 'service_id': self.service1.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["total_storage_hours"], Decimal.from_float(171 + 1107))
+        self.assertEqual(r.data['total_original_amount'], Decimal.from_float(190 + 1215))
+        self.assertEqual(r.data['total_trade_amount'], Decimal.from_float(171 + 1125))

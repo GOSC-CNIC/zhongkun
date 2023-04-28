@@ -1194,6 +1194,43 @@ class MeteringObsHandler:
             # 'download': download is not None
         }
 
+    @staticmethod
+    def metering_statistics(view: CustomGenericViewSet, request):
+        date_start = request.query_params.get('date_start', None)
+        date_end = request.query_params.get('date_end', None)
+        service_id = request.query_params.get('service_id', None)
+
+        try:
+            if date_start is not None:
+                try:
+                    date_start = date.fromisoformat(date_start)
+                except (TypeError, ValueError):
+                    raise errors.InvalidArgument(message=_('参数“date_start”的值无效的日期格式'))
+
+            if date_end is not None:
+                try:
+                    date_end = date.fromisoformat(date_end)
+                except (TypeError, ValueError):
+                    raise errors.InvalidArgument(message=_('参数“date_end”的值无效的日期格式'))
+
+            if date_start and date_end:
+                if date_start > date_end:
+                    raise errors.BadRequest(message=_('起始日期不得大于截止日期'))
+
+            if not request.user.is_federal_admin():
+                raise errors.AccessDenied(message=_('你不是联邦管理员，没有访问权限。'))
+
+            data = MeteringStorageManager().get_metering_statistics(
+                date_start=date_start, date_end=date_end, service_id=service_id)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        return Response(data={
+            'total_storage_hours': data['total_storage_hours'] if data['total_storage_hours'] else 0,
+            'total_original_amount': data['total_original_amount'] if data['total_original_amount'] else '0.00',
+            'total_trade_amount': data['total_trade_amount'] if data['total_trade_amount'] else '0.00'
+        })
+
 
 class StorageStatementHandler:
     def list_statement_storage(self, view: CustomGenericViewSet, request):

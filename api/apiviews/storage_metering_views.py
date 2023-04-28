@@ -10,6 +10,7 @@ from metering.models import PaymentStatus
 from api.paginations import MeteringPageNumberPagination, StatementPageNumberPagination
 from api.handlers.metering_handler import MeteringObsHandler, StorageStatementHandler
 from api.serializers import serializers
+from utils.paginators import NoPaginatorInspector
 
 
 class MeteringStorageViewSet(CustomGenericViewSet):
@@ -478,3 +479,50 @@ class StatementStorageViewSet(CustomGenericViewSet):
             return serializers.DailyStatementStorageDetailSerializer
 
         return Serializer
+
+
+class AdminMeteringStorageStatisticsViewSet(CustomGenericViewSet):
+    permission_classes = [IsAuthenticated, ]
+    pagination_class = None
+    lookup_field = 'id'
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询指定时间段内对象存储计量计费统计信息'),
+        request_body=no_body,
+        manual_parameters=[
+            openapi.Parameter(
+                name='date_start',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('聚合日期起，默认当前月起始日期，ISO8601格式：YYYY-MM-dd')
+            ),
+            openapi.Parameter(
+                name='date_end',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('聚合日期止，默认当前月当前日期，ISO8601格式：YYYY-MM-dd')
+            ),
+            openapi.Parameter(
+                name='service_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('查询指定存储服务单元')
+            ),
+        ],
+        paginator_inspectors=[NoPaginatorInspector]
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        查询指定时间段内对象存储计量计费统计信息
+
+            http code 200:
+            {
+                "total_storage_hours": 0,           # GiB*h
+                "total_original_amount": "0.00",    # 计费金额
+                "total_trade_amount": "0.00",       # 应付金额 / 实付金额
+            }
+        """
+        return MeteringObsHandler().metering_statistics(view=self, request=request)
