@@ -5,7 +5,6 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
 from service.models import ServiceConfig, ApplyVmService
-from bill.models import PayAppService
 
 
 class ServerBaseSerializer(serializers.Serializer):
@@ -16,6 +15,7 @@ class ServerBaseSerializer(serializers.Serializer):
     name = serializers.CharField()
     vcpus = serializers.IntegerField()
     ram = serializers.IntegerField()
+    ram_gib = serializers.IntegerField()
     ipv4 = serializers.CharField()
     public_ip = serializers.BooleanField()
     image = serializers.CharField()

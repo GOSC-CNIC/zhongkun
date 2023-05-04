@@ -156,6 +156,7 @@ class ServersViewSet(CustomGenericViewSet):
                   "name": "gosc-instance-1cbaf0fd-20c1-4632-8e0c-7be8708591ac",
                   "vcpus": 1,
                   "ram": 1024,
+                  "ram_gib": 1,
                   "ipv4": "10.0.200.249",
                   "public_ip": false,
                   "image": "centos8_gui",
@@ -219,6 +220,7 @@ class ServersViewSet(CustomGenericViewSet):
                   "name": "gosc-instance-1cbaf0fd-20c1-4632-8e0c-7be8708591ac",
                   "vcpus": 1,
                   "ram": 1024,
+                  "ram_gib": 1,
                   "ipv4": "10.0.200.249",
                   "public_ip": false,
                   "image": "centos8_gui",
@@ -413,6 +415,7 @@ class ServersViewSet(CustomGenericViewSet):
                 "name": "bfbdcbce3e904615af49377fdc2f2ea9",
                 "vcpus": 1,
                 "ram": 1024,
+                "ram_gib": 1,
                 "ipv4": "10.0.201.2",
                 "public_ip": false,
                 "image": "CentOS_8",
@@ -937,7 +940,7 @@ class ServersViewSet(CustomGenericViewSet):
         """
         try:
             QuotaAPI().server_quota_release(service=server.service, vcpu=server.vcpus,
-                                            ram=server.ram, public_ip=server.public_ip)
+                                            ram=server.ram_mib, public_ip=server.public_ip)
         except exceptions.Error as e:
             return False
 
@@ -1843,7 +1846,8 @@ class ServerArchiveViewSet(CustomGenericViewSet):
                       "id": "6184d5b2-6468-11eb-8b43-c8009fe2eb10",
                       "name": "d1ddd55a-1fdc-44d6-bd71-d6e8b5c94bf9",
                       "vcpus": 1,
-                      "ram": 80,
+                      "ram": 1024,
+                      "ram_gib": 1,
                       "ipv4": "10.0.200.240",
                       "public_ip": false,
                       "image": "cirros",

@@ -526,3 +526,6 @@ class AdminMeteringStorageStatisticsViewSet(CustomGenericViewSet):
             }
         """
         return MeteringObsHandler().metering_statistics(view=self, request=request)
+
+    def get_serializer_class(self):
+        return Serializer

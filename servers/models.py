@@ -1,4 +1,5 @@
 from uuid import uuid1
+import math
 
 from django.db import models, transaction
 from django.db.models import Count, Sum, Q
@@ -107,6 +108,14 @@ class ServerBase(models.Model):
             return False
 
         return True
+
+    @property
+    def ram_mib(self):
+        return self.ram
+
+    @property
+    def ram_gib(self):
+        return math.ceil(self.ram / 1024)
 
     @property
     def is_use_shared_quota(self):
