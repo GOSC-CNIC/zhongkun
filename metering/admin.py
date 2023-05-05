@@ -30,7 +30,7 @@ class MeteringDiskAdmin(admin.ModelAdmin):
 
 @admin.register(MeteringObjectStorage)
 class MeteringObjectStorageAdmin(admin.ModelAdmin):
-    list_display = ('id', 'date', 'storage', 'downstream', 'replication', 'get_request',
+    list_display = ('id', 'date', 'storage_byte', 'storage', 'downstream', 'replication', 'get_request',
                     'put_request', 'service', 'bucket_name', 'storage_bucket_id',
                     'original_amount', 'trade_amount', 'daily_statement_id',
                     'creation_time', 'user_id', 'username')

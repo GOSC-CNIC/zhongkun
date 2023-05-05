@@ -155,7 +155,7 @@ class MeteringObjectStorageTests(TransactionTestCase):
 
         metering_date = (now - timedelta(days=1)).date()
         measure = StorageMeasure(raise_exception=True)
-        measure.get_bucket_metering_size = lambda bucket: gib_size        # 替换网络请求
+        measure.get_bucket_metering_size = lambda bucket: gib_size * (1024**3)        # 替换网络请求
         measure.run()
 
         utc_now = now.astimezone(pytz.utc)
@@ -174,6 +174,7 @@ class MeteringObjectStorageTests(TransactionTestCase):
         hours = self.delta_hours(end=end, start=bucket2.creation_time)
         metering = measure.bucket_metering_exists(metering_date=metering_date, bucket_id=bucket2.id)
         self.assertIsNotNone(metering)
+        self.assertEqual(metering.storage_byte, 1024 * 1024 * 1024 * 10)
         self.assertEqual(up_int(metering.storage), up_int(hours * gib_size))
         self.assertEqual(metering.user_id, self.user.id)
         self.assertEqual(metering.username, self.user.username)

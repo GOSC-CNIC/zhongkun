@@ -474,27 +474,32 @@ class StorageMeasure:
             return None
 
         try:
-            storage_size_gib = self.get_bucket_metering_size(bucket=bucket)
+            storage_size_byte = self.get_bucket_metering_size(bucket=bucket)
         except Exception as exc:
             self._error_http_count += 1
             print(f'Error stats bucket({bucket.id}, {bucket.name}) request, {str(exc)}')
             return None
 
-        if storage_size_gib is None:
+        if storage_size_byte is None:
             return None
 
+        storage_size_gib = storage_size_byte / 1024**3
         metering = self.save_bucket_metering_record(
-            bucket=bucket, storage_gib_hours=storage_size_gib * hours
+            bucket=bucket, storage_gib_hours=storage_size_gib * hours, storage_byte=storage_size_byte
         )
         return metering
 
-    def save_bucket_metering_record(self, bucket: Bucket, storage_gib_hours):
+    def save_bucket_metering_record(self, bucket: Bucket, storage_gib_hours, storage_byte: int):
         return self.save_metering_record(
             service=bucket.service, user_id=bucket.user_id, storage_bucket_id=bucket.id,
-            bucket_name=bucket.name, creation_time=bucket.creation_time, storage_gib_hours=storage_gib_hours
+            bucket_name=bucket.name, creation_time=bucket.creation_time, storage_gib_hours=storage_gib_hours,
+            storage_byte=storage_byte
         )
 
-    def save_metering_record(self, service, user_id, storage_bucket_id, bucket_name, creation_time, storage_gib_hours):
+    def save_metering_record(
+            self, service, user_id, storage_bucket_id, bucket_name, creation_time, storage_gib_hours,
+            storage_byte: int
+    ):
         """
            创建当前日期的桶的计量记录
            :return MeteringObjectStorage
@@ -510,7 +515,8 @@ class StorageMeasure:
             date=metering_date,
             creation_time=creation_time,
             storage=storage_gib_hours,
-            daily_statement_id=''
+            daily_statement_id='',
+            storage_byte=storage_byte
         )
         self.metering_bill_amount(_metering=metering, auto_commit=False)
 
@@ -578,7 +584,7 @@ class StorageMeasure:
         except Exception as exc:
             pass
 
-        return r.bucket_size_gib
+        return r.bucket_size_byte
 
     @wrap_close_old_connections
     def get_buckets(self, gte_creation_time, end_datetime, limit: int = 100):

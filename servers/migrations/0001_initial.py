@@ -17,7 +17,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.CharField(blank=True, editable=False, max_length=36, primary_key=True, serialize=False, verbose_name='ID')),
                 ('vcpus', models.IntegerField(default=0, verbose_name='虚拟CPU数')),
-                ('ram', models.IntegerField(default=0, verbose_name='内存MB')),
+                ('ram', models.IntegerField(default=0, verbose_name='内存GiB')),
                 ('enable', models.BooleanField(default=True, verbose_name='可用状态')),
                 ('creation_time', models.DateTimeField(auto_now_add=True, verbose_name='创建时间')),
             ],
