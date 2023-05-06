@@ -155,7 +155,7 @@ class ServersViewSet(CustomGenericViewSet):
                   "id": 9c70cbe2-690c-11eb-a4b7-c8009fe2eb10,
                   "name": "gosc-instance-1cbaf0fd-20c1-4632-8e0c-7be8708591ac",
                   "vcpus": 1,
-                  "ram": 1024,
+                  "ram": 1, # GiB
                   "ram_gib": 1,
                   "ipv4": "10.0.200.249",
                   "public_ip": false,
@@ -219,7 +219,7 @@ class ServersViewSet(CustomGenericViewSet):
                   "id": 9c70cbe2-690c-11eb-a4b7-c8009fe2eb10,
                   "name": "gosc-instance-1cbaf0fd-20c1-4632-8e0c-7be8708591ac",
                   "vcpus": 1,
-                  "ram": 1024,
+                  "ram": 1, # GiB
                   "ram_gib": 1,
                   "ipv4": "10.0.200.249",
                   "public_ip": false,
@@ -414,7 +414,7 @@ class ServersViewSet(CustomGenericViewSet):
                 "id": 9c70cbe2-690c-11eb-a4b7-c8009fe2eb10,
                 "name": "bfbdcbce3e904615af49377fdc2f2ea9",
                 "vcpus": 1,
-                "ram": 1024,
+                "ram": 1,       # GiB
                 "ram_gib": 1,
                 "ipv4": "10.0.201.2",
                 "public_ip": false,
@@ -1513,7 +1513,7 @@ class FlavorViewSet(CustomGenericViewSet):
                   "id": 9c70cbe2-690c-11eb-a4b7-c8009fe2eb10,
                   "flavor_id": "ecs.s3.medium"
                   "vcpus": 4,
-                  "ram": 4096,      # MiB
+                  "ram": 4,      # GiB
                   "disk": 17
                   "service_id": "xxx",
                   "ram_gib": 4      # Gib
@@ -1846,7 +1846,7 @@ class ServerArchiveViewSet(CustomGenericViewSet):
                       "id": "6184d5b2-6468-11eb-8b43-c8009fe2eb10",
                       "name": "d1ddd55a-1fdc-44d6-bd71-d6e8b5c94bf9",
                       "vcpus": 1,
-                      "ram": 1024,
+                      "ram": 1,     # Gib
                       "ram_gib": 1,
                       "ipv4": "10.0.200.240",
                       "public_ip": false,

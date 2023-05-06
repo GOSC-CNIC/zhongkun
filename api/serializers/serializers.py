@@ -14,7 +14,7 @@ class ServerBaseSerializer(serializers.Serializer):
     id = serializers.CharField()
     name = serializers.CharField()
     vcpus = serializers.IntegerField()
-    ram = serializers.IntegerField()
+    ram = serializers.SerializerMethodField(method_name='get_ram')
     ram_gib = serializers.IntegerField()
     ipv4 = serializers.CharField()
     public_ip = serializers.BooleanField()
@@ -32,6 +32,10 @@ class ServerBaseSerializer(serializers.Serializer):
     @staticmethod
     def get_default_password(obj):
         return obj.raw_default_password
+
+    @staticmethod
+    def get_ram(obj):
+        return obj.ram_gib
 
 
 class ServerSimpleSerializer(ServerBaseSerializer):
@@ -179,7 +183,7 @@ class FlavorSerializer(serializers.Serializer):
     id = serializers.CharField()
     flavor_id = serializers.CharField(label=_('服务端规格ID'))
     vcpus = serializers.IntegerField(label=_('虚拟CPU数'))
-    ram = serializers.SerializerMethodField(method_name='get_ram_mib', label=_('内存MB'))
+    ram = serializers.IntegerField(label=_('内存GiB'))
     disk = serializers.IntegerField(label=_('硬盘GB'))
     service_id = serializers.CharField(label=_('服务单元id'))
     ram_gib = serializers.SerializerMethodField(method_name='get_ram_gib', label=_('内存GiB'))

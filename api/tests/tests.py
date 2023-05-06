@@ -125,7 +125,7 @@ class FlavorTests(MyAPITestCase):
         self.assertIsInstance(flavors, list)
         self.assertEqual(len(flavors), 1)
         self.assert_is_subdict_of(sub={
-            'id': f.id, 'vcpus': f.vcpus, 'ram': 1024, 'service_id': None, 'ram_gib': 1
+            'id': f.id, 'vcpus': f.vcpus, 'ram': 1, 'service_id': None, 'ram_gib': 1
         }, d=flavors[0])
 
         # query param "service_id"
@@ -137,7 +137,7 @@ class FlavorTests(MyAPITestCase):
         self.assertIsInstance(flavors, list)
         self.assertEqual(len(flavors), 1)
         self.assert_is_subdict_of(sub={
-            'id': f2.id, 'vcpus': 2, 'ram': 2048, 'service_id': service.id, 'ram_gib': 2
+            'id': f2.id, 'vcpus': 2, 'ram': 2, 'service_id': service.id, 'ram_gib': 2
         }, d=flavors[0])
 
 
@@ -347,6 +347,7 @@ class ServersTests(MyAPITestCase):
                            "image_id", "image_desc", "default_user", "default_password",
                            "lock", "pay_type"], response.data['servers'][0])
         self.assertEqual(response.data['servers'][0]['ram_gib'], 1)
+        self.assertEqual(response.data['servers'][0]['ram'], 1)
         self.assertKeysIn(["id", "name", "name_en", "service_type"], response.data['servers'][0]['service'])
         self.assert_is_subdict_of(sub={
             'classification': Server.Classification.PERSONAL,
@@ -473,6 +474,7 @@ class ServersTests(MyAPITestCase):
                            "image_id", "image_desc", "default_user", "default_password",
                            "lock", "pay_type"], response.data['servers'][0])
         self.assertEqual(response.data['servers'][0]['ram_gib'], 2)
+        self.assertEqual(response.data['servers'][0]['ram'], 2)
         self.assert_is_subdict_of(sub={
             'classification': Server.Classification.VO,
             'service': {
@@ -1115,6 +1117,7 @@ class ServersTests(MyAPITestCase):
                            "center_quota", "deleted_time", "classification", "vo_id",
                            "pay_type", "server_id"], obj)
         self.assertEqual(obj['ram_gib'], 1)
+        self.assertEqual(obj['ram'], 1)
         self.assertKeysIn(["id", "name", "name_en", "service_type"], obj['service'])
         self.assert_is_subdict_of(sub={
             'classification': Server.Classification.PERSONAL,
@@ -1141,6 +1144,7 @@ class ServersTests(MyAPITestCase):
                            "center_quota", "deleted_time", "classification", "vo_id",
                            "pay_type", "server_id"], response.data["results"][0])
         self.assertEqual(response.data['results'][0]['ram_gib'], 2)
+        self.assertEqual(response.data['results'][0]['ram'], 2)
         self.assert_is_subdict_of(sub={
             'classification': Server.Classification.VO,
             'service': {
