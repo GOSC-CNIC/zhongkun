@@ -343,7 +343,7 @@ class PriceTests(MyAPITestCase):
         renew_to_time = expiration_time + timedelta(days=30)
         server = create_server_metadata(
             service=None, user=self.user, vo_id=None, pay_type=PayType.PREPAID.value,
-            expiration_time=expiration_time, public_ip=True, vcpus=2, ram=2048, disk_size=100
+            expiration_time=expiration_time, public_ip=True, vcpus=2, ram=2, disk_size=100
         )
 
         # invalid "renew_to_time"

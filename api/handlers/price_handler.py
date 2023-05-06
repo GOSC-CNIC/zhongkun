@@ -235,7 +235,7 @@ class DescribePriceHandler:
                 days = delta.days + delta.seconds / (3600 * 24)
 
             original_price, trade_price = pmgr.describe_server_price(
-                ram_mib=server.ram, cpu=server.vcpus, disk_gib=server.disk_size, public_ip=server.public_ip,
+                ram_mib=server.ram_mib, cpu=server.vcpus, disk_gib=server.disk_size, public_ip=server.public_ip,
                 is_prepaid=(server.pay_type == 'prepaid'), period=period, days=days)
         else:
             return view.exception_response(

@@ -233,7 +233,7 @@ class OrderResourceDeliverer:
         except Exception as exc:
             raise exceptions.Error(message=_('续费订单中云服务器配置信息有误。') + str(exc))
 
-        if (config.vm_ram != server.ram) or (config.vm_cpu != server.vcpus):
+        if (config.vm_ram != server.ram_mib) or (config.vm_cpu != server.vcpus):
             raise exceptions.Error(message=_('续费订单中云服务器配置信息与云服务器配置规格不一致。'))
 
         if order.period > 0 and (order.start_time is None and order.end_time is None):

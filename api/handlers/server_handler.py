@@ -740,7 +740,7 @@ class ServerHandler:
                 vo_name = ''
 
             instance_config = ServerConfig(
-                vm_cpu=server.vcpus, vm_ram=server.ram, systemdisk_size=server.disk_size, public_ip=server.public_ip,
+                vm_cpu=server.vcpus, vm_ram=server.ram_mib, systemdisk_size=server.disk_size, public_ip=server.public_ip,
                 image_id=server.image_id, image_name=server.image, network_id=network_id, network_name=network_name,
                 azone_id=server.azone_id, azone_name='', flavor_id=''
             )

@@ -128,7 +128,7 @@ class MeteringServerTests(TransactionTestCase):
             service=self.service,
             user=self.user,
             vcpu=4,
-            ram=4096,
+            ram=4,
             disk_size=100,
             public_ip=True,
             start_time=ago_time,
@@ -140,7 +140,7 @@ class MeteringServerTests(TransactionTestCase):
             service=self.service,
             user=self.user,
             vcpu=3,
-            ram=3072,
+            ram=3,
             disk_size=88,
             public_ip=False,
             start_time=meter_time,
@@ -155,7 +155,7 @@ class MeteringServerTests(TransactionTestCase):
             service=self.service,
             user=self.user,
             vcpu=3,
-            ram=3072,
+            ram=3,
             disk_size=88,
             public_ip=False,
             start_time=meter_time,
@@ -169,7 +169,7 @@ class MeteringServerTests(TransactionTestCase):
             service=self.service,
             user=self.user,
             vcpu=2,
-            ram=2048,
+            ram=2,
             disk_size=188,
             public_ip=False,
             start_time=ago_hour_time,
@@ -200,7 +200,7 @@ class MeteringServerTests(TransactionTestCase):
         metering = measurer.server_metering_exists(metering_date=metering_date, server_id=server1.id)
         self.assertIsNotNone(metering)
         self.assertEqual(up_int(metering.cpu_hours), up_int(server1.vcpus * 24))
-        self.assertEqual(up_int(metering.ram_hours), up_int(server1.ram / 1024 * 24))
+        self.assertEqual(up_int(metering.ram_hours), up_int(server1.ram_gib * 24))
         self.assertEqual(up_int(metering.disk_hours), up_int(server1.disk_size * 24))
         self.assertEqual(metering.owner_type, metering.OwnerType.USER.value)
         self.assertEqual(metering.user_id, self.user.id)
@@ -222,7 +222,7 @@ class MeteringServerTests(TransactionTestCase):
         metering = measurer.server_metering_exists(metering_date=metering_date, server_id=server2.id)
         self.assertIsNotNone(metering)
         self.assertEqual(up_int(metering.cpu_hours), up_int(server2.vcpus * hours))
-        self.assertEqual(up_int(metering.ram_hours), up_int(server2.ram / 1024 * hours))
+        self.assertEqual(up_int(metering.ram_hours), up_int(server2.ram_gib * hours))
         self.assertEqual(up_int(metering.disk_hours), up_int(server2.disk_size * hours))
         self.assertEqual(metering.owner_type, metering.OwnerType.VO.value)
         self.assertEqual(metering.vo_id, self.vo.id)

@@ -174,7 +174,7 @@ def update_server_detail(server, task_status: int = None):
             update_fields.append('vcpus')
 
         if out_server.ram:
-            server.ram = out_server.ram
+            server.ram_mib = out_server.ram
             update_fields.append('ram')
 
         is_public_ipv4 = out_server.ip.public_ipv4

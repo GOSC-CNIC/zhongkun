@@ -132,7 +132,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
             need_vpn=False
         )
         service2.save(force_insert=True)
-        flavor2 = Flavor(vcpus=1, ram=1024, enable=True, service_id=service2.id)
+        flavor2 = Flavor(vcpus=1, ram=2, enable=True, service_id=service2.id)
         flavor2.save(force_insert=True)
         response = self.client.post(url, data={
             'pay_type': PayType.PREPAID.value, 'service_id': self.service.id,
@@ -406,7 +406,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
             instance_id='user_server_id',
             instance_name='instance_user',
             vcpus=2,
-            ram=2048,
+            ram=2,
             ipv4='127.0.0.1',
             public_ip=True,
             image='',
@@ -495,7 +495,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         resource = Resource.objects.get(order_id=order_id)
         self.assertEqual(resource.instance_id, user_server.id)
         config = ServerConfig.from_dict(order.instance_config)
-        self.assertEqual(config.vm_ram, user_server.ram)
+        self.assertEqual(config.vm_ram, user_server.ram_mib)
         self.assertEqual(config.vm_cpu, user_server.vcpus)
         self.assertEqual(order.period, period)
         self.assertIsNone(order.start_time)
@@ -567,7 +567,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
             instance_id='vo_server_id',
             instance_name='instance_vo',
             vcpus=4,
-            ram=4096,
+            ram=4,
             ipv4='127.0.0.1',
             public_ip=False,
             image='',
@@ -606,7 +606,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         resource = Resource.objects.get(order_id=order_id)
         self.assertEqual(resource.instance_id, vo_server.id)
         config = ServerConfig.from_dict(order.instance_config)
-        self.assertEqual(config.vm_ram, vo_server.ram)
+        self.assertEqual(config.vm_ram, vo_server.ram_mib)
         self.assertEqual(config.vm_cpu, vo_server.vcpus)
         self.assertEqual(order.period, 0)
         self.assertEqual(order.start_time, vo_server_expiration_time)
@@ -648,7 +648,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
             instance_id='000000',
             instance_name='instance_user',
             vcpus=2,
-            ram=2048,
+            ram=2,
             ipv4='127.0.0.1',
             public_ip=True,
             image='',

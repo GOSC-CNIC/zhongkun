@@ -309,7 +309,7 @@ class ServerMeasurer:
             ip_hours = 0
 
         cpu_hours = server.vcpus * hours
-        ram_gb_hours = server.ram / 1024 * hours
+        ram_gb_hours = server.ram_gib * hours
         disk_gb_hours = server.disk_size * hours
         return ip_hours, cpu_hours, ram_gb_hours, disk_gb_hours
 

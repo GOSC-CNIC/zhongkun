@@ -149,7 +149,7 @@ class ServersTests(MyAPITestCase):
         self.default_user = 'root'
         self.default_password = 'password'
         self.miss_server = create_server_metadata(
-            service=self.service, user=self.user, ram=1024,
+            service=self.service, user=self.user, ram=1,
             default_user=self.default_user, default_password=self.default_password,
             ipv4='127.0.0.1', remarks='test miss server', pay_type=PayType.PREPAID.value
         )
@@ -160,7 +160,7 @@ class ServersTests(MyAPITestCase):
                                               company=vo_data['company'], description=vo_data['description'])
         self.vo_id = response.data['id']
         self.vo_server = create_server_metadata(
-            service=self.service, user=self.user, vo_id=self.vo_id, ram=2047,
+            service=self.service, user=self.user, vo_id=self.vo_id, ram=2,
             classification=Server.Classification.VO, default_user=self.default_user,
             default_password=self.default_password,
             ipv4='127.0.0.12', remarks='test'

@@ -58,7 +58,7 @@ class ServerBase(models.Model):
     instance_name = models.CharField(max_length=255, blank=True, default='', verbose_name=_('云主机实例名称'),
                                      help_text=_('各接入服务中云主机的名称'))
     vcpus = models.IntegerField(verbose_name=_('虚拟CPU数'), default=0)
-    ram = models.IntegerField(verbose_name=_('内存MB'), default=0)
+    ram = models.IntegerField(verbose_name=_('内存GiB'), default=0)
     ipv4 = models.CharField(max_length=128, verbose_name='IPV4', default='')
     public_ip = models.BooleanField(default=True, verbose_name=_('公/私网'))
     image = models.CharField(max_length=255, verbose_name=_('镜像系统名称'), default='')
@@ -111,11 +111,15 @@ class ServerBase(models.Model):
 
     @property
     def ram_mib(self):
-        return self.ram
+        return self.ram * 1024
+
+    @ram_mib.setter
+    def ram_mib(self, val: int):
+        self.ram = math.ceil(val / 1024)
 
     @property
     def ram_gib(self):
-        return math.ceil(self.ram / 1024)
+        return self.ram
 
     @property
     def is_use_shared_quota(self):
