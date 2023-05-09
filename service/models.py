@@ -11,6 +11,7 @@ from core import errors
 from vo.models import VirtualOrganization
 from adapters.params import OpenStackParams
 from users.models import UserProfile as User
+from bill.models import PayAppService
 
 
 app_name = 'service'
@@ -139,11 +140,38 @@ class ServiceConfig(BaseService):
 
     class Meta:
         ordering = ['sort_weight']
-        verbose_name = _('服务单元接入配置')
+        verbose_name = _('云主机服务单元接入配置')
         verbose_name_plural = verbose_name
 
     def __str__(self):
         return self.name
+
+    def save(self, force_insert=False, force_update=False, using=None,
+             update_fields=None):
+        super().save(force_insert=force_insert, force_update=force_update,
+                     using=using, update_fields=update_fields)
+        self._sync_name_to_pay_app_service()
+
+    def _sync_name_to_pay_app_service(self):
+        """
+        当name修改时，同步变更到 对应的钱包的pay app service
+        """
+        try:
+            app_service = PayAppService.objects.filter(id=self.pay_app_service_id).first()
+            if app_service:
+                update_fields = []
+                if app_service.name != self.name:
+                    app_service.name = self.name
+                    update_fields.append('name')
+
+                if app_service.name_en != self.name_en:
+                    app_service.name_en = self.name_en
+                    update_fields.append('name_en')
+
+                if update_fields:
+                    app_service.save(update_fields=update_fields)
+        except Exception as exc:
+            pass
 
     def raw_password(self):
         """
@@ -249,7 +277,7 @@ class ServicePrivateQuota(ServiceQuotaBase):
     class Meta:
         db_table = 'service_private_quota'
         ordering = ['-creation_time']
-        verbose_name = _('服务单元的私有资源配额')
+        verbose_name = _('云主机服务单元的私有资源配额')
         verbose_name_plural = verbose_name
 
 
@@ -263,7 +291,7 @@ class ServiceShareQuota(ServiceQuotaBase):
     class Meta:
         db_table = 'service_share_quota'
         ordering = ['-creation_time']
-        verbose_name = _('服务单元的分享资源配额')
+        verbose_name = _('云主机服务单元的分享资源配额')
         verbose_name_plural = verbose_name
 
 

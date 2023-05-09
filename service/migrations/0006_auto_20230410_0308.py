@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AlterModelOptions(
             name='serviceconfig',
-            options={'ordering': ['sort_weight'], 'verbose_name': '服务单元接入配置', 'verbose_name_plural': '服务单元接入配置'},
+            options={'ordering': ['sort_weight'], 'verbose_name': '云主机服务单元接入配置', 'verbose_name_plural': '云主机服务单元接入配置'},
         ),
         migrations.AddField(
             model_name='serviceconfig',

@@ -174,8 +174,8 @@ class Migration(migrations.Migration):
                 ('service', models.OneToOneField(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='service_share_quota', to='service.serviceconfig', verbose_name='接入服务')),
             ],
             options={
-                'verbose_name': '服务单元的分享资源配额',
-                'verbose_name_plural': '服务单元的分享资源配额',
+                'verbose_name': '云主机服务单元的分享资源配额',
+                'verbose_name_plural': '云主机服务单元的分享资源配额',
                 'db_table': 'service_share_quota',
                 'ordering': ['-creation_time'],
             },
@@ -199,8 +199,8 @@ class Migration(migrations.Migration):
                 ('service', models.OneToOneField(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='service_private_quota', to='service.serviceconfig', verbose_name='接入服务')),
             ],
             options={
-                'verbose_name': '服务单元的私有资源配额',
-                'verbose_name_plural': '服务单元的私有资源配额',
+                'verbose_name': '云主机服务单元的私有资源配额',
+                'verbose_name_plural': '云主机服务单元的私有资源配额',
                 'db_table': 'service_private_quota',
                 'ordering': ['-creation_time'],
             },
