@@ -273,7 +273,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         response = self.client.post(url, data={
             'pay_type': PayType.PREPAID.value, 'service_id': self.service.id,
             'image_id': image_id, 'period': 12, 'flavor_id': self.flavor.id, 'network_id': network_id,
-            'remarks': 'testcase创建，可删除', 'systemdisk_size': 250
+            'remarks': 'testcase创建，可删除', 'systemdisk_size': 500
         })
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['order_id'], response.data)
@@ -285,13 +285,13 @@ class ServerOrderTests(MyAPITransactionTestCase):
         self.assertEqual(order.user_id, self.user.id)
 
         original_price, trade_price = PriceManager().describe_server_price(
-            ram_mib=1024, cpu=1, disk_gib=250, public_ip=is_public_network, is_prepaid=True, period=12, days=0)
+            ram_mib=1024, cpu=1, disk_gib=500, public_ip=is_public_network, is_prepaid=True, period=12, days=0)
         self.assertEqual(order.total_amount, quantize_10_2(original_price))
         self.assertEqual(order.payable_amount, quantize_10_2(trade_price))
 
         # 修改镜像id，让订单交付资源失败
         s_config = ServerConfig.from_dict(order.instance_config)
-        self.assertEqual(s_config.vm_systemdisk_size, 250)
+        self.assertEqual(s_config.vm_systemdisk_size, 500)
         s_config.vm_image_id = 'test'
         order.instance_config = s_config.to_dict()
         order.save(update_fields=['instance_config'])
@@ -495,7 +495,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         resource = Resource.objects.get(order_id=order_id)
         self.assertEqual(resource.instance_id, user_server.id)
         config = ServerConfig.from_dict(order.instance_config)
-        self.assertEqual(config.vm_ram, user_server.ram_mib)
+        self.assertEqual(config.vm_ram, user_server.ram_gib)
         self.assertEqual(config.vm_cpu, user_server.vcpus)
         self.assertEqual(order.period, period)
         self.assertIsNone(order.start_time)
@@ -606,7 +606,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         resource = Resource.objects.get(order_id=order_id)
         self.assertEqual(resource.instance_id, vo_server.id)
         config = ServerConfig.from_dict(order.instance_config)
-        self.assertEqual(config.vm_ram, vo_server.ram_mib)
+        self.assertEqual(config.vm_ram, vo_server.ram_gib)
         self.assertEqual(config.vm_cpu, vo_server.vcpus)
         self.assertEqual(order.period, 0)
         self.assertEqual(order.start_time, vo_server_expiration_time)

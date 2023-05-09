@@ -42,7 +42,7 @@ class AuthenticateInput(InputBase):
 class ServerCreateInput(InputBase):
     def __init__(self, ram: int, vcpu: int, image_id: str, systemdisk_size: int, **kwargs):
         """
-        :param ram: 内存大小，单位GB; required: True
+        :param ram: 内存大小，单位MiB; required: True
         :param vcpu: 虚拟CPU数; required: True
         :param image_id: 系统镜像id; type: str; required: True
         :param systemdisk_size: 系统盘大小，单位GB，默认未指定大小，各适配器根据各自的情况定义默认大小; required: False

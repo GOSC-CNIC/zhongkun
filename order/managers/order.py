@@ -208,7 +208,7 @@ class OrderManager:
                 raise errors.Error(message=_('无法计算资源金额，资源类型和资源规格配置不匹配'))
 
             original_price, trade_price = PriceManager().describe_server_price(
-                ram_mib=config.vm_ram, cpu=config.vm_cpu, disk_gib=config.vm_systemdisk_size,
+                ram_mib=config.vm_ram_mib, cpu=config.vm_cpu, disk_gib=config.vm_systemdisk_size,
                 public_ip=config.vm_public_ip, is_prepaid=is_prepaid, period=period, days=days
             )
         elif resource_type == ResourceType.DISK.value:

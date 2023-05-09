@@ -45,7 +45,7 @@ class OrderTests(MyAPITestCase):
         )
         price.save()
         self.price = price
-        self.flavor = Flavor(vcpus=2, ram=4 * 1024)
+        self.flavor = Flavor(vcpus=2, ram=4)
         self.flavor.save()
         self.vo = VirtualOrganization(
             name='test vo', owner=self.user
@@ -90,7 +90,7 @@ class OrderTests(MyAPITestCase):
         self.assertEqual(len(response.data['orders']), 0)
 
         order_instance_config = ServerConfig(
-            vm_cpu=2, vm_ram=2048, systemdisk_size=100, public_ip=True,
+            vm_cpu=2, vm_ram=2, systemdisk_size=100, public_ip=True,
             image_id='image_id', image_name='', network_id='network_id', network_name='',
             azone_id='azone_id', azone_name='azone_name', flavor_id=''
         )
@@ -471,7 +471,7 @@ class OrderTests(MyAPITestCase):
 
         # create order
         order_instance_config = ServerConfig(
-            vm_cpu=2, vm_ram=2048, systemdisk_size=100, public_ip=True,
+            vm_cpu=2, vm_ram=2, systemdisk_size=100, public_ip=True,
             image_id='image_id', image_name='', network_id='network_id', network_name='',
             azone_id='azone_id', azone_name='azone_name', flavor_id=''
         )
@@ -588,7 +588,7 @@ class OrderTests(MyAPITestCase):
 
         # prepaid mode order
         instance_config = ServerConfig(
-            vm_cpu=1, vm_ram=1024, systemdisk_size=50, public_ip=True,
+            vm_cpu=1, vm_ram=1, systemdisk_size=50, public_ip=True,
             image_id='test', image_name='', network_id='network_id', network_name='',
             azone_id='', azone_name='', flavor_id=''
         )
@@ -732,7 +732,7 @@ class OrderTests(MyAPITestCase):
 
         # prepaid mode order
         instance_config = ServerConfig(
-            vm_cpu=1, vm_ram=1024, systemdisk_size=50, public_ip=True,
+            vm_cpu=1, vm_ram=1, systemdisk_size=50, public_ip=True,
             image_id='test', image_name='', network_id='network_id', network_name='',
             azone_id='', azone_name='', flavor_id=''
         )
@@ -1012,7 +1012,7 @@ class OrderTests(MyAPITestCase):
     def test_cancel_order(self):
         # prepaid mode order
         instance_config = ServerConfig(
-            vm_cpu=1, vm_ram=1024, systemdisk_size=50, public_ip=True,
+            vm_cpu=1, vm_ram=1, systemdisk_size=50, public_ip=True,
             image_id='test', image_name='', network_id='network_id', network_name='',
             azone_id='', azone_name='', flavor_id=''
         )

@@ -61,12 +61,12 @@ class OrderResourceDeliverer:
         # 资源配额扣除
         try:
             QuotaAPI().server_create_quota_apply(
-                service=service, vcpu=config.vm_cpu, ram=config.vm_ram, public_ip=config.vm_public_ip)
+                service=service, vcpu=config.vm_cpu, ram=config.vm_ram_mib, public_ip=config.vm_public_ip)
         except exceptions.Error as exc:
             raise exc
 
         params = inputs.ServerCreateInput(
-            ram=config.vm_ram, vcpu=config.vm_cpu, image_id=config.vm_image_id, azone_id=config.vm_azone_id,
+            ram=config.vm_ram_mib, vcpu=config.vm_cpu, image_id=config.vm_image_id, azone_id=config.vm_azone_id,
             region_id=service.region_id, network_id=config.vm_network_id, remarks=resource.instance_remark,
             systemdisk_size=config.vm_systemdisk_size, flavor_id=config.vm_flavor_id
         )
@@ -75,7 +75,7 @@ class OrderResourceDeliverer:
         except exceptions.APIException as exc:
             try:
                 QuotaAPI().server_quota_release(
-                    service=service, vcpu=config.vm_cpu, ram=config.vm_ram, public_ip=config.vm_public_ip)
+                    service=service, vcpu=config.vm_cpu, ram=config.vm_ram_mib, public_ip=config.vm_public_ip)
             except exceptions.Error:
                 pass
 
@@ -104,7 +104,7 @@ class OrderResourceDeliverer:
             remarks=resource.instance_remark,
             user_id=order.user_id,
             vcpus=config.vm_cpu,
-            ram=config.vm_ram,
+            ram=config.vm_ram_gib,
             task_status=Server.TASK_IN_CREATING,
             public_ip=config.vm_public_ip,
             expiration_time=due_time,
@@ -233,7 +233,7 @@ class OrderResourceDeliverer:
         except Exception as exc:
             raise exceptions.Error(message=_('续费订单中云服务器配置信息有误。') + str(exc))
 
-        if (config.vm_ram != server.ram_mib) or (config.vm_cpu != server.vcpus):
+        if (config.vm_ram_gib != server.ram_gib) or (config.vm_cpu != server.vcpus):
             raise exceptions.Error(message=_('续费订单中云服务器配置信息与云服务器配置规格不一致。'))
 
         if order.period > 0 and (order.start_time is None and order.end_time is None):

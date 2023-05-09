@@ -515,7 +515,7 @@ class ServerHandler:
             owner_type = OwnerType.USER.value
 
         instance_config = ServerConfig(
-            vm_cpu=flavor.vcpus, vm_ram=flavor.ram_mib, systemdisk_size=systemdisk_size, public_ip=is_public_network,
+            vm_cpu=flavor.vcpus, vm_ram=flavor.ram_gib, systemdisk_size=systemdisk_size, public_ip=is_public_network,
             image_id=image_id, image_name='', network_id=network.id, network_name=network.name,
             azone_id=azone_id, azone_name=azone_name, flavor_id=flavor.flavor_id
         )
@@ -537,7 +537,7 @@ class ServerHandler:
         # 服务私有资源配额是否满足需求
         try:
             QuotaAPI.service_private_quota_meet(
-                service=service, vcpu=instance_config.vm_cpu, ram=instance_config.vm_ram,
+                service=service, vcpu=instance_config.vm_cpu, ram=instance_config.vm_ram_mib,
                 public_ip=instance_config.vm_public_ip
             )
         except exceptions.QuotaShortageError as exc:
@@ -740,7 +740,7 @@ class ServerHandler:
                 vo_name = ''
 
             instance_config = ServerConfig(
-                vm_cpu=server.vcpus, vm_ram=server.ram_mib, systemdisk_size=server.disk_size, public_ip=server.public_ip,
+                vm_cpu=server.vcpus, vm_ram=server.ram_gib, systemdisk_size=server.disk_size, public_ip=server.public_ip,
                 image_id=server.image_id, image_name=server.image, network_id=network_id, network_name=network_name,
                 azone_id=server.azone_id, azone_name='', flavor_id=''
             )

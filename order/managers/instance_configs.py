@@ -48,7 +48,7 @@ class ServerConfig(BaseConfig):
     ):
         """
         :param vm_cpu
-        :param vm_ram: MiB
+        :param vm_ram: GiB
         :param systemdisk_size: Gib
         :param public_ip: 是否是公网ip
         :param image_id:
@@ -68,6 +68,14 @@ class ServerConfig(BaseConfig):
         self.vm_network_name = network_name
         self.vm_azone_id = azone_id
         self.vm_azone_name = azone_name
+
+    @property
+    def vm_ram_mib(self):
+        return 1024 * self.vm_ram
+
+    @property
+    def vm_ram_gib(self):
+        return self.vm_ram
 
     def to_dict(self):
         return {

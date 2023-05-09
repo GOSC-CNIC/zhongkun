@@ -419,6 +419,10 @@ class Flavor(models.Model):
     def ram_mib(self):
         return self.ram * 1024
 
+    @property
+    def ram_gib(self):
+        return self.ram
+
     def save(self, force_insert=False, force_update=False, using=None,
              update_fields=None):
         if not self.id:

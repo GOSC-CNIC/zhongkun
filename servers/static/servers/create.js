@@ -182,7 +182,7 @@
         image_select.html('');
         let query_str = encode_params({service_id:service, flavor_id: flavor_id});
         $.ajax({
-            url: build_absolute_url('api/image?'+ query_str),
+            url: build_absolute_url('api/image/paginate?'+ query_str),
             type: 'get',
             contentType: 'application/json',
             success: function (data, status, xhr) {

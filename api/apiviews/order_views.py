@@ -269,7 +269,7 @@ class OrderViewSet(CustomGenericViewSet):
                 资源类型为云主机， "resource_type": "vm":
                 {
                     "vm_cpu": 8,
-                    "vm_ram": 16384,            # Mb
+                    "vm_ram": 16,            # Gb
                     "vm_systemdisk_size": 50,   # Gb
                     "vm_public_ip": false,
                     "vm_image_id": "24",
