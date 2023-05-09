@@ -10,6 +10,7 @@ class ServersPagination(PageNumberPagination):
     ordering = '-creation_time'
     page_size_query_param = 'page_size'
     page_size = 20
+    max_page_size = 2000
 
     def get_paginated_response(self, data):
         return Response(OrderedDict([
@@ -23,6 +24,7 @@ class ServersPagination(PageNumberPagination):
 class ImagesPagination(PageNumberPagination):
     page_size_query_param = 'page_size'
     page_size = 20
+    max_page_size = 2000
     results_key_name = 'results'
 
     def get_paginated_response(self, data, count: int, page_num: int, page_size: int):
@@ -37,6 +39,7 @@ class ImagesPagination(PageNumberPagination):
 class DefaultPageNumberPagination(PageNumberPagination):
     page_size_query_param = 'page_size'
     # page_size = 20
+    max_page_size = 2000
 
 
 class NewPageNumberPagination(PageNumberPagination):
@@ -44,7 +47,7 @@ class NewPageNumberPagination(PageNumberPagination):
     page_size_query_description = _('每页数据数量。')
     page_query_description = _('页码。')
     page_size = 20
-    max_page_size = 200
+    max_page_size = 2000
     results_key_name = 'results'
 
     def get_paginated_response(self, data):
@@ -62,13 +65,13 @@ class NewPageNumberPagination(PageNumberPagination):
 
 class OrderPageNumberPagination(NewPageNumberPagination):
     page_size = 20
-    max_page_size = 200
+    max_page_size = 2000
     results_key_name = 'orders'
 
 
 class MeteringPageNumberPagination(NewPageNumberPagination):
     page_size = 100
-    max_page_size = 1000
+    max_page_size = 2000
 
 
 class MarkerCursorPagination(CursorPagination):
@@ -76,7 +79,7 @@ class MarkerCursorPagination(CursorPagination):
     cursor_query_description = 'The pagination key-marker value.'
     page_size_query_param = 'page_size'
     page_size = 100
-    max_page_size = 1000
+    max_page_size = 2000
     invalid_cursor_message = 'Invalid key-marker'
     ordering = '-creation_time'
 
@@ -117,7 +120,7 @@ class PaymentHistoryPagination(MarkerCursorPagination):
 
 class StatementPageNumberPagination(NewPageNumberPagination):
     page_size = 20
-    max_page_size = 200
+    max_page_size = 2000
     results_key_name = 'statements'
 
 
@@ -127,13 +130,13 @@ class FollowUpMarkerCursorPagination(MarkerCursorPagination):
 
 class TradeBillPagination(MarkerCursorPagination):
     page_size = 100
-    max_page_size = 1000
+    max_page_size = 2000
     ordering = '-creation_time'
 
 
 class MonitorPageNumberPagination(NewPageNumberPagination):
     page_size = 100
-    max_page_size = 1000
+    max_page_size = 2000
 
 
 class MonitorWebsiteTaskPagination(MarkerCursorPagination):
