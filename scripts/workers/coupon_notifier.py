@@ -1,8 +1,5 @@
-import logging
-import sys
 from decimal import Decimal
 from datetime import timedelta, datetime
-from pathlib import Path
 
 from django.utils import timezone
 from django.db.models import Q
@@ -12,28 +9,7 @@ from users.models import Email
 from vo.models import VirtualOrganization, VoMember
 from utils.model import OwnerType
 
-
-def config_logger(name: str = 'coupon-logger', level=logging.INFO, stdout: bool = False):
-    log_dir = Path('/var/log/nginx')
-    if not log_dir.exists():
-        log_dir.mkdir(parents=True, exist_ok=True)
-
-    logger = logging.getLogger(name)
-    logger.setLevel(level)
-    formatter = logging.Formatter(
-        fmt="%(asctime)s %(levelname)s %(message)s ",  # 配置输出日志格式
-        datefmt='%Y-%m-%d %H:%M:%S'
-    )
-    if stdout:
-        std_handler = logging.StreamHandler(stream=sys.stdout)
-        std_handler.setFormatter(formatter)
-        logger.addHandler(std_handler)
-
-    file_handler = logging.FileHandler(filename=log_dir.joinpath("coupon_notice.log"))
-    file_handler.setFormatter(formatter)
-    file_handler.setLevel(logging.WARNING)
-    logger.addHandler(file_handler)
-    return logger
+from . import config_logger
 
 
 class MessageTemplate:
@@ -310,7 +286,7 @@ class CouponNotifier:
     querier = CouponQuerier()
 
     def __init__(self, log_stdout: bool = False):
-        self.logger = config_logger(stdout=log_stdout)
+        self.logger = config_logger(name='coupon-logger', filename="coupon_notice.log", stdout=log_stdout)
 
     def run(self):
         self.loop_notice_together()
