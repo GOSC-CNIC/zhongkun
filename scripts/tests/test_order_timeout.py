@@ -2,14 +2,14 @@ from decimal import Decimal
 from datetime import timedelta
 
 from django.utils import timezone
+from django.test.testcases import TransactionTestCase
 
 from utils.model import PayType, OwnerType, ResourceType
 from order.models import Order
-from api.tests import MyAPITestCase
 from scripts.workers.timeout_cancel import OrderTimeoutTask
 
 
-class OrderTimeoutTests(MyAPITestCase):
+class OrderTimeoutTests(TransactionTestCase):
     def setUp(self):
         pass
 

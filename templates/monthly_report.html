@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>一体云服务资源用量计费账单</title>
+    <style>
+        .wrapper{
+            align-content: center;
+            width: 1000px;
+            height: 100%;
+            margin: 40px auto;
+            background: white;
+        }
+        .item{
+            text-align: center;
+            font-size: 18px;
+            color: black;
+        }
+        .one{
+            background-color:rgba(0,0,0,0.01) ;
+            margin-top: 20px;
+        }
+        .two{
+            background-color: rgba(0,0,0,0.01);
+            margin-top: 20px;
+        }
+        .three{
+            background-color: rgba(0,0,0,0.01);
+            margin-top: 20px;
+        }
+        .four{
+            background-color: rgba(0,0,0,0.01);
+            margin-top: 20px;
+        }
+        .five{
+            background-color: rgba(0,0,0,0.01);
+            margin-top: 20px;
+        }
+        td{
+            word-break : break-all;
+        }
+    </style>
+</head>
+<body style="width: 100%; height: 100%;" >
+<div class="wrapper" style="height: 100%;">
+    <div class="one item" >
+        <div style="text-align : center;font-weight: bold;font-size: 30px">一体云服务资源用量计费账单</div>
+        <p style="text-align : left;padding-left: 10px;">
+            尊敬的 {{ user.username }}，您好！
+            <br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;感谢您使用中国科技云一体化云服务平台，以下为您
+            <span style="font-weight: bold">{{ report_date.year }}年{{ report_date.month }}月</span> 资源使用量、结算情况和账户代金券情况。
+        </p>
+    </div>
+    <div class="two item">
+        <table border="1" cellpadding="6" cellspacing="0"  width="100%" >
+            <caption style="text-align: left;">
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;个人资源使用结算情况， 月度汇总: {{ monthly_report.total_payment_amount }} 点
+            </caption>
+            <tr>
+                <td rowspan="3" style="background-color: rgb(46,117,181); color: white; width: 10%">开放科学<br>云主机</td>
+                <td colspan="1" style="width: 19%; background-color: rgb(222,234,246)">统计云主机数量</td>
+                <td colspan="1" style="width: 19%">{{ monthly_report.server_count }}</td>
+                <td style="width: 18%; background-color: rgb(222,234,246)">总结算点数</td>
+                <td colspan="2" style="width: 34%">{{ monthly_report.server_payment_amount }}</td>
+            </tr>
+            <tr>
+                <td style="width: 19%; background-color: rgb(222,234,246)">资源用量</td>
+                <td colspan="4">
+                    公网IP {{ monthly_report.server_ip_days | floatformat:2 }} 个*天，<br>
+                    vCPU {{ monthly_report.server_cpu_days | floatformat:2 }} 核*天，<br>
+                    内存 {{ monthly_report.server_ram_days | floatformat:2 }} GB*天，<br>
+                    本地硬盘 {{ monthly_report.server_disk_days | floatformat:2 }} GB*天
+                </td>
+            </tr>
+            <tr>
+                <td style="width: 19%; background-color: rgb(222,234,246)">用量明细</td>
+                <td colspan="4"><a target="view_window" href="https://service.cstcloud.cn/my/stats/consumption/personal">点击查看使用明细</a></td>
+            </tr>
+            <tr>
+                <td rowspan="{{ bucket_reports_len|add:2 }}" style="background-color: rgb(46,117,181);color: white;width: 10%">科研数据<br>对象存储</td>
+                <td style="width: 19%; background-color: rgb(222,234,246)"> 存储桶数量</td>
+                <td style="width: 19%; ">{{ bucket_reports_len }}</td>
+                <td style="width: 18%; background-color: rgb(222,234,246)">总结算点数</td>
+                <td colspan="2" style="width: 34%">{{ monthly_report.storage_postpaid_amount }}</td>
+            </tr>
+            <tr>
+                <td style="width: 19%; background-color: rgb(222,234,246)"> 存储桶名称</td>
+                <td style="width: 19%; background-color: rgb(222,234,246)"> 存储用量 GB*天</td>
+                <td style="width: 18%; background-color: rgb(222,234,246)"> 结算点数</td>
+                <td colspan="2" style="width: 34%;background-color: rgb(222,234,246)">用量明细</td>
+            </tr>
+            {% for b in bucket_reports %}
+                <tr>
+                    <td style="width: 19%">{{ b.bucket_name }}</td>
+                    <td style="width: 19%">{{ b.storage_days | floatformat:2 }}</td>
+                    <td style="width: 18%">{{ b.payable_amount }}</td>
+                    {% if forloop.first %}
+                        <td colspan="2" rowspan="{{ bucket_reports_len }}"  style="width: 34%"><a target="view_window" href="https://service.cstcloud.cn/my/stats/consumption/storage">点击查看使用明细</a></td>
+                    {% endif %}
+                </tr>
+            {% endfor %}
+        </table>
+        </div>
+    <div class="three item">
+        <table border="1" cellpadding="6" cellspacing="0"  width="100%" style="height: 380px" >
+            <caption style="text-align: left;">
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;项目组资源使用结算情况
+            </caption>
+            <tr style="height: 10%">
+                <td rowspan="{{ vo_monthly_reports|length|add:2 }}" style="background-color: rgb(46,117,181); color: white;width: 10%">开放科学<br>云主机</td>
+                <td colspan="5" style="font-size: 15px;width: 30%; background-color: rgb(222,234,246);">项目组数量</td>
+                <td colspan="4" style="font-size: 15px;width: 18%;">{{ vo_monthly_reports|length }}</td>
+                <td colspan="6"  style="background-color: rgb(222,234,246);font-size: 15px;width: 10%;">总结算点数</td>
+                <td colspan="3" style="font-size: 15px;">{{ vo_total_amount }}</td>
+            </tr>
+            <tr style="height: 15%">
+                <td colspan="2" style="background-color: rgb(222,234,246);font-size: 15px;width: 10.5%;"><span>项目组名称</span></td>
+                <td colspan="3" style="background-color: rgb(222,234,246);font-size: 15px;">组信息</td>
+                <td colspan="2" style="background-color: rgb(222,234,246);font-size: 15px;">我的身份</td>
+                <td colspan="2" style="background-color: rgb(222,234,246);font-size: 15px;">云主机<br>数量</td>
+                <td colspan="2" style="background-color: rgb(222,234,246);font-size: 15px;">结算点数</td>
+                <td colspan="6" style="background-color: rgb(222,234,246);font-size: 15px;width: 20%"> 资源用量</td>
+                <td colspan="2" style="background-color: rgb(222,234,246);font-size: 15px;width: 12%">用量明细</td>
+            </tr>
+            {% for vmr in vo_monthly_reports %}
+                {% with vo_info=vmr.vo_info %}
+                    <tr>
+                        <td colspan="2" style="font-size: 15px;width: 10.5%;word-break : break-all;"><a href="">{{ vo_info.vo.name }}</a></td>
+                        <td colspan="3" style="text-align: left;font-size: 14px;word-break : break-all;">
+                            <div style="padding-top: 0;margin-top: 0">
+                                组长: {{ vo_info.vo.owner.username }}
+                            </div>
+                            <div style="padding-top: 0;margin-top: 0">
+                                管理员: <br>{% for m in vo_info.members %}{% if m.role == 'leader' %}{{ m.user__username }}<br>{% endif %}{% endfor %}
+                            </div>
+                            <div style="padding-top: 0;margin-top: 0">
+                                组员: <br>{% for m in vo_info.members %}{% if m.role == 'member' %}{{ m.user__username }}<br>{% endif %}{% endfor %}
+                            </div>
+                      </td>
+                        <td colspan="2" style="font-size: 15px;">{{ vo_info.own_role }}</td>
+                        <td colspan="2" style="font-size: 15px;">{{ vmr.server_count }}</td>
+                        <td colspan="2" style="font-size: 15px;">{{ vmr.server_payment_amount }}</td>
+                        <td colspan="6" style="font-size: 15px;width: 18%">
+                            公网IP {{ vmr.server_ip_days | floatformat:2 }} 个*天， <br>
+                            vCPU {{ vmr.server_cpu_days | floatformat:2 }} 核*天，<br>
+                            内存 {{ vmr.server_ram_days | floatformat:2 }} GB*天，<br>
+                            系统硬盘 {{ vmr.server_disk_days | floatformat:2 }} GB*天
+                        </td>
+                        <td colspan="2" style=" font-size: 15px;"><a target="wiew_window" href="https://service.cstcloud.cn/my/stats/consumption/group">点击查询用量明细</a></td>
+                    </tr>
+                {% endwith %}
+            {% endfor %}
+        </table>
+    </div>
+    <div class="four item">
+        <table border="1" cellpadding="6" cellspacing="0"  width="100%" >
+            <caption style="text-align: left;">
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;个人代金券情况
+            </caption>
+            <tr>
+                <td rowspan="{{ user_coupons_length|add:1 }}" style="background-color: rgb(46,117,181); color: white; width: 4%">个人代金券<br>{{ user_coupons_length }}张</td>
+                <td style="width: 4%; background-color: rgb(222,234,246)"></td>
+                <td style="width: 12%; background-color: rgb(222,234,246); font-size: 15px">代金券编号</td>
+                <td style="width: 17%; background-color: rgb(222,234,246); font-size: 15px">到期时间</td>
+                <td style="width: 22%; background-color: rgb(222,234,246); font-size: 15px">服务单元</td>
+                <td style="width: 15%; background-color: rgb(222,234,246); font-size: 15px">资源类型</td>
+                <td style="width: 13%; background-color: rgb(222,234,246); font-size: 15px">剩余点数</td>
+                <td style="width: 13%; background-color: rgb(222,234,246); font-size: 15px">本期结算点数</td>
+            </tr>
+            {% for uc in user_normal_coupons %}
+                <tr >
+                {% if forloop.first %}
+                    <td rowspan="{{ user_normal_coupons|length }}" style="width: 4%;background-color: rgb(222,234,246); font-size: 15px">统计时有效<br>{{ user_normal_coupons|length }}</td>
+                {% endif %}
+                    <td style="font-size: 15px;word-break : break-all;">{{ uc.id }}</td>
+                    <td style="font-size: 15px">{{ uc.expiration_time | date:'Y-m-d H:i:s' }}</td>
+                    <td style="font-size: 15px">{{ uc.app_service.name }}</td>
+                    <td style="font-size: 15px">
+                        {% if uc.app_service.category == 'vms-server' %}
+                            开放科学云主机
+                        {% elif uc.app_service.category == 'vms-object' %}
+                            科研数据对象存储
+                        {% elif uc.app_service.category == 'high-cloud' %}
+                            高等级云
+                        {% elif uc.app_service.category == 'hpc' %}
+                            高性能计算
+                        {% else %}
+                            其他
+                        {% endif %}
+                    </td>
+                    <td style="font-size: 15px">{{ uc.balance }}</td>
+                    <td style="font-size: 15px">{{ uc.last_month_pay_amount }}</td>
+                </tr>
+            {% endfor %}
+            {% for uc in user_expired_coupons %}
+                <tr >
+                {% if forloop.first %}
+                    <td rowspan="{{ user_expired_coupons|length }}" style="width: 4%;background-color: rgb(222,234,246); font-size: 15px">过期<br>{{ user_expired_coupons|length }}</td>
+                {% endif %}
+                    <td style="font-size: 15px;word-break : break-all;">{{ uc.id }}</td>
+                    <td style="font-size: 15px">{{ uc.expiration_time | date:'Y-m-d H:i:s' }}</td>
+                    <td style="font-size: 15px">{{ uc.app_service.name }}</td>
+                    <td style="font-size: 15px">
+                        {% if uc.app_service.category == 'vms-server' %}
+                            开放科学云主机
+                        {% elif uc.app_service.category == 'vms-object' %}
+                            科研数据对象存储
+                        {% elif uc.app_service.category == 'high-cloud' %}
+                            高等级云
+                        {% elif uc.app_service.category == 'hpc' %}
+                            高性能计算
+                        {% else %}
+                            其他
+                        {% endif %}
+                    </td>
+                    <td style="font-size: 15px">{{ uc.balance }}</td>
+                    <td style="font-size: 15px">{{ uc.last_month_pay_amount }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+        <table border="1" cellpadding="6" cellspacing="0"  width="100%" style="margin-top: 20px">
+            <caption style="text-align: left;">
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;项目组代金券情况
+            </caption>
+            <tr>
+                <td rowspan="{{ vo_coupons_length|add:1 }}" style="background-color: rgb(46,117,181); color: white; width: 4%">项目组代金券<br>{{ vo_coupons_length }}张</td>
+                <td style="width: 4%; background-color: rgb(222,234,246)"></td>
+                <td style="width: 12%; background-color: rgb(222,234,246); font-size: 15px">代金券id</td>
+                <td style="width: 10%; background-color: rgb(222,234,246); font-size: 15px">到期时间</td>
+                <td style="width: 14%; background-color: rgb(222,234,246); font-size: 15px">服务单元</td>
+                <td style="width: 14%; background-color: rgb(222,234,246); font-size: 15px">资源类型</td>
+                <td style="width: 16%; background-color: rgb(222,234,246); font-size: 15px">项目组名称</td>
+                <td style="width: 12%; background-color: rgb(222,234,246); font-size: 15px">剩余点数</td>
+                <td style="width: 10%; background-color: rgb(222,234,246); font-size: 15px">本期结算点数</td>
+            </tr>
+            {% for vc in vo_normal_coupons %}
+                <tr >
+                {% if forloop.first %}
+                    <td rowspan="{{ vo_normal_coupons|length }}" style="background-color: rgb(222,234,246); font-size: 15px">统计时有效 <br>{{ vo_normal_coupons|length }}</td>
+                {% endif %}
+                    <td style="font-size: 15px;word-break : break-all;">{{ vc.id }}</td>
+                    <td style="font-size: 15px">{{ vc.expiration_time | date:'Y-m-d H:i:s' }}</td>
+                    <td style="font-size: 15px">{{ vc.app_service.name }}</td>
+                    <td style="font-size: 15px">
+                        {% if vc.app_service.category == 'vms-server' %}
+                            开放科学云主机
+                        {% elif vc.app_service.category == 'vms-object' %}
+                            科研数据对象存储
+                        {% elif vc.app_service.category == 'high-cloud' %}
+                            高等级云
+                        {% elif vc.app_service.category == 'hpc' %}
+                            高性能计算
+                        {% else %}
+                            其他
+                        {% endif %}
+                    </td>
+                    <td style="font-size: 15px">{{ vc.vo.name }}</td>
+                    <td style="font-size: 15px">{{ vc.balance }}</td>
+                    <td style="font-size: 15px">{{ vc.last_month_pay_amount }}</td>
+                </tr>
+            {% endfor %}
+            {% for vc in vo_expired_coupons %}
+                <tr>
+                {% if forloop.first %}
+                    <td rowspan="{{ vo_expired_coupons|length }}" style="background-color: rgb(222,234,246); font-size: 15px">过期 <br>{{ vo_expired_coupons|length }}</td>
+                {% endif %}
+                    <td style="font-size: 15px;word-break : break-all;">{{ vc.id }}</td>
+                    <td style="font-size: 15px">{{ vc.expiration_time | date:'Y-m-d H:i:s' }}</td>
+                    <td style="font-size: 15px">{{ vc.app_service.name }}</td>
+                    <td style="font-size: 15px">
+                        {% if vc.app_service.category == 'vms-server' %}
+                            开放科学云主机
+                        {% elif vc.app_service.category == 'vms-object' %}
+                            科研数据对象存储
+                        {% elif vc.app_service.category == 'high-cloud' %}
+                            高等级云
+                        {% elif vc.app_service.category == 'hpc' %}
+                            高性能计算
+                        {% else %}
+                            其他
+                        {% endif %}
+                    </td>
+                    <td style="font-size: 15px">{{ vc.vo.name }}</td>
+                    <td style="font-size: 15px">{{ vc.balance }}</td>
+                    <td style="font-size: 15px">{{ vc.last_month_pay_amount }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    </div>
+    <div class="five item" style="margin-top: 10px;margin-left: 3%; text-align: left">
+        <p style="line-height:2em;">代金券获取方法:
+        <br>1.中科院内相关科研合作项目可以直接申请，由科技云项目办评估发放。用户在科研成果（论文、著作等）中致谢科技云，可以获取更多资源支持。
+        <br>2.其它科研项目可以联系项目办协商资源使用方式。</p>
+    </div>
+    <div class="five item" style="margin-left: 3%;text-align: left">欢迎登录一体化云服务平台网站（https://service.cstcloud.cn）查询更多信息。</div>
+</div>
+</body>
+</html>
