@@ -9,9 +9,7 @@ from utils.model import OwnerType
 
 @login_required()
 def monthly_report_view(request):
-    from users.models import UserProfile
-    user = UserProfile.objects.filter(username='hai@cnic.cn').first()
-    # user = request.user
+    user = request.user
     mrn = MonthlyReportNotifier()
     report_date = mrn.last_month_1st
     monthly_report = MonthlyReport.objects.filter(

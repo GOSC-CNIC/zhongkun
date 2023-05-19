@@ -586,14 +586,14 @@ class MonthlyReportNotifier:
             vo_total_amount += vmr.server_payment_amount
             vmr.vo_info = vo_dict.get(vmr.vo_id)
 
-        user_coupons = self.get_user_coupons(user=user)
+        user_coupons = self.get_user_coupons(user=user, expiration_time_gte=self.last_month_1st_time)
         user_normal_coupons, user_expired_coupons = self.split_coupons(coupons=user_coupons, split_time=timezone.now())
         self.set_coupons_last_month_pay_amount(
             user_normal_coupons, start_time=self.last_month_1st_time, end_time=self.last_month_last_day_time)
         self.set_coupons_last_month_pay_amount(
             user_expired_coupons, start_time=self.last_month_1st_time, end_time=self.last_month_last_day_time)
 
-        vo_coupons = self.get_vos_coupons(vo_ids=vo_ids)
+        vo_coupons = self.get_vos_coupons(vo_ids=vo_ids, expiration_time_gte=self.last_month_1st_time)
         vo_normal_coupons, vo_expired_coupons = self.split_coupons(coupons=vo_coupons, split_time=timezone.now())
         self.set_coupons_last_month_pay_amount(
             vo_normal_coupons, start_time=self.last_month_1st_time, end_time=self.last_month_last_day_time)
@@ -639,7 +639,7 @@ class MonthlyReportNotifier:
 
         html_message = self.template.render(context, request=None)
         ok = send_mail(
-            subject='test中国科技云一体化云服务平台月报表',  # 标题
+            subject='中国科技云一体化云服务平台月度报表',  # 标题
             message='',  # 内容
             from_email=settings.EMAIL_HOST_USER,  # 发送者
             recipient_list=[user.username],  # 接收者
@@ -693,19 +693,34 @@ class MonthlyReportNotifier:
         return vos_dict
 
     @staticmethod
-    def get_user_coupons(user):
-        return CashCoupon.objects.select_related('app_service').filter(
+    def get_user_coupons(user, expiration_time_gte=None):
+        qs = CashCoupon.objects.select_related('app_service').filter(
             user_id=user.id, owner_type=OwnerType.USER.value, status=CashCoupon.Status.AVAILABLE.value)
 
-    @staticmethod
-    def get_vo_coupons(vo):
-        return CashCoupon.objects.select_related('app_service').filter(
-            vo_id=vo.id, owner_type=OwnerType.VO.value, status=CashCoupon.Status.AVAILABLE.value)
+        if expiration_time_gte:
+            qs = qs.filter(expiration_time__gte=expiration_time_gte)
+
+        return qs
 
     @staticmethod
-    def get_vos_coupons(vo_ids: list):
-        return CashCoupon.objects.select_related('app_service').filter(
+    def get_vo_coupons(vo, expiration_time_gte=None):
+        qs = CashCoupon.objects.select_related('app_service').filter(
+            vo_id=vo.id, owner_type=OwnerType.VO.value, status=CashCoupon.Status.AVAILABLE.value)
+
+        if expiration_time_gte:
+            qs = qs.filter(expiration_time__gte=expiration_time_gte)
+
+        return qs
+
+    @staticmethod
+    def get_vos_coupons(vo_ids: list, expiration_time_gte=None):
+        qs = CashCoupon.objects.select_related('app_service').filter(
             vo_id__in=vo_ids, owner_type=OwnerType.VO.value, status=CashCoupon.Status.AVAILABLE.value)
+
+        if expiration_time_gte:
+            qs = qs.filter(expiration_time__gte=expiration_time_gte)
+
+        return qs
 
     @staticmethod
     def split_coupons(coupons, split_time: datetime):

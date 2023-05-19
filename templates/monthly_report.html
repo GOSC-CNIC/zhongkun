@@ -109,24 +109,25 @@
             </caption>
             <tr style="height: 10%">
                 <td rowspan="{{ vo_monthly_reports|length|add:2 }}" style="background-color: rgb(46,117,181); color: white;width: 10%">开放科学<br>云主机</td>
-                <td colspan="5" style="font-size: 15px;width: 30%; background-color: rgb(222,234,246);">项目组数量</td>
-                <td colspan="4" style="font-size: 15px;width: 18%;">{{ vo_monthly_reports|length }}</td>
-                <td colspan="6"  style="background-color: rgb(222,234,246);font-size: 15px;width: 10%;">总结算点数</td>
+                <td colspan="5" style="font-size: 15px; background-color: rgb(222,234,246);">项目组数量</td>
+                <td colspan="4" style="font-size: 15px;">{{ vo_monthly_reports|length }}</td>
+                <td colspan="6"  style="background-color: rgb(222,234,246);font-size: 15px;">总结算点数</td>
                 <td colspan="3" style="font-size: 15px;">{{ vo_total_amount }}</td>
             </tr>
             <tr style="height: 15%">
-                <td colspan="2" style="background-color: rgb(222,234,246);font-size: 15px;width: 10.5%;"><span>项目组名称</span></td>
-                <td colspan="3" style="background-color: rgb(222,234,246);font-size: 15px;">组信息</td>
-                <td colspan="2" style="background-color: rgb(222,234,246);font-size: 15px;">我的身份</td>
-                <td colspan="2" style="background-color: rgb(222,234,246);font-size: 15px;">云主机<br>数量</td>
-                <td colspan="2" style="background-color: rgb(222,234,246);font-size: 15px;">结算点数</td>
-                <td colspan="6" style="background-color: rgb(222,234,246);font-size: 15px;width: 20%"> 资源用量</td>
+                <td colspan="2" style="background-color: rgb(222,234,246);font-size: 15px;width: 10%;"><span>项目组名称</span></td>
+                <td colspan="3" style="background-color: rgb(222,234,246);font-size: 15px;width: 20%;">组信息</td>
+                <td colspan="2" style="background-color: rgb(222,234,246);font-size: 15px;width: 6%;">我的身份</td>
+                <td colspan="2" style="background-color: rgb(222,234,246);font-size: 15px;width: 6%;">云主机<br>数量</td>
+                <td colspan="2" style="background-color: rgb(222,234,246);font-size: 15px;width: 14%;">结算点数</td>
+                <td colspan="6" style="background-color: rgb(222,234,246);font-size: 15px;width: 22%"> 资源用量</td>
                 <td colspan="2" style="background-color: rgb(222,234,246);font-size: 15px;width: 12%">用量明细</td>
             </tr>
             {% for vmr in vo_monthly_reports %}
                 {% with vo_info=vmr.vo_info %}
                     <tr>
-                        <td colspan="2" style="font-size: 15px;width: 10.5%;word-break : break-all;"><a href="">{{ vo_info.vo.name }}</a></td>
+                        <td colspan="2" style="font-size: 15px;word-break : break-all;">
+                            <a target="view_window" href="https://service.cstcloud.cn/my/server/group/detail/{{ vo_info.vo.id }}">{{ vo_info.vo.name }}</a></td>
                         <td colspan="3" style="text-align: left;font-size: 14px;word-break : break-all;">
                             <div style="padding-top: 0;margin-top: 0">
                                 组长: {{ vo_info.vo.owner.username }}
@@ -141,13 +142,13 @@
                         <td colspan="2" style="font-size: 15px;">{{ vo_info.own_role }}</td>
                         <td colspan="2" style="font-size: 15px;">{{ vmr.server_count }}</td>
                         <td colspan="2" style="font-size: 15px;">{{ vmr.server_payment_amount }}</td>
-                        <td colspan="6" style="font-size: 15px;width: 18%">
+                        <td colspan="6" style="font-size: 15px;">
                             公网IP {{ vmr.server_ip_days | floatformat:2 }} 个*天， <br>
                             vCPU {{ vmr.server_cpu_days | floatformat:2 }} 核*天，<br>
                             内存 {{ vmr.server_ram_days | floatformat:2 }} GB*天，<br>
                             系统硬盘 {{ vmr.server_disk_days | floatformat:2 }} GB*天
                         </td>
-                        <td colspan="2" style=" font-size: 15px;"><a target="wiew_window" href="https://service.cstcloud.cn/my/stats/consumption/group">点击查询用量明细</a></td>
+                        <td colspan="2" style=" font-size: 15px;"><a target="view_window" href="https://service.cstcloud.cn/my/stats/consumption/group">点击查询用量明细</a></td>
                     </tr>
                 {% endwith %}
             {% endfor %}
@@ -293,7 +294,7 @@
         <br>1.中科院内相关科研合作项目可以直接申请，由科技云项目办评估发放。用户在科研成果（论文、著作等）中致谢科技云，可以获取更多资源支持。
         <br>2.其它科研项目可以联系项目办协商资源使用方式。</p>
     </div>
-    <div class="five item" style="margin-left: 3%;text-align: left">欢迎登录一体化云服务平台网站（https://service.cstcloud.cn）查询更多信息。</div>
+    <div class="five item" style="margin-left: 3%;text-align: left">欢迎登录一体化云服务平台网站（<a target="view_window" href="https://service.cstcloud.cn/">https://service.cstcloud.cn</a>）查询更多信息。</div>
 </div>
 </body>
 </html>
