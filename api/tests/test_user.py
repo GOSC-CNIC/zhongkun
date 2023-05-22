@@ -1,9 +1,12 @@
 from urllib import parse
+from datetime import datetime
 
 from django.urls import reverse
+from django.utils import timezone
 
+from vo.models import VirtualOrganization
 from utils.test import get_or_create_service
-from . import set_auth_header, MyAPITestCase, get_or_create_user
+from . import MyAPITestCase, get_or_create_user
 
 
 class UserTests(MyAPITestCase):
@@ -105,3 +108,77 @@ class UserTests(MyAPITestCase):
         self.assertEqual(len(response.data['results']), 1)
         self.assertKeysIn(keys=['id', 'username', 'fullname', 'role'], container=response.data['results'][0])
         self.assertEqual(response.data['results'][0]['id'], self.user.id)
+
+
+class AdminUserStatisticsTests(MyAPITestCase):
+    def setUp(self):
+        self.user = get_or_create_user(username='tom@cnic.cn')
+
+    def test_statistics(self):
+        base_url = reverse('api:admin-user-statistics-list')
+        r = self.client.get(base_url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+
+        self.client.force_login(self.user)
+        r = self.client.get(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        self.user.set_federal_admin()
+        r = self.client.get(base_url)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['user_count'], 1)
+        self.assertEqual(r.data['vo_count'], 0)
+
+        query = parse.urlencode(query={'time_start': '2023-05-01T00:00:00'})
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
+
+        query = parse.urlencode(query={'time_end': '2023-05-01T00:00:00'})
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
+
+        query = parse.urlencode(query={'time_start': '2023-05-02T00:00:00Z', 'time_end': '2023-05-01T00:00:00Z'})
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
+
+        query = parse.urlencode(query={'time_start': '2023-05-02T00:00:00Z', 'time_end': '2023-05-21T00:00:00Z'})
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+
+        query = parse.urlencode(query={'time_start': '2023-05-02T00:00:00Z'})
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['user_count'], 1)
+        self.assertEqual(r.data['vo_count'], 0)
+
+        user2 = get_or_create_user(username='test2@cnic.cn')
+        user2.date_joined = datetime(year=2023, month=4, day=1, tzinfo=timezone.utc)
+        user2.save(update_fields=['date_joined'])
+
+        user3 = get_or_create_user(username='test3@cnic.cn')
+        user3.date_joined = datetime(year=2023, month=6, day=1, tzinfo=timezone.utc)
+        user3.save(update_fields=['date_joined'])
+
+        vo1 = VirtualOrganization(name='vo1', owner_id=self.user.id)
+        vo1.save(force_insert=True)
+        vo2 = VirtualOrganization(name='vo2', owner_id=self.user.id)
+        vo2.save(force_insert=True)
+        vo2.creation_time = datetime(year=2023, month=4, day=1, tzinfo=timezone.utc)
+        vo2.save(update_fields=['creation_time'])
+
+        r = self.client.get(base_url)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['user_count'], 3)
+        self.assertEqual(r.data['vo_count'], 2)
+
+        query = parse.urlencode(query={'time_start': '2023-05-01T00:00:00Z'})
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['user_count'], 2)
+        self.assertEqual(r.data['vo_count'], 1)
+
+        query = parse.urlencode(query={'time_end': '2023-05-01T00:00:00Z'})
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['user_count'], 1)
+        self.assertEqual(r.data['vo_count'], 1)

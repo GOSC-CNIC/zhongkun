@@ -18,7 +18,8 @@ def get_user_by_id(user_id: str):
     return user
 
 
-def filter_user_queryset(search: str = None, is_federal_admin: bool = None):
+def filter_user_queryset(
+        search: str = None, is_federal_admin: bool = None, date_joined_start=None, date_joined_end=None):
     queryset = UserProfile.objects.filter(is_active=True).order_by('-date_joined')
 
     if search:
@@ -26,5 +27,11 @@ def filter_user_queryset(search: str = None, is_federal_admin: bool = None):
 
     if is_federal_admin:
         queryset = queryset.filter(role__icontains=UserProfile.Roles.FEDERAL.value)
+
+    if date_joined_start:
+        queryset = queryset.filter(date_joined__gte=date_joined_start)
+
+    if date_joined_end:
+        queryset = queryset.filter(date_joined__lte=date_joined_end)
 
     return queryset
