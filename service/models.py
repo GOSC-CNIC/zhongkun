@@ -266,6 +266,14 @@ class ServiceQuotaBase(UuidModel):
     class Meta:
         abstract = True
 
+    @property
+    def ram_used_gib(self):
+        return self.ram_used / 1024
+
+    @ram_used_gib.setter
+    def ram_used_gib(self, val):
+        self.ram_used = val * 1024
+
 
 class ServicePrivateQuota(ServiceQuotaBase):
     """

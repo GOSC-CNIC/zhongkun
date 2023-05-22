@@ -118,8 +118,8 @@ class ServicePrivateQuotaAdmin(admin.ModelAdmin):
                     update_fields.append('vcpu_used')
 
                 ram_used_count = r.get('ram_used_count', None)
-                if isinstance(ram_used_count, int) and quota.ram_used != ram_used_count:
-                    quota.ram_used = ram_used_count
+                if isinstance(ram_used_count, int) and quota.ram_used_gib != ram_used_count:
+                    quota.ram_used_gib = ram_used_count
                     update_fields.append('ram_used')
 
                 public_ip_count = r.get('public_ip_count', None)
@@ -169,8 +169,8 @@ class ServiceShareQuotaAdmin(admin.ModelAdmin):
                     update_fields.append('vcpu_used')
 
                 ram_used_count = r.get('ram_used_count', None)
-                if isinstance(ram_used_count, int) and quota.ram_used != ram_used_count:
-                    quota.ram_used = ram_used_count
+                if isinstance(ram_used_count, int) and quota.ram_used_gib != ram_used_count:
+                    quota.ram_used_gib = ram_used_count
                     update_fields.append('ram_used')
 
                 public_ip_count = r.get('public_ip_count', None)
