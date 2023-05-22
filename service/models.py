@@ -255,8 +255,8 @@ class ServiceQuotaBase(UuidModel):
     public_ip_used = models.IntegerField(verbose_name=_('已用公网IP数'), default=0)
     vcpu_total = models.IntegerField(verbose_name=_('总CPU核数'), default=0)
     vcpu_used = models.IntegerField(verbose_name=_('已用CPU核数'), default=0)
-    ram_total = models.IntegerField(verbose_name=_('总内存大小(MB)'), default=0)
-    ram_used = models.IntegerField(verbose_name=_('已用内存大小(MB)'), default=0)
+    ram_total = models.IntegerField(verbose_name=_('总内存大小(GB)'), default=0)
+    ram_used = models.IntegerField(verbose_name=_('已用内存大小(GB)'), default=0)
     disk_size_total = models.IntegerField(verbose_name=_('总硬盘大小(GB)'), default=0)
     disk_size_used = models.IntegerField(verbose_name=_('已用硬盘大小(GB)'), default=0)
     creation_time = models.DateTimeField(verbose_name=_('创建时间'), null=True, blank=True, auto_now_add=True)
@@ -268,11 +268,11 @@ class ServiceQuotaBase(UuidModel):
 
     @property
     def ram_used_gib(self):
-        return self.ram_used / 1024
+        return self.ram_used
 
     @ram_used_gib.setter
     def ram_used_gib(self, val):
-        self.ram_used = val * 1024
+        self.ram_used = val
 
 
 class ServicePrivateQuota(ServiceQuotaBase):

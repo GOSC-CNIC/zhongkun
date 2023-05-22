@@ -940,7 +940,7 @@ class ServersViewSet(CustomGenericViewSet):
         """
         try:
             QuotaAPI().server_quota_release(service=server.service, vcpu=server.vcpus,
-                                            ram=server.ram_mib, public_ip=server.public_ip)
+                                            ram_gib=server.ram_gib, public_ip=server.public_ip)
         except exceptions.Error as e:
             return False
 

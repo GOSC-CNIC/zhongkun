@@ -537,7 +537,7 @@ class ServerHandler:
         # 服务私有资源配额是否满足需求
         try:
             QuotaAPI.service_private_quota_meet(
-                service=service, vcpu=instance_config.vm_cpu, ram=instance_config.vm_ram_mib,
+                service=service, vcpu=instance_config.vm_cpu, ram_gib=instance_config.vm_ram_gib,
                 public_ip=instance_config.vm_public_ip
             )
         except exceptions.QuotaShortageError as exc:
@@ -647,7 +647,8 @@ class ServerHandler:
         server_build_status.creat_task(server)  # 异步任务查询server创建结果，更新server信息和创建状态
         return server
 
-    def renew_server(self, view, request, kwargs):
+    @staticmethod
+    def renew_server(view, request, kwargs):
         """
         续费云服务器
         """

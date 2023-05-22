@@ -24,7 +24,7 @@ class TestServiceQuotaManager(TransactionTestCase):
         mgr = manager_cls()
         service = self.service
         old_quota = mgr.get_quota(service=service)
-        new_quota = mgr.increase(service=service, vcpus=vcpus_add, ram=ram_add, disk_size=disk_size_add,
+        new_quota = mgr.increase(service=service, vcpus=vcpus_add, ram_gib=ram_add, disk_size=disk_size_add,
                                  public_ip=public_ip_add, private_ip=private_ip_add)
         self.assertEqual(new_quota.vcpu_total - old_quota.vcpu_total, vcpus_add,
                          msg=f'{manager_cls} increase vcpu failed')
@@ -37,7 +37,7 @@ class TestServiceQuotaManager(TransactionTestCase):
         self.assertEqual(new_quota.private_ip_total - old_quota.private_ip_total, private_ip_add,
                          msg=f'{manager_cls} increase private_ip failed')
 
-        ok = mgr.requires(quota=new_quota, vcpus=vcpus_add, ram=ram_add, disk_size=disk_size_add,
+        ok = mgr.requires(quota=new_quota, vcpus=vcpus_add, ram_gib=ram_add, disk_size=disk_size_add,
                           public_ip=public_ip_add, private_ip=private_ip_add)
         self.assertTrue(ok, f'{manager_cls} requires failed')
 
@@ -46,10 +46,10 @@ class TestServiceQuotaManager(TransactionTestCase):
         with self.assertRaises(QuotaShortageError, msg=f'{manager_cls} requires vcpus failed'):
             mgr.requires(quota=new_quota, vcpus=new_quota.vcpu_total + 1)
 
-        ok = mgr.requires(quota=new_quota, ram=ram_add)
+        ok = mgr.requires(quota=new_quota, ram_gib=ram_add)
         self.assertTrue(ok, f'{manager_cls} requires ram failed')
         with self.assertRaises(QuotaShortageError, msg=f'{manager_cls} requires ram failed'):
-            mgr.requires(quota=new_quota, ram=new_quota.ram_total + 1)
+            mgr.requires(quota=new_quota, ram_gib=new_quota.ram_total + 1)
 
         ok = mgr.requires(quota=new_quota, disk_size=disk_size_add)
         self.assertTrue(ok, f'{manager_cls} requires disk_size failed')
@@ -66,7 +66,7 @@ class TestServiceQuotaManager(TransactionTestCase):
         with self.assertRaises(QuotaShortageError, msg=f'{manager_cls} requires private_ip failed'):
             mgr.requires(quota=new_quota, private_ip=new_quota.private_ip_total + 1)
 
-        new_quota = mgr.deduct(service=service, vcpus=vcpus_add, ram=ram_add, disk_size=disk_size_add,
+        new_quota = mgr.deduct(service=service, vcpus=vcpus_add, ram_gib=ram_add, disk_size=disk_size_add,
                                public_ip=public_ip_add, private_ip=private_ip_add)
         self.assertEqual(new_quota.vcpu_used, vcpus_add,
                          msg=f'{manager_cls} deduct vcpu failed')
@@ -79,7 +79,7 @@ class TestServiceQuotaManager(TransactionTestCase):
         self.assertEqual(new_quota.private_ip_used, private_ip_add,
                          msg=f'{manager_cls} deduct private_ip failed')
 
-        new_quota = mgr.release(service=service, vcpus=vcpus_add, ram=ram_add, disk_size=disk_size_add,
+        new_quota = mgr.release(service=service, vcpus=vcpus_add, ram_gib=ram_add, disk_size=disk_size_add,
                                 public_ip=public_ip_add, private_ip=private_ip_add)
         self.assertEqual(new_quota.vcpu_used, old_quota.vcpu_used,
                          msg=f'{manager_cls} release vcpu failed')
@@ -92,7 +92,7 @@ class TestServiceQuotaManager(TransactionTestCase):
         self.assertEqual(new_quota.private_ip_used, old_quota.private_ip_used,
                          msg=f'{manager_cls} release private_ip failed')
 
-        new_quota = mgr.decrease(service=service, vcpus=vcpus_add, ram=ram_add, disk_size=disk_size_add,
+        new_quota = mgr.decrease(service=service, vcpus=vcpus_add, ram_gib=ram_add, disk_size=disk_size_add,
                                  public_ip=public_ip_add, private_ip=private_ip_add)
         self.assertEqual(new_quota.vcpu_total, old_quota.vcpu_total,
                          msg=f'{manager_cls} deduct vcpu failed')
@@ -114,7 +114,7 @@ class TestServiceQuotaManager(TransactionTestCase):
 
         mgr = manager_cls()
         service = self.service
-        mgr.update(service=service, vcpus=update_vcpu, ram=update_ram, disk_size=update_disk,
+        mgr.update(service=service, vcpus=update_vcpu, ram_gib=update_ram, disk_size=update_disk,
                    public_ip=update_public_ip, private_ip=update_private_ip, only_increase=True)
         new_quota = mgr.get_quota(service=service)
         self.assertEqual(new_quota.vcpu_total, update_vcpu)
@@ -127,18 +127,18 @@ class TestServiceQuotaManager(TransactionTestCase):
             mgr.update(service=service, vcpus=update_vcpu - 1, only_increase=True)
 
         with self.assertRaises(QuotaOnlyIncreaseError):
-            mgr.update(service=service, vcpus=update_vcpu, ram=update_ram - 1, only_increase=True)
+            mgr.update(service=service, vcpus=update_vcpu, ram_gib=update_ram - 1, only_increase=True)
 
         with self.assertRaises(QuotaOnlyIncreaseError):
-            mgr.update(service=service, vcpus=update_vcpu, ram=update_ram, disk_size=update_disk - 1,
+            mgr.update(service=service, vcpus=update_vcpu, ram_gib=update_ram, disk_size=update_disk - 1,
                        only_increase=True)
 
         with self.assertRaises(QuotaOnlyIncreaseError):
-            mgr.update(service=service, vcpus=update_vcpu, ram=update_ram, disk_size=update_disk,
+            mgr.update(service=service, vcpus=update_vcpu, ram_gib=update_ram, disk_size=update_disk,
                        public_ip=update_public_ip - 1, only_increase=True)
 
         with self.assertRaises(QuotaOnlyIncreaseError):
-            mgr.update(service=service, vcpus=update_vcpu, ram=update_ram, disk_size=update_disk,
+            mgr.update(service=service, vcpus=update_vcpu, ram_gib=update_ram, disk_size=update_disk,
                        public_ip=update_public_ip, private_ip=update_private_ip - 1, only_increase=True)
 
         new_quota = mgr.get_quota(service=service)
@@ -148,7 +148,7 @@ class TestServiceQuotaManager(TransactionTestCase):
         self.assertEqual(new_quota.public_ip_total, update_public_ip)
         self.assertEqual(new_quota.private_ip_total, update_private_ip)
 
-        mgr.update(service=service, vcpus=update_vcpu - 1, ram=update_ram - 1, disk_size=update_disk - 1,
+        mgr.update(service=service, vcpus=update_vcpu - 1, ram_gib=update_ram - 1, disk_size=update_disk - 1,
                    public_ip=update_public_ip - 1, private_ip=update_private_ip - 1, only_increase=False)
         new_quota = mgr.get_quota(service=service)
         self.assertEqual(new_quota.vcpu_total, update_vcpu - 1)
@@ -192,20 +192,20 @@ class QuotaAPITests(TransactionTestCase):
         # 配额都是0
         with self.assertRaises(QuotaShortageError):
             QuotaAPI.server_create_quota_apply(
-                service=self.service, vcpu=1, ram=1024, public_ip=True)
+                service=self.service, vcpu=1, ram_gib=1024, public_ip=True)
 
         with self.assertRaises(QuotaShortageError):
             QuotaAPI.server_create_quota_apply(
-                service=self.service, vcpu=vcpus_apply, ram=ram_apply, public_ip=is_public_ip_apply)
+                service=self.service, vcpu=vcpus_apply, ram_gib=ram_apply, public_ip=is_public_ip_apply)
 
         # 增加服务私有配额
         self.pri_quota = ServicePrivateQuotaManager().increase(
-            service=self.service, vcpus=vcpus_add, ram=ram_add, disk_size=disk_size_add,
+            service=self.service, vcpus=vcpus_add, ram_gib=ram_add, disk_size=disk_size_add,
             public_ip=public_ip_add, private_ip=private_ip_add)
 
         # 创建vm扣除配额
         QuotaAPI.server_create_quota_apply(
-            service=self.service, vcpu=vcpus_apply, ram=ram_apply, public_ip=is_public_ip_apply)
+            service=self.service, vcpu=vcpus_apply, ram_gib=ram_apply, public_ip=is_public_ip_apply)
 
         self.pri_quota.refresh_from_db()
         self.assertEqual(self.pri_quota.vcpu_total, vcpus_add)
@@ -225,7 +225,7 @@ class QuotaAPITests(TransactionTestCase):
 
         # 创建失败，释放服务配额
         QuotaAPI().server_quota_release(self.service, vcpu=vcpus_apply,
-                                        ram=ram_apply, public_ip=is_public_ip_apply)
+                                        ram_gib=ram_apply, public_ip=is_public_ip_apply)
         self.pri_quota.refresh_from_db()
         self.assertEqual(self.pri_quota.vcpu_used, 0)
         self.assertEqual(self.pri_quota.ram_used, 0)
@@ -236,7 +236,7 @@ class QuotaAPITests(TransactionTestCase):
         # 创建vm扣除配额
         is_public_ip_apply = False
         QuotaAPI.server_create_quota_apply(
-            service=self.service, vcpu=vcpus_apply, ram=ram_apply, public_ip=is_public_ip_apply)
+            service=self.service, vcpu=vcpus_apply, ram_gib=ram_apply, public_ip=is_public_ip_apply)
         self.pri_quota.refresh_from_db()
         self.assertEqual(self.pri_quota.vcpu_used, vcpus_apply)
         self.assertEqual(self.pri_quota.ram_used, ram_apply)
@@ -250,7 +250,7 @@ class QuotaAPITests(TransactionTestCase):
 
         # 释放服务配额
         QuotaAPI().server_quota_release(self.service, vcpu=vcpus_apply,
-                                        ram=ram_apply, public_ip=is_public_ip_apply)
+                                        ram_gib=ram_apply, public_ip=is_public_ip_apply)
 
         self.pri_quota.refresh_from_db()
         self.assertEqual(self.pri_quota.vcpu_used, 0)

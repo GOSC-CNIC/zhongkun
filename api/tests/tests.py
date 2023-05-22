@@ -1488,7 +1488,7 @@ class ServiceTests(MyAPITestCase):
                            'vcpu_used', 'ram_used', 'disk_size_used', 'creation_time',
                            'enable'], response.data)
         self.assert_is_subdict_of(sub={
-            'private_ip_total': 1, 'public_ip_total': 2, 'vcpu_total': 3, 'ram_total': 4,
+            'private_ip_total': 1, 'public_ip_total': 2, 'vcpu_total': 3, 'ram_total': 4 * 1024,
             'disk_size_total': 5, 'private_ip_used': 0, 'public_ip_used': 0, 'vcpu_used': 0,
             'ram_used': 0, 'disk_size_used': 0, 'enable': True
         }, d=response.data)

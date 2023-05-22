@@ -219,7 +219,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
 
         # service quota set
         ServicePrivateQuotaManager().increase(
-            service=self.service, vcpus=6, ram=4096, public_ip=1, private_ip=1
+            service=self.service, vcpus=6, ram_gib=4, public_ip=1, private_ip=1
         )
         # create user server prepaid mode
         response = self.client.post(url, data={

@@ -61,7 +61,7 @@ class OrderResourceDeliverer:
         # 资源配额扣除
         try:
             QuotaAPI().server_create_quota_apply(
-                service=service, vcpu=config.vm_cpu, ram=config.vm_ram_mib, public_ip=config.vm_public_ip)
+                service=service, vcpu=config.vm_cpu, ram_gib=config.vm_ram_gib, public_ip=config.vm_public_ip)
         except exceptions.Error as exc:
             raise exc
 
@@ -75,7 +75,7 @@ class OrderResourceDeliverer:
         except exceptions.APIException as exc:
             try:
                 QuotaAPI().server_quota_release(
-                    service=service, vcpu=config.vm_cpu, ram=config.vm_ram_mib, public_ip=config.vm_public_ip)
+                    service=service, vcpu=config.vm_cpu, ram_gib=config.vm_ram_gib, public_ip=config.vm_public_ip)
             except exceptions.Error:
                 pass
 

@@ -45,14 +45,14 @@ class ServiceQuotaManagerBase:
 
         return quota
 
-    def deduct(self, service, vcpus: int = 0, ram: int = 0, disk_size: int = 0,
+    def deduct(self, service, vcpus: int = 0, ram_gib: int = 0, disk_size: int = 0,
                public_ip: int = 0, private_ip: int = 0):
         """
         扣除资源
 
         :param service: 接入服务
         :param vcpus: 虚拟cpu数
-        :param ram: 内存，单位Mb
+        :param ram_gib: 内存，单位Gb
         :param disk_size: 硬盘容量，单位Gb
         :param public_ip: 公网ip数
         :param private_ip: 私网ip数
@@ -61,7 +61,7 @@ class ServiceQuotaManagerBase:
 
         :raises: QuotaError
         """
-        if vcpus < 0 or ram < 0 or disk_size < 0 or public_ip < 0 or private_ip < 0:
+        if vcpus < 0 or ram_gib < 0 or disk_size < 0 or public_ip < 0 or private_ip < 0:
             raise errors.QuotaError(_('参数无效，扣除资源配额不得小于0'))
 
         with transaction.atomic():
@@ -81,9 +81,9 @@ class ServiceQuotaManagerBase:
                 else:
                     raise errors.QuotaShortageError(message=self._prefix_msg(_('vCPU资源配额不足')))
 
-            if ram > 0:
-                if (quota.ram_total - quota.ram_used) >= ram:
-                    quota.ram_used = quota.ram_used + ram
+            if ram_gib > 0:
+                if (quota.ram_total - quota.ram_used) >= ram_gib:
+                    quota.ram_used = quota.ram_used + ram_gib
                     update_fields.append('ram_used')
                 else:
                     raise errors.QuotaShortageError(message=self._prefix_msg(_('Ram资源配额不足')))
@@ -117,14 +117,14 @@ class ServiceQuotaManagerBase:
 
         return quota
 
-    def release(self, service, vcpus: int = 0, ram: int = 0, disk_size: int = 0,
+    def release(self, service, vcpus: int = 0, ram_gib: int = 0, disk_size: int = 0,
                 public_ip: int = 0, private_ip: int = 0):
         """
         释放已用的资源
 
         :param service: 接入服务配置对象
         :param vcpus: 虚拟cpu数
-        :param ram: 内存，单位Mb
+        :param ram_gib: 内存，单位Gb
         :param disk_size: 硬盘容量，单位Gb
         :param public_ip: 公网ip数
         :param private_ip: 私网ip数
@@ -133,7 +133,7 @@ class ServiceQuotaManagerBase:
 
         :raises: QuotaError
         """
-        if vcpus < 0 or ram < 0 or disk_size < 0 or public_ip < 0 or private_ip < 0:
+        if vcpus < 0 or ram_gib < 0 or disk_size < 0 or public_ip < 0 or private_ip < 0:
             raise errors.QuotaError(_('参数无效，释放资源配额不得小于0'))
 
         with transaction.atomic():
@@ -150,8 +150,8 @@ class ServiceQuotaManagerBase:
                 quota.vcpu_used = max(quota.vcpu_used - vcpus, 0)
                 update_fields.append('vcpu_used')
 
-            if ram > 0:
-                quota.ram_used = max(quota.ram_used - ram, 0)
+            if ram_gib > 0:
+                quota.ram_used = max(quota.ram_used - ram_gib, 0)
                 update_fields.append('ram_used')
 
             if disk_size > 0:
@@ -174,14 +174,14 @@ class ServiceQuotaManagerBase:
 
         return quota
 
-    def increase(self, service, vcpus: int = 0, ram: int = 0, disk_size: int = 0,
+    def increase(self, service, vcpus: int = 0, ram_gib: int = 0, disk_size: int = 0,
                  public_ip: int = 0, private_ip: int = 0):
         """
         增加总资源配额
 
         :param service: 接入服务配置对象
         :param vcpus: 虚拟cpu数
-        :param ram: 内存，单位Mb
+        :param ram_gib: 内存，单位Gb
         :param disk_size: 硬盘容量，单位Gb
         :param public_ip: 公网ip数
         :param private_ip: 私网ip数
@@ -190,7 +190,7 @@ class ServiceQuotaManagerBase:
 
         :raises: QuotaError
         """
-        if vcpus < 0 or ram < 0 or disk_size < 0 or public_ip < 0 or private_ip < 0:
+        if vcpus < 0 or ram_gib < 0 or disk_size < 0 or public_ip < 0 or private_ip < 0:
             raise errors.QuotaError(_('参数无效，增加资源配额不得小于0'))
 
         with transaction.atomic():
@@ -207,8 +207,8 @@ class ServiceQuotaManagerBase:
                 quota.vcpu_total = quota.vcpu_total + vcpus
                 update_fields.append('vcpu_total')
 
-            if ram > 0:
-                quota.ram_total = quota.ram_total + ram
+            if ram_gib > 0:
+                quota.ram_total = quota.ram_total + ram_gib
                 update_fields.append('ram_total')
 
             if disk_size > 0:
@@ -231,14 +231,14 @@ class ServiceQuotaManagerBase:
 
         return quota
 
-    def decrease(self, service, vcpus: int = 0, ram: int = 0, disk_size: int = 0,
+    def decrease(self, service, vcpus: int = 0, ram_gib: int = 0, disk_size: int = 0,
                  public_ip: int = 0, private_ip: int = 0):
         """
         减少资源总配额
 
         :param service: 接入服务配置对象
         :param vcpus: 虚拟cpu数
-        :param ram: 内存，单位Mb
+        :param ram_gib: 内存，单位Gb
         :param disk_size: 硬盘容量，单位Gb
         :param public_ip: 公网ip数
         :param private_ip: 私网ip数
@@ -247,7 +247,7 @@ class ServiceQuotaManagerBase:
 
         :raises: QuotaError
         """
-        if vcpus < 0 or ram < 0 or disk_size < 0 or public_ip < 0 or private_ip < 0:
+        if vcpus < 0 or ram_gib < 0 or disk_size < 0 or public_ip < 0 or private_ip < 0:
             raise errors.QuotaError(_('参数无效，增加资源配额不得小于0'))
 
         with transaction.atomic():
@@ -264,8 +264,8 @@ class ServiceQuotaManagerBase:
                 quota.vcpu_total = max(quota.vcpu_total - vcpus, 0)
                 update_fields.append('vcpu_total')
 
-            if ram > 0:
-                quota.ram_total = max(quota.ram_total - ram, 0)
+            if ram_gib > 0:
+                quota.ram_total = max(quota.ram_total - ram_gib, 0)
                 update_fields.append('ram_total')
 
             if disk_size > 0:
@@ -288,14 +288,14 @@ class ServiceQuotaManagerBase:
 
         return quota
 
-    def requires(self, quota, vcpus: int = 0, ram: int = 0, disk_size: int = 0,
+    def requires(self, quota, vcpus: int = 0, ram_gib: int = 0, disk_size: int = 0,
                  public_ip: int = 0, private_ip: int = 0):
         """
         是否满足资源需求
 
         :param quota: 数据中心资源配额对象
         :param vcpus: 虚拟cpu数
-        :param ram: 内存，单位Mb
+        :param ram_gib: 内存，单位Gb
         :param disk_size: 硬盘容量，单位Gb
         :param public_ip: 公网ip数
         :param private_ip: 私网ip数
@@ -305,13 +305,13 @@ class ServiceQuotaManagerBase:
 
         :raises: QuotaError, QuotaShortageError
         """
-        if vcpus < 0 or ram < 0 or disk_size < 0 or public_ip < 0 or private_ip < 0:
+        if vcpus < 0 or ram_gib < 0 or disk_size < 0 or public_ip < 0 or private_ip < 0:
             raise errors.QuotaError(_('参数无效，扣除资源配额不得小于0'))
 
         if vcpus > 0 and (quota.vcpu_total - quota.vcpu_used) < vcpus:
             raise errors.QuotaShortageError(message=self._prefix_msg(_("vCPU资源配额不足")))
 
-        if ram > 0 and (quota.ram_total - quota.ram_used) < ram:
+        if ram_gib > 0 and (quota.ram_total - quota.ram_used) < ram_gib:
             raise errors.QuotaShortageError(message=self._prefix_msg(_("Ram资源配额不足")))
 
         if disk_size > 0 and (quota.disk_size_total - quota.disk_size_used) < disk_size:
@@ -325,14 +325,14 @@ class ServiceQuotaManagerBase:
 
         return True
 
-    def update(self, service, vcpus: int = None, ram: int = None, disk_size: int = None,
+    def update(self, service, vcpus: int = None, ram_gib: int = None, disk_size: int = None,
                public_ip: int = None, private_ip: int = None, only_increase: bool = True):
         """
         更新资源总配额
 
         :param service: 接入服务实例
         :param vcpus: 虚拟cpu数
-        :param ram: 内存，单位Mb
+        :param ram_gib: 内存，单位Gb
         :param disk_size: 硬盘容量，单位Gb
         :param public_ip: 公网ip数
         :param private_ip: 私网ip数
@@ -359,11 +359,11 @@ class ServiceQuotaManagerBase:
                 quota.vcpu_total = max(vcpus, 0)
                 update_fields.append('vcpu_total')
 
-            if ram is not None:
-                if only_increase and quota.ram_total > ram:
+            if ram_gib is not None:
+                if only_increase and quota.ram_total > ram_gib:
                     raise errors.QuotaOnlyIncreaseError(message=self._prefix_msg(_('资源配额ram只允许增加')))
 
-                quota.ram_total = max(ram, 0)
+                quota.ram_total = max(ram_gib, 0)
                 update_fields.append('ram_total')
 
             if disk_size is not None:

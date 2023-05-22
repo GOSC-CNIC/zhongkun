@@ -649,7 +649,7 @@ class VmServiceHandler:
 
         try:
             quota = ServicePrivateQuotaManager().update(
-                service=service, vcpus=vcpu_total, ram=ram_total, disk_size=disk_size_total,
+                service=service, vcpus=vcpu_total, ram_gib=ram_total, disk_size=disk_size_total,
                 public_ip=public_ip_total, private_ip=private_ip_total, only_increase=True)
         except exceptions.Error as exc:
             return view.exception_response(exc)
@@ -701,7 +701,7 @@ class VmServiceHandler:
 
         try:
             quota = ServiceShareQuotaManager().update(
-                service=service, vcpus=vcpu_total, ram=ram_total, disk_size=disk_size_total,
+                service=service, vcpus=vcpu_total, ram_gib=ram_total, disk_size=disk_size_total,
                 public_ip=public_ip_total, private_ip=private_ip_total, only_increase=True)
         except exceptions.Error as exc:
             return view.exception_response(exc)
