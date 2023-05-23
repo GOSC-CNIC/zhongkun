@@ -1,6 +1,6 @@
 ## v1.5.0rc1
 2023-05-22  
-shun <869588058@qq.com>
+shun
 
 * 订购云主机时验证配置样式flavor是否和服务单元匹配;
 * 云主机元数据、配置样式flavor、服务单元资源配额中的内存单位由MiB改为GiB, 
@@ -15,7 +15,7 @@ shun <869588058@qq.com>
 
 ## v1.4.0
 2023-04-27  
-shun <869588058@qq.com>
+shun
 
 * 新增VO组统计信息查询接口和测试用例；
 * TiDB监控单元增加版本字段'version'；
@@ -28,7 +28,7 @@ shun <869588058@qq.com>
 
 ## v1.3.1
 2023-04-13  
-shun <869588058@qq.com>   
+shun  
 
 * 对象存储桶模型增加统计信息和标签等字段;
 * AdminAggregationBucketMetering接口响应数据增加桶的存储数据大小、对象数量和tag等字段信息;
@@ -42,7 +42,7 @@ shun <869588058@qq.com>
 
 ## v1.3.0 
 2023-04-11  
-shun <869588058@qq.com>
+shun
 
 * 对象存储、云主机服务单元配置模型增加排序权重字段‘sort_weight’，列举服务单元接口响应数据增加此排序字段；
 * 增加tidb监控单元model，新增ListUnitTidb、MonitorTiDBQuery接口和测试用例;
@@ -53,7 +53,7 @@ shun <869588058@qq.com>
 
 ## v1.2.0
 2023-04-04  
-shun <869588058@qq.com>
+shun
 
 * 桶model增加创建状态，欠费管控状态字段；
 * CreateBucket接口优化，创建桶请求超时生成状态为“创建中”的桶记录，允许创建桶的数量和用户在指定服务单元的券
@@ -70,7 +70,7 @@ shun <869588058@qq.com>
 
 ## v1.1.0
 2023-03-15  
-shun <869588058@qq.com>
+shun
 
 * 增加 站点监控任务特别关注标记（WebsiteTaskAttentionMark）接口和测试用例;
 * 站点监控任务创建、列举和更改接口响应增加‘modification’、‘is_attention’字段内容;
@@ -84,7 +84,7 @@ shun <869588058@qq.com>
 
 ## v1.0.0
 2023-03-09  
-shun <869588058@qq.com>
+shun
 
 * 增加列举网站监控探测点接口（ListWebsiteDetectionPoint）和测试用例;
 * 增加人工充值接口（RechargeManual）和测试用例;
@@ -96,7 +96,7 @@ shun <869588058@qq.com>
 
 ## v0.9.0
 2023-03-02  
-shun <869588058@qq.com>
+shun
 
 * ListMonitorCephUnit api增加筛选参数'organization_id'，响应数据增加监控机构信息；
 * ListMonitorServerUnit api增加筛选参数'organization_id'， 响应数据增加监控机构信息;

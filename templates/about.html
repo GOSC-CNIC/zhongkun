@@ -12,33 +12,35 @@
                     <p>{% trans '本服务为中国科技云一体化云服务的后端服务，包含云服务器、云硬盘、计量结算和监控等功能。' %}</p>
                 </div>
                 <div class="p-2">
-                    <h5>{% trans '版本' %}</h5>
-                    <p>
-                        <i class="fa fa-tag"></i>
-                        <span class="text-dark font-weight-bold">{{ version }}</span> &emsp;
-                        {% if git_changeset %}
-                            <i class="fa fa-clock"></i> <span>{{ git_changeset.timestamp|date:'Y-m-d H:i:s' }}</span>&emsp;
-                        {% endif %}
-                        <span><a href="{% url 'docs:docs' %}#/changelog" target="view_window">
+                    <h5 class="text-dark mb-4">{% trans '当前版本：' %}</h5>
+                    <div>
+                        <p>
+                            <span class="text-info font-weight-bold"><i class="fa fa-tag"></i> {{ current_tag.0 }}</span>&emsp;
+                            <span>发布时间：{{ current_tag.1|date:'Y-m-d H:i:s' }}</span>&emsp;
+                            <span>发布人：{{ current_tag.2 }}</span>&emsp;
+                            <span><a href="{% url 'docs:docs' %}#/changelog" target="view_window">
                             {% trans '变更日志' %}</a>
-                        </span>
-                    </p>
-
+                            </span>
+                        </p>
+                        <pre style="white-space: pre-wrap;word-wrap: break-word">{{ current_tag.4 }}</pre>
+                    </div>
+                    <hr>
+                    <div>
                     {% if git_tagset %}
-                        <div>
+                        <h5 class="text-dark mb-4">{% trans '历史版本：' %}</h5>
                         {% for tag in git_tagset %}
-                            <hr>
                             <div>
-                                <p class="text-info font-weight-bold"><i class="fa fa-tag"></i> {{ tag.0 }}</p>
                                 <p>
-                                    <i class="fa fa-clock"></i> <span>{{ tag.1|date:'Y-m-d H:i:s' }}</span>&emsp;
-                                    <i class="fa fa-user"></i> <span>{{ tag.2 }} {{ tag.3 }}</span>
+                                    <span class="text-info font-weight-bold"><i class="fa fa-tag"></i> {{ tag.0 }}</span>&emsp;
+                                    <span>发布时间：{{ tag.1|date:'Y-m-d H:i:s' }}</span>&emsp;
+                                    <span>发布人：{{ tag.2 }}</span>
                                 </p>
                                 <pre style="white-space: pre-wrap;word-wrap: break-word">{{ tag.4 }}</pre>
                             </div>
+                            <hr>
                         {% endfor %}
-                        </div>
                     {% endif %}
+                    </div>
                 </div>
                 <div class="p-2">
                     <h5>{% trans '关于我们' %}</h5>

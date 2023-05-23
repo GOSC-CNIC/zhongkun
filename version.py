@@ -2,10 +2,19 @@ import os
 import subprocess
 import datetime
 
-from django.utils.version import get_version
+
+VERSION = (1, 5, 0, 'rc', 0)     # 'alpha', 'beta', 'rc', 'final'
 
 
-VERSION = (1, 5, 0, 'rc', 1)     # 'alpha', 'beta', 'rc', 'final'
+def get_version(version=None):
+    main = '.'.join(str(x) for x in version[:3])
+
+    sub = ''
+    if version[3] != 'final':
+        mapping = {'alpha': 'a', 'beta': 'b', 'rc': 'rc'}
+        sub = mapping[version[3]] + str(version[4])
+
+    return main + sub
 
 
 def get_git_changeset():
@@ -57,9 +66,14 @@ def get_git_tagset():
         for line in lines:
             tag = line.split('||')
             if len(tag) == 5:
-                tag[1] = datetime.datetime.fromtimestamp(int(tag[1]), tz=tz)
-                tag[4] = tag[4].replace('*', '\n*')
-                tags.append(tag)
+                version, tm, author, email, content = tag
+                new_tag = [
+                    version.strip(' ').lower(),
+                    datetime.datetime.fromtimestamp(int(tm), tz=tz),
+                    author, email,
+                    content.replace('*', '\n*')
+                ]
+                tags.append(new_tag)
 
     except ValueError:
         return None
