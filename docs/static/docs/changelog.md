@@ -1,17 +1,19 @@
 ## v1.5.0rc1
-2023-05-22  
-shun
+发布时间： 2023-05-22  
+发布人： shun
 
-* 订购云主机时验证配置样式flavor是否和服务单元匹配;
+* 订购云主机时验证配置样式flavor是否和服务单元匹配； 提交人：shun
 * 云主机元数据、配置样式flavor、服务单元资源配额中的内存单位由MiB改为GiB, 
   相关接口返回内存值的单位同时变更为GiB，编写对应的数据库迁移文件以更新历史数据，
-  以及受影响的相关功能代码和测试用例修改;
-* add AdminMeteringStorageStatistics api and testcase;
-* 对象存储计量表增加计量时桶字节容量大小字段;
-* 云主机和存储服务单元名称变更时 同步更新到对应的钱包子服务；
-* 后台server修改页面字段布局优化，增加明文输入修改默认登录密码的功能;
-* add command 'balance_due_zero';
-* 新增指定时间段内创建用户和vo数量api和测试用例;
+  以及受影响的相关功能代码和测试用例修改； 提交人：shun
+* add AdminMeteringStorageStatistics api and testcase； 提交人：shun
+* 对象存储计量表增加计量时桶字节容量大小字段； 提交人：shun
+* 云主机和存储服务单元名称变更时 同步更新到对应的钱包子服务； 提交人：shun
+* 后台server修改页面字段布局优化，增加明文输入修改默认登录密码的功能； 提交人：shun
+* add command 'balance_due_zero'； 提交人：shun
+* 新增指定时间段内创建用户和vo数量api和测试用例； 提交人：shun
+* GetServerVNC接口增加管理员身份参数‘as-admin’；  提交人：shun
+
 
 ## v1.4.0
 2023-04-27  
