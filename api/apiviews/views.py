@@ -748,6 +748,7 @@ class ServersViewSet(CustomGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('服务器VNC'),
+        manual_parameters=CustomGenericViewSet.PARAMETERS_AS_ADMIN,
         responses={
             200: '''
                 {
@@ -781,7 +782,11 @@ class ServersViewSet(CustomGenericViewSet):
         server_id = kwargs.get(self.lookup_field, '')
 
         try:
-            server = ServerManager().get_read_perm_server(server_id=server_id, user=request.user)
+            if self.is_as_admin_request(request=request):
+                server = ServerManager().get_read_perm_server(
+                    server_id=server_id, user=request.user, as_admin=True)
+            else:
+                server = ServerManager().get_read_perm_server(server_id=server_id, user=request.user)
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
