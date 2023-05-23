@@ -565,14 +565,12 @@ class VmServiceBaseQuotaSerializer(VmServiceBaseQuotaUpdateSerializer):
     private_ip_used = serializers.IntegerField(label=_('已用私网IP数'), read_only=True)
     public_ip_used = serializers.IntegerField(label=_('已用公网IP数'), read_only=True)
     vcpu_used = serializers.IntegerField(label=_('已用CPU核数'), read_only=True)
-    # ram_used = serializers.IntegerField(label=_('已用内存大小(MB)'), read_only=True)
-    ram_used = serializers.SerializerMethodField(label=_('已用内存大小(MB)'), read_only=True, method_name='get_ram_used')
+    ram_used = serializers.IntegerField(label=_('已用内存大小(GiB)'), read_only=True)
     disk_size_used = serializers.IntegerField(label=_('已用硬盘大小(GB)'), read_only=True)
     creation_time = serializers.DateTimeField(label=_('创建时间'), read_only=True)
     enable = serializers.BooleanField(label=_('有效状态'), read_only=True,
                                       help_text=_('选中，资源配额生效；未选中，无法申请分中心资源'))
     service = serializers.SerializerMethodField(method_name='get_service')
-    ram_total = serializers.SerializerMethodField(label=_('总内存大小(MB)'), method_name='get_ram_total')
 
     @staticmethod
     def get_service(obj):
@@ -580,14 +578,6 @@ class VmServiceBaseQuotaSerializer(VmServiceBaseQuotaUpdateSerializer):
             return {'id': obj.service.id, 'name': obj.service.name, 'name_en': obj.service.name_en}
 
         return {'id': None, 'name': None, 'name_en': None}
-
-    @staticmethod
-    def get_ram_used(obj):
-        return obj.ram_used * 1024
-
-    @staticmethod
-    def get_ram_total(obj):
-        return obj.ram_total * 1024
 
 
 class VmServicePrivateQuotaSerializer(VmServiceBaseQuotaSerializer):

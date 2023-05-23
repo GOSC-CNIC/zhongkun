@@ -46,12 +46,12 @@ class ServivePrivateQuotaViewSet(CustomGenericViewSet):
                   "private_ip_total": 0,
                   "public_ip_total": 0,
                   "vcpu_total": 0,
-                  "ram_total": 0,
+                  "ram_total": 0,       # GiB
                   "disk_size_total": 0,
                   "private_ip_used": 0,
                   "public_ip_used": 0,
                   "vcpu_used": 0,
-                  "ram_used": 0,
+                  "ram_used": 0,        # GiB
                   "disk_size_used": 0,
                   "creation_time": "2021-03-05T07:20:58.451119Z",
                   "enable": true,
@@ -105,12 +105,12 @@ class ServiveShareQuotaViewSet(CustomGenericViewSet):
                   "private_ip_total": 0,
                   "public_ip_total": 0,
                   "vcpu_total": 0,
-                  "ram_total": 0,
+                  "ram_total": 0,       # GiB
                   "disk_size_total": 0,
                   "private_ip_used": 0,
                   "public_ip_used": 0,
                   "vcpu_used": 0,
-                  "ram_used": 0,
+                  "ram_used": 0,        # GiB
                   "disk_size_used": 0,
                   "creation_time": "2021-03-05T07:20:58.451119Z",
                   "enable": true,

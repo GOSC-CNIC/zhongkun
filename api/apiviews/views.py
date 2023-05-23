@@ -1646,12 +1646,12 @@ class ServiceViewSet(CustomGenericViewSet):
               "private_ip_total": 10,
               "public_ip_total": 8,
               "vcpu_total": 20,
-              "ram_total": 10240,       # Mb
+              "ram_total": 10,       # Gb
               "disk_size_total": 0,     # GB
               "private_ip_used": 5,
               "public_ip_used": 0,
               "vcpu_used": 6,
-              "ram_used": 6144,         # Mb
+              "ram_used": 6,         # Gb
               "disk_size_used": 0,      # GB
               "creation_time": null,
               "enable": true
@@ -1680,12 +1680,12 @@ class ServiceViewSet(CustomGenericViewSet):
               "private_ip_total": 10,
               "public_ip_total": 8,
               "vcpu_total": 20,
-              "ram_total": 10240,       # Mb
+              "ram_total": 10,       # Gb
               "disk_size_total": 0,     # GB
               "private_ip_used": 5,
               "public_ip_used": 0,
               "vcpu_used": 6,
-              "ram_used": 6144,         # Mb
+              "ram_used": 6,         # Gb
               "disk_size_used": 0,      # GB
               "creation_time": null,
               "enable": true
@@ -1711,12 +1711,12 @@ class ServiceViewSet(CustomGenericViewSet):
               "private_ip_total": 10,
               "public_ip_total": 8,
               "vcpu_total": 20,
-              "ram_total": 10240,       # Mb
+              "ram_total": 10,       # Gb
               "disk_size_total": 0,     # GB
               "private_ip_used": 5,
               "public_ip_used": 0,
               "vcpu_used": 6,
-              "ram_used": 6144,         # Mb
+              "ram_used": 6,         # Gb
               "disk_size_used": 0,      # GB
               "creation_time": null,
               "enable": true
