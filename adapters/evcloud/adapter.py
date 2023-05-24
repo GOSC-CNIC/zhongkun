@@ -338,7 +338,7 @@ class EVCloudAdapter(BaseAdapter):
         offset = (int(params.page_num) - 1) * int(params.page_size)
         limit = params.page_size
         url = self.api_builder.image_base_url(
-            query={'center_id': center_id, 'tag': 1, 'offset': offset, 'limit': limit})
+            query={'center_id': center_id, 'offset': offset, 'limit': limit})
         try:
             headers = self.get_auth_header()
             r = self.do_request(method='get', url=url, headers=headers)
