@@ -31,9 +31,10 @@ class UserProfileAdmin(UserAdmin):
 
 @admin.register(Email)
 class EmailAdmin(admin.ModelAdmin):
-    list_display = ('show_preview_url', 'id', 'subject', 'tag', 'receiver', 'sender', 'send_time', 'is_html')
+    list_display = ('show_preview_url', 'id', 'subject', 'tag', 'receiver', 'sender',
+                    'status', 'success_time', 'send_time', 'is_html', 'status_desc')
     list_display_links = ('id', 'subject')
-    list_filter = ('tag',)
+    list_filter = ('tag', 'status')
     search_fields = ('subject', 'receiver')
 
     @admin.display(description=_('预览'))

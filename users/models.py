@@ -5,6 +5,7 @@ from django.contrib.auth.models import AbstractUser
 from django.conf import settings
 from django.core.mail import send_mail
 from django.utils.translation import gettext_lazy as _
+from django.utils import timezone
 
 from utils.model import UuidModel
 
@@ -147,14 +148,23 @@ class Email(UuidModel):
         RES_EXP = 'res-exp', _('资源过期通知')
         OTHER = 'other', _('其他')
 
+    class Status(models.TextChoices):
+        WAIT = 'wait', _('待发送')
+        SUCCESS = 'success', _('发送成功')
+        FAILED = 'failed', _('发送失败')
+
     email_host = models.CharField(max_length=255, verbose_name=_('邮件服务'))
     subject = models.CharField(max_length=255, verbose_name=_('标题'))
     sender = models.EmailField(verbose_name=_('发送者'), default='')
     receiver = models.CharField(verbose_name=_('接收者'), max_length=254)
     message = models.TextField(verbose_name=_('邮件内容'))
-    send_time = models.DateTimeField(verbose_name=_('发送时间'), auto_now_add=True)
+    send_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
     tag = models.CharField(verbose_name=_('标签'), max_length=16, choices=Tag.choices, default=Tag.OTHER.value)
-    is_html = models.BooleanField(verbose_name='是否html格式信息', default=False)
+    is_html = models.BooleanField(verbose_name='html格式信息', default=False)
+    status = models.CharField(
+        verbose_name=_('发送状态'), max_length=16, choices=Status.choices, default=Status.SUCCESS.value)
+    status_desc = models.CharField(max_length=255, verbose_name=_('状态描述'), default='')
+    success_time = models.DateTimeField(verbose_name=_('成功发送时间'), null=True, blank=True, default=None)
 
     class Meta:
         ordering = ['-send_time']
@@ -187,24 +197,43 @@ class Email(UuidModel):
             subject=subject, receiver=receiver_str, message=message,
             sender=settings.EMAIL_HOST_USER,
             email_host=settings.EMAIL_HOST,
-            tag=tag, is_html=False
+            tag=tag, is_html=False, status=cls.Status.WAIT.value, status_desc='', success_time=None
         )
         if html_message:
             email.message = html_message
             email.is_html = True
-
-        ok = send_mail(
-            subject=email.subject,  # 标题
-            message=message,  # 内容
-            from_email=email.sender,  # 发送者
-            recipient_list=receivers,  # 接收者
-            html_message=html_message,    # 内容
-            fail_silently=fail_silently,
-        )
-        if ok == 0:
-            return None
+            message = ''
 
         if save_db:
             email.save(force_insert=True)  # 邮件记录
+
+        try:
+            ok = send_mail(
+                subject=email.subject,  # 标题
+                message=message,  # 内容
+                from_email=email.sender,  # 发送者
+                recipient_list=receivers,  # 接收者
+                html_message=html_message,    # 内容
+                fail_silently=False,
+            )
+            if ok == 0:
+                raise Exception('failed')
+        except Exception as exc:
+            email.status = cls.Status.FAILED.value
+            email.status_desc = str(exc)
+            email.success_time = None
+            if save_db:
+                email.save(update_fields=['status', 'success_time', 'status_desc'])
+
+            if not fail_silently:
+                raise exc
+
+            return None
+
+        email.status = cls.Status.SUCCESS.value
+        email.success_time = timezone.now()
+        email.status_desc = ''
+        if save_db:
+            email.save(update_fields=['status', 'success_time', 'status_desc'])
 
         return email

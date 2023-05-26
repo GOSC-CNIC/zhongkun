@@ -25,7 +25,7 @@ class Migration(migrations.Migration):
                 ('sender', models.EmailField(default='', max_length=254, verbose_name='发送者')),
                 ('receiver', models.CharField(max_length=254, verbose_name='接收者')),
                 ('message', models.TextField(verbose_name='邮件内容')),
-                ('send_time', models.DateTimeField(auto_now_add=True, verbose_name='发送时间')),
+                ('send_time', models.DateTimeField(auto_now_add=True, verbose_name='创建时间')),
             ],
             options={
                 'verbose_name': '邮件',
