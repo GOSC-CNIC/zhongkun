@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.utils.translation import ugettext_lazy as _
+from django.utils.html import format_html
 
 from .models import UserProfile, Email
 
@@ -29,6 +30,13 @@ class UserProfileAdmin(UserAdmin):
 
 @admin.register(Email)
 class EmailAdmin(admin.ModelAdmin):
-    list_display = ('id', 'subject', 'sender', 'receiver', 'send_time', 'message')
+    list_display = ('show_preview_url', 'id', 'subject', 'sender', 'receiver', 'send_time')
     list_display_links = ('id', 'subject')
     search_fields = ('subject', 'receiver')
+
+    @admin.display(description=_('预览'))
+    def show_preview_url(self, obj):
+        from django.urls import reverse
+        preview_url = reverse('users:email-detail', kwargs={'email_id': obj.id})
+        return format_html(f'<a target="view_window" href="{preview_url}">预览</a>')
+

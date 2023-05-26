@@ -11,6 +11,7 @@ from django.contrib.auth.views import LoginView
 from django.views import View
 from django.utils import timezone
 
+from .models import Email
 from . import forms
 
 
@@ -388,3 +389,14 @@ class SignInView(View):
     def get(self, request, *args, **kwargs):
         kjy_url = KJYLogin.get_kjy_login_url()
         return render(request, 'signin.html', context={'kjy_url': kjy_url})
+
+
+class EmailDetailView(View):
+    """
+    邮件详情
+    """
+    @staticmethod
+    def get(request, *args, **kwargs):
+        email_id = kwargs.get('email_id')
+        email = Email.objects.filter(id=email_id).first()
+        return render(request, 'email_detail.html', context={'email': email})

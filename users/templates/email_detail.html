@@ -1,0 +1,23 @@
+{% load i18n %}
+<!DOCTYPE html>
+<html lang="zh-hans">
+<head>
+    <meta charset="UTF-8">
+    <title>{% trans '邮件详情' %}</title>
+</head>
+<body>
+   <div>
+       <div style="text-align: center">
+           <p>{{ email.subject }}</p>
+           <p>To: {{ email.receiver }}</p>
+           <p>发送时间: {{ email.send_time | date:'Y-m-d H:i:s' }}</p>
+       </div>
+       <hr>
+       <div>
+           <div id="email-body">
+               {{ email.message | safe }}
+           </div>
+       </div>
+   </div>
+</body>
+</html>
