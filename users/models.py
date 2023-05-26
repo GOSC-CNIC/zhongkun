@@ -139,12 +139,22 @@ class Email(UuidModel):
     """
     邮件
     """
+    class Tag(models.TextChoices):
+        YEAR = 'year', _('年度报表')
+        MONTH = 'month', _('月度报表')
+        TICKET = 'ticket', _('工单通知')
+        COUPON = 'coupon', _('代金券通知')
+        RES_EXP = 'res-exp', _('资源过期通知')
+        OTHER = 'other', _('其他')
+
     email_host = models.CharField(max_length=255, verbose_name=_('邮件服务'))
     subject = models.CharField(max_length=255, verbose_name=_('标题'))
     sender = models.EmailField(verbose_name=_('发送者'), default='')
     receiver = models.CharField(verbose_name=_('接收者'), max_length=254)
     message = models.TextField(verbose_name=_('邮件内容'))
     send_time = models.DateTimeField(verbose_name=_('发送时间'), auto_now_add=True)
+    tag = models.CharField(verbose_name=_('标签'), max_length=16, choices=Tag.choices, default=Tag.OTHER.value)
+    is_html = models.BooleanField(verbose_name='是否html格式信息', default=False)
 
     class Meta:
         ordering = ['-send_time']
@@ -152,13 +162,16 @@ class Email(UuidModel):
         verbose_name_plural = verbose_name
 
     @classmethod
-    def send_email(cls, subject: str, receivers: list, message: str, fail_silently=True, save_db: bool = True):
+    def send_email(cls, subject: str, receivers: list, message: str, tag: str, html_message: str = None,
+                   fail_silently=True, save_db: bool = True):
         """
         发送用户激活邮件
 
         :param subject: 标题
         :param receivers: 接收者邮箱
+        :param tag: 标签
         :param message: 邮件内容
+        :param html_message: html格式的邮件内容
         :param fail_silently: 是否抛出异常
         :param save_db: True(保存邮件记录到数据库)；False(不保存)
         :return:
@@ -173,15 +186,19 @@ class Email(UuidModel):
         email = cls(
             subject=subject, receiver=receiver_str, message=message,
             sender=settings.EMAIL_HOST_USER,
-            email_host=settings.EMAIL_HOST
+            email_host=settings.EMAIL_HOST,
+            tag=tag, is_html=False
         )
+        if html_message:
+            email.message = html_message
+            email.is_html = True
 
         ok = send_mail(
             subject=email.subject,  # 标题
-            message=email.message,  # 内容
+            message=message,  # 内容
             from_email=email.sender,  # 发送者
             recipient_list=receivers,  # 接收者
-            # html_message=self.message,    # 内容
+            html_message=html_message,    # 内容
             fail_silently=fail_silently,
         )
         if ok == 0:

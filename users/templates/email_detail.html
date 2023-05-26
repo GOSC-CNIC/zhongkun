@@ -9,13 +9,18 @@
    <div>
        <div style="text-align: center">
            <p>{{ email.subject }}</p>
+           <p>标签：{{ email.get_tag_display }}</p>
            <p>To: {{ email.receiver }}</p>
            <p>发送时间: {{ email.send_time | date:'Y-m-d H:i:s' }}</p>
        </div>
        <hr>
        <div>
-           <div id="email-body">
-               {{ email.message | safe }}
+           <div>
+               {% if email.is_html %}
+                   {{ email.message | safe }}
+               {% else %}
+                   <pre style="white-space: pre-wrap;word-wrap: break-word">{{ email.message }}</pre>
+               {% endif %}
            </div>
        </div>
    </div>

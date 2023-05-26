@@ -7,7 +7,8 @@ from .models import Ticket, FollowUp
 class TicketEmailNotifier:
     @staticmethod
     def thread_send_email(subject: str, receivers: list, message: str):
-        email = Email.send_email(subject=subject, receivers=receivers, message=message, save_db=False)
+        email = Email.send_email(
+            subject=subject, receivers=receivers, message=message, save_db=False, tag=Email.Tag.TICKET.value)
         return email
 
     @staticmethod

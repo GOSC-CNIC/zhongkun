@@ -319,7 +319,7 @@ class CouponNotifier:
 
     def do_notice_together(self, sorter: CouponSorter, subject: str, message: str, receivers: list) -> bool:
         email = Email.send_email(
-            subject=subject, message=message, receivers=receivers
+            subject=subject, message=message, receivers=receivers, tag=Email.Tag.COUPON.value
         )
         if email is None:
             return False
@@ -529,7 +529,7 @@ class CouponNotifier:
             False   # failed
         """
         email = Email.send_email(
-            subject=subject, message=message, receivers=receivers
+            subject=subject, message=message, receivers=receivers, tag=Email.Tag.COUPON.value
         )
         if email is None:
             return False
