@@ -10,13 +10,16 @@ from utils.model import PayType, OwnerType, ResourceType
 from utils.test import get_or_create_user, get_or_create_center
 from order.models import Order
 from metering.models import (
-    MeteringServer, MeteringObjectStorage, DailyStatementServer, DailyStatementObjectStorage,PaymentStatus
+    MeteringServer, MeteringObjectStorage, DailyStatementServer, DailyStatementObjectStorage, PaymentStatus
 )
 from bill.models import PayApp, PayOrgnazition, PayAppService, CashCoupon
 from storage.models import ObjectsService, Bucket, BucketArchive
 from vo.models import VirtualOrganization, VoMember
 from report.models import MonthlyReport, BucketMonthlyReport
-from scripts.workers.report_generator import MonthlyReportGenerator, get_last_month_first_day_last_day
+from scripts.workers.report_generator import (
+    MonthlyReportGenerator, MonthlyReportNotifier, get_report_period_start_and_end,
+    last_target_day_date
+)
 
 
 class MonthlyReportTests(TransactionTestCase):
@@ -46,12 +49,14 @@ class MonthlyReportTests(TransactionTestCase):
         )
         self.app_service2.save()
 
-        self.last_month_1st, self.last_month_last_day = get_last_month_first_day_last_day()
-        self.last_month_1st_time = datetime.datetime.combine(
-            date=self.last_month_1st,
+        self.report_period_start, self.report_period_end = get_report_period_start_and_end()
+        self.report_period_date = datetime.date(
+            year=self.report_period_end.year, month=self.report_period_end.month, day=1)
+        self.report_period_start_time = datetime.datetime.combine(
+            date=self.report_period_start,
             time=datetime.time(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc))
-        self.last_month_last_day_time = datetime.datetime.combine(
-            date=self.last_month_last_day,
+        self.report_period_end_time = datetime.datetime.combine(
+            date=self.report_period_end,
             time=datetime.time(hour=23, minute=59, second=59, microsecond=999999, tzinfo=timezone.utc))
 
     @staticmethod
@@ -93,54 +98,56 @@ class MonthlyReportTests(TransactionTestCase):
 
         return order_list
 
-    def init_order_date(self, nt: datetime.datetime):
+    def init_order_date(self):
         # user1
-        order_list = self.create_order_date(payment_time=self.last_month_1st_time, user=self.user1, vo=None, length=6)
+        order_list = self.create_order_date(
+            payment_time=self.report_period_start_time, user=self.user1, vo=None, length=6)
         # 1，2，3，4 in last month; ok (1, 2, 4), 0+1+3=4
         order1, order2, order3, order4, order5, order6 = order_list
-        order2.payment_time = self.last_month_1st_time + timedelta(minutes=10)
+        order2.payment_time = self.report_period_start_time + timedelta(minutes=10)
         order2.status = Order.Status.PAID.value
         order2.trading_status = Order.TradingStatus.COMPLETED.value
         order2.save(update_fields=['payment_time', 'status', 'trading_status'])
-        order3.payment_time = self.last_month_1st_time + timedelta(days=10)
+        order3.payment_time = self.report_period_start_time + timedelta(days=10)
         order3.status = Order.Status.UNPAID.value
         order3.save(update_fields=['payment_time', 'status'])
-        order4.payment_time = self.last_month_1st_time + timedelta(days=20, minutes=40)
+        order4.payment_time = self.report_period_start_time + timedelta(days=20, minutes=40)
         order4.status = Order.Status.PAID.value
         order4.trading_status = Order.TradingStatus.COMPLETED.value
         order4.save(update_fields=['payment_time', 'status', 'trading_status'])
 
-        order5.payment_time = self.last_month_1st_time - timedelta(minutes=50)
+        order5.payment_time = self.report_period_start_time - timedelta(minutes=50)
         order5.status = Order.Status.REFUND.value
         order5.save(update_fields=['payment_time', 'status'])
-        order6.payment_time = self.last_month_last_day_time + timedelta(minutes=60)
+        order6.payment_time = self.report_period_end_time + timedelta(minutes=60)
         order6.status = Order.Status.PAID.value
         order6.save(update_fields=['payment_time', 'status'])
 
         # vo1
-        order_list = self.create_order_date(payment_time=self.last_month_1st_time, user=None, vo=self.vo1, length=7)
+        order_list = self.create_order_date(
+            payment_time=self.report_period_start_time, user=None, vo=self.vo1, length=7)
         # 1，2，3，4, 7 in last month; ok (1, 2, 4, 7), 0+1+3+6=10
         order1, order2, order3, order4, order5, order6, order7 = order_list
-        order2.payment_time = self.last_month_1st_time + timedelta(minutes=10)
+        order2.payment_time = self.report_period_start_time + timedelta(minutes=10)
         order2.status = Order.Status.PAID.value
         order2.trading_status = Order.TradingStatus.COMPLETED.value
         order2.save(update_fields=['payment_time', 'status', 'trading_status'])
-        order3.payment_time = self.last_month_1st_time + timedelta(days=10)
+        order3.payment_time = self.report_period_start_time + timedelta(days=10)
         order3.status = Order.Status.UNPAID.value
         order3.save(update_fields=['payment_time', 'status'])
-        order4.payment_time = self.last_month_1st_time + timedelta(days=20, minutes=40)
+        order4.payment_time = self.report_period_start_time + timedelta(days=20, minutes=40)
         order4.status = Order.Status.PAID.value
         order4.trading_status = Order.TradingStatus.COMPLETED.value
         order4.save(update_fields=['payment_time', 'status', 'trading_status'])
 
-        order5.payment_time = self.last_month_1st_time - timedelta(minutes=50)
+        order5.payment_time = self.report_period_start_time - timedelta(minutes=50)
         order5.status = Order.Status.REFUND.value
         order5.save(update_fields=['payment_time', 'status'])
-        order6.payment_time = self.last_month_last_day_time + timedelta(minutes=60)
+        order6.payment_time = self.report_period_end_time + timedelta(minutes=60)
         order6.status = Order.Status.PAID.value
         order6.save(update_fields=['payment_time', 'status'])
 
-        order7.payment_time = self.last_month_1st_time + timedelta(days=25, minutes=6, seconds=1)
+        order7.payment_time = self.report_period_start_time + timedelta(days=25, minutes=6, seconds=1)
         order7.status = Order.Status.PAID.value
         order7.save(update_fields=['payment_time', 'status'])
 
@@ -171,26 +178,29 @@ class MonthlyReportTests(TransactionTestCase):
     def init_server_metering_data(self):
         # user1, 2,3,4,5;
         self.create_server_metering(
-            _date=self.last_month_1st, server_id='server_id1', user=self.user1, vo=None, length=6)
+            _date=self.report_period_start, server_id='server_id1', user=self.user1, vo=None, length=6)
         # user1, 2,3,4,5,6;
         self.create_server_metering(
-            _date=self.last_month_1st, server_id='server_id2', user=self.user1, vo=None, length=7)
+            _date=self.report_period_start, server_id='server_id2', user=self.user1, vo=None, length=7)
         # vo1, 2,3,4,5,6;
-        self.create_server_metering(_date=self.last_month_1st, server_id='server_id3', user=None, vo=self.vo1, length=7)
+        self.create_server_metering(
+            _date=self.report_period_start, server_id='server_id3', user=None, vo=self.vo1, length=7)
         # vo1, 2,3,4,5,6,7;
-        self.create_server_metering(_date=self.last_month_1st, server_id='server_id4', user=None, vo=self.vo1, length=8)
+        self.create_server_metering(
+            _date=self.report_period_start, server_id='server_id4', user=None, vo=self.vo1, length=8)
         # vo2, 2,3,4,5,6,7,8;
-        self.create_server_metering(_date=self.last_month_1st, server_id='server_id5', user=None, vo=self.vo2, length=9)
+        self.create_server_metering(
+            _date=self.report_period_start, server_id='server_id5', user=None, vo=self.vo2, length=9)
 
     def init_server_daily_statement(self):
         # user1, 2,3,4,5;
-        self.create_server_daily_statement(_date=self.last_month_1st, user=self.user1, vo=None, length=6)
+        self.create_server_daily_statement(_date=self.report_period_start, user=self.user1, vo=None, length=6)
         # user2, 2,3,4,5,6,7;
-        self.create_server_daily_statement(_date=self.last_month_1st, user=self.user2, vo=None, length=8)
+        self.create_server_daily_statement(_date=self.report_period_start, user=self.user2, vo=None, length=8)
         # vo1, 2,3,4,5,6;
-        self.create_server_daily_statement(_date=self.last_month_1st, user=None, vo=self.vo1, length=7)
+        self.create_server_daily_statement(_date=self.report_period_start, user=None, vo=self.vo1, length=7)
         # vo2, 2,3,4,5,6,7,8;
-        self.create_server_daily_statement(_date=self.last_month_1st, user=None, vo=self.vo2, length=9)
+        self.create_server_daily_statement(_date=self.report_period_start, user=None, vo=self.vo2, length=9)
 
     @staticmethod
     def create_server_daily_statement(_date, user, vo, length: int):
@@ -238,17 +248,17 @@ class MonthlyReportTests(TransactionTestCase):
 
         # user1, 2,3,4,5
         self.create_bucket_metering(
-            _date=self.last_month_1st, service_id=u1_b1.service_id, bucket_id=u1_b1.id, user=u1_b1.user, length=6)
+            _date=self.report_period_start, service_id=u1_b1.service_id, bucket_id=u1_b1.id, user=u1_b1.user, length=6)
         # user1, 2,3,4,5,6
         self.create_bucket_metering(
-            _date=self.last_month_1st, service_id=u1_b2.service_id, bucket_id=u1_b2.id, user=u1_b2.user, length=7)
+            _date=self.report_period_start, service_id=u1_b2.service_id, bucket_id=u1_b2.id, user=u1_b2.user, length=7)
         # user1, 2,3,4,5,6,7
         self.create_bucket_metering(
-            _date=self.last_month_1st, service_id=u1_b3.service_id, bucket_id=u1_b3.id, user=u1_b3.user, length=8)
+            _date=self.report_period_start, service_id=u1_b3.service_id, bucket_id=u1_b3.id, user=u1_b3.user, length=8)
 
         # user2, 2,3,4,5,6,7,8
         self.create_bucket_metering(
-            _date=self.last_month_1st, service_id=u2_b4.service_id, bucket_id=u2_b4.id, user=u2_b4.user, length=9)
+            _date=self.report_period_start, service_id=u2_b4.service_id, bucket_id=u2_b4.id, user=u2_b4.user, length=9)
 
         u1_b2_id = u1_b2.id
         ok = u1_b2.do_archive(archiver='test')
@@ -277,9 +287,9 @@ class MonthlyReportTests(TransactionTestCase):
 
     def init_storage_daily_statement(self):
         # user1, 2,3,4,5;
-        self.create_storage_daily_statement(_date=self.last_month_1st, user=self.user1, length=6)
+        self.create_storage_daily_statement(_date=self.report_period_start, user=self.user1, length=6)
         # user2, 2,3,4,5,6,7;
-        self.create_storage_daily_statement(_date=self.last_month_1st, user=self.user2, length=8)
+        self.create_storage_daily_statement(_date=self.report_period_start, user=self.user2, length=8)
 
     @staticmethod
     def create_storage_daily_statement(_date, user, length: int):
@@ -328,42 +338,52 @@ class MonthlyReportTests(TransactionTestCase):
     def init_coupons(self):
         # user1
         self.create_cashcoupons(
-            now_time=self.last_month_last_day_time, user=self.user1, vo=None,
+            now_time=self.report_period_end_time, user=self.user1, vo=None,
             app_service_id=self.app_service1.id, length=5)
 
         # user2
         self.create_cashcoupons(
-            now_time=self.last_month_last_day_time, user=self.user2, vo=None,
+            now_time=self.report_period_end_time, user=self.user2, vo=None,
             app_service_id=self.app_service2.id, length=6)
 
         # vo1
         self.create_cashcoupons(
-            now_time=self.last_month_last_day_time, user=None, vo=self.vo1,
+            now_time=self.report_period_end_time, user=None, vo=self.vo1,
             app_service_id=self.app_service1.id, length=7)
 
     def test_monthly_report(self):
         # ----- no data ----
         mrg = MonthlyReportGenerator(limit=1, log_stdout=True)
-        mrg.run()
+
+        self.user1.date_joined = mrg.report_period_end_time
+        self.user1.save(update_fields=['date_joined'])
+        self.user2.date_joined = mrg.report_period_end_time + timedelta(days=6)
+        self.user2.save(update_fields=['date_joined'])
+        self.vo1.creation_time = mrg.report_period_end_time + timedelta(days=8)
+        self.vo1.save(update_fields=['creation_time'])
+        self.vo2.creation_time = mrg.report_period_end_time + timedelta(days=1)
+        self.vo2.save(update_fields=['creation_time'])
+
+        mrg.run(check_time=False)
         self.assertEqual(0, MonthlyReport.objects.count())
 
         # 用户和vo组在上月内和之前创建的才会生成月度报表
-        self.user1.date_joined = mrg.last_month_1st_time
+        self.user1.date_joined = mrg.report_period_start_time
         self.user1.save(update_fields=['date_joined'])
-        self.user2.date_joined = mrg.last_month_1st_time - timedelta(days=6)
+        self.user2.date_joined = mrg.report_period_start_time - timedelta(days=6)
         self.user2.save(update_fields=['date_joined'])
-        self.vo1.creation_time = mrg.last_month_1st_time + timedelta(days=8)
+        self.vo1.creation_time = mrg.report_period_start_time + timedelta(days=8)
         self.vo1.save(update_fields=['creation_time'])
 
-        mrg.run()
+        mrg.run(check_time=False)
         self.assertEqual(3, MonthlyReport.objects.count())
 
-        self.vo2.creation_time = mrg.last_month_1st_time + timedelta(days=20)
+        self.vo2.creation_time = mrg.report_period_start_time + timedelta(days=20)
         self.vo2.save(update_fields=['creation_time'])
 
         # user1
         u1_report: MonthlyReport = MonthlyReport.objects.filter(
-            report_date=self.last_month_1st, user_id=self.user1.id, owner_type=OwnerType.USER.value).first()
+            report_date=self.report_period_date, user_id=self.user1.id, owner_type=OwnerType.USER.value).first()
         self.assertEqual(u1_report.server_prepaid_amount, Decimal('0'))
         self.assertEqual(u1_report.server_count, 0)
         self.assertEqual(u1_report.server_original_amount, Decimal('0'))
@@ -379,11 +399,15 @@ class MonthlyReportTests(TransactionTestCase):
         self.assertEqual(u1_report.storage_payable_amount, Decimal('0'))
         self.assertEqual(u1_report.storage_postpaid_amount, Decimal('0'))
         self.assertEqual(BucketMonthlyReport.objects.filter(
-            user_id=self.user1.id, report_date=self.last_month_1st).count(), 0)
+            user_id=self.user1.id, report_date=self.report_period_date).count(), 0)
+
+        # 没有资源不会发送邮件
+        self.assertEqual(len(mail.outbox), 0)
+        MonthlyReportNotifier(report_data=mrg.report_period_date, log_stdout=True).run()
+        self.assertEqual(len(mail.outbox), 0)
 
         # ----- init data ----
-        nt = timezone.now()
-        self.init_order_date(nt=nt)
+        self.init_order_date()
         self.init_server_metering_data()
         self.init_server_daily_statement()
         u1_b1, u1_ba2, u1_b3, u2_b4 = self.init_bucket_data()
@@ -391,12 +415,12 @@ class MonthlyReportTests(TransactionTestCase):
         self.init_coupons()
 
         # 再此运行不会重复产生月度报表
-        MonthlyReportGenerator(limit=1, log_stdout=True).run()
+        MonthlyReportGenerator(limit=1, log_stdout=True).run(check_time=False)
         self.assertEqual(4, MonthlyReport.objects.count())
 
         # user1
         u1_report: MonthlyReport = MonthlyReport.objects.filter(
-            report_date=self.last_month_1st, user_id=self.user1.id, owner_type=OwnerType.USER.value).first()
+            report_date=self.report_period_date, user_id=self.user1.id, owner_type=OwnerType.USER.value).first()
         self.assertEqual(u1_report.server_prepaid_amount, Decimal('0'))
         self.assertEqual(u1_report.server_count, 0)
         self.assertEqual(u1_report.server_original_amount, Decimal('0'))
@@ -412,17 +436,17 @@ class MonthlyReportTests(TransactionTestCase):
         self.assertEqual(u1_report.storage_payable_amount, Decimal('0'))
         self.assertEqual(u1_report.storage_postpaid_amount, Decimal('0'))
         self.assertEqual(BucketMonthlyReport.objects.filter(
-            user_id=self.user1.id, report_date=self.last_month_1st).count(), 0)
+            user_id=self.user1.id, report_date=self.report_period_date).count(), 0)
 
         # 重新产生月度报表
         MonthlyReport.objects.all().delete()
 
-        MonthlyReportGenerator(limit=1, log_stdout=True).run()
+        MonthlyReportGenerator(limit=1, log_stdout=True).run(check_time=False)
         self.assertEqual(4, MonthlyReport.objects.count())
 
         # user1
         u1_report: MonthlyReport = MonthlyReport.objects.filter(
-            report_date=self.last_month_1st, user_id=self.user1.id, owner_type=OwnerType.USER.value).first()
+            report_date=self.report_period_date, user_id=self.user1.id, owner_type=OwnerType.USER.value).first()
         self.assertEqual(u1_report.server_prepaid_amount, Decimal('4'))
         self.assertEqual(u1_report.server_count, 2)
         val = (2 + 3 + 4 + 5) * 2 + (2 + 3 + 4 + 5 + 6) * 2
@@ -449,11 +473,11 @@ class MonthlyReportTests(TransactionTestCase):
                          Decimal.from_float((2 + 3 + 4 + 5) * 4) + Decimal('0.12') * 4)
 
         self.assertEqual(BucketMonthlyReport.objects.filter(
-            user_id=self.user1.id, report_date=self.last_month_1st).count(), 3)
+            user_id=self.user1.id, report_date=self.report_period_date).count(), 3)
         self.assertEqual(BucketMonthlyReport.objects.filter(
-            user_id=self.user2.id, report_date=self.last_month_1st).count(), 1)
+            user_id=self.user2.id, report_date=self.report_period_date).count(), 1)
         mr_u1_b1 = BucketMonthlyReport.objects.get(
-            user_id=self.user1.id, report_date=self.last_month_1st, bucket_id=u1_b1.id)
+            user_id=self.user1.id, report_date=self.report_period_date, bucket_id=u1_b1.id)
         self.assertEqual(mr_u1_b1.username, self.user1.username)
         self.assertEqual(mr_u1_b1.service_id, u1_b1.service_id)
         self.assertEqual(mr_u1_b1.service_name, u1_b1.service.name)
@@ -463,7 +487,7 @@ class MonthlyReportTests(TransactionTestCase):
         self.assertEqual(mr_u1_b1.original_amount, Decimal.from_float((2 + 3 + 4 + 5) * 2))
 
         mr_u1_ba2 = BucketMonthlyReport.objects.get(
-            user_id=self.user1.id, report_date=self.last_month_1st, bucket_id=u1_ba2.original_id)
+            user_id=self.user1.id, report_date=self.report_period_date, bucket_id=u1_ba2.original_id)
         self.assertEqual(mr_u1_ba2.username, self.user1.username)
         self.assertEqual(mr_u1_ba2.service_id, u1_ba2.service_id)
         self.assertEqual(mr_u1_ba2.service_name, u1_ba2.service.name)
@@ -473,7 +497,7 @@ class MonthlyReportTests(TransactionTestCase):
         self.assertEqual(mr_u1_ba2.original_amount, Decimal.from_float((2 + 3 + 4 + 5 + 6) * 2))
 
         mr_u2_b4 = BucketMonthlyReport.objects.get(
-            user_id=self.user2.id, report_date=self.last_month_1st, bucket_id=u2_b4.id)
+            user_id=self.user2.id, report_date=self.report_period_date, bucket_id=u2_b4.id)
         self.assertEqual(mr_u2_b4.username, self.user2.username)
         self.assertEqual(mr_u2_b4.service_id, u2_b4.service_id)
         self.assertEqual(mr_u2_b4.service_name, u2_b4.service.name)
@@ -484,7 +508,7 @@ class MonthlyReportTests(TransactionTestCase):
 
         # vo1
         vo1_report: MonthlyReport = MonthlyReport.objects.filter(
-            report_date=self.last_month_1st, vo_id=self.vo1.id, owner_type=OwnerType.VO.value).first()
+            report_date=self.report_period_date, vo_id=self.vo1.id, owner_type=OwnerType.VO.value).first()
         self.assertEqual(vo1_report.server_prepaid_amount, Decimal('10'))
         self.assertEqual(vo1_report.server_count, 2)
         val = (2 + 3 + 4 + 5 + 6) * 2 + (2 + 3 + 4 + 5 + 6 + 7) * 2
@@ -509,7 +533,7 @@ class MonthlyReportTests(TransactionTestCase):
 
         # vo2
         vo2_report: MonthlyReport = MonthlyReport.objects.filter(
-            report_date=self.last_month_1st, vo_id=self.vo2.id, owner_type=OwnerType.VO.value).first()
+            report_date=self.report_period_date, vo_id=self.vo2.id, owner_type=OwnerType.VO.value).first()
         self.assertEqual(vo2_report.server_prepaid_amount, Decimal('0'))
         self.assertEqual(vo2_report.server_count, 1)
         val = (2 + 3 + 4 + 5 + 6 + 7 + 8) * 2
@@ -527,11 +551,41 @@ class MonthlyReportTests(TransactionTestCase):
         val = Decimal.from_float(2 + 3 + 4 + 5 + 6 + 7 + 8) + Decimal('0.12') * 7
         self.assertEqual(vo2_report.server_postpaid_amount, val)
 
-        from scripts.workers.report_generator import MonthlyReportNotifier
-        MonthlyReportNotifier(log_stdout=True).run()
+        # 邮件
+        self.assertEqual(len(mail.outbox), 0)
+        MonthlyReportNotifier(report_data=mrg.report_period_date, log_stdout=True).run()
         self.assertEqual(len(mail.outbox), 2)
         u1_report.refresh_from_db()
         self.assertIsInstance(u1_report.notice_time, datetime.datetime)
         u2_report: MonthlyReport = MonthlyReport.objects.filter(
-            report_date=self.last_month_1st, user_id=self.user2.id, owner_type=OwnerType.USER.value).first()
+            report_date=self.report_period_date, user_id=self.user2.id, owner_type=OwnerType.USER.value).first()
         self.assertIsInstance(u2_report.notice_time, datetime.datetime)
+
+    def test_last_target_day_date(self):
+        for day in range(1, 28):
+            start_date = datetime.date(year=2023, month=5, day=day)
+            ret_date = last_target_day_date(taget_day=28, today=start_date)
+            self.assertEqual(ret_date, datetime.date(year=2023, month=4, day=28))
+
+            start_date = datetime.date(year=2023, month=1, day=day)
+            ret_date = last_target_day_date(taget_day=28, today=start_date)
+            self.assertEqual(ret_date, datetime.date(year=2022, month=12, day=28))
+
+        for day in range(28, 31):
+            start_date = datetime.date(year=2023, month=5, day=day)
+            ret_date = last_target_day_date(taget_day=28, today=start_date)
+            self.assertEqual(ret_date, datetime.date(year=2023, month=5, day=28))
+
+            start_date = datetime.date(year=2023, month=1, day=day)
+            ret_date = last_target_day_date(taget_day=28, today=start_date)
+            self.assertEqual(ret_date, datetime.date(year=2023, month=1, day=28))
+
+        for day in range(1, 28):
+            start_date = datetime.date(year=2023, month=2, day=day)
+            ret_date = last_target_day_date(taget_day=28, today=start_date)
+            self.assertEqual(ret_date, datetime.date(year=2023, month=1, day=28))
+
+        for day in range(28, 29):
+            start_date = datetime.date(year=2023, month=2, day=day)
+            ret_date = last_target_day_date(taget_day=28, today=start_date)
+            self.assertEqual(ret_date, datetime.date(year=2023, month=2, day=28))

@@ -1,7 +1,4 @@
 import datetime
-import logging
-import sys
-from pathlib import Path
 from decimal import Decimal
 
 from django.utils import timezone
@@ -22,7 +19,7 @@ from storage.models import Bucket, BucketArchive
 from order.models import Order
 from utils.model import OwnerType, PayType
 from bill.models import CashCoupon, CashCouponPaymentHistory
-from concurrent_log_handler import ConcurrentRotatingFileHandler
+from users.models import Email
 
 from . import config_logger
 
@@ -49,6 +46,35 @@ def get_last_month_first_day_last_day():
     return get_target_month_first_day_last_day(target_date=today)
 
 
+def last_target_day_date(taget_day: int = 28, today=None):
+    """
+    指定日的上一个日期
+    """
+    if today is None:
+        today = datetime.date.today()
+
+    for i in range(32):
+        if today.day == taget_day:
+            return today
+
+        today = today - datetime.timedelta(days=1)
+
+
+def get_report_period_start_and_end(target_date: datetime.date = None):
+    """
+    上月28日, 当月27日
+    """
+    if target_date is None:
+        target_date = last_target_day_date(taget_day=28)
+
+    fd, ld = get_target_month_first_day_last_day(target_date=target_date)
+
+    date_start = datetime.date(year=fd.year, month=fd.month, day=28)
+    current = ld + datetime.timedelta(days=1)
+    date_end = datetime.date(year=current.year, month=current.month, day=27)
+    return date_start, date_end
+
+
 def hours_to_days(hours: float) -> float:
     if hours is None:
         return 0.0
@@ -60,37 +86,53 @@ class MonthlyReportGenerator:
     def __init__(self, report_data: datetime.date = None, log_stdout: bool = False, limit: int = 1000):
         self.limit = limit if limit > 0 else 1000      # 每次从数据库获取vo和user的数量
         self.logger = config_logger(name='monthly_report_logger', filename='monthly_report.log', stdout=log_stdout)
-        if report_data:
-            self.last_month_1st, self.last_month_last_day = get_target_month_first_day_last_day(report_data)
-        else:
-            self.last_month_1st, self.last_month_last_day = get_last_month_first_day_last_day()
 
-        self.last_month_1st_time = datetime.datetime.combine(
-            date=self.last_month_1st,
+        if report_data:
+            self.report_period_start, self.report_period_end = get_report_period_start_and_end(report_data)
+        else:
+            self.report_period_start, self.report_period_end = get_report_period_start_and_end()
+
+        self.report_period_date = datetime.date(
+            year=self.report_period_end.year, month=self.report_period_end.month, day=1)
+        self.report_period_start_time = datetime.datetime.combine(
+            date=self.report_period_start,
             time=datetime.time(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc))
-        self.last_month_last_day_time = datetime.datetime.combine(
-            date=self.last_month_last_day,
+        self.report_period_end_time = datetime.datetime.combine(
+            date=self.report_period_end,
             time=datetime.time(hour=23, minute=59, second=59, microsecond=999999, tzinfo=timezone.utc))
 
         self.new_create_report_count = 0    # 新生成报表数量
         self.already_report_count = 0       # 已存在报表数量
         self.failed_create_report_count = 0  # 生成失败报表数量
 
-    def run(self):
-        self.logger.warning(f'Time: {self.last_month_1st_time} - {self.last_month_last_day_time}')
+    def run(self, check_time=True):
+        """
+        :param check_time: 是否检查报表生成时间的合理性，必须在月度报表周期时间之后 才可以生成月度报表
+        :return:
+            True    # 正常
+            None    # 生成月度报表时间不对，必须在28日至月末之间
+        """
+        self.logger.warning(f'Time: {self.report_period_start_time} - {self.report_period_end_time}')
+        if check_time:
+            nt = timezone.now()
+            if nt <= self.report_period_end_time:
+                self.logger.error(f'Exit，生成月度报表的当前时间{nt} 必须在月度报表周期时间{self.report_period_end_time}之后。')
+                return None
+
         self.generate_vos_report()
         self.generate_users_report()
 
         exit_str = f'Exit, new generate count {self.new_create_report_count},' \
                    f'failed count {self.failed_create_report_count}, already exists count {self.already_report_count};'
         try:
-            user_count = self.get_user_count(date_joined__lt=self.last_month_last_day_time)  # 需要出报表的用户数
-            vo_count = self.get_vo_count(creation_time_lt=self.last_month_last_day_time)  # 需要出报表的vo数
+            user_count = self.get_user_count(date_joined__lt=self.report_period_end_time)  # 需要出报表的用户数
+            vo_count = self.get_vo_count(creation_time_lt=self.report_period_end_time)  # 需要出报表的vo数
             exit_str += f"user count {user_count}, vo count {vo_count}."
         except Exception as exc:
             pass
 
         self.logger.warning(exit_str)
+        return True
 
     def generate_users_report(self):
         self.logger.warning('Start user monthly report generate.')
@@ -98,7 +140,7 @@ class MonthlyReportGenerator:
         while True:
             try:
                 users = self.get_users(limit=self.limit, time_joined_gt=last_joined_time,
-                                       date_joined__lt=self.last_month_last_day_time)
+                                       date_joined__lt=self.report_period_end_time)
                 if len(users) <= 0:
                     break
 
@@ -106,18 +148,20 @@ class MonthlyReportGenerator:
                     print(f'{user.username}')
                     try:
                         created, report = self.generate_report_for_user(
-                            user=user, last_month_1st=self.last_month_1st,
-                            last_month_last_day=self.last_month_last_day,
-                            last_month_1st_time=self.last_month_1st_time,
-                            last_month_last_day_time=self.last_month_last_day_time
+                            user=user, report_date=self.report_period_date,
+                            report_period_start=self.report_period_start,
+                            report_period_end=self.report_period_end,
+                            report_period_start_time=self.report_period_start_time,
+                            report_period_end_time=self.report_period_end_time
                         )
                     except Exception as exc:
                         try:
                             created, report = self.generate_report_for_user(
-                                user=user, last_month_1st=self.last_month_1st,
-                                last_month_last_day=self.last_month_last_day,
-                                last_month_1st_time=self.last_month_1st_time,
-                                last_month_last_day_time=self.last_month_last_day_time
+                                user=user, report_date=self.report_period_date,
+                                report_period_start=self.report_period_start,
+                                report_period_end=self.report_period_end,
+                                report_period_start_time=self.report_period_start_time,
+                                report_period_end_time=self.report_period_end_time
                             )
                         except Exception as exc:
                             last_joined_time = user.date_joined
@@ -141,7 +185,7 @@ class MonthlyReportGenerator:
         while True:
             try:
                 vos = self.get_vos(limit=self.limit, creation_time_gt=last_creation_time,
-                                   creation_time_lt=self.last_month_last_day_time)
+                                   creation_time_lt=self.report_period_end_time)
                 if len(vos) <= 0:
                     break
 
@@ -149,18 +193,20 @@ class MonthlyReportGenerator:
                     print(f'{vo.name}')
                     try:
                         created, report = self.generate_report_for_vo(
-                            vo=vo, last_month_1st=self.last_month_1st,
-                            last_month_last_day=self.last_month_last_day,
-                            last_month_1st_time=self.last_month_1st_time,
-                            last_month_last_day_time=self.last_month_last_day_time
+                            vo=vo, report_date=self.report_period_date,
+                            report_period_start=self.report_period_start,
+                            report_period_end=self.report_period_end,
+                            report_period_start_time=self.report_period_start_time,
+                            report_period_end_time=self.report_period_end_time
                         )
                     except Exception as exc:
                         try:
                             created, report = self.generate_report_for_vo(
-                                vo=vo, last_month_1st=self.last_month_1st,
-                                last_month_last_day=self.last_month_last_day,
-                                last_month_1st_time=self.last_month_1st_time,
-                                last_month_last_day_time=self.last_month_last_day_time
+                                vo=vo, report_date=self.report_period_date,
+                                report_period_start=self.report_period_start,
+                                report_period_end=self.report_period_end,
+                                report_period_start_time=self.report_period_start_time,
+                                report_period_end_time=self.report_period_end_time
                             )
                         except Exception as exc:
                             last_creation_time = vo.creation_time
@@ -180,9 +226,9 @@ class MonthlyReportGenerator:
         self.logger.warning('End VO monthly report generate.')
 
     def generate_report_for_user(
-            self, user: UserProfile,
-            last_month_1st: datetime.date, last_month_last_day: datetime.date,
-            last_month_1st_time: datetime.datetime, last_month_last_day_time: datetime.datetime
+            self, user: UserProfile, report_date: datetime.date,
+            report_period_start: datetime.date, report_period_end: datetime.date,
+            report_period_start_time: datetime.datetime, report_period_end_time: datetime.datetime
     ):
         """
         为用户生成月度报表
@@ -194,7 +240,7 @@ class MonthlyReportGenerator:
         """
         with transaction.atomic(savepoint=False):
             month_report = MonthlyReport.objects.filter(
-                report_date=last_month_1st, user_id=user.id, owner_type=OwnerType.USER.value).first()
+                report_date=report_date, user_id=user.id, owner_type=OwnerType.USER.value).first()
             if month_report:
                 if month_report.is_reported:
                     return False, month_report
@@ -202,28 +248,30 @@ class MonthlyReportGenerator:
                     month_report.delete()
 
             report = self._generate_report_for_user(
-                user=user, last_month_1st=last_month_1st, last_month_last_day=last_month_last_day,
-                last_month_1st_time=last_month_1st_time, last_month_last_day_time=last_month_last_day_time
+                user=user, report_date=report_date,
+                report_period_start=report_period_start, report_period_end=report_period_end,
+                report_period_start_time=report_period_start_time, report_period_end_time=report_period_end_time
             )
 
             return True, report
 
     @staticmethod
     def _generate_report_for_user(
-            user: UserProfile,
-            last_month_1st: datetime.date, last_month_last_day: datetime.date,
-            last_month_1st_time: datetime.datetime, last_month_last_day_time: datetime.datetime
+            user: UserProfile, report_date: datetime.date,
+            report_period_start: datetime.date, report_period_end: datetime.date,
+            report_period_start_time: datetime.datetime, report_period_end_time: datetime.datetime
     ):
         """
         为用户生成月度报表
         """
         # 用户每个桶的月度报表记录
         MonthlyReportGenerator.do_user_bucket_reports(
-            user=user, last_month_1st=last_month_1st, last_month_last_day=last_month_last_day)
+            user=user, report_date=report_date,
+            report_period_start=report_period_start, report_period_end=report_period_end)
 
         # 对象存储计量数据
         storage_meter_qs = MeteringStorageManager().filter_obs_metering_queryset(
-            date_start=last_month_1st, date_end=last_month_last_day, user_id=user.id
+            date_start=report_period_start, date_end=report_period_end, user_id=user.id
         )
         storage_meter_agg = storage_meter_qs.aggregate(
             total_storage=Sum('storage'),
@@ -233,7 +281,7 @@ class MonthlyReportGenerator:
         )
         # 对象存储日结算单
         state_storage_agg = StatementStorageManager().filter_statement_storage_queryset(
-            date_start=last_month_1st, date_end=last_month_last_day,
+            date_start=report_period_start, date_end=report_period_end,
             payment_status=PaymentStatus.PAID.value, user_id=user.id
         ).aggregate(
             total_trade_amount=Sum('trade_amount')
@@ -241,7 +289,7 @@ class MonthlyReportGenerator:
 
         # 云主机计量信息
         server_meter_qs = MeteringServerManager().filter_user_server_metering(
-            user=user, date_start=last_month_1st, date_end=last_month_last_day
+            user=user, date_start=report_period_start, date_end=report_period_end
         )
         server_m_agg = server_meter_qs.aggregate(
             total_cpu_hours=Sum('cpu_hours'),
@@ -255,7 +303,7 @@ class MonthlyReportGenerator:
 
         # 云主机日结算单
         state_server_agg = StatementServerManager().filter_statement_server_queryset(
-            date_start=last_month_1st, date_end=last_month_last_day,
+            date_start=report_period_start, date_end=report_period_end,
             payment_status=PaymentStatus.PAID.value, user_id=user.id
         ).aggregate(
             total_trade_amount=Sum('trade_amount')
@@ -264,7 +312,7 @@ class MonthlyReportGenerator:
         # 云主机订购预付费金额
         order_agg = Order.objects.filter(
             user_id=user.id, owner_type=OwnerType.USER.value,
-            payment_time__gte=last_month_1st_time, payment_time__lte=last_month_last_day_time,
+            payment_time__gte=report_period_start_time, payment_time__lte=report_period_end_time,
             status=Order.Status.PAID.value, pay_type=PayType.PREPAID.value
         ).aggregate(
             total_pay_amount=Sum('pay_amount')
@@ -272,7 +320,7 @@ class MonthlyReportGenerator:
 
         month_report = MonthlyReport(
             creation_time=timezone.now(),
-            report_date=last_month_1st,
+            report_date=report_date,
             is_reported=True,
             notice_time=None,
             user_id=user.id,
@@ -302,9 +350,9 @@ class MonthlyReportGenerator:
         return month_report
 
     def generate_report_for_vo(
-            self, vo: VirtualOrganization,
-            last_month_1st: datetime.date, last_month_last_day: datetime.date,
-            last_month_1st_time: datetime.datetime, last_month_last_day_time: datetime.datetime
+            self, vo: VirtualOrganization, report_date: datetime.date,
+            report_period_start: datetime.date, report_period_end: datetime.date,
+            report_period_start_time: datetime.datetime, report_period_end_time: datetime.datetime
     ):
         """
         为vo生成月度报表
@@ -316,7 +364,7 @@ class MonthlyReportGenerator:
         """
         with transaction.atomic(savepoint=False):
             month_report = MonthlyReport.objects.filter(
-                report_date=last_month_1st, vo_id=vo.id, owner_type=OwnerType.VO.value).first()
+                report_date=report_date, vo_id=vo.id, owner_type=OwnerType.VO.value).first()
             if month_report:
                 if month_report.is_reported:
                     return False, month_report
@@ -324,24 +372,25 @@ class MonthlyReportGenerator:
                     month_report.delete()
 
             report = self._generate_report_for_vo(
-                vo=vo, last_month_1st=last_month_1st, last_month_last_day=last_month_last_day,
-                last_month_1st_time=last_month_1st_time, last_month_last_day_time=last_month_last_day_time
+                vo=vo, report_date=report_date,
+                report_period_start=report_period_start, report_period_end=report_period_end,
+                report_period_start_time=report_period_start_time, report_period_end_time=report_period_end_time
             )
 
             return True, report
 
     @staticmethod
     def _generate_report_for_vo(
-            vo: VirtualOrganization,
-            last_month_1st: datetime.date, last_month_last_day: datetime.date,
-            last_month_1st_time: datetime.datetime, last_month_last_day_time: datetime.datetime
+            vo: VirtualOrganization, report_date: datetime.date,
+            report_period_start: datetime.date, report_period_end: datetime.date,
+            report_period_start_time: datetime.datetime, report_period_end_time: datetime.datetime
     ):
         """
         为vo生成月度报表
         """
         # 云主机计量信息
         server_meter_qs = MeteringServerManager().filter_server_metering_queryset(
-            vo_id=vo.id, date_start=last_month_1st, date_end=last_month_last_day
+            vo_id=vo.id, date_start=report_period_start, date_end=report_period_end
         )
         server_m_agg = server_meter_qs.aggregate(
             total_cpu_hours=Sum('cpu_hours'),
@@ -355,7 +404,7 @@ class MonthlyReportGenerator:
 
         # 云主机日结算单
         state_server_agg = StatementServerManager().filter_statement_server_queryset(
-            date_start=last_month_1st, date_end=last_month_last_day,
+            date_start=report_period_start, date_end=report_period_end,
             payment_status=PaymentStatus.PAID.value, vo_id=vo.id, user_id=None
         ).aggregate(
             total_trade_amount=Sum('trade_amount')
@@ -364,7 +413,7 @@ class MonthlyReportGenerator:
         # 云主机订购预付费金额
         order_agg = Order.objects.filter(
             vo_id=vo.id, owner_type=OwnerType.VO.value,
-            payment_time__gte=last_month_1st_time, payment_time__lte=last_month_last_day_time,
+            payment_time__gte=report_period_start_time, payment_time__lte=report_period_end_time,
             status=Order.Status.PAID.value, pay_type=PayType.PREPAID.value
         ).aggregate(
             total_pay_amount=Sum('pay_amount')
@@ -372,7 +421,9 @@ class MonthlyReportGenerator:
 
         month_report = MonthlyReport(
             creation_time=timezone.now(),
-            report_date=last_month_1st,
+            report_date=report_date,
+            period_start_time=report_period_start_time,
+            period_end_time=report_period_end_time,
             is_reported=True,
             notice_time=None,
             user_id=None,
@@ -428,13 +479,14 @@ class MonthlyReportGenerator:
 
     @staticmethod
     def do_user_bucket_reports(
-            user: UserProfile, last_month_1st: datetime.date, last_month_last_day: datetime.date
+            user: UserProfile, report_date: datetime.date,
+            report_period_start: datetime.date, report_period_end: datetime.date
     ):
         """
         生成用户存储桶月度报表
         """
         b_meter_qs = MeteringStorageManager().filter_obs_metering_queryset(
-            date_start=last_month_1st, date_end=last_month_last_day, user_id=user.id
+            date_start=report_period_start, date_end=report_period_end, user_id=user.id
         )
         b_anno_qs = b_meter_qs.values('storage_bucket_id').annotate(
             total_storage_hours=Sum('storage'),
@@ -460,7 +512,7 @@ class MonthlyReportGenerator:
 
             bmr = BucketMonthlyReport(
                 creation_time=timezone.now(),
-                report_date=last_month_1st,
+                report_date=report_date,
                 user_id=user.id,
                 username=user.username,
                 service_id=service_id,
@@ -522,21 +574,33 @@ class MonthlyReportGenerator:
 
 
 class MonthlyReportNotifier:
-    def __init__(self, log_stdout: bool = False, limit: int = 1000):
+    def __init__(self, report_data: datetime.date = None, log_stdout: bool = False, limit: int = 1000):
         self.limit = limit if limit > 0 else 1000      # 每次从数据库获取vo和user的数量
         self.logger = config_logger(name='monthly_report_logger', filename='monthly_report.log', stdout=log_stdout)
-        self.last_month_1st, self.last_month_last_day = get_last_month_first_day_last_day()
-        self.last_month_1st_time = datetime.datetime.combine(
-            date=self.last_month_1st,
-            time=datetime.time(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc))
-        self.last_month_last_day_time = datetime.datetime.combine(
-            date=self.last_month_last_day,
-            time=datetime.time(hour=23, minute=59, second=59, microsecond=999999, tzinfo=timezone.utc))
         self.template = get_template('monthly_report.html')
 
+        if report_data:
+            self.report_period_start, self.report_period_end = get_report_period_start_and_end(report_data)
+        else:
+            self.report_period_start, self.report_period_end = get_report_period_start_and_end()
+
+        self.report_period_date = datetime.date(
+            year=self.report_period_end.year, month=self.report_period_end.month, day=1)
+        self.report_period_start_time = datetime.datetime.combine(
+            date=self.report_period_start,
+            time=datetime.time(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc))
+        self.report_period_end_time = datetime.datetime.combine(
+            date=self.report_period_end,
+            time=datetime.time(hour=23, minute=59, second=59, microsecond=999999, tzinfo=timezone.utc))
+
     def run(self):
-        self.logger.warning(f"Start send Email for user's monthly report: {self.last_month_1st}")
+        self.logger.warning(f"Start send Email for user's monthly report: {self.report_period_date}")
+        send_ok_count = self.do_loop_email()
+        self.logger.warning(f"End send email for user's monthly report，Send {send_ok_count} email ok.")
+
+    def do_loop_email(self):
         last_joined_time = None
+        send_ok_count = 0
         while True:
             try:
                 users = self.get_users(limit=self.limit, time_joined_gt=last_joined_time)
@@ -544,24 +608,29 @@ class MonthlyReportNotifier:
                     break
 
                 for user in users:
+                    ok = False
                     try:
-                        ok = self.send_monthly_report_to_user(user=user, report_date=self.last_month_1st)
+                        ok = self.send_monthly_report_to_user(user=user, report_date=self.report_period_date)
                         if ok is False:
                             raise Exception('发送邮件失败')   # 抛出错误 触发重试一次
                     except Exception as exc:
                         try:
-                            ok = self.send_monthly_report_to_user(user=user, report_date=self.last_month_1st)
+                            ok = self.send_monthly_report_to_user(user=user, report_date=self.report_period_date)
                             if ok is False:
                                 self.logger.warning(
-                                    f"Falied send email to User{user.username} monthly({self.last_month_1st}) report.")
+                                    f"Falied send email to User{user.username} "
+                                    f"monthly({self.report_period_date}) report.")
                         except Exception as exc:
                             self.logger.error(f'Send email monthly report for user({user.username}), {str(exc)}')
 
                     last_joined_time = user.date_joined
+                    if ok is True:
+                        send_ok_count += 1
+                        print(f'Ok email to {user.username}')
             except Exception as exc:
                 self.logger.error(f'{str(exc)}')
 
-        self.logger.warning("End send email for user's monthly report.")
+        return send_ok_count
 
     def send_monthly_report_to_username(self, username: str, report_date=None):
         user = UserProfile.objects.filter(username=username).first()
@@ -569,7 +638,7 @@ class MonthlyReportNotifier:
             print(f'User "{username}" not found.')
             return
         if report_date is None:
-            report_date = self.last_month_1st
+            report_date = self.report_period_date
 
         self.send_monthly_report_to_user(user=user, report_date=report_date)
 
@@ -586,19 +655,19 @@ class MonthlyReportNotifier:
             vo_total_amount += vmr.server_payment_amount
             vmr.vo_info = vo_dict.get(vmr.vo_id)
 
-        user_coupons = self.get_user_coupons(user=user, expiration_time_gte=self.last_month_1st_time)
+        user_coupons = self.get_user_coupons(user=user, expiration_time_gte=self.report_period_start_time)
         user_normal_coupons, user_expired_coupons = self.split_coupons(coupons=user_coupons, split_time=timezone.now())
         self.set_coupons_last_month_pay_amount(
-            user_normal_coupons, start_time=self.last_month_1st_time, end_time=self.last_month_last_day_time)
+            user_normal_coupons, start_time=self.report_period_start_time, end_time=self.report_period_end_time)
         self.set_coupons_last_month_pay_amount(
-            user_expired_coupons, start_time=self.last_month_1st_time, end_time=self.last_month_last_day_time)
+            user_expired_coupons, start_time=self.report_period_start_time, end_time=self.report_period_end_time)
 
-        vo_coupons = self.get_vos_coupons(vo_ids=vo_ids, expiration_time_gte=self.last_month_1st_time)
+        vo_coupons = self.get_vos_coupons(vo_ids=vo_ids, expiration_time_gte=self.report_period_start_time)
         vo_normal_coupons, vo_expired_coupons = self.split_coupons(coupons=vo_coupons, split_time=timezone.now())
         self.set_coupons_last_month_pay_amount(
-            vo_normal_coupons, start_time=self.last_month_1st_time, end_time=self.last_month_last_day_time)
+            vo_normal_coupons, start_time=self.report_period_start_time, end_time=self.report_period_end_time)
         self.set_coupons_last_month_pay_amount(
-            vo_expired_coupons, start_time=self.last_month_1st_time, end_time=self.last_month_last_day_time)
+            vo_expired_coupons, start_time=self.report_period_start_time, end_time=self.report_period_end_time)
 
         return {
             'report_date': report_date,
@@ -612,7 +681,9 @@ class MonthlyReportNotifier:
             'user_expired_coupons': user_expired_coupons,
             'vo_normal_coupons': vo_normal_coupons,
             'vo_expired_coupons': vo_expired_coupons,
-            'vo_coupons_length': len(vo_coupons)
+            'vo_coupons_length': len(vo_coupons),
+            'report_period_start_time': self.report_period_start_time,
+            'report_period_end_time': self.report_period_end_time
         }
 
     def send_monthly_report_to_user(self, user, report_date):
@@ -621,15 +692,17 @@ class MonthlyReportNotifier:
             None        # 已发送过邮件，或者不满足发送条件
             True        # 发送成功
             False       # 发送失败
+
+        :raises: Exception
         """
-        monthly_report: MonthlyReport = MonthlyReport.objects.filter(
+        monthly_report = MonthlyReport.objects.filter(
             report_date=report_date, user_id=user.id, owner_type=OwnerType.USER.value).first()
         if monthly_report is None:
-            self.logger.warning(f"User{user.username} monthly({report_date}) report not found, skip send email.")
+            self.logger.warning(f"User {user.username} monthly({report_date}) report not found, skip send email.")
             return None
         elif not monthly_report.is_reported:
             self.logger.warning(
-                f"User{user.username} monthly({report_date}) report generate not completed, skip send email.")
+                f"User {user.username} monthly({report_date}) report generate not completed, skip send email.")
             return None
         elif monthly_report.notice_time:
             return None
@@ -637,19 +710,55 @@ class MonthlyReportNotifier:
         context = self.get_context(user=user, report_date=report_date)
         context['monthly_report'] = monthly_report
 
+        all_reports = list(context['vo_monthly_reports'])
+        all_reports.append(monthly_report)
+        if not self.is_need_email(all_reports):
+            return None
+
         html_message = self.template.render(context, request=None)
-        ok = send_mail(
-            subject='中国科技云一体化云服务平台月度报表',  # 标题
-            message='',  # 内容
-            from_email=settings.EMAIL_HOST_USER,  # 发送者
-            recipient_list=[user.username],  # 接收者
-            html_message=html_message,    # 内容
-            fail_silently=True,
-        )
-        if ok > 0:
-            monthly_report.notice_time = timezone.now()
-            monthly_report.save(update_fields=['notice_time'])
-            return True
+        subject = f'中国科技云一体化云服务平台资源用量结算账单（{self.report_period_date.month}月）'
+
+        # 先保存邮件记录
+        try:
+            with transaction.atomic():
+                monthly_report.notice_time = timezone.now()
+                monthly_report.save(update_fields=['notice_time'])
+                email = Email(
+                    subject=subject, receiver=user.username, message=html_message,
+                    sender=settings.EMAIL_HOST_USER,
+                    email_host=settings.EMAIL_HOST,
+                    tag=Email.Tag.MONTH.value, is_html=True,
+                    status=Email.Status.WAIT.value, status_desc='', success_time=None
+                )
+                email.save(force_insert=True)
+        except Exception as exc:
+            self.logger.warning(
+                f"User {user.username} monthly({report_date}) report email save to db failed {str(exc)}.")
+            return False
+
+        try:
+            ok = send_mail(
+                subject=subject,  # 标题
+                message='',  # 内容
+                from_email=settings.EMAIL_HOST_USER,  # 发送者
+                recipient_list=[user.username],  # 接收者
+                html_message=html_message,    # 内容
+                fail_silently=False,
+            )
+            if ok == 0:
+                raise Exception('failed')
+        except Exception as exc:
+            email.set_send_failed(desc=str(exc), save_db=True)
+            return False
+
+        email.set_send_success(desc='', save_db=True)
+        return True
+
+    @staticmethod
+    def is_need_email(monthly_reports: list):
+        for mr in monthly_reports:
+            if mr.server_count > 0 or mr.bucket_count > 0:
+                return True
 
         return False
 
@@ -665,9 +774,21 @@ class MonthlyReportNotifier:
         return qs[0:limit]
 
     @staticmethod
+    def split_vo_members_by_role(members):
+        admins = []
+        normals = []
+        for m in members:
+            if m['role'] == VoMember.Role.LEADER.value:
+                admins.append(m)
+            else:
+                normals.append(m)
+
+        return admins, normals
+
+    @staticmethod
     def get_user_vo_dict(user: UserProfile):
-        v_members = VoMember.objects.select_related('vo', 'vo__owner').filter(user_id=user.id).all()
-        vos = VirtualOrganization.objects.select_related('owner').filter(owner_id=user.id, deleted=False)
+        v_members = VoMember.objects.select_related('vo', 'vo__owner').filter(user_id=user.id).all()    # 在别人的vo组
+        vos = VirtualOrganization.objects.select_related('owner').filter(owner_id=user.id, deleted=False)   # 自己的vo组
         vos_dict = {}
         for m in v_members:
             vo = m.vo
@@ -676,18 +797,22 @@ class MonthlyReportNotifier:
 
             own_role = '管理员' if m.role == VoMember.Role.LEADER.value else '组员'
             members = VoMember.objects.filter(vo_id=vo.id).values('role', 'user__username')
+            admin_members, normal_members = MonthlyReportNotifier.split_vo_members_by_role(members)
             vos_dict[vo.id] = {
                 'vo': vo,
                 'own_role': own_role,
-                'members': members
+                'admin_members': admin_members,
+                'normal_members': normal_members
             }
 
         for vo in vos:
             members = VoMember.objects.filter(vo_id=vo.id).values('role', 'user__username')
+            admin_members, normal_members = MonthlyReportNotifier.split_vo_members_by_role(members)
             vos_dict[vo.id] = {
                 'vo': vo,
                 'own_role': '组长',
-                'members': members
+                'admin_members': admin_members,
+                'normal_members': normal_members
             }
 
         return vos_dict

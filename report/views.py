@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.http.response import HttpResponse
 from django.contrib.auth.decorators import login_required
 
-from scripts.workers.report_generator import MonthlyReportNotifier
+from scripts.workers.report_generator import MonthlyReportNotifier, get_report_period_start_and_end
 from report.models import MonthlyReport
 from utils.model import OwnerType
 
@@ -10,8 +10,9 @@ from utils.model import OwnerType
 @login_required()
 def monthly_report_view(request):
     user = request.user
-    mrn = MonthlyReportNotifier()
-    report_date = mrn.last_month_1st
+    start, end = get_report_period_start_and_end()
+    mrn = MonthlyReportNotifier(report_data=end)
+    report_date = mrn.report_period_date
     monthly_report = MonthlyReport.objects.filter(
         report_date=report_date, user_id=user.id, owner_type=OwnerType.USER.value).first()
     if monthly_report is None:

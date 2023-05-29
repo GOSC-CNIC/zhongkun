@@ -219,21 +219,25 @@ class Email(UuidModel):
             if ok == 0:
                 raise Exception('failed')
         except Exception as exc:
-            email.status = cls.Status.FAILED.value
-            email.status_desc = str(exc)
-            email.success_time = None
-            if save_db:
-                email.save(update_fields=['status', 'success_time', 'status_desc'])
-
+            email.set_send_failed(desc=str(exc), save_db=save_db)
             if not fail_silently:
                 raise exc
 
             return None
 
-        email.status = cls.Status.SUCCESS.value
-        email.success_time = timezone.now()
-        email.status_desc = ''
-        if save_db:
-            email.save(update_fields=['status', 'success_time', 'status_desc'])
-
+        email.set_send_success(desc='', save_db=save_db)
         return email
+
+    def set_send_failed(self, desc: str, save_db: bool = True):
+        self.status = self.Status.FAILED.value
+        self.status_desc = desc
+        self.success_time = None
+        if save_db:
+            self.save(update_fields=['status', 'success_time', 'status_desc'])
+
+    def set_send_success(self, desc: str, save_db: bool = True):
+        self.status = self.Status.SUCCESS.value
+        self.success_time = timezone.now()
+        self.status_desc = desc
+        if save_db:
+            self.save(update_fields=['status', 'success_time', 'status_desc'])

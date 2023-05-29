@@ -10,6 +10,8 @@ from storage.models import ObjectsService
 class MonthlyReport(UuidModel):
     creation_time = models.DateTimeField(verbose_name=_('生成时间'))
     report_date = models.DateField(verbose_name=_('报表年月'), help_text=_('报表月度，用日期存储年和月，日统一为1'))
+    period_start_time = models.DateTimeField(verbose_name=_('月度报表周期开始时间'), null=True, default=None)
+    period_end_time = models.DateTimeField(verbose_name=_('月度报表周期结束时间'), null=True, default=None)
     is_reported = models.BooleanField(verbose_name=_('报表已生成状态'), default=True, help_text=_('true为生成完成'))
     notice_time = models.DateTimeField(verbose_name=_('邮件通知时间'), null=True, blank=True, default=None)
     user = models.ForeignKey(
