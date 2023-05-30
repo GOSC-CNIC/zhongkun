@@ -492,6 +492,10 @@ class ServiceManager:
         return user.service_set.select_related('data_center').all()
 
     @staticmethod
+    def get_has_perm_service_ids(user_id: str):
+        return ServiceConfig.objects.filter(users__id=user_id).values_list('id', flat=True)
+
+    @staticmethod
     def get_service_if_admin(user, service_id: str):
         """
         用户是指定云主机服务的管理员

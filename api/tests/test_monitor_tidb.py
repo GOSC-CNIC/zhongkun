@@ -9,13 +9,14 @@ from monitor.models import (
 )
 from monitor.managers import TiDBQueryChoices
 from monitor.tests import get_or_create_monitor_job_tidb
-from utils.test import get_or_create_user
+from utils.test import get_or_create_user, get_or_create_service
 from . import MyAPITestCase
 
 
 class MonitorUnitTiDBTests(MyAPITestCase):
     def setUp(self):
         self.user = get_or_create_user(password='password')
+        self.service1 = get_or_create_service()
 
     def test_list_unit(self):
         provider = MonitorProvider()
@@ -32,7 +33,7 @@ class MonitorUnitTiDBTests(MyAPITestCase):
 
         unit_tidb2 = MonitorJobTiDB(
             name='name2', name_en='name_en2', job_tag='job_tag2', sort_weight=6,
-            provider=provider, organization=org
+            provider=provider, organization=org, service_id=self.service1.id
         )
         unit_tidb2.save(force_insert=True)
 
@@ -89,7 +90,7 @@ class MonitorUnitTiDBTests(MyAPITestCase):
                            ], response.data['results'][0]['organization'])
 
         # unit_tidb1, unit_tidb4, unit_tidb2
-        unit_tidb2.users.add(self.user)
+        unit_tidb2.service.users.add(self.user)     # 关联的云主机服务单元管理员权限
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "page_num", "page_size", 'results'], response.data)
@@ -193,6 +194,20 @@ class MonitorUnitTiDBTests(MyAPITestCase):
         response = self.query_response(
             monitor_unit_id='notfound', query_tag=TiDBQueryChoices.QPS.value)
         self.assertErrorResponse(status_code=404, code='NotFound', response=response)
+
+        # 关联云主机服务单元
+        monitor_job_tidb.service_id = self.service1.id
+        monitor_job_tidb.save(update_fields=['service_id'])
+
+        # no permission
+        response = self.query_response(monitor_unit_id=monitor_job_tidb.id, query_tag=TiDBQueryChoices.QPS.value)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # 服务单元管理员权限测试
+        self.service1.users.add(self.user)
+        self.query_ok_test(monitor_unit_id=monitor_job_tidb.id, query_tag=TiDBQueryChoices.QPS.value)
+        # 移除服务单元管理员权限
+        self.service1.users.remove(self.user)
 
         # no permission
         response = self.query_response(

@@ -165,6 +165,8 @@ class Email(UuidModel):
         verbose_name=_('发送状态'), max_length=16, choices=Status.choices, default=Status.SUCCESS.value)
     status_desc = models.CharField(max_length=255, verbose_name=_('状态描述'), default='')
     success_time = models.DateTimeField(verbose_name=_('成功发送时间'), null=True, blank=True, default=None)
+    # remote_ip = models.CharField(max_length=64, verbose_name=_('客户端ip'), default='')
+    # remote_user = models.CharField(max_length=64, verbose_name=_('客户'), default='')
 
     class Meta:
         ordering = ['-send_time']

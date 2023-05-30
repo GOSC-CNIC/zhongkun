@@ -1,9 +1,11 @@
 from django.utils.translation import gettext, gettext_lazy as _
+from django.db.models import Q
 from rest_framework.response import Response
 
 from core import errors
 from monitor.models import MonitorJobTiDB
 from monitor.managers import TiDBQueryChoices, MonitorJobTiDBManager
+from service.managers import ServiceManager
 
 
 class MonitorTiDBQueryHandler:
@@ -42,7 +44,8 @@ class MonitorTiDBQueryHandler:
         if user.is_federal_admin():
             pass
         else:
-            queryset = queryset.filter(users__id=user.id)
+            service_ids = ServiceManager.get_has_perm_service_ids(user_id=user.id)
+            queryset = queryset.filter(Q(users__id=user.id) | Q(service_id__in=service_ids))
 
         try:
             units = view.paginate_queryset(queryset)

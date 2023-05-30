@@ -4,7 +4,8 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 
-from service.models import DataCenter
+from service.models import DataCenter, ServiceConfig
+from service.managers import ServiceManager
 from utils.model import UuidModel, get_encryptor
 from users.models import UserProfile
 
@@ -83,6 +84,10 @@ class MonitorJobCeph(UuidModel):
         verbose_name=_('监控机构'), to=DataCenter, related_name='+', db_constraint=False,
         on_delete=models.SET_NULL, null=True, default=None
     )
+    service = models.ForeignKey(
+        to=ServiceConfig, verbose_name='云主机服务单元', on_delete=models.SET_NULL, null=True, default=None, blank=True,
+        related_name='+', db_constraint=False, db_index=False,
+    )
 
     class Meta:
         ordering = ['sort_weight']
@@ -104,7 +109,15 @@ class MonitorJobCeph(UuidModel):
         if not user or not user.id:
             return False
 
-        return self.users.filter(id=user.id).exists()
+        if self.users.filter(id=user.id).exists():
+            return True
+
+        if self.service_id:
+            s = ServiceManager.get_service_if_admin(user=user, service_id=self.service_id)
+            if s is not None:
+                return True
+
+        return False
 
 
 class MonitorJobServer(UuidModel):
@@ -130,6 +143,10 @@ class MonitorJobServer(UuidModel):
         verbose_name=_('监控机构'), to=DataCenter, related_name='+', db_constraint=False,
         on_delete=models.SET_NULL, null=True, default=None
     )
+    service = models.ForeignKey(
+        to=ServiceConfig, verbose_name='云主机服务单元', on_delete=models.SET_NULL, null=True, default=None, blank=True,
+        related_name='+', db_constraint=False, db_index=False,
+    )
 
     class Meta:
         ordering = ['sort_weight']
@@ -151,7 +168,15 @@ class MonitorJobServer(UuidModel):
         if not user or not user.id:
             return False
 
-        return self.users.filter(id=user.id).exists()
+        if self.users.filter(id=user.id).exists():
+            return True
+
+        if self.service_id:
+            s = ServiceManager.get_service_if_admin(user=user, service_id=self.service_id)
+            if s is not None:
+                return True
+
+        return False
 
 
 class MonitorJobVideoMeeting(UuidModel):
@@ -321,6 +346,10 @@ class MonitorJobTiDB(UuidModel):
         on_delete=models.SET_NULL, null=True, default=None
     )
     version = models.CharField(verbose_name=_('TiDB版本'), max_length=32, blank=True, default='', help_text='xx.xx.xx')
+    service = models.ForeignKey(
+        to=ServiceConfig, verbose_name='云主机服务单元', on_delete=models.SET_NULL, null=True, default=None, blank=True,
+        related_name='+', db_constraint=False, db_index=False,
+    )
 
     class Meta:
         db_table = 'monitor_unit_tidb'
@@ -343,7 +372,15 @@ class MonitorJobTiDB(UuidModel):
         if not user or not user.id:
             return False
 
-        return self.users.filter(id=user.id).exists()
+        if self.users.filter(id=user.id).exists():
+            return True
+
+        if self.service_id:
+            s = ServiceManager.get_service_if_admin(user=user, service_id=self.service_id)
+            if s is not None:
+                return True
+
+        return False
 
     @classmethod
     def get_user_unit_queryset(cls, user_id: str):
