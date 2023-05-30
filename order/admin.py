@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Order, Resource, Price
+from .models import Order, Resource, Price, Period
 
 
 @admin.register(Order)
@@ -37,3 +37,11 @@ class PriceAdmin(admin.ModelAdmin):
                     'vm_downstream', 'disk_size', 'disk_snap', 'obj_size', 'obj_upstream', 'obj_downstream',
                     'obj_replication', 'obj_get_request', 'obj_put_request', 'prepaid_discount')
     list_display_links = ('id',)
+
+
+@admin.register(Period)
+class PeriodAdmin(admin.ModelAdmin):
+    list_display_links = ('id',)
+    list_display = ('id', 'period', 'enable', 'service', 'creation_time')
+    ordering = ('period',)
+    list_filter = ['service']

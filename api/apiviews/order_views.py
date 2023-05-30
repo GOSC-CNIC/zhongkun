@@ -1,4 +1,5 @@
-from django.utils.translation import gettext_lazy
+from django.utils.translation import gettext_lazy, gettext
+from django.db.models import Q
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.serializers import Serializer
@@ -6,11 +7,13 @@ from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
 from api.viewsets import CustomGenericViewSet
-from order.models import ResourceType, Order
-from api.paginations import OrderPageNumberPagination
+from order.models import ResourceType, Order, Period
+from api.paginations import OrderPageNumberPagination, NewPageNumberPagination
 from api.handlers.price_handler import DescribePriceHandler
 from api.handlers.order_handler import OrderHandler, CASH_COUPON_BALANCE
 from api.serializers import serializers
+from api.serializers.server import PeriodSerializer
+from core import errors
 
 
 class PriceViewSet(CustomGenericViewSet):
@@ -452,5 +455,68 @@ class OrderViewSet(CustomGenericViewSet):
             return serializers.OrderSerializer
         elif self.action == 'retrieve':
             return serializers.OrderDetailSerializer
+
+        return Serializer
+
+
+class PeriodViewSet(CustomGenericViewSet):
+
+    permission_classes = [IsAuthenticated, ]
+    pagination_class = NewPageNumberPagination
+    lookup_field = 'id'
+    # lookup_value_regex = '[0-9a-z-]+'
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举订购时长选项'),
+        request_body=no_body,
+        manual_parameters=[
+            openapi.Parameter(
+                name='service_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description='云主机服务单元ID'
+            ),
+        ],
+        responses={
+            200: ''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        列举订购时长选项
+
+            http code 200：
+            {
+              "count": 1,
+              "page_num": 1,
+              "page_size": 20,
+              "results": [
+                {
+                  "id": "2023053007251906",
+                  "period": 3,
+                  "enable": true,
+                  "creation_time": "2023-05-30T07:17:55.172308Z",
+                  "service_id": "0d084f02-feba-11ed-8442-c8009fe2ebbc"
+                }
+              ]
+            }
+        """
+        service_id = request.query_params.get('service_id', None)
+        if not service_id:
+            return self.exception_response(
+                exc=errors.InvalidArgument(message=gettext('必须指定服务单元id')))
+
+        qs = Period.objects.filter(Q(service_id=service_id) | Q(service_id__isnull=True)).filter(enable=True).all()
+        try:
+            periods = self.paginate_queryset(qs)
+            serializer = self.get_serializer(instance=periods, many=True)
+            return self.get_paginated_response(serializer.data)
+        except Exception as exc:
+            return self.exception_response(exc)
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return PeriodSerializer
 
         return Serializer

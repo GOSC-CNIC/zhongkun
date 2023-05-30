@@ -112,7 +112,7 @@ class UserViewSet(CustomGenericViewSet):
     )
     def list(self, request, *args, **kwargs):
         """
-        联邦管理元列举用户
+        联邦管理员列举用户
 
             200 ok:
             {

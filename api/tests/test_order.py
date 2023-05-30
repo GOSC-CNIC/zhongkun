@@ -1,3 +1,4 @@
+import time
 from decimal import Decimal
 from urllib import parse
 from datetime import timedelta
@@ -8,7 +9,7 @@ from django.conf import settings
 
 from servers.models import Flavor
 from utils.model import PayType, OwnerType, ResourceType
-from order.models import Price, Order
+from order.models import Price, Order, Period
 from order.managers import OrderManager
 from order.managers.instance_configs import ServerConfig, DiskConfig
 from utils.decimal_utils import quantize_10_2
@@ -1124,3 +1125,74 @@ class OrderTests(MyAPITestCase):
         response = self.client.post(url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['order_id'], order2.id)
+
+
+class PeriodTests(MyAPITestCase):
+    def setUp(self):
+        self.user = get_or_create_user(username='user@cnic.cn')
+        self.service = get_or_create_service()
+
+    def test_list_order(self):
+        base_url = reverse('api:period-list')
+
+        response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
+
+        self.client.force_login(self.user)
+        response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # list period
+        query = parse.urlencode(query={
+            'service_id': self.service.id
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)
+        self.assertIsInstance(response.data['results'], list)
+        self.assertEqual(response.data['count'], 0)
+        self.assertEqual(len(response.data['results']), 0)
+
+        period1 = Period(period=1, enable=True, service_id=self.service.id)
+        period1.save(force_insert=True)
+        time.sleep(0.1)
+        period2 = Period(period=2, enable=True, service_id=self.service.id)
+        period2.save(force_insert=True)
+        time.sleep(0.1)
+        period3 = Period(period=3, enable=True, service_id=None)
+        period3.save(force_insert=True)
+        time.sleep(0.1)
+        period4 = Period(period=4, enable=False, service_id=self.service.id)
+        period4.save(force_insert=True)
+
+        # list period
+        query = parse.urlencode(query={
+            'service_id': self.service.id
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)
+        self.assertEqual(response.data['count'], 3)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 20)
+        self.assertEqual(len(response.data['results']), 3)
+        self.assertKeysIn(
+            ['id', 'period', 'enable', 'service_id', 'creation_time'], container=response.data['results'][0])
+        self.assertEqual(response.data['results'][0]['period'], 1)
+        self.assertEqual(response.data['results'][1]['period'], 2)
+        self.assertEqual(response.data['results'][2]['period'], 3)
+
+        # page_size, page
+        query = parse.urlencode(query={
+            'service_id': self.service.id, 'page': 2, 'page_size': 1
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)
+        self.assertEqual(response.data['count'], 3)
+        self.assertEqual(response.data['page_num'], 2)
+        self.assertEqual(response.data['page_size'], 1)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertKeysIn(
+            ['id', 'period', 'enable', 'service_id', 'creation_time'], container=response.data['results'][0])
+        self.assertEqual(response.data['results'][0]['period'], 2)

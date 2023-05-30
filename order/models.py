@@ -6,7 +6,9 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.core.validators import MaxValueValidator, MinValueValidator
 
-from utils.model import UuidModel, OwnerType, PayType, ResourceType
+from service.models import ServiceConfig
+from utils.model import UuidModel, OwnerType, PayType, ResourceType, CustomIdModel
+from utils import rand_utils
 
 
 def generate_order_sn():
@@ -266,3 +268,24 @@ class Price(UuidModel):
         verbose_name_plural = verbose_name
         db_table = 'price'
         ordering = ['-creation_time']
+
+
+class Period(CustomIdModel):
+    period = models.PositiveSmallIntegerField(verbose_name=_('月数'))
+    enable = models.BooleanField(verbose_name=_('可用状态'), default=True)
+    creation_time = models.DateTimeField(auto_now_add=True, verbose_name=_('创建时间'))
+    service = models.ForeignKey(
+        to=ServiceConfig, on_delete=models.SET_NULL, db_constraint=False, db_index=False,
+        related_name='+', null=True, blank=True, default=None, verbose_name=_('服务单元'))
+
+    class Meta:
+        db_table = 'order_period'
+        ordering = ['period']
+        verbose_name = _('订购时长')
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return f'Period({self.period})'
+
+    def generate_id(self) -> str:
+        return rand_utils.timestamp14_microsecond2_sn()

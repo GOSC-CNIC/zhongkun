@@ -50,6 +50,7 @@ no_slash_router.register(r'vms/service/s-quota', service_quota_views.ServiveShar
 no_slash_router.register(r'azone', azone_views.AvailabilityZoneViewSet, basename='availability-zone')
 no_slash_router.register(r'describe-price', order_views.PriceViewSet, basename='describe-price')
 no_slash_router.register(r'order', order_views.OrderViewSet, basename='order')
+no_slash_router.register(r'period', order_views.PeriodViewSet, basename='period')
 no_slash_router.register(r'metering/server', metering_views.MeteringServerViewSet, basename='metering-server')
 no_slash_router.register(
     r'metering/storage', storage_metering_views.MeteringStorageViewSet, basename='metering-storage')
