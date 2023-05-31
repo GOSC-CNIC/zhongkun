@@ -178,7 +178,8 @@ class MeteringObjectStorageTests(TransactionTestCase):
         self.assertEqual(up_int(metering.storage), up_int(hours * gib_size))
         self.assertEqual(metering.user_id, self.user.id)
         self.assertEqual(metering.username, self.user.username)
-        original_amount1 = (self.price.obj_size / Decimal('24') * Decimal.from_float(gib_size * hours))
+        original_amount1 = (self.price.obj_size / Decimal('24')) * Decimal.from_float(gib_size * hours)
+        original_amount1 += Decimal('0.06') / Decimal('24') * Decimal.from_float(hours)     # 桶基础费用
         original_amount1 = Decimal(original_amount1).quantize(Decimal('0.00'))
         self.assertEqual(metering.original_amount, original_amount1)
         self.assertEqual(metering.trade_amount, original_amount1)
@@ -193,6 +194,7 @@ class MeteringObjectStorageTests(TransactionTestCase):
 
         # 数据库中的数据
         original_amount1 = (self.price.obj_size / Decimal('24') * gib_size * 24)
+        original_amount1 += Decimal('0.06')  # 桶基础费用
         self.assertEqual(metering.original_amount, original_amount1)
         self.assertEqual(metering.trade_amount, original_amount1)
 

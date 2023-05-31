@@ -485,20 +485,20 @@ class StorageMeasure:
 
         storage_size_gib = storage_size_byte / 1024**3
         metering = self.save_bucket_metering_record(
-            bucket=bucket, storage_gib_hours=storage_size_gib * hours, storage_byte=storage_size_byte
+            bucket=bucket, storage_gib_hours=storage_size_gib * hours, storage_byte=storage_size_byte, hours=hours
         )
         return metering
 
-    def save_bucket_metering_record(self, bucket: Bucket, storage_gib_hours, storage_byte: int):
+    def save_bucket_metering_record(self, bucket: Bucket, storage_gib_hours, storage_byte: int, hours: float):
         return self.save_metering_record(
             service=bucket.service, user_id=bucket.user_id, storage_bucket_id=bucket.id,
             bucket_name=bucket.name, creation_time=bucket.creation_time, storage_gib_hours=storage_gib_hours,
-            storage_byte=storage_byte
+            storage_byte=storage_byte, hours=hours
         )
 
     def save_metering_record(
             self, service, user_id, storage_bucket_id, bucket_name, creation_time, storage_gib_hours,
-            storage_byte: int
+            storage_byte: int, hours: float
     ):
         """
            创建当前日期的桶的计量记录
@@ -518,7 +518,7 @@ class StorageMeasure:
             daily_statement_id='',
             storage_byte=storage_byte
         )
-        self.metering_bill_amount(_metering=metering, auto_commit=False)
+        self.metering_bill_amount(_metering=metering, hours=hours, auto_commit=False)
 
         try:
             metering.save(force_insert=True)
@@ -528,7 +528,7 @@ class StorageMeasure:
             if _metering is None:
                 raise e
             if _metering.original_amount != metering.original_amount:
-                self.metering_bill_amount(_metering=_metering, auto_commit=True)
+                self.metering_bill_amount(_metering=_metering, hours=hours, auto_commit=True)
             metering = _metering
 
         return metering
@@ -540,13 +540,13 @@ class StorageMeasure:
         seconds = max(seconds, 0)
         return seconds / 3600
 
-    def metering_bill_amount(self, _metering: MeteringObjectStorage, auto_commit: bool = True):
+    def metering_bill_amount(self, _metering: MeteringObjectStorage, hours: float, auto_commit: bool = True):
         """
         计算资源使用量的账单金额
         """
         price = self.price_mgr.enforce_price()
         _metering.original_amount = self.price_mgr.calculate_bucket_amounts(
-            price=price, storage_gib_hours=_metering.storage)
+            price=price, storage_gib_hours=_metering.storage, hours=hours)
         _metering.trade_amount = _metering.original_amount
 
         if auto_commit:

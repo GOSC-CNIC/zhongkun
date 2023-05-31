@@ -176,9 +176,12 @@ class PriceManager:
     @staticmethod
     def calculate_bucket_amounts(
             price: Price,
-            storage_gib_hours: float
+            storage_gib_hours: float,
+            hours: float
     ) -> Decimal:
         """
         计算金额
         """
-        return price.obj_size / Decimal('24') * Decimal.from_float(storage_gib_hours)
+        amounts = price.obj_size / Decimal('24') * Decimal.from_float(storage_gib_hours)
+        amounts += Decimal('0.06') / Decimal('24') * Decimal.from_float(hours)   # +桶每天的基础费用
+        return amounts
