@@ -650,10 +650,27 @@ class MonthlyReportNotifier:
         vo_monthly_reports = MonthlyReport.objects.filter(
             report_date=report_date, vo_id__in=vo_ids, owner_type=OwnerType.VO.value).all()
 
+        # 组总金额，按组角色排序
         vo_total_amount = Decimal('0')
+        vo_own_monthly_reports = []
+        vo_leader_monthly_reports = []
+        vo_member_monthly_reports = []
         for vmr in vo_monthly_reports:
             vo_total_amount += vmr.server_payment_amount
-            vmr.vo_info = vo_dict.get(vmr.vo_id)
+            vo_info = vo_dict.get(vmr.vo_id)
+            vmr.vo_info = vo_info
+            own_role = ''
+            if vo_info:
+                own_role = vo_info.get('own_role', '')
+
+            if own_role == '组长':
+                vo_own_monthly_reports.append(vmr)
+            elif own_role == '管理员':
+                vo_leader_monthly_reports.append(vmr)
+            else:
+                vo_member_monthly_reports.append(vmr)
+
+        sorted_vo_monthly_reports = vo_own_monthly_reports + vo_leader_monthly_reports + vo_member_monthly_reports
 
         user_coupons = self.get_user_coupons(user=user, expiration_time_gte=self.report_period_start_time)
         user_normal_coupons, user_expired_coupons = self.split_coupons(coupons=user_coupons, split_time=timezone.now())
@@ -674,7 +691,7 @@ class MonthlyReportNotifier:
             'user': user,
             'bucket_reports': bucket_reports,
             'bucket_reports_len': len(bucket_reports),
-            'vo_monthly_reports': vo_monthly_reports,
+            'vo_monthly_reports': sorted_vo_monthly_reports,
             'vo_total_amount': vo_total_amount,
             'user_coupons_length': len(user_coupons),
             'user_normal_coupons': user_normal_coupons,
