@@ -40,4 +40,4 @@ class EmailAdmin(admin.ModelAdmin):
     @admin.display(description=_('预览'))
     def show_preview_url(self, obj):
         preview_url = reverse('users:email-detail', kwargs={'email_id': obj.id})
-        return format_html(f'<a target="view_window" href="{preview_url}">预览</a>')
+        return format_html(f'<a target="view_frame" href="{preview_url}">预览</a>')

@@ -8,18 +8,18 @@ from django.template.loader import get_template
 from django.core.mail import send_mail
 from django.conf import settings
 
-from users.models import UserProfile
+from users.models import UserProfile, Email
 from vo.models import VirtualOrganization, VoMember
 from metering.managers import (
     MeteringServerManager, MeteringStorageManager, StatementStorageManager, StatementServerManager
 )
-from metering.models import PaymentStatus
+from metering.models import PaymentStatus, MeteringServer
 from report.models import MonthlyReport, BucketMonthlyReport
 from storage.models import Bucket, BucketArchive
-from order.models import Order
+from order.models import Order, Resource, ResourceType
 from utils.model import OwnerType, PayType
 from bill.models import CashCoupon, CashCouponPaymentHistory
-from users.models import Email
+from servers.models import Server, ServerArchive
 
 from . import config_logger
 
@@ -313,7 +313,7 @@ class MonthlyReportGenerator:
         order_agg = Order.objects.filter(
             user_id=user.id, owner_type=OwnerType.USER.value,
             payment_time__gte=report_period_start_time, payment_time__lte=report_period_end_time,
-            status=Order.Status.PAID.value, pay_type=PayType.PREPAID.value
+            status=Order.Status.PAID.value, pay_type=PayType.PREPAID.value, resource_type=ResourceType.VM.value
         ).aggregate(
             total_pay_amount=Sum('pay_amount')
         )
@@ -332,9 +332,9 @@ class MonthlyReportGenerator:
         # 对象存储
         month_report.bucket_count = storage_meter_agg['bucket_count'] or 0
         month_report.storage_days = hours_to_days(storage_meter_agg['total_storage'])
-        month_report.storage_original_amount = storage_meter_agg['total_original_amount'] or Decimal('0')
-        month_report.storage_payable_amount = storage_meter_agg['total_trade_amount'] or Decimal('0')
-        month_report.storage_postpaid_amount = state_storage_agg['total_trade_amount'] or Decimal('0')
+        month_report.storage_original_amount = storage_meter_agg['total_original_amount'] or Decimal('0.00')
+        month_report.storage_payable_amount = storage_meter_agg['total_trade_amount'] or Decimal('0.00')
+        month_report.storage_postpaid_amount = state_storage_agg['total_trade_amount'] or Decimal('0.00')
 
         # 云主机
         month_report.server_cpu_days = hours_to_days(server_m_agg['total_cpu_hours'])
@@ -342,10 +342,10 @@ class MonthlyReportGenerator:
         month_report.server_disk_days = hours_to_days(server_m_agg['total_disk_hours'])
         month_report.server_ip_days = hours_to_days(server_m_agg['total_public_ip_hours'])
         month_report.server_count = server_m_agg['server_count'] or 0
-        month_report.server_original_amount = server_m_agg['total_original_amount'] or Decimal('0')
-        month_report.server_payable_amount = server_m_agg['total_trade_amount'] or Decimal('0')
-        month_report.server_postpaid_amount = state_server_agg['total_trade_amount'] or Decimal('0')
-        month_report.server_prepaid_amount = order_agg['total_pay_amount'] or Decimal('0')
+        month_report.server_original_amount = server_m_agg['total_original_amount'] or Decimal('0.00')
+        month_report.server_payable_amount = server_m_agg['total_trade_amount'] or Decimal('0.00')
+        month_report.server_postpaid_amount = state_server_agg['total_trade_amount'] or Decimal('0.00')
+        month_report.server_prepaid_amount = order_agg['total_pay_amount'] or Decimal('0.00')
         month_report.save(force_insert=True)
         return month_report
 
@@ -438,17 +438,17 @@ class MonthlyReportGenerator:
         month_report.server_disk_days = hours_to_days(server_m_agg['total_disk_hours'])
         month_report.server_ip_days = hours_to_days(server_m_agg['total_public_ip_hours'])
         month_report.server_count = server_m_agg['server_count'] or 0
-        month_report.server_original_amount = server_m_agg['total_original_amount'] or Decimal('0')
-        month_report.server_payable_amount = server_m_agg['total_trade_amount'] or Decimal('0')
-        month_report.server_prepaid_amount = order_agg['total_pay_amount'] or Decimal('0')
-        month_report.server_postpaid_amount = state_server_agg['total_trade_amount'] or Decimal('0')
+        month_report.server_original_amount = server_m_agg['total_original_amount'] or Decimal('0.00')
+        month_report.server_payable_amount = server_m_agg['total_trade_amount'] or Decimal('0.00')
+        month_report.server_prepaid_amount = order_agg['total_pay_amount'] or Decimal('0.00')
+        month_report.server_postpaid_amount = state_server_agg['total_trade_amount'] or Decimal('0.00')
 
         # 对象存储
         month_report.bucket_count = 0
         month_report.storage_days = 0
-        month_report.storage_original_amount = Decimal('0')
-        month_report.storage_payable_amount = Decimal('0')
-        month_report.storage_postpaid_amount = Decimal('0')
+        month_report.storage_original_amount = Decimal('0.00')
+        month_report.storage_payable_amount = Decimal('0.00')
+        month_report.storage_postpaid_amount = Decimal('0.00')
         month_report.save(force_insert=True)
         return month_report
 
@@ -520,8 +520,8 @@ class MonthlyReportGenerator:
                 bucket_id=bkt_id,
                 bucket_name=bucket_name,
                 storage_days=hours_to_days(ba['total_storage_hours']),
-                original_amount=ba['total_original_amount'] or Decimal('0'),
-                payable_amount=ba['total_trade_amount'] or Decimal('0')
+                original_amount=ba['total_original_amount'] or Decimal('0.00'),
+                payable_amount=ba['total_trade_amount'] or Decimal('0.00')
             )
             bmr.enforce_id()
             bucket_reports.append(bmr)
@@ -643,6 +643,10 @@ class MonthlyReportNotifier:
         self.send_monthly_report_to_user(user=user, report_date=report_date)
 
     def get_context(self, user, report_date):
+        user_server_reports = self.get_user_server_monthly_reports(
+            user=user, report_period_start=self.report_period_start, report_period_end=self.report_period_end,
+            report_period_start_time=self.report_period_start_time, report_period_end_time=self.report_period_end_time
+        )
         bucket_reports = BucketMonthlyReport.objects.filter(report_date=report_date, user_id=user.id).all()
 
         vo_dict = self.get_user_vo_dict(user=user)
@@ -651,7 +655,7 @@ class MonthlyReportNotifier:
             report_date=report_date, vo_id__in=vo_ids, owner_type=OwnerType.VO.value).all()
 
         # 组总金额，按组角色排序
-        vo_total_amount = Decimal('0')
+        vo_total_amount = Decimal('0.00')
         vo_own_monthly_reports = []
         vo_leader_monthly_reports = []
         vo_member_monthly_reports = []
@@ -689,6 +693,7 @@ class MonthlyReportNotifier:
         return {
             'report_date': report_date,
             'user': user,
+            'user_server_reports': user_server_reports,
             'bucket_reports': bucket_reports,
             'bucket_reports_len': len(bucket_reports),
             'vo_monthly_reports': sorted_vo_monthly_reports,
@@ -835,6 +840,122 @@ class MonthlyReportNotifier:
         return vos_dict
 
     @staticmethod
+    def get_user_server_monthly_reports(
+            user, report_period_start: datetime.date, report_period_end: datetime.date,
+            report_period_start_time: datetime.datetime, report_period_end_time: datetime.datetime
+    ):
+        queryset = MeteringServer.objects.filter(
+            owner_type=OwnerType.USER.value, user_id=user.id,
+            date__gte=report_period_start, date__lte=report_period_end
+        ).values('server_id').annotate(
+            total_cpu_hours=Sum('cpu_hours'),
+            total_ram_hours=Sum('ram_hours'),
+            total_disk_hours=Sum('disk_hours'),
+            total_public_ip_hours=Sum('public_ip_hours'),
+            total_original_amount=Sum('original_amount'),
+            total_trade_amount=Sum('trade_amount')
+        ).order_by('server_id')
+        reports = MonthlyReportNotifier.server_reports_mixin_server_info(list(queryset))
+        server_ids = [i['server_id'] for i in reports]
+        prepost_servers = MonthlyReportNotifier.get_user_server_prepost_by_resoures(
+            user=user, server_ids=server_ids,
+            report_period_start_time=report_period_start_time, report_period_end_time=report_period_end_time)
+
+        for rpt in reports:
+            total_cpu_hours = rpt['total_cpu_hours']
+            total_cpu_hours = total_cpu_hours if total_cpu_hours else 0
+            rpt['total_cpu_hours'] = total_cpu_hours / 24
+
+            total_ram_hours = rpt['total_ram_hours']
+            total_ram_hours = total_ram_hours if total_ram_hours else 0
+            rpt['total_ram_hours'] = total_ram_hours / 24
+
+            total_disk_hours = rpt['total_disk_hours']
+            total_disk_hours = total_disk_hours if total_disk_hours else 0
+            rpt['total_disk_hours'] = total_disk_hours / 24
+
+            total_public_ip_hours = rpt['total_public_ip_hours']
+            total_public_ip_hours = total_public_ip_hours if total_public_ip_hours else 0
+            rpt['total_public_ip_hours'] = total_public_ip_hours / 24
+
+            if rpt['total_trade_amount'] is None:
+                rpt['total_trade_amount'] = Decimal('0.00')
+
+            server_id = rpt['server_id']
+            if server_id in prepost_servers:
+                rpt['total_prepost_amount'] = prepost_servers[server_id]['pay_amount']
+            else:
+                rpt['total_prepost_amount'] = Decimal('0.00')
+
+            rpt['total_amount'] = rpt['total_prepost_amount'] + rpt['total_trade_amount']
+
+        return reports
+
+    @staticmethod
+    def server_reports_mixin_server_info(data: list):
+        """
+        按server id聚合数据分页后混合其他数据
+        """
+        server_ids = [i['server_id'] for i in data]
+        servers = Server.objects.filter(id__in=server_ids).values(
+            'id', 'ipv4', 'ram', 'vcpus', 'pay_type')
+        archives = ServerArchive.objects.filter(
+            server_id__in=server_ids, archive_type=ServerArchive.ArchiveType.ARCHIVE.value
+        ).values('server_id', 'ipv4', 'ram', 'vcpus', 'pay_type')
+
+        server_dict = {}
+        for s in servers:
+            d = {
+                'server': s
+            }
+            server_dict[s['id']] = d
+
+        for a in archives:
+            server_id = a['id'] = a.pop('server_id', None)
+            if server_id and server_id not in server_dict:
+                d = {
+                    'server': a
+                }
+                server_dict[server_id] = d
+
+        for i in data:
+            i: dict
+            sid = i['server_id']
+            if sid in server_dict:
+                i.update(server_dict[sid])
+            else:
+                i['server'] = None
+
+        return data
+
+    @staticmethod
+    def get_user_server_prepost_by_resoures(server_ids: list, user, report_period_start_time, report_period_end_time):
+        """
+        :return: {
+            "service_id": {
+                "pay_amount": Decimal(),
+            }
+        }
+        """
+        qs = Resource.objects.filter(
+            instance_id__in=server_ids, resource_type=ResourceType.VM.value,
+            order__user_id=user.id, order__owner_type=OwnerType.USER.value,
+            order__payment_time__gte=report_period_start_time, order__payment_time__lte=report_period_end_time,
+            order__status=Order.Status.PAID.value, order__pay_type=PayType.PREPAID.value,
+        )
+        d = {}
+        # 每个云主机可能对应 新购和续费 多个订单
+        for res in qs:
+            server_id = res.instance_id
+            if server_id in d:
+                item = d[server_id]
+                item['pay_amount'] += res.order.pay_amount
+            else:
+                d[server_id] = {'pay_amount': res.order.pay_amount}
+
+        return d
+
+    @staticmethod
     def get_user_coupons(user, expiration_time_gte=None):
         qs = CashCoupon.objects.select_related('app_service').filter(
             user_id=user.id, owner_type=OwnerType.USER.value, status=CashCoupon.Status.AVAILABLE.value)
@@ -880,18 +1001,18 @@ class MonthlyReportNotifier:
     def get_coupon_pay_amount(coupon: CashCoupon, start_time, end_time):
         # 给定时间段之前已过期
         if coupon.expiration_time <= start_time:
-            return Decimal('0')
+            return Decimal('0.00')
 
         # 给定时间段之后可用
         if coupon.effective_time > end_time:
-            return Decimal('0')
+            return Decimal('0.00')
 
         r = CashCouponPaymentHistory.objects.filter(
             cash_coupon_id=coupon.id, creation_time__gte=start_time, creation_time__lte=end_time
         ).aggregate(total_amounts=Sum('amounts'))
 
-        amount = r['total_amounts'] or Decimal('0')
-        if amount < Decimal('0'):
+        amount = r['total_amounts'] or Decimal('0.00')
+        if amount < Decimal('0.00'):
             return -amount
 
         return amount
