@@ -677,18 +677,14 @@ class MonthlyReportNotifier:
         sorted_vo_monthly_reports = vo_own_monthly_reports + vo_leader_monthly_reports + vo_member_monthly_reports
 
         user_coupons = self.get_user_coupons(user=user, expiration_time_gte=self.report_period_start_time)
+        self.set_coupons_last_month_pay_amount(
+            user_coupons, start_time=self.report_period_start_time, end_time=self.report_period_end_time)
         user_normal_coupons, user_expired_coupons = self.split_coupons(coupons=user_coupons, split_time=timezone.now())
-        self.set_coupons_last_month_pay_amount(
-            user_normal_coupons, start_time=self.report_period_start_time, end_time=self.report_period_end_time)
-        self.set_coupons_last_month_pay_amount(
-            user_expired_coupons, start_time=self.report_period_start_time, end_time=self.report_period_end_time)
 
         vo_coupons = self.get_vos_coupons(vo_ids=vo_ids, expiration_time_gte=self.report_period_start_time)
+        self.set_coupons_last_month_pay_amount(
+            vo_coupons, start_time=self.report_period_start_time, end_time=self.report_period_end_time)
         vo_normal_coupons, vo_expired_coupons = self.split_coupons(coupons=vo_coupons, split_time=timezone.now())
-        self.set_coupons_last_month_pay_amount(
-            vo_normal_coupons, start_time=self.report_period_start_time, end_time=self.report_period_end_time)
-        self.set_coupons_last_month_pay_amount(
-            vo_expired_coupons, start_time=self.report_period_start_time, end_time=self.report_period_end_time)
 
         return {
             'report_date': report_date,
@@ -857,8 +853,11 @@ class MonthlyReportNotifier:
         ).order_by('server_id')
         reports = MonthlyReportNotifier.server_reports_mixin_server_info(list(queryset))
         server_ids = [i['server_id'] for i in reports]
-        prepost_servers = MonthlyReportNotifier.get_user_server_prepost_by_resoures(
-            user=user, server_ids=server_ids,
+        # prepost_servers = MonthlyReportNotifier.get_user_server_prepost_by_resoures(
+        #     user=user, server_ids=server_ids,
+        #     report_period_start_time=report_period_start_time, report_period_end_time=report_period_end_time)
+        prepost_servers = MonthlyReportNotifier.get_user_server_prepost_by_order(
+            user=user,
             report_period_start_time=report_period_start_time, report_period_end_time=report_period_end_time)
 
         for rpt in reports:
@@ -929,6 +928,35 @@ class MonthlyReportNotifier:
         return data
 
     @staticmethod
+    def get_user_server_prepost_by_order(user, report_period_start_time, report_period_end_time):
+        """
+        :return: {
+            "service_id": {
+                "pay_amount": Decimal(),
+            }
+        }
+        """
+        # 云主机订购预付费金额
+        qs = Order.objects.filter(
+            user_id=user.id, owner_type=OwnerType.USER.value,
+            payment_time__gte=report_period_start_time, payment_time__lte=report_period_end_time,
+            status=Order.Status.PAID.value, pay_type=PayType.PREPAID.value, resource_type=ResourceType.VM.value
+        ).prefetch_related('resource_set')
+        d = {}
+        for order in qs:
+            res_set = order.resource_set.all()
+            if res_set:
+                res = res_set[0]
+                server_id = res.instance_id
+                if server_id in d:
+                    item = d[server_id]
+                    item['pay_amount'] += order.pay_amount
+                else:
+                    d[server_id] = {'pay_amount': order.pay_amount}
+
+        return d
+
+    @staticmethod
     def get_user_server_prepost_by_resoures(server_ids: list, user, report_period_start_time, report_period_end_time):
         """
         :return: {
@@ -967,7 +995,7 @@ class MonthlyReportNotifier:
 
     @staticmethod
     def get_vo_coupons(vo, expiration_time_gte=None):
-        qs = CashCoupon.objects.select_related('app_service').filter(
+        qs = CashCoupon.objects.select_related('app_service', 'vo').filter(
             vo_id=vo.id, owner_type=OwnerType.VO.value, status=CashCoupon.Status.AVAILABLE.value)
 
         if expiration_time_gte:
@@ -977,7 +1005,7 @@ class MonthlyReportNotifier:
 
     @staticmethod
     def get_vos_coupons(vo_ids: list, expiration_time_gte=None):
-        qs = CashCoupon.objects.select_related('app_service').filter(
+        qs = CashCoupon.objects.select_related('app_service', 'vo').filter(
             vo_id__in=vo_ids, owner_type=OwnerType.VO.value, status=CashCoupon.Status.AVAILABLE.value)
 
         if expiration_time_gte:
@@ -1017,7 +1045,38 @@ class MonthlyReportNotifier:
 
         return amount
 
+    @staticmethod
+    def get_coupons_pay_amount(coupon_ids: list, start_time, end_time):
+        """
+        :return:{
+            cash_coupon_id: {
+                "total_amounts": Decimal()
+            }
+        }
+        """
+        r = CashCouponPaymentHistory.objects.filter(
+            cash_coupon_id__in=coupon_ids, creation_time__gte=start_time, creation_time__lte=end_time
+        ).values('cash_coupon_id').annotate(
+            total_amounts=Sum('amounts')
+        ).order_by('cash_coupon_id')
+
+        d = {}
+        for cp in r:
+            total_amounts = cp['total_amounts'] if cp['total_amounts'] else Decimal('0.00')
+            if total_amounts < Decimal('0'):
+                total_amounts = -total_amounts
+
+            d[cp['cash_coupon_id']] = {'total_amounts': total_amounts}
+
+        return d
+
     def set_coupons_last_month_pay_amount(self, coupons, start_time, end_time):
+        cp_ids = [cp.id for cp in coupons]
+        d = self.get_coupons_pay_amount(coupon_ids=cp_ids, start_time=start_time, end_time=end_time)
         for cp in coupons:
-            amount = self.get_coupon_pay_amount(coupon=cp, start_time=start_time, end_time=end_time)
+            if cp.id in d:
+                amount = d[cp.id]['total_amounts']
+            else:
+                amount = Decimal('0.00')
+
             setattr(cp, 'last_month_pay_amount', amount)
