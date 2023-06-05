@@ -10,6 +10,7 @@ class VoAdmin(admin.ModelAdmin):
     search_fields = ['name', 'company', 'description']
     list_filter = ['creation_time', 'deleted']
     list_select_related = ('owner',)
+    raw_id_fields = ('owner',)
 
     filter_horizontal = ('members',)
 
@@ -31,3 +32,4 @@ class VoMemberAdmin(admin.ModelAdmin):
     search_fields = ['user__username', 'vo__name', 'inviter']
     list_filter = ['join_time',]
     list_select_related = ('user', 'vo')
+    raw_id_fields = ('user',)
