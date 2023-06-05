@@ -852,7 +852,7 @@ class MonthlyReportNotifier:
             total_trade_amount=Sum('trade_amount')
         ).order_by('server_id')
         reports = MonthlyReportNotifier.server_reports_mixin_server_info(list(queryset))
-        server_ids = [i['server_id'] for i in reports]
+        # server_ids = [i['server_id'] for i in reports]
         # prepost_servers = MonthlyReportNotifier.get_user_server_prepost_by_resoures(
         #     user=user, server_ids=server_ids,
         #     report_period_start_time=report_period_start_time, report_period_end_time=report_period_end_time)
@@ -876,6 +876,9 @@ class MonthlyReportNotifier:
             total_public_ip_hours = rpt['total_public_ip_hours']
             total_public_ip_hours = total_public_ip_hours if total_public_ip_hours else 0
             rpt['total_public_ip_hours'] = total_public_ip_hours / 24
+
+            if rpt['total_original_amount'] is None:
+                rpt['total_original_amount'] = Decimal('0.00')
 
             if rpt['total_trade_amount'] is None:
                 rpt['total_trade_amount'] = Decimal('0.00')

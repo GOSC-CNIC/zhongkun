@@ -91,64 +91,56 @@
             </caption>
             {% if monthly_report.server_count %}
             <tr>
-                <td colspan="40" class="title1">开放科学云主机</td>
-            </tr>
-            <tr>
-                <td colspan="10" class= "title2">统计云主机数量</td>
-                <td colspan="10">{{ monthly_report.server_count }}</td>
-                <td colspan="10" class= "title2">总结算点数</td>
-                <td colspan="10">{{ monthly_report.server_payment_amount }}</td>
+                <td colspan="9" class="title1">开放科学云主机（统计云主机数量：{{ monthly_report.server_count }}，总结算点数：{{ monthly_report.server_payment_amount }}）</td>
             </tr>
             <tr class="title2">
-                <td colspan="5" style="width: 14%;">云主机IP</td>
-                <td colspan="5" style="width: 12.5%;">公网IP（个*天）</td>
-                <td colspan="5" style="width: 12.5%;">vCPU（核*天）</td>
-                <td colspan="5" style="width: 12%;">内存（GB*天）</td>
-                <td colspan="5" style="width: 15%;">系统硬盘（GB*天）</td>
-                <td colspan="5" style="width: 11.5%"> 网络费用</td>
-                <td colspan="5" style="width: 12.5%">结算点数</td>
-                <td colspan="5" style="width: 10%">用量明细</td>
+                <td style="width: 14%;">云主机IP</td>
+                <td style="width: 10%;">公网IP<br>（个*天）</td>
+                <td style="width: 11%;">vCPU<br>（核*天）</td>
+                <td style="width: 11%;">内存<br>（GB*天）</td>
+                <td style="width: 11%;">系统硬盘<br>（GB*天）</td>
+                <td style="width: 11%">网络费用</td>
+                <td style="width: 12%">计量点数</td>
+                <td style="width: 12%">结算点数</td>
+                <td style="width: 8%">用量明细</td>
             </tr>
                 {% for mr in user_server_reports %}
                 <tr class="content">
-                    <td colspan="5">{{ mr.server.ipv4 }}</td>
-                    <td colspan="5">{{ mr.total_public_ip_hours|floatformat:2 }}</td>
-                    <td colspan="5">{{ mr.total_cpu_hours|floatformat:2 }}</td>
-                    <td colspan="5">{{ mr.total_ram_hours|floatformat:2 }}</td>
-                    <td colspan="5">{{ mr.total_disk_hours|floatformat:2 }}</td>
-                    <td colspan="5">10Gb科技网共享限量免费</td>
-                    <td colspan="5">{{ mr.total_amount|floatformat:2 }}</td>
+                    <td>{{ mr.server.ipv4 }}</td>
+                    <td>{{ mr.total_public_ip_hours|floatformat:2 }}</td>
+                    <td>{{ mr.total_cpu_hours|floatformat:2 }}</td>
+                    <td>{{ mr.total_ram_hours|floatformat:2 }}</td>
+                    <td>{{ mr.total_disk_hours|floatformat:2 }}</td>
+                    <td>10Gb科技网共享限量免费</td>
+                    <td>{{ mr.total_original_amount|floatformat:2 }}</td>
+                    <td>{{ mr.total_amount|floatformat:2 }}</td>
                     {% if forloop.first %}
-                    <td colspan="5" rowspan="{{ user_server_reports|length }}"><a target="view_window" href="https://service.cstcloud.cn/my/stats/consumption/personal">点击查看使用明细</a></td>
+                    <td rowspan="{{ user_server_reports|length }}"><a target="view_window" href="https://service.cstcloud.cn/my/stats/consumption/personal">点击查看使用明细</a></td>
                     {% endif %}
                 </tr>
                 {% endfor %}
             {% endif %}
             {% if bucket_reports %}
             <tr class="title1">
-                <td colspan="40">对象存储</td>
-            </tr>
-            <tr>
-                <td colspan="10" class= "title2">存储桶数量</td>
-                <td colspan="10">{{ bucket_reports_len }}</td>
-                <td colspan="10" class= "title2">总结算点数</td>
-                <td colspan="10">{{ monthly_report.storage_postpaid_amount }}</td>
+                <td colspan="9">对象存储（存储桶数量：{{ bucket_reports_len }}，总结算点数：{{ monthly_report.storage_postpaid_amount }}）</td>
             </tr>
             <tr class= "title2">
-                <td colspan="8">存储桶名称</td>
-                <td colspan="8">存储用量（GB*天）</td>
-                <td colspan="5">网络费用</td>
-                <td colspan="8"> 结算点数</td>
-                <td colspan="8">用量明细</td>
+                <td colspan="3">存储桶名称</td>
+                <td colspan="2">存储用量（GB*天）</td>
+                <td>网络费用</td>
+                <td>计量点数</td>
+                <td>结算点数</td>
+                <td>用量明细</td>
             </tr>
             {% for b in bucket_reports %}
                 <tr>
-                    <td colspan="8">{{ b.bucket_name }}</td>
-                    <td colspan="8">{{ b.storage_days | floatformat:2 }}</td>
-                    <td colspan="5">10Gb科技网共享限量免费</td>
-                    <td colspan="8">{{ b.payable_amount }}</td>
+                    <td colspan="3">{{ b.bucket_name }}</td>
+                    <td colspan="2">{{ b.storage_days | floatformat:2 }}</td>
+                    <td>10Gb科技网共享限量免费</td>
+                    <td>{{ b.original_amount }}</td>
+                    <td>{{ b.payable_amount }}</td>
                     {% if forloop.first %}
-                        <td colspan="8" rowspan="{{ bucket_reports_len }}"><a target="view_window" href="https://service.cstcloud.cn/my/stats/consumption/storage" >点击查看使用明细</a></td>
+                        <td rowspan="{{ bucket_reports_len }}"><a target="view_window" href="https://service.cstcloud.cn/my/stats/consumption/storage" >点击查看使用明细</a></td>
                     {% endif %}
                 </tr>
             {% endfor %}
@@ -163,21 +155,15 @@
                 项目组资源使用结算情况
             </caption>
             <tr class="title1">
-                <td colspan="20">开放科学云主机</td>
-            </tr>
-            <tr>
-                <td colspan="5" class="title2">项目组数量</td>
-                <td colspan="6">{{ vo_monthly_reports|length }}</td>
-                <td colspan="5" class="title2">总结算点数</td>
-                <td colspan="4">{{ vo_total_amount }}</td>
+                <td colspan="20">开放科学云主机（项目组数量：{{ vo_monthly_reports|length }}，总结算点数：{{ vo_total_amount }}）</td>
             </tr>
             <tr class="title2">
                 <td colspan="2" style="width: 10%;"><span>项目组名称</span></td>
                 <td colspan="3" style="width: 20%;">组信息</td>
                 <td colspan="3" style="width: 6%;">我的身份</td>
-                <td colspan="3" style="width: 6%;">云主机<br>数量</td>
+                <td colspan="3" style="width: 6%;">云主机数量</td>
                 <td colspan="2" style="width: 14%;">结算点数</td>
-                <td colspan="6" style="width: 22%"> 资源用量</td>
+                <td colspan="6" style="width: 22%">本月资源用量</td>
                 <td colspan="2" style="width: 12%">用量明细</td>
             </tr>
             {% for vmr in vo_monthly_reports %}
@@ -203,7 +189,8 @@
                             公网IP {{ vmr.server_ip_days | floatformat:2 }} 个*天， <br>
                             vCPU {{ vmr.server_cpu_days | floatformat:2 }} 核*天，<br>
                             内存 {{ vmr.server_ram_days | floatformat:2 }} GB*天，<br>
-                            系统硬盘 {{ vmr.server_disk_days | floatformat:2 }} GB*天
+                            系统硬盘 {{ vmr.server_disk_days | floatformat:2 }} GB*天<br>
+                            计量点数 {{ vmr.server_original_amount | floatformat:2 }}
                         </td>
                         <td colspan="2"><a target="view_window" href="https://service.cstcloud.cn/my/stats/consumption/group/metering/{{ vo_info.vo.id }}">点击查询用量明细</a></td>
                     </tr>
