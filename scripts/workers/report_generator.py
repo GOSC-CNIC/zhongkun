@@ -140,7 +140,7 @@ class MonthlyReportGenerator:
         while True:
             try:
                 users = self.get_users(limit=self.limit, time_joined_gt=last_joined_time,
-                                       date_joined__lt=self.report_period_end_time)
+                                       date_joined_lt=self.report_period_end_time)
                 if len(users) <= 0:
                     break
 
@@ -529,7 +529,7 @@ class MonthlyReportGenerator:
         return True, BucketMonthlyReport.objects.bulk_create(bucket_reports)
 
     @staticmethod
-    def get_users(limit: int, time_joined_gt=None, date_joined__lt=None):
+    def get_users(limit: int, time_joined_gt=None, date_joined_lt=None):
         qs = UserProfile.objects.filter(
             is_active=True
         ).order_by('date_joined')
@@ -537,8 +537,8 @@ class MonthlyReportGenerator:
         if time_joined_gt:
             qs = qs.filter(date_joined__gt=time_joined_gt)
 
-        if date_joined__lt:
-            qs = qs.filter(date_joined__lt=date_joined__lt)
+        if date_joined_lt:
+            qs = qs.filter(date_joined__lt=date_joined_lt)
 
         return qs[0:limit]
 
@@ -603,7 +603,8 @@ class MonthlyReportNotifier:
         send_ok_count = 0
         while True:
             try:
-                users = self.get_users(limit=self.limit, time_joined_gt=last_joined_time)
+                users = self.get_users(
+                    limit=self.limit, time_joined_gt=last_joined_time, date_joined_lt=self.report_period_end_time)
                 if len(users) <= 0:
                     break
 
@@ -781,13 +782,16 @@ class MonthlyReportNotifier:
         return False
 
     @staticmethod
-    def get_users(limit: int, time_joined_gt=None):
+    def get_users(limit: int, time_joined_gt=None, date_joined_lt=None):
         qs = UserProfile.objects.filter(
             is_active=True
         ).order_by('date_joined')
 
         if time_joined_gt:
             qs = qs.filter(date_joined__gt=time_joined_gt)
+
+        if date_joined_lt:
+            qs = qs.filter(date_joined__lt=date_joined_lt)
 
         return qs[0:limit]
 
