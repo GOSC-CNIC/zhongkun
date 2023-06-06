@@ -671,51 +671,75 @@ class MonitorWebsiteTests(MyAPITestCase):
         # NotAuthenticated
         url = reverse('api:monitor-website-list')
         r = self.client.post(path=url, data={
-            'name': 'name-test', 'url': 'https://test.c', 'remark': 'test'
+            'name': 'name-test', 'scheme': 'https://', 'hostname': 'test.c', 'uri': '/', 'remark': 'test'
         }, content_type='application/json')
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
 
         # InvalidUrl
         self.client.force_login(self.user)
         r = self.client.post(path=url, data={
-            'name': 'name-test', 'url': 'https://test.c', 'remark': 'test'
+            'name': 'name-test', 'scheme': 'https://', 'hostname': 'test.c', 'uri': '/', 'remark': 'test'
         })
         self.assertErrorResponse(status_code=400, code='InvalidUrl', response=r)
 
+        # InvalidUri
+        self.client.force_login(self.user)
+        r = self.client.post(path=url, data={
+            'name': 'name-test', 'scheme': 'https://', 'hostname': 'test.com', 'uri': '', 'remark': 'test'
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidUri', response=r)
+
+        self.client.force_login(self.user)
+        r = self.client.post(path=url, data={
+            'name': 'name-test', 'scheme': 'https://', 'hostname': 'test.com', 'uri': 'a/b/c', 'remark': 'test'
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidUri', response=r)
+
         # user, 1 ok
         self.client.force_login(self.user)
-        website_url = 'https://test.cn'
+        website_url = 'https://test.cn/a/b?test=1&c=6#test'
         r = self.client.post(path=url, data={
-            'name': 'name-test', 'url': website_url, 'remark': 'test'
+            'name': 'name-test', 'scheme': 'https://', 'hostname': 'test.cn', 'uri': '/a/b?test=1&c=6#test',
+            'is_tamper_resistant': True, 'remark': 'test'
         })
         self.assertKeysIn(keys=[
-            'id', 'name', 'url', 'remark', 'url_hash', 'creation', 'modification', 'is_attention'], container=r.data)
+            'id', 'name', 'scheme', 'hostname', 'uri', 'is_tamper_resistant', 'url',
+            'remark', 'url_hash', 'creation', 'modification', 'is_attention'], container=r.data)
         self.assert_is_subdict_of(sub={
             'name': 'name-test', 'url': website_url,
-            'remark': 'test', 'url_hash': get_str_hash(website_url)
+            'remark': 'test', 'url_hash': get_str_hash(website_url),
+            'scheme': 'https://', 'hostname': 'test.cn', 'uri': '/a/b?test=1&c=6#test',
+            'is_tamper_resistant': True
         }, d=r.data)
 
         website_id = r.data['id']
         self.assertEqual(MonitorWebsite.objects.count(), 1)
         website: MonitorWebsite = MonitorWebsite.objects.get(id=website_id)
         self.assertEqual(website.name, 'name-test')
+        self.assertEqual(website.scheme, 'https://')
+        self.assertEqual(website.hostname, 'test.cn')
+        self.assertEqual(website.uri, '/a/b?test=1&c=6#test')
+        self.assertIs(website.is_tamper_resistant, True)
         self.assertEqual(website.url, website_url)
         self.assertEqual(website.remark, 'test')
 
         self.assertEqual(MonitorWebsiteTask.objects.count(), 1)
         task: MonitorWebsiteTask = MonitorWebsiteTask.objects.order_by('-creation').first()
         self.assertEqual(task.url, website_url)
+        self.assertEqual(task.url_hash, website.url_hash)
+        self.assertIs(task.is_tamper_resistant, True)
 
         version = MonitorWebsiteVersion.get_instance()
         self.assertEqual(version.version, 1)
 
         # user, 2 ok
-        website_url2 = 'https://test66.com'
+        website_url2 = 'https://test66.com/'
         r = self.client.post(path=url, data={
-            'name': 'name-test666', 'url': website_url2, 'remark': '测试t88'
+            'name': 'name-test666', 'scheme': 'https://', 'hostname': 'test66.com', 'uri': '/', 'remark': '测试t88'
         })
         self.assertKeysIn(keys=[
-            'id', 'name', 'url', 'remark', 'url_hash', 'creation', 'modification', 'is_attention'], container=r.data)
+            'id', 'name', 'scheme', 'hostname', 'uri', 'is_tamper_resistant', 'url',
+            'remark', 'url_hash', 'creation', 'modification', 'is_attention'], container=r.data)
         self.assert_is_subdict_of(sub={
             'name': 'name-test666', 'url': website_url2,
             'remark': '测试t88', 'url_hash': get_str_hash(website_url2)
@@ -727,10 +751,16 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(website.name, 'name-test666')
         self.assertEqual(website.url, website_url2)
         self.assertEqual(website.remark, '测试t88')
+        self.assertEqual(website.scheme, 'https://')
+        self.assertEqual(website.hostname, 'test66.com')
+        self.assertEqual(website.uri, '/')
+        self.assertIs(website.is_tamper_resistant, False)
 
         self.assertEqual(MonitorWebsiteTask.objects.count(), 2)
         task: MonitorWebsiteTask = MonitorWebsiteTask.objects.order_by('-creation').first()
         self.assertEqual(task.url, website_url2)
+        self.assertEqual(task.url_hash, get_str_hash(website.full_url))
+        self.assertIs(task.is_tamper_resistant, False)
 
         version = MonitorWebsiteVersion.get_instance()
         self.assertEqual(version.version, 2)
@@ -738,12 +768,13 @@ class MonitorWebsiteTests(MyAPITestCase):
         # user2, 1 ok
         self.client.logout()
         self.client.force_login(self.user2)
-        website_url3 = 'https://test3.cnn'
+        website_url3 = 'https://test3.cnn/'
         r = self.client.post(path=url, data={
-            'name': 'name3-test', 'url': website_url3, 'remark': '3test'
+            'name': 'name3-test', 'scheme': 'https://', 'hostname': 'test3.cnn', 'uri': '/', 'remark': '3test'
         })
         self.assertKeysIn(keys=[
-            'id', 'name', 'url', 'remark', 'url_hash', 'creation', 'modification', 'is_attention'], container=r.data)
+            'id', 'name', 'scheme', 'hostname', 'uri', 'is_tamper_resistant', 'url',
+            'remark', 'url_hash', 'creation', 'modification', 'is_attention'], container=r.data)
         self.assert_is_subdict_of(sub={
             'name': 'name3-test', 'url': website_url3,
             'remark': '3test', 'url_hash': get_str_hash(website_url3)
@@ -755,26 +786,35 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(website.name, 'name3-test')
         self.assertEqual(website.url, website_url3)
         self.assertEqual(website.remark, '3test')
+        self.assertEqual(website.scheme, 'https://')
+        self.assertEqual(website.hostname, 'test3.cnn')
+        self.assertEqual(website.uri, '/')
+        self.assertIs(website.is_tamper_resistant, False)
 
         self.assertEqual(MonitorWebsiteTask.objects.count(), 3)
         task: MonitorWebsiteTask = MonitorWebsiteTask.objects.order_by('-creation').first()
         self.assertEqual(task.url, website_url3)
+        self.assertEqual(task.url_hash, get_str_hash(website.full_url))
+        self.assertIs(task.is_tamper_resistant, False)
 
         version = MonitorWebsiteVersion.get_instance()
         self.assertEqual(version.version, 3)
 
-        # user2, TargetAlreadyExists
+        # user2, TargetAlreadyExists; website_url3='https://test3.cnn'
         r = self.client.post(path=url, data={
-            'name': 'name4-test', 'url': website_url3, 'remark': '4test'
+            'name': 'name4-test', 'scheme': 'https://', 'hostname': 'test3.cnn', 'uri': '/',
+            'is_tamper_resistant': True, 'remark': '4test'
         })
         self.assertErrorResponse(status_code=409, code='TargetAlreadyExists', response=r)
 
-        # user2, 2 ok, url == website_url2
+        # user2, 2 ok, website_url2 = 'https://test66.com/'
         r = self.client.post(path=url, data={
-            'name': 'name4-test', 'url': website_url2, 'remark': '4test'
+            'name': 'name4-test', 'scheme': 'https://', 'hostname': 'test66.com', 'uri': '/',
+            'is_tamper_resistant': True, 'remark': '4test'
         })
         self.assertKeysIn(keys=[
-            'id', 'name', 'url', 'remark', 'url_hash', 'creation', 'modification', 'is_attention'], container=r.data)
+            'id', 'name', 'scheme', 'hostname', 'uri', 'is_tamper_resistant', 'url',
+            'remark', 'url_hash', 'creation', 'modification', 'is_attention'], container=r.data)
         self.assert_is_subdict_of(sub={
             'name': 'name4-test', 'url': website_url2,
             'remark': '4test', 'url_hash': get_str_hash(website_url2)
@@ -786,10 +826,18 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(website.name, 'name4-test')
         self.assertEqual(website.url, website_url2)
         self.assertEqual(website.remark, '4test')
+        self.assertEqual(website.scheme, 'https://')
+        self.assertEqual(website.hostname, 'test66.com')
+        self.assertEqual(website.uri, '/')
+        self.assertIs(website.is_tamper_resistant, True)
 
         self.assertEqual(MonitorWebsiteTask.objects.count(), 3)
+        task: MonitorWebsiteTask = MonitorWebsiteTask.objects.order_by('-creation')[1]
+        self.assertEqual(task.url, website_url2)
+        self.assertEqual(task.url_hash, get_str_hash(website.full_url))
+        self.assertIs(task.is_tamper_resistant, True)
         version = MonitorWebsiteVersion.get_instance()
-        self.assertEqual(version.version, 3)
+        self.assertEqual(version.version, 4)
 
     def test_list_website_task(self):
         # NotAuthenticated
@@ -810,30 +858,34 @@ class MonitorWebsiteTests(MyAPITestCase):
         # add data
         nt = timezone.now()
         user_website1 = MonitorWebsite(
-            name='name1', url='https://11.com', remark='remark1', user_id=self.user.id,
-            creation=nt, modification=nt
+            name='name1', scheme='https://', hostname='11.com', uri='/', is_tamper_resistant=True,
+            remark='remark1', user_id=self.user.id, creation=nt, modification=nt
         )
+        user_website1.url = user_website1.full_url
         user_website1.save(force_insert=True)
 
         nt = timezone.now()
         user_website2 = MonitorWebsite(
-            name='name2', url='https://222.com', remark='remark2', user_id=self.user.id,
-            creation=nt, modification=nt
+            name='name2', scheme='https://', hostname='222.com', uri='/', is_tamper_resistant=False,
+            remark='remark2', user_id=self.user.id, creation=nt, modification=nt
         )
+        user_website2.url = user_website2.full_url
         user_website2.save(force_insert=True)
 
         nt = timezone.now()
         user2_website1 = MonitorWebsite(
-            name='name3', url='https://333.com', remark='remark3', user_id=self.user2.id,
-            creation=nt, modification=nt
+            name='name3', scheme='https://', hostname='333.com', uri='/', is_tamper_resistant=True,
+            remark='remark3', user_id=self.user2.id, creation=nt, modification=nt
         )
+        user2_website1.url = user2_website1.full_url
         user2_website1.save(force_insert=True)
 
         nt = timezone.now()
         user_website6 = MonitorWebsite(
-            name='name66', url='https://666.com', remark='remark66', user_id=self.user.id,
-            creation=nt, modification=nt
+            name='name66', scheme='https://', hostname='666.com', uri='/a/b?a=6&c=6#test', is_tamper_resistant=False,
+            remark='remark66', user_id=self.user.id, creation=nt, modification=nt
         )
+        user_website6.url = user_website6.full_url
         user_website6.save(force_insert=True)
 
         # ok, list
@@ -845,11 +897,14 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertIsInstance(r.data['results'], list)
         self.assertEqual(len(r.data['results']), 3)
         self.assertKeysIn(keys=[
-            'id', 'name', 'url', 'remark', 'url_hash', 'creation', 'user', 'modification', 'is_attention'
+            'id', 'name', 'scheme', 'hostname', 'uri', 'is_tamper_resistant', 'url',
+            'remark', 'url_hash', 'creation', 'user', 'modification', 'is_attention'
         ], container=r.data['results'][0])
         self.assert_is_subdict_of(sub={
             'name': user_website6.name, 'url': user_website6.url,
-            'remark': user_website6.remark, 'url_hash': user_website6.url_hash
+            'remark': user_website6.remark, 'url_hash': user_website6.url_hash,
+            'scheme': 'https://', 'hostname': '666.com', 'uri': '/a/b?a=6&c=6#test',
+            'is_tamper_resistant': False
         }, d=r.data['results'][0])
         self.assertEqual(r.data['results'][0]['user']['id'], self.user.id)
         self.assertEqual(r.data['results'][0]['user']['username'], self.user.username)
@@ -885,30 +940,32 @@ class MonitorWebsiteTests(MyAPITestCase):
 
         # add data
         nt = timezone.now()
-        website_url1 = 'https://11.com'
         user_website1 = MonitorWebsite(
-            name='name1', url=website_url1, remark='remark1', user_id=self.user.id,
-            creation=nt, modification=nt
+            name='name1', scheme='https://', hostname='11.com', uri='/', is_tamper_resistant=False,
+            remark='remark1', user_id=self.user.id, creation=nt, modification=nt
         )
+        user_website1.url = user_website1.full_url
         user_website1.save(force_insert=True)
-        task1 = MonitorWebsiteTask(url=website_url1)
+        task1 = MonitorWebsiteTask(url=user_website1.full_url, is_tamper_resistant=True)
         task1.save(force_insert=True)
 
         nt = timezone.now()
-        website_url2 = 'https://222.com'
+        website_url2 = 'https://222.com/'
         user_website2 = MonitorWebsite(
-            name='name2', url=website_url2, remark='remark2', user_id=self.user.id,
-            creation=nt, modification=nt
+            name='name2',  scheme='https://', hostname='222.com', uri='/', is_tamper_resistant=True,
+            url=website_url2, remark='remark2', user_id=self.user.id, creation=nt, modification=nt
         )
+        user_website2.url = user_website2.full_url
         user_website2.save(force_insert=True)
-        task1 = MonitorWebsiteTask(url=website_url2)
-        task1.save(force_insert=True)
+        task2 = MonitorWebsiteTask(url=user_website2.full_url, is_tamper_resistant=True)
+        task2.save(force_insert=True)
 
         nt = timezone.now()
         user2_website2 = MonitorWebsite(
-            name='name22', url=website_url2, remark='remark22', user_id=self.user2.id,
-            creation=nt, modification=nt
+            name='name22', scheme='https://', hostname='222.com', uri='/', is_tamper_resistant=False,
+            remark='remark22', user_id=self.user2.id, creation=nt, modification=nt
         )
+        user2_website2.url = user2_website2.full_url
         user2_website2.save(force_insert=True)
 
         version = MonitorWebsiteVersion.get_instance()
@@ -937,12 +994,16 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(MonitorWebsiteTask.objects.count(), 1)
 
         # user delete website2 ok
+        task2.refresh_from_db()
+        self.assertIs(task2.is_tamper_resistant, True)
         url = reverse('api:monitor-website-detail', kwargs={'id': user_website2.id})
         r = self.client.delete(path=url)
         self.assertEqual(r.status_code, 204)
+        task2.refresh_from_db()
+        self.assertIs(task2.is_tamper_resistant, False)
 
         version = MonitorWebsiteVersion.get_instance()
-        self.assertEqual(version.version, 1)
+        self.assertEqual(version.version, 2)
         self.assertEqual(MonitorWebsite.objects.count(), 1)
         self.assertEqual(MonitorWebsiteTask.objects.count(), 1)
         task = MonitorWebsiteTask.objects.first()
@@ -962,13 +1023,13 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data['version'], 66)
 
-        task1 = MonitorWebsiteTask(url='https://11.com')
+        task1 = MonitorWebsiteTask(url='https://11.com/', is_tamper_resistant=True)
         task1.save(force_insert=True)
-        task2 = MonitorWebsiteTask(url='https://22.com')
+        task2 = MonitorWebsiteTask(url='https://22.com/', is_tamper_resistant=True)
         task2.save(force_insert=True)
-        task3 = MonitorWebsiteTask(url='https://33.com')
+        task3 = MonitorWebsiteTask(url='https://33.com/', is_tamper_resistant=False)
         task3.save(force_insert=True)
-        task4 = MonitorWebsiteTask(url='https://44.com')
+        task4 = MonitorWebsiteTask(url='https://44.com/', is_tamper_resistant=False)
         task4.save(force_insert=True)
 
         # list task
@@ -983,7 +1044,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertIsNone(r.data['marker'])
         self.assertIsNone(r.data['next_marker'])
         self.assertEqual(len(r.data['results']), 4)
-        self.assertKeysIn(keys=['url', 'url_hash', 'creation'], container=r.data['results'][0])
+        self.assertKeysIn(keys=['url', 'url_hash', 'creation', 'is_tamper_resistant'], container=r.data['results'][0])
         self.assertEqual(r.data['results'][0]['url'], task4.url)
 
         # list task, query "page_size"
@@ -1017,30 +1078,33 @@ class MonitorWebsiteTests(MyAPITestCase):
 
         # add data
         nt = timezone.now()
-        website_url1 = 'https://111.com'
+        website_url1 = 'https://111.com/'
         user_website1 = MonitorWebsite(
-            name='name1', url=website_url1, remark='remark1', user_id=self.user.id,
-            creation=nt, modification=nt
+            name='name1', scheme='https://', hostname='111.com', uri='/', is_tamper_resistant=False,
+            remark='remark1', user_id=self.user.id, creation=nt, modification=nt
         )
+        user_website1.url = user_website1.full_url
         user_website1.save(force_insert=True)
-        task1 = MonitorWebsiteTask(url=website_url1)
+        task1 = MonitorWebsiteTask(url=user_website1.full_url, is_tamper_resistant=False)
         task1.save(force_insert=True)
 
         nt = timezone.now()
-        website_url2 = 'https://2222.com'
+        website_url2 = 'https://2222.com/'
         user_website2 = MonitorWebsite(
-            name='name2', url=website_url2, remark='remark2', user_id=self.user.id,
-            creation=nt, modification=nt
+            name='name2', scheme='https://', hostname='2222.com', uri='/', is_tamper_resistant=True,
+            remark='remark2', user_id=self.user.id, creation=nt, modification=nt
         )
+        user_website2.url = user_website2.full_url
         user_website2.save(force_insert=True)
-        task1 = MonitorWebsiteTask(url=website_url2)
+        task1 = MonitorWebsiteTask(url=user_website2.full_url, is_tamper_resistant=True)
         task1.save(force_insert=True)
 
         nt = timezone.now()
         user2_website2 = MonitorWebsite(
-            name='name222', url=website_url2, remark='remark222', user_id=self.user2.id,
-            creation=nt, modification=nt
+            name='name222', scheme='https://', hostname='2222.com', uri='/', is_tamper_resistant=False,
+            remark='remark222', user_id=self.user2.id, creation=nt, modification=nt
         )
+        user2_website2.url = user2_website2.full_url
         user2_website2.save(force_insert=True)
 
         version = MonitorWebsiteVersion.get_instance()
@@ -1056,15 +1120,13 @@ class MonitorWebsiteTests(MyAPITestCase):
         url = reverse('api:monitor-website-detail', kwargs={'id': 'test'})
 
         # no "name"， BadRequest
-        r = self.client.put(path=url, data={'url': 'https://ccc.com', 'remark': ''})
+        r = self.client.put(path=url, data={
+            'scheme': 'https://', 'hostname': 'ccc.com', 'uri': '/', 'is_tamper_resistant': True, 'remark': ''})
         self.assertErrorResponse(status_code=400, code='BadRequest', response=r)
 
-        # InvalidUrl
-        r = self.client.put(path=url, data={'name': 'nametest', 'url': 'https://ccc', 'remark': ''})
-        self.assertErrorResponse(status_code=400, code='InvalidUrl', response=r)
-
         # NotFound
-        data = {'name': 'test', 'url': 'https://ccc.com', 'remark': ''}
+        data = {'name': 'test', 'scheme': 'https://', 'hostname': 'ccc.com', 'uri': '/',
+                'is_tamper_resistant': True, 'remark': ''}
         r = self.client.put(path=url, data=data)
         self.assertErrorResponse(status_code=404, code='NotFound', response=r)
 
@@ -1074,7 +1136,9 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
 
         # user change website1 name, ok
-        data = {'name': 'change name', 'url': user_website1.url, 'remark': user_website1.remark}
+        data = {'name': 'change name', 'scheme': user_website1.scheme, 'hostname': user_website1.hostname,
+                'uri': user_website1.uri, 'is_tamper_resistant': user_website1.is_tamper_resistant,
+                'remark': user_website1.remark}
         url = reverse('api:monitor-website-detail', kwargs={'id': user_website1.id})
         r = self.client.put(path=url, data=data)
         self.assertEqual(r.status_code, 200)
@@ -1089,11 +1153,19 @@ class MonitorWebsiteTests(MyAPITestCase):
         tasks = MonitorWebsiteTask.objects.order_by('-creation').all()
         self.assertEqual(len(tasks), 2)
         self.assertEqual(tasks[0].url, website_url2)
+        self.assertIs(tasks[0].is_tamper_resistant, True)
         self.assertEqual(tasks[1].url, website_url1)
+        self.assertIs(tasks[1].is_tamper_resistant, False)
+
+        # user change website1 "name" and "url", InvalidUrl
+        r = self.client.put(path=url, data={
+            'name': 'nametest', 'scheme': 'https://', 'hostname': 'ccc', 'uri': '/', 'remark': ''})
+        self.assertErrorResponse(status_code=400, code='InvalidUrl', response=r)
 
         # user change website1 "name" and "url", ok
-        new_website_url1 = 'https://666.cn'
-        data = {'name': user_website1.name, 'url': new_website_url1, 'remark': user_website1.remark}
+        new_website_url1 = 'https://666.cn/'
+        data = {'name': user_website1.name, 'scheme': 'https://', 'hostname': '666.cn', 'uri': '/',
+                'remark': user_website1.remark}
         url = reverse('api:monitor-website-detail', kwargs={'id': user_website1.id})
         r = self.client.put(path=url, data=data)
         self.assertEqual(r.status_code, 200)
@@ -1102,7 +1174,8 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(website1.url, new_website_url1)
         self.assertEqual(website1.remark, user_website1.remark)
         self.assertKeysIn(keys=[
-            'id', 'name', 'url', 'remark', 'url_hash', 'creation', 'modification', 'is_attention'
+            'id', 'name', 'scheme', 'hostname', 'uri', 'url', 'is_tamper_resistant',
+            'remark', 'url_hash', 'creation', 'modification', 'is_attention'
         ], container=r.data)
 
         version = MonitorWebsiteVersion.get_instance()
@@ -1111,11 +1184,14 @@ class MonitorWebsiteTests(MyAPITestCase):
         tasks = MonitorWebsiteTask.objects.order_by('-creation').all()
         self.assertEqual(len(tasks), 2)
         self.assertEqual(tasks[1].url, website_url2)
+        self.assertIs(tasks[1].is_tamper_resistant, True)
         self.assertEqual(tasks[0].url, new_website_url1)
+        self.assertIs(tasks[0].is_tamper_resistant, False)
 
         # user change website2 "remark" and "url", ok
-        new_website_url2 = 'https://888.cn'
-        data = {'name': user_website2.name, 'url': new_website_url2, 'remark': '新的 remark'}
+        new_website_url2 = 'https://888.cn/a/?b=6&c=8#test'
+        data = {'name': user_website2.name, 'scheme': 'https://', 'hostname': '888.cn', 'uri': '/a/?b=6&c=8#test',
+                'url': new_website_url2, 'remark': '新的 remark'}
         url = reverse('api:monitor-website-detail', kwargs={'id': user_website2.id})
         r = self.client.put(path=url, data=data)
         self.assertEqual(r.status_code, 200)
@@ -1123,6 +1199,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(website2.name, user_website2.name)
         self.assertEqual(website2.url, new_website_url2)
         self.assertEqual(website2.remark, '新的 remark')
+        self.assertIs(website2.is_tamper_resistant, True)
 
         version = MonitorWebsiteVersion.get_instance()
         self.assertEqual(version.version, 2)
@@ -1130,8 +1207,35 @@ class MonitorWebsiteTests(MyAPITestCase):
         tasks = MonitorWebsiteTask.objects.order_by('-creation').all()
         self.assertEqual(len(tasks), 3)
         self.assertEqual(tasks[0].url, new_website_url2)
+        self.assertIs(tasks[0].is_tamper_resistant, True)
         self.assertEqual(tasks[1].url, new_website_url1)
+        self.assertIs(tasks[1].is_tamper_resistant, False)
         self.assertEqual(tasks[2].url, website_url2)
+        self.assertIs(tasks[2].is_tamper_resistant, False)
+
+        # user change website2 "is_tamper_resistant", ok
+        data = {'name': user_website2.name, 'scheme': 'https://', 'hostname': '888.cn', 'uri': '/a/?b=6&c=8#test',
+                'is_tamper_resistant': False, 'url': new_website_url2, 'remark': '新的 remark'}
+        url = reverse('api:monitor-website-detail', kwargs={'id': user_website2.id})
+        r = self.client.put(path=url, data=data)
+        self.assertEqual(r.status_code, 200)
+        website2 = MonitorWebsite.objects.get(id=user_website2.id)
+        self.assertEqual(website2.name, user_website2.name)
+        self.assertEqual(website2.url, new_website_url2)
+        self.assertEqual(website2.remark, '新的 remark')
+        self.assertIs(website2.is_tamper_resistant, False)
+
+        version = MonitorWebsiteVersion.get_instance()
+        self.assertEqual(version.version, 3)
+        self.assertEqual(MonitorWebsite.objects.count(), 3)
+        tasks = MonitorWebsiteTask.objects.order_by('-creation').all()
+        self.assertEqual(len(tasks), 3)
+        self.assertEqual(tasks[0].url, new_website_url2)
+        self.assertIs(tasks[0].is_tamper_resistant, False)
+        self.assertEqual(tasks[1].url, new_website_url1)
+        self.assertIs(tasks[1].is_tamper_resistant, False)
+        self.assertEqual(tasks[2].url, website_url2)
+        self.assertIs(tasks[2].is_tamper_resistant, False)
 
     def test_list_website_detection_point(self):
         # NotAuthenticated

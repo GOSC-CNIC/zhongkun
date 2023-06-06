@@ -219,6 +219,10 @@ class MonitorWebsite(UuidModel):
         verbose_name=_('用户'), to=UserProfile, related_name='+',
         on_delete=models.SET_NULL, blank=True, null=True, db_constraint=False)
     is_attention = models.BooleanField(verbose_name=_('特别关注'), default=False)
+    is_tamper_resistant = models.BooleanField(verbose_name=_('防篡改'), default=False)
+    scheme = models.CharField(verbose_name=_('协议'), max_length=32, default='', help_text='https|ftps://')
+    hostname = models.CharField(verbose_name=_('域名'), max_length=255, default='', help_text='hostname:8000')
+    uri = models.CharField(verbose_name=_('URI'), max_length=1024, default='', help_text='/a/b?query=123#test')
 
     class Meta:
         db_table = 'monitor_website'
@@ -230,11 +234,17 @@ class MonitorWebsite(UuidModel):
         return self.name
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-        self.url_hash = get_str_hash(self.url)
-        if isinstance(update_fields, list) and 'url' in update_fields:
-            update_fields.append('url_hash')
+        url_hash = get_str_hash(self.full_url)
+        if url_hash != self.url_hash:
+            self.url_hash = url_hash
+            if update_fields and 'url_hash' not in update_fields:
+                update_fields.append('url_hash')
 
         super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
+
+    @property
+    def full_url(self):
+        return self.scheme + self.hostname + self.uri
 
 
 class MonitorWebsiteTask(UuidModel):
@@ -244,6 +254,7 @@ class MonitorWebsiteTask(UuidModel):
     url = models.CharField(verbose_name=_('要监控的网址'), max_length=2048, default='')
     url_hash = models.CharField(verbose_name=_('网址hash值'), unique=True, max_length=64, default='')
     creation = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
+    is_tamper_resistant = models.BooleanField(verbose_name=_('防篡改'), default=False)
 
     class Meta:
         db_table = 'monitor_website_task'

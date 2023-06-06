@@ -58,13 +58,21 @@ class MonitorWebsiteSerializer(serializers.Serializer):
     id = serializers.CharField(label=_('ID'), read_only=True)
 
     name = serializers.CharField(label=_('网站名称'), max_length=255, required=True)
-    url = serializers.URLField(label=_('要监控的网址'), max_length=2048, required=True, help_text='http(s)://xxx.xxx')
+    scheme = serializers.CharField(label=_('协议'), max_length=32, required=True, help_text='https|ftps://')
+    hostname = serializers.CharField(label=_('域名'), max_length=255, required=True, help_text='hostname:8000')
+    uri = serializers.CharField(label=_('URI'), max_length=1024, required=True, help_text='/a/b?query=123#test')
+    is_tamper_resistant = serializers.BooleanField(label=_('防篡改'), required=False, allow_null=True, default=None)
     remark = serializers.CharField(label=_('备注'), max_length=255, allow_blank=True, default='')
 
     url_hash = serializers.CharField(label=_('网址hash值'), max_length=64, read_only=True)
     creation = serializers.DateTimeField(label=_('创建时间'), read_only=True)
     modification = serializers.DateTimeField(label=_('修改时间'), read_only=True)
     is_attention = serializers.BooleanField(label=_('特别关注'), read_only=True)
+    url = serializers.SerializerMethodField(label=_('要监控的网址'), method_name='get_url')
+
+    @staticmethod
+    def get_url(obj):
+        return obj.full_url
 
 
 class MonitorWebsiteWithUserSerializer(MonitorWebsiteSerializer):
@@ -84,6 +92,7 @@ class MonitorWebsiteTaskSerializer(serializers.Serializer):
     url = serializers.URLField(label=_('要监控的网址'), max_length=2048, required=True, help_text='http(s)://xxx.xxx')
     url_hash = serializers.CharField(label=_('网址hash值'), max_length=64, read_only=True)
     creation = serializers.DateTimeField(label=_('创建时间'), read_only=True)
+    is_tamper_resistant = serializers.BooleanField(label=_('防篡改'))
 
 
 class MonitorWebsiteDetectionPointSerializer(serializers.Serializer):

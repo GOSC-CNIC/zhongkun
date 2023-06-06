@@ -70,19 +70,30 @@ class MonitorWebsiteForm(ModelForm):
 class MonitorWebsiteAdmin(NoDeleteSelectModelAdmin):
     form = MonitorWebsiteForm
 
-    list_display = ('id', 'name', 'url', 'is_attention', 'url_hash', 'creation', 'modification', 'user')
+    list_display = ('id', 'name', 'is_attention', 'is_tamper_resistant', 'scheme', 'hostname', 'uri',
+                    'url', 'url_hash', 'creation', 'modification', 'user')
     list_display_links = ('id', 'name')
     list_select_related = ('user',)
     raw_id_fields = ('user',)
-    search_fields = ('name', 'url', 'user__username')
-    readonly_fields = ('url_hash',)
+    search_fields = ('name', 'hostname', 'uri', 'user__username')
+    readonly_fields = ('url_hash', 'url')
 
-    def save_model(self, request, obj, form, change):
+    def save_model(self, request, obj: MonitorWebsite, form, change):
         if change:
             old_website = MonitorWebsite.objects.filter(id=obj.id).first()
-            new_url = obj.url
-            obj.url = old_website.url
-            MonitorWebsiteManager.do_change_website_task(user_website=obj, new_url=new_url)
+            new_scheme = obj.scheme
+            new_hostname = obj.hostname
+            new_uri = obj.uri
+            new_is_tamper_resistant = obj.is_tamper_resistant
+
+            obj.scheme = old_website.scheme
+            obj.hostname = old_website.hostname
+            obj.uri = old_website.uri
+            obj.is_tamper_resistant = old_website.is_tamper_resistant
+            MonitorWebsiteManager.do_change_website_task(
+                user_website=obj, new_scheme=new_scheme, new_hostname=new_hostname, new_uri=new_uri,
+                new_tamper_resistant=new_is_tamper_resistant
+            )
         else:
             MonitorWebsiteManager.do_add_website_task(user_website=obj)
 

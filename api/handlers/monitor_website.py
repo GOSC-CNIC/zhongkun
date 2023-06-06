@@ -26,7 +26,10 @@ class MonitorWebsiteHandler:
 
             task = MonitorWebsiteManager.add_website_task(
                 name=params['name'],
-                url=params['url'],
+                scheme=params['scheme'],
+                hostname=params['hostname'],
+                uri=params['uri'],
+                is_tamper_resistant=True if params['is_tamper_resistant'] else False,
                 remark=params['remark'],
                 user_id=request.user.id
             )
@@ -46,9 +49,15 @@ class MonitorWebsiteHandler:
             s_errors = serializer.errors
             if 'name' in s_errors:
                 exc = errors.BadRequest(message=_('无效的监控任务名称。') + s_errors['name'][0])
-            elif 'url' in s_errors:
+            elif 'scheme' in s_errors:
                 exc = errors.BadRequest(
-                    message=_('无效的站点网址。') + s_errors['url'][0], code='InvalidUrl')
+                    message=_('无效的站点协议。') + s_errors['scheme'][0], code='InvalidScheme')
+            elif 'hostname' in s_errors:
+                exc = errors.BadRequest(
+                    message=_('无效的站点域名。') + s_errors['hostname'][0], code='InvalidHostname')
+            elif 'uri' in s_errors:
+                exc = errors.BadRequest(
+                    message=_('无效的站点URI。') + s_errors['uri'][0], code='InvalidUri')
             elif 'remark' in s_errors:
                 exc = errors.BadRequest(
                     message=_('问题相关的服务无效。') + s_errors['remark'][0])
@@ -57,6 +66,10 @@ class MonitorWebsiteHandler:
                 exc = errors.BadRequest(message=msg)
 
             raise exc
+
+        uri = serializer.validated_data.get('uri', '')
+        if not uri or not uri.startswith('/'):
+            raise errors.BadRequest(message=_('无效的站点URI，必须以“/”开头。'), code='InvalidUri')
 
         return serializer.validated_data
 
@@ -71,7 +84,10 @@ class MonitorWebsiteHandler:
             task = MonitorWebsiteManager.change_website_task(
                 _id=website_id,
                 name=params['name'],
-                url=params['url'],
+                scheme=params['scheme'],
+                hostname=params['hostname'],
+                uri=params['uri'],
+                is_tamper_resistant=params['is_tamper_resistant'],
                 remark=params['remark'],
                 user=request.user
             )

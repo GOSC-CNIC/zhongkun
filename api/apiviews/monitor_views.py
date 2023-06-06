@@ -430,7 +430,11 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
             {
               "id": "7fd4bd5c-3794-11ec-93e9-c8009fe2eb10",
               "name": "testdev",
-              "url": "https://xxx.com",
+              "scheme": "https://",
+              "hostname": "baidu.com:8888",
+              "uri": "/string",
+              "is_tamper_resistant": false,
+              "url": "https://baidu.com:8888/string",
               "remark": "string",
               "url_hash": "232c139d4ddfce0b1e94ae8a1aea85dd9547a060",
               "creation": "2023-01-13T09:29:32.543642Z",
@@ -461,7 +465,11 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
                 {
                   "id": "727cee5a-9f70-11ed-aba9-c8009fe2ebbc",
                   "name": "name-string",
-                  "url": "https://vms.com",
+                  "scheme": "https://",
+                  "hostname": "baidu.com:8888",
+                  "uri": "/string",
+                  "is_tamper_resistant": false,     # 是否防篡改
+                  "url": "https://baidu.com:8888/string",
                   "remark": "string",
                   "url_hash": "8bb5f2cff06fa7a4cdc449e66b9d0c0377a19ede",
                   "creation": "2023-01-29T01:01:22.403887Z",
@@ -521,7 +529,11 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
             {
               "id": "727cee5a-9f70-11ed-aba9-c8009fe2ebbc",
               "name": "string66",
-              "url": "https://666.cn",
+              "scheme": "https://",
+              "hostname": "666.cn",
+              "uri": "/",
+              "is_tamper_resistant": false,
+              "url": "https://666.cn/",
               "remark": "string788",
               "url_hash": "67e473e075648ca8305e3ceafca60c0efca9abf7",
               "creation": "2023-01-29T01:01:22.403887Z",
@@ -778,7 +790,10 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
             {
               "id": "727cee5a-9f70-11ed-aba9-c8009fe2ebbc",
               "name": "string66",
-              "url": "https://666.cn",
+              "scheme": "https://",
+              "hostname": "baidu.com:8888",
+              "uri": "/string",
+              "is_tamper_resistant": false,     # 是否防篡改
               "remark": "string788",
               "url_hash": "67e473e075648ca8305e3ceafca60c0efca9abf7",
               "creation": "2023-01-29T01:01:22.403887Z",
@@ -842,9 +857,10 @@ class MonitorWebsiteTaskViewSet(CustomGenericViewSet):
               "next_marker": null,      # 下一页标记
               "results": [
                 {
-                  "url": "http://vms.com",
+                  "url": "https://vms.com",
                   "url_hash": "8bb5f2cff06fa7a4cdc449e66b9d0c0377a19ede",
-                  "creation": "2023-01-29T01:01:22.439153Z"
+                  "creation": "2023-01-29T01:01:22.439153Z",
+                  "is_tamper_resistant": true
                 }
               ]
             }
