@@ -473,12 +473,15 @@ class MonitorWebsiteManager:
             False   # 监控任务 防篡改 未更新
         """
         # 是否还有防篡改用户监控任务
-        count = MonitorWebsite.objects.filter(
-            url_hash=url_hash, url=full_url, is_tamper_resistant=True).count()
-        if count == 0:
-            is_tamper_resistant = False
-        else:
-            is_tamper_resistant = True
+        is_tamper_resistant = False
+        sites = MonitorWebsite.objects.filter(
+            url_hash=url_hash, is_tamper_resistant=True).all()
+        for site in sites:
+            site: MonitorWebsite
+            if site.full_url == full_url:
+                if site.is_tamper_resistant is True:
+                    is_tamper_resistant = True
+                    break
 
         # 尝试更新监控任务防篡改标记
         rows = MonitorWebsiteTask.objects.filter(
