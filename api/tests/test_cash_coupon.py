@@ -1,6 +1,6 @@
 from decimal import Decimal
 from urllib import parse
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 from django.urls import reverse
 from django.utils import timezone
@@ -9,7 +9,8 @@ from utils.model import OwnerType
 from utils.test import get_or_create_service, get_or_create_user
 from vo.models import VirtualOrganization, VoMember
 from bill.models import (
-    CashCoupon, PayAppService, PayApp, PayOrgnazition, CashCouponActivity, TransactionBill, PaymentHistory
+    CashCoupon, PayAppService, PayApp, PayOrgnazition, CashCouponActivity, TransactionBill, PaymentHistory,
+    CashCouponPaymentHistory
 )
 from bill.managers import PaymentManager, CashCouponActivityManager
 from api.handlers.cash_coupon_handler import QueryCouponValidChoices
@@ -1763,3 +1764,160 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assertEqual(tbill.app_id, pay_history2.app_id)
         self.assertEqual(tbill.trade_type, TransactionBill.TradeType.PAYMENT.value)
         self.assertEqual(tbill.trade_id, pay_history2.id)
+
+    def test_admin_statistics(self):
+        vo1 = VirtualOrganization(name='test vo', owner_id=self.user.id)
+        vo1.save(force_insert=True)
+
+        now_time = timezone.now()
+        coupon1_user = CashCoupon(
+            face_value=Decimal('1.11'),
+            balance=Decimal('1.11'),
+            effective_time=datetime(year=2023, month=5, day=1, tzinfo=timezone.utc),
+            expiration_time=now_time + timedelta(days=2),
+            status=CashCoupon.Status.WAIT.value,
+            granted_time=None,
+            owner_type=OwnerType.USER.value,
+            user=self.user,
+            app_service_id=self.app_service1.id
+        )
+        coupon1_user.save(force_insert=True)
+        coupon1_user.creation_time = datetime(year=2023, month=4, day=1, tzinfo=timezone.utc)
+        coupon1_user.save(update_fields=['creation_time'])
+
+        coupon2_user = CashCoupon(
+            face_value=Decimal('2.22'),
+            balance=Decimal('1.22'),
+            effective_time=datetime(year=2023, month=5, day=1, tzinfo=timezone.utc),
+            expiration_time=datetime(year=2023, month=5, day=30, tzinfo=timezone.utc),
+            status=CashCoupon.Status.AVAILABLE.value,
+            granted_time=datetime(year=2023, month=5, day=1, tzinfo=timezone.utc),
+            owner_type=OwnerType.USER.value,
+            user=self.user,
+            app_service_id=self.app_service1.id
+        )
+        coupon2_user.save(force_insert=True)
+        coupon2_user.creation_time = datetime(year=2023, month=5, day=1, tzinfo=timezone.utc)
+        coupon2_user.save(update_fields=['creation_time'])
+
+        coupon1_vo = CashCoupon(
+            face_value=Decimal('3.33'),
+            balance=Decimal('3.33'),
+            effective_time=datetime(year=2023, month=5, day=10, tzinfo=timezone.utc),
+            expiration_time=now_time + timedelta(days=1),
+            status=CashCoupon.Status.AVAILABLE.value,
+            granted_time=datetime(year=2023, month=5, day=1, tzinfo=timezone.utc),
+            owner_type=OwnerType.VO.value,
+            vo=vo1,
+            app_service_id=self.app_service1.id
+        )
+        coupon1_vo.save(force_insert=True)
+        coupon1_vo.creation_time = datetime(year=2023, month=5, day=8, tzinfo=timezone.utc)
+        coupon1_vo.save(update_fields=['creation_time'])
+
+        coupon2_vo = CashCoupon(
+            face_value=Decimal('4.44'),
+            balance=Decimal('3.3'),
+            effective_time=datetime(year=2023, month=5, day=10, tzinfo=timezone.utc),
+            expiration_time=datetime(year=2023, month=6, day=1, tzinfo=timezone.utc),
+            status=CashCoupon.Status.DELETED.value,
+            granted_time=datetime(year=2023, month=5, day=10, tzinfo=timezone.utc),
+            owner_type=OwnerType.VO.value,
+            vo=vo1,
+            app_service_id=self.app_service2.id
+        )
+        coupon2_vo.save(force_insert=True)
+        coupon2_vo.creation_time = datetime(year=2023, month=5, day=31, tzinfo=timezone.utc)
+        coupon2_vo.save(update_fields=['creation_time'])
+
+        coupon2_user_pay = CashCouponPaymentHistory(
+            payment_history_id=None, cash_coupon_id=coupon2_user.id, amounts=Decimal('-1.01'),
+            before_payment=Decimal('0'), after_payment=Decimal('0')
+        )
+        coupon2_user_pay.save(force_insert=True)
+        coupon2_vo_pay = CashCouponPaymentHistory(
+            payment_history_id=None, cash_coupon_id=coupon2_vo.id, amounts=Decimal('-0.66'),
+            before_payment=Decimal('0'), after_payment=Decimal('0')
+        )
+        coupon2_vo_pay.save(force_insert=True)
+
+        # NotAuthenticated
+        self.client.logout()
+        base_url = reverse('api:admin-coupon-statistics')
+        response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
+
+        # AccessDenied
+        self.client.force_login(self.user)
+        response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.user.set_federal_admin()
+        query = parse.urlencode(query={
+            'time_start': '2023-05-01T00:00:00', 'time_end': '2023-05-10T00:00:00Z'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # ok
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(keys=[
+            'total_face_value', 'total_count', 'redeem_count', 'coupon_pay_amounts', 'total_balance'
+        ], container=response.data)
+        self.assertEqual(Decimal(response.data['total_face_value']), Decimal(f'{(1.11+2.22+3.33+4.44):.2f}'))
+        self.assertEqual(response.data['total_count'], 4)
+        self.assertEqual(response.data['redeem_count'], 3)
+        self.assertEqual(Decimal(response.data['coupon_pay_amounts']), Decimal(f'{(1.01+0.66):.2f}'))
+        self.assertEqual(Decimal(response.data['total_balance']), Decimal('3.33'))      # 当前有效券余额
+
+        # app_service_id
+        query = parse.urlencode(query={'app_service_id': self.app_service1.id})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Decimal(response.data['total_face_value']), Decimal(f'{(1.11 + 2.22 + 3.33):.2f}'))
+        self.assertEqual(response.data['total_count'], 3)
+        self.assertEqual(response.data['redeem_count'], 2)
+        self.assertEqual(Decimal(response.data['coupon_pay_amounts']), Decimal('1.01'))
+        self.assertEqual(Decimal(response.data['total_balance']), Decimal('3.33'))
+
+        query = parse.urlencode(query={'app_service_id': self.app_service2.id})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Decimal(response.data['total_face_value']), Decimal(f'{4.44:.2f}'))
+        self.assertEqual(response.data['total_count'], 1)
+        self.assertEqual(response.data['redeem_count'], 1)
+        self.assertEqual(Decimal(response.data['coupon_pay_amounts']), Decimal('0.66'))
+        self.assertEqual(Decimal(response.data['total_balance']), Decimal('0.00'))
+
+        # time_start, time_end
+        query = parse.urlencode(query={
+            'time_start': '2023-05-01T00:00:00Z', 'time_end': '2023-05-10T00:00:00Z'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Decimal(response.data['total_face_value']), Decimal(f'{(2.22 + 3.33):.2f}'))
+        self.assertEqual(response.data['total_count'], 2)
+        self.assertEqual(response.data['redeem_count'], 2)
+        self.assertEqual(Decimal(response.data['coupon_pay_amounts']), Decimal(f'{(1.01+0.66):.2f}'))
+        self.assertEqual(Decimal(response.data['total_balance']), Decimal('3.33'))
+
+        query = parse.urlencode(query={
+            'time_start': '2023-05-01T00:00:00Z', 'time_end': '2023-06-01T00:00:00Z'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Decimal(response.data['total_face_value']), Decimal(f'{(2.22 + 3.33 + 4.44):.2f}'))
+        self.assertEqual(response.data['total_count'], 3)
+        self.assertEqual(response.data['redeem_count'], 3)
+        self.assertEqual(Decimal(response.data['coupon_pay_amounts']), Decimal(f'{(1.01+0.66):.2f}'))
+        self.assertEqual(Decimal(response.data['total_balance']), Decimal('3.33'))
+
+        # time_start, time_end, app_service_id
+        query = parse.urlencode(query={
+            'time_start': '2023-05-01T00:00:00Z', 'time_end': '2023-06-01T00:00:00Z',
+            'app_service_id': self.app_service2.id})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Decimal(response.data['total_face_value']), Decimal(f'{4.44:.2f}'))
+        self.assertEqual(response.data['total_count'], 1)
+        self.assertEqual(response.data['redeem_count'], 1)
+        self.assertEqual(Decimal(response.data['coupon_pay_amounts']), Decimal('0.66'))
+        self.assertEqual(Decimal(response.data['total_balance']), Decimal('0'))

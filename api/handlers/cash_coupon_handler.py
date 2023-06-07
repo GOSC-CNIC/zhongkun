@@ -1,6 +1,7 @@
 import math
 import io
 from datetime import timedelta
+from decimal import Decimal
 
 from django.utils.http import urlquote
 from django.utils import timezone
@@ -15,7 +16,7 @@ from api.viewsets import CustomGenericViewSet
 from api.serializers.serializers import AdminCashCouponSerializer
 from bill.managers import CashCouponManager
 from bill.managers.cash_coupon import get_app_service_by_admin
-from bill.models import CashCoupon, PayAppService
+from bill.models import CashCoupon, PayAppService, CashCouponPaymentHistory
 from utils.report_file import CSVFileInMemory
 from utils.time import iso_utc_to_datetime
 from utils import rand_utils
@@ -522,3 +523,82 @@ class CashCouponHandler:
             return view.get_paginated_response(serializer.data)
         except Exception as exc:
             return view.exception_response(errors.convert_to_error(exc))
+
+    @staticmethod
+    def admin_cash_coupon_statistics(view: CustomGenericViewSet, request, kwargs):
+        """
+        联邦管理员查询券统计信息
+        """
+        from django.db.models import Count, Sum
+
+        time_start = request.query_params.get('time_start', None)
+        time_end = request.query_params.get('time_end', None)
+        app_service_id = request.query_params.get('app_service_id', None)
+
+        try:
+            if time_start is not None:
+                time_start = iso_utc_to_datetime(time_start)
+                if time_start is None:
+                    raise errors.InvalidArgument(message=_('参数“time_start”的值无效的时间格式'))
+
+            if time_end is not None:
+                time_end = iso_utc_to_datetime(time_end)
+                if time_end is None:
+                    raise errors.InvalidArgument(message=_('参数“time_end”的值无效的时间格式'))
+
+            if time_start and time_end:
+                if time_start >= time_end:
+                    raise errors.InvalidArgument(message=_('参数“time_start”时间必须超前“time_end”时间'))
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        try:
+            if not request.user.is_federal_admin():
+                raise errors.AccessDenied(message=_('你没有联邦管理员权限。'))
+
+            lookups = {}
+            if time_start:
+                lookups['creation_time__gte'] = time_start
+            if time_end:
+                lookups['creation_time__lte'] = time_end
+            if app_service_id:
+                lookups['app_service_id'] = app_service_id
+
+            r = CashCoupon.objects.filter(**lookups).aggregate(
+                total_count=Count('id', distinct=True),
+                total_face_value=Sum('face_value')
+            )
+            total_count = r['total_count']
+            total_face_value = r['total_face_value'] if r['total_face_value'] else Decimal(0.00)
+
+            # 兑换券数量
+            redeem_count = CashCoupon.objects.filter(**lookups).exclude(status=CashCoupon.Status.WAIT.value).count()
+
+            # 券总消费点数，时间段参数无效
+            lookups = {}
+            if app_service_id:
+                lookups['cash_coupon__app_service_id'] = app_service_id
+            r = CashCouponPaymentHistory.objects.filter(**lookups).aggregate(
+                coupon_pay_amounts=Sum('amounts'))
+            coupon_pay_amounts = r['coupon_pay_amounts'] if r['coupon_pay_amounts'] else Decimal('0.00')
+            coupon_pay_amounts = -coupon_pay_amounts
+
+            # 有效券总余额，时间段参数无效
+            lookups = {}
+            if app_service_id:
+                lookups['app_service_id'] = app_service_id
+            r = CashCoupon.objects.filter(
+                **lookups, expiration_time__gt=timezone.now(),
+                status=CashCoupon.Status.AVAILABLE.value
+            ).aggregate(total_balance=Sum('balance'))
+            total_balance = r['total_balance'] if r['total_balance'] else Decimal('0.00')
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        return Response(data={
+            'total_face_value': total_face_value,
+            'total_count': total_count,
+            'redeem_count': redeem_count,
+            'coupon_pay_amounts': coupon_pay_amounts,
+            'total_balance': total_balance
+        })

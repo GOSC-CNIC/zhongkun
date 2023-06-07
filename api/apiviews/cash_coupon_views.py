@@ -11,6 +11,7 @@ from api.handlers.cash_coupon_handler import CashCouponHandler, QueryCouponValid
 from api.serializers import serializers
 from api.serializers import trade as trade_serializers
 from bill.models import CashCoupon, PayAppService
+from utils.paginators import NoPaginatorInspector
 
 
 class CashCouponViewSet(CustomGenericViewSet):
@@ -652,6 +653,49 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
             }
         """
         return CashCouponHandler().admin_list_cash_coupon_payment(view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('联邦管查询代金券统计信息'),
+        paginator_inspectors=[NoPaginatorInspector],
+        manual_parameters=[
+            openapi.Parameter(
+                name='time_start',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'时间段起，ISO8601格式：YYYY-MM-ddTHH:mm:ssZ'
+            ),
+            openapi.Parameter(
+                name='time_end',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'时间段止，ISO8601格式：YYYY-MM-ddTHH:mm:ssZ'
+            ),
+            openapi.Parameter(
+                name='app_service_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'钱包app服务单元id'
+            ),
+        ]
+    )
+    @action(methods=['get'], detail=False, url_path='statistics', url_name='statistics')
+    def coupon_statistics(self, request, *args, **kwargs):
+        """
+        联邦管理员查询代金券统计信息
+
+            http code 200:
+            {
+              "total_face_value": 27061772.85,  # 代金券总发放点数；时间段和app服务单元参数 有效
+              "total_count": 2471,              # 代金券总发放张数；时间段和app服务单元参数 有效
+              "redeem_count": 756,              # 代金券已兑换张数；时间段和app服务单元参数 有效
+              "coupon_pay_amounts": 8371044.27, # 代金券消耗点数；app服务单元参数 有效
+              "total_balance": 15063204.85      # 代金券总余额点数；app服务单元参数 有效
+            }
+        """
+        return CashCouponHandler().admin_cash_coupon_statistics(view=self, request=request, kwargs=kwargs)
 
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve']:
