@@ -25,8 +25,13 @@ class ExpressionQuery:
     server_cpu_usage = '100 - avg by (instance) (irate(node_cpu_seconds_total{job="$job", mode="idle"}[1m]) ) * 100'
     server_mem_usage = '100 - avg by (instance) (node_memory_MemAvailable_bytes{job="$job"} / ' \
                        'node_memory_MemTotal_bytes{job="$job"}) * 100'
-    server_disk_usage = '100 - avg by (instance) (node_filesystem_avail_bytes{job="$job"} / ' \
-                        'node_filesystem_size_bytes{job="$job"}) * 100'
+    # server_disk_usage = '100 - avg by (instance) (node_filesystem_avail_bytes{job="$job", mountpoint="/data1"} / ' \
+    #                     'node_filesystem_size_bytes{job="$job", mountpoint="/data1"}) * 100'
+
+    server_disk_usage = '100 - avg by (instance) (node_filesystem_avail_bytes{job="$job", mountpoint="/data1"} / ' \
+                        'node_filesystem_size_bytes{job="$job", mountpoint="/data1"} or ' \
+                        'node_filesystem_avail_bytes{job="$job", mountpoint="/00_data"} / ' \
+                        'node_filesystem_size_bytes{job="$job", mountpoint="/00_data"}) * 100'
 
     @staticmethod
     def expression(query_temp: str, job: str = None):
