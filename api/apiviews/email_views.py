@@ -157,5 +157,5 @@ class EmailViewSet(viewsets.GenericViewSet):
     def get_permissions(self):
         if self.action == 'create':
             return []
-        
+
         return super().get_permissions()
