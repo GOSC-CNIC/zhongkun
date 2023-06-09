@@ -68,6 +68,13 @@ PAYMENT_BALANCE = {
     'app_id': 'xxx'
 }
 
+# 邮件发送api权限允许的客户端ip地址列表
+# X-Forwarded-For 可能伪造，需要在服务一级代理防范处理
+# 比如nginx：
+# uwsgi_param X-Forwarded-For $remote_addr;     不能使用 $proxy_add_x_forwarded_for;
+# proxy_set_header X-Forwarded-For $remote_addr;     不能使用 $proxy_add_x_forwarded_for;
+API_EMAIL_ALLOWED_IPS = []
+
 # test case settings
 TEST_CASE_SECURITY = {
     'SERVICE': {

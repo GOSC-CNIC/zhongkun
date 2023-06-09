@@ -146,6 +146,7 @@ class Email(UuidModel):
         TICKET = 'ticket', _('工单通知')
         COUPON = 'coupon', _('代金券通知')
         RES_EXP = 'res-exp', _('资源过期通知')
+        API = 'api', _('API请求')
         OTHER = 'other', _('其他')
 
     class Status(models.TextChoices):
@@ -165,8 +166,7 @@ class Email(UuidModel):
         verbose_name=_('发送状态'), max_length=16, choices=Status.choices, default=Status.SUCCESS.value)
     status_desc = models.CharField(max_length=255, verbose_name=_('状态描述'), default='')
     success_time = models.DateTimeField(verbose_name=_('成功发送时间'), null=True, blank=True, default=None)
-    # remote_ip = models.CharField(max_length=64, verbose_name=_('客户端ip'), default='')
-    # remote_user = models.CharField(max_length=64, verbose_name=_('客户'), default='')
+    remote_ip = models.CharField(max_length=64, verbose_name=_('客户端ip'), default='')
 
     class Meta:
         ordering = ['-send_time']
@@ -175,7 +175,7 @@ class Email(UuidModel):
 
     @classmethod
     def send_email(cls, subject: str, receivers: list, message: str, tag: str, html_message: str = None,
-                   fail_silently=True, save_db: bool = True):
+                   fail_silently=True, save_db: bool = True, remote_ip: str = ''):
         """
         发送用户激活邮件
 
@@ -186,6 +186,7 @@ class Email(UuidModel):
         :param html_message: html格式的邮件内容
         :param fail_silently: 是否抛出异常
         :param save_db: True(保存邮件记录到数据库)；False(不保存)
+        :param remote_ip: 客户端ip地址
         :return:
             Email()     # 发送成功
             None        # 发送失败
@@ -199,7 +200,8 @@ class Email(UuidModel):
             subject=subject, receiver=receiver_str, message=message,
             sender=settings.EMAIL_HOST_USER,
             email_host=settings.EMAIL_HOST,
-            tag=tag, is_html=False, status=cls.Status.WAIT.value, status_desc='', success_time=None
+            tag=tag, is_html=False, status=cls.Status.WAIT.value, status_desc='', success_time=None,
+            remote_ip=remote_ip
         )
         if html_message:
             email.message = html_message

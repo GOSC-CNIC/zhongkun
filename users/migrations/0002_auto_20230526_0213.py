@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='email',
             name='tag',
-            field=models.CharField(choices=[('year', '年度报表'), ('month', '月度报表'), ('ticket', '工单通知'), ('coupon', '代金券通知'), ('res-exp', '资源过期通知'), ('other', '其他')], default='other', max_length=16, verbose_name='标签'),
+            field=models.CharField(choices=[('year', '年度报表'), ('month', '月度报表'), ('ticket', '工单通知'), ('coupon', '代金券通知'), ('res-exp', '资源过期通知'), ('api', 'API请求'), ('other', '其他')], default='other', max_length=16, verbose_name='标签'),
         ),
         migrations.AddField(
             model_name='email',

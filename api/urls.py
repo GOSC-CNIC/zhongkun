@@ -8,7 +8,7 @@ from .apiviews import (
     metering_views, bill_views, account_views, cash_coupon_views,
     trade_test_views, trade_views, bucket_views, storage_views,
     ticket_views, storage_metering_views, user_views, app_service_views,
-    tradebill_views, recharge_views
+    tradebill_views, recharge_views, email_views
 )
 
 app_name = 'api'
@@ -28,6 +28,7 @@ no_slash_router.register(r'user', user_views.UserViewSet, basename='user')
 no_slash_router.register(r'apply/service', views.ApplyVmServiceViewSet, basename='apply-service')
 no_slash_router.register(r'apply/organization', views.ApplyOrganizationViewSet, basename='apply-organization')
 no_slash_router.register(r'vo', views.VOViewSet, basename='vo')
+no_slash_router.register(r'email', email_views.EmailViewSet, basename='email')
 
 no_slash_router.register(r'monitor/unit/ceph', monitor_views.MonitorUnitCephViewSet, basename='monitor-unit-ceph')
 no_slash_router.register(r'monitor/unit/server', monitor_views.MonitorUnitServerViewSet, basename='monitor-unit-server')
