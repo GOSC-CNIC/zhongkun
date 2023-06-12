@@ -652,7 +652,7 @@ class MonitorWebsiteManager:
         """
         detection_point = self.get_detection_ponit(dp_id=dp_id)
         provider = detection_point.provider
-        return self.request_data(provider=provider, tag=tag, url=website.url)
+        return self.request_data(provider=provider, tag=tag, url=website.full_url)
 
     def request_data(self, provider: MonitorProvider, tag: str, url: str):
         """
@@ -693,7 +693,8 @@ class MonitorWebsiteManager:
         """
         detection_point = self.get_detection_ponit(dp_id=dp_id)
         provider = detection_point.provider
-        return self.request_range_data(provider=provider, tag=tag, url=website.url, start=start, end=end, step=step)
+        return self.request_range_data(
+            provider=provider, tag=tag, url=website.full_url, start=start, end=end, step=step)
 
     def request_range_data(self, provider: MonitorProvider, tag: str, url: str, start: int, end: int, step: int):
         """
