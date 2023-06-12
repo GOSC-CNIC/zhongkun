@@ -7,7 +7,7 @@ from django.utils.http import urlquote
 from django.utils import timezone
 from django.http import StreamingHttpResponse
 from django.utils.translation import gettext as _
-from django.db.models import TextChoices
+from django.db.models import TextChoices, Count, Sum
 from rest_framework.response import Response
 
 from users.managers import get_user_by_name
@@ -529,8 +529,6 @@ class CashCouponHandler:
         """
         联邦管理员查询券统计信息
         """
-        from django.db.models import Count, Sum
-
         time_start = request.query_params.get('time_start', None)
         time_end = request.query_params.get('time_end', None)
         app_service_id = request.query_params.get('app_service_id', None)
@@ -602,3 +600,51 @@ class CashCouponHandler:
             'coupon_pay_amounts': coupon_pay_amounts,
             'total_balance': total_balance
         })
+
+    @staticmethod
+    def admin_coupon_issue_statistics(view: CustomGenericViewSet, request, kwargs):
+        """
+        联邦管理员查询券发放统计信息
+        """
+        time_start = request.query_params.get('time_start', None)
+        time_end = request.query_params.get('time_end', None)
+        issuer = request.query_params.get('issuer', None)
+
+        try:
+            if time_start is not None:
+                time_start = iso_utc_to_datetime(time_start)
+                if time_start is None:
+                    raise errors.InvalidArgument(message=_('参数“time_start”的值无效的时间格式'))
+
+            if time_end is not None:
+                time_end = iso_utc_to_datetime(time_end)
+                if time_end is None:
+                    raise errors.InvalidArgument(message=_('参数“time_end”的值无效的时间格式'))
+
+            if time_start and time_end:
+                if time_start >= time_end:
+                    raise errors.InvalidArgument(message=_('参数“time_start”时间必须超前“time_end”时间'))
+
+            if not request.user.is_federal_admin():
+                raise errors.AccessDenied(message=_('你没有联邦管理员权限。'))
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        lookups = {}
+        if time_start:
+            lookups['creation_time__gte'] = time_start
+        if time_end:
+            lookups['creation_time__lte'] = time_end
+        if issuer:
+            lookups['issuer'] = issuer
+
+        queryset = CashCoupon.objects.filter(**lookups).values('issuer').annotate(
+            total_face_value=Sum('face_value'),
+            total_count=Count('id', distinct=True)
+        ).order_by('issuer')
+
+        try:
+            page = view.paginate_queryset(queryset)
+            return view.get_paginated_response(page)
+        except Exception as exc:
+            return view.exception_response(errors.convert_to_error(exc))

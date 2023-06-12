@@ -697,6 +697,53 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
         """
         return CashCouponHandler().admin_cash_coupon_statistics(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('联邦管查询代金券发放人统计信息'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='time_start',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'时间段起，ISO8601格式：YYYY-MM-ddTHH:mm:ssZ'
+            ),
+            openapi.Parameter(
+                name='time_end',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'时间段止，ISO8601格式：YYYY-MM-ddTHH:mm:ssZ'
+            ),
+            openapi.Parameter(
+                name='issuer',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'发放代金券的人'
+            ),
+        ]
+    )
+    @action(methods=['get'], detail=False, url_path='issue/statistics', url_name='issue-statistics')
+    def coupon_issue_statistics(self, request, *args, **kwargs):
+        """
+        联邦管查询代金券发放人统计信息
+
+            http code 200:
+            {
+              "count": 1,
+              "page_num": 1,
+              "page_size": 20,
+              "results": [
+                {
+                  "issuer": "test@cnic.cn",
+                  "total_face_value": 27000,
+                  "total_count": 3
+                }
+              ]
+            }
+        """
+        return CashCouponHandler().admin_coupon_issue_statistics(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve']:
             return serializers.AdminCashCouponSerializer
