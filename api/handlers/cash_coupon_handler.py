@@ -7,10 +7,12 @@ from django.utils.http import urlquote
 from django.utils import timezone
 from django.http import StreamingHttpResponse
 from django.utils.translation import gettext as _
-from django.db.models import TextChoices, Count, Sum
+from django.db.models import TextChoices, Count, Sum, Q
 from rest_framework.response import Response
 
 from users.managers import get_user_by_name
+from users.models import UserProfile
+from vo.models import VirtualOrganization
 from core import errors
 from api.viewsets import CustomGenericViewSet
 from api.serializers.serializers import AdminCashCouponSerializer
@@ -21,6 +23,7 @@ from utils.report_file import CSVFileInMemory
 from utils.time import iso_utc_to_datetime
 from utils import rand_utils
 from utils.decimal_utils import quantize_10_2
+from utils.model import OwnerType
 from .handlers import serializer_error_msg
 
 
@@ -534,19 +537,7 @@ class CashCouponHandler:
         app_service_id = request.query_params.get('app_service_id', None)
 
         try:
-            if time_start is not None:
-                time_start = iso_utc_to_datetime(time_start)
-                if time_start is None:
-                    raise errors.InvalidArgument(message=_('参数“time_start”的值无效的时间格式'))
-
-            if time_end is not None:
-                time_end = iso_utc_to_datetime(time_end)
-                if time_end is None:
-                    raise errors.InvalidArgument(message=_('参数“time_end”的值无效的时间格式'))
-
-            if time_start and time_end:
-                if time_start >= time_end:
-                    raise errors.InvalidArgument(message=_('参数“time_start”时间必须超前“time_end”时间'))
+            time_start, time_end = CashCouponHandler._validate_time_start_end(time_start=time_start, time_end=time_end)
         except Exception as exc:
             return view.exception_response(exc)
 
@@ -611,20 +602,7 @@ class CashCouponHandler:
         issuer = request.query_params.get('issuer', None)
 
         try:
-            if time_start is not None:
-                time_start = iso_utc_to_datetime(time_start)
-                if time_start is None:
-                    raise errors.InvalidArgument(message=_('参数“time_start”的值无效的时间格式'))
-
-            if time_end is not None:
-                time_end = iso_utc_to_datetime(time_end)
-                if time_end is None:
-                    raise errors.InvalidArgument(message=_('参数“time_end”的值无效的时间格式'))
-
-            if time_start and time_end:
-                if time_start >= time_end:
-                    raise errors.InvalidArgument(message=_('参数“time_start”时间必须超前“time_end”时间'))
-
+            time_start, time_end = CashCouponHandler._validate_time_start_end(time_start=time_start, time_end=time_end)
             if not request.user.is_federal_admin():
                 raise errors.AccessDenied(message=_('你没有联邦管理员权限。'))
         except Exception as exc:
@@ -645,6 +623,129 @@ class CashCouponHandler:
 
         try:
             page = view.paginate_queryset(queryset)
+            return view.get_paginated_response(page)
+        except Exception as exc:
+            return view.exception_response(errors.convert_to_error(exc))
+
+    @staticmethod
+    def admin_coupon_user_statistics(view: CustomGenericViewSet, request, kwargs):
+        """
+        联邦管理员查询用户代金券统计信息
+        """
+        time_start = request.query_params.get('time_start', None)
+        time_end = request.query_params.get('time_end', None)
+        username = request.query_params.get('username', None)
+
+        try:
+            time_start, time_end = CashCouponHandler._validate_time_start_end(time_start=time_start, time_end=time_end)
+            if not request.user.is_federal_admin():
+                raise errors.AccessDenied(message=_('你没有联邦管理员权限。'))
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        lookups = {}
+        if time_start:
+            lookups['creation_time__gte'] = time_start
+        if time_end:
+            lookups['creation_time__lte'] = time_end
+        if username:
+            lookups['user__username'] = username
+
+        queryset = CashCoupon.objects.filter(
+            owner_type=OwnerType.USER.value, **lookups).values('user_id').annotate(
+            total_face_value=Sum('face_value'),
+            total_balance=Sum('balance'),
+            total_count=Count('id', distinct=True),
+            total_valid_count=Count(
+                'id', distinct=True, filter=Q(
+                    status=CashCoupon.Status.AVAILABLE.value, expiration_time__gt=timezone.now())),
+        ).order_by('user_id')
+
+        try:
+            page = view.paginate_queryset(queryset)
+            CashCouponHandler._mixin_username(page)
+            return view.get_paginated_response(page)
+        except Exception as exc:
+            return view.exception_response(errors.convert_to_error(exc))
+
+    @staticmethod
+    def _mixin_username(data: list):
+        user_ids = [i['user_id'] for i in data]
+        users = UserProfile.objects.filter(id__in=user_ids).values('id', 'username')
+        users_map = {i['id']: i['username'] for i in users}
+        for i in data:
+            i['username'] = users_map.get(i['user_id'], '')
+
+        return data
+
+    @staticmethod
+    def _mixin_voname(data: list):
+        vo_ids = [i['vo_id'] for i in data]
+        vos = VirtualOrganization.objects.filter(id__in=vo_ids).values('id', 'name')
+        users_map = {i['id']: i['name'] for i in vos}
+        for i in data:
+            i['name'] = users_map.get(i['vo_id'], '')
+
+        return data
+
+    @staticmethod
+    def _validate_time_start_end(time_start: str, time_end: str):
+        """
+        :raises: Error
+        """
+        if time_start is not None:
+            time_start = iso_utc_to_datetime(time_start)
+            if time_start is None:
+                raise errors.InvalidArgument(message=_('参数“time_start”的值无效的时间格式'))
+
+        if time_end is not None:
+            time_end = iso_utc_to_datetime(time_end)
+            if time_end is None:
+                raise errors.InvalidArgument(message=_('参数“time_end”的值无效的时间格式'))
+
+        if time_start and time_end:
+            if time_start >= time_end:
+                raise errors.InvalidArgument(message=_('参数“time_start”时间必须超前“time_end”时间'))
+
+        return time_start, time_end
+
+    @staticmethod
+    def admin_coupon_vo_statistics(view: CustomGenericViewSet, request, kwargs):
+        """
+        联邦管理员查询用户代金券统计信息
+        """
+        time_start = request.query_params.get('time_start', None)
+        time_end = request.query_params.get('time_end', None)
+        voname = request.query_params.get('voname', None)
+
+        try:
+            time_start, time_end = CashCouponHandler._validate_time_start_end(time_start=time_start, time_end=time_end)
+            if not request.user.is_federal_admin():
+                raise errors.AccessDenied(message=_('你没有联邦管理员权限。'))
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        lookups = {}
+        if time_start:
+            lookups['creation_time__gte'] = time_start
+        if time_end:
+            lookups['creation_time__lte'] = time_end
+        if voname:
+            lookups['vo__name'] = voname
+
+        queryset = CashCoupon.objects.filter(
+            owner_type=OwnerType.VO.value, **lookups).values('vo_id').annotate(
+            total_face_value=Sum('face_value'),
+            total_balance=Sum('balance'),
+            total_count=Count('id', distinct=True),
+            total_valid_count=Count(
+                'id', distinct=True, filter=Q(
+                    status=CashCoupon.Status.AVAILABLE.value, expiration_time__gt=timezone.now())),
+        ).order_by('vo_id')
+
+        try:
+            page = view.paginate_queryset(queryset)
+            CashCouponHandler._mixin_voname(page)
             return view.get_paginated_response(page)
         except Exception as exc:
             return view.exception_response(errors.convert_to_error(exc))

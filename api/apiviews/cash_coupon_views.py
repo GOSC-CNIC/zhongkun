@@ -723,7 +723,7 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
             ),
         ]
     )
-    @action(methods=['get'], detail=False, url_path='issue/statistics', url_name='issue-statistics')
+    @action(methods=['get'], detail=False, url_path='aggregation/issue', url_name='aggregation-issue')
     def coupon_issue_statistics(self, request, *args, **kwargs):
         """
         联邦管查询代金券发放人统计信息
@@ -743,6 +743,106 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
             }
         """
         return CashCouponHandler().admin_coupon_issue_statistics(view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('联邦管查询用户代金券统计信息'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='time_start',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'时间段起，ISO8601格式：YYYY-MM-ddTHH:mm:ssZ'
+            ),
+            openapi.Parameter(
+                name='time_end',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'时间段止，ISO8601格式：YYYY-MM-ddTHH:mm:ssZ'
+            ),
+            openapi.Parameter(
+                name='username',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'用户名'
+            ),
+        ]
+    )
+    @action(methods=['get'], detail=False, url_path='aggregation/user', url_name='aggregation-user')
+    def coupon_user_statistics(self, request, *args, **kwargs):
+        """
+        联邦管查询用户代金券统计信息
+
+            http code 200:
+            {
+              "count": 389,
+              "page_num": 1,
+              "page_size": 20,
+              "results": [
+                {
+                  "user_id": "0074c43596f73a33457389221783c060",
+                  "username": "948145076@qq.com",
+                  "total_face_value": 400,      # 券总面值额，包括已删除的券
+                  "total_balance": 209.92,      # 券余额总数，包括已删除的券
+                  "total_count": 2,             # 券总数，包括已删除的券
+                  "total_usage_count": 0        # 当前有效券总数
+                }
+             ]
+            }
+        """
+        return CashCouponHandler().admin_coupon_user_statistics(view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('联邦管查询VO组代金券统计信息'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='time_start',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'时间段起，ISO8601格式：YYYY-MM-ddTHH:mm:ssZ'
+            ),
+            openapi.Parameter(
+                name='time_end',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'时间段止，ISO8601格式：YYYY-MM-ddTHH:mm:ssZ'
+            ),
+            openapi.Parameter(
+                name='voname',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'vo组名'
+            ),
+        ]
+    )
+    @action(methods=['get'], detail=False, url_path='aggregation/vo', url_name='aggregation-vo')
+    def coupon_vo_statistics(self, request, *args, **kwargs):
+        """
+        联邦管查询VO组代金券统计信息
+
+            http code 200:
+            {
+              "count": 389,
+              "page_num": 1,
+              "page_size": 20,
+              "results": [
+                {
+                  "vo_id": "9af3460e-59ca-11ed-9fb2-c8009fe2eb03",
+                  "name": "AIOPS学生组",
+                  "total_face_value": 400,      # 券总面值额，包括已删除的券
+                  "total_balance": 209.92,      # 券余额总数，包括已删除的券
+                  "total_count": 2,             # 券总数，包括已删除的券
+                  "total_usage_count": 0        # 当前有效券总数
+                }
+             ]
+            }
+        """
+        return CashCouponHandler().admin_coupon_vo_statistics(view=self, request=request, kwargs=kwargs)
 
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve']:

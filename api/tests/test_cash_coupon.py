@@ -1993,7 +1993,7 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
 
         # NotAuthenticated
         self.client.logout()
-        base_url = reverse('api:admin-coupon-issue-statistics')
+        base_url = reverse('api:admin-coupon-aggregation-issue')
         response = self.client.get(base_url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
 
@@ -2058,12 +2058,16 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         item1 = response.data['results'][0]
         item2 = response.data['results'][1]
         if item1['issuer'] == 'user2':
-            self.assertEqual(Decimal(item1['total_face_value']), Decimal('2.22'))
-            self.assertEqual(item1['total_count'], 1)
+            items = [item1, item2]
+        else:
+            items = [item2, item1]
 
-            self.assertEqual(item2['issuer'], '')
-            self.assertEqual(Decimal(item2['total_face_value']), Decimal('3.33'))
-            self.assertEqual(item2['total_count'], 1)
+        self.assertEqual(items[0]['issuer'], 'user2')
+        self.assertEqual(Decimal(items[0]['total_face_value']), Decimal('2.22'))
+        self.assertEqual(items[0]['total_count'], 1)
+        self.assertEqual(items[1]['issuer'], '')
+        self.assertEqual(Decimal(items[1]['total_face_value']), Decimal('3.33'))
+        self.assertEqual(items[1]['total_count'], 1)
 
         # issuer
         query = parse.urlencode(query={'issuer': 'user1'})
@@ -2078,3 +2082,302 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assertEqual(Decimal(item['total_face_value']), Decimal(f'{(1.11 + 4.44):.2f}'))
         self.assertEqual(item['total_count'], 2)
         self.assertEqual(item['issuer'], 'user1')
+
+    def test_admin_user_statistics(self):
+        vo1 = VirtualOrganization(name='test vo', owner_id=self.user.id)
+        vo1.save(force_insert=True)
+
+        now_time = timezone.now()
+        coupon1_user = CashCoupon(
+            face_value=Decimal('1.11'),
+            balance=Decimal('1.11'),
+            effective_time=datetime(year=2023, month=5, day=1, tzinfo=timezone.utc),
+            expiration_time=now_time + timedelta(days=2),
+            status=CashCoupon.Status.DELETED.value,
+            granted_time=None,
+            owner_type=OwnerType.USER.value,
+            user=self.user,
+            app_service_id=self.app_service1.id,
+            issuer='user1'
+        )
+        coupon1_user.save(force_insert=True)
+        coupon1_user.creation_time = datetime(year=2023, month=4, day=1, tzinfo=timezone.utc)
+        coupon1_user.save(update_fields=['creation_time'])
+
+        coupon2_user = CashCoupon(
+            face_value=Decimal('2.22'),
+            balance=Decimal('1.22'),
+            effective_time=datetime(year=2023, month=5, day=1, tzinfo=timezone.utc),
+            expiration_time=datetime(year=2023, month=5, day=30, tzinfo=timezone.utc),
+            status=CashCoupon.Status.AVAILABLE.value,
+            granted_time=datetime(year=2023, month=5, day=1, tzinfo=timezone.utc),
+            owner_type=OwnerType.USER.value,
+            user=self.user,
+            app_service_id=self.app_service1.id,
+            issuer='user2'
+        )
+        coupon2_user.save(force_insert=True)
+        coupon2_user.creation_time = datetime(year=2023, month=5, day=1, tzinfo=timezone.utc)
+        coupon2_user.save(update_fields=['creation_time'])
+
+        coupon3_user2 = CashCoupon(
+            face_value=Decimal('3.33'),
+            balance=Decimal('2.33'),
+            effective_time=datetime(year=2023, month=5, day=10, tzinfo=timezone.utc),
+            expiration_time=now_time + timedelta(days=1),
+            status=CashCoupon.Status.AVAILABLE.value,
+            granted_time=datetime(year=2023, month=5, day=1, tzinfo=timezone.utc),
+            owner_type=OwnerType.USER.value,
+            user=self.user2,
+            app_service_id=self.app_service1.id,
+            issuer=''
+        )
+        coupon3_user2.save(force_insert=True)
+        coupon3_user2.creation_time = datetime(year=2023, month=5, day=8, tzinfo=timezone.utc)
+        coupon3_user2.save(update_fields=['creation_time'])
+
+        coupon2_vo = CashCoupon(
+            face_value=Decimal('4.44'),
+            balance=Decimal('3.3'),
+            effective_time=datetime(year=2023, month=5, day=10, tzinfo=timezone.utc),
+            expiration_time=datetime(year=2023, month=6, day=1, tzinfo=timezone.utc),
+            status=CashCoupon.Status.DELETED.value,
+            granted_time=datetime(year=2023, month=5, day=10, tzinfo=timezone.utc),
+            owner_type=OwnerType.VO.value,
+            vo=vo1,
+            app_service_id=self.app_service2.id,
+            issuer='user1'
+        )
+        coupon2_vo.save(force_insert=True)
+        coupon2_vo.creation_time = datetime(year=2023, month=5, day=31, tzinfo=timezone.utc)
+        coupon2_vo.save(update_fields=['creation_time'])
+
+        # NotAuthenticated
+        self.client.logout()
+        base_url = reverse('api:admin-coupon-aggregation-user')
+        response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
+
+        # AccessDenied
+        self.client.force_login(self.user)
+        response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.user.set_federal_admin()
+        query = parse.urlencode(query={
+            'time_start': '2023-05-01T00:00:00', 'time_end': '2023-05-10T00:00:00Z'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # ok
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(keys=[
+            'count', 'page_num', 'page_size', 'results'], container=response.data)
+        self.assertKeysIn(keys=[
+            'user_id', 'username', 'total_face_value', 'total_balance', 'total_count', 'total_valid_count'
+        ], container=response.data['results'][0])
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 20)
+        self.assertEqual(len(response.data['results']), 2)
+
+        # username
+        query = parse.urlencode(query={'username': self.user.username})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 20)
+        self.assertEqual(len(response.data['results']), 1)
+
+        item = response.data['results'][0]
+        self.assertEqual(item['user_id'], self.user.id)
+        self.assertEqual(item['username'], self.user.username)
+        self.assertEqual(Decimal(item['total_face_value']), Decimal(f'{(1.11 + 2.22):.2f}'))
+        self.assertEqual(Decimal(item['total_balance']), Decimal(f'{(1.11 + 1.22):.2f}'))
+        self.assertEqual(item['total_count'], 2)
+        self.assertEqual(item['total_valid_count'], 0)
+
+        # page_size
+        query = parse.urlencode(query={'page_size': 1})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 1)
+        self.assertEqual(len(response.data['results']), 1)
+
+        # time_start, time_end
+        query = parse.urlencode(query={
+            'time_start': '2023-05-01T00:00:00Z', 'time_end': '2023-05-10T00:00:00Z'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 20)
+        self.assertEqual(len(response.data['results']), 2)
+
+        item1 = response.data['results'][0]
+        item2 = response.data['results'][1]
+        if item1['username'] == self.user.username:
+            items = [item1, item2]
+        else:
+            items = [item2, item1]
+
+        self.assertEqual(items[0]['user_id'], self.user.id)
+        self.assertEqual(items[0]['username'], self.user.username)
+        self.assertEqual(Decimal(items[0]['total_face_value']), Decimal('2.22'))
+        self.assertEqual(Decimal(items[0]['total_balance']), Decimal('1.22'))
+        self.assertEqual(items[0]['total_count'], 1)
+        self.assertEqual(items[0]['total_valid_count'], 0)
+
+        self.assertEqual(items[1]['user_id'], self.user2.id)
+        self.assertEqual(items[1]['username'], self.user2.username)
+        self.assertEqual(Decimal(items[1]['total_face_value']), Decimal('3.33'))
+        self.assertEqual(Decimal(items[1]['total_balance']), Decimal('2.33'))
+        self.assertEqual(items[1]['total_count'], 1)
+        self.assertEqual(items[1]['total_valid_count'], 1)
+
+    def test_admin_vo_statistics(self):
+        vo1 = VirtualOrganization(name='test vo', owner_id=self.user.id)
+        vo1.save(force_insert=True)
+
+        now_time = timezone.now()
+        coupon1_user = CashCoupon(
+            face_value=Decimal('1.11'),
+            balance=Decimal('1.11'),
+            effective_time=datetime(year=2023, month=5, day=1, tzinfo=timezone.utc),
+            expiration_time=now_time + timedelta(days=2),
+            status=CashCoupon.Status.DELETED.value,
+            granted_time=None,
+            owner_type=OwnerType.USER.value,
+            user=self.user,
+            app_service_id=self.app_service1.id,
+            issuer='user1'
+        )
+        coupon1_user.save(force_insert=True)
+        coupon1_user.creation_time = datetime(year=2023, month=4, day=1, tzinfo=timezone.utc)
+        coupon1_user.save(update_fields=['creation_time'])
+
+        coupon2_user = CashCoupon(
+            face_value=Decimal('2.22'),
+            balance=Decimal('1.22'),
+            effective_time=datetime(year=2023, month=5, day=1, tzinfo=timezone.utc),
+            expiration_time=datetime(year=2023, month=5, day=30, tzinfo=timezone.utc),
+            status=CashCoupon.Status.AVAILABLE.value,
+            granted_time=datetime(year=2023, month=5, day=1, tzinfo=timezone.utc),
+            owner_type=OwnerType.USER.value,
+            user=self.user,
+            app_service_id=self.app_service1.id,
+            issuer='user2'
+        )
+        coupon2_user.save(force_insert=True)
+        coupon2_user.creation_time = datetime(year=2023, month=5, day=1, tzinfo=timezone.utc)
+        coupon2_user.save(update_fields=['creation_time'])
+
+        coupon3_vo = CashCoupon(
+            face_value=Decimal('3.33'),
+            balance=Decimal('2.33'),
+            effective_time=datetime(year=2023, month=5, day=10, tzinfo=timezone.utc),
+            expiration_time=now_time + timedelta(days=1),
+            status=CashCoupon.Status.AVAILABLE.value,
+            granted_time=datetime(year=2023, month=5, day=1, tzinfo=timezone.utc),
+            owner_type=OwnerType.VO.value,
+            vo=vo1,
+            app_service_id=self.app_service1.id,
+            issuer=''
+        )
+        coupon3_vo.save(force_insert=True)
+        coupon3_vo.creation_time = datetime(year=2023, month=5, day=8, tzinfo=timezone.utc)
+        coupon3_vo.save(update_fields=['creation_time'])
+
+        coupon2_vo = CashCoupon(
+            face_value=Decimal('4.44'),
+            balance=Decimal('3.3'),
+            effective_time=datetime(year=2023, month=5, day=10, tzinfo=timezone.utc),
+            expiration_time=datetime(year=2023, month=6, day=1, tzinfo=timezone.utc),
+            status=CashCoupon.Status.DELETED.value,
+            granted_time=datetime(year=2023, month=5, day=10, tzinfo=timezone.utc),
+            owner_type=OwnerType.VO.value,
+            vo=vo1,
+            app_service_id=self.app_service2.id,
+            issuer='user1'
+        )
+        coupon2_vo.save(force_insert=True)
+        coupon2_vo.creation_time = datetime(year=2023, month=5, day=31, tzinfo=timezone.utc)
+        coupon2_vo.save(update_fields=['creation_time'])
+
+        # NotAuthenticated
+        self.client.logout()
+        base_url = reverse('api:admin-coupon-aggregation-vo')
+        response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
+
+        # AccessDenied
+        self.client.force_login(self.user)
+        response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.user.set_federal_admin()
+        query = parse.urlencode(query={
+            'time_start': '2023-05-01T00:00:00', 'time_end': '2023-05-10T00:00:00Z'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # ok
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(keys=[
+            'count', 'page_num', 'page_size', 'results'], container=response.data)
+        self.assertKeysIn(keys=[
+            'vo_id', 'name', 'total_face_value', 'total_balance', 'total_count', 'total_valid_count'
+        ], container=response.data['results'][0])
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 20)
+        self.assertEqual(len(response.data['results']), 1)
+
+        # username
+        query = parse.urlencode(query={'voname': vo1.name})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 20)
+        self.assertEqual(len(response.data['results']), 1)
+
+        item = response.data['results'][0]
+        self.assertEqual(item['vo_id'], vo1.id)
+        self.assertEqual(item['name'], vo1.name)
+        self.assertEqual(Decimal(item['total_face_value']), Decimal(f'{(3.33 + 4.44):.2f}'))
+        self.assertEqual(Decimal(item['total_balance']), Decimal(f'{(2.33 + 3.3):.2f}'))
+        self.assertEqual(item['total_count'], 2)
+        self.assertEqual(item['total_valid_count'], 1)
+
+        # page_size
+        query = parse.urlencode(query={'page_size': 1})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 1)
+        self.assertEqual(len(response.data['results']), 1)
+
+        # time_start, time_end
+        query = parse.urlencode(query={
+            'time_start': '2023-05-01T00:00:00Z', 'time_end': '2023-05-10T00:00:00Z'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 20)
+        self.assertEqual(len(response.data['results']), 1)
+
+        item1 = response.data['results'][0]
+        self.assertEqual(item1['vo_id'], vo1.id)
+        self.assertEqual(item1['name'], vo1.name)
+        self.assertEqual(Decimal(item1['total_face_value']), Decimal('3.33'))
+        self.assertEqual(Decimal(item1['total_balance']), Decimal('2.33'))
+        self.assertEqual(item1['total_count'], 1)
+        self.assertEqual(item1['total_valid_count'], 1)
