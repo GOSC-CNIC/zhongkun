@@ -271,7 +271,8 @@ class Price(UuidModel):
 
 
 class Period(CustomIdModel):
-    period = models.PositiveSmallIntegerField(verbose_name=_('月数'))
+    period = models.PositiveSmallIntegerField(
+        verbose_name=_('月数'), validators=(MinValueValidator(1), MaxValueValidator(120)))
     enable = models.BooleanField(verbose_name=_('可用状态'), default=True)
     creation_time = models.DateTimeField(auto_now_add=True, verbose_name=_('创建时间'))
     service = models.ForeignKey(

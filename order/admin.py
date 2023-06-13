@@ -1,4 +1,6 @@
 from django.contrib import admin
+from django import forms
+from django.core.exceptions import ValidationError
 
 from .models import Order, Resource, Price, Period
 
@@ -39,9 +41,36 @@ class PriceAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
 
 
+class PeriodModelForm(forms.ModelForm):
+    def clean(self):
+        data = super().clean()
+        period = data['period']
+        service = data['service']
+        service_id = service.id if service else None
+        if not self.instance.id:    # add new
+            if service_id:
+                if Period.objects.filter(period=period, service_id=service_id).exists():
+                    raise ValidationError(message='服务单元已存在相同月数的时长选项')
+
+            if Period.objects.filter(period=period, service_id__isnull=True).exists():
+                raise ValidationError(message='已存在相同月数的公共时长选项')
+        else:   # change
+            qs = Period.objects.exclude(id=self.instance.id).filter(period=period)
+            if service_id:
+                qs = qs.filter(service_id=service_id)
+            else:
+                qs = qs.filter(service_id__isnull=True)
+
+            if qs.exists():
+                raise ValidationError(message='目标服务单元或者公共选项已存在月数相同的时长选项')
+
+        return data
+
+
 @admin.register(Period)
 class PeriodAdmin(admin.ModelAdmin):
+    form = PeriodModelForm
     list_display_links = ('id',)
     list_display = ('id', 'period', 'enable', 'service', 'creation_time')
-    ordering = ('period',)
+    ordering = ('service', 'period',)
     list_filter = ['service']
