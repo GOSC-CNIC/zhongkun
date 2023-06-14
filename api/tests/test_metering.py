@@ -3,16 +3,18 @@ from urllib import parse
 from datetime import date
 
 from django.urls import reverse
+from django.utils import timezone
 
 from utils.model import PayType, OwnerType
 from utils.test import get_or_create_service, get_or_create_user, get_or_create_storage_service
 from service.models import ServiceConfig
 from storage.models import ObjectsService
 from vo.models import VirtualOrganization
-from metering.models import MeteringServer, DailyStatementServer, PaymentStatus, MeteringObjectStorage, DailyStatementObjectStorage
+from metering.models import (
+    MeteringServer, DailyStatementServer, PaymentStatus, MeteringObjectStorage, DailyStatementObjectStorage
+)
 from . import set_auth_header, MyAPITestCase
-from servers.models import Server, ServerArchive 
-from django.utils import timezone
+from servers.models import Server, ServerArchive
 from users.models import UserProfile
 
 
@@ -844,13 +846,33 @@ class MeteringServerTests(MyAPITestCase):
         self.assertEqual(len(r.data['results']), 3)
         self.assertEqual(r.data['results'][0]['total_server'], 2)
         self.assertEqual(r.data['results'][0]['total_original_amount'], Decimal('11.10'))
-        self.assertEqual(r.data['results'][0]['user']['id'], self.user.id)    
+        self.assertEqual(r.data['results'][0]['user']['id'], self.user.id)
         self.assertEqual(r.data['results'][1]['total_server'], 1)
         self.assertEqual(r.data['results'][1]['total_original_amount'], Decimal('5.55'))
         self.assertEqual(r.data['results'][1]['user']['id'], user2.id)  
         self.assertEqual(r.data['results'][2]['total_server'], 1)
         self.assertEqual(r.data['results'][2]['total_original_amount'], Decimal('6.66'))
-        self.assertEqual(r.data['results'][2]['user']['id'], user3.id)  
+        self.assertEqual(r.data['results'][2]['user']['id'], user3.id)
+
+        # federal admin, list all, order_by
+        self.user.set_federal_admin()
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01', 'as-admin': '',
+            'order_by': '-total_original_amount'
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 3)
+        self.assertEqual(len(r.data['results']), 3)
+        self.assertEqual(r.data['results'][0]['total_server'], 2)
+        self.assertEqual(r.data['results'][0]['total_original_amount'], Decimal('11.10'))
+        self.assertEqual(r.data['results'][0]['user']['id'], self.user.id)
+        self.assertEqual(r.data['results'][1]['total_server'], 1)
+        self.assertEqual(r.data['results'][1]['total_original_amount'], Decimal('6.66'))
+        self.assertEqual(r.data['results'][1]['user']['id'], user3.id)
+        self.assertEqual(r.data['results'][2]['total_server'], 1)
+        self.assertEqual(r.data['results'][2]['total_original_amount'], Decimal('5.55'))
+        self.assertEqual(r.data['results'][2]['user']['id'], user2.id)
 
         # federal admin, service_id
         query = parse.urlencode(query={
@@ -1081,17 +1103,40 @@ class MeteringServerTests(MyAPITestCase):
         self.assertEqual(len(r.data['results']), 3)
         self.assertEqual(r.data['results'][0]['total_server'], 2)
         self.assertEqual(r.data['results'][0]['total_original_amount'], Decimal('11.10'))
-        self.assertEqual(r.data['results'][0]['vo']['id'], vo1.id) 
-        self.assertEqual(r.data['results'][0]['vo']['company'], vo1.company)      
+        self.assertEqual(r.data['results'][0]['vo']['id'], vo1.id)
+        self.assertEqual(r.data['results'][0]['vo']['company'], vo1.company)
         self.assertEqual(r.data['results'][1]['total_server'], 1)
         self.assertEqual(r.data['results'][1]['total_original_amount'], Decimal('5.55'))
-        self.assertEqual(r.data['results'][1]['vo']['id'], vo2.id)  
-        self.assertEqual(r.data['results'][1]['vo']['company'], vo2.company)      
+        self.assertEqual(r.data['results'][1]['vo']['id'], vo2.id)
+        self.assertEqual(r.data['results'][1]['vo']['company'], vo2.company)
         self.assertEqual(r.data['results'][2]['total_server'], 1)
         self.assertEqual(r.data['results'][2]['total_original_amount'], Decimal('6.66'))
-        self.assertEqual(r.data['results'][2]['vo']['id'], vo3.id)  
-        self.assertEqual(r.data['results'][2]['vo']['company'], vo3.company)      
-        
+        self.assertEqual(r.data['results'][2]['vo']['id'], vo3.id)
+        self.assertEqual(r.data['results'][2]['vo']['company'], vo3.company)
+
+        # federal admin, list all, order_by
+        self.user.set_federal_admin()
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01', 'as-admin': '',
+            'order_by': '-total_original_amount'
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 3)
+        self.assertEqual(len(r.data['results']), 3)
+        self.assertEqual(r.data['results'][0]['total_server'], 2)
+        self.assertEqual(r.data['results'][0]['total_original_amount'], Decimal('11.10'))
+        self.assertEqual(r.data['results'][0]['vo']['id'], vo1.id)
+        self.assertEqual(r.data['results'][0]['vo']['company'], vo1.company)
+        self.assertEqual(r.data['results'][1]['total_server'], 1)
+        self.assertEqual(r.data['results'][1]['total_original_amount'], Decimal('6.66'))
+        self.assertEqual(r.data['results'][1]['vo']['id'], vo3.id)
+        self.assertEqual(r.data['results'][1]['vo']['company'], vo3.company)
+        self.assertEqual(r.data['results'][2]['total_server'], 1)
+        self.assertEqual(r.data['results'][2]['total_original_amount'], Decimal('5.55'))
+        self.assertEqual(r.data['results'][2]['vo']['id'], vo2.id)
+        self.assertEqual(r.data['results'][2]['vo']['company'], vo2.company)
+
         # federal admin, service_id
         query = parse.urlencode(query={
             'date_start': '2022-02-01', 'date_end': '2022-04-01', 'as-admin': '', 'service_id': self.service.id
@@ -1274,11 +1319,32 @@ class MeteringServerTests(MyAPITestCase):
         self.assertEqual(r.data['results'][0]['service']['id'], self.service.id)
         self.assertEqual(r.data['results'][1]['total_server'], 1)
         self.assertEqual(r.data['results'][1]['total_original_amount'], Decimal('4.44'))
-        self.assertEqual(r.data['results'][1]['service']['id'], self.service2.id)  
+        self.assertEqual(r.data['results'][1]['service']['id'], self.service2.id)
         self.assertEqual(r.data['results'][2]['total_server'], 1)
         self.assertEqual(r.data['results'][2]['total_original_amount'], Decimal('5.55'))
-        self.assertEqual(r.data['results'][2]['service']['id'], service3.id)  
+        self.assertEqual(r.data['results'][2]['service']['id'], service3.id)
         self.assertEqual(r.data['results'][2]['service']['name'], service3.name)
+
+        # federal admin, list all, order_by
+        self.user.set_federal_admin()
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01', 'as-admin': '',
+            'order_by': '-total_original_amount'
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 3)
+        self.assertEqual(len(r.data['results']), 3)
+        self.assertEqual(r.data['results'][0]['total_server'], 2)
+        self.assertEqual(r.data['results'][0]['total_original_amount'], Decimal('6.66'))
+        self.assertEqual(r.data['results'][0]['service']['id'], self.service.id)
+        self.assertEqual(r.data['results'][1]['total_server'], 1)
+        self.assertEqual(r.data['results'][1]['total_original_amount'], Decimal('5.55'))
+        self.assertEqual(r.data['results'][1]['service']['id'], service3.id)
+        self.assertEqual(r.data['results'][1]['service']['name'], service3.name)
+        self.assertEqual(r.data['results'][2]['total_server'], 1)
+        self.assertEqual(r.data['results'][2]['total_original_amount'], Decimal('4.44'))
+        self.assertEqual(r.data['results'][2]['service']['id'], self.service2.id)
 
         # param 'download'
         query = parse.urlencode(query={

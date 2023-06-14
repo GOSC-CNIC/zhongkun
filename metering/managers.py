@@ -293,38 +293,46 @@ class MeteringServerManager:
             date_start: date = None,
             date_end: date = None,
             service_id: str = None,
+            order_by: str = None
     ):
         """
             管理员获取以user_id聚合的查询集
         """
         queryset = self.filter_server_metering_queryset(   
             date_start=date_start, date_end=date_end, service_id=service_id
-        ).filter(owner_type=OwnerType.USER.value)             
-               
-        if user.is_federal_admin():     
-            return self.aggregate_queryset_by_user(queryset)    
+        ).filter(owner_type=OwnerType.USER.value)
+
+        if user.is_federal_admin():
+            return self.aggregate_queryset_by_user(queryset, order_by=order_by)
         
-        if service_id:     
+        if service_id:
             service = ServiceManager.get_service_if_admin(user=user, service_id=service_id)
             if service is None:
                 raise errors.AccessDenied(message=_('您没有指定服务的访问权限'))
-        else:               
+        else:
             qs = ServiceManager.get_all_has_perm_service(user)  
-            subq = Subquery(qs.values_list('id', flat=True))   
+            subq = Subquery(qs.values_list('id', flat=True))
             queryset = queryset.filter(service_id__in=subq)
 
-        return self.aggregate_queryset_by_user(queryset)
+        return self.aggregate_queryset_by_user(queryset, order_by=order_by)
+
+    AGGREGATION_USER_ORDER_BY_CHOICES = [
+        'total_original_amount', '-total_original_amount'
+    ]
 
     @staticmethod
-    def aggregate_queryset_by_user(queryset):
+    def aggregate_queryset_by_user(queryset, order_by: str = None):
         """
         聚合用户的云主机计量数据
         """
+        if not order_by:
+            order_by = 'user_id'
+
         queryset = queryset.values('user_id').annotate(
             total_original_amount=Sum('original_amount'),
             total_trade_amount=Sum('trade_amount'),
             total_server=Count('server_id', distinct=True),
-        ).order_by('user_id')
+        ).order_by(order_by)
 
         return queryset
 
@@ -355,6 +363,7 @@ class MeteringServerManager:
             date_start: date = None,
             date_end: date = None,
             service_id: str = None,
+            order_by: str = None
     ):
         """
             管理员获取以vo_id聚合的查询集
@@ -364,7 +373,7 @@ class MeteringServerManager:
         ).filter(owner_type=OwnerType.VO.value)              
         
         if user.is_federal_admin():     
-            return self.aggregate_queryset_by_vo(queryset)   
+            return self.aggregate_queryset_by_vo(queryset, order_by=order_by)
         
         if service_id:      
             service = ServiceManager.get_service_if_admin(user=user, service_id=service_id)
@@ -375,18 +384,25 @@ class MeteringServerManager:
             subq = Subquery(qs.values_list('id', flat=True))   
             queryset = queryset.filter(service_id__in=subq)
 
-        return self.aggregate_queryset_by_vo(queryset)
+        return self.aggregate_queryset_by_vo(queryset, order_by=order_by)
+
+    AGGREGATION_VO_ORDER_BY_CHOICES = [
+        'total_original_amount', '-total_original_amount'
+    ]
 
     @staticmethod
-    def aggregate_queryset_by_vo(queryset):
+    def aggregate_queryset_by_vo(queryset, order_by: str = None):
         """
         聚合vo组的云主机计量数据
         """
+        if not order_by:
+            order_by = 'vo_id'
+
         queryset = queryset.values('vo_id').annotate(
             total_original_amount=Sum('original_amount'),
             total_trade_amount=Sum('trade_amount'),
             total_server=Count('server_id', distinct=True),
-        ).order_by('vo_id')
+        ).order_by(order_by)
 
         return queryset
 
@@ -416,6 +432,7 @@ class MeteringServerManager:
             self, user,
             date_start: date = None,
             date_end: date = None,
+            order_by: str = None
     ):
         """
             管理员获取以service_id聚合的查询集
@@ -425,24 +442,31 @@ class MeteringServerManager:
         )      
         
         if user.is_federal_admin():     
-            return self.aggregate_queryset_by_service(queryset)    
+            return self.aggregate_queryset_by_service(queryset, order_by=order_by)
         
         qs = ServiceManager.get_all_has_perm_service(user)  
         subq = Subquery(qs.values_list('id', flat=True))   
         queryset = queryset.filter(service_id__in=subq)
 
-        return self.aggregate_queryset_by_service(queryset)
+        return self.aggregate_queryset_by_service(queryset, order_by=order_by)
+
+    AGGREGATION_SERVICE_ORDER_BY_CHOICES = [
+        'total_original_amount', '-total_original_amount'
+    ]
 
     @staticmethod
-    def aggregate_queryset_by_service(queryset):
+    def aggregate_queryset_by_service(queryset, order_by: str = None):
         """
         聚合服务节点的云主机计量数据
         """
+        if not order_by:
+            order_by = 'service_id'
+
         queryset = queryset.values('service_id').annotate(
             total_original_amount=Sum('original_amount'),
             total_trade_amount=Sum('trade_amount'),
             total_server=Count('server_id', distinct=True),
-        ).order_by('service_id')
+        ).order_by(order_by)
 
         return queryset
 

@@ -117,7 +117,7 @@ class MeteringServerViewSet(CustomGenericViewSet):
         return MeteringHandler().list_server_metering(view=self, request=request)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('按云主机uuid显示云主机计量计费聚合列表'),
+        operation_summary=gettext_lazy('列举指定时间段内每个server计量计费聚合信息'),
         request_body=no_body,
         manual_parameters=[
             openapi.Parameter(
@@ -219,7 +219,14 @@ class MeteringServerViewSet(CustomGenericViewSet):
                 type=openapi.TYPE_STRING,
                 required=False,
                 description=gettext_lazy('查询指定服务')
-            ),                   
+            ),
+            openapi.Parameter(
+                name='order_by',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'指定排序，默认按用户id正序，{MeteringHandler.AGGREGATION_USER_ORDER_BY_CHOICES}'
+            ),
         ] + CustomGenericViewSet.PARAMETERS_AS_ADMIN + [
             openapi.Parameter(
                 name='download',
@@ -281,7 +288,14 @@ class MeteringServerViewSet(CustomGenericViewSet):
                 type=openapi.TYPE_STRING,
                 required=False,
                 description=gettext_lazy('查询指定服务')
-            ),                   
+            ),
+            openapi.Parameter(
+                name='order_by',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'指定排序，默认按组id正序，{MeteringHandler.AGGREGATION_VO_ORDER_BY_CHOICES}'
+            ),
         ] + CustomGenericViewSet.PARAMETERS_AS_ADMIN + [
             openapi.Parameter(
                 name='download',
@@ -320,7 +334,7 @@ class MeteringServerViewSet(CustomGenericViewSet):
         return MeteringHandler().list_aggregation_by_vo(view=self, request=request)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('按服务节点显示云主机计量计费聚合列表'),
+        operation_summary=gettext_lazy('按服务单元显示云主机计量计费聚合列表'),
         request_body=no_body,
         manual_parameters=[
             openapi.Parameter(
@@ -336,7 +350,14 @@ class MeteringServerViewSet(CustomGenericViewSet):
                 type=openapi.TYPE_STRING,
                 required=False,
                 description=gettext_lazy('聚合日期止，默认当前月当前日期，ISO8601格式：YYYY-MM-dd')
-            ),                   
+            ),
+            openapi.Parameter(
+                name='order_by',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'指定排序，默认按组id正序，{MeteringHandler.AGGREGATION_SERVICE_ORDER_BY_CHOICES}'
+            ),
         ] + CustomGenericViewSet.PARAMETERS_AS_ADMIN + [
             openapi.Parameter(
                 name='download',

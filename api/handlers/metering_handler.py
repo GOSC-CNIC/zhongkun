@@ -22,6 +22,10 @@ from utils.decimal_utils import quantize_18_2
 
 
 class MeteringHandler:
+    AGGREGATION_VO_ORDER_BY_CHOICES = MeteringServerManager.AGGREGATION_VO_ORDER_BY_CHOICES
+    AGGREGATION_USER_ORDER_BY_CHOICES = MeteringServerManager.AGGREGATION_USER_ORDER_BY_CHOICES
+    AGGREGATION_SERVICE_ORDER_BY_CHOICES = MeteringServerManager.AGGREGATION_SERVICE_ORDER_BY_CHOICES
+
     def list_server_metering(self, view: CustomGenericViewSet, request):
         """
         列举云主机计量账单
@@ -358,12 +362,13 @@ class MeteringHandler:
         date_end = params['date_end']
         service_id = params['service_id']
         download = params['download']
+        order_by = params['order_by']
 
         ms_mgr = MeteringServerManager()
-        if view.is_as_admin_request(request):           
+        if view.is_as_admin_request(request):
             queryset = ms_mgr.aggregate_server_metering_by_userid_by_admin(
                 user=request.user, date_start=date_start, date_end=date_end, 
-                service_id=service_id
+                service_id=service_id, order_by=order_by
             )
         else:
             return view.exception_response(errors.BadRequest(message=_('只允许以管理员身份请求')))
@@ -386,6 +391,7 @@ class MeteringHandler:
         date_end = request.query_params.get('date_end', None)
         service_id = request.query_params.get('service_id', None)
         download = request.query_params.get('download', None)
+        order_by = request.query_params.get('order_by', None)
 
         now_date = timezone.now().date()
 
@@ -408,11 +414,15 @@ class MeteringHandler:
         if service_id is not None and not service_id:
             raise errors.InvalidArgument(message=_('参数“service_id”的值无效'))
 
+        if order_by and order_by not in MeteringHandler.AGGREGATION_USER_ORDER_BY_CHOICES:
+            raise errors.InvalidArgument(message=_('参数“order_by”的值无效'))
+
         return {
             'date_start': date_start,
             'date_end':  date_end,
             'service_id': service_id,
-            'download': download is not None
+            'download': download is not None,
+            'order_by': order_by
         }
 
     def list_aggregation_by_user_download(self, queryset, date_start, date_end):
@@ -475,12 +485,13 @@ class MeteringHandler:
         date_end = params['date_end']
         service_id = params['service_id']
         download = params['download']
+        order_by = params['order_by']
 
         ms_mgr = MeteringServerManager()
         if view.is_as_admin_request(request):           
             queryset = ms_mgr.aggregate_server_metering_by_void_by_admin(
                 user=request.user, date_start=date_start, date_end=date_end, 
-                service_id=service_id
+                service_id=service_id, order_by=order_by
             )
         else:
             return view.exception_response(errors.BadRequest(message=_('只允许以管理员身份请求')))
@@ -503,6 +514,7 @@ class MeteringHandler:
         date_end = request.query_params.get('date_end', None)
         service_id = request.query_params.get('service_id', None)
         download = request.query_params.get('download', None)
+        order_by = request.query_params.get('order_by', None)
 
         now_date = timezone.now().date()
 
@@ -525,11 +537,15 @@ class MeteringHandler:
         if service_id is not None and not service_id:
             raise errors.InvalidArgument(message=_('参数“service_id”的值无效'))
 
+        if order_by and order_by not in MeteringHandler.AGGREGATION_VO_ORDER_BY_CHOICES:
+            raise errors.InvalidArgument(message=_('参数“order_by”的值无效'))
+
         return {
             'date_start': date_start,
             'date_end':  date_end,
             'service_id': service_id,
-            'download': download is not None
+            'download': download is not None,
+            'order_by': order_by
         }
 
     def list_aggregation_by_vo_download(self, queryset, date_start, date_end):
@@ -591,11 +607,12 @@ class MeteringHandler:
         date_start = params['date_start']
         date_end = params['date_end']
         download = params['download']
+        order_by = params['order_by']
 
         ms_mgr = MeteringServerManager()
         if view.is_as_admin_request(request):         
             queryset = ms_mgr.aggregate_server_metering_by_serviceid_by_admin(
-                user=request.user, date_start=date_start, date_end=date_end, 
+                user=request.user, date_start=date_start, date_end=date_end, order_by=order_by
             )
         else:
             return view.exception_response(errors.BadRequest(message=_('只允许以管理员身份请求')))
@@ -617,6 +634,7 @@ class MeteringHandler:
         date_start = request.query_params.get('date_start', None)
         date_end = request.query_params.get('date_end', None)
         download = request.query_params.get('download', None)
+        order_by = request.query_params.get('order_by', None)
 
         now_date = timezone.now().date()
 
@@ -634,12 +652,16 @@ class MeteringHandler:
             except (TypeError, ValueError):
                 raise errors.InvalidArgument(message=_('参数“date_end”的值无效的日期格式'))
         else:
-            date_end = now_date     # 默认当月当前日期
+            date_end = now_date     #
+
+        if order_by and order_by not in MeteringHandler.AGGREGATION_SERVICE_ORDER_BY_CHOICES:
+            raise errors.InvalidArgument(message=_('参数“order_by”的值无效'))
 
         return {
             'date_start': date_start,
             'date_end':  date_end,
-            'download': download is not None
+            'download': download is not None,
+            'order_by': order_by
         }
 
     def list_aggregation_by_service_download(self, queryset, date_start, date_end):
