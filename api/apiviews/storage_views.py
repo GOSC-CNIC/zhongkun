@@ -93,6 +93,7 @@ class ObjectsServiceViewSet(StorageGenericViewSet):
         if status:
             qs = qs.filter(status=status)
 
+        qs = qs.order_by('sort_weight')
         try:
             services = self.paginate_queryset(queryset=qs)
             serializer = self.get_serializer(services, many=True)
