@@ -1400,7 +1400,12 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
         testcase_settings = get_test_case_settings()
         nt = timezone.now()
         self.website = MonitorWebsite(
-            name='test', url=testcase_settings['MONITOR_WEBSITE']['WEBSITE_URL'], remark='', user=self.user,
+            name='test',
+            scheme=testcase_settings['MONITOR_WEBSITE']['WEBSITE_SCHEME'],
+            hostname=testcase_settings['MONITOR_WEBSITE']['WEBSITE_HOSTNAME'],
+            uri=testcase_settings['MONITOR_WEBSITE']['WEBSITE_URI'],
+            url=testcase_settings['MONITOR_WEBSITE']['WEBSITE_URL'],
+            remark='', user=self.user,
             creation=nt, modification=nt
         )
         self.website.save(force_insert=True)

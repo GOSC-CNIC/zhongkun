@@ -39,7 +39,10 @@ TEST_CASE = {
             'username': '',
             'password': ''
         },
-        'WEBSITE_URL': "http://www.acas.ac.cn/"
+        'WEBSITE_URL': "http://www.acas.ac.cn/",
+        'WEBSITE_SCHEME': "http://",
+        'WEBSITE_HOSTNAME': "www.acas.ac.cn",
+        'WEBSITE_URI': "/"
     },
     'MONITOR_TIDB': {
         'PROVIDER': {

@@ -2,12 +2,13 @@ from django.urls import reverse
 from django.conf import settings
 from django.core import mail
 
+from utils.test import get_or_create_user
 from . import MyAPITestCase
 
 
 class EmailTests(MyAPITestCase):
     def setUp(self):
-        pass
+        self.user = get_or_create_user(password='password')
 
     def test_send_email(self):
         base_url = reverse('api:email-list')
@@ -36,10 +37,12 @@ class EmailTests(MyAPITestCase):
         })
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
 
+        self.client.force_login(self.user)
         r = self.client.get(reverse('api:email-realip'))
         real_ip = r.data['real_ip']
         if real_ip:
             settings.API_EMAIL_ALLOWED_IPS = [real_ip]
+        self.client.logout()
 
         # ok, text
         r = self.client.post(base_url, data={

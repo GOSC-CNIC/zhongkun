@@ -1,6 +1,8 @@
 import string
 import random
+import uuid
 
+import shortuuid
 from django.utils import timezone
 
 
@@ -91,3 +93,7 @@ def timestamp14_microsecond2_sn():
     t = timezone.now()
     microsecond = f'{t.microsecond:06}'
     return f"{t.year:04}{t.month:02}{t.day:02}{t.hour:02}{t.minute:02}{t.second:02}{microsecond[0:2]}"
+
+
+def short_uuid1_25():
+    return shortuuid.ShortUUID(alphabet='0123456789abcdefghijkmnopqrstuvwxyz').encode(uuid.uuid1())
