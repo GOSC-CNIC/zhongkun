@@ -129,3 +129,55 @@ class BaseAdapter:
             outputs.ListAvailabilityZoneOutput()
         """
         raise NotImplementedError('`list_availability_zones()` must be implemented.')
+
+    def disk_create(self, params: inputs.DiskCreateInput):
+        """
+        创建云硬盘
+        :return:
+            outputs.DiskCreateOutput()
+        """
+        raise NotImplementedError('`disk_create()` must be implemented.')
+
+    def disk_create_pretend(self, params: inputs.DiskCreateInput):
+        """
+        检查是否满足云硬盘的创建条件，是否有足够资源、其他什么限制等等
+
+        * 适配器子类实现此方法，被视为不支持云硬盘功能
+        * 适配器子类必须继承实现此方法（即使什么都不检查），根据各自服务平台尽可能确认是否满足创建云硬盘的条件
+
+        :return:
+            outputs.DiskCreatePretendOutput()
+        """
+        raise NotImplementedError('`disk_create_pretend()` must be implemented.')
+
+    def disk_delete(self, params: inputs.DiskDeleteInput):
+        """
+        删除云硬盘
+        :return:
+            outputs.DiskDeleteOutput()
+        """
+        raise NotImplementedError('`disk_delete()` must be implemented.')
+
+    def disk_attach(self, params: inputs.DiskAttachInput):
+        """
+        云硬盘挂载到云主机
+        :return:
+            outputs.DiskAttachOutput()
+        """
+        raise NotImplementedError('`disk_attach()` must be implemented.')
+
+    def disk_detach(self, params: inputs.DiskDetachInput):
+        """
+        从云主机卸载云硬盘
+        :return:
+            outputs.DiskDetachOutput()
+        """
+        raise NotImplementedError('`disk_detach()` must be implemented.')
+
+    def disk_detail(self, params: inputs.DiskDetailInput):
+        """
+        查询云硬盘
+        :return:
+            outputs.DiskDetailOutput()
+        """
+        raise NotImplementedError('`disk_detail()` must be implemented.')

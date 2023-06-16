@@ -382,99 +382,144 @@ class AvailabilityZone:
 
 
 class ListAvailabilityZoneOutput(OutputBase):
-    def __init__(self, zones: list = None, **kwargs):
+    def __init__(self, zones: List[AvailabilityZone] = None, **kwargs):
         self.zones = zones
         super().__init__(**kwargs)
 
 
-class VolumeStoragePool:
-    def __init__(self, name: str,
-                 total_capacity_gb: str = 'unknown',
-                 free_capacity_gb: str = 'unknown',
-                 max_size_limit_gb: str = 'unknown'):
+class SimpleDisk:
+    def __init__(self, disk_id: str, name: str):
         """
+        :param disk_id: id of disk; type: str
+        """
+        self.disk_id = disk_id
+        self.name = name
+
+
+class DiskStatus:
+    CREATING = 'creating'       # 正在创建
+    IN_USE = 'in-use'           # 已附加到实例
+    AVAILABLE = 'available'     # 创建完成，正常可用，已准备好附加到实例
+    ATTACHING = 'attaching'     # 正在附加到实例
+    DETACHING = 'detaching'     # 正在与实例分离
+    EXTENDING = 'extending'     # 正在扩展卷
+    ERROR = 'error'             # 错误
+    UNKNOWN = 'unknown'         # 无状态，未知状态
+
+    __status_map = {
+        CREATING: 'The disk is being created.',
+        IN_USE: 'The disk is attached to an instance.',
+        AVAILABLE: 'The disk is ready to attach to an instance.',
+        ATTACHING: 'The disk is attaching to an instance.',
+        DETACHING: 'The disk is detaching from an instance.',
+        EXTENDING: 'The disk is being extended.',
+        ERROR: 'A error occurred.',
+
+    }
+
+    def __contains__(self, item):
+        return item in self.__status_map
+
+    @classmethod
+    def values(cls):
+        return cls.__status_map.values()
+
+    @classmethod
+    def keys(cls):
+        return cls.__status_map.keys()
+
+
+class DetailDisk(SimpleDisk):
+    def __init__(
+            self, disk_id: str, name: str,
+            size_gib: int,
+            region_id: str, azone_id: str,
+            creation_time: datetime,
+            description: str,
+            status: str,
+            instance_id: str,
+            device: str
+    ):
+        """
+        :param disk_id: id of disk; type: str
+        :param name:
+        :param size_gib: 盘大小GiB
+        :param region_id: 区域ID
+        :param azone_id: 可用区ID
+        :param creation_time: 盘创建时间
+        :param description: 描述
+        :param status: 盘状态
+        :param instance_id: status=‘in-use’时，盘挂载的云主机id，未挂载时为空
+        :param device: 盘挂载于的云主机时的挂载点、设备名称，例如/dev/xvdb；未挂载时为空
+        """
+        super().__init__(disk_id=disk_id, name=name)
+        self.size_gib = size_gib
+        self.region_id = region_id
+        self.azone_id = azone_id
+        self.creation_time = creation_time
+        self.description = description
+        self.status = status
+        self.instance_id = instance_id
+        self.device = device
+
+
+class DiskCreateOutput(OutputBase):
+    def __init__(self, disk: SimpleDisk, **kwargs):
+        self.disk = disk
+        super().__init__(**kwargs)
+
+
+class DiskCreatePretendOutput(OutputBase):
+    def __init__(self, result: bool, reason: str, **kwargs):
+        """
+        :param result: True: 满足创建云硬盘的条件；False: 无法满足云硬盘创建的条件
+        :param reason: result is True，无法满足云硬盘创建的条件 原因描述
+        """
+        self.result = result
+        self.reason = reason
+        super().__init__(**kwargs)
+
+
+class DiskDetailOutput(OutputBase):
+    def __init__(self, disk: DetailDisk, **kwargs):
+        self.disk = disk
+        super().__init__(**kwargs)
+
+
+class DiskDeleteOutput(OutputBase):
+    pass
+
+
+class DiskAttachOutput(OutputBase):
+    pass
+
+
+class DiskDetachOutput(OutputBase):
+    pass
+
+
+class DiskStoragePool:
+    def __init__(
+            self, pool_id: str, name: str,
+            total_capacity_gb: int,
+            free_capacity_gb: int,
+            max_size_limit_gb: int
+    ):
+        """
+        :param pool_id:
         :param name: 存储池名称
         :param total_capacity_gb: 总存储容量，单位Gb
         :param free_capacity_gb: 可用存储容量，单位Gb
-        :param max_size_limit_gb: 一个卷volume最大容量限制，单位Gb
+        :param max_size_limit_gb: 一个卷disk最大容量限制，单位Gb
         """
+        self.pool_id = pool_id
         self.name = name
         self.total_capacity_gb = total_capacity_gb
         self.free_capacity_gb = free_capacity_gb
         self.max_size_limit_gb = max_size_limit_gb
 
 
-class ListVolumeStoragePoolsOutput(OutputBase):
-    def __init__(self, pools: list, **kwargs):
+class ListDiskStoragePoolsOutput(OutputBase):
+    def __init__(self, pools: List[DiskStoragePool], **kwargs):
         self.pools = pools  # DiskStoragePool
         super().__init__(**kwargs)
-
-
-class StorageVolume:
-    """
-    A base StorageVolume class to derive from.
-    """
-
-    def __init__(self,
-                 _id,  # type: str
-                 name,  # type: str
-                 size,  # type: int
-                 driver,  # type: NodeDriver
-                 state=None,  # type: Optional[StorageVolumeState]
-                 extra=None  # type: Optional[Dict]
-                 ):
-        """
-        :param _id: Storage volume ID.
-        :type _id: ``str``
-        :param name: Storage volume name.
-        :type name: ``str``
-        :param size: Size of this volume (in GB).
-        :type size: ``int``
-        :param driver: Driver this image belongs to.
-        :type driver: :class:`.NodeDriver`
-        :param state: Optional state of the StorageVolume. If not
-                      provided, will default to UNKNOWN.
-        :type state: :class:`.StorageVolumeState`
-        :param extra: Optional provider specific attributes.
-        :type extra: ``dict``
-        """
-        self.id = _id
-        self.name = name
-        self.size = size
-        self.driver = driver
-        self.extra = extra
-        self.state = state
-
-    def attach(self, node, device=None):
-        """
-        Attach this volume to a node.
-        :param node: Node to attach volume to
-        :type node: :class:`.Node`
-        :param device: Where the device is exposed,
-                            e.g. '/dev/sdb (optional)
-        :type device: ``str``
-        :return: ``True`` if attach was successful, ``False`` otherwise.
-        :rtype: ``bool``
-        """
-        return self.driver.attach_volume(node=node, volume=self, device=device)
-
-    def detach(self):
-        """
-        Detach this volume from its node
-        :return: ``True`` if detach was successful, ``False`` otherwise.
-        :rtype: ``bool``
-        """
-        return self.driver.detach_volume(volume=self)
-
-    def destroy(self):
-        """
-        Destroy this storage volume.
-        :return: ``True`` if destroy was successful, ``False`` otherwise.
-        :rtype: ``bool``
-        """
-
-        return self.driver.destroy_volume(volume=self)
-
-    def __repr__(self):
-        return '<StorageVolume id=%s size=%s driver=%s>' % (
-            self.id, self.size, self.driver.name)

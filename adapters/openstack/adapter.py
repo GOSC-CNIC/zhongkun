@@ -562,16 +562,3 @@ class OpenStackAdapter(BaseAdapter):
             return outputs.ListAvailabilityZoneOutput(zones)
         except Exception as e:
             return outputs.ListAvailabilityZoneOutput(ok=False, error=exceptions.Error(str(e)), zones=None)
-
-    def create_volume(self, params: inputs.VolumeCreateInput, **kwargs):
-        """
-        Create a new volume.
-        """
-        try:
-            service_instance = self._get_openstack_connect()
-            volume = service_instance.volume.create_volume(
-                size=params.size,
-                description=params.description
-            )
-        except Exception as e:
-            pass

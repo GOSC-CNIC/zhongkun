@@ -6,6 +6,7 @@ from .. import outputs
 from .utils import get_exp_jwt
 from . import exceptions
 
+
 datetime_re = re.compile(
     r'(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<day>\d{1,2})'
     r'[T ](?P<hour>\d{1,2}):(?P<minute>\d{1,2})'
@@ -269,3 +270,44 @@ class OutputConverter:
     def to_server_rebuild_output_error(error):
         return outputs.ServerRebuildOutput(ok=False, error=error, instance_id='', image_id='',
                                            default_user='', default_password='')
+
+    @staticmethod
+    def to_disk_create_output(data: dict):
+        disk_id = data['uuid']
+        disk = outputs.SimpleDisk(disk_id=disk_id, name='')
+        return outputs.DiskCreateOutput(disk=disk)
+
+    @staticmethod
+    def to_disk_create_output_error(error=None):
+        if isinstance(error, exceptions.Error):
+            err_code = error.kwargs.get('err_code')
+            if err_code == 'VdiskNotEnoughQuota':
+                error.message += ',code=VdiskNotEnoughQuota'
+
+        return outputs.ServerCreateOutput(ok=False, error=error, server=None)
+
+    @staticmethod
+    def to_disk_detail_output(data: dict, region_id: str):
+        vm = data['vm']
+        if vm:
+            instance_id = vm['uuid']
+            status = outputs.DiskStatus.IN_USE
+            device = data.get('dev', '')
+        else:
+            instance_id = ''
+            status = outputs.DiskStatus.AVAILABLE
+            device = ''
+
+        quota = data['quota']
+        disk = outputs.DetailDisk(
+            disk_id=data['uuid'], name='', size_gib=data['size'],
+            region_id=region_id, azone_id=quota['group']['id'],
+            creation_time=iso_to_datetime(data['create_time']),
+            description=data['remarks'],
+            status=status, instance_id=instance_id, device=device
+        )
+        return outputs.DiskDetailOutput(disk=disk)
+
+    @staticmethod
+    def to_disk_detail_output_error(error=None):
+        return outputs.DiskDetailOutput(ok=False, error=error, disk=None)

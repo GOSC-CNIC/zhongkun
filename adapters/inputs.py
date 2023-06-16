@@ -186,8 +186,51 @@ class ListAvailabilityZoneInput(InputBase):
         super().__init__(**kwargs)
 
 
-class VolumeCreateInput(InputBase):
-    def __init__(self, size: int, description: str, **kwargs):
-        self.size = size  # Gb
+class DiskCreateInput(InputBase):
+    def __init__(self, region_id: str, azone_id: str, size_gib: int, description: str, **kwargs):
+        """
+        :param region_id: 区域/分中心id; type: str; required: False
+        """
+        self.region_id = region_id
+        self.azone_id = azone_id
+        self.size_gib = size_gib  # Gb
         self.description = description  # 备注，描述
+        super().__init__(**kwargs)
+
+
+class DiskDeleteInput(InputBase):
+    def __init__(self, disk_id: str, disk_name: str, **kwargs):
+        self.disk_id = disk_id
+        self.disk_name = disk_name
+        super().__init__(**kwargs)
+
+
+class DiskAttachInput(InputBase):
+    def __init__(self, instance_id: str, disk_id: str, mountpoint: str = None, **kwargs):
+        """
+        :param instance_id: 云主机id
+        :param disk_id: 云硬盘id
+        :param mountpoint: 挂载点，例如 "/dev/vdc"
+        """
+        self.instance_id = instance_id
+        self.disk_id = disk_id
+        self.mountpoint = mountpoint
+        super().__init__(**kwargs)
+
+
+class DiskDetachInput(InputBase):
+    def __init__(self, instance_id: str, disk_id: str, **kwargs):
+        """
+        :param instance_id: 云主机id
+        :param disk_id: 云硬盘id
+        """
+        self.instance_id = instance_id
+        self.disk_id = disk_id
+        super().__init__(**kwargs)
+
+
+class DiskDetailInput(InputBase):
+    def __init__(self, disk_id: str, disk_name: str, **kwargs):
+        self.disk_id = disk_id
+        self.disk_name = disk_name
         super().__init__(**kwargs)

@@ -138,3 +138,22 @@ class APIBuilder:
 
     def vpn_deactive_url(self, username: str, query=None):
         return self.build_url(path=f'api/{self.api_version}/vpn/{username}/deactive/', query=query)
+
+    def disk_base_url(self, query=None):
+        return self.build_url(path=f'api/{self.api_version}/vdisk/', query=query)
+
+    def disk_detail_url(self, disk_id: str, query=None):
+        return self.build_url(path=f'api/{self.api_version}/vdisk/{disk_id}/', query=query)
+
+    def disk_attach_url(self, disk_id: str, vm_uuid: str, query=None):
+        if query is None:
+            query = {}
+
+        query['vm_uuid'] = vm_uuid
+        return self.build_url(path=f'api/{self.api_version}/vdisk/{disk_id}/mount/', query=query)
+
+    def disk_detach_url(self, disk_id: str, query=None):
+        return self.build_url(path=f'api/{self.api_version}/vdisk/{disk_id}/umount/', query=query)
+
+    def disk_quota_base_url(self, query=None):
+        return self.build_url(path=f'api/{self.api_version}/quota/', query=query)

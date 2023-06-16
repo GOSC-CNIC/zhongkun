@@ -7,6 +7,7 @@ from .uniscloud.adapter import UnisAdapter
 from .aliyun.adapter import AliyunAdapter
 from .exceptions import UnsupportedServiceType, MethodNotSupportInService
 from .params import ParamsName
+from . import inputs, outputs
 
 
 SERVICE_TYPE_EVCLOUD = 'evcloud'
@@ -14,6 +15,7 @@ SERVICE_TYPE_OPENSTACK = 'openstack'
 SERVICE_TYPE_VMWARE = 'vmware'
 SERVICE_TYPE_UNIS_CLOUD = 'unis-cloud'
 SERVICE_TYPE_ALIYUN = 'aliyun'
+
 
 def get_service_style(service: ServiceConfig):
     service_type = service.service_type
@@ -152,8 +154,32 @@ class OneServiceClient:
         return self.adapter.network_detail(*args, **kwargs)
 
     @adapter_method_not_support(action='list availability zones')
-    def list_availability_zones(self, *args, **kwargs):
-        return self.adapter.list_availability_zones(*args, **kwargs)
+    def list_availability_zones(self, params: inputs.ListAvailabilityZoneInput) -> outputs.ListAvailabilityZoneOutput:
+        return self.adapter.list_availability_zones(params=params)
+
+    @adapter_method_not_support(action='create disk')
+    def disk_create(self, params: inputs.DiskCreateInput) -> outputs.DiskCreateOutput:
+        return self.adapter.disk_create(params=params)
+
+    @adapter_method_not_support(action='pretend create disk')
+    def disk_create_pretend(self, params: inputs.DiskCreateInput) -> outputs.DiskCreatePretendOutput:
+        return self.adapter.disk_create_pretend(params=params)
+
+    @adapter_method_not_support(action='delete disk')
+    def disk_delete(self, params: inputs.DiskDeleteInput) -> outputs.DiskDeleteOutput:
+        return self.adapter.disk_delete(params=params)
+
+    @adapter_method_not_support(action='attach disk')
+    def disk_attach(self, params: inputs.DiskAttachInput) -> outputs.DiskAttachOutput:
+        return self.adapter.disk_attach(params=params)
+
+    @adapter_method_not_support(action='detach disk')
+    def disk_detach(self, params: inputs.DiskDetachInput) -> outputs.DiskDetachOutput:
+        return self.adapter.disk_detach(params=params)
+
+    @adapter_method_not_support(action='get disk detail')
+    def disk_detail(self, params: inputs.DiskDetailInput) -> outputs.DiskDetailOutput:
+        return self.adapter.disk_detail(params=params)
 
 
 class VPNClient:

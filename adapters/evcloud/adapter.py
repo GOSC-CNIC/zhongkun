@@ -32,7 +32,7 @@ def get_failed_err_code(response, code_key='err_code'):
     请求失败错误码
 
     :param response: requests.Response()
-    :param msg_key: 信息键值
+    :param code_key: 信息键值
     :return:
     """
     try:
@@ -230,7 +230,7 @@ class EVCloudAdapter(BaseAdapter):
         try:
             url = self.api_builder.vm_action_url(vm_uuid=params.instance_id)
             headers = self.get_auth_header()
-            r = self.do_request(method='patch', url=url, data={'op': action}, headers=headers)
+            self.do_request(method='patch', url=url, data={'op': action}, headers=headers)
         except exceptions.Error as e:
             return outputs.ServerActionOutput(ok=False, error=e)
 
@@ -457,6 +457,146 @@ class EVCloudAdapter(BaseAdapter):
         url = self.api_builder.group_base_url(query={'center_id': center_id})
         r = self.do_request(method='get', url=url, headers=headers)
         return r.json()
+
+    def disk_create(self, params: inputs.DiskCreateInput) -> outputs.DiskCreateOutput:
+        """
+        创建云硬盘
+        :return:
+            outputs.DiskCreateOutput()
+        """
+        _api = self.api_builder.disk_base_url()
+        try:
+            data = InputValidator.create_disk_validate(params)
+            headers = self.get_auth_header()
+            r = self.do_request(method='post', url=_api, data=data, ok_status_codes=[201], headers=headers)
+        except exceptions.Error as e:
+            return OutputConverter.to_disk_create_output_error(error=e)
+
+        rj = r.json()
+        return OutputConverter.to_disk_create_output(rj['disk'])
+
+    def disk_create_pretend(self, params: inputs.DiskCreateInput) -> outputs.DiskCreatePretendOutput:
+        """
+        检查是否满足云硬盘的创建条件，是否有足够资源、其他什么限制等等
+
+        :return:
+            outputs.DiskCreatePretendOutput()
+        """
+        ret = self._list_disk_storage_pools(azone_id=params.azone_id)
+        if not ret.ok:
+            return outputs.DiskCreatePretendOutput(
+                ok=True, error=None, result=False, reason=f'查询云硬盘存储池失败，{str(ret.error)}')
+
+        ds_pools = ret.pools
+        ok = False
+        for p in ds_pools:
+            if p.free_capacity_gb >= params.size_gib and p.max_size_limit_gb >= params.size_gib:
+                ok = True
+                break
+
+        if not ok:
+            return outputs.DiskCreatePretendOutput(
+                ok=True, error=None, result=False, reason='没有满足资源需求的云硬盘存储池')
+
+        return outputs.DiskCreatePretendOutput(ok=True, error=None, result=True, reason='')
+
+    def _list_disk_storage_pools(self, azone_id: str) -> outputs.ListDiskStoragePoolsOutput:
+        _api = self.api_builder.disk_quota_base_url(query={'group_id': azone_id})
+        try:
+            headers = self.get_auth_header()
+            r = self.do_request(method='get', url=_api, ok_status_codes=[200], headers=headers)
+        except exceptions.Error as e:
+            return outputs.ListDiskStoragePoolsOutput(ok=False, error=e, pools=[])
+
+        rj = r.json()
+        pools = []
+        for quota in rj['results']:
+            total_capacity_gb = quota.get('total', 0)
+            size_used = quota.get('size_used', 0)
+            p = outputs.DiskStoragePool(
+                pool_id=quota['id'],
+                name=quota.get('name', ''),
+                total_capacity_gb=total_capacity_gb,
+                free_capacity_gb=total_capacity_gb - size_used,
+                max_size_limit_gb=quota.get('max_vdisk', 0)
+            )
+            pools.append(p)
+
+        return outputs.ListDiskStoragePoolsOutput(ok=True, pools=pools)
+
+    def disk_detail(self, params: inputs.DiskDetailInput) -> outputs.DiskDetailOutput:
+        """
+        查询云硬盘
+        :return:
+            outputs.DiskDetailOutput()
+        """
+        _api = self.api_builder.disk_detail_url(disk_id=params.disk_id)
+        try:
+            headers = self.get_auth_header()
+            r = self.do_request(method='get', url=_api, data=None, ok_status_codes=[200], headers=headers)
+        except exceptions.Error as e:
+            return OutputConverter.to_disk_detail_output_error(error=e)
+
+        rj = r.json()
+        data = rj.get('disk')   # 兼容以后接口响应disk内容键名可能由‘vm’更改为‘disk’
+        if data and 'size' in data:
+            pass
+        else:
+            data = rj['vm']     # 接口响应disk内容键名是‘vm’
+        return OutputConverter.to_disk_detail_output(data=data, region_id=self.get_region())
+
+    def disk_delete(self, params: inputs.DiskDeleteInput) -> outputs.DiskDeleteOutput:
+        """
+        删除云硬盘
+        :return:
+            outputs.DiskDeleteOutput()
+        """
+        _api = self.api_builder.disk_detail_url(disk_id=params.disk_id)
+        try:
+            headers = self.get_auth_header()
+            r = self.do_request(method='delete', url=_api, data=None, ok_status_codes=[204, 404], headers=headers)
+            if r.status_code == 204:
+                return outputs.DiskDeleteOutput(ok=True)
+            elif r.status_code == 404:
+                err_code = get_failed_err_code(r)
+                if err_code == 'VdiskNotExist':
+                    return outputs.DiskDeleteOutput(ok=True)
+
+            err_code = get_failed_err_code(r)
+            msg = get_failed_msg(r)
+            raise exceptions.APIError(msg, status_code=r.status_code, err_code=err_code)
+        except exceptions.Error as e:
+            return outputs.DiskDeleteOutput(ok=False, error=e)
+
+    def disk_attach(self, params: inputs.DiskAttachInput) -> outputs.DiskAttachOutput:
+        """
+        云硬盘挂载到云主机
+        :return:
+            outputs.DiskAttachOutput()
+        """
+        _api = self.api_builder.disk_attach_url(disk_id=params.disk_id, vm_uuid=params.instance_id)
+        try:
+            headers = self.get_auth_header()
+            self.do_request(method='patch', url=_api, data=None, ok_status_codes=[200], headers=headers)
+        except exceptions.Error as e:
+            return outputs.DiskAttachOutput(ok=False, error=e)
+
+        return outputs.DiskAttachOutput(ok=True)
+
+    def disk_detach(self, params: inputs.DiskDetachInput) -> outputs.DiskDetachOutput:
+        """
+        从云主机卸载云硬盘
+        :return:
+            outputs.DiskDetachOutput()
+        """
+        _api = self.api_builder.disk_detach_url(disk_id=params.disk_id)
+        try:
+            headers = self.get_auth_header()
+            self.do_request(method='patch', url=_api, data=None, ok_status_codes=[200], headers=headers)
+        except exceptions.Error as e:
+            return outputs.DiskDetachOutput(ok=False, error=e)
+
+        return outputs.DiskDetachOutput(ok=True)
 
     def get_vpn(self, username: str):
         url = self.api_builder.vpn_detail_url(username=username)

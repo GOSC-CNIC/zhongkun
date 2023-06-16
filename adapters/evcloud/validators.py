@@ -50,3 +50,25 @@ class InputValidator:
 
         return data
 
+    @staticmethod
+    def create_disk_validate(params: inputs.DiskCreateInput):
+        remarks = params.description if params.description else '一体云'
+        try:
+            center_id = int(params.region_id)
+            size_gib = int(params.size_gib)
+            group_id = None
+            if params.azone_id:
+                group_id = int(params.azone_id)
+        except ValueError as e:
+            raise exceptions.APIInvalidParam(extend_msg=str(e))
+
+        data = {
+            'center_id': center_id,
+            'size': size_gib,
+            'remarks': remarks
+        }
+
+        if group_id:
+            data['group_id'] = group_id
+
+        return data
