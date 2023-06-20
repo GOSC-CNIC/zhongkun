@@ -3,7 +3,7 @@ from django.utils.translation import gettext_lazy as _
 from django import forms
 
 from utils.model import NoDeleteSelectModelAdmin
-from .models import Server, Flavor, ServerArchive
+from .models import Server, Flavor, ServerArchive, Disk
 
 
 class ServerAdminForm(forms.ModelForm):
@@ -78,3 +78,42 @@ class FlavorAdmin(admin.ModelAdmin):
     list_display = ('id', 'vcpus', 'ram', 'enable', 'service', 'creation_time')
     ordering = ('vcpus', 'ram')
     list_filter = ['service']
+
+
+@admin.register(Disk)
+class DiskAdmin(NoDeleteSelectModelAdmin):
+    list_display_links = ('id',)
+    list_display = ('id', 'service', 'azone_id', 'azone_name', 'size', 'instance_id', 'quota_type',
+                    'creation_time', 'task_status', 'expiration_time', 'start_time', 'pay_type',
+                    'classification', 'user', 'vo', 'lock', 'show_deleted',
+                    'server', 'mountpoint', 'attached_time', 'detached_time', 'remarks')
+    search_fields = ['id', 'instance_id', 'remarks']
+    list_filter = ['service__data_center', 'service', 'classification', 'deleted']
+    raw_id_fields = ('user', 'vo')
+    list_select_related = ('service', 'user', 'vo')
+
+    fieldsets = [
+        (_('基础信息'), {'fields': ('service', 'azone_id', 'azone_name', 'size', 'instance_id', 'remarks', 'quota_type')}),
+        (_('创建和归属信息'), {'fields': ('creation_time', 'task_status', 'classification', 'user', 'vo')}),
+        (_('计量信息'), {'fields': ('pay_type', 'start_time', 'expiration_time')}),
+        (_('挂载信息'), {'fields': ('server', 'mountpoint', 'attached_time', 'detached_time')}),
+        (_('锁、删除状态'), {'fields': ('lock', 'deleted')}),
+    ]
+
+    @admin.display(
+        description=_('删除状态')
+    )
+    def show_deleted(self, obj):
+        if obj.deleted:
+            return '已删除'
+
+        return '正常'
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def delete_model(self, request, obj):
+        """
+        Given a model instance delete it from the database.
+        """
+        raise Exception(_('不允许从后台删除。'))

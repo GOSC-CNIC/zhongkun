@@ -1,5 +1,6 @@
 from adapters import exceptions as apt_exceptions, client as clients
 from adapters import inputs, outputs
+from servers.models import Disk, Server
 from .auth import auth_handler
 from . import errors as exceptions
 
@@ -133,7 +134,7 @@ def request_vpn_service(service, method: str, raise_exception=True, **kwargs):
     return None
 
 
-def update_server_detail(server, task_status: int = None):
+def update_server_detail(server: Server, task_status: int = None):
     """
     尝试更新服务器的详细信息
     :param server:
@@ -270,4 +271,93 @@ def server_build_status(server):
         return "building"
 
 
+def adapter_detail_disk(disk: Disk) -> outputs.DetailDisk:
+    """
+    尝试更新云硬盘的详细信息
+    :param disk:
+    :return:
+        Server    # success
+        raise Error   # failed
 
+    :raises: Error
+    """
+    # 尝试获取详细信息
+    params = inputs.DiskDetailInput(disk_id=disk.instance_id, disk_name=disk.instance_name)
+    try:
+        out = request_service(service=disk.service, method='disk_detail', params=params)
+        return out.disk
+    except exceptions.APIException as exc:
+        raise exc
+
+
+def disk_build_status(disk):
+    """
+    云硬盘创建状态
+
+    :return: str
+        "created"       # 创建完成
+        "failed"        # 创建失败
+        "building"      # 创建中
+        "error"         # 查询状态失败
+    """
+    try:
+        out_disk, _ = adapter_detail_disk(disk)
+    except Exception as e:
+        return "error"
+
+    status_code = out_disk.status
+    if status_code in outputs.DiskStatus.normal_values():     # 虚拟服务器状态正常
+        return "created"
+    elif status_code in [outputs.DiskStatus.ERROR]:
+        return "failed"
+    else:
+        return "building"
+
+
+def update_disk_detail(disk: Disk, task_status: int = None):
+    """
+    尝试更新云硬盘的详细信息
+    :param disk:
+    :param task_status: 设置disk的创建状态；默认None忽略
+    :return:
+        Server    # success
+        raise Error   # failed
+
+    :raises: Error
+    """
+    # 尝试获取详细信息
+    out_disk: outputs.DetailDisk = adapter_detail_disk(disk)
+
+    try:
+        update_fields = []
+
+        if not disk.instance_id:
+            if out_disk.disk_id:
+                disk.instance_id = out_disk.disk_id
+                update_fields.append('instance_id')
+
+        if not disk.instance_name:
+            if out_disk.name:
+                disk.instance_name = out_disk.name
+                update_fields.append('instance_name')
+
+        if task_status:
+            normal_values = outputs.DiskStatus.normal_values()
+            if out_disk.status in normal_values:
+                disk.task_status = task_status
+                update_fields.append('task_status')
+
+        if out_disk.azone_id:
+            disk.azone_id = out_disk.azone_id
+            update_fields.append('azone_id')
+
+        if out_disk.size_gib and out_disk.size_gib > 0:
+            disk.size = out_disk.size_gib
+            update_fields.append('size')
+
+        if update_fields:
+            disk.save(update_fields=update_fields)
+    except Exception as e:
+        raise exceptions.APIException(message=str(e))
+
+    return disk

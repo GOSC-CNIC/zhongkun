@@ -6,34 +6,72 @@ from django.utils import timezone
 from core import errors as exceptions
 from core.quota import QuotaAPI
 from core import request as core_request
-from service.managers import ServiceManager
-from servers.models import Server
+from core.taskqueue import server_build_status
+from service.managers import ServiceManager, ServiceConfig
+from servers.models import Server, Disk
 from servers.managers import ServerManager
-from adapters import inputs
+from adapters import inputs, outputs
 from utils.model import PayType, OwnerType, ResourceType
 from order.models import Order, Resource
-from order.managers import OrderManager, ServerConfig, PriceManager
+from order.managers import OrderManager, ServerConfig, PriceManager, DiskConfig
 
 
 class OrderResourceDeliverer:
     """
     订单资源创建交付管理器
     """
+    def deliver_order(self, order: Order, resource: Resource):
+        """
+        :return:
+            server or disk
 
-    @staticmethod
-    def deliver_order(order: Order, resource: Resource):
+        :raises: Error
+        """
         if order.order_type == Order.OrderType.NEW.value:  # 新购
             if order.resource_type == ResourceType.VM.value:
-                OrderResourceDeliverer().deliver_new_server(order=order, resource=resource)
+                service, server = self.deliver_new_server(order=order, resource=resource)
+                self.after_deliver_server(service=service, server=server)
+                return server
+            elif order.resource_type == ResourceType.DISK.value:
+                service, disk = self.deliver_new_disk(order=order, resource=resource)
+                self.after_deliver_disk(service=service, disk=disk)
+                return disk
             else:
                 raise exceptions.Error(message=_('订购的资源类型无法交付，资源类型服务不支持。'))
         elif order.order_type == Order.OrderType.RENEWAL.value:  # 续费
             if order.resource_type == ResourceType.VM.value:
-                OrderResourceDeliverer().deliver_renewal_server(order=order, resource=resource)
+                server = OrderResourceDeliverer().deliver_renewal_server(order=order, resource=resource)
+                return server
             else:
                 raise exceptions.Error(message=_('订购的资源类型无法交付，资源类型服务不支持。'))
         else:
             raise exceptions.Error(message=_('订购的类型不支持交付。'))
+
+    @staticmethod
+    def after_deliver_server(service: ServiceConfig, server: Server):
+        if service.service_type == service.ServiceType.EVCLOUD.value:
+            try:
+                server = core_request.update_server_detail(server=server, task_status=server.TASK_CREATED_OK)
+            except exceptions.Error as e:
+                pass
+            else:
+                return server
+
+        server_build_status.creat_task(server)  # 异步任务查询server创建结果，更新server信息和创建状态
+        return server
+
+    @staticmethod
+    def after_deliver_disk(service: ServiceConfig, disk: Disk):
+        if service.service_type == service.ServiceType.EVCLOUD.value:
+            try:
+                disk = core_request.update_disk_detail(disk=disk, task_status=disk.TaskStatus.OK.value)
+            except exceptions.Error as e:
+                pass
+            else:
+                return disk
+
+        server_build_status.creat_disk_task(disk=disk)  # 异步任务查询disk创建结果，更新disk信息和创建状态
+        return disk
 
     @staticmethod
     def create_server_resource_for_order(order: Order, resource: Resource):
@@ -305,3 +343,140 @@ class OrderResourceDeliverer:
             raise exc
 
         return server
+
+    def deliver_new_disk(self, order: Order, resource: Resource):
+        """
+        :return:
+            service, disk            # success
+
+        :raises: Error, NeetReleaseResource
+        """
+        order, resource = self._pre_check_deliver(order=order, resource=resource)
+
+        try:
+            service, disk = self.create_disk_resource_for_order(order=order, resource=resource)
+        except exceptions.Error as exc:
+            try:
+                OrderManager.set_order_resource_deliver_failed(
+                    order=order, resource=resource, failed_msg='无法为订单创建云硬盘资源, ' + str(exc))
+            except exceptions.Error:
+                pass
+
+            raise exc
+
+        try:
+            OrderManager.set_order_resource_deliver_ok(
+                order=order, resource=resource, start_time=disk.creation_time,
+                due_time=disk.expiration_time, instance_id=disk.id
+            )
+        except exceptions.Error:
+            pass
+
+        return service, disk
+
+    @staticmethod
+    def create_disk_resource_for_order(order: Order, resource: Resource):
+        """
+        为订单创建云硬盘资源
+
+        :return:
+            service, disk
+
+        :raises: Error, NeetReleaseResource
+        """
+        if order.resource_type != ResourceType.DISK.value:
+            raise exceptions.Error(message=_('订单的资源类型不是云硬盘'))
+
+        try:
+            config = DiskConfig.from_dict(order.instance_config)
+        except Exception as exc:
+            raise exceptions.Error(message=str(exc))
+
+        try:
+            service = ServiceManager().get_service(service_id=order.service_id)
+        except exceptions.Error as exc:
+            raise exc
+
+        disk_size = config.disk_size
+        # 资源配额扣除
+        try:
+            QuotaAPI().disk_create_quota_apply(service=service, disk_size=disk_size)
+        except exceptions.Error as exc:
+            raise exc
+
+        params = inputs.DiskCreateInput(
+            region_id=service.region_id, azone_id=config.disk_azone_id,
+            size_gib=config.disk_size, description=resource.instance_remark
+        )
+        try:
+            out = core_request.request_service(service=service, method='disk_create', params=params)
+        except exceptions.APIException as exc:
+            try:
+                QuotaAPI().disk_quota_release(service=service, disk_size=disk_size)
+            except exceptions.Error:
+                pass
+
+            raise exc
+
+        out_disk: outputs.SimpleDisk = out.disk
+        kwargs = {}
+        if order.owner_type == OwnerType.VO.value:
+            kwargs['classification'] = Disk.Classification.VO.value
+            kwargs['vo_id'] = order.vo_id
+        else:
+            kwargs['classification'] = Disk.Classification.PERSONAL.value
+            kwargs['vo_id'] = None
+
+        creation_time = timezone.now()
+        if order.pay_type == PayType.PREPAID.value:
+            due_time = creation_time + timedelta(PriceManager.period_month_days(order.period))
+        else:
+            due_time = None
+
+        disk = Disk(
+            id=resource.instance_id,
+            name='',
+            instance_id=out_disk.disk_id,
+            instance_name=out_disk.name,
+            size=disk_size,
+            service=service,
+            azone_id=config.disk_azone_id,
+            azone_name=config.disk_azone_name,
+            quota_type=Disk.QuotaType.PRIVATE.value,
+            creation_time=creation_time,
+            remarks=resource.instance_remark,
+            task_status=Disk.TaskStatus.CREATING.value,
+            expiration_time=due_time,
+            start_time=creation_time,
+            pay_type=order.pay_type,
+            user_id=order.user_id,
+            lock=Disk.Lock.FREE.value,
+            deleted=False,
+            server=None,
+            mountpoint='',
+            **kwargs
+        )
+        try:
+            disk.save(force_insert=True)
+        except Exception as e:
+            try:
+                if Disk.objects.filter(id=disk.id).exists():
+                    disk.id = None  # 清除id，save时会更新id
+
+                disk.save(force_insert=True)
+            except Exception:
+                message = f'向服务单元({service.id})请求创建云硬盘{out_disk.disk_id}成功，创建云硬盘记录元素据失败，{str(e)}。'
+                params = inputs.DiskDeleteInput(disk_id=disk.instance_id, disk_name=disk.instance_name)
+                try:
+                    core_request.request_service(disk.service, method='disk_delete', params=params)
+                except exceptions.APIException as exc:
+                    message += f'尝试向服务单元请求删除云硬盘失败，{str(exc)}'
+                else:
+                    try:
+                        QuotaAPI().disk_quota_release(service=service, disk_size=disk_size)
+                    except exceptions.Error:
+                        pass
+
+                raise exceptions.NeetReleaseResource(message=message)
+
+        return service, disk

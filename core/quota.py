@@ -19,13 +19,11 @@ class QuotaAPI:
 
         :raises: QuotaShortageError, QuotaError
         """
-        # 资源配额满足要求，扣除数据中心资源或用户资源
         if public_ip:
             kwargs = {'public_ip': 1}
         else:
             kwargs = {'private_ip': 1}
 
-        # 扣除服务私有资源配额和用户配额
         pri_quota = ServicePrivateQuotaManager().deduct(service=service, vcpus=vcpu, ram_gib=ram_gib, **kwargs)
         return pri_quota
 
@@ -64,3 +62,45 @@ class QuotaAPI:
             pri_mgr.requires(pri_service_quota, vcpus=vcpu, ram_gib=ram_gib, private_ip=1)
 
         return pri_service_quota
+
+    @staticmethod
+    def service_private_disk_quota_meet(service, disk_size: int):
+        """
+        检查服务单元私有资源云硬盘配额是否满足需求
+
+        :raises: QuotaError, QuotaShortageError
+        """
+        pri_mgr = ServicePrivateQuotaManager()
+        pri_service_quota = pri_mgr.get_quota(service=service)
+        pri_mgr.requires(pri_service_quota, disk_size=disk_size)
+        return pri_service_quota
+
+    @staticmethod
+    def disk_create_quota_apply(service, disk_size: int):
+        """
+        检测资源配额是否满足，并申请扣除
+
+        原则：
+            1.使用服务私有资源配额
+
+        :param service: 接入服务
+        :param disk_size: 容量大小, 单位Gb
+        :return:
+            quota          # 服务私有配额对象
+
+        :raises: QuotaShortageError, QuotaError
+        """
+        return ServicePrivateQuotaManager().deduct(service=service, disk_size=disk_size)
+
+    @staticmethod
+    def disk_quota_release(service, disk_size: int):
+        """
+        释放云硬盘占用的服务提供者的私有资源配额
+
+        :param service: 接入的服务对象
+        :param disk_size: 大小, 单位Gb
+        :return:
+
+        :raises: QuotaShortageError, QuotaError
+        """
+        ServicePrivateQuotaManager().release(service=service, disk_size=disk_size)

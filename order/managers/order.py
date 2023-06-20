@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.db import transaction
 
 from utils.model import OwnerType, PayType
+from utils import rand_utils
 from servers.models import get_uuid1_str
 from vo.managers import VoManager
 from core import errors
@@ -80,7 +81,14 @@ class OrderManager:
             completion_time=None
         )
 
-        instance_id = get_uuid1_str()
+        instance_id = rand_utils.short_uuid1_25()
+        if resource_type == ResourceType.VM.value:
+            instance_id += '-i'
+        elif resource_type == ResourceType.DISK.value:
+            instance_id += '-d'
+        else:
+            pass
+
         with transaction.atomic():
             order.save(force_insert=True)
             resource = Resource(

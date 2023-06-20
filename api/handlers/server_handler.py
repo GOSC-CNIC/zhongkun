@@ -9,8 +9,6 @@ from rest_framework.response import Response
 
 from core import errors as exceptions
 from core.quota import QuotaAPI
-from core.taskqueue import server_build_status
-from core import request as core_request
 from service.managers import ServiceManager
 from servers.models import Server, Flavor
 from servers.managers import ServerManager, ServerArchiveManager
@@ -318,7 +316,8 @@ class ServerHandler:
         if update_fields:
             server.save(update_fields=update_fields)
 
-        server_build_status.creat_task(server)  # 异步任务查询server创建结果，更新server信息和创建状态
+        # 异步任务查询server创建结果，更新server信息和创建状态
+        OrderResourceDeliverer.after_deliver_server(service=server.service, server=server)
         data = {
             'id': server.id,
             'image_id': r.image_id
@@ -636,15 +635,8 @@ class ServerHandler:
         except exceptions.Error as exc:
             raise exc
 
-        if service.service_type == service.ServiceType.EVCLOUD:
-            try:
-                server = core_request.update_server_detail(server=server, task_status=server.TASK_CREATED_OK)
-            except exceptions.Error as e:
-                pass
-            else:
-                return server
-
-        server_build_status.creat_task(server)  # 异步任务查询server创建结果，更新server信息和创建状态
+        # 异步任务查询server创建结果，更新server信息和创建状态
+        OrderResourceDeliverer().after_deliver_server(service=service, server=server)
         return server
 
     @staticmethod

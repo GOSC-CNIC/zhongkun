@@ -8,7 +8,7 @@ from core import errors
 from vo.managers import VoManager
 from bill.managers import PaymentManager
 from utils.model import PayType
-from .models import Server, ServerArchive, Flavor
+from .models import Server, ServerArchive, Flavor, Disk
 from .server_instance import ServerInstance
 
 
@@ -409,3 +409,64 @@ class ServerArchiveManager:
 class FlavorManager:
     def get_enable_flavor(self, _id):
         return Flavor.objects.filter(id=_id, enable=True).first()
+
+
+class DiskManager:
+    @staticmethod
+    def get_disk_queryset():
+        return Disk.objects.filter(deleted=False)
+
+    def get_user_disks_queryset(
+            self, user, service_id: str = None, expired: bool = None, remark: str = None, pay_type: str = None
+    ):
+        """
+        查询用户个人云硬盘
+
+        :param user: 用户过滤
+        :param service_id: 服务单元id过滤
+        :param expired: True(过期过滤)；False(未过期过滤)：默认None不过滤
+        :param remark: 备注模糊查询
+        :param pay_type: 付费模式
+        :return: QuerySet()
+        """
+        lookups = {}
+        if service_id:
+            lookups['service_id'] = service_id
+
+        if pay_type is not None:
+            lookups['pay_type'] = pay_type
+
+        if remark:
+            lookups['remarks__icontains'] = remark
+
+        qs = self.get_disk_queryset()
+        qs = qs.select_related('service', 'user').filter(
+            user=user, classification=Disk.Classification.PERSONAL.value, **lookups)
+
+        if expired is True:
+            qs = qs.filter(expiration_time__lte=timezone.now())
+        elif expired is False:
+            qs = qs.filter(~Q(expiration_time__lte=timezone.now()))     # 取反的方式，存在expiration_time == None
+
+        return qs
+
+    def get_vo_disks_queryset(self, vo_id: str, service_id: str = None, expired: bool = None, pay_type: str = None):
+        """
+        查询vo组的disk
+        """
+        qs = self.get_disk_queryset()
+        qs = qs.select_related('service', 'user', 'vo').filter(
+            vo_id=vo_id, classification=Disk.Classification.VO.value)
+
+        if service_id:
+            qs = qs.filter(service_id=service_id)
+
+        if expired is True:
+            qs = qs.filter(expiration_time__lte=timezone.now())
+        elif expired is False:
+            qs = qs.filter(~Q(expiration_time__lte=timezone.now()))
+
+        if pay_type:
+            qs = qs.filter(pay_type=pay_type)
+
+        return qs

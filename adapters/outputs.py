@@ -417,6 +417,10 @@ class DiskStatus:
 
     }
 
+    __normal_values = [
+        IN_USE, AVAILABLE, ATTACHING, DETACHING, EXTENDING
+    ]
+
     def __contains__(self, item):
         return item in self.__status_map
 
@@ -427,6 +431,10 @@ class DiskStatus:
     @classmethod
     def keys(cls):
         return cls.__status_map.keys()
+
+    @classmethod
+    def normal_values(cls):
+        return cls.__normal_values
 
 
 class DetailDisk(SimpleDisk):

@@ -9,6 +9,7 @@ from django.utils import timezone
 
 from service.models import ServiceConfig
 from utils.model import get_encryptor
+from utils import rand_utils
 from vo.models import VirtualOrganization
 
 User = get_user_model()
@@ -429,3 +430,117 @@ class Flavor(models.Model):
             self.id = get_uuid1_str()
 
         super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
+
+
+class Disk(models.Model):
+    """
+    云硬盘实例
+    """
+    class TaskStatus(models.TextChoices):
+        OK = 'ok', _('创建成功')
+        CREATING = 'creating', _('正在创建中')
+        FAILED = 'failed', _('创建失败')
+
+    class QuotaType(models.TextChoices):
+        PRIVATE = 'private', _('私有资源配额')
+        SHARED = 'shared', _('共享资源配额')
+
+    class Classification(models.TextChoices):
+        PERSONAL = 'personal', _('个人的')
+        VO = 'vo', _('VO组的')
+
+    class PayType(models.TextChoices):
+        PREPAID = 'prepaid', _('包年包月')
+        POSTPAID = 'postpaid', _('按量计费')
+
+    class Lock(models.TextChoices):
+        FREE = 'free', _('无锁')
+        DELETE = 'lock-delete', _('锁定删除')
+        OPERATION = 'lock-operation', _('锁定所有操作，只允许读')
+
+    id = models.CharField(blank=True, editable=False, max_length=36, primary_key=True, verbose_name='ID')
+    name = models.CharField(max_length=255, verbose_name=_('云硬盘名称'))
+    instance_id = models.CharField(max_length=128, verbose_name=_('云硬盘实例ID'), help_text=_('各接入服务单元中云硬盘的ID'))
+    instance_name = models.CharField(
+        max_length=255, blank=True, default='', verbose_name=_('云硬盘实例名称'), help_text=_('各接入服务单元中云硬盘的名称'))
+    size = models.IntegerField(verbose_name=_('容量大小GiB'), default=0)
+    service = models.ForeignKey(
+        verbose_name=_('服务单元'), to=ServiceConfig, null=True, on_delete=models.SET_NULL, related_name='+',
+        db_constraint=False, db_index=False
+    )
+    azone_id = models.CharField(verbose_name=_('可用区Id'), max_length=36, blank=True, default='')
+    azone_name = models.CharField(verbose_name=_('可用区名称'), max_length=36, blank=True, default='')
+    quota_type = models.CharField(
+        verbose_name=_('服务单元配额'), max_length=16, choices=QuotaType.choices, default=QuotaType.PRIVATE.value)
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'))
+    remarks = models.CharField(max_length=255, blank=True, default='', verbose_name=_('备注'))
+    task_status = models.CharField(
+        verbose_name=_('创建状态'), max_length=16, choices=TaskStatus.choices, default=TaskStatus.OK.value)
+    expiration_time = models.DateTimeField(verbose_name=_('过期时间'), null=True, blank=True, default=None)
+    start_time = models.DateTimeField(
+        verbose_name=_('计量开始时间'), default=timezone.now, help_text=_('云硬盘资源使用量计量开始时间'))
+    pay_type = models.CharField(
+        verbose_name=_('计费方式'), max_length=16, choices=PayType.choices, default=PayType.POSTPAID.value)
+    classification = models.CharField(
+        verbose_name=_('云硬盘归属类型'), max_length=16, choices=Classification.choices, default=Classification.PERSONAL,
+        help_text=_('标识云硬盘属于申请者个人的，还是vo组的'))
+    user = models.ForeignKey(
+        to=User, verbose_name=_('创建者'), related_name='+', null=True, on_delete=models.SET_NULL,
+        db_constraint=False, blank=True, default=None)
+    vo = models.ForeignKey(
+        verbose_name=_('项目组'), to=VirtualOrganization, related_name='+', null=True, on_delete=models.SET_NULL,
+        db_constraint=False, blank=True, default=None)
+    lock = models.CharField(verbose_name=_('锁'), max_length=16, choices=Lock.choices, default=Lock.FREE,
+                            help_text=_('加锁锁定云硬盘，防止误操作'))
+    email_lasttime = models.DateTimeField(verbose_name=_('上次发送邮件时间'), null=True, blank=True, default=None,
+                                          help_text=_('记录上次发邮件的时间，邮件通知用户云硬盘即将到期'))
+    deleted = models.BooleanField(verbose_name=_('删除状态'), default=False, help_text=_('选中表示已删除'))
+    server = models.ForeignKey(
+        verbose_name=_('挂载于云主机'), to=Server, related_name='mounted_disk_set', on_delete=models.SET_NULL,
+        db_constraint=False, db_index=False, null=True, blank=True, default=None)
+    mountpoint = models.CharField(
+        verbose_name=_('挂载点/设备名'), max_length=64, blank=True, default='', help_text='例如 "/dev/vdc"')
+    attached_time = models.DateTimeField(verbose_name=_('最后一次挂载时间'), null=True, blank=True, default=None)
+    detached_time = models.DateTimeField(verbose_name=_('最后一次卸载时间'), null=True, blank=True, default=None)
+
+    class Meta:
+        db_table = 'servers_disk'
+        ordering = ['-creation_time']
+        verbose_name = _('云硬盘')
+        verbose_name_plural = verbose_name
+
+    def save(self, force_insert=False, force_update=False, using=None,
+             update_fields=None):
+        if not self.id:
+            self.id = rand_utils.short_uuid1_25() + '-d'
+
+        super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
+
+    def do_delete(self):
+        """
+        :return: True or False
+        """
+        try:
+            self.delete()
+        except Exception as e:
+            return False
+
+        return True
+
+    def is_locked_operation(self):
+        """
+        是否加锁, 锁定了一切操作
+        :return:
+            True        # locked
+            False       # not locked
+        """
+        return self.lock == self.Lock.OPERATION
+
+    def is_locked_delete(self):
+        """
+        检查是否加锁，是否锁定删除
+        :return:
+            True        # lock delete
+            False       # not lock delete
+        """
+        return self.lock in [self.Lock.DELETE, self.Lock.OPERATION]
