@@ -34,8 +34,24 @@ class DiskHandler:
         """
         serializer = view.get_serializer(data=request.data)
         if not serializer.is_valid(raise_exception=False):
-            msg = serializer_error_msg(serializer.errors)
-            raise exceptions.BadRequest(msg)
+            s_errors = serializer.errors
+            if 'pay_type' in s_errors:
+                exc = exceptions.BadRequest(
+                    message=_('无效的付费模式。') + s_errors['pay_type'][0], code='InvalidPayType')
+            elif 'service_id' in s_errors:
+                exc = exceptions.BadRequest(
+                    message=_('无效的服务单元。') + s_errors['service_id'][0], code='InvalidServiceId')
+            elif 'azone_id' in s_errors:
+                exc = exceptions.BadRequest(
+                    message=_('无效的可用区。') + s_errors['azone_id'][0], code='InvalidAzoneId')
+            elif 'size' in s_errors:
+                exc = exceptions.BadRequest(
+                    message=_('无效的硬盘容量大小。') + s_errors['size'][0], code='InvalidSize')
+            else:
+                msg = serializer_error_msg(s_errors)
+                exc = exceptions.BadRequest(message=msg)
+
+            raise exc
 
         data = serializer.validated_data
         remarks = data.get('remarks', '')
