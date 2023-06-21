@@ -162,6 +162,35 @@ class DisksViewSet(CustomGenericViewSet):
         """
         return DiskHandler().list_disk(view=self, request=request)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('删除用户或vo组云硬盘'),
+        responses={
+            200: ''
+        }
+    )
+    def destroy(self, request, *args, **kwargs):
+        """
+        删除用户或vo组云硬盘
+
+            http Code 204 Ok:
+
+            http Code 401, 403, 404, 409:
+                {
+                    "code": "BadRequest",
+                    "message": "xxxx"
+                }
+
+                可能的错误码：
+                401: AuthenticationFailed, NotAuthenticated: 身份认证失败
+                403: AccessDenied: 没有访问权限
+                404: DiskNotExist: 云硬盘不存在
+                409:
+                    DiskAttached: 云硬盘已挂载于云主机，请先卸载后再尝试删除
+                    ResourceLocked: 无法删除，云硬盘已加锁锁定了删除
+
+        """
+        return DiskHandler().delete_disk(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return disk_serializers.DiskSerializer

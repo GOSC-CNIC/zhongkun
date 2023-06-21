@@ -187,6 +187,9 @@ class Server(ServerBase):
         verbose_name = _('虚拟服务器')
         verbose_name_plural = verbose_name
 
+    def __str__(self):
+        return f'Server({self.id}, {self.ipv4})'
+
     def user_has_perms(self, user):
         """
         用户是否有访问此宿主机的权限
@@ -485,7 +488,6 @@ class Disk(models.Model):
                             help_text=_('加锁锁定云硬盘，防止误操作'))
     email_lasttime = models.DateTimeField(verbose_name=_('上次发送邮件时间'), null=True, blank=True, default=None,
                                           help_text=_('记录上次发邮件的时间，邮件通知用户云硬盘即将到期'))
-    deleted = models.BooleanField(verbose_name=_('删除状态'), default=False, help_text=_('选中表示已删除'))
     server = models.ForeignKey(
         verbose_name=_('挂载于云主机'), to=Server, related_name='mounted_disk_set', on_delete=models.SET_NULL,
         db_constraint=False, db_index=False, null=True, blank=True, default=None)
@@ -493,12 +495,18 @@ class Disk(models.Model):
         verbose_name=_('挂载点/设备名'), max_length=64, blank=True, default='', help_text='例如 "/dev/vdc"')
     attached_time = models.DateTimeField(verbose_name=_('最后一次挂载时间'), null=True, blank=True, default=None)
     detached_time = models.DateTimeField(verbose_name=_('最后一次卸载时间'), null=True, blank=True, default=None)
+    deleted = models.BooleanField(verbose_name=_('删除状态'), default=False, help_text=_('选中表示已删除'))
+    deleted_time = models.DateTimeField(verbose_name=_('删除时间'), null=True, blank=True, default=None)
+    deleted_user = models.CharField(verbose_name=_('删除人'), max_length=128, default='')
 
     class Meta:
         db_table = 'servers_disk'
         ordering = ['-creation_time']
         verbose_name = _('云硬盘')
         verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return f'Disk({self.id}, {self.size}GiB)'
 
     def save(self, force_insert=False, force_update=False, using=None,
              update_fields=None):
@@ -507,13 +515,19 @@ class Disk(models.Model):
 
         super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
 
-    def do_delete(self):
+    def do_soft_delete(self, deleted_user: str, raise_exception=True):
         """
         :return: True or False
         """
         try:
-            self.delete()
+            self.deleted = True
+            self.deleted_time = timezone.now()
+            self.deleted_user = deleted_user
+            self.save(update_fields=['deleted', 'deleted_time', 'deleted_user'])
         except Exception as e:
+            if raise_exception:
+                raise e
+
             return False
 
         return True

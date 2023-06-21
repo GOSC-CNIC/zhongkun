@@ -174,6 +174,12 @@ class ServiceNotExist(NotFound):
     default_code = 'ServiceNotExist'
 
 
+class DiskNotExist(NotFound):
+    default_message = 'This disk is not exist.'
+    default_code = 'DiskNotExist'
+    default_status_code = 404
+
+
 class OrganizationNotExists(NotFound):
     default_message = 'Organization is not exists.'
     default_code = 'OrganizationNotExists'
@@ -412,6 +418,11 @@ class ConflictTicketStatus(ConflictError):
 class TargetAlreadyExists(ConflictError):
     default_message = _('目标已存在。')
     default_code = 'TargetAlreadyExists'
+
+
+class DiskAttached(ConflictError):
+    default_message = _('云硬盘已挂载于云主机')
+    default_code = 'DiskAttached'
 
 
 class GatewayTimeout(APIException):

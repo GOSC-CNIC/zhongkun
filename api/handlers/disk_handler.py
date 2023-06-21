@@ -317,3 +317,32 @@ class DiskHandler:
             return view.get_paginated_response(serializer.data)
         except Exception as exc:
             return view.exception_response(exc)
+
+    @staticmethod
+    def delete_disk(view: CustomGenericViewSet, request, kwargs):
+        """
+        删除云硬盘
+        """
+        disk_id = kwargs.get(view.lookup_field, '')
+
+        try:
+            disk = DiskManager().get_manage_perm_disk(disk_id=disk_id, user=request.user)
+            if disk.server_id:
+                raise exceptions.DiskAttached(message=_('云硬盘已挂载于云主机，请先卸载后再尝试删除。'))
+
+            if disk.is_locked_delete():
+                raise exceptions.ResourceLocked(message=_('无法删除，云硬盘已加锁锁定了删除'))
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        try:
+            params = inputs.DiskDeleteInput(disk_id=disk.instance_id, disk_name=disk.instance_name)
+            r = view.request_service(disk.service, method='disk_delete', params=params)
+            if not r.ok:
+                raise exceptions.ConflictError(message=_('向服务单元删除云硬盘时错误') + str(r.error))
+
+            disk.do_soft_delete(deleted_user=request.user.username, raise_exception=True)
+        except exceptions.APIException as exc:
+            return view.exception_response(exc)
+
+        return Response(status=204)

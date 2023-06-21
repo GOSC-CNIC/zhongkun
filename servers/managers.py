@@ -416,6 +416,56 @@ class DiskManager:
     def get_disk_queryset():
         return Disk.objects.filter(deleted=False)
 
+    @staticmethod
+    def get_disk(disk_id: str):
+        """
+        :raise: DiskNotExist
+        """
+        disk = Disk.objects.select_related('service').filter(id=disk_id).first()
+        if disk is None:
+            raise errors.DiskNotExist(message=_('云硬盘不存在'))
+
+        if disk.deleted:
+            raise errors.DiskNotExist(message=_('云硬盘不存在'))
+
+        return disk
+
+    def get_read_perm_disk(self, disk_id: str, user) -> Disk:
+        """
+        查询用户有读权限的云硬盘
+
+        :raise: DiskNotExist, AccessDenied
+        """
+        disk = self.get_disk(disk_id=disk_id)
+        if disk.classification == Disk.Classification.PERSONAL.value and disk.user_id == user.id:
+            return disk
+        elif disk.classification == Disk.Classification.VO.value:
+            try:
+                VoManager().get_has_read_perm_vo(vo_id=disk.vo_id, user=user)
+                return disk
+            except errors.Error as exc:
+                raise errors.AccessDenied(message=_('你没有硬盘所属项目组的访问权限'))
+        else:
+            raise errors.AccessDenied(message=_('你没有硬盘的访问权限'))
+
+    def get_manage_perm_disk(self, disk_id: str, user) -> Disk:
+        """
+        查询用户有管理权限的云硬盘
+
+        :raise: DiskNotExist, AccessDenied
+        """
+        disk = self.get_disk(disk_id=disk_id)
+        if disk.classification == Disk.Classification.PERSONAL.value and disk.user_id == user.id:
+            return disk
+        elif disk.classification == Disk.Classification.VO.value:
+            try:
+                VoManager().get_has_manager_perm_vo(vo_id=disk.vo_id, user=user)
+                return disk
+            except errors.Error as exc:
+                raise errors.AccessDenied(message=_('你没有硬盘所属项目组的管理权限'))
+        else:
+            raise errors.AccessDenied(message=_('你没有硬盘的管理权限'))
+
     def get_user_disks_queryset(
             self, user, service_id: str = None, expired: bool = None, remark: str = None, pay_type: str = None
     ):
@@ -440,7 +490,7 @@ class DiskManager:
             lookups['remarks__icontains'] = remark
 
         qs = self.get_disk_queryset()
-        qs = qs.select_related('service', 'user').filter(
+        qs = qs.select_related('service', 'user', 'server').filter(
             user=user, classification=Disk.Classification.PERSONAL.value, **lookups)
 
         if expired is True:
@@ -455,7 +505,7 @@ class DiskManager:
         查询vo组的disk
         """
         qs = self.get_disk_queryset()
-        qs = qs.select_related('service', 'user', 'vo').filter(
+        qs = qs.select_related('service', 'user', 'vo', 'server').filter(
             vo_id=vo_id, classification=Disk.Classification.VO.value)
 
         if service_id:

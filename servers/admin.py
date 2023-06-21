@@ -85,19 +85,20 @@ class DiskAdmin(NoDeleteSelectModelAdmin):
     list_display_links = ('id',)
     list_display = ('id', 'service', 'azone_id', 'azone_name', 'size', 'instance_id', 'quota_type',
                     'creation_time', 'task_status', 'expiration_time', 'start_time', 'pay_type',
-                    'classification', 'user', 'vo', 'lock', 'show_deleted',
+                    'classification', 'user', 'vo', 'lock', 'show_deleted', 'deleted_time', 'deleted_user',
                     'server', 'mountpoint', 'attached_time', 'detached_time', 'remarks')
     search_fields = ['id', 'instance_id', 'remarks']
     list_filter = ['service__data_center', 'service', 'classification', 'deleted']
-    raw_id_fields = ('user', 'vo')
+    raw_id_fields = ('user', 'vo', 'server')
     list_select_related = ('service', 'user', 'vo')
+    readonly_fields = ['deleted_user']
 
     fieldsets = [
         (_('基础信息'), {'fields': ('service', 'azone_id', 'azone_name', 'size', 'instance_id', 'remarks', 'quota_type')}),
         (_('创建和归属信息'), {'fields': ('creation_time', 'task_status', 'classification', 'user', 'vo')}),
         (_('计量信息'), {'fields': ('pay_type', 'start_time', 'expiration_time')}),
         (_('挂载信息'), {'fields': ('server', 'mountpoint', 'attached_time', 'detached_time')}),
-        (_('锁、删除状态'), {'fields': ('lock', 'deleted')}),
+        (_('锁、删除状态'), {'fields': ('lock', 'deleted', 'deleted_time', 'deleted_user')}),
     ]
 
     @admin.display(

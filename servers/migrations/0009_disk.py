@@ -36,7 +36,6 @@ class Migration(migrations.Migration):
                 ('classification', models.CharField(choices=[('personal', '个人的'), ('vo', 'VO组的')], default='personal', help_text='标识云硬盘属于申请者个人的，还是vo组的', max_length=16, verbose_name='云硬盘归属类型')),
                 ('lock', models.CharField(choices=[('free', '无锁'), ('lock-delete', '锁定删除'), ('lock-operation', '锁定所有操作，只允许读')], default='free', help_text='加锁锁定云硬盘，防止误操作', max_length=16, verbose_name='锁')),
                 ('email_lasttime', models.DateTimeField(blank=True, default=None, help_text='记录上次发邮件的时间，邮件通知用户云硬盘即将到期', null=True, verbose_name='上次发送邮件时间')),
-                ('deleted', models.BooleanField(default=False, help_text='选中表示已删除', verbose_name='删除状态')),
                 ('mountpoint', models.CharField(blank=True, default='', help_text='例如 "/dev/vdc"', max_length=64, verbose_name='挂载点/设备名')),
                 ('attached_time', models.DateTimeField(blank=True, default=None, null=True, verbose_name='最后一次挂载时间')),
                 ('detached_time', models.DateTimeField(blank=True, default=None, null=True, verbose_name='最后一次卸载时间')),
@@ -44,6 +43,9 @@ class Migration(migrations.Migration):
                 ('service', models.ForeignKey(db_constraint=False, db_index=False, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='service.serviceconfig', verbose_name='服务单元')),
                 ('user', models.ForeignKey(blank=True, db_constraint=False, default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to=settings.AUTH_USER_MODEL, verbose_name='创建者')),
                 ('vo', models.ForeignKey(blank=True, db_constraint=False, default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='vo.virtualorganization', verbose_name='项目组')),
+                ('deleted', models.BooleanField(default=False, help_text='选中表示已删除', verbose_name='删除状态')),
+                ('deleted_time', models.DateTimeField(blank=True, default=None, null=True, verbose_name='删除时间')),
+                ('deleted_user', models.CharField(default='', max_length=128, verbose_name='删除人')),
             ],
             options={
                 'verbose_name': '云硬盘',
