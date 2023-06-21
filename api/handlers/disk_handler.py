@@ -289,3 +289,31 @@ class DiskHandler:
                 raise exceptions.BalanceNotEnough(
                     message=_('项目组在指定服务单元中已拥有%(value)d块按量计费的云硬盘，项目组的余额不足，不能订购更多的云硬盘。'
                               ) % {'value': s_count}, code='VoBalanceNotEnough')
+
+    @staticmethod
+    def list_disk(view: CustomGenericViewSet, request):
+        """
+        列举云硬盘
+        """
+        service_id = request.query_params.get('service_id', None)
+        vo_id = request.query_params.get('vo_id', None)
+
+        if vo_id is not None:
+            if not vo_id:
+                return view.exception_response(exceptions.InvalidArgument(message=_('项目组ID无效')))
+
+            try:
+                VoManager().get_has_read_perm_vo(vo_id=vo_id, user=request.user)
+            except exceptions.Error as exc:
+                return view.exception_response(exc)
+
+            queryset = DiskManager().get_vo_disks_queryset(vo_id=vo_id, service_id=service_id)
+        else:
+            queryset = DiskManager().get_user_disks_queryset(user=request.user, service_id=service_id)
+
+        try:
+            disks = view.paginate_queryset(queryset)
+            serializer = view.get_serializer(instance=disks, many=True)
+            return view.get_paginated_response(serializer.data)
+        except Exception as exc:
+            return view.exception_response(exc)

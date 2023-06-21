@@ -4,10 +4,10 @@ from django.utils import timezone
 from django.db.models import Sum
 from django.db import transaction
 
-from metering.models import DailyStatementServer, MeteringServer, PaymentStatus, DailyStatementObjectStorage, \
-    MeteringObjectStorage
-from servers.models import Server
-from utils.model import OwnerType
+from metering.models import (
+    DailyStatementServer, MeteringServer, PaymentStatus, DailyStatementObjectStorage, MeteringObjectStorage
+)
+from utils.model import OwnerType, PayType
 from users.models import UserProfile
 from vo.models import VirtualOrganization
 
@@ -102,7 +102,7 @@ class GenerateDailyStatementServer:
         """
         lookups = {
             'date': self.statement_date,
-            'pay_type': Server.PayType.POSTPAID
+            'pay_type': PayType.POSTPAID.value
         }
 
         return MeteringServer.objects.filter(**lookups)

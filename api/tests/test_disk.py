@@ -1,18 +1,57 @@
 from urllib import parse
 from decimal import Decimal
+from urllib.parse import urlencode
 
 from django.urls import reverse
+from django.utils import timezone
 
 from service.managers import ServicePrivateQuotaManager
+from service.models import ServiceConfig
+from servers.models import Disk
 from utils.test import get_or_create_user, get_or_create_service
 from utils.model import PayType, OwnerType, ResourceType
 from utils.decimal_utils import quantize_10_2
+from utils import rand_utils
 from vo.models import VirtualOrganization, VoMember
 from order.managers import OrderManager, PriceManager
 from order.models import Price, Order
 from order.managers import DiskConfig
 from bill.managers import PaymentManager
 from . import MyAPITransactionTestCase
+from .tests import create_server_metadata
+
+
+def create_disk_metadata(
+        service_id: str, azone_id: str, disk_size: int,
+        pay_type: str, classification: str, user_id, vo_id,
+        creation_time, expiration_time=None, remarks: str = '',
+        server_id=None
+):
+    disk = Disk(
+        name='',
+        instance_id=rand_utils.short_uuid1_25(),
+        instance_name=rand_utils.short_uuid1_25(),
+        size=disk_size,
+        service_id=service_id,
+        azone_id=azone_id,
+        azone_name='azone_name',
+        quota_type=Disk.QuotaType.PRIVATE.value,
+        creation_time=creation_time,
+        remarks=remarks,
+        task_status=Disk.TaskStatus.CREATING.value,
+        expiration_time=expiration_time,
+        start_time=creation_time,
+        pay_type=pay_type,
+        classification=classification,
+        user_id=user_id,
+        vo_id=vo_id,
+        lock=Disk.Lock.FREE.value,
+        deleted=False,
+        server_id=server_id,
+        mountpoint='',
+    )
+    disk.save(force_insert=True)
+    return disk
 
 
 class DiskOrderTests(MyAPITransactionTestCase):
@@ -323,3 +362,118 @@ class DiskOrderTests(MyAPITransactionTestCase):
             print(f'Delete Ok, disk({disk_id}) not found.')
         else:
             print(f'Delete disk({disk_id}) Failed.')
+
+    def test_list_disk(self):
+        service2 = ServiceConfig(
+            name='test2', name_en='test2_en', data_center=self.service.data_center
+        )
+        service2.save(force_insert=True)
+
+        server1 = create_server_metadata(
+            service=self.service, user=self.user, ram=8, vcpus=6,
+            default_user='user', default_password='password',
+            ipv4='127.0.0.1', remarks='test server', pay_type=PayType.PREPAID.value
+        )
+        disk1 = create_disk_metadata(
+            service_id=self.service.id, azone_id='1', disk_size=66, pay_type=PayType.PREPAID.value,
+            classification=Disk.Classification.PERSONAL.value, user_id=self.user.id, vo_id=None,
+            creation_time=timezone.now(), expiration_time=None, remarks='test', server_id=server1.id
+        )
+        disk2 = create_disk_metadata(
+            service_id=service2.id, azone_id='2', disk_size=88, pay_type=PayType.PREPAID.value,
+            classification=Disk.Classification.PERSONAL.value, user_id=self.user.id, vo_id=None,
+            creation_time=timezone.now(), expiration_time=None, remarks='test', server_id=None
+        )
+        disk3_vo = create_disk_metadata(
+            service_id=self.service.id, azone_id='1', disk_size=886, pay_type=PayType.POSTPAID.value,
+            classification=Disk.Classification.VO.value, user_id=self.user2.id, vo_id=self.vo.id,
+            creation_time=timezone.now(), expiration_time=None, remarks='test', server_id=None
+        )
+
+        base_url = reverse('api:disks-list')
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 401)
+        self.client.force_login(self.user)
+
+        # list user disk
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 20)
+        self.assertEqual(len(response.data['results']), 2)
+        self.assertKeysIn(['id', 'name', 'size', 'service', 'azone_id', 'azone_name', 'creation_time',
+                           'remarks', 'task_status', 'expiration_time', 'pay_type', 'classification',
+                           'user', 'vo', 'lock', 'deleted', 'server', 'mountpoint', 'attached_time',
+                           'detached_time'], response.data['results'][0])
+        self.assertKeysIn(['id', 'name', 'name_en'], response.data['results'][0]['service'])
+        self.assertKeysIn(['id', 'username'], response.data['results'][0]['user'])
+        self.assertEqual(response.data['results'][0]['id'], disk2.id)
+        self.assertEqual(response.data['results'][1]['id'], disk1.id)
+        self.assertKeysIn(['id', 'ipv4', 'vcpus', 'ram', 'image'], response.data['results'][1]['server'])
+
+        # service_id
+        query = urlencode(query={'service_id': self.service.id, 'page_size': 10})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 10)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['id'], disk1.id)
+
+        # page, page_size
+        query = urlencode(query={'page': 2, 'page_size': 1})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(response.data['page_num'], 2)
+        self.assertEqual(response.data['page_size'], 1)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['id'], disk1.id)
+        self.assertEqual(response.data['results'][0]['user']['id'], self.user.id)
+        self.assertEqual(response.data['results'][0]['user']['username'], self.user.username)
+
+        # list vo disk
+        query = urlencode(query={'vo_id': 2, 'page_size': 100})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=404, code='NotFound', response=response)
+
+        query = urlencode(query={'vo_id': self.vo.id, 'page_size': 100})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # set vo member
+        VoMember(user_id=self.user.id, vo_id=self.vo.id, role=VoMember.Role.LEADER.value).save()
+
+        query = urlencode(query={'vo_id': self.vo.id, 'page_size': 100})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 100)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['id'], disk3_vo.id)
+        self.assertEqual(response.data['results'][0]['user']['id'], self.user2.id)
+        self.assertEqual(response.data['results'][0]['user']['username'], self.user2.username)
+        self.assertEqual(response.data['results'][0]['vo']['id'], self.vo.id)
+        self.assertEqual(response.data['results'][0]['vo']['name'], self.vo.name)
+
+        # service_id
+        query = urlencode(query={'vo_id': self.vo.id, 'service_id': self.service.id, 'page_size': 10})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 10)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['id'], disk3_vo.id)
+
+        query = urlencode(query={'vo_id': self.vo.id, 'service_id': service2.id, 'page_size': 10})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 10)
+        self.assertEqual(len(response.data['results']), 0)

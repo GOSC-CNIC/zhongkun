@@ -10,6 +10,7 @@ from vo.models import VirtualOrganization
 from servers.models import Server
 from service.models import ServiceConfig
 from storage.models import ObjectsService
+from utils.model import PayType
 
 
 class PaymentStatus(models.TextChoices):
@@ -88,7 +89,7 @@ class MeteringServer(MeteringBase):
         verbose_name=_('上行流量GiB'), blank=True, default=0, help_text=_('云服务器的上行流量Gib'))
     downstream = models.FloatField(
         verbose_name=_('下行流量GiB'), blank=True, default=0, help_text=_('云服务器的下行流量Gib'))
-    pay_type = models.CharField(verbose_name=_('云服务器付费方式'), max_length=16, choices=Server.PayType.choices)
+    pay_type = models.CharField(verbose_name=_('云服务器付费方式'), max_length=16, choices=PayType.choices)
     username = models.CharField(verbose_name=_('用户名'), max_length=128, blank=True, default='')
     vo_name = models.CharField(verbose_name=_('VO组名'), max_length=255, blank=True, default='')
 

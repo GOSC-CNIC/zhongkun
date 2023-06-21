@@ -8,7 +8,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from service.models import ServiceConfig
-from utils.model import get_encryptor
+from utils.model import get_encryptor, PayType
 from utils import rand_utils
 from vo.models import VirtualOrganization
 
@@ -42,11 +42,6 @@ class ServerBase(models.Model):
     class Classification(models.TextChoices):
         PERSONAL = 'personal', _('个人的')
         VO = 'vo', _('VO组的')
-
-    class PayType(models.TextChoices):
-        PREPAID = 'prepaid', _('包年包月')
-        POSTPAID = 'postpaid', _('按量计费')
-        QUOTA = 'quota', _('资源配额券')
 
     class Situation(models.TextChoices):
         NORMAL = 'normal', _('正常')
@@ -448,10 +443,6 @@ class Disk(models.Model):
     class Classification(models.TextChoices):
         PERSONAL = 'personal', _('个人的')
         VO = 'vo', _('VO组的')
-
-    class PayType(models.TextChoices):
-        PREPAID = 'prepaid', _('包年包月')
-        POSTPAID = 'postpaid', _('按量计费')
 
     class Lock(models.TextChoices):
         FREE = 'free', _('无锁')

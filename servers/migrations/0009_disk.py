@@ -32,7 +32,7 @@ class Migration(migrations.Migration):
                 ('task_status', models.CharField(choices=[('ok', '创建成功'), ('creating', '正在创建中'), ('failed', '创建失败')], default='ok', max_length=16, verbose_name='创建状态')),
                 ('expiration_time', models.DateTimeField(blank=True, default=None, null=True, verbose_name='过期时间')),
                 ('start_time', models.DateTimeField(default=django.utils.timezone.now, help_text='云硬盘资源使用量计量开始时间', verbose_name='计量开始时间')),
-                ('pay_type', models.CharField(choices=[('prepaid', '包年包月'), ('postpaid', '按量计费')], default='postpaid', max_length=16, verbose_name='计费方式')),
+                ('pay_type', models.CharField(choices=[('prepaid', '包年包月'), ('postpaid', '按量计费'), ('quota', '资源配额券')], default='postpaid', max_length=16, verbose_name='计费方式')),
                 ('classification', models.CharField(choices=[('personal', '个人的'), ('vo', 'VO组的')], default='personal', help_text='标识云硬盘属于申请者个人的，还是vo组的', max_length=16, verbose_name='云硬盘归属类型')),
                 ('lock', models.CharField(choices=[('free', '无锁'), ('lock-delete', '锁定删除'), ('lock-operation', '锁定所有操作，只允许读')], default='free', help_text='加锁锁定云硬盘，防止误操作', max_length=16, verbose_name='锁')),
                 ('email_lasttime', models.DateTimeField(blank=True, default=None, help_text='记录上次发邮件的时间，邮件通知用户云硬盘即将到期', null=True, verbose_name='上次发送邮件时间')),
