@@ -88,6 +88,9 @@ no_slash_router.register(
     basename='admin-metering-storage-statistics')
 no_slash_router.register(
     r'admin/user/statistics', user_views.AdminUserStatisticsViewSet, basename='admin-user-statistics')
+no_slash_router.register(
+    r'admin/metering/server/statistics', metering_views.AdminMeteringServerStatisticsViewSet,
+    basename='admin-metering-server-statistics')
 
 urlpatterns = [
     path('', include(no_slash_router.urls)),

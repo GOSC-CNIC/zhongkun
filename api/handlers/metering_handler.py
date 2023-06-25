@@ -1,11 +1,14 @@
+import datetime
 import io
 import math
 from datetime import date
+from decimal import Decimal
 
 from django.utils.translation import gettext as _
 from django.utils import timezone
 from django.utils.http import urlquote
 from django.http import StreamingHttpResponse
+from django.db.models import Sum, Count
 from rest_framework.response import Response
 
 from core import errors
@@ -19,6 +22,8 @@ from servers.models import Server, ServerArchive
 from utils.report_file import CSVFileInMemory
 from utils import rand_utils
 from utils.decimal_utils import quantize_18_2
+from utils.model import PayType, ResourceType
+from order.models import Order
 
 
 class MeteringHandler:
@@ -738,6 +743,84 @@ class MeteringHandler:
         data = MeteringServerSerializer(instance=metering).data
         data['server'] = server
         return Response(data=data)
+
+    def statistics_server_metering(self, view: CustomGenericViewSet, request):
+        try:
+            params = self.statistics_server_metering_validate_params(view=view, request=request)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        date_start = params['date_start']
+        date_end = params['date_end']
+        service_id = params['service_id']
+
+        if not request.user.is_federal_admin():
+            return view.exception_response(errors.AccessDenied(message=_('你不是联邦管理员，没有访问权限。')))
+
+        meter_agg = MeteringServerManager().filter_server_metering_queryset(
+            service_id=service_id, date_start=date_start, date_end=date_end
+        ).aggregate(
+            total_original_amount=Sum('original_amount'),
+            total_trade_amount=Sum('trade_amount'),
+            total_server_count=Count('server_id', distinct=True)
+        )
+
+        # 云主机订购预付费金额
+        lookups = {}
+        if date_start:
+            time_start = datetime.datetime(
+                year=date_start.year, month=date_start.month, day=date_start.day, tzinfo=timezone.utc)
+            lookups['payment_time__gte'] = time_start
+
+        if date_end:
+            time_end = datetime.datetime(
+                year=date_start.year, month=date_start.month, day=date_start.day, tzinfo=timezone.utc)
+            time_end += datetime.timedelta(days=1)
+            lookups['payment_time__lt'] = time_end
+
+        if service_id:
+            lookups['service_id'] = service_id
+
+        order_agg = Order.objects.filter(
+            **lookups,
+            status=Order.Status.PAID.value, pay_type=PayType.PREPAID.value, resource_type=ResourceType.VM.value
+        ).aggregate(
+            total_pay_amount=Sum('pay_amount')
+        )
+
+        return Response(data={
+            'total_original_amount': meter_agg['total_original_amount'] or Decimal('0.00'),
+            'total_postpaid_amount': meter_agg['total_trade_amount'] or Decimal('0.00'),
+            'total_prepaid_amount': order_agg['total_pay_amount'] or Decimal('0.00'),
+            'total_server_count': meter_agg['total_server_count'] or 0
+        })
+
+    @staticmethod
+    def statistics_server_metering_validate_params(view: CustomGenericViewSet, request) -> dict:
+        date_start = request.query_params.get('date_start', None)
+        date_end = request.query_params.get('date_end', None)
+        service_id = request.query_params.get('service_id', None)
+
+        if date_start is not None:
+            try:
+                date_start = date.fromisoformat(date_start)
+            except (TypeError, ValueError):
+                raise errors.InvalidArgument(message=_('参数“date_start”的值无效的日期格式'))
+
+        if date_end is not None:
+            try:
+                date_end = date.fromisoformat(date_end)
+            except (TypeError, ValueError):
+                raise errors.InvalidArgument(message=_('参数“date_end”的值无效的日期格式'))
+
+        if service_id is not None and not service_id:
+            raise errors.InvalidArgument(message=_('参数“service_id”的值无效'))
+
+        return {
+            'date_start': date_start,
+            'date_end': date_end,
+            'service_id': service_id
+        }
 
 
 class StatementHandler:

@@ -11,6 +11,7 @@ from metering.models import PaymentStatus
 from api.paginations import MeteringPageNumberPagination, StatementPageNumberPagination
 from api.handlers.metering_handler import MeteringHandler, StatementHandler
 from api.serializers import serializers
+from utils.paginators import NoPaginatorInspector
 
 
 class MeteringServerViewSet(CustomGenericViewSet):
@@ -592,3 +593,55 @@ class StatementServerViewSet(CustomGenericViewSet):
             return serializers.DailyStatementServerDetailSerializer
 
         return Serializer
+
+
+class AdminMeteringServerStatisticsViewSet(CustomGenericViewSet):
+    permission_classes = [IsAuthenticated, ]
+    pagination_class = None
+    lookup_field = 'id'
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询指定时间段内云主机计量计费统计信息'),
+        request_body=no_body,
+        manual_parameters=[
+            openapi.Parameter(
+                name='date_start',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('日期起，ISO8601格式：YYYY-MM-dd')
+            ),
+            openapi.Parameter(
+                name='date_end',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('日期止，ISO8601格式：YYYY-MM-dd')
+            ),
+            openapi.Parameter(
+                name='service_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('查询指定存储服务单元')
+            ),
+        ],
+        paginator_inspectors=[NoPaginatorInspector]
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        查询指定时间段内云主机计量计费统计信息
+
+            http code 200:
+            {
+                "total_original_amount": 206338.67, # 按量计费总金额
+                "total_postpaid_amount": 163143.43, # 按量应付金额 / 实付金额
+                "total_prepaid_amount": 3792.55,    # 订单包年包月预付费金额
+                "total_server_count": 151           # 云主机数量
+            }
+        """
+        return MeteringHandler().statistics_server_metering(view=self, request=request)
+
+    def get_serializer_class(self):
+        return Serializer
+

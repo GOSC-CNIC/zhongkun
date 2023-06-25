@@ -1,6 +1,6 @@
 from decimal import Decimal
 from urllib import parse
-from datetime import date
+from datetime import date, timedelta
 
 from django.urls import reverse
 from django.utils import timezone
@@ -2073,3 +2073,154 @@ class StatementStorageTests(MyAPITestCase):
             "name_en": self.service.name_en,
             "service_type": self.service.service_type,
         }, d=response.data['service'])
+
+
+class AdminMeteringServerTests(MyAPITestCase):
+    def setUp(self):
+        self.user1 = get_or_create_user(username='user1')
+        self.user2 = get_or_create_user(username='user2')
+        self.service1 = get_or_create_service()
+        self.service2 = ServiceConfig(
+            name='test2', data_center_id=self.service1.data_center_id, endpoint_url='test2', username='', password='',
+            need_vpn=False
+        )
+        self.service2.save(force_insert=True)
+        self.vo = VirtualOrganization(
+            name='test vo', owner=self.user1
+        )
+        self.vo.save(force_insert=True)
+
+    def init_data(self):
+        server1 = Server(
+            id='server', ipv4='1.1.1.1', vcpus=1, ram=11, service_id=self.service1.id, creation_time=timezone.now(),
+            user=self.user1, classification=Server.Classification.PERSONAL.value
+        )
+        server1.save(force_insert=True)
+        server2 = ServerArchive(
+            server_id='server2', ipv4='2.2.2.2', vcpus=2, ram=22, service_id=self.service2.id,
+            user=self.user2, classification=Server.Classification.PERSONAL.value,
+            creation_time=timezone.now(), deleted_time=timezone.now(),
+            archive_type=ServerArchive.ArchiveType.ARCHIVE.value
+        )
+        server2.save(force_insert=True)
+        server3 = Server(
+            id='server3', ipv4='3.3.3.3', vcpus=3, ram=33, creation_time=timezone.now(), service_id=self.service1.id,
+            user=self.user1, vo=self.vo, classification=Server.Classification.VO.value)
+        server3.save(force_insert=True)
+
+        # server1, 2023-02-10 - 2023-03-11
+        start_date = date(year=2023, month=2, day=9)
+        for i in range(30):
+            start_date = start_date + timedelta(days=1)
+            MeteringServer(
+                service_id=server1.service_id, server_id=server1.id, date=start_date,
+                user_id=server1.user_id, username=server1.user.username, owner_type=OwnerType.USER.value,
+                original_amount=Decimal.from_float(i + 1), trade_amount=Decimal.from_float(i)
+            ).save(force_insert=True)
+
+        # server2, 2023-02-05 - 2023-03-06
+        start_date = date(year=2023, month=2, day=4)
+        for i in range(30):
+            start_date = start_date + timedelta(days=1)
+            MeteringServer(
+                service_id=server2.service_id, server_id=server2.server_id, date=start_date,
+                user_id=server2.user_id, username=server2.user.username, owner_type=OwnerType.USER.value,
+                original_amount=Decimal.from_float(i + 6), trade_amount=Decimal.from_float(i + 1)
+            ).save(force_insert=True)
+
+        # server3, 2023-01-20 - 2023-02-18
+        start_date = date(year=2023, month=1, day=19)
+        for i in range(30):
+            start_date = start_date + timedelta(days=1)
+            MeteringServer(
+                service_id=server3.service_id, server_id=server3.id, date=start_date,
+                user_id=server3.user_id, username=server3.user.username,
+                vo_id=server3.vo_id, owner_type=OwnerType.VO.value,
+                original_amount=Decimal.from_float(3 * i + 6), trade_amount=Decimal.from_float(3 * i + 1)
+            ).save(force_insert=True)
+
+        return server1, server2, server3
+
+    def test_metering_statistics(self):
+        self.init_data()
+        base_url = reverse('api:admin-metering-server-statistics-list')
+
+        # NotAuthenticated
+        r = self.client.get(base_url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+
+        self.client.force_login(self.user1)
+
+        # invalid date_start
+        query = parse.urlencode(query={
+            'date_start': '2022-02-31'
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 400)
+
+        # invalid date_end
+        query = parse.urlencode(query={
+            'date_end': '2022-2-1'
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 400)
+
+        # AccessDenied, user1 no permission of service1
+        query = parse.urlencode(query={'service_id': self.service1.id})
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        self.user1.set_federal_admin()
+
+        # --------- 2023-02-01 - 2023-02-28 ----------
+        # service1(bucket1/3), date_start - date_end, order_by
+        # server1 2023-02-10 - 02-28, 19 days
+        total_original_amount1 = Decimal('0')  # 190
+        total_trade_amount1 = Decimal('0')  # 171
+        for i in range(19):
+            total_original_amount1 += Decimal.from_float(i + 1)
+            total_trade_amount1 += Decimal.from_float(i)
+
+        # server3 2023-02-01 - 02-18, 18 days
+        total_original_amount3 = Decimal('0')  # 1215
+        total_trade_amount3 = Decimal('0')  # 1125
+        for i in range(30 - 18, 30):
+            total_original_amount3 += Decimal.from_float(3 * i + 6)
+            total_trade_amount3 += Decimal.from_float(3 * i + 1)
+
+        # server2 2023-02-05 - 02-28, 24 days
+        total_original_amount2 = Decimal('0')  # 420
+        total_trade_amount2 = Decimal('0')  # 300
+        for i in range(0, 24):
+            total_original_amount2 += Decimal.from_float(i + 6)
+            total_trade_amount2 += Decimal.from_float(i + 1)
+
+        query = parse.urlencode(query={
+            'date_start': '2023-02-01', 'date_end': '2023-02-28',
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['total_original_amount'], Decimal.from_float(190 + 1215 + 420))
+        self.assertEqual(r.data['total_postpaid_amount'], Decimal.from_float(171 + 1125 + 300))
+        self.assertEqual(r.data["total_prepaid_amount"], Decimal('0.00'))
+        self.assertEqual(r.data["total_server_count"], 3)
+
+        query = parse.urlencode(query={
+            'date_start': '2023-02-01', 'date_end': '2023-02-28', 'service_id': self.service1.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['total_original_amount'], Decimal.from_float(190 + 1215))
+        self.assertEqual(r.data['total_postpaid_amount'], Decimal.from_float(171 + 1125))
+        self.assertEqual(r.data["total_prepaid_amount"], Decimal('0.00'))
+        self.assertEqual(r.data["total_server_count"], 2)
+
+        query = parse.urlencode(query={
+            'date_start': '2023-04-01',
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['total_original_amount'], Decimal.from_float(0))
+        self.assertEqual(r.data['total_postpaid_amount'], Decimal.from_float(0))
+        self.assertEqual(r.data["total_prepaid_amount"], Decimal('0.00'))
+        self.assertEqual(r.data["total_server_count"], 0)
