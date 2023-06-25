@@ -2,6 +2,7 @@ from urllib import parse
 from decimal import Decimal
 from urllib.parse import urlencode
 
+import rest_framework.renderers
 from django.urls import reverse
 from django.utils import timezone
 
@@ -25,11 +26,13 @@ def create_disk_metadata(
         service_id: str, azone_id: str, disk_size: int,
         pay_type: str, classification: str, user_id, vo_id,
         creation_time, expiration_time=None, remarks: str = '',
-        server_id=None
+        server_id=None, disk_id: str = None, instance_id: str = None,
+        lock: str = None
 ):
     disk = Disk(
+        id=disk_id,
         name='',
-        instance_id=rand_utils.short_uuid1_25(),
+        instance_id=instance_id if instance_id else rand_utils.short_uuid1_25(),
         instance_name=rand_utils.short_uuid1_25(),
         size=disk_size,
         service_id=service_id,
@@ -45,7 +48,7 @@ def create_disk_metadata(
         classification=classification,
         user_id=user_id,
         vo_id=vo_id,
-        lock=Disk.Lock.FREE.value,
+        lock=lock if lock else Disk.Lock.FREE.value,
         deleted=False,
         server_id=server_id,
         mountpoint='',
@@ -477,3 +480,60 @@ class DiskOrderTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['page_num'], 1)
         self.assertEqual(response.data['page_size'], 10)
         self.assertEqual(len(response.data['results']), 0)
+
+    def test_delete_disk(self):
+        service2 = ServiceConfig(
+            name='test2', name_en='test2_en', data_center=self.service.data_center
+        )
+        service2.save(force_insert=True)
+
+        server1 = create_server_metadata(
+            service=self.service, user=self.user, ram=8, vcpus=6,
+            default_user='user', default_password='password',
+            ipv4='127.0.0.1', remarks='test server', pay_type=PayType.PREPAID.value
+        )
+        disk1 = create_disk_metadata(
+            instance_id='testdev',
+            service_id=self.service.id, azone_id='1', disk_size=66, pay_type=PayType.PREPAID.value,
+            classification=Disk.Classification.PERSONAL.value, user_id=self.user.id, vo_id=None,
+            creation_time=timezone.now(), expiration_time=None, remarks='test', server_id=server1.id,
+            lock=Disk.Lock.OPERATION.value
+        )
+
+        base_url = reverse('api:disks-detail', kwargs={'id': 'test'})
+        response = self.client.delete(base_url)
+        self.assertEqual(response.status_code, 401)
+        self.client.force_login(self.user2)
+
+        # DiskNotExist
+        response = self.client.delete(base_url)
+        self.assertErrorResponse(status_code=404, code='DiskNotExist', response=response)
+
+        # AccessDenied
+        base_url = reverse('api:disks-detail', kwargs={'id': disk1.id})
+        response = self.client.delete(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # AccessDenied
+        self.client.logout()
+        self.client.force_login(self.user)
+        base_url = reverse('api:disks-detail', kwargs={'id': disk1.id})
+        response = self.client.delete(base_url)
+        self.assertErrorResponse(status_code=409, code='DiskAttached', response=response)
+
+        # ResourceLocked
+        disk1.server_id = None
+        disk1.save(update_fields=['server_id'])
+        response = self.client.delete(base_url)
+        self.assertErrorResponse(status_code=409, code='ResourceLocked', response=response)
+
+        disk1.lock = Disk.Lock.FREE.value
+        disk1.save(update_fields=['lock'])
+
+        # ok
+        disk1.refresh_from_db()
+        self.assertEqual(disk1.deleted, False)
+        response = self.client.delete(base_url)
+        self.assertEqual(response.status_code, 204)
+        disk1.refresh_from_db()
+        self.assertEqual(disk1.deleted, True)
