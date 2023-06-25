@@ -562,9 +562,16 @@ class CashCouponHandler:
 
             # 兑换券数量
             redeem_count = CashCoupon.objects.filter(**lookups).exclude(status=CashCoupon.Status.WAIT.value).count()
+            # 当前有效券数量
+            available_count = CashCoupon.objects.filter(
+                expiration_time__gt=timezone.now(), status=CashCoupon.Status.AVAILABLE.value, **lookups).count()
 
             # 券总消费点数，时间段参数无效
             lookups = {}
+            if time_start:
+                lookups['creation_time__gte'] = time_start
+            if time_end:
+                lookups['creation_time__lte'] = time_end
             if app_service_id:
                 lookups['cash_coupon__app_service_id'] = app_service_id
             r = CashCouponPaymentHistory.objects.filter(**lookups).aggregate(
@@ -588,8 +595,9 @@ class CashCouponHandler:
             'total_face_value': total_face_value,
             'total_count': total_count,
             'redeem_count': redeem_count,
+            'available_count': available_count,
             'coupon_pay_amounts': coupon_pay_amounts,
-            'total_balance': total_balance
+            'total_balance': total_balance,
         })
 
     @staticmethod

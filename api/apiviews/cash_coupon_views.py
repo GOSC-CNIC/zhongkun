@@ -691,7 +691,8 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
               "total_face_value": 27061772.85,  # 代金券总发放点数；时间段和app服务单元参数 有效
               "total_count": 2471,              # 代金券总发放张数；时间段和app服务单元参数 有效
               "redeem_count": 756,              # 代金券已兑换张数；时间段和app服务单元参数 有效
-              "coupon_pay_amounts": 8371044.27, # 代金券消耗点数；app服务单元参数 有效
+              "available_count": 123            # 当前有效代金券张数；时间段和app服务单元参数 有效
+              "coupon_pay_amounts": 8371044.27, # 代金券消耗点数；时间段和app服务单元参数 有效
               "total_balance": 15063204.85      # 代金券总余额点数；app服务单元参数 有效
             }
         """

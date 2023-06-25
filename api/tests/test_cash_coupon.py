@@ -1835,6 +1835,9 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
             before_payment=Decimal('0'), after_payment=Decimal('0')
         )
         coupon2_user_pay.save(force_insert=True)
+        coupon2_user_pay.creation_time = datetime(year=2023, month=5, day=31, tzinfo=timezone.utc)
+        coupon2_user_pay.save(update_fields=['creation_time'])
+
         coupon2_vo_pay = CashCouponPaymentHistory(
             payment_history_id=None, cash_coupon_id=coupon2_vo.id, amounts=Decimal('-0.66'),
             before_payment=Decimal('0'), after_payment=Decimal('0')
@@ -1862,11 +1865,12 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(keys=[
-            'total_face_value', 'total_count', 'redeem_count', 'coupon_pay_amounts', 'total_balance'
+            'total_face_value', 'total_count', 'redeem_count', 'available_count', 'coupon_pay_amounts', 'total_balance'
         ], container=response.data)
         self.assertEqual(Decimal(response.data['total_face_value']), Decimal(f'{(1.11+2.22+3.33+4.44):.2f}'))
         self.assertEqual(response.data['total_count'], 4)
         self.assertEqual(response.data['redeem_count'], 3)
+        self.assertEqual(response.data['available_count'], 1)
         self.assertEqual(Decimal(response.data['coupon_pay_amounts']), Decimal(f'{(1.01+0.66):.2f}'))
         self.assertEqual(Decimal(response.data['total_balance']), Decimal('3.33'))      # 当前有效券余额
 
@@ -1877,6 +1881,7 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assertEqual(Decimal(response.data['total_face_value']), Decimal(f'{(1.11 + 2.22 + 3.33):.2f}'))
         self.assertEqual(response.data['total_count'], 3)
         self.assertEqual(response.data['redeem_count'], 2)
+        self.assertEqual(response.data['available_count'], 1)
         self.assertEqual(Decimal(response.data['coupon_pay_amounts']), Decimal('1.01'))
         self.assertEqual(Decimal(response.data['total_balance']), Decimal('3.33'))
 
@@ -1886,6 +1891,7 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assertEqual(Decimal(response.data['total_face_value']), Decimal(f'{4.44:.2f}'))
         self.assertEqual(response.data['total_count'], 1)
         self.assertEqual(response.data['redeem_count'], 1)
+        self.assertEqual(response.data['available_count'], 0)
         self.assertEqual(Decimal(response.data['coupon_pay_amounts']), Decimal('0.66'))
         self.assertEqual(Decimal(response.data['total_balance']), Decimal('0.00'))
 
@@ -1897,7 +1903,8 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assertEqual(Decimal(response.data['total_face_value']), Decimal(f'{(2.22 + 3.33):.2f}'))
         self.assertEqual(response.data['total_count'], 2)
         self.assertEqual(response.data['redeem_count'], 2)
-        self.assertEqual(Decimal(response.data['coupon_pay_amounts']), Decimal(f'{(1.01+0.66):.2f}'))
+        self.assertEqual(response.data['available_count'], 1)
+        self.assertEqual(Decimal(response.data['coupon_pay_amounts']), Decimal('0.00'))
         self.assertEqual(Decimal(response.data['total_balance']), Decimal('3.33'))
 
         query = parse.urlencode(query={
@@ -1907,7 +1914,8 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assertEqual(Decimal(response.data['total_face_value']), Decimal(f'{(2.22 + 3.33 + 4.44):.2f}'))
         self.assertEqual(response.data['total_count'], 3)
         self.assertEqual(response.data['redeem_count'], 3)
-        self.assertEqual(Decimal(response.data['coupon_pay_amounts']), Decimal(f'{(1.01+0.66):.2f}'))
+        self.assertEqual(response.data['available_count'], 1)
+        self.assertEqual(Decimal(response.data['coupon_pay_amounts']), Decimal(f'{1.01:.2f}'))
         self.assertEqual(Decimal(response.data['total_balance']), Decimal('3.33'))
 
         # time_start, time_end, app_service_id
@@ -1919,7 +1927,8 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assertEqual(Decimal(response.data['total_face_value']), Decimal(f'{4.44:.2f}'))
         self.assertEqual(response.data['total_count'], 1)
         self.assertEqual(response.data['redeem_count'], 1)
-        self.assertEqual(Decimal(response.data['coupon_pay_amounts']), Decimal('0.66'))
+        self.assertEqual(response.data['available_count'], 0)
+        self.assertEqual(Decimal(response.data['coupon_pay_amounts']), Decimal('0.00'))
         self.assertEqual(Decimal(response.data['total_balance']), Decimal('0'))
 
     def test_admin_issue_statistics(self):
