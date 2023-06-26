@@ -79,7 +79,7 @@ def create_server_metadata(
         classification=Server.Classification.PERSONAL, ipv4: str = '',
         expiration_time=None, public_ip: bool = False, remarks: str = '',
         pay_type: str = PayType.POSTPAID.value, vcpus: int = 2, ram: int = 1024,
-        disk_size: int = 100
+        disk_size: int = 100, azone_id: str = ''
 ):
     server = Server(service=service,
                     instance_id='test',
@@ -98,7 +98,9 @@ def create_server_metadata(
                     image_desc='image desc',
                     default_user=default_user,
                     pay_type=pay_type,
-                    creation_time=timezone.now())
+                    creation_time=timezone.now(),
+                    azone_id=azone_id
+                    )
     server.raw_default_password = default_password
     if expiration_time:
         server.expiration_time = expiration_time

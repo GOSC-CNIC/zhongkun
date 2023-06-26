@@ -2,13 +2,12 @@ from urllib import parse
 from decimal import Decimal
 from urllib.parse import urlencode
 
-import rest_framework.renderers
 from django.urls import reverse
 from django.utils import timezone
 
 from service.managers import ServicePrivateQuotaManager
 from service.models import ServiceConfig
-from servers.models import Disk
+from servers.models import Disk, Server
 from utils.test import get_or_create_user, get_or_create_service
 from utils.model import PayType, OwnerType, ResourceType
 from utils.decimal_utils import quantize_10_2
@@ -500,6 +499,14 @@ class DiskOrderTests(MyAPITransactionTestCase):
             lock=Disk.Lock.OPERATION.value
         )
 
+        disk2_vo = create_disk_metadata(
+            instance_id='testdev',
+            service_id=self.service.id, azone_id='2', disk_size=88, pay_type=PayType.PREPAID.value,
+            classification=Disk.Classification.VO.value, user_id=self.user.id, vo_id=self.vo.id,
+            creation_time=timezone.now(), expiration_time=None, remarks='test', server_id=server1.id,
+            lock=Disk.Lock.FREE.value
+        )
+
         base_url = reverse('api:disks-detail', kwargs={'id': 'test'})
         response = self.client.delete(base_url)
         self.assertEqual(response.status_code, 401)
@@ -514,7 +521,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
         response = self.client.delete(base_url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        # AccessDenied
+        # DiskAttached
         self.client.logout()
         self.client.force_login(self.user)
         base_url = reverse('api:disks-detail', kwargs={'id': disk1.id})
@@ -537,3 +544,195 @@ class DiskOrderTests(MyAPITransactionTestCase):
         self.assertEqual(response.status_code, 204)
         disk1.refresh_from_db()
         self.assertEqual(disk1.deleted, True)
+
+        # ----- vo -----
+        # AccessDenied
+        base_url = reverse('api:disks-detail', kwargs={'id': disk2_vo.id})
+        response = self.client.delete(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # set vo permisson
+        member = VoMember(user_id=self.user.id, vo_id=self.vo.id, role=VoMember.Role.LEADER.value,
+                          inviter=self.user2.username, inviter_id=self.user2.id)
+        member.save(force_insert=True)
+
+        self.assertEqual(disk2_vo.deleted, False)
+        response = self.client.delete(base_url)
+        self.assertErrorResponse(status_code=409, code='DiskAttached', response=response)
+
+        disk2_vo.server_id = None
+        disk2_vo.save(update_fields=['server_id'])
+        response = self.client.delete(base_url)
+        self.assertEqual(response.status_code, 204)
+        disk2_vo.refresh_from_db()
+        self.assertEqual(disk2_vo.deleted, True)
+
+    def test_attach_disk(self):
+        service2 = ServiceConfig(
+            name='test2', name_en='test2_en', data_center=self.service.data_center
+        )
+        service2.save(force_insert=True)
+        server1 = create_server_metadata(
+            service=service2, user=self.user, vo_id=self.vo.id, classification=Server.Classification.VO.value,
+            ram=8, vcpus=6,
+            default_user='user', default_password='password',
+            ipv4='127.0.0.1', remarks='test server', pay_type=PayType.PREPAID.value
+        )
+        disk1 = create_disk_metadata(
+            instance_id='testdev',
+            service_id=self.service.id, azone_id='1', disk_size=66, pay_type=PayType.PREPAID.value,
+            classification=Disk.Classification.PERSONAL.value, user_id=self.user.id, vo_id=None,
+            creation_time=timezone.now(), expiration_time=None, remarks='test', server_id=server1.id,
+            lock=Disk.Lock.OPERATION.value
+        )
+
+        base_url = reverse('api:disks-attach', kwargs={'id': 'test'})
+        response = self.client.post(base_url)
+        self.assertEqual(response.status_code, 401)
+        self.client.force_login(self.user2)
+
+        # DiskNotExist
+        base_url = reverse('api:disks-attach', kwargs={'id': 'test'})
+        query = parse.urlencode(query={'server_id': server1.id})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=404, code='DiskNotExist', response=response)
+
+        # AccessDenied
+        base_url = reverse('api:disks-attach', kwargs={'id': disk1.id})
+        query = parse.urlencode(query={'server_id': server1.id})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # DiskAttached
+        self.client.logout()
+        self.client.force_login(self.user)
+        base_url = reverse('api:disks-attach', kwargs={'id': disk1.id})
+        query = parse.urlencode(query={'server_id': server1.id})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=409, code='DiskAttached', response=response)
+
+        # ResourceLocked
+        disk1.server_id = None
+        disk1.save(update_fields=['server_id'])
+        base_url = reverse('api:disks-attach', kwargs={'id': disk1.id})
+        query = parse.urlencode(query={'server_id': server1.id})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=409, code='ResourceLocked', response=response)
+
+        disk1.lock = Disk.Lock.FREE.value
+        disk1.save(update_fields=['lock'])
+
+        # NotFound server
+        base_url = reverse('api:disks-attach', kwargs={'id': disk1.id})
+        query = parse.urlencode(query={'server_id': 'dddd'})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=404, code='NotFound', response=response)
+
+        # AccessDenied
+        base_url = reverse('api:disks-attach', kwargs={'id': disk1.id})
+        query = parse.urlencode(query={'server_id': server1.id})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # set vo permisson
+        member = VoMember(user_id=self.user.id, vo_id=self.vo.id, role=VoMember.Role.LEADER.value,
+                          inviter=self.user2.username, inviter_id=self.user2.id)
+        member.save(force_insert=True)
+
+        # ResourcesNotSameOwner
+        base_url = reverse('api:disks-attach', kwargs={'id': disk1.id})
+        query = parse.urlencode(query={'server_id': server1.id})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=409, code='ResourcesNotSameOwner', response=response)
+
+        # server1 service2 no match disk1 service1
+        server1.classification = Server.Classification.PERSONAL.value
+        server1.user_id = self.user.id
+        server1.save(update_fields=['classification', 'user_id'])
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=409, code='ResourcesNotInSameService', response=response)
+
+        # server1 azone_id != disk1 azone_id
+        server1.service_id = self.service.id
+        server1.save(update_fields=['service_id'])
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=409, code='ResourcesNotInSameZone', response=response)
+
+        server1.azone_id = disk1.azone_id
+        server1.save(update_fields=['azone_id'])
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 500)
+        message = response.data['message']
+        self.assertIn('adapter', message)
+        self.assertIn('不存在', message)
+
+    def test_detach_disk(self):
+        server1 = create_server_metadata(
+            service=self.service, user=self.user, vo_id=self.vo.id, classification=Server.Classification.VO.value,
+            ram=8, vcpus=6,
+            default_user='user', default_password='password',
+            ipv4='127.0.0.1', remarks='test server', pay_type=PayType.PREPAID.value
+        )
+        disk1 = create_disk_metadata(
+            instance_id='testdev',
+            service_id=self.service.id, azone_id='1', disk_size=66, pay_type=PayType.PREPAID.value,
+            classification=Disk.Classification.PERSONAL.value, user_id=self.user.id, vo_id=None,
+            creation_time=timezone.now(), expiration_time=None, remarks='test', server_id=None,
+            lock=Disk.Lock.OPERATION.value
+        )
+
+        base_url = reverse('api:disks-detach', kwargs={'id': 'test'})
+        response = self.client.post(base_url)
+        self.assertEqual(response.status_code, 401)
+        self.client.force_login(self.user2)
+
+        # DiskNotExist
+        base_url = reverse('api:disks-detach', kwargs={'id': 'test'})
+        query = parse.urlencode(query={'server_id': server1.id})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=404, code='DiskNotExist', response=response)
+
+        # AccessDenied
+        base_url = reverse('api:disks-detach', kwargs={'id': disk1.id})
+        query = parse.urlencode(query={'server_id': server1.id})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # DiskNotAttached
+        self.client.logout()
+        self.client.force_login(self.user)
+        base_url = reverse('api:disks-detach', kwargs={'id': disk1.id})
+        query = parse.urlencode(query={'server_id': server1.id})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=409, code='DiskNotAttached', response=response)
+
+        disk1.server_id = server1.id
+        disk1.save(update_fields=['server_id'])
+
+        base_url = reverse('api:disks-detach', kwargs={'id': disk1.id})
+        query = parse.urlencode(query={'server_id': 'ffddd'})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=409, code='DiskNotOnServer', response=response)
+
+        # ResourceLocked
+        base_url = reverse('api:disks-detach', kwargs={'id': disk1.id})
+        query = parse.urlencode(query={'server_id': server1.id})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=409, code='ResourceLocked', response=response)
+
+        disk1.lock = Disk.Lock.FREE.value
+        disk1.save(update_fields=['lock'])
+
+        # no permission of vo server1
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        server1.classification = Server.Classification.PERSONAL.value
+        server1.user_id = self.user.id
+        server1.save(update_fields=['classification', 'user_id'])
+
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 500)
+        message = response.data['message']
+        self.assertIn('adapter', message)
+        self.assertIn('不存在', message)

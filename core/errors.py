@@ -288,6 +288,21 @@ class BalanceNotEnough(ConflictError):
     default_code = 'BalanceNotEnough'
 
 
+class ResourcesNotInSameZone(ConflictError):
+    default_message = _('指定的云主机和硬盘不在同一可用区。')
+    default_code = 'ResourcesNotInSameZone'
+
+
+class ResourcesNotSameOwner(ConflictError):
+    default_message = _('指定的云主机和硬盘的所有者不一致。')
+    default_code = 'ResourcesNotSameOwner'
+
+
+class ResourcesNotInSameService(ConflictError):
+    default_message = _('指定的云主机和硬盘不在同一服务单元。')
+    default_code = 'ResourcesNotInSameService'
+
+
 class NeetReleaseResource(Error):
     """
     服务提供者创建资源成功以后发生了错误，需要释放资源
@@ -423,6 +438,16 @@ class TargetAlreadyExists(ConflictError):
 class DiskAttached(ConflictError):
     default_message = _('云硬盘已挂载于云主机')
     default_code = 'DiskAttached'
+
+
+class DiskNotAttached(ConflictError):
+    default_message = _('云硬盘未挂载')
+    default_code = 'DiskNotAttached'
+
+
+class DiskNotOnServer(ConflictError):
+    default_message = _('云硬盘没有挂载在指定的云主机上')
+    default_code = 'DiskNotOnServer'
 
 
 class GatewayTimeout(APIException):

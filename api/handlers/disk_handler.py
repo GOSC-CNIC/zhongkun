@@ -6,6 +6,7 @@ from django.db.models import TextChoices
 from rest_framework.response import Response
 
 from core import errors as exceptions
+from core import request as core_request
 from core.quota import QuotaAPI
 from servers.managers import DiskManager
 from api.viewsets import CustomGenericViewSet
@@ -18,6 +19,8 @@ from utils.model import PayType, OwnerType
 from order.models import ResourceType, Order
 from order.managers import OrderManager, OrderPaymentManager, DiskConfig
 from bill.managers import PaymentManager
+from servers.managers import ServerManager
+from servers.models import Server, Disk
 from .handlers import serializer_error_msg
 
 
@@ -327,7 +330,7 @@ class DiskHandler:
 
         try:
             disk = DiskManager().get_manage_perm_disk(disk_id=disk_id, user=request.user)
-            if disk.server_id:
+            if disk.is_attached():
                 raise exceptions.DiskAttached(message=_('云硬盘已挂载于云主机，请先卸载后再尝试删除。'))
 
             if disk.is_locked_delete():
@@ -346,3 +349,128 @@ class DiskHandler:
             return view.exception_response(exc)
 
         return Response(status=204)
+
+    @staticmethod
+    def _pre_attach_disk_check(server, disk):
+        """
+        挂载前可挂载性检测
+
+        :raises: ResourcesNotSameOwner, ResourcesNotInSameService, ResourcesNotInSameZone
+        """
+        if disk.classification == Disk.Classification.PERSONAL.value:
+            if server.classification != Server.Classification.PERSONAL.value:
+                raise exceptions.ResourcesNotSameOwner()
+            else:
+                if server.user_id != disk.user_id:
+                    raise exceptions.ResourcesNotSameOwner()
+        elif disk.classification == Disk.Classification.VO.value:
+            if server.classification != Server.Classification.VO.value:
+                raise exceptions.ResourcesNotSameOwner()
+            else:
+                if server.vo_id != disk.vo_id:
+                    raise exceptions.ResourcesNotSameOwner()
+        else:
+            raise exceptions.ResourcesNotSameOwner()
+
+        if server.service_id != disk.service_id:
+            raise exceptions.ResourcesNotInSameService()
+
+        if not server.azone_id:
+            # 尝试更新云主机元数据，更新可用区信息
+            try:
+                server = core_request.update_server_detail(server=server, task_status=None)
+            except exceptions.Error as e:
+                pass
+
+            if not server.azone_id:
+                raise exceptions.ResourcesNotInSameZone(extend_msg='无法确认云主机所在可用区。')
+
+        if server.azone_id != disk.azone_id:
+            raise exceptions.ResourcesNotInSameZone()
+
+    @staticmethod
+    def attach_disk(view: CustomGenericViewSet, request, kwargs):
+        """
+        挂载云硬盘
+        """
+        disk_id = kwargs.get(view.lookup_field, '')
+        server_id = request.query_params.get('server_id', None)
+
+        if not server_id:
+            return view.exception_response(exceptions.InvalidArgument(message=_('必须指定要挂载的云主机。')))
+
+        try:
+            disk = DiskManager().get_manage_perm_disk(disk_id=disk_id, user=request.user)
+            if disk.is_attached():
+                raise exceptions.DiskAttached(message=_('云硬盘已被挂载，不允许多重挂载。'))
+
+            if disk.is_locked_operation():
+                raise exceptions.ResourceLocked(message=_('无法挂载，云硬盘已加锁锁定了操作'))
+
+            server = ServerManager().get_manage_perm_server(server_id=server_id, user=request.user)
+            if server.is_locked_operation():
+                raise exceptions.ResourceLocked(message=_('无法挂载，目标云主机已加锁锁定了操作'))
+
+            DiskHandler._pre_attach_disk_check(server=server, disk=disk)
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        try:
+            params = inputs.DiskAttachInput(instance_id=server.instance_id, disk_id=disk.instance_id)
+            r = view.request_service(disk.service, method='disk_attach', params=params)
+            if not r.ok:
+                raise exceptions.ConflictError(message=_('向云主机挂载云硬盘时错误') + str(r.error))
+        except exceptions.APIException as exc:
+            return view.exception_response(exc)
+
+        try:
+            disk.set_attach(server_id=server.id)
+        except Exception as exc:
+            request_logger.error(f'硬盘已成功挂载到云主机 {server.id}，但是硬盘元数据更新记录server id失败。')
+            return view.exception_response(exc)
+
+        return Response(data={'server_id': server.id, 'disk_id': disk.id})
+
+    @staticmethod
+    def detach_disk(view: CustomGenericViewSet, request, kwargs):
+        """
+        卸载云硬盘
+        """
+        disk_id = kwargs.get(view.lookup_field, '')
+        server_id = request.query_params.get('server_id', None)
+
+        if not server_id:
+            return view.exception_response(exceptions.InvalidArgument(message=_('必须指定硬盘挂载的云主机。')))
+
+        try:
+            disk = DiskManager().get_manage_perm_disk(disk_id=disk_id, user=request.user)
+            if not disk.is_attached():
+                raise exceptions.DiskNotAttached(message=_('云硬盘未挂载，无需卸载。'))
+
+            if disk.server_id != server_id:
+                raise exceptions.DiskNotOnServer(message=_('云硬盘没有挂载在指定的云主机上'))
+
+            if disk.is_locked_operation():
+                raise exceptions.ResourceLocked(message=_('云硬盘已加锁锁定了操作'))
+
+            server = ServerManager().get_manage_perm_server(server_id=server_id, user=request.user)
+            if server.is_locked_operation():
+                raise exceptions.ResourceLocked(message=_('无法卸载，目标云主机已加锁锁定了操作'))
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        try:
+            params = inputs.DiskDetachInput(instance_id=server.instance_id, disk_id=disk.instance_id)
+            r = view.request_service(disk.service, method='disk_detach', params=params)
+            if not r.ok:
+                raise exceptions.ConflictError(message=_('向云主机卸载云硬盘时错误') + str(r.error))
+        except exceptions.APIException as exc:
+            return view.exception_response(exc)
+
+        try:
+            disk.set_detach()
+        except Exception as exc:
+            request_logger.error(f'硬盘已成功从云主机 {server.id}卸载，但是硬盘元数据更新清除server id失败。')
+            return view.exception_response(exc)
+
+        return Response(data={'server_id': server.id, 'disk_id': disk.id})

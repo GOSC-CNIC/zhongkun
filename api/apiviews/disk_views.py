@@ -191,6 +191,89 @@ class DisksViewSet(CustomGenericViewSet):
         """
         return DiskHandler().delete_disk(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('挂载云硬盘到云主机'),
+        request_body=no_body,
+        manual_parameters=[
+            openapi.Parameter(
+                name='server_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description=gettext_lazy('要挂载的目标云主机ID')
+            ),
+        ],
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['post'], detail=True, url_path='attach', url_name='attach')
+    def attach_disk(self, request, *args, **kwargs):
+        """
+        挂载云硬盘到云主机
+
+            http Code 204 Ok:
+
+            http Code 401, 403, 404, 409:
+                {
+                    "code": "BadRequest",
+                    "message": "xxxx"
+                }
+
+                可能的错误码：
+                401: AuthenticationFailed, NotAuthenticated: 身份认证失败
+                403: AccessDenied: 没有访问权限
+                404: DiskNotExist: 云硬盘不存在
+                409:
+                    DiskAttached: 云硬盘已挂载于云主机
+                    ResourceLocked: 云硬盘已加锁锁定了操作
+                    ResourcesNotSameOwner: 指定的云主机和硬盘的所有者不一致
+                    ResourcesNotInSameService: 指定的云主机和硬盘不在同一服务单元
+                    ResourcesNotInSameZone: 指定的云主机和硬盘不在同一可用区
+
+        """
+        return DiskHandler().attach_disk(view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('从云主机卸载云硬盘'),
+        request_body=no_body,
+        manual_parameters=[
+            openapi.Parameter(
+                name='server_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description=gettext_lazy('待卸载的云主机ID')
+            ),
+        ],
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['post'], detail=True, url_path='detach', url_name='detach')
+    def detach_disk(self, request, *args, **kwargs):
+        """
+        从云主机卸载云硬盘
+
+            http Code 204 Ok:
+
+            http Code 401, 403, 404, 409:
+                {
+                    "code": "BadRequest",
+                    "message": "xxxx"
+                }
+
+                可能的错误码：
+                401: AuthenticationFailed, NotAuthenticated: 身份认证失败
+                403: AccessDenied: 没有访问权限
+                404: DiskNotExist: 云硬盘不存在
+                409:
+                    DiskNotAttached: 云硬盘未挂载
+                    ResourceLocked: 目标云主机已加锁锁定了操作
+                    DiskNotOnServer: 云硬盘没有挂载在指定的云主机上
+        """
+        return DiskHandler().detach_disk(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return disk_serializers.DiskSerializer

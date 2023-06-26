@@ -539,7 +539,7 @@ class Disk(models.Model):
             True        # locked
             False       # not locked
         """
-        return self.lock == self.Lock.OPERATION
+        return self.lock == self.Lock.OPERATION.value
 
     def is_locked_delete(self):
         """
@@ -548,4 +548,20 @@ class Disk(models.Model):
             True        # lock delete
             False       # not lock delete
         """
-        return self.lock in [self.Lock.DELETE, self.Lock.OPERATION]
+        return self.lock in [self.Lock.DELETE.value, self.Lock.OPERATION.value]
+
+    def set_attach(self, server_id: str):
+        self.server_id = server_id
+        self.attached_time = timezone.now()
+        self.save(update_fields=['server_id', 'attached_time'])
+
+    def set_detach(self):
+        self.server_id = None
+        self.detached_time = timezone.now()
+        self.save(update_fields=['server_id', 'detached_time'])
+
+    def is_attached(self):
+        if self.server_id:
+            return True
+
+        return False
