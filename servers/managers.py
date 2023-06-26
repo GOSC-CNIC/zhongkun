@@ -520,3 +520,7 @@ class DiskManager:
             qs = qs.filter(pay_type=pay_type)
 
         return qs
+
+    @staticmethod
+    def get_server_disks_qs(server_id: str):
+        return Disk.objects.filter(server_id=server_id, deleted=False)

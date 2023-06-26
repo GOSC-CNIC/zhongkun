@@ -11,7 +11,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from utils.model import PayType, OwnerType
-from servers.models import Flavor, Server
+from servers.models import Flavor, Server, Disk
 from service.models import (
     ApplyOrganization, DataCenter, ApplyVmService, ServiceConfig
 )
@@ -276,14 +276,22 @@ class ServersTests(MyAPITestCase):
                            "public_ip", "image", "creation_time", "remarks",
                            "endpoint_url", "service",
                            "center_quota", "classification", "vo_id", "user",
-                           "image_id", "image_desc", "default_user", "default_password", "pay_type"
-                           ], response.data['server'])
+                           "image_id", "image_desc", "default_user", "default_password", "pay_type",
+                           "attached_disks"], response.data['server'])
         self.assertKeysIn(["id", "name", "name_en", "service_type"], response.data['server']['service'])
         self.assert_is_subdict_of(sub={
             "default_user": self.default_user, "default_password": self.default_password
         }, d=response.data['server'])
+        self.assertIsInstance(response.data['server']['attached_disks'], list)
+        self.assertEqual(len(response.data['server']['attached_disks']), 0)
 
         # ----------------admin get server detail test -----------------------
+        from .test_disk import create_disk_metadata
+        create_disk_metadata(
+            service_id=self.service.id, azone_id='1', disk_size=6, pay_type=PayType.PREPAID.value,
+            classification=Disk.Classification.PERSONAL.value, user_id=self.user.id, vo_id=None,
+            creation_time=timezone.now(), server_id=self.miss_server.id
+        )
         admin_username = 'admin-user'
         admin_password = 'admin-password'
         admin_user = get_or_create_user(username=admin_username, password=admin_password)
@@ -306,11 +314,15 @@ class ServersTests(MyAPITestCase):
                            "public_ip", "image", "creation_time", "remarks",
                            "endpoint_url", "service",
                            "center_quota", "classification", "vo_id", "user",
-                           "image_id", "image_desc", "default_user", "default_password", "pay_type"
-                           ], response.data['server'])
+                           "image_id", "image_desc", "default_user", "default_password", "pay_type",
+                           "attached_disks"], response.data['server'])
         self.assert_is_subdict_of(sub={
             "default_user": self.default_user, "default_password": self.default_password
         }, d=response.data['server'])
+        self.assertIsInstance(response.data['server']['attached_disks'], list)
+        self.assertEqual(len(response.data['server']['attached_disks']), 1)
+        self.assertKeysIn(["id", "size", "creation_time", "remarks", "expiration_time", "mountpoint",
+                           "attached_time", "detached_time", "pay_type"], response.data['server']['attached_disks'][0])
 
         # test when federal admin
         self.service.users.remove(admin_user)

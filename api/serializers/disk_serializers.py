@@ -77,3 +77,18 @@ class DiskSerializer(serializers.Serializer):
             return {'id': s.id, 'ipv4': s.ipv4, 'vcpus': s.vcpus, 'ram': s.ram_gib, 'image': s.image}
 
         return None
+
+
+class ServerDiskSerializer(serializers.Serializer):
+    """
+    云硬盘序列化器
+    """
+    id = serializers.CharField(max_length=36, label='ID')
+    size = serializers.IntegerField(label=_('容量大小GiB'))
+    creation_time = serializers.DateTimeField(label=_('创建时间'))
+    remarks = serializers.CharField(max_length=255, label=_('备注'))
+    expiration_time = serializers.DateTimeField(label=_('过期时间'))
+    pay_type = serializers.CharField(label=_('计费方式'), max_length=16)
+    mountpoint = serializers.CharField(label=_('挂载点/设备名'), help_text='例如 "/dev/vdc"')
+    attached_time = serializers.DateTimeField(label=_('最后一次挂载时间'))
+    detached_time = serializers.DateTimeField(label=_('最后一次卸载时间'))

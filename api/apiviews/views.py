@@ -17,7 +17,7 @@ from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
 from servers.models import Server, Flavor
-from servers.managers import ServerManager
+from servers.managers import ServerManager, DiskManager
 from service.managers import ServiceManager
 from service.models import DataCenter, ApplyOrganization, ApplyVmService, ServiceConfig
 from adapters import inputs, outputs
@@ -25,7 +25,7 @@ from core.quota import QuotaAPI
 from core import request as core_request
 from core import errors as exceptions
 from vo.models import VoMember
-from api.serializers import serializers
+from api.serializers import serializers, disk_serializers
 from api.viewsets import CustomGenericViewSet
 from api.paginations import ServersPagination, DefaultPageNumberPagination, ImagesPagination
 from api.handlers import (
@@ -435,7 +435,20 @@ class ServersViewSet(CustomGenericViewSet):
                     "id": "1",
                     "username": "shun"
                 },
-                "lock": "free"    # 'free': 无锁；'lock-delete': 锁定删除，防止删除；'lock-operation', '锁定所有操作，只允许读'
+                "lock": "free",    # 'free': 无锁；'lock-delete': 锁定删除，防止删除；'lock-operation', '锁定所有操作，只允许读'
+                "attached_disks": [
+                  {
+                    "id": "dsi1z97pf77644wc1h2m9ry6v-d",
+                    "size": 1,
+                    "creation_time": "2023-06-26T03:07:26.192272Z",
+                    "remarks": "test",
+                    "expiration_time": null,
+                    "pay_type": "postpaid",
+                    "mountpoint": "/dev/vdb",
+                    "attached_time": "2023-06-26T06:35:46.280814Z",
+                    "detached_time": "2023-06-26T06:30:35.497287Z"
+                  }
+                ]
               }
             }
         """
@@ -452,9 +465,14 @@ class ServersViewSet(CustomGenericViewSet):
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
+        # 挂载的云硬盘
+        disks = DiskManager.get_server_disks_qs(server_id=server.id)
+        disk_slz = disk_serializers.ServerDiskSerializer(instance=disks, many=True)
+        disks_data = disk_slz.data
+
         # 如果元数据完整，各种服务不同概率去更新元数据
+        need_update = False
         if server.ipv4 and server.image:
-            need_update = False
             if server.service.service_type == server.service.ServiceType.EVCLOUD:
                 if random.choice(range(10)) == 0:
                     need_update = True
@@ -464,13 +482,13 @@ class ServersViewSet(CustomGenericViewSet):
             elif random.choice(range(2)) == 0:
                 need_update = True
 
-            if not need_update:
-                serializer = serializers.ServerSerializer(server)
-                return Response(data={'server': serializer.data})
+        if not need_update:
+            self._update_server_detail(server=server)
 
-        self._update_server_detail(server=server)
         serializer = serializers.ServerSerializer(server)
-        return Response(data={'server': serializer.data})
+        data = {'server': serializer.data}
+        data['server']['attached_disks'] = disks_data
+        return Response(data=data)
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('删除服务器实例'),
