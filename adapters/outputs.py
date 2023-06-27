@@ -376,9 +376,10 @@ class NetworkDetailOutput(OutputBase):
 
 
 class AvailabilityZone:
-    def __init__(self, _id: str, name: str):
+    def __init__(self, _id: str, name: str, available: bool = True):
         self.id = _id
         self.name = name
+        self.available = available
 
 
 class ListAvailabilityZoneOutput(OutputBase):

@@ -22,4 +22,4 @@ class AvailabilityZoneTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         zones = response.data['zones']
         if zones:
-            self.assertKeysIn(keys=['id', 'name'], container=zones[0])
+            self.assertKeysIn(keys=['id', 'name', 'available'], container=zones[0])

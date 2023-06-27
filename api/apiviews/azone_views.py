@@ -42,7 +42,8 @@ class AvailabilityZoneViewSet(CustomGenericViewSet):
               "zones": [
                 {
                   "id": "nova",
-                  "name": "nova"
+                  "name": "nova",
+                  "available": true # true: 可用；false: 不可用
                 }
               ]
             }

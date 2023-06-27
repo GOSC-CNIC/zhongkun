@@ -638,6 +638,7 @@ class VoMemberSerializer(serializers.Serializer):
 class AvailabilityZoneSerializer(serializers.Serializer):
     id = serializers.CharField(label=_('可用区ID'))
     name = serializers.CharField(label=_('可用区名称'))
+    available = serializers.BooleanField(label=_('是否可用'))
 
 
 class OrderSerializer(serializers.Serializer):

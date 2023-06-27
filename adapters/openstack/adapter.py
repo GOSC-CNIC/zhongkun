@@ -557,7 +557,10 @@ class OpenStackAdapter(BaseAdapter):
             zones = []
             for zone in a_zones:
                 name = zone.name
-                zones.append(outputs.AvailabilityZone(_id=name, name=name))
+                available = True
+                if zone.state:
+                    available = bool(zone.state.get('available'))
+                zones.append(outputs.AvailabilityZone(_id=name, name=name, available=available))
 
             return outputs.ListAvailabilityZoneOutput(zones)
         except Exception as e:
