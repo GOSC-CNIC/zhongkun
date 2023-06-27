@@ -416,20 +416,28 @@ class DiskHandler:
             return view.exception_response(exc)
 
         try:
-            params = inputs.DiskAttachInput(instance_id=server.instance_id, disk_id=disk.instance_id)
-            r = view.request_service(disk.service, method='disk_attach', params=params)
-            if not r.ok:
-                raise exceptions.ConflictError(message=_('向云主机挂载云硬盘时错误') + str(r.error))
+            DiskHandler.do_attach_disk(server=server, disk=disk)
         except exceptions.APIException as exc:
             return view.exception_response(exc)
+
+        return Response(data={'server_id': server.id, 'disk_id': disk.id})
+
+    @staticmethod
+    def do_attach_disk(server: Server, disk: Disk):
+        """
+        挂载硬盘
+        :raises: Error，Conflict
+        """
+        params = inputs.DiskAttachInput(instance_id=server.instance_id, disk_id=disk.instance_id)
+        r = core_request.request_service(disk.service, method='disk_attach', params=params)
+        if not r.ok:
+            raise exceptions.ConflictError(message=_('向云主机挂载云硬盘时错误') + str(r.error))
 
         try:
             disk.set_attach(server_id=server.id)
         except Exception as exc:
-            request_logger.error(f'硬盘已成功挂载到云主机 {server.id}，但是硬盘元数据更新记录server id失败。')
-            return view.exception_response(exc)
-
-        return Response(data={'server_id': server.id, 'disk_id': disk.id})
+            request_logger.error(f'硬盘{disk.id}已成功挂载到云主机 {server.id}，但是硬盘元数据更新记录server id失败。')
+            raise exceptions.Error(message=_('更新硬盘元数据错误，') + str(exc))
 
     @staticmethod
     def detach_disk(view: CustomGenericViewSet, request, kwargs):
@@ -460,17 +468,25 @@ class DiskHandler:
             return view.exception_response(exc)
 
         try:
-            params = inputs.DiskDetachInput(instance_id=server.instance_id, disk_id=disk.instance_id)
-            r = view.request_service(disk.service, method='disk_detach', params=params)
-            if not r.ok:
-                raise exceptions.ConflictError(message=_('向云主机卸载云硬盘时错误') + str(r.error))
-        except exceptions.APIException as exc:
+            DiskHandler.do_detach_disk(server=server, disk=disk)
+        except exceptions.Error as exc:
             return view.exception_response(exc)
+
+        return Response(data={'server_id': server.id, 'disk_id': disk.id})
+
+    @staticmethod
+    def do_detach_disk(server: Server, disk: Disk):
+        """
+        卸载硬盘
+        :raises: Error，Conflict
+        """
+        params = inputs.DiskDetachInput(instance_id=server.instance_id, disk_id=disk.instance_id)
+        r = core_request.request_service(disk.service, method='disk_detach', params=params)
+        if not r.ok:
+            raise exceptions.ConflictError(message=_('向云主机卸载云硬盘时错误') + str(r.error))
 
         try:
             disk.set_detach()
         except Exception as exc:
-            request_logger.error(f'硬盘已成功从云主机 {server.id}卸载，但是硬盘元数据更新清除server id失败。')
-            return view.exception_response(exc)
-
-        return Response(data={'server_id': server.id, 'disk_id': disk.id})
+            request_logger.error(f'硬盘{disk.id}已成功从云主机{server.id}卸载，但是硬盘元数据更新清除server id失败。')
+            raise exceptions.Error(message=_('更新硬盘元数据错误，') + str(exc))

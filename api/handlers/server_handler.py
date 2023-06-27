@@ -11,7 +11,7 @@ from core import errors as exceptions
 from core.quota import QuotaAPI
 from service.managers import ServiceManager
 from servers.models import Server, Flavor
-from servers.managers import ServerManager, ServerArchiveManager
+from servers.managers import ServerManager, ServerArchiveManager, DiskManager
 from api import paginations
 from api.viewsets import CustomGenericViewSet
 from api.deliver_resource import OrderResourceDeliverer
@@ -245,7 +245,7 @@ class ServerHandler:
         try:
             server = ServerManager().get_manage_perm_server(
                 server_id=server_id, user=request.user, related_fields=['vo'])
-        except exceptions.APIException as exc:
+        except exceptions.Error as exc:
             return view.exception_response(exc)
 
         if server.task_status == server.TASK_CREATE_FAILED:
@@ -273,6 +273,14 @@ class ServerHandler:
             ServerManager.check_situation_suspend(server=server)
         except exceptions.Error as exc:
             return view.exception_response(exc)
+
+        # 挂载云硬盘
+        disk_qs = DiskManager.get_server_disks_qs(server_id=server.id)
+        d_count = disk_qs.count()
+        if d_count > 0:
+            return view.exception_response(exceptions.DiskAttached(
+                message=_('云主机挂载了%(count)s块云硬盘，请先卸载云硬盘后重试。') % {'count': d_count}
+            ))
 
         server.task_status = server.TASK_IN_CREATING
         server.image = ''
