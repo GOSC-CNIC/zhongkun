@@ -496,6 +496,8 @@ class EVCloudAdapter(BaseAdapter):
         ds_pools = ret.pools
         ok = False
         for p in ds_pools:
+            if not p.available:
+                continue
             if p.free_capacity_gb >= params.size_gib and p.max_size_limit_gb >= params.size_gib:
                 ok = True
                 break
@@ -519,12 +521,24 @@ class EVCloudAdapter(BaseAdapter):
         for quota in rj['results']:
             total_capacity_gb = quota.get('total', 0)
             size_used = quota.get('size_used', 0)
+            available = True
+            # quota enable
+            q_enable = quota.get('enable', None)
+            if q_enable is False:
+                available = False
+            # quota pool enable
+            if quota.get('pool', None):
+                p_enable = quota['pool'].get('enable')
+                if p_enable is False:
+                    available = False
+
             p = outputs.DiskStoragePool(
                 pool_id=quota['id'],
                 name=quota.get('name', ''),
                 total_capacity_gb=total_capacity_gb,
                 free_capacity_gb=total_capacity_gb - size_used,
-                max_size_limit_gb=quota.get('max_vdisk', 0)
+                max_size_limit_gb=quota.get('max_vdisk', 0),
+                available=available
             )
             pools.append(p)
 

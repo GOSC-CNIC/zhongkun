@@ -163,6 +163,69 @@ class DisksViewSet(CustomGenericViewSet):
         return DiskHandler().list_disk(view=self, request=request)
 
     @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询一块云硬盘详情'),
+        responses={
+            200: ''
+        }
+    )
+    def retrieve(self, request, *args, **kwargs):
+        """
+        查询一块用户或vo组的云硬盘详情
+
+            http Code 200 Ok:
+            {
+              "id": "umimm6qi8vpb2uem8qjrgx7io-d",
+              "name": "",
+              "size": 2,
+              "service": {
+                "id": "2",
+                "name": "怀柔204机房研发测试",
+                "name_en": "怀柔204机房研发测试"
+              },
+              "azone_id": "1",
+              "azone_name": "第1组，公网/内网",
+              "creation_time": "2023-06-20T02:27:54.839869Z",
+              "remarks": "shun开发测试",
+              "task_status": "ok",      # 创建状态，ok: 成功；creating：正在创建中；failed：创建失败
+              "expiration_time": null,
+              "pay_type": "postpaid",   # prepaid: 包年包月; postpaid:按量计费
+              "classification": "vo",   # personal：硬盘归属用户个人
+              "user": {                 # 硬盘创建人
+                "id": "1",
+                "username": "shun"
+              },
+              "vo": {
+                "id": "3d7cd5fc-d236-11eb-9da9-c8009fe2eb10",
+                "name": "项目组1"
+              },
+              "lock": "free",   # 'free': 无锁；'lock-delete': 锁定删除，防止删除；'lock-operation', '锁定所有操作，只允许读'
+              "deleted": false, # true: 已删除；false: 正常；只有管理员可查询到已删除云硬盘；
+              "server": {# 挂载的云主机，未挂载时为 null
+                "id": "xxx",
+                "ipv4": "xxx",
+                "vcpus": 6,
+                "ram": 8,   # GiB
+                "image": "CentOS9",
+              },
+              "mountpoint": "/dev/vdb",    # 挂载的设备名/挂载点, 未挂载时为空字符串
+              "attached_time": "2023-06-20T02:27:54.839869Z",   # 上次挂载时间
+              "detached_time": null     # 上次卸载时间
+            }
+
+            http Code 401, 403, 404:
+                {
+                    "code": "AccessDenied",
+                    "message": "xxxx"
+                }
+
+                可能的错误码：
+                401: AuthenticationFailed, NotAuthenticated: 身份认证失败
+                403: AccessDenied: 你不属于此项目组，没有访问权限
+                404: DiskNotExist: 云硬盘不存在
+        """
+        return DiskHandler().detail_disk(view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
         operation_summary=gettext_lazy('删除用户或vo组云硬盘'),
         responses={
             200: ''

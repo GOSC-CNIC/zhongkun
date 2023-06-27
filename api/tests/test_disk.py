@@ -736,3 +736,60 @@ class DiskOrderTests(MyAPITransactionTestCase):
         message = response.data['message']
         self.assertIn('adapter', message)
         self.assertIn('不存在', message)
+
+    def test_detail_disk(self):
+        server1 = create_server_metadata(
+            service=self.service, user=self.user, ram=8, vcpus=6,
+            default_user='user', default_password='password',
+            ipv4='127.0.0.1', remarks='test server', pay_type=PayType.PREPAID.value
+        )
+        disk1 = create_disk_metadata(
+            service_id=self.service.id, azone_id='1', disk_size=66, pay_type=PayType.PREPAID.value,
+            classification=Disk.Classification.PERSONAL.value, user_id=self.user.id, vo_id=None,
+            creation_time=timezone.now(), expiration_time=None, remarks='test', server_id=server1.id
+        )
+        disk3_vo = create_disk_metadata(
+            service_id=self.service.id, azone_id='1', disk_size=886, pay_type=PayType.POSTPAID.value,
+            classification=Disk.Classification.VO.value, user_id=self.user2.id, vo_id=self.vo.id,
+            creation_time=timezone.now(), expiration_time=None, remarks='test', server_id=None
+        )
+
+        base_url = reverse('api:disks-detail', kwargs={'id': 'test'})
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 401)
+        self.client.force_login(self.user)
+
+        base_url = reverse('api:disks-detail', kwargs={'id': 'test'})
+        response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=404, code='DiskNotExist', response=response)
+
+        # detail user disk
+        base_url = reverse('api:disks-detail', kwargs={'id': disk1.id})
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['id', 'name', 'size', 'service', 'azone_id', 'azone_name', 'creation_time',
+                           'remarks', 'task_status', 'expiration_time', 'pay_type', 'classification',
+                           'user', 'vo', 'lock', 'deleted', 'server', 'mountpoint', 'attached_time',
+                           'detached_time'], response.data)
+        self.assertKeysIn(['id', 'name', 'name_en'], response.data['service'])
+        self.assertKeysIn(['id', 'username'], response.data['user'])
+        self.assertEqual(response.data['id'], disk1.id)
+        self.assertKeysIn(['id', 'ipv4', 'vcpus', 'ram', 'image'], response.data['server'])
+
+        # detail vo disk
+        base_url = reverse('api:disks-detail', kwargs={'id': disk3_vo.id})
+        response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # set vo member
+        VoMember(user_id=self.user.id, vo_id=self.vo.id, role=VoMember.Role.LEADER.value).save()
+
+        base_url = reverse('api:disks-detail', kwargs={'id': disk3_vo.id})
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['id', 'name', 'size', 'service', 'azone_id', 'azone_name', 'creation_time',
+                           'remarks', 'task_status', 'expiration_time', 'pay_type', 'classification',
+                           'user', 'vo', 'lock', 'deleted', 'server', 'mountpoint', 'attached_time',
+                           'detached_time'], response.data)
+        self.assertEqual(response.data['id'], disk3_vo.id)
+        self.assertIsNone(response.data['server'])

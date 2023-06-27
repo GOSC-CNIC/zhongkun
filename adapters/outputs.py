@@ -512,7 +512,8 @@ class DiskStoragePool:
             self, pool_id: str, name: str,
             total_capacity_gb: int,
             free_capacity_gb: int,
-            max_size_limit_gb: int
+            max_size_limit_gb: int,
+            available: bool
     ):
         """
         :param pool_id:
@@ -520,12 +521,14 @@ class DiskStoragePool:
         :param total_capacity_gb: 总存储容量，单位Gb
         :param free_capacity_gb: 可用存储容量，单位Gb
         :param max_size_limit_gb: 一个卷disk最大容量限制，单位Gb
+        :param available: True: 可用；False: 不可用
         """
         self.pool_id = pool_id
         self.name = name
         self.total_capacity_gb = total_capacity_gb
         self.free_capacity_gb = free_capacity_gb
         self.max_size_limit_gb = max_size_limit_gb
+        self.available = available
 
 
 class ListDiskStoragePoolsOutput(OutputBase):

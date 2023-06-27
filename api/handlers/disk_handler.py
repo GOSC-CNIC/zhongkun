@@ -12,6 +12,7 @@ from servers.managers import DiskManager
 from api.viewsets import CustomGenericViewSet
 from api.deliver_resource import OrderResourceDeliverer
 from api import request_logger
+from api.serializers import disk_serializers
 from vo.managers import VoManager
 from vo.models import VirtualOrganization
 from adapters import inputs
@@ -491,3 +492,15 @@ class DiskHandler:
         except Exception as exc:
             request_logger.error(f'硬盘{disk.id}已成功从云主机{server.id}卸载，但是硬盘元数据更新清除server id失败。')
             raise exceptions.Error(message=_('更新硬盘元数据错误，') + str(exc))
+
+    @staticmethod
+    def detail_disk(view: CustomGenericViewSet, request, kwargs):
+        disk_id = kwargs.get(view.lookup_field, '')
+
+        try:
+            disk = DiskManager().get_read_perm_disk(disk_id=disk_id, user=request.user)
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        slr = disk_serializers.DiskSerializer(instance=disk, many=False)
+        return Response(data=slr.data)
