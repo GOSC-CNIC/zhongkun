@@ -523,4 +523,4 @@ class DiskManager:
 
     @staticmethod
     def get_server_disks_qs(server_id: str):
-        return Disk.objects.filter(server_id=server_id, deleted=False)
+        return Disk.objects.select_related('server').filter(server_id=server_id, deleted=False)

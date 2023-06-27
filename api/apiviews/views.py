@@ -527,39 +527,7 @@ class ServersViewSet(CustomGenericViewSet):
         """
         vo组云主机的删除需要vo组管理员权限
         """
-        server_id = kwargs.get(self.lookup_field, '')
-        q_force = request.query_params.get('force', '')
-        if q_force.lower() == 'true':
-            force = True
-        else:
-            force = False
-
-        try:
-            if self.is_as_admin_request(request=request):
-                server = ServerManager().get_manage_perm_server(
-                    server_id=server_id, user=request.user, related_fields=['service__data_center'], as_admin=True)
-            else:
-                server = ServerManager().get_manage_perm_server(
-                    server_id=server_id, user=request.user, related_fields=['service__data_center', 'vo__owner'])
-        except exceptions.APIException as exc:
-            return Response(data=exc.err_data(), status=exc.status_code)
-
-        if server.is_locked_delete():
-            return self.exception_response(exceptions.ResourceLocked(
-                message=_('无法删除，云主机已加锁锁定了删除')
-            ))
-
-        params = inputs.ServerDeleteInput(instance_id=server.instance_id, instance_name=server.instance_name,
-                                          force=force)
-        try:
-            self.request_service(server.service, method='server_delete', params=params)
-        except exceptions.APIException as exc:
-            return Response(data=exc.err_data(), status=exc.status_code)
-
-        if server.do_archive(archive_user=request.user):  # 记录归档
-            self.release_server_quota(server=server)  # 释放资源配额
-
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return ServerHandler().delete_server(view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('操作服务器'),
@@ -600,74 +568,7 @@ class ServersViewSet(CustomGenericViewSet):
         """
         vo组云主机的删除操作需要vo组管理员权限
         """
-        server_id = kwargs.get(self.lookup_field, '')
-        try:
-            act = request.data.get('action', None)
-        except Exception as e:
-            exc = exceptions.InvalidArgument(_('参数有误') + ',' + str(e))
-            return Response(data=exc.err_data(), status=exc.status_code)
-
-        actions = inputs.ServerAction.values  # ['start', 'reboot', 'shutdown', 'poweroff', 'delete', 'delete_force']
-        if act is None:
-            exc = exceptions.InvalidArgument(_('action参数是必须的'))
-            return Response(data=exc.err_data(), status=exc.status_code)
-
-        if act not in actions:
-            exc = exceptions.InvalidArgument(_('action参数无效'))
-            return Response(data=exc.err_data(), status=exc.status_code)
-
-        need_manager_perm = False
-        if act in [inputs.ServerAction.DELETE, inputs.ServerAction.DELETE_FORCE]:
-            need_manager_perm = True
-
-        try:
-            if need_manager_perm:
-                if self.is_as_admin_request(request=request):
-                    server = ServerManager().get_manage_perm_server(
-                        server_id=server_id, user=request.user, related_fields=['service__data_center'], as_admin=True)
-                else:
-                    server = ServerManager().get_manage_perm_server(
-                        server_id=server_id, user=request.user, related_fields=['service__data_center', 'vo__owner'])
-
-                if server.is_locked_delete():
-                    return self.exception_response(exceptions.ResourceLocked(
-                        message=_('无法删除，云主机已加锁锁定了删除')
-                    ))
-            else:
-                if self.is_as_admin_request(request=request):
-                    server = ServerManager().get_read_perm_server(
-                        server_id=server_id, user=request.user, related_fields=['service__data_center'], as_admin=True)
-                else:
-                    server = ServerManager().get_read_perm_server(
-                        server_id=server_id, user=request.user, related_fields=['service__data_center', 'vo__owner'])
-
-                if server.is_locked_operation():
-                    return self.exception_response(exceptions.ResourceLocked(
-                        message=_('云主机已加锁锁定了任何操作')
-                    ))
-        except exceptions.APIException as exc:
-            return Response(data=exc.err_data(), status=exc.status_code)
-
-        # 过期，欠费挂起，不允许开机，需要检查是否续费，是否不再欠费
-        if act in [inputs.ServerAction.START, inputs.ServerAction.REBOOT]:
-            try:
-                ServerManager.check_situation_suspend(server=server)
-            except exceptions.Error as exc:
-                return self.exception_response(exc)
-
-        params = inputs.ServerActionInput(
-            instance_id=server.instance_id, instance_name=server.instance_name, action=act)
-
-        try:
-            r = self.request_service(server.service, method='server_action', params=params)
-        except exceptions.APIException as exc:
-            return Response(data=exc.err_data(), status=exc.status_code)
-
-        if act in [inputs.ServerAction.DELETE, inputs.ServerAction.DELETE_FORCE]:
-            server.do_archive(archive_user=request.user)
-            self.release_server_quota(server=server)  # 释放资源配额
-
-        return Response({'action': act})
+        return ServerHandler().server_action(view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('服务器状态查询'),
@@ -950,24 +851,6 @@ class ServersViewSet(CustomGenericViewSet):
             return serializers.ServerRebuildSerializer
 
         return Serializer
-
-    @staticmethod
-    def release_server_quota(server):
-        """
-        释放虚拟服务器资源配额
-
-        :param server: 服务器对象
-        :return:
-            True
-            False
-        """
-        try:
-            QuotaAPI().server_quota_release(service=server.service, vcpu=server.vcpus,
-                                            ram_gib=server.ram_gib, public_ip=server.public_ip)
-        except exceptions.Error as e:
-            return False
-
-        return True
 
 
 class ImageViewSet(CustomGenericViewSet):

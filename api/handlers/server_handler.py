@@ -9,6 +9,7 @@ from rest_framework.response import Response
 
 from core import errors as exceptions
 from core.quota import QuotaAPI
+from core import request as core_request
 from service.managers import ServiceManager
 from servers.models import Server, Flavor
 from servers.managers import ServerManager, ServerArchiveManager, DiskManager
@@ -27,6 +28,7 @@ from order.models import ResourceType, Order, Resource
 from order.managers import OrderManager, ServerConfig, OrderPaymentManager
 from bill.managers import PaymentManager
 from .handlers import serializer_error_msg
+from .disk_handler import DiskHandler
 
 
 def str_to_true_false(val: str):
@@ -741,7 +743,8 @@ class ServerHandler:
                 vo_name = ''
 
             instance_config = ServerConfig(
-                vm_cpu=server.vcpus, vm_ram=server.ram_gib, systemdisk_size=server.disk_size, public_ip=server.public_ip,
+                vm_cpu=server.vcpus, vm_ram=server.ram_gib,
+                systemdisk_size=server.disk_size, public_ip=server.public_ip,
                 image_id=server.image_id, image_name=server.image, network_id=network_id, network_name=network_name,
                 azone_id=server.azone_id, azone_name='', flavor_id=''
             )
@@ -818,6 +821,137 @@ class ServerHandler:
             return view.exception_response(exc)
 
         return Response(data={'act': act})
+
+    def delete_server(self, view: CustomGenericViewSet, request, kwargs):
+        server_id = kwargs.get(view.lookup_field, '')
+        q_force = request.query_params.get('force', '')
+        if q_force.lower() == 'true':
+            force = True
+        else:
+            force = False
+
+        try:
+            self._do_delete_server(
+                server_id=server_id, force=force, user=request.user,
+                is_as_admin=view.is_as_admin_request(request=request)
+            )
+        except exceptions.APIException as exc:
+            return view.exception_response(exc)
+
+        return Response(status=204)
+
+    @staticmethod
+    def _do_delete_server(server_id: str, force: bool, user, is_as_admin: bool):
+        """
+        :return:
+            True        # delete ok
+            raise Error # delete failed
+        """
+        if is_as_admin:
+            server = ServerManager().get_manage_perm_server(
+                server_id=server_id, user=user, related_fields=['service__data_center'], as_admin=True)
+        else:
+            server = ServerManager().get_manage_perm_server(
+                server_id=server_id, user=user, related_fields=['service__data_center', 'vo__owner'])
+
+        if server.is_locked_delete():
+            raise exceptions.ResourceLocked(message=_('无法删除，云主机已加锁锁定了删除'))
+
+        # 卸载云硬盘
+        disks = DiskManager.get_server_disks_qs(server_id=server.id)
+        for disk in disks:
+            DiskHandler.do_detach_disk(server=disk.server, disk=disk)
+
+        try:
+            params = inputs.ServerDeleteInput(
+                instance_id=server.instance_id, instance_name=server.instance_name, force=force)
+            core_request.request_service(server.service, method='server_delete', params=params)
+        except exceptions.APIException as exc:
+            raise exc
+
+        if server.do_archive(archive_user=user):  # 记录归档
+            ServerHandler.release_server_quota(server=server)  # 释放资源配额
+
+        return True
+
+    @staticmethod
+    def release_server_quota(server):
+        """
+        释放虚拟服务器资源配额
+
+        :param server: 服务器对象
+        :return:
+            True
+            False
+        """
+        try:
+            QuotaAPI().server_quota_release(
+                service=server.service, vcpu=server.vcpus, ram_gib=server.ram_gib, public_ip=server.public_ip)
+        except exceptions.Error as e:
+            return False
+
+        return True
+
+    def server_action(self, view: CustomGenericViewSet, request, kwargs):
+        server_id = kwargs.get(view.lookup_field, '')
+        try:
+            act = request.data.get('action', None)
+        except Exception as e:
+            exc = exceptions.InvalidArgument(_('参数有误') + ',' + str(e))
+            return Response(data=exc.err_data(), status=exc.status_code)
+
+        actions = inputs.ServerAction.values  # ['start', 'reboot', 'shutdown', 'poweroff', 'delete', 'delete_force']
+        if act is None:
+            exc = exceptions.InvalidArgument(_('action参数是必须的'))
+            return Response(data=exc.err_data(), status=exc.status_code)
+
+        if act not in actions:
+            exc = exceptions.InvalidArgument(_('action参数无效'))
+            return Response(data=exc.err_data(), status=exc.status_code)
+
+        is_as_admin = view.is_as_admin_request(request=request)
+        try:
+            if act in [inputs.ServerAction.DELETE, inputs.ServerAction.DELETE_FORCE]:
+                self._do_delete_server(
+                    server_id=server_id, user=request.user, force=bool(act == inputs.ServerAction.DELETE_FORCE),
+                    is_as_admin=is_as_admin
+                )
+            else:
+                self._do_server_normal_action(
+                    server_id=server_id, act=act, user=request.user, is_as_admin=is_as_admin
+                )
+        except exceptions.APIException as exc:
+            return view.exception_response(exc)
+
+        return Response({'action': act})
+
+    @staticmethod
+    def _do_server_normal_action(server_id: str, act: str, user, is_as_admin: bool):
+        """
+        :raises: APIException
+        """
+        if is_as_admin:
+            server = ServerManager().get_read_perm_server(
+                server_id=server_id, user=user, related_fields=['service__data_center'], as_admin=True)
+        else:
+            server = ServerManager().get_read_perm_server(
+                server_id=server_id, user=user, related_fields=['service__data_center', 'vo__owner'])
+
+        if server.is_locked_operation():
+            raise exceptions.ResourceLocked(message=_('云主机已加锁锁定了任何操作'))
+
+        # 过期，欠费挂起，不允许开机，需要检查是否续费，是否不再欠费
+        if act in [inputs.ServerAction.START, inputs.ServerAction.REBOOT]:
+            ServerManager.check_situation_suspend(server=server)
+
+        try:
+            params = inputs.ServerActionInput(
+                instance_id=server.instance_id, instance_name=server.instance_name, action=act)
+            r = core_request.request_service(server.service, method='server_action', params=params)
+        except exceptions.APIException as exc:
+            raise exc
+
+        return True
 
 
 class ServerArchiveHandler:
