@@ -565,3 +565,28 @@ class Disk(models.Model):
             return True
 
         return False
+
+    @staticmethod
+    def count_private_quota_used(service):
+        """
+        接入服务的私有资源配额已用统计
+
+        :param service: 接入服务配置对象
+        :return:
+            {
+                'disk_used_count': 1
+            }
+        """
+        if not isinstance(service, models.Model):
+            service_id = service
+        else:
+            service_id = service.id
+
+        stat = Disk.objects.filter(
+            service_id=service_id, deleted=False, quota_type=Disk.QuotaType.PRIVATE.value
+        ).aggregate(disk_used_count=Sum('size'))
+
+        if stat.get('disk_used_count', 0) is None:
+            stat['disk_used_count'] = 0
+
+        return stat

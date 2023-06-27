@@ -345,6 +345,7 @@ class DiskHandler:
                 raise exceptions.ConflictError(message=_('向服务单元删除云硬盘时错误') + str(r.error))
 
             disk.do_soft_delete(deleted_user=request.user.username, raise_exception=True)
+            QuotaAPI().disk_quota_release(service=disk.service, disk_size=disk.size)
         except exceptions.APIException as exc:
             return view.exception_response(exc)
 

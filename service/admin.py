@@ -3,7 +3,7 @@ from django.utils.translation import gettext_lazy, gettext as _
 from django.contrib import messages
 from django.db import transaction
 
-from servers.models import Server
+from servers.models import Server, Disk
 from utils.model import NoDeleteSelectModelAdmin
 from .models import (
     ServiceConfig, DataCenter, ServicePrivateQuota,
@@ -108,6 +108,7 @@ class ServicePrivateQuotaAdmin(admin.ModelAdmin):
         failed_count = 0
         for q in queryset:
             r = Server.count_private_quota_used(q.service_id)
+            disk_stat = Disk.count_private_quota_used(q.service_id)
 
             with transaction.atomic():
                 quota = ServicePrivateQuota.objects.select_for_update().get(id=q.id)
@@ -131,6 +132,12 @@ class ServicePrivateQuotaAdmin(admin.ModelAdmin):
                 if isinstance(private_ip_used, int) and quota.private_ip_used != private_ip_used:
                     quota.private_ip_used = private_ip_used
                     update_fields.append('private_ip_used')
+
+                # 云硬盘
+                disk_size_used_count = disk_stat.get('disk_used_count', None)
+                if isinstance(disk_size_used_count, int) and quota.disk_size_used != disk_size_used_count:
+                    quota.disk_size_used = disk_size_used_count
+                    update_fields.append('disk_size_used')
 
                 if update_fields:
                     try:
