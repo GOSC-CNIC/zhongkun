@@ -376,18 +376,18 @@ class DiskHandler:
         if server.service_id != disk.service_id:
             raise exceptions.ResourcesNotInSameService()
 
-        if not server.azone_id:
-            # 尝试更新云主机元数据，更新可用区信息
-            try:
-                server = core_request.update_server_detail(server=server, task_status=None)
-            except exceptions.Error as e:
-                pass
-
-            if not server.azone_id:
-                raise exceptions.ResourcesNotInSameZone(extend_msg='无法确认云主机所在可用区。')
-
-        if server.azone_id != disk.azone_id:
-            raise exceptions.ResourcesNotInSameZone()
+        # if not server.azone_id:
+        #     # 尝试更新云主机元数据，更新可用区信息
+        #     try:
+        #         server = core_request.update_server_detail(server=server, task_status=None)
+        #     except exceptions.Error as e:
+        #         pass
+        #
+        #     if not server.azone_id:
+        #         raise exceptions.ResourcesNotInSameZone(extend_msg='无法确认云主机所在可用区。')
+        #
+        # if server.azone_id != disk.azone_id:
+        #     raise exceptions.ResourcesNotInSameZone()
 
     @staticmethod
     def attach_disk(view: CustomGenericViewSet, request, kwargs):

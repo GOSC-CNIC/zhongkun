@@ -648,14 +648,16 @@ class DiskOrderTests(MyAPITransactionTestCase):
         response = self.client.post(f'{base_url}?{query}')
         self.assertErrorResponse(status_code=409, code='ResourcesNotInSameService', response=response)
 
-        # server1 azone_id != disk1 azone_id
         server1.service_id = self.service.id
         server1.save(update_fields=['service_id'])
-        response = self.client.post(f'{base_url}?{query}')
-        self.assertErrorResponse(status_code=409, code='ResourcesNotInSameZone', response=response)
 
-        server1.azone_id = disk1.azone_id
-        server1.save(update_fields=['azone_id'])
+        # server1 azone_id != disk1 azone_id
+        # response = self.client.post(f'{base_url}?{query}')
+        # self.assertErrorResponse(status_code=409, code='ResourcesNotInSameZone', response=response)
+        #
+        # server1.azone_id = disk1.azone_id
+        # server1.save(update_fields=['azone_id'])
+
         response = self.client.post(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 500)
         message = response.data['message']
