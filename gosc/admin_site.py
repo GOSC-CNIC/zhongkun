@@ -1,6 +1,10 @@
 from django.contrib import admin
 from django.utils.translation import gettext as _
 from django.contrib.admin.models import LogEntry
+from templatetags.sitetags import get_website_header
+
+
+site_header = get_website_header()
 
 
 @admin.register(LogEntry)
@@ -14,8 +18,9 @@ class LogEntryAdmin(admin.ModelAdmin):
 
 
 def config_site():
-    admin.AdminSite.site_header = _('云联邦后台管理（管理员登录）')
+    admin.AdminSite.site_header = site_header + ' ' + _('后台管理')
     admin.AdminSite.site_title = _('管理员登录')
 
 
 config_site()
+

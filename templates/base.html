@@ -2,13 +2,15 @@
 {% load i18n %}
 {% load services %}
 {% load cache %}
+{% load sitetags %}
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<meta charset="UTF-8">
-	<link rel="stylesheet" type="text/css" href="{% static 'bootstrap-4.5.0/css/bootstrap.min.css' %}">
-	{% block head %}{% endblock %}
-	<title>{% block title %}{% endblock %}</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="{% static 'bootstrap-4.5.0/css/bootstrap.min.css' %}">
+    {% block head %}{% endblock %}
+    <title>{% block title %}{% endblock %}</title>
     <style>
         html{
             height: 100%;
@@ -37,7 +39,8 @@
 <body>
 <div class="page-header">
     <nav class="navbar navbar-expand-md navbar-dark bg-dark">
-        <a class="navbar-brand" href="{% url "home" %}">{% trans '中国科技云联邦' %}</a>
+        {% get_website_title as site_title %}
+        <a class="navbar-brand" href="{% url "home" %}">{{ site_title }}</a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
                 aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>

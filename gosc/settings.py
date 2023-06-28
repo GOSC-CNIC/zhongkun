@@ -89,6 +89,9 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
+            'libraries': {
+                'sitetags': 'templatetags.sitetags'
+            }
         },
     },
 ]
@@ -181,11 +184,8 @@ LOGOUT_REDIRECT_URL = '/'
 THIRD_PARTY_APP_AUTH = {
     # 科技云通行证
     'SCIENCE_CLOUD': {
-        # 'client_id': 000,
-        # 'client_secret': 'xxx',
         'client_home_url': 'https://servicebackend.cstcloud.cn',
         'client_callback_url': 'https://servicebackend.cstcloud.cn/accounts/callback/',  # 认证回调地址
-        # 'login_url': 'https://passport.escience.cn/oauth2/authorize?response_type=code&theme=simple',
         'login_url': 'https://passport.escience.cn/oauth2/authorize?response_type=code&theme=embed',
         'token_url': 'https://passport.escience.cn/oauth2/token',
         'logout_url': 'https://passport.escience.cn/logout'
@@ -320,6 +320,10 @@ SWAGGER_SCHEMA_URL = None     # 'https://xxx.xxx'
 
 CORS_ALLOW_ALL_ORIGINS = True       # 允许所有请求来源跨域
 
+# 站点的一些全局配置
+WEBSITE_CONFIG = {
+    'site_brand': ''     # 站点的名称
+}
 
 # 安全配置导入
 from .security import *

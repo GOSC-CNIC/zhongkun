@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 {% load static %}
 {% load i18n %}
+{% load sitetags %}
 
 <html lang="zh-hans">
 <head>
@@ -12,8 +13,9 @@
 <div class="container-fluid">
     <div class="d-flex align-items-center justify-content-center" style="height: 80vh;">
         <div class="card border-0 shadow-sm" style="min-width: 400px">
+            {% get_website_title as site_title %}
             <div class="bg-light p-2">
-                <span class="">{% trans '登录 中国科技云联邦' %}</span>
+                <span class="">{% trans '登录' %} {{ site_title }}</span>
             </div>
             <div class="card-body">
                 {% if form.errors %}
@@ -42,9 +44,12 @@
 {#                        <a class="btn text-warning" href="{% url 'users:forget' %}">忘记密码</a>#}
                         <a class="btn btn-outline-success float-right" onclick="alert('暂不允许个人注册，请联系管理员');return false;">注册</a>
                     </div>
-                    <div class="border-top">
-                        <a class="btn btn-sm p-2" href="{% url 'users:login' %}"><i class="fa fa-share"></i> <i class="fa fa-user"></i> {% trans '中国科技云通行证账号登录' %}</a>
-                    </div>
+                    {% use_kjy_signin as use_kjy %}
+                    {% if use_kjy %}
+                        <div class="border-top">
+                            <a class="btn btn-sm p-2" href="{% url 'users:login' %}"><i class="fa fa-share"></i> <i class="fa fa-user"></i> {% trans '中国科技云通行证账号登录' %}</a>
+                        </div>
+                    {% endif %}
                 </form>
             </div>
         </div>
