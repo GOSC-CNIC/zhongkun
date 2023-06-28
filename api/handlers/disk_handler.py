@@ -65,9 +65,6 @@ class DiskHandler:
         period = data.get('period', None)
         disk_size = data.get('size', None)
 
-        if not azone_id:
-            raise exceptions.BadRequest(message=_('必须指可用区'), code='InvalidAzoneId')
-
         if not pay_type:
             raise exceptions.BadRequest(message=_('必须指定付费模式'), code='MissingPayType')
 
@@ -107,6 +104,7 @@ class DiskHandler:
         if not service.pay_app_service_id:
             raise exceptions.ConflictError(message=_('服务未配置对应的结算系统APP服务id'), code='ServiceNoPayAppServiceId')
 
+        azone_name = ''
         if azone_id:
             try:
                 out_azones = view.request_service(
@@ -126,8 +124,6 @@ class DiskHandler:
                 raise exceptions.BadRequest(message=_('指定的可用区不存在'), code='InvalidAzoneId')
 
             azone_name = azone.name
-        else:
-            raise exceptions.BadRequest(message=_('必须指定可用区'), code='InvalidAzoneId')
 
         return {
             'pay_type': pay_type,
@@ -175,6 +171,9 @@ class DiskHandler:
         service = data['service']
         period = data['period']
         disk_size = data['disk_size']
+
+        if azone_id is None:
+            azone_id = ''
 
         user = request.user
         if vo or isinstance(vo, VirtualOrganization):

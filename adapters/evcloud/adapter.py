@@ -488,7 +488,7 @@ class EVCloudAdapter(BaseAdapter):
         :return:
             outputs.DiskCreatePretendOutput()
         """
-        ret = self._list_disk_storage_pools(azone_id=params.azone_id)
+        ret = self._list_disk_storage_pools(region_id=params.region_id, azone_id=params.azone_id)
         if not ret.ok:
             return outputs.DiskCreatePretendOutput(
                 ok=True, error=None, result=False, reason=f'查询云硬盘存储池失败，{str(ret.error)}')
@@ -508,8 +508,23 @@ class EVCloudAdapter(BaseAdapter):
 
         return outputs.DiskCreatePretendOutput(ok=True, error=None, result=True, reason='')
 
-    def _list_disk_storage_pools(self, azone_id: str) -> outputs.ListDiskStoragePoolsOutput:
-        _api = self.api_builder.disk_quota_base_url(query={'group_id': azone_id})
+    def _list_disk_storage_pools(self, region_id: str, azone_id: str) -> outputs.ListDiskStoragePoolsOutput:
+        r = self.list_availability_zones(params=inputs.ListAvailabilityZoneInput(
+            region_id=region_id
+        ))
+        if not r.ok:
+            return outputs.ListDiskStoragePoolsOutput(ok=False, error=r.error, pools=[])
+
+        available_az_ids = []
+        if r.zones:
+            available_az_ids = [az.id for az in r.zones if az.available]
+
+        if azone_id:
+            query = {'group_id': azone_id}
+        else:
+            query = None
+
+        _api = self.api_builder.disk_quota_base_url(query=query)
         try:
             headers = self.get_auth_header()
             r = self.do_request(method='get', url=_api, ok_status_codes=[200], headers=headers)
@@ -519,6 +534,10 @@ class EVCloudAdapter(BaseAdapter):
         rj = r.json()
         pools = []
         for quota in rj['results']:
+            _group = quota['group']
+            if not (_group and str(_group['id']) in available_az_ids):
+                continue
+
             total_capacity_gb = quota.get('total', 0)
             size_used = quota.get('size_used', 0)
             available = True

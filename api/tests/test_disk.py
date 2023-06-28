@@ -136,11 +136,6 @@ class DiskOrderTests(MyAPITransactionTestCase):
 
         # param "azone_id"
         response = self.client.post(url, data={
-            'pay_type': PayType.PREPAID.value, 'service_id': self.service.id, 'size': 1,
-            'period': 2})
-        self.assertErrorResponse(status_code=400, code='InvalidAzoneId', response=response)
-
-        response = self.client.post(url, data={
             'pay_type': PayType.PREPAID.value, 'service_id': self.service.id, 'azone_id': 'test', 'size': 1,
             'period': 2})
         self.assertErrorResponse(status_code=400, code='InvalidAzoneId', response=response)
@@ -287,7 +282,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
         # create vo server postpaid mode, no vo permission
         disk_url = reverse('api:disks-list')
         response = self.client.post(disk_url, data={
-            'pay_type': PayType.POSTPAID.value, 'service_id': self.service.id, 'azone_id': azone_id,
+            'pay_type': PayType.POSTPAID.value, 'service_id': self.service.id,
             'size': 2, 'period': 12, 'remarks': 'testcase创建，可删除', 'vo_id': self.vo.id
         })
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
@@ -299,14 +294,14 @@ class DiskOrderTests(MyAPITransactionTestCase):
 
         # create vo server postpaid mode, no balance
         response = self.client.post(url, data={
-            'pay_type': PayType.POSTPAID.value, 'service_id': self.service.id, 'azone_id': azone_id,
+            'pay_type': PayType.POSTPAID.value, 'service_id': self.service.id,
             'size': 3, 'period': 12, 'remarks': 'testcase创建，可删除', 'vo_id': self.vo.id
         })
         self.assertErrorResponse(status_code=409, code='VoBalanceNotEnough', response=response)
 
-        # create order
+        # create order, no "azone_id"
         response = self.client.post(url, data={
-            'pay_type': PayType.PREPAID.value, 'service_id': self.service.id, 'azone_id': azone_id,
+            'pay_type': PayType.PREPAID.value, 'service_id': self.service.id,
             'size': 3, 'period': 12, 'remarks': 'testcase创建，可删除', 'vo_id': self.vo.id
         })
         self.assertEqual(response.status_code, 200)
@@ -325,6 +320,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
 
         # 修改azone_id，让订单交付资源失败
         d_config = DiskConfig.from_dict(order.instance_config)
+        self.assertEqual(d_config.disk_azone_id, '')
         d_config.disk_azone_id = 'test'
         order.instance_config = d_config.to_dict()
         order.save(update_fields=['instance_config'])
