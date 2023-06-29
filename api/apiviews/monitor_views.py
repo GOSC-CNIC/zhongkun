@@ -2,6 +2,7 @@ from django.utils.translation import gettext_lazy, gettext as _
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.serializers import Serializer
+from rest_framework.authentication import BasicAuthentication
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from drf_yasg.utils import no_body
@@ -826,6 +827,15 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
             return monitor_serializers.MonitorWebsiteDetectionPointSerializer
 
         return Serializer
+
+    def get_authenticators(self):
+        authenticators = super().get_authenticators()
+        method = self.request.method.lower()
+        _act = self.action_map.get(method)
+        if _act == 'list':
+            authenticators.append(BasicAuthentication())
+
+        return authenticators
 
 
 class MonitorWebsiteTaskViewSet(CustomGenericViewSet):
