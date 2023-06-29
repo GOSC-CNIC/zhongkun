@@ -16,7 +16,7 @@ class ObjectsServiceAdmin(admin.ModelAdmin):
 
     list_display = ('id', 'name', 'name_en', 'data_center', 'service_type', 'sort_weight', 'endpoint_url',
                     'add_time', 'status',
-                    'username', 'raw_password', 'provide_ftp', 'pay_app_service_id')
+                    'username', 'raw_password', 'provide_ftp', 'pay_app_service_id', 'loki_tag')
 
     search_fields = ['name', 'name_en', 'endpoint_url', 'remarks']
     list_filter = ['data_center', 'service_type']
@@ -40,6 +40,7 @@ class ObjectsServiceAdmin(admin.ModelAdmin):
         (_('联系人信息'), {
             'fields': ('contact_person', 'contact_email', 'contact_telephone', 'contact_fixed_phone', 'contact_address')
         }),
+        (_('其他'), {'fields': ('loki_tag',)}),
     )
 
     def has_delete_permission(self, request, obj=None):

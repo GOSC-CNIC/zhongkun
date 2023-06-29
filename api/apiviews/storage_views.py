@@ -74,7 +74,8 @@ class ObjectsServiceViewSet(StorageGenericViewSet):
                     "name": "网络中心",
                     "name_en": "cnic",
                     "sort_weight": -1
-                  }
+                  },
+                  "loki_tag": "xxx"
                 }
               ]
             }
