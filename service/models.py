@@ -137,6 +137,7 @@ class ServiceConfig(BaseService):
         verbose_name=_('余额结算APP服务ID'), max_length=36, default='',
         help_text=_('此服务对应的APP服务（注册在余额结算中的APP服务）id，扣费时需要此id，用于指定哪个服务发生的扣费'))
     sort_weight = models.IntegerField(verbose_name=_('排序值'), default=0, help_text=_('值越小排序越靠前'))
+    disk_available = models.BooleanField(verbose_name=_('提供云硬盘服务'), default=False)
 
     class Meta:
         ordering = ['sort_weight']

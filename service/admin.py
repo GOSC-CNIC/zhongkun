@@ -18,10 +18,10 @@ class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
     list_display_links = ('id',)
     list_display = ('id', 'name', 'name_en', 'data_center', 'sort_weight', 'region_id', 'service_type',
                     'endpoint_url', 'username',
-                    'password', 'add_time', 'status', 'need_vpn', 'vpn_endpoint_url', 'vpn_password',
+                    'password', 'add_time', 'status', 'need_vpn', 'disk_available', 'vpn_endpoint_url', 'vpn_password',
                     'longitude', 'latitude', 'remarks')
     search_fields = ['name', 'name_en', 'endpoint_url', 'remarks']
-    list_filter = ['data_center', 'service_type']
+    list_filter = ['data_center', 'service_type', 'disk_available']
     list_select_related = ('data_center',)
     list_editable = ('sort_weight',)
 
