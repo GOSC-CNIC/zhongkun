@@ -31,7 +31,7 @@ class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
         (_('说明、备注'), {'fields': ('remarks', 'sort_weight')}),
         (_('服务配置信息'), {
             'fields': ('data_center', 'name', 'name_en', 'service_type', 'cloud_type', 'status', 'endpoint_url',
-                       'api_version', 'region_id', 'username', 'password', 'change_password')
+                       'api_version', 'region_id', 'disk_available', 'username', 'password', 'change_password')
         }),
         (_('VPN配置信息'), {
             'fields': ('need_vpn', 'vpn_endpoint_url', 'vpn_api_version', 'vpn_username',
