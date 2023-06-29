@@ -1401,11 +1401,12 @@ class ServiceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "next", "previous", "results"], response.data)
         self.assertKeysIn(["id", "name", "name_en", "service_type", "cloud_type", "add_time", "sort_weight",
-                           "need_vpn", "status", "data_center", 'longitude', 'latitude', 'pay_app_service_id'
-                           ], response.data["results"][0])
+                           "need_vpn", "status", "data_center", 'longitude', 'latitude', 'pay_app_service_id',
+                           'disk_available'], response.data["results"][0])
         self.assertKeysIn(["id", "name", "name_en", "sort_weight"], response.data["results"][0]['data_center'])
         self.assertIsInstance(response.data["results"][0]['status'], str)
         self.assertEqual(response.data["results"][0]['status'], ServiceConfig.Status.ENABLE)
+        self.assertIs(response.data["results"][0]['disk_available'], False)
 
         url = reverse('api:service-list')
         query = parse.urlencode(query={'center_id': self.service.data_center_id})
@@ -1465,8 +1466,8 @@ class ServiceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "next", "previous", "results"], response.data)
         self.assertKeysIn(["id", "name", "name_en", "service_type", "cloud_type", "add_time", "sort_weight",
-                           "need_vpn", "status", "data_center", 'longitude', 'latitude', 'pay_app_service_id'
-                           ], response.data["results"][0])
+                           "need_vpn", "status", "data_center", 'longitude', 'latitude', 'pay_app_service_id',
+                           'disk_available'], response.data["results"][0])
         self.assertKeysIn(["id", "name", "name_en", "sort_weight"], response.data["results"][0]['data_center'])
         self.assertIsInstance(response.data["results"][0]['status'], str)
 

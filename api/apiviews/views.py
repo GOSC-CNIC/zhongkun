@@ -1496,7 +1496,8 @@ class ServiceViewSet(CustomGenericViewSet):
                   "longitude": 0,
                   "latitude": 0,
                   "pay_app_service_id": "xxx",      # 通过此id可以查询在余额结算系统中此服务可用的券
-                  "sort_weight": 8
+                  "sort_weight": 8,
+                  "disk_available": true    # true: 提供云硬盘服务; false: 云硬盘服务不可用
                 }
               ]
             }
