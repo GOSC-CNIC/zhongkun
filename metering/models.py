@@ -230,6 +230,10 @@ class MeteringObjectStorage(MeteringBase):
         verbose_name=_('同步流量GiB'), blank=True, default=0, help_text=_('存储桶的同步流量GiB'))
     get_request = models.IntegerField(verbose_name=_('get请求次数'), default=0, help_text=_('存储桶的get请求次数'))
     put_request = models.IntegerField(verbose_name=_('put请求次数'), default=0, help_text=_('存储桶的put请求次数'))
+    billed_network_flow = models.FloatField(
+        verbose_name=_('计费流量GiB'), blank=True, default=0, help_text=_('存储桶的计费流量GiB'))
+    unbilled_network_flow = models.FloatField(
+        verbose_name=_('非计费流量GiB'), blank=True, default=0, help_text=_('存储桶的非计费流量GiB'))
 
     class Meta:
         verbose_name = _('对象存储资源计量')

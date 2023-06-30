@@ -91,7 +91,9 @@ class MeteringStorageViewSet(CustomGenericViewSet):
                   "creation_time": "2022-04-02T09:14:07.754058Z",
                   "user_id": "1",
                   "username": "admin",
-                  "storage": 45.64349609833334,
+                  "storage": 45.64349609833334, # GiB*hours,
+                  "billed_network_flow": 0, # GiB
+                  "unbilled_network_flow": 0,   # GiB
                   "service": {
                     'id': '287bd860-5994-11ed-ae92-c8009fe2ebbc',
                     'name': 'service2',
@@ -465,7 +467,9 @@ class StatementStorageViewSet(CustomGenericViewSet):
                     "downstream": 0.0,
                     "replication": 0.0,
                     "get_request": 0,
-                    "put_request": 0
+                    "put_request": 0,
+                    "billed_network_flow": 0, # GiB
+                    "unbilled_network_flow": 0,   # GiB
                 }
               ]
             }

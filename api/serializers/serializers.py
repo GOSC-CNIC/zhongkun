@@ -913,6 +913,8 @@ class MeteringStorageSimpleSerializer(serializers.Serializer):
     replication = serializers.FloatField(label=_('下行流量GiB'), help_text=_('存储桶的同步流量GiB'))
     get_request = serializers.IntegerField(label=_('同步流量GiB'), help_text=_('存储桶的get请求次数'))
     put_request = serializers.IntegerField(label=_('put请求次数'), help_text=_('存储桶的put请求次数'))
+    billed_network_flow = serializers.FloatField(label=_('计费流量GiB'), help_text=_('存储桶的计费流量GiB'))
+    unbilled_network_flow = serializers.FloatField(label=_('非计费流量GiB'), help_text=_('存储桶的非计费流量GiB'))
 
 
 class MeteringStorageSerializer(MeteringStorageSimpleSerializer):

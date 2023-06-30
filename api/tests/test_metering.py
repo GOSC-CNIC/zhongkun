@@ -1782,7 +1782,7 @@ class MeteringObsTests(MyAPITestCase):
         self.assertKeysIn([
             "id", "original_amount", "trade_amount", "daily_statement_id",
             "service_id", "storage_bucket_id", "date", "creation_time", "user_id",
-            "username", "storage", 'service'
+            "username", "storage", 'service', 'billed_network_flow', 'unbilled_network_flow'
         ], r.data['results'][0])
         self.assertKeysIn(["id", "name", "name_en"], r.data['results'][0]['service'])
 
