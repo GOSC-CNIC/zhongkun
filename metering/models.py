@@ -5,12 +5,16 @@ from django.db import models
 from django.utils.translation import gettext, gettext_lazy as _
 
 from utils.model import OwnerType, PayType, CustomIdModel, ResourceType
+from utils import rand_utils
 from users.models import UserProfile
 from vo.models import VirtualOrganization
 from servers.models import Server
 from service.models import ServiceConfig
 from storage.models import ObjectsService
-from utils.model import PayType
+
+
+def short_uuid1_l25():
+    return rand_utils.short_uuid1_25()
 
 
 class PaymentStatus(models.TextChoices):
@@ -29,7 +33,7 @@ class MeteringBase(CustomIdModel):
         abstract = True
 
     def generate_id(self):
-        return uuid1().hex
+        return short_uuid1_l25()
 
     def is_owner_type_user(self):
         """
@@ -106,7 +110,7 @@ class MeteringServer(MeteringBase):
         return gettext('云服务器资源计量') + f'[server id {self.server_id}]'
 
     def generate_id(self):
-        return f's{uuid1().hex}'       # 保证（订单号，云主机、云硬盘、对象存储计量id）唯一
+        return f's{short_uuid1_l25()}'       # 保证（订单号，云主机、云硬盘、对象存储计量id）唯一
 
     def is_owner_type_user(self):
         """
@@ -174,7 +178,7 @@ class MeteringDisk(MeteringBase):
         return gettext('云硬盘资源计量') + f'[disk id {self.disk_id}]'
 
     def generate_id(self):
-        return f'd{uuid1().hex}'       # 保证（订单号，云主机、云硬盘、对象存储计量id）唯一
+        return f'd{short_uuid1_l25()}'       # 保证（订单号，云主机、云硬盘、对象存储计量id）唯一
 
     def is_owner_type_user(self):
         """
@@ -247,7 +251,7 @@ class MeteringObjectStorage(MeteringBase):
         ]
 
     def generate_id(self):
-        return f'b{uuid1().hex}'       # 保证（订单号，云主机、云硬盘、对象存储计量id）唯一
+        return f'b{short_uuid1_l25()}'       # 保证（订单号，云主机、云硬盘、对象存储计量id）唯一
 
     def is_owner_type_user(self):
         """
@@ -281,7 +285,7 @@ class DailyStatementBase(CustomIdModel):
         abstract = True
 
     def generate_id(self):
-        return uuid1().hex
+        return short_uuid1_l25()
 
     def is_owner_type_user(self):
         """
@@ -336,7 +340,7 @@ class DailyStatementServer(DailyStatementBase):
         ordering = ['-creation_time']
 
     def generate_id(self):
-        return f's{uuid1().hex}'       # 保证（订单号，云主机、云硬盘、对象存储计量id）唯一
+        return f's{short_uuid1_l25()}'       # 保证（订单号，云主机、云硬盘、对象存储计量id）唯一
 
     def get_pay_app_service_id(self) -> str:
         """
@@ -393,7 +397,7 @@ class DailyStatementObjectStorage(DailyStatementBase):
         ordering = ['-creation_time']
 
     def generate_id(self):
-        return f'o{uuid1().hex}'       # 保证（订单号，云主机、云硬盘、对象存储计量id）唯一
+        return f'o{short_uuid1_l25()}'       # 保证（订单号，云主机、云硬盘、对象存储计量id）唯一
 
     def get_pay_app_service_id(self) -> str:
         """

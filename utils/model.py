@@ -6,6 +6,7 @@ from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
 from utils.crypto import Encryptor
+from utils.rand_utils import short_uuid1_25
 
 
 def get_encryptor():
@@ -40,7 +41,7 @@ class UuidModel(CustomIdModel):
         abstract = True
 
     def generate_id(self):
-        return str(uuid1())
+        return short_uuid1_25()
 
 
 class OwnerType(models.TextChoices):
