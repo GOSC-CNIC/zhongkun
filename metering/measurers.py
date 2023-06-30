@@ -5,11 +5,11 @@ from decimal import Decimal
 from django.utils import timezone
 from django.db import close_old_connections
 
-from servers.models import Server, ServerArchive, ServerBase
-from metering.models import MeteringServer, MeteringObjectStorage
+from servers.models import Server, ServerArchive, ServerBase, Disk
+from metering.models import MeteringServer, MeteringObjectStorage, MeteringDisk
 from order.managers import PriceManager
 from utils.decimal_utils import quantize_10_2
-from utils.model import PayType
+from utils.model import PayType, OwnerType
 from vo.models import VirtualOrganization
 from users.models import UserProfile
 from storage.models import Bucket
@@ -56,7 +56,7 @@ class ServerMeasurer:
         self._new_count = 0  # 新产生计量账单计数
 
     def run(self, raise_exeption: bool = None):
-        print(f'Metering start, {self.start_datetime} - {self.end_datetime}')
+        print(f'Server metering start, {self.start_datetime} - {self.end_datetime}')
         if self.end_datetime >= timezone.now():
             print('Exit, metering time invalid.')
             return
@@ -608,3 +608,253 @@ class StorageMeasure:
 
         queryset = Bucket.objects.select_related('service').filter(**lookups).order_by('creation_time', 'id')
         return queryset
+
+
+class DiskMeasurer:
+    def __init__(self, metering_date: date = None, raise_exeption: bool = False):
+        """
+        :param metering_date: 指定计量日期
+        :param raise_exeption: True(发生错误直接抛出退出)
+        """
+        if metering_date:
+            start_datetime = timezone.now().replace(
+                year=metering_date.year, month=metering_date.month, day=metering_date.day,
+                hour=0, minute=0, second=0, microsecond=0)
+            end_datetime = start_datetime + timedelta(days=1)
+        else:
+            # 计量当前时间前一天的资源使用量
+            end_datetime = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)  # 计量结束时间
+            start_datetime = end_datetime - timedelta(days=1)  # 计量开始时间
+
+        self.end_datetime = end_datetime
+        self.start_datetime = start_datetime
+        self.raise_exeption = raise_exeption
+        self.price_mgr = PriceManager()
+        self._metering_normal_disk_count = 0  # 计量正常云硬盘计数
+        self._metering_deleted_disk_count = 0  # 计量已删除云硬盘计数
+        self._new_count = 0  # 新产生计量账单计数
+
+    def run(self, raise_exeption: bool = None):
+        print(f'Disk metering start, {self.start_datetime} - {self.end_datetime}')
+        if self.end_datetime >= timezone.now():
+            print('Exit, metering time invalid.')
+            return
+
+        if raise_exeption is not None:
+            self.raise_exeption = raise_exeption
+
+        self.loop_normal_disks()
+        self.loop_deleted_disks()
+        print(f'Metering {self._metering_normal_disk_count} normal disks, {self._metering_deleted_disk_count} deleted disks, '
+              f'all {self._metering_normal_disk_count + self._metering_deleted_disk_count}, '
+              f'new produce {self._new_count} metering bill.')
+
+    def loop_normal_disks(self):
+        self._metering_loop(loop_normal_disk=True)
+
+    def loop_deleted_disks(self):
+        self._metering_loop(loop_normal_disk=False)
+
+    def _metering_loop(self, loop_normal_disk=False):
+        last_creatition_time = None
+        last_id = ''
+        while True:
+            try:
+                if loop_normal_disk:
+                    disks = self.get_normal_disks(
+                        gte_creation_time=last_creatition_time, end_datetime=self.end_datetime)
+                else:
+                    disks = self.get_deleted_disks(
+                        gte_creation_time=last_creatition_time, start_datetime=self.start_datetime)
+
+                if len(disks) == 0:
+                    break
+
+                # 多个creation_time相同数据时，会查询获取到多个数据（计量过也会重复查询到）
+                if disks[len(disks) - 1].id == last_id:
+                    break
+
+                for dk in disks:
+                    if dk.id == last_id:
+                        continue
+
+                    self.metering_disk(dk)
+                    last_creatition_time = dk.creation_time
+                    last_id = dk.id
+            except Exception as e:
+                print(str(e))
+                if self.raise_exeption:
+                    raise e
+
+    def metering_disk(self, disk: Disk):
+        if disk.deleted:
+            self._metering_deleted_disk_count += 1
+        else:
+            self._metering_normal_disk_count += 1
+
+        metering_date = self.start_datetime.date()
+        metering = self.disk_metering_exists(metering_date=metering_date, disk_id=disk.id)
+        if metering is not None:
+            return metering
+
+        if disk.deleted:
+            size_gib_hours = self._deleted_disk_metering_hours(disk=disk)
+        else:
+            size_gib_hours = self._normal_disk_metering_hours(disk=disk)
+
+        metering = self.save_disk_metering_record(
+            disk=disk, size_gib_hours=size_gib_hours
+        )
+        return metering
+
+    def _normal_disk_metering_hours(self, disk: Disk):
+        # disk计费开始时间 在计量日期之前，计量日期内disk没有变化，计24h
+        if disk.start_time <= self.start_datetime:
+            hours = 24
+        # disk计费开始时间 在计量日期之间
+        elif disk.start_time < self.end_datetime:
+            hours = self.delta_hours(end=self.end_datetime, start=disk.start_time)
+        else:
+            return None
+
+        size_gib_hours = disk.size * hours
+        return size_gib_hours
+
+    def _deleted_disk_metering_hours(self, disk: Disk):
+        end = min(disk.deleted_time, self.end_datetime)  # disk计费结束时间
+        if disk.start_time <= self.start_datetime:
+            start = self.start_datetime
+        elif disk.start_time < self.end_datetime:
+            start = disk.start_time
+        else:
+            return None
+
+        hours = self.delta_hours(end=end, start=start)
+        size_gib_hours = disk.size * hours
+        return size_gib_hours
+
+    @staticmethod
+    def delta_hours(end, start):
+        delta = end - start
+        seconds = delta.total_seconds()
+        seconds = max(seconds, 0)
+        return seconds / 3600
+
+    def save_disk_metering_record(self, disk: Disk, size_gib_hours: float) -> MeteringDisk:
+        """
+        创建disk计量日期的资源使用量记录
+
+        :raises: Exception
+        """
+        metering_date = self.start_datetime.date()
+        metering = MeteringDisk(
+            service_id=disk.service_id,
+            disk_id=disk.id,
+            date=metering_date,
+            size_hours=size_gib_hours,
+            pay_type=disk.pay_type,
+            daily_statement_id=''
+        )
+        if disk.belong_to_vo():
+            metering.vo_id = disk.vo_id
+            metering.owner_type = OwnerType.VO.value
+            metering.user_id = ''
+            vo = VirtualOrganization.objects.filter(id=disk.vo_id).first()
+            vo_name = vo.name if vo else ''
+            metering.vo_name = vo_name
+        else:
+            metering.vo_id = ''
+            metering.owner_type = OwnerType.USER.value
+            metering.user_id = disk.user_id
+            user = UserProfile.objects.filter(id=disk.user_id).first()
+            username = user.username if user else ''
+            metering.username = username
+
+        self.metering_bill_amount(_metering=metering, auto_commit=False)
+        try:
+            metering.save(force_insert=True)
+            self._new_count += 1
+        except Exception as e:
+            _metering = self.disk_metering_exists(metering_date=metering_date, disk_id=disk.id)
+            if _metering is None:
+                raise e
+            if _metering.original_amount != metering.original_amount:
+                self.metering_bill_amount(_metering=_metering, auto_commit=True)
+
+            metering = _metering
+
+        return metering
+
+    @staticmethod
+    def get_normal_disk_queryset(end_datetime, gte_creation_time=None):
+        """
+        查询正常的disk查询集, 按创建时间正序排序
+
+        :param end_datetime: 计量日结束时间点
+        :param gte_creation_time: 大于等于创建时间，用于断点续查
+        """
+        lookups = {
+            'start_time__lt': end_datetime,
+            'task_status': Disk.TaskStatus.OK.value,
+            'deleted': False
+        }
+        if gte_creation_time is not None:
+            lookups['creation_time__gte'] = gte_creation_time
+
+        queryset = Disk.objects.filter(**lookups).order_by('creation_time', 'id')
+        return queryset
+
+    @wrap_close_old_connections
+    def get_normal_disks(self, gte_creation_time, end_datetime, limit: int = 100):
+        queryset = self.get_normal_disk_queryset(gte_creation_time=gte_creation_time, end_datetime=end_datetime)
+        return queryset[0:limit]
+
+    @staticmethod
+    def get_deleted_disk_queryset(start_datetime, gte_creation_time=None):
+        """
+        查询已删除的disk查询集, 按创建时间正序排序
+
+        :param start_datetime: 计量日开始时间点
+        :param gte_creation_time: 大于等于创建时间，用于断点续查
+        """
+        lookups = {
+            'deleted_time__gt': start_datetime,
+            'task_status': Disk.TaskStatus.OK.value,
+            'deleted': True
+        }
+        if gte_creation_time is not None:
+            lookups['creation_time__gte'] = gte_creation_time
+
+        return Disk.objects.filter(**lookups).order_by('creation_time', 'id')
+
+    @wrap_close_old_connections
+    def get_deleted_disks(self, start_datetime, gte_creation_time=None, limit: int = 100):
+        queryset = self.get_deleted_disk_queryset(
+            start_datetime=start_datetime,
+            gte_creation_time=gte_creation_time
+        )
+        return queryset[0:limit]
+
+    @staticmethod
+    def disk_metering_exists(disk_id, metering_date: date):
+        return MeteringDisk.objects.filter(date=metering_date, disk_id=disk_id).first()
+
+    def metering_bill_amount(self, _metering: MeteringDisk, auto_commit: bool = True):
+        """
+        计算资源使用量的账单金额
+        """
+        price = self.price_mgr.enforce_price()
+        size_gib_days = _metering.size_hours / 24
+        amount = self.price_mgr.calculate_disk_amounts(
+            price=price, size_gib_days=size_gib_days
+        )
+        _metering.original_amount = quantize_10_2(amount)
+        if _metering.pay_type == PayType.POSTPAID.value:
+            _metering.trade_amount = _metering.original_amount
+        else:
+            _metering.trade_amount = Decimal('0')
+
+        if auto_commit:
+            _metering.save(update_fields=['original_amount', 'trade_amount'])
+
+        return _metering
