@@ -48,7 +48,7 @@ class MeteringServerTests(TestCase):
 
     @staticmethod
     def _disk_day_price(price, size_gib: int, is_prepaid: bool):
-        day_p = price.disk_size * Decimal(size_gib * 24)
+        day_p = price.disk_size * Decimal(size_gib)
         if is_prepaid:
             day_p = day_p * Decimal.from_float(price.prepaid_discount/100)
 
@@ -60,7 +60,7 @@ class MeteringServerTests(TestCase):
         disk_size_day = price.disk_size.__float__()
         # days = days_after_months(timezone.now(), months=months)
         days = PriceManager.period_month_days(months)
-        op_months = disk_size_day * days * 24 * size_gib
+        op_months = disk_size_day * days * size_gib
         if is_prepaid:
             tp_months = op_months * price.prepaid_discount / 100
         else:

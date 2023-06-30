@@ -56,8 +56,8 @@ class PriceManager:
             total_days += period_days
 
         price = self.enforce_price()
-        hour_price = price.disk_size * size_gib
-        original_price = hour_price * Decimal.from_float(total_days * 24)
+        size_gib_days = size_gib * total_days
+        original_price = self.calculate_disk_amounts(price=price, size_gib_days=size_gib_days)
         if is_prepaid:
             trade_price = original_price * Decimal.from_float(price.prepaid_discount / 100)
         else:
@@ -184,4 +184,16 @@ class PriceManager:
         """
         amounts = price.obj_size / Decimal('24') * Decimal.from_float(storage_gib_hours)
         amounts += Decimal('0.06') / Decimal('24') * Decimal.from_float(hours)   # +桶每天的基础费用
+        return amounts
+
+    @staticmethod
+    def calculate_disk_amounts(
+            price: Price,
+            size_gib_days: float
+    ) -> Decimal:
+        """
+        计算金额
+        """
+        # 价格是按天
+        amounts = price.disk_size * Decimal.from_float(size_gib_days)
         return amounts
