@@ -590,3 +590,6 @@ class Disk(models.Model):
             stat['disk_used_count'] = 0
 
         return stat
+
+    def belong_to_vo(self):
+        return self.classification == self.Classification.VO.value

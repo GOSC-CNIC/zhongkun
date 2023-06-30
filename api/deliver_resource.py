@@ -9,7 +9,7 @@ from core import request as core_request
 from core.taskqueue import server_build_status
 from service.managers import ServiceManager, ServiceConfig
 from servers.models import Server, Disk
-from servers.managers import ServerManager
+from servers.managers import ServerManager, DiskManager
 from adapters import inputs, outputs
 from utils.model import PayType, OwnerType, ResourceType
 from order.models import Order, Resource
@@ -40,8 +40,11 @@ class OrderResourceDeliverer:
                 raise exceptions.Error(message=_('订购的资源类型无法交付，资源类型服务不支持。'))
         elif order.order_type == Order.OrderType.RENEWAL.value:  # 续费
             if order.resource_type == ResourceType.VM.value:
-                server = OrderResourceDeliverer().deliver_renewal_server(order=order, resource=resource)
+                server = self.deliver_renewal_server(order=order, resource=resource)
                 return server
+            elif order.resource_type == ResourceType.DISK.value:
+                disk = self.deliver_renewal_disk(order=order, resource=resource)
+                return disk
             else:
                 raise exceptions.Error(message=_('订购的资源类型无法交付，资源类型服务不支持。'))
         else:
@@ -480,3 +483,94 @@ class OrderResourceDeliverer:
                 raise exceptions.NeetReleaseResource(message=message)
 
         return service, disk
+
+    def deliver_renewal_disk(self, order: Order, resource: Resource):
+        """
+        云硬盘续费交付
+        :return:
+            server            # success
+
+        :raises: Error
+        """
+        order, resource = self._pre_check_deliver(order=order, resource=resource)
+        try:
+            disk = self.renewal_disk_resource_for_order(order=order, resource=resource)
+        except exceptions.Error as exc:
+            try:
+                OrderManager.set_order_resource_deliver_failed(
+                    order=order, resource=resource, failed_msg='无法为订单创建云服务器资源, ' + str(exc))
+            except exceptions.Error:
+                pass
+
+            raise exc
+
+        return disk
+
+    def renewal_disk_resource_for_order(self, order: Order, resource: Resource):
+        """
+        为订单续费云硬盘资源
+
+        :return:
+            server
+
+        :raises: Error
+        """
+        if order.resource_type != ResourceType.DISK.value:
+            raise exceptions.Error(message=_('订单的资源类型不是云硬盘'))
+
+        if isinstance(order.start_time, datetime) and isinstance(order.end_time, datetime):
+            if order.start_time >= order.end_time:
+                raise exceptions.Error(message=_('续费订单续费时长或时段无效。'))
+
+        try:
+            with transaction.atomic():
+                disk = DiskManager.get_disk(disk_id=resource.instance_id, select_for_update=True)
+                start_time, end_time = self.check_pre_renewal_disk_resource(
+                    order=order, disk=disk
+                )
+                disk.expiration_time = end_time
+                disk.save(update_fields=['expiration_time'])
+                OrderManager.set_order_resource_deliver_ok(
+                    order=order, resource=resource, start_time=start_time, due_time=end_time)
+                return disk
+        except Exception as e:
+            raise exceptions.Error.from_error(e)
+
+    @staticmethod
+    def check_pre_renewal_disk_resource(order: Order, disk: Disk):
+        """
+        检查是否满足云硬盘续费的条件
+
+        :return:
+            start_time, end_time    # 此订单续费的起始和截止时间
+
+        :raises: Error
+        """
+        if disk.pay_type != PayType.PREPAID.value:
+            raise exceptions.Error(message=_('云硬盘不是包年包月预付费模式，无法完成续费。'))
+        elif not isinstance(disk.expiration_time, datetime):
+            raise exceptions.Error(message=_('云硬盘没有过期时间，无法完成续费。'))
+        try:
+            config = DiskConfig.from_dict(order.instance_config)
+        except Exception as exc:
+            raise exceptions.Error(message=_('续费订单中云硬盘配置信息有误。') + str(exc))
+
+        if config.disk_size != disk.size:
+            raise exceptions.Error(message=_('续费订单中云硬盘容量大小与云硬盘容量大小不一致。'))
+
+        if order.period > 0 and (order.start_time is None and order.end_time is None):
+            start_time = disk.expiration_time
+            end_time = start_time + timedelta(days=PriceManager.period_month_days(order.period))
+        elif order.period <= 0 and (
+                isinstance(order.start_time, datetime) and isinstance(order.end_time, datetime)):
+            if order.start_time != disk.expiration_time:
+                delta_seconds = abs((order.start_time - disk.expiration_time).total_seconds())
+                if delta_seconds > 60:
+                    raise exceptions.Error(message=_('续费订单续费时长或时段与云硬盘过期时间有冲突。'))
+
+            start_time = order.start_time
+            end_time = order.end_time
+        else:
+            raise exceptions.Error(message=_('续费订单续费时长或时段无效。'))
+
+        return start_time, end_time

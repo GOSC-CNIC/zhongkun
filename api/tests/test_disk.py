@@ -1,9 +1,11 @@
+from datetime import timedelta
 from urllib import parse
 from decimal import Decimal
 from urllib.parse import urlencode
 
 from django.urls import reverse
 from django.utils import timezone
+from django.conf import settings
 
 from service.managers import ServicePrivateQuotaManager
 from service.models import ServiceConfig
@@ -11,12 +13,14 @@ from servers.models import Disk, Server
 from utils.test import get_or_create_user, get_or_create_service
 from utils.model import PayType, OwnerType, ResourceType
 from utils.decimal_utils import quantize_10_2
+from utils.time import iso_utc_to_datetime
 from utils import rand_utils
 from vo.models import VirtualOrganization, VoMember
 from order.managers import OrderManager, PriceManager
-from order.models import Price, Order
+from order.models import Price, Order, Resource
 from order.managers import DiskConfig
 from bill.managers import PaymentManager
+from bill.models import PayApp, PayOrgnazition, PayAppService
 from . import MyAPITransactionTestCase
 from .tests import create_server_metadata
 
@@ -26,7 +30,7 @@ def create_disk_metadata(
         pay_type: str, classification: str, user_id, vo_id,
         creation_time, expiration_time=None, remarks: str = '',
         server_id=None, disk_id: str = None, instance_id: str = None,
-        lock: str = None
+        lock: str = None, start_time=None, task_status: str = ''
 ):
     disk = Disk(
         id=disk_id,
@@ -40,9 +44,9 @@ def create_disk_metadata(
         quota_type=Disk.QuotaType.PRIVATE.value,
         creation_time=creation_time,
         remarks=remarks,
-        task_status=Disk.TaskStatus.CREATING.value,
+        task_status=task_status if task_status else Disk.TaskStatus.CREATING.value,
         expiration_time=expiration_time,
-        start_time=creation_time,
+        start_time=start_time if start_time else creation_time,
         pay_type=pay_type,
         classification=classification,
         user_id=user_id,
@@ -791,3 +795,213 @@ class DiskOrderTests(MyAPITransactionTestCase):
                            'detached_time'], response.data)
         self.assertEqual(response.data['id'], disk3_vo.id)
         self.assertIsNone(response.data['server'])
+
+    def test_renew_disk(self):
+        # 余额支付有关配置
+        app = PayApp(name='app', id=settings.PAYMENT_BALANCE['app_id'])
+        app.save()
+        po = PayOrgnazition(name='机构')
+        po.save()
+        app_service1 = PayAppService(
+            name='service1', app=app, orgnazition=po, service_id=self.service.id
+        )
+        app_service1.save(force_insert=True)
+
+        now_time = timezone.now()
+        user_disk_expiration_time = now_time + timedelta(days=100)
+        user_disk = create_disk_metadata(
+            service_id=self.service.id, azone_id='', disk_size=6, pay_type=PayType.POSTPAID.value,
+            classification=Disk.Classification.PERSONAL.value, user_id=self.user.id, vo_id=None,
+            creation_time=now_time, expiration_time=None, start_time=now_time,
+            lock=Disk.Lock.OPERATION.value, instance_id='user_disk_id'
+        )
+
+        # renew user disk
+        renew_to_time = (now_time + timedelta(200)).isoformat()
+        renew_to_time = renew_to_time.split('.')[0] + 'Z'
+        url = reverse('api:disks-renew-disk', kwargs={'id': user_disk.id})
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 401)
+        self.client.force_login(self.user)
+
+        response = self.client.post(url)
+        self.assertErrorResponse(status_code=400, code='MissingPeriod', response=response)
+
+        query = parse.urlencode(query={'period': 10, 'renew_to_time': renew_to_time})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
+
+        query = parse.urlencode(query={'period': 0})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidPeriod', response=response)
+
+        query = parse.urlencode(query={'renew_to_time': '2022-02-30T08:08:08Z'})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidRenewToTime', response=response)
+
+        query = parse.urlencode(query={'period': 10})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=409, code='RenewPrepostOnly', response=response)
+
+        user_disk.pay_type = PayType.PREPAID.value
+        user_disk.save(update_fields=['pay_type'])
+
+        query = parse.urlencode(query={'period': 10})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=409, code='UnknownExpirationTime', response=response)
+
+        user_disk.expiration_time = user_disk_expiration_time
+        user_disk.save(update_fields=['expiration_time'])
+
+        query = parse.urlencode(query={'renew_to_time': '2022-02-20T08:08:08Z'})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=409, code='InvalidRenewToTime', response=response)
+
+        query = parse.urlencode(query={'period': 10})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=409, code='ResourceLocked', response=response)
+
+        user_disk.lock = Disk.Lock.FREE.value
+        user_disk.save(update_fields=['lock'])
+
+        query = parse.urlencode(query={'period': 10})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=409, code='RenewDeliveredOkOnly', response=response)
+
+        user_disk.task_status = Disk.TaskStatus.OK.value
+        user_disk.save(update_fields=['task_status'])
+
+        # service not set pay_app_service_id
+        period = 10
+        query = parse.urlencode(query={'period': period})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=409, code='ServiceNoPayAppServiceId', response=response)
+
+        self.service.pay_app_service_id = app_service1.id
+        self.service.save(update_fields=['pay_app_service_id'])
+
+        # renew user server ok
+        period = 10
+        query = parse.urlencode(query={'period': period})
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        order_id = response.data['order_id']
+        order = Order.objects.get(id=order_id)
+        resource = Resource.objects.get(order_id=order_id)
+        self.assertEqual(resource.instance_id, user_disk.id)
+        config = DiskConfig.from_dict(order.instance_config)
+        self.assertEqual(config.disk_size, user_disk.size)
+        self.assertEqual(order.period, period)
+        self.assertIsNone(order.start_time)
+        self.assertIsNone(order.end_time)
+
+        # renew user server again
+        period = 10
+        query = parse.urlencode(query={'period': period})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=409, code='SomeOrderNeetToTrade', response=response)
+
+        # pay renewal order
+        user_account = PaymentManager.get_user_point_account(user_id=self.user.id)
+        user_account.balance = Decimal(10000)
+        user_account.save(update_fields=['balance'])
+        url = reverse('api:order-pay-order', kwargs={'id': order_id})
+        query = parse.urlencode(query={'payment_method': Order.PaymentMethod.BALANCE.value})
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['order_id'], order.id)
+
+        order.refresh_from_db()
+        self.assertEqual(order.trading_status, order.TradingStatus.COMPLETED.value)
+        self.assertEqual(order.start_time, user_disk_expiration_time)
+        self.assertEqual(order.end_time, user_disk_expiration_time + timedelta(days=period * 30))
+
+        user_disk.refresh_from_db()
+        self.assertEqual(user_disk.expiration_time, user_disk_expiration_time + timedelta(days=period * 30))
+
+        # renew user server "renew_to_time" 续费到指定日期
+        expiration_time = user_disk.expiration_time
+        renew_to_time = expiration_time.replace(microsecond=0) + timedelta(days=2)
+        renew_to_time_utc = renew_to_time.astimezone(tz=timezone.utc)
+        self.assertEqual(renew_to_time, renew_to_time_utc)
+        renew_to_time_utc_str = renew_to_time_utc.isoformat()
+        renew_to_time_utc_str = renew_to_time_utc_str[0:19] + 'Z'
+
+        url = reverse('api:disks-renew-disk', kwargs={'id': user_disk.id})
+        query = parse.urlencode(query={'renew_to_time': renew_to_time_utc_str})
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        order_id = response.data['order_id']
+        order = Order.objects.get(id=order_id)
+        self.assertEqual(order.period, 0)
+        self.assertEqual(order.start_time, expiration_time)
+        self.assertEqual(order.end_time, renew_to_time_utc)
+
+        # pay renewal order
+        url = reverse('api:order-pay-order', kwargs={'id': order_id})
+        query = parse.urlencode(query={'payment_method': Order.PaymentMethod.BALANCE.value})
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['order_id'], order.id)
+
+        order.refresh_from_db()
+        self.assertEqual(order.trading_status, order.TradingStatus.COMPLETED.value)
+        self.assertEqual(order.start_time, expiration_time)
+        self.assertEqual(order.end_time, renew_to_time_utc)
+
+        user_disk.refresh_from_db()
+        self.assertEqual(user_disk.expiration_time, renew_to_time_utc)
+
+        # ---------- renew vo disk -----------
+        now_time = timezone.now()
+        vo_disk_expiration_time = now_time + timedelta(days=100)
+        vo_disk = create_disk_metadata(
+            service_id=self.service.id, azone_id='', disk_size=8, pay_type=PayType.PREPAID.value,
+            classification=Disk.Classification.VO.value, user_id=self.user.id, vo_id=self.vo.id,
+            creation_time=now_time, expiration_time=vo_disk_expiration_time, start_time=now_time,
+            lock=Disk.Lock.FREE.value, instance_id='vo_disk_id', task_status=Disk.TaskStatus.OK.value
+        )
+
+        renew_to_time = (vo_disk_expiration_time + timedelta(days=200)).astimezone(timezone.utc).isoformat()
+        renew_to_time = renew_to_time.split('.')[0] + 'Z'
+        renew_to_datetime = iso_utc_to_datetime(renew_to_time)
+
+        # renew vo disk, no vo permission
+        url = reverse('api:disks-renew-disk', kwargs={'id': vo_disk.id})
+        query = parse.urlencode(query={'renew_to_time': renew_to_time})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # set vo member
+        VoMember(user_id=self.user.id, vo_id=self.vo.id, role=VoMember.Role.LEADER.value).save()
+
+        # renew vo server
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        order_id = response.data['order_id']
+        order = Order.objects.get(id=order_id)
+        resource = Resource.objects.get(order_id=order_id)
+        self.assertEqual(resource.instance_id, vo_disk.id)
+        config = DiskConfig.from_dict(order.instance_config)
+        self.assertEqual(config.disk_size, vo_disk.size)
+        self.assertEqual(order.period, 0)
+        self.assertEqual(order.start_time, vo_disk_expiration_time)
+        self.assertEqual(order.end_time, renew_to_datetime)
+
+        # pay renewal order
+        vo_account = PaymentManager.get_vo_point_account(vo_id=self.vo.id)
+        vo_account.balance = Decimal(10000)
+        vo_account.save(update_fields=['balance'])
+        url = reverse('api:order-pay-order', kwargs={'id': order_id})
+        query = parse.urlencode(query={'payment_method': Order.PaymentMethod.BALANCE.value})
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['order_id'], order.id)
+
+        order.refresh_from_db()
+        self.assertEqual(order.trading_status, order.TradingStatus.COMPLETED.value)
+        self.assertEqual(order.start_time, vo_disk_expiration_time)
+        self.assertEqual(order.end_time, renew_to_datetime)
+
+        vo_disk.refresh_from_db()
+        self.assertEqual(vo_disk.expiration_time, renew_to_datetime)

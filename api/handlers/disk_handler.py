@@ -1,14 +1,15 @@
 from decimal import Decimal
+from datetime import datetime
 
 from django.utils.translation import gettext as _
 from django.conf import settings
 from django.db.models import TextChoices
+from django.db import transaction
 from rest_framework.response import Response
 
 from core import errors as exceptions
 from core import request as core_request
 from core.quota import QuotaAPI
-from servers.managers import DiskManager
 from api.viewsets import CustomGenericViewSet
 from api.deliver_resource import OrderResourceDeliverer
 from api import request_logger
@@ -17,10 +18,12 @@ from vo.managers import VoManager
 from vo.models import VirtualOrganization
 from adapters import inputs
 from utils.model import PayType, OwnerType
+from utils.time import iso_utc_to_datetime
 from order.models import ResourceType, Order
 from order.managers import OrderManager, OrderPaymentManager, DiskConfig
 from bill.managers import PaymentManager
-from servers.managers import ServerManager
+from service.managers import ServiceManager
+from servers.managers import ServerManager, DiskManager
 from servers.models import Server, Disk
 from .handlers import serializer_error_msg
 
@@ -503,3 +506,134 @@ class DiskHandler:
 
         slr = disk_serializers.DiskSerializer(instance=disk, many=False)
         return Response(data=slr.data)
+
+    @staticmethod
+    def renew_disk(view, request, kwargs):
+        """
+        续费云硬盘
+        """
+        try:
+            data = DiskHandler._renew_disk_validate_params(request=request)
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        period = data['period']
+        renew_to_time = data['renew_to_time']
+
+        disk_id = kwargs.get(view.lookup_field, '')
+
+        try:
+            disk = DiskManager().get_manage_perm_disk(disk_id=disk_id, user=request.user)
+        except exceptions.APIException as exc:
+            return view.exception_response(exc)
+
+        if disk.pay_type != PayType.PREPAID.value:
+            return view.exception_response(exceptions.RenewPrepostOnly(message=_('只允许包年包月按量计费的云硬盘续费。')))
+
+        if disk.expiration_time is None:
+            return view.exception_response(exceptions.UnknownExpirationTime(message=_('没有过期时间的云硬盘无法续费。')))
+
+        if renew_to_time:
+            if disk.expiration_time >= renew_to_time:
+                return view.exception_response(exceptions.ConflictError(
+                    message=_('指定的续费终止日期必须在云硬盘的过期时间之后。'), code='InvalidRenewToTime'))
+
+        if disk.is_locked_operation():
+            return view.exception_response(exceptions.ResourceLocked(
+                message=_('云主机已加锁锁定了一切操作')
+            ))
+
+        if disk.task_status != disk.TaskStatus.OK.value:
+            return view.exception_response(exceptions.RenewDeliveredOkOnly(message=_('只允许为创建成功的云硬盘续费。')))
+
+        try:
+            service = ServiceManager.get_service(disk.service_id)
+            if not service.pay_app_service_id:
+                raise exceptions.ConflictError(
+                    message=_('云主机服务未配置对应的结算系统APP服务id'), code='ServiceNoPayAppServiceId')
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        if service.status != service.Status.ENABLE.value:
+            return view.exception_response(
+                exceptions.ConflictError(message=_('提供此云硬盘资源的服务单元停止服务，不允许续费'))
+            )
+
+        _order = Order.objects.filter(
+            resource_type=ResourceType.DISK.value, resource_set__instance_id=disk.id,
+            trading_status__in=[Order.TradingStatus.OPENING.value, Order.TradingStatus.UNDELIVERED.value]
+        ).order_by('-creation_time').first()
+        if _order is not None:
+            return view.exception_response(exceptions.SomeOrderNeetToTrade(
+                message=_('此云硬盘存在未完成的订单（%s）, 请先完成已有订单后再提交新的订单。') % _order.id))
+
+        with transaction.atomic():
+            disk: Disk = DiskManager.get_disk_queryset().select_related(
+                'service', 'user', 'vo').select_for_update().get(id=disk_id)
+
+            start_time = None
+            end_time = None
+            if renew_to_time:
+                start_time = disk.expiration_time
+                end_time = renew_to_time
+                period = 0
+
+            if disk.belong_to_vo():
+                owner_type = OwnerType.VO.value
+                vo_id = disk.vo_id
+                vo_name = disk.vo.name
+            else:
+                owner_type = OwnerType.USER.value
+                vo_id = ''
+                vo_name = ''
+
+            instance_config = DiskConfig(
+                disk_size=disk.size, azone_id=disk.azone_id, azone_name=disk.azone_name
+            )
+            order, resource = OrderManager().create_renew_order(
+                pay_app_service_id=service.pay_app_service_id,
+                service_id=disk.service_id,
+                service_name=disk.service.name,
+                resource_type=ResourceType.DISK.value,
+                instance_id=disk.id,
+                instance_config=instance_config,
+                period=period,
+                start_time=start_time,
+                end_time=end_time,
+                user_id=request.user.id,
+                username=request.user.username,
+                vo_id=vo_id,
+                vo_name=vo_name,
+                owner_type=owner_type
+            )
+
+        return Response(data={'order_id': order.id})
+
+    @staticmethod
+    def _renew_disk_validate_params(request):
+        period = request.query_params.get('period', None)
+        renew_to_time = request.query_params.get('renew_to_time', None)
+        if period is not None and renew_to_time is not None:
+            raise exceptions.BadRequest(message=_('不能同时指定续费时长和续费到指定日期'))
+
+        if period is None and renew_to_time is None:
+            raise exceptions.BadRequest(message=_('必须指定续费时长或续费到指定日期'), code='MissingPeriod')
+
+        if period is not None:
+            try:
+                period = int(period)
+                if period <= 0:
+                    raise ValueError
+            except ValueError:
+                raise exceptions.InvalidArgument(message=_('续费时长无效'), code='InvalidPeriod')
+
+        if renew_to_time is not None:
+            renew_to_time = iso_utc_to_datetime(renew_to_time)
+            if not isinstance(renew_to_time, datetime):
+                raise exceptions.InvalidArgument(
+                    message=_('续费到指定日期的时间格式无效'), code='InvalidRenewToTime')
+
+        return {
+            'period': period,
+            'renew_to_time': renew_to_time
+        }

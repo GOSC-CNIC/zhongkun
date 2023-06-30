@@ -417,11 +417,21 @@ class DiskManager:
         return Disk.objects.filter(deleted=False)
 
     @staticmethod
-    def get_disk(disk_id: str):
+    def get_disk(disk_id: str, related_fields: list = None, select_for_update: bool = False) -> Disk:
         """
         :raise: DiskNotExist
         """
-        disk = Disk.objects.select_related('service').filter(id=disk_id).first()
+        fields = ['service', 'user']
+        if related_fields:
+            for f in related_fields:
+                if f not in fields:
+                    fields.append(f)
+
+        qs = Disk.objects.filter(id=disk_id).select_related(*fields)
+        if select_for_update:
+            qs = qs.select_for_update()
+
+        disk = qs.first()
         if disk is None:
             raise errors.DiskNotExist(message=_('云硬盘不存在'))
 

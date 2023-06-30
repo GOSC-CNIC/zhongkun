@@ -337,6 +337,62 @@ class DisksViewSet(CustomGenericViewSet):
         """
         return DiskHandler().detach_disk(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('续费云硬盘'),
+        request_body=no_body,
+        manual_parameters=[
+            openapi.Parameter(
+                name='period',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                required=False,
+                description=_('续费时长（月），不得与参数“renew_to_time”同时提交')
+            ),
+            openapi.Parameter(
+                name='renew_to_time',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=_('续费到指定日期，ISO8601格式：YYYY-MM-ddTHH:mm:ssZ，不得与参数“period”同时提交')
+            )
+        ],
+        responses={
+            200: ''''''
+        }
+    )
+    @action(methods=['POST'], detail=True, url_path='renew', url_name='renew-disk')
+    def renew_disk(self, request, *args, **kwargs):
+        """
+        续费包年包月预付费模式云硬盘，请求成功会创建一个待支付的订单，支付订单成功后，会自动延长云硬盘的过期时间
+
+            Http Code 200:
+                {
+                    "order_id": "xxx",      # 订单id
+                }
+
+            Http Code 400, 409, 500:
+                {
+                    "code": "BadRequest",
+                    "message": "xxxx"
+                }
+
+                可能的错误码：
+                400:
+                BadRequest: 请求出现语法错误
+                MissingPeriod: 参数“period”不得为空
+                InvalidPeriod: 参数“period”的值无效
+                InvalidRenewToTime: 参数“renew_to_time”的值无效的时间格式
+
+                409:
+                UnknownExpirationTime: 没有过期时间的云硬盘无法续费
+                InvalidRenewToTime: 指定的续费终止日期必须在云硬盘的过期时间之后
+                ResourceLocked: 云主机已加锁锁定了一切操作
+                RenewPrepostOnly: 只允许包年包月按量计费的云硬盘续费
+                RenewDeliveredOkOnly: 只允许为创建成功的云硬盘续费
+                SomeOrderNeetToTrade: 此云硬盘存在未完成的订单, 请先完成已有订单后再提交新的订单
+        """
+        return DiskHandler().renew_disk(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return disk_serializers.DiskSerializer
