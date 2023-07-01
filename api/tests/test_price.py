@@ -186,7 +186,7 @@ class PriceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['price'], response.data)
         self.assertKeysIn(['original', 'trade'], response.data['price'])
-        original_p = price.disk_size * 100 * 24
+        original_p = price.disk_size * 100
         trade_p = original_p * prepaid_discount
         self.assertEqual(str(quantize_10_2(original_p)), response.data['price']['original'])
         self.assertEqual(str(quantize_10_2(trade_p)), response.data['price']['trade'])
@@ -198,7 +198,7 @@ class PriceTests(MyAPITestCase):
         })
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
-        original_p = price.disk_size * 100 * 24
+        original_p = price.disk_size * 100
         trade_p = original_p
         self.assertEqual(str(quantize_10_2(original_p)), response.data['price']['original'])
         self.assertEqual(str(quantize_10_2(trade_p)), response.data['price']['trade'])
@@ -214,7 +214,7 @@ class PriceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         days = PriceManager.period_month_days(months=period)
         original_p3 = price.disk_size * data_disk_size
-        original_p3 = original_p3 * 24 * days
+        original_p3 = original_p3 * days
         trade_p3 = original_p3 * prepaid_discount
         self.assertEqual(str(quantize_10_2(original_p3)), response.data['price']['original'])
         self.assertEqual(str(quantize_10_2(trade_p3)), response.data['price']['trade'])
@@ -230,7 +230,7 @@ class PriceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         days = PriceManager.period_month_days(months=period)
         original_p4 = price.disk_size * data_disk_size
-        trade_p4 = original_p4 = original_p4 * 24 * days
+        trade_p4 = original_p4 = original_p4 * days
         self.assertEqual(str(quantize_10_2(original_p4)), response.data['price']['original'])
         self.assertEqual(str(quantize_10_2(trade_p4)), response.data['price']['trade'])
 
