@@ -429,3 +429,63 @@ class DailyStatementObjectStorage(DailyStatementBase):
         计量资源的类型
         """
         return ResourceType.BUCKET.value
+
+
+class DailyStatementDisk(DailyStatementBase):
+    service = models.ForeignKey(to=ServiceConfig, verbose_name=_('服务单元'), related_name='+', null=True,
+                                on_delete=models.SET_NULL, db_constraint=False, db_index=False)
+    date = models.DateField(verbose_name=_('计费日期'), help_text=_('资源使用计量计费的日期'))
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
+    user_id = models.CharField(verbose_name=_('用户ID'), max_length=36, blank=True, default='')
+    username = models.CharField(verbose_name=_('用户名'), max_length=128, blank=True, default='')
+    vo_id = models.CharField(verbose_name=_('VO组ID'), max_length=36, blank=True, default='')
+    vo_name = models.CharField(verbose_name=_('VO组名'), max_length=255, blank=True, default='')
+    owner_type = models.CharField(verbose_name=_('所有者类型'), max_length=8, choices=OwnerType.choices)
+
+    class Meta:
+        verbose_name = _('云硬盘日结算单')
+        verbose_name_plural = verbose_name
+        db_table = 'daily_statement_disk'
+        ordering = ['-creation_time']
+
+    def generate_id(self):
+        return f'd{short_uuid1_l25()}'       # 保证（订单号，云主机、云硬盘、对象存储计量id）唯一
+
+    def get_pay_app_service_id(self) -> str:
+        """
+        所属服务对应的余额结算中的app服务id
+        """
+        if self.service:
+            return self.service.pay_app_service_id
+
+        return ''
+
+    def is_owner_type_user(self):
+        """
+        所有者是否是用户，反之是vo组
+        :return:
+            True    # user
+            False   # vo
+            None    # invalid
+        """
+        if self.owner_type == OwnerType.USER.value:
+            return True
+        elif self.owner_type == OwnerType.VO.value:
+            return False
+
+        return None
+
+    def get_owner_id(self) -> str:
+        """
+        返回所有者的id, user id or vo id
+        """
+        if self.is_owner_type_user():
+            return self.user_id
+
+        return self.vo_id
+
+    def get_resource_type(self):
+        """
+        计量资源的类型
+        """
+        return ResourceType.DISK.value

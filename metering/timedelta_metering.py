@@ -34,7 +34,7 @@ def server_metering_pay():
     if end_date > now_date:
         end_date = now_date
 
-    print(f'Metring {start_date} - {end_date}')
+    print(f'Metring Server {start_date} - {end_date}')
     metering_date = start_date
     days = 0
     while True:
@@ -55,6 +55,41 @@ def server_metering_pay():
         metering_date += timedelta(days=1)
 
 
+def disk_metering_pay():
+    from metering.measurers import DiskMeasurer
+    from metering.pay_metering import PayMeteringDisk
+    from metering.generate_daily_statement import DiskDailyStatementGenerater
+
+    now_date = datetime.utcnow().astimezone(utc).date() - timedelta(days=1)
+    # start_date = date(year=2023, month=6, day=21)
+    # end_date = date(year=2023, month=6, day=21)
+    start_date = now_date
+    end_date = now_date
+
+    if end_date > now_date:
+        end_date = now_date
+
+    print(f'Metring Disk {start_date} - {end_date}')
+    metering_date = start_date
+    days = 0
+    while True:
+        if metering_date > end_date:
+            print(f'Exit Ok，metering and pay {days} days')
+            break
+
+        print(f'[{metering_date}]')
+        try:
+            DiskMeasurer(metering_date=metering_date).run(raise_exeption=True)
+            DiskDailyStatementGenerater(statement_date=metering_date).run(raise_exception=True)
+            PayMeteringDisk(app_id=app_id, pay_date=metering_date).run()
+            print(f'OK, {metering_date}')
+        except Exception as e:
+            print(f'FAILED, {metering_date}, {str(e)}')
+
+        days += 1
+        metering_date += timedelta(days=1)
+
+
 def storage_metering_pay():
     from metering.measurers import StorageMeasure
     from metering.pay_metering import PayMeteringObjectStorage
@@ -63,7 +98,7 @@ def storage_metering_pay():
     metering_date = datetime.utcnow().astimezone(utc).date() - timedelta(days=1)
 
     # 对象存储只计量前天的
-    print(f'[{metering_date}]')
+    print(f'Metering Storage [{metering_date}]')
     try:
         StorageMeasure(metering_data=metering_date).run()
         GenerateDailyStatementObjectStorage(statement_date=metering_date).run()
@@ -75,4 +110,5 @@ def storage_metering_pay():
 
 if __name__ == "__main__":
     server_metering_pay()
+    disk_metering_pay()
     storage_metering_pay()
