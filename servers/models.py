@@ -1,22 +1,19 @@
-from uuid import uuid1
 import math
 
 from django.db import models, transaction
 from django.db.models import Count, Sum, Q
 from django.utils.translation import gettext_lazy as _
-from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from service.models import ServiceConfig
 from utils.model import get_encryptor, PayType
 from utils import rand_utils
 from vo.models import VirtualOrganization
+from users.models import UserProfile as User
 
-User = get_user_model()
 
-
-def get_uuid1_str():
-    return str(uuid1())
+def short_uuid1_l25():
+    return rand_utils.short_uuid1_25()
 
 
 class ServerBase(models.Model):
@@ -90,7 +87,7 @@ class ServerBase(models.Model):
     def save(self, force_insert=False, force_update=False, using=None,
              update_fields=None):
         if not self.id:
-            self.id = get_uuid1_str()
+            self.id = short_uuid1_l25() + '-i'
 
         super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
 
@@ -425,7 +422,7 @@ class Flavor(models.Model):
     def save(self, force_insert=False, force_update=False, using=None,
              update_fields=None):
         if not self.id:
-            self.id = get_uuid1_str()
+            self.id = short_uuid1_l25()
 
         super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
 
@@ -511,7 +508,7 @@ class Disk(models.Model):
     def save(self, force_insert=False, force_update=False, using=None,
              update_fields=None):
         if not self.id:
-            self.id = rand_utils.short_uuid1_25() + '-d'
+            self.id = short_uuid1_l25() + '-d'
 
         super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
 

@@ -7,7 +7,6 @@ from django.db import transaction
 
 from utils.model import OwnerType, PayType
 from utils import rand_utils
-from servers.models import get_uuid1_str
 from vo.managers import VoManager
 from core import errors
 from order.models import Order, Resource, ResourceType

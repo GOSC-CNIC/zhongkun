@@ -1,5 +1,3 @@
-from uuid import uuid1
-
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
@@ -8,6 +6,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 
 from utils.model import UuidModel
+from utils.rand_utils import short_uuid1_25
 
 
 def default_role():
@@ -56,7 +55,7 @@ class UserProfile(AbstractUser):
     def save(self, force_insert=False, force_update=False, using=None,
              update_fields=None):
         if not self.id:
-            self.id = str(uuid1())
+            self.id = short_uuid1_25()
 
         super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
 

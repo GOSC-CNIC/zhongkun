@@ -1,10 +1,8 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from django.contrib.auth import get_user_model
 
+from users.models import UserProfile as User
 from utils.model import UuidModel
-
-User = get_user_model()
 
 
 class VirtualOrganization(UuidModel):
