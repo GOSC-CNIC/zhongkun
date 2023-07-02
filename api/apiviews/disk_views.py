@@ -393,6 +393,45 @@ class DisksViewSet(CustomGenericViewSet):
         """
         return DiskHandler().renew_disk(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('修改云硬盘备注信息'),
+        request_body=no_body,
+        manual_parameters=[
+            openapi.Parameter(
+                name='remark',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description='新的备注信息'
+            )
+        ],
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['post'], detail=True, url_path='remark', url_name='disk-remark')
+    def disk_remark(self, request, *args, **kwargs):
+        """
+        修改云硬盘备注信息
+
+            * vo组云主机需要vo组管理员权限
+
+            http code 200:
+            {
+                "remarks": "xxx"
+            }
+
+            http code 400, 403, 404:
+            {
+                "code": "AccessDenied",
+                "message": "xxx"
+            }
+            400: InvalidArgument: 参数有效
+            403: AccessDenied: 没有访问权限
+            404: DiskNotExist: 云硬盘不存在
+        """
+        return DiskHandler.change_disk_remarks(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return disk_serializers.DiskSerializer

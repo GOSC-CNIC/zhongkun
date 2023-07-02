@@ -1005,3 +1005,58 @@ class DiskOrderTests(MyAPITransactionTestCase):
 
         vo_disk.refresh_from_db()
         self.assertEqual(vo_disk.expiration_time, renew_to_datetime)
+
+    def test_disk_remark(self):
+        disk1 = create_disk_metadata(
+            service_id=self.service.id, azone_id='1', disk_size=66, pay_type=PayType.PREPAID.value,
+            classification=Disk.Classification.PERSONAL.value, user_id=self.user2.id, vo_id=None,
+            creation_time=timezone.now(), expiration_time=None, remarks='test', server_id=None
+        )
+        disk2_vo = create_disk_metadata(
+            service_id=self.service.id, azone_id='1', disk_size=886, pay_type=PayType.POSTPAID.value,
+            classification=Disk.Classification.VO.value, user_id=self.user2.id, vo_id=self.vo.id,
+            creation_time=timezone.now(), expiration_time=None, remarks='test', server_id=None
+        )
+
+        url = reverse('api:disks-disk-remark', kwargs={'id': disk1.id})
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 401)
+        self.client.force_login(self.user)
+
+        url = reverse('api:disks-disk-remark', kwargs={'id': disk1.id})
+        response = self.client.post(url)
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        url = reverse('api:disks-disk-remark', kwargs={'id': '00'})
+        query = parse.urlencode(query={'remark': 'ss'})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=404, code='DiskNotExist', response=response)
+
+        remark = 'test-remarks'
+        url = reverse('api:disks-disk-remark', kwargs={'id': disk1.id})
+        query = parse.urlencode(query={'remark': remark})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.client.logout()
+        self.client.force_login(self.user2)
+
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        disk1.refresh_from_db()
+        self.assertEqual(remark, disk1.remarks)
+
+        # vo disk when vo owner
+        remark = 'test-vo-remarks'
+        url = reverse('api:disks-disk-remark', kwargs={'id': disk2_vo.id})
+        query = parse.urlencode(query={'remark': remark})
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        disk2_vo.refresh_from_db()
+        self.assertEqual(remark, disk2_vo.remarks)
+
+        # user no permission vo
+        self.client.logout()
+        self.client.force_login(self.user)
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)

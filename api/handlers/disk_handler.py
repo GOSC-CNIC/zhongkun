@@ -637,3 +637,27 @@ class DiskHandler:
             'period': period,
             'renew_to_time': renew_to_time
         }
+
+    @staticmethod
+    def change_disk_remarks(view: CustomGenericViewSet, request, kwargs):
+        """
+        vo组云主机需要vo组管理员权限
+        """
+        disk_id = kwargs.get(view.lookup_field, '')
+        remark = request.query_params.get('remark', None)
+        if remark is None:
+            return view.exception_response(
+                exceptions.InvalidArgument(message='query param "remark" is required'))
+
+        try:
+            disk = DiskManager().get_manage_perm_disk(disk_id=disk_id, user=request.user)
+        except exceptions.APIException as exc:
+            return view.exception_response(exc)
+
+        try:
+            disk.remarks = remark
+            disk.save(update_fields=['remarks'])
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        return Response(data={'remark': remark})
