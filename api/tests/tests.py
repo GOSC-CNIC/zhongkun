@@ -2733,7 +2733,7 @@ class VoTests(MyAPITestCase):
         r = self.client.get(url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
 
-        member = VoMember(user_id=self.user.id, vo_id=vo1.id)
+        member = VoMember(user_id=self.user.id, vo_id=vo1.id, role=VoMember.Role.LEADER.value)
         member.save(force_insert=True)
 
         url = reverse('api:vo-vo-statistic', kwargs={'id': vo1.id})
@@ -2785,14 +2785,29 @@ class VoTests(MyAPITestCase):
             vo_id=vo1.id, vo_name=vo1.name,
             owner_type=OwnerType.VO.value
         )
+        from .test_disk import create_disk_metadata
+        create_disk_metadata(
+            service_id=None, azone_id='2', disk_size=88, pay_type=PayType.PREPAID.value,
+            classification=Disk.Classification.PERSONAL.value, user_id=self.user.id, vo_id=None,
+            creation_time=timezone.now(), expiration_time=None, remarks='test', server_id=None
+        )
+        create_disk_metadata(
+            service_id=None, azone_id='1', disk_size=886, pay_type=PayType.POSTPAID.value,
+            classification=Disk.Classification.VO.value, user_id=self.user2.id, vo_id=vo1.id,
+            creation_time=timezone.now(), expiration_time=None, remarks='test', server_id=None
+        )
 
         url = reverse('api:vo-vo-statistic', kwargs={'id': vo1.id})
         r = self.client.get(url)
         self.assertKeysIn(keys=[
-            'vo', 'member_count', 'server_count', 'order_count', 'coupon_count', 'balance'], container=r.data)
+            'vo', 'member_count', 'server_count', 'order_count', 'coupon_count', 'balance',
+            'my_role', 'disk_count'
+        ], container=r.data)
         self.assertEqual(r.data['vo']['id'], vo1.id)
         self.assertEqual(r.data['member_count'], 2)
         self.assertEqual(r.data['server_count'], 0)
         self.assertEqual(r.data['order_count'], 1)
         self.assertEqual(r.data['coupon_count'], 0)
         self.assertEqual(r.data['balance'], '-1.23')
+        self.assertEqual(r.data['my_role'], VoMember.Role.LEADER.value)
+        self.assertEqual(r.data['disk_count'], 1)

@@ -26,7 +26,7 @@ from .tests import create_server_metadata
 
 
 def create_disk_metadata(
-        service_id: str, azone_id: str, disk_size: int,
+        service_id, azone_id: str, disk_size: int,
         pay_type: str, classification: str, user_id, vo_id,
         creation_time, expiration_time=None, remarks: str = '',
         server_id=None, disk_id: str = None, instance_id: str = None,

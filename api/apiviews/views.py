@@ -2651,8 +2651,10 @@ class VOViewSet(CustomGenericViewSet):
                 "id": "3d7cd5fc-d236-11eb-9da9-c8009fe2eb10",
                 "name": "项目组1"
               },
+              "my_role": "owner",   # owner： 组长, leader： 组管理员, member：普通组员
               "member_count": 5,
               "server_count": 0,
+              "disk_count" 6,
               "order_count": 0,
               "coupon_count": 1,
               "balance": "0.00"
