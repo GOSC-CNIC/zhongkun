@@ -6,13 +6,14 @@ import pytz
 from django.urls import reverse
 from django.utils import timezone
 
-from servers.models import Flavor
+from servers.models import Flavor, Disk
 from order.models import Price
 from order.managers import PriceManager
 from utils.decimal_utils import quantize_10_2
 from utils.model import PayType
 from . import set_auth_header, MyAPITestCase
 from .tests import create_server_metadata
+from .test_disk import create_disk_metadata
 
 
 class PriceTests(MyAPITestCase):
@@ -338,6 +339,7 @@ class PriceTests(MyAPITestCase):
         response = self.client.get(f'{base_url}?{query}')
         self.assertErrorResponse(status_code=404, code='NotFoundInstanceId', response=response)
 
+        # ------ server ---------
         now_time = timezone.now()
         expiration_time = now_time + timedelta(days=10)
         renew_to_time = expiration_time + timedelta(days=30)
@@ -414,5 +416,42 @@ class PriceTests(MyAPITestCase):
         original_p = price.vm_cpu * 2 + price.vm_ram * 2 + price.vm_pub_ip + price.vm_disk * 100
         original_p *= 24 * 40
         trade_p = original_p
+        self.assertEqual(response.data['price']['original'], str(quantize_10_2(original_p)))
+        self.assertEqual(response.data['price']['trade'], str(quantize_10_2(trade_p)))
+
+        # ---- disk ---
+        now_time = timezone.now()
+        expiration_time = now_time + timedelta(days=10)
+        renew_to_time = expiration_time + timedelta(days=30)
+        disk1 = create_disk_metadata(
+            service_id=None, azone_id='1', disk_size=66, pay_type=PayType.PREPAID.value,
+            classification=Disk.Classification.PERSONAL.value, user_id=self.user.id, vo_id=None,
+            creation_time=now_time, expiration_time=expiration_time, remarks='test', server_id=None
+        )
+
+        # ok period
+        query = parse.urlencode(query={
+            'resource_type': 'disk', 'instance_id': disk1.id, 'period': 2
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(keys=['original', 'trade'], container=response.data['price'])
+
+        original_p = price.disk_size * 66 * 60
+        trade_p = original_p * prepaid_discount
+        self.assertEqual(response.data['price']['original'], str(quantize_10_2(original_p)))
+        self.assertEqual(response.data['price']['trade'], str(quantize_10_2(trade_p)))
+
+        # ok renew_to_time
+        renew_to_time_str = renew_to_time.isoformat()[0:19] + "Z"
+        query = parse.urlencode(query={
+            'resource_type': 'disk', 'instance_id': disk1.id, 'renew_to_time': renew_to_time_str
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(keys=['original', 'trade'], container=response.data['price'])
+
+        original_p = price.disk_size * 66 * 30
+        trade_p = original_p * prepaid_discount
         self.assertEqual(response.data['price']['original'], str(quantize_10_2(original_p)))
         self.assertEqual(response.data['price']['trade'], str(quantize_10_2(trade_p)))

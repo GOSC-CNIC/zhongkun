@@ -12,7 +12,7 @@ from order.models import ResourceType
 from order.managers import PriceManager
 from utils.decimal_utils import quantize_10_2
 from utils.time import iso_utc_to_datetime
-from servers.managers import ServerManager
+from servers.managers import ServerManager, DiskManager
 
 
 class DescribePriceHandler:
@@ -172,7 +172,7 @@ class DescribePriceHandler:
         if resource_type is None:
             raise errors.InvalidArgument(message=_('参数“resource_type”未设置'), code='MissingResourceType')
 
-        if resource_type not in [ResourceType.VM.value]:
+        if resource_type not in [ResourceType.VM.value, ResourceType.DISK.value]:
             raise errors.InvalidArgument(message=_('无效的资源类型'), code='InvalidResourceType')
 
         if instance_id is None:
@@ -218,7 +218,7 @@ class DescribePriceHandler:
         renew_to_time = params['renew_to_time']
 
         pmgr = PriceManager()
-        if resource_type == ResourceType.VM:
+        if resource_type == ResourceType.VM.value:
             try:
                 server = ServerManager().get_server(server_id=instance_id)
             except errors.NotFound:
@@ -237,6 +237,24 @@ class DescribePriceHandler:
             original_price, trade_price = pmgr.describe_server_price(
                 ram_mib=server.ram_mib, cpu=server.vcpus, disk_gib=server.disk_size, public_ip=server.public_ip,
                 is_prepaid=(server.pay_type == 'prepaid'), period=period, days=days)
+        elif resource_type == ResourceType.DISK.value:
+            try:
+                disk = DiskManager().get_disk(disk_id=instance_id)
+            except errors.NotFound:
+                return view.exception_response(exc=errors.NotFound(message=_('资源实例不存在'), code='NotFoundInstanceId'))
+            days = 0
+            if renew_to_time:
+                expiration_time = disk.expiration_time if disk.expiration_time else timezone.now()
+                if renew_to_time <= expiration_time:
+                    return view.exception_response(errors.ConflictError(
+                        message=_('参数“renew_to_time”指定的日期不能在资源实例的过期时间之前'), code='InvalidRenewToTime'))
+
+                delta = renew_to_time - expiration_time
+                days = delta.days + delta.seconds / (3600 * 24)
+
+            original_price, trade_price = pmgr.describe_disk_price(
+                size_gib=disk.size,
+                is_prepaid=(disk.pay_type == 'prepaid'), period=period, days=days)
         else:
             return view.exception_response(
                 exc=errors.InvalidArgument(message=_('无效的资源类型'), code='InvalidResourceType'))
