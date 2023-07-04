@@ -604,12 +604,12 @@ class ServerHandler:
 
         :raises: Error, BalanceNotEnough
         """
-
+        lower_limit_amount = Decimal('100.00')
         if owner_type == OwnerType.USER.value:
             qs = ServerManager().get_user_servers_queryset(
                 user=user, service_id=service.id, pay_type=PayType.POSTPAID.value)
             s_count = qs.count()
-            money_amount = day_price * (s_count + 1)
+            money_amount = day_price * s_count + lower_limit_amount
 
             if not PaymentManager().has_enough_balance_user(
                     user_id=user.id, money_amount=money_amount, with_coupons=True,
@@ -622,7 +622,7 @@ class ServerHandler:
             qs = ServerManager().get_vo_servers_queryset(
                 vo_id=vo_id, service_id=service.id, pay_type=PayType.POSTPAID.value)
             s_count = qs.count()
-            money_amount = day_price * (s_count + 1)
+            money_amount = day_price * s_count + lower_limit_amount
 
             if not PaymentManager().has_enough_balance_vo(
                     vo_id=vo_id, money_amount=money_amount, with_coupons=True,

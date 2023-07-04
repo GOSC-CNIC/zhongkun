@@ -264,16 +264,16 @@ class DiskHandler:
         """
         按量付费模式云硬盘订购时，检查余额是否满足限制条件
 
-            * 余额和券金额 / 按量一天计费金额 = 服务单元可以创建的按量付费云硬盘数量
+            * (余额和券金额 - 100) / 按量一天计费金额 = 服务单元可以创建的按量付费云硬盘数量
 
         :raises: Error, BalanceNotEnough
         """
-
+        lower_limit_amount = Decimal('100.00')
         if owner_type == OwnerType.USER.value:
             qs = DiskManager().get_user_disks_queryset(
                 user=user, service_id=service.id, pay_type=PayType.POSTPAID.value)
             s_count = qs.count()
-            money_amount = day_price * (s_count + 1)
+            money_amount = day_price * s_count + lower_limit_amount
 
             if not PaymentManager().has_enough_balance_user(
                     user_id=user.id, money_amount=money_amount, with_coupons=True,
@@ -286,7 +286,7 @@ class DiskHandler:
             qs = DiskManager().get_vo_disks_queryset(
                 vo_id=vo_id, service_id=service.id, pay_type=PayType.POSTPAID.value)
             s_count = qs.count()
-            money_amount = day_price * (s_count + 1)
+            money_amount = day_price * s_count + lower_limit_amount
 
             if not PaymentManager().has_enough_balance_vo(
                     vo_id=vo_id, money_amount=money_amount, with_coupons=True,
