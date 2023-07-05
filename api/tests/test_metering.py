@@ -11,7 +11,8 @@ from service.models import ServiceConfig
 from storage.models import ObjectsService
 from vo.models import VirtualOrganization
 from metering.models import (
-    MeteringServer, DailyStatementServer, PaymentStatus, MeteringObjectStorage, DailyStatementObjectStorage
+    MeteringServer, DailyStatementServer, PaymentStatus, MeteringObjectStorage, DailyStatementObjectStorage,
+    MeteringDisk
 )
 from . import set_auth_header, MyAPITestCase
 from servers.models import Server, ServerArchive
@@ -2224,3 +2225,289 @@ class AdminMeteringServerTests(MyAPITestCase):
         self.assertEqual(r.data['total_postpaid_amount'], Decimal.from_float(0))
         self.assertEqual(r.data["total_prepaid_amount"], Decimal('0.00'))
         self.assertEqual(r.data["total_server_count"], 0)
+
+
+def create_disk_metering(
+        service_id, disk_id, _date: date, pay_type,
+        original_amount: Decimal, trade_amount: Decimal,
+        owner_type: str, user_id, username: str, vo_id, vo_name
+):
+    metering = MeteringDisk(
+        original_amount=original_amount,
+        trade_amount=trade_amount,
+        daily_statement_id='',
+        service_id=service_id,
+        disk_id=disk_id,
+        date=_date,
+        user_id=user_id,
+        username=username,
+        vo_id=vo_id,
+        vo_name=vo_name,
+        owner_type=owner_type,
+        pay_type=pay_type
+    )
+    metering.save(force_insert=True)
+    return metering
+
+
+class MeteringDiskTests(MyAPITestCase):
+    def setUp(self):
+        self.user = set_auth_header(self)
+        self.service = get_or_create_service()
+        self.service2 = ServiceConfig(
+            name='test2', data_center_id=self.service.data_center_id, endpoint_url='test2', username='', password='',
+            need_vpn=False
+        )
+        self.service2.save(force_insert=True)
+        self.vo = VirtualOrganization(
+            name='test vo', owner=self.user
+        )
+        self.vo.save()
+
+    def test_list_metering(self):
+        create_disk_metering(
+            service_id=self.service.id, disk_id='disk1', _date=date(year=2022, month=2, day=16),
+            pay_type=PayType.POSTPAID.value,
+            original_amount=Decimal('1.11'), trade_amount=Decimal('1.11'),
+            owner_type=OwnerType.USER.value, user_id=self.user.id, username=self.user.username, vo_id='', vo_name=''
+        )
+        create_disk_metering(
+            service_id=self.service.id, disk_id='disk1', _date=date(year=2022, month=3, day=16),
+            pay_type=PayType.POSTPAID.value,
+            original_amount=Decimal('2.22'), trade_amount=Decimal('0'),
+            owner_type=OwnerType.USER.value, user_id=self.user.id, username=self.user.username, vo_id='', vo_name=''
+        )
+        create_disk_metering(
+            service_id=self.service.id, disk_id='disk2', _date=date(year=2022, month=2, day=8),
+            pay_type=PayType.POSTPAID.value,
+            original_amount=Decimal('3.33'), trade_amount=Decimal('0'),
+            owner_type=OwnerType.VO.value, user_id='', username='', vo_id=self.vo.id, vo_name=self.vo.name
+        )
+        create_disk_metering(
+            service_id=self.service.id, disk_id='disk2', _date=date(year=2022, month=3, day=8),
+            pay_type=PayType.PREPAID.value,
+            original_amount=Decimal('4.44'), trade_amount=Decimal('4.44'),
+            owner_type=OwnerType.VO.value, user_id='', username='', vo_id='vo1', vo_name='vo1 test'
+        )
+        create_disk_metering(
+            service_id=self.service2.id, disk_id='disk2', _date=date(year=2022, month=3, day=18),
+            pay_type=PayType.PREPAID.value,
+            original_amount=Decimal('5.55'), trade_amount=Decimal('5.55'),
+            owner_type=OwnerType.USER.value, user_id=self.user.id, username=self.user.username, vo_id='', vo_name=''
+        )
+        create_disk_metering(
+            service_id=self.service2.id, disk_id='disk6', _date=date(year=2022, month=3, day=9),
+            pay_type=PayType.PREPAID.value,
+            original_amount=Decimal('6.66'), trade_amount=Decimal('6.66'),
+            owner_type=OwnerType.VO.value, user_id='', username='', vo_id=self.vo.id, vo_name=self.vo.name
+        )
+
+        # list user metering, default current month
+        base_url = reverse('api:metering-disk-list')
+        r = self.client.get(base_url)
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(["count", "page_num", "page_size", "results"], r.data)
+        self.assertEqual(r.data["count"], 0)
+        self.assertEqual(len(r.data['results']), 0)
+
+        # list user metering, date_start - date_end
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-06'
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(["count", "page_num", "page_size", "results"], r.data)
+        self.assertEqual(r.data["count"], 3)
+        self.assertEqual(len(r.data['results']), 3)
+        self.assertKeysIn([
+            "id", "original_amount", "trade_amount",
+            "daily_statement_id", "service_id", "disk_id", "date",
+            "creation_time", "user_id", "vo_id", "owner_type",
+            "size_hours", "pay_type", "username", "vo_name"
+        ], r.data['results'][0])
+
+        # list user metering, invalid date_start
+        query = parse.urlencode(query={
+            'date_start': '2022-02-30'
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 400)
+
+        # list user metering, invalid date_end
+        query = parse.urlencode(query={
+            'date_end': '2022-2-01'
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 400)
+
+        # list user metering, date_start date_end timedelta less than one year
+        query = parse.urlencode(query={
+            'date_start': '2021-02-01', 'date_end': '2022-02-02'
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 400)
+
+        # list user metering, query page_size
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-06', 'page_size': 1
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 3)
+        self.assertEqual(r.data["page_size"], 1)
+        self.assertEqual(len(r.data['results']), 1)
+
+        # list vo metering
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-06', 'vo_id': self.vo.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 2)
+        self.assertEqual(len(r.data['results']), 2)
+
+        # service admin
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-06', 'as-admin': ''
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 0)
+        self.assertEqual(len(r.data['results']), 0)
+
+        # service admin, no permission service
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-06', 'as-admin': '', 'service_id': self.service.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 403)
+
+        # service admin, has permission service
+        self.service.users.add(self.user)
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-06', 'as-admin': '', 'service_id': self.service.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 4)
+        self.assertEqual(len(r.data['results']), 4)
+
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-06', 'as-admin': ''
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 4)
+        self.assertEqual(len(r.data['results']), 4)
+
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-06', 'as-admin': '', 'disk_id': 'disk1'
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 0)
+        self.assertEqual(len(r.data['results']), 0)
+
+        # service admin, list user metering
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-06', 'as-admin': '', 'service_id': self.service.id,
+            'user_id': self.user.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 2)
+        self.assertEqual(len(r.data['results']), 2)
+        self.assertEqual(r.data['results'][0]['user_id'], self.user.id)
+        self.assertEqual(r.data['results'][0]['owner_type'], OwnerType.USER.value)
+
+        # service admin, list vo metering
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-06', 'as-admin': '', 'service_id': self.service.id,
+            'vo_id': self.vo.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 1)
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertEqual(r.data['results'][0]['vo_id'], self.vo.id)
+        self.assertEqual(r.data['results'][0]['owner_type'], OwnerType.VO.value)
+
+        # service admin, list vo metering, param "vo_id" and "user_id" togethor
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-06', 'as-admin': '', 'service_id': self.service.id,
+            'vo_id': self.vo.id, 'user_id': self.user.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 400)
+
+        # service admin, no permission service2
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-06', 'as-admin': '', 'service_id': self.service2.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 403)
+
+        # federal admin， list all
+        self.user.set_federal_admin()
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-06', 'as-admin': ''
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 6)
+        self.assertEqual(len(r.data['results']), 6)
+
+        # federal admin, service_id
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-06', 'as-admin': '', 'service_id': self.service.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 4)
+        self.assertEqual(len(r.data['results']), 4)
+
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-06', 'as-admin': '', 'service_id': self.service2.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 2)
+        self.assertEqual(len(r.data['results']), 2)
+
+        # federal admin, user_id
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-06', 'as-admin': '', 'user_id': self.user.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 3)
+        self.assertEqual(len(r.data['results']), 3)
+
+        # federal admin, 'disk1'
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-06', 'as-admin': '', 'disk_id': 'disk1'
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 2)
+        self.assertEqual(len(r.data['results']), 2)
+
+        # federal admin, user_id, service_id
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-06', 'as-admin': '', 'user_id': self.user.id,
+            'service_id': self.service.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 2)
+        self.assertEqual(len(r.data['results']), 2)
+
+        # federal admin, vo_id, service_id
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-06', 'as-admin': '', 'vo_id': self.vo.id,
+            'service_id': self.service2.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 1)
+        self.assertEqual(len(r.data['results']), 1)

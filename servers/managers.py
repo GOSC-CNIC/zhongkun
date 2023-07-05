@@ -421,6 +421,19 @@ class DiskManager:
         """
         :raise: DiskNotExist
         """
+        disk = DiskManager.get_disk_include_deleted(
+            disk_id=disk_id, related_fields=related_fields, select_for_update=select_for_update)
+
+        if disk.deleted:
+            raise errors.DiskNotExist(message=_('云硬盘不存在'))
+
+        return disk
+
+    @staticmethod
+    def get_disk_include_deleted(disk_id: str, related_fields: list = None, select_for_update: bool = False) -> Disk:
+        """
+        :raise: DiskNotExist
+        """
         fields = ['service', 'user']
         if related_fields:
             for f in related_fields:
@@ -433,9 +446,6 @@ class DiskManager:
 
         disk = qs.first()
         if disk is None:
-            raise errors.DiskNotExist(message=_('云硬盘不存在'))
-
-        if disk.deleted:
             raise errors.DiskNotExist(message=_('云硬盘不存在'))
 
         return disk

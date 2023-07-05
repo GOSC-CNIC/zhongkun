@@ -6,7 +6,7 @@ from django.db.models import Subquery, Sum, Count
 from core import errors
 from service.managers import ServiceManager
 from service.models import ServiceConfig
-from servers.managers import ServerManager
+from servers.managers import ServerManager, DiskManager
 from servers.models import Server, ServerArchive
 from metering.models import DailyStatementServer, DailyStatementObjectStorage
 from utils.model import OwnerType
@@ -16,7 +16,7 @@ from vo.managers import VoManager
 from storage.managers.objects_service import ObjectsServiceManager
 from storage.models import Bucket, BucketArchive, ObjectsService
 
-from .models import MeteringServer, MeteringObjectStorage
+from .models import MeteringServer, MeteringObjectStorage, MeteringDisk
 
 
 class MeteringServerManager:
@@ -993,3 +993,151 @@ class StatementStorageManager:
             if statement.user_id and statement.user_id != user.id:
                 raise errors.AccessDenied(message=_('您没有权限访问该结算单'))
         return statement
+
+
+class MeteringDiskManager:
+    @staticmethod
+    def get_metering_disk_queryset():
+        return MeteringDisk.objects.all()
+
+    @staticmethod
+    def get_metering_by_id(metering_id: str) -> MeteringDisk:
+        return MeteringDisk.objects.filter(id=metering_id).first()
+
+    @staticmethod
+    def get_metering(metering_id: str, user):
+        """
+        查询一个计量单，检查权限
+
+        :raises: Error
+        """
+        metering = MeteringDiskManager.get_metering_by_id(metering_id=metering_id)
+        if metering is None:
+            raise errors.NotFound(message=_('计量单不存在。'))
+
+        if metering.owner_type == metering.OwnerType.USER.value:
+            if metering.user_id != user.id:
+                raise errors.AccessDenied(message=_('无计量单的访问权限。'))
+        elif metering.owner_type == metering.OwnerType.VO.value:
+            VoManager().get_has_read_perm_vo(vo_id=metering.vo_id, user=user)
+
+        return metering
+
+    def filter_user_disk_metering(
+            self, user,
+            service_id: str = None,
+            disk_id: str = None,
+            date_start: date = None,
+            date_end: date = None
+    ):
+        """
+        查询用户云硬盘计量用量账单查询集
+        """
+        return self.filter_disk_metering_queryset(
+            service_id=service_id, disk_id=disk_id, date_start=date_start,
+            date_end=date_end, user_id=user.id
+        )
+
+    def filter_vo_disk_metering(
+            self, user,
+            vo_id: str,
+            service_id: str = None,
+            disk_id: str = None,
+            date_start: date = None,
+            date_end: date = None
+    ):
+        """
+        查询vo组云硬盘计量用量账单查询集
+
+        :rasies: AccessDenied, NotFound, Error
+        """
+        VoManager().get_has_read_perm_vo(vo_id=vo_id, user=user)
+        return self.filter_disk_metering_queryset(
+            service_id=service_id, disk_id=disk_id, date_start=date_start,
+            date_end=date_end, vo_id=vo_id
+        )
+
+    def filter_disk_metering_by_admin(
+            self, user,
+            service_id: str = None,
+            disk_id: str = None,
+            date_start: date = None,
+            date_end: date = None,
+            vo_id: str = None,
+            user_id: str = None
+    ):
+        """
+        :rasies: AccessDenied, DiskNotExist, Error
+        """
+        if user.is_federal_admin():
+            return self.filter_disk_metering_queryset(
+                service_id=service_id, disk_id=disk_id, date_start=date_start, date_end=date_end,
+                vo_id=vo_id, user_id=user_id
+            )
+
+        if disk_id:
+            try:
+                disk = DiskManager.get_disk_include_deleted(disk_id=disk_id)
+            except errors.DiskNotExist:
+                return MeteringDisk.objects.none()
+
+            if service_id:
+                if service_id != disk.service_id:
+                    return MeteringDisk.objects.none()
+            else:
+                service_id = disk.service_id
+
+        if service_id:
+            service = ServiceManager.get_service_if_admin(user=user, service_id=service_id)
+            if service is None:
+                raise errors.AccessDenied(message=_('您没有指定服务的访问权限'))
+
+        queryset = self.filter_disk_metering_queryset(
+            service_id=service_id, disk_id=disk_id, date_start=date_start, date_end=date_end,
+            vo_id=vo_id, user_id=user_id
+        )
+
+        if not service_id and not disk_id:
+            qs = ServiceManager.get_all_has_perm_service(user)
+            subq = Subquery(qs.values_list('id', flat=True))
+            queryset = queryset.filter(service_id__in=subq)
+
+        return queryset
+
+    def filter_disk_metering_queryset(
+            self, service_id: str = None,
+            disk_id: str = None,
+            date_start: date = None,
+            date_end: date = None,
+            user_id: str = None,
+            vo_id: str = None
+    ):
+        """
+        查询云硬盘计量用量账单查询集
+        """
+        if user_id and vo_id:
+            raise errors.Error(_('云硬盘计量用量账单查询集查询条件不能同时包含"user_id"和"vo_id"'))
+
+        lookups = {}
+        if date_start:
+            lookups['date__gte'] = date_start
+
+        if date_end:
+            lookups['date__lte'] = date_end
+
+        if service_id:
+            lookups['service_id'] = service_id
+
+        if disk_id:
+            lookups['disk_id'] = disk_id
+
+        if user_id:
+            lookups['owner_type'] = OwnerType.USER.value
+            lookups['user_id'] = user_id
+
+        if vo_id:
+            lookups['owner_type'] = OwnerType.VO.value
+            lookups['vo_id'] = vo_id
+
+        queryset = self.get_metering_disk_queryset()
+        return queryset.filter(**lookups).order_by('-creation_time')
