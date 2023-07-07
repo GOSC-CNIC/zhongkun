@@ -12,8 +12,9 @@ class ExpressionQuery:
     server_host_up_count = 'count(up{job="$job"} == 1)'
     server_host_count = 'count(node_uname_info{job="$job"})'
     server_cpu_usage = 'avg(1 - avg(rate(node_cpu_seconds_total{job="$job",mode="idle"}[30s])) by (instance))*100'
-    server_mem_usage = 'avg((1 - (node_memory_MemAvailable_bytes{job="$job"} '\
-                       '/ (node_memory_MemTotal_bytes{job="$job"})))* 100)'
+    server_mem_usage = 'avg((1 - (node_memory_MemAvailable_bytes{job="$job"} / ' \
+                       '(node_memory_MemTotal_bytes{job="$job"} - node_memory_HugePages_Total{job="$job"} * ' \
+                       'node_memory_Hugepagesize_bytes{job="$job"})))* 100)'
     server_disk_usage = 'avg((node_filesystem_size_bytes{job="$job",fstype=~"ext.?|xfs"}'\
                         '-node_filesystem_free_bytes{job="$job",fstype=~"ext.?|xfs"}) *100'\
                         '/(node_filesystem_avail_bytes {job="$job",fstype=~"ext.?|xfs"}'\
@@ -22,9 +23,11 @@ class ExpressionQuery:
     server_min_cpu_usage = '(1 - max(rate(node_cpu_seconds_total{job="$job",mode="idle"}[10m])))*100'
     server_max_cpu_usage = '(1 - min(rate(node_cpu_seconds_total{job="$job",mode="idle"}[10m])))*100'
     server_min_mem_usage = '(1-max(node_memory_MemAvailable_bytes{job="$job"} / ' \
-                           '(node_memory_MemTotal_bytes{job="$job"}))) * 100'
+                           '(node_memory_MemTotal_bytes{job="$job"} - node_memory_HugePages_Total{job="$job"} * ' \
+                           'node_memory_Hugepagesize_bytes{job="$job"}))) * 100'
     server_max_mem_usage = '(1-min(node_memory_MemAvailable_bytes{job="$job"} / ' \
-                           '(node_memory_MemTotal_bytes{job="$job"}))) * 100'
+                           '(node_memory_MemTotal_bytes{job="$job"} - node_memory_HugePages_Total{job="$job"} * ' \
+                           'node_memory_Hugepagesize_bytes{job="$job"}))) * 100'
     server_min_disk_usage = 'min((node_filesystem_size_bytes{job="$job",fstype=~"ext.?|xfs"}'\
                             '-node_filesystem_free_bytes{job="$job",fstype=~"ext.?|xfs"}) *100'\
                             '/(node_filesystem_avail_bytes {job="$job",fstype=~"ext.?|xfs"}'\
