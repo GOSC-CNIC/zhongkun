@@ -47,6 +47,7 @@ class MonitorTiDBQueryHandler:
             service_ids = ServiceManager.get_has_perm_service_ids(user_id=user.id)
             queryset = queryset.filter(Q(users__id=user.id) | Q(service_id__in=service_ids))
 
+        queryset = queryset.distinct()
         try:
             units = view.paginate_queryset(queryset)
             serializer = view.get_serializer(instance=units, many=True)
