@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        .wrapper{
+            align-content: center;
+            width: 90%;
+            height: 100%;
+            margin: 40px auto;
+            font-size: 16px;
+            color: black;
+            background-color:rgba(0,0,0,0.01);
+        }
+        table{
+            width: 100%;
+            text-align: center;
+            margin-top: 20px;
+            font-size: 15px;
+            word-break : break-all;
+            border: 1px solid gray;
+            border-spacing: 0;
+            border-collapse: collapse;
+        }
+        tr,td{border: 1px solid gray;padding: 6px;}
+        .title1 {background-color: rgb(46,117,181);color: white;font-size: 15px;}
+        .title2{background-color: rgb(222,234,246);}
+        .text-indent{padding-left: 40px;}
+        .t-red{font-size: 10px;color: red;}
+        .t-warn{font-size: 10px;color: rgba(167, 167, 14, 0.78);}
+    </style>
+</head>
+<body>
+<div class="wrapper">
+    <div>
+        <p>尊敬的 {{ username }}，您好！<br/>
+         <span class="text-indent">感谢您使用中国科技云一体化云服务平台，您的个人账户下有{{ user_servers|length }}台{% if vo_servers %}、项目组下有{{ vo_servers|length }}台{% endif %}云主机已过期或即将过期。到期15天内的云主机数据被保留，到期15天后的云主机将被删除，请您尽快申请相应云主机代金券进行续费。</span>
+        </p>
+    </div>
+    <div>
+        {% if user_servers or vo_servers %}
+        <table>
+            <tr>
+                <td colspan="9" class="title1">开放科学云主机</td>
+            </tr>
+            {% if user_servers %}
+                <tr class="title2">
+                <td style="width: 12%;">云主机IP</td>
+                <td style="width: 15%;">配置</td>
+                <td style="width: 15%;">所属服务单元</td>
+                <td style="width: 16%;">所属用户</td>
+                <td style="width: 15%;">创建时间</td>
+                <td style="width: 15%;">过期时间</td>
+                <td style="width: 12%;">备注信息</td>
+                </tr>
+                {% for server in user_servers %}
+                <tr class="content">
+                    <td>{{ server.ipv4 }}</td>
+                    <td>{{ server.vcpus }}CPU {{ server.ram }}GB内存<br>{{ server.image }}</td>
+                    <td>{{ server.service.name }}</td>
+                    <td>{% if server.belong_to_vo %}{{ server.vo.name }}{% else %}{{ server.user.username }}{% endif %}</td>
+                    <td>{{ server.creation_time | date:'Y-m-d H:i:s' }}</td>
+                    <td>{{ server.expiration_time | date:'Y-m-d H:i:s' }}<br>{% if server.expiration_time <= now_time %}
+                    <span class="t-red">已过期 {{ server.expiration_time|timesince }}</span>{% else %}<span class="t-warn">{{ server.expiration_time|timeuntil }} 后到期</span>{% endif %}</td></td>
+                    <td>{{ server.remarks }}</td>
+                </tr>
+                {% endfor %}
+            {% endif %}
+            {% if vo_servers %}
+                <tr class="title2">
+                <td style="width: 12%;">云主机IP</td>
+                <td style="width: 15%;">配置</td>
+                <td style="width: 15%;">所属服务单元</td>
+                <td style="width: 16%;">所属项目组</td>
+                <td style="width: 15%;">创建时间</td>
+                <td style="width: 15%;">过期时间</td>
+                <td style="width: 12%;">备注信息</td>
+                </tr>
+                {% for server in vo_servers %}
+                <tr class="content">
+                    <td>{{ server.ipv4 }}</td>
+                    <td>{{ server.vcpus }}CPU {{ server.ram }}GB内存<br>{{ server.image }}</td>
+                    <td>{{ server.service.name }}</td>
+                    <td>{% if server.belong_to_vo %}{{ server.vo.name }}{% else %}{{ server.user.username }}{% endif %}</td>
+                    <td>{{ server.creation_time | date:'Y-m-d H:i:s' }}</td>
+                    <td>{{ server.expiration_time | date:'Y-m-d H:i:s' }}<br>{% if server.expiration_time <= now_time %}
+                    <span class="t-red">已过期 {{ server.expiration_time|timesince }}</span>{% else %}<span class="t-warn">{{ server.expiration_time|timeuntil }} 后到期</span>{% endif %}</td>
+                    <td>{{ server.remarks }}</td>
+                </tr>
+                {% endfor %}
+            {% endif %}
+        </table>
+    {% endif %}
+    </div>
+    <div style="margin-top: 20px;">
+{#        <div><span class="text-indent">请您尽快申请相应云主机代金券进行续费。到期后15天内，如果您没有及时续费，资源随时会被释放。</span></div>#}
+        <div style="line-height:2em;" class="text-indent">代金券获取方法:</div>
+        <div class="text-indent">
+            <span>1. 中科院内相关科研合作项目可以直接申请，由科技云项目办评估发放，请关注中国科技云相关动态或联系余老师（yuning@cstnet.cn）咨询相关信息。</span><br>
+        <span>2. 其它项目用途可以联系张老师（yzhang@cnic.cn）了解云主机成本均摊标准，通过签订协议进行资源使用。</span></div>
+    </div>
+    <div class="text-indent"><p>欢迎登录一体化云服务平台网站（<a target="view_window" href="https://service.cstcloud.cn/">https://service.cstcloud.cn</a>）查询更多信息。</p></div>
+</div>
+</body>
+</html>
