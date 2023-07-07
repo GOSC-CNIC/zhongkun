@@ -1,8 +1,10 @@
 from django.shortcuts import render
 from django.views import View
+from django.http.response import JsonResponse
 
 from utils.paginators import NumsPaginator
-from .models import ServiceConfig, Server
+from scripts.workers.server_notifier import ServerNotifier, PersonalServersNotifier
+from .models import ServiceConfig
 from .managers import ServerManager
 
 
@@ -57,3 +59,33 @@ class VmwareConsoleView(View):
         server_name = request.GET.get('server-name', '')
         return render(request, 'console.html', context={'vm_url': vm_url, 'server_name': server_name})
 
+
+class ServerExpiredEmailView(View):
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        after_days = request.GET.get('after_days')
+        tag = request.GET.get('tag')
+
+        if after_days:
+            after_days = int(after_days)
+        else:
+            after_days = 0
+
+        if not tag:
+            tag = 'user_vo'
+
+        if tag == 'user':
+            context = PersonalServersNotifier(filter_out_notified=False).get_personal_expired_servers_context(
+                user_id=user.id, username=user.username, after_days=after_days)
+
+            return render(request, 'server_expired.html', context=context)
+        elif tag == 'user_vo':
+            context = ServerNotifier(filter_out_notified=False).get_personal_vo_expired_servers_context(
+                user_id=user.id, username=user.username, after_days=after_days)
+
+            return render(request, 'server_expired.html', context=context)
+
+        return JsonResponse(
+            data={'message': f'tag参数值无效，可选[user, user_vo]'},
+            json_dumps_params={'ensure_ascii': False}
+        )
