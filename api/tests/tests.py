@@ -109,40 +109,6 @@ def create_server_metadata(
     return server
 
 
-class FlavorTests(MyAPITestCase):
-    def setUp(self):
-        set_auth_header(self)
-
-    def test_get_flavor(self):
-        service = get_or_create_service()
-        f = Flavor(vcpus=1, ram=1, enable=True, service_id=None)
-        f.save(force_insert=True)
-        f2 = Flavor(vcpus=2, ram=2, enable=True, service_id=service.id)
-        f2.save(force_insert=True)
-
-        url = reverse('api:flavor-list')
-        response = self.client.get(url, format='json')
-        self.assertEqual(response.status_code, 200)
-        flavors = response.data['flavors']
-        self.assertIsInstance(flavors, list)
-        self.assertEqual(len(flavors), 1)
-        self.assert_is_subdict_of(sub={
-            'id': f.id, 'vcpus': f.vcpus, 'ram': 1, 'service_id': None, 'ram_gib': 1
-        }, d=flavors[0])
-
-        # query param "service_id"
-        url = reverse('api:flavor-list')
-        query = parse.urlencode(query={'service_id': service.id})
-        response = self.client.get(f'{url}?{query}')
-        self.assertEqual(response.status_code, 200)
-        flavors = response.data['flavors']
-        self.assertIsInstance(flavors, list)
-        self.assertEqual(len(flavors), 1)
-        self.assert_is_subdict_of(sub={
-            'id': f2.id, 'vcpus': 2, 'ram': 2, 'service_id': service.id, 'ram_gib': 2
-        }, d=flavors[0])
-
-
 class ServersTests(MyAPITestCase):
     def setUp(self):
         set_auth_header(self)

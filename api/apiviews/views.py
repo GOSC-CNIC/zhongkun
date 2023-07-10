@@ -21,7 +21,6 @@ from servers.managers import ServerManager, DiskManager
 from service.managers import ServiceManager
 from service.models import DataCenter, ApplyOrganization, ApplyVmService, ServiceConfig
 from adapters import inputs, outputs
-from core.quota import QuotaAPI
 from core import request as core_request
 from core import errors as exceptions
 from vo.models import VoMember
@@ -29,7 +28,7 @@ from api.serializers import serializers, disk_serializers
 from api.viewsets import CustomGenericViewSet
 from api.paginations import ServersPagination, DefaultPageNumberPagination, ImagesPagination
 from api.handlers import (
-    handlers, ServerHandler, ServerArchiveHandler, VPNHandler
+    handlers, ServerHandler, ServerArchiveHandler, VPNHandler,
 )
 
 
@@ -1383,59 +1382,6 @@ class VPNViewSet(CustomGenericViewSet):
             return []
 
         return super().get_permissions()
-
-
-class FlavorViewSet(CustomGenericViewSet):
-    """
-    Flavor相关API
-    """
-    queryset = []
-    permission_classes = [IsAuthenticated]
-    pagination_class = None
-
-    @swagger_auto_schema(
-        operation_summary=gettext_lazy('列举配置样式flavor'),
-        manual_parameters=[
-            openapi.Parameter(
-                name='service_id',
-                in_=openapi.IN_QUERY,
-                type=openapi.TYPE_STRING,
-                required=False,
-                description='云主机服务单元id'
-            ),
-        ],
-        responses={
-            status.HTTP_200_OK: ''
-        }
-    )
-    def list(self, request, *args, **kwargs):
-        """
-        列举配置样式flavor
-
-            Http Code: 状态码200，返回数据：
-            {
-              "flavors": [
-                {
-                  "id": 9c70cbe2-690c-11eb-a4b7-c8009fe2eb10,
-                  "flavor_id": "ecs.s3.medium"
-                  "vcpus": 4,
-                  "ram": 4,      # GiB
-                  "disk": 17
-                  "service_id": "xxx",
-                  "ram_gib": 4      # Gib
-                }
-              ]
-            }
-        """
-        service_id = request.query_params.get('service_id', None)
-        try:
-            flavors = Flavor.objects.filter(service_id=service_id, enable=True).order_by('vcpus', 'ram').all()
-            serializer = serializers.FlavorSerializer(flavors, many=True)
-        except Exception as exc:
-            err = exceptions.APIException(message=str(exc))
-            return Response(err.err_data(), status=err.status_code)
-
-        return Response(data={"flavors": serializer.data})
 
 
 class ServiceViewSet(CustomGenericViewSet):

@@ -1,0 +1,53 @@
+from django.utils.translation import gettext_lazy
+from rest_framework.permissions import IsAuthenticated
+from rest_framework import status
+from drf_yasg.utils import swagger_auto_schema, no_body
+from drf_yasg import openapi
+
+from api.viewsets import CustomGenericViewSet
+from api.handlers.flavor_handler import FlavorHandler
+
+
+class FlavorViewSet(CustomGenericViewSet):
+    """
+    Flavor相关API
+    """
+    queryset = []
+    permission_classes = [IsAuthenticated]
+    pagination_class = None
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举配置样式flavor'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='service_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description='云主机服务单元id'
+            ),
+        ],
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        列举配置样式flavor
+
+            Http Code: 状态码200，返回数据：
+            {
+              "flavors": [
+                {
+                  "id": 9c70cbe2-690c-11eb-a4b7-c8009fe2eb10,
+                  "flavor_id": "ecs.s3.medium"
+                  "vcpus": 4,
+                  "ram": 4,      # GiB
+                  "disk": 17
+                  "service_id": "xxx",
+                  "ram_gib": 4      # Gib
+                }
+              ]
+            }
+        """
+        return FlavorHandler.list_flavors(view=self, request=request, kwargs=kwargs)
