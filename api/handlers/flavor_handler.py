@@ -4,9 +4,23 @@ from rest_framework.response import Response
 from core import errors as exceptions
 from service.managers import ServiceManager
 from servers.models import Flavor
+from servers.managers import FlavorManager
 from api.viewsets import CustomGenericViewSet
 from api.serializers import server as server_serializers
 from .handlers import serializer_error_msg
+
+
+def str_to_true_false(val: str):
+    if not isinstance(val, str):
+        return val
+
+    if val.lower() == 'true':
+        return True
+    elif val.lower() == 'false':
+        return False
+    else:
+        raise exceptions.InvalidArgument(
+            message=_('值无效，必须为true或者false'))
 
 
 class FlavorHandler:
@@ -21,6 +35,22 @@ class FlavorHandler:
                 exceptions.APIException(message=str(exc)))
 
         return Response(data={"flavors": serializer.data})
+
+    @staticmethod
+    def admin_list_flavors(view: CustomGenericViewSet, request, kwargs):
+        service_id = request.query_params.get('service_id', None)
+        enable = request.query_params.get('enable', None)
+
+        try:
+            enable = str_to_true_false(enable)
+            qs = FlavorManager().get_admin_flavor_queryset(
+                user=request.user, service_id=service_id, enable=enable
+            )
+            flavors = view.paginate_queryset(queryset=qs)
+            serializer = server_serializers.FlavorSerializer(flavors, many=True)
+            return view.get_paginated_response(data=serializer.data)
+        except Exception as exc:
+            return view.exception_response(exc)
 
     @staticmethod
     def admin_create_flavor(view: CustomGenericViewSet, request, kwargs):

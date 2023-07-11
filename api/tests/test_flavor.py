@@ -53,7 +53,7 @@ class AdminFlavorTests(MyAPITestCase):
 
     def test_create_flavor(self):
         url = reverse('api:admin-flavor-list')
-        response = self.client.get(url, format='json')
+        response = self.client.post(url, format='json')
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
         self.client.force_login(self.user)
 
@@ -92,3 +92,99 @@ class AdminFlavorTests(MyAPITestCase):
         self.assertEqual(response.data['ram'], 8)
         self.assertEqual(response.data['service_id'], self.service.id)
         self.assertEqual(response.data['enable'], False)
+
+    def test_list_flavor(self):
+        url = reverse('api:admin-flavor-list')
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
+        self.client.force_login(self.user)
+
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)
+        self.assertEqual(response.data['count'], 0)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 100)
+
+        f6 = Flavor(vcpus=6, ram=8, enable=True, service_id=None)
+        f6.save(force_insert=True)
+        f1 = Flavor(vcpus=1, ram=4, enable=True, service_id=self.service.id)
+        f1.save(force_insert=True)
+        f3 = Flavor(vcpus=3, ram=5, enable=False, service_id=self.service.id)
+        f3.save(force_insert=True)
+
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 100)
+
+        # AccessDenied
+        query = parse.urlencode(query={'service_id': self.service.id})
+        response = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+        query = parse.urlencode(query={'service_id': 'notfound'})
+        response = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # service admin
+        self.service.users.add(self.user)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 100)
+        self.assertEqual(response.data['results'][0]['id'], f1.id)
+        self.assertEqual(response.data['results'][1]['id'], f3.id)
+
+        # query service_id
+        query = parse.urlencode(query={'service_id': self.service.id})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 100)
+        self.assertEqual(response.data['results'][0]['id'], f1.id)
+        self.assertEqual(response.data['results'][1]['id'], f3.id)
+
+        # query enable
+        query = parse.urlencode(query={'enable': 'true'})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 100)
+        self.assertEqual(response.data['results'][0]['id'], f1.id)
+
+        # federal admin, query enable
+        self.user.set_federal_admin()
+        url = reverse('api:admin-flavor-list')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 3)
+        self.assertEqual(response.data['results'][0]['id'], f1.id)
+        self.assertEqual(response.data['results'][1]['id'], f3.id)
+        self.assertEqual(response.data['results'][2]['id'], f6.id)
+
+        # query enable
+        query = parse.urlencode(query={'enable': 'true'})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(response.data['results'][0]['id'], f1.id)
+        self.assertEqual(response.data['results'][1]['id'], f6.id)
+
+        # query service_id
+        query = parse.urlencode(query={'service_id': self.service.id})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(response.data['results'][0]['id'], f1.id)
+        self.assertEqual(response.data['results'][1]['id'], f3.id)
+
+        # query service_id, enable
+        query = parse.urlencode(query={'service_id': self.service.id, 'enable': 'false'})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['results'][0]['id'], f3.id)

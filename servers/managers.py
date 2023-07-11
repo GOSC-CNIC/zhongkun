@@ -7,6 +7,7 @@ from django.utils import timezone
 from core import errors
 from vo.managers import VoManager
 from bill.managers import PaymentManager
+from service.managers import ServiceManager
 from utils.model import PayType
 from .models import Server, ServerArchive, Flavor, Disk
 from .server_instance import ServerInstance
@@ -407,8 +408,46 @@ class ServerArchiveManager:
 
 
 class FlavorManager:
-    def get_enable_flavor(self, _id):
+    @staticmethod
+    def get_enable_flavor(_id):
         return Flavor.objects.filter(id=_id, enable=True).first()
+
+    @staticmethod
+    def get_flavor_queryset():
+        return Flavor.objects.all()
+
+    @staticmethod
+    def filter_queryset(queryset, service_ids: list, enable: bool = None):
+        if service_ids:
+            if len(service_ids) == 1:
+                queryset = queryset.filter(service_id=service_ids[0])
+            else:
+                queryset = queryset.filter(service_id__in=service_ids)
+
+        if enable is not None:
+            queryset = queryset.filter(enable=enable)
+
+        return queryset
+
+    def get_admin_flavor_queryset(self, user, service_id: str, enable: bool = None):
+        queryset = self.get_flavor_queryset()
+        queryset = queryset.order_by('vcpus', 'ram')
+        if user.is_federal_admin():
+            service_ids = [service_id] if service_id else []
+            return self.filter_queryset(queryset=queryset, service_ids=service_ids, enable=enable)
+
+        if service_id:
+            service = ServiceManager.get_service_if_admin(user=user, service_id=service_id)
+            if service is None:
+                raise errors.AccessDenied(message=_('您没有服务单元的访问权限'))
+
+            service_ids = [service_id]
+        else:
+            service_ids = list(user.service_set.all().values_list('id', flat=True))
+            if not service_ids:
+                return queryset.none()
+
+        return self.filter_queryset(queryset=queryset, service_ids=service_ids, enable=enable)
 
 
 class DiskManager:

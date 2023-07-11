@@ -63,6 +63,10 @@ class NewPageNumberPagination(PageNumberPagination):
         ]))
 
 
+class NewPageNumberPagination100(NewPageNumberPagination):
+    page_size = 100
+
+
 class OrderPageNumberPagination(NewPageNumberPagination):
     page_size = 20
     max_page_size = 2000

@@ -24,10 +24,6 @@ class FlavorSerializer(serializers.Serializer):
     def get_ram_gib(obj):
         return obj.ram
 
-    @staticmethod
-    def get_ram_mib(obj):
-        return obj.ram_mib
-
 
 class FlavorCreateSerializer(serializers.Serializer):
     service_id = serializers.CharField(label=_('服务单元id'), required=True)
