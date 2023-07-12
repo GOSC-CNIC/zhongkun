@@ -163,6 +163,12 @@ class NotFound(APIException):
     default_status_code = 404
 
 
+class TargetNotExist(NotFound):
+    default_message = 'This target is not exist.'
+    default_code = 'TargetNotExist'
+    default_status_code = 404
+
+
 class ServerNotExist(NotFound):
     default_message = 'This server is not exist.'
     default_code = 'ServerNotExist'

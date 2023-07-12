@@ -2,6 +2,7 @@ from django.utils.translation import gettext_lazy
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from rest_framework.serializers import Serializer
+from rest_framework.decorators import action
 from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
@@ -63,6 +64,7 @@ class AdminFlavorViewSet(CustomGenericViewSet):
     queryset = []
     permission_classes = [IsAuthenticated]
     pagination_class = NewPageNumberPagination100
+    lookup_field = 'id'
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('管理员创建云主机配置样式'),
@@ -142,10 +144,34 @@ class AdminFlavorViewSet(CustomGenericViewSet):
         """
         return FlavorHandler.admin_list_flavors(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('管理员修改云主机配置样式'),
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    @action(methods=['post'], detail=True, url_path='update', url_name='update')
+    def update_flavor(self, request, *args, **kwargs):
+        """
+        管理员修改云主机配置样式，需要有服务单元管理权限
+
+            Http Code: 状态码200，返回数据：
+            {
+                  "id": 9c70cbe2-690c-11eb-a4b7-c8009fe2eb10,
+                  "service_id": "xxx",
+                  "vcpus": 4,
+                  "ram": 4,      # GiB
+                  "enable": true    # true:启用；false：未启用
+                  "disk": 17    # 特殊字段，未使用
+                  "flavor_id": "ecs.s3.medium"  # 特殊字段，未使用
+            }
+        """
+        return FlavorHandler.admin_update_flavor(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return server_serializers.FlavorSerializer
-        elif self.action == 'create':
+        elif self.action in ['create', 'update_flavor']:
             return server_serializers.FlavorCreateSerializer
 
         return Serializer
