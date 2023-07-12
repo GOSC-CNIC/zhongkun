@@ -140,3 +140,24 @@ class FlavorHandler:
             )
 
         return Response(data=server_serializers.FlavorSerializer(flavor).data)
+
+    @staticmethod
+    def admin_delete_flavor(view: CustomGenericViewSet, request, kwargs):
+        flavor_id = kwargs[view.lookup_field]
+        user = request.user
+
+        try:
+            flavor = Flavor.objects.filter(id=flavor_id).first()
+            if flavor is None:
+                raise exceptions.TargetNotExist(message=_('配置样式不存在'))
+
+            old_service = flavor.service
+            if not user.is_federal_admin():
+                if not (old_service and old_service.user_has_perm(user)):
+                    raise exceptions.AccessDenied(message=_('你没有此配置样式的管理权限'))
+
+            flavor.delete()
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        return Response(data=None, status=204)

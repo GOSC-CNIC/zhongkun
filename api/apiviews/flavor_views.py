@@ -168,6 +168,20 @@ class AdminFlavorViewSet(CustomGenericViewSet):
         """
         return FlavorHandler.admin_update_flavor(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('管理员删除云主机配置样式'),
+        responses={
+            204: ''
+        }
+    )
+    def destroy(self, request, *args, **kwargs):
+        """
+        管理员删除云主机配置样式，需要有服务单元管理权限
+
+            Http Code: 状态码204
+        """
+        return FlavorHandler.admin_delete_flavor(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return server_serializers.FlavorSerializer

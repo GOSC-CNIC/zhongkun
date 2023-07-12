@@ -275,3 +275,39 @@ class AdminFlavorTests(MyAPITestCase):
         self.assertEqual(f6.ram, 2)
         self.assertEqual(f6.service_id, self.service.id)
         self.assertEqual(f6.enable, True)
+
+    def test_delete_flavor(self):
+        f6 = Flavor(vcpus=6, ram=8, enable=True, service_id=None)
+        f6.save(force_insert=True)
+        f1 = Flavor(vcpus=1, ram=4, enable=True, service_id=self.service.id)
+        f1.save(force_insert=True)
+
+        url = reverse('api:admin-flavor-detail', kwargs={'id': 'xxx'})
+        response = self.client.delete(url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
+        self.client.force_login(self.user)
+
+        url = reverse('api:admin-flavor-detail', kwargs={'id': 'xxx'})
+        response = self.client.delete(url)
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
+        # no admin f1 service
+        url = reverse('api:admin-flavor-detail', kwargs={'id': f1.id})
+        response = self.client.delete(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+        # ok
+        self.service.users.add(self.user)
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(Flavor.objects.filter(id=f1.id).exists())
+
+        # no permission
+        url = reverse('api:admin-flavor-detail', kwargs={'id': f6.id})
+        response = self.client.delete(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # federal admin ok
+        self.user.set_federal_admin()
+        url = reverse('api:admin-flavor-detail', kwargs={'id': f6.id})
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(Flavor.objects.filter(id=f6.id).exists())
