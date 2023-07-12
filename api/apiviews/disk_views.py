@@ -75,8 +75,8 @@ class DisksViewSet(CustomGenericViewSet):
         return DiskHandler().disk_order_create(view=self, request=request)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('列举用户或vo组云硬盘'),
-        manual_parameters=[
+        operation_summary=gettext_lazy('列举用户个人或vo组云硬盘'),
+        manual_parameters=CustomGenericViewSet.PARAMETERS_AS_ADMIN + [
             openapi.Parameter(
                 name='service_id',
                 in_=openapi.IN_QUERY,
@@ -85,11 +85,75 @@ class DisksViewSet(CustomGenericViewSet):
                 description='服务端点id'
             ),
             openapi.Parameter(
+                name='volume_min',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                required=False,
+                description='过滤条件，硬盘容量大小最小值（含）'
+            ),
+            openapi.Parameter(
+                name='volume_max',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                required=False,
+                description='过滤条件，硬盘容量大小最da值（含）'
+            ),
+            openapi.Parameter(
+                name='status',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('过滤条件') + str(DiskHandler.ListDiskQueryStatus.choices)
+            ),
+            openapi.Parameter(
+                name='remark',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('过滤条件，云硬盘备注模糊查询')
+            ),
+            openapi.Parameter(
+                name='ip_contain',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('过滤条件，硬盘所挂载的云服务器ip地址筛选，不完整ip模糊查询')
+            ),
+            openapi.Parameter(
                 name='vo_id',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=gettext_lazy('vo组id，查询vo组的云硬盘，需要vo组访问权限')
+                description=gettext_lazy('vo组id，查询vo组的云硬盘，需要vo组访问权限，不能与参数“vo_name”一起提交')
+            ),
+            openapi.Parameter(
+                name='vo_name',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('过滤条件，vo组名称，此参数只有以管理员身份请求时有效，否则400，不能与参数“vo_id”一起提交')
+            ),
+            openapi.Parameter(
+                name='user_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('过滤条件，用户id，此参数只有以管理员身份请求时有效，否则400，不能与参数“username”一起提交')
+            ),
+            openapi.Parameter(
+                name='username',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('过滤条件，用户名，此参数只有以管理员身份请求时有效，否则400，不能与参数“user_id”一起提交')
+            ),
+            openapi.Parameter(
+                name='exclude_vo',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('过滤条件，排除vo组只查询个人，此参数不需要值，此参数只有以管理员身份请求时有效，否则400，'
+                                         '不能与参数“vo_id”、“vo_name”一起提交')
             ),
         ],
         responses={
@@ -98,7 +162,7 @@ class DisksViewSet(CustomGenericViewSet):
     )
     def list(self, request, *args, **kwargs):
         """
-        列举用户或vo组云硬盘
+        列举用户个人或vo组云硬盘，管理员列举云硬盘
 
             http Code 200 Ok:
                 {

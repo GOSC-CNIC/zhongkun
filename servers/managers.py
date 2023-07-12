@@ -525,22 +525,29 @@ class DiskManager:
         else:
             raise errors.AccessDenied(message=_('你没有硬盘的管理权限'))
 
-    def get_user_disks_queryset(
-            self, user, service_id: str = None, expired: bool = None, remark: str = None, pay_type: str = None
+    @staticmethod
+    def filter_disk_queryset(
+            queryset, service_ids: list, volume_min: int, volume_max: int,
+            remark: str, pay_type, expired: bool = None, ipv4_contains: str = None,
     ):
-        """
-        查询用户个人云硬盘
+        if volume_min and volume_max and volume_min > volume_max:
+            return queryset.none()
 
-        :param user: 用户过滤
-        :param service_id: 服务单元id过滤
-        :param expired: True(过期过滤)；False(未过期过滤)：默认None不过滤
-        :param remark: 备注模糊查询
-        :param pay_type: 付费模式
-        :return: QuerySet()
-        """
         lookups = {}
-        if service_id:
-            lookups['service_id'] = service_id
+        if service_ids:
+            if len(service_ids) == 1:
+                lookups['service_id'] = service_ids[0]
+            else:
+                lookups['service_id__in'] = service_ids
+
+        if volume_min and volume_min > 0:
+            lookups['size__gte'] = volume_min
+
+        if volume_max:
+            if volume_max > 0:
+                lookups['size__lte'] = volume_max
+            else:
+                return queryset.none()
 
         if pay_type is not None:
             lookups['pay_type'] = pay_type
@@ -548,18 +555,51 @@ class DiskManager:
         if remark:
             lookups['remarks__icontains'] = remark
 
-        qs = self.get_disk_queryset()
-        qs = qs.select_related('service', 'user', 'server').filter(
-            user=user, classification=Disk.Classification.PERSONAL.value, **lookups)
+        if ipv4_contains:
+            lookups['server__ipv4__contains'] = ipv4_contains
 
         if expired is True:
-            qs = qs.filter(expiration_time__lte=timezone.now())
+            queryset = queryset.filter(expiration_time__lte=timezone.now())
         elif expired is False:
-            qs = qs.filter(~Q(expiration_time__lte=timezone.now()))     # 取反的方式，存在expiration_time == None
+            queryset = queryset.filter(~Q(expiration_time__lte=timezone.now()))
+
+        queryset = queryset.filter(**lookups)
+        return queryset
+
+    def get_user_disks_queryset(
+            self, user, volume_min: int, volume_max: int, service_id: str = None,
+            expired: bool = None, remark: str = None, pay_type: str = None, ipv4_contains: str = None
+    ):
+        """
+        查询用户个人云硬盘
+
+        :param user: 用户过滤
+        :param volume_min: 最小容量
+        :param volume_max: 最大容量
+        :param service_id: 服务单元id过滤
+        :param expired: True(过期过滤)；False(未过期过滤)：默认None不过滤
+        :param remark: 备注模糊查询
+        :param pay_type: 付费模式
+        :param ipv4_contains:
+        :return: QuerySet()
+        """
+        qs = self.get_disk_queryset()
+        qs = qs.select_related('service', 'user', 'server').filter(
+            user=user, classification=Disk.Classification.PERSONAL.value)
+
+        service_ids = [service_id] if service_id else None
+        qs = self.filter_disk_queryset(
+            queryset=qs, service_ids=service_ids, volume_min=volume_min, volume_max=volume_max,
+            pay_type=pay_type, remark=remark, expired=expired, ipv4_contains=ipv4_contains
+        )
 
         return qs
 
-    def get_vo_disks_queryset(self, vo_id: str, service_id: str = None, expired: bool = None, pay_type: str = None):
+    def get_vo_disks_queryset(
+            self, vo_id: str, volume_min: int, volume_max: int,
+            service_id: str = None, expired: bool = None, pay_type: str = None,
+            remark: str = None, ipv4_contains: str = None
+    ):
         """
         查询vo组的disk
         """
@@ -567,16 +607,79 @@ class DiskManager:
         qs = qs.select_related('service', 'user', 'vo', 'server').filter(
             vo_id=vo_id, classification=Disk.Classification.VO.value)
 
-        if service_id:
-            qs = qs.filter(service_id=service_id)
+        service_ids = [service_id] if service_id else None
+        qs = self.filter_disk_queryset(
+            queryset=qs, service_ids=service_ids, volume_min=volume_min, volume_max=volume_max,
+            pay_type=pay_type, remark=remark, expired=expired, ipv4_contains=ipv4_contains
+        )
 
-        if expired is True:
-            qs = qs.filter(expiration_time__lte=timezone.now())
-        elif expired is False:
-            qs = qs.filter(~Q(expiration_time__lte=timezone.now()))
+        return qs
 
-        if pay_type:
-            qs = qs.filter(pay_type=pay_type)
+    def get_admin_disk_queryset(
+            self, user, volume_min: int, volume_max: int, service_id: str = None, expired: bool = None,
+            remark: str = None, pay_type: str = None, ipv4_contains: str = None,
+            vo_id: str = None, vo_name: str = None, user_id: str = None, username: str = None,
+            exclude_vo: bool = None
+    ):
+        """
+        管理员查询disk
+
+        :param user: 管理员用户
+        :param volume_min: 最小容量
+        :param volume_max: 最大容量
+        :param service_id: 服务单元id过滤
+        :param user_id: 过滤用户, 包括vo内的用户创建的
+        :param username: 过滤用户名,模糊查询, 包括vo内的用户创建的
+        :param vo_id: 过滤vo
+        :param ipv4_contains: ip包含过滤
+        :param expired: True(过期过滤)；False(未过期过滤)：默认None不过滤
+        :param vo_name: 过滤vo组名,模糊查询
+        :param exclude_vo: True(排除vo组的server)，其他忽略
+        :param remark: 备注模糊查询
+        :param pay_type: 付费模式
+        :return: QuerySet()
+        :raises: Error
+        """
+        qs = self.get_disk_queryset()
+        qs = qs.select_related('service', 'user', 'vo', 'server')
+
+        if user_id:
+            qs = qs.filter(user_id=user_id)
+
+        if username:
+            qs = qs.filter(user__username__icontains=username)
+
+        if exclude_vo:
+            qs = qs.filter(classification=Server.Classification.PERSONAL.value)
+
+        if vo_id or vo_name:
+            lookups = {'classification': Server.Classification.VO.value}
+            if vo_id:
+                lookups['vo_id'] = vo_id
+            if vo_name:
+                lookups['vo__name__icontains'] = vo_name
+            qs = qs.filter(**lookups)
+
+        if user.is_federal_admin():
+            if service_id:
+                service_ids = [service_id]
+            else:
+                service_ids = None
+        elif service_id:
+            service = user.service_set.filter(id=service_id).first()
+            if service is None:
+                raise errors.AccessDenied(message=_('您没有指定服务的访问权限'))
+
+            service_ids = [service_id]
+        else:
+            service_ids = user.service_set.all().values_list('id', flat=True)
+            if not service_ids:
+                return qs.none()
+
+        qs = self.filter_disk_queryset(
+            queryset=qs, service_ids=service_ids, volume_min=volume_min, volume_max=volume_max,
+            pay_type=pay_type, remark=remark, expired=expired, ipv4_contains=ipv4_contains
+        )
 
         return qs
 

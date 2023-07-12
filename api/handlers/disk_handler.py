@@ -301,28 +301,142 @@ class DiskHandler:
         """
         列举云硬盘
         """
-        service_id = request.query_params.get('service_id', None)
-        vo_id = request.query_params.get('vo_id', None)
+        try:
+            params = DiskHandler._list_disk_validate_params(view=view, request=request)
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
 
-        if vo_id is not None:
-            if not vo_id:
-                return view.exception_response(exceptions.InvalidArgument(message=_('项目组ID无效')))
+        service_id = params['service_id']
+        volume_min = params['volume_min']
+        volume_max = params['volume_max']
+        remark = params['remark']
+        pay_type = params['pay_type']
+        expired = params['expired']
+        ip_contain = params['ip_contain']
+        vo_id: str = params['vo_id']
+        vo_name = params['vo_name']
+        username = params['username']
+        user_id = params['user_id']
+        exclude_vo = params['exclude_vo']
 
+        if view.is_as_admin_request(request):
+            try:
+                disk_qs = DiskManager().get_admin_disk_queryset(
+                    user=request.user, volume_min=volume_min, volume_max=volume_max, service_id=service_id,
+                    expired=expired, remark=remark, pay_type=pay_type, ipv4_contains=ip_contain,
+                    user_id=user_id, username=username, vo_id=vo_id, vo_name=vo_name, exclude_vo=exclude_vo
+                )
+            except Exception as exc:
+                return view.exception_response(exc)
+        elif vo_id:
             try:
                 VoManager().get_has_read_perm_vo(vo_id=vo_id, user=request.user)
             except exceptions.Error as exc:
                 return view.exception_response(exc)
 
-            queryset = DiskManager().get_vo_disks_queryset(vo_id=vo_id, service_id=service_id)
+            disk_qs = DiskManager().get_vo_disks_queryset(
+                vo_id=vo_id, volume_min=volume_min, volume_max=volume_max, service_id=service_id,
+                expired=expired, remark=remark, pay_type=pay_type, ipv4_contains=ip_contain
+            )
         else:
-            queryset = DiskManager().get_user_disks_queryset(user=request.user, service_id=service_id)
+            disk_qs = DiskManager().get_user_disks_queryset(
+                user=request.user, volume_min=volume_min, volume_max=volume_max, service_id=service_id,
+                expired=expired, remark=remark, pay_type=pay_type, ipv4_contains=ip_contain
+            )
 
         try:
-            disks = view.paginate_queryset(queryset)
+            disks = view.paginate_queryset(disk_qs)
             serializer = view.get_serializer(instance=disks, many=True)
             return view.get_paginated_response(serializer.data)
         except Exception as exc:
             return view.exception_response(exc)
+
+    @staticmethod
+    def _list_disk_validate_params(view, request):
+        service_id = request.query_params.get('service_id', None)
+        volume_min = request.query_params.get('volume_min', None)
+        volume_max = request.query_params.get('volume_max', None)
+        status = request.query_params.get('status', None)
+        remark = request.query_params.get('remark', None)
+        ip_contain = request.query_params.get('ip_contain', None)
+        vo_id = request.query_params.get('vo_id', None)
+        # as-admin only
+        vo_name = request.query_params.get('vo_name', None)
+        username = request.query_params.get('username', None)
+        user_id = request.query_params.get('user_id', None)
+        exclude_vo = request.query_params.get('exclude_vo', None)
+
+        if volume_min is not None:
+            try:
+                volume_min = int(volume_min)
+            except ValueError:
+                raise exceptions.InvalidArgument(message=_('参数“volume_min”的值无效'))
+
+        if volume_max is not None:
+            try:
+                volume_max = int(volume_max)
+            except ValueError:
+                raise exceptions.InvalidArgument(message=_('参数“volume_max”的值无效'))
+
+        if user_id is not None and username is not None:
+            raise exceptions.BadRequest(
+                message=_('参数“user_id”和“username”不允许同时提交')
+            )
+
+        if vo_id is not None and vo_name is not None:
+            raise exceptions.BadRequest(
+                message=_('参数“vo_id”和“vo_name”不允许同时提交')
+            )
+
+        if exclude_vo is not None:
+            exclude_vo = True
+            if vo_id is not None or vo_name is not None:
+                raise exceptions.BadRequest(
+                    message=_('参数"exclude_vo"不允许与参数“vo_id”和“vo_name”同时提交')
+                )
+        else:
+            exclude_vo = False
+
+        expired = None
+        pay_type = None
+        if status is not None:
+            if status == DiskHandler.ListDiskQueryStatus.EXPIRED.value:
+                expired = True
+            elif status == DiskHandler.ListDiskQueryStatus.PREPAID.value:
+                pay_type = PayType.PREPAID.value
+            elif status == DiskHandler.ListDiskQueryStatus.POSTPAID.value:
+                pay_type = PayType.POSTPAID.value
+            else:
+                raise exceptions.InvalidArgument(message=_('参数“status”的值无效'))
+
+        if not view.is_as_admin_request(request):
+            if username is not None:
+                raise exceptions.InvalidArgument(
+                    message=_('参数"username"只有以管理员身份请求时有效'))
+            if user_id is not None:
+                raise exceptions.InvalidArgument(
+                    message=_('参数"user_id"只有以管理员身份请求时有效'))
+            if vo_name is not None:
+                raise exceptions.InvalidArgument(
+                    message=_('参数"vo_name"只有以管理员身份请求时有效'))
+            if exclude_vo:
+                raise exceptions.InvalidArgument(
+                    message=_('参数"exclude_vo"只有以管理员身份请求时有效'))
+
+        return {
+            'service_id': service_id,
+            'volume_min': volume_min,
+            'volume_max': volume_max,
+            'remark': remark,
+            'pay_type': pay_type,
+            'expired': expired,  # True or None
+            'ip_contain': ip_contain,
+            'vo_id': vo_id,
+            'vo_name': vo_name,
+            'username': username,
+            'user_id': user_id,
+            'exclude_vo': exclude_vo
+        }
 
     @staticmethod
     def delete_disk(view: CustomGenericViewSet, request, kwargs):
