@@ -10,7 +10,8 @@
             <div class="card-body">
                 <div class="p-2">
                     <h5 class="card-title">{% trans '关于服务' %}</h5>
-                    <p>{% trans '本服务为中国科技云一体化云服务的后端服务，包含云服务器、云硬盘、计量结算和监控等功能。' %}</p>
+                    {% get_website_title as site_title %}
+                    <p>{{ site_title }}{% trans '后端服务，包含云服务器、云硬盘、计量结算和监控等功能。' %}</p>
                 </div>
                 <div class="p-2">
                     <h5 class="text-dark mb-4">{% trans '当前版本：' %}</h5>
