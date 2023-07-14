@@ -24,3 +24,17 @@ def get_website_header():
 @register.simple_tag(name='get_website_title')
 def do_get_website_title():
     return get_website_header()
+
+
+def get_about_us():
+    config = getattr(settings, 'WEBSITE_CONFIG', {})
+    s = config.get('about_us')
+    if not s:
+        s = gettext('中国科学院计算机网络信息中心，科技云部。')
+
+    return s
+
+
+@register.simple_tag(name='get_about_us')
+def do_get_about_us():
+    return get_about_us()

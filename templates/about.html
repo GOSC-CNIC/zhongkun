@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load i18n %}
-{% load %}
+{% load sitetags%}
 
 {% block title %}{% trans '关于' %}{% endblock %}
 
@@ -44,8 +44,11 @@
                     </div>
                 </div>
                 <div class="p-2">
-                    <h5>{% trans '关于我们' %}</h5>
-                    <p>{% trans '中国科学院计算机网络信息中心，科技云部。' %}</p>
+                    {% get_about_us as about_us_text %}
+                    {% if about_us_text %}
+                        <h5>{% trans '关于我们' %}</h5>
+                        <p>{{ about_us_text }}</p>
+                    {% endif %}
                 </div>
             </div>
         </div>

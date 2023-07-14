@@ -10,13 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
-# import os
-#
-# # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-# BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 from datetime import timedelta
 from pathlib import Path
-import os
 
 
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
@@ -148,7 +143,7 @@ LANGUAGES = [
 ]
 # 翻译文件所在目录
 LOCALE_PATHS = (
-    os.path.join(BASE_DIR, 'locale'),
+    Path('/').joinpath(BASE_DIR, 'locale'),
 )
 
 # Static files (CSS, JavaScript, Images)
@@ -204,9 +199,9 @@ REST_FRAMEWORK = {
 }
 
 
-LOGGING_FILES_DIR = '/var/log/gosc'
-if not os.path.exists(LOGGING_FILES_DIR):
-    os.makedirs(LOGGING_FILES_DIR, exist_ok=True)
+LOGGING_FILES_DIR = Path('/var/log/gosc')
+if not LOGGING_FILES_DIR.exists():
+    LOGGING_FILES_DIR.mkdir(parents=True, exist_ok=True)
 
 LOGGING = {
     'version': 1,
@@ -235,7 +230,7 @@ LOGGING = {
         'file': {
             'level': 'WARNING',
             'class': 'concurrent_log_handler.ConcurrentRotatingFileHandler',
-            'filename': os.path.join(LOGGING_FILES_DIR, 'vms.log'),
+            'filename': LOGGING_FILES_DIR.joinpath('vms.log'),
             'formatter': 'verbose',
             'maxBytes': 1024*1024*200,  # 200MB
             'backupCount': 10           # 最多10个文件
@@ -322,7 +317,8 @@ CORS_ALLOW_ALL_ORIGINS = True       # 允许所有请求来源跨域
 
 # 站点的一些全局配置
 WEBSITE_CONFIG = {
-    'site_brand': ''     # 站点的名称
+    'site_brand': '',     # 站点的名称
+    'about_us': '',     # “关于”网页中“关于我们”的文字描述
 }
 
 # 安全配置导入
