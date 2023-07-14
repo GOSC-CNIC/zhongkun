@@ -567,7 +567,7 @@ class DiskManager:
         return queryset
 
     def get_user_disks_queryset(
-            self, user, volume_min: int, volume_max: int, service_id: str = None,
+            self, user, volume_min: int = None, volume_max: int = None, service_id: str = None,
             expired: bool = None, remark: str = None, pay_type: str = None, ipv4_contains: str = None
     ):
         """
@@ -596,7 +596,7 @@ class DiskManager:
         return qs
 
     def get_vo_disks_queryset(
-            self, vo_id: str, volume_min: int, volume_max: int,
+            self, vo_id: str, volume_min: int = None, volume_max: int = None,
             service_id: str = None, expired: bool = None, pay_type: str = None,
             remark: str = None, ipv4_contains: str = None
     ):
