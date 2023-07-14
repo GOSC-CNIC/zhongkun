@@ -3,7 +3,7 @@ import subprocess
 import datetime
 
 
-VERSION = (1, 7, 2, 'final', 0)     # 'alpha', 'beta', 'rc', 'final'
+VERSION = (1, 8, 0, 'final', 0)     # 'alpha', 'beta', 'rc', 'final'
 
 
 def get_version(version=None):
