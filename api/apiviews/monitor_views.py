@@ -215,6 +215,14 @@ class MonitorServerQueryViewSet(CustomGenericViewSet):
               }
             ]
 
+            * 当“query”参数为 all_together 时，返回数据格式最外层多一层key-value格式，
+            key是查询指标参数值，value是单个查询指标的数据（与单独查询一个指标时的响应数据一样）：
+            {
+                "host_count": [...],
+                "cpu_usage": [...],
+                ...
+            }
+
             http code 409：
             {
               "code": "NoMonitorJob",

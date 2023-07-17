@@ -45,6 +45,7 @@ class ServerQueryChoices(models.TextChoices):
     MAX_MEM_USAGE = 'max_mem_usage', _('集群最大内存使用率')
     MIN_DISK_USAGE = 'min_disk_usage', _('集群最小磁盘使用率')
     MAX_DISK_USAGE = 'max_disk_usage', _('集群最大磁盘使用率')
+    ALL_TOGETHER = 'all_together', _('一起查询所有指标')
 
 
 class VideoMeetingQueryChoices(models.TextChoices):
@@ -232,6 +233,26 @@ class MonitorJobServerManager:
         return qs
 
     def query(self, tag: str, monitor_unit: MonitorJobServer):
+        if tag == ServerQueryChoices.ALL_TOGETHER.value:
+            return self.query_together(monitor_unit=monitor_unit)
+
+        return self._query(tag=tag, monitor_unit=monitor_unit)
+
+    def query_together(self, monitor_unit: MonitorJobServer):
+        ret = {}
+        tags = ServerQueryChoices.values
+        tags.remove(ServerQueryChoices.ALL_TOGETHER.value)
+        for tag in tags:
+            try:
+                data = self._query(tag=tag, monitor_unit=monitor_unit)
+            except errors.Error as exc:
+                data = []
+
+            ret[tag] = data
+
+        return ret
+
+    def _query(self, tag: str, monitor_unit: MonitorJobServer):
         """
         :return:
             [
