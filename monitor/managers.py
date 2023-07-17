@@ -71,6 +71,7 @@ class TiDBQueryChoices(models.TextChoices):
     SERVER_CPU_USAGE = 'server_cpu_usage', _('主机CPU使用率')
     SERVER_MEM_USAGE = 'server_mem_usage', _('主机内存使用率')
     SERVER_DISK_USAGE = 'server_disk_usage', _('主机硬盘使用率')
+    ALL_TOGETHER = 'all_together', _('一起查询所有指标')
 
 
 class MonitorJobCephManager:
@@ -741,6 +742,26 @@ class MonitorJobTiDBManager:
         return qs
 
     def query(self, tag: str, monitor_unit: MonitorJobTiDB):
+        if tag == TiDBQueryChoices.ALL_TOGETHER.value:
+            return self.query_together(monitor_unit=monitor_unit)
+
+        return self._query(tag=tag, monitor_unit=monitor_unit)
+
+    def query_together(self, monitor_unit: MonitorJobTiDB):
+        ret = {}
+        tags = TiDBQueryChoices.values
+        tags.remove(TiDBQueryChoices.ALL_TOGETHER.value)
+        for tag in tags:
+            try:
+                data = self._query(tag=tag, monitor_unit=monitor_unit)
+            except errors.Error as exc:
+                data = []
+
+            ret[tag] = data
+
+        return ret
+
+    def _query(self, tag: str, monitor_unit: MonitorJobTiDB):
         """
         :return:
             [
