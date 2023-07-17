@@ -8,7 +8,7 @@ from service.managers import ServiceManager
 from service.models import ServiceConfig
 from servers.managers import ServerManager, DiskManager
 from servers.models import Server, ServerArchive
-from metering.models import DailyStatementServer, DailyStatementObjectStorage
+from metering.models import DailyStatementServer, DailyStatementObjectStorage, DailyStatementDisk
 from utils.model import OwnerType
 from users.models import UserProfile
 from vo.models import VirtualOrganization
@@ -1141,3 +1141,34 @@ class MeteringDiskManager:
 
         queryset = self.get_metering_disk_queryset()
         return queryset.filter(**lookups).order_by('-creation_time')
+
+
+class StatementDiskManager:
+    @staticmethod
+    def get_statement_disk_queryset():
+        return DailyStatementDisk.objects.all()
+
+    def filter_statement_disk_queryset(
+            self, payment_status: str, date_start, date_end,
+            user_id: str = None, vo_id: str = None
+    ):
+        """
+        查询用户或vo组的日结算单查询集
+        """
+        queryset = self.get_statement_disk_queryset()
+        if user_id:
+            queryset = queryset.filter(user_id=user_id, owner_type=OwnerType.USER.value)
+
+        if vo_id:
+            queryset = queryset.filter(vo_id=vo_id, owner_type=OwnerType.VO.value)
+
+        if date_start:
+            queryset = queryset.filter(date__gte=date_start)
+
+        if date_end:
+            queryset = queryset.filter(date__lte=date_end)
+
+        if payment_status:
+            queryset = queryset.filter(payment_status=payment_status)
+
+        return queryset.order_by('-creation_time')

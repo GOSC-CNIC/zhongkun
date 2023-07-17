@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -46,6 +48,17 @@ class MonthlyReport(UuidModel):
         verbose_name=_('计费金额'), max_digits=10, decimal_places=2)
     storage_payable_amount = models.DecimalField(verbose_name=_('按量应付金额'), max_digits=10, decimal_places=2)
     storage_postpaid_amount = models.DecimalField(verbose_name=_('按量后付费金额'), max_digits=10, decimal_places=2)
+    disk_count = models.IntegerField(verbose_name=_('本月度云硬盘数'), default=0)
+    disk_size_days = models.FloatField(
+        verbose_name=_('云硬盘容量GiB*Day'), blank=True, default=0, help_text=_('云硬盘的容量大小GiB Day数'))
+    disk_original_amount = models.DecimalField(
+        verbose_name=_('云硬盘计费金额'), max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    disk_payable_amount = models.DecimalField(
+        verbose_name=_('云硬盘按量应付金额'), max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    disk_postpaid_amount = models.DecimalField(
+        verbose_name=_('云硬盘按量后付费金额'), max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    disk_prepaid_amount = models.DecimalField(
+        verbose_name=_('云硬盘订购预付费金额'), max_digits=10, decimal_places=2, default=Decimal('0.00'))
 
     class Meta:
         verbose_name = _('月度报表')

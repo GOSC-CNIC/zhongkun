@@ -10,7 +10,8 @@ from utils.model import PayType, OwnerType, ResourceType
 from utils.test import get_or_create_user, get_or_create_center
 from order.models import Order
 from metering.models import (
-    MeteringServer, MeteringObjectStorage, DailyStatementServer, DailyStatementObjectStorage, PaymentStatus
+    MeteringServer, MeteringObjectStorage, DailyStatementServer, DailyStatementObjectStorage, PaymentStatus,
+    MeteringDisk, DailyStatementDisk
 )
 from bill.models import PayApp, PayOrgnazition, PayAppService, CashCoupon
 from storage.models import ObjectsService, Bucket, BucketArchive
@@ -60,7 +61,7 @@ class MonthlyReportTests(TransactionTestCase):
             time=datetime.time(hour=23, minute=59, second=59, microsecond=999999, tzinfo=timezone.utc))
 
     @staticmethod
-    def create_order_date(payment_time: datetime.datetime, vo, user, length: int):
+    def create_order_date(payment_time: datetime.datetime, vo, user, length: int, resource_type=ResourceType.VM.value):
         order_list = []
         for i in range(length):
             order = Order(
@@ -73,7 +74,7 @@ class MonthlyReportTests(TransactionTestCase):
                 app_service_id='pay_app_service_id',
                 service_id='service_id',
                 service_name='service_name',
-                resource_type=ResourceType.VM.value,
+                resource_type=resource_type,
                 instance_config='',
                 period=6,
                 pay_type=PayType.PREPAID.value,
@@ -123,6 +124,30 @@ class MonthlyReportTests(TransactionTestCase):
         order6.status = Order.Status.PAID.value
         order6.save(update_fields=['payment_time', 'status'])
 
+        disk_order_list = self.create_order_date(
+            payment_time=self.report_period_start_time, user=self.user1, vo=None, length=6,
+            resource_type=ResourceType.DISK.value)
+        # 1，2，3 in last month; ok (1, 2), 0+1=1
+        d_order1, d_order2, d_order3, d_order4, d_order5, d_order6 = disk_order_list
+        d_order2.payment_time = self.report_period_start_time + timedelta(minutes=10)
+        d_order2.status = Order.Status.PAID.value
+        d_order2.trading_status = Order.TradingStatus.COMPLETED.value
+        d_order2.save(update_fields=['payment_time', 'status', 'trading_status'])
+        d_order3.payment_time = self.report_period_start_time + timedelta(days=10)
+        d_order3.status = Order.Status.UNPAID.value
+        d_order3.save(update_fields=['payment_time', 'status'])
+
+        d_order4.payment_time = self.report_period_start_time - timedelta(days=20, minutes=40)
+        d_order4.status = Order.Status.PAID.value
+        d_order4.trading_status = Order.TradingStatus.COMPLETED.value
+        d_order4.save(update_fields=['payment_time', 'status', 'trading_status'])
+        d_order5.payment_time = self.report_period_start_time - timedelta(minutes=50)
+        d_order5.status = Order.Status.REFUND.value
+        d_order5.save(update_fields=['payment_time', 'status'])
+        d_order6.payment_time = self.report_period_end_time + timedelta(minutes=60)
+        d_order6.status = Order.Status.PAID.value
+        d_order6.save(update_fields=['payment_time', 'status'])
+
         # vo1
         order_list = self.create_order_date(
             payment_time=self.report_period_start_time, user=None, vo=self.vo1, length=7)
@@ -150,6 +175,22 @@ class MonthlyReportTests(TransactionTestCase):
         order7.payment_time = self.report_period_start_time + timedelta(days=25, minutes=6, seconds=1)
         order7.status = Order.Status.PAID.value
         order7.save(update_fields=['payment_time', 'status'])
+
+        disk_order_list = self.create_order_date(
+            payment_time=self.report_period_start_time, user=None, vo=self.vo1, length=7,
+            resource_type=ResourceType.DISK.value)
+        # 1，4, 5, 6 in last month; ok (1, 4, 5, 6), 0+3+4+5=12
+        order1, d_order2, d_order3, order4, order5, order6, d_order7 = disk_order_list
+        d_order2.payment_time = self.report_period_start_time - timedelta(minutes=10)
+        d_order2.status = Order.Status.PAID.value
+        d_order2.trading_status = Order.TradingStatus.COMPLETED.value
+        d_order2.save(update_fields=['payment_time', 'status', 'trading_status'])
+        d_order3.payment_time = self.report_period_start_time + timedelta(days=40)
+        d_order3.status = Order.Status.UNPAID.value
+        d_order3.save(update_fields=['payment_time', 'status'])
+        d_order7.payment_time = self.report_period_start_time - timedelta(days=25, minutes=6, seconds=1)
+        d_order7.status = Order.Status.PAID.value
+        d_order7.save(update_fields=['payment_time', 'status'])
 
     @staticmethod
     def create_server_metering(_date, server_id: str, user, vo, length: int):
@@ -351,6 +392,76 @@ class MonthlyReportTests(TransactionTestCase):
             now_time=self.report_period_end_time, user=None, vo=self.vo1,
             app_service_id=self.app_service1.id, length=7)
 
+    @staticmethod
+    def create_disk_metering(_date, disk_id: str, user, vo, length: int):
+        # 0,1 not in;  2,3,4,5,... in last month, when length < 28
+        for i in range(length):
+            ms = MeteringDisk(
+                size_hours=float(i + 2),
+                trade_amount=Decimal(f'{i}'),
+                original_amount=Decimal(f'{2 * i}'),
+                service_id=None,
+                disk_id=disk_id,
+                date=_date + timedelta(days=i - 2)
+            )
+            if user:
+                ms.user_id = user.id
+                ms.owner_type = OwnerType.USER.value
+            else:
+                ms.vo_id = vo.id
+                ms.owner_type = OwnerType.VO.value
+
+            ms.save(force_insert=True)
+
+    def init_disk_metering_data(self):
+        # user1, 2,3,4,5;
+        self.create_disk_metering(
+            _date=self.report_period_start, disk_id='disk_id1', user=self.user1, vo=None, length=6)
+        # user1, 2,3,4,5,6;
+        self.create_disk_metering(
+            _date=self.report_period_start, disk_id='disk_id2', user=self.user1, vo=None, length=7)
+        # vo1, 2,3,4,5,6;
+        self.create_disk_metering(
+            _date=self.report_period_start, disk_id='disk_id3', user=None, vo=self.vo1, length=7)
+        # vo1, 2,3,4,5,6,7;
+        self.create_disk_metering(
+            _date=self.report_period_start, disk_id='disk_id4', user=None, vo=self.vo1, length=8)
+        # vo2, 2,3,4,5,6,7,8;
+        self.create_disk_metering(
+            _date=self.report_period_start, disk_id='disk_id5', user=None, vo=self.vo2, length=9)
+
+    def init_disk_daily_statement(self):
+        # user1, 2,3,4,5;
+        self.create_disk_daily_statement(_date=self.report_period_start, user=self.user1, vo=None, length=6)
+        # user2, 2,3,4,5,6,7;
+        self.create_disk_daily_statement(_date=self.report_period_start, user=self.user2, vo=None, length=8)
+        # vo1, 2,3,4,5,6;
+        self.create_disk_daily_statement(_date=self.report_period_start, user=None, vo=self.vo1, length=7)
+        # vo2, 2,3,4,5,6,7,8;
+        self.create_disk_daily_statement(_date=self.report_period_start, user=None, vo=self.vo2, length=9)
+
+    @staticmethod
+    def create_disk_daily_statement(_date, user, vo, length: int):
+        # 0,1 not in;  2,3,4,5,... in last month, when length < 28
+        for i in range(length):
+            u_st0 = DailyStatementDisk(
+                original_amount=Decimal(f'{i}.66'),
+                payable_amount=Decimal(f'{i}.66'),
+                trade_amount=Decimal(f'{i}.66'),
+                payment_status=PaymentStatus.PAID.value,
+                payment_history_id='',
+                service_id=None,
+                date=_date + timedelta(days=i - 2)
+            )
+            if user:
+                u_st0.user_id = user.id
+                u_st0.owner_type = OwnerType.USER.value
+            else:
+                u_st0.vo_id = vo.id
+                u_st0.owner_type = OwnerType.VO.value
+
+            u_st0.save(force_insert=True)
+
     def test_monthly_report(self):
         # ----- no data ----
         mrg = MonthlyReportGenerator(limit=1, log_stdout=True)
@@ -398,6 +509,12 @@ class MonthlyReportTests(TransactionTestCase):
         self.assertEqual(u1_report.storage_original_amount, Decimal('0'))
         self.assertEqual(u1_report.storage_payable_amount, Decimal('0'))
         self.assertEqual(u1_report.storage_postpaid_amount, Decimal('0'))
+        self.assertEqual(u1_report.disk_count, 0)
+        self.assertEqual(u1_report.disk_size_days, 0)
+        self.assertEqual(u1_report.disk_original_amount, Decimal('0'))
+        self.assertEqual(u1_report.disk_payable_amount, Decimal('0'))
+        self.assertEqual(u1_report.disk_postpaid_amount, Decimal('0'))
+        self.assertEqual(u1_report.disk_prepaid_amount, Decimal('0'))
         self.assertEqual(BucketMonthlyReport.objects.filter(
             user_id=self.user1.id, report_date=self.report_period_date).count(), 0)
 
@@ -413,6 +530,8 @@ class MonthlyReportTests(TransactionTestCase):
         u1_b1, u1_ba2, u1_b3, u2_b4 = self.init_bucket_data()
         self.init_storage_daily_statement()
         self.init_coupons()
+        self.init_disk_metering_data()
+        self.init_disk_daily_statement()
 
         # 再此运行不会重复产生月度报表
         MonthlyReportGenerator(limit=1, log_stdout=True).run(check_time=False)
@@ -435,6 +554,12 @@ class MonthlyReportTests(TransactionTestCase):
         self.assertEqual(u1_report.storage_original_amount, Decimal('0'))
         self.assertEqual(u1_report.storage_payable_amount, Decimal('0'))
         self.assertEqual(u1_report.storage_postpaid_amount, Decimal('0'))
+        self.assertEqual(u1_report.disk_count, 0)
+        self.assertEqual(u1_report.disk_size_days, 0)
+        self.assertEqual(u1_report.disk_original_amount, Decimal('0'))
+        self.assertEqual(u1_report.disk_payable_amount, Decimal('0'))
+        self.assertEqual(u1_report.disk_postpaid_amount, Decimal('0'))
+        self.assertEqual(u1_report.disk_prepaid_amount, Decimal('0'))
         self.assertEqual(BucketMonthlyReport.objects.filter(
             user_id=self.user1.id, report_date=self.report_period_date).count(), 0)
 
@@ -471,6 +596,14 @@ class MonthlyReportTests(TransactionTestCase):
         self.assertEqual(u1_report.storage_payable_amount, Decimal.from_float(val))
         self.assertEqual(u1_report.storage_postpaid_amount,
                          Decimal.from_float((2 + 3 + 4 + 5) * 4) + Decimal('0.12') * 4)
+
+        self.assertEqual(u1_report.disk_count, 2)
+        val = (2 + 3 + 4 + 5) + 2 * 4 + (2 + 3 + 4 + 5 + 6) + 2 * 5
+        self.assertEqual(u1_report.disk_size_days, val/24)
+        self.assertEqual(u1_report.disk_original_amount, Decimal(f'{(2 + 3 + 4 + 5) * 2 + (2 + 3 + 4 + 5 + 6) * 2}'))
+        self.assertEqual(u1_report.disk_payable_amount, Decimal(f'{(2 + 3 + 4 + 5) + (2 + 3 + 4 + 5 + 6)}'))
+        self.assertEqual(u1_report.disk_postpaid_amount, Decimal.from_float(2 + 3 + 4 + 5) + Decimal('0.66') * 4)
+        self.assertEqual(u1_report.disk_prepaid_amount, Decimal('1.00'))
 
         self.assertEqual(BucketMonthlyReport.objects.filter(
             user_id=self.user1.id, report_date=self.report_period_date).count(), 3)
@@ -530,6 +663,15 @@ class MonthlyReportTests(TransactionTestCase):
         self.assertEqual(vo1_report.storage_original_amount, Decimal('0'))
         self.assertEqual(vo1_report.storage_payable_amount, Decimal('0'))
         self.assertEqual(vo1_report.storage_postpaid_amount, Decimal('0'))
+        self.assertEqual(vo1_report.disk_count, 2)
+        val = (2 + 3 + 4 + 5 + 6) + 5 * 2 + (2 + 3 + 4 + 5 + 6 + 7) + 6 * 2
+        self.assertEqual(vo1_report.disk_size_days, val / 24)
+        val = (2 + 3 + 4 + 5 + 6) * 2 + (2 + 3 + 4 + 5 + 6 + 7) * 2
+        self.assertEqual(vo1_report.disk_original_amount, Decimal(f'{val}'))
+        val = (2 + 3 + 4 + 5 + 6) + (2 + 3 + 4 + 5 + 6 + 7)
+        self.assertEqual(vo1_report.disk_payable_amount, Decimal(f'{val}'))
+        self.assertEqual(vo1_report.disk_postpaid_amount, Decimal.from_float(2 + 3 + 4 + 5 + 6) + Decimal('0.66') * 5)
+        self.assertEqual(vo1_report.disk_prepaid_amount, Decimal('12.00'))
 
         # vo2
         vo2_report: MonthlyReport = MonthlyReport.objects.filter(
@@ -550,6 +692,14 @@ class MonthlyReportTests(TransactionTestCase):
         self.assertEqual(vo2_report.server_disk_days * 24, val)
         val = Decimal.from_float(2 + 3 + 4 + 5 + 6 + 7 + 8) + Decimal('0.12') * 7
         self.assertEqual(vo2_report.server_postpaid_amount, val)
+        self.assertEqual(vo2_report.disk_count, 1)
+        val = (2 + 3 + 4 + 5 + 6 + 7 + 8) + 7 * 2
+        self.assertEqual(vo2_report.disk_size_days, val / 24)
+        self.assertEqual(vo2_report.disk_original_amount, Decimal(f'{(2 + 3 + 4 + 5 + 6 + 7 + 8) * 2}'))
+        self.assertEqual(vo2_report.disk_payable_amount, Decimal(f'{2 + 3 + 4 + 5 + 6 + 7 + 8}'))
+        self.assertEqual(
+            vo2_report.disk_postpaid_amount, Decimal.from_float(2 + 3 + 4 + 5 + 6 + 7 + 8) + Decimal('0.66') * 7)
+        self.assertEqual(vo2_report.disk_prepaid_amount, Decimal('0'))
 
         # 邮件
         self.assertEqual(len(mail.outbox), 0)

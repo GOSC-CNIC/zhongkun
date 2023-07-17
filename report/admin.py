@@ -1,5 +1,4 @@
 from django.contrib import admin
-from django.utils.translation import gettext_lazy as _
 
 from utils.model import NoDeleteSelectModelAdmin
 from .models import MonthlyReport, BucketMonthlyReport
@@ -12,7 +11,9 @@ class MonthlyReportAdmin(NoDeleteSelectModelAdmin):
                     'server_original_amount', 'server_payable_amount', 'server_postpaid_amount',
                     'server_prepaid_amount', 'server_cpu_days', 'server_ram_days', 'server_disk_days',
                     'server_ip_days', 'bucket_count', 'storage_days', 'storage_original_amount',
-                    'storage_payable_amount', 'storage_postpaid_amount', 'notice_time')
+                    'storage_payable_amount', 'storage_postpaid_amount',
+                    'disk_count', 'disk_size_days', 'disk_original_amount', 'disk_payable_amount',
+                    'disk_postpaid_amount', 'disk_prepaid_amount', 'notice_time')
     search_fields = ['id', 'user__username', 'vo__name']
     list_filter = ['is_reported', 'owner_type']
     raw_id_fields = ('user', 'vo')

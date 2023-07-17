@@ -11,15 +11,16 @@ from django.conf import settings
 from users.models import UserProfile, Email
 from vo.models import VirtualOrganization, VoMember
 from metering.managers import (
-    MeteringServerManager, MeteringStorageManager, StatementStorageManager, StatementServerManager
+    MeteringServerManager, MeteringStorageManager, StatementStorageManager, StatementServerManager,
+    MeteringDiskManager, StatementDiskManager
 )
-from metering.models import PaymentStatus, MeteringServer
+from metering.models import PaymentStatus, MeteringServer, MeteringDisk
 from report.models import MonthlyReport, BucketMonthlyReport
 from storage.models import Bucket, BucketArchive
 from order.models import Order, Resource, ResourceType
 from utils.model import OwnerType, PayType
 from bill.models import CashCoupon, CashCouponPaymentHistory
-from servers.models import Server, ServerArchive
+from servers.models import Server, ServerArchive, Disk
 
 from . import config_logger
 
@@ -318,6 +319,12 @@ class MonthlyReportGenerator:
             total_pay_amount=Sum('pay_amount')
         )
 
+        # 云硬盘
+        disk_report = MonthlyReportGenerator.get_vo_or_user_disk_report(
+            user_id=user.id, report_period_start=report_period_start, report_period_end=report_period_end,
+            report_period_start_time=report_period_start_time, report_period_end_time=report_period_end_time
+        )
+
         month_report = MonthlyReport(
             creation_time=timezone.now(),
             report_date=report_date,
@@ -346,8 +353,93 @@ class MonthlyReportGenerator:
         month_report.server_payable_amount = server_m_agg['total_trade_amount'] or Decimal('0.00')
         month_report.server_postpaid_amount = state_server_agg['total_trade_amount'] or Decimal('0.00')
         month_report.server_prepaid_amount = order_agg['total_pay_amount'] or Decimal('0.00')
+        # 云硬盘
+        month_report.disk_count = disk_report['disk_count']
+        month_report.disk_size_days = disk_report['disk_size_days']
+        month_report.disk_original_amount = disk_report['disk_original_amount']
+        month_report.disk_payable_amount = disk_report['disk_payable_amount']
+        month_report.disk_postpaid_amount = disk_report['disk_postpaid_amount']
+        month_report.disk_prepaid_amount = disk_report['disk_prepaid_amount']
         month_report.save(force_insert=True)
         return month_report
+
+    @staticmethod
+    def get_vo_or_user_disk_report(
+            report_period_start, report_period_end,
+            report_period_start_time, report_period_end_time,
+            user_id=None, vo_id=None
+    ):
+        """
+        vo云硬盘月度报表数据
+        """
+        if user_id and vo_id:
+            raise Exception('不能同时指定用户和vo')
+
+        # 云硬盘计量信息
+        disk_meter_qs = MeteringDiskManager().filter_disk_metering_queryset(
+            user_id=user_id, vo_id=vo_id, date_start=report_period_start, date_end=report_period_end
+        )
+        disk_m_agg = disk_meter_qs.aggregate(
+            total_size_hours=Sum('size_hours'),
+            total_original_amount=Sum('original_amount'),
+            total_trade_amount=Sum('trade_amount'),
+            disk_count=Count('disk_id', distinct=True)
+        )
+
+        # 云硬盘日结算单
+        state_disk_agg = StatementDiskManager().filter_statement_disk_queryset(
+            date_start=report_period_start, date_end=report_period_end,
+            payment_status=PaymentStatus.PAID.value, user_id=user_id, vo_id=vo_id
+        ).aggregate(
+            total_trade_amount=Sum('trade_amount')
+        )
+
+        # 云硬盘订购预付费金额
+        if user_id:
+            lookups = {'user_id': user_id, 'owner_type': OwnerType.USER.value}
+        elif vo_id:
+            lookups = {'vo_id': vo_id, 'owner_type': OwnerType.VO.value}
+        else:
+            raise Exception('需要指定一个用户或者VO')
+
+        order_agg = Order.objects.filter(
+            **lookups,
+            payment_time__gte=report_period_start_time, payment_time__lte=report_period_end_time,
+            status=Order.Status.PAID.value, pay_type=PayType.PREPAID.value, resource_type=ResourceType.DISK.value
+        ).aggregate(
+            total_pay_amount=Sum('pay_amount')
+        )
+
+        total_size_hours = disk_m_agg['total_size_hours']
+        if total_size_hours:
+            disk_size_days = total_size_hours / 24
+        else:
+            disk_size_days = 0
+
+        total_original_amount = disk_m_agg['total_original_amount']
+        if not total_original_amount:
+            total_original_amount = Decimal('0.00')
+
+        disk_payable_amount = disk_m_agg['total_trade_amount']
+        if not disk_payable_amount:
+            disk_payable_amount = Decimal('0.00')
+
+        disk_postpaid_amount = state_disk_agg['total_trade_amount']
+        if not disk_postpaid_amount:
+            disk_postpaid_amount = Decimal('0.00')
+
+        disk_prepaid_amount = order_agg['total_pay_amount']
+        if not disk_prepaid_amount:
+            disk_prepaid_amount = Decimal('0.00')
+
+        return {
+            'disk_count': disk_m_agg['disk_count'] if disk_m_agg['disk_count'] else 0,
+            'disk_size_days': disk_size_days,
+            'disk_original_amount': total_original_amount,
+            'disk_payable_amount': disk_payable_amount,
+            'disk_postpaid_amount': disk_postpaid_amount,
+            'disk_prepaid_amount': disk_prepaid_amount
+        }
 
     def generate_report_for_vo(
             self, vo: VirtualOrganization, report_date: datetime.date,
@@ -414,9 +506,15 @@ class MonthlyReportGenerator:
         order_agg = Order.objects.filter(
             vo_id=vo.id, owner_type=OwnerType.VO.value,
             payment_time__gte=report_period_start_time, payment_time__lte=report_period_end_time,
-            status=Order.Status.PAID.value, pay_type=PayType.PREPAID.value
+            status=Order.Status.PAID.value, pay_type=PayType.PREPAID.value, resource_type=ResourceType.VM.value
         ).aggregate(
             total_pay_amount=Sum('pay_amount')
+        )
+
+        # 云硬盘
+        disk_report = MonthlyReportGenerator.get_vo_or_user_disk_report(
+            vo_id=vo.id, report_period_start=report_period_start, report_period_end=report_period_end,
+            report_period_start_time=report_period_start_time, report_period_end_time=report_period_end_time
         )
 
         month_report = MonthlyReport(
@@ -442,6 +540,14 @@ class MonthlyReportGenerator:
         month_report.server_payable_amount = server_m_agg['total_trade_amount'] or Decimal('0.00')
         month_report.server_prepaid_amount = order_agg['total_pay_amount'] or Decimal('0.00')
         month_report.server_postpaid_amount = state_server_agg['total_trade_amount'] or Decimal('0.00')
+
+        # 云硬盘
+        month_report.disk_count = disk_report['disk_count']
+        month_report.disk_size_days = disk_report['disk_size_days']
+        month_report.disk_original_amount = disk_report['disk_original_amount']
+        month_report.disk_payable_amount = disk_report['disk_payable_amount']
+        month_report.disk_postpaid_amount = disk_report['disk_postpaid_amount']
+        month_report.disk_prepaid_amount = disk_report['disk_prepaid_amount']
 
         # 对象存储
         month_report.bucket_count = 0
@@ -938,36 +1044,23 @@ class MonthlyReportNotifier:
     def get_user_server_prepost_by_order(user, report_period_start_time, report_period_end_time):
         """
         :return: {
-            "service_id": {
+            "server_id": {
                 "pay_amount": Decimal(),
             }
         }
         """
         # 云主机订购预付费金额
-        qs = Order.objects.filter(
-            user_id=user.id, owner_type=OwnerType.USER.value,
-            payment_time__gte=report_period_start_time, payment_time__lte=report_period_end_time,
-            status=Order.Status.PAID.value, pay_type=PayType.PREPAID.value, resource_type=ResourceType.VM.value
-        ).prefetch_related('resource_set')
-        d = {}
-        for order in qs:
-            res_set = order.resource_set.all()
-            if res_set:
-                res = res_set[0]
-                server_id = res.instance_id
-                if server_id in d:
-                    item = d[server_id]
-                    item['pay_amount'] += order.pay_amount
-                else:
-                    d[server_id] = {'pay_amount': order.pay_amount}
-
-        return d
+        return MonthlyReportNotifier.get_user_resource_prepost_by_order(
+            user=user, report_period_start_time=report_period_start_time,
+            report_period_end_time=report_period_end_time,
+            resource_type=ResourceType.VM.value
+        )
 
     @staticmethod
     def get_user_server_prepost_by_resoures(server_ids: list, user, report_period_start_time, report_period_end_time):
         """
         :return: {
-            "service_id": {
+            "server_id": {
                 "pay_amount": Decimal(),
             }
         }
@@ -1087,3 +1180,111 @@ class MonthlyReportNotifier:
                 amount = Decimal('0.00')
 
             setattr(cp, 'last_month_pay_amount', amount)
+
+    @staticmethod
+    def get_user_resource_prepost_by_order(user, report_period_start_time, report_period_end_time, resource_type: str):
+        """
+        :return: {
+            "resource_instance_id": {
+                "pay_amount": Decimal(),
+            }
+        }
+        """
+        # 云主机订购预付费金额
+        qs = Order.objects.filter(
+            user_id=user.id, owner_type=OwnerType.USER.value,
+            payment_time__gte=report_period_start_time, payment_time__lte=report_period_end_time,
+            status=Order.Status.PAID.value, pay_type=PayType.PREPAID.value, resource_type=resource_type
+        ).prefetch_related('resource_set')
+        d = {}
+        for order in qs:
+            res_set = order.resource_set.all()
+            if res_set:
+                res = res_set[0]
+                instance_id = res.instance_id
+                if instance_id in d:
+                    item = d[instance_id]
+                    item['pay_amount'] += order.pay_amount
+                else:
+                    d[instance_id] = {'pay_amount': order.pay_amount}
+
+        return d
+
+    @staticmethod
+    def get_user_disk_prepost_by_order(user, report_period_start_time, report_period_end_time):
+        """
+        云硬盘订购预付费金额
+        :return: {
+            "disk_id": {
+                "pay_amount": Decimal(),
+            }
+        }
+        """
+        return MonthlyReportNotifier.get_user_resource_prepost_by_order(
+            user=user, report_period_start_time=report_period_start_time,
+            report_period_end_time=report_period_end_time,
+            resource_type=ResourceType.DISK.value
+        )
+
+    @staticmethod
+    def get_user_disk_monthly_reports(
+            user, report_period_start: datetime.date, report_period_end: datetime.date,
+            report_period_start_time: datetime.datetime, report_period_end_time: datetime.datetime
+    ):
+        queryset = MeteringDisk.objects.filter(
+            owner_type=OwnerType.USER.value, user_id=user.id,
+            date__gte=report_period_start, date__lte=report_period_end
+        ).values('disk_id').annotate(
+            total_size_hours=Sum('size_hours'),
+            total_original_amount=Sum('original_amount'),
+            total_trade_amount=Sum('trade_amount')
+        ).order_by('disk_id')
+        reports = MonthlyReportNotifier.disk_reports_mixin_disk_info(list(queryset))
+        prepost_disks_map = MonthlyReportNotifier.get_user_disk_prepost_by_order(
+            user=user,
+            report_period_start_time=report_period_start_time,
+            report_period_end_time=report_period_end_time
+        )
+
+        for rpt in reports:
+            total_size_hours = rpt['total_size_hours']
+            total_size_hours = total_size_hours if total_size_hours else 0
+            rpt['total_size_hours'] = total_size_hours / 24
+
+            if rpt['total_original_amount'] is None:
+                rpt['total_original_amount'] = Decimal('0.00')
+
+            if rpt['total_trade_amount'] is None:
+                rpt['total_trade_amount'] = Decimal('0.00')
+
+            disk_id = rpt['disk_id']
+            if disk_id in prepost_disks_map:
+                rpt['total_prepost_amount'] = prepost_disks_map[disk_id]['pay_amount']
+            else:
+                rpt['total_prepost_amount'] = Decimal('0.00')
+
+            rpt['total_amount'] = rpt['total_prepost_amount'] + rpt['total_trade_amount']
+
+        return reports
+
+    @staticmethod
+    def disk_reports_mixin_disk_info(data: list):
+        """
+        按disk id聚合数据分页后混合其他数据
+        """
+        disk_ids = [i['disk_id'] for i in data]
+        disks = Disk.objects.filter(id__in=disk_ids).values(
+            'id', 'size', 'remarks', 'pay_type')
+
+        disk_dict = {}
+        for disk in disks:
+            disk_dict[disk['id']] = {'disk': disk}
+
+        for i in data:
+            d_id = i['disk_id']
+            if d_id in disk_dict:
+                i.update(disk_dict[d_id])
+            else:
+                i['disk'] = None
+
+        return data
