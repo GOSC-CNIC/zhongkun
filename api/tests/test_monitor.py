@@ -100,6 +100,26 @@ class MonitorCephTests(MyAPITestCase):
         self.query_ok_test(monitor_unit_id=ceph_unit_id, query_tag=CephQueryChoices.OSD_UP.value)
         self.query_ok_test(monitor_unit_id=ceph_unit_id, query_tag=CephQueryChoices.OSD_DOWN.value)
 
+        # all together
+        response = self.query_response(
+            monitor_unit_id=ceph_unit_id, query_tag=CephQueryChoices.ALL_TOGETHER.value)
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.data, dict)
+
+        tags = CephQueryChoices.values
+        tags.remove(CephQueryChoices.ALL_TOGETHER.value)
+        for tag in tags:
+            self.assertIn(tag, response.data)
+            tag_data = response.data[tag]
+            self.assertIsInstance(tag_data, list)
+            if tag_data:
+                data_item = tag_data[0]
+                self.assertKeysIn(["metric", "value", "monitor"], data_item)
+                if data_item["value"] is not None:
+                    self.assertIsInstance(data_item["value"], list)
+                    self.assertEqual(len(data_item["value"]), 2)
+                self.assertKeysIn(["name", "name_en", "job_tag", "id", "creation"], data_item["monitor"])
+
     def query_range_response(self, monitor_unit_id: str = None, query_tag: str = None,
                              start: int = None, end: int = None, step: int = None):
         querys = {}

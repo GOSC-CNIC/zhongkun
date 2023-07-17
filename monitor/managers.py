@@ -29,6 +29,7 @@ class CephQueryChoices(models.TextChoices):
     OSD_OUT = 'osd_out', _('Ceph集群外OSD数')
     OSD_UP = 'osd_up', _('Ceph集群活着且在运行OSD数')
     OSD_DOWN = 'osd_down', _('Ceph集群挂了且不再运行OSD数')
+    ALL_TOGETHER = 'all_together', _('一起查询所有指标')
 
 
 class ServerQueryChoices(models.TextChoices):
@@ -86,6 +87,26 @@ class MonitorJobCephManager:
         return qs
 
     def query(self, tag: str, monitor_unit: MonitorJobCeph):
+        if tag == CephQueryChoices.ALL_TOGETHER.value:
+            return self.query_together(monitor_unit=monitor_unit)
+
+        return self._query(tag=tag, monitor_unit=monitor_unit)
+
+    def query_together(self, monitor_unit: MonitorJobCeph):
+        ret = {}
+        tags = CephQueryChoices.values
+        tags.remove(CephQueryChoices.ALL_TOGETHER.value)
+        for tag in tags:
+            try:
+                data = self._query(tag=tag, monitor_unit=monitor_unit)
+            except errors.Error as exc:
+                data = []
+
+            ret[tag] = data
+
+        return ret
+
+    def _query(self, tag: str, monitor_unit: MonitorJobCeph):
         """
         :return:
             [
@@ -129,6 +150,9 @@ class MonitorJobCephManager:
         return ret_data
 
     def queryrange(self, tag: str, monitor_unit: MonitorJobCeph, start: int, end: int, step: int):
+        if tag == CephQueryChoices.ALL_TOGETHER.value:
+            raise errors.InvalidArgument(message=_('范围查询不支持一起查询所有指标类型'))
+
         job_ceph_map = {monitor_unit.job_tag: monitor_unit}
         ret_data = []
         for job in job_ceph_map.values():
