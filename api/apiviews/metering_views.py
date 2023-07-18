@@ -719,7 +719,7 @@ class MeteringDiskViewSet(CustomGenericViewSet):
                   "trade_amount": "0.00",
                   "daily_statement_id": "",
                   "service_id": "8d725d6a-30b5-11ec-a8e6-c8009fe2eb10",
-                  "server_id": "d24aa2fc-5d43-11ec-8f46-c8009fe2eb10",
+                  "disk_id": "d24aa2fc-5d43-11ec-8f46-c8009fe2eb10",
                   "date": "2021-12-15",
                   "creation_time": "2022-04-02T09:14:07.754058Z",
                   "user_id": "1",
@@ -733,6 +733,40 @@ class MeteringDiskViewSet(CustomGenericViewSet):
             }
         """
         return MeteringDiskHandler().list_disk_metering(view=self, request=request)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('云硬盘计量单详情查询')
+    )
+    def retrieve(self, request, *args, **kwargs):
+        """
+        云硬盘计量单详情查询
+
+            http 200:
+            {
+              "id": "400ad412-b265-11ec-9dad-c8009fe2eb10",
+              "original_amount": "2.86",
+              "trade_amount": "0.00",
+              "daily_statement_id": "",
+              "service_id": "8d725d6a-30b5-11ec-a8e6-c8009fe2eb10",
+              "disk_id": "d24aa2fc-5d43-11ec-8f46-c8009fe2eb10",
+              "date": "2021-12-15",
+              "creation_time": "2022-04-02T09:14:07.754058Z",
+              "user_id": "1",
+              "username": "admin",
+              "vo_id": "",
+              "vo_name": "",
+              "owner_type": "user",     # user: 属于用户；vo: 属于vo组
+              "size_hours": 45.64349609833334,  # 容量用量 GiB*小时
+              "pay_type": "postpaid"
+              "disk": {
+                "creation_time": "2022-04-02T09:14:07.754058Z",
+                "remarks": 2,
+                "size": 200,
+                "id": "0e475786-9ac1-11ec-857b-c8009fe2eb10"
+              }
+            }
+        """
+        return MeteringDiskHandler().get_disk_metering_detail(view=self, request=request, kwargs=kwargs)
 
     def get_serializer_class(self):
         if self.action == 'list':

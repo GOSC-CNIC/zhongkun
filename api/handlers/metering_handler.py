@@ -20,7 +20,7 @@ from metering.managers import (
     MeteringServerManager, StatementServerManager, MeteringStorageManager, StatementStorageManager,
     MeteringDiskManager, StatementDiskManager
 )
-from servers.models import Server, ServerArchive
+from servers.models import Server, ServerArchive, Disk
 from utils.report_file import CSVFileInMemory
 from utils import rand_utils
 from utils.decimal_utils import quantize_18_2
@@ -1562,3 +1562,24 @@ class MeteringDiskHandler:
             'user_id': user_id,
             # 'download': download is not None
         }
+
+    @staticmethod
+    def get_disk_metering_detail(view: CustomGenericViewSet, request, kwargs):
+        """
+        计量计费单详细信息查询
+        """
+        metering_id = kwargs.get(view.lookup_field)
+
+        try:
+            metering = MeteringDiskManager.get_metering(metering_id=metering_id, user=request.user)
+        except errors.Error as exc:
+            return view.exception_response(exc=exc)
+
+        disk = Disk.objects.filter(id=metering.disk_id).values(
+            'id', 'size', 'remarks', 'creation_time').first()
+        if not disk:
+            disk = {'id': metering.disk_id, 'size': 0, 'remarks': '', 'creation_time': None}
+
+        data = MeteringDiskSerializer(instance=metering).data
+        data['disk'] = disk
+        return Response(data=data)

@@ -15,8 +15,9 @@ from metering.models import (
     MeteringDisk, DailyStatementDisk
 )
 from . import set_auth_header, MyAPITestCase
-from servers.models import Server, ServerArchive
+from servers.models import Server, ServerArchive, Disk
 from users.models import UserProfile
+from .test_disk import create_disk_metadata
 
 
 class MeteringServerTests(MyAPITestCase):
@@ -2252,7 +2253,7 @@ def create_disk_metering(
 
 class MeteringDiskTests(MyAPITestCase):
     def setUp(self):
-        self.user = set_auth_header(self)
+        self.user = get_or_create_user(username='lilei@cnic.cn')
         self.service = get_or_create_service()
         self.service2 = ServiceConfig(
             name='test2', data_center_id=self.service.data_center_id, endpoint_url='test2', username='', password='',
@@ -2304,6 +2305,10 @@ class MeteringDiskTests(MyAPITestCase):
 
         # list user metering, default current month
         base_url = reverse('api:metering-disk-list')
+        r = self.client.get(base_url)
+        self.assertEqual(r.status_code, 401)
+        self.client.force_login(self.user)
+
         r = self.client.get(base_url)
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn(["count", "page_num", "page_size", "results"], r.data)
@@ -2511,6 +2516,65 @@ class MeteringDiskTests(MyAPITestCase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data["count"], 1)
         self.assertEqual(len(r.data['results']), 1)
+
+    def test_detail_metering(self):
+        user2 = get_or_create_user(username='tom@cnic.cn')
+        disk1 = create_disk_metadata(
+            service_id=self.service.id, azone_id='', disk_size=66, pay_type=PayType.PREPAID.value,
+            classification=Disk.Classification.VO.value, user_id=None, vo_id=self.vo.id, creation_time=timezone.now()
+        )
+        m1_user = create_disk_metering(
+            service_id=self.service.id, disk_id='disk1', _date=date(year=2022, month=2, day=16),
+            pay_type=PayType.POSTPAID.value,
+            original_amount=Decimal('1.11'), trade_amount=Decimal('1.11'),
+            owner_type=OwnerType.USER.value, user_id=self.user.id, username=self.user.username, vo_id='', vo_name=''
+        )
+        m2_vo1 = create_disk_metering(
+            service_id=self.service.id, disk_id=disk1.id, _date=date(year=2022, month=2, day=8),
+            pay_type=PayType.POSTPAID.value,
+            original_amount=Decimal('3.33'), trade_amount=Decimal('0'),
+            owner_type=OwnerType.VO.value, user_id='', username='', vo_id=self.vo.id, vo_name=self.vo.name
+        )
+
+        self.client.logout()
+
+        # detail user metering
+        base_url = reverse('api:metering-disk-detail', kwargs={'id': 'xxx'})
+        r = self.client.get(base_url)
+        self.assertEqual(r.status_code, 401)
+        self.client.force_login(user2)
+
+        base_url = reverse('api:metering-disk-detail', kwargs={'id': 'xxx'})
+        r = self.client.get(base_url)
+        self.assertErrorResponse(status_code=404, code='NotFound', response=r)
+
+        base_url = reverse('api:metering-disk-detail', kwargs={'id': m1_user.id})
+        r = self.client.get(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        base_url = reverse('api:metering-disk-detail', kwargs={'id': m2_vo1.id})
+        r = self.client.get(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        self.client.logout()
+        self.client.force_login(self.user)
+
+        base_url = reverse('api:metering-disk-detail', kwargs={'id': m1_user.id})
+        r = self.client.get(base_url)
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(["id", "original_amount", "trade_amount", "daily_statement_id", "disk_id",
+                           'date', 'creation_time', 'user_id', 'username', 'vo_id', 'vo_name', 'owner_type',
+                           'size_hours', 'pay_type', 'disk'], r.data)
+        self.assertKeysIn(["id", "remarks", "size", 'creation_time'], r.data['disk'])
+
+        base_url = reverse('api:metering-disk-detail', kwargs={'id': m2_vo1.id})
+        r = self.client.get(base_url)
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(["id", "original_amount", "trade_amount", "daily_statement_id", "disk_id",
+                           'date', 'creation_time', 'user_id', 'username', 'vo_id', 'vo_name', 'owner_type',
+                           'size_hours', 'pay_type', 'disk'], r.data)
+        self.assertKeysIn(["id", "remarks", "size", 'creation_time'], r.data['disk'])
+        self.assertEqual(r.data['disk']['size'], disk1.size)
 
 
 class StatementDiskTests(MyAPITestCase):
