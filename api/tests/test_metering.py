@@ -12,7 +12,7 @@ from storage.models import ObjectsService
 from vo.models import VirtualOrganization
 from metering.models import (
     MeteringServer, DailyStatementServer, PaymentStatus, MeteringObjectStorage, DailyStatementObjectStorage,
-    MeteringDisk
+    MeteringDisk, DailyStatementDisk
 )
 from . import set_auth_header, MyAPITestCase
 from servers.models import Server, ServerArchive
@@ -2511,3 +2511,357 @@ class MeteringDiskTests(MyAPITestCase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data["count"], 1)
         self.assertEqual(len(r.data['results']), 1)
+
+
+class StatementDiskTests(MyAPITestCase):
+    def setUp(self):
+        self.user = set_auth_header(self)
+        self.user2 = get_or_create_user(username='user2')
+
+        self.vo = VirtualOrganization(
+            id='test vo id', name='test vo', owner=self.user
+        )
+        self.vo.save()
+
+        self.service = get_or_create_service()
+        self.service2 = ServiceConfig(
+            name='test2', data_center_id=self.service.data_center_id, endpoint_url='test2', username='', password='',
+            need_vpn=False
+        )
+        self.service2.save()
+
+    def create_statement_disk(self):
+        # ## user
+        # # user
+        # 2022-1-1 service
+        u_st0 = DailyStatementDisk(
+            original_amount='1.11',
+            payable_amount='1.11',
+            trade_amount='1.11',
+            payment_status=PaymentStatus.PAID.value,
+            payment_history_id='',
+            service_id=self.service.id,
+            date=date(year=2022, month=1, day=1),
+            user_id=self.user.id,
+            username=self.user.username,
+            vo_id='',
+            vo_name='',
+            owner_type=OwnerType.USER.value,
+        )
+        u_st0.save(force_insert=True)
+
+        # 2022-1-1 service2
+        u_st1 = DailyStatementDisk(
+            original_amount='2.22',
+            payable_amount='2.22',
+            trade_amount='0',
+            payment_status=PaymentStatus.UNPAID.value,
+            payment_history_id='',
+            service_id=self.service2.id,
+            date=date(year=2022, month=1, day=1),
+            user_id=self.user.id,
+            username=self.user.username,
+            vo_id='',
+            vo_name='',
+            owner_type=OwnerType.USER.value,
+        )
+        u_st1.save(force_insert=True)
+
+        # 2022-1-2 service1
+        u_st2 = DailyStatementDisk(
+            original_amount='3.33',
+            payable_amount='3.33',
+            trade_amount='0',
+            payment_status=PaymentStatus.UNPAID.value,
+            payment_history_id='',
+            service_id=self.service.id,
+            date=date(year=2022, month=1, day=2),
+            user_id=self.user.id,
+            username=self.user.username,
+            vo_id='',
+            vo_name='',
+            owner_type=OwnerType.USER.value,
+        )
+        u_st2.save(force_insert=True)
+
+        # # user2
+        u_st3 = DailyStatementDisk(
+            original_amount='4.44',
+            payable_amount='4.44',
+            trade_amount='0',
+            payment_status=PaymentStatus.UNPAID.value,
+            payment_history_id='',
+            service_id=self.service.id,
+            date=date(year=2022, month=1, day=2),
+            user_id=self.user2.id,
+            username=self.user2.username,
+            vo_id='',
+            vo_name='',
+            owner_type=OwnerType.USER.value,
+        )
+        u_st3.save(force_insert=True)
+
+        # ## vo
+        # 2022-1-1 service
+        v_st0 = DailyStatementDisk(
+            original_amount='5.55',
+            payable_amount='5.55',
+            trade_amount='5.55',
+            payment_status=PaymentStatus.PAID.value,
+            payment_history_id='',
+            service_id=self.service.id,
+            date=date(year=2022, month=1, day=1),
+            user_id='',
+            username='',
+            vo_id=self.vo.id,
+            vo_name=self.vo.name,
+            owner_type=OwnerType.VO.value,
+        )
+        v_st0.save(force_insert=True)
+
+        # 2022-1-1 service2
+        v_st1 = DailyStatementDisk(
+            original_amount='6.66',
+            payable_amount='6.66',
+            trade_amount='0',
+            payment_status=PaymentStatus.UNPAID.value,
+            payment_history_id='',
+            service_id=self.service2.id,
+            date=date(year=2022, month=1, day=1),
+            user_id='',
+            username='',
+            vo_id=self.vo.id,
+            vo_name=self.vo.name,
+            owner_type=OwnerType.VO.value,
+        )
+        v_st1.save(force_insert=True)
+
+        # 2022-1-2 service1
+        v_st2 = DailyStatementDisk(
+            original_amount='7.77',
+            payable_amount='7.77',
+            trade_amount='0',
+            payment_status=PaymentStatus.UNPAID.value,
+            payment_history_id='',
+            service_id=self.service.id,
+            date=date(year=2022, month=1, day=2),
+            user_id='',
+            username='',
+            vo_id=self.vo.id,
+            vo_name=self.vo.name,
+            owner_type=OwnerType.VO.value,
+        )
+        v_st2.save(force_insert=True)
+
+        return u_st0, u_st1, u_st2, u_st3, v_st0, v_st1, v_st2
+
+    def test_list_statement_disk(self):
+        base_url = reverse('api:statement-disk-list')
+
+        # list user statement-disk
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'page_num', 'page_size', 'statements'], response.data)
+        self.assertIsInstance(response.data['statements'], list)
+        self.assertEqual(response.data['count'], 0)
+        self.assertEqual(len(response.data['statements']), 0)
+
+        # list vo statement-disk
+        query = parse.urlencode(query={
+            'vo_id': self.vo.id
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'page_num', 'page_size', 'statements'], response.data)
+        self.assertIsInstance(response.data['statements'], list)
+        self.assertEqual(response.data['count'], 0)
+        self.assertEqual(len(response.data['statements']), 0)
+
+        # create statement disk
+        u_st0, u_st1, u_st2, u_st3, v_st0, v_st1, v_st2 = self.create_statement_disk()
+
+        # ------ list user -------
+        # no params
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 3)
+        self.assertEqual(len(response.data['statements']), 3)
+        self.assertKeysIn(["id", "original_amount", "payable_amount", "trade_amount",
+                           "payment_status", "payment_history_id", "service", "date", "creation_time",
+                           "user_id", "username", "vo_id", "vo_name", "owner_type"], response.data['statements'][0])
+
+        self.assertEqual(response.data['statements'][0]['original_amount'], u_st2.original_amount)
+        self.assertEqual(response.data['statements'][1]['original_amount'], u_st1.original_amount)
+        self.assertEqual(response.data['statements'][2]['original_amount'], u_st0.original_amount)
+
+        # date_start - date_end
+        query = parse.urlencode(query={
+            'date_start': '2022-01-02', 'time_end': '2022-01-02'
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['statements']), 1)
+        self.assertEqual(response.data['statements'][0]['user_id'], self.user.id)
+        self.assertEqual(response.data['statements'][0]['user_id'], u_st2.user_id)
+        self.assertEqual(response.data['statements'][0]['original_amount'], u_st2.original_amount)
+
+        query = parse.urlencode(query={
+            'date_start': '2022-01-01', 'time_end': '2022-01-02'
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 3)
+        self.assertEqual(len(response.data['statements']), 3)
+
+        # payment_status
+        query = parse.urlencode(query={
+            'payment_status': PaymentStatus.PAID.value,
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['statements']), 1)
+        self.assertEqual(response.data['statements'][0]['original_amount'], u_st0.original_amount)
+
+        # date_start - date_end  && payment_status
+        query = parse.urlencode(query={
+            'date_start': '2022-01-01', 'time_end': '2022-01-02',
+            'payment_status': PaymentStatus.UNPAID.value,
+
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(len(response.data['statements']), 2)
+
+        # ---- list vo ------
+        query = parse.urlencode(query={
+            'vo_id': self.vo.id
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 3)
+        self.assertEqual(len(response.data['statements']), 3)
+        self.assertKeysIn(["id", "original_amount", "payable_amount", "trade_amount",
+                           "payment_status", "payment_history_id", "service", "date", "creation_time",
+                           "user_id", "username", "vo_id", "vo_name", "owner_type"], response.data['statements'][0])
+        self.assertKeysIn(["id", "name", "name_en", "service_type"], response.data['statements'][0]['service'])
+        self.assertEqual(response.data['statements'][0]['original_amount'], v_st2.original_amount)
+        self.assertEqual(response.data['statements'][1]['original_amount'], v_st1.original_amount)
+        self.assertEqual(response.data['statements'][2]['original_amount'], v_st0.original_amount)
+
+        # date_start - date_end
+        query = parse.urlencode(query={
+            'vo_id': self.vo.id,
+            'date_start': '2022-01-02', 'time_end': '2022-01-02',
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['statements']), 1)
+        self.assertEqual(response.data['statements'][0]['vo_id'], self.vo.id)
+        self.assertEqual(response.data['statements'][0]['vo_id'], v_st2.vo_id)
+        self.assertEqual(response.data['statements'][0]['original_amount'], v_st2.original_amount)
+
+        query = parse.urlencode(query={
+            'vo_id': self.vo.id,
+            'date_start': '2022-01-01', 'time_end': '2022-01-02'
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 3)
+        self.assertEqual(len(response.data['statements']), 3)
+
+        # payment_status
+        query = parse.urlencode(query={
+            'vo_id': self.vo.id,
+            'payment_status': PaymentStatus.PAID.value,
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['statements']), 1)
+        self.assertEqual(response.data['statements'][0]['original_amount'], v_st0.original_amount)
+
+        # date_start - date_end  && payment_status
+        query = parse.urlencode(query={
+            'vo_id': self.vo.id,
+            'date_start': '2022-01-01', 'time_end': '2022-01-02',
+            'payment_status': PaymentStatus.UNPAID.value,
+
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(len(response.data['statements']), 2)
+
+    def test_detail_statement_disk(self):
+        # not found
+        url = reverse('api:order-detail', kwargs={'id': '1234567891234567891234'})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
+
+        # create statement disk
+        u_st0, u_st1, u_st2, u_st3, v_st0, v_st1, v_st2 = self.create_statement_disk()
+
+        # user statement disk detail
+        url = reverse('api:statement-disk-detail', kwargs={'id': u_st0.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["id", "original_amount", "payable_amount", "trade_amount",
+                           "payment_status", "payment_history_id", "service", "date", "creation_time",
+                           "user_id", "username", "vo_id", "vo_name", "owner_type", "service"], response.data)
+        self.assertKeysIn(["id", "name", "name_en", "service_type"], response.data['service'])
+
+        self.assert_is_subdict_of(sub={
+            "id": u_st0.id,
+            "original_amount": u_st0.original_amount,
+            "payable_amount": u_st0.payable_amount,
+            "trade_amount": u_st0.trade_amount,
+            "payment_status": u_st0.payment_status,
+            "payment_history_id": u_st0.payment_history_id,
+            "user_id": self.user.id,
+            "username": self.user.username,
+            "vo_id": '',
+            "vo_name": '',
+            "owner_type": OwnerType.USER.value,
+        }, d=response.data)
+        self.assert_is_subdict_of(sub={
+            "id": self.service.id,
+            "name": self.service.name,
+            "name_en": self.service.name_en,
+            "service_type": self.service.service_type,
+        }, d=response.data['service'])
+
+        # vo statement disk detail
+        url = reverse('api:statement-disk-detail', kwargs={'id': v_st0.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["id", "original_amount", "payable_amount", "trade_amount",
+                           "payment_status", "payment_history_id", "service", "date", "creation_time",
+                           "user_id", "username", "vo_id", "vo_name", "owner_type", "service",
+                           'meterings'], response.data)
+        self.assertIsInstance(response.data['meterings'], list)
+        self.assertKeysIn(["id", "name", "name_en", "service_type"], response.data['service'])
+        self.assertEqual(response.data['original_amount'], v_st0.original_amount)
+        self.assertEqual(response.data['payable_amount'], v_st0.payable_amount)
+        self.assertEqual(response.data['trade_amount'], v_st0.trade_amount)
+        self.assertEqual(response.data['payment_status'], v_st0.payment_status)
+        self.assertEqual(response.data['service_id'], v_st0.service_id)
+        self.assertEqual(response.data['payment_history_id'], v_st0.payment_history_id)
+        self.assertEqual(response.data['user_id'], '')
+        self.assertEqual(response.data['username'], '')
+        self.assertEqual(response.data['vo_id'], self.vo.id)
+        self.assertEqual(response.data['vo_name'], self.vo.name)
+        self.assertEqual(response.data['owner_type'], OwnerType.VO.value)
+
+        # user2 no vo permission test
+        self.client.logout()
+        self.client.force_login(user=self.user2)
+        url = reverse('api:statement-disk-detail', kwargs={'id': v_st0.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 403)
+        url = reverse('api:statement-disk-detail', kwargs={'id': v_st1.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 403)

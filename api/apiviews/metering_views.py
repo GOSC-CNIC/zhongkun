@@ -739,3 +739,155 @@ class MeteringDiskViewSet(CustomGenericViewSet):
             return metering_serializers.MeteringDiskSerializer
 
         return Serializer
+
+
+class StatementDiskViewSet(CustomGenericViewSet):
+    permission_classes = [IsAuthenticated, ]
+    pagination_class = StatementPageNumberPagination
+    lookup_field = 'id'
+
+    # lookup_value_regex = '[0-9a-z-]+'
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举硬盘日结算单'),
+        request_body=no_body,
+        manual_parameters=[
+            openapi.Parameter(
+                name='payment_status',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'支付状态，{PaymentStatus.choices}'
+            ),
+            openapi.Parameter(
+                name='date_start',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'日结算单日期查询，时间段起，ISO8601格式：YYYY-MM-dd'
+            ),
+            openapi.Parameter(
+                name='date_end',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'日结算单日期查询，时间段止，ISO8601格式：YYYY-MM-dd'
+            ),
+            openapi.Parameter(
+                name='vo_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'查询指定VO组的日结算单'
+            ),
+        ],
+        responses={
+            200: ''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        列举硬盘日结算单
+
+            http code 200：
+            {
+              "count": 1,
+              "page_num": 1,
+              "page_size": 20,
+              "statements": [
+                {
+                  "id": "s7649b7e624f211ed88b9c8009fe2eb44",
+                  "original_amount": "16.32",
+                  "payable_amount": "0.00",
+                  "trade_amount": "0.00",
+                  "payment_status": "unpaid",
+                  "payment_history_id": "",
+                  "date": "2022-01-01",
+                  "creation_time": "2022-08-26T03:52:10.358606Z",
+                  "user_id": "",
+                  "username": "",
+                  "vo_id": "1d35892c-36d3-11ec-8e3b-c8009fe2eb03",
+                  "vo_name": "科研计算云联邦演示",
+                  "owner_type": "vo",
+                  "service": {
+                    "id": "1d35892c-36d3-11ec-8e3b-c8009fe2eb03",
+                    "name": "科技云联邦研发与运行",
+                    "name_en": "CSTCloud Federation Dev & Ops",
+                    "service_type": "evcloud"
+                  }
+                }
+              ]
+            }
+        """
+        return StatementHandler().list_statement_disk(view=self, request=request)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('云硬盘日结算单详情'),
+        request_body=no_body,
+        manual_parameters=[
+        ],
+        responses={
+            200: ''
+        }
+    )
+    def retrieve(self, request, *args, **kwargs):
+        """
+        云硬盘日结算单详情
+
+            http code 200：
+            {
+              "id": "s7647061824f211ed88b9c8009fe2eb44",
+              "original_amount": "16.32",
+              "payable_amount": "0.00",
+              "trade_amount": "0.00",
+              "payment_status": "unpaid",
+              "payment_history_id": "",
+              "date": "2022-01-01",
+              "creation_time": "2022-08-26T03:52:10.341058Z",
+              "user_id": "",
+              "username": "",
+              "vo_id": "1d35892c-36d3-11ec-8e3b-c8009fe2eb03",
+              "vo_name": "科研计算云联邦演示",
+              "owner_type": "vo",
+              "service": {
+                "id": "1",
+                "name": "科技云联邦研发与运行",
+                "name_en": "CSTCloud Federation Dev & Ops",
+                "service_type": "evcloud"
+              },
+              "meterings": [
+                {
+                  "id": "sd99ab976658e11eda3bac8009fe2ebbc",
+                  "original_amount": "72.24",
+                  "trade_amount": "72.24",
+                  "daily_statement_id": "s15b4e94a658f11edb8adc8009fe2ebbc",
+                  "service_id": "8d725d6a-30b5-11ec-a8e6-c8009fe2eb10",
+                  "server_id": "5fc60df0-9445-11ec-a91e-c8009fe2eb10",
+                  "date": "2022-11-15",
+                  "creation_time": "2022-11-16T09:12:52.891427Z",
+                  "user_id": "1",
+                  "username": "shun",
+                  "vo_id": "",
+                  "vo_name": "",
+                  "owner_type": "user",
+                  "cpu_hours": 48,
+                  "ram_hours": 96,
+                  "disk_hours": 0,
+                  "public_ip_hours": 24,
+                  "snapshot_hours": 0,
+                  "upstream": 0,
+                  "downstream": 0,
+                  "pay_type": "postpaid"
+                }
+              ]
+            }
+        """
+        return StatementHandler().statement_disk_detail(view=self, request=request, kwargs=kwargs)
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return metering_serializers.DailyStatementDiskDetailSerializer
+        elif self.action == 'retrieve':
+            return metering_serializers.DailyStatementDiskDetailSerializer
+
+        return Serializer

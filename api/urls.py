@@ -60,6 +60,7 @@ no_slash_router.register(
 no_slash_router.register(
     r'metering/admin/storage', storage_metering_views.AdminMeteringStorageViewSet, basename='admin-metering-storage')
 no_slash_router.register(r'statement/server', metering_views.StatementServerViewSet, basename='statement-server')
+no_slash_router.register(r'statement/disk', metering_views.StatementDiskViewSet, basename='statement-disk')
 no_slash_router.register(
     r'statement/storage', storage_metering_views.StatementStorageViewSet, basename='statement-storage')
 no_slash_router.register(r'payment-history', bill_views.PaymentHistoryViewSet, basename='payment-history')

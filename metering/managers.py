@@ -498,19 +498,12 @@ class MeteringServerManager:
         return queryset.filter(date=_date, daily_statement_id=statement_id)
 
 
-class StatementServerManager:
+class BaseStatementManager:
     @staticmethod
-    def get_statement_server_queryset():
-        return DailyStatementServer.objects.all()
-    
-    def filter_statement_server_queryset(
-            self, payment_status: str, date_start, date_end,
+    def filter_statement_queryset(
+            queryset, payment_status: str, date_start, date_end,
             user_id: str = None, vo_id: str = None
     ):
-        """
-        查询用户或vo组的日结算单查询集
-        """
-        queryset = self.get_statement_server_queryset()
         if user_id:
             queryset = queryset.filter(user_id=user_id, owner_type=OwnerType.USER.value)
 
@@ -518,7 +511,7 @@ class StatementServerManager:
             queryset = queryset.filter(vo_id=vo_id, owner_type=OwnerType.VO.value)
 
         if date_start:
-            queryset = queryset.filter(date__gte=date_start)       
+            queryset = queryset.filter(date__gte=date_start)
 
         if date_end:
             queryset = queryset.filter(date__lte=date_end)
@@ -528,22 +521,8 @@ class StatementServerManager:
 
         return queryset.order_by('-creation_time')
 
-    def filter_vo_statement_server_queryset(
-        self, payment_status: str, date_start, date_end, user, vo_id: str
-    ):
-        """
-        查询vo组的日结算单查询集
-
-        :raises: AccessDenied
-        """
-        self._has_vo_permission(vo_id=vo_id, user=user)
-        return self.filter_statement_server_queryset(
-            payment_status=payment_status, date_start=date_start,
-            date_end=date_end, vo_id=vo_id
-        )
-
     @staticmethod
-    def _has_vo_permission(vo_id, user, read_only: bool = True):
+    def has_vo_permission(vo_id, user, read_only: bool = True):
         """
         是否有vo组的权限
 
@@ -556,6 +535,39 @@ class StatementServerManager:
                 VoManager().get_has_manager_perm_vo(vo_id=vo_id, user=user)
         except errors.Error as exc:
             raise errors.AccessDenied(message=exc.message)
+
+
+class StatementServerManager(BaseStatementManager):
+    @staticmethod
+    def get_statement_server_queryset():
+        return DailyStatementServer.objects.all()
+    
+    def filter_statement_server_queryset(
+            self, payment_status: str, date_start, date_end,
+            user_id: str = None, vo_id: str = None
+    ):
+        """
+        查询用户或vo组的日结算单查询集
+        """
+        queryset = self.get_statement_server_queryset()
+        return self.filter_statement_queryset(
+            queryset=queryset, payment_status=payment_status, date_start=date_start, date_end=date_end,
+            user_id=user_id, vo_id=vo_id
+        )
+
+    def filter_vo_statement_server_queryset(
+        self, payment_status: str, date_start, date_end, user, vo_id: str
+    ):
+        """
+        查询vo组的日结算单查询集
+
+        :raises: AccessDenied
+        """
+        self.has_vo_permission(vo_id=vo_id, user=user)
+        return self.filter_statement_server_queryset(
+            payment_status=payment_status, date_start=date_start,
+            date_end=date_end, vo_id=vo_id
+        )
 
     @staticmethod
     def get_statement_server(statement_id: str, select_for_update: bool = False):
@@ -587,13 +599,7 @@ class StatementServerManager:
                 if statement.user_id and statement.user_id != user.id:
                     raise errors.AccessDenied(message=_('您没有此日结算单访问权限'))
             elif statement.vo_id:
-                try:
-                    if read_only:
-                        VoManager().get_has_read_perm_vo(vo_id=statement.vo_id, user=user)
-                    else:
-                        VoManager().get_has_manager_perm_vo(vo_id=statement.vo_id, user=user)
-                except errors.Error as exc:
-                    raise errors.AccessDenied(message=exc.message)
+                self.has_vo_permission(vo_id=statement.vo_id, user=user, read_only=read_only)
 
         return statement
 
@@ -1142,8 +1148,13 @@ class MeteringDiskManager:
         queryset = self.get_metering_disk_queryset()
         return queryset.filter(**lookups).order_by('-creation_time')
 
+    @staticmethod
+    def get_meterings_by_statement_id(statement_id: str, _date: date):
+        queryset = MeteringDiskManager.get_metering_disk_queryset()
+        return queryset.filter(date=_date, daily_statement_id=statement_id)
 
-class StatementDiskManager:
+
+class StatementDiskManager(BaseStatementManager):
     @staticmethod
     def get_statement_disk_queryset():
         return DailyStatementDisk.objects.all()
@@ -1156,19 +1167,55 @@ class StatementDiskManager:
         查询用户或vo组的日结算单查询集
         """
         queryset = self.get_statement_disk_queryset()
-        if user_id:
-            queryset = queryset.filter(user_id=user_id, owner_type=OwnerType.USER.value)
+        return self.filter_statement_queryset(
+            queryset=queryset, payment_status=payment_status, date_start=date_start, date_end=date_end,
+            user_id=user_id, vo_id=vo_id
+        )
 
-        if vo_id:
-            queryset = queryset.filter(vo_id=vo_id, owner_type=OwnerType.VO.value)
+    def filter_vo_statement_disk_queryset(
+        self, payment_status: str, date_start, date_end, user, vo_id: str
+    ):
+        """
+        查询vo组的日结算单查询集
 
-        if date_start:
-            queryset = queryset.filter(date__gte=date_start)
+        :raises: AccessDenied
+        """
+        self.has_vo_permission(vo_id=vo_id, user=user)
+        return self.filter_statement_disk_queryset(
+            payment_status=payment_status, date_start=date_start,
+            date_end=date_end, vo_id=vo_id
+        )
 
-        if date_end:
-            queryset = queryset.filter(date__lte=date_end)
+    @staticmethod
+    def get_statement_disk(statement_id: str, select_for_update: bool = False):
+        if select_for_update:
+            return DailyStatementDisk.objects.filter(
+                id=statement_id
+            ).select_related('service').select_for_update().first()
 
-        if payment_status:
-            queryset = queryset.filter(payment_status=payment_status)
+        return DailyStatementDisk.objects.filter(id=statement_id).select_related('service').first()
 
-        return queryset.order_by('-creation_time')
+    def get_statement_disk_detail(
+            self, statement_id: str, user, check_permission: bool = True, read_only: bool = True
+    ):
+        """
+        查询日结算单详情
+
+        :param check_permission: 是否检测权限
+        :param read_only: 用于vo组权限检测；True：只需要访问权限；False: 需要管理权限
+        :return:
+            statement_server
+        """
+        statement = self.get_statement_disk(statement_id=statement_id)
+        if statement is None:
+            raise errors.NotFound(_('日结算单不存在'))
+
+        # check permission
+        if check_permission:
+            if statement.owner_type == OwnerType.USER.value:
+                if statement.user_id and statement.user_id != user.id:
+                    raise errors.AccessDenied(message=_('您没有此日结算单访问权限'))
+            elif statement.vo_id:
+                self.has_vo_permission(vo_id=statement.vo_id, user=user, read_only=read_only)
+
+        return statement

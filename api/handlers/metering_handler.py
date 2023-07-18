@@ -14,10 +14,11 @@ from rest_framework.response import Response
 from core import errors
 from api.viewsets import CustomGenericViewSet
 from api.serializers.serializers import MeteringServerSerializer, MeteringStorageSimpleSerializer
+from api.serializers.metering_serializers import MeteringDiskSerializer
 from metering.models import PaymentStatus
 from metering.managers import (
     MeteringServerManager, StatementServerManager, MeteringStorageManager, StatementStorageManager,
-    MeteringDiskManager
+    MeteringDiskManager, StatementDiskManager
 )
 from servers.models import Server, ServerArchive
 from utils.report_file import CSVFileInMemory
@@ -825,42 +826,8 @@ class MeteringHandler:
 
 
 class StatementHandler:
-    def list_statement_server(self, view: CustomGenericViewSet, request):
-        try:
-            data = self.list_statement_server_validate_params(request)     
-        except errors.Error as exc:
-            return view.exception_response(exc)
-
-        user = request.user
-        vo_id = data['vo_id']
-        if vo_id:       
-            try:
-                queryset = StatementServerManager().filter_vo_statement_server_queryset(
-                    payment_status=data['payment_status'],
-                    date_start=data['date_start'],
-                    date_end=data['date_end'],
-                    user=user,
-                    vo_id=vo_id
-                )
-            except Exception as exc:
-                return view.exception_response(exc)
-        else:
-            queryset = StatementServerManager().filter_statement_server_queryset(
-                payment_status=data['payment_status'],
-                date_start=data['date_start'],
-                date_end=data['date_end'],
-                user_id=user.id
-            )
-        try:
-            statements = view.paginate_queryset(queryset)
-            serializer = view.get_serializer(instance=statements, many=True)
-            return view.get_paginated_response(serializer.data)
-        except Exception as exc:
-            return view.exception_response(exc)
-
     @staticmethod
-    def list_statement_server_validate_params(request) -> dict:
-
+    def list_statement_validate_params(request) -> dict:
         payment_status = request.query_params.get('payment_status', None)
         date_start = request.query_params.get('date_start', None)
         date_end = request.query_params.get('date_end', None)
@@ -893,7 +860,40 @@ class StatementHandler:
             'date_start': date_start,
             'date_end': date_end,
             'vo_id': vo_id
-        } 
+        }
+
+    def list_statement_server(self, view: CustomGenericViewSet, request):
+        try:
+            data = self.list_statement_validate_params(request)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        user = request.user
+        vo_id = data['vo_id']
+        if vo_id:       
+            try:
+                queryset = StatementServerManager().filter_vo_statement_server_queryset(
+                    payment_status=data['payment_status'],
+                    date_start=data['date_start'],
+                    date_end=data['date_end'],
+                    user=user,
+                    vo_id=vo_id
+                )
+            except Exception as exc:
+                return view.exception_response(exc)
+        else:
+            queryset = StatementServerManager().filter_statement_server_queryset(
+                payment_status=data['payment_status'],
+                date_start=data['date_start'],
+                date_end=data['date_end'],
+                user_id=user.id
+            )
+        try:
+            statements = view.paginate_queryset(queryset)
+            serializer = view.get_serializer(instance=statements, many=True)
+            return view.get_paginated_response(serializer.data)
+        except Exception as exc:
+            return view.exception_response(exc)
 
     @staticmethod
     def statement_server_detail(view: CustomGenericViewSet, request, kwargs):
@@ -910,6 +910,57 @@ class StatementHandler:
         metering_qs = MeteringServerManager.get_meterings_by_statement_id(
             statement_id=statement.id, _date=statement.date)
         meterings = MeteringServerSerializer(instance=metering_qs, many=True).data
+        data['meterings'] = meterings
+        return Response(data=data)
+
+    def list_statement_disk(self, view: CustomGenericViewSet, request):
+        try:
+            data = self.list_statement_validate_params(request)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        user = request.user
+        vo_id = data['vo_id']
+        if vo_id:
+            try:
+                queryset = StatementDiskManager().filter_vo_statement_disk_queryset(
+                    payment_status=data['payment_status'],
+                    date_start=data['date_start'],
+                    date_end=data['date_end'],
+                    user=user,
+                    vo_id=vo_id
+                )
+            except Exception as exc:
+                return view.exception_response(exc)
+        else:
+            queryset = StatementDiskManager().filter_statement_disk_queryset(
+                payment_status=data['payment_status'],
+                date_start=data['date_start'],
+                date_end=data['date_end'],
+                user_id=user.id
+            )
+        try:
+            statements = view.paginate_queryset(queryset)
+            serializer = view.get_serializer(instance=statements, many=True)
+            return view.get_paginated_response(serializer.data)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+    @staticmethod
+    def statement_disk_detail(view: CustomGenericViewSet, request, kwargs):
+        statement_id: str = kwargs.get(view.lookup_field, '')
+
+        try:
+            statement = StatementDiskManager().get_statement_disk_detail(
+                statement_id=statement_id, user=request.user)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        serializer = view.get_serializer(instance=statement)
+        data = serializer.data
+        metering_qs = MeteringDiskManager.get_meterings_by_statement_id(
+            statement_id=statement.id, _date=statement.date)
+        meterings = MeteringDiskSerializer(instance=metering_qs, many=True).data
         data['meterings'] = meterings
         return Response(data=data)
 
