@@ -28,6 +28,34 @@ from utils.model import PayType, ResourceType
 from order.models import Order
 
 
+def wrap_csv_file_response(filename: str, data):
+    """
+    :param filename: 这个是下载后的名字
+    :param data: bytes, BytesIO， StringIO
+    """
+    if isinstance(data, bytes):
+        content_type = 'application/octet-stream'
+        content_length = len(data)
+        data = io.BytesIO(data)
+    elif isinstance(data, io.StringIO):
+        content_type = 'text/csv'
+        content_length = None
+        data.seek(0)
+    else:
+        content_type = 'application/octet-stream'
+        content_length = data.seek(0, io.SEEK_END)
+        data.seek(0)
+
+    filename = urlquote(filename)  # 中文文件名需要
+    response = StreamingHttpResponse(data, charset='utf-8', status=200)
+    if content_length:
+        response['Content-Length'] = content_length           # byte length
+
+    response['Content-Type'] = content_type
+    response['Content-Disposition'] = f"attachment;filename*=utf-8''{filename}"  # 注意filename 这个是下载后的名字
+    return response
+
+
 class MeteringHandler:
     AGGREGATION_VO_ORDER_BY_CHOICES = MeteringServerManager.AGGREGATION_VO_ORDER_BY_CHOICES
     AGGREGATION_USER_ORDER_BY_CHOICES = MeteringServerManager.AGGREGATION_USER_ORDER_BY_CHOICES
@@ -334,27 +362,7 @@ class MeteringHandler:
         """
         :param data: bytes, BytesIO， StringIO
         """
-        if isinstance(data, bytes):
-            content_type = 'application/octet-stream'
-            content_length = len(data)
-            data = io.BytesIO(data)
-        elif isinstance(data, io.StringIO):
-            content_type = 'text/csv'
-            content_length = None
-            data.seek(0)
-        else:
-            content_type = 'application/octet-stream'
-            content_length = data.seek(0, io.SEEK_END)
-            data.seek(0)
-
-        filename = urlquote(filename)  # 中文文件名需要
-        response = StreamingHttpResponse(data, charset='utf-8', status=200)
-        if content_length:
-            response['Content-Length'] = content_length           # byte length
-
-        response['Content-Type'] = content_type
-        response['Content-Disposition'] = f"attachment;filename*=utf-8''{filename}"  # 注意filename 这个是下载后的名字
-        return response
+        return wrap_csv_file_response(filename=filename, data=data)
     
     def list_aggregation_by_user(self, view: CustomGenericViewSet, request):
         """
@@ -1463,6 +1471,29 @@ class StorageStatementHandler:
 
 
 class MeteringDiskHandler:
+    @staticmethod
+    def validate_date_start_end(request, default_date_start: date = None, default_date_end: date = None):
+        date_start = request.query_params.get('date_start', None)
+        date_end = request.query_params.get('date_end', None)
+
+        if date_start is not None:
+            try:
+                date_start = date.fromisoformat(date_start)
+            except (TypeError, ValueError):
+                raise errors.InvalidArgument(message=_('参数“date_start”的值无效的日期格式'))
+        else:
+            date_start = default_date_start
+
+        if date_end is not None:
+            try:
+                date_end = date.fromisoformat(date_end)
+            except (TypeError, ValueError):
+                raise errors.InvalidArgument(message=_('参数“date_end”的值无效的日期格式'))
+        else:
+            date_end = default_date_end
+
+        return date_start, date_end
+
     def list_disk_metering(self, view: CustomGenericViewSet, request):
         """
         列举云硬盘计量账单
@@ -1503,8 +1534,7 @@ class MeteringDiskHandler:
         except Exception as exc:
             return view.exception_response(exc)
 
-    @staticmethod
-    def list_disk_metering_validate_params(view: CustomGenericViewSet, request) -> dict:
+    def list_disk_metering_validate_params(self, view: CustomGenericViewSet, request) -> dict:
         service_id = request.query_params.get('service_id', None)
         disk_id = request.query_params.get('disk_id', None)
         date_start = request.query_params.get('date_start', None)
@@ -1524,21 +1554,9 @@ class MeteringDiskHandler:
         if disk_id is not None and not disk_id:
             raise errors.InvalidArgument(message=_('云硬盘ID的值无效'))
 
-        if date_start is not None:
-            try:
-                date_start = date.fromisoformat(date_start)
-            except (TypeError, ValueError):
-                raise errors.InvalidArgument(message=_('起始日期格式无效'))
-        else:   # 默认当月起始时间
-            date_start = now_date.replace(day=1)
-
-        if date_end is not None:
-            try:
-                date_end = date.fromisoformat(date_end)
-            except (TypeError, ValueError):
-                raise errors.InvalidArgument(message=_('截止日期格式无效'))
-        else:
-            date_end = now_date
+        date_start, date_end = self.validate_date_start_end(
+            request=request, default_date_start=now_date.replace(day=1), default_date_end=now_date
+        )
 
         if date_start > date_end:
             raise errors.BadRequest(message=_('起始日期必须超前截止日期'))
@@ -1583,3 +1601,128 @@ class MeteringDiskHandler:
         data = MeteringDiskSerializer(instance=metering).data
         data['disk'] = disk
         return Response(data=data)
+
+    def list_aggregation_by_disk(self, view: CustomGenericViewSet, request):
+        """
+        列举云硬盘计量计费聚合信息
+        """
+        try:
+            params = self.list_aggregation_by_disk_validate_params(view=view, request=request)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        date_start = params['date_start']
+        date_end = params['date_end']
+        user_id = params['user_id']
+        service_id = params['service_id']
+        vo_id = params['vo_id']
+        download = params['download']
+
+        md_mgr = MeteringDiskManager()
+        if view.is_as_admin_request(request):
+            queryset = md_mgr.admin_aggregate_metering_by_disk(
+                user=request.user, date_start=date_start, date_end=date_end, user_id=user_id,
+                service_id=service_id, vo_id=vo_id
+            )
+        elif vo_id:
+            queryset = md_mgr.aggregate_vo_metering_by_disk(
+                user=request.user, service_id=service_id, date_start=date_start,
+                date_end=date_end, vo_id=vo_id
+            )
+        else:
+            queryset = md_mgr.aggregate_user_metering_by_disk(
+                user=request.user, date_start=date_start, date_end=date_end, service_id=service_id
+            )
+
+        if download:
+            return self.list_aggregation_by_disk_download(
+                queryset=queryset, date_start=date_start, date_end=date_end
+            )
+
+        try:
+            data = view.paginate_queryset(queryset)
+            data = md_mgr.aggregate_by_disk_mixin_data(data)
+            return view.get_paginated_response(data)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+    def list_aggregation_by_disk_validate_params(self, view: CustomGenericViewSet, request) -> dict:
+        user_id = request.query_params.get('user_id', None)
+        service_id = request.query_params.get('service_id', None)
+        vo_id = request.query_params.get('vo_id', None)
+        download = request.query_params.get('download', None)
+
+        if vo_id is not None and not vo_id:
+            raise errors.InvalidArgument(message=_('参数“vo_id”的值无效'))
+
+        now_date = timezone.now().date()
+        date_start, date_end = self.validate_date_start_end(
+            request=request, default_date_start=now_date.replace(day=1), default_date_end=now_date
+        )
+
+        if user_id is not None and not view.is_as_admin_request(request):
+            raise errors.BadRequest(message=_('参数“user_id”仅以管理员身份查询时允许使用'))
+
+        if service_id is not None and not service_id:
+            raise errors.InvalidArgument(message=_('参数“service_id”的值无效'))
+
+        if user_id is not None and vo_id is not None:
+            raise errors.BadRequest(message=_('参数“user_id”和“vo_id”不能同时提交'))
+
+        return {
+            'date_start': date_start,
+            'date_end':  date_end,
+            'user_id': user_id,
+            'service_id': service_id,
+            'vo_id': vo_id,
+            'download': download is not None
+        }
+
+    @staticmethod
+    def list_aggregation_by_disk_download(queryset, date_start, date_end):
+        count = queryset.count()
+        if count > 100000:
+            exc = errors.ConflictError(message=_('数据量太多'), code='TooManyData')
+            return Response(data=exc.err_data(), status=exc.status_code)
+
+        filename = rand_utils.timestamp14_sn()
+        csv_file = CSVFileInMemory(filename=filename)
+        csv_file.writerow(['#' + _('按云硬盘列举计量计费聚合统计') + f'[{date_start} - {date_end}]'])
+        csv_file.writerow(['#--------------' + _('数据明细列表') + '---------------'])
+        csv_file.writerow([
+            _('云硬盘id'), '硬盘大小（GiB）', '备注', _('服务'), _('容量 (GiB*小时)'), _('计费总金额'), _('应付金额')
+        ])
+        per_page = 100
+        is_end_page = False
+        for number in range(1, math.ceil(count / per_page) + 1):
+            bottom = (number - 1) * per_page
+            top = bottom + per_page
+            if top >= count:
+                top = count
+                is_end_page = True
+
+            data = list(queryset[bottom:top])
+            data = MeteringDiskManager.aggregate_by_disk_mixin_data(data)
+            rows = []
+            for item in data:
+                s = item['disk']
+                line_items = [
+                    str(item['disk_id']), str(s['size']), str(s['remarks']), str(item['service_name']),
+                    str(item['total_size_hours']),
+                    str(quantize_18_2(item['total_original_amount'])),
+                    str(quantize_18_2(item['total_trade_amount']))
+                ]
+                rows.append(line_items)
+
+            csv_file.writerows(rows)
+            if is_end_page:
+                break
+
+        csv_file.writerow(['#--------------' + _('数据明细列表结束') + '---------------'])
+        csv_file.writerow(['#' + _('数据总数') + f': {count}'])
+        csv_file.writerow(['#' + _('下载时间') + f': {timezone.now()}'])
+
+        filename = csv_file.filename
+        data = csv_file.to_bytes()
+        csv_file.close()
+        return wrap_csv_file_response(filename=filename, data=data)

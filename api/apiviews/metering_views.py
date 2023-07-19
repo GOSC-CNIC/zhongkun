@@ -768,6 +768,80 @@ class MeteringDiskViewSet(CustomGenericViewSet):
         """
         return MeteringDiskHandler().get_disk_metering_detail(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举指定时间段内每个disk计量计费聚合信息'),
+        request_body=no_body,
+        manual_parameters=CustomGenericViewSet.PARAMETERS_AS_ADMIN + [
+            openapi.Parameter(
+                name='date_start',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('聚合日期起，默认当前月起始日期，ISO8601格式：YYYY-MM-dd')
+            ),
+            openapi.Parameter(
+                name='date_end',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('聚合日期止，默认当前月当前日期，ISO8601格式：YYYY-MM-dd')
+            ),
+            openapi.Parameter(
+                name='service_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('查询指定服务单元')
+            ),
+            openapi.Parameter(
+                name='vo_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('查询指定VO组的聚合计量计费信息，需要vo组权限, 或管理员权限，不能与user_id同时使用')
+            ),
+            openapi.Parameter(
+                name='user_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('查询指定用户的聚合计量计费信息，仅以管理员身份查询时使用')
+            ),
+            openapi.Parameter(
+                name='download',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_BOOLEAN,
+                required=False,
+                description=gettext_lazy('查询结果以文件方式下载文件；分页参数无效，不分页返回所有数据')
+            ),
+        ]
+    )
+    @action(methods=['GET'], detail=False, url_path='aggregation/disk', url_name='aggregation-by-disk')
+    def aggregation_by_disk(self, request, *args, **kwargs):
+        """
+        列举指定时间段内每个disk计量计费单聚合
+
+            http code 200:
+            {
+              "count": 240,
+              "page_num": 1,
+              "page_size": 100,
+              "results": [
+                "disk_id": "006621ec-36f8-11ec-bc59-c8009fe2eb03",
+                "total_size_hours": 19200.0,
+                "total_original_amount": 3810.0,
+                "total_trade_amount": 123.00,
+                "service_name": "科技云联邦研发与运行",
+                "disk": {
+                    "id": "006621ec-36f8-11ec-bc59-c8009fe2eb03",
+                    "size": "159.226.235.52",
+                    "remarks": 16384
+                }
+              ]
+            }
+        """
+        return MeteringDiskHandler().list_aggregation_by_disk(view=self, request=request)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return metering_serializers.MeteringDiskSerializer

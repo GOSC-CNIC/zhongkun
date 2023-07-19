@@ -30,7 +30,7 @@ def create_disk_metadata(
         pay_type: str, classification: str, user_id, vo_id,
         creation_time, expiration_time=None, remarks: str = '',
         server_id=None, disk_id: str = None, instance_id: str = None,
-        lock: str = None, start_time=None, task_status: str = ''
+        lock: str = None, start_time=None, task_status: str = '', deleted=False, detached_time=None
 ):
     disk = Disk(
         id=disk_id,
@@ -47,12 +47,13 @@ def create_disk_metadata(
         task_status=task_status if task_status else Disk.TaskStatus.CREATING.value,
         expiration_time=expiration_time,
         start_time=start_time if start_time else creation_time,
+        deleted_time=detached_time,
         pay_type=pay_type,
         classification=classification,
         user_id=user_id,
         vo_id=vo_id,
         lock=lock if lock else Disk.Lock.FREE.value,
-        deleted=False,
+        deleted=deleted,
         server_id=server_id,
         mountpoint='',
     )

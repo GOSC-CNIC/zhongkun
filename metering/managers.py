@@ -7,7 +7,7 @@ from core import errors
 from service.managers import ServiceManager
 from service.models import ServiceConfig
 from servers.managers import ServerManager, DiskManager
-from servers.models import Server, ServerArchive
+from servers.models import Server, ServerArchive, Disk
 from metering.models import DailyStatementServer, DailyStatementObjectStorage, DailyStatementDisk
 from utils.model import OwnerType
 from users.models import UserProfile
@@ -1039,8 +1039,9 @@ class MeteringDiskManager:
         """
         查询用户云硬盘计量用量账单查询集
         """
+        service_ids = [service_id] if service_id else None
         return self.filter_disk_metering_queryset(
-            service_id=service_id, disk_id=disk_id, date_start=date_start,
+            service_ids=service_ids, disk_id=disk_id, date_start=date_start,
             date_end=date_end, user_id=user.id
         )
 
@@ -1058,8 +1059,9 @@ class MeteringDiskManager:
         :rasies: AccessDenied, NotFound, Error
         """
         VoManager().get_has_read_perm_vo(vo_id=vo_id, user=user)
+        service_ids = [service_id] if service_id else None
         return self.filter_disk_metering_queryset(
-            service_id=service_id, disk_id=disk_id, date_start=date_start,
+            service_ids=service_ids, disk_id=disk_id, date_start=date_start,
             date_end=date_end, vo_id=vo_id
         )
 
@@ -1076,8 +1078,9 @@ class MeteringDiskManager:
         :rasies: AccessDenied, DiskNotExist, Error
         """
         if user.is_federal_admin():
+            service_ids = [service_id] if service_id else None
             return self.filter_disk_metering_queryset(
-                service_id=service_id, disk_id=disk_id, date_start=date_start, date_end=date_end,
+                service_ids=service_ids, disk_id=disk_id, date_start=date_start, date_end=date_end,
                 vo_id=vo_id, user_id=user_id
             )
 
@@ -1097,21 +1100,21 @@ class MeteringDiskManager:
             service = ServiceManager.get_service_if_admin(user=user, service_id=service_id)
             if service is None:
                 raise errors.AccessDenied(message=_('您没有指定服务的访问权限'))
+            service_ids = [service_id]
+        else:
+            qs = ServiceManager.get_all_has_perm_service(user)
+            service_ids = list(qs.values_list('id', flat=True))
+            if not service_ids:
+                return MeteringDisk.objects.none()
 
         queryset = self.filter_disk_metering_queryset(
-            service_id=service_id, disk_id=disk_id, date_start=date_start, date_end=date_end,
+            service_ids=service_ids, disk_id=disk_id, date_start=date_start, date_end=date_end,
             vo_id=vo_id, user_id=user_id
         )
-
-        if not service_id and not disk_id:
-            qs = ServiceManager.get_all_has_perm_service(user)
-            subq = Subquery(qs.values_list('id', flat=True))
-            queryset = queryset.filter(service_id__in=subq)
-
         return queryset
 
     def filter_disk_metering_queryset(
-            self, service_id: str = None,
+            self, service_ids: list = None,
             disk_id: str = None,
             date_start: date = None,
             date_end: date = None,
@@ -1131,8 +1134,11 @@ class MeteringDiskManager:
         if date_end:
             lookups['date__lte'] = date_end
 
-        if service_id:
-            lookups['service_id'] = service_id
+        if service_ids:
+            if len(service_ids) == 1:
+                lookups['service_id'] = service_ids[0]
+            else:
+                lookups['service_id__in'] = service_ids
 
         if disk_id:
             lookups['disk_id'] = disk_id
@@ -1152,6 +1158,87 @@ class MeteringDiskManager:
     def get_meterings_by_statement_id(statement_id: str, _date: date):
         queryset = MeteringDiskManager.get_metering_disk_queryset()
         return queryset.filter(date=_date, daily_statement_id=statement_id)
+
+    def admin_aggregate_metering_by_disk(
+            self, user,
+            date_start: date = None,
+            date_end: date = None,
+            user_id: str = None,
+            service_id: str = None,
+            vo_id: str = None
+    ):
+        """
+        管理员获取以disk_id聚合的查询集
+        """
+        queryset = self.filter_disk_metering_by_admin(
+            user=user, date_start=date_start, date_end=date_end, service_id=service_id, user_id=user_id, vo_id=vo_id
+        )
+        return self.aggregate_queryset_by_disk(queryset)
+
+    def aggregate_user_metering_by_disk(
+            self, user,
+            date_start: date = None,
+            date_end: date = None,
+            service_id: str = None
+    ):
+        """
+        普通用户获取自己名下以disk_id聚合的查询集
+        """
+        queryset = self.filter_user_disk_metering(
+            user=user, date_start=date_start, date_end=date_end, service_id=service_id
+        )
+        return self.aggregate_queryset_by_disk(queryset)
+
+    def aggregate_vo_metering_by_disk(
+            self, user,
+            date_start: date = None,
+            date_end: date = None,
+            service_id: str = None,
+            vo_id: str = None
+    ):
+        """
+        指定vo组下以disk_id聚合的查询集
+        """
+        queryset = self.filter_vo_disk_metering(
+            user=user, vo_id=vo_id, service_id=service_id, date_start=date_start, date_end=date_end
+        )
+        return self.aggregate_queryset_by_disk(queryset)
+
+    @staticmethod
+    def aggregate_queryset_by_disk(queryset):
+        """
+        聚合云硬盘计量数据
+        """
+        queryset = queryset.values('disk_id').annotate(
+            total_size_hours=Sum('size_hours'),
+            total_original_amount=Sum('original_amount'),
+            total_trade_amount=Sum('trade_amount')
+        ).order_by('disk_id')
+
+        return queryset
+
+    @staticmethod
+    def aggregate_by_disk_mixin_data(data: list):
+        """
+        按disk id聚合数据分页后混合其他数据
+        """
+        disk_ids = [i['disk_id'] for i in data]
+        disks = Disk.objects.filter(id__in=disk_ids).values(
+            'id', 'size', 'remarks', 'pay_type', 'service__name')
+
+        disk_dict = {}
+        for disk in disks:
+            disk_dict[disk['id']] = {'service_name': disk.pop('service__name', None), 'disk': disk}
+
+        for i in data:
+            d_id = i['disk_id']
+            if d_id in disk_dict:
+                i.update(disk_dict[d_id])
+            else:
+                i['service_name'] = ''
+                i['disk'] = None
+
+        return data
 
 
 class StatementDiskManager(BaseStatementManager):
