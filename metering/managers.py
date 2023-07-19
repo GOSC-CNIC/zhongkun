@@ -19,7 +19,85 @@ from storage.models import Bucket, BucketArchive, ObjectsService
 from .models import MeteringServer, MeteringObjectStorage, MeteringDisk
 
 
-class MeteringServerManager:
+class BaseMeteringManager:
+    AGGREGATION_USER_ORDER_BY_CHOICES = [
+        'total_original_amount', '-total_original_amount'
+    ]
+    AGGREGATION_VO_ORDER_BY_CHOICES = [
+        'total_original_amount', '-total_original_amount'
+    ]
+    AGGREGATION_SERVICE_ORDER_BY_CHOICES = [
+        'total_original_amount', '-total_original_amount'
+    ]
+
+    @staticmethod
+    def aggregate_by_user_mixin_data(data: list):
+        """
+        按user id聚合数据分页后混合其他数据
+        """
+        user_ids = [i['user_id'] for i in data]
+        users = UserProfile.objects.filter(id__in=user_ids).values('id', 'username', 'company')
+
+        user_dict = {}
+        for user in users:
+            user_id = user['id']
+            u = {
+                'user': user
+            }
+            user_dict[user_id] = u
+
+        for i in data:
+            i: dict
+            i.update(user_dict[i['user_id']])
+
+        return data
+
+    @staticmethod
+    def aggregate_by_vo_mixin_data(data: list):
+        """
+        按vo id聚合数据分页后混合其他数据
+        """
+        vo_ids = [i['vo_id'] for i in data]
+        vos = VirtualOrganization.objects.filter(id__in=vo_ids).values('id', 'name', 'company')
+
+        vo_dict = {}
+        for vo in vos:
+            vo_id = vo['id']
+            v = {
+                'vo': vo
+            }
+            vo_dict[vo_id] = v
+
+        for i in data:
+            i: dict
+            i.update(vo_dict[i['vo_id']])
+
+        return data
+
+    @staticmethod
+    def aggregate_by_service_mixin_data(data: list):
+        """
+        按service id聚合数据分页后混合其他数据
+        """
+        service_ids = [i['service_id'] for i in data]
+        services = ServiceConfig.objects.filter(id__in=service_ids).values('id', 'name')
+
+        service_dict = {}
+        for service in services:
+            service_id = service['id']
+            s = {
+                'service': service
+            }
+            service_dict[service_id] = s
+
+        for i in data:
+            i: dict
+            i.update(service_dict[i['service_id']])
+
+        return data
+
+
+class MeteringServerManager(BaseMeteringManager):
     @staticmethod
     def get_metering_server_queryset():
         return MeteringServer.objects.all()
@@ -316,10 +394,6 @@ class MeteringServerManager:
 
         return self.aggregate_queryset_by_user(queryset, order_by=order_by)
 
-    AGGREGATION_USER_ORDER_BY_CHOICES = [
-        'total_original_amount', '-total_original_amount'
-    ]
-
     @staticmethod
     def aggregate_queryset_by_user(queryset, order_by: str = None):
         """
@@ -335,28 +409,6 @@ class MeteringServerManager:
         ).order_by(order_by)
 
         return queryset
-
-    @staticmethod
-    def aggregate_by_user_mixin_data(data: list):
-        """
-        按user id聚合数据分页后混合其他数据
-        """
-        user_ids = [i['user_id'] for i in data]     
-        users = UserProfile.objects.filter(id__in=user_ids).values('id', 'username', 'company')
-
-        user_dict = {}
-        for user in users:
-            user_id = user['id']
-            u = {
-                'user': user
-            }
-            user_dict[user_id] = u
-
-        for i in data:
-            i: dict
-            i.update(user_dict[i['user_id']])
-
-        return data
 
     def aggregate_server_metering_by_void_by_admin(
             self, user,
@@ -386,10 +438,6 @@ class MeteringServerManager:
 
         return self.aggregate_queryset_by_vo(queryset, order_by=order_by)
 
-    AGGREGATION_VO_ORDER_BY_CHOICES = [
-        'total_original_amount', '-total_original_amount'
-    ]
-
     @staticmethod
     def aggregate_queryset_by_vo(queryset, order_by: str = None):
         """
@@ -406,28 +454,6 @@ class MeteringServerManager:
 
         return queryset
 
-    @staticmethod
-    def aggregate_by_vo_mixin_data(data: list):
-        """
-        按vo id聚合数据分页后混合其他数据
-        """
-        vo_ids = [i['vo_id'] for i in data]    
-        vos = VirtualOrganization.objects.filter(id__in=vo_ids).values('id', 'name', 'company')
-
-        vo_dict = {}
-        for vo in vos:
-            vo_id = vo['id']
-            v = {
-                'vo': vo
-            }
-            vo_dict[vo_id] = v
-
-        for i in data:
-            i: dict
-            i.update(vo_dict[i['vo_id']])
-
-        return data
-    
     def aggregate_server_metering_by_serviceid_by_admin(
             self, user,
             date_start: date = None,
@@ -450,10 +476,6 @@ class MeteringServerManager:
 
         return self.aggregate_queryset_by_service(queryset, order_by=order_by)
 
-    AGGREGATION_SERVICE_ORDER_BY_CHOICES = [
-        'total_original_amount', '-total_original_amount'
-    ]
-
     @staticmethod
     def aggregate_queryset_by_service(queryset, order_by: str = None):
         """
@@ -469,28 +491,6 @@ class MeteringServerManager:
         ).order_by(order_by)
 
         return queryset
-
-    @staticmethod
-    def aggregate_by_service_mixin_data(data: list):
-        """
-        按service id聚合数据分页后混合其他数据
-        """
-        service_ids = [i['service_id'] for i in data]    
-        services = ServiceConfig.objects.filter(id__in=service_ids).values('id', 'name')
-
-        service_dict = {}
-        for service in services:
-            service_id = service['id']
-            s = {
-                'service': service
-            }
-            service_dict[service_id] = s
-
-        for i in data:
-            i: dict
-            i.update(service_dict[i['service_id']])
-
-        return data
 
     @staticmethod
     def get_meterings_by_statement_id(statement_id: str, _date: date):
@@ -1001,7 +1001,7 @@ class StatementStorageManager:
         return statement
 
 
-class MeteringDiskManager:
+class MeteringDiskManager(BaseMeteringManager):
     @staticmethod
     def get_metering_disk_queryset():
         return MeteringDisk.objects.all()
@@ -1239,6 +1239,50 @@ class MeteringDiskManager:
                 i['disk'] = None
 
         return data
+
+    def admin_aggregate_metering_by_user(
+            self, user,
+            date_start: date = None,
+            date_end: date = None,
+            service_id: str = None,
+            order_by: str = None
+    ):
+        """
+        管理员获取以user_id聚合的查询集
+        """
+        if user.is_federal_admin():
+            service_ids = [service_id] if service_id else None
+        elif service_id:
+            service = ServiceManager.get_service_if_admin(user=user, service_id=service_id)
+            if service is None:
+                raise errors.AccessDenied(message=_('您没有指定服务的访问权限'))
+            service_ids = [service_id] if service_id else None
+        else:
+            qs = ServiceManager.get_all_has_perm_service(user)
+            service_ids = list(qs.values_list('id', flat=True))
+            if not service_ids:
+                return MeteringDisk.objects.none()
+
+        queryset = self.filter_disk_metering_queryset(
+            date_start=date_start, date_end=date_end, service_ids=service_ids
+        ).filter(owner_type=OwnerType.USER.value)
+        return self.aggregate_queryset_by_user(queryset, order_by=order_by)
+
+    @staticmethod
+    def aggregate_queryset_by_user(queryset, order_by: str = None):
+        """
+        聚合用户的disk计量数据
+        """
+        if not order_by:
+            order_by = 'user_id'
+
+        queryset = queryset.values('user_id').annotate(
+            total_original_amount=Sum('original_amount'),
+            total_trade_amount=Sum('trade_amount'),
+            total_disk=Count('disk_id', distinct=True),
+        ).order_by(order_by)
+
+        return queryset
 
 
 class StatementDiskManager(BaseStatementManager):

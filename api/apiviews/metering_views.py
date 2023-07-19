@@ -842,6 +842,74 @@ class MeteringDiskViewSet(CustomGenericViewSet):
         """
         return MeteringDiskHandler().list_aggregation_by_disk(view=self, request=request)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举指定时间段内每个用户所有disk计量计费单聚合信息'),
+        request_body=no_body,
+        manual_parameters=CustomGenericViewSet.PARAMETERS_AS_ADMIN + [
+            openapi.Parameter(
+                name='date_start',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('聚合日期起，默认当前月起始日期，ISO8601格式：YYYY-MM-dd')
+            ),
+            openapi.Parameter(
+                name='date_end',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('聚合日期止，默认当前月当前日期，ISO8601格式：YYYY-MM-dd')
+            ),
+            openapi.Parameter(
+                name='service_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('查询指定服务')
+            ),
+            openapi.Parameter(
+                name='order_by',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'指定排序，默认按用户id正序，{MeteringDiskHandler.AGGREGATION_USER_ORDER_BY_CHOICES}'
+            ),
+            openapi.Parameter(
+                name='download',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_BOOLEAN,
+                required=False,
+                description=gettext_lazy('查询结果以文件方式下载文件；分页参数无效，不分页返回所有数据')
+            ),
+        ]
+    )
+    @action(methods=['GET'], detail=False, url_path='aggregation/user', url_name='aggregation-by-user')
+    def aggregation_by_user(self, request, *args, **kwargs):
+        """
+        列举指定时间段内每个用户所有disk计量计费单聚合
+
+            200:
+            {
+              "count": 62,
+              "page_num": 1,
+              "page_size": 100,
+              "results": [
+                {
+                  "user_id": "0443ba18-0093-11ec-9a41-c8009fe2eb03",
+                  "total_original_amount": 62613.84,
+                  "total_trade_amount": 0,
+                  "total_disk": 7,
+                  "user": {
+                    "id": "0443ba18-0093-11ec-9a41-c8009fe2eb03",
+                    "username": "zhouquan@cnic.cn",
+                    "company": "cnic"
+                  }
+                }
+              ]
+            }
+        """
+        return MeteringDiskHandler().list_aggregation_by_user(view=self, request=request)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return metering_serializers.MeteringDiskSerializer

@@ -18,7 +18,7 @@ from api.serializers.metering_serializers import MeteringDiskSerializer
 from metering.models import PaymentStatus
 from metering.managers import (
     MeteringServerManager, StatementServerManager, MeteringStorageManager, StatementStorageManager,
-    MeteringDiskManager, StatementDiskManager
+    MeteringDiskManager, StatementDiskManager, BaseMeteringManager
 )
 from servers.models import Server, ServerArchive, Disk
 from utils.report_file import CSVFileInMemory
@@ -56,11 +56,36 @@ def wrap_csv_file_response(filename: str, data):
     return response
 
 
-class MeteringHandler:
-    AGGREGATION_VO_ORDER_BY_CHOICES = MeteringServerManager.AGGREGATION_VO_ORDER_BY_CHOICES
-    AGGREGATION_USER_ORDER_BY_CHOICES = MeteringServerManager.AGGREGATION_USER_ORDER_BY_CHOICES
-    AGGREGATION_SERVICE_ORDER_BY_CHOICES = MeteringServerManager.AGGREGATION_SERVICE_ORDER_BY_CHOICES
+class BaseMeteringHandler:
+    AGGREGATION_VO_ORDER_BY_CHOICES = BaseMeteringManager.AGGREGATION_VO_ORDER_BY_CHOICES
+    AGGREGATION_USER_ORDER_BY_CHOICES = BaseMeteringManager.AGGREGATION_USER_ORDER_BY_CHOICES
+    AGGREGATION_SERVICE_ORDER_BY_CHOICES = BaseMeteringManager.AGGREGATION_SERVICE_ORDER_BY_CHOICES
 
+    @staticmethod
+    def validate_date_start_end(request, default_date_start: date = None, default_date_end: date = None):
+        date_start = request.query_params.get('date_start', None)
+        date_end = request.query_params.get('date_end', None)
+
+        if date_start is not None:
+            try:
+                date_start = date.fromisoformat(date_start)
+            except (TypeError, ValueError):
+                raise errors.InvalidArgument(message=_('参数“date_start”的值无效的日期格式'))
+        else:
+            date_start = default_date_start
+
+        if date_end is not None:
+            try:
+                date_end = date.fromisoformat(date_end)
+            except (TypeError, ValueError):
+                raise errors.InvalidArgument(message=_('参数“date_end”的值无效的日期格式'))
+        else:
+            date_end = default_date_end
+
+        return date_start, date_end
+
+
+class MeteringHandler(BaseMeteringHandler):
     def list_server_metering(self, view: CustomGenericViewSet, request):
         """
         列举云主机计量账单
@@ -1470,30 +1495,7 @@ class StorageStatementHandler:
         return Response(data=data)
 
 
-class MeteringDiskHandler:
-    @staticmethod
-    def validate_date_start_end(request, default_date_start: date = None, default_date_end: date = None):
-        date_start = request.query_params.get('date_start', None)
-        date_end = request.query_params.get('date_end', None)
-
-        if date_start is not None:
-            try:
-                date_start = date.fromisoformat(date_start)
-            except (TypeError, ValueError):
-                raise errors.InvalidArgument(message=_('参数“date_start”的值无效的日期格式'))
-        else:
-            date_start = default_date_start
-
-        if date_end is not None:
-            try:
-                date_end = date.fromisoformat(date_end)
-            except (TypeError, ValueError):
-                raise errors.InvalidArgument(message=_('参数“date_end”的值无效的日期格式'))
-        else:
-            date_end = default_date_end
-
-        return date_start, date_end
-
+class MeteringDiskHandler(BaseMeteringHandler):
     def list_disk_metering(self, view: CustomGenericViewSet, request):
         """
         列举云硬盘计量账单
@@ -1537,8 +1539,6 @@ class MeteringDiskHandler:
     def list_disk_metering_validate_params(self, view: CustomGenericViewSet, request) -> dict:
         service_id = request.query_params.get('service_id', None)
         disk_id = request.query_params.get('disk_id', None)
-        date_start = request.query_params.get('date_start', None)
-        date_end = request.query_params.get('date_end', None)
         vo_id = request.query_params.get('vo_id', None)
         user_id = request.query_params.get('user_id', None)
         # download = request.query_params.get('download', None)
@@ -1709,6 +1709,107 @@ class MeteringDiskHandler:
                 line_items = [
                     str(item['disk_id']), str(s['size']), str(s['remarks']), str(item['service_name']),
                     str(item['total_size_hours']),
+                    str(quantize_18_2(item['total_original_amount'])),
+                    str(quantize_18_2(item['total_trade_amount']))
+                ]
+                rows.append(line_items)
+
+            csv_file.writerows(rows)
+            if is_end_page:
+                break
+
+        csv_file.writerow(['#--------------' + _('数据明细列表结束') + '---------------'])
+        csv_file.writerow(['#' + _('数据总数') + f': {count}'])
+        csv_file.writerow(['#' + _('下载时间') + f': {timezone.now()}'])
+
+        filename = csv_file.filename
+        data = csv_file.to_bytes()
+        csv_file.close()
+        return wrap_csv_file_response(filename=filename, data=data)
+
+    def list_aggregation_by_user(self, view: CustomGenericViewSet, request):
+        """
+        列举用户的云硬盘计量计费聚合信息
+        """
+        try:
+            params = self.list_aggregation_by_user_validate_params(request=request)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        if view.is_as_admin_request(request):
+            queryset = MeteringDiskManager().admin_aggregate_metering_by_user(
+                user=request.user, date_start=params['date_start'], date_end=params['date_end'],
+                service_id=params['service_id'], order_by=params['order_by']
+            )
+        else:
+            return view.exception_response(errors.BadRequest(message=_('只允许以管理员身份请求')))
+
+        if params['download']:
+            return self.list_aggregation_by_user_download(
+                queryset=queryset, date_start=params['date_start'], date_end=params['date_end']
+            )
+
+        try:
+            data = view.paginate_queryset(queryset)
+            data = MeteringDiskManager.aggregate_by_user_mixin_data(data)
+            return view.get_paginated_response(data)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+    def list_aggregation_by_user_validate_params(self, request) -> dict:
+        service_id = request.query_params.get('service_id', None)
+        download = request.query_params.get('download', None)
+        order_by = request.query_params.get('order_by', None)
+
+        now_date = timezone.now().date()
+        date_start, date_end = self.validate_date_start_end(
+            request=request, default_date_start=now_date.replace(day=1), default_date_end=now_date
+        )
+
+        if service_id is not None and not service_id:
+            raise errors.InvalidArgument(message=_('参数“service_id”的值无效'))
+
+        if order_by and order_by not in MeteringHandler.AGGREGATION_USER_ORDER_BY_CHOICES:
+            raise errors.InvalidArgument(message=_('参数“order_by”的值无效'))
+
+        return {
+            'date_start': date_start,
+            'date_end':  date_end,
+            'service_id': service_id,
+            'download': download is not None,
+            'order_by': order_by
+        }
+
+    @staticmethod
+    def list_aggregation_by_user_download(queryset, date_start, date_end):
+        count = queryset.count()
+        if count > 100000:
+            exc = errors.ConflictError(message=_('数据量太多'), code='TooManyData')
+            return Response(data=exc.err_data(), status=exc.status_code)
+
+        filename = rand_utils.timestamp14_sn()
+        csv_file = CSVFileInMemory(filename=filename)
+        csv_file.writerow(['#' + _('按用户列举计量计费聚合统计') + f'[{date_start} - {date_end}]'])
+        csv_file.writerow(['#--------------' + _('数据明细列表') + '---------------'])
+        csv_file.writerow([
+            _('用户名'), _('单位/公司'), _('云硬盘数'), _('计费总金额'), _('实际扣费总金额')
+        ])
+        per_page = 100
+        is_end_page = False
+        for number in range(1, math.ceil(count / per_page) + 1):
+            bottom = (number - 1) * per_page
+            top = bottom + per_page
+            if top >= count:
+                top = count
+                is_end_page = True
+
+            data = list(queryset[bottom:top])
+            data = MeteringDiskManager.aggregate_by_user_mixin_data(data)
+            rows = []
+            for item in data:
+                u = item['user']
+                line_items = [
+                    str(u['username']), str(u['company']), str(item['total_disk']),
                     str(quantize_18_2(item['total_original_amount'])),
                     str(quantize_18_2(item['total_trade_amount']))
                 ]

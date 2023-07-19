@@ -2894,6 +2894,224 @@ class MeteringDiskTests(MyAPITestCase):
         self.assertIs(r.streaming, True)
         self.assertEqual(r.status_code, 200)
 
+    def test_aggregate_metering_by_user(self):
+        user2 = UserProfile(id='user2', username='username2', company='c2')
+        user2.save(force_insert=True)
+        user3 = UserProfile(id='user3', username='username3', company='c3')
+        user3.save(force_insert=True)
+
+        create_disk_metering(
+            service_id=self.service.id, disk_id='disk1', _date=date(year=2022, month=3, day=1),
+            pay_type=PayType.POSTPAID.value, size_hours=111,
+            original_amount=Decimal('1.11'), trade_amount=Decimal('1.00'),
+            owner_type=OwnerType.USER.value, user_id=self.user.id, username=self.user.username, vo_id='', vo_name=''
+        )
+        create_disk_metering(
+            service_id=self.service.id, disk_id='disk1', _date=date(year=2022, month=3, day=2),
+            pay_type=PayType.POSTPAID.value, size_hours=222,
+            original_amount=Decimal('2.22'), trade_amount=Decimal('2.00'),
+            owner_type=OwnerType.USER.value, user_id=self.user.id, username=self.user.username, vo_id='', vo_name=''
+        )
+        create_disk_metering(
+            service_id=self.service2.id, disk_id='disk1', _date=date(year=2022, month=3, day=3),
+            pay_type=PayType.POSTPAID.value, size_hours=333,
+            original_amount=Decimal('3.33'), trade_amount=Decimal('3.00'),
+            owner_type=OwnerType.USER.value, user_id=self.user.id, username=self.user.username, vo_id='', vo_name=''
+        )
+        create_disk_metering(
+            service_id=self.service2.id, disk_id='disk2', _date=date(year=2022, month=4, day=1),
+            pay_type=PayType.POSTPAID.value, size_hours=444,
+            original_amount=Decimal('4.44'), trade_amount=Decimal('4.00'),
+            owner_type=OwnerType.USER.value, user_id=self.user.id, username=self.user.username, vo_id='', vo_name=''
+        )
+        create_disk_metering(
+            service_id=self.service.id, disk_id='disk3', _date=date(year=2022, month=4, day=1),
+            pay_type=PayType.POSTPAID.value, size_hours=555,
+            original_amount=Decimal('5.55'), trade_amount=Decimal('5.00'),
+            owner_type=OwnerType.USER.value, user_id=user2.id, username=user2.username, vo_id='', vo_name=''
+        )
+        create_disk_metering(
+            service_id=self.service2.id, disk_id='disk4', _date=date(year=2022, month=4, day=1),
+            pay_type=PayType.POSTPAID.value, size_hours=666,
+            original_amount=Decimal('6.66'), trade_amount=Decimal('6.00'),
+            owner_type=OwnerType.USER.value, user_id=user3.id, username=user3.username, vo_id='', vo_name=''
+        )
+
+        create_disk_metering(
+            service_id=self.service2.id, disk_id='disk5', _date=date(year=2022, month=4, day=1),
+            pay_type=PayType.POSTPAID.value, size_hours=777,
+            original_amount=Decimal('7.77'), trade_amount=Decimal('7.00'),
+            owner_type=OwnerType.VO.value, user_id='', username='', vo_id='vo1', vo_name=''
+        )
+
+        base_url = reverse('api:metering-disk-aggregation-by-user')
+
+        # no param 'as-admin'
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01'
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 401)
+        self.client.force_login(self.user)
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 400)
+
+        # invalid date_start
+        query = parse.urlencode(query={
+            'date_start': '2022-02-1', 'date_end': '2022-04-01', 'as-admin': ''
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 400)
+
+        # invalid date_end
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-32', 'as-admin': ''
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 400)
+
+        # service admin
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01', 'as-admin': ''
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 0)
+        self.assertEqual(len(r.data['results']), 0)
+
+        # service admin, no permission service
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01', 'as-admin': '', 'service_id': self.service.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 403)
+
+        # service admin, has permission service
+        self.service2.users.add(self.user)
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01', 'as-admin': '', 'service_id': self.service2.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 2)
+        self.assertEqual(len(r.data['results']), 2)
+        self.assertEqual(r.data['results'][0]['total_disk'], 2)
+        self.assertEqual(r.data['results'][0]['total_original_amount'], Decimal('7.77'))
+        self.assertEqual(r.data['results'][0]['total_trade_amount'], Decimal('7'))
+        self.assertEqual(r.data['results'][0]['user']['id'], self.user.id)
+        self.assertEqual(r.data['results'][1]['total_disk'], 1)
+        self.assertEqual(r.data['results'][1]['total_original_amount'], Decimal('6.66'))
+        self.assertEqual(r.data['results'][1]['total_trade_amount'], Decimal('6'))
+        self.assertEqual(r.data['results'][1]['user']['id'], user3.id)
+
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01', 'as-admin': ''
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 2)
+        self.assertEqual(len(r.data['results']), 2)
+        self.assertEqual(r.data['results'][0]['total_disk'], 2)
+        self.assertEqual(r.data['results'][0]['total_original_amount'], Decimal('7.77'))
+        self.assertEqual(r.data['results'][0]['total_trade_amount'], Decimal('7'))
+        self.assertEqual(r.data['results'][0]['user']['id'], self.user.id)
+        self.assertEqual(r.data['results'][1]['total_disk'], 1)
+        self.assertEqual(r.data['results'][1]['total_original_amount'], Decimal('6.66'))
+        self.assertEqual(r.data['results'][1]['total_trade_amount'], Decimal('6'))
+        self.assertEqual(r.data['results'][1]['user']['id'], user3.id)
+
+        # service admin, default current month
+        query = parse.urlencode(query={
+            'as-admin': ''
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 0)
+        self.assertEqual(len(r.data['results']), 0)
+
+        # service admin, no permission service
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01', 'as-admin': '', 'service_id': self.service.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 403)
+
+        # federal admin, list all
+        self.user.set_federal_admin()
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01', 'as-admin': ''
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 3)
+        self.assertEqual(len(r.data['results']), 3)
+        self.assertEqual(r.data['results'][0]['total_disk'], 2)
+        self.assertEqual(r.data['results'][0]['total_original_amount'], Decimal('11.10'))
+        self.assertEqual(r.data['results'][0]['user']['id'], self.user.id)
+        self.assertEqual(r.data['results'][1]['total_disk'], 1)
+        self.assertEqual(r.data['results'][1]['total_original_amount'], Decimal('5.55'))
+        self.assertEqual(r.data['results'][1]['user']['id'], user2.id)
+        self.assertEqual(r.data['results'][2]['total_disk'], 1)
+        self.assertEqual(r.data['results'][2]['total_original_amount'], Decimal('6.66'))
+        self.assertEqual(r.data['results'][2]['user']['id'], user3.id)
+
+        # federal admin, list all, order_by
+        self.user.set_federal_admin()
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01', 'as-admin': '',
+            'order_by': '-total_original_amount'
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 3)
+        self.assertEqual(len(r.data['results']), 3)
+        self.assertEqual(r.data['results'][0]['total_disk'], 2)
+        self.assertEqual(r.data['results'][0]['total_original_amount'], Decimal('11.10'))
+        self.assertEqual(r.data['results'][0]['user']['id'], self.user.id)
+        self.assertEqual(r.data['results'][1]['total_disk'], 1)
+        self.assertEqual(r.data['results'][1]['total_original_amount'], Decimal('6.66'))
+        self.assertEqual(r.data['results'][1]['user']['id'], user3.id)
+        self.assertEqual(r.data['results'][2]['total_disk'], 1)
+        self.assertEqual(r.data['results'][2]['total_original_amount'], Decimal('5.55'))
+        self.assertEqual(r.data['results'][2]['user']['id'], user2.id)
+
+        # federal admin, service_id
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01', 'as-admin': '', 'service_id': self.service.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 2)
+        self.assertEqual(len(r.data['results']), 2)
+        self.assertEqual(r.data['results'][0]['total_disk'], 1)
+        self.assertEqual(r.data['results'][0]['total_original_amount'], Decimal('3.33'))
+        self.assertEqual(r.data['results'][0]['user']['id'], self.user.id)
+        self.assertEqual(r.data['results'][1]['total_disk'], 1)
+        self.assertEqual(r.data['results'][1]['total_original_amount'], Decimal('5.55'))
+        self.assertEqual(r.data['results'][1]['user']['id'], user2.id)
+
+        query = parse.urlencode(query={
+            'date_start': '2022-04-01', 'as-admin': '', 'service_id': self.service2.id
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 2)
+        self.assertEqual(len(r.data['results']), 2)
+        self.assertEqual(r.data['results'][0]['total_disk'], 1)
+        self.assertEqual(r.data['results'][0]['total_original_amount'], Decimal('4.44'))
+        self.assertEqual(r.data['results'][0]['user']['id'], self.user.id)
+        self.assertEqual(r.data['results'][1]['total_disk'], 1)
+        self.assertEqual(r.data['results'][1]['total_original_amount'], Decimal('6.66'))
+        self.assertEqual(r.data['results'][1]['user']['id'], user3.id)
+
+        # param 'download'
+        query = parse.urlencode(query={
+            'date_start': '2022-02-01', 'date_end': '2022-04-01', 'as-admin': '', 'download': ''
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertIs(r.streaming, True)
+        self.assertEqual(r.status_code, 200)
+
 
 class StatementDiskTests(MyAPITestCase):
     def setUp(self):
