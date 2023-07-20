@@ -1,3 +1,14 @@
+## v1.9.0
+发布时间： 2023-07-20  
+发布人： shun  
+
+* 月度报表模型增加云硬盘相关字段，生成月度报表脚本实现云硬盘月度数据统计；提交人：shun
+* MonitorServerQuery、MonitorCephQuery、MonitorTidbQuery接口参数增加一个选项，一次返回所有指标类型数据；提交人：shun
+* 云硬盘日结算单接口ListDiskStatement、GetDiskStatement和测试用例；提交人：shun
+* 云硬盘计量单查询GetDiskMetering和测试用例；提交人：shun
+* 按云硬盘、用户、vo组和服务单元聚合云硬盘计量计费信息4个查询接口和测试用例；提交人：shun
+
+
 ## v1.8.0
 发布时间： 2023-07-14  
 发布人： shun  
