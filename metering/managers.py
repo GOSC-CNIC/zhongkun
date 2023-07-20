@@ -69,8 +69,10 @@ class BaseMeteringManager:
             vo_dict[vo_id] = v
 
         for i in data:
-            i: dict
-            i.update(vo_dict[i['vo_id']])
+            if i['vo_id'] in vo_dict:
+                i.update(vo_dict[i['vo_id']])
+            else:
+                i['vo'] = None
 
         return data
 
@@ -1250,22 +1252,10 @@ class MeteringDiskManager(BaseMeteringManager):
         """
         管理员获取以user_id聚合的查询集
         """
-        if user.is_federal_admin():
-            service_ids = [service_id] if service_id else None
-        elif service_id:
-            service = ServiceManager.get_service_if_admin(user=user, service_id=service_id)
-            if service is None:
-                raise errors.AccessDenied(message=_('您没有指定服务的访问权限'))
-            service_ids = [service_id] if service_id else None
-        else:
-            qs = ServiceManager.get_all_has_perm_service(user)
-            service_ids = list(qs.values_list('id', flat=True))
-            if not service_ids:
-                return MeteringDisk.objects.none()
-
-        queryset = self.filter_disk_metering_queryset(
-            date_start=date_start, date_end=date_end, service_ids=service_ids
-        ).filter(owner_type=OwnerType.USER.value)
+        queryset = self.filter_disk_metering_by_admin(
+            user=user, date_start=date_start, date_end=date_end, service_id=service_id
+        )
+        queryset = queryset.filter(owner_type=OwnerType.USER.value)
         return self.aggregate_queryset_by_user(queryset, order_by=order_by)
 
     @staticmethod
@@ -1277,6 +1267,37 @@ class MeteringDiskManager(BaseMeteringManager):
             order_by = 'user_id'
 
         queryset = queryset.values('user_id').annotate(
+            total_original_amount=Sum('original_amount'),
+            total_trade_amount=Sum('trade_amount'),
+            total_disk=Count('disk_id', distinct=True),
+        ).order_by(order_by)
+
+        return queryset
+
+    def admin_aggregate_metering_by_vo(
+            self, user,
+            date_start: date = None,
+            date_end: date = None,
+            service_id: str = None,
+            order_by: str = None
+    ):
+        """
+        管理员获取以vo_id聚合的查询集
+        """
+        queryset = self.filter_disk_metering_by_admin(
+            user=user, date_start=date_start, date_end=date_end, service_id=service_id
+        ).filter(owner_type=OwnerType.VO.value)
+        return self.aggregate_queryset_by_vo(queryset, order_by=order_by)
+
+    @staticmethod
+    def aggregate_queryset_by_vo(queryset, order_by: str = None):
+        """
+        聚合vo组的disk计量数据
+        """
+        if not order_by:
+            order_by = 'vo_id'
+
+        queryset = queryset.values('vo_id').annotate(
             total_original_amount=Sum('original_amount'),
             total_trade_amount=Sum('trade_amount'),
             total_disk=Count('disk_id', distinct=True),

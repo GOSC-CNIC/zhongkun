@@ -646,6 +646,31 @@ class AdminMeteringServerStatisticsViewSet(CustomGenericViewSet):
         return Serializer
 
 
+PARAM_DATE_DELTA_SERVICE = [
+    openapi.Parameter(
+        name='date_start',
+        in_=openapi.IN_QUERY,
+        type=openapi.TYPE_STRING,
+        required=False,
+        description=gettext_lazy('聚合日期起，默认当前月起始日期，ISO8601格式：YYYY-MM-dd')
+    ),
+    openapi.Parameter(
+        name='date_end',
+        in_=openapi.IN_QUERY,
+        type=openapi.TYPE_STRING,
+        required=False,
+        description=gettext_lazy('聚合日期止，默认当前月当前日期，ISO8601格式：YYYY-MM-dd')
+    ),
+    openapi.Parameter(
+        name='service_id',
+        in_=openapi.IN_QUERY,
+        type=openapi.TYPE_STRING,
+        required=False,
+        description=gettext_lazy('查询指定服务')
+    ),
+]
+
+
 class MeteringDiskViewSet(CustomGenericViewSet):
     queryset = QuerySet().none()
     permission_classes = [IsAuthenticated, ]
@@ -655,34 +680,13 @@ class MeteringDiskViewSet(CustomGenericViewSet):
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举云硬盘用量计量单'),
         request_body=no_body,
-        manual_parameters=[
-            openapi.Parameter(
-                name='service_id',
-                in_=openapi.IN_QUERY,
-                type=openapi.TYPE_STRING,
-                required=False,
-                description=f'查询指定服务'
-            ),
+        manual_parameters=PARAM_DATE_DELTA_SERVICE + [
             openapi.Parameter(
                 name='disk_id',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
                 description=gettext_lazy('查询指定云硬盘')
-            ),
-            openapi.Parameter(
-                name='date_start',
-                in_=openapi.IN_QUERY,
-                type=openapi.TYPE_STRING,
-                required=False,
-                description=gettext_lazy('计量单日期起，默认当前月起始日期，ISO8601格式：YYYY-MM-dd')
-            ),
-            openapi.Parameter(
-                name='date_end',
-                in_=openapi.IN_QUERY,
-                type=openapi.TYPE_STRING,
-                required=False,
-                description=gettext_lazy('计量单日期止，默认当前月当前日期，ISO8601格式：YYYY-MM-dd')
             ),
             openapi.Parameter(
                 name='vo_id',
@@ -771,28 +775,7 @@ class MeteringDiskViewSet(CustomGenericViewSet):
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举指定时间段内每个disk计量计费聚合信息'),
         request_body=no_body,
-        manual_parameters=CustomGenericViewSet.PARAMETERS_AS_ADMIN + [
-            openapi.Parameter(
-                name='date_start',
-                in_=openapi.IN_QUERY,
-                type=openapi.TYPE_STRING,
-                required=False,
-                description=gettext_lazy('聚合日期起，默认当前月起始日期，ISO8601格式：YYYY-MM-dd')
-            ),
-            openapi.Parameter(
-                name='date_end',
-                in_=openapi.IN_QUERY,
-                type=openapi.TYPE_STRING,
-                required=False,
-                description=gettext_lazy('聚合日期止，默认当前月当前日期，ISO8601格式：YYYY-MM-dd')
-            ),
-            openapi.Parameter(
-                name='service_id',
-                in_=openapi.IN_QUERY,
-                type=openapi.TYPE_STRING,
-                required=False,
-                description=gettext_lazy('查询指定服务单元')
-            ),
+        manual_parameters=CustomGenericViewSet.PARAMETERS_AS_ADMIN + PARAM_DATE_DELTA_SERVICE + [
             openapi.Parameter(
                 name='vo_id',
                 in_=openapi.IN_QUERY,
@@ -845,28 +828,7 @@ class MeteringDiskViewSet(CustomGenericViewSet):
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举指定时间段内每个用户所有disk计量计费单聚合信息'),
         request_body=no_body,
-        manual_parameters=CustomGenericViewSet.PARAMETERS_AS_ADMIN + [
-            openapi.Parameter(
-                name='date_start',
-                in_=openapi.IN_QUERY,
-                type=openapi.TYPE_STRING,
-                required=False,
-                description=gettext_lazy('聚合日期起，默认当前月起始日期，ISO8601格式：YYYY-MM-dd')
-            ),
-            openapi.Parameter(
-                name='date_end',
-                in_=openapi.IN_QUERY,
-                type=openapi.TYPE_STRING,
-                required=False,
-                description=gettext_lazy('聚合日期止，默认当前月当前日期，ISO8601格式：YYYY-MM-dd')
-            ),
-            openapi.Parameter(
-                name='service_id',
-                in_=openapi.IN_QUERY,
-                type=openapi.TYPE_STRING,
-                required=False,
-                description=gettext_lazy('查询指定服务')
-            ),
+        manual_parameters=CustomGenericViewSet.PARAMETERS_AS_ADMIN + PARAM_DATE_DELTA_SERVICE + [
             openapi.Parameter(
                 name='order_by',
                 in_=openapi.IN_QUERY,
@@ -909,6 +871,53 @@ class MeteringDiskViewSet(CustomGenericViewSet):
             }
         """
         return MeteringDiskHandler().list_aggregation_by_user(view=self, request=request)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举指定时间段内每个vo所有disk计量计费单聚合信息'),
+        request_body=no_body,
+        manual_parameters=CustomGenericViewSet.PARAMETERS_AS_ADMIN + PARAM_DATE_DELTA_SERVICE + [
+            openapi.Parameter(
+                name='order_by',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'指定排序，默认按组id正序，{MeteringDiskHandler.AGGREGATION_VO_ORDER_BY_CHOICES}'
+            ),
+            openapi.Parameter(
+                name='download',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_BOOLEAN,
+                required=False,
+                description=gettext_lazy('查询结果以文件方式下载文件；分页参数无效，不分页返回所有数据')
+            ),
+        ]
+    )
+    @action(methods=['GET'], detail=False, url_path='aggregation/vo', url_name='aggregation-by-vo')
+    def aggregation_by_vo(self, request, *args, **kwargs):
+        """
+        列举指定时间段内每个vo所有disk计量计费单聚合信息
+
+            200：
+            {
+              "count": 8,
+              "page_num": 1,
+              "page_size": 100,
+              "results": [
+                {
+                  "vo_id": "1d35892c-36d3-11ec-8e3b-c8009fe2eb03",
+                  "total_original_amount": 2885.39,
+                  "total_trade_amount": 0,
+                  "total_disk": 3,
+                  "vo": {
+                    "id": "1d35892c-36d3-11ec-8e3b-c8009fe2eb03",
+                    "name": "科研计算云联邦演示",
+                    "company": "中国科学院计算机网络信息中心"
+                  }
+                }
+              ]
+            }
+        """
+        return MeteringDiskHandler().list_aggregation_by_vo(view=self, request=request)
 
     def get_serializer_class(self):
         if self.action == 'list':

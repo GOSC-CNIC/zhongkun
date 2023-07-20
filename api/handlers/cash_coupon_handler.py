@@ -1,11 +1,9 @@
 import math
-import io
+
 from datetime import timedelta
 from decimal import Decimal
 
-from django.utils.http import urlquote
 from django.utils import timezone
-from django.http import StreamingHttpResponse
 from django.utils.translation import gettext as _
 from django.db.models import TextChoices, Count, Sum, Q
 from rest_framework.response import Response
@@ -19,7 +17,7 @@ from api.serializers.serializers import AdminCashCouponSerializer
 from bill.managers import CashCouponManager
 from bill.managers.cash_coupon import get_app_service_by_admin
 from bill.models import CashCoupon, PayAppService, CashCouponPaymentHistory
-from utils.report_file import CSVFileInMemory
+from utils.report_file import CSVFileInMemory, wrap_csv_file_response
 from utils.time import iso_utc_to_datetime
 from utils import rand_utils
 from utils.decimal_utils import quantize_10_2
@@ -245,7 +243,8 @@ class CashCouponHandler:
             'time_end': time_end
         }
 
-    def admin_list_coupon_download(self, queryset):
+    @staticmethod
+    def admin_list_coupon_download(queryset):
         count = queryset.count()
         if count > 100000:
             exc = errors.ConflictError(message=_('数据量太多'), code='TooManyData')
@@ -296,34 +295,7 @@ class CashCouponHandler:
         filename = csv_file.filename
         data = csv_file.to_bytes()
         csv_file.close()
-        return self._wrap_csv_file_response(filename=filename, data=data)
-
-    @staticmethod
-    def _wrap_csv_file_response(filename: str, data):
-        """
-        :param data: bytes, BytesIO， StringIO
-        """
-        if isinstance(data, bytes):
-            content_type = 'application/octet-stream'
-            content_length = len(data)
-            data = io.BytesIO(data)
-        elif isinstance(data, io.StringIO):
-            content_type = 'text/csv'
-            content_length = None
-            data.seek(0)
-        else:
-            content_type = 'application/octet-stream'
-            content_length = data.seek(0, io.SEEK_END)
-            data.seek(0)
-
-        filename = urlquote(filename)  # 中文文件名需要
-        response = StreamingHttpResponse(data, charset='utf-8', status=200)
-        if content_length:
-            response['Content-Length'] = content_length  # byte length
-
-        response['Content-Type'] = content_type
-        response['Content-Disposition'] = f"attachment;filename*=utf-8''{filename}"  # 注意filename 这个是下载后的名字
-        return response
+        return wrap_csv_file_response(filename=filename, data=data)
 
     def exchange_cash_coupon(self, view: CustomGenericViewSet, request):
         """兑换码兑换代金券"""
