@@ -646,7 +646,7 @@ class AdminMeteringServerStatisticsViewSet(CustomGenericViewSet):
         return Serializer
 
 
-PARAM_DATE_DELTA_SERVICE = [
+PARAM_DATE_DELTA = [
     openapi.Parameter(
         name='date_start',
         in_=openapi.IN_QUERY,
@@ -660,7 +660,10 @@ PARAM_DATE_DELTA_SERVICE = [
         type=openapi.TYPE_STRING,
         required=False,
         description=gettext_lazy('聚合日期止，默认当前月当前日期，ISO8601格式：YYYY-MM-dd')
-    ),
+    )
+]
+
+PARAM_DATE_DELTA_SERVICE = PARAM_DATE_DELTA + [
     openapi.Parameter(
         name='service_id',
         in_=openapi.IN_QUERY,
@@ -918,6 +921,52 @@ class MeteringDiskViewSet(CustomGenericViewSet):
             }
         """
         return MeteringDiskHandler().list_aggregation_by_vo(view=self, request=request)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举指定时间段内每个服务单元所有disk计量计费聚合数据'),
+        request_body=no_body,
+        manual_parameters=CustomGenericViewSet.PARAMETERS_AS_ADMIN + PARAM_DATE_DELTA + [
+            openapi.Parameter(
+                name='order_by',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'指定排序，默认按组id正序，{MeteringDiskHandler.AGGREGATION_SERVICE_ORDER_BY_CHOICES}'
+            ),
+            openapi.Parameter(
+                name='download',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_BOOLEAN,
+                required=False,
+                description=gettext_lazy('查询结果以文件方式下载文件；分页参数无效，不分页返回所有数据')
+            ),
+        ]
+    )
+    @action(methods=['GET'], detail=False, url_path='aggregation/service', url_name='aggregation-by-service')
+    def aggregation_by_service(self, request, *args, **kwargs):
+        """
+        列举指定时间段内每个服务单元所有disk计量计费聚合数据
+
+            200:
+            {
+              "count": 4,
+              "page_num": 1,
+              "page_size": 100,
+              "results": [
+                {
+                  "service_id": "1",
+                  "total_original_amount": 508142.16,
+                  "total_trade_amount": 0,
+                  "total_disk": 182,
+                  "service": {
+                    "id": "1",
+                    "name": "科技云联邦研发与运行"
+                  }
+                }
+              ]
+            }
+        """
+        return MeteringDiskHandler().list_aggregation_by_service(view=self, request=request)
 
     def get_serializer_class(self):
         if self.action == 'list':

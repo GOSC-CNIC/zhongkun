@@ -1872,3 +1872,93 @@ class MeteringDiskHandler(BaseMeteringHandler):
         data = csv_file.to_bytes()
         csv_file.close()
         return wrap_csv_file_response(filename=filename, data=data)
+
+    def list_aggregation_by_service(self, view: CustomGenericViewSet, request):
+        """
+        列举服务单元的disk计量计费聚合信息
+        """
+        try:
+            params = self.list_aggregation_by_service_validate_params(request=request)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        date_start = params['date_start']
+        date_end = params['date_end']
+
+        if view.is_as_admin_request(request):
+            queryset = MeteringDiskManager().admin_aggregate_metering_by_service(
+                user=request.user, date_start=date_start, date_end=date_end, order_by=params['order_by']
+            )
+        else:
+            return view.exception_response(errors.BadRequest(message=_('只允许以管理员身份请求')))
+
+        if params['download']:
+            return self.list_aggregation_by_service_download(
+                queryset=queryset, date_start=date_start, date_end=date_end
+            )
+
+        try:
+            data = view.paginate_queryset(queryset)
+            data = MeteringDiskManager.aggregate_by_service_mixin_data(data)
+            return view.get_paginated_response(data)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+    def list_aggregation_by_service_validate_params(self, request) -> dict:
+        params = self.admin_aggre_validate_params(request=request)
+        params.pop('service_id', None)
+
+        order_by = request.query_params.get('order_by', None)
+        if order_by and order_by not in self.AGGREGATION_SERVICE_ORDER_BY_CHOICES:
+            raise errors.InvalidArgument(message=_('参数“order_by”的值无效'))
+
+        params['order_by'] = order_by
+        return params
+
+    @staticmethod
+    def list_aggregation_by_service_download(queryset, date_start, date_end):
+        count = queryset.count()
+        if count > 100000:
+            exc = errors.ConflictError(message=_('数据量太多'), code='TooManyData')
+            return Response(data=exc.err_data(), status=exc.status_code)
+
+        filename = rand_utils.timestamp14_sn()
+        csv_file = CSVFileInMemory(filename=filename)
+        csv_file.writerow(['#' + _('按服务单元列举计量计费聚合统计') + f'[{date_start} - {date_end}]'])
+        csv_file.writerow(['#--------------' + _('数据明细列表') + '---------------'])
+        csv_file.writerow([
+            _('服务单元名称'), _('云硬盘数'), _('计费总金额'), _('实际扣费总金额')
+        ])
+        per_page = 100
+        is_end_page = False
+        for number in range(1, math.ceil(count / per_page) + 1):
+            bottom = (number - 1) * per_page
+            top = bottom + per_page
+            if top >= count:
+                top = count
+                is_end_page = True
+
+            data = list(queryset[bottom:top])
+            data = MeteringDiskManager.aggregate_by_service_mixin_data(data)
+            rows = []
+            for item in data:
+                s = item['service']
+                line_items = [
+                    str(s['name']), str(item['total_disk']),
+                    str(quantize_18_2(item['total_original_amount'])),
+                    str(quantize_18_2(item['total_trade_amount']))
+                ]
+                rows.append(line_items)
+
+            csv_file.writerows(rows)
+            if is_end_page:
+                break
+
+        csv_file.writerow(['#--------------' + _('数据明细列表结束') + '---------------'])
+        csv_file.writerow(['#' + _('数据总数') + f': {count}'])
+        csv_file.writerow(['#' + _('下载时间') + f': {timezone.now()}'])
+
+        filename = csv_file.filename
+        data = csv_file.to_bytes()
+        csv_file.close()
+        return wrap_csv_file_response(filename=filename, data=data)

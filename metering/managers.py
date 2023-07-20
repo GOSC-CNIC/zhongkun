@@ -1305,6 +1305,36 @@ class MeteringDiskManager(BaseMeteringManager):
 
         return queryset
 
+    def admin_aggregate_metering_by_service(
+            self, user,
+            date_start: date = None,
+            date_end: date = None,
+            order_by: str = None
+    ):
+        """
+        管理员获取以service_id聚合的查询集
+        """
+        queryset = self.filter_disk_metering_by_admin(
+            user=user, date_start=date_start, date_end=date_end
+        )
+        return self.aggregate_queryset_by_service(queryset, order_by=order_by)
+
+    @staticmethod
+    def aggregate_queryset_by_service(queryset, order_by: str = None):
+        """
+        聚合服务节点的云主机计量数据
+        """
+        if not order_by:
+            order_by = 'service_id'
+
+        queryset = queryset.values('service_id').annotate(
+            total_original_amount=Sum('original_amount'),
+            total_trade_amount=Sum('trade_amount'),
+            total_disk=Count('disk_id', distinct=True),
+        ).order_by(order_by)
+
+        return queryset
+
 
 class StatementDiskManager(BaseStatementManager):
     @staticmethod
