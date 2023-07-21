@@ -449,11 +449,28 @@ class LogSite(UuidModel):
         to=UserProfile, db_table='log_site_users', related_name='+',
         db_constraint=False, verbose_name=_('管理用户'), blank=True)
 
-    def __str__(self):
-        return self.name
-
     class Meta:
         db_table = "log_site"
         ordering = ['sort_weight']
         verbose_name = "日志单元站点"
         verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return self.name
+
+    def user_has_perm(self, user):
+        """
+        用户是否有访问此服务的管理权限
+
+        :param user: 用户
+        :return:
+            True    # has
+            False   # no
+        """
+        if not user or not user.id:
+            return False
+
+        if self.users.filter(id=user.id).exists():
+            return True
+
+        return False

@@ -1,11 +1,14 @@
+from django.utils.translation import gettext as _
+
 from core import errors
 from api.serializers import log_serializers
 from .models import LogSite
+from .backends.log import LogLokiAPI
 
 
 class LogSiteManager:
     @staticmethod
-    def get_perm_log_site(user, log_type: str):
+    def get_perm_log_site_qs(user, log_type: str):
         queryset = LogSite.objects.select_related(
             'organization', 'site_type').order_by('sort_weight').all()
 
@@ -17,41 +20,46 @@ class LogSiteManager:
 
         return queryset.distinct()
 
-    def query(self, log_site: LogSite, limit: int):
+    @staticmethod
+    def get_log_site(site_id: str, user):
+        """
+        查询日志单元，并验证权限
+
+        :return:
+            LogSite()
+
+        :raises: Error
+        """
+        log_site = LogSite.objects.select_related('provider').filter(id=site_id).first()
+        if log_site is None:
+            raise errors.NotFound(message=_('查询的日志单元不存在。'))
+
+        if user.is_federal_admin():
+            return log_site
+
+        if log_site.user_has_perm(user):
+            return log_site
+
+        raise errors.AccessDenied(message=_('你没有日志单元的访问权限'))
+
+    @staticmethod
+    def query(log_site: LogSite, start: int, end: int, limit: int, direction: str):
         """
         :return:
             [
                 {
-                    "monitor":{
-                        "name": "",
-                        "name_en": "",
-                        "job_tag": "",
-                        "id": "",
-                        "creation": "2020-11-02T07:47:39.776384Z"
-                    },
                     "metric": {
-                        "__name__": "ceph_cluster_total_used_bytes",
-                        "instance": "10.0.200.100:9283",
-                        "job": "Fed-ceph",
-                        "receive_cluster": "obs",
-                        "receive_replica": "0",
-                        "tenant_id": "default-tenant"
                     },
-                    "value": [
-                        1630267851.781,
-                        "0"                 # "0": 正常；”1“:警告
+                    "values": [
+                        [1630267851.781, "log line"]
                     ]
                 }
             ]
         :raises: Error
         """
-        job_dict = log_serializers.LogSiteSerializer(log_site).data
-        r = self.request_data(provider=log_site.provider, job=log_site.job_tag)
-        if r:
-            data = r[0]
-            data['monitor'] = job_dict
-        else:
-            data = {'monitor': job_dict, 'value': None}
-
-        return [data]
-
+        params = {
+            'query': f'{{job="{log_site.job_tag}"}}',
+            'start': start, 'end': end,
+            'limit': limit, 'direction': direction
+        }
+        return LogLokiAPI().query_log(provider=log_site.provider, querys=params)
