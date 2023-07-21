@@ -396,3 +396,64 @@ class MonitorJobTiDB(UuidModel):
     @classmethod
     def get_user_unit_queryset(cls, user_id: str):
         return cls.objects.filter(users__id=user_id).all()
+
+
+class LogSiteType(UuidModel):
+    """
+    日志网站类别
+    """
+    name = models.CharField(
+        max_length=64, unique=True, null=False, blank=False, verbose_name="日志网站类别名称", help_text=_('对象存储、一体云'))
+    name_en = models.CharField(verbose_name=_('英文名称'), max_length=128, default='')
+    sort_weight = models.IntegerField(verbose_name='排序值', help_text='值越小排序越靠前')
+    desc = models.CharField(max_length=255, blank=True, default='', verbose_name="备注")
+    creation = models.DateTimeField(verbose_name='创建时间', auto_now_add=True)
+    modification = models.DateTimeField(verbose_name='修改时间', auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        db_table = "log_site_type"
+        ordering = ['sort_weight']
+        verbose_name = "日志网站类别"
+        verbose_name_plural = verbose_name
+
+
+class LogSite(UuidModel):
+    class LogType(models.TextChoices):
+        HTTP = 'http', 'HTTP'
+        NAT = 'nat', 'NAT'
+
+    name = models.CharField(max_length=50, null=False, blank=False, verbose_name="日志单元站点名称")
+    name_en = models.CharField(verbose_name=_('日志单元英文名称'), max_length=128, default='')
+    log_type = models.CharField(
+        verbose_name="日志类型", max_length=16, choices=LogType.choices, default=LogType.HTTP.value)
+    site_type = models.ForeignKey(
+        to=LogSiteType, db_constraint=False, on_delete=models.SET_NULL, null=True,
+        related_name='+', verbose_name="站点类别")
+    job_tag = models.CharField(verbose_name=_('网站日志单元标识'), max_length=64, default='',
+                               help_text=_('Loki日志中对应的job标识'))
+    provider = models.ForeignKey(
+        to=MonitorProvider, db_constraint=False, on_delete=models.CASCADE,
+        related_name='+', verbose_name=_('日志数据查询服务提供者'))
+    sort_weight = models.IntegerField(verbose_name='排序值', help_text='值越小排序越靠前')
+    desc = models.CharField(max_length=255, blank=True, default="", verbose_name="备注")
+    organization = models.ForeignKey(
+        verbose_name=_('机构'), to=DataCenter, related_name='+', db_constraint=False,
+        on_delete=models.SET_NULL, null=True, default=None
+    )
+    creation = models.DateTimeField(verbose_name='创建时间', auto_now_add=True)
+    modification = models.DateTimeField(verbose_name='修改时间', auto_now=True)
+    users = models.ManyToManyField(
+        to=UserProfile, db_table='log_site_users', related_name='+',
+        db_constraint=False, verbose_name=_('管理用户'), blank=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        db_table = "log_site"
+        ordering = ['sort_weight']
+        verbose_name = "日志单元站点"
+        verbose_name_plural = verbose_name

@@ -8,7 +8,7 @@ from utils.model import NoDeleteSelectModelAdmin
 from .models import (
     MonitorJobCeph, MonitorProvider, MonitorJobServer, MonitorJobVideoMeeting,
     MonitorWebsite, MonitorWebsiteTask, MonitorWebsiteVersion,
-    get_str_hash, WebsiteDetectionPoint, MonitorJobTiDB
+    get_str_hash, WebsiteDetectionPoint, MonitorJobTiDB, LogSiteType, LogSite
 )
 from .managers import MonitorWebsiteManager
 
@@ -146,4 +146,22 @@ class MonitorJobTiDBAdmin(admin.ModelAdmin):
     list_select_related = ('provider', 'organization')
     list_editable = ('sort_weight',)
     list_filter = ('organization',)
+    filter_horizontal = ('users',)
+
+
+@admin.register(LogSiteType)
+class LogSiteTypeAdmin(admin.ModelAdmin):
+    list_display = ('name', 'name_en', 'sort_weight', 'creation', 'desc')
+    list_display_links = ('name', )
+    list_editable = ('sort_weight',)
+
+
+@admin.register(LogSite)
+class LogSiteAdmin(admin.ModelAdmin):
+    list_display = ('name', 'name_en', 'site_type', 'organization', 'sort_weight', 'job_tag',
+                    'provider', 'creation')
+    list_display_links = ('name', )
+    list_select_related = ('site_type', 'provider', 'organization')
+    list_editable = ('sort_weight',)
+    list_filter = ('site_type', 'organization',)
     filter_horizontal = ('users',)

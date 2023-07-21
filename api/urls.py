@@ -8,7 +8,8 @@ from .apiviews import (
     metering_views, bill_views, account_views, cash_coupon_views,
     trade_test_views, trade_views, bucket_views, storage_views,
     ticket_views, storage_metering_views, user_views, app_service_views,
-    tradebill_views, recharge_views, email_views, disk_views, flavor_views
+    tradebill_views, recharge_views, email_views, disk_views, flavor_views,
+    log_views
 )
 
 app_name = 'api'
@@ -44,6 +45,7 @@ no_slash_router.register(r'monitor/website', monitor_views.MonitorWebsiteViewSet
 no_slash_router.register(r'monitor/website-task', monitor_views.MonitorWebsiteTaskViewSet,
                          basename='monitor-website-task')
 no_slash_router.register(r'monitor/tidb/query', monitor_views.MonitorTiDBQueryViewSet, basename='monitor-tidb-query')
+no_slash_router.register(r'monitor/log/site', log_views.LogSiteViewSet, basename='monitor-log-site')
 
 no_slash_router.register(r'vms/service/p-quota', service_quota_views.ServivePrivateQuotaViewSet,
                          basename='vms-service-p-quota')
