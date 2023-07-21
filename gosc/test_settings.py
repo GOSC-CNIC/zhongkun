@@ -53,6 +53,16 @@ TEST_CASE = {
         'JOB_TIDB': {
             'job_tag': 'aiops-tidb'
         }
+    },
+    'LOG_SITE': {
+        'PROVIDER': {
+            'endpoint_url': 'http://159.226.91.149:34135',
+            'username': '',
+            'password': ''
+        },
+        'JOB_SITE': {
+            'job_tag': 'obs'
+        }
     }
 }
 

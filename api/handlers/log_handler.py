@@ -52,7 +52,7 @@ class BaseHandler:
             if limit <= 0:
                 raise ValueError
         except ValueError:
-            raise errors.BadRequest(message=_('参数limit值必须是一个大于0的整数'))
+            raise errors.BadRequest(message=_('参数limit值必须是一个大于0的整数'), code='InvalidLimit')
 
         if direction not in ("forward", "backward"):
             raise errors.BadRequest(
@@ -86,8 +86,9 @@ class LogSiteHandler(BaseHandler):
     def log_query(self, view: CustomGenericViewSet, request):
         log_site_id = request.query_params.get('log_site_id', None)
 
-        if log_site_id is None:
-            return view.exception_response(errors.BadRequest(message=_('必须指定查询的日志单元')))
+        if not log_site_id:
+            return view.exception_response(
+                errors.BadRequest(message=_('必须指定查询的日志单元'), code='InvalidSiteId'))
 
         try:
             params = self.validate_loki_query_range_params(request=request)

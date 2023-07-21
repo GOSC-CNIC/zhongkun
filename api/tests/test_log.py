@@ -7,6 +7,7 @@ from service.models import DataCenter
 from monitor.models import (
     LogSite, LogSiteType, MonitorProvider
 )
+from monitor.tests import get_or_create_job_log_site
 from utils.test import get_or_create_user, get_or_create_service
 from . import MyAPITestCase
 
@@ -145,3 +146,78 @@ class LogSiteTests(MyAPITestCase):
         self.assertEqual(len(response.data['results']), 2)
         self.assertEqual(log_site2.id, response.data['results'][0]['id'])
         self.assertEqual(log_site1.id, response.data['results'][1]['id'])
+
+    def test_log_site_query(self):
+        log_site = get_or_create_job_log_site()
+        # 未认证
+        url = reverse('api:monitor-log-site-query')
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
+        self.client.force_login(self.user)
+
+        # InvalidStart
+        query = parse.urlencode(query={'log_site_id': 'xxx'})
+        response = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidStart', response=response)
+
+        query = parse.urlencode(query={'log_site_id': 'xxx', 'start': '12345678'})
+        response = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidStart', response=response)
+
+        # InvalidEnd
+        timestamp = int(timezone.now().timestamp())
+        query = parse.urlencode(query={'log_site_id': 'xxx', 'start': timestamp})
+        response = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidEnd', response=response)
+
+        query = parse.urlencode(query={'log_site_id': 'xxx', 'start': timestamp, 'end': '12345678'})
+        response = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidEnd', response=response)
+
+        # InvalidDirection
+        query = parse.urlencode(query={'log_site_id': 'xxx', 'start': timestamp, 'end': timestamp, 'direction': 'ccc'})
+        response = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidDirection', response=response)
+
+        # InvalidLimit
+        query = parse.urlencode(query={
+            'log_site_id': 'xxx', 'start': timestamp, 'end': timestamp, 'direction': 'forward', 'limit': 'xx'})
+        response = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidLimit', response=response)
+
+        query = parse.urlencode(query={
+            'log_site_id': 'xxx', 'start': timestamp, 'end': timestamp, 'direction': 'backward', 'limit': '-1'})
+        response = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidLimit', response=response)
+
+        # log site id
+        query = parse.urlencode(query={
+            'start': timestamp, 'end': timestamp, 'direction': 'backward', 'limit': '10',
+        })
+        response = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidSiteId', response=response)
+
+        query = parse.urlencode(query={
+            'log_site_id': 'xxx', 'start': timestamp, 'end': timestamp, 'direction': 'backward', 'limit': '10',
+        })
+        response = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
+
+        # 没有管理权限
+        query = parse.urlencode(query={
+            'log_site_id': log_site.id, 'start': timestamp, 'end': timestamp, 'direction': 'backward', 'limit': '10'})
+        response = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # log_site4
+        log_site.users.add(self.user)
+        query = parse.urlencode(query={
+            'log_site_id': log_site.id, 'start': timestamp, 'end': timestamp, 'direction': 'backward', 'limit': '10'})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.data, list)
+        if response.data:
+            item = response.data[0]
+            self.assertKeysIn(["stream", "values"], item)
+            self.assertEqual(len(item['values']), 10)
+            self.assertEqual(len(item['values'][0]), 2)

@@ -32,7 +32,7 @@ class LogSiteManager:
         """
         log_site = LogSite.objects.select_related('provider').filter(id=site_id).first()
         if log_site is None:
-            raise errors.NotFound(message=_('查询的日志单元不存在。'))
+            raise errors.TargetNotExist(message=_('查询的日志单元不存在。'))
 
         if user.is_federal_admin():
             return log_site

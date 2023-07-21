@@ -1,5 +1,7 @@
 from utils.test import get_test_case_settings
-from .models import MonitorProvider, MonitorJobCeph, MonitorJobServer, MonitorJobVideoMeeting, MonitorJobTiDB
+from .models import (
+    MonitorProvider, MonitorJobCeph, MonitorJobServer, MonitorJobVideoMeeting, MonitorJobTiDB, LogSite
+)
 
 
 def get_or_create_monitor_provider(alias: str, name: str = 'test', name_en: str = 'test'):
@@ -19,7 +21,7 @@ def get_or_create_monitor_provider(alias: str, name: str = 'test', name_en: str 
         username=provider_settings.get('username')
     )
     provider.set_password(provider_settings.get('password', ''))
-    provider.save()
+    provider.save(force_insert=True)
     return provider
 
 
@@ -127,3 +129,29 @@ def get_or_create_monitor_job_tidb(job_tag: str = None, name: str = 'test', name
     )
     job_tidb.save(force_insert=True)
     return job_tidb
+
+
+def get_or_create_job_log_site(job_tag: str = None, name: str = 'test', name_en: str = 'test'):
+    if job_tag is None:
+        try:
+            test_settings = get_test_case_settings()
+            job_settings = test_settings['LOG_SITE']['JOB_SITE']
+        except Exception as e:
+            raise Exception(f'No test settings(LOG_SITE.JOB_SITE) in file "test_settings.TEST_CASE"， {str(e)}')
+
+        job_tag = job_settings['job_tag']
+
+    if not job_tag:
+        raise Exception('invalid "job_tag"')
+
+    job_ceph = LogSite.objects.filter(job_tag=job_tag).first()
+    if job_ceph is not None:
+        return job_ceph
+
+    provider = get_or_create_monitor_provider(alias='LOG_SITE')
+    job_ceph = LogSite(
+        name=name, name_en=name_en, job_tag=job_tag,
+        provider=provider, sort_weight=1
+    )
+    job_ceph.save(force_insert=True)
+    return job_ceph
