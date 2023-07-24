@@ -1064,6 +1064,42 @@ class DiskOrderTests(MyAPITransactionTestCase):
         disk2_vo.refresh_from_db()
         self.assertEqual(disk2_vo.deleted, True)
 
+        # ---- as_admin -------
+        disk3 = create_disk_metadata(
+            instance_id='testdev',
+            service_id=self.service.id, azone_id='1', disk_size=166, pay_type=PayType.PREPAID.value,
+            classification=Disk.Classification.PERSONAL.value, user_id=self.user.id, vo_id=None,
+            creation_time=timezone.now(), expiration_time=None, remarks='test', server_id=server1.id,
+            lock=Disk.Lock.OPERATION.value
+        )
+
+        self.client.logout()
+        self.client.force_login(self.user2)
+        base_url = reverse('api:disks-detail', kwargs={'id': disk3.id})
+        query = parse.urlencode(query={'as-admin': ''})
+        response = self.client.delete(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # disk service admin
+        self.service.users.add(self.user2)
+        response = self.client.delete(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=409, code='DiskAttached', response=response)
+
+        disk3.server_id = None
+        disk3.save(update_fields=['server_id'])
+        response = self.client.delete(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 204)
+
+        self.service.users.remove(self.user2)
+        disk3.deleted = False
+        disk3.save(update_fields=['deleted'])
+        response = self.client.delete(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.user2.set_federal_admin()
+        response = self.client.delete(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 204)
+
     def test_attach_disk(self):
         service2 = ServiceConfig(
             name='test2', name_en='test2_en', data_center=self.service.data_center

@@ -446,12 +446,18 @@ class DiskHandler:
         disk_id = kwargs.get(view.lookup_field, '')
 
         try:
-            disk = DiskManager().get_manage_perm_disk(disk_id=disk_id, user=request.user)
+            is_as_admin = view.is_as_admin_request(request=request)
+            if is_as_admin:
+                disk = DiskManager().admin_get_disk(disk_id=disk_id, user=request.user)
+            else:
+                disk = DiskManager().get_manage_perm_disk(disk_id=disk_id, user=request.user)
+
             if disk.is_attached():
                 raise exceptions.DiskAttached(message=_('云硬盘已挂载于云主机，请先卸载后再尝试删除。'))
 
-            if disk.is_locked_delete():
-                raise exceptions.ResourceLocked(message=_('无法删除，云硬盘已加锁锁定了删除'))
+            if not is_as_admin:
+                if disk.is_locked_delete():
+                    raise exceptions.ResourceLocked(message=_('无法删除，云硬盘已加锁锁定了删除'))
         except exceptions.Error as exc:
             return view.exception_response(exc)
 

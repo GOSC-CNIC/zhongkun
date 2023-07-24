@@ -291,6 +291,7 @@ class DisksViewSet(CustomGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('删除用户或vo组云硬盘'),
+        manual_parameters=CustomGenericViewSet.PARAMETERS_AS_ADMIN,
         responses={
             200: ''
         }
