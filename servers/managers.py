@@ -525,6 +525,23 @@ class DiskManager:
         else:
             raise errors.AccessDenied(message=_('你没有硬盘的管理权限'))
 
+    def admin_get_disk(self, disk_id: str, user) -> Disk:
+        """
+        查询有管理员权限的云硬盘
+
+        :raise: DiskNotExist, AccessDenied
+        """
+        disk: Disk = self.get_disk(disk_id=disk_id)
+        if user.is_federal_admin():
+            return disk
+
+        service_id = disk.service_id
+        if service_id and isinstance(service_id, str):
+            if ServiceManager.get_service_if_admin(service_id=service_id, user=user):
+                return disk
+
+        raise errors.AccessDenied(message=_('你没有硬盘的管理权限。'))
+
     @staticmethod
     def filter_disk_queryset(
             queryset, service_ids: list, volume_min: int, volume_max: int,

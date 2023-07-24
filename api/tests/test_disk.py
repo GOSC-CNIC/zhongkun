@@ -1236,6 +1236,33 @@ class DiskOrderTests(MyAPITransactionTestCase):
         self.assertIn('adapter', message)
         self.assertIn('不存在', message)
 
+        # ---- as_admin -------
+        self.client.logout()
+        self.client.force_login(self.user2)
+        base_url = reverse('api:disks-detach', kwargs={'id': disk1.id})
+        query = parse.urlencode(query={'server_id': server1.id, 'as-admin': ''})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # disk service admin
+        self.service.users.add(self.user2)
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 500)
+        message = response.data['message']
+        self.assertIn('adapter', message)
+        self.assertIn('不存在', message)
+
+        self.service.users.remove(self.user2)
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.user2.set_federal_admin()
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 500)
+        message = response.data['message']
+        self.assertIn('adapter', message)
+        self.assertIn('不存在', message)
+
     def test_detail_disk(self):
         server1 = create_server_metadata(
             service=self.service, user=self.user, ram=8, vcpus=6,

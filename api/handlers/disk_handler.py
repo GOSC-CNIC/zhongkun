@@ -568,20 +568,28 @@ class DiskHandler:
         if not server_id:
             return view.exception_response(exceptions.InvalidArgument(message=_('必须指定硬盘挂载的云主机。')))
 
+        is_as_admin = view.is_as_admin_request(request=request)
         try:
-            disk = DiskManager().get_manage_perm_disk(disk_id=disk_id, user=request.user)
+            if is_as_admin:
+                disk = DiskManager().admin_get_disk(disk_id=disk_id, user=request.user)
+            else:
+                disk = DiskManager().get_manage_perm_disk(disk_id=disk_id, user=request.user)
+
             if not disk.is_attached():
                 raise exceptions.DiskNotAttached(message=_('云硬盘未挂载，无需卸载。'))
 
             if disk.server_id != server_id:
                 raise exceptions.DiskNotOnServer(message=_('云硬盘没有挂载在指定的云主机上'))
 
-            if disk.is_locked_operation():
-                raise exceptions.ResourceLocked(message=_('云硬盘已加锁锁定了操作'))
+            if not is_as_admin:
+                if disk.is_locked_operation():
+                    raise exceptions.ResourceLocked(message=_('云硬盘已加锁锁定了操作'))
 
-            server = ServerManager().get_manage_perm_server(server_id=server_id, user=request.user)
-            if server.is_locked_operation():
-                raise exceptions.ResourceLocked(message=_('无法卸载，目标云主机已加锁锁定了操作'))
+            server = ServerManager().get_manage_perm_server(
+                server_id=server_id, user=request.user, as_admin=is_as_admin)
+            if not is_as_admin:
+                if server.is_locked_operation():
+                    raise exceptions.ResourceLocked(message=_('无法卸载，目标云主机已加锁锁定了操作'))
         except exceptions.Error as exc:
             return view.exception_response(exc)
 

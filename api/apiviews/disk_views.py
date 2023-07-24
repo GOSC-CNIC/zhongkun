@@ -364,7 +364,7 @@ class DisksViewSet(CustomGenericViewSet):
     @swagger_auto_schema(
         operation_summary=gettext_lazy('从云主机卸载云硬盘'),
         request_body=no_body,
-        manual_parameters=[
+        manual_parameters=CustomGenericViewSet.PARAMETERS_AS_ADMIN + [
             openapi.Parameter(
                 name='server_id',
                 in_=openapi.IN_QUERY,
