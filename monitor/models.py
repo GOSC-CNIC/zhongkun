@@ -474,3 +474,37 @@ class LogSite(UuidModel):
             return True
 
         return False
+
+
+class TotalReqNum(UuidModel):
+    """
+    服务总请求数记录, 包括一体云后端和对象存储
+    """
+    singleton_instance_id = 1
+
+    req_num = models.IntegerField(verbose_name=_('服务总请求数'), default=0)
+    until_time = models.DateTimeField(verbose_name=_('截止到时间'))
+    creation = models.DateTimeField(verbose_name=_('创建时间'))
+    modification = models.DateTimeField(verbose_name=_('更新时间'))
+
+    class Meta:
+        db_table = 'total_req_num'
+        ordering = ['creation']
+        verbose_name = "一体云和对象存储总请求数"
+        verbose_name_plural = verbose_name
+
+    def save(self, *args, **kwargs):
+        self.id = self.singleton_instance_id
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_instance(cls):
+        obj = cls.objects.filter(id=cls.singleton_instance_id).first()
+        if obj:
+            return obj
+
+        nt = timezone.now()
+        until_time = nt.replace(hour=0, minute=0, second=0, microsecond=0)
+        obj = cls(req_num=0, until_time=until_time, creation=nt, modification=nt)
+        obj.save(force_insert=True)
+        return obj

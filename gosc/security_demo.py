@@ -78,6 +78,12 @@ API_EMAIL_ALLOWED_IPS = []
 # 科技云门户相关api权限允许的ip地址列表
 API_KJY_PORTAL_ALLOWED_IPS = []
 
+# 服务总请求数统计依赖设置，配置各站点loki日志服务接口，总请求数==各站点的请求数的和
+PORTAL_REQ_NUM_LOKI_SITES = [
+    {'api': 'http://xx.xx.xx.xx:34135/loki/api/v1/query', 'job': 'servicebackend'},
+    {'api': 'http://xx.xx.xx.xx:34135/loki/api/v1/query', 'job': 'obs'},
+]
+
 # test case settings
 TEST_CASE_SECURITY = {
     'SERVICE': {

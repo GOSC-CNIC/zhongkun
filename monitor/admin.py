@@ -8,7 +8,8 @@ from utils.model import NoDeleteSelectModelAdmin
 from .models import (
     MonitorJobCeph, MonitorProvider, MonitorJobServer, MonitorJobVideoMeeting,
     MonitorWebsite, MonitorWebsiteTask, MonitorWebsiteVersion,
-    get_str_hash, WebsiteDetectionPoint, MonitorJobTiDB, LogSiteType, LogSite
+    get_str_hash, WebsiteDetectionPoint, MonitorJobTiDB, LogSiteType, LogSite,
+    TotalReqNum
 )
 from .managers import MonitorWebsiteManager
 
@@ -165,3 +166,12 @@ class LogSiteAdmin(admin.ModelAdmin):
     list_editable = ('sort_weight',)
     list_filter = ('site_type', 'organization',)
     filter_horizontal = ('users',)
+
+
+@admin.register(TotalReqNum)
+class TotalReqNumAdmin(NoDeleteSelectModelAdmin):
+    list_display = ('id', 'req_num', 'until_time', 'creation', 'modification')
+    list_display_links = ('id', )
+
+    def has_delete_permission(self, request, obj=None):
+        return False

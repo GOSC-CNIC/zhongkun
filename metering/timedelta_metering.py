@@ -108,7 +108,17 @@ def storage_metering_pay():
         print(f'FAILED, {metering_date}, {str(e)}')
 
 
+def service_req_num():
+    # 一体云和对象存储服务总请求数统计更新
+    from scripts.workers.req_logs import ServiceReqCounter
+    try:
+        ServiceReqCounter().run()
+    except Exception as e:
+        print(f'FAILED, 服务总请求数统计更新, {str(e)}')
+
+
 if __name__ == "__main__":
     server_metering_pay()
     disk_metering_pay()
     storage_metering_pay()
+    service_req_num()
