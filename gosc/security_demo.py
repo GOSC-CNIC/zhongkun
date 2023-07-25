@@ -75,6 +75,9 @@ PAYMENT_BALANCE = {
 # proxy_set_header X-Forwarded-For $remote_addr;     不能使用 $proxy_add_x_forwarded_for;
 API_EMAIL_ALLOWED_IPS = []
 
+# 科技云门户相关api权限允许的ip地址列表
+API_KJY_PORTAL_ALLOWED_IPS = []
+
 # test case settings
 TEST_CASE_SECURITY = {
     'SERVICE': {

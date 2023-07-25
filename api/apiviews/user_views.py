@@ -51,7 +51,7 @@ class UserViewSet(CustomGenericViewSet):
         serializer = serializers.UserSerializer(instance=request.user)
         return Response(data=serializer.data)
 
-    swagger_auto_schema(
+    @swagger_auto_schema(
         operation_summary=gettext_lazy('获取用户角色和权限策略信息'),
         responses={
             200: ''

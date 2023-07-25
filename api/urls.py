@@ -9,7 +9,7 @@ from .apiviews import (
     trade_test_views, trade_views, bucket_views, storage_views,
     ticket_views, storage_metering_views, user_views, app_service_views,
     tradebill_views, recharge_views, email_views, disk_views, flavor_views,
-    log_views
+    log_views, portal_views
 )
 
 app_name = 'api'
@@ -97,6 +97,8 @@ no_slash_router.register(
     r'admin/metering/server/statistics', metering_views.AdminMeteringServerStatisticsViewSet,
     basename='admin-metering-server-statistics')
 no_slash_router.register(r'admin/flavor', flavor_views.AdminFlavorViewSet, basename='admin-flavor')
+
+no_slash_router.register(r'portal/service', portal_views.PortalServiceViewSet, basename='portal-service')
 
 urlpatterns = [
     path('', include(no_slash_router.urls)),
