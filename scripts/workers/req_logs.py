@@ -34,7 +34,7 @@ class ServiceReqCounter:
 
     def get_sites_req_num(self, sites: dict):
         """
-        sites: [{'api': 'http://x.x.1.x:44135/loki/api/v1/query', 'job': 'servicebackend'}]
+        sites: [{'api': 'https://x.x.1.x:44135/loki/api/v1/query', 'job': 'servicebackend'}]
         """
         preday_req_num = 0
         until_timestamp = int(self.today_start_time.timestamp())
@@ -43,8 +43,8 @@ class ServiceReqCounter:
             job = site.get('job', '')
             try:
                 r_num = self.get_site_req_num(api=api, job=job, until_timestamp=until_timestamp)
-            except Exception as exc:
-                    r_num = 0
+            except Exception:
+                r_num = 0
 
             preday_req_num += r_num
 
@@ -57,7 +57,7 @@ class ServiceReqCounter:
 
         try:
             req_num = self.do_get_num(url=url)
-        except Exception as exc:
+        except Exception:
             req_num = self.do_get_num(url=url)
 
         return req_num
@@ -66,7 +66,7 @@ class ServiceReqCounter:
     def do_get_num(url: str):
         try:
             r = requests.get(url=url)
-        except Exception as exc:
+        except Exception:
             r = requests.get(url=url)
 
         data = r.json()

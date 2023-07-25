@@ -9,6 +9,7 @@ from drf_yasg.utils import swagger_auto_schema
 from api.viewsets import CustomGenericViewSet
 from api.paginations import DefaultPageNumberPagination
 from users.managers import filter_user_queryset
+from monitor.models import TotalReqNum
 from core import errors
 from utils import get_remote_ip
 from utils.paginators import NoPaginatorInspector
@@ -85,6 +86,34 @@ class PortalServiceViewSet(CustomGenericViewSet):
         return Response(data={
             'code': 200,
             'num': user_num
+        })
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('服务总请求数查询'),
+        paginator_inspectors=[NoPaginatorInspector],
+        responses={200: ''}
+    )
+    @action(methods=['get'], detail=False, url_path='total-req-num', url_name='total-req-num')
+    def req_number(self, request, *args, **kwargs):
+        """
+        服务总请求数查询
+
+            Http Code 200 ok:
+            {
+              "code": 200,
+              "num": 312734,
+              "until_time": "2023-07-25T00:00:00+00:00"
+            }
+        """
+        r = self.allowed_addr_ip(request=request)
+        if r:
+            return r
+
+        ins = TotalReqNum.get_instance()
+        return Response(data={
+            'code': 200,
+            'num': ins.req_num,
+            'until_time': ins.until_time.isoformat()
         })
 
     def get_serializer_class(self):
