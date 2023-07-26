@@ -153,6 +153,44 @@ class LogSiteViewSet(CustomGenericViewSet):
         """
         return LogSiteHandler().log_query(view=self, request=request)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('站点日志数量时序数据查询'),
+        manual_parameters=PARAM_LOKI_TIMESTAMP_RANGE + [
+            openapi.Parameter(
+                name='log_site_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description=_('日志单元站点id')
+            ),
+        ],
+        responses={
+            200: ""
+        }
+    )
+    @action(methods=['GET'], detail=False, url_path='time-count', url_name='time-count')
+    def list_time_count(self, request, *args, **kwargs):
+        """
+        站点日志数量时序数据查询
+
+            http code 200 ok:
+            {
+              "count": 1,
+              "page_num": 1,
+              "page_size": 100,
+              "results": [
+                {
+                  "id": "tm4ryppmrid8va8wdg7s831i4",
+                  "timestamp": 1690357343,
+                  "count": 103,
+                  "site_id": "0qd8n7qo48v431e4tsruf0ip6"
+                }
+              ]
+            }
+
+        """
+        return LogSiteHandler().list_time_count(view=self, request=request)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return log_serializers.LogSiteSerializer

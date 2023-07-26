@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from core import errors
 from api.viewsets import CustomGenericViewSet
 
-from monitor.models import LogSite
+from monitor.models import LogSite, LogSiteTimeReqNum
 from monitor.log_managers import LogSiteManager
 
 
@@ -105,3 +105,33 @@ class LogSiteHandler(BaseHandler):
             return view.exception_response(exc)
 
         return Response(data=data, status=200)
+
+    def list_time_count(self, view: CustomGenericViewSet, request):
+        log_site_id = request.query_params.get('log_site_id', None)
+
+        if not log_site_id:
+            return view.exception_response(
+                errors.BadRequest(message=_('必须指定查询的日志单元'), code='InvalidSiteId'))
+
+        try:
+            params = self.validate_timestamp_range(request=request)
+            log_site = LogSiteManager.get_log_site(site_id=log_site_id, user=request.user)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        start = params['start']
+        end = params['end']
+        ns_base = 10000000000
+        if start >= ns_base:    # ns
+            start = start // ns_base
+
+        if end >= ns_base:  # ns
+            end = end // ns_base
+        try:
+            queryset = LogSiteTimeReqNum.objects.values('id', 'timestamp', 'count', 'site_id').filter(
+                timestamp__gte=start, timestamp__lte=end, site_id=log_site.id
+            ).order_by('-timestamp')
+            objs = view.paginate_queryset(queryset=queryset)
+            return view.get_paginated_response(objs)
+        except errors.Error as exc:
+            return view.exception_response(exc)

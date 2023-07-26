@@ -9,6 +9,7 @@ from monitor.models import (
 )
 from monitor.tests import get_or_create_job_log_site
 from utils.test import get_or_create_user, get_or_create_service
+from scripts.workers.req_logs import LogSiteReqCounter
 from . import MyAPITestCase
 
 
@@ -221,3 +222,50 @@ class LogSiteTests(MyAPITestCase):
             self.assertKeysIn(["stream", "values"], item)
             self.assertEqual(len(item['values']), 10)
             self.assertEqual(len(item['values'][0]), 2)
+
+    def test_list_time_count(self):
+        now_timestamp = int(timezone.now().timestamp())
+        log_site = get_or_create_job_log_site()
+        # 未认证
+        url = reverse('api:monitor-log-site-time-count')
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
+        self.client.force_login(self.user)
+
+        # InvalidStart
+        query = parse.urlencode(query={'log_site_id': 'xxx', 'end': now_timestamp})
+        response = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidStart', response=response)
+
+        # InvalidStart
+        query = parse.urlencode(query={'log_site_id': 'xxx', 'start': now_timestamp})
+        response = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidEnd', response=response)
+
+        # AccessDenied
+        query = parse.urlencode(query={'log_site_id': log_site.id, 'start': now_timestamp, 'end': now_timestamp + 100})
+        response = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # TargetNotExist
+        query = parse.urlencode(query={'log_site_id': 'xxx', 'start': now_timestamp, 'end': now_timestamp + 100})
+        response = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
+
+        # ok
+        log_site.users.add(self.user)
+        query = parse.urlencode(query={'log_site_id': log_site.id, 'start': now_timestamp, 'end': now_timestamp + 100})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "page_num", "page_size", 'results'], response.data)
+        self.assertEqual(response.data['count'], 0)
+        self.assertEqual(len(response.data['results']), 0)
+
+        LogSiteReqCounter().run()
+        query = parse.urlencode(query={'log_site_id': log_site.id, 'start': now_timestamp, 'end': now_timestamp + 100})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "page_num", "page_size", 'results'], response.data)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertKeysIn(["count", "id", "timestamp", 'site_id'], response.data['results'][0])
