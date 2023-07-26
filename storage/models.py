@@ -190,6 +190,9 @@ class Bucket(BucketBase):
         verbose_name = _('存储桶')
         verbose_name_plural = verbose_name
 
+    def __str__(self):
+        return self.name
+
     def do_archive(self, archiver: str, raise_exception: bool = False):
         """
         删除归档存储桶

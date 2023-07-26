@@ -8,8 +8,12 @@ from core import errors
 from vo.managers import VoManager
 from bill.managers import PaymentManager
 from service.managers import ServiceManager
-from utils.model import PayType
-from .models import Server, ServerArchive, Flavor, Disk
+from utils.model import PayType, OwnerType
+from api.serializers.disk_serializers import DiskSerializer
+from api.serializers.serializers import ServerSerializer
+from api.serializers.storage import BucketSerializer
+from storage.models import Bucket
+from .models import Server, ServerArchive, Flavor, Disk, ResourceActionLog
 from .server_instance import ServerInstance
 
 
@@ -703,3 +707,72 @@ class DiskManager:
     @staticmethod
     def get_server_disks_qs(server_id: str):
         return Disk.objects.select_related('server').filter(server_id=server_id, deleted=False)
+
+
+class ResourceActionLogManager:
+    @staticmethod
+    def add_delete_log_for_resource(res, user, raise_error: bool = True):
+        try:
+            return ResourceActionLogManager.add_log_for_resource(
+                res=res, user=user, action_flag=ResourceActionLog.ActionFlag.DELETION.value
+            )
+        except Exception as exc:
+            if raise_error:
+                raise exc
+
+    @staticmethod
+    def add_log_for_resource(res, user, action_flag: str):
+        resource_id = res.id
+        resource_repr = str(res)
+        if isinstance(res, Server):
+            resource_type = ResourceActionLog.ResourceType.SERVER.value
+            resource_message = ServerSerializer(instance=res).data
+            if res.classification == Server.Classification.PERSONAL.value:
+                owner_id = res.user_id
+                owner_name = res.user.username
+                owner_type = OwnerType.USER.value
+            else:
+                owner_id = res.vo_id
+                owner_name = res.vo.name
+                owner_type = OwnerType.VO.value
+        elif isinstance(res, Disk):
+            resource_type = ResourceActionLog.ResourceType.DISK.value
+            resource_message = DiskSerializer(instance=res).data
+            if res.classification == Server.Classification.PERSONAL.value:
+                owner_id = res.user_id
+                owner_name = res.user.username
+                owner_type = OwnerType.USER.value
+            else:
+                owner_id = res.vo_id
+                owner_name = res.vo.name
+                owner_type = OwnerType.VO.value
+        elif isinstance(res, Bucket):
+            resource_type = ResourceActionLog.ResourceType.BUCHET.value
+            resource_message = BucketSerializer(instance=res).data
+            owner_id = res.user_id
+            owner_name = res.user.username
+            owner_type = OwnerType.USER.value
+        else:
+            return None
+
+        return ResourceActionLogManager.add_log(
+            user_id=user.id, username=user.username, action_flag=action_flag,
+            resource_type=resource_type, resource_id=resource_id, resource_repr=resource_repr,
+            resource_message=resource_message,
+            owner_id=owner_id, owner_name=owner_name, owner_type=owner_type
+        )
+
+    @staticmethod
+    def add_log(
+            user_id, username: str, action_flag: str, resource_type: str,
+            resource_id, resource_repr, resource_message: dict,
+            owner_id, owner_name, owner_type
+    ):
+        log = ResourceActionLog(
+            action_time=timezone.now(),
+            user_id=user_id, username=username, action_flag=action_flag, resource_type=resource_type,
+            resource_id=resource_id, resource_repr=resource_repr, resource_message=resource_message,
+            owner_id=owner_id, owner_name=owner_name, owner_type=owner_type
+        )
+        log.save(force_insert=True)
+        return log

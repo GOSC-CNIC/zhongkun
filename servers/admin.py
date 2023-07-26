@@ -3,7 +3,7 @@ from django.utils.translation import gettext_lazy as _
 from django import forms
 
 from utils.model import NoDeleteSelectModelAdmin
-from .models import Server, Flavor, ServerArchive, Disk
+from .models import Server, Flavor, ServerArchive, Disk, ResourceActionLog
 
 
 class ServerAdminForm(forms.ModelForm):
@@ -118,3 +118,18 @@ class DiskAdmin(NoDeleteSelectModelAdmin):
         Given a model instance delete it from the database.
         """
         raise Exception(_('不允许从后台删除。'))
+
+
+@admin.register(ResourceActionLog)
+class ResourceActionLogAdmin(NoDeleteSelectModelAdmin):
+    list_display_links = ('id',)
+    list_display = ('id', 'action_time', 'username', 'action_flag', 'resource_type', 'resource_repr',
+                    'owner_name', 'owner_type')
+    search_fields = ['user_id', 'username', 'resource_id', 'owner_id']
+    list_filter = ['action_flag', 'resource_type']
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False

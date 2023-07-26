@@ -9,7 +9,7 @@ from django.conf import settings
 
 from service.managers import ServicePrivateQuotaManager
 from service.models import ServiceConfig
-from servers.models import Disk, Server
+from servers.models import Disk, Server, ResourceActionLog
 from utils.test import get_or_create_user, get_or_create_service
 from utils.model import PayType, OwnerType, ResourceType
 from utils.decimal_utils import quantize_10_2
@@ -1036,11 +1036,19 @@ class DiskOrderTests(MyAPITransactionTestCase):
 
         # ok
         disk1.refresh_from_db()
+        disk1_id = disk1.id
         self.assertEqual(disk1.deleted, False)
         response = self.client.delete(base_url)
         self.assertEqual(response.status_code, 204)
         disk1.refresh_from_db()
         self.assertEqual(disk1.deleted, True)
+        log_count = ResourceActionLog.objects.count()
+        self.assertEqual(log_count, 1)
+        log: ResourceActionLog = ResourceActionLog.objects.order_by('-action_time').first()
+        self.assertEqual(log.action_flag, ResourceActionLog.ActionFlag.DELETION.value)
+        self.assertEqual(log.resource_id, disk1_id)
+        self.assertEqual(log.resource_type, ResourceActionLog.ResourceType.DISK.value)
+        self.assertEqual(log.owner_type, OwnerType.USER.value)
 
         # ----- vo -----
         # AccessDenied
@@ -1057,12 +1065,21 @@ class DiskOrderTests(MyAPITransactionTestCase):
         response = self.client.delete(base_url)
         self.assertErrorResponse(status_code=409, code='DiskAttached', response=response)
 
+        disk2_vo_id = disk2_vo.id
         disk2_vo.server_id = None
         disk2_vo.save(update_fields=['server_id'])
         response = self.client.delete(base_url)
         self.assertEqual(response.status_code, 204)
         disk2_vo.refresh_from_db()
         self.assertEqual(disk2_vo.deleted, True)
+        # 删除记录
+        log_count = ResourceActionLog.objects.count()
+        self.assertEqual(log_count, 2)
+        log: ResourceActionLog = ResourceActionLog.objects.order_by('-action_time').first()
+        self.assertEqual(log.action_flag, ResourceActionLog.ActionFlag.DELETION.value)
+        self.assertEqual(log.resource_id, disk2_vo_id)
+        self.assertEqual(log.resource_type, ResourceActionLog.ResourceType.DISK.value)
+        self.assertEqual(log.owner_type, OwnerType.VO.value)
 
         # ---- as_admin -------
         disk3 = create_disk_metadata(

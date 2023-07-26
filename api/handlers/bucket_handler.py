@@ -12,6 +12,7 @@ from bill.managers import PaymentManager
 from storage.adapter import inputs
 from storage.managers import BucketManager
 from storage.models import Bucket, ObjectsService
+from servers.managers import ResourceActionLogManager
 from .handlers import serializer_error_msg
 
 
@@ -132,7 +133,11 @@ class BucketHandler:
         except Exception as exc:
             return view.exception_response(exc)
 
-        bucket.do_archive(archiver=user.username)
+        bucket_id = bucket.id
+        if bucket.do_archive(archiver=user.username):
+            bucket.id = bucket_id
+            ResourceActionLogManager.add_delete_log_for_resource(res=bucket, user=request.user, raise_error=False)
+
         return Response(data={}, status=204)
 
     @staticmethod

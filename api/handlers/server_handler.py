@@ -12,7 +12,7 @@ from core.quota import QuotaAPI
 from core import request as core_request
 from service.managers import ServiceManager
 from servers.models import Server, Flavor
-from servers.managers import ServerManager, ServerArchiveManager, DiskManager
+from servers.managers import ServerManager, ServerArchiveManager, DiskManager, ResourceActionLogManager
 from api import paginations
 from api.viewsets import CustomGenericViewSet
 from api.deliver_resource import OrderResourceDeliverer
@@ -869,9 +869,12 @@ class ServerHandler:
         except exceptions.APIException as exc:
             raise exc
 
+        server_id = server.id
         if server.do_archive(archive_user=user):  # 记录归档
             ServerHandler.release_server_quota(server=server)  # 释放资源配额
 
+        server.id = server_id
+        ResourceActionLogManager.add_delete_log_for_resource(res=server, user=user, raise_error=False)
         return True
 
     @staticmethod

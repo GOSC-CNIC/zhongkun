@@ -23,7 +23,7 @@ from order.models import ResourceType, Order
 from order.managers import OrderManager, OrderPaymentManager, DiskConfig
 from bill.managers import PaymentManager
 from service.managers import ServiceManager
-from servers.managers import ServerManager, DiskManager
+from servers.managers import ServerManager, DiskManager, ResourceActionLogManager
 from servers.models import Server, Disk
 from .handlers import serializer_error_msg
 
@@ -468,6 +468,7 @@ class DiskHandler:
                 raise exceptions.ConflictError(message=_('向服务单元删除云硬盘时错误') + str(r.error))
 
             disk.do_soft_delete(deleted_user=request.user.username, raise_exception=True)
+            ResourceActionLogManager.add_delete_log_for_resource(res=disk, user=request.user, raise_error=False)
             QuotaAPI().disk_quota_release(service=disk.service, disk_size=disk.size)
         except exceptions.APIException as exc:
             return view.exception_response(exc)

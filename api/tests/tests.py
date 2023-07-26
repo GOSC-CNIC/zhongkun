@@ -22,6 +22,7 @@ from bill.managers.payment import PaymentManager
 from order.managers import OrderManager
 from order.models import Order, ResourceType
 from order.managers.instance_configs import ServerConfig
+from servers.models import ResourceActionLog
 from . import MyAPITestCase, set_auth_header
 
 
@@ -1075,13 +1076,29 @@ class ServersTests(MyAPITestCase):
         response = self.client.delete(url)
         self.assertErrorResponse(status_code=404, code='NotFound', response=response)
 
+        log_count = ResourceActionLog.objects.count()
+        self.assertEqual(log_count, 0)
         url = reverse('api:servers-detail', kwargs={'id': self.miss_server.id})
         response = self.client.delete(url)
         self.assertEqual(response.status_code, 204)
+        log_count = ResourceActionLog.objects.count()
+        self.assertEqual(log_count, 1)
+        log: ResourceActionLog = ResourceActionLog.objects.order_by('-action_time').first()
+        self.assertEqual(log.action_flag, ResourceActionLog.ActionFlag.DELETION.value)
+        self.assertEqual(log.resource_id, self.miss_server.id)
+        self.assertEqual(log.resource_type, ResourceActionLog.ResourceType.SERVER.value)
+        self.assertEqual(log.owner_type, OwnerType.USER.value)
 
         url = reverse('api:servers-detail', kwargs={'id': self.vo_server.id})
         response = self.client.delete(url)
         self.assertEqual(response.status_code, 204)
+        log_count = ResourceActionLog.objects.count()
+        self.assertEqual(log_count, 2)
+        log: ResourceActionLog = ResourceActionLog.objects.order_by('-action_time').first()
+        self.assertEqual(log.action_flag, ResourceActionLog.ActionFlag.DELETION.value)
+        self.assertEqual(log.resource_id, self.vo_server.id)
+        self.assertEqual(log.resource_type, ResourceActionLog.ResourceType.SERVER.value)
+        self.assertEqual(log.owner_type, OwnerType.VO.value)
 
         # list user server archives
         url = reverse('api:server-archive-list')

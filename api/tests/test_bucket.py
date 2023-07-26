@@ -5,9 +5,11 @@ from django.urls import reverse
 
 from bill.models import PayApp, PayOrgnazition, PayAppService
 from utils.test import get_or_create_user, get_or_create_storage_service
+from utils.model import OwnerType
 from storage.managers import BucketManager
 from storage.models import ObjectsService
 from api.handlers.bucket_handler import BucketHandler
+from servers.models import ResourceActionLog
 from . import MyAPITestCase
 
 
@@ -79,6 +81,14 @@ class BucketTests(MyAPITestCase):
         url = reverse('api:bucket-delete-bucket', kwargs={'bucket_name': bucket_name, 'service_id': self.service.id})
         r = self.client.delete(url)
         self.assertEqual(r.status_code, 204)
+
+        log_count = ResourceActionLog.objects.count()
+        self.assertEqual(log_count, 1)
+        log: ResourceActionLog = ResourceActionLog.objects.order_by('-action_time').first()
+        self.assertEqual(log.action_flag, ResourceActionLog.ActionFlag.DELETION.value)
+        self.assertEqual(log.resource_id, bucket.id)
+        self.assertEqual(log.resource_type, ResourceActionLog.ResourceType.BUCHET.value)
+        self.assertEqual(log.owner_type, OwnerType.USER.value)
 
     def test_list_bucket(self):
         user2 = get_or_create_user(username='tom@xx.com')

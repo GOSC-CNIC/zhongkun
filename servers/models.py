@@ -6,7 +6,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 
 from service.models import ServiceConfig
-from utils.model import get_encryptor, PayType
+from utils.model import get_encryptor, PayType, UuidModel, OwnerType
 from utils import rand_utils
 from vo.models import VirtualOrganization
 from users.models import UserProfile as User
@@ -590,3 +590,55 @@ class Disk(models.Model):
 
     def belong_to_vo(self):
         return self.classification == self.Classification.VO.value
+
+
+class ResourceActionLog(UuidModel):
+    class ResourceType(models.TextChoices):
+        SERVER = 'server', _('云主机')
+        DISK = 'disk', _('云硬盘')
+        BUCHET = 'bucket', _('存储桶')
+
+    class ActionFlag(models.TextChoices):
+        ADDITION = 'add', _('添加')
+        CHANGE = 'change', _('修改')
+        DELETION = 'delete', _('删除')
+
+    action_time = models.DateTimeField(verbose_name=_('操作时间'), editable=False)
+    user_id = models.CharField(verbose_name=_('操作者id'), max_length=36)
+    username = models.CharField(verbose_name=_('操作者'), max_length=150)
+    action_flag = models.CharField(verbose_name=_('操作类型'), max_length=16, choices=ActionFlag.choices)
+    resource_type = models.CharField(verbose_name=_('资源类型'), max_length=16, choices=ResourceType.choices)
+    resource_id = models.TextField(_('资源id'), blank=True, null=True)
+    resource_repr = models.CharField(_('资源描述'), max_length=200)
+    resource_message = models.JSONField(_('资源信息'), blank=True)
+    owner_id = models.CharField(verbose_name=_('资源拥有者id'), max_length=32)
+    owner_name = models.CharField(verbose_name=_('资源拥有者'), max_length=128)
+    owner_type = models.CharField(verbose_name=_('资源拥有者类型'), max_length=16, choices=OwnerType.choices)
+
+    class Meta:
+        verbose_name = _('资源操作日志')
+        verbose_name_plural = verbose_name
+        db_table = 'resource_action_log'
+        ordering = ['-action_time']
+
+    def __repr__(self):
+        return str(self.action_time)
+
+    def __str__(self):
+        if self.is_addition():
+            return _('创建 “%(object)s”') % {'object': self.resource_repr}
+        elif self.is_change():
+            return _('修改 “%(object)s”') % {'object': self.resource_repr}
+        elif self.is_deletion():
+            return _('删除 “%(object)s”') % {'object': self.resource_repr}
+
+        return _('资源操作日志')
+
+    def is_addition(self):
+        return self.action_flag == self.ActionFlag.ADDITION.value
+
+    def is_change(self):
+        return self.action_flag == self.ActionFlag.CHANGE.value
+
+    def is_deletion(self):
+        return self.action_flag == self.ActionFlag.DELETION.value
