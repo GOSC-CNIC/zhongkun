@@ -1,7 +1,6 @@
 from django.utils.translation import gettext as _
 
 from core import errors
-from api.serializers import log_serializers
 from .models import LogSite
 from .backends.log import LogLokiAPI
 

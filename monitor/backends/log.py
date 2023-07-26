@@ -25,6 +25,13 @@ class LogLokiAPI:
         }
     }
     """
+    def query(self, provider: MonitorProvider, querys: dict):
+        """
+        :return:
+        """
+        api_url = self._build_query_api(endpoint_url=provider.endpoint_url, querys=querys)
+        return self._request_query_api(url=api_url)
+
     def query_log(self, provider: MonitorProvider, querys: dict):
         """
         :return:
@@ -36,7 +43,6 @@ class LogLokiAPI:
         """
         :raises: Error
         """
-        # print(url)
         try:
             r = requests.get(url=url, timeout=(6, 30))
         except requests.exceptions.Timeout:
@@ -63,3 +69,9 @@ class LogLokiAPI:
         endpoint_url = endpoint_url.rstrip('/')
         query = parse.urlencode(query=querys)
         return f'{endpoint_url}/loki/api/v1/query_range?{query}'
+
+    @staticmethod
+    def _build_query_api(endpoint_url: str, querys: dict):
+        endpoint_url = endpoint_url.rstrip('/')
+        query = parse.urlencode(query=querys)
+        return f'{endpoint_url}/loki/api/v1/query?{query}'

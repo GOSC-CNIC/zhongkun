@@ -476,6 +476,21 @@ class LogSite(UuidModel):
         return False
 
 
+class LogSiteTimeReqNum(UuidModel):
+    """日志站点每分钟访问量"""
+    timestamp = models.PositiveBigIntegerField(null=False, blank=False, verbose_name="统计时间")
+    site = models.ForeignKey(
+        verbose_name='日志站点', to=LogSite, on_delete=models.DO_NOTHING, null=True, blank=False,
+        db_constraint=False, db_index=False)
+    count = models.PositiveIntegerField(verbose_name='请求量')
+
+    class Meta:
+        db_table = 'log_site_time_req_num'
+        ordering = ['-timestamp']
+        verbose_name = "日志站点时序请求量"
+        verbose_name_plural = verbose_name
+
+
 class TotalReqNum(UuidModel):
     """
     服务总请求数记录, 包括一体云后端和对象存储

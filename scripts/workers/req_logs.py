@@ -1,10 +1,11 @@
 from urllib.parse import urlencode
+from datetime import datetime
 
 import requests
 from django.utils import timezone
 from django.conf import settings
 
-from monitor.models import TotalReqNum
+from monitor.models import TotalReqNum, LogSite, LogSiteTimeReqNum
 
 
 def get_today_start_time():
@@ -79,3 +80,69 @@ class ServiceReqCounter:
 
         msg = f"status: {r.status_code}, errorType: {data.get('errorType')}, error: {data.get('error')}"
         return Exception(msg)
+
+
+class LogSiteReqCounter:
+    @staticmethod
+    def get_now_timestamp() -> int:
+        return int(datetime.utcnow().timestamp())
+
+    def __init__(self, minutes: int = 1):
+        """
+        :param minutes: 统计当前时间前n分钟请求数，== 定时统计周期
+        """
+        self.minutes = minutes
+
+    def run(self):
+        sites_count, ok_count = self.generate_req_num_log()
+        print(f'End，log sites: {sites_count}, ok: {ok_count}')
+
+    @staticmethod
+    def get_log_sites():
+        qs = LogSite.objects.select_related('provider').all()
+        return list(qs)
+
+    def generate_req_num_log(self):
+        """
+        sites: [LogSite]
+        """
+        sites = self.get_log_sites()
+        ok_count = 0
+        for site in sites:
+            now_timestamp = self.get_now_timestamp()
+            try:
+                r_num = self.get_site_req_num(site=site, until_timestamp=now_timestamp, minutes=self.minutes)
+            except Exception:
+                continue
+
+            obj = self.create_req_num_log(timestamp=now_timestamp, log_site_id=site.id, req_num=r_num)
+            if obj:
+                ok_count += 1
+
+        return len(sites), ok_count
+
+    @staticmethod
+    def get_site_req_num(site: LogSite, until_timestamp: int, minutes: int):
+        value = f'count_over_time({{job="{site.job_tag}"}}[{minutes}m])'
+        querys = {'query': value, 'time': until_timestamp}
+        from monitor.backends.log import LogLokiAPI
+        try:
+            result = LogLokiAPI().query(provider=site.provider, querys=querys)
+        except Exception:
+            result = LogLokiAPI().query(provider=site.provider, querys=querys)
+
+        if result:
+            value = result[0]['value']
+            return int(value[1])
+
+        return 0
+
+    @staticmethod
+    def create_req_num_log(timestamp: int, log_site_id: str, req_num: int):
+        try:
+            obj = LogSiteTimeReqNum(timestamp=timestamp, site_id=log_site_id, count=req_num)
+            obj.save(force_insert=True)
+            return obj
+        except Exception as e:
+            print(f'Error, {str(e)}')
+            return None

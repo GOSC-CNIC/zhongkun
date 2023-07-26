@@ -1096,7 +1096,7 @@ class StatementDiskViewSet(CustomGenericViewSet):
                   "trade_amount": "72.24",
                   "daily_statement_id": "s15b4e94a658f11edb8adc8009fe2ebbc",
                   "service_id": "8d725d6a-30b5-11ec-a8e6-c8009fe2eb10",
-                  "server_id": "5fc60df0-9445-11ec-a91e-c8009fe2eb10",
+                  "disk_id": "5fc60df0-9445-11ec-a91e-c8009fe2eb10",
                   "date": "2022-11-15",
                   "creation_time": "2022-11-16T09:12:52.891427Z",
                   "user_id": "1",
@@ -1104,13 +1104,7 @@ class StatementDiskViewSet(CustomGenericViewSet):
                   "vo_id": "",
                   "vo_name": "",
                   "owner_type": "user",
-                  "cpu_hours": 48,
-                  "ram_hours": 96,
-                  "disk_hours": 0,
-                  "public_ip_hours": 24,
-                  "snapshot_hours": 0,
-                  "upstream": 0,
-                  "downstream": 0,
+                  "size_hours": 48.12,
                   "pay_type": "postpaid"
                 }
               ]

@@ -9,7 +9,7 @@ from .models import (
     MonitorJobCeph, MonitorProvider, MonitorJobServer, MonitorJobVideoMeeting,
     MonitorWebsite, MonitorWebsiteTask, MonitorWebsiteVersion,
     get_str_hash, WebsiteDetectionPoint, MonitorJobTiDB, LogSiteType, LogSite,
-    TotalReqNum
+    TotalReqNum, LogSiteTimeReqNum
 )
 from .managers import MonitorWebsiteManager
 
@@ -175,3 +175,10 @@ class TotalReqNumAdmin(NoDeleteSelectModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+@admin.register(LogSiteTimeReqNum)
+class LogSiteTimeReqNumAdmin(admin.ModelAdmin):
+    list_display = ('id', 'timestamp', 'site', 'count')
+    list_display_links = ('id', )
+    list_select_related = ('site', )
