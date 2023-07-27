@@ -1,5 +1,7 @@
-from datetime import datetime
+import datetime
 from pytz import utc
+
+from django.utils.timezone import is_aware, utc
 
 from rest_framework.fields import DateTimeField
 from rest_framework import ISO_8601
@@ -19,7 +21,7 @@ def iso_to_datetime(iso_time: str):
 
 def iso_utc_to_datetime(iso_time: str):
     try:
-        return datetime.strptime(iso_time, ISO_UTC_FORMAT)
+        return datetime.datetime.strptime(iso_time, ISO_UTC_FORMAT)
     except (ValueError, TypeError) as e:
         return None
 
@@ -36,7 +38,7 @@ def time_to_gmt(value):
         return ''
 
 
-def datetime_add_months(dt: datetime, months: int) -> datetime:
+def datetime_add_months(dt: datetime.datetime, months: int) -> datetime.datetime:
     dt_year = dt.year
     dt_month = dt.month
 
@@ -50,7 +52,33 @@ def datetime_add_months(dt: datetime, months: int) -> datetime:
     return dt.replace(year=year, month=month)
 
 
-def days_after_months(dt: datetime, months: int) -> int:
+def days_after_months(dt: datetime.datetime, months: int) -> int:
     end = datetime_add_months(dt=dt, months=months)
     delta = end - dt
     return delta.days
+
+
+def datesince_days(d, now=None, _reversed=False) -> int:
+    if not isinstance(d, datetime.datetime):
+        d = datetime.datetime(d.year, d.month, d.day)
+    if now and not isinstance(now, datetime.datetime):
+        now = datetime.datetime(now.year, now.month, now.day)
+
+    now = now or datetime.datetime.now(utc if is_aware(d) else None)
+
+    if _reversed:
+        d, now = now, d
+
+    delta = now.date() - d.date()
+    since_days = delta.days
+    if since_days <= 0:
+        return 0
+
+    return since_days
+
+
+def dateuntil_days(d, now=None) -> int:
+    """
+    Like timesince, but return a string measuring the time until the given time.
+    """
+    return datesince_days(d, now, _reversed=True)
