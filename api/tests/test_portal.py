@@ -42,7 +42,7 @@ class PortalServiceTests(MyAPITestCase):
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['code'], 200)
-        self.assertEqual(response.data['num'], 1)
+        self.assertEqual(response.data['count'], 1)
 
     def test_req_num(self):
         base_url = reverse('api:portal-service-total-req-num')

@@ -74,7 +74,7 @@ class PortalServiceViewSet(CustomGenericViewSet):
             Http Code 200 ok:
             {
               "code": 200,
-              "num": 1234
+              "count": 1234
             }
         """
         r = self.allowed_addr_ip(request=request)
@@ -85,7 +85,7 @@ class PortalServiceViewSet(CustomGenericViewSet):
         user_num = qs.count()
         return Response(data={
             'code': 200,
-            'num': user_num
+            'count': user_num
         })
 
     @swagger_auto_schema(
