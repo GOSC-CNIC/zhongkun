@@ -110,7 +110,8 @@ class BucketTests(MyAPITestCase):
         self.assertEqual(r.data['count'], 1)
         self.assertEqual(len(r.data['results']), 1)
         self.assertKeysIn(keys=[
-            'id', 'name', 'creation_time', 'user_id', 'username', 'service'
+            'id', 'name', 'creation_time', 'user_id', 'username', 'service',
+            'storage_size', 'object_count', 'stats_time'
         ], container=r.data['results'][0])
         self.assertKeysIn(keys=['id', 'name', 'name_en'], container=r.data['results'][0]['service'])
 

@@ -128,7 +128,10 @@ class BucketViewSet(StorageGenericViewSet):
                     "id": "4fa94896-29a6-11ed-861f-c8009fe2ebbc",
                     "name": "test iharbor",
                     "name_en": "en iharbor"
-                  }
+                  },
+                  "storage_size": 66347638,
+                  "object_count": 456,
+                  "stats_time": "2022-10-27T08:09:26.911670Z"
                 }
               ]
             }

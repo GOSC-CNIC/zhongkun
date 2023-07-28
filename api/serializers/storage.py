@@ -14,6 +14,9 @@ class BucketSerializer(serializers.Serializer):
     user_id = serializers.CharField(label=_('用户id'))
     username = serializers.SerializerMethodField(method_name='get_username')
     service = serializers.SerializerMethodField(method_name='get_service')
+    storage_size = serializers.IntegerField(label=_('桶存储容量'))
+    object_count = serializers.IntegerField(label=_('桶对象数量'))
+    stats_time = serializers.DateTimeField(label=_('桶资源统计时间'))
 
     @staticmethod
     def get_username(obj):
@@ -34,9 +37,6 @@ class AdminBucketSerializer(BucketSerializer):
     task_status = serializers.CharField(label='创建状态', max_length=16)
     situation = serializers.CharField(label='过期欠费管控情况', max_length=16, help_text='欠费状态下存储桶读写锁定管控情况')
     situation_time = serializers.DateTimeField(label='管控情况时间', help_text='欠费管控开始时间')
-    storage_size = serializers.IntegerField(label=_('桶存储容量'))
-    object_count = serializers.IntegerField(label=_('桶对象数量'))
-    stats_time = serializers.DateTimeField(label=_('桶资源统计时间'))
 
 
 class ObjectsServiceSerializer(serializers.Serializer):
