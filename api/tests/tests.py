@@ -908,12 +908,26 @@ class ServersTests(MyAPITestCase):
         user_server.refresh_from_db()
         self.assertEqual(user_server.situation, Server.Situation.EXPIRED.value)
 
+        # 是否欠费查询时，no pay_app_service_id
         user_server.expiration_time = timezone.now() + timedelta(days=1)
         user_server.save(update_fields=['expiration_time'])
         response = self.client.post(url, data={'action': 'start'})
         self.assertErrorResponse(status_code=500, code='InternalError', response=response)
         user_server.refresh_from_db()
         self.assertEqual(user_server.situation, Server.Situation.NORMAL.value)
+
+        # 未管控，按量计费云主机 欠费也不允许开机
+        self.user.userpointaccount.balance = Decimal('-0.01')
+        self.user.userpointaccount.save(update_fields=['balance'])
+        response = self.client.post(url, data={'action': 'start'})
+        self.assertErrorResponse(status_code=409, code='ArrearageSuspending', response=response)
+
+        # 未管控，预付费云主机 欠费也不允许开机
+        user_server.expiration_time = timezone.now() - timedelta(days=1)
+        user_server.pay_type = PayType.PREPAID.value
+        user_server.save(update_fields=['expiration_time', 'pay_type'])
+        response = self.client.post(url, data={'action': 'start'})
+        self.assertErrorResponse(status_code=409, code='ExpiredSuspending', response=response)
 
         # ------ 欠费停服停机挂起的云主机测试 -----------
         service = self.vo_server.service
@@ -944,6 +958,15 @@ class ServersTests(MyAPITestCase):
         self.assertErrorResponse(status_code=409, code='ArrearageSuspending', response=response)
         self.vo_server.refresh_from_db()
         self.assertEqual(self.vo_server.situation, Server.Situation.ARREARAGE.value)
+
+        # 未管控时，按量计费云主机 欠费 不允许开机
+        self.vo_server.situation = Server.Situation.NORMAL.value
+        self.vo_server.save(update_fields=['situation'])
+        self.vo_server.refresh_from_db()
+        self.assertEqual(self.vo_server.situation, Server.Situation.NORMAL.value)
+        url = reverse('api:servers-server-action', kwargs={'id': self.vo_server.id})
+        response = self.client.post(url, data={'action': 'start'})
+        self.assertErrorResponse(status_code=409, code='ArrearageSuspending', response=response)
 
     def test_vo_server_permission(self):
         member_user = get_or_create_user(username='vo-member')

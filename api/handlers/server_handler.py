@@ -946,6 +946,7 @@ class ServerHandler:
         # 过期，欠费挂起，不允许开机，需要检查是否续费，是否不再欠费
         if act in [inputs.ServerAction.START, inputs.ServerAction.REBOOT]:
             ServerManager.check_situation_suspend(server=server)
+            ServerManager.not_allow_start_server_check(server=server)
 
         try:
             params = inputs.ServerActionInput(

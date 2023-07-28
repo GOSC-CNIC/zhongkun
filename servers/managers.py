@@ -287,26 +287,59 @@ class ServerManager:
             if server.service is None:
                 raise errors.ArrearageSuspending(
                     message=_('云主机欠费停机停服挂起中，云主机所属服务未知，无法查询用户或vo组是否还欠费'))
-            elif not server.service.pay_app_service_id:
-                raise errors.ArrearageSuspending(
-                    message=_('云主机欠费停机停服挂起中，云主机所属服务没有配置余额结算系统app服务id，无法查询用户或vo组是否还欠费'))
 
-            if server.belong_to_vo():
-                ok = PaymentManager().has_enough_balance_vo(
-                    vo_id=server.vo_id, money_amount=Decimal('0'), with_coupons=True,
-                    app_service_id=server.service.pay_app_service_id
-                )
-            else:
-                ok = PaymentManager().has_enough_balance_user(
-                    user_id=server.user_id, money_amount=Decimal('0'), with_coupons=True,
-                    app_service_id=server.service.pay_app_service_id
-                )
-            if ok:
+            if not server.service.pay_app_service_id:
+                raise errors.ArrearageSuspending(
+                    message=_('云主机所属服务单元没有配置余额结算系统app服务id，无法查询用户或vo组是否还欠费'))
+
+            if not ServerManager.is_server_arrearage(server=server):
                 server.set_situation_normal()
             else:
                 raise errors.ArrearageSuspending(message=_('云主机欠费停机停服挂起中'))
         else:
             raise errors.ConflictError(message=_('云主机管控状态未知'))
+
+    @staticmethod
+    def is_server_arrearage(server: Server):
+        """
+        按量付费云主机是否欠费
+        :return:
+            True    # 欠费
+            False   # 不欠费
+        :raises: Error
+        """
+        if server.pay_type != PayType.POSTPAID.value:
+            return False
+
+        if server.belong_to_vo():
+            ok = PaymentManager().has_enough_balance_vo(
+                vo_id=server.vo_id, money_amount=Decimal('0'), with_coupons=True,
+                app_service_id=server.service.pay_app_service_id
+            )
+        else:
+            ok = PaymentManager().has_enough_balance_user(
+                user_id=server.user_id, money_amount=Decimal('0'), with_coupons=True,
+                app_service_id=server.service.pay_app_service_id
+            )
+
+        return not ok
+
+    @staticmethod
+    def not_allow_start_server_check(server: Server):
+        """
+        云主机过期，或者按量模式欠费不允许开机
+
+        :raises: Error
+        """
+        # 预付费云主机，过期不允许开机；
+        if server.pay_type == PayType.PREPAID.value:
+            if server.expiration_time and server.expiration_time <= timezone.now():
+                raise errors.ExpiredSuspending(message=_('云主机已过期，不允许开机，请完成续费后重试。'))
+        # 按量计费云主机，欠费不允许开机；
+        else:
+            if ServerManager.is_server_arrearage(server):
+                raise errors.ArrearageSuspending(
+                    message=_('云主机已欠费，不允许开机，请充值后或者获得云主机所属服务单元的代金券后重试。'))
 
     def do_arrearage_suspend_server(self, server: Server):
         """
