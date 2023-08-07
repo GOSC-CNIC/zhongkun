@@ -489,6 +489,9 @@ class LogSiteTimeReqNum(UuidModel):
         ordering = ['-timestamp']
         verbose_name = "日志站点时序请求量"
         verbose_name_plural = verbose_name
+        indexes = [
+            models.Index(fields=['timestamp'], name='idx_timestamp')
+        ]
 
 
 class TotalReqNum(UuidModel):
