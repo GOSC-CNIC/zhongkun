@@ -1,4 +1,6 @@
 from django.utils.translation import gettext_lazy, gettext as _
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.serializers import Serializer
@@ -153,6 +155,7 @@ class LogSiteViewSet(CustomGenericViewSet):
         """
         return LogSiteHandler().log_query(view=self, request=request)
 
+    @method_decorator(cache_page(30))
     @swagger_auto_schema(
         operation_summary=gettext_lazy('站点日志数量时序数据查询'),
         manual_parameters=PARAM_LOKI_TIMESTAMP_RANGE + [
