@@ -54,15 +54,9 @@ class MonitorJobVideoMeetingAdmin(admin.ModelAdmin):
 class MonitorWebsiteForm(ModelForm):
     def clean(self):
         data = super().clean()
-        ws_url = data['url']
         user = data['user']
         if not user:
             self.add_error('user', ValidationError('必须选择一个用户。'))
-        else:
-            url_hash = get_str_hash(ws_url)
-            _website = MonitorWebsite.objects.filter(user_id=user.id, url_hash=url_hash).first()
-            if _website is not None:
-                self.add_error('url', ValidationError('指定用户已存在相同的网址。'))
 
         return data
 

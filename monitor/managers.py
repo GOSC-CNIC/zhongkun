@@ -593,6 +593,13 @@ class MonitorWebsiteManager:
         except ValidationError as e:
             raise errors.InvalidArgument(message=_('网址无效'), code='InvalidUrl')
 
+        new_url_hash = get_str_hash(new_url)
+        _website = MonitorWebsite.objects.filter(
+            user_id=user_website.user_id, url_hash=new_url_hash
+        ).exclude(id=user_website.id).first()
+        if _website is not None:
+            raise errors.TargetAlreadyExists(message=_('已存在相同的网址。'))
+
         user_website.url = new_url
         user_website.is_tamper_resistant = new_tamper_resistant
 
@@ -673,7 +680,7 @@ class MonitorWebsiteManager:
 
         return dict_dps
 
-    def get_detection_ponit(self, dp_id: str):
+    def get_detection_ponit(self, dp_id: str) -> WebsiteDetectionPoint:
         """
         查询指定的探测点实例
 
