@@ -239,12 +239,8 @@ class MonitorWebsiteQueryAPI:
         msg = f"status: {r.status_code}, errorType: {data.get('errorType')}, error: {data.get('error')}"
         return errors.Error(message=msg)
 
-    @staticmethod
-    def _build_query_api(endpoint_url: str, expression_query: str):
-        endpoint_url = endpoint_url.rstrip('/')
-        query = parse.urlencode(query={'query': expression_query})
-        url = f'{endpoint_url}/api/v1/query?{query}'
-        return url
+    def _build_query_api(self, endpoint_url: str, expression_query: str):
+        return self.build_query_url(endpoint_url=endpoint_url, params={'query': expression_query})
 
     @staticmethod
     def _build_query_range_api(endpoint_url: str, expression_query: str, start, end, step):
@@ -255,6 +251,31 @@ class MonitorWebsiteQueryAPI:
         })
         url = f'{endpoint_url}/api/v1/query_range?{query}'
         return url
+
+    @staticmethod
+    def build_query_url(endpoint_url: str, params: dict):
+        endpoint_url = endpoint_url.rstrip('/')
+        query = parse.urlencode(query=params)
+        url = f'{endpoint_url}/api/v1/query?{query}'
+        return url
+
+    def raw_query(self, provider: MonitorProvider, params: dict):
+        """
+        :return:
+            [
+                {
+                    ...
+                    "value": [
+                        1630267851.781,
+                        '0.032904559'
+                    ]
+                },
+                ...
+            ]
+        :raises: Error
+        """
+        api_url = self.build_query_url(endpoint_url=provider.endpoint_url, params=params)
+        return self._request_query_api(api_url)
 
 
 # if __name__ == "__main__":

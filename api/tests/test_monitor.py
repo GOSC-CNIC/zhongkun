@@ -1,4 +1,5 @@
 import time
+from datetime import timedelta
 from urllib import parse
 
 from django.urls import reverse
@@ -1735,3 +1736,59 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
             self.assertEqual(len(data_item["values"][0]), 2)
 
         return response
+
+    def duration_query_response(self, start: int, end: int, detection_point_id: str):
+        url = reverse('api:monitor-website-duration-distribution')
+        querys = {}
+        if start:
+            querys['start'] = start
+
+        if end:
+            querys['end'] = end
+
+        if detection_point_id:
+            querys['detection_point_id'] = detection_point_id
+
+        query = parse.urlencode(query=querys)
+        return self.client.get(f'{url}?{query}')
+
+    def test_duration_distribution(self):
+        nt = timezone.now()
+        detection_point1 = WebsiteDetectionPoint(
+            name='name1', name_en='name en1', creation=nt, modification=nt, remark='remark1', enable=True,
+            provider=self.provider
+        )
+        detection_point1.save(force_insert=True)
+
+        nt = timezone.now()
+        detection_point2 = WebsiteDetectionPoint(
+            name='name2', name_en='name en1', creation=nt, modification=nt,
+            remark='remark1', enable=False, provider=self.provider
+        )
+        detection_point2.save(force_insert=True)
+
+        # NotAuthenticated
+        day_ago = nt - timedelta(days=1)
+        start = int(day_ago.timestamp())
+        end = int(nt.timestamp())
+        r = self.duration_query_response(start=start, end=end, detection_point_id='')
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+
+        self.client.force_login(self.user)
+
+        # NoSuchDetectionPoint
+        r = self.duration_query_response(start=start, end=end, detection_point_id='notfound')
+        self.assertErrorResponse(status_code=404, code='NoSuchDetectionPoint', response=r)
+
+        # Conflict, detection_point2 not enable
+        r = self.duration_query_response(start=start, end=end,  detection_point_id=detection_point2.id)
+        self.assertErrorResponse(status_code=409, code='Conflict', response=r)
+
+        # ok
+        r = self.duration_query_response(start=start, end=end, detection_point_id='')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data), 2)
+
+        r = self.duration_query_response(start=start, end=end, detection_point_id=detection_point1.id)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data), 1)

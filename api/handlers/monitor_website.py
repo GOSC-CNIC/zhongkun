@@ -236,8 +236,6 @@ class MonitorWebsiteHandler:
         :raises: Error
         """
         query = request.query_params.get('query', None)
-        start = request.query_params.get('start', None)
-        end = request.query_params.get('end', int(time.time()))
         step = request.query_params.get('step', 300)
         detection_point_id = request.query_params.get('detection_point_id', None)
 
@@ -250,27 +248,10 @@ class MonitorWebsiteHandler:
         if query not in WebsiteQueryChoices.values:
             raise errors.InvalidArgument(message=_('参数"query"的值无效'))
 
-        if start is None:
-            raise errors.BadRequest(message=_('参数"start"必须提交'))
-
-        try:
-            start = int(start)
-            if start <= 0:
-                raise ValueError
-        except ValueError:
-            raise errors.InvalidArgument(message=_('起始时间"start"的值无效, 请尝试一个正整数'))
-
-        try:
-            end = int(end)
-            if end <= 0:
-                raise ValueError
-        except ValueError:
-            raise errors.InvalidArgument(message=_('截止时间"end"的值无效, 请尝试一个正整数'))
+        start, end = MonitorWebsiteHandler.validate_start_end_params(
+            request=request, default_end=int(time.time()))
 
         timestamp_delta = end - start
-        if timestamp_delta < 0:
-            raise errors.BadRequest(message=_('截止时间必须大于起始时间'))
-
         try:
             step = int(step)
         except ValueError:
@@ -311,3 +292,138 @@ class MonitorWebsiteHandler:
 
         data = view.get_serializer(instance=points, many=True).data
         return view.get_paginated_response(data=data)
+
+    @staticmethod
+    def validate_start_end_params(request, default_start: int = None, default_end: int = None):
+        start = request.query_params.get('start', None)
+        end = request.query_params.get('end', None)
+
+        if start:
+            try:
+                start = int(start)
+                if start <= 0:
+                    raise ValueError
+            except ValueError:
+                raise errors.InvalidArgument(message=_('起始时间"start"的值无效, 请尝试一个正整数'))
+        else:
+            if default_start:
+                start = default_start
+            else:
+                raise errors.BadRequest(message=_('必须指定起始时间'))
+
+        if end:
+            try:
+                end = int(end)
+                if end <= 0:
+                    raise ValueError
+            except ValueError:
+                raise errors.InvalidArgument(message=_('截止时间"end"的值无效, 请尝试一个正整数'))
+        else:
+            if default_end:
+                end = default_end
+            else:
+                raise errors.BadRequest(message=_('必须指定截止时间'))
+
+        timestamp_delta = end - start
+        if timestamp_delta <= 0:
+            raise errors.BadRequest(message=_('截止时间必须大于起始时间'))
+
+        return start, end
+
+    @staticmethod
+    def list_duration_distribution(view: CustomGenericViewSet, request):
+        now_st = int(time.time())
+        start, end = MonitorWebsiteHandler.validate_start_end_params(
+            request=request, default_start=now_st, default_end=now_st)
+        detection_point_id = request.query_params.get('detection_point_id', None)
+
+        mw_mgr = MonitorWebsiteManager()
+        try:
+            websites = mw_mgr.get_user_websites_qs(user=request.user)
+            site_urls = [w.full_url for w in websites]
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        is_query_all = True if len(site_urls) > 10 else False
+
+        if detection_point_id:
+            point = mw_mgr.get_detection_ponit(dp_id=detection_point_id)
+            detection_points = {detection_point_id: point}
+        else:
+            detection_points = mw_mgr.get_detection_ponits()
+
+        dp_map_data = {}
+        for dp in detection_points.values():
+            try:
+                if is_query_all:
+                    res = mw_mgr.query_duration_avg(provider=dp.provider, start=start, end=end, site_urls=None)
+                else:
+                    res = mw_mgr.query_duration_avg(provider=dp.provider, start=start, end=end, site_urls=site_urls)
+            except Exception as exc:
+                res = []
+
+            dp_map_data[dp.id] = res
+
+        interval_map = {
+            ">3s": (3,),
+            "1s-3s": (1, 3),
+            "600ms-1s": (0.6, 1),
+            "300ms-600ms": (0.3, 0.6),
+            "100ms-300ms": (0.1, 0.3),
+            "50ms-100ms": (0.05, 0.1),
+            "<50ms": (0, 0.05)
+        }
+        stat_map = {}
+        for k, data in dp_map_data.items():
+            r = MonitorWebsiteHandler._duration_interval_statistics(
+                data=data, interval_map=interval_map, only_site_urls=site_urls)
+            stat_map[k] = r
+
+        return Response(data=stat_map)
+
+    @staticmethod
+    def _duration_interval_statistics(data: list, interval_map: dict, only_site_urls: list = None):
+        """
+        统计一个探针网站监控群的延迟分布情况
+        如果指定 only_site_urls，只统计 only_site_urls 内的
+
+        data:
+        [
+            {
+                "metric": {
+                    "job": "224e6e4a426968a95ae8c29c81155e1cc2911941",
+                    "url": "https://yd.baidu.com/?pcf=2"
+                },
+                "value": [1690529936.783, "0.400814697"]
+            },
+        ]
+        interval_map例如：
+        {
+            ">3s": (3,),
+            "1s-3s": (1, 3),
+            "50ms-1s": (0.05, 1),
+            "<50ms": (0, 0.05)
+        }
+
+        :return:
+        {
+            ">3s": 1,
+            "1s-3s": 3,
+            "50ms-1s": 6,
+            "<50ms": 0
+        }
+        """
+        ret = {k: 0 for k in interval_map.keys()}  # 各区间初始值
+        for item in data:
+            value = float(item['value'][1])
+            if only_site_urls and item['metric']['url'] not in only_site_urls:
+                continue
+
+            for k, v in interval_map.items():
+                start, end = (v[0], None) if len(v) == 1 else (v[0], v[1])
+                status = start < value if end is None else start <= value <= end
+                if status is True:
+                    ret[k] += 1
+                    break
+
+        return ret

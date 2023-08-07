@@ -1,3 +1,5 @@
+import math
+
 from django.db import models, transaction
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
@@ -423,6 +425,15 @@ class MonitorWebsiteManager:
         return website
 
     @staticmethod
+    def get_user_websites_qs(user):
+        """
+        查询用户的所有站点监控任务
+
+        :raises: Error
+        """
+        return MonitorWebsite.objects.filter(user_id=user.id)
+
+    @staticmethod
     def add_website_task(
             name: str, scheme: str, hostname, uri: str, is_tamper_resistant: bool, remark: str, user_id: str):
         """
@@ -780,6 +791,46 @@ class MonitorWebsiteManager:
         }[tag]
 
         return f(**params)
+
+    def query_duration_avg(self, provider: MonitorProvider, start: int, end: int, site_urls: list = None):
+        """
+        site_urls: 指定要查询的url，当url数量在10以内可以用此参数
+
+        [
+            {
+                "metric": {
+                    "group": "web",
+                    "instance": "thanoswrite.cstcloud.cn:9115",
+                    "job": "224e6e4a426968a95ae8c29c81155e1cc2911941",
+                    "monitor": "xinxihua",
+                    "receive_cluster": "webmonitor",
+                    "receive_replica": "0",
+                    "tenant_id": "default-tenant",
+                    "url": "https://yd.baidu.com/?pcf=2"
+                },
+                "value": [
+                    1690529936.783,
+                    "0.400814697"
+                ]
+            },
+        ]
+        """
+        minutes = math.ceil((end - start) / 60)  # 向上取整
+        if minutes <= 0:
+            minutes = 1
+
+        if site_urls:
+            site_querys = []
+            for url in site_urls:
+                query = f'avg_over_time(probe_duration_seconds{{url="{url}"}}[{minutes}m])'
+                site_querys.append(query)
+
+            query = ' or '.join(site_querys)
+        else:
+            query = f'avg_over_time(probe_duration_seconds[{minutes}m])'
+
+        return self.backend.raw_query(
+            provider=provider, params={'query': query, 'time': end})
 
 
 class MonitorJobTiDBManager:
