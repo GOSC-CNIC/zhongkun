@@ -67,6 +67,7 @@
             margin-top: 20px;
         }
         .text-indent{padding-left: 40px;}
+        .t-sec{font-size: 10px;color: rgba(108, 108, 96, 0.78);}
     </style>
 </head>
 <body style="width: 100%;" >
@@ -120,6 +121,33 @@
                 </tr>
                 {% endfor %}
             {% endif %}
+            {% if user_disk_reports %}
+            <tr class="title1">
+                <td colspan="9">云硬盘（数量：{{ monthly_report.disk_count }}，总结算点数：{{ monthly_report.disk_payment_amount }}）</td>
+            </tr>
+            <tr class= "title2">
+                <td colspan="2">云硬盘ID和备注</td>
+                <td colspan="1">容量（GB）</td>
+                <td colspan="2">容量用量（GB*天）</td>
+                <td>网络费用</td>
+                <td>计量点数</td>
+                <td>结算点数</td>
+                <td>用量明细</td>
+            </tr>
+            {% for dmr in user_disk_reports %}
+            <tr class="content">
+                <td colspan="2"><span class="t-sec">{{ dmr.disk.id }}</span><br>{{ dmr.disk.remarks }}</td>
+                <td>{{ dmr.disk.size}}</td>
+                <td colspan="2">{{ dmr.total_size_hours|floatformat:2 }}</td>
+                <td>10Gb科技网共享限量免费</td>
+                <td>{{ dmr.total_original_amount|floatformat:2 }}</td>
+                <td>{{ dmr.total_amount|floatformat:2 }}</td>
+                {% if forloop.first %}
+                <td rowspan="{{ user_disk_reports|length }}"><a target="view_window" href="https://service.cstcloud.cn/my/stats/consumption/personal">点击查看使用明细</a></td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+            {% endif %}
             {% if bucket_reports %}
             <tr class="title1">
                 <td colspan="9">对象存储（存储桶数量：{{ bucket_reports_len }}，总结算点数：{{ monthly_report.storage_postpaid_amount }}）</td>
@@ -161,7 +189,7 @@
                 <td colspan="2" style="width: 10%;"><span>项目组名称</span></td>
                 <td colspan="3" style="width: 20%;">组信息</td>
                 <td colspan="3" style="width: 6%;">我的身份</td>
-                <td colspan="3" style="width: 6%;">云主机数量</td>
+                <td colspan="3" style="width: 6%;">资源数量</td>
                 <td colspan="2" style="width: 14%;">结算点数</td>
                 <td colspan="6" style="width: 22%">本月资源用量</td>
                 <td colspan="2" style="width: 12%">用量明细</td>
@@ -181,16 +209,20 @@
                             {% if vo_info.normal_members %}
                                 <div style="padding-top: 0;margin-top: 0">组员: <br>{% for m in vo_info.normal_members %}{{ m.user__username }}<br>{% endfor %}</div>
                             {% endif %}
-                      </td>
+                        </td>
                         <td colspan="3">{{ vo_info.own_role }}</td>
-                        <td colspan="3">{{ vmr.server_count }}</td>
-                        <td colspan="2">{{ vmr.server_payment_amount }}</td>
+                        <td colspan="3">云主机 {{ vmr.server_count }}{% if vmr.disk_count %}<br><br>云硬盘 {{ vmr.disk_count }}{% endif %}</td>
+                        <td colspan="2">{{ vmr.server_disk_payment_amount }}</td>
                         <td colspan="6">
+                            云主机：<br>
                             公网IP {{ vmr.server_ip_days | floatformat:2 }} 个*天， <br>
                             vCPU {{ vmr.server_cpu_days | floatformat:2 }} 核*天，<br>
                             内存 {{ vmr.server_ram_days | floatformat:2 }} GB*天，<br>
                             系统硬盘 {{ vmr.server_disk_days | floatformat:2 }} GB*天<br>
-                            计量点数 {{ vmr.server_original_amount | floatformat:2 }}
+                            计量点数 {{ vmr.server_original_amount | floatformat:2 }}<br>
+                            {% if vmr.disk_count %}<br>云硬盘：<br>
+                            容量 {{ vmr.disk_size_days | floatformat:2 }} GB*天<br>
+                            计量点数 {{ vmr.disk_original_amount | floatformat:2 }}{% endif %}
                         </td>
                         <td colspan="2"><a target="view_window" href="https://service.cstcloud.cn/my/stats/consumption/group/metering/{{ vo_info.vo.id }}">点击查询用量明细</a></td>
                     </tr>

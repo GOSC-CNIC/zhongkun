@@ -90,8 +90,16 @@ class MonthlyReport(UuidModel):
         return self.server_postpaid_amount + self.server_prepaid_amount
 
     @property
+    def disk_payment_amount(self):
+        return self.disk_postpaid_amount + self.disk_prepaid_amount
+
+    @property
+    def server_disk_payment_amount(self):
+        return self.server_payment_amount + self.disk_payment_amount
+
+    @property
     def total_payment_amount(self):
-        return self.server_payment_amount + self.storage_postpaid_amount
+        return self.server_disk_payment_amount + self.storage_postpaid_amount
 
 
 class BucketMonthlyReport(UuidModel):

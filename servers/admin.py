@@ -87,7 +87,7 @@ class DiskAdmin(NoDeleteSelectModelAdmin):
                     'creation_time', 'task_status', 'expiration_time', 'start_time', 'pay_type',
                     'classification', 'user', 'vo', 'lock', 'show_deleted', 'deleted_time', 'deleted_user',
                     'server', 'mountpoint', 'attached_time', 'detached_time', 'remarks')
-    search_fields = ['id', 'instance_id', 'remarks']
+    search_fields = ['id', 'instance_id', 'remarks', 'user__username']
     list_filter = ['service__data_center', 'service', 'classification', 'deleted']
     raw_id_fields = ('user', 'vo', 'server')
     list_select_related = ('service', 'user', 'vo')

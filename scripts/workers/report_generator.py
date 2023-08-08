@@ -226,6 +226,23 @@ class MonthlyReportGenerator:
 
         self.logger.warning('End VO monthly report generate.')
 
+    def generate_report_for_user_by_name(self, username: str):
+        user = UserProfile.objects.filter(username=username).first()
+        if user is None:
+            print(f'user "{username}" not exists.')
+            return
+
+        try:
+            self.generate_report_for_user(
+                user=user, report_date=self.report_period_date,
+                report_period_start=self.report_period_start,
+                report_period_end=self.report_period_end,
+                report_period_start_time=self.report_period_start_time,
+                report_period_end_time=self.report_period_end_time
+            )
+        except Exception as exc:
+            print(f'Generate monthly report for user({user.username}) error, {str(exc)}')
+
     def generate_report_for_user(
             self, user: UserProfile, report_date: datetime.date,
             report_period_start: datetime.date, report_period_end: datetime.date,
@@ -793,10 +810,17 @@ class MonthlyReportNotifier:
             vo_coupons, start_time=self.report_period_start_time, end_time=self.report_period_end_time)
         vo_normal_coupons, vo_expired_coupons = self.split_coupons(coupons=vo_coupons, split_time=timezone.now())
 
+        # disk
+        user_disk_reports = self.get_user_disk_monthly_reports(
+            user=user, report_period_start=self.report_period_start, report_period_end=self.report_period_end,
+            report_period_start_time=self.report_period_start_time, report_period_end_time=self.report_period_end_time
+        )
+
         return {
             'report_date': report_date,
             'user': user,
             'user_server_reports': user_server_reports,
+            'user_disk_reports': user_disk_reports,
             'bucket_reports': bucket_reports,
             'bucket_reports_len': len(bucket_reports),
             'vo_monthly_reports': sorted_vo_monthly_reports,
@@ -882,7 +906,7 @@ class MonthlyReportNotifier:
     @staticmethod
     def is_need_email(monthly_reports: list):
         for mr in monthly_reports:
-            if mr.server_count > 0 or mr.bucket_count > 0:
+            if mr.server_count > 0 or mr.bucket_count > 0 or mr.disk_count > 0:
                 return True
 
         return False
