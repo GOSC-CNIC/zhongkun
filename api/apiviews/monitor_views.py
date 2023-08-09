@@ -892,15 +892,56 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
             400：
                 BadRequest：请求有误，比如缺少参数
                 InvalidArgument： 参数值无效
-            403：
-                AccessDenied：无权限访问此站点监控任务
             404：
-                NotFound：站点监控任务不存在
                 NoSuchDetectionPoint: 指定的探测点不存在
             409：
                 Conflict：网站监控探测点暂未启用；/ 探测点未配置监控数据查询服务信息
         """
         return MonitorWebsiteHandler().list_duration_distribution(view=self, request=request)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('个人监控网站状态统计'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='detection_point_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=_('探测点ID，指定从那个探测点查询数据，可选，默认全部探测点')
+            )
+        ],
+        paginator_inspectors=[NoPaginatorInspector],
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['get'], detail=False, url_path='status/overview', url_name='status-overview')
+    def website_status_overview(self, request, *args, **kwargs):
+        """
+        个人监控网站状态统计
+
+            Http Code: 状态码200，返回数据：
+            {
+              "total": 193,
+              "invalid": 11,
+              "valid": 182
+            }
+
+            http code 409：
+            {
+              "code": "Conflict",
+              "message": "未配置监控数据查询服务信息"
+            }
+
+            错误码：
+            400：
+                BadRequest：请求有误，比如缺少参数
+            404：
+                NoSuchDetectionPoint: 指定的探测点不存在
+            409：
+                Conflict：网站监控探测点暂未启用；/ 探测点未配置监控数据查询服务信息
+        """
+        return MonitorWebsiteHandler().http_status_overview(view=self, request=request)
 
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'mark_attention']:

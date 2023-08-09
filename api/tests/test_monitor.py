@@ -1781,7 +1781,7 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
         self.assertErrorResponse(status_code=404, code='NoSuchDetectionPoint', response=r)
 
         # Conflict, detection_point2 not enable
-        r = self.duration_query_response(start=start, end=end,  detection_point_id=detection_point2.id)
+        r = self.duration_query_response(start=start, end=end, detection_point_id=detection_point2.id)
         self.assertErrorResponse(status_code=409, code='Conflict', response=r)
 
         # ok
@@ -1792,3 +1792,54 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
         r = self.duration_query_response(start=start, end=end, detection_point_id=detection_point1.id)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(len(r.data), 1)
+
+    def _status_query_response(self, detection_point_id: str):
+        url = reverse('api:monitor-website-status-overview')
+        querys = {}
+        if detection_point_id:
+            querys['detection_point_id'] = detection_point_id
+
+        query = parse.urlencode(query=querys)
+        return self.client.get(f'{url}?{query}')
+
+    def test_status_overview(self):
+        nt = timezone.now()
+        detection_point1 = WebsiteDetectionPoint(
+            name='name1', name_en='name en1', creation=nt, modification=nt, remark='remark1', enable=True,
+            provider=self.provider
+        )
+        detection_point1.save(force_insert=True)
+
+        nt = timezone.now()
+        detection_point2 = WebsiteDetectionPoint(
+            name='name2', name_en='name en1', creation=nt, modification=nt,
+            remark='remark1', enable=False, provider=self.provider
+        )
+        detection_point2.save(force_insert=True)
+
+        # NotAuthenticated
+        r = self._status_query_response(detection_point_id='')
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+
+        self.client.force_login(self.user)
+
+        # NoSuchDetectionPoint
+        r = self._status_query_response(detection_point_id='notfound')
+        self.assertErrorResponse(status_code=404, code='NoSuchDetectionPoint', response=r)
+
+        # Conflict, detection_point2 not enable
+        r = self._status_query_response(detection_point_id=detection_point2.id)
+        self.assertErrorResponse(status_code=409, code='Conflict', response=r)
+
+        # ok
+        r = self._status_query_response(detection_point_id='')
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(['total', 'invalid', 'valid'], r.data)
+        self.assertEqual(r.data['total'], 1)
+        self.assertEqual(r.data['invalid'] + r.data['valid'], 1)
+
+        r = self._status_query_response(detection_point_id=detection_point1.id)
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(['total', 'invalid', 'valid'], r.data)
+        self.assertEqual(r.data['total'], 1)
+        self.assertEqual(r.data['invalid'] + r.data['valid'], 1)

@@ -427,3 +427,91 @@ class MonitorWebsiteHandler:
                     break
 
         return ret
+
+    @staticmethod
+    def http_status_overview(view: CustomGenericViewSet, request):
+        now_st = int(time.time())
+        detection_point_id = request.query_params.get('detection_point_id', None)
+
+        mw_mgr = MonitorWebsiteManager()
+        try:
+            websites = mw_mgr.get_user_websites_qs(user=request.user)
+            site_urls = [w.full_url for w in websites]
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        dp_map_data = {}
+        site_urls_len = len(site_urls)
+        if site_urls_len > 0:
+            is_query_all = True if site_urls_len > 10 else False
+            if detection_point_id:
+                point = mw_mgr.get_detection_ponit(dp_id=detection_point_id)
+                detection_points = {detection_point_id: point}
+            else:
+                detection_points = mw_mgr.get_detection_ponits()
+
+            for dp in detection_points.values():
+                try:
+                    if is_query_all:
+                        res = mw_mgr.query_http_status_code(provider=dp.provider, timestamp=now_st, site_urls=None)
+                    else:
+                        res = mw_mgr.query_http_status_code(provider=dp.provider, timestamp=now_st, site_urls=site_urls)
+                except Exception as exc:
+                    res = []
+
+                dp_map_data[dp.id] = res
+
+        ret = MonitorWebsiteHandler._website_status_counting(
+            data=dp_map_data, only_site_urls=site_urls)
+
+        return Response(data=ret)
+
+    @staticmethod
+    def _website_status_counting(data: dict, only_site_urls: list = None):
+        """
+        根据传入的探针的探测数据结果（可能是一个探针或多个探针）
+        统计正常的个数，异常的个数
+
+        如果指定 only_site_urls，只统计 only_site_urls 内的
+
+        data:
+        {
+            'xxx': [
+                {
+                    "metric": {
+                        "job": "224e6e4a426968a95ae8c29c81155e1cc2911941",
+                        "url": "https://yd.baidu.com/?pcf=2"
+                    },
+                    "value": [1690529936.783, "200"]
+                },
+            ]
+        }
+        返回：
+        {
+            "total":100,
+            "invalid":1,
+            "valid":99
+        }
+        """
+        valids = set()
+        invalids = set()
+        for probe_id, values in data.items():
+            for item in values:
+                url = item['metric']['url']
+                code = int(item['value'][1])
+                if only_site_urls and url not in only_site_urls:
+                    continue
+
+                if 200 <= code <= 300:
+                    valids.add(url)
+                    if url in invalids:     # 有一个探测到正常，判定为正常
+                        invalids.remove(url)
+                else:
+                    if url not in valids:   # 有一个探测到正常，判定为正常
+                        invalids.add(url)
+
+        return {
+            "total": len(invalids) + len(valids),
+            "invalid": len(invalids),
+            "valid": len(valids)
+        }

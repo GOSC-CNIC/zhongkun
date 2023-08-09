@@ -832,6 +832,33 @@ class MonitorWebsiteManager:
         return self.backend.raw_query(
             provider=provider, params={'query': query, 'time': end})
 
+    def query_http_status_code(self, provider: MonitorProvider, timestamp: int, site_urls: list = None):
+        """
+        site_urls: 指定要查询的url，当url数量在10以内可以用此参数
+
+        [
+            {
+                "metric": {
+                    "job": "224e6e4a426968a95ae8c29c81155e1cc2911941",
+                    "url": "https://yd.baidu.com/?pcf=2"
+                },
+                "value": [1690529936.783, "200"]
+            },
+        ]
+        """
+        if site_urls:
+            site_querys = []
+            for url in site_urls:
+                query = f'probe_http_status_code{{url="{url}"}}'
+                site_querys.append(query)
+
+            query = ' or '.join(site_querys)
+        else:
+            query = f'probe_http_status_code'
+
+        return self.backend.raw_query(
+            provider=provider, params={'query': query, 'time': timestamp})
+
 
 class MonitorJobTiDBManager:
     backend = MonitorTiDBQueryAPI()
