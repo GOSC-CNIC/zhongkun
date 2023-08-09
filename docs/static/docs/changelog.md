@@ -1,3 +1,17 @@
+## v1.10.0
+发布时间： 2023-08-09  
+发布人： shun  
+
+* 新增站点监控WebsiteStatusOverview、ListWebSiteDurationDistribution接口和测试用例；提交人：shun
+* 实服务总请求数model定义，请求数统计更新脚本实现，PortalServiceStatus、PortalServiceUserNum、PortalServiceReqNum接口和测试用例；提交人：shun
+* ListBucket接口响应数据增加桶容量和对象数量信息；提交人：shun
+* DetachDisk、DeleteDisk接口增加参数‘as-admin’；提交人：shun
+* 月度报表邮件模板增加云硬盘数据内容；提交人：shun
+* 添加站点日志请求量时序数据模型和请求量时序数据生成脚本，ListLogSiteTimeCount接口和测试用例；提交人：shun
+* 添加资源操作日志模型，云主机、云硬盘和存储桶删除时创建对应的删除日志；提交人：shun
+* 预付费云主机过期和按量计费云主机欠费不允许开机，站点监控后台增改操作优化；提交人：shun
+
+
 ## v1.9.0
 发布时间： 2023-07-24  
 发布人： shun  
