@@ -1776,6 +1776,8 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
 
         self.client.force_login(self.user)
 
+        # 清除 可能的 探测点 缓存
+        django_cache.delete(MonitorWebsiteManager.CACHE_KEY_DETECTION_POINT)
         # NoSuchDetectionPoint
         r = self.duration_query_response(start=start, end=end, detection_point_id='notfound')
         self.assertErrorResponse(status_code=404, code='NoSuchDetectionPoint', response=r)
@@ -1785,10 +1787,14 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
         self.assertErrorResponse(status_code=409, code='Conflict', response=r)
 
         # ok
+        # 清除 可能的 探测点 缓存
+        django_cache.delete(MonitorWebsiteManager.CACHE_KEY_DETECTION_POINT)
         r = self.duration_query_response(start=start, end=end, detection_point_id='')
         self.assertEqual(r.status_code, 200)
         self.assertEqual(len(r.data), 2)
 
+        # 清除 可能的 探测点 缓存
+        django_cache.delete(MonitorWebsiteManager.CACHE_KEY_DETECTION_POINT)
         r = self.duration_query_response(start=start, end=end, detection_point_id=detection_point1.id)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(len(r.data), 1)
@@ -1827,6 +1833,8 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
         r = self._status_query_response(detection_point_id='notfound')
         self.assertErrorResponse(status_code=404, code='NoSuchDetectionPoint', response=r)
 
+        # 清除 可能的 探测点 缓存
+        django_cache.delete(MonitorWebsiteManager.CACHE_KEY_DETECTION_POINT)
         # Conflict, detection_point2 not enable
         r = self._status_query_response(detection_point_id=detection_point2.id)
         self.assertErrorResponse(status_code=409, code='Conflict', response=r)

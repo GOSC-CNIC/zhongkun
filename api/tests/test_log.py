@@ -254,7 +254,7 @@ class LogSiteTests(MyAPITestCase):
 
         # ok
         log_site.users.add(self.user)
-        query = parse.urlencode(query={'log_site_id': log_site.id, 'start': now_timestamp, 'end': now_timestamp + 100})
+        query = parse.urlencode(query={'log_site_id': log_site.id, 'start': now_timestamp-2, 'end': now_timestamp + 100})
         response = self.client.get(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "page_num", "page_size", 'results'], response.data)
@@ -262,6 +262,7 @@ class LogSiteTests(MyAPITestCase):
         self.assertEqual(len(response.data['results']), 0)
 
         LogSiteReqCounter().run()
+        # url有缓存，url不能和上面完全一样
         query = parse.urlencode(query={'log_site_id': log_site.id, 'start': now_timestamp, 'end': now_timestamp + 100})
         response = self.client.get(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
