@@ -57,10 +57,13 @@ class RechargeManager:
         创建一个待支付的充值订单
         """
         if trade_channel not in Recharge.TradeChannel.values:
-            raise errors.Error(message=_('创建充值记录错误，无效的交易渠道"%(value)s"。') % {'value': trade_channel})
+            raise errors.Error(message=_('创建充值订单错误，无效的交易渠道"%(value)s"。') % {'value': trade_channel})
 
         if owner_type not in OwnerType.values:
-            raise errors.Error(message=_('创建充值记录错误，无效的所有者类型"%(value)s"。') % {'value': owner_type})
+            raise errors.Error(message=_('创建充值订单错误，无效的所有者类型"%(value)s"。') % {'value': owner_type})
+
+        if total_amount < Decimal('0.01'):
+            raise errors.Error(message=_('创建充值订单错误，充值金额不得小于0.01"。'))
 
         recharge = Recharge(
             trade_channel=trade_channel,
@@ -150,14 +153,14 @@ class RechargeManager:
             account = PaymentManager.get_user_point_account(
                 user_id=recharge.owner_id, select_for_update=True, is_create=False)
             if account is None:
-                raise errors.ConflictError(message=_('无法完成退款，用户的余额账户未开通。'))
+                raise errors.ConflictError(message=_('无法完成充值，用户的余额账户未开通。'))
         else:
             account = PaymentManager.get_vo_point_account(
                 vo_id=recharge.owner_id, select_for_update=True, is_create=False)
             if account is None:
-                raise errors.ConflictError(message=_('无法完成退款，VO项目组的余额账户未开通。'))
+                raise errors.ConflictError(message=_('无法完成充值，VO项目组的余额账户未开通。'))
 
-        # 退款至余额账户
+        # 充值至余额账户
         if recharge.total_amount > Decimal('0'):
             account.balance = account.balance + recharge.total_amount
             account.save(update_fields=['balance'])
