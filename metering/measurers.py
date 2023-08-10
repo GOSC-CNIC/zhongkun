@@ -116,7 +116,7 @@ class ServerMeasurer:
         if metering is not None:
             return metering
 
-        need_rebuild = False
+        need_other = False  # 是否需要计量其他可能存在的用量
         # server计费开始时间 在计量日期之前，计量日期内server没有变化，计24h
         if server.start_time <= self.start_datetime:
             hours = 24
@@ -124,12 +124,12 @@ class ServerMeasurer:
         elif server.start_time < self.end_datetime:
             hours = self.delta_hours(end=self.end_datetime, start=server.start_time)
             if server.creation_time < server.start_time:  # 计量可能要包含server配置修改记录部分
-                need_rebuild = True
+                need_other = True
         else:
             return None
 
         ip_hours, cpu_hours, ram_gb_hours, disk_gb_hours = self.get_server_metering_hours(server=server, hours=hours)
-        if need_rebuild:
+        if need_other:
             ip_h, cpu_h, ram_h, disk_h = self.metering_one_server_rebuild_hours(
                 server_id=server.id, server_start_time=server.start_time)
             ip_hours += ip_h
@@ -137,12 +137,34 @@ class ServerMeasurer:
             ram_gb_hours += ram_h
             disk_gb_hours += disk_h
 
+            if server.pay_type == PayType.PREPAID.value:
+                # 可能按量付费转的包年包月，需要计量可能的按量付费用量
+                ip_h, cpu_h, ram_h, disk_h = self.metering_one_post2prepaid_server_hours(
+                    server_id=server.id, server_start_time=server.start_time
+                )
+                ip_hours += ip_h
+                cpu_hours += cpu_h
+                ram_gb_hours += ram_h
+                disk_gb_hours += disk_h
+
+                trade_amount = self.price_mgr.describe_server_metering_price(
+                    ram_gib_hours=ram_h,
+                    cpu_hours=cpu_h,
+                    disk_gib_hours=disk_h,
+                    public_ip_hours=ip_h
+                )
+            else:
+                trade_amount = None
+        else:
+            trade_amount = None
+
         metering = self.save_server_metering_record(
             server=server,
             ip_hours=ip_hours,
             cpu_hours=cpu_hours,
             ram_gb_hours=ram_gb_hours,
-            disk_gb_hours=disk_gb_hours
+            disk_gb_hours=disk_gb_hours,
+            trade_amount=trade_amount
         )
         return metering
 
@@ -152,20 +174,20 @@ class ServerMeasurer:
         if metering is not None:
             return metering
 
-        need_rebuild = False
+        need_other = False  # 是否需要计量其他可能存在的用量
         end = min(archive.deleted_time, self.end_datetime)  # server计费结束时间
         if archive.start_time <= self.start_datetime:
             start = self.start_datetime
         elif archive.start_time < self.end_datetime:
             start = archive.start_time
             if archive.creation_time < archive.start_time:  # 计量可能要包含server配置修改记录部分
-                need_rebuild = True
+                need_other = True
         else:
             return None
 
         hours = self.delta_hours(end=end, start=start)
         ip_hours, cpu_hours, ram_gb_hours, disk_gb_hours = self.get_server_metering_hours(server=archive, hours=hours)
-        if need_rebuild:
+        if need_other:
             ip_h, cpu_h, ram_h, disk_h = self.metering_one_server_rebuild_hours(
                 server_id=archive.server_id, server_start_time=archive.start_time)
             ip_hours += ip_h
@@ -173,12 +195,34 @@ class ServerMeasurer:
             ram_gb_hours += ram_h
             disk_gb_hours += disk_h
 
+            if archive.pay_type == PayType.PREPAID.value:
+                # 可能按量付费转的包年包月，需要计量可能的按量付费用量
+                ip_h, cpu_h, ram_h, disk_h = self.metering_one_post2prepaid_server_hours(
+                    server_id=archive.server_id, server_start_time=archive.start_time
+                )
+                ip_hours += ip_h
+                cpu_hours += cpu_h
+                ram_gb_hours += ram_h
+                disk_gb_hours += disk_h
+
+                trade_amount = self.price_mgr.describe_server_metering_price(
+                    ram_gib_hours=ram_h,
+                    cpu_hours=cpu_h,
+                    disk_gib_hours=disk_h,
+                    public_ip_hours=ip_h
+                )
+            else:
+                trade_amount = None
+        else:
+            trade_amount = None
+
         metering = self.save_archive_metering_record(
             archive=archive,
             ip_hours=ip_hours,
             cpu_hours=cpu_hours,
             ram_gb_hours=ram_gb_hours,
-            disk_gb_hours=disk_gb_hours
+            disk_gb_hours=disk_gb_hours,
+            trade_amount=trade_amount
         )
         return metering
 
@@ -189,7 +233,9 @@ class ServerMeasurer:
         seconds = max(seconds, 0)
         return seconds / 3600
 
-    def save_server_metering_record(self, server: Server, ip_hours, cpu_hours, ram_gb_hours, disk_gb_hours):
+    def save_server_metering_record(
+            self, server: Server, ip_hours, cpu_hours, ram_gb_hours, disk_gb_hours, trade_amount: Decimal
+    ):
         """
         创建server计量日期的资源使用量记录
 
@@ -201,10 +247,13 @@ class ServerMeasurer:
         return self.save_metering_record(
             server_base=server, service_id=server.service_id, server_id=server.id,
             vo_id=server.vo_id, user_id=server.user_id,
-            ip_hours=ip_hours, cpu_hours=cpu_hours, ram_gb_hours=ram_gb_hours, disk_gb_hours=disk_gb_hours
+            ip_hours=ip_hours, cpu_hours=cpu_hours, ram_gb_hours=ram_gb_hours, disk_gb_hours=disk_gb_hours,
+            trade_amount=trade_amount
         )
 
-    def save_archive_metering_record(self, archive: ServerArchive, ip_hours, cpu_hours, ram_gb_hours, disk_gb_hours):
+    def save_archive_metering_record(
+            self, archive: ServerArchive, ip_hours, cpu_hours, ram_gb_hours, disk_gb_hours, trade_amount: Decimal
+    ):
         """
         创建归档server计量日期的资源使用量记录
 
@@ -216,13 +265,15 @@ class ServerMeasurer:
         return self.save_metering_record(
             server_base=archive, service_id=archive.service_id, server_id=archive.server_id,
             vo_id=archive.vo_id, user_id=archive.user_id,
-            ip_hours=ip_hours, cpu_hours=cpu_hours, ram_gb_hours=ram_gb_hours, disk_gb_hours=disk_gb_hours
+            ip_hours=ip_hours, cpu_hours=cpu_hours, ram_gb_hours=ram_gb_hours, disk_gb_hours=disk_gb_hours,
+            trade_amount=trade_amount
         )
 
     def save_metering_record(
             self, server_base: ServerBase,
             service_id, server_id, vo_id, user_id,
-            ip_hours, cpu_hours, ram_gb_hours, disk_gb_hours
+            ip_hours, cpu_hours, ram_gb_hours, disk_gb_hours,
+            trade_amount: Decimal
     ):
         """
         创建server计量日期的资源使用量记录
@@ -259,7 +310,7 @@ class ServerMeasurer:
             username = user.username if user else ''
             metering.username = username
 
-        self.metering_bill_amount(_metering=metering, auto_commit=False)
+        self.metering_bill_amount(_metering=metering, auto_commit=False, trade_amount=trade_amount)
         try:
             metering.save(force_insert=True)
             self._new_count += 1
@@ -268,15 +319,15 @@ class ServerMeasurer:
             if _metering is None:
                 raise e
             if _metering.original_amount != metering.original_amount:
-                self.metering_bill_amount(_metering=_metering, auto_commit=True)
+                self.metering_bill_amount(_metering=_metering, auto_commit=True, trade_amount=trade_amount)
 
             metering = _metering
 
         return metering
 
-    def metering_one_server_rebuild_hours(self, server_id, server_start_time: datetime):
+    def metering_one_server_change_type_hours(self, server_id, server_start_time: datetime, _type: str):
         """
-        从计量日的开始时间 到 server start_time之前 这段时间内 可能存在server修改配置的记录 需要计量
+        从计量日的开始时间 到 server start_time之前 这段时间内 可能存在server变更的记录 需要计量
 
         :return:
             ip_hours, cpu_hours, ram_gb_hours, disk_gb_hours
@@ -284,7 +335,7 @@ class ServerMeasurer:
         ip_hours, cpu_hours, ram_gb_hours, disk_gb_hours = 0, 0, 0, 0
 
         archives = ServerArchive.objects.filter(
-            server_id=server_id, archive_type=ServerArchive.ArchiveType.REBUILD.value,
+            server_id=server_id, archive_type=_type,
             start_time__lt=server_start_time, deleted_time__gt=self.start_datetime
         ).all()
 
@@ -300,6 +351,29 @@ class ServerMeasurer:
             disk_gb_hours += disk_h
 
         return ip_hours, cpu_hours, ram_gb_hours, disk_gb_hours
+
+    def metering_one_server_rebuild_hours(self, server_id, server_start_time: datetime):
+        """
+        从计量日的开始时间 到 server start_time之前 这段时间内 可能存在server修改配置的记录 需要计量
+
+        :return:
+            ip_hours, cpu_hours, ram_gb_hours, disk_gb_hours
+        """
+        return self.metering_one_server_change_type_hours(
+            server_id=server_id, server_start_time=server_start_time, _type=ServerArchive.ArchiveType.REBUILD.value
+        )
+
+    def metering_one_post2prepaid_server_hours(self, server_id, server_start_time: datetime):
+        """
+        从计量日的开始时间 到 server start_time之前 这段时间内 可能存在server按量付费转包年包月的记录
+        计费方式转变前的按量计费需要计量
+
+        :return:
+            ip_hours, cpu_hours, ram_gb_hours, disk_gb_hours
+        """
+        return self.metering_one_server_change_type_hours(
+            server_id=server_id, server_start_time=server_start_time, _type=ServerArchive.ArchiveType.POST2PRE.value
+        )
 
     @staticmethod
     def get_server_metering_hours(server: ServerBase, hours: float):
@@ -366,9 +440,10 @@ class ServerMeasurer:
     def server_metering_exists(server_id, metering_date: date):
         return MeteringServer.objects.filter(date=metering_date, server_id=server_id).first()
 
-    def metering_bill_amount(self, _metering: MeteringServer, auto_commit: bool = True):
+    def metering_bill_amount(self, _metering: MeteringServer, auto_commit: bool = True, trade_amount: Decimal = None):
         """
         计算资源使用量的账单金额
+        :trade_amount: 应付金额，如果非指定就按付费方式算
         """
         amount = self.price_mgr.describe_server_metering_price(
             ram_gib_hours=_metering.ram_hours,
@@ -377,10 +452,13 @@ class ServerMeasurer:
             public_ip_hours=_metering.public_ip_hours
         )
         _metering.original_amount = quantize_10_2(amount)
-        if _metering.pay_type == PayType.POSTPAID.value:
-            _metering.trade_amount = _metering.original_amount
+        if trade_amount is None:
+            if _metering.pay_type == PayType.POSTPAID.value:
+                _metering.trade_amount = _metering.original_amount
+            else:
+                _metering.trade_amount = Decimal('0')
         else:
-            _metering.trade_amount = Decimal('0')
+            _metering.trade_amount = quantize_10_2(trade_amount)
 
         if auto_commit:
             _metering.save(update_fields=['original_amount', 'trade_amount'])

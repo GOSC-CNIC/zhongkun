@@ -318,6 +318,8 @@ class ServerArchive(ServerBase):
     class ArchiveType(models.TextChoices):
         ARCHIVE = 'archive', _('删除归档记录')
         REBUILD = 'rebuild', _('重建修改记录')
+        POST2PRE = 'post2pre', _('按量付费转包年包月')
+        PRE2POST = 'pre2post', _('包年包月转按量付费')
 
     server_id = models.CharField(verbose_name=_('服务器ID'), max_length=36, blank=True, default='',
                                  help_text=_('归档服务器的ID'))
@@ -339,7 +341,7 @@ class ServerArchive(ServerBase):
         verbose_name_plural = verbose_name
 
     @classmethod
-    def init_archive_from_server(cls, server, archive_user, archive_type, commit: bool = True):
+    def init_archive_from_server(cls, server, archive_user, archive_type, archive_time=None, commit: bool = True):
         """
         创建归档记录
         :return:
@@ -365,7 +367,7 @@ class ServerArchive(ServerBase):
         a.remarks = server.remarks
         a.user_id = server.user_id
         a.vo_id = server.vo_id
-        a.deleted_time = timezone.now()
+        a.deleted_time = archive_time if archive_time else timezone.now()
         a.task_status = server.task_status
         a.center_quota = server.center_quota
         a.expiration_time = server.expiration_time

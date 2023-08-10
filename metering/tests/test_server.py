@@ -12,7 +12,7 @@ from utils.decimal_utils import quantize_10_2
 from core import errors
 from servers.models import Server, ServerArchive
 from vo.managers import VoManager
-from order.models import Price, ResourceType
+from order.models import Price
 from bill.models import CashCoupon, PaymentHistory, PayAppService, PayApp, PayOrgnazition
 from service.models import ServiceConfig
 from metering.measurers import ServerMeasurer
@@ -178,7 +178,7 @@ class MeteringServerTests(TransactionTestCase):
 
         return server1, server2, server3, server4
 
-    def do_assert_server(self, now: datetime, server1: Server, server2: Server):
+    def do_assert_server(self, now: datetime, server1: Server, server2: Server, server1_hours: int = 0):
         metering_date = (now - timedelta(days=1)).date()
         metering_end_time = now.replace(hour=0, minute=0, second=0, microsecond=0)    # 计量结束时间
         measurer = ServerMeasurer(raise_exeption=True)
@@ -212,9 +212,10 @@ class MeteringServerTests(TransactionTestCase):
 
         original_amount1 = (self.price.vm_cpu * 4) + (self.price.vm_ram * 4) + (
                 self.price.vm_disk * 100) + self.price.vm_pub_ip
+        trade_amount = original_amount1 * server1_hours
         original_amount1 = original_amount1 * 24
         self.assertEqual(metering.original_amount, quantize_10_2(original_amount1))
-        self.assertEqual(metering.trade_amount, Decimal(0))
+        self.assertEqual(metering.trade_amount, quantize_10_2(trade_amount))
         self.assertEqual(metering.pay_type, PayType.PREPAID.value)
 
         # server2
@@ -279,6 +280,47 @@ class MeteringServerTests(TransactionTestCase):
         self.assertIs(ok, True)
         server1.id = server1_id
         self.do_assert_server(now=now, server1=server1, server2=server2)
+
+    def test_archive_rebuild_post2pre_server(self):
+        self._rebuild_post2pre_server_test(test_archive=True)
+
+    def test_rebuild_post2pre_server(self):
+        self._rebuild_post2pre_server_test(test_archive=False)
+
+    def _rebuild_post2pre_server_test(self, test_archive: bool):
+        now = timezone.now()
+        today_srart = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        yesterday_start = today_srart - timedelta(days=1)
+        server1, server2, server3, server4 = self.init_data_only_server(now)
+
+        # 按量付费
+        server1_id = server1.id
+        server1.pay_type = PayType.POSTPAID.value
+        server1.save(update_fields=['pay_type'])
+
+        # 构建server1 计量日的rebuild记录
+        rebuild_log_time = yesterday_start + timedelta(hours=2)
+        rebuild_log = ServerArchive.init_archive_from_server(
+            server=server1, archive_user=self.user, archive_type=ServerArchive.ArchiveType.REBUILD.value,
+            archive_time=rebuild_log_time, commit=True)
+        server1.start_time = rebuild_log_time
+        server1.save(update_fields=['start_time'])
+
+        # 构建server1 计量日的付费方式变更记录，按量转包年包月
+        post2pre_log_time = rebuild_log_time + timedelta(hours=6)
+        post2pre_log = ServerArchive.init_archive_from_server(
+            server=server1, archive_user=self.user, archive_type=ServerArchive.ArchiveType.POST2PRE.value,
+            archive_time=post2pre_log_time, commit=True)
+        server1.start_time = post2pre_log_time
+        server1.pay_type = PayType.PREPAID.value
+        server1.save(update_fields=['start_time', 'pay_type'])
+
+        if test_archive:
+            ok = server1.do_archive(archive_user=self.user)
+            self.assertIs(ok, True)
+
+        server1.id = server1_id
+        self.do_assert_server(now=now, server1=server1, server2=server2, server1_hours=6)
 
 
 class MeteringPaymentManagerTests(TransactionTestCase):
