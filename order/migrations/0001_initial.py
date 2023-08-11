@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
             name='Order',
             fields=[
                 ('id', models.CharField(editable=False, max_length=32, primary_key=True, serialize=False, verbose_name='订单编号')),
-                ('order_type', models.CharField(choices=[('new', '新购'), ('renewal', '续费'), ('upgrade', '升级'), ('downgrade', '降级')], default='new', max_length=16, verbose_name='订单类型')),
+                ('order_type', models.CharField(choices=[('new', '新购'), ('renewal', '续费'), ('upgrade', '升级'), ('downgrade', '降级'), ('post2pre', '按量付费转包年包月')], default='new', max_length=16, verbose_name='订单类型')),
                 ('status', models.CharField(choices=[('paid', '已支付'), ('unpaid', '未支付'), ('cancelled', '作废'), ('refund', '退款')], default='paid', max_length=16, verbose_name='订单状态')),
                 ('total_amount', models.DecimalField(decimal_places=2, default=Decimal('0'), help_text='原价，折扣前的价格', max_digits=10, verbose_name='原价金额')),
                 ('pay_amount', models.DecimalField(decimal_places=2, default=Decimal('0'), help_text='实际交易金额', max_digits=10, verbose_name='实付金额')),

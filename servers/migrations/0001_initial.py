@@ -91,7 +91,7 @@ class Migration(migrations.Migration):
                 ('disk_size', models.IntegerField(default=0, verbose_name='系统盘GB')),
                 ('server_id', models.CharField(blank=True, default='', help_text='归档服务器的ID', max_length=36, verbose_name='服务器ID')),
                 ('deleted_time', models.DateTimeField(verbose_name='删除归档时间')),
-                ('archive_type', models.CharField(choices=[('archive', '删除归档记录'), ('rebuild', '重建修改记录')], default='archive', max_length=16, verbose_name='归档记录类型')),
+                ('archive_type', models.CharField(choices=[('archive', '删除归档记录'), ('rebuild', '重建修改记录'), ('post2pre', '按量付费转包年包月')], default='archive', max_length=16, verbose_name='归档记录类型')),
             ],
             options={
                 'verbose_name': '服务器归档记录',

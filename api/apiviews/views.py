@@ -2342,7 +2342,7 @@ class VOViewSet(CustomGenericViewSet):
                               ),
                               openapi.Parameter(
                                   name='name',
-                                  type=openapi.TYPE_BOOLEAN,
+                                  type=openapi.TYPE_STRING,
                                   in_=openapi.IN_QUERY,
                                   required=False,
                                   description=_('vo组名关键字查询')

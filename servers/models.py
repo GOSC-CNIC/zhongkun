@@ -319,7 +319,7 @@ class ServerArchive(ServerBase):
         ARCHIVE = 'archive', _('删除归档记录')
         REBUILD = 'rebuild', _('重建修改记录')
         POST2PRE = 'post2pre', _('按量付费转包年包月')
-        PRE2POST = 'pre2post', _('包年包月转按量付费')
+        # PRE2POST = 'pre2post', _('包年包月转按量付费')
 
     server_id = models.CharField(verbose_name=_('服务器ID'), max_length=36, blank=True, default='',
                                  help_text=_('归档服务器的ID'))

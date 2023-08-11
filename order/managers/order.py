@@ -34,52 +34,12 @@ class OrderManager:
         """
         提交一个订单
 
-        :param instance_config: BaseConfig
+        :instance_config: BaseConfig
         :return:
             order, resource
 
         :raises: Error
         """
-        if owner_type not in OwnerType.values:
-            raise errors.Error(message=_('无法创建订单，订单所属类型无效'))
-
-        if resource_type not in ResourceType.values:
-            raise errors.Error(message=_('无法创建订单，资源类型无效'))
-
-        if pay_type not in PayType.values:
-            raise errors.Error(message=_('无法创建订单，资源计费方式pay_type无效'))
-        if pay_type == PayType.PREPAID.value:         # 预付费
-            total_amount, trade_price = self.calculate_amount_money(
-                resource_type=resource_type, config=instance_config, is_prepaid=True, period=period, days=0)
-        else:
-            total_amount = trade_price = Decimal(0)
-
-        order = Order(
-            order_type=order_type,
-            status=Order.Status.UNPAID.value,
-            total_amount=total_amount,
-            payable_amount=trade_price,
-            pay_amount=Decimal('0'),
-            balance_amount=Decimal('0'),
-            coupon_amount=Decimal('0'),
-            app_service_id=pay_app_service_id,
-            service_id=service_id,
-            service_name=service_name,
-            resource_type=resource_type,
-            instance_config=instance_config.to_dict(),
-            period=period,
-            pay_type=pay_type,
-            payment_time=None,
-            user_id=user_id,
-            username=username,
-            vo_id=vo_id,
-            vo_name=vo_name,
-            owner_type=owner_type,
-            deleted=False,
-            trading_status=Order.TradingStatus.OPENING.value,
-            completion_time=None
-        )
-
         instance_id = rand_utils.short_uuid1_25()
         if resource_type == ResourceType.VM.value:
             instance_id += '-i'
@@ -88,32 +48,21 @@ class OrderManager:
         else:
             pass
 
-        with transaction.atomic():
-            order.save(force_insert=True)
-            resource = Resource(
-                id=instance_id, order=order, resource_type=resource_type,
-                instance_id=instance_id, instance_remark=remark, desc=''
-            )
-            resource.save(force_insert=True)
-
-        return order, resource
+        return self.create_order_for_resource(
+            order_type=order_type, pay_type=pay_type,
+            pay_app_service_id=pay_app_service_id, service_id=service_id, service_name=service_name,
+            resource_type=resource_type, instance_id=instance_id, instance_config=instance_config,
+            period=period, start_time=None, end_time=None,
+            user_id=user_id, username=username, vo_id=vo_id, vo_name=vo_name, owner_type=owner_type,
+            instance_remark=remark
+        )
 
     def create_renew_order(
             self,
-            pay_app_service_id: str,
-            service_id,
-            service_name,
-            resource_type,
-            instance_id: str,
-            instance_config,
-            period,
-            start_time: datetime,
-            end_time: datetime,
-            user_id,
-            username,
-            vo_id,
-            vo_name,
-            owner_type
+            pay_app_service_id: str, service_id, service_name,
+            resource_type, instance_id: str, instance_config,
+            period, start_time: datetime, end_time: datetime,
+            user_id, username, vo_id, vo_name, owner_type
     ) -> (Order, Resource):
         """
         提交一个续费订单
@@ -121,8 +70,72 @@ class OrderManager:
         如果指定续费时长period, 必须start_time = end_time = None；
         如果指定续费到期日期，start_time 和 end_time必须同时有效， period=0
 
-        :param instance_id: 续费的实例id of (server, disk)
-        :param instance_config: BaseConfig
+        :instance_id: 续费的实例id of (server, disk)
+        :instance_config: BaseConfig
+        :return:
+            order, resource
+
+        :raises: Error
+        """
+        return self.create_order_for_resource(
+            order_type=Order.OrderType.RENEWAL.value, pay_type=PayType.PREPAID.value,
+            pay_app_service_id=pay_app_service_id, service_id=service_id, service_name=service_name,
+            resource_type=resource_type, instance_id=instance_id, instance_config=instance_config,
+            period=period, start_time=start_time, end_time=end_time,
+            user_id=user_id, username=username, vo_id=vo_id, vo_name=vo_name, owner_type=owner_type,
+            instance_remark='renew'
+        )
+
+    def create_post2pre_order(
+            self, pay_app_service_id: str, service_id, service_name,
+            resource_type, instance_id: str, instance_config,
+            period,
+            user_id, username, vo_id, vo_name, owner_type
+    ) -> (Order, Resource):
+        """
+        提交一个按量付费转包年包月订单
+
+        :instance_id: 续费的实例id of (server, disk)
+        :instance_config: BaseConfig
+        :return:
+            order, resource
+
+        :raises: Error
+        """
+        return self.create_order_for_resource(
+            order_type=Order.OrderType.POST2PRE.value, pay_type=PayType.PREPAID.value,
+            pay_app_service_id=pay_app_service_id, service_id=service_id, service_name=service_name,
+            resource_type=resource_type, instance_id=instance_id, instance_config=instance_config,
+            period=period, start_time=None, end_time=None,
+            user_id=user_id, username=username, vo_id=vo_id, vo_name=vo_name, owner_type=owner_type,
+            instance_remark='post2prepaid'
+        )
+
+    def create_order_for_resource(
+            self, order_type, pay_type,
+            pay_app_service_id: str, service_id, service_name,
+            resource_type, instance_id: str, instance_config,
+            period: int, start_time, end_time,
+            user_id, username, vo_id, vo_name, owner_type,
+            instance_remark: str = ''
+    ) -> (Order, Resource):
+        """
+        为资源实例提交一个订单，新购、续费、按量转包年包月
+
+        # 续费
+            * 如果指定续费时长period, 必须start_time = end_time = None；
+            * 如果指定续费到期日期，start_time 和 end_time必须同时有效， period=0
+        # 新购、按量转包年包月
+            * 只能指定续费时长period, 必须start_time = end_time = None；
+
+        :order_type: 订单类型
+        :pay_type: 资源付费方式，预付费时会跟时长和资源类型配置计算金额
+        :pay_app_service_id: 资源实例所属服务单元对应的余额结算里的app子服务id
+        :service_id: 资源实例所属服务单元id
+        :resource_type: 资源实例类型
+        :instance_id: 资源实例id of (server, disk)
+        :instance_config: BaseConfig
+        :period: 时长，月数
         :return:
             order, resource
 
@@ -158,11 +171,19 @@ class OrderManager:
         if resource_type not in ResourceType.values:
             raise errors.Error(message=_('无法创建订单，资源类型无效'))
 
-        total_amount, trade_price = self.calculate_amount_money(
-            resource_type=resource_type, config=instance_config, is_prepaid=True, period=period, days=days)
+        if order_type not in Order.OrderType.values:
+            raise errors.Error(message=_('无法创建订单，订单类型无效或不支持'))
+
+        if pay_type not in PayType.values:
+            raise errors.Error(message=_('无法创建订单，资源计费方式pay_type无效'))
+        if pay_type == PayType.PREPAID.value:         # 预付费
+            total_amount, trade_price = self.calculate_amount_money(
+                resource_type=resource_type, config=instance_config, is_prepaid=True, period=period, days=days)
+        else:
+            total_amount = trade_price = Decimal(0)
 
         order = Order(
-            order_type=Order.OrderType.RENEWAL.value,
+            order_type=order_type,
             status=Order.Status.UNPAID.value,
             total_amount=total_amount,
             payable_amount=trade_price,
@@ -175,7 +196,7 @@ class OrderManager:
             resource_type=resource_type,
             instance_config=instance_config.to_dict(),
             period=period,
-            pay_type=PayType.PREPAID.value,
+            pay_type=pay_type,
             payment_time=None,
             start_time=start_time,
             end_time=end_time,
@@ -193,7 +214,7 @@ class OrderManager:
             order.save(force_insert=True)
             resource = Resource(
                 order=order, resource_type=resource_type,
-                instance_id=instance_id, instance_remark='renew', desc=''
+                instance_id=instance_id, instance_remark=instance_remark, desc=''
             )
             resource.save(force_insert=True)
 
@@ -206,6 +227,9 @@ class OrderManager:
         """
         计算资源金额
         总时长 = period + days
+
+        :param resource_type: 资源类型， vm、disk
+        :param config: 资源配置
         :param is_prepaid: True(预付费)， False(按量计费)
         :param period: 预付费时长（月）
         :param days: 预付费时长天数
@@ -302,6 +326,8 @@ class OrderManager:
         """
         查询订单详情
 
+        :param order_id: 订单id
+        :param user: 用户对象
         :param check_permission: 是否检测权限
         :param read_only: 用于vo组权限检测；True：只需要访问权限；False: 需要管理权限
         :return:
@@ -317,19 +343,14 @@ class OrderManager:
                 if order.user_id and order.user_id != user.id:
                     raise errors.AccessDenied(message=_('您没有此订单访问权限'))
             elif order.vo_id:
-                try:
-                    if read_only:
-                        VoManager().get_has_read_perm_vo(vo_id=order.vo_id, user=user)
-                    else:
-                        VoManager().get_has_manager_perm_vo(vo_id=order.vo_id, user=user)
-                except errors.Error as exc:
-                    raise errors.AccessDenied(message=exc.message)
+                self._has_vo_permission(vo_id=order.vo_id, user=user, read_only=read_only)
 
         resources = Resource.objects.filter(order_id=order_id).all()
         resources = list(resources)
         return order, resources
 
-    def _has_vo_permission(self, vo_id, user, read_only: bool = True):
+    @staticmethod
+    def _has_vo_permission(vo_id, user, read_only: bool = True):
         """
         是否有vo组的权限
 

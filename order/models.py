@@ -29,6 +29,7 @@ class Order(models.Model):
         RENEWAL = 'renewal', _('续费')
         UPGRADE = 'upgrade', _('升级')
         DOWNGRADE = 'downgrade', _('降级')
+        POST2PRE = 'post2pre', _('按量付费转包年包月')
 
     class Status(models.TextChoices):
         PAID = 'paid', _('已支付')
