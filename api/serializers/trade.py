@@ -39,6 +39,7 @@ class CashCouponCreateSerializer(serializers.Serializer):
     expiration_time = serializers.DateTimeField(label=_('过期时间'), required=True)
     app_service_id = serializers.CharField(label=_('APP服务ID'), max_length=36, required=True)
     username = serializers.CharField(label=_('用户名'), max_length=128, required=False, help_text=_('代金券发给此用户'))
+    vo_id = serializers.CharField(label=_('vo组id'), max_length=64, required=False, help_text=_('代金券发给此vo组'))
 
 
 class AppServiceSimpleSerializer(serializers.Serializer):

@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from users.managers import get_user_by_name
 from users.models import UserProfile
 from vo.models import VirtualOrganization
+from vo.managers import VoManager
 from core import errors
 from api.viewsets import CustomGenericViewSet
 from api.serializers.serializers import AdminCashCouponSerializer
@@ -337,7 +338,7 @@ class CashCouponHandler:
     @staticmethod
     def admin_create_cash_coupon(view: CustomGenericViewSet, request):
         """
-        App服务单元管理员创建一个代金券，可直接发放给指定用户
+        App服务单元管理员创建一个代金券，可直接发放给指定用户或vo
         """
         try:
             data = CashCouponHandler._admin_create_cash_coupon_validate_params(view=view, request=request)
@@ -348,10 +349,23 @@ class CashCouponHandler:
         effective_time = data['effective_time']
         expiration_time = data['expiration_time']
         app_service = data['app_service']
-        user = data['user']
+        to_user = data['user']
+        vo = data['vo']
 
         try:
-            if user is None:
+            if to_user is not None:
+                coupon = CashCouponManager().create_one_coupon_to_user_or_vo(
+                    user=to_user, vo=None, app_service_id=app_service.id,
+                    face_value=face_value, effective_time=effective_time, expiration_time=expiration_time,
+                    issuer=request.user.username
+                )
+            elif vo is not None:
+                coupon = CashCouponManager().create_one_coupon_to_user_or_vo(
+                    user=request.user, vo=vo, app_service_id=app_service.id,
+                    face_value=face_value, effective_time=effective_time, expiration_time=expiration_time,
+                    issuer=request.user.username
+                )
+            else:
                 coupon, coupon_num = CashCouponManager().create_wait_draw_coupon(
                     app_service_id=app_service.id,
                     face_value=face_value,
@@ -360,15 +374,7 @@ class CashCouponHandler:
                     coupon_num=0,
                     issuer=request.user.username
                 )
-            else:
-                coupon = CashCouponManager().create_one_coupon_to_user(
-                    user=user,
-                    app_service_id=app_service.id,
-                    face_value=face_value,
-                    effective_time=effective_time,
-                    expiration_time=expiration_time,
-                    issuer=request.user.username
-                )
+
         except Exception as exc:
             return view.exception_response(exc)
 
@@ -400,6 +406,7 @@ class CashCouponHandler:
         expiration_time = data['expiration_time']
         app_service_id = data['app_service_id']
         username = data.get('username', None)
+        vo_id = data.get('vo_id', None)
 
         if face_value < 0 or face_value > 100000:
             raise errors.BadRequest(message=_('代金券面额必须大于0，不得大于100000'), code='InvalidFaceValue')
@@ -415,6 +422,9 @@ class CashCouponHandler:
         else:
             effective_time = now_time
 
+        if username and vo_id:
+            raise errors.InvalidArgument(message=_('不能同时指定用户和项目组'))
+
         # AppServiceNotExist, AccessDenied
         app_service = get_app_service_by_admin(_id=app_service_id, user=request.user)
 
@@ -423,12 +433,20 @@ class CashCouponHandler:
         else:
             user = None
 
+        if vo_id:
+            vo = VoManager.get_vo_by_id(vo_id=vo_id)
+            if vo is None:
+                raise errors.VoNotExist(message=_('项目组不存在'))
+        else:
+            vo = None
+
         return {
             'face_value': face_value,
             'effective_time': effective_time,
             'expiration_time': expiration_time,
             'app_service': app_service,
-            'user': user
+            'user': user,
+            'vo': vo
         }
 
     @staticmethod

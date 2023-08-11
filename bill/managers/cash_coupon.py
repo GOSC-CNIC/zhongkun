@@ -4,7 +4,6 @@ from datetime import datetime
 
 from django.utils.translation import gettext as _
 from django.db import transaction
-from django.db.models import Q
 from django.utils import timezone
 
 from core import errors
@@ -161,37 +160,40 @@ class CashCouponManager:
         领取代金券
         :raises: Error
         """
-        vo = None
         if vo_id:
             vo, m = VoManager().get_has_manager_perm_vo(vo_id=vo_id, user=user)
+        else:
+            vo = None
 
         with transaction.atomic():
             coupon = self.get_wait_draw_cash_coupon(coupon_id=coupon_id, select_for_update=True)
-
-            if coupon.app_service is None:
-                raise errors.ConflictError(message=_('代金券无效，没有绑定适用的APP子服务。'), code='InvalidCoupon')
-
-            # vo组只能兑换云主机的适用券
-            if vo_id and coupon.app_service.category != PayAppService.Category.VMS_SERVER.value:
-                raise errors.ConflictError(
-                    message=_('绑定的适用APP子服务类型为云主机服务的代金券才允许VO组兑换。'), code='NotAllowToVo')
-
             if coupon.coupon_code != coupon_code:
                 raise errors.ConflictError(message=_('券验证码错误'), code='InvalidCouponCode')
 
-            coupon.user = user
-            coupon.status = CashCoupon.Status.AVAILABLE.value
-            coupon.granted_time = timezone.now()
-            if vo_id:
-                coupon.vo = vo
-                coupon.vo_id = vo_id
-                coupon.owner_type = OwnerType.VO.value
-            else:
-                coupon.vo_id = None
-                coupon.owner_type = OwnerType.USER.value
+            return self._grant_coupon_to_user_or_vo(coupon=coupon, user=user, vo=vo)
 
-            coupon.save(update_fields=['user_id', 'status', 'granted_time', 'vo_id', 'owner_type'])
+    @staticmethod
+    def _grant_coupon_to_user_or_vo(coupon: CashCoupon, user, vo=None):
+        if coupon.app_service is None:
+            raise errors.ConflictError(message=_('代金券无效，没有绑定适用的APP子服务。'), code='InvalidCoupon')
 
+        # vo组只能兑换云主机的适用券
+        if vo and coupon.app_service.category != PayAppService.Category.VMS_SERVER.value:
+            raise errors.ConflictError(
+                message=_('绑定的适用APP子服务类型为云主机服务的代金券才允许VO组兑换。'), code='NotAllowToVo')
+
+        coupon.user = user
+        coupon.status = CashCoupon.Status.AVAILABLE.value
+        coupon.granted_time = timezone.now()
+        if vo:
+            coupon.vo = vo
+            coupon.vo_id = vo.id
+            coupon.owner_type = OwnerType.VO.value
+        else:
+            coupon.vo_id = None
+            coupon.owner_type = OwnerType.USER.value
+
+        coupon.save(update_fields=['user_id', 'status', 'granted_time', 'vo_id', 'owner_type'])
         return coupon
 
     @staticmethod
@@ -249,21 +251,8 @@ class CashCouponManager:
         )
         return coupon, coupon_num
 
-    def grant_cash_coupon_to_user(self, coupon: CashCoupon, user):
-        """
-        把待领取的代金券发放给指定用户
-        """
-        self.ensure_wait_draw_cash_coupon(coupon=coupon)
-        coupon.user = user
-        coupon.status = CashCoupon.Status.AVAILABLE.value
-        coupon.granted_time = timezone.now()
-        coupon.vo_id = None
-        coupon.owner_type = OwnerType.USER.value
-        coupon.save(update_fields=['user_id', 'status', 'granted_time', 'vo_id', 'owner_type'])
-        return coupon
-
-    def create_one_coupon_to_user(
-            self, user,
+    def create_one_coupon_to_user_or_vo(
+            self, user, vo,
             app_service_id: str,
             face_value: Decimal,
             effective_time: datetime,
@@ -272,7 +261,10 @@ class CashCouponManager:
             activity_id: str = None
     ):
         """
-        创建一个券，并发放给指定用户
+        创建一个券，并发放给指定user或vo
+
+        vo is None: 发给user
+        vo is not None: 发给vo，此时user为领取人
         """
         num = CashCouponManager.get_date_coupon_count(date=timezone.now().date())
         with transaction.atomic():
@@ -285,7 +277,8 @@ class CashCouponManager:
                 coupon_num=num + 1,
                 issuer=issuer
             )
-            self.grant_cash_coupon_to_user(coupon=coupon, user=user)
+            self.ensure_wait_draw_cash_coupon(coupon=coupon)
+            self._grant_coupon_to_user_or_vo(coupon=coupon, user=user, vo=vo)
 
         return coupon
 

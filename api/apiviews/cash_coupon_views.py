@@ -469,14 +469,14 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
         return CashCouponHandler().admin_list_cash_coupon(view=self, request=request)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('App服务单元管理员创建一个代金券，可直接发放给指定用户'),
+        operation_summary=gettext_lazy('App服务单元管理员创建一个代金券，可直接发放给指定用户或VO'),
         responses={
             200: ''
         }
     )
     def create(self, request, *args, **kwargs):
         """
-        App服务单元管理员、联邦管理员 创建一个代金券，可直接发放给指定用户
+        App服务单元管理员、联邦管理员 创建一个代金券，可直接发放给指定用户或vo
 
             http code 200：
             {

@@ -791,18 +791,18 @@ class CashCouponTests(MyAPITestCase):
         response = self.client.post(f'{base_url}?{query}')
         self.assertErrorResponse(status_code=404, code='NoSuchCoupon', response=response)
 
-        # no bind app_service, InvalidCoupon
+        # invalid coupon code
         query = parse.urlencode(query={'code': f'{coupon1.id}#test'})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=409, code='InvalidCouponCode', response=response)
+
+        # no bind app_service, InvalidCoupon
+        query = parse.urlencode(query={'code': f'{coupon1.id}#{coupon1.coupon_code}'})
         response = self.client.post(f'{base_url}?{query}')
         self.assertErrorResponse(status_code=409, code='InvalidCoupon', response=response)
 
         coupon1.app_service_id = self.app_service1.id
         coupon1.save(update_fields=['app_service_id'])
-
-        # invalid coupon code
-        query = parse.urlencode(query={'code': f'{coupon1.id}#test'})
-        response = self.client.post(f'{base_url}?{query}')
-        self.assertErrorResponse(status_code=409, code='InvalidCouponCode', response=response)
 
         # ok
         query = parse.urlencode(query={'code': f'{coupon1.id}#{coupon1.coupon_code}'})
@@ -976,6 +976,9 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.app_service2.save()
 
     def test_admin_create_coupon(self):
+        vo1 = VirtualOrganization(name='test vo', owner_id=self.user.id)
+        vo1.save(force_insert=True)
+
         now_time = timezone.now()
         url = reverse('api:admin-coupon-list')
 
@@ -1095,6 +1098,8 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assertEqual(r.data['app_service']['id'], self.app_service1.id)
         self.assertEqual(r.data['app_service']['service_id'], self.service.id)
         self.assertEqual(r.data['user']['id'], self.user2.id)
+        user2_cps = CashCoupon.objects.filter(user_id=self.user2.id, owner_type=OwnerType.USER.value).all()
+        self.assertEqual(len(user2_cps), 1)
 
         # ok, create no username
         expiration_time_str = to_isoformat(now_time + timedelta(hours=1, minutes=30))
@@ -1138,6 +1143,64 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         }
         r = self.client.post(url, data=data)
         self.assertEqual(r.status_code, 200)
+
+        user2_cps = CashCoupon.objects.filter(user_id=self.user2.id, owner_type=OwnerType.USER.value).all()
+        self.assertEqual(len(user2_cps), 2)
+        cp_len = CashCoupon.objects.count()
+        self.assertEqual(cp_len, 3)
+
+        # 不能同时指定user和vo
+        data = {
+            "face_value": "66.88",
+            "effective_time": now_time_str,
+            "expiration_time": expiration_time_str,
+            "app_service_id": self.app_service1.id,
+            "username": self.user2.username,
+            "vo_id": vo1.id
+        }
+        r = self.client.post(url, data=data)
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
+
+        # VoNotExist
+        data = {
+            "face_value": "66.88",
+            "effective_time": now_time_str,
+            "expiration_time": expiration_time_str,
+            "app_service_id": self.app_service1.id,
+            "vo_id": 'xxxx'
+        }
+        r = self.client.post(url, data=data)
+        self.assertErrorResponse(status_code=404, code='VoNotExist', response=r)
+
+        # VoNotExist
+        data = {
+            "face_value": "166.88",
+            "effective_time": now_time_str,
+            "expiration_time": expiration_time_str,
+            "app_service_id": self.app_service1.id,
+            "vo_id": vo1.id
+        }
+        r = self.client.post(url, data=data)
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=[
+            'id', 'face_value', 'creation_time', 'effective_time', 'expiration_time', 'balance', 'status',
+            'granted_time', 'owner_type', 'app_service', 'user', 'vo', 'activity', 'exchange_code', "issuer"
+        ], container=r.data)
+        self.assertKeysIn(keys=[
+            'id', 'name', 'name_en', 'category', 'service_id'
+        ], container=r.data['app_service'])
+        self.assert_is_subdict_of(sub={
+            'face_value': '166.88', 'balance': '166.88', 'owner_type': 'vo', 'effective_time': now_time_str,
+            'expiration_time': expiration_time_str, 'status': 'available', 'activity': None
+        }, d=r.data)
+        self.assertEqual(r.data['app_service']['id'], self.app_service1.id)
+        self.assertEqual(r.data['app_service']['service_id'], self.service.id)
+        self.assertEqual(r.data['user']['id'], self.user.id)
+        self.assertEqual(r.data['vo']['id'], vo1.id)
+        vo1_cps = CashCoupon.objects.filter(vo_id=vo1.id, owner_type=OwnerType.VO.value).all()
+        self.assertEqual(len(vo1_cps), 1)
+        cp_len = CashCoupon.objects.count()
+        self.assertEqual(cp_len, 4)
 
     def test_admin_list_coupon(self):
         template = CashCouponActivity(

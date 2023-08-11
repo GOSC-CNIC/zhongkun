@@ -267,7 +267,7 @@ class VoManager:
 
         return vo
 
-    def update_vo(self, vo_id: str, admin_user, owner=None, name: str = None, company: str=None,
+    def update_vo(self, vo_id: str, admin_user, owner=None, name: str = None, company: str = None,
                   description: str = None) -> VirtualOrganization:
         """
         修改组信息
