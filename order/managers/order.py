@@ -86,15 +86,16 @@ class OrderManager:
             instance_remark='renew'
         )
 
-    def create_post2pre_order(
-            self, pay_app_service_id: str, service_id, service_name,
+    def create_change_pay_type_order(
+            self, pay_type: str,
+            pay_app_service_id: str, service_id, service_name,
             resource_type, instance_id: str, instance_config,
-            period,
-            user_id, username, vo_id, vo_name, owner_type
+            period, user_id, username, vo_id, vo_name, owner_type
     ) -> (Order, Resource):
         """
-        提交一个按量付费转包年包月订单
+        提交一个修改计费方式订单
 
+        :pay_type: prepaid(按量转包年包月)，postpaid(包年包月转按量)
         :instance_id: 续费的实例id of (server, disk)
         :instance_config: BaseConfig
         :return:
@@ -102,8 +103,15 @@ class OrderManager:
 
         :raises: Error
         """
+        if pay_type == PayType.PREPAID.value:
+            order_type = Order.OrderType.POST2PRE.value
+        # elif pay_type == PayType.POSTPAID.value:
+        #     order_type = Order.OrderType.PRE2POST.value
+        else:
+            raise errors.Error(message='invalid pay_type')
+
         return self.create_order_for_resource(
-            order_type=Order.OrderType.POST2PRE.value, pay_type=PayType.PREPAID.value,
+            order_type=order_type, pay_type=pay_type,
             pay_app_service_id=pay_app_service_id, service_id=service_id, service_name=service_name,
             resource_type=resource_type, instance_id=instance_id, instance_config=instance_config,
             period=period, start_time=None, end_time=None,

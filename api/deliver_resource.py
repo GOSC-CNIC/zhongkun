@@ -8,7 +8,7 @@ from core.quota import QuotaAPI
 from core import request as core_request
 from core.taskqueue import server_build_status
 from service.managers import ServiceManager, ServiceConfig
-from servers.models import Server, Disk
+from servers.models import Server, Disk, ServerArchive
 from servers.managers import ServerManager, DiskManager
 from adapters import inputs, outputs
 from utils.model import PayType, OwnerType, ResourceType
@@ -36,8 +36,6 @@ class OrderResourceDeliverer:
                 service, disk = self.deliver_new_disk(order=order, resource=resource)
                 self.after_deliver_disk(service=service, disk=disk)
                 return disk
-            else:
-                raise exceptions.Error(message=_('订购的资源类型无法交付，资源类型服务不支持。'))
         elif order.order_type == Order.OrderType.RENEWAL.value:  # 续费
             if order.resource_type == ResourceType.VM.value:
                 server = self.deliver_renewal_server(order=order, resource=resource)
@@ -45,10 +43,14 @@ class OrderResourceDeliverer:
             elif order.resource_type == ResourceType.DISK.value:
                 disk = self.deliver_renewal_disk(order=order, resource=resource)
                 return disk
-            else:
-                raise exceptions.Error(message=_('订购的资源类型无法交付，资源类型服务不支持。'))
+        elif order.order_type in [Order.OrderType.POST2PRE.value]:  # 付费方式修改
+            if order.resource_type == ResourceType.VM.value:
+                server = self.deliver_modify_server_pay_type(order=order, resource=resource)
+                return server
         else:
-            raise exceptions.Error(message=_('订购的类型不支持交付。'))
+            raise exceptions.Error(message=_('订单的类型不支持交付。'))
+
+        raise exceptions.Error(message=_('订购的资源类型无法交付，资源类型服务不支持。'))
 
     @staticmethod
     def after_deliver_server(service: ServiceConfig, server: Server):
@@ -339,7 +341,7 @@ class OrderResourceDeliverer:
         except exceptions.Error as exc:
             try:
                 OrderManager.set_order_resource_deliver_failed(
-                    order=order, resource=resource, failed_msg='无法为订单创建云服务器资源, ' + str(exc))
+                    order=order, resource=resource, failed_msg='无法为订单完成云服务器资源续费, ' + str(exc))
             except exceptions.Error:
                 pass
 
@@ -498,7 +500,7 @@ class OrderResourceDeliverer:
         except exceptions.Error as exc:
             try:
                 OrderManager.set_order_resource_deliver_failed(
-                    order=order, resource=resource, failed_msg='无法为订单创建云服务器资源, ' + str(exc))
+                    order=order, resource=resource, failed_msg='无法为订单完成云硬盘续费, ' + str(exc))
             except exceptions.Error:
                 pass
 
@@ -574,3 +576,97 @@ class OrderResourceDeliverer:
             raise exceptions.Error(message=_('续费订单续费时长或时段无效。'))
 
         return start_time, end_time
+
+    def deliver_modify_server_pay_type(self, order: Order, resource: Resource):
+        """
+        云服务器续费交付
+        :return:
+            server            # success
+
+        :raises: Error
+        """
+        order, resource = self._pre_check_deliver(order=order, resource=resource)
+        try:
+            server = self.modify_server_pay_type_for_order(order=order, resource=resource)
+        except exceptions.Error as exc:
+            try:
+                OrderManager.set_order_resource_deliver_failed(
+                    order=order, resource=resource, failed_msg='无法为订单修改云服务器资源付费方式, ' + str(exc))
+            except exceptions.Error:
+                pass
+
+            raise exc
+
+        return server
+
+    @staticmethod
+    def modify_server_pay_type_for_order(order: Order, resource: Resource):
+        """
+        为订单修改云服务器付费方式
+
+        :return:
+            server
+
+        :raises: Error
+        """
+        if order.resource_type != ResourceType.VM.value:
+            raise exceptions.Error(message=_('订单的资源类型不是云服务器'))
+
+        if order.order_type == Order.OrderType.POST2PRE.value:
+            if not (order.period >= 1):
+                raise exceptions.Error(message=_('订单续费时长无效。'))
+
+        try:
+            with transaction.atomic():
+                server = ServerManager.get_server(server_id=resource.instance_id, select_for_update=True)
+                OrderResourceDeliverer.pre_modify_server_pay_type_check(
+                    order=order, server=server
+                )
+                now_t = timezone.now()
+                if order.order_type == Order.OrderType.POST2PRE.value:
+                    pay_type = PayType.PREPAID.value
+                    start_time = now_t
+                    end_time = start_time + timedelta(days=PriceManager.period_month_days(order.period))
+                else:
+                    raise exceptions.Error(message='订单类型无效，不是有效的付费方式变更订单')
+
+                # 付费方式修改记录
+                ServerArchive.init_archive_from_server(
+                    server=server, archive_user=None, archive_type=ServerArchive.ArchiveType.POST2PRE.value,
+                    archive_time=start_time, commit=True
+                )
+
+                server.pay_type = pay_type
+                server.start_time = start_time
+                server.expiration_time = end_time
+                server.save(update_fields=['pay_type', 'start_time', 'expiration_time'])
+
+                OrderManager.set_order_resource_deliver_ok(
+                    order=order, resource=resource, start_time=start_time, due_time=end_time)
+                return server
+        except Exception as e:
+            raise exceptions.Error.from_error(e)
+
+    @staticmethod
+    def pre_modify_server_pay_type_check(order: Order, server):
+        """
+        检查是否满足云主机付费方式修改的条件
+
+        :return:
+            start_time, end_time    # 此订单续费的起始和截止时间
+
+        :raises: Error
+        """
+        try:
+            config = ServerConfig.from_dict(order.instance_config)
+        except Exception as exc:
+            raise exceptions.Error(message=_('订单中云服务器配置信息有误。') + str(exc))
+
+        if (config.vm_ram_gib != server.ram_gib) or (config.vm_cpu != server.vcpus):
+            raise exceptions.Error(message=_('订单中云服务器配置信息与当前云服务器配置规格不一致。'))
+
+        if order.order_type == Order.OrderType.POST2PRE.value:
+            if server.pay_type != PayType.POSTPAID.value:
+                raise exceptions.Error(message=_('云服务器不是按量付费模式，无法完成订单交付。'))
+        else:
+            raise exceptions.Error(message=_('不是付费方式修改类型的订单，无法完成订单交付。'))

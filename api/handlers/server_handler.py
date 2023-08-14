@@ -957,6 +957,125 @@ class ServerHandler:
 
         return True
 
+    @staticmethod
+    def modify_server_pay_type(view: CustomGenericViewSet, request, kwargs):
+        """
+        修改云服务器计费方式
+        """
+        try:
+            data = ServerHandler._modify_pay_type_validate_params(request=request)
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        period = data['period']
+        new_pay_type = data['pay_type']
+        server_id = kwargs.get(view.lookup_field, '')
+
+        try:
+            server = ServerManager().get_manage_perm_server(server_id=server_id, user=request.user)
+        except exceptions.APIException as exc:
+            return view.exception_response(exc)
+
+        if server.is_locked_operation():
+            return view.exception_response(exceptions.ResourceLocked(
+                message=_('云主机已加锁锁定了一切操作')
+            ))
+
+        if server.task_status != server.TASK_CREATED_OK:
+            return view.exception_response(
+                exceptions.ConflictError(message=_('只允许为创建成功的云服务器修改计费方式。')))
+
+        try:
+            service = ServiceManager.get_service(server.service_id)
+            if not service.pay_app_service_id:
+                raise exceptions.ConflictError(
+                    message=_('云服务器所在服务单元未配置对应的结算系统APP服务id'), code='ServiceNoPayAppServiceId')
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        if service.status != service.Status.ENABLE.value:
+            return view.exception_response(
+                exceptions.ConflictError(message=_('提供此云服务器资源的服务单元停止服务，不允许修改计费方式。'))
+            )
+
+        if new_pay_type == PayType.PREPAID.value:
+            if server.pay_type != PayType.POSTPAID.value:
+                return view.exception_response(
+                    exceptions.ConflictError(message=_('必须是按量计费方式的服务器实例才可以转为包年包月计费方式。')))
+
+        _order = Order.objects.filter(
+            resource_type=ResourceType.VM.value, resource_set__instance_id=server.id,
+            trading_status__in=[Order.TradingStatus.OPENING.value, Order.TradingStatus.UNDELIVERED.value]
+        ).order_by('-creation_time').first()
+        if _order is not None:
+            return view.exception_response(exceptions.SomeOrderNeetToTrade(
+                message=_('此云服务器存在未完成的订单（%s）, 请先完成已有订单后再提交新的订单。') % _order.id))
+
+        with transaction.atomic():
+            server = ServerManager.get_server_queryset().select_related(
+                'service', 'user', 'vo').select_for_update().get(id=server_id)
+
+            if server.belong_to_vo():
+                owner_type = OwnerType.VO.value
+                vo_id = server.vo_id
+                vo_name = server.vo.name
+            else:
+                owner_type = OwnerType.USER.value
+                vo_id = ''
+                vo_name = ''
+
+            instance_config = ServerConfig(
+                vm_cpu=server.vcpus, vm_ram=server.ram_gib,
+                systemdisk_size=server.disk_size, public_ip=server.public_ip,
+                image_id=server.image_id, image_name=server.image,
+                network_id=server.network_id, network_name='',
+                azone_id=server.azone_id, azone_name='', flavor_id=''
+            )
+            order, resource = OrderManager().create_change_pay_type_order(
+                pay_type=new_pay_type,
+                pay_app_service_id=service.pay_app_service_id,
+                service_id=server.service_id,
+                service_name=server.service.name,
+                resource_type=ResourceType.VM.value,
+                instance_id=server.id,
+                instance_config=instance_config,
+                period=period,
+                user_id=request.user.id,
+                username=request.user.username,
+                vo_id=vo_id,
+                vo_name=vo_name,
+                owner_type=owner_type
+            )
+
+        return Response(data={'order_id': order.id})
+
+    @staticmethod
+    def _modify_pay_type_validate_params(request):
+        period = request.query_params.get('period', None)
+        pay_type = request.query_params.get('pay_type', None)
+
+        if pay_type is None:
+            raise exceptions.BadRequest(message=_('必须指定付费方式'), code='MissingPayType')
+
+        if pay_type not in [PayType.PREPAID.value]:
+            raise exceptions.InvalidArgument(message=_('指定付费方式无效'), code='InvalidPayType')
+
+        if pay_type == PayType.PREPAID.value:
+            if period is None:
+                raise exceptions.BadRequest(message=_('按量计费转包年包月必须指定续费时长'), code='MissingPeriod')
+
+            try:
+                period = int(period)
+                if period <= 0:
+                    raise ValueError
+            except ValueError:
+                raise exceptions.InvalidArgument(message=_('指定续费时长无效'), code='InvalidPeriod')
+
+        return {
+            'period': period,
+            'pay_type': pay_type
+        }
+
 
 class ServerArchiveHandler:
     @staticmethod

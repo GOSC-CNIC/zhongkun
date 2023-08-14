@@ -9,9 +9,9 @@ from django.conf import settings
 
 from service.managers import ServicePrivateQuotaManager
 from service.models import ServiceConfig
-from servers.models import Flavor, Server
+from servers.models import Flavor, Server, ServerArchive
 from utils.test import get_or_create_user, get_or_create_service
-from utils.model import PayType, OwnerType
+from utils.model import PayType, OwnerType, ResourceType
 from utils.time import iso_utc_to_datetime
 from utils.decimal_utils import quantize_10_2
 from vo.models import VirtualOrganization, VoMember
@@ -629,6 +629,230 @@ class ServerOrderTests(MyAPITransactionTestCase):
 
         vo_server.refresh_from_db()
         self.assertEqual(vo_server.expiration_time, renew_to_datetime)
+
+    def test_modify_pay_type(self):
+        # 余额支付有关配置
+        app = PayApp(name='app', id=settings.PAYMENT_BALANCE['app_id'])
+        app.save()
+        po = PayOrgnazition(name='机构')
+        po.save()
+        app_service1 = PayAppService(
+            name='service1', app=app, orgnazition=po, service_id=self.service.id
+        )
+        app_service1.save(force_insert=True)
+
+        now_time = timezone.now()
+        user_server = Server(
+            service_id=self.service.id,
+            name='user_server',
+            instance_id='user_server_id',
+            instance_name='instance_user',
+            vcpus=6,
+            ram=2,
+            ipv4='127.0.0.1',
+            public_ip=True,
+            image='',
+            image_id='image_id',
+            task_status=Server.TASK_CREATE_FAILED,
+            expiration_time=None,
+            classification=Server.Classification.PERSONAL.value,
+            user_id=self.user.id,
+            vo_id=None,
+            creation_time=now_time,
+            start_time=now_time,
+            pay_type=PayType.PREPAID.value,
+            lock=Server.Lock.OPERATION.value,
+            azone_id='',
+            disk_size=100
+        )
+        user_server.save(force_insert=True)
+
+        # --- user server ----
+        # pay_type
+        url = reverse('api:servers-modify-pay-type', kwargs={'id': user_server.id})
+        response = self.client.post(url)
+        self.assertErrorResponse(status_code=400, code='MissingPayType', response=response)
+        query = parse.urlencode(query={'pay_type': PayType.POSTPAID.value})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidPayType', response=response)
+        query = parse.urlencode(query={'pay_type': PayType.PREPAID.value})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='MissingPeriod', response=response)
+
+        # period
+        query = parse.urlencode(query={'pay_type': PayType.PREPAID.value})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='MissingPeriod', response=response)
+
+        query = parse.urlencode(query={'pay_type': PayType.PREPAID.value, 'period': 0})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidPeriod', response=response)
+
+        query = parse.urlencode(query={'pay_type': PayType.PREPAID.value, 'period': 10})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=409, code='ResourceLocked', response=response)
+
+        user_server.lock = Server.Lock.FREE.value
+        user_server.save(update_fields=['lock'])
+
+        # Delivered Ok Only
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=409, code='Conflict', response=response)
+
+        user_server.task_status = Server.TASK_CREATED_OK
+        user_server.save(update_fields=['task_status'])
+
+        # service not set pay_app_service_id
+        query = parse.urlencode(query={'pay_type': PayType.PREPAID.value, 'period': 10})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=409, code='ServiceNoPayAppServiceId', response=response)
+
+        self.service.pay_app_service_id = app_service1.id
+        self.service.save(update_fields=['pay_app_service_id'])
+
+        # only postpaid can to prepaid
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=409, code='Conflict', response=response)
+
+        user_server.pay_type = PayType.POSTPAID.value
+        user_server.save(update_fields=['pay_type'])
+
+        # renew user server ok
+        period = 10
+        query = parse.urlencode(query={'pay_type': PayType.PREPAID.value, 'period': period})
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        order_id = response.data['order_id']
+        order = Order.objects.get(id=order_id)
+        self.assertEqual(order.order_type, Order.OrderType.POST2PRE.value)
+        self.assertEqual(order.status, Order.Status.UNPAID.value)
+        original_price, trade_price = PriceManager().describe_server_price(
+            ram_mib=2048, cpu=6, disk_gib=100, public_ip=True, is_prepaid=True, period=period, days=0)
+        self.assertEqual(order.total_amount, quantize_10_2(original_price))
+        self.assertEqual(order.payable_amount, quantize_10_2(trade_price))
+        self.assertEqual(order.period, period)
+        self.assertIsNone(order.start_time)
+        self.assertIsNone(order.end_time)
+        self.assertEqual(order.resource_type, ResourceType.VM.value)
+
+        resource = Resource.objects.get(order_id=order_id)
+        self.assertEqual(resource.instance_id, user_server.id)
+        config = ServerConfig.from_dict(order.instance_config)
+        self.assertEqual(config.vm_ram, user_server.ram_gib)
+        self.assertEqual(config.vm_cpu, user_server.vcpus)
+
+        # post user server again
+        query = parse.urlencode(query={'pay_type': PayType.PREPAID.value, 'period': period})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=409, code='SomeOrderNeetToTrade', response=response)
+
+        # pay order
+        user_account = PaymentManager.get_user_point_account(user_id=self.user.id)
+        user_account.balance = Decimal(70000)
+        user_account.save(update_fields=['balance'])
+        url = reverse('api:order-pay-order', kwargs={'id': order_id})
+        query = parse.urlencode(query={'payment_method': Order.PaymentMethod.BALANCE.value})
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['order_id'], order.id)
+
+        order.refresh_from_db()
+        user_server.refresh_from_db()
+        resource = Resource.objects.get(order_id=order_id)
+        self.assertEqual(resource.instance_status, Resource.InstanceStatus.SUCCESS.value)
+        self.assertEqual(order.trading_status, order.TradingStatus.COMPLETED.value)
+        self.assertEqual(order.start_time, user_server.start_time)
+        self.assertEqual(order.end_time, user_server.expiration_time)
+        self.assertEqual(order.end_time, user_server.start_time + timedelta(days=period * 30))
+        self.assertEqual(user_server.pay_type, PayType.PREPAID.value)
+
+        # log
+        sa_logs = ServerArchive.objects.filter(archive_type=ServerArchive.ArchiveType.POST2PRE.value).all()
+        self.assertEqual(len(sa_logs), 1)
+        log: ServerArchive = sa_logs[0]
+        self.assertEqual(log.deleted_time, user_server.start_time)
+
+        # ----------renew vo server-----------
+        now_time = timezone.now()
+        vo_server = Server(
+            service_id=self.service.id,
+            name='vo_server',
+            instance_id='vo_server_id',
+            instance_name='instance_vo',
+            vcpus=4,
+            ram=4,
+            ipv4='127.0.0.1',
+            public_ip=False,
+            image='',
+            image_id='image_id',
+            task_status=Server.TASK_CREATED_OK,
+            expiration_time=None,
+            classification=Server.Classification.VO.value,
+            user_id=self.user.id,
+            vo_id=self.vo.id,
+            creation_time=now_time,
+            start_time=now_time,
+            pay_type=PayType.POSTPAID.value,
+            lock=Server.Lock.FREE.value,
+            azone_id='',
+            disk_size=0
+        )
+        vo_server.save(force_insert=True)
+
+        # post vo server, no vo permission
+        url = reverse('api:servers-modify-pay-type', kwargs={'id': vo_server.id})
+        query = parse.urlencode(query={'pay_type': PayType.PREPAID.value, 'period': 6})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # set vo member
+        VoMember(user_id=self.user.id, vo_id=self.vo.id, role=VoMember.Role.LEADER.value).save()
+
+        # post vo server
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        order_id = response.data['order_id']
+        vo_order = Order.objects.get(id=order_id)
+        self.assertEqual(vo_order.order_type, Order.OrderType.POST2PRE.value)
+        self.assertEqual(vo_order.status, Order.Status.UNPAID.value)
+        original_price, trade_price = PriceManager().describe_server_price(
+            ram_mib=4096, cpu=4, disk_gib=0, public_ip=False, is_prepaid=True, period=6, days=0)
+        self.assertEqual(vo_order.total_amount, quantize_10_2(original_price))
+        self.assertEqual(vo_order.payable_amount, quantize_10_2(trade_price))
+        self.assertEqual(vo_order.period, 6)
+        self.assertIsNone(vo_order.start_time)
+        self.assertIsNone(vo_order.end_time)
+        self.assertEqual(vo_order.resource_type, ResourceType.VM.value)
+
+        resource = Resource.objects.get(order_id=order_id)
+        self.assertEqual(resource.instance_id, vo_server.id)
+        config = ServerConfig.from_dict(vo_order.instance_config)
+        self.assertEqual(config.vm_ram, vo_server.ram_gib)
+        self.assertEqual(config.vm_cpu, vo_server.vcpus)
+
+        # pay renewal order
+        vo_account = PaymentManager.get_vo_point_account(vo_id=self.vo.id)
+        vo_account.balance = Decimal(2000)
+        vo_account.save(update_fields=['balance'])
+        url = reverse('api:order-pay-order', kwargs={'id': order_id})
+        query = parse.urlencode(query={'payment_method': Order.PaymentMethod.BALANCE.value})
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['order_id'], vo_order.id)
+
+        vo_order.refresh_from_db()
+        vo_server.refresh_from_db()
+        self.assertEqual(vo_order.trading_status, vo_order.TradingStatus.COMPLETED.value)
+        self.assertEqual(vo_order.start_time, vo_server.start_time)
+        self.assertEqual(vo_order.end_time, vo_server.expiration_time)
+        self.assertEqual(vo_order.end_time, vo_server.start_time + timedelta(days=6 * 30))
+        self.assertEqual(vo_server.pay_type, PayType.PREPAID.value)
+        resource = Resource.objects.get(order_id=order_id)
+        self.assertEqual(resource.instance_status, Resource.InstanceStatus.SUCCESS.value)
+
+        # log
+        count = ServerArchive.objects.filter(archive_type=ServerArchive.ArchiveType.POST2PRE.value).count()
+        self.assertEqual(count, 2)
 
     def try_delete_server(self, server_id: str):
         url = reverse('api:servers-detail', kwargs={'id': server_id})

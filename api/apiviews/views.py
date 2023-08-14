@@ -361,6 +361,68 @@ class ServersViewSet(CustomGenericViewSet):
         """
         return ServerHandler().renew_server(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('修改云服务器实例计费付费方式'),
+        request_body=no_body,
+        manual_parameters=[
+            openapi.Parameter(
+                name='pay_type',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description=_('实例需要修改的目标计费方式。可选：prepaid(按量转包月)')
+            ),
+            openapi.Parameter(
+                name='period',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                required=False,
+                description=_('包年包月续费时长（月），按量转包月时必须指定')
+            ),
+        ],
+        responses={
+            200: '''    
+                        {
+                            "order_id": "xxx",      # 订单id
+                        }
+                    '''
+        }
+    )
+    @action(methods=['POST'], detail=True, url_path='modify/pay-type', url_name='modify-pay-type')
+    def modify_server_pay_type(self, request, *args, **kwargs):
+        """
+        修改云服务器计费付费方式
+
+            * 暂仅支持按量付费转包年包月，请求成功会创建一个待支付的订单，支付订单成功后，会修改云服务器的计费方式和续费
+
+            Http Code 200:
+                {
+                    "order_id": "xxx",      # 订单id
+                }
+
+            Http Code 400, 409, 500:
+                {
+                    "code": "BadRequest",
+                    "message": "xxxx"
+                }
+
+                可能的错误码：
+                400:
+                BadRequest: 请求出现语法错误
+                MissingPeriod: 按量付费转包年包月必须指定续费时长
+                InvalidPeriod: 指定续费时长无效
+                MissingPayType: 必须指定付费方式
+                InvalidPayType: 指定付费方式无效
+
+                409:
+                Conflict: 只允许为创建成功的云服务器修改计费方式; 云服务器所在服务单元未配置对应的结算系统APP服务id;
+                            提供此云服务器资源的服务单元停止服务，不允许修改计费方式;
+                            必须是按量计费方式的服务器实例才可以转为包年包月计费方式;
+                ResourceLocked: 云主机已加锁锁定了一切操作
+                SomeOrderNeetToTrade: 此云服务器存在未完成的订单, 请先完成已有订单后再提交新的订单
+        """
+        return ServerHandler().modify_server_pay_type(view=self, request=request, kwargs=kwargs)
+
     @staticmethod
     def _update_server_detail(server, task_status: int = None):
         """

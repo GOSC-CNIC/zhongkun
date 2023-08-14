@@ -340,6 +340,13 @@ class ServerArchive(ServerBase):
         verbose_name = _('服务器归档记录')
         verbose_name_plural = verbose_name
 
+    def save(self, force_insert=False, force_update=False, using=None,
+             update_fields=None):
+        if not self.id:
+            self.id = short_uuid1_l25()
+
+        super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
+
     @classmethod
     def init_archive_from_server(cls, server, archive_user, archive_type, archive_time=None, commit: bool = True):
         """
@@ -387,7 +394,7 @@ class ServerArchive(ServerBase):
         a.situation_time = server.situation_time
 
         if commit:
-            a.save()
+            a.save(force_insert=True)
 
         return a
 
