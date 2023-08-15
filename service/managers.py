@@ -429,10 +429,12 @@ class ServiceShareQuotaManager(ServiceQuotaManagerBase):
     MODEL = ServiceShareQuota
     ERROR_MSG_PREFIX = gettext_lazy('服务的共享资源配额')
 
-    def get_share_queryset(self, service_id: str = None):
+    def get_share_queryset(self, center_id: str, service_id: str = None):
         qs = self.MODEL.objects.select_related('service').all()
         if service_id:
             qs = qs.filter(service_id=service_id)
+        elif center_id:
+            qs = qs.filter(service__data_center_id=center_id)
 
         qs = qs.exclude(service__status=ServiceConfig.Status.DELETED.value)
         return qs

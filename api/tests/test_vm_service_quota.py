@@ -106,6 +106,9 @@ class VmServiceQuotaTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['results'][0]['ram_total'], 2)
         self.assertEqual(response.data['results'][0]['ram_used'], 1)
 
+        self._param_data_center_id_test(url=url)
+
+    def _param_data_center_id_test(self, url: str):
         # data_center_id
         query = parse.urlencode(query={'data_center_id': self.service.data_center_id})
         response = self.client.get(f'{url}?{query}')
@@ -146,8 +149,8 @@ class VmServiceQuotaTests(MyAPITransactionTestCase):
             "public_ip_used", "vcpu_used", "ram_used",
             "disk_size_used", "creation_time", "enable", "service"
         ], container=response.data['results'][0])
-        self.assertKeysIn(keys=['id', 'name', 'name_en'], container=response.data['results'][0]['service'])
         self.assertEqual(response.data['results'][0]['service']['id'], self.service.id)
+        self.assertKeysIn(keys=['id', 'name', 'name_en'], container=response.data['results'][0]['service'])
 
         # service2 share quota create
         ServiceShareQuotaManager().get_quota(service=self.service2)
@@ -162,8 +165,8 @@ class VmServiceQuotaTests(MyAPITransactionTestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 1)
-        self.assertEqual(len(response.data['results']), 1)
         self.assertEqual(response.data['results'][0]['service']['id'], self.service2.id)
+        self.assertEqual(len(response.data['results']), 1)
 
         # service2 disable
         self.service2.status = self.service.Status.DISABLE.value
@@ -171,8 +174,8 @@ class VmServiceQuotaTests(MyAPITransactionTestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 1)
-        self.assertEqual(len(response.data['results']), 1)
         self.assertEqual(response.data['results'][0]['service']['id'], self.service2.id)
+        self.assertEqual(len(response.data['results']), 1)
 
         # param 'service_id'
         query = parse.urlencode(query={'service_id': self.service.id})
@@ -184,23 +187,23 @@ class VmServiceQuotaTests(MyAPITransactionTestCase):
         query = parse.urlencode(query={'service_id': 'test'})
         response = self.client.get(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['count'], 0)
         self.assertEqual(len(response.data['results']), 0)
+        self.assertEqual(response.data['count'], 0)
 
         query = parse.urlencode(query={'service_id': self.service2.id})
         response = self.client.get(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 1)
-        self.assertEqual(len(response.data['results']), 1)
         self.assertEqual(response.data['results'][0]['service']['id'], self.service2.id)
+        self.assertEqual(len(response.data['results']), 1)
 
         # service enable
         self.service.status = self.service.Status.ENABLE.value
         self.service.save(update_fields=['status'])
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['count'], 2)
         self.assertEqual(len(response.data['results']), 2)
+        self.assertEqual(response.data['count'], 2)
 
         ServiceShareQuotaManager().increase(service=self.service2, ram_gib=4)
         ServiceShareQuotaManager().deduct(service=self.service2, ram_gib=3)
@@ -210,3 +213,6 @@ class VmServiceQuotaTests(MyAPITransactionTestCase):
         self.assertEqual(len(response.data['results']), 1)
         self.assertEqual(response.data['results'][0]['ram_total'], 4)
         self.assertEqual(response.data['results'][0]['ram_used'], 3)
+
+        # data_center_id
+        self._param_data_center_id_test(url=url)
