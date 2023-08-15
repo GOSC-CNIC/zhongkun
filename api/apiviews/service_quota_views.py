@@ -21,12 +21,19 @@ class ServivePrivateQuotaViewSet(CustomGenericViewSet):
         operation_summary=gettext_lazy('列举资源提供者接入服务的私有资源配额'),
         manual_parameters=[
             openapi.Parameter(
+                name='data_center_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description='机构id'
+            ),
+            openapi.Parameter(
                 name='service_id',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
                 description='服务端点id'
-            )
+            ),
         ],
         responses={
             200: ''

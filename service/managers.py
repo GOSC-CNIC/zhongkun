@@ -410,10 +410,13 @@ class ServicePrivateQuotaManager(ServiceQuotaManagerBase):
         sq = Subquery(user.service_set.all().values_list('id', flat=True))
         return self.MODEL.objects.filter(service__in=sq).all()
 
-    def get_privete_queryset(self, service_id: str = None):
+    def get_privete_queryset(self, center_id: str = None, service_id: str = None):
         qs = self.MODEL.objects.select_related('service').all()
+
         if service_id:
             qs = qs.filter(service_id=service_id)
+        elif center_id:
+            qs = qs.filter(service__data_center_id=center_id)
 
         qs = qs.exclude(service__status=ServiceConfig.Status.DELETED.value)
         return qs

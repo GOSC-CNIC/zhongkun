@@ -8,14 +8,16 @@ class ServiceQuotaHandler:
     @staticmethod
     def list_privete_quotas(view: CustomGenericViewSet, request, kwargs):
         service_id = request.query_params.get('service_id', None)
+        data_center_id = request.query_params.get('data_center_id', None)
         try:
-            servers = ServicePrivateQuotaManager().get_privete_queryset(service_id=service_id)
+            qs = ServicePrivateQuotaManager().get_privete_queryset(
+                center_id=data_center_id, service_id=service_id)
         except Exception as exc:
             return view.exception_response(exceptions.convert_to_error(exc))
 
         paginator = view.paginator
         try:
-            page = paginator.paginate_queryset(servers, request, view=view)
+            page = paginator.paginate_queryset(qs, request, view=view)
             serializer = serializers.VmServicePrivateQuotaSerializer(page, many=True)
             return paginator.get_paginated_response(data=serializer.data)
         except Exception as exc:

@@ -106,6 +106,25 @@ class VmServiceQuotaTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['results'][0]['ram_total'], 2)
         self.assertEqual(response.data['results'][0]['ram_used'], 1)
 
+        # data_center_id
+        query = parse.urlencode(query={'data_center_id': self.service.data_center_id})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(len(response.data['results']), 2)
+
+        query = parse.urlencode(query={'data_center_id': 'xx'})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
+        self.assertEqual(len(response.data['results']), 0)
+
+        query = parse.urlencode(query={'data_center_id': self.service.data_center_id, 'service_id': self.service.id})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['results']), 1)
+
     def test_list_service_share_quota(self):
         url = reverse('api:vms-service-s-quota-list')
         response = self.client.get(url)
