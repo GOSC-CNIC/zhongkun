@@ -5,7 +5,8 @@ from django.utils.translation import gettext as _
 from rest_framework.response import Response
 
 from core import errors
-from core.jwt.authentication import CreateUserJWTAuthentication
+from core.aai.authentication import CreateUserJWTAuthentication
+from core.aai.jwt import JWTInvalidError
 from api.viewsets import PaySignGenericViewSet
 from api.handlers import serializer_error_msg
 from api.serializers.serializers import PaymentHistorySerializer
@@ -13,7 +14,6 @@ from api.serializers import trade as trade_serializers
 from bill.managers.payment import PaymentManager
 from bill.managers.bill import PaymentHistoryManager, RefundRecordManager
 from bill.models import PaymentHistory
-from core.jwt.jwt import JWTInvalidError
 from users.models import UserProfile
 from utils.decimal_utils import quantize_10_2
 

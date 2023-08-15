@@ -192,7 +192,7 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 100,
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'core.jwt.authentication.CreateUserJWTAuthentication',
+        'core.aai.authentication.CreateUserJWTAuthentication',
         'rest_framework.authentication.SessionAuthentication'
     ),
     'EXCEPTION_HANDLER': 'api.viewsets.exception_handler',

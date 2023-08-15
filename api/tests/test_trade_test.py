@@ -405,7 +405,7 @@ class TradeTests(MyAPITransactionTestCase):
     def test_trade_charge_jwt(self):
         rs512_private_key, rs512_public_key = self.get_aai_jwt_rsa_key()
         aai_jwt = self.get_aai_jwt(rs512_private_key)
-        from core.jwt import jwt
+        from core.aai import jwt
         jwt.token_backend.verifying_key = rs512_public_key
 
         out_order_id1 = 'order_id1'
