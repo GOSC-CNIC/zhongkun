@@ -1,3 +1,14 @@
+## v1.11.0
+发布时间： 2023-08-16  
+发布人： shun  
+
+* 云主机计量功能支持按量付费转包年包月的付费方式变更，新增ModifyServerPayType接口和测试用例；提交人：shun
+* ListServiceShareQuota、ListServicePrivateQuota增加参数“data_center_id”；提交人：shun
+* AdminCreateCashCoupon接口增加参数‘vo_id’，直接给指定vo发代金券；提交人：shun
+* 余额欠费清零command优化；提交人：shun
+* 中国科技云身份认证联盟AAI认证登录支持；提交人：shun
+
+
 ## v1.10.0
 发布时间： 2023-08-09  
 发布人： shun  
