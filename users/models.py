@@ -17,14 +17,10 @@ class UserProfile(AbstractUser):
     """
     自定义用户模型
     """
-    NON_THIRD_APP = 0
-    LOCAL_USER = NON_THIRD_APP
-    THIRD_APP_KJY = 1   # 第三方科技云通行证
-
-    THIRD_APP_CHOICES = (
-        (LOCAL_USER, '本地用户'),
-        (THIRD_APP_KJY, '科技云通行证')
-    )
+    class ThirdApp(models.IntegerChoices):
+        LOCAL_USER = 0, _('本地用户')
+        KJY_PASSPORT = 1, _('科技云通行证')
+        AAI = 2, _('身份认证联盟AAI')
 
     class Roles(models.TextChoices):
         ORDINARY = 'ordinary', _('普通用户')
@@ -39,7 +35,8 @@ class UserProfile(AbstractUser):
     id = models.CharField(blank=True, editable=False, max_length=36, primary_key=True, verbose_name='ID')
     telephone = models.CharField(verbose_name=_('电话'), max_length=11, default='')
     company = models.CharField(verbose_name=_('公司/单位'), max_length=255, default='')
-    third_app = models.SmallIntegerField(verbose_name=_('第三方应用登录'), choices=THIRD_APP_CHOICES, default=NON_THIRD_APP)
+    third_app = models.SmallIntegerField(
+        verbose_name=_('第三方应用登录'), choices=ThirdApp.choices, default=ThirdApp.LOCAL_USER.value)
     last_active = models.DateTimeField(verbose_name=_('最后活跃日期'), db_index=True, auto_now=True)
     role = models.JSONField(verbose_name=_('角色'), null=False, default=default_role,
                             help_text=f'角色选项(可多选)，{Roles.values}')

@@ -56,8 +56,8 @@ class KJYLogin:
             return self.kjy_logout()
 
         # 标记当前为科技云通行证登录用户
-        if user.third_app != user.THIRD_APP_KJY:
-            user.third_app = user.THIRD_APP_KJY
+        if user.third_app != user.ThirdApp.KJY_PASSPORT.value:
+            user.third_app = user.ThirdApp.KJY_PASSPORT.value
             user.last_active = timezone.now()
             user.save(update_fields=['third_app', 'last_active'])
 
@@ -282,7 +282,7 @@ class LocalSignInView(LoginView):
     def form_valid(self, form):
         r = super().form_valid(form)
         user = form.get_user()
-        user.third_app = user.LOCAL_USER
+        user.third_app = user.ThirdApp.LOCAL_USER.value
         user.last_active = timezone.now()
         user.save(update_fields=['third_app', 'last_active'])
         return r
@@ -312,8 +312,8 @@ class SignOutView(View):
         if user.id:
             logout(request)
             # 科技云通行证用户登录
-            if user.third_app == User.THIRD_APP_KJY:
-                user.third_app = User.LOCAL_USER
+            if user.third_app == User.ThirdApp.KJY_PASSPORT.value:
+                user.third_app = User.ThirdApp.LOCAL_USER.value
                 user.save(update_fields=['third_app'])
                 next_url = request.build_absolute_uri(location=to)
                 return KJYLogin.kjy_logout(next_to=next_url)
@@ -335,7 +335,7 @@ class ChangePasswordView(View):
 
         user = request.user
         # 当前用户为第三方应用登录认证
-        if user.third_app != User.LOCAL_USER:
+        if user.third_app != User.ThirdApp.LOCAL_USER.value:
             app_name = user.get_third_app_display()
             if user.password:
                 tips_msg = _('您当前是通过第三方应用"%(name)s"登录认证，并且您曾经为此用户设置过本地密码，'
@@ -357,7 +357,7 @@ class ChangePasswordView(View):
     def post(self, request, *args, **kwargs):
         user = request.user
         # 当前用户为第三方应用登录认证
-        if user.third_app != User.LOCAL_USER and not user.password:
+        if user.third_app != User.ThirdApp.LOCAL_USER.value and not user.password:
             form = forms.PasswordForm(request.POST)
         else:
             form = forms.PasswordChangeForm(request.POST, user=request.user)
@@ -369,9 +369,12 @@ class ChangePasswordView(View):
             user.save(update_fields=['password', 'last_active'])
 
             # 注销当前用户，重新登陆
-            login_url = resolve_url('users:login')
+            try:
+                login_url = resolve_url('users:local_login')
+            except Exception as e:
+                login_url = '/'
 
-            if user.third_app == User.THIRD_APP_KJY:  # 如果当前是第三方科技云通行证登录认证
+            if user.third_app == User.ThirdApp.KJY_PASSPORT.value:  # 如果当前是第三方科技云通行证登录认证
                 logout(request)
                 to = request.build_absolute_uri(location=login_url)
                 return KJYLogin.kjy_logout(next_to=to)

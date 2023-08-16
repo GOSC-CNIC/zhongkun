@@ -21,6 +21,7 @@ from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from drf_yasg.generators import OpenAPISchemaGenerator
 
+from core.aai.signin import AAISignIn
 from . import views
 from . import admin_site
 from . import check
@@ -61,6 +62,7 @@ urlpatterns = [
     path('docs/', include('docs.urls', namespace='docs')),
     path('about/', views.about, name='about'),
     path('report/', include('report.urls', namespace='report')),
+    path('auth/callback/aai', AAISignIn.as_view(), name='auth-callback-aai'),
 ]
 
 if settings.DEBUG:

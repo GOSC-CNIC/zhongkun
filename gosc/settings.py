@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 from datetime import timedelta
 from pathlib import Path
 
+from django.utils.translation import gettext_lazy
+
 
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
 
@@ -175,15 +177,25 @@ LOGOUT_URL = '/accounts/logout/'
 LOGIN_REDIRECT_URL = '/'    # 默认重定向url
 LOGOUT_REDIRECT_URL = '/'
 
-# 第三方应用登录认证
+# 第三方应用登录认证，不支持那种认证 注释掉
 THIRD_PARTY_APP_AUTH = {
     # 科技云通行证
     'SCIENCE_CLOUD': {
+        'name': gettext_lazy('中国科技云通行证'),    # 登录页面显示的名称
         'client_home_url': 'https://servicebackend.cstcloud.cn',
         'client_callback_url': 'https://servicebackend.cstcloud.cn/accounts/callback/',  # 认证回调地址
         'login_url': 'https://passport.escience.cn/oauth2/authorize?response_type=code&theme=embed',
         'token_url': 'https://passport.escience.cn/oauth2/token',
         'logout_url': 'https://passport.escience.cn/logout'
+    },
+    # AAI
+    'AAI': {
+        'name': gettext_lazy('中国科技云身份认证联盟'),    # 登录页面显示的名称
+        'client_home_url': 'https://servicebackend.cstcloud.cn',
+        'client_callback_url': 'https://servicebackend.cstcloud.cn/auth/callback/aai',  # 认证回调地址
+        'login_url': 'https://aai.cstcloud.net/oidc/authorize?response_type=code',
+        'token_url': 'https://aai.cstcloud.net/oidc/token',
+        'user_info_url': 'https://aai.cstcloud.net/oidc/userinfo'
     },
 }
 

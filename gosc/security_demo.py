@@ -33,6 +33,11 @@ THIRD_PARTY_APP_AUTH_SECURITY = {
         'client_id': 0,
         'client_secret': 'xxx',
     },
+    # AAI
+    'AAI': {
+        'client_id': 'xxx',
+        'client_secret': 'xxx',
+    },
 }
 
 # 邮箱配置

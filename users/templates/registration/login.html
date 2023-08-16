@@ -44,10 +44,16 @@
 {#                        <a class="btn text-warning" href="{% url 'users:forget' %}">忘记密码</a>#}
                         <a class="btn btn-outline-success float-right" onclick="alert('暂不允许个人注册，请联系管理员');return false;">注册</a>
                     </div>
-                    {% use_kjy_signin as use_kjy %}
-                    {% if use_kjy %}
+                    {% use_kjy_signin as kjy_name %}
+                    {% if kjy_name %}
                         <div class="border-top">
-                            <a class="btn btn-sm p-2" href="{% url 'users:login' %}"><i class="fa fa-share"></i> <i class="fa fa-user"></i> {% trans '中国科技云通行证账号登录' %}</a>
+                            <a class="btn btn-sm p-2" href="{% url 'users:login' %}"><i class="fa fa-share"></i> <i class="fa fa-user"></i> {{ kjy_name }}</a>
+                        </div>
+                    {% endif %}
+                    {% get_aai_signin_name_url as name_url %}
+                    {% if name_url %}
+                        <div class="border-top">
+                            <a class="btn btn-sm p-2" href="{{ name_url.url }}"><i class="fa fa-share"></i> <i class="fa fa-user"></i> {{ name_url.name }}</a>
                         </div>
                     {% endif %}
                 </form>

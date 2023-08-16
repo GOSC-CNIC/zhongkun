@@ -77,7 +77,7 @@ class PasswordChangeForm(PasswordForm):
         old_password = self.cleaned_data.get('old_password')
 
         # 如果当前用户为第三方登录，且还未设置本地密码，跳过原密码检验
-        if self.user.third_app != self.user.LOCAL_USER and not self.user.password:
+        if self.user.third_app != self.user.ThirdApp.LOCAL_USER.value and not self.user.password:
             return old_password
 
         if not self.user.check_password(old_password):

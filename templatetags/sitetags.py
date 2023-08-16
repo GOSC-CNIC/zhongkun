@@ -3,6 +3,7 @@ from django.utils.translation import gettext
 from django.conf import settings
 
 from utils.time import datesince_days, dateuntil_days
+from core.aai.signin import AAISignIn
 
 
 register = template.Library()
@@ -11,7 +12,25 @@ register = template.Library()
 @register.simple_tag
 def use_kjy_signin():
     tpaa = getattr(settings, 'THIRD_PARTY_APP_AUTH', {})
-    return 'SCIENCE_CLOUD' in tpaa
+    tpaas = getattr(settings, 'THIRD_PARTY_APP_AUTH_SECURITY', {})
+    if 'SCIENCE_CLOUD' in tpaa and 'SCIENCE_CLOUD' in tpaas:
+        name = tpaa['SCIENCE_CLOUD'].get('name', gettext('中国科技云通行证'))
+        return name
+
+    return None
+
+
+@register.simple_tag
+def get_aai_signin_name_url():
+    tpaa = getattr(settings, 'THIRD_PARTY_APP_AUTH', {})
+    tpaas = getattr(settings, 'THIRD_PARTY_APP_AUTH_SECURITY', {})
+    if 'AAI' in tpaa and 'AAI' in tpaas:
+        name = tpaa['AAI'].get('name', gettext('中国科技云身份认证联盟'))
+        url = AAISignIn.get_signin_url()
+        if url:
+            return {'name': name, 'url': url}
+
+    return None
 
 
 def get_website_header():
