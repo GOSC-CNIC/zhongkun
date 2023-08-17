@@ -13,46 +13,74 @@ def get_today_start_time():
     return nt.replace(hour=0, minute=0, second=0, microsecond=0)
 
 
+def get_now_hour_start_time():
+    nt = timezone.now()
+    return nt.replace(minute=0, second=0, microsecond=0)
+
+
 class ServiceReqCounter:
     PORTAL_REQ_NUM_LOKI_SITES = settings.PORTAL_REQ_NUM_LOKI_SITES
 
     def __init__(self):
-        self.today_start_time = get_today_start_time()
+        self.new_until_time = get_now_hour_start_time()
 
-    def run(self):
-        print(f'Start，时间{self.today_start_time}向前一天请求数统计')
+    def run(self) -> int:
+        """
+        每次最少统计1h、最多统计24h内的请求数，定时执行周期可选1-24小时
+        :return: 本次统计的前多少个小时内的请求数
+        """
+        new_until_time = self.new_until_time
         req_num_ins = TotalReqNum.get_instance()
-        if req_num_ins.until_time == self.today_start_time:
-            print(f'END，已统计过 时间{self.today_start_time}向前一天请求数。')
-            return
+        # 最大统计24h内的
+        hours = self.range_hours(until_time=new_until_time, ins=req_num_ins)
+        delta_str = f'时间{new_until_time}向前{hours}小时内请求数'
+        if hours == 0:
+            print(f'END，已统计过 {delta_str}。')
+            return hours
 
-        preday_num = self.get_sites_req_num(sites=self.PORTAL_REQ_NUM_LOKI_SITES)
-        req_num_ins.req_num += preday_num
-        req_num_ins.until_time = self.today_start_time
+        print(f'Start，{delta_str}统计')
+        hours_req_num = self.get_sites_req_num(
+            sites=self.PORTAL_REQ_NUM_LOKI_SITES, new_until_time=new_until_time, hours=hours)
+        req_num_ins.req_num += hours_req_num
+        req_num_ins.until_time = new_until_time
         req_num_ins.modification = timezone.now()
         req_num_ins.save(update_fields=['req_num', 'until_time', 'modification'])
-        print(f'END，时间{self.today_start_time}向前一天请求数: {preday_num}，总数：{req_num_ins.req_num}。')
+        print(f'END，{delta_str}: {hours_req_num}，总数：{req_num_ins.req_num}。')
+        return hours
 
-    def get_sites_req_num(self, sites: dict):
+    @staticmethod
+    def range_hours(until_time: datetime, ins: TotalReqNum) -> int:
+        if ins.until_time is None:
+            return 24
+
+        t_rang = until_time - ins.until_time
+        hours = int(t_rang.total_seconds() / 3600)
+        # 最大统计24h内的
+        hours = min(hours, 24)
+        hours = max(hours, 0)
+        return hours
+
+    def get_sites_req_num(self, sites: dict, new_until_time: datetime, hours: int):
         """
         sites: [{'api': 'https://x.x.1.x:44135/loki/api/v1/query', 'job': 'servicebackend'}]
         """
-        preday_req_num = 0
-        until_timestamp = int(self.today_start_time.timestamp())
+        _req_num = 0
+        until_timestamp = int(new_until_time.timestamp())
         for site in sites:
             api = site.get('api', '')
             job = site.get('job', '')
             try:
-                r_num = self.get_site_req_num(api=api, job=job, until_timestamp=until_timestamp)
+                r_num = self.get_site_req_num(
+                    api=api, job=job, until_timestamp=until_timestamp, hours=hours)
             except Exception:
                 r_num = 0
 
-            preday_req_num += r_num
+            _req_num += r_num
 
-        return preday_req_num
+        return _req_num
 
-    def get_site_req_num(self, api: str, job: str, until_timestamp: int):
-        value = f'count_over_time({{job="{job}"}}[1d])'
+    def get_site_req_num(self, api: str, job: str, until_timestamp: int, hours: int):
+        value = f'count_over_time({{job="{job}"}}[{hours}h])'
         querys_str = urlencode(query={'query': value, 'time': until_timestamp})
         url = f'{api.rstrip("/")}?{querys_str}'
 

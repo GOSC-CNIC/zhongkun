@@ -14,6 +14,6 @@ from scripts.workers.req_logs import ServiceReqCounter
 
 if __name__ == "__main__":
     """
-    一体云和对象存储服务总请求数统计更新
+    一体云和对象存储服务总请求数统计更新, 定时执行周期可选1-24小时
     """
     ServiceReqCounter().run()
