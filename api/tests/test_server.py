@@ -20,6 +20,8 @@ from order.models import Price, Order, Resource
 from order.managers import ServerConfig
 from bill.managers import PaymentManager
 from bill.models import PayApp, PayAppService, PayOrgnazition
+from metering.measurers import ServerMeasurer
+from metering.models import MeteringServer
 from adapters.evcloud import EVCloudAdapter
 from . import MyAPITransactionTestCase, set_auth_header
 
@@ -658,8 +660,8 @@ class ServerOrderTests(MyAPITransactionTestCase):
             classification=Server.Classification.PERSONAL.value,
             user_id=self.user.id,
             vo_id=None,
-            creation_time=now_time,
-            start_time=now_time,
+            creation_time=now_time - timedelta(days=1),
+            start_time=now_time - timedelta(days=1),
             pay_type=PayType.PREPAID.value,
             lock=Server.Lock.OPERATION.value,
             azone_id='',
@@ -790,8 +792,8 @@ class ServerOrderTests(MyAPITransactionTestCase):
             classification=Server.Classification.VO.value,
             user_id=self.user.id,
             vo_id=self.vo.id,
-            creation_time=now_time,
-            start_time=now_time,
+            creation_time=now_time - timedelta(days=1),
+            start_time=now_time - timedelta(days=1),
             pay_type=PayType.POSTPAID.value,
             lock=Server.Lock.FREE.value,
             azone_id='',
@@ -853,6 +855,32 @@ class ServerOrderTests(MyAPITransactionTestCase):
         # log
         count = ServerArchive.objects.filter(archive_type=ServerArchive.ArchiveType.POST2PRE.value).count()
         self.assertEqual(count, 2)
+
+        # 计量
+        today_start_time = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        metering_date = timezone.now().date()
+        measurer = ServerMeasurer(metering_date=metering_date)
+        # 顺序先server后archive，因为数据库数据流向从server到archive
+        measurer.metering_loop(loop_server=True)
+        measurer.metering_loop(loop_server=False)
+        self.assertEqual(MeteringServer.objects.count(), 2)
+        u_mt = MeteringServer.objects.filter(date=metering_date, server_id=user_server.id).first()
+        self.assertEqual(round(u_mt.cpu_hours), user_server.vcpus * 24)
+        self.assertEqual(round(u_mt.ram_hours), user_server.ram_gib * 24)
+        self.assertLess(u_mt.trade_amount, u_mt.original_amount)
+        # 按量付费金额占比
+        u_zb = (user_server.start_time - today_start_time).total_seconds() / (3600 * 24)
+        u_m_zb = u_mt.trade_amount / u_mt.original_amount
+        self.assertEqual(int(round(u_zb * 1000, 0)), int(round(u_m_zb * 1000, 0)))
+
+        vo_mt = MeteringServer.objects.filter(date=metering_date, server_id=vo_server.id).first()
+        self.assertEqual(round(vo_mt.cpu_hours), vo_server.vcpus * 24)
+        self.assertEqual(round(vo_mt.ram_hours), vo_server.ram_gib * 24)
+        self.assertLess(vo_mt.trade_amount, vo_mt.original_amount)
+        # 按量付费金额占比
+        u_zb = (vo_server.start_time - today_start_time).total_seconds() / (3600 * 24)
+        u_m_zb = vo_mt.trade_amount / vo_mt.original_amount
+        self.assertEqual(round(u_zb * 1000, 0), int(round(u_m_zb * 1000, 0)))
 
     def try_delete_server(self, server_id: str):
         url = reverse('api:servers-detail', kwargs={'id': server_id})
