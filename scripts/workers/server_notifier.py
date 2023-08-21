@@ -288,6 +288,7 @@ class BaseNotifier:
         self.querier = ServerQuerier(filter_out_notified=filter_out_notified)
 
     def do_email_notice(self, subject: str, html_message: str, username: str):
+        html_message = self.html_minify(html_message)
         # 先保存邮件记录
         try:
             email = Email(
@@ -324,6 +325,20 @@ class BaseNotifier:
             pass
 
         return True
+
+    @staticmethod
+    def html_minify(_html: str):
+        """
+        去除html空行或每行前面的空格
+        """
+        lines = _html.split('\n')
+        new_lines = []
+        for line in lines:
+            line = line.lstrip(' ')
+            if line:
+                new_lines.append(line)
+
+        return '\n'.join(new_lines)
 
 
 class PersonalServersNotifier(BaseNotifier):

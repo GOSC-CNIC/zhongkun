@@ -865,6 +865,7 @@ class MonthlyReportNotifier:
             return None
 
         html_message = self.template.render(context, request=None)
+        html_message = self.html_minify(html_message)
         subject = f'中国科技云一体化云服务平台资源用量结算账单（{self.report_period_date.month}月）'
 
         # 先保存邮件记录
@@ -1312,3 +1313,17 @@ class MonthlyReportNotifier:
                 i['disk'] = None
 
         return data
+
+    @staticmethod
+    def html_minify(_html: str):
+        """
+        去除html空行或每行前面的空格
+        """
+        lines = _html.split('\n')
+        new_lines = []
+        for line in lines:
+            line = line.lstrip(' ')
+            if line:
+                new_lines.append(line)
+
+        return '\n'.join(new_lines)

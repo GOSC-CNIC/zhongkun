@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from django.views import View
-from django.http.response import JsonResponse
+from django.http.response import JsonResponse, HttpResponse
+from django.template import loader
 
 from utils.paginators import NumsPaginator
 from scripts.workers.server_notifier import ServerNotifier, PersonalServersNotifier
@@ -77,15 +78,15 @@ class ServerExpiredEmailView(View):
         if tag == 'user':
             context = PersonalServersNotifier(filter_out_notified=False).get_personal_expired_servers_context(
                 user_id=user.id, username=user.username, after_days=after_days)
-
-            return render(request, 'server_expired.html', context=context)
         elif tag == 'user_vo':
             context = ServerNotifier(filter_out_notified=False).get_personal_vo_expired_servers_context(
                 user_id=user.id, username=user.username, after_days=after_days)
+        else:
+            return JsonResponse(
+                data={'message': f'tag参数值无效，可选[user, user_vo]'},
+                json_dumps_params={'ensure_ascii': False}
+            )
 
-            return render(request, 'server_expired.html', context=context)
-
-        return JsonResponse(
-            data={'message': f'tag参数值无效，可选[user, user_vo]'},
-            json_dumps_params={'ensure_ascii': False}
-        )
+        content = loader.render_to_string('server_expired.html', context=context, request=request, using=None)
+        content = ServerNotifier.html_minify(content)
+        return HttpResponse(content)

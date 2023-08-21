@@ -3,69 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <style>
-        .wrapper{
-            align-content: center;
-            width: 1000px;
-            height: 100%;
-            margin: 40px auto;
-            font-size: 20px;
-            color: black;
-            background-color:rgba(0,0,0,0.01);
-        }
-        a:hover{
-            color: rebeccapurple;
-        }
-        a{
-            color: rgb(46,117,181);
-        }
-        table{
-            width: 100%;
-            text-align: center;
-            margin-top: 20px;
-            font-size: 15px;
-            word-break : break-all;
-            border: 1px solid gray;
-            border-spacing: 0;
-            border-collapse: collapse;
-        }
-        tr,td{
-            border: 1px solid gray;
-            padding: 6px;
-        }
-        .title1 {
-            background-color: rgb(46,117,181);
-            color: white;
-            font-size: 18px;
-        }
-        .title2{
-            background-color: rgb(222,234,246);
-        }
-        caption{
-            text-align: left;
-            padding-left: 40px;
-            font-size: 20px;
-        }
-        .nav{
-            vertical-align: middle;
-            height: 60px;
-            border-top: 100px;
-            background-color: #f5f5f5;
-            content: "";
-            display: block;
-            clear: both;
-        }
-        .nav .logo{
-            line-height: 50px;
-            float: left;
-        }
-        .nav .main{
-            line-height: 60px;
-            float: left;
-            padding-left: 2px;
-        }
-        .section{
-            margin-top: 20px;
-        }
+        .wrapper{align-content: center; width: 1000px; height: 100%; margin: 40px auto;
+            font-size: 20px; color: black; background-color:rgba(0,0,0,0.01);}
+        a:hover{color: rebeccapurple;}
+        a{color: rgb(46,117,181);}
+        table{width: 100%; text-align: center; margin-top: 20px; font-size: 15px; word-break : break-all;
+            border: 1px solid gray; border-spacing: 0; border-collapse: collapse;}
+        tr,td{border: 1px solid gray; padding: 6px;}
+        .title1 {background-color: rgb(46,117,181); color: white; font-size: 18px;}
+        .title2{background-color: rgb(222,234,246);}
+        caption{text-align: left; padding-left: 40px; font-size: 20px;}
+        .nav{vertical-align: middle; height: 60px; border-top: 100px; background-color: #f5f5f5;
+            content: ""; display: block; clear: both;}
+        .nav .logo{line-height: 50px; float: left;}
+        .nav .main{line-height: 60px;float: left;padding-left: 2px;}
+        .section{margin-top: 20px;}
         .text-indent{padding-left: 40px;}
         .t-sec{font-size: 10px;color: rgba(108, 108, 96, 0.78);}
     </style>
@@ -92,7 +44,7 @@
             </caption>
             {% if monthly_report.server_count %}
             <tr>
-                <td colspan="9" class="title1">开放科学云主机（统计云主机数量：{{ monthly_report.server_count }}，总结算点数：{{ monthly_report.server_payment_amount }}）</td>
+                <td colspan="9" class="title1">开放科学云主机（数量：{{ monthly_report.server_count }}，总结算点数：{{ monthly_report.server_payment_amount }}）</td>
             </tr>
             <tr class="title2">
                 <td style="width: 14%;">云主机IP</td>
@@ -250,18 +202,11 @@
                     <td>{{ uc.id }}</td>
                     <td>{{ uc.expiration_time | date:'Y-m-d H:i:s' }}</td>
                     <td>{{ uc.app_service.name }}</td>
-                    <td>
-                        {% if uc.app_service.category == 'vms-server' %}
-                            开放科学云主机
-                        {% elif uc.app_service.category == 'vms-object' %}
-                            对象存储
-                        {% elif uc.app_service.category == 'high-cloud' %}
-                            高等级云
-                        {% elif uc.app_service.category == 'hpc' %}
-                            高性能计算
-                        {% else %}
-                            其他
-                        {% endif %}
+                    <td>{% if uc.app_service.category == 'vms-server' %}开放科学云主机
+                        {% elif uc.app_service.category == 'vms-object' %}对象存储
+                        {% elif uc.app_service.category == 'high-cloud' %}高等级云
+                        {% elif uc.app_service.category == 'hpc' %}高性能计算
+                        {% else %}其他{% endif %}
                     </td>
                     <td>{{ uc.balance }}</td>
                     <td>{{ uc.last_month_pay_amount }}</td>
@@ -319,18 +264,11 @@
                         <td>{{ vc.id }}</td>
                         <td>{{ vc.expiration_time | date:'Y-m-d H:i:s' }} (过期)</td>
                         <td>{{ vc.app_service.name }}</td>
-                        <td>
-                            {% if vc.app_service.category == 'vms-server' %}
-                                开放科学云主机
-                            {% elif vc.app_service.category == 'vms-object' %}
-                                对象存储
-                            {% elif vc.app_service.category == 'high-cloud' %}
-                                高等级云
-                            {% elif vc.app_service.category == 'hpc' %}
-                                高性能计算
-                            {% else %}
-                                其他
-                            {% endif %}
+                        <td>{% if vc.app_service.category == 'vms-server' %}开放科学云主机
+                            {% elif vc.app_service.category == 'vms-object' %}对象存储
+                            {% elif vc.app_service.category == 'high-cloud' %}高等级云
+                            {% elif vc.app_service.category == 'hpc' %}高性能计算
+                            {% else %}其他{% endif %}
                         </td>
                         <td>{{ vc.vo.name }}</td>
                         <td>{{ vc.balance }}</td>

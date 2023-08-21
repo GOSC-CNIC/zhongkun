@@ -1,6 +1,6 @@
-from django.shortcuts import render
 from django.http.response import HttpResponse
 from django.contrib.auth.decorators import login_required
+from django.template import loader
 
 from scripts.workers.report_generator import MonthlyReportNotifier, get_report_period_start_and_end
 from report.models import MonthlyReport
@@ -23,4 +23,6 @@ def monthly_report_view(request):
 
     context = mrn.get_context(user=user, report_date=report_date)
     context['monthly_report'] = monthly_report
-    return render(request, 'monthly_report.html', context=context)
+    content = loader.render_to_string('monthly_report.html', context=context, request=request, using=None)
+    content = mrn.html_minify(content)
+    return HttpResponse(content)
