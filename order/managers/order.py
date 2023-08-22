@@ -119,6 +119,41 @@ class OrderManager:
             instance_remark='post2prepaid'
         )
 
+    @staticmethod
+    def _check_period_time(order_type: str, pay_type: str, period: int, start_time, end_time):
+        if period < 0:
+            raise errors.Error(message=_('无法创建订单，时长不能小于0。'))
+
+        if order_type == Order.OrderType.RENEWAL.value:
+            if period and (start_time or end_time):
+                raise errors.Error(message=_('无法创建订单，不能同时指定时段起止时间和时长。'))
+
+            if start_time or end_time:
+                if not (start_time and end_time):
+                    raise errors.Error(message=_('无法创建订单，必须同时指定时段起始和终止时间。'))
+
+                if end_time <= start_time:
+                    raise errors.Error(message=_('无法创建订单，时间段不合法，时段终止时间不应小于起始时间。'))
+
+                delta = end_time - start_time
+                days = delta.days + delta.seconds / (3600 * 24)
+                period = 0
+            elif period > 0:
+                days = 0
+            else:
+                raise errors.Error(message=_('无法创建订单，时长必须大于0。'))
+        else:
+            if start_time or end_time:
+                raise errors.Error(message=_('无法创建订单，只有续费订单可以指定时段起止时间。'))
+
+            days = 0
+
+        if pay_type == PayType.PREPAID.value:         # 预付费
+            if period == 0 and days == 0:
+                raise errors.Error(message=_('无法创建订单，必须指定时段或者时长。'))
+
+        return period, days
+
     def create_order_for_resource(
             self, order_type, pay_type,
             pay_app_service_id: str, service_id, service_name,
@@ -149,31 +184,8 @@ class OrderManager:
 
         :raises: Error
         """
-        if period and (start_time or end_time):
-            raise errors.Error(message=_('无法创建订单，不能同时指定时段起止时间和时长。'))
-
-        if start_time or end_time:
-            if not (start_time and end_time):
-                raise errors.Error(message=_('无法创建订单，必须同时指定时段起始和终止时间。'))
-
-            if period and period != 0:
-                raise errors.Error(message=_('无法创建订单，不能同时指定时段起止时间和时长。'))
-
-            if end_time <= start_time:
-                raise errors.Error(message=_('无法创建订单，时间段不合法，时段终止时间不应小于起始时间。'))
-
-            delta = end_time - start_time
-            days = delta.days + delta.seconds / (3600 * 24)
-            period = 0
-        elif period:
-            if period <= 0:
-                raise errors.Error(message=_('无法创建订单，时长必须大于0。'))
-
-            days = 0
-        elif period == 0:   # 新购按量付费
-            days = 0
-        else:
-            raise errors.Error(message=_('无法创建订单，必须指定时段或者时长。'))
+        period, days = self._check_period_time(
+            order_type=order_type, period=period, start_time=start_time, end_time=end_time, pay_type=pay_type)
 
         if owner_type not in OwnerType.values:
             raise errors.Error(message=_('无法创建订单，订单所属类型无效'))
@@ -187,8 +199,6 @@ class OrderManager:
         if pay_type not in PayType.values:
             raise errors.Error(message=_('无法创建订单，资源计费方式pay_type无效'))
         if pay_type == PayType.PREPAID.value:         # 预付费
-            if period == 0 and days == 0:
-                raise errors.Error(message=_('无法创建订单，必须指定时段或者时长。'))
             total_amount, trade_price = self.calculate_amount_money(
                 resource_type=resource_type, config=instance_config, is_prepaid=True, period=period, days=days)
         else:

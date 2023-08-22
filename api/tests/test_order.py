@@ -161,7 +161,7 @@ class OrderTests(MyAPITestCase):
             service_name='test',
             resource_type=ResourceType.DISK.value,
             instance_config=order2_instance_config,
-            period=2,
+            period=0,
             pay_type=PayType.POSTPAID.value,
             user_id='',
             username='',
@@ -212,6 +212,29 @@ class OrderTests(MyAPITestCase):
 
         self.list_user_order_query_test()
         self.list_vo_order_query_test()
+
+        # 按量付费新购订单测试
+        order_instance_config = ServerConfig(
+            vm_cpu=6, vm_ram=8, systemdisk_size=100, public_ip=True,
+            image_id='image_id', image_name='', network_id='network_id', network_name='',
+            azone_id='azone_id', azone_name='azone_name', flavor_id=''
+        )
+        order, resource = omgr.create_order(
+            order_type=Order.OrderType.NEW.value,
+            pay_app_service_id='test',
+            service_id='test',
+            service_name='test',
+            resource_type=ResourceType.VM.value,
+            instance_config=order_instance_config,
+            period=0,
+            pay_type=PayType.POSTPAID.value,
+            user_id=self.user.id,
+            username=self.user.username,
+            vo_id='', vo_name='',
+            owner_type=OwnerType.USER.value
+        )
+        self.assertEqual(order.payable_amount, Decimal('0'))
+        self.assertEqual(order.total_amount, Decimal('0'))
 
     def list_user_order_query_test(self):
         base_url = reverse('api:order-list')
