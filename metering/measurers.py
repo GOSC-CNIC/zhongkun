@@ -126,7 +126,11 @@ class ServerMeasurer:
             if server.creation_time < server.start_time:  # 计量可能要包含server配置修改记录部分
                 need_other = True
         else:
-            return None
+            hours = 0
+            if server.creation_time < self.end_datetime:  # 计量可能要包含server配置、计费方式修改记录部分
+                need_other = True
+            else:
+                return None
 
         ip_hours, cpu_hours, ram_gb_hours, disk_gb_hours = self.get_server_metering_hours(server=server, hours=hours)
         if need_other:
@@ -169,6 +173,9 @@ class ServerMeasurer:
         return metering
 
     def metering_one_archive(self, archive: ServerArchive):
+        if archive.creation_time >= self.end_datetime:
+            return None
+
         metering_date = self.start_datetime.date()
         metering = self.server_metering_exists(metering_date=metering_date, server_id=archive.server_id)
         if metering is not None:
@@ -180,10 +187,11 @@ class ServerMeasurer:
             start = self.start_datetime
         elif archive.start_time < self.end_datetime:
             start = archive.start_time
-            if archive.creation_time < archive.start_time:  # 计量可能要包含server配置修改记录部分
+            if archive.creation_time < archive.start_time:  # 计量可能要包含server配置、付费方式修改记录部分
                 need_other = True
         else:
-            return None
+            start = self.end_datetime
+            need_other = True
 
         hours = self.delta_hours(end=end, start=start)
         ip_hours, cpu_hours, ram_gb_hours, disk_gb_hours = self.get_server_metering_hours(server=archive, hours=hours)
@@ -327,21 +335,22 @@ class ServerMeasurer:
 
     def metering_one_server_change_type_hours(self, server_id, server_start_time: datetime, _type: str):
         """
-        从计量日的开始时间 到 server start_time之前 这段时间内 可能存在server变更的记录 需要计量
+        从计量日的开始时间 到 min(server_start_time, self.end_datetime)之前 这段时间内 可能存在server变更的记录 需要计量
 
         :return:
             ip_hours, cpu_hours, ram_gb_hours, disk_gb_hours
         """
         ip_hours, cpu_hours, ram_gb_hours, disk_gb_hours = 0, 0, 0, 0
 
+        meter_end_time = min(server_start_time, self.end_datetime)
         archives = ServerArchive.objects.filter(
             server_id=server_id, archive_type=_type,
-            start_time__lt=server_start_time, deleted_time__gt=self.start_datetime
+            start_time__lt=meter_end_time, deleted_time__gt=self.start_datetime
         ).all()
 
         for archive in archives:
             start = max(self.start_datetime, archive.start_time)
-            end = min(server_start_time, archive.deleted_time)
+            end = min(meter_end_time, archive.deleted_time)
             hours = self.delta_hours(end=end, start=start)
             hours = min(hours, 24)
             ip_h, cpu_h, ram_h, disk_h = self.get_server_metering_hours(server=archive, hours=hours)
@@ -391,12 +400,14 @@ class ServerMeasurer:
     def get_servers_queryset(end_datetime, gte_creation_time=None):
         """
         查询server查询集, 按创建时间正序排序
+        * 创建时间在计量周期结束时间之前的都可能需要计量
 
         :param end_datetime: 计量日结束时间点
         :param gte_creation_time: 大于等于创建时间，用于断点续查
         """
         lookups = {
-            'start_time__lt': end_datetime,
+            # 'start_time__lt': end_datetime,
+            'creation_time__lt': end_datetime,
             'task_status': Server.TASK_CREATED_OK
         }
         if gte_creation_time is not None:
@@ -414,7 +425,7 @@ class ServerMeasurer:
     def get_archives_queryset(start_datetime, gte_creation_time=None):
         """
         查询归档的server查询集, 按创建时间正序排序
-
+        * 删除时间在计量周期之内的server
         :param start_datetime: 计量日开始时间点
         :param gte_creation_time: 大于等于创建时间，用于断点续查
         """
@@ -780,8 +791,14 @@ class DiskMeasurer:
         else:
             size_gib_hours = self._normal_disk_metering_hours(disk=disk)
 
+        original_amount = self.calculate_original_amount(size_gib_hours=size_gib_hours)
+        if disk.pay_type == PayType.PREPAID.value:
+            trade_amount = Decimal('0.00')
+        else:
+            trade_amount = original_amount
+
         metering = self.save_disk_metering_record(
-            disk=disk, size_gib_hours=size_gib_hours
+            disk=disk, size_gib_hours=size_gib_hours, original_amount=original_amount, trade_amount=trade_amount
         )
         return metering
 
@@ -818,7 +835,8 @@ class DiskMeasurer:
         seconds = max(seconds, 0)
         return seconds / 3600
 
-    def save_disk_metering_record(self, disk: Disk, size_gib_hours: float) -> MeteringDisk:
+    def save_disk_metering_record(
+            self, disk: Disk, size_gib_hours: float, original_amount: Decimal, trade_amount: Decimal) -> MeteringDisk:
         """
         创建disk计量日期的资源使用量记录
 
@@ -831,7 +849,9 @@ class DiskMeasurer:
             date=metering_date,
             size_hours=size_gib_hours,
             pay_type=disk.pay_type,
-            daily_statement_id=''
+            daily_statement_id='',
+            original_amount=original_amount,
+            trade_amount=trade_amount
         )
         if disk.belong_to_vo():
             metering.vo_id = disk.vo_id
@@ -848,7 +868,6 @@ class DiskMeasurer:
             username = user.username if user else ''
             metering.username = username
 
-        self.metering_bill_amount(_metering=metering, auto_commit=False)
         try:
             metering.save(force_insert=True)
             self._new_count += 1
@@ -856,8 +875,6 @@ class DiskMeasurer:
             _metering = self.disk_metering_exists(metering_date=metering_date, disk_id=disk.id)
             if _metering is None:
                 raise e
-            if _metering.original_amount != metering.original_amount:
-                self.metering_bill_amount(_metering=_metering, auto_commit=True)
 
             metering = _metering
 
@@ -917,22 +934,10 @@ class DiskMeasurer:
     def disk_metering_exists(disk_id, metering_date: date):
         return MeteringDisk.objects.filter(date=metering_date, disk_id=disk_id).first()
 
-    def metering_bill_amount(self, _metering: MeteringDisk, auto_commit: bool = True):
-        """
-        计算资源使用量的账单金额
-        """
+    def calculate_original_amount(self, size_gib_hours: float):
         price = self.price_mgr.enforce_price()
-        size_gib_days = _metering.size_hours / 24
+        size_gib_days = size_gib_hours / 24
         amount = self.price_mgr.calculate_disk_amounts(
             price=price, size_gib_days=size_gib_days
         )
-        _metering.original_amount = quantize_10_2(amount)
-        if _metering.pay_type == PayType.POSTPAID.value:
-            _metering.trade_amount = _metering.original_amount
-        else:
-            _metering.trade_amount = Decimal('0')
-
-        if auto_commit:
-            _metering.save(update_fields=['original_amount', 'trade_amount'])
-
-        return _metering
+        return quantize_10_2(amount)

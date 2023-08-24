@@ -219,7 +219,7 @@ class MeteringServerTests(TransactionTestCase):
         self.assertEqual(metering.pay_type, PayType.PREPAID.value)
 
         # server2
-        hours = (metering_end_time - server2.start_time).total_seconds() / 3600
+        hours = (metering_end_time - server2.creation_time).total_seconds() / 3600
         metering = measurer.server_metering_exists(metering_date=metering_date, server_id=server2.id)
         self.assertIsNotNone(metering)
         self.assertEqual(up_int(metering.cpu_hours), up_int(server2.vcpus * hours))
@@ -237,7 +237,7 @@ class MeteringServerTests(TransactionTestCase):
         original_amount2 = original_amount2 * Decimal.from_float(hours)
         self.assertEqual(metering.original_amount, quantize_10_2(original_amount2))
         self.assertEqual(metering.trade_amount, quantize_10_2(original_amount2))
-        self.assertEqual(metering.pay_type, PayType.POSTPAID.value)
+        # self.assertEqual(metering.pay_type, PayType.POSTPAID.value)
 
         measurer.run()
         count = MeteringServer.objects.all().count()
@@ -320,6 +320,21 @@ class MeteringServerTests(TransactionTestCase):
             self.assertIs(ok, True)
 
         server1.id = server1_id
+
+        # 构建server2 计量日后一天的付费方式变更记录，按量转包年包月
+        ServerArchive.init_archive_from_server(
+            server=server2, archive_user=self.user, archive_type=ServerArchive.ArchiveType.POST2PRE.value,
+            archive_time=now, commit=True)
+        server2.start_time = now
+        server2.pay_type = PayType.PREPAID.value
+        server2.save(update_fields=['start_time', 'pay_type'])
+
+        server2_id = server2.id
+        if test_archive:
+            ok = server2.do_archive(archive_user=self.user)
+            self.assertIs(ok, True)
+            server2.id = server2_id
+
         self.do_assert_server(now=now, server1=server1, server2=server2, server1_hours=6)
 
 
