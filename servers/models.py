@@ -181,7 +181,7 @@ class Server(ServerBase):
 
     class Meta:
         ordering = ['-creation_time']
-        verbose_name = _('虚拟服务器')
+        verbose_name = _('云服务器')
         verbose_name_plural = verbose_name
 
     def __str__(self):
@@ -337,7 +337,7 @@ class ServerArchive(ServerBase):
 
     class Meta:
         ordering = ['-deleted_time']
-        verbose_name = _('服务器归档记录')
+        verbose_name = _('云服务器归档和变更日志')
         verbose_name_plural = verbose_name
 
     def save(self, force_insert=False, force_update=False, using=None,
@@ -414,7 +414,7 @@ class Flavor(models.Model):
     class Meta:
         db_table = 'flavor'
         ordering = ['vcpus']
-        verbose_name = _('配置样式')
+        verbose_name = _('云服务器配置样式')
         verbose_name_plural = verbose_name
 
     def __str__(self):
@@ -436,7 +436,7 @@ class Flavor(models.Model):
         super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
 
 
-class Disk(models.Model):
+class DiskBase(models.Model):
     """
     云硬盘实例
     """
@@ -452,11 +452,6 @@ class Disk(models.Model):
     class Classification(models.TextChoices):
         PERSONAL = 'personal', _('个人的')
         VO = 'vo', _('VO组的')
-
-    class Lock(models.TextChoices):
-        FREE = 'free', _('无锁')
-        DELETE = 'lock-delete', _('锁定删除')
-        OPERATION = 'lock-operation', _('锁定所有操作，只允许读')
 
     id = models.CharField(blank=True, editable=False, max_length=36, primary_key=True, verbose_name='ID')
     name = models.CharField(max_length=255, verbose_name=_('云硬盘名称'))
@@ -490,6 +485,20 @@ class Disk(models.Model):
     vo = models.ForeignKey(
         verbose_name=_('项目组'), to=VirtualOrganization, related_name='+', null=True, on_delete=models.SET_NULL,
         db_constraint=False, blank=True, default=None)
+
+    class Meta:
+        abstract = True
+
+
+class Disk(DiskBase):
+    """
+    云硬盘实例
+    """
+    class Lock(models.TextChoices):
+        FREE = 'free', _('无锁')
+        DELETE = 'lock-delete', _('锁定删除')
+        OPERATION = 'lock-operation', _('锁定所有操作，只允许读')
+
     lock = models.CharField(verbose_name=_('锁'), max_length=16, choices=Lock.choices, default=Lock.FREE,
                             help_text=_('加锁锁定云硬盘，防止误操作'))
     email_lasttime = models.DateTimeField(verbose_name=_('上次发送邮件时间'), null=True, blank=True, default=None,
@@ -599,6 +608,71 @@ class Disk(models.Model):
 
     def belong_to_vo(self):
         return self.classification == self.Classification.VO.value
+
+
+class DiskChangeLog(DiskBase):
+    """
+    云硬盘变更日志
+    """
+    class LogType(models.TextChoices):
+        EXPANSION = 'expansion', _('扩容')
+        POST2PRE = 'post2pre', _('按量转包年包月')
+
+    disk_id = models.CharField(verbose_name=_('云硬盘ID'), editable=False, max_length=36)
+    log_type = models.CharField(verbose_name=_('变更类型'), max_length=16, choices=LogType.choices)
+    change_time = models.DateTimeField(verbose_name=_('变更时间'))
+    change_user = models.CharField(verbose_name=_('变更人'), max_length=128, default='')
+
+    class Meta:
+        db_table = 'disk_change_log'
+        ordering = ['-change_time']
+        verbose_name = _('云硬盘变更日志')
+        verbose_name_plural = verbose_name
+        indexes = [
+            models.Index(fields=('disk_id',), name='idx_disk_id')
+        ]
+
+    def __str__(self):
+        return f'DiskChangeLog({self.get_log_type_display()})'
+
+    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
+        if not self.id:
+            self.id = short_uuid1_l25()
+
+        super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
+
+    @classmethod
+    def add_change_log_for_disk(cls, disk: Disk, log_type: str, change_time, change_user: str, save_db: bool):
+        if log_type not in cls.LogType.values:
+            raise Exception(f'Invalid input disk change log type')
+
+        ins = cls()
+        ins.log_type = log_type
+        ins.change_time = change_time
+        ins.change_user = change_user
+        ins.disk_id = disk.id
+        ins.name = disk.name
+        ins.instance_id = disk.instance_id
+        ins.instance_name = disk.instance_name
+        ins.size = disk.size
+        ins.service_id = disk.service_id
+        ins.azone_id = disk.azone_id
+        ins.azone_name = disk.azone_name
+        ins.quota_type = disk.quota_type
+        ins.creation_time = disk.creation_time
+        ins.remarks = disk.remarks
+        ins.task_status = disk.task_status
+        ins.expiration_time = disk.expiration_time
+        ins.start_time = disk.start_time
+        ins.pay_type = disk.pay_type
+        ins.classification = disk.classification
+        ins.user_id = disk.user_id
+        ins.vo_id = disk.vo_id
+
+        if save_db:
+            ins.save(force_insert=True)
+
+        return ins
 
 
 class ResourceActionLog(UuidModel):

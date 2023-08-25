@@ -3,7 +3,7 @@ from django.utils.translation import gettext_lazy as _
 from django import forms
 
 from utils.model import NoDeleteSelectModelAdmin
-from .models import Server, Flavor, ServerArchive, Disk, ResourceActionLog
+from .models import Server, Flavor, ServerArchive, Disk, ResourceActionLog, DiskChangeLog
 
 
 class ServerAdminForm(forms.ModelForm):
@@ -66,10 +66,19 @@ class ServerArchiveAdmin(NoDeleteSelectModelAdmin):
                     'center_quota',
                     'start_time', 'deleted_time', 'archive_user', 'archive_type', 'remarks')
     search_fields = ['id', 'name', 'image', 'ipv4', 'remarks']
-    list_filter = ['service', 'classification']
+    list_filter = ['archive_type', 'service', 'classification']
     raw_id_fields = ('user',)
     list_select_related = ('service', 'user', 'archive_user', 'vo')
     show_full_result_count = False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_add_permission(self, request):
+        return False
 
 
 @admin.register(Flavor)
@@ -132,4 +141,27 @@ class ResourceActionLogAdmin(NoDeleteSelectModelAdmin):
         return False
 
     def has_change_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(DiskChangeLog)
+class DiskChangeLogAdmin(NoDeleteSelectModelAdmin):
+    list_display_links = ('id',)
+    list_display = ('id', 'log_type', 'change_time', 'change_user', 'disk_id', 'service', 'azone_id', 'azone_name',
+                    'size', 'instance_id', 'quota_type', 'creation_time', 'task_status',
+                    'expiration_time', 'start_time', 'pay_type',
+                    'classification', 'user', 'vo', 'remarks')
+    search_fields = ['disk_id', 'instance_id', 'remarks', 'user__username', 'change_user']
+    list_filter = ['log_type', 'service', 'classification']
+    raw_id_fields = ('user', 'vo',)
+    list_select_related = ('service', 'user', 'vo')
+    readonly_fields = ['change_user']
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_add_permission(self, request):
         return False

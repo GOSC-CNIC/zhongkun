@@ -22,8 +22,8 @@ class Migration(migrations.Migration):
                 ('creation_time', models.DateTimeField(auto_now_add=True, verbose_name='创建时间')),
             ],
             options={
-                'verbose_name': '配置样式',
-                'verbose_name_plural': '配置样式',
+                'verbose_name': '云服务器配置样式',
+                'verbose_name_plural': '云服务器配置样式',
                 'db_table': 'flavor',
                 'ordering': ['vcpus'],
             },
@@ -58,8 +58,8 @@ class Migration(migrations.Migration):
                 ('email_lasttime', models.DateTimeField(blank=True, default=None, help_text='记录上次发邮件的时间，邮件通知用户配额即将到期', null=True, verbose_name='上次发送邮件时间')),
             ],
             options={
-                'verbose_name': '虚拟服务器',
-                'verbose_name_plural': '虚拟服务器',
+                'verbose_name': '云服务器',
+                'verbose_name_plural': '云服务器',
                 'ordering': ['-creation_time'],
             },
         ),
@@ -94,8 +94,8 @@ class Migration(migrations.Migration):
                 ('archive_type', models.CharField(choices=[('archive', '删除归档记录'), ('rebuild', '重建修改记录'), ('post2pre', '按量付费转包年包月')], default='archive', max_length=16, verbose_name='归档记录类型')),
             ],
             options={
-                'verbose_name': '服务器归档记录',
-                'verbose_name_plural': '服务器归档记录',
+                'verbose_name': '云服务器归档和变更日志',
+                'verbose_name_plural': '云服务器归档和变更日志',
                 'ordering': ['-deleted_time'],
             },
         ),

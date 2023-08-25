@@ -5,7 +5,7 @@ from decimal import Decimal
 from django.utils import timezone
 from django.db import close_old_connections
 
-from servers.models import Server, ServerArchive, ServerBase, Disk
+from servers.models import Server, ServerArchive, ServerBase, Disk, DiskChangeLog
 from metering.models import MeteringServer, MeteringObjectStorage, MeteringDisk
 from order.managers import PriceManager
 from utils.decimal_utils import quantize_10_2
@@ -729,8 +729,9 @@ class DiskMeasurer:
             self._metering_normal_disk_count += 1
             meter_end = self.end_datetime
 
+        disk_id = disk.id
         metering_date = self.start_datetime.date()
-        metering = self.disk_metering_exists(metering_date=metering_date, disk_id=disk.id)
+        metering = self.disk_metering_exists(metering_date=metering_date, disk_id=disk_id)
         if metering is not None:
             return metering
 
@@ -741,6 +742,14 @@ class DiskMeasurer:
             trade_amount = Decimal('0.00')
         else:
             trade_amount = original_amount
+
+        if need_other:
+            post2pre_hours = self.metering_one_disk_post2pre_hours(disk_id=disk_id, disk_start_time=disk.start_time)
+            size_gib_hours += post2pre_hours
+
+            must_pay_amount = self.calculate_original_amount(size_gib_hours=post2pre_hours)
+            original_amount += must_pay_amount
+            trade_amount += must_pay_amount
 
         metering = self.save_disk_metering_record(
             disk=disk, size_gib_hours=size_gib_hours, original_amount=original_amount, trade_amount=trade_amount
@@ -877,3 +886,37 @@ class DiskMeasurer:
             price=price, size_gib_days=size_gib_days
         )
         return quantize_10_2(amount)
+
+    def metering_one_disk_change_type_hours(self, disk_id, disk_start_time: datetime, _type: str) -> float:
+        """
+        从计量日的开始时间 到 min(disk_start_time, 计量日期截止时间)之前 这段时间内 可能存在disk变更的记录 需要计量
+
+        :return:
+            size_gb_hours
+        """
+        size_gb_hours = 0
+
+        meter_end_time = min(disk_start_time, self.end_datetime)
+        disk_changes = DiskChangeLog.objects.filter(
+            disk_id=disk_id, log_type=_type,
+            start_time__lt=meter_end_time, change_time__gt=self.start_datetime
+        ).all()
+
+        for disk in disk_changes:
+            start = max(self.start_datetime, disk.start_time)
+            end = min(meter_end_time, disk.change_time)
+            hours = self.delta_hours(end=end, start=start)
+            hours = min(hours, 24)
+            size_gb_hours += disk.size * hours
+
+        return size_gb_hours
+
+    def metering_one_disk_post2pre_hours(self, disk_id, disk_start_time: datetime):
+        """
+        从计量日的开始时间 到 min(disk_start_time, 计量日期截止时间)之前 这段时间内 可能存在disk按量转包年包月变更的记录 需要计量
+
+        :return:
+            size_gb_hours
+        """
+        return self.metering_one_disk_change_type_hours(
+            disk_id=disk_id, disk_start_time=disk_start_time, _type=DiskChangeLog.LogType.POST2PRE.value)
