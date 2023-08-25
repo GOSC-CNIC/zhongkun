@@ -9,7 +9,7 @@ from django.conf import settings
 
 from service.managers import ServicePrivateQuotaManager
 from service.models import ServiceConfig
-from servers.models import Disk, Server, ResourceActionLog
+from servers.models import Disk, Server, ResourceActionLog, DiskChangeLog
 from utils.test import get_or_create_user, get_or_create_service
 from utils.model import PayType, OwnerType, ResourceType
 from utils.decimal_utils import quantize_10_2
@@ -21,6 +21,8 @@ from order.models import Price, Order, Resource
 from order.managers import DiskConfig
 from bill.managers import PaymentManager
 from bill.models import PayApp, PayOrgnazition, PayAppService
+from metering.measurers import DiskMeasurer
+from metering.models import MeteringDisk
 from . import MyAPITransactionTestCase
 from .tests import create_server_metadata
 
@@ -1637,3 +1639,224 @@ class DiskOrderTests(MyAPITransactionTestCase):
         self.client.force_login(self.user)
         response = self.client.post(f'{url}?{query}')
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+    def test_modify_pay_type(self):
+        # 余额支付有关配置
+        app = PayApp(name='app', id=settings.PAYMENT_BALANCE['app_id'])
+        app.save()
+        po = PayOrgnazition(name='机构')
+        po.save()
+        app_service1 = PayAppService(
+            name='service1', app=app, orgnazition=po, service_id=self.service.id
+        )
+        app_service1.save(force_insert=True)
+
+        now_time = timezone.now()
+        user_disk = create_disk_metadata(
+            service_id=self.service.id, azone_id='1', disk_size=100,
+            pay_type=PayType.PREPAID.value,
+            classification=Server.Classification.PERSONAL.value, user_id=self.user.id, vo_id=None,
+            creation_time=now_time - timedelta(days=1), expiration_time=None, start_time=now_time - timedelta(days=1),
+            lock=Server.Lock.OPERATION.value, task_status=Disk.TaskStatus.FAILED.value,
+            instance_id='user_server_id'
+        )
+
+        # --- user disk ----
+        # pay_type
+        url = reverse('api:disks-modify-pay-type', kwargs={'id': user_disk.id})
+        response = self.client.post(url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
+        self.client.force_login(self.user)
+        response = self.client.post(url)
+        self.assertErrorResponse(status_code=400, code='MissingPayType', response=response)
+        query = parse.urlencode(query={'pay_type': PayType.POSTPAID.value})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidPayType', response=response)
+        query = parse.urlencode(query={'pay_type': PayType.PREPAID.value})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='MissingPeriod', response=response)
+
+        # period
+        query = parse.urlencode(query={'pay_type': PayType.PREPAID.value})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='MissingPeriod', response=response)
+
+        query = parse.urlencode(query={'pay_type': PayType.PREPAID.value, 'period': 0})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidPeriod', response=response)
+
+        query = parse.urlencode(query={'pay_type': PayType.PREPAID.value, 'period': 10})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=409, code='ResourceLocked', response=response)
+
+        user_disk.lock = Disk.Lock.FREE.value
+        user_disk.save(update_fields=['lock'])
+
+        # Delivered Ok Only
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=409, code='Conflict', response=response)
+
+        user_disk.task_status = Disk.TaskStatus.OK.value
+        user_disk.save(update_fields=['task_status'])
+
+        # service not set pay_app_service_id
+        query = parse.urlencode(query={'pay_type': PayType.PREPAID.value, 'period': 10})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=409, code='ServiceNoPayAppServiceId', response=response)
+
+        self.service.pay_app_service_id = app_service1.id
+        self.service.save(update_fields=['pay_app_service_id'])
+
+        # only postpaid can to prepaid
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=409, code='Conflict', response=response)
+
+        user_disk.pay_type = PayType.POSTPAID.value
+        user_disk.save(update_fields=['pay_type'])
+
+        # renew user server ok
+        period = 10
+        query = parse.urlencode(query={'pay_type': PayType.PREPAID.value, 'period': period})
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        order_id = response.data['order_id']
+        order = Order.objects.get(id=order_id)
+        self.assertEqual(order.order_type, Order.OrderType.POST2PRE.value)
+        self.assertEqual(order.status, Order.Status.UNPAID.value)
+        original_price, trade_price = PriceManager().describe_disk_price(
+            size_gib=100, is_prepaid=True, period=period, days=0)
+        self.assertEqual(order.total_amount, quantize_10_2(original_price))
+        self.assertEqual(order.payable_amount, quantize_10_2(trade_price))
+        self.assertEqual(order.period, period)
+        self.assertIsNone(order.start_time)
+        self.assertIsNone(order.end_time)
+        self.assertEqual(order.resource_type, ResourceType.DISK.value)
+
+        resource = Resource.objects.get(order_id=order_id)
+        self.assertEqual(resource.instance_id, user_disk.id)
+        config = DiskConfig.from_dict(order.instance_config)
+        self.assertEqual(config.disk_size, user_disk.size)
+        self.assertEqual(config.disk_azone_id, user_disk.azone_id)
+
+        # post user disk again
+        query = parse.urlencode(query={'pay_type': PayType.PREPAID.value, 'period': period})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=409, code='SomeOrderNeetToTrade', response=response)
+
+        # pay order
+        u_disk_start_time_old = user_disk.start_time
+        user_account = PaymentManager.get_user_point_account(user_id=self.user.id)
+        user_account.balance = Decimal(10000)
+        user_account.save(update_fields=['balance'])
+        url = reverse('api:order-pay-order', kwargs={'id': order_id})
+        query = parse.urlencode(query={'payment_method': Order.PaymentMethod.BALANCE.value})
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['order_id'], order.id)
+
+        order.refresh_from_db()
+        user_disk.refresh_from_db()
+        resource = Resource.objects.get(order_id=order_id)
+        self.assertEqual(resource.instance_status, Resource.InstanceStatus.SUCCESS.value)
+        self.assertEqual(order.trading_status, order.TradingStatus.COMPLETED.value)
+        self.assertEqual(order.start_time, user_disk.start_time)
+        self.assertEqual(order.end_time, user_disk.expiration_time)
+        self.assertEqual(order.end_time, user_disk.start_time + timedelta(days=period * 30))
+        self.assertEqual(user_disk.pay_type, PayType.PREPAID.value)
+
+        # log
+        sa_logs = DiskChangeLog.objects.filter(log_type=DiskChangeLog.LogType.POST2PRE.value).all()
+        self.assertEqual(len(sa_logs), 1)
+        log: DiskChangeLog = sa_logs[0]
+        self.assertEqual(log.size, user_disk.size)
+        self.assertEqual(log.start_time, u_disk_start_time_old)
+        self.assertEqual(log.change_time, user_disk.start_time)
+
+        # ---------- vo disk -----------
+        now_time = timezone.now()
+        vo_disk = create_disk_metadata(
+            service_id=self.service.id, azone_id='2', disk_size=200,
+            pay_type=PayType.POSTPAID.value,
+            classification=Server.Classification.VO.value, user_id=self.user.id, vo_id=self.vo.id,
+            creation_time=now_time - timedelta(days=1), expiration_time=None, start_time=now_time - timedelta(days=1),
+            lock=Server.Lock.FREE.value, task_status=Disk.TaskStatus.OK.value,
+            instance_id='vo_server_id'
+        )
+
+        # post vo server, no vo permission
+        url = reverse('api:disks-modify-pay-type', kwargs={'id': vo_disk.id})
+        query = parse.urlencode(query={'pay_type': PayType.PREPAID.value, 'period': 6})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # set vo member
+        VoMember(user_id=self.user.id, vo_id=self.vo.id, role=VoMember.Role.LEADER.value).save()
+
+        # post vo disk
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        order_id = response.data['order_id']
+        vo_order = Order.objects.get(id=order_id)
+        self.assertEqual(vo_order.order_type, Order.OrderType.POST2PRE.value)
+        self.assertEqual(vo_order.status, Order.Status.UNPAID.value)
+        original_price, trade_price = PriceManager().describe_disk_price(
+            size_gib=200, is_prepaid=True, period=6, days=0)
+        self.assertEqual(vo_order.total_amount, quantize_10_2(original_price))
+        self.assertEqual(vo_order.payable_amount, quantize_10_2(trade_price))
+        self.assertEqual(vo_order.period, 6)
+        self.assertIsNone(vo_order.start_time)
+        self.assertIsNone(vo_order.end_time)
+        self.assertEqual(vo_order.resource_type, ResourceType.DISK.value)
+
+        resource = Resource.objects.get(order_id=order_id)
+        self.assertEqual(resource.instance_id, vo_disk.id)
+        config = DiskConfig.from_dict(vo_order.instance_config)
+        self.assertEqual(config.disk_size, vo_disk.size)
+        self.assertEqual(config.disk_azone_id, vo_disk.azone_id)
+
+        # pay renewal order
+        vo_account = PaymentManager.get_vo_point_account(vo_id=self.vo.id)
+        vo_account.balance = Decimal(12000)
+        vo_account.save(update_fields=['balance'])
+        url = reverse('api:order-pay-order', kwargs={'id': order_id})
+        query = parse.urlencode(query={'payment_method': Order.PaymentMethod.BALANCE.value})
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['order_id'], vo_order.id)
+
+        vo_order.refresh_from_db()
+        vo_disk.refresh_from_db()
+        self.assertEqual(vo_order.trading_status, vo_order.TradingStatus.COMPLETED.value)
+        self.assertEqual(vo_order.start_time, vo_disk.start_time)
+        self.assertEqual(vo_order.end_time, vo_disk.expiration_time)
+        self.assertEqual(vo_order.end_time, vo_disk.start_time + timedelta(days=6 * 30))
+        self.assertEqual(vo_disk.pay_type, PayType.PREPAID.value)
+        resource = Resource.objects.get(order_id=order_id)
+        self.assertEqual(resource.instance_status, Resource.InstanceStatus.SUCCESS.value)
+
+        # log
+        count = DiskChangeLog.objects.filter(log_type=DiskChangeLog.LogType.POST2PRE.value).count()
+        self.assertEqual(count, 2)
+
+        # 计量
+        today_start_time = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        metering_date = timezone.now().date()
+        measurer = DiskMeasurer(metering_date=metering_date)
+        measurer.loop_normal_disks()
+        measurer.loop_deleted_disks()
+        self.assertEqual(MeteringDisk.objects.count(), 2)
+        u_mt = MeteringDisk.objects.filter(date=metering_date, disk_id=user_disk.id).first()
+        self.assertEqual(round(u_mt.size_hours), user_disk.size * 24)
+        self.assertLess(u_mt.trade_amount, u_mt.original_amount)
+        # 按量付费金额占比
+        u_zb = (user_disk.start_time - today_start_time).total_seconds() / (3600 * 24)
+        u_m_zb = u_mt.trade_amount / u_mt.original_amount
+        self.assertEqual(int(round(u_zb * 1000, 0)), int(round(u_m_zb * 1000, 0)))
+
+        vo_mt = MeteringDisk.objects.filter(date=metering_date, disk_id=vo_disk.id).first()
+        self.assertEqual(round(vo_mt.size_hours), vo_disk.size * 24)
+        self.assertLess(vo_mt.trade_amount, vo_mt.original_amount)
+        # 按量付费金额占比
+        u_zb = (vo_disk.start_time - today_start_time).total_seconds() / (3600 * 24)
+        u_m_zb = vo_mt.trade_amount / vo_mt.original_amount
+        self.assertEqual(round(u_zb * 1000, 0), int(round(u_m_zb * 1000, 0)))

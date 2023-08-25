@@ -8,7 +8,7 @@ from core.quota import QuotaAPI
 from core import request as core_request
 from core.taskqueue import server_build_status
 from service.managers import ServiceManager, ServiceConfig
-from servers.models import Server, Disk, ServerArchive
+from servers.models import Server, Disk, ServerArchive, DiskChangeLog
 from servers.managers import ServerManager, DiskManager
 from adapters import inputs, outputs
 from utils.model import PayType, OwnerType, ResourceType
@@ -47,6 +47,9 @@ class OrderResourceDeliverer:
             if order.resource_type == ResourceType.VM.value:
                 server = self.deliver_modify_server_pay_type(order=order, resource=resource)
                 return server
+            elif order.resource_type == ResourceType.DISK.value:
+                disk = self.deliver_modify_disk_pay_type(order=order, resource=resource)
+                return disk
         else:
             raise exceptions.Error(message=_('订单的类型不支持交付。'))
 
@@ -579,7 +582,7 @@ class OrderResourceDeliverer:
 
     def deliver_modify_server_pay_type(self, order: Order, resource: Resource):
         """
-        云服务器续费交付
+        云服务器付费方式变更
         :return:
             server            # success
 
@@ -668,5 +671,98 @@ class OrderResourceDeliverer:
         if order.order_type == Order.OrderType.POST2PRE.value:
             if server.pay_type != PayType.POSTPAID.value:
                 raise exceptions.Error(message=_('云服务器不是按量付费模式，无法完成订单交付。'))
+        else:
+            raise exceptions.Error(message=_('不是付费方式修改类型的订单，无法完成订单交付。'))
+
+    def deliver_modify_disk_pay_type(self, order: Order, resource: Resource):
+        """
+        云硬盘付费方式变更
+        :return:
+            server            # success
+
+        :raises: Error
+        """
+        order, resource = self._pre_check_deliver(order=order, resource=resource)
+        try:
+            disk = self.modify_disk_pay_type_for_order(order=order, resource=resource)
+        except exceptions.Error as exc:
+            try:
+                OrderManager.set_order_resource_deliver_failed(
+                    order=order, resource=resource, failed_msg='无法为订单修改云硬盘资源付费方式, ' + str(exc))
+            except exceptions.Error:
+                pass
+
+            raise exc
+
+        return disk
+
+    @staticmethod
+    def modify_disk_pay_type_for_order(order: Order, resource: Resource):
+        """
+        为订单修改云硬盘付费方式
+
+        :return:
+            server
+
+        :raises: Error
+        """
+        if order.resource_type != ResourceType.DISK.value:
+            raise exceptions.Error(message=_('订单的资源类型不是云硬盘'))
+
+        if order.order_type == Order.OrderType.POST2PRE.value:
+            if not (order.period >= 1):
+                raise exceptions.Error(message=_('订单续费时长无效。'))
+
+        try:
+            with transaction.atomic():
+                disk = DiskManager.get_disk(disk_id=resource.instance_id, select_for_update=True)
+                OrderResourceDeliverer.pre_modify_disk_pay_type_check(
+                    order=order, disk=disk
+                )
+                now_t = timezone.now()
+                if order.order_type == Order.OrderType.POST2PRE.value:
+                    pay_type = PayType.PREPAID.value
+                    start_time = now_t
+                    end_time = start_time + timedelta(days=PriceManager.period_month_days(order.period))
+                else:
+                    raise exceptions.Error(message='订单类型无效，不是有效的付费方式变更订单')
+
+                # 付费方式修改记录
+                DiskChangeLog.add_change_log_for_disk(
+                    disk=disk, log_type=DiskChangeLog.LogType.POST2PRE.value,
+                    change_time=start_time, change_user=order.username, save_db=True)
+
+                disk.pay_type = pay_type
+                disk.start_time = start_time
+                disk.expiration_time = end_time
+                disk.save(update_fields=['pay_type', 'start_time', 'expiration_time'])
+
+                OrderManager.set_order_resource_deliver_ok(
+                    order=order, resource=resource, start_time=start_time, due_time=end_time)
+                return disk
+        except Exception as e:
+            raise exceptions.Error.from_error(e)
+
+    @staticmethod
+    def pre_modify_disk_pay_type_check(order: Order, disk):
+        """
+        检查是否满足云硬盘付费方式修改的条件
+
+        :return:
+            start_time, end_time    # 此订单续费的起始和截止时间
+
+        :raises: Error
+        """
+        try:
+            config = DiskConfig.from_dict(order.instance_config)
+        except Exception as exc:
+            raise exceptions.Error(message=_('订单中云硬盘配置信息有误。') + str(exc))
+
+        if config.disk_size != disk.size:
+            raise exceptions.Error(message=_('订单中云硬盘配置信息与当前云硬盘配置规格不一致。'))
+
+        if order.order_type == Order.OrderType.POST2PRE.value:
+            if disk.pay_type != PayType.POSTPAID.value:
+                raise exceptions.Error(message=_('云硬盘不是按量付费模式，无法完成订单交付。'))
         else:
             raise exceptions.Error(message=_('不是付费方式修改类型的订单，无法完成订单交付。'))

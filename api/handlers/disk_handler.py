@@ -790,3 +790,118 @@ class DiskHandler:
             return view.exception_response(exc)
 
         return Response(data={'remark': remark})
+
+    @staticmethod
+    def modify_disk_pay_type(view: CustomGenericViewSet, request, kwargs):
+        """
+        修改云硬盘计费方式
+        """
+        try:
+            data = DiskHandler._modify_pay_type_validate_params(request=request)
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        period = data['period']
+        new_pay_type = data['pay_type']
+        disk_id = kwargs.get(view.lookup_field, '')
+
+        try:
+            disk = DiskManager().get_manage_perm_disk(disk_id=disk_id, user=request.user)
+        except exceptions.APIException as exc:
+            return view.exception_response(exc)
+
+        if disk.is_locked_operation():
+            return view.exception_response(exceptions.ResourceLocked(
+                message=_('云硬盘已加锁锁定了一切操作')
+            ))
+
+        if disk.task_status != disk.TaskStatus.OK.value:
+            return view.exception_response(
+                exceptions.ConflictError(message=_('只允许为创建成功的云硬盘修改计费方式。')))
+
+        try:
+            service = ServiceManager.get_service(disk.service_id)
+            if not service.pay_app_service_id:
+                raise exceptions.ConflictError(
+                    message=_('云硬盘所在服务单元未配置对应的结算系统APP服务id'), code='ServiceNoPayAppServiceId')
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        if service.status != service.Status.ENABLE.value:
+            return view.exception_response(
+                exceptions.ConflictError(message=_('提供此云硬盘资源的服务单元停止服务，不允许修改计费方式。'))
+            )
+
+        if new_pay_type == PayType.PREPAID.value:
+            if disk.pay_type != PayType.POSTPAID.value:
+                return view.exception_response(
+                    exceptions.ConflictError(message=_('必须是按量计费方式的云硬盘才可以转为包年包月计费方式。')))
+
+        _order = Order.objects.filter(
+            resource_type=ResourceType.DISK.value, resource_set__instance_id=disk_id,
+            trading_status__in=[Order.TradingStatus.OPENING.value, Order.TradingStatus.UNDELIVERED.value]
+        ).order_by('-creation_time').first()
+        if _order is not None:
+            return view.exception_response(exceptions.SomeOrderNeetToTrade(
+                message=_('此云硬盘存在未完成的订单（%s）, 请先完成已有订单后再提交新的订单。') % _order.id))
+
+        with transaction.atomic():
+            disk = DiskManager.get_disk(
+                disk_id=disk_id, related_fields=['service', 'user', 'vo'], select_for_update=True)
+
+            if disk.belong_to_vo():
+                owner_type = OwnerType.VO.value
+                vo_id = disk.vo_id
+                vo_name = disk.vo.name
+            else:
+                owner_type = OwnerType.USER.value
+                vo_id = ''
+                vo_name = ''
+
+            instance_config = DiskConfig(
+                disk_size=disk.size, azone_id=disk.azone_id, azone_name=disk.azone_name
+            )
+            order, resource = OrderManager().create_change_pay_type_order(
+                pay_type=new_pay_type,
+                pay_app_service_id=service.pay_app_service_id,
+                service_id=disk.service_id,
+                service_name=disk.service.name,
+                resource_type=ResourceType.DISK.value,
+                instance_id=disk.id,
+                instance_config=instance_config,
+                period=period,
+                user_id=request.user.id,
+                username=request.user.username,
+                vo_id=vo_id,
+                vo_name=vo_name,
+                owner_type=owner_type
+            )
+
+        return Response(data={'order_id': order.id})
+
+    @staticmethod
+    def _modify_pay_type_validate_params(request):
+        period = request.query_params.get('period', None)
+        pay_type = request.query_params.get('pay_type', None)
+
+        if pay_type is None:
+            raise exceptions.BadRequest(message=_('必须指定付费方式'), code='MissingPayType')
+
+        if pay_type not in [PayType.PREPAID.value]:
+            raise exceptions.InvalidArgument(message=_('指定付费方式无效'), code='InvalidPayType')
+
+        if pay_type == PayType.PREPAID.value:
+            if period is None:
+                raise exceptions.BadRequest(message=_('按量计费转包年包月必须指定续费时长'), code='MissingPeriod')
+
+            try:
+                period = int(period)
+                if period <= 0:
+                    raise ValueError
+            except ValueError:
+                raise exceptions.InvalidArgument(message=_('指定续费时长无效'), code='InvalidPeriod')
+
+        return {
+            'period': period,
+            'pay_type': pay_type
+        }
