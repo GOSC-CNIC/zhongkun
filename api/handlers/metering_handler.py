@@ -22,6 +22,7 @@ from utils.report_file import CSVFileInMemory, wrap_csv_file_response
 from utils import rand_utils
 from utils.decimal_utils import quantize_18_2
 from utils.model import PayType, ResourceType
+from utils.time import utc
 from order.models import Order
 
 
@@ -773,12 +774,12 @@ class MeteringHandler(BaseMeteringHandler):
         lookups = {}
         if date_start:
             time_start = datetime.datetime(
-                year=date_start.year, month=date_start.month, day=date_start.day, tzinfo=timezone.utc)
+                year=date_start.year, month=date_start.month, day=date_start.day, tzinfo=utc)
             lookups['payment_time__gte'] = time_start
 
         if date_end:
             time_end = datetime.datetime(
-                year=date_start.year, month=date_start.month, day=date_start.day, tzinfo=timezone.utc)
+                year=date_start.year, month=date_start.month, day=date_start.day, tzinfo=utc)
             time_end += datetime.timedelta(days=1)
             lookups['payment_time__lt'] = time_end
 

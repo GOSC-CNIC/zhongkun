@@ -1,10 +1,9 @@
-import pytz
 from urllib import parse
 from decimal import Decimal
-from datetime import timedelta
+from datetime import timedelta, timezone
 
 from django.urls import reverse
-from django.utils import timezone
+from django.utils import timezone as dj_timezone
 from django.conf import settings
 
 from service.managers import ServicePrivateQuotaManager
@@ -24,6 +23,8 @@ from metering.measurers import ServerMeasurer
 from metering.models import MeteringServer
 from adapters.evcloud import EVCloudAdapter
 from . import MyAPITransactionTestCase, set_auth_header
+
+utc = timezone.utc
 
 
 class ServerOrderTests(MyAPITransactionTestCase):
@@ -400,7 +401,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         )
         app_service1.save(force_insert=True)
 
-        now_time = timezone.now()
+        now_time = dj_timezone.now()
         user_server_expiration_time = now_time + timedelta(days=100)
         user_server = Server(
             service_id=self.service.id,
@@ -530,7 +531,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         # renew user server "renew_to_time" 续费到指定日期
         expiration_time = user_server.expiration_time
         renew_to_time = expiration_time.replace(microsecond=0) + timedelta(days=2)
-        renew_to_time_utc = renew_to_time.astimezone(tz=pytz.utc)
+        renew_to_time_utc = renew_to_time.astimezone(tz=utc)
         self.assertEqual(renew_to_time, renew_to_time_utc)
         renew_to_time_utc_str = renew_to_time_utc.isoformat()
         renew_to_time_utc_str = renew_to_time_utc_str[0:19] + 'Z'
@@ -561,7 +562,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         self.assertEqual(user_server.expiration_time, renew_to_time_utc)
 
         # ----------renew vo server-----------
-        now_time = timezone.now()
+        now_time = dj_timezone.now()
         vo_server_expiration_time = now_time + timedelta(days=100)
         vo_server = Server(
             service_id=self.service.id,
@@ -587,7 +588,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
             disk_size=0
         )
         vo_server.save(force_insert=True)
-        renew_to_time = (vo_server_expiration_time + timedelta(days=200)).astimezone(pytz.utc).isoformat()
+        renew_to_time = (vo_server_expiration_time + timedelta(days=200)).astimezone(utc).isoformat()
         renew_to_time = renew_to_time.split('.')[0] + 'Z'
         renew_to_datetime = iso_utc_to_datetime(renew_to_time)
 
@@ -643,7 +644,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         )
         app_service1.save(force_insert=True)
 
-        now_time = timezone.now()
+        now_time = dj_timezone.now()
         user_server = Server(
             service_id=self.service.id,
             name='user_server',
@@ -775,7 +776,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         self.assertEqual(log.deleted_time, user_server.start_time)
 
         # ----------renew vo server-----------
-        now_time = timezone.now()
+        now_time = dj_timezone.now()
         vo_server = Server(
             service_id=self.service.id,
             name='vo_server',
@@ -857,8 +858,8 @@ class ServerOrderTests(MyAPITransactionTestCase):
         self.assertEqual(count, 2)
 
         # 计量
-        today_start_time = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        metering_date = timezone.now().date()
+        today_start_time = dj_timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        metering_date = dj_timezone.now().date()
         measurer = ServerMeasurer(metering_date=metering_date)
         # 顺序先server后archive，因为数据库数据流向从server到archive
         measurer.metering_loop(loop_server=True)
@@ -893,7 +894,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
             print(f'Delete server({server_id}) Failed.')
 
     def test_suspend_server(self):
-        now_time = timezone.now()
+        now_time = dj_timezone.now()
         user_server = Server(
             service_id=self.service.id,
             name='user_server',

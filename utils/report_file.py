@@ -1,8 +1,8 @@
 import io
 import csv
 import zipfile
+from urllib.parse import quote as urlquote
 
-from django.utils.http import urlquote
 from django.http import StreamingHttpResponse
 
 

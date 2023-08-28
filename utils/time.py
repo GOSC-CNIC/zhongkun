@@ -1,12 +1,11 @@
 import datetime
-from pytz import utc
 
-from django.utils.timezone import is_aware, utc
+from django.utils.timezone import is_aware
 
 from rest_framework.fields import DateTimeField
 from rest_framework import ISO_8601
 
-
+utc = datetime.timezone.utc
 GMT_FORMAT = '%a, %d %b %Y %H:%M:%S GMT'
 ISO_UTC_FORMAT = '%Y-%m-%dT%H:%M:%S%z'
 ISO_UTC_MICRO_FORMAT = '%Y-%m-%dT%H:%M:%S.%f%z'

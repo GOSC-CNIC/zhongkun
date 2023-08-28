@@ -1,6 +1,8 @@
 import re
-from pytz import utc
 from datetime import datetime, timedelta, timezone
+
+
+utc = timezone.utc
 
 
 datetime_re = re.compile(

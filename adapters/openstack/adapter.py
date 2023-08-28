@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta, timezone
 import uuid
 import re
-from pytz import utc
 import base64
 import string
 import random
@@ -94,7 +93,7 @@ def parse_datetime(value):
         kw['microsecond'] = kw['microsecond'] and kw['microsecond'].ljust(6, '0')
         tzinfo = kw.pop('tzinfo')
         if tzinfo == 'Z':
-            tzinfo = utc
+            tzinfo = timezone.utc
         elif tzinfo is not None:
             offset_mins = int(tzinfo[-2:]) if len(tzinfo) > 3 else 0
             offset = 60 * int(tzinfo[1:3]) + offset_mins
@@ -106,7 +105,7 @@ def parse_datetime(value):
         return datetime(**kw)
 
 
-def iso_to_datetime(value, default=datetime(year=1, month=1, day=1, hour=0, minute=0, second=0, tzinfo=utc)):
+def iso_to_datetime(value, default=datetime(year=1, month=1, day=1, hour=0, minute=0, second=0, tzinfo=timezone.utc)):
     try:
         parsed = parse_datetime(value)
         if parsed is not None:

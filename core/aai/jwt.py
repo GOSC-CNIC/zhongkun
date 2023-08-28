@@ -1,8 +1,7 @@
 """
 django-rest-framework-simplejwt
 """
-from pytz import utc
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from calendar import timegm
 from uuid import uuid4
 
@@ -12,6 +11,9 @@ from rest_framework.settings import settings
 from rest_framework import HTTP_HEADER_ENCODING
 
 from core.errors import Error
+
+
+utc = timezone.utc
 
 
 class DictObjectWrapper:

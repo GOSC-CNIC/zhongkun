@@ -46,7 +46,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='monitorjobceph',
             name='users',
-            field=models.ManyToManyField(blank=True, db_constraint=False, db_table='monitor_ceph_users', related_name='_monitor_monitorjobceph_users_+', to=settings.AUTH_USER_MODEL, verbose_name='管理用户'),
+            field=models.ManyToManyField(blank=True, db_constraint=False, db_table='monitor_ceph_users', related_name='+', to=settings.AUTH_USER_MODEL, verbose_name='管理用户'),
         ),
         migrations.AddField(
             model_name='monitorjobserver',
@@ -66,6 +66,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='monitorjobserver',
             name='users',
-            field=models.ManyToManyField(blank=True, db_constraint=False, db_table='monitor_server_users', related_name='_monitor_monitorjobserver_users_+', to=settings.AUTH_USER_MODEL, verbose_name='管理用户'),
+            field=models.ManyToManyField(blank=True, db_constraint=False, db_table='monitor_server_users', related_name='+', to=settings.AUTH_USER_MODEL, verbose_name='管理用户'),
         ),
     ]

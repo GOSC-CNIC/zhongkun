@@ -2,10 +2,10 @@ from urllib import parse
 from datetime import datetime
 
 from django.urls import reverse
-from django.utils import timezone
 
 from vo.models import VirtualOrganization
 from utils.test import get_or_create_service
+from utils.time import utc
 from . import MyAPITestCase, get_or_create_user
 
 
@@ -152,18 +152,18 @@ class AdminUserStatisticsTests(MyAPITestCase):
         self.assertEqual(r.data['vo_count'], 0)
 
         user2 = get_or_create_user(username='test2@cnic.cn')
-        user2.date_joined = datetime(year=2023, month=4, day=1, tzinfo=timezone.utc)
+        user2.date_joined = datetime(year=2023, month=4, day=1, tzinfo=utc)
         user2.save(update_fields=['date_joined'])
 
         user3 = get_or_create_user(username='test3@cnic.cn')
-        user3.date_joined = datetime(year=2023, month=6, day=1, tzinfo=timezone.utc)
+        user3.date_joined = datetime(year=2023, month=6, day=1, tzinfo=utc)
         user3.save(update_fields=['date_joined'])
 
         vo1 = VirtualOrganization(name='vo1', owner_id=self.user.id)
         vo1.save(force_insert=True)
         vo2 = VirtualOrganization(name='vo2', owner_id=self.user.id)
         vo2.save(force_insert=True)
-        vo2.creation_time = datetime(year=2023, month=4, day=1, tzinfo=timezone.utc)
+        vo2.creation_time = datetime(year=2023, month=4, day=1, tzinfo=utc)
         vo2.save(update_fields=['creation_time'])
 
         r = self.client.get(base_url)

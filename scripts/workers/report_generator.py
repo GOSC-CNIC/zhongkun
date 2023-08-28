@@ -19,6 +19,7 @@ from report.models import MonthlyReport, BucketMonthlyReport
 from storage.models import Bucket, BucketArchive
 from order.models import Order, Resource, ResourceType
 from utils.model import OwnerType, PayType
+from utils.time import utc
 from bill.models import CashCoupon, CashCouponPaymentHistory
 from servers.models import Server, ServerArchive, Disk
 
@@ -97,10 +98,10 @@ class MonthlyReportGenerator:
             year=self.report_period_end.year, month=self.report_period_end.month, day=1)
         self.report_period_start_time = datetime.datetime.combine(
             date=self.report_period_start,
-            time=datetime.time(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc))
+            time=datetime.time(hour=0, minute=0, second=0, microsecond=0, tzinfo=utc))
         self.report_period_end_time = datetime.datetime.combine(
             date=self.report_period_end,
-            time=datetime.time(hour=23, minute=59, second=59, microsecond=999999, tzinfo=timezone.utc))
+            time=datetime.time(hour=23, minute=59, second=59, microsecond=999999, tzinfo=utc))
 
         self.new_create_report_count = 0    # 新生成报表数量
         self.already_report_count = 0       # 已存在报表数量
@@ -711,10 +712,10 @@ class MonthlyReportNotifier:
             year=self.report_period_end.year, month=self.report_period_end.month, day=1)
         self.report_period_start_time = datetime.datetime.combine(
             date=self.report_period_start,
-            time=datetime.time(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc))
+            time=datetime.time(hour=0, minute=0, second=0, microsecond=0, tzinfo=utc))
         self.report_period_end_time = datetime.datetime.combine(
             date=self.report_period_end,
-            time=datetime.time(hour=23, minute=59, second=59, microsecond=999999, tzinfo=timezone.utc))
+            time=datetime.time(hour=23, minute=59, second=59, microsecond=999999, tzinfo=utc))
 
     def run(self):
         self.logger.warning(f"Start send Email for user's monthly report: {self.report_period_date}")

@@ -8,6 +8,7 @@ from django.core import mail
 
 from utils.model import PayType, OwnerType, ResourceType
 from utils.test import get_or_create_user, get_or_create_center
+from utils.time import utc
 from order.models import Order
 from metering.models import (
     MeteringServer, MeteringObjectStorage, DailyStatementServer, DailyStatementObjectStorage, PaymentStatus,
@@ -55,10 +56,10 @@ class MonthlyReportTests(TransactionTestCase):
             year=self.report_period_end.year, month=self.report_period_end.month, day=1)
         self.report_period_start_time = datetime.datetime.combine(
             date=self.report_period_start,
-            time=datetime.time(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc))
+            time=datetime.time(hour=0, minute=0, second=0, microsecond=0, tzinfo=utc))
         self.report_period_end_time = datetime.datetime.combine(
             date=self.report_period_end,
-            time=datetime.time(hour=23, minute=59, second=59, microsecond=999999, tzinfo=timezone.utc))
+            time=datetime.time(hour=23, minute=59, second=59, microsecond=999999, tzinfo=utc))
 
     @staticmethod
     def create_order_date(payment_time: datetime.datetime, vo, user, length: int, resource_type=ResourceType.VM.value):

@@ -1,10 +1,9 @@
 from decimal import Decimal
 from urllib import parse
-from datetime import timedelta
+from datetime import timedelta, timezone
 
-import pytz
 from django.urls import reverse
-from django.utils import timezone
+from django.utils import timezone as dj_timezone
 
 from servers.models import Flavor, Disk
 from order.models import Price
@@ -14,6 +13,9 @@ from utils.model import PayType
 from . import set_auth_header, MyAPITestCase
 from .tests import create_server_metadata
 from .test_disk import create_disk_metadata
+
+
+utc = timezone.utc
 
 
 class PriceTests(MyAPITestCase):
@@ -340,7 +342,7 @@ class PriceTests(MyAPITestCase):
         self.assertErrorResponse(status_code=404, code='NotFoundInstanceId', response=response)
 
         # ------ server ---------
-        now_time = timezone.now()
+        now_time = dj_timezone.now()
         expiration_time = now_time + timedelta(days=10)
         renew_to_time = expiration_time + timedelta(days=30)
         server = create_server_metadata(
@@ -349,7 +351,7 @@ class PriceTests(MyAPITestCase):
         )
 
         # invalid "renew_to_time"
-        rtt_utc = now_time.astimezone(tz=pytz.utc)
+        rtt_utc = now_time.astimezone(tz=utc)
         rtt_utc_str = rtt_utc.isoformat()[0:19] + "Z"
         query = parse.urlencode(query={
             'resource_type': 'vm', 'instance_id': server.id, 'renew_to_time': rtt_utc_str
@@ -420,7 +422,7 @@ class PriceTests(MyAPITestCase):
         self.assertEqual(response.data['price']['trade'], str(quantize_10_2(trade_p)))
 
         # ---- disk ---
-        now_time = timezone.now()
+        now_time = dj_timezone.now()
         expiration_time = now_time + timedelta(days=10)
         renew_to_time = expiration_time + timedelta(days=30)
         disk1 = create_disk_metadata(

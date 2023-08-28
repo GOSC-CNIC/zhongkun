@@ -29,7 +29,7 @@ class Migration(migrations.Migration):
                 ('dashboard_url', models.CharField(blank=True, default='', max_length=255, verbose_name='Dashboard连接')),
                 ('organization', models.ForeignKey(db_constraint=False, default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='service.datacenter', verbose_name='监控机构')),
                 ('provider', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='+', to='monitor.monitorprovider', verbose_name='监控服务配置')),
-                ('users', models.ManyToManyField(blank=True, db_constraint=False, db_table='monitor_tidb_users', related_name='_monitor_monitorjobtidb_users_+', to=settings.AUTH_USER_MODEL, verbose_name='管理用户')),
+                ('users', models.ManyToManyField(blank=True, db_constraint=False, db_table='monitor_tidb_users', related_name='+', to=settings.AUTH_USER_MODEL, verbose_name='管理用户')),
             ],
             options={
                 'verbose_name': 'TiDB监控单元',

@@ -1,5 +1,6 @@
+from urllib.parse import quote as urlquote
+
 from django.utils.translation import gettext as _
-from django.utils.http import urlquote
 from django.http import FileResponse
 from django.urls import reverse
 from rest_framework.response import Response

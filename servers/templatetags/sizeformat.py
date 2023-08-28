@@ -1,7 +1,7 @@
 from django import template
 from django.utils import formats
 from django.utils.html import avoid_wrapping
-from django.utils.translation import ugettext, ungettext
+from django.utils.translation import gettext, ngettext
 
 register = template.Library()
 
@@ -15,7 +15,7 @@ def sizeformat(value, arg="B"):
     try:
         bytes = float(value)
     except (TypeError, ValueError, UnicodeDecodeError):
-        value = ungettext("%(size)d byte", "%(size)d bytes", 0) % {'size': 0}
+        value = ngettext("%(size)d byte", "%(size)d bytes", 0) % {'size': 0}
         return avoid_wrapping(value)
 
     filesize_number_format = lambda value: formats.number_format(round(value, 1), 1)
@@ -38,17 +38,17 @@ def sizeformat(value, arg="B"):
         bytes *= switch[arg]
 
     if bytes < KB:
-        value = ungettext("%(size)d byte", "%(size)d bytes", bytes) % {'size': bytes}
+        value = ngettext("%(size)d byte", "%(size)d bytes", bytes) % {'size': bytes}
     elif bytes < MB:
-        value = ugettext("%s KB") % filesize_number_format(bytes / KB)
+        value = gettext("%s KB") % filesize_number_format(bytes / KB)
     elif bytes < GB:
-        value = ugettext("%s MB") % filesize_number_format(bytes / MB)
+        value = gettext("%s MB") % filesize_number_format(bytes / MB)
     elif bytes < TB:
-        value = ugettext("%s GB") % filesize_number_format(bytes / GB)
+        value = gettext("%s GB") % filesize_number_format(bytes / GB)
     elif bytes < PB:
-        value = ugettext("%s TB") % filesize_number_format(bytes / TB)
+        value = gettext("%s TB") % filesize_number_format(bytes / TB)
     else:
-        value = ugettext("%s PB") % filesize_number_format(bytes / PB)
+        value = gettext("%s PB") % filesize_number_format(bytes / PB)
 
     return avoid_wrapping(value)
 
@@ -97,5 +97,3 @@ def subtract_ratio(value):
         return ''
 
     return f'{n}%'
-
-

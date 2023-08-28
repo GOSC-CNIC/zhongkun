@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from utils.model import OwnerType
 from utils.test import get_or_create_service, get_or_create_user
+from utils.time import utc
 from vo.models import VirtualOrganization, VoMember
 from bill.models import (
     CashCoupon, PayAppService, PayApp, PayOrgnazition, CashCouponActivity, TransactionBill, PaymentHistory,
@@ -1836,7 +1837,7 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         coupon1_user = CashCoupon(
             face_value=Decimal('1.11'),
             balance=Decimal('1.11'),
-            effective_time=datetime(year=2023, month=5, day=1, tzinfo=timezone.utc),
+            effective_time=datetime(year=2023, month=5, day=1, tzinfo=utc),
             expiration_time=now_time + timedelta(days=2),
             status=CashCoupon.Status.WAIT.value,
             granted_time=None,
@@ -1845,52 +1846,52 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
             app_service_id=self.app_service1.id
         )
         coupon1_user.save(force_insert=True)
-        coupon1_user.creation_time = datetime(year=2023, month=4, day=1, tzinfo=timezone.utc)
+        coupon1_user.creation_time = datetime(year=2023, month=4, day=1, tzinfo=utc)
         coupon1_user.save(update_fields=['creation_time'])
 
         coupon2_user = CashCoupon(
             face_value=Decimal('2.22'),
             balance=Decimal('1.22'),
-            effective_time=datetime(year=2023, month=5, day=1, tzinfo=timezone.utc),
-            expiration_time=datetime(year=2023, month=5, day=30, tzinfo=timezone.utc),
+            effective_time=datetime(year=2023, month=5, day=1, tzinfo=utc),
+            expiration_time=datetime(year=2023, month=5, day=30, tzinfo=utc),
             status=CashCoupon.Status.AVAILABLE.value,
-            granted_time=datetime(year=2023, month=5, day=1, tzinfo=timezone.utc),
+            granted_time=datetime(year=2023, month=5, day=1, tzinfo=utc),
             owner_type=OwnerType.USER.value,
             user=self.user,
             app_service_id=self.app_service1.id
         )
         coupon2_user.save(force_insert=True)
-        coupon2_user.creation_time = datetime(year=2023, month=5, day=1, tzinfo=timezone.utc)
+        coupon2_user.creation_time = datetime(year=2023, month=5, day=1, tzinfo=utc)
         coupon2_user.save(update_fields=['creation_time'])
 
         coupon1_vo = CashCoupon(
             face_value=Decimal('3.33'),
             balance=Decimal('3.33'),
-            effective_time=datetime(year=2023, month=5, day=10, tzinfo=timezone.utc),
+            effective_time=datetime(year=2023, month=5, day=10, tzinfo=utc),
             expiration_time=now_time + timedelta(days=1),
             status=CashCoupon.Status.AVAILABLE.value,
-            granted_time=datetime(year=2023, month=5, day=1, tzinfo=timezone.utc),
+            granted_time=datetime(year=2023, month=5, day=1, tzinfo=utc),
             owner_type=OwnerType.VO.value,
             vo=vo1,
             app_service_id=self.app_service1.id
         )
         coupon1_vo.save(force_insert=True)
-        coupon1_vo.creation_time = datetime(year=2023, month=5, day=8, tzinfo=timezone.utc)
+        coupon1_vo.creation_time = datetime(year=2023, month=5, day=8, tzinfo=utc)
         coupon1_vo.save(update_fields=['creation_time'])
 
         coupon2_vo = CashCoupon(
             face_value=Decimal('4.44'),
             balance=Decimal('3.3'),
-            effective_time=datetime(year=2023, month=5, day=10, tzinfo=timezone.utc),
-            expiration_time=datetime(year=2023, month=6, day=1, tzinfo=timezone.utc),
+            effective_time=datetime(year=2023, month=5, day=10, tzinfo=utc),
+            expiration_time=datetime(year=2023, month=6, day=1, tzinfo=utc),
             status=CashCoupon.Status.DELETED.value,
-            granted_time=datetime(year=2023, month=5, day=10, tzinfo=timezone.utc),
+            granted_time=datetime(year=2023, month=5, day=10, tzinfo=utc),
             owner_type=OwnerType.VO.value,
             vo=vo1,
             app_service_id=self.app_service2.id
         )
         coupon2_vo.save(force_insert=True)
-        coupon2_vo.creation_time = datetime(year=2023, month=5, day=31, tzinfo=timezone.utc)
+        coupon2_vo.creation_time = datetime(year=2023, month=5, day=31, tzinfo=utc)
         coupon2_vo.save(update_fields=['creation_time'])
 
         coupon2_user_pay = CashCouponPaymentHistory(
@@ -1898,7 +1899,7 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
             before_payment=Decimal('0'), after_payment=Decimal('0')
         )
         coupon2_user_pay.save(force_insert=True)
-        coupon2_user_pay.creation_time = datetime(year=2023, month=5, day=31, tzinfo=timezone.utc)
+        coupon2_user_pay.creation_time = datetime(year=2023, month=5, day=31, tzinfo=utc)
         coupon2_user_pay.save(update_fields=['creation_time'])
 
         coupon2_vo_pay = CashCouponPaymentHistory(
@@ -2002,7 +2003,7 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         coupon1_user = CashCoupon(
             face_value=Decimal('1.11'),
             balance=Decimal('1.11'),
-            effective_time=datetime(year=2023, month=5, day=1, tzinfo=timezone.utc),
+            effective_time=datetime(year=2023, month=5, day=1, tzinfo=utc),
             expiration_time=now_time + timedelta(days=2),
             status=CashCoupon.Status.WAIT.value,
             granted_time=None,
@@ -2012,55 +2013,55 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
             issuer='user1'
         )
         coupon1_user.save(force_insert=True)
-        coupon1_user.creation_time = datetime(year=2023, month=4, day=1, tzinfo=timezone.utc)
+        coupon1_user.creation_time = datetime(year=2023, month=4, day=1, tzinfo=utc)
         coupon1_user.save(update_fields=['creation_time'])
 
         coupon2_user = CashCoupon(
             face_value=Decimal('2.22'),
             balance=Decimal('1.22'),
-            effective_time=datetime(year=2023, month=5, day=1, tzinfo=timezone.utc),
-            expiration_time=datetime(year=2023, month=5, day=30, tzinfo=timezone.utc),
+            effective_time=datetime(year=2023, month=5, day=1, tzinfo=utc),
+            expiration_time=datetime(year=2023, month=5, day=30, tzinfo=utc),
             status=CashCoupon.Status.AVAILABLE.value,
-            granted_time=datetime(year=2023, month=5, day=1, tzinfo=timezone.utc),
+            granted_time=datetime(year=2023, month=5, day=1, tzinfo=utc),
             owner_type=OwnerType.USER.value,
             user=self.user,
             app_service_id=self.app_service1.id,
             issuer='user2'
         )
         coupon2_user.save(force_insert=True)
-        coupon2_user.creation_time = datetime(year=2023, month=5, day=1, tzinfo=timezone.utc)
+        coupon2_user.creation_time = datetime(year=2023, month=5, day=1, tzinfo=utc)
         coupon2_user.save(update_fields=['creation_time'])
 
         coupon1_vo = CashCoupon(
             face_value=Decimal('3.33'),
             balance=Decimal('3.33'),
-            effective_time=datetime(year=2023, month=5, day=10, tzinfo=timezone.utc),
+            effective_time=datetime(year=2023, month=5, day=10, tzinfo=utc),
             expiration_time=now_time + timedelta(days=1),
             status=CashCoupon.Status.AVAILABLE.value,
-            granted_time=datetime(year=2023, month=5, day=1, tzinfo=timezone.utc),
+            granted_time=datetime(year=2023, month=5, day=1, tzinfo=utc),
             owner_type=OwnerType.VO.value,
             vo=vo1,
             app_service_id=self.app_service1.id,
             issuer=''
         )
         coupon1_vo.save(force_insert=True)
-        coupon1_vo.creation_time = datetime(year=2023, month=5, day=8, tzinfo=timezone.utc)
+        coupon1_vo.creation_time = datetime(year=2023, month=5, day=8, tzinfo=utc)
         coupon1_vo.save(update_fields=['creation_time'])
 
         coupon2_vo = CashCoupon(
             face_value=Decimal('4.44'),
             balance=Decimal('3.3'),
-            effective_time=datetime(year=2023, month=5, day=10, tzinfo=timezone.utc),
-            expiration_time=datetime(year=2023, month=6, day=1, tzinfo=timezone.utc),
+            effective_time=datetime(year=2023, month=5, day=10, tzinfo=utc),
+            expiration_time=datetime(year=2023, month=6, day=1, tzinfo=utc),
             status=CashCoupon.Status.DELETED.value,
-            granted_time=datetime(year=2023, month=5, day=10, tzinfo=timezone.utc),
+            granted_time=datetime(year=2023, month=5, day=10, tzinfo=utc),
             owner_type=OwnerType.VO.value,
             vo=vo1,
             app_service_id=self.app_service2.id,
             issuer='user1'
         )
         coupon2_vo.save(force_insert=True)
-        coupon2_vo.creation_time = datetime(year=2023, month=5, day=31, tzinfo=timezone.utc)
+        coupon2_vo.creation_time = datetime(year=2023, month=5, day=31, tzinfo=utc)
         coupon2_vo.save(update_fields=['creation_time'])
 
         # NotAuthenticated
@@ -2163,7 +2164,7 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         coupon1_user = CashCoupon(
             face_value=Decimal('1.11'),
             balance=Decimal('1.11'),
-            effective_time=datetime(year=2023, month=5, day=1, tzinfo=timezone.utc),
+            effective_time=datetime(year=2023, month=5, day=1, tzinfo=utc),
             expiration_time=now_time + timedelta(days=2),
             status=CashCoupon.Status.DELETED.value,
             granted_time=None,
@@ -2173,55 +2174,55 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
             issuer='user1'
         )
         coupon1_user.save(force_insert=True)
-        coupon1_user.creation_time = datetime(year=2023, month=4, day=1, tzinfo=timezone.utc)
+        coupon1_user.creation_time = datetime(year=2023, month=4, day=1, tzinfo=utc)
         coupon1_user.save(update_fields=['creation_time'])
 
         coupon2_user = CashCoupon(
             face_value=Decimal('2.22'),
             balance=Decimal('1.22'),
-            effective_time=datetime(year=2023, month=5, day=1, tzinfo=timezone.utc),
-            expiration_time=datetime(year=2023, month=5, day=30, tzinfo=timezone.utc),
+            effective_time=datetime(year=2023, month=5, day=1, tzinfo=utc),
+            expiration_time=datetime(year=2023, month=5, day=30, tzinfo=utc),
             status=CashCoupon.Status.AVAILABLE.value,
-            granted_time=datetime(year=2023, month=5, day=1, tzinfo=timezone.utc),
+            granted_time=datetime(year=2023, month=5, day=1, tzinfo=utc),
             owner_type=OwnerType.USER.value,
             user=self.user,
             app_service_id=self.app_service1.id,
             issuer='user2'
         )
         coupon2_user.save(force_insert=True)
-        coupon2_user.creation_time = datetime(year=2023, month=5, day=1, tzinfo=timezone.utc)
+        coupon2_user.creation_time = datetime(year=2023, month=5, day=1, tzinfo=utc)
         coupon2_user.save(update_fields=['creation_time'])
 
         coupon3_user2 = CashCoupon(
             face_value=Decimal('3.33'),
             balance=Decimal('2.33'),
-            effective_time=datetime(year=2023, month=5, day=10, tzinfo=timezone.utc),
+            effective_time=datetime(year=2023, month=5, day=10, tzinfo=utc),
             expiration_time=now_time + timedelta(days=1),
             status=CashCoupon.Status.AVAILABLE.value,
-            granted_time=datetime(year=2023, month=5, day=1, tzinfo=timezone.utc),
+            granted_time=datetime(year=2023, month=5, day=1, tzinfo=utc),
             owner_type=OwnerType.USER.value,
             user=self.user2,
             app_service_id=self.app_service1.id,
             issuer=''
         )
         coupon3_user2.save(force_insert=True)
-        coupon3_user2.creation_time = datetime(year=2023, month=5, day=8, tzinfo=timezone.utc)
+        coupon3_user2.creation_time = datetime(year=2023, month=5, day=8, tzinfo=utc)
         coupon3_user2.save(update_fields=['creation_time'])
 
         coupon2_vo = CashCoupon(
             face_value=Decimal('4.44'),
             balance=Decimal('3.3'),
-            effective_time=datetime(year=2023, month=5, day=10, tzinfo=timezone.utc),
-            expiration_time=datetime(year=2023, month=6, day=1, tzinfo=timezone.utc),
+            effective_time=datetime(year=2023, month=5, day=10, tzinfo=utc),
+            expiration_time=datetime(year=2023, month=6, day=1, tzinfo=utc),
             status=CashCoupon.Status.DELETED.value,
-            granted_time=datetime(year=2023, month=5, day=10, tzinfo=timezone.utc),
+            granted_time=datetime(year=2023, month=5, day=10, tzinfo=utc),
             owner_type=OwnerType.VO.value,
             vo=vo1,
             app_service_id=self.app_service2.id,
             issuer='user1'
         )
         coupon2_vo.save(force_insert=True)
-        coupon2_vo.creation_time = datetime(year=2023, month=5, day=31, tzinfo=timezone.utc)
+        coupon2_vo.creation_time = datetime(year=2023, month=5, day=31, tzinfo=utc)
         coupon2_vo.save(update_fields=['creation_time'])
 
         # NotAuthenticated
@@ -2319,7 +2320,7 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         coupon1_user = CashCoupon(
             face_value=Decimal('1.11'),
             balance=Decimal('1.11'),
-            effective_time=datetime(year=2023, month=5, day=1, tzinfo=timezone.utc),
+            effective_time=datetime(year=2023, month=5, day=1, tzinfo=utc),
             expiration_time=now_time + timedelta(days=2),
             status=CashCoupon.Status.DELETED.value,
             granted_time=None,
@@ -2329,55 +2330,55 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
             issuer='user1'
         )
         coupon1_user.save(force_insert=True)
-        coupon1_user.creation_time = datetime(year=2023, month=4, day=1, tzinfo=timezone.utc)
+        coupon1_user.creation_time = datetime(year=2023, month=4, day=1, tzinfo=utc)
         coupon1_user.save(update_fields=['creation_time'])
 
         coupon2_user = CashCoupon(
             face_value=Decimal('2.22'),
             balance=Decimal('1.22'),
-            effective_time=datetime(year=2023, month=5, day=1, tzinfo=timezone.utc),
-            expiration_time=datetime(year=2023, month=5, day=30, tzinfo=timezone.utc),
+            effective_time=datetime(year=2023, month=5, day=1, tzinfo=utc),
+            expiration_time=datetime(year=2023, month=5, day=30, tzinfo=utc),
             status=CashCoupon.Status.AVAILABLE.value,
-            granted_time=datetime(year=2023, month=5, day=1, tzinfo=timezone.utc),
+            granted_time=datetime(year=2023, month=5, day=1, tzinfo=utc),
             owner_type=OwnerType.USER.value,
             user=self.user,
             app_service_id=self.app_service1.id,
             issuer='user2'
         )
         coupon2_user.save(force_insert=True)
-        coupon2_user.creation_time = datetime(year=2023, month=5, day=1, tzinfo=timezone.utc)
+        coupon2_user.creation_time = datetime(year=2023, month=5, day=1, tzinfo=utc)
         coupon2_user.save(update_fields=['creation_time'])
 
         coupon3_vo = CashCoupon(
             face_value=Decimal('3.33'),
             balance=Decimal('2.33'),
-            effective_time=datetime(year=2023, month=5, day=10, tzinfo=timezone.utc),
+            effective_time=datetime(year=2023, month=5, day=10, tzinfo=utc),
             expiration_time=now_time + timedelta(days=1),
             status=CashCoupon.Status.AVAILABLE.value,
-            granted_time=datetime(year=2023, month=5, day=1, tzinfo=timezone.utc),
+            granted_time=datetime(year=2023, month=5, day=1, tzinfo=utc),
             owner_type=OwnerType.VO.value,
             vo=vo1,
             app_service_id=self.app_service1.id,
             issuer=''
         )
         coupon3_vo.save(force_insert=True)
-        coupon3_vo.creation_time = datetime(year=2023, month=5, day=8, tzinfo=timezone.utc)
+        coupon3_vo.creation_time = datetime(year=2023, month=5, day=8, tzinfo=utc)
         coupon3_vo.save(update_fields=['creation_time'])
 
         coupon2_vo = CashCoupon(
             face_value=Decimal('4.44'),
             balance=Decimal('3.3'),
-            effective_time=datetime(year=2023, month=5, day=10, tzinfo=timezone.utc),
-            expiration_time=datetime(year=2023, month=6, day=1, tzinfo=timezone.utc),
+            effective_time=datetime(year=2023, month=5, day=10, tzinfo=utc),
+            expiration_time=datetime(year=2023, month=6, day=1, tzinfo=utc),
             status=CashCoupon.Status.DELETED.value,
-            granted_time=datetime(year=2023, month=5, day=10, tzinfo=timezone.utc),
+            granted_time=datetime(year=2023, month=5, day=10, tzinfo=utc),
             owner_type=OwnerType.VO.value,
             vo=vo1,
             app_service_id=self.app_service2.id,
             issuer='user1'
         )
         coupon2_vo.save(force_insert=True)
-        coupon2_vo.creation_time = datetime(year=2023, month=5, day=31, tzinfo=timezone.utc)
+        coupon2_vo.creation_time = datetime(year=2023, month=5, day=31, tzinfo=utc)
         coupon2_vo.save(update_fields=['creation_time'])
 
         # NotAuthenticated

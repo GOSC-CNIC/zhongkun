@@ -13,7 +13,7 @@ from servers.models import Disk, Server, ResourceActionLog, DiskChangeLog
 from utils.test import get_or_create_user, get_or_create_service
 from utils.model import PayType, OwnerType, ResourceType
 from utils.decimal_utils import quantize_10_2
-from utils.time import iso_utc_to_datetime
+from utils.time import iso_utc_to_datetime, utc
 from utils import rand_utils
 from vo.models import VirtualOrganization, VoMember
 from order.managers import OrderManager, PriceManager
@@ -1501,7 +1501,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
         # renew user server "renew_to_time" 续费到指定日期
         expiration_time = user_disk.expiration_time
         renew_to_time = expiration_time.replace(microsecond=0) + timedelta(days=2)
-        renew_to_time_utc = renew_to_time.astimezone(tz=timezone.utc)
+        renew_to_time_utc = renew_to_time.astimezone(tz=utc)
         self.assertEqual(renew_to_time, renew_to_time_utc)
         renew_to_time_utc_str = renew_to_time_utc.isoformat()
         renew_to_time_utc_str = renew_to_time_utc_str[0:19] + 'Z'
@@ -1541,7 +1541,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
             lock=Disk.Lock.FREE.value, instance_id='vo_disk_id', task_status=Disk.TaskStatus.OK.value
         )
 
-        renew_to_time = (vo_disk_expiration_time + timedelta(days=200)).astimezone(timezone.utc).isoformat()
+        renew_to_time = (vo_disk_expiration_time + timedelta(days=200)).astimezone(utc).isoformat()
         renew_to_time = renew_to_time.split('.')[0] + 'Z'
         renew_to_datetime = iso_utc_to_datetime(renew_to_time)
 

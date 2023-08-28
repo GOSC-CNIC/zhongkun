@@ -1,5 +1,4 @@
-import pytz
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 from django.test import TestCase
 from django.http.request import HttpRequest
@@ -10,16 +9,18 @@ from users.models import UserProfile
 from . import jwt
 from .authentication import CreateUserJWTAuthentication, JWTInvalidError
 
+utc = timezone.utc
+
 
 class TimeTestCase(TestCase):
     def test_make_utc(self):
         dt1 = datetime.now()
         dt2 = jwt.make_utc(dt1)
-        self.assertEqual(dt2.tzinfo, pytz.utc, msg='not utc time')
+        self.assertEqual(dt2.tzinfo, utc, msg='not utc time')
 
-        dt1 = datetime.now(tz=pytz.timezone('Asia/Shanghai'))
+        dt1 = datetime.now(tz=timezone(offset=-timedelta(hours=8), name='Asia/Shanghai'))
         dt2 = jwt.make_utc(dt1)
-        self.assertEqual(dt2.tzinfo, pytz.utc, msg='not utc time')
+        self.assertEqual(dt2.tzinfo, utc, msg='not utc time')
         self.assertEqual(dt2, dt1, msg='time not equal after make_utc()')
 
 

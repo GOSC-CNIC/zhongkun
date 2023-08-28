@@ -1,8 +1,7 @@
 from __future__ import print_function
 from decimal import Decimal
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta, time, timezone as dt_timezone
 
-import pytz
 from django.test import TransactionTestCase
 from django.utils import timezone
 
@@ -17,6 +16,9 @@ from metering.payment import MeteringPaymentManager
 from metering.generate_daily_statement import GenerateDailyStatementObjectStorage
 from users.models import UserProfile
 from storage.models import Bucket, ObjectsService
+
+
+utc = dt_timezone.utc
 
 
 def create_bucket_metadata(name: str, service, user, creation_time):
@@ -106,7 +108,7 @@ class MeteringObjectStorageTests(TransactionTestCase):
         measure = StorageMeasure(raise_exception=True)
         measure.run()
 
-        utc_now = now.astimezone(pytz.utc)
+        utc_now = now.astimezone(utc)
         uin_utc_0_1 = False
         if time(hour=0, minute=0, second=0) <= utc_now.time() <= time(hour=1, minute=0, second=0):
             uin_utc_0_1 = True
@@ -158,7 +160,7 @@ class MeteringObjectStorageTests(TransactionTestCase):
         measure.get_bucket_metering_size = lambda bucket: gib_size * (1024**3)        # 替换网络请求
         measure.run()
 
-        utc_now = now.astimezone(pytz.utc)
+        utc_now = now.astimezone(utc)
         uin_utc_0_1 = False
         if time(hour=0, minute=0, second=0) <= utc_now.time() <= time(hour=1, minute=0, second=0):
             uin_utc_0_1 = True

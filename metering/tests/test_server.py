@@ -1,8 +1,6 @@
-from __future__ import print_function
 from decimal import Decimal
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta, time, timezone as dt_timezone
 
-import pytz
 from django.test import TransactionTestCase
 from django.utils import timezone
 
@@ -20,6 +18,8 @@ from metering.models import MeteringServer, PaymentStatus, DailyStatementServer
 from metering.payment import MeteringPaymentManager
 from metering.generate_daily_statement import GenerateDailyStatementServer
 from users.models import UserProfile
+
+utc = dt_timezone.utc
 
 
 def create_server_metadata(
@@ -185,7 +185,7 @@ class MeteringServerTests(TransactionTestCase):
         measurer.run()
 
         # utc时间00:00（北京时间08:00）之后的1hour之内，server4会被计量
-        utc_now = now.astimezone(pytz.utc)
+        utc_now = now.astimezone(utc)
         in_utc_0_1 = False
         if time(hour=0, minute=0, second=0) <= utc_now.time() <= time(hour=1, minute=0, second=0):
             in_utc_0_1 = True

@@ -47,7 +47,7 @@ class Migration(migrations.Migration):
                 ('organization', models.ForeignKey(db_constraint=False, default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='service.datacenter', verbose_name='机构')),
                 ('provider', models.ForeignKey(db_constraint=False, on_delete=django.db.models.deletion.CASCADE, related_name='+', to='monitor.monitorprovider', verbose_name='日志数据查询服务提供者')),
                 ('site_type', models.ForeignKey(db_constraint=False, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='monitor.logsitetype', verbose_name='站点类别')),
-                ('users', models.ManyToManyField(blank=True, db_constraint=False, db_table='log_site_users', related_name='_monitor_logsite_users_+', to=settings.AUTH_USER_MODEL, verbose_name='管理用户')),
+                ('users', models.ManyToManyField(blank=True, db_constraint=False, db_table='log_site_users', related_name='+', to=settings.AUTH_USER_MODEL, verbose_name='管理用户')),
             ],
             options={
                 'verbose_name': '日志单元站点',

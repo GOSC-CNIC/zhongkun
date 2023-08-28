@@ -8,6 +8,7 @@ from utils.test import get_or_create_user, get_or_create_service
 from utils.model import PayType, OwnerType
 from utils.decimal_utils import quantize_10_2
 from utils import rand_utils
+from utils.time import utc
 from core import errors
 from servers.models import Disk, DiskChangeLog
 from vo.managers import VoManager
@@ -178,7 +179,7 @@ class MeteringDiskTests(TransactionTestCase):
         measurer.run()
 
         # utc时间00:00（北京时间08:00）之后的1hour之内，disk4会被计量
-        utc_now = now.astimezone(timezone.utc)
+        utc_now = now.astimezone(utc)
         in_utc_0_1 = False
         if time(hour=0, minute=0, second=0) <= utc_now.time() <= time(hour=1, minute=0, second=0):
             in_utc_0_1 = True

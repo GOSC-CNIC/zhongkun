@@ -19,6 +19,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='payappservice',
             name='users',
-            field=models.ManyToManyField(blank=True, db_constraint=False, db_table='pay_app_service_users', related_name='_bill_payappservice_users_+', to=settings.AUTH_USER_MODEL, verbose_name='管理用户'),
+            field=models.ManyToManyField(blank=True, db_constraint=False, db_table='pay_app_service_users', related_name='+', to=settings.AUTH_USER_MODEL, verbose_name='管理用户'),
         ),
     ]
