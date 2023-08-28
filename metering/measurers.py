@@ -1,3 +1,4 @@
+import time
 from datetime import datetime, timedelta, date
 from functools import wraps
 from decimal import Decimal
@@ -74,6 +75,7 @@ class ServerMeasurer:
     def metering_loop(self, loop_server):
         last_creatition_time = None
         last_id = ''
+        continuous_error_count = 0  # 连续错误计数
         while True:
             try:
                 if loop_server:
@@ -97,10 +99,18 @@ class ServerMeasurer:
                     self.metering_server_or_archive(s)
                     last_creatition_time = s.creation_time
                     last_id = s.id
+
+                continuous_error_count = 0
             except Exception as e:
                 print(str(e))
                 if self.raise_exeption:
                     raise e
+
+                continuous_error_count += 1
+                if continuous_error_count > 100:    # 连续错误次数后报错退出
+                    raise e
+
+                time.sleep(continuous_error_count / 100)  # 10ms - 1000ms
 
     def metering_server_or_archive(self, obj):
         if obj.creation_time >= self.end_datetime:
@@ -344,12 +354,11 @@ class ServerMeasurer:
         """
         查询server查询集, 按创建时间正序排序
         * 创建时间在计量周期结束时间之前的都可能需要计量
-
+        * 不能用 start_time 做为查询条件，start_time是根据资源变更变动的，可能不在计量周期内，但是可能在变更记录有资源用量需要计量
         :param end_datetime: 计量日结束时间点
         :param gte_creation_time: 大于等于创建时间，用于断点续查
         """
         lookups = {
-            # 'start_time__lt': end_datetime,
             'creation_time__lt': end_datetime,
             'task_status': Server.TASK_CREATED_OK
         }
@@ -369,6 +378,7 @@ class ServerMeasurer:
         """
         查询归档的server查询集, 按创建时间正序排序
         * 删除时间在计量周期之内的server
+        * 不能用 start_time 做为查询条件，start_time是根据资源变更变动的，可能不在计量周期内，但是可能在变更记录有资源用量需要计量
         :param start_datetime: 计量日开始时间点
         :param gte_creation_time: 大于等于创建时间，用于断点续查
         """
@@ -465,10 +475,10 @@ class StorageMeasure:
     def metering_loop(self):
         last_creation_time = None
         last_id = ''
+        continuous_error_count = 0
         while True:
             try:
-                buckets = self.get_buckets(
-                    gte_creation_time=last_creation_time, end_datetime=self.end_datatime)
+                buckets = self.get_buckets(gte_creation_time=last_creation_time)
                 if len(buckets) == 0:
                     break
                 # 多个creation_time 的数据相同时，会查询到多个数据 (计量过的也会重复查询到)
@@ -480,10 +490,18 @@ class StorageMeasure:
                     self.metering_bucket(b)
                     last_creation_time = b.creation_time
                     last_id = b.id
+
+                continuous_error_count = 0
             except Exception as e:
                 print(str(e))
                 if self.raise_exception:
                     raise e
+
+                continuous_error_count += 1
+                if continuous_error_count > 100:  # 连续错误次数后报错退出
+                    raise e
+
+                time.sleep(continuous_error_count / 100)  # 10ms - 1000ms
 
     def metering_bucket(self, obj):
         self._metering_bucket_count += 1
@@ -619,8 +637,8 @@ class StorageMeasure:
         return r.bucket_size_byte
 
     @wrap_close_old_connections
-    def get_buckets(self, gte_creation_time, end_datetime, limit: int = 100):
-        queryset = self.get_buckets_queryset(gte_creation_time=gte_creation_time, end_datetime=end_datetime)
+    def get_buckets(self, gte_creation_time, limit: int = 100):
+        queryset = self.get_buckets_queryset(gte_creation_time=gte_creation_time)
         return queryset[0:limit]
 
     @staticmethod
@@ -628,10 +646,9 @@ class StorageMeasure:
         return MeteringObjectStorage.objects.filter(date=metering_date, storage_bucket_id=bucket_id).first()
 
     @staticmethod
-    def get_buckets_queryset(end_datetime, gte_creation_time=None):
+    def get_buckets_queryset(gte_creation_time=None):
         """
         查询bucket的集合， 按照创建的时间 以及 id 正序排序
-        :param end_datetime: 计量日结束的时间点
         :param gte_creation_time: 大于等于给定的创建时间，用于断点查询
         """
         lookups = {}
@@ -677,7 +694,8 @@ class DiskMeasurer:
 
         self.loop_normal_disks()
         self.loop_deleted_disks()
-        print(f'Metering {self._metering_normal_disk_count} normal disks, {self._metering_deleted_disk_count} deleted disks, '
+        print(f'Metering {self._metering_normal_disk_count} normal disks, '
+              f'{self._metering_deleted_disk_count} deleted disks, '
               f'all {self._metering_normal_disk_count + self._metering_deleted_disk_count}, '
               f'new produce {self._new_count} metering bill.')
 
@@ -690,6 +708,7 @@ class DiskMeasurer:
     def _metering_loop(self, loop_normal_disk=False):
         last_creatition_time = None
         last_id = ''
+        continuous_error_count = 0
         while True:
             try:
                 if loop_normal_disk:
@@ -713,10 +732,18 @@ class DiskMeasurer:
                     self.metering_disk(dk)
                     last_creatition_time = dk.creation_time
                     last_id = dk.id
+
+                continuous_error_count = 0
             except Exception as e:
                 print(str(e))
                 if self.raise_exeption:
                     raise e
+
+                continuous_error_count += 1
+                if continuous_error_count > 100:  # 连续错误次数后报错退出
+                    raise e
+
+                time.sleep(continuous_error_count / 100)  # 10ms - 1000ms
 
     def metering_disk(self, disk: Disk):
         if disk.creation_time >= self.end_datetime:
@@ -830,6 +857,7 @@ class DiskMeasurer:
         """
         查询正常的disk查询集, 按创建时间正序排序
 
+        * 不能用 start_time 做为查询条件，start_time是根据资源变更变动的，可能不在计量周期内，但是可能在变更记录有资源用量需要计量
         :param end_datetime: 计量日结束时间点
         :param gte_creation_time: 大于等于创建时间，用于断点续查
         """
@@ -854,6 +882,7 @@ class DiskMeasurer:
         """
         查询已删除的disk查询集, 按创建时间正序排序
 
+        * 不能用 start_time 做为查询条件，start_time是根据资源变更变动的，可能不在计量周期内，但是可能在变更记录有资源用量需要计量
         :param start_datetime: 计量日开始时间点
         :param gte_creation_time: 大于等于创建时间，用于断点续查
         """
