@@ -33,7 +33,7 @@
                                                     <img class="align-self-center" height="25" width="25" alt="" src="{% static 'images/logos/vmware-logo.png' %}">
                                                 {% endif %}
                                                 <div class="media-body">
-                                                    <a class="nav-link m-0 pl-1 {% ifequal s.id active_service %}active{% endifequal %}" href="{% url 'servers:server-list' %}?service={{ s.id }}">{{ s.name }}</a>
+                                                    <a class="nav-link m-0 pl-1 {% if s.id == active_service %}active{% endif %}" href="{% url 'servers:server-list' %}?service={{ s.id }}">{{ s.name }}</a>
                                                 </div>
                                             </div>
                                         {% endfor %}

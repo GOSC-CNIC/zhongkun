@@ -45,7 +45,7 @@ schema_view = get_schema_view(
     url=getattr(settings, 'SWAGGER_SCHEMA_URL', None),
     generator_class=BothHttpAndHttpsSchemaGenerator,
     public=True,
-    permission_classes=(permissions.AllowAny,),
+    permission_classes=[permissions.AllowAny],
 )
 
 urlpatterns = [

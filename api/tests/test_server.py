@@ -872,7 +872,8 @@ class ServerOrderTests(MyAPITransactionTestCase):
         # 按量付费金额占比
         u_zb = (user_server.start_time - today_start_time).total_seconds() / (3600 * 24)
         u_m_zb = u_mt.trade_amount / u_mt.original_amount
-        self.assertEqual(int(round(u_zb * 1000, 0)), int(round(u_m_zb * 1000, 0)))
+        delta = Decimal.from_float(u_zb) - u_m_zb
+        self.assertEqual(int(delta * 1000), 0)
 
         vo_mt = MeteringServer.objects.filter(date=metering_date, server_id=vo_server.id).first()
         self.assertEqual(round(vo_mt.cpu_hours), vo_server.vcpus * 24)
@@ -881,7 +882,8 @@ class ServerOrderTests(MyAPITransactionTestCase):
         # 按量付费金额占比
         u_zb = (vo_server.start_time - today_start_time).total_seconds() / (3600 * 24)
         u_m_zb = vo_mt.trade_amount / vo_mt.original_amount
-        self.assertEqual(round(u_zb * 1000, 0), int(round(u_m_zb * 1000, 0)))
+        delta = Decimal.from_float(u_zb) - u_m_zb
+        self.assertEqual(int(delta * 1000), 0)
 
     def try_delete_server(self, server_id: str):
         url = reverse('api:servers-detail', kwargs={'id': server_id})
