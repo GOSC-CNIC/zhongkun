@@ -850,11 +850,11 @@ class MeteringStorageManager:
         """
         user_ids = [i['user_id'] for i in data]
         users = UserProfile.objects.filter(
-            id__in=user_ids).values('id', 'username')
+            id__in=user_ids).values('id', 'username', 'company')
 
         users_dict = {}
         for u in users:
-            users_dict[u['id']] = u.get('username', '')
+            users_dict[u['id']] = {'username': u.get('username', ''), 'company': u.get('company', '')}
 
         for i in data:
             # Decimal to string
@@ -863,9 +863,10 @@ class MeteringStorageManager:
 
             uid = i['user_id']
             if uid in users_dict:
-                i['username'] = users_dict[uid]
+                i.update(users_dict[uid])
             else:
                 i['username'] = ''
+                i['company'] = ''
 
         return data
 

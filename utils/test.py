@@ -18,8 +18,8 @@ def get_test_case_settings():
     return test_settings
 
 
-def get_or_create_user(username='test', password='password') -> UserProfile:
-    user, created = User.objects.get_or_create(username=username, password=password, is_active=True)
+def get_or_create_user(username='test', password='password', company: str = 'cnic') -> UserProfile:
+    user, created = User.objects.get_or_create(username=username, password=password, company=company, is_active=True)
     return user
 
 

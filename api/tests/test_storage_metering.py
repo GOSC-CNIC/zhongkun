@@ -432,7 +432,7 @@ class AdminMeteringStorageTests(MyAPITestCase):
         ], r.data)
         self.assertKeysIn([
             'user_id', 'total_storage_hours', 'total_downstream', 'total_get_request',
-            'total_original_amount', 'total_trade_amount', 'username', 'bucket_count'
+            'total_original_amount', 'total_trade_amount', 'username', 'bucket_count', 'company'
         ], r.data['results'][0])
 
         # --------- 2023-02-01 - 2023-02-28 ----------
@@ -564,6 +564,7 @@ class AdminMeteringStorageTests(MyAPITestCase):
         self.assertEqual(r.data["count"], 2)
         self.assertEqual(len(r.data['results']), 1)
         self.assertEqual(r.data['results'][0]['user_id'], self.user2.id)
+        self.assertEqual(r.data['results'][0]['company'], self.user2.company)
 
         # order_by, user_id
         query = parse.urlencode(query={
