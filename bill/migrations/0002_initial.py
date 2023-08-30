@@ -10,17 +10,17 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        migrations.swappable_dependency(settings.AUTH_USER_MODEL),
+        # migrations.swappable_dependency(settings.AUTH_USER_MODEL),
         ('vo', '0001_initial'),
         ('bill', '0001_initial'),
     ]
 
     operations = [
-        migrations.AddField(
-            model_name='userpointaccount',
-            name='user',
-            field=models.OneToOneField(default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL),
-        ),
+        # migrations.AddField(
+        #     model_name='userpointaccount',
+        #     name='user',
+        #     field=models.OneToOneField(default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL),
+        # ),
         migrations.AddIndex(
             model_name='transactionbill',
             index=models.Index(fields=['owner_id'], name='idx_owner_id'),
