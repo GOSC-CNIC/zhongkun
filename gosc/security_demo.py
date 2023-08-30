@@ -10,7 +10,7 @@ SECRET_KEY = 'xxx'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',  # MySQL数据库
-        # 'ENGINE': 'django_tidb',    # TiDB数据库
+        # 'ENGINE': 'django_tidb',    # TiDB数据库，6.5.5，推荐7.1.1及以上
         'NAME': 'xxx',  # 数据的库名，事先要创建之
         'HOST': '127.0.0.1',  # 主机
         'PORT': '3306',  # 数据库使用的端口
