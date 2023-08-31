@@ -1,3 +1,14 @@
+## v1.12.0
+发布时间： 2023-09-04  
+发布人： shun  
+
+* django3.2升级到4.2，DRF升级到3.14，其他依赖包部分升级；提交人：shun
+* Django5将不再支持时区库pytz，从代码中移除pytz，用datetime.timezone.utc替换pytz.utc；提交人：shun
+* 重新生成所有app数据库迁移文件；提交人：shun
+* 安装django-tidb依赖包，支持兼容tidb数据库；提交人：shun
+* 按用户聚合对象存储计量信息管理员查询接口响应数据增加用户所属单位“company”字段；提交人：shun
+
+
 ## v1.11.1
 发布时间： 2023-08-28  
 发布人： shun  
