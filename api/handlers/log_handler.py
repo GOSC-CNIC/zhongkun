@@ -85,10 +85,15 @@ class LogSiteHandler(BaseHandler):
 
     def log_query(self, view: CustomGenericViewSet, request):
         log_site_id = request.query_params.get('log_site_id', None)
+        search: str = request.query_params.get('search', None)
 
         if not log_site_id:
             return view.exception_response(
                 errors.BadRequest(message=_('必须指定查询的日志单元'), code='InvalidSiteId'))
+
+        if search and '`' in search:
+            return view.exception_response(
+                errors.BadRequest(message=_('关键字查询不允许包含字符“`”'), code='InvalidSearch'))
 
         try:
             params = self.validate_loki_query_range_params(request=request)
@@ -99,7 +104,7 @@ class LogSiteHandler(BaseHandler):
         try:
             data = LogSiteManager().query(
                 log_site=log_site, start=params['start'], end=params['end'],
-                limit=params['limit'], direction=params['direction']
+                limit=params['limit'], direction=params['direction'], search=search
             )
         except errors.Error as exc:
             return view.exception_response(exc)

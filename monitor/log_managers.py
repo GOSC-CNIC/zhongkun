@@ -42,7 +42,7 @@ class LogSiteManager:
         raise errors.AccessDenied(message=_('你没有日志单元的访问权限'))
 
     @staticmethod
-    def query(log_site: LogSite, start: int, end: int, limit: int, direction: str):
+    def query(log_site: LogSite, start: int, end: int, limit: int, direction: str, search: str):
         """
         :return:
             [
@@ -56,8 +56,12 @@ class LogSiteManager:
             ]
         :raises: Error
         """
+        query = f'{{job = "{log_site.job_tag}"}}'
+        if search:
+            query = f'{query} |= `{search}`'
+
         params = {
-            'query': f'{{job="{log_site.job_tag}"}}',
+            'query': query,
             'start': start, 'end': end,
             'limit': limit, 'direction': direction
         }

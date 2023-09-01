@@ -123,6 +123,13 @@ class LogSiteViewSet(CustomGenericViewSet):
                 required=True,
                 description=_('日志单元站点id')
             ),
+            openapi.Parameter(
+                name='search',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=_('关键字搜索')
+            ),
         ],
         responses={
             200: ""

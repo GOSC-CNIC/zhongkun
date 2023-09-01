@@ -200,6 +200,13 @@ class LogSiteTests(MyAPITestCase):
 
         query = parse.urlencode(query={
             'log_site_id': 'xxx', 'start': timestamp, 'end': timestamp, 'direction': 'backward', 'limit': '10',
+            'search': 'tes`t'
+        })
+        response = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidSearch', response=response)
+
+        query = parse.urlencode(query={
+            'log_site_id': 'xxx', 'start': timestamp, 'end': timestamp, 'direction': 'backward', 'limit': '10',
         })
         response = self.client.get(f'{url}?{query}')
         self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
@@ -213,7 +220,9 @@ class LogSiteTests(MyAPITestCase):
         # log_site4
         log_site.users.add(self.user)
         query = parse.urlencode(query={
-            'log_site_id': log_site.id, 'start': timestamp, 'end': timestamp, 'direction': 'backward', 'limit': '10'})
+            'log_site_id': log_site.id, 'start': timestamp-1000, 'end': timestamp, 'direction': 'backward',
+            'limit': '10'
+        })
         response = self.client.get(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.data, list)
@@ -222,6 +231,16 @@ class LogSiteTests(MyAPITestCase):
             self.assertKeysIn(["stream", "values"], item)
             self.assertEqual(len(item['values']), 10)
             self.assertEqual(len(item['values'][0]), 2)
+
+        # search
+        query = parse.urlencode(query={
+            'log_site_id': log_site.id, 'start': timestamp - 1000, 'end': timestamp, 'direction': 'backward',
+            'limit': '10', 'search': 'dadadadaqdq'
+        })
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.data, list)
+        self.assertEqual(len(response.data), 0)
 
     def test_list_time_count(self):
         now_timestamp = int(timezone.now().timestamp())
