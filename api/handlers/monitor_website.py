@@ -21,7 +21,7 @@ class MonitorWebsiteHandler:
             user = request.user
             if not user.is_federal_admin():
                 count = MonitorWebsite.objects.filter(user_id=user.id).count()
-                if count >= 2:
+                if count >= 5:
                     raise errors.ConflictError(message=_('已达到允许创建监控任务数量上限。'), code='TooManyTask')
 
             task = MonitorWebsiteManager.add_website_task(
