@@ -20,7 +20,7 @@ charset-normalizer==3.2.0
 concurrent-log-handler==0.9.19
 cryptography==37.0.4
 decorator==5.1.1
-Django==4.2.4
+Django==4.2.5
 django-cors-headers==3.7.0
 django-debug-toolbar==3.5.0
 django-tidb==4.2.0
@@ -35,7 +35,7 @@ iso8601==2.0.0
 jmespath==1.0.1
 jsonpatch==1.33
 jsonpointer==2.4
-keystoneauth1==5.2.1
+keystoneauth1==5.3.0
 multidict==6.0.4
 munch==4.0.0
 mysqlclient==2.1.0
@@ -48,7 +48,7 @@ portalocker==2.7.0
 pycparser==2.21
 PyJWT==2.4.0
 pyOpenSSL==21.0.0
-pytz==2023.3
+pytz==2023.3.post1
 pyvmomi==7.0
 PyYAML==6.0.1
 requests==2.31.0
