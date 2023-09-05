@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from utils.model import NoDeleteSelectModelAdmin
-from .models import MonthlyReport, BucketMonthlyReport
+from .models import MonthlyReport, BucketMonthlyReport, BucketStatsMonthly
 
 
 @admin.register(MonthlyReport)
@@ -44,4 +44,17 @@ class BucketMonthlyReportAdmin(NoDeleteSelectModelAdmin):
         return False
 
     def has_add_permission(self, request):
+        return False
+
+
+@admin.register(BucketStatsMonthly)
+class BucketStatsMonthlyAdmin(admin.ModelAdmin):
+    list_display = ('id', 'bucket_id', 'bucket_name', 'service', 'size_byte', 'increment_byte', 'object_count',
+                    'original_amount', 'increment_amount', 'user', 'date', 'creation_time')
+    list_select_related = ('service', 'user')
+    raw_id_fields = ('user',)
+    search_fields = ['bucket_id', 'bucket_name']
+    list_filter = ['service', ]
+
+    def has_delete_permission(self, request, obj=None):
         return False

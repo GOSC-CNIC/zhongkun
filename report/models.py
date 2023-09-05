@@ -131,3 +131,38 @@ class BucketMonthlyReport(UuidModel):
 
     def __str__(self):
         return f'存储桶"{self.bucket_name}"月度计量报表'
+
+
+class BucketStatsMonthly(UuidModel):
+    service = models.ForeignKey(
+        verbose_name=_('存储服务单元'), to=ObjectsService, db_constraint=False, related_name='+',
+        on_delete=models.SET_NULL, null=True, blank=True, default=None)
+    bucket_id = models.CharField(verbose_name=_('存储桶ID'), max_length=36)
+    bucket_name = models.CharField(verbose_name=_('存储桶名称'), max_length=73)
+    size_byte = models.BigIntegerField(verbose_name=_('存储容量(Byte)'), default=0, help_text='byte')
+    increment_byte = models.BigIntegerField(verbose_name=_('存储容量增量(Byte)'), default=0, help_text='byte')
+    object_count = models.BigIntegerField(verbose_name=_('桶对象数量'), blank=True, default=0)
+    original_amount = models.DecimalField(
+        verbose_name=_('计费金额'), max_digits=10, decimal_places=2)
+    increment_amount = models.DecimalField(
+        verbose_name=_('计费金额增量'), max_digits=10, decimal_places=2)
+    user = models.ForeignKey(
+        verbose_name=_('用户'), to=UserProfile, on_delete=models.DO_NOTHING, related_name='+', db_constraint=False,
+        blank=True)
+    username = models.CharField(verbose_name=_('用户名'), max_length=128, blank=True, default='')
+    date = models.DateField(verbose_name=_('数据日期(月份)'), help_text=_('根据数据采样周期，数据是哪个月的'))
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'))
+
+    class Meta:
+        db_table = 'bucket_stats_monthly'
+        ordering = ['-creation_time']
+        verbose_name = _('存储桶月度容量增量统计数据')
+        verbose_name_plural = verbose_name
+        constraints = [
+            models.UniqueConstraint(
+                fields=('bucket_id', 'date'), name='unique_bucket_date'
+            )
+        ]
+        indexes = [
+            models.Index(fields=('date',), name='idx_date')
+        ]
