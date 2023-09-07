@@ -105,6 +105,11 @@ class CustomGenericViewSetMixin:
         return Response(data=exc.err_data(), status=exc.status_code)
 
 
+class NormalGenericViewSet(CustomGenericViewSetMixin, viewsets.GenericViewSet):
+    from django.db.models import QuerySet
+    queryset = QuerySet().none()
+
+
 class CustomGenericViewSet(CustomGenericViewSetMixin, viewsets.GenericViewSet):
     queryset = QuerySet().none()
 
