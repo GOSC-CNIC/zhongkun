@@ -189,9 +189,10 @@ class StorageStatsMonthlyViewSet(NormalGenericViewSet):
               "results": [
                 {
                   "date": "2023-08",
-                  "total_increment_byte": 0,
+                  "total_size_byte": 1234456789,
+                  "total_increment_byte": 10,
                   "total_original_amount": 0.72,
-                  "total_increment_amount": 0.72
+                  "total_increment_amount": 0.12
                 }
               ]
             }

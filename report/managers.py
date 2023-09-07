@@ -112,6 +112,7 @@ class BucketStatsMonthlyManager:
     @staticmethod
     def _aggregate_by_date(queryset):
         return queryset.values('date').annotate(
+            total_size_byte=Sum('size_byte', default=0),
             total_increment_byte=Sum('increment_byte', default=0),
             total_original_amount=Sum('original_amount', default=Decimal('0.00')),
             total_increment_amount=Sum('increment_amount', default=Decimal('0.00')),

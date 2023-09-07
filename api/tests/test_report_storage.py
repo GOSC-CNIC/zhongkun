@@ -276,7 +276,7 @@ class StorageStatsMonthlyTests(MyAPITestCase):
         self.assertKeysIn(keys=['results'], container=r.data)
         self.assertEqual(len(r.data['results']), 9)
         self.assertKeysIn(keys=[
-            'total_increment_byte', 'total_original_amount', 'total_increment_amount', 'date'
+            'total_size_byte', 'total_increment_byte', 'total_original_amount', 'total_increment_amount', 'date'
         ], container=r.data['results'][0])
 
         # date_start, date_end
@@ -288,10 +288,12 @@ class StorageStatsMonthlyTests(MyAPITestCase):
         self.assertEqual(r.data['results'][1]['date'], '2023-07')
         self.assertEqual(r.data['results'][2]['date'], '2023-06')
         self.assertEqual(r.data['results'][3]['date'], '2023-05')
+        self.assertEqual(r.data['results'][0]['total_size_byte'], 8 * 5)  # b2
         self.assertEqual(r.data['results'][0]['total_increment_byte'], 8 * 2)  # b2
         self.assertEqual(Decimal(r.data['results'][0]['total_original_amount']), Decimal(f'{8 * 10}'))
         self.assertEqual(Decimal(r.data['results'][0]['total_increment_amount']), Decimal(f'{8}'))
         self.assertEqual(r.data['results'][1]['total_increment_byte'], 7 * 2 + 7 * 2)  # b1 + b2
+        self.assertEqual(r.data['results'][1]['total_size_byte'], 7 * 5 * 2)
         self.assertEqual(Decimal(r.data['results'][1]['total_original_amount']), Decimal(f'{7 * 10 + 70}'))
         self.assertEqual(Decimal(r.data['results'][1]['total_increment_amount']), Decimal(f'{7 + 7}'))
 
@@ -310,10 +312,12 @@ class StorageStatsMonthlyTests(MyAPITestCase):
         self.assertEqual(len(r.data['results']), 3)
         self.assertEqual(r.data['results'][0]['date'], '2023-07')
         self.assertEqual(r.data['results'][0]['total_increment_byte'], 7 * 2)  # b2
+        self.assertEqual(r.data['results'][0]['total_size_byte'], 7 * 5)
         self.assertEqual(Decimal(r.data['results'][0]['total_original_amount']), Decimal(f'{7 * 10}'))
         self.assertEqual(Decimal(r.data['results'][0]['total_increment_amount']), Decimal(f'{7}'))
         self.assertEqual(r.data['results'][1]['date'], '2023-06')
         self.assertEqual(r.data['results'][1]['total_increment_byte'], 6 * 2)  # b1
+        self.assertEqual(r.data['results'][1]['total_size_byte'], 6 * 5)
         self.assertEqual(Decimal(r.data['results'][1]['total_original_amount']), Decimal(f'{6 * 10}'))
         self.assertEqual(Decimal(r.data['results'][1]['total_increment_amount']), Decimal(f'{6}'))
         self.assertEqual(r.data['results'][2]['date'], '2023-05')
@@ -344,10 +348,12 @@ class StorageStatsMonthlyTests(MyAPITestCase):
         self.assertEqual(len(r.data['results']), 12)    # 1-12
         self.assertEqual(r.data['results'][0]['date'], '2023-12')
         self.assertEqual(r.data['results'][0]['total_increment_byte'], 12 * 2)  # b2
+        self.assertEqual(r.data['results'][0]['total_size_byte'], 12 * 5)
         self.assertEqual(Decimal(r.data['results'][0]['total_original_amount']), Decimal(f'{12 * 10}'))
         self.assertEqual(Decimal(r.data['results'][0]['total_increment_amount']), Decimal(f'{12}'))
         self.assertEqual(r.data['results'][6]['date'], '2023-06')
         self.assertEqual(r.data['results'][6]['total_increment_byte'], 6 * 2 * 3)  # b1 + b2 + b3
+        self.assertEqual(r.data['results'][6]['total_size_byte'], 6 * 5 * 3)
         self.assertEqual(Decimal(r.data['results'][6]['total_original_amount']), Decimal(f'{6 * 10 * 3}'))
         self.assertEqual(Decimal(r.data['results'][6]['total_increment_amount']), Decimal(f'{6 * 3}'))
 
@@ -362,11 +368,13 @@ class StorageStatsMonthlyTests(MyAPITestCase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(len(r.data['results']), 12)  # 1-12
         self.assertEqual(r.data['results'][0]['total_increment_byte'], 12 * 2)  # b2
+        self.assertEqual(r.data['results'][0]['total_size_byte'], 12 * 5)
         self.assertEqual(Decimal(r.data['results'][0]['total_original_amount']), Decimal(f'{12 * 10}'))
         self.assertEqual(Decimal(r.data['results'][0]['total_increment_amount']), Decimal(f'{12}'))
         self.assertEqual(r.data['results'][0]['date'], '2023-12')
         self.assertEqual(r.data['results'][5]['date'], '2023-07')
         self.assertEqual(r.data['results'][5]['total_increment_byte'], 7 * 2 * 2)  # b1 + b3
+        self.assertEqual(r.data['results'][5]['total_size_byte'], 7 * 5 * 2)
         self.assertEqual(Decimal(r.data['results'][5]['total_original_amount']), Decimal(f'{7 * 10 * 2}'))
         self.assertEqual(Decimal(r.data['results'][5]['total_increment_amount']), Decimal(f'{7 * 2}'))
 
@@ -378,10 +386,12 @@ class StorageStatsMonthlyTests(MyAPITestCase):
         self.assertEqual(len(r.data['results']), 3)  # 6-8
         self.assertEqual(r.data['results'][0]['date'], '2023-08')
         self.assertEqual(r.data['results'][0]['total_increment_byte'], 8 * 2)  # b3
+        self.assertEqual(r.data['results'][0]['total_size_byte'], 8 * 5)
         self.assertEqual(Decimal(r.data['results'][0]['total_original_amount']), Decimal(f'{8 * 10}'))
         self.assertEqual(Decimal(r.data['results'][0]['total_increment_amount']), Decimal(f'{8}'))
         self.assertEqual(r.data['results'][1]['date'], '2023-07')
         self.assertEqual(r.data['results'][1]['total_increment_byte'], 7 * 2 * 2)  # b1 + b3
+        self.assertEqual(r.data['results'][1]['total_size_byte'], 7 * 5 * 2)
         self.assertEqual(Decimal(r.data['results'][1]['total_original_amount']), Decimal(f'{7 * 10 * 2}'))
         self.assertEqual(Decimal(r.data['results'][1]['total_increment_amount']), Decimal(f'{7 * 2}'))
         self.assertEqual(r.data['results'][2]['date'], '2023-06')
