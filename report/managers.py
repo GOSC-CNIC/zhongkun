@@ -1,5 +1,7 @@
+from decimal import Decimal
+
 from django.utils.translation import gettext as _
-from django.db.models import TextChoices
+from django.db.models import TextChoices, Sum
 
 from core import errors
 from .models import BucketStatsMonthly
@@ -51,7 +53,10 @@ class BucketStatsMonthlyManager:
         if lookups:
             queryset = queryset.filter(**lookups)
 
-        return queryset.order_by(order_by)
+        if order_by:
+            queryset = queryset.order_by(order_by)
+
+        return queryset
 
     def get_user_bkt_stats_queryset(
             self, user_id: str, service_ids: list = None, bucket_id: str = None,
@@ -81,3 +86,33 @@ class BucketStatsMonthlyManager:
             queryset=queryset, user_id=user_id, service_ids=service_ids, bucket_id=bucket_id,
             date_start=date_start, date_end=date_end, order_by=order_by
         )
+
+    def admin_aggregate_storage_stats_by_date(
+            self, service_ids: list = None, date_start=None, date_end=None
+    ):
+        """
+        管理员查询存储的月度统计数据
+        """
+        queryset = self.admin_bkt_stats_queryset(
+            service_ids=service_ids, date_start=date_start, date_end=date_end
+        )
+        return self._aggregate_by_date(queryset)
+
+    def user_aggregate_storage_stats_by_date(
+            self, user_id: str, service_ids: list = None, date_start=None, date_end=None
+    ):
+        """
+        用户查询存储桶的月度统计数据
+        """
+        queryset = self.get_user_bkt_stats_queryset(
+            user_id=user_id, service_ids=service_ids, date_start=date_start, date_end=date_end
+        )
+        return self._aggregate_by_date(queryset)
+
+    @staticmethod
+    def _aggregate_by_date(queryset):
+        return queryset.values('date').annotate(
+            total_increment_byte=Sum('increment_byte', default=0),
+            total_original_amount=Sum('original_amount', default=Decimal('0.00')),
+            total_increment_amount=Sum('increment_amount', default=Decimal('0.00')),
+        ).order_by('-date')

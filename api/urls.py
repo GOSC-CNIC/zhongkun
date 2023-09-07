@@ -101,6 +101,8 @@ no_slash_router.register(r'admin/flavor', flavor_views.AdminFlavorViewSet, basen
 no_slash_router.register(r'portal/service', portal_views.PortalServiceViewSet, basename='portal-service')
 no_slash_router.register(r'report/storage/bucket/stats/monthly', report_storage_views.BucketStatsMonthlyViewSet,
                          basename='report-bucket-stats-monthly')
+no_slash_router.register(r'report/storage/stats/monthly', report_storage_views.StorageStatsMonthlyViewSet,
+                         basename='report-storage-stats-monthly')
 
 
 urlpatterns = [

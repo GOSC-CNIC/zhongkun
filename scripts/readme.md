@@ -20,6 +20,7 @@ service crond staus    //查看状态
 * crontab定时任务配置文件编辑配置   
   可以使用`crontab -e`编辑配置文件，会在路径/var/spool/cron下创建一个以当前用户名命名的文件，以配置用户定时任务；   
   也可以直接编辑/etc/crontab文件配置系统定时任务；  
+  配置完成后，重新载入配置，`service crond reload`。  
   本服务需要配置的定时任务如下：
 ```
 # Example of job definition:
@@ -32,8 +33,8 @@ service crond staus    //查看状态
 # *  *  *  *  * user-name  command to be executed
 
 0 9 * * * root python3 /home/uwsgi/vms/metering/timedelta_metering.py >> /var/log/vms/metering.log
+0 12 28 * * root python3 /home/uwsgi/vms/scripts/run_bucket_monthly_stats.py >> /var/log/vms/monthly_bucket_stats.log
 0 17 28 * * root python3 /home/uwsgi/vms/scripts/run_generate_and_email_month_report.py >> /var/log/vms/monthly_report.log
 */1 * * * * root python3 /home/uwsgi/vms/scripts/run_log_site_req_num.py >> /var/log/vms/logsite_timecount.log
 0 */1 * * * root python3 /home/uwsgi/vms/scripts/update_service_req_num.py >> /var/log/vms/update_req_num.log
 ```
-
