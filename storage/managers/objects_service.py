@@ -48,3 +48,12 @@ class ObjectsServiceManager:
             None                # 不是
         """
         return ObjectsService.objects.filter(id=service_id, users__id=user.id).first()
+
+    @staticmethod
+    def get_service_qs_by_ids(service_ids: list):
+        if not service_ids:
+            return ObjectsService.objects.none()
+        elif len(service_ids) == 1:
+            return ObjectsService.objects.filter(id=service_ids[0])
+        else:
+            return ObjectsService.objects.filter(id__in=service_ids)

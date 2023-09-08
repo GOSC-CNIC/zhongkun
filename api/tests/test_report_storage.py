@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from storage.models import Bucket, ObjectsService
 from report.models import BucketStatsMonthly
-from report.managers import BktStatsMonthQueryOrderBy
+from report.managers import BktStatsMonthQueryOrderBy, StorageAggQueryOrderBy
 from utils.test import get_or_create_user, get_or_create_storage_service
 from . import MyAPITestCase
 
@@ -395,3 +395,102 @@ class StorageStatsMonthlyTests(MyAPITestCase):
         self.assertEqual(Decimal(r.data['results'][1]['total_original_amount']), Decimal(f'{7 * 10 * 2}'))
         self.assertEqual(Decimal(r.data['results'][1]['total_increment_amount']), Decimal(f'{7 * 2}'))
         self.assertEqual(r.data['results'][2]['date'], '2023-06')
+
+    def test_list_storage_by_service(self):
+        service1 = self.service1
+        service2 = self.service2
+        self.init_bucket_data()
+
+        url = reverse('api:report-storage-stats-monthly-service')
+        r = self.client.get(url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+
+        self.client.force_login(self.user1)
+        # invalid date
+        r = self.client.get(url)
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
+
+        query = parse.urlencode(query={'date': '2023-6'})
+        r = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
+
+        # order_by
+        query = parse.urlencode(query={'date': '2023-06'})
+        r = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+        query = parse.urlencode(query={'date': '2023-06', 'order_by': '-sss'})
+        r = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidOrderBy', response=r)
+
+        # ----- admin -------
+        query = parse.urlencode(query={'date': '2023-06'})
+        r = self.client.get(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        self.user1.set_federal_admin()
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['date'], '2023-06')
+        self.assertEqual(len(r.data['results']), 2)
+
+        # order_by
+        query = parse.urlencode(query={
+            'date': '2023-06', 'order_by': StorageAggQueryOrderBy.INCR_SIZE_DESC.value})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['date'], '2023-06')
+        self.assertEqual(len(r.data['results']), 2)
+        self.assertKeysIn(keys=[
+            'total_size_byte', 'total_increment_byte', 'total_original_amount', 'total_increment_amount',
+            'service_id', 'service'
+        ], container=r.data['results'][0])
+        self.assertKeysIn(keys=['id', 'name', 'name_en'], container=r.data['results'][0]['service'])
+        self.assertEqual(r.data['results'][0]['service_id'], service1.id)
+        self.assertEqual(r.data['results'][0]['total_increment_byte'], 6 * 2 * 2)  # service1, b1 + b3, month=6
+        self.assertEqual(r.data['results'][0]['total_size_byte'], 6 * 5 * 2)
+        self.assertEqual(Decimal(r.data['results'][0]['total_original_amount']), Decimal(f'{6 * 10 * 2}'))
+        self.assertEqual(Decimal(r.data['results'][0]['total_increment_amount']), Decimal(f'{6 * 2}'))
+        self.assertEqual(r.data['results'][1]['service_id'], service2.id)
+        self.assertEqual(r.data['results'][1]['total_increment_byte'], 6 * 2)  # service2, b2, month=6
+        self.assertEqual(r.data['results'][1]['total_size_byte'], 6 * 5)
+        self.assertEqual(Decimal(r.data['results'][1]['total_original_amount']), Decimal(f'{6 * 10}'))
+        self.assertEqual(Decimal(r.data['results'][1]['total_increment_amount']), Decimal(f'{6}'))
+
+        query = parse.urlencode(query={
+            'date': '2023-06', 'order_by': StorageAggQueryOrderBy.INCR_SIZE_ASC.value})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['results'][0]['service_id'], service2.id)
+        self.assertEqual(r.data['results'][0]['total_increment_byte'], 6 * 2)  # service2, b2, month=6
+        self.assertEqual(r.data['results'][0]['total_size_byte'], 6 * 5)
+        self.assertEqual(Decimal(r.data['results'][0]['total_original_amount']), Decimal(f'{6 * 10}'))
+        self.assertEqual(Decimal(r.data['results'][0]['total_increment_amount']), Decimal(f'{6}'))
+        self.assertEqual(r.data['results'][1]['service_id'], service1.id)
+
+        query = parse.urlencode(query={
+            'date': '2023-06', 'order_by': StorageAggQueryOrderBy.AMOUNT_ASC.value})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['date'], '2023-06')
+        self.assertEqual(len(r.data['results']), 2)
+        self.assertEqual(r.data['results'][0]['service_id'], service2.id)
+        self.assertEqual(r.data['results'][1]['service_id'], service1.id)
+
+        query = parse.urlencode(query={
+            'date': '2023-06', 'order_by': StorageAggQueryOrderBy.AMOUNT_DESC.value})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data['results']), 2)
+        self.assertEqual(r.data['results'][0]['service_id'], service1.id)
+        self.assertEqual(r.data['results'][1]['service_id'], service2.id)
+
+        query = parse.urlencode(query={'date': '2023-12'})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['date'], '2023-12')
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertEqual(r.data['results'][0]['service_id'], service1.id)
+        self.assertEqual(r.data['results'][0]['total_increment_byte'], 12 * 2)  # service1, b3, month=12
+        self.assertEqual(r.data['results'][0]['total_size_byte'], 12 * 5)
+        self.assertEqual(Decimal(r.data['results'][0]['total_original_amount']), Decimal(f'{12 * 10}'))
+        self.assertEqual(Decimal(r.data['results'][0]['total_increment_amount']), Decimal(f'{12}'))

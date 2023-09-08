@@ -4,6 +4,7 @@ from django.utils.translation import gettext as _
 from django.db.models import TextChoices, Sum
 
 from core import errors
+from storage.managers.objects_service import ObjectsServiceManager
 from .models import BucketStatsMonthly
 
 
@@ -15,6 +16,13 @@ class BktStatsMonthQueryOrderBy(TextChoices):
     AMOUNT_ASC = 'original_amount', _('按计量金额升序')
     AMOUNT_DESC = '-original_amount', _('按计量金额降序')
     CREATION_TIME_DESC = '-creation_time', _('按创建时间降序')
+
+
+class StorageAggQueryOrderBy(TextChoices):
+    INCR_SIZE_ASC = 'total_increment_byte', _('按容量增量升序')
+    INCR_SIZE_DESC = '-total_increment_byte', _('按容量增量降序')
+    AMOUNT_ASC = 'total_original_amount', _('按计量金额升序')
+    AMOUNT_DESC = '-total_original_amount', _('按计量金额降序')
 
 
 class BucketStatsMonthlyManager:
@@ -41,11 +49,14 @@ class BucketStatsMonthlyManager:
         if bucket_id:
             lookups['bucket_id'] = bucket_id
 
-        if date_start:
-            lookups['date__gte'] = date_start
+        if date_start and date_end and date_start == date_end:
+            lookups['date'] = date_start
+        else:
+            if date_start:
+                lookups['date__gte'] = date_start
 
-        if date_end:
-            lookups['date__lte'] = date_end
+            if date_end:
+                lookups['date__lte'] = date_end
 
         if user_id:
             lookups['user_id'] = user_id
@@ -117,3 +128,47 @@ class BucketStatsMonthlyManager:
             total_original_amount=Sum('original_amount', default=Decimal('0.00')),
             total_increment_amount=Sum('increment_amount', default=Decimal('0.00')),
         ).order_by('-date')
+
+    def admin_aggregate_storage_by_service(self, _date, order_by=None, service_ids: list = None):
+        """
+        管理员查询存储的指定月度各服务单元统计数据
+        """
+        queryset = self.admin_bkt_stats_queryset(
+            service_ids=service_ids, date_start=_date, date_end=_date
+        )
+        return self._aggregate_by_service(queryset, order_by=order_by)
+
+    @staticmethod
+    def _aggregate_by_service(queryset, order_by: str = None):
+        if not order_by:
+            order_by = 'service_id'
+
+        return queryset.values('service_id').annotate(
+            total_size_byte=Sum('size_byte', default=0),
+            total_increment_byte=Sum('increment_byte', default=0),
+            total_original_amount=Sum('original_amount', default=Decimal('0.00')),
+            total_increment_amount=Sum('increment_amount', default=Decimal('0.00')),
+        ).order_by(order_by)
+
+    @staticmethod
+    def agg_by_service_mixin_data(data: list):
+        """
+        按服务单元聚合的数据混合额外数据
+        """
+        if not data:
+            return data
+
+        service_ids = [i['service_id'] for i in data]
+        services = ObjectsServiceManager.get_service_qs_by_ids(
+            service_ids=service_ids).order_by().values('id', 'name', 'name_en')
+
+        service_map = {s['id']: s for s in services}
+
+        for d in data:
+            s_id = d['service_id']
+            if s_id in service_map:
+                d['service'] = (service_map[s_id])
+            else:
+                d['service'] = None
+
+        return data

@@ -4,6 +4,7 @@ from django.utils.translation import gettext_lazy, gettext as _
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.serializers import Serializer
 from rest_framework.response import Response
+from rest_framework.decorators import action
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
@@ -11,7 +12,7 @@ from core import errors
 from api.viewsets import NormalGenericViewSet
 from api.paginations import NewPageNumberPagination100
 from api.serializers import report as report_serializers
-from report.managers import BktStatsMonthQueryOrderBy, BucketStatsMonthlyManager
+from report.managers import BktStatsMonthQueryOrderBy, BucketStatsMonthlyManager, StorageAggQueryOrderBy
 from utils.paginators import NoPaginatorInspector
 
 
@@ -242,6 +243,86 @@ class StorageStatsMonthlyViewSet(NormalGenericViewSet):
                 data.append(item)
 
             return Response(data={'results': data})
+        except Exception as exc:
+            return self.exception_response(exc)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举指定月份各服务单元的对象存储容量与计费金额月度统计数据'),
+        paginator_inspectors=[NoPaginatorInspector],
+        manual_parameters=[
+            openapi.Parameter(
+                name='date',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description=gettext_lazy('年月，格式：YYYY-MM')
+            ),
+            openapi.Parameter(
+                name='order_by',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'排序方式，默认按创建时间降序，{StorageAggQueryOrderBy.choices}'
+            ),
+        ],
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['GET'], detail=False, url_path='service', url_name='service')
+    def agg_by_service(self, request, *args, **kwargs):
+        """
+        列举指定月份各服务单元的对象存储容量与计费金额月度统计数据，以联邦管理员身份查询
+
+            http code 200：
+            {
+              "date": "2023-08",
+              "results": [
+                {
+                  "service": {
+                    "id": "xxx",
+                    "name": "xxx",
+                    "name_en": "xxx"
+                  },
+                  "service_id": "xxx",
+                  "total_size_byte": 1234456789,    # 存储总容量
+                  "total_increment_byte": 10,       # 本月总容量增量
+                  "total_original_amount": 0.72,    # 本月总计量金额
+                  "total_increment_amount": 0.12    # 本月总计量金额增量
+                }
+              ]
+            }
+        """
+        query_date = request.query_params.get('date', None)
+        order_by = request.query_params.get('order_by', None)
+
+        try:
+            if query_date is None:
+                raise errors.InvalidArgument(message=_('必须指定查询年月'))
+
+            try:
+                query_date = datetime.date.fromisoformat(query_date + '-01')
+            except (TypeError, ValueError):
+                raise errors.InvalidArgument(message=_('指定查询年月格式无效'))
+
+            if order_by is not None:
+                if order_by not in StorageAggQueryOrderBy.values:
+                    raise errors.InvalidArgument(message=_('指定的排序方式无效'), code='InvalidOrderBy')
+        except Exception as exc:
+            return self.exception_response(exc)
+
+        user = request.user
+        if not user.is_federal_admin():
+            return self.exception_response(exc=errors.AccessDenied(message=_('你没有联邦管理员权限')))
+
+        qs = BucketStatsMonthlyManager().admin_aggregate_storage_by_service(
+            _date=query_date, service_ids=None, order_by=order_by
+        )
+
+        try:
+            ym = f"{query_date.year:04}-{query_date.month:02}"
+            data = BucketStatsMonthlyManager.agg_by_service_mixin_data(data=list(qs))
+            return Response(data={'date': ym, 'results': data})
         except Exception as exc:
             return self.exception_response(exc)
 
