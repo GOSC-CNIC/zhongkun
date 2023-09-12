@@ -211,7 +211,7 @@ REST_FRAMEWORK = {
 }
 
 
-LOGGING_FILES_DIR = Path('/var/log/gosc')
+LOGGING_FILES_DIR = Path('/var/log/vms')
 if not LOGGING_FILES_DIR.exists():
     LOGGING_FILES_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -337,14 +337,15 @@ WEBSITE_CONFIG = {
 # 任务管理命令 python3 manage.py crontabtask add/remove/show
 CRONTABJOBS = [
     ('task1_metering', '0 9 * * *',
-     'python3 /home/uwsgi/vms/metering/timedelta_metering.py >> /var/log/vms/metering.log'),
-    ('task2_bkt_monthly', '0 12 28 * *', 'python3 /home/uwsgi/vms/scripts/run_bucket_monthly_stats.py',),
+     'python3 /home/uwsgi/vms/metering/timedelta_metering.py >> /var/log/vms/task_metering.log'),
+    ('task2_bkt_monthly', '0 12 28 * *',
+     'python3 /home/uwsgi/vms/scripts/run_bucket_monthly_stats.py',),
     ('task3_monthly_report', '0 17 28 * *',
-     'python3 /home/uwsgi/vms/scripts/run_generate_and_email_month_report.py >> /var/log/vms/monthly_report.log'),
+     'python3 /home/uwsgi/vms/scripts/run_generate_and_email_month_report.py >> /var/log/vms/task_monthly_report.log'),
     ('task4_logsite_timecount', '*/1 * * * *',
-     'python3 /home/uwsgi/vms/scripts/run_log_site_req_num.py /var/log/vms/logsite_timecount.log'),
+     'python3 /home/uwsgi/vms/scripts/run_log_site_req_num.py /var/log/vms/task_logsite_timecount.log'),
     ('task5_req_num', '0 */1 * * *',
-     'python3 /home/uwsgi/vms/scripts/update_service_req_num.py >> /var/log/vms/update_req_num.log')
+     'python3 /home/uwsgi/vms/scripts/update_service_req_num.py >> /var/log/vms/task_update_req_num.log')
 ]
 
 # 安全配置导入
