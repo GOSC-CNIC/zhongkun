@@ -24,6 +24,7 @@ alibabacloud-vpc20160428 = "==2.0.20"
 alibabacloud-ecs20140526 = "==3.0.2"
 shortuuid = "==1.0.11"
 django-tidb = "==4.2.1"
+python-crontab = "==3.0.0"
 
 [requires]
 python_version = "3.9"
