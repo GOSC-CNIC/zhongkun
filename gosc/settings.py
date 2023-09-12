@@ -343,7 +343,7 @@ CRONTABJOBS = [
     ('task3_monthly_report', '0 17 28 * *',
      'python3 /home/uwsgi/vms/scripts/run_generate_and_email_month_report.py >> /var/log/vms/task_monthly_report.log'),
     ('task4_logsite_timecount', '*/1 * * * *',
-     'python3 /home/uwsgi/vms/scripts/run_log_site_req_num.py /var/log/vms/task_logsite_timecount.log'),
+     'python3 /home/uwsgi/vms/scripts/run_log_site_req_num.py >> /var/log/vms/task_logsite_timecount.log'),
     ('task5_req_num', '0 */1 * * *',
      'python3 /home/uwsgi/vms/scripts/update_service_req_num.py >> /var/log/vms/task_update_req_num.log')
 ]
