@@ -140,7 +140,8 @@ class LogSiteReqCounter:
             now_timestamp = self.get_now_timestamp()
             try:
                 r_num = self.get_site_req_num(site=site, until_timestamp=now_timestamp, minutes=self.minutes)
-            except Exception:
+            except Exception as exc:
+                print(f'{timezone.now().isoformat(timespec="seconds")},{site.name},{exc}')
                 continue
 
             obj = self.create_req_num_log(timestamp=now_timestamp, log_site_id=site.id, req_num=r_num)
