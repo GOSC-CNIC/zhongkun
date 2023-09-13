@@ -13,7 +13,7 @@ from monitor.tests import (
 )
 from monitor.models import (
     MonitorJobCeph, MonitorProvider, MonitorJobServer, WebsiteDetectionPoint,
-    MonitorWebsite, MonitorWebsiteTask, MonitorWebsiteVersion, get_str_hash
+    MonitorWebsite, MonitorWebsiteRecord, MonitorWebsiteTask, MonitorWebsiteVersion, get_str_hash
 )
 from monitor.managers import (
     CephQueryChoices, ServerQueryChoices, VideoMeetingQueryChoices, WebsiteQueryChoices,
@@ -1033,6 +1033,11 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(version.version, 1)
         self.assertEqual(MonitorWebsite.objects.count(), 2)
         self.assertEqual(MonitorWebsiteTask.objects.count(), 1)
+        self.assertEqual(MonitorWebsiteRecord.objects.count(), 1)
+        record1: MonitorWebsiteRecord = MonitorWebsiteRecord.objects.first()
+        self.assertEqual(user_website1.full_url, record1.full_url)
+        self.assertEqual(user_website1.creation, record1.creation)
+        self.assertEqual(record1.type, MonitorWebsiteRecord.RecordType.DELETED.value)
 
         # user delete website2 ok
         task2.refresh_from_db()
@@ -1049,6 +1054,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(MonitorWebsiteTask.objects.count(), 1)
         task = MonitorWebsiteTask.objects.first()
         self.assertEqual(task.url, user2_website2.url)
+        self.assertEqual(MonitorWebsiteRecord.objects.count(), 2)
 
     def test_task_version_list(self):
         url = reverse('api:monitor-website-task-version')

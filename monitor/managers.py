@@ -14,7 +14,7 @@ from api.serializers.monitor import (
 from .models import (
     MonitorJobCeph, MonitorProvider, MonitorJobServer, MonitorJobVideoMeeting,
     MonitorWebsite, MonitorWebsiteTask, MonitorWebsiteVersion, get_str_hash,
-    WebsiteDetectionPoint, MonitorJobTiDB
+    WebsiteDetectionPoint, MonitorJobTiDB, MonitorWebsiteRecord
 )
 from .backends.monitor_ceph import MonitorCephQueryAPI
 from .backends.monitor_server import MonitorServerQueryAPI
@@ -506,6 +506,8 @@ class MonitorWebsiteManager:
             with transaction.atomic():
                 version = MonitorWebsiteVersion.get_instance(select_for_update=True)
                 user_website.delete()
+                # 站点监控删除记录
+                MonitorWebsiteRecord.create_record_for_website(site=user_website)
                 # 除了要移除的站点，是否还有监控网址相同的 监控任务
                 count = MonitorWebsite.objects.filter(url_hash=user_website.url_hash, url=full_url).count()
                 if count == 0:

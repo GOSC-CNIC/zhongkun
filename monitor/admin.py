@@ -7,8 +7,8 @@ from django.core.exceptions import ValidationError
 from utils.model import NoDeleteSelectModelAdmin
 from .models import (
     MonitorJobCeph, MonitorProvider, MonitorJobServer, MonitorJobVideoMeeting,
-    MonitorWebsite, MonitorWebsiteTask, MonitorWebsiteVersion,
-    get_str_hash, WebsiteDetectionPoint, MonitorJobTiDB, LogSiteType, LogSite,
+    MonitorWebsite, MonitorWebsiteRecord, MonitorWebsiteTask, MonitorWebsiteVersion,
+    WebsiteDetectionPoint, MonitorJobTiDB, LogSiteType, LogSite,
     TotalReqNum, LogSiteTimeReqNum
 )
 from .managers import MonitorWebsiteManager
@@ -96,6 +96,15 @@ class MonitorWebsiteAdmin(NoDeleteSelectModelAdmin):
         MonitorWebsiteManager.do_delete_website_task(user_website=obj)
 
 
+@admin.register(MonitorWebsiteRecord)
+class MonitorWebsiteRecordAdmin(NoDeleteSelectModelAdmin):
+    list_display = ('id', 'name', 'is_tamper_resistant', 'scheme', 'hostname', 'uri',
+                    'url_hash', 'creation', 'modification', 'username', 'record_time', 'type')
+    list_display_links = ('id', 'name')
+    search_fields = ('name', 'hostname', 'uri', 'username')
+    readonly_fields = ('url_hash',)
+
+
 @admin.register(MonitorWebsiteTask)
 class MonitorWebsiteTaskAdmin(admin.ModelAdmin):
     list_display = ('id', 'url', 'url_hash', 'creation')
@@ -109,7 +118,7 @@ class MonitorWebsiteTaskAdmin(admin.ModelAdmin):
 
 @admin.register(MonitorWebsiteVersion)
 class MonitorWebsiteVersionProviderAdmin(NoDeleteSelectModelAdmin):
-    list_display = ('id', 'version', 'creation', 'modification')
+    list_display = ('id', 'version', 'creation', 'modification', 'pay_app_service_id')
     list_display_links = ('id', )
     readonly_fields = ('id', 'creation', 'modification')
 

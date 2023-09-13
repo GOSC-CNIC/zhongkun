@@ -205,33 +205,46 @@ class MonitorJobVideoMeeting(UuidModel):
         return self.name
 
 
-class MonitorWebsite(UuidModel):
+class MonitorWebsiteBase(UuidModel):
     """
-    网站监控
+    网站监控基类
     """
     name = models.CharField(verbose_name=_('网站名称'), max_length=255, default='')
-    url = models.URLField(verbose_name=_('要监控的网址'), max_length=2048, default='', help_text='http(s)://xxx.xxx')
     url_hash = models.CharField(verbose_name=_('网址hash值'), max_length=64, default='')
     creation = models.DateTimeField(verbose_name=_('创建时间'))
     modification = models.DateTimeField(verbose_name=_('修改时间'))
     remark = models.CharField(verbose_name=_('备注'), max_length=255, blank=True, default='')
-    user = models.ForeignKey(
-        verbose_name=_('用户'), to=UserProfile, related_name='+',
-        on_delete=models.SET_NULL, blank=True, null=True, db_constraint=False)
-    is_attention = models.BooleanField(verbose_name=_('特别关注'), default=False)
     is_tamper_resistant = models.BooleanField(verbose_name=_('防篡改'), default=False)
     scheme = models.CharField(verbose_name=_('协议'), max_length=32, default='', help_text='https|ftps://')
     hostname = models.CharField(verbose_name=_('域名'), max_length=255, default='', help_text='hostname:8000')
     uri = models.CharField(verbose_name=_('URI'), max_length=1024, default='', help_text='/a/b?query=123#test')
 
     class Meta:
+        abstract = True
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def full_url(self):
+        return self.scheme + self.hostname + self.uri
+
+
+class MonitorWebsite(MonitorWebsiteBase):
+    """
+    网站监控
+    """
+    url = models.URLField(verbose_name=_('要监控的网址'), max_length=2048, default='', help_text='http(s)://xxx.xxx')
+    user = models.ForeignKey(
+        verbose_name=_('用户'), to=UserProfile, related_name='+',
+        on_delete=models.SET_NULL, blank=True, null=True, db_constraint=False)
+    is_attention = models.BooleanField(verbose_name=_('特别关注'), default=False)
+
+    class Meta:
         db_table = 'monitor_website'
         ordering = ['-creation']
         verbose_name = _('网站监控')
         verbose_name_plural = verbose_name
-
-    def __str__(self):
-        return self.name
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
         url_hash = get_str_hash(self.full_url)
@@ -242,9 +255,44 @@ class MonitorWebsite(UuidModel):
 
         super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
 
-    @property
-    def full_url(self):
-        return self.scheme + self.hostname + self.uri
+
+class MonitorWebsiteRecord(MonitorWebsiteBase):
+    """
+    网站监控记录
+    """
+    class RecordType(models.TextChoices):
+        DELETED = 'deleted', _('删除')
+
+    user_id = models.CharField(verbose_name=_('用户ID'), max_length=36, blank=True, default='')
+    username = models.CharField(verbose_name=_('用户名'), max_length=128, blank=True, default='')
+    record_time = models.DateTimeField(verbose_name=_('记录时间'))
+    type = models.CharField(verbose_name=_('记录类型'), max_length=16, choices=RecordType.choices,)
+
+    class Meta:
+        db_table = 'monitor_website_record'
+        ordering = ['-record_time']
+        verbose_name = _('网站监控任务记录')
+        verbose_name_plural = verbose_name
+
+    @classmethod
+    def create_record_for_website(cls, site: MonitorWebsite):
+        record = cls(
+            name=site.name,
+            url_hash=site.url_hash,
+            creation=site.creation,
+            modification=site.modification,
+            remark=site.remark,
+            is_tamper_resistant=site.is_tamper_resistant,
+            scheme=site.scheme,
+            hostname=site.hostname,
+            uri=site.uri,
+            user_id=site.user_id,
+            username=site.user.username,
+            record_time=timezone.now(),
+            type=cls.RecordType.DELETED.value
+        )
+        record.save(force_insert=True)
+        return record
 
 
 class MonitorWebsiteTask(UuidModel):
@@ -281,6 +329,9 @@ class MonitorWebsiteVersion(models.Model):
         verbose_name=_('监控任务版本号'), default=1, help_text=_('用于区分网站监控任务表是否有变化'))
     creation = models.DateTimeField(verbose_name=_('创建时间'))
     modification = models.DateTimeField(verbose_name=_('修改时间'))
+    pay_app_service_id = models.CharField(
+        verbose_name=_('余额结算APP子服务ID'), max_length=36, default='',
+        help_text=_('此服务对应的APP服务（注册在余额结算中的APP服务）id，扣费时需要此id，用于指定哪个服务发生的扣费'))
 
     class Meta:
         db_table = 'monitor_website_version_provider'
