@@ -1,3 +1,4 @@
+import asyncio
 from urllib.parse import urlencode
 from datetime import datetime
 
@@ -6,6 +7,7 @@ from django.utils import timezone
 from django.conf import settings
 
 from monitor.models import TotalReqNum, LogSite, LogSiteTimeReqNum
+from monitor.backends.log import LogLokiAPI
 
 
 def get_today_start_time():
@@ -122,7 +124,7 @@ class LogSiteReqCounter:
         self.minutes = minutes
 
     def run(self):
-        sites_count, ok_count = self.generate_req_num_log()
+        sites_count, ok_count = self.async_generate_req_num_log()
         print(f'End，log sites: {sites_count}, ok: {ok_count}')
 
     @staticmethod
@@ -130,35 +132,53 @@ class LogSiteReqCounter:
         qs = LogSite.objects.select_related('provider').all()
         return list(qs)
 
-    def generate_req_num_log(self):
-        """
-        sites: [LogSite]
-        """
+    def async_generate_req_num_log(self):
         sites = self.get_log_sites()
-        ok_count = 0
-        for site in sites:
-            now_timestamp = self.get_now_timestamp()
-            try:
-                r_num = self.get_site_req_num(site=site, until_timestamp=now_timestamp, minutes=self.minutes)
-            except Exception as exc:
-                print(f'{timezone.now().isoformat(timespec="seconds")},{site.name},{exc}')
-                continue
+        if not sites:
+            return 0, 0
 
-            obj = self.create_req_num_log(timestamp=now_timestamp, log_site_id=site.id, req_num=r_num)
-            if obj:
-                ok_count += 1
-
+        now_timestamp = self.get_now_timestamp()
+        tasks = [self.req_num_for_site(site=site, now_timestamp=now_timestamp) for site in sites]
+        ok_count = self.do_tasks(tasks=tasks)
         return len(sites), ok_count
 
+    def do_tasks(self, tasks: list):
+        results = asyncio.run(self.do_async_requests(tasks))
+
+        ok_count = 0
+        for r in results:
+            if isinstance(r, tuple) and len(r) == 3:
+                site_id, r_num, now_timestamp = r
+                obj = self.create_req_num_log(timestamp=now_timestamp, log_site_id=site_id, req_num=r_num)
+                if obj:
+                    ok_count += 1
+            else:
+                print(r)
+                continue
+
+        return ok_count
+
     @staticmethod
-    def get_site_req_num(site: LogSite, until_timestamp: int, minutes: int):
+    async def do_async_requests(tasks):
+        return await asyncio.gather(*tasks, return_exceptions=True)
+
+    async def req_num_for_site(self, site: LogSite, now_timestamp: int):
+        try:
+            r_num = await self.get_site_req_num(site=site, until_timestamp=now_timestamp, minutes=self.minutes)
+        except Exception as exc:
+            raise Exception(f'{timezone.now().isoformat(timespec="seconds")},{site.name},{exc}')
+
+        return site.id, r_num, now_timestamp
+
+    @staticmethod
+    async def get_site_req_num(site: LogSite, until_timestamp: int, minutes: int):
         value = f'count_over_time({{job="{site.job_tag}"}}[{minutes}m])'
         querys = {'query': value, 'time': until_timestamp}
-        from monitor.backends.log import LogLokiAPI
+
         try:
-            result = LogLokiAPI().query(provider=site.provider, querys=querys)
+            result = await LogLokiAPI().async_query(provider=site.provider, querys=querys)
         except Exception:
-            result = LogLokiAPI().query(provider=site.provider, querys=querys)
+            result = await LogLokiAPI().async_query(provider=site.provider, querys=querys)
 
         if result:
             value = result[0]['value']

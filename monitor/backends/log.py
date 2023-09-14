@@ -1,5 +1,7 @@
-import requests
 from urllib import parse
+
+import requests
+import aiohttp
 
 from core import errors
 from monitor.models import MonitorProvider
@@ -79,3 +81,39 @@ class LogLokiAPI:
         endpoint_url = endpoint_url.rstrip('/')
         query = parse.urlencode(query=querys)
         return f'{endpoint_url}/loki/api/v1/query?{query}'
+
+    async def async_query(self, provider: MonitorProvider, querys: dict):
+        """
+        :return:
+        """
+        api_url = self._build_query_api(endpoint_url=provider.endpoint_url, querys=querys)
+        return await self._async_request_query_api(url=api_url)
+
+    @staticmethod
+    async def _async_request_query_api(url: str):
+        """
+        :raises: Error
+        """
+        try:
+            async with aiohttp.ClientSession() as client:
+                r = await client.get(url=url, timeout=aiohttp.ClientTimeout(connect=5, total=30))
+        except requests.exceptions.Timeout:
+            raise errors.Error(message='log backend,query api request timeout')
+        except requests.exceptions.RequestException:
+            raise errors.Error(message='log backend,query api request error')
+
+        status_code = r.status
+        if 300 > status_code >= 200:
+            data = await r.json()
+            s = data.get('status')
+            if s == 'success':
+                return data['data']['result']
+
+        try:
+            data = await r.json()
+            msg = f"status: {status_code}, errorType: {data.get('errorType')}, error: {data.get('error')}"
+        except Exception as e:
+            text = await r.text()
+            msg = f"status: {status_code}, error: {text}"
+
+        raise errors.Error(message=msg)
