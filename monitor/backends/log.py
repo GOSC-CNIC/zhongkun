@@ -50,8 +50,8 @@ class LogLokiAPI:
         except requests.exceptions.RequestException:
             raise errors.Error(message='log backend,query api request error')
 
-        data = r.json()
         if 300 > r.status_code >= 200:
+            data = r.json()
             s = data.get('status')
             if s == 'success':
                 return data['data']['result']
@@ -60,8 +60,12 @@ class LogLokiAPI:
 
     @staticmethod
     def _build_error(r):
-        data = r.json()
-        msg = f"status: {r.status_code}, errorType: {data.get('errorType')}, error: {data.get('error')}"
+        try:
+            data = r.json()
+            msg = f"status: {r.status_code}, errorType: {data.get('errorType')}, error: {data.get('error')}"
+        except Exception as e:
+            msg = f"status: {r.status_code}, error: {r.text}"
+
         return errors.Error(message=msg)
 
     @staticmethod
