@@ -52,8 +52,8 @@ class TradeTestViewSet(PaySignGenericViewSet):
                 * app service可以理解为在app下进一步细分了一个层级，例如一个接入的app下有云主机和存储2种资源服务，结算的时候2种资源的订单费用
                   想分别结算，就可以分别注册一个app service 1和app service 2，不想分开结算就注册一个app service，支付交易记录会记录
                   app service id。
-                * 余额结算系统有代金券，一个代金券绑定到一个app service，券的结算使用限制在对应的app service，在app下细分一
-                  个app service层级，也是为了细分代金券的结算使用范围（有的券只能用于云主机资源订单费用抵扣，有的券只能用于存储资源订单费用抵扣）。
+                * 余额结算系统有资源券，一个资源券绑定到一个app service，券的结算使用限制在对应的app service，在app下细分一
+                  个app service层级，也是为了细分资源券的结算使用范围（有的券只能用于云主机资源订单费用抵扣，有的券只能用于存储资源订单费用抵扣）。
                 * 余额结算系统每个app需要配置app接入者一方的RSA2048密钥对的公钥，用于双方的签名认证。
 
             ## 请求签名生成规则：

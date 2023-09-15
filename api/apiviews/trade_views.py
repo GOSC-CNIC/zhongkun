@@ -39,14 +39,14 @@ class TradeChargeViewSet(PaySignGenericViewSet):
             {
                 "id": "202207190608088519002990",
                 "subject": "云主机（订购）8个月",
-                "payment_method": "balance",    # balance(余额支付)；coupon(代金券支付)；balance+coupon(余额+代金卷)
+                "payment_method": "balance",    # balance(余额支付)；coupon(资源券支付)；balance+coupon(余额+资源券)
                 "executor": "",
                 "payer_id": "28b94370-0729-11ed-8d9d-c8009fe2ebbc", # 支付者id
                 "payer_name": "lilei@xx.com",       # 支付者名称
                 "payer_type": "user",               # user(支付者是用户)；vo(支付者是VO组)
                 "payable_amounts": "1.99",    # 应付金额
                 "amounts": "-1.99",         # 余额扣费金额
-                "coupon_amount": "0.00",    # 代金券扣费金额
+                "coupon_amount": "0.00",    # 资源券扣费金额
                 "creation_time": "2022-04-07T07:59:22.695692Z",       # 创建时间
                 "payment_time": "2022-07-19T06:08:08.852251Z",      # 支付完成时间，未支付成功时为空
                 "status": "success",  # wait: 未支付；success: 成功；error: 支付失败；closed: 交易关闭
@@ -93,14 +93,14 @@ class TradeChargeViewSet(PaySignGenericViewSet):
             {
                 "id": "202207190608088519002990",
                 "subject": "云主机（订购）8个月",
-                "payment_method": "balance",    # balance(余额支付)；coupon(代金券支付)；balance+coupon(余额+代金卷)
+                "payment_method": "balance",    # balance(余额支付)；coupon(资源券支付)；balance+coupon(余额+资源券)
                 "executor": "",
                 "payer_id": "28b94370-0729-11ed-8d9d-c8009fe2ebbc", # 支付者id
                 "payer_name": "lilei@xx.com",       # 支付者名称
                 "payer_type": "user",               # user(支付者是用户)；vo(支付者是VO组)
                 "payable_amounts": "1.99",    # 应付金额
                 "amounts": "-1.99",         # 余额扣费金额
-                "coupon_amount": "0.00",    # 代金券扣费金额
+                "coupon_amount": "0.00",    # 资源券扣费金额
                 "creation_time": "2022-04-07T07:59:22.695692Z",       # 创建时间
                 "payment_time": "2022-07-19T06:08:08.852251Z",      # 支付完成时间，未支付成功时为空
                 "status": "success",  # wait: 未支付；success: 成功；error: 支付失败；closed: 交易关闭
@@ -177,14 +177,14 @@ class TradeQueryViewSet(PaySignGenericViewSet):
             {
                 "id": "202207190608088519002990",
                 "subject": "云主机（订购）8个月",
-                "payment_method": "balance",    # balance(余额支付)；coupon(代金券支付)；balance+coupon(余额+代金卷)
+                "payment_method": "balance",    # balance(余额支付)；coupon(资源券支付)；balance+coupon(余额+资源券)
                 "executor": "",
                 "payer_id": "28b94370-0729-11ed-8d9d-c8009fe2ebbc", # 支付者id
                 "payer_name": "lilei@xx.com",       # 支付者名称
                 "payer_type": "user",               # user(支付者是用户)；vo(支付者是VO组)
                 "payable_amounts": "1.99",    # 应付金额
                 "amounts": "-1.99",         # 余额扣费金额
-                "coupon_amount": "0.00",    # 代金券扣费金额
+                "coupon_amount": "0.00",    # 资源券扣费金额
                 "creation_time": "2022-04-07T07:59:22.695692Z",       # 创建时间
                 "payment_time": "2022-07-19T06:08:08.852251Z",      # 支付完成时间，未支付成功时为空
                 "status": "success",  # wait: 未支付；success: 成功；error: 支付失败；closed: 交易关闭
@@ -239,14 +239,14 @@ class TradeQueryViewSet(PaySignGenericViewSet):
             {
                 "id": "202207190608088519002990",
                 "subject": "云主机（订购）8个月",
-                "payment_method": "balance",    # balance(余额支付)；coupon(代金券支付)；balance+coupon(余额+代金卷)
+                "payment_method": "balance",    # balance(余额支付)；coupon(资源券支付)；balance+coupon(余额+资源券)
                 "executor": "",
                 "payer_id": "28b94370-0729-11ed-8d9d-c8009fe2ebbc", # 支付者id
                 "payer_name": "lilei@xx.com",       # 支付者名称
                 "payer_type": "user",               # user(支付者是用户)；vo(支付者是VO组)
                 "payable_amounts": "1.99",    # 应付金额
                 "amounts": "-1.99",         # 余额扣费金额
-                "coupon_amount": "0.00",    # 代金券扣费金额
+                "coupon_amount": "0.00",    # 资源券扣费金额
                 "creation_time": "2022-04-07T07:59:22.695692Z",       # 创建时间
                 "payment_time": "2022-07-19T06:08:08.852251Z",      # 支付完成时间，未支付成功时为空
                 "status": "success",  # wait: 未支付；success: 成功；error: 支付失败；closed: 交易关闭
@@ -353,7 +353,7 @@ class TradeRefundViewSet(PaySignGenericViewSet):
                 "total_amounts": "100.00",  # 退款对应的交易订单总金额
                 "refund_amounts": "10.00",  # 请求退款金额
                 "real_refund": "6.00",      # 实际退款金额
-                "coupon_refund": "4.00",    # 本次退款代金券占比金额，此金额不退。
+                "coupon_refund": "4.00",    # 本次退款资源券占比金额，此金额不退。
                 "creation_time": "2022-12-01T02:12:04.207445Z",
                 "success_time": "2022-12-01T02:12:04.221869Z",
                 "status": "success",    # wait：未退款；success：退款成功；error：退款失败；closed: 交易关闭（未退款时撤销了退款）
@@ -431,7 +431,7 @@ class TradeRefundViewSet(PaySignGenericViewSet):
                 "total_amounts": "100.00",  # 退款对应的交易订单总金额
                 "refund_amounts": "10.00",  # 请求退款金额
                 "real_refund": "6.00",      # 实际退款金额
-                "coupon_refund": "4.00",    # 本次退款代金券占比金额，此金额不退。
+                "coupon_refund": "4.00",    # 本次退款资源券占比金额，此金额不退。
                 "creation_time": "2022-12-01T02:12:04.207445Z",
                 "success_time": "2022-12-01T02:12:04.221869Z",
                 "status": "success",    # wait：未退款；success：退款成功；error：退款失败；closed: 交易关闭（未退款时撤销了退款）

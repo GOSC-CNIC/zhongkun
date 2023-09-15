@@ -339,7 +339,7 @@ class ServerManager:
         else:
             if ServerManager.is_server_arrearage(server):
                 raise errors.ArrearageSuspending(
-                    message=_('云主机已欠费，不允许开机，请充值后或者获得云主机所属服务单元的代金券后重试。'))
+                    message=_('云主机已欠费，不允许开机，请充值后或者获得云主机所属服务单元的资源券后重试。'))
 
     def do_arrearage_suspend_server(self, server: Server):
         """

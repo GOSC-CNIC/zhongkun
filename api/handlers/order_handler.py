@@ -141,12 +141,12 @@ class OrderHandler:
 
         if payment_method == Order.PaymentMethod.BALANCE.value:
             if coupon_ids:
-                raise errors.BadRequest(message=_('仅余额支付方式不能指定代金券'), code='CouponIDsShouldNotExist')
+                raise errors.BadRequest(message=_('仅余额支付方式不能指定资源券'), code='CouponIDsShouldNotExist')
             only_coupon = False
             coupon_ids = []
         elif payment_method == Order.PaymentMethod.CASH_COUPON.value:
             if not coupon_ids:
-                raise errors.BadRequest(message=_('仅代金券支付方式必须指定代金券'), code='MissingCouponIDs')
+                raise errors.BadRequest(message=_('仅资源券支付方式必须指定资源券'), code='MissingCouponIDs')
             only_coupon = True
         elif payment_method == CASH_COUPON_BALANCE:
             only_coupon = False
@@ -159,10 +159,10 @@ class OrderHandler:
                 raise errors.BadRequest(message=_('参数“coupon_ids”的值不能为空'), code='InvalidCouponIDs')
 
             if len(coupon_ids) > 5:
-                raise errors.BadRequest(message=_('最多可以指定使用5个代金券'), code='TooManyCouponIDs')
+                raise errors.BadRequest(message=_('最多可以指定使用5个资源券'), code='TooManyCouponIDs')
 
             if len(coupon_set) != len(coupon_ids):
-                raise errors.BadRequest(message=_('指定的代金券有重复'), code='DuplicateCouponIDExist')
+                raise errors.BadRequest(message=_('指定的资源券有重复'), code='DuplicateCouponIDExist')
 
         return order_id, coupon_ids, only_coupon
 

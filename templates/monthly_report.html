@@ -32,7 +32,7 @@
     </div>
     <div>
         <p>尊敬的 {{ user.username }}，您好！<br/>
-         <span class="text-indent">感谢您使用中国科技云一体化云服务平台，以下为您<span style="font-weight: bold">{{ report_period_start_time|date:'Y年m月d日' }}0时至{{ report_period_end_time|date:'Y年m月d日' }}24时</span>资源用量结算情况和账户代金券情况。
+         <span class="text-indent">感谢您使用中国科技云一体化云服务平台，以下为您<span style="font-weight: bold">{{ report_period_start_time|date:'Y年m月d日' }}0时至{{ report_period_end_time|date:'Y年m月d日' }}24时</span>资源用量结算情况和账户资源券情况。
          </span>
         </p>
     </div>
@@ -185,12 +185,12 @@
     </div>
     <div class="section">
         {% if user_coupons_length or vo_coupons_length %}
-        <span class="text-indent">代金券情况</span>
+        <span class="text-indent">资源券情况</span>
         {% if user_coupons_length %}
         <table style="margin-top: 0;">
-            <tr><td colspan="6" class="title1">个人代金券（{{ user_coupons_length }}张）</td></tr>
+            <tr><td colspan="6" class="title1">个人资源券（{{ user_coupons_length }}张）</td></tr>
             <tr class="title2">
-                <td style="width: 14%;">代金券编号</td>
+                <td style="width: 14%;">资源券编号</td>
                 <td style="width: 18%;">到期时间</td>
                 <td style="width: 24%;">服务单元</td>
                 <td style="width: 16%;">资源类型</td>
@@ -231,9 +231,9 @@
         {% endif %}
         {% if vo_coupons_length %}
         <table style="padding-top:0;margin-top: 0;border-top: none">
-            <tr><td colspan="7" class="title1">项目组代金券（{{ vo_coupons_length }}张）</td></tr>
+            <tr><td colspan="7" class="title1">项目组资源券（{{ vo_coupons_length }}张）</td></tr>
             <tr class="title2">
-                <td style="width: 12%;" >代金券id</td>
+                <td style="width: 12%;" >资源券id</td>
                 <td style="width: 10%;" >到期时间</td>
                 <td style="width: 14%;" >服务单元</td>
                 <td style="width: 14%;" >资源类型</td>
@@ -278,10 +278,10 @@
             {% endif %}
         </table>
         {% endif %}
-        {% else %}<p class="text-indent">您的账户暂无可用代金券。</p>{% endif %}
+        {% else %}<p class="text-indent">您的账户暂无可用资源券。</p>{% endif %}
     </div>
     <div style="margin-top: 10px;">
-        <div style="line-height:2em;" class="text-indent">代金券获取方法:</div>
+        <div style="line-height:2em;" class="text-indent">资源券获取方法:</div>
         <div>
         <span class="text-indent">1.中科院内相关科研合作项目可以申请测试用资源（试用7天），或关注中国科技云相关动态获取免费资源。</span><br>
         <span class="text-indent">2.其它项目用途根据中国科技云云主机成本均摊标准签订协议使用资源。</span><br>

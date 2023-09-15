@@ -223,7 +223,7 @@ class CashCouponActivity(UuidModel, CashCouponBase):
     creator = models.CharField(verbose_name=_('创建人'), max_length=128, blank=True, default='')
 
     class Meta:
-        verbose_name = _('代金券活动/模板')
+        verbose_name = _('资源券活动/模板')
         verbose_name_plural = verbose_name
         db_table = 'cash_coupon_activity'
         ordering = ['-creation_time']
@@ -288,7 +288,7 @@ class CashCoupon(CashCouponBase):
     expire_notice_time = models.DateTimeField(verbose_name=_('过期通知时间'), null=True, blank=True, default=None)
 
     class Meta:
-        verbose_name = _('代金券')
+        verbose_name = _('资源券')
         verbose_name_plural = verbose_name
         db_table = 'cash_coupon'
         ordering = ['-creation_time']
@@ -403,8 +403,8 @@ class PaymentHistory(CustomIdModel):
 
     class PaymentMethod(models.TextChoices):
         BALANCE = 'balance', _('余额')
-        CASH_COUPON = 'coupon', _('代金卷')
-        BALANCE_COUPON = 'balance+coupon', _('余额+代金卷')
+        CASH_COUPON = 'coupon', _('资源券')
+        BALANCE_COUPON = 'balance+coupon', _('余额+资源券')
 
     payment_account = models.CharField(
         verbose_name=_('付款账户'), max_length=36, blank=True, default='',
@@ -422,7 +422,7 @@ class PaymentHistory(CustomIdModel):
         verbose_name=_('需付金额'), max_digits=10, decimal_places=2, default=Decimal('0'))
     amounts = models.DecimalField(verbose_name=_('金额'), max_digits=10, decimal_places=2)
     coupon_amount = models.DecimalField(
-        verbose_name=_('券金额'), max_digits=10, decimal_places=2, help_text=_('代金券或者抵扣金额'), default=Decimal('0'))
+        verbose_name=_('券金额'), max_digits=10, decimal_places=2, help_text=_('资源券或者抵扣金额'), default=Decimal('0'))
     creation_time = models.DateTimeField(verbose_name=_('创建时间'))
     payment_time = models.DateTimeField(verbose_name=_('支付时间'), null=True, default=None)
     status = models.CharField(
@@ -462,7 +462,7 @@ class CashCouponPaymentHistory(CustomIdModel):
     after_payment = models.DecimalField(verbose_name=_('支付后余额'), max_digits=10, decimal_places=2)
 
     class Meta:
-        verbose_name = _('代金券扣费记录')
+        verbose_name = _('资源券扣费记录')
         verbose_name_plural = verbose_name
         db_table = 'cash_coupon_payment'
         ordering = ['-creation_time']
@@ -492,7 +492,7 @@ class TransactionBill(CustomIdModel):
         help_text=_('余额+券金额'))
     amounts = models.DecimalField(verbose_name=_('金额'), max_digits=10, decimal_places=2, help_text='16.66, -8.88')
     coupon_amount = models.DecimalField(
-        verbose_name=_('券金额'), max_digits=10, decimal_places=2, default=Decimal('0'), help_text=_('代金券或者抵扣金额'))
+        verbose_name=_('券金额'), max_digits=10, decimal_places=2, default=Decimal('0'), help_text=_('资源券或者抵扣金额'))
     after_balance = models.DecimalField(verbose_name=_('交易后余额'), max_digits=10, decimal_places=2)
     creation_time = models.DateTimeField(verbose_name=_('创建时间'))
     remark = models.CharField(verbose_name=_('备注信息'), max_length=255, blank=True, default='')
@@ -540,8 +540,8 @@ class RefundRecord(CustomIdModel):
     refund_amounts = models.DecimalField(verbose_name=_('申请退款金额'), max_digits=10, decimal_places=2)
     real_refund = models.DecimalField(verbose_name=_('实际退款金额'), max_digits=10, decimal_places=2)
     coupon_refund = models.DecimalField(
-        verbose_name=_('代金券退款金额'), max_digits=10, decimal_places=2, default=Decimal('0'),
-        help_text=_('代金券或者优惠抵扣金额，此金额不退'))
+        verbose_name=_('资源券退款金额'), max_digits=10, decimal_places=2, default=Decimal('0'),
+        help_text=_('资源券或者优惠抵扣金额，此金额不退'))
     creation_time = models.DateTimeField(verbose_name=_('创建时间'))
     success_time = models.DateTimeField(verbose_name=_('退款成功时间'), null=True, default=None)
     status = models.CharField(

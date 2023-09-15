@@ -797,7 +797,7 @@ class BaseCashCouponPaymentSerializer(serializers.Serializer):
     """
     券扣费记录序列化器
     """
-    cash_coupon_id = serializers.CharField(label=_('代金券编码'))
+    cash_coupon_id = serializers.CharField(label=_('资源券编码'))
     amounts = serializers.DecimalField(label=_('金额'), max_digits=10, decimal_places=2)
     before_payment = serializers.DecimalField(label=_('支付前余额'), max_digits=10, decimal_places=2)
     after_payment = serializers.DecimalField(label=_('支付后余额'), max_digits=10, decimal_places=2)

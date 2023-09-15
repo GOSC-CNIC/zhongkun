@@ -11,8 +11,8 @@
 > app service可以理解为在app下进一步细分了一个层级，例如一个接入的app下有云主机和存储2种资源服务，结算的时候2种资源的订单费用
 想分别结算，就可以分别注册一个app service 1和app service 2，不想分开结算就注册一个app service，支付交易记录会记录
 app service id。   
-> 余额结算系统有代金券，一个代金券绑定到一个app service，券的结算使用限制在对应的app service，在app下细分一
-个app service层级，也是为了细分代金券的结算使用范围（有的券只能用于云主机资源订单费用抵扣，有的券只能用于存储资源订单费用抵扣）。   
+> 余额结算系统有资源券，一个资源券绑定到一个app service，券的结算使用限制在对应的app service，在app下细分一
+个app service层级，也是为了细分资源券的结算使用范围（有的券只能用于云主机资源订单费用抵扣，有的券只能用于存储资源订单费用抵扣）。   
 > 余额结算系统每个app需要配置app接入者一方的RSA2048密钥对的公钥，用于双方的签名认证;
 > app方需要拿到余额结算服务的RSA公钥，用于请求api时响应结果的验签。
 
@@ -251,14 +251,14 @@ Pay-Signature：xxx                # 应答签名
 | :------: | :------: | :--------------------------: | :------: |
 | id  |  sring   | 支付记录编号 | |
 | subject |   sring    | 标题 | |
-| payment_method  |  sring   | 支付方式 | balance(余额支付)；coupon(代金券支付)；balance+coupon(余额+代金卷)           |
+| payment_method  |  sring   | 支付方式 | balance(余额支付)；coupon(资源券支付)；balance+coupon(余额+资源券)           |
 | executor |  sring   | 交易执行人，可忽略 | |
 | payer_id |  sring  | 支付者id | |
 | payer_name |  sring  | 支付者名称 | |
 | payer_type |  sring  | 支付者类型 | user(支付者是用户)；vo(支付者是VO组) |
 | payable_amounts | string | 应付金额 | 需要支付的、要扣除的金额， 例如 66.66 |
 | amounts | string | 余额扣费金额 | 此次支付交易从余额账户扣除的金额， 例如 -66.66 |
-| coupon_amount | string |  代金券扣费金额 | 此次支付交易从代金券扣费（抵扣）的金额， 例如 -66.66 |
+| coupon_amount | string |  资源券扣费金额 | 此次支付交易从资源券扣费（抵扣）的金额， 例如 -66.66 |
 | creation_time | string | 创建时间 | 接收扣费请求的时间 |
 | payment_time | string | 支付成功完成时间 | |
 | status | string | 支付状态 | wait：未支付；success：支付成功；error：支付失败；closed: 交易关闭（未支付时撤销了扣费） |
@@ -368,14 +368,14 @@ Pay-Signature：xxx                # 应答签名
 | :------: | :------: | :--------------------------: | :------: |
 | id  |  sring   | 支付记录编号 | |
 | subject |   sring    | 标题 | |
-| payment_method  |  sring   | 支付方式 | balance(余额支付)；coupon(代金券支付)；balance+coupon(余额+代金卷)           |
+| payment_method  |  sring   | 支付方式 | balance(余额支付)；coupon(资源券支付)；balance+coupon(余额+资源券)           |
 | executor |  sring   | 交易执行人 | 主要用于记录vo组扣费支付交易时的执行人 |
 | payer_id |  sring  | 支付者id | |
 | payer_name |  sring  | 支付者名称 | |
 | payer_type |  sring  | 支付者类型 | user(支付者是用户)；vo(支付者是VO组) |
 | payable_amounts | string | 应付金额 | 需要支付的、要扣除的金额， 例如 66.66 |
 | amounts | string | 余额扣费金额 | 此次支付交易从余额账户扣除的金额， 例如 -66.66 |
-| coupon_amount | string |  代金券扣费金额 | 此次支付交易从代金券扣费（抵扣）的金额， 例如 -66.66 |
+| coupon_amount | string |  资源券扣费金额 | 此次支付交易从资源券扣费（抵扣）的金额， 例如 -66.66 |
 | creation_time | string | 创建时间 | 接收扣费请求的时间 |
 | payment_time | string | 支付成功完成时间 | |
 | status | string | 支付状态 | wait：未支付；success：支付成功；error：支付失败；closed: 交易关闭（未支付时撤销了扣费） |
@@ -478,14 +478,14 @@ https://{Host}/api/trade/query/trade/202207190608088519002990?query_refunded
 | :------: | :------: | :--------------------------: | :------: |
 | id  |  sring   | 支付记录编号 | |
 | subject |   sring    | 标题 | |
-| payment_method  |  sring   | 支付方式 | balance(余额支付)；coupon(代金券支付)；balance+coupon(余额+代金卷)           |
+| payment_method  |  sring   | 支付方式 | balance(余额支付)；coupon(资源券支付)；balance+coupon(余额+资源券)           |
 | executor |  sring   | 交易执行人，可忽略 | |
 | payer_id |  sring  | 支付者id | |
 | payer_name |  sring  | 支付者名程 | |
 | payer_type |  sring  | 支付者类型 | user(支付者是用户)；vo(支付者是VO组) |
 | payable_amounts | string | 应付金额 | 需要支付的、要扣除的金额， 例如 66.66 |
 | amounts | string | 余额扣费金额 | 例如 -66.66|
-| coupon_amount | string |  代金券扣费金额 | 例如 -88.00 |
+| coupon_amount | string |  资源券扣费金额 | 例如 -88.00 |
 | creation_time | string | 创建时间 | 接收扣费请求的时间 |
 | payment_time | string | 支付成功完成时间 | |
 | status | string | 支付状态 | wait：未支付；success：支付成功；error：支付失败；closed: 交易关闭（未支付时撤销了扣费） |
@@ -590,14 +590,14 @@ https://{Host}/api/trade/query/out-order/123456789?query_refunded
 | :------: | :------: | :--------------------------: | :------: |
 | id  |  sring   | 支付记录编号 | |
 | subject |   sring    | 标题 | |
-| payment_method  |  sring   | 支付方式 | balance(余额支付)；coupon(代金券支付)；balance+coupon(余额+代金卷)           |
+| payment_method  |  sring   | 支付方式 | balance(余额支付)；coupon(资源券支付)；balance+coupon(余额+资源券)           |
 | executor |  sring   | 交易执行人，可忽略 | |
 | payer_id |  sring  | 支付者id | |
 | payer_name |  sring  | 支付者名程 | |
 | payer_type |  sring  | 支付者类型 | user(支付者是用户)；vo(支付者是VO组) |
 | payable_amounts | string | 应付金额 | 需要支付的、要扣除的金额， 例如 66.66 |
 | amounts | string | 余额扣费金额 | 例如 -66.66|
-| coupon_amount | string |  代金券扣费金额 | 例如 -88.00 |
+| coupon_amount | string |  资源券扣费金额 | 例如 -88.00 |
 | creation_time | string | 创建时间 | 接收扣费请求的时间 |
 | payment_time | string | 支付成功完成时间 | |
 | status | string | 支付状态 | wait：未支付；success：支付成功；error：支付失败；closed: 交易关闭（未支付时撤销了扣费） |
@@ -710,7 +710,7 @@ https://{Host}/api/trade/refund
 | total_amounts | string | 8位整数，2位小数 | 退款对应的交易订单总金额 | 例如 66.66 |
 | refund_amounts | string | 8位整数，2位小数 | 申请退款金额 | 例如 66.66|
 | real_refund | string | 8位整数，2位小数 | 实际退款金额 | 例如 56.66|
-| coupon_refund | string| 8位整数，2位小数 |  代金券或者优惠抵扣金额，此金额不退 | 例如 10.00 |
+| coupon_refund | string| 8位整数，2位小数 |  资源券或者优惠抵扣金额，此金额不退 | 例如 10.00 |
 | creation_time | string | | 创建时间 | 接收退款请求的时间 |
 | success_time | string | | 退款成功时间 | |
 | status | string | 16 | 退款状态 | wait：未退款；success：退款成功；error：退款失败；closed: 交易关闭（未退款时撤销了退款） |
@@ -823,7 +823,7 @@ https://{Host}/api/trade/refund/query?refund_id=xxx
 | total_amounts | string | 8位整数，2位小数 | 退款对应的交易订单总金额 | 例如 66.66 |
 | refund_amounts | string | 8位整数，2位小数 | 申请退款金额 | 例如 66.66|
 | real_refund | string | 8位整数，2位小数 | 实际退款金额 | 例如 56.66|
-| coupon_refund | string| 8位整数，2位小数 |  代金券或者优惠抵扣金额，此金额不退 | 例如 10.00 |
+| coupon_refund | string| 8位整数，2位小数 |  资源券或者优惠抵扣金额，此金额不退 | 例如 10.00 |
 | creation_time | string | | 创建时间 | 接收退款请求的时间，ISO8601格式 |
 | success_time | string | | 退款成功时间 | ISO8601格式，示例 `"2022-12-01T02:12:04.221869Z"` |
 | status | string | 16 | 退款状态 | wait：未退款；success：退款成功；error：退款失败；closed: 交易关闭（未退款时撤销了退款） |
@@ -944,7 +944,7 @@ https://{Host}/api/trade/bill/transaction?trade_time_start=2022-12-06T00%3A00%3A
 | out_trade_no | string| 64 |  外部交易编号 | 订单号、退款编号 |
 | trade_amounts | string| 8位整数，2位小数 | 本次交易金额 | = amounts + coupon_amount |
 | amounts | string | 8位整数，2位小数 | 交易金额 | 支付金额 -6.66、退款金额 88.80 |
-| coupon_amount | string | 8位整数，2位小数 | 代金券金额 | 代金券支付金额 -66.66， 代金券退款金额 1.23 |
+| coupon_amount | string | 8位整数，2位小数 | 资源券金额 | 资源券支付金额 -66.66， 资源券退款金额 1.23 |
 | creation_time | string |  | 交易完成时间 | ISO8601格式，示例 `2022-03-09T01:08:32.988635Z` |
 | remark | string | 255 | 备注 |  |
 | app_service_id | string | 32 | APP服务ID | |

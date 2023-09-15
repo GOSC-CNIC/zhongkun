@@ -38,8 +38,8 @@ class CashCouponCreateSerializer(serializers.Serializer):
     effective_time = serializers.DateTimeField(label=_('生效时间'), required=False, help_text=_('默认为当前时间'))
     expiration_time = serializers.DateTimeField(label=_('过期时间'), required=True)
     app_service_id = serializers.CharField(label=_('APP服务ID'), max_length=36, required=True)
-    username = serializers.CharField(label=_('用户名'), max_length=128, required=False, help_text=_('代金券发给此用户'))
-    vo_id = serializers.CharField(label=_('vo组id'), max_length=64, required=False, help_text=_('代金券发给此vo组'))
+    username = serializers.CharField(label=_('用户名'), max_length=128, required=False, help_text=_('资源券发给此用户'))
+    vo_id = serializers.CharField(label=_('vo组id'), max_length=64, required=False, help_text=_('资源券发给此vo组'))
 
 
 class AppServiceSimpleSerializer(serializers.Serializer):
@@ -100,8 +100,8 @@ class RefundRecordSerializer(serializers.Serializer):
     refund_amounts = serializers.DecimalField(label=_('申请退款金额'), max_digits=10, decimal_places=2)
     real_refund = serializers.DecimalField(label=_('实际退款金额'), max_digits=10, decimal_places=2)
     coupon_refund = serializers.DecimalField(
-        label=_('代金券退款金额'), max_digits=10, decimal_places=2, default=Decimal('0'),
-        help_text=_('代金券或者优惠抵扣金额，此金额不退'))
+        label=_('资源券退款金额'), max_digits=10, decimal_places=2, default=Decimal('0'),
+        help_text=_('资源券或者优惠抵扣金额，此金额不退'))
     creation_time = serializers.DateTimeField(label=_('创建时间'))
     success_time = serializers.DateTimeField(label=_('退款成功时间'))
     status = serializers.CharField(label=_('退款状态'), max_length=16)

@@ -53,74 +53,74 @@ class CashCouponManager:
     @staticmethod
     def has_read_perm_cash_coupon(coupon: CashCoupon, user):
         """
-        用户是否代金券查询权限
+        用户是否资源券查询权限
 
         :return: True
         :raises: Error
         """
         if coupon is None:
-            raise errors.NotFound(message=_('代金券不存在'), code='NoSuchCoupon')
+            raise errors.NotFound(message=_('资源券不存在'), code='NoSuchCoupon')
 
         if coupon.status not in [CashCoupon.Status.AVAILABLE.value, CashCoupon.Status.CANCELLED.value]:
-            raise errors.NotFound(message=_('代金券不存在'), code='NoSuchCoupon')
+            raise errors.NotFound(message=_('资源券不存在'), code='NoSuchCoupon')
 
         if coupon.owner_type == OwnerType.USER.value:
             if coupon.user_id != user.id:
-                raise errors.AccessDenied(message=_('你没有此代金券的访问权限'))
+                raise errors.AccessDenied(message=_('你没有此资源券的访问权限'))
         elif coupon.owner_type == OwnerType.VO.value:
             VoManager().get_has_read_perm_vo(vo_id=coupon.vo_id, user=user)
         else:
-            raise errors.ConflictError(message=_('代金券拥有者类型未知'), code='UnknownOwnCoupon')
+            raise errors.ConflictError(message=_('资源券拥有者类型未知'), code='UnknownOwnCoupon')
 
         return coupon
 
     @staticmethod
     def has_manage_perm_cash_coupon(coupon: CashCoupon, user):
         """
-        用户是否有代金券管理权限
+        用户是否有资源券管理权限
 
         :return: True
         :raises: Error
         """
         if coupon is None:
-            raise errors.NotFound(message=_('代金券不存在'), code='NoSuchCoupon')
+            raise errors.NotFound(message=_('资源券不存在'), code='NoSuchCoupon')
 
         if coupon.status not in [CashCoupon.Status.AVAILABLE.value, CashCoupon.Status.CANCELLED.value]:
-            raise errors.NotFound(message=_('代金券不存在'), code='NoSuchCoupon')
+            raise errors.NotFound(message=_('资源券不存在'), code='NoSuchCoupon')
 
         if coupon.owner_type == OwnerType.USER.value:
             if coupon.user_id != user.id:
-                raise errors.AccessDenied(message=_('你没有此代金券的访问权限'))
+                raise errors.AccessDenied(message=_('你没有此资源券的访问权限'))
         elif coupon.owner_type == OwnerType.VO.value:
             VoManager().get_has_manager_perm_vo(vo_id=coupon.vo_id, user=user)
         else:
-            raise errors.ConflictError(message=_('代金券拥有者类型未知'), code='UnknownOwnCoupon')
+            raise errors.ConflictError(message=_('资源券拥有者类型未知'), code='UnknownOwnCoupon')
 
         return coupon
 
     @staticmethod
     def has_admin_perm_cash_coupon(coupon: CashCoupon, user):
         """
-        用户是否有代金券管理员权限
+        用户是否有资源券管理员权限
 
         :return: True
         :raises: NotFound，AccessDenied
         """
         if coupon is None:
-            raise errors.NotFound(message=_('代金券不存在'), code='NoSuchCoupon')
+            raise errors.NotFound(message=_('资源券不存在'), code='NoSuchCoupon')
 
         if coupon.status not in [
             CashCoupon.Status.AVAILABLE.value, CashCoupon.Status.CANCELLED.value, CashCoupon.Status.WAIT.value
         ]:
-            raise errors.NotFound(message=_('代金券不存在'), code='NoSuchCoupon')
+            raise errors.NotFound(message=_('资源券不存在'), code='NoSuchCoupon')
 
         if user.is_federal_admin():
             pass
         elif coupon.app_service:
             if not coupon.app_service.user_has_perm(user):
-                raise errors.AccessDenied(message=_('你没有此代金券适用子服务的管理权限'))
+                raise errors.AccessDenied(message=_('你没有此资源券适用子服务的管理权限'))
         else:
-            raise errors.AccessDenied(message=_('此代金券未指定适用子服务，你没有权限管理此代金券。'))
+            raise errors.AccessDenied(message=_('此资源券未指定适用子服务，你没有权限管理此资源券。'))
 
         return coupon
 
@@ -131,7 +131,7 @@ class CashCouponManager:
         """
         coupon = self.get_cash_coupon(coupon_id, select_for_update)
         if coupon is None:
-            raise errors.NotFound(message=_('代金券不存在'), code='NoSuchCoupon')
+            raise errors.NotFound(message=_('资源券不存在'), code='NoSuchCoupon')
 
         self.ensure_wait_draw_cash_coupon(coupon=coupon)
         return coupon
@@ -139,13 +139,13 @@ class CashCouponManager:
     @staticmethod
     def ensure_wait_draw_cash_coupon(coupon):
         """
-        检查确保代金券未领取状态
+        检查确保资源券未领取状态
         """
         if coupon.status == CashCoupon.Status.CANCELLED.value:
-            raise errors.ConflictError(message=_('代金券已作废'), code='AlreadyCancelled')
+            raise errors.ConflictError(message=_('资源券已作废'), code='AlreadyCancelled')
 
         if coupon.status == CashCoupon.Status.DELETED.value:
-            raise errors.ConflictError(message=_('代金券已删除'), code='AlreadyDeleted')
+            raise errors.ConflictError(message=_('资源券已删除'), code='AlreadyDeleted')
 
         if (
             coupon.user_id or
@@ -153,11 +153,11 @@ class CashCouponManager:
             coupon.status != CashCoupon.Status.WAIT.value or
             coupon.owner_type != ''
         ):
-            raise errors.ConflictError(message=_('代金券已被领取'), code='AlreadyGranted')
+            raise errors.ConflictError(message=_('资源券已被领取'), code='AlreadyGranted')
 
     def draw_cash_coupon(self, coupon_id: str, coupon_code: str, user, vo_id: str = None) -> CashCoupon:
         """
-        领取代金券
+        领取资源券
         :raises: Error
         """
         if vo_id:
@@ -175,12 +175,12 @@ class CashCouponManager:
     @staticmethod
     def _grant_coupon_to_user_or_vo(coupon: CashCoupon, user, vo=None):
         if coupon.app_service is None:
-            raise errors.ConflictError(message=_('代金券无效，没有绑定适用的APP子服务。'), code='InvalidCoupon')
+            raise errors.ConflictError(message=_('资源券无效，没有绑定适用的APP子服务。'), code='InvalidCoupon')
 
         # vo组只能兑换云主机的适用券
         if vo and coupon.app_service.category != PayAppService.Category.VMS_SERVER.value:
             raise errors.ConflictError(
-                message=_('绑定的适用APP子服务类型为云主机服务的代金券才允许VO组兑换。'), code='NotAllowToVo')
+                message=_('绑定的适用APP子服务类型为云主机服务的资源券才允许VO组兑换。'), code='NotAllowToVo')
 
         coupon.user = user
         coupon.status = CashCoupon.Status.AVAILABLE.value
@@ -349,7 +349,7 @@ class CashCouponManager:
 
     def delete_cash_coupon(self, coupon_id: str, user, force: bool = False):
         """
-        删除代金券
+        删除资源券
         :raises: Error
         """
         coupon = self.get_cash_coupon(coupon_id=coupon_id)
@@ -361,7 +361,7 @@ class CashCouponManager:
                 coupon.expiration_time > timezone.now()
             ):    # 未过期
                 if coupon.balance > Decimal(0):
-                    raise errors.ConflictError(message=_('代金券有剩余余额未消费'), code='BalanceRemain')
+                    raise errors.ConflictError(message=_('资源券有剩余余额未消费'), code='BalanceRemain')
 
         coupon.status = CashCoupon.Status.DELETED.value
         coupon.save(update_fields=['status'])
@@ -369,7 +369,7 @@ class CashCouponManager:
 
     def admin_delete_cash_coupon(self, coupon_id: str, user):
         """
-        管理员删除代金券
+        管理员删除资源券
         :raises: Error
         """
         coupon: CashCoupon = self.get_cash_coupon(coupon_id=coupon_id, related_fields=['app_service'])
@@ -425,7 +425,7 @@ class CashCouponManager:
 
         指定coupon_ids按coupon_ids排序，否者按券过期时间先后排序
 
-        :param queryset: 代金券查询集
+        :param queryset: 资源券查询集
         :param coupon_ids: 查询指定id的券；None(不指定券，查所有券)；[](空，指定不使用券)；
         :param select_for_update: True(需要在事务中使用)
         :return:
@@ -463,18 +463,18 @@ class CashCouponManager:
         coupons = []
         for c_id in coupon_ids:
             if c_id not in coupons_dict:
-                raise errors.NotFound(message=_('代金券%(value)s不存在') % {'value': c_id}, code='NoSuchCoupon')
+                raise errors.NotFound(message=_('资源券%(value)s不存在') % {'value': c_id}, code='NoSuchCoupon')
 
             coupon = coupons_dict[c_id]
             if coupon.status != CashCoupon.Status.AVAILABLE.value:
-                raise errors.ConflictError(message=_('代金券%(value)s无效') % {'value': c_id}, code='NotAvailable')
+                raise errors.ConflictError(message=_('资源券%(value)s无效') % {'value': c_id}, code='NotAvailable')
 
             if coupon.effective_time and coupon.effective_time > now:
                 raise errors.ConflictError(
-                    message=_('代金券%(value)s未到生效时间') % {'value': c_id}, code='NotEffective')
+                    message=_('资源券%(value)s未到生效时间') % {'value': c_id}, code='NotEffective')
 
             if not coupon.expiration_time or coupon.expiration_time < now:
-                raise errors.ConflictError(message=_('代金券%(value)s已过期') % {'value': c_id}, code='ExpiredCoupon')
+                raise errors.ConflictError(message=_('资源券%(value)s已过期') % {'value': c_id}, code='ExpiredCoupon')
 
             coupons.append(coupon)
 
@@ -498,7 +498,7 @@ class CashCouponManager:
 
     def get_cash_coupon_payment_queryset(self, coupon_id: str, user):
         """
-        代金券扣费记录查询集
+        资源券扣费记录查询集
 
         :return: QuerySet
         :raises: Error
@@ -510,7 +510,7 @@ class CashCouponManager:
 
     def admin_get_cash_coupon_payment_queryset(self, coupon_id: str, user):
         """
-        管理员查询代金券扣费记录查询集
+        管理员查询资源券扣费记录查询集
 
         :return: QuerySet
         :raises: Error

@@ -16,7 +16,7 @@ from utils.paginators import NoPaginatorInspector
 
 class CashCouponViewSet(CustomGenericViewSet):
     """
-    代金券视图
+    资源券视图
     """
     permission_classes = [IsAuthenticated, ]
     pagination_class = NewPageNumberPagination
@@ -24,7 +24,7 @@ class CashCouponViewSet(CustomGenericViewSet):
     # lookup_value_regex = '[0-9a-z-]+'
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('列举代金券'),
+        operation_summary=gettext_lazy('列举资源券'),
         manual_parameters=[
             openapi.Parameter(
                 name='app_service_id',
@@ -38,7 +38,7 @@ class CashCouponViewSet(CustomGenericViewSet):
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description='列举指定VO组的代金券, 需要有vo组访问权限'
+                description='列举指定VO组的资源券, 需要有vo组访问权限'
             ),
             openapi.Parameter(
                 name='valid',
@@ -61,7 +61,7 @@ class CashCouponViewSet(CustomGenericViewSet):
     )
     def list(self, request, *args, **kwargs):
         """
-        列举代金券
+        列举资源券
 
             http code 200：
             {
@@ -106,7 +106,7 @@ class CashCouponViewSet(CustomGenericViewSet):
         return CashCouponHandler().list_cash_coupon(view=self, request=request)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('领取/兑换代金券'),
+        operation_summary=gettext_lazy('领取/兑换资源券'),
         request_body=no_body,
         manual_parameters=[
             openapi.Parameter(
@@ -114,7 +114,7 @@ class CashCouponViewSet(CustomGenericViewSet):
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=True,
-                description='代金券编号'
+                description='资源券编号'
             ),
             openapi.Parameter(
                 name='coupon_code',
@@ -128,7 +128,7 @@ class CashCouponViewSet(CustomGenericViewSet):
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description='为指定VO组领取代金券, 需要有vo组管理权限'
+                description='为指定VO组领取资源券, 需要有vo组管理权限'
             )
         ],
         responses={
@@ -137,7 +137,7 @@ class CashCouponViewSet(CustomGenericViewSet):
     )
     def create(self, request, *args, **kwargs):
         """
-        领取/兑换代金券
+        领取/兑换资源券
 
             http code 200：
             {
@@ -147,27 +147,27 @@ class CashCouponViewSet(CustomGenericViewSet):
         return CashCouponHandler().draw_cash_coupon(view=self, request=request)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('删除代金券'),
+        operation_summary=gettext_lazy('删除资源券'),
         manual_parameters=[
             openapi.Parameter(
                 name='force',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description='强制删除，未过期的、有剩余余额的代金券；参数不需要值存在即有效'
+                description='强制删除，未过期的、有剩余余额的资源券；参数不需要值存在即有效'
             )
         ]
     )
     def destroy(self, request, *args, **kwargs):
         """
-        删除代金券
+        删除资源券
 
             http code 204
         """
         return CashCouponHandler().delete_cash_coupon(view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('列举代金券扣费记录'),
+        operation_summary=gettext_lazy('列举资源券扣费记录'),
         manual_parameters=[
             openapi.Parameter(
                 name=NewPageNumberPagination.page_query_param,
@@ -188,7 +188,7 @@ class CashCouponViewSet(CustomGenericViewSet):
     @action(methods=['get'], detail=True, url_path='payment', url_name='list-payment')
     def list_coupon_payment(self, request, *args, **kwargs):
         """
-        列举代金券扣费记录
+        列举资源券扣费记录
 
             http code 200:
             {
@@ -212,7 +212,7 @@ class CashCouponViewSet(CustomGenericViewSet):
                     "payer_type": "user",
                     "payable_amounts": "160.00",    # 应付金额
                     "amounts": "-60.00",           # 余额支付金额
-                    "coupon_amount": "-100.00",   # 代金券支付金额
+                    "coupon_amount": "-100.00",   # 资源券支付金额
                     "creation_time": "2022-04-07T07:59:22.695692Z",       # 创建时间
                     "payment_time": "2022-04-07T07:59:23.598408Z",        # 支付完成时间，未支付成功时为空
                     "status": "success",  # wait: 未支付；success: 成功；error: 支付失败；closed: 交易关闭
@@ -229,7 +229,7 @@ class CashCouponViewSet(CustomGenericViewSet):
         return CashCouponHandler().list_cash_coupon_payment(view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('兑换码兑换代金券'),
+        operation_summary=gettext_lazy('兑换码兑换资源券'),
         request_body=no_body,
         manual_parameters=[
             openapi.Parameter(
@@ -244,7 +244,7 @@ class CashCouponViewSet(CustomGenericViewSet):
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description='为指定VO组领取代金券, 需要有vo组管理权限'
+                description='为指定VO组领取资源券, 需要有vo组管理权限'
             )
         ],
         responses={
@@ -254,7 +254,7 @@ class CashCouponViewSet(CustomGenericViewSet):
     @action(methods=['post'], detail=False, url_path='exchange', url_name='exchange-coupon')
     def exchange_coupon(self, request, *args, **kwargs):
         """
-        兑换码兑换代金券
+        兑换码兑换资源券
 
             http code 200：
             {
@@ -275,19 +275,19 @@ class CashCouponViewSet(CustomGenericViewSet):
                 AccessDenied: 没有组管理权限
             404:
                 VoNotExist: 项目组不存在
-                NoSuchCoupon: 兑换码错误/代金券不存在
+                NoSuchCoupon: 兑换码错误/资源券不存在
             409:
                 InvalidCouponCode: 兑换码错误/券验证码错误
-                AlreadyCancelled: 代金券已作废
-                AlreadyDeleted: 代金券已删除
-                AlreadyGranted: 代金券已被领取
-                InvalidCoupon: 代金券无效，没有绑定适用的APP子服务。
-                NotAllowToVo: 绑定的适用APP子服务类型为云主机服务的代金券才允许VO组兑换。
+                AlreadyCancelled: 资源券已作废
+                AlreadyDeleted: 资源券已删除
+                AlreadyGranted: 资源券已被领取
+                InvalidCoupon: 资源券无效，没有绑定适用的APP子服务。
+                NotAllowToVo: 绑定的适用APP子服务类型为云主机服务的资源券才允许VO组兑换。
         """
         return CashCouponHandler().exchange_cash_coupon(view=self, request=request)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('查询代金券详情'),
+        operation_summary=gettext_lazy('查询资源券详情'),
         request_body=no_body,
         manual_parameters=[
         ],
@@ -297,7 +297,7 @@ class CashCouponViewSet(CustomGenericViewSet):
     )
     def retrieve(self, request, *args, **kwargs):
         """
-        查询代金券详情
+        查询资源券详情
 
             Http Code 200 OK:
             {
@@ -345,7 +345,7 @@ class CashCouponViewSet(CustomGenericViewSet):
 
 class AdminCashCouponViewSet(CustomGenericViewSet):
     """
-    服务单元管理员代金券视图
+    服务单元管理员资源券视图
     """
     permission_classes = [IsAuthenticated, ]
     pagination_class = NewPageNumberPagination
@@ -353,7 +353,7 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
     # lookup_value_regex = '[0-9a-z-]+'
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('管理员列举代金券'),
+        operation_summary=gettext_lazy('管理员列举资源券'),
         manual_parameters=[
             openapi.Parameter(
                 name='app_service_id',
@@ -425,7 +425,7 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
     )
     def list(self, request, *args, **kwargs):
         """
-        服务单元管理员列举代金券
+        服务单元管理员列举资源券
 
             http code 200：
             {
@@ -469,14 +469,14 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
         return CashCouponHandler().admin_list_cash_coupon(view=self, request=request)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('App服务单元管理员创建一个代金券，可直接发放给指定用户或VO'),
+        operation_summary=gettext_lazy('App服务单元管理员创建一个资源券，可直接发放给指定用户或VO'),
         responses={
             200: ''
         }
     )
     def create(self, request, *args, **kwargs):
         """
-        App服务单元管理员、联邦管理员 创建一个代金券，可直接发放给指定用户或vo
+        App服务单元管理员、联邦管理员 创建一个资源券，可直接发放给指定用户或vo
 
             http code 200：
             {
@@ -509,14 +509,14 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
         return CashCouponHandler.admin_create_cash_coupon(view=self, request=request)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('管理员删除代金券'),
+        operation_summary=gettext_lazy('管理员删除资源券'),
         responses={
             204: ''
         }
     )
     def destroy(self, request, *args, **kwargs):
         """
-        删除代金券，联邦管理员，或者券所绑定的APP子服务管理员
+        删除资源券，联邦管理员，或者券所绑定的APP子服务管理员
 
             http code 204 OK: 无数据
 
@@ -531,19 +531,19 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
             403:
                 AccessDenied: 没有管理权限
             404:
-                NoSuchCoupon: 代金券不存在
+                NoSuchCoupon: 资源券不存在
         """
         return CashCouponHandler.admin_delete_cash_coupon(view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('管理员查询代金券详情'),
+        operation_summary=gettext_lazy('管理员查询资源券详情'),
         responses={
             200: ''
         }
     )
     def retrieve(self, request, *args, **kwargs):
         """
-        管理员查询代金券详情，联邦管理员，或者券所绑定的APP子服务管理员
+        管理员查询资源券详情，联邦管理员，或者券所绑定的APP子服务管理员
 
             http code 200 OK:
             {
@@ -588,12 +588,12 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
             403:
                 AccessDenied: 没有管理权限
             404:
-                NoSuchCoupon: 代金券不存在
+                NoSuchCoupon: 资源券不存在
         """
         return CashCouponHandler.admin_detail_cash_coupon(view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('管理员列举代金券扣费记录'),
+        operation_summary=gettext_lazy('管理员列举资源券扣费记录'),
         manual_parameters=[
             openapi.Parameter(
                 name=NewPageNumberPagination.page_query_param,
@@ -614,7 +614,7 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
     @action(methods=['get'], detail=True, url_path='payment', url_name='list-payment')
     def list_coupon_payment(self, request, *args, **kwargs):
         """
-        管理员列举代金券扣费记录，联邦管理员，或者券所绑定的APP子服务管理员
+        管理员列举资源券扣费记录，联邦管理员，或者券所绑定的APP子服务管理员
 
             http code 200:
             {
@@ -638,7 +638,7 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
                     "payer_type": "user",
                     "payable_amounts": "160.00",    # 应付金额
                     "amounts": "-60.00",           # 余额支付金额
-                    "coupon_amount": "-100.00",   # 代金券支付金额
+                    "coupon_amount": "-100.00",   # 资源券支付金额
                     "creation_time": "2022-04-07T07:59:22.695692Z",       # 创建时间
                     "payment_time": "2022-04-07T07:59:23.598408Z",        # 支付完成时间，未支付成功时为空
                     "status": "success",  # wait: 未支付；success: 成功；error: 支付失败；closed: 交易关闭
@@ -655,7 +655,7 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
         return CashCouponHandler().admin_list_cash_coupon_payment(view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('联邦管查询代金券统计信息'),
+        operation_summary=gettext_lazy('联邦管查询资源券统计信息'),
         paginator_inspectors=[NoPaginatorInspector],
         manual_parameters=[
             openapi.Parameter(
@@ -684,22 +684,22 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
     @action(methods=['get'], detail=False, url_path='statistics', url_name='statistics')
     def coupon_statistics(self, request, *args, **kwargs):
         """
-        联邦管理员查询代金券统计信息
+        联邦管理员查询资源券统计信息
 
             http code 200:
             {
-              "total_face_value": 27061772.85,  # 代金券总发放点数；时间段和app服务单元参数 有效
-              "total_count": 2471,              # 代金券总发放张数；时间段和app服务单元参数 有效
-              "redeem_count": 756,              # 代金券已兑换张数；时间段和app服务单元参数 有效
-              "available_count": 123            # 当前有效代金券张数；时间段和app服务单元参数 有效
-              "coupon_pay_amounts": 8371044.27, # 代金券消耗点数；时间段和app服务单元参数 有效
-              "total_balance": 15063204.85      # 代金券总余额点数；app服务单元参数 有效
+              "total_face_value": 27061772.85,  # 资源券总发放点数；时间段和app服务单元参数 有效
+              "total_count": 2471,              # 资源券总发放张数；时间段和app服务单元参数 有效
+              "redeem_count": 756,              # 资源券已兑换张数；时间段和app服务单元参数 有效
+              "available_count": 123            # 当前有效资源券张数；时间段和app服务单元参数 有效
+              "coupon_pay_amounts": 8371044.27, # 资源券消耗点数；时间段和app服务单元参数 有效
+              "total_balance": 15063204.85      # 资源券总余额点数；app服务单元参数 有效
             }
         """
         return CashCouponHandler().admin_cash_coupon_statistics(view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('联邦管查询代金券发放人统计信息'),
+        operation_summary=gettext_lazy('联邦管查询资源券发放人统计信息'),
         manual_parameters=[
             openapi.Parameter(
                 name='time_start',
@@ -720,14 +720,14 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=f'发放代金券的人'
+                description=f'发放资源券的人'
             ),
         ]
     )
     @action(methods=['get'], detail=False, url_path='aggregation/issue', url_name='aggregation-issue')
     def coupon_issue_statistics(self, request, *args, **kwargs):
         """
-        联邦管查询代金券发放人统计信息
+        联邦管查询资源券发放人统计信息
 
             http code 200:
             {
@@ -746,7 +746,7 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
         return CashCouponHandler().admin_coupon_issue_statistics(view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('联邦管查询用户代金券统计信息'),
+        operation_summary=gettext_lazy('联邦管查询用户资源券统计信息'),
         manual_parameters=[
             openapi.Parameter(
                 name='time_start',
@@ -774,7 +774,7 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
     @action(methods=['get'], detail=False, url_path='aggregation/user', url_name='aggregation-user')
     def coupon_user_statistics(self, request, *args, **kwargs):
         """
-        联邦管查询用户代金券统计信息
+        联邦管查询用户资源券统计信息
 
             http code 200:
             {
@@ -796,7 +796,7 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
         return CashCouponHandler().admin_coupon_user_statistics(view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('联邦管查询VO组代金券统计信息'),
+        operation_summary=gettext_lazy('联邦管查询VO组资源券统计信息'),
         manual_parameters=[
             openapi.Parameter(
                 name='time_start',
@@ -824,7 +824,7 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
     @action(methods=['get'], detail=False, url_path='aggregation/vo', url_name='aggregation-vo')
     def coupon_vo_statistics(self, request, *args, **kwargs):
         """
-        联邦管查询VO组代金券统计信息
+        联邦管查询VO组资源券统计信息
 
             http code 200:
             {

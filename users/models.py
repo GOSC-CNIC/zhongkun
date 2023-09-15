@@ -140,7 +140,7 @@ class Email(UuidModel):
         YEAR = 'year', _('年度报表')
         MONTH = 'month', _('月度报表')
         TICKET = 'ticket', _('工单通知')
-        COUPON = 'coupon', _('代金券通知')
+        COUPON = 'coupon', _('资源券通知')
         RES_EXP = 'res-exp', _('资源过期通知')
         API = 'api', _('API请求')
         OTHER = 'other', _('其他')

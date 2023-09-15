@@ -46,7 +46,7 @@ class BucketHandler:
             return view.exception_response(
                 exceptions.BalanceNotEnough(
                     message=_('你已经拥有%(value)d个存储桶在指定服务单元中，') % {
-                        'value': bcount} + _('您的余额或代金券余额不足，不能创建更多的存储桶。')))
+                        'value': bcount} + _('您的余额或资源券余额不足，不能创建更多的存储桶。')))
 
         try:
             bucket = BucketManager.get_bucket(service_id=service.id, bucket_name=bucket_name)

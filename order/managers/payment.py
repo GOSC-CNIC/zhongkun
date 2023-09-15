@@ -33,7 +33,7 @@ class OrderPaymentManager:
         :param executor: 支付执行人
         :param remark: 支付记录备注信息
         :param coupon_ids: 支付使用指定id的券；None(不指定券，使用所有券)；[](空，指定不使用券，只使用余额)；
-        :param only_coupon: True(只是用代金券支付)
+        :param only_coupon: True(只是用资源券支付)
         :param required_enough_balance: 是否要求余额必须足够支付，默认True(必须有足够的余额支付)，False(允许余额为负)
         :return: Order()
         :raises: Error, BalanceNotEnough

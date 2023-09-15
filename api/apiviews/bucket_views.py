@@ -53,7 +53,7 @@ class BucketViewSet(StorageGenericViewSet):
                 ServiceNotExist： 资源提供者服务单元不存在。
             409：
                 BucketAlreadyExists：存储桶已存在，请更换另一个存储桶名程后再重试。
-                BalanceNotEnough: 创建存储桶要求余额或代金券余额大于100
+                BalanceNotEnough: 创建存储桶要求余额或资源券余额大于100
                 ServiceStopped: 资源提供者服务单元暂停服务
             500：
                 Adapter.AuthenticationFailed：请求服务单元时身份认证失败

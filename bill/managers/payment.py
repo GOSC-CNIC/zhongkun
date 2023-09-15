@@ -338,14 +338,14 @@ class PaymentManager:
 
         if only_coupon:
             if amounts > total_coupon_balance:
-                raise errors.BalanceNotEnough(message=_('代金券的余额不足'), code='CouponBalanceNotEnough')
+                raise errors.BalanceNotEnough(message=_('资源券的余额不足'), code='CouponBalanceNotEnough')
         elif required_enough_balance:
             if amounts > (total_coupon_balance + account.balance):
                 raise errors.BalanceNotEnough()
 
         if (
-            only_coupon or                      # 只用代金券支付
-            total_coupon_balance >= amounts     # 代金券余额足够支付
+            only_coupon or                      # 只用资源券支付
+            total_coupon_balance >= amounts     # 资源券余额足够支付
         ):
             payment_method = PaymentHistory.PaymentMethod.CASH_COUPON.value
             coupon_amount = amounts
@@ -409,11 +409,11 @@ class PaymentManager:
     @staticmethod
     def _deduct_form_coupons(coupons: List[CashCoupon], money_amount: Decimal, pay_history_id: str):
         """
-        顺序从指定代金券中扣除金额
+        顺序从指定资源券中扣除金额
 
         * 发生错误时，函数中已操作修改的数据库数据不会手动回滚，此函数需要在事务中调用以保证数据一致性
 
-        :param coupons: 代金券列表
+        :param coupons: 资源券列表
         :param money_amount: 扣除金额
         :param pay_history_id: 支付记录id
         :return:
@@ -429,9 +429,9 @@ class PaymentManager:
             total_coupon_balance += c.balance
 
         if money_amount > total_coupon_balance:
-            raise errors.BalanceNotEnough(message=_('代金券余额不足抵扣支付金额'), code='CouponBalanceNotEnough')
+            raise errors.BalanceNotEnough(message=_('资源券余额不足抵扣支付金额'), code='CouponBalanceNotEnough')
 
-        # 代金券扣款记录
+        # 资源券扣款记录
         remain_pay_amount = money_amount
         cc_historys = []
         for coupon in coupons:
@@ -465,7 +465,7 @@ class PaymentManager:
                 break
 
         if remain_pay_amount > Decimal('0'):
-            raise errors.BalanceNotEnough(message=_('未能从代金券中扣除完指定金额'), code='DeductFormCouponsNotEnough')
+            raise errors.BalanceNotEnough(message=_('未能从资源券中扣除完指定金额'), code='DeductFormCouponsNotEnough')
 
         return cc_historys
 

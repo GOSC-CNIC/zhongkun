@@ -22,16 +22,16 @@ class MessageTemplate:
 中国科技云一体化云服务平台(https://service.cstcloud.cn)
 """
 
-    SUBJECT_EXPIRE = '代金券过期通知'
-    SUBJECT_INSUFFICIENT = '代金券余额不足通知'
-    SUBJECT_EXPIRE_INSUFFICIENT = '代金券即将过期或券余额不足通知'
-    YOUR_EXPIRE_MESSAHE = "你的代金券即将过期。"
-    YOUR_INSUFFICIENT_MESSAHE = "你的代金券余额不足。"
-    YOUR_EXPIRE_INSUFFICIENT_MESSAHE = "你的代金券即将过期，或代金券余额不足。"
-    VO_EXPIRE_MESSAHE = "项目组的代金券即将过期。"
-    VO_INSUFFICIENT_MESSAHE = "项目组的代金券余额不足。"
-    VO_EXPIRE_INSUFFICIENT_MESSAHE = "项目组的代金券即将过期，或代金券余额不足。"
-    TEMPLATE_COUPON_MESSAGE = "代金券编号为 %(coupon_id)s ，余额为 %(coupon_balance)s 点，过期时间为 %(expire_time)s。"
+    SUBJECT_EXPIRE = '资源券过期通知'
+    SUBJECT_INSUFFICIENT = '资源券余额不足通知'
+    SUBJECT_EXPIRE_INSUFFICIENT = '资源券即将过期或券余额不足通知'
+    YOUR_EXPIRE_MESSAHE = "你的资源券即将过期。"
+    YOUR_INSUFFICIENT_MESSAHE = "你的资源券余额不足。"
+    YOUR_EXPIRE_INSUFFICIENT_MESSAHE = "你的资源券即将过期，或资源券余额不足。"
+    VO_EXPIRE_MESSAHE = "项目组的资源券即将过期。"
+    VO_INSUFFICIENT_MESSAHE = "项目组的资源券余额不足。"
+    VO_EXPIRE_INSUFFICIENT_MESSAHE = "项目组的资源券即将过期，或资源券余额不足。"
+    TEMPLATE_COUPON_MESSAGE = "资源券编号为 %(coupon_id)s ，余额为 %(coupon_balance)s 点，过期时间为 %(expire_time)s。"
 
     def build_notice_message(self, hello_to: str, notice: str, coupon_id: str, coupon_balance: str, expire_time: str):
         coupon_msg = self.TEMPLATE_COUPON_MESSAGE % {
@@ -55,7 +55,7 @@ class CouponQuerier:
     @staticmethod
     def get_expire_coupons(after_days: int, creation_time_gt: datetime = None, limit: int = 100):
         """
-        查询指定天数后即将过期的代金券
+        查询指定天数后即将过期的资源券
 
         :param after_days: 指定天数后过期
         :param creation_time_gt: 创建时间大于此时间的券
@@ -80,7 +80,7 @@ class CouponQuerier:
     @staticmethod
     def get_insufficient_coupons(threshold: Decimal, creation_time_gt: datetime = None, limit: int = 100):
         """
-        查询余额不足指定金额的代金券
+        查询余额不足指定金额的资源券
 
         :param threshold: 余额不足的阈值
         :param creation_time_gt: 创建时间大于此时间的券
@@ -105,7 +105,7 @@ class CouponQuerier:
     def get_expire_or_insufficient_queryset(
             threshold: Decimal, after_days: int, creation_time_gt: datetime = None):
         """
-        查询指定天数后即将过期，或余额不足的代金券
+        查询指定天数后即将过期，或余额不足的资源券
 
         :param threshold: 余额不足的阈值
         :param after_days: 指定天数后过期
@@ -131,7 +131,7 @@ class CouponQuerier:
     def get_expire_or_insufficient_coupons(
             self, threshold: Decimal, after_days: int, creation_time_gt: datetime = None, limit: int = 100):
         """
-        查询指定天数后即将过期，或余额不足的代金券
+        查询指定天数后即将过期，或余额不足的资源券
 
         :param threshold: 余额不足的阈值
         :param after_days: 指定天数后过期
@@ -148,7 +148,7 @@ class CouponQuerier:
             creation_time_gt: datetime = None, limit: int = 100
     ):
         """
-        查询用户的指定天数后即将过期，或余额不足的代金券
+        查询用户的指定天数后即将过期，或余额不足的资源券
 
         :param user_id:
         :param threshold: 余额不足的阈值
@@ -167,7 +167,7 @@ class CouponQuerier:
             creation_time_gt: datetime = None, limit: int = 100
     ):
         """
-        查询vo的指定天数后即将过期，或余额不足的代金券
+        查询vo的指定天数后即将过期，或余额不足的资源券
 
         :param vo_id:
         :param threshold: 余额不足的阈值
@@ -389,7 +389,7 @@ class CouponNotifier:
         return True
 
     def loop_notice_together(self):
-        self.logger.warning('开始代金券通知。')
+        self.logger.warning('开始资源券通知。')
         creation_time_gt = None
         while True:
             try:
@@ -410,10 +410,10 @@ class CouponNotifier:
                 msg = f'券过期或余额不足通知错误，{str(exc)}'
                 self.logger.warning(msg)
 
-        self.logger.warning('结束代金券通知。')
+        self.logger.warning('结束资源券通知。')
 
     def loop_expire(self):
-        self.logger.warning('开始代金券过期通知。')
+        self.logger.warning('开始资源券过期通知。')
         creation_time_gt = None
         while True:
             try:
@@ -436,10 +436,10 @@ class CouponNotifier:
                 msg = f'券过期通知错误，{str(exc)}'
                 self.logger.warning(msg)
 
-        self.logger.warning('结束代金券过期通知。')
+        self.logger.warning('结束资源券过期通知。')
 
     def loop_insufficient(self):
-        self.logger.warning('开始代金券余额不足通知。')
+        self.logger.warning('开始资源券余额不足通知。')
         creation_time_gt = None
         while True:
             try:
@@ -462,7 +462,7 @@ class CouponNotifier:
                 msg = f'券余额不足通知错误，{str(exc)}'
                 self.logger.warning(msg)
 
-        self.logger.warning('结束代金券余额不足通知。')
+        self.logger.warning('结束资源券余额不足通知。')
 
     def notice_expire_coupon(self, coupon: CashCoupon):
         """

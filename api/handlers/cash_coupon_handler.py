@@ -253,10 +253,10 @@ class CashCouponHandler:
 
         filename = rand_utils.timestamp14_sn()
         csv_file = CSVFileInMemory(filename=filename)
-        csv_file.writerow(['#' + _('代金券明细')])
+        csv_file.writerow(['#' + _('资源券明细')])
         csv_file.writerow(['#--------------' + _('数据明细列表') + '---------------'])
         csv_file.writerow([
-            _('代金券编号'), _('面额'), _('余额'), _('服务单元'), _('创建日期'), _('生效日期'), _('过期时间'),
+            _('资源券编号'), _('面额'), _('余额'), _('服务单元'), _('创建日期'), _('生效日期'), _('过期时间'),
             _('状态'), _('券模板'), _('兑换码'), _('所有者类型'), _('用户'), _('VO组名')
         ])
         per_page = 1000
@@ -299,7 +299,7 @@ class CashCouponHandler:
         return wrap_csv_file_response(filename=filename, data=data)
 
     def exchange_cash_coupon(self, view: CustomGenericViewSet, request):
-        """兑换码兑换代金券"""
+        """兑换码兑换资源券"""
         try:
             code, vo_id = self._exchange_cash_coupon_validate_params(request=request)
         except errors.Error as exc:
@@ -338,7 +338,7 @@ class CashCouponHandler:
     @staticmethod
     def admin_create_cash_coupon(view: CustomGenericViewSet, request):
         """
-        App服务单元管理员创建一个代金券，可直接发放给指定用户或vo
+        App服务单元管理员创建一个资源券，可直接发放给指定用户或vo
         """
         try:
             data = CashCouponHandler._admin_create_cash_coupon_validate_params(view=view, request=request)
@@ -387,13 +387,13 @@ class CashCouponHandler:
             s_errors = serializer.errors
             if 'face_value' in s_errors:
                 exc = errors.BadRequest(
-                    message=_('代金券面额无效。') + s_errors['face_value'][0], code='InvalidFaceValue')
+                    message=_('资源券面额无效。') + s_errors['face_value'][0], code='InvalidFaceValue')
             elif 'effective_time' in s_errors:
                 exc = errors.BadRequest(
-                    message=_('代金券生效时间无效。') + s_errors['effective_time'][0], code='InvalidEffectiveTime')
+                    message=_('资源券生效时间无效。') + s_errors['effective_time'][0], code='InvalidEffectiveTime')
             elif 'expiration_time' in s_errors:
                 exc = errors.BadRequest(
-                    message=_('代金券过期时间无效。') + s_errors['expiration_time'][0], code='InvalidExpirationTime')
+                    message=_('资源券过期时间无效。') + s_errors['expiration_time'][0], code='InvalidExpirationTime')
             else:
                 msg = serializer_error_msg(serializer.errors)
                 exc = errors.BadRequest(message=msg)
@@ -409,16 +409,16 @@ class CashCouponHandler:
         vo_id = data.get('vo_id', None)
 
         if face_value < 0 or face_value > 100000:
-            raise errors.BadRequest(message=_('代金券面额必须大于0，不得大于100000'), code='InvalidFaceValue')
+            raise errors.BadRequest(message=_('资源券面额必须大于0，不得大于100000'), code='InvalidFaceValue')
 
         now_time = timezone.now()
         if (expiration_time - now_time) < timedelta(hours=1):
-            raise errors.BadRequest(message=_('代金券的过期时间与当前时间的时间差必须大于1小时'), code='InvalidExpirationTime')
+            raise errors.BadRequest(message=_('资源券的过期时间与当前时间的时间差必须大于1小时'), code='InvalidExpirationTime')
 
         if effective_time:
             if (expiration_time - effective_time) < timedelta(hours=1):
                 raise errors.BadRequest(
-                    message=_('代金券的过期时间与生效时间的时间差必须大于1小时'), code='InvalidExpirationTime')
+                    message=_('资源券的过期时间与生效时间的时间差必须大于1小时'), code='InvalidExpirationTime')
         else:
             effective_time = now_time
 
@@ -452,7 +452,7 @@ class CashCouponHandler:
     @staticmethod
     def detail_cash_coupon(view: CustomGenericViewSet, request, kwargs):
         """
-        查询代金券详情
+        查询资源券详情
         """
         coupon_id = kwargs.get(view.lookup_field)
 
@@ -471,7 +471,7 @@ class CashCouponHandler:
     @staticmethod
     def admin_detail_cash_coupon(view: CustomGenericViewSet, request, kwargs):
         """
-        管理员查询代金券详情
+        管理员查询资源券详情
         """
         coupon_id = kwargs.get(view.lookup_field)
 
@@ -628,7 +628,7 @@ class CashCouponHandler:
     @staticmethod
     def admin_coupon_user_statistics(view: CustomGenericViewSet, request, kwargs):
         """
-        联邦管理员查询用户代金券统计信息
+        联邦管理员查询用户资源券统计信息
         """
         time_start = request.query_params.get('time_start', None)
         time_end = request.query_params.get('time_end', None)
@@ -710,7 +710,7 @@ class CashCouponHandler:
     @staticmethod
     def admin_coupon_vo_statistics(view: CustomGenericViewSet, request, kwargs):
         """
-        联邦管理员查询用户代金券统计信息
+        联邦管理员查询用户资源券统计信息
         """
         time_start = request.query_params.get('time_start', None)
         time_end = request.query_params.get('time_end', None)

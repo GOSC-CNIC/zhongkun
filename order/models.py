@@ -40,7 +40,7 @@ class Order(models.Model):
     class PaymentMethod(models.TextChoices):
         UNKNOWN = 'unknown', _('未知')
         BALANCE = 'balance', _('余额')
-        CASH_COUPON = 'cashcoupon', _('代金卷')
+        CASH_COUPON = 'cashcoupon', _('资源券')
         MIXED = 'mixed', _('混合支付')
 
     class TradingStatus(models.TextChoices):
