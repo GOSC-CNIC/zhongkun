@@ -125,7 +125,7 @@ class LogSiteReqCounter:
 
     def run(self):
         sites_count, ok_count = self.async_generate_req_num_log()
-        print(f'End，log sites: {sites_count}, ok: {ok_count}')
+        print(f'{timezone.now().isoformat(sep=" ", timespec="seconds")} End，log sites: {sites_count}, ok: {ok_count}')
 
     @staticmethod
     def get_log_sites():
@@ -166,7 +166,7 @@ class LogSiteReqCounter:
         try:
             r_num = await self.get_site_req_num(site=site, until_timestamp=now_timestamp, minutes=self.minutes)
         except Exception as exc:
-            raise Exception(f'{timezone.now().isoformat(timespec="seconds")},{site.name},{exc}')
+            raise Exception(f'{timezone.now().isoformat(sep=" ", timespec="seconds")},{site.name},{exc}')
 
         return site.id, r_num, now_timestamp
 
