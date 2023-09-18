@@ -277,6 +277,7 @@ class MonitorWebsiteRecord(MonitorWebsiteBase):
     @classmethod
     def create_record_for_website(cls, site: MonitorWebsite):
         record = cls(
+            id=site.id,
             name=site.name,
             url_hash=site.url_hash,
             creation=site.creation,

@@ -197,3 +197,20 @@ class PriceManager:
         # 价格是按天
         amounts = price.disk_size * Decimal.from_float(size_gib_days)
         return amounts
+
+    @staticmethod
+    def calculate_monitor_site_amounts(
+            price: Price, days: float,
+            detection_count: int, tamper_count: int, security_count: int
+    ) -> Decimal:
+        """
+        计算金额
+        """
+        # 价格是按天
+        days_amount = price.mntr_site_base
+        if tamper_count > 0:
+            days_amount += price.mntr_site_tamper
+        if security_count > 0:
+            days_amount += price.mntr_site_security
+
+        return days_amount * Decimal.from_float(days)

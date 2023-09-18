@@ -7,7 +7,8 @@ from django.utils import timezone
 from django.db import close_old_connections
 
 from servers.models import Server, ServerArchive, ServerBase, Disk, DiskChangeLog
-from metering.models import MeteringServer, MeteringObjectStorage, MeteringDisk
+from metering.models import MeteringServer, MeteringObjectStorage, MeteringDisk, MeteringMonitorWebsite
+from monitor.models import MonitorWebsite, MonitorWebsiteRecord, MonitorWebsiteBase
 from order.managers import PriceManager
 from utils.decimal_utils import quantize_10_2
 from utils.model import PayType, OwnerType
@@ -949,3 +950,238 @@ class DiskMeasurer:
         """
         return self.metering_one_disk_change_type_hours(
             disk_id=disk_id, disk_start_time=disk_start_time, _type=DiskChangeLog.LogType.POST2PRE.value)
+
+
+class MonitorWebsiteMeasurer:
+    def __init__(self, metering_date: date = None, raise_exeption: bool = False):
+        """
+        :param metering_date: 指定计量日期
+        :param raise_exeption: True(发生错误直接抛出退出)
+        """
+        if metering_date:
+            start_datetime = timezone.now().replace(
+                year=metering_date.year, month=metering_date.month, day=metering_date.day,
+                hour=0, minute=0, second=0, microsecond=0)
+            end_datetime = start_datetime + timedelta(days=1)
+        else:
+            # 计量当前时间前一天的资源使用量
+            end_datetime = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)  # 计量结束时间
+            start_datetime = end_datetime - timedelta(days=1)  # 计量开始时间
+
+        self.end_datetime = end_datetime
+        self.start_datetime = start_datetime
+        self.raise_exeption = raise_exeption
+        self.price_mgr = PriceManager()
+        self._metering_normal_count = 0  # 计量正常计数
+        self._metering_deleted_count = 0  # 计量已删除计数
+        self._new_count = 0  # 新产生计量账单计数
+
+    def run(self, raise_exeption: bool = None):
+        print(f'Monitor website metering start, {self.start_datetime} - {self.end_datetime}')
+        if self.end_datetime >= timezone.now():
+            print('Exit, metering time invalid.')
+            return
+
+        if raise_exeption is not None:
+            self.raise_exeption = raise_exeption
+
+        self.loop_normal_websites()
+        self.loop_deleted_websites()
+        print(f'Metering {self._metering_normal_count} normal websites, '
+              f'{self._metering_deleted_count} deleted websites, '
+              f'all {self._metering_normal_count + self._metering_deleted_count}, '
+              f'new produce {self._new_count} metering bill.')
+
+    def loop_normal_websites(self):
+        self._metering_loop(loop_normal_disk=True)
+
+    def loop_deleted_websites(self):
+        self._metering_loop(loop_normal_disk=False)
+
+    def _metering_loop(self, loop_normal_disk=False):
+        last_creatition_time = None
+        last_id = ''
+        continuous_error_count = 0
+        while True:
+            try:
+                if loop_normal_disk:
+                    websites = self.get_normal_websites(
+                        gte_creation_time=last_creatition_time, end_datetime=self.end_datetime)
+                else:
+                    websites = self.get_deleted_websites(
+                        gte_creation_time=last_creatition_time, start_datetime=self.start_datetime)
+
+                if len(websites) == 0:
+                    break
+
+                # 多个creation_time相同数据时，会查询获取到多个数据（计量过也会重复查询到）
+                if websites[len(websites) - 1].id == last_id:
+                    break
+
+                for site in websites:
+                    if site.id == last_id:
+                        continue
+
+                    self.metering_site(site)
+                    last_creatition_time = site.creation
+                    last_id = site.id
+
+                continuous_error_count = 0
+            except Exception as e:
+                print(str(e))
+                if self.raise_exeption:
+                    raise e
+
+                continuous_error_count += 1
+                if continuous_error_count > 100:  # 连续错误次数后报错退出
+                    raise e
+
+                time.sleep(continuous_error_count / 100)  # 10ms - 1000ms
+
+    def metering_site(self, site: MonitorWebsite):
+        if site.creation >= self.end_datetime:
+            return None
+
+        if isinstance(site, MonitorWebsiteRecord):
+            self._metering_deleted_count += 1
+            meter_end = min(site.record_time, self.end_datetime)  # 计费结束时间
+        else:
+            self._metering_normal_count += 1
+            meter_end = self.end_datetime
+
+        site_id = site.id
+        metering_date = self.start_datetime.date()
+        metering = self.website_metering_exists(metering_date=metering_date, website_id=site_id)
+        if metering is not None:
+            return metering
+
+        delta_hours = self._site_delta_hours(site=site, meter_end=meter_end)
+        metering = self.save_site_metering_record(
+            site=site, hours=delta_hours
+        )
+        return metering
+
+    def _site_delta_hours(self, site: MonitorWebsite, meter_end: datetime):
+        # 创建时间 在计量日期之前，从计量周期起始时间开始计
+        if site.creation <= self.start_datetime:
+            start = self.start_datetime
+        # 创建时间 在计量日期之间
+        elif site.creation < self.end_datetime:
+            start = site.creation
+        else:
+            start = self.end_datetime
+
+        hours = self.delta_hours(end=meter_end, start=start)
+        return hours
+
+    @staticmethod
+    def delta_hours(end, start):
+        delta = end - start
+        seconds = delta.total_seconds()
+        seconds = max(seconds, 0)
+        return seconds / 3600
+
+    def save_site_metering_record(self, site: MonitorWebsiteBase, hours: float):
+        """
+        创建计量日期的资源使用量记录
+
+        :raises: Exception
+        """
+        metering_date = self.start_datetime.date()
+        if isinstance(site, MonitorWebsiteRecord):
+            user_id = site.user_id
+            username = site.username
+        elif isinstance(site, MonitorWebsite):
+            user_id = site.user_id
+            username = site.user.username
+        else:
+            return None
+
+        metering = MeteringMonitorWebsite(
+            website_id=site.id,
+            website_name=site.name,
+            date=metering_date,
+            hours=hours,
+            detection_count=0,
+            tamper_resistant_count=1 if site.is_tamper_resistant else 0,
+            security_count=0,
+            user_id=user_id,
+            username=username,
+            creation_time=timezone.now()
+        )
+
+        original_amount = self.calculate_original_amount(hours=hours, mt=metering)
+        metering.original_amount = original_amount
+        metering.trade_amount = original_amount
+
+        try:
+            metering.save(force_insert=True)
+            self._new_count += 1
+        except Exception as e:
+            _metering = self.website_metering_exists(metering_date=metering_date, website_id=site.id)
+            if _metering is None:
+                raise e
+
+            metering = _metering
+
+        return metering
+
+    def calculate_original_amount(self, hours: float, mt: MeteringMonitorWebsite):
+        price = self.price_mgr.enforce_price()
+        amount = self.price_mgr.calculate_monitor_site_amounts(
+            price=price, days=hours / 24, detection_count=mt.detection_count,
+            tamper_count=mt.tamper_resistant_count, security_count=mt.security_count
+        )
+        return quantize_10_2(amount)
+
+    @staticmethod
+    def get_normal_website_queryset(end_datetime, gte_creation_time=None):
+        """
+        查询正常的website查询集, 按创建时间正序排序
+
+        * 不能用 start_time 做为查询条件，start_time是根据资源变更变动的，可能不在计量周期内，但是可能在变更记录有资源用量需要计量
+        :param end_datetime: 计量日结束时间点
+        :param gte_creation_time: 大于等于创建时间，用于断点续查
+        """
+        lookups = {
+            'creation__lt': end_datetime,
+        }
+        if gte_creation_time is not None:
+            lookups['creation__gte'] = gte_creation_time
+
+        queryset = MonitorWebsite.objects.filter(**lookups).order_by('creation', 'id')
+        return queryset
+
+    @wrap_close_old_connections
+    def get_normal_websites(self, gte_creation_time, end_datetime, limit: int = 100):
+        queryset = self.get_normal_website_queryset(gte_creation_time=gte_creation_time, end_datetime=end_datetime)
+        return queryset[0:limit]
+
+    @staticmethod
+    def get_deleted_website_queryset(start_datetime, gte_creation_time=None):
+        """
+        查询已删除的website查询集, 按创建时间正序排序
+
+        :param start_datetime: 计量日开始时间点
+        :param gte_creation_time: 大于等于创建时间，用于断点续查
+        """
+        lookups = {
+            'record_time__gt': start_datetime,
+            'type': MonitorWebsiteRecord.RecordType.DELETED.value
+        }
+        if gte_creation_time is not None:
+            lookups['creation__gte'] = gte_creation_time
+
+        return MonitorWebsiteRecord.objects.filter(**lookups).order_by('creation', 'id')
+
+    @wrap_close_old_connections
+    def get_deleted_websites(self, start_datetime, gte_creation_time=None, limit: int = 100):
+        queryset = self.get_deleted_website_queryset(
+            start_datetime=start_datetime,
+            gte_creation_time=gte_creation_time
+        )
+        return queryset[0:limit]
+
+    @staticmethod
+    def website_metering_exists(website_id, metering_date: date):
+        return MeteringMonitorWebsite.objects.filter(date=metering_date, website_id=website_id).first()

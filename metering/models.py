@@ -271,6 +271,54 @@ class MeteringObjectStorage(MeteringBase):
         return True
 
 
+class MeteringMonitorWebsite(MeteringBase):
+    """
+    站点监控计量
+    """
+    website_id = models.CharField(verbose_name=_('监控站点ID'), max_length=36)
+    website_name = models.CharField(verbose_name=_('监控站点名称'), max_length=255)
+    user_id = models.CharField(verbose_name=_('用户ID'), max_length=36, blank=True)
+    username = models.CharField(verbose_name=_('用户名'), max_length=128, blank=True, default='')
+    date = models.DateField(verbose_name=_('日期'), help_text=_('计量的资源使用量的所属日期'))
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'))
+    hours = models.FloatField(
+        verbose_name=_('监控小时数'), blank=True, default=0, help_text=_('小时数'))
+    detection_count = models.PositiveIntegerField(verbose_name=_('探测次数'), default=0)
+    tamper_resistant_count = models.PositiveIntegerField(
+        verbose_name=_('是否防篡改'), default=0, help_text=_('防篡改探测次数，记录站点监控是否设置防篡改监控服务'))
+    security_count = models.PositiveIntegerField(
+        verbose_name=_('是否安全扫描'), default=0, help_text=_('安全扫描次数，记录站点监控是否设置安全扫描服务'))
+
+    class Meta:
+        verbose_name = _('站点监控计量')
+        verbose_name_plural = verbose_name
+        db_table = 'metering_monitor_website'
+        ordering = ['-creation_time']
+        constraints = [
+            models.constraints.UniqueConstraint(
+                fields=['website_id', 'date'], name='unique_website_date'
+            )
+        ]
+
+    def is_owner_type_user(self):
+        """
+        所有者是否是用户
+        """
+        return True
+
+    def get_owner_id(self) -> str:
+        """
+        返回所有者的id, user id
+        """
+        return self.user_id
+
+    def is_postpaid(self) -> bool:
+        """
+        是否是按量计费
+        """
+        return True
+
+
 class DailyStatementBase(CustomIdModel):
     original_amount = models.DecimalField(
         verbose_name=_('计费金额'), max_digits=10, decimal_places=2, default=Decimal(0))

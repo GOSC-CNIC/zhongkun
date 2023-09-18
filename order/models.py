@@ -263,6 +263,15 @@ class Price(UuidModel):
         verbose_name=_('预付费折扣**%'), default=100, validators=(MaxValueValidator(100),),
         help_text=_('0-100, 包年包月预付费价格在按量计价的基础上按此折扣计价'))
     creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
+    mntr_site_base = models.DecimalField(
+        verbose_name=_('站点监控每天基础费用'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
+        default=Decimal('0'), help_text=_('站点监控每天基础监控费用'))
+    mntr_site_tamper = models.DecimalField(
+        verbose_name=_('站点监控每天防篡改费用'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
+        default=Decimal('0'), help_text=_('站点监控每天防篡改监控费用'))
+    mntr_site_security = models.DecimalField(
+        verbose_name=_('站点监控每天安全监控费用'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
+        default=Decimal('0'), help_text=_('站点监控每天安全监控费用'))
 
     class Meta:
         verbose_name = _('资源计价定价')
