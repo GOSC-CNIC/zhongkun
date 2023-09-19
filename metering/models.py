@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.db import models
 from django.utils.translation import gettext, gettext_lazy as _
 
-from utils.model import OwnerType, PayType, CustomIdModel, ResourceType
+from utils.model import OwnerType, PayType, CustomIdModel
 from utils import rand_utils
 from users.models import UserProfile
 from vo.models import VirtualOrganization
@@ -351,12 +351,6 @@ class DailyStatementBase(CustomIdModel):
         """
         raise NotImplemented('get_owner_id')
 
-    def get_resource_type(self) -> str:
-        """
-        计量资源的类型
-        """
-        raise NotImplemented('get_resource_type')
-
     def set_paid(self, trade_amount: Decimal = None, payment_history_id: str = None):
         self.payment_history_id = payment_history_id if payment_history_id else ''
         self.trade_amount = self.payable_amount if trade_amount is None else trade_amount
@@ -423,12 +417,6 @@ class DailyStatementServer(DailyStatementBase):
 
         return self.vo_id
 
-    def get_resource_type(self):
-        """
-        计量资源的类型
-        """
-        return ResourceType.VM.value
-
 
 class DailyStatementObjectStorage(DailyStatementBase):
     service = models.ForeignKey(to=ObjectsService, verbose_name=_('对象存储服务单元'), related_name='+', null=True,
@@ -471,12 +459,6 @@ class DailyStatementObjectStorage(DailyStatementBase):
         返回所有者的id, user id or vo id
         """
         return self.user_id
-
-    def get_resource_type(self):
-        """
-        计量资源的类型
-        """
-        return ResourceType.BUCKET.value
 
 
 class DailyStatementDisk(DailyStatementBase):
@@ -531,12 +513,6 @@ class DailyStatementDisk(DailyStatementBase):
             return self.user_id
 
         return self.vo_id
-
-    def get_resource_type(self):
-        """
-        计量资源的类型
-        """
-        return ResourceType.DISK.value
 
 
 class DailyStatementMonitorWebsite(DailyStatementBase):

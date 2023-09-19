@@ -23,7 +23,7 @@ if not app_id:
 def server_metering_pay():
     from metering.measurers import ServerMeasurer
     from metering.pay_metering import PayMeteringServer
-    from metering.generate_daily_statement import GenerateDailyStatementServer
+    from metering.statement_generators import GenerateDailyStatementServer
 
     now_date = datetime.utcnow().astimezone(utc).date() - timedelta(days=1)
     # start_date = date(year=2022, month=6, day=1)
@@ -58,7 +58,7 @@ def server_metering_pay():
 def disk_metering_pay():
     from metering.measurers import DiskMeasurer
     from metering.pay_metering import PayMeteringDisk
-    from metering.generate_daily_statement import DiskDailyStatementGenerater
+    from metering.statement_generators import DiskDailyStatementGenerater
 
     now_date = datetime.utcnow().astimezone(utc).date() - timedelta(days=1)
     # start_date = date(year=2023, month=6, day=21)
@@ -93,7 +93,7 @@ def disk_metering_pay():
 def storage_metering_pay():
     from metering.measurers import StorageMeasure
     from metering.pay_metering import PayMeteringObjectStorage
-    from metering.generate_daily_statement import GenerateDailyStatementObjectStorage
+    from metering.statement_generators import GenerateDailyStatementObjectStorage
 
     metering_date = datetime.utcnow().astimezone(utc).date() - timedelta(days=1)
 

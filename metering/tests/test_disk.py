@@ -18,7 +18,7 @@ from service.models import ServiceConfig
 from metering.measurers import DiskMeasurer
 from metering.models import PaymentStatus, DailyStatementDisk, MeteringDisk
 from metering.payment import MeteringPaymentManager
-from metering.generate_daily_statement import DiskDailyStatementGenerater
+from metering.statement_generators import DiskDailyStatementGenerater
 from users.models import UserProfile
 
 

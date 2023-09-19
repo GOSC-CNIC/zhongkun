@@ -13,7 +13,7 @@ from bill.models import CashCoupon, PaymentHistory, PayAppService, PayApp, PayOr
 from metering.measurers import StorageMeasure
 from metering.models import PaymentStatus, MeteringObjectStorage, DailyStatementObjectStorage
 from metering.payment import MeteringPaymentManager
-from metering.generate_daily_statement import GenerateDailyStatementObjectStorage
+from metering.statement_generators import GenerateDailyStatementObjectStorage
 from users.models import UserProfile
 from storage.models import Bucket, ObjectsService
 

@@ -16,7 +16,7 @@ from service.models import ServiceConfig
 from metering.measurers import ServerMeasurer
 from metering.models import MeteringServer, PaymentStatus, DailyStatementServer
 from metering.payment import MeteringPaymentManager
-from metering.generate_daily_statement import GenerateDailyStatementServer
+from metering.statement_generators import GenerateDailyStatementServer
 from users.models import UserProfile
 
 utc = dt_timezone.utc

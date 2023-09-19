@@ -11,7 +11,7 @@ from monitor.models import MonitorWebsite, MonitorWebsiteRecord, MonitorWebsiteB
 from order.models import Price
 from metering.measurers import MonitorWebsiteMeasurer
 from metering.models import MeteringMonitorWebsite, PaymentStatus, DailyStatementMonitorWebsite
-from metering.generate_daily_statement import WebsiteMonitorStatementGenerater
+from metering.statement_generators import WebsiteMonitorStatementGenerater
 from users.models import UserProfile
 
 
