@@ -2,7 +2,7 @@ from django.contrib import admin
 
 from .models import (
     MeteringServer, MeteringDisk, MeteringObjectStorage, DailyStatementServer, DailyStatementObjectStorage,
-    DailyStatementDisk, MeteringMonitorWebsite
+    DailyStatementDisk, MeteringMonitorWebsite, DailyStatementMonitorWebsite
 )
 
 
@@ -81,3 +81,12 @@ class DailyStatementDiskAdmin(admin.ModelAdmin):
     list_filter = ('owner_type', 'payment_status')
     search_fields = ('username', 'user_id', 'vo_id')
     list_select_related = ('service',)
+
+
+@admin.register(DailyStatementMonitorWebsite)
+class DailyStMonitorSiteAdmin(admin.ModelAdmin):
+    list_display = ('id', 'date', 'original_amount', 'payable_amount', 'trade_amount', 'payment_status',
+                    'payment_history_id', 'creation_time', 'user_id', 'username')
+    list_display_links = ('id',)
+    list_filter = ('payment_status',)
+    search_fields = ('username', 'user_id')

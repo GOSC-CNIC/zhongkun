@@ -10,6 +10,7 @@ from vo.models import VirtualOrganization
 from servers.models import Server
 from service.models import ServiceConfig
 from storage.models import ObjectsService
+from monitor.models import MonitorWebsiteVersion
 
 
 def short_uuid1_l25():
@@ -536,3 +537,40 @@ class DailyStatementDisk(DailyStatementBase):
         计量资源的类型
         """
         return ResourceType.DISK.value
+
+
+class DailyStatementMonitorWebsite(DailyStatementBase):
+    date = models.DateField(verbose_name=_('计费日期'), help_text=_('资源使用计量计费的日期'))
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
+    user_id = models.CharField(verbose_name=_('用户ID'), max_length=36, blank=True, default='')
+    username = models.CharField(verbose_name=_('用户名'), max_length=128, blank=True, default='')
+
+    class Meta:
+        verbose_name = _('站点监控日结算单')
+        verbose_name_plural = verbose_name
+        db_table = 'daily_statement_mntr_site'
+        ordering = ['-creation_time']
+
+    def generate_id(self):
+        return f'mw{short_uuid1_l25()}'       # 保证（订单号，云主机、云硬盘、对象存储、站点监控日结算单id）唯一
+
+    def get_pay_app_service_id(self) -> str:
+        """
+        所属服务对应的余额结算中的app服务id
+        """
+        ins = MonitorWebsiteVersion.get_instance()
+        return ins.pay_app_service_id
+
+    def is_owner_type_user(self):
+        """
+        所有者是否是用户，反之是vo组
+        :return:
+            True    # user
+        """
+        return True
+
+    def get_owner_id(self) -> str:
+        """
+        返回所有者的id, user id or vo id
+        """
+        return self.user_id

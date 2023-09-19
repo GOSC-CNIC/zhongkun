@@ -1,4 +1,5 @@
 from datetime import timedelta, date
+from decimal import Decimal
 
 from django.utils import timezone
 from django.db.models import Sum
@@ -6,7 +7,7 @@ from django.db import transaction
 
 from metering.models import (
     DailyStatementServer, MeteringServer, PaymentStatus, DailyStatementObjectStorage, MeteringObjectStorage,
-    DailyStatementDisk, MeteringDisk
+    DailyStatementDisk, MeteringDisk, MeteringMonitorWebsite, DailyStatementMonitorWebsite
 )
 from utils.model import OwnerType, PayType
 from users.models import UserProfile
@@ -702,4 +703,173 @@ class DiskDailyStatementGenerater:
         return DailyStatementDisk.objects.filter(
             date=statement_date, vo_id=vo_id, service_id=service_id,
             owner_type=OwnerType.VO.value
+        ).first()
+
+
+class WebsiteMonitorStatementGenerater:
+    def __init__(self, statement_date: date = None, raise_exception: bool = False):
+        """
+        :param statement_date: 日结算单日期
+        :param raise_exception: True(发生错误直接抛出退出)
+        """
+        if statement_date:
+            statement_date = timezone.now().replace(
+                year=statement_date.year, month=statement_date.month, day=statement_date.day,
+                hour=0, minute=0, second=0, microsecond=0)
+        else:
+            # 聚合当前时间前一天的计量记录
+            statement_date = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=1)
+
+        self.statement_date = statement_date.date()
+        self.raise_exception = raise_exception
+        self._user_daily_statement_count = 0  # 用户日结算单计数
+        self._new_count = 0  # 新产生的日结算单计数
+
+    def run(self, raise_exception: bool = None):
+        print(f'Monitor website generate {self.statement_date} daily statement start: ')
+        if self.statement_date >= timezone.now().date():
+            print('Exit, date invalid')
+            return
+
+        if raise_exception is not None:
+            self.raise_exception = raise_exception
+
+        # 用户的日结算单
+        self.generate_user_disk_statement()
+
+        print(f'generate {self._user_daily_statement_count} user disk daily statements,',
+              f'new generate {self._new_count} disk daily statements.')
+
+    def generate_user_disk_statement(self):
+        """
+        生成用户的日结算单
+        """
+        user_id_qs = self.get_users()
+        for u in user_id_qs:  # 每个user：按服务单元聚合
+            user_id = u['user_id']
+            if not user_id:
+                continue
+
+            user = UserProfile.objects.filter(id=user_id).first()
+            if user is None:
+                continue
+
+            # 该用户当天所有的计量记录
+            user_meterings = self.get_user_metering_queryset(user_id=user.id)
+            # 按服务单元聚合
+            agg_metering = self.aggregate_site_metering(user_meterings)
+            self.save_user_site_statement(
+                user_id=user.id, username=user.username, agg_metering=agg_metering, user_meterings=user_meterings
+            )
+
+    def get_website_metering_queryset(self):
+        """
+        获取statement_date当天所有后付费metering记录
+        """
+        lookups = {
+            'date': self.statement_date
+        }
+
+        return MeteringMonitorWebsite.objects.filter(**lookups)
+
+    def get_users(self):
+        """
+        获得所有用户
+        """
+        queryset = self.get_website_metering_queryset()
+        return queryset.values('user_id').order_by('user_id').distinct()
+
+    def get_user_metering_queryset(self, user_id):
+        """
+        获得某个用户的计量记录
+        """
+        queryset = self.get_website_metering_queryset()
+        return queryset.filter(user_id=user_id)
+
+    @staticmethod
+    def aggregate_site_metering(queryset):
+        """
+        按用户聚合
+        """
+        queryset = queryset.aggregate(
+            original_amount=Sum('original_amount', default=Decimal('0.00')),
+            payable_amount=Sum('trade_amount', default=Decimal('0.00'))
+        )
+
+        return queryset
+
+    def save_user_site_statement(self, user_id: str, username: str, agg_metering, user_meterings):
+        st_date = self.statement_date
+        # 插入新的日结算单前先判断是否已经存在
+        daily_statement = self.user_site_statement_exists(
+            statement_date=st_date, user_id=user_id)
+        # 已存在
+        if daily_statement is not None:
+            # 金额一致
+            if (
+                    agg_metering['original_amount'] == daily_statement.original_amount
+                    and agg_metering['payable_amount'] == daily_statement.payable_amount
+            ):
+                return daily_statement
+
+        with transaction.atomic():
+            if daily_statement is None:
+                # 不存在, 插入新的日结算单记录
+                daily_statement = self.save_daily_statement_record(
+                    statement_date=st_date,
+                    original_amount=agg_metering['original_amount'],
+                    payable_amount=agg_metering['payable_amount'],
+                    user_id=user_id, username=username,
+                )
+                self._new_count += 1
+            else:  # 金额不一致, 更新
+                self.update_site_statement_amount(agg_metering=agg_metering, daily_statement=daily_statement)
+
+            self._user_daily_statement_count += 1
+            # 更新计量记录的daily_statement_id字段
+            self.update_site_metering_dsid(meterings=user_meterings, daily_statement=daily_statement)
+
+        return daily_statement
+
+    @staticmethod
+    def save_daily_statement_record(
+            statement_date: date, original_amount, payable_amount,
+            user_id: str = None, username: str = None
+    ):
+        """
+        创建日结算单记录
+        """
+        daily_statement = DailyStatementMonitorWebsite(
+            date=statement_date,
+            original_amount=original_amount,
+            payable_amount=payable_amount,
+            trade_amount=0,
+            payment_status=PaymentStatus.UNPAID.value,
+            payment_history_id='',
+            user_id=user_id,
+            username=username
+        )
+
+        try:
+            daily_statement.save(force_insert=True)
+        except Exception as e:
+            raise e
+
+        return daily_statement
+
+    @staticmethod
+    def update_site_metering_dsid(meterings, daily_statement):
+        for metering in meterings:
+            metering.set_daily_statement_id(daily_statement_id=daily_statement.id)
+
+    @staticmethod
+    def update_site_statement_amount(agg_metering, daily_statement):
+        daily_statement.original_amount = agg_metering['original_amount']
+        daily_statement.payable_amount = agg_metering['payable_amount']
+        daily_statement.save(update_fields=['original_amount', 'payable_amount'])
+
+    @staticmethod
+    def user_site_statement_exists(statement_date: date, user_id: str) -> DailyStatementMonitorWebsite:
+        return DailyStatementMonitorWebsite.objects.filter(
+            date=statement_date, user_id=user_id
         ).first()
