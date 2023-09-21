@@ -640,8 +640,16 @@ class EVCloudAdapter(BaseAdapter):
     def get_vpn(self, username: str):
         url = self.api_builder.vpn_detail_url(username=username)
         headers = self.get_auth_header()
-        r = self.do_request(method='get', url=url, ok_status_codes=[200], headers=headers)
-        return r.json()
+        r = self.do_request(method='get', url=url, ok_status_codes=[200, 404], headers=headers)
+        if r.status_code == 200:
+            return r.json()
+
+        d = r.json()
+        if 'err_code' in d and d['err_code'] == 'NoSuchVPN':
+            raise exceptions.ResourceNotFound(message='vpn账号不存在', err_code=d['err_code'])
+
+        msg = get_failed_msg(r)
+        raise exceptions.APIError(msg, status_code=r.status_code)
 
     def create_vpn(self, username: str, password: str = None):
         data = {'username': username}

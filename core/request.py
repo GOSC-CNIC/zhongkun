@@ -124,6 +124,9 @@ def request_vpn_service(service, method: str, raise_exception=True, **kwargs):
         except apt_exceptions.MethodNotSupportInService as exc:
             raise_exc = exceptions.MethodNotSupportInService(message=exc.message)
             break
+        except apt_exceptions.ResourceNotFound as exc:
+            raise_exc = exceptions.NotFound(message="vpn adapter error:" + exc.message)
+            break
         except apt_exceptions.Error as exc:
             raise_exc = exceptions.APIException(message=exc.message)
             break

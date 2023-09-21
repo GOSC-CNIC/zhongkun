@@ -1243,6 +1243,14 @@ class VPNViewSet(CustomGenericViewSet):
                     "modified_time": "2020-07-29T15:12:08.715998+08:00"
                 }
             }
+            http code 409, 500:
+            {
+              "code": "NoResourcesInService",
+              "message": "您和您所在的VO组在此服务单元中没有资源可用，不允许创建此服务单元的VPN账户"
+            }
+            错误码：
+                409 NoResourcesInService：您和您所在的VO组在此服务单元中没有资源可用，不允许创建此服务单元的VPN账户
+                500 InternalError：xxx
         """
         try:
             service = self.get_service(request, lookup=self.lookup_field, in_='path')
@@ -1253,10 +1261,22 @@ class VPNViewSet(CustomGenericViewSet):
             exc = exceptions.NoSupportVPN()
             return Response(exc.err_data(), status=exc.status_code)
 
+        if VPNHandler.is_need_vpn(service_id=service.id, user=request.user):
+            method = 'get_vpn_or_create'
+        else:
+            method = 'get_vpn'
+
         try:
-            r = self.request_vpn_service(service, method='get_vpn_or_create', username=request.user.username)
+            r = self.request_vpn_service(service, method=method, username=request.user.username)
         except exceptions.AuthenticationFailed as exc:
             return Response(data=exc.err_data(), status=500)
+        except exceptions.NotFound as exc:
+            if method == 'get_vpn':
+                exc = exceptions.ConflictError(
+                    message=_('您和您所在的VO组在此服务单元中没有资源可用，不允许创建此服务单元的VPN账户'),
+                    code='NoResourcesInService'
+                )
+            return Response(data=exc.err_data(), status=exc.status_code)
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
         return Response(data={'vpn': r})

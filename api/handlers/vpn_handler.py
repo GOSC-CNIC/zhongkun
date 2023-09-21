@@ -9,6 +9,16 @@ from servers.managers import ServerManager
 
 class VPNHandler:
     @staticmethod
+    def is_need_vpn(service_id: str, user):
+        # 确认用户是否需要VPN
+        if ServerManager.has_server_in_service(service_id=service_id, user_id=user.id):
+            return True
+        elif ServerManager.has_vo_server_in_service(service_id=service_id, user=user):
+            return True
+        else:
+            return False
+
+    @staticmethod
     def active_vpn(view: CustomGenericViewSet, request):
         try:
             service = view.get_service(request, lookup=view.lookup_field, in_='path')
@@ -20,11 +30,7 @@ class VPNHandler:
             return Response(exc.err_data(), status=exc.status_code)
 
         # 确认是否允许激活
-        if ServerManager.has_server_in_service(service_id=service.id, user_id=request.user.id):
-            pass
-        elif ServerManager.has_vo_server_in_service(service_id=service.id, user=request.user):
-            pass
-        else:
+        if not VPNHandler.is_need_vpn(service_id=service.id, user=request.user):
             exc = errors.ConflictError(
                 message=_('您和您所在的VO组在此服务单元中没有资源可用，不允许激活此服务单元的VPN账户'),
                 code='NoResourcesInService'
