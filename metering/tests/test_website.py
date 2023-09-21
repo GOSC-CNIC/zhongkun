@@ -7,12 +7,17 @@ from django.utils import timezone
 from utils.test import get_or_create_user
 from utils.decimal_utils import quantize_10_2
 from utils.time import utc
-from monitor.models import MonitorWebsite, MonitorWebsiteRecord, MonitorWebsiteBase
+from utils.model import OwnerType
+from monitor.models import MonitorWebsite, MonitorWebsiteRecord, MonitorWebsiteBase, MonitorWebsiteVersion
 from order.models import Price
 from metering.measurers import MonitorWebsiteMeasurer
 from metering.models import MeteringMonitorWebsite, PaymentStatus, DailyStatementMonitorWebsite
 from metering.statement_generators import WebsiteMonitorStatementGenerater
+from metering.payment import MeteringPaymentManager
+from metering.pay_metering import PayMeteringWebsite
 from users.models import UserProfile
+from bill.models import PayApp, PayOrgnazition, PayAppService, PaymentHistory, CashCoupon
+from core import errors
 
 
 def create_website_metadata(
@@ -49,6 +54,32 @@ def create_metering_site_metadata(
     )
     metering.save(force_insert=True)
     return metering
+
+
+def create_site_statement_record(
+        statement_date: date, original_amount, payable_amount,
+        user_id: str = None, username: str = None, payment_status: str = None
+):
+    """
+    创建日结算单记录
+    """
+    daily_statement = DailyStatementMonitorWebsite(
+        date=statement_date,
+        original_amount=original_amount,
+        payable_amount=payable_amount,
+        trade_amount=Decimal('0.00'),
+        payment_status=payment_status if payment_status else PaymentStatus.UNPAID.value,
+        payment_history_id='',
+        user_id=user_id,
+        username=username
+    )
+
+    try:
+        daily_statement.save(force_insert=True)
+    except Exception as e:
+        raise e
+
+    return daily_statement
 
 
 def up_int(val, base=100):
@@ -350,3 +381,393 @@ class WebsitetatementTests(TransactionTestCase):
         self.do_assert_a_user_daily_statement(
             range_a=0, range_b=6, user=self.user1, meterings=meterings, st_date=st_date
         )
+
+
+class MeteringPaymentManagerTests(TransactionTestCase):
+    def setUp(self):
+        self.user1 = get_or_create_user()
+        self.user2 = UserProfile(id='user2id', username='username2')
+        self.user2.save(force_insert=True)
+
+        # 余额支付有关配置
+        app = PayApp(name='app')
+        app.save()
+        self.app = app
+        po = PayOrgnazition(name='机构')
+        po.save()
+        self.app_service1 = PayAppService(
+            name='website monitor', app=app, orgnazition=po
+        )
+        self.app_service1.save()
+        self.app_service2 = PayAppService(
+            name='website monitor2', app=app, orgnazition=po
+        )
+        self.app_service2.save()
+
+        self.site_version_ins = MonitorWebsiteVersion.get_instance()
+        self.site_version_ins.pay_app_service_id = self.app_service1.id
+        self.site_version_ins.save(update_fields=['pay_app_service_id'])
+
+    def test_pay_user_statement(self):
+        pay_mgr = MeteringPaymentManager()
+        payer_name = self.user1.username
+
+        app_id = self.app.id
+        # pay bill, invalid user id
+        s_bill1 = create_site_statement_record(
+            statement_date=timezone.now().date(),
+            original_amount=Decimal('123.45'),
+            payable_amount=Decimal('123.45'),
+            user_id='user_id', username=payer_name
+        )
+        with self.assertRaises(errors.Error):
+            pay_mgr.pay_daily_statement_bill(
+                daily_statement=s_bill1, app_id=app_id, subject='站点监控计费',
+                executor=self.user1.username, remark='')
+
+        # pay bill, pay_type POSTPAID, when no enough balance
+        s_bill1.user_id = self.user1.id
+        s_bill1.save(update_fields=['user_id'])
+        with self.assertRaises(errors.BalanceNotEnough):
+            pay_mgr.pay_daily_statement_bill(
+                daily_statement=s_bill1, app_id=app_id, subject='站点监控计费',
+                executor=self.user1.username, remark='', required_enough_balance=True
+            )
+
+        # pay bill
+        pay_mgr.pay_daily_statement_bill(
+            daily_statement=s_bill1, app_id=app_id, subject='站点监控计费',
+            executor='metering', remark='', required_enough_balance=False
+        )
+        user1_pointaccount = self.user1.userpointaccount
+        user1_pointaccount.refresh_from_db()
+        user_balance = user1_pointaccount.balance
+        self.assertEqual(user_balance, Decimal('-123.45'))
+        s_bill1.refresh_from_db()
+        self.assertEqual(s_bill1.original_amount, Decimal('123.45'))
+        self.assertEqual(s_bill1.trade_amount, Decimal('123.45'))
+        self.assertEqual(s_bill1.payment_status, PaymentStatus.PAID.value)
+        pay_history_id = s_bill1.payment_history_id
+        pay_history = PaymentHistory.objects.get(id=pay_history_id)
+        pay_history.refresh_from_db()
+        self.assertEqual(pay_history.status, PaymentHistory.Status.SUCCESS.value)
+        self.assertEqual(pay_history.payable_amounts, Decimal('123.45'))
+        self.assertEqual(pay_history.amounts, Decimal('-123.45'))
+        self.assertEqual(pay_history.coupon_amount, Decimal('0'))
+        self.assertEqual(pay_history.payer_name, payer_name)
+        self.assertEqual(pay_history.app_service_id, self.site_version_ins.pay_app_service_id)
+        self.assertEqual(pay_history.instance_id, '')
+        self.assertEqual(pay_history.payer_type, OwnerType.USER.value)
+        self.assertEqual(pay_history.payer_id, self.user1.id)
+        self.assertEqual(pay_history.executor, 'metering')
+        self.assertEqual(pay_history.payment_method, PaymentHistory.PaymentMethod.BALANCE.value)
+        self.assertEqual(pay_history.payment_account, user1_pointaccount.id)
+
+        # pay bill
+        s_bill2 = create_site_statement_record(
+            statement_date=(timezone.now() - timedelta(days=1)).date(),
+            original_amount=Decimal('223.45'),
+            payable_amount=Decimal('0'),
+            user_id=self.user1.id, username=payer_name
+        )
+        pay_mgr.pay_daily_statement_bill(
+            daily_statement=s_bill2, app_id=app_id, subject='站点监控计费',
+            executor=self.user1.username, remark='', required_enough_balance=False
+        )
+        s_bill2.refresh_from_db()
+        user1_pointaccount.refresh_from_db()
+        self.assertEqual(user1_pointaccount.balance, user_balance)
+        self.assertEqual(s_bill2.payment_status, PaymentStatus.PAID.value)
+        self.assertEqual(s_bill2.original_amount, Decimal('223.45'))
+        self.assertEqual(s_bill2.payable_amount, Decimal(0))
+        self.assertEqual(s_bill2.trade_amount, Decimal(0))
+        self.assertEqual(s_bill2.payment_history_id, '')
+
+        # pay bill, user1
+        s_bill3 = create_site_statement_record(
+            statement_date=(timezone.now() - timedelta(days=2)).date(),
+            original_amount=Decimal('66.88'),
+            payable_amount=Decimal('66.88'),
+            user_id=self.user1.id, username=self.user1.username
+        )
+        pay_mgr.pay_daily_statement_bill(
+            daily_statement=s_bill3, app_id=app_id, subject='站点监控计费',
+            executor='meter', remark='', required_enough_balance=False
+        )
+        user1_pointaccount.refresh_from_db()
+        user_balance = user1_pointaccount.balance
+        self.assertEqual(user_balance, Decimal('-123.45') - Decimal('66.88'))
+        s_bill3.refresh_from_db()
+        self.assertEqual(s_bill3.payment_status, PaymentStatus.PAID.value)
+        self.assertEqual(s_bill3.original_amount, Decimal('66.88'))
+        self.assertEqual(s_bill3.trade_amount, Decimal('66.88'))
+
+        pay_history_id = s_bill3.payment_history_id
+        pay_history = PaymentHistory.objects.get(id=pay_history_id)
+        pay_history.refresh_from_db()
+        self.assertEqual(pay_history.amounts, Decimal('-66.88'))
+        self.assertEqual(pay_history.coupon_amount, Decimal('0'))
+        self.assertEqual(pay_history.executor, 'meter')
+        self.assertEqual(pay_history.payer_type, OwnerType.USER.value)
+        self.assertEqual(pay_history.payer_id, self.user1.id)
+        self.assertEqual(pay_history.status, PaymentHistory.Status.SUCCESS.value)
+        self.assertEqual(pay_history.payable_amounts, Decimal('66.88'))
+        self.assertEqual(pay_history.payment_method, PaymentHistory.PaymentMethod.BALANCE.value)
+        self.assertEqual(pay_history.payment_account, user1_pointaccount.id)
+        self.assertEqual(pay_history.payer_name, payer_name)
+        self.assertEqual(pay_history.app_service_id, self.site_version_ins.pay_app_service_id)
+        self.assertEqual(pay_history.instance_id, '')
+
+        # ------- test coupon --------
+        now_time = timezone.now()
+        # 有效
+        coupon1_user1 = CashCoupon(
+            face_value=Decimal('20'),
+            balance=Decimal('20'),
+            effective_time=now_time - timedelta(days=1),
+            expiration_time=now_time + timedelta(days=10),
+            app_service_id=self.site_version_ins.pay_app_service_id,
+            status=CashCoupon.Status.AVAILABLE.value,
+            owner_type=OwnerType.USER.value,
+            user_id=self.user1.id, vo_id=None
+        )
+        coupon1_user1.save(force_insert=True)
+
+        # 有效，只适用于app_service2
+        coupon2_user1 = CashCoupon(
+            face_value=Decimal('33'),
+            balance=Decimal('33'),
+            effective_time=now_time - timedelta(days=2),
+            expiration_time=now_time + timedelta(days=10),
+            app_service_id=self.app_service2.id,
+            status=CashCoupon.Status.AVAILABLE.value,
+            owner_type=OwnerType.USER.value,
+            user_id=self.user1.id, vo_id=None
+        )
+        coupon2_user1.save(force_insert=True)
+
+        # 有效, user2
+        coupon3_u2 = CashCoupon(
+            face_value=Decimal('50'),
+            balance=Decimal('50'),
+            effective_time=now_time - timedelta(days=1),
+            expiration_time=now_time + timedelta(days=10),
+            app_service_id=self.site_version_ins.pay_app_service_id,
+            status=CashCoupon.Status.AVAILABLE.value,
+            owner_type=OwnerType.USER.value,
+            user_id=self.user2.id, vo_id=None
+        )
+        coupon3_u2.save(force_insert=True)
+
+        # pay bill
+        s_bill4 = create_site_statement_record(
+            statement_date=(timezone.now() - timedelta(days=2)).date(),
+            original_amount=Decimal('88.8'),
+            payable_amount=Decimal('88.8'),
+            user_id=self.user1.id, username=self.user1.username
+        )
+
+        user1_pointaccount.refresh_from_db()
+        user_balance = user1_pointaccount.balance
+        self.assertEqual(user_balance, Decimal('-190.33'))
+        pay_mgr.pay_daily_statement_bill(
+            daily_statement=s_bill4, app_id=app_id, subject='站点监控计费',
+            executor=self.user1.username, remark='', required_enough_balance=False
+        )
+        user1_pointaccount.refresh_from_db()
+        user_balance = user1_pointaccount.balance
+        self.assertEqual(user_balance, Decimal('-190.33') - Decimal('88.8') + Decimal('20'))  # coupon 20
+        s_bill4.refresh_from_db()
+        self.assertEqual(s_bill4.payment_status, PaymentStatus.PAID.value)
+        self.assertEqual(s_bill4.original_amount, Decimal('88.8'))
+        self.assertEqual(s_bill4.trade_amount, Decimal('88.8'))
+
+        pay_history_id = s_bill4.payment_history_id
+        pay_history = PaymentHistory.objects.get(id=pay_history_id)
+        pay_history.refresh_from_db()
+        self.assertEqual(pay_history.amounts, Decimal('-68.8'))
+        self.assertEqual(pay_history.coupon_amount, Decimal('-20'))
+        self.assertEqual(pay_history.executor, self.user1.username)
+        self.assertEqual(pay_history.payer_type, OwnerType.USER.value)
+        self.assertEqual(pay_history.payer_id, self.user1.id)
+        self.assertEqual(pay_history.status, PaymentHistory.Status.SUCCESS.value)
+        self.assertEqual(pay_history.payable_amounts, Decimal('88.8'))
+        self.assertEqual(pay_history.payment_method, PaymentHistory.PaymentMethod.BALANCE_COUPON.value)
+        self.assertEqual(pay_history.payment_account, user1_pointaccount.id)
+        self.assertEqual(pay_history.payer_name, payer_name)
+        self.assertEqual(pay_history.app_service_id, self.site_version_ins.pay_app_service_id)
+        self.assertEqual(pay_history.instance_id, '')
+
+        # pay bill, user2
+        s_bill5 = create_site_statement_record(
+            statement_date=(timezone.now() - timedelta(days=2)).date(),
+            original_amount=Decimal('66.88'),
+            payable_amount=Decimal('66.88'),
+            user_id=self.user2.id, username=self.user2.username
+        )
+        pay_mgr.pay_daily_statement_bill(
+            daily_statement=s_bill5, app_id=app_id, subject='站点监控计费',
+            executor='meter2', remark='', required_enough_balance=False
+        )
+        user2_pointaccount = self.user2.userpointaccount
+        user2_pointaccount.refresh_from_db()
+        user2_balance = user2_pointaccount.balance
+        self.assertEqual(user2_balance, Decimal('50') - Decimal('66.88'))
+        s_bill5.refresh_from_db()
+        self.assertEqual(s_bill5.payment_status, PaymentStatus.PAID.value)
+        self.assertEqual(s_bill5.original_amount, Decimal('66.88'))
+        self.assertEqual(s_bill5.trade_amount, Decimal('66.88'))
+
+        pay_history_id = s_bill5.payment_history_id
+        pay_history = PaymentHistory.objects.get(id=pay_history_id)
+        pay_history.refresh_from_db()
+        self.assertEqual(pay_history.amounts, Decimal('-16.88'))
+        self.assertEqual(pay_history.coupon_amount, Decimal('-50'))
+        self.assertEqual(pay_history.executor, 'meter2')
+        self.assertEqual(pay_history.payer_type, OwnerType.USER.value)
+        self.assertEqual(pay_history.payer_id, self.user2.id)
+        self.assertEqual(pay_history.status, PaymentHistory.Status.SUCCESS.value)
+        self.assertEqual(pay_history.payable_amounts, Decimal('66.88'))
+        self.assertEqual(pay_history.payment_method, PaymentHistory.PaymentMethod.BALANCE_COUPON.value)
+        self.assertEqual(pay_history.payment_account, user2_pointaccount.id)
+        self.assertEqual(pay_history.payer_name, self.user2.username)
+        self.assertEqual(pay_history.app_service_id, self.site_version_ins.pay_app_service_id)
+        self.assertEqual(pay_history.instance_id, '')
+
+    def test_script_pay(self):
+        app_id = self.app.id
+        mgr = PayMeteringWebsite(app_id=app_id)
+        mgr.run()
+        self.assertEqual(mgr.count, 0)
+        self.assertEqual(mgr.success_count, 0)
+        self.assertEqual(mgr.failed_count, 0)
+        count = PaymentHistory.objects.count()
+        self.assertEqual(count, 0)
+
+        # user1
+        s_bill1 = create_site_statement_record(
+            statement_date=timezone.now().date(),
+            original_amount=Decimal('123.45'),
+            payable_amount=Decimal('123.45'),
+            user_id=self.user1.id, username=self.user1.username
+        )
+        s_bill2 = create_site_statement_record(
+            statement_date=(timezone.now() - timedelta(days=1)).date(),
+            original_amount=Decimal('223.45'),
+            payable_amount=Decimal('0'),
+            user_id=self.user1.id, username=self.user1.username
+        )
+        s_bill3 = create_site_statement_record(
+            statement_date=(timezone.now() - timedelta(days=2)).date(),
+            original_amount=Decimal('66.88'),
+            payable_amount=Decimal('66.88'),
+            user_id=self.user1.id, username=self.user1.username
+        )
+        s_bill4 = create_site_statement_record(
+            statement_date=(timezone.now() - timedelta(days=2)).date(),
+            original_amount=Decimal('88.8'),
+            payable_amount=Decimal('88.8'),
+            user_id=self.user1.id, username=self.user1.username
+        )
+
+        # user2
+        s_bill5 = create_site_statement_record(
+            statement_date=timezone.now().date(),
+            original_amount=Decimal('66.88'),
+            payable_amount=Decimal('66.88'),
+            user_id=self.user2.id, username=self.user2.username
+        )
+
+        now_time = timezone.now()
+        # 有效
+        coupon1_user1 = CashCoupon(
+            face_value=Decimal('20'),
+            balance=Decimal('20'),
+            effective_time=now_time - timedelta(days=1),
+            expiration_time=now_time + timedelta(days=10),
+            app_service_id=self.site_version_ins.pay_app_service_id,
+            status=CashCoupon.Status.AVAILABLE.value,
+            owner_type=OwnerType.USER.value,
+            user_id=self.user1.id, vo_id=None
+        )
+        coupon1_user1.save(force_insert=True)
+
+        # 有效，只适用于app_service2
+        coupon2_user1 = CashCoupon(
+            face_value=Decimal('33'),
+            balance=Decimal('33'),
+            effective_time=now_time - timedelta(days=2),
+            expiration_time=now_time + timedelta(days=10),
+            app_service_id=self.app_service2.id,
+            status=CashCoupon.Status.AVAILABLE.value,
+            owner_type=OwnerType.USER.value,
+            user_id=self.user1.id, vo_id=None
+        )
+        coupon2_user1.save(force_insert=True)
+
+        # 有效, user2
+        coupon3_u2 = CashCoupon(
+            face_value=Decimal('50'),
+            balance=Decimal('50'),
+            effective_time=now_time - timedelta(days=1),
+            expiration_time=now_time + timedelta(days=10),
+            app_service_id=self.site_version_ins.pay_app_service_id,
+            status=CashCoupon.Status.AVAILABLE.value,
+            owner_type=OwnerType.USER.value,
+            user_id=self.user2.id, vo_id=None
+        )
+        coupon3_u2.save(force_insert=True)
+
+        # bill 1、5 only pay
+        mgr = PayMeteringWebsite(app_id=app_id, pay_date=now_time.date())
+        mgr.run()
+        self.assertEqual(mgr.count, 2)
+        self.assertEqual(mgr.success_count, 2)
+        self.assertEqual(mgr.failed_count, 0)
+        count = PaymentHistory.objects.count()
+        self.assertEqual(count, 2)
+
+        user1_pointaccount = self.user1.userpointaccount
+        user1_pointaccount.refresh_from_db()
+        self.assertEqual(user1_pointaccount.balance, Decimal('20') - Decimal('123.45'))
+        s_bill1.refresh_from_db()
+        self.assertEqual(s_bill1.original_amount, Decimal('123.45'))
+        self.assertEqual(s_bill1.trade_amount, Decimal('123.45'))
+        self.assertEqual(s_bill1.payment_status, PaymentStatus.PAID.value)
+
+        user2_pointaccount = self.user2.userpointaccount
+        user2_pointaccount.refresh_from_db()
+        self.assertEqual(user2_pointaccount.balance, Decimal('50') - Decimal('66.88'))
+        s_bill5.refresh_from_db()
+        self.assertEqual(s_bill5.original_amount, Decimal('66.88'))
+        self.assertEqual(s_bill5.trade_amount, Decimal('66.88'))
+        self.assertEqual(s_bill5.payment_status, PaymentStatus.PAID.value)
+
+        # bill 2\3\4 only pay
+        mgr = PayMeteringWebsite(app_id=app_id, pay_date=None)
+        mgr.run()
+        self.assertEqual(mgr.count, 3)
+        self.assertEqual(mgr.success_count, 3)
+        self.assertEqual(mgr.failed_count, 0)
+        count = PaymentHistory.objects.count()
+        self.assertEqual(count, 2 + 2)  # bill2不扣费不产生支付记录
+
+        user1_pointaccount.refresh_from_db()
+        self.assertEqual(user1_pointaccount.balance,
+                         Decimal('20') - Decimal('123.45') - Decimal('66.88') - Decimal('88.8'))
+
+        s_bill2.refresh_from_db()
+        self.assertEqual(s_bill2.original_amount, Decimal('223.45'))
+        self.assertEqual(s_bill2.trade_amount, Decimal('0'))
+        self.assertEqual(s_bill2.payment_status, PaymentStatus.PAID.value)
+        s_bill3.refresh_from_db()
+        self.assertEqual(s_bill3.original_amount, Decimal('66.88'))
+        self.assertEqual(s_bill3.trade_amount, Decimal('66.88'))
+        self.assertEqual(s_bill3.payment_status, PaymentStatus.PAID.value)
+        s_bill4.refresh_from_db()
+        self.assertEqual(s_bill4.original_amount, Decimal('88.8'))
+        self.assertEqual(s_bill4.trade_amount, Decimal('88.8'))
+        self.assertEqual(s_bill4.payment_status, PaymentStatus.PAID.value)
+
+        user2_pointaccount.refresh_from_db()
+        self.assertEqual(user2_pointaccount.balance, Decimal('50') - Decimal('66.88'))

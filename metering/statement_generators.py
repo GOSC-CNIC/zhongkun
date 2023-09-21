@@ -737,8 +737,8 @@ class WebsiteMonitorStatementGenerater:
         # 用户的日结算单
         self.generate_user_disk_statement()
 
-        print(f'generate {self._user_daily_statement_count} user disk daily statements,',
-              f'new generate {self._new_count} disk daily statements.')
+        print(f'generate {self._user_daily_statement_count} user website daily statements,',
+              f'new generate {self._new_count} website daily statements.')
 
     def generate_user_disk_statement(self):
         """
@@ -843,7 +843,7 @@ class WebsiteMonitorStatementGenerater:
             date=statement_date,
             original_amount=original_amount,
             payable_amount=payable_amount,
-            trade_amount=0,
+            trade_amount=Decimal('0.00'),
             payment_status=PaymentStatus.UNPAID.value,
             payment_history_id='',
             user_id=user_id,
