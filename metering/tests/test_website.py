@@ -168,7 +168,7 @@ class MeteringWebsiteTests(TransactionTestCase):
     def do_assert_site(self, now: datetime, site1: MonitorWebsiteBase, site2: MonitorWebsiteBase):
         metering_date = (now - timedelta(days=1)).date()
         metering_end_time = now.replace(hour=0, minute=0, second=0, microsecond=0)    # 计量结束时间
-        measurer = MonitorWebsiteMeasurer(raise_exeption=True)
+        measurer = MonitorWebsiteMeasurer(raise_exception=True)
         measurer.run()
 
         # utc时间00:00（北京时间08:00）之后的1hour之内，disk4会被计量
@@ -207,7 +207,7 @@ class MeteringWebsiteTests(TransactionTestCase):
         self.assertEqual(metering.original_amount, quantize_10_2(original_amount2))
         self.assertEqual(metering.trade_amount, quantize_10_2(original_amount2))
 
-        MonitorWebsiteMeasurer(raise_exeption=True).run()
+        MonitorWebsiteMeasurer(raise_exception=True).run()
         count = MeteringMonitorWebsite.objects.all().count()
         if in_utc_0_1:
             self.assertEqual(count, 3)

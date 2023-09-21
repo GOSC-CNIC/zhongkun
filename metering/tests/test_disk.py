@@ -175,7 +175,7 @@ class MeteringDiskTests(TransactionTestCase):
     def do_assert_disk(self, now: datetime, disk1: Disk, disk2: Disk, disk1_hours: int = 0):
         metering_date = (now - timedelta(days=1)).date()
         metering_end_time = now.replace(hour=0, minute=0, second=0, microsecond=0)    # 计量结束时间
-        measurer = DiskMeasurer(raise_exeption=True)
+        measurer = DiskMeasurer(raise_exception=True)
         measurer.run()
 
         # utc时间00:00（北京时间08:00）之后的1hour之内，disk4会被计量
@@ -218,7 +218,7 @@ class MeteringDiskTests(TransactionTestCase):
         self.assertEqual(metering.trade_amount, quantize_10_2(original_amount2))
         # self.assertEqual(metering.pay_type, PayType.POSTPAID.value)
 
-        DiskMeasurer(raise_exeption=True).run()
+        DiskMeasurer(raise_exception=True).run()
         count = MeteringDisk.objects.all().count()
         if in_utc_0_1:
             self.assertEqual(count, 3)

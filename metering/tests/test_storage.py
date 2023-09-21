@@ -10,7 +10,7 @@ from utils.model import OwnerType
 from core import errors
 from order.models import Price, ResourceType
 from bill.models import CashCoupon, PaymentHistory, PayAppService, PayApp, PayOrgnazition
-from metering.measurers import StorageMeasure
+from metering.measurers import StorageMeasurer
 from metering.models import PaymentStatus, MeteringObjectStorage, DailyStatementObjectStorage
 from metering.payment import MeteringPaymentManager
 from metering.statement_generators import GenerateDailyStatementObjectStorage
@@ -105,7 +105,7 @@ class MeteringObjectStorageTests(TransactionTestCase):
 
         metering_date = (now - timedelta(days=1)).date()
         metering_end_time = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        measure = StorageMeasure(raise_exception=True)
+        measure = StorageMeasurer(raise_exception=True)
         measure.run()
 
         utc_now = now.astimezone(utc)
@@ -156,7 +156,7 @@ class MeteringObjectStorageTests(TransactionTestCase):
         bucket1, bucket2, bucket3 = self.init_data_only_bucket(now)
 
         metering_date = (now - timedelta(days=1)).date()
-        measure = StorageMeasure(raise_exception=True)
+        measure = StorageMeasurer(raise_exception=True)
         measure.get_bucket_metering_size = lambda bucket: gib_size * (1024**3)        # 替换网络请求
         measure.run()
 

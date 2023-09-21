@@ -14,7 +14,7 @@ from users.models import UserProfile
 from vo.models import VirtualOrganization
 
 
-class GenerateDailyStatementServer:
+class BaseGeneratorStatement:
 
     def __init__(self, statement_date: date = None, raise_exception: bool = False):
         """
@@ -26,11 +26,21 @@ class GenerateDailyStatementServer:
                 year=statement_date.year, month=statement_date.month, day=statement_date.day,
                 hour=0, minute=0, second=0, microsecond=0)
         else:
-            # 聚合当前时间前一天的计量记录      
+            # 聚合当前时间前一天的计量记录
             statement_date = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=1)
 
         self.statement_date = statement_date.date()
         self.raise_exception = raise_exception
+
+
+class GenerateDailyStatementServer(BaseGeneratorStatement):
+
+    def __init__(self, statement_date: date = None, raise_exception: bool = False):
+        """
+        :param statement_date: 日结算单日期
+        :param raise_exception: True(发生错误直接抛出退出)
+        """
+        super().__init__(statement_date=statement_date, raise_exception=raise_exception)
         self._user_daily_statement_count = 0  # 用户日结算单计数
         self._vo_daily_statement_count = 0  # VO组日结算单计数
         self._new_count = 0  # 新产生的日结算单计数
@@ -276,22 +286,14 @@ class GenerateDailyStatementServer:
         ).first()
 
 
-class GenerateDailyStatementObjectStorage:
+class GenerateDailyStatementObjectStorage(BaseGeneratorStatement):
 
     def __init__(self, statement_date: date = None, raise_exception: bool = False):
         """
         :param statement_date: 日结算账单日期
         :param raise_exception: True(发生错误直接抛出异常)
         """
-        if statement_date:
-            statement_date = timezone.now().replace(
-                year=statement_date.year, month=statement_date.month, day=statement_date.day,
-                hour=0, minute=0, second=0)
-        else:
-            statement_date = timezone.now().replace(hour=0, minute=0, second=0)
-
-        self.statement_date = statement_date.date()
-        self.raise_exception = raise_exception
+        super().__init__(statement_date=statement_date, raise_exception=raise_exception)
         self._user_daily_statement_count = 0
         self._new_count = 0
 
@@ -445,22 +447,13 @@ class GenerateDailyStatementObjectStorage:
         return daily_statement
 
 
-class DiskDailyStatementGenerater:
+class DiskDailyStatementGenerater(BaseGeneratorStatement):
     def __init__(self, statement_date: date = None, raise_exception: bool = False):
         """
         :param statement_date: 日结算单日期
         :param raise_exception: True(发生错误直接抛出退出)
         """
-        if statement_date:
-            statement_date = timezone.now().replace(
-                year=statement_date.year, month=statement_date.month, day=statement_date.day,
-                hour=0, minute=0, second=0, microsecond=0)
-        else:
-            # 聚合当前时间前一天的计量记录
-            statement_date = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=1)
-
-        self.statement_date = statement_date.date()
-        self.raise_exception = raise_exception
+        super().__init__(statement_date=statement_date, raise_exception=raise_exception)
         self._user_daily_statement_count = 0  # 用户日结算单计数
         self._vo_daily_statement_count = 0  # VO组日结算单计数
         self._new_count = 0  # 新产生的日结算单计数
@@ -706,22 +699,13 @@ class DiskDailyStatementGenerater:
         ).first()
 
 
-class WebsiteMonitorStatementGenerater:
+class WebsiteMonitorStatementGenerater(BaseGeneratorStatement):
     def __init__(self, statement_date: date = None, raise_exception: bool = False):
         """
         :param statement_date: 日结算单日期
         :param raise_exception: True(发生错误直接抛出退出)
         """
-        if statement_date:
-            statement_date = timezone.now().replace(
-                year=statement_date.year, month=statement_date.month, day=statement_date.day,
-                hour=0, minute=0, second=0, microsecond=0)
-        else:
-            # 聚合当前时间前一天的计量记录
-            statement_date = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=1)
-
-        self.statement_date = statement_date.date()
-        self.raise_exception = raise_exception
+        super().__init__(statement_date=statement_date, raise_exception=raise_exception)
         self._user_daily_statement_count = 0  # 用户日结算单计数
         self._new_count = 0  # 新产生的日结算单计数
 

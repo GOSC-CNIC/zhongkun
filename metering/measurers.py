@@ -29,15 +29,15 @@ def wrap_close_old_connections(func):
     return wrapper
 
 
-class ServerMeasurer:
+class BaseMeasurer:
     """
     计量器
     """
 
-    def __init__(self, metering_date: date = None, raise_exeption: bool = False):
+    def __init__(self, metering_date: date = None, raise_exception: bool = False):
         """
         :param metering_date: 指定计量日期
-        :param raise_exeption: True(发生错误直接抛出退出)
+        :param raise_exception: True(发生错误直接抛出退出)
         """
         if metering_date:
             start_datetime = timezone.now().replace(
@@ -51,20 +51,33 @@ class ServerMeasurer:
 
         self.end_datetime = end_datetime
         self.start_datetime = start_datetime
-        self.raise_exeption = raise_exeption
+        self.raise_exception = raise_exception
+
+
+class ServerMeasurer(BaseMeasurer):
+    """
+    计量器
+    """
+
+    def __init__(self, metering_date: date = None, raise_exception: bool = False):
+        """
+        :param metering_date: 指定计量日期
+        :param raise_exception: True(发生错误直接抛出退出)
+        """
+        super().__init__(metering_date=metering_date, raise_exception=raise_exception)
         self.price_mgr = PriceManager()
         self._metering_server_count = 0  # 计量云主机计数
         self._metering_archieve_count = 0  # 计量归档云主机计数
         self._new_count = 0  # 新产生计量账单计数
 
-    def run(self, raise_exeption: bool = None):
+    def run(self, raise_exception: bool = None):
         print(f'Server metering start, {self.start_datetime} - {self.end_datetime}')
         if self.end_datetime >= timezone.now():
             print('Exit, metering time invalid.')
             return
 
-        if raise_exeption is not None:
-            self.raise_exeption = raise_exeption
+        if raise_exception is not None:
+            self.raise_exception = raise_exception
 
         # 顺序先server后archive，因为数据库数据流向从server到archive
         self.metering_loop(loop_server=True)
@@ -104,7 +117,7 @@ class ServerMeasurer:
                 continuous_error_count = 0
             except Exception as e:
                 print(str(e))
-                if self.raise_exeption:
+                if self.raise_exception:
                     raise e
 
                 continuous_error_count += 1
@@ -431,37 +444,25 @@ class ServerMeasurer:
         return _metering
 
 
-class StorageMeasure:
+class StorageMeasurer(BaseMeasurer):
     """
     对象存储计量
     """
 
-    def __init__(self, metering_data: date = None, raise_exception: bool = False):
+    def __init__(self, metering_date: date = None, raise_exception: bool = False):
         """
-        :param metering_data: 指定计量日期
+        :param metering_date: 指定计量日期
         :param raise_exception: True 发生错误直接抛出
         """
-        if metering_data:
-            start_datetime = timezone.now().replace(
-                year=metering_data.year, month=metering_data.month, day=metering_data.day,
-                hour=0, minute=0, second=0, microsecond=0)
-            end_datetime = start_datetime + timedelta(days=1)
-        else:
-            # 计量当前时间的前一天的资源使用量
-            end_datetime = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
-            start_datetime = end_datetime - timedelta(days=1)
-
-        self.end_datatime = end_datetime
-        self.start_datetime = start_datetime
-        self.raise_exception = raise_exception
+        super().__init__(metering_date=metering_date, raise_exception=raise_exception)
         self.price_mgr = PriceManager()
         self._metering_bucket_count = 0  # 计量的桶的数目 这里暂时不用考虑归档的桶
         self._new_count = 0  # 新产生的计量账单的数目
         self._error_http_count = 0   # 请求桶容量的错误的数目
 
     def run(self, raise_exception: bool = None):
-        print(f'Storage Metering start, {self.start_datetime} - {self.end_datatime}')
-        if self.end_datatime >= timezone.now():
+        print(f'Storage Metering start, {self.start_datetime} - {self.end_datetime}')
+        if self.end_datetime >= timezone.now():
             print('Exit, metering time invalid')
             return
 
@@ -519,8 +520,8 @@ class StorageMeasure:
         '''
         if bucket.creation_time <= self.start_datetime:
             hours = 24
-        elif bucket.creation_time < self.end_datatime:
-            hours = self.delta_hours(end=self.end_datatime, start=bucket.creation_time)
+        elif bucket.creation_time < self.end_datetime:
+            hours = self.delta_hours(end=self.end_datetime, start=bucket.creation_time)
         else:
             return None
 
@@ -660,38 +661,26 @@ class StorageMeasure:
         return queryset
 
 
-class DiskMeasurer:
-    def __init__(self, metering_date: date = None, raise_exeption: bool = False):
+class DiskMeasurer(BaseMeasurer):
+    def __init__(self, metering_date: date = None, raise_exception: bool = False):
         """
         :param metering_date: 指定计量日期
-        :param raise_exeption: True(发生错误直接抛出退出)
+        :param raise_exception: True(发生错误直接抛出退出)
         """
-        if metering_date:
-            start_datetime = timezone.now().replace(
-                year=metering_date.year, month=metering_date.month, day=metering_date.day,
-                hour=0, minute=0, second=0, microsecond=0)
-            end_datetime = start_datetime + timedelta(days=1)
-        else:
-            # 计量当前时间前一天的资源使用量
-            end_datetime = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)  # 计量结束时间
-            start_datetime = end_datetime - timedelta(days=1)  # 计量开始时间
-
-        self.end_datetime = end_datetime
-        self.start_datetime = start_datetime
-        self.raise_exeption = raise_exeption
+        super().__init__(metering_date=metering_date, raise_exception=raise_exception)
         self.price_mgr = PriceManager()
         self._metering_normal_disk_count = 0  # 计量正常云硬盘计数
         self._metering_deleted_disk_count = 0  # 计量已删除云硬盘计数
         self._new_count = 0  # 新产生计量账单计数
 
-    def run(self, raise_exeption: bool = None):
+    def run(self, raise_exception: bool = None):
         print(f'Disk metering start, {self.start_datetime} - {self.end_datetime}')
         if self.end_datetime >= timezone.now():
             print('Exit, metering time invalid.')
             return
 
-        if raise_exeption is not None:
-            self.raise_exeption = raise_exeption
+        if raise_exception is not None:
+            self.raise_exception = raise_exception
 
         self.loop_normal_disks()
         self.loop_deleted_disks()
@@ -737,7 +726,7 @@ class DiskMeasurer:
                 continuous_error_count = 0
             except Exception as e:
                 print(str(e))
-                if self.raise_exeption:
+                if self.raise_exception:
                     raise e
 
                 continuous_error_count += 1
@@ -952,38 +941,26 @@ class DiskMeasurer:
             disk_id=disk_id, disk_start_time=disk_start_time, _type=DiskChangeLog.LogType.POST2PRE.value)
 
 
-class MonitorWebsiteMeasurer:
-    def __init__(self, metering_date: date = None, raise_exeption: bool = False):
+class MonitorWebsiteMeasurer(BaseMeasurer):
+    def __init__(self, metering_date: date = None, raise_exception: bool = False):
         """
         :param metering_date: 指定计量日期
-        :param raise_exeption: True(发生错误直接抛出退出)
+        :param raise_exception: True(发生错误直接抛出退出)
         """
-        if metering_date:
-            start_datetime = timezone.now().replace(
-                year=metering_date.year, month=metering_date.month, day=metering_date.day,
-                hour=0, minute=0, second=0, microsecond=0)
-            end_datetime = start_datetime + timedelta(days=1)
-        else:
-            # 计量当前时间前一天的资源使用量
-            end_datetime = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)  # 计量结束时间
-            start_datetime = end_datetime - timedelta(days=1)  # 计量开始时间
-
-        self.end_datetime = end_datetime
-        self.start_datetime = start_datetime
-        self.raise_exeption = raise_exeption
+        super().__init__(metering_date=metering_date, raise_exception=raise_exception)
         self.price_mgr = PriceManager()
         self._metering_normal_count = 0  # 计量正常计数
         self._metering_deleted_count = 0  # 计量已删除计数
         self._new_count = 0  # 新产生计量账单计数
 
-    def run(self, raise_exeption: bool = None):
+    def run(self, raise_exception: bool = None):
         print(f'Monitor website metering start, {self.start_datetime} - {self.end_datetime}')
         if self.end_datetime >= timezone.now():
             print('Exit, metering time invalid.')
             return
 
-        if raise_exeption is not None:
-            self.raise_exeption = raise_exeption
+        if raise_exception is not None:
+            self.raise_exception = raise_exception
 
         self.loop_normal_websites()
         self.loop_deleted_websites()
@@ -1028,8 +1005,7 @@ class MonitorWebsiteMeasurer:
 
                 continuous_error_count = 0
             except Exception as e:
-                print(str(e))
-                if self.raise_exeption:
+                if self.raise_exception:
                     raise e
 
                 continuous_error_count += 1

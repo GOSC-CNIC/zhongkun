@@ -10,7 +10,7 @@ setup()
 
 
 if __name__ == "__main__":
-    from metering.measurers import ServerMeasurer, StorageMeasure, DiskMeasurer
+    from metering.measurers import ServerMeasurer, StorageMeasurer, DiskMeasurer
     ServerMeasurer().run()
     DiskMeasurer().run()
-    StorageMeasure().run()
+    StorageMeasurer().run()

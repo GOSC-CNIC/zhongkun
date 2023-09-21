@@ -44,7 +44,7 @@ def server_metering_pay():
 
         print(f'[{metering_date}]')
         try:
-            ServerMeasurer(metering_date=metering_date).run(raise_exeption=True)
+            ServerMeasurer(metering_date=metering_date).run(raise_exception=True)
             GenerateDailyStatementServer(statement_date=metering_date).run(raise_exception=True)
             PayMeteringServer(app_id=app_id, pay_date=metering_date).run()
             print(f'OK, {metering_date}')
@@ -79,7 +79,7 @@ def disk_metering_pay():
 
         print(f'[{metering_date}]')
         try:
-            DiskMeasurer(metering_date=metering_date).run(raise_exeption=True)
+            DiskMeasurer(metering_date=metering_date).run(raise_exception=True)
             DiskDailyStatementGenerater(statement_date=metering_date).run(raise_exception=True)
             PayMeteringDisk(app_id=app_id, pay_date=metering_date).run()
             print(f'OK, {metering_date}')
@@ -91,7 +91,7 @@ def disk_metering_pay():
 
 
 def storage_metering_pay():
-    from metering.measurers import StorageMeasure
+    from metering.measurers import StorageMeasurer
     from metering.pay_metering import PayMeteringObjectStorage
     from metering.statement_generators import GenerateDailyStatementObjectStorage
 
@@ -100,9 +100,26 @@ def storage_metering_pay():
     # 对象存储只计量前天的
     print(f'Metering Storage [{metering_date}]')
     try:
-        StorageMeasure(metering_data=metering_date).run()
+        StorageMeasurer(metering_date=metering_date).run()
         GenerateDailyStatementObjectStorage(statement_date=metering_date).run()
         PayMeteringObjectStorage(app_id=app_id, pay_date=metering_date).run()
+        print(f'OK, {metering_date}')
+    except Exception as e:
+        print(f'FAILED, {metering_date}, {str(e)}')
+
+
+def website_monitor_metering_pay():
+    from metering.measurers import MonitorWebsiteMeasurer
+    from metering.statement_generators import WebsiteMonitorStatementGenerater
+    from metering.pay_metering import PayMeteringWebsite
+
+    metering_date = datetime.utcnow().astimezone(utc).date() - timedelta(days=1)
+
+    print(f'Metering monitor website [{metering_date}]')
+    try:
+        MonitorWebsiteMeasurer(metering_date=metering_date).run()
+        WebsiteMonitorStatementGenerater(statement_date=metering_date).run()
+        PayMeteringWebsite(app_id=app_id, pay_date=metering_date).run()
         print(f'OK, {metering_date}')
     except Exception as e:
         print(f'FAILED, {metering_date}, {str(e)}')
@@ -111,4 +128,5 @@ def storage_metering_pay():
 if __name__ == "__main__":
     server_metering_pay()
     disk_metering_pay()
+    website_monitor_metering_pay()
     storage_metering_pay()

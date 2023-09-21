@@ -181,7 +181,7 @@ class MeteringServerTests(TransactionTestCase):
     def do_assert_server(self, now: datetime, server1: Server, server2: Server, server1_hours: int = 0):
         metering_date = (now - timedelta(days=1)).date()
         metering_end_time = now.replace(hour=0, minute=0, second=0, microsecond=0)    # 计量结束时间
-        measurer = ServerMeasurer(raise_exeption=True)
+        measurer = ServerMeasurer(raise_exception=True)
         measurer.run()
 
         # utc时间00:00（北京时间08:00）之后的1hour之内，server4会被计量
