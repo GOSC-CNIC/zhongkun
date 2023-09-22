@@ -6,11 +6,13 @@ from scripts.crontab_manager import CrontabManager
 
 
 class Command(BaseCommand):
-    help = 'run this command to add, show or remove the jobs defined in CRONTABJOBS setting from/to crontab'
+    help = 'run this command to add, show, remove, run or list-setting the jobs ' \
+           'defined in CRONTABJOBS setting from/to crontab'
 
     def add_arguments(self, parser):
-        parser.add_argument('subcommand', choices=['add', 'show', 'remove', 'run'])
+        parser.add_argument('subcommand', choices=['add', 'show', 'remove', 'run', 'list-setting'])
         parser.add_argument('comment', nargs='?')
+        parser.add_argument('--all', nargs='?', dest='all', const=True, help='use when "remove"')
 
     def handle(self, *args, **options):
         """
@@ -23,7 +25,10 @@ class Command(BaseCommand):
         elif options['subcommand'] == 'show':
             crontab.show_jobs()
         elif options['subcommand'] == 'remove':
-            crontab.remove_jobs(comment_start_with=comment)
+            _all = options['all']
+            crontab.remove_jobs(comment_start_with=comment, remove_all=_all)
+        elif options['subcommand'] == 'list-setting':
+            crontab.list_job_settings()
         elif options['subcommand'] == 'run':
             comment = options['comment']
             if not comment:
