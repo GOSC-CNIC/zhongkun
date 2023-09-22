@@ -1,16 +1,42 @@
 import time
+from decimal import Decimal
 
 from django.utils.translation import gettext as _
+from django.core.validators import URLValidator
+from django.core.exceptions import ValidationError
 from rest_framework.response import Response
 
 from core import errors
 from monitor.managers import MonitorWebsiteManager, WebsiteQueryChoices
 from monitor.models import MonitorWebsiteTask, MonitorWebsiteVersion, MonitorWebsite, WebsiteDetectionPoint
 from api.viewsets import CustomGenericViewSet
+from bill.managers.payment import PaymentManager
+from order.managers.price import PriceManager
 from .handlers import serializer_error_msg
 
 
 class MonitorWebsiteHandler:
+    @staticmethod
+    def __check_balance_create_website(app_service_id: str, user, day_price: Decimal):
+        """
+        检查余额是否满足限制条件
+
+            * 余额和券金额 / 按量一天计费金额 = 可以创建的监控站点数量
+
+        :raises: Error, BalanceNotEnough
+        """
+        lower_limit_amount = Decimal('100.00')
+        s_count = MonitorWebsite.objects.filter(user_id=user.id).count()
+        money_amount = day_price * s_count + lower_limit_amount
+
+        if not PaymentManager().has_enough_balance_user(
+                user_id=user.id, money_amount=money_amount, with_coupons=True,
+                app_service_id=app_service_id
+        ):
+            raise errors.BalanceNotEnough(
+                message=_('你已拥有%(value)d个站点监控任务，你的余额不足，不能创建更多的站点监控任务。'
+                          ) % {'value': s_count})
+
     @staticmethod
     def create_website_task(view: CustomGenericViewSet, request):
         """
@@ -19,17 +45,33 @@ class MonitorWebsiteHandler:
         try:
             params = MonitorWebsiteHandler._create_website_validate_params(view=view, request=request)
             user = request.user
-            if not user.is_federal_admin():
-                count = MonitorWebsite.objects.filter(user_id=user.id).count()
-                if count >= 5:
-                    raise errors.ConflictError(message=_('已达到允许创建监控任务数量上限。'), code='TooManyTask')
+            is_tamper_resistant = True if params['is_tamper_resistant'] else False
+
+            ins = MonitorWebsiteVersion.get_instance()
+            pay_app_service_id = ins.pay_app_service_id
+            if not pay_app_service_id or len(pay_app_service_id) < 10:
+                raise errors.ConflictError(
+                    message=_('站点监控未配置对应的结算系统APP服务id'), code='ServiceNoPayAppServiceId')
+
+            # 计算按量付费一天的计费
+            p_mgr = PriceManager()
+            price = p_mgr.enforce_price()
+            day_price = p_mgr.calculate_monitor_site_amounts(
+                price=price, days=1, detection_count=0,
+                tamper_count=1 if is_tamper_resistant else 0,
+                security_count=0
+            )
+            # 站点数量和余额限制检测
+            MonitorWebsiteHandler.__check_balance_create_website(
+                app_service_id=pay_app_service_id, user=user, day_price=day_price
+            )
 
             task = MonitorWebsiteManager.add_website_task(
                 name=params['name'],
                 scheme=params['scheme'],
                 hostname=params['hostname'],
                 uri=params['uri'],
-                is_tamper_resistant=True if params['is_tamper_resistant'] else False,
+                is_tamper_resistant=is_tamper_resistant,
                 remark=params['remark'],
                 user_id=request.user.id
             )
@@ -41,6 +83,28 @@ class MonitorWebsiteHandler:
 
     @staticmethod
     def _create_website_validate_params(view, request):
+        validated_data = MonitorWebsiteHandler._post_website_validate_params(view=view, request=request)
+
+        scheme = validated_data.get('scheme', '')
+        hostname = validated_data.get('hostname', '')
+        uri = validated_data.get('uri', '')
+
+        user_website = MonitorWebsite(scheme=scheme, hostname=hostname, uri=uri, user_id=request.user.id)
+        full_url = user_website.full_url
+        try:
+            URLValidator()(full_url)
+        except ValidationError as e:
+            raise errors.InvalidArgument(message=_('网址无效'), code='InvalidUrl')
+
+        url_hash = user_website.calculate_url_hash()
+        _website = MonitorWebsite.objects.filter(user_id=user_website.user_id, url_hash=url_hash).exists()
+        if _website:
+            raise errors.TargetAlreadyExists(message=_('已存在相同的网址。'))
+
+        return validated_data
+
+    @staticmethod
+    def _post_website_validate_params(view, request):
         """
         :raises: Error
         """
@@ -80,7 +144,7 @@ class MonitorWebsiteHandler:
         """
         website_id = kwargs.get(view.lookup_field)
         try:
-            params = MonitorWebsiteHandler._create_website_validate_params(view=view, request=request)
+            params = MonitorWebsiteHandler._post_website_validate_params(view=view, request=request)
             task = MonitorWebsiteManager.change_website_task(
                 _id=website_id,
                 name=params['name'],

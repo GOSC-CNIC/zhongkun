@@ -458,6 +458,19 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
               "modification": "2023-01-29T01:01:00Z",
               "is_attention": true
             }
+            http code 400、409:
+            {
+                "code": "xxx",
+                "message": "xxx"
+            }
+            400：
+                BadRequest：
+                InvalidScheme：协议无效
+                InvalidHostname：域名无效
+                InvalidUri：路径无效
+            409：
+                TargetAlreadyExists：已存在相同的网址
+                BalanceNotEnough：你已拥有x个站点监控任务，你的余额不足，不能创建更多的站点监控任务。
         """
         return MonitorWebsiteHandler().create_website_task(view=self, request=request)
 

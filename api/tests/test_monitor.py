@@ -1,4 +1,5 @@
 import time
+from decimal import Decimal
 from datetime import timedelta
 from urllib import parse
 
@@ -19,6 +20,8 @@ from monitor.managers import (
     CephQueryChoices, ServerQueryChoices, VideoMeetingQueryChoices, WebsiteQueryChoices,
     MonitorWebsiteManager
 )
+from bill.models import PayApp, PayOrgnazition, PayAppService
+from order.models import Price
 from utils.test import get_or_create_user, get_test_case_settings, get_or_create_service
 from . import set_auth_header, MyAPITestCase
 
@@ -709,6 +712,40 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.user2 = get_or_create_user(username='tom@cnic.cn', password='password')
 
     def test_create_website_task(self):
+        # 余额支付有关配置
+        app = PayApp(name='app')
+        app.save()
+        app = app
+        po = PayOrgnazition(name='机构')
+        po.save()
+        app_service1 = PayAppService(
+            name='website monitor', app=app, orgnazition=po
+        )
+        app_service1.save()
+
+        price = Price(
+            vm_ram=Decimal('0.0'),
+            vm_cpu=Decimal('0.0'),
+            vm_disk=Decimal('0'),
+            vm_pub_ip=Decimal('0'),
+            vm_upstream=Decimal('0'),
+            vm_downstream=Decimal('1'),
+            vm_disk_snap=Decimal('0'),
+            disk_size=Decimal('1.02'),
+            disk_snap=Decimal('0.77'),
+            obj_size=Decimal('0'),
+            obj_upstream=Decimal('0'),
+            obj_downstream=Decimal('0'),
+            obj_replication=Decimal('0'),
+            obj_get_request=Decimal('0'),
+            obj_put_request=Decimal('0'),
+            prepaid_discount=66,
+            mntr_site_base=Decimal('0.3'),
+            mntr_site_tamper=Decimal('0.2'),
+            mntr_site_security=Decimal('0.5')
+        )
+        price.save()
+
         # NotAuthenticated
         url = reverse('api:monitor-website-list')
         r = self.client.post(path=url, data={
@@ -736,13 +773,41 @@ class MonitorWebsiteTests(MyAPITestCase):
         })
         self.assertErrorResponse(status_code=400, code='InvalidUri', response=r)
 
-        # user, 1 ok
         self.client.force_login(self.user)
+        r = self.client.post(path=url, data={
+            'name': 'name-test', 'scheme': 'https://', 'hostname': 'test.cn', 'uri': '/a/b?test=1&c=6#test',
+            'is_tamper_resistant': True, 'remark': 'test'
+        })
+        self.assertErrorResponse(status_code=409, code='ServiceNoPayAppServiceId', response=r)
+        site_version_ins = MonitorWebsiteVersion.get_instance()
+        site_version_ins.pay_app_service_id = app_service1.id
+        site_version_ins.save(update_fields=['pay_app_service_id'])
+
+        # balance 100
+        r = self.client.post(path=url, data={
+            'name': 'name-test', 'scheme': 'https://', 'hostname': 'test.cn', 'uri': '/a/b?test=1&c=6#test',
+            'is_tamper_resistant': True, 'remark': 'test'
+        })
+        self.assertErrorResponse(status_code=409, code='BalanceNotEnough', response=r)
+        userpointaccount = self.user.userpointaccount
+        userpointaccount.balance = Decimal('99')
+        userpointaccount.save(update_fields=['balance'])
+
+        r = self.client.post(path=url, data={
+            'name': 'name-test', 'scheme': 'https://', 'hostname': 'test.cn', 'uri': '/a/b?test=1&c=6#test',
+            'is_tamper_resistant': True, 'remark': 'test'
+        })
+        self.assertErrorResponse(status_code=409, code='BalanceNotEnough', response=r)
+        userpointaccount.balance = Decimal('100')
+        userpointaccount.save(update_fields=['balance'])
+
+        # user, 1 ok
         website_url = 'https://test.cn/a/b?test=1&c=6#test'
         r = self.client.post(path=url, data={
             'name': 'name-test', 'scheme': 'https://', 'hostname': 'test.cn', 'uri': '/a/b?test=1&c=6#test',
             'is_tamper_resistant': True, 'remark': 'test'
         })
+        self.assertEqual(r.status_code, 200)
         self.assertKeysIn(keys=[
             'id', 'name', 'scheme', 'hostname', 'uri', 'is_tamper_resistant', 'url',
             'remark', 'url_hash', 'creation', 'modification', 'is_attention'], container=r.data)
@@ -778,6 +843,13 @@ class MonitorWebsiteTests(MyAPITestCase):
         r = self.client.post(path=url, data={
             'name': 'name-test666', 'scheme': 'https://', 'hostname': 'test66.com', 'uri': '/', 'remark': '测试t88'
         })
+        self.assertErrorResponse(status_code=409, code='BalanceNotEnough', response=r)
+        userpointaccount.balance = Decimal('103')
+        userpointaccount.save(update_fields=['balance'])
+
+        r = self.client.post(path=url, data={
+            'name': 'name-test666', 'scheme': 'https://', 'hostname': 'test66.com', 'uri': '/', 'remark': '测试t88'
+        })
         self.assertKeysIn(keys=[
             'id', 'name', 'scheme', 'hostname', 'uri', 'is_tamper_resistant', 'url',
             'remark', 'url_hash', 'creation', 'modification', 'is_attention'], container=r.data)
@@ -809,10 +881,28 @@ class MonitorWebsiteTests(MyAPITestCase):
         # user2, 1 ok
         self.client.logout()
         self.client.force_login(self.user2)
+
+        # balance 100
         website_url3 = 'https://test3.cnn/'
         r = self.client.post(path=url, data={
             'name': 'name3-test', 'scheme': 'https://', 'hostname': 'test3.cnn', 'uri': '/', 'remark': '3test'
         })
+        self.assertErrorResponse(status_code=409, code='BalanceNotEnough', response=r)
+        user2pointaccount = self.user2.userpointaccount
+        user2pointaccount.balance = Decimal('99')
+        user2pointaccount.save(update_fields=['balance'])
+
+        r = self.client.post(path=url, data={
+            'name': 'name3-test', 'scheme': 'https://', 'hostname': 'test3.cnn', 'uri': '/', 'remark': '3test'
+        })
+        self.assertErrorResponse(status_code=409, code='BalanceNotEnough', response=r)
+        user2pointaccount.balance = Decimal('100')
+        user2pointaccount.save(update_fields=['balance'])
+
+        r = self.client.post(path=url, data={
+            'name': 'name3-test', 'scheme': 'https://', 'hostname': 'test3.cnn', 'uri': '/', 'remark': '3test'
+        })
+        self.assertEqual(r.status_code, 200)
         self.assertKeysIn(keys=[
             'id', 'name', 'scheme', 'hostname', 'uri', 'is_tamper_resistant', 'url',
             'remark', 'url_hash', 'creation', 'modification', 'is_attention'], container=r.data)
@@ -849,6 +939,22 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertErrorResponse(status_code=409, code='TargetAlreadyExists', response=r)
 
         # user2, 2 ok, website_url2 = 'https://test66.com/'
+        r = self.client.post(path=url, data={
+            'name': 'name4-test', 'scheme': 'https://', 'hostname': 'test66.com', 'uri': '/',
+            'is_tamper_resistant': True, 'remark': '4test'
+        })
+        self.assertErrorResponse(status_code=409, code='BalanceNotEnough', response=r)
+        user2pointaccount.balance = Decimal('100.3')
+        user2pointaccount.save(update_fields=['balance'])
+
+        r = self.client.post(path=url, data={
+            'name': 'name4-test', 'scheme': 'https://', 'hostname': 'test66.com', 'uri': '/',
+            'is_tamper_resistant': True, 'remark': '4test'
+        })
+        self.assertErrorResponse(status_code=409, code='BalanceNotEnough', response=r)
+        user2pointaccount.balance = Decimal('100.5')
+        user2pointaccount.save(update_fields=['balance'])
+
         r = self.client.post(path=url, data={
             'name': 'name4-test', 'scheme': 'https://', 'hostname': 'test66.com', 'uri': '/',
             'is_tamper_resistant': True, 'remark': '4test'

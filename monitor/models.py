@@ -255,6 +255,9 @@ class MonitorWebsite(MonitorWebsiteBase):
 
         super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
 
+    def calculate_url_hash(self):
+        return get_str_hash(self.full_url)
+
 
 class MonitorWebsiteRecord(MonitorWebsiteBase):
     """
