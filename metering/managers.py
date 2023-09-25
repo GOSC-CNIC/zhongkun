@@ -8,7 +8,6 @@ from service.managers import ServiceManager
 from service.models import ServiceConfig
 from servers.managers import ServerManager, DiskManager
 from servers.models import Server, ServerArchive, Disk
-from metering.models import DailyStatementServer, DailyStatementObjectStorage, DailyStatementDisk
 from utils.model import OwnerType
 from users.models import UserProfile
 from vo.models import VirtualOrganization
@@ -16,7 +15,10 @@ from vo.managers import VoManager
 from storage.managers.objects_service import ObjectsServiceManager
 from storage.models import Bucket, BucketArchive, ObjectsService
 
-from .models import MeteringServer, MeteringObjectStorage, MeteringDisk
+from .models import (
+    MeteringServer, MeteringObjectStorage, MeteringDisk, MeteringMonitorWebsite,
+    DailyStatementServer, DailyStatementObjectStorage, DailyStatementDisk, DailyStatementMonitorWebsite,
+)
 
 
 class BaseMeteringManager:
@@ -1402,3 +1404,87 @@ class StatementDiskManager(BaseStatementManager):
                 self.has_vo_permission(vo_id=statement.vo_id, user=user, read_only=read_only)
 
         return statement
+
+
+class MeteringMonitorSiteManager:
+    @staticmethod
+    def get_metering_queryset():
+        return MeteringMonitorWebsite.objects.all()
+
+    def filter_user_metering(
+            self, user_id: str,
+            site_id: str = None,
+            date_start: date = None,
+            date_end: date = None
+    ):
+        """
+        查询用户的站点监控的计量账单的查询集合
+        """
+        return self.filter_metering_queryset(
+            site_id=site_id, date_start=date_start, date_end=date_end, user_id=user_id
+        )
+
+    def filter_metering_by_admin(
+            self, admin_user,
+            site_id: str = None,
+            date_start: date = None,
+            date_end: date = None,
+            user_id: str = None
+    ):
+        """
+        查询用户的站点监控的计量账单的查询集合
+        :return: QuerySet()
+        :raises: Error
+        """
+        if admin_user.is_federal_admin():
+            return self.filter_metering_queryset(
+                site_id=site_id, date_start=date_start, date_end=date_end, user_id=user_id
+            )
+
+        raise errors.AccessDenied(message=_('您没有管理员权限'))
+
+    def filter_metering_queryset(
+            self,
+            site_id: str = None,
+            date_start: date = None,
+            date_end: date = None,
+            user_id: str = None
+    ):
+        lookups = {}
+        if user_id:
+            lookups['user_id'] = user_id
+
+        if site_id:
+            lookups['website_id'] = site_id
+
+        if date_start:
+            lookups['date__gte'] = date_start
+
+        if date_end:
+            lookups['date__lte'] = date_end
+
+        queryset = self.get_metering_queryset()
+        return queryset.filter(**lookups).order_by('-creation_time')
+
+    @staticmethod
+    def get_statement_queryset():
+        return DailyStatementMonitorWebsite.objects.all()
+
+    def filter_statement_queryset(
+            self, payment_status: str, date_start, date_end,
+            user_id: str = None
+    ):
+        queryset = self.get_statement_queryset()
+        if user_id:
+            queryset = queryset.filter(user_id=user_id)
+
+        if date_start:
+            queryset = queryset.filter(date__gte=date_start)
+
+        if date_end:
+            queryset = queryset.filter(date__lte=date_end)
+
+        if payment_status:
+            queryset = queryset.filter(payment_status=payment_status)
+
+        return queryset.order_by('-creation_time')

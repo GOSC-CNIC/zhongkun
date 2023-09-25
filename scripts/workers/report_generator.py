@@ -12,7 +12,7 @@ from users.models import UserProfile, Email
 from vo.models import VirtualOrganization, VoMember
 from metering.managers import (
     MeteringServerManager, MeteringStorageManager, StatementStorageManager, StatementServerManager,
-    MeteringDiskManager, StatementDiskManager
+    MeteringDiskManager, StatementDiskManager, MeteringMonitorSiteManager
 )
 from metering.models import PaymentStatus, MeteringServer, MeteringDisk
 from report.models import MonthlyReport, BucketMonthlyReport
@@ -343,6 +343,23 @@ class MonthlyReportGenerator:
             report_period_start_time=report_period_start_time, report_period_end_time=report_period_end_time
         )
 
+        # 站点监控
+        site_meter_agg = MeteringMonitorSiteManager().filter_metering_queryset(
+            date_start=report_period_start, date_end=report_period_end, user_id=user.id
+        ).aggregate(
+            total_hours=Sum('hours', default=0),
+            total_original_amount=Sum('original_amount', default=Decimal('0.00')),
+            total_trade_amount=Sum('trade_amount', default=Decimal('0.00')),
+            website_count=Count('website_id', distinct=True)
+        )
+        # 站点监控日结算单
+        site_state_agg = MeteringMonitorSiteManager().filter_statement_queryset(
+            date_start=report_period_start, date_end=report_period_end,
+            payment_status=PaymentStatus.PAID.value, user_id=user.id
+        ).aggregate(
+            total_trade_amount=Sum('trade_amount', default=Decimal('0.00'))
+        )
+
         month_report = MonthlyReport(
             creation_time=timezone.now(),
             report_date=report_date,
@@ -378,6 +395,12 @@ class MonthlyReportGenerator:
         month_report.disk_payable_amount = disk_report['disk_payable_amount']
         month_report.disk_postpaid_amount = disk_report['disk_postpaid_amount']
         month_report.disk_prepaid_amount = disk_report['disk_prepaid_amount']
+        # 站点监控
+        month_report.site_count = site_meter_agg['website_count']
+        month_report.site_days = site_meter_agg['total_hours'] / 24
+        month_report.site_original_amount = site_meter_agg['total_original_amount']
+        month_report.site_payable_amount = site_meter_agg['total_trade_amount']
+        month_report.site_paid_amount = site_state_agg['total_trade_amount']
         month_report.save(force_insert=True)
         return month_report
 
@@ -573,6 +596,12 @@ class MonthlyReportGenerator:
         month_report.storage_original_amount = Decimal('0.00')
         month_report.storage_payable_amount = Decimal('0.00')
         month_report.storage_postpaid_amount = Decimal('0.00')
+        # 站点监控
+        month_report.site_count = 0
+        month_report.site_days = 0
+        month_report.site_original_amount = Decimal('0.00')
+        month_report.site_payable_amount = Decimal('0.00')
+        month_report.site_paid_amount = Decimal('0.00')
         month_report.save(force_insert=True)
         return month_report
 

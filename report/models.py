@@ -59,6 +59,15 @@ class MonthlyReport(UuidModel):
         verbose_name=_('云硬盘按量后付费金额'), max_digits=10, decimal_places=2, default=Decimal('0.00'))
     disk_prepaid_amount = models.DecimalField(
         verbose_name=_('云硬盘订购预付费金额'), max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    site_count = models.IntegerField(verbose_name=_('本月站点监控任务数'), default=0)
+    site_days = models.FloatField(
+        verbose_name=_('监控总天数'), blank=True, default=0, help_text=_('所有站点监控任务总监控天数'))
+    site_original_amount = models.DecimalField(
+        verbose_name=_('站点监控计费金额'), max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    site_payable_amount = models.DecimalField(
+        verbose_name=_('站点监控应付金额'), max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    site_paid_amount = models.DecimalField(
+        verbose_name=_('站点监控付费金额'), max_digits=10, decimal_places=2, default=Decimal('0.00'))
 
     class Meta:
         verbose_name = _('月度报表')

@@ -12,7 +12,7 @@ from utils.time import utc
 from order.models import Order
 from metering.models import (
     MeteringServer, MeteringObjectStorage, DailyStatementServer, DailyStatementObjectStorage, PaymentStatus,
-    MeteringDisk, DailyStatementDisk
+    MeteringDisk, DailyStatementDisk, MeteringMonitorWebsite, DailyStatementMonitorWebsite
 )
 from bill.models import PayApp, PayOrgnazition, PayAppService, CashCoupon
 from storage.models import ObjectsService, Bucket, BucketArchive
@@ -463,6 +463,62 @@ class MonthlyReportTests(TransactionTestCase):
 
             u_st0.save(force_insert=True)
 
+    @staticmethod
+    def create_site_metering(date_, website_id: str, user, length: int):
+        # 0,1 not in;  2,3,4,5,... in last month, when length < 28
+        for i in range(length):
+            metering = MeteringMonitorWebsite(
+                website_id=website_id,
+                website_name='website_name',
+                date=date_ + timedelta(days=i - 2),
+                hours=i,
+                detection_count=0,
+                tamper_resistant_count=1,
+                security_count=0,
+                user_id=user.id,
+                username=user.username,
+                creation_time=timezone.now(),
+                trade_amount=Decimal(f'{i}'),
+                original_amount=Decimal(f'{2 * i}'),
+                daily_statement_id='',
+            )
+            metering.save(force_insert=True)
+
+    def init_site_metering_data(self):
+        # user1, 2,3,4,5;
+        self.create_site_metering(
+            date_=self.report_period_start, website_id='website_id1', user=self.user1, length=6)
+        # user1, 2,3,4,5,6;
+        self.create_site_metering(
+            date_=self.report_period_start, website_id='website_id2', user=self.user1, length=7)
+        # user2, 2,3,4,5,7;
+        self.create_site_metering(
+            date_=self.report_period_start, website_id='website_id3', user=self.user2, length=8)
+
+    @staticmethod
+    def create_site_statement(date_, user, length: int):
+        # 0,1 not in;  2,3,4,5,... in last month, when length < 28
+        for i in range(length):
+            daily_statement = DailyStatementMonitorWebsite(
+                date=date_ + timedelta(days=i - 2),
+                original_amount=Decimal(f'{i}.12'),
+                payable_amount=Decimal(f'{i}.12'),
+                trade_amount=Decimal(f'{i}.12'),
+                payment_status=PaymentStatus.PAID.value,
+                payment_history_id='',
+                user_id=user.id,
+                username=user.username
+            )
+            daily_statement.save(force_insert=True)
+
+    def init_site_statement_data(self):
+        # user1, 2,3,4,5;
+        self.create_site_statement(
+            date_=self.report_period_start, user=self.user1, length=6)
+        # user2, 2,3,4,5,7;
+        self.create_site_statement(
+            date_=self.report_period_start, user=self.user2, length=8)
+
     def test_monthly_report(self):
         # ----- no data ----
         mrg = MonthlyReportGenerator(limit=1, log_stdout=True)
@@ -516,6 +572,11 @@ class MonthlyReportTests(TransactionTestCase):
         self.assertEqual(u1_report.disk_payable_amount, Decimal('0'))
         self.assertEqual(u1_report.disk_postpaid_amount, Decimal('0'))
         self.assertEqual(u1_report.disk_prepaid_amount, Decimal('0'))
+        self.assertEqual(u1_report.site_count, 0)
+        self.assertEqual(u1_report.site_days, 0)
+        self.assertEqual(u1_report.site_original_amount, Decimal('0'))
+        self.assertEqual(u1_report.site_payable_amount, Decimal('0'))
+        self.assertEqual(u1_report.site_paid_amount, Decimal('0'))
         self.assertEqual(BucketMonthlyReport.objects.filter(
             user_id=self.user1.id, report_date=self.report_period_date).count(), 0)
 
@@ -533,6 +594,8 @@ class MonthlyReportTests(TransactionTestCase):
         self.init_coupons()
         self.init_disk_metering_data()
         self.init_disk_daily_statement()
+        self.init_site_metering_data()
+        self.init_site_statement_data()
 
         # 再此运行不会重复产生月度报表
         MonthlyReportGenerator(limit=1, log_stdout=True).run(check_time=False)
@@ -561,6 +624,11 @@ class MonthlyReportTests(TransactionTestCase):
         self.assertEqual(u1_report.disk_payable_amount, Decimal('0'))
         self.assertEqual(u1_report.disk_postpaid_amount, Decimal('0'))
         self.assertEqual(u1_report.disk_prepaid_amount, Decimal('0'))
+        self.assertEqual(u1_report.site_count, 0)
+        self.assertEqual(u1_report.site_days, 0)
+        self.assertEqual(u1_report.site_original_amount, Decimal('0'))
+        self.assertEqual(u1_report.site_payable_amount, Decimal('0'))
+        self.assertEqual(u1_report.site_paid_amount, Decimal('0'))
         self.assertEqual(BucketMonthlyReport.objects.filter(
             user_id=self.user1.id, report_date=self.report_period_date).count(), 0)
 
@@ -606,6 +674,14 @@ class MonthlyReportTests(TransactionTestCase):
         self.assertEqual(u1_report.disk_postpaid_amount, Decimal.from_float(2 + 3 + 4 + 5) + Decimal('0.66') * 4)
         self.assertEqual(u1_report.disk_prepaid_amount, Decimal('1.00'))
 
+        self.assertEqual(u1_report.site_count, 2)
+        self.assertEqual(u1_report.site_days, ((2 + 3 + 4 + 5) + (2 + 3 + 4 + 5 + 6)) / 24)
+        self.assertEqual(u1_report.site_original_amount, Decimal(f'{(2 + 3 + 4 + 5) * 2 + (2 + 3 + 4 + 5 + 6) * 2}'))
+        self.assertEqual(u1_report.site_payable_amount, Decimal(f'{(2 + 3 + 4 + 5) + (2 + 3 + 4 + 5 + 6)}'))
+        val = Decimal.from_float(2 + 3 + 4 + 5) + Decimal('0.12') * 4
+        self.assertEqual(u1_report.site_paid_amount, val)
+
+        # bucket
         self.assertEqual(BucketMonthlyReport.objects.filter(
             user_id=self.user1.id, report_date=self.report_period_date).count(), 3)
         self.assertEqual(BucketMonthlyReport.objects.filter(
@@ -674,6 +750,12 @@ class MonthlyReportTests(TransactionTestCase):
         self.assertEqual(vo1_report.disk_postpaid_amount, Decimal.from_float(2 + 3 + 4 + 5 + 6) + Decimal('0.66') * 5)
         self.assertEqual(vo1_report.disk_prepaid_amount, Decimal('12.00'))
 
+        self.assertEqual(vo1_report.site_count, 0)
+        self.assertEqual(vo1_report.site_days, 0)
+        self.assertEqual(vo1_report.site_original_amount, Decimal('0'))
+        self.assertEqual(vo1_report.site_payable_amount, Decimal('0'))
+        self.assertEqual(vo1_report.site_paid_amount, Decimal('0'))
+
         # vo2
         vo2_report: MonthlyReport = MonthlyReport.objects.filter(
             report_date=self.report_period_date, vo_id=self.vo2.id, owner_type=OwnerType.VO.value).first()
@@ -701,6 +783,11 @@ class MonthlyReportTests(TransactionTestCase):
         self.assertEqual(
             vo2_report.disk_postpaid_amount, Decimal.from_float(2 + 3 + 4 + 5 + 6 + 7 + 8) + Decimal('0.66') * 7)
         self.assertEqual(vo2_report.disk_prepaid_amount, Decimal('0'))
+        self.assertEqual(vo2_report.site_count, 0)
+        self.assertEqual(vo2_report.site_days, 0)
+        self.assertEqual(vo2_report.site_original_amount, Decimal('0'))
+        self.assertEqual(vo2_report.site_payable_amount, Decimal('0'))
+        self.assertEqual(vo2_report.site_paid_amount, Decimal('0'))
 
         # 邮件
         self.assertEqual(len(mail.outbox), 0)
