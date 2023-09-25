@@ -1,6 +1,6 @@
 from users import managers as user_manager
 from users.models import Email
-from core import taskqueue
+from core import taskqueue, site_configs_manager as site_configs
 from .models import Ticket, FollowUp
 
 
@@ -28,7 +28,7 @@ class TicketEmailNotifier:
 
 
 祝好
-中国科技云一体化云服务平台(https://service.cstcloud.cn)
+{site_configs.website_brand}({site_configs.website_url})
         """
         future = taskqueue.submit_task(
             TicketEmailNotifier.thread_send_email,
@@ -56,7 +56,7 @@ class TicketEmailNotifier:
 
 
 祝好
-中国科技云一体化云服务平台(https://service.cstcloud.cn)
+{site_configs.website_brand}({site_configs.website_url})
             """
         future = taskqueue.submit_task(
             TicketEmailNotifier.thread_send_email,

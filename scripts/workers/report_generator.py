@@ -22,7 +22,7 @@ from utils.model import OwnerType, PayType
 from utils.time import utc
 from bill.models import CashCoupon, CashCouponPaymentHistory
 from servers.models import Server, ServerArchive, Disk
-
+from core.site_configs_manager import website_brand
 from . import config_logger
 
 
@@ -896,7 +896,7 @@ class MonthlyReportNotifier:
 
         html_message = self.template.render(context, request=None)
         html_message = self.html_minify(html_message)
-        subject = f'中国科技云一体化云服务平台资源用量结算账单（{self.report_period_date.month}月）'
+        subject = f'{website_brand}资源用量结算账单（{self.report_period_date.month}月）'
 
         # 先保存邮件记录
         try:

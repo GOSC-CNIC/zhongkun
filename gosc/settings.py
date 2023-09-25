@@ -329,8 +329,9 @@ CORS_ALLOW_ALL_ORIGINS = True       # 允许所有请求来源跨域
 
 # 站点的一些全局配置
 WEBSITE_CONFIG = {
-    'site_brand': '',     # 站点的名称
-    'about_us': '',     # “关于”网页中“关于我们”的文字描述
+    'site_brand': gettext_lazy('中国科技云一体化云服务平台'),  # 本站点的名称，一些邮件通知也会用到
+    'site_url': 'https://service.cstcloud.cn',  # 本站点的地址，一些邮件通知也会用到
+    'about_us': gettext_lazy(''),     # “关于”网页中“关于我们”的文字描述
 }
 
 # crontab定时任务设置，每任务项的第一个值是任务的标签字符串，必须以“task”开头

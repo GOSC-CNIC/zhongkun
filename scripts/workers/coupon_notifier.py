@@ -8,18 +8,18 @@ from bill.models import CashCoupon
 from users.models import Email
 from vo.models import VirtualOrganization, VoMember
 from utils.model import OwnerType
-
+from core import site_configs_manager as site_configs
 from . import config_logger
 
 
 class MessageTemplate:
-    TEMPLATE_BODY = """
+    TEMPLATE_BODY = f"""
 你好，%(hello_to)s:
 
 %(message)s
 
 谢谢
-中国科技云一体化云服务平台(https://service.cstcloud.cn)
+{site_configs.website_brand}({site_configs.website_url})
 """
 
     SUBJECT_EXPIRE = '资源券过期通知'

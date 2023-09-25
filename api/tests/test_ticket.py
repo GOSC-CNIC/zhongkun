@@ -2,6 +2,7 @@ import time
 from urllib import parse
 
 from django.urls import reverse
+from django.core import mail as dj_mail
 
 from utils.test import get_or_create_user
 from ticket.models import Ticket, FollowUp, TicketChange
@@ -15,6 +16,8 @@ class TicketTests(MyAPITestCase):
         self.user2 = get_or_create_user(username='tom@xx.com')
 
     def test_create_ticket(self):
+        self.assertEqual(len(dj_mail.outbox), 0)
+        self.user.set_federal_admin()
         url = reverse('api:support-ticket-list')
         r = self.client.post(url, data={
             'title': 'test 标题', 'description': '这里是问题的描述，不能少于10个字符',
@@ -62,6 +65,8 @@ class TicketTests(MyAPITestCase):
         sub.update(data)
         self.assert_is_subdict_of(sub=sub, d=r.data)
         self.assertEqual(len(r.data['id']), 16)
+        time.sleep(0.5)
+        self.assertEqual(len(dj_mail.outbox), 1)
 
         # TooManyTicket
         for i in range(2, 7):
@@ -831,6 +836,7 @@ class TicketTests(MyAPITestCase):
         self.assertEqual(tc.new_value, new_value)
 
     def test_add_followup(self):
+        self.assertEqual(len(dj_mail.outbox), 0)
         ticket_data = {
             'title': '工单1abcdef标题',
             'description': '工单1问题描述, 不少于10个字符长度',
@@ -881,6 +887,9 @@ class TicketTests(MyAPITestCase):
         self.assertEqual(r.data['user'], {'id': self.user.id, 'username': self.user.username})
         self.assertIsNone(r.data['ticket_change'])
         self.assertEqual(r.data['comment'], '测试test回复2')
+
+        time.sleep(0.5)
+        self.assertEqual(len(dj_mail.outbox), 0)    # 工单未指派处理人时，工单提交人回复，不发邮件
 
         # user, CLOSED ticket, ConflictTicketStatus
         ticket1_user.status = Ticket.Status.CLOSED.value
@@ -934,6 +943,9 @@ class TicketTests(MyAPITestCase):
         self.assertEqual(r.data['user'], {'id': self.user2.id, 'username': self.user2.username})
         self.assertIsNone(r.data['ticket_change'])
         self.assertEqual(r.data['comment'], 'user2 adada测试test回复2')
+
+        time.sleep(0.5)
+        self.assertEqual(len(dj_mail.outbox), 1)    # 工单处理人回复，向工单提交人发邮件通知
 
         # user2, as_role, ConflictTicketStatus
         ticket1_user.status = Ticket.Status.CLOSED.value
