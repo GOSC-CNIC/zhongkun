@@ -117,7 +117,7 @@ class MonitorWebsiteTaskAdmin(admin.ModelAdmin):
 
 
 @admin.register(MonitorWebsiteVersion)
-class MonitorWebsiteVersionProviderAdmin(NoDeleteSelectModelAdmin):
+class MonitorWebsiteVersionAdmin(NoDeleteSelectModelAdmin):
     list_display = ('id', 'version', 'creation', 'modification', 'pay_app_service_id')
     list_display_links = ('id', )
     readonly_fields = ('id', 'creation', 'modification')
@@ -130,8 +130,15 @@ class MonitorWebsiteVersionProviderAdmin(NoDeleteSelectModelAdmin):
             if vers.version < obj.version:
                 vers.version += 1
 
+            vers.pay_app_service_id = obj.pay_app_service_id
             vers.modification = timezone.now()
             vers.save(force_update=True)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(WebsiteDetectionPoint)
