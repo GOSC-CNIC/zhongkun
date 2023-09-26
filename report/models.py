@@ -62,6 +62,8 @@ class MonthlyReport(UuidModel):
     site_count = models.IntegerField(verbose_name=_('本月站点监控任务数'), default=0)
     site_days = models.FloatField(
         verbose_name=_('监控总天数'), blank=True, default=0, help_text=_('所有站点监控任务总监控天数'))
+    site_tamper_days = models.FloatField(
+        verbose_name=_('防篡改监控总天数'), blank=True, default=0, help_text=_('所有站点监控任务总防篡改监控天数'))
     site_original_amount = models.DecimalField(
         verbose_name=_('站点监控计费金额'), max_digits=10, decimal_places=2, default=Decimal('0.00'))
     site_payable_amount = models.DecimalField(

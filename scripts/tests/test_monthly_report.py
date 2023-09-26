@@ -464,7 +464,7 @@ class MonthlyReportTests(TransactionTestCase):
             u_st0.save(force_insert=True)
 
     @staticmethod
-    def create_site_metering(date_, website_id: str, user, length: int):
+    def create_site_metering(date_, website_id: str, user, length: int, tamper_count: int):
         # 0,1 not in;  2,3,4,5,... in last month, when length < 28
         for i in range(length):
             metering = MeteringMonitorWebsite(
@@ -473,7 +473,7 @@ class MonthlyReportTests(TransactionTestCase):
                 date=date_ + timedelta(days=i - 2),
                 hours=i,
                 detection_count=0,
-                tamper_resistant_count=1,
+                tamper_resistant_count=tamper_count,
                 security_count=0,
                 user_id=user.id,
                 username=user.username,
@@ -487,13 +487,13 @@ class MonthlyReportTests(TransactionTestCase):
     def init_site_metering_data(self):
         # user1, 2,3,4,5;
         self.create_site_metering(
-            date_=self.report_period_start, website_id='website_id1', user=self.user1, length=6)
+            date_=self.report_period_start, website_id='website_id1', user=self.user1, length=6, tamper_count=6)
         # user1, 2,3,4,5,6;
         self.create_site_metering(
-            date_=self.report_period_start, website_id='website_id2', user=self.user1, length=7)
-        # user2, 2,3,4,5,7;
+            date_=self.report_period_start, website_id='website_id2', user=self.user1, length=7, tamper_count=0)
+        # user2, 2,3,4,5,6,7;
         self.create_site_metering(
-            date_=self.report_period_start, website_id='website_id3', user=self.user2, length=8)
+            date_=self.report_period_start, website_id='website_id3', user=self.user2, length=8, tamper_count=1)
 
     @staticmethod
     def create_site_statement(date_, user, length: int):
@@ -574,6 +574,7 @@ class MonthlyReportTests(TransactionTestCase):
         self.assertEqual(u1_report.disk_prepaid_amount, Decimal('0'))
         self.assertEqual(u1_report.site_count, 0)
         self.assertEqual(u1_report.site_days, 0)
+        self.assertEqual(u1_report.site_tamper_days, 0)
         self.assertEqual(u1_report.site_original_amount, Decimal('0'))
         self.assertEqual(u1_report.site_payable_amount, Decimal('0'))
         self.assertEqual(u1_report.site_paid_amount, Decimal('0'))
@@ -626,6 +627,7 @@ class MonthlyReportTests(TransactionTestCase):
         self.assertEqual(u1_report.disk_prepaid_amount, Decimal('0'))
         self.assertEqual(u1_report.site_count, 0)
         self.assertEqual(u1_report.site_days, 0)
+        self.assertEqual(u1_report.site_tamper_days, 0)
         self.assertEqual(u1_report.site_original_amount, Decimal('0'))
         self.assertEqual(u1_report.site_payable_amount, Decimal('0'))
         self.assertEqual(u1_report.site_paid_amount, Decimal('0'))
@@ -675,6 +677,7 @@ class MonthlyReportTests(TransactionTestCase):
         self.assertEqual(u1_report.disk_prepaid_amount, Decimal('1.00'))
 
         self.assertEqual(u1_report.site_count, 2)
+        self.assertEqual(u1_report.site_tamper_days, (2 + 3 + 4 + 5) / 24)
         self.assertEqual(u1_report.site_days, ((2 + 3 + 4 + 5) + (2 + 3 + 4 + 5 + 6)) / 24)
         self.assertEqual(u1_report.site_original_amount, Decimal(f'{(2 + 3 + 4 + 5) * 2 + (2 + 3 + 4 + 5 + 6) * 2}'))
         self.assertEqual(u1_report.site_payable_amount, Decimal(f'{(2 + 3 + 4 + 5) + (2 + 3 + 4 + 5 + 6)}'))
@@ -715,6 +718,17 @@ class MonthlyReportTests(TransactionTestCase):
         self.assertEqual(mr_u2_b4.storage_days * 24, 2 + 3 + 4 + 5 + 6 + 7 + 8)
         self.assertEqual(mr_u2_b4.payable_amount, Decimal.from_float(2 + 3 + 4 + 5 + 6 + 7 + 8))
         self.assertEqual(mr_u2_b4.original_amount, Decimal.from_float((2 + 3 + 4 + 5 + 6 + 7 + 8) * 2))
+
+        # user2
+        u2_report: MonthlyReport = MonthlyReport.objects.filter(
+            report_date=self.report_period_date, user_id=self.user2.id, owner_type=OwnerType.USER.value).first()
+        self.assertEqual(u2_report.site_count, 1)
+        self.assertEqual(u2_report.site_tamper_days, (2 + 3 + 4 + 5 + 6 + 7) / 24)
+        self.assertEqual(u2_report.site_days, (2 + 3 + 4 + 5 + 6 + 7) / 24)
+        self.assertEqual(u2_report.site_original_amount, Decimal(f'{(2 + 3 + 4 + 5 + 6 + 7) * 2}'))
+        self.assertEqual(u2_report.site_payable_amount, Decimal(f'{2 + 3 + 4 + 5 + 6 + 7}'))
+        val = Decimal.from_float(2 + 3 + 4 + 5 + 6 + 7) + Decimal('0.12') * 6
+        self.assertEqual(u2_report.site_paid_amount, val)
 
         # vo1
         vo1_report: MonthlyReport = MonthlyReport.objects.filter(

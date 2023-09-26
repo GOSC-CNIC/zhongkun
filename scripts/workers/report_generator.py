@@ -2,7 +2,7 @@ import datetime
 from decimal import Decimal
 
 from django.utils import timezone
-from django.db.models import Sum, Count
+from django.db.models import Sum, Count, Q
 from django.db import transaction
 from django.template.loader import get_template
 from django.core.mail import send_mail
@@ -264,6 +264,7 @@ class MonthlyReportGenerator:
                 if month_report.is_reported:
                     return False, month_report
                 else:
+                    BucketMonthlyReport.objects.filter(report_date=report_date, user_id=user.id).delete()
                     month_report.delete()
 
             report = self._generate_report_for_user(
@@ -348,6 +349,7 @@ class MonthlyReportGenerator:
             date_start=report_period_start, date_end=report_period_end, user_id=user.id
         ).aggregate(
             total_hours=Sum('hours', default=0),
+            total_tamper_hours=Sum('hours', filter=Q(tamper_resistant_count__gt=0), default=0),
             total_original_amount=Sum('original_amount', default=Decimal('0.00')),
             total_trade_amount=Sum('trade_amount', default=Decimal('0.00')),
             website_count=Count('website_id', distinct=True)
@@ -363,6 +365,8 @@ class MonthlyReportGenerator:
         month_report = MonthlyReport(
             creation_time=timezone.now(),
             report_date=report_date,
+            period_start_time=report_period_start_time,
+            period_end_time=report_period_end_time,
             is_reported=True,
             notice_time=None,
             user_id=user.id,
@@ -397,6 +401,7 @@ class MonthlyReportGenerator:
         month_report.disk_prepaid_amount = disk_report['disk_prepaid_amount']
         # 站点监控
         month_report.site_count = site_meter_agg['website_count']
+        month_report.site_tamper_days = site_meter_agg['total_tamper_hours'] / 24
         month_report.site_days = site_meter_agg['total_hours'] / 24
         month_report.site_original_amount = site_meter_agg['total_original_amount']
         month_report.site_payable_amount = site_meter_agg['total_trade_amount']
@@ -599,6 +604,7 @@ class MonthlyReportGenerator:
         # 站点监控
         month_report.site_count = 0
         month_report.site_days = 0
+        month_report.site_tamper_days = 0
         month_report.site_original_amount = Decimal('0.00')
         month_report.site_payable_amount = Decimal('0.00')
         month_report.site_paid_amount = Decimal('0.00')

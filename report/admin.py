@@ -14,8 +14,8 @@ class MonthlyReportAdmin(NoDeleteSelectModelAdmin):
                     'storage_payable_amount', 'storage_postpaid_amount',
                     'disk_count', 'disk_size_days', 'disk_original_amount', 'disk_payable_amount',
                     'disk_postpaid_amount', 'disk_prepaid_amount',
-                    'site_count', 'site_days', 'site_original_amount', 'site_payable_amount', 'site_paid_amount',
-                    'notice_time')
+                    'site_count', 'site_days', 'site_tamper_days', 'site_original_amount', 'site_payable_amount',
+                    'site_paid_amount', 'notice_time')
     search_fields = ['id', 'user__username', 'vo__name']
     list_filter = ['is_reported', 'owner_type']
     raw_id_fields = ('user', 'vo')

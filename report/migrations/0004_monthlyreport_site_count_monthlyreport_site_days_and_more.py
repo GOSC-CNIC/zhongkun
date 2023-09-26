@@ -23,6 +23,11 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name='monthlyreport',
+            name='site_tamper_days',
+            field=models.FloatField(blank=True, default=0, help_text='所有站点监控任务总防篡改监控天数', verbose_name='防篡改监控总天数'),
+        ),
+        migrations.AddField(
+            model_name='monthlyreport',
             name='site_original_amount',
             field=models.DecimalField(decimal_places=2, default=Decimal('0.00'), max_digits=10, verbose_name='站点监控计费金额'),
         ),
