@@ -37,7 +37,7 @@
         </p>
     </div>
     <div>
-        {% if monthly_report.server_count or monthly_report.bucket_count %}
+        {% if monthly_report.has_resources %}
         <table>
             <caption>
                 个人资源使用结算情况，月度汇总: {{ monthly_report.total_payment_amount }} 点
@@ -204,6 +204,7 @@
                     <td>{{ uc.app_service.name }}</td>
                     <td>{% if uc.app_service.category == 'vms-server' %}开放科学云主机
                         {% elif uc.app_service.category == 'vms-object' %}对象存储
+                        {% elif uc.app_service.category == 'vms-monitor' %}监控
                         {% elif uc.app_service.category == 'high-cloud' %}高等级云
                         {% elif uc.app_service.category == 'hpc' %}高性能计算
                         {% else %}其他{% endif %}
@@ -219,6 +220,7 @@
                     <td>{{ uc.app_service.name }}</td>
                     <td>{% if uc.app_service.category == 'vms-server' %}开放科学云主机
                         {% elif uc.app_service.category == 'vms-object' %}对象存储
+                        {% elif uc.app_service.category == 'vms-monitor' %}监控
                         {% elif uc.app_service.category == 'high-cloud' %}高等级云
                         {% elif uc.app_service.category == 'hpc' %}高性能计算
                         {% else %}其他{% endif %}
@@ -249,6 +251,7 @@
                         <td>{{ vc.app_service.name }}</td>
                         <td>{% if vc.app_service.category == 'vms-server' %}开放科学云主机
                         {% elif vc.app_service.category == 'vms-object' %}对象存储
+                        {% elif vc.app_service.category == 'vms-monitor' %}监控
                         {% elif vc.app_service.category == 'high-cloud' %}高等级云
                         {% elif vc.app_service.category == 'hpc' %}高性能计算
                         {% else %}其他{% endif %}</td>
@@ -266,6 +269,7 @@
                         <td>{{ vc.app_service.name }}</td>
                         <td>{% if vc.app_service.category == 'vms-server' %}开放科学云主机
                             {% elif vc.app_service.category == 'vms-object' %}对象存储
+                            {% elif vc.app_service.category == 'vms-monitor' %}监控
                             {% elif vc.app_service.category == 'high-cloud' %}高等级云
                             {% elif vc.app_service.category == 'hpc' %}高性能计算
                             {% else %}其他{% endif %}

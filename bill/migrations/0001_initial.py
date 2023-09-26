@@ -113,7 +113,7 @@ class Migration(migrations.Migration):
                 ('contact_address', models.CharField(blank=True, default='', max_length=256, verbose_name='联系人地址')),
                 ('longitude', models.FloatField(blank=True, default=0, verbose_name='经度')),
                 ('latitude', models.FloatField(blank=True, default=0, verbose_name='纬度')),
-                ('category', models.CharField(choices=[('vms-server', 'VMS云服务器'), ('vms-object', 'VMS对象存储'), ('high-cloud', '高等级云'), ('hpc', '高性能计算'), ('other', '其他')], default='other', max_length=16, verbose_name='服务类别')),
+                ('category', models.CharField(choices=[('vms-server', 'VMS云服务器'), ('vms-object', 'VMS对象存储'), ('vms-monitor', 'VMS监控'), ('high-cloud', '高等级云'), ('hpc', '高性能计算'), ('other', '其他')], default='other', max_length=16, verbose_name='服务类别')),
                 ('service_id', models.CharField(blank=True, default='', max_length=64, verbose_name='对应的服务单元ID')),
             ],
             options={

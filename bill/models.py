@@ -133,6 +133,7 @@ class PayAppService(CustomIdModel):
     class Category(models.TextChoices):
         VMS_SERVER = 'vms-server', _('VMS云服务器')
         VMS_OBJECT = 'vms-object', _('VMS对象存储')
+        VMS_MONITOR = 'vms-monitor', _('VMS监控')
         HIGH_CLOUD = 'high-cloud', _('高等级云')
         HPC = 'hpc', _('高性能计算')
         OTHER = 'other', _('其他')

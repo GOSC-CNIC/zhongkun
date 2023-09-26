@@ -112,6 +112,12 @@ class MonthlyReport(UuidModel):
     def total_payment_amount(self):
         return self.server_disk_payment_amount + self.storage_postpaid_amount
 
+    @property
+    def has_resources(self):
+        return (
+                self.server_count or self.disk_count or self.bucket_count
+        )
+
 
 class BucketMonthlyReport(UuidModel):
     creation_time = models.DateTimeField(verbose_name=_('生成时间'))
