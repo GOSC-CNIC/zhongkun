@@ -13,7 +13,7 @@ from . import MyAPITestCase
 def create_site_metering(
         date_, website_id: str, website_name: str, user_id, username: str, hours: int, tamper_count: int,
         trade_amount: Decimal, original_amount: Decimal,
-        creation_time=None):
+        creation_time=None, daily_statement_id: str = ''):
     metering = MeteringMonitorWebsite(
         website_id=website_id,
         website_name=website_name,
@@ -27,7 +27,7 @@ def create_site_metering(
         creation_time=creation_time if creation_time else timezone.now(),
         trade_amount=trade_amount,
         original_amount=original_amount,
-        daily_statement_id='',
+        daily_statement_id=daily_statement_id,
     )
     metering.save(force_insert=True)
     return metering
@@ -343,3 +343,56 @@ class StatementMonitorSiteTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 2)
         self.assertEqual(len(response.data['statements']), 2)
+
+    def test_detail_statement_storage(self):
+        url = reverse('api:statement-monitor-site-detail', kwargs={'id': '1234567891234567891234'})
+        r = self.client.get(url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+
+        # list user1 statement-storage
+        self.client.force_login(self.user1)
+        # not found
+        r = self.client.get(url)
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=r)
+
+        # create statement server
+        u_st0, u_st1, u_st2, u_st3 = self.create_statement_site()
+
+        # user statement detail
+        metering1 = create_site_metering(
+            date_=u_st0.date,
+            website_id='website_id1',
+            website_name='website_name1',
+            user_id=self.user1.id,
+            username=self.user1.username,
+            hours=11,
+            tamper_count=1,
+            original_amount=Decimal('2.22'),
+            trade_amount=Decimal('0'),
+            daily_statement_id=u_st0.id
+        )
+
+        url = reverse('api:statement-monitor-site-detail', kwargs={'id': u_st0.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["id", "original_amount", "payable_amount", "trade_amount",
+                           "payment_status", "payment_history_id", "date", "creation_time",
+                           "user_id", "username", 'meterings'], response.data)
+        self.assertIsInstance(response.data['meterings'], list)
+        self.assertEqual(len(response.data['meterings']), 1)
+        self.assertEqual(response.data['meterings'][0]['id'], metering1.id)
+        self.assertKeysIn([
+            "id", "original_amount", "trade_amount",
+            "daily_statement_id", "website_id", "website_name", "date",
+            "creation_time", "user_id", "username", "hours", "tamper_resistant_count"
+        ], response.data['meterings'][0])
+        self.assert_is_subdict_of(sub={
+            "id": u_st0.id,
+            "original_amount": u_st0.original_amount,
+            "payable_amount": u_st0.payable_amount,
+            "trade_amount": u_st0.trade_amount,
+            "payment_status": u_st0.payment_status,
+            "payment_history_id": u_st0.payment_history_id,
+            "user_id": self.user1.id,
+            "username": self.user1.username,
+        }, d=response.data)

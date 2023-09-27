@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from core import errors
 from api.viewsets import CustomGenericViewSet
 from api.serializers.serializers import MeteringServerSerializer, MeteringStorageSimpleSerializer
-from api.serializers.metering_serializers import MeteringDiskSerializer
+from api.serializers.metering_serializers import MeteringDiskSerializer, MeteringMonitorSiteSerializer
 from metering.models import PaymentStatus
 from metering.managers import (
     MeteringServerManager, StatementServerManager, MeteringStorageManager, StatementStorageManager,
@@ -2074,3 +2074,20 @@ class MeteringMonitorSiteHandler:
             'date_start': date_start,
             'date_end': date_end
         }
+
+    @staticmethod
+    def statement_site_detail(view: CustomGenericViewSet, request, kwargs):
+        statement_id: str = kwargs.get(view.lookup_field, '')
+        try:
+            statement = MeteringMonitorSiteManager().get_site_statement_detail(
+                statement_id=statement_id, user=request.user)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        serializer = view.get_serializer(instance=statement)
+        data = serializer.data
+        metering_qs = MeteringMonitorSiteManager.get_meterings_by_statement_id(
+            statement_id=statement.id, _date=statement.date)
+        meterings = MeteringMonitorSiteSerializer(instance=metering_qs, many=True).data
+        data['meterings'] = meterings
+        return Response(data=data)

@@ -2027,9 +2027,9 @@ class StatementStorageTests(MyAPITestCase):
 
     def test_detail_statement_storage(self):
         # not found
-        url = reverse('api:order-detail', kwargs={'id': '1234567891234567891234'})
+        url = reverse('api:statement-storage-detail', kwargs={'id': '1234567891234567891234'})
         response = self.client.get(url)
-        self.assertEqual(response.status_code, 404)
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
 
         # create statement server
         u_st0, u_st1, u_st2, u_st3 = self.create_statement_storage()

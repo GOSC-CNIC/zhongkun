@@ -152,8 +152,53 @@ class StatementMonitorSiteViewSet(CustomGenericViewSet):
         """
         return MeteringMonitorSiteHandler().list_statement_site(view=self, request=request)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('站点监控日结算单详情'),
+        request_body=no_body,
+        responses={
+            200: ''
+        }
+    )
+    def retrieve(self, request, *args, **kwargs):
+        """
+        站点监控日结算单详情
+
+            http code 200：
+            {
+              "id": "mw8us5dd22mae2uezh16gtmo3mv",
+              "original_amount": "0.30",
+              "payable_amount": "0.30",
+              "trade_amount": "0.00",
+              "payment_status": "unpaid",
+              "payment_history_id": "",
+              "date": "2023-09-25",
+              "creation_time": "2023-09-26T02:27:53.982466Z",
+              "user_id": "8",
+              "username": "wangyushun@cnic.cn",
+              "meterings": [
+                {
+                  "id": "8ojdxnfh0jp1m30izbn18qn8q",
+                  "original_amount": "0.30",
+                  "trade_amount": "0.30",
+                  "daily_statement_id": "mw8us5dd22mae2uezh16gtmo3mv",
+                  "website_id": "15ba99aa-b0ce-11ed-8fe1-c800dfc12405",
+                  "website_name": "一体化云后端",
+                  "user_id": "8",
+                  "username": "wangyushun@cnic.cn",
+                  "date": "2023-09-25",
+                  "creation_time": "2023-09-26T02:27:51.417492Z",
+                  "hours": 24,
+                  "tamper_resistant_count": 0
+                }
+              ]
+            }
+        """
+        return MeteringMonitorSiteHandler().statement_site_detail(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action == 'list':
+            return metering_serializers.StatementMonitorSiteSerializer
+        elif self.action == 'retrieve':
             return metering_serializers.StatementMonitorSiteSerializer
 
         return Serializer

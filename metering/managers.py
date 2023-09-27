@@ -1000,9 +1000,13 @@ class StatementStorageManager:
             self, statement_id: str, user, check_permission: bool = True
     ):
         statement = self.get_statement_storage(statement_id=statement_id)
+        if statement is None:
+            raise errors.TargetNotExist(message=_('指定编号的日结算单不存在'))
+
         if check_permission:
             if statement.user_id and statement.user_id != user.id:
                 raise errors.AccessDenied(message=_('您没有权限访问该结算单'))
+
         return statement
 
 
@@ -1467,6 +1471,10 @@ class MeteringMonitorSiteManager:
         return queryset.filter(**lookups).order_by('-creation_time')
 
     @staticmethod
+    def get_meterings_by_statement_id(statement_id: str, _date: date):
+        return MeteringMonitorWebsite.objects.filter(date=_date, daily_statement_id=statement_id)
+
+    @staticmethod
     def get_statement_queryset():
         return DailyStatementMonitorWebsite.objects.all()
 
@@ -1488,3 +1496,25 @@ class MeteringMonitorSiteManager:
             queryset = queryset.filter(payment_status=payment_status)
 
         return queryset.order_by('-creation_time')
+
+    @staticmethod
+    def get_site_statement(statement_id: str, select_for_update: bool = False):
+        if select_for_update:
+            return DailyStatementMonitorWebsite.objects.filter(
+                id=statement_id
+            ).select_for_update().first()
+
+        return DailyStatementMonitorWebsite.objects.filter(id=statement_id).first()
+
+    def get_site_statement_detail(
+            self, statement_id: str, user, check_permission: bool = True
+    ):
+        statement = self.get_site_statement(statement_id=statement_id)
+        if statement is None:
+            raise errors.TargetNotExist(message=_('指定编号的日结算单不存在'))
+
+        if check_permission:
+            if statement.user_id and statement.user_id != user.id:
+                raise errors.AccessDenied(message=_('您没有权限访问该日结算单'))
+
+        return statement
