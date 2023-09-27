@@ -15,7 +15,7 @@ from api.serializers.metering_serializers import MeteringDiskSerializer
 from metering.models import PaymentStatus
 from metering.managers import (
     MeteringServerManager, StatementServerManager, MeteringStorageManager, StatementStorageManager,
-    MeteringDiskManager, StatementDiskManager, BaseMeteringManager
+    MeteringDiskManager, StatementDiskManager, BaseMeteringManager, MeteringMonitorSiteManager
 )
 from servers.models import Server, ServerArchive, Disk
 from utils.report_file import CSVFileInMemory, wrap_csv_file_response
@@ -26,6 +26,29 @@ from utils.time import utc
 from order.models import Order
 
 
+def validate_date_start_end(request, default_date_start: date = None, default_date_end: date = None):
+    date_start = request.query_params.get('date_start', None)
+    date_end = request.query_params.get('date_end', None)
+
+    if date_start is not None:
+        try:
+            date_start = date.fromisoformat(date_start)
+        except (TypeError, ValueError):
+            raise errors.InvalidArgument(message=_('起始日期参数日期格式无效'))
+    else:
+        date_start = default_date_start
+
+    if date_end is not None:
+        try:
+            date_end = date.fromisoformat(date_end)
+        except (TypeError, ValueError):
+            raise errors.InvalidArgument(message=_('截止日期参数日期格式无效'))
+    else:
+        date_end = default_date_end
+
+    return date_start, date_end
+
+
 class BaseMeteringHandler:
     AGGREGATION_VO_ORDER_BY_CHOICES = BaseMeteringManager.AGGREGATION_VO_ORDER_BY_CHOICES
     AGGREGATION_USER_ORDER_BY_CHOICES = BaseMeteringManager.AGGREGATION_USER_ORDER_BY_CHOICES
@@ -33,26 +56,8 @@ class BaseMeteringHandler:
 
     @staticmethod
     def validate_date_start_end(request, default_date_start: date = None, default_date_end: date = None):
-        date_start = request.query_params.get('date_start', None)
-        date_end = request.query_params.get('date_end', None)
-
-        if date_start is not None:
-            try:
-                date_start = date.fromisoformat(date_start)
-            except (TypeError, ValueError):
-                raise errors.InvalidArgument(message=_('参数“date_start”的值无效的日期格式'))
-        else:
-            date_start = default_date_start
-
-        if date_end is not None:
-            try:
-                date_end = date.fromisoformat(date_end)
-            except (TypeError, ValueError):
-                raise errors.InvalidArgument(message=_('参数“date_end”的值无效的日期格式'))
-        else:
-            date_end = default_date_end
-
-        return date_start, date_end
+        return validate_date_start_end(
+            request=request, default_date_start=default_date_start, default_date_end=default_date_end)
 
 
 class MeteringHandler(BaseMeteringHandler):
@@ -1963,3 +1968,70 @@ class MeteringDiskHandler(BaseMeteringHandler):
         data = csv_file.to_bytes()
         csv_file.close()
         return wrap_csv_file_response(filename=filename, data=data)
+
+
+class MeteringMonitorSiteHandler:
+    def list_site_metering(self, view: CustomGenericViewSet, request):
+        """
+        列举站点监控的计量账单
+        """
+        try:
+            params = self.list_site_metering_validate_params(view=view, request=request)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        site_id = params['site_id']
+        date_start = params['date_start']
+        date_end = params['date_end']
+        user_id = params['user_id']
+
+        ms_mgr = MeteringMonitorSiteManager()
+        if view.is_as_admin_request(request):
+            try:
+                queryset = ms_mgr.filter_metering_by_admin(
+                    admin_user=request.user, site_id=site_id, date_start=date_start,
+                    date_end=date_end, user_id=user_id
+                )
+            except errors.Error as exc:
+                return view.exception_response(exc)
+        else:
+            queryset = ms_mgr.filter_user_metering(
+                user_id=request.user.id, site_id=site_id, date_start=date_start, date_end=date_end
+            )
+
+        try:
+            meterings = view.paginate_queryset(queryset)
+            serializer = view.get_serializer(instance=meterings, many=True)
+            return view.get_paginated_response(serializer.data)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+    @staticmethod
+    def list_site_metering_validate_params(view: CustomGenericViewSet, request) -> dict:
+        site_id = request.query_params.get('site_id', None)
+        user_id = request.query_params.get('user_id', None)
+
+        now_date = timezone.now().date()
+
+        if site_id is not None and not site_id:
+            raise errors.InvalidArgument(message='指定的站点监控任务无效')
+
+        date_start, date_end = validate_date_start_end(
+            request=request, default_date_start=now_date.replace(day=1), default_date_end=now_date)
+
+        if date_start > date_end:
+            raise errors.BadRequest(message='起始日期不得大于截止日期')
+
+        # 时间段不得超过一年
+        if date_start.replace(year=date_start.year + 1) < date_end:
+            raise errors.BadRequest(message='起止时间不得超过一年')
+
+        if user_id is not None and not view.is_as_admin_request(request):
+            raise errors.BadRequest(message='参数"user_id"只有管理员身份才能允许查询')
+
+        return {
+            'date_start': date_start,
+            'date_end': date_end,
+            'site_id': site_id,
+            'user_id': user_id,
+        }

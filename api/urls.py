@@ -9,7 +9,7 @@ from .apiviews import (
     trade_test_views, trade_views, bucket_views, storage_views,
     ticket_views, storage_metering_views, user_views, app_service_views,
     tradebill_views, recharge_views, email_views, disk_views, flavor_views,
-    log_views, portal_views, report_storage_views
+    log_views, portal_views, report_storage_views, monitor_metering_views
 )
 
 app_name = 'api'
@@ -61,6 +61,8 @@ no_slash_router.register(
     r'metering/storage', storage_metering_views.MeteringStorageViewSet, basename='metering-storage')
 no_slash_router.register(
     r'metering/admin/storage', storage_metering_views.AdminMeteringStorageViewSet, basename='admin-metering-storage')
+no_slash_router.register(
+    r'metering/monitor/site', monitor_metering_views.MeteringMonitorSiteViewSet, basename='metering-monitor-site')
 no_slash_router.register(r'statement/server', metering_views.StatementServerViewSet, basename='statement-server')
 no_slash_router.register(r'statement/disk', metering_views.StatementDiskViewSet, basename='statement-disk')
 no_slash_router.register(
