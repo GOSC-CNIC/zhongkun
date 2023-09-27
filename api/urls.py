@@ -67,6 +67,8 @@ no_slash_router.register(r'statement/server', metering_views.StatementServerView
 no_slash_router.register(r'statement/disk', metering_views.StatementDiskViewSet, basename='statement-disk')
 no_slash_router.register(
     r'statement/storage', storage_metering_views.StatementStorageViewSet, basename='statement-storage')
+no_slash_router.register(
+    r'statement/monitor/site', monitor_metering_views.StatementMonitorSiteViewSet, basename='statement-monitor-site')
 no_slash_router.register(r'payment-history', bill_views.PaymentHistoryViewSet, basename='payment-history')
 no_slash_router.register(r'account/balance', account_views.BalanceAccountViewSet, basename='account-balance')
 no_slash_router.register(r'cashcoupon', cash_coupon_views.CashCouponViewSet, basename='cashcoupon')

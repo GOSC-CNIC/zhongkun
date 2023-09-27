@@ -31,7 +31,7 @@ class DailyStatementDiskSerializer(serializers.Serializer):
     date = serializers.DateField(label=_('日结算单日期'))
     creation_time = serializers.DateTimeField(label=_('创建时间'))
     user_id = serializers.CharField(label=_('用户ID'), max_length=36)
-    username = serializers.CharField(label=_('用户名'), max_length=64)
+    username = serializers.CharField(label=_('用户名'), max_length=128)
     vo_id = serializers.CharField(label=_('VO组ID'), max_length=36)
     vo_name = serializers.CharField(label=_('VO组名'), max_length=256)
     owner_type = serializers.CharField(label=_('所有者类型'), max_length=8)
@@ -71,3 +71,16 @@ class MeteringMonitorSiteSerializer(serializers.Serializer):
         label=_('是否防篡改'), default=0, help_text=_('防篡改探测次数，记录站点监控是否设置防篡改监控服务'))
     # security_count = serializers.IntegerField(
     #     label=_('是否安全扫描'), default=0, help_text=_('安全扫描次数，记录站点监控是否设置安全扫描服务'))
+
+
+class StatementMonitorSiteSerializer(serializers.Serializer):
+    id = serializers.CharField(label=_('日结算单编号'))
+    original_amount = serializers.DecimalField(label=_('计费金额'), max_digits=10, decimal_places=2, default=0.0)
+    payable_amount = serializers.DecimalField(label=_('应付金额'), max_digits=10, decimal_places=2, default=0.0)
+    trade_amount = serializers.DecimalField(label=_('实付金额'), max_digits=10, decimal_places=2, default=0.0)
+    payment_status = serializers.CharField(label=_('支付状态'), max_length=16)
+    payment_history_id = serializers.CharField(label=_('支付记录ID'), max_length=36)
+    date = serializers.DateField(label=_('日结算单日期'))
+    creation_time = serializers.DateTimeField(label=_('创建时间'))
+    user_id = serializers.CharField(label=_('用户ID'), max_length=36)
+    username = serializers.CharField(label=_('用户名'), max_length=128)

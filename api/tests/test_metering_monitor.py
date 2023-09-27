@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from utils.test import get_or_create_user
-from metering.models import MeteringMonitorWebsite
+from metering.models import MeteringMonitorWebsite, DailyStatementMonitorWebsite, PaymentStatus
 from . import MyAPITestCase
 
 
@@ -213,3 +213,133 @@ class MeteringMonitorSiteTests(MyAPITestCase):
         self.assertEqual('4.40', item['trade_amount'])
         self.assertEqual(44, item['hours'])
         self.assertEqual(4, item['tamper_resistant_count'])
+
+
+class StatementMonitorSiteTests(MyAPITestCase):
+    def setUp(self):
+        self.user1 = get_or_create_user(username='user1')
+        self.user2 = get_or_create_user(username='user2')
+
+    def create_statement_site(self):
+        # user 2022-1-1 service
+        u_st0 = DailyStatementMonitorWebsite(
+            original_amount='1.11',
+            trade_amount='1.11',
+            payable_amount='1.11',
+            payment_status=PaymentStatus.PAID.value,
+            payment_history_id='',
+            date=date(year=2022, month=1, day=1),
+            user_id=self.user1.id,
+            username=self.user1.username
+        )
+        u_st0.save(force_insert=True)
+
+        # user service2 2022-1-1
+        u_st1 = DailyStatementMonitorWebsite(
+            original_amount='2.22',
+            trade_amount='0',
+            payable_amount='2.22',
+            payment_status=PaymentStatus.UNPAID.value,
+            payment_history_id='',
+            date=date(year=2022, month=1, day=1),
+            user_id=self.user1.id,
+            username=self.user1.username
+        )
+        u_st1.save(force_insert=True)
+
+        # user 2022-1-2 service
+        u_st2 = DailyStatementMonitorWebsite(
+            original_amount='3.33',
+            trade_amount='0',
+            payable_amount='3.33',
+            payment_status=PaymentStatus.UNPAID.value,
+            payment_history_id='',
+            date=date(year=2022, month=1, day=2),
+            user_id=self.user1.id,
+            username=self.user1.username
+        )
+        u_st2.save(force_insert=True)
+
+        # user2 service 2022-1-2
+        u_st3 = DailyStatementMonitorWebsite(
+            original_amount='4.44',
+            trade_amount='0',
+            payable_amount='4.44',
+            payment_status=PaymentStatus.UNPAID.value,
+            payment_history_id='',
+            date=date(year=2022, month=1, day=2),
+            user_id=self.user2.id,
+            username=self.user2.username
+        )
+        u_st3.save(force_insert=True)
+
+        return u_st0, u_st1, u_st2, u_st3
+
+    def test_list_statement(self):
+        base_url = reverse('api:statement-monitor-site-list')
+        r = self.client.get(base_url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+
+        # list user1 statement-storage
+        self.client.force_login(self.user1)
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'page_num', 'page_size', 'statements'], response.data)
+        self.assertIsInstance(response.data['statements'], list)
+        self.assertEqual(response.data['count'], 0)
+        self.assertEqual(len(response.data['statements']), 0)
+        # create statement
+        u_st0, u_st1, u_st2, u_st3 = self.create_statement_site()
+        # ------ list user -------
+        # no params
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 3)
+        self.assertEqual(len(response.data['statements']), 3)
+        self.assertKeysIn(["id", "original_amount", "payable_amount", "trade_amount",
+                           "payment_status", "payment_history_id", "date", "creation_time",
+                           "user_id", "username"], response.data['statements'][0])
+        self.assertEqual(response.data['statements'][0]['original_amount'], u_st2.original_amount)
+        self.assertEqual(response.data['statements'][1]['original_amount'], u_st1.original_amount)
+        self.assertEqual(response.data['statements'][2]['original_amount'], u_st0.original_amount)
+
+        # date_start - date_end
+        query = parse.urlencode(query={
+            'date_start': '2022-01-02', 'date_end': '2022-01-02'
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['statements']), 1)
+        self.assertEqual(response.data['statements'][0]['user_id'], self.user1.id)
+        self.assertEqual(response.data['statements'][0]['user_id'], u_st2.user_id)
+        self.assertEqual(response.data['statements'][0]['original_amount'], u_st2.original_amount)
+
+        query = parse.urlencode(query={
+            'date_start': '2022-01-01', 'date_end': '2022-01-02'
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 3)
+        self.assertEqual(len(response.data['statements']), 3)
+
+        # payment_status
+        query = parse.urlencode(query={
+            'payment_status': PaymentStatus.PAID.value,
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['statements']), 1)
+        self.assertEqual(response.data['statements'][0]['original_amount'], u_st0.original_amount)
+
+        # date_start - date_end  && payment_status
+        query = parse.urlencode(query={
+            'date_start': '2022-01-01', 'date_end': '2022-01-02',
+            'payment_status': PaymentStatus.UNPAID.value,
+
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(len(response.data['statements']), 2)

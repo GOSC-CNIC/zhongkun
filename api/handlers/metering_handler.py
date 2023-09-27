@@ -2035,3 +2035,42 @@ class MeteringMonitorSiteHandler:
             'site_id': site_id,
             'user_id': user_id,
         }
+
+    def list_statement_site(self, view: CustomGenericViewSet, request):
+        try:
+            data = self.list_statement_site_validate_params(request)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        user = request.user
+        queryset = MeteringMonitorSiteManager().filter_statement_queryset(
+            payment_status=data['payment_status'],
+            date_start=data['date_start'],
+            date_end=data['date_end'],
+            user_id=user.id
+        )
+
+        try:
+            statements = view.paginate_queryset(queryset)
+            serializer = view.get_serializer(instance=statements, many=True)
+            return view.get_paginated_response(serializer.data)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+    @staticmethod
+    def list_statement_site_validate_params(request) -> dict:
+        payment_status = request.query_params.get('payment_status', None)
+
+        if payment_status is not None and payment_status not in PaymentStatus.values:
+            raise errors.InvalidArgument(message='参数"payment_status" 值无效')
+
+        date_start, date_end = validate_date_start_end(request=request)
+        if date_start and date_end:
+            if date_start > date_end:
+                raise errors.InvalidArgument(message='起始日期不得大于截止日期')
+
+        return {
+            'payment_status': payment_status,
+            'date_start': date_start,
+            'date_end': date_end
+        }
