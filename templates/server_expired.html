@@ -33,6 +33,7 @@
     </style>
 </head>
 <body>
+{% get_website_url as own_site_url %}
 <div class="wrapper">
     <div>
         <p>尊敬的 {{ username }}，您好！<br/>
@@ -101,7 +102,7 @@
             <span>1. 中科院内相关科研合作项目可以直接申请，由科技云项目办评估发放，请关注中国科技云相关动态或联系余老师（yuning@cstnet.cn）咨询相关信息。</span><br>
         <span>2. 其它项目用途可以联系张老师（yzhang@cnic.cn）了解云主机成本均摊标准，通过签订协议进行资源使用。</span></div>
     </div>
-    <div class="text-indent"><p>欢迎登录一体化云服务平台网站（<a target="view_window" href="https://service.cstcloud.cn/">https://service.cstcloud.cn</a>）查询更多信息。</p></div>
+    <div class="text-indent"><p>欢迎登录一体化云服务平台网站（<a target="view_window" href="{{ own_site_url }}">{{ own_site_url }}</a>）查询更多信息。</p></div>
 </div>
 </body>
 </html>

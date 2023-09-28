@@ -1,3 +1,4 @@
+{% load sitetags %}
 <!DOCTYPE html>
 <html>
 <head>
@@ -23,10 +24,11 @@
     </style>
 </head>
 <body style="width: 100%;" >
+{% get_website_url as own_site_url %}
 <div class="wrapper">
     <div class="nav">
         <div class="logo">
-            <a href="https://service.cstcloud.cn/"><img style="vertical-align: middle; height: 40px" src="https://service.cstcloud.cn/app/main/img/cstcloud_logo.22d98e7b.png"/></a>
+            <a href="https://service.cstcloud.cn/"><img style="vertical-align: middle; height: 40px" src="{{ own_site_url }}/app/main/img/cstcloud_logo.22d98e7b.png"/></a>
         </div>
         <div class="main"><span style="font-size: 21px;">一体化云服务平台</span></div>
     </div>
@@ -68,7 +70,7 @@
                     <td>{{ mr.total_original_amount|floatformat:2 }}</td>
                     <td>{{ mr.total_amount|floatformat:2 }}</td>
                     {% if forloop.first %}
-                    <td rowspan="{{ user_server_reports|length }}"><a target="view_window" href="https://service.cstcloud.cn/my/stats/consumption/personal">点击查看使用明细</a></td>
+                    <td rowspan="{{ user_server_reports|length }}"><a target="view_window" href="{{ own_site_url }}/my/stats/consumption/personal">点击查看使用明细</a></td>
                     {% endif %}
                 </tr>
                 {% endfor %}
@@ -95,7 +97,7 @@
                 <td>{{ dmr.total_original_amount|floatformat:2 }}</td>
                 <td>{{ dmr.total_amount|floatformat:2 }}</td>
                 {% if forloop.first %}
-                <td rowspan="{{ user_disk_reports|length }}"><a target="view_window" href="https://service.cstcloud.cn/my/stats/consumption/personal">点击查看使用明细</a></td>
+                <td rowspan="{{ user_disk_reports|length }}"><a target="view_window" href="{{ own_site_url }}/my/stats/consumption/personal">点击查看使用明细</a></td>
                 {% endif %}
             </tr>
             {% endfor %}
@@ -120,7 +122,7 @@
                     <td>{{ b.original_amount }}</td>
                     <td>{{ b.payable_amount }}</td>
                     {% if forloop.first %}
-                        <td rowspan="{{ bucket_reports_len }}"><a target="view_window" href="https://service.cstcloud.cn/my/stats/consumption/storage" >点击查看使用明细</a></td>
+                        <td rowspan="{{ bucket_reports_len }}"><a target="view_window" href="{{ own_site_url }}/my/stats/consumption/storage" >点击查看使用明细</a></td>
                     {% endif %}
                 </tr>
             {% endfor %}
@@ -150,7 +152,7 @@
                 {% with vo_info=vmr.vo_info %}
                     <tr>
                         <td colspan="2">
-                            <a target="view_window" href="https://service.cstcloud.cn/my/server/group/detail/{{ vo_info.vo.id }}">{{ vo_info.vo.name }}</a></td>
+                            <a target="view_window" href="{{ own_site_url }}/my/server/group/detail/{{ vo_info.vo.id }}">{{ vo_info.vo.name }}</a></td>
                         <td colspan="3" style="text-align: left;">
                             <div style="padding-top: 0;margin-top: 0">
                                 组长: {{ vo_info.vo.owner.username }}
@@ -176,7 +178,7 @@
                             容量 {{ vmr.disk_size_days | floatformat:2 }} GB*天<br>
                             计量点数 {{ vmr.disk_original_amount | floatformat:2 }}{% endif %}
                         </td>
-                        <td colspan="2"><a target="view_window" href="https://service.cstcloud.cn/my/stats/consumption/group/metering/{{ vo_info.vo.id }}">点击查询用量明细</a></td>
+                        <td colspan="2"><a target="view_window" href="{{ own_site_url }}/my/stats/consumption/group/metering/{{ vo_info.vo.id }}">点击查询用量明细</a></td>
                     </tr>
                 {% endwith %}
             {% endfor %}
@@ -291,7 +293,7 @@
         <span class="text-indent">2.其它项目用途根据中国科技云云主机成本均摊标准签订协议使用资源。</span><br>
         <span class="text-indent">您可以联系张老师（yzhang@cnic.cn）咨询相关信息。</span></div>
     </div>
-    <div class="text-indent"><p>欢迎登录一体化云服务平台网站（<a target="view_window" href="https://service.cstcloud.cn/">https://service.cstcloud.cn</a>）查询更多信息。</p></div>
+    <div class="text-indent"><p>欢迎登录一体化云服务平台网站（<a target="view_window" href="{{ own_site_url }}">{{ own_site_url }}</a>）查询更多信息。</p></div>
 </div>
 </body>
 </html>

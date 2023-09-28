@@ -4,7 +4,7 @@ from django.conf import settings
 
 from utils.time import datesince_days, dateuntil_days
 from core.aai.signin import AAISignIn
-
+from core import site_configs_manager as site_configs
 
 register = template.Library()
 
@@ -33,18 +33,15 @@ def get_aai_signin_name_url():
     return None
 
 
-def get_website_header():
-    config = getattr(settings, 'WEBSITE_CONFIG', {})
-    title = config.get('site_brand')
-    if not title:
-        title = gettext('中国科技云一体化云服务')
-
-    return title
-
-
 @register.simple_tag(name='get_website_title')
 def do_get_website_title():
-    return get_website_header()
+    return site_configs.get_website_brand()
+
+
+@register.simple_tag(name='get_website_url')
+def do_get_website_url():
+    u = site_configs.get_website_url()
+    return u.rstrip('/')
 
 
 def get_about_us():
@@ -58,7 +55,7 @@ def get_about_us():
 
 @register.simple_tag(name='get_about_us')
 def do_get_about_us():
-    return get_about_us()
+    return site_configs.get_about_us()
 
 
 @register.filter("datesincedays", is_safe=False)

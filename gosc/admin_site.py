@@ -1,10 +1,10 @@
 from django.contrib import admin
 from django.utils.translation import gettext as _
 from django.contrib.admin.models import LogEntry
-from templatetags.sitetags import get_website_header
+from core import site_configs_manager as site_configs
 
 
-site_header = get_website_header()
+site_header = site_configs.get_website_brand()
 
 
 @admin.register(LogEntry)
