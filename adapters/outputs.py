@@ -312,13 +312,19 @@ class ListImageOutputImage:
     @staticmethod
     def _format_image_property(prop_value, prop_choices, tips):
         result = 'Unknown'
-        if ('Unknown' != prop_value) and (prop_value.lower() in prop_choices.keys()):
-            result = prop_choices[prop_value.lower()]
+        if not isinstance(prop_value, str):
+            return result
+
+        prop_value = prop_value.lower()
+        if prop_value != 'unknown' and prop_value in prop_choices.keys():
+            result = prop_choices[prop_value]
         else:
+            tips = tips.lower()
             for key in prop_choices.keys():
-                if (tips.lower()).find(key.lower()) != -1:
+                if tips.find(key.lower()) != -1:
                     result = prop_choices[key]
                     break
+
         return result
 
 

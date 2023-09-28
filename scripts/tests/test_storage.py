@@ -231,7 +231,7 @@ class BucketStatsMonthlyTests(TransactionTestCase):
         ok = u1_b2.do_archive(archiver='test')
         self.assertIs(ok, True)
         u1_ba2 = BucketArchive.objects.get(original_id=u1_b2_id)
-        u1_ba2.delete_time = self.period_start + datetime.timedelta(days=10)
+        u1_ba2.delete_time = self.period_start_time + datetime.timedelta(days=10)
         u1_ba2.save(update_fields=['delete_time'])
 
         # 本周期内创建 本周期内删除
@@ -239,7 +239,7 @@ class BucketStatsMonthlyTests(TransactionTestCase):
         ok = u1_b3.do_archive(archiver='test')
         self.assertIs(ok, True)
         u1_ba3 = BucketArchive.objects.get(original_id=u1_b3_id)
-        u1_ba3.delete_time = self.period_start + datetime.timedelta(days=25)
+        u1_ba3.delete_time = self.period_start_time + datetime.timedelta(days=25)
         u1_ba3.save(update_fields=['delete_time'])
 
         # 下周期创建，当前删除
