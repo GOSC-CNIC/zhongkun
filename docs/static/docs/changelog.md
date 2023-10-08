@@ -1,3 +1,22 @@
+## v1.13.0
+发布时间： 2023-10-08  
+发布人： shun  
+
+* 桶月度统计趋势模型定义，月度统计数据生成定时脚本实现，新增ListBucketStatsMonthly、
+ListStorageStatsMonthly、ListStorageStatsMonthlyService接口和测试用例；提交人：shun
+* django-tidb 4.2.0 to 4.2.1，安装python-crontab包，实现crontabtask命令以方便管理定时任务；提交人：shun
+* 定价模型增加站点监控价格字段，定义站点监控计量、日结算单模型，实现站点监控计量计费和扣费功能；提交人：shun
+* 站点监控任务创建接口和测试用例修改，要求有足够余额或资源券才允许创建；提交人：shun
+* 月度报表模型增加站点监控计量计费相关字段，月度报表记录生成功能代码实现站点监控数据月度统计；提交人：shun
+* 新增ListMonitorSiteMetering、ListMonitorSiteStatement、GetMonitorSiteStatementDetail接口和测试用例；提交人：shun
+* 站点日志数据量时序统计脚本优化，使用异步网络请求缩短耗时，loki日志查询接口异常响应时代码容错性优化；提交人：shun
+* 代金券改名为资源券；提交人：shun
+* 获取用户服务单元vpn时，如果用户在服务单元没有可用资源只查询vpn不再自动创建新的vpn账户；提交人：shun
+* 增加站点名称和网址配置，此配置会动态影响到工单、资源券过期和月度报表通知邮件标题和部分邮件内容；提交人：shun
+* 钱包app子服务的服务类别增加‘监控’选项，对应的增加月度报表模板中资源券服务类别；提交人：shun
+* 适配器列举系统镜像接口返回数据结构中系统的架构、版本、类型判断容错性优化；提交人：shun
+
+
 ## v1.12.0
 发布时间： 2023-09-05  
 发布人： shun  
