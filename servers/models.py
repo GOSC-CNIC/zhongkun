@@ -18,7 +18,7 @@ def short_uuid1_l25():
 
 class ServerBase(models.Model):
     """
-    虚拟服务器实例
+    云主机实例
     """
     TASK_CREATED_OK = 1
     TASK_IN_CREATING = 2
@@ -46,7 +46,7 @@ class ServerBase(models.Model):
         ARREARAGE = 'arrearage', _('欠费停机')
 
     id = models.CharField(blank=True, editable=False, max_length=36, primary_key=True, verbose_name='ID')
-    name = models.CharField(max_length=255, verbose_name=_('服务器实例名称'))
+    name = models.CharField(max_length=255, verbose_name=_('云主机实例名称'))
     instance_id = models.CharField(max_length=128, verbose_name=_('云主机实例ID'), help_text=_('各接入服务中云主机的ID'))
     instance_name = models.CharField(max_length=255, blank=True, default='', verbose_name=_('云主机实例名称'),
                                      help_text=_('各接入服务中云主机的名称'))
@@ -71,7 +71,7 @@ class ServerBase(models.Model):
                                       help_text=_('云主机资源使用量计量开始时间'))
     pay_type = models.CharField(verbose_name=_('计费方式'), max_length=16, choices=PayType.choices,
                                 default=PayType.POSTPAID)
-    azone_id = models.CharField(verbose_name=_('可用区'), max_length=36, blank=True, default='')
+    azone_id = models.CharField(verbose_name=_('宿主机组id/可用区'), max_length=36, blank=True, default='')
     disk_size = models.IntegerField(verbose_name=_('系统盘GB'), default=0)
     network_id = models.CharField(max_length=64, verbose_name=_('网络ID'), default='')
     situation = models.CharField(
@@ -160,7 +160,7 @@ class ServerBase(models.Model):
 
 class Server(ServerBase):
     """
-    虚拟服务器实例
+    云主机实例
     """
 
     class Lock(models.TextChoices):
@@ -181,7 +181,7 @@ class Server(ServerBase):
 
     class Meta:
         ordering = ['-creation_time']
-        verbose_name = _('云服务器')
+        verbose_name = _('云主机')
         verbose_name_plural = verbose_name
 
     def __str__(self):
@@ -312,7 +312,7 @@ class Server(ServerBase):
 
 class ServerArchive(ServerBase):
     """
-    虚拟服务器实例归档
+    云主机实例归档
     """
 
     class ArchiveType(models.TextChoices):
@@ -321,8 +321,8 @@ class ServerArchive(ServerBase):
         POST2PRE = 'post2pre', _('按量付费转包年包月')
         # PRE2POST = 'pre2post', _('包年包月转按量付费')
 
-    server_id = models.CharField(verbose_name=_('服务器ID'), max_length=36, blank=True, default='',
-                                 help_text=_('归档服务器的ID'))
+    server_id = models.CharField(verbose_name=_('云主机ID'), max_length=36, blank=True, default='',
+                                 help_text=_('归档云主机的ID'))
     service = models.ForeignKey(to=ServiceConfig, null=True, on_delete=models.SET_NULL,
                                 related_name='server_archive_set', verbose_name=_('接入的服务配置'))
     user = models.ForeignKey(to=User, verbose_name=_('创建者'), on_delete=models.SET_NULL,
@@ -337,7 +337,7 @@ class ServerArchive(ServerBase):
 
     class Meta:
         ordering = ['-deleted_time']
-        verbose_name = _('云服务器归档和变更日志')
+        verbose_name = _('云主机归档和变更日志')
         verbose_name_plural = verbose_name
 
     def save(self, force_insert=False, force_update=False, using=None,
@@ -414,7 +414,7 @@ class Flavor(models.Model):
     class Meta:
         db_table = 'flavor'
         ordering = ['vcpus']
-        verbose_name = _('云服务器配置样式')
+        verbose_name = _('云主机配置样式')
         verbose_name_plural = verbose_name
 
     def __str__(self):
