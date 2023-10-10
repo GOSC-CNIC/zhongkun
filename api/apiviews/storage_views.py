@@ -169,7 +169,7 @@ class ObjectsServiceViewSet(StorageGenericViewSet):
             return self.exception_response(
                 exc=errors.InvalidArgument(message=_('参数“status”的值无效'), code='InvalidStatus'))
 
-        qs = ObjectsServiceManager.get_all_has_perm_service(user=request.user)
+        qs = ObjectsServiceManager().get_admin_service_qs(user=request.user)
         if center_id:
             qs = qs.filter(data_center_id=center_id)
 

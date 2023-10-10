@@ -7,7 +7,7 @@ from storage.models import ObjectsService
 class ObjectsServiceManager:
     @staticmethod
     def get_service_queryset():
-        return ObjectsService.objects.all()
+        return ObjectsService.objects.select_related('data_center').all()
 
     @staticmethod
     def get_service_by_id(_id: str):
@@ -57,3 +57,9 @@ class ObjectsServiceManager:
             return ObjectsService.objects.filter(id=service_ids[0])
         else:
             return ObjectsService.objects.filter(id__in=service_ids)
+
+    def get_admin_service_qs(self, user):
+        if user.is_federal_admin():
+            return self.get_service_queryset()
+
+        return self.get_all_has_perm_service(user=user)

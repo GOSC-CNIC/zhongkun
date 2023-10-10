@@ -89,7 +89,7 @@ class ObjectsServiceTests(MyAPITestCase):
         self.assertIsInstance(r.data['results'][0]['ftp_domains'], list)
 
         # query 'center_id'
-        url = reverse('api:storage-service-list')
+        url = reverse('api:storage-service-admin-list')
         query = parse.urlencode(query={'center_id': 'test'})
         r = self.client.get(f'{url}?{query}')
         self.assertEqual(r.status_code, 200)
@@ -103,7 +103,7 @@ class ObjectsServiceTests(MyAPITestCase):
         self.assertEqual(len(r.data['results']), 1)
 
         # query 'status'
-        url = reverse('api:storage-service-list')
+        url = reverse('api:storage-service-admin-list')
         query = parse.urlencode(query={'status': 'sdisable'})
         r = self.client.get(f'{url}?{query}')
         self.assertErrorResponse(status_code=400, code='InvalidStatus', response=r)
@@ -119,6 +119,26 @@ class ObjectsServiceTests(MyAPITestCase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data['count'], 1)
         self.assertEqual(len(r.data['results']), 1)
+
+        # 联邦管理员
+        self.service.users.remove(self.user)
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 0)
+        self.assertEqual(len(r.data['results']), 0)
+
+        # set admin
+        self.user.set_federal_admin()
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=['count', 'next', 'previous', 'results'], container=r.data)
+        self.assertEqual(r.data['count'], 1)
+        self.assertKeysIn(keys=[
+            'id', 'name', 'name_en', 'service_type', 'endpoint_url', 'add_time', 'status', 'remarks', 'provide_ftp',
+            'ftp_domains', 'longitude', 'latitude', 'pay_app_service_id', 'data_center', 'sort_weight', 'loki_tag'
+        ], container=r.data['results'][0])
+        self.assertKeysIn(keys=['id', 'name', 'name_en', 'sort_weight'], container=r.data['results'][0]['data_center'])
+        self.assertIsInstance(r.data['results'][0]['ftp_domains'], list)
 
 
 class StorageStatisticsTests(MyAPITestCase):
