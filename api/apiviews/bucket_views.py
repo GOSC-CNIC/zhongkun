@@ -195,10 +195,10 @@ class AdminBucketViewSet(StorageGenericViewSet):
                     "name": "开发环境",
                     "name_en": "dev"
                   },
-                  "task_status": "created",
-                  "situation": "normal",    # normal(正常), arrearage(欠费), lock(欠费锁定)
+                  "task_status": "created", # created:创建成功; creating:正在创建中; failed:创建失败
+                  "situation": "normal",    # normal(正常), arrearage(欠费), arrears-lock(欠费锁定), lock(锁定)
                   "situation_time": null,
-                  "storage_size": 66347638,
+                  "storage_size": 66347638, # byte
                   "object_count": 456,
                   "stats_time": "2022-10-27T08:09:26.911670Z"
                 }

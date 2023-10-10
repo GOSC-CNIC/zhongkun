@@ -3,6 +3,7 @@ from django.conf import settings
 from django.core import mail
 
 from utils.test import get_or_create_user
+from users.models import Email
 from . import MyAPITestCase
 
 
@@ -57,7 +58,13 @@ class EmailTests(MyAPITestCase):
         self.assertEqual(r.data['status'], 'success')
         self.assertEqual(r.data['is_html'], False)
         self.assertEqual(r.data['receiver'], 'test@cnic.com')
+        self.assertEqual(r.data['is_feint'], False)
         self.assertEqual(len(mail.outbox), 1)
+
+        self.assertEqual(Email.objects.count(), 1)
+        email1: Email = Email.objects.order_by('-send_time').first()
+        self.assertEqual(email1.receiver, 'test@cnic.com')
+        self.assertEqual(email1.is_feint, False)
 
         # ok, html
         r = self.client.post(base_url, data={
@@ -79,12 +86,61 @@ class EmailTests(MyAPITestCase):
             </body>
             </html>
             """,
-            "is_html": True
+            "is_html": True,
+            'is_feint': 'false'
         })
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn(['id', 'subject', 'receiver', 'message', 'is_html', 'status', 'status_desc',
                            'success_time', 'remote_ip'], r.data)
         self.assertEqual(r.data['status'], 'success')
         self.assertEqual(r.data['is_html'], True)
+        self.assertEqual(r.data['is_feint'], False)
         self.assertEqual(r.data['receiver'], 'test@cnic.com;test66@cnic.com;test888@qq.com')
         self.assertEqual(len(mail.outbox), 2)
+
+        self.assertEqual(Email.objects.count(), 2)
+        email1: Email = Email.objects.order_by('-send_time').first()
+        self.assertEqual(email1.is_feint, False)
+
+        # 假装发送，只入库不真实发送
+        r = self.client.post(base_url, data={
+            'subject': 'test is_feint',
+            "receiver": "test@cnic.com",
+            "message": "string message对我的",
+            "is_html": False,
+            'is_feint': 'true'
+        })
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(['id', 'subject', 'receiver', 'message', 'is_html', 'status', 'status_desc',
+                           'success_time', 'remote_ip'], r.data)
+        self.assertEqual(r.data['status'], 'wait')
+        self.assertEqual(r.data['is_html'], False)
+        self.assertEqual(r.data['receiver'], 'test@cnic.com')
+        self.assertEqual(r.data['is_feint'], True)
+        self.assertEqual(len(mail.outbox), 2)   # 不真的发送
+
+        self.assertEqual(Email.objects.count(), 3)
+        email1: Email = Email.objects.order_by('-send_time').first()
+        self.assertEqual(email1.receiver, 'test@cnic.com')
+        self.assertEqual(email1.is_feint, True)
+
+        r = self.client.post(base_url, data={
+            'subject': 'test is_feint',
+            "receiver": "test@cnic.com",
+            "message": "string message对我的ada",
+            "is_html": False,
+            'is_feint': True
+        })
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(['id', 'subject', 'receiver', 'message', 'is_html', 'status', 'status_desc',
+                           'success_time', 'remote_ip'], r.data)
+        self.assertEqual(r.data['status'], 'wait')
+        self.assertEqual(r.data['is_html'], False)
+        self.assertEqual(r.data['receiver'], 'test@cnic.com')
+        self.assertEqual(r.data['is_feint'], True)
+        self.assertEqual(len(mail.outbox), 2)  # 不真的发送
+
+        self.assertEqual(Email.objects.count(), 4)
+        email1: Email = Email.objects.order_by('-send_time').first()
+        self.assertEqual(email1.receiver, 'test@cnic.com')
+        self.assertEqual(email1.is_feint, True)

@@ -11,6 +11,9 @@ class EmailSerializer(serializers.Serializer):
     is_html = serializers.BooleanField(
         label='html格式信息', required=True,
         help_text='指示邮件内容是普通文本还是html格式信息，true指示为html格式信息')
+    is_feint = serializers.BooleanField(
+        label=_('是否是假动作，不真实发送'), allow_null=True, default=False,
+        help_text='指示是否真实的发送邮件，true指示为假动作，只入库不真实发送邮件')
 
     id = serializers.CharField(label=_('邮件id'), read_only=True)
     status = serializers.CharField(label=_('发送状态'), max_length=16, read_only=True)

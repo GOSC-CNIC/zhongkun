@@ -65,7 +65,8 @@ class EmailViewSet(viewsets.GenericViewSet):
                 'status': 'success', # wait 待发送; success 发送成功; failed 发送失败
                 'status_desc': '',
                 'success_time': '2023-06-09T07:41:21.482813Z',
-                'remote_ip': '127.0.0.1'
+                'remote_ip': '127.0.0.1',
+                'is_feint': false   # true(假动作，只入库不真的发送)；false(入库并真的发送)
             }
         """
         try:
@@ -90,7 +91,7 @@ class EmailViewSet(viewsets.GenericViewSet):
             subject=data['subject'], receivers=data['receiver'],
             message=message, html_message=html_message,
             tag=Email.Tag.API.value, fail_silently=True,
-            save_db=True, remote_ip=remote_ip
+            save_db=True, remote_ip=remote_ip, is_feint=data['is_feint']
         )
         serializer = eamil_serializers.EmailSerializer(instance=email)
         return Response(data=serializer.data)

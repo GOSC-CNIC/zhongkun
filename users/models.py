@@ -163,6 +163,7 @@ class Email(UuidModel):
     status_desc = models.CharField(max_length=255, verbose_name=_('状态描述'), default='')
     success_time = models.DateTimeField(verbose_name=_('成功发送时间'), null=True, blank=True, default=None)
     remote_ip = models.CharField(max_length=64, verbose_name=_('客户端ip'), default='')
+    is_feint = models.BooleanField(verbose_name=_('假动作，不真实发送'), default=False)
 
     class Meta:
         ordering = ['-send_time']
@@ -171,9 +172,9 @@ class Email(UuidModel):
 
     @classmethod
     def send_email(cls, subject: str, receivers: list, message: str, tag: str, html_message: str = None,
-                   fail_silently=True, save_db: bool = True, remote_ip: str = ''):
+                   fail_silently=True, save_db: bool = True, remote_ip: str = '', is_feint: bool = False):
         """
-        发送用户激活邮件
+        发送邮件
 
         :param subject: 标题
         :param receivers: 接收者邮箱
@@ -183,6 +184,7 @@ class Email(UuidModel):
         :param fail_silently: 是否抛出异常
         :param save_db: True(保存邮件记录到数据库)；False(不保存)
         :param remote_ip: 客户端ip地址
+        :param is_feint: True(假动作，只入库不真实发送)；False(真实发送邮件)
         :return:
             Email()     # 发送成功
             None        # 发送失败
@@ -197,7 +199,7 @@ class Email(UuidModel):
             sender=settings.EMAIL_HOST_USER,
             email_host=settings.EMAIL_HOST,
             tag=tag, is_html=False, status=cls.Status.WAIT.value, status_desc='', success_time=None,
-            remote_ip=remote_ip
+            remote_ip=remote_ip, is_feint=is_feint
         )
         if html_message:
             email.message = html_message
@@ -206,6 +208,9 @@ class Email(UuidModel):
 
         if save_db:
             email.save(force_insert=True)  # 邮件记录
+
+        if is_feint:    # 假动作，不真实发送
+            return email
 
         try:
             ok = send_mail(
