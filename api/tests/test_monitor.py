@@ -6,6 +6,7 @@ from urllib import parse
 from django.urls import reverse
 from django.utils import timezone
 from django.core.cache import cache as django_cache
+from django.conf import settings
 
 from service.models import DataCenter
 from monitor.tests import (
@@ -1543,6 +1544,75 @@ class MonitorWebsiteTests(MyAPITestCase):
 
         user_website1.refresh_from_db()
         self.assertIs(user_website1.is_attention, False)
+
+    def test_list_site_emails(self):
+        settings.API_EMAIL_ALLOWED_IPS = []
+        base_url = reverse('api:monitor-website-user-email')
+        r = self.client.get(path=base_url)
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
+        query = parse.urlencode(query={'url_hash': ''})
+        r = self.client.get(path=f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
+
+        query = parse.urlencode(query={'url_hash': 'xxxx'})
+        r = self.client.get(path=f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        self.client.force_login(self.user)
+        r = self.client.get(reverse('api:email-realip'))
+        real_ip = r.data['real_ip']
+        settings.API_EMAIL_ALLOWED_IPS = [real_ip]
+        self.client.logout()
+
+        # ok, no data
+        url_hash = 'xxxx'
+        query = parse.urlencode(query={'url_hash': url_hash})
+        r = self.client.get(path=f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=['url_hash', 'results'], container=r.data)
+        self.assertEqual(r.data['url_hash'], url_hash)
+        self.assertEqual(len(r.data['results']), 0)
+
+        # add data
+        user3 = get_or_create_user(username='lisi@qq.com')
+        nt = timezone.now()
+        user_website1 = MonitorWebsite(
+            name='name1', scheme='https://', hostname='111.com', uri='/', is_tamper_resistant=True,
+            remark='remark1', user_id=self.user.id, creation=nt, modification=nt
+        )
+        user_website1.url = user_website1.full_url
+        user_website1.save(force_insert=True)
+
+        nt = timezone.now()
+        user2_website1 = MonitorWebsite(
+            name='name2', scheme='https://', hostname='111.com', uri='/', is_tamper_resistant=False,
+            remark='remark2', user_id=self.user2.id, creation=nt, modification=nt
+        )
+        user2_website1.save(force_insert=True)
+
+        nt = timezone.now()
+        user3_website3 = MonitorWebsite(
+            name='name3', scheme='https://', hostname='333.com', uri='/', is_tamper_resistant=True,
+            remark='remark3', user_id=user3.id, creation=nt, modification=nt
+        )
+        user3_website3.url = user3_website3.full_url
+        user3_website3.save(force_insert=True)
+
+        # ok, list
+        url_hash = user_website1.url_hash
+        query = parse.urlencode(query={'url_hash': url_hash})
+        r = self.client.get(path=f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=['url_hash', 'results'], container=r.data)
+        self.assertEqual(r.data['url_hash'], url_hash)
+        self.assertEqual(len(r.data['results']), 2)
+        self.assertKeysIn(keys=[
+            'scheme', 'hostname', 'uri', 'email'
+        ], container=r.data['results'][0])
+        for item in r.data['results']:
+            url1 = item['scheme'] + item['hostname'] + item['uri']
+            self.assertEqual(url1, user2_website1.full_url)
+            self.assertIn(item['email'], [self.user.username, self.user2.username])
 
 
 class MonitorWebsiteQueryTests(MyAPITestCase):

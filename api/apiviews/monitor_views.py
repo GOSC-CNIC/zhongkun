@@ -956,6 +956,42 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
         """
         return MonitorWebsiteHandler().http_status_overview(view=self, request=request)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询监控同一个网站的所有用户的邮件地址'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='url_hash',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description=_('监控站点url hash字符串')
+            )
+        ],
+        paginator_inspectors=[NoPaginatorInspector],
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['get'], detail=False, url_path='user/email', url_name='user-email')
+    def get_site_user_emails(self, request, *args, **kwargs):
+        """
+        查询监控同一个网站的所有用户的邮件地址，不需要身份验证，只有指定的ip可访问
+
+            http code 200:
+            {
+              "url_hash": "cdf73b92194a75d7965330f2b79de787e39d7a2f",
+              "results": [
+                {
+                  "scheme": "https://",
+                  "hostname": "service.cstcloud.cn",
+                  "uri": "/",
+                  "email": "yzhang@cnic.cn"
+                }
+              ]
+            }
+        """
+        return MonitorWebsiteHandler.get_site_user_emails(view=self, request=request)
+
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'mark_attention']:
             return monitor_serializers.MonitorWebsiteSerializer
@@ -974,6 +1010,12 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
             authenticators.append(BasicAuthentication())
 
         return authenticators
+
+    def get_permissions(self):
+        if self.action == 'get_site_user_emails':
+            return []
+
+        return super().get_permissions()
 
 
 class MonitorWebsiteTaskViewSet(CustomGenericViewSet):

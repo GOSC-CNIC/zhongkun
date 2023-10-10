@@ -861,6 +861,18 @@ class MonitorWebsiteManager:
         return self.backend.raw_query(
             provider=provider, params={'query': query, 'time': timestamp})
 
+    @staticmethod
+    def get_site_user_emails(url_hash: str):
+        qs = MonitorWebsite.objects.filter(url_hash=url_hash).values(
+            'scheme', 'hostname', 'uri', 'user__username')
+
+        data = []
+        for d in qs:
+            d['email'] = d.pop('user__username', None)
+            data.append(d)
+
+        return data
+
 
 class MonitorJobTiDBManager:
     backend = MonitorTiDBQueryAPI()

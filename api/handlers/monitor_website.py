@@ -4,6 +4,7 @@ from decimal import Decimal
 from django.utils.translation import gettext as _
 from django.core.validators import URLValidator
 from django.core.exceptions import ValidationError
+from django.conf import settings
 from rest_framework.response import Response
 
 from core import errors
@@ -12,6 +13,7 @@ from monitor.models import MonitorWebsiteTask, MonitorWebsiteVersion, MonitorWeb
 from api.viewsets import CustomGenericViewSet
 from bill.managers.payment import PaymentManager
 from order.managers.price import PriceManager
+from utils import get_remote_ip
 from .handlers import serializer_error_msg
 
 
@@ -579,3 +581,24 @@ class MonitorWebsiteHandler:
             "invalid": len(invalids),
             "valid": len(valids)
         }
+
+    @staticmethod
+    def get_site_user_emails(view: CustomGenericViewSet, request):
+        url_hash = request.query_params.get('url_hash', None)
+
+        if url_hash is None:
+            return view.exception_response(errors.InvalidArgument(message=_('必须指定监控站点url的hash字符串')))
+
+        if not url_hash:
+            return view.exception_response(errors.InvalidArgument(message=_('指定监控站点url的hash字符串无效')))
+
+        remote_ip, proxys = get_remote_ip(request)
+        allowed_ips = getattr(settings, 'API_EMAIL_ALLOWED_IPS', [])
+        if remote_ip not in allowed_ips:
+            return view.exception_response(errors.AccessDenied(message=_('你的ip没有访问权限')))
+
+        emails = MonitorWebsiteManager.get_site_user_emails(url_hash=url_hash)
+        return Response(data={
+            'url_hash': url_hash,
+            'results': emails
+        })
