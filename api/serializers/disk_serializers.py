@@ -12,7 +12,7 @@ class DiskCreateSerializer(serializers.Serializer):
     service_id = serializers.CharField(label=_('服务单元'), required=True, help_text=_('服务提供商配置ID'))
     azone_id = serializers.CharField(
         label=_('可用区'), required=False, max_length=36, allow_null=True, default=None)
-    size = serializers.IntegerField(label=_('云盘大小（GiB）'), min_value=1, max_value=10240, required=True)
+    size = serializers.IntegerField(label=_('云盘大小（GiB）'), min_value=1, max_value=20480, required=True)
     period = serializers.IntegerField(
         label=_('订购时长（月）'), required=False, allow_null=True, default=None,
         help_text=_('付费模式为预付费时，必须指定订购时长'))
