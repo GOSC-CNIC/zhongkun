@@ -174,8 +174,8 @@ class Migration(migrations.Migration):
                 ('latitude', models.FloatField(blank=True, default=0, verbose_name='纬度')),
             ],
             options={
-                'verbose_name': '机构',
-                'verbose_name_plural': '机构',
+                'verbose_name': '支付机构',
+                'verbose_name_plural': '支付机构',
                 'db_table': 'pay_orgnazition',
                 'ordering': ['creation_time'],
             },

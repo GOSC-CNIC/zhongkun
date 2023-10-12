@@ -17,6 +17,23 @@ from bill.models import PayAppService
 app_name = 'service'
 
 
+class Contacts(UuidModel):
+    """机构联系人"""
+    name = models.CharField(verbose_name=_('姓名'), max_length=128)
+    telephone = models.CharField(verbose_name=_('电话'), max_length=11, default='')
+    email = models.EmailField(_('邮箱地址'), blank=True, default='')
+    address = models.CharField(verbose_name=_('联系地址'), max_length=255, help_text=_('详细的联系地址'))
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'))
+    update_time = models.DateTimeField(verbose_name=_('更新时间'))
+    remarks = models.CharField(max_length=255, default='', blank=True, verbose_name=_('备注'))
+
+    class Meta:
+        ordering = ('-creation_time',)
+        db_table = 'contacts'
+        verbose_name = _('机构联系人')
+        verbose_name_plural = verbose_name
+
+
 class DataCenter(UuidModel):
     STATUS_ENABLE = 1
     STATUS_DISABLE = 2
@@ -30,6 +47,7 @@ class DataCenter(UuidModel):
     abbreviation = models.CharField(verbose_name=_('简称'), max_length=64, default='')
     independent_legal_person = models.BooleanField(verbose_name=_('是否独立法人单位'), default=True)
     country = models.CharField(verbose_name=_('国家/地区'), max_length=128, default='')
+    province = models.CharField(verbose_name=_('省份'), max_length=128, default='')
     city = models.CharField(verbose_name=_('城市'), max_length=128, default='')
     postal_code = models.CharField(verbose_name=_('邮政编码'), max_length=32, default='')
     address = models.CharField(verbose_name=_('单位地址'), max_length=256, default='')
@@ -53,6 +71,8 @@ class DataCenter(UuidModel):
     longitude = models.FloatField(verbose_name=_('经度'), blank=True, default=0)
     latitude = models.FloatField(verbose_name=_('纬度'), blank=True, default=0)
     sort_weight = models.IntegerField(verbose_name=_('排序值'), default=0, help_text=_('值越小排序越靠前'))
+    contacts = models.ManyToManyField(
+        verbose_name=_('机构联系人'), to=Contacts, related_name='+', db_table='data_center_contacts', db_constraint=False)
 
     class Meta:
         ordering = ['sort_weight']
