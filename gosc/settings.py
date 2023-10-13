@@ -57,7 +57,8 @@ INSTALLED_APPS = [
     'bill',
     'ticket',
     'report',
-    'scripts'
+    'scripts',
+    'ipam',
 ]
 
 MIDDLEWARE = [
