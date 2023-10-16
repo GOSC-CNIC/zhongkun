@@ -19,8 +19,9 @@ from .handlers import serializer_error_msg
 class BucketHandler:
     class LockActionChoices(models.TextChoices):
         NORMAL = 'normal', _('正常')
-        ARREARS_LOCK = 'arrears-lock', _('欠费锁定')
-        LOCK = 'lock', _('锁定')
+        ARREARS_LOCK = 'arrears-lock', _('欠费锁定读写')
+        LOCK = 'lock', _('锁定读写')
+        LOCK_WRITE = 'lock-write', _('锁定写(只读)')
 
     @staticmethod
     def create_bucket(view: StorageGenericViewSet, request, kwargs):
@@ -260,7 +261,8 @@ class BucketHandler:
             lock = {
                 BucketHandler.LockActionChoices.NORMAL.value: inputs.BucketLockInput.LOCK_FREE,
                 BucketHandler.LockActionChoices.ARREARS_LOCK.value: inputs.BucketLockInput.LOCK_READWRITE,
-                BucketHandler.LockActionChoices.LOCK.value: inputs.BucketLockInput.LOCK_READWRITE
+                BucketHandler.LockActionChoices.LOCK.value: inputs.BucketLockInput.LOCK_READWRITE,
+                BucketHandler.LockActionChoices.LOCK_WRITE.value: inputs.BucketLockInput.LOCK_WRITE
             }[act]
             params = inputs.BucketLockInput(bucket_name=bucket.name, lock=lock)
             r = view.request_service(service=service, method='bucket_lock', params=params)
@@ -268,7 +270,8 @@ class BucketHandler:
             status = {
                 BucketHandler.LockActionChoices.NORMAL.value: Bucket.Situation.NORMAL.value,
                 BucketHandler.LockActionChoices.ARREARS_LOCK.value: Bucket.Situation.ARREARS_LOCK.value,
-                BucketHandler.LockActionChoices.LOCK.value: Bucket.Situation.LOCK.value
+                BucketHandler.LockActionChoices.LOCK.value: Bucket.Situation.LOCK.value,
+                BucketHandler.LockActionChoices.LOCK_WRITE.value: Bucket.Situation.LOCK_WRITE.value
             }[act]
             bucket.set_situation(status=status)
         except Exception as exc:

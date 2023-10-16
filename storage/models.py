@@ -142,8 +142,9 @@ class BucketBase(UuidModel):
     class Situation(models.TextChoices):
         NORMAL = 'normal', _('正常')
         ARREARAGE = 'arrearage', _('欠费')
-        ARREARS_LOCK = 'arrears-lock', _('欠费锁定')
-        LOCK = 'lock', _('锁定')
+        ARREARS_LOCK = 'arrears-lock', _('欠费锁定读写')
+        LOCK = 'lock', _('锁定读写')
+        LOCK_WRITE = 'lock-write', _('锁定写(只读)')
 
     class Tags(models.TextChoices):
         NONE = '', _('无')
