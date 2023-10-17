@@ -78,6 +78,11 @@ class TiDBQueryChoices(models.TextChoices):
     ALL_TOGETHER = 'all_together', _('一起查询所有指标')
 
 
+class URLTCPValidator(URLValidator):
+
+    schemes = ["http", "https", "tcp"]
+
+
 class MonitorJobCephManager:
     backend = MonitorCephQueryAPI()
 
@@ -453,7 +458,7 @@ class MonitorWebsiteManager:
         """
         full_url = user_website.full_url
         try:
-            URLValidator()(full_url)
+            URLTCPValidator()(full_url)
         except ValidationError as e:
             raise errors.InvalidArgument(message=_('网址无效'), code='InvalidUrl')
 
@@ -602,7 +607,7 @@ class MonitorWebsiteManager:
         new_url = user_website.full_url
 
         try:
-            URLValidator()(new_url)
+            URLTCPValidator()(new_url)
         except ValidationError as e:
             raise errors.InvalidArgument(message=_('网址无效'), code='InvalidUrl')
 

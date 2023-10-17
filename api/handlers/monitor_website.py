@@ -2,13 +2,13 @@ import time
 from decimal import Decimal
 
 from django.utils.translation import gettext as _
-from django.core.validators import URLValidator
+# from django.core.validators import URLValidator
 from django.core.exceptions import ValidationError
 from django.conf import settings
 from rest_framework.response import Response
 
 from core import errors
-from monitor.managers import MonitorWebsiteManager, WebsiteQueryChoices
+from monitor.managers import MonitorWebsiteManager, WebsiteQueryChoices, URLTCPValidator
 from monitor.models import MonitorWebsiteTask, MonitorWebsiteVersion, MonitorWebsite, WebsiteDetectionPoint
 from api.viewsets import CustomGenericViewSet
 from bill.managers.payment import PaymentManager
@@ -94,7 +94,7 @@ class MonitorWebsiteHandler:
         user_website = MonitorWebsite(scheme=scheme, hostname=hostname, uri=uri, user_id=request.user.id)
         full_url = user_website.full_url
         try:
-            URLValidator()(full_url)
+            URLTCPValidator()(full_url)
         except ValidationError as e:
             raise errors.InvalidArgument(message=_('网址无效'), code='InvalidUrl')
 
@@ -136,6 +136,28 @@ class MonitorWebsiteHandler:
         uri = serializer.validated_data.get('uri', '')
         if not uri or not uri.startswith('/'):
             raise errors.BadRequest(message=_('无效的站点URI，必须以“/”开头。'), code='InvalidUri')
+
+        scheme = serializer.validated_data.get('scheme', '')
+        hostname = serializer.validated_data.get('hostname', '')
+
+        if scheme == 'tcp://':
+            if ':' not in hostname:
+                raise errors.BadRequest(message=_('无效的站点域名，格式 [tcp://域名:端口]。'), code='InvalidHostname')
+
+            hostname_list = hostname.split(':')
+
+            if len(hostname_list) < 2:
+                raise errors.BadRequest(message=_('无效的站点域名，格式 [tcp://域名:端口]。'), code='InvalidHostname')
+
+            try:
+                part = int(hostname_list[1])
+                if part not in range(0, 65536):
+                    raise ValueError
+            except Exception as e:
+                raise errors.BadRequest(message=_('无效的站点域名，端口无效。'), code='InvalidHostname')
+
+            if uri != '/':
+                raise errors.BadRequest(message=_('无效的站点URI。'), code='InvalidUri')
 
         return serializer.validated_data
 
