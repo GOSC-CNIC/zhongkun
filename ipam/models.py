@@ -1,12 +1,29 @@
 import ipaddress
 
 from django.db import models
+from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from django.core.validators import MaxValueValidator
+from django.core.exceptions import ValidationError
 
 from utils.model import UuidModel
 from users.models import UserProfile
 from service.models import DataCenter
+
+
+def ipv4_int_to_str(ipv4: int):
+    return str(ipaddress.IPv4Address(ipv4))
+
+
+def ipv4_str_to_int(ipv4: str):
+    return int(ipaddress.IPv4Address(ipv4))
+
+
+def build_ipv4_network(ip_net: str) -> ipaddress.IPv4Network:
+    """
+    :param ip_net: x.x.x.x/x
+    """
+    return ipaddress.IPv4Network(ip_net, strict=False)
 
 
 class IPAMUserRole(UuidModel):
@@ -39,6 +56,7 @@ class OrgVirtualObject(UuidModel):
         verbose_name=_('分配机构'), to=DataCenter, related_name='+',
         on_delete=models.SET_NULL, null=True, blank=True, default=None)
     creation_time = models.DateTimeField(verbose_name=_('创建时间'))
+    remark = models.CharField(verbose_name=_('备注信息'), max_length=255, blank=True, default='')
 
     class Meta:
         ordering = ('-creation_time',)
@@ -91,6 +109,9 @@ class IPRangeBase(UuidModel):
 
 
 class IPv4Range(IPRangeBase):
+    """
+    注意：删除时会一起删除关联的 ip address，删除前需要先更新 ip address 关联的ip range
+    """
     start_address = models.PositiveIntegerField(verbose_name=_('起始地址'))
     end_address = models.PositiveIntegerField(verbose_name=_('截止地址'))
     mask_len = models.PositiveIntegerField(
@@ -122,6 +143,54 @@ class IPv4Range(IPRangeBase):
             return f'{self.start_address_obj} - {self.end_address_obj} /{self.mask_len}'
         except Exception as exc:
             return f'{self.start_address} - {self.end_address} /{self.mask_len}'
+
+    def start_address_network(self):
+        ip_net = f'{self.start_address_obj}/{self.mask_len}'
+        return build_ipv4_network(ip_net=ip_net)
+
+    def end_address_network(self):
+        ip_net = f'{self.end_address_obj}/{self.mask_len}'
+        return build_ipv4_network(ip_net=ip_net)
+
+    def clean(self):
+        super().clean()
+
+        if self.start_address and self.end_address:
+            # Check that the ending address is greater than the starting address
+            if not self.end_address > self.start_address:
+                raise ValidationError({
+                    'end_address': _(
+                        "结束地址必须大于起始地址({start_address})"
+                    ).format(start_address=self.start_address)
+                })
+
+            # 是否同一网段，网络号是否一致
+            start_net_addr = self.start_address_network()
+            end_net_addr = self.end_address_network()
+            if start_net_addr != end_net_addr:
+                raise ValidationError(_(
+                        "起始地址网络号({start_net_addr})和结束地址网络号({end_net_addr})不一致"
+                    ).format(start_net_addr=start_net_addr, end_net_addr=end_net_addr)
+                )
+
+            # 检查部分重叠的ranges
+            overlapping_range = IPv4Range.objects.exclude(pk=self.pk).filter(
+                Q(start_address__gte=self.start_address, start_address__lte=self.end_address) |  # 已存在start在新ip段内部
+                Q(end_address__gte=self.start_address, end_address__lte=self.end_address) |  # 已存在end在新ip段内部
+                Q(start_address__lte=self.start_address, end_address__gte=self.end_address)  # start和end在新ip段外部
+            ).first()
+            if overlapping_range:
+                raise ValidationError(
+                    _("定义的IP地址段与已存在地址段{overlapping_range}范围重叠").format(
+                        overlapping_range=overlapping_range
+                    ))
+
+            # Validate maximum size
+            max_size = 2 ** 32 - 1
+            if int(self.end_address - self.start_address) + 1 > max_size:
+                raise ValidationError(
+                    _("定义的IP地址段范围超过支持的最大大小({max_size})").format(max_size=max_size)
+                )
 
 
 class IPAddressBase(UuidModel):

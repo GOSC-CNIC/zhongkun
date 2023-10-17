@@ -37,6 +37,7 @@ class Migration(migrations.Migration):
                 ('id', models.CharField(blank=True, editable=False, max_length=36, primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(max_length=255, verbose_name='名称')),
                 ('creation_time', models.DateTimeField(verbose_name='创建时间')),
+                ('remark', models.CharField(blank=True, default='', max_length=255, verbose_name='备注信息')),
                 ('organization', models.ForeignKey(blank=True, default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='service.datacenter', verbose_name='分配机构')),
             ],
             options={

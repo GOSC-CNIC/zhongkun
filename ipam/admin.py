@@ -17,10 +17,10 @@ class IPAMUserRoleAdmin(admin.ModelAdmin):
 
 @admin.register(OrgVirtualObject)
 class OrgVirtualObjectAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'organization', 'creation_time')
+    list_display = ('id', 'name', 'organization', 'creation_time', 'remark')
     list_select_related = ('organization',)
     raw_id_fields = ('organization',)
-    search_fields = ('name', 'organization__name')
+    search_fields = ('name', 'organization__name', 'remark')
 
 
 @admin.register(ASN)
