@@ -215,8 +215,8 @@ class MonitorWebsiteBase(UuidModel):
     modification = models.DateTimeField(verbose_name=_('修改时间'))
     remark = models.CharField(verbose_name=_('备注'), max_length=255, blank=True, default='')
     is_tamper_resistant = models.BooleanField(verbose_name=_('防篡改'), default=False)
-    scheme = models.CharField(verbose_name=_('协议'), max_length=32, default='', help_text='https|ftps://')
-    hostname = models.CharField(verbose_name=_('域名'), max_length=255, default='', help_text='hostname:8000')
+    scheme = models.CharField(verbose_name=_('协议'), max_length=32, default='', help_text='https|tcp://')
+    hostname = models.CharField(verbose_name=_('域名[:端口]'), max_length=255, default='', help_text='hostname:8000')
     uri = models.CharField(verbose_name=_('URI'), max_length=1024, default='', help_text='/a/b?query=123#test')
 
     class Meta:
@@ -234,7 +234,7 @@ class MonitorWebsite(MonitorWebsiteBase):
     """
     网站监控
     """
-    url = models.URLField(verbose_name=_('要监控的网址'), max_length=2048, default='', help_text='http(s)://xxx.xxx')
+    url = models.CharField(verbose_name=_('要监控的网址'), max_length=2048, default='', help_text='http(s)|tcp://xxx.xxx')
     user = models.ForeignKey(
         verbose_name=_('用户'), to=UserProfile, related_name='+',
         on_delete=models.SET_NULL, blank=True, null=True, db_constraint=False)

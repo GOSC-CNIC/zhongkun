@@ -180,8 +180,8 @@ class Migration(migrations.Migration):
                 ('remark', models.CharField(blank=True, default='', max_length=255, verbose_name='备注')),
                 ('is_attention', models.BooleanField(default=False, verbose_name='特别关注')),
                 ('is_tamper_resistant', models.BooleanField(default=False, verbose_name='防篡改')),
-                ('scheme', models.CharField(default='', help_text='https|ftps://', max_length=32, verbose_name='协议')),
-                ('hostname', models.CharField(default='', help_text='hostname:8000', max_length=255, verbose_name='域名')),
+                ('scheme', models.CharField(default='', help_text='https|tcp://', max_length=32, verbose_name='协议')),
+                ('hostname', models.CharField(default='', help_text='hostname:8000', max_length=255, verbose_name='域名[:端口]')),
                 ('uri', models.CharField(default='', help_text='/a/b?query=123#test', max_length=1024, verbose_name='URI')),
             ],
             options={
