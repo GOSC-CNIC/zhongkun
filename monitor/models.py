@@ -1,5 +1,6 @@
 import hashlib
 
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
@@ -257,6 +258,22 @@ class MonitorWebsite(MonitorWebsiteBase):
 
     def calculate_url_hash(self):
         return get_str_hash(self.full_url)
+
+    def clean(self):
+        if self.scheme == 'tcp://':
+            hostname_list = self.hostname.split(':')
+            try:
+                part = int(hostname_list[1])
+                if part not in range(0, 65536):
+                    raise ValidationError({'hostname': _('端口范围 0-65535 。')})
+            except ValidationError as exc:
+                raise exc
+
+            except Exception as e:
+                raise ValidationError({'hostname': _('hostname 格式错误,tcp 协议 hostname 格式为: "地址:端口"。')})
+
+            if self.uri != '/':
+                raise ValidationError({'uri': _('uri 格式错误,tcp 协议 uri 只能为 "/"。')})
 
 
 class MonitorWebsiteRecord(MonitorWebsiteBase):
