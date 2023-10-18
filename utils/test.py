@@ -95,3 +95,5 @@ def get_or_create_storage_service():
         service.save()
 
     return service
+
+from api.tests import MyAPITestCase, MyAPITransactionTestCase

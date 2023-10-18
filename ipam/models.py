@@ -165,8 +165,12 @@ class IPv4Range(IPRangeBase):
                 })
 
             # 是否同一网段，网络号是否一致
-            start_net_addr = self.start_address_network()
-            end_net_addr = self.end_address_network()
+            try:
+                start_net_addr = self.start_address_network()
+                end_net_addr = self.end_address_network()
+            except ipaddress.NetmaskValueError as exc:
+                raise ValidationError({'mask_len': str(exc)})
+
             if start_net_addr != end_net_addr:
                 raise ValidationError(_(
                         "起始地址网络号({start_net_addr})和结束地址网络号({end_net_addr})不一致"

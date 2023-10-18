@@ -46,17 +46,25 @@ class IPv4AddressAdmin(admin.ModelAdmin):
 @admin.register(IPv4Range)
 class IPv4RangeAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'start_address', 'end_address', 'mask_len', 'display_ip_range', 'asn', 'status',
-                    'org_virt_obj', 'assigned_time', 'creation_time', 'update_time',
+                    'org_virt_obj', 'org_name', 'assigned_time', 'creation_time', 'update_time',
                     'admin_remark', 'remark')
-    list_select_related = ('asn', 'org_virt_obj')
+    list_select_related = ('asn', 'org_virt_obj', 'org_virt_obj__organization')
     list_filter = ('status',)
-    search_fields = ('name', 'admin_remark', 'remark')
+    search_fields = ('name', 'admin_remark', 'remark', 'org_virt_obj__name', 'org_virt_obj__organization__name')
     raw_id_fields = ('org_virt_obj',)
 
     @staticmethod
     @admin.display(description=gettext_lazy('地址段易读显示'))
     def display_ip_range(obj: IPv4Range):
         return obj.ip_range_display()
+
+    @staticmethod
+    @admin.display(description=gettext_lazy('机构'))
+    def org_name(obj: IPv4Range):
+        if obj.org_virt_obj and obj.org_virt_obj.organization:
+            return obj.org_virt_obj.organization.name
+
+        return ''
 
 
 @admin.register(IPv4RangeRecord)
