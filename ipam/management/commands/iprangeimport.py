@@ -249,11 +249,10 @@ class Command(BaseCommand):
         if ovo is not None:
             return ovo
 
-        if org_name:
-            org = self.get_or_create_org(name=org_name)
-        else:
-            org = None
+        if not org_name:
+            org_name = '其他'
 
+        org = self.get_or_create_org(name=org_name)
         ovo = OrgVirtualObject(name=name, organization=org, creation_time=dj_timezone.now())
         ovo.save(force_insert=True)
         return ovo
