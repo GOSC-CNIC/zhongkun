@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'report',
     'scripts',
     'ipam',
+    'link'
 ]
 
 MIDDLEWARE = [
