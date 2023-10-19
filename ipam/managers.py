@@ -19,19 +19,19 @@ class UserIpamRoleWrapper:
     @property
     def user_role(self):
         if not self._user_role:
-            self._user_role = self.get_user_ipam_role(user_id=self.user.id)
+            self._user_role = self.get_user_ipam_role(user=self.user)
 
         return self._user_role
 
     @staticmethod
-    def get_user_ipam_role(user_id: str):
-        urole = IPAMUserRole.objects.filter(user_id=user_id).first()
+    def get_user_ipam_role(user):
+        urole = IPAMUserRole.objects.select_related('user').filter(user_id=user.id).first()
         if urole:
             return urole
 
         nt = dj_timezone.now()
         urole = IPAMUserRole(
-            user_id=user_id, is_admin=False, is_readonly=False,
+            user=user, is_admin=False, is_readonly=False,
             creation_time=nt, update_time=nt
         )
         urole.save(force_insert=True)

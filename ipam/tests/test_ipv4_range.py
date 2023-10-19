@@ -224,3 +224,50 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 2)
         self.assertEqual(len(response.data['results']), 2)
+
+
+class IPAMUserRoleTests(MyAPITransactionTestCase):
+    def setUp(self):
+        self.user1 = get_or_create_user(username='tom@qq.com')
+        self.user2 = get_or_create_user(username='lisi@cnic.cn')
+
+    def test_list_user_role(self):
+        org1 = DataCenter(name='org1', name_en='org1 en')
+        org1.save(force_insert=True)
+        org2 = DataCenter(name='org2', name_en='org2 en')
+        org2.save(force_insert=True)
+
+        base_url = reverse('api:ipam-userrole-list')
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 401)
+
+        self.client.force_login(self.user1)
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(
+            ['id', 'user', 'is_admin', 'is_readonly', 'creation_time', 'update_time', 'organizations'], response.data)
+        self.assertKeysIn(['id', 'username'], response.data['user'])
+        self.assertEqual(response.data['user']['id'], self.user1.id)
+        self.assertEqual(len(response.data['organizations']), 0)
+
+        u1_role_wrapper = UserIpamRoleWrapper(user=self.user1)
+        u1_role_wrapper.user_role.organizations.add(org1)
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(
+            ['id', 'user', 'is_admin', 'is_readonly', 'creation_time', 'update_time', 'organizations'], response.data)
+        self.assertKeysIn(['id', 'username'], response.data['user'])
+        self.assertEqual(response.data['user']['id'], self.user1.id)
+        self.assertEqual(len(response.data['organizations']), 1)
+        self.assertKeysIn(['id', 'name', 'name_en'], response.data['organizations'][0])
+        self.assertEqual(response.data['organizations'][0]['id'], org1.id)
+
+        u2_role_wrapper = UserIpamRoleWrapper(user=self.user2)
+        u2_role_wrapper.user_role.organizations.add(org1)
+        u2_role_wrapper.user_role.organizations.add(org2)
+
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['organizations']), 1)
+        self.assertKeysIn(['id', 'name', 'name_en'], response.data['organizations'][0])
+        self.assertEqual(response.data['organizations'][0]['id'], org1.id)

@@ -110,6 +110,7 @@ no_slash_router.register(r'report/storage/stats/monthly', report_storage_views.S
                          basename='report-storage-stats-monthly')
 
 no_slash_router.register(r'ipam/ipv4range', ipv4_views.IPv4RangeViewSet, basename='ipam-ipv4range')
+no_slash_router.register(r'ipam/user/role', ipv4_views.IPAMUserRoleViewSet, basename='ipam-userrole')
 
 
 urlpatterns = [

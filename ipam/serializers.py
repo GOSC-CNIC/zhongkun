@@ -41,3 +41,22 @@ class IPv4RangeSerializer(serializers.Serializer):
             return {'id': asn.id, 'number': asn.number}
 
         return None
+
+
+class IPAMUserRoleSerializer(serializers.Serializer):
+    id = serializers.CharField(label='ID', read_only=True)
+    is_admin = serializers.BooleanField(
+        label=_('科技网IP管理员'), default=False, help_text=_('选中，用户拥有科技网IP管理功能的管理员权限'))
+    is_readonly = serializers.BooleanField(
+        label=_('IP管理全局只读权限'), default=False, help_text=_('选中，用户拥有科技网IP管理功能的全局只读权限'))
+    creation_time = serializers.DateTimeField(label=_('创建时间'))
+    update_time = serializers.DateTimeField(label=_('更新时间'))
+    user = serializers.SerializerMethodField(label=_('用户'), method_name='get_user')
+
+    @staticmethod
+    def get_user(obj):
+        user = obj.user
+        if user:
+            return {'id': user.id, 'username': user.username}
+
+        return None
