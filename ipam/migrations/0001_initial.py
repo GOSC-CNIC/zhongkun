@@ -41,8 +41,8 @@ class Migration(migrations.Migration):
                 ('organization', models.ForeignKey(blank=True, default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='service.datacenter', verbose_name='分配机构')),
             ],
             options={
-                'verbose_name': '机构虚拟对象',
-                'verbose_name_plural': '机构虚拟对象',
+                'verbose_name': '机构二级',
+                'verbose_name_plural': '机构二级',
                 'db_table': 'ipam_org_virt_obj',
                 'ordering': ('-creation_time',),
             },

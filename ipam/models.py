@@ -50,7 +50,6 @@ class IPAMUserRole(UuidModel):
 
 
 class OrgVirtualObject(UuidModel):
-    """机构虚拟对象"""
     name = models.CharField(verbose_name=_('名称'), max_length=255)
     organization = models.ForeignKey(
         verbose_name=_('分配机构'), to=DataCenter, related_name='+',
@@ -61,7 +60,7 @@ class OrgVirtualObject(UuidModel):
     class Meta:
         ordering = ('-creation_time',)
         db_table = 'ipam_org_virt_obj'
-        verbose_name = _('机构虚拟对象')
+        verbose_name = _('机构二级')
         verbose_name_plural = verbose_name
 
     def __str__(self):

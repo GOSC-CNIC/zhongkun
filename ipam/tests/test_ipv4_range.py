@@ -1,3 +1,4 @@
+import ipaddress
 from urllib import parse
 
 from django.urls import reverse
@@ -86,8 +87,8 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         self.assertKeysIn(['id', 'name', 'creation_time', 'remark', 'organization'], iprange['org_virt_obj'])
         self.assertKeysIn(['id', 'name', 'name_en'], iprange['org_virt_obj']['organization'])
         self.assertEqual(iprange['id'], ip_range1.id)
-        self.assertEqual(iprange['start_address'], '127.0.0.1')
-        self.assertEqual(iprange['end_address'], '127.0.0.255')
+        self.assertEqual(iprange['start_address'], int(ipaddress.IPv4Address('127.0.0.1')))
+        self.assertEqual(iprange['end_address'], int(ipaddress.IPv4Address('127.0.0.255')))
         self.assertEqual(iprange['asn']['number'], 66)
 
         # query "asn"

@@ -28,8 +28,8 @@ class IPv4RangeSerializer(serializers.Serializer):
     assigned_time = serializers.DateTimeField(label=_('分配时间'))
     admin_remark = serializers.CharField(label=_('科技网管理员备注信息'), max_length=255)
     remark = serializers.CharField(label=_('机构管理员备注信息'), max_length=255)
-    start_address = serializers.SerializerMethodField(label=_('起始地址'), method_name='get_start_address')
-    end_address = serializers.SerializerMethodField(label=_('截止地址'), method_name='get_end_address')
+    start_address = serializers.IntegerField(label=_('起始地址'))
+    end_address = serializers.IntegerField(label=_('截止地址'))
     mask_len = serializers.IntegerField(label=_('子网掩码长度'))
     asn = serializers.SerializerMethodField(label=_('AS编号'), method_name='get_asn')
     org_virt_obj = OrgVirtualObjectSimpleSerializer(label=_('机构虚拟对象'))
@@ -41,11 +41,3 @@ class IPv4RangeSerializer(serializers.Serializer):
             return {'id': asn.id, 'number': asn.number}
 
         return None
-
-    @staticmethod
-    def get_start_address(obj):
-        return str(obj.start_address_obj)
-
-    @staticmethod
-    def get_end_address(obj):
-        return str(obj.end_address_obj)

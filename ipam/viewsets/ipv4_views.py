@@ -71,8 +71,8 @@ class IPv4RangeViewSet(NormalGenericViewSet):
                       "assigned_time": "2021-01-05T23:36:08Z",
                       "admin_remark": "",
                       "remark": "",
-                      "start_address": "159.226.9.64",
-                      "end_address": "159.226.9.127",
+                      "start_address": 2130706433,  # ipv4 int
+                      "end_address": 2130706466,
                       "mask_len": 26,
                       "asn": {
                         "id": 2,
