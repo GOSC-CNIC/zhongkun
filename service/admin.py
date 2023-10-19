@@ -7,7 +7,7 @@ from servers.models import Server, Disk
 from utils.model import NoDeleteSelectModelAdmin
 from .models import (
     ServiceConfig, DataCenter, ServicePrivateQuota,
-    ServiceShareQuota, ApplyVmService, ApplyOrganization
+    ServiceShareQuota, ApplyVmService, ApplyOrganization, Contacts
 )
 from . import forms
 
@@ -91,6 +91,7 @@ class DataCenterAdmin(NoDeleteSelectModelAdmin):
     list_display = ('id', 'name', 'name_en', 'abbreviation', 'status', 'sort_weight',
                     'creation_time', 'longitude', 'latitude', 'desc')
     list_editable = ('sort_weight', )
+    search_fields = ('name', 'name_en', 'abbreviation')
 
 
 @admin.register(ServicePrivateQuota)
@@ -215,3 +216,9 @@ class ApplyServiceAdmin(admin.ModelAdmin):
 class ApplyOrganizationAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
     list_display = ('id', 'name', 'name_en', 'abbreviation', 'status', 'user', 'deleted', 'creation_time', 'desc')
+
+
+@admin.register(Contacts)
+class ContactsAdmin(NoDeleteSelectModelAdmin):
+    list_display_links = ('id',)
+    list_display = ('id', 'name', 'telephone', 'email', 'address', 'creation_time', 'remarks')

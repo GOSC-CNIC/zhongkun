@@ -11,6 +11,7 @@ from .apiviews import (
     tradebill_views, recharge_views, email_views, disk_views, flavor_views,
     log_views, portal_views, report_storage_views, monitor_metering_views
 )
+from ipam.viewsets import ipv4_views
 
 app_name = 'api'
 
@@ -107,6 +108,9 @@ no_slash_router.register(r'report/storage/bucket/stats/monthly', report_storage_
                          basename='report-bucket-stats-monthly')
 no_slash_router.register(r'report/storage/stats/monthly', report_storage_views.StorageStatsMonthlyViewSet,
                          basename='report-storage-stats-monthly')
+
+no_slash_router.register(r'ipam/ipv4range', ipv4_views.IPv4RangeViewSet, basename='ipam-ipv4range')
+no_slash_router.register(r'ipam/user/role', ipv4_views.IPAMUserRoleViewSet, basename='ipam-userrole')
 
 
 urlpatterns = [

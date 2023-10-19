@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.conf import settings
+from rest_framework.test import APITestCase, APITransactionTestCase
 
 from service.models import DataCenter, ServiceConfig
 from users.models import UserProfile
@@ -95,3 +96,43 @@ def get_or_create_storage_service():
         service.save()
 
     return service
+
+
+class MyAPITestCase(APITestCase):
+    def assertKeysIn(self, keys: list, container):
+        for k in keys:
+            self.assertIn(k, container)
+
+    def assertErrorResponse(self, status_code: int, code: str, response):
+        self.assertEqual(response.status_code, status_code)
+        self.assertKeysIn(['code', 'message'], response.data)
+        self.assertEqual(response.data['code'], code)
+
+    def assert_is_subdict_of(self, sub: dict, d: dict):
+        for k, v in sub.items():
+            if k in d and v == d[k]:
+                continue
+            else:
+                self.fail(f'{sub} is not sub dict of {d}, Not Equal key is {k}, {v} != {d.get(k)}')
+
+        return True
+
+
+class MyAPITransactionTestCase(APITransactionTestCase):
+    def assertKeysIn(self, keys: list, container):
+        for k in keys:
+            self.assertIn(k, container)
+
+    def assertErrorResponse(self, status_code: int, code: str, response):
+        self.assertEqual(response.status_code, status_code)
+        self.assertKeysIn(['code', 'message'], response.data)
+        self.assertEqual(response.data['code'], code)
+
+    def assert_is_subdict_of(self, sub: dict, d: dict):
+        for k, v in sub.items():
+            if k in d and v == d[k]:
+                continue
+            else:
+                self.fail(f'{sub} is not sub dict of {d}, Not Equal key is {k}, {v} != {d.get(k)}')
+
+        return True

@@ -111,7 +111,7 @@ class PayOrgnazition(CustomIdModel):
     class Meta:
         ordering = ['creation_time']
         db_table = 'pay_orgnazition'
-        verbose_name = _('机构')
+        verbose_name = _('支付机构')
         verbose_name_plural = verbose_name
 
     def generate_id(self):
