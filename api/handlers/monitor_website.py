@@ -141,12 +141,9 @@ class MonitorWebsiteHandler:
         hostname = serializer.validated_data.get('hostname', '')
 
         if scheme == 'tcp://':
-            if ':' not in hostname:
-                raise errors.BadRequest(message=_('无效的站点域名，格式 [tcp://域名:端口]。'), code='InvalidHostname')
-
             hostname_list = hostname.split(':')
 
-            if len(hostname_list) < 2:
+            if len(hostname_list) != 2:
                 raise errors.BadRequest(message=_('无效的站点域名，格式 [tcp://域名:端口]。'), code='InvalidHostname')
 
             try:
@@ -158,6 +155,9 @@ class MonitorWebsiteHandler:
 
             if uri != '/':
                 raise errors.BadRequest(message=_('无效的站点URI。'), code='InvalidUri')
+
+            if serializer.validated_data['is_tamper_resistant']:
+                raise errors.InvalidArgument(message=_('tcp监控任务不支持防篡改监控'))
 
         return serializer.validated_data
 

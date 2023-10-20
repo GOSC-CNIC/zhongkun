@@ -268,12 +268,14 @@ class MonitorWebsite(MonitorWebsiteBase):
                     raise ValidationError({'hostname': _('端口范围 0-65535 。')})
             except ValidationError as exc:
                 raise exc
-
             except Exception as e:
                 raise ValidationError({'hostname': _('hostname 格式错误,tcp 协议 hostname 格式为: "地址:端口"。')})
 
             if self.uri != '/':
                 raise ValidationError({'uri': _('uri 格式错误,tcp 协议 uri 只能为 "/"。')})
+
+            if self.is_tamper_resistant:
+                raise ValidationError({'is_tamper_resistant': _('tcp监控任务不支持防篡改监控')})
 
 
 class MonitorWebsiteRecord(MonitorWebsiteBase):

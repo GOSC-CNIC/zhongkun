@@ -432,7 +432,7 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
     lookup_field = 'id'
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('创建一个站点监控任务'),
+        operation_summary=gettext_lazy('创建一个http或tcp监控任务'),
         manual_parameters=[
         ],
         responses={
@@ -441,13 +441,13 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
     )
     def create(self, request, *args, **kwargs):
         """
-        创建一个站点监控任务
+        创建一个http或tcp监控任务
 
             Http Code: 状态码200，返回数据：
             {
               "id": "7fd4bd5c-3794-11ec-93e9-c8009fe2eb10",
               "name": "testdev",
-              "scheme": "https://",
+              "scheme": "https://", # tcp://
               "hostname": "baidu.com:8888",
               "uri": "/string",
               "is_tamper_resistant": false,
@@ -544,7 +544,7 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
         return MonitorWebsiteHandler().delete_website_task(view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('修改站点监控任务'),
+        operation_summary=gettext_lazy('修改http或tcp监控任务'),
         manual_parameters=[
         ],
         responses={
@@ -553,7 +553,7 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
     )
     def update(self, request, *args, **kwargs):
         """
-        修改站点监控任务
+        修改http或tcp监控任务
 
             Http Code: 状态码200, OK:
             {

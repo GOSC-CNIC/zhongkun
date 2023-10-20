@@ -1072,20 +1072,26 @@ class MonitorWebsiteTests(MyAPITestCase):
         # user2, TargetAlreadyExists; website_tcp1='tcp://testtcp.com:22'
         r = self.client.post(path=url, data={
             'name': 'name4-test', 'scheme': 'tcp://', 'hostname': 'testtcp.com:22', 'uri': '/',
-            'is_tamper_resistant': True, 'remark': '4test'
+            'is_tamper_resistant': False, 'remark': '4test'
         })
         self.assertErrorResponse(status_code=409, code='TargetAlreadyExists', response=r)
 
         website_tcp2 = 'tcp://111.111.111.111:22/'
         r = self.client.post(path=url, data={
             'name': 'tcp1-test', 'scheme': 'tcp://', 'hostname': '111.111.111.111:22', 'uri': '/a/b.txt',
-            'remark': 'test tcp', 'is_tamper_resistant': True
+            'remark': 'test tcp'
         })
         self.assertErrorResponse(status_code=400, code='InvalidUri', response=r)
 
         r = self.client.post(path=url, data={
             'name': 'tcp2-test', 'scheme': 'tcp://', 'hostname': '111.111.111.111:22', 'uri': '/',
             'remark': 'test tcp2', 'is_tamper_resistant': True
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
+
+        r = self.client.post(path=url, data={
+            'name': 'tcp2-test', 'scheme': 'tcp://', 'hostname': '111.111.111.111:22', 'uri': '/',
+            'remark': 'test tcp2', 'is_tamper_resistant': False
         })
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn(keys=[
@@ -1106,13 +1112,13 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(website.scheme, 'tcp://')
         self.assertEqual(website.hostname, '111.111.111.111:22')
         self.assertEqual(website.uri, '/')
-        self.assertIs(website.is_tamper_resistant, True)
+        self.assertIs(website.is_tamper_resistant, False)   # tcp不支持
 
         self.assertEqual(MonitorWebsiteTask.objects.count(), 5)
         task: MonitorWebsiteTask = MonitorWebsiteTask.objects.order_by('-creation').first()
         self.assertEqual(task.url, website_tcp2)
         self.assertEqual(task.url_hash, get_str_hash(website.full_url))
-        self.assertIs(task.is_tamper_resistant, True)
+        self.assertIs(task.is_tamper_resistant, False)
         version = MonitorWebsiteVersion.get_instance()
         self.assertEqual(version.version, 6)
 
@@ -1471,10 +1477,10 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(tasks[0].url, new_website_url1)
         self.assertIs(tasks[0].is_tamper_resistant, False)
 
-        # user change website2 "remark" and "url", ok
+        # user change website2 "remark" and "uri", ok
         new_website_url2 = 'https://888.cn/a/?b=6&c=8#test'
         data = {'name': user_website2.name, 'scheme': 'https://', 'hostname': '888.cn', 'uri': '/a/?b=6&c=8#test',
-                'url': new_website_url2, 'remark': '新的 remark'}
+                'remark': '新的 remark'}
         url = reverse('api:monitor-website-detail', kwargs={'id': user_website2.id})
         r = self.client.put(path=url, data=data)
         self.assertEqual(r.status_code, 200)
@@ -1519,6 +1525,41 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertIs(tasks[1].is_tamper_resistant, False)
         self.assertEqual(tasks[2].url, website_url2)
         self.assertIs(tasks[2].is_tamper_resistant, False)
+
+        # tcp test
+        nt = timezone.now()
+        user1_tcp_task1 = MonitorWebsite(
+            name='tcp_task1', scheme='tcp://', hostname='2222.com:8888', uri='/', is_tamper_resistant=False,
+            remark='remark tcp_task1', user_id=self.user.id, creation=nt, modification=nt
+        )
+        user1_tcp_task1.url = user2_website2.full_url
+        user1_tcp_task1.save(force_insert=True)
+
+        data = {'name': user1_tcp_task1.name, 'scheme': 'tcp://', 'hostname': '2222.com:8888', 'uri': '/',
+                'is_tamper_resistant': True, 'remark': '新的 remark'}
+        url = reverse('api:monitor-website-detail', kwargs={'id': user1_tcp_task1.id})
+        r = self.client.put(path=url, data=data)
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
+
+        data = {'name': user1_tcp_task1.name, 'scheme': 'tcp://', 'hostname': '2222.com', 'uri': '/',
+                'remark': '新的 remark'}
+        url = reverse('api:monitor-website-detail', kwargs={'id': user1_tcp_task1.id})
+        r = self.client.put(path=url, data=data)
+        self.assertErrorResponse(status_code=400, code='InvalidHostname', response=r)
+
+        data = {'name': user1_tcp_task1.name, 'scheme': 'tcp://', 'hostname': '2222.cn:666', 'uri': '/',
+                'remark': '新的 remark'}
+        url = reverse('api:monitor-website-detail', kwargs={'id': user1_tcp_task1.id})
+        r = self.client.put(path=url, data=data)
+        self.assertEqual(r.status_code, 200)
+        user1_tcp_task1.refresh_from_db()
+        self.assertEqual(user1_tcp_task1.hostname, '2222.cn:666')
+
+        data = {'name': user1_tcp_task1.name, 'scheme': 'https://', 'hostname': '2222.cn:666', 'uri': '/',
+                'remark': '新的 remark'}
+        url = reverse('api:monitor-website-detail', kwargs={'id': user1_tcp_task1.id})
+        r = self.client.put(path=url, data=data)
+        self.assertEqual(r.status_code, 200)
 
     def test_list_website_detection_point(self):
         # NotAuthenticated
