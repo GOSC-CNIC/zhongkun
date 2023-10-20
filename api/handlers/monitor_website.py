@@ -2,7 +2,7 @@ import time
 from decimal import Decimal
 
 from django.utils.translation import gettext as _
-# from django.core.validators import URLValidator
+from django.db.models import TextChoices
 from django.core.exceptions import ValidationError
 from django.conf import settings
 from rest_framework.response import Response
@@ -15,6 +15,11 @@ from bill.managers.payment import PaymentManager
 from order.managers.price import PriceManager
 from utils import get_remote_ip
 from .handlers import serializer_error_msg
+
+
+class TaskSchemeType(TextChoices):
+    HTTP = 'http', 'HTTP'
+    TCP = 'tcp', 'TCP'
 
 
 class MonitorWebsiteHandler:
@@ -191,7 +196,13 @@ class MonitorWebsiteHandler:
         列举用户站点监控任务
         """
         try:
-            queryset = MonitorWebsiteManager.get_user_website_queryset(user_id=request.user.id)
+            scheme = request.query_params.get('scheme')
+            if scheme and scheme not in TaskSchemeType.values:
+                raise errors.InvalidArgument(message=_('指定的协议类型无效'))
+
+            queryset = MonitorWebsiteManager.get_user_website_queryset(
+                user_id=request.user.id, scheme=scheme
+            )
             websites = view.paginate_queryset(queryset=queryset)
         except Exception as exc:
             return view.exception_response(exc)

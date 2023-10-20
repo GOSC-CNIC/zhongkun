@@ -21,6 +21,7 @@ from monitor.managers import (
     CephQueryChoices, ServerQueryChoices, VideoMeetingQueryChoices, WebsiteQueryChoices,
     MonitorWebsiteManager
 )
+from api.handlers.monitor_website import TaskSchemeType
 from bill.models import PayApp, PayOrgnazition, PayAppService
 from order.models import Price
 from utils.test import get_or_create_user, get_test_case_settings, get_or_create_service
@@ -1140,6 +1141,13 @@ class MonitorWebsiteTests(MyAPITestCase):
 
         # add data
         nt = timezone.now()
+        user_tcp_task1 = MonitorWebsite(
+            name='tcp_task1', scheme='tcp://', hostname='2222.com:8888', uri='/', is_tamper_resistant=False,
+            remark='remark tcp_task1', user_id=self.user.id, creation=nt, modification=nt
+        )
+        user_tcp_task1.save(force_insert=True)
+
+        nt = timezone.now()
         user_website1 = MonitorWebsite(
             name='name1', scheme='https://', hostname='11.com', uri='/', is_tamper_resistant=True,
             remark='remark1', user_id=self.user.id, creation=nt, modification=nt
@@ -1175,10 +1183,10 @@ class MonitorWebsiteTests(MyAPITestCase):
         r = self.client.get(path=base_url)
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn(keys=['count', 'page_num', 'page_size', 'results'], container=r.data)
-        self.assertEqual(r.data['count'], 3)
+        self.assertEqual(r.data['count'], 4)
         self.assertEqual(r.data['page_num'], 1)
         self.assertIsInstance(r.data['results'], list)
-        self.assertEqual(len(r.data['results']), 3)
+        self.assertEqual(len(r.data['results']), 4)
         self.assertKeysIn(keys=[
             'id', 'name', 'scheme', 'hostname', 'uri', 'is_tamper_resistant', 'url',
             'remark', 'url_hash', 'creation', 'user', 'modification', 'is_attention'
@@ -1197,7 +1205,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         r = self.client.get(path=f'{base_url}?{query}')
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn(keys=['count', 'page_num', 'page_size', 'results'], container=r.data)
-        self.assertEqual(r.data['count'], 3)
+        self.assertEqual(r.data['count'], 4)
         self.assertEqual(r.data['page_num'], 1)
         self.assertEqual(r.data['page_size'], 2)
         self.assertEqual(len(r.data['results']), 2)
@@ -1209,11 +1217,23 @@ class MonitorWebsiteTests(MyAPITestCase):
         r = self.client.get(path=f'{base_url}?{query}')
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn(keys=['count', 'page_num', 'page_size', 'results'], container=r.data)
-        self.assertEqual(r.data['count'], 3)
+        self.assertEqual(r.data['count'], 4)
         self.assertEqual(r.data['page_num'], 2)
         self.assertEqual(r.data['page_size'], 2)
-        self.assertEqual(len(r.data['results']), 1)
+        self.assertEqual(len(r.data['results']), 2)
         self.assertEqual(r.data['results'][0]['id'], user_website1.id)
+        self.assertEqual(r.data['results'][1]['id'], user_tcp_task1.id)
+
+        # ok, list, scheme
+        query = parse.urlencode(query={'scheme': TaskSchemeType.TCP.value})
+        r = self.client.get(path=f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=['count', 'page_num', 'page_size', 'results'], container=r.data)
+        self.assertEqual(r.data['count'], 1)
+        self.assertEqual(r.data['page_num'], 1)
+        self.assertEqual(r.data['page_size'], 100)
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertEqual(r.data['results'][0]['id'], user_tcp_task1.id)
 
     def test_delete_website_task(self):
         # NotAuthenticated
@@ -1532,7 +1552,6 @@ class MonitorWebsiteTests(MyAPITestCase):
             name='tcp_task1', scheme='tcp://', hostname='2222.com:8888', uri='/', is_tamper_resistant=False,
             remark='remark tcp_task1', user_id=self.user.id, creation=nt, modification=nt
         )
-        user1_tcp_task1.url = user2_website2.full_url
         user1_tcp_task1.save(force_insert=True)
 
         data = {'name': user1_tcp_task1.name, 'scheme': 'tcp://', 'hostname': '2222.com:8888', 'uri': '/',

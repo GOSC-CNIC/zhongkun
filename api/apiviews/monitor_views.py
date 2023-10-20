@@ -11,7 +11,7 @@ from api.viewsets import CustomGenericViewSet
 from api.handlers.monitor_ceph import MonitorCephQueryHandler
 from api.handlers.monitor_server import MonitorServerQueryHandler
 from api.handlers.monitor_video_meeting import MonitorVideoMeetingQueryHandler
-from api.handlers.monitor_website import MonitorWebsiteHandler
+from api.handlers.monitor_website import MonitorWebsiteHandler, TaskSchemeType
 from api.handlers.monitor_tidb import MonitorTiDBQueryHandler
 from api.serializers import monitor as monitor_serializers
 from api.paginations import MonitorPageNumberPagination, MonitorWebsiteTaskPagination
@@ -477,6 +477,13 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举用户站点监控'),
         manual_parameters=[
+            openapi.Parameter(
+                name='scheme',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'协议类型筛选，{TaskSchemeType.values}'
+            )
         ],
         responses={
             200: ''
