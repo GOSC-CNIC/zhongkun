@@ -880,7 +880,7 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
     @action(methods=['get'], detail=False, url_path='duration/distribution', url_name='duration-distribution')
     def list_duration_distribution(self, request, *args, **kwargs):
         """
-        个人监控网站网络延迟区间统计
+        个人http监控网站网络延迟区间统计
 
             Http Code: 状态码200，返回数据：
             {
@@ -931,7 +931,7 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
     @action(methods=['get'], detail=False, url_path='status/overview', url_name='status-overview')
     def website_status_overview(self, request, *args, **kwargs):
         """
-        个人监控网站状态统计
+        个人http监控网站状态统计
 
             Http Code: 状态码200，返回数据：
             {

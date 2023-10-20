@@ -430,13 +430,33 @@ class MonitorWebsiteManager:
         return website
 
     @staticmethod
-    def get_user_websites_qs(user):
+    def get_user_website_queryset(user_id: str, scheme: str = None):
+        """
+        scheme: one in [None, http, tcp]
+        """
+        lookups = {'user_id': user_id}
+        if scheme:
+            lookups['scheme__startswith'] = scheme.lower()
+
+        return MonitorWebsite.objects.select_related('user').filter(**lookups).all()
+
+    @staticmethod
+    def get_user_http_task_qs(user):
         """
         查询用户的所有站点监控任务
 
         :raises: Error
         """
-        return MonitorWebsite.objects.filter(user_id=user.id)
+        return MonitorWebsiteManager.get_user_website_queryset(user_id=user.id, scheme='http')
+
+    @staticmethod
+    def get_user_tcp_task_qs(user):
+        """
+        查询用户的所有ftp监控任务
+
+        :raises: Error
+        """
+        return MonitorWebsiteManager.get_user_website_queryset(user_id=user.id, scheme='tcp')
 
     @staticmethod
     def add_website_task(
@@ -681,10 +701,6 @@ class MonitorWebsiteManager:
         return user_website
 
     @staticmethod
-    def get_user_website_queryset(user_id: str):
-        return MonitorWebsite.objects.select_related('user').filter(user_id=user_id).all()
-
-    @staticmethod
     def get_detection_ponits() -> dict:
         """
         查询所有探测点
@@ -799,14 +815,15 @@ class MonitorWebsiteManager:
 
         return f(**params)
 
-    def query_duration_avg(self, provider: MonitorProvider, start: int, end: int, site_urls: list = None):
+    def query_duration_avg(self, provider: MonitorProvider, start: int, end: int, site_urls: list = None,
+                           group: str = 'web'):
         """
         site_urls: 指定要查询的url，当url数量在10以内可以用此参数
-
+        group: in [web, tcp]
         [
             {
                 "metric": {
-                    "group": "web",
+                    "group": "web", # tcp
                     "instance": "thanoswrite.cstcloud.cn:9115",
                     "job": "224e6e4a426968a95ae8c29c81155e1cc2911941",
                     "monitor": "xinxihua",
@@ -829,12 +846,12 @@ class MonitorWebsiteManager:
         if site_urls:
             site_querys = []
             for url in site_urls:
-                query = f'avg_over_time(probe_duration_seconds{{url="{url}"}}[{minutes}m])'
+                query = f'avg_over_time(probe_duration_seconds{{group="{group}", url="{url}"}}[{minutes}m])'
                 site_querys.append(query)
 
             query = ' or '.join(site_querys)
         else:
-            query = f'avg_over_time(probe_duration_seconds[{minutes}m])'
+            query = f'avg_over_time(probe_duration_seconds{{group="{group}"}}[{minutes}m])'
 
         return self.backend.raw_query(
             provider=provider, params={'query': query, 'time': end})
@@ -856,12 +873,12 @@ class MonitorWebsiteManager:
         if site_urls:
             site_querys = []
             for url in site_urls:
-                query = f'probe_http_status_code{{url="{url}"}}'
+                query = f'probe_http_status_code{{group="web",url="{url}"}}'
                 site_querys.append(query)
 
             query = ' or '.join(site_querys)
         else:
-            query = f'probe_http_status_code'
+            query = f'probe_http_status_code{{group="web"}}'
 
         return self.backend.raw_query(
             provider=provider, params={'query': query, 'time': timestamp})

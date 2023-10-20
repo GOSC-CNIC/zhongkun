@@ -2078,6 +2078,17 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
         )
         detection_point2.save(force_insert=True)
 
+        tcp_task = MonitorWebsite(
+            name='test',
+            scheme='tcp://',
+            hostname='127.0.0.1',
+            uri='/',
+            url='',
+            remark='', user=self.user,
+            creation=nt, modification=nt
+        )
+        tcp_task.save(force_insert=True)
+
         # NotAuthenticated
         day_ago = nt - timedelta(days=1)
         start = int(day_ago.timestamp())
@@ -2133,6 +2144,17 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
             remark='remark1', enable=False, provider=self.provider
         )
         detection_point2.save(force_insert=True)
+
+        tcp_task = MonitorWebsite(
+            name='test',
+            scheme='tcp://',
+            hostname='127.0.0.1',
+            uri='/',
+            url='',
+            remark='', user=self.user,
+            creation=nt, modification=nt
+        )
+        tcp_task.save(force_insert=True)
 
         # NotAuthenticated
         r = self._status_query_response(detection_point_id='')

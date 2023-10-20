@@ -420,6 +420,7 @@ class MonitorWebsiteHandler:
 
     @staticmethod
     def list_duration_distribution(view: CustomGenericViewSet, request):
+        """只统计http监控任务"""
         now_st = int(time.time())
         start, end = MonitorWebsiteHandler.validate_start_end_params(
             request=request, default_start=now_st, default_end=now_st)
@@ -427,7 +428,7 @@ class MonitorWebsiteHandler:
 
         mw_mgr = MonitorWebsiteManager()
         try:
-            websites = mw_mgr.get_user_websites_qs(user=request.user)
+            websites = mw_mgr.get_user_http_task_qs(user=request.user)
             site_urls = [w.full_url for w in websites]
         except errors.Error as exc:
             return view.exception_response(exc)
@@ -444,9 +445,11 @@ class MonitorWebsiteHandler:
         for dp in detection_points.values():
             try:
                 if is_query_all:
-                    res = mw_mgr.query_duration_avg(provider=dp.provider, start=start, end=end, site_urls=None)
+                    res = mw_mgr.query_duration_avg(
+                        provider=dp.provider, start=start, end=end, site_urls=None, group='web')
                 else:
-                    res = mw_mgr.query_duration_avg(provider=dp.provider, start=start, end=end, site_urls=site_urls)
+                    res = mw_mgr.query_duration_avg(
+                        provider=dp.provider, start=start, end=end, site_urls=site_urls, group='web')
             except Exception as exc:
                 res = []
 
@@ -523,7 +526,7 @@ class MonitorWebsiteHandler:
 
         mw_mgr = MonitorWebsiteManager()
         try:
-            websites = mw_mgr.get_user_websites_qs(user=request.user)
+            websites = mw_mgr.get_user_http_task_qs(user=request.user)
             site_urls = [w.full_url for w in websites]
         except errors.Error as exc:
             return view.exception_response(exc)
