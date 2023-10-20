@@ -13,10 +13,10 @@ from order.models import Price, Order, Period
 from order.managers import OrderManager
 from order.managers.instance_configs import ServerConfig, DiskConfig
 from utils.decimal_utils import quantize_10_2
-from utils.test import get_or_create_user, get_or_create_service
+from utils.test import get_or_create_user, get_or_create_service, get_or_create_organization
 from vo.models import VirtualOrganization, VoMember
 from bill.managers import PaymentManager
-from bill.models import PaymentHistory, CashCoupon, PayAppService, PayApp, PayOrgnazition, TransactionBill
+from bill.models import PaymentHistory, CashCoupon, PayAppService, PayApp, TransactionBill
 from api.handlers.order_handler import CASH_COUPON_BALANCE
 from service.models import ServiceConfig
 from . import set_auth_header, MyAPITestCase
@@ -57,7 +57,7 @@ class OrderTests(MyAPITestCase):
         # 余额支付有关配置
         self.app = PayApp(name='app', id=settings.PAYMENT_BALANCE['app_id'])
         self.app.save(force_insert=True)
-        self.po = PayOrgnazition(name='机构')
+        self.po = get_or_create_organization(name='机构')
         self.po.save()
         app_service1 = PayAppService(
             id='123', name='service1', app=self.app, orgnazition=self.po

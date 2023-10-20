@@ -6,11 +6,11 @@ from django.urls import reverse
 from django.utils import timezone
 
 from utils.model import OwnerType
-from utils.test import get_or_create_service, get_or_create_user
+from utils.test import get_or_create_service, get_or_create_user, get_or_create_organization
 from utils.time import utc
 from vo.models import VirtualOrganization, VoMember
 from bill.models import (
-    CashCoupon, PayAppService, PayApp, PayOrgnazition, CashCouponActivity, TransactionBill, PaymentHistory,
+    CashCoupon, PayAppService, PayApp, CashCouponActivity, TransactionBill, PaymentHistory,
     CashCouponPaymentHistory
 )
 from bill.managers import PaymentManager, CashCouponActivityManager
@@ -37,7 +37,7 @@ class CashCouponTests(MyAPITestCase):
         app = PayApp(name='app')
         app.save()
         self.app = app
-        po = PayOrgnazition(name='机构')
+        po = get_or_create_organization(name='机构')
         po.save()
         self.app_service1 = PayAppService(
             name='service1', app=app, orgnazition=po, service_id=self.service.id,
@@ -964,7 +964,7 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         app = PayApp(name='app')
         app.save()
         self.app = app
-        po = PayOrgnazition(name='机构')
+        po = get_or_create_organization(name='机构')
         po.save()
         self.app_service1 = PayAppService(
             name='service1', app=app, orgnazition=po, service_id=self.service.id,

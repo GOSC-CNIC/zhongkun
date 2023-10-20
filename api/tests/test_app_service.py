@@ -1,9 +1,9 @@
 from urllib import parse
 
 from django.urls import reverse
-from utils.test import get_or_create_user
+from utils.test import get_or_create_user, get_or_create_organization
 
-from bill.models import PayApp, PayAppService, PayOrgnazition
+from bill.models import PayApp, PayAppService
 from . import MyAPITestCase
 
 
@@ -18,8 +18,7 @@ class AppServiceTests(MyAPITestCase):
         app2.save(force_insert=True)
         self.app = app
         self.app2 = app2
-        po = PayOrgnazition(name='机构')
-        po.save(force_insert=True)
+        po = get_or_create_organization(name='机构')
         self.app_service1 = PayAppService(
             name='service1', app=app, orgnazition=po, service_id='self.service.id',
             category=PayAppService.Category.VMS_SERVER.value

@@ -9,6 +9,7 @@ from utils.model import UuidModel, OwnerType, CustomIdModel, get_encryptor
 from utils import rand_utils
 from users.models import UserProfile
 from vo.models import VirtualOrganization
+from service.models import DataCenter
 from core import errors
 
 
@@ -139,7 +140,7 @@ class PayAppService(CustomIdModel):
         OTHER = 'other', _('其他')
 
     orgnazition = models.ForeignKey(
-        verbose_name=_('机构|组织'), to=PayOrgnazition, on_delete=models.CASCADE, related_name='+')
+        verbose_name=_('机构|组织'), to=DataCenter, null=True, on_delete=models.SET_NULL, related_name='+', default=None)
     app = models.ForeignKey(verbose_name=_('应用APP'), to=PayApp, on_delete=models.CASCADE, related_name='+')
     name = models.CharField(verbose_name=_('服务名称'), max_length=256)
     name_en = models.CharField(verbose_name=_('服务英文名称'), max_length=255, default='')
@@ -167,7 +168,7 @@ class PayAppService(CustomIdModel):
         db_constraint=False, db_table='pay_app_service_users')
 
     class Meta:
-        verbose_name = _('应用APP子服务')
+        verbose_name = _('结算服务单元')
         verbose_name_plural = verbose_name
         db_table = 'app_service'
         ordering = ['-creation_time']

@@ -4,14 +4,14 @@ from datetime import datetime, timedelta, time, timezone as dt_timezone
 from django.test import TransactionTestCase
 from django.utils import timezone
 
-from utils.test import get_or_create_user, get_or_create_service
+from utils.test import get_or_create_user, get_or_create_service, get_or_create_organization
 from utils.model import PayType, OwnerType
 from utils.decimal_utils import quantize_10_2
 from core import errors
 from servers.models import Server, ServerArchive
 from vo.managers import VoManager
 from order.models import Price
-from bill.models import CashCoupon, PaymentHistory, PayAppService, PayApp, PayOrgnazition
+from bill.models import CashCoupon, PaymentHistory, PayAppService, PayApp
 from service.models import ServiceConfig
 from metering.measurers import ServerMeasurer
 from metering.models import MeteringServer, PaymentStatus, DailyStatementServer
@@ -347,7 +347,7 @@ class MeteringPaymentManagerTests(TransactionTestCase):
         app = PayApp(name='app')
         app.save()
         self.app = app
-        po = PayOrgnazition(name='机构')
+        po = get_or_create_organization(name='机构')
         po.save()
         self.app_service1 = PayAppService(
             name='service1', app=app, orgnazition=po

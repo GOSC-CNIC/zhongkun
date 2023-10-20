@@ -4,7 +4,7 @@ from datetime import date, datetime, timedelta, time
 from django.test import TransactionTestCase
 from django.utils import timezone
 
-from utils.test import get_or_create_user
+from utils.test import get_or_create_user, get_or_create_organization
 from utils.decimal_utils import quantize_10_2
 from utils.time import utc
 from utils.model import OwnerType
@@ -16,7 +16,7 @@ from metering.statement_generators import WebsiteMonitorStatementGenerater
 from metering.payment import MeteringPaymentManager
 from metering.pay_metering import PayMeteringWebsite
 from users.models import UserProfile
-from bill.models import PayApp, PayOrgnazition, PayAppService, PaymentHistory, CashCoupon
+from bill.models import PayApp, PayAppService, PaymentHistory, CashCoupon
 from core import errors
 
 
@@ -393,7 +393,7 @@ class MeteringPaymentManagerTests(TransactionTestCase):
         app = PayApp(name='app')
         app.save()
         self.app = app
-        po = PayOrgnazition(name='机构')
+        po = get_or_create_organization(name='机构')
         po.save()
         self.app_service1 = PayAppService(
             name='website monitor', app=app, orgnazition=po

@@ -7,14 +7,14 @@ from django.test.testcases import TransactionTestCase
 from django.core import mail
 
 from utils.model import PayType, OwnerType, ResourceType
-from utils.test import get_or_create_user, get_or_create_center
+from utils.test import get_or_create_user, get_or_create_center, get_or_create_organization
 from utils.time import utc
 from order.models import Order
 from metering.models import (
     MeteringServer, MeteringObjectStorage, DailyStatementServer, DailyStatementObjectStorage, PaymentStatus,
     MeteringDisk, DailyStatementDisk, MeteringMonitorWebsite, DailyStatementMonitorWebsite
 )
-from bill.models import PayApp, PayOrgnazition, PayAppService, CashCoupon
+from bill.models import PayApp, PayAppService, CashCoupon
 from storage.models import ObjectsService, Bucket, BucketArchive
 from vo.models import VirtualOrganization, VoMember
 from report.models import MonthlyReport, BucketMonthlyReport
@@ -39,7 +39,7 @@ class MonthlyReportTests(TransactionTestCase):
         app = PayApp(name='app')
         app.save()
         self.app = app
-        po = PayOrgnazition(name='机构')
+        po = get_or_create_organization(name='机构')
         po.save()
         self.app_service1 = PayAppService(
             name='service1', app=app, orgnazition=po, service_id='service.id',

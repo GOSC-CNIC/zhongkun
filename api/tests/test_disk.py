@@ -10,7 +10,7 @@ from django.conf import settings
 from service.managers import ServicePrivateQuotaManager
 from service.models import ServiceConfig
 from servers.models import Disk, Server, ResourceActionLog, DiskChangeLog
-from utils.test import get_or_create_user, get_or_create_service
+from utils.test import get_or_create_user, get_or_create_service, get_or_create_organization
 from utils.model import PayType, OwnerType, ResourceType
 from utils.decimal_utils import quantize_10_2
 from utils.time import iso_utc_to_datetime, utc
@@ -20,7 +20,7 @@ from order.managers import OrderManager, PriceManager
 from order.models import Price, Order, Resource
 from order.managers import DiskConfig
 from bill.managers import PaymentManager
-from bill.models import PayApp, PayOrgnazition, PayAppService
+from bill.models import PayApp, PayAppService
 from metering.measurers import DiskMeasurer
 from metering.models import MeteringDisk
 from . import MyAPITransactionTestCase
@@ -1379,7 +1379,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
         # 余额支付有关配置
         app = PayApp(name='app', id=settings.PAYMENT_BALANCE['app_id'])
         app.save()
-        po = PayOrgnazition(name='机构')
+        po = get_or_create_organization(name='机构')
         po.save()
         app_service1 = PayAppService(
             name='service1', app=app, orgnazition=po, service_id=self.service.id
@@ -1644,7 +1644,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
         # 余额支付有关配置
         app = PayApp(name='app', id=settings.PAYMENT_BALANCE['app_id'])
         app.save()
-        po = PayOrgnazition(name='机构')
+        po = get_or_create_organization(name='机构')
         po.save()
         app_service1 = PayAppService(
             name='service1', app=app, orgnazition=po, service_id=self.service.id

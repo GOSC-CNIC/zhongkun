@@ -5,7 +5,7 @@ from django import forms
 from utils.model import NoDeleteSelectModelAdmin
 from .models import (
     PaymentHistory, UserPointAccount, VoPointAccount, PayApp, CashCouponActivity, CashCoupon,
-    PayOrgnazition, PayAppService, TransactionBill, RefundRecord, Recharge, CashCouponPaymentHistory
+    PayAppService, TransactionBill, RefundRecord, Recharge, CashCouponPaymentHistory
 )
 from .managers import CashCouponActivityManager
 
@@ -155,12 +155,12 @@ class CashCouponAdmin(admin.ModelAdmin):
         return obj.one_exchange_code
 
 
-@admin.register(PayOrgnazition)
-class PayOrgnazitionAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'name_en', 'abbreviation', 'independent_legal_person', 'country',
-                    'city', 'postal_code', 'address', 'creation_time', 'desc')
-    list_display_links = ('id',)
-    raw_id_fields = ('user',)
+# @admin.register(PayOrgnazition)
+# class PayOrgnazitionAdmin(admin.ModelAdmin):
+#     list_display = ('id', 'name', 'name_en', 'abbreviation', 'independent_legal_person', 'country',
+#                     'city', 'postal_code', 'address', 'creation_time', 'desc')
+#     list_display_links = ('id',)
+#     raw_id_fields = ('user',)
 
 
 @admin.register(PayAppService)

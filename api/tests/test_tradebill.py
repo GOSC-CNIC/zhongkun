@@ -5,8 +5,9 @@ from django.urls import reverse
 from django.utils import timezone
 
 from utils.model import OwnerType
+from utils.test import get_or_create_organization
 from vo.models import VirtualOrganization
-from bill.models import TransactionBill, PayAppService, PayOrgnazition, PayApp
+from bill.models import TransactionBill, PayAppService, PayApp
 from bill.managers.bill import TransactionBillManager
 from . import MyAPITestCase, get_or_create_user
 
@@ -23,7 +24,7 @@ class TradeBillTests(MyAPITestCase):
 
         app = PayApp(name='app')
         app.save()
-        po = PayOrgnazition(name='机构')
+        po = get_or_create_organization(name='机构')
         po.save()
         self.app_service1 = PayAppService(
             id=self.pay_app_service1_id, name='service1', name_en='service1 en', app=app, orgnazition=po, service_id='',

@@ -12,11 +12,11 @@ from jwt import PyJWT
 
 from api.signers import SignatureRequest, SignatureResponse
 from bill.models import (
-    PayApp, PayOrgnazition, PayAppService, PaymentHistory, CashCoupon, RefundRecord,
+    PayApp, PayAppService, PaymentHistory, CashCoupon, RefundRecord,
     TransactionBill
 )
 from bill.managers.payment import PaymentManager, TransactionBillManager
-from utils.test import get_or_create_user
+from utils.test import get_or_create_user, get_or_create_organization
 from utils.model import OwnerType
 from vo.models import VirtualOrganization
 from . import MyAPITestCase, MyAPITransactionTestCase
@@ -138,7 +138,7 @@ class TradeTests(MyAPITransactionTestCase):
         self.vms_public_key = settings.PAYMENT_RSA2048['public_key']
 
         # 余额支付有关配置
-        self.po = PayOrgnazition(name='机构')
+        self.po = get_or_create_organization(name='机构')
         self.po.save()
         app_service1 = PayAppService(
             id='123', name='service1', app=self.app, orgnazition=self.po

@@ -5,11 +5,11 @@ from datetime import datetime, timedelta, time, timezone as dt_timezone
 from django.test import TransactionTestCase
 from django.utils import timezone
 
-from utils.test import get_or_create_user, get_or_create_storage_service
+from utils.test import get_or_create_user, get_or_create_storage_service, get_or_create_organization
 from utils.model import OwnerType
 from core import errors
-from order.models import Price, ResourceType
-from bill.models import CashCoupon, PaymentHistory, PayAppService, PayApp, PayOrgnazition
+from order.models import Price
+from bill.models import CashCoupon, PaymentHistory, PayAppService, PayApp
 from metering.measurers import StorageMeasurer
 from metering.models import PaymentStatus, MeteringObjectStorage, DailyStatementObjectStorage
 from metering.payment import MeteringPaymentManager
@@ -428,7 +428,7 @@ class MeteringPaymentManagerTests(TransactionTestCase):
         app.save()
         self.app = app
 
-        po = PayOrgnazition(name='机构')
+        po = get_or_create_organization(name='机构')
         po.save()
         self.app_service1 = PayAppService(
             name='service1', app=app, orgnazition=po

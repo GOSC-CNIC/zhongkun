@@ -3,8 +3,8 @@ from decimal import Decimal
 
 from django.urls import reverse
 
-from bill.models import PayApp, PayOrgnazition, PayAppService
-from utils.test import get_or_create_user, get_or_create_storage_service
+from bill.models import PayApp, PayAppService
+from utils.test import get_or_create_user, get_or_create_storage_service, get_or_create_organization
 from utils.model import OwnerType
 from storage.managers import BucketManager
 from storage.models import ObjectsService
@@ -21,8 +21,7 @@ class BucketTests(MyAPITestCase):
         )
         self.app.save(force_insert=True)
         # 余额支付有关配置
-        self.po = PayOrgnazition(name='机构')
-        self.po.save()
+        self.po = get_or_create_organization(name='机构')
         app_service1 = PayAppService(
             id='123', name='service1', app=self.app, orgnazition=self.po
         )

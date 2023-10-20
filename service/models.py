@@ -11,7 +11,6 @@ from core import errors
 from vo.models import VirtualOrganization
 from adapters.params import OpenStackParams
 from users.models import UserProfile as User
-from bill.models import PayAppService
 
 
 app_name = 'service'
@@ -177,6 +176,7 @@ class ServiceConfig(BaseService):
         """
         当name修改时，同步变更到 对应的钱包的pay app service
         """
+        from bill.models import PayAppService
         try:
             app_service = PayAppService.objects.filter(id=self.pay_app_service_id).first()
             if app_service:

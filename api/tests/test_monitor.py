@@ -22,9 +22,9 @@ from monitor.managers import (
     MonitorWebsiteManager
 )
 from api.handlers.monitor_website import TaskSchemeType
-from bill.models import PayApp, PayOrgnazition, PayAppService
+from bill.models import PayApp, PayAppService
 from order.models import Price
-from utils.test import get_or_create_user, get_test_case_settings, get_or_create_service
+from utils.test import get_or_create_user, get_test_case_settings, get_or_create_service, get_or_create_organization
 from . import set_auth_header, MyAPITestCase
 
 
@@ -718,7 +718,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         app = PayApp(name='app')
         app.save()
         app = app
-        po = PayOrgnazition(name='机构')
+        po = get_or_create_organization(name='机构')
         po.save()
         app_service1 = PayAppService(
             name='website monitor', app=app, orgnazition=po

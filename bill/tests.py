@@ -5,14 +5,14 @@ from django.test import TransactionTestCase
 from django.utils import timezone
 
 from core import errors
-from utils.test import get_or_create_user, get_or_create_service
+from utils.test import get_or_create_user, get_or_create_service, get_or_create_organization
 from utils.model import OwnerType, PayType
 from order.models import ResourceType, Order
 from order.managers import OrderPaymentManager
 from vo.managers import VoManager
 from bill.models import CashCoupon, CashCouponActivity
 from service.models import ServiceConfig
-from .models import PaymentHistory, PayAppService, PayApp, PayOrgnazition, TransactionBill
+from .models import PaymentHistory, PayAppService, PayApp, TransactionBill
 from .managers import PaymentManager, CashCouponActivityManager
 
 
@@ -25,7 +25,7 @@ class PaymentManagerTests(TransactionTestCase):
         app = PayApp(name='app')
         app.save()
         self.app = app
-        po = PayOrgnazition(name='机构')
+        po = get_or_create_organization(name='机构')
         po.save()
         self.app_service1 = PayAppService(
             name='service1', app=app, orgnazition=po
@@ -1184,7 +1184,7 @@ class CashCouponActivityTests(TransactionTestCase):
         # 余额支付有关配置
         app = PayApp(name='app')
         app.save()
-        po = PayOrgnazition(name='机构')
+        po = get_or_create_organization(name='机构')
         po.save()
         self.app_service1 = PayAppService(
             name='service1', app=app, orgnazition=po, service_id=self.service.id

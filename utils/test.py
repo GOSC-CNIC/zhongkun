@@ -24,13 +24,17 @@ def get_or_create_user(username='test', password='password', company: str = 'cni
     return user
 
 
-def get_or_create_center():
-    center = DataCenter.objects.filter(name='test', name_en='test_en').first()
+def get_or_create_center(name='test'):
+    center = DataCenter.objects.filter(name=name, name_en='test_en').first()
     if center is None:
         center = DataCenter(name='test', name_en='test_en')
-        center.save()
+        center.save(force_insert=True)
 
     return center
+
+
+def get_or_create_organization(name: str):
+    return get_or_create_center(name)
 
 
 def get_or_create_service():

@@ -117,8 +117,8 @@ class Migration(migrations.Migration):
                 ('service_id', models.CharField(blank=True, default='', max_length=64, verbose_name='对应的服务单元ID')),
             ],
             options={
-                'verbose_name': '应用APP子服务',
-                'verbose_name_plural': '应用APP子服务',
+                'verbose_name': '结算服务单元',
+                'verbose_name_plural': '结算服务单元',
                 'db_table': 'app_service',
                 'ordering': ['-creation_time'],
             },
