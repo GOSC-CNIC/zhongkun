@@ -12,6 +12,7 @@ from .apiviews import (
     log_views, portal_views, report_storage_views, monitor_metering_views
 )
 from ipam.viewsets import ipv4_views
+from link.viewsets import leaseline_views
 
 app_name = 'api'
 
@@ -111,6 +112,7 @@ no_slash_router.register(r'report/storage/stats/monthly', report_storage_views.S
 
 no_slash_router.register(r'ipam/ipv4range', ipv4_views.IPv4RangeViewSet, basename='ipam-ipv4range')
 no_slash_router.register(r'ipam/user/role', ipv4_views.IPAMUserRoleViewSet, basename='ipam-userrole')
+no_slash_router.register(r'link/leaseline', leaseline_views.LeaseLineViewSet, basename='link-leaseline')
 
 
 urlpatterns = [

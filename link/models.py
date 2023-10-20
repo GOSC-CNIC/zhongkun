@@ -1,5 +1,5 @@
 from django.db import models
-from utils.model import UuidModel, CustomIdModel
+from utils.model import UuidModel
 from django.utils.translation import gettext_lazy as _
 from core import errors as exceptions
 from users.models import UserProfile
@@ -10,11 +10,12 @@ class LinkUserRole(UuidModel):
     user = models.OneToOneField(
         verbose_name=_('用户'), to=UserProfile, related_name='userprofile_linkuserrole', on_delete=models.CASCADE)
     is_admin = models.BooleanField(
-        verbose_name=_('科技网IP管理员'), default=False, help_text=_('选中，用户拥有科技网IP管理功能的管理员权限'))
+        verbose_name=_('科技网IP管理员'), default=False, help_text=_('用户拥有科技网链路管理功能的管理员权限'))
     is_readonly = models.BooleanField(
-        verbose_name=_('IP管理全局只读权限'), default=False, help_text=_('选中，用户拥有科技网IP管理功能的全局只读权限'))
+        verbose_name=_('IP管理全局只读权限'), default=False, help_text=_('用户拥有科技网链路管理功能的全局只读权限'))
     create_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
     update_time = models.DateTimeField(verbose_name=_('更新时间'), auto_now=True)
+
 
     class Meta:
         ordering = ('-create_time',)
@@ -27,7 +28,11 @@ class LinkUserRole(UuidModel):
 
 class Element(UuidModel):
     """网元"""
-    elemtny_type = None
+
+    def __init__(self, *args, **kwargs):
+        super(Element, self).__init__(*args, **kwargs)
+        self.elemtny_type = None
+
     class Type(models.TextChoices):
         """网元类型"""
         OPTICAL_FIBER = 'optical-fiber', _('光纤')
@@ -55,7 +60,9 @@ class Element(UuidModel):
 class LeaseLine(Element):
     """租用线路"""
 
-    elemtny_type = Element.Type.LEASE_LINE
+    def __init__(self, *args, **kwargs):
+        super(LeaseLine, self).__init__(*args, **kwargs)
+        self.elemtny_type = Element.Type.LEASE_LINE
 
     class LeaseStatus(models.TextChoices):
         """租线状态"""
@@ -64,21 +71,21 @@ class LeaseLine(Element):
         
     private_line_number = models.CharField(verbose_name=_('专线号'), max_length=64, blank=True, default='')
     lease_line_code = models.CharField(verbose_name=_('电路代号'), max_length=64, blank=True, default='')
-    user = models.CharField(verbose_name=_('用户（单位）'), max_length=36, blank=True, default='')
+    line_username = models.CharField(verbose_name=_('专线用户'), max_length=36, blank=True, default='')
     endpoint_a = models.CharField(verbose_name=_('A端'), max_length=255, blank=True, default='')
     endpoint_z = models.CharField(verbose_name=_('Z端'), max_length=255, blank=True, default='')
     line_type = models.CharField(verbose_name=_('线路类型'), max_length=36, blank=True, default='')
     cable_type = models.CharField(verbose_name=_('电路类型'), max_length=36, blank=True, default='')
-    bandwidth = models.IntegerField(verbose_name=_('宽带'), null=True, blank=True, default=None, help_text='Mbs')
+    bandwidth = models.IntegerField(verbose_name=_('带宽'), null=True, blank=True, default=None, help_text='Mbs')
     length = models.DecimalField(verbose_name=_('长度'), max_digits=10, decimal_places=2, null=True, blank=True, default=None, help_text='km')
     provider = models.CharField(verbose_name=_('运营商'), max_length=36, blank=True, default='')
     enable_date = models.DateField(verbose_name=_('开通日期'), null=True, blank=True, default=None)
-    disable_date = models.DateField(verbose_name=_('撤线日期'), null=True, blank=True, default=None)
-    lease_status = models.CharField(verbose_name=_('租线状态'), max_length=16, choices=LeaseStatus.choices, default=LeaseStatus.ENABLE)
+    is_whithdrawal = models.BooleanField(verbose_name=_('是否撤线'), default=False, help_text=_('0:在网 1:撤线'))
     money =  models.DecimalField(verbose_name=_('月租费'), max_digits=10, decimal_places=2, null=True, blank=True, default=None, help_text='元')
     remarks = models.CharField(verbose_name=_('备注'), max_length=255, blank=True, default='')
     create_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
     update_time = models.DateTimeField(verbose_name=_('更新时间'), auto_now=True)
+
 
     class Meta:
         ordering = ('-update_time',)
@@ -89,8 +96,9 @@ class LeaseLine(Element):
 
 class OpticalFiber(Element):
     """光纤"""
-
-    elemtny_type = Element.Type.OPTICAL_FIBER
+    def __init__(self, *args, **kwargs):
+        super(OpticalFiber, self).__init__(*args, **kwargs)
+        self.elemtny_type = Element.Type.OPTICAL_FIBER
 
     fiber_cable_id = models.CharField(verbose_name=_('光缆ID'), max_length=36, default='', db_index=True)
     sequence = models.IntegerField(verbose_name=_('纤序'), default=0)
@@ -104,8 +112,9 @@ class OpticalFiber(Element):
 
 class Port(Element):
     """端口"""
-
-    elemtny_type = Element.Type.PORT
+    def __init__(self, *args, **kwargs):
+        super(Port, self).__init__(*args, **kwargs)
+        self.elemtny_type = Element.Type.PORT
 
     number = models.CharField(verbose_name=_('端口编号'), max_length=24, default='', help_text=_('自定义编号'))
     model_type = models.CharField(verbose_name=_('型号'), max_length=36, blank=True, default='')
@@ -121,8 +130,9 @@ class Port(Element):
 
 class ConnectorBox(Element):
     """光缆接头盒"""
-
-    elemtny_type = Element.Type.CONNECTOR_BOX
+    def __init__(self, *args, **kwargs):
+        super(ConnectorBox, self).__init__(*args, **kwargs)
+        self.elemtny_type = Element.Type.CONNECTOR_BOX
 
     number = models.CharField(verbose_name=_('接头盒编号'), max_length=24, default='', help_text=_('自定义编号'))
     place = models.CharField(verbose_name=_('位置'), max_length=128, blank=True, default='')
@@ -213,7 +223,7 @@ class ElementLink(UuidModel):
 
     class Meta:
         db_table = 'link_element_link'
-        verbose_name = _('机构')
+        verbose_name = _('链路')
         verbose_name_plural = verbose_name
 
 
@@ -228,7 +238,7 @@ class Task(UuidModel):
     user = models.CharField(verbose_name=_('用户（单位）'), max_length=36, blank=True, default='')
     endpoint_a = models.CharField(verbose_name=_('A端'), max_length=255, blank=True, default='')
     endpoint_z = models.CharField(verbose_name=_('Z端'), max_length=255, blank=True, default='')
-    bandwidth = models.IntegerField(verbose_name=_('宽带'), null=True, blank=True, default=None, help_text='Mbs')
+    bandwidth = models.IntegerField(verbose_name=_('带宽'), null=True, blank=True, default=None, help_text='Mbs')
     task_description = models.CharField(verbose_name=_('业务描述'), max_length=255, blank=True, default='')
     line_type = models.CharField(verbose_name=_('线路类型'), max_length=36, blank=True, default='')
     task_person = models.CharField(verbose_name=_('商务对接'), max_length=36, blank=True, default='')

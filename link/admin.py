@@ -11,10 +11,10 @@ class LinkUserRoleAdmin(admin.ModelAdmin):
     
 @admin.register(LeaseLine)
 class LeaseLineAdmin(admin.ModelAdmin):
-    list_display = ['id', 'private_line_number', 'lease_line_code', 'user', 'endpoint_a', 'endpoint_z',
-                    'line_type', 'cable_type', 'bandwidth', 'length', 'provider', 'enable_date', 'disable_date',
-                    'lease_status', 'money', 'remarks', 'element_link_id', 'create_time', 'update_time']
-    search_fields = ['private_line_number', 'lease_line_code', 'user']
+    list_display = ['id', 'private_line_number', 'lease_line_code', 'line_username', 'endpoint_a', 'endpoint_z',
+                    'line_type', 'cable_type', 'bandwidth', 'length', 'provider', 'enable_date',
+                    'is_whithdrawal', 'money', 'remarks', 'element_link_id', 'create_time', 'update_time']
+    search_fields = ['private_line_number', 'lease_line_code', 'line_username']
 
 @admin.register(OpticalFiber)
 class OpticalFiberAdmin(admin.ModelAdmin):
