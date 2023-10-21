@@ -1,5 +1,6 @@
 from datetime import date
 from link.models import LeaseLine
+from django.db.models import Q
 
 class LeaseLineManager:
     @staticmethod
@@ -40,3 +41,24 @@ class LeaseLineManager:
         )
         leaseline.save(force_insert=True)
         return leaseline
+    
+    def get_queryset(self, is_whithdrawal: bool = None,  search: str = None, enable_date_start: date = None, enable_date_end: date = None):
+        qs = LeaseLine.objects.all()
+        lookups = {}
+        if is_whithdrawal is not None:
+            lookups['is_whithdrawal'] = is_whithdrawal
+
+        if enable_date_start:
+            lookups['enable_date__gte'] = enable_date_start
+
+        if enable_date_end:
+            lookups['enable_date__lte'] = enable_date_end
+
+        qs = qs.filter(**lookups)
+        if search:
+            q = Q(private_line_number__icontains=search) | Q(lease_line_code__icontains=search) | Q(line_username__icontains=search) \
+                | Q(endpoint_a__icontains=search) | Q(endpoint_z__icontains=search) | Q(remarks__icontains=search)
+
+            qs = qs.filter(q)
+
+        return qs
