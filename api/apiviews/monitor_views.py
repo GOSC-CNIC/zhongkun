@@ -596,7 +596,7 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
         return MonitorWebsiteHandler().change_website_task(view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('查询站点的监控数据'),
+        operation_summary=gettext_lazy('查询http或tcp监控任务监控数据'),
         manual_parameters=[
             openapi.Parameter(
                 name='query',
@@ -621,7 +621,7 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
     @action(methods=['get'], detail=True, url_path='query', url_name='data-query')
     def data_query(self, request, *args, **kwargs):
         """
-        查询站点的监控数据
+        查询http或tcp监控任务监控数据
 
             Http Code: 状态码200，返回数据：
             [                           # 数组可能为空, 可能有多个数据项， 比如查询参数 query = http_duration_seconds
@@ -665,7 +665,7 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
         return MonitorWebsiteHandler().query_monitor_data(view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('查询指定时间段内的站点的监控数据'),
+        operation_summary=gettext_lazy('查询指定时间段内的http或tcp监控任务的监控数据'),
         manual_parameters=[
             openapi.Parameter(
                 name='query',
@@ -711,7 +711,7 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
     @action(methods=['get'], detail=True, url_path='query/range', url_name='data-query-range')
     def data_query_range(self, request, *args, **kwargs):
         """
-        查询指定时间段内的站点的监控数据
+        查询指定时间段内的http或tcp监控任务的监控数据
 
             * 数据量 = ( end - start ) / step ， 最大数据量10000，超出会报错，情根据参数“end”和“start”合理选择参数“step”的值
 

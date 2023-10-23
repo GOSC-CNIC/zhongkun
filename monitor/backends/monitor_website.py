@@ -25,6 +25,10 @@ class ExpressionQuery:
     def build_http_duration_seconds_query(url: str):
         return f'probe_http_duration_seconds{{url="{url}"}}'
 
+    @staticmethod
+    def build_success_query(url: str):
+        return f'probe_success{{url="{url}"}}'
+
 
 class MonitorWebsiteQueryAPI:
     """
@@ -88,6 +92,7 @@ class MonitorWebsiteQueryAPI:
 
     def duration_seconds(self, provider: MonitorProvider, url: str):
         """
+        http or tcp
         :return:
             [
                 {
@@ -106,6 +111,7 @@ class MonitorWebsiteQueryAPI:
 
     def duration_seconds_period(self, provider: MonitorProvider, url: str):
         """
+        http or tcp
         [
             {
                 'metric': {}
@@ -118,6 +124,43 @@ class MonitorWebsiteQueryAPI:
         ]
         """
         expression_query = ExpressionQuery().build_duration_seconds_query(url=url) + '[5m]'
+        api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
+        return self._request_query_api(api_url)
+
+    def success(self, provider: MonitorProvider, url: str):
+        """
+        http or tcp
+        :return:
+            [
+                {
+                    ...
+                    "value": [
+                        1630267851.781,
+                        '0.032904559'
+                    ]
+                }
+            ]
+        :raises: Error
+        """
+        expression_query = ExpressionQuery().build_success_query(url=url)
+        api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
+        return self._request_query_api(api_url)
+
+    def success_period(self, provider: MonitorProvider, url: str):
+        """
+        http or tcp
+        [
+            {
+                'metric': {}
+                ,
+                'values': [
+                    [1675218651.941, '0.032904559'],
+                    [1675218666.941, '0.032904559']
+                ]
+            }
+        ]
+        """
+        expression_query = ExpressionQuery().build_success_query(url=url) + '[5m]'
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(api_url)
 
@@ -192,6 +235,25 @@ class MonitorWebsiteQueryAPI:
         expression_query = ExpressionQuery().build_duration_seconds_query(url=url)
         api_url = self._build_query_range_api(endpoint_url=provider.endpoint_url, expression_query=expression_query,
                                               start=start, end=end, step=step)
+        return self._request_query_api(api_url)
+
+    def success_range(self, provider: MonitorProvider, url: str, start: int, end: int, step: int):
+        """
+        http or tcp
+        [
+            {
+                'metric': {}
+                ,
+                'values': [
+                    [1675218651.941, '0.032904559'],
+                    [1675218666.941, '0.032904559']
+                ]
+            }
+        ]
+        """
+        expression_query = ExpressionQuery().build_success_query(url=url)
+        api_url = self._build_query_range_api(
+            endpoint_url=provider.endpoint_url, expression_query=expression_query, start=start, end=end, step=step)
         return self._request_query_api(api_url)
 
     def http_duration_seconds_range(self, provider: MonitorProvider, url: str, start: int, end: int, step: int):

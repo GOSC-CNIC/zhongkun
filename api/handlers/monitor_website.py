@@ -297,6 +297,10 @@ class MonitorWebsiteHandler:
         except errors.Error as exc:
             return view.exception_response(exc)
 
+        if website.scheme.startswith('tcp'):
+            if query not in [WebsiteQueryChoices.SUCCESS.value, WebsiteQueryChoices.DURATION_SECONDS.value]:
+                return view.exception_response(errors.InvalidArgument(message=_('TCP监控任务不支持指定指标数据查询')))
+
         try:
             data = mgr.query(website=website, tag=query, dp_id=detection_point_id)
         except errors.Error as exc:
@@ -317,6 +321,10 @@ class MonitorWebsiteHandler:
             website = mgr.get_user_website(website_id=website_id, user=request.user)
         except errors.Error as exc:
             return view.exception_response(exc)
+
+        if website.scheme.startswith('tcp'):
+            if query not in [WebsiteQueryChoices.SUCCESS.value, WebsiteQueryChoices.DURATION_SECONDS.value]:
+                return view.exception_response(errors.InvalidArgument(message=_('TCP监控任务不支持指定指标数据查询')))
 
         try:
             data = mgr.query_range(

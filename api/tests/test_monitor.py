@@ -1892,10 +1892,47 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
             query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value)
         self.query_ok_test(
             website_id=website.id, detection_point_id=detection_point1.id,
+            query_tag=WebsiteQueryChoices.SUCCESS.value)
+        self.query_ok_test(
+            website_id=website.id, detection_point_id=detection_point1.id,
             query_tag=WebsiteQueryChoices.DURATION_SECONDS.value)
         self.query_ok_test(
             website_id=website.id, detection_point_id=detection_point1.id,
             query_tag=WebsiteQueryChoices.HTTP_DURATION_SECONDS.value, list_len=5)
+
+        # tcp
+        nt = timezone.now()
+        tcp_task = MonitorWebsite(
+            name='test',
+            scheme='tcp://',
+            hostname='127.0.0.1:8888',
+            uri='/',
+            url='',
+            remark='', user=self.user,
+            creation=nt, modification=nt
+        )
+        tcp_task.save(force_insert=True)
+
+        # InvalidArgument
+        r = self.query_response(
+            website_id=tcp_task.id, detection_point_id=detection_point1.id,
+            query_tag=WebsiteQueryChoices.HTTP_DURATION_SECONDS.value)
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
+        r = self.query_response(
+            website_id=tcp_task.id, detection_point_id=detection_point1.id,
+            query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value)
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
+
+        r = self.query_response(
+            website_id=tcp_task.id, detection_point_id=detection_point1.id,
+            query_tag=WebsiteQueryChoices.SUCCESS.value)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data, [])
+        r = self.query_response(
+            website_id=tcp_task.id, detection_point_id=detection_point1.id,
+            query_tag=WebsiteQueryChoices.DURATION_SECONDS.value)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data, [])
 
         # NotFound
         self.client.logout()
@@ -2032,20 +2069,24 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
         django_cache.delete(MonitorWebsiteManager.CACHE_KEY_DETECTION_POINT)
 
         # NoSuchDetectionPoint
-        r = self.query_response(
+        r = self.query_range_response(
             website_id=website.id, detection_point_id='detection_point1.id',
-            query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value)
+            query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value, start=start, end=end, step=step)
         self.assertErrorResponse(status_code=404, code='NoSuchDetectionPoint', response=r)
 
         # Conflict, detection_point2 not enable
-        r = self.query_response(
+        r = self.query_range_response(
             website_id=website.id, detection_point_id=detection_point2.id,
-            query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value)
+            query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value, start=start, end=end, step=step)
         self.assertErrorResponse(status_code=409, code='Conflict', response=r)
 
         # ok
         self.query_range_ok_test(
             website_id=website.id, query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value,
+            start=start, end=end, step=step, detection_point_id=detection_point1.id
+        )
+        self.query_range_ok_test(
+            website_id=website.id, query_tag=WebsiteQueryChoices.SUCCESS.value,
             start=start, end=end, step=step, detection_point_id=detection_point1.id
         )
         self.query_range_ok_test(
@@ -2056,6 +2097,40 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
             website_id=website.id, query_tag=WebsiteQueryChoices.HTTP_DURATION_SECONDS.value,
             start=start, end=end, step=step, list_len=5, detection_point_id=detection_point1.id
         )
+
+        # tcp
+        nt = timezone.now()
+        tcp_task = MonitorWebsite(
+            name='test',
+            scheme='tcp://',
+            hostname='127.0.0.1:8888',
+            uri='/',
+            url='',
+            remark='', user=self.user,
+            creation=nt, modification=nt
+        )
+        tcp_task.save(force_insert=True)
+
+        # InvalidArgument
+        r = self.query_range_response(
+            website_id=tcp_task.id, detection_point_id=detection_point1.id,
+            query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value, start=start, end=end, step=step)
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
+        r = self.query_range_response(
+            website_id=tcp_task.id, detection_point_id=detection_point1.id,
+            query_tag=WebsiteQueryChoices.HTTP_DURATION_SECONDS.value, start=start, end=end, step=step)
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
+
+        r = self.query_range_response(
+            website_id=tcp_task.id, detection_point_id=detection_point1.id,
+            query_tag=WebsiteQueryChoices.SUCCESS.value, start=start, end=end, step=step)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data, [])
+        r = self.query_range_response(
+            website_id=tcp_task.id, detection_point_id=detection_point1.id,
+            query_tag=WebsiteQueryChoices.DURATION_SECONDS.value, start=start, end=end, step=step)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data, [])
 
         # NotFound
         self.client.logout()

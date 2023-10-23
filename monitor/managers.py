@@ -56,8 +56,9 @@ class VideoMeetingQueryChoices(models.TextChoices):
 
 
 class WebsiteQueryChoices(models.TextChoices):
-    HTTP_STATUS_STATUS = 'http_status_code', _('请求状态码')
-    DURATION_SECONDS = 'duration_seconds', _('请求耗时')
+    SUCCESS = 'success', _('tcp或http是否成功')
+    DURATION_SECONDS = 'duration_seconds', _('tcp或http请求耗时')
+    HTTP_STATUS_STATUS = 'http_status_code', _('http请求状态码')
     HTTP_DURATION_SECONDS = 'http_duration_seconds', _('http请求各个部分耗时')
 
 
@@ -767,9 +768,10 @@ class MonitorWebsiteManager:
         """
         params = {'provider': provider, 'url': url}
         f = {
-            WebsiteQueryChoices.HTTP_STATUS_STATUS.value: self.backend.http_status_code_period,
             WebsiteQueryChoices.DURATION_SECONDS.value: self.backend.duration_seconds_period,
-            WebsiteQueryChoices.HTTP_DURATION_SECONDS.value: self.backend.http_duration_seconds_period
+            WebsiteQueryChoices.SUCCESS.value: self.backend.success_period,
+            WebsiteQueryChoices.HTTP_STATUS_STATUS.value: self.backend.http_status_code_period,
+            WebsiteQueryChoices.HTTP_DURATION_SECONDS.value: self.backend.http_duration_seconds_period,
         }[tag]
 
         return f(**params)
@@ -808,8 +810,9 @@ class MonitorWebsiteManager:
         """
         params = {'provider': provider, 'url': url, 'start': start, 'end': end, 'step': step}
         f = {
-            WebsiteQueryChoices.HTTP_STATUS_STATUS.value: self.backend.http_status_code_range,
+            WebsiteQueryChoices.SUCCESS.value: self.backend.success_range,
             WebsiteQueryChoices.DURATION_SECONDS.value: self.backend.duration_seconds_range,
+            WebsiteQueryChoices.HTTP_STATUS_STATUS.value: self.backend.http_status_code_range,
             WebsiteQueryChoices.HTTP_DURATION_SECONDS.value: self.backend.http_duration_seconds_range
         }[tag]
 
