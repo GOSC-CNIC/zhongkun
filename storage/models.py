@@ -1,8 +1,9 @@
-from django.db import models
-from django.db import transaction
+from django.db import models, transaction
+from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 
 from service.models import DataCenter
 from utils.model import UuidModel, get_encryptor
@@ -62,8 +63,9 @@ class ObjectsService(UuidModel):
     longitude = models.FloatField(verbose_name=_('经度'), blank=True, default=0)
     latitude = models.FloatField(verbose_name=_('纬度'), blank=True, default=0)
     pay_app_service_id = models.CharField(
-        verbose_name=_('余额结算APP服务ID'), max_length=36, default='',
-        help_text=_('此服务对应的APP服务（注册在余额结算中的APP服务）id，扣费时需要此id，用于指定哪个服务发生的扣费'))
+        verbose_name=_('余额结算服务单元ID'), max_length=36, blank=True, default='',
+        help_text=_('此服务单元对应的钱包结算服务单元（注册在余额结算中的APP服务）id，扣费时需要此id，用于指定哪个服务发生的扣费；'
+                    '正常情况下此内容会自动填充，不需要手动输入'))
     sort_weight = models.IntegerField(verbose_name=_('排序值'), default=0, help_text=_('值越小排序越靠前'))
     loki_tag = models.CharField(
         verbose_name=_('对应loki日志中集群标识'), max_length=128, blank=True, default='',
@@ -82,9 +84,8 @@ class ObjectsService(UuidModel):
              update_fields=None):
         super().save(force_insert=force_insert, force_update=force_update,
                      using=using, update_fields=update_fields)
-        self._sync_name_to_pay_app_service()
 
-    def _sync_name_to_pay_app_service(self):
+    def sync_to_pay_app_service(self):
         """
         当name修改时，同步变更到 对应的钱包的pay app service
         """
@@ -100,10 +101,56 @@ class ObjectsService(UuidModel):
                     app_service.name_en = self.name_en
                     update_fields.append('name_en')
 
+                if app_service.orgnazition_id != self.data_center_id:
+                    app_service.orgnazition_id = self.data_center_id
+                    update_fields.append('orgnazition_id')
+
+                if self.id and app_service.service_id != self.id:
+                    app_service.service_id = self.id
+                    update_fields.append('service_id')
+
                 if update_fields:
                     app_service.save(update_fields=update_fields)
         except Exception as exc:
-            pass
+            raise ValidationError(str(exc))
+
+    def check_or_register_pay_app_service(self):
+        """
+        如果指定结算服务单元，确认结算服务单元是否存在有效；未指定结算服务单元时为云主机服务单元注册对应的钱包结算服务单元
+        :raises: ValidationError
+        """
+        payment_balance = getattr(settings, 'PAYMENT_BALANCE', {})
+        app_id = payment_balance.get('app_id', None)
+
+        if self.pay_app_service_id:
+            self.check_pay_app_service_id(self.pay_app_service_id)
+
+        # 新注册
+        with transaction.atomic():
+            app_service = PayAppService(
+                name=self.name, name_en=self.name_en, app_id=app_id, orgnazition_id=self.data_center_id,
+                resources='云主机、云硬盘', status=PayAppService.Status.NORMAL.value,
+                category=PayAppService.Category.VMS_SERVER.value, service_id=self.id,
+                longitude=self.longitude, latitude=self.latitude,
+                contact_person=self.contact_person, contact_telephone=self.contact_telephone,
+                contact_email=self.contact_email, contact_address=self.contact_address,
+                contact_fixed_phone=self.contact_fixed_phone
+            )
+            app_service.save(force_insert=True)
+            self.pay_app_service_id = app_service.id
+            self.save(update_fields=['pay_app_service_id'])
+
+    @staticmethod
+    def check_pay_app_service_id(pay_app_service_id: str):
+        app_service = PayAppService.objects.filter(id=pay_app_service_id).first()
+        if app_service is None:
+            raise ValidationError(message={
+                'pay_app_service_id': '结算服务单元不存在，请仔细确认。如果是新建服务单元不需要手动填写结算服务单元id，'
+                                      '保持为空，保存后会自动注册对应的结算单元，并填充此字段'})
+
+    def clean(self):
+        if self.pay_app_service_id:
+            self.check_pay_app_service_id(self.pay_app_service_id)
 
     @property
     def raw_password(self):

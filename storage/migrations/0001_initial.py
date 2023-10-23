@@ -84,7 +84,7 @@ class Migration(migrations.Migration):
                 ('logo_url', models.CharField(blank=True, default='', max_length=256, verbose_name='LOGO url')),
                 ('longitude', models.FloatField(blank=True, default=0, verbose_name='经度')),
                 ('latitude', models.FloatField(blank=True, default=0, verbose_name='纬度')),
-                ('pay_app_service_id', models.CharField(default='', help_text='此服务对应的APP服务（注册在余额结算中的APP服务）id，扣费时需要此id，用于指定哪个服务发生的扣费', max_length=36, verbose_name='余额结算APP服务ID')),
+                ('pay_app_service_id', models.CharField(blank=True, default='', help_text='此服务单元对应的钱包结算服务单元（注册在余额结算中的APP服务）id，扣费时需要此id，用于指定哪个服务发生的扣费；正常情况下此内容会自动填充，不需要手动输入', max_length=36, verbose_name='余额结算服务单元ID')),
                 ('sort_weight', models.IntegerField(default=0, help_text='值越小排序越靠前', verbose_name='排序值')),
                 ('loki_tag', models.CharField(blank=True, default='', help_text='服务单元在Loki访问日志中对应的对象存储集群标识，用于计量网络流量、请求量等信息时标识对应关系', max_length=128, verbose_name='对应loki日志中集群标识')),
             ],

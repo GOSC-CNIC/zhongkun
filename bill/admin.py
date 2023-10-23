@@ -165,7 +165,7 @@ class CashCouponAdmin(admin.ModelAdmin):
 
 @admin.register(PayAppService)
 class PayAppServiceAdmin(NoDeleteSelectModelAdmin):
-    list_display = ('id', 'name', 'name_en', 'category', 'app', 'creation_time', 'status', 'service_id',
+    list_display = ('id', 'name', 'name_en', 'category', 'app', 'orgnazition', 'creation_time', 'status', 'service_id',
                     'resources', 'contact_person', 'contact_email', 'contact_telephone', 'desc')
     list_display_links = ('id',)
     list_select_related = ('orgnazition', 'app',)
