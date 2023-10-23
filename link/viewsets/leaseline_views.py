@@ -3,7 +3,7 @@ from django.utils.translation import gettext_lazy, gettext as _
 from api.paginations import NewPageNumberPagination
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.permissions import IsAuthenticated
-
+from rest_framework.decorators import action
 from rest_framework.serializers import Serializer
 
 from link.serializers.leaseline_serializers import LeaseLineSerializer
@@ -46,7 +46,7 @@ class LeaseLineViewSet(NormalGenericViewSet):
                 }
 
         """
-        return LeaseLineHandler().creat_leaseline(view=self, request=request)
+        return LeaseLineHandler.creat_leaseline(view=self, request=request)
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举租用线路'),
@@ -115,7 +115,71 @@ class LeaseLineViewSet(NormalGenericViewSet):
                 }
 
         """
-        return LeaseLineHandler().list_leaseline(view=self, request=request)
+        return LeaseLineHandler.list_leaseline(view=self, request=request)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('更改一个租用线路'),
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['POST'], detail=True, url_path='update', url_name='update-leaseline')
+    def update_leaseline(self, request, *args, **kwargs):
+        """
+        更改一个租用线路
+
+            http Code 200 Ok:
+                {
+                    "id": "biydzce9nmb6y92hc71bnn219",
+                    "private_line_number": "140028",
+                    "lease_line_code": "北京-南京S-16N2004NP",
+                    "line_username": "南京分中心",
+                    "endpoint_a": "北京市海淀区中关村南四街4号",
+                    "endpoint_z": "南京市北京东路39号",
+                    "line_type": "骨干网",
+                    "cable_type": "SDH",
+                    "bandwidth": 2500,
+                    "length": null,
+                    "provider": "联通（北京）",
+                    "enable_date": "2007-01-30",
+                    "is_whithdrawal": false,
+                    "money": "10000.00",
+                    "remarks": "电路代号：北京-南京S-16N2004NP，起租时间2007.02.01"
+                }
+        """
+        return LeaseLineHandler.update_leaseline(view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询一个租用线路'),
+        responses={
+            200: ''
+        }
+    )
+    def retrieve(self, request, *args, **kwargs):
+        """
+        查询一个租用线路
+
+            http Code 200 Ok:
+                {
+                    "id": "biydzce9nmb6y92hc71bnn219",
+                    "private_line_number": "140028",
+                    "lease_line_code": "北京-南京S-16N2004NP",
+                    "line_username": "南京分中心",
+                    "endpoint_a": "北京市海淀区中关村南四街4号",
+                    "endpoint_z": "南京市北京东路39号",
+                    "line_type": "骨干网",
+                    "cable_type": "SDH",
+                    "bandwidth": 2500,
+                    "length": null,
+                    "provider": "联通（北京）",
+                    "enable_date": "2007-01-30",
+                    "is_whithdrawal": false,
+                    "money": "10000.00",
+                    "remarks": "电路代号：北京-南京S-16N2004NP，起租时间2007.02.01"
+                }
+        """
+        return LeaseLineHandler.retrieve_leaseline(view=self, request=request, kwargs=kwargs)
+
 
     def get_serializer_class(self):
         # if self.action in ['create']:
