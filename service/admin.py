@@ -19,10 +19,11 @@ class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
     list_display = ('id', 'name', 'name_en', 'data_center', 'sort_weight', 'region_id', 'service_type',
                     'endpoint_url', 'username',
                     'password', 'add_time', 'status', 'need_vpn', 'disk_available', 'vpn_endpoint_url', 'vpn_password',
-                    'longitude', 'latitude', 'remarks')
+                    'pay_app_service_id', 'longitude', 'latitude', 'remarks')
     search_fields = ['name', 'name_en', 'endpoint_url', 'remarks']
-    list_filter = ['data_center', 'service_type', 'disk_available']
+    list_filter = ['service_type', 'disk_available']
     list_select_related = ('data_center',)
+    raw_id_fields = ('data_center',)
     list_editable = ('sort_weight',)
 
     filter_horizontal = ('users',)
@@ -83,6 +84,18 @@ class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+    def save_model(self, request, obj: ServiceConfig, form, change):
+        if change:
+            super().save_model(request=request, obj=obj, form=form, change=change)
+            try:
+                obj.sync_to_pay_app_service()
+            except Exception as exc:
+                self.message_user(request, _("更新服务单元对应的结算服务单元错误") + str(exc), level=messages.ERROR)
+        else:   # add
+            with transaction.atomic():
+                super().save_model(request=request, obj=obj, form=form, change=change)
+                obj.check_or_register_pay_app_service()
 
 
 @admin.register(DataCenter)

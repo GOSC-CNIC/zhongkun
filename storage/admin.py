@@ -1,6 +1,6 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.utils.translation import gettext_lazy as _
-from django.contrib import messages
+from django.db import transaction
 
 from storage.request import request_service
 from storage.adapter import inputs
@@ -19,9 +19,10 @@ class ObjectsServiceAdmin(admin.ModelAdmin):
                     'username', 'raw_password', 'provide_ftp', 'pay_app_service_id', 'loki_tag')
 
     search_fields = ['name', 'name_en', 'endpoint_url', 'remarks']
-    list_filter = ['data_center', 'service_type']
+    # list_filter = ['service_type']
     list_select_related = ('data_center',)
     list_editable = ('sort_weight',)
+    raw_id_fields = ('data_center',)
 
     filter_horizontal = ('users',)
     readonly_fields = ('password', )
@@ -45,6 +46,18 @@ class ObjectsServiceAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+    def save_model(self, request, obj: models.ObjectsService, form, change):
+        if change:
+            super().save_model(request=request, obj=obj, form=form, change=change)
+            try:
+                obj.sync_to_pay_app_service()
+            except Exception as exc:
+                self.message_user(request, _("更新服务单元对应的结算服务单元错误") + str(exc), level=messages.ERROR)
+        else:   # add
+            with transaction.atomic():
+                super().save_model(request=request, obj=obj, form=form, change=change)
+                obj.check_or_register_pay_app_service()
 
 
 @admin.register(models.Bucket)
