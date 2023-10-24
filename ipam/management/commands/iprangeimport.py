@@ -205,7 +205,7 @@ class Command(BaseCommand):
     @staticmethod
     def time_str_to_datetime(time_str: int, format_='%Y-%m-%d %H:%M:%S'):
         dt = datetime.datetime.strptime(time_str, format_)
-        return dt.replace(tzinfo=datetime.timezone(offset=-datetime.timedelta(hours=8)))
+        return dt.replace(tzinfo=datetime.timezone(offset=datetime.timedelta(hours=8)))
 
     @staticmethod
     def get_cell_value(sheet: Worksheet, cell):
@@ -222,7 +222,11 @@ class Command(BaseCommand):
                     cell = sheet.cell(row=merged_range.min_row, column=merged_range.min_col)
                     break
 
-        return cell.value
+        val = cell.value
+        if isinstance(val, str):
+            val = val.strip(' ')
+
+        return val
 
     @staticmethod
     def get_or_create_asn(asn: int):
