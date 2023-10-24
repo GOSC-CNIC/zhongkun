@@ -38,7 +38,7 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(max_length=255, verbose_name='名称')),
                 ('creation_time', models.DateTimeField(verbose_name='创建时间')),
                 ('remark', models.CharField(blank=True, default='', max_length=255, verbose_name='备注信息')),
-                ('organization', models.ForeignKey(blank=True, default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='service.datacenter', verbose_name='分配机构')),
+                ('organization', models.ForeignKey(blank=True, default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='service.datacenter', verbose_name='机构')),
             ],
             options={
                 'verbose_name': '机构二级',
@@ -83,7 +83,7 @@ class Migration(migrations.Migration):
                 ('end_address', models.PositiveIntegerField(verbose_name='截止地址')),
                 ('mask_len', models.PositiveIntegerField(validators=[django.core.validators.MaxValueValidator(32)], verbose_name='子网掩码长度')),
                 ('asn', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='+', to='ipam.asn', verbose_name='AS编号')),
-                ('org_virt_obj', models.ForeignKey(blank=True, default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='ipam.orgvirtualobject', verbose_name='分配给机构虚拟对象')),
+                ('org_virt_obj', models.ForeignKey(blank=True, default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='ipam.orgvirtualobject', verbose_name='分配给机构二级')),
             ],
             options={
                 'verbose_name': 'IPv4地址段',

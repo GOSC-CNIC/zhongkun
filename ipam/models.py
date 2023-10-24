@@ -52,7 +52,7 @@ class IPAMUserRole(UuidModel):
 class OrgVirtualObject(UuidModel):
     name = models.CharField(verbose_name=_('名称'), max_length=255)
     organization = models.ForeignKey(
-        verbose_name=_('分配机构'), to=DataCenter, related_name='+',
+        verbose_name=_('机构'), to=DataCenter, related_name='+',
         on_delete=models.SET_NULL, null=True, blank=True, default=None)
     creation_time = models.DateTimeField(verbose_name=_('创建时间'))
     remark = models.CharField(verbose_name=_('备注信息'), max_length=255, blank=True, default='')
@@ -100,7 +100,7 @@ class IPRangeBase(UuidModel):
     admin_remark = models.CharField(verbose_name=_('科技网管理员备注信息'), max_length=255, blank=True, default='')
     remark = models.CharField(verbose_name=_('机构管理员备注信息'), max_length=255, blank=True, default='')
     org_virt_obj = models.ForeignKey(
-        verbose_name=_('分配给机构虚拟对象'), to=OrgVirtualObject, related_name='+',
+        verbose_name=_('分配给机构二级'), to=OrgVirtualObject, related_name='+',
         on_delete=models.SET_NULL, null=True, blank=True, default=None)
 
     class Meta:
