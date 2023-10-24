@@ -118,7 +118,7 @@ class Migration(migrations.Migration):
                 ('is_readonly', models.BooleanField(default=False, help_text='选中，用户拥有科技网IP管理功能的全局只读权限', verbose_name='IP管理全局只读权限')),
                 ('creation_time', models.DateTimeField(verbose_name='创建时间')),
                 ('update_time', models.DateTimeField(verbose_name='更新时间')),
-                ('organizations', models.ManyToManyField(db_table='ipam_user_role_orgs', related_name='+', to='service.datacenter', verbose_name='拥有管理员权限的机构')),
+                ('organizations', models.ManyToManyField(blank=True, db_table='ipam_user_role_orgs', related_name='+', to='service.datacenter', verbose_name='拥有管理员权限的机构')),
                 ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='+', to=settings.AUTH_USER_MODEL, verbose_name='用户')),
             ],
             options={

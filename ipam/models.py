@@ -35,7 +35,7 @@ class IPAMUserRole(UuidModel):
     is_readonly = models.BooleanField(
         verbose_name=_('IP管理全局只读权限'), default=False, help_text=_('选中，用户拥有科技网IP管理功能的全局只读权限'))
     organizations = models.ManyToManyField(
-        verbose_name=_('拥有管理员权限的机构'), to=DataCenter, related_name='+', db_table='ipam_user_role_orgs')
+        verbose_name=_('拥有管理员权限的机构'), to=DataCenter, related_name='+', db_table='ipam_user_role_orgs', blank=True)
     creation_time = models.DateTimeField(verbose_name=_('创建时间'))
     update_time = models.DateTimeField(verbose_name=_('更新时间'))
 
