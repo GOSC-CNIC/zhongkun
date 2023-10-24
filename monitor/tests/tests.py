@@ -1,5 +1,5 @@
 from utils.test import get_test_case_settings
-from .models import (
+from monitor.models import (
     MonitorProvider, MonitorJobCeph, MonitorJobServer, MonitorJobVideoMeeting, MonitorJobTiDB, LogSite
 )
 

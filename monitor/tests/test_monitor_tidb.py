@@ -4,13 +4,12 @@ from django.urls import reverse
 from django.utils import timezone
 
 from service.models import DataCenter
+from utils.test import get_or_create_user, get_or_create_service, MyAPITestCase
 from monitor.models import (
     MonitorJobTiDB, MonitorProvider
 )
 from monitor.managers import TiDBQueryChoices
-from monitor.tests import get_or_create_monitor_job_tidb
-from utils.test import get_or_create_user, get_or_create_service
-from . import MyAPITestCase
+from .tests import get_or_create_monitor_job_tidb
 
 
 class MonitorUnitTiDBTests(MyAPITestCase):

@@ -8,7 +8,7 @@ from django.core.validators import URLValidator
 from django.core.exceptions import ValidationError
 
 from core import errors
-from api.serializers.monitor import (
+from .serializers import (
     MonitorJobCephSerializer, MonitorJobServerSerializer
 )
 from .models import (

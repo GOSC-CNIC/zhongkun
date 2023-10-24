@@ -9,10 +9,6 @@ from django.core.cache import cache as django_cache
 from django.conf import settings
 
 from service.models import DataCenter
-from monitor.tests import (
-    get_or_create_monitor_job_ceph, get_or_create_monitor_job_server, get_or_create_monitor_job_meeting,
-    get_or_create_monitor_provider
-)
 from monitor.models import (
     MonitorJobCeph, MonitorProvider, MonitorJobServer, WebsiteDetectionPoint,
     MonitorWebsite, MonitorWebsiteRecord, MonitorWebsiteTask, MonitorWebsiteVersion, get_str_hash
@@ -21,17 +17,24 @@ from monitor.managers import (
     CephQueryChoices, ServerQueryChoices, VideoMeetingQueryChoices, WebsiteQueryChoices,
     MonitorWebsiteManager
 )
-from api.handlers.monitor_website import TaskSchemeType
 from bill.models import PayApp, PayAppService
 from order.models import Price
-from utils.test import get_or_create_user, get_test_case_settings, get_or_create_service, get_or_create_organization
-from . import set_auth_header, MyAPITestCase
+from utils.test import (
+    get_or_create_user, get_test_case_settings, get_or_create_service, get_or_create_organization,
+    MyAPITestCase
+)
+
+from .tests import (
+    get_or_create_monitor_job_ceph, get_or_create_monitor_job_server, get_or_create_monitor_job_meeting,
+    get_or_create_monitor_provider
+)
+from ..handlers.monitor_website import TaskSchemeType
 
 
 class MonitorCephTests(MyAPITestCase):
     def setUp(self):
-        self.user = None
-        set_auth_header(self)
+        self.user = get_or_create_user(password='password')
+        self.client.force_login(user=self.user)
         self.service1 = get_or_create_service()
 
     def query_response(self, monitor_unit_id: str = None, query_tag: str = None):
@@ -279,8 +282,8 @@ class MonitorCephTests(MyAPITestCase):
 
 class MonitorServerTests(MyAPITestCase):
     def setUp(self):
-        self.user = None
-        set_auth_header(self)
+        self.user = get_or_create_user(password='password')
+        self.client.force_login(user=self.user)
         self.service1 = get_or_create_service()
 
     def query_response(self, monitor_unit_id: str = None, query_tag: str = None):
@@ -390,8 +393,8 @@ class MonitorServerTests(MyAPITestCase):
 
 class MonitorVideoMeetingTests(MyAPITestCase):
     def setUp(self):
-        self.user = None
-        set_auth_header(self)
+        self.user = get_or_create_user(password='password')
+        self.client.force_login(user=self.user)
 
     def query_response(self, query_tag: str = None):
         querys = {}

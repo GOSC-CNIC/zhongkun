@@ -3,14 +3,15 @@ from rest_framework.routers import SimpleRouter
 
 from .apiviews import views
 from .apiviews import (
-    monitor_views, service_quota_views,
+    service_quota_views,
     azone_views, order_views,
     metering_views, bill_views, account_views, cash_coupon_views,
     trade_test_views, trade_views, bucket_views, storage_views,
     ticket_views, storage_metering_views, user_views, app_service_views,
     tradebill_views, recharge_views, email_views, disk_views, flavor_views,
-    log_views, portal_views, report_storage_views, monitor_metering_views
+    portal_views, report_storage_views, monitor_metering_views
 )
+from monitor import monitor_views, log_views
 from ipam.viewsets import ipv4_views
 from link.viewsets import leaseline_views
 

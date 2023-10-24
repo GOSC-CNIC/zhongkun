@@ -7,10 +7,9 @@ from service.models import DataCenter
 from monitor.models import (
     LogSite, LogSiteType, MonitorProvider
 )
-from monitor.tests import get_or_create_job_log_site
-from utils.test import get_or_create_user, get_or_create_service
+from utils.test import get_or_create_user, get_or_create_service, MyAPITestCase
 from scripts.workers.req_logs import LogSiteReqCounter
-from . import MyAPITestCase
+from .tests import get_or_create_job_log_site
 
 
 class LogSiteTests(MyAPITestCase):

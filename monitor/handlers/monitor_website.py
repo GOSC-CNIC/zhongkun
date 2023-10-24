@@ -14,7 +14,7 @@ from api.viewsets import CustomGenericViewSet
 from bill.managers.payment import PaymentManager
 from order.managers.price import PriceManager
 from utils import get_remote_ip
-from .handlers import serializer_error_msg
+from api.handlers import serializer_error_msg
 
 
 class TaskSchemeType(TextChoices):

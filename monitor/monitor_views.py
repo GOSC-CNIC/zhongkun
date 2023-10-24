@@ -8,18 +8,18 @@ from drf_yasg import openapi
 from drf_yasg.utils import no_body
 
 from api.viewsets import CustomGenericViewSet
-from api.handlers.monitor_ceph import MonitorCephQueryHandler
-from api.handlers.monitor_server import MonitorServerQueryHandler
-from api.handlers.monitor_video_meeting import MonitorVideoMeetingQueryHandler
-from api.handlers.monitor_website import MonitorWebsiteHandler, TaskSchemeType
-from api.handlers.monitor_tidb import MonitorTiDBQueryHandler
-from api.serializers import monitor as monitor_serializers
 from api.paginations import MonitorPageNumberPagination, MonitorWebsiteTaskPagination
+from utils.paginators import NoPaginatorInspector
 from monitor.managers import (
     CephQueryChoices, ServerQueryChoices, VideoMeetingQueryChoices, WebsiteQueryChoices,
     TiDBQueryChoices
 )
-from utils.paginators import NoPaginatorInspector
+from .handlers.monitor_ceph import MonitorCephQueryHandler
+from .handlers.monitor_server import MonitorServerQueryHandler
+from .handlers.monitor_video_meeting import MonitorVideoMeetingQueryHandler
+from .handlers.monitor_website import MonitorWebsiteHandler, TaskSchemeType
+from .handlers.monitor_tidb import MonitorTiDBQueryHandler
+from . import serializers as monitor_serializers
 
 
 class MonitorCephQueryViewSet(CustomGenericViewSet):
