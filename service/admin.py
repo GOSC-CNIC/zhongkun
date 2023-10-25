@@ -105,6 +105,7 @@ class DataCenterAdmin(NoDeleteSelectModelAdmin):
                     'creation_time', 'longitude', 'latitude', 'desc')
     list_editable = ('sort_weight', )
     search_fields = ('name', 'name_en', 'abbreviation')
+    filter_horizontal = ('contacts',)
 
 
 @admin.register(ServicePrivateQuota)

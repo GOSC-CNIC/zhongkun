@@ -37,6 +37,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='datacenter',
             name='contacts',
-            field=models.ManyToManyField(db_constraint=False, db_table='data_center_contacts', related_name='+', to='service.contacts', verbose_name='机构联系人'),
+            field=models.ManyToManyField(blank=True, db_constraint=False, db_table='data_center_contacts', related_name='+', to='service.contacts', verbose_name='机构联系人'),
         ),
     ]

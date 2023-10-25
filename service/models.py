@@ -73,7 +73,9 @@ class DataCenter(UuidModel):
     latitude = models.FloatField(verbose_name=_('纬度'), blank=True, default=0)
     sort_weight = models.IntegerField(verbose_name=_('排序值'), default=0, help_text=_('值越小排序越靠前'))
     contacts = models.ManyToManyField(
-        verbose_name=_('机构联系人'), to=Contacts, related_name='+', db_table='data_center_contacts', db_constraint=False)
+        verbose_name=_('机构联系人'), to=Contacts, related_name='+', db_table='data_center_contacts',
+        db_constraint=False, blank=True
+    )
 
     class Meta:
         ordering = ['sort_weight']
@@ -82,6 +84,16 @@ class DataCenter(UuidModel):
 
     def __str__(self):
         return self.name
+
+    def save(self, force_insert=False, force_update=False, using=None,
+             update_fields=None):
+        if not self.creation_time:
+            self.creation_time = timezone.now()
+            if update_fields and 'creation_time' not in update_fields:
+                update_fields.append('creation_time')
+
+        super(DataCenter, self).save(
+            force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
 
 
 class BaseService(UuidModel):
