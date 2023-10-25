@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
+from utils.paginators import NoPaginatorInspector
 from api.paginations import NewPageNumberPagination
 from api.viewsets import NormalGenericViewSet
 from ..handlers.ipv4_handlers import IPv4RangeHandler
@@ -21,6 +22,13 @@ class IPv4RangeViewSet(NormalGenericViewSet):
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举IP地址段'),
         manual_parameters=NormalGenericViewSet.PARAMETERS_AS_ADMIN + [
+            openapi.Parameter(
+                name='org_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('机构id筛选')
+            ),
             openapi.Parameter(
                 name='asn',
                 in_=openapi.IN_QUERY,
@@ -125,6 +133,7 @@ class IPAMUserRoleViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('查询用户ipam中用户角色和权限'),
+        paginator_inspectors=[NoPaginatorInspector],
         manual_parameters=[],
         responses={
             200: ''''''

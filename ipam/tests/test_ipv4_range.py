@@ -91,6 +91,19 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         self.assertEqual(iprange['end_address'], int(ipaddress.IPv4Address('127.0.0.255')))
         self.assertEqual(iprange['asn']['number'], 66)
 
+        # query "org_id"
+        query = parse.urlencode(query={'org_id': org1.id})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['results']), 1)
+
+        query = parse.urlencode(query={'org_id': org2.id})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
+        self.assertEqual(len(response.data['results']), 0)
+
         # query "asn"
         query = parse.urlencode(query={'asn': 'a'})
         response = self.client.get(f'{base_url}?{query}')
@@ -169,6 +182,19 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['page_num'], 1)
         self.assertEqual(response.data['page_size'], 20)
         self.assertEqual(len(response.data['results']), 4)
+
+        # query "org_id"
+        query = parse.urlencode(query={'as-admin': '', 'org_id': org1.id})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(len(response.data['results']), 2)
+
+        query = parse.urlencode(query={'as-admin': '', 'org_id': org2.id})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['results']), 1)
 
         # user2
         self.client.logout()

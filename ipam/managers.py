@@ -118,10 +118,16 @@ class IPv4RangeManager:
 
         return qs
 
-    def get_user_queryset(self, asn: int, ipv4_int: int, search: str, user_role: UserIpamRoleWrapper):
+    def get_user_queryset(self, org_id: str, asn: int, ipv4_int: int, search: str, user_role: UserIpamRoleWrapper):
         org_ids = user_role.get_user_org_ids()
         if not org_ids:
             return self.get_queryset().none()
+
+        if org_id:
+            if org_id not in org_ids:
+                return self.get_queryset().none()
+            else:
+                org_ids = [org_id]
 
         return self.filter_queryset(
             org_ids=org_ids, status=IPv4Range.Status.ASSIGNED.value, asn=asn,

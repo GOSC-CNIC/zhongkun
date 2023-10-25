@@ -15,18 +15,20 @@ class IPv4RangeHandler:
         except errors.Error as exc:
             return view.exception_response(exc)
 
+        org_id = data['org_id']
         ur_wrapper = UserIpamRoleWrapper(user=request.user)
         if data['is_admin']:
             if not ur_wrapper.has_kjw_admin_readable():
                 return view.exception_response(
                     errors.AccessDenied(message=_('你没有科技网IP管理功能的管理员权限')))
 
+            org_ids = [org_id] if org_id else None
             queryset = IPv4RangeManager().get_admin_queryset(
-                org_ids=None, status=data['status'], asn=data['asn'], ipv4_int=data['ipv4'], search=data['search']
+                org_ids=org_ids, status=data['status'], asn=data['asn'], ipv4_int=data['ipv4'], search=data['search']
             )
         else:
             queryset = IPv4RangeManager().get_user_queryset(
-                asn=data['asn'], ipv4_int=data['ipv4'], search=data['search'], user_role=ur_wrapper
+                org_id=org_id, asn=data['asn'], ipv4_int=data['ipv4'], search=data['search'], user_role=ur_wrapper
             )
 
         try:
@@ -38,6 +40,7 @@ class IPv4RangeHandler:
 
     @staticmethod
     def _list_ipv4_ranges_validate_params(view: NormalGenericViewSet, request):
+        org_id = request.query_params.get('org_id', None)
         asn = request.query_params.get('asn', None)
         ipv4 = request.query_params.get('ip', None)
         search = request.query_params.get('search', None)
@@ -64,6 +67,7 @@ class IPv4RangeHandler:
                 raise errors.InvalidArgument(message=_('指定的状态参数值无效'))
 
         return {
+            'org_id': org_id,
             'asn': asn,
             'ipv4': int(ipv4) if ipv4 else None,
             'search': search,
