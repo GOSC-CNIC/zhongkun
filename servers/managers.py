@@ -131,7 +131,7 @@ class ServerManager:
                 qs = qs.filter(service_id__in=subq)
 
         if expired is True:
-            qs = qs.filter(expiration_time__lte=timezone.now())
+            qs = qs.filter(expiration_time__lte=timezone.now(), pay_type=PayType.PREPAID.value)
         elif expired is False:
             qs = qs.filter(~Q(expiration_time__lte=timezone.now()))
 

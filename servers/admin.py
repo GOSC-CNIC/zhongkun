@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 from django import forms
 
-from utils.model import NoDeleteSelectModelAdmin
+from utils.model import NoDeleteSelectModelAdmin, PayType
 from .models import Server, Flavor, ServerArchive, Disk, ResourceActionLog, DiskChangeLog
 
 
@@ -56,6 +56,13 @@ class ServerAdmin(NoDeleteSelectModelAdmin):
         Given a model instance delete it from the database.
         """
         raise Exception(_('不允许从后台删除。'))
+
+    def save_model(self, request, obj, form, change):
+        # 按量付费，没有过期时间
+        if obj.pay_type == PayType.POSTPAID.value:
+            obj.expiration_time = None
+
+        super().save_model(request=request, obj=obj, form=form, change=change)
 
 
 @admin.register(ServerArchive)
