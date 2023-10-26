@@ -6,11 +6,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.serializers import Serializer
 
-from link.serializers.leaseline_serializers import LeaseLineSerializer
+from link.serializers.leaseline_serializer import LeaseLineSerializer
 
 from api.viewsets import NormalGenericViewSet
 from drf_yasg import openapi
-from link.handlers.leaseline_handlers import LeaseLineHandler
+from link.handlers.leaseline_handler import LeaseLineHandler
 
 class LeaseLineViewSet(NormalGenericViewSet):
     permission_classes = [IsAuthenticated]
@@ -24,7 +24,7 @@ class LeaseLineViewSet(NormalGenericViewSet):
     )
     def create(self, request, *args, **kwargs):
         """
-        列举租用线路信息
+        创建租用线路信息
 
             http Code 200 Ok:
                 {

@@ -1,9 +1,10 @@
 from django.utils.translation import gettext as _
 from datetime import date
-from link.models import LeaseLine
+from link.models import LeaseLine, Element
 from django.db.models import Q
 from core import errors
-
+from link.managers.element_manager import ElementManager
+from django.db import transaction
 class LeaseLineManager:
     @staticmethod
     def get_queryset():
@@ -12,14 +13,12 @@ class LeaseLineManager:
     @staticmethod
     def get_leaseline(id: str):
         """
-        :raises: TicketNotExist
+        :raises: LeaseLineNotExist
         """
-        print(id)
-        
-        ticket = LeaseLine.objects.filter(id=id).first()
-        if ticket is None:
-            raise errors.BadRequest(message=_('租用线路不存在'), code='LeaseLineNotExist')
-        return ticket
+        leaseline = LeaseLine.objects.filter(id=id).first()
+        if leaseline is None:
+            raise errors.TargetNotExist(message=_('租用线路不存在'), code='LeaseLineNotExist')
+        return leaseline
 
     @staticmethod
     def create_leaseline(
@@ -38,24 +37,30 @@ class LeaseLineManager:
             money: float,
             remarks: str
     ) -> LeaseLine:
-
-        leaseline = LeaseLine(
-            private_line_number=private_line_number,
-            lease_line_code=lease_line_code,
-            line_username=line_username,
-            endpoint_a=endpoint_a,
-            endpoint_z=endpoint_z,
-            line_type=line_type,
-            cable_type=cable_type,
-            bandwidth=bandwidth,
-            length=length,
-            provider=provider,
-            enable_date=enable_date,
-            is_whithdrawal=is_whithdrawal,
-            money=money,
-            remarks=remarks,
-        )
-        leaseline.save(force_insert=True)
+        with transaction.atomic():
+            leaseline_id = LeaseLine().generate_id()
+            #创建网元记录
+            element = ElementManager.create_element(object_id=leaseline_id, object_type=Element.Type.LEASE_LINE)
+            #创建租用线路
+            leaseline = LeaseLine(
+                id = leaseline_id,
+                private_line_number=private_line_number,
+                lease_line_code=lease_line_code,
+                line_username=line_username,
+                endpoint_a=endpoint_a,
+                endpoint_z=endpoint_z,
+                line_type=line_type,
+                cable_type=cable_type,
+                bandwidth=bandwidth,
+                length=length,
+                provider=provider,
+                enable_date=enable_date,
+                is_whithdrawal=is_whithdrawal,
+                money=money,
+                remarks=remarks,
+                element = element
+            )
+            leaseline.save(force_insert=True)
         return leaseline
     
     @staticmethod
