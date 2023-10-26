@@ -66,3 +66,47 @@ class OrganizationTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['page_num'], 2)
         self.assertEqual(response.data['page_size'], 2)
         self.assertEqual(len(response.data['results']), 1)
+
+    def test_org_detail(self):
+        contact1 = Contacts(
+            name='lilei', telephone='12345678', email='', address='beijing',
+            creation_time=dj_timezone.now(), update_time=dj_timezone.now()
+        )
+        contact1.save(force_insert=True)
+        contact2 = Contacts(
+            name='zhangsan', telephone='8612345678', email='zhangsan@@cnic.cn', address='beijing',
+            creation_time=dj_timezone.now(), update_time=dj_timezone.now()
+        )
+        contact2.save(force_insert=True)
+        org1 = DataCenter(name='org1', name_en='org1 en')
+        org1.save(force_insert=True)
+
+        base_url = reverse('api:organization-detail', kwargs={'id': 'test'})
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 401)
+
+        self.client.force_login(self.user1)
+        base_url = reverse('api:organization-detail', kwargs={'id': 'test'})
+        response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.user1.set_federal_admin()
+        base_url = reverse('api:organization-detail', kwargs={'id': 'test'})
+        response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
+
+        base_url = reverse('api:organization-detail', kwargs={'id': org1.id})
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['id', 'name', 'name_en', 'abbreviation', 'creation_time', 'desc', 'longitude', 'latitude',
+                           'sort_weight', 'contacts'], response.data)
+        self.assertIsInstance(response.data['contacts'], list)
+        self.assertEqual(len(response.data['contacts']), 0)
+
+        org1.contacts.add(contact1)
+        base_url = reverse('api:organization-detail', kwargs={'id': org1.id})
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.data['contacts'], list)
+        self.assertEqual(len(response.data['contacts']), 1)
+        self.assertEqual(response.data['contacts'][0]['id'], contact1.id)

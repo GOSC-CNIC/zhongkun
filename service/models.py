@@ -34,6 +34,9 @@ class Contacts(UuidModel):
         verbose_name = _('机构联系人')
         verbose_name_plural = verbose_name
 
+    def __str__(self):
+        return f'[ {self.name} ] Phone: {self.telephone}, Email: {self.email}, Address: {self.address}'
+
 
 class DataCenter(UuidModel):
     STATUS_ENABLE = 1
