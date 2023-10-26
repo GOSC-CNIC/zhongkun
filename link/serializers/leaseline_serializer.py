@@ -1,8 +1,9 @@
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from django.core.validators import MinValueValidator
+from link.serializers.element_serializer import ElementBaseSerializer
 
-class LeaseLineSerializer(serializers.Serializer):
+class LeaseLineSerializer(ElementBaseSerializer):
     id = serializers.CharField(max_length=36, label='ID', read_only=True)
     private_line_number = serializers.CharField(max_length=64, label=_('专线号'), allow_blank=True, allow_null=False, required=True)
     lease_line_code = serializers.CharField(max_length=64, label=_('电路代号'), default='', allow_blank=True, allow_null=True, required=False)

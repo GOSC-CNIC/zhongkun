@@ -13,50 +13,53 @@ class LinkUserRoleAdmin(admin.ModelAdmin):
 class LeaseLineAdmin(admin.ModelAdmin):
     list_display = ['id', 'private_line_number', 'lease_line_code', 'line_username', 'endpoint_a', 'endpoint_z',
                     'line_type', 'cable_type', 'bandwidth', 'length', 'provider', 'enable_date',
-                    'is_whithdrawal', 'money', 'remarks', 'element_link_id', 'create_time', 'update_time']
-    search_fields = ['private_line_number', 'lease_line_code', 'line_username']
+                    'is_whithdrawal', 'money', 'remarks', 'element_id', 'create_time', 'update_time']
+    search_fields = ['id', 'private_line_number', 'lease_line_code', 'line_username']
 
 @admin.register(OpticalFiber)
 class OpticalFiberAdmin(admin.ModelAdmin):
-    list_display = ['id', 'fiber_cable_id', 'sequence', 'element_link_id', 'create_time', 'update_time']
-    search_fields = ['fiber_cable_id']
+    list_display = ['id', 'fiber_cable', 'sequence', 'element_id', 'create_time', 'update_time']
+    search_fields = ['id', 'fiber_cable_id']
 
-@admin.register(Port)
+@admin.register(DistriFramePort)
 class PortAdmin(admin.ModelAdmin):
-    list_display = ['id', 'number', 'model_type', 'detail', 'distribution_frame_id', 'element_link_id'
+    list_display = ['id', 'number', 'row', 'col', 'distribution_frame_id', 'element_id'
                     , 'create_time', 'update_time']
-    search_fields = ['number']
+    search_fields = ['id', 'number']
 
 @admin.register(ConnectorBox)
 class ConnectorBoxAdmin(admin.ModelAdmin):
-    list_display = ['id', 'number', 'place', 'remarks', 'location', 'element_link_id', 'create_time', 'update_time']
-    search_fields = ['number']
+    list_display = ['id', 'number', 'place', 'remarks', 'location', 'element_id', 'create_time', 'update_time']
+    search_fields = ['id', 'number']
 
 @admin.register(FiberCable)
 class FiberCableAdmin(admin.ModelAdmin):
     list_display = ['id', 'number', 'fiber_count', 'length', 'endpoint_1', 'endpoint_2',
-                    'remarks', 'fiber_ids', 'create_time', 'update_time']
-    search_fields = ['number']
+                    'remarks', 'create_time', 'update_time']
+    search_fields = ['id', 'number']
 
 @admin.register(DistributionFrame)
 class DistributionFrameAdmin(admin.ModelAdmin):
-    list_display = ['id', 'device_id', 'model_type', 'size', 'place', 'institution_id', 'remarks', 'create_time', 'update_time']
-    search_fields = ['device_id']
+    list_display = ['id', 'number', 'model_type', 'row_count', 'col_count', 'place', 'link_org', 'remarks', 'create_time', 'update_time']
+    search_fields = ['id', 'number']
 
 @admin.register(LinkOrg)
 class LinkOrgAdmin(admin.ModelAdmin):
-    list_display = ['id', 'name', 'remarks', 'location', 'organization', 'create_time', 'update_time']
-    search_fields = ['device_id']
-    list_select_related = ('organization',)
-    raw_id_fields = ('organization',)
+    list_display = ['id', 'name', 'remarks', 'location', 'data_center', 'create_time', 'update_time']
+    search_fields = ['id', 'name']
 
 @admin.register(ElementLink)
 class ElementLinkAdmin(admin.ModelAdmin):
-    list_display = ['id', 'number', 'serials', 'remarks', 'link_status', 'task_id', 'create_time', 'update_time']
-    search_fields = ['device_id']
+    list_display = ['id', 'number', 'element_ids', 'remarks', 'link_status', 'task_id', 'create_time', 'update_time']
+    search_fields = ['id', 'device_id']
 
 @admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):
     list_display = ['id', 'number', 'user', 'endpoint_a', 'endpoint_z', 'bandwidth', 'task_description',
                     'line_type', 'task_person', 'build_person', 'task_status', 'create_time', 'update_time']
-    search_fields = ['number', 'user']
+    search_fields = ['id', 'number', 'user']
+
+@admin.register(Element)
+class ElementAdmin(admin.ModelAdmin):
+    list_display = ['id', 'object_type', 'object_id', 'create_time', 'update_time']
+    search_fields = ['id', 'object_id']
