@@ -5,6 +5,8 @@ from django.db.models import Q
 from core import errors
 from link.managers.element_manager import ElementManager
 from django.db import transaction
+
+
 class LeaseLineManager:
     @staticmethod
     def get_queryset():
@@ -39,11 +41,11 @@ class LeaseLineManager:
     ) -> LeaseLine:
         with transaction.atomic():
             leaseline_id = LeaseLine().generate_id()
-            #创建网元记录
+            # 创建网元记录
             element = ElementManager.create_element(object_id=leaseline_id, object_type=Element.Type.LEASE_LINE)
-            #创建租用线路
+            # 创建租用线路
             leaseline = LeaseLine(
-                id = leaseline_id,
+                id=leaseline_id,
                 private_line_number=private_line_number,
                 lease_line_code=lease_line_code,
                 line_username=line_username,
@@ -58,11 +60,11 @@ class LeaseLineManager:
                 is_whithdrawal=is_whithdrawal,
                 money=money,
                 remarks=remarks,
-                element = element
+                element=element
             )
             leaseline.save(force_insert=True)
         return leaseline
-    
+
     @staticmethod
     def update_leaseline(
             leaseline: LeaseLine,
@@ -81,23 +83,23 @@ class LeaseLineManager:
             money: float,
             remarks: str
     ) -> LeaseLine:
-        leaseline.private_line_number=private_line_number
-        leaseline.lease_line_code=lease_line_code
-        leaseline.line_username=line_username
-        leaseline.endpoint_a=endpoint_a
-        leaseline.endpoint_z=endpoint_z
-        leaseline.line_type=line_type
-        leaseline.cable_type=cable_type
-        leaseline.bandwidth=bandwidth
-        leaseline.length=length
-        leaseline.provider=provider
-        leaseline.enable_date=enable_date
-        leaseline.is_whithdrawal=is_whithdrawal
-        leaseline.money=money
-        leaseline.remarks=remarks
+        leaseline.private_line_number = private_line_number
+        leaseline.lease_line_code = lease_line_code
+        leaseline.line_username = line_username
+        leaseline.endpoint_a = endpoint_a
+        leaseline.endpoint_z = endpoint_z
+        leaseline.line_type = line_type
+        leaseline.cable_type = cable_type
+        leaseline.bandwidth = bandwidth
+        leaseline.length = length
+        leaseline.provider = provider
+        leaseline.enable_date = enable_date
+        leaseline.is_whithdrawal = is_whithdrawal
+        leaseline.money = money
+        leaseline.remarks = remarks
         leaseline.save(force_update=True)
         return leaseline
-    
+
     @staticmethod
     def filter_queryset(is_whithdrawal: bool = None,  search: str = None, enable_date_start: date = None, enable_date_end: date = None):
         qs = LeaseLineManager.get_queryset()

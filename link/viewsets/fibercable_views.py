@@ -4,13 +4,16 @@ from api.paginations import NewPageNumberPagination
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.permissions import IsAuthenticated
 from link.handlers.fibercable_handler import FiberCableHandler
-from link.serializers.fibercable_serializer import FiberCableSerializer
+from link.serializers.fibercable_serializer import FiberCableSerializer, OpticalFiberSerializer
 from drf_yasg import openapi
+from rest_framework.decorators import action
+
 
 class FiberCableViewSet(NormalGenericViewSet):
     permission_classes = [IsAuthenticated]
     pagination_class = NewPageNumberPagination
     lookup_field = 'id'
+
     @swagger_auto_schema(
         operation_summary=gettext_lazy('创建光缆'),
         responses={
@@ -34,7 +37,7 @@ class FiberCableViewSet(NormalGenericViewSet):
 
         """
         return FiberCableHandler.creat_fibercable(view=self, request=request)
-    
+
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举光缆'),
         manual_parameters=[
@@ -75,6 +78,41 @@ class FiberCableViewSet(NormalGenericViewSet):
         """
         return FiberCableHandler.list_fibercable(view=self, request=request)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举光缆的光纤详情'),
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['get'], detail=True, url_path='opticalfiber', url_name='list-opticalfiber')
+    def list_opticalfiber(self, request, *args, **kwargs):
+        """
+        列举光缆的光纤信息
+
+            http Code 200 Ok:
+                {
+                    "count": 2,
+                    "page_num": 1,
+                    "page_size": 20,
+                    "results": [
+                        {
+                            "is_linked": false,
+                            "id": "k9rzvhvs77b6qbny7qivdmc9x",
+                            "sequence": 1
+                        },
+                        {
+                            "is_linked": false,
+                            "id": "k9tb77x4301025oooh0ur0bv7",
+                            "sequence": 2
+                        }
+                    ]
+                }
+
+        """
+
+        return FiberCableHandler.list_opticalfiber(view=self, request=request, kwargs=kwargs)
 
     def get_serializer_class(self):
+        if self.action == 'list_opticalfiber':
+            return OpticalFiberSerializer
         return FiberCableSerializer

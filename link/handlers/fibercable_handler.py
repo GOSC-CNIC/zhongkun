@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from link.serializers.fibercable_serializer import FiberCableSerializer
 from link.utils.verify_utils import VerifyUtils
 
+
 class FiberCableHandler:
     @staticmethod
     def creat_fibercable(view: NormalGenericViewSet, request):
@@ -28,7 +29,7 @@ class FiberCableHandler:
             remarks=data['remarks']
         )
         return Response(data=FiberCableSerializer(instance=fibercable).data)
-    
+
     @staticmethod
     def _create_validate_params(view: NormalGenericViewSet, request):
         """
@@ -41,7 +42,7 @@ class FiberCableHandler:
 
         data = serializer.validated_data
         return data
-    
+
     @staticmethod
     def list_fibercable(view: NormalGenericViewSet, request):
         ur_wrapper = UserRoleWrapper(user=request.user)
@@ -52,6 +53,36 @@ class FiberCableHandler:
         except errors.Error as exc:
             return view.exception_response(exc)
         queryset = FiberCableManager.filter_queryset(search=params['search'])
+        try:
+            datas = view.paginate_queryset(queryset)
+            serializer = view.get_serializer(instance=datas, many=True)
+            return view.get_paginated_response(serializer.data)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+    @staticmethod
+    def _list_fibercable_validate_params(request):
+        search = request.query_params.get('search', None)
+
+        if VerifyUtils.is_blank_string(search):
+            search = None
+
+        return {
+            'search': search
+        }
+
+    @staticmethod
+    def list_opticalfiber(view: NormalGenericViewSet, request, kwargs):
+        ur_wrapper = UserRoleWrapper(user=request.user)
+        if not ur_wrapper.has_read_permission():
+            return view.exception_response(errors.AccessDenied(message=_('你没有科技网链路管理功能的可读权限')))
+        try:
+            fibercable = FiberCableManager.get_fibercable(
+                id=kwargs[view.lookup_field])
+        except errors.Error as exc:
+            return view.exception_response(exc)
+        queryset = FiberCableManager.get_opticalfiber_queryset(
+            fibercable=fibercable)
         try:
             datas = view.paginate_queryset(queryset)
             serializer = view.get_serializer(instance=datas, many=True)

@@ -2,6 +2,7 @@ from django.utils.translation import gettext as _
 from link.models import Element
 from core import errors
 
+
 class ElementManager:
     @staticmethod
     def get_queryset():
@@ -15,7 +16,7 @@ class ElementManager:
         if element is None:
             raise errors.TargetNotExist(message=_('网元不存在'), code='ElementNotExist')
         return element
-    
+
     @staticmethod
     def get_element_by_object(
             object_type: str,
@@ -25,7 +26,7 @@ class ElementManager:
         if element is None:
             raise errors.TargetNotExist(message=_('网元不存在'), code='ElementNotExist')
         return element
-    
+
     @staticmethod
     def create_element(
             object_id: str,
@@ -37,4 +38,3 @@ class ElementManager:
         )
         element.save(force_insert=True)
         return element
-    
