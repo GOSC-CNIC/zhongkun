@@ -13,23 +13,23 @@ class LinkUserRoleAdmin(admin.ModelAdmin):
 class LeaseLineAdmin(admin.ModelAdmin):
     list_display = ['id', 'private_line_number', 'lease_line_code', 'line_username', 'endpoint_a', 'endpoint_z',
                     'line_type', 'cable_type', 'bandwidth', 'length', 'provider', 'enable_date',
-                    'is_whithdrawal', 'money', 'remarks', 'element_id', 'create_time', 'update_time']
+                    'is_whithdrawal', 'money', 'remarks', 'element', 'create_time', 'update_time']
     search_fields = ['id', 'private_line_number', 'lease_line_code', 'line_username']
 
 @admin.register(OpticalFiber)
 class OpticalFiberAdmin(admin.ModelAdmin):
-    list_display = ['id', 'fiber_cable', 'sequence', 'element_id', 'create_time', 'update_time']
-    search_fields = ['id', 'fiber_cable_id']
+    list_display = ['id', 'fiber_cable', 'sequence', 'element', 'create_time', 'update_time']
+    search_fields = ['id']
 
 @admin.register(DistriFramePort)
-class PortAdmin(admin.ModelAdmin):
-    list_display = ['id', 'number', 'row', 'col', 'distribution_frame_id', 'element_id'
+class DistriFramePortAdmin(admin.ModelAdmin):
+    list_display = ['id', 'number', 'row', 'col', 'distribution_frame', 'element'
                     , 'create_time', 'update_time']
     search_fields = ['id', 'number']
 
 @admin.register(ConnectorBox)
 class ConnectorBoxAdmin(admin.ModelAdmin):
-    list_display = ['id', 'number', 'place', 'remarks', 'location', 'element_id', 'create_time', 'update_time']
+    list_display = ['id', 'number', 'place', 'remarks', 'location', 'element', 'create_time', 'update_time']
     search_fields = ['id', 'number']
 
 @admin.register(FiberCable)
@@ -50,7 +50,7 @@ class LinkOrgAdmin(admin.ModelAdmin):
 
 @admin.register(ElementLink)
 class ElementLinkAdmin(admin.ModelAdmin):
-    list_display = ['id', 'number', 'element_ids', 'remarks', 'link_status', 'task_id', 'create_time', 'update_time']
+    list_display = ['id', 'number', 'element_ids', 'remarks', 'link_status', 'task', 'create_time', 'update_time']
     search_fields = ['id', 'device_id']
 
 @admin.register(Task)

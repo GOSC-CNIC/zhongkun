@@ -110,7 +110,6 @@ class LeaseLineManager:
 
         if enable_date_end:
             lookups['enable_date__lte'] = enable_date_end
-
         qs = qs.filter(**lookups)
         if search:
             q = Q(private_line_number__icontains=search) | Q(lease_line_code__icontains=search) | Q(line_username__icontains=search) \

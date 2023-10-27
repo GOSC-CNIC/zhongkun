@@ -61,6 +61,7 @@ class FiberCable(UuidModel):
     update_time = models.DateTimeField(verbose_name=_('更新时间'), auto_now=True)
 
     class Meta:
+        ordering = ('-update_time',)
         db_table = 'link_fiber_cable'
         verbose_name = _('光缆')
         verbose_name_plural = verbose_name
@@ -84,6 +85,7 @@ class DistributionFrame(UuidModel):
     update_time = models.DateTimeField(verbose_name=_('更新时间'), auto_now=True)
 
     class Meta:
+        ordering = ('-update_time',)
         db_table = 'link_distribution_frame'
         verbose_name = _('配线架')
         verbose_name_plural = verbose_name
@@ -98,7 +100,7 @@ class Element(UuidModel):
         """网元类型"""
         OPTICAL_FIBER = 'optical-fiber', _('光纤')
         LEASE_LINE = 'lease-line', _('租用线路')
-        PORT = 'distributionframe-port', _('配线架端口')
+        DISTRIFRAME_PORT = 'distributionframe-port', _('配线架端口')
         CONNECTOR_BOX = 'connector-box', _('光缆接头盒')
 
     object_type = models.CharField(verbose_name=_('网元对象类型'), max_length=32, choices=Type.choices)
@@ -107,6 +109,7 @@ class Element(UuidModel):
     update_time = models.DateTimeField(verbose_name=_('更新时间'), auto_now=True)
 
     class Meta:
+        ordering = ('-create_time',)
         db_table = 'link_element'
         verbose_name = _('网元汇总表')
         verbose_name_plural = verbose_name
@@ -169,6 +172,7 @@ class OpticalFiber(ElementBase):
     update_time = models.DateTimeField(verbose_name=_('更新时间'), auto_now=True)
 
     class Meta:
+        ordering = ('sequence',)
         db_table = 'link_optical_fiber'
         verbose_name = _('光纤')
         verbose_name_plural = verbose_name
@@ -189,6 +193,7 @@ class DistriFramePort(ElementBase):
     update_time = models.DateTimeField(verbose_name=_('更新时间'), auto_now=True)
 
     class Meta:
+        ordering = ('row', 'col',)
         db_table = 'link_distriframe_port'
         verbose_name = _('配线架端口')
         verbose_name_plural = verbose_name
@@ -207,6 +212,7 @@ class ConnectorBox(ElementBase):
     update_time = models.DateTimeField(verbose_name=_('更新时间'), auto_now=True)
 
     class Meta:
+        ordering = ('-update_time',)
         db_table = 'link_connector_box'
         verbose_name = _('光缆接头盒')
         verbose_name_plural = verbose_name
@@ -236,6 +242,7 @@ class Task(UuidModel):
     update_time = models.DateTimeField(verbose_name=_('更新时间'), auto_now=True)
 
     class Meta:
+        ordering = ('-update_time',)
         db_table = 'link_task'
         verbose_name = _('业务')
         verbose_name_plural = verbose_name
@@ -263,6 +270,7 @@ class ElementLink(UuidModel):
     update_time = models.DateTimeField(verbose_name=_('更新时间'), auto_now=True)
 
     class Meta:
+        ordering = ('-update_time',)
         db_table = 'link_element_link'
         verbose_name = _('链路')
         verbose_name_plural = verbose_name

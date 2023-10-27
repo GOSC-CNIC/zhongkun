@@ -13,7 +13,7 @@ from .apiviews import (
 )
 from monitor import monitor_views, log_views
 from ipam.viewsets import ipv4_views
-from link.viewsets import leaseline_views
+from link.viewsets import leaseline_views, fibercable_views
 
 app_name = 'api'
 
@@ -115,7 +115,7 @@ no_slash_router.register(r'report/storage/stats/monthly', report_storage_views.S
 no_slash_router.register(r'ipam/ipv4range', ipv4_views.IPv4RangeViewSet, basename='ipam-ipv4range')
 no_slash_router.register(r'ipam/user/role', ipv4_views.IPAMUserRoleViewSet, basename='ipam-userrole')
 no_slash_router.register(r'link/leaseline', leaseline_views.LeaseLineViewSet, basename='link-leaseline')
-
+no_slash_router.register(r'link/fibercable', fibercable_views.FiberCableViewSet, basename='link-fibercable')
 
 urlpatterns = [
     path('', include(no_slash_router.urls)),

@@ -1,5 +1,4 @@
 from django.utils.translation import gettext as _
-
 from api.viewsets import NormalGenericViewSet
 from datetime import date
 from link.managers.userrole_manager import UserRoleWrapper
@@ -8,7 +7,7 @@ from core import errors
 from api.handlers.handlers import serializer_error_msg
 from rest_framework.response import Response
 from link.serializers.leaseline_serializer import LeaseLineSerializer
-
+from link.utils.verify_utils import VerifyUtils
 class LeaseLineHandler:
     @staticmethod
     def creat_leaseline(view: NormalGenericViewSet, request):
@@ -106,6 +105,9 @@ class LeaseLineHandler:
         search = request.query_params.get('search', None)
         enable_date_start = request.query_params.get('enable_date_start', None)
         enable_date_end = request.query_params.get('enable_date_end', None)
+        
+        if VerifyUtils.is_blank_string(search):
+            search = None
 
         if is_whithdrawal:
             is_whithdrawal = is_whithdrawal.lower()
