@@ -12,10 +12,12 @@ from api.viewsets import NormalGenericViewSet
 from drf_yasg import openapi
 from link.handlers.leaseline_handler import LeaseLineHandler
 
+
 class LeaseLineViewSet(NormalGenericViewSet):
     permission_classes = [IsAuthenticated]
     pagination_class = NewPageNumberPagination
     lookup_field = 'id'
+
     @swagger_auto_schema(
         operation_summary=gettext_lazy('创建租用线路'),
         responses={
@@ -179,7 +181,6 @@ class LeaseLineViewSet(NormalGenericViewSet):
                 }
         """
         return LeaseLineHandler.retrieve_leaseline(view=self, request=request, kwargs=kwargs)
-
 
     def get_serializer_class(self):
         # if self.action in ['create']:

@@ -8,6 +8,8 @@ from api.handlers.handlers import serializer_error_msg
 from rest_framework.response import Response
 from link.serializers.leaseline_serializer import LeaseLineSerializer
 from link.utils.verify_utils import VerifyUtils
+
+
 class LeaseLineHandler:
     @staticmethod
     def creat_leaseline(view: NormalGenericViewSet, request):
@@ -36,7 +38,7 @@ class LeaseLineHandler:
             remarks=data['remarks']
         )
         return Response(data=LeaseLineSerializer(instance=leaseline).data)
-    
+
     @staticmethod
     def _create_validate_params(view: NormalGenericViewSet, request):
         """
@@ -49,7 +51,7 @@ class LeaseLineHandler:
 
         data = serializer.validated_data
         return data
-    
+
     @staticmethod
     def update_leaseline(view: NormalGenericViewSet, request, kwargs):
         ur_wrapper = UserRoleWrapper(user=request.user)
@@ -79,7 +81,7 @@ class LeaseLineHandler:
             remarks=data['remarks']
         )
         return Response(data=LeaseLineSerializer(instance=leaseline).data)
-    
+
     @staticmethod
     def list_leaseline(view: NormalGenericViewSet, request):
         ur_wrapper = UserRoleWrapper(user=request.user)
@@ -105,7 +107,7 @@ class LeaseLineHandler:
         search = request.query_params.get('search', None)
         enable_date_start = request.query_params.get('enable_date_start', None)
         enable_date_end = request.query_params.get('enable_date_end', None)
-        
+
         if VerifyUtils.is_blank_string(search):
             search = None
 
@@ -151,4 +153,3 @@ class LeaseLineHandler:
         except errors.Error as exc:
             return view.exception_response(exc)
         return Response(data=LeaseLineSerializer(instance=leaseline).data)
-    

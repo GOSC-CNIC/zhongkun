@@ -65,6 +65,8 @@ class LeaseLineTests(MyAPITransactionTestCase):
             'money':'300.20',
             'remarks':'电路编号：中科院广州化学有限公司-科学城2数据机房0F0001NP'
             }
+        
+        # user role 
         response = self.client.post(base_url, data=data)
         self.assertEqual(response.status_code, 401)
         self.client.force_login(self.user1)
@@ -76,6 +78,8 @@ class LeaseLineTests(MyAPITransactionTestCase):
         self.client.force_login(self.user3)
         response = self.client.post(base_url, data=data)
         self.assertEqual(response.status_code, 200)
+        
+        # data
         leaseline = response.data
         self.assertKeysIn([
             'id', 'private_line_number', 'lease_line_code', 'line_username', 'endpoint_a', 'endpoint_z',
@@ -90,6 +94,7 @@ class LeaseLineTests(MyAPITransactionTestCase):
         self.assertEqual(leaseline.element.element_leaseline.id, leaseline.id)
 
     def test_list(self):
+        # user role 
         base_url = reverse('api:link-leaseline-list')
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 401)
@@ -102,6 +107,8 @@ class LeaseLineTests(MyAPITransactionTestCase):
         self.client.force_login(self.user3)
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
+
+        # data
         self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)
         self.assertEqual(response.data['count'], 2)
         self.assertEqual(response.data['page_num'], 1)
@@ -189,7 +196,6 @@ class LeaseLineTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['results'][0]['is_linked'], True)
         self.assertEqual(response.data['results'][1]['is_linked'], True)
 
-
     def test_update(self):       
         base_url = reverse('api:link-leaseline-update-leaseline', kwargs={'id': 'test'})
         data = {
@@ -208,6 +214,8 @@ class LeaseLineTests(MyAPITransactionTestCase):
             'money':'300.20',
             'remarks':'电路编号：中科院广州化学有限公司-科学城2数据机房0F0001NP'
             }
+        
+        # user role
         response = self.client.post(base_url, data=data)
         self.assertEqual(response.status_code, 401)
         self.client.force_login(self.user1)
@@ -218,12 +226,15 @@ class LeaseLineTests(MyAPITransactionTestCase):
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
         self.client.force_login(self.user3)
         response = self.client.post(base_url, data=data)
+
+        # LeaseLineNotExist
         self.assertErrorResponse(status_code=404, code='LeaseLineNotExist', response=response)
-        
         id = LeaseLine.objects.all().first().id
         base_url = reverse('api:link-leaseline-update-leaseline', kwargs={'id': id})
         response = self.client.post(base_url, data=data)
         self.assertEqual(response.status_code, 200)
+
+        # data
         leaseline = response.data
         self.assertKeysIn([
             'id', 'private_line_number', 'lease_line_code', 'line_username', 'endpoint_a', 'endpoint_z',
@@ -236,7 +247,3 @@ class LeaseLineTests(MyAPITransactionTestCase):
         self.assertEqual(leaseline.element.object_type, Element.Type.LEASE_LINE)
         self.assertEqual(leaseline.element.object_id, leaseline.id)
 
-    #     self.service.save(update_fields=['pay_app_service_id'])
-
-    # def test_list(self):
-    #     print("list", LeaseLine.objects.all())

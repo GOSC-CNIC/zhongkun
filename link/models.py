@@ -5,6 +5,7 @@ from core import errors as exceptions
 from users.models import UserProfile
 from service.models import DataCenter
 
+
 class LinkUserRole(UuidModel):
     """链路用户角色和权限"""
     user = models.OneToOneField(
@@ -15,7 +16,6 @@ class LinkUserRole(UuidModel):
         verbose_name=_('链路只读权限'), default=False, help_text=_('用户拥有科技网链路管理功能的全局只读权限'))
     create_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
     update_time = models.DateTimeField(verbose_name=_('更新时间'), auto_now=True)
-
 
     class Meta:
         ordering = ('-create_time',)
@@ -47,7 +47,8 @@ class LinkOrg(UuidModel):
 
     def __str__(self):
         return self.name
-    
+
+
 class FiberCable(UuidModel):
     """光缆"""
 
@@ -68,7 +69,8 @@ class FiberCable(UuidModel):
 
     def __str__(self):
         return self.number
-    
+
+
 class DistributionFrame(UuidModel):
     """配线架"""
 
@@ -89,10 +91,11 @@ class DistributionFrame(UuidModel):
         db_table = 'link_distribution_frame'
         verbose_name = _('配线架')
         verbose_name_plural = verbose_name
-    
+
     def __str__(self):
         return self.number
-    
+
+
 class Element(UuidModel):
     """网元汇总表"""
 
@@ -117,15 +120,17 @@ class Element(UuidModel):
     def __str__(self):
         return self.object_type + ':' + self.object_id
 
+
 class ElementBase(UuidModel):
     """网元对象基类"""
 
     element = models.OneToOneField(
-        verbose_name=_('网元记录'), to=Element, related_name='element_%(class)s', db_constraint=False,
-        on_delete=models.SET_NULL, null=True, default=None)
-    
+        verbose_name=_('网元记录'), to=Element, related_name='element_%(class)s', 
+        db_constraint=False, on_delete=models.SET_NULL, null=True, default=None)
+
     class Meta:
         abstract = True
+
 
 class LeaseLine(ElementBase):
     """租用线路"""
@@ -134,7 +139,7 @@ class LeaseLine(ElementBase):
         """租线状态"""
         ENABLE = 'enable', _('在网')
         DISABLE = 'disable', _('撤线')
-        
+
     private_line_number = models.CharField(verbose_name=_('专线号'), max_length=64, blank=True, default='')
     lease_line_code = models.CharField(verbose_name=_('电路代号'), max_length=64, blank=True, default='')
     line_username = models.CharField(verbose_name=_('专线用户'), max_length=36, blank=True, default='')
@@ -161,6 +166,7 @@ class LeaseLine(ElementBase):
     def __str__(self):
         return self.private_line_number
 
+
 class OpticalFiber(ElementBase):
     """光纤"""
 
@@ -179,6 +185,7 @@ class OpticalFiber(ElementBase):
 
     def __str__(self):
         return self.fiber_cable.number + ':' + str(self.sequence)
+
 
 class DistriFramePort(ElementBase):
     """配线架端口"""
@@ -201,6 +208,7 @@ class DistriFramePort(ElementBase):
     def __str__(self):
         return self.number
 
+
 class ConnectorBox(ElementBase):
     """光缆接头盒"""
 
@@ -219,6 +227,7 @@ class ConnectorBox(ElementBase):
 
     def __str__(self):
         return self.number
+
 
 class Task(UuidModel):
     """业务"""
@@ -248,7 +257,6 @@ class Task(UuidModel):
         verbose_name_plural = verbose_name
 
 
-    
 class ElementLink(UuidModel):
     """链路"""
 
@@ -274,4 +282,3 @@ class ElementLink(UuidModel):
         db_table = 'link_element_link'
         verbose_name = _('链路')
         verbose_name_plural = verbose_name
-
