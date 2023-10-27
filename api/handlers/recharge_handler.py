@@ -6,9 +6,8 @@ from django.db import transaction
 from rest_framework.response import Response
 
 from core import errors
-from api.viewsets import TradeGenericViewSet
+from api.viewsets import TradeGenericViewSet, serializer_error_msg
 from api.serializers import trade as trade_serializers
-from api.handlers import serializer_error_msg
 from bill.models import Recharge
 from bill.managers.recharge import RechargeManager
 from bill.managers.payment import PaymentManager

@@ -9,7 +9,7 @@ from rest_framework import viewsets
 from drf_yasg.utils import swagger_auto_schema
 
 from api.serializers import email as eamil_serializers
-from api.handlers.handlers import serializer_error_msg
+from api.viewsets import serializer_error_msg
 from utils import get_remote_ip
 from utils.paginators import NoPaginatorInspector
 from core import errors

@@ -43,6 +43,15 @@ class IPv4RangeSerializer(serializers.Serializer):
         return None
 
 
+class IPv4RangeCreateSerializer(serializers.Serializer):
+    name = serializers.CharField(label=_('名称'), max_length=255, allow_blank=True, default='')
+    start_address = serializers.CharField(label=_('起始地址'), required=True)
+    end_address = serializers.CharField(label=_('截止地址'), required=True)
+    mask_len = serializers.IntegerField(label=_('子网掩码长度'), required=True, min_value=0, max_value=32)
+    asn = serializers.IntegerField(label=_('AS编号'), required=True, min_value=0, max_value=65535)
+    admin_remark = serializers.CharField(label=_('科技网管理员备注信息'), max_length=255, default='')
+
+
 class IPAMUserRoleSerializer(serializers.Serializer):
     id = serializers.CharField(label='ID', read_only=True)
     is_admin = serializers.BooleanField(

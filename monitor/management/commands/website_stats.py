@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.db.models import Count
 
-from monitor.models import MonitorWebsite
+from monitor.models import MonitorWebsite, MonitorWebsiteTask
 
 
 class Command(BaseCommand):
@@ -15,10 +15,13 @@ class Command(BaseCommand):
             total_task_count=Count('url_hash', distinct=True),
             total_user_count=Count('user_id', distinct=True)
         )
+        task_count = MonitorWebsiteTask.objects.count()
 
         s = f"""
             total user task count = {r['total_count']}; 
             total task count = {r['total_task_count']}; 
-            total user count = {r['total_user_count']}
+            total user count = {r['total_user_count']};
+
+            task table count = {task_count}; 
         """
         print(s)

@@ -10,6 +10,12 @@ from core import errors
 from .models import IPv4Range, IPAMUserRole, OrgVirtualObject, ASN, ipv4_str_to_int
 
 
+def get_or_create_asn(number: int):
+    asn, created = ASN.objects.get_or_create(
+        number=number, defaults={'name': f'AS{number}', 'creation_time': dj_timezone.now()})
+    return asn
+
+
 class UserIpamRoleWrapper:
     def __init__(self, user):
         self.user = user
@@ -140,22 +146,38 @@ class IPv4RangeManager:
     @staticmethod
     def create_ipv4_range(
             name: str, start_ip: Union[str, int], end_ip: Union[str, int], mask_len: int,
-            create_time: datetime, update_time: datetime, asn: ASN, status_code: str,
-            org_virt_obj: Union[OrgVirtualObject, None], admin_remark: str, remark: str, assigned_time=None
+            asn: Union[ASN, int], status_code: str, org_virt_obj: Union[OrgVirtualObject, None],
+            admin_remark: str, remark: str,
+            create_time: Union[datetime, None], update_time: Union[datetime, None], assigned_time=None
     ):
         """
         :return: IPv4Range
         :raises: ValidationError
         """
-        start_int = ipv4_str_to_int(ipv4=start_ip)
-        end_int = ipv4_str_to_int(ipv4=end_ip)
-        mask_len = int(mask_len)
+        if isinstance(start_ip, int):
+            start_int = start_ip
+        else:
+            start_int = ipv4_str_to_int(ipv4=start_ip)
 
+        if isinstance(end_ip, int):
+            end_int = end_ip
+        else:
+            end_int = ipv4_str_to_int(ipv4=end_ip)
+
+        mask_len = int(mask_len)
         if not (0 <= mask_len <= 32):
             raise errors.ValidationError(message=_('子网掩码长度无效，取值范围为0-32'))
 
         if status_code not in IPv4Range.Status.values:
             raise errors.ValidationError(message=_('IP地址段的状态值无效'))
+
+        if isinstance(asn, int):
+            asn = get_or_create_asn(number=asn)
+
+        if create_time is None:
+            create_time = dj_timezone.now()
+        if update_time is None:
+            update_time = create_time
 
         ip_range = IPv4Range(
             name=name,
@@ -171,12 +193,12 @@ class IPv4RangeManager:
             remark=remark
         )
         if not ip_range.name:
-            ip_range.name = str(ip_range.start_address_network())
+            ip_range.name = str(ip_range.start_address_network)
 
         try:
             ip_range.clean()
         except ValidationError as exc:
-            raise errors.ValidationError(message=str(exc))
+            raise errors.ValidationError(message=exc.messages[0])
 
         ip_range.save(force_insert=True)
         return ip_range

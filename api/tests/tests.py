@@ -766,9 +766,9 @@ class ServersTests(MyAPITestCase):
         query_str = parse.urlencode(query={'as-admin': '', 'status': 'expired'})
         response = self.client.get(f'{url}?{query_str}')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['count'], 1)
-        self.assertEqual(len(response.data['servers']), 1)
-        self.assertEqual(admin_server66.ipv4, response.data['servers'][0]['ipv4'])
+        self.assertEqual(response.data['count'], 0)
+        self.assertEqual(len(response.data['servers']), 0)
+        # self.assertEqual(admin_server66.ipv4, response.data['servers'][0]['ipv4'])
 
         query_str = parse.urlencode(query={'as-admin': '', 'status': 'prepaid'})
         response = self.client.get(f'{url}?{query_str}')

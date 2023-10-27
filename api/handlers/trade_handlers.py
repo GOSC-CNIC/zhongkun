@@ -7,8 +7,7 @@ from rest_framework.response import Response
 from core import errors
 from core.aai.authentication import CreateUserJWTAuthentication
 from core.aai.jwt import JWTInvalidError
-from api.viewsets import PaySignGenericViewSet
-from api.handlers import serializer_error_msg
+from api.viewsets import PaySignGenericViewSet, serializer_error_msg
 from api.serializers.serializers import PaymentHistorySerializer
 from api.serializers import trade as trade_serializers
 from bill.managers.payment import PaymentManager

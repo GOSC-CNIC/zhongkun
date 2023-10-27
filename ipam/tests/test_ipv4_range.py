@@ -251,6 +251,131 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['count'], 2)
         self.assertEqual(len(response.data['results']), 2)
 
+    def test_create_ipv4_range(self):
+        base_url = reverse('api:ipam-ipv4range-list')
+        response = self.client.post(base_url, data={
+            'name': '', 'start_address': '', 'end_address': '', 'mask_len': 24,
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertEqual(response.status_code, 401)
+
+        self.client.force_login(self.user1)
+        response = self.client.post(base_url, data={
+            'name': 'test', 'start_address': '10.0.0.0', 'end_address': '10.0.1.255', 'mask_len': 24,
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # start_address
+        response = self.client.post(base_url, data={
+            'name': 'test', 'start_address': '10.0.0.256', 'end_address': '10.0.1.255', 'mask_len': 24,
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # end_address
+        response = self.client.post(base_url, data={
+            'name': 'test', 'start_address': '10.0.0.1', 'end_address': '10.0.1.256', 'mask_len': 24,
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # mask_len 0-32
+        response = self.client.post(base_url, data={
+            'name': 'test', 'start_address': '10.0.0.1', 'end_address': '10.0.1.255', 'mask_len': 33,
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # asn 0-65535
+        response = self.client.post(base_url, data={
+            'name': 'test', 'start_address': '10.0.0.1', 'end_address': '10.0.1.255', 'mask_len': 24,
+            'asn': 65536, 'admin_remark': 'remark test'
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # AccessDenied
+        response = self.client.post(base_url, data={
+            'name': 'test', 'start_address': '10.0.1.1', 'end_address': '10.0.0.255', 'mask_len': 24,
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        u1_role_wrapper = UserIpamRoleWrapper(user=self.user1)
+        u1_role_wrapper.user_role.is_readonly = True
+        u1_role_wrapper.user_role.save(update_fields=['is_readonly'])
+        response = self.client.post(base_url, data={
+            'name': 'test', 'start_address': '10.0.1.1', 'end_address': '10.0.0.255', 'mask_len': 24,
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+        u1_role_wrapper = UserIpamRoleWrapper(user=self.user1)
+        u1_role_wrapper.user_role.is_readonly = False
+        u1_role_wrapper.user_role.is_admin = True
+        u1_role_wrapper.user_role.save(update_fields=['is_readonly', 'is_admin'])
+
+        # start_address > end_address
+        response = self.client.post(base_url, data={
+            'name': 'test', 'start_address': '10.0.1.1', 'end_address': '10.0.0.255', 'mask_len': 24,
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # start_address, end_address, mask_len, not in same network
+        response = self.client.post(base_url, data={
+            'name': 'test', 'start_address': '10.0.0.1', 'end_address': '10.0.1.255', 'mask_len': 24,
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        response = self.client.post(base_url, data={
+            'name': 'test', 'start_address': '10.0.0.1', 'end_address': '10.0.0.255', 'mask_len': 25,
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # ok
+        response = self.client.post(base_url, data={
+            'name': 'test', 'start_address': '10.0.0.1', 'end_address': '10.0.0.255', 'mask_len': 24,
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['id', 'name', 'creation_time', 'status', 'update_time', 'assigned_time', 'admin_remark',
+                           'remark', 'start_address', 'end_address', 'mask_len', 'asn', 'org_virt_obj'], response.data)
+        iprange = IPv4Range.objects.get(id=response.data['id'])
+        self.assertEqual(iprange.start_address, int(ipaddress.IPv4Address('10.0.0.1')))
+        self.assertEqual(iprange.end_address, int(ipaddress.IPv4Address('10.0.0.255')))
+        self.assertEqual(iprange.mask_len, 24)
+        self.assertEqual(iprange.status, IPv4Range.Status.WAIT.value)
+        self.assertEqual(iprange.asn.number, 88)
+        self.assertEqual(iprange.name, 'test')
+
+        # 存在重叠
+        response = self.client.post(base_url, data={
+            'name': 'test', 'start_address': '10.0.0.1', 'end_address': '10.0.0.200', 'mask_len': 24,
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        response = self.client.post(base_url, data={
+            'name': 'test', 'start_address': '10.0.0.100', 'end_address': '10.0.1.1', 'mask_len': 24,
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        response = self.client.post(base_url, data={
+            'name': 'test', 'start_address': '10.0.0.255', 'end_address': '10.0.1.255', 'mask_len': 24,
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # ok
+        response = self.client.post(base_url, data={
+            'name': '', 'start_address': '10.0.1.1', 'end_address': '10.0.1.255', 'mask_len': 24,
+            'asn': 88, 'admin_remark': ''
+        })
+        self.assertEqual(response.status_code, 200)
+
 
 class IPAMUserRoleTests(MyAPITransactionTestCase):
     def setUp(self):

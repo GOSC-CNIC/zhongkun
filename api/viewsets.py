@@ -38,6 +38,36 @@ def str_to_int_or_default(val, default):
         return default
 
 
+def serializer_error_msg(errors, default=''):
+    """
+    获取一个错误信息
+
+    :param errors: serializer.errors
+    :param default:
+    :return:
+        str
+    """
+    msg = default
+    try:
+        if isinstance(errors, list):
+            for err in errors:
+                msg = str(err)
+                break
+        elif isinstance(errors, dict):
+            for key in errors:
+                val = errors[key]
+                if isinstance(val, list):
+                    msg = f'{key}, {str(val[0])}'
+                else:
+                    msg = f'{key}, {str(val)}'
+
+                break
+    except Exception:
+        pass
+
+    return msg
+
+
 def exception_handler(exc, context):
     """
     Returns the response that should be used for any given exception.

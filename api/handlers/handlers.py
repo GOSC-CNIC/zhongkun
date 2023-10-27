@@ -17,41 +17,11 @@ from utils import time
 from utils.model import OwnerType
 from core import errors as exceptions
 from api.serializers import serializers
-from api.viewsets import CustomGenericViewSet
+from api.viewsets import CustomGenericViewSet, serializer_error_msg
 from servers.managers import ServerManager, DiskManager
 from order.managers import OrderManager
 from bill.models import CashCoupon
 from bill.managers import PaymentManager
-
-
-def serializer_error_msg(errors, default=''):
-    """
-    获取一个错误信息
-
-    :param errors: serializer.errors
-    :param default:
-    :return:
-        str
-    """
-    msg = default
-    try:
-        if isinstance(errors, list):
-            for err in errors:
-                msg = str(err)
-                break
-        elif isinstance(errors, dict):
-            for key in errors:
-                val = errors[key]
-                if isinstance(val, list):
-                    msg = f'{key}, {str(val[0])}'
-                else:
-                    msg = f'{key}, {str(val)}'
-
-                break
-    except Exception:
-        pass
-
-    return msg
 
 
 class ApplyOrganizationHandler:

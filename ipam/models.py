@@ -5,6 +5,7 @@ from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from django.core.validators import MaxValueValidator
 from django.core.exceptions import ValidationError
+from django.utils.functional import cached_property
 
 from utils.model import UuidModel
 from users.models import UserProfile
@@ -129,11 +130,11 @@ class IPv4Range(IPRangeBase):
     def convert_to_ip_obj(val: int):
         return ipaddress.IPv4Address(val)
 
-    @property
+    @cached_property
     def start_address_obj(self):
         return self.convert_to_ip_obj(self.start_address)
 
-    @property
+    @cached_property
     def end_address_obj(self):
         return self.convert_to_ip_obj(self.end_address)
 
@@ -143,10 +144,12 @@ class IPv4Range(IPRangeBase):
         except Exception as exc:
             return f'{self.start_address} - {self.end_address} /{self.mask_len}'
 
+    @cached_property
     def start_address_network(self):
         ip_net = f'{self.start_address_obj}/{self.mask_len}'
         return build_ipv4_network(ip_net=ip_net)
 
+    @cached_property
     def end_address_network(self):
         ip_net = f'{self.end_address_obj}/{self.mask_len}'
         return build_ipv4_network(ip_net=ip_net)
@@ -160,13 +163,13 @@ class IPv4Range(IPRangeBase):
                 raise ValidationError({
                     'end_address': _(
                         "结束地址必须大于起始地址({start_address})"
-                    ).format(start_address=self.start_address)
+                    ).format(start_address=self.start_address_obj)
                 })
 
             # 是否同一网段，网络号是否一致
             try:
-                start_net_addr = self.start_address_network()
-                end_net_addr = self.end_address_network()
+                start_net_addr = self.start_address_network
+                end_net_addr = self.end_address_network
             except ipaddress.NetmaskValueError as exc:
                 raise ValidationError({'mask_len': str(exc)})
 
