@@ -7,7 +7,7 @@ from django.utils.translation import gettext as _
 from django.core.exceptions import ValidationError
 
 from core import errors
-from .models import IPv4Range, IPAMUserRole, OrgVirtualObject, ASN, ipv4_str_to_int
+from .models import IPv4Range, IPAMUserRole, OrgVirtualObject, ASN, ipv4_str_to_int, IPv4RangeRecord
 
 
 def get_or_create_asn(number: int):
@@ -145,7 +145,7 @@ class IPv4RangeManager:
 
     @staticmethod
     def create_ipv4_range(
-            name: str, start_ip: Union[str, int], end_ip: Union[str, int], mask_len: int,
+            user, name: str, start_ip: Union[str, int], end_ip: Union[str, int], mask_len: int,
             asn: Union[ASN, int], status_code: str, org_virt_obj: Union[OrgVirtualObject, None],
             admin_remark: str, remark: str,
             create_time: Union[datetime, None], update_time: Union[datetime, None], assigned_time=None
@@ -201,4 +201,41 @@ class IPv4RangeManager:
             raise errors.ValidationError(message=exc.messages[0])
 
         ip_range.save(force_insert=True)
+        try:
+            IPv4RangeRecordManager.create_add_record(
+                user=user, ipv4_range=ip_range, remark=''
+            )
+        except Exception as exc:
+            pass
+
         return ip_range
+
+
+class IPv4RangeRecordManager:
+    @staticmethod
+    def create_record(
+            user, record_type: str,
+            start_address: int, end_address: int, mask_len: int, ip_ranges: list,
+            remark: str = '', org_virt_obj: OrgVirtualObject = None
+    ):
+        record = IPv4RangeRecord(
+            creation_time=dj_timezone.now(),
+            record_type=record_type,
+            start_address=start_address,
+            end_address=end_address,
+            mask_len=mask_len,
+            user=user,
+            org_virt_obj=org_virt_obj,
+            remark=remark
+        )
+        record.set_ip_ranges(ip_ranges=ip_ranges)
+        record.save(force_insert=True)
+        return record
+
+    @staticmethod
+    def create_add_record(user, ipv4_range: IPv4Range, remark: str):
+        return IPv4RangeRecordManager.create_record(
+            user=user, record_type=IPv4RangeRecord.RecordType.ADD.value,
+            start_address=ipv4_range.start_address, end_address=ipv4_range.end_address, mask_len=ipv4_range.mask_len,
+            ip_ranges=[], remark=remark, org_virt_obj=None
+        )

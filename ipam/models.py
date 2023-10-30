@@ -90,7 +90,7 @@ class IPRangeBase(UuidModel):
     class Status(models.TextChoices):
         ASSIGNED = 'assigned', _('已分配')
         RESERVED = 'reserved', _('预留')
-        WAIT = 'wait', _('待分配')
+        WAIT = 'wait', _('未分配')
 
     name = models.CharField(verbose_name=_('名称'), max_length=255, blank=True, default='')
     status = models.CharField(verbose_name=_('状态'), max_length=16, choices=Status.choices, default=Status.WAIT.value)
@@ -118,7 +118,7 @@ class IPv4Range(IPRangeBase):
         verbose_name=_('子网掩码长度'), validators=(MaxValueValidator(32),))
 
     class Meta:
-        ordering = ('-creation_time',)
+        ordering = ('start_address',)
         db_table = 'ipam_ipv4_range'
         verbose_name = _('IPv4地址段')
         verbose_name_plural = verbose_name
@@ -242,6 +242,8 @@ class IPRangeRecordBase(UuidModel):
         RECOVER = 'recover', _('收回')
         SPLIT = 'split', _('拆分')
         MERGE = 'merge', _('合并')
+        ADD = 'add', _('添加')
+        CHANGE = 'change', _('修改')
 
     creation_time = models.DateTimeField(verbose_name=_('创建时间'))
     record_type = models.CharField(verbose_name=_('记录类型'), max_length=16, choices=RecordType.choices)
@@ -255,6 +257,16 @@ class IPRangeRecordBase(UuidModel):
 
     class Meta:
         abstract = True
+
+    def set_ip_ranges(self, ip_ranges: list):
+        """
+        :ip_ranges: [{
+            'start_address': '127.0.0.1',
+            'end_address': '127.0.0.255',
+            'mask_len': 24
+        }]
+        """
+        self.ip_ranges = ip_ranges
 
 
 class IPv4RangeRecord(IPRangeRecordBase):

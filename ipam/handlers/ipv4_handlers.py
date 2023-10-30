@@ -32,7 +32,7 @@ class IPv4RangeHandler:
             queryset = IPv4RangeManager().get_user_queryset(
                 org_id=org_id, asn=data['asn'], ipv4_int=data['ipv4'], search=data['search'], user_role=ur_wrapper
             )
-
+        queryset = queryset.order_by('start_address')
         try:
             objs = view.paginate_queryset(queryset)
             serializer = view.get_serializer(instance=objs, many=True)
@@ -90,7 +90,7 @@ class IPv4RangeHandler:
 
         try:
             ipv4_range = IPv4RangeManager.create_ipv4_range(
-                name=data['name'],
+                user=request.user, name=data['name'],
                 start_ip=data['start_address'], end_ip=data['end_address'], mask_len=data['mask_len'],
                 asn=data['asn'], status_code=IPv4Range.Status.WAIT.value, org_virt_obj=None,
                 admin_remark=data['admin_remark'], remark='',

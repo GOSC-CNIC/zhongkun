@@ -5,9 +5,9 @@ from django.urls import reverse
 from django.utils import timezone as dj_timezone
 
 from service.models import DataCenter
-from ..managers import UserIpamRoleWrapper, IPv4RangeManager
-from ..models import ASN, OrgVirtualObject, IPv4Range
 from utils.test import get_or_create_user, MyAPITransactionTestCase
+from ..managers import UserIpamRoleWrapper, IPv4RangeManager
+from ..models import ASN, OrgVirtualObject, IPv4Range, IPv4RangeRecord
 
 
 class IPv4RangeTests(MyAPITransactionTestCase):
@@ -35,23 +35,23 @@ class IPv4RangeTests(MyAPITransactionTestCase):
 
         nt = dj_timezone.now()
         ip_range1 = IPv4RangeManager.create_ipv4_range(
-            name='已分配1', start_ip='127.0.0.1', end_ip='127.0.0.255', mask_len=24, asn=asn66,
+            user=None, name='已分配1', start_ip='127.0.0.1', end_ip='127.0.0.255', mask_len=24, asn=asn66,
             create_time=nt, update_time=nt, status_code=IPv4Range.Status.ASSIGNED.value,
             org_virt_obj=virt_obj1, assigned_time=nt, admin_remark='admin1', remark='remark1'
         )
         nt = dj_timezone.now()
         ip_range2 = IPv4RangeManager.create_ipv4_range(
-            name='预留2', start_ip='159.0.1.1', end_ip='159.0.2.255', mask_len=22, asn=asn88,
+            user=None, name='预留2', start_ip='159.0.1.1', end_ip='159.0.2.255', mask_len=22, asn=asn88,
             create_time=nt, update_time=nt, status_code=IPv4Range.Status.RESERVED.value,
             org_virt_obj=virt_obj2, assigned_time=nt, admin_remark='admin remark2', remark='remark2'
         )
         ip_range3 = IPv4RangeManager.create_ipv4_range(
-            name='预留3', start_ip='10.0.1.1', end_ip='10.0.1.255', mask_len=24, asn=asn88,
+            user=None, name='预留3', start_ip='10.0.1.1', end_ip='10.0.1.255', mask_len=24, asn=asn88,
             create_time=nt, update_time=nt, status_code=IPv4Range.Status.RESERVED.value,
             org_virt_obj=virt_obj1, assigned_time=nt, admin_remark='admin remark3', remark='remark3'
         )
         ip_range4 = IPv4RangeManager.create_ipv4_range(
-            name='待分配4', start_ip='10.0.2.1', end_ip='10.0.2.255', mask_len=24, asn=asn88,
+            user=None, name='待分配4', start_ip='10.0.2.1', end_ip='10.0.2.255', mask_len=24, asn=asn88,
             create_time=nt, update_time=nt, status_code=IPv4Range.Status.WAIT.value,
             org_virt_obj=None, assigned_time=nt, admin_remark='admin remark4', remark='remark4'
         )
@@ -182,6 +182,12 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['page_num'], 1)
         self.assertEqual(response.data['page_size'], 20)
         self.assertEqual(len(response.data['results']), 4)
+
+        # order by 'start_address'
+        self.assertEqual(response.data['results'][0]['id'], ip_range3.id)
+        self.assertEqual(response.data['results'][1]['id'], ip_range4.id)
+        self.assertEqual(response.data['results'][2]['id'], ip_range1.id)
+        self.assertEqual(response.data['results'][3]['id'], ip_range2.id)
 
         # query "org_id"
         query = parse.urlencode(query={'as-admin': '', 'org_id': org1.id})
@@ -335,6 +341,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
 
         # ok
+        self.assertEqual(IPv4RangeRecord.objects.count(), 0)
         response = self.client.post(base_url, data={
             'name': 'test', 'start_address': '10.0.0.1', 'end_address': '10.0.0.255', 'mask_len': 24,
             'asn': 88, 'admin_remark': 'remark test'
@@ -349,6 +356,13 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         self.assertEqual(iprange.status, IPv4Range.Status.WAIT.value)
         self.assertEqual(iprange.asn.number, 88)
         self.assertEqual(iprange.name, 'test')
+
+        self.assertEqual(IPv4RangeRecord.objects.count(), 1)
+        record: IPv4RangeRecord = IPv4RangeRecord.objects.first()
+        self.assertEqual(record.record_type, IPv4RangeRecord.RecordType.ADD.value)
+        self.assertEqual(record.start_address, int(ipaddress.IPv4Address('10.0.0.1')))
+        self.assertEqual(record.end_address, int(ipaddress.IPv4Address('10.0.0.255')))
+        self.assertEqual(record.mask_len, 24)
 
         # 存在重叠
         response = self.client.post(base_url, data={
@@ -375,6 +389,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
             'asn': 88, 'admin_remark': ''
         })
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(IPv4RangeRecord.objects.count(), 2)
 
 
 class IPAMUserRoleTests(MyAPITransactionTestCase):

@@ -52,7 +52,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.CharField(blank=True, editable=False, max_length=36, primary_key=True, serialize=False, verbose_name='ID')),
                 ('creation_time', models.DateTimeField(verbose_name='创建时间')),
-                ('record_type', models.CharField(choices=[('assign', '分配'), ('recover', '收回'), ('split', '拆分'), ('merge', '合并')], max_length=16, verbose_name='记录类型')),
+                ('record_type', models.CharField(choices=[('assign', '分配'), ('recover', '收回'), ('split', '拆分'), ('merge', '合并'), ('add', '添加'), ('change', '修改')], max_length=16, verbose_name='记录类型')),
                 ('ip_ranges', models.JSONField(blank=True, default=dict, verbose_name='拆分或合并的IP段')),
                 ('remark', models.CharField(blank=True, default='', max_length=255, verbose_name='备注信息')),
                 ('start_address', models.PositiveIntegerField(verbose_name='起始地址')),
@@ -73,7 +73,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.CharField(blank=True, editable=False, max_length=36, primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(blank=True, default='', max_length=255, verbose_name='名称')),
-                ('status', models.CharField(choices=[('assigned', '已分配'), ('reserved', '预留'), ('wait', '待分配')], default='wait', max_length=16, verbose_name='状态')),
+                ('status', models.CharField(choices=[('assigned', '已分配'), ('reserved', '预留'), ('wait', '未分配')], default='wait', max_length=16, verbose_name='状态')),
                 ('creation_time', models.DateTimeField(verbose_name='创建时间')),
                 ('update_time', models.DateTimeField(verbose_name='更新时间')),
                 ('assigned_time', models.DateTimeField(blank=True, default=None, null=True, verbose_name='分配时间')),
@@ -89,7 +89,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'IPv4地址段',
                 'verbose_name_plural': 'IPv4地址段',
                 'db_table': 'ipam_ipv4_range',
-                'ordering': ('-creation_time',),
+                'ordering': ('start_address',),
             },
         ),
         migrations.CreateModel(
