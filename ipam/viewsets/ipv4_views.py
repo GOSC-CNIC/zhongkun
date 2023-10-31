@@ -166,10 +166,56 @@ class IPv4RangeViewSet(NormalGenericViewSet):
         """
         return IPv4RangeHandler().add_ipv4_range(view=self, request=request)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('修改IPv4地址段'),
+        manual_parameters=[],
+        responses={
+            200: ''''''
+        }
+    )
+    def update(self, request, *args, **kwargs):
+        """
+        修改IPv4地址段，需要有科技网管理员权限
+
+            http Code 200 Ok:
+                {
+                  "id": "bz05x5wxa3y0viz1dn6k88hww",
+                  "name": "127.0.0.0/24",
+                  "status": "wait",
+                  "creation_time": "2023-10-26T08:33:56.047279Z",
+                  "update_time": "2023-10-26T08:33:56.047279Z",
+                  "assigned_time": null,
+                  "admin_remark": "test",
+                  "remark": "",
+                  "start_address": 2130706433,
+                  "end_address": 2130706687,
+                  "mask_len": 24,
+                  "asn": {
+                    "id": 5,
+                    "number": 65535
+                  },
+                  "org_virt_obj": null
+                }
+
+            Http Code 400, 403, 500:
+                {
+                    "code": "BadRequest",
+                    "message": "xxxx"
+                }
+
+                可能的错误码：
+                400:
+                InvalidArgument: 参数无效
+
+                403:
+                AccessDenied: 你没有科技网IP管理功能的管理员权限
+        """
+        return IPv4RangeHandler().update_ipv4_range(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return serializers.IPv4RangeSerializer
-        elif self.action == 'create':
+        elif self.action in ['create', 'update']:
             return serializers.IPv4RangeCreateSerializer
 
         return Serializer

@@ -89,10 +89,10 @@ class IPv4RangeHandler:
                 errors.AccessDenied(message=_('你没有科技网IP管理功能的管理员权限')))
 
         try:
-            ipv4_range = IPv4RangeManager.create_ipv4_range(
+            ipv4_range = IPv4RangeManager.do_create_ipv4_range(
                 user=request.user, name=data['name'],
                 start_ip=data['start_address'], end_ip=data['end_address'], mask_len=data['mask_len'],
-                asn=data['asn'], status_code=IPv4Range.Status.WAIT.value, org_virt_obj=None,
+                asn=data['asn'], org_virt_obj=None,
                 admin_remark=data['admin_remark'], remark='',
                 create_time=None, update_time=None, assigned_time=None
             )
@@ -143,3 +143,30 @@ class IPv4RangeHandler:
         data['start_address'] = start_address
         data['end_address'] = end_address
         return data
+
+    def update_ipv4_range(self, view: NormalGenericViewSet, request, kwargs):
+        try:
+            data = self._add_ipv4_ranges_validate_params(view=view, request=request)
+            ipv4_range = IPv4RangeManager.get_ip_range(_id=kwargs[view.lookup_field])
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        ur_wrapper = UserIpamRoleWrapper(user=request.user)
+        if not ur_wrapper.has_kjw_admin_writable():
+            return view.exception_response(
+                errors.AccessDenied(message=_('你没有科技网IP管理功能的管理员权限')))
+
+        if ipv4_range.status not in [IPv4Range.Status.WAIT.value, IPv4Range.Status.RESERVED.value]:
+            return view.exception_response(
+                errors.ConflictError(message=_('只允许修改“未分配”和“预留”状态的IP地址段')))
+
+        try:
+            ipv4_range = IPv4RangeManager.do_update_ipv4_range(
+                ip_range=ipv4_range, user=request.user, name=data['name'],
+                start_ip=data['start_address'], end_ip=data['end_address'], mask_len=data['mask_len'],
+                asn=data['asn'],  admin_remark=data['admin_remark']
+            )
+        except errors.ValidationError as exc:
+            return view.exception_response(errors.InvalidArgument(message=exc.message))
+
+        return Response(data=serializers.IPv4RangeSerializer(instance=ipv4_range).data)

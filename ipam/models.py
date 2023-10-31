@@ -1,4 +1,5 @@
 import ipaddress
+from collections import namedtuple
 
 from django.db import models
 from django.db.models import Q
@@ -10,6 +11,18 @@ from django.utils.functional import cached_property
 from utils.model import UuidModel
 from users.models import UserProfile
 from service.models import DataCenter
+
+
+_IPRangeItem = namedtuple('IPRangeItem', ['start', 'end', 'mask'])
+
+
+class IPRangeItem(_IPRangeItem):
+    """
+    start: '127.0.0.1'
+    end: '127.0.0.255'
+    mask: 24
+    """
+    pass
 
 
 def ipv4_int_to_str(ipv4: int):
@@ -129,6 +142,19 @@ class IPv4Range(IPRangeBase):
     @staticmethod
     def convert_to_ip_obj(val: int):
         return ipaddress.IPv4Address(val)
+
+    def clear_cached_property(self):
+        """
+        当cached_property有关的字段信息变更后，需要清除属性旧的缓存
+        """
+        if hasattr(self, 'start_address_obj'):
+            delattr(self, 'start_address_obj')
+        if hasattr(self, 'end_address_obj'):
+            delattr(self, 'end_address_obj')
+        if hasattr(self, 'start_address_network'):
+            delattr(self, 'start_address_network')
+        if hasattr(self, 'end_address_network'):
+            delattr(self, 'end_address_network')
 
     @cached_property
     def start_address_obj(self):
@@ -258,15 +284,15 @@ class IPRangeRecordBase(UuidModel):
     class Meta:
         abstract = True
 
-    def set_ip_ranges(self, ip_ranges: list):
+    def set_ip_ranges(self, ip_ranges: list[IPRangeItem]):
         """
         :ip_ranges: [{
-            'start_address': '127.0.0.1',
-            'end_address': '127.0.0.255',
-            'mask_len': 24
+            'start': '127.0.0.1',
+            'end': '127.0.0.255',
+            'mask': 24
         }]
         """
-        self.ip_ranges = ip_ranges
+        self.ip_ranges = [i._asdict() for i in ip_ranges]
 
 
 class IPv4RangeRecord(IPRangeRecordBase):

@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, List
 from datetime import datetime
 
 from django.db.models import Q, QuerySet
@@ -7,7 +7,10 @@ from django.utils.translation import gettext as _
 from django.core.exceptions import ValidationError
 
 from core import errors
-from .models import IPv4Range, IPAMUserRole, OrgVirtualObject, ASN, ipv4_str_to_int, IPv4RangeRecord
+from .models import (
+    IPv4Range, IPAMUserRole, OrgVirtualObject, ASN, ipv4_str_to_int, IPv4RangeRecord,
+    IPRangeItem
+)
 
 
 def get_or_create_asn(number: int):
@@ -80,6 +83,14 @@ class UserIpamRoleWrapper:
 
 class IPv4RangeManager:
     @staticmethod
+    def get_ip_range(_id: str) -> IPv4Range:
+        iprange = IPv4Range.objects.filter(id=_id).first()
+        if iprange is None:
+            raise errors.TargetNotExist(message=_('IP地址段不存在'))
+
+        return iprange
+
+    @staticmethod
     def get_queryset(related_fields: list = None) -> QuerySet:
         fileds = ['asn', 'org_virt_obj']
         if related_fields:
@@ -145,7 +156,7 @@ class IPv4RangeManager:
 
     @staticmethod
     def create_ipv4_range(
-            user, name: str, start_ip: Union[str, int], end_ip: Union[str, int], mask_len: int,
+            name: str, start_ip: Union[str, int], end_ip: Union[str, int], mask_len: int,
             asn: Union[ASN, int], status_code: str, org_virt_obj: Union[OrgVirtualObject, None],
             admin_remark: str, remark: str,
             create_time: Union[datetime, None], update_time: Union[datetime, None], assigned_time=None
@@ -201,6 +212,25 @@ class IPv4RangeManager:
             raise errors.ValidationError(message=exc.messages[0])
 
         ip_range.save(force_insert=True)
+        return ip_range
+
+    @staticmethod
+    def do_create_ipv4_range(
+            user, name: str, start_ip: Union[str, int], end_ip: Union[str, int], mask_len: int,
+            asn: Union[ASN, int], org_virt_obj: Union[OrgVirtualObject, None],
+            admin_remark: str, remark: str,
+            create_time: Union[datetime, None], update_time: Union[datetime, None], assigned_time=None
+    ):
+        """
+        :return: IPv4Range
+        :raises: ValidationError
+        """
+        ip_range = IPv4RangeManager.create_ipv4_range(
+            name=name, start_ip=start_ip, end_ip=end_ip, mask_len=mask_len,
+            asn=asn, status_code=IPv4Range.Status.WAIT.value, org_virt_obj=org_virt_obj,
+            admin_remark=admin_remark, remark=remark,
+            create_time=create_time, update_time=update_time, assigned_time=assigned_time
+        )
         try:
             IPv4RangeRecordManager.create_add_record(
                 user=user, ipv4_range=ip_range, remark=''
@@ -210,12 +240,112 @@ class IPv4RangeManager:
 
         return ip_range
 
+    @staticmethod
+    def update_ipv4_range(
+            ip_range: IPv4Range, name: str, start_ip: Union[str, int], end_ip: Union[str, int], mask_len: int,
+            asn: Union[ASN, int], admin_remark: str
+    ):
+        """
+        :return: IPv4Range, update_fields: list
+        :raises: ValidationError
+        """
+        if isinstance(start_ip, int):
+            start_int = start_ip
+        else:
+            start_int = ipv4_str_to_int(ipv4=start_ip)
+
+        if isinstance(end_ip, int):
+            end_int = end_ip
+        else:
+            end_int = ipv4_str_to_int(ipv4=end_ip)
+
+        mask_len = int(mask_len)
+        if not (0 <= mask_len <= 32):
+            raise errors.ValidationError(message=_('子网掩码长度无效，取值范围为0-32'))
+
+        if isinstance(asn, int):
+            asn = get_or_create_asn(number=asn)
+
+        update_fields = []
+        if name and ip_range.name != name:
+            ip_range.name = name
+            update_fields.append('name')
+
+        if start_int != ip_range.start_address:
+            ip_range.start_address = start_int
+            update_fields.append('start_address')
+
+        if end_int != ip_range.end_address:
+            ip_range.end_address = end_int
+            update_fields.append('end_address')
+
+        if mask_len != ip_range.mask_len:
+            ip_range.mask_len = mask_len
+            update_fields.append('mask_len')
+
+        if asn.id != ip_range.asn_id:
+            ip_range.asn = asn
+            ip_range.asn_id = asn.id
+            update_fields.append('asn_id')
+
+        if admin_remark and ip_range.admin_remark != admin_remark:
+            ip_range.admin_remark = admin_remark
+            update_fields.append('admin_remark')
+
+        if update_fields:
+            ip_range.update_time = dj_timezone.now()
+            update_fields.append('update_time')
+
+            try:
+                ip_range.clear_cached_property()    # 字段值变更了，需要清除缓存属性
+                ip_range.clean()
+            except ValidationError as exc:
+                raise errors.ValidationError(message=exc.messages[0])
+
+            ip_range.save(update_fields=update_fields)
+
+        return ip_range, update_fields
+
+    @staticmethod
+    def do_update_ipv4_range(
+            ip_range: IPv4Range, user, name: str, start_ip: Union[str, int], end_ip: Union[str, int], mask_len: int,
+            asn: Union[ASN, int], admin_remark: str
+    ) -> IPv4Range:
+        """
+        :raises: ValidationError
+        """
+        old_ip_range = IPRangeItem(
+            start=str(ip_range.start_address_obj), end=str(ip_range.end_address_obj), mask=ip_range.mask_len
+        )
+        ip_range, update_fields = IPv4RangeManager.update_ipv4_range(
+            ip_range=ip_range, name=name, start_ip=start_ip, end_ip=end_ip, mask_len=mask_len,
+            asn=asn, admin_remark=admin_remark
+        )
+
+        # need_record = any(True if f in update_fields else False for f in ['start_address', 'end_address', 'mask_len'])
+        need_record = False
+        if update_fields:
+            for f in ['start_address', 'end_address', 'mask_len']:
+                if f in update_fields:
+                    need_record = True
+                    break
+
+        if need_record:
+            try:
+                IPv4RangeRecordManager.create_change_record(
+                    user=user, ipv4_range=ip_range, remark='', old_ip_range=old_ip_range
+                )
+            except Exception as exc:
+                pass
+
+        return ip_range
+
 
 class IPv4RangeRecordManager:
     @staticmethod
     def create_record(
             user, record_type: str,
-            start_address: int, end_address: int, mask_len: int, ip_ranges: list,
+            start_address: int, end_address: int, mask_len: int, ip_ranges: List[IPRangeItem],
             remark: str = '', org_virt_obj: OrgVirtualObject = None
     ):
         record = IPv4RangeRecord(
@@ -238,4 +368,12 @@ class IPv4RangeRecordManager:
             user=user, record_type=IPv4RangeRecord.RecordType.ADD.value,
             start_address=ipv4_range.start_address, end_address=ipv4_range.end_address, mask_len=ipv4_range.mask_len,
             ip_ranges=[], remark=remark, org_virt_obj=None
+        )
+
+    @staticmethod
+    def create_change_record(user, ipv4_range: IPv4Range, remark: str, old_ip_range: IPRangeItem):
+        return IPv4RangeRecordManager.create_record(
+            user=user, record_type=IPv4RangeRecord.RecordType.CHANGE.value,
+            start_address=ipv4_range.start_address, end_address=ipv4_range.end_address, mask_len=ipv4_range.mask_len,
+            ip_ranges=[old_ip_range], remark=remark, org_virt_obj=None
         )
