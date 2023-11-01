@@ -7,7 +7,6 @@ from link.managers.distriframeport_manager import DistriFramePortManager
 class DistriFrameManager:
     @staticmethod
     def get_queryset():
-        print(type(DistributionFrame.objects.first().distriframe_distriframeport))
         return DistributionFrame.objects.all()
 
     @staticmethod
