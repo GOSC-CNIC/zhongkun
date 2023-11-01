@@ -8,12 +8,9 @@ from service.models import DataCenter
 
 class LinkUserRole(UuidModel):
     """链路用户角色和权限"""
-    user = models.OneToOneField(
-        verbose_name=_('用户'), to=UserProfile, related_name='userprofile_linkuserrole', on_delete=models.CASCADE)
-    is_admin = models.BooleanField(
-        verbose_name=_('链路管理员权限'), default=False, help_text=_('用户拥有科技网链路管理功能的管理员权限'))
-    is_readonly = models.BooleanField(
-        verbose_name=_('链路只读权限'), default=False, help_text=_('用户拥有科技网链路管理功能的全局只读权限'))
+    user = models.OneToOneField(verbose_name=_('用户'), to=UserProfile, related_name='userprofile_linkuserrole', on_delete=models.CASCADE)
+    is_admin = models.BooleanField(verbose_name=_('链路管理员权限'), default=False, help_text=_('用户拥有科技网链路管理功能的管理员权限'))
+    is_readonly = models.BooleanField(verbose_name=_('链路只读权限'), default=False, help_text=_('用户拥有科技网链路管理功能的全局只读权限'))
     create_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
     update_time = models.DateTimeField(verbose_name=_('更新时间'), auto_now=True)
 
@@ -282,3 +279,6 @@ class ElementLink(UuidModel):
         db_table = 'link_element_link'
         verbose_name = _('链路')
         verbose_name_plural = verbose_name
+    
+    def element_id_list(self):
+        return self.element_ids.split(',')

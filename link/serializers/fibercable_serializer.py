@@ -3,10 +3,6 @@ from rest_framework import serializers
 from django.core.validators import MinValueValidator
 from link.serializers.element_serializer import ElementBaseSerializer
 
-class OpticalFiberSerializer(ElementBaseSerializer):
-    id = serializers.CharField(label='ID', max_length=36, read_only=True)
-    sequence = serializers.IntegerField(label=_('纤序'), read_only=True)
-    
 class FiberCableSerializer(serializers.Serializer):
     id = serializers.CharField(max_length=36, label='ID', read_only=True)
     number = serializers.CharField(max_length=64, label=_('光缆编号'), allow_blank=False, allow_null=False, required=True)

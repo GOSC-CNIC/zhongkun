@@ -1,8 +1,8 @@
 from django.utils.translation import gettext as _
-from link.models import FiberCable, Element, OpticalFiber
+from link.models import FiberCable
 from django.db.models import Q
 from core import errors
-from link.managers.element_manager import ElementManager
+from link.managers.opticalfiber_manager import OpticalFiberManager
 from django.db import transaction
 
 
@@ -21,19 +21,7 @@ class FiberCableManager:
             raise errors.TargetNotExist(message=_('光缆不存在'), code='FiberCableNotExist')
         return fibercable
 
-    def _create_opticalfiber(
-        sequence: int,
-        fibercable: FiberCable
-    ) -> OpticalFiber:
-        opticalfiber_id = OpticalFiber().generate_id()
-        element = ElementManager.create_element(object_id=opticalfiber_id, object_type=Element.Type.OPTICAL_FIBER)
-        opticalfiber = OpticalFiber(
-            id=opticalfiber_id,
-            fiber_cable=fibercable,
-            sequence=sequence,
-            element=element
-        )
-        opticalfiber.save(force_insert=True)
+
 
     @staticmethod
     def create_fibercable(
@@ -57,7 +45,7 @@ class FiberCableManager:
             fibercable.save(force_insert=True)
             # 创建光纤记录
             for i in range(1, fiber_count + 1):
-                FiberCableManager._create_opticalfiber(sequence=i, fibercable=fibercable)
+                OpticalFiberManager.create_opticalfiber(sequence=i, fibercable=fibercable)
 
         return fibercable
 
