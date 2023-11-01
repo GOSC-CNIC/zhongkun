@@ -40,6 +40,7 @@ class CashCouponCreateSerializer(serializers.Serializer):
     app_service_id = serializers.CharField(label=_('APP服务ID'), max_length=36, required=True)
     username = serializers.CharField(label=_('用户名'), max_length=128, required=False, help_text=_('资源券发给此用户'))
     vo_id = serializers.CharField(label=_('vo组id'), max_length=64, required=False, help_text=_('资源券发给此vo组'))
+    remark = serializers.CharField(label=_('备注'), max_length=255, required=False, default='')
 
 
 class AppServiceSimpleSerializer(serializers.Serializer):

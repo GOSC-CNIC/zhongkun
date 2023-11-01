@@ -288,6 +288,7 @@ class CashCoupon(CashCouponBase):
     issuer = models.CharField(verbose_name=_('发放人'), max_length=128, blank=True, default='')
     balance_notice_time = models.DateTimeField(verbose_name=_('余额不足通知时间'), null=True, blank=True, default=None)
     expire_notice_time = models.DateTimeField(verbose_name=_('过期通知时间'), null=True, blank=True, default=None)
+    remark = models.CharField(verbose_name=_('备注'), max_length=255, blank=True, default='')
 
     class Meta:
         verbose_name = _('资源券')
@@ -364,7 +365,8 @@ class CashCoupon(CashCouponBase):
             expiration_time: datetime,
             coupon_num: int,
             issuer: str,
-            activity_id: str = None
+            activity_id: str = None,
+            remark: str = ''
     ):
         """
         创建一个待领取的券
@@ -383,6 +385,7 @@ class CashCoupon(CashCouponBase):
             granted_time=timezone.now(),
             activity_id=activity_id,
             issuer=issuer,
+            remark=remark
         )
 
         if coupon_num:

@@ -204,7 +204,8 @@ class CashCouponManager:
             expiration_time: datetime,
             coupon_num: int,
             issuer: str,
-            activity_id: str = None
+            activity_id: str = None,
+            remark: str = ''
     ):
         """
         创建一个待领取的券
@@ -228,7 +229,8 @@ class CashCouponManager:
                     app_service_id=app_service_id,
                     activity_id=activity_id,
                     coupon_num=coupon_num,
-                    issuer=issuer
+                    issuer=issuer,
+                    remark=remark
                 )
                 return coupon, coupon_num
             except Exception as e:
@@ -258,7 +260,8 @@ class CashCouponManager:
             effective_time: datetime,
             expiration_time: datetime,
             issuer: str,
-            activity_id: str = None
+            activity_id: str = None,
+            remark: str = ''
     ):
         """
         创建一个券，并发放给指定user或vo
@@ -275,7 +278,7 @@ class CashCouponManager:
                 expiration_time=expiration_time,
                 activity_id=activity_id,
                 coupon_num=num + 1,
-                issuer=issuer
+                issuer=issuer, remark=remark
             )
             self.ensure_wait_draw_cash_coupon(coupon=coupon)
             self._grant_coupon_to_user_or_vo(coupon=coupon, user=user, vo=vo)

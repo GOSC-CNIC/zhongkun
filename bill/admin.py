@@ -141,14 +141,14 @@ class CashCouponActivityAdmin(admin.ModelAdmin):
 @admin.register(CashCoupon)
 class CashCouponAdmin(admin.ModelAdmin):
     list_display = ('id', 'activity', 'face_value', 'balance', 'effective_time', 'expiration_time', 'status',
-                    'app_service', 'user', 'vo', 'owner_type', 'issuer',
-                    'granted_time', 'exchange_code', 'creation_time', 'balance_notice_time', 'expire_notice_time')
+                    'app_service', 'user', 'vo', 'owner_type', 'issuer', 'granted_time', 'exchange_code',
+                    'creation_time', 'balance_notice_time', 'expire_notice_time', 'remark')
     list_display_links = ('id',)
     list_select_related = ('app_service', 'user', 'vo', 'activity')
     raw_id_fields = ('activity', 'user', 'vo')
     readonly_fields = ('_coupon_code',)
     list_filter = ('app_service', 'app_service__category', 'owner_type')
-    search_fields = ('id', 'user__username')
+    search_fields = ('id', 'user__username', 'remark')
 
     @admin.display(description=_('兑换码'))
     def exchange_code(self, obj):

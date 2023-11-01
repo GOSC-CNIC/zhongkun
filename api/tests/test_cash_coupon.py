@@ -257,7 +257,7 @@ class CashCouponTests(MyAPITestCase):
         self.assertKeysIn([
             "id", "face_value", "creation_time", "effective_time", "expiration_time",
             "balance", "status", "granted_time", "issuer",
-            "owner_type", "app_service", "user", "vo", "activity"], results[0]
+            "owner_type", "app_service", "user", "vo", "activity", 'remark'], results[0]
         )
         self.assertKeysIn([
             "id", "name", "name_en", "service_id", "category"], results[0]['app_service']
@@ -912,7 +912,7 @@ class CashCouponTests(MyAPITestCase):
         self.assertKeysIn([
             "id", "face_value", "creation_time", "effective_time", "expiration_time",
             "balance", "status", "granted_time", "issuer",
-            "owner_type", "app_service", "user", "vo", "activity"], response.data
+            "owner_type", "app_service", "user", "vo", "activity", 'remark'], response.data
         )
         self.assertKeysIn([
             "id", "name", "name_en", "service_id", "category"], response.data['app_service']
@@ -1081,20 +1081,22 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
             "effective_time": now_time_str,
             "expiration_time": expiration_time_str,
             "app_service_id": self.app_service1.id,
-            "username": self.user2.username
+            "username": self.user2.username,
+            'remark': 'test remark'
         }
         r = self.client.post(url, data=data)
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn(keys=[
             'id', 'face_value', 'creation_time', 'effective_time', 'expiration_time', 'balance', 'status',
-            'granted_time', 'owner_type', 'app_service', 'user', 'vo', 'activity', 'exchange_code', "issuer"
+            'granted_time', 'owner_type', 'app_service', 'user', 'vo', 'activity', 'exchange_code', "issuer", 'remark'
         ], container=r.data)
         self.assertKeysIn(keys=[
             'id', 'name', 'name_en', 'category', 'service_id'
         ], container=r.data['app_service'])
         self.assert_is_subdict_of(sub={
             'face_value': '66.88', 'balance': '66.88', 'owner_type': 'user', 'effective_time': now_time_str,
-            'expiration_time': expiration_time_str, 'status': 'available', 'vo': None, 'activity': None
+            'expiration_time': expiration_time_str, 'status': 'available', 'vo': None, 'activity': None,
+            'remark': 'test remark'
         }, d=r.data)
         self.assertEqual(r.data['app_service']['id'], self.app_service1.id)
         self.assertEqual(r.data['app_service']['service_id'], self.service.id)
@@ -1288,7 +1290,7 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assertEqual(len(r.data['results']), 2)
         self.assertKeysIn(keys=[
             'id', 'face_value', 'creation_time', 'effective_time', 'expiration_time', 'balance', 'status',
-            'granted_time', 'owner_type', 'app_service', 'user', 'vo', 'activity', 'exchange_code', "issuer"
+            'granted_time', 'owner_type', 'app_service', 'user', 'vo', 'activity', 'exchange_code', "issuer", 'remark'
         ], container=r.data['results'][0])
 
         # user has permission of app_service1, query "app_service_id", "status"
@@ -1587,7 +1589,7 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(keys=[
             'id', 'face_value', 'creation_time', 'effective_time', 'expiration_time', 'balance', 'status',
-            'granted_time', 'owner_type', 'app_service', 'user', 'vo', 'activity', 'exchange_code', "issuer"
+            'granted_time', 'owner_type', 'app_service', 'user', 'vo', 'activity', 'exchange_code', "issuer", 'remark'
         ], container=response.data)
         self.assertKeysIn(keys=['id', 'name', 'service_id'], container=response.data['app_service'])
         self.assertKeysIn(keys=['id', 'username'], container=response.data['user'])

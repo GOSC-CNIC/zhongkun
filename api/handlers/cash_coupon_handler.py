@@ -351,19 +351,20 @@ class CashCouponHandler:
         app_service = data['app_service']
         to_user = data['user']
         vo = data['vo']
+        remark = data['remark']
 
         try:
             if to_user is not None:
                 coupon = CashCouponManager().create_one_coupon_to_user_or_vo(
                     user=to_user, vo=None, app_service_id=app_service.id,
                     face_value=face_value, effective_time=effective_time, expiration_time=expiration_time,
-                    issuer=request.user.username
+                    issuer=request.user.username, remark=remark
                 )
             elif vo is not None:
                 coupon = CashCouponManager().create_one_coupon_to_user_or_vo(
                     user=request.user, vo=vo, app_service_id=app_service.id,
                     face_value=face_value, effective_time=effective_time, expiration_time=expiration_time,
-                    issuer=request.user.username
+                    issuer=request.user.username, remark=remark
                 )
             else:
                 coupon, coupon_num = CashCouponManager().create_wait_draw_coupon(
@@ -372,7 +373,8 @@ class CashCouponHandler:
                     effective_time=effective_time,
                     expiration_time=expiration_time,
                     coupon_num=0,
-                    issuer=request.user.username
+                    issuer=request.user.username,
+                    remark=remark
                 )
 
         except Exception as exc:
@@ -407,6 +409,7 @@ class CashCouponHandler:
         app_service_id = data['app_service_id']
         username = data.get('username', None)
         vo_id = data.get('vo_id', None)
+        remark = data.get('remark')
 
         if face_value < 0 or face_value > 100000:
             raise errors.BadRequest(message=_('资源券面额必须大于0，不得大于100000'), code='InvalidFaceValue')
@@ -446,7 +449,8 @@ class CashCouponHandler:
             'expiration_time': expiration_time,
             'app_service': app_service,
             'user': user,
-            'vo': vo
+            'vo': vo,
+            'remark': remark if remark else ''
         }
 
     @staticmethod

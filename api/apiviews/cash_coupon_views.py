@@ -98,7 +98,8 @@ class CashCouponViewSet(CustomGenericViewSet):
                             "id": "75b63eee-cda9-11ec-8660-c8009fe2eb10",
                             "name": "test"
                         },
-                        "issuer": "test@cnic.cn"
+                        "issuer": "test@cnic.cn",
+                        "remark": ""
                     }
                 ]
             }
@@ -461,7 +462,8 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
                             "name": "test"
                         },
                         "exchange_code": "771570982053927857",
-                        "issuer": "test@cnic.cn"
+                        "issuer": "test@cnic.cn",
+                        "remark": ""
                     }
                 ]
             }
@@ -574,7 +576,8 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
                     "name": "test"
                 },
                 "exchange_code": "771570982053927857",
-                "issuer": "test@cnic.cn"
+                "issuer": "test@cnic.cn",
+                "remark": ""
             }
 
             http code 401, 403,404:
