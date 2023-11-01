@@ -55,7 +55,6 @@ class DistributionFrameAdmin(admin.ModelAdmin):
                     'place', 'link_org', 'remarks', 'create_time', 'update_time']
     search_fields = ['id', 'number']
 
-
 @admin.register(LinkOrg)
 class LinkOrgAdmin(admin.ModelAdmin):
     list_display = ['id', 'name', 'remarks', 'location',
@@ -83,3 +82,5 @@ class ElementAdmin(admin.ModelAdmin):
     list_display = ['id', 'object_type',
                     'object_id', 'create_time', 'update_time']
     search_fields = ['id', 'object_id']
+    list_filter = ['object_type']
+

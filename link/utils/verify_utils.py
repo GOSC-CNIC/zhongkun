@@ -13,6 +13,6 @@ class VerifyUtils:
     def is_empty_list(val: list) -> bool:
         if val is None:
             return True
-        if len(list) == 0:
+        if len(val) == 0:
             return True
         return False

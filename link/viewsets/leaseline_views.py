@@ -106,11 +106,11 @@ class LeaseLineViewSet(NormalGenericViewSet):
                             "line_type": "骨干网",
                             "cable_type": "MSTP电路",
                             "bandwidth": 1000,
-                            "length": null,
+                            "length": 20.00,
                             "provider": "联通（北京）",
                             "enable_date": "2014-07-01",
                             "is_whithdrawal": true,
-                            "money": null,
+                            "money": 8500.00,
                             "remarks": "电路代号：北京乌鲁木齐ANE0033NP,2015-1-18日由300M扩容至600M，升级1G时撤租"
                         }
                     ]
@@ -141,7 +141,7 @@ class LeaseLineViewSet(NormalGenericViewSet):
                     "line_type": "骨干网",
                     "cable_type": "SDH",
                     "bandwidth": 2500,
-                    "length": null,
+                    "length": 20.00,
                     "provider": "联通（北京）",
                     "enable_date": "2007-01-30",
                     "is_whithdrawal": false,
@@ -172,7 +172,7 @@ class LeaseLineViewSet(NormalGenericViewSet):
                     "line_type": "骨干网",
                     "cable_type": "SDH",
                     "bandwidth": 2500,
-                    "length": null,
+                    "length": 20.00,
                     "provider": "联通（北京）",
                     "enable_date": "2007-01-30",
                     "is_whithdrawal": false,

@@ -84,7 +84,7 @@ class LeaseLineTests(MyAPITransactionTestCase):
         self.assertKeysIn([
             'id', 'private_line_number', 'lease_line_code', 'line_username', 'endpoint_a', 'endpoint_z',
             'line_type', 'cable_type', 'bandwidth', 'length', 'provider', 'enable_date', 'is_whithdrawal',
-            'money', 'remarks', 'is_linked'
+            'money', 'remarks', 'is_linked', 'element_id'
         ], leaseline)
         self.assertEqual(response.data['private_line_number'], '510GXN12603174')
         self.assertEqual(response.data['lease_line_code'], '0F0001NP')
@@ -118,7 +118,7 @@ class LeaseLineTests(MyAPITransactionTestCase):
         self.assertKeysIn([
             'id', 'private_line_number', 'lease_line_code', 'line_username', 'endpoint_a', 'endpoint_z',
             'line_type', 'cable_type', 'bandwidth', 'length', 'provider', 'enable_date', 'is_whithdrawal',
-            'money', 'remarks', 'is_linked'
+            'money', 'remarks', 'is_linked', 'element_id'
         ], leaseline)
 
         # query "page"、"page_size"
@@ -182,9 +182,9 @@ class LeaseLineTests(MyAPITransactionTestCase):
         leaseline_list = list(LeaseLine.objects.all())
         ElementLinkManager.create_elementlink(
             number="test_link",
-            elements=[
-                {'object_type':'lease-line', 'object_id': leaseline_list[0].id},
-                {'object_type':'lease-line', 'object_id': leaseline_list[1].id}
+            id_list=[
+                LeaseLine.objects.filter(id=leaseline_list[0].id).first().element.id,
+                LeaseLine.objects.filter(id=leaseline_list[1].id).first().element.id
             ],
             remarks="test_remarks",
             link_status=ElementLink.LinkStatus.IDLE,
@@ -239,7 +239,7 @@ class LeaseLineTests(MyAPITransactionTestCase):
         self.assertKeysIn([
             'id', 'private_line_number', 'lease_line_code', 'line_username', 'endpoint_a', 'endpoint_z',
             'line_type', 'cable_type', 'bandwidth', 'length', 'provider', 'enable_date', 'is_whithdrawal',
-            'money', 'remarks', 'is_linked'
+            'money', 'remarks', 'is_linked', 'element_id'
         ], leaseline)
         self.assertEqual(response.data['private_line_number'], '510GXN12603174')
         self.assertEqual(response.data['lease_line_code'], '0F0001NP')
