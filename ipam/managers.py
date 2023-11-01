@@ -27,13 +27,20 @@ class UserIpamRoleWrapper:
 
     @property
     def user_role(self):
-        if not self._user_role:
+        if self._user_role is None:
             self._user_role = self.get_user_ipam_role(user=self.user)
 
         return self._user_role
 
+    @user_role.setter
+    def user_role(self, val: IPAMUserRole):
+        self._user_role = val
+
+    def get_or_create_user_ipam_role(self):
+        return self.get_user_ipam_role(self.user, create_not_exists=True)
+
     @staticmethod
-    def get_user_ipam_role(user):
+    def get_user_ipam_role(user, create_not_exists: bool = False):
         urole = IPAMUserRole.objects.select_related('user').filter(user_id=user.id).first()
         if urole:
             return urole
@@ -43,7 +50,9 @@ class UserIpamRoleWrapper:
             user=user, is_admin=False, is_readonly=False,
             creation_time=nt, update_time=nt
         )
-        urole.save(force_insert=True)
+        if create_not_exists:
+            urole.save(force_insert=True)
+
         return urole
 
     def has_kjw_admin_readable(self) -> bool:

@@ -70,6 +70,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         self.assertEqual(len(response.data['results']), 0)
 
         u1_role_wrapper = UserIpamRoleWrapper(user=self.user1)
+        u1_role_wrapper.user_role = u1_role_wrapper.get_or_create_user_ipam_role()
         u1_role_wrapper.user_role.organizations.add(org1)
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
@@ -219,6 +220,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
         u2_role_wrapper = UserIpamRoleWrapper(user=self.user2)
+        u2_role_wrapper.user_role = u2_role_wrapper.get_or_create_user_ipam_role()
         u2_role_wrapper.user_role.is_admin = True
         u2_role_wrapper.user_role.save(update_fields=['is_admin'])
 
@@ -308,6 +310,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
         u1_role_wrapper = UserIpamRoleWrapper(user=self.user1)
+        u1_role_wrapper.user_role = u1_role_wrapper.get_or_create_user_ipam_role()
         u1_role_wrapper.user_role.is_readonly = True
         u1_role_wrapper.user_role.save(update_fields=['is_readonly'])
         response = self.client.post(base_url, data={
@@ -432,6 +435,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
         uirw = UserIpamRoleWrapper(self.user1)
+        uirw.user_role = uirw.get_or_create_user_ipam_role()
         uirw.user_role.is_readonly = True
         uirw.user_role.save(update_fields=['is_readonly'])
         response = self.client.put(base_url, data={
@@ -543,7 +547,19 @@ class IPAMUserRoleTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['user']['id'], self.user1.id)
         self.assertEqual(len(response.data['organizations']), 0)
 
+        # 不会自动创建ipam用户角色
         u1_role_wrapper = UserIpamRoleWrapper(user=self.user1)
+        u1_role_wrapper.user_role.organizations.add(org1)
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['id'], '')
+        self.assertKeysIn(
+            ['id', 'user', 'is_admin', 'is_readonly', 'creation_time', 'update_time', 'organizations'], response.data)
+        self.assertKeysIn(['id', 'username'], response.data['user'])
+        self.assertEqual(response.data['user']['id'], self.user1.id)
+        self.assertEqual(len(response.data['organizations']), 0)
+
+        u1_role_wrapper.user_role = u1_role_wrapper.get_or_create_user_ipam_role()
         u1_role_wrapper.user_role.organizations.add(org1)
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
@@ -556,6 +572,7 @@ class IPAMUserRoleTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['organizations'][0]['id'], org1.id)
 
         u2_role_wrapper = UserIpamRoleWrapper(user=self.user2)
+        u2_role_wrapper.user_role = u2_role_wrapper.get_or_create_user_ipam_role()
         u2_role_wrapper.user_role.organizations.add(org1)
         u2_role_wrapper.user_role.organizations.add(org2)
 

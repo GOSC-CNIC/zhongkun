@@ -49,7 +49,7 @@ class IPv4RangeAdmin(admin.ModelAdmin):
                     'org_virt_obj', 'org_name', 'assigned_time', 'creation_time', 'update_time',
                     'admin_remark', 'remark')
     list_select_related = ('asn', 'org_virt_obj', 'org_virt_obj__organization')
-    list_filter = ('status',)
+    list_filter = ('status', 'mask_len')
     search_fields = ('name', 'admin_remark', 'remark', 'org_virt_obj__name', 'org_virt_obj__organization__name')
     raw_id_fields = ('org_virt_obj',)
 
