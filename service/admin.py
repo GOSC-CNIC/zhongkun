@@ -7,7 +7,8 @@ from servers.models import Server, Disk
 from utils.model import NoDeleteSelectModelAdmin
 from .models import (
     ServiceConfig, DataCenter, ServicePrivateQuota,
-    ServiceShareQuota, ApplyVmService, ApplyOrganization, Contacts
+    ServiceShareQuota, ApplyVmService, ApplyOrganization, Contacts,
+    OrgDataCenter
 )
 from . import forms
 
@@ -16,14 +17,14 @@ from . import forms
 class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
     form = forms.VmsProviderForm
     list_display_links = ('id',)
-    list_display = ('id', 'name', 'name_en', 'data_center', 'sort_weight', 'region_id', 'service_type',
+    list_display = ('id', 'name', 'name_en', 'org_data_center', 'organization_name', 'sort_weight', 'region_id', 'service_type',
                     'endpoint_url', 'username',
                     'password', 'add_time', 'status', 'need_vpn', 'disk_available', 'vpn_endpoint_url', 'vpn_password',
                     'pay_app_service_id', 'longitude', 'latitude', 'remarks')
     search_fields = ['name', 'name_en', 'endpoint_url', 'remarks']
     list_filter = ['service_type', 'disk_available']
-    list_select_related = ('data_center',)
-    raw_id_fields = ('data_center',)
+    list_select_related = ('org_data_center', 'org_data_center__organization')
+    raw_id_fields = ('org_data_center',)
     list_editable = ('sort_weight',)
 
     filter_horizontal = ('users',)
@@ -82,6 +83,13 @@ class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
         else:
             self.message_user(request, _("没有加密更新任何数据记录"), level=messages.SUCCESS)
 
+    @admin.display(description=gettext_lazy("机构"))
+    def organization_name(self, obj):
+        if not obj.org_data_center or not obj.org_data_center.organization:
+            return ''
+
+        return obj.org_data_center.organization.name
+
     def has_delete_permission(self, request, obj=None):
         return False
 
@@ -106,6 +114,38 @@ class DataCenterAdmin(NoDeleteSelectModelAdmin):
     list_editable = ('sort_weight', )
     search_fields = ('name', 'name_en', 'abbreviation')
     filter_horizontal = ('contacts',)
+
+
+@admin.register(OrgDataCenter)
+class OrgDataCenterAdmin(NoDeleteSelectModelAdmin):
+    list_display_links = ('id',)
+    list_display = ('id', 'name', 'name_en', 'organization', 'sort_weight', 'longitude', 'latitude', 'creation_time',
+                    'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',
+                    'loki_endpoint_url', 'loki_username', 'loki_password', 'loki_receive_url',
+                    )
+    search_fields = ['name', 'name_en', 'thanos_endpoint_url', 'loki_endpoint_url', 'remark']
+    list_select_related = ('organization',)
+    raw_id_fields = ('organization',)
+    list_editable = ('sort_weight',)
+    filter_horizontal = ('users',)
+    fieldsets = (
+        (_('数据中心基础信息'), {
+            'fields': (
+                'name', 'name_en', 'organization', 'sort_weight', 'longitude', 'latitude', 'remark',
+                'users'
+            )
+        }),
+        (_('Thanos服务信息'), {
+            'fields': (
+                'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url', 'thanos_remark'
+            )
+        }),
+        (_('Loki服务信息'), {
+            'fields': (
+                'loki_endpoint_url', 'loki_username', 'loki_password', 'loki_receive_url', 'loki_remark'
+            )
+        }),
+    )
 
 
 @admin.register(ServicePrivateQuota)

@@ -99,6 +99,50 @@ class DataCenter(UuidModel):
             force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
 
 
+class OrgDataCenter(UuidModel):
+    """机构下的数据中心"""
+    name = models.CharField(verbose_name=_('名称'), max_length=255)
+    name_en = models.CharField(verbose_name=_('英文名称'), max_length=255, default='')
+    organization = models.ForeignKey(
+        to=DataCenter, verbose_name=_('机构'), on_delete=models.SET_NULL, null=True, blank=False, db_constraint=False)
+    users = models.ManyToManyField(
+        to=User, verbose_name=_('管理员'), blank=True, related_name='+', db_table='org_data_center_users')
+    longitude = models.FloatField(verbose_name=_('经度'), blank=True, default=0)
+    latitude = models.FloatField(verbose_name=_('纬度'), blank=True, default=0)
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
+    sort_weight = models.IntegerField(verbose_name=_('排序值'), default=0, help_text=_('值越小排序越靠前'))
+    remark = models.CharField(verbose_name=_('数据中心备注'), max_length=255, blank=True, default='')
+
+    # Thanos
+    thanos_endpoint_url = models.CharField(
+        verbose_name=_('Thanos服务查询接口'), max_length=255, blank=True, default='', help_text=_('http(s)://example.cn/'))
+    thanos_username = models.CharField(
+        max_length=128, verbose_name=_('Thanos服务认证用户名'), blank=True, default='', help_text=_('用于此服务认证的用户名'))
+    thanos_password = models.CharField(max_length=255, verbose_name=_('Thanos服务认证密码'), blank=True, default='')
+    thanos_receive_url = models.CharField(
+        verbose_name=_('Thanos服务接收接口'), max_length=255, blank=True, default='', help_text=_('http(s)://example.cn/'))
+    thanos_remark = models.CharField(verbose_name=_('Thanos服务备注'), max_length=255, blank=True, default='')
+
+    # Loki
+    loki_endpoint_url = models.CharField(
+        verbose_name=_('Loki服务查询接口'), max_length=255, blank=True, default='', help_text=_('http(s)://example.cn/'))
+    loki_username = models.CharField(
+        max_length=128, verbose_name=_('Loki服务认证用户名'), blank=True, default='', help_text=_('用于此服务认证的用户名'))
+    loki_password = models.CharField(max_length=255, verbose_name=_('Loki服务认证密码'), blank=True, default='')
+    loki_receive_url = models.CharField(
+        verbose_name=_('Loki服务接收接口'), max_length=255, blank=True, default='', help_text=_('http(s)://example.cn/'))
+    loki_remark = models.CharField(verbose_name=_('Loki服务备注'), max_length=255, blank=True, default='')
+
+    class Meta:
+        db_table = 'org_data_center'
+        ordering = ['sort_weight']
+        verbose_name = _('机构数据中心')
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return self.name
+
+
 class BaseService(UuidModel):
     class ServiceType(models.TextChoices):
         EVCLOUD = 'evcloud', 'EVCloud'
@@ -132,6 +176,8 @@ class ServiceConfig(BaseService):
 
     data_center = models.ForeignKey(to=DataCenter, null=True, on_delete=models.SET_NULL,
                                     related_name='service_set', verbose_name=_('机构'))
+    org_data_center = models.ForeignKey(
+        to=OrgDataCenter, null=True, on_delete=models.SET_NULL, related_name='+', verbose_name=_('数据中心'))
     name = models.CharField(max_length=255, verbose_name=_('服务名称'))
     name_en = models.CharField(verbose_name=_('服务英文名称'), max_length=255, default='')
     region_id = models.CharField(max_length=128, default='', blank=True, verbose_name=_('服务区域/分中心ID'))
