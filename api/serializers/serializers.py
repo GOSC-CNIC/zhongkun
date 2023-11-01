@@ -188,7 +188,7 @@ class ServiceSerializer(serializers.Serializer):
     add_time = serializers.DateTimeField()
     need_vpn = serializers.BooleanField()
     status = serializers.CharField()
-    data_center = serializers.SerializerMethodField()
+    org_data_center = serializers.SerializerMethodField(label=_('机构数据中心'), method_name='get_org_data_center')
     longitude = serializers.FloatField(label=_('经度'), default=0)
     latitude = serializers.FloatField(label=_('纬度'), default=0)
     pay_app_service_id = serializers.CharField(label=_('余额结算APP服务ID'), max_length=36)
@@ -196,12 +196,23 @@ class ServiceSerializer(serializers.Serializer):
     disk_available = serializers.BooleanField(label=_('提供云硬盘服务'))
 
     @staticmethod
-    def get_data_center(obj):
-        c = obj.data_center
-        if c is None:
-            return {'id': None, 'name': None, 'name_en': None, 'sort_weight': 0}
+    def get_org_data_center(obj):
+        odc = obj.org_data_center
+        if odc is None:
+            return None
 
-        return {'id': c.id, 'name': c.name, 'name_en': c.name_en, 'sort_weight': c.sort_weight}
+        data = {
+            'id': odc.id, 'name': odc.name, 'name_en': odc.name_en, 'sort_weight': odc.sort_weight
+        }
+        org = odc.organization
+        if org is None:
+            data['organization'] = None
+        else:
+            data['organization'] = {
+                'id': org.id, 'name': org.name, 'name_en': org.name_en
+            }
+
+        return data
 
 
 class DataCenterSerializer(serializers.Serializer):

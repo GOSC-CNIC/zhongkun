@@ -1478,11 +1478,18 @@ class ServiceViewSet(CustomGenericViewSet):
         operation_summary=gettext_lazy('列举已接入的服务'),
         manual_parameters=[
             openapi.Parameter(
+                name='org_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description='机构id'
+            ),
+            openapi.Parameter(
                 name='center_id',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description='联邦成员机构id'
+                description='数据中心id'
             ),
             openapi.Parameter(
                 name='status',
@@ -1515,11 +1522,16 @@ class ServiceViewSet(CustomGenericViewSet):
                   "add_time": "2020-10-16T09:01:44.402955Z",
                   "need_vpn": false,
                   "status": "enable",              # enable: 开启状态；disable: 停止服务状态; deleted: 删除
-                  "data_center": {
+                  "org_data_center": {      # maybe null
                     "id": 3,
                     "name": "VMware测试中心",
                     "name_en": "xxx",
-                    "sort_weight": 6
+                    "sort_weight": 6,
+                    "organization": {       # maybe null
+                        "id": 3,
+                        "name": "VMware机构",
+                        "name_en": "xxx",
+                    }
                   },
                   "longitude": 0,
                   "latitude": 0,

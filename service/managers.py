@@ -466,18 +466,22 @@ class ServiceManager:
         return self.get_service(_id)
 
     @staticmethod
-    def filter_service(center_id: str, status: str):
+    def filter_service(org_id: str, center_id: str, status: str):
         """
-        :param center_id: 联邦成员机构id
+        :param org_id: 机构id
+        :param center_id: 机构数据中心
         :param status: 服务单元服务状态
         """
-        queryset = ServiceConfig.objects.select_related('data_center').all()
+        queryset = ServiceConfig.objects.select_related('org_data_center', 'org_data_center__organization').all()
 
         if status:
             queryset = queryset.filter(status=status)
 
         if center_id:
-            queryset = queryset.filter(data_center=center_id)
+            queryset = queryset.filter(org_data_center_id=center_id)
+
+        if org_id:
+            queryset = queryset.filter(org_data_center__organization_id=org_id)
 
         return queryset.order_by('-add_time')
 

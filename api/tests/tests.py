@@ -1407,21 +1407,38 @@ class ServiceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "next", "previous", "results"], response.data)
         self.assertKeysIn(["id", "name", "name_en", "service_type", "cloud_type", "add_time", "sort_weight",
-                           "need_vpn", "status", "data_center", 'longitude', 'latitude', 'pay_app_service_id',
+                           "need_vpn", "status", "org_data_center", 'longitude', 'latitude', 'pay_app_service_id',
                            'disk_available'], response.data["results"][0])
-        self.assertKeysIn(["id", "name", "name_en", "sort_weight"], response.data["results"][0]['data_center'])
-        self.assertIsInstance(response.data["results"][0]['status'], str)
-        self.assertEqual(response.data["results"][0]['status'], ServiceConfig.Status.ENABLE)
-        self.assertIs(response.data["results"][0]['disk_available'], False)
+        self.assertEqual(len(response.data["results"]), 2)
+        map_ = {s['id']: s for s in response.data["results"]}
+        r_service1 = map_[self.service.id]
+        r_service2 = map_[service2.id]
+        self.assertKeysIn([
+            "id", "name", "name_en", "sort_weight", "organization"], r_service1['org_data_center'])
+        self.assertKeysIn(["id", "name", "name_en"], r_service1['org_data_center']['organization'])
+        self.assertIsInstance(r_service1['status'], str)
+        self.assertEqual(r_service1['status'], ServiceConfig.Status.ENABLE)
+        self.assertIs(r_service1['disk_available'], False)
+        self.assertIsNone(r_service2['org_data_center'])
 
         url = reverse('api:service-list')
-        query = parse.urlencode(query={'center_id': self.service.data_center_id})
+        query = parse.urlencode(query={'center_id': self.service.org_data_center_id})
         response = self.client.get(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["count"], 1)
 
         url = reverse('api:service-list')
         query = parse.urlencode(query={'center_id': 'test'})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 0)
+
+        # query "org_id"
+        query = parse.urlencode(query={'org_id': self.service.org_data_center.organization_id})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 1)
+        query = parse.urlencode(query={'org_id': 'test'})
         response = self.client.get(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["count"], 0)
@@ -1472,9 +1489,11 @@ class ServiceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "next", "previous", "results"], response.data)
         self.assertKeysIn(["id", "name", "name_en", "service_type", "cloud_type", "add_time", "sort_weight",
-                           "need_vpn", "status", "data_center", 'longitude', 'latitude', 'pay_app_service_id',
+                           "need_vpn", "status", "org_data_center", 'longitude', 'latitude', 'pay_app_service_id',
                            'disk_available'], response.data["results"][0])
-        self.assertKeysIn(["id", "name", "name_en", "sort_weight"], response.data["results"][0]['data_center'])
+        self.assertKeysIn([
+            "id", "name", "name_en", "sort_weight", "organization"], response.data["results"][0]['org_data_center'])
+        self.assertKeysIn(["id", "name", "name_en"], response.data["results"][0]['org_data_center']['organization'])
         self.assertIsInstance(response.data["results"][0]['status'], str)
 
     def service_quota_get_update(self, url):
