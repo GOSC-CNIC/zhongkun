@@ -1496,6 +1496,17 @@ class ServiceTests(MyAPITestCase):
         self.assertKeysIn(["id", "name", "name_en"], response.data["results"][0]['org_data_center']['organization'])
         self.assertIsInstance(response.data["results"][0]['status'], str)
 
+        # 数据中心管理员
+        self.service.users.remove(self.user)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
+
+        self.service.org_data_center.users.add(self.user)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+
     def service_quota_get_update(self, url):
         # get
         response = self.client.get(url)

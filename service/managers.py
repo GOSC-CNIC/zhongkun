@@ -1,6 +1,6 @@
 from django.db import transaction
 from django.utils.translation import gettext_lazy, gettext as _
-from django.db.models import Subquery
+from django.db.models import Subquery, Q
 from django.utils import timezone
 from django.core.cache import cache
 
@@ -450,7 +450,8 @@ class ServiceManager:
         """
         :raises: Error
         """
-        service = ServiceConfig.objects.select_related('data_center').filter(id=service_id).first()
+        service = ServiceConfig.objects.select_related(
+            'org_data_center', 'org_data_center__organization').filter(id=service_id).first()
         if not service:
             raise errors.ServiceNotExist(_('资源提供者服务不存在'))
 
@@ -486,23 +487,32 @@ class ServiceManager:
         return queryset.order_by('-add_time')
 
     @staticmethod
+    def _get_perm_service_qs(user_id: str):
+        return ServiceConfig.objects.select_related(
+            'org_data_center', 'org_data_center__organization'
+        ).filter(
+            Q(users__id=user_id) | Q(org_data_center__users__id=user_id)
+        )
+
+    @staticmethod
     def get_has_perm_service(user):
         """
         用户有权限管理的服务
         """
-        return user.service_set.select_related('data_center').filter(
-            status=ServiceConfig.Status.ENABLE).order_by('-add_time')
+        qs = ServiceManager._get_perm_service_qs(user_id=user.id)
+        return qs.filter(status=ServiceConfig.Status.ENABLE).order_by('-add_time')
 
     @staticmethod
     def get_all_has_perm_service(user):
         """
         用户有权限管理的所有服务
         """
-        return user.service_set.select_related('data_center').all()
+        return ServiceManager._get_perm_service_qs(user_id=user.id)
 
     @staticmethod
     def get_has_perm_service_ids(user_id: str):
-        return ServiceConfig.objects.filter(users__id=user_id).values_list('id', flat=True)
+        qs = ServiceManager._get_perm_service_qs(user_id=user_id)
+        return qs.values_list('id', flat=True)
 
     @staticmethod
     def get_service_if_admin(user, service_id: str):
@@ -513,7 +523,8 @@ class ServiceManager:
             ServiceConfig()     # 是
             None                # 不是
         """
-        return ServiceConfig.objects.filter(id=service_id, users__id=user.id).first()
+        qs = ServiceManager._get_perm_service_qs(user_id=user.id)
+        return qs.filter(id=service_id).first()
 
     @staticmethod
     def get_service_id_map(use_cache=False, cache_seconds=60):
@@ -529,7 +540,7 @@ class ServiceManager:
             service_id_map = cache.get(caches_key)
 
         if service_id_map is None:
-            services = ServiceConfig.objects.select_related('data_center').all()
+            services = ServiceConfig.objects.select_related('org_data_center').all()
             service_id_map = {}
             for s in services:
                 service_id_map[s.id] = s
