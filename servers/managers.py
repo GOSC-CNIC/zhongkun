@@ -722,13 +722,13 @@ class DiskManager:
             else:
                 service_ids = None
         elif service_id:
-            service = user.service_set.filter(id=service_id).first()
+            service = ServiceManager.get_service_if_admin(user=user, service_id=service_id)
             if service is None:
                 raise errors.AccessDenied(message=_('您没有指定服务的访问权限'))
 
             service_ids = [service_id]
         else:
-            service_ids = user.service_set.all().values_list('id', flat=True)
+            service_ids = ServiceManager.get_has_perm_service_ids(user_id=user.id)
             if not service_ids:
                 return qs.none()
 

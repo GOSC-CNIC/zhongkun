@@ -511,8 +511,9 @@ class ServiceManager:
 
     @staticmethod
     def get_has_perm_service_ids(user_id: str):
-        qs = ServiceManager._get_perm_service_qs(user_id=user_id)
-        return qs.values_list('id', flat=True)
+        return ServiceConfig.objects.filter(
+            Q(users__id=user_id) | Q(org_data_center__users__id=user_id)
+        ).values_list('id', flat=True)
 
     @staticmethod
     def get_service_if_admin(user, service_id: str):
