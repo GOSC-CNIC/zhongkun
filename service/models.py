@@ -250,8 +250,9 @@ class ServiceConfig(BaseService):
                     app_service.name_en = self.name_en
                     update_fields.append('name_en')
 
-                if app_service.orgnazition_id != self.data_center_id:
-                    app_service.orgnazition_id = self.data_center_id
+                org_id = self.org_data_center.organization_id if self.org_data_center else None
+                if app_service.orgnazition_id != org_id:
+                    app_service.orgnazition_id = org_id
                     update_fields.append('orgnazition_id')
 
                 if self.id and app_service.service_id != self.id:
@@ -277,9 +278,10 @@ class ServiceConfig(BaseService):
             self.check_pay_app_service_id(self.pay_app_service_id)
 
         # 新注册
+        org_id = self.org_data_center.organization_id if self.org_data_center else None
         with transaction.atomic():
             app_service = PayAppService(
-                name=self.name, name_en=self.name_en, app_id=app_id, orgnazition_id=self.data_center_id,
+                name=self.name, name_en=self.name_en, app_id=app_id, orgnazition_id=org_id,
                 resources='云主机、云硬盘', status=PayAppService.Status.NORMAL.value,
                 category=PayAppService.Category.VMS_SERVER.value, service_id=self.id,
                 longitude=self.longitude, latitude=self.latitude,
