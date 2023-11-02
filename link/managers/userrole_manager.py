@@ -12,13 +12,16 @@ class UserRoleWrapper:
 
     @property
     def user_role(self):
-        if not self._user_role:
+        if self._user_role is None:
             self._user_role = self.get_user_link_role(user=self.user)
         return self._user_role
 
     @staticmethod
     def get_user_link_role(user):
-        return LinkUserRole.objects.select_related('user').filter(user_id=user.id).first()
+        db_userrole = LinkUserRole.objects.select_related('user').filter(user_id=user.id).first()
+        if db_userrole is None:
+            db_userrole = LinkUserRole(user=user, is_admin=False, is_readonly=False)
+        return db_userrole
 
     def has_read_permission(self) -> bool:
         if self.user_role is None:

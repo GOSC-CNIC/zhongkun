@@ -30,21 +30,21 @@ class LeaseLineViewSet(NormalGenericViewSet):
 
             http Code 200 Ok:
                 {
-                    "id": "biydzce9nmb6y92hc71bnn219",
-                    "private_line_number": "140028",
-                    "lease_line_code": "北京-南京S-16N2004NP",
-                    "line_username": "南京分中心",
+                    "id": "tggprpr26coj92g1t08gjoim5",
+                    "private_line_number": "28622091", # 专线号
+                    "lease_line_code": "北京乌鲁木齐ANE0033NP", # 电路代号
+                    "line_username": "北京-乌鲁木齐", # 用户名
                     "endpoint_a": "北京市海淀区中关村南四街4号",
-                    "endpoint_z": "南京市北京东路39号",
-                    "line_type": "骨干网",
-                    "cable_type": "SDH",
-                    "bandwidth": 2500,
-                    "length": null,
-                    "provider": "联通（北京）",
-                    "enable_date": "2007-01-30",
-                    "is_whithdrawal": false,
-                    "money": "10000.00",
-                    "remarks": "电路代号：北京-南京S-16N2004NP，起租时间2007.02.01"
+                    "endpoint_z": "新疆省乌鲁木齐市北京南路40号",
+                    "line_type": "骨干网", # 线路类型
+                    "cable_type": "MSTP电路", # 电路类型
+                    "bandwidth": 1000, # 宽带（Mbs）
+                    "length": 20.00, # 长度 （km）
+                    "provider": "联通（北京）", # 运营商
+                    "enable_date": "2014-07-01", # 启用日期
+                    "is_whithdrawal": true, # 是否撤线
+                    "money": 8500.00, # 月租费（元）
+                    "remarks": "电路代号：北京乌鲁木齐ANE0033NP,2015-1-18日由300M扩容至600M，升级1G时撤租"
                 }
 
         """
@@ -98,19 +98,19 @@ class LeaseLineViewSet(NormalGenericViewSet):
                     "results": [
                         {
                             "id": "tggprpr26coj92g1t08gjoim5",
-                            "private_line_number": "28622091",
-                            "lease_line_code": "北京乌鲁木齐ANE0033NP",
-                            "line_username": "北京-乌鲁木齐",
+                            "private_line_number": "28622091", # 专线号
+                            "lease_line_code": "北京乌鲁木齐ANE0033NP", # 电路代号
+                            "line_username": "北京-乌鲁木齐", # 用户名
                             "endpoint_a": "北京市海淀区中关村南四街4号",
                             "endpoint_z": "新疆省乌鲁木齐市北京南路40号",
-                            "line_type": "骨干网",
-                            "cable_type": "MSTP电路",
-                            "bandwidth": 1000,
-                            "length": 20.00,
-                            "provider": "联通（北京）",
-                            "enable_date": "2014-07-01",
-                            "is_whithdrawal": true,
-                            "money": 8500.00,
+                            "line_type": "骨干网", # 线路类型
+                            "cable_type": "MSTP电路", # 电路类型
+                            "bandwidth": 1000, # 宽带（Mbs）
+                            "length": 20.00, # 长度 （km）
+                            "provider": "联通（北京）", # 运营商
+                            "enable_date": "2014-07-01", # 启用日期
+                            "is_whithdrawal": true, # 是否撤线
+                            "money": 8500.00, # 月租费（元）
                             "remarks": "电路代号：北京乌鲁木齐ANE0033NP,2015-1-18日由300M扩容至600M，升级1G时撤租"
                         }
                     ]
@@ -132,21 +132,21 @@ class LeaseLineViewSet(NormalGenericViewSet):
 
             http Code 200 Ok:
                 {
-                    "id": "biydzce9nmb6y92hc71bnn219",
-                    "private_line_number": "140028",
-                    "lease_line_code": "北京-南京S-16N2004NP",
-                    "line_username": "南京分中心",
+                    "id": "tggprpr26coj92g1t08gjoim5",
+                    "private_line_number": "28622091", # 专线号
+                    "lease_line_code": "北京乌鲁木齐ANE0033NP", # 电路代号
+                    "line_username": "北京-乌鲁木齐", # 用户名
                     "endpoint_a": "北京市海淀区中关村南四街4号",
-                    "endpoint_z": "南京市北京东路39号",
-                    "line_type": "骨干网",
-                    "cable_type": "SDH",
-                    "bandwidth": 2500,
-                    "length": 20.00,
-                    "provider": "联通（北京）",
-                    "enable_date": "2007-01-30",
-                    "is_whithdrawal": false,
-                    "money": "10000.00",
-                    "remarks": "电路代号：北京-南京S-16N2004NP，起租时间2007.02.01"
+                    "endpoint_z": "新疆省乌鲁木齐市北京南路40号",
+                    "line_type": "骨干网", # 线路类型
+                    "cable_type": "MSTP电路", # 电路类型
+                    "bandwidth": 1000, # 宽带（Mbs）
+                    "length": 20.00, # 长度 （km）
+                    "provider": "联通（北京）", # 运营商
+                    "enable_date": "2014-07-01", # 启用日期
+                    "is_whithdrawal": true, # 是否撤线
+                    "money": 8500.00, # 月租费（元）
+                    "remarks": "电路代号：北京乌鲁木齐ANE0033NP,2015-1-18日由300M扩容至600M，升级1G时撤租"
                 }
         """
         return LeaseLineHandler.update_leaseline(view=self, request=request, kwargs=kwargs)
@@ -163,21 +163,21 @@ class LeaseLineViewSet(NormalGenericViewSet):
 
             http Code 200 Ok:
                 {
-                    "id": "biydzce9nmb6y92hc71bnn219",
-                    "private_line_number": "140028",
-                    "lease_line_code": "北京-南京S-16N2004NP",
-                    "line_username": "南京分中心",
+                    "id": "tggprpr26coj92g1t08gjoim5",
+                    "private_line_number": "28622091", # 专线号
+                    "lease_line_code": "北京乌鲁木齐ANE0033NP", # 电路代号
+                    "line_username": "北京-乌鲁木齐", # 用户名
                     "endpoint_a": "北京市海淀区中关村南四街4号",
-                    "endpoint_z": "南京市北京东路39号",
-                    "line_type": "骨干网",
-                    "cable_type": "SDH",
-                    "bandwidth": 2500,
-                    "length": 20.00,
-                    "provider": "联通（北京）",
-                    "enable_date": "2007-01-30",
-                    "is_whithdrawal": false,
-                    "money": "10000.00",
-                    "remarks": "电路代号：北京-南京S-16N2004NP，起租时间2007.02.01"
+                    "endpoint_z": "新疆省乌鲁木齐市北京南路40号",
+                    "line_type": "骨干网", # 线路类型
+                    "cable_type": "MSTP电路", # 电路类型
+                    "bandwidth": 1000, # 宽带（Mbs）
+                    "length": 20.00, # 长度 （km）
+                    "provider": "联通（北京）", # 运营商
+                    "enable_date": "2014-07-01", # 启用日期
+                    "is_whithdrawal": true, # 是否撤线
+                    "money": 8500.00, # 月租费（元）
+                    "remarks": "电路代号：北京乌鲁木齐ANE0033NP,2015-1-18日由300M扩容至600M，升级1G时撤租" # 备注
                 }
         """
         return LeaseLineHandler.retrieve_leaseline(view=self, request=request, kwargs=kwargs)

@@ -30,13 +30,13 @@ class ConnectorBoxViewSet(NormalGenericViewSet):
                     "page_size": 20,
                     "results": [
                         {
-                            "is_linked": true,
-                            "element_id": "mgarja3xdy80ubxv2jm6teo62",
+                            "is_linked": true, # 是否接入链路
+                            "element_id": "mgarja3xdy80ubxv2jm6teo62", # 网元id
                             "id": "mgarbd5pg0zkmavtitu5gbxzc",
-                            "number": "熔纤包测试1",
-                            "place": "熔纤包测试-位置",
-                            "remarks": "",
-                            "location": ""
+                            "number": "熔纤包测试1", # 编号
+                            "place": "", # 设备位置
+                            "remarks": "", # 备注
+                            "location": "" # 经纬度
                         }
                     ]
                 }

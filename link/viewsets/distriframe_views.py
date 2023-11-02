@@ -32,12 +32,12 @@ class DistriFrameViewSet(NormalGenericViewSet):
                     "results": [
                         {
                             "id": "mgcgpi7fj115jresrmzazmoy7",
-                            "number": "东侧数据处理区中间机柜35至36U_中天科技ODF",
-                            "model_type": "LC",
-                            "row_count": 1,
-                            "col_count": 12,
-                            "place": "中国资源卫星应用中心一期楼三层机房A301",
-                            "remarks": "",
+                            "number": "东侧数据处理区中间机柜35至36U_中天科技ODF", # 编号
+                            "model_type": "LC", # 设备型号
+                            "row_count": 1, # 行数
+                            "col_count": 12, # 列数
+                            "place": "中国资源卫星应用中心一期楼三层机房A301", # 设备位置
+                            "remarks": "", # 备注
                             "link_org": {
                                 "id": "mfr1i5nitwi6p13hg5extsvvx",
                                 "name": "中国遥感卫星地面站"

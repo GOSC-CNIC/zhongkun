@@ -30,12 +30,12 @@ class DistriFramePortViewSet(NormalGenericViewSet):
                     "page_size": 20,
                     "results": [
                         {
-                            "is_linked": true,
-                            "element_id": "mgcj1voii43a8xd1d0j56hre7",
+                            "is_linked": true, # 是否接入链路
+                            "element_id": "mgcj1voii43a8xd1d0j56hre7",  # 网元id
                             "id": "mgciudagi8j8q9994go07ykyn",
-                            "number": "test(1,1)",
-                            "row": 1,
-                            "col": 1,
+                            "number": "test(1,1)", # 编号
+                            "row": 1, # 行号
+                            "col": 1, # 列号
                             "distribution_frame": {
                                 "id": "mgcgpi7fj115jresrmzazmoy7",
                                 "number": "东侧数据处理区中间机柜35至36U_中天科技ODF"
