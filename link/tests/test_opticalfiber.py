@@ -3,15 +3,17 @@ from link.managers.fibercable_manager import FiberCableManager
 from django.urls import reverse
 from link.managers.userrole_manager import UserRoleWrapper
 from urllib import parse
-from link.models import OpticalFiber
+from link.models import OpticalFiber, LinkUserRole
 
 class OpticalFiberTests(MyAPITransactionTestCase):
     def setUp(self):
         self.user1 = get_or_create_user(username='tom@qq.com')
         self.user2 = get_or_create_user(username='lisi@cnic.cn')
         self.user3 = get_or_create_user(username='zhangs@cnic.cn')
-        UserRoleWrapper(user=self.user2).add_read_permission()
-        UserRoleWrapper(user=self.user3).add_write_permission()
+        urole = LinkUserRole(user=self.user2, is_admin=False, is_readonly=True)
+        urole.save(force_insert=True)
+        urole = LinkUserRole(user=self.user3, is_admin=True, is_readonly=False)
+        urole.save(force_insert=True)
         FiberCableManager.create_fibercable(
             number='SM-test',
             fiber_count=30,
