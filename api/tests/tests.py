@@ -291,9 +291,20 @@ class ServersTests(MyAPITestCase):
         self.assertKeysIn(["id", "size", "creation_time", "remarks", "expiration_time", "mountpoint",
                            "attached_time", "detached_time", "pay_type"], response.data['server']['attached_disks'][0])
 
-        # test when federal admin
+        # test when org date center admin
         self.service.users.remove(admin_user)
+        response = self.server_detail_response(
+            client=self.client, server_id=self.miss_server.id, querys={'as-admin': ''})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
+        self.service.org_data_center.users.add(admin_user)
+        response = self.server_detail_response(
+            client=self.client, server_id=self.miss_server.id, querys={'as-admin': ''})
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['server'], response.data)
+
+        # test when federal admin
+        self.service.org_data_center.users.remove(admin_user)
         response = self.server_detail_response(
             client=self.client, server_id=self.miss_server.id, querys={'as-admin': ''})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
@@ -679,7 +690,7 @@ class ServersTests(MyAPITestCase):
         response = self.client.get(f'{url}?{query_str}')
         self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
 
-        # org data center admin
+        # ----- org data center admin -------
         self.service.users.remove(admin_user)
         url = reverse('api:servers-list')
         query_str = parse.urlencode(query={'as-admin': ''})
@@ -697,6 +708,7 @@ class ServersTests(MyAPITestCase):
         self.assertEqual(response.data['count'], 2)
         self.assertIsInstance(response.data['servers'], list)
         self.assertEqual(len(response.data['servers']), 2)
+        self.service.org_data_center.users.remove(admin_user)
 
         # -------------list server when federal admin---------------
         admin_user.set_federal_admin()
@@ -894,8 +906,20 @@ class ServersTests(MyAPITestCase):
         response = self.client.post(f'{url}?{query}', data={'action': 'start'})
         self.assertErrorResponse(status_code=500, code='InternalError', response=response)
 
-        # test when federal admin
+        # test when org date center admin
         self.service.users.remove(admin_user)
+        url = reverse('api:servers-server-action', kwargs={'id': self.miss_server.id})
+        query = parse.urlencode(query={'as-admin': ''})
+        response = self.client.post(f'{url}?{query}', data={'action': 'start'})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.miss_server.service.org_data_center.users.add(admin_user)
+        query = parse.urlencode(query={'as-admin': ''})
+        response = self.client.post(f'{url}?{query}', data={'action': 'start'})
+        self.assertErrorResponse(status_code=500, code='InternalError', response=response)
+        self.miss_server.service.org_data_center.users.remove(admin_user)
+
+        # test when federal admin
         url = reverse('api:servers-server-action', kwargs={'id': self.miss_server.id})
         query = parse.urlencode(query={'as-admin': ''})
         response = self.client.post(f'{url}?{query}', data={'action': 'start'})
@@ -1217,8 +1241,24 @@ class ServersTests(MyAPITestCase):
         response = self.client.delete(delete_url)
         self.assertEqual(response.status_code, 204)
 
-        # test when federal admin
+        # test when org data center admin
         self.service.users.remove(admin_user)
+        delete_server = create_server_metadata(
+            service=self.service, user=self.user,
+            default_user=self.default_user, default_password=self.default_password)
+
+        base_url = reverse('api:servers-detail', kwargs={'id': delete_server.id})
+        query = parse.urlencode(query={'as-admin': ''})
+        delete_url = f'{base_url}?{query}'
+        response = self.client.delete(delete_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.service.org_data_center.users.add(admin_user)
+        response = self.client.delete(delete_url)
+        self.assertEqual(response.status_code, 204)
+
+        # test when federal admin
+        self.service.org_data_center.users.remove(admin_user)
         delete_server = create_server_metadata(
             service=self.service, user=self.user,
             default_user=self.default_user, default_password=self.default_password)
