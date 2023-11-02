@@ -53,7 +53,7 @@ class ObjectsServiceSerializer(serializers.Serializer):
     longitude = serializers.FloatField(label=_('经度'))
     latitude = serializers.FloatField(label=_('纬度'))
     pay_app_service_id = serializers.CharField(label=_('余额结算APP服务ID'))
-    data_center = serializers.SerializerMethodField(method_name='get_data_center')
+    org_data_center = serializers.SerializerMethodField(label=_('机构数据中心'), method_name='get_org_data_center')
     sort_weight = serializers.IntegerField(label=_('排序权重'), default=0, help_text=_('值越大排序越靠前'))
     loki_tag = serializers.CharField(
         label=_('对应loki日志中集群标识'), max_length=128,
@@ -64,9 +64,20 @@ class ObjectsServiceSerializer(serializers.Serializer):
         return obj.ftp_domains_list()
 
     @staticmethod
-    def get_data_center(obj):
-        if obj.data_center:
-            return {'id': obj.data_center.id, 'name': obj.data_center.name, 'name_en': obj.data_center.name_en,
-                    'sort_weight': obj.data_center.sort_weight}
+    def get_org_data_center(obj):
+        odc = obj.org_data_center
+        if odc is None:
+            return None
 
-        return None
+        data = {
+            'id': odc.id, 'name': odc.name, 'name_en': odc.name_en, 'sort_weight': odc.sort_weight
+        }
+        org = odc.organization
+        if org is None:
+            data['organization'] = None
+        else:
+            data['organization'] = {
+                'id': org.id, 'name': org.name, 'name_en': org.name_en
+            }
+
+        return data

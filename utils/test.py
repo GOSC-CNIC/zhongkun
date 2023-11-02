@@ -87,7 +87,7 @@ def get_or_create_service():
 def get_or_create_storage_service():
     service = ObjectsService.objects.filter(name='test', name_en='test_en').first()
     if service is None:
-        center = get_or_create_center()
+        odc = get_or_create_org_data_center()
 
         test_settings = get_test_case_settings()
         service_settings = test_settings['STORAGE_SERVICE']
@@ -100,7 +100,7 @@ def get_or_create_storage_service():
             raise Exception('TEST_CASE.STORAGE_SERVICE.service_type is invalid in settings')
 
         service = ObjectsService(
-            name='test', name_en='test_en', data_center=center,
+            name='test', name_en='test_en', org_data_center=odc,
             endpoint_url=service_settings['endpoint_url'],
             username=service_settings['username'],
             service_type=service_type,

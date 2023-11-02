@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 
-from service.models import DataCenter
+from service.models import DataCenter, OrgDataCenter
 from utils.model import UuidModel, get_encryptor
 from bill.models import PayAppService
 
@@ -29,6 +29,8 @@ class ObjectsService(UuidModel):
 
     data_center = models.ForeignKey(to=DataCenter, null=True, on_delete=models.SET_NULL,
                                     related_name='object_service_set', verbose_name=_('数据中心'))
+    org_data_center = models.ForeignKey(
+        to=OrgDataCenter, null=True, on_delete=models.SET_NULL, related_name='+', verbose_name=_('数据中心'))
     name = models.CharField(max_length=255, verbose_name=_('服务名称'))
     name_en = models.CharField(verbose_name=_('服务英文名称'), max_length=255, default='')
     service_type = models.CharField(max_length=16, choices=ServiceType.choices, default=ServiceType.IHARBOR.value,
