@@ -26,11 +26,11 @@ def do_get_center_and_services():
     if centers is None:
         org_dict = {}
         service_qs = ServiceConfig.objects.select_related(
-            'data_center').filter(status=ServiceConfig.Status.ENABLE).all()
+            'org_data_center__organization').filter(status=ServiceConfig.Status.ENABLE).all()
         sorted_services = sorted(service_qs, key=lambda x: x.sort_weight, reverse=False)
         for s in sorted_services:
             s_data = {'id': s.id, 'name': s.name, 'service_type': s.service_type, 'sort_weight': s.sort_weight}
-            org = s.data_center
+            org = s.org_data_center.organization if s.org_data_center else None
             if org:
                 key = org.id
                 if key not in org_dict:
