@@ -54,19 +54,20 @@ class ServerSerializer(ServerBaseSerializer):
     lock = serializers.CharField(label=_('锁'), max_length=16)
 
     def get_vms_endpoint_url(self, obj):
-        service_id_map = self.context.get('service_id_map')
-        if service_id_map:
-            service = service_id_map.get(obj.service_id)
-        else:
-            service = obj.service
-
-        if not service:
-            return ''
-
-        try:
-            return service.data_center.endpoint_vms
-        except AttributeError:
-            return ''
+        return ''
+        # service_id_map = self.context.get('service_id_map')
+        # if service_id_map:
+        #     service = service_id_map.get(obj.service_id)
+        # else:
+        #     service = obj.service
+        #
+        # if not service:
+        #     return ''
+        #
+        # try:
+        #     return service.data_center.endpoint_vms
+        # except AttributeError:
+        #     return ''
 
     @staticmethod
     def get_service(obj):

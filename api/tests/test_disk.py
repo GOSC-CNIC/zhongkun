@@ -370,7 +370,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
 
     def test_list_disk(self):
         service2 = ServiceConfig(
-            name='test2', name_en='test2_en', data_center=self.service.data_center
+            name='test2', name_en='test2_en', org_data_center=self.service.org_data_center
         )
         service2.save(force_insert=True)
 
@@ -981,7 +981,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
 
     def test_delete_disk(self):
         service2 = ServiceConfig(
-            name='test2', name_en='test2_en', data_center=self.service.data_center
+            name='test2', name_en='test2_en', org_data_center=self.service.org_data_center
         )
         service2.save(force_insert=True)
 
@@ -1121,7 +1121,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
 
     def test_attach_disk(self):
         service2 = ServiceConfig(
-            name='test2', name_en='test2_en', data_center=self.service.data_center
+            name='test2', name_en='test2_en', org_data_center=self.service.org_data_center
         )
         service2.save(force_insert=True)
         server1 = create_server_metadata(

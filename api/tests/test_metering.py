@@ -25,8 +25,8 @@ class MeteringServerTests(MyAPITestCase):
         self.user = set_auth_header(self)
         self.service = get_or_create_service()
         self.service2 = ServiceConfig(
-            name='test2', data_center_id=self.service.data_center_id, endpoint_url='test2', username='', password='',
-            need_vpn=False
+            name='test2', org_data_center_id=self.service.org_data_center_id, endpoint_url='test2',
+            username='', password='', need_vpn=False
         )
         self.service2.save(force_insert=True)
         self.vo = VirtualOrganization(
@@ -1369,8 +1369,8 @@ class StatementServerTests(MyAPITestCase):
 
         self.service = get_or_create_service()
         self.service2 = ServiceConfig(
-            name='test2', data_center_id=self.service.data_center_id, endpoint_url='test2', username='', password='',
-            need_vpn=False
+            name='test2', org_data_center_id=self.service.org_data_center_id, endpoint_url='test2',
+            username='', password='', need_vpn=False
         )
         self.service2.save()
 
@@ -2083,8 +2083,8 @@ class AdminMeteringServerTests(MyAPITestCase):
         self.user2 = get_or_create_user(username='user2')
         self.service1 = get_or_create_service()
         self.service2 = ServiceConfig(
-            name='test2', data_center_id=self.service1.data_center_id, endpoint_url='test2', username='', password='',
-            need_vpn=False
+            name='test2', org_data_center_id=self.service1.org_data_center_id, endpoint_url='test2',
+            username='', password='', need_vpn=False
         )
         self.service2.save(force_insert=True)
         self.vo = VirtualOrganization(
@@ -2257,8 +2257,8 @@ class MeteringDiskTests(MyAPITestCase):
         self.user = get_or_create_user(username='lilei@cnic.cn')
         self.service = get_or_create_service()
         self.service2 = ServiceConfig(
-            name='test2', data_center_id=self.service.data_center_id, endpoint_url='test2', username='', password='',
-            need_vpn=False
+            name='test2', org_data_center_id=self.service.org_data_center_id, endpoint_url='test2',
+            username='', password='', need_vpn=False
         )
         self.service2.save(force_insert=True)
         self.vo = VirtualOrganization(
@@ -3518,8 +3518,8 @@ class StatementDiskTests(MyAPITestCase):
 
         self.service = get_or_create_service()
         self.service2 = ServiceConfig(
-            name='test2', data_center_id=self.service.data_center_id, endpoint_url='test2', username='', password='',
-            need_vpn=False
+            name='test2', org_data_center_id=self.service.org_data_center_id, endpoint_url='test2',
+            username='', password='', need_vpn=False
         )
         self.service2.save()
 

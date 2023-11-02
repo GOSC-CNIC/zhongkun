@@ -41,8 +41,8 @@ class PaymentManagerTests(TransactionTestCase):
 
         self.vo = VoManager().create_vo(user=self.user, name='test vo', company='test', description='test')
         self.service2 = ServiceConfig(
-            name='test2', data_center_id=self.service.data_center_id, endpoint_url='test2', username='', password='',
-            need_vpn=False, pay_app_service_id=self.app_service2.id
+            name='test2', org_data_center_id=self.service.org_data_center_id, endpoint_url='test2',
+            username='', password='', need_vpn=False, pay_app_service_id=self.app_service2.id
         )
         self.service2.save()
 

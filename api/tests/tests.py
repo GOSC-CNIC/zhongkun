@@ -511,7 +511,7 @@ class ServersTests(MyAPITestCase):
         admin_password = 'admin-password'
         admin_user = get_or_create_user(username=admin_username, password=admin_password)
         service66 = ServiceConfig(
-            name='test66', name_en='test66_en', data_center_id=None,
+            name='test66', name_en='test66_en', org_data_center_id=None,
             endpoint_url='',
             username='',
             service_type=ServiceConfig.ServiceType.EVCLOUD,
@@ -678,6 +678,25 @@ class ServersTests(MyAPITestCase):
         query_str = parse.urlencode(query={'as-admin': '', 'exclude-vo': '', 'vo-name': 'dd'})
         response = self.client.get(f'{url}?{query_str}')
         self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
+
+        # org data center admin
+        self.service.users.remove(admin_user)
+        url = reverse('api:servers-list')
+        query_str = parse.urlencode(query={'as-admin': ''})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'next', 'previous', 'servers'], response.data)
+        self.assertEqual(response.data['count'], 0)
+        self.assertIsInstance(response.data['servers'], list)
+        self.assertEqual(len(response.data['servers']), 0)
+
+        self.service.org_data_center.users.add(admin_user)
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'next', 'previous', 'servers'], response.data)
+        self.assertEqual(response.data['count'], 2)
+        self.assertIsInstance(response.data['servers'], list)
+        self.assertEqual(len(response.data['servers']), 2)
 
         # -------------list server when federal admin---------------
         admin_user.set_federal_admin()
@@ -2110,7 +2129,7 @@ class ApplyVmServiceTests(MyAPITestCase):
         response = self.create_apply_response(client=self.client, data=apply_data)
         self.assertErrorResponse(status_code=404, code='OrganizationNotExists', response=response)
 
-        apply_data['organization_id'] = self.service.data_center_id
+        apply_data['organization_id'] = self.service.org_data_center.organization_id
         response = self.create_apply_response(client=self.client, data=apply_data)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(keys=[
@@ -2124,7 +2143,7 @@ class ApplyVmServiceTests(MyAPITestCase):
 
         self.assert_is_subdict_of(sub={
             'status': 'wait',
-            'organization_id': self.service.data_center_id,
+            'organization_id': self.service.org_data_center.organization_id,
             'longitude': 0.0, 'latitude': 0.0, 'name': '地球大数据', "name_en": "casearth data",
             'region': '1', 'service_type': self.service.service_type,
             'cloud_type': ApplyVmService.CLoudType.HYBRID,
@@ -2166,7 +2185,7 @@ class ApplyVmServiceTests(MyAPITestCase):
     def test_pending_reject_apply(self):
         apply_data = {k: self.apply_data[k] for k in self.apply_data.keys()}
         url = reverse('api:apply-service-list')
-        apply_data['organization_id'] = self.service.data_center_id
+        apply_data['organization_id'] = self.service.org_data_center.organization_id
         response = self.client.post(url, data=apply_data)
         self.assertEqual(response.status_code, 200)
         apply_id = response.data['id']
@@ -2193,7 +2212,7 @@ class ApplyVmServiceTests(MyAPITestCase):
     def test_pending_test_pass_apply(self):
         apply_data = {k: self.apply_data[k] for k in self.apply_data.keys()}
         url = reverse('api:apply-service-list')
-        apply_data['organization_id'] = self.service.data_center_id
+        apply_data['organization_id'] = self.service.org_data_center.organization_id
         response = self.client.post(url, data=apply_data)
         self.assertEqual(response.status_code, 200)
         apply_id = response.data['id']
@@ -2267,7 +2286,7 @@ class ApplyVmServiceTests(MyAPITestCase):
 
     def test_list(self):
         apply_data = {k: self.apply_data[k] for k in self.apply_data.keys()}
-        apply_data['organization_id'] = self.service.data_center_id
+        apply_data['organization_id'] = self.service.org_data_center.organization_id
         response = self.create_apply_response(client=self.client, data=apply_data)
         self.assertEqual(response.status_code, 200)
         apply_id = response.data['id']
@@ -2287,7 +2306,7 @@ class ApplyVmServiceTests(MyAPITestCase):
             'remarks', 'logo_url'], container=response.data['results'][0])
         self.assert_is_subdict_of(sub={
             'status': ApplyVmService.Status.WAIT,
-            'organization_id': self.service.data_center_id,
+            'organization_id': self.service.org_data_center.organization_id,
             'longitude': 0.0, 'latitude': 0.0, 'name': '地球大数据', "name_en": "casearth data",
             'region': '1', 'service_type': self.service.service_type,
             'cloud_type': self.service.cloud_type,
@@ -2327,7 +2346,7 @@ class ApplyVmServiceTests(MyAPITestCase):
         # list organization cancel
         response = self.list_response(client=self.client, queries={
             'status': [ApplyVmService.Status.CANCEL],
-            'organization': self.service.data_center_id})
+            'organization': self.service.org_data_center.organization_id})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["count"], 1)
         response = self.list_response(client=self.client, queries={
@@ -2379,7 +2398,7 @@ class ApplyVmServiceTests(MyAPITestCase):
             'remarks', 'logo_url'], container=response.data['results'][0])
         self.assert_is_subdict_of(sub={
             'status': ApplyVmService.Status.CANCEL,
-            'organization_id': self.service.data_center_id,
+            'organization_id': self.service.org_data_center.organization_id,
             'longitude': 0.0, 'latitude': 0.0, 'name': '地球大数据', "name_en": "casearth data",
             'region': '1', 'service_type': self.service.service_type,
             'cloud_type': self.service.cloud_type,
@@ -2404,7 +2423,7 @@ class ApplyVmServiceTests(MyAPITestCase):
 
         # admin-list organization
         response = self.admin_list_response(client=self.client, queries={
-            'deleted': True, 'organization': self.service.data_center_id})
+            'deleted': True, 'organization': self.service.org_data_center.organization_id})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["count"], 1)
 

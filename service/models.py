@@ -174,8 +174,6 @@ class ServiceConfig(BaseService):
         DISABLE = 'disable', _('停止服务')
         DELETED = 'deleted', _('删除')
 
-    data_center = models.ForeignKey(to=DataCenter, null=True, on_delete=models.SET_NULL,
-                                    related_name='service_set', verbose_name=_('机构'))
     org_data_center = models.ForeignKey(
         to=OrgDataCenter, null=True, on_delete=models.SET_NULL, related_name='+', verbose_name=_('数据中心'))
     name = models.CharField(max_length=255, verbose_name=_('服务名称'))

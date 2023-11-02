@@ -849,10 +849,10 @@ class ServerHandler:
         """
         if is_as_admin:
             server = ServerManager().get_manage_perm_server(
-                server_id=server_id, user=user, related_fields=['service__data_center'], as_admin=True)
+                server_id=server_id, user=user, related_fields=['service__org_data_center'], as_admin=True)
         else:
             server = ServerManager().get_manage_perm_server(
-                server_id=server_id, user=user, related_fields=['service__data_center', 'vo__owner'])
+                server_id=server_id, user=user, related_fields=['service__org_data_center', 'vo__owner'])
 
         if server.is_locked_delete():
             raise exceptions.ResourceLocked(message=_('无法删除，云主机已加锁锁定了删除'))
@@ -935,10 +935,10 @@ class ServerHandler:
         """
         if is_as_admin:
             server = ServerManager().get_read_perm_server(
-                server_id=server_id, user=user, related_fields=['service__data_center'], as_admin=True)
+                server_id=server_id, user=user, related_fields=['service__org_data_center'], as_admin=True)
         else:
             server = ServerManager().get_read_perm_server(
-                server_id=server_id, user=user, related_fields=['service__data_center', 'vo__owner'])
+                server_id=server_id, user=user, related_fields=['service__org_data_center', 'vo__owner'])
 
         if server.is_locked_operation():
             raise exceptions.ResourceLocked(message=_('云主机已加锁锁定了任何操作'))

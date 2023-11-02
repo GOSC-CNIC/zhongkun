@@ -416,7 +416,7 @@ class ServicePrivateQuotaManager(ServiceQuotaManagerBase):
         if service_id:
             qs = qs.filter(service_id=service_id)
         elif center_id:
-            qs = qs.filter(service__data_center_id=center_id)
+            qs = qs.filter(service__org_data_center__organization_id=center_id)
 
         qs = qs.exclude(service__status=ServiceConfig.Status.DELETED.value)
         return qs
@@ -434,7 +434,7 @@ class ServiceShareQuotaManager(ServiceQuotaManagerBase):
         if service_id:
             qs = qs.filter(service_id=service_id)
         elif center_id:
-            qs = qs.filter(service__data_center_id=center_id)
+            qs = qs.filter(service__org_data_center__organization_id=center_id)
 
         qs = qs.exclude(service__status=ServiceConfig.Status.DELETED.value)
         return qs

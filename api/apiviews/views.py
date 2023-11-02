@@ -518,11 +518,11 @@ class ServersViewSet(CustomGenericViewSet):
         try:
             if self.is_as_admin_request(request=request):
                 server = ServerManager().get_read_perm_server(
-                    server_id=server_id, user=request.user, related_fields=['service__data_center'],
+                    server_id=server_id, user=request.user, related_fields=['service__org_data_center'],
                     as_admin=True)
             else:
                 server = ServerManager().get_read_perm_server(
-                    server_id=server_id, user=request.user, related_fields=['service__data_center', 'vo__owner'])
+                    server_id=server_id, user=request.user, related_fields=['service__org_data_center', 'vo__owner'])
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 

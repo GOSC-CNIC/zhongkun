@@ -88,6 +88,7 @@ class ServerManager:
         :return: QuerySet()
         :raises: Error
         """
+        admin_user = user
         qs = self.get_server_queryset()
         qs = qs.select_related('service', 'user')
 
@@ -121,13 +122,13 @@ class ServerManager:
                 qs = qs.filter(service_id=service_id)
         else:
             if service_id:
-                service = ServiceManager.get_service_if_admin(user=user, service_id=service_id)
+                service = ServiceManager.get_service_if_admin(user=admin_user, service_id=service_id)
                 if service is None:
                     raise errors.AccessDenied(message=_('您没有指定服务的访问权限'))
 
                 qs = qs.filter(service_id=service_id)
             else:
-                subq = Subquery(ServiceManager.get_has_perm_service_ids(user_id=user_id))
+                subq = Subquery(ServiceManager.get_has_perm_service_ids(user_id=admin_user.id))
                 qs = qs.filter(service_id__in=subq)
 
         if expired is True:

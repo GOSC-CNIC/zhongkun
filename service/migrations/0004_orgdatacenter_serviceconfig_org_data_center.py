@@ -23,7 +23,7 @@ class Migration(migrations.Migration):
                 ('latitude', models.FloatField(blank=True, default=0, verbose_name='纬度')),
                 ('creation_time', models.DateTimeField(auto_now_add=True, verbose_name='创建时间')),
                 ('sort_weight', models.IntegerField(default=0, help_text='值越小排序越靠前', verbose_name='排序值')),
-                ('remark', models.CharField(blank=True, default='', max_length=255, verbose_name='Loki服务备注')),
+                ('remark', models.CharField(blank=True, default='', max_length=255, verbose_name='数据中心备注')),
                 ('thanos_endpoint_url', models.CharField(blank=True, default='', help_text='http(s)://example.cn/', max_length=255, verbose_name='Thanos服务查询接口')),
                 ('thanos_username', models.CharField(blank=True, default='', help_text='用于此服务认证的用户名', max_length=128, verbose_name='Thanos服务认证用户名')),
                 ('thanos_password', models.CharField(blank=True, default='', max_length=255, verbose_name='Thanos服务认证密码')),

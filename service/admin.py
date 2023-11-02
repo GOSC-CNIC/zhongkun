@@ -32,7 +32,7 @@ class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
     fieldsets = (
         (_('说明、备注'), {'fields': ('remarks', 'sort_weight')}),
         (_('服务配置信息'), {
-            'fields': ('data_center', 'name', 'name_en', 'service_type', 'cloud_type', 'status', 'endpoint_url',
+            'fields': ('org_data_center', 'name', 'name_en', 'service_type', 'cloud_type', 'status', 'endpoint_url',
                        'api_version', 'region_id', 'disk_available', 'username', 'password', 'change_password')
         }),
         (_('VPN配置信息'), {
@@ -155,7 +155,7 @@ class ServicePrivateQuotaAdmin(admin.ModelAdmin):
                     'disk_size_used', 'private_ip_total', 'private_ip_used', 'public_ip_total', 'public_ip_used',
                     'enable', 'creation_time')
     list_select_related = ('service',)
-    list_filter = ('service__data_center', 'service')
+    list_filter = ('service__org_data_center', 'service')
     actions = ['quota_used_update']
 
     @admin.action(description=gettext_lazy("已用配额统计更新"))
@@ -213,7 +213,7 @@ class ServiceShareQuotaAdmin(admin.ModelAdmin):
                     'disk_size_used', 'private_ip_total', 'private_ip_used', 'public_ip_total', 'public_ip_used',
                     'enable', 'creation_time')
     list_select_related = ('service',)
-    list_filter = ('service__data_center', 'service')
+    list_filter = ('service__org_data_center', 'service')
     actions = ['quota_used_update']
 
     @admin.action(description=gettext_lazy("已用配额统计更新"))
