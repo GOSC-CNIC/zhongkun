@@ -138,7 +138,7 @@ class AdminBucketTests(MyAPITestCase):
     def test_list_bucket(self):
         user2 = get_or_create_user(username='tom@xx.com')
         service2 = ObjectsService(
-            name='test', name_en='test_en', data_center=self.service1.data_center,
+            name='test', name_en='test_en', org_data_center=self.service1.org_data_center,
             endpoint_url='',
             username='',
             service_type=ObjectsService.ServiceType.IHARBOR.value,

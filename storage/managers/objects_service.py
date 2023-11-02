@@ -7,7 +7,7 @@ from storage.models import ObjectsService
 class ObjectsServiceManager:
     @staticmethod
     def get_service_queryset():
-        return ObjectsService.objects.select_related('data_center').all()
+        return ObjectsService.objects.select_related('org_data_center__organization').all()
 
     @staticmethod
     def get_service_by_id(_id: str):
@@ -21,7 +21,8 @@ class ObjectsServiceManager:
         """
         :raises: Error
         """
-        service = ObjectsService.objects.select_related('data_center').filter(id=service_id).first()
+        service = ObjectsService.objects.select_related(
+            'org_data_center__organization').filter(id=service_id).first()
         if not service:
             raise errors.ServiceNotExist(_('资源提供者服务单元不存在'))
 
@@ -35,8 +36,8 @@ class ObjectsServiceManager:
         """
         用户有权限管理的所有存储服务单元
         """
-        return ObjectsService.objects.select_related('data_center').filter(users__id=user.id)
-        # return user.object_service_set.select_related('data_center').all()
+        return ObjectsService.objects.select_related(
+            'org_data_center__organization').filter(users__id=user.id)
 
     @staticmethod
     def get_service_if_admin(user, service_id: str):
