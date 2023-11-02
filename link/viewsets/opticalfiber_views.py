@@ -30,10 +30,10 @@ class OpticalFiberViewSet(NormalGenericViewSet):
                     "page_size": 20,
                     "results": [
                         {
-                            "is_linked": true,
-                            "element_id": "mgb3k0t02f0m954adqenm950n",
+                            "is_linked": true, # 是否接入链路
+                            "element_id": "mgb3k0t02f0m954adqenm950n", # 网元id
                             "id": "mgb3ciey2jgjqh0i56ihnpzk2",
-                            "sequence": 1,
+                            "sequence": 1, # 纤序
                             "fiber_cable": {
                                 "id": "mgb1bi5zka5c0dyrgo0m89sq7",
                                 "number": "test-fibercable-number-1"

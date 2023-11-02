@@ -32,9 +32,9 @@ class linkOrgViewSet(NormalGenericViewSet):
                     "results": [
                         {
                             "id": "mfr1i5nitwi6p13hg5extsvvx",
-                            "name": "中国遥感卫星地面站",
-                            "remarks": "",
-                            "location": "",
+                            "name": "中国遥感卫星地面站", # 二级机构名
+                            "remarks": "", # 备注
+                            "location": "116.376313,-39.863116", # 经纬度
                             "data_center": {
                                 "id": "mgdzvt8zc7dbff6gt09nz4qfx",
                                 "name": "test",

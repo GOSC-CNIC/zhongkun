@@ -32,9 +32,9 @@ class ElementLinkViewSet(NormalGenericViewSet):
                     "results": [
                         {
                             "id": "mghd5cum4mkqc9bwk5qq987kn",
-                            "number": "link-test-number-2",
-                            "remarks": "",
-                            "link_status": "using",
+                            "number": "link-test-number-2", # 链路编号
+                            "remarks": "", # 备注
+                            "link_status": "using", # 链路状态 using(使用) idle(闲置) backup(备用) deleted(删除)
                             "task": {
                                 "id": "mgdzvt8zc7dbff6gt09nz4qfx",
                                 "number": "KY23092702",
@@ -48,7 +48,7 @@ class ElementLinkViewSet(NormalGenericViewSet):
                                 "mgarja3xdy80ubxv2jm6teo62",
                                 "mgb7awdvj5ru2esyy0tybxxzs",
                                 "mgcnm31ow2p8x9ug95u3qpif2"
-                            ]
+                            ] # 组成链路的设备的网元id
                         }
                     ]
                 }
