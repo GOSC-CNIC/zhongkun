@@ -176,12 +176,6 @@ class ObjectsService(UuidModel):
     def ftp_domains_list(self):
         return self.ftp_domains.split(',')
 
-    def is_admin_user(self, user_id: str):
-        if not user_id:
-            return False
-
-        return self.users.filter(id=user_id).exists()
-
 
 class BucketBase(UuidModel):
 

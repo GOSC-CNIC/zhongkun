@@ -154,8 +154,22 @@ class ObjectsServiceTests(MyAPITestCase):
         self.assertEqual(r.data['count'], 1)
         self.assertEqual(len(r.data['results']), 1)
 
+        # 数据中心管理员
+        self.service.users.remove(self.user)
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 0)
+        self.assertEqual(len(r.data['results']), 0)
+
+        self.service.org_data_center.users.add(self.user)
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 1)
+        self.assertEqual(len(r.data['results']), 1)
+
         # 联邦管理员
         self.service.users.remove(self.user)
+        self.service.org_data_center.users.remove(self.user)
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data['count'], 0)

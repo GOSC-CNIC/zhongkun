@@ -219,7 +219,39 @@ class AdminBucketTests(MyAPITestCase):
         self.assertEqual(len(r.data['results']), 1)
         self.assertEqual(r.data['results'][0]['id'], b2_u2_s1.id)
 
+        # ----- 数据中心admin -------------
+        self.service1.users.remove(self.user)
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=['count', 'next', 'previous', 'results'], container=r.data)
+        self.assertEqual(r.data['count'], 0)
+        self.assertEqual(len(r.data['results']), 0)
+
+        self.service1.org_data_center.users.add(self.user)
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=['count', 'next', 'previous', 'results'], container=r.data)
+        self.assertEqual(r.data['count'], 4)
+        self.assertEqual(len(r.data['results']), 4)
+
+        # query 'service_id'
+        url = reverse('api:admin-bucket-list')
+        query = parse.urlencode(query={'service_id': service2.id})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 2)
+        self.assertEqual(len(r.data['results']), 2)
+        self.assertEqual(r.data['results'][0]['id'], b4_u2_s2.id)
+        self.assertEqual(r.data['results'][1]['id'], b3_u1_s2.id)
+
         # ----- federal_admin -------------
+        self.service1.org_data_center.users.remove(self.user)
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=['count', 'next', 'previous', 'results'], container=r.data)
+        self.assertEqual(r.data['count'], 0)
+        self.assertEqual(len(r.data['results']), 0)
+
         self.user.set_federal_admin()
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
@@ -326,6 +358,20 @@ class AdminBucketTests(MyAPITestCase):
         r = self.client.delete(f'{url}?{query}')
         self.assertEqual(r.status_code, 204)
 
+        # test data center admin
+        self.service1.users.remove(self.user)
+        bucket2 = BucketManager.create_bucket(
+            bucket_name='test-bucket2', bucket_id='1', user_id=self.user.id, service_id=self.service1.id)
+        # AccessDenied
+        url = reverse('api:admin-bucket-detail', kwargs={'bucket_name': bucket2.name})
+        query = parse.urlencode(query={'service_id': self.service1.id})
+        r = self.client.delete(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        self.service1.org_data_center.users.add(self.user)
+        r = self.client.delete(f'{url}?{query}')
+        self.assertEqual(r.status_code, 204)
+
     def test_stats_bucket(self):
         bucket = BucketManager.create_bucket(
             bucket_name='test-bucket', bucket_id='1', user_id=self.user.id, service_id=self.service1.id)
@@ -350,8 +396,20 @@ class AdminBucketTests(MyAPITestCase):
         self.assertEqual(r.status_code, 500)
         self.assertEqual(r.data['code'], 'Adapter.BucketNotExist')
 
-        # set federal admin
+        # test data center admin
         self.service1.users.remove(self.user)
+        url = reverse('api:admin-bucket-stats-bucket', kwargs={
+            'bucket_name': bucket.name, 'service_id': self.service1.id})
+        r = self.client.get(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        self.service1.org_data_center.users.add(self.user)
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 500)
+        self.assertEqual(r.data['code'], 'Adapter.BucketNotExist')
+
+        # set federal admin
+        self.service1.org_data_center.users.remove(self.user)
         r = self.client.get(url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
 
@@ -401,8 +459,18 @@ class AdminBucketTests(MyAPITestCase):
         self.assertEqual(r.status_code, 500)
         self.assertEqual(r.data['code'], 'Adapter.BucketNotExist')
 
-        # set federal admin
+        # data center admin
         self.service1.users.remove(self.user)
+        r = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        self.service1.org_data_center.users.add(self.user)
+        r = self.client.post(f'{url}?{query}')
+        self.assertEqual(r.status_code, 500)
+        self.assertEqual(r.data['code'], 'Adapter.BucketNotExist')
+
+        # set federal admin
+        self.service1.org_data_center.users.remove(self.user)
         r = self.client.post(f'{url}?{query}')
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
 
