@@ -4,7 +4,7 @@ from decimal import Decimal
 from django.utils import timezone
 from django.test.testcases import TransactionTestCase
 
-from utils.test import get_or_create_user, get_or_create_center
+from utils.test import get_or_create_user, get_or_create_org_data_center
 from utils.time import utc
 from storage.models import ObjectsService, Bucket, BucketArchive
 from metering.models import MeteringObjectStorage
@@ -30,14 +30,14 @@ class BucketStatsMonthlyTests(TransactionTestCase):
             time=datetime.time(hour=23, minute=59, second=59, microsecond=999999, tzinfo=utc))
 
     def init_bucket_data(self):
-        center = get_or_create_center()
+        odc = get_or_create_org_data_center()
         service1 = ObjectsService(
-            name='service1', data_center_id=center.id,
+            name='service1', org_data_center_id=odc.id,
             endpoint_url='service1', username='', password=''
         )
         service1.save(force_insert=True)
         service2 = ObjectsService(
-            name='service2', data_center_id=center.id,
+            name='service2', org_data_center_id=odc.id,
             endpoint_url='service2', username='', password=''
         )
         service2.save(force_insert=True)

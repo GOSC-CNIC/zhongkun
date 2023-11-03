@@ -49,7 +49,7 @@ class DataCenter(UuidModel):
     name = models.CharField(verbose_name=_('名称'), max_length=255)
     name_en = models.CharField(verbose_name=_('英文名称'), max_length=255, default='')
     abbreviation = models.CharField(verbose_name=_('简称'), max_length=64, default='')
-    independent_legal_person = models.BooleanField(verbose_name=_('是否独立法人单位'), default=True)
+    independent_legal_person = models.BooleanField(verbose_name=_('独立法人单位'), default=True)
     country = models.CharField(verbose_name=_('国家/地区'), max_length=128, default='')
     province = models.CharField(verbose_name=_('省份'), max_length=128, default='')
     city = models.CharField(verbose_name=_('城市'), max_length=128, default='')

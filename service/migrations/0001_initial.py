@@ -20,7 +20,7 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(max_length=255, verbose_name='名称')),
                 ('name_en', models.CharField(default='', max_length=255, verbose_name='英文名称')),
                 ('abbreviation', models.CharField(default='', max_length=64, verbose_name='简称')),
-                ('independent_legal_person', models.BooleanField(default=True, verbose_name='是否独立法人单位')),
+                ('independent_legal_person', models.BooleanField(default=True, verbose_name='独立法人单位')),
                 ('country', models.CharField(default='', max_length=128, verbose_name='国家/地区')),
                 ('city', models.CharField(default='', max_length=128, verbose_name='城市')),
                 ('postal_code', models.CharField(default='', max_length=32, verbose_name='邮政编码')),
