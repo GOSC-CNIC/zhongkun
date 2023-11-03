@@ -5,6 +5,7 @@ from urllib import parse
 from string import Template
 
 from core import errors
+from monitor.utils import ThanosProvider
 from monitor.models import MonitorProvider
 
 
@@ -109,7 +110,7 @@ class MonitorTiDBQueryAPI:
     """
     _query_builder = ExpressionQuery()
 
-    def pd_nodes(self, provider: MonitorProvider, job: str):
+    def pd_nodes(self, provider: ThanosProvider, job: str):
         """
         :return:
         """
@@ -117,7 +118,7 @@ class MonitorTiDBQueryAPI:
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(url=api_url)
 
-    def tidb_nodes(self, provider: MonitorProvider, job: str):
+    def tidb_nodes(self, provider: ThanosProvider, job: str):
         """
         :return:
             [
@@ -134,7 +135,7 @@ class MonitorTiDBQueryAPI:
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(url=api_url)
 
-    def tikv_nodes(self, provider: MonitorProvider, job: str):
+    def tikv_nodes(self, provider: ThanosProvider, job: str):
         """
         :return:
         """
@@ -142,7 +143,7 @@ class MonitorTiDBQueryAPI:
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(url=api_url)
 
-    def connections_count(self, provider: MonitorProvider, job: str):
+    def connections_count(self, provider: ThanosProvider, job: str):
         """
         :return:
         """
@@ -150,7 +151,7 @@ class MonitorTiDBQueryAPI:
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(url=api_url)
 
-    def qps_count(self, provider: MonitorProvider, job: str):
+    def qps_count(self, provider: ThanosProvider, job: str):
         """
         :return:
         """
@@ -158,7 +159,7 @@ class MonitorTiDBQueryAPI:
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(url=api_url)
 
-    def region_count(self, provider: MonitorProvider, job: str):
+    def region_count(self, provider: ThanosProvider, job: str):
         """
         :return:
         """
@@ -166,7 +167,7 @@ class MonitorTiDBQueryAPI:
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(url=api_url)
 
-    def region_health(self, provider: MonitorProvider, job: str):
+    def region_health(self, provider: ThanosProvider, job: str):
         """
         :return:
         """
@@ -174,7 +175,7 @@ class MonitorTiDBQueryAPI:
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(url=api_url)
 
-    def storage_capacity(self, provider: MonitorProvider, job: str):
+    def storage_capacity(self, provider: ThanosProvider, job: str):
         """
         :return:
         """
@@ -182,7 +183,7 @@ class MonitorTiDBQueryAPI:
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(url=api_url)
 
-    def current_storage_size(self, provider: MonitorProvider, job: str):
+    def current_storage_size(self, provider: ThanosProvider, job: str):
         """
         :return:
         """
@@ -190,7 +191,7 @@ class MonitorTiDBQueryAPI:
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(url=api_url)
 
-    def storage(self, provider: MonitorProvider, job: str):
+    def storage(self, provider: ThanosProvider, job: str):
         """
         :return:
         """
@@ -198,7 +199,7 @@ class MonitorTiDBQueryAPI:
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(url=api_url)
 
-    def server_cpu_usage(self, provider: MonitorProvider, job: str):
+    def server_cpu_usage(self, provider: ThanosProvider, job: str):
         """
         :return:
         """
@@ -206,7 +207,7 @@ class MonitorTiDBQueryAPI:
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(url=api_url)
 
-    def server_mem_usage(self, provider: MonitorProvider, job: str):
+    def server_mem_usage(self, provider: ThanosProvider, job: str):
         """
         :return:
         """
@@ -214,7 +215,7 @@ class MonitorTiDBQueryAPI:
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(url=api_url)
 
-    def server_disk_usage(self, provider: MonitorProvider, job: str):
+    def server_disk_usage(self, provider: ThanosProvider, job: str):
         """
         :return:
         """

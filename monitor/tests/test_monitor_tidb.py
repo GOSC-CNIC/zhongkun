@@ -1,9 +1,7 @@
 from urllib import parse
 
 from django.urls import reverse
-from django.utils import timezone
 
-from service.models import DataCenter
 from utils.test import get_or_create_user, get_or_create_service, MyAPITestCase, get_or_create_org_data_center
 from monitor.models import (
     MonitorJobTiDB, MonitorProvider

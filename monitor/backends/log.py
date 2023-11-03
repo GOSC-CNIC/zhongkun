@@ -4,6 +4,7 @@ import requests
 import aiohttp
 
 from core import errors
+from monitor.utils import LokiProvider
 from monitor.models import MonitorProvider
 
 
@@ -34,7 +35,7 @@ class LogLokiAPI:
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url, querys=querys)
         return self._request_query_api(url=api_url)
 
-    def query_log(self, provider: MonitorProvider, querys: dict):
+    def query_log(self, provider: LokiProvider, querys: dict):
         """
         :return:
         """

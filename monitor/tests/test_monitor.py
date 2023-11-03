@@ -8,7 +8,6 @@ from django.utils import timezone
 from django.core.cache import cache as django_cache
 from django.conf import settings
 
-from service.models import DataCenter
 from monitor.models import (
     MonitorJobCeph, MonitorProvider, MonitorJobServer, WebsiteDetectionPoint,
     MonitorWebsite, MonitorWebsiteRecord, MonitorWebsiteTask, MonitorWebsiteVersion, get_str_hash

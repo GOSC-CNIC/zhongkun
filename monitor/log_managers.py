@@ -1,6 +1,7 @@
 from django.utils.translation import gettext as _
 
 from core import errors
+from .utils import LokiProvider, build_loki_provider
 from .models import LogSite
 from .backends.log import LogLokiAPI
 
@@ -29,7 +30,7 @@ class LogSiteManager:
 
         :raises: Error
         """
-        log_site = LogSite.objects.select_related('provider').filter(id=site_id).first()
+        log_site = LogSite.objects.select_related('org_data_center').filter(id=site_id).first()
         if log_site is None:
             raise errors.TargetNotExist(message=_('查询的日志单元不存在。'))
 
@@ -65,4 +66,5 @@ class LogSiteManager:
             'start': start, 'end': end,
             'limit': limit, 'direction': direction
         }
-        return LogLokiAPI().query_log(provider=log_site.provider, querys=params)
+        provider = build_loki_provider(odc=log_site.org_data_center)
+        return LogLokiAPI().query_log(provider=provider, querys=params)

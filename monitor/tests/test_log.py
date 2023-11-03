@@ -3,7 +3,6 @@ from urllib import parse
 from django.urls import reverse
 from django.utils import timezone
 
-from service.models import DataCenter
 from monitor.models import (
     LogSite, LogSiteType, MonitorProvider
 )

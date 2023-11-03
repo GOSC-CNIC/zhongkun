@@ -1,4 +1,4 @@
-from utils.test import get_test_case_settings
+from utils.test import get_test_case_settings, get_or_create_org_data_center
 from monitor.models import (
     MonitorProvider, MonitorJobCeph, MonitorJobServer, MonitorJobVideoMeeting, MonitorJobTiDB, LogSite
 )
@@ -25,6 +25,38 @@ def get_or_create_monitor_provider(alias: str, name: str = 'test', name_en: str 
     return provider
 
 
+def get_odc_with_thanos_config(alias: str, name: str = 'test', name_en: str = 'test'):
+    try:
+        test_settings = get_test_case_settings()
+        provider_settings = test_settings[alias]['PROVIDER']
+    except Exception as e:
+        raise Exception(f'No test settings({alias}.PROVIDER) in file "test_settings.TEST_CASE"， {str(e)}')
+
+    odc = get_or_create_org_data_center(name=name)
+    odc.name_en = name_en
+    odc.thanos_endpoint_url = provider_settings.get('endpoint_url')
+    odc.thanos_username = provider_settings.get('username')
+    odc.thanos_password = provider_settings.get('password', '')
+    odc.save(force_update=True)
+    return odc
+
+
+def get_odc_with_loki_config(alias: str, name: str = 'test', name_en: str = 'test'):
+    try:
+        test_settings = get_test_case_settings()
+        provider_settings = test_settings[alias]['PROVIDER']
+    except Exception as e:
+        raise Exception(f'No test settings({alias}.PROVIDER) in file "test_settings.TEST_CASE"， {str(e)}')
+
+    odc = get_or_create_org_data_center(name=name)
+    odc.name_en = name_en
+    odc.loki_endpoint_url = provider_settings.get('endpoint_url')
+    odc.loki_username = provider_settings.get('username')
+    odc.loki_password = provider_settings.get('password', '')
+    odc.save(force_update=True)
+    return odc
+
+
 def get_or_create_monitor_job_ceph(job_tag: str = None, name: str = 'test', name_en: str = 'test'):
     if job_tag is None:
         try:
@@ -43,11 +75,12 @@ def get_or_create_monitor_job_ceph(job_tag: str = None, name: str = 'test', name
         return job_ceph
 
     provider = get_or_create_monitor_provider(alias='MONITOR_CEPH')
+    odc = get_odc_with_thanos_config(alias='MONITOR_CEPH')
     job_ceph = MonitorJobCeph(
-        name=name, name_en=name_en, job_tag=job_tag,
+        name=name, name_en=name_en, job_tag=job_tag, org_data_center=odc,
         provider=provider
     )
-    job_ceph.save()
+    job_ceph.save(force_insert=True)
     return job_ceph
 
 
@@ -69,8 +102,9 @@ def get_or_create_monitor_job_server(job_tag: str = None, name: str = 'test', na
         return job_server
 
     provider = get_or_create_monitor_provider(alias='MONITOR_SERVER')
+    odc = get_odc_with_thanos_config(alias='MONITOR_SERVER')
     job_server = MonitorJobServer(
-        name=name, name_en=name_en, job_tag=job_tag,
+        name=name, name_en=name_en, job_tag=job_tag, org_data_center=odc,
         provider=provider
     )
     job_server.save()
@@ -123,8 +157,9 @@ def get_or_create_monitor_job_tidb(job_tag: str = None, name: str = 'test', name
         return job_tidb
 
     provider = get_or_create_monitor_provider(alias='MONITOR_TIDB', name='tidb')
+    odc = get_odc_with_thanos_config(alias='MONITOR_TIDB')
     job_tidb = MonitorJobTiDB(
-        name=name, name_en=name_en, job_tag=job_tag,
+        name=name, name_en=name_en, job_tag=job_tag, org_data_center=odc,
         provider=provider
     )
     job_tidb.save(force_insert=True)
@@ -149,8 +184,9 @@ def get_or_create_job_log_site(job_tag: str = None, name: str = 'test', name_en:
         return job_ceph
 
     provider = get_or_create_monitor_provider(alias='LOG_SITE')
+    odc = get_odc_with_loki_config(alias='LOG_SITE')
     job_ceph = LogSite(
-        name=name, name_en=name_en, job_tag=job_tag,
+        name=name, name_en=name_en, job_tag=job_tag, org_data_center=odc,
         provider=provider, sort_weight=1
     )
     job_ceph.save(force_insert=True)
