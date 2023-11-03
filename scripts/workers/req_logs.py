@@ -8,6 +8,7 @@ from django.conf import settings
 
 from monitor.models import TotalReqNum, LogSite, LogSiteTimeReqNum
 from monitor.backends.log import LogLokiAPI
+from monitor.utils import build_loki_provider
 
 
 def get_today_start_time():
@@ -115,7 +116,7 @@ class ServiceReqCounter:
 class LogSiteReqCounter:
     @staticmethod
     def get_now_timestamp() -> int:
-        return int(datetime.utcnow().timestamp())
+        return int(datetime.utcnow().replace(second=0).timestamp())
 
     def __init__(self, minutes: int = 1):
         """
@@ -129,7 +130,7 @@ class LogSiteReqCounter:
 
     @staticmethod
     def get_log_sites():
-        qs = LogSite.objects.select_related('provider').all()
+        qs = LogSite.objects.select_related('org_data_center').all()
         return list(qs)
 
     def async_generate_req_num_log(self):
@@ -175,10 +176,11 @@ class LogSiteReqCounter:
         value = f'count_over_time({{job="{site.job_tag}"}}[{minutes}m])'
         querys = {'query': value, 'time': until_timestamp}
 
+        provider = build_loki_provider(odc=site.org_data_center)
         try:
-            result = await LogLokiAPI().async_query(provider=site.provider, querys=querys)
+            result = await LogLokiAPI().async_query(provider=provider, querys=querys)
         except Exception:
-            result = await LogLokiAPI().async_query(provider=site.provider, querys=querys)
+            result = await LogLokiAPI().async_query(provider=provider, querys=querys)
 
         if result:
             value = result[0]['value']

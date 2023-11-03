@@ -5,7 +5,6 @@ import aiohttp
 
 from core import errors
 from monitor.utils import LokiProvider
-from monitor.models import MonitorProvider
 
 
 class LogLokiAPI:
@@ -28,7 +27,7 @@ class LogLokiAPI:
         }
     }
     """
-    def query(self, provider: MonitorProvider, querys: dict):
+    def query(self, provider: LokiProvider, querys: dict):
         """
         :return:
         """
@@ -83,7 +82,7 @@ class LogLokiAPI:
         query = parse.urlencode(query=querys)
         return f'{endpoint_url}/loki/api/v1/query?{query}'
 
-    async def async_query(self, provider: MonitorProvider, querys: dict):
+    async def async_query(self, provider: LokiProvider, querys: dict):
         """
         :return:
         """
