@@ -7,7 +7,7 @@ from service.models import DataCenter
 from monitor.models import (
     LogSite, LogSiteType, MonitorProvider
 )
-from utils.test import get_or_create_user, get_or_create_service, MyAPITestCase
+from utils.test import get_or_create_user, get_or_create_service, MyAPITestCase, get_or_create_org_data_center
 from scripts.workers.req_logs import LogSiteReqCounter
 from .tests import get_or_create_job_log_site
 
@@ -20,10 +20,7 @@ class LogSiteTests(MyAPITestCase):
     def test_list_unit(self):
         provider = MonitorProvider()
         provider.save(force_insert=True)
-        org = DataCenter(
-            name='test', name_en='test en', abbreviation='t', creation_time=timezone.now()
-        )
-        org.save(force_insert=True)
+        odc = get_or_create_org_data_center()
 
         site_type1 = LogSiteType(name='obj', name_en='obj en', sort_weight=6)
         site_type1.save(force_insert=True)
@@ -37,20 +34,20 @@ class LogSiteTests(MyAPITestCase):
         log_site2 = LogSite(
             name='name2', name_en='name_en2', log_type=LogSite.LogType.HTTP.value,
             site_type_id=site_type1.id, job_tag='job_tag2', sort_weight=5,
-            provider=provider, organization=org
+            provider=provider, org_data_center=odc
         )
         log_site2.save(force_insert=True)
         log_site3 = LogSite(
             name='name3', name_en='name_en3', log_type=LogSite.LogType.NAT.value,
             site_type_id=site_type1.id, job_tag='job_tag3', sort_weight=3,
-            provider=provider, organization=org
+            provider=provider, org_data_center=odc
         )
         log_site3.save(force_insert=True)
 
         log_site4 = LogSite(
             name='name4', name_en='name_en4', log_type=LogSite.LogType.NAT.value,
             site_type_id=site_type1.id, job_tag='job_tag4', sort_weight=8,
-            provider=provider, organization=org
+            provider=provider, org_data_center=odc
         )
         log_site4.save(force_insert=True)
 
@@ -77,10 +74,12 @@ class LogSiteTests(MyAPITestCase):
         self.assertEqual(response.data['page_size'], 100)
         self.assertEqual(len(response.data['results']), 1)
         self.assertKeysIn(['id', "name", "name_en", "job_tag", 'creation', 'desc', 'log_type',
-                           'sort_weight', 'organization'], response.data['results'][0])
+                           'sort_weight', 'org_data_center'], response.data['results'][0])
         self.assertEqual(log_site4.id, response.data['results'][0]['id'])
-        self.assertKeysIn(['id', "name", "name_en", "abbreviation", 'creation_time', 'sort_weight'
-                           ], response.data['results'][0]['organization'])
+        self.assertKeysIn([
+            'id', "name", "name_en", 'organization', 'sort_weight'], response.data['results'][0]['org_data_center'])
+        self.assertKeysIn([
+            'id', "name", "name_en", 'sort_weight'], response.data['results'][0]['org_data_center']['organization'])
         self.assertKeysIn(['id', "name", "name_en", 'desc', 'sort_weight'
                            ], response.data['results'][0]['site_type'])
 
@@ -94,7 +93,7 @@ class LogSiteTests(MyAPITestCase):
         self.assertEqual(response.data['page_size'], 100)
         self.assertEqual(len(response.data['results']), 2)
         self.assertEqual(log_site1.id, response.data['results'][1]['id'])
-        self.assertIsNone(response.data['results'][1]['organization'])
+        self.assertIsNone(response.data['results'][1]['org_data_center'])
         self.assertIsNone(response.data['results'][1]['site_type'])
 
         # log_site2, log_site4, log_site1

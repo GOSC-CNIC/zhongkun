@@ -81,6 +81,7 @@ class Migration(migrations.Migration):
             options={
                 'verbose_name': 'Ceph监控单元',
                 'verbose_name_plural': 'Ceph监控单元',
+                'db_table': 'monitor_monitorjobceph',
                 'ordering': ['sort_weight'],
             },
         ),
@@ -101,6 +102,7 @@ class Migration(migrations.Migration):
             options={
                 'verbose_name': '服务器监控单元',
                 'verbose_name_plural': '服务器监控单元',
+                'db_table': 'monitor_monitorjobserver',
                 'ordering': ['sort_weight'],
             },
         ),
@@ -143,6 +145,7 @@ class Migration(migrations.Migration):
             options={
                 'verbose_name': '科技云会视频会议监控工作节点',
                 'verbose_name_plural': '科技云会视频会议监控工作节点',
+                'db_table': 'monitor_monitorjobvideomeeting',
                 'ordering': ['-creation'],
             },
         ),

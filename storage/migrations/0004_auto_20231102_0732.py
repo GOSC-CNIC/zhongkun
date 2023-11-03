@@ -13,7 +13,7 @@ def dictfetchall(cursor):
 
 def service_org_data_center(apps, schema_editor):
     # service_model = apps.get_model("service", "ServiceConfig")
-    # 将来会从ServiceConfig模型移除data_center字段，无法通过model获取data_center信息。只能使用原始sql
+    # 将来会从ObjectsService模型移除data_center字段，无法通过model获取data_center信息。只能使用原始sql
     cursor = connection.cursor()
     cursor.execute('SELECT `id`, `data_center_id` FROM `object_service`')
     services = dictfetchall(cursor)

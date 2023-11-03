@@ -175,7 +175,7 @@ class ObjectsServiceViewSet(StorageGenericViewSet):
                   "pay_app_service_id": "ss",
                   "sort_weight": 8,
                   "org_data_center": {      # maybe null
-                    "id": 3,
+                    "id": "xxx",
                     "name": "VMware测试中心",
                     "name_en": "xxx",
                     "sort_weight": 6,

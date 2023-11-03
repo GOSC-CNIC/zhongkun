@@ -21,7 +21,7 @@ from bill.models import PayApp, PayAppService
 from order.models import Price
 from utils.test import (
     get_or_create_user, get_test_case_settings, get_or_create_service, get_or_create_organization,
-    MyAPITestCase
+    MyAPITestCase, get_or_create_org_data_center
 )
 
 from .tests import (
@@ -440,31 +440,28 @@ class MonitorUnitCephTests(MyAPITestCase):
     def test_list_unit(self):
         provider = MonitorProvider()
         provider.save(force_insert=True)
-        org = DataCenter(
-            name='test', name_en='test en', abbreviation='t', creation_time=timezone.now()
-        )
-        org.save(force_insert=True)
+        odc = get_or_create_org_data_center()
         unit_ceph1 = MonitorJobCeph(
             name='name1', name_en='name_en1', job_tag='job_tag1', sort_weight=10,
-            provider=provider, organization=org
+            provider=provider, org_data_center=odc
         )
         unit_ceph1.save(force_insert=True)
 
         unit_ceph2 = MonitorJobCeph(
             name='name2', name_en='name_en2', job_tag='job_tag2', sort_weight=6,
-            provider=provider, organization=org, service_id=self.service1.id
+            provider=provider, service_id=self.service1.id, org_data_center=odc
         )
         unit_ceph2.save(force_insert=True)
 
         unit_ceph3 = MonitorJobCeph(
             name='name3', name_en='name_en3', job_tag='job_tag3', sort_weight=3,
-            provider=provider
+            provider=provider, org_data_center=None
         )
         unit_ceph3.save(force_insert=True)
 
         unit_ceph4 = MonitorJobCeph(
             name='name4', name_en='name_en4', job_tag='job_tag4',  sort_weight=8,
-            provider=provider
+            provider=provider, org_data_center=None
         )
         unit_ceph4.save(force_insert=True)
 
@@ -491,9 +488,10 @@ class MonitorUnitCephTests(MyAPITestCase):
         self.assertEqual(response.data['page_size'], 100)
         self.assertEqual(len(response.data['results']), 1)
         self.assertKeysIn(['id', "name", "name_en", "job_tag", 'creation', 'remark',
-                           'sort_weight', 'grafana_url', 'dashboard_url', 'organization'], response.data['results'][0])
+                           'sort_weight', 'grafana_url', 'dashboard_url', 'org_data_center'
+                           ], response.data['results'][0])
         self.assertEqual(unit_ceph4.id, response.data['results'][0]['id'])
-        self.assertIsNone(response.data['results'][0]['organization'])
+        self.assertIsNone(response.data['results'][0]['org_data_center'])
 
         # unit_ceph1, unit_ceph4
         unit_ceph1.users.add(self.user)
@@ -505,8 +503,10 @@ class MonitorUnitCephTests(MyAPITestCase):
         self.assertEqual(response.data['page_size'], 100)
         self.assertEqual(len(response.data['results']), 2)
         self.assertEqual(unit_ceph1.id, response.data['results'][0]['id'])
-        self.assertKeysIn(['id', "name", "name_en", "abbreviation", 'creation_time', 'sort_weight'
-                           ], response.data['results'][0]['organization'])
+        self.assertKeysIn([
+            'id', "name", "name_en", 'sort_weight', 'organization'], response.data['results'][0]['org_data_center'])
+        self.assertKeysIn([
+            'id', "name", "name_en", 'sort_weight'], response.data['results'][0]['org_data_center']['organization'])
 
         # unit_ceph1, unit_ceph4, unit_ceph2
         unit_ceph2.service.users.add(self.user)     # 关联的云主机服务单元管理员
@@ -522,7 +522,7 @@ class MonitorUnitCephTests(MyAPITestCase):
         self.assertEqual(unit_ceph2.id, response.data['results'][2]['id'])
 
         # query "organization_id"
-        query = parse.urlencode(query={'organization_id': org.id})
+        query = parse.urlencode(query={'organization_id': odc.organization_id})
         response = self.client.get(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "page_num", "page_size", 'results'], response.data)
@@ -559,7 +559,7 @@ class MonitorUnitCephTests(MyAPITestCase):
         self.assertEqual(unit_ceph3.id, response.data['results'][3]['id'])
 
         # query "organization_id"
-        query = parse.urlencode(query={'organization_id': org.id})
+        query = parse.urlencode(query={'organization_id': odc.organization_id})
         response = self.client.get(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "page_num", "page_size", 'results'], response.data)
@@ -579,20 +579,17 @@ class MonitorUnitServerTests(MyAPITestCase):
     def test_list_server_unit(self):
         provider = MonitorProvider()
         provider.save(force_insert=True)
-        org = DataCenter(
-            name='test', name_en='test en', abbreviation='t', creation_time=timezone.now()
-        )
-        org.save(force_insert=True)
+        odc = get_or_create_org_data_center()
 
         unit_server1 = MonitorJobServer(
             name='name1', name_en='name_en1', job_tag='job_tag1', sort_weight=10,
-            provider=provider, organization=org
+            provider=provider, org_data_center=odc
         )
         unit_server1.save(force_insert=True)
 
         unit_server2 = MonitorJobServer(
             name='name2', name_en='name_en2', job_tag='job_tag2', sort_weight=6,
-            provider=provider, organization=org, service_id=self.service1.id
+            provider=provider, org_data_center=odc, service_id=self.service1.id
         )
         unit_server2.save(force_insert=True)
 
@@ -631,9 +628,10 @@ class MonitorUnitServerTests(MyAPITestCase):
         self.assertEqual(response.data['page_size'], 100)
         self.assertEqual(len(response.data['results']), 1)
         self.assertKeysIn(['id', "name", "name_en", "job_tag", 'creation', 'remark',
-                           'sort_weight', 'grafana_url', 'dashboard_url'], response.data['results'][0])
+                           'sort_weight', 'grafana_url', 'dashboard_url', 'org_data_center'
+                           ], response.data['results'][0])
         self.assertEqual(unit_server4.id, response.data['results'][0]['id'])
-        self.assertIsNone(response.data['results'][0]['organization'])
+        self.assertIsNone(response.data['results'][0]['org_data_center'])
 
         # unit_server1, unit_server4
         unit_server1.users.add(self.user)
@@ -645,8 +643,10 @@ class MonitorUnitServerTests(MyAPITestCase):
         self.assertEqual(response.data['page_size'], 100)
         self.assertEqual(len(response.data['results']), 2)
         self.assertEqual(unit_server1.id, response.data['results'][0]['id'])
-        self.assertKeysIn(['id', "name", "name_en", "abbreviation", 'creation_time', 'sort_weight'
-                           ], response.data['results'][0]['organization'])
+        self.assertKeysIn([
+            'id', "name", "name_en", 'sort_weight', 'organization'], response.data['results'][0]['org_data_center'])
+        self.assertKeysIn([
+            'id', "name", "name_en", 'sort_weight'], response.data['results'][0]['org_data_center']['organization'])
 
         # unit_server1, unit_server4, unit_server2
         unit_server2.service.users.add(self.user)   # 关联的云主机服务单元管理员权限
@@ -662,7 +662,7 @@ class MonitorUnitServerTests(MyAPITestCase):
         self.assertEqual(unit_server2.id, response.data['results'][2]['id'])
 
         # query "organization_id"
-        query = parse.urlencode(query={'organization_id': org.id})
+        query = parse.urlencode(query={'organization_id': odc.organization_id})
         response = self.client.get(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "page_num", "page_size", 'results'], response.data)
@@ -699,7 +699,7 @@ class MonitorUnitServerTests(MyAPITestCase):
         self.assertEqual(unit_server3.id, response.data['results'][3]['id'])
 
         # query "organization_id"
-        query = parse.urlencode(query={'organization_id': org.id})
+        query = parse.urlencode(query={'organization_id': odc.organization_id})
         response = self.client.get(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "page_num", "page_size", 'results'], response.data)

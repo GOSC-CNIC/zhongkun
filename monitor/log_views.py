@@ -91,13 +91,17 @@ class LogSiteViewSet(CustomGenericViewSet):
                         "sort_weight": 8,
                         "desc": "",
                         "creation": "2023-07-21T02:28:40.594023Z",
-                        "organization": {
-                            "id": "93c1e1s0mxiq7qw7uo73854jh",
-                            "name": "test",
-                            "name_en": "test en",
-                            "abbreviation": "t",
-                            "sort_weight": 0,
-                            "creation_time": "2023-07-21T02:28:40.588662Z"
+                        "org_data_center": {                  # may be null
+                            "id": "xxx",
+                            "name": "VMware测试中心",
+                            "name_en": "xxx",
+                            "sort_weight": 8,
+                            "organization": {                 # may be null
+                                "id": "0e3169d4c8009fe2ebbc",
+                                "name": "test",
+                                "name_en": "test en",
+                                "sort_weight": 6                        # 排序值，正序 由小到大
+                            }
                         },
                         "site_type": {
                             "id": "93c4yznywgm43r0v8o1479dnc",

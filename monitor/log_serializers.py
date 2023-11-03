@@ -1,7 +1,7 @@
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from .serializers import MonitorOrganizationSimpleSerializer
+from .serializers import get_org_data_center_dict
 
 
 class LogSiteTypeSerializer(serializers.Serializer):
@@ -21,5 +21,9 @@ class LogSiteSerializer(serializers.Serializer):
     sort_weight = serializers.IntegerField(label='排序值', help_text='值越小排序越靠前')
     desc = serializers.CharField(label="备注")
     creation = serializers.DateTimeField(label='创建时间')
-    organization = MonitorOrganizationSimpleSerializer(required=False, allow_null=True)
     site_type = LogSiteTypeSerializer(allow_null=True)
+    org_data_center = serializers.SerializerMethodField(label=_('机构数据中心'), method_name='get_org_data_center')
+
+    @staticmethod
+    def get_org_data_center(obj):
+        return get_org_data_center_dict(obj.org_data_center)

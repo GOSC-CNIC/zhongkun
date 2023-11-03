@@ -5,7 +5,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 
-from service.models import DataCenter, ServiceConfig
+from service.models import DataCenter, ServiceConfig, OrgDataCenter
 from service.managers import ServiceManager
 from utils.model import UuidModel, get_encryptor
 from users.models import UserProfile
@@ -81,6 +81,8 @@ class MonitorJobCeph(UuidModel):
     sort_weight = models.IntegerField(verbose_name=_('排序值'), default=0, help_text=_('值越小排序越靠前'))
     grafana_url = models.CharField(verbose_name=_('Grafana连接'), max_length=255, blank=True, default='')
     dashboard_url = models.CharField(verbose_name=_('Dashboard连接'), max_length=255, blank=True, default='')
+    org_data_center = models.ForeignKey(
+        to=OrgDataCenter, null=True, on_delete=models.SET_NULL, related_name='+', verbose_name=_('数据中心'))
     organization = models.ForeignKey(
         verbose_name=_('监控机构'), to=DataCenter, related_name='+', db_constraint=False,
         on_delete=models.SET_NULL, null=True, default=None
@@ -91,6 +93,7 @@ class MonitorJobCeph(UuidModel):
     )
 
     class Meta:
+        db_table = 'monitor_monitorjobceph'
         ordering = ['sort_weight']
         verbose_name = _('Ceph监控单元')
         verbose_name_plural = verbose_name
@@ -140,6 +143,8 @@ class MonitorJobServer(UuidModel):
     sort_weight = models.IntegerField(verbose_name=_('排序值'), default=0, help_text=_('值越小排序越靠前'))
     grafana_url = models.CharField(verbose_name=_('Grafana连接'), max_length=255, blank=True, default='')
     dashboard_url = models.CharField(verbose_name=_('Dashboard连接'), max_length=255, blank=True, default='')
+    org_data_center = models.ForeignKey(
+        to=OrgDataCenter, null=True, on_delete=models.SET_NULL, related_name='+', verbose_name=_('数据中心'))
     organization = models.ForeignKey(
         verbose_name=_('监控机构'), to=DataCenter, related_name='+', db_constraint=False,
         on_delete=models.SET_NULL, null=True, default=None
@@ -150,6 +155,7 @@ class MonitorJobServer(UuidModel):
     )
 
     class Meta:
+        db_table = 'monitor_monitorjobserver'
         ordering = ['sort_weight']
         verbose_name = _('服务器监控单元')
         verbose_name_plural = verbose_name
@@ -198,6 +204,7 @@ class MonitorJobVideoMeeting(UuidModel):
     remark = models.CharField(verbose_name=_('备注'), max_length=1024, blank=True, default='')
 
     class Meta:
+        db_table = 'monitor_monitorjobvideomeeting'
         ordering = ['-creation']
         verbose_name = _('科技云会视频会议监控工作节点')
         verbose_name_plural = verbose_name
@@ -426,6 +433,8 @@ class MonitorJobTiDB(UuidModel):
     sort_weight = models.IntegerField(verbose_name=_('排序值'), default=0, help_text=_('值越小排序越靠前'))
     grafana_url = models.CharField(verbose_name=_('Grafana连接'), max_length=255, blank=True, default='')
     dashboard_url = models.CharField(verbose_name=_('Dashboard连接'), max_length=255, blank=True, default='')
+    org_data_center = models.ForeignKey(
+        to=OrgDataCenter, null=True, on_delete=models.SET_NULL, related_name='+', verbose_name=_('数据中心'))
     organization = models.ForeignKey(
         verbose_name=_('监控机构'), to=DataCenter, related_name='+', db_constraint=False,
         on_delete=models.SET_NULL, null=True, default=None
@@ -522,6 +531,8 @@ class LogSite(UuidModel):
     users = models.ManyToManyField(
         to=UserProfile, db_table='log_site_users', related_name='+',
         db_constraint=False, verbose_name=_('管理用户'), blank=True)
+    org_data_center = models.ForeignKey(
+        to=OrgDataCenter, null=True, on_delete=models.SET_NULL, related_name='+', verbose_name=_('数据中心'))
 
     class Meta:
         db_table = "log_site"

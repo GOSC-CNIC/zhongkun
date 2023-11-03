@@ -37,9 +37,9 @@ class MonitorTiDBQueryHandler:
         organization_id = request.query_params.get('organization_id', None)
         user = request.user
 
-        queryset = MonitorJobTiDB.objects.select_related('organization').order_by('-sort_weight').all()
+        queryset = MonitorJobTiDB.objects.select_related('org_data_center__organization').order_by('-sort_weight').all()
         if organization_id:
-            queryset = queryset.filter(organization_id=organization_id)
+            queryset = queryset.filter(org_data_center__organization_id=organization_id)
 
         if user.is_federal_admin():
             pass

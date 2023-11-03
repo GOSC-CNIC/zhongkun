@@ -2,13 +2,34 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 
-class MonitorOrganizationSimpleSerializer(serializers.Serializer):
-    id = serializers.CharField(label=_('监控机构id'))
-    name = serializers.CharField(label=_('监控机构名称'), max_length=255, default='')
-    name_en = serializers.CharField(label=_('监控机构英文名称'), max_length=255, default='')
-    abbreviation = serializers.CharField(label=_('简称'), max_length=64, default='')
-    sort_weight = serializers.IntegerField(label=_('排序权重'), help_text=_('值越大排序越靠前'))
-    creation_time = serializers.DateTimeField(label=_('创建时间'))
+from service.models import OrgDataCenter
+
+
+def get_org_data_center_dict(odc: OrgDataCenter):
+    if odc is None:
+        return None
+
+    data = {
+        'id': odc.id, 'name': odc.name, 'name_en': odc.name_en, 'sort_weight': odc.sort_weight
+    }
+    org = odc.organization
+    if org is None:
+        data['organization'] = None
+    else:
+        data['organization'] = {
+            'id': org.id, 'name': org.name, 'name_en': org.name_en, 'sort_weight': odc.sort_weight
+        }
+
+    return data
+
+
+# class MonitorOrganizationSimpleSerializer(serializers.Serializer):
+#     id = serializers.CharField(label=_('监控机构id'))
+#     name = serializers.CharField(label=_('监控机构名称'), max_length=255, default='')
+#     name_en = serializers.CharField(label=_('监控机构英文名称'), max_length=255, default='')
+#     abbreviation = serializers.CharField(label=_('简称'), max_length=64, default='')
+#     sort_weight = serializers.IntegerField(label=_('排序权重'), help_text=_('值越大排序越靠前'))
+#     creation_time = serializers.DateTimeField(label=_('创建时间'))
 
 
 class MonitorJobCephSerializer(serializers.Serializer):
@@ -25,7 +46,11 @@ class MonitorUnitCephSerializer(MonitorJobCephSerializer):
     sort_weight = serializers.IntegerField(label=_('排序权重'), default=0, help_text=_('值越大排序越靠前'))
     grafana_url = serializers.CharField(label=_('Grafana连接'), max_length=255)
     dashboard_url = serializers.CharField(label=_('Dashboard连接'), max_length=255)
-    organization = MonitorOrganizationSimpleSerializer(required=False)
+    org_data_center = serializers.SerializerMethodField(label=_('机构数据中心'), method_name='get_org_data_center')
+
+    @staticmethod
+    def get_org_data_center(obj):
+        return get_org_data_center_dict(obj.org_data_center)
 
 
 class MonitorJobServerSerializer(serializers.Serializer):
@@ -42,7 +67,11 @@ class MonitorUnitServerSerializer(MonitorJobServerSerializer):
     sort_weight = serializers.IntegerField(label=_('排序权重'), default=0, help_text=_('值越大排序越靠前'))
     grafana_url = serializers.CharField(label=_('Grafana连接'), max_length=255)
     dashboard_url = serializers.CharField(label=_('Dashboard连接'), max_length=255)
-    organization = MonitorOrganizationSimpleSerializer(required=False)
+    org_data_center = serializers.SerializerMethodField(label=_('机构数据中心'), method_name='get_org_data_center')
+
+    @staticmethod
+    def get_org_data_center(obj):
+        return get_org_data_center_dict(obj.org_data_center)
 
 
 class MonitorJobVideoMeetingSerializer(serializers.Serializer):
@@ -120,5 +149,9 @@ class MonitorUnitTiDBSerializer(MonitorJobTiDBSimpleSerializer):
     sort_weight = serializers.IntegerField(label=_('排序权重'), default=0, help_text=_('值越大排序越靠前'))
     grafana_url = serializers.CharField(label=_('Grafana连接'), max_length=255)
     dashboard_url = serializers.CharField(label=_('Dashboard连接'), max_length=255)
-    organization = MonitorOrganizationSimpleSerializer(required=False)
     version = serializers.CharField(label=_('TiDB版本'), max_length=32, help_text='xx.xx.xx')
+    org_data_center = serializers.SerializerMethodField(label=_('机构数据中心'), method_name='get_org_data_center')
+
+    @staticmethod
+    def get_org_data_center(obj):
+        return get_org_data_center_dict(obj.org_data_center)

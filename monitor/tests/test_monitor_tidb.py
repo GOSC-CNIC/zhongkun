@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from service.models import DataCenter
-from utils.test import get_or_create_user, get_or_create_service, MyAPITestCase
+from utils.test import get_or_create_user, get_or_create_service, MyAPITestCase, get_or_create_org_data_center
 from monitor.models import (
     MonitorJobTiDB, MonitorProvider
 )
@@ -20,19 +20,16 @@ class MonitorUnitTiDBTests(MyAPITestCase):
     def test_list_unit(self):
         provider = MonitorProvider()
         provider.save(force_insert=True)
-        org = DataCenter(
-            name='test', name_en='test en', abbreviation='t', creation_time=timezone.now()
-        )
-        org.save(force_insert=True)
+        odc = get_or_create_org_data_center()
         unit_tidb1 = MonitorJobTiDB(
             name='name1', name_en='name_en1', job_tag='job_tag1', sort_weight=10,
-            provider=provider, organization=org
+            provider=provider, org_data_center=odc
         )
         unit_tidb1.save(force_insert=True)
 
         unit_tidb2 = MonitorJobTiDB(
             name='name2', name_en='name_en2', job_tag='job_tag2', sort_weight=6,
-            provider=provider, organization=org, service_id=self.service1.id
+            provider=provider, org_data_center=odc, service_id=self.service1.id
         )
         unit_tidb2.save(force_insert=True)
 
@@ -71,9 +68,10 @@ class MonitorUnitTiDBTests(MyAPITestCase):
         self.assertEqual(response.data['page_size'], 100)
         self.assertEqual(len(response.data['results']), 1)
         self.assertKeysIn(['id', "name", "name_en", "job_tag", 'creation', 'remark', 'version',
-                           'sort_weight', 'grafana_url', 'dashboard_url', 'organization'], response.data['results'][0])
+                           'sort_weight', 'grafana_url', 'dashboard_url', 'org_data_center'
+                           ], response.data['results'][0])
         self.assertEqual(unit_tidb4.id, response.data['results'][0]['id'])
-        self.assertIsNone(response.data['results'][0]['organization'])
+        self.assertIsNone(response.data['results'][0]['org_data_center'])
 
         # unit_tidb1, unit_tidb4
         unit_tidb1.users.add(self.user)
@@ -85,8 +83,10 @@ class MonitorUnitTiDBTests(MyAPITestCase):
         self.assertEqual(response.data['page_size'], 100)
         self.assertEqual(len(response.data['results']), 2)
         self.assertEqual(unit_tidb1.id, response.data['results'][0]['id'])
-        self.assertKeysIn(['id', "name", "name_en", "abbreviation", 'creation_time', 'sort_weight'
-                           ], response.data['results'][0]['organization'])
+        self.assertKeysIn([
+            'id', "name", "name_en", 'sort_weight', 'organization'], response.data['results'][0]['org_data_center'])
+        self.assertKeysIn([
+            'id', "name", "name_en", 'sort_weight'], response.data['results'][0]['org_data_center']['organization'])
 
         # unit_tidb1, unit_tidb4, unit_tidb2
         unit_tidb2.service.users.add(self.user)     # 关联的云主机服务单元管理员权限
@@ -102,7 +102,7 @@ class MonitorUnitTiDBTests(MyAPITestCase):
         self.assertEqual(unit_tidb2.id, response.data['results'][2]['id'])
 
         # query "organization_id"
-        query = parse.urlencode(query={'organization_id': org.id})
+        query = parse.urlencode(query={'organization_id': odc.organization_id})
         response = self.client.get(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "page_num", "page_size", 'results'], response.data)
@@ -139,7 +139,7 @@ class MonitorUnitTiDBTests(MyAPITestCase):
         self.assertEqual(unit_tidb3.id, response.data['results'][3]['id'])
 
         # query "organization_id"
-        query = parse.urlencode(query={'organization_id': org.id})
+        query = parse.urlencode(query={'organization_id': odc.organization_id})
         response = self.client.get(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "page_num", "page_size", 'results'], response.data)
