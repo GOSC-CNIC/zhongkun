@@ -34,7 +34,6 @@ class MonitorCephTests(MyAPITestCase):
     def setUp(self):
         self.user = get_or_create_user(password='password')
         self.client.force_login(user=self.user)
-        self.service1 = get_or_create_service()
 
     def query_response(self, monitor_unit_id: str = None, query_tag: str = None):
         querys = {}
@@ -65,19 +64,15 @@ class MonitorCephTests(MyAPITestCase):
         monitor_job_ceph = get_or_create_monitor_job_ceph()
         ceph_unit_id = monitor_job_ceph.id
 
-        # 关联云主机服务单元
-        monitor_job_ceph.service_id = self.service1.id
-        monitor_job_ceph.save(update_fields=['service_id'])
-
         # no permission
         response = self.query_response(monitor_unit_id=ceph_unit_id, query_tag=CephQueryChoices.HEALTH_STATUS.value)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        # 服务单元管理员权限测试
-        self.service1.users.add(self.user)
+        # 数据中心管理员权限测试
+        monitor_job_ceph.org_data_center.users.add(self.user)
         self.query_ok_test(monitor_unit_id=ceph_unit_id, query_tag=CephQueryChoices.HEALTH_STATUS.value)
-        # 移除服务单元管理员权限
-        self.service1.users.remove(self.user)
+        # 移除数据中心管理员权限
+        monitor_job_ceph.org_data_center.users.remove(self.user)
 
         # no permission
         response = self.query_response(monitor_unit_id=ceph_unit_id, query_tag=CephQueryChoices.HEALTH_STATUS.value)
@@ -260,6 +255,18 @@ class MonitorCephTests(MyAPITestCase):
             start=start, end=end, step=step)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
+        # 数据中心管理员
+        monitor_job_ceph.org_data_center.users.add(self.user)
+        self.query_range_ok_test(monitor_unit_id=ceph_unit_id, query_tag=CephQueryChoices.HEALTH_STATUS.value,
+                                 start=start, end=end, step=step)
+
+        # no permission
+        monitor_job_ceph.org_data_center.users.remove(self.user)
+        response = self.query_range_response(
+            monitor_unit_id=ceph_unit_id, query_tag=CephQueryChoices.HEALTH_STATUS.value,
+            start=start, end=end, step=step)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
         # federal admin permission
         self.user.set_federal_admin()
         self.query_range_ok_test(monitor_unit_id=ceph_unit_id, query_tag=CephQueryChoices.HEALTH_STATUS.value,
@@ -283,7 +290,6 @@ class MonitorServerTests(MyAPITestCase):
     def setUp(self):
         self.user = get_or_create_user(password='password')
         self.client.force_login(user=self.user)
-        self.service1 = get_or_create_service()
 
     def query_response(self, monitor_unit_id: str = None, query_tag: str = None):
         querys = {}
@@ -316,19 +322,15 @@ class MonitorServerTests(MyAPITestCase):
         monitor_server_unit = get_or_create_monitor_job_server()
         server_unit_id = monitor_server_unit.id
 
-        # 关联云主机服务单元
-        monitor_server_unit.service_id = self.service1.id
-        monitor_server_unit.save(update_fields=['service_id'])
-
         # no permission
         response = self.query_response(monitor_unit_id=server_unit_id, query_tag=ServerQueryChoices.HEALTH_STATUS.value)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
         # 服务单元管理员权限测试
-        self.service1.users.add(self.user)
+        monitor_server_unit.org_data_center.users.add(self.user)
         self.query_ok_test(monitor_unit_id=server_unit_id, query_tag=ServerQueryChoices.HEALTH_STATUS.value)
         # 移除服务单元管理员权限
-        self.service1.users.remove(self.user)
+        monitor_server_unit.org_data_center.users.remove(self.user)
 
         # no permission
         response = self.query_response(monitor_unit_id=server_unit_id, query_tag=ServerQueryChoices.CPU_USAGE.value)
@@ -351,6 +353,15 @@ class MonitorServerTests(MyAPITestCase):
 
         # no permission
         monitor_server_unit.users.remove(self.user)
+        response = self.query_response(monitor_unit_id=server_unit_id, query_tag=ServerQueryChoices.CPU_USAGE.value)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # data center admin
+        monitor_server_unit.org_data_center.users.add(self.user)
+        self.query_ok_test(monitor_unit_id=server_unit_id, query_tag=ServerQueryChoices.HEALTH_STATUS.value)
+
+        # no permission
+        monitor_server_unit.org_data_center.users.remove(self.user)
         response = self.query_response(monitor_unit_id=server_unit_id, query_tag=ServerQueryChoices.CPU_USAGE.value)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
@@ -508,7 +519,7 @@ class MonitorUnitCephTests(MyAPITestCase):
             'id', "name", "name_en", 'sort_weight'], response.data['results'][0]['org_data_center']['organization'])
 
         # unit_ceph1, unit_ceph4, unit_ceph2
-        unit_ceph2.service.users.add(self.user)     # 关联的云主机服务单元管理员
+        unit_ceph2.org_data_center.users.add(self.user)     # 关联的机构数据中心管理员
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "page_num", "page_size", 'results'], response.data)
@@ -573,7 +584,6 @@ class MonitorUnitCephTests(MyAPITestCase):
 class MonitorUnitServerTests(MyAPITestCase):
     def setUp(self):
         self.user = get_or_create_user(password='password')
-        self.service1 = get_or_create_service()
 
     def test_list_server_unit(self):
         provider = MonitorProvider()
@@ -588,13 +598,13 @@ class MonitorUnitServerTests(MyAPITestCase):
 
         unit_server2 = MonitorJobServer(
             name='name2', name_en='name_en2', job_tag='job_tag2', sort_weight=6,
-            provider=provider, org_data_center=odc, service_id=self.service1.id
+            provider=provider
         )
         unit_server2.save(force_insert=True)
 
         unit_server3 = MonitorJobServer(
             name='name3', name_en='name_en3', job_tag='job_tag3', sort_weight=3,
-            provider=provider
+            provider=provider, org_data_center=odc
         )
         unit_server3.save(force_insert=True)
 
@@ -647,8 +657,29 @@ class MonitorUnitServerTests(MyAPITestCase):
         self.assertKeysIn([
             'id', "name", "name_en", 'sort_weight'], response.data['results'][0]['org_data_center']['organization'])
 
-        # unit_server1, unit_server4, unit_server2
-        unit_server2.service.users.add(self.user)   # 关联的云主机服务单元管理员权限
+        # no
+        unit_server1.users.remove(self.user)
+        unit_server4.users.remove(self.user)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "page_num", "page_size", 'results'], response.data)
+        self.assertEqual(response.data['count'], 0)
+        self.assertEqual(len(response.data['results']), 0)
+
+        # unit_server1, unit_server3
+        odc.users.add(self.user)  # 关联的机构数据中心管理员权限
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "page_num", "page_size", 'results'], response.data)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 100)
+        self.assertEqual(len(response.data['results']), 2)
+        self.assertEqual(unit_server1.id, response.data['results'][0]['id'])
+        self.assertEqual(unit_server3.id, response.data['results'][1]['id'])
+
+        # unit_server1, unit_server4, unit_server3
+        unit_server4.users.add(self.user)
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "page_num", "page_size", 'results'], response.data)
@@ -658,7 +689,7 @@ class MonitorUnitServerTests(MyAPITestCase):
         self.assertEqual(len(response.data['results']), 3)
         self.assertEqual(unit_server1.id, response.data['results'][0]['id'])
         self.assertEqual(unit_server4.id, response.data['results'][1]['id'])
-        self.assertEqual(unit_server2.id, response.data['results'][2]['id'])
+        self.assertEqual(unit_server3.id, response.data['results'][2]['id'])
 
         # query "organization_id"
         query = parse.urlencode(query={'organization_id': odc.organization_id})
@@ -670,7 +701,7 @@ class MonitorUnitServerTests(MyAPITestCase):
         self.assertEqual(response.data['page_size'], 100)
         self.assertEqual(len(response.data['results']), 2)
         self.assertEqual(unit_server1.id, response.data['results'][0]['id'])
-        self.assertEqual(unit_server2.id, response.data['results'][1]['id'])
+        self.assertEqual(unit_server3.id, response.data['results'][1]['id'])
 
         # page_size
         query = parse.urlencode(query={'page': 1, 'page_size': 2})
@@ -707,7 +738,7 @@ class MonitorUnitServerTests(MyAPITestCase):
         self.assertEqual(response.data['page_size'], 100)
         self.assertEqual(len(response.data['results']), 2)
         self.assertEqual(unit_server1.id, response.data['results'][0]['id'])
-        self.assertEqual(unit_server2.id, response.data['results'][1]['id'])
+        self.assertEqual(unit_server3.id, response.data['results'][1]['id'])
 
 
 class MonitorWebsiteTests(MyAPITestCase):

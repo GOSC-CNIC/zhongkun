@@ -5,7 +5,6 @@ from rest_framework.response import Response
 from core import errors
 from monitor.managers import MonitorJobServerManager, ServerQueryChoices
 from monitor.models import MonitorJobServer
-from service.managers import ServiceManager
 
 
 class MonitorServerQueryHandler:
@@ -51,7 +50,8 @@ class MonitorServerQueryHandler:
         if user.is_federal_admin():
             return monitor_unit
 
-        if monitor_unit.user_has_perm(user):
+        qs = MonitorServerQueryHandler.has_perm_unit_qs(user_id=user.id)
+        if qs.filter(id=monitor_unit_id).exists():
             return monitor_unit
 
         raise errors.AccessDenied(message=_('你没有监控单元的管理权限'))
@@ -70,8 +70,7 @@ class MonitorServerQueryHandler:
         if user.is_federal_admin():
             pass
         else:
-            service_ids = ServiceManager.get_has_perm_service_ids(user_id=user.id)
-            queryset = queryset.filter(Q(users__id=user.id) | Q(service_id__in=service_ids))
+            queryset = queryset.filter(Q(users__id=user.id) | Q(org_data_center__users__id=user.id))
 
         queryset = queryset.distinct()
         try:
@@ -80,3 +79,9 @@ class MonitorServerQueryHandler:
             return view.get_paginated_response(serializer.data)
         except Exception as exc:
             return view.exception_response(exc)
+
+    @staticmethod
+    def has_perm_unit_qs(user_id):
+        return MonitorJobServer.objects.filter(
+            Q(users__id=user_id) | Q(org_data_center__users__id=user_id)
+        )
