@@ -1,8 +1,7 @@
 from django.utils.translation import gettext as _
-from link.models import Element
+from link.models import Element, ElementLink
 from core import errors
-
-
+from link.utils.verify_utils import VerifyUtils
 class ElementManager:
     @staticmethod
     def get_queryset():
@@ -38,3 +37,9 @@ class ElementManager:
         )
         element.save(force_insert=True)
         return element
+
+    @staticmethod
+    def is_linked(element_id:str) -> bool:
+        if VerifyUtils.is_blank_string(element_id):
+            raise errors.Error(message=_('ElementManager is_linked element_id_blank'))
+        return ElementLink.objects.exclude(link_status = ElementLink.LinkStatus.DELETED).filter(element_ids__icontains=element_id).exists()

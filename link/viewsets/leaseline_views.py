@@ -109,7 +109,7 @@ class LeaseLineViewSet(NormalGenericViewSet):
                             "length": 20.00, # 长度 （km）
                             "provider": "联通（北京）", # 运营商
                             "enable_date": "2014-07-01", # 启用日期
-                            "is_whithdrawal": true, # 是否撤线
+                            "is_whithdrawal": true, # 是否撤线 true(撤线) false(在网)
                             "money": 8500.00, # 月租费（元）
                             "remarks": "电路代号：北京乌鲁木齐ANE0033NP,2015-1-18日由300M扩容至600M，升级1G时撤租"
                         }

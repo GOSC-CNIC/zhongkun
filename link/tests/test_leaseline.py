@@ -16,7 +16,7 @@ class LeaseLineTests(MyAPITransactionTestCase):
         urole.save(force_insert=True)
         urole = LinkUserRole(user=self.user3, is_admin=True, is_readonly=False)
         urole.save(force_insert=True)
-        LeaseLineManager.create_leaseline(
+        self.leaselin1 = LeaseLineManager.create_leaseline(
             private_line_number='00645713',
             lease_line_code='天津空港物流加工区西七道32号',
             line_username='天津工业生物技术研究所',
@@ -32,7 +32,7 @@ class LeaseLineTests(MyAPITransactionTestCase):
             money=300.20,
             remarks='电路代号：北京天津ANE0365NP，起租时间2010.08.16,2014-1-1日由30M扩容为100M，2017年7月28日由100M扩容至150M,2019年8月由150M升级为250M.20201017升级到400M。'
         )
-        LeaseLineManager.create_leaseline(
+        self.leaselin2 = LeaseLineManager.create_leaseline(
             private_line_number='26001927719',
             lease_line_code='',
             line_username='国家气象中心云岗通信台',
@@ -181,12 +181,15 @@ class LeaseLineTests(MyAPITransactionTestCase):
         self.assertEqual(len(response.data['results']), 1)
 
         # verify is_linked
-        leaseline_list = list(LeaseLine.objects.all())
-        ElementLinkManager.create_elementlink(
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['results'][0]['is_linked'], False)
+        self.assertEqual(response.data['results'][1]['is_linked'], False)
+        elementlink = ElementLinkManager.create_elementlink(
             number="test_link",
             id_list=[
-                LeaseLine.objects.filter(id=leaseline_list[0].id).first().element.id,
-                LeaseLine.objects.filter(id=leaseline_list[1].id).first().element.id
+                LeaseLine.objects.filter(id = self.leaselin1.id).first().element.id,
+                LeaseLine.objects.filter(id = self.leaselin2.id).first().element.id
             ],
             remarks="test_remarks",
             link_status=ElementLink.LinkStatus.IDLE,
@@ -194,9 +197,25 @@ class LeaseLineTests(MyAPITransactionTestCase):
         )
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
-        leaseline = response.data['results'][0]
         self.assertEqual(response.data['results'][0]['is_linked'], True)
         self.assertEqual(response.data['results'][1]['is_linked'], True)
+        elementlink.link_status = ElementLink.LinkStatus.DELETED
+        elementlink.save(force_update=True)
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['results'][0]['is_linked'], False)
+        self.assertEqual(response.data['results'][1]['is_linked'], False)
+        elementlink.link_status = ElementLink.LinkStatus.USING
+        elementlink.element_ids = ElementLinkManager.get_element_ids_by_id_list([LeaseLine.objects.filter(id = self.leaselin1.id).first().element.id])
+        elementlink.save(force_update=True)
+        query = parse.urlencode(query={'search': self.leaselin1.private_line_number})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['results'][0]['is_linked'], True)
+        query = parse.urlencode(query={'search': self.leaselin2.private_line_number})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['results'][0]['is_linked'], False)
 
     def test_update(self):       
         base_url = reverse('api:link-leaseline-update-leaseline', kwargs={'id': 'test'})
