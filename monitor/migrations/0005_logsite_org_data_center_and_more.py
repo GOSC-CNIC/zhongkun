@@ -15,21 +15,21 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='logsite',
             name='org_data_center',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='service.orgdatacenter', verbose_name='数据中心'),
+            field=models.ForeignKey(db_constraint=False, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='service.orgdatacenter', verbose_name='数据中心'),
         ),
         migrations.AddField(
             model_name='monitorjobceph',
             name='org_data_center',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='service.orgdatacenter', verbose_name='数据中心'),
+            field=models.ForeignKey(db_constraint=False, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='service.orgdatacenter', verbose_name='数据中心'),
         ),
         migrations.AddField(
             model_name='monitorjobserver',
             name='org_data_center',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='service.orgdatacenter', verbose_name='数据中心'),
+            field=models.ForeignKey(db_constraint=False, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='service.orgdatacenter', verbose_name='数据中心'),
         ),
         migrations.AddField(
             model_name='monitorjobtidb',
             name='org_data_center',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='service.orgdatacenter', verbose_name='数据中心'),
+            field=models.ForeignKey(db_constraint=False, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='service.orgdatacenter', verbose_name='数据中心'),
         ),
     ]

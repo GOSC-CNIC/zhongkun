@@ -35,7 +35,7 @@ class Migration(migrations.Migration):
                 ('loki_receive_url', models.CharField(blank=True, default='', help_text='http(s)://example.cn/', max_length=255, verbose_name='Loki服务接收接口')),
                 ('loki_remark', models.CharField(blank=True, default='', max_length=255, verbose_name='Loki服务备注')),
                 ('organization', models.ForeignKey(db_constraint=False, null=True, on_delete=django.db.models.deletion.SET_NULL, to='service.datacenter', verbose_name='机构')),
-                ('users', models.ManyToManyField(blank=True, db_table='org_data_center_users', related_name='+', to=settings.AUTH_USER_MODEL, verbose_name='管理员')),
+                ('users', models.ManyToManyField(blank=True, db_constraint=False, db_table='org_data_center_users', related_name='+', to=settings.AUTH_USER_MODEL, verbose_name='管理员')),
             ],
             options={
                 'verbose_name': '机构数据中心',
@@ -47,6 +47,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='serviceconfig',
             name='org_data_center',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='service.orgdatacenter', verbose_name='数据中心'),
+            field=models.ForeignKey(blank=True, db_constraint=False, default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='service.orgdatacenter', verbose_name='数据中心'),
         ),
     ]

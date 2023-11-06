@@ -27,10 +27,9 @@ class ObjectsService(UuidModel):
         DISABLE = 'disable', _('停止服务')
         DELETED = 'deleted', _('删除')
 
-    # data_center = models.ForeignKey(to=DataCenter, null=True, on_delete=models.SET_NULL,
-    #                                 related_name='object_service_set', verbose_name=_('数据中心'))
     org_data_center = models.ForeignKey(
-        to=OrgDataCenter, null=True, on_delete=models.SET_NULL, related_name='+', verbose_name=_('数据中心'))
+        to=OrgDataCenter, null=True, on_delete=models.SET_NULL, related_name='+', verbose_name=_('数据中心'),
+        db_constraint=False)
     name = models.CharField(max_length=255, verbose_name=_('服务名称'))
     name_en = models.CharField(verbose_name=_('服务英文名称'), max_length=255, default='')
     service_type = models.CharField(max_length=16, choices=ServiceType.choices, default=ServiceType.IHARBOR.value,

@@ -6,7 +6,6 @@ from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 
 from service.models import DataCenter, ServiceConfig, OrgDataCenter
-from service.managers import ServiceManager
 from utils.model import UuidModel, get_encryptor
 from users.models import UserProfile
 
@@ -69,8 +68,6 @@ class MonitorJobCeph(UuidModel):
     name = models.CharField(verbose_name=_('监控的CEPH集群名称'), max_length=255, default='')
     name_en = models.CharField(verbose_name=_('监控的CEPH集群英文名称'), max_length=255, default='')
     job_tag = models.CharField(verbose_name=_('CEPH集群标签名称'), max_length=255, default='')
-    # provider = models.ForeignKey(to=MonitorProvider, on_delete=models.CASCADE, related_name='+',
-    #                              verbose_name=_('监控服务配置'))
     prometheus = models.CharField(
         verbose_name=_('Prometheus接口'), max_length=255, blank=True, default='', help_text=_('http(s)://example.cn/'))
     creation = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
@@ -82,15 +79,8 @@ class MonitorJobCeph(UuidModel):
     grafana_url = models.CharField(verbose_name=_('Grafana连接'), max_length=255, blank=True, default='')
     dashboard_url = models.CharField(verbose_name=_('Dashboard连接'), max_length=255, blank=True, default='')
     org_data_center = models.ForeignKey(
-        to=OrgDataCenter, null=True, on_delete=models.SET_NULL, related_name='+', verbose_name=_('数据中心'))
-    # organization = models.ForeignKey(
-    #     verbose_name=_('监控机构'), to=DataCenter, related_name='+', db_constraint=False,
-    #     on_delete=models.SET_NULL, null=True, default=None
-    # )
-    # service = models.ForeignKey(
-    #     to=ServiceConfig, verbose_name='云主机服务单元', on_delete=models.SET_NULL, null=True, default=None, blank=True,
-    #     related_name='+', db_constraint=False, db_index=False,
-    # )
+        to=OrgDataCenter, null=True, on_delete=models.SET_NULL, related_name='+', verbose_name=_('数据中心'),
+        db_constraint=False)
 
     class Meta:
         db_table = 'monitor_monitorjobceph'
@@ -101,28 +91,6 @@ class MonitorJobCeph(UuidModel):
     def __str__(self):
         return self.name
 
-    # def user_has_perm(self, user):
-    #     """
-    #     用户是否有访问此服务的管理权限
-    #
-    #     :param user: 用户
-    #     :return:
-    #         True    # has
-    #         False   # no
-    #     """
-    #     if not user or not user.id:
-    #         return False
-    #
-    #     if self.users.filter(id=user.id).exists():
-    #         return True
-    #
-    #     if self.service_id:
-    #         s = ServiceManager.get_service_if_admin(user=user, service_id=self.service_id)
-    #         if s is not None:
-    #             return True
-    #
-    #     return False
-
 
 class MonitorJobServer(UuidModel):
     """
@@ -131,8 +99,6 @@ class MonitorJobServer(UuidModel):
     name = models.CharField(verbose_name=_('监控的主机集群名称'), max_length=255, default='')
     name_en = models.CharField(verbose_name=_('监控的主机集群英文名称'), max_length=255, default='')
     job_tag = models.CharField(verbose_name=_('主机集群标签名称'), max_length=255, default='')
-    # provider = models.ForeignKey(to=MonitorProvider, on_delete=models.CASCADE, related_name='+',
-    #                              verbose_name=_('监控服务配置'))
     prometheus = models.CharField(
         verbose_name=_('Prometheus接口'), max_length=255, blank=True, default='', help_text=_('http(s)://example.cn/'))
     creation = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
@@ -144,15 +110,8 @@ class MonitorJobServer(UuidModel):
     grafana_url = models.CharField(verbose_name=_('Grafana连接'), max_length=255, blank=True, default='')
     dashboard_url = models.CharField(verbose_name=_('Dashboard连接'), max_length=255, blank=True, default='')
     org_data_center = models.ForeignKey(
-        to=OrgDataCenter, null=True, on_delete=models.SET_NULL, related_name='+', verbose_name=_('数据中心'))
-    # organization = models.ForeignKey(
-    #     verbose_name=_('监控机构'), to=DataCenter, related_name='+', db_constraint=False,
-    #     on_delete=models.SET_NULL, null=True, default=None
-    # )
-    # service = models.ForeignKey(
-    #     to=ServiceConfig, verbose_name='云主机服务单元', on_delete=models.SET_NULL, null=True, default=None, blank=True,
-    #     related_name='+', db_constraint=False, db_index=False,
-    # )
+        to=OrgDataCenter, null=True, on_delete=models.SET_NULL, related_name='+', verbose_name=_('数据中心'),
+        db_constraint=False)
 
     class Meta:
         db_table = 'monitor_monitorjobserver'
@@ -162,28 +121,6 @@ class MonitorJobServer(UuidModel):
 
     def __str__(self):
         return self.name
-
-    # def user_has_perm(self, user):
-    #     """
-    #     用户是否有访问此服务的管理权限
-    #
-    #     :param user: 用户
-    #     :return:
-    #         True    # has
-    #         False   # no
-    #     """
-    #     if not user or not user.id:
-    #         return False
-    #
-    #     if self.users.filter(id=user.id).exists():
-    #         return True
-    #
-    #     if self.service_id:
-    #         s = ServiceManager.get_service_if_admin(user=user, service_id=self.service_id)
-    #         if s is not None:
-    #             return True
-    #
-    #     return False
 
 
 class MonitorJobVideoMeeting(UuidModel):
@@ -421,8 +358,6 @@ class MonitorJobTiDB(UuidModel):
     name = models.CharField(verbose_name=_('监控的TiDB集群名称'), max_length=255, default='')
     name_en = models.CharField(verbose_name=_('监控的TiDB集群英文名称'), max_length=255, default='')
     job_tag = models.CharField(verbose_name=_('TiDB集群标签名称'), max_length=255, default='')
-    # provider = models.ForeignKey(to=MonitorProvider, on_delete=models.CASCADE, related_name='+',
-    #                              verbose_name=_('监控服务配置'))
     prometheus = models.CharField(
         verbose_name=_('Prometheus接口'), max_length=255, blank=True, default='', help_text=_('http(s)://example.cn/'))
     creation = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
@@ -434,16 +369,9 @@ class MonitorJobTiDB(UuidModel):
     grafana_url = models.CharField(verbose_name=_('Grafana连接'), max_length=255, blank=True, default='')
     dashboard_url = models.CharField(verbose_name=_('Dashboard连接'), max_length=255, blank=True, default='')
     org_data_center = models.ForeignKey(
-        to=OrgDataCenter, null=True, on_delete=models.SET_NULL, related_name='+', verbose_name=_('数据中心'))
-    # organization = models.ForeignKey(
-    #     verbose_name=_('监控机构'), to=DataCenter, related_name='+', db_constraint=False,
-    #     on_delete=models.SET_NULL, null=True, default=None
-    # )
+        to=OrgDataCenter, null=True, on_delete=models.SET_NULL, related_name='+', verbose_name=_('数据中心'),
+        db_constraint=False)
     version = models.CharField(verbose_name=_('TiDB版本'), max_length=32, blank=True, default='', help_text='xx.xx.xx')
-    # service = models.ForeignKey(
-    #     to=ServiceConfig, verbose_name='云主机服务单元', on_delete=models.SET_NULL, null=True, default=None, blank=True,
-    #     related_name='+', db_constraint=False, db_index=False,
-    # )
 
     class Meta:
         db_table = 'monitor_unit_tidb'
@@ -453,28 +381,6 @@ class MonitorJobTiDB(UuidModel):
 
     def __str__(self):
         return self.name
-
-    # def user_has_perm(self, user):
-    #     """
-    #     用户是否有访问此服务的管理权限
-    #
-    #     :param user: 用户
-    #     :return:
-    #         True    # has
-    #         False   # no
-    #     """
-    #     if not user or not user.id:
-    #         return False
-    #
-    #     if self.users.filter(id=user.id).exists():
-    #         return True
-    #
-    #     if self.service_id:
-    #         s = ServiceManager.get_service_if_admin(user=user, service_id=self.service_id)
-    #         if s is not None:
-    #             return True
-    #
-    #     return False
 
     @classmethod
     def get_user_unit_queryset(cls, user_id: str):
@@ -517,22 +423,16 @@ class LogSite(UuidModel):
         related_name='+', verbose_name="站点类别")
     job_tag = models.CharField(verbose_name=_('网站日志单元标识'), max_length=64, default='',
                                help_text=_('Loki日志中对应的job标识'))
-    # provider = models.ForeignKey(
-    #     to=MonitorProvider, db_constraint=False, on_delete=models.CASCADE,
-    #     related_name='+', verbose_name=_('日志数据查询服务提供者'))
     sort_weight = models.IntegerField(verbose_name='排序值', help_text='值越小排序越靠前')
     desc = models.CharField(max_length=255, blank=True, default="", verbose_name="备注")
-    # organization = models.ForeignKey(
-    #     verbose_name=_('机构'), to=DataCenter, related_name='+', db_constraint=False,
-    #     on_delete=models.SET_NULL, null=True, default=None
-    # )
     creation = models.DateTimeField(verbose_name='创建时间', auto_now_add=True)
     modification = models.DateTimeField(verbose_name='修改时间', auto_now=True)
     users = models.ManyToManyField(
         to=UserProfile, db_table='log_site_users', related_name='+',
         db_constraint=False, verbose_name=_('管理用户'), blank=True)
     org_data_center = models.ForeignKey(
-        to=OrgDataCenter, null=True, on_delete=models.SET_NULL, related_name='+', verbose_name=_('数据中心'))
+        to=OrgDataCenter, null=True, on_delete=models.SET_NULL, related_name='+', verbose_name=_('数据中心'),
+        db_constraint=False)
 
     class Meta:
         db_table = "log_site"
@@ -542,23 +442,6 @@ class LogSite(UuidModel):
 
     def __str__(self):
         return self.name
-
-    # def user_has_perm(self, user):
-    #     """
-    #     用户是否有访问此服务的管理权限
-    #
-    #     :param user: 用户
-    #     :return:
-    #         True    # has
-    #         False   # no
-    #     """
-    #     if not user or not user.id:
-    #         return False
-    #
-    #     if self.users.filter(id=user.id).exists():
-    #         return True
-    #
-    #     return False
 
 
 class LogSiteTimeReqNum(UuidModel):

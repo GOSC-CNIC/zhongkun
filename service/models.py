@@ -106,7 +106,8 @@ class OrgDataCenter(UuidModel):
     organization = models.ForeignKey(
         to=DataCenter, verbose_name=_('机构'), on_delete=models.SET_NULL, null=True, blank=False, db_constraint=False)
     users = models.ManyToManyField(
-        to=User, verbose_name=_('管理员'), blank=True, related_name='+', db_table='org_data_center_users')
+        to=User, verbose_name=_('管理员'), blank=True, related_name='+', db_table='org_data_center_users',
+        db_constraint=False)
     longitude = models.FloatField(verbose_name=_('经度'), blank=True, default=0)
     latitude = models.FloatField(verbose_name=_('纬度'), blank=True, default=0)
     creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
@@ -175,7 +176,8 @@ class ServiceConfig(BaseService):
         DELETED = 'deleted', _('删除')
 
     org_data_center = models.ForeignKey(
-        to=OrgDataCenter, null=True, on_delete=models.SET_NULL, related_name='+', verbose_name=_('数据中心'))
+        to=OrgDataCenter, null=True, on_delete=models.SET_NULL, related_name='+', verbose_name=_('数据中心'),
+        db_constraint=False, blank=True, default=None)
     name = models.CharField(max_length=255, verbose_name=_('服务名称'))
     name_en = models.CharField(verbose_name=_('服务英文名称'), max_length=255, default='')
     region_id = models.CharField(max_length=128, default='', blank=True, verbose_name=_('服务区域/分中心ID'))
