@@ -31,6 +31,7 @@ class MonitorJobCephAdmin(admin.ModelAdmin):
     list_editable = ('sort_weight',)
     list_filter = ('org_data_center',)
     filter_horizontal = ('users',)
+    raw_id_fields = ('org_data_center',)
 
     @admin.display(description="机构")
     def organization_name(self, obj):
@@ -56,6 +57,7 @@ class MonitorJobServerAdmin(admin.ModelAdmin):
     list_editable = ('sort_weight',)
     list_filter = ('org_data_center',)
     filter_horizontal = ('users',)
+    raw_id_fields = ('org_data_center',)
 
     @admin.display(description="机构")
     def organization_name(self, obj):
@@ -186,6 +188,7 @@ class MonitorJobTiDBAdmin(admin.ModelAdmin):
     list_editable = ('sort_weight',)
     list_filter = ('org_data_center',)
     filter_horizontal = ('users',)
+    raw_id_fields = ('org_data_center',)
 
     @admin.display(description="机构")
     def organization_name(self, obj):
@@ -218,6 +221,7 @@ class LogSiteAdmin(admin.ModelAdmin):
     list_editable = ('sort_weight',)
     list_filter = ('site_type', 'org_data_center',)
     filter_horizontal = ('users',)
+    raw_id_fields = ('org_data_center',)
 
     @admin.display(description="机构")
     def organization_name(self, obj):

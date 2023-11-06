@@ -172,6 +172,7 @@ class PayAppServiceAdmin(NoDeleteSelectModelAdmin):
     list_filter = ('category', 'status')
     filter_horizontal = ('users',)
     # raw_id_fields = ('users',)
+    raw_id_fields = ('orgnazition',)
 
     def has_delete_permission(self, request, obj=None):
         return False
