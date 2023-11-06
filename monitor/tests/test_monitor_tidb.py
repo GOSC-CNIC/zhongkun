@@ -15,30 +15,26 @@ class MonitorUnitTiDBTests(MyAPITestCase):
         self.user = get_or_create_user(password='password')
 
     def test_list_unit(self):
-        provider = MonitorProvider()
-        provider.save(force_insert=True)
         odc = get_or_create_org_data_center()
         unit_tidb1 = MonitorJobTiDB(
             name='name1', name_en='name_en1', job_tag='job_tag1', sort_weight=10,
-            provider=provider, org_data_center=odc
+            org_data_center=odc
         )
         unit_tidb1.save(force_insert=True)
 
         unit_tidb2 = MonitorJobTiDB(
             name='name2', name_en='name_en2', job_tag='job_tag2', sort_weight=6,
-            provider=provider, org_data_center=odc
+            org_data_center=odc
         )
         unit_tidb2.save(force_insert=True)
 
         unit_tidb3 = MonitorJobTiDB(
             name='name3', name_en='name_en3', job_tag='job_tag3', sort_weight=3,
-            provider=provider
         )
         unit_tidb3.save(force_insert=True)
 
         unit_tidb4 = MonitorJobTiDB(
             name='name4', name_en='name_en4', job_tag='job_tag4',  sort_weight=8,
-            provider=provider
         )
         unit_tidb4.save(force_insert=True)
 

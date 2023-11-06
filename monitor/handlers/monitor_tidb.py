@@ -18,7 +18,7 @@ class MonitorTiDBQueryHandler:
 
         :raises: Error
         """
-        ceph_unit = MonitorJobTiDB.objects.select_related('provider').filter(id=monitor_unit_id).first()
+        ceph_unit = MonitorJobTiDB.objects.select_related('org_data_center').filter(id=monitor_unit_id).first()
         if ceph_unit is None:
             raise errors.NotFound(message=_('查询的监控单元不存在。'))
 

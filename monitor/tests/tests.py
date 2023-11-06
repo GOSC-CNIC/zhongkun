@@ -74,11 +74,9 @@ def get_or_create_monitor_job_ceph(job_tag: str = None, name: str = 'test', name
     if job_ceph is not None:
         return job_ceph
 
-    provider = get_or_create_monitor_provider(alias='MONITOR_CEPH')
     odc = get_odc_with_thanos_config(alias='MONITOR_CEPH')
     job_ceph = MonitorJobCeph(
         name=name, name_en=name_en, job_tag=job_tag, org_data_center=odc,
-        provider=provider
     )
     job_ceph.save(force_insert=True)
     return job_ceph
@@ -101,11 +99,9 @@ def get_or_create_monitor_job_server(job_tag: str = None, name: str = 'test', na
     if job_server is not None:
         return job_server
 
-    provider = get_or_create_monitor_provider(alias='MONITOR_SERVER')
     odc = get_odc_with_thanos_config(alias='MONITOR_SERVER')
     job_server = MonitorJobServer(
         name=name, name_en=name_en, job_tag=job_tag, org_data_center=odc,
-        provider=provider
     )
     job_server.save()
     return job_server
@@ -156,11 +152,9 @@ def get_or_create_monitor_job_tidb(job_tag: str = None, name: str = 'test', name
     if job_tidb is not None:
         return job_tidb
 
-    provider = get_or_create_monitor_provider(alias='MONITOR_TIDB', name='tidb')
     odc = get_odc_with_thanos_config(alias='MONITOR_TIDB')
     job_tidb = MonitorJobTiDB(
         name=name, name_en=name_en, job_tag=job_tag, org_data_center=odc,
-        provider=provider
     )
     job_tidb.save(force_insert=True)
     return job_tidb
@@ -183,11 +177,10 @@ def get_or_create_job_log_site(job_tag: str = None, name: str = 'test', name_en:
     if job_ceph is not None:
         return job_ceph
 
-    provider = get_or_create_monitor_provider(alias='LOG_SITE')
     odc = get_odc_with_loki_config(alias='LOG_SITE')
     job_ceph = LogSite(
         name=name, name_en=name_en, job_tag=job_tag, org_data_center=odc,
-        provider=provider, sort_weight=1
+        sort_weight=1
     )
     job_ceph.save(force_insert=True)
     return job_ceph

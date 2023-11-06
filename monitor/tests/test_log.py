@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from monitor.models import (
-    LogSite, LogSiteType, MonitorProvider
+    LogSite, LogSiteType
 )
 from utils.test import get_or_create_user, MyAPITestCase, get_or_create_org_data_center
 from scripts.workers.req_logs import LogSiteReqCounter
@@ -16,8 +16,6 @@ class LogSiteTests(MyAPITestCase):
         self.user = get_or_create_user(password='password')
 
     def test_list_unit(self):
-        provider = MonitorProvider()
-        provider.save(force_insert=True)
         odc = get_or_create_org_data_center()
 
         site_type1 = LogSiteType(name='obj', name_en='obj en', sort_weight=6)
@@ -25,27 +23,26 @@ class LogSiteTests(MyAPITestCase):
         log_site1 = LogSite(
             name='name1', name_en='name_en1', log_type=LogSite.LogType.HTTP.value,
             site_type_id=None, job_tag='job_tag1', sort_weight=10,
-            provider=provider,
         )
         log_site1.save(force_insert=True)
 
         log_site2 = LogSite(
             name='name2', name_en='name_en2', log_type=LogSite.LogType.HTTP.value,
             site_type_id=site_type1.id, job_tag='job_tag2', sort_weight=5,
-            provider=provider, org_data_center=odc
+            org_data_center=odc
         )
         log_site2.save(force_insert=True)
         log_site3 = LogSite(
             name='name3', name_en='name_en3', log_type=LogSite.LogType.NAT.value,
             site_type_id=site_type1.id, job_tag='job_tag3', sort_weight=3,
-            provider=provider, org_data_center=odc
+            org_data_center=odc
         )
         log_site3.save(force_insert=True)
 
         log_site4 = LogSite(
             name='name4', name_en='name_en4', log_type=LogSite.LogType.NAT.value,
             site_type_id=site_type1.id, job_tag='job_tag4', sort_weight=8,
-            provider=provider, org_data_center=odc
+            org_data_center=odc
         )
         log_site4.save(force_insert=True)
 

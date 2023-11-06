@@ -447,30 +447,28 @@ class MonitorUnitCephTests(MyAPITestCase):
         self.user = get_or_create_user(password='password')
 
     def test_list_unit(self):
-        provider = MonitorProvider()
-        provider.save(force_insert=True)
         odc = get_or_create_org_data_center()
         unit_ceph1 = MonitorJobCeph(
             name='name1', name_en='name_en1', job_tag='job_tag1', sort_weight=10,
-            provider=provider, org_data_center=odc
+            org_data_center=odc
         )
         unit_ceph1.save(force_insert=True)
 
         unit_ceph2 = MonitorJobCeph(
             name='name2', name_en='name_en2', job_tag='job_tag2', sort_weight=6,
-            provider=provider, org_data_center=odc
+            org_data_center=odc
         )
         unit_ceph2.save(force_insert=True)
 
         unit_ceph3 = MonitorJobCeph(
             name='name3', name_en='name_en3', job_tag='job_tag3', sort_weight=3,
-            provider=provider, org_data_center=None
+            org_data_center=None
         )
         unit_ceph3.save(force_insert=True)
 
         unit_ceph4 = MonitorJobCeph(
             name='name4', name_en='name_en4', job_tag='job_tag4',  sort_weight=8,
-            provider=provider, org_data_center=None
+            org_data_center=None
         )
         unit_ceph4.save(force_insert=True)
 
@@ -585,31 +583,27 @@ class MonitorUnitServerTests(MyAPITestCase):
         self.user = get_or_create_user(password='password')
 
     def test_list_server_unit(self):
-        provider = MonitorProvider()
-        provider.save(force_insert=True)
         odc = get_or_create_org_data_center()
 
         unit_server1 = MonitorJobServer(
             name='name1', name_en='name_en1', job_tag='job_tag1', sort_weight=10,
-            provider=provider, org_data_center=odc
+            org_data_center=odc
         )
         unit_server1.save(force_insert=True)
 
         unit_server2 = MonitorJobServer(
             name='name2', name_en='name_en2', job_tag='job_tag2', sort_weight=6,
-            provider=provider
         )
         unit_server2.save(force_insert=True)
 
         unit_server3 = MonitorJobServer(
             name='name3', name_en='name_en3', job_tag='job_tag3', sort_weight=3,
-            provider=provider, org_data_center=odc
+            org_data_center=odc
         )
         unit_server3.save(force_insert=True)
 
         unit_server4 = MonitorJobServer(
             name='name4', name_en='name_en4', job_tag='job_tag4',  sort_weight=8,
-            provider=provider
         )
         unit_server4.save(force_insert=True)
 

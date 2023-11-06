@@ -43,7 +43,7 @@ class MonitorServerQueryHandler:
 
         :raises: Error
         """
-        monitor_unit = MonitorJobServer.objects.select_related('provider').filter(id=monitor_unit_id).first()
+        monitor_unit = MonitorJobServer.objects.select_related('org_data_center').filter(id=monitor_unit_id).first()
         if monitor_unit is None:
             raise errors.NotFound(message=_('查询的监控单元不存在。'))
 
