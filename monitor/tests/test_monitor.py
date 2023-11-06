@@ -445,7 +445,6 @@ class MonitorVideoMeetingTests(MyAPITestCase):
 class MonitorUnitCephTests(MyAPITestCase):
     def setUp(self):
         self.user = get_or_create_user(password='password')
-        self.service1 = get_or_create_service()
 
     def test_list_unit(self):
         provider = MonitorProvider()
@@ -459,7 +458,7 @@ class MonitorUnitCephTests(MyAPITestCase):
 
         unit_ceph2 = MonitorJobCeph(
             name='name2', name_en='name_en2', job_tag='job_tag2', sort_weight=6,
-            provider=provider, service_id=self.service1.id, org_data_center=odc
+            provider=provider, org_data_center=odc
         )
         unit_ceph2.save(force_insert=True)
 
