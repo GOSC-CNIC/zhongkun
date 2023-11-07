@@ -241,7 +241,7 @@ class ServersTests(MyAPITestCase):
         self.assertKeysIn(['server'], response.data)
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
                            "public_ip", "image", "creation_time", "remarks",
-                           "endpoint_url", "service",
+                           "service",
                            "center_quota", "classification", "vo_id", "user",
                            "image_id", "image_desc", "default_user", "default_password", "pay_type",
                            "attached_disks"], response.data['server'])
@@ -279,7 +279,7 @@ class ServersTests(MyAPITestCase):
         self.assertKeysIn(['server'], response.data)
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
                            "public_ip", "image", "creation_time", "remarks",
-                           "endpoint_url", "service",
+                           "service",
                            "center_quota", "classification", "vo_id", "user",
                            "image_id", "image_desc", "default_user", "default_password", "pay_type",
                            "attached_disks"], response.data['server'])
@@ -316,7 +316,7 @@ class ServersTests(MyAPITestCase):
         self.assertKeysIn(['server'], response.data)
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
                            "public_ip", "image", "creation_time", "remarks",
-                           "endpoint_url", "service",
+                           "service",
                            "center_quota", "classification", "vo_id", "user",
                            "image_id", "image_desc", "default_user", "default_password", "pay_type"
                            ], response.data['server'])
@@ -334,7 +334,7 @@ class ServersTests(MyAPITestCase):
         self.assertEqual(len(response.data['servers']), 1)
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ram_gib", "ipv4",
                            "public_ip", "image", "creation_time",
-                           "remarks", "endpoint_url", "service",
+                           "remarks", "service",
                            "center_quota", "classification", "vo_id", "user",
                            "image_id", "image_desc", "default_user", "default_password",
                            "lock", "pay_type"], response.data['servers'][0])
@@ -461,7 +461,7 @@ class ServersTests(MyAPITestCase):
         self.assertEqual(response.data['count'], 1)
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4", "ram_gib",
                            "public_ip", "image", "creation_time",
-                           "remarks", "endpoint_url", "service",
+                           "remarks", "service",
                            "center_quota", "classification", "vo_id", "user",
                            "image_id", "image_desc", "default_user", "default_password",
                            "lock", "pay_type"], response.data['servers'][0])
@@ -504,7 +504,7 @@ class ServersTests(MyAPITestCase):
         self.assertKeysIn(['server'], response.data)
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4", "ram_gib",
                            "public_ip", "image", "creation_time", "remarks",
-                           "endpoint_url", "service",
+                           "service",
                            "center_quota", "classification", "vo_id", "user",
                            "image_id", "image_desc", "default_user", "default_password",
                            "lock", "pay_type"], response.data['server'])
@@ -637,7 +637,7 @@ class ServersTests(MyAPITestCase):
         self.assertEqual(len(response.data['servers']), 1)
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4", "ram_gib",
                            "public_ip", "image", "creation_time",
-                           "remarks", "endpoint_url", "service",
+                           "remarks", "service",
                            "center_quota", "classification", "vo_id", "user",
                            "image_id", "image_desc", "default_user", "default_password",
                            "lock", "pay_type"], response.data['servers'][0])
@@ -1069,7 +1069,7 @@ class ServersTests(MyAPITestCase):
         self.assertEqual(response.data['count'], 1)
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
                            "public_ip", "image", "creation_time", "remarks",
-                           "endpoint_url", "service",
+                           "service",
                            "center_quota", "classification", "vo_id", "user",
                            "image_id", "image_desc", "default_user", "default_password",
                            "lock", "pay_type"], response.data['servers'][0])
@@ -1768,8 +1768,7 @@ class RegistryTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('registries', response.data)
         self.assertIsInstance(response.data['registries'], list)
-        self.assertKeysIn(["id", "name", "endpoint_vms", "endpoint_object", "endpoint_compute", "sort_weight",
-                           "endpoint_monitor", "creation_time", "status", "desc", 'longitude', 'latitude'],
+        self.assertKeysIn(["id", "name", "sort_weight", "creation_time", "status", "desc", 'longitude', 'latitude'],
                           response.data['registries'][0])
 
 

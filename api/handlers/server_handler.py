@@ -165,11 +165,11 @@ class ServerHandler:
                 public=public, remark=remark, pay_type=pay_type
             )
 
-        service_id_map = ServiceManager.get_service_id_map(use_cache=True)
+        # service_id_map = ServiceManager.get_service_id_map(use_cache=True)
         paginator = paginations.ServersPagination()
         try:
             page = paginator.paginate_queryset(servers, request, view=view)
-            serializer = serializers.ServerSerializer(page, many=True, context={'service_id_map': service_id_map})
+            serializer = serializers.ServerSerializer(page, many=True)    # context={'service_id_map': service_id_map})
             return paginator.get_paginated_response(data=serializer.data)
         except Exception as exc:
             return view.exception_response(exceptions.convert_to_error(exc))
@@ -196,11 +196,11 @@ class ServerHandler:
 
         servers = ServerManager().get_vo_servers_queryset(vo_id=vo_id, service_id=service_id, expired=expired)
 
-        service_id_map = ServiceManager.get_service_id_map(use_cache=True)
+        # service_id_map = ServiceManager.get_service_id_map(use_cache=True)
         paginator = paginations.ServersPagination()
         try:
             page = paginator.paginate_queryset(servers, request, view=view)
-            serializer = serializers.ServerSerializer(page, many=True, context={'service_id_map': service_id_map})
+            serializer = serializers.ServerSerializer(page, many=True)  # context={'service_id_map': service_id_map})
             return paginator.get_paginated_response(data=serializer.data)
         except Exception as exc:
             return view.exception_response(exceptions.convert_to_error(exc))

@@ -161,7 +161,6 @@ class ServersViewSet(CustomGenericViewSet):
                   "image": "centos8_gui",
                   "creation_time": "2020-11-02T07:47:39.776384Z",
                   "remarks": "",
-                  "endpoint_url": "http://159.226.235.16/",
                   "service": {
                     "id": "2",
                     "name": "怀柔204机房",
@@ -225,7 +224,6 @@ class ServersViewSet(CustomGenericViewSet):
                   "image": "centos8_gui",
                   "creation_time": "2020-11-02T07:47:39.776384Z",
                   "remarks": "",
-                  "endpoint_url": "https://159.226.235.16/",
                   "service": {
                     "id": "2",
                     "name": "怀柔204机房",
@@ -482,7 +480,7 @@ class ServersViewSet(CustomGenericViewSet):
                 "image": "CentOS_8",
                 "creation_time": "2020-09-23T07:10:14.009418Z",
                 "remarks": "",
-                "endpoint_url": "https://159.226.235.16/",
+                "endpoint_url": "",     # 后续移除
                 "service": {
                     "id": "2",
                     "name": "怀柔204机房",
@@ -1726,10 +1724,6 @@ class DataCenterViewSet(CustomGenericViewSet):
                   "name": "网络中心",
                   "name_en": "string",
                   "abbreviation": "xxx"
-                  "endpoint_vms": http://xxx/,
-                  "endpoint_object": http://xxx/,
-                  "endpoint_compute": http://xxx/,
-                  "endpoint_monitor": http://xxx/,
                   "creation_time": 2021-02-07T06:20:00Z,
                   "status": {
                     "code": 1,

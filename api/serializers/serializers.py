@@ -46,28 +46,11 @@ class ServerSerializer(ServerBaseSerializer):
     """
     虚拟服务器实例序列化器
     """
-    endpoint_url = serializers.SerializerMethodField(method_name='get_vms_endpoint_url')
     service = serializers.SerializerMethodField(method_name='get_service')
     center_quota = serializers.IntegerField()
     vo_id = serializers.CharField()
     user = serializers.SerializerMethodField(method_name='get_user')
     lock = serializers.CharField(label=_('锁'), max_length=16)
-
-    def get_vms_endpoint_url(self, obj):
-        return ''
-        # service_id_map = self.context.get('service_id_map')
-        # if service_id_map:
-        #     service = service_id_map.get(obj.service_id)
-        # else:
-        #     service = obj.service
-        #
-        # if not service:
-        #     return ''
-        #
-        # try:
-        #     return service.data_center.endpoint_vms
-        # except AttributeError:
-        #     return ''
 
     @staticmethod
     def get_service(obj):
@@ -221,10 +204,10 @@ class DataCenterSerializer(serializers.Serializer):
     name = serializers.CharField()
     name_en = serializers.CharField()
     abbreviation = serializers.CharField()
-    endpoint_vms = serializers.CharField()
-    endpoint_object = serializers.CharField()
-    endpoint_compute = serializers.CharField()
-    endpoint_monitor = serializers.CharField()
+    # endpoint_vms = serializers.CharField()
+    # endpoint_object = serializers.CharField()
+    # endpoint_compute = serializers.CharField()
+    # endpoint_monitor = serializers.CharField()
     creation_time = serializers.DateTimeField()
     status = serializers.SerializerMethodField(method_name='get_status')
     desc = serializers.CharField()
