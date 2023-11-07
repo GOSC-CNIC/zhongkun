@@ -19,6 +19,7 @@ from link.viewsets import (
     opticalfiber_views, distriframeport_views, linkorg_views,
     linkuserrole_views
     )
+from service.viewsets import org_data_center_views
 
 app_name = 'api'
 
@@ -130,6 +131,9 @@ no_slash_router.register(r'link/opticalfiber', opticalfiber_views.OpticalFiberVi
 no_slash_router.register(r'link/distriframeport', distriframeport_views.DistriFramePortViewSet, basename='link-distriframeport')
 no_slash_router.register(r'link/linkorg', linkorg_views.linkOrgViewSet, basename='link-linkorg')
 no_slash_router.register(r'link/user/role', linkuserrole_views.LinkUserRoleViewSet, basename='link-userrole')
+
+no_slash_router.register(r'data-center', org_data_center_views.OrgDataCenterViewSet, basename='org-dc')
+
 
 urlpatterns = [
     path('', include(no_slash_router.urls)),
