@@ -1,3 +1,26 @@
+## v1.14.0
+发布时间： 2023-11-07  
+发布人： shun  
+
+* 新增ipam app和model定义，新增ListIPv4Range、GetIPAMUserRole、CreateIPv4Range、UpdateIPv4Range接口和测试用例；提交人：shun
+* 新增link app和model定义，新增租用线路添加、查询、更新接口，光缆相关接口，用户权限接口，列举业务接口，列举链路机构二级实例接口等和测试用例；提交人：xukai
+* 站点监控任务创建和修改api增加tcp监控任务支持；提交人：wanghuang
+* ListMonitorWebsite api增加参数’scheme‘，MonitorWebsiteQuery和
+  MonitorWebsiteQueryRange接口修改，同时支持http和tcp监控任务数据查询；提交人：shun
+* 个人http监控网站 状态统计和网络延迟区间统计2个api修改，避免后加入的tcp监控任务的影响；提交人：shun
+* 安装openpyxl依赖包，增加从excel文件导入IP段命令脚本，增加云硬盘和站点监控统计命令，云主机和存储桶统计信息命令serverstats和bucketstats；提交人：shun
+* 新增ListStorageServiceAdmin接口和测试用例；提交人：shun
+* 邮件模型增加字段‘is_feint’，发送邮件API增加参数‘is_feint’，可以指定邮件只存数据库不真的发送；提交人：shun
+* AdminStorageBucketLock api增加‘只读锁’参数选项；提交人：shun
+* 新增GetMonitorWebsiteUserEmail接口和测试用例；提交人：shun
+* 定义机构联系人model，多对多关联机构，机构增加省份字段，增加ListOrganization、GetOrganizationDetail接口和测试用例；提交人：shun
+* 资源券增加备注字段，查询券信息和创建券有关接口增加备注信息；提交人：shun
+* 钱包app结算服务单元关联支付机构改为全局统一机构，云主机和存储服务单元新建时自动在余额钱包注册对应的结算服务单元；提交人：shun
+* 管理员查询过期云主机，原来只按过期时间，现在加上包年包月付费方式；后台云主机记录修改时，如果是按量付费自动清空过期时间；提交人：shun
+* monitor有关的api的代码文件移动到monitor app下；云硬盘最大容量调整为20T；
+  模板左边导航栏，机构和云主机服务单元渲染标签修改，只显示有服务单元的机构；提交人：shun
+
+
 ## v1.13.0
 发布时间： 2023-10-08  
 发布人： shun  
