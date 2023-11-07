@@ -1,6 +1,7 @@
 from django.contrib import admin, messages
 from django.utils.translation import gettext_lazy as _
 from django.db import transaction
+from django.contrib.admin.filters import SimpleListFilter
 
 from storage.request import request_service
 from storage.adapter import inputs
@@ -8,6 +9,24 @@ from core import errors
 from utils.model import NoDeleteSelectModelAdmin
 from . import models
 from . import forms
+
+
+class ServiceOrgFilter(SimpleListFilter):
+    title = "机构"
+    parameter_name = 'org_id'
+
+    def lookups(self, request, model_admin):
+        r = models.ObjectsService.objects.select_related(
+            'org_data_center__organization').order_by('sort_weight').values_list(
+            'org_data_center__organization_id', 'org_data_center__organization__name'
+        )
+        d = {i[0]: i[1] for i in r}
+        return [(k, v) for k, v in d.items()]
+
+    def queryset(self, request, queryset):
+        org_id = request.GET.get(self.parameter_name)
+        if org_id:
+            return queryset.filter(org_data_center__organization_id=org_id)
 
 
 @admin.register(models.ObjectsService)
@@ -19,7 +38,7 @@ class ObjectsServiceAdmin(admin.ModelAdmin):
                     'username', 'raw_password', 'provide_ftp', 'pay_app_service_id', 'loki_tag')
 
     search_fields = ['name', 'name_en', 'endpoint_url', 'remarks']
-    # list_filter = ['service_type']
+    list_filter = [ServiceOrgFilter,]
     list_select_related = ('org_data_center', 'org_data_center__organization')
     list_editable = ('sort_weight',)
     raw_id_fields = ('org_data_center',)

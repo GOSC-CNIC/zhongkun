@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.utils.translation import gettext_lazy, gettext as _
 from django.contrib import messages
 from django.db import transaction
+from django.contrib.admin.filters import SimpleListFilter
 
 from servers.models import Server, Disk
 from utils.model import NoDeleteSelectModelAdmin
@@ -13,6 +14,23 @@ from .models import (
 from . import forms
 
 
+class ServiceOrgFilter(SimpleListFilter):
+    title = "机构"
+    parameter_name = 'org_id'
+
+    def lookups(self, request, model_admin):
+        r = ServiceConfig.objects.select_related('org_data_center__organization').order_by('sort_weight').values_list(
+            'org_data_center__organization_id', 'org_data_center__organization__name'
+        )
+        d = {i[0]: i[1] for i in r}
+        return [(k, v) for k, v in d.items()]
+
+    def queryset(self, request, queryset):
+        org_id = request.GET.get(self.parameter_name)
+        if org_id:
+            return queryset.filter(org_data_center__organization_id=org_id)
+
+
 @admin.register(ServiceConfig)
 class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
     form = forms.VmsProviderForm
@@ -22,7 +40,7 @@ class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
                     'password', 'add_time', 'status', 'need_vpn', 'disk_available', 'vpn_endpoint_url', 'vpn_password',
                     'pay_app_service_id', 'longitude', 'latitude', 'remarks')
     search_fields = ['name', 'name_en', 'endpoint_url', 'remarks']
-    list_filter = ['service_type', 'disk_available']
+    list_filter = ['service_type', 'disk_available', ServiceOrgFilter]
     list_select_related = ('org_data_center', 'org_data_center__organization')
     raw_id_fields = ('org_data_center',)
     list_editable = ('sort_weight',)
@@ -116,6 +134,23 @@ class DataCenterAdmin(NoDeleteSelectModelAdmin):
     filter_horizontal = ('contacts',)
 
 
+class ODCOrgFilter(SimpleListFilter):
+    title = "机构"
+    parameter_name = 'org_id'
+
+    def lookups(self, request, model_admin):
+        r = OrgDataCenter.objects.order_by('organization__sort_weight').values_list(
+            'organization_id', 'organization__name'
+        )
+        d = {i[0]: i[1] for i in r}
+        return [(k, v) for k, v in d.items()]
+
+    def queryset(self, request, queryset):
+        org_id = request.GET.get(self.parameter_name)
+        if org_id:
+            return queryset.filter(organization_id=org_id)
+
+
 @admin.register(OrgDataCenter)
 class OrgDataCenterAdmin(NoDeleteSelectModelAdmin):
     list_display_links = ('id',)
@@ -127,6 +162,7 @@ class OrgDataCenterAdmin(NoDeleteSelectModelAdmin):
     list_select_related = ('organization',)
     raw_id_fields = ('organization',)
     list_editable = ('sort_weight',)
+    list_filter = (ODCOrgFilter,)
     filter_horizontal = ('users',)
     fieldsets = (
         (_('数据中心基础信息'), {
