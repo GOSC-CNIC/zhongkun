@@ -24,6 +24,43 @@ class OrgDataCenterViewSet(NormalGenericViewSet):
         }
     )
     def list(self, request, *args, **kwargs):
+        """"
+        列举数据中心
+
+        {
+          "id": "tzo5vc107vksb9nszbufo1dp7",
+          "name": "ttt",
+          "name_en": "string",
+          "organization": [
+            {
+              "id": "jzddosfo44z0gc1c4hdk980q9",
+              "name": "obj"
+            }
+          ],
+          "users": [
+            {
+              "id": "ivugx4m7q410qwh6zznsnanjy",
+              "username": "wanghuang"
+            }
+          ],
+          "longitude": 0,
+          "latitude": 0,
+          "creation_time": "2023-11-06T05:40:20.201159Z",
+          "sort_weight": 0,
+          "remark": "string",
+          "thanos_endpoint_url": "https://xxxxx.com",
+          "thanos_username": "string",
+          "thanos_password": "xxxxxx",
+          "thanos_receive_url": "https://xxxxx.com",
+          "thanos_remark": "string",
+          "loki_endpoint_url": "https://xxxxx.com",
+          "loki_username": "string",
+          "loki_password": "string",
+          "loki_receive_url": "string",
+          "loki_remark": "string"
+        }
+
+        """
 
         try:
             queryset = OrgDataCenter.objects.order_by('-creation_time')
@@ -42,6 +79,40 @@ class OrgDataCenterViewSet(NormalGenericViewSet):
         }
     )
     def create(self, request, *args, **kwargs):
+        """
+        创建数据中心
+        http code 200
+            {
+              "name": "测试1",
+              "name_en": "test1",
+              "organization": "obj",
+              "users": [
+                "wanghuang"
+              ],
+              "longitude": 0,
+              "latitude": 0,
+              "sort_weight": 0,
+              "remark": "",
+              "thanos_endpoint_url": "",
+              "thanos_username": "",
+              "thanos_password": "",
+              "thanos_receive_url": "",
+              "thanos_remark": "",
+              "loki_endpoint_url": "",
+              "loki_username": "",
+              "loki_password": "",
+              "loki_receive_url": "",
+              "loki_remark": "",
+              "id": "5563vam9q6e7tz9fw3kij5p51"
+            }
+
+            http code 400, 401, 404：
+            {
+                "code": "BadRequest",
+                "message": ""
+            }
+
+        """
 
         serializer = self.get_serializer(data=request.data)
         if not serializer.is_valid(raise_exception=False):
@@ -77,6 +148,40 @@ class OrgDataCenterViewSet(NormalGenericViewSet):
         }
     )
     def update(self, request, *args, **kwargs):
+        """
+        修改数据中心
+
+        {
+          "name": "测试1",
+          "name_en": "test1",
+          "organization": "obj",
+          "users": [
+            "wanghuang"
+          ],
+          "longitude": 0,
+          "latitude": 0,
+          "sort_weight": 0,
+          "remark": "",
+          "thanos_endpoint_url": "",
+          "thanos_username": "",
+          "thanos_password": "",
+          "thanos_receive_url": "",
+          "thanos_remark": "",
+          "loki_endpoint_url": "",
+          "loki_username": "",
+          "loki_password": "",
+          "loki_receive_url": "",
+          "loki_remark": "xxxxx",
+          "id": "5563vam9q6e7tz9fw3kij5p51"
+        }
+
+        http code 400, 401, 404：
+        {
+            "code": "BadRequest",
+            "message": ""
+        }
+
+        """
         id = kwargs[self.lookup_field]
 
         serializer = self.get_serializer(data=request.data)
