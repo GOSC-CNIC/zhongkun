@@ -751,3 +751,30 @@ class CashCouponHandler:
             return view.get_paginated_response(page)
         except Exception as exc:
             return view.exception_response(errors.convert_to_error(exc))
+
+    @staticmethod
+    def admin_change_coupon_remark(view: CustomGenericViewSet, request, kwargs):
+        """
+        管理员修改资源券备注信息
+        """
+        coupon_id = kwargs.get(view.lookup_field)
+        remark = request.query_params.get('remark')
+
+        ccmgr = CashCouponManager()
+        try:
+            if not remark:
+                raise errors.InvalidArgument(message=_('必须指定新的备注信息'))
+
+            coupon = ccmgr.get_cash_coupon(
+                coupon_id=coupon_id, select_for_update=False,
+                related_fields=['app_service']
+            )
+            ccmgr.has_admin_perm_cash_coupon(coupon=coupon, user=request.user)
+            if coupon.remark != remark:
+                coupon: CashCoupon
+                coupon.remark = remark
+                coupon.save(update_fields=['remark'])
+
+            return Response(data={'remark': coupon.remark})
+        except Exception as exc:
+            return view.exception_response(exc)

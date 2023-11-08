@@ -848,6 +848,32 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
         """
         return CashCouponHandler().admin_coupon_vo_statistics(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('管理员修改资源券备注信息'),
+        request_body=no_body,
+        manual_parameters=[
+            openapi.Parameter(
+                name='remark',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description=f'新的备注信息'
+            ),
+        ],
+        responses={200: ''}
+    )
+    @action(methods=['post'], detail=True, url_path='remark', url_name='change-remark')
+    def change_remark(self, request, *args, **kwargs):
+        """
+        管理员修改资源券备注信息
+
+            http code 200:
+            {
+                "remark": "xxx"
+            }
+        """
+        return CashCouponHandler().admin_change_coupon_remark(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve']:
             return serializers.AdminCashCouponSerializer

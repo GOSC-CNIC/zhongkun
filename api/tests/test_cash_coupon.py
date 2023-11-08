@@ -2456,3 +2456,82 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assertEqual(Decimal(item1['total_balance']), Decimal('2.33'))
         self.assertEqual(item1['total_count'], 1)
         self.assertEqual(item1['total_valid_count'], 1)
+
+    def test_remark_coupon(self):
+        vo1 = VirtualOrganization(name='test vo', owner_id=self.user.id)
+        vo1.save(force_insert=True)
+
+        coupon2 = CashCoupon(
+            face_value=Decimal('66.6'),
+            balance=Decimal('66.6'),
+            effective_time=timezone.now(),
+            expiration_time=timezone.now(),
+            status=CashCoupon.Status.WAIT.value,
+            app_service_id=self.app_service1.id,
+            owner_type=OwnerType.USER.value,
+            user_id=self.user.id
+        )
+        coupon2.save(force_insert=True)
+
+        coupon3 = CashCoupon(
+            face_value=Decimal('166.68'),
+            balance=Decimal('66.68'),
+            effective_time=timezone.now(),
+            expiration_time=timezone.now(),
+            status=CashCoupon.Status.AVAILABLE.value,
+            app_service_id=self.app_service2.id,
+            owner_type=OwnerType.VO.value,
+            user_id=self.user2.id,
+            vo_id=vo1.id
+        )
+        coupon3.save(force_insert=True)
+
+        # NotAuthenticated
+        self.client.logout()
+        url = reverse('api:admin-coupon-change-remark', kwargs={'id': 'notfound'})
+        response = self.client.post(url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
+
+        # NotAuthenticated
+        self.client.force_login(self.user)
+        url = reverse('api:admin-coupon-change-remark', kwargs={'id': 'notfound'})
+        response = self.client.post(url)
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # NoSuchCoupon
+        url = reverse('api:admin-coupon-change-remark', kwargs={'id': 'notfound'})
+        query = parse.urlencode(query={'remark': 'test remark'})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=404, code='NoSuchCoupon', response=response)
+
+        # AccessDenied
+        url = reverse('api:admin-coupon-change-remark', kwargs={'id': coupon2.id})
+        query = parse.urlencode(query={'remark': 'test remark'})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # coupon2 ok, app_service1 admin
+        coupon2.app_service.users.add(self.user)
+        url = reverse('api:admin-coupon-change-remark', kwargs={'id': coupon2.id})
+        query = parse.urlencode(query={'remark': 'test remark'})
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['remark'], 'test remark')
+        self.assertEqual(coupon2.remark, '')
+        coupon2.refresh_from_db()
+        self.assertEqual(coupon2.remark, 'test remark')
+
+        # coupon3, AccessDenied
+        url = reverse('api:admin-coupon-change-remark', kwargs={'id': coupon3.id})
+        query = parse.urlencode(query={'remark': 'test remark66'})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # coupon3 ok, federal admin
+        self.user.set_federal_admin()
+        response = self.client.post(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['remark'], 'test remark66')
+        self.assertEqual(coupon3.remark, '')
+        coupon3.refresh_from_db()
+        self.assertEqual(coupon3.remark, 'test remark66')
