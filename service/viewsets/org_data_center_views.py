@@ -18,7 +18,6 @@ class OrgDataCenterViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举数据中心'),
-        manual_parameters=NormalGenericViewSet.PARAMETERS_AS_ADMIN,
         responses={
             200: ''''''
         }
@@ -27,38 +26,36 @@ class OrgDataCenterViewSet(NormalGenericViewSet):
         """"
         列举数据中心
 
-        {
-          "id": "tzo5vc107vksb9nszbufo1dp7",
-          "name": "ttt",
-          "name_en": "string",
-          "organization": [
             {
-              "id": "jzddosfo44z0gc1c4hdk980q9",
-              "name": "obj"
+              "id": "tzo5vc107vksb9nszbufo1dp7",
+              "name": "ttt",
+              "name_en": "string",
+              "organization":  {         # 机构
+                  "id": "jzddosfo44z0gc1c4hdk980q9",
+                  "name": "obj"
+                },
+              "users": [    # 管理员
+                {
+                  "id": "ivugx4m7q410qwh6zznsnanjy",
+                  "username": "wanghuang"
+                }
+              ],
+              "longitude": 0,
+              "latitude": 0,
+              "creation_time": "2023-11-06T05:40:20.201159Z",
+              "sort_weight": 0,
+              "remark": "string",
+              "thanos_endpoint_url": "https://xxxxx.com",
+              "thanos_username": "string",
+              "thanos_password": "xxxxxx",
+              "thanos_receive_url": "https://xxxxx.com",
+              "thanos_remark": "string",
+              "loki_endpoint_url": "https://xxxxx.com",
+              "loki_username": "string",
+              "loki_password": "string",
+              "loki_receive_url": "string",
+              "loki_remark": "string"
             }
-          ],
-          "users": [
-            {
-              "id": "ivugx4m7q410qwh6zznsnanjy",
-              "username": "wanghuang"
-            }
-          ],
-          "longitude": 0,
-          "latitude": 0,
-          "creation_time": "2023-11-06T05:40:20.201159Z",
-          "sort_weight": 0,
-          "remark": "string",
-          "thanos_endpoint_url": "https://xxxxx.com",
-          "thanos_username": "string",
-          "thanos_password": "xxxxxx",
-          "thanos_receive_url": "https://xxxxx.com",
-          "thanos_remark": "string",
-          "loki_endpoint_url": "https://xxxxx.com",
-          "loki_username": "string",
-          "loki_password": "string",
-          "loki_receive_url": "string",
-          "loki_remark": "string"
-        }
 
         """
 
@@ -73,7 +70,6 @@ class OrgDataCenterViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('创建数据中心'),
-        manual_parameters=NormalGenericViewSet.PARAMETERS_AS_ADMIN,
         responses={
             200: ''''''
         }
@@ -81,36 +77,43 @@ class OrgDataCenterViewSet(NormalGenericViewSet):
     def create(self, request, *args, **kwargs):
         """
         创建数据中心
-        http code 200
-            {
-              "name": "测试1",
-              "name_en": "test1",
-              "organization": "obj",
-              "users": [
-                "wanghuang"
-              ],
-              "longitude": 0,
-              "latitude": 0,
-              "sort_weight": 0,
-              "remark": "",
-              "thanos_endpoint_url": "",
-              "thanos_username": "",
-              "thanos_password": "",
-              "thanos_receive_url": "",
-              "thanos_remark": "",
-              "loki_endpoint_url": "",
-              "loki_username": "",
-              "loki_password": "",
-              "loki_receive_url": "",
-              "loki_remark": "",
-              "id": "5563vam9q6e7tz9fw3kij5p51"
-            }
 
-            http code 400, 401, 404：
-            {
-                "code": "BadRequest",
-                "message": ""
-            }
+            http code 200
+                {
+                  "name": "测试1",
+                  "name_en": "test1",
+                  "organization": {
+                    "id": "jzddosfo44z0gc1c4hdk980q9",
+                    "name": "测试1"
+                  },
+                  "users": [
+                    {
+                      "id": "ivugx4m7q410qwh6zznsnanjy",
+                      "username": "wanghuang"
+                    }
+                  ],
+                  "longitude": 0,
+                  "latitude": 0,
+                  "sort_weight": 0,
+                  "remark": "",
+                  "thanos_endpoint_url": "",
+                  "thanos_username": "",
+                  "thanos_password": "",
+                  "thanos_receive_url": "",
+                  "thanos_remark": "",
+                  "loki_endpoint_url": "",
+                  "loki_username": "",
+                  "loki_password": "",
+                  "loki_receive_url": "",
+                  "loki_remark": "",
+                  "id": "5563vam9q6e7tz9fw3kij5p51"
+                }
+
+                http code 400, 401, 404：
+                {
+                    "code": "BadRequest",
+                    "message": ""
+                }
 
         """
 
@@ -120,11 +123,12 @@ class OrgDataCenterViewSet(NormalGenericViewSet):
             raise exceptions.BadRequest(msg)
 
         valid_data = serializer.validated_data
-        u = valid_data.get('users', 'None')
-        if not u:
-            return self.exception_response(exceptions.ValidationError(message='users不能为空'))
+        users = valid_data.get('users', 'None')
+        if not users or '，' in users:
+            return self.exception_response(exceptions.ValidationError(message='users不能为空或格式不正确: 用户名1,用户名2'))
 
-        user_list = u.split(',')
+        user_list = users.replace(' ', '').split(',')
+
         try:
             org_data_center_obj = OrgDataCenterHandler().create_org_dc(user_list=user_list,
                                                                        valid_data=valid_data)
@@ -133,16 +137,14 @@ class OrgDataCenterViewSet(NormalGenericViewSet):
             return Response(data=exc.err_data(), status=exc.status_code)
 
         data = dcserializers.OrgDataCenterCreateSerializer(instance=org_data_center_obj).data
-        data['users'] = user_list
+        data['users'] = org_data_center_obj.get_users_dict()
+        data['organization'] = org_data_center_obj.get_organization()
         data['id'] = org_data_center_obj.id
 
         return Response(data=data)
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('修改数据中心'),
-        manual_parameters=NormalGenericViewSet.PARAMETERS_AS_ADMIN + [
-
-        ],
         responses={
             200: ''''''
         }
@@ -151,35 +153,42 @@ class OrgDataCenterViewSet(NormalGenericViewSet):
         """
         修改数据中心
 
-        {
-          "name": "测试1",
-          "name_en": "test1",
-          "organization": "obj",
-          "users": [
-            "wanghuang"
-          ],
-          "longitude": 0,
-          "latitude": 0,
-          "sort_weight": 0,
-          "remark": "",
-          "thanos_endpoint_url": "",
-          "thanos_username": "",
-          "thanos_password": "",
-          "thanos_receive_url": "",
-          "thanos_remark": "",
-          "loki_endpoint_url": "",
-          "loki_username": "",
-          "loki_password": "",
-          "loki_receive_url": "",
-          "loki_remark": "xxxxx",
-          "id": "5563vam9q6e7tz9fw3kij5p51"
-        }
+            http code 200
+                {
+                  "name": "测试1",
+                  "name_en": "test1",
+                  "organization":{
+                      "id": "skki2uhd4jyg47shvmh0uyo4h",
+                      "name": "测试1"
+                    },
+                  "users": "users": [
+                    {
+                      "id": "ivugx4m7q410qwh6zznsnanjy",
+                      "username": "wanghuang"
+                    }
+                  ],
+                  "longitude": 0,
+                  "latitude": 0,
+                  "sort_weight": 0,
+                  "remark": "",
+                  "thanos_endpoint_url": "",
+                  "thanos_username": "",
+                  "thanos_password": "",
+                  "thanos_receive_url": "",
+                  "thanos_remark": "",
+                  "loki_endpoint_url": "",
+                  "loki_username": "",
+                  "loki_password": "",
+                  "loki_receive_url": "",
+                  "loki_remark": "xxxxx",
+                  "id": "5563vam9q6e7tz9fw3kij5p51"
+                }
 
-        http code 400, 401, 404：
-        {
-            "code": "BadRequest",
-            "message": ""
-        }
+                http code 400, 401, 404：
+                {
+                    "code": "BadRequest",
+                    "message": ""
+                }
 
         """
         id = kwargs[self.lookup_field]
@@ -193,7 +202,7 @@ class OrgDataCenterViewSet(NormalGenericViewSet):
         users = valid_data.get('users', 'None')
         if not users:
             return self.exception_response(exceptions.ValidationError(message='users不能为空'))
-        user_list = users.split(',')
+        user_list = users.replace(' ', '').split(',')
 
         try:
             org_data_center_obj = OrgDataCenterHandler().update_org_dc(user_list=user_list,
@@ -203,7 +212,8 @@ class OrgDataCenterViewSet(NormalGenericViewSet):
             return Response(data=exc.err_data(), status=exc.status_code)
 
         data = dcserializers.OrgDataCenterCreateSerializer(instance=org_data_center_obj).data
-        data['users'] = user_list
+        data['users'] = org_data_center_obj.get_users_dict()
+        data['organization'] = org_data_center_obj.get_organization()
         data['id'] = org_data_center_obj.id
 
         return Response(data=data)

@@ -63,7 +63,30 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
         data['organization'] = self.dc.id
         data['users'] = self.user1.username
         response = self.client.post(url, data=data)
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
+                           'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',
+                           'thanos_remark',
+                           'loki_endpoint_url', 'loki_username', 'loki_password', 'loki_receive_url', 'loki_remark'],
+                          response.data)
 
+        data['users'] = f'{self.user1.username}, {self.user2.username}'
+        response = self.client.post(url, data=data)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
+                           'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',
+                           'thanos_remark',
+                           'loki_endpoint_url', 'loki_username', 'loki_password', 'loki_receive_url', 'loki_remark'],
+                          response.data)
+
+        data['users'] = f'{self.user1.username}:       {self.user2.username}'  # 格式错误
+        response = self.client.post(url, data=data)
+        self.assertErrorResponse(status_code=404, code='UserNotExist', response=response)
+
+        data['users'] = f'{self.user1.username},       {self.user2.username}'
+        response = self.client.post(url, data=data)
+        
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
                            'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',
@@ -73,7 +96,6 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
 
         data['thanos_endpoint_url'] = 'xxxx'
         response = self.client.post(url, data=data)
-
         self.assertErrorResponse(status_code=400, code='ValidationError', response=response)
 
         data['thanos_endpoint_url'] = 'https://thanosxx.cn'
@@ -88,7 +110,6 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
 
         data['thanos_username'] = 'thanos'
         response = self.client.post(url, data=data)
-
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
                            'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',
@@ -108,12 +129,10 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
 
         data['thanos_receive_url'] = 'thanos'
         response = self.client.post(url, data=data)
-
         self.assertErrorResponse(status_code=400, code='ValidationError', response=response)
 
         data['thanos_receive_url'] = 'http://thanosrexx.cn'
         response = self.client.post(url, data=data)
-
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
                            'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',
@@ -123,7 +142,6 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
 
         data['thanos_remark'] = 'thanos'
         response = self.client.post(url, data=data)
-
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
                            'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',
@@ -133,12 +151,10 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
 
         data['loki_endpoint_url'] = 'thanos'
         response = self.client.post(url, data=data)
-
         self.assertErrorResponse(status_code=400, code='ValidationError', response=response)
 
         data['loki_endpoint_url'] = 'http://lokixxxthanos.cnhttps://xxx'
         response = self.client.post(url, data=data)
-
         self.assertKeysIn(['name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
                            'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',
                            'thanos_remark',
@@ -147,7 +163,6 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
 
         data['loki_username'] = 'thanos'
         response = self.client.post(url, data=data)
-
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
                            'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',
@@ -157,7 +172,6 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
 
         data['loki_password'] = 'thanos'
         response = self.client.post(url, data=data)
-
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
                            'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',
@@ -167,12 +181,10 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
 
         data['loki_receive_url'] = 'lokixx.cn'
         response = self.client.post(url, data=data)
-
         self.assertErrorResponse(status_code=400, code='ValidationError', response=response)
 
         data['loki_receive_url'] = 'https://lokixx.cn'
         response = self.client.post(url, data=data)
-
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
                            'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',
@@ -182,7 +194,6 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
 
         data['loki_remark'] = 'thanos'
         response = self.client.post(url, data=data)
-
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
                            'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',
@@ -192,12 +203,10 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
 
         data['longitude'] = 'ssd'
         response = self.client.post(url, data=data)
-
         self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
 
         data['longitude'] = '12'
         response = self.client.post(url, data=data)
-
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
                            'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',
@@ -207,7 +216,6 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
 
         data['longitude'] = 10.2
         response = self.client.post(url, data=data)
-
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
                            'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',
@@ -217,12 +225,10 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
 
         data['latitude'] = 'ssd'
         response = self.client.post(url, data=data)
-
         self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
 
         data['latitude'] = 10.2
         response = self.client.post(url, data=data)
-
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
                            'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',
@@ -232,23 +238,33 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
 
         data['sort_weight'] = 'ssd'
         response = self.client.post(url, data=data)
-
         self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
 
         data['sort_weight'] = 10.2
         response = self.client.post(url, data=data)
-
         self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
 
         data['sort_weight'] = 10
         response = self.client.post(url, data=data)
-
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
                            'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',
                            'thanos_remark',
                            'loki_endpoint_url', 'loki_username', 'loki_password', 'loki_receive_url', 'loki_remark'],
                           response.data)
+
+        data['users'] = f'{self.user1.username},{self.user2.username}'
+        response = self.client.post(url, data=data)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
+                           'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',
+                           'thanos_remark',
+                           'loki_endpoint_url', 'loki_username', 'loki_password', 'loki_receive_url', 'loki_remark'],
+                          response.data)
+
+        data['users'] = f'{self.user1.username}，{self.user2.username}'
+        response = self.client.post(url, data=data)
+        self.assertErrorResponse(status_code=400, code='ValidationError', response=response)
 
     def test_list_org_data_center(self):
         url = reverse('api:org-dc-list')
@@ -276,7 +292,6 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
 
         self.client.force_login(self.user2)
         response = self.client.post(url, data=data)
-
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(
             ['id', 'name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
@@ -288,12 +303,10 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
         self.client.logout()
 
         response = self.client.get(url)
-
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
 
         self.client.force_login(self.user2)
         response = self.client.get(url)
-
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(
             ['id', 'name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
@@ -302,7 +315,7 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
              'loki_endpoint_url', 'loki_username', 'loki_password', 'loki_receive_url', 'loki_remark'],
             response.data['results'][0])
 
-        self.assertKeysIn(['id', 'name'], response.data['results'][0]['organization'][0])
+        self.assertKeysIn(['id', 'name'], response.data['results'][0]['organization'])
         self.assertKeysIn(['id', 'username'], response.data['results'][0]['users'][0])
 
     def test_update_org_data_center(self):
@@ -329,12 +342,10 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
         url = reverse('api:org-dc-list')
 
         response = self.client.post(url, data=data)
-
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
 
         self.client.force_login(self.user2)
         response = self.client.post(url, data=data)
-
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(
             ['id', 'name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
@@ -354,7 +365,6 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
         url = reverse('api:org-dc-detail', kwargs={'id': org_data_center_id})
         data['name'] = '测试2'
         response = self.client.put(url, data=data)
-
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(
             ['name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
@@ -369,7 +379,6 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
                           'test2test2test2test2test2test2test2test2test2test2test2test2test2tes' \
                           't2test2test2test2test2test2test2test2test2test2test2test2test2test2test2'
         response = self.client.put(url, data=data)
-
         self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
 
         data['name_en'] = 'name_en'
@@ -386,7 +395,6 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
 
         data['organization'] = 'fsdfeterter'
         response = self.client.put(url, data=data)
-
         self.assertErrorResponse(status_code=404, code='NotFound', response=response)
 
         self.dc2 = get_or_create_organization(name='dc2')
@@ -400,17 +408,15 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
              'thanos_remark',
              'loki_endpoint_url', 'loki_username', 'loki_password', 'loki_receive_url', 'loki_remark'],
             response.data)
-        self.assertEqual(response.data['organization'], self.dc2.name)
+        self.assertEqual(response.data['organization']['name'], self.dc2.name)
 
         data['users'] = 'test3@cnic.cn'
         response = self.client.put(url, data=data)
-
         self.assertErrorResponse(status_code=404, code='UserNotExist', response=response)
 
         self.user3 = get_or_create_user(username='test3@cnic.cn')
         data['users'] = self.user3.username
         response = self.client.put(url, data=data)
-
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(
             ['id', 'name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
@@ -418,17 +424,54 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
              'thanos_remark',
              'loki_endpoint_url', 'loki_username', 'loki_password', 'loki_receive_url', 'loki_remark'],
             response.data)
-        self.assertEqual(response.data['users'][0], self.user3.username)
+        self.assertEqual(response.data['users'][1]['username'], self.user3.username)
+
+        data['users'] = self.user2.username
+        response = self.client.put(url, data=data)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(
+            ['id', 'name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
+             'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',
+             'thanos_remark',
+             'loki_endpoint_url', 'loki_username', 'loki_password', 'loki_receive_url', 'loki_remark'],
+            response.data)
+        self.assertEqual(response.data['users'][1]['username'], self.user2.username)
+
+        data['users'] = f'{self.user1.username}, {self.user2.username}, {self.user3.username}'
+        response = self.client.put(url, data=data)
+        self.assertEqual(response.status_code, 200)
+
+        self.assertKeysIn(
+            ['id', 'name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
+             'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',
+             'thanos_remark',
+             'loki_endpoint_url', 'loki_username', 'loki_password', 'loki_receive_url', 'loki_remark'],
+            response.data)
+        self.assertEqual(response.data['users'][0]['username'], self.user1.username)
+        self.assertEqual(response.data['users'][1]['username'], self.user2.username)
+        self.assertEqual(response.data['users'][2]['username'], self.user3.username)
+
+        data['users'] = f'{self.user1.username},       {self.user3.username}'
+        response = self.client.put(url, data=data)
+        self.assertEqual(response.status_code, 200)
+
+        self.assertKeysIn(
+            ['id', 'name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
+             'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',
+             'thanos_remark',
+             'loki_endpoint_url', 'loki_username', 'loki_password', 'loki_receive_url', 'loki_remark'],
+            response.data)
+        self.assertEqual(response.data['users'][0]['username'], self.user1.username)
+        self.assertEqual(response.data['users'][1]['username'], self.user2.username)
+        self.assertEqual(response.data['users'][2]['username'], self.user3.username)
 
         data['thanos_endpoint_url'] = 'thanos.cn'
         response = self.client.put(url, data=data)
-
         self.assertErrorResponse(status_code=400, code='ValidationError', response=response)
 
         data['thanos_endpoint_url'] = 'https://thanos.cn'
         response = self.client.put(url, data=data)
         self.assertEqual(response.status_code, 200)
-
         self.assertKeysIn(
             ['id', 'name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
              'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',
@@ -439,13 +482,11 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
 
         data['thanos_receive_url'] = 'receivethanos.cn'
         response = self.client.put(url, data=data)
-
         self.assertErrorResponse(status_code=400, code='ValidationError', response=response)
 
         data['thanos_receive_url'] = 'https://receivethanos.cn'
         response = self.client.put(url, data=data)
         self.assertEqual(response.status_code, 200)
-
         self.assertKeysIn(
             ['id', 'name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
              'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',
@@ -456,13 +497,11 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
 
         data['loki_endpoint_url'] = 'receiveloki.cn'
         response = self.client.put(url, data=data)
-
         self.assertErrorResponse(status_code=400, code='ValidationError', response=response)
 
         data['loki_endpoint_url'] = 'https://receiveloki.cn'
         response = self.client.put(url, data=data)
         self.assertEqual(response.status_code, 200)
-
         self.assertKeysIn(
             ['id', 'name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
              'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',
@@ -473,13 +512,11 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
 
         data['loki_receive_url'] = 'receiveloki.cn'
         response = self.client.put(url, data=data)
-
         self.assertErrorResponse(status_code=400, code='ValidationError', response=response)
 
         data['loki_receive_url'] = 'https://receiveloki.cn'
         response = self.client.put(url, data=data)
         self.assertEqual(response.status_code, 200)
-
         self.assertKeysIn(
             ['id', 'name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
              'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',
@@ -491,7 +528,6 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
         data['longitude'] = '12'
         response = self.client.put(url, data=data)
         self.assertEqual(response.status_code, 200)
-
         self.assertKeysIn(
             ['id', 'name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
              'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',
@@ -502,7 +538,6 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
 
         data['longitude'] = '12tt'
         response = self.client.put(url, data=data)
-
         self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
 
         data['longitude'] = 12.0000002
@@ -521,7 +556,6 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
         response = self.client.put(url, data=data)
 
         self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
-
         data['latitude'] = 12.0000002
         response = self.client.put(url, data=data)
         self.assertEqual(response.status_code, 200)
@@ -537,7 +571,6 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
         data['sort_weight'] = -100
         response = self.client.put(url, data=data)
         self.assertEqual(response.status_code, 200)
-
         self.assertKeysIn(
             ['id', 'name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
              'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',
@@ -549,7 +582,6 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
         data['remark'] = 'remark123'
         response = self.client.put(url, data=data)
         self.assertEqual(response.status_code, 200)
-
         self.assertKeysIn(
             ['id', 'name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
              'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',
@@ -561,7 +593,6 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
         data['thanos_username'] = 'thanos_username123'
         response = self.client.put(url, data=data)
         self.assertEqual(response.status_code, 200)
-
         self.assertKeysIn(
             ['id', 'name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
              'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',
@@ -573,7 +604,6 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
         data['thanos_username'] = 123454
         response = self.client.put(url, data=data)
         self.assertEqual(response.status_code, 200)
-
         self.assertKeysIn(
             ['id', 'name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
              'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',
@@ -585,7 +615,6 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
         data['thanos_password'] = '123454'
         response = self.client.put(url, data=data)
         self.assertEqual(response.status_code, 200)
-
         self.assertKeysIn(
             ['id', 'name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
              'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',
@@ -597,7 +626,6 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
         data['thanos_remark'] = '123454'
         response = self.client.put(url, data=data)
         self.assertEqual(response.status_code, 200)
-
         self.assertKeysIn(
             ['id', 'name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
              'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',
@@ -609,7 +637,6 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
         data['loki_username'] = '123454'
         response = self.client.put(url, data=data)
         self.assertEqual(response.status_code, 200)
-
         self.assertKeysIn(
             ['id', 'name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
              'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',
@@ -621,7 +648,6 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
         data['loki_password'] = '123454'
         response = self.client.put(url, data=data)
         self.assertEqual(response.status_code, 200)
-
         self.assertKeysIn(
             ['id', 'name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
              'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',
@@ -633,7 +659,6 @@ class OrgDataCenterTests(MyAPITransactionTestCase):
         data['loki_remark'] = '123454'
         response = self.client.put(url, data=data)
         self.assertEqual(response.status_code, 200)
-
         self.assertKeysIn(
             ['id', 'name', 'name_en', 'organization', 'users', 'longitude', 'latitude', 'sort_weight', 'remark',
              'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',

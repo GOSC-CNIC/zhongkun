@@ -41,10 +41,9 @@ class OrgDataCenterSerializer(serializers.Serializer):
     @staticmethod
     def get_organization(obj):
         organization = obj.organization
-        data = []
         if organization:
-            data.append({'id': organization.id, 'name': organization.name})
-        return data
+            return {'id': organization.id, 'name': organization.name}
+        return {}
 
 
 class OrgDataCenterCreateSerializer(serializers.Serializer):

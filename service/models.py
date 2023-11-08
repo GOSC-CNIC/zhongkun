@@ -143,6 +143,22 @@ class OrgDataCenter(UuidModel):
     def __str__(self):
         return self.name
 
+    def get_users_dict(self):
+        users_obj = self.users.all()
+        if not users_obj:
+            return {}
+
+        users_obj_list = []
+        for user in users_obj:
+            users_obj_list.append({'id': user.id, 'username': user.username})
+
+        return users_obj_list
+
+    def get_organization(self):
+        if self.organization:
+            return {'id': self.organization.id, 'name': self.organization.name}
+        return None
+
 
 class BaseService(UuidModel):
     class ServiceType(models.TextChoices):
