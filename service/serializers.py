@@ -2,7 +2,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 
-class OrgDataCenterSerializer(serializers.Serializer):
+class ODCSimpleSerializer(serializers.Serializer):
     id = serializers.CharField(label=_('ID'))
     name = serializers.CharField()
     name_en = serializers.CharField()
@@ -13,6 +13,16 @@ class OrgDataCenterSerializer(serializers.Serializer):
     sort_weight = serializers.IntegerField()
     remark = serializers.CharField()
 
+    @staticmethod
+    def get_organization(obj):
+        organization = obj.organization
+        if organization is None:
+            return None
+
+        return {'id': organization.id, 'name': organization.name, 'name_en': organization.name_en}
+
+
+class OrgDataCenterSerializer(ODCSimpleSerializer):
     thanos_endpoint_url = serializers.CharField()
     thanos_username = serializers.CharField()
     thanos_password = serializers.SerializerMethodField(method_name='get_thanos_password')
@@ -24,14 +34,6 @@ class OrgDataCenterSerializer(serializers.Serializer):
     loki_password = serializers.SerializerMethodField(method_name='get_loki_password')
     loki_receive_url = serializers.CharField()
     loki_remark = serializers.CharField()
-
-    @staticmethod
-    def get_organization(obj):
-        organization = obj.organization
-        if organization is None:
-            return None
-
-        return {'id': organization.id, 'name': organization.name, 'name_en': organization.name_en}
 
     @staticmethod
     def get_thanos_password(obj):

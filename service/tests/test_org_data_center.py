@@ -1,3 +1,5 @@
+from urllib import parse
+
 from django.urls import reverse
 
 from utils.test import MyAPITransactionTestCase, get_or_create_user, get_or_create_organization
@@ -491,3 +493,60 @@ class AdminODCTests(MyAPITransactionTestCase):
         self.assertKeysIn(['id', 'name', 'name_en'], response.data['organization'])
         self.assertEqual(len(response.data['users']), 1)
         self.assertEqual(response.data['users'][0]['id'], user2.id)
+
+
+class ODCTests(MyAPITransactionTestCase):
+    def setUp(self):
+        self.user1 = get_or_create_user(username='test1@cnic.cn')
+        self.org = get_or_create_organization(name='test org')
+
+    def test_list_odc(self):
+        org2 = get_or_create_organization(name='test org2')
+        odc1 = OrgDataCenterManager.create_org_dc(
+            name='测试', name_en='test', organization_id=self.org.id,
+            longitude=-10, latitude=80, sort_weight=0, remark='test remark',
+            thanos_endpoint_url='https://thanosxxxx.cn', thanos_receive_url='https://thanosrexxxx.cn',
+            thanos_username='tom@cnic.cn', thanos_password='test123456', thanos_remark='thanos remark',
+            loki_endpoint_url='https://lokixxxx.cn', loki_receive_url='https://lokerexxxx.cn',
+            loki_username='jerry@qq.com', loki_password='loki123456', loki_remark='loki remark'
+        )
+        odc2 = OrgDataCenterManager.create_org_dc(
+            name='测试2', name_en='test2', organization_id=org2.id,
+            longitude=-10, latitude=80, sort_weight=0, remark='test remark',
+            thanos_endpoint_url='https://thanosxxxx.cn', thanos_receive_url='https://thanosrexxxx.cn',
+            thanos_username='tom@cnic.cn', thanos_password='test123456', thanos_remark='thanos remark',
+            loki_endpoint_url='https://lokixxxx.cn', loki_receive_url='https://lokerexxxx.cn',
+            loki_username='jerry@qq.com', loki_password='loki123456', loki_remark='loki remark'
+        )
+
+        url = reverse('api:odc-list')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 100)
+        self.assertEqual(len(response.data['results']), 2)
+        self.assertKeysIn(
+            ['id', 'name', 'name_en', 'organization', 'longitude', 'latitude', 'sort_weight', 'remark'],
+            response.data['results'][0])
+        self.assertKeysIn(['id', 'name', 'name_en'], response.data['results'][0]['organization'])
+
+        # page page_size
+        query = parse.urlencode(query={'page': 1, 'page_size': 1})
+        response = self.client.get(f'{url}?{query}')
+        self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 1)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['id'], odc1.id)
+
+        query = parse.urlencode(query={'page': 2, 'page_size': 1})
+        response = self.client.get(f'{url}?{query}')
+        self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(response.data['page_num'], 2)
+        self.assertEqual(response.data['page_size'], 1)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['id'], odc2.id)

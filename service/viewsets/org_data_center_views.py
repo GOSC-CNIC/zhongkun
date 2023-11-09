@@ -64,7 +64,7 @@ class AdminOrgDataCenterViewSet(NormalGenericViewSet):
         admin_user: UserProfile = request.user
         try:
             queryset = OrgDataCenter.objects.select_related(
-                'organization').order_by('-creation_time')
+                'organization').order_by('creation_time')
             if not admin_user.is_federal_admin():
                 queryset = queryset.filter(users__id=admin_user.id)
 
@@ -301,3 +301,59 @@ class AdminOrgDataCenterViewSet(NormalGenericViewSet):
             return True
 
         return False
+
+
+class OrgDataCenterViewSet(NormalGenericViewSet):
+    permission_classes = []
+    pagination_class = NewPageNumberPagination100
+    lookup_field = 'id'
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举数据中心'),
+        responses={
+            200: ''''''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """"
+        列举数据中心，无需登录
+
+            {
+                "count": 1,
+                "page_num": 1,
+                "page_size": 20,
+                "results": [
+                    {
+                      "id": "tzo5vc107vksb9nszbufo1dp7",
+                      "name": "ttt",
+                      "name_en": "string",
+                      "organization":  {         # 机构
+                          "id": "jzddosfo44z0gc1c4hdk980q9",
+                          "name": "obj",
+                          "name_en": "xxx"
+                        },
+                      "longitude": 0,
+                      "latitude": 0,
+                      "creation_time": "2023-11-06T05:40:20.201159Z",
+                      "sort_weight": 0,
+                      "remark": "string",
+                    }
+                ]
+            }
+        """
+        try:
+            queryset = OrgDataCenter.objects.select_related(
+                'organization').order_by('creation_time')
+
+            orgs = self.paginate_queryset(queryset)
+            serializer = self.get_serializer(orgs, many=True)
+            return self.get_paginated_response(serializer.data)
+        except Exception as exc:
+            err = exceptions.APIException(message=str(exc))
+            return Response(err.err_data(), status=err.status_code)
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return dcserializers.ODCSimpleSerializer
+
+        return Serializer

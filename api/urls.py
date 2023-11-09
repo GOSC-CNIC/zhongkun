@@ -35,6 +35,7 @@ no_slash_router.register(r'flavor', flavor_views.FlavorViewSet, basename='flavor
 no_slash_router.register(r'service', views.ServiceViewSet, basename='service')
 no_slash_router.register(r'registry', views.DataCenterViewSet, basename='registry')
 no_slash_router.register(r'organization', org_views.OrganizationViewSet, basename='organization')
+no_slash_router.register(r'odc', org_data_center_views.OrgDataCenterViewSet, basename='odc')
 no_slash_router.register(r'user', user_views.UserViewSet, basename='user')
 no_slash_router.register(r'apply/service', views.ApplyVmServiceViewSet, basename='apply-service')
 no_slash_router.register(r'apply/organization', views.ApplyOrganizationViewSet, basename='apply-organization')
