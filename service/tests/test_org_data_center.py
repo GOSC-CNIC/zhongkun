@@ -260,7 +260,7 @@ class AdminODCTests(MyAPITransactionTestCase):
         response = self.client.put(url, data=data)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(
-            ['name', 'name_en', 'organization', 'longitude', 'latitude', 'sort_weight', 'remark',
+            ['id', 'name', 'name_en', 'organization', 'longitude', 'latitude', 'sort_weight', 'remark',
              'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url', 'thanos_remark',
              'loki_endpoint_url', 'loki_username', 'loki_password', 'loki_receive_url', 'loki_remark'],
             response.data)
@@ -430,3 +430,64 @@ class AdminODCTests(MyAPITransactionTestCase):
         self.assertEqual(odc1.loki_username, data['loki_username'])
         self.assertEqual(odc1.raw_loki_password, data['loki_password'])
         self.assertEqual(odc1.loki_remark, data['loki_remark'])
+
+    def test_detail_odc(self):
+        user2 = get_or_create_user(username='test2@cnic.cn')
+        odc1 = OrgDataCenterManager.create_org_dc(
+            name='测试', name_en='test', organization_id=self.org.id,
+            longitude=-10, latitude=80, sort_weight=0, remark='test remark',
+            thanos_endpoint_url='https://thanosxxxx.cn', thanos_receive_url='https://thanosrexxxx.cn',
+            thanos_username='tom@cnic.cn', thanos_password='test123456', thanos_remark='thanos remark',
+            loki_endpoint_url='https://lokixxxx.cn', loki_receive_url='https://lokerexxxx.cn',
+            loki_username='jerry@qq.com', loki_password='loki123456', loki_remark='loki remark'
+        )
+
+        url = reverse('api:admin-odc-detail', kwargs={'id': 'test'})
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
+
+        self.client.force_login(self.user1)
+        url = reverse('api:admin-odc-detail', kwargs={'id': 'test'})
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
+
+        url = reverse('api:admin-odc-detail', kwargs={'id': odc1.id})
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # odc admin
+        odc1.users.add(self.user1)
+        url = reverse('api:admin-odc-detail', kwargs={'id': odc1.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(
+            ['id', 'name', 'name_en', 'organization', 'longitude', 'latitude', 'sort_weight', 'remark',
+             'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url', 'thanos_remark',
+             'loki_endpoint_url', 'loki_username', 'loki_password', 'loki_receive_url', 'loki_remark', 'users'],
+            response.data)
+        self.assertKeysIn(['id', 'name', 'name_en'], response.data['organization'])
+        self.assertEqual(len(response.data['users']), 1)
+        self.assertEqual(response.data['users'][0]['id'], self.user1.id)
+
+        odc1.users.add(user2)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['users']), 2)
+
+        # test federal admin
+        odc1.users.remove(self.user1)
+        url = reverse('api:admin-odc-detail', kwargs={'id': odc1.id})
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.user1.set_federal_admin()
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(
+            ['id', 'name', 'name_en', 'organization', 'longitude', 'latitude', 'sort_weight', 'remark',
+             'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url', 'thanos_remark',
+             'loki_endpoint_url', 'loki_username', 'loki_password', 'loki_receive_url', 'loki_remark', 'users'],
+            response.data)
+        self.assertKeysIn(['id', 'name', 'name_en'], response.data['organization'])
+        self.assertEqual(len(response.data['users']), 1)
+        self.assertEqual(response.data['users'][0]['id'], user2.id)

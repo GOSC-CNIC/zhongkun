@@ -216,6 +216,65 @@ class AdminOrgDataCenterViewSet(NormalGenericViewSet):
         data = dcserializers.OrgDataCenterSerializer(instance=odc).data
         return Response(data=data)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('管理员查询数据中心详情'),
+        responses={
+            200: ''''''
+        }
+    )
+    def retrieve(self, request, *args, **kwargs):
+        """
+        管理员查询数据中心详情，联邦管理员可查所有，数据中心管理员只能查自己有权限的数据中心
+
+            http code 200
+                {
+                  "id": "5563vam9q6e7tz9fw3kij5p51",
+                  "name": "测试1",
+                  "name_en": "test1",
+                  "organization":{
+                      "id": "skki2uhd4jyg47shvmh0uyo4h",
+                      "name": "测试1",
+                      "name_en": "xxx"
+                    },
+                  "longitude": 0,
+                  "latitude": 0,
+                  "sort_weight": 0,
+                  "remark": "",
+                  "thanos_endpoint_url": "",
+                  "thanos_username": "",
+                  "thanos_password": "",
+                  "thanos_receive_url": "",
+                  "thanos_remark": "",
+                  "loki_endpoint_url": "",
+                  "loki_username": "",
+                  "loki_password": "",
+                  "loki_receive_url": "",
+                  "loki_remark": "xxxxx",
+                  "users": [
+                    {
+                        "id": "xxx",
+                        "username": "xxx"
+                    }
+                  ]
+                }
+
+                http code 400, 401, 404：
+                {
+                    "code": "BadRequest",
+                    "message": ""
+                }
+        """
+        try:
+            odc = OrgDataCenterManager.get_odc(odc_id=kwargs[self.lookup_field])
+            if not self.has_perm_of_odc(odc=odc, user=request.user):
+                raise exceptions.AccessDenied(message=_('您没有此数据中心的访问权限'))
+
+        except exceptions.Error as exc:
+            return Response(data=exc.err_data(), status=exc.status_code)
+
+        data = self.get_serializer(instance=odc).data
+        return Response(data=data)
+
     @staticmethod
     def validate_org_id(org_id: str):
         try:
@@ -226,7 +285,19 @@ class AdminOrgDataCenterViewSet(NormalGenericViewSet):
     def get_serializer_class(self):
         if self.action == 'list':
             return dcserializers.OrgDataCenterSerializer
+        elif self.action == 'retrieve':
+            return dcserializers.OrgDataCenterDetailSerializer
         elif self.action in ['create', 'update']:
             return dcserializers.OrgDataCenterCreateSerializer
 
         return Serializer
+
+    @staticmethod
+    def has_perm_of_odc(odc: OrgDataCenter, user):
+        if user.is_federal_admin():
+            return True
+
+        if odc.users.filter(id=user.id).exists():
+            return True
+
+        return False
