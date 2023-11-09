@@ -143,21 +143,41 @@ class OrgDataCenter(UuidModel):
     def __str__(self):
         return self.name
 
-    def get_users_dict(self):
-        users_obj = self.users.all()
-        if not users_obj:
-            return {}
+    @property
+    def raw_thanos_password(self):
+        """
+        :return:
+            str     # success
+            None    # failed, invalid encrypted password
+        """
+        encryptor = get_encryptor()
+        try:
+            return encryptor.decrypt(self.thanos_password)
+        except encryptor.InvalidEncrypted as e:
+            return None
 
-        users_obj_list = []
-        for user in users_obj:
-            users_obj_list.append({'id': user.id, 'username': user.username})
+    @raw_thanos_password.setter
+    def raw_thanos_password(self, raw_password: str):
+        encryptor = get_encryptor()
+        self.thanos_password = encryptor.encrypt(raw_password)
 
-        return users_obj_list
+    @property
+    def raw_loki_password(self):
+        """
+        :return:
+            str     # success
+            None    # failed, invalid encrypted password
+        """
+        encryptor = get_encryptor()
+        try:
+            return encryptor.decrypt(self.loki_password)
+        except encryptor.InvalidEncrypted as e:
+            return None
 
-    def get_organization(self):
-        if self.organization:
-            return {'id': self.organization.id, 'name': self.organization.name}
-        return None
+    @raw_loki_password.setter
+    def raw_loki_password(self, raw_password: str):
+        encryptor = get_encryptor()
+        self.loki_password = encryptor.encrypt(raw_password)
 
 
 class BaseService(UuidModel):

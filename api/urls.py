@@ -111,6 +111,7 @@ no_slash_router.register(
     r'admin/metering/server/statistics', metering_views.AdminMeteringServerStatisticsViewSet,
     basename='admin-metering-server-statistics')
 no_slash_router.register(r'admin/flavor', flavor_views.AdminFlavorViewSet, basename='admin-flavor')
+no_slash_router.register(r'admin/odc', org_data_center_views.AdminOrgDataCenterViewSet, basename='admin-odc')
 
 no_slash_router.register(r'portal/service', portal_views.PortalServiceViewSet, basename='portal-service')
 no_slash_router.register(r'report/storage/bucket/stats/monthly', report_storage_views.BucketStatsMonthlyViewSet,
@@ -131,8 +132,6 @@ no_slash_router.register(r'link/opticalfiber', opticalfiber_views.OpticalFiberVi
 no_slash_router.register(r'link/distriframeport', distriframeport_views.DistriFramePortViewSet, basename='link-distriframeport')
 no_slash_router.register(r'link/linkorg', linkorg_views.linkOrgViewSet, basename='link-linkorg')
 no_slash_router.register(r'link/user/role', linkuserrole_views.LinkUserRoleViewSet, basename='link-userrole')
-
-no_slash_router.register(r'data-center', org_data_center_views.OrgDataCenterViewSet, basename='org-dc')
 
 
 urlpatterns = [
