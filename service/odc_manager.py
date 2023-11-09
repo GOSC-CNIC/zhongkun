@@ -1,6 +1,7 @@
 from typing import Union
 
 from django.utils.translation import gettext as _
+from django.db.models import Q
 
 from service.models import OrgDataCenter, DataCenter as Organization
 from core import errors
@@ -126,3 +127,22 @@ class OrgDataCenterManager:
         )
         odc.save(force_update=True)
         return odc
+
+    @staticmethod
+    def filter_queryset(queryset, org_id: str, search: str):
+        """
+        search: 关键字查询，name,name_en,remark
+        """
+        if org_id:
+            queryset = queryset.filter(organization_id=org_id)
+
+        if search:
+            queryset = queryset.filter(
+                Q(name__icontains=search) | Q(name_en__icontains=search) | Q(remark__icontains=search))
+
+        return queryset
+
+    @staticmethod
+    def get_odc_queryset(org_id: str, search: str):
+        queryset = OrgDataCenter.objects.select_related('organization').order_by('creation_time')
+        return OrgDataCenterManager.filter_queryset(queryset=queryset, org_id=org_id, search=search)

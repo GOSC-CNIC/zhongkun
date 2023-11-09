@@ -3,6 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.serializers import Serializer
 from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 from core import errors as exceptions
 from api.paginations import NewPageNumberPagination100
@@ -20,6 +21,22 @@ class AdminOrgDataCenterViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('管理员列举数据中心'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='org_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('机构ID')
+            ),
+            openapi.Parameter(
+                name='search',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('关键字查询，名称和备注信息')
+            ),
+        ],
         responses={
             200: ''''''
         }
@@ -61,10 +78,12 @@ class AdminOrgDataCenterViewSet(NormalGenericViewSet):
                 ]
             }
         """
-        admin_user: UserProfile = request.user
+        admin_user = request.user
+        org_id = request.query_params.get('org_id', None)
+        search = request.query_params.get('search', None)
+
         try:
-            queryset = OrgDataCenter.objects.select_related(
-                'organization').order_by('creation_time')
+            queryset = OrgDataCenterManager.get_odc_queryset(org_id=org_id, search=search)
             if not admin_user.is_federal_admin():
                 queryset = queryset.filter(users__id=admin_user.id)
 
@@ -310,12 +329,28 @@ class OrgDataCenterViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举数据中心'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='org_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('机构ID')
+            ),
+            openapi.Parameter(
+                name='search',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('关键字查询，名称和备注信息')
+            ),
+        ],
         responses={
             200: ''''''
         }
     )
     def list(self, request, *args, **kwargs):
-        """"
+        """
         列举数据中心，无需登录
 
             {
@@ -341,10 +376,11 @@ class OrgDataCenterViewSet(NormalGenericViewSet):
                 ]
             }
         """
-        try:
-            queryset = OrgDataCenter.objects.select_related(
-                'organization').order_by('creation_time')
+        org_id = request.query_params.get('org_id', None)
+        search = request.query_params.get('search', None)
 
+        try:
+            queryset = OrgDataCenterManager.get_odc_queryset(org_id=org_id, search=search)
             orgs = self.paginate_queryset(queryset)
             serializer = self.get_serializer(orgs, many=True)
             return self.get_paginated_response(serializer.data)
