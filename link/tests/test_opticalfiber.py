@@ -1,9 +1,9 @@
 from utils.test import get_or_create_user, MyAPITransactionTestCase
 from link.managers.fibercable_manager import FiberCableManager
 from django.urls import reverse
-from link.managers.userrole_manager import UserRoleWrapper
+from link.managers.elementlink_manager import ElementLinkManager
 from urllib import parse
-from link.models import OpticalFiber, LinkUserRole
+from link.models import OpticalFiber, LinkUserRole, ElementLink
 
 class OpticalFiberTests(MyAPITransactionTestCase):
     def setUp(self):
@@ -67,3 +67,34 @@ class OpticalFiberTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['page_num'], 2)
         self.assertEqual(response.data['page_size'], 2)
         self.assertEqual(len(response.data['results']), 2)
+
+        # query "is_linked"
+        query = parse.urlencode(query={'is_linked': '1'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(
+            status_code=400, code='InvalidArgument', response=response)
+        query = parse.urlencode(query={'is_linked': 'true'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['results']), 0)
+
+        query = parse.urlencode(query={'is_linked': 'False'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['results'][0]['is_linked'], False)
+        opticalfiber = OpticalFiber.objects.all().first()
+        elementlink = ElementLinkManager.create_elementlink(
+            number="test_link",
+            id_list=[
+                opticalfiber.element.id,
+            ],
+            remarks="test_remarks",
+            link_status=ElementLink.LinkStatus.IDLE,
+            task=None
+        )
+        query = parse.urlencode(query={'is_linked': 'true'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['id'], opticalfiber.id)
+        self.assertEqual(response.data['results'][0]['is_linked'], True)

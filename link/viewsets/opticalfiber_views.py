@@ -6,7 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from link.handlers.opticalfiber_handler import OpticalFiberHandler
 from link.serializers.opticalfiber_serializer import OpticalFiberSerializer
 from rest_framework.decorators import action
-
+from drf_yasg import openapi
 
 class OpticalFiberViewSet(NormalGenericViewSet):
     permission_classes = [IsAuthenticated]
@@ -15,6 +15,15 @@ class OpticalFiberViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举光纤'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='is_linked',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                required=False,
+                description='过滤条件，false：未接入；true：已接入；不填查询全部'
+            )
+        ],
         responses={
             200: ''
         }

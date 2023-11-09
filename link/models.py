@@ -5,7 +5,6 @@ from core import errors as exceptions
 from users.models import UserProfile
 from service.models import DataCenter
 
-
 class LinkUserRole(UuidModel):
     """链路用户角色和权限"""
     user = models.OneToOneField(verbose_name=_('用户'), to=UserProfile, related_name='userprofile_linkuserrole', on_delete=models.CASCADE)
@@ -97,11 +96,18 @@ class Element(UuidModel):
     """网元汇总表"""
 
     class Type(models.TextChoices):
-        """网元类型"""
+        """数据库网元类型"""
         OPTICAL_FIBER = 'optical-fiber', _('光纤')
         LEASE_LINE = 'lease-line', _('租用线路')
         DISTRIFRAME_PORT = 'distributionframe-port', _('配线架端口')
         CONNECTOR_BOX = 'connector-box', _('光缆接头盒')
+
+    class ApiType(models.TextChoices):
+        """API网元类型"""
+        OPTICAL_FIBER = 'fiber'
+        LEASE_LINE = 'port'
+        DISTRIFRAME_PORT = 'box'
+        CONNECTOR_BOX = 'lease'
 
     object_type = models.CharField(verbose_name=_('网元对象类型'), max_length=32, choices=Type.choices)
     object_id = models.CharField(verbose_name=_('网元对象id'), max_length=36, db_index=True)
@@ -117,6 +123,16 @@ class Element(UuidModel):
     def __str__(self):
         return self.object_type + ':' + self.object_id
 
+    def get_api_type(t : Type) -> ApiType:
+        if t == Element.Type.OPTICAL_FIBER:
+            return Element.ApiType.OPTICAL_FIBER
+        elif t == Element.Type.CONNECTOR_BOX:
+            return Element.ApiType.OPTICAL_FIBER
+        if t == Element.Type.DISTRIFRAME_PORT:
+            return Element.ApiType.DISTRIFRAME_PORT
+        elif t == Element.Type.LEASE_LINE:
+            return Element.ApiType.LEASE_LINE
+        return None
 
 class ElementBase(UuidModel):
     """网元对象基类"""
@@ -124,10 +140,14 @@ class ElementBase(UuidModel):
     element = models.OneToOneField(
         verbose_name=_('网元记录'), to=Element, related_name='element_%(class)s', 
         db_constraint=False, on_delete=models.SET_NULL, null=True, default=None)
-
     class Meta:
         abstract = True
 
+    @property
+    def is_linked(self):
+        if self.element is None:
+            return False
+        return self.element.id in ElementLink.get_linked_element_id_list()
 
 class LeaseLine(ElementBase):
     """租用线路"""
@@ -279,6 +299,21 @@ class ElementLink(UuidModel):
         db_table = 'link_element_link'
         verbose_name = _('链路')
         verbose_name_plural = verbose_name
-    
+
     def element_id_list(self):
         return self.element_ids.split(',')
+
+    @staticmethod
+    def get_element_ids_by_id_list(id_list: list) -> str:
+        """通过网元id列表获得网元id序列字符串"""
+        return ','.join(id_list)
+
+    @staticmethod
+    def get_linked_element_id_list() -> set:
+        """获取所有接入链路的网元id"""
+        queryset = ElementLink.objects.exclude(link_status=ElementLink.LinkStatus.DELETED)
+        s = set()
+        for elementlink in queryset:
+            for element_id in elementlink.element_id_list():
+                s.add(element_id)
+        return s

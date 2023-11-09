@@ -2,11 +2,10 @@ from utils.test import get_or_create_user, MyAPITransactionTestCase
 from link.managers.distriframe_manager import DistriFrameManager
 from link.managers.linkorg_manager import LinkOrgManager
 from django.urls import reverse
-from link.managers.userrole_manager import UserRoleWrapper
 from urllib import parse
 from service.models import DataCenter
-from link.models import DistriFramePort, LinkUserRole
-
+from link.models import DistriFramePort, LinkUserRole, ElementLink
+from link.managers.elementlink_manager import ElementLinkManager
 class DistriFramePortTests(MyAPITransactionTestCase):
     def setUp(self):
         self.user1 = get_or_create_user(username='tom@qq.com')
@@ -95,3 +94,33 @@ class DistriFramePortTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['page_num'], 2)
         self.assertEqual(response.data['page_size'], 2)
         self.assertEqual(len(response.data['results']), 2)
+
+        # query "is_linked"
+        query = parse.urlencode(query={'is_linked': '1'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+        query = parse.urlencode(query={'is_linked': 'true'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['results']), 0)
+
+        query = parse.urlencode(query={'is_linked': 'False'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['results'][0]['is_linked'], False)
+        distriframeport = DistriFramePort.objects.all().first()
+        elementlink = ElementLinkManager.create_elementlink(
+            number="test_link",
+            id_list=[
+                distriframeport.element.id,
+            ],
+            remarks="test_remarks",
+            link_status=ElementLink.LinkStatus.IDLE,
+            task=None
+        )
+        query = parse.urlencode(query={'is_linked': 'true'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['id'], distriframeport.id)
+        self.assertEqual(response.data['results'][0]['is_linked'], True)

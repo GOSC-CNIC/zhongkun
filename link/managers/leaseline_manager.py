@@ -1,18 +1,17 @@
 from django.utils.translation import gettext as _
 from datetime import date
-from link.models import LeaseLine, Element
+from link.models import LeaseLine, Element, ElementLink
 from django.db.models import Q
 from core import errors
 from link.managers.element_manager import ElementManager
+from link.managers.elementlink_manager import ElementLinkManager
 from django.db import transaction
 
 
 class LeaseLineManager:
-    @staticmethod
     def get_queryset():
         return LeaseLine.objects.all()
 
-    @staticmethod
     def get_leaseline(id: str):
         """
         :raises: LeaseLineNotExist
@@ -22,7 +21,6 @@ class LeaseLineManager:
             raise errors.TargetNotExist(message=_('租用线路不存在'), code='LeaseLineNotExist')
         return leaseline
 
-    @staticmethod
     def create_leaseline(
             private_line_number: str,
             lease_line_code: str,
@@ -65,7 +63,6 @@ class LeaseLineManager:
             leaseline.save(force_insert=True)
         return leaseline
 
-    @staticmethod
     def update_leaseline(
             leaseline: LeaseLine,
             private_line_number: str,
@@ -100,9 +97,16 @@ class LeaseLineManager:
         leaseline.save(force_update=True)
         return leaseline
 
-    @staticmethod
-    def filter_queryset(is_whithdrawal: bool = None,  search: str = None, enable_date_start: date = None, enable_date_end: date = None):
+    def filter_queryset(
+        is_linked: bool = None, is_whithdrawal: bool = None,  search: str = None,
+        enable_date_start: date = None, enable_date_end: date = None):
         qs = LeaseLineManager.get_queryset()
+        linked_element_id_list = ElementLink.get_linked_element_id_list()
+        if is_linked is not None:
+            if is_linked is True:
+                qs = qs.filter(element_id__in=linked_element_id_list)
+            else:
+                qs = qs.exclude(element_id__in=linked_element_id_list)
         lookups = {}
         if is_whithdrawal is not None:
             lookups['is_whithdrawal'] = is_whithdrawal

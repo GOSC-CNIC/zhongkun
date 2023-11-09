@@ -3,6 +3,7 @@ from api.viewsets import NormalGenericViewSet
 from link.managers.userrole_manager import UserRoleWrapper
 from link.managers.connectorbox_manager import ConnectorBoxManager
 from core import errors
+from link.utils.verify_utils import VerifyUtils
 
 class ConnectorBoxHandler:
     @staticmethod
@@ -14,7 +15,7 @@ class ConnectorBoxHandler:
             params = ConnectorBoxHandler._list_validate_params(request=request)
         except errors.Error as exc:
             return view.exception_response(exc)
-        queryset = ConnectorBoxManager.get_queryset()
+        queryset = ConnectorBoxManager.filter_queryset(is_linked=params['is_linked'])
         try:
             datas = view.paginate_queryset(queryset)
             serializer = view.get_serializer(instance=datas, many=True)
@@ -22,7 +23,13 @@ class ConnectorBoxHandler:
         except errors.Error as exc:
             return view.exception_response(exc)
 
-    @staticmethod
     def _list_validate_params(request):
-        pass
+        is_linked = request.query_params.get('is_linked', None)
 
+        if is_linked is not None:
+            is_linked = VerifyUtils.string_to_bool(is_linked)
+            if is_linked is None:
+                raise errors.InvalidArgument(message=_('参数“is_linked”是无效的布尔类型'))
+        return {
+            'is_linked': is_linked
+        }

@@ -11,7 +11,6 @@ from link.utils.verify_utils import VerifyUtils
 
 
 class LeaseLineHandler:
-    @staticmethod
     def creat_leaseline(view: NormalGenericViewSet, request):
         ur_wrapper = UserRoleWrapper(user=request.user)
         if not ur_wrapper.has_write_permission():
@@ -39,7 +38,6 @@ class LeaseLineHandler:
         )
         return Response(data=LeaseLineSerializer(instance=leaseline).data)
 
-    @staticmethod
     def _create_validate_params(view: NormalGenericViewSet, request):
         """
         :raises: Error
@@ -52,7 +50,6 @@ class LeaseLineHandler:
         data = serializer.validated_data
         return data
 
-    @staticmethod
     def update_leaseline(view: NormalGenericViewSet, request, kwargs):
         ur_wrapper = UserRoleWrapper(user=request.user)
         if not ur_wrapper.has_write_permission():
@@ -82,7 +79,6 @@ class LeaseLineHandler:
         )
         return Response(data=LeaseLineSerializer(instance=leaseline).data)
 
-    @staticmethod
     def list_leaseline(view: NormalGenericViewSet, request):
         ur_wrapper = UserRoleWrapper(user=request.user)
         if not ur_wrapper.has_read_permission():
@@ -92,7 +88,8 @@ class LeaseLineHandler:
         except errors.Error as exc:
             return view.exception_response(exc)
         queryset = LeaseLineManager.filter_queryset(
-            is_whithdrawal=params['is_whithdrawal'], search=params['search'], enable_date_start=params['enable_date_start'], enable_date_end=params['enable_date_end']
+            is_linked=params['is_linked'], is_whithdrawal=params['is_whithdrawal'], search=params['search'],
+            enable_date_start=params['enable_date_start'], enable_date_end=params['enable_date_end']
         )
         try:
             datas = view.paginate_queryset(queryset)
@@ -101,8 +98,8 @@ class LeaseLineHandler:
         except errors.Error as exc:
             return view.exception_response(exc)
 
-    @staticmethod
     def _list_validate_params(request):
+        is_linked = request.query_params.get('is_linked', None)
         is_whithdrawal = request.query_params.get('is_whithdrawal', None)
         search = request.query_params.get('search', None)
         enable_date_start = request.query_params.get('enable_date_start', None)
@@ -111,13 +108,14 @@ class LeaseLineHandler:
         if VerifyUtils.is_blank_string(search):
             search = None
 
-        if is_whithdrawal:
-            is_whithdrawal = is_whithdrawal.lower()
-            if is_whithdrawal == 'true':
-                is_whithdrawal = True
-            elif is_whithdrawal == 'false':
-                is_whithdrawal = False
-            else:
+        if is_linked is not None:
+            is_linked = VerifyUtils.string_to_bool(is_linked)
+            if is_linked is None:
+                raise errors.InvalidArgument(message=_('参数“is_linked”是无效的布尔类型'))
+
+        if is_whithdrawal is not None:
+            is_whithdrawal = VerifyUtils.string_to_bool(is_whithdrawal)
+            if is_whithdrawal is None:
                 raise errors.InvalidArgument(message=_('参数“is_whithdrawal”是无效的布尔类型'))
 
         if enable_date_start:
@@ -137,13 +135,13 @@ class LeaseLineHandler:
                 raise errors.InvalidArgument(message=_('enable_date_start不能大于enable_date_end'))
 
         return {
+            'is_linked': is_linked,
             'is_whithdrawal': is_whithdrawal,
             'search': search,
             'enable_date_start': enable_date_start,
             'enable_date_end':  enable_date_end
         }
 
-    @staticmethod
     def retrieve_leaseline(view: NormalGenericViewSet, request, kwargs):
         ur_wrapper = UserRoleWrapper(user=request.user)
         if not ur_wrapper.has_read_permission():

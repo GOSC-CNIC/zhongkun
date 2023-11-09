@@ -206,7 +206,7 @@ class LeaseLineTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['results'][0]['is_linked'], False)
         self.assertEqual(response.data['results'][1]['is_linked'], False)
         elementlink.link_status = ElementLink.LinkStatus.USING
-        elementlink.element_ids = ElementLinkManager.get_element_ids_by_id_list([LeaseLine.objects.filter(id = self.leaselin1.id).first().element.id])
+        elementlink.element_ids = ElementLink.get_element_ids_by_id_list([LeaseLine.objects.filter(id = self.leaselin1.id).first().element.id])
         elementlink.save(force_update=True)
         query = parse.urlencode(query={'search': self.leaselin1.private_line_number})
         response = self.client.get(f'{base_url}?{query}')
@@ -215,6 +215,21 @@ class LeaseLineTests(MyAPITransactionTestCase):
         query = parse.urlencode(query={'search': self.leaselin2.private_line_number})
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['results'][0]['is_linked'], False)
+
+        # query "is_linked"
+        query = parse.urlencode(query={'is_linked': '1'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+        query = parse.urlencode(query={'is_linked': 'true'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['is_linked'], True)
+        query = parse.urlencode(query={'is_linked': 'False'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['results']), 1)
         self.assertEqual(response.data['results'][0]['is_linked'], False)
 
     def test_update(self):       

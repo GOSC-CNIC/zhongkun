@@ -7,8 +7,8 @@ from link.utils.verify_utils import VerifyUtils
 class ElementLinkManager:
     @staticmethod
     def get_queryset():
-        return ElementLink.objects.all()
-
+        return ElementLink.objects.exclude(link_status=ElementLink.LinkStatus.DELETED)
+    
     @staticmethod
     def get_elementlink(id: str):
         """
@@ -19,10 +19,6 @@ class ElementLinkManager:
             raise errors.TargetNotExist(message=_('租用线路不存在'), code='ElementLinkNotExist')
         return elementlink
 
-    @staticmethod
-    def get_element_ids_by_id_list(id_list: list) -> str:
-        """通过网元列表获得网元id序列字符串"""
-        return ','.join(id_list)
 
     @staticmethod
     def get_element_ids_by_element_list(element_list: list) -> str:
@@ -56,10 +52,11 @@ class ElementLinkManager:
             raise errors.Error(message=_('ElementLinkManager create_elementlink id_list_empty'))
         elementlink = ElementLink(
             number=number,
-            element_ids=ElementLinkManager.get_element_ids_by_id_list(id_list),
+            element_ids=ElementLink.get_element_ids_by_id_list(id_list),
             remarks=remarks,
             task=task,
             link_status=link_status
         )
         elementlink.save()
         return elementlink
+

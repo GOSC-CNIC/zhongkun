@@ -1,14 +1,12 @@
 from django.utils.translation import gettext as _
-from link.models import Element, DistriFramePort, DistributionFrame
+from link.models import Element, DistriFramePort, DistributionFrame, ElementLink
 from core import errors
 from link.managers.element_manager import ElementManager
 
 class DistriFramePortManager:
-    @staticmethod
     def get_queryset():
         return DistriFramePort.objects.all()
 
-    @staticmethod
     def get_distriframeport(id: str):
         """
         :raises: DistriFramePortNotExist
@@ -44,3 +42,12 @@ class DistriFramePortManager:
         )
         distriframe_port.save(force_insert=True)
 
+    def filter_queryset(is_linked: bool = None):
+        qs = DistriFramePortManager.get_queryset()
+        linked_element_id_list = ElementLink.get_linked_element_id_list()
+        if is_linked is not None:
+            if is_linked is True:
+                qs = qs.filter(element_id__in=linked_element_id_list)
+            else:
+                qs = qs.exclude(element_id__in=linked_element_id_list)
+        return qs

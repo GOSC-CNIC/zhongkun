@@ -15,13 +15,22 @@ class ConnectorBoxViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举接头盒'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='is_linked',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                required=False,
+                description='过滤条件，false：未接入；true：已接入；不填查询全部'
+            )
+        ],
         responses={
             200: ''
         }
     )
     def list(self, request, *args, **kwargs):
         """
-        列举配线架信息
+        列举接头盒
 
             http Code 200 Ok:
                 {

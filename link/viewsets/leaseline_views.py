@@ -54,6 +54,13 @@ class LeaseLineViewSet(NormalGenericViewSet):
         operation_summary=gettext_lazy('列举租用线路'),
         manual_parameters=[
             openapi.Parameter(
+                name='is_linked',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                required=False,
+                description='过滤条件，false：未接入；true：已接入；不填查询全部'
+            ),
+            openapi.Parameter(
                 name='is_whithdrawal',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_INTEGER,
