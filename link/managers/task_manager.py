@@ -13,7 +13,7 @@ class TaskManager:
         """
         :raises: TaskNotExist
         """
-        task = Task.objects.filter(id=id).first()
+        task = TaskManager.get_queryset().filter(id=id).first()
         if task is None:
             raise errors.TargetNotExist(message=_('业务不存在'), code='TaskNotExist')
         return task

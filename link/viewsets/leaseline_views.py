@@ -56,21 +56,21 @@ class LeaseLineViewSet(NormalGenericViewSet):
             openapi.Parameter(
                 name='is_linked',
                 in_=openapi.IN_QUERY,
-                type=openapi.TYPE_INTEGER,
+                type=openapi.TYPE_BOOLEAN,
                 required=False,
                 description='过滤条件，false：未接入；true：已接入；不填查询全部'
             ),
             openapi.Parameter(
                 name='is_whithdrawal',
                 in_=openapi.IN_QUERY,
-                type=openapi.TYPE_INTEGER,
+                type=openapi.TYPE_BOOLEAN,
                 required=False,
                 description='过滤条件，false：在网租用线路；true：撤线租用线路；不填查询全部'
             ),
             openapi.Parameter(
                 name='search',
                 in_=openapi.IN_QUERY,
-                type=openapi.TYPE_INTEGER,
+                type=openapi.TYPE_STRING,
                 required=False,
                 description='过滤条件，关键词模糊查询（专线号、电路代号、专线用户、A端、Z端、备注）'
             ),

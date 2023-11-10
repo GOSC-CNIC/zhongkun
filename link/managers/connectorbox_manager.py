@@ -13,7 +13,7 @@ class ConnectorBoxManager:
         """
         :raises: ConnectorBoxNotExist
         """
-        connectorbox = ConnectorBox.objects.filter(id=id).first()
+        connectorbox = ConnectorBoxManager.get_queryset().filter(id=id).first()
         if connectorbox is None:
             raise errors.TargetNotExist(message=_('光缆熔纤包不存在'), code='ConnectorBoxNotExist')
         return connectorbox
@@ -40,8 +40,8 @@ class ConnectorBoxManager:
 
     def filter_queryset(is_linked: bool = None):
         qs = ConnectorBoxManager.get_queryset()
-        linked_element_id_list = ElementLink.get_linked_element_id_list()
         if is_linked is not None:
+            linked_element_id_list = ElementLink.get_linked_element_id_list()
             if is_linked is True:
                 qs = qs.filter(element_id__in=linked_element_id_list)
             else:

@@ -29,7 +29,7 @@ class DistriFramePortTests(MyAPITransactionTestCase):
             remarks='',
             location=''
         )
-        DistriFrameManager.create_distriframe(
+        self.distriframe1 = DistriFrameManager.create_distriframe(
             number='test_distriframe_number1',
             model_type='sc',
             row_count=6,
@@ -38,7 +38,7 @@ class DistriFramePortTests(MyAPITransactionTestCase):
             remarks='【51893383随机呼转张效军18618417973和张东升13910987916】51893383找罗工、唐工',
             link_org=linkorg1
         )
-        DistriFrameManager.create_distriframe(
+        self.distriframe2 = DistriFrameManager.create_distriframe(
             number='test_distriframe_number2',
             model_type='sc',
             row_count=6,
@@ -124,3 +124,19 @@ class DistriFramePortTests(MyAPITransactionTestCase):
         self.assertEqual(len(response.data['results']), 1)
         self.assertEqual(response.data['results'][0]['id'], distriframeport.id)
         self.assertEqual(response.data['results'][0]['is_linked'], True)
+
+        # query "frame_id"
+        query = parse.urlencode(query={'frame_id': 'abc'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
+        query = parse.urlencode(query={'frame_id': self.distriframe1.id})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], self.distriframe1.col_count * self.distriframe1.row_count)
+        self.assertEqual(response.data['results'][0]['distribution_frame']['id'], self.distriframe1.id)
+        query = parse.urlencode(query={'frame_id': self.distriframe2.id})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], self.distriframe2.col_count * self.distriframe2.row_count)
+        self.assertEqual(response.data['results'][0]['distribution_frame']['id'], self.distriframe2.id)

@@ -19,9 +19,16 @@ class OpticalFiberViewSet(NormalGenericViewSet):
             openapi.Parameter(
                 name='is_linked',
                 in_=openapi.IN_QUERY,
-                type=openapi.TYPE_INTEGER,
+                type=openapi.TYPE_BOOLEAN,
                 required=False,
                 description='过滤条件，false：未接入；true：已接入；不填查询全部'
+            ),
+            openapi.Parameter(
+                name='cable_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description='过滤条件，有值则查询光缆id下的光纤，不填查询全部'
             )
         ],
         responses={

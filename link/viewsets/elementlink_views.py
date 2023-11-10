@@ -16,6 +16,15 @@ class ElementLinkViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举链路'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='task_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description='过滤条件，有值则查询业务的所有链路，不填查询全部'
+            )
+        ],
         responses={
             200: ''
         }

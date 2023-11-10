@@ -5,6 +5,7 @@ from core import errors as exceptions
 from users.models import UserProfile
 from service.models import DataCenter
 
+
 class LinkUserRole(UuidModel):
     """链路用户角色和权限"""
     user = models.OneToOneField(verbose_name=_('用户'), to=UserProfile, related_name='userprofile_linkuserrole', on_delete=models.CASCADE)
@@ -303,15 +304,14 @@ class ElementLink(UuidModel):
     def element_id_list(self):
         return self.element_ids.split(',')
 
-    @staticmethod
     def get_element_ids_by_id_list(id_list: list) -> str:
         """通过网元id列表获得网元id序列字符串"""
         return ','.join(id_list)
 
-    @staticmethod
     def get_linked_element_id_list() -> set:
         """获取所有接入链路的网元id"""
-        queryset = ElementLink.objects.exclude(link_status=ElementLink.LinkStatus.DELETED)
+        from link.managers.elementlink_manager import ElementLinkManager
+        queryset = ElementLinkManager.get_queryset()
         s = set()
         for elementlink in queryset:
             for element_id in elementlink.element_id_list():

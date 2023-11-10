@@ -13,7 +13,7 @@ class LinkOrgManager:
         """
         :raises: LinkOrgNotExist
         """
-        linkorg = LinkOrg.objects.filter(id=id).first()
+        linkorg = LinkOrgManager.get_queryset().filter(id=id).first()
         if linkorg is None:
             raise errors.TargetNotExist(message=_('二级机构不存在'), code='LinkOrgNotExist')
         return linkorg

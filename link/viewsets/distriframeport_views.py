@@ -19,9 +19,16 @@ class DistriFramePortViewSet(NormalGenericViewSet):
             openapi.Parameter(
                 name='is_linked',
                 in_=openapi.IN_QUERY,
-                type=openapi.TYPE_INTEGER,
+                type=openapi.TYPE_BOOLEAN,
                 required=False,
                 description='过滤条件，false：未接入；true：已接入；不填查询全部'
+            ),
+            openapi.Parameter(
+                name='frame_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description='过滤条件，有值则查询配线架id下的端口，不填查询全部'
             )
         ],
         responses={

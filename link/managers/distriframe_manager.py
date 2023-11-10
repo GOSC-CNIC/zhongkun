@@ -14,7 +14,7 @@ class DistriFrameManager:
         """
         :raises: DistributionFrameNotExist
         """
-        distriframe = DistributionFrame.objects.filter(id=id).first()
+        distriframe = DistriFrameManager.get_queryset().filter(id=id).first()
         if distriframe is None:
             raise errors.TargetNotExist(message=_('配线架不存在'), code='DistributionFrameNotExist')
         return distriframe

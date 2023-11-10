@@ -14,7 +14,7 @@ class OpticalFiberTests(MyAPITransactionTestCase):
         urole.save(force_insert=True)
         urole = LinkUserRole(user=self.user3, is_admin=True, is_readonly=False)
         urole.save(force_insert=True)
-        FiberCableManager.create_fibercable(
+        self.cable1 = FiberCableManager.create_fibercable(
             number='SM-test',
             fiber_count=30,
             length=30.5,
@@ -98,3 +98,14 @@ class OpticalFiberTests(MyAPITransactionTestCase):
         self.assertEqual(len(response.data['results']), 1)
         self.assertEqual(response.data['results'][0]['id'], opticalfiber.id)
         self.assertEqual(response.data['results'][0]['is_linked'], True)
+
+        # query "cable_id"
+        query = parse.urlencode(query={'cable_id': 'abc'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
+
+        query = parse.urlencode(query={'cable_id': self.cable1.id})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], self.cable1.fiber_count)

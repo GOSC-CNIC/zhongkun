@@ -19,7 +19,7 @@ class ElementLinkTests(MyAPITransactionTestCase):
         urole.save(force_insert=True)
         urole = LinkUserRole(user=self.user3, is_admin=True, is_readonly=False)
         urole.save(force_insert=True)
-        task = TaskManager.create_task(
+        self.task = TaskManager.create_task(
             number='YW2023101001',
             user='广东空天科技研究院（简称广天院）',
             endpoint_a='广东省广州市南沙区万新大道与横一路交叉口东80米，广东空天科技研究院科研楼机房，张钧魁13233579691',
@@ -67,7 +67,7 @@ class ElementLinkTests(MyAPITransactionTestCase):
             id_list=[leaseline1.element.id, leaseline2.element.id],
             remarks='test',
             link_status=ElementLink.LinkStatus.IDLE,
-            task=task,
+            task=self.task,
             number='test_number'
         )
 
@@ -116,4 +116,14 @@ class ElementLinkTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['count'], 1)
         self.assertEqual(response.data['page_num'], 1)
         self.assertEqual(response.data['page_size'], 1)
+        self.assertEqual(len(response.data['results']), 1)
+
+        # query "task_id"
+        query = parse.urlencode(query={'task_id': 'abc'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
+        query = parse.urlencode(query={'task_id': self.task.id})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data['results']), 1)

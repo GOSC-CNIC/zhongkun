@@ -15,7 +15,7 @@ class OpticalFiberHandler:
         except errors.Error as exc:
             return view.exception_response(exc)
         queryset = OpticalFiberManager.filter_queryset(
-            is_linked=params['is_linked']
+            is_linked=params['is_linked'], fiber_cable_id=params['fiber_cable_id']
             ).order_by('fiber_cable', 'sequence')
         try:
             datas = view.paginate_queryset(queryset)
@@ -26,12 +26,15 @@ class OpticalFiberHandler:
 
     def _list_validate_params(request):
         is_linked = request.query_params.get('is_linked', None)
-
+        fiber_cable_id = request.query_params.get('cable_id', None)
         if is_linked is not None:
             is_linked = VerifyUtils.string_to_bool(is_linked)
             if is_linked is None:
                 raise errors.InvalidArgument(message=_('参数“is_linked”是无效的布尔类型'))
+        if VerifyUtils.is_blank_string(fiber_cable_id):
+            fiber_cable_id = None
         return {
-            'is_linked': is_linked
+            'is_linked': is_linked,
+            'fiber_cable_id': fiber_cable_id
         }
 

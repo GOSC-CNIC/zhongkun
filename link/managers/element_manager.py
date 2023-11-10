@@ -11,7 +11,7 @@ class ElementManager:
     def get_element_by_id(
             id: str,
     ) -> Element:
-        element = Element.objects.filter(id=id).first()
+        element = ElementManager.get_queryset().filter(id=id).first()
         if element is None:
             raise errors.TargetNotExist(message=_('网元不存在'), code='ElementNotExist')
         return element
@@ -21,7 +21,7 @@ class ElementManager:
             object_type: str,
             object_id: str,
     ) -> Element:
-        element = Element.objects.filter(object_id=object_id, object_type=object_type).first()
+        element = ElementManager.get_queryset().filter(object_id=object_id, object_type=object_type).first()
         if element is None:
             raise errors.TargetNotExist(message=_('网元不存在'), code='ElementNotExist')
         return element

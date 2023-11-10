@@ -15,7 +15,7 @@ class DistriFramePortHandler:
         except errors.Error as exc:
             return view.exception_response(exc)
         queryset = DistriFramePortManager.filter_queryset(
-            is_linked=params['is_linked']
+            is_linked=params['is_linked'], distribution_frame_id=params['distribution_frame_id']
             ).order_by('distribution_frame', 'row', 'col')
         try:
             datas = view.paginate_queryset(queryset)
@@ -26,12 +26,16 @@ class DistriFramePortHandler:
 
     def _list_validate_params(request):
         is_linked = request.query_params.get('is_linked', None)
+        distribution_frame_id = request.query_params.get('frame_id', None)
 
         if is_linked is not None:
             is_linked = VerifyUtils.string_to_bool(is_linked)
             if is_linked is None:
                 raise errors.InvalidArgument(message=_('参数“is_linked”是无效的布尔类型'))
+        if VerifyUtils.is_blank_string(distribution_frame_id):
+            distribution_frame_id = None
         return {
-            'is_linked': is_linked
+            'is_linked': is_linked,
+            'distribution_frame_id': distribution_frame_id
         }
 

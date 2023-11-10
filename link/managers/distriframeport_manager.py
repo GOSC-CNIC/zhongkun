@@ -11,7 +11,7 @@ class DistriFramePortManager:
         """
         :raises: DistriFramePortNotExist
         """
-        distriframeport = DistriFramePort.objects.filter(id=id).first()
+        distriframeport = DistriFramePortManager.get_queryset().filter(id=id).first()
         if distriframeport is None:
             raise errors.TargetNotExist(message=_('配线架端口不存在'), code='DistriFramePortNotExist')
         return distriframeport
@@ -42,10 +42,12 @@ class DistriFramePortManager:
         )
         distriframe_port.save(force_insert=True)
 
-    def filter_queryset(is_linked: bool = None):
+    def filter_queryset(is_linked:bool = None, distribution_frame_id:str = None):
         qs = DistriFramePortManager.get_queryset()
-        linked_element_id_list = ElementLink.get_linked_element_id_list()
+        if distribution_frame_id is not None:
+            qs = qs.filter(distribution_frame_id=distribution_frame_id)
         if is_linked is not None:
+            linked_element_id_list = ElementLink.get_linked_element_id_list()
             if is_linked is True:
                 qs = qs.filter(element_id__in=linked_element_id_list)
             else:

@@ -44,7 +44,7 @@ class FiberCableViewSet(NormalGenericViewSet):
             openapi.Parameter(
                 name='search',
                 in_=openapi.IN_QUERY,
-                type=openapi.TYPE_INTEGER,
+                type=openapi.TYPE_STRING,
                 required=False,
                 description='过滤条件，关键词模糊查询（光缆编号、端点1、端点2、备注）'
             ),

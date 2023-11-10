@@ -3,7 +3,7 @@ from api.viewsets import NormalGenericViewSet
 from link.managers.userrole_manager import UserRoleWrapper
 from link.managers.elementlink_manager import ElementLinkManager
 from core import errors
-
+from link.utils.verify_utils import VerifyUtils
 class ElementLinkHandler:
     @staticmethod
     def list_elementlink(view: NormalGenericViewSet, request):
@@ -14,7 +14,7 @@ class ElementLinkHandler:
             params = ElementLinkHandler._list_validate_params(request=request)
         except errors.Error as exc:
             return view.exception_response(exc)
-        queryset = ElementLinkManager.get_queryset()
+        queryset = ElementLinkManager.filter_queryset(task_id=params['task_id'])
         try:
             datas = view.paginate_queryset(queryset)
             serializer = view.get_serializer(instance=datas, many=True)
@@ -24,5 +24,12 @@ class ElementLinkHandler:
 
     @staticmethod
     def _list_validate_params(request):
-        pass
+        task_id = request.query_params.get('task_id', None)
+
+        if VerifyUtils.is_blank_string(task_id):
+            task_id = None
+        return {
+            'task_id': task_id
+        }
+
 

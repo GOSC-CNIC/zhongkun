@@ -2,6 +2,7 @@ from django.utils.translation import gettext as _
 from link.models import Element, OpticalFiber, FiberCable, ElementLink
 from core import errors
 from link.managers.element_manager import ElementManager
+# from link.managers.fibercable_manager import FiberCableManager
 
 class OpticalFiberManager:
     def get_queryset():
@@ -11,7 +12,7 @@ class OpticalFiberManager:
         """
         :raises: OpticalFiberNotExist
         """
-        opticalfiber = OpticalFiber.objects.filter(id=id).first()
+        opticalfiber = OpticalFiberManager.get_queryset().filter(id=id).first()
         if opticalfiber is None:
             raise errors.TargetNotExist(message=_('光纤不存在'), code='OpticalFiberNotExist')
         return opticalfiber
@@ -30,10 +31,14 @@ class OpticalFiberManager:
         )
         opticalfiber.save(force_insert=True)
 
-    def filter_queryset(is_linked: bool = None):
+    def filter_queryset(is_linked: bool = None, fiber_cable_id: str = None):
         qs = OpticalFiberManager.get_queryset()
-        linked_element_id_list = ElementLink.get_linked_element_id_list()
+        if fiber_cable_id is not None:
+            # tips:need verify fibercable existed?
+            # fibercable = FiberCableManager.get_fibercable(fiber_cable_id)
+            qs = qs.filter(fiber_cable_id=fiber_cable_id)
         if is_linked is not None:
+            linked_element_id_list = ElementLink.get_linked_element_id_list()
             if is_linked is True:
                 qs = qs.filter(element_id__in=linked_element_id_list)
             else:

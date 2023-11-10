@@ -16,7 +16,7 @@ class LeaseLineManager:
         """
         :raises: LeaseLineNotExist
         """
-        leaseline = LeaseLine.objects.filter(id=id).first()
+        leaseline = LeaseLineManager.get_queryset().filter(id=id).first()
         if leaseline is None:
             raise errors.TargetNotExist(message=_('租用线路不存在'), code='LeaseLineNotExist')
         return leaseline
@@ -101,8 +101,8 @@ class LeaseLineManager:
         is_linked: bool = None, is_whithdrawal: bool = None,  search: str = None,
         enable_date_start: date = None, enable_date_end: date = None):
         qs = LeaseLineManager.get_queryset()
-        linked_element_id_list = ElementLink.get_linked_element_id_list()
         if is_linked is not None:
+            linked_element_id_list = ElementLink.get_linked_element_id_list()
             if is_linked is True:
                 qs = qs.filter(element_id__in=linked_element_id_list)
             else:
