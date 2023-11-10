@@ -353,10 +353,79 @@ class AdminOrgDataCenterViewSet(NormalGenericViewSet):
 
         try:
             if not request.user.is_federal_admin():
-                raise exceptions.AccessDenied(message=_('您没有创建数据中心的权限'))
+                raise exceptions.AccessDenied(message=_('您没有数据中心的管理权限'))
 
             odc = OrgDataCenterManager.get_odc(odc_id=kwargs[self.lookup_field])
             odc = OrgDataCenterManager.add_admins_for_odc(odc=odc, usernames=usernames)
+        except exceptions.Error as exc:
+            return self.exception_response(exc)
+
+        return Response(data=dcserializers.OrgDataCenterDetailSerializer(odc).data)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('联邦管理员从数据中心移除管理员'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ''''''
+        }
+    )
+    @action(methods=['POST'], detail=True, url_path='remove/admin', url_name='remove-admin')
+    def remove_admin_from_odc(self, request, *args, **kwargs):
+        """
+        联邦管理员从数据中心移除管理员
+
+            http code 200
+                {
+                  "id": "5563vam9q6e7tz9fw3kij5p51",
+                  "name": "测试1",
+                  "name_en": "test1",
+                  "organization":{
+                      "id": "skki2uhd4jyg47shvmh0uyo4h",
+                      "name": "测试1",
+                      "name_en": "xxx"
+                    },
+                  "longitude": 0,
+                  "latitude": 0,
+                  "sort_weight": 0,
+                  "remark": "",
+                  "thanos_endpoint_url": "",
+                  "thanos_username": "",
+                  "thanos_password": "",
+                  "thanos_receive_url": "",
+                  "thanos_remark": "",
+                  "loki_endpoint_url": "",
+                  "loki_username": "",
+                  "loki_password": "",
+                  "loki_receive_url": "",
+                  "loki_remark": "xxxxx",
+                  "users": [
+                    {
+                        "id": "xxx",
+                        "username": "xxx"
+                    }
+                  ]
+                }
+
+                http code 400, 401, 404：
+                {
+                    "code": "BadRequest",
+                    "message": ""
+                }
+        """
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid(raise_exception=False):
+            msg = serializer_error_msg(serializer.errors)
+            return self.exception_response(exceptions.BadRequest(msg))
+
+        usernames = serializer.validated_data['usernames']
+
+        try:
+            if not request.user.is_federal_admin():
+                raise exceptions.AccessDenied(message=_('您没有数据中心的管理权限'))
+
+            odc = OrgDataCenterManager.get_odc(odc_id=kwargs[self.lookup_field])
+            odc = OrgDataCenterManager.remove_admins_from_odc(odc=odc, usernames=usernames)
         except exceptions.Error as exc:
             return self.exception_response(exc)
 

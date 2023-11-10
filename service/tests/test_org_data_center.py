@@ -614,14 +614,93 @@ class AdminODCTests(MyAPITransactionTestCase):
         response = self.client.post(url, data={'usernames': [self.user1.username, user2.username]})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data['users']), 2)
-        self.assertEqual([u['id'] for u in response.data['users']], [self.user1.id, user2.id])
+        self.assertEqual([u['id'] for u in response.data['users']].sort(), [self.user1.id, user2.id].sort())
         self.assertEqual(len(odc1.users.all()), 2)
 
         response = self.client.post(url, data={'usernames': [self.user1.username, user2.username, user3.username]})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data['users']), 3)
-        self.assertEqual([u['id'] for u in response.data['users']], [self.user1.id, user2.id, user3.id])
+        self.assertEqual([u['id'] for u in response.data['users']].sort(), [self.user1.id, user2.id, user3.id].sort())
         self.assertEqual(len(odc1.users.all()), 3)
+
+    def test_remove_admin(self):
+        user2 = get_or_create_user(username='test2@163.com')
+        user3 = get_or_create_user(username='test3@qq.com')
+        odc1 = OrgDataCenterManager.create_org_dc(
+            name='测试', name_en='test11', organization_id=self.org.id,
+            longitude=-10, latitude=80, sort_weight=0, remark='Test Remark66',
+            thanos_endpoint_url='https://thanosxxxx.cn', thanos_receive_url='https://thanosrexxxx.cn',
+            thanos_username='tom@cnic.cn', thanos_password='test123456', thanos_remark='thanos remark',
+            loki_endpoint_url='https://lokixxxx.cn', loki_receive_url='https://lokerexxxx.cn',
+            loki_username='jerry@qq.com', loki_password='loki123456', loki_remark='loki remark'
+        )
+        odc1.users.add(self.user1, user2, user3)
+
+        url = reverse('api:admin-odc-remove-admin', kwargs={'id': 'test'})
+        response = self.client.post(url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
+
+        self.client.force_login(self.user1)
+        response = self.client.post(url, data={'usernames': []})
+        self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
+
+        response = self.client.post(url, data={'test': 'dd'})
+        self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
+
+        response = self.client.post(url, data={'usernames': ['test']})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # odc not exist
+        self.user1.set_federal_admin()
+        response = self.client.post(url, data={'usernames': ['test']})
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
+
+        # user not exist
+        url = reverse('api:admin-odc-remove-admin', kwargs={'id': odc1.id})
+        response = self.client.post(url, data={'usernames': ['test']})
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # username 重复
+        response = self.client.post(url, data={'usernames': ['test', 'test']})
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # 有user not exist
+        response = self.client.post(url, data={'usernames': [self.user1.username, 'test']})
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # ok
+        self.assertEqual(len(odc1.users.all()), 3)
+        response = self.client.post(url, data={'usernames': [self.user1.username]})
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(
+            ['id', 'name', 'name_en', 'organization', 'longitude', 'latitude', 'sort_weight', 'remark',
+             'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url', 'thanos_remark',
+             'loki_endpoint_url', 'loki_username', 'loki_password', 'loki_receive_url', 'loki_remark', 'users'],
+            response.data)
+        self.assertKeysIn(['id', 'name', 'name_en'], response.data['organization'])
+        self.assertEqual(len(response.data['users']), 2)
+        self.assertEqual([u['id'] for u in response.data['users']].sort(), [user3.id, user2.id].sort())
+        self.assertEqual(len(odc1.users.all()), 2)
+
+        # 重复remove管理员
+        response = self.client.post(url, data={'usernames': [self.user1.username]})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['users']), 2)
+        self.assertEqual([u['id'] for u in response.data['users']].sort(), [user3.id, user2.id].sort())
+        self.assertEqual(len(odc1.users.all()), 2)
+
+        # remove用户中有些已是管理员
+        response = self.client.post(url, data={'usernames': [self.user1.username, user2.username]})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['users']), 1)
+        self.assertEqual(response.data['users'][0]['id'], user3.id)
+        self.assertEqual(response.data['users'][0]['username'], user3.username)
+        self.assertEqual(len(odc1.users.all()), 1)
+
+        response = self.client.post(url, data={'usernames': [self.user1.username, user2.username, user3.username]})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['users']), 0)
+        self.assertEqual(len(odc1.users.all()), 0)
 
 
 class ODCTests(MyAPITransactionTestCase):

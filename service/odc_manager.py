@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, List
 
 from django.utils.translation import gettext as _
 from django.db.models import Q
@@ -149,9 +149,9 @@ class OrgDataCenterManager:
         return OrgDataCenterManager.filter_queryset(queryset=queryset, org_id=org_id, search=search)
 
     @staticmethod
-    def add_admins_for_odc(odc: OrgDataCenter, usernames: list):
+    def _validate_usernames(usernames: list) -> List[UserProfile]:
         if not usernames:
-            return odc
+            return []
 
         username_set = set(usernames)
         if len(username_set) != len(usernames):
@@ -169,5 +169,22 @@ class OrgDataCenterManager:
             not_exists_usernames = username_set.difference(exists_usernames_set)
             raise errors.InvalidArgument(message=_('指定的用户不存在：') + '' + '、'.join(not_exists_usernames))
 
+        return users
+
+    @staticmethod
+    def add_admins_for_odc(odc: OrgDataCenter, usernames: list):
+        users = OrgDataCenterManager._validate_usernames(usernames)
+        if not users:
+            return odc
+
         odc.users.add(*users)    # 底层不会重复添加已存在的用户
+        return odc
+
+    @staticmethod
+    def remove_admins_from_odc(odc: OrgDataCenter, usernames: list):
+        users = OrgDataCenterManager._validate_usernames(usernames)
+        if not users:
+            return odc
+
+        odc.users.remove(*users)
         return odc
