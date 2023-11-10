@@ -2,13 +2,13 @@ from django.utils.translation import gettext_lazy, gettext as _
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.serializers import Serializer
 from rest_framework.response import Response
+from rest_framework.decorators import action
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
 from core import errors as exceptions
 from api.paginations import NewPageNumberPagination100
 from api.viewsets import NormalGenericViewSet, serializer_error_msg
-from users.models import UserProfile
 from service.models import OrgDataCenter
 from service.odc_manager import OrgDataCenterManager
 from .. import serializers as dcserializers
@@ -42,7 +42,7 @@ class AdminOrgDataCenterViewSet(NormalGenericViewSet):
         }
     )
     def list(self, request, *args, **kwargs):
-        """"
+        """
         管理员列举数据中心，联邦管理员查询所有，数据中心管理员只查询有权限的数据中心
 
             {
@@ -138,7 +138,7 @@ class AdminOrgDataCenterViewSet(NormalGenericViewSet):
         serializer = self.get_serializer(data=request.data)
         if not serializer.is_valid(raise_exception=False):
             msg = serializer_error_msg(serializer.errors)
-            raise exceptions.BadRequest(msg)
+            return self.exception_response(exceptions.BadRequest(msg))
 
         data = serializer.validated_data
         try:
@@ -208,7 +208,7 @@ class AdminOrgDataCenterViewSet(NormalGenericViewSet):
         serializer = self.get_serializer(data=request.data)
         if not serializer.is_valid(raise_exception=False):
             msg = serializer_error_msg(serializer.errors)
-            raise exceptions.BadRequest(msg)
+            return self.exception_response(exceptions.BadRequest(msg))
 
         data = serializer.validated_data
         try:
@@ -287,12 +287,80 @@ class AdminOrgDataCenterViewSet(NormalGenericViewSet):
             odc = OrgDataCenterManager.get_odc(odc_id=kwargs[self.lookup_field])
             if not self.has_perm_of_odc(odc=odc, user=request.user):
                 raise exceptions.AccessDenied(message=_('您没有此数据中心的访问权限'))
-
         except exceptions.Error as exc:
-            return Response(data=exc.err_data(), status=exc.status_code)
+            return self.exception_response(exc)
 
         data = self.get_serializer(instance=odc).data
         return Response(data=data)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('联邦管理员为数据中心添加管理员'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ''''''
+        }
+    )
+    @action(methods=['POST'], detail=True, url_path='add/admin', url_name='add-admin')
+    def add_admin_for_odc(self, request, *args, **kwargs):
+        """
+        联邦管理员为数据中心添加管理员
+
+            http code 200
+                {
+                  "id": "5563vam9q6e7tz9fw3kij5p51",
+                  "name": "测试1",
+                  "name_en": "test1",
+                  "organization":{
+                      "id": "skki2uhd4jyg47shvmh0uyo4h",
+                      "name": "测试1",
+                      "name_en": "xxx"
+                    },
+                  "longitude": 0,
+                  "latitude": 0,
+                  "sort_weight": 0,
+                  "remark": "",
+                  "thanos_endpoint_url": "",
+                  "thanos_username": "",
+                  "thanos_password": "",
+                  "thanos_receive_url": "",
+                  "thanos_remark": "",
+                  "loki_endpoint_url": "",
+                  "loki_username": "",
+                  "loki_password": "",
+                  "loki_receive_url": "",
+                  "loki_remark": "xxxxx",
+                  "users": [
+                    {
+                        "id": "xxx",
+                        "username": "xxx"
+                    }
+                  ]
+                }
+
+                http code 400, 401, 404：
+                {
+                    "code": "BadRequest",
+                    "message": ""
+                }
+        """
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid(raise_exception=False):
+            msg = serializer_error_msg(serializer.errors)
+            return self.exception_response(exceptions.BadRequest(msg))
+
+        usernames = serializer.validated_data['usernames']
+
+        try:
+            if not request.user.is_federal_admin():
+                raise exceptions.AccessDenied(message=_('您没有创建数据中心的权限'))
+
+            odc = OrgDataCenterManager.get_odc(odc_id=kwargs[self.lookup_field])
+            odc = OrgDataCenterManager.add_admins_for_odc(odc=odc, usernames=usernames)
+        except exceptions.Error as exc:
+            return self.exception_response(exc)
+
+        return Response(data=dcserializers.OrgDataCenterDetailSerializer(odc).data)
 
     @staticmethod
     def validate_org_id(org_id: str):
@@ -308,6 +376,8 @@ class AdminOrgDataCenterViewSet(NormalGenericViewSet):
             return dcserializers.OrgDataCenterDetailSerializer
         elif self.action in ['create', 'update']:
             return dcserializers.OrgDataCenterCreateSerializer
+        elif self.action in ['add_admin_for_odc', 'remove_admin_from_odc']:
+            return dcserializers.UsernamesBodySerializer
 
         return Serializer
 

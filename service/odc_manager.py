@@ -3,6 +3,7 @@ from typing import Union
 from django.utils.translation import gettext as _
 from django.db.models import Q
 
+from users.models import UserProfile
 from service.models import OrgDataCenter, DataCenter as Organization
 from core import errors
 
@@ -146,3 +147,27 @@ class OrgDataCenterManager:
     def get_odc_queryset(org_id: str, search: str):
         queryset = OrgDataCenter.objects.select_related('organization').order_by('creation_time')
         return OrgDataCenterManager.filter_queryset(queryset=queryset, org_id=org_id, search=search)
+
+    @staticmethod
+    def add_admins_for_odc(odc: OrgDataCenter, usernames: list):
+        if not usernames:
+            return odc
+
+        username_set = set(usernames)
+        if len(username_set) != len(usernames):
+            raise errors.InvalidArgument(message=_('提交的用户名列表中存在重复的用户名'))
+
+        usernames = list(username_set)
+        if len(usernames) == 1:
+            users = UserProfile.objects.filter(username=usernames[0])
+        else:
+            users = UserProfile.objects.filter(username__in=usernames)
+
+        users = list(users)
+        if len(users) != len(username_set):
+            exists_usernames_set = {u.username for u in users}
+            not_exists_usernames = username_set.difference(exists_usernames_set)
+            raise errors.InvalidArgument(message=_('指定的用户不存在：') + '' + '、'.join(not_exists_usernames))
+
+        odc.users.add(*users)    # 底层不会重复添加已存在的用户
+        return odc

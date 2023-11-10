@@ -87,3 +87,8 @@ class OrgDataCenterCreateSerializer(serializers.Serializer):
         label=_('Loki服务接收接口'), max_length=255, required=False, allow_blank=True, default='')
     loki_remark = serializers.CharField(
         label=_('Loki服务备注'), max_length=255, required=False, allow_blank=True, default='')
+
+
+class UsernamesBodySerializer(serializers.Serializer):
+    usernames = serializers.ListField(
+        label=_('用户名'), max_length=1024, required=True, allow_null=False, allow_empty=False)
