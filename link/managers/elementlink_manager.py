@@ -4,9 +4,11 @@ from core import errors
 from django.db.models import Case, When
 
 class ElementLinkManager:
+    @staticmethod
     def get_queryset():
         return ElementLink.objects.exclude(link_status=ElementLink.LinkStatus.DELETED)
 
+    @staticmethod
     def get_elementlink(id: str):
         """
         :raises: LeaseLineNotExist
@@ -16,20 +18,24 @@ class ElementLinkManager:
             raise errors.TargetNotExist(message=_('租用线路不存在'), code='ElementLinkNotExist')
         return elementlink
 
+    @staticmethod
     def get_element_ids_by_element_list(element_list: list) -> str:
         """通过网元列表获得网元id序列字符串"""
         return ','.join([element.id for element in element_list])
 
+    @staticmethod
     def get_element_list_by_element_ids(element_ids: str) -> list:
         """通过网元id序列字符串获得网元列表"""
         element_id_list = element_ids.split(',')
         preserved = Case(*[When(pk=pk, then=pos) for pos, pk in enumerate(element_id_list)])
         return list(Element.objects.filter(id__in=element_id_list).order_by(preserved))
 
+    @staticmethod
     def _generate_default_number():
         # todo generate number
         pass
 
+    @staticmethod
     def create_elementlink(
             id_list: list,
             remarks: str,
@@ -54,6 +60,7 @@ class ElementLinkManager:
         elementlink.save()
         return elementlink
 
+    @staticmethod
     def filter_queryset(task_id: str = None):
         qs = ElementLinkManager.get_queryset()
         if task_id is not None:

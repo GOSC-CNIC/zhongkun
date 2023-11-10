@@ -18,6 +18,7 @@ class LinkOrgManager:
             raise errors.TargetNotExist(message=_('二级机构不存在'), code='LinkOrgNotExist')
         return linkorg
 
+    @staticmethod
     def create_linkorg(
         data_center: DataCenter,
         name: str,

@@ -6,6 +6,7 @@ from core import errors
 from link.utils.verify_utils import VerifyUtils
 
 class OpticalFiberHandler:
+    @staticmethod
     def list_opticalfiber(view: NormalGenericViewSet, request):
         ur_wrapper = UserRoleWrapper(user=request.user)
         if not ur_wrapper.has_read_permission():
@@ -24,6 +25,7 @@ class OpticalFiberHandler:
         except errors.Error as exc:
             return view.exception_response(exc)
 
+    @staticmethod
     def _list_validate_params(request):
         is_linked = request.query_params.get('is_linked', None)
         fiber_cable_id = request.query_params.get('cable_id', None)

@@ -17,7 +17,7 @@ from link.viewsets import (
     leaseline_views, fibercable_views, distriframe_views,
     connectorbox_views, task_views, elementlink_views,
     opticalfiber_views, distriframeport_views, linkorg_views,
-    linkuserrole_views
+    linkuserrole_views, element_views
     )
 
 app_name = 'api'
@@ -130,6 +130,7 @@ no_slash_router.register(r'link/opticalfiber', opticalfiber_views.OpticalFiberVi
 no_slash_router.register(r'link/distriframeport', distriframeport_views.DistriFramePortViewSet, basename='link-distriframeport')
 no_slash_router.register(r'link/linkorg', linkorg_views.linkOrgViewSet, basename='link-linkorg')
 no_slash_router.register(r'link/user/role', linkuserrole_views.LinkUserRoleViewSet, basename='link-userrole')
+no_slash_router.register(r'link/element', element_views.ElementViewSet, basename='link-element')
 
 urlpatterns = [
     path('', include(no_slash_router.urls)),

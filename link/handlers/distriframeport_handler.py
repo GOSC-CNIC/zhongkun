@@ -6,6 +6,7 @@ from core import errors
 from link.utils.verify_utils import VerifyUtils
 
 class DistriFramePortHandler:
+    @staticmethod
     def list_distriframeport(view: NormalGenericViewSet, request):
         ur_wrapper = UserRoleWrapper(user=request.user)
         if not ur_wrapper.has_read_permission():
@@ -24,6 +25,7 @@ class DistriFramePortHandler:
         except errors.Error as exc:
             return view.exception_response(exc)
 
+    @staticmethod
     def _list_validate_params(request):
         is_linked = request.query_params.get('is_linked', None)
         distribution_frame_id = request.query_params.get('frame_id', None)

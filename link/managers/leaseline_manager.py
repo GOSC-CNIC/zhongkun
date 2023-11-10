@@ -9,9 +9,11 @@ from django.db import transaction
 
 
 class LeaseLineManager:
+    @staticmethod
     def get_queryset():
         return LeaseLine.objects.all()
 
+    @staticmethod
     def get_leaseline(id: str):
         """
         :raises: LeaseLineNotExist
@@ -21,6 +23,7 @@ class LeaseLineManager:
             raise errors.TargetNotExist(message=_('租用线路不存在'), code='LeaseLineNotExist')
         return leaseline
 
+    @staticmethod
     def create_leaseline(
             private_line_number: str,
             lease_line_code: str,
@@ -63,6 +66,7 @@ class LeaseLineManager:
             leaseline.save(force_insert=True)
         return leaseline
 
+    @staticmethod
     def update_leaseline(
             leaseline: LeaseLine,
             private_line_number: str,
@@ -97,6 +101,7 @@ class LeaseLineManager:
         leaseline.save(force_update=True)
         return leaseline
 
+    @staticmethod
     def filter_queryset(
         is_linked: bool = None, is_whithdrawal: bool = None,  search: str = None,
         enable_date_start: date = None, enable_date_end: date = None):

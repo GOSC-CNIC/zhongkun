@@ -7,9 +7,11 @@ from django.db import transaction
 
 
 class FiberCableManager:
+    @staticmethod
     def get_queryset():
         return FiberCable.objects.all()
 
+    @staticmethod
     def get_fibercable(id: str):
         """
         :raises: FiberCableNotExist
@@ -19,6 +21,7 @@ class FiberCableManager:
             raise errors.TargetNotExist(message=_('光缆不存在'), code='FiberCableNotExist')
         return fibercable
 
+    @staticmethod
     def create_fibercable(
             number: str,
             fiber_count: int,
@@ -44,6 +47,7 @@ class FiberCableManager:
 
         return fibercable
 
+    @staticmethod
     def filter_queryset(search: str = None):
         qs = FiberCableManager.get_queryset()
         if qs is not None and search is not None:
@@ -52,6 +56,7 @@ class FiberCableManager:
             qs = qs.filter(q)
         return qs
 
+    @staticmethod
     def get_opticalfiber_queryset(fibercable: FiberCable):
         if fibercable is not None:
             return fibercable.fibercable_opticalfiber.all()

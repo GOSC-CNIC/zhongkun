@@ -4,9 +4,11 @@ from core import errors
 from link.managers.element_manager import ElementManager
 
 class DistriFramePortManager:
+    @staticmethod
     def get_queryset():
         return DistriFramePort.objects.all()
 
+    @staticmethod
     def get_distriframeport(id: str):
         """
         :raises: DistriFramePortNotExist
@@ -16,6 +18,7 @@ class DistriFramePortManager:
             raise errors.TargetNotExist(message=_('配线架端口不存在'), code='DistriFramePortNotExist')
         return distriframeport
     
+    @staticmethod
     def _generate_default_distriframe_port_number(
         row: int,
         col: int,
@@ -24,6 +27,7 @@ class DistriFramePortManager:
         return "{distriframe_number}({row},{col})".format(
             distriframe_number=distriframe.number, row=row, col=col)
 
+    @staticmethod
     def create_distriframe_port(
         row: int,
         col: int,
@@ -42,6 +46,7 @@ class DistriFramePortManager:
         )
         distriframe_port.save(force_insert=True)
 
+    @staticmethod
     def filter_queryset(is_linked:bool = None, distribution_frame_id:str = None):
         qs = DistriFramePortManager.get_queryset()
         if distribution_frame_id is not None:

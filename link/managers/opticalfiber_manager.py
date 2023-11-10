@@ -5,9 +5,11 @@ from link.managers.element_manager import ElementManager
 # from link.managers.fibercable_manager import FiberCableManager
 
 class OpticalFiberManager:
+    @staticmethod
     def get_queryset():
         return OpticalFiber.objects.all()
 
+    @staticmethod
     def get_opticalfiber(id: str):
         """
         :raises: OpticalFiberNotExist
@@ -17,6 +19,7 @@ class OpticalFiberManager:
             raise errors.TargetNotExist(message=_('光纤不存在'), code='OpticalFiberNotExist')
         return opticalfiber
 
+    @staticmethod
     def create_opticalfiber(
         sequence: int,
         fibercable: FiberCable
@@ -31,6 +34,7 @@ class OpticalFiberManager:
         )
         opticalfiber.save(force_insert=True)
 
+    @staticmethod
     def filter_queryset(is_linked: bool = None, fiber_cable_id: str = None):
         qs = OpticalFiberManager.get_queryset()
         if fiber_cable_id is not None:

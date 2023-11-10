@@ -22,7 +22,7 @@ class DistriFrameHandler:
             return view.get_paginated_response(serializer.data)
         except errors.Error as exc:
             return view.exception_response(exc)
-
+    
     @staticmethod
     def _list_validate_params(request):
         pass

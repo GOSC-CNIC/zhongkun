@@ -5,10 +5,11 @@ from link.managers.element_manager import ElementManager, ElementLink
 from django.db import transaction
 
 class ConnectorBoxManager:
-
+    @staticmethod
     def get_queryset():
         return ConnectorBox.objects.all()
 
+    @staticmethod
     def get_connectorbox(id: str):
         """
         :raises: ConnectorBoxNotExist
@@ -18,6 +19,7 @@ class ConnectorBoxManager:
             raise errors.TargetNotExist(message=_('光缆熔纤包不存在'), code='ConnectorBoxNotExist')
         return connectorbox
 
+    @staticmethod
     def create_connectorbox(
             number: str,
             place: str,
@@ -38,6 +40,7 @@ class ConnectorBoxManager:
             connectorbox.save(force_insert=True)
         return connectorbox
 
+    @staticmethod
     def filter_queryset(is_linked: bool = None):
         qs = ConnectorBoxManager.get_queryset()
         if is_linked is not None:

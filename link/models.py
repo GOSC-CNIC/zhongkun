@@ -106,9 +106,9 @@ class Element(UuidModel):
     class ApiType(models.TextChoices):
         """API网元类型"""
         OPTICAL_FIBER = 'fiber'
-        LEASE_LINE = 'port'
-        DISTRIFRAME_PORT = 'box'
-        CONNECTOR_BOX = 'lease'
+        LEASE_LINE = 'lease'
+        DISTRIFRAME_PORT = 'port'
+        CONNECTOR_BOX = 'box'
 
     object_type = models.CharField(verbose_name=_('网元对象类型'), max_length=32, choices=Type.choices)
     object_id = models.CharField(verbose_name=_('网元对象id'), max_length=36, db_index=True)
@@ -124,11 +124,12 @@ class Element(UuidModel):
     def __str__(self):
         return self.object_type + ':' + self.object_id
 
+    @staticmethod
     def get_api_type(t : Type) -> ApiType:
         if t == Element.Type.OPTICAL_FIBER:
             return Element.ApiType.OPTICAL_FIBER
         elif t == Element.Type.CONNECTOR_BOX:
-            return Element.ApiType.OPTICAL_FIBER
+            return Element.ApiType.CONNECTOR_BOX
         if t == Element.Type.DISTRIFRAME_PORT:
             return Element.ApiType.DISTRIFRAME_PORT
         elif t == Element.Type.LEASE_LINE:
@@ -304,10 +305,12 @@ class ElementLink(UuidModel):
     def element_id_list(self):
         return self.element_ids.split(',')
 
+    @staticmethod
     def get_element_ids_by_id_list(id_list: list) -> str:
         """通过网元id列表获得网元id序列字符串"""
         return ','.join(id_list)
 
+    @staticmethod
     def get_linked_element_id_list() -> set:
         """获取所有接入链路的网元id"""
         from link.managers.elementlink_manager import ElementLinkManager

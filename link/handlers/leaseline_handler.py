@@ -11,6 +11,7 @@ from link.utils.verify_utils import VerifyUtils
 
 
 class LeaseLineHandler:
+    @staticmethod
     def creat_leaseline(view: NormalGenericViewSet, request):
         ur_wrapper = UserRoleWrapper(user=request.user)
         if not ur_wrapper.has_write_permission():
@@ -38,6 +39,7 @@ class LeaseLineHandler:
         )
         return Response(data=LeaseLineSerializer(instance=leaseline).data)
 
+    @staticmethod
     def _create_validate_params(view: NormalGenericViewSet, request):
         """
         :raises: Error
@@ -50,6 +52,7 @@ class LeaseLineHandler:
         data = serializer.validated_data
         return data
 
+    @staticmethod
     def update_leaseline(view: NormalGenericViewSet, request, kwargs):
         ur_wrapper = UserRoleWrapper(user=request.user)
         if not ur_wrapper.has_write_permission():
@@ -79,6 +82,7 @@ class LeaseLineHandler:
         )
         return Response(data=LeaseLineSerializer(instance=leaseline).data)
 
+    @staticmethod
     def list_leaseline(view: NormalGenericViewSet, request):
         ur_wrapper = UserRoleWrapper(user=request.user)
         if not ur_wrapper.has_read_permission():
@@ -98,6 +102,7 @@ class LeaseLineHandler:
         except errors.Error as exc:
             return view.exception_response(exc)
 
+    @staticmethod
     def _list_validate_params(request):
         is_linked = request.query_params.get('is_linked', None)
         is_whithdrawal = request.query_params.get('is_whithdrawal', None)
@@ -142,6 +147,7 @@ class LeaseLineHandler:
             'enable_date_end':  enable_date_end
         }
 
+    @staticmethod
     def retrieve_leaseline(view: NormalGenericViewSet, request, kwargs):
         ur_wrapper = UserRoleWrapper(user=request.user)
         if not ur_wrapper.has_read_permission():
