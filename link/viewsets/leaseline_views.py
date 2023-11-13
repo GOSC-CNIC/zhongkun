@@ -178,7 +178,7 @@ class LeaseLineViewSet(NormalGenericViewSet):
                     "endpoint_z": "新疆省乌鲁木齐市北京南路40号",
                     "line_type": "骨干网", # 线路类型
                     "cable_type": "MSTP电路", # 电路类型
-                    "bandwidth": 1000, # 宽带（Mbs）
+                    "bandwidth": 1000, # 宽带（Mbps）
                     "length": 20.00, # 长度 （km）
                     "provider": "联通（北京）", # 运营商
                     "enable_date": "2014-07-01", # 启用日期

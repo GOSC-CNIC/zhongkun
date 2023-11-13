@@ -8,7 +8,7 @@ from api.handlers.handlers import serializer_error_msg
 from rest_framework.response import Response
 from link.serializers.fibercable_serializer import FiberCableSerializer
 from link.utils.verify_utils import VerifyUtils
-
+from link.serializers.fibercable_serializer import FiberCableSerializer
 
 class FiberCableHandler:
     @staticmethod
@@ -100,3 +100,17 @@ class FiberCableHandler:
         return {
             'search': search
         }
+
+    @staticmethod
+    def retrieve_fibercable(view: NormalGenericViewSet, request, kwargs):
+        ur_wrapper = UserRoleWrapper(user=request.user)
+        if not ur_wrapper.has_read_permission():
+            return view.exception_response(errors.AccessDenied(message=_('你没有科技网链路管理功能的可读权限')))
+        id = kwargs[view.lookup_field]
+        if VerifyUtils.is_blank_string(id):
+            return view.exception_response(errors.InvalidArgument(message=_('无效id')))
+        try:
+            fibercable = FiberCableManager.get_fibercable(id=id)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+        return Response(data=FiberCableSerializer(instance=fibercable).data)

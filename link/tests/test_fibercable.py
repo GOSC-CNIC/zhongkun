@@ -142,6 +142,52 @@ class FiberCableTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['page_size'], 20)
         self.assertEqual(len(response.data['results']), 0)
 
+    def test_retrieve_fibercable(self):
+        fibercable = FiberCableManager.create_fibercable(
+            number='SM-test',
+            fiber_count=30,
+            length=30.5,
+            endpoint_1='软件园',
+            endpoint_2='古脊椎',
+            remarks='test-remark'
+        )
+        # user role
+        base_url = reverse('api:link-fibercable-detail',
+                           kwargs={'id': fibercable.id})
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 401)
+        self.client.force_login(self.user1)
+        response = self.client.get(base_url)
+        self.assertErrorResponse(
+            status_code=403, code='AccessDenied', response=response)
+        self.client.force_login(self.user2)
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.client.force_login(self.user3)
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+
+        # Invalid id
+        base_url = reverse('api:link-fibercable-detail', kwargs={'id': '  '})
+        response = self.client.get(base_url)
+        self.assertErrorResponse(
+            status_code=400, code='InvalidArgument', response=response)
+
+        # element not exist
+        base_url = reverse('api:link-fibercable-detail', kwargs={'id': 'asd'})
+        response = self.client.get(base_url)
+        self.assertErrorResponse(
+            status_code=404, code='FiberCableNotExist', response=response)
+
+        # data
+        base_url = reverse('api:link-fibercable-detail',
+                           kwargs={'id': fibercable.id})
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn([
+            'id', 'number', 'fiber_count', 'length', 'endpoint_1', 'endpoint_2', 'remarks'
+        ], response.data)
+        self.assertEqual(response.data['id'], fibercable.id)
     # def test_list_opticalfiber(self):
     #     fibercable1 = FiberCableManager.create_fibercable(
     #         number='SM-test',

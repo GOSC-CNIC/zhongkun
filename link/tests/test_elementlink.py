@@ -19,7 +19,10 @@ class ElementLinkTests(MyAPITransactionTestCase):
         urole.save(force_insert=True)
         urole = LinkUserRole(user=self.user3, is_admin=True, is_readonly=False)
         urole.save(force_insert=True)
-        self.task = TaskManager.create_task(
+
+
+    def test_list_elementlink(self):
+        task = TaskManager.create_task(
             number='YW2023101001',
             user='广东空天科技研究院（简称广天院）',
             endpoint_a='广东省广州市南沙区万新大道与横一路交叉口东80米，广东空天科技研究院科研楼机房，张钧魁13233579691',
@@ -63,15 +66,14 @@ class ElementLinkTests(MyAPITransactionTestCase):
             money=300.20,
             remarks=''
         )
-        ElementLinkManager.create_elementlink(
+        elementlink1 = ElementLinkManager.create_elementlink(
             id_list=[leaseline1.element.id, leaseline2.element.id],
             remarks='test',
             link_status=ElementLink.LinkStatus.IDLE,
-            task=self.task,
+            task=task,
             number='test_number'
         )
-
-    def test_list_elementlink(self):
+    
         # user role 
         base_url = reverse('api:link-elementlink-list')
         response = self.client.get(base_url)
@@ -123,7 +125,97 @@ class ElementLinkTests(MyAPITransactionTestCase):
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 0)
-        query = parse.urlencode(query={'task_id': self.task.id})
+        query = parse.urlencode(query={'task_id': task.id})
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data['results']), 1)
+
+        # query "link_status"
+        elementlink2 = ElementLinkManager.create_elementlink(
+            id_list=[leaseline1.element.id, leaseline2.element.id],
+            remarks='test',
+            link_status=ElementLink.LinkStatus.IDLE,
+            task=task,
+            number='test_number'
+        )
+        elementlink3 = ElementLinkManager.create_elementlink(
+            id_list=[leaseline1.element.id, leaseline2.element.id],
+            remarks='test',
+            link_status=ElementLink.LinkStatus.DELETED,
+            task=task,
+            number='test_number'
+        )
+        query = parse.urlencode(query={'link_status': 'abc'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 400)
+        query1 = parse.urlencode(query={'link_status': ElementLink.LinkStatus.DELETED})
+        query2 = parse.urlencode(query={'link_status': ElementLink.LinkStatus.USING})
+        response = self.client.get(f'{base_url}?{query1}&{query2}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['link_status'], ElementLink.LinkStatus.DELETED)
+        query = parse.urlencode(query={'link_status': ElementLink.LinkStatus.USING})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['results']), 0)
+
+    def test_retrieve_elementlink(self):
+        task1 = TaskManager.create_task(
+            number='KY23092702',
+            user='空天院-中国遥感卫星地面站',
+            endpoint_a='空天院新技术园区B座A301机房，王萌13811835852',
+            endpoint_z='海淀区后厂村路55号北京气象卫星地面站，球形建筑，1层机房，林茂伟13810802009，光缆施工联系闫振宇 13811904589',
+            bandwidth=None,
+            task_description='中国遥感卫星地面站至中国资源卫星应用中心高分项目专线（裸纤）',
+            line_type='科技云科技专线',
+            task_person='周建虎',
+            build_person='胡亮亮、王振伟',
+            task_status=Task.TaskStatus.NORMAL
+        )
+        elementlink = ElementLinkManager.create_elementlink(
+            id_list=[],
+            remarks='test',
+            link_status=ElementLink.LinkStatus.IDLE,
+            task=task1,
+            number='test_number'
+        )
+        # user role
+        base_url = reverse('api:link-elementlink-detail',
+                           kwargs={'id': elementlink.id})
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 401)
+        self.client.force_login(self.user1)
+        response = self.client.get(base_url)
+        self.assertErrorResponse(
+            status_code=403, code='AccessDenied', response=response)
+        self.client.force_login(self.user2)
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.client.force_login(self.user3)
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+
+        # Invalid id
+        base_url = reverse('api:link-elementlink-detail', kwargs={'id': '  '})
+        response = self.client.get(base_url)
+        self.assertErrorResponse(
+            status_code=400, code='InvalidArgument', response=response)
+
+        # element not exist
+        base_url = reverse('api:link-elementlink-detail', kwargs={'id': 'asd'})
+        response = self.client.get(base_url)
+        self.assertErrorResponse(
+            status_code=404, code='ElementLinkNotExist', response=response)
+
+        # data
+        base_url = reverse('api:link-elementlink-detail',
+                           kwargs={'id': elementlink.id})
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn([
+            'id', 'number', 'remarks', 'link_status', 'task', 'element_id_list'
+        ], response.data)
+        self.assertKeysIn([
+            'id', 'number', 'user'
+        ], response.data['task'])
+        self.assertEqual(response.data['id'], elementlink.id)

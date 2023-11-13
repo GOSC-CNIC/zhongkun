@@ -78,6 +78,29 @@ class FiberCableViewSet(NormalGenericViewSet):
         """
         return FiberCableHandler.list_fibercable(view=self, request=request)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询一个光缆'),
+        responses={
+            200: ''
+        }
+    )
+    def retrieve(self, request, *args, **kwargs):
+        """
+        查询一个光缆
+
+            http Code 200 Ok:
+                {
+                    "id": "k9rkav5ffd8jnijbpk8yjiegc",
+                    "number": "sm-test", # 光缆编号
+                    "fiber_count": 10,  纤芯数
+                    "length": "10.60", # 长度（km）
+                    "endpoint_1": "微生物所",  # 光缆端点1
+                    "endpoint_2": "软件园",  # 光缆端点2
+                    "remarks": "" # 备注
+                }
+        """
+        return FiberCableHandler.retrieve_fibercable(view=self, request=request, kwargs=kwargs)
+
     # @swagger_auto_schema(
     #     operation_summary=gettext_lazy('列举光缆的光纤详情'),
     #     responses={

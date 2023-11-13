@@ -314,7 +314,7 @@ class ElementLink(UuidModel):
     def get_linked_element_id_list() -> set:
         """获取所有接入链路的网元id"""
         from link.managers.elementlink_manager import ElementLinkManager
-        queryset = ElementLinkManager.get_queryset()
+        queryset = ElementLinkManager.get_normal_queryset()
         s = set()
         for elementlink in queryset:
             for element_id in elementlink.element_id_list():

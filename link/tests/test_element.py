@@ -60,33 +60,36 @@ class TaskTests(MyAPITransactionTestCase):
 
     def test_retrieve_element(self):
         # user role 
-        base_url = '/api/link/element/'
         fiber_element_id = OpticalFiber.objects.first().element.id
         port_element_id = DistriFramePort.objects.first().element.id
         box_element_id = ConnectorBox.objects.first().element.id
         lease_element_id = LeaseLine.objects.first().element.id
-        response = self.client.get(base_url + fiber_element_id)
+        base_url = reverse('api:link-element-detail',kwargs={'id': fiber_element_id})
+        response = self.client.get(base_url)
         self.assertEqual(response.status_code, 401)
         self.client.force_login(self.user1)
-        response = self.client.get(base_url + fiber_element_id)
+        response = self.client.get(base_url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
         self.client.force_login(self.user2)
-        response = self.client.get(base_url + fiber_element_id)
+        response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.client.force_login(self.user3)
-        response = self.client.get(base_url + fiber_element_id)
+        response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
 
         # Invalid id
-        response = self.client.get(base_url + '  ')
+        base_url = reverse('api:link-element-detail',kwargs={'id': '  '})
+        response = self.client.get(base_url)
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
 
         # element not exist
-        response = self.client.get(base_url + '123')
+        base_url = reverse('api:link-element-detail', kwargs={'id': '123'})
+        response = self.client.get(base_url)
         self.assertErrorResponse(status_code=404, code='ElementNotExist', response=response)
 
         # fiber
-        response = self.client.get(base_url + fiber_element_id)
+        base_url = reverse('api:link-element-detail',kwargs={'id': fiber_element_id})
+        response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn([
             'type', 'fiber', 'lease', 'port', 'box'
@@ -104,7 +107,8 @@ class TaskTests(MyAPITransactionTestCase):
         self.assertEqual(None, response.data['box'])
 
         # lease
-        response = self.client.get(base_url + lease_element_id)
+        base_url = reverse('api:link-element-detail',kwargs={'id': lease_element_id})
+        response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['type'], Element.ApiType.LEASE_LINE)
         self.assertKeysIn([
@@ -119,7 +123,8 @@ class TaskTests(MyAPITransactionTestCase):
         self.assertEqual(None, response.data['box'])
 
         # port
-        response = self.client.get(base_url + port_element_id)
+        base_url = reverse('api:link-element-detail',kwargs={'id': port_element_id})
+        response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['type'], Element.ApiType.DISTRIFRAME_PORT)
         self.assertKeysIn([
@@ -134,7 +139,8 @@ class TaskTests(MyAPITransactionTestCase):
         self.assertEqual(None, response.data['box'])
 
         # box
-        response = self.client.get(base_url + box_element_id)
+        base_url = reverse('api:link-element-detail',kwargs={'id': box_element_id})
+        response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['type'], Element.ApiType.CONNECTOR_BOX)
         self.assertKeysIn([

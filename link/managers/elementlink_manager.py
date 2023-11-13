@@ -6,12 +6,16 @@ from django.db.models import Case, When
 class ElementLinkManager:
     @staticmethod
     def get_queryset():
-        return ElementLink.objects.exclude(link_status=ElementLink.LinkStatus.DELETED)
+        return ElementLink.objects.all()
+
+    @staticmethod
+    def get_normal_queryset():
+        return ElementLinkManager.get_queryset().exclude(link_status=ElementLink.LinkStatus.DELETED)
 
     @staticmethod
     def get_elementlink(id: str):
         """
-        :raises: LeaseLineNotExist
+        :raises: ElementLinkNotExist
         """
         elementlink = ElementLinkManager.get_queryset().filter(id=id).first()
         if elementlink is None:
@@ -61,9 +65,12 @@ class ElementLinkManager:
         return elementlink
 
     @staticmethod
-    def filter_queryset(task_id: str = None):
+    def filter_queryset(task_id: str = None, link_status: list = None):
         qs = ElementLinkManager.get_queryset()
         if task_id is not None:
             qs = qs.filter(task_id=task_id)
 
+        if link_status is not None:
+            qs = qs.filter(link_status__in=link_status)
+            
         return qs

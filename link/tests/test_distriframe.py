@@ -16,6 +16,8 @@ class DistriFrameTests(MyAPITransactionTestCase):
         urole.save(force_insert=True)
         urole = LinkUserRole(user=self.user3, is_admin=True, is_readonly=False)
         urole.save(force_insert=True)
+    
+    def test_list_distriframe(self):
         org1 = DataCenter(name='org1', name_en='org1 en')
         org1.save(force_insert=True)
         linkorg1 = LinkOrgManager.create_linkorg(
@@ -48,8 +50,7 @@ class DistriFrameTests(MyAPITransactionTestCase):
             remarks='',
             link_org=linkorg2
         )
-    
-    def test_list_distriframe(self):
+
         # user role 
         base_url = reverse('api:link-distributionframe-list')
         response = self.client.get(base_url)
@@ -97,3 +98,58 @@ class DistriFrameTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['page_num'], 2)
         self.assertEqual(response.data['page_size'], 1)
         self.assertEqual(len(response.data['results']), 1)
+
+    def test_retrieve_distriframe(self):
+        org1 = DataCenter(name='org1', name_en='org1 en')
+        org1.save(force_insert=True)
+        linkorg1 = LinkOrgManager.create_linkorg(
+            data_center=org1,
+            name='铁科院',
+            remarks='',
+            location=''
+        )
+        distriframe = DistriFrameManager.create_distriframe(
+            number='test_distriframe_number2',
+            model_type='sc',
+            row_count=6,
+            col_count=12,
+            place='位于农科院信息所网络中心机房F4机柜，普天72芯一体化机框',
+            remarks='',
+            link_org=linkorg1
+        )
+        # user role
+        base_url = reverse('api:link-distributionframe-detail',kwargs={'id': distriframe.id})
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 401)
+        self.client.force_login(self.user1)
+        response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+        self.client.force_login(self.user2)
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.client.force_login(self.user3)
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+
+        # Invalid id
+        base_url = reverse('api:link-distributionframe-detail', kwargs={'id': '  '})
+        response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # element not exist
+        base_url = reverse('api:link-distributionframe-detail', kwargs={'id': 'asd'})
+        response = self.client.get(base_url)
+        self.assertErrorResponse(
+            status_code=404, code='DistributionFrameNotExist', response=response)
+
+        # data
+        base_url = reverse('api:link-distributionframe-detail',kwargs={'id': distriframe.id})
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn([
+            'id', 'number', 'model_type', 'row_count', 'col_count', 'place', 'remarks', 'link_org'
+        ], response.data)
+        self.assertKeysIn([
+            'id', 'name'
+        ], response.data['link_org'])
+        self.assertEqual(response.data['id'], distriframe.id)

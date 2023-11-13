@@ -9,6 +9,10 @@ class TaskManager:
         return Task.objects.all()
 
     @staticmethod
+    def get_normal_queryset():
+        return TaskManager.get_queryset().exclude(task_status=Task.TaskStatus.DELETED)
+
+    @staticmethod
     def get_task(id: str):
         """
         :raises: TaskNotExist
@@ -46,3 +50,12 @@ class TaskManager:
             )
             task.save(force_insert=True)
         return task
+
+    @staticmethod
+    def filter_queryset(task_status: list = None):
+        qs = TaskManager.get_queryset()
+
+        if task_status is not None:
+            qs = qs.filter(task_status__in=task_status)
+
+        return qs
