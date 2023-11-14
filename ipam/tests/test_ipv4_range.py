@@ -698,7 +698,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         # mask_len 31 test
         nt = dj_timezone.now()
         ip_range3 = IPv4RangeManager.create_ipv4_range(
-            name='预留2', start_ip='159.0.2.100', end_ip='159.0.2.103', mask_len=28, asn=88,
+            name='预留2', start_ip='159.0.2.101', end_ip='159.0.2.103', mask_len=28, asn=88,
             create_time=nt, update_time=nt, status_code=IPv4Range.Status.RESERVED.value,
             org_virt_obj=virt_obj1, assigned_time=nt, admin_remark='admin remark2', remark='remark2'
         )
@@ -717,7 +717,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         self.assertEqual(IPv4RangeRecord.objects.count(), 3)
         self.assertEqual(IPv4Range.objects.count(), 9)
         ir1, ir2 = IPv4Range.objects.order_by('start_address')[7:9]
-        self.assertEqual(ir1.start_address, int(ipaddress.IPv4Address('159.0.2.100')))
+        self.assertEqual(ir1.start_address, int(ipaddress.IPv4Address('159.0.2.101')))
         self.assertEqual(ir1.end_address, int(ipaddress.IPv4Address('159.0.2.101')))
         self.assertEqual(ir1.mask_len, 31)
         self.assertEqual(ir2.start_address, int(ipaddress.IPv4Address('159.0.2.102')))

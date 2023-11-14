@@ -197,10 +197,10 @@ class IPv4Range(IPRangeBase):
 
         if self.start_address and self.end_address:
             # Check that the ending address is greater than the starting address
-            if not self.end_address > self.start_address:
+            if not self.end_address >= self.start_address:
                 raise ValidationError({
                     'end_address': _(
-                        "结束地址必须大于起始地址({start_address})"
+                        "结束地址必须大于等于起始地址({start_address})"
                     ).format(start_address=self.start_address_obj)
                 })
 
@@ -218,11 +218,13 @@ class IPv4Range(IPRangeBase):
                 )
 
             # 检查部分重叠的ranges
-            ids = [self.id]
+            ids = [self.id] if self.id else []
             if exclude_ids and self.id not in exclude_ids:
                 ids = ids + exclude_ids
 
-            if len(ids) == 1:
+            if len(ids) == 0:
+                exclude_lookup = {}
+            elif len(ids) == 1:
                 exclude_lookup = {'id': ids[0]}
             else:
                 exclude_lookup = {'id__in': ids}
