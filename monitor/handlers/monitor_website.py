@@ -600,7 +600,8 @@ class MonitorWebsiteHandler:
         {
             "total":100,
             "invalid":1,
-            "valid":99
+            "valid":99,
+            "invalid_urls": ["xxx"]
         }
         """
         valids = set()
@@ -623,7 +624,8 @@ class MonitorWebsiteHandler:
         return {
             "total": len(invalids) + len(valids),
             "invalid": len(invalids),
-            "valid": len(valids)
+            "valid": len(valids),
+            "invalid_urls": list(invalids)
         }
 
     @staticmethod

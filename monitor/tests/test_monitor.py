@@ -2313,12 +2313,16 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
         # ok
         r = self._status_query_response(detection_point_id='')
         self.assertEqual(r.status_code, 200)
-        self.assertKeysIn(['total', 'invalid', 'valid'], r.data)
+        self.assertKeysIn(['total', 'invalid', 'valid', 'invalid_urls'], r.data)
         self.assertEqual(r.data['total'], 1)
         self.assertEqual(r.data['invalid'] + r.data['valid'], 1)
+        self.assertIsInstance(r.data['invalid_urls'], list)
+        self.assertEqual(len(r.data['invalid_urls']), 0)
 
         r = self._status_query_response(detection_point_id=detection_point1.id)
         self.assertEqual(r.status_code, 200)
-        self.assertKeysIn(['total', 'invalid', 'valid'], r.data)
+        self.assertKeysIn(['total', 'invalid', 'valid', 'invalid_urls'], r.data)
         self.assertEqual(r.data['total'], 1)
         self.assertEqual(r.data['invalid'] + r.data['valid'], 1)
+        self.assertIsInstance(r.data['invalid_urls'], list)
+        self.assertEqual(len(r.data['invalid_urls']), 0)

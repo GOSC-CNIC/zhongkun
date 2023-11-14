@@ -944,7 +944,10 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
             {
               "total": 193,
               "invalid": 11,
-              "valid": 182
+              "valid": 182,
+              "invalid_urls": [
+                "https://test.cn"
+              ]
             }
 
             http code 409：
