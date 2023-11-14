@@ -3,7 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.serializers import Serializer
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from drf_yasg.utils import swagger_auto_schema
+from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
 from utils.paginators import NoPaginatorInspector
@@ -211,6 +211,73 @@ class IPv4RangeViewSet(NormalGenericViewSet):
                 AccessDenied: 你没有科技网IP管理功能的管理员权限
         """
         return IPv4RangeHandler().update_ipv4_range(view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('按掩码长度拆分IPv4地址段'),
+        request_body=no_body,
+        manual_parameters=[
+            openapi.Parameter(
+                name='new_prefix',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                required=True,
+                description=gettext_lazy('要拆分的掩码长度，1-31')
+            ),
+            openapi.Parameter(
+                name='fake',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_BOOLEAN,
+                required=False,
+                description=gettext_lazy('true(假装拆分，询问拆分规划)；其他值或不提交此参数（正常真实拆分地址段）')
+            ),
+        ],
+        responses={
+            200: ''''''
+        }
+    )
+    @action(methods=['POST'], detail=True, url_path='split', url_name='split')
+    def split_ip_range(self, request, *args, **kwargs):
+        """
+        按掩码长度拆分IPv4地址段，需要有科技网管理员权限
+
+            * 指定的 拆分的掩码长度（1-31） 要大于 被拆分IP地址段的掩码长度
+
+            http Code 200 Ok:
+                {
+                    "ip_ranges": [
+                      "id": "bz05x5wxa3y0viz1dn6k88hww",    # fake时为空字符串
+                      "name": "127.0.0.0/24",
+                      "status": "wait",
+                      "creation_time": "2023-10-26T08:33:56.047279Z",
+                      "update_time": "2023-10-26T08:33:56.047279Z",
+                      "assigned_time": null,
+                      "admin_remark": "test",
+                      "remark": "",
+                      "start_address": 2130706433,
+                      "end_address": 2130706687,
+                      "mask_len": 24,
+                      "asn": {
+                        "id": 5,
+                        "number": 65535
+                      },
+                      "org_virt_obj": null
+                    ]
+                }
+
+            Http Code 400, 403, 409, 500:
+                {
+                    "code": "BadRequest",
+                    "message": "xxxx"
+                }
+
+                可能的错误码：
+                400:
+                InvalidArgument: 参数无效
+
+                403:
+                AccessDenied: 你没有科技网IP管理功能的管理员权限
+        """
+        return IPv4RangeHandler().split_ipv4_range(view=self, request=request, kwargs=kwargs)
 
     def get_serializer_class(self):
         if self.action == 'list':

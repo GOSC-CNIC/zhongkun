@@ -25,6 +25,18 @@ class IPRangeItem(_IPRangeItem):
     pass
 
 
+_IPRangeItem = namedtuple('IPRangeItem', ['start', 'end', 'mask'])
+
+
+class IPRangeIntItem(_IPRangeItem):
+    """
+    start: int
+    end: int
+    mask: 24
+    """
+    pass
+
+
 def ipv4_int_to_str(ipv4: int):
     return str(ipaddress.IPv4Address(ipv4))
 
@@ -180,7 +192,7 @@ class IPv4Range(IPRangeBase):
         ip_net = f'{self.end_address_obj}/{self.mask_len}'
         return build_ipv4_network(ip_net=ip_net)
 
-    def clean(self):
+    def clean(self, exclude_ids: list = None):
         super().clean()
 
         if self.start_address and self.end_address:
@@ -206,7 +218,16 @@ class IPv4Range(IPRangeBase):
                 )
 
             # 检查部分重叠的ranges
-            overlapping_range = IPv4Range.objects.exclude(pk=self.pk).filter(
+            ids = [self.id]
+            if exclude_ids and self.id not in exclude_ids:
+                ids = ids + exclude_ids
+
+            if len(ids) == 1:
+                exclude_lookup = {'id': ids[0]}
+            else:
+                exclude_lookup = {'id__in': ids}
+
+            overlapping_range = IPv4Range.objects.exclude(**exclude_lookup).filter(
                 Q(start_address__gte=self.start_address, start_address__lte=self.end_address) |  # 已存在start在新ip段内部
                 Q(end_address__gte=self.start_address, end_address__lte=self.end_address) |  # 已存在end在新ip段内部
                 Q(start_address__lte=self.start_address, end_address__gte=self.end_address)  # start和end在新ip段外部

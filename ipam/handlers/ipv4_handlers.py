@@ -170,3 +170,39 @@ class IPv4RangeHandler:
             return view.exception_response(errors.InvalidArgument(message=exc.message))
 
         return Response(data=serializers.IPv4RangeSerializer(instance=ipv4_range).data)
+
+    @staticmethod
+    def split_ipv4_range(view: NormalGenericViewSet, request, kwargs):
+        new_prefix = request.query_params.get('new_prefix')
+        fake = request.query_params.get('fake')
+
+        if not new_prefix:
+            return view.exception_response(errors.InvalidArgument(message=_('必须指定拆分掩码长度')))
+        try:
+            new_prefix = int(new_prefix)
+            if not (1 <= new_prefix < 32):
+                raise ValueError
+        except ValueError:
+            return view.exception_response(
+                errors.InvalidArgument(message=_('掩码长度可选的有效值为1-31，并且必须大于要拆分的IP地址段的掩码长度。')))
+
+        if fake and fake.lower() == 'true':
+            fake = True
+        else:
+            fake = False
+
+        ur_wrapper = UserIpamRoleWrapper(user=request.user)
+        if not ur_wrapper.has_kjw_admin_writable():
+            return view.exception_response(
+                errors.AccessDenied(message=_('你没有科技网IP管理功能的管理员权限')))
+
+        try:
+            sub_ranges = IPv4RangeManager.split_ipv4_range_by_mask(
+                user=request.user, range_id=kwargs[view.lookup_field], new_prefix=new_prefix, fake=fake
+            )
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        return Response(data={
+            'ip_ranges': serializers.IPv4RangeSerializer(instance=sub_ranges, many=True).data
+        })

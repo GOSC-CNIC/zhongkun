@@ -1,7 +1,9 @@
+import ipaddress
 from typing import Union, List
 from datetime import datetime
 
 from django.db.models import Q, QuerySet
+from django.db import transaction
 from django.utils import timezone as dj_timezone
 from django.utils.translation import gettext as _
 from django.core.exceptions import ValidationError
@@ -9,7 +11,7 @@ from django.core.exceptions import ValidationError
 from core import errors
 from .models import (
     IPv4Range, IPAMUserRole, OrgVirtualObject, ASN, ipv4_str_to_int, IPv4RangeRecord,
-    IPRangeItem
+    IPRangeItem, IPRangeIntItem
 )
 
 
@@ -93,7 +95,7 @@ class UserIpamRoleWrapper:
 class IPv4RangeManager:
     @staticmethod
     def get_ip_range(_id: str) -> IPv4Range:
-        iprange = IPv4Range.objects.filter(id=_id).first()
+        iprange = IPv4Range.objects.select_related('asn', 'org_virt_obj').filter(id=_id).first()
         if iprange is None:
             raise errors.TargetNotExist(message=_('IP地址段不存在'))
 
@@ -349,6 +351,69 @@ class IPv4RangeManager:
 
         return ip_range
 
+    @staticmethod
+    def split_ipv4_range_by_mask(user, range_id: str, new_prefix: int, fake: bool = False) -> List[IPv4Range]:
+        """
+        按掩码长度划分一个地址段
+        """
+        if new_prefix > 32:
+            raise errors.InvalidArgument(message=_('子网掩码长度不能大于32'))
+
+        if fake:
+            ipv4_range = IPv4RangeManager.get_ip_range(_id=range_id)
+            return IPv4RangeManager._split_ipv4_range_by_mask(
+                user=user, ipv4_range=ipv4_range, new_prefix=new_prefix, fake=True)
+
+        with transaction.atomic():
+            ipv4_range = IPv4Range.objects.select_for_update().select_related(
+                'asn', 'org_virt_obj').filter(id=range_id).first()
+            if ipv4_range is None:
+                raise errors.TargetNotExist(message=_('IP地址段不存在'))
+
+            return IPv4RangeManager._split_ipv4_range_by_mask(
+                user=user, ipv4_range=ipv4_range, new_prefix=new_prefix, fake=False)
+
+    @staticmethod
+    def _split_ipv4_range_by_mask(user, ipv4_range: IPv4Range, new_prefix: int, fake: bool = False) -> List[IPv4Range]:
+        """
+        按掩码长度划分一个地址段
+        :param ipv4_range: 要拆分的地址段
+        :param new_prefix: 要拆分的掩码长度
+        :param fake: True(假拆分，只返回拆分结果，不保存到数据库)；False(拆分并保存结果到数据库)
+        """
+        if new_prefix < ipv4_range.mask_len:
+            raise errors.ConflictError(message=_('子网掩码长度必须大于拆分IP地址段的掩码长度'))
+
+        if ipv4_range.status not in [IPv4Range.Status.WAIT.value, IPv4Range.Status.RESERVED.value]:
+            raise errors.ConflictError(message=_('只允许拆分“未分配”和“预留”状态的IP地址段'))
+
+        subnets = IPv4RangeSplitter.split_subnets(ipv4_range=ipv4_range, new_prefix=new_prefix)
+        if fake:
+            return subnets
+
+        range_items = []
+        for sn in subnets:
+            sn.enforce_id()  # 生成id
+
+            if not sn.name:
+                sn.name = str(sn.start_address_network)
+
+            try:
+                sn.clean(exclude_ids=[ipv4_range.id])
+            except ValidationError as exc:
+                raise errors.ValidationError(
+                    message=_('拆分的子网 (%(value)s) 不符合规则。') % {'value': sn} + exc.messages[0])
+
+            range_items.append(
+                IPRangeItem(start=str(sn.start_address_obj), end=str(sn.end_address_obj), mask=sn.mask_len))
+
+        IPv4Range.objects.bulk_create(subnets)
+        ipv4_range.delete()
+        IPv4RangeRecordManager.create_split_record(
+            user=user, ipv4_range=ipv4_range, remark='', ip_ranges=range_items
+        )
+        return subnets
+
 
 class IPv4RangeRecordManager:
     @staticmethod
@@ -386,3 +451,84 @@ class IPv4RangeRecordManager:
             start_address=ipv4_range.start_address, end_address=ipv4_range.end_address, mask_len=ipv4_range.mask_len,
             ip_ranges=[old_ip_range], remark=remark, org_virt_obj=None
         )
+
+    @staticmethod
+    def create_split_record(user, ipv4_range: IPv4Range, remark: str, ip_ranges: List[IPRangeItem]):
+        return IPv4RangeRecordManager.create_record(
+            user=user, record_type=IPv4RangeRecord.RecordType.SPLIT.value,
+            start_address=ipv4_range.start_address, end_address=ipv4_range.end_address, mask_len=ipv4_range.mask_len,
+            ip_ranges=ip_ranges, remark=remark, org_virt_obj=None
+        )
+
+
+class IPv4RangeSplitter:
+    def __init__(self, ipv4_range: IPv4Range, new_prefix: int):
+        self._ipv4_range = ipv4_range
+        self.new_prefix = new_prefix
+
+    def subnets(self):
+        """
+        :raises: Error
+        """
+        return self.split_subnets(ipv4_range=self._ipv4_range, new_prefix=self.new_prefix)
+
+    @staticmethod
+    def split_subnets(ipv4_range: IPv4Range, new_prefix: int) -> List[IPv4Range]:
+        """
+        :raises: Error
+        """
+        sub_ranges = IPv4RangeSplitter.split_ipv4_range_by_mask(
+            start_address=ipv4_range.start_address, end_address=ipv4_range.end_address,
+            mask_len=ipv4_range.mask_len, split_mask=new_prefix
+        )
+
+        asn = ipv4_range.asn
+        assigned_time = ipv4_range.assigned_time
+        org_virt_obj = ipv4_range.org_virt_obj
+        admin_remark = ipv4_range.admin_remark
+        subnets = []
+        for sr in sub_ranges:
+            nt = dj_timezone.now()
+            ip_rg = IPv4Range(
+                start_address=sr.start, end_address=sr.end, mask_len=new_prefix,
+                asn=asn, status=ipv4_range.status, creation_time=nt, update_time=nt,
+                assigned_time=assigned_time, org_virt_obj=org_virt_obj,
+                admin_remark=admin_remark, remark=''
+            )
+            ip_rg.name = str(ip_rg.start_address_network)
+            subnets.append(ip_rg)
+
+        return subnets
+
+    @staticmethod
+    def split_ipv4_range_by_mask(
+            start_address: int, end_address: int, mask_len: int, split_mask: int
+    ) -> List[IPRangeIntItem]:
+        """
+        按掩码长度划分一个地址段
+        """
+        if split_mask < mask_len:
+            raise errors.InvalidArgument(message=_('子网掩码长度必须大于拆分IP地址段的掩码长度'))
+
+        if split_mask > 32:
+            raise errors.InvalidArgument(message=_('子网掩码长度不能大于32'))
+
+        net_work = ipaddress.IPv4Network((start_address, mask_len), strict=False)
+        subnets = []
+        for sn in net_work.subnets(new_prefix=split_mask):
+            sn_start_addr = int(sn.network_address)
+            sn_end_addr = int(sn.broadcast_address)
+
+            # 子网起始地址大于ip地址段截止地址时退出
+            if sn_start_addr > end_address:
+                break
+
+            # 直到起始地址在子网段内的子网
+            if sn_end_addr < start_address:
+                continue
+
+            start = max(sn_start_addr, start_address)
+            end = min(sn_end_addr, end_address)
+            subnets.append(IPRangeIntItem(start=start, end=end, mask=split_mask))
+
+        return subnets
