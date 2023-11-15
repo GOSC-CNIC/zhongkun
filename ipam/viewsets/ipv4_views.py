@@ -214,23 +214,6 @@ class IPv4RangeViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('按掩码长度拆分IPv4地址段'),
-        request_body=no_body,
-        manual_parameters=[
-            openapi.Parameter(
-                name='new_prefix',
-                in_=openapi.IN_QUERY,
-                type=openapi.TYPE_INTEGER,
-                required=True,
-                description=gettext_lazy('要拆分的掩码长度，1-31')
-            ),
-            openapi.Parameter(
-                name='fake',
-                in_=openapi.IN_QUERY,
-                type=openapi.TYPE_BOOLEAN,
-                required=False,
-                description=gettext_lazy('true(假装拆分，询问拆分规划)；其他值或不提交此参数（正常真实拆分地址段）')
-            ),
-        ],
         responses={
             200: ''''''
         }
@@ -284,6 +267,8 @@ class IPv4RangeViewSet(NormalGenericViewSet):
             return serializers.IPv4RangeSerializer
         elif self.action in ['create', 'update']:
             return serializers.IPv4RangeCreateSerializer
+        elif self.action == 'split_ip_range':
+            return serializers.IPv4RangeSplitSerializer
 
         return Serializer
 

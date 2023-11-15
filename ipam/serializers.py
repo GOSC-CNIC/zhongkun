@@ -49,7 +49,24 @@ class IPv4RangeCreateSerializer(serializers.Serializer):
     end_address = serializers.CharField(label=_('截止地址'), required=True)
     mask_len = serializers.IntegerField(label=_('子网掩码长度'), required=True, min_value=0, max_value=32)
     asn = serializers.IntegerField(label=_('AS编号'), required=True, min_value=0, max_value=65535)
-    admin_remark = serializers.CharField(label=_('科技网管理员备注信息'), max_length=255, default='')
+    admin_remark = serializers.CharField(label=_('科技网管理员备注信息'), max_length=255, allow_blank=True, default='')
+
+
+class IPv4RangeSplitSerializer(serializers.Serializer):
+    new_prefix = serializers.IntegerField(label=_('子网掩码长度'), required=True, min_value=1, max_value=31)
+    fake = serializers.BooleanField(
+        label=_('假拆分'), allow_null=True, default=False,
+        help_text=_('true(假装拆分，询问拆分规划)；其他值或不提交此参数（正常真实拆分地址段）'))
+
+
+class IPv4RangeMergeSerializer(serializers.Serializer):
+    new_prefix = serializers.IntegerField(label=_('子网掩码长度'), required=True, min_value=1, max_value=31)
+    ip_ranges = serializers.ListField(
+        label=_('ip地址段id列表'), child=serializers.CharField(label='ip地址段id', max_length=36),
+        min_length=1, max_length=256, required=True)
+    fake = serializers.BooleanField(
+        label=_('假合并'), allow_null=True, default=False,
+        help_text=_('true(假装合并，询问合并结果)；其他值或不提交此参数（正常真实合并地址段）'))
 
 
 class IPAMUserRoleSerializer(serializers.Serializer):

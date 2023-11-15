@@ -173,23 +173,21 @@ class IPv4RangeHandler:
 
     @staticmethod
     def split_ipv4_range(view: NormalGenericViewSet, request, kwargs):
-        new_prefix = request.query_params.get('new_prefix')
-        fake = request.query_params.get('fake')
+        serializer = view.get_serializer(data=request.data)
+        if not serializer.is_valid(raise_exception=False):
+            s_errors = serializer.errors
+            if 'new_prefix' in s_errors:
+                exc = errors.InvalidArgument(
+                    message=_('掩码长度可选的有效值为1-31，并且必须大于要拆分的IP地址段的掩码长度。') + s_errors['new_prefix'][0])
+            else:
+                msg = serializer_error_msg(s_errors)
+                exc = errors.BadRequest(message=msg)
 
-        if not new_prefix:
-            return view.exception_response(errors.InvalidArgument(message=_('必须指定拆分掩码长度')))
-        try:
-            new_prefix = int(new_prefix)
-            if not (1 <= new_prefix < 32):
-                raise ValueError
-        except ValueError:
-            return view.exception_response(
-                errors.InvalidArgument(message=_('掩码长度可选的有效值为1-31，并且必须大于要拆分的IP地址段的掩码长度。')))
+            return view.exception_response(exc)
 
-        if fake and fake.lower() == 'true':
-            fake = True
-        else:
-            fake = False
+        data = serializer.validated_data.copy()
+        new_prefix = data['new_prefix']
+        fake = data['fake']
 
         ur_wrapper = UserIpamRoleWrapper(user=request.user)
         if not ur_wrapper.has_kjw_admin_writable():

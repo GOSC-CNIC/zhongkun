@@ -545,46 +545,39 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         response = self.client.post(base_url)
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
 
-        query = parse.urlencode(query={'new_prefix': 'ss'})
-        response = self.client.post(f'{base_url}?{query}')
+        response = self.client.post(base_url, data={'new_prefix': 'ss'}, format='json')
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
 
-        query = parse.urlencode(query={'new_prefix': 0})
-        response = self.client.post(f'{base_url}?{query}')
+        response = self.client.post(base_url, data={'new_prefix': 0})
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
 
-        query = parse.urlencode(query={'new_prefix': 32})
-        response = self.client.post(f'{base_url}?{query}')
+        response = self.client.post(base_url, data={'new_prefix': 32})
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
 
         # AccessDenied
-        query = parse.urlencode(query={'new_prefix': 31})
-        response = self.client.post(f'{base_url}?{query}')
+        response = self.client.post(base_url, data={'new_prefix': 31})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
         uirw = UserIpamRoleWrapper(self.user1)
         uirw.user_role = uirw.get_or_create_user_ipam_role()
         uirw.user_role.is_readonly = True
         uirw.user_role.save(update_fields=['is_readonly'])
-        response = self.client.post(f'{base_url}?{query}')
+        response = self.client.post(base_url, data={'new_prefix': 31})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
         uirw.user_role.is_admin = True
         uirw.user_role.save(update_fields=['is_admin'])
 
-        query = parse.urlencode(query={'new_prefix': 31})
-        response = self.client.post(f'{base_url}?{query}')
+        response = self.client.post(base_url, data={'new_prefix': 31})
         self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
 
         # new_prefix 必须大于 ip_range.mask_len
         base_url = reverse('api:ipam-ipv4range-split', kwargs={'id': ip_range1.id})
-        query = parse.urlencode(query={'new_prefix': 20, 'fake': True})
-        response = self.client.post(f'{base_url}?{query}')
+        response = self.client.post(base_url, data={'new_prefix': 20, 'fake': True})
         self.assertErrorResponse(status_code=409, code='Conflict', response=response)
 
         # assigned
-        query = parse.urlencode(query={'new_prefix': 26, 'fake': True})
-        response = self.client.post(f'{base_url}?{query}')
+        response = self.client.post(base_url, data={'new_prefix': 26, 'fake': True})
         self.assertErrorResponse(status_code=409, code='Conflict', response=response)
 
         ip_range1.status = IPv4Range.Status.WAIT.value
@@ -595,8 +588,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         self.assertEqual(IPv4Range.objects.count(), 2)
 
         base_url = reverse('api:ipam-ipv4range-split', kwargs={'id': ip_range1.id})
-        query = parse.urlencode(query={'new_prefix': 26, 'fake': True})
-        response = self.client.post(f'{base_url}?{query}')
+        response = self.client.post(base_url, data={'new_prefix': 26, 'fake': True})
         self.assertEqual(response.status_code, 200)
         split_ranges = response.data['ip_ranges']
         self.assertEqual(len(split_ranges), 4)
@@ -625,8 +617,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
 
         # ok, 10.0.0.1 - 200 -> 1-63, 64-127, 128-191, 191-200
         base_url = reverse('api:ipam-ipv4range-split', kwargs={'id': ip_range1.id})
-        query = parse.urlencode(query={'new_prefix': 26})
-        response = self.client.post(f'{base_url}?{query}')
+        response = self.client.post(base_url, data={'new_prefix': 26})
         self.assertEqual(response.status_code, 200)
         split_ranges = response.data['ip_ranges']
         self.assertEqual(len(split_ranges), 4)
@@ -673,8 +664,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         self.assertEqual(IPv4RangeRecord.objects.count(), 1)
         self.assertEqual(IPv4Range.objects.count(), 5)
         base_url = reverse('api:ipam-ipv4range-split', kwargs={'id': ip_range2.id})
-        query = parse.urlencode(query={'new_prefix': 27})
-        response = self.client.post(f'{base_url}?{query}')
+        response = self.client.post(base_url, data={'new_prefix': 27, 'fake': False})
         self.assertEqual(response.status_code, 200)
         split_ranges = response.data['ip_ranges']
         self.assertEqual(len(split_ranges), 3)
@@ -706,8 +696,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         self.assertEqual(IPv4Range.objects.count(), 8)
 
         base_url = reverse('api:ipam-ipv4range-split', kwargs={'id': ip_range3.id})
-        query = parse.urlencode(query={'new_prefix': 31})
-        response = self.client.post(f'{base_url}?{query}')
+        response = self.client.post(base_url, data={'new_prefix': 31, 'fake': 'false'})
         self.assertEqual(response.status_code, 200)
         split_ranges = response.data['ip_ranges']
         self.assertEqual(len(split_ranges), 2)
