@@ -14,7 +14,7 @@ class TicketCreateSerializer(serializers.Serializer):
         label=_('工单相关服务'), max_length=16, required=True, help_text=f'{Ticket.ServiceType.choices}'
     )
     contact = serializers.CharField(
-        label=_('联系方式'), max_length=128, required=False, default='', help_text=_('工单提交人联系方式'),
+        label=_('联系方式'), max_length=128, required=False, allow_blank=True, default='', help_text=_('工单提交人联系方式'),
     )
 
 
