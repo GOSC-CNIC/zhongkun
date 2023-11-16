@@ -262,6 +262,60 @@ class IPv4RangeViewSet(NormalGenericViewSet):
         """
         return IPv4RangeHandler().split_ipv4_range(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('子网IPv4地址段合并为一个指定掩码长度的超网地址段'),
+        responses={
+            200: ''''''
+        }
+    )
+    @action(methods=['POST'], detail=False, url_path='merge', url_name='merge')
+    def merge_ip_ranges(self, request, *args, **kwargs):
+        """
+        子网IPv4地址段合并为一个指定掩码长度的超网地址段，需要有科技网管理员权限
+
+            * 合并的所有子网地址段的状态必须同为"未分配"，或者同为“预留”
+            * 所有子网地址段的状态为“预留”状态时，关联机构二级对象要一致
+            * 要合并的超网地址段掩码长度要小于等于所有子网地址段的掩码长度
+            * 合并的所有子网地址段的AS编码必须一致
+            * 合并的所有子网地址段IP地址必须是连续的
+            * 所有子网地址段必须都属于要合并的目标超网
+            * 一个子网地址段也可以合并超网地址段
+
+            http Code 200 Ok:
+                {
+                  "id": "bz05x5wxa3y0viz1dn6k88hww",    # fake时为空字符串
+                  "name": "127.0.0.0/24",
+                  "status": "wait",
+                  "creation_time": "2023-10-26T08:33:56.047279Z",
+                  "update_time": "2023-10-26T08:33:56.047279Z",
+                  "assigned_time": null,
+                  "admin_remark": "test",
+                  "remark": "",
+                  "start_address": 2130706433,
+                  "end_address": 2130706687,
+                  "mask_len": 24,
+                  "asn": {
+                    "id": 5,
+                    "number": 65535
+                  },
+                  "org_virt_obj": null
+                }
+
+            Http Code 400, 403, 409, 500:
+                {
+                    "code": "BadRequest",
+                    "message": "xxxx"
+                }
+
+                可能的错误码：
+                400:
+                InvalidArgument: 参数无效
+
+                403:
+                AccessDenied: 你没有科技网IP管理功能的管理员权限
+        """
+        return IPv4RangeHandler().merge_ipv4_ranges(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return serializers.IPv4RangeSerializer
@@ -269,6 +323,8 @@ class IPv4RangeViewSet(NormalGenericViewSet):
             return serializers.IPv4RangeCreateSerializer
         elif self.action == 'split_ip_range':
             return serializers.IPv4RangeSplitSerializer
+        elif self.action == 'merge_ip_ranges':
+            return serializers.IPv4RangeMergeSerializer
 
         return Serializer
 

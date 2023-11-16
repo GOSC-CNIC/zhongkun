@@ -236,8 +236,8 @@ class IPv4Range(IPRangeBase):
             ).first()
             if overlapping_range:
                 raise ValidationError(
-                    _("定义的IP地址段与已存在地址段{overlapping_range}范围重叠").format(
-                        overlapping_range=overlapping_range
+                    _("定义的IP地址段({value})与已存在地址段({overlapping_range})范围重叠").format(
+                        value=self, overlapping_range=overlapping_range
                     ))
 
             # Validate maximum size

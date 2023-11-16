@@ -61,7 +61,7 @@ class IPv4RangeSplitSerializer(serializers.Serializer):
 
 class IPv4RangeMergeSerializer(serializers.Serializer):
     new_prefix = serializers.IntegerField(label=_('子网掩码长度'), required=True, min_value=1, max_value=31)
-    ip_ranges = serializers.ListField(
+    ip_range_ids = serializers.ListField(
         label=_('ip地址段id列表'), child=serializers.CharField(label='ip地址段id', max_length=36),
         min_length=1, max_length=256, required=True)
     fake = serializers.BooleanField(

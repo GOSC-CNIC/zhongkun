@@ -713,6 +713,331 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         self.assertEqual(ir2.end_address, int(ipaddress.IPv4Address('159.0.2.103')))
         self.assertEqual(ir2.mask_len, 31)
 
+    def test_merge_ipv4_range(self):
+        org1 = get_or_create_organization(name='org1')
+        virt_obj1 = OrgVirtualObject(name='org virt obj1', organization=org1, creation_time=dj_timezone.now())
+        virt_obj1.save(force_insert=True)
+
+        nt = dj_timezone.now()
+        ir1_sub1 = IPv4RangeManager.create_ipv4_range(
+            name='预留1', start_ip='159.0.0.0', end_ip='159.0.0.255', mask_len=24, asn=88,
+            create_time=nt, update_time=nt, status_code=IPv4Range.Status.WAIT.value,
+            org_virt_obj=virt_obj1, assigned_time=nt, admin_remark='admin remark1', remark='remark1'
+        )
+        nt = dj_timezone.now()
+        ir1_sub2 = IPv4RangeManager.create_ipv4_range(
+            name='预留2', start_ip='159.0.1.0', end_ip='159.0.1.255', mask_len=24, asn=88,
+            create_time=nt, update_time=nt, status_code=IPv4Range.Status.RESERVED.value,
+            org_virt_obj=virt_obj1, assigned_time=nt, admin_remark='admin remark2', remark='remark2'
+        )
+        nt = dj_timezone.now()
+        ir1_sub3 = IPv4RangeManager.create_ipv4_range(
+            name='预留3', start_ip='159.0.2.0', end_ip='159.0.2.255', mask_len=24, asn=66,
+            create_time=nt, update_time=nt, status_code=IPv4Range.Status.WAIT.value,
+            org_virt_obj=None, assigned_time=nt, admin_remark='admin remark3', remark='remark3'
+        )
+        nt = dj_timezone.now()
+        ir1_sub4 = IPv4RangeManager.create_ipv4_range(
+            name='预留4', start_ip='159.0.3.0', end_ip='159.0.3.255', mask_len=24, asn=88,
+            create_time=nt, update_time=nt, status_code=IPv4Range.Status.ASSIGNED.value,
+            org_virt_obj=virt_obj1, assigned_time=nt, admin_remark='admin remark4', remark='remark4'
+        )
+
+        base_url = reverse('api:ipam-ipv4range-merge')
+        response = self.client.post(base_url)
+        self.assertEqual(response.status_code, 401)
+
+        self.client.force_login(self.user1)
+        response = self.client.post(base_url, data={'new_prefix': 24, 'ip_range_ids': ['test1', 'test2'], 'fake': True})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # new_prefix
+        response = self.client.post(base_url, data={'new_prefix': 0, 'ip_range_ids': ['test1', 'test2'], 'fake': True})
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+        response = self.client.post(base_url, data={'new_prefix': 32, 'ip_range_ids': ['test1', 'test2'], 'fake': True})
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # ip_range_ids
+        response = self.client.post(base_url, data={'new_prefix': 24, 'ip_range_ids': '', 'fake': True})
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+        response = self.client.post(base_url, data={'new_prefix': 24, 'ip_range_ids': [], 'fake': True})
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+        response = self.client.post(base_url, data={'new_prefix': 24, 'ip_range_ids': ['test1' * 8], 'fake': True})
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # AccessDenied
+        response = self.client.post(base_url, data={'new_prefix': 24, 'ip_range_ids': ['test1'], 'fake': True})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        uirw = UserIpamRoleWrapper(self.user1)
+        uirw.user_role = uirw.get_or_create_user_ipam_role()
+        uirw.user_role.is_readonly = True
+        uirw.user_role.save(update_fields=['is_readonly'])
+        response = self.client.post(base_url, data={'new_prefix': 24, 'ip_range_ids': ['test1'], 'fake': True})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        uirw.user_role.is_admin = True
+        uirw.user_role.save(update_fields=['is_admin'])
+
+        response = self.client.post(base_url, data={'new_prefix': 24, 'ip_range_ids': ['test1'], 'fake': True})
+        self.assertErrorResponse(status_code=409, code='Conflict', response=response)
+
+        # new_prefix 必须小于等于 ip_range.mask_len
+        response = self.client.post(base_url, data={'new_prefix': 25, 'ip_range_ids': [ir1_sub1.id], 'fake': True})
+        self.assertErrorResponse(status_code=409, code='Conflict', response=response)
+
+        # ok，merge 1 ip_range，prefix not change，no merge happened
+        response = self.client.post(base_url, data={'new_prefix': 24, 'ip_range_ids': [ir1_sub1.id], 'fake': True})
+        self.assertEqual(response.status_code, 200)
+        supernet = response.data['ip_range']
+        self.assertEqual(supernet['id'], ir1_sub1.id)
+        self.assertEqual(supernet['start_address'], ir1_sub1.start_address)
+        self.assertEqual(supernet['end_address'], ir1_sub1.end_address)
+        self.assertEqual(supernet['mask_len'], ir1_sub1.mask_len)
+        self.assertEqual(supernet['status'], ir1_sub1.status)
+        self.assertEqual(IPv4RangeRecord.objects.count(), 0)
+        self.assertEqual(IPv4Range.objects.count(), 4)
+
+        # ok，merge 1 ip_range，prefix changed
+        response = self.client.post(base_url, data={'new_prefix': 23, 'ip_range_ids': [ir1_sub1.id], 'fake': True})
+        self.assertEqual(response.status_code, 200)
+        supernet = response.data['ip_range']
+        self.assertEqual(supernet['id'], '')
+        self.assertEqual(supernet['start_address'], ir1_sub1.start_address)
+        self.assertEqual(supernet['end_address'], ir1_sub1.end_address)
+        self.assertEqual(supernet['mask_len'], 23)
+        self.assertEqual(supernet['status'], ir1_sub1.status)
+        self.assertEqual(supernet['asn']['id'], ir1_sub1.asn_id)
+        self.assertIsNone(supernet['org_virt_obj'])
+        self.assertEqual(IPv4RangeRecord.objects.count(), 0)
+        self.assertEqual(IPv4Range.objects.count(), 4)
+
+        # "已分配状态"
+        response = self.client.post(base_url, data={'new_prefix': 23, 'ip_range_ids': [ir1_sub4.id], 'fake': True})
+        self.assertErrorResponse(status_code=409, code='Conflict', response=response)
+        response = self.client.post(base_url, data={
+            'new_prefix': 23, 'ip_range_ids': [ir1_sub3.id, ir1_sub4.id], 'fake': True})
+        self.assertErrorResponse(status_code=409, code='Conflict', response=response)
+
+        # 分配状态不一致
+        response = self.client.post(base_url, data={
+            'new_prefix': 23, 'ip_range_ids': [ir1_sub1.id, ir1_sub2.id], 'fake': True})
+        self.assertErrorResponse(status_code=409, code='Conflict', response=response)
+
+        # AS number 不一致
+        response = self.client.post(base_url, data={
+            'new_prefix': 23, 'ip_range_ids': [ir1_sub2.id, ir1_sub3.id], 'fake': True})
+        self.assertErrorResponse(status_code=409, code='Conflict', response=response)
+        self.assertIn('AS编码不一致', response.data['message'])
+        ir1_sub3.asn = ir1_sub2.asn
+        ir1_sub3.save(update_fields=['asn'])
+
+        # 分配状态不一致
+        response = self.client.post(base_url, data={
+            'new_prefix': 23, 'ip_range_ids': [ir1_sub2.id, ir1_sub3.id], 'fake': True})
+        self.assertErrorResponse(status_code=409, code='Conflict', response=response)
+        self.assertIn('分配状态必须一致', response.data['message'])
+        ir1_sub3.status = IPv4Range.Status.RESERVED.value
+        ir1_sub3.save(update_fields=['status'])
+
+        # 预留 状态时，关联机构二级对象不一致
+        response = self.client.post(base_url, data={
+            'new_prefix': 23, 'ip_range_ids': [ir1_sub2.id, ir1_sub3.id], 'fake': True})
+        self.assertErrorResponse(status_code=409, code='Conflict', response=response)
+        self.assertIn('关联的机构二级对象必须一致', response.data['message'])
+        ir1_sub3.org_virt_obj = ir1_sub2.org_virt_obj
+        ir1_sub3.save(update_fields=['org_virt_obj'])
+
+        # 预留 状态时，关联机构二级对象不一致
+        response = self.client.post(base_url, data={
+            'new_prefix': 23, 'ip_range_ids': [ir1_sub2.id, ir1_sub3.id], 'fake': True})
+        self.assertErrorResponse(status_code=409, code='Conflict', response=response)
+        self.assertIn('不属于同一个超网', response.data['message'])
+
+        # 地址段不连续
+        ir1_sub1.status = ir1_sub3.status
+        ir1_sub1.save(update_fields=['status'])
+        response = self.client.post(base_url, data={
+            'new_prefix': 22, 'ip_range_ids': [ir1_sub1.id, ir1_sub3.id], 'fake': True})
+        self.assertErrorResponse(status_code=409, code='Conflict', response=response)
+        self.assertIn('地址必须是连续的', response.data['message'])
+
+        # ok
+        response = self.client.post(base_url, data={
+            'new_prefix': 22, 'ip_range_ids': [ir1_sub2.id, ir1_sub3.id], 'fake': True})
+        self.assertEqual(response.status_code, 200)
+        supernet = response.data['ip_range']
+        self.assertEqual(supernet['id'], '')
+        self.assertEqual(supernet['start_address'], ir1_sub2.start_address)
+        self.assertEqual(supernet['end_address'], ir1_sub3.end_address)
+        self.assertEqual(supernet['mask_len'], 22)
+        self.assertEqual(supernet['status'], ir1_sub1.status)
+        self.assertEqual(supernet['asn']['id'], ir1_sub1.asn_id)
+        self.assertEqual(supernet['org_virt_obj']['id'], ir1_sub1.org_virt_obj_id)
+        self.assertEqual(IPv4RangeRecord.objects.count(), 0)
+        self.assertEqual(IPv4Range.objects.count(), 4)
+
+        # sub1,sub2合并
+        response = self.client.post(base_url, data={
+            'new_prefix': 23, 'ip_range_ids': [ir1_sub2.id, ir1_sub1.id]})
+        self.assertEqual(response.status_code, 200)
+        supernet = response.data['ip_range']
+        self.assertNotEqual(supernet['id'], '')
+        self.assertEqual(supernet['start_address'], ir1_sub1.start_address)
+        self.assertEqual(supernet['end_address'], ir1_sub2.end_address)
+        self.assertEqual(supernet['mask_len'], 23)
+        self.assertEqual(supernet['status'], ir1_sub1.status)
+        self.assertEqual(supernet['asn']['id'], ir1_sub1.asn_id)
+        self.assertEqual(supernet['org_virt_obj']['id'], ir1_sub1.org_virt_obj_id)
+        super23net1_2 = IPv4Range.objects.get(id=supernet['id'])
+        self.assertEqual(super23net1_2.start_address, ir1_sub1.start_address)
+        self.assertEqual(super23net1_2.end_address, ir1_sub2.end_address)
+        self.assertEqual(super23net1_2.mask_len, 23)
+        self.assertEqual(super23net1_2.status, ir1_sub1.status)
+        self.assertEqual(IPv4RangeRecord.objects.count(), 1)
+        self.assertEqual(IPv4Range.objects.count(), 3)
+        # 合并记录
+        record = IPv4RangeRecord.objects.first()
+        self.assertEqual(record.start_address, super23net1_2.start_address)
+        self.assertEqual(record.end_address, super23net1_2.end_address)
+        self.assertEqual(record.mask_len, 23)
+        self.assertEqual(len(record.ip_ranges), 2)
+        self.assertEqual(record.ip_ranges[0]['start'], str(ir1_sub1.start_address_obj))
+        self.assertEqual(record.ip_ranges[0]['end'], str(ir1_sub1.end_address_obj))
+        self.assertEqual(record.ip_ranges[0]['mask'], 24)
+        self.assertEqual(record.ip_ranges[1]['start'], str(ir1_sub2.start_address_obj))
+        self.assertEqual(record.ip_ranges[1]['end'], str(ir1_sub2.end_address_obj))
+        self.assertEqual(record.ip_ranges[1]['mask'], 24)
+
+        # sub1,sub2合并的超网 super23net1_2 和 sub3 合并超网
+        response = self.client.post(base_url, data={
+            'new_prefix': 23, 'ip_range_ids': [ir1_sub3.id, super23net1_2.id]})
+        self.assertErrorResponse(status_code=409, code='Conflict', response=response)
+        self.assertIn('不属于同一个超网', response.data['message'])
+
+        response = self.client.post(base_url, data={
+            'new_prefix': 22, 'ip_range_ids': [ir1_sub3.id, super23net1_2.id]})
+        self.assertEqual(response.status_code, 200)
+        supernet = response.data['ip_range']
+        self.assertEqual(supernet['start_address'], ir1_sub1.start_address)
+        self.assertEqual(supernet['end_address'], ir1_sub3.end_address)
+        self.assertEqual(supernet['mask_len'], 22)
+        self.assertEqual(supernet['status'], ir1_sub1.status)
+        self.assertEqual(supernet['asn']['id'], ir1_sub1.asn_id)
+        self.assertEqual(supernet['org_virt_obj']['id'], ir1_sub1.org_virt_obj_id)
+        super22net1_2_3 = IPv4Range.objects.get(id=supernet['id'])
+        self.assertEqual(super22net1_2_3.start_address, ir1_sub1.start_address)
+        self.assertEqual(super22net1_2_3.end_address, ir1_sub3.end_address)
+        self.assertEqual(super22net1_2_3.mask_len, 22)
+        self.assertEqual(super22net1_2_3.status, ir1_sub1.status)
+        self.assertEqual(IPv4RangeRecord.objects.count(), 2)
+        self.assertEqual(IPv4Range.objects.count(), 2)
+
+        # 超网 super22net1_2_3 和 sub4 合并超网
+        response = self.client.post(base_url, data={
+            'new_prefix': 22, 'ip_range_ids': [ir1_sub4.id, super22net1_2_3.id], 'fake': False})
+        self.assertErrorResponse(status_code=409, code='Conflict', response=response)
+        self.assertIn('状态必须为"未分配"和“预留”', response.data['message'])
+
+        ir1_sub4.status = ir1_sub1.status
+        ir1_sub4.save(update_fields=['status'])
+        response = self.client.post(base_url, data={
+            'new_prefix': 22, 'ip_range_ids': [ir1_sub4.id, super22net1_2_3.id], 'fake': False})
+        self.assertEqual(response.status_code, 200)
+        supernet = response.data['ip_range']
+        self.assertEqual(supernet['start_address'], ir1_sub1.start_address)
+        self.assertEqual(supernet['end_address'], ir1_sub4.end_address)
+        self.assertEqual(supernet['mask_len'], 22)
+        self.assertEqual(supernet['status'], ir1_sub1.status)
+        self.assertEqual(supernet['org_virt_obj']['id'], ir1_sub1.org_virt_obj_id)
+        super22net1_2_3 = IPv4Range.objects.get(id=supernet['id'])
+        self.assertEqual(super22net1_2_3.start_address, ir1_sub1.start_address)
+        self.assertEqual(super22net1_2_3.end_address, ir1_sub4.end_address)
+        self.assertEqual(super22net1_2_3.mask_len, 22)
+        self.assertEqual(super22net1_2_3.status, ir1_sub1.status)
+        self.assertEqual(IPv4RangeRecord.objects.count(), 3)
+        self.assertEqual(IPv4Range.objects.count(), 1)
+
+        nt = dj_timezone.now()
+        ir2_sub5 = IPv4RangeManager.create_ipv4_range(
+            name='未分配1', start_ip='159.0.4.0', end_ip='159.0.4.255', mask_len=24, asn=886,
+            create_time=nt, update_time=nt, status_code=IPv4Range.Status.WAIT.value,
+            org_virt_obj=None, assigned_time=nt, admin_remark='admin remark1', remark='remark1'
+        )
+        nt = dj_timezone.now()
+        nt = dj_timezone.now()
+        ir2_sub6 = IPv4RangeManager.create_ipv4_range(
+            name='未分配1', start_ip='159.0.5.0', end_ip='159.0.5.255', mask_len=24, asn=886,
+            create_time=nt, update_time=nt, status_code=IPv4Range.Status.WAIT.value,
+            org_virt_obj=None, assigned_time=nt, admin_remark='admin remark1', remark='remark1'
+        )
+        nt = dj_timezone.now()
+        ir2_sub7 = IPv4RangeManager.create_ipv4_range(
+            name='未分配2', start_ip='159.0.6.0', end_ip='159.0.6.200', mask_len=22, asn=886,
+            create_time=nt, update_time=nt, status_code=IPv4Range.Status.WAIT.value,
+            org_virt_obj=None, assigned_time=nt, admin_remark='admin remark2', remark='remark2'
+        )
+        self.assertEqual(IPv4RangeRecord.objects.count(), 3)
+        self.assertEqual(IPv4Range.objects.count(), 4)
+
+        # sub5 和 sub6 合并超网
+        response = self.client.post(base_url, data={
+            'new_prefix': 22, 'ip_range_ids': [ir2_sub7.id, ir2_sub6.id], 'fake': 'False'})
+        self.assertEqual(response.status_code, 200)
+        supernet = response.data['ip_range']
+        self.assertEqual(supernet['start_address'], ir2_sub6.start_address)
+        self.assertEqual(supernet['end_address'], ir2_sub7.end_address)
+        self.assertEqual(supernet['mask_len'], 22)
+        self.assertEqual(supernet['status'], ir2_sub6.status)
+        self.assertEqual(supernet['asn']['id'], ir2_sub6.asn_id)
+        self.assertIsNone(supernet['org_virt_obj'])
+        super22net6_7 = IPv4Range.objects.get(id=supernet['id'])
+        self.assertEqual(super22net6_7.start_address, ir2_sub6.start_address)
+        self.assertEqual(super22net6_7.end_address, ir2_sub7.end_address)
+        self.assertEqual(super22net6_7.mask_len, 22)
+        self.assertEqual(super22net6_7.status, ir2_sub6.status)
+        self.assertEqual(IPv4RangeRecord.objects.count(), 4)
+        self.assertEqual(IPv4Range.objects.count(), 3)
+
+        # 合并2个超网
+        response = self.client.post(base_url, data={
+            'new_prefix': 20, 'ip_range_ids': [super22net6_7.id, super22net1_2_3.id]})
+        self.assertErrorResponse(status_code=409, code='Conflict', response=response)
+        self.assertIn('AS编码不一致', response.data['message'])
+        super22net1_2_3.asn = super22net6_7.asn
+        super22net1_2_3.save(update_fields=['asn'])
+
+        response = self.client.post(base_url, data={
+            'new_prefix': 20, 'ip_range_ids': [super22net6_7.id, super22net1_2_3.id]})
+        self.assertErrorResponse(status_code=409, code='Conflict', response=response)
+        self.assertIn('分配状态必须一致', response.data['message'])
+        super22net1_2_3.status = IPv4Range.Status.WAIT.value
+        super22net1_2_3.org_virt_obj = None
+        super22net1_2_3.save(update_fields=['status', 'org_virt_obj'])
+
+        response = self.client.post(base_url, data={
+            'new_prefix': 20, 'ip_range_ids': [super22net6_7.id, super22net1_2_3.id]})
+        self.assertErrorResponse(status_code=409, code='Conflict', response=response)
+        self.assertIn('地址必须是连续的', response.data['message'])
+
+        response = self.client.post(base_url, data={
+            'new_prefix': 20, 'ip_range_ids': [super22net6_7.id, super22net1_2_3.id, ir2_sub5.id]})
+        self.assertEqual(response.status_code, 200)
+        supernet = response.data['ip_range']
+        self.assertEqual(supernet['start_address'], super22net1_2_3.start_address)
+        self.assertEqual(supernet['end_address'], super22net6_7.end_address)
+        self.assertEqual(supernet['mask_len'], 20)
+        self.assertEqual(supernet['status'], IPv4Range.Status.WAIT.value)
+        self.assertEqual(supernet['asn']['id'], super22net6_7.asn_id)
+        self.assertIsNone(supernet['org_virt_obj'])
+        super20net1_4_7 = IPv4Range.objects.get(id=supernet['id'])
+        self.assertEqual(super20net1_4_7.start_address, super22net1_2_3.start_address)
+        self.assertEqual(super20net1_4_7.end_address, super22net6_7.end_address)
+        self.assertEqual(super20net1_4_7.mask_len, 20)
+        self.assertEqual(super20net1_4_7.status, IPv4Range.Status.WAIT.value)
+        self.assertEqual(IPv4RangeRecord.objects.count(), 5)
+        self.assertEqual(IPv4Range.objects.count(), 1)
+
 
 class IPAMUserRoleTests(MyAPITransactionTestCase):
     def setUp(self):

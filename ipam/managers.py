@@ -1,5 +1,5 @@
 import ipaddress
-from typing import Union, List
+from typing import Union, List, Tuple
 from datetime import datetime
 
 from django.db.models import Q, QuerySet
@@ -176,6 +176,34 @@ class IPv4RangeManager:
         :return: IPv4Range
         :raises: ValidationError
         """
+        ip_range = IPv4RangeManager.build_ipv4_range(
+            name=name, start_ip=start_ip, end_ip=end_ip, mask_len=mask_len,
+            asn=asn, status_code=status_code, org_virt_obj=org_virt_obj,
+            admin_remark=admin_remark, remark=remark,
+            create_time=create_time, update_time=update_time, assigned_time=assigned_time
+        )
+
+        try:
+            ip_range.clean()
+        except ValidationError as exc:
+            raise errors.ValidationError(message=exc.messages[0])
+
+        ip_range.save(force_insert=True)
+        return ip_range
+
+    @staticmethod
+    def build_ipv4_range(
+            name: str, start_ip: Union[str, int], end_ip: Union[str, int], mask_len: int,
+            asn: Union[ASN, int], status_code: str, org_virt_obj: Union[OrgVirtualObject, str, None],
+            admin_remark: str, remark: str,
+            create_time: Union[datetime, None], update_time: Union[datetime, None], assigned_time=None
+    ):
+        """
+        构建一个IPv4Range对象，不保存到数据库
+
+        :return: IPv4Range
+        :raises: ValidationError
+        """
         if isinstance(start_ip, int):
             start_int = start_ip
         else:
@@ -207,22 +235,21 @@ class IPv4RangeManager:
             creation_time=create_time,
             update_time=update_time,
             assigned_time=assigned_time,
-            asn=asn, org_virt_obj=org_virt_obj,
+            asn=asn,
             start_address=start_int,
             end_address=end_int,
             mask_len=mask_len,
             admin_remark=admin_remark,
             remark=remark
         )
+        if isinstance(org_virt_obj, str):
+            ip_range.org_virt_obj_id = org_virt_obj
+        else:
+            ip_range.org_virt_obj = org_virt_obj
+
         if not ip_range.name:
             ip_range.name = str(ip_range.start_address_network)
 
-        try:
-            ip_range.clean()
-        except ValidationError as exc:
-            raise errors.ValidationError(message=exc.messages[0])
-
-        ip_range.save(force_insert=True)
         return ip_range
 
     @staticmethod
@@ -356,63 +383,20 @@ class IPv4RangeManager:
         """
         按掩码长度划分一个地址段
         """
-        if new_prefix > 32:
-            raise errors.InvalidArgument(message=_('子网掩码长度不能大于32'))
-
-        if fake:
-            ipv4_range = IPv4RangeManager.get_ip_range(_id=range_id)
-            return IPv4RangeManager._split_ipv4_range_by_mask(
-                user=user, ipv4_range=ipv4_range, new_prefix=new_prefix, fake=True)
-
-        with transaction.atomic():
-            ipv4_range = IPv4Range.objects.select_for_update().select_related(
-                'asn', 'org_virt_obj').filter(id=range_id).first()
-            if ipv4_range is None:
-                raise errors.TargetNotExist(message=_('IP地址段不存在'))
-
-            return IPv4RangeManager._split_ipv4_range_by_mask(
-                user=user, ipv4_range=ipv4_range, new_prefix=new_prefix, fake=False)
+        return IPv4RangeSplitter(obj_or_id=range_id, new_prefix=new_prefix).do_split(user=user, fake=fake)
 
     @staticmethod
-    def _split_ipv4_range_by_mask(user, ipv4_range: IPv4Range, new_prefix: int, fake: bool = False) -> List[IPv4Range]:
+    def merge_ipv4_ranges_by_mask(user, range_ids: List[str], new_prefix: int, fake: bool = False) -> IPv4Range:
         """
-        按掩码长度划分一个地址段
-        :param ipv4_range: 要拆分的地址段
-        :param new_prefix: 要拆分的掩码长度
-        :param fake: True(假拆分，只返回拆分结果，不保存到数据库)；False(拆分并保存结果到数据库)
+        按掩码长度把子网地址段合并为一个超网
         """
-        if new_prefix < ipv4_range.mask_len:
-            raise errors.ConflictError(message=_('子网掩码长度必须大于拆分IP地址段的掩码长度'))
+        try:
+            supernet, ip_ranges = IPv4RangeMerger(
+                ipv4_range_ids=range_ids, new_prefix=new_prefix).do_merge(user=user, fake=fake)
+        except errors.ValidationError as exc:
+            raise errors.ConflictError(message=exc.message)
 
-        if ipv4_range.status not in [IPv4Range.Status.WAIT.value, IPv4Range.Status.RESERVED.value]:
-            raise errors.ConflictError(message=_('只允许拆分“未分配”和“预留”状态的IP地址段'))
-
-        subnets = IPv4RangeSplitter.split_subnets(ipv4_range=ipv4_range, new_prefix=new_prefix)
-        if fake:
-            return subnets
-
-        range_items = []
-        for sn in subnets:
-            sn.enforce_id()  # 生成id
-
-            if not sn.name:
-                sn.name = str(sn.start_address_network)
-
-            try:
-                sn.clean(exclude_ids=[ipv4_range.id])
-            except ValidationError as exc:
-                raise errors.ValidationError(
-                    message=_('拆分的子网 (%(value)s) 不符合规则。') % {'value': sn} + exc.messages[0])
-
-            range_items.append(
-                IPRangeItem(start=str(sn.start_address_obj), end=str(sn.end_address_obj), mask=sn.mask_len))
-
-        IPv4Range.objects.bulk_create(subnets)
-        ipv4_range.delete()
-        IPv4RangeRecordManager.create_split_record(
-            user=user, ipv4_range=ipv4_range, remark='', ip_ranges=range_items
-        )
-        return subnets
+        return supernet
 
 
 class IPv4RangeRecordManager:
@@ -460,24 +444,50 @@ class IPv4RangeRecordManager:
             ip_ranges=ip_ranges, remark=remark, org_virt_obj=None
         )
 
+    @staticmethod
+    def create_merge_record(user, ipv4_range: IPv4Range, remark: str, ip_ranges: List[IPRangeItem]):
+        return IPv4RangeRecordManager.create_record(
+            user=user, record_type=IPv4RangeRecord.RecordType.MERGE.value,
+            start_address=ipv4_range.start_address, end_address=ipv4_range.end_address, mask_len=ipv4_range.mask_len,
+            ip_ranges=ip_ranges, remark=remark, org_virt_obj=None
+        )
+
 
 class IPv4RangeSplitter:
-    def __init__(self, ipv4_range: IPv4Range, new_prefix: int):
-        self._ipv4_range = ipv4_range
-        self.new_prefix = new_prefix
+    def __init__(self, obj_or_id: Union[IPv4Range, str], new_prefix: int):
+        if isinstance(obj_or_id, str):
+            self._ipv4_range_id = obj_or_id
+            self._ipv4_range = None
+        elif isinstance(obj_or_id, IPv4Range):
+            self._ipv4_range = obj_or_id
+            self._ipv4_range_id = self._ipv4_range.id
+            if not self._ipv4_range_id:
+                raise ValueError(_('IPv4地址段对象id无效'))
+        else:
+            raise ValueError(_('值必须是一个IPv4地址段对象或者是一个id'))
 
-    def subnets(self):
+        self.new_prefix = new_prefix
+        self.sub_ip_ranges = None
+
+    def do_split(self, user, fake: bool = False):
         """
         :raises: Error
         """
-        return self.split_subnets(ipv4_range=self._ipv4_range, new_prefix=self.new_prefix)
+        self._ipv4_range, self.sub_ip_ranges = self.split_ipv4_range_by_mask(
+            range_id=self._ipv4_range_id, new_prefix=self.new_prefix, fake=fake
+        )
+
+        if not fake:
+            self.add_split_record(ipv4_range=self._ipv4_range, subnets=self.sub_ip_ranges, user=user)
+
+        return self.sub_ip_ranges
 
     @staticmethod
     def split_subnets(ipv4_range: IPv4Range, new_prefix: int) -> List[IPv4Range]:
         """
         :raises: Error
         """
-        sub_ranges = IPv4RangeSplitter.split_ipv4_range_by_mask(
+        sub_ranges = IPv4RangeSplitter.split_plan_for_ipv4_range(
             start_address=ipv4_range.start_address, end_address=ipv4_range.end_address,
             mask_len=ipv4_range.mask_len, split_mask=new_prefix
         )
@@ -501,7 +511,7 @@ class IPv4RangeSplitter:
         return subnets
 
     @staticmethod
-    def split_ipv4_range_by_mask(
+    def split_plan_for_ipv4_range(
             start_address: int, end_address: int, mask_len: int, split_mask: int
     ) -> List[IPRangeIntItem]:
         """
@@ -532,3 +542,233 @@ class IPv4RangeSplitter:
             subnets.append(IPRangeIntItem(start=start, end=end, mask=split_mask))
 
         return subnets
+
+    @staticmethod
+    def do_split_ipv4_range_by_mask(
+            ipv4_range: IPv4Range, new_prefix: int, fake: bool = False) -> List[IPv4Range]:
+        """
+        按掩码长度拆分一个地址段
+
+        * 次函数需要在一个事务中执行
+
+        :param ipv4_range: 要拆分的地址段
+        :param new_prefix: 要拆分的掩码长度
+        :param fake: True(假拆分，只返回拆分结果，不保存到数据库)；False(拆分并保存结果到数据库)
+        """
+        if new_prefix < ipv4_range.mask_len:
+            raise errors.ConflictError(message=_('子网掩码长度必须大于拆分IP地址段的掩码长度'))
+
+        if ipv4_range.status not in [IPv4Range.Status.WAIT.value, IPv4Range.Status.RESERVED.value]:
+            raise errors.ConflictError(message=_('只允许拆分“未分配”和“预留”状态的IP地址段'))
+
+        subnets = IPv4RangeSplitter.split_subnets(ipv4_range=ipv4_range, new_prefix=new_prefix)
+        if fake:
+            return subnets
+
+        for sn in subnets:
+            sn.enforce_id()  # 生成id
+
+            if not sn.name:
+                sn.name = str(sn.start_address_network)
+
+            try:
+                sn.clean(exclude_ids=[ipv4_range.id])
+            except ValidationError as exc:
+                raise errors.ValidationError(
+                    message=_('拆分的子网 (%(value)s) 不符合规则。') % {'value': sn} + exc.messages[0])
+
+        IPv4Range.objects.bulk_create(subnets)
+        ipv4_range.delete()
+        return subnets
+
+    @staticmethod
+    def split_ipv4_range_by_mask(
+            range_id: str, new_prefix: int, fake: bool = False
+    ) -> (IPv4Range, List[IPv4Range]):
+        """
+        按掩码长度划分一个地址段
+        """
+        if new_prefix > 32:
+            raise errors.InvalidArgument(message=_('子网掩码长度不能大于32'))
+
+        if fake:
+            ipv4_range = IPv4RangeManager.get_ip_range(_id=range_id)
+            return ipv4_range, IPv4RangeSplitter.do_split_ipv4_range_by_mask(
+                ipv4_range=ipv4_range, new_prefix=new_prefix, fake=True)
+
+        with transaction.atomic():
+            ipv4_range = IPv4Range.objects.select_for_update().select_related(
+                'asn', 'org_virt_obj').filter(id=range_id).first()
+            if ipv4_range is None:
+                raise errors.TargetNotExist(message=_('IP地址段不存在'))
+
+            subnets = IPv4RangeSplitter.do_split_ipv4_range_by_mask(
+                ipv4_range=ipv4_range, new_prefix=new_prefix, fake=False)
+
+        return ipv4_range, subnets
+
+    @staticmethod
+    def add_split_record(ipv4_range: IPv4Range, subnets: List[IPv4Range], user):
+        try:
+            range_items = [
+                IPRangeItem(
+                    start=str(sn.start_address_obj), end=str(sn.end_address_obj), mask=sn.mask_len
+                ) for sn in subnets
+            ]
+
+            IPv4RangeRecordManager.create_split_record(
+                user=user, ipv4_range=ipv4_range, remark='', ip_ranges=range_items
+            )
+        except Exception as exc:
+            pass
+
+
+class IPv4RangeMerger:
+    def __init__(self, ipv4_range_ids: List[str], new_prefix: int):
+        self.ipv4_range_ids = ipv4_range_ids
+        self.new_prefix = new_prefix
+        if not ipv4_range_ids:
+            raise errors.ValidationError(message=_('要合并的子网IP地址段id列表不能为空'))
+
+        if not (0 < new_prefix <= 32):
+            raise errors.ValidationError(message=_('要合并成的超网IP地址段的掩码长度必须为1-32'))
+
+    def get_ip_ranges(self, select_for_update: bool = False) -> List[IPv4Range]:
+        qs = IPv4Range.objects.filter(id__in=self.ipv4_range_ids).order_by('start_address')
+        if select_for_update:
+            qs = qs.select_for_update()
+
+        return list(qs)
+
+    def do_validate(self, ip_ranges):
+        """
+        :raises: Error
+        """
+        exists_id_set = {ir.id for ir in ip_ranges}
+        merge_id_set = set(self.ipv4_range_ids)
+        notfound_ids = merge_id_set.difference(exists_id_set)
+        if len(notfound_ids) > 0:
+            raise errors.ValidationError(message=_('以下IP地址段id不存在：') + ','.join(notfound_ids))
+
+        if not ip_ranges:
+            raise errors.ValidationError(message=_('至少要指定一个要合并的IP地址段'))
+
+        ip_ranges.sort(key=lambda x: x.start_address, reverse=False)
+        ip_ranges = self.merge_validate(ip_ranges=ip_ranges, new_prefix=self.new_prefix)
+        return ip_ranges
+
+    @staticmethod
+    def merge_validate(ip_ranges: List[IPv4Range], new_prefix: int):
+        pre_range = None
+        for ir in ip_ranges:
+            if ir.status not in [IPv4Range.Status.WAIT.value, IPv4Range.Status.RESERVED.value]:
+                raise errors.ValidationError(
+                    message=_('合并的地址段的状态必须为"未分配"和“预留”，以下IP地址段不能参与合并：') + str(ir))
+
+            if new_prefix > ir.mask_len:
+                raise errors.ValidationError(
+                    message=_('地址段的掩码长度小于新的合并掩码长度。') + str(ir))
+
+            if pre_range is not None:
+                # asn一致检查
+                if ir.asn_id != pre_range.asn_id:
+                    raise errors.ValidationError(
+                        message=_('以下2个地址段AS编码不一致：') + f'{str(pre_range)}、{str(ir)}')
+
+                # 分配状态 一致检查
+                if ir.status != pre_range.status:
+                    raise errors.ValidationError(
+                        message=_(
+                            '所有要合并的子网的分配状态必须一致，以下2个地址段的分配状态不一致：'
+                        ) + f'{str(pre_range)}、{str(ir)}')
+
+                # 预留状态时关联机构二级对象一致检查
+                if ir.status == IPv4Range.Status.RESERVED.value:
+                    if ir.org_virt_obj_id != pre_range.org_virt_obj_id:
+                        raise errors.ValidationError(
+                            message=_(
+                                '所有要合并的子网IP地址段是“预留”状态时，关联的机构二级对象必须一致，以下2个地址段不一致：'
+                            ) + f'{str(pre_range)}、{str(ir)}')
+
+                # 相邻的地址段首尾IP地址必须是连续的
+                if (ir.start_address - pre_range.end_address) != 1:
+                    raise errors.ValidationError(
+                        message=_('相邻的地址段首尾IP地址必须是连续的，以下2个地址段不是连续的：'
+                                  ) + f'{str(pre_range)}、{str(ir)}')
+
+                # 2个地址段 合并掩码长度的超网 是否一致
+                pre_supersut = pre_range.start_address_network.supernet(new_prefix=new_prefix)
+                ir_supersut = ir.start_address_network.supernet(new_prefix=new_prefix)
+                if pre_supersut != ir_supersut:
+                    raise errors.ValidationError(
+                        message=_('以下2个地址段不属于同一个超网，无法合并为指定掩码长度的超网：'
+                                  ) + f'{pre_supersut}({str(pre_range)})、{ir_supersut}({str(ir)})')
+
+            pre_range = ir
+
+        return ip_ranges
+
+    def do_merge(self, user, fake: bool = False):
+        """
+        :raises: Error
+        """
+        if fake:
+            ip_ranges = self.get_ip_ranges(select_for_update=False)
+            return self._merge(ip_ranges=ip_ranges, fake=True)
+
+        with transaction.atomic():
+            ip_ranges = self.get_ip_ranges(select_for_update=True)
+            supernet, ip_ranges = self._merge(ip_ranges=ip_ranges, fake=False)
+
+        self.add_merge_record(ipv4_range=supernet, subnets=ip_ranges, user=user)
+        return supernet, ip_ranges
+
+    def _merge(self, ip_ranges: List[IPv4Range], fake: bool = False) -> Tuple[IPv4Range, List[IPv4Range]]:
+        """
+        * 需要在一个事务中执行
+        """
+        ip_ranges = self.do_validate(ip_ranges=ip_ranges)
+        # 就一个合并IP地址段，并且掩码长度没变化，不需要合并
+        if len(ip_ranges) == 1:
+            subnet1 = ip_ranges[0]
+            if subnet1.mask_len == self.new_prefix:
+                return subnet1, [subnet1]
+
+        subnet1 = ip_ranges[0]
+        start_addr = subnet1.start_address
+        end_addr = ip_ranges[-1].end_address
+        if subnet1.status == IPv4Range.Status.WAIT.value:
+            org_virt_obj_id = None
+        else:
+            org_virt_obj_id = subnet1.org_virt_obj_id
+
+        nt = dj_timezone.now()
+        supernet = IPv4RangeManager.build_ipv4_range(
+            name='', start_ip=start_addr, end_ip=end_addr, mask_len=self.new_prefix,
+            asn=subnet1.asn, status_code=subnet1.status, org_virt_obj=org_virt_obj_id,
+            admin_remark='', remark='', create_time=nt, update_time=nt, assigned_time=None
+        )
+        supernet.clean(exclude_ids=self.ipv4_range_ids)
+
+        if fake:
+            return supernet, ip_ranges
+
+        IPv4Range.objects.filter(id__in=self.ipv4_range_ids).delete()
+        supernet.clean()
+        supernet.save(force_insert=True)
+        return supernet, ip_ranges
+
+    @staticmethod
+    def add_merge_record(ipv4_range: IPv4Range, subnets: List[IPv4Range], user):
+        try:
+            range_items = [
+                IPRangeItem(
+                    start=str(sn.start_address_obj), end=str(sn.end_address_obj), mask=sn.mask_len
+                ) for sn in subnets
+            ]
+
+            IPv4RangeRecordManager.create_merge_record(
+                user=user, ipv4_range=ipv4_range, remark='', ip_ranges=range_items
+            )
+        except Exception as exc:
+            pass
