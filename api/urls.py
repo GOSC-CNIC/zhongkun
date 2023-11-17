@@ -19,6 +19,7 @@ from link.viewsets import (
     opticalfiber_views, distriframeport_views, linkorg_views,
     linkuserrole_views, element_views
     )
+from service.viewsets import org_data_center_views
 
 app_name = 'api'
 
@@ -34,6 +35,7 @@ no_slash_router.register(r'flavor', flavor_views.FlavorViewSet, basename='flavor
 no_slash_router.register(r'service', views.ServiceViewSet, basename='service')
 no_slash_router.register(r'registry', views.DataCenterViewSet, basename='registry')
 no_slash_router.register(r'organization', org_views.OrganizationViewSet, basename='organization')
+no_slash_router.register(r'odc', org_data_center_views.OrgDataCenterViewSet, basename='odc')
 no_slash_router.register(r'user', user_views.UserViewSet, basename='user')
 no_slash_router.register(r'apply/service', views.ApplyVmServiceViewSet, basename='apply-service')
 no_slash_router.register(r'apply/organization', views.ApplyOrganizationViewSet, basename='apply-organization')
@@ -110,6 +112,7 @@ no_slash_router.register(
     r'admin/metering/server/statistics', metering_views.AdminMeteringServerStatisticsViewSet,
     basename='admin-metering-server-statistics')
 no_slash_router.register(r'admin/flavor', flavor_views.AdminFlavorViewSet, basename='admin-flavor')
+no_slash_router.register(r'admin/odc', org_data_center_views.AdminOrgDataCenterViewSet, basename='admin-odc')
 
 no_slash_router.register(r'portal/service', portal_views.PortalServiceViewSet, basename='portal-service')
 no_slash_router.register(r'report/storage/bucket/stats/monthly', report_storage_views.BucketStatsMonthlyViewSet,
@@ -131,6 +134,7 @@ no_slash_router.register(r'link/distriframeport', distriframeport_views.DistriFr
 no_slash_router.register(r'link/linkorg', linkorg_views.linkOrgViewSet, basename='link-linkorg')
 no_slash_router.register(r'link/user/role', linkuserrole_views.LinkUserRoleViewSet, basename='link-userrole')
 no_slash_router.register(r'link/element', element_views.ElementViewSet, basename='link-element')
+
 
 urlpatterns = [
     path('', include(no_slash_router.urls)),

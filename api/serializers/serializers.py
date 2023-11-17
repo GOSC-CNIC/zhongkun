@@ -46,27 +46,11 @@ class ServerSerializer(ServerBaseSerializer):
     """
     虚拟服务器实例序列化器
     """
-    endpoint_url = serializers.SerializerMethodField(method_name='get_vms_endpoint_url')
     service = serializers.SerializerMethodField(method_name='get_service')
     center_quota = serializers.IntegerField()
     vo_id = serializers.CharField()
     user = serializers.SerializerMethodField(method_name='get_user')
     lock = serializers.CharField(label=_('锁'), max_length=16)
-
-    def get_vms_endpoint_url(self, obj):
-        service_id_map = self.context.get('service_id_map')
-        if service_id_map:
-            service = service_id_map.get(obj.service_id)
-        else:
-            service = obj.service
-
-        if not service:
-            return ''
-
-        try:
-            return service.data_center.endpoint_vms
-        except AttributeError:
-            return ''
 
     @staticmethod
     def get_service(obj):
@@ -188,7 +172,7 @@ class ServiceSerializer(serializers.Serializer):
     add_time = serializers.DateTimeField()
     need_vpn = serializers.BooleanField()
     status = serializers.CharField()
-    data_center = serializers.SerializerMethodField()
+    org_data_center = serializers.SerializerMethodField(label=_('机构数据中心'), method_name='get_org_data_center')
     longitude = serializers.FloatField(label=_('经度'), default=0)
     latitude = serializers.FloatField(label=_('纬度'), default=0)
     pay_app_service_id = serializers.CharField(label=_('余额结算APP服务ID'), max_length=36)
@@ -196,12 +180,23 @@ class ServiceSerializer(serializers.Serializer):
     disk_available = serializers.BooleanField(label=_('提供云硬盘服务'))
 
     @staticmethod
-    def get_data_center(obj):
-        c = obj.data_center
-        if c is None:
-            return {'id': None, 'name': None, 'name_en': None, 'sort_weight': 0}
+    def get_org_data_center(obj):
+        odc = obj.org_data_center
+        if odc is None:
+            return None
 
-        return {'id': c.id, 'name': c.name, 'name_en': c.name_en, 'sort_weight': c.sort_weight}
+        data = {
+            'id': odc.id, 'name': odc.name, 'name_en': odc.name_en, 'sort_weight': odc.sort_weight
+        }
+        org = odc.organization
+        if org is None:
+            data['organization'] = None
+        else:
+            data['organization'] = {
+                'id': org.id, 'name': org.name, 'name_en': org.name_en
+            }
+
+        return data
 
 
 class DataCenterSerializer(serializers.Serializer):
@@ -209,10 +204,10 @@ class DataCenterSerializer(serializers.Serializer):
     name = serializers.CharField()
     name_en = serializers.CharField()
     abbreviation = serializers.CharField()
-    endpoint_vms = serializers.CharField()
-    endpoint_object = serializers.CharField()
-    endpoint_compute = serializers.CharField()
-    endpoint_monitor = serializers.CharField()
+    # endpoint_vms = serializers.CharField()
+    # endpoint_object = serializers.CharField()
+    # endpoint_compute = serializers.CharField()
+    # endpoint_monitor = serializers.CharField()
     creation_time = serializers.DateTimeField()
     status = serializers.SerializerMethodField(method_name='get_status')
     desc = serializers.CharField()

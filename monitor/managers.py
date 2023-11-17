@@ -8,6 +8,7 @@ from django.core.validators import URLValidator
 from django.core.exceptions import ValidationError
 
 from core import errors
+from .utils import build_thanos_provider, ThanosProvider
 from .serializers import (
     MonitorJobCephSerializer, MonitorJobServerSerializer
 )
@@ -89,7 +90,7 @@ class MonitorJobCephManager:
 
     @staticmethod
     def get_queryset(service_id: str = None):
-        qs = MonitorJobCeph.objects.select_related('provider').all()
+        qs = MonitorJobCeph.objects.select_related('org_data_center').all()
         if service_id:
             qs = qs.filter(service_id=service_id)
 
@@ -143,11 +144,12 @@ class MonitorJobCephManager:
             ]
         :raises: Error
         """
+        provider = build_thanos_provider(monitor_unit.org_data_center)
         job_ceph_map = {monitor_unit.job_tag: monitor_unit}
         ret_data = []
         for job in job_ceph_map.values():
             job_dict = MonitorJobCephSerializer(job).data
-            r = self.request_data(provider=job.provider, tag=tag, job=job.job_tag)
+            r = self.request_data(provider=provider, tag=tag, job=job.job_tag)
             if r:
                 data = r[0]
                 data['monitor'] = job_dict
@@ -159,6 +161,7 @@ class MonitorJobCephManager:
         return ret_data
 
     def queryrange(self, tag: str, monitor_unit: MonitorJobCeph, start: int, end: int, step: int):
+        provider = build_thanos_provider(monitor_unit.org_data_center)
         if tag == CephQueryChoices.ALL_TOGETHER.value:
             raise errors.InvalidArgument(message=_('范围查询不支持一起查询所有指标类型'))
 
@@ -166,7 +169,7 @@ class MonitorJobCephManager:
         ret_data = []
         for job in job_ceph_map.values():
             job_dict = MonitorJobCephSerializer(job).data
-            r = self.request_range_data(provider=job.provider, tag=tag, job=job.job_tag,
+            r = self.request_range_data(provider=provider, tag=tag, job=job.job_tag,
                                         start=start, end=end, step=step)
             if r:
                 data = r[0]
@@ -179,7 +182,7 @@ class MonitorJobCephManager:
 
         return ret_data
 
-    def request_range_data(self, provider: MonitorProvider, tag: str, job: str, start: int, end: int, step: int):
+    def request_range_data(self, provider: ThanosProvider, tag: str, job: str, start: int, end: int, step: int):
         params = {'provider': provider, 'job': job, 'start': start, 'end': end, 'step': step}
 
         f = {
@@ -194,7 +197,7 @@ class MonitorJobCephManager:
 
         return f(**params)
 
-    def request_data(self, provider: MonitorProvider, tag: str, job: str):
+    def request_data(self, provider: ThanosProvider, tag: str, job: str):
         """
         :return:
             [
@@ -280,12 +283,13 @@ class MonitorJobServerManager:
             ]
         :raises: Error
         """
+        provider = build_thanos_provider(monitor_unit.org_data_center)
         job_server_map = {monitor_unit.job_tag: monitor_unit}
         ret_data = []
 
         for job in job_server_map.values():
             job_dict = MonitorJobServerSerializer(job).data
-            r = self.request_data(provider=job.provider, tag=tag, job=job.job_tag)
+            r = self.request_data(provider=provider, tag=tag, job=job.job_tag)
             if r:
                 data = r[0]
                 data.pop('metric', None)
@@ -297,7 +301,7 @@ class MonitorJobServerManager:
 
         return ret_data
 
-    def request_data(self, provider: MonitorProvider, tag: str, job: str):
+    def request_data(self, provider: ThanosProvider, tag: str, job: str):
         """
         :return:
         :raises: Error
@@ -960,14 +964,15 @@ class MonitorJobTiDBManager:
         """
         ret_data = []
         job_dict = MonitorJobCephSerializer(monitor_unit).data
-        r = self.request_data(provider=monitor_unit.provider, tag=tag, job=monitor_unit.job_tag)
+        provider = build_thanos_provider(monitor_unit.org_data_center)
+        r = self.request_data(provider=provider, tag=tag, job=monitor_unit.job_tag)
         for data in r:
             data['monitor'] = job_dict
             ret_data.append(data)
 
         return ret_data
 
-    def request_data(self, provider: MonitorProvider, tag: str, job: str):
+    def request_data(self, provider: ThanosProvider, tag: str, job: str):
         """
         :return:
             [

@@ -27,10 +27,27 @@ class ObjectsServiceTests(MyAPITestCase):
         self.assertEqual(r.data['count'], 1)
         self.assertKeysIn(keys=[
             'id', 'name', 'name_en', 'service_type', 'endpoint_url', 'add_time', 'status', 'remarks', 'provide_ftp',
-            'ftp_domains', 'longitude', 'latitude', 'pay_app_service_id', 'data_center', 'sort_weight', 'loki_tag'
+            'ftp_domains', 'longitude', 'latitude', 'pay_app_service_id', 'org_data_center', 'sort_weight', 'loki_tag'
         ], container=r.data['results'][0])
-        self.assertKeysIn(keys=['id', 'name', 'name_en', 'sort_weight'], container=r.data['results'][0]['data_center'])
+        self.assertKeysIn(keys=[
+            'id', 'name', 'name_en', 'sort_weight', 'organization'], container=r.data['results'][0]['org_data_center'])
+        self.assertKeysIn(keys=[
+            'id', 'name', 'name_en'], container=r.data['results'][0]['org_data_center']['organization'])
         self.assertIsInstance(r.data['results'][0]['ftp_domains'], list)
+
+        # query 'org_id'
+        url = reverse('api:storage-service-list')
+        query = parse.urlencode(query={'org_id': 'test'})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 0)
+        self.assertEqual(len(r.data['results']), 0)
+
+        query = parse.urlencode(query={'org_id': self.service.org_data_center.organization_id})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 1)
+        self.assertEqual(len(r.data['results']), 1)
 
         # query 'center_id'
         url = reverse('api:storage-service-list')
@@ -40,7 +57,7 @@ class ObjectsServiceTests(MyAPITestCase):
         self.assertEqual(r.data['count'], 0)
         self.assertEqual(len(r.data['results']), 0)
 
-        query = parse.urlencode(query={'center_id': self.service.data_center_id})
+        query = parse.urlencode(query={'center_id': self.service.org_data_center_id})
         r = self.client.get(f'{url}?{query}')
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data['count'], 1)
@@ -83,10 +100,27 @@ class ObjectsServiceTests(MyAPITestCase):
         self.assertEqual(r.data['count'], 1)
         self.assertKeysIn(keys=[
             'id', 'name', 'name_en', 'service_type', 'endpoint_url', 'add_time', 'status', 'remarks', 'provide_ftp',
-            'ftp_domains', 'longitude', 'latitude', 'pay_app_service_id', 'data_center', 'sort_weight', 'loki_tag'
+            'ftp_domains', 'longitude', 'latitude', 'pay_app_service_id', 'org_data_center', 'sort_weight', 'loki_tag'
         ], container=r.data['results'][0])
-        self.assertKeysIn(keys=['id', 'name', 'name_en', 'sort_weight'], container=r.data['results'][0]['data_center'])
+        self.assertKeysIn(keys=[
+            'id', 'name', 'name_en', 'sort_weight', 'organization'], container=r.data['results'][0]['org_data_center'])
+        self.assertKeysIn(keys=[
+            'id', 'name', 'name_en'], container=r.data['results'][0]['org_data_center']['organization'])
         self.assertIsInstance(r.data['results'][0]['ftp_domains'], list)
+
+        # query 'org_id'
+        url = reverse('api:storage-service-admin-list')
+        query = parse.urlencode(query={'org_id': 'test'})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 0)
+        self.assertEqual(len(r.data['results']), 0)
+
+        query = parse.urlencode(query={'org_id': self.service.org_data_center.organization_id})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 1)
+        self.assertEqual(len(r.data['results']), 1)
 
         # query 'center_id'
         url = reverse('api:storage-service-admin-list')
@@ -96,7 +130,7 @@ class ObjectsServiceTests(MyAPITestCase):
         self.assertEqual(r.data['count'], 0)
         self.assertEqual(len(r.data['results']), 0)
 
-        query = parse.urlencode(query={'center_id': self.service.data_center_id})
+        query = parse.urlencode(query={'center_id': self.service.org_data_center_id})
         r = self.client.get(f'{url}?{query}')
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data['count'], 1)
@@ -120,8 +154,22 @@ class ObjectsServiceTests(MyAPITestCase):
         self.assertEqual(r.data['count'], 1)
         self.assertEqual(len(r.data['results']), 1)
 
+        # 数据中心管理员
+        self.service.users.remove(self.user)
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 0)
+        self.assertEqual(len(r.data['results']), 0)
+
+        self.service.org_data_center.users.add(self.user)
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 1)
+        self.assertEqual(len(r.data['results']), 1)
+
         # 联邦管理员
         self.service.users.remove(self.user)
+        self.service.org_data_center.users.remove(self.user)
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data['count'], 0)
@@ -135,9 +183,10 @@ class ObjectsServiceTests(MyAPITestCase):
         self.assertEqual(r.data['count'], 1)
         self.assertKeysIn(keys=[
             'id', 'name', 'name_en', 'service_type', 'endpoint_url', 'add_time', 'status', 'remarks', 'provide_ftp',
-            'ftp_domains', 'longitude', 'latitude', 'pay_app_service_id', 'data_center', 'sort_weight', 'loki_tag'
+            'ftp_domains', 'longitude', 'latitude', 'pay_app_service_id', 'org_data_center', 'sort_weight', 'loki_tag'
         ], container=r.data['results'][0])
-        self.assertKeysIn(keys=['id', 'name', 'name_en', 'sort_weight'], container=r.data['results'][0]['data_center'])
+        self.assertKeysIn(keys=[
+            'id', 'name', 'name_en', 'sort_weight', 'organization'], container=r.data['results'][0]['org_data_center'])
         self.assertIsInstance(r.data['results'][0]['ftp_domains'], list)
 
 

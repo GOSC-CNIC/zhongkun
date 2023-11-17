@@ -28,7 +28,7 @@ class ServerAdmin(NoDeleteSelectModelAdmin):
                     'pay_type', 'classification', 'vo', 'lock', 'situation', 'situation_time',
                     'default_user', 'show_default_password', 'expiration_time', 'remarks')
     search_fields = ['id', 'name', 'image', 'ipv4', 'remarks']
-    list_filter = ['service__data_center', 'service', 'classification']
+    list_filter = ['service__org_data_center', 'service', 'classification']
     raw_id_fields = ('user', )
     list_select_related = ('service', 'user', 'vo')
     readonly_fields = ['default_password']
@@ -104,7 +104,7 @@ class DiskAdmin(NoDeleteSelectModelAdmin):
                     'classification', 'user', 'vo', 'lock', 'show_deleted', 'deleted_time', 'deleted_user',
                     'server', 'mountpoint', 'attached_time', 'detached_time', 'remarks')
     search_fields = ['id', 'instance_id', 'remarks', 'user__username']
-    list_filter = ['service__data_center', 'service', 'classification', 'deleted']
+    list_filter = ['service__org_data_center', 'service', 'classification', 'deleted']
     raw_id_fields = ('user', 'vo', 'server')
     list_select_related = ('service', 'user', 'vo')
     readonly_fields = ['deleted_user']

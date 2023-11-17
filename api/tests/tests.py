@@ -241,7 +241,7 @@ class ServersTests(MyAPITestCase):
         self.assertKeysIn(['server'], response.data)
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
                            "public_ip", "image", "creation_time", "remarks",
-                           "endpoint_url", "service",
+                           "service",
                            "center_quota", "classification", "vo_id", "user",
                            "image_id", "image_desc", "default_user", "default_password", "pay_type",
                            "attached_disks"], response.data['server'])
@@ -279,7 +279,7 @@ class ServersTests(MyAPITestCase):
         self.assertKeysIn(['server'], response.data)
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
                            "public_ip", "image", "creation_time", "remarks",
-                           "endpoint_url", "service",
+                           "service",
                            "center_quota", "classification", "vo_id", "user",
                            "image_id", "image_desc", "default_user", "default_password", "pay_type",
                            "attached_disks"], response.data['server'])
@@ -291,9 +291,20 @@ class ServersTests(MyAPITestCase):
         self.assertKeysIn(["id", "size", "creation_time", "remarks", "expiration_time", "mountpoint",
                            "attached_time", "detached_time", "pay_type"], response.data['server']['attached_disks'][0])
 
-        # test when federal admin
+        # test when org date center admin
         self.service.users.remove(admin_user)
+        response = self.server_detail_response(
+            client=self.client, server_id=self.miss_server.id, querys={'as-admin': ''})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
+        self.service.org_data_center.users.add(admin_user)
+        response = self.server_detail_response(
+            client=self.client, server_id=self.miss_server.id, querys={'as-admin': ''})
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['server'], response.data)
+
+        # test when federal admin
+        self.service.org_data_center.users.remove(admin_user)
         response = self.server_detail_response(
             client=self.client, server_id=self.miss_server.id, querys={'as-admin': ''})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
@@ -305,7 +316,7 @@ class ServersTests(MyAPITestCase):
         self.assertKeysIn(['server'], response.data)
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
                            "public_ip", "image", "creation_time", "remarks",
-                           "endpoint_url", "service",
+                           "service",
                            "center_quota", "classification", "vo_id", "user",
                            "image_id", "image_desc", "default_user", "default_password", "pay_type"
                            ], response.data['server'])
@@ -323,7 +334,7 @@ class ServersTests(MyAPITestCase):
         self.assertEqual(len(response.data['servers']), 1)
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ram_gib", "ipv4",
                            "public_ip", "image", "creation_time",
-                           "remarks", "endpoint_url", "service",
+                           "remarks", "service",
                            "center_quota", "classification", "vo_id", "user",
                            "image_id", "image_desc", "default_user", "default_password",
                            "lock", "pay_type"], response.data['servers'][0])
@@ -450,7 +461,7 @@ class ServersTests(MyAPITestCase):
         self.assertEqual(response.data['count'], 1)
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4", "ram_gib",
                            "public_ip", "image", "creation_time",
-                           "remarks", "endpoint_url", "service",
+                           "remarks", "service",
                            "center_quota", "classification", "vo_id", "user",
                            "image_id", "image_desc", "default_user", "default_password",
                            "lock", "pay_type"], response.data['servers'][0])
@@ -493,7 +504,7 @@ class ServersTests(MyAPITestCase):
         self.assertKeysIn(['server'], response.data)
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4", "ram_gib",
                            "public_ip", "image", "creation_time", "remarks",
-                           "endpoint_url", "service",
+                           "service",
                            "center_quota", "classification", "vo_id", "user",
                            "image_id", "image_desc", "default_user", "default_password",
                            "lock", "pay_type"], response.data['server'])
@@ -511,7 +522,7 @@ class ServersTests(MyAPITestCase):
         admin_password = 'admin-password'
         admin_user = get_or_create_user(username=admin_username, password=admin_password)
         service66 = ServiceConfig(
-            name='test66', name_en='test66_en', data_center_id=None,
+            name='test66', name_en='test66_en', org_data_center_id=None,
             endpoint_url='',
             username='',
             service_type=ServiceConfig.ServiceType.EVCLOUD,
@@ -626,7 +637,7 @@ class ServersTests(MyAPITestCase):
         self.assertEqual(len(response.data['servers']), 1)
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4", "ram_gib",
                            "public_ip", "image", "creation_time",
-                           "remarks", "endpoint_url", "service",
+                           "remarks", "service",
                            "center_quota", "classification", "vo_id", "user",
                            "image_id", "image_desc", "default_user", "default_password",
                            "lock", "pay_type"], response.data['servers'][0])
@@ -678,6 +689,26 @@ class ServersTests(MyAPITestCase):
         query_str = parse.urlencode(query={'as-admin': '', 'exclude-vo': '', 'vo-name': 'dd'})
         response = self.client.get(f'{url}?{query_str}')
         self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
+
+        # ----- org data center admin -------
+        self.service.users.remove(admin_user)
+        url = reverse('api:servers-list')
+        query_str = parse.urlencode(query={'as-admin': ''})
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'next', 'previous', 'servers'], response.data)
+        self.assertEqual(response.data['count'], 0)
+        self.assertIsInstance(response.data['servers'], list)
+        self.assertEqual(len(response.data['servers']), 0)
+
+        self.service.org_data_center.users.add(admin_user)
+        response = self.client.get(f'{url}?{query_str}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'next', 'previous', 'servers'], response.data)
+        self.assertEqual(response.data['count'], 2)
+        self.assertIsInstance(response.data['servers'], list)
+        self.assertEqual(len(response.data['servers']), 2)
+        self.service.org_data_center.users.remove(admin_user)
 
         # -------------list server when federal admin---------------
         admin_user.set_federal_admin()
@@ -875,8 +906,20 @@ class ServersTests(MyAPITestCase):
         response = self.client.post(f'{url}?{query}', data={'action': 'start'})
         self.assertErrorResponse(status_code=500, code='InternalError', response=response)
 
-        # test when federal admin
+        # test when org date center admin
         self.service.users.remove(admin_user)
+        url = reverse('api:servers-server-action', kwargs={'id': self.miss_server.id})
+        query = parse.urlencode(query={'as-admin': ''})
+        response = self.client.post(f'{url}?{query}', data={'action': 'start'})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.miss_server.service.org_data_center.users.add(admin_user)
+        query = parse.urlencode(query={'as-admin': ''})
+        response = self.client.post(f'{url}?{query}', data={'action': 'start'})
+        self.assertErrorResponse(status_code=500, code='InternalError', response=response)
+        self.miss_server.service.org_data_center.users.remove(admin_user)
+
+        # test when federal admin
         url = reverse('api:servers-server-action', kwargs={'id': self.miss_server.id})
         query = parse.urlencode(query={'as-admin': ''})
         response = self.client.post(f'{url}?{query}', data={'action': 'start'})
@@ -1026,7 +1069,7 @@ class ServersTests(MyAPITestCase):
         self.assertEqual(response.data['count'], 1)
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
                            "public_ip", "image", "creation_time", "remarks",
-                           "endpoint_url", "service",
+                           "service",
                            "center_quota", "classification", "vo_id", "user",
                            "image_id", "image_desc", "default_user", "default_password",
                            "lock", "pay_type"], response.data['servers'][0])
@@ -1198,8 +1241,24 @@ class ServersTests(MyAPITestCase):
         response = self.client.delete(delete_url)
         self.assertEqual(response.status_code, 204)
 
-        # test when federal admin
+        # test when org data center admin
         self.service.users.remove(admin_user)
+        delete_server = create_server_metadata(
+            service=self.service, user=self.user,
+            default_user=self.default_user, default_password=self.default_password)
+
+        base_url = reverse('api:servers-detail', kwargs={'id': delete_server.id})
+        query = parse.urlencode(query={'as-admin': ''})
+        delete_url = f'{base_url}?{query}'
+        response = self.client.delete(delete_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.service.org_data_center.users.add(admin_user)
+        response = self.client.delete(delete_url)
+        self.assertEqual(response.status_code, 204)
+
+        # test when federal admin
+        self.service.org_data_center.users.remove(admin_user)
         delete_server = create_server_metadata(
             service=self.service, user=self.user,
             default_user=self.default_user, default_password=self.default_password)
@@ -1407,21 +1466,38 @@ class ServiceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "next", "previous", "results"], response.data)
         self.assertKeysIn(["id", "name", "name_en", "service_type", "cloud_type", "add_time", "sort_weight",
-                           "need_vpn", "status", "data_center", 'longitude', 'latitude', 'pay_app_service_id',
+                           "need_vpn", "status", "org_data_center", 'longitude', 'latitude', 'pay_app_service_id',
                            'disk_available'], response.data["results"][0])
-        self.assertKeysIn(["id", "name", "name_en", "sort_weight"], response.data["results"][0]['data_center'])
-        self.assertIsInstance(response.data["results"][0]['status'], str)
-        self.assertEqual(response.data["results"][0]['status'], ServiceConfig.Status.ENABLE)
-        self.assertIs(response.data["results"][0]['disk_available'], False)
+        self.assertEqual(len(response.data["results"]), 2)
+        map_ = {s['id']: s for s in response.data["results"]}
+        r_service1 = map_[self.service.id]
+        r_service2 = map_[service2.id]
+        self.assertKeysIn([
+            "id", "name", "name_en", "sort_weight", "organization"], r_service1['org_data_center'])
+        self.assertKeysIn(["id", "name", "name_en"], r_service1['org_data_center']['organization'])
+        self.assertIsInstance(r_service1['status'], str)
+        self.assertEqual(r_service1['status'], ServiceConfig.Status.ENABLE)
+        self.assertIs(r_service1['disk_available'], False)
+        self.assertIsNone(r_service2['org_data_center'])
 
         url = reverse('api:service-list')
-        query = parse.urlencode(query={'center_id': self.service.data_center_id})
+        query = parse.urlencode(query={'center_id': self.service.org_data_center_id})
         response = self.client.get(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["count"], 1)
 
         url = reverse('api:service-list')
         query = parse.urlencode(query={'center_id': 'test'})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 0)
+
+        # query "org_id"
+        query = parse.urlencode(query={'org_id': self.service.org_data_center.organization_id})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 1)
+        query = parse.urlencode(query={'org_id': 'test'})
         response = self.client.get(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["count"], 0)
@@ -1472,10 +1548,23 @@ class ServiceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "next", "previous", "results"], response.data)
         self.assertKeysIn(["id", "name", "name_en", "service_type", "cloud_type", "add_time", "sort_weight",
-                           "need_vpn", "status", "data_center", 'longitude', 'latitude', 'pay_app_service_id',
+                           "need_vpn", "status", "org_data_center", 'longitude', 'latitude', 'pay_app_service_id',
                            'disk_available'], response.data["results"][0])
-        self.assertKeysIn(["id", "name", "name_en", "sort_weight"], response.data["results"][0]['data_center'])
+        self.assertKeysIn([
+            "id", "name", "name_en", "sort_weight", "organization"], response.data["results"][0]['org_data_center'])
+        self.assertKeysIn(["id", "name", "name_en"], response.data["results"][0]['org_data_center']['organization'])
         self.assertIsInstance(response.data["results"][0]['status'], str)
+
+        # 数据中心管理员
+        self.service.users.remove(self.user)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
+
+        self.service.org_data_center.users.add(self.user)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
 
     def service_quota_get_update(self, url):
         # get
@@ -1679,8 +1768,7 @@ class RegistryTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('registries', response.data)
         self.assertIsInstance(response.data['registries'], list)
-        self.assertKeysIn(["id", "name", "endpoint_vms", "endpoint_object", "endpoint_compute", "sort_weight",
-                           "endpoint_monitor", "creation_time", "status", "desc", 'longitude', 'latitude'],
+        self.assertKeysIn(["id", "name", "sort_weight", "creation_time", "status", "desc", 'longitude', 'latitude'],
                           response.data['registries'][0])
 
 
@@ -2080,7 +2168,7 @@ class ApplyVmServiceTests(MyAPITestCase):
         response = self.create_apply_response(client=self.client, data=apply_data)
         self.assertErrorResponse(status_code=404, code='OrganizationNotExists', response=response)
 
-        apply_data['organization_id'] = self.service.data_center_id
+        apply_data['organization_id'] = self.service.org_data_center.organization_id
         response = self.create_apply_response(client=self.client, data=apply_data)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(keys=[
@@ -2094,7 +2182,7 @@ class ApplyVmServiceTests(MyAPITestCase):
 
         self.assert_is_subdict_of(sub={
             'status': 'wait',
-            'organization_id': self.service.data_center_id,
+            'organization_id': self.service.org_data_center.organization_id,
             'longitude': 0.0, 'latitude': 0.0, 'name': '地球大数据', "name_en": "casearth data",
             'region': '1', 'service_type': self.service.service_type,
             'cloud_type': ApplyVmService.CLoudType.HYBRID,
@@ -2136,7 +2224,7 @@ class ApplyVmServiceTests(MyAPITestCase):
     def test_pending_reject_apply(self):
         apply_data = {k: self.apply_data[k] for k in self.apply_data.keys()}
         url = reverse('api:apply-service-list')
-        apply_data['organization_id'] = self.service.data_center_id
+        apply_data['organization_id'] = self.service.org_data_center.organization_id
         response = self.client.post(url, data=apply_data)
         self.assertEqual(response.status_code, 200)
         apply_id = response.data['id']
@@ -2163,7 +2251,7 @@ class ApplyVmServiceTests(MyAPITestCase):
     def test_pending_test_pass_apply(self):
         apply_data = {k: self.apply_data[k] for k in self.apply_data.keys()}
         url = reverse('api:apply-service-list')
-        apply_data['organization_id'] = self.service.data_center_id
+        apply_data['organization_id'] = self.service.org_data_center.organization_id
         response = self.client.post(url, data=apply_data)
         self.assertEqual(response.status_code, 200)
         apply_id = response.data['id']
@@ -2237,7 +2325,7 @@ class ApplyVmServiceTests(MyAPITestCase):
 
     def test_list(self):
         apply_data = {k: self.apply_data[k] for k in self.apply_data.keys()}
-        apply_data['organization_id'] = self.service.data_center_id
+        apply_data['organization_id'] = self.service.org_data_center.organization_id
         response = self.create_apply_response(client=self.client, data=apply_data)
         self.assertEqual(response.status_code, 200)
         apply_id = response.data['id']
@@ -2257,7 +2345,7 @@ class ApplyVmServiceTests(MyAPITestCase):
             'remarks', 'logo_url'], container=response.data['results'][0])
         self.assert_is_subdict_of(sub={
             'status': ApplyVmService.Status.WAIT,
-            'organization_id': self.service.data_center_id,
+            'organization_id': self.service.org_data_center.organization_id,
             'longitude': 0.0, 'latitude': 0.0, 'name': '地球大数据', "name_en": "casearth data",
             'region': '1', 'service_type': self.service.service_type,
             'cloud_type': self.service.cloud_type,
@@ -2297,7 +2385,7 @@ class ApplyVmServiceTests(MyAPITestCase):
         # list organization cancel
         response = self.list_response(client=self.client, queries={
             'status': [ApplyVmService.Status.CANCEL],
-            'organization': self.service.data_center_id})
+            'organization': self.service.org_data_center.organization_id})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["count"], 1)
         response = self.list_response(client=self.client, queries={
@@ -2349,7 +2437,7 @@ class ApplyVmServiceTests(MyAPITestCase):
             'remarks', 'logo_url'], container=response.data['results'][0])
         self.assert_is_subdict_of(sub={
             'status': ApplyVmService.Status.CANCEL,
-            'organization_id': self.service.data_center_id,
+            'organization_id': self.service.org_data_center.organization_id,
             'longitude': 0.0, 'latitude': 0.0, 'name': '地球大数据', "name_en": "casearth data",
             'region': '1', 'service_type': self.service.service_type,
             'cloud_type': self.service.cloud_type,
@@ -2374,7 +2462,7 @@ class ApplyVmServiceTests(MyAPITestCase):
 
         # admin-list organization
         response = self.admin_list_response(client=self.client, queries={
-            'deleted': True, 'organization': self.service.data_center_id})
+            'deleted': True, 'organization': self.service.org_data_center.organization_id})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["count"], 1)
 

@@ -1,6 +1,7 @@
 from django.contrib import admin, messages
 from django.utils.translation import gettext_lazy as _
 from django.db import transaction
+from django.contrib.admin.filters import SimpleListFilter
 
 from storage.request import request_service
 from storage.adapter import inputs
@@ -10,26 +11,44 @@ from . import models
 from . import forms
 
 
+class ServiceOrgFilter(SimpleListFilter):
+    title = "机构"
+    parameter_name = 'org_id'
+
+    def lookups(self, request, model_admin):
+        r = models.ObjectsService.objects.select_related(
+            'org_data_center__organization').order_by('sort_weight').values_list(
+            'org_data_center__organization_id', 'org_data_center__organization__name'
+        )
+        d = {i[0]: i[1] for i in r}
+        return [(k, v) for k, v in d.items()]
+
+    def queryset(self, request, queryset):
+        org_id = request.GET.get(self.parameter_name)
+        if org_id:
+            return queryset.filter(org_data_center__organization_id=org_id)
+
+
 @admin.register(models.ObjectsService)
 class ObjectsServiceAdmin(admin.ModelAdmin):
     form = forms.ObjectsServiceForm
 
-    list_display = ('id', 'name', 'name_en', 'data_center', 'service_type', 'sort_weight', 'endpoint_url',
-                    'add_time', 'status',
+    list_display = ('id', 'name', 'name_en', 'org_data_center', 'organization_name', 'service_type',
+                    'sort_weight', 'endpoint_url', 'add_time', 'status',
                     'username', 'raw_password', 'provide_ftp', 'pay_app_service_id', 'loki_tag')
 
     search_fields = ['name', 'name_en', 'endpoint_url', 'remarks']
-    # list_filter = ['service_type']
-    list_select_related = ('data_center',)
+    list_filter = [ServiceOrgFilter,]
+    list_select_related = ('org_data_center', 'org_data_center__organization')
     list_editable = ('sort_weight',)
-    raw_id_fields = ('data_center',)
+    raw_id_fields = ('org_data_center',)
 
     filter_horizontal = ('users',)
     readonly_fields = ('password', )
     fieldsets = (
         (_('说明、备注'), {'fields': ('remarks', 'sort_weight')}),
         (_('服务配置信息'), {
-            'fields': ('data_center', 'name', 'name_en', 'service_type', 'status', 'endpoint_url',
+            'fields': ('org_data_center', 'name', 'name_en', 'service_type', 'status', 'endpoint_url',
                        'api_version', 'username', 'password', 'change_password')
         }),
         (_('FTP配置信息'), {
@@ -43,6 +62,13 @@ class ObjectsServiceAdmin(admin.ModelAdmin):
         }),
         (_('其他'), {'fields': ('loki_tag',)}),
     )
+
+    @admin.display(description=_("机构"))
+    def organization_name(self, obj):
+        if not obj.org_data_center or not obj.org_data_center.organization:
+            return ''
+
+        return obj.org_data_center.organization.name
 
     def has_delete_permission(self, request, obj=None):
         return False

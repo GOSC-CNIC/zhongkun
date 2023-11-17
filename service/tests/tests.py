@@ -5,7 +5,7 @@ from core.errors import QuotaShortageError, QuotaOnlyIncreaseError
 from core.quota import QuotaAPI
 from utils.test import get_or_create_user, get_or_create_service
 from utils.crypto import Encryptor
-from .managers import ServicePrivateQuotaManager, ServiceShareQuotaManager
+from ..managers import ServicePrivateQuotaManager, ServiceShareQuotaManager
 
 User = get_user_model()
 

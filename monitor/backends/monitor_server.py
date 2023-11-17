@@ -4,7 +4,7 @@ import requests
 from string import Template
 
 from core import errors
-from monitor.models import MonitorProvider
+from monitor.utils import ThanosProvider
 
 
 class ExpressionQuery:
@@ -110,7 +110,7 @@ class MonitorServerQueryAPI:
         }
     }
     """
-    def server_health_status(self, provider: MonitorProvider, job: str):
+    def server_health_status(self, provider: ThanosProvider, job: str):
         """
         :return:
         """
@@ -118,7 +118,7 @@ class MonitorServerQueryAPI:
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url)
         return self._request_query_api(url=api_url, expression_query=expression_query)
 
-    def server_host_up_count(self, provider: MonitorProvider, job: str):
+    def server_host_up_count(self, provider: ThanosProvider, job: str):
         """
         :return:
             [
@@ -135,7 +135,7 @@ class MonitorServerQueryAPI:
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url)
         return self._request_query_api(url=api_url, expression_query=expression_query)
 
-    def server_host_count(self, provider: MonitorProvider, job: str):
+    def server_host_count(self, provider: ThanosProvider, job: str):
         """
         :return:
         """
@@ -143,7 +143,7 @@ class MonitorServerQueryAPI:
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url)
         return self._request_query_api(url=api_url, expression_query=expression_query)
 
-    def server_cpu_usage(self, provider: MonitorProvider, job: str):
+    def server_cpu_usage(self, provider: ThanosProvider, job: str):
         """
         :return:
             [
@@ -160,7 +160,7 @@ class MonitorServerQueryAPI:
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url)
         return self._request_query_api(url=api_url, expression_query=expression_query)
 
-    def server_mem_usage(self, provider: MonitorProvider, job: str):
+    def server_mem_usage(self, provider: ThanosProvider, job: str):
         """
         :return:
             [
@@ -177,7 +177,7 @@ class MonitorServerQueryAPI:
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url)
         return self._request_query_api(url=api_url, expression_query=expression_query)
 
-    def server_disk_usage(self, provider: MonitorProvider, job: str):
+    def server_disk_usage(self, provider: ThanosProvider, job: str):
         """
         :return:
             [
@@ -194,7 +194,7 @@ class MonitorServerQueryAPI:
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url)
         return self._request_query_api(url=api_url, expression_query=expression_query)
 
-    def server_min_cpu_usage(self, provider: MonitorProvider, job: str):
+    def server_min_cpu_usage(self, provider: ThanosProvider, job: str):
         """
         :return:
             [
@@ -211,7 +211,7 @@ class MonitorServerQueryAPI:
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url)
         return self._request_query_api(url=api_url, expression_query=expression_query)
 
-    def server_max_cpu_usage(self, provider: MonitorProvider, job: str):
+    def server_max_cpu_usage(self, provider: ThanosProvider, job: str):
         """
         :return:
             [
@@ -228,7 +228,7 @@ class MonitorServerQueryAPI:
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url)
         return self._request_query_api(url=api_url, expression_query=expression_query)
 
-    def server_min_mem_usage(self, provider: MonitorProvider, job: str):
+    def server_min_mem_usage(self, provider: ThanosProvider, job: str):
         """
         :return:
             [
@@ -245,7 +245,7 @@ class MonitorServerQueryAPI:
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url)
         return self._request_query_api(url=api_url, expression_query=expression_query)
 
-    def server_max_mem_usage(self, provider: MonitorProvider, job: str):
+    def server_max_mem_usage(self, provider: ThanosProvider, job: str):
         """
         :return:
             [
@@ -262,7 +262,7 @@ class MonitorServerQueryAPI:
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url)
         return self._request_query_api(url=api_url, expression_query=expression_query)
 
-    def server_min_disk_usage(self, provider: MonitorProvider, job: str):
+    def server_min_disk_usage(self, provider: ThanosProvider, job: str):
         """
         :return:
             [
@@ -279,7 +279,7 @@ class MonitorServerQueryAPI:
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url)
         return self._request_query_api(url=api_url, expression_query=expression_query)
 
-    def server_max_disk_usage(self, provider: MonitorProvider, job: str):
+    def server_max_disk_usage(self, provider: ThanosProvider, job: str):
         """
         :return:
             [

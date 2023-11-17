@@ -49,7 +49,7 @@ class DataCenter(UuidModel):
     name = models.CharField(verbose_name=_('名称'), max_length=255)
     name_en = models.CharField(verbose_name=_('英文名称'), max_length=255, default='')
     abbreviation = models.CharField(verbose_name=_('简称'), max_length=64, default='')
-    independent_legal_person = models.BooleanField(verbose_name=_('是否独立法人单位'), default=True)
+    independent_legal_person = models.BooleanField(verbose_name=_('独立法人单位'), default=True)
     country = models.CharField(verbose_name=_('国家/地区'), max_length=128, default='')
     province = models.CharField(verbose_name=_('省份'), max_length=128, default='')
     city = models.CharField(verbose_name=_('城市'), max_length=128, default='')
@@ -99,6 +99,87 @@ class DataCenter(UuidModel):
             force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
 
 
+class OrgDataCenter(UuidModel):
+    """机构下的数据中心"""
+    name = models.CharField(verbose_name=_('名称'), max_length=255)
+    name_en = models.CharField(verbose_name=_('英文名称'), max_length=255, default='')
+    organization = models.ForeignKey(
+        to=DataCenter, verbose_name=_('机构'), on_delete=models.SET_NULL, null=True, blank=False, db_constraint=False)
+    users = models.ManyToManyField(
+        to=User, verbose_name=_('管理员'), blank=True, related_name='+', db_table='org_data_center_users',
+        db_constraint=False)
+    longitude = models.FloatField(verbose_name=_('经度'), blank=True, default=0)
+    latitude = models.FloatField(verbose_name=_('纬度'), blank=True, default=0)
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
+    sort_weight = models.IntegerField(verbose_name=_('排序值'), default=0, help_text=_('值越小排序越靠前'))
+    remark = models.CharField(verbose_name=_('数据中心备注'), max_length=255, blank=True, default='')
+
+    # Thanos
+    thanos_endpoint_url = models.CharField(
+        verbose_name=_('Thanos服务查询接口'), max_length=255, blank=True, default='', help_text=_('http(s)://example.cn/'))
+    thanos_username = models.CharField(
+        max_length=128, verbose_name=_('Thanos服务认证用户名'), blank=True, default='', help_text=_('用于此服务认证的用户名'))
+    thanos_password = models.CharField(max_length=255, verbose_name=_('Thanos服务认证密码'), blank=True, default='')
+    thanos_receive_url = models.CharField(
+        verbose_name=_('Thanos服务接收接口'), max_length=255, blank=True, default='', help_text=_('http(s)://example.cn/'))
+    thanos_remark = models.CharField(verbose_name=_('Thanos服务备注'), max_length=255, blank=True, default='')
+
+    # Loki
+    loki_endpoint_url = models.CharField(
+        verbose_name=_('Loki服务查询接口'), max_length=255, blank=True, default='', help_text=_('http(s)://example.cn/'))
+    loki_username = models.CharField(
+        max_length=128, verbose_name=_('Loki服务认证用户名'), blank=True, default='', help_text=_('用于此服务认证的用户名'))
+    loki_password = models.CharField(max_length=255, verbose_name=_('Loki服务认证密码'), blank=True, default='')
+    loki_receive_url = models.CharField(
+        verbose_name=_('Loki服务接收接口'), max_length=255, blank=True, default='', help_text=_('http(s)://example.cn/'))
+    loki_remark = models.CharField(verbose_name=_('Loki服务备注'), max_length=255, blank=True, default='')
+
+    class Meta:
+        db_table = 'org_data_center'
+        ordering = ['sort_weight']
+        verbose_name = _('机构数据中心')
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def raw_thanos_password(self):
+        """
+        :return:
+            str     # success
+            None    # failed, invalid encrypted password
+        """
+        encryptor = get_encryptor()
+        try:
+            return encryptor.decrypt(self.thanos_password)
+        except encryptor.InvalidEncrypted as e:
+            return None
+
+    @raw_thanos_password.setter
+    def raw_thanos_password(self, raw_password: str):
+        encryptor = get_encryptor()
+        self.thanos_password = encryptor.encrypt(raw_password)
+
+    @property
+    def raw_loki_password(self):
+        """
+        :return:
+            str     # success
+            None    # failed, invalid encrypted password
+        """
+        encryptor = get_encryptor()
+        try:
+            return encryptor.decrypt(self.loki_password)
+        except encryptor.InvalidEncrypted as e:
+            return None
+
+    @raw_loki_password.setter
+    def raw_loki_password(self, raw_password: str):
+        encryptor = get_encryptor()
+        self.loki_password = encryptor.encrypt(raw_password)
+
+
 class BaseService(UuidModel):
     class ServiceType(models.TextChoices):
         EVCLOUD = 'evcloud', 'EVCloud'
@@ -130,8 +211,9 @@ class ServiceConfig(BaseService):
         DISABLE = 'disable', _('停止服务')
         DELETED = 'deleted', _('删除')
 
-    data_center = models.ForeignKey(to=DataCenter, null=True, on_delete=models.SET_NULL,
-                                    related_name='service_set', verbose_name=_('机构'))
+    org_data_center = models.ForeignKey(
+        to=OrgDataCenter, null=True, on_delete=models.SET_NULL, related_name='+', verbose_name=_('数据中心'),
+        db_constraint=False, blank=True, default=None)
     name = models.CharField(max_length=255, verbose_name=_('服务名称'))
     name_en = models.CharField(verbose_name=_('服务英文名称'), max_length=255, default='')
     region_id = models.CharField(max_length=128, default='', blank=True, verbose_name=_('服务区域/分中心ID'))
@@ -206,8 +288,9 @@ class ServiceConfig(BaseService):
                     app_service.name_en = self.name_en
                     update_fields.append('name_en')
 
-                if app_service.orgnazition_id != self.data_center_id:
-                    app_service.orgnazition_id = self.data_center_id
+                org_id = self.org_data_center.organization_id if self.org_data_center else None
+                if app_service.orgnazition_id != org_id:
+                    app_service.orgnazition_id = org_id
                     update_fields.append('orgnazition_id')
 
                 if self.id and app_service.service_id != self.id:
@@ -233,9 +316,10 @@ class ServiceConfig(BaseService):
             self.check_pay_app_service_id(self.pay_app_service_id)
 
         # 新注册
+        org_id = self.org_data_center.organization_id if self.org_data_center else None
         with transaction.atomic():
             app_service = PayAppService(
-                name=self.name, name_en=self.name_en, app_id=app_id, orgnazition_id=self.data_center_id,
+                name=self.name, name_en=self.name_en, app_id=app_id, orgnazition_id=org_id,
                 resources='云主机、云硬盘', status=PayAppService.Status.NORMAL.value,
                 category=PayAppService.Category.VMS_SERVER.value, service_id=self.id,
                 longitude=self.longitude, latitude=self.latitude,

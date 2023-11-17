@@ -161,7 +161,6 @@ class ServersViewSet(CustomGenericViewSet):
                   "image": "centos8_gui",
                   "creation_time": "2020-11-02T07:47:39.776384Z",
                   "remarks": "",
-                  "endpoint_url": "http://159.226.235.16/",
                   "service": {
                     "id": "2",
                     "name": "怀柔204机房",
@@ -225,7 +224,6 @@ class ServersViewSet(CustomGenericViewSet):
                   "image": "centos8_gui",
                   "creation_time": "2020-11-02T07:47:39.776384Z",
                   "remarks": "",
-                  "endpoint_url": "https://159.226.235.16/",
                   "service": {
                     "id": "2",
                     "name": "怀柔204机房",
@@ -482,7 +480,7 @@ class ServersViewSet(CustomGenericViewSet):
                 "image": "CentOS_8",
                 "creation_time": "2020-09-23T07:10:14.009418Z",
                 "remarks": "",
-                "endpoint_url": "https://159.226.235.16/",
+                "endpoint_url": "",     # 后续移除
                 "service": {
                     "id": "2",
                     "name": "怀柔204机房",
@@ -518,11 +516,11 @@ class ServersViewSet(CustomGenericViewSet):
         try:
             if self.is_as_admin_request(request=request):
                 server = ServerManager().get_read_perm_server(
-                    server_id=server_id, user=request.user, related_fields=['service__data_center'],
+                    server_id=server_id, user=request.user, related_fields=['service__org_data_center'],
                     as_admin=True)
             else:
                 server = ServerManager().get_read_perm_server(
-                    server_id=server_id, user=request.user, related_fields=['service__data_center', 'vo__owner'])
+                    server_id=server_id, user=request.user, related_fields=['service__org_data_center', 'vo__owner'])
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
@@ -1478,11 +1476,18 @@ class ServiceViewSet(CustomGenericViewSet):
         operation_summary=gettext_lazy('列举已接入的服务'),
         manual_parameters=[
             openapi.Parameter(
+                name='org_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description='机构id'
+            ),
+            openapi.Parameter(
                 name='center_id',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description='联邦成员机构id'
+                description='数据中心id'
             ),
             openapi.Parameter(
                 name='status',
@@ -1515,11 +1520,16 @@ class ServiceViewSet(CustomGenericViewSet):
                   "add_time": "2020-10-16T09:01:44.402955Z",
                   "need_vpn": false,
                   "status": "enable",              # enable: 开启状态；disable: 停止服务状态; deleted: 删除
-                  "data_center": {
+                  "org_data_center": {      # maybe null
                     "id": 3,
                     "name": "VMware测试中心",
                     "name_en": "xxx",
-                    "sort_weight": 6
+                    "sort_weight": 6,
+                    "organization": {       # maybe null
+                        "id": 3,
+                        "name": "VMware机构",
+                        "name_en": "xxx",
+                    }
                   },
                   "longitude": 0,
                   "latitude": 0,
@@ -1714,10 +1724,6 @@ class DataCenterViewSet(CustomGenericViewSet):
                   "name": "网络中心",
                   "name_en": "string",
                   "abbreviation": "xxx"
-                  "endpoint_vms": http://xxx/,
-                  "endpoint_object": http://xxx/,
-                  "endpoint_compute": http://xxx/,
-                  "endpoint_monitor": http://xxx/,
                   "creation_time": 2021-02-07T06:20:00Z,
                   "status": {
                     "code": 1,

@@ -29,7 +29,10 @@ class OrganizationViewSet(GenericViewSet):
 
             Http Code: 状态码200，返回数据：
             {
-              "registries": [
+              "count": 266,
+              "page_num": 1,
+              "page_size": 100,
+              "results": [
                 {
                   "id": "9c70cbe2c8009fe2eb10",
                   "name": "网络中心",

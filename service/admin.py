@@ -2,28 +2,47 @@ from django.contrib import admin
 from django.utils.translation import gettext_lazy, gettext as _
 from django.contrib import messages
 from django.db import transaction
+from django.contrib.admin.filters import SimpleListFilter
 
 from servers.models import Server, Disk
 from utils.model import NoDeleteSelectModelAdmin
 from .models import (
     ServiceConfig, DataCenter, ServicePrivateQuota,
-    ServiceShareQuota, ApplyVmService, ApplyOrganization, Contacts
+    ServiceShareQuota, ApplyVmService, ApplyOrganization, Contacts,
+    OrgDataCenter
 )
 from . import forms
+
+
+class ServiceOrgFilter(SimpleListFilter):
+    title = "机构"
+    parameter_name = 'org_id'
+
+    def lookups(self, request, model_admin):
+        r = ServiceConfig.objects.select_related('org_data_center__organization').order_by('sort_weight').values_list(
+            'org_data_center__organization_id', 'org_data_center__organization__name'
+        )
+        d = {i[0]: i[1] for i in r}
+        return [(k, v) for k, v in d.items()]
+
+    def queryset(self, request, queryset):
+        org_id = request.GET.get(self.parameter_name)
+        if org_id:
+            return queryset.filter(org_data_center__organization_id=org_id)
 
 
 @admin.register(ServiceConfig)
 class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
     form = forms.VmsProviderForm
     list_display_links = ('id',)
-    list_display = ('id', 'name', 'name_en', 'data_center', 'sort_weight', 'region_id', 'service_type',
+    list_display = ('id', 'name', 'name_en', 'org_data_center', 'organization_name', 'sort_weight', 'region_id', 'service_type',
                     'endpoint_url', 'username',
                     'password', 'add_time', 'status', 'need_vpn', 'disk_available', 'vpn_endpoint_url', 'vpn_password',
                     'pay_app_service_id', 'longitude', 'latitude', 'remarks')
     search_fields = ['name', 'name_en', 'endpoint_url', 'remarks']
-    list_filter = ['service_type', 'disk_available']
-    list_select_related = ('data_center',)
-    raw_id_fields = ('data_center',)
+    list_filter = ['service_type', 'disk_available', ServiceOrgFilter]
+    list_select_related = ('org_data_center', 'org_data_center__organization')
+    raw_id_fields = ('org_data_center',)
     list_editable = ('sort_weight',)
 
     filter_horizontal = ('users',)
@@ -31,7 +50,7 @@ class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
     fieldsets = (
         (_('说明、备注'), {'fields': ('remarks', 'sort_weight')}),
         (_('服务配置信息'), {
-            'fields': ('data_center', 'name', 'name_en', 'service_type', 'cloud_type', 'status', 'endpoint_url',
+            'fields': ('org_data_center', 'name', 'name_en', 'service_type', 'cloud_type', 'status', 'endpoint_url',
                        'api_version', 'region_id', 'disk_available', 'username', 'password', 'change_password')
         }),
         (_('VPN配置信息'), {
@@ -82,6 +101,13 @@ class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
         else:
             self.message_user(request, _("没有加密更新任何数据记录"), level=messages.SUCCESS)
 
+    @admin.display(description=gettext_lazy("机构"))
+    def organization_name(self, obj):
+        if not obj.org_data_center or not obj.org_data_center.organization:
+            return ''
+
+        return obj.org_data_center.organization.name
+
     def has_delete_permission(self, request, obj=None):
         return False
 
@@ -108,6 +134,56 @@ class DataCenterAdmin(NoDeleteSelectModelAdmin):
     filter_horizontal = ('contacts',)
 
 
+class ODCOrgFilter(SimpleListFilter):
+    title = "机构"
+    parameter_name = 'org_id'
+
+    def lookups(self, request, model_admin):
+        r = OrgDataCenter.objects.order_by('organization__sort_weight').values_list(
+            'organization_id', 'organization__name'
+        )
+        d = {i[0]: i[1] for i in r}
+        return [(k, v) for k, v in d.items()]
+
+    def queryset(self, request, queryset):
+        org_id = request.GET.get(self.parameter_name)
+        if org_id:
+            return queryset.filter(organization_id=org_id)
+
+
+@admin.register(OrgDataCenter)
+class OrgDataCenterAdmin(NoDeleteSelectModelAdmin):
+    list_display_links = ('id',)
+    list_display = ('id', 'name', 'name_en', 'organization', 'sort_weight', 'longitude', 'latitude', 'creation_time',
+                    'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',
+                    'loki_endpoint_url', 'loki_username', 'loki_password', 'loki_receive_url',
+                    )
+    search_fields = ['name', 'name_en', 'thanos_endpoint_url', 'loki_endpoint_url', 'remark']
+    list_select_related = ('organization',)
+    raw_id_fields = ('organization',)
+    list_editable = ('sort_weight',)
+    list_filter = (ODCOrgFilter,)
+    filter_horizontal = ('users',)
+    fieldsets = (
+        (_('数据中心基础信息'), {
+            'fields': (
+                'name', 'name_en', 'organization', 'sort_weight', 'longitude', 'latitude', 'remark',
+                'users'
+            )
+        }),
+        (_('Thanos服务信息'), {
+            'fields': (
+                'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url', 'thanos_remark'
+            )
+        }),
+        (_('Loki服务信息'), {
+            'fields': (
+                'loki_endpoint_url', 'loki_username', 'loki_password', 'loki_receive_url', 'loki_remark'
+            )
+        }),
+    )
+
+
 @admin.register(ServicePrivateQuota)
 class ServicePrivateQuotaAdmin(admin.ModelAdmin):
     list_display_links = ('id',)
@@ -115,7 +191,7 @@ class ServicePrivateQuotaAdmin(admin.ModelAdmin):
                     'disk_size_used', 'private_ip_total', 'private_ip_used', 'public_ip_total', 'public_ip_used',
                     'enable', 'creation_time')
     list_select_related = ('service',)
-    list_filter = ('service__data_center', 'service')
+    list_filter = ('service__org_data_center', 'service')
     actions = ['quota_used_update']
 
     @admin.action(description=gettext_lazy("已用配额统计更新"))
@@ -173,7 +249,7 @@ class ServiceShareQuotaAdmin(admin.ModelAdmin):
                     'disk_size_used', 'private_ip_total', 'private_ip_used', 'public_ip_total', 'public_ip_used',
                     'enable', 'creation_time')
     list_select_related = ('service',)
-    list_filter = ('service__data_center', 'service')
+    list_filter = ('service__org_data_center', 'service')
     actions = ['quota_used_update']
 
     @admin.action(description=gettext_lazy("已用配额统计更新"))

@@ -1,6 +1,6 @@
 from django.db import transaction
 from django.utils.translation import gettext_lazy, gettext as _
-from django.db.models import Subquery
+from django.db.models import Subquery, Q
 from django.utils import timezone
 from django.core.cache import cache
 
@@ -416,7 +416,7 @@ class ServicePrivateQuotaManager(ServiceQuotaManagerBase):
         if service_id:
             qs = qs.filter(service_id=service_id)
         elif center_id:
-            qs = qs.filter(service__data_center_id=center_id)
+            qs = qs.filter(service__org_data_center__organization_id=center_id)
 
         qs = qs.exclude(service__status=ServiceConfig.Status.DELETED.value)
         return qs
@@ -434,7 +434,7 @@ class ServiceShareQuotaManager(ServiceQuotaManagerBase):
         if service_id:
             qs = qs.filter(service_id=service_id)
         elif center_id:
-            qs = qs.filter(service__data_center_id=center_id)
+            qs = qs.filter(service__org_data_center__organization_id=center_id)
 
         qs = qs.exclude(service__status=ServiceConfig.Status.DELETED.value)
         return qs
@@ -450,7 +450,8 @@ class ServiceManager:
         """
         :raises: Error
         """
-        service = ServiceConfig.objects.select_related('data_center').filter(id=service_id).first()
+        service = ServiceConfig.objects.select_related(
+            'org_data_center', 'org_data_center__organization').filter(id=service_id).first()
         if not service:
             raise errors.ServiceNotExist(_('资源提供者服务不存在'))
 
@@ -466,39 +467,53 @@ class ServiceManager:
         return self.get_service(_id)
 
     @staticmethod
-    def filter_service(center_id: str, status: str):
+    def filter_service(org_id: str, center_id: str, status: str):
         """
-        :param center_id: 联邦成员机构id
+        :param org_id: 机构id
+        :param center_id: 机构数据中心
         :param status: 服务单元服务状态
         """
-        queryset = ServiceConfig.objects.select_related('data_center').all()
+        queryset = ServiceConfig.objects.select_related('org_data_center', 'org_data_center__organization').all()
 
         if status:
             queryset = queryset.filter(status=status)
 
         if center_id:
-            queryset = queryset.filter(data_center=center_id)
+            queryset = queryset.filter(org_data_center_id=center_id)
+
+        if org_id:
+            queryset = queryset.filter(org_data_center__organization_id=org_id)
 
         return queryset.order_by('-add_time')
+
+    @staticmethod
+    def _get_perm_service_qs(user_id: str):
+        return ServiceConfig.objects.select_related(
+            'org_data_center', 'org_data_center__organization'
+        ).filter(
+            Q(users__id=user_id) | Q(org_data_center__users__id=user_id)
+        )
 
     @staticmethod
     def get_has_perm_service(user):
         """
         用户有权限管理的服务
         """
-        return user.service_set.select_related('data_center').filter(
-            status=ServiceConfig.Status.ENABLE).order_by('-add_time')
+        qs = ServiceManager._get_perm_service_qs(user_id=user.id)
+        return qs.filter(status=ServiceConfig.Status.ENABLE).order_by('-add_time')
 
     @staticmethod
     def get_all_has_perm_service(user):
         """
         用户有权限管理的所有服务
         """
-        return user.service_set.select_related('data_center').all()
+        return ServiceManager._get_perm_service_qs(user_id=user.id)
 
     @staticmethod
     def get_has_perm_service_ids(user_id: str):
-        return ServiceConfig.objects.filter(users__id=user_id).values_list('id', flat=True)
+        return ServiceConfig.objects.filter(
+            Q(users__id=user_id) | Q(org_data_center__users__id=user_id)
+        ).values_list('id', flat=True)
 
     @staticmethod
     def get_service_if_admin(user, service_id: str):
@@ -509,7 +524,8 @@ class ServiceManager:
             ServiceConfig()     # 是
             None                # 不是
         """
-        return ServiceConfig.objects.filter(id=service_id, users__id=user.id).first()
+        qs = ServiceManager._get_perm_service_qs(user_id=user.id)
+        return qs.filter(id=service_id).first()
 
     @staticmethod
     def get_service_id_map(use_cache=False, cache_seconds=60):
@@ -525,7 +541,7 @@ class ServiceManager:
             service_id_map = cache.get(caches_key)
 
         if service_id_map is None:
-            services = ServiceConfig.objects.select_related('data_center').all()
+            services = ServiceConfig.objects.select_related('org_data_center').all()
             service_id_map = {}
             for s in services:
                 service_id_map[s.id] = s

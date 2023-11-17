@@ -681,6 +681,7 @@ class VmServiceHandler:
         """
         list接入服务provider
         """
+        org_id = request.query_params.get('org_id', None)
         center_id = request.query_params.get('center_id', None)
         status = request.query_params.get('status', None)
 
@@ -690,7 +691,7 @@ class VmServiceHandler:
                     exceptions.InvalidArgument(message=_('服务单元服务状态查询参数值无效'), code='InvalidStatus')
                 )
 
-        service_qs = ServiceManager().filter_service(center_id=center_id, status=status)
+        service_qs = ServiceManager().filter_service(org_id=org_id, center_id=center_id, status=status)
         return view.paginate_service_response(request=request, qs=service_qs)
 
 

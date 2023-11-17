@@ -41,7 +41,7 @@ class StorageStatsMonthlyTests(MyAPITestCase):
     def setUp(self):
         self.service1 = get_or_create_storage_service()
         self.service2 = ObjectsService(
-            name='service2', data_center_id=self.service1.data_center.id,
+            name='service2', org_data_center_id=self.service1.org_data_center_id,
             endpoint_url='service2', username='', password=''
         )
         self.service2.save(force_insert=True)

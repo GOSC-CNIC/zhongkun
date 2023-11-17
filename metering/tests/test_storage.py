@@ -237,13 +237,13 @@ class DailyStatementTests(TransactionTestCase):
 
         self.service = get_or_create_storage_service()
         self.service2 = ObjectsService(
-            name='service2', data_center_id=self.service.data_center_id,
+            name='service2', org_data_center_id=self.service.org_data_center_id,
             endpoint_url='service2', username='', password=''
         )
         self.service2.save(force_insert=True)
 
         self.service3 = ObjectsService(
-            name='service3', data_center_id=self.service.data_center_id,
+            name='service3', org_data_center_id=self.service.org_data_center_id,
             endpoint_url='service3', username='', password=''
         )
         self.service3.save(force_insert=True)
@@ -444,7 +444,7 @@ class MeteringPaymentManagerTests(TransactionTestCase):
         self.service.save(update_fields=['pay_app_service_id'])
 
         self.service2 = ObjectsService(
-            name='service2', data_center_id=self.service.data_center_id,
+            name='service2', org_data_center_id=self.service.org_data_center_id,
             endpoint_url='service2', username='', password='', pay_app_service_id=self.app_service2.id
         )
 

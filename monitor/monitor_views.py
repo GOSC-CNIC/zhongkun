@@ -336,13 +336,17 @@ class MonitorUnitCephViewSet(CustomGenericViewSet):
                   "sort_weight": 10,                        # 排序值，正序 由小到大
                   "grafana_url": "xxx",
                   "dashboard_url": "xxx",
-                  "organization": {                 # may be null
-                    "id": "0e3169d4-ae5d-11ed-a9ab-c8009fe2ebbc",
-                    "name": "test",
-                    "name_en": "test en",
-                    "abbreviation": "t",
-                    "creation_time": "2023-02-17T00:50:21.188064Z",
-                    "sort_weight": 6                        # 排序值，正序 由小到大
+                  "org_data_center": {                  # may be null
+                    "id": "xxx",
+                    "name": "VMware测试中心",
+                    "name_en": "xxx",
+                    "sort_weight": 8,
+                    "organization": {                 # may be null
+                        "id": "0e3169d4c8009fe2ebbc",
+                        "name": "test",
+                        "name_en": "test en",
+                        "sort_weight": 6                        # 排序值，正序 由小到大
+                    }
                   }
                 }
               ]
@@ -401,13 +405,17 @@ class MonitorUnitServerViewSet(CustomGenericViewSet):
                   "sort_weight": 10,
                   "grafana_url": "",
                   "dashboard_url": "",
-                  "organization": {                 # may be null
-                    "id": "0e3169d4-ae5d-11ed-a9ab-c8009fe2ebbc",
-                    "name": "test",
-                    "name_en": "test en",
-                    "abbreviation": "t",
-                    "creation_time": "2023-02-17T00:50:21.188064Z",
-                    "sort_weight": 6                        # 排序值，正序 由小到大
+                  "org_data_center": {                  # may be null
+                    "id": "xxx",
+                    "name": "VMware测试中心",
+                    "name_en": "xxx",
+                    "sort_weight": 8,
+                    "organization": {                 # may be null
+                        "id": "0e3169d4c8009fe2ebbc",
+                        "name": "test",
+                        "name_en": "test en",
+                        "sort_weight": 6                        # 排序值，正序 由小到大
+                    }
                   }
                 },
               ]
@@ -1136,15 +1144,19 @@ class MonitorUnitTiDBViewSet(CustomGenericViewSet):
                   "sort_weight": 10,                        # 排序值，正序 由小到大
                   "grafana_url": "xxx",
                   "dashboard_url": "xxx",
-                  "organization": {                 # may be null
-                    "id": "0e3169d4-ae5d-11ed-a9ab-c8009fe2ebbc",
-                    "name": "test",
-                    "name_en": "test en",
-                    "abbreviation": "t",
-                    "creation_time": "2023-02-17T00:50:21.188064Z",
-                    "sort_weight": 6                        # 排序值，正序 由小到大
-                  },
-                  "version": "6.5.3"
+                  "version": "6.5.3",
+                  "org_data_center": {                  # may be null
+                    "id": "xxx",
+                    "name": "VMware测试中心",
+                    "name_en": "xxx",
+                    "sort_weight": 8,
+                    "organization": {                 # may be null
+                        "id": "0e3169d4c8009fe2ebbc",
+                        "name": "test",
+                        "name_en": "test en",
+                        "sort_weight": 6                        # 排序值，正序 由小到大
+                    }
+                  }
                 }
               ]
             }

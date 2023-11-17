@@ -27,11 +27,18 @@ class ObjectsServiceViewSet(StorageGenericViewSet):
         operation_summary=gettext_lazy('列举对象存储服务单元'),
         manual_parameters=[
             openapi.Parameter(
+                name='org_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description='机构id'
+            ),
+            openapi.Parameter(
                 name='center_id',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description='联邦成员机构id'
+                description='数据中心id'
             ),
             openapi.Parameter(
                 name='status',
@@ -70,17 +77,23 @@ class ObjectsServiceViewSet(StorageGenericViewSet):
                   "latitude": 0,
                   "pay_app_service_id": "ss",
                   "sort_weight": 8,
-                  "data_center": {
-                    "id": "1",
-                    "name": "网络中心",
-                    "name_en": "cnic",
-                    "sort_weight": -1
+                  "org_data_center": {      # maybe null
+                    "id": 3,
+                    "name": "VMware测试中心",
+                    "name_en": "xxx",
+                    "sort_weight": 6,
+                    "organization": {       # maybe null
+                        "id": 3,
+                        "name": "VMware机构",
+                        "name_en": "xxx",
+                    }
                   },
                   "loki_tag": "xxx"
                 }
               ]
             }
         """
+        org_id = request.query_params.get('org_id', None)
         center_id = request.query_params.get('center_id', None)
         status = request.query_params.get('status', None)
 
@@ -89,8 +102,11 @@ class ObjectsServiceViewSet(StorageGenericViewSet):
                 exc=errors.InvalidArgument(message=_('参数“status”的值无效'), code='InvalidStatus'))
 
         qs = ObjectsServiceManager.get_service_queryset()
+        if org_id:
+            qs = qs.filter(org_data_center__organization_id=org_id)
+
         if center_id:
-            qs = qs.filter(data_center_id=center_id)
+            qs = qs.filter(org_data_center_id=center_id)
 
         if status:
             qs = qs.filter(status=status)
@@ -107,11 +123,18 @@ class ObjectsServiceViewSet(StorageGenericViewSet):
         operation_summary=gettext_lazy('列举用户有管理权限的对象存储服务单元'),
         manual_parameters=[
             openapi.Parameter(
+                name='org_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description='机构id'
+            ),
+            openapi.Parameter(
                 name='center_id',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description='联邦成员机构id'
+                description='数据中心id'
             ),
             openapi.Parameter(
                 name='status',
@@ -151,17 +174,23 @@ class ObjectsServiceViewSet(StorageGenericViewSet):
                   "latitude": 0,
                   "pay_app_service_id": "ss",
                   "sort_weight": 8,
-                  "data_center": {
-                    "id": "1",
-                    "name": "网络中心",
-                    "name_en": "cnic",
-                    "sort_weight": -1
+                  "org_data_center": {      # maybe null
+                    "id": "xxx",
+                    "name": "VMware测试中心",
+                    "name_en": "xxx",
+                    "sort_weight": 6,
+                    "organization": {       # maybe null
+                        "id": 3,
+                        "name": "VMware机构",
+                        "name_en": "xxx",
+                    }
                   },
                   "loki_tag": "xxx"
                 }
               ]
             }
         """
+        org_id = request.query_params.get('org_id', None)
         center_id = request.query_params.get('center_id', None)
         status = request.query_params.get('status', None)
 
@@ -170,8 +199,11 @@ class ObjectsServiceViewSet(StorageGenericViewSet):
                 exc=errors.InvalidArgument(message=_('参数“status”的值无效'), code='InvalidStatus'))
 
         qs = ObjectsServiceManager().get_admin_service_qs(user=request.user)
+        if org_id:
+            qs = qs.filter(org_data_center__organization_id=org_id)
+
         if center_id:
-            qs = qs.filter(data_center_id=center_id)
+            qs = qs.filter(org_data_center_id=center_id)
 
         if status:
             qs = qs.filter(status=status)

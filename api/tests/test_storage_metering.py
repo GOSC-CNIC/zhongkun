@@ -19,7 +19,7 @@ class AdminMeteringStorageTests(MyAPITestCase):
         self.user2 = get_or_create_user(username='user2')
         self.service1 = get_or_create_storage_service()
         self.service2 = ObjectsService(
-            name='test2', data_center_id=self.service1.data_center_id, endpoint_url='test2', username='', password=''
+            name='test2', org_data_center_id=self.service1.org_data_center_id, endpoint_url='test2', username='', password=''
         )
         self.service2.save(force_insert=True)
 

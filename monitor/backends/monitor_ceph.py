@@ -2,7 +2,7 @@ import requests
 from urllib import parse
 
 from core import errors
-from monitor.models import MonitorProvider
+from monitor.utils import ThanosProvider
 
 
 class ExpressionQuery:
@@ -79,7 +79,7 @@ class MonitorCephQueryAPI:
         }
     ]
     """
-    def ceph_health_status(self, provider: MonitorProvider, job:str):
+    def ceph_health_status(self, provider: ThanosProvider, job: str):
         """
         :return:
             [
@@ -97,7 +97,7 @@ class MonitorCephQueryAPI:
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(api_url)
 
-    def ceph_cluster_total_bytes(self, provider: MonitorProvider, job:str):
+    def ceph_cluster_total_bytes(self, provider: ThanosProvider, job: str):
         """
         :return:
             [
@@ -115,7 +115,7 @@ class MonitorCephQueryAPI:
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(api_url)
 
-    def ceph_cluster_total_used_bytes(self, provider: MonitorProvider, job:str):
+    def ceph_cluster_total_used_bytes(self, provider: ThanosProvider, job: str):
         """
         :return:
             [
@@ -134,7 +134,7 @@ class MonitorCephQueryAPI:
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(api_url)
 
-    def ceph_osd_in(self, provider: MonitorProvider, job:str):
+    def ceph_osd_in(self, provider: ThanosProvider, job: str):
         """
         :return:
             [
@@ -153,7 +153,7 @@ class MonitorCephQueryAPI:
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(api_url)
 
-    def ceph_osd_out(self, provider: MonitorProvider, job:str):
+    def ceph_osd_out(self, provider: ThanosProvider, job: str):
         """
         :return:
             [
@@ -172,7 +172,7 @@ class MonitorCephQueryAPI:
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(api_url)
 
-    def ceph_osd_up(self, provider: MonitorProvider, job:str):
+    def ceph_osd_up(self, provider: ThanosProvider, job: str):
         """
         :return:
             [
@@ -191,7 +191,7 @@ class MonitorCephQueryAPI:
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(api_url)
 
-    def ceph_osd_down(self, provider: MonitorProvider, job:str):
+    def ceph_osd_down(self, provider: ThanosProvider, job: str):
         """
         :return:
             [
@@ -210,7 +210,7 @@ class MonitorCephQueryAPI:
         api_url = self._build_query_api(endpoint_url=provider.endpoint_url, expression_query=expression_query)
         return self._request_query_api(api_url)
 
-    def ceph_health_status_range(self, provider: MonitorProvider, job: str, start: int, end: int, step: int):
+    def ceph_health_status_range(self, provider: ThanosProvider, job: str, start: int, end: int, step: int):
         """
         :return:
             [
@@ -228,7 +228,7 @@ class MonitorCephQueryAPI:
                                               start=start, end=end, step=step)
         return self._request_query_api(api_url)
 
-    def ceph_cluster_total_bytes_range(self, provider: MonitorProvider, job: str, start: int, end: int, step: int):
+    def ceph_cluster_total_bytes_range(self, provider: ThanosProvider, job: str, start: int, end: int, step: int):
         """
         :return:
             [
@@ -246,7 +246,7 @@ class MonitorCephQueryAPI:
                                               start=start, end=end, step=step)
         return self._request_query_api(api_url)
 
-    def ceph_cluster_total_used_bytes_range(self, provider: MonitorProvider, job: str, start: int, end: int, step: int):
+    def ceph_cluster_total_used_bytes_range(self, provider: ThanosProvider, job: str, start: int, end: int, step: int):
         """
         :return:
             [
@@ -265,7 +265,7 @@ class MonitorCephQueryAPI:
                                               start=start, end=end, step=step)
         return self._request_query_api(api_url)
 
-    def ceph_osd_in_range(self, provider: MonitorProvider, job: str, start: int, end: int, step: int):
+    def ceph_osd_in_range(self, provider: ThanosProvider, job: str, start: int, end: int, step: int):
         """
         :return:
             [
@@ -284,7 +284,7 @@ class MonitorCephQueryAPI:
                                               start=start, end=end, step=step)
         return self._request_query_api(api_url)
 
-    def ceph_osd_out_range(self, provider: MonitorProvider, job: str, start: int, end: int, step: int):
+    def ceph_osd_out_range(self, provider: ThanosProvider, job: str, start: int, end: int, step: int):
         """
         :return:
             [
@@ -303,7 +303,7 @@ class MonitorCephQueryAPI:
                                               start=start, end=end, step=step)
         return self._request_query_api(api_url)
 
-    def ceph_osd_up_range(self, provider: MonitorProvider, job: str, start: int, end: int, step: int):
+    def ceph_osd_up_range(self, provider: ThanosProvider, job: str, start: int, end: int, step: int):
         """
         :return:
             [
@@ -323,7 +323,7 @@ class MonitorCephQueryAPI:
                                               start=start, end=end, step=step)
         return self._request_query_api(api_url)
 
-    def ceph_osd_down_range(self, provider: MonitorProvider, job: str, start: int, end: int, step: int):
+    def ceph_osd_down_range(self, provider: ThanosProvider, job: str, start: int, end: int, step: int):
         """
         :return:
             [

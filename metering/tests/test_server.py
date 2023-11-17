@@ -363,8 +363,8 @@ class MeteringPaymentManagerTests(TransactionTestCase):
 
         self.vo = VoManager().create_vo(user=self.user, name='test vo', company='test', description='test')
         self.service2 = ServiceConfig(
-            name='test2', data_center_id=self.service.data_center_id, endpoint_url='test2', username='', password='',
-            need_vpn=False, pay_app_service_id=self.app_service2.id
+            name='test2', org_data_center_id=self.service.org_data_center_id, endpoint_url='test2',
+            username='', password='', need_vpn=False, pay_app_service_id=self.app_service2.id
         )
         self.service2.save()
 
@@ -838,13 +838,13 @@ class DailyStatementTests(TransactionTestCase):
         
         self.service = get_or_create_service()
         self.service2 = ServiceConfig(
-            name='service2', data_center_id=self.service.data_center_id,
+            name='service2', org_data_center_id=self.service.org_data_center_id,
             endpoint_url='service2', username='', password='',
             need_vpn=False
         )
         self.service2.save(force_insert=True)
         self.service3 = ServiceConfig(
-            name='service3', data_center_id=self.service.data_center_id,
+            name='service3', org_data_center_id=self.service.org_data_center_id,
             endpoint_url='service3', username='', password='',
             need_vpn=False
         )

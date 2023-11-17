@@ -10,7 +10,7 @@ from api.viewsets import StorageGenericViewSet
 from api.serializers import storage as storage_serializers
 from bill.managers import PaymentManager
 from storage.adapter import inputs
-from storage.managers import BucketManager
+from storage.managers import BucketManager, ObjectsServiceManager
 from storage.models import Bucket, ObjectsService
 from servers.managers import ResourceActionLogManager
 from .handlers import serializer_error_msg
@@ -176,7 +176,8 @@ class BucketHandler:
             bucket = BucketManager().get_bucket(service_id=service_id, bucket_name=bucket_name)
             service: ObjectsService = bucket.service
             if not request.user.is_federal_admin():
-                if not service.is_admin_user(user_id=request.user.id):
+                s = ObjectsServiceManager.get_service_if_admin(user=request.user, service_id=service.id)
+                if not s:
                     raise exceptions.AccessDenied(message=_('你没有指定服务单元的管理权限。'))
 
             params = inputs.BucketStatsInput(bucket_name=bucket.name)
@@ -219,7 +220,8 @@ class BucketHandler:
             bucket = BucketManager().get_bucket(service_id=service_id, bucket_name=bucket_name)
             service: ObjectsService = bucket.service
             if not request.user.is_federal_admin():
-                if not service.is_admin_user(user_id=request.user.id):
+                s = ObjectsServiceManager.get_service_if_admin(user=request.user, service_id=service.id)
+                if not s:
                     raise exceptions.AccessDenied(message=_('你没有指定服务单元的管理权限。'))
 
             params = inputs.BucketDeleteInput(bucket_name=bucket.name, username=bucket.user.username)
@@ -255,7 +257,8 @@ class BucketHandler:
             bucket = BucketManager().get_bucket(service_id=service_id, bucket_name=bucket_name)
             service: ObjectsService = bucket.service
             if not request.user.is_federal_admin():
-                if not service.is_admin_user(user_id=request.user.id):
+                s = ObjectsServiceManager.get_service_if_admin(user=request.user, service_id=service.id)
+                if not s:
                     raise exceptions.AccessDenied(message=_('你没有指定服务单元的管理权限。'))
 
             lock = {

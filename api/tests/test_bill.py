@@ -19,8 +19,8 @@ class PaymentHistoryTests(MyAPITestCase):
         self.service.pay_app_service_id = 'app_service1_id'
         self.service.save(update_fields=['pay_app_service_id'])
         self.service2 = ServiceConfig(
-            name='test2', data_center_id=self.service.data_center_id, endpoint_url='test2', username='', password='',
-            need_vpn=False, pay_app_service_id='app_service2'
+            name='test2', org_data_center_id=self.service.org_data_center_id, endpoint_url='test2',
+            username='', password='', need_vpn=False, pay_app_service_id='app_service2'
         )
         self.service2.save(force_insert=True)
         self.vo = VirtualOrganization(

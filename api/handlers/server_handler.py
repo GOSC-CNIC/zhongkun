@@ -165,11 +165,11 @@ class ServerHandler:
                 public=public, remark=remark, pay_type=pay_type
             )
 
-        service_id_map = ServiceManager.get_service_id_map(use_cache=True)
+        # service_id_map = ServiceManager.get_service_id_map(use_cache=True)
         paginator = paginations.ServersPagination()
         try:
             page = paginator.paginate_queryset(servers, request, view=view)
-            serializer = serializers.ServerSerializer(page, many=True, context={'service_id_map': service_id_map})
+            serializer = serializers.ServerSerializer(page, many=True)    # context={'service_id_map': service_id_map})
             return paginator.get_paginated_response(data=serializer.data)
         except Exception as exc:
             return view.exception_response(exceptions.convert_to_error(exc))
@@ -196,11 +196,11 @@ class ServerHandler:
 
         servers = ServerManager().get_vo_servers_queryset(vo_id=vo_id, service_id=service_id, expired=expired)
 
-        service_id_map = ServiceManager.get_service_id_map(use_cache=True)
+        # service_id_map = ServiceManager.get_service_id_map(use_cache=True)
         paginator = paginations.ServersPagination()
         try:
             page = paginator.paginate_queryset(servers, request, view=view)
-            serializer = serializers.ServerSerializer(page, many=True, context={'service_id_map': service_id_map})
+            serializer = serializers.ServerSerializer(page, many=True)  # context={'service_id_map': service_id_map})
             return paginator.get_paginated_response(data=serializer.data)
         except Exception as exc:
             return view.exception_response(exceptions.convert_to_error(exc))
@@ -849,10 +849,10 @@ class ServerHandler:
         """
         if is_as_admin:
             server = ServerManager().get_manage_perm_server(
-                server_id=server_id, user=user, related_fields=['service__data_center'], as_admin=True)
+                server_id=server_id, user=user, related_fields=['service__org_data_center'], as_admin=True)
         else:
             server = ServerManager().get_manage_perm_server(
-                server_id=server_id, user=user, related_fields=['service__data_center', 'vo__owner'])
+                server_id=server_id, user=user, related_fields=['service__org_data_center', 'vo__owner'])
 
         if server.is_locked_delete():
             raise exceptions.ResourceLocked(message=_('无法删除，云主机已加锁锁定了删除'))
@@ -935,10 +935,10 @@ class ServerHandler:
         """
         if is_as_admin:
             server = ServerManager().get_read_perm_server(
-                server_id=server_id, user=user, related_fields=['service__data_center'], as_admin=True)
+                server_id=server_id, user=user, related_fields=['service__org_data_center'], as_admin=True)
         else:
             server = ServerManager().get_read_perm_server(
-                server_id=server_id, user=user, related_fields=['service__data_center', 'vo__owner'])
+                server_id=server_id, user=user, related_fields=['service__org_data_center', 'vo__owner'])
 
         if server.is_locked_operation():
             raise exceptions.ResourceLocked(message=_('云主机已加锁锁定了任何操作'))

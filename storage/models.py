@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 
-from service.models import DataCenter
+from service.models import DataCenter, OrgDataCenter
 from utils.model import UuidModel, get_encryptor
 from bill.models import PayAppService
 
@@ -27,8 +27,9 @@ class ObjectsService(UuidModel):
         DISABLE = 'disable', _('停止服务')
         DELETED = 'deleted', _('删除')
 
-    data_center = models.ForeignKey(to=DataCenter, null=True, on_delete=models.SET_NULL,
-                                    related_name='object_service_set', verbose_name=_('数据中心'))
+    org_data_center = models.ForeignKey(
+        to=OrgDataCenter, null=True, on_delete=models.SET_NULL, related_name='+', verbose_name=_('数据中心'),
+        db_constraint=False)
     name = models.CharField(max_length=255, verbose_name=_('服务名称'))
     name_en = models.CharField(verbose_name=_('服务英文名称'), max_length=255, default='')
     service_type = models.CharField(max_length=16, choices=ServiceType.choices, default=ServiceType.IHARBOR.value,
@@ -101,8 +102,9 @@ class ObjectsService(UuidModel):
                     app_service.name_en = self.name_en
                     update_fields.append('name_en')
 
-                if app_service.orgnazition_id != self.data_center_id:
-                    app_service.orgnazition_id = self.data_center_id
+                org_id = self.org_data_center.organization_id if self.org_data_center else None
+                if app_service.orgnazition_id != org_id:
+                    app_service.orgnazition_id = org_id
                     update_fields.append('orgnazition_id')
 
                 if self.id and app_service.service_id != self.id:
@@ -126,9 +128,10 @@ class ObjectsService(UuidModel):
             self.check_pay_app_service_id(self.pay_app_service_id)
 
         # 新注册
+        org_id = self.org_data_center.organization_id if self.org_data_center else None
         with transaction.atomic():
             app_service = PayAppService(
-                name=self.name, name_en=self.name_en, app_id=app_id, orgnazition_id=self.data_center_id,
+                name=self.name, name_en=self.name_en, app_id=app_id, orgnazition_id=org_id,
                 resources='云主机、云硬盘', status=PayAppService.Status.NORMAL.value,
                 category=PayAppService.Category.VMS_SERVER.value, service_id=self.id,
                 longitude=self.longitude, latitude=self.latitude,
@@ -171,12 +174,6 @@ class ObjectsService(UuidModel):
 
     def ftp_domains_list(self):
         return self.ftp_domains.split(',')
-
-    def is_admin_user(self, user_id: str):
-        if not user_id:
-            return False
-
-        return self.users.filter(id=user_id).exists()
 
 
 class BucketBase(UuidModel):

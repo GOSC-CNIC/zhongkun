@@ -60,14 +60,16 @@ class MonitorCephQueryHandler:
 
         :raises: Error
         """
-        ceph_unit: MonitorJobCeph = MonitorJobCeph.objects.select_related('provider').filter(id=monitor_unit_id).first()
+        ceph_unit: MonitorJobCeph = MonitorJobCeph.objects.select_related(
+            'org_data_center').filter(id=monitor_unit_id).first()
         if ceph_unit is None:
             raise errors.NotFound(message=_('查询的监控单元不存在。'))
 
         if user.is_federal_admin():
             return ceph_unit
 
-        if ceph_unit.user_has_perm(user):
+        qs = MonitorCephQueryHandler.has_perm_unit_qs(user_id=user.id)
+        if qs.filter(id=monitor_unit_id).exists():
             return ceph_unit
 
         raise errors.AccessDenied(message=gettext('你没有监控单元的管理权限'))
@@ -136,15 +138,14 @@ class MonitorCephQueryHandler:
         organization_id = request.query_params.get('organization_id', None)
         user = request.user
 
-        queryset = MonitorJobCeph.objects.select_related('organization').order_by('-sort_weight').all()
+        queryset = MonitorJobCeph.objects.select_related('org_data_center__organization').order_by('-sort_weight').all()
         if organization_id:
-            queryset = queryset.filter(organization_id=organization_id)
+            queryset = queryset.filter(org_data_center__organization_id=organization_id)
 
         if user.is_federal_admin():
             pass
         else:
-            service_ids = ServiceManager.get_has_perm_service_ids(user_id=user.id)
-            queryset = queryset.filter(Q(users__id=user.id) | Q(service_id__in=service_ids))
+            queryset = queryset.filter(Q(users__id=user.id) | Q(org_data_center__users__id=user.id))
 
         queryset = queryset.distinct()
         try:
@@ -154,4 +155,8 @@ class MonitorCephQueryHandler:
         except Exception as exc:
             return view.exception_response(exc)
 
-
+    @staticmethod
+    def has_perm_unit_qs(user_id):
+        return MonitorJobCeph.objects.filter(
+            Q(users__id=user_id) | Q(org_data_center__users__id=user_id)
+        )

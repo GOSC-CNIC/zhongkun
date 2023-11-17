@@ -1,10 +1,8 @@
 from urllib import parse
 
 from django.urls import reverse
-from django.utils import timezone
 
-from service.models import DataCenter
-from utils.test import get_or_create_user, get_or_create_service, MyAPITestCase
+from utils.test import get_or_create_user, get_or_create_service, MyAPITestCase, get_or_create_org_data_center
 from monitor.models import (
     MonitorJobTiDB, MonitorProvider
 )
@@ -15,36 +13,28 @@ from .tests import get_or_create_monitor_job_tidb
 class MonitorUnitTiDBTests(MyAPITestCase):
     def setUp(self):
         self.user = get_or_create_user(password='password')
-        self.service1 = get_or_create_service()
 
     def test_list_unit(self):
-        provider = MonitorProvider()
-        provider.save(force_insert=True)
-        org = DataCenter(
-            name='test', name_en='test en', abbreviation='t', creation_time=timezone.now()
-        )
-        org.save(force_insert=True)
+        odc = get_or_create_org_data_center()
         unit_tidb1 = MonitorJobTiDB(
             name='name1', name_en='name_en1', job_tag='job_tag1', sort_weight=10,
-            provider=provider, organization=org
+            org_data_center=odc
         )
         unit_tidb1.save(force_insert=True)
 
         unit_tidb2 = MonitorJobTiDB(
             name='name2', name_en='name_en2', job_tag='job_tag2', sort_weight=6,
-            provider=provider, organization=org, service_id=self.service1.id
+            org_data_center=odc
         )
         unit_tidb2.save(force_insert=True)
 
         unit_tidb3 = MonitorJobTiDB(
             name='name3', name_en='name_en3', job_tag='job_tag3', sort_weight=3,
-            provider=provider
         )
         unit_tidb3.save(force_insert=True)
 
         unit_tidb4 = MonitorJobTiDB(
             name='name4', name_en='name_en4', job_tag='job_tag4',  sort_weight=8,
-            provider=provider
         )
         unit_tidb4.save(force_insert=True)
 
@@ -71,9 +61,10 @@ class MonitorUnitTiDBTests(MyAPITestCase):
         self.assertEqual(response.data['page_size'], 100)
         self.assertEqual(len(response.data['results']), 1)
         self.assertKeysIn(['id', "name", "name_en", "job_tag", 'creation', 'remark', 'version',
-                           'sort_weight', 'grafana_url', 'dashboard_url', 'organization'], response.data['results'][0])
+                           'sort_weight', 'grafana_url', 'dashboard_url', 'org_data_center'
+                           ], response.data['results'][0])
         self.assertEqual(unit_tidb4.id, response.data['results'][0]['id'])
-        self.assertIsNone(response.data['results'][0]['organization'])
+        self.assertIsNone(response.data['results'][0]['org_data_center'])
 
         # unit_tidb1, unit_tidb4
         unit_tidb1.users.add(self.user)
@@ -85,11 +76,33 @@ class MonitorUnitTiDBTests(MyAPITestCase):
         self.assertEqual(response.data['page_size'], 100)
         self.assertEqual(len(response.data['results']), 2)
         self.assertEqual(unit_tidb1.id, response.data['results'][0]['id'])
-        self.assertKeysIn(['id', "name", "name_en", "abbreviation", 'creation_time', 'sort_weight'
-                           ], response.data['results'][0]['organization'])
+        self.assertKeysIn([
+            'id', "name", "name_en", 'sort_weight', 'organization'], response.data['results'][0]['org_data_center'])
+        self.assertKeysIn([
+            'id', "name", "name_en", 'sort_weight'], response.data['results'][0]['org_data_center']['organization'])
+
+        # ---- test org data center admin ----
+        unit_tidb1.users.remove(self.user)
+        unit_tidb4.users.remove(self.user)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
+        self.assertEqual(len(response.data['results']), 0)
+
+        # unit_tidb1, unit_tidb2
+        unit_tidb2.org_data_center.users.add(self.user)     # 关联的数据中心管理员权限
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["count", "page_num", "page_size", 'results'], response.data)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 100)
+        self.assertEqual(len(response.data['results']), 2)
+        self.assertEqual(unit_tidb1.id, response.data['results'][0]['id'])
+        self.assertEqual(unit_tidb2.id, response.data['results'][1]['id'])
 
         # unit_tidb1, unit_tidb4, unit_tidb2
-        unit_tidb2.service.users.add(self.user)     # 关联的云主机服务单元管理员权限
+        unit_tidb4.users.add(self.user)
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "page_num", "page_size", 'results'], response.data)
@@ -102,7 +115,7 @@ class MonitorUnitTiDBTests(MyAPITestCase):
         self.assertEqual(unit_tidb2.id, response.data['results'][2]['id'])
 
         # query "organization_id"
-        query = parse.urlencode(query={'organization_id': org.id})
+        query = parse.urlencode(query={'organization_id': odc.organization_id})
         response = self.client.get(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "page_num", "page_size", 'results'], response.data)
@@ -139,7 +152,7 @@ class MonitorUnitTiDBTests(MyAPITestCase):
         self.assertEqual(unit_tidb3.id, response.data['results'][3]['id'])
 
         # query "organization_id"
-        query = parse.urlencode(query={'organization_id': org.id})
+        query = parse.urlencode(query={'organization_id': odc.organization_id})
         response = self.client.get(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "page_num", "page_size", 'results'], response.data)
@@ -194,19 +207,15 @@ class MonitorUnitTiDBTests(MyAPITestCase):
             monitor_unit_id='notfound', query_tag=TiDBQueryChoices.QPS.value)
         self.assertErrorResponse(status_code=404, code='NotFound', response=response)
 
-        # 关联云主机服务单元
-        monitor_job_tidb.service_id = self.service1.id
-        monitor_job_tidb.save(update_fields=['service_id'])
-
         # no permission
         response = self.query_response(monitor_unit_id=monitor_job_tidb.id, query_tag=TiDBQueryChoices.QPS.value)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
         # 服务单元管理员权限测试
-        self.service1.users.add(self.user)
+        monitor_job_tidb.org_data_center.users.add(self.user)
         self.query_ok_test(monitor_unit_id=monitor_job_tidb.id, query_tag=TiDBQueryChoices.QPS.value)
         # 移除服务单元管理员权限
-        self.service1.users.remove(self.user)
+        monitor_job_tidb.org_data_center.users.remove(self.user)
 
         # no permission
         response = self.query_response(
@@ -283,4 +292,3 @@ class MonitorUnitTiDBTests(MyAPITestCase):
                     self.assertIsInstance(data_item["value"], list)
                     self.assertEqual(len(data_item["value"]), 2)
                 self.assertKeysIn(["name", "name_en", "job_tag", "id", "creation"], data_item["monitor"])
-

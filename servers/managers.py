@@ -88,6 +88,7 @@ class ServerManager:
         :return: QuerySet()
         :raises: Error
         """
+        admin_user = user
         qs = self.get_server_queryset()
         qs = qs.select_related('service', 'user')
 
@@ -121,13 +122,13 @@ class ServerManager:
                 qs = qs.filter(service_id=service_id)
         else:
             if service_id:
-                service = user.service_set.filter(id=service_id).first()
+                service = ServiceManager.get_service_if_admin(user=admin_user, service_id=service_id)
                 if service is None:
                     raise errors.AccessDenied(message=_('您没有指定服务的访问权限'))
 
                 qs = qs.filter(service_id=service_id)
             else:
-                subq = Subquery(user.service_set.all().values_list('id', flat=True))
+                subq = Subquery(ServiceManager.get_has_perm_service_ids(user_id=admin_user.id))
                 qs = qs.filter(service_id__in=subq)
 
         if expired is True:
@@ -219,8 +220,10 @@ class ServerManager:
         server = self.get_server(server_id=server_id, related_fields=related_fields)
         if user.is_federal_admin():
             return server
-        elif server.service.user_has_perm(user):
-            return server
+        else:
+            service = ServiceManager.get_service_if_admin(user=user, service_id=server.service.id)
+            if service is not None:
+                return server
 
         raise errors.AccessDenied(_('您没有管理权限，无权限访问此服务器实例'))
 
@@ -363,7 +366,7 @@ class ServerManager:
 
         :raises: Error
         """
-        self.do_suspend_server(server=server,situation=Server.Situation.NORMAL.value)
+        self.do_suspend_server(server=server, situation=Server.Situation.NORMAL.value)
 
     @staticmethod
     def do_suspend_server(server: Server, situation: str):
@@ -720,13 +723,13 @@ class DiskManager:
             else:
                 service_ids = None
         elif service_id:
-            service = user.service_set.filter(id=service_id).first()
+            service = ServiceManager.get_service_if_admin(user=user, service_id=service_id)
             if service is None:
                 raise errors.AccessDenied(message=_('您没有指定服务的访问权限'))
 
             service_ids = [service_id]
         else:
-            service_ids = user.service_set.all().values_list('id', flat=True)
+            service_ids = ServiceManager.get_has_perm_service_ids(user_id=user.id)
             if not service_ids:
                 return qs.none()
 

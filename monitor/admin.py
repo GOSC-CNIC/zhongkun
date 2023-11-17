@@ -24,24 +24,54 @@ class MonitorProviderAdmin(admin.ModelAdmin):
 
 @admin.register(MonitorJobCeph)
 class MonitorJobCephAdmin(admin.ModelAdmin):
-    list_display = ('name', 'name_en', 'organization', 'sort_weight', 'job_tag', 'provider',
-                    'service', 'prometheus', 'creation')
+    list_display = ('name', 'name_en', 'org_data_center', 'organization_name', 'sort_weight', 'job_tag',
+                    'thanos_endpoint_url', 'prometheus', 'creation')
     list_display_links = ('name', )
-    list_select_related = ('provider', 'organization')
+    list_select_related = ('org_data_center__organization', )
     list_editable = ('sort_weight',)
-    list_filter = ('organization',)
+    list_filter = ('org_data_center',)
     filter_horizontal = ('users',)
+    raw_id_fields = ('org_data_center',)
+
+    @admin.display(description="机构")
+    def organization_name(self, obj):
+        if not obj.org_data_center or not obj.org_data_center.organization:
+            return ''
+
+        return obj.org_data_center.organization.name
+
+    @admin.display(description="Thanos服务url")
+    def thanos_endpoint_url(self, obj):
+        if not obj.org_data_center:
+            return ''
+
+        return obj.org_data_center.thanos_endpoint_url
 
 
 @admin.register(MonitorJobServer)
 class MonitorJobServerAdmin(admin.ModelAdmin):
-    list_display = ('name', 'name_en', 'organization', 'sort_weight', 'job_tag', 'provider',
-                    'service', 'prometheus', 'creation')
+    list_display = ('name', 'name_en', 'org_data_center', 'organization_name', 'sort_weight', 'job_tag',
+                    'thanos_endpoint_url', 'prometheus', 'creation')
     list_display_links = ('name', )
-    list_select_related = ('provider', 'organization')
+    list_select_related = ('org_data_center__organization',)
     list_editable = ('sort_weight',)
-    list_filter = ('organization',)
+    list_filter = ('org_data_center',)
     filter_horizontal = ('users',)
+    raw_id_fields = ('org_data_center',)
+
+    @admin.display(description="机构")
+    def organization_name(self, obj):
+        if not obj.org_data_center or not obj.org_data_center.organization:
+            return ''
+
+        return obj.org_data_center.organization.name
+
+    @admin.display(description="Thanos服务url")
+    def thanos_endpoint_url(self, obj):
+        if not obj.org_data_center:
+            return ''
+
+        return obj.org_data_center.thanos_endpoint_url
 
 
 @admin.register(MonitorJobVideoMeeting)
@@ -151,13 +181,28 @@ class WebsiteDetectionPointAdmin(NoDeleteSelectModelAdmin):
 
 @admin.register(MonitorJobTiDB)
 class MonitorJobTiDBAdmin(admin.ModelAdmin):
-    list_display = ('name', 'name_en', 'organization', 'sort_weight', 'version', 'job_tag',
-                    'provider', 'service', 'prometheus', 'creation')
+    list_display = ('name', 'name_en', 'org_data_center', 'organization_name', 'sort_weight', 'version', 'job_tag',
+                    'thanos_endpoint_url', 'prometheus', 'creation')
     list_display_links = ('name', )
-    list_select_related = ('provider', 'organization')
+    list_select_related = ('org_data_center__organization',)
     list_editable = ('sort_weight',)
-    list_filter = ('organization',)
+    list_filter = ('org_data_center',)
     filter_horizontal = ('users',)
+    raw_id_fields = ('org_data_center',)
+
+    @admin.display(description="机构")
+    def organization_name(self, obj):
+        if not obj.org_data_center or not obj.org_data_center.organization:
+            return ''
+
+        return obj.org_data_center.organization.name
+
+    @admin.display(description="Thanos服务url")
+    def thanos_endpoint_url(self, obj):
+        if not obj.org_data_center:
+            return ''
+
+        return obj.org_data_center.thanos_endpoint_url
 
 
 @admin.register(LogSiteType)
@@ -169,13 +214,28 @@ class LogSiteTypeAdmin(admin.ModelAdmin):
 
 @admin.register(LogSite)
 class LogSiteAdmin(admin.ModelAdmin):
-    list_display = ('name', 'name_en', 'site_type', 'organization', 'sort_weight', 'job_tag',
-                    'provider', 'creation')
+    list_display = ('name', 'name_en', 'site_type', 'org_data_center', 'organization_name', 'sort_weight', 'job_tag',
+                    'loki_endpoint_url', 'creation')
     list_display_links = ('name', )
-    list_select_related = ('site_type', 'provider', 'organization')
+    list_select_related = ('site_type', 'org_data_center__organization', )
     list_editable = ('sort_weight',)
-    list_filter = ('site_type', 'organization',)
+    list_filter = ('site_type', 'org_data_center',)
     filter_horizontal = ('users',)
+    raw_id_fields = ('org_data_center',)
+
+    @admin.display(description="机构")
+    def organization_name(self, obj):
+        if not obj.org_data_center or not obj.org_data_center.organization:
+            return ''
+
+        return obj.org_data_center.organization.name
+
+    @admin.display(description="Loki服务url")
+    def loki_endpoint_url(self, obj):
+        if not obj.org_data_center:
+            return ''
+
+        return obj.org_data_center.loki_endpoint_url
 
 
 @admin.register(TotalReqNum)
