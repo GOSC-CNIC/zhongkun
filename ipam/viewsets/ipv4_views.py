@@ -213,6 +213,30 @@ class IPv4RangeViewSet(NormalGenericViewSet):
         return IPv4RangeHandler().update_ipv4_range(view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
+        operation_summary=gettext_lazy('删除IPv4地址段'),
+        responses={
+            204: ''''''
+        }
+    )
+    def destroy(self, request, *args, **kwargs):
+        """
+        删除IPv4地址段，需要有科技网管理员权限
+
+            http Code 204 Ok: 无返回数据
+
+            Http Code 401, 403, 404, 409, 500:
+                {
+                    "code": "BadRequest",
+                    "message": "xxxx"
+                }
+
+                可能的错误码：
+                403:
+                AccessDenied: 你没有科技网IP管理功能的管理员权限
+        """
+        return IPv4RangeHandler().delete_ipv4_range(view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
         operation_summary=gettext_lazy('按掩码长度拆分IPv4地址段'),
         responses={
             200: ''''''

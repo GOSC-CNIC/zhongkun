@@ -1038,6 +1038,73 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         self.assertEqual(IPv4RangeRecord.objects.count(), 5)
         self.assertEqual(IPv4Range.objects.count(), 1)
 
+    def test_delete_ipv4_range(self):
+        org1 = get_or_create_organization(name='org1')
+        virt_obj1 = OrgVirtualObject(name='org virt obj1', organization=org1, creation_time=dj_timezone.now())
+        virt_obj1.save(force_insert=True)
+
+        nt = dj_timezone.now()
+        ip_range1 = IPv4RangeManager.create_ipv4_range(
+            name='已分配1', start_ip='127.0.0.1', end_ip='127.0.0.255', mask_len=24, asn=66,
+            create_time=nt, update_time=nt, status_code=IPv4Range.Status.ASSIGNED.value,
+            org_virt_obj=None, assigned_time=nt, admin_remark='admin1', remark='remark1'
+        )
+        nt = dj_timezone.now()
+        ip_range2 = IPv4RangeManager.create_ipv4_range(
+            name='预留2', start_ip='159.0.1.1', end_ip='159.0.2.255', mask_len=22, asn=88,
+            create_time=nt, update_time=nt, status_code=IPv4Range.Status.RESERVED.value,
+            org_virt_obj=virt_obj1, assigned_time=nt, admin_remark='admin remark2', remark='remark2'
+        )
+
+        base_url = reverse('api:ipam-ipv4range-detail', kwargs={'id': 'test'})
+        response = self.client.delete(base_url)
+        self.assertEqual(response.status_code, 401)
+
+        self.client.force_login(self.user1)
+        response = self.client.delete(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        uirw = UserIpamRoleWrapper(self.user1)
+        uirw.user_role = uirw.get_or_create_user_ipam_role()
+        uirw.user_role.is_readonly = True
+        uirw.user_role.save(update_fields=['is_readonly'])
+        response = self.client.delete(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        uirw.user_role.is_admin = True
+        uirw.user_role.save(update_fields=['is_admin'])
+
+        response = self.client.delete(base_url)
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
+
+        base_url = reverse('api:ipam-ipv4range-detail', kwargs={'id': ip_range1.id})
+        response = self.client.delete(base_url)
+        self.assertErrorResponse(status_code=409, code='Conflict', response=response)
+
+        # ok
+        ip_range1.status = IPv4Range.Status.WAIT.value
+        ip_range1.save(update_fields=['status'])
+        self.assertEqual(IPv4Range.objects.count(), 2)
+        self.assertEqual(IPv4RangeRecord.objects.count(), 0)
+        base_url = reverse('api:ipam-ipv4range-detail', kwargs={'id': ip_range1.id})
+        response = self.client.delete(base_url)
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(IPv4Range.objects.count(), 1)
+        self.assertEqual(IPv4RangeRecord.objects.count(), 1)
+        record: IPv4RangeRecord = IPv4RangeRecord.objects.first()
+        self.assertEqual(record.record_type, IPv4RangeRecord.RecordType.DELETE.value)
+        self.assertEqual(record.start_address, ip_range1.start_address)
+        self.assertEqual(record.end_address, ip_range1.end_address)
+        self.assertEqual(record.mask_len, 24)
+        self.assertEqual(record.ip_ranges, [])
+
+        # ok
+        base_url = reverse('api:ipam-ipv4range-detail', kwargs={'id': ip_range2.id})
+        response = self.client.delete(base_url)
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(IPv4Range.objects.count(), 0)
+        self.assertEqual(IPv4RangeRecord.objects.count(), 2)
+
 
 class IPAMUserRoleTests(MyAPITransactionTestCase):
     def setUp(self):

@@ -172,6 +172,29 @@ class IPv4RangeHandler:
         return Response(data=serializers.IPv4RangeSerializer(instance=ipv4_range).data)
 
     @staticmethod
+    def delete_ipv4_range(view: NormalGenericViewSet, request, kwargs):
+        ur_wrapper = UserIpamRoleWrapper(user=request.user)
+        if not ur_wrapper.has_kjw_admin_writable():
+            return view.exception_response(
+                errors.AccessDenied(message=_('你没有科技网IP管理功能的管理员权限')))
+
+        try:
+            ipv4_range = IPv4RangeManager.get_ip_range(_id=kwargs[view.lookup_field])
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        if ipv4_range.status not in [IPv4Range.Status.WAIT.value, IPv4Range.Status.RESERVED.value]:
+            return view.exception_response(
+                errors.ConflictError(message=_('只允许删除“未分配”和“预留”状态的IP地址段')))
+
+        try:
+            IPv4RangeManager.do_delete_ipv4_range(ip_range=ipv4_range, user=request.user)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        return Response(status=204)
+
+    @staticmethod
     def split_ipv4_range(view: NormalGenericViewSet, request, kwargs):
         serializer = view.get_serializer(data=request.data)
         if not serializer.is_valid(raise_exception=False):

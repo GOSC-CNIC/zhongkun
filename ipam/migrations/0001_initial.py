@@ -52,7 +52,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.CharField(blank=True, editable=False, max_length=36, primary_key=True, serialize=False, verbose_name='ID')),
                 ('creation_time', models.DateTimeField(verbose_name='创建时间')),
-                ('record_type', models.CharField(choices=[('assign', '分配'), ('recover', '收回'), ('split', '拆分'), ('merge', '合并'), ('add', '添加'), ('change', '修改')], max_length=16, verbose_name='记录类型')),
+                ('record_type', models.CharField(choices=[('assign', '分配'), ('recover', '收回'), ('split', '拆分'), ('merge', '合并'), ('add', '添加'), ('change', '修改'), ('delete', '删除')], max_length=16, verbose_name='记录类型')),
                 ('ip_ranges', models.JSONField(blank=True, default=dict, verbose_name='拆分或合并的IP段')),
                 ('remark', models.CharField(blank=True, default='', max_length=255, verbose_name='备注信息')),
                 ('start_address', models.PositiveIntegerField(verbose_name='起始地址')),

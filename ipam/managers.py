@@ -379,6 +379,16 @@ class IPv4RangeManager:
         return ip_range
 
     @staticmethod
+    def do_delete_ipv4_range(ip_range: IPv4Range, user):
+        ip_range.delete()
+        try:
+            IPv4RangeRecordManager.create_delete_record(user=user, ipv4_range=ip_range, remark='')
+        except Exception as exc:
+            pass
+
+        return ip_range
+
+    @staticmethod
     def split_ipv4_range_by_mask(user, range_id: str, new_prefix: int, fake: bool = False) -> List[IPv4Range]:
         """
         按掩码长度划分一个地址段
@@ -424,6 +434,14 @@ class IPv4RangeRecordManager:
     def create_add_record(user, ipv4_range: IPv4Range, remark: str):
         return IPv4RangeRecordManager.create_record(
             user=user, record_type=IPv4RangeRecord.RecordType.ADD.value,
+            start_address=ipv4_range.start_address, end_address=ipv4_range.end_address, mask_len=ipv4_range.mask_len,
+            ip_ranges=[], remark=remark, org_virt_obj=None
+        )
+
+    @staticmethod
+    def create_delete_record(user, ipv4_range: IPv4Range, remark: str):
+        return IPv4RangeRecordManager.create_record(
+            user=user, record_type=IPv4RangeRecord.RecordType.DELETE.value,
             start_address=ipv4_range.start_address, end_address=ipv4_range.end_address, mask_len=ipv4_range.mask_len,
             ip_ranges=[], remark=remark, org_virt_obj=None
         )

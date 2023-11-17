@@ -293,6 +293,7 @@ class IPRangeRecordBase(UuidModel):
         MERGE = 'merge', _('合并')
         ADD = 'add', _('添加')
         CHANGE = 'change', _('修改')
+        DELETE = 'delete', _('删除')
 
     creation_time = models.DateTimeField(verbose_name=_('创建时间'))
     record_type = models.CharField(verbose_name=_('记录类型'), max_length=16, choices=RecordType.choices)
