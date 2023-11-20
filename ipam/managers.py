@@ -382,7 +382,8 @@ class IPv4RangeManager:
     def do_delete_ipv4_range(ip_range: IPv4Range, user):
         ip_range.delete()
         try:
-            IPv4RangeRecordManager.create_delete_record(user=user, ipv4_range=ip_range, remark='')
+            IPv4RangeRecordManager.create_delete_record(
+                user=user, ipv4_range=ip_range, remark='', org_virt_obj=ip_range.org_virt_obj)
         except Exception as exc:
             pass
 
@@ -407,6 +408,30 @@ class IPv4RangeManager:
             raise errors.ConflictError(message=exc.message)
 
         return supernet
+
+    @staticmethod
+    def do_recover_ipv4_range(ip_range: IPv4Range, user):
+        """
+        从 已分配和预留 状态 收回
+        """
+        org_virt_obj = ip_range.org_virt_obj
+
+        status = ip_range.status
+        ip_range.status = IPv4Range.Status.WAIT.value
+        ip_range.org_virt_obj = None
+        ip_range.assigned_time = None
+        ip_range.update_time = dj_timezone.now()
+        ip_range.remark = ''
+        ip_range.save(update_fields=['status', 'org_virt_obj', 'assigned_time', 'update_time', 'remark'])
+        try:
+            remark = f'{IPv4Range.Status.WAIT.value} from {status}'
+            IPv4RangeRecordManager.create_recover_record(
+                user=user, ipv4_range=ip_range, remark=remark, org_virt_obj=org_virt_obj
+            )
+        except Exception as exc:
+            pass
+
+        return ip_range
 
 
 class IPv4RangeRecordManager:
@@ -439,11 +464,11 @@ class IPv4RangeRecordManager:
         )
 
     @staticmethod
-    def create_delete_record(user, ipv4_range: IPv4Range, remark: str):
+    def create_delete_record(user, ipv4_range: IPv4Range, remark: str, org_virt_obj):
         return IPv4RangeRecordManager.create_record(
             user=user, record_type=IPv4RangeRecord.RecordType.DELETE.value,
             start_address=ipv4_range.start_address, end_address=ipv4_range.end_address, mask_len=ipv4_range.mask_len,
-            ip_ranges=[], remark=remark, org_virt_obj=None
+            ip_ranges=[], remark=remark, org_virt_obj=org_virt_obj
         )
 
     @staticmethod
@@ -468,6 +493,14 @@ class IPv4RangeRecordManager:
             user=user, record_type=IPv4RangeRecord.RecordType.MERGE.value,
             start_address=ipv4_range.start_address, end_address=ipv4_range.end_address, mask_len=ipv4_range.mask_len,
             ip_ranges=ip_ranges, remark=remark, org_virt_obj=None
+        )
+
+    @staticmethod
+    def create_recover_record(user, ipv4_range: IPv4Range, remark: str, org_virt_obj):
+        return IPv4RangeRecordManager.create_record(
+            user=user, record_type=IPv4RangeRecord.RecordType.RECOVER.value,
+            start_address=ipv4_range.start_address, end_address=ipv4_range.end_address, mask_len=ipv4_range.mask_len,
+            ip_ranges=[], remark=remark, org_virt_obj=org_virt_obj
         )
 
 

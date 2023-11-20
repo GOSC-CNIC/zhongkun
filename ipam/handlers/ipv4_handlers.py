@@ -265,3 +265,23 @@ class IPv4RangeHandler:
         return Response(data={
             'ip_range': serializers.IPv4RangeSerializer(instance=supernet).data
         })
+
+    @staticmethod
+    def recover_ipv4_range(view: NormalGenericViewSet, request, kwargs):
+        ur_wrapper = UserIpamRoleWrapper(user=request.user)
+        if not ur_wrapper.has_kjw_admin_writable():
+            return view.exception_response(
+                errors.AccessDenied(message=_('你没有科技网IP管理功能的管理员权限')))
+
+        try:
+            ipv4_range = IPv4RangeManager.get_ip_range(_id=kwargs[view.lookup_field])
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        if ipv4_range.status != IPv4Range.Status.WAIT.value:
+            try:
+                IPv4RangeManager.do_recover_ipv4_range(ip_range=ipv4_range, user=request.user)
+            except Exception as exc:
+                return view.exception_response(exc)
+
+        return Response(data=serializers.IPv4RangeSerializer(instance=ipv4_range).data)
