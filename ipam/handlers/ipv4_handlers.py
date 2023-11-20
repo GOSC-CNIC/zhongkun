@@ -291,7 +291,7 @@ class IPv4RangeHandler:
         org_virt_obj_id = request.query_params.get('org_virt_obj_id')
         if not org_virt_obj_id:
             return view.exception_response(
-                errors.InvalidArgument(message=_('必须指定为哪个机构二级对象预留')))
+                errors.InvalidArgument(message=_('必须指定预留给哪个机构二级对象')))
 
         ur_wrapper = UserIpamRoleWrapper(user=request.user)
         if not ur_wrapper.has_kjw_admin_writable():
@@ -313,6 +313,44 @@ class IPv4RangeHandler:
 
         try:
             IPv4RangeManager.do_reserve_ipv4_range(
+                ip_range=ipv4_range, user=request.user, org_virt_obj=org_virt_obj)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        return Response(data=serializers.IPv4RangeSerializer(instance=ipv4_range).data)
+
+    @staticmethod
+    def assign_ipv4_range(view: NormalGenericViewSet, request, kwargs):
+        org_virt_obj_id = request.query_params.get('org_virt_obj_id')
+        if not org_virt_obj_id:
+            return view.exception_response(
+                errors.InvalidArgument(message=_('必须指定分配给哪个机构二级对象')))
+
+        ur_wrapper = UserIpamRoleWrapper(user=request.user)
+        if not ur_wrapper.has_kjw_admin_writable():
+            return view.exception_response(
+                errors.AccessDenied(message=_('你没有科技网IP管理功能的管理员权限')))
+
+        try:
+            org_virt_obj = OrgVirtualObject.objects.filter(id=org_virt_obj_id).first()
+            if org_virt_obj is None:
+                raise errors.TargetNotExist(message=_('指定的机构二级对象不存在'))
+
+            ipv4_range = IPv4RangeManager.get_ip_range(_id=kwargs[view.lookup_field])
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        if ipv4_range.status not in [IPv4Range.Status.WAIT.value, IPv4Range.Status.RESERVED.value]:
+            return view.exception_response(
+                errors.ConflictError(message=_('只允许“未分配”和“预留”状态的IP地址段做分配操作')))
+
+        if ipv4_range.status == IPv4Range.Status.RESERVED.value:
+            if ipv4_range.org_virt_obj_id != org_virt_obj.id:
+                return view.exception_response(
+                    errors.ConflictError(message=_('“预留”状态的IP地址段只允许分配给预留的机构二级对象')))
+
+        try:
+            IPv4RangeManager.do_assign_ipv4_range(
                 ip_range=ipv4_range, user=request.user, org_virt_obj=org_virt_obj)
         except Exception as exc:
             return view.exception_response(exc)
