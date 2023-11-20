@@ -178,7 +178,8 @@ class CashCouponHandler:
         try:
             queryset = CashCouponManager().admin_list_coupon_queryset(
                 user=request.user, template_id=template_id, app_service_id=app_service_id, status=status, valid=valid,
-                issuer=issuer, redeemer=redeemer, createtime_start=time_start, createtime_end=time_end
+                issuer=issuer, redeemer=redeemer, createtime_start=time_start, createtime_end=time_end,
+                coupon_id=data['id']
             )
 
             if download:
@@ -192,6 +193,7 @@ class CashCouponHandler:
 
     @staticmethod
     def _admin_list_cash_coupon_validate_params(request):
+        c_id = request.query_params.get('id', None)
         template_id = request.query_params.get('template_id', None)
         status = request.query_params.get('status', None)
         app_service_id = request.query_params.get('app_service_id', None)
@@ -241,7 +243,8 @@ class CashCouponHandler:
             'redeemer': redeemer,
             'download': download is not None,
             'time_start': time_start,
-            'time_end': time_end
+            'time_end': time_end,
+            'id': c_id
         }
 
     @staticmethod

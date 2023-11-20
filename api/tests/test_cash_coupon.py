@@ -1272,6 +1272,20 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assertEqual(r.data['results'][1]['app_service']['id'], self.app_service1.id)
         self.assertEqual(r.data['results'][1]['id'], wait_coupon1.id)
 
+        # query "id"
+        query = parse.urlencode(query={'id': coupon2.id})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 1)
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertEqual(r.data['results'][0]['id'], coupon2.id)
+
+        query = parse.urlencode(query={'id': 'coupon2.id'})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 0)
+        self.assertEqual(len(r.data['results']), 0)
+
         # query "page_size"
         query = parse.urlencode(query={'app_service_id': self.app_service1.id, 'page_size': 1})
         r = self.client.get(f'{url}?{query}')
@@ -1346,6 +1360,20 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assertKeysIn(keys=['count', 'page_num', 'page_size', 'results'], container=r.data)
         self.assertEqual(r.data['count'], 3)
         self.assertEqual(len(r.data['results']), 3)
+
+        # query "id"
+        query = parse.urlencode(query={'id': coupon2.id})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 1)
+        self.assertEqual(len(r.data['results']), 1)
+        self.assertEqual(r.data['results'][0]['id'], coupon2.id)
+
+        query = parse.urlencode(query={'id': 'coupon2.id'})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 0)
+        self.assertEqual(len(r.data['results']), 0)
 
         # query "valid_status"
         query = parse.urlencode(query={'valid_status': QueryCouponValidChoices.NOT_YET.value})

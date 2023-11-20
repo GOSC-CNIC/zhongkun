@@ -357,6 +357,13 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
         operation_summary=gettext_lazy('管理员列举资源券'),
         manual_parameters=[
             openapi.Parameter(
+                name='id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description='查询资源券编码'
+            ),
+            openapi.Parameter(
                 name='app_service_id',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,

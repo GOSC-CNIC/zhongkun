@@ -526,7 +526,7 @@ class CashCouponManager:
     def admin_list_coupon_queryset(
             self, user: UserProfile, template_id: str = None, app_service_id: str = None, status: str = None,
             valid: str = None, issuer: str = None, redeemer: str = None,
-            createtime_start: datetime = None, createtime_end: datetime = None
+            createtime_start: datetime = None, createtime_end: datetime = None, coupon_id: str = None
     ):
         """
         :valid: notyet(未起效), valid(有效期内), expired(已过期)；None（不筛选）
@@ -535,7 +535,8 @@ class CashCouponManager:
             app_service_ids = [app_service_id] if app_service_id else None
             return self.filter_coupon_queryset(
                 template_id=template_id, app_service_ids=app_service_ids, status=status, valid=valid,
-                issuer=issuer, redeemer=redeemer, createtime_start=createtime_start, createtime_end=createtime_end
+                issuer=issuer, redeemer=redeemer, createtime_start=createtime_start, createtime_end=createtime_end,
+                coupon_id=coupon_id
             )
 
         if template_id:
@@ -558,19 +559,23 @@ class CashCouponManager:
 
         return self.filter_coupon_queryset(
             template_id=template_id, app_service_ids=app_service_ids, status=status, valid=valid,
-            issuer=issuer, redeemer=redeemer, createtime_start=createtime_start, createtime_end=createtime_end
+            issuer=issuer, redeemer=redeemer, createtime_start=createtime_start, createtime_end=createtime_end,
+            coupon_id=coupon_id
         )
 
     @staticmethod
     def filter_coupon_queryset(
             template_id: str = None, app_service_ids: list = None, status: str = None, valid: str = None,
             issuer: str = None, redeemer: str = None,
-            createtime_start: datetime = None, createtime_end: datetime = None
+            createtime_start: datetime = None, createtime_end: datetime = None, coupon_id: str = None
     ):
         """
         :valid: notyet(未起效), valid(有效期内), expired(已过期)；None（不筛选）
         """
         queryset = CashCoupon.objects.select_related('app_service', 'activity').all()
+        if coupon_id:
+            queryset = queryset.filter(id=coupon_id)
+
         if template_id:
             queryset = queryset.filter(activity_id=template_id)
 
