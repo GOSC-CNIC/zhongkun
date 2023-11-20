@@ -55,7 +55,7 @@ class ServerManager:
             lookups['remarks__icontains'] = remark
 
         qs = self.get_server_queryset()
-        qs = qs.select_related('service', 'user').filter(
+        qs = qs.select_related('service', 'user', 'vo').filter(
             user=user, classification=Server.Classification.PERSONAL, **lookups)
 
         if expired is True:
@@ -90,7 +90,7 @@ class ServerManager:
         """
         admin_user = user
         qs = self.get_server_queryset()
-        qs = qs.select_related('service', 'user')
+        qs = qs.select_related('service', 'user', 'vo')
 
         if user_id:
             qs = qs.filter(user_id=user_id)
@@ -149,7 +149,7 @@ class ServerManager:
         查询vo组的server
         """
         qs = self.get_server_queryset()
-        qs = qs.select_related('service', 'user').filter(
+        qs = qs.select_related('service', 'user', 'vo').filter(
             vo_id=vo_id, classification=Server.Classification.VO)
 
         if service_id:

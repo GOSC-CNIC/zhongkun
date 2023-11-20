@@ -335,7 +335,7 @@ class ServersTests(MyAPITestCase):
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ram_gib", "ipv4",
                            "public_ip", "image", "creation_time",
                            "remarks", "service",
-                           "center_quota", "classification", "vo_id", "user",
+                           "center_quota", "classification", "vo_id", "user", 'vo',
                            "image_id", "image_desc", "default_user", "default_password",
                            "lock", "pay_type"], response.data['servers'][0])
         self.assertEqual(response.data['servers'][0]['ram_gib'], 1)
@@ -462,9 +462,10 @@ class ServersTests(MyAPITestCase):
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4", "ram_gib",
                            "public_ip", "image", "creation_time",
                            "remarks", "service",
-                           "center_quota", "classification", "vo_id", "user",
+                           "center_quota", "classification", "vo_id", "user", 'vo',
                            "image_id", "image_desc", "default_user", "default_password",
                            "lock", "pay_type"], response.data['servers'][0])
+        self.assertKeysIn(["id", "name"], response.data['servers'][0]['vo'])
         self.assertEqual(response.data['servers'][0]['ram_gib'], 2)
         self.assertEqual(response.data['servers'][0]['ram'], 2)
         self.assert_is_subdict_of(sub={
@@ -555,6 +556,7 @@ class ServersTests(MyAPITestCase):
         self.assertEqual(response.data['count'], 2)
         self.assertIsInstance(response.data['servers'], list)
         self.assertEqual(len(response.data['servers']), 2)
+        self.assertKeysIn(["id", "name"], response.data['servers'][0]['vo'])
 
         # query 'status' invalid
         query_str = parse.urlencode(query={'as-admin': '', 'status': 'dd'})

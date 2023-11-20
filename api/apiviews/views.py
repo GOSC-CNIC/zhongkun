@@ -170,6 +170,10 @@ class ServersViewSet(CustomGenericViewSet):
                   "center_quota": 2,         # 1: 服务的私有资源配额，"user_quota"=null; 2: 服务的分享资源配额
                   "classification": "personal",
                   "vo_id": null,
+                  "vo": {           # may be null
+                    "id": "1",
+                    "name": "测试"
+                  },
                   "user": {
                     "id": "1",
                     "username": "shun"
@@ -232,7 +236,11 @@ class ServersViewSet(CustomGenericViewSet):
                   },
                   "center_quota": 2,         # 1: 服务的私有资源配额，"user_quota"=null; 2: 服务的分享资源配额
                   "classification": "vo"
-                  "vo_id": "3d7cd5fc-d236-11eb-9da9-c8009fe2eb10",
+                  "vo_id": "3d7cd5fc-d236-11eb-9da9-c8009fe2eb10",  # 后续移除
+                  "vo": {
+                    "id": "3d7cd5fc-d236-11eb-9da9-c8009fe2eb10",
+                    "name": "测试"
+                  },
                   "user": {
                     "id": "1",
                     "username": "shun"

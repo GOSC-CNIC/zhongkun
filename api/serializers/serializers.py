@@ -49,6 +49,7 @@ class ServerSerializer(ServerBaseSerializer):
     service = serializers.SerializerMethodField(method_name='get_service')
     center_quota = serializers.IntegerField()
     vo_id = serializers.CharField()
+    vo = serializers.SerializerMethodField(method_name='get_vo')
     user = serializers.SerializerMethodField(method_name='get_user')
     lock = serializers.CharField(label=_('锁'), max_length=16)
 
@@ -72,6 +73,17 @@ class ServerSerializer(ServerBaseSerializer):
             return {
                 'id': user.id,
                 'username': user.username
+            }
+
+        return None
+
+    @staticmethod
+    def get_vo(obj):
+        vo = obj.vo
+        if vo:
+            return {
+                'id': vo.id,
+                'name': vo.name
             }
 
         return None
