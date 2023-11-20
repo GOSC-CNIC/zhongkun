@@ -20,6 +20,7 @@ from link.viewsets import (
     linkuserrole_views, element_views
     )
 from service.viewsets import org_data_center_views
+from vo.views import VOViewSet
 
 app_name = 'api'
 
@@ -39,7 +40,7 @@ no_slash_router.register(r'odc', org_data_center_views.OrgDataCenterViewSet, bas
 no_slash_router.register(r'user', user_views.UserViewSet, basename='user')
 no_slash_router.register(r'apply/service', views.ApplyVmServiceViewSet, basename='apply-service')
 no_slash_router.register(r'apply/organization', views.ApplyOrganizationViewSet, basename='apply-organization')
-no_slash_router.register(r'vo', views.VOViewSet, basename='vo')
+no_slash_router.register(r'vo', VOViewSet, basename='vo')
 no_slash_router.register(r'email', email_views.EmailViewSet, basename='email')
 no_slash_router.register(r'disk', disk_views.DisksViewSet, basename='disks')
 

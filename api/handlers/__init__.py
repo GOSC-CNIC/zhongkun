@@ -1,6 +1,6 @@
 from .handlers import (
     ApplyOrganizationHandler,
-    ApplyVmServiceHandler, MediaHandler, VmServiceHandler, VoHandler
+    ApplyVmServiceHandler, MediaHandler, VmServiceHandler
 )
 from .server_handler import ServerHandler, ServerArchiveHandler
 from .vpn_handler import VPNHandler
@@ -9,6 +9,6 @@ from ..viewsets import serializer_error_msg
 
 __all__ = [
     'serializer_error_msg', 'ApplyOrganizationHandler',
-    'ApplyVmServiceHandler', 'MediaHandler', 'VmServiceHandler', 'VoHandler', 'ServerHandler',
+    'ApplyVmServiceHandler', 'MediaHandler', 'VmServiceHandler', 'ServerHandler',
     'ServerArchiveHandler', 'VPNHandler', 'BucketHandler'
 ]
