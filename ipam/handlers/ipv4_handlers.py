@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from core import errors
 from api.viewsets import NormalGenericViewSet, serializer_error_msg
 from ..managers import IPv4RangeManager, UserIpamRoleWrapper
-from ..models import IPv4Range
+from ..models import IPv4Range, OrgVirtualObject
 from .. import serializers
 
 
@@ -283,5 +283,38 @@ class IPv4RangeHandler:
                 IPv4RangeManager.do_recover_ipv4_range(ip_range=ipv4_range, user=request.user)
             except Exception as exc:
                 return view.exception_response(exc)
+
+        return Response(data=serializers.IPv4RangeSerializer(instance=ipv4_range).data)
+
+    @staticmethod
+    def reserve_ipv4_range(view: NormalGenericViewSet, request, kwargs):
+        org_virt_obj_id = request.query_params.get('org_virt_obj_id')
+        if not org_virt_obj_id:
+            return view.exception_response(
+                errors.InvalidArgument(message=_('必须指定为哪个机构二级对象预留')))
+
+        ur_wrapper = UserIpamRoleWrapper(user=request.user)
+        if not ur_wrapper.has_kjw_admin_writable():
+            return view.exception_response(
+                errors.AccessDenied(message=_('你没有科技网IP管理功能的管理员权限')))
+
+        try:
+            org_virt_obj = OrgVirtualObject.objects.filter(id=org_virt_obj_id).first()
+            if org_virt_obj is None:
+                raise errors.TargetNotExist(message=_('指定的机构二级对象不存在'))
+
+            ipv4_range = IPv4RangeManager.get_ip_range(_id=kwargs[view.lookup_field])
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        if ipv4_range.status != IPv4Range.Status.WAIT.value:
+            return view.exception_response(
+                errors.ConflictError(message=_('只允许“未分配”状态的IP地址段做预留操作')))
+
+        try:
+            IPv4RangeManager.do_reserve_ipv4_range(
+                ip_range=ipv4_range, user=request.user, org_virt_obj=org_virt_obj)
+        except Exception as exc:
+            return view.exception_response(exc)
 
         return Response(data=serializers.IPv4RangeSerializer(instance=ipv4_range).data)
