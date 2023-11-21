@@ -306,6 +306,52 @@ class VOViewSet(CustomGenericViewSet):
         """
         return VoHandler.vo_statistic(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('把VO组长权限移交给指定的组内成员'),
+        request_body=no_body,
+        manual_parameters=[
+            openapi.Parameter(
+                name='member_id',
+                in_=openapi.IN_QUERY,
+                required=False,
+                type=openapi.TYPE_STRING,
+                description=gettext_lazy('组员id')
+            ),
+            openapi.Parameter(
+                name='username',
+                in_=openapi.IN_QUERY,
+                required=False,
+                type=openapi.TYPE_STRING,
+                description=gettext_lazy('组员用户名')
+            ),
+        ],
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    @action(methods=['post'], detail=True, url_path='devolve', url_name='devolve')
+    def devolve_vo_owner(self, request, *args, **kwargs):
+        """
+        把VO组长权限移交给指定的组内成员
+
+            * 组长权限的移交目标必须是一个组员，通过组员id(member_id)或者组员用户名（username）指定，推荐组员id
+
+            http code 200:
+            {
+              "id": "3d7cd5fc-d236-11eb-9da9-c8009fe2eb10",
+              "name": "string666",
+              "company": "cnic",
+              "description": "测试",
+              "creation_time": "2021-06-21T02:13:16.663967Z",
+              "owner": {
+                "id": "1",
+                "username": "shun"
+              },
+              "status": "active"
+            }
+        """
+        return VoHandler.devolve_vo_owner(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         _action = self.action
         if _action in ['list', 'create']:

@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from django.utils.translation import gettext as _
 from django.db.models import Q
+from django.db import transaction
 
 from servers.models import Server
 from core import errors
@@ -336,6 +337,47 @@ class VoManager:
             vo.soft_delete()
         except Exception as exc:
             raise errors.Error.from_error(exc)
+
+    def devolve_vo_owner_to_member(self, vo_id: str, member_id: str, owner):
+        vo = VoManager().get_vo_by_id(vo_id=vo_id)
+        if vo is None:
+            raise errors.VoNotExist(message=_('项目组不存在'))
+
+        member: VoMember = VoMember.objects.select_related('user').filter(id=member_id).first()
+        if member is None:
+            raise errors.TargetNotExist(message=_('指定组员不存在'))
+
+        self._devolve_vo_owner(vo=vo, member=member, owner=owner)
+        return vo
+
+    def devolve_vo_owner_to_username(self, vo_id: str, username: str, owner):
+        vo = VoManager().get_vo_by_id(vo_id=vo_id)
+        if vo is None:
+            raise errors.VoNotExist(message=_('项目组不存在'))
+
+        member = VoMember.objects.filter(vo_id=vo.id, user__username=username).first()
+        if member is None:
+            raise errors.TargetNotExist(message=_('指定组员不存在'))
+
+        self._devolve_vo_owner(vo=vo, member=member, owner=owner)
+        return vo
+
+    @staticmethod
+    def _devolve_vo_owner(vo: VirtualOrganization, member: VoMember, owner):
+        if not vo.is_owner(owner):
+            raise errors.AccessDenied(message=_('你不是组拥有者，你没有移交组长的权限'))
+
+        if member.vo_id != vo.id:
+            raise errors.ConflictError(message=_('指定组员不属于项目组'))
+
+        with transaction.atomic():
+            owner = vo.owner
+            vo.owner = member.user
+            vo.save(update_fields=['owner'])
+
+            member.user = owner
+            member.role = VoMember.Role.LEADER.value
+            member.save(update_fields=['user', 'role'])
 
 
 class VoMemberManager:

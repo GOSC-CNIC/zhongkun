@@ -442,3 +442,95 @@ class VoTests(MyAPITestCase):
         self.assertEqual(r.data['balance'], '-1.23')
         self.assertEqual(r.data['my_role'], VoMember.Role.LEADER.value)
         self.assertEqual(r.data['disk_count'], 1)
+
+    def test_devolve_vo_owner(self):
+        user3 = get_or_create_user(username='zhangsan@cnic.cn')
+        vo1 = VirtualOrganization(name='vo1', owner=self.user)
+        vo1.save(force_insert=True)
+        vo1_member1 = VoMember(vo=vo1, user=self.user2)
+        vo1_member1.save(force_insert=True)
+        vo1_member2 = VoMember(vo=vo1, user=user3)
+        vo1_member2.save(force_insert=True)
+
+        vo2 = VirtualOrganization(name='vo2', owner=self.user2)
+        vo2.save(force_insert=True)
+        vo2_member1 = VoMember(vo=vo2, user=user3)
+        vo2_member1.save(force_insert=True)
+
+        self.client.logout()
+        base_url = reverse('api:vo-devolve', kwargs={'id': 'test'})
+        response = self.client.post(base_url)
+        self.assertEqual(response.status_code, 401)
+
+        self.client.force_login(self.user)
+        response = self.client.post(base_url)
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        query = parse.urlencode(query={'member_id': vo1_member1.id})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=404, code='VoNotExist', response=response)
+
+        query = parse.urlencode(query={'member_id': vo1_member1.id, 'username': user3.username})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # user, vo1 member_id
+        base_url = reverse('api:vo-devolve', kwargs={'id': vo1.id})
+        query = parse.urlencode(query={'member_id': 'test'})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
+
+        query = parse.urlencode(query={'member_id': vo2_member1.id})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=409, code='Conflict', response=response)
+
+        # vo1 owner user -> user2
+        query = parse.urlencode(query={'member_id': vo1_member1.id})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(keys=[
+            'id', 'name', 'company', 'description', 'creation_time', 'owner', 'status'], container=response.data)
+        self.assertEqual(response.data['owner']['username'], self.user2.username)
+
+        vo1.refresh_from_db()
+        self.assertEqual(vo1.owner_id, self.user2.id)
+        self.assertEqual(vo1.owner.username, self.user2.username)
+        self.assertEqual(VoMember.objects.filter(vo_id=vo1.id).count(), 2)
+        member: VoMember = VoMember.objects.filter(vo_id=vo1.id, user__username=self.user.username).first()
+        self.assertEqual(member.role, VoMember.Role.LEADER.value)
+        member = VoMember.objects.filter(vo_id=vo1.id, user__username=self.user2.username).first()
+        self.assertIsNone(member)
+
+        query = parse.urlencode(query={'member_id': vo1_member2.id})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # vo2, username
+        base_url = reverse('api:vo-devolve', kwargs={'id': vo2.id})
+        query = parse.urlencode(query={'username': self.user.username})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
+
+        query = parse.urlencode(query={'username': user3.username})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.client.logout()
+        self.client.force_login(self.user2)
+
+        # vo2 owner user2 -> user3
+        query = parse.urlencode(query={'username': user3.username})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(keys=[
+            'id', 'name', 'company', 'description', 'creation_time', 'owner', 'status'], container=response.data)
+        self.assertEqual(response.data['owner']['username'], user3.username)
+
+        vo2.refresh_from_db()
+        self.assertEqual(vo2.owner_id, user3.id)
+        self.assertEqual(vo2.owner.username, user3.username)
+        self.assertEqual(VoMember.objects.filter(vo_id=vo2.id).count(), 1)
+        member: VoMember = VoMember.objects.filter(vo_id=vo2.id, user__username=self.user2.username).first()
+        self.assertEqual(member.role, VoMember.Role.LEADER.value)
+        member = VoMember.objects.filter(vo_id=vo2.id, user__username=user3.username).first()
+        self.assertIsNone(member)

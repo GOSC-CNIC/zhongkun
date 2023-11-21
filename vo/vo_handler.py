@@ -202,3 +202,30 @@ class VoHandler:
             return view.exception_response(exc)
 
         return Response(data=data)
+
+    @staticmethod
+    def devolve_vo_owner(view, request, kwargs):
+        vo_id = kwargs['id']
+        member_id = request.query_params.get('member_id')
+        username = request.query_params.get('username')
+
+        if not member_id and not username:
+            return view.exception_response(
+                exceptions.InvalidArgument(message=_('必须指定组员id或者用户名')))
+        elif member_id and username:
+            return view.exception_response(
+                exceptions.InvalidArgument(message=_('不能同时指定组员id和用户名')))
+
+        try:
+            if member_id:
+                vo = VoManager().devolve_vo_owner_to_member(
+                    vo_id=vo_id, member_id=member_id, owner=request.user)
+            elif username:
+                vo = VoManager().devolve_vo_owner_to_username(
+                    vo_id=vo_id, username=username, owner=request.user)
+            else:
+                raise exceptions.InvalidArgument(message=_('必须指定组员id或者用户名'))
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        return Response(data=vo_serializers.VoSerializer(vo).data)
