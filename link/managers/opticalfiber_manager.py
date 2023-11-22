@@ -42,9 +42,9 @@ class OpticalFiberManager:
             # fibercable = FiberCableManager.get_fibercable(fiber_cable_id)
             qs = qs.filter(fiber_cable_id=fiber_cable_id)
         if is_linked is not None:
-            linked_element_id_list = ElementLink.get_linked_element_id_list()
+            linked_object_id_list = ElementLink.get_linked_object_id_list(object_type=Element.Type.OPTICAL_FIBER)
             if is_linked is True:
-                qs = qs.filter(element_id__in=linked_element_id_list)
+                qs = qs.filter(id__in=linked_object_id_list)
             else:
-                qs = qs.exclude(element_id__in=linked_element_id_list)
+                qs = qs.exclude(id__in=linked_object_id_list)
         return qs

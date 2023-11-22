@@ -4,8 +4,8 @@ from link.managers.linkorg_manager import LinkOrgManager
 from django.urls import reverse
 from urllib import parse
 from service.models import DataCenter
-from link.models import DistriFramePort, LinkUserRole, ElementLink
-from link.managers.elementlink_manager import ElementLinkManager
+from link.models import DistriFramePort, LinkUserRole, Link
+from link.managers.link_manager import LinkManager
 class DistriFramePortTests(MyAPITransactionTestCase):
     def setUp(self):
         self.user1 = get_or_create_user(username='tom@qq.com')
@@ -109,14 +109,26 @@ class DistriFramePortTests(MyAPITransactionTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['results'][0]['is_linked'], False)
         distriframeport = DistriFramePort.objects.all().first()
-        elementlink = ElementLinkManager.create_elementlink(
-            number="test_link",
-            id_list=[
-                distriframeport.element.id,
-            ],
-            remarks="test_remarks",
-            link_status=ElementLink.LinkStatus.IDLE,
-            task=None
+        link = LinkManager.create_link(
+            number="KY23092702",
+            user="空天院-中国遥感卫星地面站",
+            endpoint_a="空天院新技术园区B座A301机房，王萌13811835852",
+            endpoint_z="海淀区丰贤东路5号，中国资源卫星应用中心一期楼三层机房A301，吴郡13811754165，光缆施工联系沈老师13810428468，布跳线联系徐工13521066224",
+            bandwidth=None,
+            description="中国遥感卫星地面站至中国资源卫星应用中心高分项目专线（裸纤）",
+            line_type="科技云科技专线",
+            business_person="周建虎",
+            build_person="胡亮亮、王振伟",
+            link_status=Link.LinkStatus.USING,
+            remarks="adaeda",
+            enable_date="2014-07-01",
+            link_element=[
+                {
+                    "index": 1,
+                    "sub_index": 1,
+                    "element_id": distriframeport.element.id
+                },
+            ]
         )
         query = parse.urlencode(query={'is_linked': 'true'})
         response = self.client.get(f'{base_url}?{query}')

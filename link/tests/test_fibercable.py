@@ -1,11 +1,7 @@
 from utils.test import get_or_create_user, MyAPITransactionTestCase
-from link.managers.leaseline_manager import LeaseLineManager
-from link.managers.elementlink_manager import ElementLinkManager
 from link.managers.fibercable_manager import FiberCableManager
-from datetime import date
 from django.urls import reverse
 from link.models import FiberCable, Element, LinkUserRole, OpticalFiber
-from link.managers.userrole_manager import UserRoleWrapper
 from urllib import parse
 
 class FiberCableTests(MyAPITransactionTestCase):
@@ -180,8 +176,7 @@ class FiberCableTests(MyAPITransactionTestCase):
             status_code=404, code='FiberCableNotExist', response=response)
 
         # data
-        base_url = reverse('api:link-fibercable-detail',
-                           kwargs={'id': fibercable.id})
+        base_url = reverse('api:link-fibercable-detail', kwargs={'id': fibercable.id})
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn([

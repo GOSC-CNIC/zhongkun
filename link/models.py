@@ -1,7 +1,6 @@
 from django.db import models
 from utils.model import UuidModel
 from django.utils.translation import gettext_lazy as _
-from core import errors as exceptions
 from users.models import UserProfile
 from service.models import DataCenter
 
@@ -98,17 +97,10 @@ class Element(UuidModel):
 
     class Type(models.TextChoices):
         """数据库网元类型"""
-        OPTICAL_FIBER = 'optical-fiber', _('光纤')
-        LEASE_LINE = 'lease-line', _('租用线路')
-        DISTRIFRAME_PORT = 'distributionframe-port', _('配线架端口')
-        CONNECTOR_BOX = 'connector-box', _('光缆接头盒')
-
-    class ApiType(models.TextChoices):
-        """API网元类型"""
-        OPTICAL_FIBER = 'fiber'
-        LEASE_LINE = 'lease'
-        DISTRIFRAME_PORT = 'port'
-        CONNECTOR_BOX = 'box'
+        OPTICAL_FIBER = 'fiber', _('光纤')
+        LEASE_LINE = 'lease', _('租用线路')
+        DISTRIFRAME_PORT = 'port', _('配线架端口')
+        CONNECTOR_BOX = 'box', _('光缆接头盒')
 
     object_type = models.CharField(verbose_name=_('网元对象类型'), max_length=32, choices=Type.choices)
     object_id = models.CharField(verbose_name=_('网元对象id'), max_length=36, db_index=True)
@@ -124,17 +116,19 @@ class Element(UuidModel):
     def __str__(self):
         return self.object_type + ':' + self.object_id
 
-    @staticmethod
-    def get_api_type(t : Type) -> ApiType:
-        if t == Element.Type.OPTICAL_FIBER:
-            return Element.ApiType.OPTICAL_FIBER
-        elif t == Element.Type.CONNECTOR_BOX:
-            return Element.ApiType.CONNECTOR_BOX
-        if t == Element.Type.DISTRIFRAME_PORT:
-            return Element.ApiType.DISTRIFRAME_PORT
-        elif t == Element.Type.LEASE_LINE:
-            return Element.ApiType.LEASE_LINE
-        return None
+    def is_repetable_creat_link(self):
+        """该网元是否可重复建立链路"""
+        if self.object_type == Element.Type.CONNECTOR_BOX:
+            return True
+        return False
+
+    def is_linkable(self):
+        """该网元能否建立链路"""
+        return self.is_repetable_creat_link() or not self.is_linked()
+
+    def is_linked(self):
+        """该网元是否已经建立链路"""
+        return self.links.exists()
 
 class ElementBase(UuidModel):
     """网元对象基类"""
@@ -149,7 +143,14 @@ class ElementBase(UuidModel):
     def is_linked(self):
         if self.element is None:
             return False
-        return self.element.id in ElementLink.get_linked_element_id_list()
+        # return self.element.id in ElementLink.get_linked_element_id_list()
+        return self.element.is_linked()
+
+    @property
+    def link_id(self):
+        if not self.is_linked:
+            return []
+        return [link.id for link in self.element.links.all()]
 
 class LeaseLine(ElementBase):
     """租用线路"""
@@ -166,7 +167,7 @@ class LeaseLine(ElementBase):
     endpoint_z = models.CharField(verbose_name=_('Z端'), max_length=255, blank=True, default='')
     line_type = models.CharField(verbose_name=_('线路类型'), max_length=36, blank=True, default='')
     cable_type = models.CharField(verbose_name=_('电路类型'), max_length=36, blank=True, default='')
-    bandwidth = models.IntegerField(verbose_name=_('带宽'), null=True, blank=True, default=None, help_text='Mbs')
+    bandwidth = models.IntegerField(verbose_name=_('带宽'), null=True, blank=True, default=None, help_text='Mbps')
     length = models.DecimalField(verbose_name=_('长度'), max_digits=10, decimal_places=2, null=True, blank=True, default=None, help_text='km')
     provider = models.CharField(verbose_name=_('运营商'), max_length=36, blank=True, default='')
     enable_date = models.DateField(verbose_name=_('开通日期'), null=True, blank=True, default=None)
@@ -197,7 +198,7 @@ class OpticalFiber(ElementBase):
     update_time = models.DateTimeField(verbose_name=_('更新时间'), auto_now=True)
 
     class Meta:
-        ordering = ('sequence',)
+        ordering = ('fiber_cable_id', 'sequence',)
         db_table = 'link_optical_fiber'
         verbose_name = _('光纤')
         verbose_name_plural = verbose_name
@@ -219,7 +220,7 @@ class DistriFramePort(ElementBase):
     update_time = models.DateTimeField(verbose_name=_('更新时间'), auto_now=True)
 
     class Meta:
-        ordering = ('row', 'col',)
+        ordering = ('distribution_frame_id', 'row', 'col',)
         db_table = 'link_distriframe_port'
         verbose_name = _('配线架端口')
         verbose_name_plural = verbose_name
@@ -248,75 +249,73 @@ class ConnectorBox(ElementBase):
         return self.number
 
 
-class Task(UuidModel):
-    """业务"""
-
-    class TaskStatus(models.TextChoices):
-        """业务状态"""
-        NORMAL = 'normal', _('正常')
-        DELETED = 'deleted', _('删除')
-
-    number = models.CharField(verbose_name=_('业务编号'), max_length=64, default='')
-    user = models.CharField(verbose_name=_('用户（单位）'), max_length=128, blank=True, default='')
-    endpoint_a = models.CharField(verbose_name=_('A端'), max_length=255, blank=True, default='')
-    endpoint_z = models.CharField(verbose_name=_('Z端'), max_length=255, blank=True, default='')
-    bandwidth = models.IntegerField(verbose_name=_('带宽'), null=True, blank=True, default=None, help_text='Mbs')
-    task_description = models.CharField(verbose_name=_('业务描述'), max_length=255, blank=True, default='')
-    line_type = models.CharField(verbose_name=_('线路类型'), max_length=36, blank=True, default='')
-    task_person = models.CharField(verbose_name=_('商务对接'), max_length=36, blank=True, default='')
-    build_person = models.CharField(verbose_name=_('线路搭建'), max_length=36, blank=True, default='')
-    task_status = models.CharField(verbose_name=_('业务状态'), max_length=16, choices=TaskStatus.choices, default=TaskStatus.NORMAL)
-    create_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
-    update_time = models.DateTimeField(verbose_name=_('更新时间'), auto_now=True)
-
-    class Meta:
-        ordering = ('-update_time',)
-        db_table = 'link_task'
-        verbose_name = _('业务')
-        verbose_name_plural = verbose_name
-
-
-class ElementLink(UuidModel):
-    """链路"""
+class Link(UuidModel):
+    """链路表"""
 
     class LinkStatus(models.TextChoices):
         """链路状态"""
         USING = 'using', _('使用')
-        IDLE = 'idle', _('闲置')
         BACKUP = 'backup', _('备用')
-        DELETED = 'deleted', _('删除')
+        IDLE = 'idle', _('闲置')
 
-    number = models.CharField(verbose_name=_('链路编号'), max_length=64, default='')
-    element_ids = models.TextField(verbose_name=_('网元序列'), blank=True, default='', help_text=_('逗号分隔'))
-    remarks = models.CharField(verbose_name=_('备注'), max_length=255, blank=True, default='')
-    link_status = models.CharField(verbose_name=_('链路状态'), max_length=16, choices=LinkStatus.choices, default=LinkStatus.IDLE)
-    task = models.ForeignKey(
-        verbose_name=_('业务'), to=Task, related_name='task_elementLink', db_constraint=False,
-        on_delete=models.SET_NULL, null=True, blank=True, default=None)
+    number = models.CharField(verbose_name=_('编号'), max_length=64, default='')
+    user = models.CharField(verbose_name=_('用户（单位）'), max_length=128, blank=True, default='')
+    endpoint_a = models.CharField(verbose_name=_('A端'), max_length=255, blank=True, default='')
+    endpoint_z = models.CharField(verbose_name=_('Z端'), max_length=255, blank=True, default='')
+    bandwidth = models.IntegerField(verbose_name=_('带宽'), null=True, blank=True, default=None, help_text='Mbps')
+    description = models.CharField(verbose_name=_('用途描述'), max_length=255, blank=True, default='')
+    line_type = models.CharField(verbose_name=_('线路类型'), max_length=36, blank=True, default='')
+    business_person = models.CharField(verbose_name=_('商务对接'), max_length=36, blank=True, default='')
+    build_person = models.CharField(verbose_name=_('线路搭建'), max_length=36, blank=True, default='')
     create_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
     update_time = models.DateTimeField(verbose_name=_('更新时间'), auto_now=True)
+    link_status = models.CharField(verbose_name=_('链路状态'), max_length=16, choices=LinkStatus.choices, default=LinkStatus.IDLE)
+    remarks = models.CharField(verbose_name=_('备注'), max_length=255, blank=True, default='')
+    enable_date = models.DateField(verbose_name=_('开通日期'), null=True, blank=True, default=None)
+    elements = models.ManyToManyField(
+        verbose_name=_('网元'), to=Element, through='ElementLink', related_name='links'
+    )
 
     class Meta:
         ordering = ('-update_time',)
-        db_table = 'link_element_link'
+        db_table = 'link_link'
         verbose_name = _('链路')
         verbose_name_plural = verbose_name
 
-    def element_id_list(self):
-        return self.element_ids.split(',')
+    @property
+    def link_element(self):
+        return ElementLink.objects.filter(link=self)
+    
+class ElementLink(UuidModel):
+    """链路网元对应表"""
+
+    element = models.ForeignKey(verbose_name=_('网元'), to=Element, related_name='element_link', on_delete=models.CASCADE)
+    link = models.ForeignKey(verbose_name=_('业务链路'), to=Link, related_name='element_link', on_delete=models.CASCADE)
+    index = models.IntegerField(verbose_name=_('链路位置'))
+    sub_index = models.IntegerField(verbose_name=_('同位编号'), default=1)
+    class Meta:
+        ordering = ('link_id', 'index', 'sub_index')
+        db_table = 'link_elementlink'
+        verbose_name = _('链路网元对应表')
+        verbose_name_plural = verbose_name
+    
+    @property
+    def element_data(self):
+        from link.managers.element_manager import ElementManager
+        if self.element is None:
+            return None
+        return ElementManager.get_element_detail_data_by_id(self.element.id)
 
     @staticmethod
-    def get_element_ids_by_id_list(id_list: list) -> str:
-        """通过网元id列表获得网元id序列字符串"""
-        return ','.join(id_list)
+    def get_linked_object_id_list(object_type: str):
+        qs = ElementLink.objects.all()
+        id_list = [elementlink.element.object_id for elementlink in qs if elementlink.element.object_type==object_type]
+        return id_list
 
-    @staticmethod
-    def get_linked_element_id_list() -> set:
-        """获取所有接入链路的网元id"""
-        from link.managers.elementlink_manager import ElementLinkManager
-        queryset = ElementLinkManager.get_normal_queryset()
-        s = set()
-        for elementlink in queryset:
-            for element_id in elementlink.element_id_list():
-                s.add(element_id)
-        return s
+class ElementDetailData():
+    def __init__(self, type: Element.Type = None, lease: LeaseLine = None, fiber: OpticalFiber = None, port: DistriFramePort = None, box: ConnectorBox = None):
+        self.type = type
+        self.lease = lease
+        self.fiber = fiber
+        self.port = port
+        self.box = box

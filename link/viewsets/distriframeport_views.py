@@ -48,6 +48,9 @@ class DistriFramePortViewSet(NormalGenericViewSet):
                         {
                             "is_linked": true, # 是否接入链路
                             "element_id": "mgcj1voii43a8xd1d0j56hre7",  # 网元id
+                            "link_id": [
+                                "t1hgf0ngc901dop1w6f8njo1w" # 链路id
+                            ],
                             "id": "mgciudagi8j8q9994go07ykyn",
                             "number": "test(1,1)", # 编号
                             "row": 1, # 行号

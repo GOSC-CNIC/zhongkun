@@ -4,7 +4,7 @@ from api.paginations import NewPageNumberPagination
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.permissions import IsAuthenticated
 from link.handlers.element_handler import ElementHandler
-from link.serializers.element_data_serializer import ElementDataSerializer
+from link.serializers.link_serializer import ElementDetailDataSerializer
 from rest_framework.decorators import action
 
 
@@ -30,6 +30,9 @@ class ElementViewSet(NormalGenericViewSet):
                     "lease": {
                         "is_linked": false,
                         "element_id": "ksss6f25mu7vx42yxhyy2gv8r",
+                        "link_id": [
+                            "t1hgf0ngc901dop1w6f8njo1w"
+                        ],
                         "id": "cc31q7a7cz2h7trj6t3986jvd",
                         "private_line_number": "37969041",
                         "lease_line_code": "北京青岛ANE0172NP",
@@ -59,6 +62,7 @@ class ElementViewSet(NormalGenericViewSet):
                     "port": {
                         "is_linked": false,
                         "element_id": "mgd1c7adgkikaqudtunkkftkc",
+                        "link_id": [],
                         "id": "mgd15851e9m9nix6y1v2cjvb7",
                         "number": "东侧数据处理区中间机柜35至36U_中天科技ODF(1,6)",
                         "row": 1,
@@ -81,6 +85,7 @@ class ElementViewSet(NormalGenericViewSet):
                     "fiber": {
                         "is_linked": false,
                         "element_id": "mgbar1nvg5b7y601zrhocypzh",
+                        "link_id": [],
                         "id": "mgbagzmookwyt4binzao7exzn",
                         "sequence": 3,
                         "fiber_cable": {
@@ -101,6 +106,7 @@ class ElementViewSet(NormalGenericViewSet):
                     "box": {
                         "is_linked": true,
                         "element_id": "mgarja3xdy80ubxv2jm6teo62",
+                        "link_id": [],
                         "id": "mgarbd5pg0zkmavtitu5gbxzc",
                         "number": "熔纤包测试1",
                         "place": "熔纤包测试-位置",
@@ -113,4 +119,4 @@ class ElementViewSet(NormalGenericViewSet):
 
 
     def get_serializer_class(self):
-        return ElementDataSerializer
+        return ElementDetailDataSerializer

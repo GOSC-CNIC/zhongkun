@@ -40,6 +40,9 @@ class ConnectorBoxViewSet(NormalGenericViewSet):
                     "results": [
                         {
                             "is_linked": true, # 是否接入链路
+                            "link_id": [
+                                "t1hgf0ngc901dop1w6f8njo1w" # 链路id
+                            ],
                             "element_id": "mgarja3xdy80ubxv2jm6teo62", # 网元id
                             "id": "mgarbd5pg0zkmavtitu5gbxzc",
                             "number": "熔纤包测试1", # 编号

@@ -1,7 +1,6 @@
 from utils.test import get_or_create_user, MyAPITransactionTestCase
-from link.managers.task_manager import TaskManager
 from django.urls import reverse
-from link.models import Task, LinkUserRole
+from link.models import LinkUserRole
 from link.managers.userrole_manager import UserRoleWrapper
 from urllib import parse
 

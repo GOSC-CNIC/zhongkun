@@ -1,5 +1,4 @@
 from utils.test import get_or_create_user, MyAPITransactionTestCase
-from link.managers.task_manager import TaskManager
 from django.urls import reverse
 from link.models import LinkUserRole, OpticalFiber, ConnectorBox, DistriFramePort, LeaseLine, Element
 from link.managers.fibercable_manager import FiberCableManager
@@ -94,9 +93,9 @@ class TaskTests(MyAPITransactionTestCase):
         self.assertKeysIn([
             'type', 'fiber', 'lease', 'port', 'box'
         ], response.data)
-        self.assertEqual(response.data['type'], Element.ApiType.OPTICAL_FIBER)
+        self.assertEqual(response.data['type'], Element.Type.OPTICAL_FIBER)
         self.assertKeysIn([
-            'id', 'sequence', 'fiber_cable', 'is_linked', 'element_id'
+            'id', 'sequence', 'fiber_cable', 'is_linked', 'element_id', 'link_id'
         ], response.data['fiber'])
         self.assertKeysIn([
             'id', 'number'
@@ -110,11 +109,11 @@ class TaskTests(MyAPITransactionTestCase):
         base_url = reverse('api:link-element-detail',kwargs={'id': lease_element_id})
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['type'], Element.ApiType.LEASE_LINE)
+        self.assertEqual(response.data['type'], Element.Type.LEASE_LINE)
         self.assertKeysIn([
             'id', 'private_line_number', 'lease_line_code', 'line_username', 'endpoint_a', 'endpoint_z',
             'line_type', 'cable_type', 'bandwidth', 'length', 'provider', 'enable_date', 'is_whithdrawal',
-            'money', 'remarks', 'is_linked', 'element_id'
+            'money', 'remarks', 'is_linked', 'element_id', 'link_id'
         ], response.data['lease'])
         self.assertEqual(lease_element_id,
                          response.data['lease']['element_id'])
@@ -126,9 +125,9 @@ class TaskTests(MyAPITransactionTestCase):
         base_url = reverse('api:link-element-detail',kwargs={'id': port_element_id})
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['type'], Element.ApiType.DISTRIFRAME_PORT)
+        self.assertEqual(response.data['type'], Element.Type.DISTRIFRAME_PORT)
         self.assertKeysIn([
-            'id', 'number', 'row', 'col', 'distribution_frame', 'is_linked', 'element_id'
+            'id', 'number', 'row', 'col', 'distribution_frame', 'is_linked', 'element_id', 'link_id'
         ], response.data['port'])
         self.assertKeysIn([
             'id', 'number'
@@ -142,9 +141,9 @@ class TaskTests(MyAPITransactionTestCase):
         base_url = reverse('api:link-element-detail',kwargs={'id': box_element_id})
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['type'], Element.ApiType.CONNECTOR_BOX)
+        self.assertEqual(response.data['type'], Element.Type.CONNECTOR_BOX)
         self.assertKeysIn([
-            'id', 'number', 'place', 'remarks', 'location', 'place', 'is_linked', 'element_id'
+            'id', 'number', 'place', 'remarks', 'location', 'place', 'is_linked', 'element_id', 'link_id'
         ], response.data['box'])
         self.assertEqual(box_element_id, response.data['box']['element_id'])
         self.assertEqual(None, response.data['fiber'])

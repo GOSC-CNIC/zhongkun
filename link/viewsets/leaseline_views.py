@@ -104,6 +104,9 @@ class LeaseLineViewSet(NormalGenericViewSet):
                     "page_size": 20,
                     "results": [
                         {
+                            "is_linked": false,
+                            "element_id": "spr88xs2bre1y56nk0d0ykf72",
+                            "link_id": [],
                             "id": "tggprpr26coj92g1t08gjoim5",
                             "private_line_number": "28622091", # 专线号
                             "lease_line_code": "北京乌鲁木齐ANE0033NP", # 电路代号
@@ -170,6 +173,9 @@ class LeaseLineViewSet(NormalGenericViewSet):
 
             http Code 200 Ok:
                 {
+                    "is_linked": false,
+                    "element_id": "spr88xs2bre1y56nk0d0ykf72",
+                    "link_id": [],
                     "id": "tggprpr26coj92g1t08gjoim5",
                     "private_line_number": "28622091", # 专线号
                     "lease_line_code": "北京乌鲁木齐ANE0033NP", # 电路代号

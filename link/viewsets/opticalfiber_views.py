@@ -48,6 +48,9 @@ class OpticalFiberViewSet(NormalGenericViewSet):
                         {
                             "is_linked": true, # 是否接入链路
                             "element_id": "mgb3k0t02f0m954adqenm950n", # 网元id
+                            "link_id": [
+                                "t1hgf0ngc901dop1w6f8njo1w" # 链路id
+                            ],
                             "id": "mgb3ciey2jgjqh0i56ihnpzk2",
                             "sequence": 1, # 纤序
                             "fiber_cable": {

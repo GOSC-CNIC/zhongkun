@@ -4,7 +4,6 @@ from link.models import LeaseLine, Element, ElementLink
 from django.db.models import Q
 from core import errors
 from link.managers.element_manager import ElementManager
-from link.managers.elementlink_manager import ElementLinkManager
 from django.db import transaction
 
 
@@ -107,11 +106,11 @@ class LeaseLineManager:
         enable_date_start: date = None, enable_date_end: date = None):
         qs = LeaseLineManager.get_queryset()
         if is_linked is not None:
-            linked_element_id_list = ElementLink.get_linked_element_id_list()
+            linked_object_id_list = ElementLink.get_linked_object_id_list(object_type=Element.Type.LEASE_LINE)
             if is_linked is True:
-                qs = qs.filter(element_id__in=linked_element_id_list)
+                qs = qs.filter(id__in=linked_object_id_list)
             else:
-                qs = qs.exclude(element_id__in=linked_element_id_list)
+                qs = qs.exclude(id__in=linked_object_id_list)
         lookups = {}
         if is_whithdrawal is not None:
             lookups['is_whithdrawal'] = is_whithdrawal

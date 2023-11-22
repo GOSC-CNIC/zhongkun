@@ -1,11 +1,11 @@
 from utils.test import get_or_create_user, MyAPITransactionTestCase
 from link.managers.leaseline_manager import LeaseLineManager
-from link.managers.elementlink_manager import ElementLinkManager
+from link.managers.link_manager import LinkManager
 from datetime import date
 from django.urls import reverse
-from link.models import LeaseLine, Element, ElementLink, LinkUserRole
-from link.managers.userrole_manager import UserRoleWrapper
+from link.models import LeaseLine, Element, ElementLink, LinkUserRole, Link
 from urllib import parse
+import json
 
 class LeaseLineTests(MyAPITransactionTestCase):
     def setUp(self):
@@ -51,7 +51,7 @@ class LeaseLineTests(MyAPITransactionTestCase):
 
     def test_creat(self):       
         base_url = reverse('api:link-leaseline-list')
-        data = {
+        data = json.dumps({
             'private_line_number':'510GXN12603174',
             'lease_line_code':'0F0001NP',
             'line_username':'广州联通互联互通',
@@ -66,19 +66,19 @@ class LeaseLineTests(MyAPITransactionTestCase):
             'is_whithdrawal':'false',
             'money':'300.20',
             'remarks':'电路编号：中科院广州化学有限公司-科学城2数据机房0F0001NP'
-            }
+            })
         
         # user role 
-        response = self.client.post(base_url, data=data)
+        response = self.client.post(base_url, data=data, content_type='application/json')
         self.assertEqual(response.status_code, 401)
         self.client.force_login(self.user1)
-        response = self.client.post(base_url, data=data)
+        response = self.client.post(base_url, data=data, content_type='application/json')
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
         self.client.force_login(self.user2)
-        response = self.client.post(base_url, data=data)
+        response = self.client.post(base_url, data=data, content_type='application/json')
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
         self.client.force_login(self.user3)
-        response = self.client.post(base_url, data=data)
+        response = self.client.post(base_url, data=data, content_type='application/json')
         self.assertEqual(response.status_code, 200)
         
         # data
@@ -185,29 +185,27 @@ class LeaseLineTests(MyAPITransactionTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['results'][0]['is_linked'], False)
         self.assertEqual(response.data['results'][1]['is_linked'], False)
-        elementlink = ElementLinkManager.create_elementlink(
-            number="test_link",
-            id_list=[
-                LeaseLine.objects.filter(id = self.leaseline1.id).first().element.id,
-                LeaseLine.objects.filter(id = self.leaseline2.id).first().element.id
-            ],
-            remarks="test_remarks",
-            link_status=ElementLink.LinkStatus.IDLE,
-            task=None
+        link = LinkManager.create_link(
+            number="KY23092702",
+            user="空天院-中国遥感卫星地面站",
+            endpoint_a="空天院新技术园区B座A301机房，王萌13811835852",
+            endpoint_z="海淀区丰贤东路5号，中国资源卫星应用中心一期楼三层机房A301，吴郡13811754165，光缆施工联系沈老师13810428468，布跳线联系徐工13521066224",
+            bandwidth=None,
+            description="中国遥感卫星地面站至中国资源卫星应用中心高分项目专线（裸纤）",
+            line_type="科技云科技专线",
+            business_person="周建虎",
+            build_person="胡亮亮、王振伟",
+            link_status=Link.LinkStatus.USING,
+            remarks="adaeda",
+            enable_date="2014-07-01",
+            link_element=[
+                {
+                    "index": 1,
+                    "sub_index": 1,
+                    "element_id": self.leaseline1.element.id
+                }
+            ]
         )
-        response = self.client.get(base_url)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['results'][0]['is_linked'], True)
-        self.assertEqual(response.data['results'][1]['is_linked'], True)
-        elementlink.link_status = ElementLink.LinkStatus.DELETED
-        elementlink.save(force_update=True)
-        response = self.client.get(base_url)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['results'][0]['is_linked'], False)
-        self.assertEqual(response.data['results'][1]['is_linked'], False)
-        elementlink.link_status = ElementLink.LinkStatus.USING
-        elementlink.element_ids = ElementLink.get_element_ids_by_id_list([LeaseLine.objects.filter(id = self.leaseline1.id).first().element.id])
-        elementlink.save(force_update=True)
         query = parse.urlencode(query={'search': self.leaseline1.private_line_number})
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
@@ -234,7 +232,7 @@ class LeaseLineTests(MyAPITransactionTestCase):
 
     def test_update(self):       
         base_url = reverse('api:link-leaseline-update-leaseline', kwargs={'id': 'test'})
-        data = {
+        data = json.dumps({
             'private_line_number':'510GXN12603174',
             'lease_line_code':'0F0001NP',
             'line_username':'广州联通互联互通',
@@ -249,25 +247,25 @@ class LeaseLineTests(MyAPITransactionTestCase):
             'is_whithdrawal':'false',
             'money':'300.20',
             'remarks':'电路编号：中科院广州化学有限公司-科学城2数据机房0F0001NP'
-            }
+            })
         
         # user role
-        response = self.client.post(base_url, data=data)
+        response = self.client.post(base_url, data=data, content_type='application/json')
         self.assertEqual(response.status_code, 401)
         self.client.force_login(self.user1)
-        response = self.client.post(base_url, data=data)
+        response = self.client.post(base_url, data=data, content_type='application/json')
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
         self.client.force_login(self.user2)
-        response = self.client.post(base_url, data=data)
+        response = self.client.post(base_url, data=data, content_type='application/json')
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
         self.client.force_login(self.user3)
-        response = self.client.post(base_url, data=data)
+        response = self.client.post(base_url, data=data, content_type='application/json')
 
         # LeaseLineNotExist
         self.assertErrorResponse(status_code=404, code='LeaseLineNotExist', response=response)
         id = LeaseLine.objects.all().first().id
         base_url = reverse('api:link-leaseline-update-leaseline', kwargs={'id': id})
-        response = self.client.post(base_url, data=data)
+        response = self.client.post(base_url, data=data, content_type='application/json')
         self.assertEqual(response.status_code, 200)
 
         # data

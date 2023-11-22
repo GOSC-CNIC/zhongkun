@@ -17,8 +17,7 @@ class LeaseLineAdmin(admin.ModelAdmin):
                     'endpoint_a', 'endpoint_z', 'line_type', 'cable_type',
                     'bandwidth', 'length', 'provider', 'enable_date', 'is_whithdrawal',
                     'money', 'remarks', 'element', 'create_time', 'update_time']
-    search_fields = ['id', 'private_line_number',
-                     'lease_line_code', 'line_username']
+    search_fields = ['id', 'private_line_number', 'lease_line_code', 'line_username', 'remarks']
 
 
 @admin.register(OpticalFiber)
@@ -64,16 +63,16 @@ class LinkOrgAdmin(admin.ModelAdmin):
 
 @admin.register(ElementLink)
 class ElementLinkAdmin(admin.ModelAdmin):
-    list_display = ['id', 'number', 'element_ids', 'remarks',
-                    'link_status', 'task', 'create_time', 'update_time']
-    search_fields = ['id', 'device_id']
+    list_display = ['id', 'element_id', 'link_id', 'index', 'sub_index']
+    search_fields = ['id', 'element_id', 'link_id']
 
 
-@admin.register(Task)
-class TaskAdmin(admin.ModelAdmin):
+@admin.register(Link)
+class LinkAdmin(admin.ModelAdmin):
     list_display = ['id', 'number', 'user', 'endpoint_a', 'endpoint_z',
-                    'bandwidth', 'task_description', 'line_type', 'task_person',
-                    'build_person', 'task_status', 'create_time', 'update_time']
+                    'bandwidth', 'description', 'line_type', 'business_person',
+                    'build_person', 'link_status', 'remarks', 'enable_date', 
+                    'create_time', 'update_time']
     search_fields = ['id', 'number', 'user']
 
 

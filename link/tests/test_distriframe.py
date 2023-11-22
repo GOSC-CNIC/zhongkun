@@ -2,7 +2,6 @@ from utils.test import get_or_create_user, MyAPITransactionTestCase
 from link.managers.distriframe_manager import DistriFrameManager
 from link.managers.linkorg_manager import LinkOrgManager
 from django.urls import reverse
-from link.managers.userrole_manager import UserRoleWrapper
 from urllib import parse
 from service.models import DataCenter
 from link.models import DistributionFrame
@@ -136,7 +135,7 @@ class DistriFrameTests(MyAPITransactionTestCase):
         response = self.client.get(base_url)
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
 
-        # element not exist
+        # data not exist
         base_url = reverse('api:link-distributionframe-detail', kwargs={'id': 'asd'})
         response = self.client.get(base_url)
         self.assertErrorResponse(
