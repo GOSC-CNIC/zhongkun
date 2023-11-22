@@ -248,6 +248,7 @@ class IPv4RangeViewSet(NormalGenericViewSet):
         按掩码长度拆分IPv4地址段，需要有科技网管理员权限
 
             * 指定的 拆分的掩码长度（1-31） 要大于 被拆分IP地址段的掩码长度
+            * 子网掩码长度与被拆分IP地址段的掩码长度相差不允许超过8，即每次拆分子网数量最多不得超过256个
 
             http Code 200 Ok:
                 {

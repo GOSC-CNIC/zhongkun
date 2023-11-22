@@ -714,6 +714,16 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         self.assertEqual(ir2.end_address, int(ipaddress.IPv4Address('159.0.2.103')))
         self.assertEqual(ir2.mask_len, 31)
 
+        nt = dj_timezone.now()
+        ip_range4 = IPv4RangeManager.create_ipv4_range(
+            name='预留4', start_ip='159.0.100.0', end_ip='159.0.200.255', mask_len=16, asn=88,
+            create_time=nt, update_time=nt, status_code=IPv4Range.Status.RESERVED.value,
+            org_virt_obj=virt_obj1, assigned_time=nt, admin_remark='admin remark4', remark='remark4'
+        )
+        base_url = reverse('api:ipam-ipv4range-split', kwargs={'id': ip_range4.id})
+        response = self.client.post(base_url, data={'new_prefix': 25, 'fake': 'false'})
+        self.assertErrorResponse(status_code=409, code='Conflict', response=response)
+
     def test_merge_ipv4_range(self):
         org1 = get_or_create_organization(name='org1')
         virt_obj1 = OrgVirtualObject(name='org virt obj1', organization=org1, creation_time=dj_timezone.now())

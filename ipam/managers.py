@@ -668,6 +668,10 @@ class IPv4RangeSplitter:
         if new_prefix < ipv4_range.mask_len:
             raise errors.ConflictError(message=_('子网掩码长度必须大于拆分IP地址段的掩码长度'))
 
+        if (new_prefix - ipv4_range.mask_len) > 8:
+            raise errors.ConflictError(
+                message=_('子网掩码长度与被拆分IP地址段的掩码长度相差不允许超过8，即每次拆分子网数量不得超过256个'))
+
         if ipv4_range.status not in [IPv4Range.Status.WAIT.value, IPv4Range.Status.RESERVED.value]:
             raise errors.ConflictError(message=_('只允许拆分“未分配”和“预留”状态的IP地址段'))
 
