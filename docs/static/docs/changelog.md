@@ -1,3 +1,17 @@
+## v1.14.2
+发布时间： 2023-11-22  
+发布人： shun  
+
+* link设计重构，添加相关接口和测试用例；提交人：xukai
+* 新增 IPv4RangeDelete、IPv4RangeRecover、IPv4RangeReserve、IPv4RangeAssign 接口和测试用例；提交人：shun
+* django4.2.5 to 4.2.7；提交人：shun
+* ListServer和ListVoServer api返回数据增加vo组信息；提交人：shun
+* AdminListCashCoupon api 增加query参数“id”，查询资源券编码；提交人：shun
+* vo组相关接口视图全部移动到vo app下，新增 vo组组长移交接口和测试用例；提交人：shun
+* 云主机model增加4个镜像系统有关字段，对应的列举云主机、云主机详情查询和列举云主机归档变更记录接口返回数据增此4个字段数据；提交人：shun
+* 压缩link app迁移文件；提交人：shun
+
+
 ## v1.14.1
 发布时间： 2023-11-17  
 发布人： shun  
