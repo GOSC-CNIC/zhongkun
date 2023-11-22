@@ -10,6 +10,7 @@ from utils.model import get_encryptor, PayType, UuidModel, OwnerType
 from utils import rand_utils
 from vo.models import VirtualOrganization
 from users.models import UserProfile as User
+from adapters.outputs import ImageSysType, ImageSysArch, ImageSysRelease
 
 
 def short_uuid1_l25():
@@ -45,6 +46,30 @@ class ServerBase(models.Model):
         EXPIRED = 'expired', _('过期停机')
         ARREARAGE = 'arrearage', _('欠费停机')
 
+    class SysType(models.TextChoices):
+        WINDOWS = ImageSysType.WINDOWS, 'Windows'
+        LINUX = ImageSysType.LINUX, 'Linux'
+        UNIX = ImageSysType.UNIX, 'Unix'
+        MACOS = ImageSysType.MACOS, 'MacOS'
+        ANDROID = ImageSysType.ANDROID, 'Android'
+        UNKNOWN = ImageSysType.UNKNOWN, 'Unknown'
+
+    class SysRelease(models.TextChoices):
+        WINDOWS_DESKTOP = ImageSysRelease.WINDOWS_DESKTOP, 'Windows Desktop'
+        WINDOWS_SERVER = ImageSysRelease.WINDOWS_SERVER, 'Windows Server'
+        UBUNTU = ImageSysRelease.UBUNTU, 'Ubuntu'
+        FEDORA = ImageSysRelease.FEDORA, 'Fedora'
+        CENTOS = ImageSysRelease.CENTOS, 'CentOS'
+        DEEPIN = ImageSysRelease.DEEPIN, 'Deepin'
+        DEBIAN = ImageSysRelease.DEBIAN, 'Debian'
+        UNKNOWN = '', 'Unknown'
+
+    class SysArch(models.TextChoices):
+        X86_64 = ImageSysArch.X86_64, 'x86-64'
+        I386 = ImageSysArch.I386, 'i386'
+        ARM_64 = ImageSysArch.ARM_64, 'arm-64'
+        UNKNOWN = '', 'Unknown'
+
     id = models.CharField(blank=True, editable=False, max_length=36, primary_key=True, verbose_name='ID')
     name = models.CharField(max_length=255, verbose_name=_('云主机实例名称'))
     instance_id = models.CharField(max_length=128, verbose_name=_('云主机实例ID'), help_text=_('各接入服务中云主机的ID'))
@@ -56,6 +81,10 @@ class ServerBase(models.Model):
     public_ip = models.BooleanField(default=True, verbose_name=_('公/私网'))
     image = models.CharField(max_length=255, verbose_name=_('镜像系统名称'), default='')
     image_id = models.CharField(max_length=64, verbose_name=_('镜像系统ID'), default='')
+    img_sys_type = models.CharField(max_length=32, verbose_name=_('镜像系统类型'), default='')
+    img_sys_arch = models.CharField(max_length=32, verbose_name=_('镜像系统架构'), default='')
+    img_release = models.CharField(max_length=32, verbose_name=_('镜像系统发行版'), default='')
+    img_release_version = models.CharField(max_length=32, verbose_name=_('镜像系统发行版版本'), default='')
     image_desc = models.CharField(max_length=255, verbose_name=_('镜像系统描述'), blank=True, default='')
     default_user = models.CharField(max_length=64, verbose_name=_('默认登录用户名'), default='')
     default_password = models.CharField(max_length=255, blank=True, verbose_name=_('默认登录密码'), default='')
@@ -381,6 +410,10 @@ class ServerArchive(ServerBase):
         a.classification = server.classification
         a.image_id = server.image_id
         a.image_desc = server.image_desc
+        a.img_sys_type = server.img_sys_type
+        a.img_sys_arch = server.img_sys_arch
+        a.img_release = server.img_release
+        a.img_release_version = server.img_release_version
         a.default_user = server.default_user
         a.default_password = server.default_password
         a.archive_user = archive_user

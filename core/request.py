@@ -224,12 +224,60 @@ def update_server_detail(server: Server, task_status: int = None):
             server.disk_size = out_server.disk_size
             update_fields.append('disk_size')
 
+        try:
+            image, image_update_fields = _update_image_info(server=server)
+            update_fields += image_update_fields
+        except Exception as exc:
+            try:
+                image, image_update_fields = _update_image_info(server=server)
+                update_fields += image_update_fields
+            except Exception as exc:
+                pass
+
         if update_fields:
             server.save(update_fields=update_fields)
     except Exception as e:
         raise exceptions.APIException(message=str(e))
 
     return server
+
+
+def cut_str(s: str, length: int):
+    if len(s) <= length:
+        return s
+
+    return s[0:length]
+
+
+def _update_image_info(server: Server):
+    update_fields = []
+    img_params = inputs.ImageDetailInput(image_id=server.image_id, region_id='')
+    out = request_service(service=server.service, method='image_detail', params=img_params)
+    image: outputs.ListImageOutputImage = out.image
+    if (
+            image.release and image.release != outputs.ImageSysRelease.UNKNOWN
+            and image.release != server.img_release
+    ):
+        server.img_release = cut_str(image.release, length=32)
+        update_fields.append('img_release')
+
+    if (
+            image.architecture and image.architecture != outputs.ImageSysArch.UNKNOWN
+            and image.architecture != server.img_sys_arch
+    ):
+        server.img_sys_arch = cut_str(image.architecture, length=32)
+        update_fields.append('img_sys_arch')
+
+    if image.system_type and image.system_type != server.img_sys_type:
+        if not server.img_sys_type or server.img_sys_type == Server.SysType.UNKNOWN.value:
+            server.img_sys_type = cut_str(image.system_type, length=32)
+            update_fields.append('img_sys_type')
+
+    if image.version and image.version != server.img_release_version:
+        server.img_release_version = cut_str(image.version, length=32)
+        update_fields.append('img_release_version')
+
+    return image, update_fields
 
 
 def server_status_code(server):

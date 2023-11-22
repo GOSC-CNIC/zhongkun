@@ -238,7 +238,7 @@ class ServersTests(MyAPITestCase):
         self.assertKeysIn(['server'], response.data)
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
                            "public_ip", "image", "creation_time", "remarks",
-                           "service",
+                           "service", 'img_sys_type', 'img_sys_arch', 'img_release', 'img_release_version',
                            "center_quota", "classification", "vo_id", "user",
                            "image_id", "image_desc", "default_user", "default_password", "pay_type",
                            "attached_disks"], response.data['server'])
@@ -276,7 +276,7 @@ class ServersTests(MyAPITestCase):
         self.assertKeysIn(['server'], response.data)
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4",
                            "public_ip", "image", "creation_time", "remarks",
-                           "service",
+                           "service", 'img_sys_type', 'img_sys_arch', 'img_release', 'img_release_version',
                            "center_quota", "classification", "vo_id", "user",
                            "image_id", "image_desc", "default_user", "default_password", "pay_type",
                            "attached_disks"], response.data['server'])
@@ -331,7 +331,7 @@ class ServersTests(MyAPITestCase):
         self.assertEqual(len(response.data['servers']), 1)
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ram_gib", "ipv4",
                            "public_ip", "image", "creation_time",
-                           "remarks", "service",
+                           "remarks", "service", 'img_sys_type', 'img_sys_arch', 'img_release', 'img_release_version',
                            "center_quota", "classification", "vo_id", "user", 'vo',
                            "image_id", "image_desc", "default_user", "default_password",
                            "lock", "pay_type"], response.data['servers'][0])
@@ -458,7 +458,7 @@ class ServersTests(MyAPITestCase):
         self.assertEqual(response.data['count'], 1)
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4", "ram_gib",
                            "public_ip", "image", "creation_time",
-                           "remarks", "service",
+                           "remarks", "service", 'img_sys_type', 'img_sys_arch', 'img_release', 'img_release_version',
                            "center_quota", "classification", "vo_id", "user", 'vo',
                            "image_id", "image_desc", "default_user", "default_password",
                            "lock", "pay_type"], response.data['servers'][0])
@@ -636,7 +636,7 @@ class ServersTests(MyAPITestCase):
         self.assertEqual(len(response.data['servers']), 1)
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4", "ram_gib",
                            "public_ip", "image", "creation_time",
-                           "remarks", "service",
+                           "remarks", "service", 'img_sys_type', 'img_sys_arch', 'img_release', 'img_release_version',
                            "center_quota", "classification", "vo_id", "user",
                            "image_id", "image_desc", "default_user", "default_password",
                            "lock", "pay_type"], response.data['servers'][0])
@@ -1175,7 +1175,7 @@ class ServersTests(MyAPITestCase):
         obj = response.data['results'][0]
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4", "ram_gib",
                            "public_ip", "image", "creation_time",
-                           "remarks", "service",
+                           "remarks", "service", 'img_sys_type', 'img_sys_arch', 'img_release', 'img_release_version',
                            "center_quota", "deleted_time", "classification", "vo_id",
                            "pay_type", "server_id"], obj)
         self.assertEqual(obj['ram_gib'], 1)
@@ -1202,7 +1202,7 @@ class ServersTests(MyAPITestCase):
         self.assertEqual(len(response.data['results']), 1)
         self.assertKeysIn(["id", "name", "vcpus", "ram", "ipv4", "ram_gib",
                            "public_ip", "image", "creation_time",
-                           "remarks", "service",
+                           "remarks", "service", 'img_sys_type', 'img_sys_arch', 'img_release', 'img_release_version',
                            "center_quota", "deleted_time", "classification", "vo_id",
                            "pay_type", "server_id"], response.data["results"][0])
         self.assertEqual(response.data['results'][0]['ram_gib'], 2)

@@ -28,6 +28,10 @@ class ServerBaseSerializer(serializers.Serializer):
     default_user = serializers.CharField()
     default_password = serializers.SerializerMethodField(method_name='get_default_password')
     pay_type = serializers.CharField()
+    img_sys_type = serializers.CharField(max_length=32, label=_('镜像系统类型'))
+    img_sys_arch = serializers.CharField(max_length=32, label=_('镜像系统架构'))
+    img_release = serializers.CharField(max_length=32, label=_('镜像系统发行版'))
+    img_release_version = serializers.CharField(max_length=32, label=_('镜像系统发行版版本'))
 
     @staticmethod
     def get_default_password(obj):

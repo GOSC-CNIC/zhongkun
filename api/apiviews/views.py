@@ -157,7 +157,13 @@ class ServersViewSet(CustomGenericViewSet):
                   "ram_gib": 1,
                   "ipv4": "10.0.200.249",
                   "public_ip": false,
-                  "image": "centos8_gui",
+                  "image_id": "xx",
+                  "image_desc": "xx",
+                  "image": "CentOS_9",
+                  "img_sys_type": "Linux",
+                  "img_sys_arch": "x86-64",
+                  "img_release": "CentOS",
+                  "img_release_version": "stream 9",
                   "creation_time": "2020-11-02T07:47:39.776384Z",
                   "remarks": "",
                   "service": {
@@ -224,7 +230,13 @@ class ServersViewSet(CustomGenericViewSet):
                   "ram_gib": 1,
                   "ipv4": "10.0.200.249",
                   "public_ip": false,
-                  "image": "centos8_gui",
+                  "image_id": "xx",
+                  "image_desc": "xx",
+                  "image": "CentOS_9",
+                  "img_sys_type": "Linux",
+                  "img_sys_arch": "x86-64",
+                  "img_release": "CentOS",
+                  "img_release_version": "stream 9",
                   "creation_time": "2020-11-02T07:47:39.776384Z",
                   "remarks": "",
                   "service": {
@@ -484,7 +496,13 @@ class ServersViewSet(CustomGenericViewSet):
                 "ram_gib": 1,
                 "ipv4": "10.0.201.2",
                 "public_ip": false,
-                "image": "CentOS_8",
+                "image_id": "xx",
+                "image_desc": "xx",
+                "image": "CentOS_9",
+                "img_sys_type": "Linux",
+                "img_sys_arch": "x86-64",
+                "img_release": "CentOS",
+                "img_release_version": "stream 9",
                 "creation_time": "2020-09-23T07:10:14.009418Z",
                 "remarks": "",
                 "endpoint_url": "",     # 后续移除
@@ -538,7 +556,7 @@ class ServersViewSet(CustomGenericViewSet):
 
         # 如果元数据完整，各种服务不同概率去更新元数据
         need_update = False
-        if server.ipv4 and server.image:
+        if server.ipv4 and server.image and server.img_sys_type:
             if server.service.service_type == server.service.ServiceType.EVCLOUD:
                 if random.choice(range(10)) == 0:
                     need_update = True
@@ -548,7 +566,7 @@ class ServersViewSet(CustomGenericViewSet):
             elif random.choice(range(2)) == 0:
                 need_update = True
 
-        if not need_update:
+        if need_update:
             self._update_server_detail(server=server)
 
         serializer = serializers.ServerSerializer(server)
@@ -1798,7 +1816,13 @@ class ServerArchiveViewSet(CustomGenericViewSet):
                       "ram_gib": 1,
                       "ipv4": "10.0.200.240",
                       "public_ip": false,
-                      "image": "cirros",
+                      "image_id": "xx",
+                      "image_desc": "xx",
+                      "image": "CentOS_9",
+                      "img_sys_type": "Linux",
+                      "img_sys_arch": "x86-64",
+                      "img_release": "CentOS",
+                      "img_release_version": "stream 9",
                       "creation_time": "2021-02-01T08:35:04.153252Z",
                       "remarks": "",
                       "service": {

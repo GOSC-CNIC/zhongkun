@@ -288,12 +288,18 @@ class ServerHandler:
         server.image = ''
         server.image_id = image_id
         server.image_desc = ''
+        server.img_sys_type = ''
+        server.img_sys_arch = ''
+        server.img_release = ''
+        server.img_release_version = ''
         server.default_user = ''
         server.raw_default_password = ''
         try:
             with transaction.atomic():
-                server.save(update_fields=['task_status', 'image', 'image_id', 'image_desc',
-                                           'default_user', 'default_password'])
+                server.save(update_fields=[
+                    'task_status', 'image', 'image_id', 'image_desc', 'default_user', 'default_password',
+                    'img_sys_type', 'img_sys_arch', 'img_release', 'img_release_version'
+                ])
 
                 params = inputs.ServerRebuildInput(instance_id=server.instance_id, instance_name=server.instance_name,
                                                    image_id=image_id)

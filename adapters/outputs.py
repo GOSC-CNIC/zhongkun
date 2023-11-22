@@ -8,6 +8,78 @@ from datetime import datetime
 from .exceptions import Error
 
 
+class ImageSysBase:
+    UNKNOWN = 'unknown'
+
+    choices = {}
+
+    def format_image_property(self, prop_value: str, match_str: str):
+        if not prop_value or not isinstance(prop_value, str):
+            return ImageSysBase.UNKNOWN.lower()
+
+        result = prop_value
+        prop_choices = self.choices
+        prop_key = prop_value.lower()
+        if prop_key in prop_choices.keys():
+            result = prop_choices[prop_key]
+        else:
+            match_str = match_str.lower()
+            for key in prop_choices.keys():
+                if match_str.find(key.lower()) != -1:
+                    result = prop_choices[key]
+                    break
+
+        return result
+
+
+class ImageSysArch(ImageSysBase):
+    X86_64 = 'x86-64'
+    I386 = 'i386'
+    ARM_64 = 'arm-64'
+
+    choices = {
+        '64 bit': X86_64, '64-bit': X86_64, 'amd64': X86_64, '64位': X86_64,
+        'x64': X86_64, 'x86_64': X86_64, 'x86-64': X86_64,
+        'i386': I386, 'x86': I386,
+        'arm-64': ARM_64, 'arm64': ARM_64, 'arm 64': ARM_64,
+        'unknown': ImageSysBase.UNKNOWN
+    }
+
+
+class ImageSysRelease(ImageSysBase):
+    WINDOWS_DESKTOP = 'Windows Desktop'
+    WINDOWS_SERVER = 'Windows Server'
+    UBUNTU = 'Ubuntu'
+    FEDORA = 'Fedora'
+    CENTOS = 'CentOS'
+    DEEPIN = 'Deepin'
+    DEBIAN = 'Debian'
+    RED_HAT = 'RedHat'
+
+    choices = {
+        'windows': WINDOWS_DESKTOP, 'windows desktop': WINDOWS_DESKTOP,
+        'windows server': WINDOWS_SERVER,
+        'ubuntu': UBUNTU, 'fedora': FEDORA, 'centos': CENTOS, 'deepin': DEEPIN, 'debian': DEBIAN,
+        'red hat': RED_HAT, 'red hat enterprise linux': RED_HAT, 'rhel': RED_HAT, 'redhat': RED_HAT,
+        'unknown': ImageSysBase.UNKNOWN
+    }
+
+
+class ImageSysType(ImageSysBase):
+    WINDOWS = 'Windows'
+    LINUX = 'Linux'
+    UNIX = 'Unix'
+    MACOS = 'MacOS'
+    ANDROID = 'Android'
+
+    choices = {
+        'windows': WINDOWS, 'unix': UNIX, 'macos': MACOS,
+        'linux': LINUX, 'ubuntu': LINUX, 'fedora': LINUX, 'centos': LINUX,
+        'deepin': LINUX, 'debian': LINUX, 'redhat': LINUX, 'rhel': LINUX,
+        'unknown': ImageSysBase.UNKNOWN
+    }
+
+
 class ServerStatus:
     NOSTATE = 0  # no state
     RUNNING = 1  # the domain is running
@@ -294,38 +366,10 @@ class ListImageOutputImage:
         self.min_sys_disk_gb = min_sys_disk_gb
         self.min_ram_mb = min_ram_mb
 
-        # 大小写转换格式化，将未识别的设置为Unknown，根据name匹配一下
-        system_type_choices = {"windows": "Windows", "linux": "Linux", "unix": "Unix", "macos": "MacOS",
-                               "unknown": "Unknown", "ubuntu": "Linux", "fedora": "Linux", "centos": "Linux"}
-        release_choices = {"windows": "Windows Desktop", "windows desktop": "Windows Desktop",
-                           "windows server": "Windows Server", "ubuntu": "Ubuntu", "fedora": "Fedora",
-                           "centos": "Centos", "unknown": "Unknown"}
-        architecture_choices = {"64 bit": "x86-64", "64-bit": "x86-64", "amd64": "x86-64", "64位": "x86-64",
-                                "x64": "x86-64", "x86_64": "x86-64", "x86-64": "x86-64",
-                                "i386": "i386",
-                                "arm-64": "arm-64", "unknown": "Unknown"}
         tips = self.name + ' ' + self.version
-        self.architecture = self._format_image_property(self.architecture, architecture_choices, tips)
-        self.release = self._format_image_property(self.release, release_choices, tips)
-        self.system_type = self._format_image_property(self.system_type, system_type_choices, tips)
-
-    @staticmethod
-    def _format_image_property(prop_value, prop_choices, tips):
-        result = 'Unknown'
-        if not isinstance(prop_value, str):
-            return result
-
-        prop_value = prop_value.lower()
-        if prop_value != 'unknown' and prop_value in prop_choices.keys():
-            result = prop_choices[prop_value]
-        else:
-            tips = tips.lower()
-            for key in prop_choices.keys():
-                if tips.find(key.lower()) != -1:
-                    result = prop_choices[key]
-                    break
-
-        return result
+        self.architecture = ImageSysArch().format_image_property(prop_value=self.architecture, match_str=tips)
+        self.release = ImageSysRelease().format_image_property(prop_value=self.release, match_str=tips)
+        self.system_type = ImageSysType().format_image_property(prop_value=self.system_type, match_str=tips)
 
 
 class ListImageOutput(OutputBase):

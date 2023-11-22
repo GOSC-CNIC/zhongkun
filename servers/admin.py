@@ -24,6 +24,7 @@ class ServerAdmin(NoDeleteSelectModelAdmin):
     form = ServerAdminForm
     list_display_links = ('id',)
     list_display = ('id', 'service', 'azone_id', 'instance_id', 'vcpus', 'ram', 'disk_size', 'ipv4', 'image',
+                    'img_sys_type', 'img_sys_arch', 'img_release', 'img_release_version',
                     'creation_time', 'start_time', 'user', 'task_status', 'center_quota',
                     'pay_type', 'classification', 'vo', 'lock', 'situation', 'situation_time',
                     'default_user', 'show_default_password', 'expiration_time', 'remarks')
@@ -35,7 +36,9 @@ class ServerAdmin(NoDeleteSelectModelAdmin):
 
     fieldsets = [
         (_('基础信息'), {'fields': ('service', 'azone_id', 'instance_id', 'remarks', 'center_quota')}),
-        (_('配置信息'), {'fields': ('vcpus', 'ram', 'disk_size', 'ipv4', 'image')}),
+        (_('配置信息'), {'fields': (
+            'vcpus', 'ram', 'disk_size', 'ipv4', 'image', 'img_sys_type',
+            'img_sys_arch', 'img_release', 'img_release_version',)}),
         (_('默认登录密码'), {'fields': ('default_user', 'default_password', 'change_password')}),
         (_('创建和归属信息'), {'fields': ('creation_time', 'task_status', 'classification', 'user', 'vo')}),
         (_('计量和管控信息'), {'fields': (
@@ -69,6 +72,7 @@ class ServerAdmin(NoDeleteSelectModelAdmin):
 class ServerArchiveAdmin(NoDeleteSelectModelAdmin):
     list_display_links = ('id',)
     list_display = ('id', 'service', 'name', 'instance_id', 'vcpus', 'ram', 'disk_size', 'ipv4', 'image',
+                    'img_sys_type', 'img_sys_arch', 'img_release', 'img_release_version',
                     'creation_time', 'user', 'task_status', 'pay_type', 'classification', 'vo',
                     'center_quota',
                     'start_time', 'deleted_time', 'archive_user', 'archive_type', 'remarks')
