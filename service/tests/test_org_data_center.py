@@ -229,10 +229,10 @@ class AdminODCTests(MyAPITransactionTestCase):
         self.assertEqual(len(response.data['results']), 1)
         self.assertEqual(response.data['results'][0]['id'], odc1.id)
 
-        query = parse.urlencode(query={'search': 'Test Remark'})
+        query = parse.urlencode(query={'search': 'Test Remark6'})
         response = self.client.get(f'{url}?{query}')
-        self.assertEqual(response.data['count'], 2)
-        self.assertEqual(len(response.data['results']), 2)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['results']), 1)
 
         query = parse.urlencode(query={'search': 'ddTestRemark'})
         response = self.client.get(f'{url}?{query}')
