@@ -7,8 +7,8 @@ import django.db.models.deletion
 
 class Migration(migrations.Migration):
 
-    replaces = [('link', '0001_initial'), ('link', '0002_distriframeport_element_delete_port_and_more'),
-                ('link', '0003_link_alter_distriframeport_options_and_more')]
+    # replaces = [('link', '0001_initial'), ('link', '0002_distriframeport_element_delete_port_and_more'),
+    #             ('link', '0003_link_alter_distriframeport_options_and_more')]
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
