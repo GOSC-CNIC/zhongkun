@@ -77,7 +77,11 @@ class ObjectsServiceSerializer(serializers.Serializer):
             data['organization'] = None
         else:
             data['organization'] = {
-                'id': org.id, 'name': org.name, 'name_en': org.name_en
+                'id': org.id, 'name': org.name, 'name_en': org.name_en, 'sort_weight': org.sort_weight
             }
 
         return data
+
+
+class AdminObjectsServiceSerializer(ObjectsServiceSerializer):
+    username = serializers.CharField(max_length=128, label=_('用户名'), help_text=_('用于此服务认证的用户名'))

@@ -5,7 +5,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 
-from service.models import DataCenter, ServiceConfig, OrgDataCenter
+from service.models import OrgDataCenter
 from utils.model import UuidModel, get_encryptor
 from users.models import UserProfile
 

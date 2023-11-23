@@ -9,8 +9,14 @@ from drf_yasg import openapi
 from core import errors as exceptions
 from api.paginations import NewPageNumberPagination100
 from api.viewsets import NormalGenericViewSet, serializer_error_msg
-from service.models import OrgDataCenter
+from api.serializers.storage import AdminObjectsServiceSerializer
+from service.models import OrgDataCenter, ServiceConfig
 from service.odc_manager import OrgDataCenterManager
+from service.serializers import AdminServiceSerializer
+from storage.models import ObjectsService
+from monitor.models import MonitorJobServer, MonitorJobCeph, MonitorJobTiDB, LogSite
+from monitor.serializers import MonitorUnitServerSerializer, MonitorUnitCephSerializer, MonitorUnitTiDBSerializer
+from monitor.log_serializers import LogSiteSerializer
 from .. import serializers as dcserializers
 
 
@@ -430,6 +436,227 @@ class AdminOrgDataCenterViewSet(NormalGenericViewSet):
             return self.exception_response(exc)
 
         return Response(data=dcserializers.OrgDataCenterDetailSerializer(odc).data)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('联邦管理员查询一个数据中心下关联的各服务单元信息'),
+        responses={
+            200: ''''''
+        }
+    )
+    @action(methods=['GET'], detail=True, url_path='units', url_name='units')
+    def odc_units(self, request, *args, **kwargs):
+        """
+        联邦管理员查询一个数据中心下关联的各服务单元信息
+
+            http code 200:
+            {
+                "org_data_center": {        # 数据中心
+                    "id": "kc8sco1iegj7rfyz52v6epdig",
+                    "name": "数据中心-中国科学院计算机网络信息中心",
+                    "name_en": "",
+                    "organization": {
+                        "id": "1",
+                        "name": "中国科学院计算机网络信息中心",
+                        "name_en": "Computer Network Information Center,  Chinese Academy of Sciences"
+                    },
+                    "longitude": 0.0,
+                    "latitude": 0.0,
+                    "creation_time": "2023-11-06T07:39:57.106579Z",
+                    "sort_weight": 0,
+                    "remark": "",
+                    "thanos_endpoint_url": "http://x.x.x.x:19194",
+                    "thanos_username": "",
+                    "thanos_password": null,
+                    "thanos_receive_url": "",
+                    "thanos_remark": "",
+                    "loki_endpoint_url": "http://x.x.x.x:44135",
+                    "loki_username": "",
+                    "loki_password": null,
+                    "loki_receive_url": "",
+                    "loki_remark": ""
+                },
+                "server_units": [       # 云主机服务单元，可能为空数组
+                    {
+                        "id": "1",
+                        "name": "GOSC中国科学院节点",
+                        "name_en": "CSTCloud Federation Env",
+                        "service_type": "evcloud",
+                        "cloud_type": "private",
+                        "add_time": "2020-06-17T08:42:56.213607Z",
+                        "need_vpn": true,
+                        "status": "enable",
+                        "org_data_center": {
+                            "id": "kc8sco1iegj7rfyz52v6epdig",
+                            "name": "数据中心-中国科学院计算机网络信息中心",
+                            "name_en": "",
+                            "sort_weight": 0,
+                            "organization": {
+                                "id": "1",
+                                "name": "中国科学院计算机网络信息中心",
+                                "name_en": "Computer Network Information Center,  Chinese Academy of Sciences"
+                            }
+                        },
+                        "longitude": 116.336601,
+                        "latitude": 39.98772,
+                        "pay_app_service_id": "s20627372168",
+                        "sort_weight": -10,
+                        "disk_available": true,
+                        "region_id": "1",
+                        "endpoint_url": "https://fedevcloud.cstcloud.cn/",
+                        "api_version": "v3",
+                        "username": "cstclou",
+                        "extra": "",                # json格式字符串
+                        "remarks": "虚拟机位于 10.0.200.83"
+                    }
+                ],
+                "object_units": [   # 对象存储服务单元，可能为空数组
+                    {
+                        "id": "0fb92e48-3565-11ed-9877-c8009fe2eb03",
+                        "name": "中国科技云对象存储服务",
+                        "name_en": "CSTCloud Object Storage",
+                        "service_type": "iharbor",
+                        "endpoint_url": "https://obs.cstcloud.cn",
+                        "add_time": "2022-09-16T02:12:49.015287Z",
+                        "status": "enable",
+                        "remarks": "地球大数据对象存储服务",
+                        "provide_ftp": true,
+                        "ftp_domains": [
+                            "ftp.cstcloud.cn"
+                        ],
+                        "longitude": 0.0,
+                        "latitude": 0.0,
+                        "pay_app_service_id": "s20221109940444",
+                        "org_data_center": {...}    # 内容参考 上面的云主机服务单元
+                        "sort_weight": -99,
+                        "loki_tag": "",
+                        "username": "gosc"
+                    }
+                ],
+                "monitor_server_units": [   # 主机监控单元，可能为空数组
+                    {
+                        "id": "36571950-60a5-11ed-a7f0-c8009fe2eb03",
+                        "name": "中国科技云-运维大数据-云主机",
+                        "name_en": "CSTcloud AIOPS VMs",
+                        "job_tag": "aiops-node-vms",
+                        "creation": "2022-11-10T03:10:21.592558Z",
+                        "remark": "",
+                        "sort_weight": -99,
+                        "grafana_url": "http://x.x.x.x:3000/d/AIOPSVMs/cstcloud-aiops-vms?orgId=1",
+                        "dashboard_url": "",
+                        "org_data_center": {...}   # 内容参考 上面的云主机服务单元
+                    }
+                ],
+                "monitor_ceph_units": [     # CEPH监控单元，可能为空数组
+                    {
+                        "id": "2afff430-1f67-11ec-b90d-c8009fe2eb03",
+                        "name": "中国科技云-运维大数据",
+                        "name_en": "CSTcloud AIOPS",
+                        "job_tag": "aiops-ceph",
+                        "creation": "2021-09-27T07:47:30.516477Z",
+                        "remark": "",
+                        "sort_weight": -99,
+                        "grafana_url": "http://xx.xx.xx.xx:3000/d/aiops-ceph/aiops-ceph?orgId=1&refresh=30s",
+                        "dashboard_url": "",
+                        "org_data_center": {...}    # 内容参考 上面的云主机服务单元
+                    }
+                ],
+                "monitor_tidb_units": [     # TiDB监控单元，可能为空数组
+                    {
+                        "id": "3e64ff6a-d9ca-11ed-a6f9-c800dfc12405",
+                        "name": "运维大数据平台 TiDB 集群",
+                        "name_en": "aiops TiDB Cluster",
+                        "job_tag": "aiops-tidb",
+                        "creation": "2023-04-13T07:10:17.183160Z",
+                        "remark": "",
+                        "sort_weight": -99,
+                        "grafana_url": "http://10.16.1.28:3000/login",
+                        "dashboard_url": "http://10.16.1.26:2379/dashboard/#/overview",
+                        "version": "",
+                        "org_data_center": {...}    # 内容参考 上面的云主机服务单元
+                    }
+                ],
+                "site_log_units": [     # 站点日志单元，可能为空数组
+                    {
+                        "id": "qffxh8i0845s0cghs083pe8w9",
+                        "name": "科技云对象存储",
+                        "name_en": "CSTC OBS",
+                        "log_type": "http",
+                        "job_tag": "obs",
+                        "sort_weight": 1,
+                        "desc": "",
+                        "creation": "2023-07-24T02:50:31.208282Z",
+                        "site_type": {
+                            "id": "bfoebqo5nwputx5p4s5hsox1d",
+                            "name": "对象存储OBS",
+                            "name_en": "IHarbor",
+                            "sort_weight": 1,
+                            "desc": ""
+                        },
+                        "org_data_center": {...}    # 内容参考 上面的云主机服务单元
+                    }
+                ]
+            }
+        """
+        try:
+            if not request.user.is_federal_admin():
+                raise exceptions.AccessDenied(message=_('您不是联邦管理员，没有访问权限'))
+
+            odc = OrgDataCenterManager.get_odc(odc_id=kwargs[self.lookup_field])
+        except exceptions.Error as exc:
+            return self.exception_response(exc)
+
+        # 云主机服务单元
+        server_units = []
+        for u in ServiceConfig.objects.filter(org_data_center_id=odc.id):
+            u.org_data_center = odc
+            server_units.append(u)
+
+        # 对象存储服务单元
+        object_units = []
+        for u in ObjectsService.objects.filter(org_data_center_id=odc.id):
+            u.org_data_center = odc
+            object_units.append(u)
+
+        # monitor server单元
+        monitor_server_units = []
+        for u in MonitorJobServer.objects.filter(org_data_center_id=odc.id):
+            u.org_data_center = odc
+            monitor_server_units.append(u)
+
+        # monitor ceph单元
+        monitor_ceph_units = []
+        for u in MonitorJobCeph.objects.filter(org_data_center_id=odc.id):
+            u.org_data_center = odc
+            monitor_ceph_units.append(u)
+
+        # monitor tidb单元
+        monitor_tidb_units = []
+        for u in MonitorJobTiDB.objects.filter(org_data_center_id=odc.id):
+            u.org_data_center = odc
+            monitor_tidb_units.append(u)
+
+        # 日志单元
+        site_log_units = []
+        for u in LogSite.objects.select_related('site_type').filter(org_data_center_id=odc.id):
+            u.org_data_center = odc
+            site_log_units.append(u)
+
+        odc_data = dcserializers.OrgDataCenterSerializer(instance=odc).data
+        server_units_data = AdminServiceSerializer(server_units, many=True).data
+        object_units_data = AdminObjectsServiceSerializer(object_units, many=True).data
+        monitor_server_units_data = MonitorUnitServerSerializer(monitor_server_units, many=True).data
+        monitor_ceph_units_data = MonitorUnitCephSerializer(monitor_ceph_units, many=True).data
+        monitor_tidb_units_data = MonitorUnitTiDBSerializer(monitor_tidb_units, many=True).data
+        site_log_units_data = LogSiteSerializer(site_log_units, many=True).data
+        return Response(data={
+            'org_data_center': odc_data,
+            'server_units': server_units_data,
+            'object_units': object_units_data,
+            'monitor_server_units': monitor_server_units_data,
+            'monitor_ceph_units': monitor_ceph_units_data,
+            'monitor_tidb_units': monitor_tidb_units_data,
+            'site_log_units': site_log_units_data
+        })
 
     @staticmethod
     def validate_org_id(org_id: str):

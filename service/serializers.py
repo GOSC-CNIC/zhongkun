@@ -92,3 +92,50 @@ class OrgDataCenterCreateSerializer(serializers.Serializer):
 class UsernamesBodySerializer(serializers.Serializer):
     usernames = serializers.ListField(
         label=_('用户名'), max_length=1024, required=True, allow_null=False, allow_empty=False)
+
+
+class VmServiceSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    name = serializers.CharField()
+    name_en = serializers.CharField()
+    service_type = serializers.CharField()
+    cloud_type = serializers.CharField()
+    add_time = serializers.DateTimeField()
+    need_vpn = serializers.BooleanField()
+    status = serializers.CharField()
+    org_data_center = serializers.SerializerMethodField(label=_('机构数据中心'), method_name='get_org_data_center')
+    longitude = serializers.FloatField(label=_('经度'), default=0)
+    latitude = serializers.FloatField(label=_('纬度'), default=0)
+    pay_app_service_id = serializers.CharField(label=_('余额结算APP服务ID'), max_length=36)
+    sort_weight = serializers.IntegerField(label=_('排序权重'), default=0, help_text=_('值越大排序越靠前'))
+    disk_available = serializers.BooleanField(label=_('提供云硬盘服务'))
+
+    @staticmethod
+    def get_org_data_center(obj):
+        odc = obj.org_data_center
+        if odc is None:
+            return None
+
+        data = {
+            'id': odc.id, 'name': odc.name, 'name_en': odc.name_en, 'sort_weight': odc.sort_weight
+        }
+        org = odc.organization
+        if org is None:
+            data['organization'] = None
+        else:
+            data['organization'] = {
+                'id': org.id, 'name': org.name, 'name_en': org.name_en
+            }
+
+        return data
+
+
+class AdminServiceSerializer(VmServiceSerializer):
+    region_id = serializers.CharField(max_length=128, label=_('服务区域/分中心ID'))
+    endpoint_url = serializers.CharField(
+        max_length=255, label=_('服务地址url'), help_text='http(s)://{hostname}:{port}/')
+    api_version = serializers.CharField(
+        max_length=64, label=_('API版本'), help_text=_('预留，主要EVCloud使用'))
+    username = serializers.CharField(max_length=128, label=_('用户名'), help_text=_('用于此服务认证的用户名'))
+    extra = serializers.CharField(max_length=1024, label=_('其他配置'), help_text=_('json格式'))
+    remarks = serializers.CharField(max_length=255, label=_('备注'))

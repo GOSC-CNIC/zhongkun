@@ -3,8 +3,9 @@ from urllib import parse
 from django.urls import reverse
 
 from utils.test import MyAPITransactionTestCase, get_or_create_user, get_or_create_organization
-
-from ..models import OrgDataCenter
+from storage.models import ObjectsService
+from monitor.models import MonitorJobCeph, MonitorJobServer, MonitorJobTiDB, LogSite, LogSiteType
+from ..models import OrgDataCenter, ServiceConfig
 from ..odc_manager import OrgDataCenterManager
 
 
@@ -701,6 +702,178 @@ class AdminODCTests(MyAPITransactionTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data['users']), 0)
         self.assertEqual(len(odc1.users.all()), 0)
+
+    def test_units(self):
+        odc1 = OrgDataCenterManager.create_org_dc(
+            name='测试', name_en='test', organization_id=self.org.id,
+            longitude=-10, latitude=80, sort_weight=0, remark='test remark',
+            thanos_endpoint_url='https://thanosxxxx.cn', thanos_receive_url='https://thanosrexxxx.cn',
+            thanos_username='tom@cnic.cn', thanos_password='test123456', thanos_remark='thanos remark',
+            loki_endpoint_url='https://lokixxxx.cn', loki_receive_url='https://lokerexxxx.cn',
+            loki_username='jerry@qq.com', loki_password='loki123456', loki_remark='loki remark'
+        )
+        odc2 = OrgDataCenterManager.create_org_dc(
+            name='测试2', name_en='test2', organization_id=self.org.id,
+            longitude=-10, latitude=80, sort_weight=0, remark='test remark2',
+            thanos_endpoint_url='https://thanosxxxx.cn', thanos_receive_url='https://thanosrexxxx.cn',
+            thanos_username='tom@cnic.cn', thanos_password='test123456', thanos_remark='thanos remark2',
+            loki_endpoint_url='https://lokixxxx.cn', loki_receive_url='https://lokerexxxx.cn',
+            loki_username='jerry@qq.com', loki_password='loki123456', loki_remark='loki remark2'
+        )
+
+        url = reverse('api:admin-odc-units', kwargs={'id': 'test'})
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
+
+        self.client.force_login(self.user1)
+        url = reverse('api:admin-odc-units', kwargs={'id': 'test'})
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.user1.set_federal_admin()
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
+
+        # ok
+        url = reverse('api:admin-odc-units', kwargs={'id': odc1.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['org_data_center', 'server_units', 'object_units', 'monitor_server_units',
+                           'monitor_ceph_units', 'monitor_tidb_units', 'site_log_units'], response.data)
+        self.assertKeysIn(
+            ['id', 'name', 'name_en', 'organization', 'longitude', 'latitude', 'sort_weight', 'remark',
+             'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url', 'thanos_remark',
+             'loki_endpoint_url', 'loki_username', 'loki_password', 'loki_receive_url', 'loki_remark'],
+            response.data['org_data_center'])
+        self.assertKeysIn(['id', 'name', 'name_en'], response.data['org_data_center']['organization'])
+        self.assertIsInstance(response.data['server_units'], list)
+        self.assertIsInstance(response.data['object_units'], list)
+        self.assertIsInstance(response.data['monitor_server_units'], list)
+        self.assertIsInstance(response.data['monitor_ceph_units'], list)
+        self.assertIsInstance(response.data['monitor_tidb_units'], list)
+        self.assertIsInstance(response.data['site_log_units'], list)
+
+        # 云主机、对象存储服务单元
+        server_unit1 = ServiceConfig(name='service1', name_en='service1 en', org_data_center=odc1)
+        server_unit1.save(force_insert=True)
+        server_unit2 = ServiceConfig(name='service2', name_en='service2 en', org_data_center=odc2)
+        server_unit2.save(force_insert=True)
+
+        obj_unit1 = ObjectsService(name='test1', name_en='test1_en', org_data_center=odc1)
+        obj_unit1.save(force_insert=True)
+        obj_unit2 = ObjectsService(name='test2', name_en='test2_en', org_data_center=odc2)
+        obj_unit2.save(force_insert=True)
+
+        url = reverse('api:admin-odc-units', kwargs={'id': odc1.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(
+            ['id', 'name', 'name_en', 'organization', 'longitude', 'latitude', 'sort_weight', 'remark',
+             'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url', 'thanos_remark',
+             'loki_endpoint_url', 'loki_username', 'loki_password', 'loki_receive_url', 'loki_remark'],
+            response.data['org_data_center'])
+        self.assertEqual(len(response.data['server_units']), 1)
+        self.assertEqual(response.data['server_units'][0]['id'], server_unit1.id)
+        self.assertKeysIn([
+            "id", "name", "name_en", "service_type", "cloud_type", "add_time", "sort_weight",
+            "need_vpn", "status", "org_data_center", 'longitude', 'latitude', 'pay_app_service_id',
+            'disk_available', 'region_id', 'endpoint_url', 'api_version', 'username', 'extra', 'remarks'
+        ], response.data["server_units"][0])
+
+        self.assertEqual(len(response.data['object_units']), 1)
+        self.assertEqual(response.data['object_units'][0]['id'], obj_unit1.id)
+        self.assertKeysIn([
+            'id', 'name', 'name_en', 'service_type', 'endpoint_url', 'add_time', 'status', 'remarks', 'provide_ftp',
+            'ftp_domains', 'longitude', 'latitude', 'pay_app_service_id', 'org_data_center', 'sort_weight', 'loki_tag',
+            'username'], response.data["object_units"][0])
+        self.assertKeysIn(['id', "name", "name_en", 'sort_weight', 'organization'
+                           ], response.data["object_units"][0]['org_data_center'])
+        self.assertKeysIn(['id', "name", "name_en", 'sort_weight'
+                           ], response.data["object_units"][0]['org_data_center']['organization'])
+        self.assertEqual(len(response.data['monitor_server_units']), 0)
+        self.assertEqual(len(response.data['monitor_ceph_units']), 0)
+        self.assertEqual(len(response.data['monitor_tidb_units']), 0)
+        self.assertEqual(len(response.data['site_log_units']), 0)
+
+        # 各监控单元
+        mntr_ceph1 = MonitorJobCeph(
+            name='name1', name_en='name_en1', job_tag='job_tag1', sort_weight=10, org_data_center=odc1
+        )
+        mntr_ceph1.save(force_insert=True)
+        mntr_ceph2 = MonitorJobCeph(
+            name='name2', name_en='name_en2', job_tag='job_tag2', sort_weight=10, org_data_center=odc2
+        )
+        mntr_ceph2.save(force_insert=True)
+
+        mntr_server1 = MonitorJobServer(
+            name='name1', name_en='name_en1', job_tag='job_tag1', sort_weight=10, org_data_center=odc1
+        )
+        mntr_server1.save(force_insert=True)
+        mntr_server2 = MonitorJobServer(
+            name='name2', name_en='name_en2', job_tag='job_tag2', sort_weight=10, org_data_center=odc2
+        )
+        mntr_server2.save(force_insert=True)
+
+        mntr_tidb1 = MonitorJobTiDB(
+            name='name1', name_en='name_en1', job_tag='job_tag1', sort_weight=10, org_data_center=odc1
+        )
+        mntr_tidb1.save(force_insert=True)
+        mntr_tidb2 = MonitorJobTiDB(
+            name='name2', name_en='name_en2', job_tag='job_tag2', sort_weight=20, org_data_center=odc2
+        )
+        mntr_tidb2.save(force_insert=True)
+
+        site_type1 = LogSiteType(name='obj', name_en='obj en', sort_weight=6)
+        site_type1.save(force_insert=True)
+        log_site1 = LogSite(
+            name='name1', name_en='name_en1', log_type=LogSite.LogType.HTTP.value,
+            site_type=site_type1, job_tag='job_tag1', sort_weight=10, org_data_center=odc1
+        )
+        log_site1.save(force_insert=True)
+        log_site2 = LogSite(
+            name='name2', name_en='name_en2', log_type=LogSite.LogType.HTTP.value,
+            site_type_id=site_type1, job_tag='job_tag2', sort_weight=10, org_data_center=odc2
+        )
+        log_site2.save(force_insert=True)
+
+        url = reverse('api:admin-odc-units', kwargs={'id': odc2.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['server_units']), 1)
+        self.assertEqual(response.data['server_units'][0]['id'], server_unit2.id)
+        self.assertEqual(len(response.data['object_units']), 1)
+        self.assertEqual(response.data['object_units'][0]['id'], obj_unit2.id)
+
+        self.assertEqual(len(response.data['monitor_ceph_units']), 1)
+        self.assertEqual(response.data['monitor_ceph_units'][0]['id'], mntr_ceph2.id)
+        self.assertKeysIn([
+            'id', "name", "name_en", "job_tag", 'creation', 'remark',
+            'sort_weight', 'grafana_url', 'dashboard_url', 'org_data_center'
+        ], response.data['monitor_ceph_units'][0])
+        self.assertKeysIn(['id', "name", "name_en", 'sort_weight', 'organization'
+                           ], response.data["monitor_ceph_units"][0]['org_data_center'])
+        self.assertKeysIn(['id', "name", "name_en", 'sort_weight'
+                           ], response.data["monitor_ceph_units"][0]['org_data_center']['organization'])
+
+        self.assertEqual(len(response.data['monitor_server_units']), 1)
+        self.assertEqual(response.data['monitor_server_units'][0]['id'], mntr_server2.id)
+        self.assertKeysIn([
+            'id', "name", "name_en", "job_tag", 'creation', 'remark',
+            'sort_weight', 'grafana_url', 'dashboard_url', 'org_data_center'
+        ], response.data['monitor_server_units'][0])
+
+        self.assertEqual(len(response.data['monitor_tidb_units']), 1)
+        self.assertEqual(response.data['monitor_tidb_units'][0]['id'], mntr_tidb2.id)
+        self.assertKeysIn([
+            'id', "name", "name_en", "job_tag", 'creation', 'remark', 'version',
+            'sort_weight', 'grafana_url', 'dashboard_url', 'org_data_center'
+        ], response.data['monitor_tidb_units'][0])
+
+        self.assertEqual(len(response.data['site_log_units']), 1)
+        self.assertEqual(response.data['site_log_units'][0]['id'], log_site2.id)
+        self.assertKeysIn([
+            'id', "name", "name_en", "job_tag", 'creation', 'desc', 'log_type',
+            'sort_weight', 'org_data_center'], response.data['site_log_units'][0])
 
 
 class ODCTests(MyAPITransactionTestCase):
