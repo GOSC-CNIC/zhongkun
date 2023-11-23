@@ -551,6 +551,11 @@ class ServiceManager:
 
         return service_id_map
 
+    @staticmethod
+    def has_perm(user_id, service_id):
+        qs = ServiceManager._get_perm_service_qs(user_id=user_id)
+        return qs.filter(id=service_id).exists()
+
 
 class OrganizationApplyManager:
     model = ApplyOrganization

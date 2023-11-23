@@ -556,11 +556,11 @@ class VmServiceHandler:
         """
         :raises: Error
         """
-        service = ServiceManager().get_service_by_id(_id)
+        service = ServiceManager.get_service_by_id(_id)
         if service is None:
             raise exceptions.ServiceNotExist()
 
-        if not service.user_has_perm(user):
+        if not ServiceManager.has_perm(user_id=user.id, service_id=_id):
             raise exceptions.AccessDenied(message=_('你没有此服务的管理权限'))
 
         return service

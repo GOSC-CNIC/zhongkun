@@ -405,10 +405,12 @@ class ServiceConfig(BaseService):
             True    # has
             False   # no
         """
+        from .managers import ServiceManager
+
         if not user or not user.id:
             return False
 
-        return self.users.filter(id=user.id).exists()
+        return ServiceManager.has_perm(user_id=user.id, service_id=self.id)
 
     def extra_params(self) -> dict:
         if self.extra:
