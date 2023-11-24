@@ -51,7 +51,7 @@ class DistriFrameTests(MyAPITransactionTestCase):
         )
 
         # user role 
-        base_url = reverse('api:link-distributionframe-list')
+        base_url = reverse('link-api:link-distributionframe-list')
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 401)
         self.client.force_login(self.user1)
@@ -117,7 +117,7 @@ class DistriFrameTests(MyAPITransactionTestCase):
             link_org=linkorg1
         )
         # user role
-        base_url = reverse('api:link-distributionframe-detail',kwargs={'id': distriframe.id})
+        base_url = reverse('link-api:link-distributionframe-detail',kwargs={'id': distriframe.id})
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 401)
         self.client.force_login(self.user1)
@@ -131,18 +131,18 @@ class DistriFrameTests(MyAPITransactionTestCase):
         self.assertEqual(response.status_code, 200)
 
         # Invalid id
-        base_url = reverse('api:link-distributionframe-detail', kwargs={'id': '  '})
+        base_url = reverse('link-api:link-distributionframe-detail', kwargs={'id': '  '})
         response = self.client.get(base_url)
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
 
         # data not exist
-        base_url = reverse('api:link-distributionframe-detail', kwargs={'id': 'asd'})
+        base_url = reverse('link-api:link-distributionframe-detail', kwargs={'id': 'asd'})
         response = self.client.get(base_url)
         self.assertErrorResponse(
             status_code=404, code='DistributionFrameNotExist', response=response)
 
         # data
-        base_url = reverse('api:link-distributionframe-detail',kwargs={'id': distriframe.id})
+        base_url = reverse('link-api:link-distributionframe-detail',kwargs={'id': distriframe.id})
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn([

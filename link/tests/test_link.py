@@ -98,7 +98,7 @@ class LinkTests(MyAPITransactionTestCase):
         )
 
         # user role 
-        base_url = reverse('api:link-link-list')
+        base_url = reverse('link-api:link-link-list')
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 401)
         self.client.force_login(self.user1)
@@ -189,7 +189,7 @@ class LinkTests(MyAPITransactionTestCase):
         )
 
         # user role
-        base_url = reverse('api:link-link-detail', kwargs={'id': link.id})
+        base_url = reverse('link-api:link-link-detail', kwargs={'id': link.id})
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 401)
         self.client.force_login(self.user1)
@@ -203,17 +203,17 @@ class LinkTests(MyAPITransactionTestCase):
         self.assertEqual(response.status_code, 200)
 
         # Invalid id
-        base_url = reverse('api:link-link-detail', kwargs={'id': '  '})
+        base_url = reverse('link-api:link-link-detail', kwargs={'id': '  '})
         response = self.client.get(base_url)
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
 
         # element not exist
-        base_url = reverse('api:link-link-detail', kwargs={'id': 'asd'})
+        base_url = reverse('link-api:link-link-detail', kwargs={'id': 'asd'})
         response = self.client.get(base_url)
         self.assertErrorResponse(status_code=404, code='LinkNotExist', response=response)
         
         #data
-        base_url = reverse('api:link-link-detail', kwargs={'id': link.id})
+        base_url = reverse('link-api:link-link-detail', kwargs={'id': link.id})
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn([
@@ -271,7 +271,7 @@ class LinkTests(MyAPITransactionTestCase):
             ]
         })
         # user role
-        base_url = reverse('api:link-link-list')
+        base_url = reverse('link-api:link-link-list')
         response = self.client.post(base_url, data=data, content_type='application/json')
         self.assertEqual(response.status_code, 401)
         self.client.force_login(self.user1)

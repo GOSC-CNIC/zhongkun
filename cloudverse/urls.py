@@ -56,6 +56,8 @@ urlpatterns = [
     path('servers/', include('servers.urls', namespace='servers')),
     path('service/', include('service.urls', namespace='service')),
     path('api/', include('api.urls', namespace='api')),
+    path('api/ipam/', include('ipam.api_urls', namespace='ipam-api')),
+    path('api/link/', include('link.api_urls', namespace='link-api')),
     path('vpn/', include('vpn.urls', namespace='vpn')),
     path('apidocs/', schema_view.with_ui('swagger', cache_timeout=0), name='apidocs'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='redoc'),

@@ -50,7 +50,7 @@ class LeaseLineTests(MyAPITransactionTestCase):
         )
 
     def test_creat(self):       
-        base_url = reverse('api:link-leaseline-list')
+        base_url = reverse('link-api:link-leaseline-list')
         data = json.dumps({
             'private_line_number':'510GXN12603174',
             'lease_line_code':'0F0001NP',
@@ -97,7 +97,7 @@ class LeaseLineTests(MyAPITransactionTestCase):
 
     def test_list(self):
         # user role 
-        base_url = reverse('api:link-leaseline-list')
+        base_url = reverse('link-api:link-leaseline-list')
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 401)
         self.client.force_login(self.user1)
@@ -231,7 +231,7 @@ class LeaseLineTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['results'][0]['is_linked'], False)
 
     def test_update(self):       
-        base_url = reverse('api:link-leaseline-update-leaseline', kwargs={'id': 'test'})
+        base_url = reverse('link-api:link-leaseline-update-leaseline', kwargs={'id': 'test'})
         data = json.dumps({
             'private_line_number':'510GXN12603174',
             'lease_line_code':'0F0001NP',
@@ -264,7 +264,7 @@ class LeaseLineTests(MyAPITransactionTestCase):
         # LeaseLineNotExist
         self.assertErrorResponse(status_code=404, code='LeaseLineNotExist', response=response)
         id = LeaseLine.objects.all().first().id
-        base_url = reverse('api:link-leaseline-update-leaseline', kwargs={'id': id})
+        base_url = reverse('link-api:link-leaseline-update-leaseline', kwargs={'id': id})
         response = self.client.post(base_url, data=data, content_type='application/json')
         self.assertEqual(response.status_code, 200)
 

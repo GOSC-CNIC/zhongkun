@@ -54,7 +54,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
             org_virt_obj=None, assigned_time=nt, admin_remark='admin remark4', remark='remark4'
         )
 
-        base_url = reverse('api:ipam-ipv4range-list')
+        base_url = reverse('ipam-api:ipam-ipv4range-list')
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 401)
 
@@ -258,7 +258,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         self.assertEqual(len(response.data['results']), 2)
 
     def test_create_ipv4_range(self):
-        base_url = reverse('api:ipam-ipv4range-list')
+        base_url = reverse('ipam-api:ipam-ipv4range-list')
         response = self.client.post(base_url, data={
             'name': '', 'start_address': '', 'end_address': '', 'mask_len': 24,
             'asn': 88, 'admin_remark': 'remark test'
@@ -410,7 +410,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
             org_virt_obj=virt_obj1, assigned_time=nt, admin_remark='admin remark2', remark='remark2'
         )
 
-        base_url = reverse('api:ipam-ipv4range-detail', kwargs={'id': 'test'})
+        base_url = reverse('ipam-api:ipam-ipv4range-detail', kwargs={'id': 'test'})
         response = self.client.put(base_url, data={
             'name': 'test', 'start_address': '127.0.1.1', 'end_address': '127.0.1.255', 'mask_len': 24,
             'asn': 88, 'admin_remark': 'remark test'
@@ -424,7 +424,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         })
         self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
 
-        base_url = reverse('api:ipam-ipv4range-detail', kwargs={'id': ip_range1.id})
+        base_url = reverse('ipam-api:ipam-ipv4range-detail', kwargs={'id': ip_range1.id})
         response = self.client.put(base_url, data={
             'name': 'test', 'start_address': '127.0.1.1', 'end_address': '127.0.1.255', 'mask_len': 24,
             'asn': 88, 'admin_remark': 'remark test'
@@ -502,7 +502,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         self.assertEqual(IPv4RangeRecord.objects.count(), 2)
 
         # ok
-        base_url = reverse('api:ipam-ipv4range-detail', kwargs={'id': ip_range2.id})
+        base_url = reverse('ipam-api:ipam-ipv4range-detail', kwargs={'id': ip_range2.id})
         response = self.client.put(base_url, data={
             'name': 'test', 'start_address': '159.0.1.1', 'end_address': '159.0.1.255', 'mask_len': 23,
             'asn': 88, 'admin_remark': 'remark test'
@@ -537,7 +537,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
             org_virt_obj=virt_obj1, assigned_time=nt, admin_remark='admin remark2', remark='remark2'
         )
 
-        base_url = reverse('api:ipam-ipv4range-split', kwargs={'id': 'test'})
+        base_url = reverse('ipam-api:ipam-ipv4range-split', kwargs={'id': 'test'})
         response = self.client.post(base_url)
         self.assertEqual(response.status_code, 401)
 
@@ -573,7 +573,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
 
         # new_prefix 必须大于 ip_range.mask_len
-        base_url = reverse('api:ipam-ipv4range-split', kwargs={'id': ip_range1.id})
+        base_url = reverse('ipam-api:ipam-ipv4range-split', kwargs={'id': ip_range1.id})
         response = self.client.post(base_url, data={'new_prefix': 20, 'fake': True})
         self.assertErrorResponse(status_code=409, code='Conflict', response=response)
 
@@ -588,7 +588,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         self.assertEqual(IPv4RangeRecord.objects.count(), 0)
         self.assertEqual(IPv4Range.objects.count(), 2)
 
-        base_url = reverse('api:ipam-ipv4range-split', kwargs={'id': ip_range1.id})
+        base_url = reverse('ipam-api:ipam-ipv4range-split', kwargs={'id': ip_range1.id})
         response = self.client.post(base_url, data={'new_prefix': 26, 'fake': True})
         self.assertEqual(response.status_code, 200)
         split_ranges = response.data['ip_ranges']
@@ -617,7 +617,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         self.assertEqual(ir4['mask_len'], 26)
 
         # ok, 10.0.0.1 - 200 -> 1-63, 64-127, 128-191, 191-200
-        base_url = reverse('api:ipam-ipv4range-split', kwargs={'id': ip_range1.id})
+        base_url = reverse('ipam-api:ipam-ipv4range-split', kwargs={'id': ip_range1.id})
         response = self.client.post(base_url, data={'new_prefix': 26})
         self.assertEqual(response.status_code, 200)
         split_ranges = response.data['ip_ranges']
@@ -664,7 +664,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         # ok, 159.0.1.100 - 180 -> 100-127, 128-159, 160-180
         self.assertEqual(IPv4RangeRecord.objects.count(), 1)
         self.assertEqual(IPv4Range.objects.count(), 5)
-        base_url = reverse('api:ipam-ipv4range-split', kwargs={'id': ip_range2.id})
+        base_url = reverse('ipam-api:ipam-ipv4range-split', kwargs={'id': ip_range2.id})
         response = self.client.post(base_url, data={'new_prefix': 27, 'fake': False})
         self.assertEqual(response.status_code, 200)
         split_ranges = response.data['ip_ranges']
@@ -696,7 +696,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         self.assertEqual(IPv4RangeRecord.objects.count(), 2)
         self.assertEqual(IPv4Range.objects.count(), 8)
 
-        base_url = reverse('api:ipam-ipv4range-split', kwargs={'id': ip_range3.id})
+        base_url = reverse('ipam-api:ipam-ipv4range-split', kwargs={'id': ip_range3.id})
         response = self.client.post(base_url, data={'new_prefix': 31, 'fake': 'false'})
         self.assertEqual(response.status_code, 200)
         split_ranges = response.data['ip_ranges']
@@ -720,7 +720,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
             create_time=nt, update_time=nt, status_code=IPv4Range.Status.RESERVED.value,
             org_virt_obj=virt_obj1, assigned_time=nt, admin_remark='admin remark4', remark='remark4'
         )
-        base_url = reverse('api:ipam-ipv4range-split', kwargs={'id': ip_range4.id})
+        base_url = reverse('ipam-api:ipam-ipv4range-split', kwargs={'id': ip_range4.id})
         response = self.client.post(base_url, data={'new_prefix': 25, 'fake': 'false'})
         self.assertErrorResponse(status_code=409, code='Conflict', response=response)
 
@@ -754,7 +754,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
             org_virt_obj=virt_obj1, assigned_time=nt, admin_remark='admin remark4', remark='remark4'
         )
 
-        base_url = reverse('api:ipam-ipv4range-merge')
+        base_url = reverse('ipam-api:ipam-ipv4range-merge')
         response = self.client.post(base_url)
         self.assertEqual(response.status_code, 401)
 
@@ -1067,7 +1067,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
             org_virt_obj=virt_obj1, assigned_time=nt, admin_remark='admin remark2', remark='remark2'
         )
 
-        base_url = reverse('api:ipam-ipv4range-detail', kwargs={'id': 'test'})
+        base_url = reverse('ipam-api:ipam-ipv4range-detail', kwargs={'id': 'test'})
         response = self.client.delete(base_url)
         self.assertEqual(response.status_code, 401)
 
@@ -1088,7 +1088,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         response = self.client.delete(base_url)
         self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
 
-        base_url = reverse('api:ipam-ipv4range-detail', kwargs={'id': ip_range1.id})
+        base_url = reverse('ipam-api:ipam-ipv4range-detail', kwargs={'id': ip_range1.id})
         response = self.client.delete(base_url)
         self.assertErrorResponse(status_code=409, code='Conflict', response=response)
 
@@ -1097,7 +1097,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         ip_range1.save(update_fields=['status'])
         self.assertEqual(IPv4Range.objects.count(), 2)
         self.assertEqual(IPv4RangeRecord.objects.count(), 0)
-        base_url = reverse('api:ipam-ipv4range-detail', kwargs={'id': ip_range1.id})
+        base_url = reverse('ipam-api:ipam-ipv4range-detail', kwargs={'id': ip_range1.id})
         response = self.client.delete(base_url)
         self.assertEqual(response.status_code, 204)
         self.assertEqual(IPv4Range.objects.count(), 1)
@@ -1110,7 +1110,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         self.assertEqual(record.ip_ranges, [])
 
         # ok
-        base_url = reverse('api:ipam-ipv4range-detail', kwargs={'id': ip_range2.id})
+        base_url = reverse('ipam-api:ipam-ipv4range-detail', kwargs={'id': ip_range2.id})
         response = self.client.delete(base_url)
         self.assertEqual(response.status_code, 204)
         self.assertEqual(IPv4Range.objects.count(), 0)
@@ -1134,7 +1134,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
             org_virt_obj=virt_obj1, assigned_time=nt, admin_remark='admin remark2', remark='remark2'
         )
 
-        base_url = reverse('api:ipam-ipv4range-recover', kwargs={'id': 'test'})
+        base_url = reverse('ipam-api:ipam-ipv4range-recover', kwargs={'id': 'test'})
         response = self.client.post(base_url)
         self.assertEqual(response.status_code, 401)
 
@@ -1158,7 +1158,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         # ok
         self.assertEqual(IPv4Range.objects.count(), 2)
         self.assertEqual(IPv4RangeRecord.objects.count(), 0)
-        base_url = reverse('api:ipam-ipv4range-recover', kwargs={'id': ip_range1.id})
+        base_url = reverse('ipam-api:ipam-ipv4range-recover', kwargs={'id': ip_range1.id})
         response = self.client.post(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn([
@@ -1187,7 +1187,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         self.assertEqual(record.org_virt_obj_id, virt_obj1.id)
 
         # ok
-        base_url = reverse('api:ipam-ipv4range-recover', kwargs={'id': ip_range2.id})
+        base_url = reverse('ipam-api:ipam-ipv4range-recover', kwargs={'id': ip_range2.id})
         response = self.client.post(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn([
@@ -1225,7 +1225,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
             org_virt_obj=None, assigned_time=nt, admin_remark='admin remark2', remark='remark2'
         )
 
-        base_url = reverse('api:ipam-ipv4range-reserve', kwargs={'id': 'test'})
+        base_url = reverse('ipam-api:ipam-ipv4range-reserve', kwargs={'id': 'test'})
         response = self.client.post(base_url)
         self.assertEqual(response.status_code, 401)
 
@@ -1255,7 +1255,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
 
         # status
-        base_url = reverse('api:ipam-ipv4range-reserve', kwargs={'id': ip_range1.id})
+        base_url = reverse('ipam-api:ipam-ipv4range-reserve', kwargs={'id': ip_range1.id})
         query = parse.urlencode(query={'org_virt_obj_id': virt_obj1.id})
         response = self.client.post(f'{base_url}?{query}')
         self.assertErrorResponse(status_code=409, code='Conflict', response=response)
@@ -1270,7 +1270,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         self.assertEqual(IPv4Range.objects.count(), 2)
         self.assertEqual(IPv4RangeRecord.objects.count(), 0)
 
-        base_url = reverse('api:ipam-ipv4range-reserve', kwargs={'id': ip_range1.id})
+        base_url = reverse('ipam-api:ipam-ipv4range-reserve', kwargs={'id': ip_range1.id})
         query = parse.urlencode(query={'org_virt_obj_id': virt_obj1.id})
         response = self.client.post(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
@@ -1300,7 +1300,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         self.assertEqual(record.org_virt_obj_id, virt_obj1.id)
 
         # ok
-        base_url = reverse('api:ipam-ipv4range-reserve', kwargs={'id': ip_range2.id})
+        base_url = reverse('ipam-api:ipam-ipv4range-reserve', kwargs={'id': ip_range2.id})
         query = parse.urlencode(query={'org_virt_obj_id': virt_obj1.id})
         response = self.client.post(f'{base_url}?{query}')
         self.assertErrorResponse(status_code=409, code='Conflict', response=response)
@@ -1354,7 +1354,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
             org_virt_obj=virt_obj1, assigned_time=nt, admin_remark='admin remark2', remark='remark2'
         )
 
-        base_url = reverse('api:ipam-ipv4range-assign', kwargs={'id': 'test'})
+        base_url = reverse('ipam-api:ipam-ipv4range-assign', kwargs={'id': 'test'})
         response = self.client.post(base_url)
         self.assertEqual(response.status_code, 401)
 
@@ -1384,7 +1384,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
 
         # 只能分配给预留机构二级对象
-        base_url = reverse('api:ipam-ipv4range-assign', kwargs={'id': ip_range2.id})
+        base_url = reverse('ipam-api:ipam-ipv4range-assign', kwargs={'id': ip_range2.id})
         query = parse.urlencode(query={'org_virt_obj_id': virt_obj2.id})
         response = self.client.post(f'{base_url}?{query}')
         self.assertErrorResponse(status_code=409, code='Conflict', response=response)
@@ -1392,7 +1392,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         # ok
         self.assertEqual(IPv4Range.objects.count(), 2)
         self.assertEqual(IPv4RangeRecord.objects.count(), 0)
-        base_url = reverse('api:ipam-ipv4range-assign', kwargs={'id': ip_range2.id})
+        base_url = reverse('ipam-api:ipam-ipv4range-assign', kwargs={'id': ip_range2.id})
         query = parse.urlencode(query={'org_virt_obj_id': virt_obj1.id})
         response = self.client.post(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
@@ -1423,7 +1423,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
 
         # ip_range1
         # status
-        base_url = reverse('api:ipam-ipv4range-assign', kwargs={'id': ip_range1.id})
+        base_url = reverse('ipam-api:ipam-ipv4range-assign', kwargs={'id': ip_range1.id})
         query = parse.urlencode(query={'org_virt_obj_id': virt_obj2.id})
         response = self.client.post(f'{base_url}?{query}')
         self.assertErrorResponse(status_code=409, code='Conflict', response=response)
@@ -1467,7 +1467,7 @@ class IPAMUserRoleTests(MyAPITransactionTestCase):
         org1 = get_or_create_organization(name='org1')
         org2 = get_or_create_organization(name='org2')
 
-        base_url = reverse('api:ipam-userrole-list')
+        base_url = reverse('ipam-api:ipam-userrole-list')
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 401)
 

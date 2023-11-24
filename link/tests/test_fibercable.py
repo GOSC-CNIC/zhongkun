@@ -15,7 +15,7 @@ class FiberCableTests(MyAPITransactionTestCase):
         urole.save(force_insert=True)
 
     def test_creat(self):       
-        base_url = reverse('api:link-fibercable-list')
+        base_url = reverse('link-api:link-fibercable-list')
         data = {
             'number':'SM-test',
             'fiber_count':'30',
@@ -66,7 +66,7 @@ class FiberCableTests(MyAPITransactionTestCase):
             remarks='test-remark2'
         )
 
-        base_url = reverse('api:link-fibercable-list')
+        base_url = reverse('link-api:link-fibercable-list')
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 401)
         self.client.force_login(self.user1)
@@ -148,7 +148,7 @@ class FiberCableTests(MyAPITransactionTestCase):
             remarks='test-remark'
         )
         # user role
-        base_url = reverse('api:link-fibercable-detail',
+        base_url = reverse('link-api:link-fibercable-detail',
                            kwargs={'id': fibercable.id})
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 401)
@@ -164,19 +164,19 @@ class FiberCableTests(MyAPITransactionTestCase):
         self.assertEqual(response.status_code, 200)
 
         # Invalid id
-        base_url = reverse('api:link-fibercable-detail', kwargs={'id': '  '})
+        base_url = reverse('link-api:link-fibercable-detail', kwargs={'id': '  '})
         response = self.client.get(base_url)
         self.assertErrorResponse(
             status_code=400, code='InvalidArgument', response=response)
 
         # element not exist
-        base_url = reverse('api:link-fibercable-detail', kwargs={'id': 'asd'})
+        base_url = reverse('link-api:link-fibercable-detail', kwargs={'id': 'asd'})
         response = self.client.get(base_url)
         self.assertErrorResponse(
             status_code=404, code='FiberCableNotExist', response=response)
 
         # data
-        base_url = reverse('api:link-fibercable-detail', kwargs={'id': fibercable.id})
+        base_url = reverse('link-api:link-fibercable-detail', kwargs={'id': fibercable.id})
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn([
@@ -202,7 +202,7 @@ class FiberCableTests(MyAPITransactionTestCase):
     #     )
 
     #     # user role 
-    #     base_url = reverse('api:link-fibercable-list-opticalfiber', kwargs={'id': fibercable1.id})
+    #     base_url = reverse('link-api:link-fibercable-list-opticalfiber', kwargs={'id': fibercable1.id})
     #     response = self.client.get(base_url)
     #     self.assertEqual(response.status_code, 401)
     #     self.client.force_login(self.user1)
@@ -257,12 +257,12 @@ class FiberCableTests(MyAPITransactionTestCase):
     #     self.assertEqual(fibercable['number'], fibercable1.number)
 
     #     # FiberCableNotExist
-    #     base_url = reverse('api:link-fibercable-list-opticalfiber', kwargs={'id': 'aasdasd'})
+    #     base_url = reverse('link-api:link-fibercable-list-opticalfiber', kwargs={'id': 'aasdasd'})
     #     response = self.client.get(base_url)
     #     self.assertErrorResponse(status_code=404, code='FiberCableNotExist', response=response)
 
     #     # verify is_linked
-    #     base_url = reverse('api:link-fibercable-list-opticalfiber', kwargs={'id': fibercable2.id})
+    #     base_url = reverse('link-api:link-fibercable-list-opticalfiber', kwargs={'id': fibercable2.id})
     #     response = self.client.get(base_url)
     #     opticalfiber = response.data['results'][0]
     #     self.assertEqual(opticalfiber['is_linked'], False)

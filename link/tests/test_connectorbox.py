@@ -28,7 +28,7 @@ class ConnectorBoxTests(MyAPITransactionTestCase):
         )
     def test_list_connectorbox(self):
         # user role 
-        base_url = reverse('api:link-connectorbox-list')
+        base_url = reverse('link-api:link-connectorbox-list')
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 401)
         self.client.force_login(self.user1)

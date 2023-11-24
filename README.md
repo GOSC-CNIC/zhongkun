@@ -1,4 +1,4 @@
-## 关于GOSC
+## 关于Cloudverse
 
 
 ## 环境搭建(CentOS)
@@ -6,8 +6,8 @@
 请自行安装python3.9和Git。
 使用Git拉取代码： 
 ```
-git clone https://gitee.com/cstcloud-cnic/vms.git
-git clone https://github.com/GOSC-CNIC/gosc.git     # 备用
+git clone https://gitee.com/cstcloud-cnic/cloudverse.git
+git clone https://github.com/GOSC-CNIC/cloudverse.git     # 备用
 ```
 ### 2 安装python运行环境
 #### （1） 使用python虚拟环境

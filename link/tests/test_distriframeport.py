@@ -50,7 +50,7 @@ class DistriFramePortTests(MyAPITransactionTestCase):
     
     def test_list_distriframeport(self):
         # user role 
-        base_url = reverse('api:link-distriframeport-list')
+        base_url = reverse('link-api:link-distriframeport-list')
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 401)
         self.client.force_login(self.user1)

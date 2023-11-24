@@ -12,13 +12,6 @@ from .apiviews import (
     portal_views, report_storage_views, monitor_metering_views
 )
 from monitor import monitor_views, log_views
-from ipam.viewsets import ipv4_views
-from link.viewsets import (
-    leaseline_views, fibercable_views, distriframe_views,
-    connectorbox_views, link_views, opticalfiber_views, 
-    distriframeport_views, linkorg_views, linkuserrole_views,
-    element_views
-    )
 from service.viewsets import org_data_center_views
 from vo.views import VOViewSet
 
@@ -120,20 +113,6 @@ no_slash_router.register(r'report/storage/bucket/stats/monthly', report_storage_
                          basename='report-bucket-stats-monthly')
 no_slash_router.register(r'report/storage/stats/monthly', report_storage_views.StorageStatsMonthlyViewSet,
                          basename='report-storage-stats-monthly')
-
-no_slash_router.register(r'ipam/ipv4range', ipv4_views.IPv4RangeViewSet, basename='ipam-ipv4range')
-no_slash_router.register(r'ipam/user/role', ipv4_views.IPAMUserRoleViewSet, basename='ipam-userrole')
-
-no_slash_router.register(r'link/leaseline', leaseline_views.LeaseLineViewSet, basename='link-leaseline')
-no_slash_router.register(r'link/fibercable', fibercable_views.FiberCableViewSet, basename='link-fibercable')
-no_slash_router.register(r'link/distributionframe', distriframe_views.DistriFrameViewSet, basename='link-distributionframe')
-no_slash_router.register(r'link/connectorbox', connectorbox_views.ConnectorBoxViewSet, basename='link-connectorbox')
-no_slash_router.register(r'link/link', link_views.LinkViewSet, basename='link-link')
-no_slash_router.register(r'link/opticalfiber', opticalfiber_views.OpticalFiberViewSet, basename='link-opticalfiber')
-no_slash_router.register(r'link/distriframeport', distriframeport_views.DistriFramePortViewSet, basename='link-distriframeport')
-no_slash_router.register(r'link/linkorg', linkorg_views.linkOrgViewSet, basename='link-linkorg')
-no_slash_router.register(r'link/user/role', linkuserrole_views.LinkUserRoleViewSet, basename='link-userrole')
-no_slash_router.register(r'link/element', element_views.ElementViewSet, basename='link-element')
 
 
 urlpatterns = [

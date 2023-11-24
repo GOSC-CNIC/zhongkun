@@ -20,7 +20,7 @@ class TaskTests(MyAPITransactionTestCase):
 
     def test_list_userrole(self):
         # user role 
-        base_url = reverse('api:link-userrole-list')
+        base_url = reverse('link-api:link-userrole-list')
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 401)
 
