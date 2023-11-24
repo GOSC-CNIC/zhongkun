@@ -1,1 +1,1 @@
-uwsgi --stop /home/uwsgi/vms/uwsgi-master.pid
+uwsgi --stop /home/uwsgi/cloudverse/uwsgi-master.pid

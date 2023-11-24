@@ -1,1 +1,1 @@
-uwsgi --ini /home/uwsgi/vms/vms_uwsgi.ini
+uwsgi --ini /home/uwsgi/cloudverse/uwsgi.ini

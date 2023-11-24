@@ -7,7 +7,7 @@
 *.so
 *.log
 /collect_static/
-/gosc/security.py
+/cloudverse/security.py
 /data/
 /ignore*
 .DS_Store

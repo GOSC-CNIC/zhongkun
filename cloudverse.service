@@ -1,0 +1,14 @@
+[Unit]
+Description=Cloudverse's web service
+After=network.target
+
+[Service]
+Type=forking
+PIDFile=/home/uwsgi/cloudverse/uwsgi-master.pid
+ExecStart=/bin/bash /home/uwsgi/cloudverse/run_uwsgi.sh
+ExecReload=/bin/bash /home/uwsgi/cloudverse/reload_uwsgi.sh
+ExecStop=/bin/bash /home/uwsgi/cloudverse/stop_uwsgi.sh
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

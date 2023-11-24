@@ -1,3 +1,3 @@
-cp /home/uwsgi/vms/vms.service /usr/lib/systemd/system/ -f
+cp /home/uwsgi/cloudverse/cloudverse.service /usr/lib/systemd/system/ -f
 systemctl daemon-reload
-systemctl enable vms
+systemctl enable cloudverse
