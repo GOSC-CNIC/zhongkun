@@ -130,4 +130,3 @@ class OrgObjTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['page_size'], 100)
         self.assertEqual(len(response.data['results']), 1)
         self.assertEqual(response.data['results'][0]['id'], virt_obj3.id)
-        print(response.json())

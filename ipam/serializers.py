@@ -2,6 +2,8 @@ from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers
 
+from .models import IPRangeRecordBase
+
 
 class OrgVirtualObjectSimpleSerializer(serializers.Serializer):
     id = serializers.CharField(label='ID', read_only=True)
@@ -92,3 +94,23 @@ class IPAMUserRoleSerializer(serializers.Serializer):
             return {'id': user.id, 'username': user.username}
 
         return None
+
+
+class IPv4RangeRecordSerializer(serializers.Serializer):
+    id = serializers.CharField(label='ID', read_only=True)
+    creation_time = serializers.DateTimeField(label=_('创建时间'))
+    record_type = serializers.CharField(label=_('记录类型'), max_length=16)
+    start_address = serializers.IntegerField(label=_('起始地址'))
+    end_address = serializers.IntegerField(label=_('截止地址'))
+    mask_len = serializers.IntegerField(label=_('子网掩码长度'))
+    ip_ranges = serializers.JSONField(label=_('拆分或合并的IP段'))
+    remark = serializers.CharField(label=_('备注信息'), max_length=255)
+    user = serializers.SerializerMethodField(label=_('操作用户'), method_name='get_user')
+    org_virt_obj = OrgVirtualObjectSimpleSerializer(label=_('机构二级对象'))
+
+    @staticmethod
+    def get_user(obj):
+        if obj.user is None:
+            return None
+
+        return {'id': obj.user.id, 'username': obj.user.username}
