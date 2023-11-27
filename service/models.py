@@ -112,7 +112,7 @@ class OrgDataCenter(UuidModel):
     latitude = models.FloatField(verbose_name=_('纬度'), blank=True, default=0)
     creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
     sort_weight = models.IntegerField(verbose_name=_('排序值'), default=0, help_text=_('值越小排序越靠前'))
-    remark = models.CharField(verbose_name=_('数据中心备注'), max_length=255, blank=True, default='')
+    remark = models.TextField(verbose_name=_('数据中心备注'), max_length=10000, blank=True, default='')
 
     # Thanos
     thanos_endpoint_url = models.CharField(

@@ -64,7 +64,7 @@ class OrgDataCenterCreateSerializer(serializers.Serializer):
     longitude = serializers.FloatField(label=_('经度'), required=False, default=0, min_value=-120, max_value=120)
     latitude = serializers.FloatField(label=_('纬度'), required=False, default=0, min_value=-90, max_value=90)
     sort_weight = serializers.IntegerField(label=_('排序值'), required=False, default=0)
-    remark = serializers.CharField(label=_('数据中心备注'), max_length=255, required=False, allow_blank=True, default='')
+    remark = serializers.CharField(label=_('数据中心备注'), max_length=10000, required=False, allow_blank=True, default='')
 
     thanos_endpoint_url = serializers.URLField(
         label=_('Thanos服务查询接口'), max_length=255, required=False, allow_blank=True, default='')
