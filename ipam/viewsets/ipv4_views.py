@@ -489,7 +489,7 @@ class IPv4RangeViewSet(NormalGenericViewSet):
                 403:
                 AccessDenied: 你没有科技网IP管理功能的管理员权限
         """
-        return IPv4RangeHandler().assign_ipv4_range(view=self, request=request, kwargs=kwargs)
+        return IPv4RangeHandler.assign_ipv4_range(view=self, request=request, kwargs=kwargs)
 
     def get_serializer_class(self):
         if self.action == 'list':

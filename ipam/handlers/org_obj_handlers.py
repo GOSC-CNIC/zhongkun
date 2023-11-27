@@ -1,5 +1,6 @@
 from django.utils.translation import gettext as _
 from django.utils import timezone as dj_timezone
+from django.db.models import Q
 from rest_framework.response import Response
 
 from core import errors
@@ -57,3 +58,26 @@ class OrgVirtObjHandler:
             raise exc
 
         return serializer.validated_data
+
+    @staticmethod
+    def list_org_virt_obj(view: NormalGenericViewSet, request):
+        org_id = request.query_params.get('org_id')
+        search = request.query_params.get('search')
+
+        ur_wrapper = UserIpamRoleWrapper(user=request.user)
+        if not ur_wrapper.has_kjw_admin_readable():
+            return view.exception_response(
+                errors.AccessDenied(message=_('你没有科技网IP管理功能的管理员权限')))
+
+        try:
+            qs = OrgVirtualObject.objects.select_related('organization').order_by('-creation_time')
+            if org_id:
+                qs = qs.filter(organization_id=org_id)
+            if search:
+                qs = qs.filter(Q(name__icontains=search) | Q(remark__icontains=search))
+
+            objs = view.paginate_queryset(qs)
+            serializer = serializers.OrgVirtualObjectSimpleSerializer(instance=objs, many=True)
+            return view.get_paginated_response(data=serializer.data)
+        except Exception as exc:
+            return view.exception_response(exc)
