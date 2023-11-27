@@ -19,6 +19,12 @@ class OrgVirtualObjectSimpleSerializer(serializers.Serializer):
         return None
 
 
+class OrgVirtObjCreateSerializer(serializers.Serializer):
+    name = serializers.CharField(label=_('名称'), max_length=255, required=True)
+    organization_id = serializers.CharField(label=_('机构ID'), required=True)
+    remark = serializers.CharField(label=_('备注信息'), max_length=255, allow_blank=True, default='')
+
+
 class IPv4RangeSerializer(serializers.Serializer):
     id = serializers.CharField(label='ID', read_only=True)
     name = serializers.CharField(label=_('名称'), max_length=255, required=True)
