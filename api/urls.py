@@ -11,9 +11,8 @@ from .apiviews import (
     tradebill_views, recharge_views, email_views, disk_views, flavor_views,
     portal_views, report_storage_views, monitor_metering_views
 )
-from monitor import monitor_views, log_views
 from service.viewsets import org_data_center_views
-from vo.views import VOViewSet
+
 
 app_name = 'api'
 
@@ -33,24 +32,8 @@ no_slash_router.register(r'odc', org_data_center_views.OrgDataCenterViewSet, bas
 no_slash_router.register(r'user', user_views.UserViewSet, basename='user')
 no_slash_router.register(r'apply/service', views.ApplyVmServiceViewSet, basename='apply-service')
 no_slash_router.register(r'apply/organization', views.ApplyOrganizationViewSet, basename='apply-organization')
-no_slash_router.register(r'vo', VOViewSet, basename='vo')
 no_slash_router.register(r'email', email_views.EmailViewSet, basename='email')
 no_slash_router.register(r'disk', disk_views.DisksViewSet, basename='disks')
-
-no_slash_router.register(r'monitor/unit/ceph', monitor_views.MonitorUnitCephViewSet, basename='monitor-unit-ceph')
-no_slash_router.register(r'monitor/unit/server', monitor_views.MonitorUnitServerViewSet, basename='monitor-unit-server')
-no_slash_router.register(r'monitor/unit/tidb', monitor_views.MonitorUnitTiDBViewSet, basename='monitor-unit-tidb')
-no_slash_router.register(r'monitor/ceph/query', monitor_views.MonitorCephQueryViewSet, basename='monitor-ceph-query')
-no_slash_router.register(r'monitor/server/query', monitor_views.MonitorServerQueryViewSet,
-                         basename='monitor-server-query')
-no_slash_router.register(r'monitor/video-meeting/query', monitor_views.MonitorVideoMeetingQueryViewSet,
-                         basename='monitor-video-meeting-query')
-no_slash_router.register(r'monitor/website', monitor_views.MonitorWebsiteViewSet,
-                         basename='monitor-website')
-no_slash_router.register(r'monitor/website-task', monitor_views.MonitorWebsiteTaskViewSet,
-                         basename='monitor-website-task')
-no_slash_router.register(r'monitor/tidb/query', monitor_views.MonitorTiDBQueryViewSet, basename='monitor-tidb-query')
-no_slash_router.register(r'monitor/log/site', log_views.LogSiteViewSet, basename='monitor-log-site')
 
 no_slash_router.register(r'vms/service/p-quota', service_quota_views.ServivePrivateQuotaViewSet,
                          basename='vms-service-p-quota')

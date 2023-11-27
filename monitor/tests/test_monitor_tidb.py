@@ -39,7 +39,7 @@ class MonitorUnitTiDBTests(MyAPITestCase):
         unit_tidb4.save(force_insert=True)
 
         # 未认证
-        url = reverse('api:monitor-unit-tidb-list')
+        url = reverse('monitor-api:unit-tidb-list')
         response = self.client.get(url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
 
@@ -171,7 +171,7 @@ class MonitorUnitTiDBTests(MyAPITestCase):
         if query_tag:
             querys['query'] = query_tag
 
-        url = reverse('api:monitor-tidb-query-list')
+        url = reverse('monitor-api:tidb-query-list')
         query = parse.urlencode(query=querys)
         return self.client.get(f'{url}?{query}')
 

@@ -47,7 +47,7 @@ class LogSiteTests(MyAPITestCase):
         log_site4.save(force_insert=True)
 
         # 未认证
-        url = reverse('api:monitor-log-site-list')
+        url = reverse('monitor-api:log-site-list')
         response = self.client.get(url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
 
@@ -165,7 +165,7 @@ class LogSiteTests(MyAPITestCase):
     def test_log_site_query(self):
         log_site = get_or_create_job_log_site()
         # 未认证
-        url = reverse('api:monitor-log-site-query')
+        url = reverse('monitor-api:log-site-query')
         response = self.client.get(url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
         self.client.force_login(self.user)
@@ -282,7 +282,7 @@ class LogSiteTests(MyAPITestCase):
         now_timestamp = int(timezone.now().replace(second=0).timestamp())
         log_site = get_or_create_job_log_site()
         # 未认证
-        url = reverse('api:monitor-log-site-time-count')
+        url = reverse('monitor-api:log-site-time-count')
         response = self.client.get(url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
         self.client.force_login(self.user)

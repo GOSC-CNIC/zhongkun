@@ -43,7 +43,7 @@ class MonitorCephTests(MyAPITestCase):
         if query_tag:
             querys['query'] = query_tag
 
-        url = reverse('api:monitor-ceph-query-list')
+        url = reverse('monitor-api:ceph-query-list')
         query = parse.urlencode(query=querys)
         return self.client.get(f'{url}?{query}')
 
@@ -141,7 +141,7 @@ class MonitorCephTests(MyAPITestCase):
         if query_tag:
             querys['step'] = step
 
-        url = reverse('api:monitor-ceph-query-range')
+        url = reverse('monitor-api:ceph-query-range')
         query = parse.urlencode(query=querys)
         return self.client.get(f'{url}?{query}')
 
@@ -299,7 +299,7 @@ class MonitorServerTests(MyAPITestCase):
         if query_tag:
             querys['query'] = query_tag
 
-        url = reverse('api:monitor-server-query-list')
+        url = reverse('monitor-api:server-query-list')
         query = parse.urlencode(query=querys)
         return self.client.get(f'{url}?{query}')
 
@@ -411,7 +411,7 @@ class MonitorVideoMeetingTests(MyAPITestCase):
         if query_tag:
             querys['query'] = query_tag
 
-        url = reverse('api:monitor-video-meeting-query-list')
+        url = reverse('monitor-api:video-meeting-query-list')
         query = parse.urlencode(query=querys)
         return self.client.get(f'{url}?{query}')
 
@@ -473,7 +473,7 @@ class MonitorUnitCephTests(MyAPITestCase):
         unit_ceph4.save(force_insert=True)
 
         # 未认证
-        url = reverse('api:monitor-unit-ceph-list')
+        url = reverse('monitor-api:unit-ceph-list')
         response = self.client.get(url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
 
@@ -608,7 +608,7 @@ class MonitorUnitServerTests(MyAPITestCase):
         unit_server4.save(force_insert=True)
 
         # 未认证
-        url = reverse('api:monitor-unit-server-list')
+        url = reverse('monitor-api:unit-server-list')
         response = self.client.get(url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
 
@@ -775,7 +775,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         price.save()
 
         # NotAuthenticated
-        url = reverse('api:monitor-website-list')
+        url = reverse('monitor-api:website-list')
         r = self.client.post(path=url, data={
             'name': 'name-test', 'scheme': 'https://', 'hostname': 'test.c', 'uri': '/', 'remark': 'test'
         }, content_type='application/json')
@@ -1151,7 +1151,7 @@ class MonitorWebsiteTests(MyAPITestCase):
 
     def test_list_website_task(self):
         # NotAuthenticated
-        base_url = reverse('api:monitor-website-list')
+        base_url = reverse('monitor-api:website-list')
         r = self.client.get(path=base_url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
 
@@ -1263,7 +1263,7 @@ class MonitorWebsiteTests(MyAPITestCase):
 
     def test_delete_website_task(self):
         # NotAuthenticated
-        url = reverse('api:monitor-website-detail', kwargs={'id': 'test'})
+        url = reverse('monitor-api:website-detail', kwargs={'id': 'test'})
         r = self.client.delete(path=url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
 
@@ -1308,12 +1308,12 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertErrorResponse(status_code=404, code='NotFound', response=r)
 
         # AccessDenied, user delete user2's website
-        url = reverse('api:monitor-website-detail', kwargs={'id': user2_website2.id})
+        url = reverse('monitor-api:website-detail', kwargs={'id': user2_website2.id})
         r = self.client.delete(path=url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
 
         # user delete website1 ok
-        url = reverse('api:monitor-website-detail', kwargs={'id': user_website1.id})
+        url = reverse('monitor-api:website-detail', kwargs={'id': user_website1.id})
         r = self.client.delete(path=url)
         self.assertEqual(r.status_code, 204)
 
@@ -1330,7 +1330,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         # user delete website2 ok
         task2.refresh_from_db()
         self.assertIs(task2.is_tamper_resistant, True)
-        url = reverse('api:monitor-website-detail', kwargs={'id': user_website2.id})
+        url = reverse('monitor-api:website-detail', kwargs={'id': user_website2.id})
         r = self.client.delete(path=url)
         self.assertEqual(r.status_code, 204)
         task2.refresh_from_db()
@@ -1345,7 +1345,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(MonitorWebsiteRecord.objects.count(), 2)
 
     def test_task_version_list(self):
-        url = reverse('api:monitor-website-task-version')
+        url = reverse('monitor-api:website-task-version')
         r = self.client.get(path=url)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data['version'], 0)
@@ -1368,7 +1368,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         task4.save(force_insert=True)
 
         # list task
-        base_url = reverse('api:monitor-website-task-list')
+        base_url = reverse('monitor-api:website-task-list')
         r = self.client.get(path=base_url)
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn(keys=[
@@ -1407,7 +1407,7 @@ class MonitorWebsiteTests(MyAPITestCase):
 
     def test_change_website_task(self):
         # NotAuthenticated
-        url = reverse('api:monitor-website-detail', kwargs={'id': 'test'})
+        url = reverse('monitor-api:website-detail', kwargs={'id': 'test'})
         r = self.client.put(path=url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
 
@@ -1452,7 +1452,7 @@ class MonitorWebsiteTests(MyAPITestCase):
 
         # ok, NotFound
         self.client.force_login(self.user)
-        url = reverse('api:monitor-website-detail', kwargs={'id': 'test'})
+        url = reverse('monitor-api:website-detail', kwargs={'id': 'test'})
 
         # no "name"， BadRequest
         r = self.client.put(path=url, data={
@@ -1466,7 +1466,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertErrorResponse(status_code=404, code='NotFound', response=r)
 
         # AccessDenied, user change user2's website
-        url = reverse('api:monitor-website-detail', kwargs={'id': user2_website2.id})
+        url = reverse('monitor-api:website-detail', kwargs={'id': user2_website2.id})
         r = self.client.put(path=url, data=data)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
 
@@ -1474,7 +1474,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         data = {'name': 'change name', 'scheme': user_website1.scheme, 'hostname': user_website1.hostname,
                 'uri': user_website1.uri, 'is_tamper_resistant': user_website1.is_tamper_resistant,
                 'remark': user_website1.remark}
-        url = reverse('api:monitor-website-detail', kwargs={'id': user_website1.id})
+        url = reverse('monitor-api:website-detail', kwargs={'id': user_website1.id})
         r = self.client.put(path=url, data=data)
         self.assertEqual(r.status_code, 200)
         website1 = MonitorWebsite.objects.get(id=user_website1.id)
@@ -1501,7 +1501,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         new_website_url1 = 'https://666.cn/'
         data = {'name': user_website1.name, 'scheme': 'https://', 'hostname': '666.cn', 'uri': '/',
                 'remark': user_website1.remark}
-        url = reverse('api:monitor-website-detail', kwargs={'id': user_website1.id})
+        url = reverse('monitor-api:website-detail', kwargs={'id': user_website1.id})
         r = self.client.put(path=url, data=data)
         self.assertEqual(r.status_code, 200)
         website1 = MonitorWebsite.objects.get(id=user_website1.id)
@@ -1527,7 +1527,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         new_website_url2 = 'https://888.cn/a/?b=6&c=8#test'
         data = {'name': user_website2.name, 'scheme': 'https://', 'hostname': '888.cn', 'uri': '/a/?b=6&c=8#test',
                 'remark': '新的 remark'}
-        url = reverse('api:monitor-website-detail', kwargs={'id': user_website2.id})
+        url = reverse('monitor-api:website-detail', kwargs={'id': user_website2.id})
         r = self.client.put(path=url, data=data)
         self.assertEqual(r.status_code, 200)
         website2 = MonitorWebsite.objects.get(id=user_website2.id)
@@ -1551,7 +1551,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         # user change website2 "is_tamper_resistant", ok
         data = {'name': user_website2.name, 'scheme': 'https://', 'hostname': '888.cn', 'uri': '/a/?b=6&c=8#test',
                 'is_tamper_resistant': False, 'url': new_website_url2, 'remark': '新的 remark'}
-        url = reverse('api:monitor-website-detail', kwargs={'id': user_website2.id})
+        url = reverse('monitor-api:website-detail', kwargs={'id': user_website2.id})
         r = self.client.put(path=url, data=data)
         self.assertEqual(r.status_code, 200)
         website2 = MonitorWebsite.objects.get(id=user_website2.id)
@@ -1582,19 +1582,19 @@ class MonitorWebsiteTests(MyAPITestCase):
 
         data = {'name': user1_tcp_task1.name, 'scheme': 'tcp://', 'hostname': '2222.com:8888', 'uri': '/',
                 'is_tamper_resistant': True, 'remark': '新的 remark'}
-        url = reverse('api:monitor-website-detail', kwargs={'id': user1_tcp_task1.id})
+        url = reverse('monitor-api:website-detail', kwargs={'id': user1_tcp_task1.id})
         r = self.client.put(path=url, data=data)
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
 
         data = {'name': user1_tcp_task1.name, 'scheme': 'tcp://', 'hostname': '2222.com', 'uri': '/',
                 'remark': '新的 remark'}
-        url = reverse('api:monitor-website-detail', kwargs={'id': user1_tcp_task1.id})
+        url = reverse('monitor-api:website-detail', kwargs={'id': user1_tcp_task1.id})
         r = self.client.put(path=url, data=data)
         self.assertErrorResponse(status_code=400, code='InvalidHostname', response=r)
 
         data = {'name': user1_tcp_task1.name, 'scheme': 'tcp://', 'hostname': '2222.cn:666', 'uri': '/',
                 'remark': '新的 remark'}
-        url = reverse('api:monitor-website-detail', kwargs={'id': user1_tcp_task1.id})
+        url = reverse('monitor-api:website-detail', kwargs={'id': user1_tcp_task1.id})
         r = self.client.put(path=url, data=data)
         self.assertEqual(r.status_code, 200)
         user1_tcp_task1.refresh_from_db()
@@ -1602,13 +1602,13 @@ class MonitorWebsiteTests(MyAPITestCase):
 
         data = {'name': user1_tcp_task1.name, 'scheme': 'https://', 'hostname': '2222.cn:666', 'uri': '/',
                 'remark': '新的 remark'}
-        url = reverse('api:monitor-website-detail', kwargs={'id': user1_tcp_task1.id})
+        url = reverse('monitor-api:website-detail', kwargs={'id': user1_tcp_task1.id})
         r = self.client.put(path=url, data=data)
         self.assertEqual(r.status_code, 200)
 
     def test_list_website_detection_point(self):
         # NotAuthenticated
-        base_url = reverse('api:monitor-website-detection-point')
+        base_url = reverse('monitor-api:website-detection-point')
         r = self.client.get(path=base_url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
 
@@ -1693,7 +1693,7 @@ class MonitorWebsiteTests(MyAPITestCase):
 
     def test_website_task_attention_mark(self):
         # NotAuthenticated
-        url = reverse('api:monitor-website-mark-attention', kwargs={'id': 'test'})
+        url = reverse('monitor-api:website-mark-attention', kwargs={'id': 'test'})
         r = self.client.post(path=url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
 
@@ -1709,7 +1709,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.client.force_login(self.user2)
 
         # query "action"
-        url = reverse('api:monitor-website-mark-attention', kwargs={'id': 'test'})
+        url = reverse('monitor-api:website-mark-attention', kwargs={'id': 'test'})
         r = self.client.post(path=url)
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
 
@@ -1722,13 +1722,13 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
 
         # NotFound
-        url = reverse('api:monitor-website-mark-attention', kwargs={'id': 'test'})
+        url = reverse('monitor-api:website-mark-attention', kwargs={'id': 'test'})
         query = parse.urlencode(query={'action': 'mark'})
         r = self.client.post(path=f'{url}?{query}')
         self.assertErrorResponse(status_code=404, code='NotFound', response=r)
 
         # AccessDenied, user2 change user's website
-        url = reverse('api:monitor-website-mark-attention', kwargs={'id': user_website1.id})
+        url = reverse('monitor-api:website-mark-attention', kwargs={'id': user_website1.id})
         query = parse.urlencode(query={'action': 'mark'})
         r = self.client.post(path=f'{url}?{query}')
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
@@ -1737,7 +1737,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.client.force_login(self.user)
 
         # user2 mark website1, ok
-        url = reverse('api:monitor-website-mark-attention', kwargs={'id': user_website1.id})
+        url = reverse('monitor-api:website-mark-attention', kwargs={'id': user_website1.id})
         query = parse.urlencode(query={'action': 'mark'})
         r = self.client.post(path=f'{url}?{query}')
         self.assertEqual(r.status_code, 200)
@@ -1749,7 +1749,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertIs(user_website1.is_attention, True)
 
         # user2 unmark website1, ok
-        url = reverse('api:monitor-website-mark-attention', kwargs={'id': user_website1.id})
+        url = reverse('monitor-api:website-mark-attention', kwargs={'id': user_website1.id})
         query = parse.urlencode(query={'action': 'unMark'})
         r = self.client.post(path=f'{url}?{query}')
         self.assertEqual(r.status_code, 200)
@@ -1762,7 +1762,7 @@ class MonitorWebsiteTests(MyAPITestCase):
 
     def test_list_site_emails(self):
         settings.API_EMAIL_ALLOWED_IPS = []
-        base_url = reverse('api:monitor-website-user-email')
+        base_url = reverse('monitor-api:website-user-email')
         r = self.client.get(path=base_url)
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
         query = parse.urlencode(query={'url_hash': ''})
@@ -1969,7 +1969,7 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
 
     def query_response(self, website_id: str, query_tag: str, detection_point_id: str):
-        url = reverse('api:monitor-website-data-query', kwargs={'id': website_id})
+        url = reverse('monitor-api:website-data-query', kwargs={'id': website_id})
         query = parse.urlencode(query={'query': query_tag, 'detection_point_id': detection_point_id})
         return self.client.get(f'{url}?{query}')
 
@@ -2184,7 +2184,7 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
         if query_tag:
             querys['step'] = step
 
-        url = reverse('api:monitor-website-data-query-range', kwargs={'id': website_id})
+        url = reverse('monitor-api:website-data-query-range', kwargs={'id': website_id})
         query = parse.urlencode(query=querys)
         return self.client.get(f'{url}?{query}')
 
@@ -2210,7 +2210,7 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
         return response
 
     def duration_query_response(self, start: int, end: int, detection_point_id: str):
-        url = reverse('api:monitor-website-duration-distribution')
+        url = reverse('monitor-api:website-duration-distribution')
         querys = {}
         if start:
             querys['start'] = start
@@ -2283,7 +2283,7 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
         self.assertEqual(len(r.data), 1)
 
     def _status_query_response(self, detection_point_id: str):
-        url = reverse('api:monitor-website-status-overview')
+        url = reverse('monitor-api:website-status-overview')
         querys = {}
         if detection_point_id:
             querys['detection_point_id'] = detection_point_id

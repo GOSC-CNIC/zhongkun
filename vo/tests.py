@@ -25,7 +25,7 @@ class VoTests(MyAPITestCase):
 
     @staticmethod
     def create_vo_response(client, name, company, description):
-        url = reverse('api:vo-list')
+        url = reverse('vo-api:vo-list')
         data = {
             'name': name,
             'company': company,
@@ -35,17 +35,17 @@ class VoTests(MyAPITestCase):
 
     @staticmethod
     def update_vo_response(client, vo_id: str, data):
-        url = reverse('api:vo-detail', kwargs={'id': vo_id})
+        url = reverse('vo-api:vo-detail', kwargs={'id': vo_id})
         return client.patch(url, data=data)
 
     @staticmethod
     def delete_vo_response(client, vo_id: str):
-        url = reverse('api:vo-detail', kwargs={'id': vo_id})
+        url = reverse('vo-api:vo-detail', kwargs={'id': vo_id})
         return client.delete(url)
 
     @staticmethod
     def list_response(client, queries: dict):
-        url = reverse('api:vo-list')
+        url = reverse('vo-api:vo-list')
         if queries:
             query = parse.urlencode(queries, doseq=True)
             url = f'{url}?{query}'
@@ -54,22 +54,22 @@ class VoTests(MyAPITestCase):
 
     @staticmethod
     def add_members_response(client, vo_id: str, usernames: list):
-        url = reverse('api:vo-vo-add-members', kwargs={'id': vo_id})
+        url = reverse('vo-api:vo-vo-add-members', kwargs={'id': vo_id})
         return client.post(url, data={'usernames': usernames})
 
     @staticmethod
     def list_vo_members_response(client, vo_id: str):
-        url = reverse('api:vo-vo-list-members', kwargs={'id': vo_id})
+        url = reverse('vo-api:vo-vo-list-members', kwargs={'id': vo_id})
         return client.get(url)
 
     @staticmethod
     def remove_members_response(client, vo_id: str, usernames: list):
-        url = reverse('api:vo-vo-remove-members', kwargs={'id': vo_id})
+        url = reverse('vo-api:vo-vo-remove-members', kwargs={'id': vo_id})
         return client.post(url, data={'usernames': usernames})
 
     @staticmethod
     def change_member_role_response(client, member_id: str, role: str):
-        url = reverse('api:vo-vo-members-role', kwargs={'member_id': member_id, 'role': role})
+        url = reverse('vo-api:vo-vo-members-role', kwargs={'member_id': member_id, 'role': role})
         return client.post(url)
 
     def test_create_update_delete(self):
@@ -356,18 +356,18 @@ class VoTests(MyAPITestCase):
         )
         vo1.save(force_insert=True)
 
-        url = reverse('api:vo-vo-statistic', kwargs={'id': 'test'})
+        url = reverse('vo-api:vo-vo-statistic', kwargs={'id': 'test'})
         r = self.client.get(url)
         self.assertErrorResponse(status_code=404, code='NotFound', response=r)
 
-        url = reverse('api:vo-vo-statistic', kwargs={'id': vo1.id})
+        url = reverse('vo-api:vo-vo-statistic', kwargs={'id': vo1.id})
         r = self.client.get(url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
 
         member = VoMember(user_id=self.user.id, vo_id=vo1.id, role=VoMember.Role.LEADER.value)
         member.save(force_insert=True)
 
-        url = reverse('api:vo-vo-statistic', kwargs={'id': vo1.id})
+        url = reverse('vo-api:vo-vo-statistic', kwargs={'id': vo1.id})
         r = self.client.get(url)
         self.assertKeysIn(keys=[
             'vo', 'member_count', 'server_count', 'order_count', 'coupon_count', 'balance'], container=r.data)
@@ -428,7 +428,7 @@ class VoTests(MyAPITestCase):
             creation_time=timezone.now(), expiration_time=None, remarks='test', server_id=None
         )
 
-        url = reverse('api:vo-vo-statistic', kwargs={'id': vo1.id})
+        url = reverse('vo-api:vo-vo-statistic', kwargs={'id': vo1.id})
         r = self.client.get(url)
         self.assertKeysIn(keys=[
             'vo', 'member_count', 'server_count', 'order_count', 'coupon_count', 'balance',
@@ -458,7 +458,7 @@ class VoTests(MyAPITestCase):
         vo2_member1.save(force_insert=True)
 
         self.client.logout()
-        base_url = reverse('api:vo-devolve', kwargs={'id': 'test'})
+        base_url = reverse('vo-api:vo-devolve', kwargs={'id': 'test'})
         response = self.client.post(base_url)
         self.assertEqual(response.status_code, 401)
 
@@ -475,7 +475,7 @@ class VoTests(MyAPITestCase):
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
 
         # user, vo1 member_id
-        base_url = reverse('api:vo-devolve', kwargs={'id': vo1.id})
+        base_url = reverse('vo-api:vo-devolve', kwargs={'id': vo1.id})
         query = parse.urlencode(query={'member_id': 'test'})
         response = self.client.post(f'{base_url}?{query}')
         self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
@@ -506,7 +506,7 @@ class VoTests(MyAPITestCase):
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
         # vo2, username
-        base_url = reverse('api:vo-devolve', kwargs={'id': vo2.id})
+        base_url = reverse('vo-api:vo-devolve', kwargs={'id': vo2.id})
         query = parse.urlencode(query={'username': self.user.username})
         response = self.client.post(f'{base_url}?{query}')
         self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
