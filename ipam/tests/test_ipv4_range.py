@@ -468,11 +468,11 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         self.assertEqual(IPv4RangeRecord.objects.count(), 1)
         record: IPv4RangeRecord = IPv4RangeRecord.objects.first()
         self.assertEqual(record.record_type, IPv4RangeRecord.RecordType.CHANGE.value)
-        self.assertEqual(record.start_address, int(ipaddress.IPv4Address('127.0.1.1')))
-        self.assertEqual(record.end_address, int(ipaddress.IPv4Address('127.0.1.255')))
+        self.assertEqual(record.start_address, int(ipaddress.IPv4Address('127.0.0.1')))
+        self.assertEqual(record.end_address, int(ipaddress.IPv4Address('127.0.0.255')))
         self.assertEqual(record.mask_len, 24)
-        self.assertEqual(record.ip_ranges[0]['start'], '127.0.0.1')
-        self.assertEqual(record.ip_ranges[0]['end'], '127.0.0.255')
+        self.assertEqual(record.ip_ranges[0]['start'], '127.0.1.1')
+        self.assertEqual(record.ip_ranges[0]['end'], '127.0.1.255')
         self.assertEqual(record.ip_ranges[0]['mask'], 24)
 
         response = self.client.put(base_url, data={

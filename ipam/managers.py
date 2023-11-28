@@ -352,8 +352,8 @@ class IPv4RangeManager:
         """
         :raises: ValidationError
         """
-        old_ip_range = IPRangeItem(
-            start=str(ip_range.start_address_obj), end=str(ip_range.end_address_obj), mask=ip_range.mask_len
+        old_ip_range = IPRangeIntItem(
+            start=ip_range.start_address, end=ip_range.end_address, mask=ip_range.mask_len
         )
         ip_range, update_fields = IPv4RangeManager.update_ipv4_range(
             ip_range=ip_range, name=name, start_ip=start_ip, end_ip=end_ip, mask_len=mask_len,
@@ -370,8 +370,11 @@ class IPv4RangeManager:
 
         if need_record:
             try:
+                new_ip_range = IPRangeItem(
+                    start=str(ip_range.start_address_obj), end=str(ip_range.end_address_obj), mask=ip_range.mask_len
+                )
                 IPv4RangeRecordManager.create_change_record(
-                    user=user, ipv4_range=ip_range, remark='', old_ip_range=old_ip_range
+                    user=user, new_ipv4_range=new_ip_range, remark='', old_ip_range=old_ip_range
                 )
             except Exception as exc:
                 pass
@@ -515,11 +518,11 @@ class IPv4RangeRecordManager:
         )
 
     @staticmethod
-    def create_change_record(user, ipv4_range: IPv4Range, remark: str, old_ip_range: IPRangeItem):
+    def create_change_record(user, new_ipv4_range: IPRangeItem, remark: str, old_ip_range: IPRangeIntItem):
         return IPv4RangeRecordManager.create_record(
             user=user, record_type=IPv4RangeRecord.RecordType.CHANGE.value,
-            start_address=ipv4_range.start_address, end_address=ipv4_range.end_address, mask_len=ipv4_range.mask_len,
-            ip_ranges=[old_ip_range], remark=remark, org_virt_obj=None
+            start_address=old_ip_range.start, end_address=old_ip_range.end, mask_len=old_ip_range.mask,
+            ip_ranges=[new_ipv4_range], remark=remark, org_virt_obj=None
         )
 
     @staticmethod
