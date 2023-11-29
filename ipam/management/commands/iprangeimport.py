@@ -9,12 +9,15 @@ from openpyxl.cell import MergedCell
 from openpyxl.worksheet.worksheet import Worksheet
 
 from service.models import DataCenter
-from ipam.models import ASN, OrgVirtualObject, IPv4Range, ipv4_int_to_str, ipv4_str_to_int
+from ipam.models import (
+    ASN, OrgVirtualObject, IPv4Range, ipv4_str_to_int,
+    ipv6_str_to_bytes, IPv6Range
+)
 
 
 class Command(BaseCommand):
     help = """
-    manage.py iprangeimport --file="/home/x.xlsx"; 
+    manage.py iprangeimport --file="/home/x.xlsx" --ipv=6; 
     sheet format: ['开始地址', '结束地址', '掩码', '创建时间', '更新时间', 'AS', '地址类型', '状态', '模型', '关联实例', '备注', '机构']
     """
 
@@ -29,6 +32,10 @@ class Command(BaseCommand):
             '--file', dest='filename', type=str, required=True,
             help='path of file',
         )
+        parser.add_argument(
+            '--ipv', dest='ip_version', required=True, type=int, choices=[4, 6],
+            help='IP version range will import.',
+        )
 
         parser.add_argument(
             # 当命令行有此参数时取值const, 否则取值default
@@ -39,6 +46,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         is_test = options['test']
         filename = options['filename']
+        ip_version = options['ip_version']
         if not Path(filename).exists():
             raise CommandError('not found file')
 
@@ -50,11 +58,16 @@ class Command(BaseCommand):
         if is_test:
             self.stdout.write(self.style.NOTICE('In mode Test'))
 
-        self.stdout.write(self.style.ERROR(f'Will import IP ranges.'))
+        self.stdout.write(self.style.ERROR(f'Will import IP v{ip_version} ranges.'))
         if input('Are you sure you want to do this?\n\n' + "Type 'yes' to continue, or 'no' to cancel: ") != 'yes':
             raise CommandError("cancelled.")
 
-        self.import_ipv4_range_rows(ipv4_rows=ipv4_rows, is_test=is_test)
+        if ip_version == 4:
+            self.import_ipv4_range_rows(ipv4_rows=ipv4_rows, is_test=is_test)
+        elif ip_version == 6:
+            self.import_ipv6_range_rows(ipv6_rows=ipv6_rows, is_test=is_test)
+        else:
+            self.stdout.write(self.style.NOTICE('Nothing do.'))
 
     def sheet(self, filename: str):
         wb = load_workbook(filename=filename, read_only=False)
@@ -194,7 +207,82 @@ class Command(BaseCommand):
             mask_len=mask_len,
             admin_remark=remark if remark else ''
         )
-        ip_range.name = str(ip_range.start_address_network())
+        ip_range.name = str(ip_range.start_address_network)
+        ip_range.clean()
+
+        if not is_test:
+            ip_range.save(force_insert=True)
+
+        return ip_range, True
+
+    def import_ipv6_range_rows(self, ipv6_rows: list, is_test: bool):
+        new_count = 0
+        for row_data in ipv6_rows:
+            ip_range, created = self.get_or_create_ipv6_range(
+                start_ip=row_data['start_ip'],
+                end_ip=row_data['end_ip'],
+                prefixlen=row_data['mask_len'],
+                create_time=row_data['create_time'],
+                update_time=row_data['update_time'],
+                asn=row_data['asn'],
+                status=row_data['status'],
+                virt_obj_name=row_data['virt_obj_name'],
+                org_name=row_data['org_name'],
+                remark=row_data['remark'],
+                is_test=is_test
+            )
+            if created:
+                new_count += 1
+
+        self.stdout.write(self.style.SUCCESS(f'All {len(ipv6_rows)}, new created ipv6 range {new_count}'))
+
+    def get_or_create_ipv6_range(
+            self, start_ip: str, end_ip: str, prefixlen: int,
+            create_time: datetime, update_time: datetime, asn: int, status: str,
+            virt_obj_name: str, org_name: str, remark: str, is_test: bool = False
+    ):
+        """
+        :status: 预留、入库、已分配
+        :return: (
+            obj: IPv4Range,
+            created: bool
+        )
+        """
+        start_bytes = ipv6_str_to_bytes(ipv6=start_ip)
+        end_bytes = ipv6_str_to_bytes(ipv6=end_ip)
+        prefixlen = int(prefixlen)
+        asn = int(asn)
+        status_code = self.convert_status_code(status=status)
+
+        ip_range = IPv6Range.objects.filter(start_address=start_bytes, end_address=end_bytes).first()
+        if ip_range:
+            return ip_range, False
+
+        if is_test or not virt_obj_name:
+            virt_obj = None
+        else:
+            virt_obj = self.get_or_create_virt_obj(name=virt_obj_name, org_name=org_name)
+
+        if status_code == IPv6Range.Status.ASSIGNED.value:
+            assigned_time = update_time
+        else:
+            assigned_time = None
+
+        asn_obj = self.get_or_create_asn(asn=asn)
+
+        ip_range = IPv6Range(
+            name='',
+            status=status_code,
+            creation_time=create_time,
+            update_time=update_time,
+            assigned_time=assigned_time,
+            asn=asn_obj, org_virt_obj=virt_obj,
+            start_address=start_bytes,
+            end_address=end_bytes,
+            prefixlen=prefixlen,
+            admin_remark=remark if remark else ''
+        )
+        ip_range.name = str(ip_range.start_address_network)
         ip_range.clean()
 
         if not is_test:

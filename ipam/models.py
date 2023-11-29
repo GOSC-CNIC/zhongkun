@@ -12,6 +12,8 @@ from utils.model import UuidModel
 from users.models import UserProfile
 from service.models import DataCenter
 
+from .fields import ByteField
+
 
 _IPRangeItem = namedtuple('IPRangeItem', ['start', 'end', 'mask'])
 
@@ -45,11 +47,22 @@ def ipv4_str_to_int(ipv4: str):
     return int(ipaddress.IPv4Address(ipv4))
 
 
+def ipv6_str_to_bytes(ipv6: str):
+    return ipaddress.IPv6Address(ipv6).packed
+
+
 def build_ipv4_network(ip_net: str) -> ipaddress.IPv4Network:
     """
     :param ip_net: x.x.x.x/x
     """
     return ipaddress.IPv4Network(ip_net, strict=False)
+
+
+def build_ipv6_network(ip_net: str) -> ipaddress.IPv6Network:
+    """
+    :param ip_net: x:x:x:x::x/x
+    """
+    return ipaddress.IPv6Network(ip_net, strict=False)
 
 
 class IPAMUserRole(UuidModel):
@@ -352,6 +365,183 @@ class IPv4RangeRecord(IPRangeRecordBase):
             return f'{self.start_address_obj} - {self.end_address_obj} /{self.mask_len}'
         except Exception as exc:
             return f'{self.start_address} - {self.end_address} /{self.mask_len}'
+
+    def build_record_display(self):
+        ip_range_str = self.ip_range_display()
+        # r_type = self.RecordType[self.record_type]
+        return f"{self.record_type} {ip_range_str}"
+
+
+class IPv6Range(IPRangeBase):
+    """
+    注意：删除时会一起删除关联的 ip address，删除前需要先更新 ip address 关联的ip range
+    """
+    start_address = ByteField(verbose_name=_('起始地址'), max_length=16)
+    end_address = ByteField(verbose_name=_('截止地址'), max_length=16)
+    prefixlen = models.PositiveIntegerField(
+        verbose_name=_('前缀长度'), validators=(MaxValueValidator(128),))
+
+    class Meta:
+        ordering = ('start_address',)
+        db_table = 'ipam_ipv6_range'
+        verbose_name = _('IPv6地址段')
+        verbose_name_plural = verbose_name
+        indexes = [
+            models.Index(fields=['start_address'], name='idx_start_address'),
+            models.Index(fields=['end_address'], name='idx_end_address')
+        ]
+
+    def __str__(self):
+        return self.ip_range_display()
+
+    @staticmethod
+    def convert_to_ip_obj(val: bytes):
+        return ipaddress.IPv6Address(val)
+
+    def clear_cached_property(self):
+        """
+        当cached_property有关的字段信息变更后，需要清除属性旧的缓存
+        """
+        if hasattr(self, 'start_address_obj'):
+            delattr(self, 'start_address_obj')
+        if hasattr(self, 'end_address_obj'):
+            delattr(self, 'end_address_obj')
+        if hasattr(self, 'start_address_network'):
+            delattr(self, 'start_address_network')
+        if hasattr(self, 'end_address_network'):
+            delattr(self, 'end_address_network')
+
+    @cached_property
+    def start_address_obj(self):
+        return self.convert_to_ip_obj(self.start_address)
+
+    @cached_property
+    def end_address_obj(self):
+        return self.convert_to_ip_obj(self.end_address)
+
+    def ip_range_display(self):
+        try:
+            return f'{self.start_address_obj} - {self.end_address_obj} /{self.prefixlen}'
+        except Exception as exc:
+            return f'{self.start_address} - {self.end_address} /{self.prefixlen}'
+
+    @cached_property
+    def start_address_network(self):
+        ip_net = f'{self.start_address_obj}/{self.prefixlen}'
+        return build_ipv6_network(ip_net=ip_net)
+
+    @cached_property
+    def end_address_network(self):
+        ip_net = f'{self.end_address_obj}/{self.prefixlen}'
+        return build_ipv6_network(ip_net=ip_net)
+
+    def clean(self, exclude_ids: list = None):
+        super().clean()
+
+        if self.start_address and self.end_address:
+            # Check that the ending address is greater than the starting address
+            if not self.end_address >= self.start_address:
+                raise ValidationError({
+                    'end_address': _(
+                        "结束地址必须大于等于起始地址({start_address})"
+                    ).format(start_address=self.start_address_obj)
+                })
+
+            # 是否同一网段，网络号是否一致
+            try:
+                start_net_addr = self.start_address_network
+                end_net_addr = self.end_address_network
+            except ipaddress.NetmaskValueError as exc:
+                raise ValidationError({'mask_len': str(exc)})
+
+            if start_net_addr != end_net_addr:
+                raise ValidationError(_(
+                    "起始地址网络号({start_net_addr})和结束地址网络号({end_net_addr})不一致"
+                ).format(start_net_addr=start_net_addr, end_net_addr=end_net_addr)
+                                      )
+
+            # 检查部分重叠的ranges
+            ids = [self.id] if self.id else []
+            if exclude_ids and self.id not in exclude_ids:
+                ids = ids + exclude_ids
+
+            if len(ids) == 0:
+                exclude_lookup = {}
+            elif len(ids) == 1:
+                exclude_lookup = {'id': ids[0]}
+            else:
+                exclude_lookup = {'id__in': ids}
+
+            overlapping_range = IPv6Range.objects.exclude(**exclude_lookup).filter(
+                Q(start_address__gte=self.start_address, start_address__lte=self.end_address) |  # 已存在start在新ip段内部
+                Q(end_address__gte=self.start_address, end_address__lte=self.end_address) |  # 已存在end在新ip段内部
+                Q(start_address__lte=self.start_address, end_address__gte=self.end_address)  # start和end在新ip段外部
+            ).first()
+            if overlapping_range:
+                raise ValidationError(
+                    _("定义的IP地址段({value})与已存在地址段({overlapping_range})范围重叠").format(
+                        value=self, overlapping_range=overlapping_range
+                    ))
+
+
+class IPv6Address(IPAddressBase):
+    ip_address = ByteField(verbose_name=_('IP地址'), max_length=16)
+
+    class Meta:
+        ordering = ('ip_address',)
+        db_table = 'ipam_ipv6_addr'
+        verbose_name = _('IPv6地址')
+        verbose_name_plural = verbose_name
+        constraints = [
+            models.UniqueConstraint(fields=('ip_address',), name='unique_ipv6_address')
+        ]
+
+    def __str__(self):
+        return self.ip_address_str()
+
+    @property
+    def ip_address_obj(self):
+        return ipaddress.IPv6Address(self.ip_address)
+
+    def ip_address_str(self):
+        try:
+            return self.ip_address_obj.__str__()
+        except Exception as exc:
+            return f'{self.ip_address}'
+
+
+class IPv6RangeRecord(IPRangeRecordBase):
+    start_address = ByteField(verbose_name=_('起始地址'), max_length=16)
+    end_address = ByteField(verbose_name=_('截止地址'), max_length=16)
+    prefixlen = models.PositiveIntegerField(
+        verbose_name=_('前缀长度'), validators=(MaxValueValidator(128),))
+
+    class Meta:
+        ordering = ('-creation_time',)
+        db_table = 'ipam_ipv6_range_record'
+        verbose_name = 'IPv6段操作记录'
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return self.build_record_display()
+
+    @staticmethod
+    def convert_to_ip_obj(val: int):
+        return ipaddress.IPv6Address(val)
+
+    @property
+    def start_address_obj(self):
+        return self.convert_to_ip_obj(self.start_address)
+
+    @property
+    def end_address_obj(self):
+        return self.convert_to_ip_obj(self.end_address)
+
+    def ip_range_display(self):
+        try:
+            return f'{self.start_address_obj} - {self.end_address_obj} /{self.prefixlen}'
+        except Exception as exc:
+            return f'{self.start_address} - {self.end_address} /{self.prefixlen}'
 
     def build_record_display(self):
         ip_range_str = self.ip_range_display()
