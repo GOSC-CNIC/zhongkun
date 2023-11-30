@@ -491,6 +491,40 @@ class IPv4RangeViewSet(NormalGenericViewSet):
         """
         return IPv4RangeHandler.assign_ipv4_range(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('修改一个子网IPv4地址段备注信息'),
+        request_body=no_body,
+        manual_parameters=NormalGenericViewSet.PARAMETERS_AS_ADMIN + [
+            openapi.Parameter(
+                name='remark',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('普通备注')
+            ),
+            openapi.Parameter(
+                name='admin_remark',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('管理员备注，需要有科技网管理员权限')
+            ),
+        ],
+        responses={
+            200: ''''''
+        }
+    )
+    @action(methods=['POST'], detail=True, url_path='remark', url_name='remark')
+    def change_ip_range_remark(self, request, *args, **kwargs):
+        """
+        修改一个子网IPv4地址段备注信息
+
+        * 参数“remark”，修改分配机构管理人员的备注信息
+        * 参数“admin_remark”，修改科技网管理员的备注信息，必须和“as-admin”一起使用
+        * 科技网管理员可以同时修改2个备注信息
+        """
+        return IPv4RangeHandler.change_ipv4_range_remark(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return serializers.IPv4RangeSerializer

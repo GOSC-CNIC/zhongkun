@@ -1457,6 +1457,98 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         self.assertEqual(IPv4RangeRecord.objects.filter(
             record_type=IPv4RangeRecord.RecordType.ASSIGN.value).count(), 2)
 
+    def test_remark(self):
+        org1 = get_or_create_organization(name='org1')
+        virt_obj1 = OrgVirtualObject(name='org virt obj1', organization=org1, creation_time=dj_timezone.now())
+        virt_obj1.save(force_insert=True)
+
+        nt = dj_timezone.now()
+        ip_range1 = IPv4RangeManager.create_ipv4_range(
+            name='已分配1', start_ip='127.0.0.1', end_ip='127.0.0.255', mask_len=24, asn=66,
+            create_time=nt, update_time=nt, status_code=IPv4Range.Status.ASSIGNED.value,
+            org_virt_obj=virt_obj1, assigned_time=nt, admin_remark='admin1', remark='remark1'
+        )
+        nt = dj_timezone.now()
+        ip_range2 = IPv4RangeManager.create_ipv4_range(
+            name='预留2', start_ip='159.0.1.1', end_ip='159.0.2.255', mask_len=22, asn=88,
+            create_time=nt, update_time=nt, status_code=IPv4Range.Status.RESERVED.value,
+            org_virt_obj=virt_obj1, assigned_time=nt, admin_remark='admin remark2', remark='remark2'
+        )
+
+        base_url = reverse('ipam-api:ipam-ipv4range-remark', kwargs={'id': 'test'})
+        response = self.client.post(base_url)
+        self.assertEqual(response.status_code, 401)
+
+        self.client.force_login(self.user1)
+        response = self.client.post(base_url)
+        self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
+
+        query = parse.urlencode(query={'remark': 'notfound'})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
+
+        query = parse.urlencode(query={'admin_remark': 'notfound66'})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
+
+        # not org admin
+        base_url = reverse('ipam-api:ipam-ipv4range-remark', kwargs={'id': ip_range1.id})
+        query = parse.urlencode(query={'remark': 'notfound'})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        uirw = UserIpamRoleWrapper(self.user1)
+        uirw.user_role = uirw.get_or_create_user_ipam_role()
+        uirw.user_role.organizations.add(org1)
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        ip_range1.refresh_from_db()
+        self.assertEqual(ip_range1.remark, 'notfound')
+        self.assertEqual(ip_range1.admin_remark, 'admin1')
+
+        # no org
+        ip_range1.org_virt_obj = None
+        ip_range1.save(update_fields=['org_virt_obj'])
+        query = parse.urlencode(query={'remark': 'test66'})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # status not assigned
+        base_url = reverse('ipam-api:ipam-ipv4range-remark', kwargs={'id': ip_range2.id})
+        query = parse.urlencode(query={'remark': 'notfound'})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # ---- test as-admin ----
+        uirw.user_role.organizations.remove(org1)
+
+        base_url = reverse('ipam-api:ipam-ipv4range-remark', kwargs={'id': ip_range1.id})
+        query = parse.urlencode(query={'remark': 'test88', 'admin_remark': 'admin remark88', 'as-admin': ''})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        uirw.user_role.is_readonly = True
+        uirw.user_role.save(update_fields=['is_readonly'])
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        uirw.user_role.is_admin = True
+        uirw.user_role.save(update_fields=['is_admin'])
+
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        ip_range1.refresh_from_db()
+        self.assertEqual(ip_range1.remark, 'test88')
+        self.assertEqual(ip_range1.admin_remark, 'admin remark88')
+
+        base_url = reverse('ipam-api:ipam-ipv4range-remark', kwargs={'id': ip_range2.id})
+        query = parse.urlencode(query={'remark': 'test66', 'admin_remark': 'admin remark66', 'as-admin': ''})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        ip_range2.refresh_from_db()
+        self.assertEqual(ip_range2.remark, 'test66')
+        self.assertEqual(ip_range2.admin_remark, 'admin remark66')
+
 
 class IPAMUserRoleTests(MyAPITransactionTestCase):
     def setUp(self):

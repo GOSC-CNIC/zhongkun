@@ -356,3 +356,61 @@ class IPv4RangeHandler:
             return view.exception_response(exc)
 
         return Response(data=serializers.IPv4RangeSerializer(instance=ipv4_range).data)
+
+    @staticmethod
+    def change_ipv4_range_remark(view: NormalGenericViewSet, request, kwargs):
+        try:
+            remark = request.query_params.get('remark', None)
+            admin_remark = request.query_params.get('admin_remark', None)
+            is_as_admin = view.is_as_admin_request(request=request)
+
+            if not remark and not admin_remark:
+                raise errors.BadRequest(message=_('必须指定要修改的备注信息'))
+
+            if admin_remark and not is_as_admin:
+                raise errors.BadRequest(message=_('管理员备注参数“admin_remark”只能以管理员身份请求时使用'))
+
+            ipv4_range = IPv4RangeManager.get_ip_range(_id=kwargs[view.lookup_field])
+
+            ur_wrapper = UserIpamRoleWrapper(user=request.user)
+            if is_as_admin:
+                if not ur_wrapper.has_kjw_admin_writable():
+                    raise errors.AccessDenied(message=_('你没有科技网IP管理功能的管理员权限'))
+            else:
+                IPv4RangeHandler.check_ip_range_org_admin_perm(ipv4_range=ipv4_range, ur_wrapper=ur_wrapper)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        update_fields = []
+        if remark:
+            ipv4_range.remark = remark
+            update_fields.append('remark')
+        if admin_remark:
+            ipv4_range.admin_remark = admin_remark
+            update_fields.append('admin_remark')
+
+        if update_fields:
+            ipv4_range.save(update_fields=update_fields)
+
+        return Response(data=serializers.IPv4RangeSerializer(instance=ipv4_range).data)
+
+    @staticmethod
+    def check_ip_range_org_admin_perm(ipv4_range: IPv4Range, ur_wrapper: UserIpamRoleWrapper):
+        """
+        检查是否有IP地址段分配机构管理员权限
+
+        :raises: AccessDenied
+        """
+        if ipv4_range.status != IPv4Range.Status.ASSIGNED.value:
+            raise errors.AccessDenied(message=_('IP地址段未分配，你没IP地址段的管理权限'))
+
+        if ipv4_range.org_virt_obj:
+            org_id = ipv4_range.org_virt_obj.organization_id
+        else:
+            org_id = None
+
+        if not org_id or not isinstance(org_id, str):
+            raise errors.AccessDenied(message=_('IP地址段无分配机构信息，你没IP地址段的管理权限'))
+
+        if not ur_wrapper.is_admin_of_org(org_id=org_id):
+            raise errors.AccessDenied(message=_('你没IP地址段的管理权限'))
