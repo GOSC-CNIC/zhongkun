@@ -35,8 +35,8 @@ class ServiceOrgFilter(SimpleListFilter):
 class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
     form = forms.VmsProviderForm
     list_display_links = ('id',)
-    list_display = ('id', 'name', 'name_en', 'org_data_center', 'organization_name', 'sort_weight', 'region_id', 'service_type',
-                    'endpoint_url', 'username',
+    list_display = ('id', 'name', 'name_en', 'org_data_center', 'organization_name', 'sort_weight',
+                    'only_admin_visible', 'region_id', 'service_type', 'endpoint_url', 'username',
                     'password', 'add_time', 'status', 'need_vpn', 'disk_available', 'vpn_endpoint_url', 'vpn_password',
                     'pay_app_service_id', 'longitude', 'latitude', 'remarks')
     search_fields = ['name', 'name_en', 'endpoint_url', 'remarks']
@@ -48,7 +48,7 @@ class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
     filter_horizontal = ('users',)
     readonly_fields = ('password', 'vpn_password')
     fieldsets = (
-        (_('说明、备注'), {'fields': ('remarks', 'sort_weight')}),
+        (_('说明、备注'), {'fields': ('remarks', 'sort_weight', 'only_admin_visible')}),
         (_('服务配置信息'), {
             'fields': ('org_data_center', 'name', 'name_en', 'service_type', 'cloud_type', 'status', 'endpoint_url',
                        'api_version', 'region_id', 'disk_available', 'username', 'password', 'change_password')

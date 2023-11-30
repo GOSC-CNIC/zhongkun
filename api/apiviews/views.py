@@ -1561,6 +1561,7 @@ class ServiceViewSet(CustomGenericViewSet):
                   "pay_app_service_id": "xxx",      # 通过此id可以查询在余额结算系统中此服务可用的券
                   "sort_weight": 8,
                   "disk_available": true    # true: 提供云硬盘服务; false: 云硬盘服务不可用
+                  "only_admin_visible": false   # 是否仅管理员可见
                 }
               ]
             }

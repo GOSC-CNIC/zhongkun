@@ -1466,7 +1466,7 @@ class ServiceTests(MyAPITestCase):
         self.assertKeysIn(["count", "next", "previous", "results"], response.data)
         self.assertKeysIn(["id", "name", "name_en", "service_type", "cloud_type", "add_time", "sort_weight",
                            "need_vpn", "status", "org_data_center", 'longitude', 'latitude', 'pay_app_service_id',
-                           'disk_available'], response.data["results"][0])
+                           'disk_available', 'only_admin_visible'], response.data["results"][0])
         self.assertEqual(len(response.data["results"]), 2)
         map_ = {s['id']: s for s in response.data["results"]}
         r_service1 = map_[self.service.id]
@@ -1548,7 +1548,7 @@ class ServiceTests(MyAPITestCase):
         self.assertKeysIn(["count", "next", "previous", "results"], response.data)
         self.assertKeysIn(["id", "name", "name_en", "service_type", "cloud_type", "add_time", "sort_weight",
                            "need_vpn", "status", "org_data_center", 'longitude', 'latitude', 'pay_app_service_id',
-                           'disk_available'], response.data["results"][0])
+                           'disk_available', 'only_admin_visible'], response.data["results"][0])
         self.assertKeysIn([
             "id", "name", "name_en", "sort_weight", "organization"], response.data["results"][0]['org_data_center'])
         self.assertKeysIn(["id", "name", "name_en"], response.data["results"][0]['org_data_center']['organization'])

@@ -257,6 +257,7 @@ class ServiceConfig(BaseService):
                     '正常情况下此内容会自动填充，不需要手动输入'))
     sort_weight = models.IntegerField(verbose_name=_('排序值'), default=0, help_text=_('值越小排序越靠前'))
     disk_available = models.BooleanField(verbose_name=_('提供云硬盘服务'), default=False)
+    only_admin_visible = models.BooleanField(verbose_name=_('仅管理员可见'), default=False)
 
     class Meta:
         ordering = ['sort_weight']
