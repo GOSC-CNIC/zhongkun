@@ -2,8 +2,6 @@ from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers
 
-from .models import IPRangeRecordBase
-
 
 class OrgVirtualObjectSimpleSerializer(serializers.Serializer):
     id = serializers.CharField(label='ID', read_only=True)
@@ -114,3 +112,41 @@ class IPv4RangeRecordSerializer(serializers.Serializer):
             return None
 
         return {'id': obj.user.id, 'username': obj.user.username}
+
+
+class IPv6RangeSerializer(serializers.Serializer):
+    id = serializers.CharField(label='ID', read_only=True)
+    name = serializers.CharField(label=_('名称'), max_length=255, required=True)
+    status = serializers.CharField(label=_('状态'), max_length=16)
+    creation_time = serializers.DateTimeField(label=_('创建时间'))
+    update_time = serializers.DateTimeField(label=_('更新时间'))
+    assigned_time = serializers.DateTimeField(label=_('分配时间'))
+    admin_remark = serializers.CharField(label=_('科技网管理员备注信息'), max_length=255)
+    remark = serializers.CharField(label=_('机构管理员备注信息'), max_length=255)
+    start_address = serializers.SerializerMethodField(label=_('起始地址'), method_name='get_start_address')
+    end_address = serializers.SerializerMethodField(label=_('截止地址'), method_name='get_end_address')
+    prefixlen = serializers.IntegerField(label=_('前缀长度'))
+    asn = serializers.SerializerMethodField(label=_('AS编号'), method_name='get_asn')
+    org_virt_obj = OrgVirtualObjectSimpleSerializer(label=_('机构虚拟对象'))
+
+    @staticmethod
+    def get_asn(obj):
+        asn = obj.asn
+        if asn:
+            return {'id': asn.id, 'number': asn.number}
+
+        return None
+
+    @staticmethod
+    def get_start_address(obj):
+        try:
+            return str(obj.start_address_obj)
+        except Exception as exc:
+            return ''
+
+    @staticmethod
+    def get_end_address(obj):
+        try:
+            return str(obj.end_address_obj)
+        except Exception as exc:
+            return ''

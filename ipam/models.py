@@ -39,6 +39,9 @@ class IPRangeIntItem(_IPRangeItem):
     pass
 
 
+IPv6RangeStrItem = namedtuple('IPv6RangeItem', ['start', 'end', 'prefix'])
+
+
 def ipv4_int_to_str(ipv4: int):
     return str(ipaddress.IPv4Address(ipv4))
 
@@ -423,7 +426,7 @@ class IPv6Range(IPRangeBase):
         try:
             return f'{self.start_address_obj} - {self.end_address_obj} /{self.prefixlen}'
         except Exception as exc:
-            return f'{self.start_address} - {self.end_address} /{self.prefixlen}'
+            return f'{self.start_address.hex(":", 2)} - {self.end_address.hex(":", 2)} /{self.prefixlen}'
 
     @cached_property
     def start_address_network(self):
