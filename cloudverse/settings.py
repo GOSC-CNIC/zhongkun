@@ -317,6 +317,7 @@ SWAGGER_SETTINGS = {
             'type': 'apiKey',
         }
     },
+    'DOC_EXPANSION': 'none',
 }
 
 # swagger api在线文档地址配置
