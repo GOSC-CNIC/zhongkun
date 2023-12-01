@@ -42,6 +42,15 @@ class IPRangeIntItem(_IPRangeItem):
 IPv6RangeStrItem = namedtuple('IPv6RangeItem', ['start', 'end', 'prefix'])
 
 
+class IPv6RangeBytesItem(IPv6RangeStrItem):
+    """
+    start: bytes
+    end: bytes
+    prefix: int
+    """
+    pass
+
+
 def ipv4_int_to_str(ipv4: int):
     return str(ipaddress.IPv4Address(ipv4))
 

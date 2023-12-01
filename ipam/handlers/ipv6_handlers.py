@@ -145,3 +145,30 @@ class IPv6RangeHandler:
         data['start_address'] = start_address
         data['end_address'] = end_address
         return data
+
+    def update_ipv6_range(self, view: NormalGenericViewSet, request, kwargs):
+        try:
+            data = self._add_ipv6_ranges_validate_params(view=view, request=request)
+            ip_range = IPv6RangeManager.get_ip_range(_id=kwargs[view.lookup_field])
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        ur_wrapper = UserIpamRoleWrapper(user=request.user)
+        if not ur_wrapper.has_kjw_admin_writable():
+            return view.exception_response(
+                errors.AccessDenied(message=_('你没有科技网IP管理功能的管理员权限')))
+
+        if ip_range.status not in [IPv6Range.Status.WAIT.value, IPv6Range.Status.RESERVED.value]:
+            return view.exception_response(
+                errors.ConflictError(message=_('只允许修改“未分配”和“预留”状态的IP地址段')))
+
+        try:
+            ip_range = IPv6RangeManager.do_update_ipv6_range(
+                ip_range=ip_range, user=request.user, name=data['name'],
+                start_ip=data['start_address'], end_ip=data['end_address'], prefixlen=data['prefixlen'],
+                asn=data['asn'],  admin_remark=data['admin_remark']
+            )
+        except errors.ValidationError as exc:
+            return view.exception_response(errors.InvalidArgument(message=exc.message))
+
+        return Response(data=serializers.IPv6RangeSerializer(instance=ip_range).data)

@@ -413,3 +413,147 @@ class IPv6RangeTests(MyAPITransactionTestCase):
         })
         self.assertEqual(response.status_code, 200)
         self.assertEqual(IPv6RangeRecord.objects.count(), 2)
+
+    def test_update_ipv6_range(self):
+        org1 = get_or_create_organization(name='org1')
+        virt_obj1 = OrgVirtualObject(name='org virt obj1', organization=org1, creation_time=dj_timezone.now())
+        virt_obj1.save(force_insert=True)
+
+        nt = dj_timezone.now()
+        ip_range1 = IPv6RangeManager.create_ipv6_range(
+            name='已分配1', start_ip='2400:dd01:1010:30::', end_ip='2400:dd01:1010:30:ffff:ffff:ffff:ffff',
+            prefixlen=64, asn=66,
+            create_time=nt, update_time=nt, status_code=IPv6Range.Status.ASSIGNED.value,
+            org_virt_obj=None, assigned_time=nt, admin_remark='admin1', remark='remark1'
+        )
+        nt = dj_timezone.now()
+        ip_range2 = IPv6RangeManager.create_ipv6_range(
+            name='预留2', start_ip='2400:dd01:1010:34::', end_ip='2400:dd01:1010:35:ffff:ffff:ffff:fff',
+            prefixlen=63, asn=88,
+            create_time=nt, update_time=nt, status_code=IPv6Range.Status.RESERVED.value,
+            org_virt_obj=virt_obj1, assigned_time=nt, admin_remark='admin remark2', remark='remark2'
+        )
+
+        base_url = reverse('ipam-api:ipam-ipv6range-detail', kwargs={'id': 'test'})
+        response = self.client.put(base_url, data={
+            'name': 'test', 'prefixlen': 64,
+            'start_address': '2400:dd01:1010:31::', 'end_address': '2400:dd01:1010:31:ffff:ffff:ffff:0',
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertEqual(response.status_code, 401)
+
+        self.client.force_login(self.user1)
+        response = self.client.put(base_url, data={
+            'name': 'test', 'prefixlen': 64,
+            'start_address': '2400:dd01:1010:31::', 'end_address': '2400:dd01:1010:31:ffff:ffff:ffff:0',
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
+
+        base_url = reverse('ipam-api:ipam-ipv6range-detail', kwargs={'id': ip_range1.id})
+        response = self.client.put(base_url, data={
+            'name': 'test', 'prefixlen': 64,
+            'start_address': '2400:dd01:1010:31::', 'end_address': '2400:dd01:1010:31:ffff:ffff:ffff:0',
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        uirw = UserIpamRoleWrapper(self.user1)
+        uirw.user_role = uirw.get_or_create_user_ipam_role()
+        uirw.user_role.is_readonly = True
+        uirw.user_role.save(update_fields=['is_readonly'])
+        response = self.client.put(base_url, data={
+            'name': 'test', 'prefixlen': 64,
+            'start_address': '2400:dd01:1010:31::', 'end_address': '2400:dd01:1010:31:ffff:ffff:ffff:0',
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        uirw.user_role.is_admin = True
+        uirw.user_role.save(update_fields=['is_admin'])
+        # status 'assigned'
+        response = self.client.put(base_url, data={
+            'name': 'test', 'prefixlen': 64,
+            'start_address': '2400:dd01:1010:31::', 'end_address': '2400:dd01:1010:31:ffff:ffff:ffff:0',
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertErrorResponse(status_code=409, code='Conflict', response=response)
+
+        # ok
+        ip_range1.status = IPv6Range.Status.WAIT.value
+        ip_range1.save(update_fields=['status'])
+        response = self.client.put(base_url, data={
+            'name': 'test', 'prefixlen': 64,
+            'start_address': '2400:dd01:1010:31::ffff', 'end_address': '2400:dd01:1010:31:ffff:ffff:ffff:1',
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['id', 'name', 'creation_time', 'status', 'update_time', 'assigned_time', 'admin_remark',
+                           'remark', 'start_address', 'end_address', 'prefixlen', 'asn', 'org_virt_obj'], response.data)
+        self.assertEqual(response.data['start_address'], '2400:dd01:1010:31::ffff')
+        self.assertEqual(response.data['end_address'], '2400:dd01:1010:31:ffff:ffff:ffff:1')
+        self.assertEqual(response.data['prefixlen'], 64)
+        ip_range1.refresh_from_db()
+        self.assertEqual(ip_range1.start_address, ipaddress.IPv6Address('2400:dd01:1010:31::ffff').packed)
+        self.assertEqual(ip_range1.end_address, ipaddress.IPv6Address('2400:dd01:1010:31:ffff:ffff:ffff:1').packed)
+
+        self.assertEqual(IPv6RangeRecord.objects.count(), 1)
+        record: IPv6RangeRecord = IPv6RangeRecord.objects.first()
+        self.assertEqual(record.record_type, IPv6RangeRecord.RecordType.CHANGE.value)
+        self.assertEqual(record.start_address, ipaddress.IPv6Address('2400:dd01:1010:30::').packed)
+        self.assertEqual(record.end_address, ipaddress.IPv6Address('2400:dd01:1010:30:ffff:ffff:ffff:ffff').packed)
+        self.assertEqual(record.prefixlen, 64)
+        self.assertEqual(record.ip_ranges[0]['start'], '2400:dd01:1010:31::ffff')
+        self.assertEqual(record.ip_ranges[0]['end'], '2400:dd01:1010:31:ffff:ffff:ffff:1')
+        self.assertEqual(record.ip_ranges[0]['prefix'], 64)
+
+        # start和end 子网不同
+        response = self.client.put(base_url, data={
+            'name': 'test', 'prefixlen': 64,
+            'start_address': '2400:dd01:1010:32::ffff', 'end_address': '2400:dd01:1010:33:ffff:ffff:ffff:1',
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # ok
+        response = self.client.put(base_url, data={
+            'name': 'test', 'prefixlen': 63,
+            'start_address': '2400:dd01:1010:32::ffff', 'end_address': '2400:dd01:1010:33:ffff:ffff:ffff:1',
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(IPv6RangeRecord.objects.count(), 2)
+
+        # ip mask不变不产生记录
+        response = self.client.put(base_url, data={
+            'name': '66test88', 'prefixlen': 63,
+            'start_address': '2400:dd01:1010:32::ffff', 'end_address': '2400:dd01:1010:33:ffff:ffff:ffff:1',
+            'asn': 99, 'admin_remark': '88remark test 66'
+        })
+        self.assertEqual(response.status_code, 200)
+        ip_range1.refresh_from_db()
+        self.assertEqual(ip_range1.name, '66test88')
+        self.assertEqual(ip_range1.admin_remark, '88remark test 66')
+        self.assertEqual(ip_range1.asn.number, 99)
+        self.assertEqual(IPv6RangeRecord.objects.count(), 2)
+
+        # ok
+        base_url = reverse('ipam-api:ipam-ipv6range-detail', kwargs={'id': ip_range2.id})
+        response = self.client.put(base_url, data={
+            'name': 'test', 'prefixlen': 63,
+            'start_address': '2400:dd01:1010:34::ffff', 'end_address': '2400:dd01:1010:34:ffff:ffff:ffff:1',
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['id', 'name', 'creation_time', 'status', 'update_time', 'assigned_time', 'admin_remark',
+                           'remark', 'start_address', 'end_address', 'prefixlen', 'asn', 'org_virt_obj'], response.data)
+        self.assertEqual('2400:dd01:1010:34::ffff', response.data['start_address'])
+        self.assertEqual('2400:dd01:1010:34:ffff:ffff:ffff:1', response.data['end_address'])
+        self.assertEqual(63, response.data['prefixlen'])
+        ip_range2.refresh_from_db()
+        self.assertEqual(ip_range2.start_address, ipaddress.IPv6Address('2400:dd01:1010:34::ffff').packed)
+        self.assertEqual(ip_range2.end_address, ipaddress.IPv6Address('2400:dd01:1010:34:ffff:ffff:ffff:1').packed)
+        self.assertEqual(ip_range2.prefixlen, 63)
+        self.assertEqual(ip_range2.org_virt_obj_id, virt_obj1.id)
+
+        self.assertEqual(IPv6RangeRecord.objects.count(), 3)

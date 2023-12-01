@@ -9,7 +9,7 @@ from django.core.exceptions import ValidationError
 from core import errors
 from .models import (
     IPv6Range, ASN, OrgVirtualObject, ipv6_str_to_bytes,
-    IPv6RangeRecord, IPv6RangeStrItem
+    IPv6RangeRecord, IPv6RangeStrItem, IPv6RangeBytesItem
 )
 from .managers import UserIpamRoleWrapper, get_or_create_asn
 
@@ -203,6 +203,113 @@ class IPv6RangeManager:
 
         return ip_range
 
+    @staticmethod
+    def update_ipv6_range(
+            ip_range: IPv6Range, name: str, start_ip: Union[str, bytes], end_ip: Union[str, bytes], prefixlen: int,
+            asn: Union[ASN, int], admin_remark: str
+    ):
+        """
+        :return: IPv6Range, update_fields: list
+        :raises: ValidationError
+        """
+        if isinstance(start_ip, bytes):
+            if len(start_ip) != 16:
+                raise ValidationError(_('字节格式的ip地址长度必须是16字节'))
+            start_bytes = start_ip
+        else:
+            start_bytes = ipv6_str_to_bytes(start_ip)
+
+        if isinstance(end_ip, bytes):
+            if len(end_ip) != 16:
+                raise ValidationError(_('字节格式的ip地址长度必须是16字节'))
+            end_bytes = end_ip
+        else:
+            end_bytes = ipv6_str_to_bytes(end_ip)
+
+        prefixlen = int(prefixlen)
+        if not (0 <= prefixlen <= 128):
+            raise errors.ValidationError(message=_('前缀长度无效，取值范围为0-128'))
+
+        if isinstance(asn, int):
+            asn = get_or_create_asn(number=asn)
+
+        update_fields = []
+        if name and ip_range.name != name:
+            ip_range.name = name
+            update_fields.append('name')
+
+        if start_bytes != ip_range.start_address:
+            ip_range.start_address = start_bytes
+            update_fields.append('start_address')
+
+        if end_bytes != ip_range.end_address:
+            ip_range.end_address = end_bytes
+            update_fields.append('end_address')
+
+        if prefixlen != ip_range.prefixlen:
+            ip_range.prefixlen = prefixlen
+            update_fields.append('prefixlen')
+
+        if asn.id != ip_range.asn_id:
+            ip_range.asn = asn
+            ip_range.asn_id = asn.id
+            update_fields.append('asn_id')
+
+        if admin_remark and ip_range.admin_remark != admin_remark:
+            ip_range.admin_remark = admin_remark
+            update_fields.append('admin_remark')
+
+        if update_fields:
+            ip_range.update_time = dj_timezone.now()
+            update_fields.append('update_time')
+
+            try:
+                ip_range.clear_cached_property()  # 字段值变更了，需要清除缓存属性
+                ip_range.clean()
+            except ValidationError as exc:
+                raise errors.ValidationError(message=exc.messages[0])
+
+            ip_range.save(update_fields=update_fields)
+
+        return ip_range, update_fields
+
+    @staticmethod
+    def do_update_ipv6_range(
+            ip_range: IPv6Range, user, name: str, start_ip: Union[str, bytes], end_ip: Union[str, bytes],
+            prefixlen: int, asn: Union[ASN, int], admin_remark: str
+    ) -> IPv6Range:
+        """
+        :raises: ValidationError
+        """
+        old_ip_range = IPv6RangeBytesItem(
+            start=ip_range.start_address, end=ip_range.end_address, prefix=ip_range.prefixlen
+        )
+        ip_range, update_fields = IPv6RangeManager.update_ipv6_range(
+            ip_range=ip_range, name=name, start_ip=start_ip, end_ip=end_ip, prefixlen=prefixlen,
+            asn=asn, admin_remark=admin_remark
+        )
+
+        # need_record = any(True if f in update_fields else False for f in ['start_address', 'end_address', 'mask_len'])
+        need_record = False
+        if update_fields:
+            for f in ['start_address', 'end_address', 'prefixlen']:
+                if f in update_fields:
+                    need_record = True
+                    break
+
+        if need_record:
+            try:
+                new_ip_range = IPv6RangeStrItem(
+                    start=str(ip_range.start_address_obj), end=str(ip_range.end_address_obj), prefix=ip_range.prefixlen
+                )
+                IPv6RangeRecordManager.create_change_record(
+                    user=user, new_ip_range=new_ip_range, remark='', old_ip_range=old_ip_range
+                )
+            except Exception as exc:
+                pass
+
+        return ip_range
+
 
 class IPv6RangeRecordManager:
     @staticmethod
@@ -231,4 +338,12 @@ class IPv6RangeRecordManager:
             user=user, record_type=IPv6RangeRecord.RecordType.ADD.value,
             start_address=ip_range.start_address, end_address=ip_range.end_address, prefixlen=ip_range.prefixlen,
             ip_ranges=[], remark=remark, org_virt_obj=None
+        )
+
+    @staticmethod
+    def create_change_record(user, new_ip_range: IPv6RangeStrItem, remark: str, old_ip_range: IPv6RangeBytesItem):
+        return IPv6RangeRecordManager.create_record(
+            user=user, record_type=IPv6RangeRecord.RecordType.CHANGE.value,
+            start_address=old_ip_range.start, end_address=old_ip_range.end, prefixlen=old_ip_range.prefix,
+            ip_ranges=[new_ip_range], remark=remark, org_virt_obj=None
         )
