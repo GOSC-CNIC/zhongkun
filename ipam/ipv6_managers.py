@@ -345,6 +345,28 @@ class IPv6RangeManager:
 
         return ip_range
 
+    @staticmethod
+    def do_reserve_ipv6_range(ip_range: IPv6Range, org_virt_obj, user):
+        """
+        预留
+        """
+        status = ip_range.status
+        ip_range.status = IPv6Range.Status.RESERVED.value
+        ip_range.org_virt_obj = org_virt_obj
+        ip_range.assigned_time = None
+        ip_range.update_time = dj_timezone.now()
+        ip_range.remark = ''
+        ip_range.save(update_fields=['status', 'org_virt_obj', 'assigned_time', 'update_time', 'remark'])
+        try:
+            remark = f'{IPv6Range.Status.RESERVED.value} from {status}'
+            IPv6RangeRecordManager.create_reserve_record(
+                user=user, ip_range=ip_range, remark=remark, org_virt_obj=org_virt_obj
+            )
+        except Exception as exc:
+            pass
+
+        return ip_range
+
 
 class IPv6RangeRecordManager:
     @staticmethod
@@ -395,6 +417,14 @@ class IPv6RangeRecordManager:
     def create_recover_record(user, ip_range: IPv6Range, remark: str, org_virt_obj):
         return IPv6RangeRecordManager.create_record(
             user=user, record_type=IPv6RangeRecord.RecordType.RECOVER.value,
+            start_address=ip_range.start_address, end_address=ip_range.end_address, prefixlen=ip_range.prefixlen,
+            ip_ranges=[], remark=remark, org_virt_obj=org_virt_obj
+        )
+
+    @staticmethod
+    def create_reserve_record(user, ip_range: IPv6Range, remark: str, org_virt_obj):
+        return IPv6RangeRecordManager.create_record(
+            user=user, record_type=IPv6RangeRecord.RecordType.RESERVE.value,
             start_address=ip_range.start_address, end_address=ip_range.end_address, prefixlen=ip_range.prefixlen,
             ip_ranges=[], remark=remark, org_virt_obj=org_virt_obj
         )

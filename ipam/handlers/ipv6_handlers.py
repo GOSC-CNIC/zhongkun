@@ -7,7 +7,7 @@ from core import errors
 from api.viewsets import NormalGenericViewSet, serializer_error_msg
 from ..managers import UserIpamRoleWrapper
 from ..ipv6_managers import IPv6RangeManager
-from ..models import IPv6Range
+from ..models import IPv6Range, OrgVirtualObject
 from .. import serializers
 
 
@@ -213,5 +213,38 @@ class IPv6RangeHandler:
                 IPv6RangeManager.do_recover_ipv6_range(ip_range=ip_range, user=request.user)
             except Exception as exc:
                 return view.exception_response(exc)
+
+        return Response(data=serializers.IPv6RangeSerializer(instance=ip_range).data)
+
+    @staticmethod
+    def reserve_ipv6_range(view: NormalGenericViewSet, request, kwargs):
+        org_virt_obj_id = request.query_params.get('org_virt_obj_id')
+        if not org_virt_obj_id:
+            return view.exception_response(
+                errors.InvalidArgument(message=_('必须指定预留给哪个机构二级对象')))
+
+        ur_wrapper = UserIpamRoleWrapper(user=request.user)
+        if not ur_wrapper.has_kjw_admin_writable():
+            return view.exception_response(
+                errors.AccessDenied(message=_('你没有科技网IP管理功能的管理员权限')))
+
+        try:
+            org_virt_obj = OrgVirtualObject.objects.filter(id=org_virt_obj_id).first()
+            if org_virt_obj is None:
+                raise errors.TargetNotExist(message=_('指定的机构二级对象不存在'))
+
+            ip_range = IPv6RangeManager.get_ip_range(_id=kwargs[view.lookup_field])
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        if ip_range.status != IPv6Range.Status.WAIT.value:
+            return view.exception_response(
+                errors.ConflictError(message=_('只允许“未分配”状态的IP地址段做预留操作')))
+
+        try:
+            IPv6RangeManager.do_reserve_ipv6_range(
+                ip_range=ip_range, user=request.user, org_virt_obj=org_virt_obj)
+        except Exception as exc:
+            return view.exception_response(exc)
 
         return Response(data=serializers.IPv6RangeSerializer(instance=ip_range).data)
