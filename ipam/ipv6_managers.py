@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, List
 from datetime import datetime
 
 from django.db.models import Q, QuerySet
@@ -8,7 +8,8 @@ from django.core.exceptions import ValidationError
 
 from core import errors
 from .models import (
-    IPv6Range, ASN, OrgVirtualObject, ipv6_str_to_bytes
+    IPv6Range, ASN, OrgVirtualObject, ipv6_str_to_bytes,
+    IPv6RangeRecord, IPv6RangeStrItem
 )
 from .managers import UserIpamRoleWrapper, get_or_create_asn
 
@@ -176,3 +177,58 @@ class IPv6RangeManager:
             ip_range.name = str(ip_range.start_address_network)
 
         return ip_range
+
+    @staticmethod
+    def do_create_ipv6_range(
+            user, name: str, start_ip: Union[str, bytes], end_ip: Union[str, bytes], prefixlen: int,
+            asn: Union[ASN, int], org_virt_obj: Union[OrgVirtualObject, None],
+            admin_remark: str, remark: str,
+            create_time: Union[datetime, None], update_time: Union[datetime, None], assigned_time=None
+    ) -> IPv6Range:
+        """
+        :raises: ValidationError
+        """
+        ip_range = IPv6RangeManager.create_ipv6_range(
+            name=name, start_ip=start_ip, end_ip=end_ip, prefixlen=prefixlen,
+            asn=asn, status_code=IPv6Range.Status.WAIT.value, org_virt_obj=org_virt_obj,
+            admin_remark=admin_remark, remark=remark,
+            create_time=create_time, update_time=update_time, assigned_time=assigned_time
+        )
+        try:
+            IPv6RangeRecordManager.create_add_record(
+                user=user, ip_range=ip_range, remark=''
+            )
+        except Exception as exc:
+            pass
+
+        return ip_range
+
+
+class IPv6RangeRecordManager:
+    @staticmethod
+    def create_record(
+            user, record_type: str,
+            start_address: bytes, end_address: bytes, prefixlen: int, ip_ranges: List[IPv6RangeStrItem],
+            remark: str = '', org_virt_obj: OrgVirtualObject = None
+    ):
+        record = IPv6RangeRecord(
+            creation_time=dj_timezone.now(),
+            record_type=record_type,
+            start_address=start_address,
+            end_address=end_address,
+            prefixlen=prefixlen,
+            user=user,
+            org_virt_obj=org_virt_obj,
+            remark=remark
+        )
+        record.set_ip_ranges(ip_ranges=ip_ranges)
+        record.save(force_insert=True)
+        return record
+
+    @staticmethod
+    def create_add_record(user, ip_range: IPv6Range, remark: str):
+        return IPv6RangeRecordManager.create_record(
+            user=user, record_type=IPv6RangeRecord.RecordType.ADD.value,
+            start_address=ip_range.start_address, end_address=ip_range.end_address, prefixlen=ip_range.prefixlen,
+            ip_ranges=[], remark=remark, org_virt_obj=None
+        )

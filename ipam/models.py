@@ -325,16 +325,6 @@ class IPRangeRecordBase(UuidModel):
     class Meta:
         abstract = True
 
-    def set_ip_ranges(self, ip_ranges: list[IPRangeItem]):
-        """
-        :ip_ranges: [{
-            'start': '127.0.0.1',
-            'end': '127.0.0.255',
-            'mask': 24
-        }]
-        """
-        self.ip_ranges = [i._asdict() for i in ip_ranges]
-
 
 class IPv4RangeRecord(IPRangeRecordBase):
     start_address = models.PositiveIntegerField(verbose_name=_('起始地址'))
@@ -373,6 +363,16 @@ class IPv4RangeRecord(IPRangeRecordBase):
         ip_range_str = self.ip_range_display()
         # r_type = self.RecordType[self.record_type]
         return f"{self.record_type} {ip_range_str}"
+
+    def set_ip_ranges(self, ip_ranges: list[IPRangeItem]):
+        """
+        :ip_ranges: [{
+            'start': '127.0.0.1',
+            'end': '127.0.0.255',
+            'mask': 24
+        }]
+        """
+        self.ip_ranges = [i._asdict() for i in ip_ranges]
 
 
 class IPv6Range(IPRangeBase):
@@ -544,9 +544,19 @@ class IPv6RangeRecord(IPRangeRecordBase):
         try:
             return f'{self.start_address_obj} - {self.end_address_obj} /{self.prefixlen}'
         except Exception as exc:
-            return f'{self.start_address} - {self.end_address} /{self.prefixlen}'
+            return f'{self.start_address.hex(":", 2)} - {self.end_address.hex(":", 2)} /{self.prefixlen}'
 
     def build_record_display(self):
         ip_range_str = self.ip_range_display()
         # r_type = self.RecordType[self.record_type]
         return f"{self.record_type} {ip_range_str}"
+
+    def set_ip_ranges(self, ip_ranges: list[IPv6RangeStrItem]):
+        """
+        :ip_ranges: [{
+            'start': '2400:dd01:1010:30::',
+            'end': '2400:dd01:1010:30:ffff:ffff:ffff:ffff',
+            'prefix': 64
+        }]
+        """
+        self.ip_ranges = [i._asdict() for i in ip_ranges]

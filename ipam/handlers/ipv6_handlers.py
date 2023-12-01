@@ -1,12 +1,14 @@
 import ipaddress
 
 from django.utils.translation import gettext as _
+from rest_framework.response import Response
 
 from core import errors
-from api.viewsets import NormalGenericViewSet
+from api.viewsets import NormalGenericViewSet, serializer_error_msg
 from ..managers import UserIpamRoleWrapper
 from ..ipv6_managers import IPv6RangeManager
 from ..models import IPv6Range
+from .. import serializers
 
 
 class IPv6RangeHandler:
@@ -76,3 +78,70 @@ class IPv6RangeHandler:
             'is_admin': is_admin,
             'status': status
         }
+
+    def add_ipv6_range(self, view: NormalGenericViewSet, request):
+        try:
+            data = self._add_ipv6_ranges_validate_params(view=view, request=request)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        ur_wrapper = UserIpamRoleWrapper(user=request.user)
+        if not ur_wrapper.has_kjw_admin_writable():
+            return view.exception_response(
+                errors.AccessDenied(message=_('你没有科技网IP管理功能的管理员权限')))
+
+        try:
+            ipv6_range = IPv6RangeManager.do_create_ipv6_range(
+                user=request.user, name=data['name'],
+                start_ip=data['start_address'], end_ip=data['end_address'], prefixlen=data['prefixlen'],
+                asn=data['asn'], org_virt_obj=None,
+                admin_remark=data['admin_remark'], remark='',
+                create_time=None, update_time=None, assigned_time=None
+            )
+        except errors.ValidationError as exc:
+            return view.exception_response(errors.InvalidArgument(message=exc.message))
+
+        return Response(data=serializers.IPv6RangeSerializer(instance=ipv6_range).data)
+
+    @staticmethod
+    def _add_ipv6_ranges_validate_params(view: NormalGenericViewSet, request):
+        serializer = view.get_serializer(data=request.data)
+        if not serializer.is_valid(raise_exception=False):
+            s_errors = serializer.errors
+            if 'start_address' in s_errors:
+                exc = errors.InvalidArgument(
+                    message=_('起始IP地址无效。') + s_errors['start_address'][0])
+            elif 'end_address' in s_errors:
+                exc = errors.InvalidArgument(
+                    message=_('结束IP地址无效。') + s_errors['end_address'][0])
+            elif 'prefixlen' in s_errors:
+                exc = errors.InvalidArgument(
+                    message=_('子网前缀长度无效。') + s_errors['prefixlen'][0])
+            elif 'asn' in s_errors:
+                exc = errors.InvalidArgument(
+                    message=_('AS编号无效。') + s_errors['asn'][0])
+            else:
+                msg = serializer_error_msg(s_errors)
+                exc = errors.BadRequest(message=msg)
+
+            raise exc
+
+        data = serializer.validated_data.copy()
+        start_address = data['start_address']
+        end_address = data['end_address']
+
+        if start_address:
+            try:
+                start_address = ipaddress.IPv6Address(start_address).packed
+            except ipaddress.AddressValueError:
+                raise errors.InvalidArgument(message=_('起始IP地址无效'))
+
+        if end_address:
+            try:
+                end_address = ipaddress.IPv6Address(end_address).packed
+            except ipaddress.AddressValueError:
+                raise errors.InvalidArgument(message=_('结束IP地址无效'))
+
+        data['start_address'] = start_address
+        data['end_address'] = end_address
+        return data

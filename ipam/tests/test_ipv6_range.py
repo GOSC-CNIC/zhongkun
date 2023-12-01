@@ -1,3 +1,4 @@
+import ipaddress
 from urllib import parse
 
 from django.urls import reverse
@@ -6,7 +7,7 @@ from django.utils import timezone as dj_timezone
 from utils.test import get_or_create_user, MyAPITransactionTestCase, get_or_create_organization
 from ..managers import UserIpamRoleWrapper
 from ..ipv6_managers import IPv6RangeManager
-from ..models import ASN, OrgVirtualObject, IPv6Range
+from ..models import ASN, OrgVirtualObject, IPv6Range, IPv6RangeRecord
 
 
 class IPv6RangeTests(MyAPITransactionTestCase):
@@ -14,7 +15,7 @@ class IPv6RangeTests(MyAPITransactionTestCase):
         self.user1 = get_or_create_user(username='tom@qq.com')
         self.user2 = get_or_create_user(username='lisi@cnic.cn')
 
-    def test_list_ipv4_ranges(self):
+    def test_list_ipv6_ranges(self):
         org1 = get_or_create_organization(name='org1')
         org2 = get_or_create_organization(name='org2')
 
@@ -260,3 +261,155 @@ class IPv6RangeTests(MyAPITransactionTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 2)
         self.assertEqual(len(response.data['results']), 2)
+
+    def test_create_ipv6_range(self):
+        base_url = reverse('ipam-api:ipam-ipv6range-list')
+        response = self.client.post(base_url, data={
+            'name': '', 'start_address': '', 'end_address': '', 'prefixlen': 24,
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertEqual(response.status_code, 401)
+
+        self.client.force_login(self.user1)
+        response = self.client.post(base_url, data={
+            'name': 'test', 'start_address': '2400:dd01:1010:30::',
+            'end_address': '2400:dd01:1010:30:ffff:ffff:ffff:ffff', 'prefixlen': 64,
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # start_address
+        response = self.client.post(base_url, data={
+            'name': 'test', 'start_address': '2400:dd01:1010:30::fffg',
+            'end_address': '2400:dd01:1010:30:ffff:ffff:ffff:ffff', 'prefixlen': 64,
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # end_address
+        response = self.client.post(base_url, data={
+            'name': 'test', 'start_address': '2400:dd01:1010:30::',
+            'end_address': '2400:dd01:1010:3000:ffff:ffff:ffff:fffg', 'prefixlen': 64,
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # prefixlen 0-128
+        response = self.client.post(base_url, data={
+            'name': 'test', 'start_address': '2400:dd01:1010:30::',
+            'end_address': '2400:dd01:1010:30:ffff:ffff:ffff:ffff', 'prefixlen': 129,
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # asn 0-65535
+        response = self.client.post(base_url, data={
+            'name': 'test', 'start_address': '2400:dd01:1010:30::',
+            'end_address': '2400:dd01:1010:30:ffff:ffff:ffff:ffff', 'prefixlen': 64,
+            'asn': 65536, 'admin_remark': 'remark test'
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # AccessDenied
+        response = self.client.post(base_url, data={
+            'name': 'test', 'start_address': '2400:dd01:1010:30::',
+            'end_address': '2400:dd01:1010:30:ffff:ffff:ffff:ffff', 'prefixlen': 64,
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        u1_role_wrapper = UserIpamRoleWrapper(user=self.user1)
+        u1_role_wrapper.user_role = u1_role_wrapper.get_or_create_user_ipam_role()
+        u1_role_wrapper.user_role.is_readonly = True
+        u1_role_wrapper.user_role.save(update_fields=['is_readonly'])
+        response = self.client.post(base_url, data={
+            'name': 'test', 'start_address': '2400:dd01:1010:30::',
+            'end_address': '2400:dd01:1010:30:ffff:ffff:ffff:ffff', 'prefixlen': 64,
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+        u1_role_wrapper = UserIpamRoleWrapper(user=self.user1)
+        u1_role_wrapper.user_role.is_readonly = False
+        u1_role_wrapper.user_role.is_admin = True
+        u1_role_wrapper.user_role.save(update_fields=['is_readonly', 'is_admin'])
+
+        # start_address > end_address
+        response = self.client.post(base_url, data={
+            'name': 'test', 'start_address': '2400:dd01:1010:31::',
+            'end_address': '2400:dd01:1010:30:ffff:ffff:ffff:ffff', 'prefixlen': 64,
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # start_address, end_address, prefixlen, not in same network
+        response = self.client.post(base_url, data={
+            'name': 'test', 'start_address': '2400:dd01:1010:30::',
+            'end_address': '2400:dd01:1010:31:ffff:ffff:ffff:ffff', 'prefixlen': 64,
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        response = self.client.post(base_url, data={
+            'name': 'test', 'start_address': '2400:dd01:1010:30::',
+            'end_address': '2400:dd01:1010:30:ffff:ffff:ffff:ffff', 'prefixlen': 65,
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # ok
+        self.assertEqual(IPv6RangeRecord.objects.count(), 0)
+        response = self.client.post(base_url, data={
+            'name': 'test', 'start_address': '2400:dd01:1010:30::',
+            'end_address': '2400:dd01:1010:30:ffff:ffff:ffff:ffff', 'prefixlen': 64,
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['id', 'name', 'creation_time', 'status', 'update_time', 'assigned_time', 'admin_remark',
+                           'remark', 'start_address', 'end_address', 'prefixlen', 'asn', 'org_virt_obj'], response.data)
+        self.assertEqual(response.data['start_address'], '2400:dd01:1010:30::')
+        self.assertEqual(response.data['end_address'], '2400:dd01:1010:30:ffff:ffff:ffff:ffff')
+        iprange = IPv6Range.objects.get(id=response.data['id'])
+        self.assertEqual(iprange.start_address, ipaddress.IPv6Address('2400:dd01:1010:30::').packed)
+        self.assertEqual(iprange.end_address, ipaddress.IPv6Address('2400:dd01:1010:30:ffff:ffff:ffff:ffff').packed)
+        self.assertEqual(iprange.prefixlen, 64)
+        self.assertEqual(iprange.status, IPv6Range.Status.WAIT.value)
+        self.assertEqual(iprange.asn.number, 88)
+        self.assertEqual(iprange.name, 'test')
+
+        self.assertEqual(IPv6RangeRecord.objects.count(), 1)
+        record: IPv6RangeRecord = IPv6RangeRecord.objects.first()
+        self.assertEqual(record.record_type, IPv6RangeRecord.RecordType.ADD.value)
+        self.assertEqual(record.start_address, ipaddress.IPv6Address('2400:dd01:1010:30::').packed)
+        self.assertEqual(record.end_address, ipaddress.IPv6Address('2400:dd01:1010:30:ffff:ffff:ffff:ffff').packed)
+        self.assertEqual(record.prefixlen, 64)
+
+        # 存在重叠
+        response = self.client.post(base_url, data={
+            'name': 'test', 'start_address': '2400:dd01:1010:30::',
+            'end_address': '2400:dd01:1010:30:0:ffff:ffff:ffff', 'prefixlen': 64,
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        response = self.client.post(base_url, data={
+            'name': 'test', 'start_address': '2400:dd01:1010:30:1::',
+            'end_address': '2400:dd01:1010:30:1:ffff:ffff:ffff', 'prefixlen': 64,
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        response = self.client.post(base_url, data={
+            'name': 'test', 'start_address': '2400:dd01:1010:30:ffff:ffff:ffff:ffff',
+            'end_address': '2400:dd01:1010:31:ffff:ffff:ffff:ffff', 'prefixlen': 63,
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # ok
+        response = self.client.post(base_url, data={
+            'name': 'test', 'start_address': '2400:dd01:1010:31::ffff',
+            'end_address': '2400:dd01:1010:31:ffff:ffff:ffff:ffff', 'prefixlen': 64,
+            'asn': 88, 'admin_remark': 'remark test'
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(IPv6RangeRecord.objects.count(), 2)
