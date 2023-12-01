@@ -195,3 +195,23 @@ class IPv6RangeHandler:
             return view.exception_response(exc)
 
         return Response(status=204)
+
+    @staticmethod
+    def recover_ipv6_range(view: NormalGenericViewSet, request, kwargs):
+        ur_wrapper = UserIpamRoleWrapper(user=request.user)
+        if not ur_wrapper.has_kjw_admin_writable():
+            return view.exception_response(
+                errors.AccessDenied(message=_('你没有科技网IP管理功能的管理员权限')))
+
+        try:
+            ip_range = IPv6RangeManager.get_ip_range(_id=kwargs[view.lookup_field])
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        if ip_range.status != IPv6Range.Status.WAIT.value:
+            try:
+                IPv6RangeManager.do_recover_ipv6_range(ip_range=ip_range, user=request.user)
+            except Exception as exc:
+                return view.exception_response(exc)
+
+        return Response(data=serializers.IPv6RangeSerializer(instance=ip_range).data)

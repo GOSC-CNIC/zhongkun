@@ -1,7 +1,8 @@
 from django.utils.translation import gettext_lazy
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.serializers import Serializer
-from drf_yasg.utils import swagger_auto_schema
+from rest_framework.decorators import action
+from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
 from api.paginations import NewPageNumberPagination100
@@ -231,6 +232,50 @@ class IPv6RangeViewSet(NormalGenericViewSet):
                 AccessDenied: 你没有科技网IP管理功能的管理员权限
         """
         return IPv6RangeHandler().delete_ipv6_range(view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('收回一个子网IPv6地址段'),
+        request_body=no_body,
+        responses={
+            200: ''''''
+        }
+    )
+    @action(methods=['POST'], detail=True, url_path='recover', url_name='recover')
+    def recover_ip_range(self, request, *args, **kwargs):
+        """
+        从“已分配”和“预留”状态收回一个子网IPv6地址段，需要有科技网管理员权限
+
+            http Code 200 Ok:
+                {
+                  "id": "bz05x5wxa3y0viz1dn6k88hww",
+                  "name": "127.0.0.0/24",
+                  "status": "wait",
+                  "creation_time": "2023-10-26T08:33:56.047279Z",
+                  "update_time": "2023-10-26T08:33:56.047279Z",
+                  "assigned_time": null,
+                  "admin_remark": "test",
+                  "remark": "",
+                  "start_address": 2130706433,
+                  "end_address": 2130706687,
+                  "mask_len": 24,
+                  "asn": {
+                    "id": 5,
+                    "number": 65535
+                  },
+                  "org_virt_obj": null
+                }
+
+            Http Code 401, 403, 409, 500:
+                {
+                    "code": "BadRequest",
+                    "message": "xxxx"
+                }
+
+                可能的错误码：
+                403:
+                AccessDenied: 你没有科技网IP管理功能的管理员权限
+        """
+        return IPv6RangeHandler().recover_ipv6_range(view=self, request=request, kwargs=kwargs)
 
     def get_serializer_class(self):
         if self.action == 'list':
