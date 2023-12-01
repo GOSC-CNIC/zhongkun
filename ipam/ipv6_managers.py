@@ -310,6 +310,17 @@ class IPv6RangeManager:
 
         return ip_range
 
+    @staticmethod
+    def do_delete_ipv6_range(ip_range: IPv6Range, user):
+        ip_range.delete()
+        try:
+            IPv6RangeRecordManager.create_delete_record(
+                user=user, ip_range=ip_range, remark='', org_virt_obj=ip_range.org_virt_obj)
+        except Exception as exc:
+            pass
+
+        return ip_range
+
 
 class IPv6RangeRecordManager:
     @staticmethod
@@ -346,4 +357,12 @@ class IPv6RangeRecordManager:
             user=user, record_type=IPv6RangeRecord.RecordType.CHANGE.value,
             start_address=old_ip_range.start, end_address=old_ip_range.end, prefixlen=old_ip_range.prefix,
             ip_ranges=[new_ip_range], remark=remark, org_virt_obj=None
+        )
+
+    @staticmethod
+    def create_delete_record(user, ip_range: IPv6Range, remark: str, org_virt_obj):
+        return IPv6RangeRecordManager.create_record(
+            user=user, record_type=IPv6RangeRecord.RecordType.DELETE.value,
+            start_address=ip_range.start_address, end_address=ip_range.end_address, prefixlen=ip_range.prefixlen,
+            ip_ranges=[], remark=remark, org_virt_obj=org_virt_obj
         )

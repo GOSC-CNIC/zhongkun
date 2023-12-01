@@ -172,3 +172,26 @@ class IPv6RangeHandler:
             return view.exception_response(errors.InvalidArgument(message=exc.message))
 
         return Response(data=serializers.IPv6RangeSerializer(instance=ip_range).data)
+
+    @staticmethod
+    def delete_ipv6_range(view: NormalGenericViewSet, request, kwargs):
+        ur_wrapper = UserIpamRoleWrapper(user=request.user)
+        if not ur_wrapper.has_kjw_admin_writable():
+            return view.exception_response(
+                errors.AccessDenied(message=_('你没有科技网IP管理功能的管理员权限')))
+
+        try:
+            ip_range = IPv6RangeManager.get_ip_range(_id=kwargs[view.lookup_field])
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        if ip_range.status not in [IPv6Range.Status.WAIT.value, IPv6Range.Status.RESERVED.value]:
+            return view.exception_response(
+                errors.ConflictError(message=_('只允许删除“未分配”和“预留”状态的IP地址段')))
+
+        try:
+            IPv6RangeManager.do_delete_ipv6_range(ip_range=ip_range, user=request.user)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        return Response(status=204)

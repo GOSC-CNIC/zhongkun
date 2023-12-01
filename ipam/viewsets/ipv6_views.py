@@ -208,6 +208,30 @@ class IPv6RangeViewSet(NormalGenericViewSet):
         """
         return IPv6RangeHandler().update_ipv6_range(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('删除IPv6地址段'),
+        responses={
+            204: ''''''
+        }
+    )
+    def destroy(self, request, *args, **kwargs):
+        """
+        删除IPv6地址段，需要有科技网管理员权限
+
+            http Code 204 Ok: 无返回数据
+
+            Http Code 401, 403, 404, 409, 500:
+                {
+                    "code": "BadRequest",
+                    "message": "xxxx"
+                }
+
+                可能的错误码：
+                403:
+                AccessDenied: 你没有科技网IP管理功能的管理员权限
+        """
+        return IPv6RangeHandler().delete_ipv6_range(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return serializers.IPv6RangeSerializer
