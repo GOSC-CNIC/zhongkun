@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from core import errors
 from monitor.managers import MonitorWebsiteManager, WebsiteQueryChoices, URLTCPValidator
 from monitor.models import MonitorWebsiteTask, MonitorWebsiteVersion, MonitorWebsite, WebsiteDetectionPoint
+from monitor.utils import MonitorEmailAddressIPRestrictor
 from api.viewsets import CustomGenericViewSet
 from bill.managers.payment import PaymentManager
 from order.managers.price import PriceManager
@@ -638,10 +639,10 @@ class MonitorWebsiteHandler:
         if not url_hash:
             return view.exception_response(errors.InvalidArgument(message=_('指定监控站点url的hash字符串无效')))
 
-        remote_ip, proxys = get_remote_ip(request)
-        allowed_ips = getattr(settings, 'API_EMAIL_ALLOWED_IPS', [])
-        if remote_ip not in allowed_ips:
-            return view.exception_response(errors.AccessDenied(message=_('你的ip没有访问权限')))
+        try:
+            MonitorEmailAddressIPRestrictor().check_restricted(request)
+        except errors.AccessDenied as exc:
+            return view.exception_response(exc)
 
         emails = MonitorWebsiteManager.get_site_user_emails(url_hash=url_hash)
         return Response(data={

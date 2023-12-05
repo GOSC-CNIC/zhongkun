@@ -4,6 +4,7 @@ from django.utils.translation import gettext as _
 
 from core import errors
 from service.models import OrgDataCenter
+from utils.iprestrict import IPRestrictor, load_allowed_ips
 
 
 ThanosProvider = namedtuple('ThanosProvider', ['endpoint_url', 'username', 'password'])
@@ -36,3 +37,11 @@ def build_loki_provider(odc: OrgDataCenter) -> LokiProvider:
         username=odc.loki_username,
         password=odc.loki_password
     )
+
+
+class MonitorEmailAddressIPRestrictor(IPRestrictor):
+    SETTING_KEY_NAME = 'API_MONITOR_EMAIL_ALLOWED_IPS'
+    _allowed_ip_rules = load_allowed_ips(SETTING_KEY_NAME)
+
+    def reload_ip_rules(self):
+        self.allowed_ips = load_allowed_ips(self.SETTING_KEY_NAME)

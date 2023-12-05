@@ -87,6 +87,9 @@ API_EMAIL_ALLOWED_IPS = []
 # 科技云门户相关api权限允许的ip地址列表
 API_KJY_PORTAL_ALLOWED_IPS = []
 
+# 监控各单元用户邮件地址查询相关接口客户端IP鉴权配置
+API_MONITOR_EMAIL_ALLOWED_IPS = []
+
 # link app api ip restrict
 API_IPRESTRICT_LINK_ALLOWED_IPS = [
     '0.0.0.0/0',    # 允许所有IP访问

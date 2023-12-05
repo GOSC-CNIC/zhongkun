@@ -9,17 +9,18 @@ from django.core.cache import cache as django_cache
 from django.conf import settings
 
 from monitor.models import (
-    MonitorJobCeph, MonitorProvider, MonitorJobServer, WebsiteDetectionPoint,
+    MonitorJobCeph, MonitorJobServer, WebsiteDetectionPoint,
     MonitorWebsite, MonitorWebsiteRecord, MonitorWebsiteTask, MonitorWebsiteVersion, get_str_hash
 )
 from monitor.managers import (
     CephQueryChoices, ServerQueryChoices, VideoMeetingQueryChoices, WebsiteQueryChoices,
     MonitorWebsiteManager
 )
+from monitor.utils import MonitorEmailAddressIPRestrictor
 from bill.models import PayApp, PayAppService
 from order.models import Price
 from utils.test import (
-    get_or_create_user, get_test_case_settings, get_or_create_service, get_or_create_organization,
+    get_or_create_user, get_test_case_settings, get_or_create_organization,
     MyAPITestCase, get_or_create_org_data_center
 )
 
@@ -1760,8 +1761,16 @@ class MonitorWebsiteTests(MyAPITestCase):
         user_website1.refresh_from_db()
         self.assertIs(user_website1.is_attention, False)
 
+    @staticmethod
+    def _set_iprestrict_rule(ips: list):
+        setattr(settings, MonitorEmailAddressIPRestrictor.SETTING_KEY_NAME, ips)
+        mea_ip_rt = MonitorEmailAddressIPRestrictor()
+        mea_ip_rt.reload_ip_rules()
+        MonitorEmailAddressIPRestrictor.allowed_ips = mea_ip_rt.allowed_ips
+
     def test_list_site_emails(self):
-        settings.API_EMAIL_ALLOWED_IPS = []
+        self._set_iprestrict_rule(ips=[])
+
         base_url = reverse('monitor-api:website-user-email')
         r = self.client.get(path=base_url)
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
@@ -1776,7 +1785,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.client.force_login(self.user)
         r = self.client.get(reverse('api:email-realip'))
         real_ip = r.data['real_ip']
-        settings.API_EMAIL_ALLOWED_IPS = [real_ip]
+        self._set_iprestrict_rule(ips=[real_ip])
         self.client.logout()
 
         # ok, no data
