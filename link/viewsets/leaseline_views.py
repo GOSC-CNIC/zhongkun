@@ -1,20 +1,18 @@
-from api.viewsets import NormalGenericViewSet
-from django.utils.translation import gettext_lazy, gettext as _
-from api.paginations import NewPageNumberPagination
-from drf_yasg.utils import swagger_auto_schema
+from django.utils.translation import gettext_lazy
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
-from rest_framework.serializers import Serializer
-
-from link.serializers.leaseline_serializer import LeaseLineSerializer
-
-from api.viewsets import NormalGenericViewSet
+from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+
+from api.paginations import NewPageNumberPagination
+from api.viewsets import NormalGenericViewSet
+from link.serializers.leaseline_serializer import LeaseLineSerializer
 from link.handlers.leaseline_handler import LeaseLineHandler
+from link.permissions import LinkIPRestrictPermission
 
 
 class LeaseLineViewSet(NormalGenericViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, LinkIPRestrictPermission]
     pagination_class = NewPageNumberPagination
     lookup_field = 'id'
 

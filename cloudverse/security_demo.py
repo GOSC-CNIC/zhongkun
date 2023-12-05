@@ -84,6 +84,12 @@ API_EMAIL_ALLOWED_IPS = []
 # 科技云门户相关api权限允许的ip地址列表
 API_KJY_PORTAL_ALLOWED_IPS = []
 
+# link app api ip restrict
+# '192.168.1.1'、 '192.168.1.1/24'、'192.168.1.66 - 192.168.1.100'
+API_IPRESTRICT_LINK_ALLOWED_IPS = [
+    '0.0.0.0/0',    # 允许所有IP访问
+]
+
 # 服务总请求数统计依赖设置，配置各站点loki日志服务接口，总请求数==各站点的请求数的和
 PORTAL_REQ_NUM_LOKI_SITES = [
     {'api': 'http://xx.xx.xx.xx:34135/loki/api/v1/query', 'job': 'servicebackend'},

@@ -1,16 +1,16 @@
-from api.viewsets import NormalGenericViewSet
-from django.utils.translation import gettext_lazy, gettext as _
-from api.paginations import NewPageNumberPagination
+from django.utils.translation import gettext_lazy
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.permissions import IsAuthenticated
+
+from api.viewsets import NormalGenericViewSet
+from api.paginations import NewPageNumberPagination
 from link.handlers.distriframe_handler import DistriFrameHandler
 from link.serializers.distriframe_serializer import DistriFrameSerializer
-from drf_yasg import openapi
-from rest_framework.decorators import action
+from link.permissions import LinkIPRestrictPermission
 
 
 class DistriFrameViewSet(NormalGenericViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, LinkIPRestrictPermission]
     pagination_class = NewPageNumberPagination
     lookup_field = 'id'
 

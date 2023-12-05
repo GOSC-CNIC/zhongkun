@@ -1,15 +1,16 @@
-from api.viewsets import NormalGenericViewSet
-from django.utils.translation import gettext_lazy, gettext as _
-from api.paginations import NewPageNumberPagination
+from django.utils.translation import gettext_lazy
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.permissions import IsAuthenticated
+
+from api.viewsets import NormalGenericViewSet
+from api.paginations import NewPageNumberPagination
 from link.handlers.element_handler import ElementHandler
 from link.serializers.link_serializer import ElementDetailDataSerializer
-from rest_framework.decorators import action
+from link.permissions import LinkIPRestrictPermission
 
 
 class ElementViewSet(NormalGenericViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, LinkIPRestrictPermission]
     pagination_class = NewPageNumberPagination
     lookup_field = 'id'
 
@@ -116,7 +117,6 @@ class ElementViewSet(NormalGenericViewSet):
                 }
         """
         return ElementHandler.retrieve_element(view=self, request=request, kwargs=kwargs)
-
 
     def get_serializer_class(self):
         return ElementDetailDataSerializer

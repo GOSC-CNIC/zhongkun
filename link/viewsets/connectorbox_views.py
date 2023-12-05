@@ -1,15 +1,18 @@
-from api.viewsets import NormalGenericViewSet
-from django.utils.translation import gettext_lazy, gettext as _
-from api.paginations import NewPageNumberPagination
-from drf_yasg.utils import swagger_auto_schema
+from django.utils.translation import gettext_lazy
+
 from rest_framework.permissions import IsAuthenticated
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+
+from api.viewsets import NormalGenericViewSet
+from api.paginations import NewPageNumberPagination
 from link.handlers.connectorbox_handler import ConnectorBoxHandler
 from link.serializers.connectorbox_serializer import ConnectorBoxSerializer
-from drf_yasg import openapi
+from link.permissions import LinkIPRestrictPermission
 
 
 class ConnectorBoxViewSet(NormalGenericViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, LinkIPRestrictPermission]
     pagination_class = NewPageNumberPagination
     lookup_field = 'id'
 
@@ -55,7 +58,6 @@ class ConnectorBoxViewSet(NormalGenericViewSet):
 
         """
         return ConnectorBoxHandler.list_connectorbox(view=self, request=request)
-    
 
     def get_serializer_class(self):
         return ConnectorBoxSerializer

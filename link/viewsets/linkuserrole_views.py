@@ -1,16 +1,18 @@
-from api.viewsets import NormalGenericViewSet
-from django.utils.translation import gettext_lazy, gettext as _
-from api.paginations import NewPageNumberPagination
-from drf_yasg.utils import swagger_auto_schema
+from django.utils.translation import gettext_lazy
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from drf_yasg.utils import swagger_auto_schema
+
+from api.paginations import NewPageNumberPagination
+from api.viewsets import NormalGenericViewSet
 from utils.paginators import NoPaginatorInspector
 from link.managers.userrole_manager import UserRoleWrapper
 from link.serializers.linkuserrole_serializer import LinkUserRoleSerializer
-from rest_framework.response import Response
-from link.models import LinkUserRole
+from link.permissions import LinkIPRestrictPermission
+
 
 class LinkUserRoleViewSet(NormalGenericViewSet):
-    permission_classes = [IsAuthenticated, ]
+    permission_classes = [IsAuthenticated, LinkIPRestrictPermission]
     pagination_class = NewPageNumberPagination
     lookup_field = 'id'
 

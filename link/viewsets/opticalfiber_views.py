@@ -1,15 +1,17 @@
-from api.viewsets import NormalGenericViewSet
-from django.utils.translation import gettext_lazy, gettext as _
-from api.paginations import NewPageNumberPagination
-from drf_yasg.utils import swagger_auto_schema
+from django.utils.translation import gettext_lazy
 from rest_framework.permissions import IsAuthenticated
-from link.handlers.opticalfiber_handler import OpticalFiberHandler
-from link.serializers.opticalfiber_serializer import OpticalFiberSerializer
-from rest_framework.decorators import action
+from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
+from api.viewsets import NormalGenericViewSet
+from api.paginations import NewPageNumberPagination
+from link.handlers.opticalfiber_handler import OpticalFiberHandler
+from link.serializers.opticalfiber_serializer import OpticalFiberSerializer
+from link.permissions import LinkIPRestrictPermission
+
+
 class OpticalFiberViewSet(NormalGenericViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, LinkIPRestrictPermission]
     pagination_class = NewPageNumberPagination
     lookup_field = 'id'
 
@@ -60,10 +62,8 @@ class OpticalFiberViewSet(NormalGenericViewSet):
                         }
                     ]
                 }
-
         """
         return OpticalFiberHandler.list_opticalfiber(view=self, request=request)
-    
 
     def get_serializer_class(self):
         return OpticalFiberSerializer
