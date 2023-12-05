@@ -74,18 +74,20 @@ PAYMENT_BALANCE = {
     'app_id': 'xxx'
 }
 
-# 邮件发送api权限允许的客户端ip地址列表
+# api限制客户端ip访问设置
 # X-Forwarded-For 可能伪造，需要在服务一级代理防范处理
 # 比如nginx：
 # uwsgi_param X-Forwarded-For $remote_addr;     不能使用 $proxy_add_x_forwarded_for;
 # proxy_set_header X-Forwarded-For $remote_addr;     不能使用 $proxy_add_x_forwarded_for;
+# ip设置规则允许 单个ip、一个网段、一个ip段，如'192.168.1.1'、 '192.168.1.1/24'、'192.168.1.66 - 192.168.1.100'
+
+# 邮件发送api权限允许的客户端ip地址列表
 API_EMAIL_ALLOWED_IPS = []
 
 # 科技云门户相关api权限允许的ip地址列表
 API_KJY_PORTAL_ALLOWED_IPS = []
 
 # link app api ip restrict
-# '192.168.1.1'、 '192.168.1.1/24'、'192.168.1.66 - 192.168.1.100'
 API_IPRESTRICT_LINK_ALLOWED_IPS = [
     '0.0.0.0/0',    # 允许所有IP访问
 ]

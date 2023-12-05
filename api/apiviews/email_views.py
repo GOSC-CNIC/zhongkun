@@ -12,8 +12,17 @@ from api.serializers import email as eamil_serializers
 from api.viewsets import serializer_error_msg
 from utils import get_remote_ip
 from utils.paginators import NoPaginatorInspector
+from utils.iprestrict import IPRestrictor, load_allowed_ips
 from core import errors
 from users.models import Email
+
+
+class EmailIPRestrictor(IPRestrictor):
+    SETTING_KEY_NAME = 'API_EMAIL_ALLOWED_IPS'
+    _allowed_ip_rules = load_allowed_ips(SETTING_KEY_NAME)
+
+    def reload_ip_rules(self):
+        self.allowed_ips = load_allowed_ips(self.SETTING_KEY_NAME)
 
 
 class EmailViewSet(viewsets.GenericViewSet):
@@ -75,9 +84,10 @@ class EmailViewSet(viewsets.GenericViewSet):
             return self.exception_response(exc)
 
         remote_ip, proxys = get_remote_ip(request)
-        allowed_ips = getattr(settings, 'API_EMAIL_ALLOWED_IPS', [])
-        if remote_ip not in allowed_ips:
-            return self.exception_response(errors.AccessDenied(message=_('你没有访问权限')))
+        try:
+            EmailIPRestrictor().is_restricted(client_ip=remote_ip)
+        except errors.Error as exc:
+            return self.exception_response(exc)
 
         is_html = data['is_html']
         if is_html:

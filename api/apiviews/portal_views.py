@@ -13,25 +13,35 @@ from monitor.models import TotalReqNum
 from core import errors
 from utils import get_remote_ip
 from utils.paginators import NoPaginatorInspector
+from utils.iprestrict import IPRestrictor, load_allowed_ips
+
+
+class PortalIPRestrictor(IPRestrictor):
+    SETTING_KEY_NAME = 'API_KJY_PORTAL_ALLOWED_IPS'
+    _allowed_ip_rules = load_allowed_ips(SETTING_KEY_NAME)
+
+    def reload_ip_rules(self):
+        self.allowed_ips = load_allowed_ips(self.SETTING_KEY_NAME)
 
 
 class InAllowedIp(BasePermission):
     def has_permission(self, request, view):
-        allowd, addr_ip = self.check_addr_allowed(request=request)
-        return allowd
+        PortalIPRestrictor().check_restricted(request)
+        return True
 
     @staticmethod
     def check_addr_allowed(request):
         remote_ip, proxys = get_remote_ip(request)
-        allowed_ips = getattr(settings, 'API_KJY_PORTAL_ALLOWED_IPS', [])
-        if allowed_ips and remote_ip in allowed_ips:
-            return True, remote_ip
+        try:
+            PortalIPRestrictor().is_restricted(client_ip=remote_ip)
+        except errors.AccessDenied as exc:
+            return False, remote_ip
 
-        return False, remote_ip
+        return True, remote_ip
 
 
 class PortalServiceViewSet(CustomGenericViewSet):
-    permission_classes = []
+    permission_classes = [InAllowedIp]
     pagination_class = DefaultPageNumberPagination
 
     @swagger_auto_schema(
@@ -52,10 +62,6 @@ class PortalServiceViewSet(CustomGenericViewSet):
               "status": "success" # success 表示可访问，failure 表示不可访问
             }
         """
-        r = self.allowed_addr_ip(request=request)
-        if r:
-            return r
-
         return Response(data={
             'code': 200,
             'status': 'success'
@@ -77,10 +83,6 @@ class PortalServiceViewSet(CustomGenericViewSet):
               "count": 1234
             }
         """
-        r = self.allowed_addr_ip(request=request)
-        if r:
-            return r
-
         qs = filter_user_queryset()
         user_num = qs.count()
         return Response(data={
@@ -105,10 +107,6 @@ class PortalServiceViewSet(CustomGenericViewSet):
               "until_time": "2023-07-25T00:00:00+00:00"
             }
         """
-        r = self.allowed_addr_ip(request=request)
-        if r:
-            return r
-
         ins = TotalReqNum.get_instance()
         return Response(data={
             'code': 200,

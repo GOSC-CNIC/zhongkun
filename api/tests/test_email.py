@@ -4,6 +4,7 @@ from django.core import mail
 
 from utils.test import get_or_create_user
 from users.models import Email
+from api.apiviews.email_views import EmailIPRestrictor
 from . import MyAPITestCase
 
 
@@ -43,6 +44,9 @@ class EmailTests(MyAPITestCase):
         real_ip = r.data['real_ip']
         if real_ip:
             settings.API_EMAIL_ALLOWED_IPS = [real_ip]
+            e_ip_rt = EmailIPRestrictor()
+            e_ip_rt.reload_ip_rules()
+            EmailIPRestrictor.allowed_ips = e_ip_rt.allowed_ips
         self.client.logout()
 
         # ok, text
