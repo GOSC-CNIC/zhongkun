@@ -11,8 +11,10 @@ from django.core.exceptions import ValidationError
 from core import errors
 from .models import (
     IPv4Range, IPAMUserRole, OrgVirtualObject, ASN, ipv4_str_to_int, IPv4RangeRecord,
-    IPRangeItem, IPRangeIntItem
+    IPRangeItem, IPRangeIntItem, IPv4Address
 )
+
+MAX_IPV4_ADDRESS_INT = 2 ** 32 - 1
 
 
 def get_or_create_asn(number: int):
@@ -96,6 +98,15 @@ class IPv4RangeManager:
     @staticmethod
     def get_ip_range(_id: str) -> IPv4Range:
         iprange = IPv4Range.objects.select_related('asn', 'org_virt_obj').filter(id=_id).first()
+        if iprange is None:
+            raise errors.TargetNotExist(message=_('IP地址段不存在'))
+
+        return iprange
+
+    @staticmethod
+    def get_ip_range_by_ip(ip_int: int) -> IPv4Range:
+        iprange = IPv4Range.objects.select_related('asn', 'org_virt_obj').filter(
+            start_address__lte=ip_int, end_address__gte=ip_int).first()
         if iprange is None:
             raise errors.TargetNotExist(message=_('IP地址段不存在'))
 
@@ -889,3 +900,41 @@ class IPv4RangeMerger:
             )
         except Exception as exc:
             pass
+
+
+class IPv4AddressManager:
+    MAX_IPV4_ADDRESS_INT = MAX_IPV4_ADDRESS_INT
+
+    @staticmethod
+    def validete_ip_int(ip_int: int):
+        if not (0 <= ip_int <= MAX_IPV4_ADDRESS_INT):
+            raise errors.InvalidArgument(message=_('不是有效的整型数值形式的IP地址'))
+
+    @staticmethod
+    def change_ip_remark(ip_int: int, remark: str, admin_remark: str) -> IPv4Address:
+        IPv4AddressManager.validete_ip_int(ip_int)
+        nt = dj_timezone.now()
+        updates = {'update_time': nt, 'creation_time': nt}
+        if remark:
+            updates['remark'] = remark
+        if admin_remark:
+            updates['admin_remark'] = admin_remark
+
+        ip_addr, created = IPv4Address.objects.get_or_create(defaults=updates, ip_address=ip_int)
+        if created:
+            return ip_addr
+
+        update_fields = []
+        if remark:
+            ip_addr.remark = remark
+            update_fields.append('remark')
+        if admin_remark:
+            ip_addr.admin_remark = admin_remark
+            update_fields.append('admin_remark')
+
+        if updates:
+            ip_addr.update_time = nt
+            update_fields.append('update_time')
+            ip_addr.save(update_fields=update_fields)
+
+        return ip_addr

@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from core import errors
 from api.viewsets import NormalGenericViewSet, serializer_error_msg
-from ..managers import IPv4RangeManager, UserIpamRoleWrapper
+from ..managers import IPv4RangeManager, UserIpamRoleWrapper, IPv4AddressManager
 from ..models import IPv4Range, OrgVirtualObject
 from .. import serializers
 
@@ -414,3 +414,43 @@ class IPv4RangeHandler:
 
         if not ur_wrapper.is_admin_of_org(org_id=org_id):
             raise errors.AccessDenied(message=_('你没IP地址段的管理权限'))
+
+    @staticmethod
+    def change_ipv4_address_remark(view: NormalGenericViewSet, request, kwargs):
+        try:
+            ipv4 = kwargs['ipv4']
+            remark = request.query_params.get('remark', None)
+            admin_remark = request.query_params.get('admin_remark', None)
+            is_as_admin = view.is_as_admin_request(request=request)
+
+            try:
+                ipv4_int = int(ipv4)
+            except ValueError:
+                raise errors.InvalidArgument(message=_('不是有效的整型数值形式的IP地址'))
+
+            IPv4AddressManager.validete_ip_int(ip_int=ipv4_int)
+
+            if not remark and not admin_remark:
+                raise errors.BadRequest(message=_('必须指定要修改的备注信息'))
+
+            if admin_remark and not is_as_admin:
+                raise errors.BadRequest(message=_('管理员备注参数“admin_remark”只能以管理员身份请求时使用'))
+
+            ur_wrapper = UserIpamRoleWrapper(user=request.user)
+            if is_as_admin:
+                slzr_cls = serializers.IPv4AddressAdminSerializer
+                if not ur_wrapper.has_kjw_admin_writable():
+                    raise errors.AccessDenied(message=_('你没有科技网IP管理功能的管理员权限'))
+            else:
+                slzr_cls = serializers.IPv4AddressSerializer
+                try:
+                    ipv4_range = IPv4RangeManager.get_ip_range_by_ip(ip_int=ipv4_int)
+                except errors.TargetNotExist:
+                    raise errors.AccessDenied(message=_('你没有指定IP地址的管理权限'))
+
+                IPv4RangeHandler.check_ip_range_org_admin_perm(ipv4_range=ipv4_range, ur_wrapper=ur_wrapper)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        ip_address = IPv4AddressManager.change_ip_remark(ip_int=ipv4_int, remark=remark, admin_remark=admin_remark)
+        return Response(data=slzr_cls(instance=ip_address).data)

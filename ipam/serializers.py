@@ -114,6 +114,18 @@ class IPv4RangeRecordSerializer(serializers.Serializer):
         return {'id': obj.user.id, 'username': obj.user.username}
 
 
+class IPv4AddressSerializer(serializers.Serializer):
+    id = serializers.CharField(label='ID', read_only=True)
+    ip_address = serializers.IntegerField(label=_('IP地址'))
+    remark = serializers.CharField(label=_('机构管理员备注信息'), max_length=255)
+    # creation_time = serializers.DateTimeField(label=_('创建时间'))
+    # update_time = serializers.DateTimeField(label=_('更新时间'))
+
+
+class IPv4AddressAdminSerializer(IPv4AddressSerializer):
+    admin_remark = serializers.CharField(label=_('科技网管理员备注信息'), max_length=255)
+
+
 class IPv6RangeSerializer(serializers.Serializer):
     id = serializers.CharField(label='ID', read_only=True)
     name = serializers.CharField(label=_('名称'), max_length=255, required=True)

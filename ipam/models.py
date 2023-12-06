@@ -285,7 +285,7 @@ class IPAddressBase(UuidModel):
 
 class IPv4Address(IPAddressBase):
     ip_address = models.PositiveIntegerField(verbose_name=_('IP地址'))
-    ip_range = models.ForeignKey(verbose_name=_('IP段'), to=IPv4Range, on_delete=models.CASCADE, related_name='+')
+    # ip_range = models.ForeignKey(verbose_name=_('IP段'), to=IPv4Range, on_delete=models.CASCADE, related_name='+')
 
     class Meta:
         ordering = ('ip_address',)

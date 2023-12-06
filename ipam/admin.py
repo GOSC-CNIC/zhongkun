@@ -118,10 +118,10 @@ class ASNAdmin(admin.ModelAdmin):
 
 @admin.register(IPv4Address)
 class IPv4AddressAdmin(IPModelAdmin):
-    list_display = ('id', 'ip_address', 'display_ip_addr', 'ip_range', 'creation_time', 'update_time',
+    list_display = ('id', 'ip_address', 'display_ip_addr', 'creation_time', 'update_time',
                     'admin_remark', 'remark')
-    list_select_related = ('ip_range',)
-    raw_id_fields = ('ip_range',)
+    # list_select_related = ('ip_range',)
+    # raw_id_fields = ('ip_range',)
     search_fields = ('admin_remark', 'remark', 'ip_address')
 
     @staticmethod
