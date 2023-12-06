@@ -22,6 +22,7 @@ no_slash_router.register(r'website-task', monitor_views.MonitorWebsiteTaskViewSe
                          basename='website-task')
 no_slash_router.register(r'tidb/query', monitor_views.MonitorTiDBQueryViewSet, basename='tidb-query')
 no_slash_router.register(r'log/site', log_views.LogSiteViewSet, basename='log-site')
+no_slash_router.register(r'admin/email', monitor_views.UnitAdminEmailViewSet, basename='unit-admin-email')
 
 
 urlpatterns = [

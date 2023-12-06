@@ -1,8 +1,11 @@
+from typing import Union
+
 from django.utils.translation import gettext_lazy, gettext as _
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.serializers import Serializer
 from rest_framework.authentication import BasicAuthentication
+from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from drf_yasg.utils import no_body
@@ -14,6 +17,10 @@ from monitor.managers import (
     CephQueryChoices, ServerQueryChoices, VideoMeetingQueryChoices, WebsiteQueryChoices,
     TiDBQueryChoices
 )
+from monitor.utils import MonitorEmailAddressIPRestrictor
+from monitor.models import MonitorJobCeph, MonitorJobTiDB, MonitorJobServer, LogSite
+from service.models import OrgDataCenter
+from core import errors
 from .handlers.monitor_ceph import MonitorCephQueryHandler
 from .handlers.monitor_server import MonitorServerQueryHandler
 from .handlers.monitor_video_meeting import MonitorVideoMeetingQueryHandler
@@ -1244,3 +1251,117 @@ class MonitorTiDBQueryViewSet(CustomGenericViewSet):
 
     def get_serializer_class(self):
         return Serializer
+
+
+class UnitAdminEmailViewSet(CustomGenericViewSet):
+    permission_classes = []
+    pagination_class = None
+    lookup_field = 'id'
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询各监控单元管理员用户的邮件地址'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='tag',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description=_('监控单元标识标签')
+            )
+        ],
+        paginator_inspectors=[NoPaginatorInspector],
+        responses={
+            200: ''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        查询各监控单元管理员用户的邮件地址，不需要身份验证，只有指定的ip可访问
+
+            * 标签规则：
+                xxx_log：日志单元站点
+                xxx_ceph_metric：ceph监控单元
+                xxx_tidb_metric：tidb监控单元
+                xxx_node_metric：服务器监控单元
+
+            http code 200:
+            {
+                "tag": "xxx-ceph",
+                "unit": {
+                    "name": "中国科技云-运维大数据",
+                    "name_en": "CSTcloud AIOPS"
+                },
+                "emails": [
+                    "xxx@qq.com",
+                    "xxx@cnic.cn"
+                ]
+            }
+            http code 400,403,404:
+            {
+                "code": "TargetNotExist",
+                "message": "未找到指定标签标识的监控单元"
+            }
+            400: InvalidArgument    # 参数无效
+            403: AccessDenied   # ip不允许访问
+            404: TargetNotExist
+        """
+        tag = request.query_params.get('tag', None)
+
+        if tag is None:
+            return self.exception_response(errors.InvalidArgument(message=_('必须指定监控单元标识标签')))
+
+        if not tag:
+            return self.exception_response(errors.InvalidArgument(message=_('指定监控单元标识标签无效')))
+
+        try:
+            MonitorEmailAddressIPRestrictor().check_restricted(request)
+        except errors.AccessDenied as exc:
+            return self.exception_response(exc)
+
+        tag = tag.strip(' ')
+        unit = self.try_get_unit(tag=tag)
+        if unit is None:
+            return self.exception_response(
+                errors.TargetNotExist(message=_('未找到指定标签标识的监控单元')))
+
+        odc_id = unit.org_data_center_id
+        unit_admin_emails = set(unit.users.values_list('username', flat=True))
+        if odc_id:
+            odc_admin_emails = set(OrgDataCenter.objects.get(id=odc_id).users.values_list('username', flat=True))
+            unit_admin_emails.update(odc_admin_emails)
+
+        emails = list(set(unit_admin_emails))
+        return Response(data={
+            'tag': tag,
+            'unit': {
+                'name': unit.name, 'name_en': unit.name_en
+            },
+            'emails': emails
+        })
+
+    @staticmethod
+    def try_get_unit(tag: str) -> Union[MonitorJobCeph, MonitorJobTiDB, MonitorJobServer, LogSite, None]:
+        low_tag = tag.lower()
+        if low_tag.endswith('_log'):
+            return LogSite.objects.filter(job_tag=tag).first()
+        elif '_ceph_' in low_tag:
+            return MonitorJobCeph.objects.filter(job_tag=tag).first()
+        elif '_tidb_' in low_tag:
+            return MonitorJobTiDB.objects.filter(job_tag=tag).first()
+        elif '_node_' in low_tag:
+            return MonitorJobServer.objects.filter(job_tag=tag).first()
+        else:
+            unit = LogSite.objects.filter(job_tag=tag).first()
+            if unit is not None:
+                return unit
+            unit = MonitorJobCeph.objects.filter(job_tag=tag).first()
+            if unit is not None:
+                return unit
+            unit = MonitorJobTiDB.objects.filter(job_tag=tag).first()
+            if unit is not None:
+                return unit
+            unit = MonitorJobServer.objects.filter(job_tag=tag).first()
+            if unit is not None:
+                return unit
+
+        return None

@@ -10,7 +10,8 @@ from django.conf import settings
 
 from monitor.models import (
     MonitorJobCeph, MonitorJobServer, WebsiteDetectionPoint,
-    MonitorWebsite, MonitorWebsiteRecord, MonitorWebsiteTask, MonitorWebsiteVersion, get_str_hash
+    MonitorWebsite, MonitorWebsiteRecord, MonitorWebsiteTask, MonitorWebsiteVersion, get_str_hash,
+    MonitorJobTiDB, LogSite
 )
 from monitor.managers import (
     CephQueryChoices, ServerQueryChoices, VideoMeetingQueryChoices, WebsiteQueryChoices,
@@ -2358,3 +2359,157 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
         self.assertEqual(r.data['invalid'] + r.data['valid'], 1)
         self.assertIsInstance(r.data['invalid_urls'], list)
         self.assertEqual(len(r.data['invalid_urls']), 0)
+
+
+class UnitAdminEmailTests(MyAPITestCase):
+    def setUp(self):
+        pass
+
+    @staticmethod
+    def _set_iprestrict_rule(ips: list):
+        setattr(settings, MonitorEmailAddressIPRestrictor.SETTING_KEY_NAME, ips)
+        mea_ip_rt = MonitorEmailAddressIPRestrictor()
+        mea_ip_rt.reload_ip_rules()
+        MonitorEmailAddressIPRestrictor.allowed_ips = mea_ip_rt.allowed_ips
+
+    def test_list_site_emails(self):
+        user = get_or_create_user(username='tom@cnic.cn', password='password')
+        user2 = get_or_create_user(username='lisi@cnic.cn', password='password')
+        user3 = get_or_create_user(username='zhangsan@cnic.cn', password='password')
+        odc = get_or_create_org_data_center()
+        odc.users.add(user)
+        unit_ceph1 = MonitorJobCeph(
+            name='ceph1', name_en='name_en1', job_tag='test1_ceph_metric', sort_weight=10,
+            org_data_center=odc
+        )
+        unit_ceph1.save(force_insert=True)
+        unit_ceph1.users.add(user2)
+        unit_ceph2 = MonitorJobCeph(
+            name='ceph2', name_en='name_en2', job_tag='test2_ceph', sort_weight=10,
+            org_data_center=odc
+        )
+        unit_ceph2.save(force_insert=True)
+
+        unit_server1 = MonitorJobServer(
+            name='server1', name_en='name_en1', job_tag='test1_node_metric', sort_weight=10,
+            org_data_center=odc
+        )
+        unit_server1.save(force_insert=True)
+        unit_server1.users.add(user2)
+        unit_server2 = MonitorJobServer(
+            name='server2', name_en='name_en2', job_tag='job_node2', sort_weight=10,
+            org_data_center=odc
+        )
+        unit_server2.save(force_insert=True)
+
+        unit_tidb1 = MonitorJobTiDB(
+            name='tidb1', name_en='name_en1', job_tag='test1_tidb_metric', sort_weight=10,
+            org_data_center=odc
+        )
+        unit_tidb1.save(force_insert=True)
+        unit_tidb1.users.add(user3)
+
+        log_site1 = LogSite(
+            name='log1', name_en='name_en1', log_type=LogSite.LogType.HTTP.value,
+            site_type_id=None, job_tag='job1_log', sort_weight=10, org_data_center=None
+        )
+        log_site1.save(force_insert=True)
+        log_site1.users.add(user3)
+        log_site2 = LogSite(
+            name='log22', name_en='name_en2', log_type=LogSite.LogType.HTTP.value,
+            site_type_id=None, job_tag='job_taglog2', sort_weight=5,
+            org_data_center=odc
+        )
+        log_site2.save(force_insert=True)
+
+        self._set_iprestrict_rule(ips=[])
+
+        base_url = reverse('monitor-api:unit-admin-email-list')
+        r = self.client.get(path=base_url)
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
+        query = parse.urlencode(query={'tag': ''})
+        r = self.client.get(path=f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
+
+        query = parse.urlencode(query={'tag': 'xxxx'})
+        r = self.client.get(path=f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        self.client.force_login(user)
+        self._set_iprestrict_rule(ips=['127.0.0.1'])
+        self.client.logout()
+
+        # TargetNotExist
+        query = parse.urlencode(query={'tag': 'xxxx'})
+        r = self.client.get(path=f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=r)
+
+        # test ceph
+        query = parse.urlencode(query={'tag': unit_ceph1.job_tag})
+        r = self.client.get(path=f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=['tag', 'unit', 'emails'], container=r.data)
+        self.assertEqual(r.data['tag'], unit_ceph1.job_tag)
+        self.assertEqual(r.data['unit']['name'], unit_ceph1.name)
+        self.assertEqual(r.data['unit']['name_en'], unit_ceph1.name_en)
+        self.assertEqual(len(r.data['emails']), 2)
+        self.assertKeysIn(keys=[user.username, user2.username], container=r.data['emails'])
+
+        query = parse.urlencode(query={'tag': unit_ceph2.job_tag})
+        r = self.client.get(path=f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=['tag', 'unit', 'emails'], container=r.data)
+        self.assertEqual(r.data['tag'], unit_ceph2.job_tag)
+        self.assertEqual(r.data['unit']['name'], unit_ceph2.name)
+        self.assertEqual(r.data['unit']['name_en'], unit_ceph2.name_en)
+        self.assertEqual(len(r.data['emails']), 1)
+        self.assertKeysIn(keys=[user.username], container=r.data['emails'])
+
+        # test server
+        query = parse.urlencode(query={'tag': unit_server1.job_tag})
+        r = self.client.get(path=f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=['tag', 'unit', 'emails'], container=r.data)
+        self.assertEqual(r.data['tag'], unit_server1.job_tag)
+        self.assertEqual(r.data['unit']['name'], unit_server1.name)
+        self.assertEqual(r.data['unit']['name_en'], unit_server1.name_en)
+        self.assertEqual(len(r.data['emails']), 2)
+        self.assertKeysIn(keys=[user.username, user2.username], container=r.data['emails'])
+
+        query = parse.urlencode(query={'tag': unit_server2.job_tag})
+        r = self.client.get(path=f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['tag'], unit_server2.job_tag)
+        self.assertEqual(r.data['unit']['name'], unit_server2.name)
+        self.assertEqual(r.data['unit']['name_en'], unit_server2.name_en)
+        self.assertEqual(len(r.data['emails']), 1)
+        self.assertKeysIn(keys=[user.username], container=r.data['emails'])
+
+        # test tidb
+        query = parse.urlencode(query={'tag': unit_tidb1.job_tag})
+        r = self.client.get(path=f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['tag'], unit_tidb1.job_tag)
+        self.assertEqual(r.data['unit']['name'], unit_tidb1.name)
+        self.assertEqual(r.data['unit']['name_en'], unit_tidb1.name_en)
+        self.assertEqual(len(r.data['emails']), 2)
+        self.assertKeysIn(keys=[user.username, user3.username], container=r.data['emails'])
+
+        # test log
+        query = parse.urlencode(query={'tag': log_site1.job_tag})
+        r = self.client.get(path=f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['tag'], log_site1.job_tag)
+        self.assertEqual(r.data['unit']['name'], log_site1.name)
+        self.assertEqual(r.data['unit']['name_en'], log_site1.name_en)
+        self.assertEqual(len(r.data['emails']), 1)
+        self.assertKeysIn(keys=[user3.username], container=r.data['emails'])
+
+        query = parse.urlencode(query={'tag': log_site2.job_tag})
+        r = self.client.get(path=f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['tag'], log_site2.job_tag)
+        self.assertEqual(r.data['unit']['name'], log_site2.name)
+        self.assertEqual(r.data['unit']['name_en'], log_site2.name_en)
+        self.assertEqual(len(r.data['emails']), 1)
+        self.assertKeysIn(keys=[user.username], container=r.data['emails'])

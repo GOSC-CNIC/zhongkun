@@ -67,7 +67,8 @@ class MonitorJobCeph(UuidModel):
     """
     name = models.CharField(verbose_name=_('监控的CEPH集群名称'), max_length=255, default='')
     name_en = models.CharField(verbose_name=_('监控的CEPH集群英文名称'), max_length=255, default='')
-    job_tag = models.CharField(verbose_name=_('CEPH集群标签名称'), max_length=255, default='')
+    job_tag = models.CharField(
+        verbose_name=_('CEPH集群标签名称'), max_length=255, default='', help_text='模板：xxx_ceph_metric')
     prometheus = models.CharField(
         verbose_name=_('Prometheus接口'), max_length=255, blank=True, default='', help_text=_('http(s)://example.cn/'))
     creation = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
@@ -98,7 +99,8 @@ class MonitorJobServer(UuidModel):
     """
     name = models.CharField(verbose_name=_('监控的主机集群名称'), max_length=255, default='')
     name_en = models.CharField(verbose_name=_('监控的主机集群英文名称'), max_length=255, default='')
-    job_tag = models.CharField(verbose_name=_('主机集群标签名称'), max_length=255, default='')
+    job_tag = models.CharField(
+        verbose_name=_('主机集群标签名称'), max_length=255, default='', help_text='模板：xxx_node_metric')
     prometheus = models.CharField(
         verbose_name=_('Prometheus接口'), max_length=255, blank=True, default='', help_text=_('http(s)://example.cn/'))
     creation = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
@@ -357,7 +359,8 @@ class MonitorJobTiDB(UuidModel):
     """
     name = models.CharField(verbose_name=_('监控的TiDB集群名称'), max_length=255, default='')
     name_en = models.CharField(verbose_name=_('监控的TiDB集群英文名称'), max_length=255, default='')
-    job_tag = models.CharField(verbose_name=_('TiDB集群标签名称'), max_length=255, default='')
+    job_tag = models.CharField(
+        verbose_name=_('TiDB集群标签名称'), max_length=255, default='', help_text='模板：xxx_tidb_metric')
     prometheus = models.CharField(
         verbose_name=_('Prometheus接口'), max_length=255, blank=True, default='', help_text=_('http(s)://example.cn/'))
     creation = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
@@ -422,7 +425,7 @@ class LogSite(UuidModel):
         to=LogSiteType, db_constraint=False, on_delete=models.SET_NULL, null=True,
         related_name='+', verbose_name="站点类别")
     job_tag = models.CharField(verbose_name=_('网站日志单元标识'), max_length=64, default='',
-                               help_text=_('Loki日志中对应的job标识'))
+                               help_text=_('Loki日志中对应的job标识，模板xxx_log'))
     sort_weight = models.IntegerField(verbose_name='排序值', help_text='值越小排序越靠前')
     desc = models.CharField(max_length=255, blank=True, default="", verbose_name="备注")
     creation = models.DateTimeField(verbose_name='创建时间', auto_now_add=True)
