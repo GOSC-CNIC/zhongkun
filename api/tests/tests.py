@@ -1536,6 +1536,9 @@ class ServiceTests(MyAPITestCase):
         self.assertEqual(response.data['results'][0]['status'], ServiceConfig.Status.DELETED.value)
 
     def test_admin_list(self):
+        service2 = ServiceConfig(name='service2', name_en='service2 en', org_data_center=None)
+        service2.save(force_insert=True)
+
         url = reverse('api:service-admin-list')
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -1561,6 +1564,12 @@ class ServiceTests(MyAPITestCase):
         self.assertEqual(response.data['count'], 0)
 
         self.service.org_data_center.users.add(self.user)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+
+        # 同为数据中心和服务单元管理员
+        self.service.users.add(self.user)
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 1)

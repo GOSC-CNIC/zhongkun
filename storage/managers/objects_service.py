@@ -34,7 +34,7 @@ class ObjectsServiceManager:
 
     @staticmethod
     def get_all_has_perm_qs(user_id):
-        return ObjectsService.objects.filter(Q(users__id=user_id) | Q(org_data_center__users__id=user_id))
+        return ObjectsService.objects.filter(Q(users__id=user_id) | Q(org_data_center__users__id=user_id)).distinct()
 
     @staticmethod
     def get_all_has_perm_service(user):

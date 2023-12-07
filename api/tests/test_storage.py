@@ -4,7 +4,7 @@ from datetime import timedelta
 from django.urls import reverse
 from django.utils import timezone
 
-from storage.models import Bucket
+from storage.models import Bucket, ObjectsService
 from utils.test import get_or_create_user, get_or_create_storage_service
 from . import MyAPITestCase
 
@@ -82,6 +82,9 @@ class ObjectsServiceTests(MyAPITestCase):
         self.assertEqual(len(r.data['results']), 1)
 
     def test_admin_list_service(self):
+        service2 = ObjectsService(name='test2', name_en='en2', org_data_center=None)
+        service2.save(force_insert=True)
+
         url = reverse('api:storage-service-admin-list')
         r = self.client.get(url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
@@ -167,6 +170,13 @@ class ObjectsServiceTests(MyAPITestCase):
         self.assertEqual(r.data['count'], 1)
         self.assertEqual(len(r.data['results']), 1)
 
+        # 同时为数据中心和服务单元管理员
+        self.service.users.add(self.user)
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 1)
+        self.assertEqual(len(r.data['results']), 1)
+
         # 联邦管理员
         self.service.users.remove(self.user)
         self.service.org_data_center.users.remove(self.user)
@@ -180,7 +190,7 @@ class ObjectsServiceTests(MyAPITestCase):
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn(keys=['count', 'next', 'previous', 'results'], container=r.data)
-        self.assertEqual(r.data['count'], 1)
+        self.assertEqual(r.data['count'], 2)
         self.assertKeysIn(keys=[
             'id', 'name', 'name_en', 'service_type', 'endpoint_url', 'add_time', 'status', 'remarks', 'provide_ftp',
             'ftp_domains', 'longitude', 'latitude', 'pay_app_service_id', 'org_data_center', 'sort_weight', 'loki_tag'

@@ -492,7 +492,7 @@ class ServiceManager:
             'org_data_center', 'org_data_center__organization'
         ).filter(
             Q(users__id=user_id) | Q(org_data_center__users__id=user_id)
-        )
+        ).distinct()
 
     @staticmethod
     def get_has_perm_service(user):
@@ -513,7 +513,7 @@ class ServiceManager:
     def get_has_perm_service_ids(user_id: str):
         return ServiceConfig.objects.filter(
             Q(users__id=user_id) | Q(org_data_center__users__id=user_id)
-        ).values_list('id', flat=True)
+        ).distinct().values_list('id', flat=True)
 
     @staticmethod
     def get_service_if_admin(user, service_id: str):
