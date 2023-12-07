@@ -2,10 +2,13 @@ from typing import Union, List
 
 from django.utils.translation import gettext as _
 from django.db.models import Q
+from django.db import transaction
 
 from users.models import UserProfile
-from service.models import OrgDataCenter, DataCenter as Organization
+from service.models import ServiceConfig, OrgDataCenter, DataCenter as Organization
 from core import errors
+from bill.models import PayAppService
+from storage.models import ObjectsService
 
 
 class OrgDataCenterManager:
@@ -177,7 +180,10 @@ class OrgDataCenterManager:
         if not users:
             return odc
 
-        odc.users.add(*users)    # 底层不会重复添加已存在的用户
+        with transaction.atomic():
+            odc.users.add(*users)    # 底层不会重复添加已存在的用户
+            OrgDataCenterManager.sync_odc_admin_to_pay_service(odc=odc, add_admins=users, remove_admins=[])
+
         return odc
 
     @staticmethod
@@ -186,5 +192,35 @@ class OrgDataCenterManager:
         if not users:
             return odc
 
-        odc.users.remove(*users)
+        with transaction.atomic():
+            odc.users.remove(*users)
+            OrgDataCenterManager.sync_odc_admin_to_pay_service(odc=odc, add_admins=[], remove_admins=users)
+
         return odc
+
+    @staticmethod
+    def get_odc_pay_service_qs(odc: OrgDataCenter):
+        server_pay_ids = ServiceConfig.objects.filter(
+            org_data_center_id=odc.id).values_list('pay_app_service_id', flat=True)
+        storage_pay_ids = ObjectsService.objects.filter(
+            org_data_center_id=odc.id).values_list('pay_app_service_id', flat=True)
+        pay_service_ids = [i for i in server_pay_ids if i] + [i for i in storage_pay_ids if i]
+        if pay_service_ids:
+            return PayAppService.objects.filter(id__in=pay_service_ids)
+
+        return None
+
+    @staticmethod
+    def sync_odc_admin_to_pay_service(odc: OrgDataCenter, remove_admins: list, add_admins: list):
+        """
+        数据中心下云主机和存储服务单元对应的钱包结算单元管理员设置
+        """
+        pay_services = OrgDataCenterManager.get_odc_pay_service_qs(odc=odc)
+        if pay_services is not None:
+            for pay in pay_services:
+                if remove_admins:
+                    pay.users.remove(*remove_admins)
+                if add_admins:
+                    pay.users.add(*add_admins)
+
+        return pay_services

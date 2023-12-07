@@ -1,10 +1,12 @@
 from urllib import parse
 
 from django.urls import reverse
+from django.conf import settings
 
 from utils.test import MyAPITransactionTestCase, get_or_create_user, get_or_create_organization
 from storage.models import ObjectsService
 from monitor.models import MonitorJobCeph, MonitorJobServer, MonitorJobTiDB, LogSite, LogSiteType
+from bill.models import PayAppService, PayApp
 from ..models import OrgDataCenter, ServiceConfig
 from ..odc_manager import OrgDataCenterManager
 
@@ -545,6 +547,10 @@ class AdminODCTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['users'][0]['id'], user2.id)
 
     def test_add_admin(self):
+        app = PayApp(name='APP')
+        app.save(force_insert=True)
+        settings.PAYMENT_BALANCE['app_id'] = app.id
+
         user2 = get_or_create_user(username='test2@163.com')
         user3 = get_or_create_user(username='test3@qq.com')
         odc1 = OrgDataCenterManager.create_org_dc(
@@ -555,6 +561,22 @@ class AdminODCTests(MyAPITransactionTestCase):
             loki_endpoint_url='https://lokixxxx.cn', loki_receive_url='https://lokerexxxx.cn',
             loki_username='jerry@qq.com', loki_password='loki123456', loki_remark='loki remark'
         )
+
+        # 云主机、对象存储服务单元
+        server_unit1 = ServiceConfig(name='service1', name_en='service1 en', org_data_center=odc1)
+        server_unit1.save(force_insert=True)
+        pay1_server = server_unit1.check_or_register_pay_app_service()
+        server_unit2 = ServiceConfig(name='service2', name_en='service2 en', org_data_center=odc1)
+        server_unit2.save(force_insert=True)
+        pay2_server = server_unit2.check_or_register_pay_app_service()
+
+        obj_unit1 = ObjectsService(name='test1', name_en='test1_en', org_data_center=odc1)
+        obj_unit1.save(force_insert=True)
+        pay1_obj = obj_unit1.check_or_register_pay_app_service()
+        obj_unit2 = ObjectsService(name='test2', name_en='test2_en', org_data_center=None)
+        obj_unit2.save(force_insert=True)
+        pay2_obj = obj_unit2.check_or_register_pay_app_service()
+        self.assertEqual(PayAppService.objects.count(), 4)
 
         url = reverse('api:admin-odc-add-admin', kwargs={'id': 'test'})
         response = self.client.post(url)
@@ -589,6 +611,12 @@ class AdminODCTests(MyAPITransactionTestCase):
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
 
         # ok
+        # 数据中心管理员同步到钱包结算单元管理员验证
+        self.assertEqual(pay1_server.users.count(), 0)
+        self.assertEqual(pay2_server.users.count(), 0)
+        self.assertEqual(pay1_obj.users.count(), 0)
+        self.assertEqual(pay2_obj.users.count(), 0)
+
         self.assertEqual(len(odc1.users.all()), 0)
         response = self.client.post(url, data={'usernames': [self.user1.username]})
         self.assertEqual(response.status_code, 200)
@@ -603,6 +631,15 @@ class AdminODCTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['users'][0]['username'], self.user1.username)
         self.assertEqual(len(odc1.users.all()), 1)
 
+        # 数据中心管理员同步到钱包结算单元管理员验证
+        self.assertEqual(pay1_server.users.count(), 1)
+        self.assertEqual(pay2_server.users.count(), 1)
+        self.assertEqual(pay1_obj.users.count(), 1)
+        self.assertEqual(pay2_obj.users.count(), 0)
+        self.assertEqual(pay1_server.users.first().username, self.user1.username)
+        self.assertEqual(pay2_server.users.first().username, self.user1.username)
+        self.assertEqual(pay1_obj.users.first().username, self.user1.username)
+
         # 重复添加管理员
         response = self.client.post(url, data={'usernames': [self.user1.username]})
         self.assertEqual(response.status_code, 200)
@@ -610,6 +647,11 @@ class AdminODCTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['users'][0]['id'], self.user1.id)
         self.assertEqual(response.data['users'][0]['username'], self.user1.username)
         self.assertEqual(len(odc1.users.all()), 1)
+        # 数据中心管理员同步到钱包结算单元管理员验证
+        self.assertEqual(pay1_server.users.count(), 1)
+        self.assertEqual(pay2_server.users.count(), 1)
+        self.assertEqual(pay1_obj.users.count(), 1)
+        self.assertEqual(pay2_obj.users.count(), 0)
 
         # 添加用户中有些已是管理员
         response = self.client.post(url, data={'usernames': [self.user1.username, user2.username]})
@@ -617,6 +659,14 @@ class AdminODCTests(MyAPITransactionTestCase):
         self.assertEqual(len(response.data['users']), 2)
         self.assertEqual([u['id'] for u in response.data['users']].sort(), [self.user1.id, user2.id].sort())
         self.assertEqual(len(odc1.users.all()), 2)
+        # 数据中心管理员同步到钱包结算单元管理员验证
+        self.assertEqual(pay1_server.users.count(), 2)
+        self.assertEqual(pay2_server.users.count(), 2)
+        self.assertEqual(pay1_obj.users.count(), 2)
+        self.assertEqual(pay2_obj.users.count(), 0)
+        self.assertTrue(pay1_server.users.filter(username=user2.username).exists())
+        self.assertTrue(pay2_server.users.filter(username=user2.username).exists())
+        self.assertTrue(pay1_obj.users.filter(username=user2.username).exists())
 
         response = self.client.post(url, data={'usernames': [self.user1.username, user2.username, user3.username]})
         self.assertEqual(response.status_code, 200)
@@ -624,7 +674,20 @@ class AdminODCTests(MyAPITransactionTestCase):
         self.assertEqual([u['id'] for u in response.data['users']].sort(), [self.user1.id, user2.id, user3.id].sort())
         self.assertEqual(len(odc1.users.all()), 3)
 
+        # 数据中心管理员同步到钱包结算单元管理员验证
+        self.assertEqual(pay1_server.users.count(), 3)
+        self.assertEqual(pay2_server.users.count(), 3)
+        self.assertEqual(pay1_obj.users.count(), 3)
+        self.assertEqual(pay2_obj.users.count(), 0)
+        self.assertTrue(pay1_server.users.filter(username=user3.username).exists())
+        self.assertTrue(pay2_server.users.filter(username=user3.username).exists())
+        self.assertTrue(pay1_obj.users.filter(username=user3.username).exists())
+
     def test_remove_admin(self):
+        app = PayApp(name='APP')
+        app.save(force_insert=True)
+        settings.PAYMENT_BALANCE['app_id'] = app.id
+
         user2 = get_or_create_user(username='test2@163.com')
         user3 = get_or_create_user(username='test3@qq.com')
         odc1 = OrgDataCenterManager.create_org_dc(
@@ -636,6 +699,26 @@ class AdminODCTests(MyAPITransactionTestCase):
             loki_username='jerry@qq.com', loki_password='loki123456', loki_remark='loki remark'
         )
         odc1.users.add(self.user1, user2, user3)
+
+        # 云主机、对象存储服务单元
+        server_unit1 = ServiceConfig(name='service1', name_en='service1 en', org_data_center=odc1)
+        server_unit1.save(force_insert=True)
+        pay1_server = server_unit1.check_or_register_pay_app_service()
+        pay1_server.users.add(self.user1, user2, user3)
+        server_unit2 = ServiceConfig(name='service2', name_en='service2 en', org_data_center=odc1)
+        server_unit2.save(force_insert=True)
+        pay2_server = server_unit2.check_or_register_pay_app_service()
+        pay2_server.users.add(self.user1, user2)
+
+        obj_unit1 = ObjectsService(name='test1', name_en='test1_en', org_data_center=odc1)
+        obj_unit1.save(force_insert=True)
+        pay1_obj = obj_unit1.check_or_register_pay_app_service()
+        pay1_obj.users.add(user2, user3)
+        obj_unit2 = ObjectsService(name='test2', name_en='test2_en', org_data_center=None)
+        obj_unit2.save(force_insert=True)
+        pay2_obj = obj_unit2.check_or_register_pay_app_service()
+        pay2_obj.users.add(user3)
+        self.assertEqual(PayAppService.objects.count(), 4)
 
         url = reverse('api:admin-odc-remove-admin', kwargs={'id': 'test'})
         response = self.client.post(url)
@@ -670,6 +753,12 @@ class AdminODCTests(MyAPITransactionTestCase):
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
 
         # ok
+        # 数据中心管理员同步到钱包结算单元管理员验证
+        self.assertEqual(pay1_server.users.count(), 3)
+        self.assertEqual(pay2_server.users.count(), 2)
+        self.assertEqual(pay1_obj.users.count(), 2)
+        self.assertEqual(pay2_obj.users.count(), 1)
+
         self.assertEqual(len(odc1.users.all()), 3)
         response = self.client.post(url, data={'usernames': [self.user1.username]})
         self.assertEqual(response.status_code, 200)
@@ -683,12 +772,27 @@ class AdminODCTests(MyAPITransactionTestCase):
         self.assertEqual([u['id'] for u in response.data['users']].sort(), [user3.id, user2.id].sort())
         self.assertEqual(len(odc1.users.all()), 2)
 
+        # 数据中心管理员同步到钱包结算单元管理员验证
+        self.assertEqual(pay1_server.users.count(), 2)
+        self.assertEqual(pay2_server.users.count(), 1)
+        self.assertEqual(pay1_obj.users.count(), 2)
+        self.assertEqual(pay2_obj.users.count(), 1)
+        self.assertEqual(pay2_server.users.first().username, user2.username)
+        self.assertEqual(pay2_obj.users.first().username, user3.username)
+
         # 重复remove管理员
         response = self.client.post(url, data={'usernames': [self.user1.username]})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data['users']), 2)
         self.assertEqual([u['id'] for u in response.data['users']].sort(), [user3.id, user2.id].sort())
         self.assertEqual(len(odc1.users.all()), 2)
+        # 数据中心管理员同步到钱包结算单元管理员验证
+        self.assertEqual(pay1_server.users.count(), 2)
+        self.assertEqual(pay2_server.users.count(), 1)
+        self.assertEqual(pay1_obj.users.count(), 2)
+        self.assertEqual(pay2_obj.users.count(), 1)
+        self.assertEqual(pay2_server.users.first().username, user2.username)
+        self.assertEqual(pay2_obj.users.first().username, user3.username)
 
         # remove用户中有些已是管理员
         response = self.client.post(url, data={'usernames': [self.user1.username, user2.username]})
@@ -697,11 +801,23 @@ class AdminODCTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['users'][0]['id'], user3.id)
         self.assertEqual(response.data['users'][0]['username'], user3.username)
         self.assertEqual(len(odc1.users.all()), 1)
+        # 数据中心管理员同步到钱包结算单元管理员验证
+        self.assertEqual(pay1_server.users.count(), 1)
+        self.assertEqual(pay2_server.users.count(), 0)
+        self.assertEqual(pay1_obj.users.count(), 1)
+        self.assertEqual(pay2_obj.users.count(), 1)
+        self.assertEqual(pay1_obj.users.first().username, user3.username)
+        self.assertEqual(pay1_server.users.first().username, user3.username)
 
         response = self.client.post(url, data={'usernames': [self.user1.username, user2.username, user3.username]})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data['users']), 0)
         self.assertEqual(len(odc1.users.all()), 0)
+        # 数据中心管理员同步到钱包结算单元管理员验证
+        self.assertEqual(pay1_server.users.count(), 0)
+        self.assertEqual(pay2_server.users.count(), 0)
+        self.assertEqual(pay1_obj.users.count(), 0)
+        self.assertEqual(pay2_obj.users.count(), 1)
 
     def test_units(self):
         odc1 = OrgDataCenterManager.create_org_dc(

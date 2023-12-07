@@ -125,7 +125,8 @@ class ObjectsService(UuidModel):
         app_id = payment_balance.get('app_id', None)
 
         if self.pay_app_service_id:
-            self.check_pay_app_service_id(self.pay_app_service_id)
+            app_service = self.check_pay_app_service_id(self.pay_app_service_id)
+            return app_service
 
         # 新注册
         org_id = self.org_data_center.organization_id if self.org_data_center else None
@@ -143,6 +144,8 @@ class ObjectsService(UuidModel):
             self.pay_app_service_id = app_service.id
             self.save(update_fields=['pay_app_service_id'])
 
+        return app_service
+
     @staticmethod
     def check_pay_app_service_id(pay_app_service_id: str):
         app_service = PayAppService.objects.filter(id=pay_app_service_id).first()
@@ -150,6 +153,8 @@ class ObjectsService(UuidModel):
             raise ValidationError(message={
                 'pay_app_service_id': '结算服务单元不存在，请仔细确认。如果是新建服务单元不需要手动填写结算服务单元id，'
                                       '保持为空，保存后会自动注册对应的结算单元，并填充此字段'})
+
+        return app_service
 
     def clean(self):
         if self.pay_app_service_id:
