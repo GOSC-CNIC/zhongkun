@@ -33,7 +33,13 @@ check.check_setting()
 class BothHttpAndHttpsSchemaGenerator(OpenAPISchemaGenerator):
     def get_schema(self, request=None, public=False):
         schema = super().get_schema(request, public)
-        schema.schemes = ["https", "http"]
+        if not schema.schemes:
+            schema.schemes = ["https", "http"]
+        else:
+            for s in ["https", "http"]:
+                if s not in schema.schemes:
+                    schema.schemes.append(s)
+
         return schema
 
 

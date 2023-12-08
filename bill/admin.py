@@ -1,4 +1,5 @@
 from django.contrib import admin, messages
+from django.contrib.admin.filters import SimpleListFilter
 from django.utils.translation import gettext_lazy as _
 from django import forms
 
@@ -163,16 +164,34 @@ class CashCouponAdmin(admin.ModelAdmin):
 #     raw_id_fields = ('user',)
 
 
+class PayServiceOrgFilter(SimpleListFilter):
+    title = "机构"
+    parameter_name = 'org_id'
+
+    def lookups(self, request, model_admin):
+        r = PayAppService.objects.values_list(
+            'orgnazition_id', 'orgnazition__name'
+        )
+        d = {i[0]: i[1] for i in r if i[0]}
+        return [(k, v) for k, v in d.items()]
+
+    def queryset(self, request, queryset):
+        org_id = request.GET.get(self.parameter_name)
+        if org_id:
+            return queryset.filter(orgnazition_id=org_id)
+
+
 @admin.register(PayAppService)
 class PayAppServiceAdmin(NoDeleteSelectModelAdmin):
     list_display = ('id', 'name', 'name_en', 'category', 'app', 'orgnazition', 'creation_time', 'status', 'service_id',
                     'resources', 'contact_person', 'contact_email', 'contact_telephone', 'desc')
     list_display_links = ('id',)
     list_select_related = ('orgnazition', 'app',)
-    list_filter = ('category', 'status')
+    list_filter = ('category', 'status', PayServiceOrgFilter)
     filter_horizontal = ('users',)
     # raw_id_fields = ('users',)
     raw_id_fields = ('orgnazition',)
+    search_fields = ('name', 'name_en')
 
     def has_delete_permission(self, request, obj=None):
         return False

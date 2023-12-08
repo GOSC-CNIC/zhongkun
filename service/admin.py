@@ -6,6 +6,7 @@ from django.contrib.admin.filters import SimpleListFilter
 
 from servers.models import Server, Disk
 from utils.model import NoDeleteSelectModelAdmin
+from .odc_manager import OrgDataCenterManager
 from .models import (
     ServiceConfig, DataCenter, ServicePrivateQuota,
     ServiceShareQuota, ApplyVmService, ApplyOrganization, Contacts,
@@ -182,6 +183,46 @@ class OrgDataCenterAdmin(NoDeleteSelectModelAdmin):
             )
         }),
     )
+
+    def save_related(self, request, form, formsets, change):
+        new_users = form.cleaned_data['users']
+        odc = form.instance
+        old_users = odc.users.all()
+        old_user_ids = [u.id for u in old_users]
+
+        add_users = []
+        for u in new_users:
+            if u.id in old_user_ids:
+                old_user_ids.remove(u.id)    # 删除完未变的，剩余的都是将被删除的user
+            else:
+                add_users.append(u)
+
+        remove_user_ids = old_user_ids
+        remove_users = []
+        if remove_user_ids:
+            for u in old_users:
+                if u.id in remove_user_ids:
+                    remove_users.append(u)
+
+        super(OrgDataCenterAdmin, self).save_related(request=request, form=form, formsets=formsets, change=change)
+        if not remove_users and not add_users:
+            return
+
+        try:
+            OrgDataCenterManager.sync_odc_admin_to_pay_service(
+                odc=odc, add_admins=add_users, remove_admins=remove_users)
+        except Exception as exc:
+            messages.add_message(
+                request=request, level=messages.ERROR,
+                message=_('数据中心管理员变更权限同步到钱包结算单元失败。' + str(exc)))
+
+        msg = _('数据中心管理员权限变更成功同步到钱包结算单元')
+        if add_users:
+            msg += f';新添加管理员{[u.username for u in add_users]}'
+        if remove_users:
+            msg += f';移除管理员{[u.username for u in remove_users]}'
+
+        messages.add_message(request=request, level=messages.SUCCESS, message=msg)
 
 
 @admin.register(ServicePrivateQuota)

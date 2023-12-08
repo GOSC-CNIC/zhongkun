@@ -216,7 +216,10 @@ class OrgDataCenterManager:
         数据中心下云主机和存储服务单元对应的钱包结算单元管理员设置
         """
         pay_services = OrgDataCenterManager.get_odc_pay_service_qs(odc=odc)
-        if pay_services is not None:
+        if pay_services is None:
+            return []
+
+        with transaction.atomic():
             for pay in pay_services:
                 if remove_admins:
                     pay.users.remove(*remove_admins)
