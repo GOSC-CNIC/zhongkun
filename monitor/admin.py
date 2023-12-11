@@ -30,6 +30,7 @@ class MonitorJobCephAdmin(admin.ModelAdmin):
     list_select_related = ('org_data_center__organization', )
     list_editable = ('sort_weight',)
     list_filter = ('org_data_center',)
+    search_fields = ('name', 'name_en', 'job_tag',)
     filter_horizontal = ('users',)
     raw_id_fields = ('org_data_center',)
 
@@ -58,6 +59,7 @@ class MonitorJobServerAdmin(admin.ModelAdmin):
     list_filter = ('org_data_center',)
     filter_horizontal = ('users',)
     raw_id_fields = ('org_data_center',)
+    search_fields = ('name', 'name_en', 'job_tag',)
 
     @admin.display(description="机构")
     def organization_name(self, obj):
@@ -79,6 +81,7 @@ class MonitorJobVideoMeetingAdmin(admin.ModelAdmin):
     list_display = ('name', 'name_en', 'job_tag', 'ips', 'longitude', 'latitude', 'provider', 'prometheus', 'creation')
     list_display_links = ('name', )
     list_select_related = ('provider',)
+    search_fields = ('job_tag',)
 
 
 class MonitorWebsiteForm(ModelForm):
@@ -189,6 +192,7 @@ class MonitorJobTiDBAdmin(admin.ModelAdmin):
     list_filter = ('org_data_center',)
     filter_horizontal = ('users',)
     raw_id_fields = ('org_data_center',)
+    search_fields = ('name', 'name_en', 'job_tag',)
 
     @admin.display(description="机构")
     def organization_name(self, obj):
@@ -222,6 +226,7 @@ class LogSiteAdmin(admin.ModelAdmin):
     list_filter = ('site_type', 'org_data_center',)
     filter_horizontal = ('users',)
     raw_id_fields = ('org_data_center',)
+    search_fields = ('name', 'name_en', 'job_tag',)
 
     @admin.display(description="机构")
     def organization_name(self, obj):
