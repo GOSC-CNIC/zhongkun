@@ -938,3 +938,32 @@ class IPv4AddressManager:
             ip_addr.save(update_fields=update_fields)
 
         return ip_addr
+
+    @staticmethod
+    def filter_ip_address_qs(start_ip: int = None, end_ip: int = None, remark: str = None, is_admin: bool = False):
+        """
+        :param start_ip: 起始地址大小
+        :param end_ip: 截止地址大小
+        :param remark: 备注关键字查询，为空字符串时查询备注有效的ip
+        :param is_admin: 是否是管理员
+        """
+        lookups = {}
+        if start_ip:
+            lookups['ip_address__gte'] = start_ip
+
+        if end_ip:
+            lookups['ip_address__lte'] = end_ip
+
+        qs = IPv4Address.objects.filter(**lookups).order_by('ip_address')
+        if is_admin:
+            if remark:
+                qs = qs.filter(Q(remark__icontains=remark) | Q(admin_remark__icontains=remark))
+            elif remark == '':
+                qs = qs.filter(~Q(remark='') | ~Q(admin_remark=''))
+        else:
+            if remark:
+                qs = qs.filter(remark__icontains=remark)
+            elif remark == '':
+                qs = qs.filter(~Q(remark=''))
+
+        return qs

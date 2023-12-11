@@ -7,7 +7,7 @@ from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
 from utils.paginators import NoPaginatorInspector
-from api.paginations import NewPageNumberPagination
+from api.paginations import NewPageNumberPagination, NewPageNumberPagination100
 from api.viewsets import NormalGenericViewSet
 from ..handlers.ipv4_handlers import IPv4RangeHandler
 from ..models import IPv4Range
@@ -540,7 +540,7 @@ class IPv4RangeViewSet(NormalGenericViewSet):
 
 class IPAMUserRoleViewSet(NormalGenericViewSet):
     permission_classes = [IsAuthenticated, ]
-    pagination_class = NewPageNumberPagination
+    pagination_class = NewPageNumberPagination100
     lookup_field = 'id'
 
     @swagger_auto_schema(
@@ -588,7 +588,7 @@ class IPAMUserRoleViewSet(NormalGenericViewSet):
 
 class IPv4AddressViewSet(NormalGenericViewSet):
     permission_classes = [IsAuthenticated, ]
-    pagination_class = NewPageNumberPagination
+    pagination_class = NewPageNumberPagination100
     lookup_field = 'id'
 
     @swagger_auto_schema(
@@ -639,3 +639,43 @@ class IPv4AddressViewSet(NormalGenericViewSet):
             }
         """
         return IPv4RangeHandler.change_ipv4_address_remark(view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举IPv4地址'),
+        request_body=no_body,
+        manual_parameters=NormalGenericViewSet.PARAMETERS_AS_ADMIN + [
+            openapi.Parameter(
+                name='ipv4range_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('IPv4地址段ID，以非科技网管理员身份请求时必须指定此地址段ID')
+            ),
+            openapi.Parameter(
+                name='remark',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('备注关键字查询，此参数值为空字符串时查询所有备注有效的IP地址')
+            ),
+        ],
+        responses={
+            200: ''''''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        列举IPv4地址
+
+            * 不以科技网管理员“as-admin”请求时，必须指定地址段参数“ipv4range_id”，分配机构只有权限查询分配给自己的地址段内的IP地址
+            * 科技网管理员同时查询管理员和分配机构管理人员的备注信息
+
+            http code 200:
+            {
+                'id': '2epz5w0skadd7tdvzzbjjzuf5',
+                'ip_address': 268830216,
+                'remark': 'test88',
+                'admin_remark': 'admin remark88'    # 只在"as-admin"请求时存在
+            }
+        """
+        return IPv4RangeHandler.list_ipv4_address(view=self, request=request, kwargs=kwargs)

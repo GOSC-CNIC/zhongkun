@@ -454,3 +454,43 @@ class IPv4RangeHandler:
 
         ip_address = IPv4AddressManager.change_ip_remark(ip_int=ipv4_int, remark=remark, admin_remark=admin_remark)
         return Response(data=slzr_cls(instance=ip_address).data)
+
+    @staticmethod
+    def list_ipv4_address(view: NormalGenericViewSet, request, kwargs):
+        try:
+            remark = request.query_params.get('remark', None)
+            ipv4range_id = request.query_params.get('ipv4range_id', None)
+            is_as_admin = view.is_as_admin_request(request=request)
+
+            start_ip_int = None
+            end_ip_int = None
+            ur_wrapper = UserIpamRoleWrapper(user=request.user)
+            if is_as_admin:
+                slzr_cls = serializers.IPv4AddressAdminSerializer
+                if not ur_wrapper.has_kjw_admin_readable():
+                    raise errors.AccessDenied(message=_('你没有科技网IP管理功能的管理员权限'))
+
+                if ipv4range_id:
+                    ipv4range = IPv4RangeManager.get_ip_range(_id=ipv4range_id)
+                    start_ip_int = ipv4range.start_address
+                    end_ip_int = ipv4range.end_address
+            else:
+                slzr_cls = serializers.IPv4AddressSerializer
+                if not ipv4range_id:
+                    raise errors.BadRequest(message=_('必须指定一个分配的IP地址段id'))
+
+                ipv4range = IPv4RangeManager.get_ip_range(_id=ipv4range_id)
+                start_ip_int = ipv4range.start_address
+                end_ip_int = ipv4range.end_address
+                IPv4RangeHandler.check_ip_range_org_admin_perm(ipv4_range=ipv4range, ur_wrapper=ur_wrapper)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        queryset = IPv4AddressManager.filter_ip_address_qs(
+            start_ip=start_ip_int, end_ip=end_ip_int, remark=remark, is_admin=is_as_admin)
+        try:
+            objs = view.paginate_queryset(queryset)
+            serializer = slzr_cls(instance=objs, many=True)
+            return view.get_paginated_response(serializer.data)
+        except Exception as exc:
+            return view.exception_response(exc)
