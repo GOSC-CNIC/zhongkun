@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 
 from adapters import outputs, inputs
 from adapters import exceptions
-from adapters.params import ParamsName
+from adapters.params import GenericAdapterParams
 from adapters.base import BaseAdapter
 from .sdk import (
     UnisCloud, Credentials, RequestError
@@ -79,7 +79,7 @@ class UnisAdapter(BaseAdapter):
                  ):
         api_version = api_version.lower()
         super().__init__(endpoint_url=endpoint_url, api_version=api_version, auth=auth, **kwargs)
-        self.region = self.kwargs.get(ParamsName.REGION, '')
+        self.region = self.kwargs.get(GenericAdapterParams.REGION, '')
 
     def authenticate(self, params: inputs.AuthenticateInput, **kwargs) -> outputs.AuthenticateOutput:
         """

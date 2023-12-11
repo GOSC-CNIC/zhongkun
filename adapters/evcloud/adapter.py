@@ -4,7 +4,7 @@ import requests
 from adapters.base import BaseAdapter
 from adapters import inputs
 from adapters import outputs
-from adapters.params import ParamsName
+from adapters.params import GenericAdapterParams
 from .builders import APIBuilder
 from . import exceptions
 from .validators import InputValidator
@@ -61,7 +61,7 @@ class EVCloudAdapter(BaseAdapter):
         self.api_builder = APIBuilder(endpoint_url=self.endpoint_url, api_version=self.api_version)
 
     def get_region(self):
-        return self.kwargs.get(ParamsName.REGION, '')
+        return self.kwargs.get(GenericAdapterParams.REGION, '')
 
     def get_auth_header(self):
         """

@@ -14,7 +14,7 @@ from adapters import inputs
 from adapters import outputs
 
 from adapters import exceptions
-from adapters.params import ParamsName
+from adapters.params import OpenStackParams
 
 datetime_re = re.compile(
     r'(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<day>\d{1,2})'
@@ -140,10 +140,10 @@ class OpenStackAdapter(BaseAdapter):
         username = params.username
         password = params.password
         auth_url = self.endpoint_url
-        region = self.kwargs.get(ParamsName.REGION, 'RegionOne')
-        project_name = self.kwargs.get(ParamsName.PROJECT_NAME, 'admin')
-        user_domain = self.kwargs.get(ParamsName.USER_DOMAIN_NAME, 'default')
-        project_domain = self.kwargs.get(ParamsName.PROJECT_DOMAIN_NAME, 'default')
+        region = self.kwargs.get(OpenStackParams.REGION, 'RegionOne')
+        project_name = self.kwargs.get(OpenStackParams.PROJECT_NAME, 'admin')
+        user_domain = self.kwargs.get(OpenStackParams.USER_DOMAIN_NAME, 'default')
+        project_domain = self.kwargs.get(OpenStackParams.PROJECT_DOMAIN_NAME, 'default')
 
         try:
             connect = openstack.connect(

@@ -6,29 +6,43 @@ from .vmware.adapter import VmwareAdapter
 from .uniscloud.adapter import UnisAdapter
 from .aliyun.adapter import AliyunAdapter
 from .exceptions import UnsupportedServiceType, MethodNotSupportInService
-from .params import ParamsName
+from .params import BaseAdapterParams, GenericAdapterParams, OpenStackParams
 from . import inputs, outputs
 
 
-SERVICE_TYPE_EVCLOUD = 'evcloud'
-SERVICE_TYPE_OPENSTACK = 'openstack'
-SERVICE_TYPE_VMWARE = 'vmware'
-SERVICE_TYPE_UNIS_CLOUD = 'unis-cloud'
-SERVICE_TYPE_ALIYUN = 'aliyun'
+class AdapterType:
+    EVCLOUD = 'evcloud'
+    OPENSTACK = 'openstack'
+    VMWARE = 'vmware'
+    UNIS_CLOUD = 'unis-cloud'
+    ALIYUN = 'aliyun'
+
+
+def get_adapter_params(adapter_type: str):
+    ap_cls = GenericAdapterParams
+    if adapter_type == AdapterType.OPENSTACK:
+        ap_cls = OpenStackParams
+
+    return ap_cls().get_custom_params()
+
+
+def get_adapter_params_for_service(service: ServiceConfig) -> dict:
+    style = get_service_style(service)
+    return get_adapter_params(adapter_type=style)
 
 
 def get_service_style(service: ServiceConfig):
     service_type = service.service_type
     if service_type == service.ServiceType.EVCLOUD:
-        style = SERVICE_TYPE_EVCLOUD
+        style = AdapterType.EVCLOUD
     elif service_type == service.ServiceType.OPENSTACK:
-        style = SERVICE_TYPE_OPENSTACK
+        style = AdapterType.OPENSTACK
     elif service_type == service.ServiceType.VMWARE:
-        style = SERVICE_TYPE_VMWARE
+        style = AdapterType.VMWARE
     elif service_type == service.ServiceType.ALIYUN:
-        style = SERVICE_TYPE_ALIYUN
+        style = AdapterType.ALIYUN
     # elif service_type == service.ServiceType.UNIS_CLOUD:
-    #     style = SERVICE_TYPE_UNIS_CLOUD
+    #     style = AdapterType.UNIS_CLOUD
     else:
         raise UnsupportedServiceType(extend_msg=service_type)
 
@@ -39,7 +53,7 @@ def get_service_client(service: ServiceConfig, **kwargs):
     style = get_service_style(service)
     params = service.extra_params()
     if service.region_id:
-        params[ParamsName.REGION] = service.region_id
+        params[BaseAdapterParams.REGION] = service.region_id
 
     auth = kwargs.pop('auth') if 'auth' in kwargs else None
     params.update(kwargs)
@@ -67,11 +81,11 @@ def get_adapter_class(style: str = 'evcloud'):
     :raises: UnsupportedServiceType
     """
     map_adapters = {
-        SERVICE_TYPE_EVCLOUD: EVCloudAdapter,
-        SERVICE_TYPE_OPENSTACK: OpenStackAdapter,
-        SERVICE_TYPE_VMWARE: VmwareAdapter,
-        SERVICE_TYPE_UNIS_CLOUD: UnisAdapter,
-        SERVICE_TYPE_ALIYUN: AliyunAdapter,
+        AdapterType.EVCLOUD: EVCloudAdapter,
+        AdapterType.OPENSTACK: OpenStackAdapter,
+        AdapterType.VMWARE: VmwareAdapter,
+        AdapterType.UNIS_CLOUD: UnisAdapter,
+        AdapterType.ALIYUN: AliyunAdapter,
     }
     style = style.lower()
 

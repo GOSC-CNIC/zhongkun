@@ -23,7 +23,7 @@ class JSONStringValidator:
         """
         try:
             json.loads(value, cls=self.decoder)
-        except TypeError:
+        except Exception:
             raise ValidationError(self.message, code=self.code, params={'value': value})
 
 

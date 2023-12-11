@@ -348,8 +348,29 @@ class ServiceConfig(BaseService):
         return app_service
 
     def clean(self):
+        from adapters.client import get_adapter_params_for_service, UnsupportedServiceType
         if self.pay_app_service_id:
             self.check_pay_app_service_id(self.pay_app_service_id)
+
+        try:
+            extra = self.extra_params()
+        except Exception as exc:
+            raise ValidationError(message={'extra': '配置内容必须是json格式'})
+
+        try:
+            ap = get_adapter_params_for_service(service=self)
+        except UnsupportedServiceType as exc:
+            raise ValidationError(message={'service_type': f'"{self.get_service_type_display()}"类型服务不支持'})
+
+        required = {}
+        for k, v in ap.items():
+            if k not in extra:
+                required[k] = v
+
+        if required:
+            msgs = [f'{k}: {v}' for k, v in required.items()]
+            msgs.insert(0, f'"{self.get_service_type_display()}"类型服务单元需要配置额外参数:')
+            raise ValidationError(message={'extra': msgs})
 
     def raw_password(self):
         """
