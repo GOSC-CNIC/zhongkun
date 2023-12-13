@@ -1,5 +1,13 @@
 from django import forms
 from django.utils.translation import gettext_lazy as _
+from django_json_widget.widgets import JSONEditorWidget
+
+
+class JSONEditorAllowEmptyWidget(JSONEditorWidget):
+    def format_value(self, value):
+        if not value:
+            value = '{}'
+        return super(JSONEditorAllowEmptyWidget, self).format_value(value)
 
 
 class VmsProviderForm(forms.ModelForm):
@@ -10,7 +18,7 @@ class VmsProviderForm(forms.ModelForm):
 
     class Meta:
         widgets = {
-            'extra': forms.Textarea(attrs={'cols': 80, 'rows': 6}),
+            'extra': JSONEditorAllowEmptyWidget(),
             'remarks': forms.Textarea(attrs={'cols': 80, 'rows': 6}),
         }
 

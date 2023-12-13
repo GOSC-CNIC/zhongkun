@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     # 'rest_framework.authtoken',
     'drf_yasg',
     'corsheaders',
+    'django_json_widget',
 
     'users',
     'servers',
