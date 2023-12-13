@@ -1,17 +1,31 @@
+import time
+from collections import namedtuple
 from datetime import timedelta, datetime
+from decimal import Decimal
 
 from django.utils import timezone
 from django.db.models import F
 from django.template.loader import get_template
+from django.template import Template, Context
 from django.conf import settings
 from django.core.mail import send_mail
 
+from bill.managers.payment import PaymentManager
+from service.models import ServiceConfig
 from servers.models import Server
+from servers.managers import ServerManager
 from users.models import Email, UserProfile
 from vo.models import VirtualOrganization, VoMember
 from utils.model import PayType
 from core import site_configs_manager as site_configs
 from . import config_logger
+
+
+UserServerTuple = namedtuple(
+    'UserServer', ['username', 'server_id', 'ip', 'ram', 'cpu', 'image', 'service_id', 'service_name', 'remarks'])
+VoServerTuple = namedtuple(
+    'VoServer', [
+        'vo_name', 'username', 'server_id', 'ip', 'ram', 'cpu', 'image', 'service_id', 'service_name', 'remarks'])
 
 
 class ServerQuerier:
@@ -290,40 +304,19 @@ class BaseNotifier:
 
     def do_email_notice(self, subject: str, html_message: str, username: str):
         html_message = self.html_minify(html_message)
-        # 先保存邮件记录
         try:
-            email = Email(
-                subject=subject, receiver=username, message=html_message,
-                sender=settings.EMAIL_HOST_USER,
-                email_host=settings.EMAIL_HOST,
-                tag=Email.Tag.RES_EXP.value, is_html=True,
-                status=Email.Status.WAIT.value, status_desc='', success_time=None
+            email = Email.send_email(
+                subject=subject, receivers=[username], message='', html_message=html_message,
+                tag=Email.Tag.RES_EXP.value, save_db=True, is_feint=False
             )
-            email.save(force_insert=True)
+            if email is None:
+                self.logger.warning(
+                    f"User {username} servers expired email save to db failed.")
+                return False
         except Exception as exc:
             self.logger.warning(
                 f"User {username} servers expired email save to db failed {str(exc)}.")
             return False
-
-        try:
-            ok = send_mail(
-                subject=subject,
-                message='',
-                from_email=settings.EMAIL_HOST_USER,
-                recipient_list=[username],
-                html_message=html_message,
-                fail_silently=False,
-            )
-            if ok == 0:
-                raise Exception('failed')
-        except Exception as exc:
-            email.set_send_failed(desc=str(exc), save_db=True)
-            return False
-
-        try:
-            email.set_send_success(desc='', save_db=True)
-        except Exception as exc:
-            pass
 
         return True
 
@@ -614,3 +607,281 @@ class ServerNotifier(BaseNotifier):
             return -1
 
         return r
+
+
+class ServerArrearNotifier:
+    """
+    云主机欠费关机
+    """
+    def __init__(self, log_stdout: bool = False, raise_exception: bool = False):
+        """
+        """
+        self.raise_exception = raise_exception
+        self.logger = config_logger(name='server-arrear-logger', filename="server_arrear.log", stdout=log_stdout)
+        self.arrear_map = {}
+        self.user_arrear_servers_map = {}
+        self.vo_arrear_servers_map = {}
+        self.template_all_arrear = Template(
+            '''
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        table{
+            width: 100%;
+            text-align: center;
+            margin-top: 20px;
+            font-size: 15px;
+            word-break : break-all;
+            border: 1px solid gray;
+            border-spacing: 0;
+            border-collapse: collapse;
+        }
+        tr,td{border: 1px solid gray;padding: 6px;}
+        .title1 {background-color: rgb(46,117,181);color: white;font-size: 15px;}
+        .title2{background-color: rgb(222,234,246);}
+    </style>
+</head>
+<body>
+<div>
+    <table>
+        <tr>
+            <td colspan="5" class="title1">用户欠费云主机</td>
+        </tr>
+        {% if user_servers_map %}
+            <tr class="title2">
+            <td>云主机IP</td>
+            <td>配置</td>
+            <td>所属服务单元</td>
+            <td>所属用户</td>
+            <td>备注信息</td>
+            </tr>
+            {% for servers in user_servers_map.values %}
+                {% for server in servers %}
+                <tr class="content">
+                    <td>{{ server.ip }}</td>
+                    <td>{{ server.cpu }}CPU {{ server.ram }}GB内存<br>{{ server.image }}</td>
+                    <td>{{ server.service_name }}</td>
+                    <td>{{ server.username }}</td>
+                    <td>{{ server.remarks }}</td>
+                </tr>
+                {% endfor %}
+            {% endfor %}
+        {% else %}
+            <tr><td>无</td></tr>
+        {% endif %}
+    </table>
+    <br>
+    <table>
+        <tr>
+            <td colspan="6" class="title1">VO组欠费云主机</td>
+        </tr>
+        {% if vo_servers_map %}
+            <tr class="title2">
+            <td>云主机IP</td>
+            <td>配置</td>
+            <td>所属服务单元</td>
+            <td>所属项目组</td>
+            <td>创建人</td>
+            <td>备注信息</td>
+            </tr>
+            {% for vo_servers in vo_servers_map.values %}
+                {% for server in vo_servers %}
+                <tr>
+                    <td>{{ server.ip }}</td>
+                    <td>{{ server.cpu }}CPU {{ server.ram }}GB内存<br>{{ server.image }}</td>
+                    <td>{{ server.service_name }}</td>
+                    <td>{{ server.vo_name }}</td>
+                    <td>{{ server.username }}</td>
+                    <td>{{ server.remarks }}</td>
+                </tr>
+                {% endfor %}
+            {% endfor %}
+        {% else %}
+            <tr><td>无</td></tr>
+        {% endif %}
+    </table>
+</div>
+</body>
+</html>
+''')
+
+    def run(self, only_query_to_email: bool = False):
+        """
+        """
+        self.loop_servers()
+        user_arrear_server_len = 0
+        for k, v in self.user_arrear_servers_map.items():
+            user_arrear_server_len += len(v)
+
+        vo_arrear_server_len = 0
+        for k, v in self.vo_arrear_servers_map.items():
+            vo_arrear_server_len += len(v)
+
+        print(f'User hosts in arrears: {user_arrear_server_len}, VO hosts in arrears: {vo_arrear_server_len}.')
+        if only_query_to_email:
+            self.record_all_arrear_servers_to_email()
+            print('Exit OK')
+            return
+
+    @staticmethod
+    def shutdown_servers(server_ids: list):
+        servers = Server.objects.select_related('service').filter(id__in=server_ids)
+        mgr = ServerManager()
+        for s in servers:
+            try:
+                mgr.do_arrearage_suspend_server(s)
+            except Exception as exc:
+                pass
+
+    def record_all_arrear_servers_to_email(self):
+        html_message = self.template_all_arrear.render(Context({
+            'user_servers_map': self.user_arrear_servers_map,
+            'vo_servers_map': self.vo_arrear_servers_map
+        }))
+        html_message = BaseNotifier.html_minify(html_message)
+        # 保存邮件记录
+        try:
+            Email.send_email(
+                subject='所有欠费云主机', receivers=[], message='', html_message=html_message,
+                tag=Email.Tag.ARREAR.value, save_db=True, is_feint=True
+            )
+        except Exception as exc:
+            self.logger.error(f'查询所有欠费云主机结果保存到邮件记录错误，{str(exc)}')
+
+    def loop_servers(self):
+        last_creatition_time = None
+        last_id = ''
+        continuous_error_count = 0  # 连续错误计数
+        while True:
+            try:
+                servers = self.get_servers(gte_creation_time=last_creatition_time, limit=100)
+                if len(servers) == 0:
+                    break
+
+                # 多个creation_time相同数据时，会查询获取到多个数据（计量过也会重复查询到）
+                if servers[len(servers) - 1].id == last_id:
+                    break
+
+                for s in servers:
+                    if s.id == last_id:
+                        continue
+
+                    self.check_arrear_server(s)
+                    last_creatition_time = s.creation_time
+                    last_id = s.id
+
+                continuous_error_count = 0
+            except Exception as e:
+                if self.raise_exception:
+                    raise e
+
+                continuous_error_count += 1
+                if continuous_error_count > 100:    # 连续错误次数后报错退出
+                    raise e
+
+                time.sleep(continuous_error_count / 100)  # 10ms - 1000ms
+
+    def check_arrear_server(self, server: Server):
+        if server.classification == Server.Classification.PERSONAL.value:
+            user = server.user
+            user_id = user.id
+            service = server.service
+
+            if self.is_user_arrear_in_service(user_id=user_id, service=service):
+                ust = UserServerTuple(
+                    username=user.username, server_id=server.id,
+                    ip=server.ipv4, ram=server.ram, cpu=server.vcpus, image=server.image,
+                    service_id=service.id, service_name=service.name, remarks=server.remarks
+                )
+                if user_id in self.user_arrear_servers_map:
+                    self.user_arrear_servers_map[user_id].append(ust)
+                else:
+                    self.user_arrear_servers_map[user_id] = [ust]
+        elif server.classification == Server.Classification.VO.value:
+            if not server.vo_id:
+                return
+            if server.user_id:
+                username = server.user.username
+            else:
+                username = ''
+            vo = server.vo
+            vo_id = vo.id
+            service = server.service
+
+            if self.is_vo_arrear_in_service(vo_id=vo_id, service=service):
+                vst = VoServerTuple(
+                    vo_name=vo.name, username=username, server_id=server.id,
+                    ip=server.ipv4, ram=server.ram, cpu=server.vcpus, image=server.image,
+                    service_id=service.id, service_name=service.name, remarks=server.remarks
+                )
+                if vo_id in self.vo_arrear_servers_map:
+                    self.vo_arrear_servers_map[vo_id].append(vst)
+                else:
+                    self.vo_arrear_servers_map[vo_id] = [vst]
+
+    def is_user_arrear_in_service(self, user_id: str, service: ServiceConfig) -> bool:
+        """
+        用户在指定服务单元是否欠费
+        """
+        key = f'user_{user_id}_{service.id}'
+        if key not in self.arrear_map:
+            is_enough = PaymentManager().has_enough_balance_user(
+                user_id=user_id, money_amount=Decimal('0'), with_coupons=True,
+                app_service_id=service.pay_app_service_id)
+            self.arrear_map[key] = not is_enough
+
+        return self.arrear_map[key]
+
+    def is_vo_arrear_in_service(self, vo_id: str, service: ServiceConfig) -> bool:
+        """
+        vo组在指定服务单元是否欠费
+        """
+        key = f'vo_{vo_id}_{service.id}'
+        if key not in self.arrear_map:
+            is_enough = PaymentManager().has_enough_balance_vo(
+                vo_id=vo_id, money_amount=Decimal('0'), with_coupons=True,
+                app_service_id=service.pay_app_service_id)
+            self.arrear_map[key] = not is_enough
+
+        return self.arrear_map[key]
+
+    @staticmethod
+    def get_servers(limit: int = 100, gte_creation_time: datetime = None):
+        """
+        查询按量付费server
+        """
+        qs = Server.objects.select_related('user', 'vo', 'service').filter(
+            pay_type=PayType.POSTPAID.value
+        ).order_by('creation_time')
+        if gte_creation_time:
+            qs = qs.filter(creation_time__gte=gte_creation_time)
+
+        return qs[0:limit]
+
+    @staticmethod
+    def get_personal_servers(limit: int = 100, gte_creation_time: datetime = None):
+        """
+        查询用户个人按量付费server
+        """
+        qs = Server.objects.select_related('user', 'service').filter(
+            pay_type=PayType.POSTPAID.value, classification=Server.Classification.PERSONAL.value
+        ).order_by('creation_time')
+        if gte_creation_time:
+            qs = qs.filter(creation_time__gte=gte_creation_time)
+
+        return qs[0:limit]
+
+    @staticmethod
+    def get_vo_servers(limit: int = 100, gte_creation_time: datetime = None):
+        """
+        查询vo组按量付费server
+        """
+        qs = Server.objects.select_related('vo', 'service').filter(
+            pay_type=PayType.POSTPAID.value, classification=Server.Classification.VO.value
+        ).order_by('creation_time')
+        if gte_creation_time:
+            qs = qs.filter(creation_time__gte=gte_creation_time)
+
+        return qs[0:limit]

@@ -142,6 +142,7 @@ class Email(UuidModel):
         TICKET = 'ticket', _('工单通知')
         COUPON = 'coupon', _('资源券通知')
         RES_EXP = 'res-exp', _('资源过期通知')
+        ARREAR = 'arrear', _('欠费通知')
         API = 'api', _('API请求')
         OTHER = 'other', _('其他')
 

@@ -26,7 +26,7 @@ class Migration(migrations.Migration):
                 ('receiver', models.CharField(max_length=254, verbose_name='接收者')),
                 ('message', models.TextField(verbose_name='邮件内容')),
                 ('send_time', models.DateTimeField(auto_now_add=True, verbose_name='创建时间')),
-                ('tag', models.CharField(choices=[('year', '年度报表'), ('month', '月度报表'), ('ticket', '工单通知'), ('coupon', '资源券通知'), ('res-exp', '资源过期通知'), ('api', 'API请求'), ('other', '其他')], default='other', max_length=16, verbose_name='标签')),
+                ('tag', models.CharField(choices=[('year', '年度报表'), ('month', '月度报表'), ('ticket', '工单通知'), ('coupon', '资源券通知'), ('res-exp', '资源过期通知'), ('arrear', '欠费通知'), ('api', 'API请求'), ('other', '其他')], default='other', max_length=16, verbose_name='标签')),
                 ('is_html', models.BooleanField(default=False, verbose_name='html格式信息')),
                 ('status', models.CharField(choices=[('wait', '待发送'), ('success', '发送成功'), ('failed', '发送失败')], default='success', max_length=16, verbose_name='发送状态')),
                 ('status_desc', models.CharField(default='', max_length=255, verbose_name='状态描述')),
