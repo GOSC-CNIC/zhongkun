@@ -10,7 +10,7 @@ TEST_CASE = {
             'password': ''
         },
         'JOB_CEPH': {
-            'job_tag': 'aiops-ceph'
+            'job_tag': 'aiops_ceph_metric'
         }
     },
     'MONITOR_SERVER': {
