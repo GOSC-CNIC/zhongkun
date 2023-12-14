@@ -1,1 +1,1 @@
-uwsgi --reload /home/uwsgi/cloudverse/uwsgi-master.pid
+uwsgi --reload /home/uwsgi/yunkun/uwsgi-master.pid

@@ -1,3 +1,3 @@
-cp /home/uwsgi/cloudverse/cloudverse.service /usr/lib/systemd/system/ -f
+cp /home/uwsgi/yunkun/yunkun.service /usr/lib/systemd/system/ -f
 systemctl daemon-reload
-systemctl enable cloudverse
+systemctl enable yunkun

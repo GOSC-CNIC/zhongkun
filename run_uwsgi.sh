@@ -1,1 +1,1 @@
-uwsgi --ini /home/uwsgi/cloudverse/uwsgi.ini
+uwsgi --ini /home/uwsgi/yunkun/uwsgi.ini

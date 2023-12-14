@@ -1,4 +1,4 @@
-## 关于Cloudverse
+## 关于YunKun
 
 
 ## 环境搭建(CentOS)
@@ -6,8 +6,8 @@
 请自行安装python3.9和Git。
 使用Git拉取代码： 
 ```
-git clone https://gitee.com/cstcloud-cnic/cloudverse.git
-git clone https://github.com/GOSC-CNIC/cloudverse.git     # 备用
+git clone https://gitee.com/cstcloud-cnic/yunkun.git
+git clone https://github.com/GOSC-CNIC/yunkun.git     # 备用
 ```
 ### 2 安装python运行环境
 #### （1） 使用python虚拟环境
@@ -73,9 +73,9 @@ python3 manage.py runserver 0:80
 部署方式不是唯一的，下面推荐一种方式，Python3.9+、Nginx、uwsgi。
 
 * 项目代码必须放在路径/home/uwsgi/下，根目录下有uwsgi的配置文件和几个sh脚本可以方便控制uwsgi启动关闭；
-* 也可以使用systemctl管理服务，执行一下脚本config_systemctl.sh，会配置好cloudverse.service服务；
+* 也可以使用systemctl管理服务，执行一下脚本config_systemctl.sh，会配置好yunkun.service服务；
 ```
-systemctl start/stop/reload cloudverse.service
+systemctl start/stop/reload yunkun.service
 ```
 
 * 有些接口需要获取客户端的ip地址，所以nginx需要配置标头X-Forwarded-For
