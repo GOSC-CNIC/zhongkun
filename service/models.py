@@ -450,15 +450,15 @@ class ServiceQuotaBase(UuidModel):
     """
     数据中心接入服务的资源配额基类
     """
-    private_ip_total = models.IntegerField(verbose_name=_('总私网IP数'), default=0)
+    private_ip_total = models.IntegerField(verbose_name=_('总私网IP数'), default=0, help_text=_('默认为0，表示不限制'))
     private_ip_used = models.IntegerField(verbose_name=_('已用私网IP数'), default=0)
-    public_ip_total = models.IntegerField(verbose_name=_('总公网IP数'), default=0)
+    public_ip_total = models.IntegerField(verbose_name=_('总公网IP数'), default=0, help_text=_('默认为0，表示不限制'))
     public_ip_used = models.IntegerField(verbose_name=_('已用公网IP数'), default=0)
-    vcpu_total = models.IntegerField(verbose_name=_('总CPU核数'), default=0)
+    vcpu_total = models.IntegerField(verbose_name=_('总CPU核数'), default=0, help_text=_('默认为0，表示不限制'))
     vcpu_used = models.IntegerField(verbose_name=_('已用CPU核数'), default=0)
-    ram_total = models.IntegerField(verbose_name=_('总内存大小(GB)'), default=0)
+    ram_total = models.IntegerField(verbose_name=_('总内存大小(GB)'), default=0, help_text=_('默认为0，表示不限制'))
     ram_used = models.IntegerField(verbose_name=_('已用内存大小(GB)'), default=0)
-    disk_size_total = models.IntegerField(verbose_name=_('总云硬盘大小(GB)'), default=0)
+    disk_size_total = models.IntegerField(verbose_name=_('总云硬盘大小(GB)'), default=0, help_text=_('默认为0，表示不限制'))
     disk_size_used = models.IntegerField(verbose_name=_('已用云硬盘大小(GB)'), default=0)
     creation_time = models.DateTimeField(verbose_name=_('创建时间'), null=True, blank=True, auto_now_add=True)
     enable = models.BooleanField(verbose_name=_('有效状态'), default=True,

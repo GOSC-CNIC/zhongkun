@@ -188,6 +188,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
         self.service.save(update_fields=['pay_app_service_id'])
 
         # service privete quota not enough
+        ServicePrivateQuotaManager().increase(service=self.service, disk_size=1)
         disk_url = reverse('api:disks-list')
         response = self.client.post(disk_url, data={
             'pay_type': PayType.PREPAID.value, 'service_id': self.service.id, 'azone_id': azone_id,
@@ -196,7 +197,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
         self.assertErrorResponse(status_code=409, code='QuotaShortage', response=response)
 
         # service quota set
-        ServicePrivateQuotaManager().increase(service=self.service, disk_size=6)
+        ServicePrivateQuotaManager().increase(service=self.service, disk_size=5)
 
         # create user disk prepaid mode
         response = self.client.post(disk_url, data={

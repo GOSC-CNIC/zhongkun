@@ -189,7 +189,11 @@ class QuotaAPITests(TransactionTestCase):
         ram_apply = 1024
         is_public_ip_apply = True
 
-        # 配额都是0
+        # 配额都是1
+        ServicePrivateQuotaManager().update(
+            service=self.service, vcpus=1, ram_gib=1, disk_size=1,
+            public_ip=1, private_ip=1, only_increase=False)
+
         with self.assertRaises(QuotaShortageError):
             QuotaAPI.server_create_quota_apply(
                 service=self.service, vcpu=1, ram_gib=1024, public_ip=True)
@@ -198,8 +202,39 @@ class QuotaAPITests(TransactionTestCase):
             QuotaAPI.server_create_quota_apply(
                 service=self.service, vcpu=vcpus_apply, ram_gib=ram_apply, public_ip=is_public_ip_apply)
 
+        # 配额都是0，不限制
+        ServicePrivateQuotaManager().update(
+            service=self.service, vcpus=0, ram_gib=0, disk_size=0,
+            public_ip=0, private_ip=0, only_increase=False)
+
+        QuotaAPI.server_create_quota_apply(
+            service=self.service, vcpu=vcpus_apply, ram_gib=ram_apply, public_ip=is_public_ip_apply)
+        self.pri_quota.refresh_from_db()
+        self.assertEqual(self.pri_quota.vcpu_total, 0)
+        self.assertEqual(self.pri_quota.vcpu_used, vcpus_apply)
+        self.assertEqual(self.pri_quota.ram_total, 0)
+        self.assertEqual(self.pri_quota.ram_used, ram_apply)
+        self.assertEqual(self.pri_quota.disk_size_total, 0)
+        self.assertEqual(self.pri_quota.disk_size_used, 0)
+        self.assertEqual(self.pri_quota.public_ip_total, 0)
+        self.assertEqual(self.pri_quota.private_ip_total, 0)
+        if is_public_ip_apply:
+            self.assertEqual(self.pri_quota.public_ip_used, 1)
+            self.assertEqual(self.pri_quota.private_ip_used, 0)
+        else:
+            self.assertEqual(self.pri_quota.public_ip_used, 0)
+            self.assertEqual(self.pri_quota.private_ip_used, 1)
+
+        # 释放服务配额
+        QuotaAPI().server_quota_release(
+            self.service, vcpu=vcpus_apply, ram_gib=ram_apply, public_ip=is_public_ip_apply)
+
+        ServicePrivateQuotaManager().update(
+            service=self.service, vcpus=0, ram_gib=0, disk_size=0,
+            public_ip=0, private_ip=0, only_increase=False)
+
         # 增加服务私有配额
-        self.pri_quota = ServicePrivateQuotaManager().increase(
+        ServicePrivateQuotaManager().increase(
             service=self.service, vcpus=vcpus_add, ram_gib=ram_add, disk_size=disk_size_add,
             public_ip=public_ip_add, private_ip=private_ip_add)
 

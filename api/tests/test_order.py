@@ -19,6 +19,7 @@ from bill.managers import PaymentManager
 from bill.models import PaymentHistory, CashCoupon, PayAppService, PayApp, TransactionBill
 from api.handlers.order_handler import CASH_COUPON_BALANCE
 from service.models import ServiceConfig
+from service.managers import ServicePrivateQuotaManager
 from . import set_auth_header, MyAPITestCase
 
 
@@ -612,7 +613,7 @@ class OrderTests(MyAPITestCase):
 
         # prepaid mode order
         instance_config = ServerConfig(
-            vm_cpu=1, vm_ram=1, systemdisk_size=50, public_ip=True,
+            vm_cpu=2, vm_ram=4, systemdisk_size=50, public_ip=True,
             image_id='test', image_name='', network_id='network_id', network_name='',
             azone_id='', azone_name='', flavor_id=''
         )
@@ -699,6 +700,9 @@ class OrderTests(MyAPITestCase):
 
         resource.last_deliver_time = resource.last_deliver_time - timedelta(minutes=2)
         resource.save(update_fields=['last_deliver_time'])
+        ServicePrivateQuotaManager().update(
+            service=self.service, vcpus=1, ram_gib=1, public_ip=1, private_ip=1
+        )
         response = self.client.post(url)
         self.assertErrorResponse(status_code=409, code='QuotaShortage', response=response)
 

@@ -478,7 +478,7 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
         return CashCouponHandler().admin_list_cash_coupon(view=self, request=request)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('App服务单元管理员创建一个资源券，可直接发放给指定用户或VO'),
+        operation_summary=gettext_lazy('结算单元管理员创建一个资源券，可直接发放给指定用户或VO'),
         responses={
             200: ''
         }
@@ -665,7 +665,7 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
         return CashCouponHandler().admin_list_cash_coupon_payment(view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('联邦管查询资源券统计信息'),
+        operation_summary=gettext_lazy('管理员查询资源券统计信息'),
         paginator_inspectors=[NoPaginatorInspector],
         manual_parameters=[
             openapi.Parameter(
@@ -709,7 +709,7 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
         return CashCouponHandler().admin_cash_coupon_statistics(view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('联邦管查询资源券发放人统计信息'),
+        operation_summary=gettext_lazy('管理员查询资源券发放人统计信息'),
         manual_parameters=[
             openapi.Parameter(
                 name='time_start',
@@ -756,7 +756,7 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
         return CashCouponHandler().admin_coupon_issue_statistics(view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('联邦管查询用户资源券统计信息'),
+        operation_summary=gettext_lazy('管理员查询用户资源券统计信息'),
         manual_parameters=[
             openapi.Parameter(
                 name='time_start',
@@ -806,7 +806,7 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
         return CashCouponHandler().admin_coupon_user_statistics(view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('联邦管查询VO组资源券统计信息'),
+        operation_summary=gettext_lazy('管理员查询VO组资源券统计信息'),
         manual_parameters=[
             openapi.Parameter(
                 name='time_start',

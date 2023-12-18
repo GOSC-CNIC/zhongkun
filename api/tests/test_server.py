@@ -35,7 +35,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         self.service = get_or_create_service()
         self.default_user = 'root'
         self.default_password = 'password'
-        self.flavor = Flavor(vcpus=1, ram=1, enable=True)
+        self.flavor = Flavor(vcpus=2, ram=3, enable=True)
         self.flavor.save(force_insert=True)
         self.vo = VirtualOrganization(
             name='test vo', owner=self.user2
@@ -211,6 +211,11 @@ class ServerOrderTests(MyAPITransactionTestCase):
         image_id = response.data['results'][0]['id']
         min_sys_disk_gb = response.data['results'][0]['min_sys_disk_gb']
 
+        # service quota set
+        ServicePrivateQuotaManager().update(
+            service=self.service, vcpus=1, ram_gib=1, public_ip=1, private_ip=1
+        )
+
         # service privete quota not enough
         url = reverse('api:servers-list')
         response = self.client.post(url, data={
@@ -221,7 +226,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         self.assertErrorResponse(status_code=409, code='QuotaShortage', response=response)
 
         # service quota set
-        ServicePrivateQuotaManager().increase(
+        ServicePrivateQuotaManager().update(
             service=self.service, vcpus=6, ram_gib=4, public_ip=1, private_ip=1
         )
         # create user server prepaid mode
@@ -288,7 +293,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         self.assertEqual(order.user_id, self.user.id)
 
         original_price, trade_price = PriceManager().describe_server_price(
-            ram_mib=1024, cpu=1, disk_gib=500, public_ip=is_public_network, is_prepaid=True, period=12, days=0)
+            ram_mib=1024*3, cpu=2, disk_gib=500, public_ip=is_public_network, is_prepaid=True, period=12, days=0)
         self.assertEqual(order.total_amount, quantize_10_2(original_price))
         self.assertEqual(order.payable_amount, quantize_10_2(trade_price))
 

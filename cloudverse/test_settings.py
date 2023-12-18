@@ -51,7 +51,7 @@ TEST_CASE = {
             'password': ''
         },
         'JOB_TIDB': {
-            'job_tag': 'aiops-tidb'
+            'job_tag': 'aiops_tidb_metric'
         }
     },
     'LOG_SITE': {
