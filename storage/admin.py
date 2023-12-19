@@ -1,5 +1,6 @@
 from django.contrib import admin, messages
 from django.utils.translation import gettext_lazy as _
+from django.utils.html import format_html
 from django.db import transaction
 from django.contrib.admin.filters import SimpleListFilter
 
@@ -62,6 +63,14 @@ class ObjectsServiceAdmin(admin.ModelAdmin):
         }),
         (_('其他'), {'fields': ('loki_tag',)}),
     )
+
+    @admin.display(description=_("原始密码"))
+    def raw_password(self, obj):
+        passwd = obj.raw_password
+        if not passwd:
+            return passwd
+
+        return format_html(f'<div title="{passwd}">******</div>')
 
     @admin.display(description=_("机构"))
     def organization_name(self, obj):

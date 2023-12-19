@@ -1,5 +1,6 @@
 from django import forms
 from django.utils.translation import gettext_lazy as _
+from django.forms.widgets import PasswordInput
 from django_json_widget.widgets import JSONEditorWidget
 
 
@@ -20,6 +21,8 @@ class VmsProviderForm(forms.ModelForm):
         widgets = {
             'extra': JSONEditorAllowEmptyWidget(),
             'remarks': forms.Textarea(attrs={'cols': 80, 'rows': 6}),
+            "password": PasswordInput(
+                attrs={'placeholder': '********', 'autocomplete': 'off', 'data-toggle': 'password'}),
         }
 
     def save(self, commit=True):

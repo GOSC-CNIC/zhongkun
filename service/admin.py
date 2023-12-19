@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.utils.translation import gettext_lazy, gettext as _
+from django.utils.html import format_html
 from django.contrib import messages
 from django.db import transaction
 from django.contrib.admin.filters import SimpleListFilter
@@ -38,7 +39,7 @@ class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
     list_display_links = ('id',)
     list_display = ('id', 'name', 'name_en', 'org_data_center', 'organization_name', 'sort_weight',
                     'only_admin_visible', 'region_id', 'service_type', 'endpoint_url', 'username',
-                    'password', 'add_time', 'status', 'need_vpn', 'disk_available', 'vpn_endpoint_url', 'vpn_password',
+                    'password', 'raw_password', 'add_time', 'status', 'need_vpn', 'disk_available', 'vpn_endpoint_url', 'vpn_password',
                     'pay_app_service_id', 'longitude', 'latitude', 'remarks')
     search_fields = ['name', 'name_en', 'endpoint_url', 'remarks']
     list_filter = ['service_type', 'disk_available', ServiceOrgFilter]
@@ -108,6 +109,14 @@ class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
             return ''
 
         return obj.org_data_center.organization.name
+
+    @admin.display(description=gettext_lazy("原始密码"))
+    def raw_password(self, obj):
+        passwd = obj.raw_password()
+        if not passwd:
+            return passwd
+
+        return format_html(f'<div title="{passwd}">******</div>')
 
     def has_delete_permission(self, request, obj=None):
         return False

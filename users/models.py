@@ -4,6 +4,7 @@ from django.conf import settings
 from django.core.mail import send_mail
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 
 from utils.model import UuidModel
 from utils.rand_utils import short_uuid1_25
@@ -130,6 +131,14 @@ class UserProfile(AbstractUser):
             return False
 
         return True
+
+    def clean(self):
+        if not ('role' in self.role and isinstance(self.role['role'], list)):
+            raise ValidationError({'role': '必须包含键"role"，值为列表，格式为{"role": []}'})
+
+        for r in self.role['role']:
+            if r not in self.Roles.values:
+                raise ValidationError({'role': f'"{r}"不是一个有效的角色项'})
 
 
 class Email(UuidModel):

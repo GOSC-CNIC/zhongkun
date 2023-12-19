@@ -5,10 +5,13 @@ from django.utils.html import format_html
 from django.urls import reverse
 
 from .models import UserProfile, Email
+from .forms import UserModelForm
 
 
 @admin.register(UserProfile)
 class UserProfileAdmin(UserAdmin):
+    form = UserModelForm
+
     list_display = ('id', 'username', 'fullname', 'company', 'telephone', 'is_active', 'is_superuser',
                     'is_staff', 'date_joined')
     list_display_links = ('id', 'username')
