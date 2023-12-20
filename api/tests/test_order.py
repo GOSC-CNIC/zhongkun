@@ -591,7 +591,9 @@ class OrderTests(MyAPITestCase):
             "order_id": order2.id,
             "resource_type": ResourceType.DISK.value,
             "instance_id": resource2.instance_id,
-            "instance_status": resource2.instance_status
+            "instance_status": resource2.instance_status,
+            "desc": resource2.desc,
+            "delivered_time": None
         }, response.data["resources"][0])
         self.assert_is_subdict_of(order2.instance_config, response.data["instance_config"])
         self.assertEqual(order2_instance_config, DiskConfig.from_dict(response.data['instance_config']))

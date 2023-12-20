@@ -625,6 +625,7 @@ class ResourceSerializer(serializers.Serializer):
     instance_id = serializers.CharField(label=_('资源实例id'), max_length=36)
     instance_status = serializers.CharField(label=_('资源创建结果'))
     delivered_time = serializers.DateTimeField(label=_('资源交付时间'))
+    desc = serializers.CharField(label=_('资源交付结果描述'), max_length=255)
 
 
 class OrderDetailSerializer(OrderSerializer):
