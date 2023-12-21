@@ -8,6 +8,7 @@ from django.core.paginator import Paginator
 
 import openstack
 from openstack import exceptions as opsk_exceptions
+from keystoneauth1.exceptions import EndpointNotFound
 
 from adapters.base import BaseAdapter
 from adapters import inputs
@@ -564,3 +565,42 @@ class OpenStackAdapter(BaseAdapter):
             return outputs.ListAvailabilityZoneOutput(zones)
         except Exception as e:
             return outputs.ListAvailabilityZoneOutput(ok=False, error=exceptions.Error(str(e)), zones=None)
+
+    def get_quota(self, params: inputs.QuotaInput):
+        """
+        查询资源配额信息（可用总资源）
+
+        :return:
+            outputs.QuotaOutput()
+        """
+        try:
+            conn = self._get_openstack_connect()
+            project_id = conn.current_project_id
+            cp_quota = conn.compute.get_quota_set(project=project_id)
+            try:
+                disk_quota = conn.volume.get_quota_set(project=project_id)
+                disk_gib = getattr(disk_quota, 'gigabytes', None)
+                per_disk_gib = getattr(disk_quota, 'per_volume_gigabytes', None)
+                disks = getattr(disk_quota, 'volumes', None)
+            except (opsk_exceptions.EndpointNotFound, EndpointNotFound) as exc:     # 没有块存储服务
+                disk_gib = 0
+                per_disk_gib = 0
+                disks = 0
+
+            ram = getattr(cp_quota, 'ram', None)
+            if ram:
+                ram = ram // 1024
+            quota = outputs.Quota(
+                vcpu=getattr(cp_quota, 'cores', None),
+                ram_gib=ram,
+                servers=getattr(cp_quota, 'instances', None),
+                public_ips=None,
+                private_ips=None,
+                disk_gib=disk_gib,
+                per_disk_gib=per_disk_gib,
+                disks=disks
+            )
+
+            return outputs.QuotaOutput(ok=True, quota=quota)
+        except Exception as e:
+            return outputs.QuotaOutput(ok=False, error=exceptions.Error(str(e)), quota=outputs.Quota())

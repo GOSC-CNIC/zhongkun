@@ -1696,6 +1696,54 @@ class ServiceViewSet(CustomGenericViewSet):
         return handlers.VmServiceHandler.change_share_quota(
             view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询服务单元资源总量'),
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    @action(methods=['get'], detail=True, url_path='provide-quota', url_name='provide-quota')
+    def service_provide_quota(self, request, *args, **kwargs):
+        """
+        查询服务单元（EVCloud、OpenStack、...）的总资源量
+
+            http code 200:
+            {
+              "vcpu": 5152,         # 虚拟cpu总量
+              "ram_gib": 800,       # 内存总量
+              "servers": 332,       # 可创建云主机总数量限制
+              "public_ips": null,   # 公网IP地址总量，null表示未知
+              "private_ips": null,  # 私网IP地址总量
+              "disk_gib": 512000,   # 云硬盘总量
+              "per_disk_gib": 8192, # 每块硬盘大小上限
+              "disks": null         # 可创建云硬盘总量限制
+            }
+        """
+        try:
+            service = handlers.VmServiceHandler.get_user_perm_service(
+                _id=kwargs.get(self.lookup_field), user=request.user)
+        except exceptions.Error as exc:
+            return self.exception_response(exc)
+
+        try:
+            params = inputs.QuotaInput(region_id=service.region_id)
+            r = self.request_service(service, method='get_quota', params=params)
+            quota: outputs.Quota = r.quota
+            return Response(data={
+                'vcpu': quota.vcpu,
+                'ram_gib': quota.ram_gib,
+                'servers': quota.servers,
+                'public_ips': quota.public_ips,
+                'private_ips': quota.private_ips,
+                'disk_gib': quota.disk_gib,
+                'per_disk_gib': quota.per_disk_gib,
+                'disks': quota.disks
+            })
+        except exceptions.AuthenticationFailed as exc:
+            return Response(data=exc.err_data(), status=500)
+        except exceptions.APIException as exc:
+            return Response(data=exc.err_data(), status=exc.status_code)
+
     def paginate_service_response(self, request, qs):
         paginator = self.paginator
         try:

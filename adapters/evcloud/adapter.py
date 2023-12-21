@@ -637,6 +637,54 @@ class EVCloudAdapter(BaseAdapter):
 
         return outputs.DiskDetachOutput(ok=True)
 
+    def get_quota(self, params: inputs.QuotaInput):
+        """
+        查询资源配额信息（可用总资源）
+
+        :return:
+            outputs.QuotaOutput()
+        """
+        region_id = int(params.region_id)
+        coupute_api = self.api_builder.compute_quota_base_url(center_id=region_id)
+        try:
+            headers = self.get_auth_header()
+            r = self.do_request(method='get', url=coupute_api, data=None, ok_status_codes=[200], headers=headers)
+            data = r.json()
+            cp_quota = data['quota']
+        except exceptions.Error as e:
+            return outputs.QuotaOutput(ok=False, error=e, quota=outputs.Quota())
+
+        ret = self._list_disk_storage_pools(region_id=str(region_id), azone_id='')
+        if not ret.ok:
+            err = ret.error
+            err.message = f'查询云硬盘存储池失败，{str(err)}'
+            return outputs.QuotaOutput(ok=False, error=err, quota=outputs.Quota())
+
+        disk_gib = 0
+        per_disk_gib = 0
+        ds_pools = ret.pools
+        for p in ds_pools:
+            disk_gib += p.total_capacity_gb
+            per_disk_gib = max(per_disk_gib, p.max_size_limit_gb)
+
+        mem_total = cp_quota['mem_total']
+        mem_unit = cp_quota['mem_unit']
+        if mem_unit.lower() == 'mb':
+            mem_total = int(mem_total / 1024)
+
+        quota = outputs.Quota(
+            vcpu=cp_quota['vcpu_total'],
+            ram_gib=mem_total,
+            servers=cp_quota['vm_limit'],
+            public_ips=cp_quota.get('ips_public', None),
+            private_ips=cp_quota.get('ips_private', None),
+            disk_gib=disk_gib,
+            per_disk_gib=per_disk_gib,
+            disks=None
+        )
+
+        return outputs.QuotaOutput(ok=True, quota=quota)
+
     def get_vpn(self, username: str):
         url = self.api_builder.vpn_detail_url(username=username)
         headers = self.get_auth_header()

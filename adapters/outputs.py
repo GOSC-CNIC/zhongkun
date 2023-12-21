@@ -585,3 +585,35 @@ class ListDiskStoragePoolsOutput(OutputBase):
     def __init__(self, pools: List[DiskStoragePool], **kwargs):
         self.pools = pools  # DiskStoragePool
         super().__init__(**kwargs)
+
+
+class Quota:
+    def __init__(
+            self, vcpu: int = None, ram_gib: int = None, servers: int = None,
+            public_ips: int = None, private_ips: int = None,
+            disk_gib: int = None, per_disk_gib: int = None, disks: int = None
+    ):
+        """
+        :param vcpu: 可用虚拟cpu资源总量，未知设为None
+        :param ram_gib: 可用内存资源总量，未知设为None
+        :param servers: 可创建云主机数量，未知设为None
+        :param public_ips: 可用公网IP资源总量，未知设为None
+        :param private_ips: 可用私有IP资源总量，未知设为None
+        :param disk_gib: 云硬盘可用存储空间资源总量，未知设为None
+        :param per_disk_gib: 每块云硬盘大小上限，未知设为None
+        :param disks: 可创建云硬盘总数量，未知设为None
+        """
+        self.vcpu = vcpu
+        self.ram_gib = ram_gib
+        self.servers = servers
+        self.public_ips = public_ips
+        self.private_ips = private_ips
+        self.disk_gib = disk_gib
+        self.per_disk_gib = per_disk_gib
+        self.disks = disks
+
+
+class QuotaOutput(OutputBase):
+    def __init__(self, quota: Quota, **kwargs):
+        self.quota = quota
+        super().__init__(**kwargs)

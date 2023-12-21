@@ -181,3 +181,12 @@ class BaseAdapter:
             outputs.DiskDetailOutput()
         """
         raise NotImplementedError('`disk_detail()` must be implemented.')
+
+    def get_quota(self, params: inputs.QuotaInput):
+        """
+        查询资源配额信息（可用总资源）
+
+        :return:
+            outputs.QuotaOutput()
+        """
+        raise NotImplementedError('`get_quota()` must be implemented.')

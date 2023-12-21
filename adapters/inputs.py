@@ -234,3 +234,12 @@ class DiskDetailInput(InputBase):
         self.disk_id = disk_id
         self.disk_name = disk_name
         super().__init__(**kwargs)
+
+
+class QuotaInput(InputBase):
+    def __init__(self, region_id: str, **kwargs):
+        """
+        :param region_id: 区域/分中心id; type: str; required: False
+        """
+        self.region_id = region_id
+        super().__init__(**kwargs)

@@ -157,3 +157,12 @@ class APIBuilder:
 
     def disk_quota_base_url(self, query=None):
         return self.build_url(path=f'api/{self.api_version}/quota/', query=query)
+
+    def compute_quota_base_url(self, center_id: int = None, query=None):
+        if center_id:
+            if query:
+                query['center_id'] = center_id
+            else:
+                query = {'center_id': center_id}
+
+        return self.build_url(path=f'api/{self.api_version}/compute/quota', query=query, trailing_slash=False)

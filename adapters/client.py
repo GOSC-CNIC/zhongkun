@@ -195,6 +195,10 @@ class OneServiceClient:
     def disk_detail(self, params: inputs.DiskDetailInput) -> outputs.DiskDetailOutput:
         return self.adapter.disk_detail(params=params)
 
+    @adapter_method_not_support(action='get quota')
+    def get_quota(self, params: inputs.QuotaInput) -> outputs.QuotaOutput:
+        return self.adapter.get_quota(params=params)
+
 
 class VPNClient:
     def __init__(self, endpoint_url, api_version='v3', auth=None):
