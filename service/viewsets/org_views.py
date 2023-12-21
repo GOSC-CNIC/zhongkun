@@ -6,8 +6,8 @@ from drf_yasg.utils import swagger_auto_schema
 
 from core import errors
 from service.models import DataCenter as Organization
-from ..paginations import NewPageNumberPagination100
-from ..serializers import org_serializers
+from service import serializers as org_serializers
+from api.paginations import NewPageNumberPagination100
 
 
 class OrganizationViewSet(GenericViewSet):

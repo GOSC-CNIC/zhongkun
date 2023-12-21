@@ -1784,7 +1784,8 @@ class DataCenterViewSet(CustomGenericViewSet):
         operation_summary=gettext_lazy('联邦成员机构注册表'),
         responses={
             status.HTTP_200_OK: ''
-        }
+        },
+        deprecated=True
     )
     def list(self, request, *args, **kwargs):
         """

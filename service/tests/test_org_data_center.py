@@ -17,7 +17,7 @@ class AdminODCTests(MyAPITransactionTestCase):
         self.org = get_or_create_organization(name='test org')
 
     def test_create_odc(self):
-        url = reverse('api:admin-odc-list')
+        url = reverse('service-api:admin-odc-list')
 
         data = {
             'name': '',
@@ -168,7 +168,7 @@ class AdminODCTests(MyAPITransactionTestCase):
             loki_username='jerry@qq.com', loki_password='loki123456', loki_remark='loki remark'
         )
 
-        url = reverse('api:admin-odc-list')
+        url = reverse('service-api:admin-odc-list')
         response = self.client.get(url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
 
@@ -286,12 +286,12 @@ class AdminODCTests(MyAPITransactionTestCase):
             loki_username=data['loki_username'], loki_password=data['loki_password'], loki_remark=data['loki_remark']
         )
 
-        url = reverse('api:admin-odc-detail', kwargs={'id': 'notfound'})
+        url = reverse('service-api:admin-odc-detail', kwargs={'id': 'notfound'})
         response = self.client.put(url, data=data)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
 
         self.client.force_login(self.user1)
-        url = reverse('api:admin-odc-detail', kwargs={'id': 'notfound'})
+        url = reverse('service-api:admin-odc-detail', kwargs={'id': 'notfound'})
 
         # invalid organization_id
         data['organization_id'] = 'invalid'
@@ -304,7 +304,7 @@ class AdminODCTests(MyAPITransactionTestCase):
         self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
 
         # AccessDenied
-        url = reverse('api:admin-odc-detail', kwargs={'id': odc1.id})
+        url = reverse('service-api:admin-odc-detail', kwargs={'id': odc1.id})
         response = self.client.put(url, data=data)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
@@ -495,22 +495,22 @@ class AdminODCTests(MyAPITransactionTestCase):
             loki_username='jerry@qq.com', loki_password='loki123456', loki_remark='loki remark'
         )
 
-        url = reverse('api:admin-odc-detail', kwargs={'id': 'test'})
+        url = reverse('service-api:admin-odc-detail', kwargs={'id': 'test'})
         response = self.client.get(url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
 
         self.client.force_login(self.user1)
-        url = reverse('api:admin-odc-detail', kwargs={'id': 'test'})
+        url = reverse('service-api:admin-odc-detail', kwargs={'id': 'test'})
         response = self.client.get(url)
         self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
 
-        url = reverse('api:admin-odc-detail', kwargs={'id': odc1.id})
+        url = reverse('service-api:admin-odc-detail', kwargs={'id': odc1.id})
         response = self.client.get(url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
         # odc admin
         odc1.users.add(self.user1)
-        url = reverse('api:admin-odc-detail', kwargs={'id': odc1.id})
+        url = reverse('service-api:admin-odc-detail', kwargs={'id': odc1.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(
@@ -530,7 +530,7 @@ class AdminODCTests(MyAPITransactionTestCase):
 
         # test federal admin
         odc1.users.remove(self.user1)
-        url = reverse('api:admin-odc-detail', kwargs={'id': odc1.id})
+        url = reverse('service-api:admin-odc-detail', kwargs={'id': odc1.id})
         response = self.client.get(url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
@@ -578,7 +578,7 @@ class AdminODCTests(MyAPITransactionTestCase):
         pay2_obj = obj_unit2.check_or_register_pay_app_service()
         self.assertEqual(PayAppService.objects.count(), 4)
 
-        url = reverse('api:admin-odc-add-admin', kwargs={'id': 'test'})
+        url = reverse('service-api:admin-odc-add-admin', kwargs={'id': 'test'})
         response = self.client.post(url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
 
@@ -598,7 +598,7 @@ class AdminODCTests(MyAPITransactionTestCase):
         self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
 
         # user not exist
-        url = reverse('api:admin-odc-add-admin', kwargs={'id': odc1.id})
+        url = reverse('service-api:admin-odc-add-admin', kwargs={'id': odc1.id})
         response = self.client.post(url, data={'usernames': ['test']})
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
 
@@ -720,7 +720,7 @@ class AdminODCTests(MyAPITransactionTestCase):
         pay2_obj.users.add(user3)
         self.assertEqual(PayAppService.objects.count(), 4)
 
-        url = reverse('api:admin-odc-remove-admin', kwargs={'id': 'test'})
+        url = reverse('service-api:admin-odc-remove-admin', kwargs={'id': 'test'})
         response = self.client.post(url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
 
@@ -740,7 +740,7 @@ class AdminODCTests(MyAPITransactionTestCase):
         self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
 
         # user not exist
-        url = reverse('api:admin-odc-remove-admin', kwargs={'id': odc1.id})
+        url = reverse('service-api:admin-odc-remove-admin', kwargs={'id': odc1.id})
         response = self.client.post(url, data={'usernames': ['test']})
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
 
@@ -837,12 +837,12 @@ class AdminODCTests(MyAPITransactionTestCase):
             loki_username='jerry@qq.com', loki_password='loki123456', loki_remark='loki remark2'
         )
 
-        url = reverse('api:admin-odc-units', kwargs={'id': 'test'})
+        url = reverse('service-api:admin-odc-units', kwargs={'id': 'test'})
         response = self.client.get(url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
 
         self.client.force_login(self.user1)
-        url = reverse('api:admin-odc-units', kwargs={'id': 'test'})
+        url = reverse('service-api:admin-odc-units', kwargs={'id': 'test'})
         response = self.client.get(url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
@@ -851,7 +851,7 @@ class AdminODCTests(MyAPITransactionTestCase):
         self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
 
         # ok
-        url = reverse('api:admin-odc-units', kwargs={'id': odc1.id})
+        url = reverse('service-api:admin-odc-units', kwargs={'id': odc1.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['org_data_center', 'server_units', 'object_units', 'monitor_server_units',
@@ -880,7 +880,7 @@ class AdminODCTests(MyAPITransactionTestCase):
         obj_unit2 = ObjectsService(name='test2', name_en='test2_en', org_data_center=odc2)
         obj_unit2.save(force_insert=True)
 
-        url = reverse('api:admin-odc-units', kwargs={'id': odc1.id})
+        url = reverse('service-api:admin-odc-units', kwargs={'id': odc1.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(
@@ -952,7 +952,7 @@ class AdminODCTests(MyAPITransactionTestCase):
         )
         log_site2.save(force_insert=True)
 
-        url = reverse('api:admin-odc-units', kwargs={'id': odc2.id})
+        url = reverse('service-api:admin-odc-units', kwargs={'id': odc2.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data['server_units']), 1)
@@ -1016,7 +1016,7 @@ class ODCTests(MyAPITransactionTestCase):
             loki_username='jerry@qq.com', loki_password='loki123456', loki_remark='loki remark'
         )
 
-        url = reverse('api:odc-list')
+        url = reverse('service-api:odc-list')
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)

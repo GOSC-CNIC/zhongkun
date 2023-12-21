@@ -4,7 +4,7 @@ from rest_framework.routers import SimpleRouter
 from .apiviews import views
 from .apiviews import (
     service_quota_views,
-    azone_views, order_views, org_views,
+    azone_views, order_views,
     metering_views, bill_views, account_views, cash_coupon_views,
     trade_test_views, trade_views, bucket_views, storage_views,
     ticket_views, storage_metering_views, user_views, app_service_views,
@@ -27,8 +27,6 @@ no_slash_router.register(r'vpn', views.VPNViewSet, basename='vpn')
 no_slash_router.register(r'flavor', flavor_views.FlavorViewSet, basename='flavor')
 no_slash_router.register(r'service', views.ServiceViewSet, basename='service')
 no_slash_router.register(r'registry', views.DataCenterViewSet, basename='registry')
-no_slash_router.register(r'organization', org_views.OrganizationViewSet, basename='organization')
-no_slash_router.register(r'odc', org_data_center_views.OrgDataCenterViewSet, basename='odc')
 no_slash_router.register(r'user', user_views.UserViewSet, basename='user')
 no_slash_router.register(r'apply/service', views.ApplyVmServiceViewSet, basename='apply-service')
 no_slash_router.register(r'apply/organization', views.ApplyOrganizationViewSet, basename='apply-organization')
@@ -89,7 +87,6 @@ no_slash_router.register(
     r'admin/metering/server/statistics', metering_views.AdminMeteringServerStatisticsViewSet,
     basename='admin-metering-server-statistics')
 no_slash_router.register(r'admin/flavor', flavor_views.AdminFlavorViewSet, basename='admin-flavor')
-no_slash_router.register(r'admin/odc', org_data_center_views.AdminOrgDataCenterViewSet, basename='admin-odc')
 
 no_slash_router.register(r'portal/service', portal_views.PortalServiceViewSet, basename='portal-service')
 no_slash_router.register(r'report/storage/bucket/stats/monthly', report_storage_views.BucketStatsMonthlyViewSet,
