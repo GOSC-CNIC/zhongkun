@@ -3,7 +3,6 @@ from rest_framework.routers import SimpleRouter
 
 from .apiviews import views
 from .apiviews import (
-    service_quota_views,
     azone_views, order_views,
     metering_views, bill_views, account_views, cash_coupon_views,
     trade_test_views, trade_views, bucket_views, storage_views,
@@ -11,7 +10,6 @@ from .apiviews import (
     tradebill_views, recharge_views, email_views, disk_views, flavor_views,
     portal_views, report_storage_views, monitor_metering_views
 )
-from service.viewsets import org_data_center_views
 
 
 app_name = 'api'
@@ -25,18 +23,12 @@ no_slash_router.register(r'image', views.ImageViewSet, basename='images')
 no_slash_router.register(r'network', views.NetworkViewSet, basename='networks')
 no_slash_router.register(r'vpn', views.VPNViewSet, basename='vpn')
 no_slash_router.register(r'flavor', flavor_views.FlavorViewSet, basename='flavor')
-no_slash_router.register(r'service', views.ServiceViewSet, basename='service')
 no_slash_router.register(r'registry', views.DataCenterViewSet, basename='registry')
 no_slash_router.register(r'user', user_views.UserViewSet, basename='user')
 no_slash_router.register(r'apply/service', views.ApplyVmServiceViewSet, basename='apply-service')
 no_slash_router.register(r'apply/organization', views.ApplyOrganizationViewSet, basename='apply-organization')
 no_slash_router.register(r'email', email_views.EmailViewSet, basename='email')
 no_slash_router.register(r'disk', disk_views.DisksViewSet, basename='disks')
-
-no_slash_router.register(r'vms/service/p-quota', service_quota_views.ServivePrivateQuotaViewSet,
-                         basename='vms-service-p-quota')
-no_slash_router.register(r'vms/service/s-quota', service_quota_views.ServiveShareQuotaViewSet,
-                         basename='vms-service-s-quota')
 no_slash_router.register(r'azone', azone_views.AvailabilityZoneViewSet, basename='availability-zone')
 no_slash_router.register(r'describe-price', order_views.PriceViewSet, basename='describe-price')
 no_slash_router.register(r'order', order_views.OrderViewSet, basename='order')
