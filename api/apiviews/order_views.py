@@ -12,7 +12,7 @@ from api.paginations import OrderPageNumberPagination, NewPageNumberPagination
 from api.handlers.price_handler import DescribePriceHandler
 from api.handlers.order_handler import OrderHandler, CASH_COUPON_BALANCE
 from api.serializers import serializers
-from api.serializers.server import PeriodSerializer
+from servers.serializers import PeriodSerializer
 from core import errors
 
 

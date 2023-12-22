@@ -5,9 +5,8 @@ from core import errors as exceptions
 from service.managers import ServiceManager
 from servers.models import Flavor
 from servers.managers import FlavorManager
-from api.viewsets import CustomGenericViewSet
-from api.serializers import server as server_serializers
-from .handlers import serializer_error_msg
+from servers import serializers as server_serializers
+from api.viewsets import CustomGenericViewSet, serializer_error_msg
 
 
 def str_to_true_false(val: str):

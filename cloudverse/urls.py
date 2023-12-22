@@ -64,6 +64,7 @@ urlpatterns = [
     path('api/', include('api.urls', namespace='api')),
     path('api/', include('vo.api_urls', namespace='vo-api')),
     path('api/', include('service.api_urls', namespace='service-api')),
+    path('api/', include('servers.api_urls', namespace='servers-api')),
     path('api/monitor/', include('monitor.api_urls', namespace='monitor-api')),
     path('api/ipam/', include('ipam.api_urls', namespace='ipam-api')),
     path('api/link/', include('link.api_urls', namespace='link-api')),

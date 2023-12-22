@@ -4,8 +4,7 @@ from django.urls import reverse
 
 from servers.models import Flavor
 from service.models import ServiceConfig
-from utils.test import get_or_create_user, get_or_create_service
-from . import MyAPITestCase
+from utils.test import get_or_create_user, get_or_create_service, MyAPITestCase
 
 
 class FlavorTests(MyAPITestCase):
@@ -19,12 +18,12 @@ class FlavorTests(MyAPITestCase):
         f2 = Flavor(vcpus=2, ram=2, enable=True, service_id=self.service.id)
         f2.save(force_insert=True)
 
-        url = reverse('api:flavor-list')
+        url = reverse('servers-api:flavor-list')
         response = self.client.get(url, format='json')
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
 
         self.client.force_login(self.user)
-        url = reverse('api:flavor-list')
+        url = reverse('servers-api:flavor-list')
         response = self.client.get(url, format='json')
         self.assertEqual(response.status_code, 200)
         flavors = response.data['flavors']
@@ -35,7 +34,7 @@ class FlavorTests(MyAPITestCase):
         }, d=flavors[0])
 
         # query param "service_id"
-        url = reverse('api:flavor-list')
+        url = reverse('servers-api:flavor-list')
         query = parse.urlencode(query={'service_id': self.service.id})
         response = self.client.get(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
@@ -53,7 +52,7 @@ class AdminFlavorTests(MyAPITestCase):
         self.service = get_or_create_service()
 
     def test_create_flavor(self):
-        url = reverse('api:admin-flavor-list')
+        url = reverse('servers-api:admin-flavor-list')
         response = self.client.post(url, format='json')
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
         self.client.force_login(self.user)
@@ -95,7 +94,7 @@ class AdminFlavorTests(MyAPITestCase):
         self.assertEqual(response.data['enable'], False)
 
     def test_list_flavor(self):
-        url = reverse('api:admin-flavor-list')
+        url = reverse('servers-api:admin-flavor-list')
         response = self.client.get(url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
         self.client.force_login(self.user)
@@ -159,7 +158,7 @@ class AdminFlavorTests(MyAPITestCase):
 
         # federal admin, query enable
         self.user.set_federal_admin()
-        url = reverse('api:admin-flavor-list')
+        url = reverse('servers-api:admin-flavor-list')
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 3)
@@ -198,7 +197,7 @@ class AdminFlavorTests(MyAPITestCase):
         f1 = Flavor(vcpus=1, ram=4, enable=True, service_id=self.service.id)
         f1.save(force_insert=True)
 
-        url = reverse('api:admin-flavor-update', kwargs={'id': 'xxx'})
+        url = reverse('servers-api:admin-flavor-update', kwargs={'id': 'xxx'})
         response = self.client.post(url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
         self.client.force_login(self.user)
@@ -214,7 +213,7 @@ class AdminFlavorTests(MyAPITestCase):
         response = self.client.post(url, data={'vcpus': 1, 'ram': 1, 'enable': 'true', 'service_id': 'notfound'})
         self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
         # no admin f1 service
-        url = reverse('api:admin-flavor-update', kwargs={'id': f1.id})
+        url = reverse('servers-api:admin-flavor-update', kwargs={'id': f1.id})
         response = self.client.post(url, data={'vcpus': 1, 'ram': 1, 'enable': 'true', 'service_id': 'notfound'})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
         # no admin service2
@@ -226,7 +225,7 @@ class AdminFlavorTests(MyAPITestCase):
 
         # service1, service2 admin ok
         service2.users.add(self.user)
-        url = reverse('api:admin-flavor-update', kwargs={'id': f1.id})
+        url = reverse('servers-api:admin-flavor-update', kwargs={'id': f1.id})
         response = self.client.post(url, data={'vcpus': 3, 'ram': 9, 'enable': 'false', 'service_id': service2.id})
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['id', 'vcpus', 'ram', 'service_id', 'disk', 'flavor_id', 'enable'], response.data)
@@ -241,7 +240,7 @@ class AdminFlavorTests(MyAPITestCase):
         self.assertEqual(f1.enable, False)
 
         # flavor6 no bind service
-        url = reverse('api:admin-flavor-update', kwargs={'id': f6.id})
+        url = reverse('servers-api:admin-flavor-update', kwargs={'id': f6.id})
         response = self.client.post(url, data={'vcpus': 1, 'ram': 1, 'enable': 'true', 'service_id': service2.id})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
@@ -249,7 +248,7 @@ class AdminFlavorTests(MyAPITestCase):
         self.service.users.remove(self.user)
         service2.users.remove(self.user)
         self.user.set_federal_admin()
-        url = reverse('api:admin-flavor-update', kwargs={'id': f6.id})
+        url = reverse('servers-api:admin-flavor-update', kwargs={'id': f6.id})
         response = self.client.post(url, data={'vcpus': 1, 'ram': 2, 'enable': 'false', 'service_id': service2.id})
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['id', 'vcpus', 'ram', 'service_id', 'disk', 'flavor_id', 'enable'], response.data)
@@ -263,7 +262,7 @@ class AdminFlavorTests(MyAPITestCase):
         self.assertEqual(f6.service_id, service2.id)
         self.assertEqual(f6.enable, False)
 
-        url = reverse('api:admin-flavor-update', kwargs={'id': f6.id})
+        url = reverse('servers-api:admin-flavor-update', kwargs={'id': f6.id})
         response = self.client.post(url, data={'vcpus': 1, 'ram': 2, 'enable': 'true', 'service_id': self.service.id})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['vcpus'], 1)
@@ -282,16 +281,16 @@ class AdminFlavorTests(MyAPITestCase):
         f1 = Flavor(vcpus=1, ram=4, enable=True, service_id=self.service.id)
         f1.save(force_insert=True)
 
-        url = reverse('api:admin-flavor-detail', kwargs={'id': 'xxx'})
+        url = reverse('servers-api:admin-flavor-detail', kwargs={'id': 'xxx'})
         response = self.client.delete(url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
         self.client.force_login(self.user)
 
-        url = reverse('api:admin-flavor-detail', kwargs={'id': 'xxx'})
+        url = reverse('servers-api:admin-flavor-detail', kwargs={'id': 'xxx'})
         response = self.client.delete(url)
         self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
         # no admin f1 service
-        url = reverse('api:admin-flavor-detail', kwargs={'id': f1.id})
+        url = reverse('servers-api:admin-flavor-detail', kwargs={'id': f1.id})
         response = self.client.delete(url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
         # ok
@@ -301,13 +300,13 @@ class AdminFlavorTests(MyAPITestCase):
         self.assertFalse(Flavor.objects.filter(id=f1.id).exists())
 
         # no permission
-        url = reverse('api:admin-flavor-detail', kwargs={'id': f6.id})
+        url = reverse('servers-api:admin-flavor-detail', kwargs={'id': f6.id})
         response = self.client.delete(url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
         # federal admin ok
         self.user.set_federal_admin()
-        url = reverse('api:admin-flavor-detail', kwargs={'id': f6.id})
+        url = reverse('servers-api:admin-flavor-detail', kwargs={'id': f6.id})
         response = self.client.delete(url)
         self.assertEqual(response.status_code, 204)
         self.assertFalse(Flavor.objects.filter(id=f6.id).exists())
