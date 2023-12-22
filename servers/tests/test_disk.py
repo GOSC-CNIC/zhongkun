@@ -10,6 +10,7 @@ from django.conf import settings
 from service.managers import ServicePrivateQuotaManager
 from service.models import ServiceConfig
 from servers.models import Disk, Server, ResourceActionLog, DiskChangeLog
+from servers.tests import create_server_metadata
 from utils.test import get_or_create_user, get_or_create_service, get_or_create_organization, MyAPITransactionTestCase
 from utils.model import PayType, OwnerType, ResourceType
 from utils.decimal_utils import quantize_10_2
@@ -23,7 +24,6 @@ from bill.managers import PaymentManager
 from bill.models import PayApp, PayAppService
 from metering.measurers import DiskMeasurer
 from metering.models import MeteringDisk
-from api.tests.tests import create_server_metadata
 
 
 def create_disk_metadata(

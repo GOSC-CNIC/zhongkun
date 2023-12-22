@@ -11,7 +11,7 @@ from servers.models import Server
 from scripts.workers.server_notifier import (
     ServerNotifier
 )
-from api.tests.tests import create_server_metadata
+from servers.tests import create_server_metadata
 
 
 class ServerExpiredTests(TransactionTestCase):

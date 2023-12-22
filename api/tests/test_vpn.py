@@ -1,5 +1,3 @@
-from urllib import parse
-
 from django.urls import reverse
 
 from utils.test import get_or_create_service, get_or_create_user
@@ -7,7 +5,7 @@ from utils.model import PayType
 from core.request import request_vpn_service
 from vo.models import VirtualOrganization, VoMember
 from servers.models import Server
-from .tests import create_server_metadata
+from servers.tests import create_server_metadata
 from . import MyAPITestCase
 
 

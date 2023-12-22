@@ -17,8 +17,6 @@ app_name = 'api'
 
 no_slash_router = SimpleRouter(trailing_slash=False)
 no_slash_router.register(r'media', views.MediaViewSet, basename='media')
-no_slash_router.register(r'server', views.ServersViewSet, basename='servers')
-no_slash_router.register(r'server-archive', views.ServerArchiveViewSet, basename='server-archive')
 no_slash_router.register(r'vpn', views.VPNViewSet, basename='vpn')
 no_slash_router.register(r'registry', views.DataCenterViewSet, basename='registry')
 no_slash_router.register(r'user', user_views.UserViewSet, basename='user')

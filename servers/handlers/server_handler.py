@@ -13,10 +13,10 @@ from core import request as core_request
 from service.managers import ServiceManager
 from servers.models import Server, Flavor
 from servers.managers import ServerManager, ServerArchiveManager, DiskManager, ResourceActionLogManager
+from servers import serializers
 from api import paginations
-from api.viewsets import CustomGenericViewSet
+from api.viewsets import CustomGenericViewSet, serializer_error_msg
 from api.deliver_resource import OrderResourceDeliverer
-from api.serializers import serializers
 from api import request_logger
 from vo.managers import VoManager
 from vo.models import VirtualOrganization
@@ -27,7 +27,6 @@ from utils.time import iso_utc_to_datetime
 from order.models import ResourceType, Order, Resource
 from order.managers import OrderManager, ServerConfig, OrderPaymentManager
 from bill.managers import PaymentManager
-from .handlers import serializer_error_msg
 from servers.handlers.disk_handler import DiskHandler
 
 
