@@ -3,7 +3,7 @@ from rest_framework.routers import SimpleRouter
 
 from .apiviews import views
 from .apiviews import (
-    azone_views, order_views,
+    order_views,
     metering_views, bill_views, account_views, cash_coupon_views,
     trade_test_views, trade_views, bucket_views, storage_views,
     ticket_views, storage_metering_views, user_views, app_service_views,
@@ -19,8 +19,6 @@ no_slash_router = SimpleRouter(trailing_slash=False)
 no_slash_router.register(r'media', views.MediaViewSet, basename='media')
 no_slash_router.register(r'server', views.ServersViewSet, basename='servers')
 no_slash_router.register(r'server-archive', views.ServerArchiveViewSet, basename='server-archive')
-no_slash_router.register(r'image', views.ImageViewSet, basename='images')
-no_slash_router.register(r'network', views.NetworkViewSet, basename='networks')
 no_slash_router.register(r'vpn', views.VPNViewSet, basename='vpn')
 no_slash_router.register(r'registry', views.DataCenterViewSet, basename='registry')
 no_slash_router.register(r'user', user_views.UserViewSet, basename='user')
@@ -28,7 +26,6 @@ no_slash_router.register(r'apply/service', views.ApplyVmServiceViewSet, basename
 no_slash_router.register(r'apply/organization', views.ApplyOrganizationViewSet, basename='apply-organization')
 no_slash_router.register(r'email', email_views.EmailViewSet, basename='email')
 no_slash_router.register(r'disk', disk_views.DisksViewSet, basename='disks')
-no_slash_router.register(r'azone', azone_views.AvailabilityZoneViewSet, basename='availability-zone')
 no_slash_router.register(r'describe-price', order_views.PriceViewSet, basename='describe-price')
 no_slash_router.register(r'order', order_views.OrderViewSet, basename='order')
 no_slash_router.register(r'period', order_views.PeriodViewSet, basename='period')

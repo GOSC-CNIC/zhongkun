@@ -149,36 +149,6 @@ class ServerRebuildSerializer(serializers.Serializer):
     image_id = serializers.CharField(label=_('镜像id'), required=True, help_text=_('系统镜像id'))
 
 
-class ImageSerializer(serializers.Serializer):
-    id = serializers.CharField()
-    name = serializers.CharField()
-    release = serializers.CharField()
-    version = serializers.CharField()
-    architecture = serializers.CharField()
-    system_type = serializers.CharField()
-    creation_time = serializers.DateTimeField()
-    desc = serializers.CharField()
-    default_user = serializers.CharField()
-    default_password = serializers.CharField()
-    min_sys_disk_gb = serializers.IntegerField()
-    min_ram_mb = serializers.IntegerField()
-
-
-class ImageOldSerializer(ImageSerializer):
-    system = serializers.SerializerMethodField(method_name='get_system')
-
-    @staticmethod
-    def get_system(obj):
-        return obj.release
-
-
-class NetworkSerializer(serializers.Serializer):
-    id = serializers.CharField()
-    name = serializers.CharField()
-    public = serializers.BooleanField()
-    segment = serializers.CharField()
-
-
 class DataCenterSerializer(serializers.Serializer):
     id = serializers.CharField()
     name = serializers.CharField()
@@ -491,12 +461,6 @@ class ApplyVmServiceSerializer(serializers.Serializer):
     @staticmethod
     def get_vpn_password(obj):
         return obj.raw_vpn_password()
-
-
-class AvailabilityZoneSerializer(serializers.Serializer):
-    id = serializers.CharField(label=_('可用区ID'))
-    name = serializers.CharField(label=_('可用区名称'))
-    available = serializers.BooleanField(label=_('是否可用'))
 
 
 class OrderSerializer(serializers.Serializer):

@@ -1,5 +1,5 @@
 from .views import (
-    ServersViewSet, ImageViewSet, NetworkViewSet, VPNViewSet,
+    ServersViewSet, VPNViewSet,
     DataCenterViewSet, ServerArchiveViewSet,
     ApplyOrganizationViewSet, ApplyVmServiceViewSet,
     MediaViewSet
@@ -7,7 +7,7 @@ from .views import (
 
 
 __all__ = [
-    'ServersViewSet', 'ImageViewSet', 'NetworkViewSet', 'VPNViewSet',
+    'ServersViewSet', 'VPNViewSet',
     'DataCenterViewSet', 'ServerArchiveViewSet',
     'ApplyOrganizationViewSet', 'ApplyVmServiceViewSet',
     'MediaViewSet'

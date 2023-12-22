@@ -31,3 +31,38 @@ class FlavorCreateSerializer(serializers.Serializer):
     ram = serializers.IntegerField(label=_('内存GiB'), required=True)
     enable = serializers.BooleanField(label=_('是否启用'), required=True)
 
+
+class ImageSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    name = serializers.CharField()
+    release = serializers.CharField()
+    version = serializers.CharField()
+    architecture = serializers.CharField()
+    system_type = serializers.CharField()
+    creation_time = serializers.DateTimeField()
+    desc = serializers.CharField()
+    default_user = serializers.CharField()
+    default_password = serializers.CharField()
+    min_sys_disk_gb = serializers.IntegerField()
+    min_ram_mb = serializers.IntegerField()
+
+
+class ImageOldSerializer(ImageSerializer):
+    system = serializers.SerializerMethodField(method_name='get_system')
+
+    @staticmethod
+    def get_system(obj):
+        return obj.release
+
+
+class NetworkSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    name = serializers.CharField()
+    public = serializers.BooleanField()
+    segment = serializers.CharField()
+
+
+class AvailabilityZoneSerializer(serializers.Serializer):
+    id = serializers.CharField(label=_('可用区ID'))
+    name = serializers.CharField(label=_('可用区名称'))
+    available = serializers.BooleanField(label=_('是否可用'))
