@@ -13,7 +13,7 @@ class ExpressionQuery:
     def expression(tag: str, job: str):
         expression_query = tag
 
-        return f'{expression_query}{{job="{job}"}}'
+        return f'{expression_query}{{job="{job}"}} offset 1m'
 
     def build_node_status_query(self, job: str):
         return self.expression(tag=self.node_status, job=job)
