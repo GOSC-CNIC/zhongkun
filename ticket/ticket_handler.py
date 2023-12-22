@@ -3,15 +3,13 @@ from django.db import transaction
 from rest_framework.response import Response
 
 from core import errors as exceptions
-from api.viewsets import AsRoleGenericViewSet
-from api.serializers import ticket as ticket_serializers
+from api.viewsets import AsRoleGenericViewSet, serializer_error_msg
 from api.paginations import FollowUpMarkerCursorPagination
 from ticket.models import Ticket, TicketChange, TicketRating
 from ticket.managers import TicketManager
 from ticket.notifiers import TicketEmailNotifier
+from ticket import serializers as ticket_serializers
 from users.managers import get_user_by_name
-
-from .handlers import serializer_error_msg
 
 
 class TicketHandler:
