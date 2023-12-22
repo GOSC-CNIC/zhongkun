@@ -3,11 +3,10 @@ from .handlers import (
     ApplyVmServiceHandler, MediaHandler
 )
 from .vpn_handler import VPNHandler
-from .bucket_handler import BucketHandler
 from ..viewsets import serializer_error_msg
 
 __all__ = [
     'serializer_error_msg', 'ApplyOrganizationHandler',
     'ApplyVmServiceHandler', 'MediaHandler',
-    'VPNHandler', 'BucketHandler'
+    'VPNHandler'
 ]

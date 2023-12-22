@@ -7,8 +7,8 @@ from drf_yasg import openapi
 
 from api.viewsets import StorageGenericViewSet
 from api.paginations import DefaultPageNumberPagination
-from api.serializers import storage as storage_serializers
-from api.handlers import BucketHandler
+from storage.bucket_handler import BucketHandler
+from storage import serializers as storage_serializers
 
 
 class BucketViewSet(StorageGenericViewSet):

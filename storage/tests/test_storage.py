@@ -5,8 +5,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from storage.models import Bucket, ObjectsService
-from utils.test import get_or_create_user, get_or_create_storage_service
-from . import MyAPITestCase
+from utils.test import get_or_create_user, get_or_create_storage_service, MyAPITestCase
 
 
 class ObjectsServiceTests(MyAPITestCase):
@@ -15,7 +14,7 @@ class ObjectsServiceTests(MyAPITestCase):
         self.user = get_or_create_user(username='lilei@xx.com')
 
     def test_list_service(self):
-        url = reverse('api:storage-service-list')
+        url = reverse('storage-api:storage-service-list')
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)    # 不需要登录认证
         # self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
@@ -36,7 +35,7 @@ class ObjectsServiceTests(MyAPITestCase):
         self.assertIsInstance(r.data['results'][0]['ftp_domains'], list)
 
         # query 'org_id'
-        url = reverse('api:storage-service-list')
+        url = reverse('storage-api:storage-service-list')
         query = parse.urlencode(query={'org_id': 'test'})
         r = self.client.get(f'{url}?{query}')
         self.assertEqual(r.status_code, 200)
@@ -50,7 +49,7 @@ class ObjectsServiceTests(MyAPITestCase):
         self.assertEqual(len(r.data['results']), 1)
 
         # query 'center_id'
-        url = reverse('api:storage-service-list')
+        url = reverse('storage-api:storage-service-list')
         query = parse.urlencode(query={'center_id': 'test'})
         r = self.client.get(f'{url}?{query}')
         self.assertEqual(r.status_code, 200)
@@ -64,7 +63,7 @@ class ObjectsServiceTests(MyAPITestCase):
         self.assertEqual(len(r.data['results']), 1)
 
         # query 'status'
-        url = reverse('api:storage-service-list')
+        url = reverse('storage-api:storage-service-list')
         query = parse.urlencode(query={'status': 'sdisable'})
         r = self.client.get(f'{url}?{query}')
         self.assertErrorResponse(status_code=400, code='InvalidStatus', response=r)
@@ -85,7 +84,7 @@ class ObjectsServiceTests(MyAPITestCase):
         service2 = ObjectsService(name='test2', name_en='en2', org_data_center=None)
         service2.save(force_insert=True)
 
-        url = reverse('api:storage-service-admin-list')
+        url = reverse('storage-api:storage-service-admin-list')
         r = self.client.get(url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
 
@@ -112,7 +111,7 @@ class ObjectsServiceTests(MyAPITestCase):
         self.assertIsInstance(r.data['results'][0]['ftp_domains'], list)
 
         # query 'org_id'
-        url = reverse('api:storage-service-admin-list')
+        url = reverse('storage-api:storage-service-admin-list')
         query = parse.urlencode(query={'org_id': 'test'})
         r = self.client.get(f'{url}?{query}')
         self.assertEqual(r.status_code, 200)
@@ -126,7 +125,7 @@ class ObjectsServiceTests(MyAPITestCase):
         self.assertEqual(len(r.data['results']), 1)
 
         # query 'center_id'
-        url = reverse('api:storage-service-admin-list')
+        url = reverse('storage-api:storage-service-admin-list')
         query = parse.urlencode(query={'center_id': 'test'})
         r = self.client.get(f'{url}?{query}')
         self.assertEqual(r.status_code, 200)
@@ -140,7 +139,7 @@ class ObjectsServiceTests(MyAPITestCase):
         self.assertEqual(len(r.data['results']), 1)
 
         # query 'status'
-        url = reverse('api:storage-service-admin-list')
+        url = reverse('storage-api:storage-service-admin-list')
         query = parse.urlencode(query={'status': 'sdisable'})
         r = self.client.get(f'{url}?{query}')
         self.assertErrorResponse(status_code=400, code='InvalidStatus', response=r)
@@ -207,7 +206,7 @@ class StorageStatisticsTests(MyAPITestCase):
         self.user2 = get_or_create_user(username='张三@xx.com')
 
     def test_storage_statistics(self):
-        url = reverse('api:admin-storage-statistics-list')
+        url = reverse('storage-api:admin-storage-statistics-list')
         r = self.client.get(url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
 

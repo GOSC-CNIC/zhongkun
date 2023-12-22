@@ -4,13 +4,12 @@ from decimal import Decimal
 from django.urls import reverse
 
 from bill.models import PayApp, PayAppService
-from utils.test import get_or_create_user, get_or_create_storage_service, get_or_create_organization
+from utils.test import get_or_create_user, get_or_create_storage_service, get_or_create_organization, MyAPITestCase
 from utils.model import OwnerType
 from storage.managers import BucketManager
 from storage.models import ObjectsService
-from api.handlers.bucket_handler import BucketHandler
+from storage.bucket_handler import BucketHandler
 from servers.models import ResourceActionLog
-from . import MyAPITestCase
 
 
 class BucketTests(MyAPITestCase):
@@ -32,7 +31,7 @@ class BucketTests(MyAPITestCase):
 
     def test_create_bucket(self):
         bucket_name = 'test-bucket'
-        url = reverse('api:bucket-list')
+        url = reverse('storage-api:bucket-list')
         r = self.client.post(url, data={'name': 's', 'service_id': 'ss'})
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
 
@@ -61,23 +60,23 @@ class BucketTests(MyAPITestCase):
 
     def test_delete_bucket(self):
         bucket_name = 'test-bucket'
-        url = reverse('api:bucket-delete-bucket', kwargs={'bucket_name': 'test1', 'service_id': 'test'})
+        url = reverse('storage-api:bucket-delete-bucket', kwargs={'bucket_name': 'test1', 'service_id': 'test'})
         r = self.client.delete(url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
 
         self.client.force_login(self.user)
-        url = reverse('api:bucket-delete-bucket', kwargs={'bucket_name': bucket_name, 'service_id': 'test'})
+        url = reverse('storage-api:bucket-delete-bucket', kwargs={'bucket_name': bucket_name, 'service_id': 'test'})
         r = self.client.delete(url)
         self.assertErrorResponse(status_code=404, code='ServiceNotExist', response=r)
 
-        url = reverse('api:bucket-delete-bucket', kwargs={'bucket_name': bucket_name, 'service_id': self.service.id})
+        url = reverse('storage-api:bucket-delete-bucket', kwargs={'bucket_name': bucket_name, 'service_id': self.service.id})
         r = self.client.delete(url)
         self.assertErrorResponse(status_code=404, code='BucketNotExist', response=r)
 
         bucket = BucketManager.create_bucket(
             bucket_name=bucket_name, bucket_id='1', user_id=self.user.id, service_id=self.service.id)
 
-        url = reverse('api:bucket-delete-bucket', kwargs={'bucket_name': bucket_name, 'service_id': self.service.id})
+        url = reverse('storage-api:bucket-delete-bucket', kwargs={'bucket_name': bucket_name, 'service_id': self.service.id})
         r = self.client.delete(url)
         self.assertEqual(r.status_code, 204)
 
@@ -92,7 +91,7 @@ class BucketTests(MyAPITestCase):
     def test_list_bucket(self):
         user2 = get_or_create_user(username='tom@xx.com')
         self.client.force_login(self.user)
-        url = reverse('api:bucket-list')
+        url = reverse('storage-api:bucket-list')
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn(keys=['count', 'next', 'previous', 'results'], container=r.data)
@@ -115,7 +114,7 @@ class BucketTests(MyAPITestCase):
         self.assertKeysIn(keys=['id', 'name', 'name_en'], container=r.data['results'][0]['service'])
 
         # query 'service_id'
-        url = reverse('api:bucket-list')
+        url = reverse('storage-api:bucket-list')
         query = parse.urlencode(query={'service_id': 'ss'})
         r = self.client.get(f'{url}?{query}')
         self.assertEqual(r.status_code, 200)
@@ -160,12 +159,12 @@ class AdminBucketTests(MyAPITestCase):
             bucket_name='name2', bucket_id='2', user_id=user2.id, service_id=service2.id
         )
 
-        url = reverse('api:admin-bucket-list')
+        url = reverse('storage-api:admin-bucket-list')
         r = self.client.get(url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
 
         self.client.force_login(self.user)
-        url = reverse('api:admin-bucket-list')
+        url = reverse('storage-api:admin-bucket-list')
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn(keys=['count', 'next', 'previous', 'results'], container=r.data)
@@ -188,7 +187,7 @@ class AdminBucketTests(MyAPITestCase):
         self.assertEqual(r.data['results'][1]['id'], b1_u1_s1.id)
 
         # query 'service_id'
-        url = reverse('api:admin-bucket-list')
+        url = reverse('storage-api:admin-bucket-list')
         query = parse.urlencode(query={'service_id': service2.id})
         r = self.client.get(f'{url}?{query}')
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
@@ -202,7 +201,7 @@ class AdminBucketTests(MyAPITestCase):
         self.assertEqual(r.data['results'][1]['id'], b1_u1_s1.id)
 
         # query 'service_id', 'user_id'
-        url = reverse('api:admin-bucket-list')
+        url = reverse('storage-api:admin-bucket-list')
         query = parse.urlencode(query={'service_id': self.service1.id, 'user_id': user2.id})
         r = self.client.get(f'{url}?{query}')
         self.assertEqual(r.status_code, 200)
@@ -211,7 +210,7 @@ class AdminBucketTests(MyAPITestCase):
         self.assertEqual(r.data['results'][0]['id'], b2_u2_s1.id)
 
         # query 'user_id'
-        url = reverse('api:admin-bucket-list')
+        url = reverse('storage-api:admin-bucket-list')
         query = parse.urlencode(query={'user_id': user2.id})
         r = self.client.get(f'{url}?{query}')
         self.assertEqual(r.status_code, 200)
@@ -235,7 +234,7 @@ class AdminBucketTests(MyAPITestCase):
         self.assertEqual(len(r.data['results']), 4)
 
         # query 'service_id'
-        url = reverse('api:admin-bucket-list')
+        url = reverse('storage-api:admin-bucket-list')
         query = parse.urlencode(query={'service_id': service2.id})
         r = self.client.get(f'{url}?{query}')
         self.assertEqual(r.status_code, 200)
@@ -265,7 +264,7 @@ class AdminBucketTests(MyAPITestCase):
         self.assertKeysIn(keys=['id', 'name', 'name_en'], container=r.data['results'][0]['service'])
 
         # query 'page', 'page_size'
-        url = reverse('api:admin-bucket-list')
+        url = reverse('storage-api:admin-bucket-list')
         query = parse.urlencode(query={'page': 1, 'page_size': 2})
         r = self.client.get(f'{url}?{query}')
         self.assertEqual(r.data['count'], 4)
@@ -280,7 +279,7 @@ class AdminBucketTests(MyAPITestCase):
         self.assertEqual(r.data['results'][0]['id'], b1_u1_s1.id)
 
         # query 'service_id'
-        url = reverse('api:admin-bucket-list')
+        url = reverse('storage-api:admin-bucket-list')
         query = parse.urlencode(query={'service_id': service2.id})
         r = self.client.get(f'{url}?{query}')
         self.assertEqual(r.data['count'], 2)
@@ -297,7 +296,7 @@ class AdminBucketTests(MyAPITestCase):
         self.assertEqual(r.data['results'][1]['id'], b1_u1_s1.id)
 
         # query 'user_id'
-        url = reverse('api:admin-bucket-list')
+        url = reverse('storage-api:admin-bucket-list')
         query = parse.urlencode(query={'user_id': user2.id})
         r = self.client.get(f'{url}?{query}')
         self.assertEqual(r.status_code, 200)
@@ -333,7 +332,7 @@ class AdminBucketTests(MyAPITestCase):
         bucket = BucketManager.create_bucket(
             bucket_name='test-bucket', bucket_id='1', user_id=self.user.id, service_id=self.service1.id)
 
-        url = reverse('api:admin-bucket-detail', kwargs={'bucket_name': bucket.name})
+        url = reverse('storage-api:admin-bucket-detail', kwargs={'bucket_name': bucket.name})
         query = parse.urlencode(query={'service_id': 'test'})
         r = self.client.delete(f'{url}?{query}')
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
@@ -342,13 +341,13 @@ class AdminBucketTests(MyAPITestCase):
         r = self.client.delete(f'{url}?{query}')
         self.assertErrorResponse(status_code=404, code='BucketNotExist', response=r)
 
-        url = reverse('api:admin-bucket-detail', kwargs={'bucket_name': 'test1'})
+        url = reverse('storage-api:admin-bucket-detail', kwargs={'bucket_name': 'test1'})
         query = parse.urlencode(query={'service_id': self.service1.id})
         r = self.client.delete(f'{url}?{query}')
         self.assertErrorResponse(status_code=404, code='BucketNotExist', response=r)
 
         # AccessDenied
-        url = reverse('api:admin-bucket-detail', kwargs={'bucket_name': bucket.name})
+        url = reverse('storage-api:admin-bucket-detail', kwargs={'bucket_name': bucket.name})
         query = parse.urlencode(query={'service_id': self.service1.id})
         r = self.client.delete(f'{url}?{query}')
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
@@ -363,7 +362,7 @@ class AdminBucketTests(MyAPITestCase):
         bucket2 = BucketManager.create_bucket(
             bucket_name='test-bucket2', bucket_id='1', user_id=self.user.id, service_id=self.service1.id)
         # AccessDenied
-        url = reverse('api:admin-bucket-detail', kwargs={'bucket_name': bucket2.name})
+        url = reverse('storage-api:admin-bucket-detail', kwargs={'bucket_name': bucket2.name})
         query = parse.urlencode(query={'service_id': self.service1.id})
         r = self.client.delete(f'{url}?{query}')
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
@@ -376,7 +375,7 @@ class AdminBucketTests(MyAPITestCase):
         bucket = BucketManager.create_bucket(
             bucket_name='test-bucket', bucket_id='1', user_id=self.user.id, service_id=self.service1.id)
 
-        url = reverse('api:admin-bucket-stats-bucket', kwargs={'bucket_name': bucket.name, 'service_id': 'test'})
+        url = reverse('storage-api:admin-bucket-stats-bucket', kwargs={'bucket_name': bucket.name, 'service_id': 'test'})
         r = self.client.get(url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
 
@@ -385,7 +384,7 @@ class AdminBucketTests(MyAPITestCase):
         self.assertErrorResponse(status_code=404, code='BucketNotExist', response=r)
 
         # AccessDenied
-        url = reverse('api:admin-bucket-stats-bucket', kwargs={
+        url = reverse('storage-api:admin-bucket-stats-bucket', kwargs={
             'bucket_name': bucket.name, 'service_id': self.service1.id})
         r = self.client.get(url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
@@ -398,7 +397,7 @@ class AdminBucketTests(MyAPITestCase):
 
         # test data center admin
         self.service1.users.remove(self.user)
-        url = reverse('api:admin-bucket-stats-bucket', kwargs={
+        url = reverse('storage-api:admin-bucket-stats-bucket', kwargs={
             'bucket_name': bucket.name, 'service_id': self.service1.id})
         r = self.client.get(url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
@@ -422,7 +421,7 @@ class AdminBucketTests(MyAPITestCase):
         bucket = BucketManager.create_bucket(
             bucket_name='test-bucket', bucket_id='1', user_id=self.user.id, service_id=self.service1.id)
 
-        url = reverse('api:admin-bucket-lock', kwargs={'bucket_name': 'bucket'})
+        url = reverse('storage-api:admin-bucket-lock', kwargs={'bucket_name': 'bucket'})
         query = parse.urlencode(query={'service_id': 'test'})
         r = self.client.post(f'{url}?{query}')
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
@@ -440,14 +439,14 @@ class AdminBucketTests(MyAPITestCase):
         r = self.client.post(f'{url}?{query}')
         self.assertErrorResponse(status_code=404, code='BucketNotExist', response=r)
 
-        url = reverse('api:admin-bucket-lock', kwargs={'bucket_name': bucket.name})
+        url = reverse('storage-api:admin-bucket-lock', kwargs={'bucket_name': bucket.name})
         query = parse.urlencode(query={
             'service_id': 'test', 'action': BucketHandler.LockActionChoices.ARREARS_LOCK.value})
         r = self.client.post(f'{url}?{query}')
         self.assertErrorResponse(status_code=404, code='BucketNotExist', response=r)
 
         # AccessDenied
-        url = reverse('api:admin-bucket-lock', kwargs={'bucket_name': bucket.name})
+        url = reverse('storage-api:admin-bucket-lock', kwargs={'bucket_name': bucket.name})
         query = parse.urlencode(query={
             'service_id': self.service1.id, 'action': BucketHandler.LockActionChoices.ARREARS_LOCK.value})
         r = self.client.post(f'{url}?{query}')

@@ -10,7 +10,7 @@ from drf_yasg import openapi
 from core import errors
 from api.viewsets import StorageGenericViewSet
 from api.paginations import DefaultPageNumberPagination
-from api.serializers import storage as storage_serializers
+from storage import serializers as storage_serializers
 from storage.managers import ObjectsServiceManager
 from storage.models import ObjectsService, Bucket, BucketArchive
 from utils.paginators import NoPaginatorInspector

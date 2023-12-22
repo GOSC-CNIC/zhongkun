@@ -5,7 +5,7 @@ from .apiviews import views
 from .apiviews import (
     order_views,
     metering_views, bill_views, account_views, cash_coupon_views,
-    trade_test_views, trade_views, bucket_views, storage_views,
+    trade_test_views, trade_views,
     ticket_views, storage_metering_views, user_views, app_service_views,
     tradebill_views, recharge_views, email_views,
     portal_views, report_storage_views, monitor_metering_views
@@ -53,15 +53,8 @@ no_slash_router.register(r'trade/refund', trade_views.TradeRefundViewSet, basena
 no_slash_router.register(r'trade/bill/transaction', tradebill_views.AppTradeBillViewSet, basename='app-tradebill')
 no_slash_router.register(r'trade/tradebill', tradebill_views.TradeBillViewSet, basename='tradebill')
 no_slash_router.register(r'trade/recharge', recharge_views.RechargeViewSet, basename='trade-recharge')
-
-no_slash_router.register(r'storage/bucket', bucket_views.BucketViewSet, basename='bucket')
-no_slash_router.register(r'storage/service', storage_views.ObjectsServiceViewSet, basename='storage-service')
 no_slash_router.register(r'support/ticket', ticket_views.TicketViewSet, basename='support-ticket')
-
 no_slash_router.register(r'admin/cashcoupon', cash_coupon_views.AdminCashCouponViewSet, basename='admin-coupon')
-no_slash_router.register(r'admin/storage/bucket', bucket_views.AdminBucketViewSet, basename='admin-bucket')
-no_slash_router.register(
-    r'admin/storage/statistics', storage_views.StorageStatisticsViewSet, basename='admin-storage-statistics')
 no_slash_router.register(r'admin/trade/tradebill', tradebill_views.AdminTradeBillViewSet, basename='admin-tradebill')
 no_slash_router.register(
     r'admin/metering/storage/statistics', storage_metering_views.AdminMeteringStorageStatisticsViewSet,

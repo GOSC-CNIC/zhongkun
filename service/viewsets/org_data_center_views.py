@@ -9,11 +9,11 @@ from drf_yasg import openapi
 from core import errors as exceptions
 from api.paginations import NewPageNumberPagination100
 from api.viewsets import NormalGenericViewSet, serializer_error_msg
-from api.serializers.storage import AdminObjectsServiceSerializer
 from service.models import OrgDataCenter, ServiceConfig
 from service.odc_manager import OrgDataCenterManager
 from service.serializers import AdminServiceSerializer
 from storage.models import ObjectsService
+from storage.serializers import AdminObjectsServiceSerializer
 from monitor.models import MonitorJobServer, MonitorJobCeph, MonitorJobTiDB, LogSite
 from monitor.serializers import MonitorUnitServerSerializer, MonitorUnitCephSerializer, MonitorUnitTiDBSerializer
 from monitor.log_serializers import LogSiteSerializer

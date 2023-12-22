@@ -9,7 +9,7 @@ from vo.managers import VoManager
 from bill.managers import PaymentManager
 from service.managers import ServiceManager
 from utils.model import PayType, OwnerType
-from api.serializers.storage import BucketSerializer
+from storage.serializers import BucketSerializer
 from storage.models import Bucket
 from servers.disk_serializers import DiskSerializer
 from servers.serializers import ServerSerializer
