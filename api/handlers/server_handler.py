@@ -28,7 +28,7 @@ from order.models import ResourceType, Order, Resource
 from order.managers import OrderManager, ServerConfig, OrderPaymentManager
 from bill.managers import PaymentManager
 from .handlers import serializer_error_msg
-from .disk_handler import DiskHandler
+from servers.handlers.disk_handler import DiskHandler
 
 
 def str_to_true_false(val: str):

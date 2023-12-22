@@ -16,15 +16,16 @@ from rest_framework import parsers
 from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
-from servers.models import Server, Flavor
+from servers.models import Server
 from servers.managers import ServerManager, DiskManager
+from servers import disk_serializers
 from service.models import DataCenter, ApplyOrganization, ApplyVmService
 from adapters import inputs, outputs
 from core import request as core_request
 from core import errors as exceptions
-from api.serializers import serializers, disk_serializers
+from api.serializers import serializers
 from api.viewsets import CustomGenericViewSet
-from api.paginations import ServersPagination, DefaultPageNumberPagination, ImagesPagination
+from api.paginations import ServersPagination, DefaultPageNumberPagination
 from api.handlers import (
     handlers, ServerHandler, ServerArchiveHandler, VPNHandler,
 )

@@ -10,7 +10,7 @@ from django.conf import settings
 from service.managers import ServicePrivateQuotaManager
 from service.models import ServiceConfig
 from servers.models import Disk, Server, ResourceActionLog, DiskChangeLog
-from utils.test import get_or_create_user, get_or_create_service, get_or_create_organization
+from utils.test import get_or_create_user, get_or_create_service, get_or_create_organization, MyAPITransactionTestCase
 from utils.model import PayType, OwnerType, ResourceType
 from utils.decimal_utils import quantize_10_2
 from utils.time import iso_utc_to_datetime, utc
@@ -23,8 +23,7 @@ from bill.managers import PaymentManager
 from bill.models import PayApp, PayAppService
 from metering.measurers import DiskMeasurer
 from metering.models import MeteringDisk
-from . import MyAPITransactionTestCase
-from .tests import create_server_metadata
+from api.tests.tests import create_server_metadata
 
 
 def create_disk_metadata(
@@ -91,7 +90,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
         self.price.save(force_insert=True)
 
     def test_disk_create_bad_request(self):
-        url = reverse('api:disks-list')
+        url = reverse('servers-api:disks-list')
         response = self.client.post(url, data={})
         self.assertEqual(response.status_code, 401)
 
@@ -165,19 +164,19 @@ class DiskOrderTests(MyAPITransactionTestCase):
         member.save(force_insert=True)
 
     def test_disk_create(self):
-        url = reverse('api:disks-list')
+        url = reverse('servers-api:disks-list')
         response = self.client.post(url)
         self.assertEqual(response.status_code, 401)
         self.client.force_login(self.user)
 
         # get azone id
-        base_url = reverse('api:availability-zone-list')
+        base_url = reverse('servers-api:availability-zone-list')
         response = self.client.get(f'{base_url}?service_id={self.service.id}')
         self.assertEqual(response.status_code, 200)
         azone_id = response.data['zones'][0]['id']
 
         # service not set pay_app_service_id
-        url = reverse('api:disks-list')
+        url = reverse('servers-api:disks-list')
         response = self.client.post(url, data={
             'pay_type': PayType.PREPAID.value, 'service_id': self.service.id, 'azone_id': azone_id,
             'size': 2, 'period': 12, 'remarks': 'testcase创建，可删除'
@@ -189,7 +188,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
 
         # service privete quota not enough
         ServicePrivateQuotaManager().increase(service=self.service, disk_size=1)
-        disk_url = reverse('api:disks-list')
+        disk_url = reverse('servers-api:disks-list')
         response = self.client.post(disk_url, data={
             'pay_type': PayType.PREPAID.value, 'service_id': self.service.id, 'azone_id': azone_id,
             'size': 2, 'period': 12, 'remarks': 'testcase创建，可删除'
@@ -288,7 +287,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
 
         # --------vo-------------
         # create vo server postpaid mode, no vo permission
-        disk_url = reverse('api:disks-list')
+        disk_url = reverse('servers-api:disks-list')
         response = self.client.post(disk_url, data={
             'pay_type': PayType.POSTPAID.value, 'service_id': self.service.id,
             'size': 2, 'period': 12, 'remarks': 'testcase创建，可删除', 'vo_id': self.vo.id
@@ -356,7 +355,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
 
     def try_delete_disk(self, disk_id: str):
         try:
-            url = reverse('api:disks-detail', kwargs={'id': disk_id})
+            url = reverse('servers-api:disks-detail', kwargs={'id': disk_id})
         except Exception as exc:
             print(str(exc))
             return
@@ -398,7 +397,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
             creation_time=timezone.now(), expiration_time=None, remarks='vo disk3 test', server_id=server1.id
         )
 
-        base_url = reverse('api:disks-list')
+        base_url = reverse('servers-api:disks-list')
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 401)
         self.client.force_login(self.user)
@@ -1021,7 +1020,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
             lock=Disk.Lock.FREE.value
         )
 
-        base_url = reverse('api:disks-detail', kwargs={'id': 'test'})
+        base_url = reverse('servers-api:disks-detail', kwargs={'id': 'test'})
         response = self.client.delete(base_url)
         self.assertEqual(response.status_code, 401)
         self.client.force_login(self.user2)
@@ -1031,14 +1030,14 @@ class DiskOrderTests(MyAPITransactionTestCase):
         self.assertErrorResponse(status_code=404, code='DiskNotExist', response=response)
 
         # AccessDenied
-        base_url = reverse('api:disks-detail', kwargs={'id': disk1.id})
+        base_url = reverse('servers-api:disks-detail', kwargs={'id': disk1.id})
         response = self.client.delete(base_url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
         # DiskAttached
         self.client.logout()
         self.client.force_login(self.user)
-        base_url = reverse('api:disks-detail', kwargs={'id': disk1.id})
+        base_url = reverse('servers-api:disks-detail', kwargs={'id': disk1.id})
         response = self.client.delete(base_url)
         self.assertErrorResponse(status_code=409, code='DiskAttached', response=response)
 
@@ -1069,7 +1068,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
 
         # ----- vo -----
         # AccessDenied
-        base_url = reverse('api:disks-detail', kwargs={'id': disk2_vo.id})
+        base_url = reverse('servers-api:disks-detail', kwargs={'id': disk2_vo.id})
         response = self.client.delete(base_url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
@@ -1109,7 +1108,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
 
         self.client.logout()
         self.client.force_login(self.user2)
-        base_url = reverse('api:disks-detail', kwargs={'id': disk3.id})
+        base_url = reverse('servers-api:disks-detail', kwargs={'id': disk3.id})
         query = parse.urlencode(query={'as-admin': ''})
         response = self.client.delete(f'{base_url}?{query}')
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
@@ -1165,19 +1164,19 @@ class DiskOrderTests(MyAPITransactionTestCase):
             lock=Disk.Lock.OPERATION.value
         )
 
-        base_url = reverse('api:disks-attach', kwargs={'id': 'test'})
+        base_url = reverse('servers-api:disks-attach', kwargs={'id': 'test'})
         response = self.client.post(base_url)
         self.assertEqual(response.status_code, 401)
         self.client.force_login(self.user2)
 
         # DiskNotExist
-        base_url = reverse('api:disks-attach', kwargs={'id': 'test'})
+        base_url = reverse('servers-api:disks-attach', kwargs={'id': 'test'})
         query = parse.urlencode(query={'server_id': server1.id})
         response = self.client.post(f'{base_url}?{query}')
         self.assertErrorResponse(status_code=404, code='DiskNotExist', response=response)
 
         # AccessDenied
-        base_url = reverse('api:disks-attach', kwargs={'id': disk1.id})
+        base_url = reverse('servers-api:disks-attach', kwargs={'id': disk1.id})
         query = parse.urlencode(query={'server_id': server1.id})
         response = self.client.post(f'{base_url}?{query}')
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
@@ -1185,7 +1184,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
         # DiskAttached
         self.client.logout()
         self.client.force_login(self.user)
-        base_url = reverse('api:disks-attach', kwargs={'id': disk1.id})
+        base_url = reverse('servers-api:disks-attach', kwargs={'id': disk1.id})
         query = parse.urlencode(query={'server_id': server1.id})
         response = self.client.post(f'{base_url}?{query}')
         self.assertErrorResponse(status_code=409, code='DiskAttached', response=response)
@@ -1193,7 +1192,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
         # ResourceLocked
         disk1.server_id = None
         disk1.save(update_fields=['server_id'])
-        base_url = reverse('api:disks-attach', kwargs={'id': disk1.id})
+        base_url = reverse('servers-api:disks-attach', kwargs={'id': disk1.id})
         query = parse.urlencode(query={'server_id': server1.id})
         response = self.client.post(f'{base_url}?{query}')
         self.assertErrorResponse(status_code=409, code='ResourceLocked', response=response)
@@ -1202,13 +1201,13 @@ class DiskOrderTests(MyAPITransactionTestCase):
         disk1.save(update_fields=['lock'])
 
         # NotFound server
-        base_url = reverse('api:disks-attach', kwargs={'id': disk1.id})
+        base_url = reverse('servers-api:disks-attach', kwargs={'id': disk1.id})
         query = parse.urlencode(query={'server_id': 'dddd'})
         response = self.client.post(f'{base_url}?{query}')
         self.assertErrorResponse(status_code=404, code='NotFound', response=response)
 
         # AccessDenied
-        base_url = reverse('api:disks-attach', kwargs={'id': disk1.id})
+        base_url = reverse('servers-api:disks-attach', kwargs={'id': disk1.id})
         query = parse.urlencode(query={'server_id': server1.id})
         response = self.client.post(f'{base_url}?{query}')
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
@@ -1219,7 +1218,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
         member.save(force_insert=True)
 
         # ResourcesNotSameOwner
-        base_url = reverse('api:disks-attach', kwargs={'id': disk1.id})
+        base_url = reverse('servers-api:disks-attach', kwargs={'id': disk1.id})
         query = parse.urlencode(query={'server_id': server1.id})
         response = self.client.post(f'{base_url}?{query}')
         self.assertErrorResponse(status_code=409, code='ResourcesNotSameOwner', response=response)
@@ -1262,19 +1261,19 @@ class DiskOrderTests(MyAPITransactionTestCase):
             lock=Disk.Lock.OPERATION.value
         )
 
-        base_url = reverse('api:disks-detach', kwargs={'id': 'test'})
+        base_url = reverse('servers-api:disks-detach', kwargs={'id': 'test'})
         response = self.client.post(base_url)
         self.assertEqual(response.status_code, 401)
         self.client.force_login(self.user2)
 
         # DiskNotExist
-        base_url = reverse('api:disks-detach', kwargs={'id': 'test'})
+        base_url = reverse('servers-api:disks-detach', kwargs={'id': 'test'})
         query = parse.urlencode(query={'server_id': server1.id})
         response = self.client.post(f'{base_url}?{query}')
         self.assertErrorResponse(status_code=404, code='DiskNotExist', response=response)
 
         # AccessDenied
-        base_url = reverse('api:disks-detach', kwargs={'id': disk1.id})
+        base_url = reverse('servers-api:disks-detach', kwargs={'id': disk1.id})
         query = parse.urlencode(query={'server_id': server1.id})
         response = self.client.post(f'{base_url}?{query}')
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
@@ -1282,7 +1281,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
         # DiskNotAttached
         self.client.logout()
         self.client.force_login(self.user)
-        base_url = reverse('api:disks-detach', kwargs={'id': disk1.id})
+        base_url = reverse('servers-api:disks-detach', kwargs={'id': disk1.id})
         query = parse.urlencode(query={'server_id': server1.id})
         response = self.client.post(f'{base_url}?{query}')
         self.assertErrorResponse(status_code=409, code='DiskNotAttached', response=response)
@@ -1290,13 +1289,13 @@ class DiskOrderTests(MyAPITransactionTestCase):
         disk1.server_id = server1.id
         disk1.save(update_fields=['server_id'])
 
-        base_url = reverse('api:disks-detach', kwargs={'id': disk1.id})
+        base_url = reverse('servers-api:disks-detach', kwargs={'id': disk1.id})
         query = parse.urlencode(query={'server_id': 'ffddd'})
         response = self.client.post(f'{base_url}?{query}')
         self.assertErrorResponse(status_code=409, code='DiskNotOnServer', response=response)
 
         # ResourceLocked
-        base_url = reverse('api:disks-detach', kwargs={'id': disk1.id})
+        base_url = reverse('servers-api:disks-detach', kwargs={'id': disk1.id})
         query = parse.urlencode(query={'server_id': server1.id})
         response = self.client.post(f'{base_url}?{query}')
         self.assertErrorResponse(status_code=409, code='ResourceLocked', response=response)
@@ -1321,7 +1320,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
         # ---- as_admin -------
         self.client.logout()
         self.client.force_login(self.user2)
-        base_url = reverse('api:disks-detach', kwargs={'id': disk1.id})
+        base_url = reverse('servers-api:disks-detach', kwargs={'id': disk1.id})
         query = parse.urlencode(query={'server_id': server1.id, 'as-admin': ''})
         response = self.client.post(f'{base_url}?{query}')
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
@@ -1362,17 +1361,17 @@ class DiskOrderTests(MyAPITransactionTestCase):
             creation_time=timezone.now(), expiration_time=None, remarks='test', server_id=None
         )
 
-        base_url = reverse('api:disks-detail', kwargs={'id': 'test'})
+        base_url = reverse('servers-api:disks-detail', kwargs={'id': 'test'})
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 401)
         self.client.force_login(self.user)
 
-        base_url = reverse('api:disks-detail', kwargs={'id': 'test'})
+        base_url = reverse('servers-api:disks-detail', kwargs={'id': 'test'})
         response = self.client.get(base_url)
         self.assertErrorResponse(status_code=404, code='DiskNotExist', response=response)
 
         # detail user disk
-        base_url = reverse('api:disks-detail', kwargs={'id': disk1.id})
+        base_url = reverse('servers-api:disks-detail', kwargs={'id': disk1.id})
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['id', 'name', 'size', 'service', 'azone_id', 'azone_name', 'creation_time',
@@ -1385,14 +1384,14 @@ class DiskOrderTests(MyAPITransactionTestCase):
         self.assertKeysIn(['id', 'ipv4', 'vcpus', 'ram', 'image'], response.data['server'])
 
         # detail vo disk
-        base_url = reverse('api:disks-detail', kwargs={'id': disk3_vo.id})
+        base_url = reverse('servers-api:disks-detail', kwargs={'id': disk3_vo.id})
         response = self.client.get(base_url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
         # set vo member
         VoMember(user_id=self.user.id, vo_id=self.vo.id, role=VoMember.Role.LEADER.value).save()
 
-        base_url = reverse('api:disks-detail', kwargs={'id': disk3_vo.id})
+        base_url = reverse('servers-api:disks-detail', kwargs={'id': disk3_vo.id})
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['id', 'name', 'size', 'service', 'azone_id', 'azone_name', 'creation_time',
@@ -1425,7 +1424,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
         # renew user disk
         renew_to_time = (now_time + timedelta(200)).isoformat()
         renew_to_time = renew_to_time.split('.')[0] + 'Z'
-        url = reverse('api:disks-renew-disk', kwargs={'id': user_disk.id})
+        url = reverse('servers-api:disks-renew-disk', kwargs={'id': user_disk.id})
         response = self.client.post(url)
         self.assertEqual(response.status_code, 401)
         self.client.force_login(self.user)
@@ -1533,7 +1532,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
         renew_to_time_utc_str = renew_to_time_utc.isoformat()
         renew_to_time_utc_str = renew_to_time_utc_str[0:19] + 'Z'
 
-        url = reverse('api:disks-renew-disk', kwargs={'id': user_disk.id})
+        url = reverse('servers-api:disks-renew-disk', kwargs={'id': user_disk.id})
         query = parse.urlencode(query={'renew_to_time': renew_to_time_utc_str})
         response = self.client.post(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
@@ -1573,7 +1572,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
         renew_to_datetime = iso_utc_to_datetime(renew_to_time)
 
         # renew vo disk, no vo permission
-        url = reverse('api:disks-renew-disk', kwargs={'id': vo_disk.id})
+        url = reverse('servers-api:disks-renew-disk', kwargs={'id': vo_disk.id})
         query = parse.urlencode(query={'renew_to_time': renew_to_time})
         response = self.client.post(f'{url}?{query}')
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
@@ -1624,22 +1623,22 @@ class DiskOrderTests(MyAPITransactionTestCase):
             creation_time=timezone.now(), expiration_time=None, remarks='test', server_id=None
         )
 
-        url = reverse('api:disks-disk-remark', kwargs={'id': disk1.id})
+        url = reverse('servers-api:disks-disk-remark', kwargs={'id': disk1.id})
         response = self.client.post(url)
         self.assertEqual(response.status_code, 401)
         self.client.force_login(self.user)
 
-        url = reverse('api:disks-disk-remark', kwargs={'id': disk1.id})
+        url = reverse('servers-api:disks-disk-remark', kwargs={'id': disk1.id})
         response = self.client.post(url)
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
 
-        url = reverse('api:disks-disk-remark', kwargs={'id': '00'})
+        url = reverse('servers-api:disks-disk-remark', kwargs={'id': '00'})
         query = parse.urlencode(query={'remark': 'ss'})
         response = self.client.post(f'{url}?{query}')
         self.assertErrorResponse(status_code=404, code='DiskNotExist', response=response)
 
         remark = 'test-remarks'
-        url = reverse('api:disks-disk-remark', kwargs={'id': disk1.id})
+        url = reverse('servers-api:disks-disk-remark', kwargs={'id': disk1.id})
         query = parse.urlencode(query={'remark': remark})
         response = self.client.post(f'{url}?{query}')
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
@@ -1654,7 +1653,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
 
         # vo disk when vo owner
         remark = 'test-vo-remarks'
-        url = reverse('api:disks-disk-remark', kwargs={'id': disk2_vo.id})
+        url = reverse('servers-api:disks-disk-remark', kwargs={'id': disk2_vo.id})
         query = parse.urlencode(query={'remark': remark})
         response = self.client.post(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
@@ -1690,7 +1689,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
 
         # --- user disk ----
         # pay_type
-        url = reverse('api:disks-modify-pay-type', kwargs={'id': user_disk.id})
+        url = reverse('servers-api:disks-modify-pay-type', kwargs={'id': user_disk.id})
         response = self.client.post(url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
         self.client.force_login(self.user)
@@ -1811,7 +1810,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
         )
 
         # post vo server, no vo permission
-        url = reverse('api:disks-modify-pay-type', kwargs={'id': vo_disk.id})
+        url = reverse('servers-api:disks-modify-pay-type', kwargs={'id': vo_disk.id})
         query = parse.urlencode(query={'pay_type': PayType.PREPAID.value, 'period': 6})
         response = self.client.post(f'{url}?{query}')
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)

@@ -7,7 +7,7 @@ from .apiviews import (
     metering_views, bill_views, account_views, cash_coupon_views,
     trade_test_views, trade_views, bucket_views, storage_views,
     ticket_views, storage_metering_views, user_views, app_service_views,
-    tradebill_views, recharge_views, email_views, disk_views,
+    tradebill_views, recharge_views, email_views,
     portal_views, report_storage_views, monitor_metering_views
 )
 
@@ -25,7 +25,6 @@ no_slash_router.register(r'user', user_views.UserViewSet, basename='user')
 no_slash_router.register(r'apply/service', views.ApplyVmServiceViewSet, basename='apply-service')
 no_slash_router.register(r'apply/organization', views.ApplyOrganizationViewSet, basename='apply-organization')
 no_slash_router.register(r'email', email_views.EmailViewSet, basename='email')
-no_slash_router.register(r'disk', disk_views.DisksViewSet, basename='disks')
 no_slash_router.register(r'describe-price', order_views.PriceViewSet, basename='describe-price')
 no_slash_router.register(r'order', order_views.OrderViewSet, basename='order')
 no_slash_router.register(r'period', order_views.PeriodViewSet, basename='period')

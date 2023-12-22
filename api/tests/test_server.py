@@ -153,7 +153,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         self.assertErrorResponse(status_code=400, code='InvalidNetworkId', response=response)
 
         # get network id
-        base_url = reverse('api:networks-list')
+        base_url = reverse('servers-api:networks-list')
         query = parse.urlencode(query={'service_id': self.service.id})
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
@@ -168,7 +168,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         self.assertErrorResponse(status_code=400, code='InvalidImageId', response=response)
 
         # get image_id
-        url = reverse('api:images-paginate-list')
+        url = reverse('servers-api:images-paginate-list')
         query = parse.urlencode(query={'service_id': self.service.id})
         response = self.client.get(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
@@ -185,7 +185,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
 
     def test_server_create(self):
         # get network id
-        base_url = reverse('api:networks-list')
+        base_url = reverse('servers-api:networks-list')
         response = self.client.get(f'{base_url}?service_id={self.service.id}')
         self.assertEqual(response.status_code, 200)
         network_id = response.data[0]['id']
@@ -204,7 +204,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         self.service.save(update_fields=['pay_app_service_id'])
 
         # get image_id
-        url = reverse('api:images-paginate-list')
+        url = reverse('servers-api:images-paginate-list')
         query = parse.urlencode(query={'service_id': self.service.id})
         response = self.client.get(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)

@@ -416,7 +416,7 @@ class VoTests(MyAPITestCase):
             vo_id=vo1.id, vo_name=vo1.name,
             owner_type=OwnerType.VO.value
         )
-        from api.tests.test_disk import create_disk_metadata
+        from servers.tests.test_disk import create_disk_metadata
         create_disk_metadata(
             service_id=None, azone_id='2', disk_size=88, pay_type=PayType.PREPAID.value,
             classification=Disk.Classification.PERSONAL.value, user_id=self.user.id, vo_id=None,

@@ -250,7 +250,7 @@ class ServersTests(MyAPITestCase):
         self.assertEqual(len(response.data['server']['attached_disks']), 0)
 
         # ----------------admin get server detail test -----------------------
-        from .test_disk import create_disk_metadata
+        from servers.tests.test_disk import create_disk_metadata
         create_disk_metadata(
             service_id=self.service.id, azone_id='1', disk_size=6, pay_type=PayType.PREPAID.value,
             classification=Disk.Classification.PERSONAL.value, user_id=self.user.id, vo_id=None,

@@ -16,8 +16,8 @@ from metering.models import (
 )
 from . import set_auth_header, MyAPITestCase
 from servers.models import Server, ServerArchive, Disk
+from servers.tests.test_disk import create_disk_metadata
 from users.models import UserProfile
-from .test_disk import create_disk_metadata
 
 
 class MeteringServerTests(MyAPITestCase):

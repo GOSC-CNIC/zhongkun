@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import SimpleRouter
 
-from .apiviews import flavor_views, views
+from .apiviews import flavor_views, views, disk_views
 
 
 app_name = 'servers'
@@ -13,6 +13,7 @@ no_slash_router.register(r'admin/flavor', flavor_views.AdminFlavorViewSet, basen
 no_slash_router.register(r'image', views.ImageViewSet, basename='images')
 no_slash_router.register(r'network', views.NetworkViewSet, basename='networks')
 no_slash_router.register(r'azone', views.AvailabilityZoneViewSet, basename='availability-zone')
+no_slash_router.register(r'disk', disk_views.DisksViewSet, basename='disks')
 
 
 urlpatterns = [

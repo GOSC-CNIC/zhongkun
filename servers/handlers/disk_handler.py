@@ -10,10 +10,9 @@ from rest_framework.response import Response
 from core import errors as exceptions
 from core import request as core_request
 from core.quota import QuotaAPI
-from api.viewsets import CustomGenericViewSet
+from api.viewsets import CustomGenericViewSet, serializer_error_msg
 from api.deliver_resource import OrderResourceDeliverer
 from api import request_logger
-from api.serializers import disk_serializers
 from vo.managers import VoManager
 from vo.models import VirtualOrganization
 from adapters import inputs
@@ -25,7 +24,7 @@ from bill.managers import PaymentManager
 from service.managers import ServiceManager
 from servers.managers import ServerManager, DiskManager, ResourceActionLogManager
 from servers.models import Server, Disk
-from .handlers import serializer_error_msg
+from servers import disk_serializers
 
 
 class DiskHandler:

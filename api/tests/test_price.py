@@ -6,13 +6,13 @@ from django.urls import reverse
 from django.utils import timezone as dj_timezone
 
 from servers.models import Flavor, Disk
+from servers.tests.test_disk import create_disk_metadata
 from order.models import Price
 from order.managers import PriceManager
 from utils.decimal_utils import quantize_10_2
 from utils.model import PayType
 from . import set_auth_header, MyAPITestCase
 from .tests import create_server_metadata
-from .test_disk import create_disk_metadata
 
 
 utc = timezone.utc
