@@ -1,6 +1,9 @@
+from datetime import datetime
+
 from django.contrib import admin
 from django.db import transaction
-from django.utils import timezone
+from django.utils import timezone as dj_timezone
+from django.utils.translation import gettext_lazy
 from django.forms import ModelForm
 from django.core.exceptions import ValidationError
 
@@ -164,7 +167,7 @@ class MonitorWebsiteVersionAdmin(NoDeleteSelectModelAdmin):
                 vers.version += 1
 
             vers.pay_app_service_id = obj.pay_app_service_id
-            vers.modification = timezone.now()
+            vers.modification = dj_timezone.now()
             vers.save(force_update=True)
 
     def has_add_permission(self, request):
@@ -254,6 +257,11 @@ class TotalReqNumAdmin(NoDeleteSelectModelAdmin):
 
 @admin.register(LogSiteTimeReqNum)
 class LogSiteTimeReqNumAdmin(admin.ModelAdmin):
-    list_display = ('id', 'timestamp', 'site', 'count')
+    list_display = ('id', 'timestamp', 'show_time', 'site', 'count')
     list_display_links = ('id', )
     list_select_related = ('site', )
+
+    @admin.display(description=gettext_lazy("统计时间"))
+    def show_time(self, obj):
+        dt = datetime.fromtimestamp(obj.timestamp, tz=dj_timezone.get_default_timezone())
+        return dt.isoformat(sep=' ')
