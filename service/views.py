@@ -18,7 +18,7 @@ def resources(request, *args, **kwargs):
     service_id = kwargs.get('service_id')
     user = request.user
 
-    servers_qs = Server.objects.filter(user=user)
+    servers_qs = Server.objects.filter(user=user, classification=Server.Classification.PERSONAL.value)
     if service_id:
         service = ServiceConfig.objects.filter(id=service_id).first()
         is_need_vpn = service.is_need_vpn()
