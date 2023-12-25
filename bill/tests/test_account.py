@@ -2,16 +2,16 @@ from decimal import Decimal
 
 from django.urls import reverse
 
-from utils.test import get_or_create_user
+from utils.test import get_or_create_user, MyAPITestCase
 from vo.models import VirtualOrganization
 from vo.managers import VoManager
 from bill.managers import PaymentManager
-from . import set_auth_header, MyAPITestCase
 
 
 class PonitAccountTests(MyAPITestCase):
     def setUp(self):
-        self.user = set_auth_header(self)
+        self.user = get_or_create_user()
+        self.client.force_login(self.user)
         self.user2 = get_or_create_user(username='user2')
         self.vo = VirtualOrganization(
             name='test vo', owner=self.user
@@ -24,7 +24,7 @@ class PonitAccountTests(MyAPITestCase):
         self.vo2.save(force_insert=True)
 
     def test_get_user_point_account(self):
-        base_url = reverse('api:account-balance-balance-user')
+        base_url = reverse('wallet-api:account-balance-balance-user')
         r = self.client.get(base_url)
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn(["id", "balance", "creation_time", "user"], r.data)
@@ -39,7 +39,7 @@ class PonitAccountTests(MyAPITestCase):
         self.assertEqual(r.data['balance'], '22.33')
 
     def test_get_vo_point_account(self):
-        base_url = reverse('api:account-balance-balance-vo', kwargs={'vo_id': self.vo.id})
+        base_url = reverse('wallet-api:account-balance-balance-vo', kwargs={'vo_id': self.vo.id})
         r = self.client.get(base_url)
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn(["id", "balance", "creation_time", "vo"], r.data)
@@ -55,7 +55,7 @@ class PonitAccountTests(MyAPITestCase):
 
         # test vo2
         # no vo permission
-        base_url = reverse('api:account-balance-balance-vo', kwargs={'vo_id': self.vo2.id})
+        base_url = reverse('wallet-api:account-balance-balance-vo', kwargs={'vo_id': self.vo2.id})
         r = self.client.get(base_url)
         self.assertEqual(r.status_code, 403)
 

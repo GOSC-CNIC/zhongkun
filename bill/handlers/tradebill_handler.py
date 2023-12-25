@@ -3,7 +3,7 @@ from django.utils import timezone
 from rest_framework.exceptions import NotFound
 
 from core import errors
-from api.viewsets import TradeGenericViewSet, PaySignGenericViewSet
+from bill.apiviews import TradeGenericViewSet, PaySignGenericViewSet
 from bill.models import TransactionBill
 from bill.managers.bill import TransactionBillManager
 from utils.time import iso_utc_to_datetime

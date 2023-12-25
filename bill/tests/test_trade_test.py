@@ -10,16 +10,15 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
 from jwt import PyJWT
 
-from api.signers import SignatureRequest, SignatureResponse
+from bill.signers import SignatureRequest, SignatureResponse
 from bill.models import (
     PayApp, PayAppService, PaymentHistory, CashCoupon, RefundRecord,
     TransactionBill
 )
 from bill.managers.payment import PaymentManager, TransactionBillManager
-from utils.test import get_or_create_user, get_or_create_organization
+from utils.test import get_or_create_user, get_or_create_organization, MyAPITestCase, MyAPITransactionTestCase
 from utils.model import OwnerType
 from vo.models import VirtualOrganization
-from . import MyAPITestCase, MyAPITransactionTestCase
 
 
 def response_sign_assert(test_case, r, wallet_public_key: str):
@@ -71,7 +70,7 @@ class TradeTestTests(MyAPITestCase):
             'param3': 66,
             'sign': 'test sign'
         }
-        base_url = reverse('api:trade-test-list')
+        base_url = reverse('wallet-api:trade-test-list')
         query_str = parse.urlencode(params)
         url = f'{base_url}?{query_str}'
         body_json = json.dumps(body)
@@ -233,10 +232,10 @@ class TradeTests(MyAPITransactionTestCase):
 
     def _query_trade_test(self, trade_id: str, order_id: str):
         # test query by id
-        url = reverse('api:trade-query-trade-id', kwargs={'trade_id': 'notfound'})
+        url = reverse('wallet-api:trade-query-trade-id', kwargs={'trade_id': 'notfound'})
         response = self.do_request(method='get', base_url=url, body={}, params={})
         self.assertErrorResponse(status_code=404, code='NoSuchTrade', response=response)
-        url = reverse('api:trade-query-trade-id', kwargs={'trade_id': trade_id})
+        url = reverse('wallet-api:trade-query-trade-id', kwargs={'trade_id': trade_id})
         response = self.do_request(method='get', base_url=url, body={}, params={})
         self.assertEqual(response.status_code, 200)
         self.response_sign_assert(response)
@@ -248,7 +247,7 @@ class TradeTests(MyAPITransactionTestCase):
         self.assertNotIn('refunded_amounts', response.data)
 
         # query "query_refunded"
-        url = reverse('api:trade-query-trade-id', kwargs={'trade_id': trade_id})
+        url = reverse('wallet-api:trade-query-trade-id', kwargs={'trade_id': trade_id})
         response = self.do_request(method='get', base_url=url, body={}, params={'query_refunded': ''})
         self.assertEqual(response.status_code, 200)
         self.response_sign_assert(response)
@@ -260,10 +259,10 @@ class TradeTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['refunded_amounts'], '0.00')
 
         # test query by order id
-        url = reverse('api:trade-query-order-id', kwargs={'order_id': 'notfound'})
+        url = reverse('wallet-api:trade-query-order-id', kwargs={'order_id': 'notfound'})
         response = self.do_request(method='get', base_url=url, body={}, params={})
         self.assertErrorResponse(status_code=404, code='NoSuchTrade', response=response)
-        url = reverse('api:trade-query-order-id', kwargs={'order_id': order_id})
+        url = reverse('wallet-api:trade-query-order-id', kwargs={'order_id': order_id})
         response = self.do_request(method='get', base_url=url, body={}, params={})
         self.assertEqual(response.status_code, 200)
         self.response_sign_assert(response)
@@ -418,7 +417,7 @@ class TradeTests(MyAPITransactionTestCase):
             'remark': 'test remark'
         }
         params = {}
-        base_url = reverse('api:trade-charge-jwt')
+        base_url = reverse('wallet-api:trade-charge-jwt')
         r = self.do_request(method='post', base_url=base_url, body=body, params=params)
         self.assertErrorResponse(status_code=409, code='BalanceNotEnough', response=r)
 
@@ -483,7 +482,7 @@ class TradeTests(MyAPITransactionTestCase):
             'remark': 'test remark'
         }
         params = {}
-        base_url = reverse('api:trade-charge-account')
+        base_url = reverse('wallet-api:trade-charge-account')
         r = self.do_request(method='post', base_url=base_url, body=body, params=params)
         self.assertErrorResponse(status_code=404, code='NoSuchBalanceAccount', response=r)
 
@@ -536,7 +535,7 @@ class TradeSignKeyTests(MyAPITestCase):
         self.user = get_or_create_user(username='tom@cnic.cn')
 
     def test_rsa_key_generate(self):
-        base_url = reverse('api:trade-signkey-public-key')
+        base_url = reverse('wallet-api:trade-signkey-public-key')
         r = self.client.get(base_url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
 
@@ -633,7 +632,7 @@ class RefundRecordTests(MyAPITransactionTestCase):
             "refund_reason": "reason1",
             "remark": "remark1"
         }
-        base_url = reverse('api:trade-refund-list')
+        base_url = reverse('wallet-api:trade-refund-list')
 
         # AppStatusUnaudited
         r = self.do_request(testcase=self, wallet_public_key=self.vms_public_key,
@@ -736,7 +735,7 @@ class RefundRecordTests(MyAPITransactionTestCase):
         self.assertEqual(bill.owner_id, payment1.payer_id)
         self.assertEqual(bill.owner_type, OwnerType.USER.value)
 
-        query_base_url = reverse('api:trade-refund-refund-query')
+        query_base_url = reverse('wallet-api:trade-refund-refund-query')
         # query refund by refund_id
         r = self.do_request(testcase=self, wallet_public_key=self.vms_public_key,
                             client=self.client, app_id=self.app.id, private_key=self.user_private_key,
@@ -834,7 +833,7 @@ class RefundRecordTests(MyAPITransactionTestCase):
         self.assertErrorResponse(status_code=409, code='RefundAmountsExceedTotal', response=r)
 
         # 支付记录查询已退款金额( 10 + 0.01)， "query_refunded"
-        url = reverse('api:trade-query-trade-id', kwargs={'trade_id': payment1.id})
+        url = reverse('wallet-api:trade-query-trade-id', kwargs={'trade_id': payment1.id})
         response = self.do_request(
             testcase=self, wallet_public_key=self.vms_public_key,
             client=self.client, app_id=self.app.id, private_key=self.user_private_key,
@@ -847,7 +846,7 @@ class RefundRecordTests(MyAPITransactionTestCase):
         ], container=response.data)
         self.assertEqual(response.data['refunded_amounts'], '10.01')
 
-        url = reverse('api:trade-query-order-id', kwargs={'order_id': payment1.order_id})
+        url = reverse('wallet-api:trade-query-order-id', kwargs={'order_id': payment1.order_id})
         response = self.do_request(
             testcase=self, wallet_public_key=self.vms_public_key,
             client=self.client, app_id=self.app.id, private_key=self.user_private_key,
@@ -1221,7 +1220,7 @@ class RefundRecordTests(MyAPITransactionTestCase):
         }, d=r.data)
 
         # 支付记录查询已退款金额( 99)， "query_refunded"
-        url = reverse('api:trade-query-trade-id', kwargs={'trade_id': payment4.id})
+        url = reverse('wallet-api:trade-query-trade-id', kwargs={'trade_id': payment4.id})
         response = self.do_request(
             testcase=self, wallet_public_key=self.vms_public_key,
             client=self.client, app_id=app2.id, private_key=app2_private_key,
@@ -1234,7 +1233,7 @@ class RefundRecordTests(MyAPITransactionTestCase):
         ], container=response.data)
         self.assertEqual(response.data['refunded_amounts'], '99.00')
 
-        url = reverse('api:trade-query-order-id', kwargs={'order_id': payment4.order_id})
+        url = reverse('wallet-api:trade-query-order-id', kwargs={'order_id': payment4.order_id})
         response = self.do_request(
             testcase=self, wallet_public_key=self.vms_public_key,
             client=self.client, app_id=app2.id, private_key=app2_private_key,
@@ -1248,7 +1247,7 @@ class RefundRecordTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['refunded_amounts'], '99.00')
 
         # ------------query api test ----------------
-        query_base_url = reverse('api:trade-refund-refund-query')
+        query_base_url = reverse('wallet-api:trade-refund-refund-query')
 
         # MissingTradeId
         r = self.do_request(testcase=self, wallet_public_key=self.vms_public_key,
@@ -1441,7 +1440,7 @@ class AppTradeBillTests(MyAPITestCase):
     def test_list_bills(self):
         bill1, bill2, bill3, bill4, bill5, bill6, bill7 = self.init_bill_data()
 
-        base_url = reverse('api:app-tradebill-list')
+        base_url = reverse('wallet-api:app-tradebill-list')
         r = self.do_request(
             testcase=self, wallet_public_key=self.vms_public_key, client=self.client,
             app_id=self.app.id, private_key=self.user_private_key,

@@ -6,8 +6,8 @@ from drf_yasg import openapi
 
 from api.viewsets import CustomGenericViewSet
 from api.paginations import PaymentHistoryPagination
-from api.handlers.bill_handler import PaymentHistoryHandler
-from api.serializers import serializers
+from bill.handlers.bill_handler import PaymentHistoryHandler
+from bill import trade_serializers
 from bill.models import PaymentHistory
 
 
@@ -143,6 +143,6 @@ class PaymentHistoryViewSet(CustomGenericViewSet):
 
     def get_serializer_class(self):
         if self.action == 'list':
-            return serializers.PaymentHistorySerializer
+            return trade_serializers.PaymentHistorySerializer
 
         return Serializer

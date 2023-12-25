@@ -13,8 +13,8 @@ from users.models import UserProfile
 from vo.models import VirtualOrganization
 from vo.managers import VoManager
 from core import errors
-from api.viewsets import CustomGenericViewSet
-from api.serializers.serializers import AdminCashCouponSerializer
+from api.viewsets import CustomGenericViewSet, serializer_error_msg
+from bill.trade_serializers import AdminCashCouponSerializer
 from bill.managers import CashCouponManager
 from bill.managers.cash_coupon import get_app_service_by_admin
 from bill.models import CashCoupon, PayAppService, CashCouponPaymentHistory
@@ -23,7 +23,6 @@ from utils.time import iso_utc_to_datetime
 from utils import rand_utils
 from utils.decimal_utils import quantize_10_2
 from utils.model import OwnerType
-from .handlers import serializer_error_msg
 
 
 class QueryCouponValidChoices(TextChoices):

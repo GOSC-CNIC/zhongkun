@@ -3,13 +3,12 @@ from django.conf import settings
 from rest_framework.serializers import Serializer
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from drf_yasg.utils import swagger_auto_schema, no_body
+from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-from api.viewsets import PaySignGenericViewSet
-from api.serializers import trade as trade_serializers
-from api.serializers.serializers import PaymentHistorySerializer
-from api.handlers.trade_handlers import TradeHandler
+from bill.apiviews import PaySignGenericViewSet
+from bill import trade_serializers
+from bill.handlers.trade_handlers import TradeHandler
 from core import errors
 
 
@@ -278,7 +277,7 @@ class TradeQueryViewSet(PaySignGenericViewSet):
 
     def get_serializer_class(self):
         if self.action in ['trade_query', 'trade_query_order_id']:
-            return PaymentHistorySerializer
+            return trade_serializers.PaymentHistorySerializer
 
         return Serializer
 

@@ -6,7 +6,10 @@ from django.urls import reverse
 from django.utils import timezone
 
 from utils.model import OwnerType
-from utils.test import get_or_create_service, get_or_create_user, get_or_create_organization
+from utils.test import (
+    get_or_create_service, get_or_create_user, get_or_create_organization,
+    MyAPITestCase, MyAPITransactionTestCase
+)
 from utils.time import utc
 from vo.models import VirtualOrganization, VoMember
 from bill.models import (
@@ -14,9 +17,8 @@ from bill.models import (
     CashCouponPaymentHistory
 )
 from bill.managers import PaymentManager, CashCouponActivityManager
-from api.handlers.cash_coupon_handler import QueryCouponValidChoices
+from bill.handlers.cash_coupon_handler import QueryCouponValidChoices
 from core import errors
-from . import set_auth_header, MyAPITestCase, MyAPITransactionTestCase
 
 
 def to_isoformat(value):
@@ -25,7 +27,8 @@ def to_isoformat(value):
 
 class CashCouponTests(MyAPITestCase):
     def setUp(self):
-        self.user = set_auth_header(self)
+        self.user = get_or_create_user()
+        self.client.force_login(self.user)
         self.user2 = get_or_create_user(username='user2')
         self.service = get_or_create_service()
         self.vo = VirtualOrganization(
@@ -68,7 +71,7 @@ class CashCouponTests(MyAPITestCase):
         )
         coupon2.save(force_insert=True)
 
-        base_url = reverse('api:cashcoupon-list')
+        base_url = reverse('wallet-api:cashcoupon-list')
 
         # required param "coupon_code"
         query = parse.urlencode(query={'id': coupon1.id})
@@ -244,7 +247,7 @@ class CashCouponTests(MyAPITestCase):
         )
         coupon6_vo.save(force_insert=True)
 
-        base_url = reverse('api:cashcoupon-list')
+        base_url = reverse('wallet-api:cashcoupon-list')
 
         # list user own coupon
         response = self.client.get(base_url)
@@ -514,12 +517,12 @@ class CashCouponTests(MyAPITestCase):
         coupon5_vo.save(force_insert=True)
 
         # delete status "WAIT" coupon
-        url = reverse('api:cashcoupon-detail', kwargs={'id': coupon1.id})
+        url = reverse('wallet-api:cashcoupon-detail', kwargs={'id': coupon1.id})
         response = self.client.delete(url)
         self.assertErrorResponse(status_code=404, code='NoSuchCoupon', response=response)
 
         # need force delete
-        url = reverse('api:cashcoupon-detail', kwargs={'id': coupon2_user.id})
+        url = reverse('wallet-api:cashcoupon-detail', kwargs={'id': coupon2_user.id})
         response = self.client.delete(url)
         self.assertErrorResponse(status_code=409, code='BalanceRemain', response=response)
         query = parse.urlencode(query={'force': ''})
@@ -529,21 +532,21 @@ class CashCouponTests(MyAPITestCase):
         self.assertEqual(coupon2_user.status, CashCoupon.Status.DELETED.value)
 
         # delete expired coupon
-        url = reverse('api:cashcoupon-detail', kwargs={'id': coupon3_user.id})
+        url = reverse('wallet-api:cashcoupon-detail', kwargs={'id': coupon3_user.id})
         response = self.client.delete(url)
         self.assertEqual(response.status_code, 204)
         coupon3_user.refresh_from_db()
         self.assertEqual(coupon3_user.status, CashCoupon.Status.DELETED.value)
 
         # delete user2 coupon
-        url = reverse('api:cashcoupon-detail', kwargs={'id': coupon4_user2.id})
+        url = reverse('wallet-api:cashcoupon-detail', kwargs={'id': coupon4_user2.id})
         response = self.client.delete(url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
         coupon4_user2.refresh_from_db()
         self.assertEqual(coupon4_user2.status, CashCoupon.Status.CANCELLED.value)
 
         # delete vo coupon
-        url = reverse('api:cashcoupon-detail', kwargs={'id': coupon5_vo.id})
+        url = reverse('wallet-api:cashcoupon-detail', kwargs={'id': coupon5_vo.id})
         response = self.client.delete(url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
         VoMember(user=self.user, vo=self.vo, role=VoMember.Role.LEADER.value, inviter='').save(force_insert=True)
@@ -600,7 +603,7 @@ class CashCouponTests(MyAPITestCase):
         )
 
         # list user coupon payment
-        base_url = reverse('api:cashcoupon-list-payment', kwargs={'id': coupon1_user.id})
+        base_url = reverse('wallet-api:cashcoupon-list-payment', kwargs={'id': coupon1_user.id})
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 1)
@@ -650,7 +653,7 @@ class CashCouponTests(MyAPITestCase):
             only_coupon=False,
             required_enough_balance=False
         )
-        base_url = reverse('api:cashcoupon-list-payment', kwargs={'id': coupon1_user.id})
+        base_url = reverse('wallet-api:cashcoupon-list-payment', kwargs={'id': coupon1_user.id})
         response = self.client.get(f"{base_url}?{parse.urlencode(query={'page_size': 1})}")
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)
@@ -677,7 +680,7 @@ class CashCouponTests(MyAPITestCase):
         )
 
         # list vo coupon payment
-        base_url = reverse('api:cashcoupon-list-payment', kwargs={'id': coupon1_vo.id})
+        base_url = reverse('wallet-api:cashcoupon-list-payment', kwargs={'id': coupon1_vo.id})
         response = self.client.get(base_url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
@@ -718,7 +721,7 @@ class CashCouponTests(MyAPITestCase):
             only_coupon=False,
             required_enough_balance=False
         )
-        base_url = reverse('api:cashcoupon-list-payment', kwargs={'id': coupon1_vo.id})
+        base_url = reverse('wallet-api:cashcoupon-list-payment', kwargs={'id': coupon1_vo.id})
         response = self.client.get(f"{base_url}?{parse.urlencode(query={'page_size': 1})}")
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)
@@ -767,7 +770,7 @@ class CashCouponTests(MyAPITestCase):
         )
         coupon2.save(force_insert=True)
 
-        base_url = reverse('api:cashcoupon-exchange-coupon')
+        base_url = reverse('wallet-api:cashcoupon-exchange-coupon')
 
         # required param "code"
         query = parse.urlencode(query={'id': coupon1.id})
@@ -890,23 +893,23 @@ class CashCouponTests(MyAPITestCase):
 
         # NotAuthenticated
         self.client.logout()
-        url = reverse('api:cashcoupon-detail', kwargs={'id': 66})
+        url = reverse('wallet-api:cashcoupon-detail', kwargs={'id': 66})
         response = self.client.get(url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
 
         # user2, NoSuchCoupon
         self.client.force_login(self.user2)
-        url = reverse('api:cashcoupon-detail', kwargs={'id': 66})
+        url = reverse('wallet-api:cashcoupon-detail', kwargs={'id': 66})
         response = self.client.get(url)
         self.assertErrorResponse(status_code=404, code='NoSuchCoupon', response=response)
 
         # user2, AccessDenied
-        url = reverse('api:cashcoupon-detail', kwargs={'id': coupon1_user.id})
+        url = reverse('wallet-api:cashcoupon-detail', kwargs={'id': coupon1_user.id})
         response = self.client.get(url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
         # user2, vo, ok
-        url = reverse('api:cashcoupon-detail', kwargs={'id': coupon1_vo.id})
+        url = reverse('wallet-api:cashcoupon-detail', kwargs={'id': coupon1_vo.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn([
@@ -924,21 +927,21 @@ class CashCouponTests(MyAPITestCase):
         # user1, NoSuchCoupon
         self.client.logout()
         self.client.force_login(self.user)
-        url = reverse('api:cashcoupon-detail', kwargs={'id': 66})
+        url = reverse('wallet-api:cashcoupon-detail', kwargs={'id': 66})
         response = self.client.get(url)
         self.assertErrorResponse(status_code=404, code='NoSuchCoupon', response=response)
 
         # user1, vo, AccessDenied
         self.client.logout()
         self.client.force_login(self.user)
-        url = reverse('api:cashcoupon-detail', kwargs={'id': coupon1_vo.id})
+        url = reverse('wallet-api:cashcoupon-detail', kwargs={'id': coupon1_vo.id})
         response = self.client.get(url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
         # user1, ok
         self.client.logout()
         self.client.force_login(self.user)
-        url = reverse('api:cashcoupon-detail', kwargs={'id': coupon1_user.id})
+        url = reverse('wallet-api:cashcoupon-detail', kwargs={'id': coupon1_user.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn([
@@ -956,7 +959,8 @@ class CashCouponTests(MyAPITestCase):
 
 class AdminCashCouponTests(MyAPITransactionTestCase):
     def setUp(self):
-        self.user = set_auth_header(self)
+        self.user = get_or_create_user()
+        self.client.force_login(self.user)
         self.user2 = get_or_create_user(username='user2')
         self.service = get_or_create_service()
 
@@ -981,7 +985,7 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         vo1.save(force_insert=True)
 
         now_time = timezone.now()
-        url = reverse('api:admin-coupon-list')
+        url = reverse('wallet-api:admin-coupon-list')
 
         # InvalidFaceValue
         data = {
@@ -1239,12 +1243,12 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         coupon3.save(force_insert=True)
 
         # user no permission of app_service1
-        url = reverse('api:admin-coupon-list')
+        url = reverse('wallet-api:admin-coupon-list')
         query = parse.urlencode(query={'app_service_id': self.app_service1.id})
         r = self.client.get(f'{url}?{query}')
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
 
-        url = reverse('api:admin-coupon-list')
+        url = reverse('wallet-api:admin-coupon-list')
         query = parse.urlencode(query={'template_id': template.id})
         r = self.client.get(f'{url}?{query}')
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
@@ -1446,7 +1450,7 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assertEqual(r.data['results'][0]['id'], coupon3.id)
 
         # query "time_start"
-        url = reverse('api:admin-coupon-list')
+        url = reverse('wallet-api:admin-coupon-list')
         query = parse.urlencode(query={'time_start': '2023-04-01T08:08:01'})
         r = self.client.get(f'{url}?{query}')
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
@@ -1467,7 +1471,7 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assertEqual(len(r.data['results']), 0)
 
         # query "time_end"
-        url = reverse('api:admin-coupon-list')
+        url = reverse('wallet-api:admin-coupon-list')
         query = parse.urlencode(query={'time_end': '2023-04-01T08:08:01'})
         r = self.client.get(f'{url}?{query}')
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
@@ -1488,7 +1492,7 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assertEqual(len(r.data['results']), 3)
 
         # query "time_start", "time_end"
-        url = reverse('api:admin-coupon-list')
+        url = reverse('wallet-api:admin-coupon-list')
         nt = timezone.now()
         tstart = (nt - timedelta(days=1)).strftime('%Y-%m-%dT%H:%M:%SZ')
         tend = (nt + timedelta(days=1)).strftime('%Y-%m-%dT%H:%M:%SZ')
@@ -1527,32 +1531,32 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
 
         # NotAuthenticated
         self.client.logout()
-        url = reverse('api:admin-coupon-detail', kwargs={'id': 'notfound'})
+        url = reverse('wallet-api:admin-coupon-detail', kwargs={'id': 'notfound'})
         response = self.client.delete(url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
 
         # NoSuchCoupon
         self.client.force_login(self.user)
-        url = reverse('api:admin-coupon-detail', kwargs={'id': 'notfound'})
+        url = reverse('wallet-api:admin-coupon-detail', kwargs={'id': 'notfound'})
         response = self.client.delete(url)
         self.assertErrorResponse(status_code=404, code='NoSuchCoupon', response=response)
 
         # AccessDenied
-        url = reverse('api:admin-coupon-detail', kwargs={'id': coupon2.id})
+        url = reverse('wallet-api:admin-coupon-detail', kwargs={'id': coupon2.id})
         response = self.client.delete(url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
         # delete coupon2 ok, app_service1 admin
         coupon2.app_service.users.add(self.user)
         self.assertEqual(coupon2.status, CashCoupon.Status.WAIT.value)
-        url = reverse('api:admin-coupon-detail', kwargs={'id': coupon2.id})
+        url = reverse('wallet-api:admin-coupon-detail', kwargs={'id': coupon2.id})
         response = self.client.delete(url)
         self.assertEqual(response.status_code, 204)
         coupon2.refresh_from_db()
         self.assertEqual(coupon2.status, CashCoupon.Status.DELETED.value)
 
         # delete coupon3, AccessDenied
-        url = reverse('api:admin-coupon-detail', kwargs={'id': coupon3.id})
+        url = reverse('wallet-api:admin-coupon-detail', kwargs={'id': coupon3.id})
         response = self.client.delete(url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
@@ -1595,24 +1599,24 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
 
         # NotAuthenticated
         self.client.logout()
-        url = reverse('api:admin-coupon-detail', kwargs={'id': 'notfound'})
+        url = reverse('wallet-api:admin-coupon-detail', kwargs={'id': 'notfound'})
         response = self.client.get(url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
 
         # NoSuchCoupon
         self.client.force_login(self.user)
-        url = reverse('api:admin-coupon-detail', kwargs={'id': 'notfound'})
+        url = reverse('wallet-api:admin-coupon-detail', kwargs={'id': 'notfound'})
         response = self.client.get(url)
         self.assertErrorResponse(status_code=404, code='NoSuchCoupon', response=response)
 
         # AccessDenied
-        url = reverse('api:admin-coupon-detail', kwargs={'id': coupon2.id})
+        url = reverse('wallet-api:admin-coupon-detail', kwargs={'id': coupon2.id})
         response = self.client.get(url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
         # get coupon2 ok, app_service1 admin
         coupon2.app_service.users.add(self.user)
-        url = reverse('api:admin-coupon-detail', kwargs={'id': coupon2.id})
+        url = reverse('wallet-api:admin-coupon-detail', kwargs={'id': coupon2.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(keys=[
@@ -1625,7 +1629,7 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['face_value'], '66.60')
 
         # get coupon3, AccessDenied
-        url = reverse('api:admin-coupon-detail', kwargs={'id': coupon3.id})
+        url = reverse('wallet-api:admin-coupon-detail', kwargs={'id': coupon3.id})
         response = self.client.get(url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
@@ -1676,25 +1680,25 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
 
         # NotAuthenticated
         self.client.logout()
-        url = reverse('api:admin-coupon-list-payment', kwargs={'id': 'notfound'})
+        url = reverse('wallet-api:admin-coupon-list-payment', kwargs={'id': 'notfound'})
         response = self.client.get(url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
 
         # NoSuchCoupon
         self.client.force_login(self.user)
-        url = reverse('api:admin-coupon-list-payment', kwargs={'id': 'notfound'})
+        url = reverse('wallet-api:admin-coupon-list-payment', kwargs={'id': 'notfound'})
         response = self.client.get(url)
         self.assertErrorResponse(status_code=404, code='NoSuchCoupon', response=response)
 
         # AccessDenied
-        url = reverse('api:admin-coupon-list-payment', kwargs={'id': coupon1_user.id})
+        url = reverse('wallet-api:admin-coupon-list-payment', kwargs={'id': coupon1_user.id})
         response = self.client.get(url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
         # ------- list user coupon payment historys -------
         coupon1_user.app_service.users.add(self.user)
         # list user coupon payment
-        base_url = reverse('api:admin-coupon-list-payment', kwargs={'id': coupon1_user.id})
+        base_url = reverse('wallet-api:admin-coupon-list-payment', kwargs={'id': coupon1_user.id})
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 0)
@@ -1713,7 +1717,7 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         )
 
         # list user coupon payment
-        base_url = reverse('api:admin-coupon-list-payment', kwargs={'id': coupon1_user.id})
+        base_url = reverse('wallet-api:admin-coupon-list-payment', kwargs={'id': coupon1_user.id})
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 1)
@@ -1763,7 +1767,7 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
             only_coupon=False,
             required_enough_balance=False
         )
-        base_url = reverse('api:admin-coupon-list-payment', kwargs={'id': coupon1_user.id})
+        base_url = reverse('wallet-api:admin-coupon-list-payment', kwargs={'id': coupon1_user.id})
         response = self.client.get(f"{base_url}?{parse.urlencode(query={'page_size': 1})}")
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)
@@ -1790,7 +1794,7 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         )
 
         # list vo coupon payment
-        base_url = reverse('api:admin-coupon-list-payment', kwargs={'id': coupon1_vo.id})
+        base_url = reverse('wallet-api:admin-coupon-list-payment', kwargs={'id': coupon1_vo.id})
         response = self.client.get(base_url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
@@ -1829,7 +1833,7 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
             only_coupon=False,
             required_enough_balance=False
         )
-        base_url = reverse('api:admin-coupon-list-payment', kwargs={'id': coupon1_vo.id})
+        base_url = reverse('wallet-api:admin-coupon-list-payment', kwargs={'id': coupon1_vo.id})
         response = self.client.get(f"{base_url}?{parse.urlencode(query={'page_size': 1})}")
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)
@@ -1940,7 +1944,7 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
 
         # NotAuthenticated
         self.client.logout()
-        base_url = reverse('api:admin-coupon-statistics')
+        base_url = reverse('wallet-api:admin-coupon-statistics')
         response = self.client.get(base_url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
 
@@ -2096,7 +2100,7 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
 
         # NotAuthenticated
         self.client.logout()
-        base_url = reverse('api:admin-coupon-aggregation-issue')
+        base_url = reverse('wallet-api:admin-coupon-aggregation-issue')
         response = self.client.get(base_url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
 
@@ -2257,7 +2261,7 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
 
         # NotAuthenticated
         self.client.logout()
-        base_url = reverse('api:admin-coupon-aggregation-user')
+        base_url = reverse('wallet-api:admin-coupon-aggregation-user')
         response = self.client.get(base_url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
 
@@ -2413,7 +2417,7 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
 
         # NotAuthenticated
         self.client.logout()
-        base_url = reverse('api:admin-coupon-aggregation-vo')
+        base_url = reverse('wallet-api:admin-coupon-aggregation-vo')
         response = self.client.get(base_url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
 
@@ -2516,31 +2520,31 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
 
         # NotAuthenticated
         self.client.logout()
-        url = reverse('api:admin-coupon-change-remark', kwargs={'id': 'notfound'})
+        url = reverse('wallet-api:admin-coupon-change-remark', kwargs={'id': 'notfound'})
         response = self.client.post(url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
 
         # NotAuthenticated
         self.client.force_login(self.user)
-        url = reverse('api:admin-coupon-change-remark', kwargs={'id': 'notfound'})
+        url = reverse('wallet-api:admin-coupon-change-remark', kwargs={'id': 'notfound'})
         response = self.client.post(url)
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
 
         # NoSuchCoupon
-        url = reverse('api:admin-coupon-change-remark', kwargs={'id': 'notfound'})
+        url = reverse('wallet-api:admin-coupon-change-remark', kwargs={'id': 'notfound'})
         query = parse.urlencode(query={'remark': 'test remark'})
         response = self.client.post(f'{url}?{query}')
         self.assertErrorResponse(status_code=404, code='NoSuchCoupon', response=response)
 
         # AccessDenied
-        url = reverse('api:admin-coupon-change-remark', kwargs={'id': coupon2.id})
+        url = reverse('wallet-api:admin-coupon-change-remark', kwargs={'id': coupon2.id})
         query = parse.urlencode(query={'remark': 'test remark'})
         response = self.client.post(f'{url}?{query}')
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
         # coupon2 ok, app_service1 admin
         coupon2.app_service.users.add(self.user)
-        url = reverse('api:admin-coupon-change-remark', kwargs={'id': coupon2.id})
+        url = reverse('wallet-api:admin-coupon-change-remark', kwargs={'id': coupon2.id})
         query = parse.urlencode(query={'remark': 'test remark'})
         response = self.client.post(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
@@ -2550,7 +2554,7 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assertEqual(coupon2.remark, 'test remark')
 
         # coupon3, AccessDenied
-        url = reverse('api:admin-coupon-change-remark', kwargs={'id': coupon3.id})
+        url = reverse('wallet-api:admin-coupon-change-remark', kwargs={'id': coupon3.id})
         query = parse.urlencode(query={'remark': 'test remark66'})
         response = self.client.post(f'{url}?{query}')
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)

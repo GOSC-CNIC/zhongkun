@@ -1,10 +1,9 @@
 from urllib import parse
 
 from django.urls import reverse
-from utils.test import get_or_create_user, get_or_create_organization
+from utils.test import get_or_create_user, get_or_create_organization, MyAPITestCase
 
 from bill.models import PayApp, PayAppService
-from . import MyAPITestCase
 
 
 class AppServiceTests(MyAPITestCase):
@@ -30,7 +29,7 @@ class AppServiceTests(MyAPITestCase):
         self.app_service2.save(force_insert=True)
 
     def test_admin_list_app_service(self):
-        base_url = reverse('api:app-service-admin-list')
+        base_url = reverse('wallet-api:app-service-admin-list')
         r = self.client.get(base_url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
 
@@ -106,7 +105,7 @@ class AppServiceTests(MyAPITestCase):
         self.assertEqual(r.data['results'][0]['id'], self.app_service2.id)
 
     def test_list_app_service(self):
-        base_url = reverse('api:app-service-list')
+        base_url = reverse('wallet-api:app-service-list')
         r = self.client.get(base_url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
 
@@ -150,7 +149,7 @@ class AppTests(MyAPITestCase):
         self.user = get_or_create_user(username='tom@cnic.cn')
 
     def test_rsa_key_generate(self):
-        base_url = reverse('api:trade-rsakey-generate')
+        base_url = reverse('wallet-api:trade-rsakey-generate')
         r = self.client.post(base_url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
 

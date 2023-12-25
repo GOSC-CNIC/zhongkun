@@ -5,16 +5,16 @@ from django.urls import reverse
 from django.utils import timezone
 
 from utils.model import OwnerType
-from utils.test import get_or_create_service
+from utils.test import get_or_create_service, get_or_create_user, MyAPITestCase
 from service.models import ServiceConfig
 from vo.models import VirtualOrganization, VoMember
 from bill.models import PaymentHistory, CashCouponPaymentHistory
-from . import set_auth_header, MyAPITestCase, get_or_create_user
 
 
 class PaymentHistoryTests(MyAPITestCase):
     def setUp(self):
-        self.user = set_auth_header(self)
+        self.user = get_or_create_user()
+        self.client.force_login(self.user)
         self.service = get_or_create_service()
         self.service.pay_app_service_id = 'app_service1_id'
         self.service.save(update_fields=['pay_app_service_id'])
@@ -161,7 +161,7 @@ class PaymentHistoryTests(MyAPITestCase):
 
         # --------------list user-------------
         # list user payment history, default current month
-        base_url = reverse('api:payment-history-list')
+        base_url = reverse('wallet-api:payment-history-list')
         r = self.client.get(base_url)
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn(["has_next", "marker", "next_marker", "page_size", "results"], r.data)
@@ -352,7 +352,7 @@ class PaymentHistoryTests(MyAPITestCase):
         cph.save(force_insert=True)
 
         # user payment history detail
-        base_url = reverse('api:payment-history-detail', kwargs={'id': history1.id})
+        base_url = reverse('wallet-api:payment-history-detail', kwargs={'id': history1.id})
         r = self.client.get(base_url)
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn([
@@ -391,21 +391,21 @@ class PaymentHistoryTests(MyAPITestCase):
         self.client.force_login(user2)
 
         # user payment history detail
-        base_url = reverse('api:payment-history-detail', kwargs={'id': history_vo.id})
+        base_url = reverse('wallet-api:payment-history-detail', kwargs={'id': history_vo.id})
         response = self.client.get(base_url)
         self.assertErrorResponse(status_code=409, code='UnknownOwnPayment', response=response)
 
         history_vo.payer_type = OwnerType.VO.value
         history_vo.save(update_fields=['payer_type'])
 
-        base_url = reverse('api:payment-history-detail', kwargs={'id': history_vo.id})
+        base_url = reverse('wallet-api:payment-history-detail', kwargs={'id': history_vo.id})
         response = self.client.get(base_url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
         # set vo member
         VoMember(user=user2, vo=self.vo, role=VoMember.Role.MEMBER.value, inviter='').save(force_insert=True)
 
-        base_url = reverse('api:payment-history-detail', kwargs={'id': history_vo.id})
+        base_url = reverse('wallet-api:payment-history-detail', kwargs={'id': history_vo.id})
         r = self.client.get(base_url)
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn([

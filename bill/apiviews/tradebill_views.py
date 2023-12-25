@@ -4,11 +4,11 @@ from rest_framework.serializers import Serializer
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-from api.viewsets import TradeGenericViewSet, PaySignGenericViewSet
-from api.serializers import trade as trade_serializers
-from api.handlers.tradebill_handler import TradeBillHandler
 from api.paginations import TradeBillPagination
+from bill import trade_serializers
+from bill.handlers.tradebill_handler import TradeBillHandler
 from bill.models import TransactionBill
+from bill.apiviews import TradeGenericViewSet, PaySignGenericViewSet
 
 
 class TradeBillViewSet(TradeGenericViewSet):

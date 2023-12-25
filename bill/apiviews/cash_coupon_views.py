@@ -7,9 +7,8 @@ from drf_yasg import openapi
 
 from api.viewsets import CustomGenericViewSet
 from api.paginations import NewPageNumberPagination
-from api.handlers.cash_coupon_handler import CashCouponHandler, QueryCouponValidChoices
-from api.serializers import serializers
-from api.serializers import trade as trade_serializers
+from bill.handlers.cash_coupon_handler import CashCouponHandler, QueryCouponValidChoices
+from bill import trade_serializers
 from bill.models import CashCoupon, PayAppService
 from utils.paginators import NoPaginatorInspector
 
@@ -337,9 +336,9 @@ class CashCouponViewSet(CustomGenericViewSet):
 
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve']:
-            return serializers.CashCouponSerializer
+            return trade_serializers.CashCouponSerializer
         elif self.action == 'list_coupon_payment':
-            return serializers.CashCouponPaymentSerializer
+            return trade_serializers.CashCouponPaymentSerializer
 
         return Serializer
 
@@ -883,10 +882,10 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
 
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve']:
-            return serializers.AdminCashCouponSerializer
+            return trade_serializers.AdminCashCouponSerializer
         elif self.action == 'create':
             return trade_serializers.CashCouponCreateSerializer
         elif self.action == 'list_coupon_payment':
-            return serializers.CashCouponPaymentSerializer
+            return trade_serializers.CashCouponPaymentSerializer
 
         return Serializer

@@ -10,10 +10,10 @@ from utils.model import OwnerType, PayType
 from order.models import ResourceType, Order
 from order.managers import OrderPaymentManager
 from vo.managers import VoManager
-from bill.models import CashCoupon, CashCouponActivity
 from service.models import ServiceConfig
-from .models import PaymentHistory, PayAppService, PayApp, TransactionBill
-from .managers import PaymentManager, CashCouponActivityManager
+from bill.models import CashCoupon, CashCouponActivity
+from bill.models import PaymentHistory, PayAppService, PayApp, TransactionBill
+from bill.managers import PaymentManager, CashCouponActivityManager
 
 
 class PaymentManagerTests(TransactionTestCase):

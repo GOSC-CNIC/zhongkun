@@ -5,11 +5,10 @@ from django.urls import reverse
 from django.utils import timezone
 
 from utils.model import OwnerType
-from utils.test import get_or_create_organization
+from utils.test import get_or_create_organization, MyAPITestCase, get_or_create_user
 from vo.models import VirtualOrganization
 from bill.models import TransactionBill, PayAppService, PayApp
 from bill.managers.bill import TransactionBillManager
-from . import MyAPITestCase, get_or_create_user
 
 
 class TradeBillTests(MyAPITestCase):
@@ -159,7 +158,7 @@ class TradeBillTests(MyAPITestCase):
         bill1, bill2, bill3, bill4, bill5, bill6, bill7 = self.init_bill_data()
 
         # --------------list user-------------
-        base_url = reverse('api:tradebill-list')
+        base_url = reverse('wallet-api:tradebill-list')
         r = self.client.get(base_url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
 
@@ -346,7 +345,7 @@ class TradeBillTests(MyAPITestCase):
     def test_admin_list_bills(self):
         bill1, bill2, bill3, bill4, bill5, bill6, bill7 = self.init_bill_data()
 
-        base_url = reverse('api:admin-tradebill-list')
+        base_url = reverse('wallet-api:admin-tradebill-list')
         r = self.client.get(base_url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
 

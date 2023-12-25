@@ -3,10 +3,10 @@ from decimal import Decimal
 from django.urls import reverse
 
 from utils.model import OwnerType
+from utils.test import MyAPITransactionTestCase, get_or_create_user
 from vo.models import VirtualOrganization
 from bill.models import TransactionBill, Recharge
 from bill.managers.payment import PaymentManager
-from . import MyAPITransactionTestCase, get_or_create_user
 
 
 class TradeRechargeTests(MyAPITransactionTestCase):
@@ -19,7 +19,7 @@ class TradeRechargeTests(MyAPITransactionTestCase):
         self.vo.save()
 
     def test_manual_recharge(self):
-        base_url = reverse('api:trade-recharge-manual')
+        base_url = reverse('wallet-api:trade-recharge-manual')
         data = {
             "amount": "0.00",
             "username": "string",

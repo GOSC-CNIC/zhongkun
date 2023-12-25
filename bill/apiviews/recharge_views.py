@@ -4,9 +4,9 @@ from rest_framework.serializers import Serializer
 from rest_framework.decorators import action
 from drf_yasg.utils import swagger_auto_schema
 
-from api.viewsets import TradeGenericViewSet
-from api.serializers import trade as trade_serializers
-from api.handlers.recharge_handler import RechargeHandler
+from bill.apiviews import TradeGenericViewSet
+from bill import trade_serializers
+from bill.handlers.recharge_handler import RechargeHandler
 
 
 class RechargeViewSet(TradeGenericViewSet):
