@@ -6,7 +6,7 @@ from rest_framework.response import Response
 
 from core import errors
 from api.viewsets import CustomGenericViewSet
-from api.deliver_resource import OrderResourceDeliverer
+from order.deliver_resource import OrderResourceDeliverer
 from order.models import ResourceType, Order, Resource
 from order.managers import OrderManager, OrderPaymentManager
 from utils.time import iso_to_datetime

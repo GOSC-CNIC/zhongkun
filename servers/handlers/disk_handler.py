@@ -11,13 +11,13 @@ from core import errors as exceptions
 from core import request as core_request
 from core.quota import QuotaAPI
 from api.viewsets import CustomGenericViewSet, serializer_error_msg
-from api.deliver_resource import OrderResourceDeliverer
 from api import request_logger
 from vo.managers import VoManager
 from vo.models import VirtualOrganization
 from adapters import inputs
 from utils.model import PayType, OwnerType
 from utils.time import iso_utc_to_datetime
+from order.deliver_resource import OrderResourceDeliverer
 from order.models import ResourceType, Order
 from order.managers import OrderManager, OrderPaymentManager, DiskConfig
 from bill.managers import PaymentManager
