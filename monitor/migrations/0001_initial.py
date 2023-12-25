@@ -26,8 +26,8 @@ class Migration(migrations.Migration):
                 ('modification', models.DateTimeField(auto_now=True, verbose_name='修改时间')),
             ],
             options={
-                'verbose_name': '日志单元站点',
-                'verbose_name_plural': '日志单元站点',
+                'verbose_name': '日志单元',
+                'verbose_name_plural': '日志单元',
                 'db_table': 'log_site',
                 'ordering': ['sort_weight'],
             },
@@ -40,8 +40,8 @@ class Migration(migrations.Migration):
                 ('count', models.PositiveIntegerField(verbose_name='请求量')),
             ],
             options={
-                'verbose_name': '日志站点时序请求量',
-                'verbose_name_plural': '日志站点时序请求量',
+                'verbose_name': '日志单元时序请求量',
+                'verbose_name_plural': '日志单元时序请求量',
                 'db_table': 'log_site_time_req_num',
                 'ordering': ['-timestamp'],
             },
@@ -58,8 +58,8 @@ class Migration(migrations.Migration):
                 ('modification', models.DateTimeField(auto_now=True, verbose_name='修改时间')),
             ],
             options={
-                'verbose_name': '日志网站类别',
-                'verbose_name_plural': '日志网站类别',
+                'verbose_name': '日志单元类别',
+                'verbose_name_plural': '日志单元类别',
                 'db_table': 'log_site_type',
                 'ordering': ['sort_weight'],
             },
@@ -235,8 +235,8 @@ class Migration(migrations.Migration):
                 ('modification', models.DateTimeField(verbose_name='更新时间')),
             ],
             options={
-                'verbose_name': '一体云和对象存储总请求数',
-                'verbose_name_plural': '一体云和对象存储总请求数',
+                'verbose_name': '本服务和对象存储总请求数',
+                'verbose_name_plural': '本服务和对象存储总请求数',
                 'db_table': 'total_req_num',
                 'ordering': ['creation'],
             },

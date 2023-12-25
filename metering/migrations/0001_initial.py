@@ -30,8 +30,8 @@ class Migration(migrations.Migration):
                 ('owner_type', models.CharField(choices=[('user', '用户'), ('vo', 'VO组')], max_length=8, verbose_name='所有者类型')),
             ],
             options={
-                'verbose_name': '云硬盘日结算单',
-                'verbose_name_plural': '云硬盘日结算单',
+                'verbose_name': '云硬盘每日账单',
+                'verbose_name_plural': '云硬盘每日账单',
                 'db_table': 'daily_statement_disk',
                 'ordering': ['-creation_time'],
             },
@@ -51,8 +51,8 @@ class Migration(migrations.Migration):
                 ('username', models.CharField(blank=True, default='', max_length=128, verbose_name='用户名')),
             ],
             options={
-                'verbose_name': '对象存储日结算单',
-                'verbose_name_plural': '对象存储日结算单',
+                'verbose_name': '对象存储每日账单',
+                'verbose_name_plural': '对象存储每日账单',
                 'db_table': 'daily_statement_storage',
                 'ordering': ['-creation_time'],
             },
@@ -75,8 +75,8 @@ class Migration(migrations.Migration):
                 ('owner_type', models.CharField(choices=[('user', '用户'), ('vo', 'VO组')], max_length=8, verbose_name='所有者类型')),
             ],
             options={
-                'verbose_name': '云服务器日结算单',
-                'verbose_name_plural': '云服务器日结算单',
+                'verbose_name': '云主机每日账单',
+                'verbose_name_plural': '云主机每日账单',
                 'db_table': 'daily_statement_server',
                 'ordering': ['-creation_time'],
             },
@@ -161,8 +161,8 @@ class Migration(migrations.Migration):
                 ('vo_name', models.CharField(blank=True, default='', max_length=255, verbose_name='VO组名')),
             ],
             options={
-                'verbose_name': '云服务器资源计量',
-                'verbose_name_plural': '云服务器资源计量',
+                'verbose_name': '云主机资源计量',
+                'verbose_name_plural': '云主机资源计量',
                 'db_table': 'metering_server',
                 'ordering': ['-creation_time'],
             },

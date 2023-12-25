@@ -278,8 +278,8 @@ class Migration(migrations.Migration):
                 ('user', models.OneToOneField(default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
             ],
             options={
-                'verbose_name': '用户账户',
-                'verbose_name_plural': '用户账户',
+                'verbose_name': '用户余额账户',
+                'verbose_name_plural': '用户余额账户',
                 'db_table': 'user_point_account',
                 'ordering': ['-creation_time'],
             },
@@ -293,8 +293,8 @@ class Migration(migrations.Migration):
                 ('vo', models.OneToOneField(default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, to='vo.virtualorganization')),
             ],
             options={
-                'verbose_name': 'VO组账户',
-                'verbose_name_plural': 'VO组账户',
+                'verbose_name': 'VO组余额账户',
+                'verbose_name_plural': 'VO组余额账户',
                 'db_table': 'vo_point_account',
                 'ordering': ['-creation_time'],
             },

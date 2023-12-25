@@ -26,8 +26,8 @@ class Migration(migrations.Migration):
                 ('username', models.CharField(blank=True, default='', max_length=128, verbose_name='用户名')),
             ],
             options={
-                'verbose_name': '站点监控日结算单',
-                'verbose_name_plural': '站点监控日结算单',
+                'verbose_name': '站点监控每日账单',
+                'verbose_name_plural': '站点监控每日账单',
                 'db_table': 'daily_statement_mntr_site',
                 'ordering': ['-creation_time'],
             },

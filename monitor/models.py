@@ -408,7 +408,7 @@ class LogSiteType(UuidModel):
     class Meta:
         db_table = "log_site_type"
         ordering = ['sort_weight']
-        verbose_name = "日志网站类别"
+        verbose_name = "日志单元类别"
         verbose_name_plural = verbose_name
 
 
@@ -440,7 +440,7 @@ class LogSite(UuidModel):
     class Meta:
         db_table = "log_site"
         ordering = ['sort_weight']
-        verbose_name = "日志单元站点"
+        verbose_name = "日志单元"
         verbose_name_plural = verbose_name
 
     def __str__(self):
@@ -458,7 +458,7 @@ class LogSiteTimeReqNum(UuidModel):
     class Meta:
         db_table = 'log_site_time_req_num'
         ordering = ['-timestamp']
-        verbose_name = "日志站点时序请求量"
+        verbose_name = "日志单元时序请求量"
         verbose_name_plural = verbose_name
         indexes = [
             models.Index(fields=['timestamp'], name='idx_timestamp')
@@ -479,7 +479,7 @@ class TotalReqNum(UuidModel):
     class Meta:
         db_table = 'total_req_num'
         ordering = ['creation']
-        verbose_name = "一体云和对象存储总请求数"
+        verbose_name = "本服务和对象存储总请求数"
         verbose_name_plural = verbose_name
 
     def save(self, *args, **kwargs):

@@ -98,7 +98,7 @@ class MeteringServer(MeteringBase):
     vo_name = models.CharField(verbose_name=_('VO组名'), max_length=255, blank=True, default='')
 
     class Meta:
-        verbose_name = _('云服务器资源计量')
+        verbose_name = _('云主机资源计量')
         verbose_name_plural = verbose_name
         db_table = 'metering_server'
         ordering = ['-creation_time']
@@ -376,7 +376,7 @@ class DailyStatementServer(DailyStatementBase):
     owner_type = models.CharField(verbose_name=_('所有者类型'), max_length=8, choices=OwnerType.choices)
 
     class Meta:
-        verbose_name = _('云服务器日结算单')
+        verbose_name = _('云主机每日账单')
         verbose_name_plural = verbose_name
         db_table = 'daily_statement_server'
         ordering = ['-creation_time']
@@ -427,7 +427,7 @@ class DailyStatementObjectStorage(DailyStatementBase):
     username = models.CharField(verbose_name=_('用户名'), max_length=128, blank=True, default='')
 
     class Meta:
-        verbose_name = _('对象存储日结算单')
+        verbose_name = _('对象存储每日账单')
         verbose_name_plural = verbose_name
         db_table = 'daily_statement_storage'
         ordering = ['-creation_time']
@@ -473,7 +473,7 @@ class DailyStatementDisk(DailyStatementBase):
     owner_type = models.CharField(verbose_name=_('所有者类型'), max_length=8, choices=OwnerType.choices)
 
     class Meta:
-        verbose_name = _('云硬盘日结算单')
+        verbose_name = _('云硬盘每日账单')
         verbose_name_plural = verbose_name
         db_table = 'daily_statement_disk'
         ordering = ['-creation_time']
@@ -522,7 +522,7 @@ class DailyStatementMonitorWebsite(DailyStatementBase):
     username = models.CharField(verbose_name=_('用户名'), max_length=128, blank=True, default='')
 
     class Meta:
-        verbose_name = _('站点监控日结算单')
+        verbose_name = _('站点监控每日账单')
         verbose_name_plural = verbose_name
         db_table = 'daily_statement_mntr_site'
         ordering = ['-creation_time']

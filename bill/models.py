@@ -31,7 +31,7 @@ class UserPointAccount(BasePointAccount):
     user = models.OneToOneField(to=UserProfile, on_delete=models.SET_NULL, null=True, default=None)
 
     class Meta:
-        verbose_name = _('用户账户')
+        verbose_name = _('用户余额账户')
         verbose_name_plural = verbose_name
         db_table = 'user_point_account'
         ordering = ['-creation_time']
@@ -47,7 +47,7 @@ class VoPointAccount(BasePointAccount):
     vo = models.OneToOneField(to=VirtualOrganization, on_delete=models.SET_NULL, null=True, default=None)
 
     class Meta:
-        verbose_name = _('VO组账户')
+        verbose_name = _('VO组余额账户')
         verbose_name_plural = verbose_name
         db_table = 'vo_point_account'
         ordering = ['-creation_time']

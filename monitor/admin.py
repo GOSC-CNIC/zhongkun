@@ -254,6 +254,9 @@ class TotalReqNumAdmin(NoDeleteSelectModelAdmin):
     def has_delete_permission(self, request, obj=None):
         return False
 
+    def has_add_permission(self, request, obj=None):
+        return False
+
 
 @admin.register(LogSiteTimeReqNum)
 class LogSiteTimeReqNumAdmin(admin.ModelAdmin):
