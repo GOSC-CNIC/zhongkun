@@ -11,7 +11,7 @@ from drf_yasg import openapi
 from core import errors
 from api.viewsets import NormalGenericViewSet
 from api.paginations import NewPageNumberPagination100
-from api.serializers import report as report_serializers
+from report import serializers as report_serializers
 from report.managers import BktStatsMonthQueryOrderBy, BucketStatsMonthlyManager, StorageAggQueryOrderBy
 from utils.paginators import NoPaginatorInspector
 

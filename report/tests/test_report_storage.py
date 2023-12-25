@@ -8,8 +8,7 @@ from django.utils import timezone
 from storage.models import Bucket, ObjectsService
 from report.models import BucketStatsMonthly
 from report.managers import BktStatsMonthQueryOrderBy, StorageAggQueryOrderBy
-from utils.test import get_or_create_user, get_or_create_storage_service
-from . import MyAPITestCase
+from utils.test import get_or_create_user, get_or_create_storage_service, MyAPITestCase
 
 
 def create_bucket_monthly_ins(
@@ -79,7 +78,7 @@ class StorageStatsMonthlyTests(MyAPITestCase):
     def test_list_bucket_stats(self):
         u1_b1, u1_b2, u2_b3 = self.init_bucket_data()
 
-        url = reverse('api:report-bucket-stats-monthly-list')
+        url = reverse('report-api:report-bucket-stats-monthly-list')
         r = self.client.get(url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
 
@@ -265,7 +264,7 @@ class StorageStatsMonthlyTests(MyAPITestCase):
         service2 = self.service2
         self.init_bucket_data()
 
-        url = reverse('api:report-storage-stats-monthly-list')
+        url = reverse('report-api:report-storage-stats-monthly-list')
         r = self.client.get(url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
 
@@ -401,7 +400,7 @@ class StorageStatsMonthlyTests(MyAPITestCase):
         service2 = self.service2
         self.init_bucket_data()
 
-        url = reverse('api:report-storage-stats-monthly-service')
+        url = reverse('report-api:report-storage-stats-monthly-service')
         r = self.client.get(url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
 

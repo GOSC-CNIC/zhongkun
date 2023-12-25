@@ -4,7 +4,7 @@ from rest_framework.routers import SimpleRouter
 from .apiviews import views
 from .apiviews import (
     user_views, email_views,
-    portal_views, report_storage_views
+    portal_views
 )
 
 
@@ -23,10 +23,6 @@ no_slash_router.register(
     r'admin/user/statistics', user_views.AdminUserStatisticsViewSet, basename='admin-user-statistics')
 
 no_slash_router.register(r'portal/service', portal_views.PortalServiceViewSet, basename='portal-service')
-no_slash_router.register(r'report/storage/bucket/stats/monthly', report_storage_views.BucketStatsMonthlyViewSet,
-                         basename='report-bucket-stats-monthly')
-no_slash_router.register(r'report/storage/stats/monthly', report_storage_views.StorageStatsMonthlyViewSet,
-                         basename='report-storage-stats-monthly')
 
 
 urlpatterns = [
