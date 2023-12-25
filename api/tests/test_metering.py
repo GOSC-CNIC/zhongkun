@@ -1643,7 +1643,7 @@ class StatementServerTests(MyAPITestCase):
     def test_detail_statement_server(self):
 
         # not found
-        url = reverse('api:order-detail', kwargs={'id': '1234567891234567891234'})
+        url = reverse('order-api:order-detail', kwargs={'id': '1234567891234567891234'})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 404)
 
@@ -3791,7 +3791,7 @@ class StatementDiskTests(MyAPITestCase):
 
     def test_detail_statement_disk(self):
         # not found
-        url = reverse('api:order-detail', kwargs={'id': '1234567891234567891234'})
+        url = reverse('order-api:order-detail', kwargs={'id': '1234567891234567891234'})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 404)
 

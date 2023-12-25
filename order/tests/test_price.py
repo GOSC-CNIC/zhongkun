@@ -12,7 +12,7 @@ from order.models import Price
 from order.managers import PriceManager
 from utils.decimal_utils import quantize_10_2
 from utils.model import PayType
-from . import set_auth_header, MyAPITestCase
+from utils.test import MyAPITestCase, get_or_create_user
 
 
 utc = timezone.utc
@@ -20,8 +20,8 @@ utc = timezone.utc
 
 class PriceTests(MyAPITestCase):
     def setUp(self):
-        self.user = None
-        set_auth_header(self)
+        self.user = get_or_create_user()
+        self.client.force_login(self.user)
         price = Price(
             vm_ram=Decimal('0.012'),
             vm_cpu=Decimal('0.066'),
@@ -53,7 +53,7 @@ class PriceTests(MyAPITestCase):
     def describe_price_server(self):
         price = self.price
         prepaid_discount = Decimal.from_float(price.prepaid_discount/100)
-        base_url = reverse('api:describe-price-list')
+        base_url = reverse('order-api:describe-price-list')
 
         # prepaid
         query = parse.urlencode(query={
@@ -178,7 +178,7 @@ class PriceTests(MyAPITestCase):
     def describe_price_disk(self):
         price = self.price
         prepaid_discount = Decimal.from_float(price.prepaid_discount/100)
-        base_url = reverse('api:describe-price-list')
+        base_url = reverse('order-api:describe-price-list')
 
         # prepaid
         query = parse.urlencode(query={
@@ -254,7 +254,7 @@ class PriceTests(MyAPITestCase):
 
     def describe_price_bucket(self):
         price = self.price
-        base_url = reverse('api:describe-price-list')
+        base_url = reverse('order-api:describe-price-list')
 
         query = parse.urlencode(query={
             'resource_type': 'bucket'
@@ -276,7 +276,7 @@ class PriceTests(MyAPITestCase):
     def test_describe_renewal_price(self):
         price = self.price
         prepaid_discount = Decimal.from_float(price.prepaid_discount / 100)
-        base_url = reverse('api:describe-price-renewal-price')
+        base_url = reverse('order-api:describe-price-renewal-price')
 
         # missing "resource_type"
         query = parse.urlencode(query={

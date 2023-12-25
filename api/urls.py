@@ -3,7 +3,6 @@ from rest_framework.routers import SimpleRouter
 
 from .apiviews import views
 from .apiviews import (
-    order_views,
     metering_views, bill_views, account_views, cash_coupon_views,
     trade_test_views, trade_views,
     storage_metering_views, user_views, app_service_views,
@@ -23,9 +22,6 @@ no_slash_router.register(r'user', user_views.UserViewSet, basename='user')
 no_slash_router.register(r'apply/service', views.ApplyVmServiceViewSet, basename='apply-service')
 no_slash_router.register(r'apply/organization', views.ApplyOrganizationViewSet, basename='apply-organization')
 no_slash_router.register(r'email', email_views.EmailViewSet, basename='email')
-no_slash_router.register(r'describe-price', order_views.PriceViewSet, basename='describe-price')
-no_slash_router.register(r'order', order_views.OrderViewSet, basename='order')
-no_slash_router.register(r'period', order_views.PeriodViewSet, basename='period')
 no_slash_router.register(r'metering/server', metering_views.MeteringServerViewSet, basename='metering-server')
 no_slash_router.register(r'metering/disk', metering_views.MeteringDiskViewSet, basename='metering-disk')
 no_slash_router.register(

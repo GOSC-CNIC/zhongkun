@@ -12,21 +12,21 @@ from utils.model import PayType, OwnerType, ResourceType
 from order.models import Price, Order, Period
 from order.managers import OrderManager
 from order.managers.instance_configs import ServerConfig, DiskConfig
+from order.handlers.order_handler import CASH_COUPON_BALANCE
 from utils.decimal_utils import quantize_10_2
-from utils.test import get_or_create_user, get_or_create_service, get_or_create_organization
+from utils.test import get_or_create_user, get_or_create_service, get_or_create_organization, MyAPITestCase
 from vo.models import VirtualOrganization, VoMember
 from bill.managers import PaymentManager
 from bill.models import PaymentHistory, CashCoupon, PayAppService, PayApp, TransactionBill
-from api.handlers.order_handler import CASH_COUPON_BALANCE
 from service.models import ServiceConfig
 from service.managers import ServicePrivateQuotaManager
-from . import set_auth_header, MyAPITestCase
 
 
 class OrderTests(MyAPITestCase):
     def setUp(self):
-        self.user = set_auth_header(self)
+        self.user = get_or_create_user()
         self.user2 = get_or_create_user(username='user2')
+        self.client.force_login(self.user)
         price = Price(
             vm_ram=Decimal('0.12'),
             vm_cpu=Decimal('0.066'),
@@ -70,7 +70,7 @@ class OrderTests(MyAPITestCase):
 
     def test_list_order(self):
         omgr = OrderManager()
-        base_url = reverse('api:order-list')
+        base_url = reverse('order-api:order-list')
 
         # list user order
         response = self.client.get(base_url)
@@ -238,7 +238,7 @@ class OrderTests(MyAPITestCase):
         self.assertEqual(order.total_amount, Decimal('0'))
 
     def list_user_order_query_test(self):
-        base_url = reverse('api:order-list')
+        base_url = reverse('order-api:order-list')
 
         # list user order, filter query "resource_type"
         query = parse.urlencode(query={
@@ -353,7 +353,7 @@ class OrderTests(MyAPITestCase):
         self.assertEqual(len(response.data['orders']), 0)
 
     def list_vo_order_query_test(self):
-        base_url = reverse('api:order-list')
+        base_url = reverse('order-api:order-list')
 
         # list vo order, filter query "resource_type"
         query = parse.urlencode(query={
@@ -481,16 +481,16 @@ class OrderTests(MyAPITestCase):
         omgr = OrderManager()
 
         # invalid order id
-        url = reverse('api:order-detail', kwargs={'id': 'test'})
+        url = reverse('order-api:order-detail', kwargs={'id': 'test'})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 400)
 
-        url = reverse('api:order-detail', kwargs={'id': '123456789123456789'})
+        url = reverse('order-api:order-detail', kwargs={'id': '123456789123456789'})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 400)
 
         # not found order
-        url = reverse('api:order-detail', kwargs={'id': '1234567891234567891234'})
+        url = reverse('order-api:order-detail', kwargs={'id': '1234567891234567891234'})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 404)
 
@@ -516,7 +516,7 @@ class OrderTests(MyAPITestCase):
         )
 
         # user order detail
-        url = reverse('api:order-detail', kwargs={'id': order.id})
+        url = reverse('order-api:order-detail', kwargs={'id': order.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn([
@@ -565,7 +565,7 @@ class OrderTests(MyAPITestCase):
         )
 
         # vo order detail
-        url = reverse('api:order-detail', kwargs={'id': order2.id})
+        url = reverse('order-api:order-detail', kwargs={'id': order2.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn([
@@ -602,10 +602,10 @@ class OrderTests(MyAPITestCase):
         user2 = get_or_create_user(username='user2')
         self.client.logout()
         self.client.force_login(user=user2)
-        url = reverse('api:order-detail', kwargs={'id': order.id})
+        url = reverse('order-api:order-detail', kwargs={'id': order.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 403)
-        url = reverse('api:order-detail', kwargs={'id': order2.id})
+        url = reverse('order-api:order-detail', kwargs={'id': order2.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 403)
 
@@ -638,29 +638,29 @@ class OrderTests(MyAPITestCase):
         )
 
         # invalid order id
-        url = reverse('api:order-pay-order', kwargs={'id': 'test'})
+        url = reverse('order-api:order-pay-order', kwargs={'id': 'test'})
         response = self.client.post(url)
         self.assertErrorResponse(status_code=400, code='InvalidOrderId', response=response)
 
         # param "payment_method"
-        url = reverse('api:order-pay-order', kwargs={'id': '2022041810175512345678'})
+        url = reverse('order-api:order-pay-order', kwargs={'id': '2022041810175512345678'})
         response = self.client.post(url)
         self.assertErrorResponse(status_code=400, code='MissingPaymentMethod', response=response)
 
         # not found order
-        url = reverse('api:order-pay-order', kwargs={'id': '2022041810175512345678'})
+        url = reverse('order-api:order-pay-order', kwargs={'id': '2022041810175512345678'})
         query = parse.urlencode(query={'payment_method': Order.PaymentMethod.BALANCE.value})
         response = self.client.post(f'{url}?{query}')
         self.assertErrorResponse(status_code=404, code='NotFound', response=response)
 
         # no permission vo order
-        url = reverse('api:order-pay-order', kwargs={'id': order.id})
+        url = reverse('order-api:order-pay-order', kwargs={'id': order.id})
         query = parse.urlencode(query={'payment_method': Order.PaymentMethod.BALANCE.value})
         response = self.client.post(f'{url}?{query}')
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
         # 索要订单资源
-        url = reverse('api:order-claim-order', kwargs={'id': order.id})
+        url = reverse('order-api:order-claim-order', kwargs={'id': order.id})
         response = self.client.post(url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
@@ -668,12 +668,12 @@ class OrderTests(MyAPITestCase):
         VoMember(user=self.user2, vo=self.vo, role=VoMember.Role.LEADER.value, inviter='').save(force_insert=True)
 
         # 索要订单资源
-        url = reverse('api:order-claim-order', kwargs={'id': order.id})
+        url = reverse('order-api:order-claim-order', kwargs={'id': order.id})
         response = self.client.post(url)
         self.assertErrorResponse(status_code=409, code='OrderUnpaid', response=response)
 
         # vo balance not enough
-        url = reverse('api:order-pay-order', kwargs={'id': order.id})
+        url = reverse('order-api:order-pay-order', kwargs={'id': order.id})
         query = parse.urlencode(query={'payment_method': Order.PaymentMethod.BALANCE.value})
         response = self.client.post(f'{url}?{query}')
         self.assertErrorResponse(status_code=409, code='BalanceNotEnough', response=response)
@@ -684,7 +684,7 @@ class OrderTests(MyAPITestCase):
         vo_account.save(update_fields=['balance'])
 
         # pay order
-        url = reverse('api:order-pay-order', kwargs={'id': order.id})
+        url = reverse('order-api:order-pay-order', kwargs={'id': order.id})
         query = parse.urlencode(query={'payment_method': Order.PaymentMethod.BALANCE.value})
         response = self.client.post(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
@@ -696,7 +696,7 @@ class OrderTests(MyAPITestCase):
         self.assertEqual(resource.instance_status, resource.InstanceStatus.FAILED.value)
 
         # 索要订单资源
-        url = reverse('api:order-claim-order', kwargs={'id': order.id})
+        url = reverse('order-api:order-claim-order', kwargs={'id': order.id})
         response = self.client.post(url)
         self.assertErrorResponse(status_code=409, code='TryAgainLater', response=response)
 
@@ -806,7 +806,7 @@ class OrderTests(MyAPITestCase):
         order2.save(update_fields=['payable_amount'])
 
         # test param "payment_method"
-        url = reverse('api:order-pay-order', kwargs={'id': order1.id})
+        url = reverse('order-api:order-pay-order', kwargs={'id': order1.id})
         query = parse.urlencode(query={'payment_method': 'test'}, doseq=True)
         response = self.client.post(f'{url}?{query}')
         self.assertErrorResponse(status_code=400, code='InvalidPaymentMethod', response=response)
@@ -850,7 +850,7 @@ class OrderTests(MyAPITestCase):
         self.assertErrorResponse(status_code=400, code='DuplicateCouponIDExist', response=response)
 
         # pay order1 by balance, balance not enough
-        url = reverse('api:order-pay-order', kwargs={'id': order1.id})
+        url = reverse('order-api:order-pay-order', kwargs={'id': order1.id})
         query = parse.urlencode(query={
             'payment_method': Order.PaymentMethod.BALANCE.value
         }, doseq=True)
@@ -858,7 +858,7 @@ class OrderTests(MyAPITestCase):
         self.assertErrorResponse(status_code=409, code='BalanceNotEnough', response=response)
 
         # pay order1 by cash coupon, coupon not enough
-        url = reverse('api:order-pay-order', kwargs={'id': order1.id})
+        url = reverse('order-api:order-pay-order', kwargs={'id': order1.id})
         query = parse.urlencode(query={
             'payment_method': Order.PaymentMethod.CASH_COUPON.value,
             'coupon_ids': [coupon1_user.id]
@@ -867,7 +867,7 @@ class OrderTests(MyAPITestCase):
         self.assertErrorResponse(status_code=409, code='CouponBalanceNotEnough', response=response)
 
         # pay order1 by cash coupon, invalid coupon
-        url = reverse('api:order-pay-order', kwargs={'id': order1.id})
+        url = reverse('order-api:order-pay-order', kwargs={'id': order1.id})
         query = parse.urlencode(query={
             'payment_method': Order.PaymentMethod.CASH_COUPON.value,
             'coupon_ids': [coupon1_user.id, coupon3_user.id]
@@ -876,7 +876,7 @@ class OrderTests(MyAPITestCase):
         self.assertErrorResponse(status_code=409, code='CouponNotApplicable', response=response)
 
         # pay order1(25) by cash coupon, coupon1(10 - 10), coupon2(20 - 15)
-        url = reverse('api:order-pay-order', kwargs={'id': order1.id})
+        url = reverse('order-api:order-pay-order', kwargs={'id': order1.id})
         coupon1_user.refresh_from_db()
         coupon2_user.refresh_from_db()
         query = parse.urlencode(query={
@@ -944,7 +944,7 @@ class OrderTests(MyAPITestCase):
         self.assertEqual(tbill.trade_id, pay_history1.id)
 
         # pay order2(100) by cash coupon, coupon1(0), coupon2(5)
-        url = reverse('api:order-pay-order', kwargs={'id': order2.id})
+        url = reverse('order-api:order-pay-order', kwargs={'id': order2.id})
         query = parse.urlencode(query={
             'payment_method': Order.PaymentMethod.CASH_COUPON.value,
             'coupon_ids': [coupon1_user.id, coupon2_user.id]
@@ -952,7 +952,7 @@ class OrderTests(MyAPITestCase):
         response = self.client.post(f'{url}?{query}')
         self.assertErrorResponse(status_code=409, code='CouponNoBalance', response=response)
 
-        url = reverse('api:order-pay-order', kwargs={'id': order2.id})
+        url = reverse('order-api:order-pay-order', kwargs={'id': order2.id})
         query = parse.urlencode(query={
             'payment_method': Order.PaymentMethod.CASH_COUPON.value,
             'coupon_ids': [coupon2_user.id]
@@ -961,7 +961,7 @@ class OrderTests(MyAPITestCase):
         self.assertErrorResponse(status_code=409, code='CouponBalanceNotEnough', response=response)
 
         # pay order2(100) by balance + coupon, coupon2(5), BalanceNotEnough
-        url = reverse('api:order-pay-order', kwargs={'id': order2.id})
+        url = reverse('order-api:order-pay-order', kwargs={'id': order2.id})
         query = parse.urlencode(query={
             'payment_method': CASH_COUPON_BALANCE,
             'coupon_ids': [coupon2_user.id]
@@ -969,7 +969,7 @@ class OrderTests(MyAPITestCase):
         response = self.client.post(f'{url}?{query}')
         self.assertErrorResponse(status_code=409, code='BalanceNotEnough', response=response)
 
-        url = reverse('api:order-pay-order', kwargs={'id': order2.id})
+        url = reverse('order-api:order-pay-order', kwargs={'id': order2.id})
         query = parse.urlencode(query={
             'payment_method': CASH_COUPON_BALANCE
         }, doseq=True)
@@ -981,7 +981,7 @@ class OrderTests(MyAPITestCase):
         user_account.balance = Decimal('100')
         user_account.save(update_fields=['balance'])
 
-        url = reverse('api:order-pay-order', kwargs={'id': order2.id})
+        url = reverse('order-api:order-pay-order', kwargs={'id': order2.id})
         query = parse.urlencode(query={
             'payment_method': CASH_COUPON_BALANCE
         }, doseq=True)
@@ -1067,7 +1067,7 @@ class OrderTests(MyAPITestCase):
         self.client.force_login(self.user2)
 
         # cancel order , no permission
-        url = reverse('api:order-cancel-order', kwargs={'id': order.id})
+        url = reverse('order-api:order-cancel-order', kwargs={'id': order.id})
         response = self.client.post(url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
@@ -1075,7 +1075,7 @@ class OrderTests(MyAPITestCase):
         VoMember(user=self.user2, vo=self.vo, role=VoMember.Role.LEADER.value, inviter='').save(force_insert=True)
 
         # cancel order
-        url = reverse('api:order-cancel-order', kwargs={'id': order.id})
+        url = reverse('order-api:order-cancel-order', kwargs={'id': order.id})
         response = self.client.post(url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['order_id'], order.id)
@@ -1101,21 +1101,21 @@ class OrderTests(MyAPITestCase):
         resource2.save(update_fields=['last_deliver_time'])
 
         # cancel order
-        url = reverse('api:order-cancel-order', kwargs={'id': order2.id})
+        url = reverse('order-api:order-cancel-order', kwargs={'id': order2.id})
         response = self.client.post(url)
         self.assertErrorResponse(status_code=409, code='TryAgainLater', response=response)
 
         # cancel closed order
         order2.trading_status = order2.TradingStatus.CLOSED.value
         order2.save(update_fields=['trading_status'])
-        url = reverse('api:order-cancel-order', kwargs={'id': order2.id})
+        url = reverse('order-api:order-cancel-order', kwargs={'id': order2.id})
         response = self.client.post(url)
         self.assertErrorResponse(status_code=409, code='OrderTradingClosed', response=response)
 
         # cancel completed order
         order2.trading_status = order2.TradingStatus.COMPLETED.value
         order2.save(update_fields=['trading_status'])
-        url = reverse('api:order-cancel-order', kwargs={'id': order2.id})
+        url = reverse('order-api:order-cancel-order', kwargs={'id': order2.id})
         response = self.client.post(url)
         self.assertErrorResponse(status_code=409, code='OrderTradingCompleted', response=response)
 
@@ -1123,7 +1123,7 @@ class OrderTests(MyAPITestCase):
         order2.trading_status = order2.TradingStatus.UNDELIVERED.value
         order2.status = order2.Status.PAID.value
         order2.save(update_fields=['trading_status', 'status'])
-        url = reverse('api:order-cancel-order', kwargs={'id': order2.id})
+        url = reverse('order-api:order-cancel-order', kwargs={'id': order2.id})
         response = self.client.post(url)
         self.assertErrorResponse(status_code=409, code='OrderPaid', response=response)
 
@@ -1131,7 +1131,7 @@ class OrderTests(MyAPITestCase):
         order2.trading_status = order2.TradingStatus.UNDELIVERED.value
         order2.status = order2.Status.REFUND.value
         order2.save(update_fields=['trading_status', 'status'])
-        url = reverse('api:order-cancel-order', kwargs={'id': order2.id})
+        url = reverse('order-api:order-cancel-order', kwargs={'id': order2.id})
         response = self.client.post(url)
         self.assertErrorResponse(status_code=409, code='OrderRefund', response=response)
 
@@ -1139,7 +1139,7 @@ class OrderTests(MyAPITestCase):
         order2.trading_status = order2.TradingStatus.UNDELIVERED.value
         order2.status = order2.Status.CANCELLED.value
         order2.save(update_fields=['trading_status', 'status'])
-        url = reverse('api:order-cancel-order', kwargs={'id': order2.id})
+        url = reverse('order-api:order-cancel-order', kwargs={'id': order2.id})
         response = self.client.post(url)
         self.assertErrorResponse(status_code=409, code='OrderCancelled', response=response)
 
@@ -1150,7 +1150,7 @@ class OrderTests(MyAPITestCase):
         resource2.last_deliver_time = timezone.now() - timedelta(minutes=2)
         resource2.save(update_fields=['last_deliver_time'])
 
-        url = reverse('api:order-cancel-order', kwargs={'id': order2.id})
+        url = reverse('order-api:order-cancel-order', kwargs={'id': order2.id})
         response = self.client.post(url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['order_id'], order2.id)
@@ -1162,7 +1162,7 @@ class PeriodTests(MyAPITestCase):
         self.service = get_or_create_service()
 
     def test_list_order(self):
-        base_url = reverse('api:period-list')
+        base_url = reverse('order-api:period-list')
 
         response = self.client.get(base_url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)

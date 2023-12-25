@@ -313,7 +313,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         # 订单交付资源
         order.payable_amount = Decimal(0)
         order.save(update_fields=['payable_amount'])
-        pay_url = reverse('api:order-pay-order', kwargs={'id': order_id})
+        pay_url = reverse('order-api:order-pay-order', kwargs={'id': order_id})
         query = parse.urlencode(query={
             'payment_method': Order.PaymentMethod.BALANCE.value
         })
@@ -385,7 +385,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         # 支付订单交付资源
         order.payable_amount = Decimal(0)
         order.save(update_fields=['payable_amount'])
-        pay_url = reverse('api:order-pay-order', kwargs={'id': order_id})
+        pay_url = reverse('order-api:order-pay-order', kwargs={'id': order_id})
         query = parse.urlencode(query={
             'payment_method': Order.PaymentMethod.BALANCE.value
         })
@@ -525,7 +525,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         user_account = PaymentManager.get_user_point_account(user_id=self.user.id)
         user_account.balance = Decimal(10000)
         user_account.save(update_fields=['balance'])
-        url = reverse('api:order-pay-order', kwargs={'id': order_id})
+        url = reverse('order-api:order-pay-order', kwargs={'id': order_id})
         query = parse.urlencode(query={'payment_method': Order.PaymentMethod.BALANCE.value})
         response = self.client.post(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
@@ -558,7 +558,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         self.assertEqual(order.end_time, renew_to_time_utc)
 
         # pay renewal order
-        url = reverse('api:order-pay-order', kwargs={'id': order_id})
+        url = reverse('order-api:order-pay-order', kwargs={'id': order_id})
         query = parse.urlencode(query={'payment_method': Order.PaymentMethod.BALANCE.value})
         response = self.client.post(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
@@ -630,7 +630,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         vo_account = PaymentManager.get_vo_point_account(vo_id=self.vo.id)
         vo_account.balance = Decimal(10000)
         vo_account.save(update_fields=['balance'])
-        url = reverse('api:order-pay-order', kwargs={'id': order_id})
+        url = reverse('order-api:order-pay-order', kwargs={'id': order_id})
         query = parse.urlencode(query={'payment_method': Order.PaymentMethod.BALANCE.value})
         response = self.client.post(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
@@ -764,7 +764,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         user_account = PaymentManager.get_user_point_account(user_id=self.user.id)
         user_account.balance = Decimal(70000)
         user_account.save(update_fields=['balance'])
-        url = reverse('api:order-pay-order', kwargs={'id': order_id})
+        url = reverse('order-api:order-pay-order', kwargs={'id': order_id})
         query = parse.urlencode(query={'payment_method': Order.PaymentMethod.BALANCE.value})
         response = self.client.post(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
@@ -848,7 +848,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         vo_account = PaymentManager.get_vo_point_account(vo_id=self.vo.id)
         vo_account.balance = Decimal(2000)
         vo_account.save(update_fields=['balance'])
-        url = reverse('api:order-pay-order', kwargs={'id': order_id})
+        url = reverse('order-api:order-pay-order', kwargs={'id': order_id})
         query = parse.urlencode(query={'payment_method': Order.PaymentMethod.BALANCE.value})
         response = self.client.post(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)

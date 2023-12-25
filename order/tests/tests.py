@@ -5,8 +5,8 @@ from django.utils import timezone
 
 from utils.time import datetime_add_months
 from utils.decimal_utils import quantize_10_2
-from .models import Price
-from .managers import PriceManager
+from order.models import Price
+from order.managers import PriceManager
 
 
 class TimeTests(TestCase):

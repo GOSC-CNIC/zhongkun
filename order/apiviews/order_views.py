@@ -7,11 +7,11 @@ from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
 from api.viewsets import CustomGenericViewSet
-from order.models import ResourceType, Order, Period
 from api.paginations import OrderPageNumberPagination, NewPageNumberPagination
-from api.handlers.price_handler import DescribePriceHandler
-from api.handlers.order_handler import OrderHandler, CASH_COUPON_BALANCE
-from api.serializers import serializers
+from order.handlers.price_handler import DescribePriceHandler
+from order import serializers
+from order.models import ResourceType, Order, Period
+from order.handlers.order_handler import OrderHandler, CASH_COUPON_BALANCE
 from servers.serializers import PeriodSerializer
 from core import errors
 
