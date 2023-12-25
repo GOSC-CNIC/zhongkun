@@ -5,9 +5,8 @@ from datetime import date
 from django.urls import reverse
 from django.utils import timezone
 
-from utils.test import get_or_create_user
+from utils.test import get_or_create_user, MyAPITestCase
 from metering.models import MeteringMonitorWebsite, DailyStatementMonitorWebsite, PaymentStatus
-from . import MyAPITestCase
 
 
 def create_site_metering(
@@ -106,7 +105,7 @@ class MeteringMonitorSiteTests(MyAPITestCase):
             trade_amount=Decimal('6.66'),
         )
 
-        base_url = reverse('api:metering-monitor-site-list')
+        base_url = reverse('metering-api:metering-monitor-site-list')
         r = self.client.get(base_url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
 
@@ -276,7 +275,7 @@ class StatementMonitorSiteTests(MyAPITestCase):
         return u_st0, u_st1, u_st2, u_st3
 
     def test_list_statement(self):
-        base_url = reverse('api:statement-monitor-site-list')
+        base_url = reverse('metering-api:statement-monitor-site-list')
         r = self.client.get(base_url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
 
@@ -345,7 +344,7 @@ class StatementMonitorSiteTests(MyAPITestCase):
         self.assertEqual(len(response.data['statements']), 2)
 
     def test_detail_statement_storage(self):
-        url = reverse('api:statement-monitor-site-detail', kwargs={'id': '1234567891234567891234'})
+        url = reverse('metering-api:statement-monitor-site-detail', kwargs={'id': '1234567891234567891234'})
         r = self.client.get(url)
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
 
@@ -372,7 +371,7 @@ class StatementMonitorSiteTests(MyAPITestCase):
             daily_statement_id=u_st0.id
         )
 
-        url = reverse('api:statement-monitor-site-detail', kwargs={'id': u_st0.id})
+        url = reverse('metering-api:statement-monitor-site-detail', kwargs={'id': u_st0.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["id", "original_amount", "payable_amount", "trade_amount",

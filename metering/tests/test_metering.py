@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from utils.model import PayType, OwnerType
-from utils.test import get_or_create_service, get_or_create_user, get_or_create_storage_service
+from utils.test import get_or_create_service, get_or_create_user, get_or_create_storage_service, MyAPITestCase
 from service.models import ServiceConfig
 from storage.models import ObjectsService
 from vo.models import VirtualOrganization
@@ -14,7 +14,6 @@ from metering.models import (
     MeteringServer, DailyStatementServer, PaymentStatus, MeteringObjectStorage, DailyStatementObjectStorage,
     MeteringDisk, DailyStatementDisk
 )
-from . import set_auth_header, MyAPITestCase
 from servers.models import Server, ServerArchive, Disk
 from servers.tests.test_disk import create_disk_metadata
 from users.models import UserProfile
@@ -22,7 +21,8 @@ from users.models import UserProfile
 
 class MeteringServerTests(MyAPITestCase):
     def setUp(self):
-        self.user = set_auth_header(self)
+        self.user = get_or_create_user()
+        self.client.force_login(self.user)
         self.service = get_or_create_service()
         self.service2 = ServiceConfig(
             name='test2', org_data_center_id=self.service.org_data_center_id, endpoint_url='test2',
@@ -131,7 +131,7 @@ class MeteringServerTests(MyAPITestCase):
         metering6.save(force_insert=True)
 
         # list user metering, default current month
-        base_url = reverse('api:metering-server-list')
+        base_url = reverse('metering-api:metering-server-list')
         r = self.client.get(base_url)
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn(["count", "page_num", "page_size", "results"], r.data)
@@ -434,7 +434,7 @@ class MeteringServerTests(MyAPITestCase):
         )
         metering8.save(force_insert=True)  
 
-        base_url = reverse('api:metering-server-aggregation-by-server')
+        base_url = reverse('metering-api:metering-server-aggregation-by-server')
         
         # list user aggregate metering, default current month
         r = self.client.get(base_url)
@@ -748,7 +748,7 @@ class MeteringServerTests(MyAPITestCase):
         )
         metering7.save(force_insert=True)
 
-        base_url = reverse('api:metering-server-aggregation-by-user')
+        base_url = reverse('metering-api:metering-server-aggregation-by-user')
 
         # no param 'as-admin'
         query = parse.urlencode(query={
@@ -1005,7 +1005,7 @@ class MeteringServerTests(MyAPITestCase):
         )
         metering7.save(force_insert=True)
 
-        base_url = reverse('api:metering-server-aggregation-by-vo')
+        base_url = reverse('metering-api:metering-server-aggregation-by-vo')
         
         # no param 'as-admin'
         query = parse.urlencode(query={
@@ -1237,7 +1237,7 @@ class MeteringServerTests(MyAPITestCase):
         )
         metering5.save(force_insert=True)  
 
-        base_url = reverse('api:metering-server-aggregation-by-service')
+        base_url = reverse('metering-api:metering-server-aggregation-by-service')
 
         # no param 'as-admin'
         query = parse.urlencode(query={
@@ -1359,7 +1359,8 @@ class MeteringServerTests(MyAPITestCase):
 
 class StatementServerTests(MyAPITestCase):
     def setUp(self):
-        self.user = set_auth_header(self)
+        self.user = get_or_create_user()
+        self.client.force_login(self.user)
         self.user2 = get_or_create_user(username='user2')
         
         self.vo = VirtualOrganization(
@@ -1500,7 +1501,7 @@ class StatementServerTests(MyAPITestCase):
         return u_st0, u_st1, u_st2, u_st3, v_st0, v_st1, v_st2
 
     def test_list_statement_server(self):
-        base_url = reverse('api:statement-server-list')
+        base_url = reverse('metering-api:statement-server-list')
 
         # list user statement-server
         response = self.client.get(base_url)
@@ -1651,7 +1652,7 @@ class StatementServerTests(MyAPITestCase):
         u_st0, u_st1, u_st2, u_st3, v_st0, v_st1, v_st2 = self.create_statement_server()
 
         # user statement server detail
-        url = reverse('api:statement-server-detail', kwargs={'id': u_st0.id})
+        url = reverse('metering-api:statement-server-detail', kwargs={'id': u_st0.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["id", "original_amount", "payable_amount", "trade_amount",
@@ -1680,7 +1681,7 @@ class StatementServerTests(MyAPITestCase):
         }, d=response.data['service'])
 
         # vo statement server detail
-        url = reverse('api:statement-server-detail', kwargs={'id': v_st0.id})
+        url = reverse('metering-api:statement-server-detail', kwargs={'id': v_st0.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["id", "original_amount", "payable_amount", "trade_amount",
@@ -1704,17 +1705,18 @@ class StatementServerTests(MyAPITestCase):
         # user2 no vo permission test
         self.client.logout()
         self.client.force_login(user=self.user2)
-        url = reverse('api:statement-server-detail', kwargs={'id': v_st0.id})
+        url = reverse('metering-api:statement-server-detail', kwargs={'id': v_st0.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 403)
-        url = reverse('api:statement-server-detail', kwargs={'id': v_st1.id})
+        url = reverse('metering-api:statement-server-detail', kwargs={'id': v_st1.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 403)
 
 
 class MeteringObsTests(MyAPITestCase):
     def setUp(self):
-        self.user = set_auth_header(self)
+        self.user = get_or_create_user()
+        self.client.force_login(self.user)
         self.service = get_or_create_storage_service()
         self.service2 = ObjectsService(
             name='service2', org_data_center_id=self.service.org_data_center_id,
@@ -1765,7 +1767,7 @@ class MeteringObsTests(MyAPITestCase):
         metering3.save(force_insert=True)
 
         # list user metering
-        base_url = reverse('api:metering-storage-list')
+        base_url = reverse('metering-api:metering-storage-list')
         r = self.client.get(base_url)
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn(["count", "page_num", "page_size", "results"], r.data)
@@ -1891,7 +1893,8 @@ class MeteringObsTests(MyAPITestCase):
 
 class StatementStorageTests(MyAPITestCase):
     def setUp(self):
-        self.user = set_auth_header(self)
+        self.user = get_or_create_user()
+        self.client.force_login(self.user)
         self.user2 = get_or_create_user(username='user2')
 
         self.service = get_or_create_storage_service()
@@ -1961,7 +1964,7 @@ class StatementStorageTests(MyAPITestCase):
         return u_st0, u_st1, u_st2, u_st3
 
     def test_list_statement_storage(self):
-        base_url = reverse('api:statement-storage-list')
+        base_url = reverse('metering-api:statement-storage-list')
         # list user statement-storage
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
@@ -2027,7 +2030,7 @@ class StatementStorageTests(MyAPITestCase):
 
     def test_detail_statement_storage(self):
         # not found
-        url = reverse('api:statement-storage-detail', kwargs={'id': '1234567891234567891234'})
+        url = reverse('metering-api:statement-storage-detail', kwargs={'id': '1234567891234567891234'})
         response = self.client.get(url)
         self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
 
@@ -2048,7 +2051,7 @@ class StatementStorageTests(MyAPITestCase):
         )
         metering1.save(force_insert=True)
 
-        url = reverse('api:statement-storage-detail', kwargs={'id': u_st0.id})
+        url = reverse('metering-api:statement-storage-detail', kwargs={'id': u_st0.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["id", "original_amount", "payable_amount", "trade_amount",
@@ -2145,7 +2148,7 @@ class AdminMeteringServerTests(MyAPITestCase):
 
     def test_metering_statistics(self):
         self.init_data()
-        base_url = reverse('api:admin-metering-server-statistics-list')
+        base_url = reverse('metering-api:admin-metering-server-statistics-list')
 
         # NotAuthenticated
         r = self.client.get(base_url)
@@ -2305,7 +2308,7 @@ class MeteringDiskTests(MyAPITestCase):
         )
 
         # list user metering, default current month
-        base_url = reverse('api:metering-disk-list')
+        base_url = reverse('metering-api:metering-disk-list')
         r = self.client.get(base_url)
         self.assertEqual(r.status_code, 401)
         self.client.force_login(self.user)
@@ -2540,27 +2543,27 @@ class MeteringDiskTests(MyAPITestCase):
         self.client.logout()
 
         # detail user metering
-        base_url = reverse('api:metering-disk-detail', kwargs={'id': 'xxx'})
+        base_url = reverse('metering-api:metering-disk-detail', kwargs={'id': 'xxx'})
         r = self.client.get(base_url)
         self.assertEqual(r.status_code, 401)
         self.client.force_login(user2)
 
-        base_url = reverse('api:metering-disk-detail', kwargs={'id': 'xxx'})
+        base_url = reverse('metering-api:metering-disk-detail', kwargs={'id': 'xxx'})
         r = self.client.get(base_url)
         self.assertErrorResponse(status_code=404, code='NotFound', response=r)
 
-        base_url = reverse('api:metering-disk-detail', kwargs={'id': m1_user.id})
+        base_url = reverse('metering-api:metering-disk-detail', kwargs={'id': m1_user.id})
         r = self.client.get(base_url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
 
-        base_url = reverse('api:metering-disk-detail', kwargs={'id': m2_vo1.id})
+        base_url = reverse('metering-api:metering-disk-detail', kwargs={'id': m2_vo1.id})
         r = self.client.get(base_url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
 
         self.client.logout()
         self.client.force_login(self.user)
 
-        base_url = reverse('api:metering-disk-detail', kwargs={'id': m1_user.id})
+        base_url = reverse('metering-api:metering-disk-detail', kwargs={'id': m1_user.id})
         r = self.client.get(base_url)
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn(["id", "original_amount", "trade_amount", "daily_statement_id", "disk_id",
@@ -2568,7 +2571,7 @@ class MeteringDiskTests(MyAPITestCase):
                            'size_hours', 'pay_type', 'disk'], r.data)
         self.assertKeysIn(["id", "remarks", "size", 'creation_time'], r.data['disk'])
 
-        base_url = reverse('api:metering-disk-detail', kwargs={'id': m2_vo1.id})
+        base_url = reverse('metering-api:metering-disk-detail', kwargs={'id': m2_vo1.id})
         r = self.client.get(base_url)
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn(["id", "original_amount", "trade_amount", "daily_statement_id", "disk_id",
@@ -2643,7 +2646,7 @@ class MeteringDiskTests(MyAPITestCase):
             owner_type=OwnerType.VO.value, user_id='', username='', vo_id='vo1', vo_name=''
         )
 
-        base_url = reverse('api:metering-disk-aggregation-by-disk')
+        base_url = reverse('metering-api:metering-disk-aggregation-by-disk')
         r = self.client.get(base_url)
         self.assertEqual(r.status_code, 401)
         self.client.force_login(self.user)
@@ -2944,7 +2947,7 @@ class MeteringDiskTests(MyAPITestCase):
             owner_type=OwnerType.VO.value, user_id='', username='', vo_id='vo1', vo_name=''
         )
 
-        base_url = reverse('api:metering-disk-aggregation-by-user')
+        base_url = reverse('metering-api:metering-disk-aggregation-by-user')
 
         # no param 'as-admin'
         query = parse.urlencode(query={
@@ -3173,7 +3176,7 @@ class MeteringDiskTests(MyAPITestCase):
             owner_type=OwnerType.USER.value, user_id=self.user.id, username='', vo_id='', vo_name=''
         )
 
-        base_url = reverse('api:metering-disk-aggregation-by-vo')
+        base_url = reverse('metering-api:metering-disk-aggregation-by-vo')
 
         # no param 'as-admin'
         query = parse.urlencode(query={
@@ -3383,7 +3386,7 @@ class MeteringDiskTests(MyAPITestCase):
             owner_type=OwnerType.USER.value, user_id='user2', username='', vo_id='', vo_name=''
         )
 
-        base_url = reverse('api:metering-disk-aggregation-by-service')
+        base_url = reverse('metering-api:metering-disk-aggregation-by-service')
 
         # no param 'as-admin'
         query = parse.urlencode(query={
@@ -3508,7 +3511,8 @@ class MeteringDiskTests(MyAPITestCase):
 
 class StatementDiskTests(MyAPITestCase):
     def setUp(self):
-        self.user = set_auth_header(self)
+        self.user = get_or_create_user()
+        self.client.force_login(self.user)
         self.user2 = get_or_create_user(username='user2')
 
         self.vo = VirtualOrganization(
@@ -3649,7 +3653,7 @@ class StatementDiskTests(MyAPITestCase):
         return u_st0, u_st1, u_st2, u_st3, v_st0, v_st1, v_st2
 
     def test_list_statement_disk(self):
-        base_url = reverse('api:statement-disk-list')
+        base_url = reverse('metering-api:statement-disk-list')
 
         # list user statement-disk
         response = self.client.get(base_url)
@@ -3799,7 +3803,7 @@ class StatementDiskTests(MyAPITestCase):
         u_st0, u_st1, u_st2, u_st3, v_st0, v_st1, v_st2 = self.create_statement_disk()
 
         # user statement disk detail
-        url = reverse('api:statement-disk-detail', kwargs={'id': u_st0.id})
+        url = reverse('metering-api:statement-disk-detail', kwargs={'id': u_st0.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["id", "original_amount", "payable_amount", "trade_amount",
@@ -3828,7 +3832,7 @@ class StatementDiskTests(MyAPITestCase):
         }, d=response.data['service'])
 
         # vo statement disk detail
-        url = reverse('api:statement-disk-detail', kwargs={'id': v_st0.id})
+        url = reverse('metering-api:statement-disk-detail', kwargs={'id': v_st0.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["id", "original_amount", "payable_amount", "trade_amount",
@@ -3852,9 +3856,9 @@ class StatementDiskTests(MyAPITestCase):
         # user2 no vo permission test
         self.client.logout()
         self.client.force_login(user=self.user2)
-        url = reverse('api:statement-disk-detail', kwargs={'id': v_st0.id})
+        url = reverse('metering-api:statement-disk-detail', kwargs={'id': v_st0.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 403)
-        url = reverse('api:statement-disk-detail', kwargs={'id': v_st1.id})
+        url = reverse('metering-api:statement-disk-detail', kwargs={'id': v_st1.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 403)

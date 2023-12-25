@@ -3,11 +3,11 @@ from rest_framework.routers import SimpleRouter
 
 from .apiviews import views
 from .apiviews import (
-    metering_views, bill_views, account_views, cash_coupon_views,
+    bill_views, account_views, cash_coupon_views,
     trade_test_views, trade_views,
-    storage_metering_views, user_views, app_service_views,
+    user_views, app_service_views,
     tradebill_views, recharge_views, email_views,
-    portal_views, report_storage_views, monitor_metering_views
+    portal_views, report_storage_views
 )
 
 
@@ -22,20 +22,7 @@ no_slash_router.register(r'user', user_views.UserViewSet, basename='user')
 no_slash_router.register(r'apply/service', views.ApplyVmServiceViewSet, basename='apply-service')
 no_slash_router.register(r'apply/organization', views.ApplyOrganizationViewSet, basename='apply-organization')
 no_slash_router.register(r'email', email_views.EmailViewSet, basename='email')
-no_slash_router.register(r'metering/server', metering_views.MeteringServerViewSet, basename='metering-server')
-no_slash_router.register(r'metering/disk', metering_views.MeteringDiskViewSet, basename='metering-disk')
-no_slash_router.register(
-    r'metering/storage', storage_metering_views.MeteringStorageViewSet, basename='metering-storage')
-no_slash_router.register(
-    r'metering/admin/storage', storage_metering_views.AdminMeteringStorageViewSet, basename='admin-metering-storage')
-no_slash_router.register(
-    r'metering/monitor/site', monitor_metering_views.MeteringMonitorSiteViewSet, basename='metering-monitor-site')
-no_slash_router.register(r'statement/server', metering_views.StatementServerViewSet, basename='statement-server')
-no_slash_router.register(r'statement/disk', metering_views.StatementDiskViewSet, basename='statement-disk')
-no_slash_router.register(
-    r'statement/storage', storage_metering_views.StatementStorageViewSet, basename='statement-storage')
-no_slash_router.register(
-    r'statement/monitor/site', monitor_metering_views.StatementMonitorSiteViewSet, basename='statement-monitor-site')
+
 no_slash_router.register(r'payment-history', bill_views.PaymentHistoryViewSet, basename='payment-history')
 no_slash_router.register(r'account/balance', account_views.BalanceAccountViewSet, basename='account-balance')
 no_slash_router.register(r'cashcoupon', cash_coupon_views.CashCouponViewSet, basename='cashcoupon')
@@ -52,13 +39,7 @@ no_slash_router.register(r'trade/recharge', recharge_views.RechargeViewSet, base
 no_slash_router.register(r'admin/cashcoupon', cash_coupon_views.AdminCashCouponViewSet, basename='admin-coupon')
 no_slash_router.register(r'admin/trade/tradebill', tradebill_views.AdminTradeBillViewSet, basename='admin-tradebill')
 no_slash_router.register(
-    r'admin/metering/storage/statistics', storage_metering_views.AdminMeteringStorageStatisticsViewSet,
-    basename='admin-metering-storage-statistics')
-no_slash_router.register(
     r'admin/user/statistics', user_views.AdminUserStatisticsViewSet, basename='admin-user-statistics')
-no_slash_router.register(
-    r'admin/metering/server/statistics', metering_views.AdminMeteringServerStatisticsViewSet,
-    basename='admin-metering-server-statistics')
 
 no_slash_router.register(r'portal/service', portal_views.PortalServiceViewSet, basename='portal-service')
 no_slash_router.register(r'report/storage/bucket/stats/monthly', report_storage_views.BucketStatsMonthlyViewSet,

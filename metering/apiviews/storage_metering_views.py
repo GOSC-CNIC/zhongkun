@@ -6,10 +6,10 @@ from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
 from api.viewsets import CustomGenericViewSet
-from metering.models import PaymentStatus
 from api.paginations import MeteringPageNumberPagination, StatementPageNumberPagination
-from api.handlers.metering_handler import MeteringObsHandler, StorageStatementHandler
-from api.serializers import serializers
+from metering.handlers.metering_handler import MeteringObsHandler, StorageStatementHandler
+from metering.models import PaymentStatus
+from metering import metering_serializers
 from utils.paginators import NoPaginatorInspector
 
 
@@ -106,7 +106,7 @@ class MeteringStorageViewSet(CustomGenericViewSet):
 
     def get_serializer_class(self):
         if self.action == 'list':
-            return serializers.MeteringStorageSerializer
+            return metering_serializers.MeteringStorageSerializer
 
         return Serializer
 
@@ -478,9 +478,9 @@ class StatementStorageViewSet(CustomGenericViewSet):
 
     def get_serializer_class(self):
         if self.action == 'list':
-            return serializers.DailyStatementStorageDetailSerializer
+            return metering_serializers.DailyStatementStorageDetailSerializer
         elif self.action == 'retrieve':
-            return serializers.DailyStatementStorageDetailSerializer
+            return metering_serializers.DailyStatementStorageDetailSerializer
 
         return Serializer
 

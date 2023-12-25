@@ -68,6 +68,7 @@ urlpatterns = [
     path('api/', include('storage.api_urls', namespace='storage-api')),
     path('api/', include('ticket.api_urls', namespace='ticket-api')),
     path('api/', include('order.api_urls', namespace='order-api')),
+    path('api/', include('metering.api_urls', namespace='metering-api')),
     path('api/monitor/', include('monitor.api_urls', namespace='monitor-api')),
     path('api/ipam/', include('ipam.api_urls', namespace='ipam-api')),
     path('api/link/', include('link.api_urls', namespace='link-api')),

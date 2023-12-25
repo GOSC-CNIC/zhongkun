@@ -4,13 +4,12 @@ from datetime import date, timedelta
 
 from django.urls import reverse
 
-from utils.test import get_or_create_user, get_or_create_storage_service
+from utils.test import get_or_create_user, get_or_create_storage_service, MyAPITestCase
 from storage.models import ObjectsService
 from metering.models import MeteringObjectStorage
 
 from storage.models import Bucket, BucketArchive
 from django.utils import timezone
-from . import MyAPITestCase
 
 
 class AdminMeteringStorageTests(MyAPITestCase):
@@ -78,7 +77,7 @@ class AdminMeteringStorageTests(MyAPITestCase):
 
     def test_aggregate_metering_by_bucket(self):
         bucket1, bucket2_archive, bucket3 = self.init_data()
-        base_url = reverse('api:admin-metering-storage-aggregation-by-bucket')
+        base_url = reverse('metering-api:admin-metering-storage-aggregation-by-bucket')
 
         # NotAuthenticated
         r = self.client.get(base_url)
@@ -375,7 +374,7 @@ class AdminMeteringStorageTests(MyAPITestCase):
 
     def test_aggregate_metering_by_user(self):
         self.init_data()
-        base_url = reverse('api:admin-metering-storage-aggregation-by-user')
+        base_url = reverse('metering-api:admin-metering-storage-aggregation-by-user')
 
         # NotAuthenticated
         r = self.client.get(base_url)
@@ -675,7 +674,7 @@ class AdminMeteringStorageTests(MyAPITestCase):
 
     def test_aggregate_metering_by_service(self):
         self.init_data()
-        base_url = reverse('api:admin-metering-storage-aggregation-by-service')
+        base_url = reverse('metering-api:admin-metering-storage-aggregation-by-service')
 
         # NotAuthenticated
         r = self.client.get(base_url)
@@ -939,7 +938,7 @@ class AdminMeteringStorageTests(MyAPITestCase):
 
     def test_metering_statistics(self):
         self.init_data()
-        base_url = reverse('api:admin-metering-storage-statistics-list')
+        base_url = reverse('metering-api:admin-metering-storage-statistics-list')
 
         # NotAuthenticated
         r = self.client.get(base_url)
