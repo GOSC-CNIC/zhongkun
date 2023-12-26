@@ -1,6 +1,5 @@
 from django.utils.translation import gettext_lazy, gettext as _
 from django.core.validators import EmailValidator, ValidationError
-from django.conf import settings
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.serializers import Serializer
@@ -10,7 +9,6 @@ from drf_yasg.utils import swagger_auto_schema
 
 from api.serializers import email as eamil_serializers
 from api.viewsets import serializer_error_msg
-from utils import get_remote_ip
 from utils.paginators import NoPaginatorInspector
 from utils.iprestrict import IPRestrictor, load_allowed_ips
 from core import errors
@@ -48,7 +46,7 @@ class EmailViewSet(viewsets.GenericViewSet):
               "real_ip": "1227.0.0.1",
             }
         """
-        ipv4, proxys = get_remote_ip(request)
+        ipv4, proxys = EmailIPRestrictor.get_remote_ip(request)
         return Response(data={
             'real_ip': ipv4,
             # 'proxys': proxys
@@ -83,9 +81,8 @@ class EmailViewSet(viewsets.GenericViewSet):
         except Exception as exc:
             return self.exception_response(exc)
 
-        remote_ip, proxys = get_remote_ip(request)
         try:
-            EmailIPRestrictor().is_restricted(client_ip=remote_ip)
+            remote_ip = EmailIPRestrictor().check_restricted(request=request)
         except errors.Error as exc:
             return self.exception_response(exc)
 

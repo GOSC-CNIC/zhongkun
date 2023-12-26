@@ -1,5 +1,4 @@
 from django.utils.translation import gettext_lazy, gettext as _
-from django.conf import settings
 from rest_framework.permissions import BasePermission
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -11,7 +10,6 @@ from api.paginations import DefaultPageNumberPagination
 from users.managers import filter_user_queryset
 from monitor.models import TotalReqNum
 from core import errors
-from utils import get_remote_ip
 from utils.paginators import NoPaginatorInspector
 from utils.iprestrict import IPRestrictor, load_allowed_ips
 
@@ -31,7 +29,7 @@ class InAllowedIp(BasePermission):
 
     @staticmethod
     def check_addr_allowed(request):
-        remote_ip, proxys = get_remote_ip(request)
+        remote_ip, proxys = PortalIPRestrictor.get_remote_ip(request)
         try:
             PortalIPRestrictor().is_restricted(client_ip=remote_ip)
         except errors.AccessDenied as exc:

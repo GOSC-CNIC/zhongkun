@@ -4,7 +4,6 @@ from decimal import Decimal
 from django.utils.translation import gettext as _
 from django.db.models import TextChoices
 from django.core.exceptions import ValidationError
-from django.conf import settings
 from rest_framework.response import Response
 
 from core import errors
@@ -14,7 +13,6 @@ from monitor.utils import MonitorEmailAddressIPRestrictor
 from api.viewsets import CustomGenericViewSet
 from bill.managers.payment import PaymentManager
 from order.managers.price import PriceManager
-from utils import get_remote_ip
 from api.handlers import serializer_error_msg
 
 
