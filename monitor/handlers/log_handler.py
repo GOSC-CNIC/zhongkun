@@ -134,7 +134,7 @@ class LogSiteHandler(BaseHandler):
             end = end // ns_base
         try:
             queryset = LogSiteTimeReqNum.objects.values('id', 'timestamp', 'count', 'site_id').filter(
-                timestamp__gte=start, timestamp__lte=end, site_id=log_site.id
+                timestamp__gte=start, timestamp__lte=end, site_id=log_site.id, count__gte=0
             ).order_by('-timestamp')
             objs = view.paginate_queryset(queryset=queryset)
             return view.get_paginated_response(objs)

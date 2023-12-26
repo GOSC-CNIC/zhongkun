@@ -1,4 +1,5 @@
 import hashlib
+from datetime import datetime
 
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -453,7 +454,7 @@ class LogSiteTimeReqNum(UuidModel):
     site = models.ForeignKey(
         verbose_name='日志站点', to=LogSite, on_delete=models.DO_NOTHING, null=True, blank=False,
         db_constraint=False, db_index=False)
-    count = models.PositiveIntegerField(verbose_name='请求量')
+    count = models.IntegerField(verbose_name='请求量', help_text='负数标识数据无效（查询失败的占位记录，便于后补）')
 
     class Meta:
         db_table = 'log_site_time_req_num'
@@ -463,6 +464,12 @@ class LogSiteTimeReqNum(UuidModel):
         indexes = [
             models.Index(fields=['timestamp'], name='idx_timestamp')
         ]
+
+    def clean(self):
+        try:
+            datetime.fromtimestamp(self.timestamp, tz=timezone.get_default_timezone())
+        except Exception as exc:
+            raise ValidationError({'timestamp': f'无效的时间戳，{str(exc)}，当前时间戳为:{int(timezone.now().timestamp())}'})
 
 
 class TotalReqNum(UuidModel):

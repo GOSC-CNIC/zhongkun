@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from monitor.models import (
-    LogSite, LogSiteType
+    LogSite, LogSiteType, LogSiteTimeReqNum
 )
 from utils.test import get_or_create_user, MyAPITestCase, get_or_create_org_data_center
 from scripts.workers.req_logs import LogSiteReqCounter
@@ -325,3 +325,19 @@ class LogSiteTests(MyAPITestCase):
         self.assertEqual(response.data['count'], 1)
         self.assertEqual(len(response.data['results']), 1)
         self.assertKeysIn(["count", "id", "timestamp", 'site_id'], response.data['results'][0])
+        id0 = response.data['results'][0]['id']
+
+        # 无效的占位记录test
+        trn1 = LogSiteTimeReqNum(timestamp=now_timestamp + 2, site=log_site, count=88)
+        trn1.save(force_insert=True)
+        trn2 = LogSiteTimeReqNum(timestamp=now_timestamp + 6, site=log_site, count=-1)
+        trn2.save(force_insert=True)
+
+        # url有缓存，url不能和上面完全一样
+        query = parse.urlencode(query={'log_site_id': log_site.id, 'start': now_timestamp, 'end': now_timestamp + 200})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(len(response.data['results']), 2)
+        self.assertEqual(response.data['results'][0]['id'], trn1.id)
+        self.assertEqual(response.data['results'][1]['id'], id0)

@@ -150,9 +150,12 @@ class LogSiteReqCounter:
         for r in results:
             if isinstance(r, tuple) and len(r) == 3:
                 site_id, r_num, now_timestamp = r
-                obj = self.create_req_num_log(timestamp=now_timestamp, log_site_id=site_id, req_num=r_num)
-                if obj:
-                    ok_count += 1
+                if isinstance(r_num, int):
+                    obj = self.create_req_num_log(timestamp=now_timestamp, log_site_id=site_id, req_num=r_num)
+                    if obj:
+                        ok_count += 1
+                else:
+                    self.create_req_num_log(timestamp=now_timestamp, log_site_id=site_id, req_num=-1)
             else:
                 print(r)
                 continue
@@ -167,7 +170,8 @@ class LogSiteReqCounter:
         try:
             r_num = await self.get_site_req_num(site=site, until_timestamp=now_timestamp, minutes=self.minutes)
         except Exception as exc:
-            raise Exception(f'{timezone.now().isoformat(sep=" ", timespec="seconds")},{site.name},{exc}')
+            err = Exception(f'{timezone.now().isoformat(sep=" ", timespec="seconds")},{site.name},{exc}')
+            return site.id, err, now_timestamp
 
         return site.id, r_num, now_timestamp
 

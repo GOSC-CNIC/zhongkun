@@ -266,5 +266,9 @@ class LogSiteTimeReqNumAdmin(admin.ModelAdmin):
 
     @admin.display(description=gettext_lazy("统计时间"))
     def show_time(self, obj):
-        dt = datetime.fromtimestamp(obj.timestamp, tz=dj_timezone.get_default_timezone())
+        try:
+            dt = datetime.fromtimestamp(obj.timestamp, tz=dj_timezone.get_default_timezone())
+        except Exception as exc:
+            return ''
+
         return dt.isoformat(sep=' ')
