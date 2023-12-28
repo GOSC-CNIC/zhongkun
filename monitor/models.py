@@ -465,6 +465,9 @@ class LogSiteTimeReqNum(UuidModel):
             models.Index(fields=['timestamp'], name='idx_timestamp')
         ]
 
+    def __str__(self):
+        return f'{self.id}({self.count}, {self.timestamp})'
+
     def clean(self):
         try:
             datetime.fromtimestamp(self.timestamp, tz=timezone.get_default_timezone())

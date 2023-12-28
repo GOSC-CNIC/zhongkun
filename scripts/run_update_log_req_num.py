@@ -14,6 +14,6 @@ from scripts.workers.req_logs import LogSiteReqCounter
 
 if __name__ == "__main__":
     """
-    站点日志请求数统计时序数据
+    更新无效的站点日志请求数统计时序数据占位记录
     """
-    LogSiteReqCounter(minutes=1).run(update_before_invalid_cycles=5)
+    LogSiteReqCounter(minutes=1).run_update_invalid(before_minutes=60)
