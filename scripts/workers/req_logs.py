@@ -130,7 +130,7 @@ class LogSiteReqCounter:
         :update_before_invalid_cycles: 尝试更新前n个周期的无效记录，大于0有效，默认不尝试更新前面可能无效的记录
         """
         now_timestamp = self.get_now_timestamp()
-        sites_count, ok_site_ids = self.async_generate_req_num_log(now_timestamp=now_timestamp)
+        sites_count, ok_site_ids, objs = self.async_generate_req_num_log(now_timestamp=now_timestamp)
         ok_count = len(ok_site_ids)
         print(f'{timezone.now().isoformat(sep=" ", timespec="seconds")} End，log sites: {sites_count}, ok: {ok_count}')
         ret = {'sites_count': sites_count, 'new_ok_count': ok_count}
@@ -160,27 +160,37 @@ class LogSiteReqCounter:
             return 0, 0
 
         tasks = [self.req_num_for_site(site=site, now_timestamp=now_timestamp) for site in sites]
-        ok_site_ids = self.do_tasks(tasks=tasks)
-        return len(sites), ok_site_ids
+        ok_site_ids, objs = self.do_tasks(tasks=tasks)
+        return len(sites), ok_site_ids, objs
 
     def do_tasks(self, tasks: list):
         results = asyncio.run(self.do_async_requests(tasks))
 
         ok_site_ids = []
+        objs = []
         for r in results:
             if isinstance(r, tuple) and len(r) == 3:
                 site_id, r_num, now_timestamp = r
                 if isinstance(r_num, int):
-                    obj = self.create_req_num_log(timestamp=now_timestamp, log_site_id=site_id, req_num=r_num)
-                    if obj:
-                        ok_site_ids.append(site_id)
+                    ok_site_ids.append(site_id)
+                    req_num = r_num
                 else:
-                    self.create_req_num_log(timestamp=now_timestamp, log_site_id=site_id, req_num=-1)
+                    req_num = -1
+
+                obj = LogSiteTimeReqNum(timestamp=now_timestamp, site_id=site_id, count=req_num)
+                obj.enforce_id()    # 生成填充id，批量插入不调用save方法
+                objs.append(obj)
             else:
                 print(r)
                 continue
 
-        return ok_site_ids
+        if objs:
+            try:
+                objs = LogSiteTimeReqNum.objects.bulk_create(objs=objs, batch_size=200)
+            except Exception as exc:
+                pass
+
+        return ok_site_ids, objs
 
     @staticmethod
     async def do_async_requests(tasks):
