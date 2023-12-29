@@ -181,11 +181,20 @@ class MonitorWebsiteBase(UuidModel):
 class MonitorWebsite(MonitorWebsiteBase):
     """
     网站监控
+        * 可同时关联“user”和"数据中心(odc)"，或者关联其一，原则上不应该存在同时关联和都未关联的情况
+        * 关联用户有权限管理监控任务和访问监控数据
+        * 关联odc,odc管理员有权限访问监控数据，但是无权限管理监控任务
+        * 只关联odc的任务，是自动为数据中心关联的各服务单元（云主机、对象存储、日志和指标监控）创建的监控任务
+        * 计量扣费，如果关联了用户，向关联用户扣费，未关联用户不扣费
     """
-    url = models.CharField(verbose_name=_('要监控的网址'), max_length=2048, default='', help_text='http(s)|tcp://xxx.xxx')
     user = models.ForeignKey(
         verbose_name=_('用户'), to=UserProfile, related_name='+',
-        on_delete=models.SET_NULL, blank=True, null=True, db_constraint=False)
+        on_delete=models.SET_NULL, blank=True, null=True, db_constraint=False,
+        help_text=_('关联用户有权限管理监控任务和查询监控数据；用户与数据中心原则上只能关联其一'))
+    odc = models.ForeignKey(
+        verbose_name=_('数据中心'), to=OrgDataCenter, related_name='+',
+        on_delete=models.SET_NULL, blank=True, null=True, db_constraint=False, default=None,
+        help_text=_('关联数据中心后，数据中心管理员有权限访问此监控任务的数据，无监控任务的管理权限；数据中心与用户原则上只能关联其一'))
     is_attention = models.BooleanField(verbose_name=_('特别关注'), default=False)
 
     class Meta:

@@ -856,7 +856,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(website.hostname, 'test.cn')
         self.assertEqual(website.uri, '/a/b?test=1&c=6#test')
         self.assertIs(website.is_tamper_resistant, True)
-        self.assertEqual(website.url, website_url)
+        self.assertEqual(website.full_url, website_url)
         self.assertEqual(website.remark, 'test')
 
         self.assertEqual(MonitorWebsiteTask.objects.count(), 1)
@@ -892,7 +892,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(MonitorWebsite.objects.count(), 2)
         website: MonitorWebsite = MonitorWebsite.objects.get(id=website_id2)
         self.assertEqual(website.name, 'name-test666')
-        self.assertEqual(website.url, website_url2)
+        self.assertEqual(website.full_url, website_url2)
         self.assertEqual(website.remark, '测试t88')
         self.assertEqual(website.scheme, 'https://')
         self.assertEqual(website.hostname, 'test66.com')
@@ -945,7 +945,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(MonitorWebsite.objects.count(), 3)
         website: MonitorWebsite = MonitorWebsite.objects.get(id=website_id3)
         self.assertEqual(website.name, 'name3-test')
-        self.assertEqual(website.url, website_url3)
+        self.assertEqual(website.full_url, website_url3)
         self.assertEqual(website.remark, '3test')
         self.assertEqual(website.scheme, 'https://')
         self.assertEqual(website.hostname, 'test3.cnn')
@@ -1001,7 +1001,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(MonitorWebsite.objects.count(), 4)
         website: MonitorWebsite = MonitorWebsite.objects.get(id=website_id4)
         self.assertEqual(website.name, 'name4-test')
-        self.assertEqual(website.url, website_url2)
+        self.assertEqual(website.full_url, website_url2)
         self.assertEqual(website.remark, '4test')
         self.assertEqual(website.scheme, 'https://')
         self.assertEqual(website.hostname, 'test66.com')
@@ -1083,7 +1083,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(MonitorWebsite.objects.count(), 5)
         website: MonitorWebsite = MonitorWebsite.objects.get(id=website_tcpid5)
         self.assertEqual(website.name, 'tcp1-test')
-        self.assertEqual(website.url, website_tcp1)
+        self.assertEqual(website.full_url, website_tcp1)
         self.assertEqual(website.remark, 'test tcp')
         self.assertEqual(website.scheme, 'tcp://')
         self.assertEqual(website.hostname, 'testtcp.com:22')
@@ -1136,7 +1136,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(MonitorWebsite.objects.count(), 6)
         website: MonitorWebsite = MonitorWebsite.objects.get(id=website_tcpid6)
         self.assertEqual(website.name, 'tcp2-test')
-        self.assertEqual(website.url, website_tcp2)
+        self.assertEqual(website.full_url, website_tcp2)
         self.assertEqual(website.remark, 'test tcp2')
         self.assertEqual(website.scheme, 'tcp://')
         self.assertEqual(website.hostname, '111.111.111.111:22')
@@ -1284,9 +1284,9 @@ class MonitorWebsiteTests(MyAPITestCase):
         website_url2 = 'https://222.com/'
         user_website2 = MonitorWebsite(
             name='name2',  scheme='https://', hostname='222.com', uri='/', is_tamper_resistant=True,
-            url=website_url2, remark='remark2', user_id=self.user.id, creation=nt, modification=nt
+            remark='remark2', user_id=self.user.id, creation=nt, modification=nt
         )
-        user_website2.url = user_website2.full_url
+        self.assertEqual(user_website2.full_url, website_url2)
         user_website2.save(force_insert=True)
         task2 = MonitorWebsiteTask(url=user_website2.full_url, is_tamper_resistant=True)
         task2.save(force_insert=True)
@@ -1296,7 +1296,6 @@ class MonitorWebsiteTests(MyAPITestCase):
             name='name22', scheme='https://', hostname='222.com', uri='/', is_tamper_resistant=False,
             remark='remark22', user_id=self.user2.id, creation=nt, modification=nt
         )
-        user2_website2.url = user2_website2.full_url
         user2_website2.save(force_insert=True)
 
         version = MonitorWebsiteVersion.get_instance()
@@ -1343,7 +1342,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(MonitorWebsite.objects.count(), 1)
         self.assertEqual(MonitorWebsiteTask.objects.count(), 1)
         task = MonitorWebsiteTask.objects.first()
-        self.assertEqual(task.url, user2_website2.url)
+        self.assertEqual(task.url, user2_website2.full_url)
         self.assertEqual(MonitorWebsiteRecord.objects.count(), 2)
 
     def test_task_version_list(self):
@@ -1481,7 +1480,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(r.status_code, 200)
         website1 = MonitorWebsite.objects.get(id=user_website1.id)
         self.assertEqual(website1.name, 'change name')
-        self.assertEqual(website1.url, user_website1.url)
+        self.assertEqual(website1.full_url, user_website1.url)
         self.assertEqual(website1.remark, user_website1.remark)
 
         version = MonitorWebsiteVersion.get_instance()
@@ -1508,7 +1507,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(r.status_code, 200)
         website1 = MonitorWebsite.objects.get(id=user_website1.id)
         self.assertEqual(website1.name, user_website1.name)
-        self.assertEqual(website1.url, new_website_url1)
+        self.assertEqual(website1.full_url, new_website_url1)
         self.assertEqual(website1.remark, user_website1.remark)
         self.assertKeysIn(keys=[
             'id', 'name', 'scheme', 'hostname', 'uri', 'url', 'is_tamper_resistant',
@@ -1534,7 +1533,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(r.status_code, 200)
         website2 = MonitorWebsite.objects.get(id=user_website2.id)
         self.assertEqual(website2.name, user_website2.name)
-        self.assertEqual(website2.url, new_website_url2)
+        self.assertEqual(website2.full_url, new_website_url2)
         self.assertEqual(website2.remark, '新的 remark')
         self.assertIs(website2.is_tamper_resistant, True)
 
@@ -1558,7 +1557,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(r.status_code, 200)
         website2 = MonitorWebsite.objects.get(id=user_website2.id)
         self.assertEqual(website2.name, user_website2.name)
-        self.assertEqual(website2.url, new_website_url2)
+        self.assertEqual(website2.full_url, new_website_url2)
         self.assertEqual(website2.remark, '新的 remark')
         self.assertIs(website2.is_tamper_resistant, False)
 
@@ -1701,9 +1700,8 @@ class MonitorWebsiteTests(MyAPITestCase):
 
         # add data
         nt = timezone.now()
-        website_url1 = 'https://111.com'
         user_website1 = MonitorWebsite(
-            name='name1', url=website_url1, remark='remark1', user_id=self.user.id,
+            name='name1', scheme='https://', hostname='111.com', uri='/', remark='remark1', user_id=self.user.id,
             creation=nt, modification=nt, is_attention=False
         )
         user_website1.save(force_insert=True)
@@ -1852,7 +1850,7 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
             scheme=testcase_settings['MONITOR_WEBSITE']['WEBSITE_SCHEME'],
             hostname=testcase_settings['MONITOR_WEBSITE']['WEBSITE_HOSTNAME'],
             uri=testcase_settings['MONITOR_WEBSITE']['WEBSITE_URI'],
-            url=testcase_settings['MONITOR_WEBSITE']['WEBSITE_URL'],
+            # url=testcase_settings['MONITOR_WEBSITE']['WEBSITE_URL'],
             remark='', user=self.user,
             creation=nt, modification=nt
         )
@@ -1943,7 +1941,6 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
             scheme='tcp://',
             hostname='127.0.0.1:8888',
             uri='/',
-            url='',
             remark='', user=self.user,
             creation=nt, modification=nt
         )
@@ -1991,7 +1988,7 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
         self.assertEqual(len(response.data), list_len)
         data_item = response.data[0]
         self.assertKeysIn(["values", "metric"], data_item)
-        self.assertEqual(self.website.url, data_item['metric']['url'])
+        self.assertEqual(self.website.full_url, data_item['metric']['url'])
         self.assertIsInstance(data_item["values"], list)
         if data_item["values"]:
             self.assertEqual(len(data_item["values"][0]), 2)
@@ -2141,7 +2138,6 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
             scheme='tcp://',
             hostname='127.0.0.1:8888',
             uri='/',
-            url='',
             remark='', user=self.user,
             creation=nt, modification=nt
         )
@@ -2211,7 +2207,7 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
         self.assertEqual(len(response.data), list_len)
         data_item = response.data[0]
         self.assertKeysIn(["values", "metric"], data_item)
-        self.assertEqual(self.website.url, data_item['metric']['url'])
+        self.assertEqual(self.website.full_url, data_item['metric']['url'])
         self.assertIsInstance(data_item["values"], list)
         self.assertEqual(len(data_item["values"]), values_len)
         if data_item["values"]:
@@ -2254,7 +2250,6 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
             scheme='tcp://',
             hostname='127.0.0.1',
             uri='/',
-            url='',
             remark='', user=self.user,
             creation=nt, modification=nt
         )
@@ -2321,7 +2316,6 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
             scheme='tcp://',
             hostname='127.0.0.1',
             uri='/',
-            url='',
             remark='', user=self.user,
             creation=nt, modification=nt
         )

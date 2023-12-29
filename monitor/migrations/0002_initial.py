@@ -19,7 +19,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='monitorwebsite',
             name='user',
-            field=models.ForeignKey(blank=True, db_constraint=False, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to=settings.AUTH_USER_MODEL, verbose_name='用户'),
+            field=models.ForeignKey(blank=True, db_constraint=False, help_text='关联用户有权限管理监控任务和查询监控数据；用户与数据中心原则上只能关联其一', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to=settings.AUTH_USER_MODEL, verbose_name='用户'),
         ),
         migrations.AddField(
             model_name='monitorjobvideomeeting',

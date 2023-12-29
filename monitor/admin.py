@@ -102,12 +102,12 @@ class MonitorWebsiteAdmin(NoDeleteSelectModelAdmin):
     form = MonitorWebsiteForm
 
     list_display = ('id', 'name', 'is_attention', 'is_tamper_resistant', 'scheme', 'hostname', 'uri',
-                    'url', 'url_hash', 'creation', 'modification', 'user')
+                    'url_hash', 'creation', 'modification', 'user')
     list_display_links = ('id', 'name')
     list_select_related = ('user',)
     raw_id_fields = ('user',)
     search_fields = ('name', 'hostname', 'uri', 'user__username')
-    readonly_fields = ('url_hash', 'url')
+    readonly_fields = ('url_hash', )
 
     def save_model(self, request, obj: MonitorWebsite, form, change):
         if change:

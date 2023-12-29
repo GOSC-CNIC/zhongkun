@@ -487,7 +487,6 @@ class MonitorWebsiteManager:
         except ValidationError as e:
             raise errors.InvalidArgument(message=_('网址无效'), code='InvalidUrl')
 
-        user_website.url = full_url
         url_hash = get_str_hash(full_url)
         _website = MonitorWebsite.objects.filter(user_id=user_website.user_id, url_hash=url_hash).first()
         if _website is not None:
@@ -539,7 +538,7 @@ class MonitorWebsiteManager:
                 # 站点监控删除记录
                 MonitorWebsiteRecord.create_record_for_website(site=user_website)
                 # 除了要移除的站点，是否还有监控网址相同的 监控任务
-                count = MonitorWebsite.objects.filter(url_hash=user_website.url_hash, url=full_url).count()
+                count = MonitorWebsite.objects.filter(url_hash=user_website.url_hash).count()
                 if count == 0:
                     # 监控任务表移除任务，更新任务版本
                     MonitorWebsiteTask.objects.filter(url_hash=user_website.url_hash, url=full_url).delete()
@@ -643,7 +642,6 @@ class MonitorWebsiteManager:
         if _website is not None:
             raise errors.TargetAlreadyExists(message=_('已存在相同的网址。'))
 
-        user_website.url = new_url
         user_website.is_tamper_resistant = new_tamper_resistant
 
         # url有更改，可能需要修改监控任务表和版本编号
@@ -667,7 +665,7 @@ class MonitorWebsiteManager:
                     neet_change_version = False
                     # 修改站点地址后，是否还有旧监控网址相同的 监控任务
                     old_url_hash = get_str_hash(old_url)
-                    count = MonitorWebsite.objects.filter(url_hash=old_url_hash, url=old_url).count()
+                    count = MonitorWebsite.objects.filter(url_hash=old_url_hash).count()
                     if count == 0:
                         # 监控任务表移除任务，需要更新任务版本
                         MonitorWebsiteTask.objects.filter(url_hash=old_url_hash, url=old_url).delete()

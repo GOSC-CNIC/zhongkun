@@ -1018,6 +1018,9 @@ class MonitorWebsiteMeasurer(BaseMeasurer):
         if site.creation >= self.end_datetime:
             return None
 
+        if not site.user_id:    # 未关联用户，不计量
+            return None
+
         if isinstance(site, MonitorWebsiteRecord):
             self._metering_deleted_count += 1
             meter_end = min(site.record_time, self.end_datetime)  # 计费结束时间
@@ -1071,6 +1074,9 @@ class MonitorWebsiteMeasurer(BaseMeasurer):
             user_id = site.user_id
             username = site.user.username
         else:
+            return None
+
+        if not user_id:     # 未关联用户，不计量
             return None
 
         metering = MeteringMonitorWebsite(
