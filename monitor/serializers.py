@@ -107,6 +107,7 @@ class MonitorWebsiteSerializer(serializers.Serializer):
 
 class MonitorWebsiteWithUserSerializer(MonitorWebsiteSerializer):
     user = serializers.SerializerMethodField(method_name='get_user', read_only=True)
+    odc = serializers.SerializerMethodField(method_name='get_odc', read_only=True)
 
     @staticmethod
     def get_user(obj):
@@ -115,6 +116,14 @@ class MonitorWebsiteWithUserSerializer(MonitorWebsiteSerializer):
             return {'id': user.id, 'username': user.username}
 
         return {'id': '', 'username': ''}
+
+    @staticmethod
+    def get_odc(obj):
+        odc = obj.odc
+        if odc:
+            return {'id': odc.id, 'name': odc.name, 'name_en': odc.name_en}
+
+        return None
 
 
 class MonitorWebsiteTaskSerializer(serializers.Serializer):

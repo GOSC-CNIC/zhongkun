@@ -227,3 +227,8 @@ class OrgDataCenterManager:
                     pay.users.add(*add_admins)
 
         return pay_services
+
+    @staticmethod
+    def is_admin_of_odc(odc_id, user_id):
+        return OrgDataCenter.objects.filter(id=odc_id, users__id=user_id).exists()
+

@@ -18,15 +18,16 @@ from metering.pay_metering import PayMeteringWebsite
 from users.models import UserProfile
 from bill.models import PayApp, PayAppService, PaymentHistory, CashCoupon
 from core import errors
+from service.models import OrgDataCenter
 
 
 def create_website_metadata(
         name: str, scheme: str, hostname: str, uri: str, is_tamper_resistant: bool,
-        user_id, creation_time, remark: str = ''
+        user_id, creation_time, remark: str = '', odc=None
 ):
     site = MonitorWebsite(
         name=name, scheme=scheme, hostname=hostname, uri=uri, is_tamper_resistant=is_tamper_resistant,
-        remark=remark, user_id=user_id, creation=creation_time, modification=creation_time
+        remark=remark, user_id=user_id, creation=creation_time, modification=creation_time, odc=odc
     )
     site.save(force_insert=True)
     return site
@@ -162,6 +163,20 @@ class MeteringWebsiteTests(TransactionTestCase):
             is_tamper_resistant=True,
             remark='site4 remark'
         )
+        # 24h，属于数据中心，不会计量
+        odc = OrgDataCenter(name='odc1', name_en='odc en', organization=None)
+        odc.save(force_insert=True)
+        site5 = create_website_metadata(
+            name='site5',
+            scheme='https://',
+            hostname='127.0.0.1:8000',
+            uri='/',
+            user_id=None,
+            odc=odc,
+            creation_time=ago_time,
+            is_tamper_resistant=False,
+            remark='site1 remark'
+        )
 
         return site1, site2, site3, site4
 
@@ -214,12 +229,12 @@ class MeteringWebsiteTests(TransactionTestCase):
         else:
             self.assertEqual(count, 2)
 
-    def test_normal_disk(self):
+    def test_normal_site(self):
         now = timezone.now()
         site1, site2, site3, site4 = self.init_data_only_normal_site(now)
         self.do_assert_site(now=now, site1=site1, site2=site2)
 
-    def test_has_deleted_disk(self):
+    def test_has_deleted_site(self):
         now = timezone.now()
         site1, site2, site3, site4 = self.init_data_only_normal_site(now)
         record1 = MonitorWebsiteRecord.create_record_for_website(site=site1)

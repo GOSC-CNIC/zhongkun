@@ -8,6 +8,7 @@ from django.core.validators import URLValidator
 from django.core.exceptions import ValidationError
 
 from core import errors
+from service.odc_manager import OrgDataCenterManager
 from .utils import build_thanos_provider, ThanosProvider
 from .serializers import (
     MonitorJobCephSerializer, MonitorJobServerSerializer
@@ -435,15 +436,35 @@ class MonitorWebsiteManager:
         return website
 
     @staticmethod
+    def get_user_readable_website(website_id: str, user):
+        """
+        查询用户有访问权限的指定站点监控任务
+
+        :raises: Error
+        """
+        website = MonitorWebsiteManager.get_website_by_id(website_id)
+        if website is None:
+            raise errors.NotFound(message=_('站点监控任务不存在。'))
+
+        if website.user_id and website.user_id == user.id:
+            pass
+        elif website.odc_id and OrgDataCenterManager.is_admin_of_odc(odc_id=website.odc_id, user_id=user.id):
+            pass
+        else:
+            raise errors.AccessDenied(message=_('无权限访问此站点监控任务。'))
+
+        return website
+
+    @staticmethod
     def get_user_website_queryset(user_id: str, scheme: str = None):
         """
         scheme: one in [None, http, tcp]
         """
-        lookups = {'user_id': user_id}
+        q = models.Q(user_id=user_id) | models.Q(odc__users__id=user_id)
         if scheme:
-            lookups['scheme__startswith'] = scheme.lower()
+            q = q & models.Q(scheme__startswith=scheme.lower())
 
-        return MonitorWebsite.objects.select_related('user').filter(**lookups).all()
+        return MonitorWebsite.objects.select_related('user', 'odc').filter(q).distinct()
 
     @staticmethod
     def get_user_http_task_qs(user):
@@ -523,7 +544,7 @@ class MonitorWebsiteManager:
         if user_website is None:
             raise errors.NotFound(message=_('指定监控站点不存在。'))
 
-        if user_website.user_id != user.id:
+        if not user_website.user_id or user_website.user_id != user.id:
             raise errors.AccessDenied(message=_('无权限访问指定监控站点。'))
 
         MonitorWebsiteManager.do_delete_website_task(user_website)
@@ -591,8 +612,13 @@ class MonitorWebsiteManager:
         if user_website is None:
             raise errors.NotFound(message=_('指定监控站点不存在。'))
 
-        if user_website.user_id != user.id:
-            raise errors.AccessDenied(message=_('无权限访问指定监控站点。'))
+        if user_website.user_id:
+            if user_website.user_id != user.id:
+                raise errors.AccessDenied(message=_('无权限访问指定监控任务。'))
+        elif user_website.odc_id:
+            raise errors.AccessDenied(message=_('数据中心监控任务不允许修改。'))
+        else:
+            raise errors.AccessDenied(message=_('无权限访问指定监控任务。'))
 
         if name:
             user_website.name = name

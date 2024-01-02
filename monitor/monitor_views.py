@@ -506,7 +506,7 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
     )
     def list(self, request, *args, **kwargs):
         """
-        列举用户站点监控
+        列举用户站点监控和数据中心监控任务
 
             Http Code: 状态码200，返回数据：
             {
@@ -526,10 +526,15 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
                   "url_hash": "8bb5f2cff06fa7a4cdc449e66b9d0c0377a19ede",
                   "creation": "2023-01-29T01:01:22.403887Z",
                   "modification": "2023-01-29T01:01:00Z",
-                  "user": {
+                  "user": {     # maybe null，关联用户属于用户的监控任务
                     "id": "1",
                     "username": "shun"
                   },
+                  "odc": {  # maybe null，关联数据中心属于数据中心的监控任务，为服务单元自动创建的监控任务，只允许读
+                    "id": "xx",
+                    "name": "xx",
+                    "name_en": "xx",
+                  }
                   "is_attention": false
                 }
               ]

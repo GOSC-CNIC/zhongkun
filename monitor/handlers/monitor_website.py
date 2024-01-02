@@ -292,7 +292,7 @@ class MonitorWebsiteHandler:
 
         mgr = MonitorWebsiteManager()
         try:
-            website = mgr.get_user_website(website_id=website_id, user=request.user)
+            website = mgr.get_user_readable_website(website_id=website_id, user=request.user)
         except errors.Error as exc:
             return view.exception_response(exc)
 
@@ -317,7 +317,7 @@ class MonitorWebsiteHandler:
         mgr = MonitorWebsiteManager()
         try:
             query, start, end, step, detection_point_id = MonitorWebsiteHandler.validate_query_range_params(request)
-            website = mgr.get_user_website(website_id=website_id, user=request.user)
+            website = mgr.get_user_readable_website(website_id=website_id, user=request.user)
         except errors.Error as exc:
             return view.exception_response(exc)
 

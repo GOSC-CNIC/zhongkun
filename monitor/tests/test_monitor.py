@@ -24,6 +24,7 @@ from utils.test import (
     get_or_create_user, get_test_case_settings, get_or_create_organization,
     MyAPITestCase, get_or_create_org_data_center
 )
+from service.models import OrgDataCenter
 
 from .tests import (
     get_or_create_monitor_job_ceph, get_or_create_monitor_job_server, get_or_create_monitor_job_meeting,
@@ -1152,6 +1153,9 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(version.version, 6)
 
     def test_list_website_task(self):
+        odc1 = OrgDataCenter(name='odc1', name_en='odc en', organization=None)
+        odc1.save(force_insert=True)
+
         # NotAuthenticated
         base_url = reverse('monitor-api:website-list')
         r = self.client.get(path=base_url)
@@ -1180,7 +1184,6 @@ class MonitorWebsiteTests(MyAPITestCase):
             name='name1', scheme='https://', hostname='11.com', uri='/', is_tamper_resistant=True,
             remark='remark1', user_id=self.user.id, creation=nt, modification=nt
         )
-        user_website1.url = user_website1.full_url
         user_website1.save(force_insert=True)
 
         nt = timezone.now()
@@ -1188,7 +1191,6 @@ class MonitorWebsiteTests(MyAPITestCase):
             name='name2', scheme='https://', hostname='222.com', uri='/', is_tamper_resistant=False,
             remark='remark2', user_id=self.user.id, creation=nt, modification=nt
         )
-        user_website2.url = user_website2.full_url
         user_website2.save(force_insert=True)
 
         nt = timezone.now()
@@ -1196,16 +1198,21 @@ class MonitorWebsiteTests(MyAPITestCase):
             name='name3', scheme='https://', hostname='333.com', uri='/', is_tamper_resistant=True,
             remark='remark3', user_id=self.user2.id, creation=nt, modification=nt
         )
-        user2_website1.url = user2_website1.full_url
         user2_website1.save(force_insert=True)
 
         nt = timezone.now()
         user_website6 = MonitorWebsite(
             name='name66', scheme='https://', hostname='666.com', uri='/a/b?a=6&c=6#test', is_tamper_resistant=False,
-            remark='remark66', user_id=self.user.id, creation=nt, modification=nt
+            remark='remark66', user_id=self.user.id, odc=odc1, creation=nt, modification=nt
         )
-        user_website6.url = user_website6.full_url
         user_website6.save(force_insert=True)
+
+        nt = timezone.now()
+        odc_website7 = MonitorWebsite(
+            name='name77', scheme='tcps://', hostname='777.com', uri='/', is_tamper_resistant=False,
+            remark='remark77', user_id=None, odc=odc1, creation=nt, modification=nt
+        )
+        odc_website7.save(force_insert=True)
 
         # ok, list
         r = self.client.get(path=base_url)
@@ -1217,16 +1224,17 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(len(r.data['results']), 4)
         self.assertKeysIn(keys=[
             'id', 'name', 'scheme', 'hostname', 'uri', 'is_tamper_resistant', 'url',
-            'remark', 'url_hash', 'creation', 'user', 'modification', 'is_attention'
+            'remark', 'url_hash', 'creation', 'user', 'modification', 'is_attention', 'odc'
         ], container=r.data['results'][0])
         self.assert_is_subdict_of(sub={
-            'name': user_website6.name, 'url': user_website6.url,
+            'name': user_website6.name, 'url': user_website6.full_url,
             'remark': user_website6.remark, 'url_hash': user_website6.url_hash,
             'scheme': 'https://', 'hostname': '666.com', 'uri': '/a/b?a=6&c=6#test',
             'is_tamper_resistant': False
         }, d=r.data['results'][0])
         self.assertEqual(r.data['results'][0]['user']['id'], self.user.id)
         self.assertEqual(r.data['results'][0]['user']['username'], self.user.username)
+        self.assertKeysIn(keys=['id', 'name', 'name_en'], container=r.data['results'][0]['odc'])
 
         # ok, list, page_size
         query = parse.urlencode(query={'page_size': 2})
@@ -1262,6 +1270,23 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(r.data['page_size'], 100)
         self.assertEqual(len(r.data['results']), 1)
         self.assertEqual(r.data['results'][0]['id'], user_tcp_task1.id)
+
+        # odc admin test
+        odc1.users.add(self.user)
+        r = self.client.get(path=base_url)
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=['count', 'page_num', 'page_size', 'results'], container=r.data)
+        self.assertEqual(r.data['count'], 5)
+        self.assertEqual(r.data['page_num'], 1)
+        self.assertEqual(len(r.data['results']), 5)
+
+        query = parse.urlencode(query={'scheme': TaskSchemeType.TCP.value})
+        r = self.client.get(path=f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['count'], 2)
+        self.assertEqual(len(r.data['results']), 2)
+        self.assertEqual(r.data['results'][0]['id'], odc_website7.id)
+        self.assertEqual(r.data['results'][1]['id'], user_tcp_task1.id)
 
     def test_delete_website_task(self):
         # NotAuthenticated
@@ -1975,6 +2000,31 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
             detection_point_id=detection_point1.id)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
 
+        # test odc admin
+        odc1 = OrgDataCenter(name='odc1', name_en='odc en', organization=None)
+        odc1.save(force_insert=True)
+        nt = timezone.now()
+        odc_task = MonitorWebsite(
+            name='test',
+            scheme='https://',
+            hostname='127.0.0.1:8888',
+            uri='/',
+            remark='', user=None, odc=odc1,
+            creation=nt, modification=nt
+        )
+        odc_task.save(force_insert=True)
+        r = self.query_response(
+            website_id=odc_task.id, query_tag=WebsiteQueryChoices.HTTP_STATUS_STATUS.value,
+            detection_point_id=detection_point1.id)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        odc1.users.add(self.user2)
+        r = self.query_response(
+            website_id=odc_task.id, detection_point_id=detection_point1.id,
+            query_tag=WebsiteQueryChoices.DURATION_SECONDS.value)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data, [])
+
     def query_response(self, website_id: str, query_tag: str, detection_point_id: str):
         url = reverse('monitor-api:website-data-query', kwargs={'id': website_id})
         query = parse.urlencode(query={'query': query_tag, 'detection_point_id': detection_point_id})
@@ -2172,6 +2222,31 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
             start=start, end=end, step=step, detection_point_id=detection_point1.id
         )
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        # test odc admin
+        odc1 = OrgDataCenter(name='odc1', name_en='odc en', organization=None)
+        odc1.save(force_insert=True)
+        nt = timezone.now()
+        odc_task = MonitorWebsite(
+            name='test',
+            scheme='https://',
+            hostname='127.0.0.1:8888',
+            uri='/',
+            remark='', user=None, odc=odc1,
+            creation=nt, modification=nt
+        )
+        odc_task.save(force_insert=True)
+        r = self.query_range_response(
+            website_id=odc_task.id, detection_point_id=detection_point1.id,
+            query_tag=WebsiteQueryChoices.DURATION_SECONDS.value, start=start, end=end, step=step)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        odc1.users.add(self.user2)
+        r = self.query_range_response(
+            website_id=odc_task.id, detection_point_id=detection_point1.id,
+            query_tag=WebsiteQueryChoices.DURATION_SECONDS.value, start=start, end=end, step=step)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data, [])
 
     def query_range_response(
             self, website_id: str, detection_point_id: str,
