@@ -164,6 +164,9 @@ class CreateUserJWTAuthentication(authentication.BaseAuthentication):
         try:
             user.save(force_insert=True)
         except Exception as e:
-            raise AuthenticationFailed(_('User create failed') + f';error: {str(e)}', code='user_create_failed')
+            try:
+                user = self.user_model.objects.get(**{JWT_SETTINGS.USER_ID_FIELD: user_id})
+            except self.user_model.DoesNotExist:
+                raise AuthenticationFailed(_('User create failed') + f';error: {str(e)}', code='user_create_failed')
 
         return user
