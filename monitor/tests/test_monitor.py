@@ -1828,7 +1828,6 @@ class MonitorWebsiteTests(MyAPITestCase):
             name='name1', scheme='https://', hostname='111.com', uri='/', is_tamper_resistant=True,
             remark='remark1', user_id=self.user.id, creation=nt, modification=nt
         )
-        user_website1.url = user_website1.full_url
         user_website1.save(force_insert=True)
 
         nt = timezone.now()
@@ -1843,7 +1842,6 @@ class MonitorWebsiteTests(MyAPITestCase):
             name='name3', scheme='https://', hostname='333.com', uri='/', is_tamper_resistant=True,
             remark='remark3', user_id=user3.id, creation=nt, modification=nt
         )
-        user3_website3.url = user3_website3.full_url
         user3_website3.save(force_insert=True)
 
         # ok, list
@@ -1861,6 +1859,60 @@ class MonitorWebsiteTests(MyAPITestCase):
             url1 = item['scheme'] + item['hostname'] + item['uri']
             self.assertEqual(url1, user2_website1.full_url)
             self.assertIn(item['email'], [self.user.username, self.user2.username])
+
+        # test odc
+        user4 = get_or_create_user(username='u4@cstnet.cn')
+        odc1 = OrgDataCenter(name='odc1', name_en='odc1 en', organization=None)
+        odc1.save(force_insert=True)
+        odc2 = OrgDataCenter(name='odc2', name_en='odc2 en', organization=None)
+        odc2.save(force_insert=True)
+        nt = timezone.now()
+        odc1_website1 = MonitorWebsite(
+            name='odc name1', scheme='https://', hostname='111.com', uri='/', is_tamper_resistant=False,
+            remark='remark odc', user_id=None, odc=odc1, creation=nt, modification=nt
+        )
+        odc1_website1.save(force_insert=True)
+        nt = timezone.now()
+        odc2_website1 = MonitorWebsite(
+            name='odc name2', scheme='https://', hostname='111.com', uri='/', is_tamper_resistant=False,
+            remark='remark odc2', user_id=None, odc=odc2, creation=nt, modification=nt
+        )
+        odc2_website1.save(force_insert=True)
+
+        query = parse.urlencode(query={'url_hash': url_hash})
+        r = self.client.get(path=f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=['url_hash', 'results'], container=r.data)
+        self.assertEqual(r.data['url_hash'], url_hash)
+        self.assertEqual(len(r.data['results']), 2)
+        self.assertKeysIn(keys=[
+            'scheme', 'hostname', 'uri', 'email'
+        ], container=r.data['results'][0])
+        for item in r.data['results']:
+            url1 = item['scheme'] + item['hostname'] + item['uri']
+            self.assertEqual(url1, user2_website1.full_url)
+            self.assertIn(item['email'], [self.user.username, self.user2.username])
+
+        odc1.users.add(self.user, self.user2, user3)
+        odc2.users.add(self.user2, user4)
+        r = self.client.get(path=f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=['url_hash', 'results'], container=r.data)
+        self.assertEqual(r.data['url_hash'], url_hash)
+        self.assertEqual(len(r.data['results']), 4)
+        self.assertKeysIn(keys=[
+            'scheme', 'hostname', 'uri', 'email'
+        ], container=r.data['results'][0])
+        for item in r.data['results']:
+            url1 = item['scheme'] + item['hostname'] + item['uri']
+            self.assertEqual(url1, user2_website1.full_url)
+            self.assertIn(item['email'], [self.user.username, self.user2.username, user3.username, user4.username])
+
+        ret_emails = [item['email'] for item in r.data['results']]
+        ret_emails.sort()
+        target_emails = [self.user.username, self.user2.username, user3.username, user4.username]
+        target_emails.sort()
+        self.assertEqual(ret_emails, target_emails)
 
 
 class MonitorWebsiteQueryTests(MyAPITestCase):

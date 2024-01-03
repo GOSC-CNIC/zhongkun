@@ -1005,7 +1005,7 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
     @action(methods=['get'], detail=False, url_path='user/email', url_name='user-email')
     def get_site_user_emails(self, request, *args, **kwargs):
         """
-        查询监控同一个网站的所有用户的邮件地址，不需要身份验证，只有指定的ip可访问
+        查询监控同一个网站的所有用户和数据中心管理员的邮件地址，不需要身份验证，只有指定的ip可访问
 
             http code 200:
             {

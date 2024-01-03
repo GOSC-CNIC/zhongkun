@@ -917,14 +917,38 @@ class MonitorWebsiteManager:
     @staticmethod
     def get_site_user_emails(url_hash: str):
         qs = MonitorWebsite.objects.filter(url_hash=url_hash).values(
-            'scheme', 'hostname', 'uri', 'user__username')
+            'scheme', 'hostname', 'uri', 'user__username', 'odc_id')
 
-        data = []
+        data = {}
+        odc_ids = []
+        base_valus = None
         for d in qs:
-            d['email'] = d.pop('user__username', None)
-            data.append(d)
+            odc_id = d.pop('odc_id', None)
+            if odc_id:
+                odc_ids.append(odc_id)
+                if not base_valus:
+                    base_valus = {'scheme': d['scheme'], 'hostname': d['hostname'], 'uri': d['uri']}
 
-        return data
+            if not d['user__username']:
+                continue
+
+            em = d.pop('user__username', None)
+            d['email'] = em
+            data[em] = d
+
+        # odc admin
+        if odc_ids:
+            odc_ids = list(set(odc_ids))
+            odc_emails = OrgDataCenterManager.get_odc_admin_emails(odc_ids=odc_ids)
+            if not base_valus:
+                base_valus = {'scheme': '', 'hostname': '', 'uri': ''}
+            for em in odc_emails:
+                if em and em not in data:
+                    item = base_valus.copy()
+                    item['email'] = em
+                    data[em] = item
+
+        return list(data.values())
 
 
 class MonitorJobTiDBManager:

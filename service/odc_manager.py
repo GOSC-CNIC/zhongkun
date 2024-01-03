@@ -232,3 +232,14 @@ class OrgDataCenterManager:
     def is_admin_of_odc(odc_id, user_id):
         return OrgDataCenter.objects.filter(id=odc_id, users__id=user_id).exists()
 
+    @staticmethod
+    def get_odc_admin_emails(odc_ids: list):
+        if not odc_ids:
+            return []
+        if len(odc_ids) == 1:
+            lookups = {'id': odc_ids[0]}
+        else:
+            lookups = {'id__in': odc_ids}
+
+        qs = OrgDataCenter.objects.filter(**lookups).values_list('users__username', flat=True)
+        return list(qs)
