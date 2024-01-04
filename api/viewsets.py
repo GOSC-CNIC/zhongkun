@@ -74,10 +74,8 @@ def exception_handler(exc, context):
     to be raised.
     """
     if isinstance(exc, exceptions.Error):
-        set_rollback()
-        return Response(exc.err_data(), status=exc.status_code)
-
-    if isinstance(exc, Http404):
+        pass
+    elif isinstance(exc, Http404):
         exc = exceptions.NotFound()
     elif isinstance(exc, PermissionDenied):
         exc = exceptions.AccessDenied(message=str(exc))
@@ -96,8 +94,40 @@ def exception_handler(exc, context):
         exc = exceptions.convert_to_error(exc)
 
     set_rollback()
-    logger.error(msg=str(exc))
-    return Response(exc.err_data(), status=exc.status_code)
+    status_code = exc.status_code
+    msg = str(exc)
+    try:
+        request = context.get('request', None)
+        if request:
+            msg = f'{status_code} {request.method} {request.get_full_path()} [{msg}]'
+    except Exception:
+        pass
+
+    logger.error(msg=msg)
+    return Response(exc.err_data(), status=status_code)
+
+
+def log_err_response(_logger, request, response):
+    """
+    状态码>=400才记录
+    """
+    msg = f'{response.status_code} {request.method} {request.get_full_path()}'
+    if 400 <= response.status_code:
+        err_msg = response.data.get('message', '')
+        code = response.data.get('code', '')
+        if err_msg and code:
+            err_msg = f'[{code}:{err_msg}]'
+        if not err_msg:
+            err_msg = f'{response.data}'
+
+        msg = f'{msg} {err_msg}'
+
+    if 400 <= response.status_code < 500:
+        _logger.warning(msg)
+    elif response.status_code >= 500:
+        _logger.error(msg)
+    else:
+        pass
 
 
 class CustomGenericViewSetMixin:
@@ -130,12 +160,29 @@ class CustomGenericViewSetMixin:
         return Response(data=exc.err_data(), status=exc.status_code)
 
 
-class NormalGenericViewSet(CustomGenericViewSetMixin, viewsets.GenericViewSet):
+class BaseGenericViewSet(viewsets.GenericViewSet):
+    def finalize_response(self, request, response, *args, **kwargs):
+        response = super().finalize_response(request=request, response=response, *args, **kwargs)
+        # 如果是发生了异常，异常处理函数内已经记录了日志
+        if getattr(response, 'exception', False):
+            return response
+
+        try:
+            if response.status_code >= 400:
+                log_err_response(_logger=logger, request=request, response=response)
+                response._has_been_logged = True    # 告诉django已经记录过日志，不需再此记录了
+        except Exception:
+            pass
+
+        return response
+
+
+class NormalGenericViewSet(CustomGenericViewSetMixin, BaseGenericViewSet):
     from django.db.models import QuerySet
     queryset = QuerySet().none()
 
 
-class CustomGenericViewSet(CustomGenericViewSetMixin, viewsets.GenericViewSet):
+class CustomGenericViewSet(CustomGenericViewSetMixin, BaseGenericViewSet):
     queryset = QuerySet().none()
 
     @staticmethod
@@ -196,7 +243,7 @@ class CustomGenericViewSet(CustomGenericViewSetMixin, viewsets.GenericViewSet):
         return ServiceManager.get_service(service_id=service_id)
 
 
-class StorageGenericViewSet(CustomGenericViewSetMixin, viewsets.GenericViewSet):
+class StorageGenericViewSet(CustomGenericViewSetMixin, BaseGenericViewSet):
     queryset = QuerySet().none()
 
     @staticmethod
@@ -243,7 +290,7 @@ class StorageGenericViewSet(CustomGenericViewSetMixin, viewsets.GenericViewSet):
         return ObjectsServiceManager.get_service(service_id=service_id)
 
 
-class AsRoleGenericViewSet(viewsets.GenericViewSet):
+class AsRoleGenericViewSet(BaseGenericViewSet):
     from django.db.models import QuerySet
     queryset = QuerySet().none()
 

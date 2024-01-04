@@ -6,10 +6,10 @@ from rest_framework import viewsets
 from core import errors as exceptions
 from bill.signers import SignatureResponse, SignatureRequest, SignatureParser
 from bill.models import PayApp
-from api.viewsets import CustomGenericViewSetMixin
+from api.viewsets import CustomGenericViewSetMixin, BaseGenericViewSet
 
 
-class PaySignGenericViewSet(CustomGenericViewSetMixin, viewsets.GenericViewSet):
+class PaySignGenericViewSet(CustomGenericViewSetMixin, BaseGenericViewSet):
     """
     仅限JSON格式数据api视图使用
     """
@@ -86,7 +86,7 @@ class PaySignGenericViewSet(CustomGenericViewSetMixin, viewsets.GenericViewSet):
         return app
 
 
-class TradeGenericViewSet(CustomGenericViewSetMixin, viewsets.GenericViewSet):
+class TradeGenericViewSet(CustomGenericViewSetMixin, BaseGenericViewSet):
     """
     交易视图
     """
