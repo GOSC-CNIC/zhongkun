@@ -130,3 +130,13 @@ class OrgObjTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['page_size'], 100)
         self.assertEqual(len(response.data['results']), 1)
         self.assertEqual(response.data['results'][0]['id'], virt_obj3.id)
+
+        query = parse.urlencode(query={'search': 'org1'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 100)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['id'], virt_obj1.id)

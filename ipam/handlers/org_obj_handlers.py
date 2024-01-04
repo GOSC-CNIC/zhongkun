@@ -74,7 +74,8 @@ class OrgVirtObjHandler:
             if org_id:
                 qs = qs.filter(organization_id=org_id)
             if search:
-                qs = qs.filter(Q(name__icontains=search) | Q(remark__icontains=search))
+                qs = qs.filter(Q(name__icontains=search) | Q(remark__icontains=search) | Q(
+                    organization__name__icontains=search))
 
             objs = view.paginate_queryset(qs)
             serializer = serializers.OrgVirtualObjectSimpleSerializer(instance=objs, many=True)

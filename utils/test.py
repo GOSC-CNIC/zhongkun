@@ -27,7 +27,7 @@ def get_or_create_user(username='test', password='password', company: str = 'cni
 def get_or_create_center(name='test'):
     center = DataCenter.objects.filter(name=name, name_en='test_en').first()
     if center is None:
-        center = DataCenter(name='test', name_en='test_en')
+        center = DataCenter(name=name, name_en='test_en')
         center.save(force_insert=True)
 
     return center
