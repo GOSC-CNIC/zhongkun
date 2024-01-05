@@ -1001,7 +1001,7 @@ class ODCTests(MyAPITransactionTestCase):
         org2 = get_or_create_organization(name='test org2')
         odc1 = OrgDataCenterManager.create_org_dc(
             name='测试', name_en='test11', organization_id=self.org.id,
-            longitude=-10, latitude=80, sort_weight=0, remark='Test Remark66',
+            longitude=-10, latitude=80, sort_weight=0, remark='test remark66',
             thanos_endpoint_url='https://thanosxxxx.cn', thanos_receive_url='https://thanosrexxxx.cn',
             thanos_username='tom@cnic.cn', thanos_password='test123456', thanos_remark='thanos remark',
             loki_endpoint_url='https://lokixxxx.cn', loki_receive_url='https://lokerexxxx.cn',
@@ -1065,7 +1065,7 @@ class ODCTests(MyAPITransactionTestCase):
         self.assertEqual(len(response.data['results']), 1)
         self.assertEqual(response.data['results'][0]['id'], odc1.id)
 
-        query = parse.urlencode(query={'search': 'Test Remark'})
+        query = parse.urlencode(query={'search': 'test remark'})
         response = self.client.get(f'{url}?{query}')
         self.assertEqual(response.data['count'], 2)
         self.assertEqual(len(response.data['results']), 2)
