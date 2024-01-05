@@ -1,12 +1,13 @@
 from django.db import models, transaction
 from django.conf import settings
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext, gettext_lazy as _
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 
 from service.models import DataCenter, OrgDataCenter
 from utils.model import UuidModel, get_encryptor
+from utils.validators import http_url_validator
 from bill.models import PayAppService
 
 
@@ -71,6 +72,9 @@ class ObjectsService(UuidModel):
     loki_tag = models.CharField(
         verbose_name=_('对应loki日志中集群标识'), max_length=128, blank=True, default='',
         help_text=_('服务单元在Loki访问日志中对应的对象存储集群标识，用于计量网络流量、请求量等信息时标识对应关系'))
+    monitor_task_id = models.CharField(
+        verbose_name=_('服务单元对应监控任务ID'), max_length=36, blank=True, default='', editable=False,
+        help_text=_('记录为服务单元创建的站点监控任务的ID'))
 
     class Meta:
         db_table = 'object_service'
@@ -151,12 +155,18 @@ class ObjectsService(UuidModel):
         app_service = PayAppService.objects.filter(id=pay_app_service_id).first()
         if app_service is None:
             raise ValidationError(message={
-                'pay_app_service_id': '结算服务单元不存在，请仔细确认。如果是新建服务单元不需要手动填写结算服务单元id，'
-                                      '保持为空，保存后会自动注册对应的结算单元，并填充此字段'})
+                'pay_app_service_id': gettext('结算服务单元不存在，请仔细确认。如果是新建服务单元不需要手动填写结算服务单元id，'
+                                              '保持为空，保存后会自动注册对应的结算单元，并填充此字段')})
 
         return app_service
 
     def clean(self):
+        # 网址验证
+        try:
+            http_url_validator(self.endpoint_url)
+        except ValidationError:
+            raise ValidationError(message={'endpoint_url': gettext('不是一个有效的网址')})
+
         if self.pay_app_service_id:
             self.check_pay_app_service_id(self.pay_app_service_id)
 
@@ -179,6 +189,102 @@ class ObjectsService(UuidModel):
 
     def ftp_domains_list(self):
         return self.ftp_domains.split(',')
+
+    def create_or_change_monitor_task(self, only_delete: bool = False):
+        """
+        自动为服务单元创建或更新监控任务
+        :return: str
+            ''      # 没有做任何操作
+            create  # 创建
+            change  # 更新
+            delete  # 删除
+        """
+        from monitor.managers import MonitorWebsiteManager
+
+        act = ''
+        monitor_url = self.endpoint_url
+
+        # 只删除
+        if only_delete:
+            if self.monitor_task_id:
+                task = MonitorWebsiteManager.get_website_by_id(website_id=self.monitor_task_id)
+                if task:
+                    self.remove_monitor_task(task)
+                    act = 'delete'
+
+            return act
+
+        # 检查是否变化并更新
+        if self.monitor_task_id:
+            task = MonitorWebsiteManager.get_website_by_id(website_id=self.monitor_task_id)
+            if task is None:    # 监控任务不存在，可能被删除了
+                if monitor_url:   # 创建监控任务
+                    self.create_monitor_task(http_url=monitor_url)
+                    act = 'create'
+            else:   # 监控网址是否变化
+                if not monitor_url:   # 无效,删除监控任务
+                    self.remove_monitor_task(task)
+                    act = 'delete'
+                else:
+                    scheme, hostname, uri = MonitorWebsiteManager.parse_http_url(http_url=monitor_url)
+                    if not uri:
+                        uri = '/'
+
+                    if task.full_url != (scheme + hostname + uri):
+                        task.name = self.name
+                        task.odc_id = self.org_data_center_id
+                        task.remark = gettext('自动为对象存储服务单元“%s”创建的监控任务') % self.name
+                        MonitorWebsiteManager.do_change_website_task(
+                            user_website=task, new_scheme=scheme, new_hostname=hostname, new_uri=uri,
+                            new_tamper_resistant=False)
+                        act = 'change'
+                    elif task.odc_id != self.org_data_center_id:
+                        task.odc_id = self.org_data_center_id
+                        update_fields = ['odc_id']
+                        if task.name != self.name:
+                            task.name = self.name
+                            task.remark = gettext('自动为对象存储服务单元“%s”创建的监控任务') % self.name
+                            update_fields.append('name')
+                            update_fields.append('remark')
+
+                        task.save(update_fields=update_fields)
+                        act = 'change'
+        else:
+            if monitor_url:  # 创建监控任务
+                self.create_monitor_task(http_url=monitor_url)
+                act = 'create'
+
+        return act
+
+    def create_monitor_task(self, http_url: str):
+        """
+        请在创建任务前，确认没有对应监控任务存在
+        """
+        from monitor.managers import MonitorWebsiteManager
+
+        scheme, hostname, uri = MonitorWebsiteManager.parse_http_url(http_url=http_url)
+        if not uri:
+            uri = '/'
+        with transaction.atomic():
+            task = MonitorWebsiteManager.add_website_task(
+                name=self.name, scheme=scheme, hostname=hostname, uri=uri, is_tamper_resistant=False,
+                remark=gettext('自动为对象存储服务单元“%s”创建的监控任务') % self.name,
+                user_id=None, odc_id=self.org_data_center_id)
+            self.monitor_task_id = task.id
+            self.save(update_fields=['monitor_task_id'])
+
+        return task
+
+    def remove_monitor_task(self, task):
+        """
+        删除对应监控任务
+        """
+        from monitor.managers import MonitorWebsiteManager
+
+        with transaction.atomic():
+            MonitorWebsiteManager.do_delete_website_task(user_website=task)
+            self.monitor_task_id = ''
+            self.save(update_fields=['monitor_task_id'])
 
 
 class BucketBase(UuidModel):

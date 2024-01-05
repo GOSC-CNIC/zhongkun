@@ -2,7 +2,7 @@ import math
 from urllib.parse import urlsplit
 
 from django.db import models, transaction
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext_lazy, gettext as _
 from django.utils import timezone
 from django.core.cache import cache as django_cache
 from django.core.validators import URLValidator
@@ -27,59 +27,59 @@ from .backends.monitor_tidb import MonitorTiDBQueryAPI
 
 
 class CephQueryChoices(models.TextChoices):
-    HEALTH_STATUS = 'health_status', _('Ceph健康状态')
-    CLUSTER_TOTAL_BYTES = 'cluster_total_bytes', _('Ceph集群存储容量')
-    CLUSTER_TOTAL_USED_BYTES = 'cluster_total_used_bytes', _('Ceph集群已用存储容量')
-    OSD_IN = 'osd_in', _('Ceph集群内OSD数')
-    OSD_OUT = 'osd_out', _('Ceph集群外OSD数')
-    OSD_UP = 'osd_up', _('Ceph集群活着且在运行OSD数')
-    OSD_DOWN = 'osd_down', _('Ceph集群挂了且不再运行OSD数')
-    ALL_TOGETHER = 'all_together', _('一起查询所有指标')
+    HEALTH_STATUS = 'health_status', gettext_lazy('Ceph健康状态')
+    CLUSTER_TOTAL_BYTES = 'cluster_total_bytes', gettext_lazy('Ceph集群存储容量')
+    CLUSTER_TOTAL_USED_BYTES = 'cluster_total_used_bytes', gettext_lazy('Ceph集群已用存储容量')
+    OSD_IN = 'osd_in', gettext_lazy('Ceph集群内OSD数')
+    OSD_OUT = 'osd_out', gettext_lazy('Ceph集群外OSD数')
+    OSD_UP = 'osd_up', gettext_lazy('Ceph集群活着且在运行OSD数')
+    OSD_DOWN = 'osd_down', gettext_lazy('Ceph集群挂了且不再运行OSD数')
+    ALL_TOGETHER = 'all_together', gettext_lazy('一起查询所有指标')
 
 
 class ServerQueryChoices(models.TextChoices):
-    HOST_COUNT = 'host_count', _('主机数量')
-    HOST_UP_COUNT = 'host_up_count', _('在线主机数量')
-    HEALTH_STATUS = 'health_status', _('主机集群健康状态')
-    CPU_USAGE = 'cpu_usage', _('集群平均CPU使用率')
-    MEM_USAGE = 'mem_usage', _('集群平均内存使用率')
-    DISK_USAGE = 'disk_usage', _('集群平均磁盘使用率')
-    MIN_CPU_USAGE = 'min_cpu_usage', _('集群最小CPU使用率')
-    MAX_CPU_USAGE = 'max_cpu_usage', _('集群最大CPU使用率')
-    MIN_MEM_USAGE = 'min_mem_usage', _('集群最小内存使用率')
-    MAX_MEM_USAGE = 'max_mem_usage', _('集群最大内存使用率')
-    MIN_DISK_USAGE = 'min_disk_usage', _('集群最小磁盘使用率')
-    MAX_DISK_USAGE = 'max_disk_usage', _('集群最大磁盘使用率')
-    ALL_TOGETHER = 'all_together', _('一起查询所有指标')
+    HOST_COUNT = 'host_count', gettext_lazy('主机数量')
+    HOST_UP_COUNT = 'host_up_count', gettext_lazy('在线主机数量')
+    HEALTH_STATUS = 'health_status', gettext_lazy('主机集群健康状态')
+    CPU_USAGE = 'cpu_usage', gettext_lazy('集群平均CPU使用率')
+    MEM_USAGE = 'mem_usage', gettext_lazy('集群平均内存使用率')
+    DISK_USAGE = 'disk_usage', gettext_lazy('集群平均磁盘使用率')
+    MIN_CPU_USAGE = 'min_cpu_usage', gettext_lazy('集群最小CPU使用率')
+    MAX_CPU_USAGE = 'max_cpu_usage', gettext_lazy('集群最大CPU使用率')
+    MIN_MEM_USAGE = 'min_mem_usage', gettext_lazy('集群最小内存使用率')
+    MAX_MEM_USAGE = 'max_mem_usage', gettext_lazy('集群最大内存使用率')
+    MIN_DISK_USAGE = 'min_disk_usage', gettext_lazy('集群最小磁盘使用率')
+    MAX_DISK_USAGE = 'max_disk_usage', gettext_lazy('集群最大磁盘使用率')
+    ALL_TOGETHER = 'all_together', gettext_lazy('一起查询所有指标')
 
 
 class VideoMeetingQueryChoices(models.TextChoices):
-    NODE_STATUS = 'node_status', _('节点在线状态')
-    NODE_LATENCY = 'node_lantency', _('节点延迟')
+    NODE_STATUS = 'node_status', gettext_lazy('节点在线状态')
+    NODE_LATENCY = 'node_lantency', gettext_lazy('节点延迟')
 
 
 class WebsiteQueryChoices(models.TextChoices):
-    SUCCESS = 'success', _('tcp或http是否成功')
-    DURATION_SECONDS = 'duration_seconds', _('tcp或http请求耗时')
-    HTTP_STATUS_STATUS = 'http_status_code', _('http请求状态码')
-    HTTP_DURATION_SECONDS = 'http_duration_seconds', _('http请求各个部分耗时')
+    SUCCESS = 'success', gettext_lazy('tcp或http是否成功')
+    DURATION_SECONDS = 'duration_seconds', gettext_lazy('tcp或http请求耗时')
+    HTTP_STATUS_STATUS = 'http_status_code', gettext_lazy('http请求状态码')
+    HTTP_DURATION_SECONDS = 'http_duration_seconds', gettext_lazy('http请求各个部分耗时')
 
 
 class TiDBQueryChoices(models.TextChoices):
-    PD_NODES = 'pd_nodes', _('pd节点')
-    TIDB_NODES = 'tidb_nodes', _('tidb节点')
-    TIKV_NODES = 'tikv_nodes', _('tivk节点')
-    CONNECTIONS_COUNT = 'connections_count', _('连接数')
-    QPS = 'qps', _('每秒请求数')
-    REGION_COUNT = 'region_count', _('副本数量')
-    REGION_HEALTH = 'region_health', _('副本状态')
-    STORAGE_CAPACITY = 'storage_capacity', _('存储总容量')
-    CURRENT_STORAGE_SIZE = 'current_storage_size', _('当前存储容量')
-    STORAGE = 'storage', _('存储总容量和当前已用容量')
-    SERVER_CPU_USAGE = 'server_cpu_usage', _('主机CPU使用率')
-    SERVER_MEM_USAGE = 'server_mem_usage', _('主机内存使用率')
-    SERVER_DISK_USAGE = 'server_disk_usage', _('主机硬盘使用率')
-    ALL_TOGETHER = 'all_together', _('一起查询所有指标')
+    PD_NODES = 'pd_nodes', gettext_lazy('pd节点')
+    TIDB_NODES = 'tidb_nodes', gettext_lazy('tidb节点')
+    TIKV_NODES = 'tikv_nodes', gettext_lazy('tivk节点')
+    CONNECTIONS_COUNT = 'connections_count', gettext_lazy('连接数')
+    QPS = 'qps', gettext_lazy('每秒请求数')
+    REGION_COUNT = 'region_count', gettext_lazy('副本数量')
+    REGION_HEALTH = 'region_health', gettext_lazy('副本状态')
+    STORAGE_CAPACITY = 'storage_capacity', gettext_lazy('存储总容量')
+    CURRENT_STORAGE_SIZE = 'current_storage_size', gettext_lazy('当前存储容量')
+    STORAGE = 'storage', gettext_lazy('存储总容量和当前已用容量')
+    SERVER_CPU_USAGE = 'server_cpu_usage', gettext_lazy('主机CPU使用率')
+    SERVER_MEM_USAGE = 'server_mem_usage', gettext_lazy('主机内存使用率')
+    SERVER_DISK_USAGE = 'server_disk_usage', gettext_lazy('主机硬盘使用率')
+    ALL_TOGETHER = 'all_together', gettext_lazy('一起查询所有指标')
 
 
 class URLTCPValidator(URLValidator):

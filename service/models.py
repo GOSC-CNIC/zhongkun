@@ -493,7 +493,7 @@ class ServiceConfig(BaseService):
 
         return {}
 
-    def create_or_change_monitor_task(self):
+    def create_or_change_monitor_task(self, only_delete: bool = False):
         """
         自动为服务单元创建或更新监控任务
         :return: str
@@ -506,6 +506,17 @@ class ServiceConfig(BaseService):
 
         act = ''
         monitor_url = self.endpoint_url
+
+        # 只删除
+        if only_delete:
+            if self.monitor_task_id:
+                task = MonitorWebsiteManager.get_website_by_id(website_id=self.monitor_task_id)
+                if task:
+                    self.remove_monitor_task(task)
+                    act = 'delete'
+
+            return act
+
         # 检查是否变化并更新
         if self.monitor_task_id:
             task = MonitorWebsiteManager.get_website_by_id(website_id=self.monitor_task_id)
@@ -515,11 +526,8 @@ class ServiceConfig(BaseService):
                     act = 'create'
             else:   # 监控网址是否变化
                 if not monitor_url:   # 无效,删除监控任务
-                    with transaction.atomic():
-                        MonitorWebsiteManager.do_delete_website_task(user_website=task)
-                        self.monitor_task_id = ''
-                        self.save(update_fields=['monitor_task_id'])
-                        act = 'delete'
+                    self.remove_monitor_task(task)
+                    act = 'delete'
                 else:
                     scheme, hostname, uri = MonitorWebsiteManager.parse_http_url(http_url=monitor_url)
                     if not uri:
@@ -569,6 +577,17 @@ class ServiceConfig(BaseService):
             self.save(update_fields=['monitor_task_id'])
 
         return task
+
+    def remove_monitor_task(self, task):
+        """
+        删除对应监控任务
+        """
+        from monitor.managers import MonitorWebsiteManager
+
+        with transaction.atomic():
+            MonitorWebsiteManager.do_delete_website_task(user_website=task)
+            self.monitor_task_id = ''
+            self.save(update_fields=['monitor_task_id'])
 
 
 class ServiceQuotaBase(UuidModel):

@@ -36,7 +36,7 @@ class ObjectsServiceAdmin(admin.ModelAdmin):
 
     list_display = ('id', 'name', 'name_en', 'org_data_center', 'organization_name', 'service_type',
                     'sort_weight', 'endpoint_url', 'add_time', 'status',
-                    'username', 'raw_password', 'provide_ftp', 'pay_app_service_id', 'loki_tag')
+                    'username', 'raw_password', 'provide_ftp', 'pay_app_service_id', 'monitor_task_id', 'loki_tag')
 
     search_fields = ['name', 'name_en', 'endpoint_url', 'remarks']
     list_filter = [ServiceOrgFilter,]
@@ -45,7 +45,7 @@ class ObjectsServiceAdmin(admin.ModelAdmin):
     raw_id_fields = ('org_data_center',)
 
     filter_horizontal = ('users',)
-    readonly_fields = ('password', )
+    readonly_fields = ('password', 'monitor_task_id')
     fieldsets = (
         (_('说明、备注'), {'fields': ('remarks', 'sort_weight')}),
         (_('服务配置信息'), {
@@ -61,7 +61,7 @@ class ObjectsServiceAdmin(admin.ModelAdmin):
         (_('联系人信息'), {
             'fields': ('contact_person', 'contact_email', 'contact_telephone', 'contact_fixed_phone', 'contact_address')
         }),
-        (_('其他'), {'fields': ('loki_tag',)}),
+        (_('其他'), {'fields': ('monitor_task_id', 'delete_monitor_task', 'loki_tag',)}),
     )
 
     @admin.display(description=_("原始密码"))
@@ -82,7 +82,7 @@ class ObjectsServiceAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         return False
 
-    def save_model(self, request, obj: models.ObjectsService, form, change):
+    def save_model(self, request, obj: models.ObjectsService, form: forms.ObjectsServiceForm, change):
         if change:
             super().save_model(request=request, obj=obj, form=form, change=change)
             try:
@@ -93,6 +93,18 @@ class ObjectsServiceAdmin(admin.ModelAdmin):
             with transaction.atomic():
                 super().save_model(request=request, obj=obj, form=form, change=change)
                 obj.check_or_register_pay_app_service()
+
+        try:
+            delete_monitor_task = form.cleaned_data.get('delete_monitor_task', False)
+            act = obj.create_or_change_monitor_task(only_delete=delete_monitor_task)
+            if act == 'create':
+                self.message_user(request, _("为服务单元创建了对应的站点监控任务"), level=messages.SUCCESS)
+            elif act == 'change':
+                self.message_user(request, _("更新了服务单元对应的站点监控任务"), level=messages.SUCCESS)
+            elif act == 'delete':
+                self.message_user(request, _("删除了服务单元对应的站点监控任务"), level=messages.SUCCESS)
+        except Exception as exc:
+            self.message_user(request, _("创建或更新服务单元对应的站点监控任务错误") + str(exc), level=messages.ERROR)
 
 
 @admin.register(models.Bucket)

@@ -16,6 +16,9 @@ class VmsProviderForm(forms.ModelForm):
                                       help_text=_('如果要更改服务认证用户密码，请在此输入新密码, 不修改请保持为空'))
     change_vpn_password = forms.CharField(label=_('更改VPN用户密码输入'), required=False, min_length=6, max_length=32,
                                           help_text=_('如果要更改服务VPN认证用户密码，请在此输入新密码, 不修改请保持为空'))
+    delete_monitor_task = forms.BooleanField(
+        label=_('移除对应监控任务'), required=False,
+        help_text=_('当服务单元不可用，或者停用后，自动创建的对应监控任务不再需要了，可以选择删除对应监控任务'))
 
     class Meta:
         widgets = {

@@ -24,7 +24,7 @@ class Error(Exception):
         return f'{type(self)}(message={self.message}, code={self.code}, status_code={self.status_code})'
 
     def __str__(self):
-        return self.message
+        return str(self.message)
 
     def detail_str(self):
         return self.__repr__()
