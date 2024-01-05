@@ -3,12 +3,12 @@ import json
 from django.db import models
 from django.db import transaction
 from django.conf import settings
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext, gettext_lazy as _
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 
 from utils.model import UuidModel, get_encryptor
-from utils.validators import json_string_validator
+from utils.validators import json_string_validator, http_url_validator
 from core import errors
 from vo.models import VirtualOrganization
 from adapters.params import OpenStackParams
@@ -114,25 +114,37 @@ class OrgDataCenter(UuidModel):
     sort_weight = models.IntegerField(verbose_name=_('排序值'), default=0, help_text=_('值越小排序越靠前'))
     remark = models.TextField(verbose_name=_('数据中心备注'), max_length=10000, blank=True, default='')
 
-    # Thanos
+    # 指标数据服务
     thanos_endpoint_url = models.CharField(
-        verbose_name=_('Thanos服务查询接口'), max_length=255, blank=True, default='', help_text=_('http(s)://example.cn/'))
+        verbose_name=_('指标监控系统查询接口'), max_length=255, blank=True, default='', help_text=_('http(s)://example.cn/'))
     thanos_username = models.CharField(
-        max_length=128, verbose_name=_('Thanos服务认证用户名'), blank=True, default='', help_text=_('用于此服务认证的用户名'))
-    thanos_password = models.CharField(max_length=255, verbose_name=_('Thanos服务认证密码'), blank=True, default='')
+        max_length=128, verbose_name=_('指标监控系统认证用户名'), blank=True, default='', help_text=_('用于此服务认证的用户名'))
+    thanos_password = models.CharField(max_length=255, verbose_name=_('指标监控系统认证密码'), blank=True, default='')
     thanos_receive_url = models.CharField(
-        verbose_name=_('Thanos服务接收接口'), max_length=255, blank=True, default='', help_text=_('http(s)://example.cn/'))
-    thanos_remark = models.CharField(verbose_name=_('Thanos服务备注'), max_length=255, blank=True, default='')
+        verbose_name=_('指标监控系统接收接口'), max_length=255, blank=True, default='', help_text=_('http(s)://example.cn/'))
+    thanos_remark = models.CharField(verbose_name=_('指标监控系统备注'), max_length=255, blank=True, default='')
+    metric_monitor_url = models.CharField(
+        verbose_name=_('指标监控系统监控网址'), max_length=255, blank=True, default='',
+        help_text=_('如果填写有效网址会自动创建对应的站点监控任务，格式为 http(s)://example.cn/'))
+    metric_task_id = models.CharField(
+        verbose_name=_('指标监控系统监控任务ID'), max_length=36, blank=True, default='', editable=False,
+        help_text=_('记录为指标监控系统监控地址创建的站点监控任务的ID'))
 
-    # Loki
+    # 日志服务
     loki_endpoint_url = models.CharField(
-        verbose_name=_('Loki服务查询接口'), max_length=255, blank=True, default='', help_text=_('http(s)://example.cn/'))
+        verbose_name=_('日志聚合系统查询接口'), max_length=255, blank=True, default='', help_text=_('http(s)://example.cn/'))
     loki_username = models.CharField(
-        max_length=128, verbose_name=_('Loki服务认证用户名'), blank=True, default='', help_text=_('用于此服务认证的用户名'))
-    loki_password = models.CharField(max_length=255, verbose_name=_('Loki服务认证密码'), blank=True, default='')
+        max_length=128, verbose_name=_('日志聚合系统认证用户名'), blank=True, default='', help_text=_('用于此服务认证的用户名'))
+    loki_password = models.CharField(max_length=255, verbose_name=_('日志聚合系统认证密码'), blank=True, default='')
     loki_receive_url = models.CharField(
-        verbose_name=_('Loki服务接收接口'), max_length=255, blank=True, default='', help_text=_('http(s)://example.cn/'))
-    loki_remark = models.CharField(verbose_name=_('Loki服务备注'), max_length=255, blank=True, default='')
+        verbose_name=_('日志聚合系统接收接口'), max_length=255, blank=True, default='', help_text=_('http(s)://example.cn/'))
+    loki_remark = models.CharField(verbose_name=_('日志聚合系统备注'), max_length=255, blank=True, default='')
+    log_monitor_url = models.CharField(
+        verbose_name=_('日志聚合系统监控网址'), max_length=255, blank=True, default='',
+        help_text=_('如果填写有效网址会自动创建对应的站点监控任务，格式为 http(s)://example.cn/'))
+    log_task_id = models.CharField(
+        verbose_name=_('日志聚合系统监控任务ID'), max_length=36, blank=True, default='', editable=False,
+        help_text=_('记录为日志聚合系统监控网址创建的站点监控任务的ID'))
 
     class Meta:
         db_table = 'org_data_center'
@@ -142,6 +154,31 @@ class OrgDataCenter(UuidModel):
 
     def __str__(self):
         return self.name
+
+    def clean(self):
+        if self.thanos_endpoint_url:
+            try:
+                http_url_validator(self.thanos_endpoint_url)
+            except ValidationError:
+                raise ValidationError(message={'thanos_endpoint_url': gettext('不是一个有效的网址')})
+
+        if self.metric_monitor_url:
+            try:
+                http_url_validator(self.metric_monitor_url)
+            except ValidationError:
+                raise ValidationError(message={'metric_monitor_url': gettext('不是一个有效的网址')})
+
+        if self.loki_endpoint_url:
+            try:
+                http_url_validator(self.loki_endpoint_url)
+            except ValidationError:
+                raise ValidationError(message={'loki_endpoint_url': gettext('不是一个有效的网址')})
+
+        if self.log_monitor_url:
+            try:
+                http_url_validator(self.log_monitor_url)
+            except ValidationError:
+                raise ValidationError(message={'log_monitor_url': gettext('不是一个有效的网址')})
 
     @property
     def raw_thanos_password(self):
@@ -258,6 +295,9 @@ class ServiceConfig(BaseService):
     sort_weight = models.IntegerField(verbose_name=_('排序值'), default=0, help_text=_('值越小排序越靠前'))
     disk_available = models.BooleanField(verbose_name=_('提供云硬盘服务'), default=False)
     only_admin_visible = models.BooleanField(verbose_name=_('仅管理员可见'), default=False)
+    monitor_task_id = models.CharField(
+        verbose_name=_('服务单元对应监控任务ID'), max_length=36, blank=True, default='', editable=False,
+        help_text=_('记录为服务单元创建的站点监控任务的ID'))
 
     class Meta:
         ordering = ['sort_weight']
@@ -349,18 +389,26 @@ class ServiceConfig(BaseService):
 
     def clean(self):
         from adapters.client import get_adapter_params_for_service, UnsupportedServiceType
+
+        # 网址验证
+        try:
+            http_url_validator(self.endpoint_url)
+        except ValidationError:
+            raise ValidationError(message={'endpoint_url': gettext('不是一个有效的网址')})
+
         if self.pay_app_service_id:
             self.check_pay_app_service_id(self.pay_app_service_id)
 
         try:
             extra = self.extra_params()
         except Exception as exc:
-            raise ValidationError(message={'extra': '配置内容必须是json格式'})
+            raise ValidationError(message={'extra': gettext('配置内容必须是json格式')})
 
         try:
             ap = get_adapter_params_for_service(service=self)
         except UnsupportedServiceType as exc:
-            raise ValidationError(message={'service_type': f'"{self.get_service_type_display()}"类型服务不支持'})
+            raise ValidationError(message={
+                'service_type': gettext('"%s"类型服务不支持') % self.get_service_type_display()})
 
         required = {}
         for k, v in ap.items():
@@ -369,7 +417,7 @@ class ServiceConfig(BaseService):
 
         if required:
             msgs = [f'{k}: {v}' for k, v in required.items()]
-            msgs.insert(0, f'"{self.get_service_type_display()}"类型服务单元需要配置额外参数:')
+            msgs.insert(0, gettext('"%s"类型服务单元需要配置额外参数:') % self.get_service_type_display())
             raise ValidationError(message={'extra': msgs})
 
     def raw_password(self):
@@ -444,6 +492,83 @@ class ServiceConfig(BaseService):
             return json.loads(self.extra)
 
         return {}
+
+    def create_or_change_monitor_task(self):
+        """
+        自动为服务单元创建或更新监控任务
+        :return: str
+            ''      # 没有做任何操作
+            create  # 创建
+            change  # 更新
+            delete  # 删除
+        """
+        from monitor.managers import MonitorWebsiteManager
+
+        act = ''
+        monitor_url = self.endpoint_url
+        # 检查是否变化并更新
+        if self.monitor_task_id:
+            task = MonitorWebsiteManager.get_website_by_id(website_id=self.monitor_task_id)
+            if task is None:    # 监控任务不存在，可能被删除了
+                if monitor_url:   # 创建监控任务
+                    self.create_monitor_task(http_url=monitor_url)
+                    act = 'create'
+            else:   # 监控网址是否变化
+                if not monitor_url:   # 无效,删除监控任务
+                    with transaction.atomic():
+                        MonitorWebsiteManager.do_delete_website_task(user_website=task)
+                        self.monitor_task_id = ''
+                        self.save(update_fields=['monitor_task_id'])
+                        act = 'delete'
+                else:
+                    scheme, hostname, uri = MonitorWebsiteManager.parse_http_url(http_url=monitor_url)
+                    if not uri:
+                        uri = '/'
+
+                    if task.full_url != (scheme + hostname + uri):
+                        task.name = self.name
+                        task.odc_id = self.org_data_center_id
+                        task.remark = _('自动为云主机服务单元“%s”创建的监控任务') % self.name
+                        MonitorWebsiteManager.do_change_website_task(
+                            user_website=task, new_scheme=scheme, new_hostname=hostname, new_uri=uri,
+                            new_tamper_resistant=False)
+                        act = 'change'
+                    elif task.odc_id != self.org_data_center_id:
+                        task.odc_id = self.org_data_center_id
+                        update_fields = ['odc_id']
+                        if task.name != self.name:
+                            task.name = self.name
+                            task.remark = _('自动为云主机服务单元“%s”创建的监控任务') % self.name
+                            update_fields.append('name')
+                            update_fields.append('remark')
+
+                        task.save(update_fields=update_fields)
+                        act = 'change'
+        else:
+            if monitor_url:  # 创建监控任务
+                self.create_monitor_task(http_url=monitor_url)
+                act = 'create'
+
+        return act
+
+    def create_monitor_task(self, http_url: str):
+        """
+        请在创建任务前，确认没有对应监控任务存在
+        """
+        from monitor.managers import MonitorWebsiteManager
+
+        scheme, hostname, uri = MonitorWebsiteManager.parse_http_url(http_url=http_url)
+        if not uri:
+            uri = '/'
+        with transaction.atomic():
+            task = MonitorWebsiteManager.add_website_task(
+                name=self.name, scheme=scheme, hostname=hostname, uri=uri, is_tamper_resistant=False,
+                remark=_('自动为云主机服务单元“%s”创建的监控任务') % self.name,
+                user_id=None, odc_id=self.org_data_center_id)
+            self.monitor_task_id = task.id
+            self.save(update_fields=['monitor_task_id'])
+
+        return task
 
 
 class ServiceQuotaBase(UuidModel):

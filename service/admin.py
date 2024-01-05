@@ -39,8 +39,9 @@ class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
     list_display_links = ('id',)
     list_display = ('id', 'name', 'name_en', 'org_data_center', 'organization_name', 'sort_weight',
                     'only_admin_visible', 'region_id', 'service_type', 'endpoint_url', 'username',
-                    'password', 'raw_password', 'add_time', 'status', 'need_vpn', 'disk_available', 'vpn_endpoint_url', 'vpn_password',
-                    'pay_app_service_id', 'longitude', 'latitude', 'remarks')
+                    'password', 'raw_password', 'add_time', 'status', 'need_vpn', 'disk_available',
+                    'vpn_endpoint_url', 'vpn_password',
+                    'pay_app_service_id', 'longitude', 'latitude', 'remarks', 'monitor_task_id')
     search_fields = ['name', 'name_en', 'endpoint_url', 'remarks']
     list_filter = ['service_type', 'disk_available', ServiceOrgFilter]
     list_select_related = ('org_data_center', 'org_data_center__organization')
@@ -133,6 +134,17 @@ class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
                 super().save_model(request=request, obj=obj, form=form, change=change)
                 obj.check_or_register_pay_app_service()
 
+        try:
+            act = obj.create_or_change_monitor_task()
+            if act == 'create':
+                self.message_user(request, _("为服务单元创建了对应的站点监控任务"), level=messages.SUCCESS)
+            elif act == 'change':
+                self.message_user(request, _("更新了服务单元对应的站点监控任务"), level=messages.SUCCESS)
+            elif act == 'delete':
+                self.message_user(request, _("删除了服务单元对应的站点监控任务"), level=messages.SUCCESS)
+        except Exception as exc:
+            self.message_user(request, _("创建或更新服务单元对应的站点监控任务错误") + str(exc), level=messages.ERROR)
+
 
 @admin.register(DataCenter)
 class DataCenterAdmin(NoDeleteSelectModelAdmin):
@@ -166,7 +178,9 @@ class OrgDataCenterAdmin(NoDeleteSelectModelAdmin):
     list_display_links = ('id',)
     list_display = ('id', 'name', 'name_en', 'organization', 'sort_weight', 'longitude', 'latitude', 'creation_time',
                     'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url',
+                    'metric_monitor_url', 'metric_task_id',
                     'loki_endpoint_url', 'loki_username', 'loki_password', 'loki_receive_url',
+                    'log_monitor_url', 'log_task_id'
                     )
     search_fields = ['name', 'name_en', 'thanos_endpoint_url', 'loki_endpoint_url', 'remark']
     list_select_related = ('organization',)
@@ -174,6 +188,7 @@ class OrgDataCenterAdmin(NoDeleteSelectModelAdmin):
     list_editable = ('sort_weight',)
     list_filter = (ODCOrgFilter,)
     filter_horizontal = ('users',)
+    readonly_fields = ('metric_task_id', 'log_task_id')
     fieldsets = (
         (_('数据中心基础信息'), {
             'fields': (
@@ -183,12 +198,14 @@ class OrgDataCenterAdmin(NoDeleteSelectModelAdmin):
         }),
         (_('Thanos服务信息'), {
             'fields': (
-                'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url', 'thanos_remark'
+                'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url', 'thanos_remark',
+                'metric_monitor_url', 'metric_task_id'
             )
         }),
         (_('Loki服务信息'), {
             'fields': (
-                'loki_endpoint_url', 'loki_username', 'loki_password', 'loki_receive_url', 'loki_remark'
+                'loki_endpoint_url', 'loki_username', 'loki_password', 'loki_receive_url', 'loki_remark',
+                'log_monitor_url', 'log_task_id'
             )
         }),
     )
@@ -232,6 +249,33 @@ class OrgDataCenterAdmin(NoDeleteSelectModelAdmin):
             msg += f';移除管理员{[u.username for u in remove_users]}'
 
         messages.add_message(request=request, level=messages.SUCCESS, message=msg)
+
+    def save_model(self, request, obj: OrgDataCenter, form, change):
+        super().save_model(request=request, obj=obj, form=form, change=change)
+
+        try:
+            act = OrgDataCenterManager.create_or_change_metric_monitor_task(odc=obj)
+            if act == 'create':
+                self.message_user(request, _("为数据中心的指标监控系统监控网址创建了对应的站点监控任务"), level=messages.SUCCESS)
+            elif act == 'change':
+                self.message_user(request, _("更新了数据中心的指标监控系统对应的站点监控任务"), level=messages.SUCCESS)
+            elif act == 'delete':
+                self.message_user(request, _("删除了数据中心的指标监控系统对应的站点监控任务"), level=messages.SUCCESS)
+        except Exception as exc:
+            self.message_user(request, _("创建或更新数据中心的指标监控系统对应的站点监控任务错误") + str(exc),
+                              level=messages.ERROR)
+
+        try:
+            act = OrgDataCenterManager.create_or_change_log_monitor_task(odc=obj)
+            if act == 'create':
+                self.message_user(request, _("为数据中心的日志聚合系统监控网址创建了对应的站点监控任务"), level=messages.SUCCESS)
+            elif act == 'change':
+                self.message_user(request, _("更新了数据中心的日志聚合系统对应的站点监控任务"), level=messages.SUCCESS)
+            elif act == 'delete':
+                self.message_user(request, _("删除了数据中心的日志聚合系统对应的站点监控任务"), level=messages.SUCCESS)
+        except Exception as exc:
+            self.message_user(request, _("创建或更新数据中心的日志聚合系统对应的站点监控任务错误") + str(exc),
+                              level=messages.ERROR)
 
 
 @admin.register(ServicePrivateQuota)

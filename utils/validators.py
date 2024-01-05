@@ -1,8 +1,14 @@
 import json
 
 from django.core.exceptions import ValidationError
-from django.utils.translation import gettext as _
+from django.core.validators import URLValidator
+from django.utils.translation import gettext_lazy as _
 from django.utils.deconstruct import deconstructible
+
+
+class HttpURLValidator(URLValidator):
+    message = _('不是一个有效的网址')
+    schemes = ["http", "https"]
 
 
 @deconstructible()
@@ -28,3 +34,4 @@ class JSONStringValidator:
 
 
 json_string_validator = JSONStringValidator()
+http_url_validator = HttpURLValidator()

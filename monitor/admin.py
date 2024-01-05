@@ -102,10 +102,10 @@ class MonitorWebsiteAdmin(NoDeleteSelectModelAdmin):
     form = MonitorWebsiteForm
 
     list_display = ('id', 'name', 'is_attention', 'is_tamper_resistant', 'scheme', 'hostname', 'uri',
-                    'url_hash', 'creation', 'modification', 'user')
+                    'url_hash', 'creation', 'modification', 'user', 'odc')
     list_display_links = ('id', 'name')
-    list_select_related = ('user',)
-    raw_id_fields = ('user',)
+    list_select_related = ('user', 'odc')
+    raw_id_fields = ('user', 'odc')
     search_fields = ('name', 'hostname', 'uri', 'user__username')
     readonly_fields = ('url_hash', )
 

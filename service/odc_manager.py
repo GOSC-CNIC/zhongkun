@@ -243,3 +243,163 @@ class OrgDataCenterManager:
 
         qs = OrgDataCenter.objects.filter(**lookups).values_list('users__username', flat=True)
         return list(qs)
+
+    @staticmethod
+    def create_or_change_log_monitor_task(odc: OrgDataCenter):
+        """
+        自动为服务单元创建或更新监控任务
+        :return: str
+            ''      # 没有做任何操作
+            create  # 创建
+            change  # 更新
+            delete  # 删除
+        """
+        from monitor.managers import MonitorWebsiteManager
+
+        act = ''
+        odc_id = odc.id
+        monitor_url = odc.log_monitor_url
+        # 检查是否变化并更新
+        if odc.log_task_id:
+            task = MonitorWebsiteManager.get_website_by_id(website_id=odc.log_task_id)
+            if task is None:    # 监控任务不存在，可能被删除了
+                if monitor_url:   # 创建监控任务
+                    OrgDataCenterManager.create_log_monitor_task(odc, http_url=monitor_url)
+                    act = 'create'
+            else:   # 监控网址是否变化
+                if not monitor_url:   # 无效,删除监控任务
+                    with transaction.atomic():
+                        MonitorWebsiteManager.do_delete_website_task(user_website=task)
+                        odc.log_task_id = ''
+                        odc.save(update_fields=['log_task_id'])
+                        act = 'delete'
+                else:
+                    scheme, hostname, uri = MonitorWebsiteManager.parse_http_url(http_url=monitor_url)
+                    if not uri:
+                        uri = '/'
+
+                    if task.full_url != (scheme + hostname + uri):
+                        task.name = odc.name
+                        task.odc_id = odc_id
+                        task.remark = _('自动为数据中心“%s”的日志聚合系统监控网址创建的监控任务') % odc.name
+                        MonitorWebsiteManager.do_change_website_task(
+                            user_website=task, new_scheme=scheme, new_hostname=hostname, new_uri=uri,
+                            new_tamper_resistant=False)
+                        act = 'change'
+                    elif task.odc_id != odc_id:
+                        task.odc_id = odc_id
+                        update_fields = ['odc_id']
+                        if task.name != odc.name:
+                            task.name = odc.name
+                            task.remark = _('自动为数据中心“%s”的日志聚合系统监控网址创建的监控任务') % odc.name
+                            update_fields.append('name')
+                            update_fields.append('remark')
+
+                        task.save(update_fields=update_fields)
+                        act = 'change'
+        else:
+            if monitor_url:  # 创建监控任务
+                OrgDataCenterManager.create_log_monitor_task(odc=odc, http_url=monitor_url)
+                act = 'create'
+
+        return act
+
+    @staticmethod
+    def create_log_monitor_task(odc: OrgDataCenter, http_url: str):
+        """
+        请在创建任务前，确认没有对应监控任务存在
+        """
+        from monitor.managers import MonitorWebsiteManager
+
+        scheme, hostname, uri = MonitorWebsiteManager.parse_http_url(http_url=http_url)
+        if not uri:
+            uri = '/'
+        with transaction.atomic():
+            task = MonitorWebsiteManager.add_website_task(
+                name=odc.name, scheme=scheme, hostname=hostname, uri=uri, is_tamper_resistant=False,
+                remark=_('自动为数据中心“%s”的日志聚合系统监控网址创建的监控任务') % odc.name,
+                user_id=None, odc_id=odc.id)
+            odc.log_task_id = task.id
+            odc.save(update_fields=['log_task_id'])
+
+        return task
+
+    @staticmethod
+    def create_or_change_metric_monitor_task(odc: OrgDataCenter):
+        """
+        自动为服务单元创建或更新监控任务
+        :return: str
+            ''      # 没有做任何操作
+            create  # 创建
+            change  # 更新
+            delete  # 删除
+        """
+        from monitor.managers import MonitorWebsiteManager
+
+        act = ''
+        odc_id = odc.id
+        monitor_url = odc.metric_monitor_url
+        # 检查是否变化并更新
+        if odc.metric_task_id:
+            task = MonitorWebsiteManager.get_website_by_id(website_id=odc.metric_task_id)
+            if task is None:  # 监控任务不存在，可能被删除了
+                if monitor_url:  # 创建监控任务
+                    OrgDataCenterManager.create_metric_monitor_task(odc, http_url=monitor_url)
+                    act = 'create'
+            else:  # 监控网址是否变化
+                if not monitor_url:  # 无效,删除监控任务
+                    with transaction.atomic():
+                        MonitorWebsiteManager.do_delete_website_task(user_website=task)
+                        odc.metric_task_id = ''
+                        odc.save(update_fields=['metric_task_id'])
+                        act = 'delete'
+                else:
+                    scheme, hostname, uri = MonitorWebsiteManager.parse_http_url(http_url=monitor_url)
+                    if not uri:
+                        uri = '/'
+
+                    if task.full_url != (scheme + hostname + uri):
+                        task.name = odc.name
+                        task.odc_id = odc_id
+                        task.remark = _('自动为数据中心“%s”的指标监控系统监控网址创建的监控任务') % odc.name
+                        MonitorWebsiteManager.do_change_website_task(
+                            user_website=task, new_scheme=scheme, new_hostname=hostname, new_uri=uri,
+                            new_tamper_resistant=False)
+                        act = 'change'
+                    elif task.odc_id != odc_id:
+                        task.odc_id = odc_id
+                        update_fields = ['odc_id']
+                        if task.name != odc.name:
+                            task.name = odc.name
+                            task.remark = _('自动为数据中心“%s”的指标监控系统监控网址创建的监控任务') % odc.name
+                            update_fields.append('name')
+                            update_fields.append('remark')
+
+                        task.save(update_fields=update_fields)
+                        act = 'change'
+        else:
+            if monitor_url:  # 创建监控任务
+                OrgDataCenterManager.create_metric_monitor_task(odc=odc, http_url=monitor_url)
+                act = 'create'
+
+        return act
+
+    @staticmethod
+    def create_metric_monitor_task(odc: OrgDataCenter, http_url: str):
+        """
+        请在创建任务前，确认没有对应监控任务存在
+        """
+        from monitor.managers import MonitorWebsiteManager
+
+        scheme, hostname, uri = MonitorWebsiteManager.parse_http_url(http_url=http_url)
+        if not uri:
+            uri = '/'
+        with transaction.atomic():
+            task = MonitorWebsiteManager.add_website_task(
+                name=odc.name, scheme=scheme, hostname=hostname, uri=uri, is_tamper_resistant=False,
+                remark=_('自动为数据中心“%s”的指标监控系统监控网址创建的监控任务') % odc.name,
+                user_id=None, odc_id=odc.id)
+            odc.metric_task_id = task.id
+            odc.save(update_fields=['metric_task_id'])
+
+        return task

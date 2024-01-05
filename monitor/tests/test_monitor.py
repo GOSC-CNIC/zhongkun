@@ -1914,6 +1914,68 @@ class MonitorWebsiteTests(MyAPITestCase):
         target_emails.sort()
         self.assertEqual(ret_emails, target_emails)
 
+    def test_split_http_url(self):
+        scheme, hostname, uri = MonitorWebsiteManager.parse_http_url(
+            http_url='HttPs://User:passWd@Host:port/a/b?c=1&d=6#frag')
+        self.assertEqual(scheme, 'https://')
+        self.assertEqual(hostname, 'User:passWd@Host:port')
+        self.assertEqual(uri, '/a/b?c=1&d=6#frag')
+        scheme, hostname, uri = MonitorWebsiteManager.parse_http_url(
+            http_url='https://user:passwd@host:port/a/b?c=1&d=6#frag')
+        self.assertEqual(scheme, 'https://')
+        self.assertEqual(hostname, 'user:passwd@host:port')
+        self.assertEqual(uri, '/a/b?c=1&d=6#frag')
+        scheme, hostname, uri = MonitorWebsiteManager.parse_http_url(
+            http_url='https://host:port/a/b?c=1#frag')
+        self.assertEqual(scheme, 'https://')
+        self.assertEqual(hostname, 'host:port')
+        self.assertEqual(uri, '/a/b?c=1#frag')
+        scheme, hostname, uri = MonitorWebsiteManager.parse_http_url(
+            http_url='https://host/a/b?c=1#frag')
+        self.assertEqual(scheme, 'https://')
+        self.assertEqual(hostname, 'host')
+        self.assertEqual(uri, '/a/b?c=1#frag')
+        scheme, hostname, uri = MonitorWebsiteManager.parse_http_url(
+            http_url='https://host/a/b')
+        self.assertEqual(scheme, 'https://')
+        self.assertEqual(hostname, 'host')
+        self.assertEqual(uri, '/a/b')
+        scheme, hostname, uri = MonitorWebsiteManager.parse_http_url(
+            http_url='https://host/a/b?')
+        self.assertEqual(scheme, 'https://')
+        self.assertEqual(hostname, 'host')
+        self.assertEqual(uri, '/a/b')
+        scheme, hostname, uri = MonitorWebsiteManager.parse_http_url(
+            http_url='https://host/')
+        self.assertEqual(scheme, 'https://')
+        self.assertEqual(hostname, 'host')
+        self.assertEqual(uri, '/')
+        scheme, hostname, uri = MonitorWebsiteManager.parse_http_url(
+            http_url='https://host')
+        self.assertEqual(scheme, 'https://')
+        self.assertEqual(hostname, 'host')
+        self.assertEqual(uri, '')
+        scheme, hostname, uri = MonitorWebsiteManager.parse_http_url(
+            http_url='https://host/?c=1#frag')
+        self.assertEqual(scheme, 'https://')
+        self.assertEqual(hostname, 'host')
+        self.assertEqual(uri, '/?c=1#frag')
+        scheme, hostname, uri = MonitorWebsiteManager.parse_http_url(
+            http_url='https://host?c=1#frag')
+        self.assertEqual(scheme, 'https://')
+        self.assertEqual(hostname, 'host')
+        self.assertEqual(uri, '?c=1#frag')
+        scheme, hostname, uri = MonitorWebsiteManager.parse_http_url(
+            http_url='https://host?c=t测试&d=6#frag')
+        self.assertEqual(scheme, 'https://')
+        self.assertEqual(hostname, 'host')
+        self.assertEqual(uri, '?c=t测试&d=6#frag')
+        scheme, hostname, uri = MonitorWebsiteManager.parse_http_url(
+            http_url='https://host/tes测试/b')
+        self.assertEqual(scheme, 'https://')
+        self.assertEqual(hostname, 'host')
+        self.assertEqual(uri, '/tes测试/b')
+
 
 class MonitorWebsiteQueryTests(MyAPITestCase):
     def setUp(self):

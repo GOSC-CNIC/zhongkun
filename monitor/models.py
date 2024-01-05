@@ -254,6 +254,9 @@ class MonitorWebsiteRecord(MonitorWebsiteBase):
 
     @classmethod
     def create_record_for_website(cls, site: MonitorWebsite):
+        if not site.user_id:
+            return None
+
         record = cls(
             id=site.id,
             name=site.name,

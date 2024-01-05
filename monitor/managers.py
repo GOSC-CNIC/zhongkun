@@ -1,4 +1,5 @@
 import math
+from urllib.parse import urlsplit
 
 from django.db import models, transaction
 from django.utils.translation import gettext_lazy as _
@@ -416,6 +417,38 @@ class MonitorWebsiteManager:
     backend = MonitorWebsiteQueryAPI()
 
     @staticmethod
+    def parse_http_url(http_url: str):
+        """
+        HttPs://User:passWd@Host:port/a/b?c=1&d=6#frag -> (https://, User:passWd@Host:port, /a/b?c=1&d=6#frag)
+        https://user:passwd@host:port/a/b?c=1&d=6#frag -> (https://, user:passwd@host:port, /a/b?c=1&d=6#frag)
+        https://host:port/a/b?c=1#frag -> (https://, host:port, /a/b?c=1#frag)
+        https://host/a/b?c=1#frag -> (https://, host, /a/b?c=1#frag)
+        https://host/a/b? -> (https://, host, /a/b)
+        https://host/ -> (https://, host, /)
+        https://host -> (https://, host, '')
+        https://host/?c=1#frag -> (https://, host, /?c=1#frag)
+        https://host?c=1#frag -> (https://, host, ?c=1#frag)
+        https://host?c=t测试&d=6#frag -> (https://, host, ?c=t测试&d=6#frag)
+        https://host/tes测试/b -> (https://, host, /tes测试/b)
+        """
+        items = urlsplit(http_url)
+        scheme, netloc, url, query, fragment = items
+        scheme = scheme.lower() + '://'
+        hostname = netloc
+
+        uri = url
+        if url and url[:1] != '/':
+            uri = '/' + url
+
+        if query:
+            uri = uri + '?' + query
+
+        if fragment:
+            uri = uri + '#' + fragment
+
+        return scheme, hostname, uri
+
+    @staticmethod
     def get_website_by_id(website_id: str) -> MonitorWebsite:
         return MonitorWebsite.objects.filter(id=website_id).first()
 
@@ -486,14 +519,15 @@ class MonitorWebsiteManager:
 
     @staticmethod
     def add_website_task(
-            name: str, scheme: str, hostname, uri: str, is_tamper_resistant: bool, remark: str, user_id: str):
+            name: str, scheme: str, hostname, uri: str, is_tamper_resistant: bool, remark: str,
+            user_id, odc_id=None):
         """
         :raises: Error
         """
         nt = timezone.now()
         user_website = MonitorWebsite(
             name=name, scheme=scheme, hostname=hostname, uri=uri, is_tamper_resistant=is_tamper_resistant,
-            remark=remark, user_id=user_id, creation=nt, modification=nt
+            remark=remark, user_id=user_id, odc_id=odc_id, creation=nt, modification=nt
         )
         return MonitorWebsiteManager.do_add_website_task(user_website)
 
