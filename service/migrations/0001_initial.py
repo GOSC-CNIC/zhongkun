@@ -60,7 +60,7 @@ class Migration(migrations.Migration):
                 ('add_time', models.DateTimeField(auto_now_add=True, verbose_name='添加时间')),
                 ('status', models.CharField(choices=[('enable', '服务中'), ('disable', '停止服务'), ('deleted', '删除')], default='enable', max_length=32, verbose_name='服务状态')),
                 ('remarks', models.CharField(blank=True, default='', max_length=255, verbose_name='备注')),
-                ('need_vpn', models.BooleanField(default=True, verbose_name='是否需要VPN')),
+                ('need_vpn', models.BooleanField(default=False, help_text='访问此服务单元的云主机需要使用vpn，并且支持提供vpn服务，请勾选此项，暂时仅支持EVCloud服务。', verbose_name='需要并提供VPN')),
                 ('vpn_endpoint_url', models.CharField(blank=True, default='', help_text='http(s)://{hostname}:{port}/', max_length=255, verbose_name='VPN服务地址url')),
                 ('vpn_api_version', models.CharField(blank=True, default='v3', help_text='预留，主要EVCloud使用', max_length=64, verbose_name='VPN服务API版本')),
                 ('vpn_username', models.CharField(blank=True, default='', help_text='用于此服务认证的用户名', max_length=128, verbose_name='VPN服务用户名')),

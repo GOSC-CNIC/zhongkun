@@ -263,7 +263,9 @@ class ServiceConfig(BaseService):
     add_time = models.DateTimeField(auto_now_add=True, verbose_name=_('添加时间'))
     status = models.CharField(verbose_name=_('服务状态'), max_length=32, choices=Status.choices, default=Status.ENABLE)
     remarks = models.CharField(max_length=255, default='', blank=True, verbose_name=_('备注'))
-    need_vpn = models.BooleanField(verbose_name=_('是否需要VPN'), default=True)
+    need_vpn = models.BooleanField(
+        verbose_name=_('需要并提供VPN'), default=False,
+        help_text=_('访问此服务单元的云主机需要使用vpn，并且支持提供vpn服务，请勾选此项，暂时仅支持EVCloud服务。'))
     vpn_endpoint_url = models.CharField(max_length=255, blank=True, default='', verbose_name=_('VPN服务地址url'),
                                         help_text='http(s)://{hostname}:{port}/')
     vpn_api_version = models.CharField(max_length=64, blank=True, default='v3', verbose_name=_('VPN服务API版本'),
