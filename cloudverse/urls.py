@@ -14,6 +14,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
+from django.contrib.auth.decorators import login_required
 from django.urls import path, include
 from django.conf import settings
 from rest_framework import permissions
@@ -75,7 +76,7 @@ urlpatterns = [
     path('api/ipam/', include('ipam.api_urls', namespace='ipam-api')),
     path('api/link/', include('link.api_urls', namespace='link-api')),
     path('vpn/', include('vpn.urls', namespace='vpn')),
-    path('apidocs/', schema_view.with_ui('swagger', cache_timeout=0), name='apidocs'),
+    path('apidocs/', login_required(schema_view.with_ui('swagger', cache_timeout=0)), name='apidocs'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='redoc'),
     path('docs/', include('docs.urls', namespace='docs')),
     path('about/', views.about, name='about'),
