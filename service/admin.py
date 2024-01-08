@@ -389,19 +389,19 @@ class ServiceShareQuotaAdmin(admin.ModelAdmin):
             self.message_user(request, _("统计更新已用配额成功"), level=messages.SUCCESS)
 
 
-@admin.register(ApplyVmService)
-class ApplyServiceAdmin(admin.ModelAdmin):
-    list_display_links = ('id',)
-    list_display = ('id', 'organization', 'name', 'name_en', 'service_type', 'status', 'user',
-                    'creation_time', 'approve_time')
-
-    list_filter = ('organization',)
-
-
-@admin.register(ApplyOrganization)
-class ApplyOrganizationAdmin(admin.ModelAdmin):
-    list_display_links = ('id',)
-    list_display = ('id', 'name', 'name_en', 'abbreviation', 'status', 'user', 'deleted', 'creation_time', 'desc')
+# @admin.register(ApplyVmService)
+# class ApplyServiceAdmin(admin.ModelAdmin):
+#     list_display_links = ('id',)
+#     list_display = ('id', 'organization', 'name', 'name_en', 'service_type', 'status', 'user',
+#                     'creation_time', 'approve_time')
+#
+#     list_filter = ('organization',)
+#
+#
+# @admin.register(ApplyOrganization)
+# class ApplyOrganizationAdmin(admin.ModelAdmin):
+#     list_display_links = ('id',)
+#     list_display = ('id', 'name', 'name_en', 'abbreviation', 'status', 'user', 'deleted', 'creation_time', 'desc')
 
 
 @admin.register(Contacts)
