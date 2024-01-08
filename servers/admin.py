@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext, gettext_lazy as _
 from django import forms
 
 from utils.model import NoDeleteSelectModelAdmin, PayType
@@ -58,7 +58,7 @@ class ServerAdmin(NoDeleteSelectModelAdmin):
         """
         Given a model instance delete it from the database.
         """
-        raise Exception(_('不允许从后台删除。'))
+        raise Exception(gettext('不允许从后台删除。'))
 
     def save_model(self, request, obj, form, change):
         # 按量付费，没有过期时间
@@ -126,9 +126,9 @@ class DiskAdmin(NoDeleteSelectModelAdmin):
     )
     def show_deleted(self, obj):
         if obj.deleted:
-            return '已删除'
+            return gettext('已删除')
 
-        return '正常'
+        return gettext('正常')
 
     def has_delete_permission(self, request, obj=None):
         return False
@@ -137,7 +137,7 @@ class DiskAdmin(NoDeleteSelectModelAdmin):
         """
         Given a model instance delete it from the database.
         """
-        raise Exception(_('不允许从后台删除。'))
+        raise Exception(gettext('不允许从后台删除。'))
 
 
 @admin.register(ResourceActionLog)

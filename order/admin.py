@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django import forms
 from django.core.exceptions import ValidationError
+from django.utils.translation import gettext
 
 from .models import Order, Resource, Price, Period
 
@@ -51,10 +52,10 @@ class PeriodModelForm(forms.ModelForm):
         if not self.instance.id:    # add new
             if service_id:
                 if Period.objects.filter(period=period, service_id=service_id).exists():
-                    raise ValidationError(message='服务单元已存在相同月数的时长选项')
+                    raise ValidationError(message=gettext('服务单元已存在相同月数的时长选项'))
 
             if Period.objects.filter(period=period, service_id__isnull=True).exists():
-                raise ValidationError(message='已存在相同月数的公共时长选项')
+                raise ValidationError(message=gettext('已存在相同月数的公共时长选项'))
         else:   # change
             qs = Period.objects.exclude(id=self.instance.id).filter(period=period)
             if service_id:
@@ -63,7 +64,7 @@ class PeriodModelForm(forms.ModelForm):
                 qs = qs.filter(service_id__isnull=True)
 
             if qs.exists():
-                raise ValidationError(message='目标服务单元或者公共选项已存在月数相同的时长选项')
+                raise ValidationError(message=gettext('目标服务单元或者公共选项已存在月数相同的时长选项'))
 
         return data
 

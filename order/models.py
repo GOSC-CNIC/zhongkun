@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from django.db import models
 from django.utils import timezone
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext, gettext_lazy as _
 from django.core.validators import MaxValueValidator, MinValueValidator
 
 from service.models import ServiceConfig
@@ -130,7 +130,7 @@ class Order(models.Model):
             payment_history_id: str
     ):
         if balance_amount < Decimal('0') or coupon_amount < Decimal('0'):
-            raise Exception(_('更新订单支付状态错误，balance_amount和coupon_amount不能为负数'))
+            raise Exception(gettext('更新订单支付状态错误，balance_amount和coupon_amount不能为负数'))
 
         if balance_amount > Decimal('0') and coupon_amount == Decimal('0'):
             payment_method = self.PaymentMethod.BALANCE.value
@@ -160,18 +160,18 @@ class Order(models.Model):
         self.save(update_fields=['status', 'trading_status', 'cancelled_time'])
 
     def build_subject(self):
-        resource_type = '未知资源'
+        resource_type = gettext('未知资源')
         if self.resource_type == ResourceType.VM.value:
-            resource_type = _('云服务器')
+            resource_type = gettext('云服务器')
         elif self.resource_type == ResourceType.DISK.value:
-            resource_type = _('云硬盘')
+            resource_type = gettext('云硬盘')
         elif self.resource_type == ResourceType.BUCKET.value:
-            resource_type = _('存储桶')
+            resource_type = gettext('存储桶')
 
         order_type = self.get_order_type_display()
         subject = f'{resource_type}({order_type})'
         if self.period > 0:
-            subject += _('时长%d月') % (self.period,)
+            subject += gettext('时长%d月') % (self.period,)
 
         return subject
 

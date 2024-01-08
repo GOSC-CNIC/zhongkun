@@ -3,7 +3,7 @@ from datetime import datetime
 from django.contrib import admin
 from django.db import transaction
 from django.utils import timezone as dj_timezone
-from django.utils.translation import gettext_lazy
+from django.utils.translation import gettext_lazy, gettext
 from django.forms import ModelForm
 from django.core.exceptions import ValidationError
 
@@ -37,14 +37,14 @@ class MonitorJobCephAdmin(admin.ModelAdmin):
     filter_horizontal = ('users',)
     raw_id_fields = ('org_data_center',)
 
-    @admin.display(description="机构")
+    @admin.display(description=gettext_lazy("机构"))
     def organization_name(self, obj):
         if not obj.org_data_center or not obj.org_data_center.organization:
             return ''
 
         return obj.org_data_center.organization.name
 
-    @admin.display(description="Thanos服务url")
+    @admin.display(description=gettext_lazy("指标监控系统url"))
     def thanos_endpoint_url(self, obj):
         if not obj.org_data_center:
             return ''
@@ -64,14 +64,14 @@ class MonitorJobServerAdmin(admin.ModelAdmin):
     raw_id_fields = ('org_data_center',)
     search_fields = ('name', 'name_en', 'job_tag',)
 
-    @admin.display(description="机构")
+    @admin.display(description=gettext_lazy("机构"))
     def organization_name(self, obj):
         if not obj.org_data_center or not obj.org_data_center.organization:
             return ''
 
         return obj.org_data_center.organization.name
 
-    @admin.display(description="Thanos服务url")
+    @admin.display(description=gettext_lazy("指标监控系统url"))
     def thanos_endpoint_url(self, obj):
         if not obj.org_data_center:
             return ''
@@ -92,7 +92,7 @@ class MonitorWebsiteForm(ModelForm):
         data = super().clean()
         user = data['user']
         if not user:
-            self.add_error('user', ValidationError('必须选择一个用户。'))
+            self.add_error('user', ValidationError(gettext('必须选择一个用户。')))
 
         return data
 
@@ -197,14 +197,14 @@ class MonitorJobTiDBAdmin(admin.ModelAdmin):
     raw_id_fields = ('org_data_center',)
     search_fields = ('name', 'name_en', 'job_tag',)
 
-    @admin.display(description="机构")
+    @admin.display(description=gettext_lazy("机构"))
     def organization_name(self, obj):
         if not obj.org_data_center or not obj.org_data_center.organization:
             return ''
 
         return obj.org_data_center.organization.name
 
-    @admin.display(description="Thanos服务url")
+    @admin.display(description=gettext_lazy("指标监控系统url"))
     def thanos_endpoint_url(self, obj):
         if not obj.org_data_center:
             return ''
@@ -231,14 +231,14 @@ class LogSiteAdmin(admin.ModelAdmin):
     raw_id_fields = ('org_data_center',)
     search_fields = ('name', 'name_en', 'job_tag',)
 
-    @admin.display(description="机构")
+    @admin.display(description=gettext_lazy("机构"))
     def organization_name(self, obj):
         if not obj.org_data_center or not obj.org_data_center.organization:
             return ''
 
         return obj.org_data_center.organization.name
 
-    @admin.display(description="Loki服务url")
+    @admin.display(description=gettext_lazy("日志聚合系统url"))
     def loki_endpoint_url(self, obj):
         if not obj.org_data_center:
             return ''

@@ -1,6 +1,6 @@
 from django.contrib import admin, messages
 from django.contrib.admin.filters import SimpleListFilter
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext, gettext_lazy as _
 from django import forms
 
 from utils.model import NoDeleteSelectModelAdmin
@@ -89,7 +89,7 @@ class VoPointAccountAdmin(NoDeleteSelectModelAdmin):
         """
         Given a model instance delete it from the database.
         """
-        raise Exception(_('不允许从后台删除。'))
+        raise Exception(gettext('不允许从后台删除。'))
 
 
 @admin.register(PayApp)
@@ -115,10 +115,10 @@ class CashCouponActivityAdmin(admin.ModelAdmin):
     def create_coupon_for_activity(self, request, queryset):
         length = len(queryset)
         if length == 0:
-            self.message_user(request=request, message='你没有选中任何一个券模板/活动', level=messages.ERROR)
+            self.message_user(request=request, message=gettext('你没有选中任何一个券模板/活动'), level=messages.ERROR)
             return
         if length > 1:
-            self.message_user(request=request, message='每次只能选中一个券模板/活动', level=messages.ERROR)
+            self.message_user(request=request, message=gettext('每次只能选中一个券模板/活动'), level=messages.ERROR)
             return
 
         obj = queryset[0]
@@ -127,16 +127,17 @@ class CashCouponActivityAdmin(admin.ModelAdmin):
                 activity_id=obj.id, user=request.user, max_count=50
             )
             if err is not None:
-                msg = '为券模板/活动生成券错误（%(error)s），本次成功生成券数量:%(count)d个。' % {
+                msg = gettext('为券模板/活动生成券错误（%(error)s），本次成功生成券数量:%(count)d个。') % {
                     'error': str(err), 'count': count
                 }
                 self.message_user(request=request, message=msg, level=messages.ERROR)
                 return
         except Exception as e:
-            self.message_user(request=request, message=f'为券模板/活动生成券错误，{str(e)}', level=messages.ERROR)
+            self.message_user(request=request,
+                              message=gettext('为券模板/活动生成券错误') + f': {str(e)}', level=messages.ERROR)
             return
 
-        self.message_user(request=request, message=_('成功生成券') + f':{count}', level=messages.SUCCESS)
+        self.message_user(request=request, message=gettext('成功生成券') + f':{count}', level=messages.SUCCESS)
 
 
 @admin.register(CashCoupon)
@@ -165,7 +166,7 @@ class CashCouponAdmin(admin.ModelAdmin):
 
 
 class PayServiceOrgFilter(SimpleListFilter):
-    title = "机构"
+    title = _("机构")
     parameter_name = 'org_id'
 
     def lookups(self, request, model_admin):
@@ -220,7 +221,7 @@ class TransactionBillAdmin(NoDeleteSelectModelAdmin):
         """
         Given a model instance delete it from the database.
         """
-        raise Exception(_('不允许从后台删除。'))
+        raise Exception(gettext('不允许从后台删除。'))
 
 
 @admin.register(RefundRecord)

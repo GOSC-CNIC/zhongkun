@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.utils.translation import gettext_lazy as _
 
 from .models import VirtualOrganization, VoMember
 
@@ -14,7 +15,7 @@ class VoAdmin(admin.ModelAdmin):
 
     filter_horizontal = ('members',)
 
-    @admin.display(description='删除')
+    @admin.display(description=_('删除'))
     def is_deleted(self, obj):
         if obj.deleted:
             return 'yes'

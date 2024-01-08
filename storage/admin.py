@@ -1,5 +1,5 @@
 from django.contrib import admin, messages
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext, gettext_lazy as _
 from django.utils.html import format_html
 from django.db import transaction
 from django.contrib.admin.filters import SimpleListFilter
@@ -13,7 +13,7 @@ from . import forms
 
 
 class ServiceOrgFilter(SimpleListFilter):
-    title = "机构"
+    title = _("机构")
     parameter_name = 'org_id'
 
     def lookups(self, request, model_admin):
@@ -88,7 +88,7 @@ class ObjectsServiceAdmin(admin.ModelAdmin):
             try:
                 obj.sync_to_pay_app_service()
             except Exception as exc:
-                self.message_user(request, _("更新服务单元对应的结算服务单元错误") + str(exc), level=messages.ERROR)
+                self.message_user(request, gettext("更新服务单元对应的结算服务单元错误") + str(exc), level=messages.ERROR)
         else:   # add
             with transaction.atomic():
                 super().save_model(request=request, obj=obj, form=form, change=change)
@@ -98,13 +98,13 @@ class ObjectsServiceAdmin(admin.ModelAdmin):
             delete_monitor_task = form.cleaned_data.get('delete_monitor_task', False)
             act = obj.create_or_change_monitor_task(only_delete=delete_monitor_task)
             if act == 'create':
-                self.message_user(request, _("为服务单元创建了对应的站点监控任务"), level=messages.SUCCESS)
+                self.message_user(request, gettext("为服务单元创建了对应的站点监控任务"), level=messages.SUCCESS)
             elif act == 'change':
-                self.message_user(request, _("更新了服务单元对应的站点监控任务"), level=messages.SUCCESS)
+                self.message_user(request, gettext("更新了服务单元对应的站点监控任务"), level=messages.SUCCESS)
             elif act == 'delete':
-                self.message_user(request, _("删除了服务单元对应的站点监控任务"), level=messages.SUCCESS)
+                self.message_user(request, gettext("删除了服务单元对应的站点监控任务"), level=messages.SUCCESS)
         except Exception as exc:
-            self.message_user(request, _("创建或更新服务单元对应的站点监控任务错误") + str(exc), level=messages.ERROR)
+            self.message_user(request, gettext("创建或更新服务单元对应的站点监控任务错误") + str(exc), level=messages.ERROR)
 
 
 @admin.register(models.Bucket)
@@ -126,10 +126,10 @@ class BucketAdmin(NoDeleteSelectModelAdmin):
             bucket.do_archive(archiver=request.user.username)
         except errors.Error as exc:
             if 'Adapter.BucketNotOwned' != exc.code:
-                self.message_user(request=request, message='删除失败，' + str(exc), level=messages.ERROR)
+                self.message_user(request=request, message=gettext('删除失败，') + str(exc), level=messages.ERROR)
                 raise exc
         except Exception as exc:
-            self.message_user(request=request, message='删除失败，' + str(exc), level=messages.ERROR)
+            self.message_user(request=request, message=gettext('删除失败，') + str(exc), level=messages.ERROR)
             raise exc
 
 

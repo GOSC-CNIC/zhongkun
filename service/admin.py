@@ -17,7 +17,7 @@ from . import forms
 
 
 class ServiceOrgFilter(SimpleListFilter):
-    title = "机构"
+    title = gettext_lazy("机构")
     parameter_name = 'org_id'
 
     def lookups(self, request, model_admin):
@@ -51,22 +51,22 @@ class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
     filter_horizontal = ('users',)
     readonly_fields = ('password', 'vpn_password', 'monitor_task_id')
     fieldsets = (
-        (_('说明、备注'), {'fields': ('remarks', 'sort_weight', 'only_admin_visible')}),
-        (_('服务配置信息'), {
+        (gettext_lazy('说明、备注'), {'fields': ('remarks', 'sort_weight', 'only_admin_visible')}),
+        (gettext_lazy('服务配置信息'), {
             'fields': ('org_data_center', 'name', 'name_en', 'service_type', 'cloud_type', 'status', 'endpoint_url',
                        'api_version', 'region_id', 'disk_available', 'username', 'password', 'change_password')
         }),
-        (_('VPN配置信息'), {
+        (gettext_lazy('VPN配置信息'), {
             'fields': ('need_vpn', 'vpn_endpoint_url', 'vpn_api_version', 'vpn_username',
                        'vpn_password', 'change_vpn_password')
         }),
-        (_('支付结算信息'), {'fields': ('pay_app_service_id',)}),
-        (_('其他配置信息'), {'fields': ('extra', 'logo_url', 'longitude', 'latitude')}),
-        (_('服务管理员'), {'fields': ('users', )}),
-        (_('联系人信息'), {
+        (gettext_lazy('支付结算信息'), {'fields': ('pay_app_service_id',)}),
+        (gettext_lazy('其他配置信息'), {'fields': ('extra', 'logo_url', 'longitude', 'latitude')}),
+        (gettext_lazy('服务管理员'), {'fields': ('users', )}),
+        (gettext_lazy('联系人信息'), {
             'fields': ('contact_person', 'contact_email', 'contact_telephone', 'contact_fixed_phone', 'contact_address')
         }),
-        (_('监控任务'), {'fields': ('monitor_task_id', 'delete_monitor_task')}),
+        (gettext_lazy('监控任务'), {'fields': ('monitor_task_id', 'delete_monitor_task')}),
     )
 
     actions = ['encrypt_password', 'encrypt_vpn_password']
@@ -159,7 +159,7 @@ class DataCenterAdmin(NoDeleteSelectModelAdmin):
 
 
 class ODCOrgFilter(SimpleListFilter):
-    title = "机构"
+    title = gettext_lazy("机构")
     parameter_name = 'org_id'
 
     def lookups(self, request, model_admin):
@@ -192,19 +192,19 @@ class OrgDataCenterAdmin(NoDeleteSelectModelAdmin):
     filter_horizontal = ('users',)
     readonly_fields = ('metric_task_id', 'log_task_id')
     fieldsets = (
-        (_('数据中心基础信息'), {
+        (gettext_lazy('数据中心基础信息'), {
             'fields': (
                 'name', 'name_en', 'organization', 'sort_weight', 'longitude', 'latitude', 'remark',
                 'users'
             )
         }),
-        (_('Thanos服务信息'), {
+        (gettext_lazy('指标监控系统'), {
             'fields': (
                 'thanos_endpoint_url', 'thanos_username', 'thanos_password', 'thanos_receive_url', 'thanos_remark',
                 'metric_monitor_url', 'metric_task_id'
             )
         }),
-        (_('Loki服务信息'), {
+        (gettext_lazy('日志聚合系统'), {
             'fields': (
                 'loki_endpoint_url', 'loki_username', 'loki_password', 'loki_receive_url', 'loki_remark',
                 'log_monitor_url', 'log_task_id'
@@ -246,9 +246,9 @@ class OrgDataCenterAdmin(NoDeleteSelectModelAdmin):
 
         msg = _('数据中心管理员权限变更成功同步到钱包结算单元')
         if add_users:
-            msg += f';新添加管理员{[u.username for u in add_users]}'
+            msg += ';' + _('新添加管理员') + f'{[u.username for u in add_users]}'
         if remove_users:
-            msg += f';移除管理员{[u.username for u in remove_users]}'
+            msg += ';' + _('移除管理员') + f'{[u.username for u in remove_users]}'
 
         messages.add_message(request=request, level=messages.SUCCESS, message=msg)
 
