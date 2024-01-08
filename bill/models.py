@@ -86,45 +86,6 @@ class PayApp(CustomIdModel):
         return self.name
 
 
-class PayOrgnazition(CustomIdModel):
-    """
-    机构组织
-    """
-    name = models.CharField(verbose_name=_('名称'), max_length=255)
-    name_en = models.CharField(verbose_name=_('英文名称'), max_length=255, default='')
-    abbreviation = models.CharField(verbose_name=_('简称'), max_length=64, default='')
-    independent_legal_person = models.BooleanField(verbose_name=_('是否独立法人单位'), default=True)
-    country = models.CharField(verbose_name=_('国家/地区'), max_length=128, default='')
-    city = models.CharField(verbose_name=_('城市'), max_length=128, default='')
-    postal_code = models.CharField(verbose_name=_('邮政编码'), max_length=32, default='')
-    address = models.CharField(verbose_name=_('单位地址'), max_length=256, default='')
-    creation_time = models.DateTimeField(verbose_name=_('创建时间'), null=True, blank=True, default=None)
-    desc = models.CharField(verbose_name=_('描述'), blank=True, max_length=255)
-
-    logo_url = models.CharField(verbose_name=_('LOGO url'), max_length=256,
-                                blank=True, default='')
-    certification_url = models.CharField(verbose_name=_('机构认证代码url'), max_length=256,
-                                         blank=True, default='')
-    longitude = models.FloatField(verbose_name=_('经度'), blank=True, default=0)
-    latitude = models.FloatField(verbose_name=_('纬度'), blank=True, default=0)
-    user = models.ForeignKey(to=UserProfile, on_delete=models.SET_NULL, related_name='+', null=True, default=None)
-
-    class Meta:
-        ordering = ['creation_time']
-        db_table = 'pay_orgnazition'
-        verbose_name = _('支付机构')
-        verbose_name_plural = verbose_name
-
-    def generate_id(self):
-        return f'o{rand_utils.timestamp14_sn()}'
-
-    def __str__(self):
-        return self.name
-
-    def __repr__(self):
-        return f'PayOrgnazition({self.name})'
-
-
 class PayAppService(CustomIdModel):
     class Status(models.TextChoices):
         UNAUDITED = 'unaudited', _('未审核')

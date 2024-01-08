@@ -55,15 +55,6 @@ class DataCenter(UuidModel):
     city = models.CharField(verbose_name=_('城市'), max_length=128, default='')
     postal_code = models.CharField(verbose_name=_('邮政编码'), max_length=32, default='')
     address = models.CharField(verbose_name=_('单位地址'), max_length=256, default='')
-
-    endpoint_vms = models.CharField(max_length=255, verbose_name=_('云主机服务地址url'),
-                                    null=True, blank=True, default=None, help_text='http(s)://{hostname}:{port}/')
-    endpoint_object = models.CharField(max_length=255, verbose_name=_('存储服务地址url'),
-                                       null=True, blank=True, default=None, help_text='http(s)://{hostname}:{port}/')
-    endpoint_compute = models.CharField(max_length=255, verbose_name=_('计算服务地址url'),
-                                        null=True, blank=True, default=None, help_text='http(s)://{hostname}:{port}/')
-    endpoint_monitor = models.CharField(max_length=255, verbose_name=_('检测报警服务地址url'),
-                                        null=True, blank=True, default=None, help_text='http(s)://{hostname}:{port}/')
     creation_time = models.DateTimeField(verbose_name=_('创建时间'), null=True, blank=True, default=None)
     status = models.SmallIntegerField(verbose_name=_('服务状态'), choices=CHOICE_STATUS, default=STATUS_ENABLE)
     desc = models.CharField(verbose_name=_('描述'), blank=True, max_length=255)

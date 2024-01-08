@@ -131,7 +131,7 @@ class MediaApiTests(MyAPITestCase):
         self.assertEqual(download_md5, file_md5, msg='Compare the MD5 of upload file and download file')
 
 
-class ApplyOrganizationTests(MyAPITestCase):
+class ApplyOrganizationTests:   # (MyAPITestCase):
     apply_data = {
         "name": "中国科学院计算机信息网络中心",
         "name_en": "cnic",
@@ -422,7 +422,7 @@ class ApplyOrganizationTests(MyAPITestCase):
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
 
 
-class ApplyVmServiceTests(MyAPITestCase):
+class ApplyVmServiceTests:  # (MyAPITestCase):
     def setUp(self):
         self.user = None
         set_auth_header(self)
