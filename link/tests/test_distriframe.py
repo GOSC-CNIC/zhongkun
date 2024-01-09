@@ -1,11 +1,15 @@
-from utils.test import get_or_create_user, MyAPITransactionTestCase
-from link.managers.distriframe_manager import DistriFrameManager
-from link.managers.linkorg_manager import LinkOrgManager
-from django.urls import reverse
 from urllib import parse
+
+from django.urls import reverse
+
+from utils.test import get_or_create_user, MyAPITransactionTestCase
 from service.models import DataCenter
+from ipam.managers import OrgVirtualObjectManager
+from link.managers.distriframe_manager import DistriFrameManager
 from link.models import DistributionFrame
 from link.models import LinkUserRole
+
+
 class DistriFrameTests(MyAPITransactionTestCase):
     def setUp(self):
         self.user1 = get_or_create_user(username='tom@qq.com')
@@ -19,17 +23,11 @@ class DistriFrameTests(MyAPITransactionTestCase):
     def test_list_distriframe(self):
         org1 = DataCenter(name='org1', name_en='org1 en')
         org1.save(force_insert=True)
-        linkorg1 = LinkOrgManager.create_linkorg(
-            data_center=org1,
-            name='铁科院',
-            remarks='',
-            location=''
+        linkorg1 = OrgVirtualObjectManager.create_org_virt_obj(
+            org=org1, name='铁科院', remark=''
         )
-        linkorg2 = LinkOrgManager.create_linkorg(
-            data_center=org1,
-            name='农科院',
-            remarks='',
-            location=''
+        linkorg2 = OrgVirtualObjectManager.create_org_virt_obj(
+            org=org1, name='农科院', remark=''
         )
         DistriFrameManager.create_distriframe(
             number='test_distriframe_number1',
@@ -101,11 +99,8 @@ class DistriFrameTests(MyAPITransactionTestCase):
     def test_retrieve_distriframe(self):
         org1 = DataCenter(name='org1', name_en='org1 en')
         org1.save(force_insert=True)
-        linkorg1 = LinkOrgManager.create_linkorg(
-            data_center=org1,
-            name='铁科院',
-            remarks='',
-            location=''
+        linkorg1 = OrgVirtualObjectManager.create_org_virt_obj(
+            org=org1, name='铁科院', remark=''
         )
         distriframe = DistriFrameManager.create_distriframe(
             number='test_distriframe_number2',

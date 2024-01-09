@@ -9,6 +9,7 @@ from django.utils.translation import gettext as _
 from django.core.exceptions import ValidationError
 
 from core import errors
+from service.models import DataCenter as Organization
 from .models import (
     IPv4Range, IPAMUserRole, OrgVirtualObject, ASN, ipv4_str_to_int, IPv4RangeRecord,
     IPRangeItem, IPRangeIntItem, IPv4Address
@@ -768,7 +769,7 @@ class IPv4RangeSplitter:
     def split_to_plan(self, sub_ranges: list, user) -> List[IPv4Range]:
         with transaction.atomic():
             ipv4_range = IPv4Range.objects.select_for_update().select_related(
-                'asn', 'org_virt_obj').filter(id=self._ipv4_range_id).first()
+                'asn', 'org_virt_obj__organization').filter(id=self._ipv4_range_id).first()
             if ipv4_range is None:
                 raise errors.TargetNotExist(message=_('IP地址段不存在'))
 
@@ -1053,3 +1054,17 @@ class IPv4AddressManager:
                 qs = qs.filter(~Q(remark=''))
 
         return qs
+
+
+class OrgVirtualObjectManager:
+    """
+    机构二级对象
+    """
+    @staticmethod
+    def create_org_virt_obj(name: str, org: Organization, remark: str = '', creation_time: datetime = None):
+        obj = OrgVirtualObject(
+            name=name, organization=org, remark=remark,
+            creation_time=creation_time if creation_time else dj_timezone.now()
+        )
+        obj.save(force_insert=True)
+        return obj

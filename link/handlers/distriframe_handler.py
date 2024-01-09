@@ -6,6 +6,8 @@ from core import errors
 from link.utils.verify_utils import VerifyUtils
 from rest_framework.response import Response
 from link.serializers.distriframe_serializer import DistriFrameSerializer
+
+
 class DistriFrameHandler:
     @staticmethod
     def list_distriframe(view: NormalGenericViewSet, request):

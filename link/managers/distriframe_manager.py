@@ -1,8 +1,11 @@
 from django.utils.translation import gettext as _
-from link.models import DistributionFrame, LinkOrg
-from core import errors
 from django.db import transaction
+
+from core import errors
+from ipam.models import OrgVirtualObject
+from link.models import DistributionFrame
 from link.managers.distriframeport_manager import DistriFramePortManager
+
 
 class DistriFrameManager:
     @staticmethod
@@ -26,7 +29,7 @@ class DistriFrameManager:
             row_count: int,
             col_count: int,
             place: str,
-            link_org: LinkOrg,
+            link_org: OrgVirtualObject,
             remarks: str
     ) -> DistributionFrame:
         with transaction.atomic():

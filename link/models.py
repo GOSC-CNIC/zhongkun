@@ -2,14 +2,17 @@ from django.db import models
 from utils.model import UuidModel
 from django.utils.translation import gettext_lazy as _
 from users.models import UserProfile
-from service.models import DataCenter
+from ipam.models import OrgVirtualObject
 
 
 class LinkUserRole(UuidModel):
     """链路用户角色和权限"""
-    user = models.OneToOneField(verbose_name=_('用户'), to=UserProfile, related_name='userprofile_linkuserrole', on_delete=models.CASCADE)
-    is_admin = models.BooleanField(verbose_name=_('链路管理员权限'), default=False, help_text=_('用户拥有科技网链路管理功能的管理员权限'))
-    is_readonly = models.BooleanField(verbose_name=_('链路只读权限'), default=False, help_text=_('用户拥有科技网链路管理功能的全局只读权限'))
+    user = models.OneToOneField(
+        verbose_name=_('用户'), to=UserProfile, related_name='userprofile_linkuserrole', on_delete=models.CASCADE)
+    is_admin = models.BooleanField(
+        verbose_name=_('链路管理员权限'), default=False, help_text=_('用户拥有科技网链路管理功能的管理员权限'))
+    is_readonly = models.BooleanField(
+        verbose_name=_('链路只读权限'), default=False, help_text=_('用户拥有科技网链路管理功能的全局只读权限'))
     create_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
     update_time = models.DateTimeField(verbose_name=_('更新时间'), auto_now=True)
 
@@ -21,28 +24,6 @@ class LinkUserRole(UuidModel):
 
     def __str__(self):
         return self.user.username
-
-
-class LinkOrg(UuidModel):
-    """链路机构对象"""
-
-    data_center = models.ForeignKey(
-        verbose_name=_('主机构'), to=DataCenter, related_name='datacenter_linkorg',
-        on_delete=models.SET_NULL, null=True, default=None)
-    name = models.CharField(verbose_name=_('二级机构名'), max_length=64, default='')
-    remarks = models.CharField(verbose_name=_('备注'), max_length=255, default='', blank=True)
-    location = models.CharField(verbose_name=_('经纬度'), max_length=64, blank=True, default='')
-    create_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
-    update_time = models.DateTimeField(verbose_name=_('更新时间'), auto_now=True)
-
-    class Meta:
-        ordering = ('-create_time',)
-        db_table = 'link_org'
-        verbose_name = _('机构二级')
-        verbose_name_plural = verbose_name
-
-    def __str__(self):
-        return self.name
 
 
 class FiberCable(UuidModel):
@@ -76,7 +57,7 @@ class DistributionFrame(UuidModel):
     col_count = models.IntegerField(verbose_name=_('列数'), default=None)
     place = models.CharField(verbose_name=_('位置'), max_length=128, blank=True, default='')
     link_org = models.ForeignKey(
-        verbose_name=_('机构'), to=LinkOrg, related_name='linkorg_distriframe',
+        verbose_name=_('机构二级'), to=OrgVirtualObject, related_name='+',
         on_delete=models.SET_NULL, null=True, default=None)
     remarks = models.CharField(verbose_name=_('备注'), max_length=255, blank=True, default='')
     create_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
@@ -130,12 +111,14 @@ class Element(UuidModel):
         """该网元是否已经建立链路"""
         return self.links.exists()
 
+
 class ElementBase(UuidModel):
     """网元对象基类"""
 
     element = models.OneToOneField(
         verbose_name=_('网元记录'), to=Element, related_name='element_%(class)s', 
         db_constraint=False, on_delete=models.SET_NULL, null=True, default=None)
+
     class Meta:
         abstract = True
 
@@ -151,6 +134,7 @@ class ElementBase(UuidModel):
         if not self.is_linked:
             return []
         return [link.id for link in self.element.links.all()]
+
 
 class LeaseLine(ElementBase):
     """租用线路"""
@@ -168,11 +152,13 @@ class LeaseLine(ElementBase):
     line_type = models.CharField(verbose_name=_('线路类型'), max_length=36, blank=True, default='')
     cable_type = models.CharField(verbose_name=_('电路类型'), max_length=36, blank=True, default='')
     bandwidth = models.IntegerField(verbose_name=_('带宽'), null=True, blank=True, default=None, help_text='Mbps')
-    length = models.DecimalField(verbose_name=_('长度'), max_digits=10, decimal_places=2, null=True, blank=True, default=None, help_text='km')
+    length = models.DecimalField(
+        verbose_name=_('长度'), max_digits=10, decimal_places=2, null=True, blank=True, default=None, help_text='km')
     provider = models.CharField(verbose_name=_('运营商'), max_length=36, blank=True, default='')
     enable_date = models.DateField(verbose_name=_('开通日期'), null=True, blank=True, default=None)
     is_whithdrawal = models.BooleanField(verbose_name=_('是否撤线'), default=False, help_text=_('0:在网 1:撤线'))
-    money =  models.DecimalField(verbose_name=_('月租费'), max_digits=10, decimal_places=2, null=True, blank=True, default=None, help_text='元')
+    money = models.DecimalField(
+        verbose_name=_('月租费'), max_digits=10, decimal_places=2, null=True, blank=True, default=None, help_text='元')
     remarks = models.CharField(verbose_name=_('备注'), max_length=255, blank=True, default='')
     create_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
     update_time = models.DateTimeField(verbose_name=_('更新时间'), auto_now=True)
