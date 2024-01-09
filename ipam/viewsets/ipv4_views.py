@@ -288,6 +288,55 @@ class IPv4RangeViewSet(NormalGenericViewSet):
         return IPv4RangeHandler().split_ipv4_range(view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
+        operation_summary=gettext_lazy('按指定拆分方案拆分IPv4地址段'),
+        responses={
+            200: ''''''
+        }
+    )
+    @action(methods=['POST'], detail=True, url_path='plan-split', url_name='plan-split')
+    def split_ip_range_to_plan(self, request, *args, **kwargs):
+        """
+        按指定拆分方案拆分IPv4地址段，需要有科技网管理员权限
+
+            * 拆分子网数量最多不得超过1024个，提交的子网必须按起始地址正序排列，相邻子网ip地址必须是连续的
+
+            http Code 200 Ok:
+                {
+                    "ip_ranges": [
+                      "name": "127.0.0.0/24",
+                      "status": "wait",
+                      "creation_time": "2023-10-26T08:33:56.047279Z",
+                      "update_time": "2023-10-26T08:33:56.047279Z",
+                      "assigned_time": null,
+                      "admin_remark": "test",
+                      "remark": "",
+                      "start_address": 2130706433,
+                      "end_address": 2130706687,
+                      "mask_len": 24,
+                      "asn": {
+                        "id": 5,
+                        "number": 65535
+                      },
+                      "org_virt_obj": null
+                    ]
+                }
+
+            Http Code 400, 403, 409, 500:
+                {
+                    "code": "BadRequest",
+                    "message": "xxxx"
+                }
+
+                可能的错误码：
+                400:
+                InvalidArgument: 参数无效
+
+                403:
+                AccessDenied: 你没有科技网IP管理功能的管理员权限
+        """
+        return IPv4RangeHandler().split_ip_range_to_plan(view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
         operation_summary=gettext_lazy('子网IPv4地址段合并为一个指定掩码长度的超网地址段'),
         responses={
             200: ''''''
@@ -534,6 +583,8 @@ class IPv4RangeViewSet(NormalGenericViewSet):
             return serializers.IPv4RangeSplitSerializer
         elif self.action == 'merge_ip_ranges':
             return serializers.IPv4RangeMergeSerializer
+        elif self.action == 'split_ip_range_to_plan':
+            return serializers.IPv4RangePlanSplitSerializer
 
         return Serializer
 

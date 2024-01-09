@@ -408,7 +408,14 @@ class IPv4RangeManager:
         """
         按掩码长度划分一个地址段
         """
-        return IPv4RangeSplitter(obj_or_id=range_id, new_prefix=new_prefix).do_split(user=user, fake=fake)
+        return IPv4RangeSplitter(obj_or_id=range_id).split_by_mask(user=user, new_prefix=new_prefix, fake=fake)
+
+    @staticmethod
+    def split_ipv4_range_to_plan(user, range_id: str, sub_ranges: list) -> List[IPv4Range]:
+        """
+        按指定拆分计划拆分一个地址段
+        """
+        return IPv4RangeSplitter(obj_or_id=range_id).split_to_plan(user=user, sub_ranges=sub_ranges)
 
     @staticmethod
     def merge_ipv4_ranges_by_mask(user, range_ids: List[str], new_prefix: int, fake: bool = False) -> IPv4Range:
@@ -578,7 +585,7 @@ class IPv4RangeRecordManager:
 
 
 class IPv4RangeSplitter:
-    def __init__(self, obj_or_id: Union[IPv4Range, str], new_prefix: int):
+    def __init__(self, obj_or_id: Union[IPv4Range, str]):
         if isinstance(obj_or_id, str):
             self._ipv4_range_id = obj_or_id
             self._ipv4_range = None
@@ -590,32 +597,32 @@ class IPv4RangeSplitter:
         else:
             raise ValueError(_('值必须是一个IPv4地址段对象或者是一个id'))
 
-        self.new_prefix = new_prefix
-        self.sub_ip_ranges = None
-
-    def do_split(self, user, fake: bool = False):
+    def split_by_mask(self, user, new_prefix: int, fake: bool = False):
         """
         :raises: Error
         """
-        self._ipv4_range, self.sub_ip_ranges = self.split_ipv4_range_by_mask(
-            range_id=self._ipv4_range_id, new_prefix=self.new_prefix, fake=fake
+        self._ipv4_range, sub_ip_ranges = self.split_ipv4_range_by_mask(
+            range_id=self._ipv4_range_id, new_prefix=new_prefix, fake=fake
         )
 
         if not fake:
-            self.add_split_record(ipv4_range=self._ipv4_range, subnets=self.sub_ip_ranges, user=user)
+            self.add_split_record(ipv4_range=self._ipv4_range, subnets=sub_ip_ranges, user=user)
 
-        return self.sub_ip_ranges
+        return sub_ip_ranges
 
     @staticmethod
     def split_subnets(ipv4_range: IPv4Range, new_prefix: int) -> List[IPv4Range]:
         """
         :raises: Error
         """
-        sub_ranges = IPv4RangeSplitter.split_plan_for_ipv4_range(
+        sub_ranges = IPv4RangeSplitter.split_plan_by_mask(
             start_address=ipv4_range.start_address, end_address=ipv4_range.end_address,
             mask_len=ipv4_range.mask_len, split_mask=new_prefix
         )
+        return IPv4RangeSplitter.build_subnets(ipv4_range=ipv4_range, sub_ranges=sub_ranges)
 
+    @staticmethod
+    def build_subnets(ipv4_range: IPv4Range, sub_ranges: List[IPRangeIntItem]):
         asn = ipv4_range.asn
         assigned_time = ipv4_range.assigned_time
         org_virt_obj = ipv4_range.org_virt_obj
@@ -624,7 +631,7 @@ class IPv4RangeSplitter:
         for sr in sub_ranges:
             nt = dj_timezone.now()
             ip_rg = IPv4Range(
-                start_address=sr.start, end_address=sr.end, mask_len=new_prefix,
+                start_address=sr.start, end_address=sr.end, mask_len=sr.mask,
                 asn=asn, status=ipv4_range.status, creation_time=nt, update_time=nt,
                 assigned_time=assigned_time, org_virt_obj=org_virt_obj,
                 admin_remark=admin_remark, remark=''
@@ -635,7 +642,7 @@ class IPv4RangeSplitter:
         return subnets
 
     @staticmethod
-    def split_plan_for_ipv4_range(
+    def split_plan_by_mask(
             start_address: int, end_address: int, mask_len: int, split_mask: int
     ) -> List[IPRangeIntItem]:
         """
@@ -673,7 +680,7 @@ class IPv4RangeSplitter:
         """
         按掩码长度拆分一个地址段
 
-        * 次函数需要在一个事务中执行
+        * 此函数需要在一个事务中执行
 
         :param ipv4_range: 要拆分的地址段
         :param new_prefix: 要拆分的掩码长度
@@ -693,6 +700,14 @@ class IPv4RangeSplitter:
         if fake:
             return subnets
 
+        return IPv4RangeSplitter._do_split_ipv4_range(ipv4_range=ipv4_range, subnets=subnets)
+
+    @staticmethod
+    def _do_split_ipv4_range(
+            ipv4_range: IPv4Range, subnets: List[IPv4Range]) -> List[IPv4Range]:
+        """
+        * 此函数需要在一个事务中执行
+        """
         for sn in subnets:
             sn.enforce_id()  # 生成id
 
@@ -749,6 +764,77 @@ class IPv4RangeSplitter:
             )
         except Exception as exc:
             pass
+
+    def split_to_plan(self, sub_ranges: list, user) -> List[IPv4Range]:
+        with transaction.atomic():
+            ipv4_range = IPv4Range.objects.select_for_update().select_related(
+                'asn', 'org_virt_obj').filter(id=self._ipv4_range_id).first()
+            if ipv4_range is None:
+                raise errors.TargetNotExist(message=_('IP地址段不存在'))
+
+            if ipv4_range.status not in [IPv4Range.Status.WAIT.value, IPv4Range.Status.RESERVED.value]:
+                raise errors.ConflictError(message=_('只允许拆分“未分配”和“预留”状态的IP地址段'))
+
+            sub_ranges = self.validate_sub_ranges_plan(ipv4_range=ipv4_range, sub_ranges=sub_ranges)
+            ip_ranges = self.build_subnets(ipv4_range=ipv4_range, sub_ranges=sub_ranges)
+            # 如果子网和超网一致，返回
+            if len(ip_ranges) == 1:
+                rg = ip_ranges[0]
+                if (
+                        ipv4_range.start_address == rg.start_address
+                        and ipv4_range.end_address == rg.end_address
+                        and ipv4_range.mask_len == rg.mask_len
+                ):
+                    return [ipv4_range]
+
+            ip_ranges = self._do_split_ipv4_range(ipv4_range=ipv4_range, subnets=ip_ranges)
+
+        self.add_split_record(ipv4_range=ipv4_range, subnets=ip_ranges, user=user)
+        return ip_ranges
+
+    @staticmethod
+    def validate_sub_ranges_plan(ipv4_range: IPv4Range, sub_ranges: list) -> List[IPRangeIntItem]:
+        """
+        验证指定的拆分子网规划
+        """
+        if len(sub_ranges) > 1024:
+            raise errors.InvalidArgument(message=_('每次拆分子网数量不得超过1024个'))
+
+        # 必须是按start address正序排序的
+        if sub_ranges[0]['start_address'] != ipv4_range.start_address:
+            raise errors.InvalidArgument(message=_(
+                '子网起始地址(%(subaddr)d)与要拆分的超网起始地址(%(superaddr)d)不一致。'
+            ) % {'subaddr': sub_ranges[0]['start_address'], 'superaddr': ipv4_range.start_address})
+
+        if sub_ranges[-1]['end_address'] != ipv4_range.end_address:
+            raise errors.InvalidArgument(message=_(
+                '子网结束地址(%(subaddr)d)与要拆分的超网结束地址(%(superaddr)d)不一致。'
+            ) % {'subaddr': sub_ranges[-1]['end_address'], 'superaddr': ipv4_range.end_address})
+
+        subnets = []
+        pre_range = None
+        for sr in sub_ranges:
+            start = sr['start_address']
+            end = sr['end_address']
+            prefix = sr['prefix']
+            sr = IPRangeIntItem(start=start, end=end, mask=prefix)
+
+            if ipv4_range.mask_len > prefix:
+                raise errors.InvalidArgument(message=_('子网掩码长度必须不得小于要拆分的超网掩码长度。') + f'{sr}')
+
+            if prefix > 32:
+                raise errors.InvalidArgument(message=_('子网掩码长度不得大于32。') + f'{sr}')
+
+            if start > end:
+                raise errors.InvalidArgument(message=_('子网无效，起始地址不能大于结束地址。') + f'{sr}')
+
+            if pre_range and start - pre_range.end != 1:
+                raise errors.InvalidArgument(message=_('相邻子网地址不连续。') + f'{pre_range}；{sr}')
+
+            subnets.append(sr)
+            pre_range = sr
+
+        return subnets
 
 
 class IPv4RangeMerger:

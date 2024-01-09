@@ -65,6 +65,16 @@ class IPv4RangeSplitSerializer(serializers.Serializer):
         help_text=_('true(假装拆分，询问拆分规划)；其他值或不提交此参数（正常真实拆分地址段）'))
 
 
+class SubIPv4Range(serializers.Serializer):
+    start_address = serializers.IntegerField(label=_('起始地址'), min_value=0, required=True)
+    end_address = serializers.IntegerField(label=_('截止地址'), min_value=0, required=True)
+    prefix = serializers.IntegerField(label=_('前缀（子网掩码）长度'), required=True, min_value=0, max_value=32)
+
+
+class IPv4RangePlanSplitSerializer(serializers.Serializer):
+    sub_ranges = serializers.ListField(child=SubIPv4Range(), label=_('拆分计划子网段'), required=True)
+
+
 class IPv4RangeMergeSerializer(serializers.Serializer):
     new_prefix = serializers.IntegerField(label=_('子网掩码长度'), required=True, min_value=1, max_value=31)
     ip_range_ids = serializers.ListField(

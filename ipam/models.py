@@ -24,7 +24,8 @@ class IPRangeItem(_IPRangeItem):
     end: '127.0.0.255'
     mask: 24
     """
-    pass
+    def __str__(self):
+        return f'{self.start}-{self.end} /{self.mask}'
 
 
 _IPRangeItem = namedtuple('IPRangeItem', ['start', 'end', 'mask'])
@@ -36,7 +37,8 @@ class IPRangeIntItem(_IPRangeItem):
     end: int
     mask: 24
     """
-    pass
+    def __str__(self):
+        return f'{self.start}-{self.end} /{self.mask}'
 
 
 IPv6RangeStrItem = namedtuple('IPv6RangeItem', ['start', 'end', 'prefix'])

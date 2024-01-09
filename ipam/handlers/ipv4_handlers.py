@@ -229,6 +229,65 @@ class IPv4RangeHandler:
         })
 
     @staticmethod
+    def split_ip_range_to_plan(view: NormalGenericViewSet, request, kwargs):
+        serializer = view.get_serializer(data=request.data)
+        if not serializer.is_valid(raise_exception=False):
+            s_errors = serializer.errors
+            if 'sub_ranges' in s_errors:
+                errs = s_errors['sub_ranges']
+                msg = ''
+                if isinstance(errs, list):
+                    msg = str(errs[0])
+                elif isinstance(errs, dict):
+                    for idx, err in errs.items():
+                        err_msgs = []
+                        for k, v in err.items():
+                            if v and isinstance(v, list):
+                                err_msgs.append(f'{k}: {v[0]}')
+                            else:
+                                err_msgs.append(f'{k}: {v}')
+
+                        msg = f'index {idx}, ' + ', '.join(err_msgs)
+                        break
+                else:
+                    msg = str(errs)
+                exc = errors.InvalidArgument(message=_('指定的分拆子网无效。') + msg)
+            else:
+                msg = serializer_error_msg(s_errors)
+                exc = errors.BadRequest(message=msg)
+
+            return view.exception_response(exc)
+
+        data = serializer.validated_data.copy()
+        sub_ranges = data['sub_ranges']
+
+        if not sub_ranges:
+            return view.exception_response(errors.InvalidArgument(message=_('指定的分拆子网数组不能为空')))
+
+        pre_start = -1
+        for rg in sub_ranges:
+            if rg['start_address'] <= pre_start:
+                return view.exception_response(errors.InvalidArgument(message=_('指定的分拆子网数组必须按子网地址正序排序')))
+
+            pre_start = rg['start_address']
+
+        ur_wrapper = UserIpamRoleWrapper(user=request.user)
+        if not ur_wrapper.has_kjw_admin_writable():
+            return view.exception_response(
+                errors.AccessDenied(message=_('你没有科技网IP管理功能的管理员权限')))
+
+        try:
+            sub_ranges = IPv4RangeManager.split_ipv4_range_to_plan(
+                user=request.user, range_id=kwargs[view.lookup_field], sub_ranges=sub_ranges
+            )
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        return Response(data={
+            'ip_ranges': serializers.IPv4RangeSerializer(instance=sub_ranges, many=True).data
+        })
+
+    @staticmethod
     def merge_ipv4_ranges(view: NormalGenericViewSet, request, kwargs):
         serializer = view.get_serializer(data=request.data)
         if not serializer.is_valid(raise_exception=False):
