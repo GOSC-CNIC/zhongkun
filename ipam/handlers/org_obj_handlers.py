@@ -1,17 +1,39 @@
 from django.utils.translation import gettext as _
-from django.utils import timezone as dj_timezone
-from django.db.models import Q
 from rest_framework.response import Response
 
 from core import errors
 from api.viewsets import NormalGenericViewSet, serializer_error_msg
 from service.models import DataCenter as Organization
-from ..managers import UserIpamRoleWrapper
-from ..models import OrgVirtualObject
+from link.managers.userrole_manager import UserRoleWrapper as LinkUserRoleWrapper
+from ..managers import UserIpamRoleWrapper, OrgVirtualObjectManager
 from .. import serializers
 
 
 class OrgVirtObjHandler:
+    @staticmethod
+    def has_write_permission(user):
+        ipam_roler = UserIpamRoleWrapper(user=user)
+        if ipam_roler.has_kjw_admin_writable():
+            return True
+
+        link_roler = LinkUserRoleWrapper(user=user)
+        if link_roler.has_write_permission():
+            return True
+
+        return False
+
+    @staticmethod
+    def has_read_permission(user):
+        ipam_roler = UserIpamRoleWrapper(user=user)
+        if ipam_roler.has_kjw_admin_readable():
+            return True
+
+        link_roler = LinkUserRoleWrapper(user=user)
+        if link_roler.has_read_permission():
+            return True
+
+        return False
+
     def add_org_virt_obj(self, view: NormalGenericViewSet, request):
         try:
             data = self._add_org_obj_validate_params(view=view, request=request)
@@ -23,15 +45,18 @@ class OrgVirtObjHandler:
             return view.exception_response(
                 errors.InvalidArgument(message=_('机构id无效，机构不存在')))
 
-        ur_wrapper = UserIpamRoleWrapper(user=request.user)
-        if not ur_wrapper.has_kjw_admin_writable():
+        if not self.has_write_permission(request.user):
             return view.exception_response(
-                errors.AccessDenied(message=_('你没有科技网IP管理功能的管理员权限')))
+                errors.AccessDenied(message=_('你没有IP管理或者链路管理功能的管理员权限')))
 
         try:
-            ovo = OrgVirtualObject(
-                name=data['name'], organization=org, remark=data['remark'], creation_time=dj_timezone.now())
-            ovo.save(force_insert=True)
+            ovo = OrgVirtualObjectManager.get_org_virt_obj(name=data['name'], org_id=org.id)
+            if ovo:
+                raise errors.TargetAlreadyExists(message=_('同名的机构二级对象已存在'))
+
+            ovo = OrgVirtualObjectManager.create_org_virt_obj(
+                name=data['name'], org=org, remark=data['remark']
+            )
             serializer = serializers.OrgVirtualObjectSimpleSerializer(instance=ovo)
             return Response(data=serializer.data)
         except Exception as exc:
@@ -64,19 +89,12 @@ class OrgVirtObjHandler:
         org_id = request.query_params.get('org_id')
         search = request.query_params.get('search')
 
-        ur_wrapper = UserIpamRoleWrapper(user=request.user)
-        if not ur_wrapper.has_kjw_admin_readable():
+        if not OrgVirtObjHandler.has_read_permission(request.user):
             return view.exception_response(
-                errors.AccessDenied(message=_('你没有科技网IP管理功能的管理员权限')))
+                errors.AccessDenied(message=_('你没有科技网IP管理或者链路管理功能的管理员权限')))
 
         try:
-            qs = OrgVirtualObject.objects.select_related('organization').order_by('-creation_time')
-            if org_id:
-                qs = qs.filter(organization_id=org_id)
-            if search:
-                qs = qs.filter(Q(name__icontains=search) | Q(remark__icontains=search) | Q(
-                    organization__name__icontains=search))
-
+            qs = OrgVirtualObjectManager.filter_queryset(org_id=org_id, search=search)
             objs = view.paginate_queryset(qs)
             serializer = serializers.OrgVirtualObjectSimpleSerializer(instance=objs, many=True)
             return view.get_paginated_response(data=serializer.data)

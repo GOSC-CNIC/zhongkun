@@ -24,7 +24,7 @@ class OrgObjViewSet(NormalGenericViewSet):
     )
     def create(self, request, *args, **kwargs):
         """
-        创建一个机构二级对象，需要有科技网管理员权限
+        创建一个机构二级对象，需要有IP或者链路管理员权限
 
             http Code 200 Ok:
                 {
@@ -78,7 +78,7 @@ class OrgObjViewSet(NormalGenericViewSet):
     )
     def list(self, request, *args, **kwargs):
         """
-        列举机构二级对象，需要有科技网管理员读权限
+        列举机构二级对象，需要有IP或者链路管理员读权限
 
             http Code 200 Ok:
                 {

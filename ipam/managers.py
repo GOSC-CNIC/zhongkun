@@ -1061,6 +1061,10 @@ class OrgVirtualObjectManager:
     机构二级对象
     """
     @staticmethod
+    def get_org_virt_obj(name: str, org_id: str):
+        return OrgVirtualObject.objects.filter(organization_id=org_id, name=name).first()
+
+    @staticmethod
     def create_org_virt_obj(name: str, org: Organization, remark: str = '', creation_time: datetime = None):
         obj = OrgVirtualObject(
             name=name, organization=org, remark=remark,
@@ -1068,3 +1072,15 @@ class OrgVirtualObjectManager:
         )
         obj.save(force_insert=True)
         return obj
+
+    @staticmethod
+    def filter_queryset(org_id, search):
+        qs = OrgVirtualObject.objects.select_related('organization')
+        if org_id:
+            qs = qs.filter(organization_id=org_id)
+
+        if search:
+            qs = qs.filter(Q(name__icontains=search) | Q(remark__icontains=search) | Q(
+                organization__name__icontains=search))
+
+        return qs.order_by('-creation_time')
