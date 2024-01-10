@@ -271,7 +271,8 @@ class Link(UuidModel):
     @property
     def link_element(self):
         return ElementLink.objects.filter(link=self)
-    
+
+
 class ElementLink(UuidModel):
     """链路网元对应表"""
 
@@ -279,12 +280,13 @@ class ElementLink(UuidModel):
     link = models.ForeignKey(verbose_name=_('业务链路'), to=Link, related_name='element_link', on_delete=models.CASCADE)
     index = models.IntegerField(verbose_name=_('链路位置'))
     sub_index = models.IntegerField(verbose_name=_('同位编号'), default=1)
+
     class Meta:
         ordering = ('link_id', 'index', 'sub_index')
         db_table = 'link_elementlink'
         verbose_name = _('链路网元对应表')
         verbose_name_plural = verbose_name
-    
+
     @property
     def element_data(self):
         from link.managers.element_manager import ElementManager
@@ -298,8 +300,10 @@ class ElementLink(UuidModel):
         id_list = [elementlink.element.object_id for elementlink in qs if elementlink.element.object_type==object_type]
         return id_list
 
-class ElementDetailData():
-    def __init__(self, type: Element.Type = None, lease: LeaseLine = None, fiber: OpticalFiber = None, port: DistriFramePort = None, box: ConnectorBox = None):
+
+class ElementDetailData:
+    def __init__(self, type: Element.Type = None, lease: LeaseLine = None, fiber: OpticalFiber = None,
+                 port: DistriFramePort = None, box: ConnectorBox = None):
         self.type = type
         self.lease = lease
         self.fiber = fiber
