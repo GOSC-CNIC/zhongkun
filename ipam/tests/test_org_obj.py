@@ -5,7 +5,8 @@ from django.utils import timezone as dj_timezone
 
 from utils.test import get_or_create_user, MyAPITransactionTestCase, get_or_create_organization
 from link.managers.userrole_manager import UserRoleWrapper as LinkUserRoleWrapper
-from ..managers import UserIpamRoleWrapper, OrgVirtualObject, OrgVirtualObjectManager
+from ..managers import UserIpamRoleWrapper, OrgVirtualObjectManager
+from ..models import ContactPerson, OrgVirtualObject
 
 
 class OrgObjTests(MyAPITransactionTestCase):
@@ -292,3 +293,105 @@ class OrgObjTests(MyAPITransactionTestCase):
         self.assertEqual(org_obj.name, 'test2')
         self.assertEqual(org_obj.organization_id, org1.id)
         self.assertEqual(org_obj.remark, '')
+
+
+class ContactsTests(MyAPITransactionTestCase):
+    def setUp(self):
+        self.user1 = get_or_create_user(username='tom@qq.com')
+        self.user2 = get_or_create_user(username='lisi@cnic.cn')
+
+    def test_create(self):
+        base_url = reverse('ipam-api:contacts-list')
+        response = self.client.post(base_url)
+        self.assertEqual(response.status_code, 401)
+
+        self.client.force_login(self.user1)
+        response = self.client.post(base_url)
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        response = self.client.post(base_url, data={
+            'name': 'zhangsan', 'telephone': '110', 'email': '', 'address': '', 'remarks': ''})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        u1_role_wrapper = UserIpamRoleWrapper(user=self.user1)
+        u1_role_wrapper.user_role = u1_role_wrapper.get_or_create_user_ipam_role()
+        u1_role_wrapper.user_role.is_readonly = True
+        u1_role_wrapper.user_role.save(update_fields=['is_readonly'])
+        response = self.client.post(base_url, data={
+            'name': 'zhangsan', 'telephone': '110', 'email': '', 'address': '', 'remarks': ''})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        u1_role_wrapper.user_role.is_admin = True
+        u1_role_wrapper.user_role.save(update_fields=['is_admin'])
+
+        response = self.client.post(base_url, data={
+            'name': 'zhangsan', 'telephone': '110', 'email': '', 'address': '', 'remarks': ''})
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['id', 'name', 'telephone', 'email', 'address', 'remarks',
+                           'creation_time', 'update_time'], response.data)
+        self.assertEqual(ContactPerson.objects.count(), 1)
+        cp: ContactPerson = ContactPerson.objects.first()
+        self.assertEqual(cp.name, 'zhangsan')
+        self.assertEqual(cp.telephone, '110')
+        self.assertEqual(cp.email, '')
+        self.assertEqual(cp.address, '')
+        self.assertEqual(cp.remarks, '')
+
+        # name
+        response = self.client.post(base_url, data={
+            'name': '', 'telephone': '110', 'email': '', 'address': '', 'remarks': ''})
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # telephone
+        response = self.client.post(base_url, data={
+            'name': 'zhangsan', 'telephone': '', 'email': '', 'address': '', 'remarks': ''})
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # email invalid
+        response = self.client.post(base_url, data={
+            'name': 'zhangsan', 'telephone': '110', 'email': 'sss', 'address': '', 'remarks': ''})
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # same name and telephone
+        response = self.client.post(base_url, data={
+            'name': 'zhangsan', 'telephone': '110', 'email': 'test@cnic.cn', 'address': '', 'remarks': ''})
+        self.assertErrorResponse(status_code=409, code='TargetAlreadyExists', response=response)
+
+        response = self.client.post(base_url, data={
+            'name': '李四', 'telephone': '110', 'email': 'test@cnic.cn', 'address': 'beijing', 'remarks': 'test'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(ContactPerson.objects.count(), 2)
+        cp: ContactPerson = ContactPerson.objects.get(id=response.data['id'])
+        self.assertEqual(cp.name, '李四')
+        self.assertEqual(cp.telephone, '110')
+        self.assertEqual(cp.email, 'test@cnic.cn')
+        self.assertEqual(cp.address, 'beijing')
+        self.assertEqual(cp.remarks, 'test')
+
+        # test link
+        u1_role_wrapper.user_role.is_admin = False
+        u1_role_wrapper.user_role.save(update_fields=['is_admin'])
+        response = self.client.post(base_url, data={
+            'name': '李四', 'telephone': '110', 'email': 'test@cnic.cn', 'address': 'beijing', 'remarks': 'test'})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        u1_link_roler = LinkUserRoleWrapper(user=self.user1)
+        u1_link_roler.get_or_create_user_role()
+        u1_link_roler.user_role.is_readonly = True
+        u1_link_roler.user_role.save(update_fields=['is_readonly'])
+        response = self.client.post(base_url, data={
+            'name': '李四', 'telephone': '110', 'email': 'test@cnic.cn', 'address': 'beijing', 'remarks': 'test'})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        u1_link_roler.user_role.is_admin = True
+        u1_link_roler.user_role.save(update_fields=['is_admin'])
+        response = self.client.post(base_url, data={
+            'name': '李四', 'telephone': '110', 'email': 'test@cnic.cn', 'address': 'beijing', 'remarks': 'test'})
+        self.assertErrorResponse(status_code=409, code='TargetAlreadyExists', response=response)
+
+        # ok
+        self.assertEqual(ContactPerson.objects.count(), 2)
+        response = self.client.post(base_url, data={
+            'name': 'tom', 'telephone': '110', 'email': 'test@cnic.cn', 'address': 'beijing', 'remarks': 'test'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(ContactPerson.objects.count(), 3)

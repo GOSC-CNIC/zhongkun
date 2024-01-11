@@ -5,11 +5,11 @@ from core import errors
 from api.viewsets import NormalGenericViewSet, serializer_error_msg
 from service.models import DataCenter as Organization
 from link.managers.userrole_manager import UserRoleWrapper as LinkUserRoleWrapper
-from ..managers import UserIpamRoleWrapper, OrgVirtualObjectManager
+from ..managers import UserIpamRoleWrapper, OrgVirtualObjectManager, ContactPersonManager
 from .. import serializers
 
 
-class OrgVirtObjHandler:
+class PermissionMixin:
     @staticmethod
     def has_write_permission(user):
         ipam_roler = UserIpamRoleWrapper(user=user)
@@ -34,6 +34,8 @@ class OrgVirtObjHandler:
 
         return False
 
+
+class OrgVirtObjHandler(PermissionMixin):
     def add_org_virt_obj(self, view: NormalGenericViewSet, request):
         try:
             data = self._add_org_obj_validate_params(view=view, request=request)
@@ -120,3 +122,57 @@ class OrgVirtObjHandler:
             return view.get_paginated_response(data=serializer.data)
         except Exception as exc:
             return view.exception_response(exc)
+
+
+class ContactsHandler(PermissionMixin):
+    def add_contact_person(self, view: NormalGenericViewSet, request):
+        try:
+            data = self._add_contacts_validate_params(view=view, request=request)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        if not self.has_write_permission(request.user):
+            return view.exception_response(
+                errors.AccessDenied(message=_('你没有IP管理或者链路管理功能的管理员权限')))
+
+        try:
+            person = ContactPersonManager.create_contact_person(
+                name=data['name'], telephone=data['telephone'],
+                email=data['email'], address=data['address'], remarks=data['remarks']
+            )
+            serializer = serializers.ContactPersonSerializer(instance=person)
+            return Response(data=serializer.data)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+    @staticmethod
+    def _add_contacts_validate_params(view: NormalGenericViewSet, request):
+        serializer = view.get_serializer(data=request.data)
+        if not serializer.is_valid(raise_exception=False):
+            s_errors = serializer.errors
+            if 'name' in s_errors:
+                exc = errors.InvalidArgument(
+                    message=_('姓名无效。') + s_errors['name'][0])
+            elif 'telephone' in s_errors:
+                exc = errors.InvalidArgument(
+                    message=_('电话无效。') + s_errors['telephone'][0])
+            elif 'remarks' in s_errors:
+                exc = errors.InvalidArgument(
+                    message=_('备注无效。') + s_errors['remarks'][0])
+            elif 'email' in s_errors:
+                exc = errors.InvalidArgument(
+                    message=_('邮箱地址无效。') + s_errors['email'][0])
+            else:
+                msg = serializer_error_msg(s_errors)
+                exc = errors.BadRequest(message=msg)
+
+            raise exc
+
+        if not serializer.validated_data['name']:
+            raise errors.InvalidArgument(message=_('必须提交一个有效的联系人姓名'))
+
+        if not serializer.validated_data['telephone']:
+            raise errors.InvalidArgument(message=_('必须提交联系人电话'))
+
+        return serializer.validated_data
+

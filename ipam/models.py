@@ -7,6 +7,7 @@ from django.utils.translation import gettext, gettext_lazy as _
 from django.core.validators import MaxValueValidator
 from django.core.exceptions import ValidationError
 from django.utils.functional import cached_property
+from django.utils import timezone as dj_timezone
 
 from core import errors
 from utils.model import UuidModel
@@ -103,29 +104,41 @@ class IPAMUserRole(UuidModel):
         return self.user.username
 
 
-# class Contacts(UuidModel):
-#     """机构二级联系人"""
-#     name = models.CharField(verbose_name=_('姓名'), max_length=128)
-#     telephone = models.CharField(verbose_name=_('电话'), max_length=16, default='')
-#     email = models.EmailField(_('邮箱地址'), blank=True, default='')
-#     address = models.CharField(verbose_name=_('联系地址'), max_length=255, blank='', default='',
-#                                help_text=_('详细的联系地址'))
-#     creation_time = models.DateTimeField(verbose_name=_('创建时间'))
-#     update_time = models.DateTimeField(verbose_name=_('更新时间'))
-#     remarks = models.CharField(max_length=255, default='', blank=True, verbose_name=_('备注'))
-#
-#     class Meta:
-#         ordering = ('-creation_time',)
-#         db_table = 'ipam_contacts'
-#         verbose_name = _('机构二级对象联系人')
-#         verbose_name_plural = verbose_name
-#
-#     def __str__(self):
-#         return f'[ {self.name} ] Phone: {self.telephone}, Email: {self.email}, Address: {self.address}'
-# contacts = models.ManyToManyField(
-#     verbose_name=_('机构二级对象联系人'), to=Contacts, related_name='+', db_table='ipam_org_obj_contacts',
-#     db_constraint=False, blank=True
-# )
+class ContactPerson(UuidModel):
+    """机构二级联系人"""
+    name = models.CharField(verbose_name=_('姓名'), max_length=128)
+    telephone = models.CharField(verbose_name=_('电话'), max_length=16, default='')
+    email = models.EmailField(_('邮箱地址'), blank=True, default='')
+    address = models.CharField(verbose_name=_('联系地址'), max_length=255, blank=True, default='',
+                               help_text=_('详细的联系地址'))
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'), blank=True)
+    update_time = models.DateTimeField(verbose_name=_('更新时间'), blank=True)
+    remarks = models.CharField(max_length=255, default='', blank=True, verbose_name=_('备注'))
+
+    class Meta:
+        ordering = ('-creation_time',)
+        db_table = 'ipam_contact_person'
+        verbose_name = _('机构二级对象联系人')
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return f'[ {self.name} ] Phone: {self.telephone}, Email: {self.email}, Address: {self.address}'
+
+    def clean(self):
+        qs = ContactPerson.objects.filter(name=self.name, telephone=self.telephone)
+        if self.id:
+            qs = qs.exclude(id=self.id)
+        if qs.exists():
+            msg = gettext('已存在姓名和手机号都相同的联系人')
+            exc = ValidationError(message={'name': msg})
+            exc.error = errors.TargetAlreadyExists(message=msg)
+            raise exc
+
+        if not self.creation_time:
+            self.creation_time = dj_timezone.now()
+
+        if not self.update_time:
+            self.update_time = self.creation_time
 
 
 class OrgVirtualObject(UuidModel):
@@ -135,6 +148,10 @@ class OrgVirtualObject(UuidModel):
         on_delete=models.SET_NULL, null=True, blank=True, default=None)
     creation_time = models.DateTimeField(verbose_name=_('创建时间'))
     remark = models.CharField(verbose_name=_('备注信息'), max_length=255, blank=True, default='')
+    contacts = models.ManyToManyField(
+        verbose_name=_('机构二级对象联系人'), to=ContactPerson, related_name='+', db_table='ipam_org_obj_contacts',
+        db_constraint=False, blank=True
+    )
 
     class Meta:
         ordering = ('-creation_time',)

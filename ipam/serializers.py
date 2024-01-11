@@ -183,3 +183,15 @@ class IPv6RangeCreateSerializer(serializers.Serializer):
     prefixlen = serializers.IntegerField(label=_('子网前缀'), required=True, min_value=0, max_value=128)
     asn = serializers.IntegerField(label=_('AS编号'), required=True, min_value=0, max_value=65535)
     admin_remark = serializers.CharField(label=_('科技网管理员备注信息'), max_length=255, allow_blank=True, default='')
+
+
+class ContactPersonSerializer(serializers.Serializer):
+    id = serializers.CharField(read_only=True)
+    name = serializers.CharField(label=_('姓名'), max_length=128, required=True)
+    telephone = serializers.CharField(label=_('电话'), max_length=16, required=True)
+    email = serializers.EmailField(label=_('邮箱地址'), allow_blank=True, default='')
+    address = serializers.CharField(label=_('联系地址'), max_length=255, allow_blank=True, default='')
+    remarks = serializers.CharField(max_length=255, label=_('备注'), allow_blank=True, default='')
+
+    creation_time = serializers.DateTimeField(label=_('创建时间'), read_only=True)
+    update_time = serializers.DateTimeField(label=_('更新时间'), read_only=True)

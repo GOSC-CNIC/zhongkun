@@ -6,7 +6,7 @@ from drf_yasg import openapi
 
 from api.paginations import NewPageNumberPagination100
 from api.viewsets import NormalGenericViewSet
-from ..handlers.org_obj_handlers import OrgVirtObjHandler
+from ..handlers.org_obj_handlers import OrgVirtObjHandler, ContactsHandler
 from .. import serializers
 
 
@@ -150,5 +150,55 @@ class OrgObjViewSet(NormalGenericViewSet):
     def get_serializer_class(self):
         if self.action in ['create', 'update']:
             return serializers.OrgVirtObjCreateSerializer
+
+        return Serializer
+
+
+class ContactPersonViewSet(NormalGenericViewSet):
+    permission_classes = [IsAuthenticated, ]
+    pagination_class = NewPageNumberPagination100
+    lookup_field = 'id'
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('创建一个机构二级联系人'),
+        manual_parameters=[],
+        responses={
+            200: ''''''
+        }
+    )
+    def create(self, request, *args, **kwargs):
+        """
+        创建一个机构二级联系人，需要有IP或者链路管理员权限
+
+            http Code 200 Ok:
+                {
+                  "id": "hw1gxxrk4xxuhh0reh22r3ns4",
+                  "name": "张三",
+                  "telephone": "xxx",
+                  "email": "xxx",
+                  "address": "xxx",
+                  "remarks": "xxx",
+                  "creation_time": "2024-01-11T08:37:05.653346Z",
+                  "update_time": "2024-01-11T08:37:05.653346Z"
+                }
+
+            Http Code 400, 403, 500:
+                {
+                    "code": "BadRequest",
+                    "message": "xxxx"
+                }
+
+                可能的错误码：
+                400:
+                InvalidArgument: 参数无效
+
+                403:
+                AccessDenied: 你没有IP或者链路的管理员权限
+        """
+        return ContactsHandler().add_contact_person(view=self, request=request)
+
+    def get_serializer_class(self):
+        if self.action in ['create', 'update']:
+            return serializers.ContactPersonSerializer
 
         return Serializer

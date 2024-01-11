@@ -12,7 +12,7 @@ from core import errors
 from service.models import DataCenter as Organization
 from .models import (
     IPv4Range, IPAMUserRole, OrgVirtualObject, ASN, ipv4_str_to_int, IPv4RangeRecord,
-    IPRangeItem, IPRangeIntItem, IPv4Address
+    IPRangeItem, IPRangeIntItem, IPv4Address, ContactPerson
 )
 
 MAX_IPV4_ADDRESS_INT = 2 ** 32 - 1
@@ -1116,3 +1116,26 @@ class OrgVirtualObjectManager:
                 organization__name__icontains=search))
 
         return qs.order_by('-creation_time')
+
+
+class ContactPersonManager:
+    @staticmethod
+    def create_contact_person(
+            name: str, telephone: str, email: str, address: str, remarks: str
+    ):
+        nt = dj_timezone.now()
+        cp = ContactPerson(
+            name=name, telephone=telephone, email=email, address=address, remarks=remarks,
+            creation_time=nt, update_time=nt
+        )
+        try:
+            cp.clean()
+        except ValidationError as exc:
+            err = getattr(exc, 'error', None)
+            if err is not None and isinstance(err, errors.Error):
+                raise err
+
+            raise errors.InvalidArgument(message=str(exc))
+
+        cp.save(force_insert=True)
+        return cp

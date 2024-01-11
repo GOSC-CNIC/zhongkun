@@ -10,7 +10,7 @@ from django.contrib.admin.utils import lookup_spawns_duplicates
 
 from .models import (
     IPAMUserRole, OrgVirtualObject, ASN, IPv4Address, IPv4Range, IPv4RangeRecord,
-    IPv6Range, IPv6Address, IPv6RangeRecord
+    IPv6Range, IPv6Address, IPv6RangeRecord, ContactPerson
 )
 
 
@@ -284,3 +284,11 @@ class IPv6RangeRecordAdmin(IPModelAdmin):
                 [('start_address__lte', ip_bytes), ('end_address__gte', ip_bytes)], connector=models.Q.AND)
         except ipaddress.AddressValueError:
             return None
+
+
+@admin.register(ContactPerson)
+class ContactPersonAdmin(admin.ModelAdmin):
+    list_display_links = ('id',)
+    list_display = ('id', 'name', 'telephone', 'email', 'address', 'creation_time', 'remarks')
+
+    search_fields = ('name', 'telephone', 'email', 'address', 'remarks')
