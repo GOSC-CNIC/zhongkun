@@ -5,7 +5,7 @@ from django.utils import timezone as dj_timezone
 
 from utils.test import get_or_create_user, MyAPITransactionTestCase, get_or_create_organization
 from link.managers.userrole_manager import UserRoleWrapper as LinkUserRoleWrapper
-from ..managers import UserIpamRoleWrapper, OrgVirtualObject
+from ..managers import UserIpamRoleWrapper, OrgVirtualObject, OrgVirtualObjectManager
 
 
 class OrgObjTests(MyAPITransactionTestCase):
@@ -196,3 +196,99 @@ class OrgObjTests(MyAPITransactionTestCase):
         self.assertEqual(len(response.data['results']), 3)
         self.assertKeysIn(['id', 'name', 'creation_time', 'remark', 'organization'], response.data['results'][0])
         self.assertKeysIn(['id', 'name', 'name_en'], response.data['results'][1]['organization'])
+
+    def test_update(self):
+        org1 = get_or_create_organization(name='org1')
+        org_obj = OrgVirtualObjectManager.create_org_virt_obj(
+            name='test', org=org1, remark=''
+        )
+        org_obj2 = OrgVirtualObjectManager.create_org_virt_obj(
+            name='test exists', org=org1, remark=''
+        )
+
+        base_url = reverse('ipam-api:org-obj-detail', kwargs={'id': org_obj.id})
+        response = self.client.put(base_url)
+        self.assertEqual(response.status_code, 401)
+
+        self.client.force_login(self.user1)
+        response = self.client.put(base_url)
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        response = self.client.put(base_url, data={'name': 'test', 'organization_id': 'nofound', 'remark': ''})
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        base_url = reverse('ipam-api:org-obj-detail', kwargs={'id': 'notfound'})
+        response = self.client.put(base_url, data={'name': 'test', 'organization_id': org1.id, 'remark': ''})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        u1_role_wrapper = UserIpamRoleWrapper(user=self.user1)
+        u1_role_wrapper.user_role = u1_role_wrapper.get_or_create_user_ipam_role()
+        u1_role_wrapper.user_role.organizations.add(org1)
+        response = self.client.put(base_url, data={'name': 'test', 'organization_id': org1.id, 'remark': ''})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        u1_role_wrapper.user_role.is_readonly = True
+        u1_role_wrapper.user_role.save(update_fields=['is_readonly'])
+        response = self.client.put(base_url, data={'name': 'test', 'organization_id': org1.id, 'remark': ''})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        u1_role_wrapper.user_role.is_admin = True
+        u1_role_wrapper.user_role.save(update_fields=['is_admin'])
+
+        response = self.client.put(base_url, data={'name': 'test', 'organization_id': org1.id, 'remark': ''})
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
+
+        base_url = reverse('ipam-api:org-obj-detail', kwargs={'id': org_obj.id})
+        response = self.client.put(base_url, data={'name': 'test', 'organization_id': org1.id, 'remark': ''})
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['id', 'name', 'creation_time', 'remark', 'organization'], response.data)
+        org_obj.refresh_from_db()
+        self.assertEqual(org_obj.name, 'test')
+        self.assertEqual(org_obj.organization_id, org1.id)
+        self.assertEqual(org_obj.remark, '')
+
+        response = self.client.put(base_url, data={'name': 'test666', 'organization_id': org1.id, 'remark': 'test测试'})
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['id', 'name', 'creation_time', 'remark', 'organization'], response.data)
+        org_obj.refresh_from_db()
+        self.assertEqual(org_obj.name, 'test666')
+        self.assertEqual(org_obj.organization_id, org1.id)
+        self.assertEqual(org_obj.remark, 'test测试')
+
+        response = self.client.put(base_url, data={'name': 'test666', 'organization_id': org1.id, 'remark': '测试888'})
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['id', 'name', 'creation_time', 'remark', 'organization'], response.data)
+        org_obj.refresh_from_db()
+        self.assertEqual(org_obj.name, 'test666')
+        self.assertEqual(org_obj.organization_id, org1.id)
+        self.assertEqual(org_obj.remark, '测试888')
+
+        # test link
+        u1_role_wrapper.user_role.is_admin = False
+        u1_role_wrapper.user_role.save(update_fields=['is_admin'])
+        response = self.client.put(base_url, data={'name': 'test exists', 'organization_id': org1.id, 'remark': ''})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        u1_link_roler = LinkUserRoleWrapper(user=self.user1)
+        u1_link_roler.get_or_create_user_role()
+        u1_link_roler.user_role.is_readonly = True
+        u1_link_roler.user_role.save(update_fields=['is_readonly'])
+        response = self.client.put(base_url, data={'name': 'test exists', 'organization_id': org1.id, 'remark': ''})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        u1_link_roler.user_role.is_admin = True
+        u1_link_roler.user_role.save(update_fields=['is_admin'])
+        response = self.client.put(base_url, data={'name': 'test exists', 'organization_id': org1.id, 'remark': ''})
+        self.assertErrorResponse(status_code=409, code='TargetAlreadyExists', response=response)
+
+        # ok
+        response = self.client.put(base_url, data={'name': 'test2', 'organization_id': org1.id, 'remark': ''})
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['id', 'name', 'creation_time', 'remark', 'organization'], response.data)
+        self.assertEqual(response.data['organization']['id'], org1.id)
+        self.assertEqual(response.data['organization']['name'], org1.name)
+        self.assertEqual(response.data['organization']['name_en'], org1.name_en)
+        org_obj.refresh_from_db()
+        self.assertEqual(org_obj.name, 'test2')
+        self.assertEqual(org_obj.organization_id, org1.id)
+        self.assertEqual(org_obj.remark, '')

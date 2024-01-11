@@ -50,10 +50,6 @@ class OrgVirtObjHandler:
                 errors.AccessDenied(message=_('你没有IP管理或者链路管理功能的管理员权限')))
 
         try:
-            ovo = OrgVirtualObjectManager.get_org_virt_obj(name=data['name'], org_id=org.id)
-            if ovo:
-                raise errors.TargetAlreadyExists(message=_('同名的机构二级对象已存在'))
-
             ovo = OrgVirtualObjectManager.create_org_virt_obj(
                 name=data['name'], org=org, remark=data['remark']
             )
@@ -83,6 +79,30 @@ class OrgVirtObjHandler:
             raise exc
 
         return serializer.validated_data
+
+    def update_org_virt_obj(self, view: NormalGenericViewSet, request, kwargs):
+        try:
+            data = self._add_org_obj_validate_params(view=view, request=request)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        org = Organization.objects.filter(id=data['organization_id']).first()
+        if org is None:
+            return view.exception_response(
+                errors.InvalidArgument(message=_('机构id无效，机构不存在')))
+
+        if not self.has_write_permission(request.user):
+            return view.exception_response(
+                errors.AccessDenied(message=_('你没有IP管理或者链路管理功能的管理员权限')))
+
+        try:
+            ovo = OrgVirtualObjectManager.update_org_virt_obj(
+                _id=kwargs[view.lookup_field], name=data['name'], org=org, remark=data['remark']
+            )
+            serializer = serializers.OrgVirtualObjectSimpleSerializer(instance=ovo)
+            return Response(data=serializer.data)
+        except Exception as exc:
+            return view.exception_response(exc)
 
     @staticmethod
     def list_org_virt_obj(view: NormalGenericViewSet, request):

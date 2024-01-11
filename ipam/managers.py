@@ -1061,8 +1061,8 @@ class OrgVirtualObjectManager:
     机构二级对象
     """
     @staticmethod
-    def get_org_virt_obj(name: str, org_id: str):
-        return OrgVirtualObject.objects.filter(organization_id=org_id, name=name).first()
+    def get_org_virt_obj(_id: str) -> OrgVirtualObject:
+        return OrgVirtualObject.objects.filter(id=_id).first()
 
     @staticmethod
     def create_org_virt_obj(name: str, org: Organization, remark: str = '', creation_time: datetime = None):
@@ -1070,7 +1070,39 @@ class OrgVirtualObjectManager:
             name=name, organization=org, remark=remark,
             creation_time=creation_time if creation_time else dj_timezone.now()
         )
+        try:
+            obj.clean()
+        except ValidationError as exc:
+            if exc.code == errors.TargetAlreadyExists().code:
+                raise errors.TargetAlreadyExists(message=str(exc))
+
+            raise errors.InvalidArgument(message=str(exc))
+
         obj.save(force_insert=True)
+        return obj
+
+    @staticmethod
+    def update_org_virt_obj(_id: str, name: str, org: Organization, remark: str):
+        obj = OrgVirtualObjectManager.get_org_virt_obj(_id=_id)
+        if obj is None:
+            raise errors.TargetNotExist(message=_('机构二级对象不存在'))
+
+        if obj.name == name and obj.organization_id == org.id and obj.remark == remark:
+            return obj
+
+        obj.name = name
+        obj.organization = org
+        obj.organization_id = org.id
+        obj.remark = remark
+        try:
+            obj.clean()
+        except ValidationError as exc:
+            if exc.code == errors.TargetAlreadyExists().code:
+                raise errors.TargetAlreadyExists(message=str(exc))
+
+            raise errors.InvalidArgument(message=str(exc))
+
+        obj.save(update_fields=['name', 'organization_id', 'remark'])
         return obj
 
     @staticmethod

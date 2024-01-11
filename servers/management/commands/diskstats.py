@@ -8,7 +8,7 @@ from servers.models import Disk
 
 class Command(BaseCommand):
     help = """
-    manage.py diskstats"
+    manage.py diskstats --after="2023-12-01 00:00:00" --before="2024-01-01 00:00:00"
     """
     def add_arguments(self, parser):
         parser.add_argument(

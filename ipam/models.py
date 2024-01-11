@@ -3,11 +3,12 @@ from collections import namedtuple
 
 from django.db import models
 from django.db.models import Q
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext, gettext_lazy as _
 from django.core.validators import MaxValueValidator
 from django.core.exceptions import ValidationError
 from django.utils.functional import cached_property
 
+from core import errors
 from utils.model import UuidModel
 from users.models import UserProfile
 from service.models import DataCenter
@@ -102,6 +103,31 @@ class IPAMUserRole(UuidModel):
         return self.user.username
 
 
+# class Contacts(UuidModel):
+#     """机构二级联系人"""
+#     name = models.CharField(verbose_name=_('姓名'), max_length=128)
+#     telephone = models.CharField(verbose_name=_('电话'), max_length=16, default='')
+#     email = models.EmailField(_('邮箱地址'), blank=True, default='')
+#     address = models.CharField(verbose_name=_('联系地址'), max_length=255, blank='', default='',
+#                                help_text=_('详细的联系地址'))
+#     creation_time = models.DateTimeField(verbose_name=_('创建时间'))
+#     update_time = models.DateTimeField(verbose_name=_('更新时间'))
+#     remarks = models.CharField(max_length=255, default='', blank=True, verbose_name=_('备注'))
+#
+#     class Meta:
+#         ordering = ('-creation_time',)
+#         db_table = 'ipam_contacts'
+#         verbose_name = _('机构二级对象联系人')
+#         verbose_name_plural = verbose_name
+#
+#     def __str__(self):
+#         return f'[ {self.name} ] Phone: {self.telephone}, Email: {self.email}, Address: {self.address}'
+# contacts = models.ManyToManyField(
+#     verbose_name=_('机构二级对象联系人'), to=Contacts, related_name='+', db_table='ipam_org_obj_contacts',
+#     db_constraint=False, blank=True
+# )
+
+
 class OrgVirtualObject(UuidModel):
     name = models.CharField(verbose_name=_('名称'), max_length=255)
     organization = models.ForeignKey(
@@ -118,6 +144,13 @@ class OrgVirtualObject(UuidModel):
 
     def __str__(self):
         return self.name
+
+    def clean(self):
+        qs = OrgVirtualObject.objects.filter(organization_id=self.organization_id, name=self.name)
+        if self.id:
+            qs = qs.exclude(id=self.id)
+        if qs.exists():
+            raise ValidationError(message=gettext('同名的机构二级对象已存在'), code=errors.TargetAlreadyExists().code)
 
 
 class ASN(models.Model):
