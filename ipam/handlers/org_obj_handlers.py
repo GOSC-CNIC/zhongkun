@@ -176,3 +176,22 @@ class ContactsHandler(PermissionMixin):
 
         return serializer.validated_data
 
+    def update_contact_person(self, view: NormalGenericViewSet, request, kwargs):
+        try:
+            data = self._add_contacts_validate_params(view=view, request=request)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        if not self.has_write_permission(request.user):
+            return view.exception_response(
+                errors.AccessDenied(message=_('你没有IP管理或者链路管理功能的管理员权限')))
+
+        try:
+            person = ContactPersonManager.update_contact_person(
+                _id=kwargs[view.lookup_field], name=data['name'], telephone=data['telephone'],
+                email=data['email'], address=data['address'], remarks=data['remarks']
+            )
+            serializer = serializers.ContactPersonSerializer(instance=person)
+            return Response(data=serializer.data)
+        except Exception as exc:
+            return view.exception_response(exc)

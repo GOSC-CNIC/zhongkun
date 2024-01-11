@@ -1139,3 +1139,29 @@ class ContactPersonManager:
 
         cp.save(force_insert=True)
         return cp
+
+    @staticmethod
+    def update_contact_person(
+            _id: str, name: str, telephone: str, email: str, address: str, remarks: str
+    ):
+        cp = ContactPerson.objects.filter(id=_id).first()
+        if cp is None:
+            raise errors.TargetNotExist(message=_('联系人记录不存在'))
+
+        cp.name = name
+        cp.telephone = telephone
+        cp.email = email
+        cp.address = address
+        cp.remarks = remarks
+        cp.update_time = dj_timezone.now()
+        try:
+            cp.clean()
+        except ValidationError as exc:
+            err = getattr(exc, 'error', None)
+            if err is not None and isinstance(err, errors.Error):
+                raise err
+
+            raise errors.InvalidArgument(message=str(exc))
+
+        cp.save(force_update=True)
+        return cp
