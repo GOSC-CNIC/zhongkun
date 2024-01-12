@@ -14,6 +14,7 @@ from datetime import timedelta
 from pathlib import Path
 
 from django.utils.translation import gettext_lazy
+from django.conf.locale.zh_Hans import formats as zh_formats
 
 
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
@@ -131,6 +132,10 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Internationalization
 # https://docs.djangoproject.com/en/2.2/topics/i18n/
+
+# 日期时间显示格式
+DATE_FORMAT = 'Y-m-d H:i:s'
+zh_formats.DATETIME_FORMAT = 'Y年m月d日 H:i:s'
 
 LANGUAGE_CODE = 'zh-hans'
 
