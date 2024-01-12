@@ -292,3 +292,4 @@ class ContactPersonAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'telephone', 'email', 'address', 'creation_time', 'remarks')
 
     search_fields = ('name', 'telephone', 'email', 'address', 'remarks')
+    readonly_fields = ('creation_time', 'update_time')

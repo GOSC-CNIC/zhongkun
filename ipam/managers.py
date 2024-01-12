@@ -1165,3 +1165,12 @@ class ContactPersonManager:
 
         cp.save(force_update=True)
         return cp
+
+    @staticmethod
+    def get_contacts_qs(search: str = None):
+        qs = ContactPerson.objects.all()
+
+        if search:
+            qs = qs.filter(Q(name__icontains=search) | Q(telephone__icontains=search) | Q(email__icontains=search))
+
+        return qs.order_by('-creation_time')

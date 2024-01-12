@@ -160,6 +160,52 @@ class ContactPersonViewSet(NormalGenericViewSet):
     lookup_field = 'id'
 
     @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举机构二级联系人'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='search',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description='关键字查询，查询姓名、电话、邮箱'
+            ),
+        ],
+        responses={
+            200: ''''''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        列举机构二级联系人，需要有IP或者链路管理员权限
+
+            http Code 200 Ok:
+                {
+                    "count": 1,
+                    "page_num": 1,
+                    "page_size": 100,
+                    "results": [
+                        {
+                          "id": "hw1gxxrk4xxuhh0reh22r3ns4",
+                          "name": "张三",
+                          "telephone": "xxx",
+                          "email": "xxx",
+                          "address": "xxx",
+                          "remarks": "xxx",
+                          "creation_time": "2024-01-11T08:37:05.653346Z",
+                          "update_time": "2024-01-11T08:37:05.653346Z"
+                        }
+                    ]
+                }
+
+            Http Code 401, 403, 500:
+                {
+                    "code": "AccessDenied",
+                    "message": "你没有IP或者链路的管理员权限"
+                }
+        """
+        return ContactsHandler().list_contact_person(view=self, request=request)
+
+    @swagger_auto_schema(
         operation_summary=gettext_lazy('创建一个机构二级联系人'),
         manual_parameters=[],
         responses={
@@ -236,7 +282,7 @@ class ContactPersonViewSet(NormalGenericViewSet):
         return ContactsHandler().update_contact_person(view=self, request=request, kwargs=kwargs)
 
     def get_serializer_class(self):
-        if self.action in ['create', 'update']:
+        if self.action in ['create', 'update', 'list']:
             return serializers.ContactPersonSerializer
 
         return Serializer

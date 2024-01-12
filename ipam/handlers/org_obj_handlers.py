@@ -195,3 +195,19 @@ class ContactsHandler(PermissionMixin):
             return Response(data=serializer.data)
         except Exception as exc:
             return view.exception_response(exc)
+
+    @staticmethod
+    def list_contact_person(view: NormalGenericViewSet, request):
+        search = request.query_params.get('search')
+
+        if not ContactsHandler.has_read_permission(request.user):
+            return view.exception_response(
+                errors.AccessDenied(message=_('你没有科技网IP管理或者链路管理功能的管理员权限')))
+
+        try:
+            qs = ContactPersonManager.get_contacts_qs(search=search)
+            objs = view.paginate_queryset(qs)
+            serializer = serializers.ContactPersonSerializer(instance=objs, many=True)
+            return view.get_paginated_response(data=serializer.data)
+        except Exception as exc:
+            return view.exception_response(exc)

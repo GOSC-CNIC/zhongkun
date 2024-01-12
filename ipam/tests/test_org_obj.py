@@ -503,3 +503,113 @@ class ContactsTests(MyAPITransactionTestCase):
         response = self.client.put(base_url, data={
             'name': '张三', 'telephone': '6', 'email': 'test123@cnic.cn', 'address': 'beijing66', 'remarks': 'test88'})
         self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
+
+    def test_list(self):
+        cp = ContactPersonManager.create_contact_person(
+            name='tom test', telephone='110', email='tom@qq.com', address='beijing', remarks=''
+        )
+        cp2 = ContactPersonManager.create_contact_person(
+            name='张三', telephone='666', email='test@cnic.cn', address='', remarks=''
+        )
+        cp3 = ContactPersonManager.create_contact_person(
+            name='李四', telephone='123456789', email='', address='', remarks=''
+        )
+
+        base_url = reverse('ipam-api:contacts-list')
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 401)
+
+        self.client.force_login(self.user1)
+        response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        u1_role_wrapper = UserIpamRoleWrapper(user=self.user1)
+        u1_role_wrapper.user_role = u1_role_wrapper.get_or_create_user_ipam_role()
+        u1_role_wrapper.user_role.is_readonly = True
+        u1_role_wrapper.user_role.save(update_fields=['is_readonly'])
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)
+        self.assertEqual(response.data['count'], 3)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 100)
+        self.assertEqual(len(response.data['results']), 3)
+        self.assertKeysIn([
+            'id', 'name', 'telephone', 'email', 'address', 'remarks', 'creation_time', 'update_time'
+        ], response.data['results'][0])
+        self.assertEqual(response.data['results'][0]['id'], cp3.id)
+        self.assertEqual(response.data['results'][1]['id'], cp2.id)
+        self.assertEqual(response.data['results'][2]['id'], cp.id)
+
+        u1_role_wrapper.user_role.is_readonly = False
+        u1_role_wrapper.user_role.is_admin = True
+        u1_role_wrapper.user_role.save(update_fields=['is_admin', 'is_readonly'])
+
+        # search
+        query = parse.urlencode(query={'search': 'test'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(response.data['page_size'], 100)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(len(response.data['results']), 2)
+        self.assertEqual(response.data['results'][0]['id'], cp2.id)
+        self.assertEqual(response.data['results'][1]['id'], cp.id)
+
+        query = parse.urlencode(query={'search': '张三'})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['id'], cp2.id)
+
+        # page, page_size
+        query = parse.urlencode(query={'page': 1, 'page_size': 2})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)
+        self.assertEqual(response.data['count'], 3)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 2)
+        self.assertEqual(len(response.data['results']), 2)
+        self.assertEqual(response.data['results'][0]['id'], cp3.id)
+        self.assertEqual(response.data['results'][1]['id'], cp2.id)
+
+        query = parse.urlencode(query={'page': 3, 'page_size': 1})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 3)
+        self.assertEqual(response.data['page_num'], 3)
+        self.assertEqual(response.data['page_size'], 1)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['id'], cp.id)
+
+        # test link
+        u1_role_wrapper.user_role.is_admin = False
+        u1_role_wrapper.user_role.save(update_fields=['is_admin'])
+        response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        u1_link_roler = LinkUserRoleWrapper(user=self.user1)
+        u1_link_roler.get_or_create_user_role()
+        u1_link_roler.user_role.is_readonly = True
+        u1_link_roler.user_role.save(update_fields=['is_readonly'])
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)
+        self.assertEqual(response.data['count'], 3)
+
+        u1_link_roler.user_role.is_readonly = False
+        u1_link_roler.user_role.is_admin = True
+        u1_link_roler.user_role.save(update_fields=['is_readonly', 'is_admin'])
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)
+        self.assertEqual(response.data['count'], 3)
+        self.assertEqual(response.data['page_size'], 100)
+        self.assertEqual(len(response.data['results']), 3)
+        self.assertKeysIn([
+            'id', 'name', 'telephone', 'email', 'address', 'remarks', 'creation_time', 'update_time'
+        ], response.data['results'][0])
