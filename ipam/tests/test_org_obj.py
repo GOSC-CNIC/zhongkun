@@ -381,6 +381,237 @@ class OrgObjTests(MyAPITransactionTestCase):
         response = self.client.get(base_url)
         self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
 
+    def test_add_contacts(self):
+        org1 = get_or_create_organization(name='org1')
+        org_obj = OrgVirtualObjectManager.create_org_virt_obj(
+            name='test', org=org1, remark=''
+        )
+        cp1 = ContactPersonManager.create_contact_person(
+            name='tom test', telephone='110', email='tom@qq.com', address='beijing', remarks=''
+        )
+        cp2 = ContactPersonManager.create_contact_person(
+            name='张三', telephone='666', email='test@cnic.cn', address='', remarks=''
+        )
+        cp3 = ContactPersonManager.create_contact_person(
+            name='司马不平', telephone='1234567890', email='', address='', remarks='test'
+        )
+
+        url = reverse('ipam-api:org-obj-add-contacts', kwargs={'id': 'notf'})
+        response = self.client.post(url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
+
+        self.client.force_login(self.user1)
+        response = self.client.post(url, data={'test': 'dd'})
+        self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
+
+        response = self.client.post(url, data={'contact_ids': []})
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        response = self.client.post(url, data={'contact_ids': ['test']})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        u1_ipam_roler = UserIpamRoleWrapper(user=self.user1)
+        u1_ipam_roler.user_role = u1_ipam_roler.get_or_create_user_ipam_role()
+        u1_ipam_roler.user_role.organizations.add(org1)
+        response = self.client.post(url, data={'contact_ids': ['test']})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        u1_ipam_roler.user_role.is_readonly = True
+        u1_ipam_roler.user_role.save(update_fields=['is_readonly'])
+        response = self.client.post(url, data={'contact_ids': ['test']})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        u1_ipam_roler.user_role.is_admin = True
+        u1_ipam_roler.user_role.save(update_fields=['is_admin'])
+
+        # not exist
+        response = self.client.post(url, data={'contact_ids': ['test']})
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
+
+        # contacts not exist
+        url = reverse('ipam-api:org-obj-add-contacts', kwargs={'id': org_obj.id})
+        response = self.client.post(url, data={'contact_ids': ['test']})
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # contact_id 重复
+        response = self.client.post(url, data={'contact_ids': ['test', 'test']})
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # 有contact_id not exist
+        response = self.client.post(url, data={'contact_ids': [cp1.id, 'test']})
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # ok
+        self.assertEqual(len(org_obj.contacts.all()), 0)
+        response = self.client.post(url, data={'contact_ids': [cp1.id]})
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['id', 'name', 'creation_time', 'remark', 'organization', 'contacts'], response.data)
+        self.assertKeysIn(['id', 'name', 'name_en'], response.data['organization'])
+        self.assertIsInstance(response.data['contacts'], list)
+        self.assertEqual(len(response.data['contacts']), 1)
+        self.assertKeysIn([
+            'id', 'name', 'telephone', 'email', 'address', 'remarks', 'creation_time', 'update_time'
+        ], response.data['contacts'][0])
+        self.assertEqual(response.data['contacts'][0]['id'], cp1.id)
+        self.assertEqual(response.data['contacts'][0]['name'], cp1.name)
+        self.assertEqual(len(org_obj.contacts.all()), 1)
+
+        # 重复添加
+        response = self.client.post(url, data={'contact_ids': [cp1.id]})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['contacts']), 1)
+        self.assertEqual(response.data['contacts'][0]['id'], cp1.id)
+        self.assertEqual(len(org_obj.contacts.all()), 1)
+
+        # 添加联系人中有些已存在
+        response = self.client.post(url, data={'contact_ids': [cp1.id, cp2.id]})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['contacts']), 2)
+        self.assertEqual([u['id'] for u in response.data['contacts']].sort(), [cp1.id, cp2.id].sort())
+        self.assertEqual(len(org_obj.contacts.all()), 2)
+
+        response = self.client.post(url, data={'contact_ids': [cp1.id, cp2.id, cp3.id]})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['contacts']), 3)
+        self.assertEqual([u['id'] for u in response.data['contacts']].sort(), [cp1.id, cp2.id, cp3.id].sort())
+        self.assertEqual(len(org_obj.contacts.all()), 3)
+
+        # test link
+        u1_ipam_roler.user_role.is_admin = False
+        u1_ipam_roler.user_role.save(update_fields=['is_admin'])
+        response = self.client.post(url, data={'contact_ids': [cp1.id, cp2.id, cp3.id]})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        u1_link_roler = LinkUserRoleWrapper(user=self.user1)
+        u1_link_roler.get_or_create_user_role()
+        u1_link_roler.user_role.is_readonly = True
+        u1_link_roler.user_role.save(update_fields=['is_readonly'])
+        response = self.client.post(url, data={'contact_ids': [cp1.id, cp2.id, cp3.id]})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        u1_link_roler.user_role.is_admin = True
+        u1_link_roler.user_role.save(update_fields=['is_admin'])
+        response = self.client.post(url, data={'contact_ids': [cp1.id, cp3.id]})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['contacts']), 3)
+        self.assertEqual([u['id'] for u in response.data['contacts']].sort(), [cp1.id, cp2.id, cp3.id].sort())
+        self.assertEqual(len(org_obj.contacts.all()), 3)
+
+    def test_remove_contacts(self):
+        org1 = get_or_create_organization(name='org1')
+        org_obj = OrgVirtualObjectManager.create_org_virt_obj(
+            name='test', org=org1, remark=''
+        )
+        cp1 = ContactPersonManager.create_contact_person(
+            name='tom test', telephone='110', email='tom@qq.com', address='beijing', remarks=''
+        )
+        cp2 = ContactPersonManager.create_contact_person(
+            name='张三', telephone='666', email='test@cnic.cn', address='', remarks=''
+        )
+        cp3 = ContactPersonManager.create_contact_person(
+            name='司马不平', telephone='1234567890', email='', address='', remarks='test'
+        )
+        org_obj.contacts.add(cp1, cp2, cp3)
+
+        url = reverse('ipam-api:org-obj-remove-contacts', kwargs={'id': 'notf'})
+        response = self.client.post(url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
+
+        self.client.force_login(self.user1)
+        response = self.client.post(url, data={'test': 'dd'})
+        self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
+
+        response = self.client.post(url, data={'contact_ids': []})
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        response = self.client.post(url, data={'contact_ids': ['test']})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        u1_ipam_roler = UserIpamRoleWrapper(user=self.user1)
+        u1_ipam_roler.user_role = u1_ipam_roler.get_or_create_user_ipam_role()
+        u1_ipam_roler.user_role.organizations.add(org1)
+        response = self.client.post(url, data={'contact_ids': ['test']})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        u1_ipam_roler.user_role.is_readonly = True
+        u1_ipam_roler.user_role.save(update_fields=['is_readonly'])
+        response = self.client.post(url, data={'contact_ids': ['test']})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        u1_ipam_roler.user_role.is_admin = True
+        u1_ipam_roler.user_role.save(update_fields=['is_admin'])
+
+        # not exist
+        response = self.client.post(url, data={'contact_ids': ['test']})
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
+
+        # contacts not exist
+        url = reverse('ipam-api:org-obj-remove-contacts', kwargs={'id': org_obj.id})
+        response = self.client.post(url, data={'contact_ids': ['test']})
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # contact_id 重复
+        response = self.client.post(url, data={'contact_ids': ['test', 'test']})
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # 有contact not exist
+        response = self.client.post(url, data={'contact_ids': [cp1.id, 'test']})
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        # ok
+        self.assertEqual(len(org_obj.contacts.all()), 3)
+        response = self.client.post(url, data={'contact_ids': [cp1.id]})
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['id', 'name', 'creation_time', 'remark', 'organization', 'contacts'], response.data)
+        self.assertKeysIn(['id', 'name', 'name_en'], response.data['organization'])
+        self.assertIsInstance(response.data['contacts'], list)
+        self.assertEqual(len(response.data['contacts']), 2)
+        self.assertKeysIn([
+            'id', 'name', 'telephone', 'email', 'address', 'remarks', 'creation_time', 'update_time'
+        ], response.data['contacts'][0])
+        self.assertEqual([u['id'] for u in response.data['contacts']].sort(), [cp3.id, cp2.id].sort())
+        self.assertEqual(len(org_obj.contacts.all()), 2)
+
+        # 重复remove
+        response = self.client.post(url, data={'contact_ids': [cp1.id]})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['contacts']), 2)
+        self.assertEqual([u['id'] for u in response.data['contacts']].sort(), [cp3.id, cp2.id].sort())
+        self.assertEqual(len(org_obj.contacts.all()), 2)
+
+        # remove中有些是
+        response = self.client.post(url, data={'contact_ids': [cp1.id, cp2.id]})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['contacts']), 1)
+        self.assertEqual(response.data['contacts'][0]['id'], cp3.id)
+        self.assertEqual(response.data['contacts'][0]['name'], cp3.name)
+        self.assertEqual(len(org_obj.contacts.all()), 1)
+
+        response = self.client.post(url, data={'contact_ids': [cp1.id, cp2.id, cp3.id]})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['contacts']), 0)
+        self.assertEqual(len(org_obj.contacts.all()), 0)
+
+        # test link
+        u1_ipam_roler.user_role.is_admin = False
+        u1_ipam_roler.user_role.save(update_fields=['is_admin'])
+        response = self.client.post(url, data={'contact_ids': [cp1.id, cp3.id]})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        u1_link_roler = LinkUserRoleWrapper(user=self.user1)
+        u1_link_roler.get_or_create_user_role()
+        u1_link_roler.user_role.is_readonly = True
+        u1_link_roler.user_role.save(update_fields=['is_readonly'])
+        response = self.client.post(url, data={'contact_ids': [cp1.id, cp3.id]})
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        u1_link_roler.user_role.is_admin = True
+        u1_link_roler.user_role.save(update_fields=['is_admin'])
+        response = self.client.post(url, data={'contact_ids': [cp1.id, cp3.id]})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['contacts']), 0)
+        self.assertEqual(len(org_obj.contacts.all()), 0)
+
 
 class ContactsTests(MyAPITransactionTestCase):
     def setUp(self):

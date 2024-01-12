@@ -25,6 +25,10 @@ class OrgVirtObjCreateSerializer(serializers.Serializer):
     remark = serializers.CharField(label=_('备注信息'), max_length=255, allow_blank=True, default='')
 
 
+class OrgVOContactsPostSerializer(serializers.Serializer):
+    contact_ids = serializers.ListField(label=_('联系人ID'), max_length=128, required=True)
+
+
 class IPv4RangeSerializer(serializers.Serializer):
     id = serializers.CharField(label='ID', read_only=True)
     name = serializers.CharField(label=_('名称'), max_length=255, required=True)

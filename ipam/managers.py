@@ -1117,6 +1117,47 @@ class OrgVirtualObjectManager:
 
         return qs.order_by('-creation_time')
 
+    @staticmethod
+    def _validate_contact_ids(contact_ids: list) -> List[ContactPerson]:
+        if not contact_ids:
+            return []
+
+        contact_id_set = set(contact_ids)
+        if len(contact_id_set) != len(contact_ids):
+            raise errors.InvalidArgument(message=_('提交的联系人列表中存在重复的ID'))
+
+        contact_ids = list(contact_id_set)
+        if len(contact_ids) == 1:
+            cps = ContactPerson.objects.filter(id=contact_ids[0])
+        else:
+            cps = ContactPerson.objects.filter(id__in=contact_ids)
+
+        cps = list(cps)
+        if len(cps) != len(contact_id_set):
+            exists_contact_id_set = {u.id for u in cps}
+            not_exists_contact_ids = contact_id_set.difference(exists_contact_id_set)
+            raise errors.InvalidArgument(message=_('指定的联系人ID不存在：') + '' + '、'.join(not_exists_contact_ids))
+
+        return cps
+
+    @staticmethod
+    def add_contacts_for_ovo(ovo: OrgVirtualObject, contact_ids: list):
+        cps = OrgVirtualObjectManager._validate_contact_ids(contact_ids=contact_ids)
+        if not cps:
+            return ovo
+
+        ovo.contacts.add(*cps)  # 底层不会重复添加已存在的
+        return ovo
+
+    @staticmethod
+    def remove_admins_from_ovo(ovo: OrgVirtualObject, contact_ids: list):
+        cps = OrgVirtualObjectManager._validate_contact_ids(contact_ids=contact_ids)
+        if not cps:
+            return ovo
+
+        ovo.contacts.remove(*cps)
+        return ovo
+
 
 class ContactPersonManager:
     @staticmethod

@@ -141,6 +141,62 @@ class OrgVirtObjHandler(PermissionMixin):
         except Exception as exc:
             return view.exception_response(exc)
 
+    def add_contacts(self, view: NormalGenericViewSet, request, kwargs):
+        serializer = view.get_serializer(data=request.data)
+        if not serializer.is_valid(raise_exception=False):
+            msg = serializer_error_msg(serializer.errors)
+            return view.exception_response(errors.BadRequest(msg))
+
+        contact_ids = serializer.validated_data['contact_ids']
+        if not contact_ids:
+            return view.exception_response(
+                errors.InvalidArgument(message=_('没有指定联系人')))
+
+        if not self.has_write_permission(request.user):
+            return view.exception_response(
+                errors.AccessDenied(message=_('你没有IP管理或者链路管理功能的管理员权限')))
+
+        try:
+            ovo = OrgVirtualObjectManager.get_org_virt_obj(_id=kwargs[view.lookup_field])
+            if ovo is None:
+                raise errors.TargetNotExist(message=_('机构二级不存在'))
+
+            OrgVirtualObjectManager.add_contacts_for_ovo(ovo=ovo, contact_ids=contact_ids)
+            data = serializers.OrgVirtualObjectSimpleSerializer(instance=ovo).data
+            contacts = ovo.contacts.all()
+            data['contacts'] = serializers.ContactPersonSerializer(contacts, many=True).data
+            return Response(data=data)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+    def remove_contacts(self, view: NormalGenericViewSet, request, kwargs):
+        serializer = view.get_serializer(data=request.data)
+        if not serializer.is_valid(raise_exception=False):
+            msg = serializer_error_msg(serializer.errors)
+            return view.exception_response(errors.BadRequest(msg))
+
+        contact_ids = serializer.validated_data['contact_ids']
+        if not contact_ids:
+            return view.exception_response(
+                errors.InvalidArgument(message=_('没有指定联系人')))
+
+        if not self.has_write_permission(request.user):
+            return view.exception_response(
+                errors.AccessDenied(message=_('你没有IP管理或者链路管理功能的管理员权限')))
+
+        try:
+            ovo = OrgVirtualObjectManager.get_org_virt_obj(_id=kwargs[view.lookup_field])
+            if ovo is None:
+                raise errors.TargetNotExist(message=_('机构二级不存在'))
+
+            OrgVirtualObjectManager.remove_admins_from_ovo(ovo=ovo, contact_ids=contact_ids)
+            data = serializers.OrgVirtualObjectSimpleSerializer(instance=ovo).data
+            contacts = ovo.contacts.all()
+            data['contacts'] = serializers.ContactPersonSerializer(contacts, many=True).data
+            return Response(data=data)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
 
 class ContactsHandler(PermissionMixin):
     def add_contact_person(self, view: NormalGenericViewSet, request):

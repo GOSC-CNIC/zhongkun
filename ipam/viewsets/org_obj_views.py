@@ -1,6 +1,7 @@
 from django.utils.translation import gettext_lazy
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.serializers import Serializer
+from rest_framework.decorators import action
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
@@ -191,9 +192,79 @@ class OrgObjViewSet(NormalGenericViewSet):
         """
         return OrgVirtObjHandler().detail_org_virt_obj(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('机构二级添加联系人'),
+        manual_parameters=[],
+        responses={
+            200: ''''''
+        }
+    )
+    @action(methods=['POST'], detail=True, url_path='add/contacts', url_name='add-contacts')
+    def add_contacts(self, request, *args, **kwargs):
+        """
+        机构二级添加联系人，需要有IP或者链路管理员权限
+
+            http code 200:
+                {
+                  "id": "s627ofyoeez9x0sacuj1hetj4",
+                  "name": "北京天文馆",
+                  "creation_time": "2023-11-29T03:18:05.437407Z",
+                  "remark": "",
+                  "organization": {
+                    "id": "s620vv6s7rwioxjc5nxfftxx4",
+                    "name": "北京天文馆",
+                    "name_en": "北京天文馆"
+                  },
+                  "contacts": [     # 联系人列表
+                    {
+                      "id": "piwja1h9z6v0tuubu8auu7y4z",
+                      "name": "李四",
+                      "telephone": "123456",
+                      "email": "zhangsan@cnic.cn",
+                      "address": "中国广东省广州市越秀区先烈中路100号",
+                      "remarks": "",
+                      "creation_time": "2024-01-12T01:20:51.091027Z",
+                      "update_time": "2024-01-12T01:20:51.091027Z"
+                    }
+                  ]
+                }
+
+            http code 400, 401, 404：
+            {
+                "code": "BadRequest",
+                "message": ""
+            }
+        """
+        return OrgVirtObjHandler().add_contacts(view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('机构二级移除联系人'),
+        manual_parameters=[],
+        responses={
+            200: ''''''
+        }
+    )
+    @action(methods=['POST'], detail=True, url_path='remove/contacts', url_name='remove-contacts')
+    def remove_contacts(self, request, *args, **kwargs):
+        """
+        机构二级移除联系人，需要有IP或者链路管理员权限
+
+            http code 200
+
+
+            http code 400, 401, 404：
+            {
+                "code": "BadRequest",
+                "message": ""
+            }
+        """
+        return OrgVirtObjHandler().remove_contacts(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action in ['create', 'update']:
             return serializers.OrgVirtObjCreateSerializer
+        elif self.action in ['add_contacts', 'remove_contacts']:
+            return serializers.OrgVOContactsPostSerializer
 
         return Serializer
 
