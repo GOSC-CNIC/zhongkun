@@ -5,7 +5,7 @@ from .security import TEST_CASE_SECURITY
 TEST_CASE = {
     'MONITOR_CEPH': {
         'PROVIDER': {
-            'endpoint_url': 'http://223.193.36.46:19193',
+            'endpoint_url': 'https://aiopsmimir.cstcloud.cn/mimir/',
             'username': '',
             'password': ''
         },
@@ -46,7 +46,7 @@ TEST_CASE = {
     },
     'MONITOR_TIDB': {
         'PROVIDER': {
-            'endpoint_url': 'http://223.193.36.46:19193',
+            'endpoint_url': 'https://aiopsmimir.cstcloud.cn/mimir/',
             'username': '',
             'password': ''
         },
