@@ -108,6 +108,8 @@ class OrgVirtualObjectAdmin(admin.ModelAdmin):
     list_select_related = ('organization',)
     raw_id_fields = ('organization',)
     search_fields = ('name', 'organization__name', 'remark')
+    filter_horizontal = ('contacts',)
+    readonly_fields = ('creation_time',)
 
 
 @admin.register(ASN)

@@ -294,6 +294,93 @@ class OrgObjTests(MyAPITransactionTestCase):
         self.assertEqual(org_obj.organization_id, org1.id)
         self.assertEqual(org_obj.remark, '')
 
+    def test_detail(self):
+        org1 = get_or_create_organization(name='org1')
+        org_obj = OrgVirtualObjectManager.create_org_virt_obj(
+            name='test', org=org1, remark=''
+        )
+        cp1 = ContactPersonManager.create_contact_person(
+            name='tom test', telephone='110', email='tom@qq.com', address='beijing', remarks=''
+        )
+        cp2 = ContactPersonManager.create_contact_person(
+            name='张三', telephone='666', email='test@cnic.cn', address='', remarks=''
+        )
+
+        base_url = reverse('ipam-api:org-obj-detail', kwargs={'id': org_obj.id})
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 401)
+
+        self.client.force_login(self.user1)
+        response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        u1_role_wrapper = UserIpamRoleWrapper(user=self.user1)
+        u1_role_wrapper.user_role = u1_role_wrapper.get_or_create_user_ipam_role()
+        u1_role_wrapper.user_role.is_readonly = True
+        u1_role_wrapper.user_role.save(update_fields=['is_readonly'])
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['id', 'name', 'creation_time', 'remark', 'organization', 'contacts'], response.data)
+        self.assertKeysIn(['id', 'name', 'name_en'], response.data['organization'])
+        self.assertIsInstance(response.data['contacts'], list)
+
+        u1_role_wrapper.user_role.is_readonly = False
+        u1_role_wrapper.user_role.is_admin = True
+        u1_role_wrapper.user_role.save(update_fields=['is_admin', 'is_readonly'])
+        org_obj.contacts.add(cp1)
+
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['id', 'name', 'creation_time', 'remark', 'organization', 'contacts'], response.data)
+        self.assertKeysIn(['id', 'name', 'name_en'], response.data['organization'])
+        self.assertIsInstance(response.data['contacts'], list)
+        self.assertEqual(len(response.data['contacts']), 1)
+        self.assertKeysIn([
+            'id', 'name', 'telephone', 'email', 'address', 'remarks', 'creation_time', 'update_time'
+        ], response.data['contacts'][0])
+
+        # TargetNotExist
+        base_url = reverse('ipam-api:org-obj-detail', kwargs={'id': 'notf'})
+        response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
+
+        # test link
+        base_url = reverse('ipam-api:org-obj-detail', kwargs={'id': org_obj.id})
+        u1_role_wrapper.user_role.is_admin = False
+        u1_role_wrapper.user_role.save(update_fields=['is_admin'])
+        response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        u1_link_roler = LinkUserRoleWrapper(user=self.user1)
+        u1_link_roler.get_or_create_user_role()
+        u1_link_roler.user_role.is_readonly = True
+        u1_link_roler.user_role.save(update_fields=['is_readonly'])
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['id', 'name', 'creation_time', 'remark', 'organization', 'contacts'], response.data)
+        self.assertKeysIn(['id', 'name', 'name_en'], response.data['organization'])
+        self.assertIsInstance(response.data['contacts'], list)
+        self.assertEqual(len(response.data['contacts']), 1)
+        self.assertKeysIn([
+            'id', 'name', 'telephone', 'email', 'address', 'remarks', 'creation_time', 'update_time'
+        ], response.data['contacts'][0])
+
+        u1_link_roler.user_role.is_readonly = False
+        u1_link_roler.user_role.is_admin = True
+        u1_link_roler.user_role.save(update_fields=['is_readonly', 'is_admin'])
+        org_obj.contacts.add(cp2)
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['contacts']), 2)
+        self.assertKeysIn([
+            'id', 'name', 'telephone', 'email', 'address', 'remarks', 'creation_time', 'update_time'
+        ], response.data['contacts'][0])
+
+        # TargetNotExist
+        base_url = reverse('ipam-api:org-obj-detail', kwargs={'id': 'notf'})
+        response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
+
 
 class ContactsTests(MyAPITransactionTestCase):
     def setUp(self):

@@ -147,6 +147,50 @@ class OrgObjViewSet(NormalGenericViewSet):
         """
         return OrgVirtObjHandler().update_org_virt_obj(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询一个机构二级对象详情'),
+        manual_parameters=[],
+        responses={
+            200: ''''''
+        }
+    )
+    def retrieve(self, request, *args, **kwargs):
+        """
+        查询一个机构二级对象详情，需要有IP或者链路管理员权限
+
+            http Code 200 Ok:
+                {
+                  "id": "s627ofyoeez9x0sacuj1hetj4",
+                  "name": "北京天文馆",
+                  "creation_time": "2023-11-29T03:18:05.437407Z",
+                  "remark": "",
+                  "organization": {
+                    "id": "s620vv6s7rwioxjc5nxfftxx4",
+                    "name": "北京天文馆",
+                    "name_en": "北京天文馆"
+                  },
+                  "contacts": [     # 联系人列表
+                    {
+                      "id": "piwja1h9z6v0tuubu8auu7y4z",
+                      "name": "李四",
+                      "telephone": "123456",
+                      "email": "zhangsan@cnic.cn",
+                      "address": "中国广东省广州市越秀区先烈中路100号",
+                      "remarks": "",
+                      "creation_time": "2024-01-12T01:20:51.091027Z",
+                      "update_time": "2024-01-12T01:20:51.091027Z"
+                    }
+                  ]
+                }
+
+            Http Code 401, 403, 500:
+                {
+                    "code": "AccessDenied",
+                    "message": "你没有科技网IP管理功能的管理员权限"
+                }
+        """
+        return OrgVirtObjHandler().detail_org_virt_obj(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action in ['create', 'update']:
             return serializers.OrgVirtObjCreateSerializer

@@ -123,6 +123,24 @@ class OrgVirtObjHandler(PermissionMixin):
         except Exception as exc:
             return view.exception_response(exc)
 
+    def detail_org_virt_obj(self, view: NormalGenericViewSet, request, kwargs):
+        if not self.has_read_permission(request.user):
+            return view.exception_response(
+                errors.AccessDenied(message=_('你没有IP管理或者链路管理功能的管理员权限')))
+
+        try:
+            ovo = OrgVirtualObjectManager.get_org_virt_obj(_id=kwargs[view.lookup_field])
+            if ovo is None:
+                raise errors.TargetNotExist(message=_('机构二级不存在'))
+
+            serializer = serializers.OrgVirtualObjectSimpleSerializer(instance=ovo)
+            data = serializer.data
+            contacts = ovo.contacts.all()
+            data['contacts'] = serializers.ContactPersonSerializer(contacts, many=True).data
+            return Response(data=data)
+        except Exception as exc:
+            return view.exception_response(exc)
+
 
 class ContactsHandler(PermissionMixin):
     def add_contact_person(self, view: NormalGenericViewSet, request):

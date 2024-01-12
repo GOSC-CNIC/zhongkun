@@ -169,6 +169,9 @@ class OrgVirtualObject(UuidModel):
         if qs.exists():
             raise ValidationError(message=gettext('同名的机构二级对象已存在'), code=errors.TargetAlreadyExists().code)
 
+        if self.creation_time is None:
+            self.creation_time = dj_timezone.now()
+
 
 class ASN(models.Model):
     id = models.AutoField(verbose_name=_('ID'), primary_key=True)
