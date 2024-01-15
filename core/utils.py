@@ -1,4 +1,4 @@
-from service.models import ServiceConfig
+from servers.models import ServiceConfig
 from adapters import exceptions, client, inputs
 
 

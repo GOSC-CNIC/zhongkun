@@ -5,7 +5,8 @@ from django.db.models import Q
 from django.db import transaction
 
 from users.models import UserProfile
-from service.models import ServiceConfig, OrgDataCenter, DataCenter as Organization
+from service.models import OrgDataCenter, DataCenter as Organization
+from servers.models import ServiceConfig
 from core import errors
 from bill.models import PayAppService
 from storage.models import ObjectsService

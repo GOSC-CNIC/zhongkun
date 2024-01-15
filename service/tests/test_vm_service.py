@@ -3,7 +3,7 @@ from urllib import parse
 from django.urls import reverse
 from utils.test import get_or_create_user, get_or_create_service, MyAPITransactionTestCase, MyAPITestCase
 
-from service.models import ServiceConfig
+from servers.models import ServiceConfig
 from service.managers import ServicePrivateQuotaManager, ServiceShareQuotaManager
 
 

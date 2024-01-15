@@ -10,13 +10,13 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('metering', '0001_initial'),
-        ('service', '0001_initial'),
+        ('servers', '0001_initial'),
     ]
 
     operations = [
         migrations.AddField(
             model_name='meteringserver',
             name='service',
-            field=models.ForeignKey(db_index=False, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='service.serviceconfig', verbose_name='服务'),
+            field=models.ForeignKey(db_index=False, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='servers.serviceconfig', verbose_name='服务'),
         ),
     ]

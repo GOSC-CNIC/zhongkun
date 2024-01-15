@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from service.managers import (
     ServicePrivateQuotaManager, ServiceShareQuotaManager, ServiceManager,
 )
-from service.models import ServiceConfig
+from servers.models import ServiceConfig
 from service import serializers
 from core import errors as exceptions
 from api.viewsets import serializer_error_msg, CustomGenericViewSet

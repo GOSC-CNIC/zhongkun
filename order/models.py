@@ -6,7 +6,7 @@ from django.utils import timezone
 from django.utils.translation import gettext, gettext_lazy as _
 from django.core.validators import MaxValueValidator, MinValueValidator
 
-from service.models import ServiceConfig
+from servers.models import ServiceConfig
 from utils.model import UuidModel, OwnerType, PayType, ResourceType, CustomIdModel
 from utils import rand_utils
 

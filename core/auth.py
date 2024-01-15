@@ -3,7 +3,7 @@ from threading import local
 
 from adapters import exceptions as os_exceptions, client
 from adapters import inputs
-from service.models import ServiceConfig
+from servers.models import ServiceConfig
 from . import errors as exceptions
 
 

@@ -12,8 +12,9 @@ from django.utils import timezone
 from utils.model import PayType, OwnerType
 
 from service.models import (
-    ApplyOrganization, DataCenter, ApplyVmService, ServiceConfig
+    ApplyOrganization, DataCenter
 )
+from servers.models import ApplyVmService, ServiceConfig
 from utils.test import get_or_create_user, get_or_create_service, get_or_create_center
 
 from . import MyAPITestCase, set_auth_header

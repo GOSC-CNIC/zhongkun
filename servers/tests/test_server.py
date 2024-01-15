@@ -7,7 +7,7 @@ from django.utils import timezone as dj_timezone
 from django.conf import settings
 
 from service.managers import ServicePrivateQuotaManager
-from service.models import ServiceConfig
+from servers.models import ServiceConfig
 from servers.models import Flavor, Server, ServerArchive, Disk, ResourceActionLog
 from utils.test import (
     get_or_create_user, get_or_create_service, get_or_create_organization,

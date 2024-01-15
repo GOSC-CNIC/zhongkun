@@ -2,7 +2,8 @@ from django.contrib.auth import get_user_model
 from django.conf import settings
 from rest_framework.test import APITestCase, APITransactionTestCase
 
-from service.models import DataCenter, ServiceConfig, OrgDataCenter
+from service.models import DataCenter, OrgDataCenter
+from servers.models import ServiceConfig
 from users.models import UserProfile
 from storage.models import ObjectsService
 

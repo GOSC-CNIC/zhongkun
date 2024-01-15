@@ -8,7 +8,7 @@ from utils import rand_utils
 from users.models import UserProfile
 from vo.models import VirtualOrganization
 from servers.models import Server
-from service.models import ServiceConfig
+from servers.models import ServiceConfig
 from storage.models import ObjectsService
 from monitor.models import MonitorWebsiteVersion
 

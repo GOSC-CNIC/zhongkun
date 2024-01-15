@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.conf import settings
 
 from service.managers import ServicePrivateQuotaManager
-from service.models import ServiceConfig
+from servers.models import ServiceConfig
 from servers.models import Disk, Server, ResourceActionLog, DiskChangeLog
 from servers.tests import create_server_metadata
 from utils.test import get_or_create_user, get_or_create_service, get_or_create_organization, MyAPITransactionTestCase

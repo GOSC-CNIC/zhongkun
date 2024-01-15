@@ -10,7 +10,7 @@ from utils.model import OwnerType, PayType
 from order.models import ResourceType, Order
 from order.managers import OrderPaymentManager
 from vo.managers import VoManager
-from service.models import ServiceConfig
+from servers.models import ServiceConfig
 from bill.models import CashCoupon, CashCouponActivity
 from bill.models import PaymentHistory, PayAppService, PayApp, TransactionBill
 from bill.managers import PaymentManager, CashCouponActivityManager

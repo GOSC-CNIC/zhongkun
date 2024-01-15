@@ -5,7 +5,7 @@ from django.db.models import Subquery, Sum, Count
 
 from core import errors
 from service.managers import ServiceManager
-from service.models import ServiceConfig
+from servers.models import ServiceConfig
 from servers.managers import ServerManager, DiskManager
 from servers.models import Server, ServerArchive, Disk
 from utils.model import OwnerType

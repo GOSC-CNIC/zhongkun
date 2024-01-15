@@ -1,8 +1,7 @@
 from django import template
 from django.core.cache import cache
-from django.db.models import Prefetch
 
-from service.models import DataCenter, ServiceConfig
+from servers.models import ServiceConfig
 
 register = template.Library()
 

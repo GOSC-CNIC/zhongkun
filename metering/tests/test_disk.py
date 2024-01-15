@@ -14,7 +14,7 @@ from servers.models import Disk, DiskChangeLog
 from vo.managers import VoManager
 from order.models import Price
 from bill.models import CashCoupon, PaymentHistory, PayAppService, PayApp
-from service.models import ServiceConfig
+from servers.models import ServiceConfig
 from metering.measurers import DiskMeasurer
 from metering.models import PaymentStatus, DailyStatementDisk, MeteringDisk
 from metering.payment import MeteringPaymentManager

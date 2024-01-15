@@ -11,7 +11,7 @@ from django.conf import settings
 from django.core.mail import send_mail
 
 from bill.managers.payment import PaymentManager
-from service.models import ServiceConfig
+from servers.models import ServiceConfig
 from servers.models import Server
 from servers.managers import ServerManager
 from users.models import Email, UserProfile

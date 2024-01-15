@@ -7,10 +7,8 @@ from django.core.cache import cache
 from users.models import UserProfile
 from core import errors
 from core.utils import test_service_ok, InvalidServiceError
-from .models import (
-    ServicePrivateQuota, ServiceShareQuota, ServiceConfig, ApplyVmService,
-    DataCenter, ApplyOrganization
-)
+from servers.models import ServicePrivateQuota, ServiceShareQuota, ServiceConfig, ApplyVmService
+from .models import DataCenter, ApplyOrganization
 
 
 class ServiceQuotaManagerBase:

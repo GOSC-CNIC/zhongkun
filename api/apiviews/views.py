@@ -12,7 +12,8 @@ from rest_framework import parsers
 from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
-from service.models import DataCenter, ApplyOrganization, ApplyVmService
+from service.models import DataCenter, ApplyOrganization
+from servers.models import ApplyVmService
 from core import errors as exceptions
 from api.serializers import serializers
 from api.viewsets import CustomGenericViewSet

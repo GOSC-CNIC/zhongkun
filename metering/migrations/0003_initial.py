@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
     dependencies = [
         ('storage', '0001_initial'),
         ('metering', '0002_initial'),
-        ('service', '0001_initial'),
+        ('servers', '0001_initial'),
     ]
 
     operations = [
@@ -23,12 +23,12 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='meteringdisk',
             name='service',
-            field=models.ForeignKey(db_index=False, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='service.serviceconfig', verbose_name='服务'),
+            field=models.ForeignKey(db_index=False, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='servers.serviceconfig', verbose_name='服务'),
         ),
         migrations.AddField(
             model_name='dailystatementserver',
             name='service',
-            field=models.ForeignKey(db_index=False, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='service.serviceconfig', verbose_name='服务'),
+            field=models.ForeignKey(db_index=False, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='servers.serviceconfig', verbose_name='服务'),
         ),
         migrations.AddField(
             model_name='dailystatementobjectstorage',
@@ -38,7 +38,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='dailystatementdisk',
             name='service',
-            field=models.ForeignKey(db_constraint=False, db_index=False, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='service.serviceconfig', verbose_name='服务单元'),
+            field=models.ForeignKey(db_constraint=False, db_index=False, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='servers.serviceconfig', verbose_name='服务单元'),
         ),
         migrations.AddConstraint(
             model_name='meteringserver',

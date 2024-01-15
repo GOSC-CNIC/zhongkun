@@ -10,9 +10,9 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name='serviceconfig',
-            name='only_admin_visible',
-            field=models.BooleanField(default=False, verbose_name='仅管理员可见'),
-        ),
+        # migrations.AddField(
+        #     model_name='serviceconfig',
+        #     name='only_admin_visible',
+        #     field=models.BooleanField(default=False, verbose_name='仅管理员可见'),
+        # ),
     ]

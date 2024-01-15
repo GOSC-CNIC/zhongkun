@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.translation import gettext as _
-from django.contrib.admin.models import LogEntry
+from django.contrib.admin.models import LogEntry, ContentType
 from core import site_configs_manager as site_configs
 
 
@@ -16,6 +16,9 @@ class LogEntryAdmin(admin.ModelAdmin):
     def get_change_message(obj):
         return obj.get_change_message()
 
+@admin.register(ContentType)
+class ContentTypeAdmin(admin.ModelAdmin):
+    pass
 
 def config_site():
     admin.AdminSite.site_header = site_header + ' ' + _('后台管理')

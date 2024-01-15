@@ -30,9 +30,9 @@ class Migration(migrations.Migration):
             name='metric_task_id',
             field=models.CharField(blank=True, default='', editable=False, help_text='记录为指标监控系统监控地址创建的站点监控任务的ID', max_length=36, verbose_name='指标监控系统监控任务ID'),
         ),
-        migrations.AddField(
-            model_name='serviceconfig',
-            name='monitor_task_id',
-            field=models.CharField(blank=True, default='', editable=False, help_text='记录为服务单元创建的站点监控任务的ID', max_length=36, verbose_name='服务单元对应监控任务ID'),
-        ),
+        # migrations.AddField(
+        #     model_name='serviceconfig',
+        #     name='monitor_task_id',
+        #     field=models.CharField(blank=True, default='', editable=False, help_text='记录为服务单元创建的站点监控任务的ID', max_length=36, verbose_name='服务单元对应监控任务ID'),
+        # ),
     ]

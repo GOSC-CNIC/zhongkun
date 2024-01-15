@@ -12,7 +12,7 @@ from servers.models import Server, ServerArchive
 from vo.managers import VoManager
 from order.models import Price
 from bill.models import CashCoupon, PaymentHistory, PayAppService, PayApp
-from service.models import ServiceConfig
+from servers.models import ServiceConfig
 from metering.measurers import ServerMeasurer
 from metering.models import MeteringServer, PaymentStatus, DailyStatementServer
 from metering.payment import MeteringPaymentManager

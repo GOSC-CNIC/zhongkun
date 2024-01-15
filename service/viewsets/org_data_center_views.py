@@ -9,7 +9,8 @@ from drf_yasg import openapi
 from core import errors as exceptions
 from api.paginations import NewPageNumberPagination100
 from api.viewsets import NormalGenericViewSet, serializer_error_msg
-from service.models import OrgDataCenter, ServiceConfig
+from service.models import OrgDataCenter
+from servers.models import ServiceConfig
 from service.odc_manager import OrgDataCenterManager
 from service.serializers import AdminServiceSerializer
 from storage.models import ObjectsService

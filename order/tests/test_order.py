@@ -18,7 +18,7 @@ from utils.test import get_or_create_user, get_or_create_service, get_or_create_
 from vo.models import VirtualOrganization, VoMember
 from bill.managers import PaymentManager
 from bill.models import PaymentHistory, CashCoupon, PayAppService, PayApp, TransactionBill
-from service.models import ServiceConfig
+from servers.models import ServiceConfig
 from service.managers import ServicePrivateQuotaManager
 
 

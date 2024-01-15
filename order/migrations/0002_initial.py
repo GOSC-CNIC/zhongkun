@@ -17,6 +17,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='period',
             name='service',
-            field=models.ForeignKey(blank=True, db_constraint=False, db_index=False, default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='service.serviceconfig', verbose_name='服务单元'),
+            field=models.ForeignKey(blank=True, db_constraint=False, db_index=False, default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='servers.serviceconfig', verbose_name='服务单元'),
         ),
     ]

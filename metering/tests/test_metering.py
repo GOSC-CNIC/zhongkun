@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from utils.model import PayType, OwnerType
 from utils.test import get_or_create_service, get_or_create_user, get_or_create_storage_service, MyAPITestCase
-from service.models import ServiceConfig
+from servers.models import ServiceConfig
 from storage.models import ObjectsService
 from vo.models import VirtualOrganization
 from metering.models import (

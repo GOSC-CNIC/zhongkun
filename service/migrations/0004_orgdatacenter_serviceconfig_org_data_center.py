@@ -44,9 +44,4 @@ class Migration(migrations.Migration):
                 'ordering': ['sort_weight'],
             },
         ),
-        migrations.AddField(
-            model_name='serviceconfig',
-            name='org_data_center',
-            field=models.ForeignKey(blank=True, db_constraint=False, default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='service.orgdatacenter', verbose_name='数据中心'),
-        ),
     ]
