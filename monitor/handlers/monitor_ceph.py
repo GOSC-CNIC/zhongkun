@@ -6,7 +6,6 @@ from rest_framework.response import Response
 from core import errors
 from monitor.managers import MonitorJobCephManager, CephQueryChoices
 from monitor.models import MonitorJobCeph
-from service.managers import ServiceManager
 
 
 class MonitorCephQueryHandler:

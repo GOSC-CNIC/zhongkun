@@ -7,7 +7,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.conf import settings
 
-from service.managers import ServicePrivateQuotaManager
+from servers.managers import ServicePrivateQuotaManager
 from servers.models import ServiceConfig
 from servers.models import Disk, Server, ResourceActionLog, DiskChangeLog
 from servers.tests import create_server_metadata

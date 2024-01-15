@@ -8,7 +8,7 @@ from drf_yasg import openapi
 
 from api.viewsets import CustomGenericViewSet
 from api.serializers import serializers
-from service.managers import ServiceManager
+from servers.managers import ServiceManager
 from api.paginations import DefaultPageNumberPagination
 from users.managers import filter_user_queryset
 from core import errors

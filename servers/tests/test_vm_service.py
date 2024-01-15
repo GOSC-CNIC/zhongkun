@@ -4,7 +4,7 @@ from django.urls import reverse
 from utils.test import get_or_create_user, get_or_create_service, MyAPITransactionTestCase, MyAPITestCase
 
 from servers.models import ServiceConfig
-from service.managers import ServicePrivateQuotaManager, ServiceShareQuotaManager
+from servers.managers import ServicePrivateQuotaManager, ServiceShareQuotaManager
 
 
 class VmServiceQuotaTests(MyAPITransactionTestCase):
@@ -19,7 +19,7 @@ class VmServiceQuotaTests(MyAPITransactionTestCase):
         self.service2.save(force_insert=True)
 
     def test_list_service_private_quota(self):
-        url = reverse('service-api:vms-service-p-quota-list')
+        url = reverse('servers-api:vms-service-p-quota-list')
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(keys=['count', 'next', 'previous', 'results'], container=response.data)
@@ -129,7 +129,7 @@ class VmServiceQuotaTests(MyAPITransactionTestCase):
         self.assertEqual(len(response.data['results']), 1)
 
     def test_list_service_share_quota(self):
-        url = reverse('service-api:vms-service-s-quota-list')
+        url = reverse('servers-api:vms-service-s-quota-list')
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(keys=['count', 'next', 'previous', 'results'], container=response.data)
@@ -228,7 +228,7 @@ class ServiceTests(MyAPITestCase):
         service2 = ServiceConfig(name='service2', name_en='service2 en')
         service2.save(force_insert=True)
 
-        url = reverse('service-api:service-list')
+        url = reverse('servers-api:service-list')
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "next", "previous", "results"], response.data)
@@ -247,13 +247,13 @@ class ServiceTests(MyAPITestCase):
         self.assertIs(r_service1['disk_available'], False)
         self.assertIsNone(r_service2['org_data_center'])
 
-        url = reverse('service-api:service-list')
+        url = reverse('servers-api:service-list')
         query = parse.urlencode(query={'center_id': self.service.org_data_center_id})
         response = self.client.get(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["count"], 1)
 
-        url = reverse('service-api:service-list')
+        url = reverse('servers-api:service-list')
         query = parse.urlencode(query={'center_id': 'test'})
         response = self.client.get(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
@@ -270,13 +270,13 @@ class ServiceTests(MyAPITestCase):
         self.assertEqual(response.data["count"], 0)
 
         # invalid param 'status'
-        url = reverse('service-api:service-list')
+        url = reverse('servers-api:service-list')
         query = parse.urlencode(query={'status': 'test'})
         response = self.client.get(f'{url}?{query}')
         self.assertErrorResponse(status_code=400, code='InvalidStatus', response=response)
 
         # param 'status'
-        url = reverse('service-api:service-list')
+        url = reverse('servers-api:service-list')
         query = parse.urlencode(query={'status': 'enable'})
         response = self.client.get(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
@@ -307,7 +307,7 @@ class ServiceTests(MyAPITestCase):
         service2 = ServiceConfig(name='service2', name_en='service2 en', org_data_center=None)
         service2.save(force_insert=True)
 
-        url = reverse('service-api:service-admin-list')
+        url = reverse('servers-api:service-admin-list')
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "next", "previous", "results"], response.data)
@@ -388,9 +388,9 @@ class ServiceTests(MyAPITestCase):
         }, d=response.data)
 
     def test_private_quota(self):
-        url = reverse('service-api:service-private-quota', kwargs={'id': self.service.id})
+        url = reverse('servers-api:service-private-quota', kwargs={'id': self.service.id})
         self.service_quota_get_update(url=url)
 
     def test_share_quota(self):
-        url = reverse('service-api:service-share-quota', kwargs={'id': self.service.id})
+        url = reverse('servers-api:service-share-quota', kwargs={'id': self.service.id})
         self.service_quota_get_update(url=url)

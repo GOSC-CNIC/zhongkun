@@ -7,8 +7,8 @@ from core import errors as exceptions
 from core.quota import QuotaAPI
 from core import request as core_request
 from core.taskqueue import server_build_status
-from service.managers import ServiceManager, ServiceConfig
-from servers.models import Server, Disk, ServerArchive, DiskChangeLog
+from servers.managers import ServiceManager
+from servers.models import Server, Disk, ServerArchive, DiskChangeLog, ServiceConfig
 from servers.managers import ServerManager, DiskManager
 from adapters import inputs, outputs
 from utils.model import PayType, OwnerType, ResourceType

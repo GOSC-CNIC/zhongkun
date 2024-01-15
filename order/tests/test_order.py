@@ -7,7 +7,6 @@ from django.urls import reverse
 from django.utils import timezone
 from django.conf import settings
 
-from servers.models import Flavor
 from utils.model import PayType, OwnerType, ResourceType
 from order.models import Price, Order, Period
 from order.managers import OrderManager
@@ -18,8 +17,8 @@ from utils.test import get_or_create_user, get_or_create_service, get_or_create_
 from vo.models import VirtualOrganization, VoMember
 from bill.managers import PaymentManager
 from bill.models import PaymentHistory, CashCoupon, PayAppService, PayApp, TransactionBill
-from servers.models import ServiceConfig
-from service.managers import ServicePrivateQuotaManager
+from servers.models import ServiceConfig, Flavor
+from servers.managers import ServicePrivateQuotaManager
 
 
 class OrderTests(MyAPITestCase):

@@ -6,7 +6,7 @@ from django.db import transaction
 from django import forms
 
 from utils.model import NoDeleteSelectModelAdmin, PayType
-from service.forms import VmsProviderForm
+from servers.forms import VmsProviderForm
 from .models import (
     Server, Flavor, ServerArchive, Disk, ResourceActionLog, DiskChangeLog,
     ServiceConfig, ServicePrivateQuota, ServiceShareQuota,
@@ -375,55 +375,55 @@ class ServicePrivateQuotaAdmin(admin.ModelAdmin):
             self.message_user(request, _("统计更新已用配额成功"), level=messages.SUCCESS)
 
 
-@admin.register(ServiceShareQuota)
-class ServiceShareQuotaAdmin(admin.ModelAdmin):
-    list_display_links = ('id',)
-    list_display = ('id', 'service', 'vcpu_total', 'vcpu_used', 'ram_total', 'ram_used', 'disk_size_total',
-                    'disk_size_used', 'private_ip_total', 'private_ip_used', 'public_ip_total', 'public_ip_used',
-                    'enable', 'creation_time')
-    list_select_related = ('service',)
-    list_filter = ('service__org_data_center', 'service')
-    actions = ['quota_used_update']
-
-    @admin.action(description=_("已用配额统计更新"))
-    def quota_used_update(self, request, queryset):
-        failed_count = 0
-        for q in queryset:
-            r = Server.count_share_quota_used(q.service_id)
-
-            with transaction.atomic():
-                quota = ServiceShareQuota.objects.select_for_update().get(id=q.id)
-                update_fields = []
-                vcpu_used_count = r.get('vcpu_used_count', None)
-                if isinstance(vcpu_used_count, int) and quota.vcpu_used != vcpu_used_count:
-                    quota.vcpu_used = vcpu_used_count
-                    update_fields.append('vcpu_used')
-
-                ram_used_count = r.get('ram_used_count', None)
-                if isinstance(ram_used_count, int) and quota.ram_used_gib != ram_used_count:
-                    quota.ram_used_gib = ram_used_count
-                    update_fields.append('ram_used')
-
-                public_ip_count = r.get('public_ip_count', None)
-                if isinstance(public_ip_count, int) and quota.public_ip_used != public_ip_count:
-                    quota.public_ip_used = public_ip_count
-                    update_fields.append('public_ip_used')
-
-                private_ip_used = r.get('private_ip_count', None)
-                if isinstance(private_ip_used, int) and quota.private_ip_used != private_ip_used:
-                    quota.private_ip_used = private_ip_used
-                    update_fields.append('private_ip_used')
-
-                if update_fields:
-                    try:
-                        quota.save(update_fields=update_fields)
-                    except Exception as e:
-                        failed_count += 1
-
-        if failed_count != 0:
-            self.message_user(request, _("统计更新已用配额失败") + f'({failed_count})', level=messages.ERROR)
-        else:
-            self.message_user(request, _("统计更新已用配额成功"), level=messages.SUCCESS)
+# @admin.register(ServiceShareQuota)
+# class ServiceShareQuotaAdmin(admin.ModelAdmin):
+#     list_display_links = ('id',)
+#     list_display = ('id', 'service', 'vcpu_total', 'vcpu_used', 'ram_total', 'ram_used', 'disk_size_total',
+#                     'disk_size_used', 'private_ip_total', 'private_ip_used', 'public_ip_total', 'public_ip_used',
+#                     'enable', 'creation_time')
+#     list_select_related = ('service',)
+#     list_filter = ('service__org_data_center', 'service')
+#     actions = ['quota_used_update']
+#
+#     @admin.action(description=_("已用配额统计更新"))
+#     def quota_used_update(self, request, queryset):
+#         failed_count = 0
+#         for q in queryset:
+#             r = Server.count_share_quota_used(q.service_id)
+#
+#             with transaction.atomic():
+#                 quota = ServiceShareQuota.objects.select_for_update().get(id=q.id)
+#                 update_fields = []
+#                 vcpu_used_count = r.get('vcpu_used_count', None)
+#                 if isinstance(vcpu_used_count, int) and quota.vcpu_used != vcpu_used_count:
+#                     quota.vcpu_used = vcpu_used_count
+#                     update_fields.append('vcpu_used')
+#
+#                 ram_used_count = r.get('ram_used_count', None)
+#                 if isinstance(ram_used_count, int) and quota.ram_used_gib != ram_used_count:
+#                     quota.ram_used_gib = ram_used_count
+#                     update_fields.append('ram_used')
+#
+#                 public_ip_count = r.get('public_ip_count', None)
+#                 if isinstance(public_ip_count, int) and quota.public_ip_used != public_ip_count:
+#                     quota.public_ip_used = public_ip_count
+#                     update_fields.append('public_ip_used')
+#
+#                 private_ip_used = r.get('private_ip_count', None)
+#                 if isinstance(private_ip_used, int) and quota.private_ip_used != private_ip_used:
+#                     quota.private_ip_used = private_ip_used
+#                     update_fields.append('private_ip_used')
+#
+#                 if update_fields:
+#                     try:
+#                         quota.save(update_fields=update_fields)
+#                     except Exception as e:
+#                         failed_count += 1
+#
+#         if failed_count != 0:
+#             self.message_user(request, _("统计更新已用配额失败") + f'({failed_count})', level=messages.ERROR)
+#         else:
+#             self.message_user(request, _("统计更新已用配额成功"), level=messages.SUCCESS)
 
 
 # @admin.register(ApplyVmService)

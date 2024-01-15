@@ -10,7 +10,7 @@ from drf_yasg import openapi
 
 from core.request import request_service, request_vpn_service
 from core import errors as exceptions
-from service.managers import ServiceManager
+from servers.managers import ServiceManager
 from storage.request import request_service as storage_request_service
 from storage.models import ObjectsService
 from storage.managers import ObjectsServiceManager

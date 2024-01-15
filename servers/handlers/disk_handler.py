@@ -21,7 +21,7 @@ from order.deliver_resource import OrderResourceDeliverer
 from order.models import ResourceType, Order
 from order.managers import OrderManager, OrderPaymentManager, DiskConfig
 from bill.managers import PaymentManager
-from service.managers import ServiceManager
+from servers.managers import ServiceManager
 from servers.managers import ServerManager, DiskManager, ResourceActionLogManager
 from servers.models import Server, Disk
 from servers import disk_serializers

@@ -1,11 +1,11 @@
 from django.utils.translation import gettext as _
 from rest_framework.response import Response
 
-from service.managers import (
-    ServicePrivateQuotaManager, ServiceShareQuotaManager, ServiceManager,
+from servers.managers import (
+    ServicePrivateQuotaManager, ServiceShareQuotaManager, ServiceManager
 )
 from servers.models import ServiceConfig
-from service import serializers
+from servers import serializers
 from core import errors as exceptions
 from api.viewsets import serializer_error_msg, CustomGenericViewSet
 

@@ -2,7 +2,7 @@ from django.utils.translation import gettext as _
 from rest_framework.response import Response
 
 from core import errors as exceptions
-from service.managers import ServiceManager
+from servers.managers import ServiceManager
 from servers.models import Flavor
 from servers.managers import FlavorManager
 from servers import serializers as server_serializers

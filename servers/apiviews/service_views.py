@@ -9,11 +9,11 @@ from drf_yasg import openapi
 
 from api.viewsets import CustomGenericViewSet
 from api.paginations import DefaultPageNumberPagination
-from service.managers import ServiceManager
+from servers.managers import ServiceManager
 from servers.models import ServiceConfig
-from service.handlers import service_handlers as handlers
-from service.handlers.service_handlers import ServiceQuotaHandler
-from service import serializers
+from servers.handlers import service_handlers as handlers
+from servers.handlers.service_handlers import ServiceQuotaHandler
+from servers import serializers
 from adapters import inputs, outputs
 from core import errors as exceptions
 

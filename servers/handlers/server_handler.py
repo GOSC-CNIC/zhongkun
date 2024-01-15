@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from core import errors as exceptions
 from core.quota import QuotaAPI
 from core import request as core_request
-from service.managers import ServiceManager
+from servers.managers import ServiceManager
 from servers.models import Server, Flavor
 from servers.managers import ServerManager, ServerArchiveManager, DiskManager, ResourceActionLogManager
 from servers import serializers
