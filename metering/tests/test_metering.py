@@ -2209,6 +2209,14 @@ class AdminMeteringServerTests(MyAPITestCase):
         self.assertEqual(r.data['total_postpaid_amount'], Decimal.from_float(171 + 1125 + 300))
         self.assertEqual(r.data["total_prepaid_amount"], Decimal('0.00'))
         self.assertEqual(r.data["total_server_count"], 3)
+        self.assertEqual(r.data['user_original_amount'], Decimal.from_float(190 + 420))
+        self.assertEqual(r.data['user_postpaid_amount'], Decimal.from_float(171 + 300))
+        self.assertEqual(r.data['user_prepaid_amount'], Decimal('0.00'))
+        self.assertEqual(r.data['user_server_count'], 2)
+        self.assertEqual(r.data['vo_original_amount'], Decimal.from_float(1215))
+        self.assertEqual(r.data['vo_postpaid_amount'], Decimal.from_float(1125))
+        self.assertEqual(r.data['vo_prepaid_amount'], Decimal('0.00'))
+        self.assertEqual(r.data['vo_server_count'], 1)
 
         query = parse.urlencode(query={
             'date_start': '2023-02-01', 'date_end': '2023-02-28', 'service_id': self.service1.id
@@ -2219,6 +2227,14 @@ class AdminMeteringServerTests(MyAPITestCase):
         self.assertEqual(r.data['total_postpaid_amount'], Decimal.from_float(171 + 1125))
         self.assertEqual(r.data["total_prepaid_amount"], Decimal('0.00'))
         self.assertEqual(r.data["total_server_count"], 2)
+        self.assertEqual(r.data['user_original_amount'], Decimal.from_float(190))
+        self.assertEqual(r.data['user_postpaid_amount'], Decimal.from_float(171))
+        self.assertEqual(r.data["user_prepaid_amount"], Decimal('0.00'))
+        self.assertEqual(r.data["user_server_count"], 1)
+        self.assertEqual(r.data['vo_original_amount'], Decimal.from_float(1215))
+        self.assertEqual(r.data['vo_postpaid_amount'], Decimal.from_float(1125))
+        self.assertEqual(r.data["vo_prepaid_amount"], Decimal('0.00'))
+        self.assertEqual(r.data["vo_server_count"], 1)
 
         query = parse.urlencode(query={
             'date_start': '2023-04-01',
@@ -2229,6 +2245,14 @@ class AdminMeteringServerTests(MyAPITestCase):
         self.assertEqual(r.data['total_postpaid_amount'], Decimal.from_float(0))
         self.assertEqual(r.data["total_prepaid_amount"], Decimal('0.00'))
         self.assertEqual(r.data["total_server_count"], 0)
+        self.assertEqual(r.data['user_original_amount'], Decimal('0.00'))
+        self.assertEqual(r.data['user_postpaid_amount'], Decimal('0.00'))
+        self.assertEqual(r.data["user_prepaid_amount"], Decimal('0.00'))
+        self.assertEqual(r.data["user_server_count"], 0)
+        self.assertEqual(r.data['vo_original_amount'], Decimal('0.00'))
+        self.assertEqual(r.data['vo_postpaid_amount'], Decimal('0.00'))
+        self.assertEqual(r.data["vo_prepaid_amount"], Decimal('0.00'))
+        self.assertEqual(r.data["vo_server_count"], 0)
 
 
 def create_disk_metering(

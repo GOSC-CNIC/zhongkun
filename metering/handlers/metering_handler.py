@@ -23,7 +23,7 @@ from servers.models import Server, ServerArchive, Disk
 from utils.report_file import CSVFileInMemory, wrap_csv_file_response
 from utils import rand_utils
 from utils.decimal_utils import quantize_18_2
-from utils.model import PayType, ResourceType
+from utils.model import PayType, ResourceType, OwnerType
 from utils.time import utc
 from order.models import Order
 
@@ -769,9 +769,15 @@ class MeteringHandler(BaseMeteringHandler):
         if not request.user.is_federal_admin():
             return view.exception_response(errors.AccessDenied(message=_('你不是联邦管理员，没有访问权限。')))
 
-        meter_agg = MeteringServerManager().filter_server_metering_queryset(
+        meter_qs = MeteringServerManager().filter_server_metering_queryset(
             service_id=service_id, date_start=date_start, date_end=date_end
-        ).aggregate(
+        )
+        user_meter_agg = meter_qs.filter(owner_type=OwnerType.USER.value).aggregate(
+            total_original_amount=Sum('original_amount'),
+            total_trade_amount=Sum('trade_amount'),
+            total_server_count=Count('server_id', distinct=True)
+        )
+        vo_meter_agg = meter_qs.filter(owner_type=OwnerType.VO.value).aggregate(
             total_original_amount=Sum('original_amount'),
             total_trade_amount=Sum('trade_amount'),
             total_server_count=Count('server_id', distinct=True)
@@ -793,18 +799,38 @@ class MeteringHandler(BaseMeteringHandler):
         if service_id:
             lookups['service_id'] = service_id
 
-        order_agg = Order.objects.filter(
+        order_qs = Order.objects.filter(
             **lookups,
             status=Order.Status.PAID.value, pay_type=PayType.PREPAID.value, resource_type=ResourceType.VM.value
-        ).aggregate(
+        )
+        user_order_agg = order_qs.filter(owner_type=OwnerType.USER.value).aggregate(
+            total_pay_amount=Sum('pay_amount')
+        )
+        vo_order_agg = order_qs.filter(owner_type=OwnerType.VO.value).aggregate(
             total_pay_amount=Sum('pay_amount')
         )
 
+        user_original_amount = user_meter_agg['total_original_amount'] or Decimal('0.00')
+        user_postpaid_amount = user_meter_agg['total_trade_amount'] or Decimal('0.00')
+        user_server_count = user_meter_agg['total_server_count'] or 0
+        vo_original_amount = vo_meter_agg['total_original_amount'] or Decimal('0.00')
+        vo_postpaid_amount = vo_meter_agg['total_trade_amount'] or Decimal('0.00')
+        vo_server_count = vo_meter_agg['total_server_count'] or 0
+        user_prepaid_amount = user_order_agg['total_pay_amount'] or Decimal('0.00')
+        vo_prepaid_amount = vo_order_agg['total_pay_amount'] or Decimal('0.00')
         return Response(data={
-            'total_original_amount': meter_agg['total_original_amount'] or Decimal('0.00'),
-            'total_postpaid_amount': meter_agg['total_trade_amount'] or Decimal('0.00'),
-            'total_prepaid_amount': order_agg['total_pay_amount'] or Decimal('0.00'),
-            'total_server_count': meter_agg['total_server_count'] or 0
+            'total_original_amount': user_original_amount + vo_original_amount,
+            'total_postpaid_amount': user_postpaid_amount + vo_postpaid_amount,
+            'total_prepaid_amount': user_prepaid_amount + vo_prepaid_amount,
+            'total_server_count': user_server_count + vo_server_count,
+            'user_original_amount': user_original_amount,
+            'user_postpaid_amount': user_postpaid_amount,
+            'user_prepaid_amount': user_prepaid_amount,
+            'user_server_count': user_server_count,
+            'vo_original_amount': vo_original_amount,
+            'vo_postpaid_amount': vo_postpaid_amount,
+            'vo_prepaid_amount': vo_prepaid_amount,
+            'vo_server_count': vo_server_count
         })
 
     @staticmethod

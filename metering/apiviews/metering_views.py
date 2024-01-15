@@ -634,10 +634,18 @@ class AdminMeteringServerStatisticsViewSet(CustomGenericViewSet):
 
             http code 200:
             {
-                "total_original_amount": 206338.67, # 按量计费总金额
-                "total_postpaid_amount": 163143.43, # 按量应付金额 / 实付金额
-                "total_prepaid_amount": 3792.55,    # 订单包年包月预付费金额
-                "total_server_count": 151           # 云主机数量
+                "total_original_amount": "206338.67", # 按量计费总金额
+                "total_postpaid_amount": "163143.43", # 按量应付金额 / 实付金额
+                "total_prepaid_amount": "3792.55",    # 订单包年包月预付费金额
+                "total_server_count": 151,          # 云主机数量
+                "user_original_amount": "200000.67",
+                "user_postpaid_amount": "160000.43",
+                "user_prepaid_amount": "3000.55",
+                "user_server_count": "130",
+                "vo_original_amount": "6338.00",
+                "vo_postpaid_amount": "3143.00",
+                "vo_prepaid_amount": "792.00",
+                "vo_server_count": "21",
             }
         """
         return MeteringHandler().statistics_server_metering(view=self, request=request)
