@@ -3,6 +3,7 @@ import json
 from django import forms
 from django.utils.translation import gettext_lazy, gettext as _
 from django_json_widget.widgets import JSONEditorWidget
+from django.contrib.auth.forms import UserChangeForm
 
 from .models import default_role
 
@@ -97,7 +98,7 @@ class RoleJSONEditorWidget(JSONEditorWidget):
         return super(RoleJSONEditorWidget, self).format_value(value)
 
 
-class UserModelForm(forms.ModelForm):
+class UserModelForm(UserChangeForm):
     class Meta:
         widgets = {
             'role': RoleJSONEditorWidget(),
