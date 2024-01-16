@@ -9,7 +9,7 @@ from utils.model import NoDeleteSelectModelAdmin, PayType
 from servers.forms import VmsProviderForm
 from .models import (
     Server, Flavor, ServerArchive, Disk, ResourceActionLog, DiskChangeLog,
-    ServiceConfig, ServicePrivateQuota, ServiceShareQuota,
+    ServiceConfig, ServicePrivateQuota
 )
 
 

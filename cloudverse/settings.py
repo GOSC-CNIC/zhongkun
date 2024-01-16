@@ -45,23 +45,24 @@ INSTALLED_APPS = [
     'corsheaders',
     'django_json_widget',
 
-    'users',
-    'servers',
-    'api',
-    'vpn',
+    # app排序对应admin后台app排序
     'service',
-    'vo',
+    'servers',
     'storage',
     'monitor',
-    'docs',
-    'metering',
     'order',
+    'metering',
     'bill',
-    'ticket',
     'report',
-    'scripts',
+    'users',
+    'vo',
+    'ticket',
     'ipam',
-    'link'
+    'link',
+    'vpn',
+    'scripts',
+    'api',
+    'docs',
 ]
 
 MIDDLEWARE = [
