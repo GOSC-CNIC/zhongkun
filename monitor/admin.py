@@ -12,7 +12,7 @@ from .models import (
     MonitorJobCeph, MonitorProvider, MonitorJobServer, MonitorJobVideoMeeting,
     MonitorWebsite, MonitorWebsiteRecord, MonitorWebsiteTask, MonitorWebsiteVersion,
     WebsiteDetectionPoint, MonitorJobTiDB, LogSiteType, LogSite,
-    TotalReqNum, LogSiteTimeReqNum
+    TotalReqNum, LogSiteTimeReqNum, ErrorLog
 )
 from .managers import MonitorWebsiteManager
 
@@ -272,3 +272,11 @@ class LogSiteTimeReqNumAdmin(admin.ModelAdmin):
             return ''
 
         return dt.isoformat(sep=' ')
+
+
+@admin.register(ErrorLog)
+class ErrorLogAdmin(admin.ModelAdmin):
+    list_display = ('id', 'status_code', 'method', 'full_path', 'message', 'creation', 'username')
+    list_display_links = ('id', )
+    search_fields = ('full_path', 'username', 'message')
+    list_filter = ('status_code', 'method')

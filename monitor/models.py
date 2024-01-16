@@ -3,7 +3,7 @@ from datetime import datetime
 
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext, gettext_lazy as _
 from django.utils import timezone
 
 from service.models import OrgDataCenter
@@ -69,7 +69,7 @@ class MonitorJobCeph(UuidModel):
     name = models.CharField(verbose_name=_('监控的CEPH集群名称'), max_length=255, default='')
     name_en = models.CharField(verbose_name=_('监控的CEPH集群英文名称'), max_length=255, default='')
     job_tag = models.CharField(
-        verbose_name=_('CEPH集群标签名称'), max_length=255, default='', help_text='模板：xxx_ceph_metric')
+        verbose_name=_('CEPH集群标签名称'), max_length=255, default='', help_text=_('模板：xxx_ceph_metric'))
     prometheus = models.CharField(
         verbose_name=_('Prometheus接口'), max_length=255, blank=True, default='', help_text=_('http(s)://example.cn/'))
     creation = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
@@ -101,7 +101,7 @@ class MonitorJobServer(UuidModel):
     name = models.CharField(verbose_name=_('监控的主机集群名称'), max_length=255, default='')
     name_en = models.CharField(verbose_name=_('监控的主机集群英文名称'), max_length=255, default='')
     job_tag = models.CharField(
-        verbose_name=_('主机集群标签名称'), max_length=255, default='', help_text='模板：xxx_node_metric')
+        verbose_name=_('主机集群标签名称'), max_length=255, default='', help_text=_('模板：xxx_node_metric'))
     prometheus = models.CharField(
         verbose_name=_('Prometheus接口'), max_length=255, blank=True, default='', help_text=_('http(s)://example.cn/'))
     creation = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
@@ -373,7 +373,7 @@ class MonitorJobTiDB(UuidModel):
     name = models.CharField(verbose_name=_('监控的TiDB集群名称'), max_length=255, default='')
     name_en = models.CharField(verbose_name=_('监控的TiDB集群英文名称'), max_length=255, default='')
     job_tag = models.CharField(
-        verbose_name=_('TiDB集群标签名称'), max_length=255, default='', help_text='模板：xxx_tidb_metric')
+        verbose_name=_('TiDB集群标签名称'), max_length=255, default='', help_text=_('模板：xxx_tidb_metric'))
     prometheus = models.CharField(
         verbose_name=_('Prometheus接口'), max_length=255, blank=True, default='', help_text=_('http(s)://example.cn/'))
     creation = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
@@ -408,12 +408,13 @@ class LogSiteType(UuidModel):
     日志网站类别
     """
     name = models.CharField(
-        max_length=64, unique=True, null=False, blank=False, verbose_name="日志网站类别名称", help_text=_('对象存储、一体云'))
+        max_length=64, unique=True, null=False, blank=False,
+        verbose_name=_("日志网站类别名称"), help_text=_('对象存储、一体云'))
     name_en = models.CharField(verbose_name=_('英文名称'), max_length=128, default='')
-    sort_weight = models.IntegerField(verbose_name='排序值', help_text='值越小排序越靠前')
-    desc = models.CharField(max_length=255, blank=True, default='', verbose_name="备注")
-    creation = models.DateTimeField(verbose_name='创建时间', auto_now_add=True)
-    modification = models.DateTimeField(verbose_name='修改时间', auto_now=True)
+    sort_weight = models.IntegerField(verbose_name=_('排序值'), help_text=_('值越小排序越靠前'))
+    desc = models.CharField(max_length=255, blank=True, default='', verbose_name=_("备注"))
+    creation = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
+    modification = models.DateTimeField(verbose_name=_('修改时间'), auto_now=True)
 
     def __str__(self):
         return self.name
@@ -430,19 +431,19 @@ class LogSite(UuidModel):
         HTTP = 'http', 'HTTP'
         NAT = 'nat', 'NAT'
 
-    name = models.CharField(max_length=50, null=False, blank=False, verbose_name="日志单元站点名称")
+    name = models.CharField(max_length=50, null=False, blank=False, verbose_name=_("日志单元站点名称"))
     name_en = models.CharField(verbose_name=_('日志单元英文名称'), max_length=128, default='')
     log_type = models.CharField(
-        verbose_name="日志类型", max_length=16, choices=LogType.choices, default=LogType.HTTP.value)
+        verbose_name=_("日志类型"), max_length=16, choices=LogType.choices, default=LogType.HTTP.value)
     site_type = models.ForeignKey(
         to=LogSiteType, db_constraint=False, on_delete=models.SET_NULL, null=True,
-        related_name='+', verbose_name="站点类别")
+        related_name='+', verbose_name=_("站点类别"))
     job_tag = models.CharField(verbose_name=_('网站日志单元标识'), max_length=64, default='',
                                help_text=_('Loki日志中对应的job标识，模板xxx_log'))
-    sort_weight = models.IntegerField(verbose_name='排序值', help_text='值越小排序越靠前')
-    desc = models.CharField(max_length=255, blank=True, default="", verbose_name="备注")
-    creation = models.DateTimeField(verbose_name='创建时间', auto_now_add=True)
-    modification = models.DateTimeField(verbose_name='修改时间', auto_now=True)
+    sort_weight = models.IntegerField(verbose_name=_('排序值'), help_text=_('值越小排序越靠前'))
+    desc = models.CharField(max_length=255, blank=True, default="", verbose_name=_("备注"))
+    creation = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
+    modification = models.DateTimeField(verbose_name=_('修改时间'), auto_now=True)
     users = models.ManyToManyField(
         to=UserProfile, db_table='log_site_users', related_name='+',
         db_constraint=False, verbose_name=_('管理用户'), blank=True)
@@ -453,7 +454,7 @@ class LogSite(UuidModel):
     class Meta:
         db_table = "log_site"
         ordering = ['sort_weight']
-        verbose_name = "日志单元"
+        verbose_name = _("日志单元")
         verbose_name_plural = verbose_name
 
     def __str__(self):
@@ -501,7 +502,7 @@ class TotalReqNum(UuidModel):
     class Meta:
         db_table = 'total_req_num'
         ordering = ['creation']
-        verbose_name = "本服务和对象存储总请求数"
+        verbose_name = _("本服务和对象存储总请求数")
         verbose_name_plural = verbose_name
 
     def save(self, *args, **kwargs):
@@ -519,3 +520,22 @@ class TotalReqNum(UuidModel):
         obj = cls(req_num=0, until_time=until_time, creation=nt, modification=nt)
         obj.save(force_insert=True)
         return obj
+
+
+class ErrorLog(UuidModel):
+    status_code = models.IntegerField(verbose_name=_('状态码'), blank=True, default=0)
+    method = models.CharField(verbose_name=_('请求方法'), max_length=32, blank=True, default='')
+    full_path = models.CharField(verbose_name=_("URI"), max_length=1024, blank=True, default='')
+    message = models.TextField(verbose_name=_("日志信息"), blank=True, default='')
+    creation = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
+    username = models.CharField(verbose_name=_("请求用户"), max_length=128, blank=True, default='')
+
+    class Meta:
+        db_table = 'error_log'
+        ordering = ['-creation']
+        verbose_name = _("错误日志")
+        verbose_name_plural = verbose_name
+
+    def clean(self):
+        if not (0 <= self.status_code < 600):
+            raise ValidationError(message={'status_code': gettext('状态码必须在0-600之间')})

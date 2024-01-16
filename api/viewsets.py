@@ -14,6 +14,7 @@ from servers.managers import ServiceManager
 from storage.request import request_service as storage_request_service
 from storage.models import ObjectsService
 from storage.managers import ObjectsServiceManager
+from monitor.models import ErrorLog
 from . import request_logger as logger
 
 
@@ -95,11 +96,25 @@ def exception_handler(exc, context):
 
     set_rollback()
     status_code = exc.status_code
-    msg = str(exc)
+    method = ''
+    full_path = ''
+    username = ''
+    err_msg = msg = str(exc)
     try:
         request = context.get('request', None)
         if request:
-            msg = f'{status_code} {request.method} {request.get_full_path()} [{msg}]'
+            method = request.method
+            full_path = request.get_full_path()
+            if bool(request.user and request.user.is_authenticated):
+                username = request.user.username
+
+            msg = f'{status_code} {method} {full_path} [{msg}]'
+    except Exception:
+        pass
+
+    try:
+        ins = ErrorLog(status_code=status_code, method=method, full_path=full_path, message=err_msg, username=username)
+        ins.save(force_insert=True)
     except Exception:
         pass
 
@@ -111,8 +126,12 @@ def log_err_response(_logger, request, response):
     """
     状态码>=400才记录
     """
-    msg = f'{response.status_code} {request.method} {request.get_full_path()}'
-    if 400 <= response.status_code:
+    status_code = response.status_code
+    method = request.method
+    full_path = request.get_full_path()
+    msg = f'{status_code} {method} {full_path}'
+    err_msg = ''
+    if 400 <= status_code:
         err_msg = response.data.get('message', '')
         code = response.data.get('code', '')
         if err_msg and code:
@@ -121,6 +140,16 @@ def log_err_response(_logger, request, response):
             err_msg = f'{response.data}'
 
         msg = f'{msg} {err_msg}'
+
+    username = ''
+    if bool(request.user and request.user.is_authenticated):
+        username = request.user.username
+
+    try:
+        ins = ErrorLog(status_code=status_code, method=method, full_path=full_path, message=err_msg, username=username)
+        ins.save(force_insert=True)
+    except Exception:
+        pass
 
     if 400 <= response.status_code < 500:
         _logger.warning(msg)
