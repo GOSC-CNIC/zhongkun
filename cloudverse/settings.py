@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'users',
     'vo',
     'ticket',
+    'netbox',
     'ipam',
     'link',
     'vpn',

@@ -417,7 +417,7 @@ class TradeStatusInvalid(ConflictError):
 
 
 class BucketAlreadyExists(ConflictError):
-    default_message = _('存储桶已存在，请更换另一个存储桶名程后再重试。')
+    default_message = _('存储桶已存在，请更换另一个存储桶名称后再重试。')
     default_code = 'BucketAlreadyExists'
 
 
