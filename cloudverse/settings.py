@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'ticket',
     'ipam',
     'link',
+    'scan',
     'vpn',
     'scripts',
     'api',

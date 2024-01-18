@@ -73,6 +73,7 @@ urlpatterns = [
     path('api/', include('bill.api_urls', namespace='wallet-api')),
     path('api/report/', include('report.api_urls', namespace='report-api')),
     path('api/monitor/', include('monitor.api_urls', namespace='monitor-api')),
+    path('api/scan/', include('scan.api_urls', namespace='scan-api')),
     path('api/ipam/', include('ipam.api_urls', namespace='ipam-api')),
     path('api/link/', include('link.api_urls', namespace='link-api')),
     path('vpn/', include('vpn.urls', namespace='vpn')),
