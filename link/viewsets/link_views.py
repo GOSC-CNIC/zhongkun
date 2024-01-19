@@ -18,6 +18,7 @@ class LinkViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举链路'),
+        deprecated=True,
         manual_parameters=[
             openapi.Parameter(
                 name='link_status',
@@ -64,6 +65,7 @@ class LinkViewSet(NormalGenericViewSet):
     
     @swagger_auto_schema(
         operation_summary=gettext_lazy('查询一个链路'),
+        deprecated=True,
         responses={
             200: ''
         }
@@ -195,6 +197,7 @@ class LinkViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('创建链路'),
+        deprecated=True,
         responses={
             200: ''
         }

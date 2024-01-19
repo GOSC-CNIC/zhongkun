@@ -22,6 +22,7 @@ class IPv4RangeViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举IP地址段'),
+        deprecated=True,
         manual_parameters=NormalGenericViewSet.PARAMETERS_AS_ADMIN + [
             openapi.Parameter(
                 name='org_id',
@@ -122,6 +123,7 @@ class IPv4RangeViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('添加IPv4地址段'),
+        deprecated=True,
         manual_parameters=[],
         responses={
             200: ''''''
@@ -168,6 +170,7 @@ class IPv4RangeViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('修改IPv4地址段'),
+        deprecated=True,
         manual_parameters=[],
         responses={
             200: ''''''
@@ -214,6 +217,7 @@ class IPv4RangeViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('删除IPv4地址段'),
+        deprecated=True,
         responses={
             204: ''''''
         }
@@ -238,6 +242,7 @@ class IPv4RangeViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('按掩码长度拆分IPv4地址段'),
+        deprecated=True,
         responses={
             200: ''''''
         }
@@ -289,6 +294,7 @@ class IPv4RangeViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('按指定拆分方案拆分IPv4地址段'),
+        deprecated=True,
         responses={
             200: ''''''
         }
@@ -338,6 +344,7 @@ class IPv4RangeViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('子网IPv4地址段合并为一个指定掩码长度的超网地址段'),
+        deprecated=True,
         responses={
             200: ''''''
         }
@@ -392,6 +399,7 @@ class IPv4RangeViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('收回一个子网IPv4地址段'),
+        deprecated=True,
         request_body=no_body,
         responses={
             200: ''''''
@@ -436,6 +444,7 @@ class IPv4RangeViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('预留一个子网IPv4地址段'),
+        deprecated=True,
         request_body=no_body,
         manual_parameters=[
             openapi.Parameter(
@@ -489,6 +498,7 @@ class IPv4RangeViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('分配一个子网IPv4地址段'),
+        deprecated=True,
         request_body=no_body,
         manual_parameters=[
             openapi.Parameter(
@@ -542,6 +552,7 @@ class IPv4RangeViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('修改一个子网IPv4地址段备注信息'),
+        deprecated=True,
         request_body=no_body,
         manual_parameters=NormalGenericViewSet.PARAMETERS_AS_ADMIN + [
             openapi.Parameter(
@@ -596,6 +607,7 @@ class IPAMUserRoleViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('查询用户ipam中用户角色和权限'),
+        deprecated=True,
         paginator_inspectors=[NoPaginatorInspector],
         manual_parameters=[],
         responses={
@@ -644,6 +656,7 @@ class IPv4AddressViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('修改一个IPv4地址备注信息'),
+        deprecated=True,
         request_body=no_body,
         manual_parameters=NormalGenericViewSet.PARAMETERS_AS_ADMIN + [
             openapi.Parameter(
@@ -693,6 +706,7 @@ class IPv4AddressViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举IPv4地址'),
+        deprecated=True,
         request_body=no_body,
         manual_parameters=NormalGenericViewSet.PARAMETERS_AS_ADMIN + [
             openapi.Parameter(

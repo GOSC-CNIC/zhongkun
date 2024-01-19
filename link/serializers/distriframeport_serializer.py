@@ -10,6 +10,9 @@ class DistriFramePortSerializer(ElementBaseSerializer):
     col = serializers.IntegerField(label=_('列号'), validators=(MinValueValidator(1),), allow_null=False, required=True)
     distribution_frame = serializers.SerializerMethodField(label=_('配线架'), method_name='get_distribution_frame')
 
+    class Meta:
+        ref_name = 'link'  # 在线文档 drf-yasg 需要区分同名的 Serializer
+
     @staticmethod
     def get_distribution_frame(obj):
         distribution_frame = obj.distribution_frame

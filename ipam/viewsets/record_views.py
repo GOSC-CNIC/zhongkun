@@ -21,6 +21,7 @@ class IPv4RangeRecordViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举ipv4地址段变更记录'),
+        deprecated=True,
         manual_parameters=[
             openapi.Parameter(
                 name='record_type',

@@ -18,6 +18,7 @@ class OrgObjViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('创建一个机构二级对象'),
+        deprecated=True,
         manual_parameters=[],
         responses={
             200: ''''''
@@ -57,6 +58,7 @@ class OrgObjViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举机构二级对象'),
+        deprecated=True,
         manual_parameters=[
             openapi.Parameter(
                 name='org_id',
@@ -111,6 +113,7 @@ class OrgObjViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('修改一个机构二级对象'),
+        deprecated=True,
         manual_parameters=[],
         responses={
             200: ''''''
@@ -150,6 +153,7 @@ class OrgObjViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('查询一个机构二级对象详情'),
+        deprecated=True,
         manual_parameters=[],
         responses={
             200: ''''''
@@ -194,6 +198,7 @@ class OrgObjViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('机构二级添加联系人'),
+        deprecated=True,
         manual_parameters=[],
         responses={
             200: ''''''
@@ -239,6 +244,7 @@ class OrgObjViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('机构二级移除联系人'),
+        deprecated=True,
         manual_parameters=[],
         responses={
             200: ''''''
@@ -276,6 +282,7 @@ class ContactPersonViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举机构二级联系人'),
+        deprecated=True,
         manual_parameters=[
             openapi.Parameter(
                 name='search',
@@ -322,6 +329,7 @@ class ContactPersonViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('创建一个机构二级联系人'),
+        deprecated=True,
         manual_parameters=[],
         responses={
             200: ''''''
@@ -360,6 +368,7 @@ class ContactPersonViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('修改一个机构二级联系人'),
+        deprecated=True,
         manual_parameters=[],
         responses={
             200: ''''''

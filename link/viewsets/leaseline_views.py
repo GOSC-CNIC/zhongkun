@@ -18,6 +18,7 @@ class LeaseLineViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('创建租用线路'),
+        deprecated=True,
         responses={
             200: ''
         }
@@ -50,6 +51,7 @@ class LeaseLineViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举租用线路'),
+        deprecated=True,
         manual_parameters=[
             openapi.Parameter(
                 name='is_linked',
@@ -129,6 +131,7 @@ class LeaseLineViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('更改一个租用线路'),
+        deprecated=True,
         responses={
             200: ''
         }
@@ -161,6 +164,7 @@ class LeaseLineViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('查询一个租用线路'),
+        deprecated=True,
         responses={
             200: ''
         }

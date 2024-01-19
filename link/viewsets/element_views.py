@@ -16,6 +16,7 @@ class ElementViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('根据网元id获取网元信息'),
+        deprecated=True,
         responses={
             200: ''
         }

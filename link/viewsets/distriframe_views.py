@@ -16,6 +16,7 @@ class DistriFrameViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举配线架'),
+        deprecated=True,
         responses={
             200: ''
         }
@@ -51,6 +52,7 @@ class DistriFrameViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('查询一个配线架'),
+        deprecated=True,
         responses={
             200: ''
         }

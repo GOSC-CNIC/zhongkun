@@ -12,6 +12,9 @@ class DistriFrameSerializer(serializers.Serializer):
     remarks = serializers.CharField(label=_('备注'), max_length=255, allow_blank=True, allow_null=True, required=False, default='')
     link_org = serializers.SerializerMethodField(label=_('机构二级'), method_name='get_link_org')
 
+    class Meta:
+        ref_name = 'link'  # 在线文档 drf-yasg 需要区分同名的 Serializer
+
     @staticmethod
     def get_link_org(obj):
         link_org = obj.link_org

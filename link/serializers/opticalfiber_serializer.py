@@ -7,6 +7,9 @@ class OpticalFiberSerializer(ElementBaseSerializer):
     sequence = serializers.IntegerField(label=_('纤序'), read_only=True)
     fiber_cable = serializers.SerializerMethodField(label=_('光缆'), method_name='get_fibercable')
 
+    class Meta:
+        ref_name = 'link'   # 在线文档 drf-yasg 需要区分同名的 Serializer
+
     @staticmethod
     def get_fibercable(obj):
         fibercable = obj.fiber_cable

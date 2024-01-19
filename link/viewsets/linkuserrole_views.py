@@ -18,6 +18,7 @@ class LinkUserRoleViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('查询用户链路管理中用户角色和权限'),
+        deprecated=True,
         paginator_inspectors=[NoPaginatorInspector],
         manual_parameters=[],
         responses={

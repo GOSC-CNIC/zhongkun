@@ -19,6 +19,7 @@ class IPv6RangeViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举IPv6地址段'),
+        deprecated=True,
         manual_parameters=NormalGenericViewSet.PARAMETERS_AS_ADMIN + [
             openapi.Parameter(
                 name='org_id',
@@ -119,6 +120,7 @@ class IPv6RangeViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('添加IPv6地址段'),
+        deprecated=True,
         manual_parameters=[],
         responses={
             200: ''''''
@@ -165,6 +167,7 @@ class IPv6RangeViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('修改IPv6地址段'),
+        deprecated=True,
         manual_parameters=[],
         responses={
             200: ''''''
@@ -211,6 +214,7 @@ class IPv6RangeViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('删除IPv6地址段'),
+        deprecated=True,
         responses={
             204: ''''''
         }
@@ -235,6 +239,7 @@ class IPv6RangeViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('收回一个子网IPv6地址段'),
+        deprecated=True,
         request_body=no_body,
         responses={
             200: ''''''
@@ -279,6 +284,7 @@ class IPv6RangeViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('预留一个子网IPv6地址段'),
+        deprecated=True,
         request_body=no_body,
         manual_parameters=[
             openapi.Parameter(

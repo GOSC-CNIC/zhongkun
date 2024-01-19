@@ -18,6 +18,7 @@ class ConnectorBoxViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举接头盒'),
+        deprecated=True,
         manual_parameters=[
             openapi.Parameter(
                 name='is_linked',

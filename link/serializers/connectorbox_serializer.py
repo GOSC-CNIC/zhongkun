@@ -8,3 +8,6 @@ class ConnectorBoxSerializer(ElementBaseSerializer):
     place = serializers.CharField(label=_('位置'), max_length=128, allow_blank=True, allow_null=True, required=False, default='')
     remarks = serializers.CharField(label=_('备注'), max_length=255, allow_blank=True, allow_null=True, required=False, default='')
     location = serializers.CharField(label=_('经纬度'), max_length=64, allow_blank=True, allow_null=True, required=False, default='')
+
+    class Meta:
+        ref_name = 'link'   # 在线文档 drf-yasg 需要区分同名的 Serializer

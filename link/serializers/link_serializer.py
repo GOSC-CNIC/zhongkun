@@ -14,6 +14,10 @@ class ElementDetailDataSerializer(serializers.Serializer):
     fiber = OpticalFiberSerializer()
     box = ConnectorBoxSerializer()
 
+    class Meta:
+        ref_name = 'link'   # 在线文档 drf-yasg 需要区分同名的 Serializer
+
+
 class LinkSerializer(serializers.Serializer):
     """链路基本信息列化器"""
     id = serializers.CharField(max_length=36, label='ID', read_only=True)
@@ -30,15 +34,27 @@ class LinkSerializer(serializers.Serializer):
     remarks = serializers.CharField(label=_('备注'), max_length=255, allow_blank=True, allow_null=True, required=False, default='')
     enable_date = serializers.DateField(label=_('开通日期'), default=None, allow_null=True, required=False)
 
+    class Meta:
+        ref_name = 'link'   # 在线文档 drf-yasg 需要区分同名的 Serializer
+
+
 class LinkElementSerializer(serializers.Serializer):
     """链路网元关系列化器"""
     index = serializers.IntegerField(label=_('链路位置'), validators=(MinValueValidator(1),))
     sub_index = serializers.IntegerField(label=_('同位编号'), validators=(MinValueValidator(1),))
     element_data = ElementDetailDataSerializer()
 
+    class Meta:
+        ref_name = 'link'   # 在线文档 drf-yasg 需要区分同名的 Serializer
+
+
 class LinkDetailSerializer(LinkSerializer):
     """链路详情（链路基本信息，网元信息）序列化器"""
     link_element = LinkElementSerializer(many=True)
+
+    class Meta:
+        ref_name = 'link'   # 在线文档 drf-yasg 需要区分同名的 Serializer
+
 
 class CreatLinkElementSerializer(serializers.Serializer):
     """创建链路网元关系序列化器"""
@@ -46,6 +62,14 @@ class CreatLinkElementSerializer(serializers.Serializer):
     sub_index = serializers.IntegerField(label=_('同位编号'), validators=(MinValueValidator(1),), default=1, allow_null=True, required=False)
     element_id = serializers.CharField(max_length=36, label=_('网元id'), required=True)
 
+    class Meta:
+        ref_name = 'link'   # 在线文档 drf-yasg 需要区分同名的 Serializer
+
+
 class CreatLinkSerializer(LinkSerializer):
     """创建链路序列化器"""
     link_element = CreatLinkElementSerializer(many=True, required=True)
+
+    class Meta:
+        ref_name = 'link'   # 在线文档 drf-yasg 需要区分同名的 Serializer
+

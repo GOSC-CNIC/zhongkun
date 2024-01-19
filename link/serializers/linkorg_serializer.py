@@ -14,4 +14,3 @@ class LinkOrgSerializer(serializers.Serializer):
         if data_center is not None:
             return {'id': data_center.id, 'name': data_center.name, 'name_en': data_center.name_en}
         return None
-    

@@ -17,6 +17,7 @@ class DistriFramePortViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举配线架端口'),
+        deprecated=True,
         manual_parameters=[
             openapi.Parameter(
                 name='is_linked',

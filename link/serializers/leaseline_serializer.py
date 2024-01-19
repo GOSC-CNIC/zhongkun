@@ -19,3 +19,6 @@ class LeaseLineSerializer(ElementBaseSerializer):
     is_whithdrawal = serializers.BooleanField(label=_('租线状态'), allow_null=False, required=True)
     money = serializers.DecimalField(label=_('月租费'), validators=(MinValueValidator(0),), max_digits=10, decimal_places=2, default=None, allow_null=True, required=False)
     remarks = serializers.CharField(max_length=255, label=_('备注'), default='', allow_blank=True, allow_null=True, required=False)
+
+    class Meta:
+        ref_name = 'link'   # 在线文档 drf-yasg 需要区分同名的 Serializer

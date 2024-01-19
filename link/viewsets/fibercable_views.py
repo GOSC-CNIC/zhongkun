@@ -17,6 +17,7 @@ class FiberCableViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('创建光缆'),
+        deprecated=True,
         responses={
             200: ''
         }
@@ -41,6 +42,7 @@ class FiberCableViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举光缆'),
+        deprecated=True,
         manual_parameters=[
             openapi.Parameter(
                 name='search',
@@ -81,6 +83,7 @@ class FiberCableViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('查询一个光缆'),
+        deprecated=True,
         responses={
             200: ''
         }

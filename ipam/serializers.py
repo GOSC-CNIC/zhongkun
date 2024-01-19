@@ -3,7 +3,12 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 
-class OrgVirtualObjectSimpleSerializer(serializers.Serializer):
+class BaseIPAMSerializer(serializers.Serializer):
+    class Meta:
+        ref_name = 'ipam'   # 在线文档 drf-yasg 需要区分同名的 Serializer
+
+
+class OrgVirtualObjectSimpleSerializer(BaseIPAMSerializer):
     id = serializers.CharField(label='ID', read_only=True)
     name = serializers.CharField(label=_('名称'), max_length=255)
     creation_time = serializers.DateTimeField(label=_('创建时间'))
@@ -19,17 +24,17 @@ class OrgVirtualObjectSimpleSerializer(serializers.Serializer):
         return None
 
 
-class OrgVirtObjCreateSerializer(serializers.Serializer):
+class OrgVirtObjCreateSerializer(BaseIPAMSerializer):
     name = serializers.CharField(label=_('名称'), max_length=255, required=True)
     organization_id = serializers.CharField(label=_('机构ID'), required=True)
     remark = serializers.CharField(label=_('备注信息'), max_length=255, allow_blank=True, default='')
 
 
-class OrgVOContactsPostSerializer(serializers.Serializer):
+class OrgVOContactsPostSerializer(BaseIPAMSerializer):
     contact_ids = serializers.ListField(label=_('联系人ID'), max_length=128, required=True)
 
 
-class IPv4RangeSerializer(serializers.Serializer):
+class IPv4RangeSerializer(BaseIPAMSerializer):
     id = serializers.CharField(label='ID', read_only=True)
     name = serializers.CharField(label=_('名称'), max_length=255, required=True)
     status = serializers.CharField(label=_('状态'), max_length=16)
@@ -53,7 +58,7 @@ class IPv4RangeSerializer(serializers.Serializer):
         return None
 
 
-class IPv4RangeCreateSerializer(serializers.Serializer):
+class IPv4RangeCreateSerializer(BaseIPAMSerializer):
     name = serializers.CharField(label=_('名称'), max_length=255, allow_blank=True, default='')
     start_address = serializers.CharField(label=_('起始地址'), required=True, max_length=16)
     end_address = serializers.CharField(label=_('截止地址'), required=True, max_length=16)
@@ -62,24 +67,24 @@ class IPv4RangeCreateSerializer(serializers.Serializer):
     admin_remark = serializers.CharField(label=_('科技网管理员备注信息'), max_length=255, allow_blank=True, default='')
 
 
-class IPv4RangeSplitSerializer(serializers.Serializer):
+class IPv4RangeSplitSerializer(BaseIPAMSerializer):
     new_prefix = serializers.IntegerField(label=_('子网掩码长度'), required=True, min_value=1, max_value=31)
     fake = serializers.BooleanField(
         label=_('假拆分'), allow_null=True, default=False,
         help_text=_('true(假装拆分，询问拆分规划)；其他值或不提交此参数（正常真实拆分地址段）'))
 
 
-class SubIPv4Range(serializers.Serializer):
+class SubIPv4Range(BaseIPAMSerializer):
     start_address = serializers.IntegerField(label=_('起始地址'), min_value=0, required=True)
     end_address = serializers.IntegerField(label=_('截止地址'), min_value=0, required=True)
     prefix = serializers.IntegerField(label=_('前缀（子网掩码）长度'), required=True, min_value=0, max_value=32)
 
 
-class IPv4RangePlanSplitSerializer(serializers.Serializer):
+class IPv4RangePlanSplitSerializer(BaseIPAMSerializer):
     sub_ranges = serializers.ListField(child=SubIPv4Range(), label=_('拆分计划子网段'), required=True)
 
 
-class IPv4RangeMergeSerializer(serializers.Serializer):
+class IPv4RangeMergeSerializer(BaseIPAMSerializer):
     new_prefix = serializers.IntegerField(label=_('子网掩码长度'), required=True, min_value=1, max_value=31)
     ip_range_ids = serializers.ListField(
         label=_('ip地址段id列表'), child=serializers.CharField(label='ip地址段id', max_length=36),
@@ -89,7 +94,7 @@ class IPv4RangeMergeSerializer(serializers.Serializer):
         help_text=_('true(假装合并，询问合并结果)；其他值或不提交此参数（正常真实合并地址段）'))
 
 
-class IPAMUserRoleSerializer(serializers.Serializer):
+class IPAMUserRoleSerializer(BaseIPAMSerializer):
     id = serializers.CharField(label='ID', read_only=True)
     is_admin = serializers.BooleanField(
         label=_('科技网IP管理员'), default=False, help_text=_('选中，用户拥有科技网IP管理功能的管理员权限'))
@@ -108,7 +113,7 @@ class IPAMUserRoleSerializer(serializers.Serializer):
         return None
 
 
-class IPv4RangeRecordSerializer(serializers.Serializer):
+class IPv4RangeRecordSerializer(BaseIPAMSerializer):
     id = serializers.CharField(label='ID', read_only=True)
     creation_time = serializers.DateTimeField(label=_('创建时间'))
     record_type = serializers.CharField(label=_('记录类型'), max_length=16)
@@ -128,7 +133,7 @@ class IPv4RangeRecordSerializer(serializers.Serializer):
         return {'id': obj.user.id, 'username': obj.user.username}
 
 
-class IPv4AddressSerializer(serializers.Serializer):
+class IPv4AddressSerializer(BaseIPAMSerializer):
     id = serializers.CharField(label='ID', read_only=True)
     ip_address = serializers.IntegerField(label=_('IP地址'))
     remark = serializers.CharField(label=_('机构管理员备注信息'), max_length=255)
@@ -140,7 +145,7 @@ class IPv4AddressAdminSerializer(IPv4AddressSerializer):
     admin_remark = serializers.CharField(label=_('科技网管理员备注信息'), max_length=255)
 
 
-class IPv6RangeSerializer(serializers.Serializer):
+class IPv6RangeSerializer(BaseIPAMSerializer):
     id = serializers.CharField(label='ID', read_only=True)
     name = serializers.CharField(label=_('名称'), max_length=255, required=True)
     status = serializers.CharField(label=_('状态'), max_length=16)
@@ -178,7 +183,7 @@ class IPv6RangeSerializer(serializers.Serializer):
             return ''
 
 
-class IPv6RangeCreateSerializer(serializers.Serializer):
+class IPv6RangeCreateSerializer(BaseIPAMSerializer):
     name = serializers.CharField(label=_('名称'), max_length=255, allow_blank=True, default='')
     start_address = serializers.CharField(
         label=_('起始地址'), required=True, max_length=40, help_text='2400:dd01:1010:30::')
@@ -189,7 +194,7 @@ class IPv6RangeCreateSerializer(serializers.Serializer):
     admin_remark = serializers.CharField(label=_('科技网管理员备注信息'), max_length=255, allow_blank=True, default='')
 
 
-class ContactPersonSerializer(serializers.Serializer):
+class ContactPersonSerializer(BaseIPAMSerializer):
     id = serializers.CharField(read_only=True)
     name = serializers.CharField(label=_('姓名'), max_length=128, required=True)
     telephone = serializers.CharField(label=_('电话'), max_length=16, required=True)

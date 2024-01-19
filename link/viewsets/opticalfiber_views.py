@@ -17,6 +17,7 @@ class OpticalFiberViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举光纤'),
+        deprecated=True,
         manual_parameters=[
             openapi.Parameter(
                 name='is_linked',
