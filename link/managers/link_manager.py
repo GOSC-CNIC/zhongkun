@@ -98,5 +98,5 @@ class LinkManager:
             qs = qs.filter(link_status__in=link_status)
 
         return qs
-    
+
 

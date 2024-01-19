@@ -19,8 +19,10 @@ class VerifyUtils:
         """
         if val is None:
             return True
+
         if len(val) == 0:
             return True
+
         return False
     
     @staticmethod

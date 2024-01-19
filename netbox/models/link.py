@@ -1,7 +1,6 @@
 from django.db import models
 from utils.model import UuidModel
 from django.utils.translation import gettext_lazy as _
-from users.models import UserProfile
 from .common import OrgVirtualObject
 
 
@@ -10,7 +9,8 @@ class FiberCable(UuidModel):
 
     number = models.CharField(verbose_name=_('光缆编号'), max_length=64, default='')
     fiber_count = models.IntegerField(verbose_name=_('总纤芯数量'))
-    length = models.DecimalField(verbose_name=_('长度'), max_digits=10, decimal_places=2, null=True, blank=True, default=None, help_text='km')
+    length = models.DecimalField(
+        verbose_name=_('长度'), max_digits=10, decimal_places=2, null=True, blank=True, default=None, help_text='km')
     endpoint_1 = models.CharField(verbose_name=_('端点1'), max_length=255, blank=True, default='')
     endpoint_2 = models.CharField(verbose_name=_('端点2'), max_length=255, blank=True, default='')
     remarks = models.CharField(verbose_name=_('备注'), max_length=255, blank=True, default='')
@@ -113,6 +113,7 @@ class ElementBase(UuidModel):
     def link_id(self):
         if not self.is_linked:
             return []
+
         return [link.id for link in self.element.links.all()]
 
 
@@ -238,7 +239,8 @@ class Link(UuidModel):
     build_person = models.CharField(verbose_name=_('线路搭建'), max_length=36, blank=True, default='')
     create_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
     update_time = models.DateTimeField(verbose_name=_('更新时间'), auto_now=True)
-    link_status = models.CharField(verbose_name=_('链路状态'), max_length=16, choices=LinkStatus.choices, default=LinkStatus.IDLE)
+    link_status = models.CharField(
+        verbose_name=_('链路状态'), max_length=16, choices=LinkStatus.choices, default=LinkStatus.IDLE)
     remarks = models.CharField(verbose_name=_('备注'), max_length=255, blank=True, default='')
     enable_date = models.DateField(verbose_name=_('开通日期'), null=True, blank=True, default=None)
     elements = models.ManyToManyField(
@@ -272,20 +274,22 @@ class ElementLink(UuidModel):
 
     @property
     def element_data(self):
-        from link.managers.element_manager import ElementManager
+        from netbox.managers.link_mgrs import ElementManager
+
         if self.element is None:
             return None
+
         return ElementManager.get_element_detail_data_by_id(self.element.id)
 
     @staticmethod
     def get_linked_object_id_list(object_type: str):
-        qs = ElementLink.objects.all()
-        id_list = [elementlink.element.object_id for elementlink in qs if elementlink.element.object_type==object_type]
+        qs = ElementLink.objects.select_related('element').all()
+        id_list = [elk.element.object_id for elk in qs if elk.element.object_type == object_type]
         return id_list
 
 
 class ElementDetailData:
-    def __init__(self, _type: Element.Type = None, lease: LeaseLine = None, fiber: OpticalFiber = None,
+    def __init__(self, _type: str = None, lease: LeaseLine = None, fiber: OpticalFiber = None,
                  port: DistriFramePort = None, box: ConnectorBox = None):
         self.type = _type
         self.lease = lease
