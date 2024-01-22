@@ -32,8 +32,8 @@ class DistributionFrame(UuidModel):
 
     number = models.CharField(verbose_name=_('设备号'), max_length=64, default='')
     model_type = models.CharField(verbose_name=_('设备型号'), max_length=36, blank=True, default='')
-    row_count = models.IntegerField(verbose_name=_('行数'), default=None)
-    col_count = models.IntegerField(verbose_name=_('列数'), default=None)
+    row_count = models.IntegerField(verbose_name=_('行数'), default=0)
+    col_count = models.IntegerField(verbose_name=_('列数'), default=0)
     place = models.CharField(verbose_name=_('位置'), max_length=128, blank=True, default='')
     link_org = models.ForeignKey(
         verbose_name=_('机构二级'), to=OrgVirtualObject, related_name='+',
