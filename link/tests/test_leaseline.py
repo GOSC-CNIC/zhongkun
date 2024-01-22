@@ -1,21 +1,34 @@
-from utils.test import get_or_create_user, MyAPITransactionTestCase
-from link.managers.leaseline_manager import LeaseLineManager
-from link.managers.link_manager import LinkManager
-from datetime import date
-from django.urls import reverse
-from link.models import LeaseLine, Element, ElementLink, LinkUserRole, Link
-from urllib import parse
 import json
+from urllib import parse
+from datetime import date
+
+from django.urls import reverse
+
+from utils.test import get_or_create_user, MyAPITransactionTestCase
+# from link.managers.leaseline_manager import LeaseLineManager
+# from link.managers.link_manager import LinkManager
+# from link.models import LeaseLine, Element, ElementLink, LinkUserRole, Link
+from netbox.models import LeaseLine, Element, Link
+from netbox.managers.common import NetBoxUserRoleWrapper
+from netbox.managers.link_mgrs import LeaseLineManager, LinkManager
+
 
 class LeaseLineTests(MyAPITransactionTestCase):
     def setUp(self):
         self.user1 = get_or_create_user(username='tom@qq.com')
         self.user2 = get_or_create_user(username='lisi@cnic.cn')
         self.user3 = get_or_create_user(username='zhangs@cnic.cn')
-        urole = LinkUserRole(user=self.user2, is_admin=False, is_readonly=True)
-        urole.save(force_insert=True)
-        urole = LinkUserRole(user=self.user3, is_admin=True, is_readonly=False)
-        urole.save(force_insert=True)
+        # urole = LinkUserRole(user=self.user2, is_admin=False, is_readonly=True)
+        # urole.save(force_insert=True)
+        # urole = LinkUserRole(user=self.user3, is_admin=True, is_readonly=False)
+        # urole.save(force_insert=True)
+        u2 = NetBoxUserRoleWrapper(self.user2)
+        u2.get_or_create_user_role()
+        u2.set_link_readonly(True)
+        u3 = NetBoxUserRoleWrapper(self.user3)
+        u3.get_or_create_user_role()
+        u3.set_link_admin(True)
+
         self.leaseline1 = LeaseLineManager.create_leaseline(
             private_line_number='00645713',
             lease_line_code='天津空港物流加工区西七道32号',

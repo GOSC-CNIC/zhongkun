@@ -9,6 +9,7 @@ from drf_yasg import openapi
 from utils.paginators import NoPaginatorInspector
 from api.paginations import NewPageNumberPagination, NewPageNumberPagination100
 from api.viewsets import NormalGenericViewSet
+from netbox.managers.common import NetBoxUserRoleWrapper
 from ..handlers.ipv4_handlers import IPv4RangeHandler
 from ..models import IPv4Range
 from ..managers import UserIpamRoleWrapper
@@ -744,3 +745,52 @@ class IPv4AddressViewSet(NormalGenericViewSet):
             }
         """
         return IPv4RangeHandler.list_ipv4_address(view=self, request=request, kwargs=kwargs)
+
+
+class FromNetBoxUserRoleViewSet(NormalGenericViewSet):
+    permission_classes = [IsAuthenticated, ]
+    pagination_class = NewPageNumberPagination100
+    lookup_field = 'id'
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询用户ipam中用户角色和权限'),
+        deprecated=True,
+        paginator_inspectors=[NoPaginatorInspector],
+        manual_parameters=[],
+        responses={
+            200: ''''''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        查询用户ipam中用户角色和权限
+
+            http Code 200 Ok:
+                {
+                  "id": "c89od410t7hwsejr11tyv52w9",
+                  "is_admin": false,
+                  "is_readonly": true,
+                  "creation_time": "2023-10-18T06:13:00Z",
+                  "update_time": "2023-10-18T06:13:00Z",
+                  "user": {
+                    "id": "1",
+                    "username": "shun"
+                  },
+                  "organizations": [
+                    {
+                      "id": "b75r1144s5ucku15p6shp9zgf",
+                      "name": "中国科学院计算机网络信息中心",
+                      "name_en": "中国科学院计算机网络信息中心"
+                    }
+                  ]
+                }
+        """
+        urw = NetBoxUserRoleWrapper(user=request.user)
+        user_role = urw.user_role
+        data = serializers.FromNetBoxUserRoleSerializer(instance=user_role).data
+        orgs = user_role.organizations.all().values('id', 'name', 'name_en')
+        data['organizations'] = orgs
+        return Response(data=data)
+
+    def get_serializer_class(self):
+        return Serializer

@@ -8,6 +8,7 @@ from django.utils import timezone as dj_timezone
 from utils.test import get_or_create_user, MyAPITransactionTestCase, get_or_create_organization
 from ..managers import UserIpamRoleWrapper, IPv4RangeManager
 from ..models import ASN, OrgVirtualObject, IPv4Range, IPv4RangeRecord
+from netbox.managers.common import NetBoxUserRoleWrapper
 
 
 class IPv4RangeTests(MyAPITransactionTestCase):
@@ -1884,7 +1885,7 @@ class IPAMUserRoleTests(MyAPITransactionTestCase):
         self.assertEqual(len(response.data['organizations']), 0)
 
         # 不会自动创建ipam用户角色
-        u1_role_wrapper = UserIpamRoleWrapper(user=self.user1)
+        u1_role_wrapper = NetBoxUserRoleWrapper(user=self.user1)
         u1_role_wrapper.user_role.organizations.add(org1)
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
@@ -1895,7 +1896,7 @@ class IPAMUserRoleTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['user']['id'], self.user1.id)
         self.assertEqual(len(response.data['organizations']), 0)
 
-        u1_role_wrapper.user_role = u1_role_wrapper.get_or_create_user_ipam_role()
+        u1_role_wrapper.user_role = u1_role_wrapper.get_or_create_user_role()
         u1_role_wrapper.user_role.organizations.add(org1)
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
@@ -1907,8 +1908,8 @@ class IPAMUserRoleTests(MyAPITransactionTestCase):
         self.assertKeysIn(['id', 'name', 'name_en'], response.data['organizations'][0])
         self.assertEqual(response.data['organizations'][0]['id'], org1.id)
 
-        u2_role_wrapper = UserIpamRoleWrapper(user=self.user2)
-        u2_role_wrapper.user_role = u2_role_wrapper.get_or_create_user_ipam_role()
+        u2_role_wrapper = NetBoxUserRoleWrapper(user=self.user2)
+        u2_role_wrapper.user_role = u2_role_wrapper.get_or_create_user_role()
         u2_role_wrapper.user_role.organizations.add(org1)
         u2_role_wrapper.user_role.organizations.add(org2)
 

@@ -113,6 +113,33 @@ class IPAMUserRoleSerializer(BaseIPAMSerializer):
         return None
 
 
+class FromNetBoxUserRoleSerializer(BaseIPAMSerializer):
+    id = serializers.CharField(label='ID', read_only=True)
+    is_admin = serializers.SerializerMethodField(
+        label=_('科技网IP管理员'), default=False, help_text=_('选中，用户拥有科技网IP管理功能的管理员权限'))
+    is_readonly = serializers.SerializerMethodField(
+        label=_('IP管理全局只读权限'), default=False, help_text=_('选中，用户拥有科技网IP管理功能的全局只读权限'))
+    creation_time = serializers.DateTimeField(label=_('创建时间'))
+    update_time = serializers.DateTimeField(label=_('更新时间'))
+    user = serializers.SerializerMethodField(label=_('用户'), method_name='get_user')
+
+    @staticmethod
+    def get_user(obj):
+        user = obj.user
+        if user:
+            return {'id': user.id, 'username': user.username}
+
+        return None
+
+    @staticmethod
+    def get_is_admin(obj):
+        return obj.is_ipam_admin
+
+    @staticmethod
+    def get_is_readonly(obj):
+        return obj.is_ipam_readonly
+
+
 class IPv4RangeRecordSerializer(BaseIPAMSerializer):
     id = serializers.CharField(label='ID', read_only=True)
     creation_time = serializers.DateTimeField(label=_('创建时间'))

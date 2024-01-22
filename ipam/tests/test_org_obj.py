@@ -4,9 +4,10 @@ from django.urls import reverse
 from django.utils import timezone as dj_timezone
 
 from utils.test import get_or_create_user, MyAPITransactionTestCase, get_or_create_organization
-from link.managers.userrole_manager import UserRoleWrapper as LinkUserRoleWrapper
-from ..managers import UserIpamRoleWrapper, OrgVirtualObjectManager, ContactPersonManager
-from ..models import ContactPerson, OrgVirtualObject
+# from link.managers.userrole_manager import UserRoleWrapper as LinkUserRoleWrapper
+# from ..managers import UserIpamRoleWrapper, OrgVirtualObjectManager, ContactPersonManager
+from netbox.models import ContactPerson, OrgVirtualObject
+from netbox.managers.common import NetBoxUserRoleWrapper, OrgVirtualObjectManager, ContactPersonManager
 
 
 class OrgObjTests(MyAPITransactionTestCase):
@@ -28,19 +29,17 @@ class OrgObjTests(MyAPITransactionTestCase):
         response = self.client.post(base_url, data={'name': 'test', 'organization_id': org1.id, 'remark': ''})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        u1_role_wrapper = UserIpamRoleWrapper(user=self.user1)
-        u1_role_wrapper.user_role = u1_role_wrapper.get_or_create_user_ipam_role()
+        u1_role_wrapper = NetBoxUserRoleWrapper(user=self.user1)
+        u1_role_wrapper.user_role = u1_role_wrapper.get_or_create_user_role()
         u1_role_wrapper.user_role.organizations.add(org1)
         response = self.client.post(base_url, data={'name': 'test', 'organization_id': org1.id, 'remark': ''})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        u1_role_wrapper.user_role.is_readonly = True
-        u1_role_wrapper.user_role.save(update_fields=['is_readonly'])
+        u1_role_wrapper.set_ipam_readonly(True)
         response = self.client.post(base_url, data={'name': 'test', 'organization_id': org1.id, 'remark': ''})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        u1_role_wrapper.user_role.is_admin = True
-        u1_role_wrapper.user_role.save(update_fields=['is_admin'])
+        u1_role_wrapper.set_ipam_admin(True)
 
         response = self.client.post(base_url, data={'name': 'test', 'organization_id': org1.id, 'remark': ''})
         self.assertEqual(response.status_code, 200)
@@ -62,20 +61,17 @@ class OrgObjTests(MyAPITransactionTestCase):
         self.assertEqual(org_obj.organization_id, org1.id)
 
         # test link
-        u1_role_wrapper.user_role.is_admin = False
-        u1_role_wrapper.user_role.save(update_fields=['is_admin'])
+        u1_role_wrapper.set_ipam_admin(False)
         response = self.client.post(base_url, data={'name': 'test', 'organization_id': org1.id, 'remark': ''})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        u1_link_roler = LinkUserRoleWrapper(user=self.user1)
+        u1_link_roler = NetBoxUserRoleWrapper(user=self.user1)
         u1_link_roler.get_or_create_user_role()
-        u1_link_roler.user_role.is_readonly = True
-        u1_link_roler.user_role.save(update_fields=['is_readonly'])
+        u1_link_roler.set_link_readonly(True)
         response = self.client.post(base_url, data={'name': 'test', 'organization_id': org1.id, 'remark': ''})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        u1_link_roler.user_role.is_admin = True
-        u1_link_roler.user_role.save(update_fields=['is_admin'])
+        u1_link_roler.set_link_admin(True)
         response = self.client.post(base_url, data={'name': 'test', 'organization_id': org1.id, 'remark': ''})
         self.assertErrorResponse(status_code=409, code='TargetAlreadyExists', response=response)
 
@@ -110,10 +106,9 @@ class OrgObjTests(MyAPITransactionTestCase):
         response = self.client.get(base_url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        u1_role_wrapper = UserIpamRoleWrapper(user=self.user1)
-        u1_role_wrapper.user_role = u1_role_wrapper.get_or_create_user_ipam_role()
-        u1_role_wrapper.user_role.is_readonly = True
-        u1_role_wrapper.user_role.save(update_fields=['is_readonly'])
+        u1_role_wrapper = NetBoxUserRoleWrapper(user=self.user1)
+        u1_role_wrapper.user_role = u1_role_wrapper.get_or_create_user_role()
+        u1_role_wrapper.set_ipam_readonly(True)
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)
@@ -124,9 +119,8 @@ class OrgObjTests(MyAPITransactionTestCase):
         self.assertKeysIn(['id', 'name', 'creation_time', 'remark', 'organization'], response.data['results'][0])
         self.assertKeysIn(['id', 'name', 'name_en'], response.data['results'][1]['organization'])
 
-        u1_role_wrapper.user_role.is_readonly = False
-        u1_role_wrapper.user_role.is_admin = True
-        u1_role_wrapper.user_role.save(update_fields=['is_admin', 'is_readonly'])
+        u1_role_wrapper.set_ipam_readonly(False)
+        u1_role_wrapper.set_ipam_admin(True)
 
         # org_id
         query = parse.urlencode(query={'org_id': org1.id})
@@ -172,23 +166,20 @@ class OrgObjTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['results'][0]['id'], virt_obj1.id)
 
         # test link
-        u1_role_wrapper.user_role.is_admin = False
-        u1_role_wrapper.user_role.save(update_fields=['is_admin'])
+        u1_role_wrapper.set_ipam_admin(False)
         response = self.client.get(base_url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        u1_link_roler = LinkUserRoleWrapper(user=self.user1)
+        u1_link_roler = NetBoxUserRoleWrapper(user=self.user1)
         u1_link_roler.get_or_create_user_role()
-        u1_link_roler.user_role.is_readonly = True
-        u1_link_roler.user_role.save(update_fields=['is_readonly'])
+        u1_link_roler.set_link_readonly(True)
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)
         self.assertEqual(response.data['count'], 3)
 
-        u1_link_roler.user_role.is_readonly = False
-        u1_link_roler.user_role.is_admin = True
-        u1_link_roler.user_role.save(update_fields=['is_readonly', 'is_admin'])
+        u1_link_roler.set_link_readonly(False)
+        u1_link_roler.set_link_admin(True)
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)
@@ -222,19 +213,17 @@ class OrgObjTests(MyAPITransactionTestCase):
         response = self.client.put(base_url, data={'name': 'test', 'organization_id': org1.id, 'remark': ''})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        u1_role_wrapper = UserIpamRoleWrapper(user=self.user1)
-        u1_role_wrapper.user_role = u1_role_wrapper.get_or_create_user_ipam_role()
+        u1_role_wrapper = NetBoxUserRoleWrapper(user=self.user1)
+        u1_role_wrapper.user_role = u1_role_wrapper.get_or_create_user_role()
         u1_role_wrapper.user_role.organizations.add(org1)
         response = self.client.put(base_url, data={'name': 'test', 'organization_id': org1.id, 'remark': ''})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        u1_role_wrapper.user_role.is_readonly = True
-        u1_role_wrapper.user_role.save(update_fields=['is_readonly'])
+        u1_role_wrapper.set_ipam_readonly(True)
         response = self.client.put(base_url, data={'name': 'test', 'organization_id': org1.id, 'remark': ''})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        u1_role_wrapper.user_role.is_admin = True
-        u1_role_wrapper.user_role.save(update_fields=['is_admin'])
+        u1_role_wrapper.set_ipam_admin(True)
 
         response = self.client.put(base_url, data={'name': 'test', 'organization_id': org1.id, 'remark': ''})
         self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
@@ -265,20 +254,17 @@ class OrgObjTests(MyAPITransactionTestCase):
         self.assertEqual(org_obj.remark, '测试888')
 
         # test link
-        u1_role_wrapper.user_role.is_admin = False
-        u1_role_wrapper.user_role.save(update_fields=['is_admin'])
+        u1_role_wrapper.set_ipam_admin(False)
         response = self.client.put(base_url, data={'name': 'test exists', 'organization_id': org1.id, 'remark': ''})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        u1_link_roler = LinkUserRoleWrapper(user=self.user1)
+        u1_link_roler = NetBoxUserRoleWrapper(user=self.user1)
         u1_link_roler.get_or_create_user_role()
-        u1_link_roler.user_role.is_readonly = True
-        u1_link_roler.user_role.save(update_fields=['is_readonly'])
+        u1_link_roler.set_link_readonly(True)
         response = self.client.put(base_url, data={'name': 'test exists', 'organization_id': org1.id, 'remark': ''})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        u1_link_roler.user_role.is_admin = True
-        u1_link_roler.user_role.save(update_fields=['is_admin'])
+        u1_link_roler.set_link_admin(True)
         response = self.client.put(base_url, data={'name': 'test exists', 'organization_id': org1.id, 'remark': ''})
         self.assertErrorResponse(status_code=409, code='TargetAlreadyExists', response=response)
 
@@ -314,19 +300,17 @@ class OrgObjTests(MyAPITransactionTestCase):
         response = self.client.get(base_url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        u1_role_wrapper = UserIpamRoleWrapper(user=self.user1)
-        u1_role_wrapper.user_role = u1_role_wrapper.get_or_create_user_ipam_role()
-        u1_role_wrapper.user_role.is_readonly = True
-        u1_role_wrapper.user_role.save(update_fields=['is_readonly'])
+        u1_role_wrapper = NetBoxUserRoleWrapper(user=self.user1)
+        u1_role_wrapper.user_role = u1_role_wrapper.get_or_create_user_role()
+        u1_role_wrapper.set_ipam_readonly(True)
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['id', 'name', 'creation_time', 'remark', 'organization', 'contacts'], response.data)
         self.assertKeysIn(['id', 'name', 'name_en'], response.data['organization'])
         self.assertIsInstance(response.data['contacts'], list)
 
-        u1_role_wrapper.user_role.is_readonly = False
-        u1_role_wrapper.user_role.is_admin = True
-        u1_role_wrapper.user_role.save(update_fields=['is_admin', 'is_readonly'])
+        u1_role_wrapper.set_ipam_readonly(False)
+        u1_role_wrapper.set_ipam_admin(True)
         org_obj.contacts.add(cp1)
 
         response = self.client.get(base_url)
@@ -346,15 +330,13 @@ class OrgObjTests(MyAPITransactionTestCase):
 
         # test link
         base_url = reverse('ipam-api:org-obj-detail', kwargs={'id': org_obj.id})
-        u1_role_wrapper.user_role.is_admin = False
-        u1_role_wrapper.user_role.save(update_fields=['is_admin'])
+        u1_role_wrapper.set_ipam_admin(False)
         response = self.client.get(base_url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        u1_link_roler = LinkUserRoleWrapper(user=self.user1)
+        u1_link_roler = NetBoxUserRoleWrapper(user=self.user1)
         u1_link_roler.get_or_create_user_role()
-        u1_link_roler.user_role.is_readonly = True
-        u1_link_roler.user_role.save(update_fields=['is_readonly'])
+        u1_link_roler.set_link_readonly(True)
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['id', 'name', 'creation_time', 'remark', 'organization', 'contacts'], response.data)
@@ -365,9 +347,8 @@ class OrgObjTests(MyAPITransactionTestCase):
             'id', 'name', 'telephone', 'email', 'address', 'remarks', 'creation_time', 'update_time'
         ], response.data['contacts'][0])
 
-        u1_link_roler.user_role.is_readonly = False
-        u1_link_roler.user_role.is_admin = True
-        u1_link_roler.user_role.save(update_fields=['is_readonly', 'is_admin'])
+        u1_link_roler.set_link_readonly(False)
+        u1_link_roler.set_link_admin(True)
         org_obj.contacts.add(cp2)
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
@@ -410,19 +391,17 @@ class OrgObjTests(MyAPITransactionTestCase):
         response = self.client.post(url, data={'contact_ids': ['test']})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        u1_ipam_roler = UserIpamRoleWrapper(user=self.user1)
-        u1_ipam_roler.user_role = u1_ipam_roler.get_or_create_user_ipam_role()
+        u1_ipam_roler = NetBoxUserRoleWrapper(user=self.user1)
+        u1_ipam_roler.user_role = u1_ipam_roler.get_or_create_user_role()
         u1_ipam_roler.user_role.organizations.add(org1)
         response = self.client.post(url, data={'contact_ids': ['test']})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        u1_ipam_roler.user_role.is_readonly = True
-        u1_ipam_roler.user_role.save(update_fields=['is_readonly'])
+        u1_ipam_roler.set_ipam_readonly(True)
         response = self.client.post(url, data={'contact_ids': ['test']})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        u1_ipam_roler.user_role.is_admin = True
-        u1_ipam_roler.user_role.save(update_fields=['is_admin'])
+        u1_ipam_roler.set_ipam_admin(True)
 
         # not exist
         response = self.client.post(url, data={'contact_ids': ['test']})
@@ -477,20 +456,17 @@ class OrgObjTests(MyAPITransactionTestCase):
         self.assertEqual(len(org_obj.contacts.all()), 3)
 
         # test link
-        u1_ipam_roler.user_role.is_admin = False
-        u1_ipam_roler.user_role.save(update_fields=['is_admin'])
+        u1_ipam_roler.set_ipam_admin(False)
         response = self.client.post(url, data={'contact_ids': [cp1.id, cp2.id, cp3.id]})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        u1_link_roler = LinkUserRoleWrapper(user=self.user1)
+        u1_link_roler = NetBoxUserRoleWrapper(user=self.user1)
         u1_link_roler.get_or_create_user_role()
-        u1_link_roler.user_role.is_readonly = True
-        u1_link_roler.user_role.save(update_fields=['is_readonly'])
+        u1_link_roler.set_link_readonly(True)
         response = self.client.post(url, data={'contact_ids': [cp1.id, cp2.id, cp3.id]})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        u1_link_roler.user_role.is_admin = True
-        u1_link_roler.user_role.save(update_fields=['is_admin'])
+        u1_link_roler.set_link_admin(True)
         response = self.client.post(url, data={'contact_ids': [cp1.id, cp3.id]})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data['contacts']), 3)
@@ -527,19 +503,17 @@ class OrgObjTests(MyAPITransactionTestCase):
         response = self.client.post(url, data={'contact_ids': ['test']})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        u1_ipam_roler = UserIpamRoleWrapper(user=self.user1)
-        u1_ipam_roler.user_role = u1_ipam_roler.get_or_create_user_ipam_role()
+        u1_ipam_roler = NetBoxUserRoleWrapper(user=self.user1)
+        u1_ipam_roler.user_role = u1_ipam_roler.get_or_create_user_role()
         u1_ipam_roler.user_role.organizations.add(org1)
         response = self.client.post(url, data={'contact_ids': ['test']})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        u1_ipam_roler.user_role.is_readonly = True
-        u1_ipam_roler.user_role.save(update_fields=['is_readonly'])
+        u1_ipam_roler.set_ipam_readonly(True)
         response = self.client.post(url, data={'contact_ids': ['test']})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        u1_ipam_roler.user_role.is_admin = True
-        u1_ipam_roler.user_role.save(update_fields=['is_admin'])
+        u1_ipam_roler.set_ipam_admin(True)
 
         # not exist
         response = self.client.post(url, data={'contact_ids': ['test']})
@@ -593,20 +567,17 @@ class OrgObjTests(MyAPITransactionTestCase):
         self.assertEqual(len(org_obj.contacts.all()), 0)
 
         # test link
-        u1_ipam_roler.user_role.is_admin = False
-        u1_ipam_roler.user_role.save(update_fields=['is_admin'])
+        u1_ipam_roler.set_ipam_admin(False)
         response = self.client.post(url, data={'contact_ids': [cp1.id, cp3.id]})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        u1_link_roler = LinkUserRoleWrapper(user=self.user1)
+        u1_link_roler = NetBoxUserRoleWrapper(user=self.user1)
         u1_link_roler.get_or_create_user_role()
-        u1_link_roler.user_role.is_readonly = True
-        u1_link_roler.user_role.save(update_fields=['is_readonly'])
+        u1_link_roler.set_link_readonly(True)
         response = self.client.post(url, data={'contact_ids': [cp1.id, cp3.id]})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        u1_link_roler.user_role.is_admin = True
-        u1_link_roler.user_role.save(update_fields=['is_admin'])
+        u1_link_roler.set_link_admin(True)
         response = self.client.post(url, data={'contact_ids': [cp1.id, cp3.id]})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data['contacts']), 0)
@@ -631,16 +602,14 @@ class ContactsTests(MyAPITransactionTestCase):
             'name': 'zhangsan', 'telephone': '110', 'email': '', 'address': '', 'remarks': ''})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        u1_role_wrapper = UserIpamRoleWrapper(user=self.user1)
-        u1_role_wrapper.user_role = u1_role_wrapper.get_or_create_user_ipam_role()
-        u1_role_wrapper.user_role.is_readonly = True
-        u1_role_wrapper.user_role.save(update_fields=['is_readonly'])
+        u1_role_wrapper = NetBoxUserRoleWrapper(user=self.user1)
+        u1_role_wrapper.user_role = u1_role_wrapper.get_or_create_user_role()
+        u1_role_wrapper.set_ipam_readonly(True)
         response = self.client.post(base_url, data={
             'name': 'zhangsan', 'telephone': '110', 'email': '', 'address': '', 'remarks': ''})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        u1_role_wrapper.user_role.is_admin = True
-        u1_role_wrapper.user_role.save(update_fields=['is_admin'])
+        u1_role_wrapper.set_ipam_admin(True)
 
         response = self.client.post(base_url, data={
             'name': 'zhangsan', 'telephone': '110', 'email': '', 'address': '', 'remarks': ''})
@@ -687,22 +656,19 @@ class ContactsTests(MyAPITransactionTestCase):
         self.assertEqual(cp.remarks, 'test')
 
         # test link
-        u1_role_wrapper.user_role.is_admin = False
-        u1_role_wrapper.user_role.save(update_fields=['is_admin'])
+        u1_role_wrapper.set_ipam_admin(False)
         response = self.client.post(base_url, data={
             'name': '李四', 'telephone': '110', 'email': 'test@cnic.cn', 'address': 'beijing', 'remarks': 'test'})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        u1_link_roler = LinkUserRoleWrapper(user=self.user1)
+        u1_link_roler = NetBoxUserRoleWrapper(user=self.user1)
         u1_link_roler.get_or_create_user_role()
-        u1_link_roler.user_role.is_readonly = True
-        u1_link_roler.user_role.save(update_fields=['is_readonly'])
+        u1_link_roler.set_link_readonly(True)
         response = self.client.post(base_url, data={
             'name': '李四', 'telephone': '110', 'email': 'test@cnic.cn', 'address': 'beijing', 'remarks': 'test'})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        u1_link_roler.user_role.is_admin = True
-        u1_link_roler.user_role.save(update_fields=['is_admin'])
+        u1_link_roler.set_link_admin(True)
         response = self.client.post(base_url, data={
             'name': '李四', 'telephone': '110', 'email': 'test@cnic.cn', 'address': 'beijing', 'remarks': 'test'})
         self.assertErrorResponse(status_code=409, code='TargetAlreadyExists', response=response)
@@ -733,16 +699,14 @@ class ContactsTests(MyAPITransactionTestCase):
             'name': 'zhangsan', 'telephone': '110', 'email': '', 'address': '', 'remarks': ''})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        u1_role_wrapper = UserIpamRoleWrapper(user=self.user1)
-        u1_role_wrapper.user_role = u1_role_wrapper.get_or_create_user_ipam_role()
-        u1_role_wrapper.user_role.is_readonly = True
-        u1_role_wrapper.user_role.save(update_fields=['is_readonly'])
+        u1_role_wrapper = NetBoxUserRoleWrapper(user=self.user1)
+        u1_role_wrapper.user_role = u1_role_wrapper.get_or_create_user_role()
+        u1_role_wrapper.set_ipam_readonly(True)
         response = self.client.put(base_url, data={
             'name': 'zhangsan', 'telephone': '110', 'email': '', 'address': '', 'remarks': ''})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        u1_role_wrapper.user_role.is_admin = True
-        u1_role_wrapper.user_role.save(update_fields=['is_admin'])
+        u1_role_wrapper.set_ipam_admin(True)
 
         response = self.client.put(base_url, data={
             'name': 'zhangsan', 'telephone': '110', 'email': 'test@cnic.cn', 'address': 'beijing', 'remarks': 'test'})
@@ -788,22 +752,19 @@ class ContactsTests(MyAPITransactionTestCase):
         self.assertEqual(cp.remarks, 'test')
 
         # test link
-        u1_role_wrapper.user_role.is_admin = False
-        u1_role_wrapper.user_role.save(update_fields=['is_admin'])
+        u1_role_wrapper.set_ipam_admin(False)
         response = self.client.put(base_url, data={
             'name': '李四', 'telephone': '110', 'email': 'test@cnic.cn', 'address': 'beijing', 'remarks': 'test'})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        u1_link_roler = LinkUserRoleWrapper(user=self.user1)
+        u1_link_roler = NetBoxUserRoleWrapper(user=self.user1)
         u1_link_roler.get_or_create_user_role()
-        u1_link_roler.user_role.is_readonly = True
-        u1_link_roler.user_role.save(update_fields=['is_readonly'])
+        u1_link_roler.set_link_readonly(True)
         response = self.client.put(base_url, data={
             'name': '张三', 'telephone': '6', 'email': 'test123@cnic.cn', 'address': 'beijing66', 'remarks': 'test88'})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        u1_link_roler.user_role.is_admin = True
-        u1_link_roler.user_role.save(update_fields=['is_admin'])
+        u1_link_roler.set_link_admin(True)
 
         # ok
         response = self.client.put(base_url, data={
@@ -841,10 +802,9 @@ class ContactsTests(MyAPITransactionTestCase):
         response = self.client.get(base_url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        u1_role_wrapper = UserIpamRoleWrapper(user=self.user1)
-        u1_role_wrapper.user_role = u1_role_wrapper.get_or_create_user_ipam_role()
-        u1_role_wrapper.user_role.is_readonly = True
-        u1_role_wrapper.user_role.save(update_fields=['is_readonly'])
+        u1_role_wrapper = NetBoxUserRoleWrapper(user=self.user1)
+        u1_role_wrapper.user_role = u1_role_wrapper.get_or_create_user_role()
+        u1_role_wrapper.set_ipam_readonly(True)
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)
@@ -859,9 +819,8 @@ class ContactsTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['results'][1]['id'], cp2.id)
         self.assertEqual(response.data['results'][2]['id'], cp.id)
 
-        u1_role_wrapper.user_role.is_readonly = False
-        u1_role_wrapper.user_role.is_admin = True
-        u1_role_wrapper.user_role.save(update_fields=['is_admin', 'is_readonly'])
+        u1_role_wrapper.set_ipam_readonly(False)
+        u1_role_wrapper.set_ipam_admin(True)
 
         # search
         query = parse.urlencode(query={'search': 'test'})
@@ -905,23 +864,20 @@ class ContactsTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['results'][0]['id'], cp.id)
 
         # test link
-        u1_role_wrapper.user_role.is_admin = False
-        u1_role_wrapper.user_role.save(update_fields=['is_admin'])
+        u1_role_wrapper.set_ipam_admin(False)
         response = self.client.get(base_url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        u1_link_roler = LinkUserRoleWrapper(user=self.user1)
+        u1_link_roler = NetBoxUserRoleWrapper(user=self.user1)
         u1_link_roler.get_or_create_user_role()
-        u1_link_roler.user_role.is_readonly = True
-        u1_link_roler.user_role.save(update_fields=['is_readonly'])
+        u1_link_roler.set_link_readonly(True)
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)
         self.assertEqual(response.data['count'], 3)
 
-        u1_link_roler.user_role.is_readonly = False
-        u1_link_roler.user_role.is_admin = True
-        u1_link_roler.user_role.save(update_fields=['is_readonly', 'is_admin'])
+        u1_link_roler.set_link_readonly(False)
+        u1_link_roler.set_link_admin(True)
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)

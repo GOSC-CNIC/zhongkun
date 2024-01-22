@@ -1,8 +1,8 @@
 from utils.test import get_or_create_user, MyAPITransactionTestCase
 from django.urls import reverse
-from link.models import LinkUserRole
-from link.managers.userrole_manager import UserRoleWrapper
-from urllib import parse
+# from link.models import LinkUserRole
+# from link.managers.userrole_manager import UserRoleWrapper
+from netbox.managers.common import NetBoxUserRoleWrapper
 
 
 class TaskTests(MyAPITransactionTestCase):
@@ -11,12 +11,15 @@ class TaskTests(MyAPITransactionTestCase):
         self.user2 = get_or_create_user(username='lisi@cnic.cn')
         self.user3 = get_or_create_user(username='zhangs@cnic.cn')
         self.user4 = get_or_create_user(username='wangwu@cnic.cn')
-        urole = LinkUserRole(user=self.user2, is_admin=False, is_readonly=False)
-        urole.save(force_insert=True)
-        urole = LinkUserRole(user=self.user3, is_admin=False, is_readonly=True)
-        urole.save(force_insert=True)
-        urole = LinkUserRole(user=self.user4, is_admin=True, is_readonly=False)
-        urole.save(force_insert=True)
+
+        u2 = NetBoxUserRoleWrapper(self.user2)
+        u2.get_or_create_user_role()
+        u3 = NetBoxUserRoleWrapper(self.user3)
+        u3.get_or_create_user_role()
+        u3.set_link_readonly(True)
+        u4 = NetBoxUserRoleWrapper(self.user4)
+        u4.get_or_create_user_role()
+        u4.set_link_admin(True)
 
     def test_list_userrole(self):
         # user role 
