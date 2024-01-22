@@ -1,3 +1,12 @@
+## v1.16.0
+发布时间： 2024-01-22  
+发布人： shun  
+
+* 重构ipam和link app合并为一个新的app netbox；编写数据库迁移文件把原ipam和link的数据库表数据复制到netbox对应的表中；
+  原ipam和link的2个用户角色权限接口合并为了一个新接口；
+  netbox新增与原ipam和link的功能相同的对应接口，原ipam和link的接口底层对接到netbox视图层和数据库表；提交人：shun
+
+
 ## v1.15.4
 发布时间： 2024-01-16  
 发布人： shun  
