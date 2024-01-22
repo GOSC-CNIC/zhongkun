@@ -2,7 +2,7 @@
 以下文档中描述的接口均可在在线文档中“trade”部分查看，为避免此文档更新不及时造成困扰，或者如果遇到问题，可以查看
 <a href="/apidocs/" target="_blank">在线API文档</a>。
 
-服务域名Host：`servicebackend.cstcloud.cn`，对应文档中有关接口url的示例中的{Host}。
+服务域名Host：对应本服务域名或地址，例如`yunkun.cstcloud.cn`，对应文档中有关接口url的示例中的{Host}。
 
 ## 1 接入余额结算准备条件
 ***
