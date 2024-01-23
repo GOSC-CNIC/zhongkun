@@ -119,6 +119,6 @@ class PortalServiceViewSet(CustomGenericViewSet):
         allowd, addr_ip = InAllowedIp.check_addr_allowed(request=request)
         if not allowd:
             return self.exception_response(
-                errors.AccessDenied(message=_('您的地址%(value)s没有访问权限。') % {'value': addr_ip}))
+                errors.AccessDenied(message=_('您的IP地址%(value)s没有访问权限。') % {'value': addr_ip}))
 
         return None

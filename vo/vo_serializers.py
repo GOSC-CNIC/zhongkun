@@ -6,7 +6,7 @@ class VoSerializer(serializers.Serializer):
     id = serializers.CharField(
         label=_('组ID'), read_only=True)
     name = serializers.CharField(label=_('组名称'), max_length=255, required=True)
-    company = serializers.CharField(label=_('单位'), max_length=256, required=True)
+    company = serializers.CharField(label=_('工作单位'), max_length=256, required=True)
     description = serializers.CharField(label=_('组描述'), max_length=1024, required=True)
 
     creation_time = serializers.DateTimeField(label=_('创建时间'), read_only=True)

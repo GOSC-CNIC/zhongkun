@@ -255,8 +255,8 @@ LOGGING = {
             'class': 'concurrent_log_handler.ConcurrentRotatingFileHandler',
             'filename': LOGGING_FILES_DIR.joinpath('yunkun.log'),
             'formatter': 'verbose',
-            'maxBytes': 1024*1024*200,  # 200MB
-            'backupCount': 10           # 最多10个文件
+            'maxBytes': 1024*1024*50,  # 50MB
+            'backupCount': 5           # 最多5个文件
         },
         # output to console settings
         'console': {
@@ -343,7 +343,7 @@ CORS_ALLOW_ALL_ORIGINS = True       # 允许所有请求来源跨域
 WEBSITE_CONFIG = {
     'site_brand': gettext_lazy('中国科技云一体化云服务平台'),  # 本站点的名称，一些邮件通知也会用到
     'site_url': 'https://service.cstcloud.cn',  # 本站点的地址，一些邮件通知也会用到
-    'about_us': gettext_lazy(''),     # “关于”网页中“关于我们”的文字描述
+    'about_us': '',    # gettext_lazy(''),     # “关于”网页中“关于我们”的文字描述
 }
 
 # crontab定时任务设置，每任务项的第一个值是任务的标签字符串，必须以“task”开头

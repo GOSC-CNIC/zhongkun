@@ -67,26 +67,26 @@ class OrgDataCenterCreateSerializer(serializers.Serializer):
     remark = serializers.CharField(label=_('数据中心备注'), max_length=10000, required=False, allow_blank=True, default='')
 
     thanos_endpoint_url = serializers.URLField(
-        label=_('Thanos服务查询接口'), max_length=255, required=False, allow_blank=True, default='')
+        label=_('指标监控系统查询接口'), max_length=255, required=False, allow_blank=True, default='')
     thanos_username = serializers.CharField(
-        label=_('Thanos服务认证用户名'), max_length=128, required=False, allow_blank=True, default='')
+        label=_('指标监控系统认证用户名'), max_length=128, required=False, allow_blank=True, default='')
     thanos_password = serializers.CharField(
-        label=_('Thanos服务认证密码'), max_length=255, required=False, allow_blank=True, default='')
+        label=_('指标监控系统认证密码'), max_length=255, required=False, allow_blank=True, default='')
     thanos_receive_url = serializers.URLField(
-        label=_('Thanos服务接收接口'), max_length=255, required=False, allow_blank=True, default='')
+        label=_('指标监控系统接收接口'), max_length=255, required=False, allow_blank=True, default='')
     thanos_remark = serializers.CharField(
-        label=_('Thanos服务备注'), max_length=255, required=False, allow_blank=True, default='')
+        label=_('指标监控系统备注'), max_length=255, required=False, allow_blank=True, default='')
 
     loki_endpoint_url = serializers.URLField(
-        label=_('Loki服务查询接口'), max_length=255, required=False, allow_blank=True, default='')
+        label=_('日志聚合系统查询接口'), max_length=255, required=False, allow_blank=True, default='')
     loki_username = serializers.CharField(
-        label=_('Loki服务认证用户名'), max_length=128, required=False, allow_blank=True, default='')
+        label=_('日志聚合系统认证用户名'), max_length=128, required=False, allow_blank=True, default='')
     loki_password = serializers.CharField(
-        label=_('Loki服务认证密码'), max_length=255, required=False, allow_blank=True, default='')
+        label=_('日志聚合系统认证密码'), max_length=255, required=False, allow_blank=True, default='')
     loki_receive_url = serializers.URLField(
-        label=_('Loki服务接收接口'), max_length=255, required=False, allow_blank=True, default='')
+        label=_('日志聚合系统接收接口'), max_length=255, required=False, allow_blank=True, default='')
     loki_remark = serializers.CharField(
-        label=_('Loki服务备注'), max_length=255, required=False, allow_blank=True, default='')
+        label=_('日志聚合系统备注'), max_length=255, required=False, allow_blank=True, default='')
 
 
 class UsernamesBodySerializer(serializers.Serializer):
