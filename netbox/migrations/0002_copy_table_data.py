@@ -3,8 +3,8 @@
 from django.db import migrations, connection, transaction
 
 from netbox.managers.common import NetBoxUserRoleWrapper
-from ipam.models import IPAMUserRole
-from link.models import LinkUserRole
+# from ipam.models import IPAMUserRole
+# from link.models import LinkUserRole
 
 
 def copy_table(to_table: str, from_table: str):
@@ -193,24 +193,24 @@ def reverse_copy_link(apps, schema_editor):
     print('[Ok] Delete 光缆、配线架、网元、租用线路、光纤、配线架端口、光缆接头盒、链路、链路网元关系 表数据 from netbox')
 
 
-def run_copy_netbox_user_role(apps, schema_editor):
-    with transaction.atomic():
-        for ipam_ur in IPAMUserRole.objects.select_related('user').all():
-            ipam_ur: IPAMUserRole
-            nbur = NetBoxUserRoleWrapper(ipam_ur.user)
-            nbur.user_role = nbur.get_or_create_user_role()
-            nbur.set_ipam_admin(ipam_ur.is_admin)
-            nbur.set_ipam_readonly(ipam_ur.is_readonly)
-            nbur.user_role.organizations.add(*list(ipam_ur.organizations.all()))
-
-        for link_ur in LinkUserRole.objects.select_related('user').all():
-            link_ur: IPAMUserRole
-            nbur = NetBoxUserRoleWrapper(link_ur.user)
-            nbur.user_role = nbur.get_or_create_user_role()
-            nbur.set_link_admin(link_ur.is_admin)
-            nbur.set_link_readonly(link_ur.is_readonly)
-
-    print('[Ok] Copy user role to netbox')
+# def run_copy_netbox_user_role(apps, schema_editor):
+#     with transaction.atomic():
+#         for ipam_ur in IPAMUserRole.objects.select_related('user').all():
+#             ipam_ur: IPAMUserRole
+#             nbur = NetBoxUserRoleWrapper(ipam_ur.user)
+#             nbur.user_role = nbur.get_or_create_user_role()
+#             nbur.set_ipam_admin(ipam_ur.is_admin)
+#             nbur.set_ipam_readonly(ipam_ur.is_readonly)
+#             nbur.user_role.organizations.add(*list(ipam_ur.organizations.all()))
+#
+#         for link_ur in LinkUserRole.objects.select_related('user').all():
+#             link_ur: IPAMUserRole
+#             nbur = NetBoxUserRoleWrapper(link_ur.user)
+#             nbur.user_role = nbur.get_or_create_user_role()
+#             nbur.set_link_admin(link_ur.is_admin)
+#             nbur.set_link_readonly(link_ur.is_readonly)
+#
+#     print('[Ok] Copy user role to netbox')
 
 
 def reverse_copy_netbox_user_role(apps, schema_editor):
@@ -230,7 +230,7 @@ class Migration(migrations.Migration):
     operations = [
         # 顺序要考虑到外键约束，run按正序执行，reverse按倒序执行
         migrations.RunPython(do_nothing, reverse_code=reverse_copy_org),
-        migrations.RunPython(run_copy_netbox_user_role, reverse_code=reverse_copy_netbox_user_role),
+        # migrations.RunPython(run_copy_netbox_user_role, reverse_code=reverse_copy_netbox_user_role),
         migrations.RunPython(run_copy_org_contacts, reverse_code=reverse_copy_org_contacts),
         migrations.RunPython(run_copy_asn_ipv4v6range, reverse_code=reverse_copy_asn_ipv4v6range),
         migrations.RunPython(run_copy_link, reverse_code=reverse_copy_link),

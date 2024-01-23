@@ -4,7 +4,7 @@ from django.conf import settings
 import django.core.validators
 from django.db import migrations, models
 import django.db.models.deletion
-import ipam.fields
+import netbox.fields
 
 
 class Migration(migrations.Migration):
@@ -23,8 +23,8 @@ class Migration(migrations.Migration):
                 ('record_type', models.CharField(choices=[('assign', '分配'), ('recover', '收回'), ('split', '拆分'), ('merge', '合并'), ('add', '添加'), ('change', '修改'), ('delete', '删除'), ('reserve', '预留')], max_length=16, verbose_name='记录类型')),
                 ('ip_ranges', models.JSONField(blank=True, default=dict, verbose_name='拆分或合并的IP段')),
                 ('remark', models.CharField(blank=True, default='', max_length=255, verbose_name='备注信息')),
-                ('start_address', ipam.fields.ByteField(max_length=16, verbose_name='起始地址')),
-                ('end_address', ipam.fields.ByteField(max_length=16, verbose_name='截止地址')),
+                ('start_address', netbox.fields.ByteField(max_length=16, verbose_name='起始地址')),
+                ('end_address', netbox.fields.ByteField(max_length=16, verbose_name='截止地址')),
                 ('prefixlen', models.PositiveIntegerField(validators=[django.core.validators.MaxValueValidator(128)], verbose_name='前缀长度')),
                 ('org_virt_obj', models.ForeignKey(blank=True, default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='ipam.orgvirtualobject', verbose_name='分配给机构虚拟对象')),
                 ('user', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to=settings.AUTH_USER_MODEL, verbose_name='操作用户')),
@@ -47,8 +47,8 @@ class Migration(migrations.Migration):
                 ('assigned_time', models.DateTimeField(blank=True, default=None, null=True, verbose_name='分配时间')),
                 ('admin_remark', models.CharField(blank=True, default='', max_length=255, verbose_name='科技网管理员备注信息')),
                 ('remark', models.CharField(blank=True, default='', max_length=255, verbose_name='机构管理员备注信息')),
-                ('start_address', ipam.fields.ByteField(max_length=16, verbose_name='起始地址')),
-                ('end_address', ipam.fields.ByteField(max_length=16, verbose_name='截止地址')),
+                ('start_address', netbox.fields.ByteField(max_length=16, verbose_name='起始地址')),
+                ('end_address', netbox.fields.ByteField(max_length=16, verbose_name='截止地址')),
                 ('prefixlen', models.PositiveIntegerField(validators=[django.core.validators.MaxValueValidator(128)], verbose_name='前缀长度')),
                 ('asn', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='+', to='ipam.asn', verbose_name='AS编号')),
                 ('org_virt_obj', models.ForeignKey(blank=True, default=None, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='ipam.orgvirtualobject', verbose_name='分配给机构二级')),
@@ -68,7 +68,7 @@ class Migration(migrations.Migration):
                 ('update_time', models.DateTimeField(verbose_name='更新时间')),
                 ('admin_remark', models.CharField(blank=True, default='', max_length=255, verbose_name='科技网管理员备注信息')),
                 ('remark', models.CharField(blank=True, default='', max_length=255, verbose_name='机构管理员备注信息')),
-                ('ip_address', ipam.fields.ByteField(max_length=16, verbose_name='IP地址')),
+                ('ip_address', netbox.fields.ByteField(max_length=16, verbose_name='IP地址')),
             ],
             options={
                 'verbose_name': 'IPv6地址',
