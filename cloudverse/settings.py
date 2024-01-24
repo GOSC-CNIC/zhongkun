@@ -15,6 +15,7 @@ from pathlib import Path
 
 from django.utils.translation import gettext_lazy
 from django.conf.locale.zh_Hans import formats as zh_formats
+from django.conf.locale.en import formats as en_formats
 
 
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
@@ -136,8 +137,26 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/2.2/topics/i18n/
 
 # 日期时间显示格式
-DATE_FORMAT = 'Y-m-d H:i:s'
+TIME_INPUT_FORMATS = [
+    "%H:%M:%S",  # '14:30:59'   # admin 后台时间的编辑格式会选第一个，精确到秒
+    "%H:%M:%S.%f",  # '14:30:59.000200'
+    "%H:%M",  # '14:30'
+]
+DATE_FORMAT = 'Y-m-d'
+TIME_FORMAT = "H:i:s"  # 20:45:01
+DATETIME_FORMAT = "Y-m-d H:i:s"  # 2016年9月5日 20:45
+
+# USE_L10N = True, 国际化时，各语言的设置优先级高于全局
+zh_formats.DATE_FORMAT = "Y年m月d日"  # 2016年9月5日
+zh_formats.TIME_FORMAT = TIME_FORMAT
 zh_formats.DATETIME_FORMAT = 'Y年m月d日 H:i:s'
+zh_formats.TIME_INPUT_FORMATS = TIME_INPUT_FORMATS
+
+en_formats.DATE_FORMAT = DATE_FORMAT
+en_formats.TIME_FORMAT = TIME_FORMAT
+en_formats.DATETIME_FORMAT = DATETIME_FORMAT
+en_formats.TIME_INPUT_FORMATS = TIME_INPUT_FORMATS
+
 
 LANGUAGE_CODE = 'zh-hans'
 
