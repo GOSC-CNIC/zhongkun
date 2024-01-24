@@ -112,12 +112,7 @@ def exception_handler(exc, context):
     except Exception:
         pass
 
-    try:
-        ins = ErrorLog(status_code=status_code, method=method, full_path=full_path, message=err_msg, username=username)
-        ins.save(force_insert=True)
-    except Exception:
-        pass
-
+    ErrorLog.add_log(status_code=status_code, method=method, full_path=full_path, message=err_msg, username=username)
     logger.error(msg=msg)
     return Response(exc.err_data(), status=status_code)
 
@@ -145,11 +140,7 @@ def log_err_response(_logger, request, response):
     if bool(request.user and request.user.is_authenticated):
         username = request.user.username
 
-    try:
-        ins = ErrorLog(status_code=status_code, method=method, full_path=full_path, message=err_msg, username=username)
-        ins.save(force_insert=True)
-    except Exception:
-        pass
+    ErrorLog.add_log(status_code=status_code, method=method, full_path=full_path, message=err_msg, username=username)
 
     if 400 <= response.status_code < 500:
         _logger.warning(msg)

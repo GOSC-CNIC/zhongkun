@@ -4,11 +4,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.serializers import Serializer
 from rest_framework.response import Response
-from rest_framework import viewsets
 from drf_yasg.utils import swagger_auto_schema
 
 from api.serializers import email as eamil_serializers
-from api.viewsets import serializer_error_msg
+from api.viewsets import serializer_error_msg, BaseGenericViewSet
 from utils.paginators import NoPaginatorInspector
 from utils.iprestrict import IPRestrictor, load_allowed_ips
 from core import errors
@@ -23,7 +22,7 @@ class EmailIPRestrictor(IPRestrictor):
         self.allowed_ips = load_allowed_ips(self.SETTING_KEY_NAME)
 
 
-class EmailViewSet(viewsets.GenericViewSet):
+class EmailViewSet(BaseGenericViewSet):
 
     permission_classes = [IsAuthenticated]
     pagination_class = None

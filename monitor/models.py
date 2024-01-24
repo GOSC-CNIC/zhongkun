@@ -539,3 +539,19 @@ class ErrorLog(UuidModel):
     def clean(self):
         if not (0 <= self.status_code < 600):
             raise ValidationError(message={'status_code': gettext('状态码必须在0-600之间')})
+
+    @classmethod
+    def add_log(cls, status_code: int, method: str, full_path: str, message: str, username: str = ''):
+        """
+        创建一条错误日志
+        :return:
+            Exception   # error
+            ErrorLog()  # success
+        """
+        try:
+            ins = cls(status_code=status_code, method=method, full_path=full_path, message=message, username=username)
+            ins.save(force_insert=True)
+        except Exception as exc:
+            return exc
+
+        return ins
