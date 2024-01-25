@@ -2,11 +2,13 @@ from decimal import Decimal
 
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.utils import timezone as dj_timezone
 
-from utils.model import UuidModel, OwnerType
+from utils.model import UuidModel, OwnerType, PayType
 from users.models import UserProfile
 from vo.models import VirtualOrganization
-from storage.models import ObjectsService
+from storage.models import ObjectsService, BucketBase
+from servers.models import Server, ServiceConfig
 
 
 class MonthlyReport(UuidModel):
@@ -183,3 +185,82 @@ class BucketStatsMonthly(UuidModel):
         indexes = [
             models.Index(fields=('date',), name='idx_date')
         ]
+
+
+class ArrearServer(UuidModel):
+    server_id = models.CharField(
+        verbose_name=_('云主机ID'), max_length=36, blank=True, default='')
+    service = models.ForeignKey(
+        verbose_name=_('云主机服务单元'), to=ServiceConfig, db_constraint=False, related_name='+',
+        on_delete=models.SET_NULL, null=True, blank=True, default=None)
+    service_name = models.CharField(max_length=255, verbose_name=_('云主机服务单元'))
+    ipv4 = models.CharField(max_length=128, verbose_name='IPV4', default='')
+    vcpus = models.IntegerField(verbose_name=_('虚拟CPU数'), default=0)
+    ram = models.IntegerField(verbose_name=_('内存GiB'), default=0)
+    image = models.CharField(max_length=255, verbose_name=_('镜像系统名称'), default='')
+    pay_type = models.CharField(
+        verbose_name=_('计费方式'), max_length=16, choices=PayType.choices, default=PayType.POSTPAID.value)
+    server_creation = models.DateTimeField(verbose_name=_('云主机创建时间'))
+    server_expire = models.DateTimeField(verbose_name=_('云主机过期时间'), null=True, blank=True, default=None)
+    remarks = models.CharField(max_length=255, blank=True, default='', verbose_name=_('云主机备注'))
+    user_id = models.CharField(verbose_name=_('用户ID'), max_length=36, blank=True, default='')
+    username = models.CharField(verbose_name=_('用户名'), max_length=128, blank=True, default='',
+                                help_text=_('个人云主机的拥有者，或者vo组云主机的创建者'))
+    vo_id = models.CharField(verbose_name=_('VO组ID'), max_length=36, blank=True, default='')
+    vo_name = models.CharField(verbose_name=_('VO组名'), max_length=256, blank=True, default='')
+    owner_type = models.CharField(verbose_name=_('所有者类型'), max_length=8, choices=OwnerType.choices)
+    balance_amount = models.DecimalField(
+        verbose_name=_('所有者的余额'), max_digits=10, decimal_places=2, help_text=_('用户个人余额，或者VO组余额'))
+    date = models.DateField(verbose_name=_('数据日期'), help_text=_('查询欠费云主机数据采样日期'))
+    creation_time = models.DateTimeField(verbose_name=_('判定为欠费的时间'))
+
+    class Meta:
+        db_table = 'report_arrear_server'
+        ordering = ['-creation_time']
+        verbose_name = _('欠费的云主机')
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return f'ArrearServer({self.server_id}, {self.ipv4}, {self.image})'
+
+    def clean(self):
+        if not self.creation_time:
+            self.creation_time = dj_timezone.now()
+
+
+class ArrearBucket(UuidModel):
+    bucket_id = models.CharField(verbose_name=_('存储桶ID'), max_length=36)
+    bucket_name = models.CharField(verbose_name=_('存储桶名称'), max_length=73)
+    service = models.ForeignKey(
+        verbose_name=_('存储服务单元'), to=ObjectsService, db_constraint=False, related_name='+',
+        on_delete=models.SET_NULL, null=True, blank=True, default=None)
+    service_name = models.CharField(max_length=255, verbose_name=_('存储服务单元'))
+    size_byte = models.BigIntegerField(verbose_name=_('存储容量(Byte)'), default=0, help_text='byte')
+    object_count = models.BigIntegerField(verbose_name=_('桶对象数量'), blank=True, default=0)
+    bucket_creation = models.DateTimeField(verbose_name=_('存储桶创建时间'))
+    situation = models.CharField(
+        verbose_name=_('过期欠费管控情况'), max_length=16,
+        choices=BucketBase.Situation.choices, default=BucketBase.Situation.NORMAL.value,
+        help_text=_('欠费状态下存储桶读写锁定管控情况')
+    )
+    situation_time = models.DateTimeField(
+        verbose_name=_('管控情况时间'), null=True, blank=True, default=None, help_text=_('欠费管控开始时间'))
+    user_id = models.CharField(verbose_name=_('用户ID'), max_length=36, blank=True, default='')
+    username = models.CharField(verbose_name=_('用户名'), max_length=128, blank=True, default='')
+    balance_amount = models.DecimalField(verbose_name=_('余额'), max_digits=10, decimal_places=2)
+    date = models.DateField(verbose_name=_('数据日期'), help_text=_('查询欠费存储桶数据采样日期'))
+    creation_time = models.DateTimeField(verbose_name=_('判定为欠费的时间'))
+    remarks = models.CharField(max_length=255, blank=True, default='', verbose_name=_('存储桶备注'))
+
+    class Meta:
+        db_table = 'report_arrear_bucket'
+        ordering = ['-creation_time']
+        verbose_name = _('欠费的存储桶')
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return f'ArrearBucket({self.bucket_id}, {self.bucket_name})'
+
+    def clean(self):
+        if not self.creation_time:
+            self.creation_time = dj_timezone.now()

@@ -1,3 +1,4 @@
+import time
 import datetime
 from decimal import Decimal
 from functools import wraps
@@ -6,8 +7,10 @@ from django.db import close_old_connections
 from django.db.models import Sum
 from django.utils import timezone
 
-from storage.models import Bucket, BucketArchive
+from bill.managers.payment import PaymentManager
+from storage.models import Bucket, BucketArchive, ObjectsService
 from report.models import BucketStatsMonthly
+from report.managers import ArrearBucketManager
 from metering.managers import MeteringStorageManager
 from .report_generator import get_report_period_start_and_end
 
@@ -242,5 +245,126 @@ class StorageSizeCounter:
             lookups['creation_time__gte'] = gte_creation_time
 
         queryset = BucketArchive.objects.select_related(
+            'service', 'user').filter(**lookups).order_by('creation_time', 'id')
+        return queryset
+
+
+class ArrearBucketReporter:
+    """
+        欠费云主机查询 保存到数据库
+        """
+
+    def __init__(self, raise_exception: bool = False):
+        """
+        """
+        self.raise_exception = raise_exception
+        self._date = timezone.now().date()
+        self.arrear_map = {}
+
+    @staticmethod
+    def get_user_balance(user_id):
+        account = PaymentManager.get_user_point_account(user_id=user_id)
+        return account.balance
+
+    def is_user_arrear_in_service(self, user_id: str, service: ObjectsService) -> bool:
+        """
+        用户在指定服务单元是否欠费
+        """
+        key = f'user_{user_id}_{service.id}'
+        if key not in self.arrear_map:
+            is_enough = PaymentManager().has_enough_balance_user(
+                user_id=user_id, money_amount=Decimal('0'), with_coupons=True,
+                app_service_id=service.pay_app_service_id)
+            self.arrear_map[key] = not is_enough
+
+        return self.arrear_map[key]
+
+    def run(self):
+        count_arrear = self.loop_buckets()  # 按量付费
+        print(f'欠费存储桶数：{count_arrear}')
+
+    def loop_buckets(self, limit: int = 100):
+        count_arrear = 0
+        last_creatition_time = None
+        last_id = ''
+        continuous_error_count = 0  # 连续错误计数
+        while True:
+            try:
+                buckets = self.get_buckets(gte_creation_time=last_creatition_time, limit=limit)
+                if len(buckets) == 0:
+                    break
+
+                # 多个creation_time相同数据时，会查询获取到多个数据（计量过也会重复查询到）
+                if buckets[len(buckets) - 1].id == last_id:
+                    break
+
+                for bkt in buckets:
+                    if bkt.id == last_id:
+                        continue
+
+                    ins = None
+                    try:
+                        ins = self.check_arrear_bucket(bucket=bkt, date_=self._date)
+                    except Exception:
+                        try:
+                            ins = self.check_arrear_bucket(bucket=bkt, date_=self._date)
+                        except Exception as exc:
+                            pass
+
+                    last_creatition_time = bkt.creation_time
+                    last_id = bkt.id
+
+                    if ins is not None:
+                        count_arrear += 1
+
+                continuous_error_count = 0
+            except Exception as e:
+                if self.raise_exception:
+                    raise e
+
+                continuous_error_count += 1
+                if continuous_error_count > 100:  # 连续错误次数后报错退出
+                    raise e
+
+                time.sleep(continuous_error_count / 100)  # 10ms - 1000ms
+
+        return count_arrear
+
+    def check_arrear_bucket(self, bucket: Bucket, date_: datetime.date):
+        user = bucket.user
+        user_id = user.id
+        username = user.username
+        service = bucket.service
+
+        if self.is_user_arrear_in_service(user_id=user_id, service=service):
+            balance_amount = self.get_user_balance(user_id=user_id)
+            ins = ArrearBucketManager.create_arrear_bucket(
+                bucket_id=bucket.id, bucket_name=bucket.name, service_id=service.id, service_name=service.name,
+                size_byte=bucket.storage_size, object_count=bucket.object_count, bucket_creation=bucket.creation_time,
+                user_id=user_id, username=username, balance_amount=balance_amount, date_=date_,
+                remarks='', situation=bucket.situation, situation_time=bucket.situation_time
+            )
+            return ins
+
+        return None
+
+    @wrap_close_old_connections
+    def get_buckets(self, gte_creation_time, limit: int = 100):
+        """
+        """
+        queryset = self.get_buckets_queryset(gte_creation_time=gte_creation_time)
+        return queryset[0:limit]
+
+    @staticmethod
+    def get_buckets_queryset(gte_creation_time=None):
+        """
+        查询bucket的集合， 按照创建的时间 以及 id 正序排序
+        :param gte_creation_time: 大于等于给定的创建时间，用于断点查询
+        """
+        lookups = {}
+        if gte_creation_time is not None:
+            lookups['creation_time__gte'] = gte_creation_time
+
+        queryset = Bucket.objects.select_related(
             'service', 'user').filter(**lookups).order_by('creation_time', 'id')
         return queryset

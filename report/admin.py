@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from utils.model import NoDeleteSelectModelAdmin
-from .models import MonthlyReport, BucketMonthlyReport, BucketStatsMonthly
+from .models import MonthlyReport, BucketMonthlyReport, BucketStatsMonthly, ArrearServer, ArrearBucket
 
 
 @admin.register(MonthlyReport)
@@ -56,6 +56,31 @@ class BucketStatsMonthlyAdmin(admin.ModelAdmin):
     list_select_related = ('service', 'user')
     raw_id_fields = ('user',)
     search_fields = ['bucket_id', 'bucket_name']
+    list_filter = ['service', ]
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(ArrearServer)
+class ArrearServerAdmin(admin.ModelAdmin):
+    list_display = ('id', 'server_id', 'ipv4', 'vcpus', 'ram', 'image', 'service_name',
+                    'server_creation', 'server_expire', 'pay_type', 'user_id', 'username',
+                    'vo_id', 'vo_name', 'owner_type', 'balance_amount', 'date', 'creation_time', 'remarks')
+    # list_select_related = ('service',)
+    search_fields = ['server_id', 'ipv4', 'user_id', 'username']
+    list_filter = ['service', 'pay_type', 'owner_type']
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(ArrearBucket)
+class ArrearBucketAdmin(admin.ModelAdmin):
+    list_display = ('id', 'bucket_id', 'bucket_name', 'service_name', 'size_byte', 'object_count',
+                    'bucket_creation', 'user_id', 'username', 'balance_amount', 'date', 'creation_time')
+    # list_select_related = ('service',)
+    search_fields = ['bucket_id', 'bucket_name', 'user_id', 'username']
     list_filter = ['service', ]
 
     def has_delete_permission(self, request, obj=None):

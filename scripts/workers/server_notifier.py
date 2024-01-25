@@ -1,6 +1,6 @@
 import time
 from collections import namedtuple
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, date
 from decimal import Decimal
 
 from django.utils import timezone
@@ -16,8 +16,10 @@ from servers.models import Server
 from servers.managers import ServerManager
 from users.models import Email, UserProfile
 from vo.models import VirtualOrganization, VoMember
-from utils.model import PayType
+from utils.model import PayType, OwnerType
 from core import site_configs_manager as site_configs
+from report.managers import ArrearServerManager
+from monitor.models import ErrorLog
 from . import config_logger
 
 
@@ -609,16 +611,119 @@ class ServerNotifier(BaseNotifier):
         return r
 
 
-class ServerArrearNotifier:
+class BaseServerArrear:
+    def __init__(self):
+        self.arrear_map = {}
+
+    @staticmethod
+    def get_user_balance(user_id):
+        account = PaymentManager.get_user_point_account(user_id=user_id)
+        return account.balance
+
+    @staticmethod
+    def get_vo_balance(vo_id):
+        account = PaymentManager.get_vo_point_account(vo_id=vo_id)
+        return account.balance
+
+    def is_user_arrear_in_service(self, user_id: str, service: ServiceConfig) -> bool:
+        """
+        用户在指定服务单元是否欠费
+        """
+        key = f'user_{user_id}_{service.id}'
+        if key not in self.arrear_map:
+            is_enough = PaymentManager().has_enough_balance_user(
+                user_id=user_id, money_amount=Decimal('0'), with_coupons=True,
+                app_service_id=service.pay_app_service_id)
+            self.arrear_map[key] = not is_enough
+
+        return self.arrear_map[key]
+
+    def is_vo_arrear_in_service(self, vo_id: str, service: ServiceConfig) -> bool:
+        """
+        vo组在指定服务单元是否欠费
+        """
+        key = f'vo_{vo_id}_{service.id}'
+        if key not in self.arrear_map:
+            is_enough = PaymentManager().has_enough_balance_vo(
+                vo_id=vo_id, money_amount=Decimal('0'), with_coupons=True,
+                app_service_id=service.pay_app_service_id)
+            self.arrear_map[key] = not is_enough
+
+        return self.arrear_map[key]
+
+    @staticmethod
+    def get_postpaid_servers(limit: int = 100, gte_creation_time: datetime = None):
+        """
+        查询按量付费server
+        """
+        qs = Server.objects.select_related('user', 'vo', 'service').filter(
+            pay_type=PayType.POSTPAID.value
+        ).order_by('creation_time')
+        if gte_creation_time:
+            qs = qs.filter(creation_time__gte=gte_creation_time)
+
+        return qs[0:limit]
+
+    @staticmethod
+    def get_personal_postpaid_servers(limit: int = 100, gte_creation_time: datetime = None):
+        """
+        查询用户个人按量付费server
+        """
+        qs = Server.objects.select_related('user', 'service').filter(
+            pay_type=PayType.POSTPAID.value, classification=Server.Classification.PERSONAL.value
+        ).order_by('creation_time')
+        if gte_creation_time:
+            qs = qs.filter(creation_time__gte=gte_creation_time)
+
+        return qs[0:limit]
+
+    @staticmethod
+    def get_vo_postpaid_servers(limit: int = 100, gte_creation_time: datetime = None):
+        """
+        查询vo组按量付费server
+        """
+        qs = Server.objects.select_related('vo', 'service').filter(
+            pay_type=PayType.POSTPAID.value, classification=Server.Classification.VO.value
+        ).order_by('creation_time')
+        if gte_creation_time:
+            qs = qs.filter(creation_time__gte=gte_creation_time)
+
+        return qs[0:limit]
+
+    @staticmethod
+    def get_expired_servers_queryset(gte_creation_time: datetime = None):
+        """
+        查询过期的server
+
+        :param gte_creation_time: 创建时间大于等于此时间的server
+        """
+        nt = timezone.now()
+        lookups = {}
+        if gte_creation_time:
+            lookups['creation_time__gte'] = gte_creation_time
+
+        qs = Server.objects.select_related('user', 'vo', 'service').filter(
+            expiration_time__lt=nt, pay_type=PayType.PREPAID.value,
+            **lookups
+        ).order_by('creation_time')
+
+        return qs
+
+    def get_expired_servers(self, limit: int = 100, gte_creation_time: datetime = None):
+        qs = self.get_expired_servers_queryset(gte_creation_time=gte_creation_time)
+        return qs[0:limit]
+
+
+class ServerArrearNotifier(BaseServerArrear):
     """
     云主机欠费关机
     """
     def __init__(self, log_stdout: bool = False, raise_exception: bool = False):
         """
         """
+        super().__init__()
         self.raise_exception = raise_exception
         self.logger = config_logger(name='server-arrear-logger', filename="server_arrear.log", stdout=log_stdout)
-        self.arrear_map = {}
         self.user_arrear_servers_map = {}
         self.vo_arrear_servers_map = {}
         self.template_all_arrear = Template(
@@ -756,7 +861,7 @@ class ServerArrearNotifier:
         continuous_error_count = 0  # 连续错误计数
         while True:
             try:
-                servers = self.get_servers(gte_creation_time=last_creatition_time, limit=100)
+                servers = self.get_postpaid_servers(gte_creation_time=last_creatition_time, limit=100)
                 if len(servers) == 0:
                     break
 
@@ -821,67 +926,129 @@ class ServerArrearNotifier:
                 else:
                     self.vo_arrear_servers_map[vo_id] = [vst]
 
-    def is_user_arrear_in_service(self, user_id: str, service: ServiceConfig) -> bool:
-        """
-        用户在指定服务单元是否欠费
-        """
-        key = f'user_{user_id}_{service.id}'
-        if key not in self.arrear_map:
-            is_enough = PaymentManager().has_enough_balance_user(
-                user_id=user_id, money_amount=Decimal('0'), with_coupons=True,
-                app_service_id=service.pay_app_service_id)
-            self.arrear_map[key] = not is_enough
 
-        return self.arrear_map[key]
-
-    def is_vo_arrear_in_service(self, vo_id: str, service: ServiceConfig) -> bool:
+class ArrearServerReporter(BaseServerArrear):
+    """
+    欠费云主机查询 保存到数据库
+    """
+    def __init__(self, raise_exception: bool = False):
         """
-        vo组在指定服务单元是否欠费
         """
-        key = f'vo_{vo_id}_{service.id}'
-        if key not in self.arrear_map:
-            is_enough = PaymentManager().has_enough_balance_vo(
-                vo_id=vo_id, money_amount=Decimal('0'), with_coupons=True,
-                app_service_id=service.pay_app_service_id)
-            self.arrear_map[key] = not is_enough
+        super().__init__()
+        self.raise_exception = raise_exception
+        self._date = timezone.now().date()
 
-        return self.arrear_map[key]
+    def run(self):
+        count = 0
+        try:
+            count_arrear_postpaid = self.loop_servers(is_expied=False)  # 按量付费
+            print(f'欠费按量付费云主机数：{count_arrear_postpaid}')
+            count += count_arrear_postpaid
+        except Exception as exc:
+            ErrorLog.add_log(
+                status_code=0, method='', full_path='', message=f'遍历查询欠费云主机脚本执行错误，{str(exc)}', username='')
 
-    @staticmethod
-    def get_servers(limit: int = 100, gte_creation_time: datetime = None):
-        """
-        查询按量付费server
-        """
-        qs = Server.objects.select_related('user', 'vo', 'service').filter(
-            pay_type=PayType.POSTPAID.value
-        ).order_by('creation_time')
-        if gte_creation_time:
-            qs = qs.filter(creation_time__gte=gte_creation_time)
+        try:
+            count_arrear_expired = self.loop_servers(is_expied=True)   # 过期预付费
+            print(f'欠费包年包月云主机数：{count_arrear_expired}')
+            count += count_arrear_expired
+        except Exception as exc:
+            ErrorLog.add_log(
+                status_code=0, method='', full_path='', message=f'遍历查询欠费云主机脚本执行错误，{str(exc)}', username='')
 
-        return qs[0:limit]
+        print(f'欠费云主机总数：{count}')
 
-    @staticmethod
-    def get_personal_servers(limit: int = 100, gte_creation_time: datetime = None):
-        """
-        查询用户个人按量付费server
-        """
-        qs = Server.objects.select_related('user', 'service').filter(
-            pay_type=PayType.POSTPAID.value, classification=Server.Classification.PERSONAL.value
-        ).order_by('creation_time')
-        if gte_creation_time:
-            qs = qs.filter(creation_time__gte=gte_creation_time)
+    def loop_servers(self, is_expied: bool = False, limit: int = 100):
+        count_arrear = 0
+        last_creatition_time = None
+        last_id = ''
+        continuous_error_count = 0  # 连续错误计数
+        while True:
+            try:
+                if is_expied:
+                    servers = self.get_expired_servers(gte_creation_time=last_creatition_time, limit=limit)
+                else:
+                    servers = self.get_postpaid_servers(gte_creation_time=last_creatition_time, limit=limit)
 
-        return qs[0:limit]
+                if len(servers) == 0:
+                    break
 
-    @staticmethod
-    def get_vo_servers(limit: int = 100, gte_creation_time: datetime = None):
-        """
-        查询vo组按量付费server
-        """
-        qs = Server.objects.select_related('vo', 'service').filter(
-            pay_type=PayType.POSTPAID.value, classification=Server.Classification.VO.value
-        ).order_by('creation_time')
-        if gte_creation_time:
-            qs = qs.filter(creation_time__gte=gte_creation_time)
+                # 多个creation_time相同数据时，会查询获取到多个数据（计量过也会重复查询到）
+                if servers[len(servers) - 1].id == last_id:
+                    break
 
-        return qs[0:limit]
+                for s in servers:
+                    if s.id == last_id:
+                        continue
+
+                    ins = None
+                    try:
+                        ins = self.check_arrear_server(server=s, date_=self._date)
+                    except Exception:
+                        try:
+                            ins = self.check_arrear_server(server=s, date_=self._date)
+                        except Exception as exc:
+                            pass
+
+                    last_creatition_time = s.creation_time
+                    last_id = s.id
+
+                    if ins is not None:
+                        count_arrear += 1
+
+                continuous_error_count = 0
+            except Exception as e:
+                if self.raise_exception:
+                    raise e
+
+                continuous_error_count += 1
+                if continuous_error_count > 100:    # 连续错误次数后报错退出
+                    raise e
+
+                time.sleep(continuous_error_count / 100)  # 10ms - 1000ms
+
+        return count_arrear
+
+    def check_arrear_server(self, server: Server, date_: date):
+        is_arrear = False
+        balance_amount = Decimal('0.00')
+        if server.classification == Server.Classification.PERSONAL.value:
+            owner_type = OwnerType.USER.value
+            user = server.user
+            user_id = user.id
+            username = user.username
+            vo_name = vo_id = ''
+            service = server.service
+
+            if self.is_user_arrear_in_service(user_id=user_id, service=service):
+                is_arrear = True
+                balance_amount = self.get_user_balance(user_id=user_id)
+        elif server.classification == Server.Classification.VO.value:
+            owner_type = OwnerType.VO.value
+            user_id = server.user_id if server.user_id else ''
+            username = server.user.username if server.user_id else ''
+            if not server.vo_id:
+                vo_id = vo_name = ''
+            else:
+                vo = server.vo
+                vo_id = vo.id
+                vo_name = vo.name
+            service = server.service
+
+            if self.is_vo_arrear_in_service(vo_id=vo_id, service=service):
+                is_arrear = True
+                balance_amount = self.get_vo_balance(vo_id=vo_id)
+        else:
+            return None
+
+        if is_arrear:
+            ins = ArrearServerManager.create_arrear_server(
+                server_id=server.id, service_id=service.id, service_name=service.name,
+                ipv4=server.ipv4, vcpus=server.vcpus, ram_gib=server.ram, image=server.image,
+                pay_type=server.pay_type, server_creation=server.creation_time, server_expire=server.expiration_time,
+                user_id=user_id, username=username, vo_id=vo_id, vo_name=vo_name, owner_type=owner_type,
+                balance_amount=balance_amount, date_=date_, remark=server.remarks
+            )
+            return ins
+
+        return None

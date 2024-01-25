@@ -1,11 +1,13 @@
 from decimal import Decimal
+from datetime import datetime, date
 
 from django.utils.translation import gettext as _
 from django.db.models import TextChoices, Sum
+from django.utils import timezone as dj_timezone
 
 from core import errors
 from storage.managers.objects_service import ObjectsServiceManager
-from .models import BucketStatsMonthly
+from .models import BucketStatsMonthly, ArrearServer, ArrearBucket
 
 
 class BktStatsMonthQueryOrderBy(TextChoices):
@@ -172,3 +174,40 @@ class BucketStatsMonthlyManager:
                 d['service'] = None
 
         return data
+
+
+class ArrearServerManager:
+    @staticmethod
+    def create_arrear_server(
+            server_id: str, service_id: str, service_name: str, ipv4: str, vcpus: int, ram_gib: int, image: str,
+            pay_type: str, server_creation: datetime, server_expire: datetime,
+            user_id: str, username: str, vo_id: str, vo_name: str, owner_type: str,
+            balance_amount: Decimal, date_: date, remark: str
+    ):
+        ins = ArrearServer(
+            server_id=server_id, service_id=service_id, service_name=service_name,
+            ipv4=ipv4, vcpus=vcpus, ram=ram_gib, image=image,
+            pay_type=pay_type, server_creation=server_creation, server_expire=server_expire,
+            user_id=user_id, username=username, vo_id=vo_id, vo_name=vo_name, owner_type=owner_type,
+            balance_amount=balance_amount, date=date_, creation_time=dj_timezone.now(),
+            remarks=remark
+        )
+        ins.save(force_insert=True)
+        return ins
+
+
+class ArrearBucketManager:
+    @staticmethod
+    def create_arrear_bucket(
+            bucket_id: str, bucket_name: str, service_id: str, service_name: str,
+            size_byte: int, object_count: int, bucket_creation: datetime, situation: str, situation_time: datetime,
+            user_id: str, username: str, balance_amount: Decimal, date_: date, remarks: str
+    ):
+        ins = ArrearBucket(
+            bucket_id=bucket_id, bucket_name=bucket_name, service_id=service_id, service_name=service_name,
+            size_byte=size_byte, object_count=object_count, bucket_creation=bucket_creation,
+            situation=situation, situation_time=situation_time, user_id=user_id, username=username,
+            balance_amount=balance_amount, date=date_, creation_time=dj_timezone.now(), remarks=remarks
+        )
+        ins.save(force_insert=True)
+        return ins
