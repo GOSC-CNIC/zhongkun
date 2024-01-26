@@ -1,3 +1,4 @@
+from typing import Union
 from decimal import Decimal
 from datetime import datetime, date
 
@@ -25,6 +26,12 @@ class StorageAggQueryOrderBy(TextChoices):
     INCR_SIZE_DESC = '-total_increment_byte', _('按容量增量降序')
     AMOUNT_ASC = 'total_original_amount', _('按计量金额升序')
     AMOUNT_DESC = '-total_original_amount', _('按计量金额降序')
+
+
+class ArrearServerQueryOrderBy(TextChoices):
+    BALANCE_ASC = 'balance_amount', _('按余额升序')
+    BALANCE_DESC = '-balance_amount', _('按余额降序')
+    CREATION_TIME_DESC = '-creation_time', _('按创建时间降序')
 
 
 class BucketStatsMonthlyManager:
@@ -180,7 +187,7 @@ class ArrearServerManager:
     @staticmethod
     def create_arrear_server(
             server_id: str, service_id: str, service_name: str, ipv4: str, vcpus: int, ram_gib: int, image: str,
-            pay_type: str, server_creation: datetime, server_expire: datetime,
+            pay_type: str, server_creation: datetime, server_expire: Union[datetime, None],
             user_id: str, username: str, vo_id: str, vo_name: str, owner_type: str,
             balance_amount: Decimal, date_: date, remark: str
     ):
@@ -194,6 +201,22 @@ class ArrearServerManager:
         )
         ins.save(force_insert=True)
         return ins
+
+    @staticmethod
+    def get_arrear_server_qs(date_start: date, date_end: date, order_by: str, service_id: str = None):
+        lookups = {}
+        if date_start and date_end and date_start == date_end:
+            lookups['date'] = date_start
+        else:
+            if date_start:
+                lookups['date__gte'] = date_start
+            if date_end:
+                lookups['date__lte'] = date_end
+
+        if service_id:
+            lookups['service_id'] = service_id
+
+        return ArrearServer.objects.filter(**lookups).order_by(order_by)
 
 
 class ArrearBucketManager:

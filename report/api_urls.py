@@ -2,6 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import SimpleRouter
 
 from report import report_storage_views
+from report.api_viewsets import arrear_views
 
 
 app_name = 'report'
@@ -12,6 +13,8 @@ no_slash_router.register(r'storage/bucket/stats/monthly', report_storage_views.B
                          basename='report-bucket-stats-monthly')
 no_slash_router.register(r'storage/stats/monthly', report_storage_views.StorageStatsMonthlyViewSet,
                          basename='report-storage-stats-monthly')
+no_slash_router.register(r'admin/arrear/server', arrear_views.ArrearServerViewSet,
+                         basename='admin-report-arrear-server')
 
 
 urlpatterns = [
