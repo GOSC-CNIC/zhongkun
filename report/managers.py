@@ -34,6 +34,12 @@ class ArrearServerQueryOrderBy(TextChoices):
     CREATION_TIME_DESC = '-creation_time', _('按创建时间降序')
 
 
+class ArrearBucketQueryOrderBy(TextChoices):
+    BALANCE_ASC = 'balance_amount', _('按余额升序')
+    BALANCE_DESC = '-balance_amount', _('按余额降序')
+    CREATION_TIME_DESC = '-creation_time', _('按创建时间降序')
+
+
 class BucketStatsMonthlyManager:
     @staticmethod
     def get_queryset():
@@ -223,7 +229,8 @@ class ArrearBucketManager:
     @staticmethod
     def create_arrear_bucket(
             bucket_id: str, bucket_name: str, service_id: str, service_name: str,
-            size_byte: int, object_count: int, bucket_creation: datetime, situation: str, situation_time: datetime,
+            size_byte: int, object_count: int, bucket_creation: datetime, situation: str,
+            situation_time: Union[datetime, None],
             user_id: str, username: str, balance_amount: Decimal, date_: date, remarks: str
     ):
         ins = ArrearBucket(
@@ -234,3 +241,19 @@ class ArrearBucketManager:
         )
         ins.save(force_insert=True)
         return ins
+
+    @staticmethod
+    def get_arrear_bucket_qs(date_start: date, date_end: date, order_by: str, service_id: str = None):
+        lookups = {}
+        if date_start and date_end and date_start == date_end:
+            lookups['date'] = date_start
+        else:
+            if date_start:
+                lookups['date__gte'] = date_start
+            if date_end:
+                lookups['date__lte'] = date_end
+
+        if service_id:
+            lookups['service_id'] = service_id
+
+        return ArrearBucket.objects.filter(**lookups).order_by(order_by)

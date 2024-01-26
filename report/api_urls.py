@@ -15,6 +15,8 @@ no_slash_router.register(r'storage/stats/monthly', report_storage_views.StorageS
                          basename='report-storage-stats-monthly')
 no_slash_router.register(r'admin/arrear/server', arrear_views.ArrearServerViewSet,
                          basename='admin-report-arrear-server')
+no_slash_router.register(r'admin/arrear/bucket', arrear_views.ArrearBucketViewSet,
+                         basename='admin-report-arrear-bucket')
 
 
 urlpatterns = [

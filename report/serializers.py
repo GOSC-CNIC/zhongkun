@@ -56,3 +56,22 @@ class ArrearServerSerializer(serializers.Serializer):
         label=_('所有者的余额'), max_digits=10, decimal_places=2, help_text=_('用户个人余额，或者VO组余额'))
     date = serializers.DateField(label=_('数据日期'), help_text=_('查询欠费云主机数据采样日期'))
     creation_time = serializers.DateTimeField(label=_('判定为欠费的时间'))
+
+
+class ArrearBucketSerializer(serializers.Serializer):
+    id = serializers.CharField(label='ID', max_length=36, read_only=True)
+    bucket_id = serializers.CharField(label=_('存储桶ID'), max_length=36)
+    bucket_name = serializers.CharField(label=_('存储桶名称'), max_length=73)
+    service_id = serializers.CharField(label=_('存储服务单元'), allow_null=True)
+    service_name = serializers.CharField(max_length=255, label=_('存储服务单元'))
+    size_byte = serializers.IntegerField(label=_('存储容量(Byte)'), default=0)
+    object_count = serializers.IntegerField(label=_('桶对象数量'), default=0)
+    bucket_creation = serializers.DateTimeField(label=_('存储桶创建时间'))
+    situation = serializers.CharField(label=_('过期欠费管控情况'), max_length=16)
+    situation_time = serializers.DateTimeField(label=_('管控情况时间'), allow_null=True, help_text=_('欠费管控开始时间'))
+    user_id = serializers.CharField(label=_('用户ID'), max_length=36, default='')
+    username = serializers.CharField(label=_('用户名'), max_length=128, default='')
+    balance_amount = serializers.DecimalField(label=_('余额'), max_digits=10, decimal_places=2)
+    date = serializers.DateField(label=_('数据日期'), help_text=_('查询欠费存储桶数据采样日期'))
+    creation_time = serializers.DateTimeField(label=_('判定为欠费的时间'))
+    remarks = serializers.CharField(max_length=255, label=_('存储桶备注'))
