@@ -281,7 +281,7 @@ class ArrearBucketReporter:
 
     def run(self):
         count_arrear = self.loop_buckets()  # 按量付费
-        print(f'欠费存储桶数：{count_arrear}')
+        print(f'[{self._date}] 欠费存储桶数：{count_arrear}')
 
     def loop_buckets(self, limit: int = 100):
         count_arrear = 0

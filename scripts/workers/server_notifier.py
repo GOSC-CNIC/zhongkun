@@ -942,7 +942,7 @@ class ArrearServerReporter(BaseServerArrear):
         count = 0
         try:
             count_arrear_postpaid = self.loop_servers(is_expied=False)  # 按量付费
-            print(f'欠费按量付费云主机数：{count_arrear_postpaid}')
+            print(f'[{self._date}] 欠费按量付费云主机数：{count_arrear_postpaid}')
             count += count_arrear_postpaid
         except Exception as exc:
             ErrorLog.add_log(
@@ -950,13 +950,13 @@ class ArrearServerReporter(BaseServerArrear):
 
         try:
             count_arrear_expired = self.loop_servers(is_expied=True)   # 过期预付费
-            print(f'欠费包年包月云主机数：{count_arrear_expired}')
+            print(f'[{self._date}] 欠费包年包月云主机数：{count_arrear_expired}')
             count += count_arrear_expired
         except Exception as exc:
             ErrorLog.add_log(
                 status_code=0, method='', full_path='', message=f'遍历查询欠费云主机脚本执行错误，{str(exc)}', username='')
 
-        print(f'欠费云主机总数：{count}')
+        print(f'[{self._date}] 欠费云主机总数：{count}')
 
     def loop_servers(self, is_expied: bool = False, limit: int = 100):
         count_arrear = 0
