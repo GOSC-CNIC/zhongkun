@@ -13,6 +13,19 @@ from scripts.workers.report_generator import MonthlyReportGenerator, MonthlyRepo
 
 
 if __name__ == "__main__":
+    """
+    生成月度报表，并发送给用户
+
+    遍历查询欠费的云主机和存储桶，记录到report中各资源的欠费记录表中
+    """
+    try:
+        from scripts.workers.server_notifier import ArrearServerReporter
+        from scripts.workers.storage_trend import ArrearBucketReporter
+        ArrearServerReporter().run()
+        ArrearBucketReporter().run()
+    except Exception as exc:
+        pass
+
     mrg = MonthlyReportGenerator(log_stdout=True)
     ok = mrg.run()
     if ok:
