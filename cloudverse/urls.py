@@ -83,6 +83,7 @@ urlpatterns = [
     path('about/', views.about, name='about'),
     path('report/', include('report.urls', namespace='report')),
     path('auth/callback/aai', AAISignIn.as_view(), name='auth-callback-aai'),
+    path('baton/', include('baton.urls')),
 ]
 
 if settings.DEBUG:

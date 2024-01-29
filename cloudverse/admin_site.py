@@ -49,9 +49,11 @@ def get_app_list(self, request, app_label=None):
 
 
 def config_site():
-    admin.AdminSite.site_header = site_header + ' ' + _('后台管理')
+    admin.AdminSite.site_header = site_header
     admin.AdminSite.site_title = _('管理员登录')
     admin.AdminSite.get_app_list = get_app_list  # 覆盖原有的get_app_list方法
+    admin.site.site_header = admin.AdminSite.site_header
+    admin.site.site_title = admin.AdminSite.site_title
 
 
 config_site()

@@ -33,6 +33,7 @@ INTERNAL_IPS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'baton',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -48,16 +49,16 @@ INSTALLED_APPS = [
 
     # app排序对应admin后台app排序
     'service',
-    'servers',
     'storage',
-    'monitor',
+    'servers',
     'order',
-    'metering',
     'bill',
+    'metering',
     'report',
     'users',
     'vo',
     'ticket',
+    'monitor',
     'netbox',
     'ipam',
     'link',
@@ -65,6 +66,7 @@ INSTALLED_APPS = [
     'scripts',
     'api',
     'docs',
+    'baton.autodiscover',
 ]
 
 MIDDLEWARE = [
@@ -345,6 +347,13 @@ SWAGGER_SETTINGS = {
         }
     },
     'DOC_EXPANSION': 'none',
+}
+
+# admin
+BATON = {
+    'COPYRIGHT': 'copyright © 2022 <a href="https://gitee.com/cstcloud-cnic">CNIC</a>', # noqa
+    'POWERED_BY': '<a href="https://gitee.com/cstcloud-cnic">CNIC</a>',
+    'MENU_ALWAYS_COLLAPSED': False,
 }
 
 # swagger api在线文档地址配置
