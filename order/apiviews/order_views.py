@@ -338,6 +338,7 @@ class OrderViewSet(CustomGenericViewSet):
               "owner_type": "user",
               "cancelled_time": "2022-03-10T06:10:32.478101Z",  # 订单作废/取消时间
               "app_service_id": "xxx"               # service对应的注册于余额结算系统中的APP子服务id,
+              "number": 3,      # 订购资源数量
               "resources": [
                 {
                   "id": "81d9aad0-a03b-11ec-ba16-c8009fe2eb10",

@@ -561,7 +561,7 @@ class ServerHandler:
             return view.exception_response(exc)
 
         # 创建订单
-        order, resource = omgr.create_order(
+        order, resource_list = omgr.create_order(
             order_type=Order.OrderType.NEW.value,
             pay_app_service_id=service.pay_app_service_id,
             service_id=service.id,
@@ -577,6 +577,7 @@ class ServerHandler:
             owner_type=owner_type,
             remark=remarks
         )
+        resource = resource_list[0]
 
         # 预付费模式时
         if pay_type == PayType.PREPAID.value:

@@ -5,6 +5,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext, gettext_lazy as _
 from django.core.validators import MaxValueValidator, MinValueValidator
+from django.core.exceptions import ValidationError
 
 from servers.models import ServiceConfig
 from utils.model import UuidModel, OwnerType, PayType, ResourceType, CustomIdModel
@@ -48,6 +49,7 @@ class Order(models.Model):
         UNDELIVERED = 'undelivered', _('订单资源交付失败')
         COMPLETED = 'completed', _('交易成功')
         CLOSED = 'closed', _('交易关闭')
+        PART_DELIVER = 'partdeliver', _('部分交付失败')
 
     id = models.CharField(verbose_name=_('订单编号'), max_length=32, primary_key=True, editable=False)
     order_type = models.CharField(
@@ -99,6 +101,7 @@ class Order(models.Model):
     cancelled_time = models.DateTimeField(verbose_name=_('作废时间'), null=True, blank=True, default=None)
     app_service_id = models.CharField(verbose_name=_('app服务id'), max_length=36, blank=True, default='')
     payment_history_id = models.CharField(verbose_name=_('支付记录id'), max_length=36, blank=True, default='')
+    number = models.PositiveIntegerField(verbose_name=_('订购资源数量'), default=1)
 
     class Meta:
         verbose_name = _('订单')
@@ -177,6 +180,10 @@ class Order(models.Model):
 
     def get_pay_app_service_id(self):
         return self.app_service_id
+
+    def clean(self):
+        if not (1 <= self.number <= 3):
+            raise ValidationError(message={'number': gettext('可选数值为1-3')})
 
 
 class Resource(UuidModel):

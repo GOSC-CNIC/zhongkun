@@ -1,5 +1,6 @@
 from decimal import Decimal
 from datetime import timedelta, datetime
+from typing import List
 
 from django.utils.translation import gettext as _
 from django.utils import timezone
@@ -29,29 +30,34 @@ class OrderManager:
             vo_id,
             vo_name,
             owner_type,
+            number: int = 1,
             remark: str = ''
-    ) -> (Order, Resource):
+    ) -> (Order, List[Resource]):
         """
         提交一个订单
 
         :instance_config: BaseConfig
         :return:
-            order, resource
+            order, resources
 
         :raises: Error
         """
-        instance_id = rand_utils.short_uuid1_25()
-        if resource_type == ResourceType.VM.value:
-            instance_id += '-i'
-        elif resource_type == ResourceType.DISK.value:
-            instance_id += '-d'
-        else:
-            pass
+        instance_ids = []
+        for x in range(number):
+            ins_id = rand_utils.short_uuid1_25()
+            if resource_type == ResourceType.VM.value:
+                ins_id += '-i'
+            elif resource_type == ResourceType.DISK.value:
+                ins_id += '-d'
+            else:
+                pass
 
-        return self.create_order_for_resource(
+            instance_ids.append(ins_id)
+
+        return self.create_order_for_resources(
             order_type=order_type, pay_type=pay_type,
             pay_app_service_id=pay_app_service_id, service_id=service_id, service_name=service_name,
-            resource_type=resource_type, instance_id=instance_id, instance_config=instance_config,
+            resource_type=resource_type, instance_ids=instance_ids, instance_config=instance_config,
             period=period, start_time=None, end_time=None,
             user_id=user_id, username=username, vo_id=vo_id, vo_name=vo_name, owner_type=owner_type,
             instance_remark=remark
@@ -77,14 +83,15 @@ class OrderManager:
 
         :raises: Error
         """
-        return self.create_order_for_resource(
+        order, resources = self.create_order_for_resources(
             order_type=Order.OrderType.RENEWAL.value, pay_type=PayType.PREPAID.value,
             pay_app_service_id=pay_app_service_id, service_id=service_id, service_name=service_name,
-            resource_type=resource_type, instance_id=instance_id, instance_config=instance_config,
+            resource_type=resource_type, instance_ids=[instance_id], instance_config=instance_config,
             period=period, start_time=start_time, end_time=end_time,
             user_id=user_id, username=username, vo_id=vo_id, vo_name=vo_name, owner_type=owner_type,
             instance_remark='renew'
         )
+        return order, resources[0]
 
     def create_change_pay_type_order(
             self, pay_type: str,
@@ -110,14 +117,15 @@ class OrderManager:
         else:
             raise errors.Error(message='invalid pay_type')
 
-        return self.create_order_for_resource(
+        order, resources = self.create_order_for_resources(
             order_type=order_type, pay_type=pay_type,
             pay_app_service_id=pay_app_service_id, service_id=service_id, service_name=service_name,
-            resource_type=resource_type, instance_id=instance_id, instance_config=instance_config,
+            resource_type=resource_type, instance_ids=[instance_id], instance_config=instance_config,
             period=period, start_time=None, end_time=None,
             user_id=user_id, username=username, vo_id=vo_id, vo_name=vo_name, owner_type=owner_type,
             instance_remark='post2prepaid'
         )
+        return order, resources[0]
 
     @staticmethod
     def _check_period_time(order_type: str, pay_type: str, period: int, start_time, end_time):
@@ -154,14 +162,14 @@ class OrderManager:
 
         return period, days
 
-    def create_order_for_resource(
+    def create_order_for_resources(
             self, order_type, pay_type,
             pay_app_service_id: str, service_id, service_name,
-            resource_type, instance_id: str, instance_config,
+            resource_type, instance_ids: List[str], instance_config,
             period: int, start_time, end_time,
             user_id, username, vo_id, vo_name, owner_type,
             instance_remark: str = ''
-    ) -> (Order, Resource):
+    ) -> (Order, List[Resource]):
         """
         为资源实例提交一个订单，新购、续费、按量转包年包月
 
@@ -176,14 +184,21 @@ class OrderManager:
         :pay_app_service_id: 资源实例所属服务单元对应的余额结算里的app子服务id
         :service_id: 资源实例所属服务单元id
         :resource_type: 资源实例类型
-        :instance_id: 资源实例id of (server, disk)
+        :instance_ids: 资源实例ids of (server, disk), list长度为订购数量
         :instance_config: BaseConfig
         :period: 时长，月数
         :return:
-            order, resource
+            order, resources: list
 
         :raises: Error
         """
+        if not instance_ids:
+            raise errors.Error(message=_('无法创建订单，必须指定订单资源实例id'))
+
+        number = len(instance_ids)
+        if number != len(set(instance_ids)):
+            raise errors.Error(message=_('无法创建订单，必须指定订单资源实例id有重复'))
+
         period, days = self._check_period_time(
             order_type=order_type, period=period, start_time=start_time, end_time=end_time, pay_type=pay_type)
 
@@ -201,6 +216,9 @@ class OrderManager:
         if pay_type == PayType.PREPAID.value:         # 预付费
             total_amount, trade_price = self.calculate_amount_money(
                 resource_type=resource_type, config=instance_config, is_prepaid=True, period=period, days=days)
+            if number > 1:
+                total_amount = total_amount * number
+                trade_price = trade_price * number
         else:
             total_amount = trade_price = Decimal(0)
 
@@ -229,18 +247,22 @@ class OrderManager:
             owner_type=owner_type,
             deleted=False,
             trading_status=Order.TradingStatus.OPENING.value,
-            completion_time=None
+            completion_time=None,
+            number=number
         )
 
+        resources = []
         with transaction.atomic():
             order.save(force_insert=True)
-            resource = Resource(
-                order=order, resource_type=resource_type,
-                instance_id=instance_id, instance_remark=instance_remark, desc=''
-            )
-            resource.save(force_insert=True)
+            for ins_id in instance_ids:
+                resource = Resource(
+                    order=order, resource_type=resource_type,
+                    instance_id=ins_id, instance_remark=instance_remark, desc=''
+                )
+                resource.save(force_insert=True)
+                resources.append(resource)
 
-        return order, resource
+        return order, resources
 
     @staticmethod
     def calculate_amount_money(

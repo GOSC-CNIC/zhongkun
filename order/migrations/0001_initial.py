@@ -42,7 +42,7 @@ class Migration(migrations.Migration):
                 ('vo_name', models.CharField(blank=True, default='', max_length=256, verbose_name='VO组名')),
                 ('owner_type', models.CharField(choices=[('user', '用户'), ('vo', 'VO组')], max_length=8, verbose_name='所有者类型')),
                 ('completion_time', models.DateTimeField(blank=True, default=None, null=True, verbose_name='交易完成时间')),
-                ('trading_status', models.CharField(choices=[('opening', '交易中'), ('undelivered', '订单资源交付失败'), ('completed', '交易成功'), ('closed', '交易关闭')], default='opening', max_length=16, verbose_name='交易状态')),
+                ('trading_status', models.CharField(choices=[('opening', '交易中'), ('undelivered', '订单资源交付失败'), ('completed', '交易成功'), ('closed', '交易关闭'), ('partdeliver', '部分交付失败')], default='opening', max_length=16, verbose_name='交易状态')),
                 ('deleted', models.BooleanField(default=False, verbose_name='删除')),
                 ('cancelled_time', models.DateTimeField(blank=True, default=None, null=True, verbose_name='作废时间')),
                 ('app_service_id', models.CharField(blank=True, default='', max_length=36, verbose_name='app服务id')),

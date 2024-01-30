@@ -23,7 +23,7 @@ class TimeTests(TestCase):
                 self.assertEqual(t.month, 3 + i - 12)
 
 
-class MeteringServerTests(TestCase):
+class PriceManagerTests(TestCase):
     def setUp(self):
         price = Price(
             vm_ram=Decimal('0.012'),

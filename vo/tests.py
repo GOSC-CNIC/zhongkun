@@ -388,7 +388,7 @@ class VoTests(MyAPITestCase):
             image_id='image_id', image_name='', network_id='network_id', network_name='',
             azone_id='azone_id', azone_name='azone_name', flavor_id=''
         )
-        order1, resource1 = OrderManager().create_order(
+        OrderManager().create_order(
             order_type=Order.OrderType.NEW.value,
             pay_app_service_id='test',
             service_id='test',
@@ -403,7 +403,7 @@ class VoTests(MyAPITestCase):
             owner_type=OwnerType.USER.value
         )
 
-        order2, resource2 = OrderManager().create_order(
+        OrderManager().create_order(
             order_type=Order.OrderType.NEW.value,
             pay_app_service_id='test',
             service_id='test',
