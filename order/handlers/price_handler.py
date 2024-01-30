@@ -38,13 +38,24 @@ class DescribePriceHandler:
             original_price, trade_price = pmgr.describe_server_price(
                 ram_mib=flavor.ram_mib, cpu=flavor.vcpus, disk_gib=system_disk_size, public_ip=external_ip,
                 is_prepaid=(pay_type == 'prepaid'), period=period, days=days)
+
+            number = data['number']
+            if number > 1:
+                original_price = original_price * number
+                trade_price = trade_price * number
         elif resource_type == ResourceType.DISK:
             pay_type = data['pay_type']
             data_disk_size = data['data_disk_size']
             period = data['period']
             days = 1 if period is None else 0
+
             original_price, trade_price = pmgr.describe_disk_price(
                 size_gib=data_disk_size, is_prepaid=(pay_type == 'prepaid'), period=period, days=days)
+
+            number = data['number']
+            if number > 1:
+                original_price = original_price * number
+                trade_price = trade_price * number
         else:
             original_price, trade_price = pmgr.describe_bucket_price()
 
@@ -89,6 +100,24 @@ class DescribePriceHandler:
 
         return period
 
+    @staticmethod
+    def param_number_validate(number: str):
+        """
+        :return: int
+        """
+        if number is None:
+            return 1
+
+        try:
+            number = int(number)
+        except ValueError:
+            raise errors.InvalidArgument(message=_('订购资源数量无效'))
+
+        if not (1 <= number <= 3):
+            raise errors.InvalidArgument(message=_('订购资源数量只允许1-3'))
+
+        return number
+
     def validate_vm_params(self, request):
         params = request.query_params
         flavor_id = params.get('flavor_id', None)
@@ -96,8 +125,10 @@ class DescribePriceHandler:
         system_disk_size = params.get('system_disk_size', None)
         pay_type = params.get('pay_type', None)
         period = request.query_params.get('period', None)
+        number = request.query_params.get('number', None)
 
         period = self.param_period_validate(period=period)
+        number = self.param_number_validate(number=number)
 
         if pay_type not in ['prepaid', 'postpaid']:
             raise errors.InvalidArgument(message=_('参数“pay_type”的值无效'))
@@ -132,7 +163,8 @@ class DescribePriceHandler:
             'flavor_id': flavor_id,
             'external_ip': external_ip,
             'system_disk_size': system_disk_size,
-            'period': period
+            'period': period,
+            'number': number
         }
 
     def validate_disk_params(self, request):
@@ -140,8 +172,10 @@ class DescribePriceHandler:
         data_disk_size = params.get('data_disk_size', None)
         pay_type = params.get('pay_type', None)
         period = request.query_params.get('period', None)
+        number = request.query_params.get('number', None)
 
         period = self.param_period_validate(period=period)
+        number = self.param_number_validate(number=number)
 
         if pay_type not in ['prepaid', 'postpaid']:
             raise errors.InvalidArgument(message=_('参数“pay_type”的值无效'))
@@ -160,7 +194,8 @@ class DescribePriceHandler:
         return {
             'pay_type': pay_type,
             'data_disk_size': data_disk_size,
-            'period': period
+            'period': period,
+            'number': number
         }
 
     def _describe_renewal_price_validate_params(self, request):

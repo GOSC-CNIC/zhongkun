@@ -175,6 +175,19 @@ class PriceTests(MyAPITestCase):
         self.assertEqual(str(quantize_10_2(original_p9)), response.data['price']['original'])
         self.assertEqual(str(quantize_10_2(trade_p9)), response.data['price']['trade'])
 
+        # number, prepaid, only flavor_id, external_ip
+        query10 = parse.urlencode(query={
+            'resource_type': 'vm', 'pay_type': 'prepaid',
+            'flavor_id': self.flavor.id, 'external_ip': True, 'number': 3
+        })
+        response = self.client.get(f'{base_url}?{query10}')
+        self.assertEqual(response.status_code, 200)
+        original_p10 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_pub_ip
+        original_p10 = original_p10 * 24 * 3
+        trade_p10 = original_p10 * prepaid_discount
+        self.assertEqual(str(quantize_10_2(original_p10)), response.data['price']['original'])
+        self.assertEqual(str(quantize_10_2(trade_p10)), response.data['price']['trade'])
+
     def describe_price_disk(self):
         price = self.price
         prepaid_discount = Decimal.from_float(price.prepaid_discount/100)
@@ -222,6 +235,22 @@ class PriceTests(MyAPITestCase):
         self.assertEqual(str(quantize_10_2(original_p3)), response.data['price']['original'])
         self.assertEqual(str(quantize_10_2(trade_p3)), response.data['price']['trade'])
 
+        # prepaid period number
+        period = 2  # must be 1 - 12
+        data_disk_size = 100
+        query = parse.urlencode(query={
+            'resource_type': 'disk', 'pay_type': 'prepaid', 'period': period,
+            'data_disk_size': data_disk_size, 'number': 2
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        days = PriceManager.period_month_days(months=period)
+        original_p3a = price.disk_size * data_disk_size * 2
+        original_p3a = original_p3a * days
+        trade_p3a = original_p3a * prepaid_discount
+        self.assertEqual(str(quantize_10_2(original_p3a)), response.data['price']['original'])
+        self.assertEqual(str(quantize_10_2(trade_p3a)), response.data['price']['trade'])
+
         # postpaid period
         period = 10  # must be 1 - 12
         data_disk_size = 150
@@ -236,6 +265,21 @@ class PriceTests(MyAPITestCase):
         trade_p4 = original_p4 = original_p4 * days
         self.assertEqual(str(quantize_10_2(original_p4)), response.data['price']['original'])
         self.assertEqual(str(quantize_10_2(trade_p4)), response.data['price']['trade'])
+
+        # postpaid period number
+        period = 10  # must be 1 - 12
+        data_disk_size = 150
+        query = parse.urlencode(query={
+            'resource_type': 'disk', 'pay_type': 'postpaid', 'period': period,
+            'data_disk_size': data_disk_size, 'number': 3
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        days = PriceManager.period_month_days(months=period)
+        original_p5 = price.disk_size * data_disk_size * 3
+        trade_p5 = original_p5 = original_p5 * days
+        self.assertEqual(str(quantize_10_2(original_p5)), response.data['price']['original'])
+        self.assertEqual(str(quantize_10_2(trade_p5)), response.data['price']['trade'])
 
         # 400
         query = parse.urlencode(query={
@@ -258,6 +302,18 @@ class PriceTests(MyAPITestCase):
 
         query = parse.urlencode(query={
             'resource_type': 'bucket'
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['price'], response.data)
+        self.assertKeysIn(['original', 'trade'], response.data['price'])
+        trade_p = original_p = price.obj_size * 24
+        self.assertEqual(str(quantize_10_2(original_p)), response.data['price']['original'])
+        self.assertEqual(str(quantize_10_2(trade_p)), response.data['price']['trade'])
+
+        # number
+        query = parse.urlencode(query={
+            'resource_type': 'bucket', 'number': 3
         })
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)

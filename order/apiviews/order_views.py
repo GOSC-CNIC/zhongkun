@@ -32,49 +32,56 @@ class PriceViewSet(CustomGenericViewSet):
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=True,
-                description=f'资源类型, {ResourceType.choices}'
+                description=gettext_lazy('资源类型') + f', {ResourceType.choices}'
             ),
             openapi.Parameter(
                 name='pay_type',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description='付费方式，[prepaid, postpaid]'
+                description=gettext_lazy('付费方式') + '，[prepaid, postpaid]'
             ),
             openapi.Parameter(
                 name='period',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_INTEGER,
                 required=False,
-                description='时长，单位月，默认(一天)'
+                description=gettext_lazy('时长，单位月，默认(一天)')
             ),
             openapi.Parameter(
                 name='flavor_id',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=f'云主机配置样式id，资源类型为{ResourceType.VM}时，必须同时指定此参数'
+                description=gettext_lazy('云主机配置样式id，资源类型为"vm"时，必须同时指定此参数')
             ),
             openapi.Parameter(
                 name='external_ip',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_BOOLEAN,
                 required=False,
-                description='公网ip'
+                description=gettext_lazy('公网ip')
             ),
             openapi.Parameter(
                 name='system_disk_size',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_INTEGER,
                 required=False,
-                description='系统盘大小GiB'
+                description=gettext_lazy('系统盘大小GiB')
             ),
             openapi.Parameter(
                 name='data_disk_size',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_INTEGER,
                 required=False,
-                description='云硬盘大小GiB'
+                description=gettext_lazy('云硬盘大小GiB')
+            ),
+            openapi.Parameter(
+                name='number',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                required=False,
+                description=gettext_lazy('订购资源数量，默认为1')
             ),
         ],
         responses={
@@ -84,6 +91,9 @@ class PriceViewSet(CustomGenericViewSet):
     def list(self, request, *args, **kwargs):
         """
         询价
+
+            * resource_type = bucket时，存储询价结果为 GiB*day 价格，订购资源数量number忽略
+            * resource_type = vm、disk时，pay_type = postpaid，不指定时长period时（默认一天），询价结果为按量计费每天价格
 
             http code 200：
             {
@@ -104,28 +114,28 @@ class PriceViewSet(CustomGenericViewSet):
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=True,
-                description=f'资源类型, {ResourceType.choices}'
+                description=gettext_lazy('资源类型') + f', {ResourceType.choices}'
             ),
             openapi.Parameter(
                 name='instance_id',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=True,
-                description='查询续费价格的资源实例ID，云主机、云硬盘id'
+                description=gettext_lazy('查询续费价格的资源实例ID，云主机、云硬盘id')
             ),
             openapi.Parameter(
                 name='period',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_INTEGER,
                 required=False,
-                description='时长，单位月'
+                description=gettext_lazy('时长，单位月')
             ),
             openapi.Parameter(
                 name='renew_to_time',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=f'续费到指定日期，ISO8601格式：YYYY-MM-ddTHH:mm:ssZ，不得与参数“period”同时提交'
+                description=gettext_lazy('续费到指定日期，ISO8601格式：YYYY-MM-ddTHH:mm:ssZ，不得与参数“period”同时提交')
             ),
         ],
         responses={
