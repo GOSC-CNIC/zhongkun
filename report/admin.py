@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from utils.model import NoDeleteSelectModelAdmin
+from utils.model import NoDeleteSelectModelAdmin, BaseModelAdmin
 from .models import MonthlyReport, BucketMonthlyReport, BucketStatsMonthly, ArrearServer, ArrearBucket
 
 
@@ -50,7 +50,7 @@ class BucketMonthlyReportAdmin(NoDeleteSelectModelAdmin):
 
 
 @admin.register(BucketStatsMonthly)
-class BucketStatsMonthlyAdmin(admin.ModelAdmin):
+class BucketStatsMonthlyAdmin(BaseModelAdmin):
     list_display = ('id', 'bucket_id', 'bucket_name', 'service', 'size_byte', 'increment_byte', 'object_count',
                     'original_amount', 'increment_amount', 'user', 'date', 'creation_time')
     list_select_related = ('service', 'user')
@@ -63,7 +63,7 @@ class BucketStatsMonthlyAdmin(admin.ModelAdmin):
 
 
 @admin.register(ArrearServer)
-class ArrearServerAdmin(admin.ModelAdmin):
+class ArrearServerAdmin(BaseModelAdmin):
     list_display = ('id', 'server_id', 'ipv4', 'vcpus', 'ram', 'image', 'service_name',
                     'server_creation', 'server_expire', 'pay_type', 'user_id', 'username',
                     'vo_id', 'vo_name', 'owner_type', 'balance_amount', 'date', 'creation_time', 'remarks')
@@ -76,7 +76,7 @@ class ArrearServerAdmin(admin.ModelAdmin):
 
 
 @admin.register(ArrearBucket)
-class ArrearBucketAdmin(admin.ModelAdmin):
+class ArrearBucketAdmin(BaseModelAdmin):
     list_display = ('id', 'bucket_id', 'bucket_name', 'service_name', 'size_byte', 'object_count',
                     'bucket_creation', 'user_id', 'username', 'balance_amount', 'date', 'creation_time')
     # list_select_related = ('service',)

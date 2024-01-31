@@ -5,7 +5,7 @@ from django.utils.html import format_html
 from django.db import transaction
 from django import forms
 
-from utils.model import NoDeleteSelectModelAdmin, PayType
+from utils.model import NoDeleteSelectModelAdmin, PayType, BaseModelAdmin
 from servers.forms import VmsProviderForm
 from .models import (
     Server, Flavor, ServerArchive, Disk, ResourceActionLog, DiskChangeLog,
@@ -100,7 +100,7 @@ class ServerArchiveAdmin(NoDeleteSelectModelAdmin):
 
 
 @admin.register(Flavor)
-class FlavorAdmin(admin.ModelAdmin):
+class FlavorAdmin(BaseModelAdmin):
     list_display_links = ('id',)
     list_display = ('id', 'vcpus', 'ram', 'enable', 'service', 'creation_time')
     ordering = ('vcpus', 'ram')
@@ -318,7 +318,7 @@ class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
 
 
 @admin.register(ServicePrivateQuota)
-class ServicePrivateQuotaAdmin(admin.ModelAdmin):
+class ServicePrivateQuotaAdmin(BaseModelAdmin):
     list_display_links = ('id',)
     list_display = ('id', 'service', 'vcpu_total', 'vcpu_used', 'ram_total', 'ram_used', 'disk_size_total',
                     'disk_size_used', 'private_ip_total', 'private_ip_used', 'public_ip_total', 'public_ip_used',

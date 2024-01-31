@@ -3,7 +3,7 @@ from django.contrib.admin.filters import SimpleListFilter
 from django.utils.translation import gettext, gettext_lazy as _
 from django import forms
 
-from utils.model import NoDeleteSelectModelAdmin
+from utils.model import NoDeleteSelectModelAdmin, BaseModelAdmin
 from .models import (
     PaymentHistory, UserPointAccount, VoPointAccount, PayApp, CashCouponActivity, CashCoupon,
     PayAppService, TransactionBill, RefundRecord, Recharge, CashCouponPaymentHistory
@@ -19,7 +19,7 @@ class PayAppForm(forms.ModelForm):
 
 
 @admin.register(PaymentHistory)
-class PaymentHistoryAdmin(admin.ModelAdmin):
+class PaymentHistoryAdmin(BaseModelAdmin):
     list_display = ('id', 'subject', 'payment_method', 'payable_amounts', 'amounts', 'coupon_amount',
                     'creation_time', 'payment_time', 'status', 'status_desc', 'app_id',
                     'payer_type', 'payer_id', 'payer_name', 'payment_account', 'executor')
@@ -35,7 +35,7 @@ class PaymentHistoryAdmin(admin.ModelAdmin):
 
 
 @admin.register(CashCouponPaymentHistory)
-class CashCouponPaymentHistoryAdmin(admin.ModelAdmin):
+class CashCouponPaymentHistoryAdmin(BaseModelAdmin):
     list_display = ('id', 'payment_history', 'cash_coupon', 'amounts', 'before_payment', 'after_payment',
                     'creation_time')
     list_display_links = ('id',)
@@ -103,7 +103,7 @@ class PayAppAdmin(NoDeleteSelectModelAdmin):
 
 
 @admin.register(CashCouponActivity)
-class CashCouponActivityAdmin(admin.ModelAdmin):
+class CashCouponActivityAdmin(BaseModelAdmin):
     list_display = ('id', 'name', 'face_value', 'effective_time', 'expiration_time',
                     'app_service', 'grant_total', 'granted_count',
                     'grant_status', 'creation_time', 'desc')
@@ -141,7 +141,7 @@ class CashCouponActivityAdmin(admin.ModelAdmin):
 
 
 @admin.register(CashCoupon)
-class CashCouponAdmin(admin.ModelAdmin):
+class CashCouponAdmin(BaseModelAdmin):
     list_display = ('id', 'activity', 'face_value', 'balance', 'effective_time', 'expiration_time', 'status',
                     'app_service', 'user', 'vo', 'owner_type', 'issuer', 'granted_time', 'exchange_code',
                     'creation_time', 'balance_notice_time', 'expire_notice_time', 'remark')
@@ -158,7 +158,7 @@ class CashCouponAdmin(admin.ModelAdmin):
 
 
 # @admin.register(PayOrgnazition)
-# class PayOrgnazitionAdmin(admin.ModelAdmin):
+# class PayOrgnazitionAdmin(BaseModelAdmin):
 #     list_display = ('id', 'name', 'name_en', 'abbreviation', 'independent_legal_person', 'country',
 #                     'city', 'postal_code', 'address', 'creation_time', 'desc')
 #     list_display_links = ('id',)
@@ -225,7 +225,7 @@ class TransactionBillAdmin(NoDeleteSelectModelAdmin):
 
 
 @admin.register(RefundRecord)
-class RefundRecordAdmin(admin.ModelAdmin):
+class RefundRecordAdmin(BaseModelAdmin):
     list_display = ('id', 'trade_id', 'out_order_id', 'out_refund_id', 'refund_reason',
                     'total_amounts', 'refund_amounts', 'real_refund', 'coupon_refund',
                     'status', 'status_desc', 'app_id', 'creation_time', 'success_time',
@@ -245,7 +245,7 @@ class RefundRecordAdmin(admin.ModelAdmin):
 
 
 @admin.register(Recharge)
-class RechargeAdmin(admin.ModelAdmin):
+class RechargeAdmin(BaseModelAdmin):
     list_display = ('id', 'total_amount', 'receipt_amount', 'creation_time', 'status',
                     'trade_channel', 'out_trade_no', 'channel_account',
                     'channel_fee', 'owner_type', 'owner_id', 'owner_name', 'executor', 'in_account')

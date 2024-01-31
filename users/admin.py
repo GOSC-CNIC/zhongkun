@@ -4,6 +4,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.html import format_html
 from django.urls import reverse
 
+from utils.model import BaseModelAdmin
 from .models import UserProfile, Email
 from .forms import UserModelForm
 
@@ -33,7 +34,7 @@ class UserProfileAdmin(UserAdmin):
 
 
 @admin.register(Email)
-class EmailAdmin(admin.ModelAdmin):
+class EmailAdmin(BaseModelAdmin):
     list_display = ('show_preview_url', 'id', 'subject', 'tag', 'receiver', 'sender',
                     'status', 'success_time', 'send_time', 'is_html', 'remote_ip', 'status_desc')
     list_display_links = ('id', 'subject')

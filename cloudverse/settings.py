@@ -351,12 +351,13 @@ SWAGGER_SETTINGS = {
 
 # admin
 BATON = {
-    'COPYRIGHT': 'copyright © 2022 <a href="https://gitee.com/cstcloud-cnic">CNIC</a>', # noqa
+    'COPYRIGHT': '', # noqa
     'POWERED_BY': '<a href="https://gitee.com/cstcloud-cnic">CNIC</a>',
     'MENU_ALWAYS_COLLAPSED': False,
     'CHANGELIST_FILTERS_IN_MODAL': False,
     'CHANGELIST_FILTERS_ALWAYS_OPEN': False,
     'CHANGELIST_FILTERS_FORM': True,
+    'GRAVATAR_ENABLED': False,
 }
 
 # swagger api在线文档地址配置

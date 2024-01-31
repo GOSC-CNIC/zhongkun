@@ -7,7 +7,7 @@ from django.contrib.admin.filters import SimpleListFilter
 from storage.request import request_service
 from storage.adapter import inputs
 from core import errors
-from utils.model import NoDeleteSelectModelAdmin
+from utils.model import NoDeleteSelectModelAdmin, BaseModelAdmin
 from . import models
 from . import forms
 
@@ -31,7 +31,7 @@ class ServiceOrgFilter(SimpleListFilter):
 
 
 @admin.register(models.ObjectsService)
-class ObjectsServiceAdmin(admin.ModelAdmin):
+class ObjectsServiceAdmin(BaseModelAdmin):
     form = forms.ObjectsServiceForm
 
     list_display = ('id', 'name', 'name_en', 'org_data_center', 'organization_name', 'service_type',
@@ -134,7 +134,7 @@ class BucketAdmin(NoDeleteSelectModelAdmin):
 
 
 @admin.register(models.BucketArchive)
-class BucketArchiveAdmin(admin.ModelAdmin):
+class BucketArchiveAdmin(BaseModelAdmin):
     list_display = ('id', 'name', 'service', 'creation_time', 'user', 'delete_time', 'archiver',
                     'task_status', 'situation', 'situation_time', 'storage_size', 'object_count',
                     'stats_time', 'tag')

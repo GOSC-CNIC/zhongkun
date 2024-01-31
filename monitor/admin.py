@@ -7,7 +7,7 @@ from django.utils.translation import gettext_lazy, gettext
 from django.forms import ModelForm
 from django.core.exceptions import ValidationError
 
-from utils.model import NoDeleteSelectModelAdmin
+from utils.model import NoDeleteSelectModelAdmin, BaseModelAdmin
 from .models import (
     MonitorJobCeph, MonitorProvider, MonitorJobServer, MonitorJobVideoMeeting,
     MonitorWebsite, MonitorWebsiteRecord, MonitorWebsiteTask, MonitorWebsiteVersion,
@@ -18,7 +18,7 @@ from .managers import MonitorWebsiteManager
 
 
 @admin.register(MonitorProvider)
-class MonitorProviderAdmin(admin.ModelAdmin):
+class MonitorProviderAdmin(BaseModelAdmin):
     list_display = ('name', 'name_en', 'endpoint_url', 'receive_url', 'bucket_name',
                     'bucket_service_name', 'bucket_service_url', 'username', 'password', 'creation')
     list_display_links = ('name', )
@@ -26,7 +26,7 @@ class MonitorProviderAdmin(admin.ModelAdmin):
 
 
 @admin.register(MonitorJobCeph)
-class MonitorJobCephAdmin(admin.ModelAdmin):
+class MonitorJobCephAdmin(BaseModelAdmin):
     list_display = ('name', 'name_en', 'org_data_center', 'organization_name', 'sort_weight', 'job_tag',
                     'thanos_endpoint_url', 'prometheus', 'creation')
     list_display_links = ('name', )
@@ -53,7 +53,7 @@ class MonitorJobCephAdmin(admin.ModelAdmin):
 
 
 @admin.register(MonitorJobServer)
-class MonitorJobServerAdmin(admin.ModelAdmin):
+class MonitorJobServerAdmin(BaseModelAdmin):
     list_display = ('name', 'name_en', 'org_data_center', 'organization_name', 'sort_weight', 'job_tag',
                     'thanos_endpoint_url', 'prometheus', 'creation')
     list_display_links = ('name', )
@@ -80,7 +80,7 @@ class MonitorJobServerAdmin(admin.ModelAdmin):
 
 
 @admin.register(MonitorJobVideoMeeting)
-class MonitorJobVideoMeetingAdmin(admin.ModelAdmin):
+class MonitorJobVideoMeetingAdmin(BaseModelAdmin):
     list_display = ('name', 'name_en', 'job_tag', 'ips', 'longitude', 'latitude', 'provider', 'prometheus', 'creation')
     list_display_links = ('name', )
     list_select_related = ('provider',)
@@ -142,7 +142,7 @@ class MonitorWebsiteRecordAdmin(NoDeleteSelectModelAdmin):
 
 
 @admin.register(MonitorWebsiteTask)
-class MonitorWebsiteTaskAdmin(admin.ModelAdmin):
+class MonitorWebsiteTaskAdmin(BaseModelAdmin):
     list_display = ('id', 'url', 'url_hash', 'creation')
     list_display_links = ('id', )
     search_fields = ('url',)
@@ -186,7 +186,7 @@ class WebsiteDetectionPointAdmin(NoDeleteSelectModelAdmin):
 
 
 @admin.register(MonitorJobTiDB)
-class MonitorJobTiDBAdmin(admin.ModelAdmin):
+class MonitorJobTiDBAdmin(BaseModelAdmin):
     list_display = ('name', 'name_en', 'org_data_center', 'organization_name', 'sort_weight', 'version', 'job_tag',
                     'thanos_endpoint_url', 'prometheus', 'creation')
     list_display_links = ('name', )
@@ -213,14 +213,14 @@ class MonitorJobTiDBAdmin(admin.ModelAdmin):
 
 
 @admin.register(LogSiteType)
-class LogSiteTypeAdmin(admin.ModelAdmin):
+class LogSiteTypeAdmin(BaseModelAdmin):
     list_display = ('name', 'name_en', 'sort_weight', 'creation', 'desc')
     list_display_links = ('name', )
     list_editable = ('sort_weight',)
 
 
 @admin.register(LogSite)
-class LogSiteAdmin(admin.ModelAdmin):
+class LogSiteAdmin(BaseModelAdmin):
     list_display = ('name', 'name_en', 'site_type', 'org_data_center', 'organization_name', 'sort_weight', 'job_tag',
                     'loki_endpoint_url', 'creation')
     list_display_links = ('name', )
@@ -259,7 +259,7 @@ class TotalReqNumAdmin(NoDeleteSelectModelAdmin):
 
 
 @admin.register(LogSiteTimeReqNum)
-class LogSiteTimeReqNumAdmin(admin.ModelAdmin):
+class LogSiteTimeReqNumAdmin(BaseModelAdmin):
     list_display = ('id', 'timestamp', 'show_time', 'site', 'count')
     list_display_links = ('id', )
     list_select_related = ('site', )
@@ -275,7 +275,7 @@ class LogSiteTimeReqNumAdmin(admin.ModelAdmin):
 
 
 @admin.register(ErrorLog)
-class ErrorLogAdmin(admin.ModelAdmin):
+class ErrorLogAdmin(BaseModelAdmin):
     list_display = ('id', 'status_code', 'method', 'full_path', 'message', 'creation', 'username')
     list_display_links = ('id', )
     search_fields = ('full_path', 'username', 'message')

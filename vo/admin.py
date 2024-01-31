@@ -1,11 +1,12 @@
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 
+from utils.model import BaseModelAdmin
 from .models import VirtualOrganization, VoMember
 
 
 @admin.register(VirtualOrganization)
-class VoAdmin(admin.ModelAdmin):
+class VoAdmin(BaseModelAdmin):
     list_display_links = ('id',)
     list_display = ('id', 'name', 'creation_time', 'owner', 'company', 'is_deleted', 'description')
     search_fields = ['name', 'company', 'description']
@@ -27,7 +28,7 @@ class VoAdmin(admin.ModelAdmin):
 
 
 @admin.register(VoMember)
-class VoMemberAdmin(admin.ModelAdmin):
+class VoMemberAdmin(BaseModelAdmin):
     list_display_links = ('id',)
     list_display = ('id', 'user', 'vo', 'role', 'join_time', 'inviter', 'inviter_id')
     search_fields = ['user__username', 'vo__name', 'inviter']

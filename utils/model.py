@@ -1,5 +1,3 @@
-from uuid import uuid1
-
 from django.db import models
 from django.contrib import admin
 from django.conf import settings
@@ -55,7 +53,14 @@ class PayType(models.TextChoices):
     QUOTA = 'quota', _('资源配额券')
 
 
-class NoDeleteSelectModelAdmin(admin.ModelAdmin):
+class BaseModelAdmin(admin.ModelAdmin):
+    class Media:
+        css = {
+            'all': ['yunkun/admin/common.css']
+        }
+
+
+class NoDeleteSelectModelAdmin(BaseModelAdmin):
     def get_actions(self, request):
         actions = super(NoDeleteSelectModelAdmin, self).get_actions(request)
         if 'delete_selected' in actions:

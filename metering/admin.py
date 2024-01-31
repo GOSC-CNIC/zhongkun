@@ -1,5 +1,6 @@
 from django.contrib import admin
 
+from utils.model import BaseModelAdmin
 from .models import (
     MeteringServer, MeteringDisk, MeteringObjectStorage, DailyStatementServer, DailyStatementObjectStorage,
     DailyStatementDisk, MeteringMonitorWebsite, DailyStatementMonitorWebsite
@@ -7,7 +8,7 @@ from .models import (
 
 
 @admin.register(MeteringServer)
-class MeteringServerAdmin(admin.ModelAdmin):
+class MeteringServerAdmin(BaseModelAdmin):
     list_display = ('id', 'date', 'cpu_hours', 'ram_hours', 'disk_hours', 'public_ip_hours',
                     'snapshot_hours', 'upstream', 'downstream', 'pay_type', 'service',
                     'original_amount', 'trade_amount', 'daily_statement_id',
@@ -19,7 +20,7 @@ class MeteringServerAdmin(admin.ModelAdmin):
 
 
 @admin.register(MeteringDisk)
-class MeteringDiskAdmin(admin.ModelAdmin):
+class MeteringDiskAdmin(BaseModelAdmin):
     list_display = ('id', 'date', 'size_hours', 'snapshot_hours', 'pay_type', 'service',
                     'original_amount', 'trade_amount', 'daily_statement_id',
                     'disk_id', 'creation_time', 'owner_type', 'user_id', 'username', 'vo_id', 'vo_name')
@@ -30,7 +31,7 @@ class MeteringDiskAdmin(admin.ModelAdmin):
 
 
 @admin.register(MeteringObjectStorage)
-class MeteringObjectStorageAdmin(admin.ModelAdmin):
+class MeteringObjectStorageAdmin(BaseModelAdmin):
     list_display = ('id', 'date', 'storage_byte', 'storage', 'downstream', 'replication', 'get_request',
                     'put_request', 'billed_network_flow', 'unbilled_network_flow', 'service', 'bucket_name', 'storage_bucket_id',
                     'original_amount', 'trade_amount', 'daily_statement_id',
@@ -42,7 +43,7 @@ class MeteringObjectStorageAdmin(admin.ModelAdmin):
 
 
 @admin.register(MeteringMonitorWebsite)
-class MeteringMonitorWebsiteAdmin(admin.ModelAdmin):
+class MeteringMonitorWebsiteAdmin(BaseModelAdmin):
     list_display = ('id', 'date', 'website_id', 'website_name', 'hours', 'detection_count', 'tamper_resistant_count',
                     'security_count', 'original_amount', 'trade_amount', 'daily_statement_id',
                     'creation_time', 'user_id', 'username')
@@ -51,7 +52,7 @@ class MeteringMonitorWebsiteAdmin(admin.ModelAdmin):
 
 
 @admin.register(DailyStatementServer)
-class DailyStatementServerAdmin(admin.ModelAdmin):
+class DailyStatementServerAdmin(BaseModelAdmin):
     list_display = ('id', 'date', 'service',
                     'original_amount', 'payable_amount', 'trade_amount', 'payment_status', 'payment_history_id',
                     'creation_time', 'owner_type', 'user_id', 'username', 'vo_id', 'vo_name')
@@ -62,7 +63,7 @@ class DailyStatementServerAdmin(admin.ModelAdmin):
 
 
 @admin.register(DailyStatementObjectStorage)
-class DailyStatementObjectStorageAdmin(admin.ModelAdmin):
+class DailyStatementObjectStorageAdmin(BaseModelAdmin):
     list_display = ('id', 'date', 'service',
                     'original_amount', 'payable_amount', 'trade_amount', 'payment_status', 'payment_history_id',
                     'creation_time', 'user_id', 'username')
@@ -73,7 +74,7 @@ class DailyStatementObjectStorageAdmin(admin.ModelAdmin):
 
 
 @admin.register(DailyStatementDisk)
-class DailyStatementDiskAdmin(admin.ModelAdmin):
+class DailyStatementDiskAdmin(BaseModelAdmin):
     list_display = ('id', 'date', 'service',
                     'original_amount', 'payable_amount', 'trade_amount', 'payment_status', 'payment_history_id',
                     'creation_time', 'owner_type', 'user_id', 'username', 'vo_id', 'vo_name')
@@ -84,7 +85,7 @@ class DailyStatementDiskAdmin(admin.ModelAdmin):
 
 
 @admin.register(DailyStatementMonitorWebsite)
-class DailyStMonitorSiteAdmin(admin.ModelAdmin):
+class DailyStMonitorSiteAdmin(BaseModelAdmin):
     list_display = ('id', 'date', 'original_amount', 'payable_amount', 'trade_amount', 'payment_status',
                     'payment_history_id', 'creation_time', 'user_id', 'username')
     list_display_links = ('id',)

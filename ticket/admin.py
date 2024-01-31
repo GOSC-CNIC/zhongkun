@@ -1,12 +1,13 @@
 from django.contrib import admin
 
+from utils.model import BaseModelAdmin
 from .models import (
     Ticket, TicketChange, FollowUp, TicketRating
 )
 
 
 @admin.register(Ticket)
-class TicketAdmin(admin.ModelAdmin):
+class TicketAdmin(BaseModelAdmin):
     list_display = ('id', 'title', 'status', 'service_type', 'severity', 'submitter', 'submit_time',
                     'contact', 'assigned_to')
     list_display_links = ('id', 'title')
@@ -19,7 +20,7 @@ class TicketAdmin(admin.ModelAdmin):
 
 
 @admin.register(FollowUp)
-class FollowUpAdmin(admin.ModelAdmin):
+class FollowUpAdmin(BaseModelAdmin):
     list_display = ('id', 'ticket', 'user', 'submit_time', 'fu_type', 'title', 'ticket_change')
     list_display_links = ('id',)
     list_filter = ('fu_type', )
@@ -28,14 +29,14 @@ class FollowUpAdmin(admin.ModelAdmin):
 
 
 @admin.register(TicketChange)
-class TicketChangeAdmin(admin.ModelAdmin):
+class TicketChangeAdmin(BaseModelAdmin):
     list_display = ('id', 'ticket_field', 'display')
     list_display_links = ('id',)
     search_fields = ('id',)
 
 
 @admin.register(TicketRating)
-class TicketRatingAdmin(admin.ModelAdmin):
+class TicketRatingAdmin(BaseModelAdmin):
     list_display = ('id', 'ticket_id', 'score', 'submit_time', 'username', 'is_sys_submit')
     list_display_links = ('id',)
     search_fields = ('id', 'ticket_id')

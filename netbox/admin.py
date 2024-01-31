@@ -8,6 +8,7 @@ from django.db import models
 from django.utils.text import smart_split, unescape_string_literal
 from django.contrib.admin.utils import lookup_spawns_duplicates
 
+from utils.model import BaseModelAdmin
 from .models import (
     NetBoxUserRole, OrgVirtualObject, ASN, IPv4Address, IPv4Range, IPv4RangeRecord,
     IPv6Range, IPv6Address, IPv6RangeRecord, ContactPerson,
@@ -16,7 +17,7 @@ from .models import (
 )
 
 
-class IPModelAdmin(admin.ModelAdmin):
+class IPModelAdmin(BaseModelAdmin):
     def get_search_q_querys(self, request, queryset, search_term):
         """
         return: [Q()], may_have_duplicates
@@ -96,7 +97,7 @@ class IPModelAdmin(admin.ModelAdmin):
 
 
 @admin.register(NetBoxUserRole)
-class NetBoxUserRoleAdmin(admin.ModelAdmin):
+class NetBoxUserRoleAdmin(BaseModelAdmin):
     list_display = ('id', 'user', 'is_ipam_admin', 'is_ipam_readonly', 'is_link_admin', 'is_link_readonly',
                     'creation_time', 'update_time')
     list_select_related = ('user',)
@@ -106,7 +107,7 @@ class NetBoxUserRoleAdmin(admin.ModelAdmin):
 
 
 @admin.register(OrgVirtualObject)
-class OrgVirtualObjectAdmin(admin.ModelAdmin):
+class OrgVirtualObjectAdmin(BaseModelAdmin):
     list_display = ('id', 'name', 'organization', 'creation_time', 'remark')
     list_select_related = ('organization',)
     raw_id_fields = ('organization',)
@@ -116,7 +117,7 @@ class OrgVirtualObjectAdmin(admin.ModelAdmin):
 
 
 @admin.register(ContactPerson)
-class ContactPersonAdmin(admin.ModelAdmin):
+class ContactPersonAdmin(BaseModelAdmin):
     list_display_links = ('id',)
     list_display = ('id', 'name', 'telephone', 'email', 'address', 'creation_time', 'remarks')
 
@@ -125,7 +126,7 @@ class ContactPersonAdmin(admin.ModelAdmin):
 
 
 @admin.register(ASN)
-class ASNAdmin(admin.ModelAdmin):
+class ASNAdmin(BaseModelAdmin):
     list_display = ('id', 'number', 'name', 'creation_time')
     search_fields = ('name',)
 
@@ -283,8 +284,8 @@ class IPv6RangeRecordAdmin(IPModelAdmin):
     raw_id_fields = ('org_virt_obj', 'user')
     search_fields = ('remark',)
 
-    @staticmethod
-    def display_ip_range(obj: IPv6RangeRecord):
+    @admin.display(description=gettext_lazy('IP地址网段'))
+    def display_ip_range(self, obj: IPv6RangeRecord):
         return obj.ip_range_display()
 
     @staticmethod
@@ -301,7 +302,7 @@ class IPv6RangeRecordAdmin(IPModelAdmin):
 
 
 @admin.register(LeaseLine)
-class LeaseLineAdmin(admin.ModelAdmin):
+class LeaseLineAdmin(BaseModelAdmin):
     list_display = ['id', 'private_line_number', 'lease_line_code', 'line_username',
                     'endpoint_a', 'endpoint_z', 'line_type', 'cable_type',
                     'bandwidth', 'length', 'provider', 'enable_date', 'is_whithdrawal',
@@ -311,7 +312,7 @@ class LeaseLineAdmin(admin.ModelAdmin):
 
 
 @admin.register(OpticalFiber)
-class OpticalFiberAdmin(admin.ModelAdmin):
+class OpticalFiberAdmin(BaseModelAdmin):
     list_display = ['id', 'fiber_cable', 'sequence',
                     'element', 'create_time', 'update_time']
     search_fields = ['id']
@@ -319,7 +320,7 @@ class OpticalFiberAdmin(admin.ModelAdmin):
 
 
 @admin.register(DistriFramePort)
-class DistriFramePortAdmin(admin.ModelAdmin):
+class DistriFramePortAdmin(BaseModelAdmin):
     list_display = ['id', 'number', 'row', 'col',
                     'distribution_frame', 'element', 'create_time', 'update_time']
     search_fields = ['id', 'number']
@@ -327,7 +328,7 @@ class DistriFramePortAdmin(admin.ModelAdmin):
 
 
 @admin.register(ConnectorBox)
-class ConnectorBoxAdmin(admin.ModelAdmin):
+class ConnectorBoxAdmin(BaseModelAdmin):
     list_display = ['id', 'number', 'place', 'remarks',
                     'location', 'element', 'create_time', 'update_time']
     search_fields = ['id', 'number']
@@ -335,14 +336,14 @@ class ConnectorBoxAdmin(admin.ModelAdmin):
 
 
 @admin.register(FiberCable)
-class FiberCableAdmin(admin.ModelAdmin):
+class FiberCableAdmin(BaseModelAdmin):
     list_display = ['id', 'number', 'fiber_count', 'length',
                     'endpoint_1', 'endpoint_2', 'remarks', 'create_time', 'update_time']
     search_fields = ['id', 'number']
 
 
 @admin.register(DistributionFrame)
-class DistributionFrameAdmin(admin.ModelAdmin):
+class DistributionFrameAdmin(BaseModelAdmin):
     list_display = ['id', 'number', 'model_type', 'row_count', 'col_count',
                     'place', 'link_org', 'remarks', 'create_time', 'update_time']
     search_fields = ['id', 'number', 'remarks']
@@ -350,14 +351,14 @@ class DistributionFrameAdmin(admin.ModelAdmin):
 
 
 @admin.register(ElementLink)
-class ElementLinkAdmin(admin.ModelAdmin):
+class ElementLinkAdmin(BaseModelAdmin):
     list_display = ['id', 'element_id', 'link_id', 'index', 'sub_index']
     search_fields = ['id', 'element_id', 'link_id']
     raw_id_fields = ('element', 'link')
 
 
 @admin.register(Link)
-class LinkAdmin(admin.ModelAdmin):
+class LinkAdmin(BaseModelAdmin):
     list_display = ['id', 'number', 'user', 'endpoint_a', 'endpoint_z',
                     'bandwidth', 'description', 'line_type', 'business_person',
                     'build_person', 'link_status', 'remarks', 'enable_date',
@@ -366,7 +367,7 @@ class LinkAdmin(admin.ModelAdmin):
 
 
 @admin.register(Element)
-class ElementAdmin(admin.ModelAdmin):
+class ElementAdmin(BaseModelAdmin):
     list_display = ['id', 'object_type',
                     'object_id', 'create_time', 'update_time']
     search_fields = ['id', 'object_id']

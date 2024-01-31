@@ -13,7 +13,7 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.contrib import admin
+# from django.contrib import admin
 from django.contrib.auth.decorators import login_required
 from django.urls import path, include
 from django.conf import settings
@@ -21,6 +21,7 @@ from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from drf_yasg.generators import OpenAPISchemaGenerator
+from baton.autodiscover import admin
 
 from core.aai.signin import AAISignIn
 from . import views
@@ -58,7 +59,6 @@ schema_view = get_schema_view(
 urlpatterns = [
     path('', views.home, name='index'),
     path('home/', views.home, name='home'),
-    path('admin/', admin.site.urls),
     path('accounts/', include('users.urls', namespace='users')),
     path('servers/', include('servers.urls', namespace='servers')),
     path('service/', include('service.urls', namespace='service')),
@@ -83,6 +83,7 @@ urlpatterns = [
     path('about/', views.about, name='about'),
     path('report/', include('report.urls', namespace='report')),
     path('auth/callback/aai', AAISignIn.as_view(), name='auth-callback-aai'),
+    path('admin/', admin.site.urls),
     path('baton/', include('baton.urls')),
 ]
 
