@@ -217,6 +217,46 @@ class Resource(UuidModel):
     def __repr__(self):
         return f'Resource([{self.resource_type}]{self.instance_id})'
 
+    def set_deliver_failed(self, failed_msg: str, raise_exc: bool = True):
+        try:
+            self.instance_status = self.InstanceStatus.FAILED.value
+            self.desc = failed_msg
+            self.save(update_fields=['instance_status', 'desc'])
+        except Exception as e:
+            if raise_exc:
+                return e
+
+    @staticmethod
+    def set_many_deliver_failed(res_ids: list, failed_msg: str, raise_exc: bool = True):
+        try:
+            if len(failed_msg) >= 255:
+                failed_msg = failed_msg[0:254]
+
+            if len(res_ids) == 1:
+                qs = Resource.objects.filter(id=res_ids[0])
+            else:
+                qs = Resource.objects.filter(id__in=res_ids)
+
+            qs.update(instance_status=Resource.InstanceStatus.FAILED.value, desc=failed_msg)
+        except Exception as e:
+            if raise_exc:
+                return e
+
+    def set_deliver_success(self, instance_id: str = None, raise_exc: bool = True):
+        try:
+            self.instance_status = self.InstanceStatus.SUCCESS.value
+            self.desc = 'success'
+            self.delivered_time = timezone.now()
+            update_fields = ['instance_status', 'desc', 'delivered_time']
+            if instance_id:
+                self.instance_id = instance_id
+                update_fields.append('instance_id')
+
+            self.save(update_fields=update_fields)
+        except Exception as e:
+            if raise_exc:
+                return e
+
 
 class Price(UuidModel):
     vm_ram = models.DecimalField(

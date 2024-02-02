@@ -366,6 +366,16 @@ class OrderManager:
 
         return Resource.objects.filter(id=resource_id).first()
 
+    @staticmethod
+    def get_resources(resource_ids: List[str], select_for_update: bool = False) -> List[Resource]:
+        if select_for_update:
+            qs = Resource.objects.filter(id__in=resource_ids).select_for_update()
+        else:
+            qs = Resource.objects.filter(id__in=resource_ids)
+
+        qs = qs.distinct()
+        return list(qs)
+
     def get_order_detail(self, order_id: str, user, check_permission: bool = True, read_only: bool = True):
         """
         查询订单详情
@@ -486,9 +496,57 @@ class OrderManager:
                 message += _('更新订单交易状态失败') + str(e)
 
         if message:
-            return errors.Error(message=message)
+            raise errors.Error(message=message)
 
         return order, resource
+
+    @staticmethod
+    def set_order_deliver_success(order: Order):
+        """
+        订单资源交付成功， 更新订单信息
+
+        :return:
+            order    # success
+
+        :raises: Error
+        """
+        with transaction.atomic():
+            order = Order.objects.filter(id=order.id).select_for_update().first()
+            if order.trading_status in [order.TradingStatus.CLOSED, order.TradingStatus.COMPLETED]:
+                raise errors.Error(message=_('交易关闭和交易完成状态的订单不允许修改'))
+
+            update_fields = ['trading_status']
+            order.trading_status = order.TradingStatus.COMPLETED.value
+            try:
+                order.save(update_fields=update_fields)
+            except Exception as e:
+                message = _('更新订单交易状态失败') + str(e)
+                raise errors.Error(message=message)
+
+        return order
+
+    @staticmethod
+    def set_order_deliver_failed(order: Order, trading_status: str = Order.TradingStatus.UNDELIVERED.value):
+        """
+        订单资源交付失败， 更新订单信息
+
+        :return:
+            order    # success
+
+        :raises: Error
+        """
+        with transaction.atomic():
+            order = Order.objects.filter(id=order.id).select_for_update().first()
+            if order.trading_status in [order.TradingStatus.CLOSED, order.TradingStatus.COMPLETED]:
+                raise errors.Error(message=_('交易关闭和交易完成状态的订单不允许修改'))
+
+            order.trading_status = trading_status
+            try:
+                order.save(update_fields=['trading_status'])
+            except Exception as e:
+                raise errors.Error(message=_('更新订单交易状态失败') + str(e))
+
+        return order
 
     def cancel_order(self, order_id: str, user):
         """
@@ -541,3 +599,13 @@ class OrderManager:
             raise exc
         except Exception as exc:
             raise errors.Error(message=str(exc))
+
+    @staticmethod
+    def get_order_resources(order_id: str, select_for_update: bool = False) -> List[Resource]:
+        if select_for_update:
+            qs = Resource.objects.filter(order_id=order_id).select_for_update().all()
+        else:
+            qs = Resource.objects.filter(order_id=order_id).all()
+
+        qs = qs.distinct()
+        return list(qs)

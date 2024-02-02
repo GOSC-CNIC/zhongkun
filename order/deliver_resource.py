@@ -1,3 +1,4 @@
+from typing import List, Tuple, Union
 from datetime import timedelta, datetime
 
 from django.db import transaction
@@ -20,40 +21,52 @@ class OrderResourceDeliverer:
     """
     订单资源创建交付管理器
     """
-    def deliver_order(self, order: Order, resource: Resource):
+    def deliver_order(self, order: Order, resource: Resource = None) -> List[Union[Server, Disk]]:
         """
         :return:
-            server or disk
+            list
 
         :raises: Error
         """
         if order.order_type == Order.OrderType.NEW.value:  # 新购
             if order.resource_type == ResourceType.VM.value:
-                service, server = self.deliver_new_server(order=order, resource=resource)
-                self.after_deliver_server(service=service, server=server)
-                return server
+                service, server_list, err_list = self.deliver_new_servers(order=order)
+                self.after_deliver_server_list(service=service, servers=server_list)
+                if err_list:
+                    raise err_list[0]
+                return server_list
             elif order.resource_type == ResourceType.DISK.value:
                 service, disk = self.deliver_new_disk(order=order, resource=resource)
                 self.after_deliver_disk(service=service, disk=disk)
-                return disk
+                return [disk]
         elif order.order_type == Order.OrderType.RENEWAL.value:  # 续费
             if order.resource_type == ResourceType.VM.value:
                 server = self.deliver_renewal_server(order=order, resource=resource)
-                return server
+                return [server]
             elif order.resource_type == ResourceType.DISK.value:
                 disk = self.deliver_renewal_disk(order=order, resource=resource)
-                return disk
+                return [disk]
         elif order.order_type in [Order.OrderType.POST2PRE.value]:  # 付费方式修改
             if order.resource_type == ResourceType.VM.value:
                 server = self.deliver_modify_server_pay_type(order=order, resource=resource)
-                return server
+                return [server]
             elif order.resource_type == ResourceType.DISK.value:
                 disk = self.deliver_modify_disk_pay_type(order=order, resource=resource)
-                return disk
+                return [disk]
         else:
             raise exceptions.Error(message=_('订单的类型不支持交付。'))
 
         raise exceptions.Error(message=_('订购的资源类型无法交付，资源类型服务不支持。'))
+
+    def after_deliver_server_list(self, service: ServiceConfig, servers: List[Server]):
+        if len(servers) == 1:
+            self.after_deliver_server(service=service, server=servers[0])
+            return servers
+
+        for s in servers:
+            server_build_status.creat_task(s)  # 异步任务查询server创建结果，更新server信息和创建状态
+
+        return servers
 
     @staticmethod
     def after_deliver_server(service: ServiceConfig, server: Server):
@@ -82,15 +95,7 @@ class OrderResourceDeliverer:
         return disk
 
     @staticmethod
-    def create_server_resource_for_order(order: Order, resource: Resource):
-        """
-        为订单创建云服务器资源
-
-        :return:
-            service, server
-
-        :raises: Error, NeetReleaseResource
-        """
+    def _check_pre_create_server_resources(order: Order, resources: List[Resource]) -> (ServiceConfig, ServerConfig):
         if order.resource_type != ResourceType.VM.value:
             raise exceptions.Error(message=_('订单的资源类型不是云服务器'))
 
@@ -104,6 +109,60 @@ class OrderResourceDeliverer:
         except exceptions.Error as exc:
             raise exc
 
+        number = len(resources)
+        # 资源配额是否满足
+        try:
+            QuotaAPI().service_private_quota_meet(
+                service=service,
+                vcpu=config.vm_cpu * number,
+                ram_gib=config.vm_ram_gib * number,
+                public_ip=config.vm_public_ip * number
+            )
+        except exceptions.Error as exc:
+            raise exc
+
+        return service, config
+
+    def create_server_resources_for_order(
+            self, order: Order, resources: List[Resource], service: ServiceConfig, config: ServerConfig
+    ) -> Tuple[List[Server], List[Tuple[Resource, exceptions.Error]]]:
+        """
+        为订单创建云服务器资源
+
+        :return:
+            server_list, list[(failed_resources, error)]
+
+        :raises: Error
+        """
+        server_list = []
+        failed_resources = []    # 交付失败的
+        for res in resources:
+            try:
+                server = self.create_server_resource(
+                    order=order, resource=res, service=service, config=config)
+            except exceptions.Error as exc:
+                failed_resources.append((res, exc))
+                res.set_deliver_failed(failed_msg=_('创建云服务器资源失败, ') + str(exc), raise_exc=False)
+                continue
+
+            res.set_deliver_success(instance_id=server.id, raise_exc=False)
+            server_list.append(server)
+
+        return server_list, failed_resources
+
+    @staticmethod
+    def _request_create_server(service, params: inputs.ServerCreateInput):
+        return core_request.request_service(service=service, method='server_create', params=params)
+
+    def create_server_resource(self, order: Order, resource: Resource, service, config: ServerConfig):
+        """
+        为订单创建云服务器资源
+
+        :return:
+            server
+
+        :raises: Error, NeetReleaseResource
+        """
         # 资源配额扣除
         try:
             QuotaAPI().server_create_quota_apply(
@@ -117,7 +176,7 @@ class OrderResourceDeliverer:
             systemdisk_size=config.vm_systemdisk_size, flavor_id=config.vm_flavor_id
         )
         try:
-            out = core_request.request_service(service=service, method='server_create', params=params)
+            out = self._request_create_server(service=service, params=params)
         except exceptions.APIException as exc:
             try:
                 QuotaAPI().server_quota_release(
@@ -185,80 +244,159 @@ class OrderResourceDeliverer:
 
                 raise exceptions.NeetReleaseResource(message=message)
 
-        return service, server
+        return server
 
     @staticmethod
-    def _pre_check_deliver(order: Order, resource: Resource):
+    def _check_order_pre_deliver(order_id: str) -> Order:
+        """
+        在订单资源交付前，检查订单的交易状态
+
+        * 此方法需要在事务中调用
+        """
+        order = OrderManager.get_order(order_id=order_id, select_for_update=True)
+        if order.trading_status == order.TradingStatus.CLOSED.value:
+            raise exceptions.OrderTradingClosed(message=_('订单交易已关闭'))
+        elif order.trading_status == order.TradingStatus.COMPLETED.value:
+            raise exceptions.OrderTradingCompleted(message=_('订单交易已完成'))
+
+        if order.status == Order.Status.UNPAID.value:
+            raise exceptions.OrderUnpaid(message=_('订单未支付'))
+        elif order.status == Order.Status.CANCELLED.value:
+            raise exceptions.OrderCancelled(message=_('订单已作废'))
+        elif order.status == Order.Status.REFUND.value:
+            raise exceptions.OrderRefund(message=_('订单已退款'))
+        elif order.status != Order.Status.PAID.value:
+            raise exceptions.OrderStatusUnknown(message=_('未知状态的订单'))
+
+        return order
+
+    @staticmethod
+    def _check_order_resources_pre_deliver(order_id: str, resource_ids: list[str] = None) -> List[Resource]:
+        """
+        在订单资源交付前，检查订单的资源交付状态
+
+        * 此方法需要在事务中调用
+
+        :resource_ids: 如果未指定，就查询订单的资源列表
+        """
+        # 订单资源
+        if resource_ids:
+            resources = OrderManager.get_resources(resource_ids=resource_ids, select_for_update=True)
+        else:
+            resources = OrderManager.get_order_resources(order_id=order_id, select_for_update=True)
+
+        resources.sort(key=lambda x: x.creation_time, reverse=False)
+
+        time_now = timezone.now()
+        need_deliver_resources = []
+        for res in resources:
+            if res.order_id != order_id:
+                raise exceptions.OrderStatusUnknown(message=_('订单和订单资源不匹配'))
+
+            # 未成功交付的资源，检查上次交付时间，并更新本次交付时间
+            if res.instance_status == res.InstanceStatus.SUCCESS.value:
+                continue
+            if res.last_deliver_time is not None:
+                delta = time_now - res.last_deliver_time
+                if delta < timedelta(minutes=2):
+                    raise exceptions.TryAgainLater(message=_('为避免重复为订单交付资源，请2分钟后重试'))
+
+            res.last_deliver_time = time_now
+            need_deliver_resources.append(res)
+
+        if not need_deliver_resources:
+            if resources:
+                raise exceptions.OrderTradingCompleted(message=_('订单的资源已交付成功，没有待交付的资源'))
+            else:
+                raise exceptions.OrderTradingCompleted(message=_('订单没有待交付的资源'))
+
+        need_deli_res_ids = [x.id for x in need_deliver_resources]
+        if len(need_deli_res_ids) == 1:
+            Resource.objects.filter(id=need_deli_res_ids[0]).update(last_deliver_time=time_now)
+        else:
+            Resource.objects.filter(id__in=need_deli_res_ids).update(last_deliver_time=time_now)
+
+        return resources
+
+    def _pre_check_deliver(self, order: Order, resource_ids: list[str] = None) -> (Order, List[Resource]):
         """
         交付订单资源前检查
 
+        :resource_ids: 如果未指定，就查询订单的资源列表
         :return:
-            order, resource
+            order, resources
 
         :raises: Error
         """
         try:
             with transaction.atomic():
-                order = OrderManager.get_order(order_id=order.id, select_for_update=True)
-                if order.trading_status == order.TradingStatus.CLOSED.value:
-                    raise exceptions.OrderTradingClosed(message=_('订单交易已关闭'))
-                elif order.trading_status == order.TradingStatus.COMPLETED.value:
-                    raise exceptions.OrderTradingCompleted(message=_('订单交易已完成'))
-
-                if order.status == Order.Status.UNPAID.value:
-                    raise exceptions.OrderUnpaid(message=_('订单未支付'))
-                elif order.status == Order.Status.CANCELLED.value:
-                    raise exceptions.OrderCancelled(message=_('订单已作废'))
-                elif order.status == Order.Status.REFUND.value:
-                    raise exceptions.OrderRefund(message=_('订单已退款'))
-                elif order.status != Order.Status.PAID.value:
-                    raise exceptions.OrderStatusUnknown(message=_('未知状态的订单'))
-
-                resource = OrderManager.get_resource(resource_id=resource.id, select_for_update=True)
-                time_now = timezone.now()
-                if resource.last_deliver_time is not None:
-                    delta = time_now - resource.last_deliver_time
-                    if delta < timedelta(minutes=2):
-                        raise exceptions.TryAgainLater(message=_('为避免重复为订单交付资源，请2分钟后重试'))
-
-                resource.last_deliver_time = time_now
-                resource.save(update_fields=['last_deliver_time'])
+                order = self._check_order_pre_deliver(order_id=order.id)
+                resources = self._check_order_resources_pre_deliver(
+                    order_id=order.id, resource_ids=resource_ids
+                )
         except exceptions.Error as exc:
             raise exc
         except Exception as exc:
             raise exceptions.Error(message=_('检查订单交易状态，或检查更新资源上次交付时间错误。') + str(exc))
 
-        return order, resource
+        return order, resources
 
-    def deliver_new_server(self, order: Order, resource: Resource):
-        """
-        :return:
-            service, server            # success
-
-        :raises: Error, NeetReleaseResource
-        """
-        order, resource = self._pre_check_deliver(order=order, resource=resource)
+    @staticmethod
+    def _update_order_failed(order: Order, all_res_count: int, failed_res_count: int):
+        if all_res_count <= failed_res_count:  # 订单订购资源全部创建失败
+            trading_status = Order.TradingStatus.UNDELIVERED.value
+        else:  # 部分交付失败
+            trading_status = Order.TradingStatus.PART_DELIVER.value
 
         try:
-            service, server = self.create_server_resource_for_order(order=order, resource=resource)
-        except exceptions.Error as exc:
-            try:
-                OrderManager.set_order_resource_deliver_failed(
-                    order=order, resource=resource, failed_msg='无法为订单创建云服务器资源, ' + str(exc))
-            except exceptions.Error:
-                pass
-
-            raise exc
-
-        try:
-            OrderManager.set_order_resource_deliver_ok(
-                order=order, resource=resource, start_time=server.creation_time,
-                due_time=server.expiration_time, instance_id=server.id
-            )
+            OrderManager.set_order_deliver_failed(order=order, trading_status=trading_status)
         except exceptions.Error:
             pass
 
-        return service, server
+    def deliver_new_servers(self, order: Order) -> (ServiceConfig, List[Server]):
+        """
+        :return:
+            service, servers            # success
+
+        :raises: Error
+        """
+        order, resources = self._pre_check_deliver(order=order)
+        if len(resources) > order.number:
+            raise exceptions.ConflictError(message=_('订单资源记录数量大于订单订购数量'))
+
+        need_deliver_resources = []
+        success_deliver_resources = []
+        for res in resources:
+            if res.instance_status == res.InstanceStatus.SUCCESS.value:
+                success_deliver_resources.append(res)
+            else:
+                need_deliver_resources.append(res)
+
+        try:
+            service, server_config = self._check_pre_create_server_resources(
+                order=order, resources=need_deliver_resources)
+        except exceptions.Error as exc:
+            res_ids = [x.id for x in need_deliver_resources]
+            Resource.set_many_deliver_failed(res_ids=res_ids, failed_msg=str(exc), raise_exc=False)
+            self._update_order_failed(
+                order=order, all_res_count=len(resources), failed_res_count=len(need_deliver_resources))
+            raise exc
+
+        server_list, failed_resources = self.create_server_resources_for_order(
+            order=order, resources=need_deliver_resources, service=service, config=server_config)
+        err_list = []
+        if failed_resources:
+            self._update_order_failed(order=order, all_res_count=len(resources), failed_res_count=len(failed_resources))
+            err_list = [x[1] for x in failed_resources]
+            # res, err = failed_resources[0]
+            # raise err
+        else:       # 没有交付失败的资源
+            try:
+                OrderManager.set_order_deliver_success(order=order)
+            except exceptions.Error:
+                pass
+
+        return service, server_list, err_list
 
     @staticmethod
     def check_pre_renewal_server_resource(order: Order, server):
@@ -299,8 +437,7 @@ class OrderResourceDeliverer:
 
         return start_time, end_time
 
-    @staticmethod
-    def renewal_server_resource_for_order(order: Order, resource: Resource):
+    def renewal_server_resource_for_order(self, order: Order, resource: Resource):
         """
         为订单续费云服务器资源
 
@@ -319,7 +456,7 @@ class OrderResourceDeliverer:
         try:
             with transaction.atomic():
                 server = ServerManager.get_server(server_id=resource.instance_id, select_for_update=True)
-                start_time, end_time = OrderResourceDeliverer.check_pre_renewal_server_resource(
+                start_time, end_time = self.check_pre_renewal_server_resource(
                     order=order, server=server
                 )
                 server.expiration_time = end_time
@@ -338,7 +475,8 @@ class OrderResourceDeliverer:
 
         :raises: Error
         """
-        order, resource = self._pre_check_deliver(order=order, resource=resource)
+        order, resource_list = self._pre_check_deliver(order=order, resource_ids=[resource.id])
+        resource = resource_list[0]
         try:
             server = self.renewal_server_resource_for_order(order=order, resource=resource)
         except exceptions.Error as exc:
@@ -359,8 +497,8 @@ class OrderResourceDeliverer:
 
         :raises: Error, NeetReleaseResource
         """
-        order, resource = self._pre_check_deliver(order=order, resource=resource)
-
+        order, resource_list = self._pre_check_deliver(order=order, resource_ids=[resource.id])
+        resource = resource_list[0]
         try:
             service, disk = self.create_disk_resource_for_order(order=order, resource=resource)
         except exceptions.Error as exc:
@@ -497,7 +635,9 @@ class OrderResourceDeliverer:
 
         :raises: Error
         """
-        order, resource = self._pre_check_deliver(order=order, resource=resource)
+        order, resource_list = self._pre_check_deliver(order=order, resource_ids=[resource.id])
+        resource = resource_list[0]
+
         try:
             disk = self.renewal_disk_resource_for_order(order=order, resource=resource)
         except exceptions.Error as exc:
@@ -588,7 +728,9 @@ class OrderResourceDeliverer:
 
         :raises: Error
         """
-        order, resource = self._pre_check_deliver(order=order, resource=resource)
+        order, resource_list = self._pre_check_deliver(order=order, resource_ids=[resource.id])
+        resource = resource_list[0]
+
         try:
             server = self.modify_server_pay_type_for_order(order=order, resource=resource)
         except exceptions.Error as exc:
@@ -602,8 +744,7 @@ class OrderResourceDeliverer:
 
         return server
 
-    @staticmethod
-    def modify_server_pay_type_for_order(order: Order, resource: Resource):
+    def modify_server_pay_type_for_order(self, order: Order, resource: Resource):
         """
         为订单修改云服务器付费方式
 
@@ -622,7 +763,7 @@ class OrderResourceDeliverer:
         try:
             with transaction.atomic():
                 server = ServerManager.get_server(server_id=resource.instance_id, select_for_update=True)
-                OrderResourceDeliverer.pre_modify_server_pay_type_check(
+                self.pre_modify_server_pay_type_check(
                     order=order, server=server
                 )
                 now_t = timezone.now()
@@ -678,11 +819,13 @@ class OrderResourceDeliverer:
         """
         云硬盘付费方式变更
         :return:
-            server            # success
+            disk            # success
 
         :raises: Error
         """
-        order, resource = self._pre_check_deliver(order=order, resource=resource)
+        order, resource_list = self._pre_check_deliver(order=order, resource_ids=[resource.id])
+        resource = resource_list[0]
+
         try:
             disk = self.modify_disk_pay_type_for_order(order=order, resource=resource)
         except exceptions.Error as exc:
@@ -696,8 +839,7 @@ class OrderResourceDeliverer:
 
         return disk
 
-    @staticmethod
-    def modify_disk_pay_type_for_order(order: Order, resource: Resource):
+    def modify_disk_pay_type_for_order(self, order: Order, resource: Resource):
         """
         为订单修改云硬盘付费方式
 
@@ -716,7 +858,7 @@ class OrderResourceDeliverer:
         try:
             with transaction.atomic():
                 disk = DiskManager.get_disk(disk_id=resource.instance_id, select_for_update=True)
-                OrderResourceDeliverer.pre_modify_disk_pay_type_check(
+                self.pre_modify_disk_pay_type_check(
                     order=order, disk=disk
                 )
                 now_t = timezone.now()
