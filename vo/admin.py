@@ -32,6 +32,6 @@ class VoMemberAdmin(BaseModelAdmin):
     list_display_links = ('id',)
     list_display = ('id', 'user', 'vo', 'role', 'join_time', 'inviter', 'inviter_id')
     search_fields = ['user__username', 'vo__name', 'inviter']
-    list_filter = ['join_time',]
+    list_filter = ('join_time',)
     list_select_related = ('user', 'vo')
-    raw_id_fields = ('user',)
+    raw_id_fields = ('user', 'vo')
