@@ -24,7 +24,7 @@ from adapters.client import get_service_client
 from utils.model import PayType, OwnerType
 from utils.time import iso_utc_to_datetime
 from order.deliver_resource import OrderResourceDeliverer
-from order.models import ResourceType, Order, Resource
+from order.models import ResourceType, Order
 from order.managers import OrderManager, ServerConfig, OrderPaymentManager
 from bill.managers import PaymentManager
 from servers.handlers.disk_handler import DiskHandler
@@ -359,6 +359,10 @@ class ServerHandler:
         vo_id = data.get('vo_id', None)
         period = data.get('period', None)
         systemdisk_size = data.get('systemdisk_size', None)
+        number = data.get('number', 1)
+
+        if not (1 <= number <= 3):
+            raise exceptions.InvalidArgument(message=_('订购资源数量可选范围1-3'), code='InvalidNumber')
 
         if azone_id == '':
             raise exceptions.BadRequest(message=_('"azone_id"参数不能为空字符'), code='InvalidAzoneId')
@@ -459,7 +463,8 @@ class ServerHandler:
             'remarks': remarks,
             'service': service,
             'period': period,
-            'systemdisk_size': systemdisk_size
+            'systemdisk_size': systemdisk_size,
+            'number': number
         }
 
     @staticmethod
@@ -516,6 +521,7 @@ class ServerHandler:
         service = data['service']
         period = data['period']
         systemdisk_size = data['systemdisk_size']
+        number = data['number']
 
         user = request.user
         is_public_network = network.public
@@ -540,6 +546,8 @@ class ServerHandler:
             original_price, trade_price = omgr.calculate_amount_money(
                 resource_type=ResourceType.VM.value, config=instance_config, is_prepaid=False, period=0, days=1
             )
+            if number > 1:
+                original_price = original_price * number
 
             try:
                 self.__check_balance_create_server_order(
@@ -551,8 +559,9 @@ class ServerHandler:
         # 服务私有资源配额是否满足需求
         try:
             QuotaAPI.service_private_quota_meet(
-                service=service, vcpu=instance_config.vm_cpu, ram_gib=instance_config.vm_ram_gib,
-                public_ip=instance_config.vm_public_ip
+                service=service, vcpu=instance_config.vm_cpu * number, ram_gib=instance_config.vm_ram_gib * number,
+                public_ips=number if instance_config.vm_public_ip else 0,
+                private_ips=0 if instance_config.vm_public_ip else number
             )
         except exceptions.QuotaShortageError as exc:
             return view.exception_response(
@@ -575,9 +584,9 @@ class ServerHandler:
             vo_id=vo_id,
             vo_name=vo_name,
             owner_type=owner_type,
-            remark=remarks
+            remark=remarks,
+            number=number
         )
-        resource = resource_list[0]
 
         # 预付费模式时
         if pay_type == PayType.PREPAID.value:
@@ -593,9 +602,9 @@ class ServerHandler:
                 coupon_ids=None, only_coupon=False,
                 required_enough_balance=True
             )
-            self._create_server(order=order, resource=resource)
+            OrderResourceDeliverer().deliver_order(order=order)
         except exceptions.Error as exc:
-            request_logger.error(msg=f'[{type(exc)}] {str(exc)}')
+            request_logger.error(msg=f'[{type(exc)}] {str(exc)}; Order({order.id})')
 
         return Response(data={
             'order_id': order.id
@@ -637,23 +646,6 @@ class ServerHandler:
                 raise exceptions.BalanceNotEnough(
                     message=_('项目组在指定服务单元中已拥有%(value)d台按量计费的云主机，项目组的余额不足，不能订购更多的云主机。'
                               ) % {'value': s_count}, code='VoBalanceNotEnough')
-
-    @staticmethod
-    def _create_server(order: Order, resource: Resource):
-        """
-        :return:
-            server            # success
-
-        :raises: Error
-        """
-        try:
-            service, server = OrderResourceDeliverer().deliver_new_server(order=order, resource=resource)
-        except exceptions.Error as exc:
-            raise exc
-
-        # 异步任务查询server创建结果，更新server信息和创建状态
-        OrderResourceDeliverer().after_deliver_server(service=service, server=server)
-        return server
 
     @staticmethod
     def renew_server(view, request, kwargs):
@@ -893,9 +885,17 @@ class ServerHandler:
             True
             False
         """
+        if server.public_ip:
+            public_ips = 1
+            private_ips = 0
+        else:
+            public_ips = 0
+            private_ips = 1
+
         try:
             QuotaAPI().server_quota_release(
-                service=server.service, vcpu=server.vcpus, ram_gib=server.ram_gib, public_ip=server.public_ip)
+                service=server.service, vcpu=server.vcpus, ram_gib=server.ram_gib,
+                public_ips=public_ips, private_ips=private_ips)
         except exceptions.Error as e:
             return False
 

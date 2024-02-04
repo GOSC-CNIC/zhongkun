@@ -227,7 +227,10 @@ class QuotaAPITests(TransactionTestCase):
 
         # 释放服务配额
         QuotaAPI().server_quota_release(
-            self.service, vcpu=vcpus_apply, ram_gib=ram_apply, public_ip=is_public_ip_apply)
+            self.service, vcpu=vcpus_apply, ram_gib=ram_apply,
+            public_ips=1 if is_public_ip_apply else 0,
+            private_ips=0 if is_public_ip_apply else 1
+        )
 
         ServicePrivateQuotaManager().update(
             service=self.service, vcpus=0, ram_gib=0, disk_size=0,
@@ -259,8 +262,11 @@ class QuotaAPITests(TransactionTestCase):
             self.assertEqual(self.pri_quota.private_ip_used, 1)
 
         # 创建失败，释放服务配额
-        QuotaAPI().server_quota_release(self.service, vcpu=vcpus_apply,
-                                        ram_gib=ram_apply, public_ip=is_public_ip_apply)
+        QuotaAPI().server_quota_release(
+            self.service, vcpu=vcpus_apply, ram_gib=ram_apply,
+            public_ips=1 if is_public_ip_apply else 0,
+            private_ips=0 if is_public_ip_apply else 1
+        )
         self.pri_quota.refresh_from_db()
         self.assertEqual(self.pri_quota.vcpu_used, 0)
         self.assertEqual(self.pri_quota.ram_used, 0)
@@ -284,8 +290,11 @@ class QuotaAPITests(TransactionTestCase):
             self.assertEqual(self.pri_quota.private_ip_used, 1)
 
         # 释放服务配额
-        QuotaAPI().server_quota_release(self.service, vcpu=vcpus_apply,
-                                        ram_gib=ram_apply, public_ip=is_public_ip_apply)
+        QuotaAPI().server_quota_release(
+            self.service, vcpu=vcpus_apply, ram_gib=ram_apply,
+            public_ips=1 if is_public_ip_apply else 0,
+            private_ips=0 if is_public_ip_apply else 1
+        )
 
         self.pri_quota.refresh_from_db()
         self.assertEqual(self.pri_quota.vcpu_used, 0)

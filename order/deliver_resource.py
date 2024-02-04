@@ -116,7 +116,8 @@ class OrderResourceDeliverer:
                 service=service,
                 vcpu=config.vm_cpu * number,
                 ram_gib=config.vm_ram_gib * number,
-                public_ip=config.vm_public_ip * number
+                public_ips=number if config.vm_public_ip else 0,
+                private_ips=0 if config.vm_public_ip else number
             )
         except exceptions.Error as exc:
             raise exc
@@ -164,6 +165,13 @@ class OrderResourceDeliverer:
         :raises: Error, NeetReleaseResource
         """
         # 资源配额扣除
+        if config.vm_public_ip:
+            public_ips = 1
+            private_ips = 0
+        else:
+            public_ips = 0
+            private_ips = 1
+
         try:
             QuotaAPI().server_create_quota_apply(
                 service=service, vcpu=config.vm_cpu, ram_gib=config.vm_ram_gib, public_ip=config.vm_public_ip)
@@ -180,7 +188,9 @@ class OrderResourceDeliverer:
         except exceptions.APIException as exc:
             try:
                 QuotaAPI().server_quota_release(
-                    service=service, vcpu=config.vm_cpu, ram_gib=config.vm_ram_gib, public_ip=config.vm_public_ip)
+                    service=service, vcpu=config.vm_cpu, ram_gib=config.vm_ram_gib,
+                    public_ips=public_ips, private_ips=private_ips
+                )
             except exceptions.Error:
                 pass
 
@@ -353,7 +363,7 @@ class OrderResourceDeliverer:
         except exceptions.Error:
             pass
 
-    def deliver_new_servers(self, order: Order) -> (ServiceConfig, List[Server]):
+    def deliver_new_servers(self, order: Order) -> (ServiceConfig, List[Server], List[exceptions.Error]):
         """
         :return:
             service, servers            # success

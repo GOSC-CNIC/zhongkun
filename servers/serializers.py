@@ -174,6 +174,7 @@ class ServerCreateSerializer(serializers.Serializer):
     period = serializers.IntegerField(
         label=_('订购时长（月）'), required=False, allow_null=True, default=None,
         help_text=_('付费模式为预付费时，必须指定订购时长'))
+    number = serializers.IntegerField(label=_('订购资源数量'), required=False, allow_null=True, default=1)
 
     def validate(self, attrs):
         return attrs

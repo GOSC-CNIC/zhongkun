@@ -28,27 +28,24 @@ class QuotaAPI:
         return pri_quota
 
     @staticmethod
-    def server_quota_release(service, vcpu: int, ram_gib: int, public_ip: bool):
+    def server_quota_release(service, vcpu: int, ram_gib: int, public_ips: int, private_ips: int):
         """
         释放服务器占用的服务提供者的私有资源配额
 
         :param service: 接入的服务对象
         :param vcpu: vCPU数
         :param ram_gib: 内存大小, 单位Gb
-        :param public_ip: True(公网IP); False(私网IP)
+        :param public_ips: 公网ip的数量
+        :param private_ips: 私网ip的数量
         :return:
 
         :raises: QuotaShortageError, QuotaError
         """
-        if public_ip:
-            kwargs = {'public_ip': 1}
-        else:
-            kwargs = {'private_ip': 1}
-
-        ServicePrivateQuotaManager().release(service=service, vcpus=vcpu, ram_gib=ram_gib, **kwargs)
+        ServicePrivateQuotaManager().release(
+            service=service, vcpus=vcpu, ram_gib=ram_gib, public_ip=public_ips, private_ip=private_ips)
 
     @staticmethod
-    def service_private_quota_meet(service, vcpu: int, ram_gib: int, public_ip: bool):
+    def service_private_quota_meet(service, vcpu: int, ram_gib: int, public_ips: int, private_ips: int):
         """
         检查服务私有资源配额是否满足需求
 
@@ -56,11 +53,7 @@ class QuotaAPI:
         """
         pri_mgr = ServicePrivateQuotaManager()
         pri_service_quota = pri_mgr.get_quota(service=service)
-        if public_ip is True:
-            pri_mgr.requires(pri_service_quota, vcpus=vcpu, ram_gib=ram_gib, public_ip=1)
-        else:
-            pri_mgr.requires(pri_service_quota, vcpus=vcpu, ram_gib=ram_gib, private_ip=1)
-
+        pri_mgr.requires(pri_service_quota, vcpus=vcpu, ram_gib=ram_gib, public_ip=public_ips, private_ip=private_ips)
         return pri_service_quota
 
     @staticmethod

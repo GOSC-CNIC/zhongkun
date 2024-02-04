@@ -280,7 +280,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
             })
             self.assertErrorResponse(status_code=400, code='MinSystemDiskSize', response=response)
 
-        # create user server postpaid mode
+        # create user server prepaid mode
         user_account = PaymentManager().get_user_point_account(user_id=self.user.id)
         user_account.balance = Decimal('10000')
         user_account.save()
@@ -328,6 +328,51 @@ class ServerOrderTests(MyAPITransactionTestCase):
             self.assertEqual(order.user_id, self.user.id)
         except Exception as e:
             raise e
+
+        # ----- 一次订购多个资源 test ---
+        url = reverse('servers-api:servers-list')
+        response = self.client.post(url, data={
+            'pay_type': PayType.PREPAID.value, 'service_id': self.service.id,
+            'image_id': image_id, 'period': 12, 'flavor_id': self.flavor.id, 'network_id': network_id,
+            'remarks': 'testcase创建，可删除', 'number': 0
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidNumber', response=response)
+        response = self.client.post(url, data={
+            'pay_type': PayType.PREPAID.value, 'service_id': self.service.id,
+            'image_id': image_id, 'period': 12, 'flavor_id': self.flavor.id, 'network_id': network_id,
+            'remarks': 'testcase创建，可删除', 'number': 4
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidNumber', response=response)
+
+        # service privete quota not enough
+        response = self.client.post(url, data={
+            'pay_type': PayType.PREPAID.value, 'service_id': self.service.id,
+            'image_id': image_id, 'period': 12, 'flavor_id': self.flavor.id, 'network_id': network_id,
+            'remarks': 'testcase创建，可删除', 'number': 3
+        })
+        self.assertErrorResponse(status_code=409, code='QuotaShortage', response=response)
+
+        # service quota set
+        ServicePrivateQuotaManager().update(
+            service=self.service, vcpus=6 + 2 * 3, ram_gib=4 + 3 * 3, public_ip=1 + 3, private_ip=1 + 3
+        )
+        # create user server prepaid mode
+        response = self.client.post(url, data={
+            'pay_type': PayType.PREPAID.value, 'service_id': self.service.id,
+            'image_id': image_id, 'period': 12, 'flavor_id': self.flavor.id, 'network_id': network_id,
+            'remarks': 'testcase创建，可删除', 'systemdisk_size': 500, 'number': 3
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['order_id'], response.data)
+        order_id = response.data['order_id']
+        order, resources = OrderManager().get_order_detail(order_id=order_id, user=self.user)
+        self.assertEqual(order.number, 3)
+        self.assertEqual(len(resources), 3)
+
+        original_price, trade_price = PriceManager().describe_server_price(
+            ram_mib=1024 * 3, cpu=2, disk_gib=500, public_ip=is_public_network, is_prepaid=True, period=12, days=0)
+        self.assertEqual(order.total_amount, quantize_10_2(original_price) * 3)
+        self.assertEqual(int(order.payable_amount), int(quantize_10_2(trade_price) * 3))
 
         # --------vo-------------
         # create vo server postpaid mode, no vo permission
