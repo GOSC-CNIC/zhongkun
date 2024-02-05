@@ -4,11 +4,12 @@ from urllib import parse
 
 from django.urls import reverse
 from django.utils import timezone as dj_timezone
+from django.test import TestCase
 
 from utils.test import get_or_create_user, MyAPITransactionTestCase, get_or_create_organization
 from ..managers.common import NetBoxUserRoleWrapper
-from ..managers.ipv4_mgrs import IPv4RangeManager
-from ..models import ASN, OrgVirtualObject, IPv4Range, IPv4RangeRecord
+from ..managers.ipv4_mgrs import IPv4RangeManager, IPv4RangeSplitter
+from ..models import ASN, OrgVirtualObject, IPv4Range, IPv4RangeRecord, IPRangeIntItem
 
 
 class IPv4RangeTests(MyAPITransactionTestCase):
@@ -1838,3 +1839,65 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         self.assertEqual(ir4.start_address, int(ipaddress.IPv4Address('159.0.200.0')))
         self.assertEqual(ir4.end_address, int(ipaddress.IPv4Address('159.0.200.255')))
         self.assertEqual(ir4.mask_len, 24)
+
+
+class IPv4RangeMgrTests(TestCase):
+    @staticmethod
+    def _split_test(ip_range: IPRangeIntItem, new_prefix: int, prefixlen_diff: int):
+        subnets = IPv4RangeSplitter.mini_split_plan(
+            ip_range=ip_range, new_prefix=new_prefix, prefixlen_diff=prefixlen_diff)
+
+        sub_ranges = []
+        for sn in subnets:
+            sub_ranges.append(
+                {
+                    'start_address': sn.start,
+                    'end_address': sn.end,
+                    'prefix': sn.mask,
+                }
+            )
+
+        ipv4_range = IPv4Range(start_address=ip_range.start, end_address=ip_range.end, mask_len=ip_range.mask)
+        IPv4RangeSplitter.validate_sub_ranges_plan(ipv4_range=ipv4_range, sub_ranges=sub_ranges)
+
+    def _test_prefix_diff(self, prefixlen_diff: int):
+        # 测试完整子网
+        self._split_test(ip_range=IPRangeIntItem(
+            start=int(ipaddress.IPv4Address('10.0.0.1')),
+            end=int(ipaddress.IPv4Address('10.0.255.255')),
+            mask=16
+        ), new_prefix=24, prefixlen_diff=prefixlen_diff)
+
+        # 测试 大跨度 前缀长度，完整子网
+        self._split_test(ip_range=IPRangeIntItem(
+            start=int(ipaddress.IPv4Address('10.0.0.1')),
+            end=int(ipaddress.IPv4Address('10.255.255.255')),
+            mask=8
+        ), new_prefix=24, prefixlen_diff=prefixlen_diff)
+
+        # 测试 大跨度前缀长度，前半部分只有一点ip子网
+        self._split_test(ip_range=IPRangeIntItem(
+            start=int(ipaddress.IPv4Address('10.127.255.250')),
+            end=int(ipaddress.IPv4Address('10.255.255.255')),
+            mask=8
+        ), new_prefix=30, prefixlen_diff=prefixlen_diff)
+
+        # 测试前半部分只有一点ip，后半部分完整
+        self._split_test(ip_range=IPRangeIntItem(
+            start=int(ipaddress.IPv4Address('10.0.126.1')),
+            end=int(ipaddress.IPv4Address('10.0.255.255')),
+            mask=16
+        ), new_prefix=24, prefixlen_diff=prefixlen_diff)
+
+        # 测试只有中间小部分ip
+        self._split_test(ip_range=IPRangeIntItem(
+            start=int(ipaddress.IPv4Address('10.0.127.1')),
+            end=int(ipaddress.IPv4Address('10.0.128.255')),
+            mask=16
+        ), new_prefix=24, prefixlen_diff=prefixlen_diff)
+
+    def test_mini_split_plan(self):
+        self._test_prefix_diff(prefixlen_diff=1)
+        self._test_prefix_diff(prefixlen_diff=3)
+        self._test_prefix_diff(prefixlen_diff=8)
+        self._test_prefix_diff(prefixlen_diff=9)

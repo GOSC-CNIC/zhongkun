@@ -728,6 +728,8 @@ class IPv4RangeSplitter:
     def validate_sub_ranges_plan(ipv4_range: IPv4Range, sub_ranges: list) -> List[IPRangeIntItem]:
         """
         验证指定的拆分子网规划
+
+        :sub_ranges item: {'start_address': 0, 'end_address': 255, 'prefix': 24}
         """
         if len(sub_ranges) > 1024:
             raise errors.InvalidArgument(message=_('每次拆分子网数量不得超过1024个'))
@@ -766,6 +768,125 @@ class IPv4RangeSplitter:
             subnets.append(sr)
             pre_range = sr
 
+        return subnets
+
+    # --- 最小化分拆规划 ---
+    @staticmethod
+    def mini_split_plan(
+            ip_range: IPRangeIntItem, new_prefix: int, prefixlen_diff: int = 3
+    ) -> List[IPRangeIntItem]:
+        """
+        最小化分拆规划
+
+        :param ip_range: 被拆分网段
+        :param new_prefix: 新的目标拆分前缀/掩码长度
+        :param prefixlen_diff: 距离目标拆分前缀/掩码指定长度以内平拆
+        """
+        if new_prefix <= ip_range.mask:
+            raise errors.Error(message=_('掩码/前缀长度必须大于被拆分网段的掩码/前缀长度'))
+
+        if not (1 <= prefixlen_diff <= 10):
+            raise errors.Error(message=_('prefixlen_diff 可选值范围1-10，最多平拆出1024个目标前缀长度的子网'))
+
+        # 被拆分网段合法性检查，是否同一网段，网络号是否一致
+        try:
+            start_network = ipaddress.IPv4Network((ip_range.start, ip_range.mask), strict=False)
+            end_anetwork = ipaddress.IPv4Network((ip_range.end, ip_range.mask), strict=False)
+        except ipaddress.NetmaskValueError as exc:
+            raise errors.Error(message=_('子网网段掩码无效') + str(exc))
+        except ipaddress.AddressValueError as exc:
+            raise errors.Error(message=_('子网网段地址无效') + str(exc))
+
+        if start_network != end_anetwork:
+            raise errors.Error(message=_("起始地址网络号({start_net})和结束地址网络号({end_net})不一致").format(
+                start_net=start_network, end_net=end_anetwork))
+
+        # 最小化拆分
+        subnets = IPv4RangeSplitter.split_step_by_step(
+            ip_range=ip_range, new_prefix=new_prefix, prefixlen_diff=prefixlen_diff)
+
+        # 最后一步是按目标前缀长度平拆
+        subnets = IPv4RangeSplitter.mini_split_target_subnets(
+            subnets=subnets, new_prefix=new_prefix, prefixlen_diff=prefixlen_diff)
+        return subnets
+
+    @staticmethod
+    def split_step_by_step(
+            ip_range: IPRangeIntItem, new_prefix: int, prefixlen_diff: int
+    ) -> List[IPRangeIntItem]:
+        """
+        按前缀长度逐步 最小化分拆，返回ip正序子网列表
+
+        :param ip_range: 被拆分网段
+        :param new_prefix: 新的目标拆分前缀/掩码长度
+        :param prefixlen_diff: 距离目标拆分前缀/掩码指定长度以内平拆
+        """
+        subnets = [ip_range]    # 最终拆分结果子网列表
+
+        step_start = ip_range.mask + 1
+        step_end = new_prefix - prefixlen_diff
+
+        if step_start > step_end:
+            return subnets
+
+        # 例如：16 -> [17, 18]; diff = 3 ; split by []
+        # 例如：16 -> 19; diff = 3 ; split by [17]
+        # 例如：16 -> 24; diff = 3 ; split by [17, 18, 19, 20, 21]
+        for next_prefix in range(step_start, step_end + 1):
+            # 去除列表 subnets 中的第一个网段，并拆分此网段
+            split_range = subnets.pop(0)
+            sub_ranges = IPv4RangeSplitter.split_plan_by_mask(
+                start_address=split_range.start,
+                end_address=split_range.end,
+                mask_len=split_range.mask,
+                split_mask=next_prefix
+            )
+
+            # 子网正序排序，并合并到 子网列表 前面
+            sub_ranges.sort(key=lambda x: x.start, reverse=False)
+            subnets = sub_ranges + subnets
+
+        return subnets
+
+    @staticmethod
+    def mini_split_target_subnets(
+            subnets: list[IPRangeIntItem], new_prefix: int, prefixlen_diff: int = 3
+    ) -> List[IPRangeIntItem]:
+        """
+        目标前缀长度的子网拆分
+        """
+        need_count = 2 ** (prefixlen_diff - 1)  # 需要有目标前缀长度的子网数量，至少达到一半
+
+        # 平拆列表 subnets 中的第一个网段
+        split_range = subnets.pop(0)
+        sub_ranges = IPv4RangeSplitter.split_plan_by_mask(
+            start_address=split_range.start,
+            end_address=split_range.end,
+            mask_len=split_range.mask,
+            split_mask=new_prefix
+        )
+        if len(sub_ranges) >= need_count or not subnets:
+            # 子网正序排序，并合并到 子网列表 前面
+            sub_ranges.sort(key=lambda x: x.start, reverse=False)
+            return sub_ranges + subnets
+
+        # 第一个子网平拆子网数较少，拆下一个子网
+        split_range2 = subnets.pop(0)
+        prefix_diff2 = max(prefixlen_diff - 1, 1)   # prefixlen_diff - 1，只需要再平拆出一半的子网
+        # 先尝试最小化分拆，再平拆第一个子网
+        nets = IPv4RangeSplitter.split_step_by_step(
+            ip_range=split_range2, new_prefix=new_prefix, prefixlen_diff=prefix_diff2)
+        net1 = nets.pop(0)
+        sub2_ranges = IPv4RangeSplitter.split_plan_by_mask(
+            start_address=net1.start,
+            end_address=net1.end,
+            mask_len=net1.mask,
+            split_mask=new_prefix
+        )
+        sub2_ranges = sub2_ranges + nets
+
+        subnets = sub_ranges + sub2_ranges + subnets
+        subnets.sort(key=lambda x: x.start, reverse=False)
         return subnets
 
 
