@@ -207,6 +207,10 @@ class Resource(UuidModel):
         help_text=_('用于记录上次交付资源的时间，防止并发重复交付')
     )
     delivered_time = models.DateTimeField(verbose_name=_('资源交付时间'), null=True, blank=True, default=None)
+    instance_delete_time = models.DateTimeField(
+        verbose_name=_('资源删除时间'), null=True, blank=True, default=None,
+        help_text=_('不为空时，表示对应的资源删除的时间')
+    )
 
     class Meta:
         verbose_name = _('订单资源')

@@ -873,6 +873,7 @@ class ServerHandler:
 
         server.id = server_id
         ResourceActionLogManager.add_delete_log_for_resource(res=server, user=user, raise_error=False)
+        OrderManager.set_resource_server_deleted(instance_id=server_id, raise_exc=False)
         return True
 
     @staticmethod

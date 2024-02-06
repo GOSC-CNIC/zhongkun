@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import timedelta, datetime
 from urllib import parse
 from decimal import Decimal
 from urllib.parse import urlencode
@@ -1020,6 +1020,28 @@ class DiskOrderTests(MyAPITransactionTestCase):
             lock=Disk.Lock.FREE.value
         )
 
+        od1_res1 = Resource(
+            order=None, resource_type=ResourceType.DISK.value,
+            instance_id=disk2_vo.id, instance_remark='remark', desc=''
+        )
+        od1_res1.save(force_insert=True)
+        od1_res2 = Resource(
+            order=None, resource_type=ResourceType.DISK.value,
+            instance_id=disk1.id, instance_remark='remark', desc=''
+        )
+        od1_res2.save(force_insert=True)
+        od1_res3 = Resource(
+            order=None, resource_type=ResourceType.VM.value,
+            instance_id=disk1.id, instance_remark='remark', desc=''
+        )
+        od1_res3.save(force_insert=True)
+
+        od1_res4 = Resource(
+            order=None, resource_type=ResourceType.DISK.value,
+            instance_id=disk1.id, instance_remark='remark', desc=''
+        )
+        od1_res4.save(force_insert=True)
+
         base_url = reverse('servers-api:disks-detail', kwargs={'id': 'test'})
         response = self.client.delete(base_url)
         self.assertEqual(response.status_code, 401)
@@ -1051,6 +1073,11 @@ class DiskOrderTests(MyAPITransactionTestCase):
         disk1.save(update_fields=['lock'])
 
         # ok
+        self.assertIsNone(od1_res1.instance_delete_time)
+        self.assertIsNone(od1_res2.instance_delete_time)
+        self.assertIsNone(od1_res3.instance_delete_time)
+        self.assertIsNone(od1_res4.instance_delete_time)
+
         disk1.refresh_from_db()
         disk1_id = disk1.id
         self.assertEqual(disk1.deleted, False)
@@ -1065,6 +1092,15 @@ class DiskOrderTests(MyAPITransactionTestCase):
         self.assertEqual(log.resource_id, disk1_id)
         self.assertEqual(log.resource_type, ResourceActionLog.ResourceType.DISK.value)
         self.assertEqual(log.owner_type, OwnerType.USER.value)
+
+        od1_res1.refresh_from_db()
+        od1_res2.refresh_from_db()
+        od1_res3.refresh_from_db()
+        od1_res4.refresh_from_db()
+        self.assertIsNone(od1_res1.instance_delete_time)
+        self.assertIsInstance(od1_res2.instance_delete_time, datetime)
+        self.assertIsNone(od1_res3.instance_delete_time)
+        self.assertIsInstance(od1_res4.instance_delete_time, datetime)
 
         # ----- vo -----
         # AccessDenied

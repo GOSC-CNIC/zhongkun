@@ -470,6 +470,7 @@ class DiskHandler:
             disk.do_soft_delete(deleted_user=request.user.username, raise_exception=True)
             ResourceActionLogManager.add_delete_log_for_resource(res=disk, user=request.user, raise_error=False)
             QuotaAPI().disk_quota_release(service=disk.service, disk_size=disk.size)
+            OrderManager.set_resource_disk_deleted(instance_id=disk_id, raise_exc=False)
         except exceptions.APIException as exc:
             return view.exception_response(exc)
 

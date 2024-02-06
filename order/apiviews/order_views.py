@@ -357,7 +357,8 @@ class OrderViewSet(CustomGenericViewSet):
                   "instance_id": "test",
                   "instance_status": "wait",
                   "desc": "xxx",    # 资源交付结果描述
-                  "delivered_time": "2022-03-10T06:10:32.478101Z"
+                  "delivered_time": "2022-03-10T06:10:32.478101Z",
+                  "instance_delete_time": "2022-03-10T06:10:32.478101Z"     # 不为null时，表示对应资源实例删除时间
                 }
               ]
             }

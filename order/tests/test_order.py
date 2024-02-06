@@ -550,7 +550,8 @@ class OrderTests(MyAPITestCase):
             "instance_id": resource.instance_id,
             "instance_status": resource.instance_status,
             "delivered_time": None,
-            'desc': resource.desc
+            'desc': resource.desc,
+            'instance_delete_time': None
         }, response.data["resources"][0])
         self.assert_is_subdict_of(order.instance_config, response.data["instance_config"])
         self.assertEqual(order_instance_config, ServerConfig.from_dict(response.data['instance_config']))

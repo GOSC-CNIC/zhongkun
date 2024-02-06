@@ -3,7 +3,7 @@ from datetime import timedelta, datetime
 from typing import List
 
 from django.utils.translation import gettext as _
-from django.utils import timezone
+from django.utils import timezone as dj_timezone
 from django.db import transaction
 
 from utils.model import OwnerType, PayType
@@ -448,7 +448,7 @@ class OrderManager:
 
             resource.instance_status = resource.InstanceStatus.SUCCESS.value
             resource.desc = 'success'
-            resource.delivered_time = timezone.now()
+            resource.delivered_time = dj_timezone.now()
             update_fields = ['instance_status', 'desc', 'delivered_time']
             if instance_id:
                 resource.instance_id = instance_id
@@ -584,7 +584,7 @@ class OrderManager:
                     resource = resources[0]
                     resource = self.get_resource(resource_id=resource.id, select_for_update=True)
 
-                    time_now = timezone.now()
+                    time_now = dj_timezone.now()
                     if resource.last_deliver_time is not None:
                         delta = time_now - resource.last_deliver_time
                         if delta < timedelta(minutes=2):
@@ -609,3 +609,31 @@ class OrderManager:
 
         qs = qs.distinct()
         return list(qs)
+
+    @staticmethod
+    def set_resource_instance_deleted(resource_type: str, instance_id: str, raise_exc: bool):
+        """
+        资源实例删除时，标记对应的订单资源记录资源实例删除的时间
+        """
+        try:
+            return Resource.objects.filter(
+                resource_type=resource_type, instance_id=instance_id).update(instance_delete_time=dj_timezone.now())
+        except Exception as exc:
+            if raise_exc:
+                raise exc
+
+    @staticmethod
+    def set_resource_server_deleted(instance_id: str, raise_exc: bool):
+        """
+        资源实例删除时，标记对应的订单资源记录资源实例删除的时间
+        """
+        return OrderManager.set_resource_instance_deleted(
+            resource_type=ResourceType.VM.value, instance_id=instance_id, raise_exc=raise_exc)
+
+    @staticmethod
+    def set_resource_disk_deleted(instance_id: str, raise_exc: bool):
+        """
+        资源实例删除时，标记对应的订单资源记录资源实例删除的时间
+        """
+        return OrderManager.set_resource_instance_deleted(
+            resource_type=ResourceType.DISK.value, instance_id=instance_id, raise_exc=raise_exc)

@@ -2048,11 +2048,38 @@ class ServersTests(MyAPITestCase):
         self.assertEqual(remark, self.vo_server.remarks)
 
     def test_delete_list_archive(self):
+        od1_res1 = Resource(
+            order=None, resource_type=ResourceType.VM.value,
+            instance_id=Resource().generate_id(), instance_remark='remark', desc=''
+        )
+        od1_res1.save(force_insert=True)
+        od1_res2 = Resource(
+            order=None, resource_type=ResourceType.VM.value,
+            instance_id=self.miss_server.id, instance_remark='remark', desc=''
+        )
+        od1_res2.save(force_insert=True)
+        od1_res3 = Resource(
+            order=None, resource_type=ResourceType.DISK.value,
+            instance_id=self.miss_server.id, instance_remark='remark', desc=''
+        )
+        od1_res3.save(force_insert=True)
+
+        od1_res4 = Resource(
+            order=None, resource_type=ResourceType.VM.value,
+            instance_id=self.miss_server.id, instance_remark='remark', desc=''
+        )
+        od1_res4.save(force_insert=True)
+
         self.client.logout()
         self.client.force_login(self.user)
         url = reverse('servers-api:servers-detail', kwargs={'id': 'motfound'})
         response = self.client.delete(url)
         self.assertErrorResponse(status_code=404, code='NotFound', response=response)
+
+        self.assertIsNone(od1_res1.instance_delete_time)
+        self.assertIsNone(od1_res2.instance_delete_time)
+        self.assertIsNone(od1_res3.instance_delete_time)
+        self.assertIsNone(od1_res4.instance_delete_time)
 
         log_count = ResourceActionLog.objects.count()
         self.assertEqual(log_count, 0)
@@ -2066,6 +2093,15 @@ class ServersTests(MyAPITestCase):
         self.assertEqual(log.resource_id, self.miss_server.id)
         self.assertEqual(log.resource_type, ResourceActionLog.ResourceType.SERVER.value)
         self.assertEqual(log.owner_type, OwnerType.USER.value)
+
+        od1_res1.refresh_from_db()
+        od1_res2.refresh_from_db()
+        od1_res3.refresh_from_db()
+        od1_res4.refresh_from_db()
+        self.assertIsNone(od1_res1.instance_delete_time)
+        self.assertIsInstance(od1_res2.instance_delete_time, datetime)
+        self.assertIsNone(od1_res3.instance_delete_time)
+        self.assertIsInstance(od1_res4.instance_delete_time, datetime)
 
         url = reverse('servers-api:servers-detail', kwargs={'id': self.vo_server.id})
         response = self.client.delete(url)
