@@ -47,5 +47,5 @@ python3 manage.py migrate link --prune
         原ipam和link的用户角色权限API接口合并为了一个接口；其他接口只是url路径做了更改。
 
 * 必须先正常升级到v1.16.0，执行数据库迁移，创建netbox模型的数据库表，并从ipam和link的数据库表复制数据；
-* 再升级到v1.16.1，执行数据库迁移，会删除ipam和link的数据库表和api；
+* 再升级到v1.17.0，执行数据库迁移，会删除ipam和link的数据库表和api；
 * 再升级到之后的版本。
