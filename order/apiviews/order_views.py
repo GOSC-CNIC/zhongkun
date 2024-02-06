@@ -274,9 +274,18 @@ class OrderViewSet(CustomGenericViewSet):
                   "owner_type": "user",
                   "cancelled_time": "2022-03-10T06:10:32.478101Z",  # 订单作废/取消时间
                   "app_service_id": "xxx"               # service对应的注册于余额结算系统中的APP子服务id
+                  "trading_status": "", # 交易状态
+                  "number": 3       # 订购资源数量
                 }
               ]
             }
+
+            * trading_status 交易状态：
+                opening：交易中
+                undelivered：订单资源交付失败
+                completed：交易成功
+                closed：交易关闭
+                partdeliver：部分交付失败
 
             * "instance_config"字段内容说明:
                 资源类型为云主机， "resource_type": "vm":
@@ -338,6 +347,7 @@ class OrderViewSet(CustomGenericViewSet):
               "owner_type": "user",
               "cancelled_time": "2022-03-10T06:10:32.478101Z",  # 订单作废/取消时间
               "app_service_id": "xxx"               # service对应的注册于余额结算系统中的APP子服务id,
+              "trading_status": "opening", # 交易状态
               "number": 3,      # 订购资源数量
               "resources": [
                 {
@@ -351,6 +361,18 @@ class OrderViewSet(CustomGenericViewSet):
                 }
               ]
             }
+
+            * trading_status 订单交易状态：
+                opening：交易中
+                undelivered：订单资源交付失败
+                completed：交易成功
+                closed：交易关闭
+                partdeliver：部分交付失败
+
+            * 资源交付状态 instance_status:
+                wait: 待交付
+                success: 交付成功
+                failed: 交付失败
         """
         return OrderHandler().order_detail(view=self, request=request, kwargs=kwargs)
 

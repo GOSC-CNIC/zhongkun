@@ -118,7 +118,8 @@ class OrderTests(MyAPITestCase):
         self.assertKeysIn(["id", "order_type", "status", "total_amount", "pay_amount",
                            "service_id", "service_name", "resource_type", "instance_config", "period",
                            "payment_time", "pay_type", "creation_time", "user_id", "username", 'number',
-                           "vo_id", "vo_name", "owner_type", "cancelled_time", "app_service_id"], response.data['orders'][0])
+                           "vo_id", "vo_name", "owner_type", "cancelled_time", "app_service_id", 'trading_status'
+                           ], response.data['orders'][0])
         self.assert_is_subdict_of({
             "id": order.id,
             "order_type": order.order_type,
@@ -140,7 +141,9 @@ class OrderTests(MyAPITestCase):
             "vo_name": order.vo_name,
             "owner_type": OwnerType.USER.value,
             "cancelled_time": None,
-            "app_service_id": 'test'
+            "app_service_id": 'test',
+            'trading_status': Order.TradingStatus.OPENING.value,
+            'number': 1
         }, response.data['orders'][0])
         self.assertEqual(order_instance_config, ServerConfig.from_dict(response.data['orders'][0]['instance_config']))
 
@@ -207,6 +210,7 @@ class OrderTests(MyAPITestCase):
             "vo_name": self.vo.name,
             "owner_type": OwnerType.VO.value,
             "cancelled_time": cancelled_time.isoformat().split('+')[0] + 'Z',
+            'trading_status': Order.TradingStatus.OPENING.value,
             'number': 1
         }, response.data['orders'][0])
         self.assertEqual(order2_instance_config, DiskConfig.from_dict(response.data['orders'][0]['instance_config']))
@@ -523,8 +527,8 @@ class OrderTests(MyAPITestCase):
         self.assertKeysIn([
             "id", "order_type", "status", "total_amount", "pay_amount", "service_id", "service_name",
             "resource_type", "instance_config", "period", "payment_time", "pay_type", "creation_time",
-            "user_id", "username", "vo_id", "vo_name", "owner_type", "resources", 'number',
-            "payable_amount", "balance_amount", "coupon_amount", "cancelled_time", "app_service_id"
+            "user_id", "username", "vo_id", "vo_name", "owner_type", "resources", 'number', 'trading_status',
+            "payable_amount", "balance_amount", "coupon_amount", "cancelled_time", "app_service_id",
         ], response.data)
         self.assert_is_subdict_of(sub={
             "id": order.id,
@@ -545,7 +549,8 @@ class OrderTests(MyAPITestCase):
             "resource_type": ResourceType.VM.value,
             "instance_id": resource.instance_id,
             "instance_status": resource.instance_status,
-            "delivered_time": None
+            "delivered_time": None,
+            'desc': resource.desc
         }, response.data["resources"][0])
         self.assert_is_subdict_of(order.instance_config, response.data["instance_config"])
         self.assertEqual(order_instance_config, ServerConfig.from_dict(response.data['instance_config']))

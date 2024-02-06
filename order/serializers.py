@@ -29,6 +29,7 @@ class OrderSerializer(serializers.Serializer):
     owner_type = serializers.CharField(label=_('所有者类型'), max_length=8)
     cancelled_time = serializers.DateTimeField(label=_('作废时间'))
     app_service_id = serializers.CharField(label=_('app服务id'), max_length=36)
+    trading_status = serializers.CharField(label=_('交易状态'), max_length=16)
     number = serializers.IntegerField(label=_('订购资源数量'))
 
 
