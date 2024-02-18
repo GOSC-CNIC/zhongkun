@@ -1,5 +1,6 @@
 import requests
 from urllib import parse
+from string import Template
 
 from core import errors
 from monitor.utils import ThanosProvider
@@ -12,11 +13,39 @@ class ExpressionQuery:
     ceph_osd_in = 'ceph_osd_in'
     ceph_osd_up = 'ceph_osd_up'
 
+    tmpl_health_status = 'ceph_health_status{job="$job"}'
+    tmpl_health_detail = 'ceph_health_detail{job="$job"} == 1'
+    tmpl_health_status_detail = 'ceph_health_status{job="$job"} or ceph_health_detail{job="$job"} == 1'
+    tmpl_total_bytes = 'ceph_cluster_total_bytes{job="$job"} / 1099511627776'    # 单位TiB
+    tmpl_total_used_bytes = 'ceph_cluster_total_used_bytes{job="$job"} / 1099511627776'  # 单位TiB
+    tmpl_osd_in_count = 'count(ceph_osd_in{job="$job"} == 1)'
+    tmpl_osd_in = 'ceph_osd_in{job="$job"} == 1'
+    tmpl_osd_out = 'ceph_osd_in{job="$job"} == 0'
+    tmpl_osd_up = 'ceph_osd_up{job="$job"} == 1'
+    tmpl_osd_up_count = 'count(ceph_osd_up{job="$job"} == 1)'
+    tmpl_osd_down = 'ceph_osd_up{job="$job"} == 0'
+    tmpl_mon_status = 'ceph_mon_quorum_status{job="$job"}'
+    tmpl_mgr_status = 'ceph_mgr_status{job="$job"}'
+    tmpl_pool_meta = 'ceph_pool_metadata{job="$job"}'
+    tmpl_pg_active = 'ceph_pg_active{job="$job"}'
+    tmpl_pg_unactive = 'ceph_pg_total{job="$job"} - ceph_pg_active{job="$job"}'
+    tmpl_pg_degraded = 'ceph_pg_active{job="$job"}'
+    tmpl_obj_degraded = 'ceph_num_objects_degraded{job="$job"}'
+    tmpl_obj_misplaced = 'ceph_num_objects_misplaced{job="$job"}'
+
     @staticmethod
     def expression(tag: str, job: str = None):
         expression_query = tag
         if job:
             expression_query = f'{expression_query}{{job="{job}"}}'
+
+        return expression_query
+
+    @staticmethod
+    def render_expression(tmpl: str, job: str = None):
+        expression_query = tmpl
+        if job:
+            expression_query = Template(tmpl).substitute(job=job)
 
         return expression_query
 

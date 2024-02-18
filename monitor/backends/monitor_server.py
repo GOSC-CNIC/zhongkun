@@ -39,6 +39,21 @@ class ExpressionQuery:
                             '+(node_filesystem_size_bytes{job="$job",fstype=~"ext.?|xfs"}'\
                             '-node_filesystem_free_bytes{job="$job",fstype=~"ext.?|xfs"})))'
 
+    sl_up = 'up{job="$job"} == 1'
+    sl_down = 'up{job="$job"} == 0'
+    sl_boot_time = '(time() - node_boot_time_seconds{job="$job"}) / 86400'     # day
+    sl_cpu_count = 'count(node_cpu_seconds_total{job="$job", mode="system"}) by (instance)'
+    sl_cpu_usage = '(1 - avg(rate(node_cpu_seconds_total{job="$job", mode="idle"}[1m])) by (instance)) * 100'
+    sl_mem = 'node_memory_MemTotal_bytes{job="$job"} / 1073741824'  # GiB
+    sl_mem_availabele = 'node_memory_MemAvailable_bytes{job="$job"} / 1073741824'   # GiB
+    sl_root_dir_size = 'node_filesystem_size_bytes{job="$job">, mountpoint="/"} / 1073741824'    # GiB
+    sl_root_dir_avail_size = 'node_filesystem_avail_bytes{job="$job", mountpoint="/"} / 1073741824'  # GiB
+    # MiB/s
+    sl_net_rate_in = 'rate(node_network_receive_bytes_total{job="$job", device!~"lo|br_.*|vnet.*"}[1m]) * on(' \
+                     'job, instance, device) (node_network_info{operstate="up"} == 1) / 8388608'
+    sl_net_rate_out = 'rate(node_network_transmit_bytes_total{job="$job", device!~"lo|br_.*|vnet.*"}[1m]) * on(' \
+                      'job, instance, device) (node_network_info{operstate="up"} == 1) / 8388608'
+
     @staticmethod
     def expression(tag: str, job: str = None):
         expression_query = tag

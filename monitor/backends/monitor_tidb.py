@@ -1,12 +1,12 @@
 import time
-
-import requests
 from urllib import parse
 from string import Template
 
+import requests
+import aiohttp
+
 from core import errors
 from monitor.utils import ThanosProvider
-from monitor.models import MonitorProvider
 
 
 class ExpressionQuery:
@@ -33,6 +33,26 @@ class ExpressionQuery:
                         'node_filesystem_size_bytes{job="$job", mountpoint="/data1"} or ' \
                         'node_filesystem_avail_bytes{job="$job", mountpoint="/00_data"} / ' \
                         'node_filesystem_size_bytes{job="$job", mountpoint="/00_data"}) * 100'
+
+    tmpl_pd_nodes = 'up{job="$job", group_type="pd"}'
+    tmpl_tidb_nodes = 'up{job="$job", group_type="tidb"}'
+    tmpl_tikv_nodes = 'up{job="$job", group_type="tikv"}'
+
+    tmpl_connections_count = 'tidb_server_connections{job="$job"}'
+    tmpl_qps_count = 'sum(rate(tidb_executor_statement_total{job="$job"}[1m])) by (type)'
+    tmpl_region_status = 'sum(pd_regions_status{job="$job"}) by (instance, type)'
+    tmpl_storage = 'pd_cluster_status{job="$job", type="storage_capacity"} or ' \
+                   'pd_cluster_status{job="$job", type="storage_size"}'
+
+    tmpl_cpu_count = 'count(node_cpu_seconds_total{job="$job", mode="system"}) by (instance)'
+    tmpl_cpu_usage = '(1 - avg(rate(node_cpu_seconds_total{job="$job", mode="idle"}[1m])) by (instance)) * 100'
+    tmpl_mem = 'node_memory_MemTotal_bytes{job="$job"} / 1073741824'  # GiB
+    tmpl_mem_availabele = 'node_memory_MemAvailable_bytes{job="$job"} / 1073741824'  # GiB
+    tmpl_root_dir_size = 'node_filesystem_size_bytes{job="$job", mountpoint="/"} / 1073741824'  # GiB
+    tmpl_root_dir_avail_size = 'node_filesystem_avail_bytes{job="$job", mountpoint="/"} / 1073741824'  # GiB
+    # TiB
+    tmpl_node_size = 'node_filesystem_size_bytes{job="$job", mountpoint!="/", fstype=~"ext.*|xfs"} / 1073741824'
+    tmpl_node_avail_size = 'node_filesystem_avail_bytes{job="$job", mountpoint!="/", fstype=~"ext.*|xfs"} / 1073741824'
 
     @staticmethod
     def expression(query_temp: str, job: str = None):
@@ -109,6 +129,7 @@ class MonitorTiDBQueryAPI:
     }
     """
     _query_builder = ExpressionQuery()
+    query_builder = _query_builder
 
     def pd_nodes(self, provider: ThanosProvider, job: str):
         """
@@ -227,7 +248,6 @@ class MonitorTiDBQueryAPI:
         """
         :raises: Error
         """
-        # print(url)
         try:
             r = requests.get(url=url, timeout=(6, 30))
         except requests.exceptions.Timeout:
@@ -255,3 +275,48 @@ class MonitorTiDBQueryAPI:
         query = parse.urlencode(query={'query': expression_query, 'time': int(time.time())})
         url = f'{endpoint_url}/api/v1/query?{query}'
         return url
+
+    def query_tag(self, endpoint_url: str, tag_tmpl: str, job: str):
+        """
+        :return:
+        """
+        expression_query = self.query_builder.expression(query_temp=tag_tmpl, job=job)
+        api_url = self._build_query_api(endpoint_url=endpoint_url, expression_query=expression_query)
+        return self._request_query_api(url=api_url)
+
+    async def async_query_tag(self, endpoint_url: str, tag_tmpl: str, job: str):
+        """
+        :return:
+        """
+        expression_query = self.query_builder.expression(query_temp=tag_tmpl, job=job)
+        api_url = self._build_query_api(endpoint_url=endpoint_url, expression_query=expression_query)
+        return await self.async_request_query_api(url=api_url)
+
+    @staticmethod
+    async def async_request_query_api(url: str):
+        """
+        :raises: Error
+        """
+        try:
+            async with aiohttp.ClientSession() as client:
+                r = await client.get(url=url, timeout=aiohttp.ClientTimeout(connect=5, total=30))
+        except requests.exceptions.Timeout:
+            raise errors.Error(message='tidb backend,query api request timeout')
+        except requests.exceptions.RequestException:
+            raise errors.Error(message='tidb backend,query api request error')
+
+        status_code = r.status
+        if 300 > status_code >= 200:
+            data = await r.json()
+            s = data.get('status')
+            if s == 'success':
+                return data['data']['result']
+
+        try:
+            data = await r.json()
+            msg = f"status: {status_code}, errorType: {data.get('errorType')}, error: {data.get('error')}"
+        except Exception as e:
+            text = await r.text()
+            msg = f"status: {status_code}, error: {text}"
+
+        raise errors.Error(message=msg)

@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from core import errors
 from monitor.models import MonitorJobTiDB
-from monitor.managers import TiDBQueryChoices, MonitorJobTiDBManager
+from monitor.managers.tidb import TiDBQueryChoices, MonitorJobTiDBManager, TiDBQueryV2Choices
 
 
 class MonitorTiDBQueryHandler:
@@ -84,3 +84,28 @@ class MonitorTiDBQueryHandler:
         return MonitorJobTiDB.objects.filter(
             Q(users__id=user_id) | Q(org_data_center__users__id=user_id)
         )
+
+    def query_v2(self, view, request, kwargs):
+        query = request.query_params.get('query', None)
+        monitor_unit_id = request.query_params.get('monitor_unit_id', None)
+
+        if query is None:
+            return view.exception_response(errors.BadRequest(message=_('请指定查询指标')))
+
+        if query not in TiDBQueryV2Choices.values:
+            return view.exception_response(errors.InvalidArgument(message=_('指定的查询指标的值无效')))
+
+        if monitor_unit_id is None:
+            return view.exception_response(errors.BadRequest(message=_('请指定监控单元')))
+
+        try:
+            monitor_unit = self.get_tidb_monitor_unit(monitor_unit_id=monitor_unit_id, user=request.user)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        try:
+            data = MonitorJobTiDBManager().query_v2(tag=query, monitor_unit=monitor_unit)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        return Response(data=data, status=200)

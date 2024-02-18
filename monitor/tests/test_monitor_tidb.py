@@ -2,11 +2,11 @@ from urllib import parse
 
 from django.urls import reverse
 
-from utils.test import get_or_create_user, get_or_create_service, MyAPITestCase, get_or_create_org_data_center
+from utils.test import get_or_create_user, MyAPITestCase, get_or_create_org_data_center
 from monitor.models import (
-    MonitorJobTiDB, MonitorProvider
+    MonitorJobTiDB
 )
-from monitor.managers import TiDBQueryChoices
+from monitor.managers.tidb import TiDBQueryChoices, TiDBQueryV2Choices
 from .tests import get_or_create_monitor_job_tidb
 
 
@@ -292,3 +292,143 @@ class MonitorUnitTiDBTests(MyAPITestCase):
                     self.assertIsInstance(data_item["value"], list)
                     self.assertEqual(len(data_item["value"]), 2)
                 self.assertKeysIn(["name", "name_en", "job_tag", "id", "creation"], data_item["monitor"])
+
+    def query_v2_response(self, monitor_unit_id: str = None, query_tag: str = None):
+        querys = {}
+        if monitor_unit_id:
+            querys['monitor_unit_id'] = monitor_unit_id
+
+        if query_tag:
+            querys['query'] = query_tag
+
+        url = reverse('monitor-api:tidb-query-query-v2')
+        query = parse.urlencode(query=querys)
+        return self.client.get(f'{url}?{query}')
+
+    def query_v2_ok_test(self, monitor_unit_id: str, query_tag: str):
+        response = self.query_v2_response(monitor_unit_id=monitor_unit_id, query_tag=query_tag)
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.data, dict)
+        self.assertKeysIn([query_tag, "monitor"], response.data)
+        self.assertKeysIn(["name", "name_en", "job_tag", "id", "creation"], response.data["monitor"])
+        tag_data = response.data[query_tag]
+        if tag_data:
+            data_item = tag_data[0]
+            self.assertKeysIn(["metric", "value"], data_item)
+            if data_item["value"] is not None:
+                self.assertIsInstance(data_item["value"], list)
+                self.assertEqual(len(data_item["value"]), 2)
+
+        return response
+
+    def test_query_v2(self):
+        unit_tidb = get_or_create_monitor_job_tidb()
+
+        # 未认证
+        response = self.query_v2_response(
+            monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.QPS.value)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
+
+        self.client.force_login(self.user)
+
+        response = self.query_v2_response(
+            monitor_unit_id=unit_tidb.id, query_tag='test')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        response = self.query_v2_response(
+            monitor_unit_id='notfound', query_tag=TiDBQueryV2Choices.QPS.value)
+        self.assertErrorResponse(status_code=404, code='NotFound', response=response)
+
+        # no permission
+        response = self.query_v2_response(monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.QPS.value)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # 服务单元管理员权限测试
+        unit_tidb.org_data_center.users.add(self.user)
+        self.query_v2_ok_test(monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.QPS.value)
+        # 移除服务单元管理员权限
+        unit_tidb.org_data_center.users.remove(self.user)
+
+        # no permission
+        response = self.query_v2_response(
+            monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.QPS.value)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # admin permission
+        unit_tidb.users.add(self.user)
+        self.query_v2_ok_test(monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.SERVER_AVAIL_SIZE.value)
+        self.query_v2_ok_test(monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.SERVER_SIZE.value)
+        self.query_v2_ok_test(monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.SERVER_ROOT_DIR_AVAIL.value)
+        self.query_v2_ok_test(monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.SERVER_ROOT_DIR_SIZE.value)
+        self.query_v2_ok_test(monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.SERVER_MEM_AVAIL.value)
+        self.query_v2_ok_test(
+            monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.SERVER_MEM_SIZE.value)
+        self.query_v2_ok_test(monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.SERVER_CPU_USAGE.value)
+        self.query_v2_ok_test(monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.SERVER_CPU_COUNT.value)
+        self.query_v2_ok_test(monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.STORAGE.value)
+        self.query_v2_ok_test(monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.REGION_STATUS.value)
+        self.query_v2_ok_test(monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.QPS.value)
+        self.query_v2_ok_test(monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.CONNECTIONS_COUNT.value)
+        self.query_v2_ok_test(monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.TIKV_NODES.value)
+        self.query_v2_ok_test(monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.TIDB_NODES.value)
+        self.query_v2_ok_test(monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.PD_NODES.value)
+
+        # no permission
+        unit_tidb.users.remove(self.user)
+        response = self.query_v2_response(
+            monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.QPS.value)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # federal admin permission
+        self.user.set_federal_admin()
+        r = self.query_v2_ok_test(monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.SERVER_AVAIL_SIZE.value)
+        self.assertTrue(len(r.data[TiDBQueryV2Choices.SERVER_AVAIL_SIZE.value]) >= 3)
+        r = self.query_v2_ok_test(monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.SERVER_SIZE.value)
+        self.assertTrue(len(r.data[TiDBQueryV2Choices.SERVER_SIZE.value]) >= 3)
+        r = self.query_v2_ok_test(monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.SERVER_ROOT_DIR_AVAIL.value)
+        self.assertTrue(len(r.data[TiDBQueryV2Choices.SERVER_ROOT_DIR_AVAIL.value]) >= 3)
+        r = self.query_v2_ok_test(monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.SERVER_ROOT_DIR_SIZE.value)
+        self.assertTrue(len(r.data[TiDBQueryV2Choices.SERVER_ROOT_DIR_SIZE.value]) >= 3)
+        r = self.query_v2_ok_test(monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.SERVER_MEM_AVAIL.value)
+        self.assertTrue(len(r.data[TiDBQueryV2Choices.SERVER_MEM_AVAIL.value]) >= 3)
+        r = self.query_v2_ok_test(
+            monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.SERVER_MEM_SIZE.value)
+        self.assertTrue(len(r.data[TiDBQueryV2Choices.SERVER_MEM_SIZE.value]) >= 3)
+        r = self.query_v2_ok_test(monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.SERVER_CPU_USAGE.value)
+        self.assertTrue(len(r.data[TiDBQueryV2Choices.SERVER_CPU_USAGE.value]) >= 3)
+        r = self.query_v2_ok_test(monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.SERVER_CPU_COUNT.value)
+        self.assertTrue(len(r.data[TiDBQueryV2Choices.SERVER_CPU_COUNT.value]) >= 3)
+        r = self.query_v2_ok_test(monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.STORAGE.value)
+        self.assertTrue(len(r.data[TiDBQueryV2Choices.STORAGE.value]) >= 2)
+        r = self.query_v2_ok_test(monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.REGION_STATUS.value)
+        self.assertTrue(len(r.data[TiDBQueryV2Choices.REGION_STATUS.value]) >= 6)
+        r = self.query_v2_ok_test(monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.QPS.value)
+        self.assertTrue(len(r.data[TiDBQueryV2Choices.QPS.value]) >= 6)
+        r = self.query_v2_ok_test(monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.CONNECTIONS_COUNT.value)
+        self.assertTrue(len(r.data[TiDBQueryV2Choices.CONNECTIONS_COUNT.value]) >= 3)
+        r = self.query_v2_ok_test(monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.TIKV_NODES.value)
+        self.assertTrue(len(r.data[TiDBQueryV2Choices.TIKV_NODES.value]) >= 3)
+        r = self.query_v2_ok_test(monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.TIDB_NODES.value)
+        self.assertTrue(len(r.data[TiDBQueryV2Choices.TIDB_NODES.value]) >= 3)
+        r = self.query_v2_ok_test(monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.PD_NODES.value)
+        self.assertTrue(len(r.data[TiDBQueryV2Choices.PD_NODES.value]) >= 3)
+
+        # all together
+        response = self.query_v2_response(
+            monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.ALL_TOGETHER.value)
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.data, dict)
+
+        tags = TiDBQueryV2Choices.values
+        tags.remove(TiDBQueryV2Choices.ALL_TOGETHER.value)
+        self.assertKeysIn(["name", "name_en", "job_tag", "id", "creation"], response.data["monitor"])
+        for tag in tags:
+            self.assertIn(tag, response.data)
+            tag_data = response.data[tag]
+            self.assertIsInstance(tag_data, list)
+            if tag_data:
+                data_item = tag_data[0]
+                self.assertKeysIn(["metric", "value"], data_item)
+                if data_item["value"] is not None:
+                    self.assertIsInstance(data_item["value"], list)
+                    self.assertEqual(len(data_item["value"]), 2)

@@ -10,20 +10,19 @@ from django.core.exceptions import ValidationError
 
 from core import errors
 from service.odc_manager import OrgDataCenterManager
-from .utils import build_thanos_provider, ThanosProvider
-from .serializers import (
+from monitor.utils import build_thanos_provider, ThanosProvider
+from monitor.serializers import (
     MonitorJobCephSerializer, MonitorJobServerSerializer
 )
-from .models import (
+from monitor.models import (
     MonitorJobCeph, MonitorProvider, MonitorJobServer, MonitorJobVideoMeeting,
     MonitorWebsite, MonitorWebsiteTask, MonitorWebsiteVersion, get_str_hash,
-    WebsiteDetectionPoint, MonitorJobTiDB, MonitorWebsiteRecord
+    WebsiteDetectionPoint, MonitorWebsiteRecord
 )
-from .backends.monitor_ceph import MonitorCephQueryAPI
-from .backends.monitor_server import MonitorServerQueryAPI
-from .backends.monitor_video_meeting import MonitorVideoMeetingQueryAPI
-from .backends.monitor_website import MonitorWebsiteQueryAPI
-from .backends.monitor_tidb import MonitorTiDBQueryAPI
+from monitor.backends.monitor_ceph import MonitorCephQueryAPI
+from monitor.backends.monitor_server import MonitorServerQueryAPI
+from monitor.backends.monitor_video_meeting import MonitorVideoMeetingQueryAPI
+from monitor.backends.monitor_website import MonitorWebsiteQueryAPI
 
 
 class CephQueryChoices(models.TextChoices):
@@ -63,23 +62,6 @@ class WebsiteQueryChoices(models.TextChoices):
     DURATION_SECONDS = 'duration_seconds', gettext_lazy('tcp或http请求耗时')
     HTTP_STATUS_STATUS = 'http_status_code', gettext_lazy('http请求状态码')
     HTTP_DURATION_SECONDS = 'http_duration_seconds', gettext_lazy('http请求各个部分耗时')
-
-
-class TiDBQueryChoices(models.TextChoices):
-    PD_NODES = 'pd_nodes', gettext_lazy('pd节点')
-    TIDB_NODES = 'tidb_nodes', gettext_lazy('tidb节点')
-    TIKV_NODES = 'tikv_nodes', gettext_lazy('tivk节点')
-    CONNECTIONS_COUNT = 'connections_count', gettext_lazy('连接数')
-    QPS = 'qps', gettext_lazy('每秒请求数')
-    REGION_COUNT = 'region_count', gettext_lazy('副本数量')
-    REGION_HEALTH = 'region_health', gettext_lazy('副本状态')
-    STORAGE_CAPACITY = 'storage_capacity', gettext_lazy('存储总容量')
-    CURRENT_STORAGE_SIZE = 'current_storage_size', gettext_lazy('当前存储容量')
-    STORAGE = 'storage', gettext_lazy('存储总容量和当前已用容量')
-    SERVER_CPU_USAGE = 'server_cpu_usage', gettext_lazy('主机CPU使用率')
-    SERVER_MEM_USAGE = 'server_mem_usage', gettext_lazy('主机内存使用率')
-    SERVER_DISK_USAGE = 'server_disk_usage', gettext_lazy('主机硬盘使用率')
-    ALL_TOGETHER = 'all_together', gettext_lazy('一起查询所有指标')
 
 
 class URLTCPValidator(URLValidator):
@@ -983,113 +965,3 @@ class MonitorWebsiteManager:
                     data[em] = item
 
         return list(data.values())
-
-
-class MonitorJobTiDBManager:
-    backend = MonitorTiDBQueryAPI()
-
-    @staticmethod
-    def get_queryset(service_id: str = None):
-        qs = MonitorJobTiDB.objects.select_related('provider').all()
-        if service_id:
-            qs = qs.filter(service_id=service_id)
-
-        return qs
-
-    def query(self, tag: str, monitor_unit: MonitorJobTiDB):
-        if tag == TiDBQueryChoices.ALL_TOGETHER.value:
-            return self.query_together(monitor_unit=monitor_unit)
-
-        return self._query(tag=tag, monitor_unit=monitor_unit)
-
-    def query_together(self, monitor_unit: MonitorJobTiDB):
-        ret = {}
-        tags = TiDBQueryChoices.values
-        tags.remove(TiDBQueryChoices.ALL_TOGETHER.value)
-        for tag in tags:
-            try:
-                data = self._query(tag=tag, monitor_unit=monitor_unit)
-            except errors.Error as exc:
-                data = []
-
-            ret[tag] = data
-
-        return ret
-
-    def _query(self, tag: str, monitor_unit: MonitorJobTiDB):
-        """
-        :return:
-            [
-                {
-                    "monitor":{
-                        "name": "",
-                        "name_en": "",
-                        "job_tag": "",
-                        "id": "",
-                        "creation": "2020-11-02T07:47:39.776384Z"
-                    },
-                    "metric": {                 # 此项的数据内容随查询数据类型变化
-                        "__name__": "ceph_cluster_total_used_bytes",
-                        "instance": "10.0.200.100:9283",
-                        "job": "Fed-ceph",
-                        "receive_cluster": "obs",
-                        "receive_replica": "0",
-                        "tenant_id": "default-tenant"
-                    },
-                    "value": [
-                        1630267851.781,
-                        "0"
-                    ]
-                }
-            ]
-        :raises: Error
-        """
-        ret_data = []
-        job_dict = MonitorJobCephSerializer(monitor_unit).data
-        provider = build_thanos_provider(monitor_unit.org_data_center)
-        r = self.request_data(provider=provider, tag=tag, job=monitor_unit.job_tag)
-        for data in r:
-            data['monitor'] = job_dict
-            ret_data.append(data)
-
-        return ret_data
-
-    def request_data(self, provider: ThanosProvider, tag: str, job: str):
-        """
-        :return:
-            [
-                {
-                    "metric": {
-                        "__name__": "ceph_cluster_total_used_bytes",
-                        "instance": "10.0.200.100:9283",
-                        "job": "Fed-ceph",
-                        "receive_cluster": "obs",
-                        "receive_replica": "0",
-                        "tenant_id": "default-tenant"
-                    },
-                    "value": [
-                        1630267851.781,
-                        "0"                 # "0": 正常；”1“:警告
-                    ]
-                }
-            ]
-        :raises: Error
-        """
-        params = {'provider': provider, 'job': job}
-        f = {
-            TiDBQueryChoices.PD_NODES.value: self.backend.pd_nodes,
-            TiDBQueryChoices.TIDB_NODES.value: self.backend.tidb_nodes,
-            TiDBQueryChoices.TIKV_NODES.value: self.backend.tikv_nodes,
-            TiDBQueryChoices.CONNECTIONS_COUNT.value: self.backend.connections_count,
-            TiDBQueryChoices.REGION_COUNT.value: self.backend.region_count,
-            TiDBQueryChoices.REGION_HEALTH.value: self.backend.region_health,
-            TiDBQueryChoices.STORAGE_CAPACITY.value: self.backend.storage_capacity,
-            TiDBQueryChoices.CURRENT_STORAGE_SIZE.value: self.backend.current_storage_size,
-            TiDBQueryChoices.SERVER_CPU_USAGE.value: self.backend.server_cpu_usage,
-            TiDBQueryChoices.SERVER_MEM_USAGE.value: self.backend.server_mem_usage,
-            TiDBQueryChoices.SERVER_DISK_USAGE.value: self.backend.server_disk_usage,
-            TiDBQueryChoices.QPS.value: self.backend.qps_count,
-            TiDBQueryChoices.STORAGE.value: self.backend.storage,
-        }[tag]
-
-        return f(**params)
