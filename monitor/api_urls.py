@@ -1,8 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import SimpleRouter
 
-from monitor import monitor_views, log_views
-from monitor.apiviews import tidb_views
+from monitor.apiviews import tidb_views, log_views, monitor_views
 
 
 app_name = 'monitor'

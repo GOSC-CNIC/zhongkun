@@ -5,7 +5,7 @@ from core import errors
 from api.viewsets import CustomGenericViewSet
 
 from monitor.models import LogSite, LogSiteTimeReqNum
-from monitor.log_managers import LogSiteManager
+from monitor.managers.logs import LogSiteManager
 
 
 class BaseHandler:

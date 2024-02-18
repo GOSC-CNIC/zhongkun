@@ -2,9 +2,9 @@ from django.utils.translation import gettext as _
 from django.db.models import Q
 
 from core import errors
-from .utils import build_loki_provider
-from .models import LogSite
-from .backends.log import LogLokiAPI
+from monitor.utils import build_loki_provider
+from monitor.models import LogSite
+from monitor.backends.log import LogLokiAPI
 
 
 class LogSiteManager:

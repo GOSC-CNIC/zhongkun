@@ -13,18 +13,18 @@ from drf_yasg.utils import no_body
 from api.viewsets import CustomGenericViewSet
 from api.paginations import MonitorPageNumberPagination, MonitorWebsiteTaskPagination
 from utils.paginators import NoPaginatorInspector
+from service.models import OrgDataCenter
+from core import errors
 from monitor.managers import (
     CephQueryChoices, ServerQueryChoices, VideoMeetingQueryChoices, WebsiteQueryChoices
 )
 from monitor.utils import MonitorEmailAddressIPRestrictor
 from monitor.models import MonitorJobCeph, MonitorJobTiDB, MonitorJobServer, LogSite
-from service.models import OrgDataCenter
-from core import errors
-from .handlers.monitor_ceph import MonitorCephQueryHandler
-from .handlers.monitor_server import MonitorServerQueryHandler
-from .handlers.monitor_video_meeting import MonitorVideoMeetingQueryHandler
-from .handlers.monitor_website import MonitorWebsiteHandler, TaskSchemeType
-from . import serializers as monitor_serializers
+from monitor.handlers.monitor_ceph import MonitorCephQueryHandler
+from monitor.handlers.monitor_server import MonitorServerQueryHandler
+from monitor.handlers.monitor_video_meeting import MonitorVideoMeetingQueryHandler
+from monitor.handlers.monitor_website import MonitorWebsiteHandler, TaskSchemeType
+from monitor import serializers as monitor_serializers
 
 
 class MonitorCephQueryViewSet(CustomGenericViewSet):

@@ -16,8 +16,9 @@ from servers.serializers import AdminServiceSerializer
 from storage.models import ObjectsService
 from storage.serializers import AdminObjectsServiceSerializer
 from monitor.models import MonitorJobServer, MonitorJobCeph, MonitorJobTiDB, LogSite
-from monitor.serializers import MonitorUnitServerSerializer, MonitorUnitCephSerializer, MonitorUnitTiDBSerializer
-from monitor.log_serializers import LogSiteSerializer
+from monitor.serializers import (
+    MonitorUnitServerSerializer, MonitorUnitCephSerializer, MonitorUnitTiDBSerializer, LogSiteSerializer
+)
 from .. import serializers as dcserializers
 
 

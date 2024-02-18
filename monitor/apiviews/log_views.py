@@ -11,8 +11,8 @@ from api.viewsets import CustomGenericViewSet
 from api.paginations import NewPageNumberPagination100
 from utils.paginators import NoPaginatorInspector
 from monitor.models import LogSite
-from .handlers.log_handler import LogSiteHandler
-from . import log_serializers
+from monitor.handlers.log_handler import LogSiteHandler
+from monitor import serializers as log_serializers
 
 
 PARAM_LOKI_TIMESTAMP_RANGE = [
