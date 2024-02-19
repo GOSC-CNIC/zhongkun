@@ -229,12 +229,17 @@ class MonitorJobTiDBManager:
         tasks = [self.req_tag(unit=monitor_unit, endpoint_url=provider.endpoint_url, tag=tag) for tag in tags]
         results = asyncio.run(self.do_async_requests(tasks))
         data = {}
+        errs = {}
         for r in results:
             tag, tag_data = r
             if isinstance(tag_data, Exception):
                 data[tag] = []
+                errs[tag] = str(tag_data)
             else:
                 data[tag] = tag_data
+
+        if errs:
+            data['errors'] = errs
 
         return data
 

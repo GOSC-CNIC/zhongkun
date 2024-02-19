@@ -1,17 +1,17 @@
 from django.urls import path, include
 from rest_framework.routers import SimpleRouter
 
-from monitor.apiviews import tidb_views, log_views, monitor_views
+from monitor.apiviews import tidb_views, log_views, monitor_views, ceph_views
 
 
 app_name = 'monitor'
 
 
 no_slash_router = SimpleRouter(trailing_slash=False)
-no_slash_router.register(r'unit/ceph', monitor_views.MonitorUnitCephViewSet, basename='unit-ceph')
+no_slash_router.register(r'unit/ceph', ceph_views.MonitorUnitCephViewSet, basename='unit-ceph')
 no_slash_router.register(r'unit/server', monitor_views.MonitorUnitServerViewSet, basename='unit-server')
 no_slash_router.register(r'unit/tidb', tidb_views.MonitorUnitTiDBViewSet, basename='unit-tidb')
-no_slash_router.register(r'ceph/query', monitor_views.MonitorCephQueryViewSet, basename='ceph-query')
+no_slash_router.register(r'ceph/query', ceph_views.MonitorCephQueryViewSet, basename='ceph-query')
 no_slash_router.register(r'server/query', monitor_views.MonitorServerQueryViewSet,
                          basename='server-query')
 no_slash_router.register(r'video-meeting/query', monitor_views.MonitorVideoMeetingQueryViewSet,

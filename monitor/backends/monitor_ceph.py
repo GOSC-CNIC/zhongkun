@@ -1,6 +1,8 @@
-import requests
 from urllib import parse
 from string import Template
+
+import requests
+import aiohttp
 
 from core import errors
 from monitor.utils import ThanosProvider
@@ -29,7 +31,7 @@ class ExpressionQuery:
     tmpl_pool_meta = 'ceph_pool_metadata{job="$job"}'
     tmpl_pg_active = 'ceph_pg_active{job="$job"}'
     tmpl_pg_unactive = 'ceph_pg_total{job="$job"} - ceph_pg_active{job="$job"}'
-    tmpl_pg_degraded = 'ceph_pg_active{job="$job"}'
+    tmpl_pg_degraded = 'ceph_pg_degraded{job="$job"}'
     tmpl_obj_degraded = 'ceph_num_objects_degraded{job="$job"}'
     tmpl_obj_misplaced = 'ceph_num_objects_misplaced{job="$job"}'
 
@@ -108,6 +110,8 @@ class MonitorCephQueryAPI:
         }
     ]
     """
+    query_builder = ExpressionQuery()
+
     def ceph_health_status(self, provider: ThanosProvider, job: str):
         """
         :return:
@@ -410,3 +414,48 @@ class MonitorCephQueryAPI:
         query = parse.urlencode(query={'query': expression_query, 'start': start, 'end': end, 'step': step})
         url = f'{endpoint_url}/api/v1/query_range?{query}'
         return url
+
+    def query_tag(self, endpoint_url: str, tag_tmpl: str, job: str):
+        """
+        :return:
+        """
+        expression_query = self.query_builder.render_expression(tmpl=tag_tmpl, job=job)
+        api_url = self._build_query_api(endpoint_url=endpoint_url, expression_query=expression_query)
+        return self._request_query_api(url=api_url)
+
+    async def async_query_tag(self, endpoint_url: str, tag_tmpl: str, job: str):
+        """
+        :return:
+        """
+        expression_query = self.query_builder.render_expression(tmpl=tag_tmpl, job=job)
+        api_url = self._build_query_api(endpoint_url=endpoint_url, expression_query=expression_query)
+        return await self.async_request_query_api(url=api_url)
+
+    @staticmethod
+    async def async_request_query_api(url: str):
+        """
+        :raises: Error
+        """
+        try:
+            async with aiohttp.ClientSession() as client:
+                r = await client.get(url=url, timeout=aiohttp.ClientTimeout(connect=5, total=30))
+        except requests.exceptions.Timeout:
+            raise errors.Error(message='ceph backend,query api request timeout')
+        except requests.exceptions.RequestException:
+            raise errors.Error(message='ceph backend,query api request error')
+
+        status_code = r.status
+        if 300 > status_code >= 200:
+            data = await r.json()
+            s = data.get('status')
+            if s == 'success':
+                return data['data']['result']
+
+        try:
+            data = await r.json()
+            msg = f"status: {status_code}, errorType: {data.get('errorType')}, error: {data.get('error')}"
+        except Exception as e:
+            text = await r.text()
+            msg = f"status: {status_code}, error: {text}"
+
+        raise errors.Error(message=msg)

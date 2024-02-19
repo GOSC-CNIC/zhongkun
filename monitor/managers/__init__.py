@@ -1,4 +1,4 @@
-from .managers import CephQueryChoices, MonitorJobCephManager
+from .ceph import CephQueryChoices, MonitorJobCephManager, CephQueryV2Choices
 from .managers import ServerQueryChoices, MonitorJobServerManager
 from .managers import VideoMeetingQueryChoices, MonitorJobVideoMeetingManager
 from .managers import WebsiteQueryChoices, MonitorWebsiteManager, URLTCPValidator
@@ -6,7 +6,7 @@ from .tidb import TiDBQueryChoices, MonitorJobTiDBManager
 
 
 __all__ = [
-    CephQueryChoices, MonitorJobCephManager,
+    CephQueryChoices, CephQueryV2Choices, MonitorJobCephManager,
     ServerQueryChoices, MonitorJobServerManager,
     VideoMeetingQueryChoices, MonitorJobVideoMeetingManager,
     TiDBQueryChoices, MonitorJobTiDBManager
