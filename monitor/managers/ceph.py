@@ -4,7 +4,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy, gettext as _
 
 from core import errors
-from monitor.utils import build_thanos_provider, ThanosProvider
+from monitor.utils import build_thanos_provider
 from monitor.serializers import MonitorJobCephSerializer
 from monitor.models import MonitorJobCeph
 from monitor.backends.monitor_ceph import MonitorCephQueryAPI
@@ -43,7 +43,17 @@ class CephQueryV2Choices(models.TextChoices):
 class MonitorJobCephManager:
     backend = MonitorCephQueryAPI()
 
-    tags_map = {
+    v1_tag_tmpl_map = {
+        CephQueryChoices.HEALTH_STATUS.value: backend.query_builder.ceph_health_status,
+        CephQueryChoices.CLUSTER_TOTAL_BYTES.value: backend.query_builder.ceph_cluster_total_bytes,
+        CephQueryChoices.CLUSTER_TOTAL_USED_BYTES.value: backend.query_builder.ceph_cluster_total_used_bytes,
+        CephQueryChoices.OSD_IN.value: backend.query_builder.ceph_osd_in_count,
+        CephQueryChoices.OSD_OUT.value: backend.query_builder.ceph_osd_out_count,
+        CephQueryChoices.OSD_UP.value: backend.query_builder.ceph_osd_up_count,
+        CephQueryChoices.OSD_DOWN.value: backend.query_builder.ceph_osd_down_count
+    }
+
+    v2_tag_tmpl_map = {
         CephQueryV2Choices.HEALTH_STATUS_DETAIL.value: backend.query_builder.tmpl_health_status_detail,
         CephQueryV2Choices.CLUSTER_SIZE.value: backend.query_builder.tmpl_total_bytes,
         CephQueryV2Choices.CLUSTER_USED_SIZE.value: backend.query_builder.tmpl_total_used_bytes,
@@ -76,18 +86,33 @@ class MonitorJobCephManager:
         return self._query(tag=tag, monitor_unit=monitor_unit)
 
     def query_together(self, monitor_unit: MonitorJobCeph):
-        ret = {}
         tags = CephQueryChoices.values
         tags.remove(CephQueryChoices.ALL_TOGETHER.value)
-        for tag in tags:
-            try:
-                data = self._query(tag=tag, monitor_unit=monitor_unit)
-            except errors.Error as exc:
-                data = []
+        provider = build_thanos_provider(monitor_unit.org_data_center)
+        unit_meta = MonitorJobCephSerializer(monitor_unit).data
+        tasks = [
+            self.req_tag(
+                unit=monitor_unit, endpoint_url=provider.endpoint_url, tag=tag, tag_tmpl=self.v1_tag_tmpl_map[tag]
+            ) for tag in tags
+        ]
+        results = asyncio.run(self.do_async_requests(tasks))
+        data = {}
+        errs = {}
+        for r in results:
+            tag, tag_data = r
+            if isinstance(tag_data, Exception):
+                data[tag] = []
+                errs[tag] = str(tag_data)
+            else:
+                if tag_data:
+                    tag_data[0]['monitor'] = unit_meta
 
-            ret[tag] = data
+                data[tag] = tag_data
 
-        return ret
+        if errs:
+            data['errors'] = errs
+
+        return data
 
     def _query(self, tag: str, monitor_unit: MonitorJobCeph):
         """
@@ -118,19 +143,17 @@ class MonitorJobCephManager:
         :raises: Error
         """
         provider = build_thanos_provider(monitor_unit.org_data_center)
-        job_ceph_map = {monitor_unit.job_tag: monitor_unit}
+        tag_tmpl = self.v1_tag_tmpl_map[tag]
         ret_data = []
-        for job in job_ceph_map.values():
-            job_dict = MonitorJobCephSerializer(job).data
-            r = self.request_data(provider=provider, tag=tag, job=job.job_tag)
-            if r:
-                data = r[0]
-                data['monitor'] = job_dict
-            else:
-                data = {'monitor': job_dict, 'value': None}
+        job_dict = MonitorJobCephSerializer(monitor_unit).data
+        r = self.backend.query_tag(endpoint_url=provider.endpoint_url, tag_tmpl=tag_tmpl, job=monitor_unit.job_tag)
+        if r:
+            data = r[0]
+            data['monitor'] = job_dict
+        else:
+            data = {'monitor': job_dict, 'value': None}
 
-            ret_data.append(data)
-
+        ret_data.append(data)
         return ret_data
 
     def queryrange(self, tag: str, monitor_unit: MonitorJobCeph, start: int, end: int, step: int):
@@ -138,71 +161,22 @@ class MonitorJobCephManager:
         if tag == CephQueryChoices.ALL_TOGETHER.value:
             raise errors.InvalidArgument(message=_('范围查询不支持一起查询所有指标类型'))
 
-        job_ceph_map = {monitor_unit.job_tag: monitor_unit}
         ret_data = []
-        for job in job_ceph_map.values():
-            job_dict = MonitorJobCephSerializer(job).data
-            r = self.request_range_data(provider=provider, tag=tag, job=job.job_tag,
-                                        start=start, end=end, step=step)
-            if r:
-                data = r[0]
-                data.pop('metric', None)
-                data['monitor'] = job_dict
-            else:
-                data = {'monitor': job_dict, 'values': []}
+        job_dict = MonitorJobCephSerializer(monitor_unit).data
+        tag_tmpl = self.v1_tag_tmpl_map[tag]
+        r = self.backend.query_range_tag(
+            endpoint_url=provider.endpoint_url, tag_tmpl=tag_tmpl, job=monitor_unit.job_tag,
+            start=start, end=end, step=step
+        )
+        if r:
+            data = r[0]
+            data.pop('metric', None)
+            data['monitor'] = job_dict
+        else:
+            data = {'monitor': job_dict, 'values': []}
 
-            ret_data.append(data)
-
+        ret_data.append(data)
         return ret_data
-
-    def request_range_data(self, provider: ThanosProvider, tag: str, job: str, start: int, end: int, step: int):
-        params = {'provider': provider, 'job': job, 'start': start, 'end': end, 'step': step}
-
-        f = {
-            CephQueryChoices.HEALTH_STATUS.value: self.backend.ceph_health_status_range,
-            CephQueryChoices.CLUSTER_TOTAL_BYTES.value: self.backend.ceph_cluster_total_bytes_range,
-            CephQueryChoices.CLUSTER_TOTAL_USED_BYTES.value: self.backend.ceph_cluster_total_used_bytes_range,
-            CephQueryChoices.OSD_IN.value: self.backend.ceph_osd_in_range,
-            CephQueryChoices.OSD_OUT.value: self.backend.ceph_osd_out_range,
-            CephQueryChoices.OSD_UP.value: self.backend.ceph_osd_up_range,
-            CephQueryChoices.OSD_DOWN.value: self.backend.ceph_osd_down_range
-        }[tag]
-
-        return f(**params)
-
-    def request_data(self, provider: ThanosProvider, tag: str, job: str):
-        """
-        :return:
-            [
-                {
-                    "metric": {
-                        "__name__": "ceph_cluster_total_used_bytes",
-                        "instance": "10.0.200.100:9283",
-                        "job": "Fed-ceph",
-                        "receive_cluster": "obs",
-                        "receive_replica": "0",
-                        "tenant_id": "default-tenant"
-                    },
-                    "value": [
-                        1630267851.781,
-                        "0"                 # "0": 正常；”1“:警告
-                    ]
-                }
-            ]
-        :raises: Error
-        """
-        params = {'provider': provider, 'job': job}
-        f = {
-            CephQueryChoices.HEALTH_STATUS.value: self.backend.ceph_health_status,
-            CephQueryChoices.CLUSTER_TOTAL_BYTES.value: self.backend.ceph_cluster_total_bytes,
-            CephQueryChoices.CLUSTER_TOTAL_USED_BYTES.value: self.backend.ceph_cluster_total_used_bytes,
-            CephQueryChoices.OSD_IN.value: self.backend.ceph_osd_in,
-            CephQueryChoices.OSD_OUT.value: self.backend.ceph_osd_out,
-            CephQueryChoices.OSD_UP.value: self.backend.ceph_osd_up,
-            CephQueryChoices.OSD_DOWN.value: self.backend.ceph_osd_down
-        }[tag]
-
-        return f(**params)
 
     def query_v2(self, tag: str, monitor_unit: MonitorJobCeph):
         """
@@ -248,7 +222,7 @@ class MonitorJobCephManager:
         :raises: Error
         """
         provider = build_thanos_provider(monitor_unit.org_data_center)
-        tag_tmpl = self.tags_map[tag]
+        tag_tmpl = self.v2_tag_tmpl_map[tag]
         r = self.backend.query_tag(endpoint_url=provider.endpoint_url, tag_tmpl=tag_tmpl, job=monitor_unit.job_tag)
         return {tag: r}
 
@@ -257,7 +231,11 @@ class MonitorJobCephManager:
         tags = CephQueryV2Choices.values
         tags.remove(CephQueryV2Choices.ALL_TOGETHER.value)
 
-        tasks = [self.req_tag(unit=monitor_unit, endpoint_url=provider.endpoint_url, tag=tag) for tag in tags]
+        tasks = [
+            self.req_tag(
+                unit=monitor_unit, endpoint_url=provider.endpoint_url, tag=tag, tag_tmpl=self.v2_tag_tmpl_map[tag]
+            ) for tag in tags
+        ]
         results = asyncio.run(self.do_async_requests(tasks))
         data = {}
         errs = {}
@@ -278,9 +256,8 @@ class MonitorJobCephManager:
     async def do_async_requests(tasks):
         return await asyncio.gather(*tasks, return_exceptions=True)
 
-    async def req_tag(self, unit: MonitorJobCeph, endpoint_url: str, tag: str):
+    async def req_tag(self, unit: MonitorJobCeph, endpoint_url: str, tag: str, tag_tmpl: str):
         try:
-            tag_tmpl = self.tags_map[tag]
             ret = await self.backend.async_query_tag(
                 endpoint_url=endpoint_url, tag_tmpl=tag_tmpl, job=unit.job_tag)
         except Exception as exc:
