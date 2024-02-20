@@ -1,7 +1,7 @@
 import asyncio
 
 from django.db import models
-from django.utils.translation import gettext_lazy, gettext as _
+from django.utils.translation import gettext_lazy
 
 from core import errors
 from monitor.utils import build_thanos_provider, ThanosProvider
@@ -43,8 +43,22 @@ class ServerQueryV2Choices(models.TextChoices):
 
 class MonitorJobServerManager:
     backend = MonitorServerQueryAPI()
+    v1_tag_tmpl_map = {
+        ServerQueryChoices.HOST_COUNT.value: backend.query_builder.server_host_count,
+        ServerQueryChoices.HOST_UP_COUNT.value: backend.query_builder.server_host_up_count,
+        ServerQueryChoices.HEALTH_STATUS.value: backend.query_builder.server_health_status,
+        ServerQueryChoices.CPU_USAGE.value: backend.query_builder.server_cpu_usage,
+        ServerQueryChoices.MEM_USAGE.value: backend.query_builder.server_mem_usage,
+        ServerQueryChoices.DISK_USAGE.value: backend.query_builder.server_disk_usage,
+        ServerQueryChoices.MIN_CPU_USAGE.value: backend.query_builder.server_min_cpu_usage,
+        ServerQueryChoices.MAX_CPU_USAGE.value: backend.query_builder.server_max_cpu_usage,
+        ServerQueryChoices.MIN_MEM_USAGE.value: backend.query_builder.server_min_mem_usage,
+        ServerQueryChoices.MAX_MEM_USAGE.value: backend.query_builder.server_max_mem_usage,
+        ServerQueryChoices.MIN_DISK_USAGE.value: backend.query_builder.server_min_disk_usage,
+        ServerQueryChoices.MAX_DISK_USAGE.value: backend.query_builder.server_max_disk_usage
+    }
 
-    tags_map = {
+    v2_tag_tmpl_map = {
         ServerQueryV2Choices.HOST_UP.value: backend.query_builder.tmpl_up,
         ServerQueryV2Choices.HOST_DOWN.value: backend.query_builder.tmpl_down,
         ServerQueryV2Choices.HOST_BOOT_TIME.value: backend.query_builder.tmpl_boot_time,
@@ -60,7 +74,7 @@ class MonitorJobServerManager:
 
     @staticmethod
     def get_queryset(service_id: str = None):
-        qs = MonitorJobServer.objects.select_related('provider').all()
+        qs = MonitorJobServer.objects.select_related('org_data_center').all()
         if service_id:
             qs = qs.filter(service_id=service_id)
 
@@ -129,23 +143,9 @@ class MonitorJobServerManager:
         :return:
         :raises: Error
         """
-        params = {'provider': provider, 'job': job}
-        f = {
-            ServerQueryChoices.HEALTH_STATUS.value: self.backend.server_health_status,
-            ServerQueryChoices.HOST_COUNT.value: self.backend.server_host_count,
-            ServerQueryChoices.HOST_UP_COUNT.value: self.backend.server_host_up_count,
-            ServerQueryChoices.CPU_USAGE.value: self.backend.server_cpu_usage,
-            ServerQueryChoices.MEM_USAGE.value: self.backend.server_mem_usage,
-            ServerQueryChoices.DISK_USAGE.value: self.backend.server_disk_usage,
-            ServerQueryChoices.MIN_CPU_USAGE.value: self.backend.server_min_cpu_usage,
-            ServerQueryChoices.MAX_CPU_USAGE.value: self.backend.server_max_cpu_usage,
-            ServerQueryChoices.MIN_MEM_USAGE.value: self.backend.server_min_mem_usage,
-            ServerQueryChoices.MAX_MEM_USAGE.value: self.backend.server_max_mem_usage,
-            ServerQueryChoices.MIN_DISK_USAGE.value: self.backend.server_min_disk_usage,
-            ServerQueryChoices.MAX_DISK_USAGE.value: self.backend.server_max_disk_usage,
-        }[tag]
-
-        return f(**params)
+        tag_tmpl = self.v1_tag_tmpl_map[tag]
+        r = self.backend.query_tag(endpoint_url=provider.endpoint_url, tag_tmpl=tag_tmpl, job=job)
+        return r
 
     def query_v2(self, tag: str, monitor_unit: MonitorJobServer):
         """
@@ -191,7 +191,7 @@ class MonitorJobServerManager:
         :raises: Error
         """
         provider = build_thanos_provider(monitor_unit.org_data_center)
-        tag_tmpl = self.tags_map[tag]
+        tag_tmpl = self.v2_tag_tmpl_map[tag]
         r = self.backend.query_tag(endpoint_url=provider.endpoint_url, tag_tmpl=tag_tmpl, job=monitor_unit.job_tag)
         return {tag: r}
 
@@ -223,7 +223,7 @@ class MonitorJobServerManager:
 
     async def req_tag(self, unit: MonitorJobServer, endpoint_url: str, tag: str):
         try:
-            tag_tmpl = self.tags_map[tag]
+            tag_tmpl = self.v2_tag_tmpl_map[tag]
             ret = await self.backend.async_query_tag(
                 endpoint_url=endpoint_url, tag_tmpl=tag_tmpl, job=unit.job_tag)
         except Exception as exc:
