@@ -1,6 +1,8 @@
 import time
+from urllib import parse
 
 import requests
+import aiohttp
 from string import Template
 
 from core import errors
@@ -39,26 +41,34 @@ class ExpressionQuery:
                             '+(node_filesystem_size_bytes{job="$job",fstype=~"ext.?|xfs"}'\
                             '-node_filesystem_free_bytes{job="$job",fstype=~"ext.?|xfs"})))'
 
-    sl_up = 'up{job="$job"} == 1'
-    sl_down = 'up{job="$job"} == 0'
-    sl_boot_time = '(time() - node_boot_time_seconds{job="$job"}) / 86400'     # day
-    sl_cpu_count = 'count(node_cpu_seconds_total{job="$job", mode="system"}) by (instance)'
-    sl_cpu_usage = '(1 - avg(rate(node_cpu_seconds_total{job="$job", mode="idle"}[1m])) by (instance)) * 100'
-    sl_mem = 'node_memory_MemTotal_bytes{job="$job"} / 1073741824'  # GiB
-    sl_mem_availabele = 'node_memory_MemAvailable_bytes{job="$job"} / 1073741824'   # GiB
-    sl_root_dir_size = 'node_filesystem_size_bytes{job="$job">, mountpoint="/"} / 1073741824'    # GiB
-    sl_root_dir_avail_size = 'node_filesystem_avail_bytes{job="$job", mountpoint="/"} / 1073741824'  # GiB
+    tmpl_up = 'up{job="$job"} == 1'
+    tmpl_down = 'up{job="$job"} == 0'
+    tmpl_boot_time = '(time() - node_boot_time_seconds{job="$job"}) / 86400'     # day
+    tmpl_cpu_count = 'count(node_cpu_seconds_total{job="$job", mode="system"}) by (instance)'
+    tmpl_cpu_usage = '(1 - avg(rate(node_cpu_seconds_total{job="$job", mode="idle"}[1m])) by (instance)) * 100'
+    tmpl_mem_size = 'node_memory_MemTotal_bytes{job="$job"} / 1073741824'  # GiB
+    tmpl_mem_availabele = 'node_memory_MemAvailable_bytes{job="$job"} / 1073741824'   # GiB
+    tmpl_root_dir_size = 'node_filesystem_size_bytes{job="$job", mountpoint="/"} / 1073741824'    # GiB
+    tmpl_root_dir_avail_size = 'node_filesystem_avail_bytes{job="$job", mountpoint="/"} / 1073741824'  # GiB
     # MiB/s
-    sl_net_rate_in = 'rate(node_network_receive_bytes_total{job="$job", device!~"lo|br_.*|vnet.*"}[1m]) * on(' \
-                     'job, instance, device) (node_network_info{operstate="up"} == 1) / 8388608'
-    sl_net_rate_out = 'rate(node_network_transmit_bytes_total{job="$job", device!~"lo|br_.*|vnet.*"}[1m]) * on(' \
-                      'job, instance, device) (node_network_info{operstate="up"} == 1) / 8388608'
+    tmpl_net_rate_in = 'rate(node_network_receive_bytes_total{job="$job", device!~"lo|br_.*|vnet.*"}[1m]) * on(' \
+                       'job, instance, device) (node_network_info{operstate="up"} == 1) / 8388608'
+    tmpl_net_rate_out = 'rate(node_network_transmit_bytes_total{job="$job", device!~"lo|br_.*|vnet.*"}[1m]) * on(' \
+                        'job, instance, device) (node_network_info{operstate="up"} == 1) / 8388608'
 
     @staticmethod
     def expression(tag: str, job: str = None):
         expression_query = tag
         if job:
             expression_query = Template(tag).substitute(job=job)
+
+        return expression_query
+
+    @staticmethod
+    def render_expression(tmpl: str, job: str = None):
+        expression_query = tmpl
+        if job:
+            expression_query = Template(tmpl).substitute(job=job)
 
         return expression_query
 
@@ -125,6 +135,8 @@ class MonitorServerQueryAPI:
         }
     }
     """
+    query_builder = ExpressionQuery()
+
     def server_health_status(self, provider: ThanosProvider, job: str):
         """
         :return:
@@ -340,3 +352,50 @@ class MonitorServerQueryAPI:
         endpoint_url = endpoint_url.rstrip('/')
         url = f'{endpoint_url}/api/v1/query'
         return url
+
+    def query_tag(self, endpoint_url: str, tag_tmpl: str, job: str):
+        """
+        :return: []
+        """
+        expression_query = self.query_builder.render_expression(tmpl=tag_tmpl, job=job)
+        api_url = self._build_query_api(endpoint_url=endpoint_url)
+        return self._request_query_api(url=api_url, expression_query=expression_query)
+
+    async def async_query_tag(self, endpoint_url: str, tag_tmpl: str, job: str):
+        """
+        :return:
+        """
+        expression_query = self.query_builder.render_expression(tmpl=tag_tmpl, job=job)
+        api_url = self._build_query_api(endpoint_url=endpoint_url)
+        query = parse.urlencode(query={'query': expression_query})
+        api_url = f'{api_url}?{query}'
+        return await self.async_request_query_api(url=api_url)
+
+    @staticmethod
+    async def async_request_query_api(url: str):
+        """
+        :raises: Error
+        """
+        try:
+            async with aiohttp.ClientSession() as client:
+                r = await client.get(url=url, timeout=aiohttp.ClientTimeout(connect=5, total=30))
+        except requests.exceptions.Timeout:
+            raise errors.Error(message='server backend,query api request timeout')
+        except requests.exceptions.RequestException:
+            raise errors.Error(message='server backend,query api request error')
+
+        status_code = r.status
+        if 300 > status_code >= 200:
+            data = await r.json()
+            s = data.get('status')
+            if s == 'success':
+                return data['data']['result']
+
+        try:
+            data = await r.json()
+            msg = f"status: {status_code}, errorType: {data.get('errorType')}, error: {data.get('error')}"
+        except Exception as e:
+            text = await r.text()
+            msg = f"status: {status_code}, error: {text}"
+
+        raise errors.Error(message=msg)

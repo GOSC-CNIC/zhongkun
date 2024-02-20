@@ -10,35 +10,13 @@ from django.core.exceptions import ValidationError
 
 from core import errors
 from service.odc_manager import OrgDataCenterManager
-from monitor.utils import build_thanos_provider, ThanosProvider
-from monitor.serializers import (
-    MonitorJobCephSerializer, MonitorJobServerSerializer
-)
 from monitor.models import (
-    MonitorJobCeph, MonitorProvider, MonitorJobServer, MonitorJobVideoMeeting,
+    MonitorProvider, MonitorJobVideoMeeting,
     MonitorWebsite, MonitorWebsiteTask, MonitorWebsiteVersion, get_str_hash,
     WebsiteDetectionPoint, MonitorWebsiteRecord
 )
-from monitor.backends.monitor_ceph import MonitorCephQueryAPI
-from monitor.backends.monitor_server import MonitorServerQueryAPI
 from monitor.backends.monitor_video_meeting import MonitorVideoMeetingQueryAPI
 from monitor.backends.monitor_website import MonitorWebsiteQueryAPI
-
-
-class ServerQueryChoices(models.TextChoices):
-    HOST_COUNT = 'host_count', gettext_lazy('主机数量')
-    HOST_UP_COUNT = 'host_up_count', gettext_lazy('在线主机数量')
-    HEALTH_STATUS = 'health_status', gettext_lazy('主机集群健康状态')
-    CPU_USAGE = 'cpu_usage', gettext_lazy('集群平均CPU使用率')
-    MEM_USAGE = 'mem_usage', gettext_lazy('集群平均内存使用率')
-    DISK_USAGE = 'disk_usage', gettext_lazy('集群平均磁盘使用率')
-    MIN_CPU_USAGE = 'min_cpu_usage', gettext_lazy('集群最小CPU使用率')
-    MAX_CPU_USAGE = 'max_cpu_usage', gettext_lazy('集群最大CPU使用率')
-    MIN_MEM_USAGE = 'min_mem_usage', gettext_lazy('集群最小内存使用率')
-    MAX_MEM_USAGE = 'max_mem_usage', gettext_lazy('集群最大内存使用率')
-    MIN_DISK_USAGE = 'min_disk_usage', gettext_lazy('集群最小磁盘使用率')
-    MAX_DISK_USAGE = 'max_disk_usage', gettext_lazy('集群最大磁盘使用率')
-    ALL_TOGETHER = 'all_together', gettext_lazy('一起查询所有指标')
 
 
 class VideoMeetingQueryChoices(models.TextChoices):
@@ -56,99 +34,6 @@ class WebsiteQueryChoices(models.TextChoices):
 class URLTCPValidator(URLValidator):
 
     schemes = ["http", "https", "tcp"]
-
-
-class MonitorJobServerManager:
-    backend = MonitorServerQueryAPI()
-
-    @staticmethod
-    def get_queryset(service_id: str = None):
-        qs = MonitorJobServer.objects.select_related('provider').all()
-        if service_id:
-            qs = qs.filter(service_id=service_id)
-
-        return qs
-
-    def query(self, tag: str, monitor_unit: MonitorJobServer):
-        if tag == ServerQueryChoices.ALL_TOGETHER.value:
-            return self.query_together(monitor_unit=monitor_unit)
-
-        return self._query(tag=tag, monitor_unit=monitor_unit)
-
-    def query_together(self, monitor_unit: MonitorJobServer):
-        ret = {}
-        tags = ServerQueryChoices.values
-        tags.remove(ServerQueryChoices.ALL_TOGETHER.value)
-        for tag in tags:
-            try:
-                data = self._query(tag=tag, monitor_unit=monitor_unit)
-            except errors.Error as exc:
-                data = []
-
-            ret[tag] = data
-
-        return ret
-
-    def _query(self, tag: str, monitor_unit: MonitorJobServer):
-        """
-        :return:
-            [
-                {
-                    "monitor": {
-                        "name": "大规模对象存储云主机服务物理服务器监控",
-                        "name_en": "大规模对象存储云主机服务物理服务器监控",
-                        "job_tag": "obs-node",
-                        "id": "xxx",
-                        "creation": "2021-10-28T02:09:37.639453Z"
-                    },
-                    "value": [
-                        1631585555,
-                        "13"
-                    ]
-                }
-            ]
-        :raises: Error
-        """
-        provider = build_thanos_provider(monitor_unit.org_data_center)
-        job_server_map = {monitor_unit.job_tag: monitor_unit}
-        ret_data = []
-
-        for job in job_server_map.values():
-            job_dict = MonitorJobServerSerializer(job).data
-            r = self.request_data(provider=provider, tag=tag, job=job.job_tag)
-            if r:
-                data = r[0]
-                data.pop('metric', None)
-                data['monitor'] = job_dict
-            else:
-                data = {'monitor': job_dict, 'value': None}
-
-            ret_data.append(data)
-
-        return ret_data
-
-    def request_data(self, provider: ThanosProvider, tag: str, job: str):
-        """
-        :return:
-        :raises: Error
-        """
-        params = {'provider': provider, 'job': job}
-        f = {
-            ServerQueryChoices.HEALTH_STATUS.value: self.backend.server_health_status,
-            ServerQueryChoices.HOST_COUNT.value: self.backend.server_host_count,
-            ServerQueryChoices.HOST_UP_COUNT.value: self.backend.server_host_up_count,
-            ServerQueryChoices.CPU_USAGE.value: self.backend.server_cpu_usage,
-            ServerQueryChoices.MEM_USAGE.value: self.backend.server_mem_usage,
-            ServerQueryChoices.DISK_USAGE.value: self.backend.server_disk_usage,
-            ServerQueryChoices.MIN_CPU_USAGE.value: self.backend.server_min_cpu_usage,
-            ServerQueryChoices.MAX_CPU_USAGE.value: self.backend.server_max_cpu_usage,
-            ServerQueryChoices.MIN_MEM_USAGE.value: self.backend.server_min_mem_usage,
-            ServerQueryChoices.MAX_MEM_USAGE.value: self.backend.server_max_mem_usage,
-            ServerQueryChoices.MIN_DISK_USAGE.value: self.backend.server_min_disk_usage,
-            ServerQueryChoices.MAX_DISK_USAGE.value: self.backend.server_max_disk_usage,
-        }[tag]
-
-        return f(**params)
 
 
 class MonitorJobVideoMeetingManager:

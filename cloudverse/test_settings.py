@@ -15,12 +15,12 @@ TEST_CASE = {
     },
     'MONITOR_SERVER': {
         'PROVIDER': {
-            'endpoint_url': 'http://223.193.36.46:19193',
+            'endpoint_url': 'https://aiopsmimir.cstcloud.cn/mimir/',
             'username': '',
             'password': ''
         },
         'JOB_SERVER': {
-            'job_tag': 'aiops-node-hosts'
+            'job_tag': 'aiops_hosts_node_metric'
         }
     },
     'MONITOR_VIDEO_MEETING': {
