@@ -49,7 +49,23 @@ class TiDBQueryV2Choices(models.TextChoices):
 class MonitorJobTiDBManager:
     backend = MonitorTiDBQueryAPI()
 
-    tags_map = {
+    v1_tag_tmpl_map = {
+        TiDBQueryChoices.PD_NODES.value: backend.query_builder.pd_nodes,
+        TiDBQueryChoices.TIDB_NODES.value: backend.query_builder.tidb_nodes,
+        TiDBQueryChoices.TIKV_NODES.value: backend.query_builder.tikv_nodes,
+        TiDBQueryChoices.CONNECTIONS_COUNT.value: backend.query_builder.connections_count,
+        TiDBQueryChoices.REGION_COUNT.value: backend.query_builder.region_count,
+        TiDBQueryChoices.REGION_HEALTH.value: backend.query_builder.region_health,
+        TiDBQueryChoices.STORAGE_CAPACITY.value: backend.query_builder.storage_capacity,
+        TiDBQueryChoices.CURRENT_STORAGE_SIZE.value: backend.query_builder.current_storage_size,
+        TiDBQueryChoices.SERVER_CPU_USAGE.value: backend.query_builder.server_cpu_usage,
+        TiDBQueryChoices.SERVER_MEM_USAGE.value: backend.query_builder.server_mem_usage,
+        TiDBQueryChoices.SERVER_DISK_USAGE.value: backend.query_builder.server_disk_usage,
+        TiDBQueryChoices.QPS.value: backend.query_builder.qps_count,
+        TiDBQueryChoices.STORAGE.value: backend.query_builder.storage,
+    }
+
+    v2_tag_tmpl_map = {
         TiDBQueryV2Choices.PD_NODES.value: backend.query_builder.tmpl_pd_nodes,
         TiDBQueryV2Choices.TIDB_NODES.value: backend.query_builder.tmpl_tidb_nodes,
         TiDBQueryV2Choices.TIKV_NODES.value: backend.query_builder.tmpl_tikv_nodes,
@@ -82,18 +98,44 @@ class MonitorJobTiDBManager:
         return self._query(tag=tag, monitor_unit=monitor_unit)
 
     def query_together(self, monitor_unit: MonitorJobTiDB):
-        ret = {}
+        unit_meta = MonitorJobTiDBSimpleSerializer(monitor_unit).data
+        provider = build_thanos_provider(monitor_unit.org_data_center)
         tags = TiDBQueryChoices.values
         tags.remove(TiDBQueryChoices.ALL_TOGETHER.value)
-        for tag in tags:
-            try:
-                data = self._query(tag=tag, monitor_unit=monitor_unit)
-            except errors.Error as exc:
-                data = []
 
-            ret[tag] = data
+        tasks = [
+            self.req_tag(
+                unit=monitor_unit, endpoint_url=provider.endpoint_url, tag=tag, tag_tmpl=self.v1_tag_tmpl_map[tag]
+            ) for tag in tags
+        ]
+        results = asyncio.run(self.do_async_requests(tasks))
+        data = {}
+        errs = {}
+        for r in results:
+            tag, tag_data = r
+            if isinstance(tag_data, Exception):
+                data[tag] = []
+                errs[tag] = str(tag_data)
+            else:
+                if tag_data:
+                    tag_data[0]['monitor'] = unit_meta
 
-        return ret
+                data[tag] = tag_data
+
+        if errs:
+            data['errors'] = errs
+
+        return data
+
+        # for tag in tags:
+        #     try:
+        #         data = self._query(tag=tag, monitor_unit=monitor_unit)
+        #     except errors.Error as exc:
+        #         data = []
+        #
+        #     ret[tag] = data
+        #
+        # return ret
 
     def _query(self, tag: str, monitor_unit: MonitorJobTiDB):
         """
@@ -126,52 +168,13 @@ class MonitorJobTiDBManager:
         ret_data = []
         job_dict = MonitorJobTiDBSimpleSerializer(monitor_unit).data
         provider = build_thanos_provider(monitor_unit.org_data_center)
-        r = self.request_data(provider=provider, tag=tag, job=monitor_unit.job_tag)
+        tag_tmpl = self.v1_tag_tmpl_map[tag]
+        r = self.backend.query_tag(endpoint_url=provider.endpoint_url, tag_tmpl=tag_tmpl, job=monitor_unit.job_tag)
         for data in r:
             data['monitor'] = job_dict
             ret_data.append(data)
 
         return ret_data
-
-    def request_data(self, provider: ThanosProvider, tag: str, job: str):
-        """
-        :return:
-            [
-                {
-                    "metric": {
-                        "__name__": "ceph_cluster_total_used_bytes",
-                        "instance": "10.0.200.100:9283",
-                        "job": "Fed-ceph",
-                        "receive_cluster": "obs",
-                        "receive_replica": "0",
-                        "tenant_id": "default-tenant"
-                    },
-                    "value": [
-                        1630267851.781,
-                        "0"                 # "0": 正常；”1“:警告
-                    ]
-                }
-            ]
-        :raises: Error
-        """
-        params = {'provider': provider, 'job': job}
-        f = {
-            TiDBQueryChoices.PD_NODES.value: self.backend.pd_nodes,
-            TiDBQueryChoices.TIDB_NODES.value: self.backend.tidb_nodes,
-            TiDBQueryChoices.TIKV_NODES.value: self.backend.tikv_nodes,
-            TiDBQueryChoices.CONNECTIONS_COUNT.value: self.backend.connections_count,
-            TiDBQueryChoices.REGION_COUNT.value: self.backend.region_count,
-            TiDBQueryChoices.REGION_HEALTH.value: self.backend.region_health,
-            TiDBQueryChoices.STORAGE_CAPACITY.value: self.backend.storage_capacity,
-            TiDBQueryChoices.CURRENT_STORAGE_SIZE.value: self.backend.current_storage_size,
-            TiDBQueryChoices.SERVER_CPU_USAGE.value: self.backend.server_cpu_usage,
-            TiDBQueryChoices.SERVER_MEM_USAGE.value: self.backend.server_mem_usage,
-            TiDBQueryChoices.SERVER_DISK_USAGE.value: self.backend.server_disk_usage,
-            TiDBQueryChoices.QPS.value: self.backend.qps_count,
-            TiDBQueryChoices.STORAGE.value: self.backend.storage,
-        }[tag]
-
-        return f(**params)
 
     def query_v2(self, tag: str, monitor_unit: MonitorJobTiDB):
         """
@@ -217,7 +220,7 @@ class MonitorJobTiDBManager:
         :raises: Error
         """
         provider = build_thanos_provider(monitor_unit.org_data_center)
-        tag_tmpl = self.tags_map[tag]
+        tag_tmpl = self.v2_tag_tmpl_map[tag]
         r = self.backend.query_tag(endpoint_url=provider.endpoint_url, tag_tmpl=tag_tmpl, job=monitor_unit.job_tag)
         return {tag: r}
 
@@ -226,7 +229,11 @@ class MonitorJobTiDBManager:
         tags = TiDBQueryV2Choices.values
         tags.remove(TiDBQueryV2Choices.ALL_TOGETHER.value)
 
-        tasks = [self.req_tag(unit=monitor_unit, endpoint_url=provider.endpoint_url, tag=tag) for tag in tags]
+        tasks = [
+            self.req_tag(
+                unit=monitor_unit, endpoint_url=provider.endpoint_url, tag=tag, tag_tmpl=self.v2_tag_tmpl_map[tag]
+            ) for tag in tags
+        ]
         results = asyncio.run(self.do_async_requests(tasks))
         data = {}
         errs = {}
@@ -247,9 +254,8 @@ class MonitorJobTiDBManager:
     async def do_async_requests(tasks):
         return await asyncio.gather(*tasks, return_exceptions=True)
 
-    async def req_tag(self, unit: MonitorJobTiDB, endpoint_url: str, tag: str):
+    async def req_tag(self, unit: MonitorJobTiDB, endpoint_url: str, tag: str, tag_tmpl: str):
         try:
-            tag_tmpl = self.tags_map[tag]
             ret = await self.backend.async_query_tag(
                 endpoint_url=endpoint_url, tag_tmpl=tag_tmpl, job=unit.job_tag)
         except Exception as exc:
