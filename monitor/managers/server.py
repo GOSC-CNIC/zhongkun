@@ -3,8 +3,7 @@ import asyncio
 from django.db import models
 from django.utils.translation import gettext_lazy
 
-from core import errors
-from monitor.utils import build_thanos_provider, ThanosProvider
+from monitor.utils import build_thanos_provider
 from monitor.serializers import MonitorJobServerSerializer
 from monitor.models import MonitorJobServer
 from monitor.backends.monitor_server import MonitorServerQueryAPI
@@ -87,18 +86,33 @@ class MonitorJobServerManager:
         return self._query(tag=tag, monitor_unit=monitor_unit)
 
     def query_together(self, monitor_unit: MonitorJobServer):
-        ret = {}
         tags = ServerQueryChoices.values
         tags.remove(ServerQueryChoices.ALL_TOGETHER.value)
-        for tag in tags:
-            try:
-                data = self._query(tag=tag, monitor_unit=monitor_unit)
-            except errors.Error as exc:
-                data = []
+        provider = build_thanos_provider(monitor_unit.org_data_center)
+        unit_meta = MonitorJobServerSerializer(monitor_unit).data
+        tasks = [
+            self.req_tag(
+                unit=monitor_unit, endpoint_url=provider.endpoint_url, tag=tag, tag_tmpl=self.v1_tag_tmpl_map[tag]
+            ) for tag in tags
+        ]
+        results = asyncio.run(self.do_async_requests(tasks))
+        data = {}
+        errs = {}
+        for r in results:
+            tag, tag_data = r
+            if isinstance(tag_data, Exception):
+                data[tag] = []
+                errs[tag] = str(tag_data)
+            else:
+                if tag_data:
+                    tag_data[0]['monitor'] = unit_meta
 
-            ret[tag] = data
+                data[tag] = tag_data
 
-        return ret
+        if errs:
+            data['errors'] = errs
+
+        return data
 
     def _query(self, tag: str, monitor_unit: MonitorJobServer):
         """
@@ -121,31 +135,19 @@ class MonitorJobServerManager:
         :raises: Error
         """
         provider = build_thanos_provider(monitor_unit.org_data_center)
-        job_server_map = {monitor_unit.job_tag: monitor_unit}
         ret_data = []
-
-        for job in job_server_map.values():
-            job_dict = MonitorJobServerSerializer(job).data
-            r = self.request_data(provider=provider, tag=tag, job=job.job_tag)
-            if r:
-                data = r[0]
-                data.pop('metric', None)
-                data['monitor'] = job_dict
-            else:
-                data = {'monitor': job_dict, 'value': None}
-
-            ret_data.append(data)
-
-        return ret_data
-
-    def request_data(self, provider: ThanosProvider, tag: str, job: str):
-        """
-        :return:
-        :raises: Error
-        """
+        job_dict = MonitorJobServerSerializer(monitor_unit).data
         tag_tmpl = self.v1_tag_tmpl_map[tag]
-        r = self.backend.query_tag(endpoint_url=provider.endpoint_url, tag_tmpl=tag_tmpl, job=job)
-        return r
+        r = self.backend.query_tag(endpoint_url=provider.endpoint_url, tag_tmpl=tag_tmpl, job=monitor_unit.job_tag)
+        if r:
+            data = r[0]
+            data.pop('metric', None)
+            data['monitor'] = job_dict
+        else:
+            data = {'monitor': job_dict, 'value': None}
+
+        ret_data.append(data)
+        return ret_data
 
     def query_v2(self, tag: str, monitor_unit: MonitorJobServer):
         """
@@ -200,7 +202,11 @@ class MonitorJobServerManager:
         tags = ServerQueryV2Choices.values
         tags.remove(ServerQueryV2Choices.ALL_TOGETHER.value)
 
-        tasks = [self.req_tag(unit=monitor_unit, endpoint_url=provider.endpoint_url, tag=tag) for tag in tags]
+        tasks = [
+            self.req_tag(
+                unit=monitor_unit, endpoint_url=provider.endpoint_url, tag=tag, tag_tmpl=self.v2_tag_tmpl_map[tag]
+            ) for tag in tags
+        ]
         results = asyncio.run(self.do_async_requests(tasks))
         data = {}
         errs = {}
@@ -221,9 +227,8 @@ class MonitorJobServerManager:
     async def do_async_requests(tasks):
         return await asyncio.gather(*tasks, return_exceptions=True)
 
-    async def req_tag(self, unit: MonitorJobServer, endpoint_url: str, tag: str):
+    async def req_tag(self, unit: MonitorJobServer, endpoint_url: str, tag: str, tag_tmpl: str):
         try:
-            tag_tmpl = self.v2_tag_tmpl_map[tag]
             ret = await self.backend.async_query_tag(
                 endpoint_url=endpoint_url, tag_tmpl=tag_tmpl, job=unit.job_tag)
         except Exception as exc:

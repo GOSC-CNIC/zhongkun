@@ -1,12 +1,11 @@
 import asyncio
 
-from django.utils.translation import gettext_lazy, gettext as _
+from django.utils.translation import gettext_lazy
 from django.db import models
 
-from core import errors
 from monitor.backends.monitor_tidb import MonitorTiDBQueryAPI
 from monitor.models import MonitorJobTiDB
-from monitor.utils import build_thanos_provider, ThanosProvider
+from monitor.utils import build_thanos_provider
 from monitor.serializers import MonitorJobTiDBSimpleSerializer
 
 
@@ -126,16 +125,6 @@ class MonitorJobTiDBManager:
             data['errors'] = errs
 
         return data
-
-        # for tag in tags:
-        #     try:
-        #         data = self._query(tag=tag, monitor_unit=monitor_unit)
-        #     except errors.Error as exc:
-        #         data = []
-        #
-        #     ret[tag] = data
-        #
-        # return ret
 
     def _query(self, tag: str, monitor_unit: MonitorJobTiDB):
         """
