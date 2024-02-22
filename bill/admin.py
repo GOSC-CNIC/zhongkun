@@ -36,11 +36,11 @@ class PaymentHistoryAdmin(BaseModelAdmin):
 
 @admin.register(CashCouponPaymentHistory)
 class CashCouponPaymentHistoryAdmin(BaseModelAdmin):
-    list_display = ('id', 'payment_history', 'cash_coupon', 'amounts', 'before_payment', 'after_payment',
-                    'creation_time')
+    list_display = ('id', 'cash_coupon', 'amounts', 'before_payment', 'after_payment',
+                    'payment_history', 'refund_history', 'creation_time')
     list_display_links = ('id',)
-    list_select_related = ('payment_history', 'cash_coupon')
-    search_fields = ('id', 'cash_coupon__id', 'payment_history__id')
+    list_select_related = ('payment_history', 'cash_coupon', 'refund_history')
+    search_fields = ('id', 'cash_coupon__id', 'payment_history__id', 'refund_history__id')
 
     def has_delete_permission(self, request, obj=None):
         return False

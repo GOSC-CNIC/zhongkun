@@ -7,12 +7,15 @@ from django.utils import timezone
 from core import errors
 from utils.test import get_or_create_user, get_or_create_service, get_or_create_organization
 from utils.model import OwnerType, PayType
+from utils.decimal_utils import quantize_10_2
 from order.models import ResourceType, Order
 from order.managers import OrderPaymentManager
 from vo.managers import VoManager
 from servers.models import ServiceConfig
-from bill.models import CashCoupon, CashCouponActivity
-from bill.models import PaymentHistory, PayAppService, PayApp, TransactionBill
+from bill.models import (
+    CashCoupon, CashCouponActivity, CashCouponPaymentHistory, RefundRecord,
+    PaymentHistory, PayAppService, PayApp, TransactionBill
+)
 from bill.managers import PaymentManager, CashCouponActivityManager
 
 
@@ -825,11 +828,13 @@ class PaymentManagerTests(TransactionTestCase):
         # 券支付记录
         cc_historys = pay_history1.cashcouponpaymenthistory_set.all().order_by('creation_time')
         self.assertEqual(cc_historys[0].payment_history_id, pay_history1.id)
+        self.assertIsNone(cc_historys[0].refund_history_id)
         self.assertEqual(cc_historys[0].cash_coupon_id, coupon1_vo.id)
         self.assertEqual(cc_historys[0].before_payment, Decimal('20'))
         self.assertEqual(cc_historys[0].amounts, Decimal('-20'))
         self.assertEqual(cc_historys[0].after_payment, Decimal('0'))
         self.assertEqual(cc_historys[1].payment_history_id, pay_history1.id)
+        self.assertIsNone(cc_historys[1].refund_history_id)
         self.assertEqual(cc_historys[1].cash_coupon_id, coupon2_vo.id)
         self.assertEqual(cc_historys[1].before_payment, Decimal('25'))
         self.assertEqual(cc_historys[1].amounts, Decimal('-25'))
@@ -1174,6 +1179,247 @@ class PaymentManagerTests(TransactionTestCase):
             vo_id=self.vo.id, money_amount=Decimal('0'), with_coupons=True, app_service_id=self.app_service1.id
         )
         self.assertEqual(ok, False)
+
+    def test_refund(self):
+        now_time = timezone.now()
+        user = self.user
+        user_account = PaymentManager.get_user_point_account(user_id=user.id, is_create=True)
+        coupon1_user = CashCoupon(
+            face_value=Decimal('120'),
+            balance=Decimal('20'),
+            effective_time=now_time - timedelta(days=1),
+            expiration_time=now_time + timedelta(days=10),
+            app_service_id=self.service.pay_app_service_id,
+            status=CashCoupon.Status.AVAILABLE.value,
+            owner_type=OwnerType.USER.value,
+            user_id=self.user.id, vo_id=None
+        )
+        coupon1_user.save(force_insert=True)
+
+        # 有效, service
+        coupon2_user = CashCoupon(
+            face_value=Decimal('25'),
+            balance=Decimal('5'),
+            effective_time=now_time - timedelta(days=2),
+            expiration_time=now_time + timedelta(days=10),
+            app_service_id=self.service.pay_app_service_id,
+            status=CashCoupon.Status.AVAILABLE.value,
+            owner_type=OwnerType.USER.value,
+            user_id=self.user.id, vo_id=None
+        )
+        coupon2_user.save(force_insert=True)
+
+        # 有效，只适用于service2
+        coupon3_user = CashCoupon(
+            face_value=Decimal('33'),
+            balance=Decimal('23'),
+            effective_time=now_time - timedelta(days=2),
+            expiration_time=now_time + timedelta(days=10),
+            app_service_id=self.service2.pay_app_service_id,
+            status=CashCoupon.Status.AVAILABLE.value,
+            owner_type=OwnerType.USER.value,
+            user_id=self.user.id, vo_id=None
+        )
+        coupon3_user.save(force_insert=True)
+
+        # 过期, service
+        coupon4_vo = CashCoupon(
+            face_value=Decimal('400'),
+            balance=Decimal('20'),
+            effective_time=now_time - timedelta(days=10),
+            expiration_time=now_time - timedelta(days=1),
+            app_service_id=self.service.pay_app_service_id,
+            status=CashCoupon.Status.AVAILABLE.value,
+            owner_type=OwnerType.VO.value,
+            user_id=None, vo_id=self.vo.id
+        )
+        coupon4_vo.save(force_insert=True)
+
+        payment1 = PaymentHistory(
+            payment_account='',
+            payment_method=PaymentHistory.PaymentMethod.BALANCE_COUPON.value,
+            executor='executor',
+            payer_id=user.id,
+            payer_name=user.username,
+            payer_type=OwnerType.USER.value,
+            payable_amounts=Decimal('100.00'),
+            amounts=Decimal('-60.00'),
+            coupon_amount=Decimal('-40.00'),
+            status=PaymentHistory.Status.SUCCESS.value,
+            status_desc='支付成功',
+            remark='remark',
+            order_id='order_id',
+            app_service_id='',
+            instance_id='',
+            app_id=self.app.id,
+            subject='subject',
+            creation_time=timezone.now(),
+            payment_time=timezone.now()
+        )
+        payment1.save(force_insert=True)
+
+        ccph1 = CashCouponPaymentHistory(
+                payment_history_id=payment1.id,
+                refund_history_id=None,
+                cash_coupon_id=coupon1_user.id,
+                amounts=Decimal('-25'),
+                before_payment=Decimal('60.00'),
+                after_payment=Decimal('35.00')
+            )
+        ccph1.save(force_insert=True)
+        ccph2 = CashCouponPaymentHistory(
+            payment_history_id=payment1.id,
+            refund_history_id=None,
+            cash_coupon_id=coupon2_user.id,
+            amounts=Decimal('-15'),
+            before_payment=Decimal('25.00'),
+            after_payment=Decimal('10.00')
+        )
+        ccph2.save(force_insert=True)
+
+        self.assertEqual(CashCouponPaymentHistory.objects.count(), 2)
+        self.assertEqual(RefundRecord.objects.count(), 0)
+        self.assertEqual(TransactionBill.objects.count(), 0)
+        refund1 = PaymentManager().refund_for_payment(
+            app_id=self.app.id, payment_history=payment1, out_refund_id='out_refund_id1', refund_reason='test',
+            refund_amounts=Decimal('60.00'), remark='test remark', is_refund_coupon=True
+        )
+        self.assertEqual(CashCouponPaymentHistory.objects.count(), 2 + 2)
+        self.assertEqual(RefundRecord.objects.count(), 1)
+        self.assertEqual(TransactionBill.objects.count(), 1)
+
+        user_account.refresh_from_db()
+        self.assertEqual(user_account.balance, Decimal(60/100 * 60))
+        refund1.refresh_from_db()
+        self.assertEqual(refund1.total_amounts, Decimal('100.00'))
+        self.assertEqual(refund1.refund_amounts, Decimal('60.00'))
+        self.assertEqual(refund1.real_refund, quantize_10_2(Decimal(60/100 * 60)))
+        self.assertEqual(refund1.coupon_refund, quantize_10_2(Decimal(40/100 * 60)))
+        qs = CashCouponPaymentHistory.objects.filter(refund_history_id=refund1.id).order_by('-amounts')
+        refund1_ccph1, refund1_ccph2 = list(qs)
+        self.assertEqual(refund1_ccph1.amounts, quantize_10_2(refund1.coupon_refund * Decimal.from_float(25 / 40)))
+        self.assertEqual(refund1_ccph1.payment_history_id, payment1.id)
+        self.assertEqual(refund1_ccph1.before_payment, Decimal('20'))
+        self.assertEqual(refund1_ccph1.after_payment, Decimal('20') + refund1_ccph1.amounts)
+        self.assertEqual(refund1_ccph2.amounts, quantize_10_2(refund1.coupon_refund * Decimal.from_float(15 / 40)))
+        self.assertEqual(refund1_ccph2.payment_history_id, payment1.id)
+
+        coupon1_user.refresh_from_db()
+        self.assertEqual(coupon1_user.balance, refund1_ccph1.amounts + Decimal('20'))
+        coupon2_user.refresh_from_db()
+        self.assertEqual(coupon2_user.balance, refund1_ccph2.amounts + Decimal('5'))
+
+        tbill1 = TransactionBill.objects.order_by('-creation_time').first()
+        self.assertEqual(tbill1.trade_amounts, Decimal('60.00'))
+        self.assertEqual(tbill1.amounts, refund1.real_refund)
+        self.assertEqual(tbill1.coupon_amount, refund1.coupon_refund)
+
+        refund2 = PaymentManager().refund_for_payment(
+            app_id=self.app.id, payment_history=payment1, out_refund_id='out_refund_id2', refund_reason='test2',
+            refund_amounts=Decimal('20.00'), remark='test remark2', is_refund_coupon=True
+        )
+        self.assertEqual(CashCouponPaymentHistory.objects.count(), 2 + 4)
+        self.assertEqual(RefundRecord.objects.count(), 2)
+        self.assertEqual(TransactionBill.objects.count(), 2)
+
+        user_account.refresh_from_db()
+        self.assertEqual(user_account.balance, Decimal(60 / 100 * 60) + Decimal(60 / 100 * 20))
+        refund2.refresh_from_db()
+        self.assertEqual(refund2.total_amounts, Decimal('100.00'))
+        self.assertEqual(refund2.refund_amounts, Decimal('20.00'))
+        self.assertEqual(refund2.real_refund, quantize_10_2(Decimal(60 / 100 * 20)))
+        self.assertEqual(refund2.coupon_refund, quantize_10_2(Decimal(40 / 100 * 20)))
+
+        qs = CashCouponPaymentHistory.objects.filter(refund_history_id=refund2.id).order_by('-amounts')
+        refund2_ccph1, refund2_ccph2 = list(qs)
+        self.assertEqual(refund2_ccph1.amounts, quantize_10_2(refund2.coupon_refund * Decimal.from_float(25 / 40)))
+        self.assertEqual(refund2_ccph2.amounts, quantize_10_2(refund2.coupon_refund * Decimal.from_float(15 / 40)))
+        self.assertEqual(refund2_ccph1.payment_history_id, payment1.id)
+        self.assertEqual(refund2_ccph2.payment_history_id, payment1.id)
+
+        coupon1_user.refresh_from_db()
+        self.assertEqual(coupon1_user.balance, refund1_ccph1.amounts + refund2_ccph1.amounts + Decimal('20'))
+        coupon2_user.refresh_from_db()
+        self.assertEqual(coupon2_user.balance, refund1_ccph2.amounts + refund2_ccph2.amounts + Decimal('5'))
+
+        tbill2 = TransactionBill.objects.order_by('-creation_time').first()
+        self.assertEqual(tbill2.trade_amounts, Decimal('20.00'))
+        self.assertEqual(tbill2.amounts, refund2.real_refund)
+        self.assertEqual(tbill2.coupon_amount, refund2.coupon_refund)
+
+        with self.assertRaises(errors.RefundAmountsExceedTotal):
+            PaymentManager().refund_for_payment(
+                app_id=self.app.id, payment_history=payment1, out_refund_id='out_refund_id3', refund_reason='test3',
+                refund_amounts=Decimal('20.01'), remark='test remark3', is_refund_coupon=True
+            )
+
+        # -- vo --
+        vo_account = PaymentManager.get_vo_point_account(vo_id=self.vo.id)
+        payment2 = PaymentHistory(
+            payment_account='',
+            payment_method=PaymentHistory.PaymentMethod.BALANCE_COUPON.value,
+            executor='executor',
+            payer_id=self.vo.id,
+            payer_name=self.vo.name,
+            payer_type=OwnerType.VO.value,
+            payable_amounts=Decimal('200.00'),
+            amounts=Decimal('0.00'),
+            coupon_amount=Decimal('-200.00'),
+            status=PaymentHistory.Status.SUCCESS.value,
+            status_desc='支付成功',
+            remark='remark vo',
+            order_id='order_id1',
+            app_service_id='',
+            instance_id='',
+            app_id=self.app.id,
+            subject='subject2',
+            creation_time=timezone.now(),
+            payment_time=timezone.now()
+        )
+        payment2.save(force_insert=True)
+
+        ccph3 = CashCouponPaymentHistory(
+            payment_history_id=payment2.id,
+            refund_history_id=None,
+            cash_coupon_id=coupon4_vo.id,
+            amounts=Decimal('-200'),
+            before_payment=Decimal('220.00'),
+            after_payment=Decimal('20.00')
+        )
+        ccph3.save(force_insert=True)
+
+        self.assertEqual(CashCouponPaymentHistory.objects.count(), 7)
+        self.assertEqual(RefundRecord.objects.count(), 2)
+        self.assertEqual(TransactionBill.objects.count(), 2)
+        refund3 = PaymentManager().refund_for_payment(
+            app_id=self.app.id, payment_history=payment2, out_refund_id='out_refund_id3', refund_reason='test',
+            refund_amounts=Decimal('200.00'), remark='test remark', is_refund_coupon=True
+        )
+        self.assertEqual(CashCouponPaymentHistory.objects.count(), 7 + 1)
+        self.assertEqual(RefundRecord.objects.count(), 3)
+        self.assertEqual(TransactionBill.objects.count(), 3)
+
+        vo_account.refresh_from_db()
+        self.assertEqual(vo_account.balance, Decimal('0'))
+        refund3.refresh_from_db()
+        self.assertEqual(refund3.total_amounts, Decimal('200.00'))
+        self.assertEqual(refund3.refund_amounts, Decimal('200.00'))
+        self.assertEqual(refund3.real_refund, Decimal('0.00'))
+        self.assertEqual(refund3.coupon_refund, Decimal('200'))
+        qs = CashCouponPaymentHistory.objects.filter(refund_history_id=refund3.id).order_by('-amounts')
+        refund3_ccph1: CashCouponPaymentHistory = list(qs)[0]
+        self.assertEqual(refund3_ccph1.amounts, Decimal('200'))
+        self.assertEqual(refund3_ccph1.payment_history_id, payment2.id)
+        self.assertEqual(refund3_ccph1.before_payment, Decimal('20'))
+        self.assertEqual(refund3_ccph1.after_payment, Decimal('220'))
+
+        coupon4_vo.refresh_from_db()
+        self.assertEqual(coupon4_vo.balance, refund3_ccph1.amounts + Decimal('20'))
+
+        tbill3 = TransactionBill.objects.order_by('-creation_time').first()
+        self.assertEqual(tbill3.trade_amounts, Decimal('200.00'))
+        self.assertEqual(tbill3.amounts, refund3.real_refund)
+        self.assertEqual(tbill3.coupon_amount, refund3.coupon_refund)
 
 
 class CashCouponActivityTests(TransactionTestCase):

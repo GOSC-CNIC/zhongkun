@@ -453,6 +453,7 @@ class PaymentManager:
             coupon.save(update_fields=['balance'])
             ccph = CashCouponPaymentHistory(
                 payment_history_id=pay_history_id,
+                refund_history_id=None,
                 cash_coupon_id=coupon.id,
                 amounts=-pay_amount,
                 before_payment=before_payment,
@@ -477,10 +478,12 @@ class PaymentManager:
             refund_amounts: Decimal,
             refund_reason: str,
             remark: str,
+            is_refund_coupon: bool = False
     ):
         """
         支付订单 发起一笔退款
 
+        :is_refund_coupon: True(支付用了券金额，退还券金额回对应券), False(不退还券金额回对应券)
         :return: RefundRecord()
 
         :raises: Error
@@ -500,7 +503,7 @@ class PaymentManager:
             owner_type=owner_type
         )
         # 退款，可能是旧的退款，也可能是本次新的退款
-        refund_new = self._refund(refund_id=refund.id)
+        refund_new = self._refund(refund_id=refund.id, is_refund_coupon=is_refund_coupon)
 
         # 本次新的退款，返回退款结果
         if created:
@@ -617,7 +620,7 @@ class PaymentManager:
             refund.save(force_insert=True)
             return refund, True, None
 
-    def _refund(self, refund_id: str):
+    def _refund(self, refund_id: str, is_refund_coupon: bool):
         """
         不能抛出错误，返回新的退款记录状态
 
@@ -633,7 +636,7 @@ class PaymentManager:
                 if refund.status != RefundRecord.Status.WAIT.value:
                     return refund
 
-                refund = self.__refund(refund=refund)
+                refund = self.__refund(refund=refund, is_refund_coupon=is_refund_coupon)
         except Exception as exc:
             refund = RefundRecord.objects.filter(id=refund_id).first()
             if refund is None:
@@ -646,9 +649,10 @@ class PaymentManager:
 
         return refund
 
-    def __refund(self, refund: RefundRecord):
+    def __refund(self, refund: RefundRecord, is_refund_coupon: bool):
         """
-        退款，生成交易流水，次函数必须放在一个事务保证数据一致性
+        退款，生成交易流水，此函数必须放在一个事务保证数据一致性
+        :param is_refund_coupon: True(退还券金额回对应券)
         """
         # 退款入账账户
         if refund.owner_type == OwnerType.USER.value:
@@ -665,6 +669,10 @@ class PaymentManager:
             account.balance = account.balance + refund.real_refund
             account.save(update_fields=['balance'])
 
+        # 退款券金额
+        if is_refund_coupon:
+            self.__refund_to_coupon(refund=refund)
+
         # 退款记录
         refund.set_refund_sucsess(in_account=account.id)
 
@@ -674,10 +682,62 @@ class PaymentManager:
             trade_type=TransactionBill.TradeType.REFUND.value,
             trade_id=refund.id, out_trade_no=refund.out_refund_id,
             trade_amounts=refund.refund_amounts, amounts=refund.real_refund,
-            coupon_amount=refund.coupon_refund,  # 券金额不退
+            coupon_amount=refund.coupon_refund,
             after_balance=account.balance, owner_type=refund.owner_type, owner_id=refund.owner_id,
             owner_name=refund.owner_name, app_service_id=refund.app_service_id, app_id=refund.app_id,
             remark=refund.remark, creation_time=refund.success_time, operator=refund.operator
         )
 
         return refund
+
+    @staticmethod
+    def __refund_to_coupon(refund: RefundRecord):
+        """
+        退款券金额，此函数必须放在一个事务保证数据一致性
+        """
+        if refund.coupon_refund <= Decimal('0.00'):
+            return
+
+        payment_id = refund.trade_id
+        ccphs = CashCouponPaymentHistory.objects.filter(
+            payment_history_id=payment_id, amounts__lt=Decimal('0')).distinct()
+        ccphs_map = {x.cash_coupon_id: x for x in ccphs if x.cash_coupon_id}
+        coupon_ids = list(ccphs_map.keys())
+        paid_coupon_amounts = Decimal('0')  # 券支付总金额
+        for ccph in ccphs_map.values():
+            paid_coupon_amounts += ccph.amounts
+
+        paid_coupon_amounts = abs(paid_coupon_amounts)
+        if not coupon_ids or paid_coupon_amounts == Decimal('0'):
+            return
+
+        refund_coupon_amounts = refund.coupon_refund    # 券退款金额
+        ratio = abs(refund_coupon_amounts / paid_coupon_amounts)
+        # 每个券应退金额
+        coupon_refund_map = {}
+        for ccph in ccphs:
+            amount = abs(ccph.amounts) * ratio
+            amount = quantize_10_2(amount)
+            coupon_refund_map[ccph.cash_coupon_id] = amount
+
+        # 查询券，并退款
+        coupon_qs = CashCoupon.objects.select_for_update().filter(id__in=coupon_ids).all()
+        for coupon in coupon_qs:
+            cp_id = coupon.id
+            if cp_id not in coupon_refund_map:
+                continue
+
+            refund_amount = coupon_refund_map[cp_id]
+            before_refund = coupon.balance
+            after_refund = before_refund + refund_amount
+            coupon.balance = after_refund
+            coupon.save(update_fields=['balance'])
+            rd_ccph = CashCouponPaymentHistory(
+                payment_history_id=payment_id,
+                refund_history_id=refund.id,
+                cash_coupon_id=coupon.id,
+                amounts=refund_amount,
+                before_payment=before_refund,
+                after_payment=after_refund
+            )
+            rd_ccph.save(force_insert=True)

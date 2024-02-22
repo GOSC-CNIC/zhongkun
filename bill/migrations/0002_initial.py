@@ -72,12 +72,12 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='cashcouponpaymenthistory',
             name='cash_coupon',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to='bill.cashcoupon'),
+            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to='bill.cashcoupon', verbose_name='资源券'),
         ),
         migrations.AddField(
             model_name='cashcouponpaymenthistory',
             name='payment_history',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to='bill.paymenthistory'),
+            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to='bill.paymenthistory', verbose_name='支付记录'),
         ),
         migrations.AddField(
             model_name='cashcouponactivity',
