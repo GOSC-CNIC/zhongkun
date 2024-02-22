@@ -508,7 +508,9 @@ class CashCouponManager:
         """
         coupon = self.get_cash_coupon(coupon_id=coupon_id)
         self.has_read_perm_cash_coupon(coupon=coupon, user=user)
-        queryset = CashCouponPaymentHistory.objects.select_related('payment_history').filter(cash_coupon_id=coupon.id)
+        queryset = CashCouponPaymentHistory.objects.select_related(
+            'payment_history', 'refund_history'
+        ).filter(cash_coupon_id=coupon.id)
         return queryset
 
     def admin_get_cash_coupon_payment_queryset(self, coupon_id: str, user):
@@ -520,7 +522,9 @@ class CashCouponManager:
         """
         coupon = self.get_cash_coupon(coupon_id=coupon_id)
         self.has_admin_perm_cash_coupon(coupon=coupon, user=user)
-        queryset = CashCouponPaymentHistory.objects.select_related('payment_history').filter(cash_coupon_id=coupon.id)
+        queryset = CashCouponPaymentHistory.objects.select_related(
+            'payment_history', 'refund_history'
+        ).filter(cash_coupon_id=coupon.id)
         return queryset
 
     def admin_list_coupon_queryset(

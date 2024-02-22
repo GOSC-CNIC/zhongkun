@@ -221,6 +221,25 @@ class CashCouponViewSet(CustomGenericViewSet):
                     "order_id": "s-8aa93412fb5f11ec8ac1c8009fe2ebbc",
                     "app_id": "xxx",
                     "app_service_id": "s20220623023119"
+                  },
+                  "refund_history": {   # 退款时 amounts > 0.00，关联的退款记录信息
+                      "id": "202402220918119461514825",
+                      "trade_id": "202402220918118947046018",
+                      "out_order_id": "12356",
+                      "out_refund_id": "out_refund_id1",
+                      "refund_reason": "test",
+                      "total_amounts": "66.00",
+                      "refund_amounts": "55.66",
+                      "real_refund": "0.00",
+                      "coupon_refund": "55.66",
+                      "creation_time": "2024-02-22T09:18:11.946014Z",
+                      "success_time": "2024-02-22T09:18:11.962534Z",
+                      "status": "success",
+                      "status_desc": "退款成功",
+                      "remark": "test remark",
+                      "owner_id": "8y1q6fyo72pjk4hgujj2vgxqz",
+                      "owner_name": "shun",
+                      "owner_type": "user"
                   }
                 }
               ]
@@ -656,6 +675,25 @@ class AdminCashCouponViewSet(CustomGenericViewSet):
                     "order_id": "s-8aa93412fb5f11ec8ac1c8009fe2ebbc",
                     "app_id": "xxx",
                     "app_service_id": "s20220623023119"
+                  },
+                  "refund_history": {   # 退款时 amounts > 0.00，关联的退款记录信息
+                      "id": "202402220918119461514825",
+                      "trade_id": "202402220918118947046018",
+                      "out_order_id": "12356",
+                      "out_refund_id": "out_refund_id1",
+                      "refund_reason": "test",
+                      "total_amounts": "66.00",
+                      "refund_amounts": "55.66",
+                      "real_refund": "0.00",
+                      "coupon_refund": "55.66",
+                      "creation_time": "2024-02-22T09:18:11.946014Z",
+                      "success_time": "2024-02-22T09:18:11.962534Z",
+                      "status": "success",
+                      "status_desc": "退款成功",
+                      "remark": "test remark",
+                      "owner_id": "1",
+                      "owner_name": "shun",
+                      "owner_type": "user"
                   }
                 }
               ]

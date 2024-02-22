@@ -14,7 +14,7 @@ from utils.time import utc
 from vo.models import VirtualOrganization, VoMember
 from bill.models import (
     CashCoupon, PayAppService, PayApp, CashCouponActivity, TransactionBill, PaymentHistory,
-    CashCouponPaymentHistory
+    CashCouponPaymentHistory, RefundRecord
 )
 from bill.managers import PaymentManager, CashCouponActivityManager
 from bill.handlers.cash_coupon_handler import QueryCouponValidChoices
@@ -750,6 +750,34 @@ class CashCouponTests(MyAPITestCase):
         self.assertEqual(tbill.app_id, pay_history2.app_id)
         self.assertEqual(tbill.trade_type, TransactionBill.TradeType.PAYMENT.value)
         self.assertEqual(tbill.trade_id, pay_history2.id)
+
+        # 券退款记录测试
+        PaymentManager().refund_for_payment(
+            app_id=self.app.id, payment_history=pay_history2, out_refund_id='out_refund_id1', refund_reason='test',
+            refund_amounts=Decimal('55.66'), remark='test remark', is_refund_coupon=True
+        )
+        base_url = reverse('wallet-api:cashcoupon-list-payment', kwargs={'id': coupon1_vo.id})
+        response = self.client.get(f"{base_url}?{parse.urlencode(query={'page_size': 1})}")
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)
+        self.assertEqual(response.data['count'], 3)
+        self.assertEqual(response.data['page_num'], 1)
+        results = response.data['results']
+        self.assertEqual(len(results), 1)
+        self.assertEqual('55.66', results[0]["amounts"])
+        self.assertEqual('-66.00', results[0]["payment_history"]['coupon_amount'])
+        self.assertEqual('0.00', results[0]["payment_history"]['amounts'])
+        self.assertEqual(results[0]["payment_history"]['status'], PaymentHistory.Status.SUCCESS.value)
+        self.assertEqual('66.00', results[0]["refund_history"]['total_amounts'])
+        self.assertEqual('55.66', results[0]["refund_history"]['refund_amounts'])
+        self.assertEqual('0.00', results[0]["refund_history"]['real_refund'])
+        self.assertEqual('55.66', results[0]["refund_history"]['coupon_refund'])
+        self.assertEqual(results[0]["refund_history"]['status'], RefundRecord.Status.SUCCESS.value)
+        self.assertKeysIn(keys=[
+            'id', 'trade_id', 'out_order_id', 'out_refund_id', 'refund_reason', 'total_amounts',
+            'refund_amounts', 'real_refund', 'coupon_refund', 'creation_time', 'success_time',
+            'status', 'status_desc', 'remark', 'owner_id', 'owner_name', 'owner_type'
+        ], container=results[0]["refund_history"])
 
     def test_exchange_cash_coupon(self):
         coupon1 = CashCoupon(
@@ -1862,6 +1890,34 @@ class AdminCashCouponTests(MyAPITransactionTestCase):
         self.assertEqual(tbill.app_id, pay_history2.app_id)
         self.assertEqual(tbill.trade_type, TransactionBill.TradeType.PAYMENT.value)
         self.assertEqual(tbill.trade_id, pay_history2.id)
+
+        # 券退款记录测试
+        PaymentManager().refund_for_payment(
+            app_id=self.app.id, payment_history=pay_history2, out_refund_id='out_refund_id1', refund_reason='test',
+            refund_amounts=Decimal('55.66'), remark='test remark', is_refund_coupon=True
+        )
+        base_url = reverse('wallet-api:cashcoupon-list-payment', kwargs={'id': coupon1_vo.id})
+        response = self.client.get(f"{base_url}?{parse.urlencode(query={'page_size': 1})}")
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)
+        self.assertEqual(response.data['count'], 3)
+        self.assertEqual(response.data['page_num'], 1)
+        results = response.data['results']
+        self.assertEqual(len(results), 1)
+        self.assertEqual('55.66', results[0]["amounts"])
+        self.assertEqual('-66.00', results[0]["payment_history"]['coupon_amount'])
+        self.assertEqual('0.00', results[0]["payment_history"]['amounts'])
+        self.assertEqual(results[0]["payment_history"]['status'], PaymentHistory.Status.SUCCESS.value)
+        self.assertEqual('66.00', results[0]["refund_history"]['total_amounts'])
+        self.assertEqual('55.66', results[0]["refund_history"]['refund_amounts'])
+        self.assertEqual('0.00', results[0]["refund_history"]['real_refund'])
+        self.assertEqual('55.66', results[0]["refund_history"]['coupon_refund'])
+        self.assertEqual(results[0]["refund_history"]['status'], RefundRecord.Status.SUCCESS.value)
+        self.assertKeysIn(keys=[
+            'id', 'trade_id', 'out_order_id', 'out_refund_id', 'refund_reason', 'total_amounts',
+            'refund_amounts', 'real_refund', 'coupon_refund', 'creation_time', 'success_time',
+            'status', 'status_desc', 'remark', 'owner_id', 'owner_name', 'owner_type'
+        ], container=results[0]["refund_history"])
 
     def test_admin_statistics(self):
         vo1 = VirtualOrganization(name='test vo', owner_id=self.user.id)

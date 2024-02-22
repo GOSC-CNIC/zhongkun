@@ -309,3 +309,4 @@ class CashCouponPaymentSerializer(BaseCashCouponPaymentSerializer):
     券扣费记录序列化器
     """
     payment_history = PaymentHistorySerializer(allow_null=True)
+    refund_history = RefundRecordSerializer(allow_null=True)
