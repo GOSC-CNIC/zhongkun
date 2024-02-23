@@ -130,6 +130,12 @@ class ASNAdmin(BaseModelAdmin):
     list_display = ('id', 'number', 'name', 'creation_time')
     search_fields = ('name',)
 
+    def save_model(self, request, obj, form, change):
+        if not change and not obj.id:
+            obj.id = ASN.get_max_id() + 1
+
+        super().save_model(request=request, obj=obj, form=form, change=change)
+
 
 @admin.register(IPv4Address)
 class IPv4AddressAdmin(IPModelAdmin):

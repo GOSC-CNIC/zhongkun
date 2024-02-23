@@ -2,7 +2,7 @@ import ipaddress
 from collections import namedtuple
 
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, Max
 from django.utils.translation import gettext, gettext_lazy as _
 from django.core.validators import MaxValueValidator
 from django.core.exceptions import ValidationError
@@ -92,6 +92,11 @@ class ASN(models.Model):
 
     def __str__(self):
         return str(self.number)
+
+    @classmethod
+    def get_max_id(cls) -> int:
+        r = cls.objects.aggregate(max_id=Max('id'))
+        return r['max_id'] or 0
 
 
 class IPRangeBase(UuidModel):

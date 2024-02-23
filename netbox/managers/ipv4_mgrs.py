@@ -3,7 +3,7 @@ from typing import Union, List, Tuple
 from datetime import datetime
 
 from django.db.models import Q, QuerySet
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.utils import timezone as dj_timezone
 from django.utils.translation import gettext as _
 from django.core.exceptions import ValidationError
@@ -20,10 +20,24 @@ MAX_IPV4_ADDRESS_INT = 2 ** 32 - 1
 
 
 def get_or_create_asn(number: int):
-    asn, created = ASN.objects.get_or_create(
-        number=number, defaults={'name': f'AS{number}', 'creation_time': dj_timezone.now()})
+    asn = ASN.objects.filter(number=number).first()
+    if asn is not None:
+        return asn
 
-    return asn
+    try:
+        max_id = ASN.get_max_id()
+        asn = ASN(id=max_id + 1, name=f'AS{number}', number=number, creation_time=dj_timezone.now())
+        asn.save(force_insert=True)
+        return asn
+    except IntegrityError:
+        asn = ASN.objects.filter(number=number).first()
+        if asn is not None:
+            return asn
+
+        max_id = ASN.get_max_id()
+        asn = ASN(id=max_id + 1, name=f'AS{number}', number=number, creation_time=dj_timezone.now())
+        asn.save(force_insert=True)
+        return asn
 
 
 class IPv4RangeManager:
