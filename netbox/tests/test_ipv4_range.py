@@ -293,10 +293,10 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         })
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
 
-        # asn 0-65535
+        # asn 0-4294967295
         response = self.client.post(base_url, data={
             'name': 'test', 'start_address': '10.0.0.1', 'end_address': '10.0.1.255', 'mask_len': 24,
-            'asn': 65536, 'admin_remark': 'remark test'
+            'asn': 4294967295 + 1, 'admin_remark': 'remark test'
         })
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
 
@@ -385,7 +385,7 @@ class IPv4RangeTests(MyAPITransactionTestCase):
         # ok
         response = self.client.post(base_url, data={
             'name': '', 'start_address': '10.0.1.1', 'end_address': '10.0.1.255', 'mask_len': 24,
-            'asn': 88, 'admin_remark': ''
+            'asn': 4294967295, 'admin_remark': ''
         })
         self.assertEqual(response.status_code, 200)
         self.assertEqual(IPv4RangeRecord.objects.count(), 2)

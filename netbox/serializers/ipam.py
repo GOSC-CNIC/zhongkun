@@ -33,7 +33,7 @@ class IPv4RangeCreateSerializer(serializers.Serializer):
     start_address = serializers.CharField(label=_('起始地址'), required=True, max_length=16)
     end_address = serializers.CharField(label=_('截止地址'), required=True, max_length=16)
     mask_len = serializers.IntegerField(label=_('子网掩码长度'), required=True, min_value=0, max_value=32)
-    asn = serializers.IntegerField(label=_('AS编号'), required=True, min_value=0, max_value=65535)
+    asn = serializers.IntegerField(label=_('AS编号'), required=True, min_value=0, max_value=4294967295)
     admin_remark = serializers.CharField(label=_('科技网管理员备注信息'), max_length=255, allow_blank=True, default='')
 
 
@@ -141,5 +141,5 @@ class IPv6RangeCreateSerializer(serializers.Serializer):
     end_address = serializers.CharField(
         label=_('截止地址'), required=True, max_length=40, help_text='2400:dd01:1010:30:ffff:ffff:ffff:ffff')
     prefixlen = serializers.IntegerField(label=_('子网前缀'), required=True, min_value=0, max_value=128)
-    asn = serializers.IntegerField(label=_('AS编号'), required=True, min_value=0, max_value=65535)
+    asn = serializers.IntegerField(label=_('AS编号'), required=True, min_value=0, max_value=4294967295)
     admin_remark = serializers.CharField(label=_('科技网管理员备注信息'), max_length=255, allow_blank=True, default='')

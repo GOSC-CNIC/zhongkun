@@ -300,11 +300,11 @@ class IPv6RangeTests(MyAPITransactionTestCase):
         })
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
 
-        # asn 0-65535
+        # asn 0-4294967295
         response = self.client.post(base_url, data={
             'name': 'test', 'start_address': '2400:dd01:1010:30::',
             'end_address': '2400:dd01:1010:30:ffff:ffff:ffff:ffff', 'prefixlen': 64,
-            'asn': 65536, 'admin_remark': 'remark test'
+            'asn': 4294967295 + 1, 'admin_remark': 'remark test'
         })
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
 
@@ -357,7 +357,7 @@ class IPv6RangeTests(MyAPITransactionTestCase):
         response = self.client.post(base_url, data={
             'name': 'test', 'start_address': '2400:dd01:1010:30::',
             'end_address': '2400:dd01:1010:30:ffff:ffff:ffff:ffff', 'prefixlen': 64,
-            'asn': 88, 'admin_remark': 'remark test'
+            'asn': 4294967295, 'admin_remark': 'remark test'
         })
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['id', 'name', 'creation_time', 'status', 'update_time', 'assigned_time', 'admin_remark',
@@ -369,7 +369,7 @@ class IPv6RangeTests(MyAPITransactionTestCase):
         self.assertEqual(iprange.end_address, ipaddress.IPv6Address('2400:dd01:1010:30:ffff:ffff:ffff:ffff').packed)
         self.assertEqual(iprange.prefixlen, 64)
         self.assertEqual(iprange.status, IPv6Range.Status.WAIT.value)
-        self.assertEqual(iprange.asn.number, 88)
+        self.assertEqual(iprange.asn.number, 4294967295)
         self.assertEqual(iprange.name, 'test')
 
         self.assertEqual(IPv6RangeRecord.objects.count(), 1)
