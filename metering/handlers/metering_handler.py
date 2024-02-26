@@ -792,7 +792,7 @@ class MeteringHandler(BaseMeteringHandler):
 
         if date_end:
             time_end = datetime.datetime(
-                year=date_start.year, month=date_start.month, day=date_start.day, tzinfo=utc)
+                year=date_end.year, month=date_end.month, day=date_end.day, tzinfo=utc)
             time_end += datetime.timedelta(days=1)
             lookups['payment_time__lt'] = time_end
 
