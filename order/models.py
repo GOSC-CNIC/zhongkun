@@ -36,7 +36,9 @@ class Order(models.Model):
         PAID = 'paid', _('已支付')
         UNPAID = 'unpaid', _('未支付')
         CANCELLED = 'cancelled', _('作废')
-        REFUND = 'refund', _('退款')
+        REFUND = 'refund', _('全额退款')
+        PART_REFUND = 'partrefund', _('部分退款')
+        REFUNDING = 'refunding', _('退款中')
 
     class PaymentMethod(models.TextChoices):
         UNKNOWN = 'unknown', _('未知')
@@ -50,6 +52,10 @@ class Order(models.Model):
         COMPLETED = 'completed', _('交易成功')
         CLOSED = 'closed', _('交易关闭')
         PART_DELIVER = 'partdeliver', _('部分交付失败')
+
+    class OrderAction(models.TextChoices):
+        NONE = 'none', _('无')
+        DELIVERING = 'delivering', _('正在交付订单资源')
 
     id = models.CharField(verbose_name=_('订单编号'), max_length=32, primary_key=True, editable=False)
     order_type = models.CharField(
@@ -102,6 +108,10 @@ class Order(models.Model):
     app_service_id = models.CharField(verbose_name=_('app服务id'), max_length=36, blank=True, default='')
     payment_history_id = models.CharField(verbose_name=_('支付记录id'), max_length=36, blank=True, default='')
     number = models.PositiveIntegerField(verbose_name=_('订购资源数量'), default=1)
+    order_action = models.CharField(
+        verbose_name=_('资源交付动作'), max_length=16, choices=OrderAction.choices, default=OrderAction.NONE.value,
+        help_text=_('用于记录订单当前的操作动作，比如是否正在交付资源中，防止并发时订单业务冲突')
+    )
 
     class Meta:
         verbose_name = _('订单')
@@ -184,6 +194,20 @@ class Order(models.Model):
     def clean(self):
         if not (1 <= self.number <= 3):
             raise ValidationError(message={'number': gettext('可选数值为1-3')})
+
+    def set_order_action(self, act: str, is_save: bool = True):
+        """
+        使用此函数时需要确保此对象加锁
+        """
+        if act not in self.OrderAction.values:
+            raise Exception(gettext('无效的订单动作标记'))
+
+        if self.order_action == act:
+            return
+
+        self.order_action = act
+        if is_save:
+            self.save(update_fields=['order_action'])
 
 
 class Resource(UuidModel):

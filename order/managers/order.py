@@ -575,8 +575,10 @@ class OrderManager:
                     raise errors.OrderPaid(message=_('订单已支付'))
                 elif order.status == Order.Status.CANCELLED.value:
                     raise errors.OrderCancelled(message=_('订单已作废'))
-                elif order.status == Order.Status.REFUND.value:
+                elif order.status in [Order.Status.REFUND.value, Order.Status.PART_REFUND.value]:
                     raise errors.OrderRefund(message=_('订单已退款'))
+                elif order.status == Order.Status.REFUNDING.value:
+                    raise errors.OrderRefund(message=_('订单正在退款中'))
                 elif order.status != Order.Status.UNPAID.value:
                     raise errors.OrderStatusUnknown(message=_('未知状态的订单'))
 

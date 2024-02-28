@@ -140,15 +140,27 @@ class DeliverTests(MyAPITestCase):
 
         # 请求太频繁
         ServicePrivateQuotaManager().update(service=self.service1, vcpus=2, ram_gib=4, public_ip=1)
-        with self.assertRaises(errors.TryAgainLater):
+        with self.assertRaises(errors.TryAgainLater) as cm:
             or_dlver.deliver_order(order1, resource=None)
+        self.assertEqual(cm.exception.code, 'TryAgainLater')
+        self.assertEqual(cm.exception.status_code, 409)
 
-        od1_res1.last_deliver_time = dj_timezone.now() - timedelta(minutes=2)
+        od1_res1.last_deliver_time = dj_timezone.now() - timedelta(seconds=55)
+        od1_res1.save(update_fields=['last_deliver_time'])
+
+        with self.assertRaises(errors.TryAgainLater) as cm:
+            or_dlver.deliver_order(order1, resource=None)
+        self.assertEqual(cm.exception.code, 'TryAgainLater')
+        self.assertEqual(cm.exception.status_code, 409)
+
+        od1_res1.last_deliver_time = dj_timezone.now() - timedelta(seconds=60)
         od1_res1.save(update_fields=['last_deliver_time'])
 
         # 请求错误
-        with self.assertRaises(errors.APIException):
+        with self.assertRaises(errors.APIException) as cm:
             or_dlver.deliver_order(order1, resource=None)
+        self.assertEqual(cm.exception.code, 'InternalError')
+        self.assertEqual(cm.exception.status_code, 500)
 
         s1_quota.refresh_from_db()
         self.assertEqual(s1_quota.vcpu_used, 0)
@@ -251,18 +263,20 @@ class DeliverTests(MyAPITestCase):
             or_dlver.deliver_order(order1, resource=None)
 
         od1_res1: Resource
-        od1_res1.last_deliver_time = dj_timezone.now() - timedelta(minutes=2)
+        od1_res1.last_deliver_time = dj_timezone.now() - timedelta(minutes=1)
         od1_res1.save(update_fields=['last_deliver_time'])
 
         with self.assertRaises(errors.TryAgainLater):
             or_dlver.deliver_order(order1, resource=None)
 
         Resource.objects.filter(id__in=[x.id for x in resource_list]).update(
-            last_deliver_time=dj_timezone.now() - timedelta(minutes=2))
+            last_deliver_time=dj_timezone.now() - timedelta(minutes=1))
 
         # 请求错误
-        with self.assertRaises(errors.APIException):
+        with self.assertRaises(errors.APIException) as cm:
             or_dlver.deliver_order(order1, resource=None)
+        self.assertEqual(cm.exception.code, 'InternalError')
+        self.assertEqual(cm.exception.status_code, 500)
 
         s1_quota.refresh_from_db()
         self.assertEqual(s1_quota.vcpu_used, 0)
@@ -343,12 +357,20 @@ class DeliverTests(MyAPITestCase):
         self.assertEqual(Server.objects.filter(id__in=[x.instance_id for x in resource_list2]).count(), 1)
         self.assertEqual(Server.objects.filter(id=od1_res4.instance_id).count(), 1)
 
+        # 订单动作正在交付中
+        order2.set_order_action(Order.OrderAction.DELIVERING.value)
+        with self.assertRaises(errors.ConflictError) as cm:
+            or_dlver2.deliver_order(order2, resource=None)
+        self.assertEqual(cm.exception.code, 'OrderDelivering')
+        self.assertEqual(cm.exception.status_code, 409)
+        order2.set_order_action(Order.OrderAction.NONE.value)
+
         # 请求太频繁
         with self.assertRaises(errors.TryAgainLater):
             or_dlver2.deliver_order(order2, resource=None)
 
         Resource.objects.filter(id__in=[od1_res5.id, od1_res6.id]).update(
-            last_deliver_time=dj_timezone.now() - timedelta(minutes=2))
+            last_deliver_time=dj_timezone.now() - timedelta(minutes=1))
 
         # 创建成功第2个server
         cs_req.clear_create_server_once_ok_flag()

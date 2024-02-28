@@ -132,8 +132,6 @@ class OrderResourceDeliverer:
 
         :return:
             server_list, list[(failed_resources, error)]
-
-        :raises: Error
         """
         server_list = []
         failed_resources = []    # 交付失败的
@@ -273,10 +271,18 @@ class OrderResourceDeliverer:
             raise exceptions.OrderUnpaid(message=_('订单未支付'))
         elif order.status == Order.Status.CANCELLED.value:
             raise exceptions.OrderCancelled(message=_('订单已作废'))
-        elif order.status == Order.Status.REFUND.value:
+        elif order.status in [Order.Status.REFUND.value, Order.Status.PART_REFUND.value]:
             raise exceptions.OrderRefund(message=_('订单已退款'))
+        elif order.status == Order.Status.REFUNDING.value:
+            raise exceptions.OrderRefund(message=_('订单正在退款中'))
         elif order.status != Order.Status.PAID.value:
             raise exceptions.OrderStatusUnknown(message=_('未知状态的订单'))
+
+        if order.order_action == Order.OrderAction.DELIVERING.value:
+            raise exceptions.ConflictError(message=_('订单资源已在交付中'), code='OrderDelivering')
+        elif order.order_action != Order.OrderAction.NONE.value:
+            raise exceptions.ConflictError(
+                message=_('订单处在未知的操作动作中，请稍后重试，或者联系客服人员人工处理。'), code='OrderActionUnknown')
 
         return order
 
@@ -308,8 +314,8 @@ class OrderResourceDeliverer:
                 continue
             if res.last_deliver_time is not None:
                 delta = time_now - res.last_deliver_time
-                if delta < timedelta(minutes=2):
-                    raise exceptions.TryAgainLater(message=_('为避免重复为订单交付资源，请2分钟后重试'))
+                if delta < timedelta(minutes=1):
+                    raise exceptions.TryAgainLater(message=_('为避免重复为订单交付资源，请1分钟后重试'))
 
             res.last_deliver_time = time_now
             need_deliver_resources.append(res)
@@ -344,12 +350,27 @@ class OrderResourceDeliverer:
                 resources = self._check_order_resources_pre_deliver(
                     order_id=order.id, resource_ids=resource_ids
                 )
+                order.set_order_action(act=Order.OrderAction.DELIVERING.value)
         except exceptions.Error as exc:
             raise exc
         except Exception as exc:
             raise exceptions.Error(message=_('检查订单交易状态，或检查更新资源上次交付时间错误。') + str(exc))
 
         return order, resources
+
+    @staticmethod
+    def clear_order_action(order) -> Union[Order, exceptions.Error]:
+        """
+        清除订单交付资源动作标记
+        """
+        try:
+            with transaction.atomic():
+                new_order = OrderManager.get_order(order_id=order.id, select_for_update=True)
+                new_order.set_order_action(act=Order.OrderAction.NONE.value)
+        except Exception as exc:
+            return exceptions.Error(message=_('清除订单操作动作标记失败。') + str(exc))
+
+        return new_order
 
     @staticmethod
     def _update_order_failed(order: Order, all_res_count: int, failed_res_count: int):
@@ -371,6 +392,24 @@ class OrderResourceDeliverer:
         :raises: Error
         """
         order, resources = self._pre_check_deliver(order=order)
+        try:
+            service, server_list, err_list = self._deliver_new_servers(order=order, resources=resources)
+        except Exception as exc:
+            raise exc
+        finally:
+            self.clear_order_action(order=order)
+
+        return service, server_list, err_list
+
+    def _deliver_new_servers(
+            self, order: Order, resources: List[Resource]
+    ) -> (ServiceConfig, List[Server], List[exceptions.Error]):
+        """
+        :return:
+            service, servers            # success
+
+        :raises: Error
+        """
         if len(resources) > order.number:
             raise exceptions.ConflictError(message=_('订单资源记录数量大于订单订购数量'))
 
@@ -486,8 +525,9 @@ class OrderResourceDeliverer:
         :raises: Error
         """
         order, resource_list = self._pre_check_deliver(order=order, resource_ids=[resource.id])
-        resource = resource_list[0]
+
         try:
+            resource = resource_list[0]
             server = self.renewal_server_resource_for_order(order=order, resource=resource)
         except exceptions.Error as exc:
             try:
@@ -497,6 +537,8 @@ class OrderResourceDeliverer:
                 pass
 
             raise exc
+        finally:
+            self.clear_order_action(order=order)
 
         return server
 
@@ -508,8 +550,9 @@ class OrderResourceDeliverer:
         :raises: Error, NeetReleaseResource
         """
         order, resource_list = self._pre_check_deliver(order=order, resource_ids=[resource.id])
-        resource = resource_list[0]
+
         try:
+            resource = resource_list[0]
             service, disk = self.create_disk_resource_for_order(order=order, resource=resource)
         except exceptions.Error as exc:
             try:
@@ -519,6 +562,8 @@ class OrderResourceDeliverer:
                 pass
 
             raise exc
+        finally:
+            self.clear_order_action(order=order)
 
         try:
             OrderManager.set_order_resource_deliver_ok(
@@ -646,9 +691,9 @@ class OrderResourceDeliverer:
         :raises: Error
         """
         order, resource_list = self._pre_check_deliver(order=order, resource_ids=[resource.id])
-        resource = resource_list[0]
 
         try:
+            resource = resource_list[0]
             disk = self.renewal_disk_resource_for_order(order=order, resource=resource)
         except exceptions.Error as exc:
             try:
@@ -658,6 +703,8 @@ class OrderResourceDeliverer:
                 pass
 
             raise exc
+        finally:
+            self.clear_order_action(order=order)
 
         return disk
 
@@ -739,9 +786,9 @@ class OrderResourceDeliverer:
         :raises: Error
         """
         order, resource_list = self._pre_check_deliver(order=order, resource_ids=[resource.id])
-        resource = resource_list[0]
 
         try:
+            resource = resource_list[0]
             server = self.modify_server_pay_type_for_order(order=order, resource=resource)
         except exceptions.Error as exc:
             try:
@@ -751,6 +798,8 @@ class OrderResourceDeliverer:
                 pass
 
             raise exc
+        finally:
+            self.clear_order_action(order=order)
 
         return server
 
@@ -834,9 +883,9 @@ class OrderResourceDeliverer:
         :raises: Error
         """
         order, resource_list = self._pre_check_deliver(order=order, resource_ids=[resource.id])
-        resource = resource_list[0]
 
         try:
+            resource = resource_list[0]
             disk = self.modify_disk_pay_type_for_order(order=order, resource=resource)
         except exceptions.Error as exc:
             try:
@@ -846,6 +895,8 @@ class OrderResourceDeliverer:
                 pass
 
             raise exc
+        finally:
+            self.clear_order_action(order=order)
 
         return disk
 
