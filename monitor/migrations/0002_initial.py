@@ -12,6 +12,7 @@ class Migration(migrations.Migration):
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
         ('monitor', '0001_initial'),
+        ('service', '0001_initial'),
         ('servers', '0001_initial'),
     ]
 
