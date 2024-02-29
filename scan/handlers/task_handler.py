@@ -47,15 +47,17 @@ class TaskHandler:
             view=view, request=request
         )
 
-        do_web_scan = validated_data.get("do_web_scan", False)
-        do_host_scan = validated_data.get("do_host_scan", False)
+        do_web_scan = validated_data.get("scheme", False)
+        do_host_scan = validated_data.get("ipaddr", False)
+        validated_data['do_web_scan'] = do_web_scan
+        validated_data['do_host_scan'] = do_host_scan
         # 必须指定一种以上扫描方式
         if do_host_scan is False and do_web_scan is False:
             raise errors.BadRequest(
                 message=_("未指定安全扫描类型"), code="InvalidScanType"
             )
 
-        if do_web_scan:
+        if do_web_scan is not False:
             scheme = validated_data.get("scheme", "")
             hostname = validated_data.get("hostname", "")
             uri = validated_data.get("uri", "")
@@ -66,10 +68,12 @@ class TaskHandler:
             except Exception:
                 raise errors.BadRequest(message=_("网址无效"), code="InvalidUrl")
 
-        if do_host_scan:
+        if do_host_scan is not False:
             try:
                 ipaddr = validated_data.get("ipaddr", "")
                 ipaddress.IPv4Address(ipaddr)
+                if ipaddr == '127.0.0.1':
+                    raise errors.BadRequest(message=_("主机IP不能为127.0.0.1"), code="InvalidIp")
             except ipaddress.AddressValueError:
                 raise errors.BadRequest(message=_("主机IP无效"), code="InvalidIp")
 
@@ -134,16 +138,6 @@ class TaskHandler:
                     message=_("无效的主机ip。") + s_errors["ipaddr"][0],
                     code="InvalidIp",
                 )
-            elif "do_web_scan" in s_errors:
-                exc = errors.BadRequest(
-                    message=_("无效的扫描方式。") + s_errors["do_web_scan"][0],
-                    code="InvalidScanType",
-                )
-            elif "do_host_scan" in s_errors:
-                exc = errors.BadRequest(
-                    message=_("无效的扫描方式。") + s_errors["do_host_scan"][0],
-                    code="InvalidScanType",
-                )
             else:
                 msg = serializer_error_msg(serializer.errors)
                 exc = errors.BadRequest(message=msg)
@@ -164,7 +158,7 @@ class TaskHandler:
             with transaction.atomic():
                 # 创建任务
                 tasks = []
-                if params["do_web_scan"] is True:
+                if params["do_web_scan"] is not False:
                     tasks.append(
                         TaskManager.create_task(
                             user_id=user.id,
@@ -174,7 +168,7 @@ class TaskHandler:
                             remark=params["remark"],
                         )
                     )
-                if params["do_host_scan"] is True:
+                if params["do_host_scan"] is not False:
                     tasks.append(
                         TaskManager.create_task(
                             user_id=user.id,
@@ -229,9 +223,9 @@ class TaskHandler:
                     code="ServiceNoPayAppServiceId",
                 )
             price = 0
-            if params["do_web_scan"]:
+            if params["do_web_scan"] is not False:
                 price += ins.web_scan_price
-            if params["do_host_scan"]:
+            if params["do_host_scan"] is not False:
                 price += ins.host_scan_price
             # 扣余额券以及创建任务
             tasks = TaskHandler.__pay_price_create_task(

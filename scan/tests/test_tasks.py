@@ -310,8 +310,6 @@ class ScanTaskTests(MyAPITestCase):
                 "hostname": "test.c",
                 "uri": "/",
                 "remark": "test",
-                "do_web_scan": True,
-                "do_host_scan": False,
             },
             content_type="application/json",
         )
@@ -327,20 +325,6 @@ class ScanTaskTests(MyAPITestCase):
                 "hostname": "test.c",
                 "uri": "/",
                 "remark": "test",
-                "do_web_scan": True,
-                "do_host_scan": False,
-            },
-        )
-        self.assertErrorResponse(status_code=400, code="InvalidUrl", response=r)
-
-        self.client.force_login(self.user)
-        r = self.client.post(
-            path=url,
-            data={
-                "name": "name-test",
-                "remark": "test",
-                "do_web_scan": True,
-                "do_host_scan": False,
             },
         )
         self.assertErrorResponse(status_code=400, code="InvalidUrl", response=r)
@@ -351,31 +335,11 @@ class ScanTaskTests(MyAPITestCase):
             path=url,
             data={
                 "name": "name-test",
-                "scheme": "https://",
-                "hostname": "test.com",
-                "uri": "/",
                 "remark": "test",
-                "do_web_scan": "wrongtype",
-                "do_host_scan": False,
             },
         )
         self.assertErrorResponse(status_code=400, code="InvalidScanType", response=r)
-
-        self.client.force_login(self.user)
-        r = self.client.post(
-            path=url,
-            data={
-                "name": "name-test",
-                "scheme": "https://",
-                "hostname": "test.com",
-                "uri": "/",
-                "remark": "test",
-                "do_web_scan": False,
-                "do_host_scan": False,
-            },
-        )
-        self.assertErrorResponse(status_code=400, code="InvalidScanType", response=r)
-
+        
         # InvalidIp
         self.client.force_login(self.user)
         r = self.client.post(
@@ -383,21 +347,7 @@ class ScanTaskTests(MyAPITestCase):
             data={
                 "name": "name-test",
                 "remark": "test",
-                "do_web_scan": False,
-                "do_host_scan": True,
                 "ipaddr": "0.0",
-            },
-        )
-        self.assertErrorResponse(status_code=400, code="InvalidIp", response=r)
-
-        self.client.force_login(self.user)
-        r = self.client.post(
-            path=url,
-            data={
-                "name": "name-test",
-                "remark": "test",
-                "do_web_scan": False,
-                "do_host_scan": True,
             },
         )
         self.assertErrorResponse(status_code=400, code="InvalidIp", response=r)
@@ -409,8 +359,6 @@ class ScanTaskTests(MyAPITestCase):
             data={
                 "name": "name-test",
                 "remark": "test",
-                "do_web_scan": False,
-                "do_host_scan": True,
                 "ipaddr": "1.1.1.1",
             },
         )
@@ -483,8 +431,6 @@ class ScanTaskTests(MyAPITestCase):
             data={
                 "name": "name-test",
                 "remark": "test",
-                "do_web_scan": False,
-                "do_host_scan": True,
                 "ipaddr": "1.1.1.1",
             },
         )
@@ -501,8 +447,6 @@ class ScanTaskTests(MyAPITestCase):
             data={
                 "name": "name-test",
                 "remark": "test",
-                "do_web_scan": False,
-                "do_host_scan": True,
                 "ipaddr": "1.1.1.1",
             },
         )
@@ -519,8 +463,6 @@ class ScanTaskTests(MyAPITestCase):
             data={
                 "name": "name-test",
                 "remark": "test",
-                "do_web_scan": False,
-                "do_host_scan": True,
                 "ipaddr": "1.1.1.1",
             },
         )
@@ -535,8 +477,6 @@ class ScanTaskTests(MyAPITestCase):
             data={
                 "name": "name-test",
                 "remark": "test",
-                "do_web_scan": False,
-                "do_host_scan": True,
                 "ipaddr": "1.1.1.1",
             },
         )
@@ -555,8 +495,6 @@ class ScanTaskTests(MyAPITestCase):
             data={
                 "name": "name-test",
                 "remark": "test",
-                "do_web_scan": False,
-                "do_host_scan": True,
                 "ipaddr": "1.1.1.1",
             },
         )
@@ -576,8 +514,6 @@ class ScanTaskTests(MyAPITestCase):
             data={
                 "name": "name-test",
                 "remark": "test",
-                "do_web_scan": False,
-                "do_host_scan": True,
                 "ipaddr": "1.1.1.1",
             },
         )
@@ -646,8 +582,6 @@ class ScanTaskTests(MyAPITestCase):
             data={
                 "name": "name-test",
                 "remark": "test",
-                "do_web_scan": True,
-                "do_host_scan": False,
                 "scheme": "https://",
                 "hostname": "test.com",
                 "uri": "/",
@@ -715,8 +649,6 @@ class ScanTaskTests(MyAPITestCase):
             data={
                 "name": "name-test",
                 "remark": "test",
-                "do_web_scan": True,
-                "do_host_scan": True,
                 "ipaddr": "2.2.2.2",
                 "scheme": "https://",
                 "hostname": "test2.com",

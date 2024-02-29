@@ -8,14 +8,12 @@ class ScanTaskCreateSerializer(serializers.Serializer):
     """创建安全扫描任务序列化器"""
 
     name = serializers.CharField(label=_("任务名称"), max_length=255, required=True)
-    do_web_scan = serializers.BooleanField(label=_("是否进行站点扫描"), required=True, help_text="站点扫描复选框栏")
-    do_host_scan = serializers.BooleanField(label=_("是否进行主机扫描"), required=True, help_text="主机扫描复选框栏")
     # 站点扫描目标信息
-    scheme = serializers.CharField(label=_("协议"), max_length=32, allow_blank=True, default="", help_text="https|http://")
+    scheme = serializers.CharField(label=_("协议"), max_length=32, allow_blank=True, default=False, help_text="https|http://")
     hostname = serializers.CharField(label=_("域名"), max_length=255, allow_blank=True, default="", help_text="hostname:8000")
     uri = serializers.CharField(label=_("URI"), max_length=1024, allow_blank=True, default="", help_text="/a/b?query=123#test")
     # 主机扫描目标信息
-    ipaddr = serializers.CharField(label=_("IP地址"), max_length=16, allow_blank=True, default=None, help_text="1.1.1.1")
+    ipaddr = serializers.CharField(label=_("IP地址"), max_length=16, allow_blank=True, default=False, help_text="1.1.1.1")
     remark = serializers.CharField(label=_("备注"), max_length=255, allow_blank=True, default="")
 
 
