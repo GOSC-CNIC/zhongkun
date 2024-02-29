@@ -123,7 +123,7 @@ class VtTask(UuidModel):
     create_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
     finish_time = models.DateTimeField(verbose_name=_('结束时间'), null=True)
     update_time = models.DateTimeField(verbose_name=_('更新时间'), auto_now=True)
-    report = models.ForeignKey(verbose_name=_('扫描报告'), to=VtReport, on_delete=models.CASCADE, blank=True, null=True)
+    report = models.ForeignKey(verbose_name=_('扫描报告'), to=VtReport, on_delete=models.SET_NULL, blank=True, null=True)
     remark = models.CharField(verbose_name=_('备注'), max_length=255, default='', blank=True)
     payment_history_id = models.CharField(verbose_name=_('支付记录id'), max_length=36, blank=True, default='')
     # 站点扫描使用的ZAP所需要的字段
