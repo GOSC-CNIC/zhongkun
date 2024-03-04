@@ -1,4 +1,4 @@
-from django.utils.translation import gettext_lazy, gettext
+from django.utils.translation import gettext_lazy
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.serializers import Serializer
@@ -6,14 +6,15 @@ from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
 from api.viewsets import CustomGenericViewSet
-from api.paginations import OrderPageNumberPagination
+from api.paginations import NewPageNumberPagination100
 from order import serializers
 from order.handlers.refund_handler import RefundOrderHandler
+from order.models import OrderRefund
 
 
 class RefundViewSet(CustomGenericViewSet):
     permission_classes = [IsAuthenticated, ]
-    pagination_class = OrderPageNumberPagination
+    pagination_class = NewPageNumberPagination100
     lookup_field = 'id'
 
     @swagger_auto_schema(
@@ -74,5 +75,120 @@ class RefundViewSet(CustomGenericViewSet):
         """
         return RefundOrderHandler().create_refund(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举退订退款单'),
+        request_body=no_body,
+        manual_parameters=[
+            openapi.Parameter(
+                name='status',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'支付状态，{OrderRefund.Status.choices}'
+            ),
+            openapi.Parameter(
+                name='time_start',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'创建时间段起，ISO8601格式：YYYY-MM-ddTHH:mm:ssZ'
+            ),
+            openapi.Parameter(
+                name='time_end',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'创建时间段止，ISO8601格式：YYYY-MM-ddTHH:mm:ssZ'
+            ),
+            openapi.Parameter(
+                name='vo_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'查询指定VO组的退订退款单'
+            ),
+            openapi.Parameter(
+                name='order_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=f'查询指定订单的退订退款单'
+            ),
+        ],
+        responses={
+            200: ''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        列举退订退款单
+
+            http code 200：
+            {
+                "count": 1,
+                "page_num": 1,
+                "page_size": 100,
+                "results": [
+                    {
+                        "id": "2024030408350766508338",
+                        "order": {
+                            "id": "2024030408350766120028",
+                            "order_type": "new",
+                            "status": "unpaid",
+                            "total_amount": "333.30",
+                            "pay_amount": "0.00",
+                            "payable_amount": "333.30",
+                            "balance_amount": "0.00",
+                            "coupon_amount": "0.00",
+                            "service_id": "35wkwm52cb02g1cmgyaeb9h99",
+                            "service_name": "test",
+                            "resource_type": "vm",
+                            "instance_config": {...},
+                            "period": 12,
+                            "payment_time": null,
+                            "pay_type": "prepaid",
+                            "creation_time": "2024-03-04T08:35:07.661382Z",
+                            "user_id": "35vjjmiunqrmtxgjou3zc9sop",
+                            "username": "test",
+                            "vo_id": "35w121jbbyhp7y94mh2bup1t9",
+                            "vo_name": "test vo",
+                            "owner_type": "vo",
+                            "cancelled_time": null,
+                            "app_service_id": "123",
+                            "trading_status": "opening",
+                            "number": 3
+                        },
+                        "order_amount": "123.40",
+                        "status": "failed",
+                        "status_desc": "",
+                        "creation_time": "2024-03-04T08:35:07.661071Z",
+                        "update_time": "2024-03-04T08:35:07.661071Z",
+                        "resource_type": "vm",
+                        "number": 1,
+                        "reason": "reason",
+                        "refund_amount": "123.40",
+                        "balance_amount": "100.00",
+                        "coupon_amount": "23.40",
+                        "refunded_time": null,
+                        "user_id": "35vjjmiunqrmtxgjou3zc9sop",
+                        "username": "test",
+                        "vo_id": "35w121jbbyhp7y94mh2bup1t9",
+                        "vo_name": "test vo",
+                        "owner_type": "vo"
+                    }
+                ]
+            }
+
+            * status 退订状态：
+                wait: 待退款
+                refunded: 已退款
+                failed: 退款失败
+                cancelled: 取消
+        """
+        return RefundOrderHandler().list_refund(view=self, request=request)
+
     def get_serializer_class(self):
+        if self.action == 'list':
+            return serializers.RefundOrderSerializer
+
         return Serializer

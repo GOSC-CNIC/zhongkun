@@ -3,7 +3,7 @@ from urllib import parse
 from datetime import timedelta
 
 from django.urls import reverse
-from django.utils import timezone
+from django.utils import timezone as dj_timezone
 from django.conf import settings
 
 from core import errors
@@ -76,7 +76,7 @@ class OrderRefundTests(MyAPITestCase):
         )
         service2.save()
 
-        now_time = timezone.now()
+        now_time = dj_timezone.now()
         # 通用有效
         coupon1_user = CashCoupon(
             face_value=Decimal('10'),
@@ -306,3 +306,296 @@ class OrderRefundTests(MyAPITestCase):
         # 钱包退款记录
         vo_account.refresh_from_db()
         self.assertEqual(vo_account.balance, Decimal('200'))
+
+    def test_list_refund(self):
+        now_time = dj_timezone.now()
+
+        # prepaid mode order
+        instance_config = ServerConfig(
+            vm_cpu=1, vm_ram=1, systemdisk_size=50, public_ip=True,
+            image_id='test', image_name='', network_id='network_id', network_name='',
+            azone_id='', azone_name='', flavor_id=''
+        )
+        # 创建订单
+        order1 = Order(
+            order_type=Order.OrderType.NEW.value,
+            status=Order.Status.UNPAID.value,
+            total_amount=Decimal('333.3'),
+            payable_amount=Decimal('333.3'),
+            pay_amount=Decimal('0'),
+            balance_amount=Decimal('0'),
+            coupon_amount=Decimal('0'),
+            app_service_id=self.service.pay_app_service_id,
+            service_id=self.service.id,
+            service_name=self.service.name,
+            resource_type=ResourceType.VM.value,
+            instance_config=instance_config.to_dict(),
+            period=12,
+            pay_type=PayType.PREPAID.value,
+            payment_time=None,
+            start_time=None,
+            end_time=None,
+            user_id=self.user.id,
+            username=self.user.username,
+            vo_id='',
+            vo_name='',
+            owner_type=OwnerType.USER.value,
+            deleted=False,
+            trading_status=Order.TradingStatus.OPENING.value,
+            completion_time=None,
+            number=3
+        )
+        order1.save(force_insert=True)
+
+        order2 = Order(
+            order_type=Order.OrderType.NEW.value,
+            status=Order.Status.PAID.value,
+            total_amount=Decimal('200.0'),
+            payable_amount=Decimal('200.0'),
+            pay_amount=Decimal('200'),
+            balance_amount=Decimal('150'),
+            coupon_amount=Decimal('50'),
+            app_service_id=self.service.pay_app_service_id,
+            service_id=self.service.id,
+            service_name=self.service.name,
+            resource_type=ResourceType.DISK.value,
+            instance_config={},
+            period=12,
+            pay_type=PayType.PREPAID.value,
+            payment_time=None,
+            start_time=None,
+            end_time=None,
+            user_id=self.user.id,
+            username=self.user.username,
+            vo_id='',
+            vo_name='',
+            owner_type=OwnerType.USER.value,
+            deleted=False,
+            trading_status=Order.TradingStatus.OPENING.value,
+            completion_time=None,
+            number=1
+        )
+        order2.save(force_insert=True)
+
+        refund1 = OrderRefund(
+            order=order1,
+            order_amount=Decimal('333.3'),
+            payment_history_id=order1.payment_history_id,
+            status=OrderRefund.Status.WAIT.value,
+            status_desc='',
+            creation_time=now_time,
+            update_time=now_time,
+            resource_type=order1.resource_type,
+            number=2,
+            reason='reason',
+            refund_amount=Decimal('222.2'),
+            balance_amount=Decimal('200'),
+            coupon_amount=Decimal('22.2'),
+            refund_history_id='xxx',
+            refunded_time=None,
+            user_id=order1.user_id,
+            username=order1.username,
+            vo_id=order1.vo_id,
+            vo_name=order1.vo_name,
+            owner_type=OwnerType.USER.value,
+            deleted=False
+        )
+        refund1.save(force_insert=True)
+        refund1.creation_time = now_time - timedelta(days=10)
+        refund1.save(update_fields=['creation_time'])
+
+        refund2 = OrderRefund(
+            order=order2,
+            order_amount=Decimal('123.4'),
+            payment_history_id=order2.payment_history_id,
+            status=OrderRefund.Status.REFUNDED.value,
+            status_desc='',
+            creation_time=now_time,
+            update_time=now_time,
+            resource_type=order2.resource_type,
+            number=1,
+            reason='reason',
+            refund_amount=Decimal('123.4'),
+            balance_amount=Decimal('100'),
+            coupon_amount=Decimal('23.4'),
+            refund_history_id='xxx',
+            refunded_time=None,
+            user_id=order2.user_id,
+            username=order2.username,
+            vo_id=order2.vo_id,
+            vo_name=order2.vo_name,
+            owner_type=OwnerType.USER.value,
+            deleted=False
+        )
+        refund2.save(force_insert=True)
+
+        refund3 = OrderRefund(
+            order=order1,
+            order_amount=Decimal('123.4'),
+            payment_history_id=order1.payment_history_id,
+            status=OrderRefund.Status.FAILED.value,
+            status_desc='',
+            creation_time=now_time,
+            update_time=now_time,
+            resource_type=order1.resource_type,
+            number=1,
+            reason='reason',
+            refund_amount=Decimal('123.4'),
+            balance_amount=Decimal('100'),
+            coupon_amount=Decimal('23.4'),
+            refund_history_id='xxx',
+            refunded_time=None,
+            user_id=order1.user_id,
+            username=order1.username,
+            vo_id=self.vo.id,
+            vo_name=self.vo.name,
+            owner_type=OwnerType.VO.value,
+            deleted=False
+        )
+        refund3.save(force_insert=True)
+
+        base_url = reverse('order-api:order-refund-list')
+        response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
+        self.client.force_login(self.user)
+
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 100)
+        self.assertEqual(len(response.data['results']), 2)
+        self.assertKeysIn(['id', 'order', 'order_amount', 'status', 'status_desc', 'creation_time', 'update_time',
+                           'resource_type', 'number', 'reason', 'refund_amount', 'balance_amount', 'coupon_amount',
+                           'refunded_time', 'user_id', 'username', 'vo_id', 'vo_name', 'owner_type'
+                           ], response.data['results'][0])
+        self.assertKeysIn(["id", "order_type", "status", "total_amount", "pay_amount",
+                           "service_id", "service_name", "resource_type", "instance_config", "period",
+                           "payment_time", "pay_type", "creation_time", "user_id", "username", 'number',
+                           "vo_id", "vo_name", "owner_type", "cancelled_time", "app_service_id", 'trading_status'
+                           ], response.data['results'][0]['order'])
+
+        # test param "order_id"
+        query = parse.urlencode(query={'order_id': ''}, doseq=True)
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        query = parse.urlencode(query={'order_id': order1.id}, doseq=True)
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['id'], refund1.id)
+        self.assertEqual(response.data['results'][0]['order']['id'], order1.id)
+
+        # test param "status"
+        query = parse.urlencode(query={'status': 'xx'}, doseq=True)
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        query = parse.urlencode(query={'status': OrderRefund.Status.REFUNDED.value}, doseq=True)
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['id'], refund2.id)
+        self.assertEqual(response.data['results'][0]['order']['id'], order2.id)
+
+        # test param "time_start"、"time_end"
+        query = parse.urlencode(query={'time_start': '2024-03-04T08:33:'}, doseq=True)
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+        query = parse.urlencode(query={'time_start': '2024-03-0T08:33:56Z'}, doseq=True)
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+        query = parse.urlencode(query={'time_start': '2024-03-04T08:33:66Z'}, doseq=True)
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        query = parse.urlencode(query={
+            'time_start': (now_time - timedelta(days=30)).isoformat(timespec='seconds')
+        }, doseq=True)
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(len(response.data['results']), 2)
+        self.assertEqual(response.data['results'][0]['id'], refund2.id)
+        self.assertEqual(response.data['results'][1]['id'], refund1.id)
+
+        query = parse.urlencode(query={
+            'time_start': (now_time - timedelta(days=9)).isoformat(timespec='seconds')
+        }, doseq=True)
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['id'], refund2.id)
+
+        query = parse.urlencode(query={
+            'time_start': (dj_timezone.now() + timedelta(seconds=1)).isoformat(timespec='seconds')
+        }, doseq=True)
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.data['count'], 0)
+
+        query = parse.urlencode(query={
+            'time_start': (now_time - timedelta(days=30)).isoformat(timespec='seconds'),
+            'time_end': (now_time + timedelta(days=1)).isoformat(timespec='seconds')
+        }, doseq=True)
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(len(response.data['results']), 2)
+        self.assertEqual(response.data['results'][0]['id'], refund2.id)
+        self.assertEqual(response.data['results'][1]['id'], refund1.id)
+
+        query = parse.urlencode(query={
+            'time_start': (now_time - timedelta(days=30)).isoformat(timespec='seconds'),
+            'time_end': (now_time - timedelta(days=1)).isoformat(timespec='seconds')
+        }, doseq=True)
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['id'], refund1.id)
+
+        query = parse.urlencode(query={
+            'time_start': (now_time - timedelta(days=30)).isoformat(timespec='seconds'),
+            'time_end': (now_time - timedelta(days=10, minutes=6)).isoformat(timespec='seconds')
+        }, doseq=True)
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.data['count'], 0)
+
+        # test param "vo_id"
+        self.client.logout()
+        self.client.force_login(self.user2)
+
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
+
+        query = parse.urlencode(query={'vo_id': ''}, doseq=True)
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        query = parse.urlencode(query={'vo_id': 'xxx'}, doseq=True)
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        query = parse.urlencode(query={'vo_id': self.vo.id}, doseq=True)
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.client.logout()
+        self.client.force_login(self.user)
+
+        query = parse.urlencode(query={'vo_id': self.vo.id}, doseq=True)
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 100)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertKeysIn(['id', 'order', 'order_amount', 'status', 'status_desc', 'creation_time', 'update_time',
+                           'resource_type', 'number', 'reason', 'refund_amount', 'balance_amount', 'coupon_amount',
+                           'refunded_time', 'user_id', 'username', 'vo_id', 'vo_name', 'owner_type'
+                           ], response.data['results'][0])
+        self.assertKeysIn(["id", "order_type", "status", "total_amount", "pay_amount",
+                           "service_id", "service_name", "resource_type", "instance_config", "period",
+                           "payment_time", "pay_type", "creation_time", "user_id", "username", 'number',
+                           "vo_id", "vo_name", "owner_type", "cancelled_time", "app_service_id", 'trading_status'
+                           ], response.data['results'][0]['order'])
+        self.assertEqual(response.data['results'][0]['id'], refund3.id)

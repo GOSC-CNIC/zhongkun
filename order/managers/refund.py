@@ -1,4 +1,5 @@
-from typing import List
+from typing import List, Union
+from datetime import datetime
 from decimal import Decimal
 
 from django.utils.translation import gettext as _
@@ -6,7 +7,9 @@ from django.utils import timezone as dj_timezone
 from django.db import transaction
 
 from core import errors
+from utils.model import OwnerType
 from bill.managers.payment import PaymentManager
+from vo.managers import VoManager
 from order.models import Order, OrderRefund, Resource
 from order.managers.order import OrderManager
 
@@ -23,8 +26,19 @@ class OrderRefundManager:
         return refund
 
     @staticmethod
-    def filter_refund_qs(order_id: str, status_in: List[str], is_delete: bool = None):
+    def filter_refund_qs(
+            order_id: str, status_in: List[str], user_id: Union[str, None], vo_id: Union[str, None],
+            time_start: Union[datetime, None], time_end: Union[datetime, None], is_delete: bool = None
+    ):
         lookups = {}
+        if user_id:
+            lookups['user_id'] = user_id
+            lookups['owner_type'] = OwnerType.USER.value
+
+        if vo_id:
+            lookups['vo_id'] = vo_id
+            lookups['owner_type'] = OwnerType.VO.value
+
         if order_id:
             lookups['order_id'] = order_id
 
@@ -37,7 +51,43 @@ class OrderRefundManager:
         if is_delete is not None:
             lookups['deleted'] = is_delete
 
+        if time_start:
+            lookups['creation_time__gte'] = time_start
+
+        if time_end:
+            lookups['creation_time__lte'] = time_end
+
         return OrderRefund.objects.filter(**lookups).order_by('-creation_time')
+
+    def filter_vo_refund_queryset(
+            self, order_id: str, status_in: List[str], user, vo_id: str,
+            time_start: datetime, time_end: datetime, is_delete: bool = None
+    ):
+        """
+        查询vo组的退订退款查询集
+
+        :raises: AccessDenied
+        """
+        self._has_vo_permission(vo_id=vo_id, user=user, read_only=True)
+        return self.filter_refund_qs(
+            order_id=order_id, status_in=status_in, time_start=time_start,
+            time_end=time_end, vo_id=vo_id, user_id=None, is_delete=is_delete
+        )
+
+    @staticmethod
+    def _has_vo_permission(vo_id, user, read_only: bool = True):
+        """
+        是否有vo组的权限
+
+        :raises: AccessDenied
+        """
+        try:
+            if read_only:
+                VoManager().get_has_read_perm_vo(vo_id=vo_id, user=user)
+            else:
+                VoManager().get_has_manager_perm_vo(vo_id=vo_id, user=user)
+        except errors.Error as exc:
+            raise errors.AccessDenied(message=exc.message)
 
     @staticmethod
     def check_order_pre_refund(order: Order) -> List[Resource]:

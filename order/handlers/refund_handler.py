@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.utils.translation import gettext as _
 from django.conf import settings
 from rest_framework.response import Response
@@ -5,8 +7,10 @@ from rest_framework.response import Response
 from core import errors
 from core.site_configs_manager import get_pay_app_id
 from api.viewsets import CustomGenericViewSet
-from order.managers import OrderManager, OrderRefundManager
 from api import request_logger
+from utils.time import iso_to_datetime
+from order.managers import OrderManager, OrderRefundManager
+from order.models import OrderRefund
 
 
 class RefundOrderHandler:
@@ -49,3 +53,77 @@ class RefundOrderHandler:
         return Response(data={
             'refund_id': refund_id
         })
+
+    def list_refund(self, view: CustomGenericViewSet, request):
+        try:
+            data = self.list_refund_validate_params(request)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        user = request.user
+        vo_id = data['vo_id']
+        status_in = [data['status']] if data['status'] else None
+        if vo_id:
+            try:
+                queryset = OrderRefundManager().filter_vo_refund_queryset(
+                    order_id=data['order_id'],
+                    status_in=status_in,
+                    time_start=data['time_start'],
+                    time_end=data['time_end'],
+                    user=user, vo_id=vo_id, is_delete=False
+                )
+            except Exception as exc:
+                return view.exception_response(exc)
+        else:
+            queryset = OrderRefundManager().filter_refund_qs(
+                order_id=data['order_id'],
+                status_in=status_in,
+                time_start=data['time_start'],
+                time_end=data['time_end'],
+                user_id=user.id, vo_id=None, is_delete=False
+            )
+        try:
+            results = view.paginate_queryset(queryset)
+            serializer = view.get_serializer(instance=results, many=True)
+            return view.get_paginated_response(serializer.data)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+    @staticmethod
+    def list_refund_validate_params(request) -> dict:
+        status = request.query_params.get('status', None)
+        time_start = request.query_params.get('time_start', None)
+        time_end = request.query_params.get('time_end', None)
+        vo_id = request.query_params.get('vo_id', None)
+        order_id = request.query_params.get('order_id', None)
+
+        if status is not None and status not in OrderRefund.Status.values:
+            raise errors.InvalidArgument(message=_('退订状态参数无效'))
+
+        if time_start is not None:
+            time_start = iso_to_datetime(time_start)
+            if not isinstance(time_start, datetime):
+                raise errors.InvalidArgument(message=_('起始日期时间格式无效'))
+
+        if time_end is not None:
+            time_end = iso_to_datetime(time_end)
+            if not isinstance(time_end, datetime):
+                raise errors.InvalidArgument(message=_('截止日期时间格式无效'))
+
+        if time_start and time_end:
+            if time_start >= time_end:
+                raise errors.InvalidArgument(message=_('截止时间不得超前起始时间'))
+
+        if vo_id is not None and not vo_id:
+            raise errors.InvalidArgument(message=_('指定的vo组ID无效'))
+
+        if order_id is not None and not order_id:
+            raise errors.InvalidArgument(message=_('指定的订单编号无效'))
+
+        return {
+            'status': status,
+            'time_start': time_start,
+            'time_end': time_end,
+            'vo_id': vo_id,
+            'order_id': order_id
+        }

@@ -46,3 +46,25 @@ class ResourceSerializer(serializers.Serializer):
 
 class OrderDetailSerializer(OrderSerializer):
     resources = ResourceSerializer(many=True)
+
+
+class RefundOrderSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    order = OrderSerializer(allow_null=True)
+    order_amount = serializers.DecimalField(max_digits=10, decimal_places=2)
+    status = serializers.CharField()
+    status_desc = serializers.CharField()
+    creation_time = serializers.DateTimeField()
+    update_time = serializers.DateTimeField()
+    resource_type = serializers.CharField()
+    number = serializers.IntegerField()
+    reason = serializers.CharField()
+    refund_amount = serializers.DecimalField(max_digits=10, decimal_places=2)
+    balance_amount = serializers.DecimalField(max_digits=10, decimal_places=2)
+    coupon_amount = serializers.DecimalField(max_digits=10, decimal_places=2)
+    refunded_time = serializers.DateTimeField()
+    user_id = serializers.CharField()
+    username = serializers.CharField()
+    vo_id = serializers.CharField()
+    vo_name = serializers.CharField()
+    owner_type = serializers.CharField()
