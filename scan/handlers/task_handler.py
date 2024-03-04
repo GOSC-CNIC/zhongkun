@@ -166,8 +166,12 @@ class TaskHandler:
                             type=TaskType.WEB,
                             target=params["url"],
                             remark=params["remark"],
+                            pay_amount=params['web_price'],
+                            balance_amount=Decimal('0'),
+                            coupon_amount=params['web_price']
                         )
                     )
+                    
                 if params["do_host_scan"] is not False:
                     tasks.append(
                         TaskManager.create_task(
@@ -176,6 +180,9 @@ class TaskHandler:
                             type=TaskType.HOST,
                             target=params["ipaddr"],
                             remark=params["remark"],
+                            pay_amount=params['host_price'],
+                            balance_amount=Decimal('0'),
+                            coupon_amount=params['host_price']
                         )
                     )
                 # 扣券
@@ -222,11 +229,13 @@ class TaskHandler:
                     message=_("安全扫描未配置对应的结算系统APP服务id"),
                     code="ServiceNoPayAppServiceId",
                 )
-            price = 0
+            price = Decimal('0')
             if params["do_web_scan"] is not False:
-                price += ins.web_scan_price
+                params['web_price'] = Decimal(ins.web_scan_price)
+                price += params['web_price']
             if params["do_host_scan"] is not False:
-                price += ins.host_scan_price
+                params['host_price'] = Decimal(ins.host_scan_price)
+                price += params['host_price']
             # 扣余额券以及创建任务
             tasks = TaskHandler.__pay_price_create_task(
                 app_service_id=pay_app_service_id, user=user, price=price, params=params

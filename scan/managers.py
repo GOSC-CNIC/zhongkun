@@ -4,6 +4,7 @@ from django.core.validators import URLValidator
 from django.utils.translation import gettext as _
 from core import errors
 from django.utils import timezone
+from decimal import Decimal
 
 
 class ScanManager:
@@ -114,7 +115,6 @@ class ScanZapManager:
             task.save()
             return True
         except Exception as e:
-            print("XXXXXX", str(e))
             return False
 
     @staticmethod
@@ -203,10 +203,10 @@ class TaskManager:
 
     @staticmethod
     @transaction.atomic
-    def create_task(user_id: str, name: str, type: str, target: str, remark: str):
+    def create_task(user_id: str, name: str, type: str, target: str, remark: str, pay_amount:Decimal, balance_amount:Decimal, coupon_amount:Decimal):
         """创建用户扫描任务"""
         task = VtTask(
-            user_id=user_id, name=name, type=type, target=target, remark=remark
+            user_id=user_id, name=name, type=type, target=target, remark=remark, pay_amount=pay_amount, balance_amount=balance_amount, coupon_amount=coupon_amount
         )
         task.save()
         return task

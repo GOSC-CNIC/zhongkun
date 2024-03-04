@@ -66,7 +66,7 @@ class ScanTaskViewSet(CustomGenericViewSet):
         return TaskHandler.list_scan_task(view=self, request=request)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy("创建一个http或tcp扫描任务"),
+        operation_summary=gettext_lazy("创建一个网站或主机扫描任务"),
         manual_parameters=[
             openapi.Parameter(
                 name="coupon_ids",

@@ -538,6 +538,9 @@ class ScanTaskTests(MyAPITestCase):
             container=response.data[0],
         )
         user_scan_task7 = VtTask.objects.filter(id=response.data[0]["id"]).first()
+        self.assertEqual(user_scan_task7.coupon_amount,  Decimal("50"))
+        self.assertEqual(user_scan_task7.balance_amount,  Decimal("0"))
+        self.assertEqual(user_scan_task7.pay_amount,  Decimal("50"))
         self.assert_is_subdict_of(
             sub={
                 "name": user_scan_task7.name,
@@ -608,13 +611,16 @@ class ScanTaskTests(MyAPITestCase):
             container=response.data[0],
         )
         user_scan_task8 = VtTask.objects.filter(id=response.data[0]["id"]).first()
+        self.assertEqual(user_scan_task8.coupon_amount,  Decimal("100"))
+        self.assertEqual(user_scan_task8.balance_amount,  Decimal("0"))
+        self.assertEqual(user_scan_task8.pay_amount,  Decimal("100"))
         self.assert_is_subdict_of(
             sub={
                 "name": user_scan_task8.name,
                 "target": user_scan_task8.target,
                 "remark": user_scan_task8.remark,
                 "task_status": user_scan_task8.task_status,
-                "type": user_scan_task8.type,
+                "type": user_scan_task8.type
             },
             d=response.data[0],
         )
@@ -675,6 +681,12 @@ class ScanTaskTests(MyAPITestCase):
         )
         user_scan_task9 = VtTask.objects.filter(id=response.data[0]["id"]).first()
         user_scan_task10 = VtTask.objects.filter(id=response.data[1]["id"]).first()
+        self.assertEqual(user_scan_task9.coupon_amount,  Decimal("100"))
+        self.assertEqual(user_scan_task9.balance_amount,  Decimal("0"))
+        self.assertEqual(user_scan_task9.pay_amount,  Decimal("100"))
+        self.assertEqual(user_scan_task10.coupon_amount,  Decimal("50"))
+        self.assertEqual(user_scan_task10.balance_amount,  Decimal("0"))
+        self.assertEqual(user_scan_task10.pay_amount,  Decimal("50"))
         self.assert_is_subdict_of(
             sub={
                 "name": user_scan_task9.name,

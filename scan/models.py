@@ -130,6 +130,15 @@ class VtTask(UuidModel):
     running_status = models.CharField(verbose_name=_('内部扫描状态'), max_length=16, choices=RunningStatus.choices, null=True)
     # 主机扫描使用的GVM所需要的字段
     running_id = models.CharField(verbose_name=_('内部扫描id'), max_length=36, null=True)
+    # 支付信息字段
+    pay_amount = models.DecimalField(
+        verbose_name=_('实付金额'), max_digits=10, decimal_places=2, default=Decimal('0'),
+        help_text=_('实际交易金额')
+    )
+    balance_amount = models.DecimalField(
+        verbose_name=_('余额支付金额'), max_digits=10, decimal_places=2, default=Decimal('0'))
+    coupon_amount = models.DecimalField(
+        verbose_name=_('券支付金额'), max_digits=10, decimal_places=2, default=Decimal('0'))
     
     
     class Meta:
