@@ -262,28 +262,7 @@ class OrderResourceDeliverer:
         * 此方法需要在事务中调用
         """
         order = OrderManager.get_order(order_id=order_id, select_for_update=True)
-        if order.trading_status == order.TradingStatus.CLOSED.value:
-            raise exceptions.OrderTradingClosed(message=_('订单交易已关闭'))
-        elif order.trading_status == order.TradingStatus.COMPLETED.value:
-            raise exceptions.OrderTradingCompleted(message=_('订单交易已完成'))
-
-        if order.status == Order.Status.UNPAID.value:
-            raise exceptions.OrderUnpaid(message=_('订单未支付'))
-        elif order.status == Order.Status.CANCELLED.value:
-            raise exceptions.OrderCancelled(message=_('订单已作废'))
-        elif order.status in [Order.Status.REFUND.value, Order.Status.PART_REFUND.value]:
-            raise exceptions.OrderRefund(message=_('订单已退款'))
-        elif order.status == Order.Status.REFUNDING.value:
-            raise exceptions.OrderRefund(message=_('订单正在退款中'))
-        elif order.status != Order.Status.PAID.value:
-            raise exceptions.OrderStatusUnknown(message=_('未知状态的订单'))
-
-        if order.order_action == Order.OrderAction.DELIVERING.value:
-            raise exceptions.ConflictError(message=_('订单资源已在交付中'), code='OrderDelivering')
-        elif order.order_action != Order.OrderAction.NONE.value:
-            raise exceptions.ConflictError(
-                message=_('订单处在未知的操作动作中，请稍后重试，或者联系客服人员人工处理。'), code='OrderActionUnknown')
-
+        OrderManager.can_deliver_or_refund_for_order(order)
         return order
 
     @staticmethod

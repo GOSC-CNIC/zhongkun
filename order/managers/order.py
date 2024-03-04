@@ -376,16 +376,16 @@ class OrderManager:
         qs = qs.distinct()
         return list(qs)
 
-    def get_order_detail(self, order_id: str, user, check_permission: bool = True, read_only: bool = True):
+    def get_permission_order(
+            self, order_id: str, user, check_permission: bool = True, read_only: bool = True
+    ) -> Order:
         """
-        查询订单详情
+        查询有访问权限订单
 
         :param order_id: 订单id
         :param user: 用户对象
         :param check_permission: 是否检测权限
         :param read_only: 用于vo组权限检测；True：只需要访问权限；False: 需要管理权限
-        :return:
-            order, resources
         """
         order = self.get_order(order_id=order_id)
         if order is None:
@@ -399,6 +399,21 @@ class OrderManager:
             elif order.vo_id:
                 self._has_vo_permission(vo_id=order.vo_id, user=user, read_only=read_only)
 
+        return order
+
+    def get_order_detail(self, order_id: str, user, check_permission: bool = True, read_only: bool = True):
+        """
+        查询订单详情
+
+        :param order_id: 订单id
+        :param user: 用户对象
+        :param check_permission: 是否检测权限
+        :param read_only: 用于vo组权限检测；True：只需要访问权限；False: 需要管理权限
+        :return:
+            order, resources
+        """
+        order = self.get_permission_order(
+            order_id=order_id, user=user, check_permission=check_permission, read_only=read_only)
         resources = Resource.objects.filter(order_id=order_id).all()
         resources = list(resources)
         return order, resources
@@ -639,3 +654,65 @@ class OrderManager:
         """
         return OrderManager.set_resource_instance_deleted(
             resource_type=ResourceType.DISK.value, instance_id=instance_id, raise_exc=raise_exc)
+
+    @staticmethod
+    def can_deliver_or_refund_for_order(order: Order):
+        """
+        检查订单状态是否满足资源交付或者退订条件
+
+        :return:
+            True    # 满足
+            raise Error # 不满足
+        """
+        if order.trading_status == order.TradingStatus.CLOSED.value:
+            raise errors.OrderTradingClosed(message=_('订单交易已关闭'))
+        elif order.trading_status == order.TradingStatus.COMPLETED.value:
+            raise errors.OrderTradingCompleted(message=_('订单交易已完成'))
+
+        if order.status == Order.Status.UNPAID.value:
+            raise errors.OrderUnpaid(message=_('订单未支付'))
+        elif order.status == Order.Status.CANCELLED.value:
+            raise errors.OrderCancelled(message=_('订单已作废'))
+        elif order.status in [Order.Status.REFUND.value, Order.Status.PART_REFUND.value]:
+            raise errors.OrderRefund(message=_('订单已退款'))
+        elif order.status == Order.Status.REFUNDING.value:
+            raise errors.OrderRefund(message=_('订单正在退款中'))
+        elif order.status != Order.Status.PAID.value:
+            raise errors.OrderStatusUnknown(message=_('未知状态的订单'))
+
+        if order.order_action == Order.OrderAction.DELIVERING.value:
+            raise errors.ConflictError(message=_('订单资源正在交付中'), code='OrderDelivering')
+        elif order.order_action != Order.OrderAction.NONE.value:
+            raise errors.ConflictError(
+                message=_('订单处在未知的操作动作中，请稍后重试，或者联系客服人员人工处理。'), code='OrderActionUnknown')
+
+        return True
+
+    @staticmethod
+    def set_order_refund_success(order: Order, is_part_refund: bool):
+        """
+        订单退订成功，更新订单信息
+
+        * 订单状态更新操作尽量加锁 放在一个事务中执行
+        :return:
+            order    # success
+
+        :raises: Error
+        """
+        if order.trading_status in [order.TradingStatus.CLOSED, order.TradingStatus.COMPLETED]:
+            raise errors.Error(message=_('交易关闭和交易完成状态的订单不允许修改'))
+
+        update_fields = ['trading_status', 'status']
+        order.trading_status = order.TradingStatus.COMPLETED.value
+        if is_part_refund:
+            order.status = Order.Status.PART_REFUND.value
+        else:
+            order.status = Order.Status.REFUND.value
+
+        try:
+            order.save(update_fields=update_fields)
+        except Exception as e:
+            message = _('更新订单交易状态失败') + str(e)
+            raise errors.Error(message=message)
+
+        return order

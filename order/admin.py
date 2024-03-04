@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext
 
 from utils.model import BaseModelAdmin
-from .models import Order, Resource, Price, Period
+from .models import Order, Resource, Price, Period, OrderRefund
 
 
 @admin.register(Order)
@@ -78,3 +78,18 @@ class PeriodAdmin(BaseModelAdmin):
     list_display = ('id', 'period', 'enable', 'service', 'creation_time')
     ordering = ('service', 'period',)
     list_filter = ['service']
+
+
+@admin.register(OrderRefund)
+class OrderRefundAdmin(BaseModelAdmin):
+    list_display = ('id', 'creation_time', 'status', 'refund_amount', 'balance_amount', 'coupon_amount',
+                    'resource_type', 'number', 'order_amount', 'order', 'reason', 'deleted',
+                    'owner_type', 'username', 'vo_name', 'refunded_time', 'refund_history_id')
+    list_display_links = ('id',)
+    list_filter = ('status', 'owner_type', 'resource_type', 'deleted')
+    list_select_related = ('order',)
+    raw_id_fields = ('order',)
+    search_fields = ('id', 'username', 'vo_name')
+
+    def has_delete_permission(self, request, obj=None):
+        return False

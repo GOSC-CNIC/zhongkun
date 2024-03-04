@@ -12,7 +12,7 @@ from bill.models import (
     PaymentHistory, UserPointAccount, VoPointAccount, CashCouponPaymentHistory, CashCoupon,
     PayAppService, TransactionBill, RefundRecord
 )
-from bill.managers.bill import TransactionBillManager, RefundRecordManager
+from bill.managers.bill import TransactionBillManager, RefundRecordManager, PaymentHistoryManager
 from .cash_coupon import CashCouponManager
 
 
@@ -469,6 +469,31 @@ class PaymentManager:
             raise errors.BalanceNotEnough(message=_('未能从资源券中扣除完指定金额'), code='DeductFormCouponsNotEnough')
 
         return cc_historys
+
+    def refund_for_payment_id(
+            self,
+            app_id: str,
+            payment_id: str,
+            out_refund_id: str,
+            refund_amounts: Decimal,
+            refund_reason: str,
+            remark: str,
+            is_refund_coupon: bool = False
+    ):
+        """
+        支付订单 发起一笔退款
+
+        :is_refund_coupon: True(支付用了券金额，退还券金额回对应券), False(不退还券金额回对应券)
+        :return: RefundRecord()
+
+        :raises: Error
+        """
+        pay_history = PaymentHistoryManager.get_payment_history_by_id(payment_id=payment_id)
+        return self.refund_for_payment(
+            app_id=app_id, payment_history=pay_history, out_refund_id=out_refund_id,
+            refund_amounts=refund_amounts, refund_reason=refund_reason, remark=remark,
+            is_refund_coupon=is_refund_coupon
+        )
 
     def refund_for_payment(
             self,

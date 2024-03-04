@@ -375,3 +375,67 @@ class Period(CustomIdModel):
 
     def generate_id(self) -> str:
         return rand_utils.timestamp14_microsecond2_sn()
+
+
+class OrderRefund(models.Model):
+    class Status(models.TextChoices):
+        WAIT = 'wait', _('待退款')
+        REFUNDED = 'refunded', _('已退款')
+        FAILED = 'failed', _('退款失败')
+        CANCELLED = 'cancelled', _('取消')
+
+    id = models.CharField(verbose_name=_('退订编号'), max_length=32, primary_key=True, editable=False)
+    order = models.ForeignKey(verbose_name=_('退订订单'), to=Order, on_delete=models.PROTECT, related_name='+')
+    order_amount = models.DecimalField(
+        verbose_name=_('订单总金额'), max_digits=10, decimal_places=2, default=Decimal('0'))
+    payment_history_id = models.CharField(verbose_name=_('支付记录id'), max_length=36, blank=True, default='')
+    status = models.CharField(
+        verbose_name=_('退订状态'), max_length=16, choices=Status.choices, default=Status.WAIT.value)
+    status_desc = models.CharField(verbose_name=_('退订状态描述'), max_length=255, blank=True, default='')
+    creation_time = models.DateTimeField(verbose_name=_('退订时间'))
+    update_time = models.DateTimeField(verbose_name=_('修改时间'))
+    resource_type = models.CharField(
+        verbose_name=_('资源类型'), max_length=16, choices=ResourceType.choices, default=ResourceType.VM.value)
+    number = models.PositiveIntegerField(verbose_name=_('退订资源数量'), default=1)
+    reason = models.CharField(verbose_name=_('退订原因'), max_length=255, blank=True, default="")
+    refund_amount = models.DecimalField(
+        verbose_name=_('退款金额'), max_digits=10, decimal_places=2, default=Decimal('0'),
+        help_text=_('需要退款的金额')
+    )
+    balance_amount = models.DecimalField(
+        verbose_name=_('余额退款金额'), max_digits=10, decimal_places=2, default=Decimal('0'))
+    coupon_amount = models.DecimalField(
+        verbose_name=_('券退款金额'), max_digits=10, decimal_places=2, default=Decimal('0'))
+    refund_history_id = models.CharField(verbose_name=_('退款记录id'), max_length=36, blank=True, default='')
+    refunded_time = models.DateTimeField(verbose_name=_('退款完成时间'), null=True, blank=True, default=None)
+    user_id = models.CharField(verbose_name=_('用户ID'), max_length=36, blank=True, default='')
+    username = models.CharField(verbose_name=_('用户名'), max_length=64, blank=True, default='')
+    vo_id = models.CharField(verbose_name=_('VO组ID'), max_length=36, blank=True, default='')
+    vo_name = models.CharField(verbose_name=_('VO组名'), max_length=256, blank=True, default='')
+    owner_type = models.CharField(verbose_name=_('所有者类型'), max_length=8, choices=OwnerType.choices)
+    deleted = models.BooleanField(verbose_name=_('删除'), default=False)
+
+    class Meta:
+        verbose_name = _('退订退款')
+        verbose_name_plural = verbose_name
+        db_table = 'order_refund'
+        ordering = ['-creation_time']
+
+    def __repr__(self):
+        return f'OrderRefund[{self.id}]'
+
+    def __str__(self):
+        return f'[{self.id}]({self.get_status_display()}, {self.refund_amount})'
+
+    @staticmethod
+    def generate_refund_sn():
+        return generate_order_sn()
+
+    def enforce_refund_id(self):
+        if not self.id:
+            self.id = self.generate_refund_sn()
+
+    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
+        self.enforce_refund_id()
+        return super().save(
+            force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
