@@ -309,7 +309,7 @@ class OrderManager:
 
     def filter_order_queryset(
             self, resource_type: str, order_type: str, status: str, time_start, time_end,
-            user_id: str = None, vo_id: str = None
+            user_id: str = None, vo_id: str = None, is_deleded: bool = None
     ):
         """
         查询用户或vo组的订单查询集
@@ -336,10 +336,14 @@ class OrderManager:
         if status:
             queryset = queryset.filter(status=status)
 
+        if is_deleded is not None:
+            queryset = queryset.filter(deleted=is_deleded)
+
         return queryset.order_by('-creation_time')
 
     def filter_vo_order_queryset(
-            self, resource_type: str, order_type: str, status: str, time_start, time_end, user, vo_id: str
+            self, resource_type: str, order_type: str, status: str, time_start, time_end, user, vo_id: str,
+            is_deleded: bool = None
     ):
         """
         查询vo组的订单查询集
@@ -349,7 +353,7 @@ class OrderManager:
         self._has_vo_permission(vo_id=vo_id, user=user)
         return self.filter_order_queryset(
             resource_type=resource_type, order_type=order_type, status=status, time_start=time_start,
-            time_end=time_end, vo_id=vo_id
+            time_end=time_end, vo_id=vo_id, is_deleded=is_deleded
         )
 
     @staticmethod
@@ -388,7 +392,7 @@ class OrderManager:
         :param read_only: 用于vo组权限检测；True：只需要访问权限；False: 需要管理权限
         """
         order = self.get_order(order_id=order_id)
-        if order is None:
+        if order is None or order.deleted:
             raise errors.NotFound(_('订单不存在'))
 
         # check permission

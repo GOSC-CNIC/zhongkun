@@ -35,7 +35,7 @@ class OrderHandler:
                     time_start=data['time_start'],
                     time_end=data['time_end'],
                     user=user,
-                    vo_id=vo_id
+                    vo_id=vo_id, is_deleded=False
                 )
             except Exception as exc:
                 return view.exception_response(exc)
@@ -46,7 +46,7 @@ class OrderHandler:
                 status=data['status'],
                 time_start=data['time_start'],
                 time_end=data['time_end'],
-                user_id=user.id
+                user_id=user.id, is_deleded=False
             )
         try:
             orders = view.paginate_queryset(queryset)

@@ -224,7 +224,7 @@ class OrderTests(MyAPITestCase):
             image_id='image_id', image_name='', network_id='network_id', network_name='',
             azone_id='azone_id', azone_name='azone_name', flavor_id=''
         )
-        order, resource_list = omgr.create_order(
+        order3, resource_list = omgr.create_order(
             order_type=Order.OrderType.NEW.value,
             pay_app_service_id='test',
             service_id='test',
@@ -238,8 +238,27 @@ class OrderTests(MyAPITestCase):
             vo_id='', vo_name='',
             owner_type=OwnerType.USER.value
         )
-        self.assertEqual(order.payable_amount, Decimal('0'))
-        self.assertEqual(order.total_amount, Decimal('0'))
+        self.assertEqual(order3.payable_amount, Decimal('0'))
+        self.assertEqual(order3.total_amount, Decimal('0'))
+
+        # test list order deleted
+        self.client.logout()
+        self.client.force_login(user=self.user)
+        base_url = reverse('order-api:order-list')
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 2)
+        self.assertEqual(len(response.data['orders']), 2)
+        self.assertEqual(response.data['orders'][0]['id'], order3.id)
+        self.assertEqual(response.data['orders'][1]['id'], order.id)
+
+        order3.deleted = True
+        order3.save(update_fields=['deleted'])
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data['orders']), 1)
+        self.assertEqual(response.data['orders'][0]['id'], order.id)
 
     def list_user_order_query_test(self):
         base_url = reverse('order-api:order-list')
