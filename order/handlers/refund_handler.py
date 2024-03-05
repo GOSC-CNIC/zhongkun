@@ -127,3 +127,12 @@ class RefundOrderHandler:
             'vo_id': vo_id,
             'order_id': order_id
         }
+
+    @staticmethod
+    def delete_refund(view: CustomGenericViewSet, request, kwargs):
+        try:
+            OrderRefundManager().delete_refund(refund_id=kwargs[view.lookup_field], user=request.user)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        return Response(status=204)

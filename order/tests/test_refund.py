@@ -599,3 +599,98 @@ class OrderRefundTests(MyAPITestCase):
                            "vo_id", "vo_name", "owner_type", "cancelled_time", "app_service_id", 'trading_status'
                            ], response.data['results'][0]['order'])
         self.assertEqual(response.data['results'][0]['id'], refund3.id)
+
+    def test_delete_refund(self):
+        now_time = dj_timezone.now()
+
+        # prepaid mode order
+        instance_config = ServerConfig(
+            vm_cpu=1, vm_ram=1, systemdisk_size=50, public_ip=True,
+            image_id='test', image_name='', network_id='network_id', network_name='',
+            azone_id='', azone_name='', flavor_id=''
+        )
+        # 创建订单
+        order1 = Order(
+            order_type=Order.OrderType.NEW.value,
+            status=Order.Status.PAID.value,
+            total_amount=Decimal('333.3'),
+            payable_amount=Decimal('333.3'),
+            pay_amount=Decimal('333.3'),
+            balance_amount=Decimal('300'),
+            coupon_amount=Decimal('33.3'),
+            app_service_id=self.service.pay_app_service_id,
+            service_id=self.service.id,
+            service_name=self.service.name,
+            resource_type=ResourceType.VM.value,
+            instance_config=instance_config.to_dict(),
+            period=12,
+            pay_type=PayType.PREPAID.value,
+            payment_time=None,
+            start_time=None,
+            end_time=None,
+            user_id=self.user.id,
+            username=self.user.username,
+            vo_id='',
+            vo_name='',
+            owner_type=OwnerType.USER.value,
+            deleted=False,
+            trading_status=Order.TradingStatus.OPENING.value,
+            completion_time=None,
+            number=3
+        )
+        order1.save(force_insert=True)
+
+        refund1 = OrderRefund(
+            order=order1,
+            order_amount=Decimal('333.3'),
+            payment_history_id=order1.payment_history_id,
+            status=OrderRefund.Status.WAIT.value,
+            status_desc='',
+            creation_time=now_time,
+            update_time=now_time,
+            resource_type=order1.resource_type,
+            number=2,
+            reason='reason test',
+            refund_amount=Decimal('222.2'),
+            balance_amount=Decimal('200'),
+            coupon_amount=Decimal('22.2'),
+            refund_history_id='xxx',
+            refunded_time=None,
+            user_id=order1.user_id,
+            username=order1.username,
+            vo_id=order1.vo_id,
+            vo_name=order1.vo_name,
+            owner_type=OwnerType.USER.value,
+            deleted=False
+        )
+        refund1.save(force_insert=True)
+
+        base_url = reverse('order-api:order-refund-detail', kwargs={'id': 'test'})
+        response = self.client.delete(base_url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=response)
+        self.client.force_login(self.user2)
+
+        base_url = reverse('order-api:order-refund-detail', kwargs={'id': 'test'})
+        response = self.client.delete(base_url)
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
+
+        base_url = reverse('order-api:order-refund-detail', kwargs={'id': refund1.id})
+        response = self.client.delete(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.client.logout()
+        self.client.force_login(self.user)
+        base_url = reverse('order-api:order-refund-detail', kwargs={'id': refund1.id})
+        response = self.client.delete(base_url)
+        self.assertErrorResponse(status_code=409, code='Conflict', response=response)
+
+        refund1.refresh_from_db()
+        self.assertFalse(refund1.deleted)
+        refund1.status = OrderRefund.Status.REFUNDED.value
+        refund1.save(update_fields=['status'])
+        base_url = reverse('order-api:order-refund-detail', kwargs={'id': refund1.id})
+        response = self.client.delete(base_url)
+        self.assertEqual(response.status_code, 204)
+        refund1.refresh_from_db()
+        self.assertTrue(refund1.deleted)
+

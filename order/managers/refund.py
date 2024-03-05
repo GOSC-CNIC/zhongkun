@@ -25,6 +25,33 @@ class OrderRefundManager:
 
         return refund
 
+    def get_permission_refund(
+            self, refund_id: str, user, check_permission: bool = True,
+            read_only: bool = True, select_for_update: bool = False
+    ) -> OrderRefund:
+        """
+        查询有访问权限订单
+
+        :param refund_id: 退订退款id
+        :param user: 用户对象
+        :param check_permission: 是否检测权限
+        :param read_only: 用于vo组权限检测；True：只需要访问权限；False: 需要管理权限
+        :param select_for_update: 是否加锁
+        """
+        refund = self.get_order_refund(refund_id=refund_id, select_for_update=select_for_update)
+        if refund is None:
+            raise errors.TargetNotExist(message=_('退订退款记录不存在'))
+
+        # check permission
+        if check_permission:
+            if refund.owner_type == OwnerType.USER.value:
+                if refund.user_id and refund.user_id != user.id:
+                    raise errors.AccessDenied(message=_('您没有此退订退款记录访问权限'))
+            elif refund.vo_id:
+                self._has_vo_permission(vo_id=refund.vo_id, user=user, read_only=read_only)
+
+        return refund
+
     @staticmethod
     def filter_refund_qs(
             order_id: str, status_in: List[str], user_id: Union[str, None], vo_id: Union[str, None],
@@ -257,4 +284,18 @@ class OrderRefundManager:
             'balance_amount', 'coupon_amount', 'refund_history_id', 'status', 'status_desc'])
         is_part_refund = refund.refund_amount < refund.order.pay_amount
         OrderManager.set_order_refund_success(order=refund.order, is_part_refund=is_part_refund)
+        return refund
+
+    def delete_refund(self, refund_id: str, user):
+        with transaction.atomic():
+            refund = self.get_permission_refund(
+                refund_id=refund_id, user=user, check_permission=True, read_only=False, select_for_update=True)
+
+            if refund.status in [OrderRefund.Status.WAIT.value, OrderRefund.Status.FAILED.value]:
+                raise errors.ConflictError(message=_('请取消退订退款后再尝试删除'))
+
+            refund.deleted = True
+            refund.update_time = dj_timezone.now()
+            refund.save(update_fields=['deleted', 'update_time'])
+
         return refund

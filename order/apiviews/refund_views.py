@@ -53,6 +53,11 @@ class RefundViewSet(CustomGenericViewSet):
                 "refund_id": "xxx"
             }
 
+            http code 400、403、404、409：
+            {
+                "code": "xxx",
+                "message": "xxx"
+            }
             * 可能的错误码：
             400：
                 InvalidArgument：无效的订单编号/退订原因不能超过255个字符
@@ -76,7 +81,7 @@ class RefundViewSet(CustomGenericViewSet):
         return RefundOrderHandler().create_refund(view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('列举退订退款单'),
+        operation_summary=gettext_lazy('列举退订退款记录'),
         request_body=no_body,
         manual_parameters=[
             openapi.Parameter(
@@ -121,7 +126,7 @@ class RefundViewSet(CustomGenericViewSet):
     )
     def list(self, request, *args, **kwargs):
         """
-        列举退订退款单
+        列举退订退款记录
 
             http code 200：
             {
@@ -186,6 +191,30 @@ class RefundViewSet(CustomGenericViewSet):
                 cancelled: 取消
         """
         return RefundOrderHandler().list_refund(view=self, request=request)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('删除退订退款记录'),
+        responses={
+            204: ''
+        }
+    )
+    def destroy(self, request, *args, **kwargs):
+        """
+        删除退订退款记录
+
+            * 只允许删除 “取消/作废”、“已退款” 状态的退订退款记录；“待退款”、“退款失败”状态的退订记录需要先取消退订后删除；
+
+            http code 204 ok:
+            http code 403、404、409：
+            {
+                "code": "xxx",
+                "message": "xxx"
+            }
+            404: TargetNotExist: 退订退款记录不存在
+            403: AccessDenied: 您没有此退订退款记录访问权限
+            409: Conflict: 请取消退订退款后再尝试删除
+        """
+        return RefundOrderHandler.delete_refund(view=self, request=request, kwargs=kwargs)
 
     def get_serializer_class(self):
         if self.action == 'list':
