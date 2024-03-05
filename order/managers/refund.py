@@ -39,7 +39,7 @@ class OrderRefundManager:
         :param select_for_update: 是否加锁
         """
         refund = self.get_order_refund(refund_id=refund_id, select_for_update=select_for_update)
-        if refund is None:
+        if refund is None or refund.deleted:
             raise errors.TargetNotExist(message=_('退订退款记录不存在'))
 
         # check permission
@@ -291,11 +291,29 @@ class OrderRefundManager:
             refund = self.get_permission_refund(
                 refund_id=refund_id, user=user, check_permission=True, read_only=False, select_for_update=True)
 
-            if refund.status in [OrderRefund.Status.WAIT.value, OrderRefund.Status.FAILED.value]:
-                raise errors.ConflictError(message=_('请取消退订退款后再尝试删除'))
+            if refund.status not in [OrderRefund.Status.REFUNDED.value, OrderRefund.Status.CANCELLED.value]:
+                raise errors.ConflictError(message=_('请取消退订退款后再尝试删除'), code='ConflictStatus')
 
             refund.deleted = True
             refund.update_time = dj_timezone.now()
             refund.save(update_fields=['deleted', 'update_time'])
+
+        return refund
+
+    def cancel_refund(self, refund_id: str, user):
+        with transaction.atomic():
+            refund = self.get_permission_refund(
+                refund_id=refund_id, user=user, check_permission=True, read_only=False, select_for_update=True)
+
+            if refund.status not in [OrderRefund.Status.WAIT.value, OrderRefund.Status.FAILED.value]:
+                raise errors.ConflictError(
+                    message=_('只允许取消 “待退款”、“退款失败”状态的退订记录'), code='ConflictStatus')
+
+            refund.status = OrderRefund.Status.CANCELLED.value
+            refund.update_time = dj_timezone.now()
+            refund.save(update_fields=['status', 'update_time'])
+            order = refund.order
+            order.status = Order.Status.PAID.value
+            order.save(update_fields=['status'])
 
         return refund

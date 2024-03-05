@@ -136,3 +136,12 @@ class RefundOrderHandler:
             return view.exception_response(exc)
 
         return Response(status=204)
+
+    @staticmethod
+    def cancel_refund(view: CustomGenericViewSet, request, kwargs):
+        try:
+            OrderRefundManager().cancel_refund(refund_id=kwargs[view.lookup_field], user=request.user)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        return Response(status=200)

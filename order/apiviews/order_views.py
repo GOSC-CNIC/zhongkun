@@ -280,6 +280,14 @@ class OrderViewSet(CustomGenericViewSet):
               ]
             }
 
+            * status 订单状态：
+                paid：已支付
+                unpaid：未支付
+                cancelled：作废
+                refunding：退款中
+                refund：全额退款
+                partrefund：部分退款
+
             * trading_status 交易状态：
                 opening：交易中
                 undelivered：订单资源交付失败
@@ -362,6 +370,13 @@ class OrderViewSet(CustomGenericViewSet):
                 }
               ]
             }
+            * status 订单状态：
+                paid：已支付
+                unpaid：未支付
+                cancelled：作废
+                refunding：退款中
+                refund：全额退款
+                partrefund：部分退款
 
             * trading_status 订单交易状态：
                 opening：交易中

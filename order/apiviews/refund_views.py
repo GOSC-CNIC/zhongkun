@@ -216,6 +216,31 @@ class RefundViewSet(CustomGenericViewSet):
         """
         return RefundOrderHandler.delete_refund(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('取消退订退款'),
+        responses={
+            204: ''
+        }
+    )
+    @action(methods=['POST'], detail=True, url_path='cancel', url_name='cancel')
+    def cancel_refund(self, request, *args, **kwargs):
+        """
+        取消退订退款
+
+            * 只允许取消 “待退款”、“退款失败”状态的退订记录
+
+            http code 204 ok:
+            http code 403、404、409：
+            {
+                "code": "xxx",
+                "message": "xxx"
+            }
+            404: TargetNotExist: 退订退款记录不存在
+            403: AccessDenied: 您没有此退订退款记录访问权限
+            409: Conflict: 只允许取消 “待退款”、“退款失败”状态的退订记录
+        """
+        return RefundOrderHandler.cancel_refund(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return serializers.RefundOrderSerializer
