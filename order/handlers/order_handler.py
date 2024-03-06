@@ -285,3 +285,22 @@ class OrderHandler:
         return Response(data={
             'order_id': order.id
         })
+
+    @staticmethod
+    def delete_order(view: CustomGenericViewSet, request, kwargs):
+        """
+        取消未支付订单
+        """
+        order_id: str = kwargs.get(view.lookup_field, '')
+        if len(order_id) != 22:
+            return view.exception_response(errors.BadRequest(_('无效的订单编号'), code='InvalidOrderId'))
+
+        if not order_id.isdigit():
+            return view.exception_response(errors.BadRequest(_('无效的订单编号'), code='InvalidOrderId'))
+
+        try:
+            OrderManager().delete_order(order_id=order_id, user=request.user)
+        except errors.Error as exc:
+            return view.exception_response(exc)
+
+        return Response(status=204)

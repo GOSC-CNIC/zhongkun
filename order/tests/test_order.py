@@ -1172,9 +1172,8 @@ class OrderTests(MyAPITestCase):
             owner_type=OwnerType.USER.value,
             remark='testcase创建，可删除'
         )
-        resource2 = resource_list[0]
-        resource2.last_deliver_time = timezone.now()
-        resource2.save(update_fields=['last_deliver_time'])
+        order2.order_action = Order.OrderAction.DELIVERING.value
+        order2.save(update_fields=['order_action'])
 
         # cancel order
         url = reverse('order-api:order-cancel-order', kwargs={'id': order2.id})
@@ -1219,17 +1218,160 @@ class OrderTests(MyAPITestCase):
         response = self.client.post(url)
         self.assertErrorResponse(status_code=409, code='OrderCancelled', response=response)
 
+        # deleted
+        order2.deleted = True
+        order2.save(update_fields=['deleted'])
+        url = reverse('order-api:order-cancel-order', kwargs={'id': order2.id})
+        response = self.client.post(url)
+        self.assertErrorResponse(status_code=404, code='NotFound', response=response)
+
         # cancel order ok
         order2.trading_status = order2.TradingStatus.OPENING.value
         order2.status = order2.Status.UNPAID.value
-        order2.save(update_fields=['trading_status', 'status'])
-        resource2.last_deliver_time = timezone.now() - timedelta(minutes=2)
-        resource2.save(update_fields=['last_deliver_time'])
+        order2.order_action = Order.OrderAction.NONE.value
+        order2.deleted = False
+        order2.save(update_fields=['trading_status', 'status', 'order_action', 'deleted'])
 
         url = reverse('order-api:order-cancel-order', kwargs={'id': order2.id})
         response = self.client.post(url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['order_id'], order2.id)
+
+    def test_delete_order(self):
+        instance_config = ServerConfig(
+            vm_cpu=1, vm_ram=1, systemdisk_size=50, public_ip=True,
+            image_id='test', image_name='', network_id='network_id', network_name='',
+            azone_id='', azone_name='', flavor_id=''
+        )
+        # create vo order
+        order, resource_list = OrderManager().create_order(
+            order_type=Order.OrderType.NEW.value,
+            pay_app_service_id=self.service.pay_app_service_id,
+            service_id=self.service.id,
+            service_name=self.service.name,
+            resource_type=ResourceType.VM.value,
+            instance_config=instance_config,
+            period=8,
+            pay_type=PayType.PREPAID.value,
+            user_id=self.user.id,
+            username=self.user.username,
+            vo_id=self.vo.id,
+            vo_name=self.vo.name,
+            owner_type=OwnerType.VO.value,
+            remark='testcase创建，可删除'
+        )
+        self.client.logout()
+        self.client.force_login(self.user2)
+
+        # no permission
+        url = reverse('order-api:order-detail', kwargs={'id': order.id})
+        response = self.client.delete(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # set vo member
+        VoMember(user=self.user2, vo=self.vo, role=VoMember.Role.LEADER.value, inviter='').save(force_insert=True)
+
+        # delete order
+        order.trading_status = order.TradingStatus.CLOSED.value
+        order.status = order.Status.REFUND.value
+        order.order_action = Order.OrderAction.NONE.value
+        order.deleted = False
+        order.save(update_fields=['trading_status', 'status', 'order_action', 'deleted'])
+
+        url = reverse('order-api:order-detail', kwargs={'id': order.id})
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, 204)
+
+        # create user2 order
+        order2, resource_list = OrderManager().create_order(
+            order_type=Order.OrderType.NEW.value,
+            pay_app_service_id=self.service.pay_app_service_id,
+            service_id=self.service.id,
+            service_name=self.service.name,
+            resource_type=ResourceType.VM.value,
+            instance_config=instance_config,
+            period=8,
+            pay_type=PayType.PREPAID.value,
+            user_id=self.user2.id,
+            username=self.user2.username,
+            vo_id='',
+            vo_name='',
+            owner_type=OwnerType.USER.value,
+            remark='testcase创建，可删除'
+        )
+
+        order2.order_action = Order.OrderAction.DELIVERING.value
+        order2.trading_status = order2.TradingStatus.CLOSED.value
+        order2.status = order2.Status.PAID.value
+        order2.save(update_fields=['order_action', 'trading_status', 'status'])
+
+        url = reverse('order-api:order-detail', kwargs={'id': order2.id})
+        response = self.client.delete(url)
+        self.assertErrorResponse(status_code=409, code='TryAgainLater', response=response)
+
+        # TradingStatus
+        order2.order_action = Order.OrderAction.NONE.value
+        order2.trading_status = order2.TradingStatus.OPENING.value
+        order2.save(update_fields=['trading_status', 'order_action'])
+        url = reverse('order-api:order-detail', kwargs={'id': order2.id})
+        response = self.client.delete(url)
+        self.assertErrorResponse(status_code=409, code='ConflictTradingStatus', response=response)
+
+        order2.trading_status = order2.TradingStatus.UNDELIVERED.value
+        order2.save(update_fields=['trading_status'])
+        url = reverse('order-api:order-detail', kwargs={'id': order2.id})
+        response = self.client.delete(url)
+        self.assertErrorResponse(status_code=409, code='ConflictTradingStatus', response=response)
+
+        order2.trading_status = order2.TradingStatus.PART_DELIVER.value
+        order2.save(update_fields=['trading_status'])
+        url = reverse('order-api:order-detail', kwargs={'id': order2.id})
+        response = self.client.delete(url)
+        self.assertErrorResponse(status_code=409, code='ConflictTradingStatus', response=response)
+
+        # delete unpaid order
+        order2.trading_status = order2.TradingStatus.COMPLETED.value
+        order2.status = order2.Status.UNPAID.value
+        order2.save(update_fields=['trading_status', 'status'])
+        url = reverse('order-api:order-detail', kwargs={'id': order2.id})
+        response = self.client.delete(url)
+        self.assertErrorResponse(status_code=409, code='OrderUnpaid', response=response)
+
+        # delete refunding order
+        order2.trading_status = order2.TradingStatus.COMPLETED.value
+        order2.status = order2.Status.REFUNDING.value
+        order2.save(update_fields=['trading_status', 'status'])
+        url = reverse('order-api:order-detail', kwargs={'id': order2.id})
+        response = self.client.delete(url)
+        self.assertErrorResponse(status_code=409, code='OrderRefund', response=response)
+
+        # delete paid order
+        order2.trading_status = order2.TradingStatus.COMPLETED.value
+        order2.status = order2.Status.PAID.value
+        order2.save(update_fields=['trading_status', 'status'])
+        url = reverse('order-api:order-detail', kwargs={'id': order2.id})
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, 204)
+        order2.refresh_from_db()
+        self.assertTrue(order2.deleted)
+
+        # deleted
+        url = reverse('order-api:order-detail', kwargs={'id': order2.id})
+        response = self.client.delete(url)
+        self.assertErrorResponse(status_code=404, code='NotFound', response=response)
+
+        # ok
+        order2.trading_status = order2.TradingStatus.CLOSED.value
+        order2.status = order2.Status.REFUND.value
+        order2.order_action = Order.OrderAction.NONE.value
+        order2.deleted = False
+        order2.save(update_fields=['trading_status', 'status', 'order_action', 'deleted'])
+
+        url = reverse('order-api:order-detail', kwargs={'id': order2.id})
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, 204)
+        order2.refresh_from_db()
+        self.assertTrue(order2.deleted)
 
 
 class PeriodTests(MyAPITestCase):

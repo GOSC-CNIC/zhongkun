@@ -218,6 +218,7 @@ class RefundViewSet(CustomGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('取消退订退款'),
+        request_body=no_body,
         responses={
             204: ''
         }

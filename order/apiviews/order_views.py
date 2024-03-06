@@ -500,6 +500,35 @@ class OrderViewSet(CustomGenericViewSet):
         """
         return OrderHandler().cancel_order(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('删除订单'),
+        responses={
+            204: ''
+        }
+    )
+    def destroy(self, request, *args, **kwargs):
+        """
+        删除订单
+
+            http code 204 ok
+            http code 400, 403, 404, 409:
+            {
+                "code": "xx",
+                "message": ""
+            }
+            400: InvalidOrderId: 无效的订单编号
+            403: AccessDenied: 您没有此订单访问权限
+            404: NotFound: 订单不存在
+            409:
+                ConflictTradingStatus: 只允许删除交易已关闭、已完成的订单
+                OrderUnpaid: 未支付状态的订单，请先取消订单后再尝试删除
+                OrderPaid: 已支付状态的订单，资源交付未完成，请先退订退款后再尝试删除
+                OrderRefund: 订单正在退款中，请稍后重试
+                OrderStatusUnknown: 未知状态的订单
+                TryAgainLater: 正在交付订单资源，请稍后重试
+        """
+        return OrderHandler().delete_order(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return serializers.OrderSerializer

@@ -567,6 +567,27 @@ class OrderManager:
 
         return order
 
+    @staticmethod
+    def _can_cancel_order_check(order: Order):
+        if order.trading_status == order.TradingStatus.CLOSED.value:
+            raise errors.OrderTradingClosed(message=_('订单交易已关闭'))
+        elif order.trading_status == order.TradingStatus.COMPLETED.value:
+            raise errors.OrderTradingCompleted(message=_('订单交易已完成'))
+
+        if order.status == Order.Status.PAID.value:
+            raise errors.OrderPaid(message=_('订单已支付'))
+        elif order.status == Order.Status.CANCELLED.value:
+            raise errors.OrderCancelled(message=_('订单已作废'))
+        elif order.status in [Order.Status.REFUND.value, Order.Status.PART_REFUND.value]:
+            raise errors.OrderRefund(message=_('订单已退款'))
+        elif order.status == Order.Status.REFUNDING.value:
+            raise errors.OrderRefund(message=_('订单正在退款中'))
+        elif order.status != Order.Status.UNPAID.value:
+            raise errors.OrderStatusUnknown(message=_('未知状态的订单'))
+
+        if order.order_action == Order.OrderAction.DELIVERING.value:
+            raise errors.TryAgainLater(message=_('正在交付订单资源，请稍后重试'))
+
     def cancel_order(self, order_id: str, user):
         """
         取消作废订单
@@ -575,41 +596,20 @@ class OrderManager:
             order
         :raises: Error
         """
-        order, resources = OrderManager().get_order_detail(
-            order_id=order_id, user=user, check_permission=True, read_only=False
-        )
+        order = self.get_permission_order(
+            order_id=order_id, user=user, check_permission=True, read_only=False)
+        self._can_cancel_order_check(order=order)
+        return self.do_cancel_order(order_id=order.id)
 
-        return self.do_cancel_order(order_id=order.id, resources=resources)
-
-    def do_cancel_order(self, order_id: str, resources: list = None):
+    def do_cancel_order(self, order_id: str):
         try:
             with transaction.atomic():
                 order = self.get_order(order_id=order_id, select_for_update=True)
-                if order.trading_status == order.TradingStatus.CLOSED.value:
-                    raise errors.OrderTradingClosed(message=_('订单交易已关闭'))
-                elif order.trading_status == order.TradingStatus.COMPLETED.value:
-                    raise errors.OrderTradingCompleted(message=_('订单交易已完成'))
+                if order.deleted:
+                    raise errors.NotFound(_('订单不存在'))
 
-                if order.status == Order.Status.PAID.value:
-                    raise errors.OrderPaid(message=_('订单已支付'))
-                elif order.status == Order.Status.CANCELLED.value:
-                    raise errors.OrderCancelled(message=_('订单已作废'))
-                elif order.status in [Order.Status.REFUND.value, Order.Status.PART_REFUND.value]:
-                    raise errors.OrderRefund(message=_('订单已退款'))
-                elif order.status == Order.Status.REFUNDING.value:
-                    raise errors.OrderRefund(message=_('订单正在退款中'))
-                elif order.status != Order.Status.UNPAID.value:
-                    raise errors.OrderStatusUnknown(message=_('未知状态的订单'))
+                self._can_cancel_order_check(order=order)
 
-                if resources:
-                    resource = resources[0]
-                    resource = self.get_resource(resource_id=resource.id, select_for_update=True)
-
-                    time_now = dj_timezone.now()
-                    if resource.last_deliver_time is not None:
-                        delta = time_now - resource.last_deliver_time
-                        if delta < timedelta(minutes=2):
-                            raise errors.TryAgainLater(message=_('为避免可能正在交付订单资源，请稍后重试'))
                 try:
                     order.set_cancel()
                 except Exception as e:
@@ -720,3 +720,57 @@ class OrderManager:
             raise errors.Error(message=message)
 
         return order
+
+    @staticmethod
+    def _can_delete_order_check(order: Order):
+        if order.trading_status not in [order.TradingStatus.CLOSED.value, order.TradingStatus.COMPLETED.value]:
+            raise errors.ConflictError(message=_('只允许删除交易已关闭、已完成的订单'), code='ConflictTradingStatus')
+
+        if order.status == Order.Status.UNPAID.value:
+            raise errors.OrderUnpaid(message=_('未支付状态的订单，请先取消订单后再尝试删除'))
+        elif order.status == Order.Status.PAID.value:
+            if order.trading_status not in [order.TradingStatus.CLOSED.value, order.TradingStatus.COMPLETED.value]:
+                raise errors.OrderPaid(message=_('已支付状态的订单，资源交付未完成，请先退订退款后再尝试删除'))
+        elif order.status == Order.Status.REFUNDING.value:
+            raise errors.OrderRefund(message=_('订单正在退款中，请稍后重试'))
+        elif order.status not in [
+            Order.Status.CANCELLED.value, Order.Status.REFUND.value, Order.Status.PART_REFUND.value
+        ]:
+            raise errors.OrderStatusUnknown(message=_('未知状态的订单'))
+
+        if order.order_action == Order.OrderAction.DELIVERING.value:
+            raise errors.TryAgainLater(message=_('正在交付订单资源，请稍后重试'))
+
+    def delete_order(self, order_id: str, user):
+        """
+        取消作废订单
+
+        :return:
+            order
+        :raises: Error
+        """
+        order = self.get_permission_order(
+            order_id=order_id, user=user, check_permission=True, read_only=False)
+        self._can_delete_order_check(order=order)
+        return self.do_delete_order(order_id=order.id)
+
+    def do_delete_order(self, order_id: str):
+        try:
+            with transaction.atomic():
+                order = self.get_order(order_id=order_id, select_for_update=True)
+                if order.deleted:
+                    return order
+
+                self._can_delete_order_check(order=order)
+
+                try:
+                    order.deleted = True
+                    order.save(update_fields=['deleted'])
+                except Exception as e:
+                    raise errors.Error(message=_('更新订单错误。') + str(e))
+
+                return order
+        except errors.Error as exc:
+            raise exc
+        except Exception as exc:
+            raise errors.Error(message=str(exc))
