@@ -184,12 +184,9 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f"Scanner {name} created."))
 
     def _check_scanner(self, ipaddr, port, engine, key):
-        url = f"http://{ipaddr}:{port}/{engine}"
+        url = f"http://{ipaddr}:{port}/{engine}/hello"
         try:
-            response = requests.post(
-                url,
-                headers={"secret_key": key},
-            )
+            response = requests.get(url, headers={"secret-key": key})
             response.raise_for_status()
             data = response.json()
             if not data["ok"]:
