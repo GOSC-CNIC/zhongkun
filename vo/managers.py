@@ -379,6 +379,26 @@ class VoManager:
             member.role = VoMember.Role.LEADER.value
             member.save(update_fields=['user', 'role'])
 
+    @staticmethod
+    def has_vo_permission(vo_id, user, read_only: bool = True, raise_exc: bool = True):
+        """
+        是否有vo组的权限
+
+        :raises: AccessDenied
+        """
+        try:
+            if read_only:
+                VoManager().get_has_read_perm_vo(vo_id=vo_id, user=user)
+            else:
+                VoManager().get_has_manager_perm_vo(vo_id=vo_id, user=user)
+        except errors.Error as exc:
+            if raise_exc:
+                raise errors.AccessDenied(message=exc.message)
+
+            return False
+
+        return True
+
 
 class VoMemberManager:
     model = VoMember

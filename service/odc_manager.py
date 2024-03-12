@@ -404,3 +404,7 @@ class OrgDataCenterManager:
             odc.save(update_fields=['metric_task_id'])
 
         return task
+
+    @staticmethod
+    def get_admin_perm_odc_ids(user_id: str):
+        return OrgDataCenter.objects.filter(users__id=user_id).distinct().values_list('id', flat=True)

@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     'scripts',
     'api',
     'docs',
+    'apply',
     'baton.autodiscover',
 ]
 
