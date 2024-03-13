@@ -70,3 +70,4 @@ urllib3==2.2.0
 uWSGI==2.0.20
 yarl==1.9.4
 zipp==3.17.0
+responses==0.24.1
