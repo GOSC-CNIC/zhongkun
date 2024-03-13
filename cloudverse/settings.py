@@ -389,7 +389,9 @@ CRONTABJOBS = [
     ('task4_logsite_timecount', '*/1 * * * *',
      'python3 /home/uwsgi/yunkun/scripts/run_log_site_req_num.py >> /var/log/yunkun/task_logsite_timecount.log'),
     ('task5_req_num', '0 */1 * * *',
-     'python3 /home/uwsgi/yunkun/scripts/update_service_req_num.py >> /var/log/yunkun/task_update_req_num.log')
+     'python3 /home/uwsgi/yunkun/scripts/update_service_req_num.py >> /var/log/yunkun/task_update_req_num.log'),
+    ('task6_scan_start', '*/3 * * * *',
+     'python3 /home/uwsgi/yunkun/scan/run_scan_process.py >> /var/log/yunkun/task_scan_process.log')
 ]
 
 # 安全配置导入

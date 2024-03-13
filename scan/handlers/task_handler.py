@@ -171,7 +171,7 @@ class TaskHandler:
                             coupon_amount=params['web_price']
                         )
                     )
-                    
+
                 if params["do_host_scan"] is not False:
                     tasks.append(
                         TaskManager.create_task(

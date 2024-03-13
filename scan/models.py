@@ -139,7 +139,7 @@ class VtTask(UuidModel):
         verbose_name=_('余额支付金额'), max_digits=10, decimal_places=2, default=Decimal('0'))
     coupon_amount = models.DecimalField(
         verbose_name=_('券支付金额'), max_digits=10, decimal_places=2, default=Decimal('0'))
-    
+
     
     class Meta:
         ordering = ['-update_time']
