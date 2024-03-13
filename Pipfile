@@ -28,6 +28,7 @@ python-crontab = "==3.0.0"
 openpyxl = "==3.1.2"
 django-json-widget = "==1.1.1"
 django-baton = "==3.0.2"
+responses = "==0.24.1"
 
 [requires]
 python_version = "3.9"
