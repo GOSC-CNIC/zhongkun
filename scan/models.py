@@ -33,7 +33,7 @@ class VtScanService(UuidModel):
     
     class Meta:
         ordering = ['-add_time']
-        verbose_name = _('安全扫描服务')
+        verbose_name = _('服务价格结算配置')
         verbose_name_plural = verbose_name
     
     @classmethod
@@ -66,14 +66,16 @@ class VtScanner(UuidModel):
     port = models.IntegerField(verbose_name=_('漏扫节点端口'))
     status = models.CharField(verbose_name=_('服务状态'), max_length=16, choices=Status.choices,
                               default=Status.ENABLE.value)
-    key = models.CharField(verbose_name=_('连接验证Key'), max_length=64, choices=Status.choices,
-                              default=Status.ENABLE.value)
+    key = models.CharField(verbose_name=_('连接验证Key'), max_length=64)
     max_concurrency = models.IntegerField(verbose_name=_('漏扫最大并发数'))    
     
     class Meta:
         ordering = ['-type']
-        verbose_name = _('漏洞扫描节点')
+        verbose_name = _('漏洞扫描器')
         verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return f'[{self.get_type_display()}]{self.name}'
 
 
 class VtReport(UuidModel):
@@ -90,8 +92,11 @@ class VtReport(UuidModel):
 
     class Meta:
         ordering = ['-create_time']
-        verbose_name = _('站点扫描报告')
+        verbose_name = _('任务扫描报告')
         verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return f'{self.filename}.{self.type}'
 
     
 class VtTask(UuidModel):
@@ -114,14 +119,14 @@ class VtTask(UuidModel):
         DONE = 'done', _('运行结束')
         
     name = models.CharField(verbose_name=_('任务名称'), max_length=255)
-    priority = models.IntegerField(verbose_name=_('任务优先级'),default=2)
+    priority = models.IntegerField(verbose_name=_('任务优先级'), default=2)
     target = models.CharField(verbose_name=_('扫描目标'), max_length=255)
-    type = models.CharField(verbose_name=_('任务类型'), max_length = 8, choices=TaskType.choices)
-    task_status = models.CharField(verbose_name=_('任务状态'), max_length = 16, choices=Status.choices, default=Status.QUEUED.value)
+    type = models.CharField(verbose_name=_('任务类型'), max_length=8, choices=TaskType.choices)
+    task_status = models.CharField(verbose_name=_('任务状态'), max_length=16, choices=Status.choices, default=Status.QUEUED.value)
     scanner = models.ForeignKey(verbose_name=_('扫描器'), to=VtScanner, on_delete=models.SET_NULL, related_name='tasks', blank=True, null=True)
-    user = models.ForeignKey(verbose_name=_('所属用户'), to=User, on_delete=models.SET_NULL, blank=True, null =True)
+    user = models.ForeignKey(verbose_name=_('所属用户'), to=User, on_delete=models.SET_NULL, blank=True, null=True)
     create_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
-    finish_time = models.DateTimeField(verbose_name=_('结束时间'), null=True)
+    finish_time = models.DateTimeField(verbose_name=_('结束时间'), null=True, blank=True, default=None)
     update_time = models.DateTimeField(verbose_name=_('更新时间'), auto_now=True)
     report = models.ForeignKey(verbose_name=_('扫描报告'), to=VtReport, on_delete=models.SET_NULL, blank=True, null=True)
     remark = models.CharField(verbose_name=_('备注'), max_length=255, default='', blank=True)
@@ -129,7 +134,7 @@ class VtTask(UuidModel):
     # 站点扫描使用的ZAP所需要的字段
     running_status = models.CharField(verbose_name=_('内部扫描状态'), max_length=16, choices=RunningStatus.choices, null=True)
     # 主机扫描使用的GVM所需要的字段
-    running_id = models.CharField(verbose_name=_('内部扫描id'), max_length=36, null=True)
+    running_id = models.CharField(verbose_name=_('内部扫描id'), max_length=36, null=True, blank=True, default='')
     # 支付信息字段
     pay_amount = models.DecimalField(
         verbose_name=_('实付金额'), max_digits=10, decimal_places=2, default=Decimal('0'),
@@ -140,7 +145,6 @@ class VtTask(UuidModel):
     coupon_amount = models.DecimalField(
         verbose_name=_('券支付金额'), max_digits=10, decimal_places=2, default=Decimal('0'))
 
-    
     class Meta:
         ordering = ['-update_time']
         verbose_name = _('漏洞扫描任务')

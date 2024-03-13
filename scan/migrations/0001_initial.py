@@ -46,8 +46,8 @@ class Migration(migrations.Migration):
                 ),
             ],
             options={
-                "verbose_name": "站点扫描报告",
-                "verbose_name_plural": "站点扫描报告",
+                "verbose_name": "任务扫描报告",
+                "verbose_name_plural": "任务扫描报告",
                 "ordering": ["-create_time"],
             },
         ),
@@ -108,12 +108,6 @@ class Migration(migrations.Migration):
                 (
                     "key",
                     models.CharField(
-                        choices=[
-                            ("enable", "服务中"),
-                            ("disable", "停止服务"),
-                            ("deleted", "删除"),
-                        ],
-                        default="enable",
                         max_length=64,
                         verbose_name="连接验证Key",
                     ),
@@ -121,8 +115,8 @@ class Migration(migrations.Migration):
                 ("max_concurrency", models.IntegerField(verbose_name="漏扫最大并发数")),
             ],
             options={
-                "verbose_name": "漏洞扫描节点",
-                "verbose_name_plural": "漏洞扫描节点",
+                "verbose_name": "漏洞扫描器",
+                "verbose_name_plural": "漏洞扫描器",
                 "ordering": ["-type"],
             },
         ),
@@ -200,8 +194,8 @@ class Migration(migrations.Migration):
                 ),
             ],
             options={
-                "verbose_name": "安全扫描服务",
-                "verbose_name_plural": "安全扫描服务",
+                "verbose_name": "服务价格结算配置",
+                "verbose_name_plural": "服务价格结算配置",
                 "ordering": ["-add_time"],
             },
         ),
@@ -250,7 +244,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "finish_time",
-                    models.DateTimeField(null=True, verbose_name="结束时间"),
+                    models.DateTimeField(blank=True, default=None, null=True, verbose_name="结束时间"),
                 ),
                 (
                     "update_time",
@@ -286,7 +280,7 @@ class Migration(migrations.Migration):
                 (
                     "running_id",
                     models.CharField(
-                        max_length=36, null=True, verbose_name="内部扫描id"
+                        blank=True, default='', max_length=36, null=True, verbose_name="内部扫描id"
                     ),
                 ),
                 (
