@@ -36,7 +36,7 @@ class CouponApplySerializer(serializers.Serializer):
         return {'id': obj.odc.id, 'name': obj.odc.name, 'name_en': obj.odc.name_en}
 
 
-class CouponApplyCreateSerializer(serializers.Serializer):
+class CouponApplyUpdateSerializer(serializers.Serializer):
     face_value = serializers.DecimalField(label=_('面额'), max_digits=10, decimal_places=2, required=True)
     expiration_time = serializers.DateTimeField(
         label=_('过期时间'), required=True, help_text='ISO format，2024-03-13T08:47:51Z')
@@ -44,6 +44,9 @@ class CouponApplyCreateSerializer(serializers.Serializer):
     service_type = serializers.CharField(label=_('服务类型'), required=True)
     service_id = serializers.CharField(
         label=_('服务单元id'), max_length=36, required=False, allow_null=True, default=None)
+
+
+class CouponApplyCreateSerializer(CouponApplyUpdateSerializer):
     vo_id = serializers.CharField(
         label=_('项目组id'), max_length=36, required=False, help_text=_('为项目组申请'), allow_null=True, default=None)
 

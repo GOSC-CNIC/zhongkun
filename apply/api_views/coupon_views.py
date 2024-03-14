@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from django.utils import timezone as dj_timezone
 from django.utils.translation import gettext_lazy, gettext as _
+from django.db import transaction
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.serializers import Serializer
@@ -203,6 +204,7 @@ class CouponApplyViewSet(NormalGenericViewSet):
         提交资源券申请
 
             * 只有云主机服务可以为vo组申请资源券
+            * 服务类型为云主机和对象存储时，需要指定服务单元id
 
             http code 201:
             {
@@ -247,7 +249,8 @@ class CouponApplyViewSet(NormalGenericViewSet):
             409：Conflict：服务单元停止服务中 / 指定服务可能未注册钱包结算单元
         """
         try:
-            data = self._create_validate_params(request=request)
+            slizer = self.get_serializer(data=request.data)
+            data = self._create_validate_params(request=request, serializer=slizer)
         except errors.Error as exc:
             return self.exception_response(exc)
 
@@ -339,14 +342,27 @@ class CouponApplyViewSet(NormalGenericViewSet):
 
         return odc, service_id, service_name, service_name_en, pay_app_service_id
 
-    def _create_validate_params(self, request):
+    def _create_validate_params(self, request, serializer):
+        data = self._update_validate_params(serializer=serializer)
+        vo_id = serializer.validated_data.get('vo_id', None)
+        if vo_id:
+            if data['service_type'] != CouponApply.ServiceType.SERVER.value:
+                raise errors.InvalidArgument(message=_('指定的服务类型，不允许为vo组申请资源券'))
+
+            vo, member = VoManager().get_has_manager_perm_vo(vo_id=vo_id, user=request.user)
+        else:
+            vo = None
+
+        data['vo'] = vo
+        return data
+
+    @staticmethod
+    def _update_validate_params(serializer):
         """
         :raises: Error
         """
-        serializer = self.get_serializer(data=request.data)
         if not serializer.is_valid(raise_exception=False):
-            s_errors = serializer.errors
-            msg = serializer_error_msg(s_errors)
+            msg = serializer_error_msg(serializer.errors)
             exc = errors.BadRequest(message=msg)
             raise exc
 
@@ -356,7 +372,6 @@ class CouponApplyViewSet(NormalGenericViewSet):
         apply_desc = data['apply_desc']
         service_type = data['service_type']
         service_id = data.get('service_id', None)
-        vo_id = data.get('vo_id', None)
 
         if face_value < Decimal('0'):
             raise errors.InvalidArgument(message=_('申请金额必须大于0.00'))
@@ -371,27 +386,111 @@ class CouponApplyViewSet(NormalGenericViewSet):
             if not service_id:
                 raise errors.InvalidArgument(message=_('申请服务类型为云主机和对象存储服务时，必须指定申请的服务单元'))
 
-        if vo_id:
-            if service_type != CouponApply.ServiceType.SERVER.value:
-                raise errors.InvalidArgument(message=_('指定的服务类型，不允许为vo组申请资源券'))
-
-            vo, member = VoManager().get_has_manager_perm_vo(vo_id=vo_id, user=request.user)
-        else:
-            vo = None
-
         return {
             'face_value': face_value,
             'expiration_time': expiration_time,
             'apply_desc': apply_desc,
-            'vo': vo,
             'service_type': service_type,
             'service_id': service_id if service_id else ''
         }
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('修改资源券申请'),
+        responses={
+            200: ''
+        }
+    )
+    def update(self, request, *args, **kwargs):
+        """
+        修改资源券申请
+
+            * 只有云主机服务可以为vo组申请资源券
+            * 服务类型为云主机和对象存储时，需要指定服务单元id
+
+            http code 201:
+            {
+                "id": "oft85v49io35e3kmsf2wd1yev",
+                "service_type": "server",
+                "odc": {                            # 数据中心，站点监控和安全扫描服务时 为 null
+                    "id": "of5z7h3pnagywp3f1g05fpx95",
+                    "name": "odc1",
+                    "name_en": "test_en"
+                },
+                "service_id": "ofma1ygtqkwpe9vjh43gr769v",  # 对应各服务类型的服务单元id
+                "service_name": "server1",
+                "service_name_en": "server1 en",
+                "face_value": "2000.12",
+                "expiration_time": "2024-03-18T06:44:32Z",
+                "apply_desc": "申请说明",
+                "creation_time": "2024-03-14T02:44:32.576110Z",
+                "update_time": "2024-03-14T02:44:32.576110Z",
+                "user_id": "of4wiym05t41g7zyov60ifofv",
+                "username": "test",
+                "vo_id": "",
+                "vo_name": "",
+                "owner_type": "user",
+                "status": "wait",
+                "approver": "",
+                "reject_reason": "",
+                "approved_amount": "0.00",
+                "coupon_id": ""
+            }
+
+            http code 400, 401, 403, 404, 409:
+            {
+                "code": "BadRequest",
+                "message": "xxx"
+            }
+            * code
+            400：BadRequest、InvalidArgument: 请求有误、参数无效
+            403：AccessDenied: 你没有访问权限
+            404：TargetNotExist：云主机、对象存储服务单元不存在
+            409：Conflict：服务单元停止服务中 / 指定服务可能未注册钱包结算单元
+        """
+        try:
+            slizer = self.get_serializer(data=request.data)
+            data = self._update_validate_params(serializer=slizer)
+        except errors.Error as exc:
+            return self.exception_response(exc)
+
+        face_value = data['face_value']
+        expiration_time = data['expiration_time']
+        apply_desc = data['apply_desc']
+        service_type = data['service_type']
+        service_id = data['service_id']
+
+        user = request.user
+
+        try:
+            odc, service_id, service_name, service_name_en, pay_service_id = self._get_service_info(
+                service_type=service_type, service_id=service_id
+            )
+            with transaction.atomic():
+                apply = CouponApplyManager.get_perm_apply(
+                    _id=kwargs[self.lookup_field], user=user, select_for_update=True)
+                if apply.status not in [CouponApply.Status.WAIT.value, CouponApply.Status.REJECT.value]:
+                    raise errors.ConflictError(message=_('只允许修改“待审批”和“拒绝”状态的申请记录'))
+
+                if apply.owner_type == OwnerType.VO.value and service_type != CouponApply.ServiceType.SERVER.value:
+                    raise errors.ConflictError(message=_('指定的服务类型，不允许为vo组申请资源券'))
+
+                apply = CouponApplyManager.update_apply(
+                    apply=apply, service_type=service_type, odc=odc, service_id=service_id, service_name=service_name,
+                    service_name_en=service_name_en, pay_service_id=pay_service_id,
+                    face_value=face_value, expiration_time=expiration_time, apply_desc=apply_desc,
+                    user_id=user.id, username=user.username
+                )
+        except errors.Error as exc:
+            return self.exception_response(exc)
+
+        return Response(data=serializers.CouponApplySerializer(apply).data, status=200)
 
     def get_serializer_class(self):
         if self.action == 'list':
             return serializers.CouponApplySerializer
         elif self.action == 'create':
             return serializers.CouponApplyCreateSerializer
+        elif self.action == 'update':
+            return serializers.CouponApplyUpdateSerializer
 
         return Serializer

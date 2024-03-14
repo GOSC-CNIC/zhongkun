@@ -678,3 +678,304 @@ class CouponApplyTests(MyAPITestCase):
             "service_type": CouponApply.ServiceType.SCAN.value
         })
         self.assertErrorResponse(status_code=409, code='Conflict', response=r)
+
+    def test_update(self):
+        nt_utc = dj_timezone.now()
+        server_service1 = ServiceConfig(
+            name='server1', name_en='server1 en', status=ServiceConfig.Status.ENABLE.value,
+            pay_app_service_id='s2324536464', org_data_center=self.odc1
+        )
+        server_service1.save(force_insert=True)
+        server_service2 = ServiceConfig(
+            name='server2', name_en='server2 en', status=ServiceConfig.Status.ENABLE.value,
+            pay_app_service_id='s2222222', org_data_center=self.odc2
+        )
+        server_service2.save(force_insert=True)
+        apply1 = CouponApplyManager.create_apply(
+            service_type=CouponApply.ServiceType.SERVER.value, odc=server_service1.org_data_center,
+            service_id=server_service1.id, service_name=server_service1.name, service_name_en=server_service1.name_en,
+            pay_service_id=server_service1.pay_app_service_id, face_value=Decimal('1000.12'),
+            expiration_time=datetime(year=2024, month=3, day=16, tzinfo=utc), apply_desc='申请原因1',
+            user_id=self.user1.id, username=self.user1.username, vo_id='', vo_name='',
+            owner_type=OwnerType.USER.value
+        )
+        base_url = reverse('apply-api:coupon-detail', kwargs={'id': 'xx'})
+        r = self.client.put(base_url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+        self.client.force_login(self.user2)
+
+        # 过期时间
+        r = self.client.put(base_url, data={
+            "face_value": "1000.12",
+            "expiration_time": nt_utc.isoformat(),
+            "apply_desc": "申请说明",
+            "service_type": CouponApply.ServiceType.SERVER.value,
+            "service_id": server_service2.id
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
+
+        # not found
+        r = self.client.put(base_url, data={
+            "face_value": "1000.12",
+            "expiration_time": (nt_utc + timedelta(hours=2)).isoformat(),
+            "apply_desc": "申请说明",
+            "service_type": CouponApply.ServiceType.SERVER.value,
+            "service_id": server_service2.id
+        })
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=r)
+
+        # AccessDenied
+        base_url = reverse('apply-api:coupon-detail', kwargs={'id': apply1.id})
+        r = self.client.put(base_url, data={
+            "face_value": "2000.12",
+            "expiration_time": (nt_utc + timedelta(hours=2)).isoformat(),
+            "apply_desc": "申请说明",
+            "service_type": CouponApply.ServiceType.SERVER.value,
+            "service_id": server_service2.id
+        })
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        # to server service2
+        self.client.logout()
+        self.client.force_login(self.user1)
+
+        expiration_time = nt_utc + timedelta(hours=3)
+        r = self.client.put(base_url, data={
+            "face_value": "2000.12",
+            "expiration_time": expiration_time.isoformat(),
+            "apply_desc": "申请说明ss",
+            "service_type": CouponApply.ServiceType.SERVER.value,
+            "service_id": server_service2.id
+        })
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn([
+            'id', 'service_type', 'odc', 'service_id', 'service_name', 'service_name_en',
+            'face_value', 'expiration_time', 'apply_desc', 'creation_time', 'update_time',
+            'user_id', 'username', 'vo_id', 'vo_name', 'owner_type',
+            'status', 'approver', 'approved_amount', 'reject_reason', 'coupon_id'], r.data)
+
+        apply1.refresh_from_db()
+        self.assertEqual(apply1.service_type, CouponApply.ServiceType.SERVER.value)
+        self.assertEqual(apply1.odc_id, server_service2.org_data_center_id)
+        self.assertEqual(apply1.service_id, server_service2.id)
+        self.assertEqual(apply1.service_name, server_service2.name)
+        self.assertEqual(apply1.service_name_en, server_service2.name_en)
+        self.assertEqual(apply1.pay_service_id, 's2222222')
+        self.assertEqual(apply1.expiration_time, expiration_time)
+        self.assertEqual(apply1.face_value, Decimal('2000.12'))
+        self.assertEqual(apply1.apply_desc, '申请说明ss')
+        self.assertEqual(apply1.user_id, self.user1.id)
+        self.assertEqual(apply1.vo_id, '')
+        self.assertEqual(apply1.owner_type, OwnerType.USER.value)
+        self.assertEqual(apply1.status, CouponApply.Status.WAIT.value)
+        self.assertEqual(apply1.reject_reason, '')
+        self.assertEqual(apply1.approver, '')
+
+        # ----- to object service1  -----
+        obj_service1 = ObjectsService(
+            name='obj1', name_en='obj1 en', status=ObjectsService.Status.ENABLE.value,
+            pay_app_service_id='s666666', org_data_center=self.odc1
+        )
+        obj_service1.save(force_insert=True)
+
+        expiration_time = nt_utc + timedelta(hours=23)
+        # status test
+        apply1.status = CouponApply.Status.PENDING.value
+        apply1.save(update_fields=['status'])
+        r = self.client.put(base_url, data={
+            "face_value": "3000.33",
+            "expiration_time": expiration_time.isoformat(),
+            "apply_desc": "申请说明ss22",
+            "service_type": CouponApply.ServiceType.SERVER.value,
+            "service_id": server_service1.id
+        })
+        self.assertErrorResponse(status_code=409, code='Conflict', response=r)
+
+        apply1.status = CouponApply.Status.CANCEL.value
+        apply1.save(update_fields=['status'])
+        r = self.client.put(base_url, data={
+            "face_value": "3000.33",
+            "expiration_time": expiration_time.isoformat(),
+            "apply_desc": "申请说明ss22",
+            "service_type": CouponApply.ServiceType.SERVER.value,
+            "service_id": server_service1.id
+        })
+        self.assertErrorResponse(status_code=409, code='Conflict', response=r)
+
+        apply1.status = CouponApply.Status.PASS.value
+        apply1.save(update_fields=['status'])
+        r = self.client.put(base_url, data={
+            "face_value": "3000.33",
+            "expiration_time": expiration_time.isoformat(),
+            "apply_desc": "申请说明ss22",
+            "service_type": CouponApply.ServiceType.SERVER.value,
+            "service_id": server_service1.id
+        })
+        self.assertErrorResponse(status_code=409, code='Conflict', response=r)
+
+        apply1.status = CouponApply.Status.REJECT.value
+        apply1.save(update_fields=['status'])
+        r = self.client.put(base_url, data={
+            "face_value": "3234.56",
+            "expiration_time": expiration_time.isoformat(),
+            "apply_desc": "obj申请说明",
+            "service_type": CouponApply.ServiceType.STORAGE.value,
+            "service_id": obj_service1.id
+        })
+        self.assertEqual(r.status_code, 200)
+        apply1.refresh_from_db()
+        self.assertEqual(apply1.service_type, CouponApply.ServiceType.STORAGE.value)
+        self.assertEqual(apply1.odc_id, obj_service1.org_data_center_id)
+        self.assertEqual(apply1.service_id, obj_service1.id)
+        self.assertEqual(apply1.service_name, obj_service1.name)
+        self.assertEqual(apply1.service_name_en, obj_service1.name_en)
+        self.assertEqual(apply1.pay_service_id, 's666666')
+        self.assertEqual(apply1.expiration_time, expiration_time)
+        self.assertEqual(apply1.face_value, Decimal('3234.56'))
+        self.assertEqual(apply1.apply_desc, 'obj申请说明')
+        self.assertEqual(apply1.user_id, self.user1.id)
+        self.assertEqual(apply1.vo_id, '')
+        self.assertEqual(apply1.owner_type, OwnerType.USER.value)
+        self.assertEqual(apply1.status, CouponApply.Status.WAIT.value)
+        self.assertEqual(apply1.reject_reason, '')
+        self.assertEqual(apply1.approver, '')
+
+        # ----- vo ------
+        self.client.logout()
+        self.client.force_login(self.user2)
+        apply2 = CouponApplyManager.create_apply(
+            service_type=CouponApply.ServiceType.SERVER.value, odc=server_service1.org_data_center,
+            service_id=server_service1.id, service_name=server_service1.name, service_name_en=server_service1.name_en,
+            pay_service_id=server_service1.pay_app_service_id, face_value=Decimal('1000.12'),
+            expiration_time=datetime(year=2024, month=3, day=16, tzinfo=utc), apply_desc='申请原因1',
+            user_id=self.user2.id, username=self.user2.username, vo_id=self.vo.id, vo_name=self.vo.name,
+            owner_type=OwnerType.VO.value
+        )
+        base_url = reverse('apply-api:coupon-detail', kwargs={'id': apply2.id})
+        expiration_time = nt_utc + timedelta(hours=200)
+        r = self.client.put(base_url, data={
+            "face_value": "333.33",
+            "expiration_time": expiration_time.isoformat(),
+            "apply_desc": "申请说明ss22qwdqw",
+            "service_type": CouponApply.ServiceType.SERVER.value,
+            "service_id": server_service1.id
+        })
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        self.client.logout()
+        self.client.force_login(self.user1)
+        expiration_time = nt_utc + timedelta(hours=200)
+        r = self.client.put(base_url, data={
+            "face_value": "333.33",
+            "expiration_time": expiration_time.isoformat(),
+            "apply_desc": "申请说明ss22qwdqw",
+            "service_type": CouponApply.ServiceType.SERVER.value,
+            "service_id": server_service1.id
+        })
+        apply2.refresh_from_db()
+        self.assertEqual(apply2.service_type, CouponApply.ServiceType.SERVER.value)
+        self.assertEqual(apply2.odc_id, server_service1.org_data_center_id)
+        self.assertEqual(apply2.service_id, server_service1.id)
+        self.assertEqual(apply2.service_name, server_service1.name)
+        self.assertEqual(apply2.service_name_en, server_service1.name_en)
+        self.assertEqual(apply2.pay_service_id, server_service1.pay_app_service_id)
+        self.assertEqual(apply2.expiration_time, expiration_time)
+        self.assertEqual(apply2.face_value, Decimal('333.33'))
+        self.assertEqual(apply2.apply_desc, '申请说明ss22qwdqw')
+        self.assertEqual(apply2.user_id, self.user1.id)
+        self.assertEqual(apply2.username, self.user1.username)
+        self.assertEqual(apply2.vo_id, self.vo.id)
+        self.assertEqual(apply2.vo_name, self.vo.name)
+        self.assertEqual(apply2.owner_type, OwnerType.VO.value)
+        self.assertEqual(apply2.status, CouponApply.Status.WAIT.value)
+        self.assertEqual(apply2.reject_reason, '')
+        self.assertEqual(apply2.approver, '')
+
+        # can not update vo object service
+        r = self.client.put(base_url, data={
+            "face_value": "333.33",
+            "expiration_time": expiration_time.isoformat(),
+            "apply_desc": "申请说明ss22qwdqw",
+            "service_type": CouponApply.ServiceType.STORAGE.value,
+            "service_id": obj_service1.id
+        })
+        self.assertErrorResponse(status_code=409, code='Conflict', response=r)
+
+        # ---- 站点监控 ----
+        site_service = MonitorWebsiteVersion.get_instance()
+        site_service.pay_app_service_id = '99767343'
+        site_service.save(update_fields=['pay_app_service_id'])
+
+        expiration_time = nt_utc + timedelta(hours=66)
+        base_url = reverse('apply-api:coupon-detail', kwargs={'id': apply1.id})
+        r = self.client.put(base_url, data={
+            "face_value": "4333.33",
+            "expiration_time": expiration_time.isoformat(),
+            "apply_desc": "site 申请说明ss22qwdqw",
+            "service_type": CouponApply.ServiceType.MONITOR_SITE.value
+        })
+        self.assertEqual(r.status_code, 200)
+        apply1.refresh_from_db()
+        self.assertEqual(apply1.service_type, CouponApply.ServiceType.MONITOR_SITE.value)
+        self.assertIsNone(apply1.odc_id)
+        self.assertEqual(apply1.service_id, str(site_service.id))
+        self.assertEqual(apply1.pay_service_id, '99767343')
+        self.assertEqual(apply1.expiration_time, expiration_time)
+        self.assertEqual(apply1.face_value, Decimal('4333.33'))
+        self.assertEqual(apply1.apply_desc, 'site 申请说明ss22qwdqw')
+        self.assertEqual(apply1.user_id, self.user1.id)
+        self.assertEqual(apply1.username, self.user1.username)
+        self.assertEqual(apply1.vo_id, '')
+        self.assertEqual(apply1.owner_type, OwnerType.USER.value)
+        self.assertEqual(apply1.status, CouponApply.Status.WAIT.value)
+        self.assertEqual(apply1.reject_reason, '')
+        self.assertEqual(apply1.approver, '')
+
+        # ---- SCAN ----
+        expiration_time = nt_utc + timedelta(hours=668)
+        base_url = reverse('apply-api:coupon-detail', kwargs={'id': apply1.id})
+        r = self.client.put(base_url, data={
+            "face_value": "666.33",
+            "expiration_time": expiration_time.isoformat(),
+            "apply_desc": "scan 申请说明ss22qwdqw",
+            "service_type": CouponApply.ServiceType.SCAN.value
+        })
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=r)
+
+        scan_service = VtScanService(
+            name='scan', name_en='scan en', status=VtScanService.Status.DISABLE.value,
+            pay_app_service_id='88888676'
+        )
+        scan_service.save(force_insert=True)
+        r = self.client.put(base_url, data={
+            "face_value": "666.33",
+            "expiration_time": expiration_time.isoformat(),
+            "apply_desc": "scan 申请说明ss22qwdqw",
+            "service_type": CouponApply.ServiceType.SCAN.value
+        })
+        self.assertErrorResponse(status_code=409, code='Conflict', response=r)
+
+        scan_service.status = VtScanService.Status.ENABLE.value
+        scan_service.save(update_fields=['status'])
+        r = self.client.put(base_url, data={
+            "face_value": "666.33",
+            "expiration_time": expiration_time.isoformat(),
+            "apply_desc": "scan 申请说明ss22qwdqw",
+            "service_type": CouponApply.ServiceType.SCAN.value
+        })
+        self.assertEqual(r.status_code, 200)
+        apply1.refresh_from_db()
+        self.assertEqual(apply1.service_type, CouponApply.ServiceType.SCAN.value)
+        self.assertIsNone(apply1.odc_id)
+        self.assertEqual(apply1.service_id, scan_service.id)
+        self.assertEqual(apply1.pay_service_id, '88888676')
+        self.assertEqual(apply1.expiration_time, expiration_time)
+        self.assertEqual(apply1.face_value, Decimal('666.33'))
+        self.assertEqual(apply1.apply_desc, 'scan 申请说明ss22qwdqw')
+        self.assertEqual(apply1.user_id, self.user1.id)
+        self.assertEqual(apply1.username, self.user1.username)
+        self.assertEqual(apply1.vo_id, '')
+        self.assertEqual(apply1.owner_type, OwnerType.USER.value)
+        self.assertEqual(apply1.status, CouponApply.Status.WAIT.value)
+        self.assertEqual(apply1.reject_reason, '')
+        self.assertEqual(apply1.approver, '')

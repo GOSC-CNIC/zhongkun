@@ -38,6 +38,50 @@ class CouponApplyManager:
         apply.save(force_insert=True)
         return apply
 
+    @staticmethod
+    def update_apply(
+            apply, service_type: str, odc: Union[OrgDataCenter, None], service_id: str, service_name: str,
+            service_name_en: str, pay_service_id: str, face_value: Decimal, expiration_time: datetime,
+            apply_desc: str, user_id: str, username: str
+    ):
+        apply.service_type = service_type
+        apply.odc = odc
+        apply.service_id = service_id
+        apply.service_name = service_name
+        apply.service_name_en = service_name_en
+        apply.pay_service_id = pay_service_id
+        apply.face_value = face_value
+        apply.expiration_time = expiration_time
+        apply.apply_desc = apply_desc
+        apply.update_time = dj_timezone.now()
+        if user_id:
+            apply.user_id = user_id
+        if username:
+            apply.username = username
+        apply.status = CouponApply.Status.WAIT.value
+        apply.reject_reason = ''
+        apply.approver = ''
+        apply.save(force_update=True)
+        return apply
+
+    @staticmethod
+    def get_perm_apply(_id: str, user, select_for_update: bool = False) -> CouponApply:
+        if select_for_update:
+            apply = CouponApply.objects.select_related('odc').select_for_update().filter(id=_id).first()
+        else:
+            apply = CouponApply.objects.select_related('odc').filter(id=_id).first()
+
+        if apply is None or apply.deleted:
+            raise errors.TargetNotExist(message=_('申请记录不存在'))
+
+        if apply.owner_type == OwnerType.VO.value:
+            VoManager.has_vo_permission(vo_id=apply.vo_id, user=user, read_only=False)
+        else:
+            if apply.user_id != user.id:
+                raise errors.AccessDenied(message=_('你没有申请记录访问权限'))
+
+        return apply
+
     def filter_user_apply_qs(
             self, user_id,
             service_type: str = None,
