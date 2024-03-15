@@ -241,10 +241,26 @@ class CouponApplyManager:
                 _id=apply_id, admin_user=admin_user, select_for_update=True
             )
             if apply.status != CouponApply.Status.WAIT.value:
-                raise errors.ConflictError(message=_('只能挂起外审批状态申请'))
+                raise errors.ConflictError(message=_('只能挂起待审批状态申请'))
 
             apply.status = CouponApply.Status.PENDING.value
             apply.update_time = dj_timezone.now()
             apply.approver = admin_user.username
             apply.save(update_fields=['status', 'update_time', 'approver'])
+            return apply
+
+    @staticmethod
+    def reject_apply(apply_id: str, admin_user, reject_reason: str):
+        with transaction.atomic():
+            apply = CouponApplyManager.get_admin_perm_apply(
+                _id=apply_id, admin_user=admin_user, select_for_update=True
+            )
+            if apply.status != CouponApply.Status.PENDING.value:
+                raise errors.ConflictError(message=_('只能拒绝挂起状态申请'))
+
+            apply.status = CouponApply.Status.REJECT.value
+            apply.update_time = dj_timezone.now()
+            apply.approver = admin_user.username
+            apply.reject_reason = reject_reason
+            apply.save(update_fields=['status', 'update_time', 'approver', 'reject_reason'])
             return apply

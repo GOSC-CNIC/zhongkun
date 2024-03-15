@@ -1163,3 +1163,78 @@ class CouponApplyTests(MyAPITestCase):
         apply2.refresh_from_db()
         self.assertEqual(apply2.status, CouponApply.Status.PENDING.value)
         self.assertEqual(apply2.approver, self.user2.username)
+
+    def test_reject(self):
+        apply1 = CouponApplyManager.create_apply(
+            service_type=CouponApply.ServiceType.SERVER.value, odc=self.odc1,
+            service_id='service_id1', service_name='service_name1', service_name_en='service_name_en1',
+            pay_service_id='pay_service_id1', face_value=Decimal('688.12'),
+            expiration_time=datetime(year=2024, month=2, day=15, tzinfo=utc), apply_desc='申请原因rhr',
+            user_id=self.user2.id, username=self.user2.username, vo_id=self.vo.id, vo_name=self.vo.name,
+            owner_type=OwnerType.VO.value, creation_time=datetime(year=2023, month=5, day=8, tzinfo=utc),
+            status=CouponApply.Status.PENDING.value, reject_reason='不允许', approver='approver1'
+        )
+
+        apply2 = CouponApplyManager.create_apply(
+            service_type=CouponApply.ServiceType.SCAN.value, odc=self.odc1,
+            service_id='service_id1', service_name='service_name1', service_name_en='service_name_en1',
+            pay_service_id='pay_service_id1', face_value=Decimal('522.12'),
+            expiration_time=datetime(year=2024, month=3, day=16, tzinfo=utc), apply_desc='申请原因twada',
+            user_id=self.user1.id, username=self.user1.username, vo_id='', vo_name='',
+            owner_type=OwnerType.USER.value, creation_time=datetime(year=2022, month=12, day=16, tzinfo=utc)
+        )
+
+        base_url = reverse('apply-api:coupon-reject', kwargs={'id': 'xx'})
+        r = self.client.post(base_url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+        self.client.force_login(self.user2)
+
+        r = self.client.post(base_url)
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
+
+        query = parse.urlencode(query={'reason': 'reject 测试'})
+        r = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=r)
+
+        base_url = reverse('apply-api:coupon-reject', kwargs={'id': apply1.id})
+        query = parse.urlencode(query={'reason': 'reject 测试'})
+        r = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        # ok
+        self.odc1.users.add(self.user2)
+        base_url = reverse('apply-api:coupon-reject', kwargs={'id': apply1.id})
+        query = parse.urlencode(query={'reason': 'reject 测试'})
+        r = self.client.post(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        apply1.refresh_from_db()
+        self.assertEqual(apply1.status, CouponApply.Status.REJECT.value)
+        self.assertEqual(apply1.approver, self.user2.username)
+        self.assertEqual(apply1.reject_reason, 'reject 测试')
+
+        r = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=409, code='Conflict', response=r)
+
+        # fed admin
+        base_url = reverse('apply-api:coupon-reject', kwargs={'id': apply2.id})
+        query = parse.urlencode(query={'reason': 'reject 测试66'})
+        r = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        self.user2.set_federal_admin()
+
+        # 只能审批挂起的
+        base_url = reverse('apply-api:coupon-reject', kwargs={'id': apply2.id})
+        query = parse.urlencode(query={'reason': 'reject 测试66'})
+        r = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=409, code='Conflict', response=r)
+
+        apply2.status = CouponApply.Status.PENDING.value
+        apply2.save(update_fields=['status'])
+
+        r = self.client.post(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        apply2.refresh_from_db()
+        self.assertEqual(apply2.status, CouponApply.Status.REJECT.value)
+        self.assertEqual(apply2.approver, self.user2.username)
+        self.assertEqual(apply2.reject_reason, 'reject 测试66')

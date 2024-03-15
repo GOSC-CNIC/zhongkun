@@ -546,6 +546,42 @@ class CouponApplyViewSet(NormalGenericViewSet):
 
         return Response(data=None, status=200)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('审批拒绝资源券申请'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='reason',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description=gettext_lazy('拒绝原因')
+            )
+        ],
+        responses={
+            204: ''
+        }
+    )
+    @action(methods=['post'], detail=True, url_path='reject', url_name='reject')
+    def reject_apply(self, request, *args, **kwargs):
+        """
+        审批拒绝资源券申请，需要数据中心管理员和联邦管理员权限
+
+            * 只能审批挂起状态的申请
+            http code 200: ok
+        """
+        reason = request.query_params.get('reason', '')
+        if not reason:
+            return self.exception_response(
+                errors.InvalidArgument(message=_('请提交决绝的原因')))
+
+        try:
+            CouponApplyManager.reject_apply(
+                apply_id=kwargs[self.lookup_field], admin_user=request.user, reject_reason=reason)
+        except errors.Error as exc:
+            return self.exception_response(exc)
+
+        return Response(data=None, status=200)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return serializers.CouponApplySerializer
