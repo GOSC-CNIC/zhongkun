@@ -497,19 +497,33 @@ class CouponApplyViewSet(NormalGenericViewSet):
 
             http code 204: ok
         """
-        user = request.user
         try:
-            apply = CouponApplyManager.get_perm_apply(
-                _id=kwargs[self.lookup_field], user=user, select_for_update=False
-            )
-            apply.deleted = True
-            apply.update_time = dj_timezone.now()
-            apply.delete_user = user.username
-            apply.save(update_fields=['deleted', 'update_time', 'delete_user'])
+            CouponApplyManager.delete_apply(apply_id=kwargs[self.lookup_field], user=request.user)
         except errors.Error as exc:
             return self.exception_response(exc)
 
         return Response(data=None, status=204)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('取消资源券申请'),
+        responses={
+            204: ''
+        }
+    )
+    @action(methods=['post'], detail=True, url_path='cancel', url_name='cancel')
+    def cancel_apply(self, request, *args, **kwargs):
+        """
+        取消资源券申请
+
+            * 已通过状态申请无法取消
+            http code 200: ok
+        """
+        try:
+            CouponApplyManager.cancel_apply(apply_id=kwargs[self.lookup_field], user=request.user)
+        except errors.Error as exc:
+            return self.exception_response(exc)
+
+        return Response(data=None, status=200)
 
     def get_serializer_class(self):
         if self.action == 'list':

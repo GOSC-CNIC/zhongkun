@@ -4,6 +4,7 @@ from decimal import Decimal
 
 from django.utils.translation import gettext as _
 from django.utils import timezone as dj_timezone
+from django.db import transaction
 
 from core import errors
 from utils.model import OwnerType
@@ -21,7 +22,7 @@ class CouponApplyManager:
             apply_desc: str, user_id: str, username: str, vo_id: str, vo_name: str, owner_type: str,
             creation_time: datetime = None, status: str = CouponApply.Status.WAIT.value,
             approver: str = '', reject_reason: str = '', approved_amount: Decimal = Decimal('0.00'),
-            coupon_id: str = '', deleted: bool = False
+            coupon_id: str = '', deleted: bool = False, delete_user: str = ''
     ):
         if not creation_time:
             creation_time = dj_timezone.now()
@@ -33,7 +34,7 @@ class CouponApplyManager:
             user_id=user_id, username=username, vo_id=vo_id, vo_name=vo_name, owner_type=owner_type,
             creation_time=creation_time, update_time=creation_time,
             status=status, approver=approver, reject_reason=reject_reason, approved_amount=approved_amount,
-            coupon_id=coupon_id, deleted=deleted
+            coupon_id=coupon_id, deleted=deleted, delete_user=delete_user
         )
         apply.save(force_insert=True)
         return apply
@@ -183,3 +184,31 @@ class CouponApplyManager:
 
         return CouponApply.objects.filter(**lookups).order_by('-creation_time')
 
+    @staticmethod
+    def delete_apply(apply_id: str, user):
+        apply = CouponApplyManager.get_perm_apply(
+            _id=apply_id, user=user, select_for_update=False
+        )
+        apply.deleted = True
+        apply.update_time = dj_timezone.now()
+        apply.delete_user = user.username
+        apply.save(update_fields=['deleted', 'update_time', 'delete_user'])
+        return apply
+
+    @staticmethod
+    def cancel_apply(apply_id: str, user):
+        with transaction.atomic():
+            apply = CouponApplyManager.get_perm_apply(
+                _id=apply_id, user=user, select_for_update=True
+            )
+            if apply.status == CouponApply.Status.PASS.value:
+                raise errors.ConflictError(message=_('申请已通过'))
+
+            if apply.status == CouponApply.Status.CANCEL.value:
+                return apply
+
+            apply.status = CouponApply.Status.CANCEL.value
+            apply.update_time = dj_timezone.now()
+            apply.delete_user = user.username
+            apply.save(update_fields=['status', 'update_time', 'delete_user'])
+            return apply
