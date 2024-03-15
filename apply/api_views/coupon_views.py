@@ -525,6 +525,27 @@ class CouponApplyViewSet(NormalGenericViewSet):
 
         return Response(data=None, status=200)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('审批挂起资源券申请'),
+        responses={
+            204: ''
+        }
+    )
+    @action(methods=['post'], detail=True, url_path='pending', url_name='pending')
+    def pending_apply(self, request, *args, **kwargs):
+        """
+        审批挂起资源券申请，需要数据中心管理员和联邦管理员权限
+
+            * 只能挂起外审批状态申请
+            http code 200: ok
+        """
+        try:
+            CouponApplyManager.pending_apply(apply_id=kwargs[self.lookup_field], admin_user=request.user)
+        except errors.Error as exc:
+            return self.exception_response(exc)
+
+        return Response(data=None, status=200)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return serializers.CouponApplySerializer

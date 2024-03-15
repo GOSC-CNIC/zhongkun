@@ -83,6 +83,27 @@ class CouponApplyManager:
 
         return apply
 
+    @staticmethod
+    def get_admin_perm_apply(_id: str, admin_user, select_for_update: bool = False) -> CouponApply:
+        if select_for_update:
+            apply = CouponApply.objects.select_related('odc').select_for_update().filter(id=_id).first()
+        else:
+            apply = CouponApply.objects.select_related('odc').filter(id=_id).first()
+
+        if apply is None or apply.deleted:
+            raise errors.TargetNotExist(message=_('申请记录不存在'))
+
+        if admin_user.is_federal_admin():
+            return apply
+
+        if apply.service_type in [CouponApply.ServiceType.MONITOR_SITE.value, CouponApply.ServiceType.SCAN.value]:
+            raise errors.AccessDenied(message=_('你没有申请记录访问权限，申请服务类型需要联邦管理员权限'))
+
+        if not OrgDataCenterManager.is_admin_of_odc(odc_id=apply.odc_id, user_id=admin_user.id):
+            raise errors.AccessDenied(message=_('你没有申请记录访问权限，需要数据中心管理员权限'))
+
+        return apply
+
     def filter_user_apply_qs(
             self, user_id,
             service_type: str = None,
@@ -211,4 +232,19 @@ class CouponApplyManager:
             apply.update_time = dj_timezone.now()
             apply.delete_user = user.username
             apply.save(update_fields=['status', 'update_time', 'delete_user'])
+            return apply
+
+    @staticmethod
+    def pending_apply(apply_id: str, admin_user):
+        with transaction.atomic():
+            apply = CouponApplyManager.get_admin_perm_apply(
+                _id=apply_id, admin_user=admin_user, select_for_update=True
+            )
+            if apply.status != CouponApply.Status.WAIT.value:
+                raise errors.ConflictError(message=_('只能挂起外审批状态申请'))
+
+            apply.status = CouponApply.Status.PENDING.value
+            apply.update_time = dj_timezone.now()
+            apply.approver = admin_user.username
+            apply.save(update_fields=['status', 'update_time', 'approver'])
             return apply
