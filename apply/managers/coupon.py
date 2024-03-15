@@ -8,8 +8,10 @@ from django.db import transaction
 
 from core import errors
 from utils.model import OwnerType
+from users.managers import get_user_by_id
 from service.models import OrgDataCenter
 from service.odc_manager import OrgDataCenterManager
+from bill.managers.cash_coupon import CashCouponManager
 from vo.managers import VoManager
 from apply.models import CouponApply
 
@@ -256,11 +258,50 @@ class CouponApplyManager:
                 _id=apply_id, admin_user=admin_user, select_for_update=True
             )
             if apply.status != CouponApply.Status.PENDING.value:
-                raise errors.ConflictError(message=_('只能拒绝挂起状态申请'))
+                raise errors.ConflictError(message=_('只能审批挂起状态申请'))
 
             apply.status = CouponApply.Status.REJECT.value
             apply.update_time = dj_timezone.now()
             apply.approver = admin_user.username
             apply.reject_reason = reject_reason
             apply.save(update_fields=['status', 'update_time', 'approver', 'reject_reason'])
+            return apply
+
+    @staticmethod
+    def pass_apply(apply_id: str, admin_user, approved_amount: Union[Decimal, None]):
+        with transaction.atomic():
+            apply = CouponApplyManager.get_admin_perm_apply(
+                _id=apply_id, admin_user=admin_user, select_for_update=True
+            )
+            if approved_amount:
+                if approved_amount > apply.face_value:
+                    raise errors.ConflictError(message=_('指定的金额不能大于用户申请金额'))
+            else:
+                approved_amount = apply.face_value
+
+            if apply.status != CouponApply.Status.PENDING.value:
+                raise errors.ConflictError(message=_('只能审批挂起状态申请'))
+
+            # 创建券
+            issuer = admin_user.username
+            user = get_user_by_id(apply.user_id)
+            if apply.owner_type == OwnerType.USER.value:
+                vo = None
+            else:
+                vo = VoManager.get_vo_by_id(apply.vo_id)
+
+            coupon = CashCouponManager().create_one_coupon_to_user_or_vo(
+                user=user, vo=vo, app_service_id=apply.pay_service_id,
+                face_value=approved_amount,
+                effective_time=dj_timezone.now(),
+                expiration_time=apply.expiration_time,
+                issuer=issuer, remark='来自券申请'
+            )
+
+            apply.status = CouponApply.Status.PASS.value
+            apply.update_time = dj_timezone.now()
+            apply.approver = admin_user.username
+            apply.approved_amount = approved_amount
+            apply.coupon_id = coupon.id
+            apply.save(update_fields=['status', 'update_time', 'approver', 'approved_amount', 'coupon_id'])
             return apply

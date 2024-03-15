@@ -28,7 +28,7 @@ class CouponApply(UuidModel):
     service_name = models.CharField(verbose_name=_('服务单元名称'), max_length=255)
     service_name_en = models.CharField(verbose_name=_('服务单元英文名称'), max_length=255)
     pay_service_id = models.CharField(verbose_name=_('钱包结算单元id'), max_length=36)
-    face_value = models.DecimalField(verbose_name=_('面额'), max_digits=10, decimal_places=2)
+    face_value = models.DecimalField(verbose_name=_('申请面额'), max_digits=10, decimal_places=2)
     expiration_time = models.DateTimeField(verbose_name=_('过期时间'))
 
     apply_desc = models.CharField(verbose_name=_('申请描述'), max_length=255)

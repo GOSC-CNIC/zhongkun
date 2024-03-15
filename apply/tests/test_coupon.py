@@ -9,6 +9,7 @@ from utils.model import OwnerType
 from utils.time import utc
 from utils.test import get_or_create_org_data_center, get_or_create_user, MyAPITestCase
 from vo.models import VirtualOrganization
+from bill.models import CashCoupon, PayAppService, PayApp
 from servers.models import ServiceConfig
 from storage.models import ObjectsService
 from monitor.models import MonitorWebsiteVersion
@@ -1238,3 +1239,138 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(apply2.status, CouponApply.Status.REJECT.value)
         self.assertEqual(apply2.approver, self.user2.username)
         self.assertEqual(apply2.reject_reason, 'reject 测试66')
+
+    def test_pass(self):
+        # 余额支付有关配置
+        app = PayApp(name='app')
+        app.save()
+        app = app
+        app_service1 = PayAppService(
+            name='service1', app=app, orgnazition=self.odc1.organization, service_id='',
+            category=PayAppService.Category.VMS_SERVER.value
+        )
+        app_service1.save(force_insert=True)
+        server_service1 = ServiceConfig(
+            name='server1', name_en='server1 en', status=ServiceConfig.Status.ENABLE.value,
+            pay_app_service_id=app_service1.id, org_data_center=self.odc1
+        )
+        server_service1.save(force_insert=True)
+
+        expiration_time = dj_timezone.now() + timedelta(days=100)
+        apply1 = CouponApplyManager.create_apply(
+            service_type=CouponApply.ServiceType.SERVER.value, odc=self.odc1,
+            service_id=server_service1.id, service_name=server_service1.name, service_name_en=server_service1.name_en,
+            pay_service_id=server_service1.pay_app_service_id, face_value=Decimal('688.12'),
+            expiration_time=expiration_time, apply_desc='申请原因rhr',
+            user_id=self.user2.id, username=self.user2.username, vo_id=self.vo.id, vo_name=self.vo.name,
+            owner_type=OwnerType.VO.value, creation_time=datetime(year=2023, month=5, day=8, tzinfo=utc),
+            status=CouponApply.Status.PENDING.value, reject_reason='', approver=''
+        )
+
+        base_url = reverse('apply-api:coupon-pass', kwargs={'id': 'xx'})
+        r = self.client.post(base_url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+        self.client.force_login(self.user1)
+
+        r = self.client.post(base_url)
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=r)
+
+        base_url = reverse('apply-api:coupon-pass', kwargs={'id': apply1.id})
+        r = self.client.post(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        # vo
+        self.odc1.users.add(self.user1)
+        base_url = reverse('apply-api:coupon-pass', kwargs={'id': apply1.id})
+        r = self.client.post(base_url)
+        self.assertEqual(r.status_code, 200)
+        apply1.refresh_from_db()
+        self.assertEqual(apply1.status, CouponApply.Status.PASS.value)
+        self.assertEqual(apply1.approver, self.user1.username)
+        self.assertEqual(apply1.approved_amount, Decimal('688.12'))
+        self.assertEqual(CashCoupon.objects.count(), 1)
+        coupon1: CashCoupon = CashCoupon.objects.first()
+        self.assertEqual(apply1.coupon_id, coupon1.id)
+        self.assertEqual(coupon1.app_service_id, app_service1.id)
+        self.assertEqual(coupon1.face_value, Decimal('688.12'))
+        self.assertEqual(coupon1.balance, Decimal('688.12'))
+        self.assertEqual(coupon1.status, CashCoupon.Status.AVAILABLE.value)
+        self.assertEqual(coupon1.expiration_time, expiration_time)
+        self.assertEqual(coupon1.owner_type, OwnerType.VO.value)
+        self.assertEqual(coupon1.user_id, apply1.user_id)
+        self.assertEqual(coupon1.vo_id, apply1.vo_id)
+        self.assertEqual(coupon1.issuer, self.user1.username)
+
+        # scan
+        app_service2 = PayAppService(
+            name='scan1', app=app, orgnazition=self.odc1.organization, service_id='',
+            category=PayAppService.Category.OTHER.value
+        )
+        app_service2.save(force_insert=True)
+        scan_service = VtScanService(
+            name='scan', name_en='scan en', status=VtScanService.Status.DISABLE.value,
+            pay_app_service_id=app_service2.id
+        )
+        scan_service.save(force_insert=True)
+
+        expiration_time = datetime(year=2024, month=3, day=16, tzinfo=utc)
+        apply2 = CouponApplyManager.create_apply(
+            service_type=CouponApply.ServiceType.SCAN.value, odc=self.odc1,
+            service_id=scan_service.id, service_name=scan_service.name, service_name_en=scan_service.name_en,
+            pay_service_id=scan_service.pay_app_service_id, face_value=Decimal('522.12'),
+            expiration_time=expiration_time, apply_desc='申请原因twada',
+            user_id=self.user1.id, username=self.user1.username, vo_id='', vo_name='',
+            owner_type=OwnerType.USER.value
+        )
+
+        base_url = reverse('apply-api:coupon-pass', kwargs={'id': apply2.id})
+        query = parse.urlencode(query={'approved_amount': ''})
+        r = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
+
+        query = parse.urlencode(query={'approved_amount': 'a'})
+        r = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
+
+        query = parse.urlencode(query={'approved_amount': '-0.01'})
+        r = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
+
+        query = parse.urlencode(query={'approved_amount': '1000.12'})
+        r = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        # fed admin
+        self.user1.set_federal_admin()
+
+        # 只能审批挂起的
+        query = parse.urlencode(query={'approved_amount': '1000.12'})
+        r = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=409, code='Conflict', response=r)
+
+        query = parse.urlencode(query={'approved_amount': '66.12'})
+        r = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=409, code='Conflict', response=r)
+
+        apply2.status = CouponApply.Status.PENDING.value
+        apply2.save(update_fields=['status'])
+
+        query = parse.urlencode(query={'approved_amount': '66.12'})
+        r = self.client.post(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        apply2.refresh_from_db()
+        self.assertEqual(apply2.status, CouponApply.Status.PASS.value)
+        self.assertEqual(apply2.approver, self.user1.username)
+        self.assertEqual(apply2.approved_amount, Decimal('66.12'))
+        self.assertEqual(CashCoupon.objects.count(), 2)
+        coupon2: CashCoupon = CashCoupon.objects.get(id=apply2.coupon_id)
+        self.assertEqual(apply2.coupon_id, coupon2.id)
+        self.assertEqual(coupon2.app_service_id, app_service2.id)
+        self.assertEqual(coupon2.face_value, Decimal('66.12'))
+        self.assertEqual(coupon2.balance, Decimal('66.12'))
+        self.assertEqual(coupon2.status, CashCoupon.Status.AVAILABLE.value)
+        self.assertEqual(coupon2.expiration_time, expiration_time)
+        self.assertEqual(coupon2.owner_type, OwnerType.USER.value)
+        self.assertEqual(coupon2.user_id, apply2.user_id)
+        self.assertIsNone(coupon2.vo_id)
+        self.assertEqual(coupon2.issuer, self.user1.username)

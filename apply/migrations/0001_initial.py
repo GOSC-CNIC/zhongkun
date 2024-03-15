@@ -22,7 +22,7 @@ class Migration(migrations.Migration):
                 ('service_name', models.CharField(max_length=255, verbose_name='服务单元名称')),
                 ('service_name_en', models.CharField(max_length=255, verbose_name='服务单元英文名称')),
                 ('pay_service_id', models.CharField(max_length=36, verbose_name='钱包结算单元id')),
-                ('face_value', models.DecimalField(decimal_places=2, max_digits=10, verbose_name='面额')),
+                ('face_value', models.DecimalField(decimal_places=2, max_digits=10, verbose_name='申请面额')),
                 ('expiration_time', models.DateTimeField(verbose_name='过期时间')),
                 ('apply_desc', models.CharField(max_length=255, verbose_name='申请描述')),
                 ('creation_time', models.DateTimeField(verbose_name='创建时间')),

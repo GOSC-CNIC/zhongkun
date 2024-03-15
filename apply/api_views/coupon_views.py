@@ -582,6 +582,47 @@ class CouponApplyViewSet(NormalGenericViewSet):
 
         return Response(data=None, status=200)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('审批通过资源券申请'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='approved_amount',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('如果用户申请金额太大，通过此参数指定审批通过的金额，不能大于用户申请金额，格式为1.23')
+            )
+        ],
+        responses={
+            204: ''
+        }
+    )
+    @action(methods=['post'], detail=True, url_path='pass', url_name='pass')
+    def pass_apply(self, request, *args, **kwargs):
+        """
+        审批通过资源券申请，需要数据中心管理员和联邦管理员权限
+
+            * 只能审批挂起状态的申请，通过
+            http code 200: ok
+        """
+        approved_amount = request.query_params.get('approved_amount', None)
+        if approved_amount is not None:
+            try:
+                approved_amount = Decimal(approved_amount)
+            except Exception as exc:
+                return self.exception_response(errors.InvalidArgument(message=_('金额格式无效')))
+
+            if approved_amount <= Decimal('0'):
+                return self.exception_response(errors.InvalidArgument(message=_('金额不能小于0')))
+
+        try:
+            CouponApplyManager.pass_apply(
+                apply_id=kwargs[self.lookup_field], admin_user=request.user, approved_amount=approved_amount)
+        except errors.Error as exc:
+            return self.exception_response(exc)
+
+        return Response(data=None, status=200)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return serializers.CouponApplySerializer
