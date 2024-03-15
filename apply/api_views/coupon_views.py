@@ -485,6 +485,32 @@ class CouponApplyViewSet(NormalGenericViewSet):
 
         return Response(data=serializers.CouponApplySerializer(apply).data, status=200)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('删除资源券申请记录'),
+        responses={
+            204: ''
+        }
+    )
+    def destroy(self, request, *args, **kwargs):
+        """
+        删除资源券申请记录
+
+            http code 204: ok
+        """
+        user = request.user
+        try:
+            apply = CouponApplyManager.get_perm_apply(
+                _id=kwargs[self.lookup_field], user=user, select_for_update=False
+            )
+            apply.deleted = True
+            apply.update_time = dj_timezone.now()
+            apply.delete_user = user.username
+            apply.save(update_fields=['deleted', 'update_time', 'delete_user'])
+        except errors.Error as exc:
+            return self.exception_response(exc)
+
+        return Response(data=None, status=204)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return serializers.CouponApplySerializer

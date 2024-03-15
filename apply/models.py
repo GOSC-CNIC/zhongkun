@@ -36,18 +36,19 @@ class CouponApply(UuidModel):
     update_time = models.DateTimeField(verbose_name=_('更新时间'))
     user_id = models.CharField(verbose_name=_('申请人id'), max_length=36)
     username = models.CharField(verbose_name=_('申请人'), max_length=128)
-    vo_id = models.CharField(verbose_name=_('项目组id'), max_length=36)
-    vo_name = models.CharField(verbose_name=_('项目组名称'), max_length=128)
+    vo_id = models.CharField(verbose_name=_('项目组id'), max_length=36, blank=True, default='')
+    vo_name = models.CharField(verbose_name=_('项目组名称'), max_length=128, blank=True, default='')
     owner_type = models.CharField(verbose_name=_('所属类型'), max_length=16, choices=OwnerType.choices)
 
     # 审批信息
     status = models.CharField(verbose_name=_('状态'), max_length=16, choices=Status.choices, default=Status.WAIT.value)
-    approver = models.CharField(verbose_name=_('审批人'), max_length=128)
-    reject_reason = models.CharField(verbose_name=_('拒绝原因'), max_length=255, default='')
+    approver = models.CharField(verbose_name=_('审批人'), max_length=128, blank=True, default='')
+    reject_reason = models.CharField(verbose_name=_('拒绝原因'), max_length=255, blank=True, default='')
     approved_amount = models.DecimalField(verbose_name=_('审批通过金额'), max_digits=10, decimal_places=2)
     coupon_id = models.CharField(verbose_name=_('资源券id'), max_length=36, blank=True, default='')
 
     deleted = models.BooleanField(verbose_name=_('删除'), default=False)
+    delete_user = models.CharField(verbose_name=_('删除人'), max_length=128, blank=True, default='')
 
     class Meta:
         db_table = 'apply_coupon'

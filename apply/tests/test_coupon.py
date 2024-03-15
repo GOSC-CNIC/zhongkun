@@ -979,3 +979,53 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(apply1.status, CouponApply.Status.WAIT.value)
         self.assertEqual(apply1.reject_reason, '')
         self.assertEqual(apply1.approver, '')
+
+    def test_delete(self):
+        apply1 = CouponApplyManager.create_apply(
+            service_type=CouponApply.ServiceType.STORAGE.value, odc=self.odc1,
+            service_id='service_id1', service_name='service_name1', service_name_en='service_name_en1',
+            pay_service_id='pay_service_id1', face_value=Decimal('2000.12'),
+            expiration_time=datetime(year=2024, month=3, day=16, tzinfo=utc), apply_desc='申请原因2',
+            user_id=self.user1.id, username=self.user1.username, vo_id='', vo_name='',
+            owner_type=OwnerType.USER.value, creation_time=datetime(year=2022, month=12, day=16, tzinfo=utc),
+            status=CouponApply.Status.REJECT.value, reject_reason='不允许', approver='approver1'
+        )
+        apply2 = CouponApplyManager.create_apply(
+            service_type=CouponApply.ServiceType.SERVER.value, odc=self.odc1,
+            service_id='service_id1', service_name='service_name1', service_name_en='service_name_en1',
+            pay_service_id='pay_service_id1', face_value=Decimal('3000.12'),
+            expiration_time=datetime(year=2024, month=2, day=15, tzinfo=utc), apply_desc='申请原因3',
+            user_id=self.user2.id, username=self.user2.username, vo_id=self.vo.id, vo_name=self.vo.name,
+            owner_type=OwnerType.VO.value, creation_time=datetime(year=2023, month=5, day=8, tzinfo=utc)
+        )
+
+        base_url = reverse('apply-api:coupon-detail', kwargs={'id': 'xx'})
+        r = self.client.delete(base_url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+        self.client.force_login(self.user2)
+
+        r = self.client.delete(base_url)
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=r)
+
+        self.client.logout()
+        self.client.force_login(self.user1)
+
+        self.assertFalse(apply1.deleted)
+        base_url = reverse('apply-api:coupon-detail', kwargs={'id': apply1.id})
+        r = self.client.delete(base_url)
+        self.assertEqual(r.status_code, 204)
+        apply1.refresh_from_db()
+        self.assertTrue(apply1.deleted)
+
+        r = self.client.delete(base_url)
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=r)
+
+        self.assertFalse(apply2.deleted)
+        base_url = reverse('apply-api:coupon-detail', kwargs={'id': apply2.id})
+        r = self.client.delete(base_url)
+        self.assertEqual(r.status_code, 204)
+        apply2.refresh_from_db()
+        self.assertTrue(apply2.deleted)
+
+        r = self.client.delete(base_url)
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=r)
