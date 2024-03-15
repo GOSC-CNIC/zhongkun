@@ -9,7 +9,7 @@ from rest_framework.decorators import action
 from rest_framework.serializers import Serializer
 from rest_framework.response import Response
 
-from drf_yasg.utils import swagger_auto_schema
+from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
 from core import errors
@@ -506,6 +506,7 @@ class CouponApplyViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('取消资源券申请'),
+        request_body=no_body,
         responses={
             204: ''
         }
@@ -527,6 +528,7 @@ class CouponApplyViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('审批挂起资源券申请'),
+        request_body=no_body,
         responses={
             204: ''
         }
@@ -548,6 +550,7 @@ class CouponApplyViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('审批拒绝资源券申请'),
+        request_body=no_body,
         manual_parameters=[
             openapi.Parameter(
                 name='reason',
@@ -584,6 +587,7 @@ class CouponApplyViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('审批通过资源券申请'),
+        request_body=no_body,
         manual_parameters=[
             openapi.Parameter(
                 name='approved_amount',
