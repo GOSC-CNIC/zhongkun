@@ -88,6 +88,7 @@ class VtReport(UuidModel):
     filename = models.CharField(verbose_name=_('文件名'), max_length=255)
     type = models.CharField(verbose_name=_('漏扫报告类型'), max_length=8, choices=FileType.choices, default=FileType.HTML.value)
     content = models.BinaryField(verbose_name=_('漏扫报告内容'), null=True)
+    size = models.IntegerField(verbose_name=_('文件大小'), default=0)
     create_time = models.DateTimeField(verbose_name=_('修改时间'), auto_now_add=True)
 
     class Meta:
@@ -117,6 +118,7 @@ class VtTask(UuidModel):
         ACTIVE = 'active', _('主动扫描')
         PASSIVE = 'passive', _('被动扫描')
         DONE = 'done', _('运行结束')
+        FAILED = 'failed', _('运行失败')
         
     name = models.CharField(verbose_name=_('任务名称'), max_length=255)
     priority = models.IntegerField(verbose_name=_('任务优先级'), default=2)
@@ -128,6 +130,7 @@ class VtTask(UuidModel):
     create_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
     finish_time = models.DateTimeField(verbose_name=_('结束时间'), null=True, blank=True, default=None)
     update_time = models.DateTimeField(verbose_name=_('更新时间'), auto_now=True)
+    errmsg = models.CharField(verbose_name=_('任务失败原因'), max_length=255, default='', blank=True)
     report = models.ForeignKey(verbose_name=_('扫描报告'), to=VtReport, on_delete=models.SET_NULL, blank=True, null=True)
     remark = models.CharField(verbose_name=_('备注'), max_length=255, default='', blank=True)
     payment_history_id = models.CharField(verbose_name=_('支付记录id'), max_length=36, blank=True, default='')
