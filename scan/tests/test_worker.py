@@ -96,6 +96,15 @@ class ScanWorkerTests(MyAPITestCase):
             payment_history_id="testpaymenthistoryid2",
         )
         user_scan_task3.save(force_insert=True)
+        user_scan_task4 = VtTask(
+            name="user_task4",
+            target="http://test.com/",
+            type="web",
+            user=self.user,
+            remark="user task test",
+            payment_history_id="testpaymenthistoryid1",
+        )
+        user_scan_task4.save(force_insert=True)
         self.assertEqual(user_scan_task2.task_status, "queued")
 
         # test process_new_tasks
@@ -303,7 +312,7 @@ class ScanWorkerTests(MyAPITestCase):
         self.assertEqual(user_scan_task3.task_status, "running")
         self.assertEqual(user_scan_task3.scanner.id, scanner3.id)
         self.assertEqual(user_scan_task3.running_id, "123456789")
-
+        
         # Done and save report
         responses.reset()
         # zap
@@ -348,11 +357,36 @@ class ScanWorkerTests(MyAPITestCase):
         self.assertEqual(user_scan_task2.task_status, "done")
         self.assertNotEqual(user_scan_task2.report, None)
         new_content = base64.b64encode(user_scan_task2.report.content)
+        size = user_scan_task2.report.size
+        self.assertEqual(size, len(base64.b64decode(content)))
         self.assertEqual(new_content, content.encode("utf-8"))
         user_scan_task3.refresh_from_db()
         self.assertEqual(user_scan_task3.task_status, "done")
         self.assertNotEqual(user_scan_task3.report, None)
 
+        # zap
+        # get status fail, change status to failed
+        responses.reset()
+        responses.add(
+            responses.POST,
+            "http://127.0.0.1:9390/zap/create_task",
+            json={"ok": True, "running_status": "spider"},
+            status=200,
+        )
+        responses.add(
+            responses.GET,
+            "http://127.0.0.1:9390/zap/get_task",
+            json={"ok": True, "running_status": "failed", "errmsg": "Url not found."},
+            status=200,
+        )
+        scanworker.process_new_tasks()
+        scanworker.process_running_tasks()
+        scanworker.process_running_tasks()
+        self.assertEqual(len(scanworker.scanners[0].tasks), 0)
+        user_scan_task4.refresh_from_db()
+        self.assertEqual(user_scan_task4.task_status, "failed")
+        self.assertEqual(user_scan_task4.scanner.id, scanner1.id)
+        self.assertEqual(user_scan_task4.errmsg, "Url not found.")
     # def test_real_scanner(self):
     #     # add scanner
     #     scanner1 = VtScanner(name='scanner1', type='host', engine='gvm', ipaddr='223.193.36.206', port=9394, status='enable' ,key="3jucg&f-t^zy6z0zs0@(&j)@@b^ppay%c)9yvk8l8i+j0dh#sv", max_concurrency=1)

@@ -37,6 +37,7 @@ class WebZapScanner(Scanner):
         ACTIVE = 'active'
         PASSIVE = 'passive'
         DONE = 'done'
+        FAILED = 'failed'
 
     def __init__(self, vtscanner: VtScanner) -> None:
         super().__init__(vtscanner)
@@ -48,7 +49,7 @@ class WebZapScanner(Scanner):
             {
                 ok: False/True, 为False表明扫描引擎出现问题
                 errmsg: 错误原因
-                running_status: 任务状态, spider / ajaxspider / active / passive / done
+                running_status: 任务状态, spider / ajaxspider / active / passive / done / failed
             }
         """
         try:
@@ -61,12 +62,13 @@ class WebZapScanner(Scanner):
             data = response.json()
             if not data['ok']:
                 logging.error(f"Get task from zap {self.url} failed, {data['errmsg']}")
-                return None
+                return None, None
             running_status = data['running_status']
-            return running_status
+            errmsg = data['errmsg'] if 'errmsg' in data else None
+            return running_status, errmsg
         except Exception as e:
             logging.error(f"Get task from zap {self.url} failed, {str(e)}")
-            return None
+            return None, None
 
     def get_report(self):
         """
@@ -159,11 +161,15 @@ class WebZapScanner(Scanner):
         """
         self.get_own_tasks()
         for task in self.tasks:
-            running_status = self.get_task_status(
+            running_status, errmsg = self.get_task_status(
                 running_status=task.running_status, target=task.target
             )
             if running_status is None:
                 continue
+            elif running_status == self.ZapStatus.FAILED:
+                ScanZapManager.set_web_task_status(
+                    task=task, running_status=running_status, errmsg=errmsg
+                )
             elif running_status == self.ZapStatus.DONE:
                 content = self.get_report()
                 if content is not None:

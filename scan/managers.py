@@ -1,3 +1,4 @@
+import datetime
 from django.db import transaction, models
 from scan.models import VtReport, VtScanner, VtTask
 from django.core.validators import URLValidator
@@ -65,9 +66,11 @@ class ScanGvmManager:
         创建任务报告并更新任务状态
         """
         try:
-            filename = task.name + '_report.pdf'
+            time = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+            filename = task.name + "_" + time +'.pdf'
+            size = len(content)
             report = VtReport(
-                filename=filename, type=VtReport.FileType.PDF, content=content
+                filename=filename, type=VtReport.FileType.PDF, content=content, size=size
             )
             task.task_status = VtTask.Status.DONE
             task.report = report
@@ -104,9 +107,11 @@ class ScanZapManager:
         try:
             if isinstance(content, str):
                 content = content.encode('utf-8')
-            filename = task.name + '_report.html'
+            size = len(content)
+            time = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+            filename = task.name + "_" + time +'.html'
             report = VtReport(
-                filename=filename, type=VtReport.FileType.HTML, content=content
+                filename=filename, type=VtReport.FileType.HTML, content=content, size=size
             )
             report.save()
             task.task_status = VtTask.Status.DONE
@@ -134,12 +139,16 @@ class ScanZapManager:
 
     @staticmethod
     @transaction.atomic
-    def set_web_task_status(task: VtTask, running_status: str):
+    def set_web_task_status(task: VtTask, running_status: str, errmsg: str=None):
         """
         设置任务扫描器内部状态
         """
         try:
             task.running_status = running_status
+            if running_status == VtTask.RunningStatus.FAILED:
+                task.task_status = VtTask.Status.FAILED
+            if errmsg:
+                task.errmsg = errmsg
             task.save()
             return True
         except Exception as e:

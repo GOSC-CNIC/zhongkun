@@ -15,7 +15,7 @@ class ScanPriceTests(MyAPITestCase):
     @responses.activate
     def test_add_scanner(self):
         # fail
-        responses.add(responses.POST, 'http://127.0.0.1:9394/gvm',
+        responses.add(responses.GET, 'http://127.0.0.1:9394/gvm/hello',
                     json={'ok': False, 'errmsg': 'not found'}, status=200)
         out = StringIO()
         call_command('scan', 'addscanner', name='testscanner', ipaddr='127.0.0.1', stdout=out)
@@ -52,7 +52,7 @@ class ScanPriceTests(MyAPITestCase):
         self.assertEqual(scanner.max_concurrency, 1)
         # enable
         responses.reset()
-        responses.add(responses.POST, 'http://127.0.0.1:9394/gvm',
+        responses.add(responses.GET, 'http://127.0.0.1:9394/gvm/hello',
                     json={'ok': True, 'errmsg': None}, status=200)
         call_command('scan', 'addscanner', name='testscanner', ipaddr='127.0.0.1', port='9394', engine='gvm', 
                      key='testkey', type='host', status='enable', max_concurrency='1', stdout=out)
@@ -68,7 +68,7 @@ class ScanPriceTests(MyAPITestCase):
         self.assertEqual(scanner.max_concurrency, 5)
     
     def test_set_scanner(self):
-        responses.add(responses.POST, 'http://127.0.0.1:9394/gvm',
+        responses.add(responses.GET, 'http://127.0.0.1:9394/gvm/hello',
                     json={'ok': True, 'errmsg': None}, status=200) 
         out = StringIO()
         call_command('scan', 'addscanner', name='testscanner3', ipaddr='127.0.0.1', port='9394', engine='gvm', 
