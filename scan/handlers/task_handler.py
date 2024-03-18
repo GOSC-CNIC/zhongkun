@@ -49,6 +49,11 @@ class TaskHandler:
 
         do_web_scan = validated_data.get("scheme", False)
         do_host_scan = validated_data.get("ipaddr", False)
+        if do_web_scan == None or do_web_scan == "":
+            do_web_scan = False
+        if do_host_scan == None or do_host_scan == "":
+            do_host_scan = False
+    
         validated_data['do_web_scan'] = do_web_scan
         validated_data['do_host_scan'] = do_host_scan
         # 必须指定一种以上扫描方式
