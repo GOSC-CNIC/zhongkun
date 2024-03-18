@@ -36,7 +36,7 @@ class ServerAdmin(NoDeleteSelectModelAdmin):
                     'pay_type', 'classification', 'vo', 'lock', 'situation', 'situation_time',
                     'default_user', 'show_default_password', 'expiration_time', 'remarks')
     search_fields = ['id', 'name', 'image', 'ipv4', 'remarks']
-    list_filter = ['service__org_data_center', 'service', 'classification']
+    list_filter = ['service__org_data_center', 'service', 'classification', 'public_ip']
     raw_id_fields = ('user', )
     list_select_related = ('service', 'user', 'vo')
     readonly_fields = ['default_password']
@@ -44,7 +44,7 @@ class ServerAdmin(NoDeleteSelectModelAdmin):
     fieldsets = [
         (_('基础信息'), {'fields': ('service', 'azone_id', 'instance_id', 'remarks', 'center_quota')}),
         (_('配置信息'), {'fields': (
-            'vcpus', 'ram', 'disk_size', 'ipv4', 'image', 'img_sys_type',
+            'vcpus', 'ram', 'disk_size', 'ipv4', 'public_ip', 'image', 'img_sys_type',
             'img_sys_arch', 'img_release', 'img_release_version',)}),
         (_('默认登录密码'), {'fields': ('default_user', 'default_password', 'change_password')}),
         (_('创建和归属信息'), {'fields': ('creation_time', 'task_status', 'classification', 'user', 'vo')}),

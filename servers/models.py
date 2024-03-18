@@ -686,7 +686,7 @@ class ServerBase(models.Model):
     vcpus = models.IntegerField(verbose_name=_('虚拟CPU数'), default=0)
     ram = models.IntegerField(verbose_name=_('内存GiB'), default=0)
     ipv4 = models.CharField(max_length=128, verbose_name='IPV4', default='')
-    public_ip = models.BooleanField(default=True, verbose_name=_('公/私网'))
+    public_ip = models.BooleanField(default=True, verbose_name=_('公/私网'), help_text=_('选中为公网'))
     image = models.CharField(max_length=255, verbose_name=_('镜像系统名称'), default='')
     image_id = models.CharField(max_length=64, verbose_name=_('镜像系统ID'), default='')
     img_sys_type = models.CharField(max_length=32, verbose_name=_('镜像系统类型'), default='')

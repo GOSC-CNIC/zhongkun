@@ -575,7 +575,7 @@ class CouponApplyViewSet(NormalGenericViewSet):
         reason = request.query_params.get('reason', '')
         if not reason:
             return self.exception_response(
-                errors.InvalidArgument(message=_('请提交决绝的原因')))
+                errors.InvalidArgument(message=_('请提交拒绝的原因')))
 
         try:
             CouponApplyManager.reject_apply(
