@@ -119,7 +119,7 @@ class VtTask(UuidModel):
         PASSIVE = 'passive', _('被动扫描')
         DONE = 'done', _('运行结束')
         FAILED = 'failed', _('运行失败')
-        
+
     name = models.CharField(verbose_name=_('任务名称'), max_length=255)
     priority = models.IntegerField(verbose_name=_('任务优先级'), default=2)
     target = models.CharField(verbose_name=_('扫描目标'), max_length=255)

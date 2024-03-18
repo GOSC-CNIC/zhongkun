@@ -147,7 +147,7 @@ class MonitorWebsiteTaskPagination(MarkerCursorPagination):
     page_size = 2000
     max_page_size = 10000
     ordering = '-creation'
-    
+
 
 class ScanTaskPageNumberPagination(NewPageNumberPagination):
     ordering = '-create_time'

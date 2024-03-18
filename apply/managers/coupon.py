@@ -305,3 +305,15 @@ class CouponApplyManager:
             apply.coupon_id = coupon.id
             apply.save(update_fields=['status', 'update_time', 'approver', 'approved_amount', 'coupon_id'])
             return apply
+
+    @staticmethod
+    def check_apply_limit(owner_type: str, user_id: str, vo_id: str, max_limit: int = 10):
+        if owner_type == OwnerType.VO.value:
+            exist_count = CouponApply.objects.filter(
+                vo_id=vo_id, owner_type=owner_type, status=CouponApply.Status.WAIT.value).count()
+        else:
+            exist_count = CouponApply.objects.filter(
+                user_id=user_id, owner_type=owner_type, status=CouponApply.Status.WAIT.value).count()
+
+        if exist_count > max_limit:
+            raise errors.TooManyApply(message=_('已有多个申请待审批，暂不能提交更多的申请'))

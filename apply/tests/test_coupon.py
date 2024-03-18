@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from django.urls import reverse
 from django.utils import timezone as dj_timezone
 
+from core import errors
 from utils.model import OwnerType
 from utils.time import utc
 from utils.test import get_or_create_org_data_center, get_or_create_user, MyAPITestCase
@@ -679,6 +680,19 @@ class CouponApplyTests(MyAPITestCase):
             "service_type": CouponApply.ServiceType.SCAN.value
         })
         self.assertErrorResponse(status_code=409, code='Conflict', response=r)
+
+        # test limit
+        CouponApplyManager.check_apply_limit(
+            owner_type=OwnerType.USER.value, user_id=self.user1.id, vo_id='', max_limit=4)
+        with self.assertRaises(errors.TooManyApply):
+            CouponApplyManager.check_apply_limit(
+                owner_type=OwnerType.USER.value, user_id=self.user1.id, vo_id='', max_limit=3)
+
+        CouponApplyManager.check_apply_limit(
+            owner_type=OwnerType.VO.value, user_id=self.user1.id, vo_id=self.vo.id, max_limit=1)
+        with self.assertRaises(errors.TooManyApply):
+            CouponApplyManager.check_apply_limit(
+                owner_type=OwnerType.VO.value, user_id=self.user1.id, vo_id=self.vo.id, max_limit=0)
 
     def test_update(self):
         nt_utc = dj_timezone.now()

@@ -247,6 +247,7 @@ class CouponApplyViewSet(NormalGenericViewSet):
                 VoNotExist：项目组不存在
                 TargetNotExist：云主机、对象存储服务单元不存在
             409：Conflict：服务单元停止服务中 / 指定服务可能未注册钱包结算单元
+                TooManyApply: 已有多个申请待审批，暂不能提交更多的申请
         """
         try:
             slizer = self.get_serializer(data=request.data)
@@ -274,6 +275,7 @@ class CouponApplyViewSet(NormalGenericViewSet):
             owner_type = OwnerType.USER.value
 
         try:
+            CouponApplyManager.check_apply_limit(owner_type=owner_type, user_id=user_id, vo_id=vo_id)
             odc, service_id, service_name, service_name_en, pay_service_id = self._get_service_info(
                 service_type=service_type, service_id=service_id
             )
@@ -446,6 +448,7 @@ class CouponApplyViewSet(NormalGenericViewSet):
             403：AccessDenied: 你没有访问权限
             404：TargetNotExist：云主机、对象存储服务单元不存在
             409：Conflict：服务单元停止服务中 / 指定服务可能未注册钱包结算单元
+                TooManyApply: 已有多个申请待审批，暂不能提交更多的申请
         """
         try:
             slizer = self.get_serializer(data=request.data)
@@ -470,6 +473,10 @@ class CouponApplyViewSet(NormalGenericViewSet):
                     _id=kwargs[self.lookup_field], user=user, select_for_update=True)
                 if apply.status not in [CouponApply.Status.WAIT.value, CouponApply.Status.REJECT.value]:
                     raise errors.ConflictError(message=_('只允许修改“待审批”和“拒绝”状态的申请记录'))
+
+                if apply.status == CouponApply.Status.REJECT.value:
+                    CouponApplyManager.check_apply_limit(
+                        owner_type=apply.owner_type, user_id=apply.user_id, vo_id=apply.vo_id)
 
                 if apply.owner_type == OwnerType.VO.value and service_type != CouponApply.ServiceType.SERVER.value:
                     raise errors.ConflictError(message=_('指定的服务类型，不允许为vo组申请资源券'))

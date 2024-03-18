@@ -312,7 +312,7 @@ class ScanWorkerTests(MyAPITestCase):
         self.assertEqual(user_scan_task3.task_status, "running")
         self.assertEqual(user_scan_task3.scanner.id, scanner3.id)
         self.assertEqual(user_scan_task3.running_id, "123456789")
-        
+
         # Done and save report
         responses.reset()
         # zap
