@@ -283,9 +283,9 @@ class MonitorWebsiteQueryAPI:
         try:
             r = requests.get(url=url, timeout=(6, 30))
         except requests.exceptions.Timeout:
-            raise errors.Error(message='monitor backend, ceph query api request timeout')
-        except requests.exceptions.RequestException:
-            raise errors.Error(message='monitor backend, ceph query api request error')
+            raise errors.Error(message='monitor backend, web query api request timeout')
+        except requests.exceptions.RequestException as exc:
+            raise errors.Error(message=f'monitor backend, web query api request error, {str(exc)}')
 
         data = r.json()
         if 300 > r.status_code >= 200:
