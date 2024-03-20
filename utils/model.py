@@ -73,3 +73,4 @@ class ResourceType(models.TextChoices):
     VM = 'vm', _('云主机')
     DISK = 'disk', _('云硬盘')
     BUCKET = 'bucket', _('存储桶')
+    SCAN = 'scan', _('安全扫描')

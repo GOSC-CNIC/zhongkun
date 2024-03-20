@@ -214,3 +214,27 @@ class PriceManager:
             days_amount += price.mntr_site_security
 
         return days_amount * Decimal.from_float(days)
+
+    def describe_scan_price(self, has_host: bool, has_web: bool) -> (Decimal, Decimal):
+        """
+        安全扫描询价
+
+        :param has_host: True(host扫描)
+        :param has_web: True(web扫描)
+        :return:
+            (
+                original_price,    # 原价
+                trade_price        # 减去折扣的价格
+            )
+        :raises: NoPrice
+        """
+        price = self.enforce_price()
+        original_price = Decimal('0')
+        if has_web:
+            original_price += price.scan_web
+
+        if has_host:
+            original_price += price.scan_host
+
+        trade_price = original_price * Decimal.from_float(price.prepaid_discount / 100)
+        return original_price, trade_price

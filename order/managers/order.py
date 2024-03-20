@@ -11,7 +11,7 @@ from utils import rand_utils
 from vo.managers import VoManager
 from core import errors
 from order.models import Order, Resource, ResourceType
-from .instance_configs import BaseConfig, ServerConfig, DiskConfig, BucketConfig
+from .instance_configs import BaseConfig, ServerConfig, DiskConfig, BucketConfig, ScanConfig
 from .price import PriceManager
 
 
@@ -197,10 +197,15 @@ class OrderManager:
 
         number = len(instance_ids)
         if number != len(set(instance_ids)):
-            raise errors.Error(message=_('无法创建订单，必须指定订单资源实例id有重复'))
+            raise errors.Error(message=_('无法创建订单，指定订单资源实例id有重复'))
 
-        period, days = self._check_period_time(
-            order_type=order_type, period=period, start_time=start_time, end_time=end_time, pay_type=pay_type)
+        # scan支持同时创建web和host 2个任务，instance_ids长度可能为2
+        if resource_type == ResourceType.SCAN.value:
+            number = 1
+            period = days = 0
+        else:
+            period, days = self._check_period_time(
+                order_type=order_type, period=period, start_time=start_time, end_time=end_time, pay_type=pay_type)
 
         if owner_type not in OwnerType.values:
             raise errors.Error(message=_('无法创建订单，订单所属类型无效'))
@@ -298,10 +303,56 @@ class OrderManager:
                 raise errors.Error(message=_('无法计算资源金额，资源类型和资源规格配置不匹配'))
 
             original_price = trade_price = Decimal(0)
+        elif resource_type == ResourceType.SCAN.value:
+            if not isinstance(config, ScanConfig):
+                raise errors.Error(message=_('无法计算资源金额，资源类型和资源规格配置不匹配'))
+
+            original_price, trade_price = PriceManager().describe_scan_price(
+                has_host=bool(config.host_addr), has_web=bool(config.web_url)
+            )
         else:
             raise errors.Error(message=_('无法计算资源金额，资源类型无效'))
 
         return original_price, trade_price
+
+    def create_scan_order(
+            self,
+            service_id,
+            service_name,
+            pay_app_service_id: str,
+            instance_config: ScanConfig,
+            user_id,
+            username
+    ) -> (Order, List[Resource]):
+        """
+        提交一个安全扫描订单
+
+        :service_id: 安全扫描服务id
+        :service_name: 安全扫描服务名称
+        :pay_app_service_id: 安全扫描服务对应的钱包结算单元id
+        :return:
+            order, resources
+
+        :raises: Error
+        """
+        instance_ids = []
+        if instance_config.web_url:
+            instance_ids.append(rand_utils.short_uuid1_25())
+
+        if instance_config.host_addr:
+            instance_ids.append(rand_utils.short_uuid1_25())
+
+        if not instance_ids:
+            raise errors.Error(message=_('没有安全扫描任务'))
+
+        return self.create_order_for_resources(
+            order_type=Order.OrderType.NEW.value, pay_type=PayType.PREPAID.value,
+            pay_app_service_id=pay_app_service_id, service_id=service_id, service_name=service_name,
+            resource_type=ResourceType.SCAN.value, instance_ids=instance_ids, instance_config=instance_config,
+            period=0, start_time=None, end_time=None,
+            user_id=user_id, username=username, vo_id='', vo_name='', owner_type=OwnerType.USER.value,
+            instance_remark=instance_config.remark
+        )
 
     @staticmethod
     def get_order_queryset():
@@ -520,7 +571,7 @@ class OrderManager:
         return order, resource
 
     @staticmethod
-    def set_order_deliver_success(order: Order):
+    def set_order_deliver_success(order: Order, select_for_update: bool = True):
         """
         订单资源交付成功， 更新订单信息
 
@@ -529,20 +580,20 @@ class OrderManager:
 
         :raises: Error
         """
-        with transaction.atomic():
-            order = Order.objects.filter(id=order.id).select_for_update().first()
-            if order.trading_status in [order.TradingStatus.CLOSED, order.TradingStatus.COMPLETED]:
-                raise errors.Error(message=_('交易关闭和交易完成状态的订单不允许修改'))
+        try:
+            if not select_for_update:
+                order.set_completed()
+                return order
 
-            update_fields = ['trading_status']
-            order.trading_status = order.TradingStatus.COMPLETED.value
-            try:
-                order.save(update_fields=update_fields)
-            except Exception as e:
-                message = _('更新订单交易状态失败') + str(e)
-                raise errors.Error(message=message)
+            with transaction.atomic():
+                order = Order.objects.filter(id=order.id).select_for_update().first()
+                if order.trading_status in [order.TradingStatus.CLOSED, order.TradingStatus.COMPLETED]:
+                    raise errors.Error(message=_('交易关闭和交易完成状态的订单不允许修改'))
 
-        return order
+                order.set_completed()
+                return order
+        except Exception as exc:
+            raise errors.Error.from_error(exc)
 
     @staticmethod
     def set_order_deliver_failed(order: Order, trading_status: str = Order.TradingStatus.UNDELIVERED.value):

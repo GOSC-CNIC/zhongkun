@@ -45,7 +45,6 @@ class ScanManager:
 
 class ScanGvmManager:
     @staticmethod
-    @transaction.atomic
     def reset_host_task_status(task: VtTask):
         """
         将任务重置为等待运行
@@ -54,35 +53,35 @@ class ScanGvmManager:
             task.task_status = VtTask.Status.QUEUED
             task.scanner = None
             task.running_id = None
-            task.save()
+            task.save(update_fields=['task_status', 'scanner', 'running_id'])
             return True
         except Exception as e:
             return False
 
     @staticmethod
-    @transaction.atomic
     def host_create_report_and_save(task: VtTask, content):
         """
         创建任务报告并更新任务状态
         """
         try:
             time = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-            filename = task.name + "_" + time +'.pdf'
+            filename = task.name + "_" + time + '.pdf'
             size = len(content)
             report = VtReport(
                 filename=filename, type=VtReport.FileType.PDF, content=content, size=size
             )
-            task.task_status = VtTask.Status.DONE
-            task.report = report
-            task.finish_time = timezone.now()
-            report.save()
-            task.save()
+            with transaction.atomic():
+                report.save(force_insert=True)
+                task.task_status = VtTask.Status.DONE.value
+                task.report = report
+                task.finish_time = timezone.now()
+                task.save(update_fields=['task_status', 'report', 'finish_time'])
+
             return True
         except Exception as e:
             return False
 
     @staticmethod
-    @transaction.atomic
     def set_host_task_running(task: VtTask, scanner: VtScanner, running_id: str):
         """
         将任务状态设置为运行中
@@ -91,7 +90,7 @@ class ScanGvmManager:
             task.task_status = VtTask.Status.RUNNING
             task.scanner = scanner
             task.running_id = running_id
-            task.save()
+            task.save(update_fields=['task_status', 'scanner', 'running_id'])
             return True
         except Exception as e:
             return False
@@ -99,7 +98,6 @@ class ScanGvmManager:
 
 class ScanZapManager:
     @staticmethod
-    @transaction.atomic
     def web_create_report_and_save(task: VtTask, content):
         """
         创建任务报告并更新任务状态
@@ -109,21 +107,22 @@ class ScanZapManager:
                 content = content.encode('utf-8')
             size = len(content)
             time = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-            filename = task.name + "_" + time +'.html'
+            filename = task.name + "_" + time + '.html'
             report = VtReport(
                 filename=filename, type=VtReport.FileType.HTML, content=content, size=size
             )
-            report.save()
-            task.task_status = VtTask.Status.DONE
-            task.report = report
-            task.finish_time = timezone.now()
-            task.save()
+            with transaction.atomic():
+                report.save(force_insert=True)
+                task.task_status = VtTask.Status.DONE
+                task.report = report
+                task.finish_time = timezone.now()
+                task.save(update_fields=['task_status', 'report', 'finish_time'])
+
             return True
         except Exception as e:
             return False
 
     @staticmethod
-    @transaction.atomic
     def set_web_task_running(task: VtTask, scanner: VtScanner, running_status: str):
         """
         设置任务状态运行中
@@ -132,14 +131,13 @@ class ScanZapManager:
             task.task_status = VtTask.Status.RUNNING
             task.scanner = scanner
             task.running_status = running_status
-            task.save()
+            task.save(update_fields=['task_status', 'scanner', 'running_status'])
             return True
         except Exception as e:
             return False
 
     @staticmethod
-    @transaction.atomic
-    def set_web_task_status(task: VtTask, running_status: str, errmsg: str=None):
+    def set_web_task_status(task: VtTask, running_status: str, errmsg: str = None):
         """
         设置任务扫描器内部状态
         """
@@ -149,7 +147,7 @@ class ScanZapManager:
                 task.task_status = VtTask.Status.FAILED
             if errmsg:
                 task.errmsg = errmsg
-            task.save()
+            task.save(update_fields=['running_status', 'task_status', 'errmsg'])
             return True
         except Exception as e:
             return False
@@ -157,7 +155,6 @@ class ScanZapManager:
 
 class TaskManager:
     @staticmethod
-    @transaction.atomic
     def reset_task_status(task: VtTask):
         """
         将任务重置为等待运行
@@ -167,7 +164,7 @@ class TaskManager:
             task.scanner = None
             task.running_id = None
             task.running_status = None
-            task.save()
+            task.save(update_fields=['task_status', 'scanner', 'running_id', 'running_status'])
             return True
         except Exception as e:
             return False
@@ -211,23 +208,29 @@ class TaskManager:
         return TaskManager.get_user_task_queryset(user_id=user_id)
 
     @staticmethod
-    @transaction.atomic
-    def create_task(user_id: str, name: str, type: str, target: str, remark: str, pay_amount:Decimal, balance_amount:Decimal, coupon_amount:Decimal):
+    def create_task(
+            user_id: str, name: str, type: str, target: str, remark: str,
+            pay_amount: Decimal = Decimal('0'), balance_amount: Decimal = Decimal('0'),
+            coupon_amount: Decimal = Decimal('0'), task_id: str = None
+    ):
         """创建用户扫描任务"""
         task = VtTask(
-            user_id=user_id, name=name, type=type, target=target, remark=remark, pay_amount=pay_amount, balance_amount=balance_amount, coupon_amount=coupon_amount
+            user_id=user_id, name=name, type=type, target=target, remark=remark,
+            pay_amount=pay_amount, balance_amount=balance_amount, coupon_amount=coupon_amount
         )
-        task.save()
+        if task_id:
+            task.id = task_id
+
+        task.save(force_insert=True)
         return task
 
     @staticmethod
-    @transaction.atomic
     def create_task_command(
         name: str, type: str, target: str, remark: str, priority: int
     ):
         """通过命令创建扫描任务"""
         task = VtTask(name=name, type=type, target=target, remark=remark, priority=priority)
-        task.save()
+        task.save(force_insert=True)
         return task
 
     @staticmethod
@@ -240,10 +243,9 @@ class TaskManager:
         )
 
     @staticmethod
-    @transaction.atomic
     def set_task_payment_id(task: VtTask, payment_history_id: str):
         task.payment_history_id = payment_history_id
-        task.save()
+        task.save(update_fields=['payment_history_id'])
 
     @staticmethod
     def get_disable_scanner_task():
@@ -253,7 +255,6 @@ class TaskManager:
 
 class ScannerManager:
     @staticmethod
-    @transaction.atomic
     def create_scanner(
         name: str,
         type: str,
@@ -277,7 +278,7 @@ class ScannerManager:
             max_concurrency=max_concurrency,
             status=status,
         )
-        scanner.save()
+        scanner.save(force_insert=True)
         return scanner
 
     @staticmethod
@@ -285,8 +286,8 @@ class ScannerManager:
         """
         启用扫描器
         """
-        scanner.status = VtScanner.Status.ENABLE
-        scanner.save()
+        scanner.status = VtScanner.Status.ENABLE.value
+        scanner.save(update_fields=['status'])
         return scanner
 
     @staticmethod
@@ -294,8 +295,8 @@ class ScannerManager:
         """
         停用扫描器
         """
-        scanner.status = VtScanner.Status.DISABLE
-        scanner.save()
+        scanner.status = VtScanner.Status.DISABLE.value
+        scanner.save(update_fields=['status'])
         return scanner
 
     @staticmethod
@@ -304,7 +305,7 @@ class ScannerManager:
         删除扫描器
         """
         scanner.status = VtScanner.Status.DELETED
-        scanner.save()
+        scanner.save(update_fields=['status'])
         return scanner
 
     @staticmethod

@@ -22,7 +22,7 @@ class Migration(migrations.Migration):
                 ('status_desc', models.CharField(blank=True, default='', max_length=255, verbose_name='退订状态描述')),
                 ('creation_time', models.DateTimeField(verbose_name='退订时间')),
                 ('update_time', models.DateTimeField(verbose_name='修改时间')),
-                ('resource_type', models.CharField(choices=[('vm', '云主机'), ('disk', '云硬盘'), ('bucket', '存储桶')], default='vm', max_length=16, verbose_name='资源类型')),
+                ('resource_type', models.CharField(choices=[('vm', '云主机'), ('disk', '云硬盘'), ('bucket', '存储桶'), ('scan', '安全扫描')], default='vm', max_length=16, verbose_name='资源类型')),
                 ('number', models.PositiveIntegerField(default=1, verbose_name='退订资源数量')),
                 ('reason', models.CharField(blank=True, default='', max_length=255, verbose_name='退订原因')),
                 ('refund_amount', models.DecimalField(decimal_places=2, default=Decimal('0'), help_text='需要退款的金额', max_digits=10, verbose_name='退款金额')),

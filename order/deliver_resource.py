@@ -14,7 +14,9 @@ from servers.managers import ServerManager, DiskManager
 from adapters import inputs, outputs
 from utils.model import PayType, OwnerType, ResourceType
 from order.models import Order, Resource
-from order.managers import OrderManager, ServerConfig, PriceManager, DiskConfig
+from order.managers import OrderManager, ServerConfig, PriceManager, DiskConfig, ScanConfig
+from scan.models import VtTask
+from scan.managers import TaskManager
 
 
 class OrderResourceDeliverer:
@@ -39,6 +41,9 @@ class OrderResourceDeliverer:
                 service, disk = self.deliver_new_disk(order=order, resource=resource)
                 self.after_deliver_disk(service=service, disk=disk)
                 return [disk]
+            if order.resource_type == ResourceType.SCAN.value:
+                tasks = self.deliver_new_sacn(order=order)
+                return tasks
         elif order.order_type == Order.OrderType.RENEWAL.value:  # 续费
             if order.resource_type == ResourceType.VM.value:
                 server = self.deliver_renewal_server(order=order, resource=resource)
@@ -948,3 +953,79 @@ class OrderResourceDeliverer:
                 raise exceptions.Error(message=_('云硬盘不是按量付费模式，无法完成订单交付。'))
         else:
             raise exceptions.Error(message=_('不是付费方式修改类型的订单，无法完成订单交付。'))
+
+    def deliver_new_sacn(self, order: Order) -> List[VtTask]:
+        """
+        raises: Error
+        """
+        try:
+            with transaction.atomic():
+                order = self._check_order_pre_deliver(order_id=order.id)
+                resources = self._check_order_resources_pre_deliver(order_id=order.id)
+                tasks = self._do_deliver_new_sacn(order=order, resources=resources)
+                return tasks
+        except Exception as exc:
+            raise exceptions.Error.from_error(exc)
+
+    @staticmethod
+    def _do_deliver_new_sacn(order: Order, resources: List[Resource]):
+        """
+        需在一个事务中心执行
+        """
+        scan_config = ScanConfig.from_dict(order.instance_config)
+        if len(resources) > 2:
+            raise exceptions.ConflictError(message=_('订单资源记录数量大于订单订购任务数量'))
+        elif len(resources) == 2:
+            if not (scan_config.host_addr and scan_config.web_url):
+                raise exceptions.ConflictError(message=_('订单资源记录数量为2，与订单订购任务数量不一致'))
+
+            host_task = (resources[0], scan_config.host_addr)
+            web_task = (resources[1], scan_config.web_url)
+        else:
+            res = resources[0]
+            if scan_config.host_addr and scan_config.web_url:
+                raise exceptions.ConflictError(message=_('订单资源记录数量为1，与订单订购任务数量不一致'))
+
+            if scan_config.host_addr:
+                host_task = (res, scan_config.host_addr)
+                web_task = None
+            else:
+                host_task = None
+                web_task = (res, scan_config.web_url)
+
+        user_id = order.user_id
+        task_name = scan_config.name
+        task_remark = scan_config.remark
+
+        # 创建任务
+        tasks = []
+        if web_task:
+            res, target = web_task
+            tasks.append(
+                TaskManager.create_task(
+                    user_id=user_id,
+                    name=task_name,
+                    type=VtTask.TaskType.WEB.value,
+                    target=target,
+                    remark=task_remark,
+                    task_id=res.instance_id
+                )
+            )
+            res.set_deliver_success()
+
+        if host_task:
+            res, target = host_task
+            tasks.append(
+                TaskManager.create_task(
+                    user_id=user_id,
+                    name=task_name,
+                    type=VtTask.TaskType.HOST,
+                    target=target,
+                    remark=task_remark,
+                    task_id=res.instance_id
+                )
+            )
+            res.set_deliver_success()
+
+        OrderManager.set_order_deliver_success(order=order, select_for_update=False)
+        return tasks

@@ -209,6 +209,15 @@ class Order(models.Model):
         if is_save:
             self.save(update_fields=['order_action'])
 
+    def set_completed(self):
+        update_fields = ['trading_status']
+        self.trading_status = self.TradingStatus.COMPLETED.value
+        try:
+            self.save(update_fields=update_fields)
+        except Exception as e:
+            message = gettext('更新订单交易状态失败') + str(e)
+            raise Exception(message)
+
 
 class Resource(UuidModel):
     class InstanceStatus(models.TextChoices):
@@ -347,6 +356,12 @@ class Price(UuidModel):
     mntr_site_security = models.DecimalField(
         verbose_name=_('站点监控每天安全监控费用'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
         default=Decimal('0'), help_text=_('站点监控每天安全监控费用'))
+    scan_web = models.DecimalField(
+        verbose_name=_('站点安全扫描每次费用'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
+        default=Decimal('0'), help_text=_('安全扫描WEB每次费用'))
+    scan_host = models.DecimalField(
+        verbose_name=_('主机安全扫描每次费用'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
+        default=Decimal('0'), help_text=_('安全扫描host主机每次费用'))
 
     class Meta:
         verbose_name = _('资源计价定价')

@@ -9,12 +9,13 @@ from core import errors
 from utils.model import PayType, OwnerType, ResourceType
 from order.models import Order, Price, Resource
 from order.managers import OrderManager
-from order.managers.instance_configs import ServerConfig
+from order.managers.instance_configs import ServerConfig, ScanConfig
 from order.deliver_resource import OrderResourceDeliverer
 from utils.test import get_or_create_user, MyAPITestCase
 from servers.models import ServiceConfig, Server
 from vo.models import VirtualOrganization
 from servers.managers import ServicePrivateQuotaManager
+from scan.models import VtTask
 
 
 class CreateServerRequest:
@@ -413,3 +414,50 @@ class DeliverTests(MyAPITestCase):
 
         with self.assertRaises(errors.OrderTradingCompleted):
             or_dlver2.deliver_order(order2, resource=None)
+
+    def test_scan_deliver(self):
+        scan_config = ScanConfig(
+            name='测试 scan，host and web', host_addr=' 10.8.8.6', web_url='https://test.cn ', remark='test remark')
+        scan_order, ress = OrderManager().create_scan_order(
+            service_id='scan_service_id',
+            service_name='scan_service_name',
+            pay_app_service_id='scan_pay_app_service_id',
+            instance_config=scan_config,
+            user_id=self.user.id,
+            username=self.user.username
+        )
+        scan_order.set_paid(
+            pay_amount=Decimal('0'), balance_amount=Decimal('0'), coupon_amount=Decimal('0'), payment_history_id='')
+        self.assertEqual(VtTask.objects.count(), 0)
+        OrderResourceDeliverer().deliver_order(order=scan_order)
+        self.assertEqual(VtTask.objects.count(), 2)
+        scan_order.refresh_from_db()
+        self.assertEqual(scan_order.trading_status, scan_order.TradingStatus.COMPLETED.value)
+        od1_res1, od1_res2 = ress
+        od1_res1.refresh_from_db()
+        self.assertLess(od1_res1.last_deliver_time - dj_timezone.now(), timedelta(seconds=30))
+        self.assertEqual(od1_res1.instance_status, od1_res1.InstanceStatus.SUCCESS.value)
+        self.assertTrue(VtTask.objects.filter(id=od1_res1.instance_id).exists())
+        od1_res2.refresh_from_db()
+        self.assertLess(od1_res2.last_deliver_time - dj_timezone.now(), timedelta(seconds=30))
+        self.assertEqual(od1_res2.instance_status, od1_res2.InstanceStatus.SUCCESS.value)
+        self.assertTrue(VtTask.objects.filter(id=od1_res2.instance_id).exists())
+
+        tasks = list(VtTask.objects.all())
+        if tasks[0].target == '10.8.8.6':
+            host_task = tasks[0]
+            web_task = tasks[1]
+        else:
+            host_task = tasks[1]
+            web_task = tasks[0]
+
+        self.assertEqual(host_task.target, '10.8.8.6')
+        self.assertEqual(host_task.type, VtTask.TaskType.HOST.value)
+        self.assertEqual(host_task.name, '测试 scan，host and web')
+        self.assertEqual(host_task.remark, 'test remark')
+        self.assertEqual(host_task.user_id, self.user.id)
+        self.assertEqual(web_task.target, 'https://test.cn')
+        self.assertEqual(web_task.type, VtTask.TaskType.WEB.value)
+        self.assertEqual(web_task.name, '测试 scan，host and web')
+        self.assertEqual(web_task.remark, 'test remark')
+        self.assertEqual(host_task.user_id, self.user.id)

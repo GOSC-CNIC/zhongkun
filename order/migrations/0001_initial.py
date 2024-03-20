@@ -27,7 +27,7 @@ class Migration(migrations.Migration):
                 ('coupon_amount', models.DecimalField(decimal_places=2, default=Decimal('0'), max_digits=10, verbose_name='券支付金额')),
                 ('service_id', models.CharField(blank=True, default='', max_length=36, verbose_name='服务id')),
                 ('service_name', models.CharField(blank=True, default='', max_length=255, verbose_name='服务名称')),
-                ('resource_type', models.CharField(choices=[('vm', '云主机'), ('disk', '云硬盘'), ('bucket', '存储桶')], default='vm', max_length=16, verbose_name='资源类型')),
+                ('resource_type', models.CharField(choices=[('vm', '云主机'), ('disk', '云硬盘'), ('bucket', '存储桶'), ('scan', '安全扫描')], default='vm', max_length=16, verbose_name='资源类型')),
                 ('instance_config', models.JSONField(blank=True, default=dict, verbose_name='资源的规格和配置')),
                 ('period', models.IntegerField(blank=True, default=0, verbose_name='订购时长(月)')),
                 ('payment_time', models.DateTimeField(blank=True, default=None, null=True, verbose_name='支付时间')),
@@ -103,7 +103,7 @@ class Migration(migrations.Migration):
             name='Resource',
             fields=[
                 ('id', models.CharField(blank=True, editable=False, max_length=36, primary_key=True, serialize=False, verbose_name='ID')),
-                ('resource_type', models.CharField(choices=[('vm', '云主机'), ('disk', '云硬盘'), ('bucket', '存储桶')], max_length=16, verbose_name='资源类型')),
+                ('resource_type', models.CharField(choices=[('vm', '云主机'), ('disk', '云硬盘'), ('bucket', '存储桶'), ('scan', '安全扫描')], max_length=16, verbose_name='资源类型')),
                 ('instance_id', models.CharField(blank=True, default='', max_length=36, verbose_name='资源实例id')),
                 ('instance_status', models.CharField(choices=[('wait', '待交付'), ('success', '交付成功'), ('failed', '交付失败')], default='wait', max_length=16, verbose_name='资源交付结果')),
                 ('creation_time', models.DateTimeField(auto_now_add=True, verbose_name='创建时间')),

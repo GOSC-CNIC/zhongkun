@@ -314,6 +314,13 @@ class OrderViewSet(CustomGenericViewSet):
                     "disk_azone_id": "xxx",
                     "disk_azone_name": "xxx"
                 }
+                资源类型为安全扫描， "resource_type": "scan":
+                {
+                    "name": "xxx",
+                    "host_addr": "10.0.0.1",        # host扫描任务
+                    "web_url": "https://test.cn",   # web扫描任务
+                    "remark": "xx"
+                }
         """
         return OrderHandler().list_order(view=self, request=request)
 

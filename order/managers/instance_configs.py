@@ -154,3 +154,43 @@ class BucketConfig(BaseConfig):
     @classmethod
     def from_dict(cls, config: dict):
         return cls()
+
+
+class ScanConfig(BaseConfig):
+    KEY_NAME = 'name'
+    KEY_HOST_ADDR = 'host_addr'
+    KEY_WEB_URL = 'web_url'
+    KEY_REMARK = 'remark'
+    KEYS = (KEY_NAME, KEY_HOST_ADDR, KEY_WEB_URL)
+
+    def __init__(self, name: str, host_addr: str, web_url: str, remark: str = ''):
+        """
+        :name: 任务名称
+        :host_addr: 有效不为空时，表示订购host扫描任务
+        :web_url: 有效不为空时，表示订购web扫描任务
+        """
+        self.name = name.strip(' ')
+        self.host_addr = host_addr.strip(' ')
+        self.web_url = web_url.strip(' ')
+        self.remark = remark
+
+    def to_dict(self):
+        return {
+            self.KEY_NAME: self.name,
+            self.KEY_HOST_ADDR: self.host_addr,
+            self.KEY_WEB_URL: self.web_url,
+            self.KEY_REMARK: self.remark
+        }
+
+    @classmethod
+    def from_dict(cls, config: dict):
+        for key in cls.KEYS:
+            if key not in config:
+                raise Exception(f'无效的安全扫描配置数据，缺少“{key}”配置数据')
+
+        return cls(
+            name=config[cls.KEY_NAME],
+            host_addr=config[cls.KEY_HOST_ADDR],
+            web_url=config[cls.KEY_WEB_URL],
+            remark=config.get(cls.KEY_REMARK, '')
+        )
