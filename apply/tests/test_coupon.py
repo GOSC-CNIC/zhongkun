@@ -11,7 +11,7 @@ from utils.model import OwnerType, PayType, ResourceType
 from utils.time import utc
 from utils.decimal_utils import quantize_10_2
 from utils.test import get_or_create_org_data_center, get_or_create_user, MyAPITestCase
-from vo.models import VirtualOrganization
+from vo.models import VirtualOrganization, VoMember
 from bill.models import CashCoupon, PayAppService, PayApp
 from servers.models import ServiceConfig
 from storage.models import ObjectsService
@@ -1601,3 +1601,116 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(host_task.user_id, scan_order.user_id)
         web_task = VtTask.objects.filter(target='https://test.cn', type=VtTask.TaskType.WEB.value).first()
         self.assertEqual(web_task.user_id, scan_order.user_id)
+
+    def test_detail(self):
+        apply1 = CouponApplyManager.create_apply(
+            service_type=CouponApply.ServiceType.SERVER.value, odc=self.odc1,
+            service_id='service_id2', service_name='service_name2', service_name_en='service_name_en2',
+            pay_service_id='pay_service_id2', face_value=Decimal('6000.12'),
+            expiration_time=datetime(year=2023, month=12, day=15, tzinfo=utc), apply_desc='申请原因6',
+            user_id=self.user2.id, username=self.user2.username, vo_id=self.vo.id, vo_name=self.vo.name,
+            owner_type=OwnerType.VO.value, creation_time=datetime(year=2023, month=10, day=9, tzinfo=utc),
+            status=CouponApply.Status.PENDING.value
+        )
+        scan_config = ScanConfig(
+            name='测试 scan，host and web', host_addr=' 10.8.8.6', web_url='https://test.cn ', remark='test remark')
+        scan_order, ress = OrderManager().create_scan_order(
+            service_id='scan_service_id',
+            service_name='scan_service_name',
+            pay_app_service_id='app_service_id',
+            instance_config=scan_config,
+            user_id=self.user1.id,
+            username=self.user1.username
+        )
+        apply2 = CouponApplyManager.create_apply(
+            service_type=CouponApply.ServiceType.SCAN.value, odc=None,
+            service_id='scan1', service_name='scan_name1', service_name_en='scan_name_en1',
+            pay_service_id='pay_service_id6', face_value=Decimal('7000.12'),
+            expiration_time=datetime(year=2024, month=3, day=15, tzinfo=utc), apply_desc='申请原因7',
+            user_id=self.user1.id, username=self.user1.username, vo_id='', vo_name='',
+            owner_type=OwnerType.USER.value, creation_time=datetime(year=2024, month=3, day=9, tzinfo=utc),
+            status=CouponApply.Status.WAIT.value, order_id=scan_order.id
+        )
+
+        base_url = reverse('apply-api:coupon-detail', kwargs={'id': 'xx'})
+        r = self.client.get(base_url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+
+        self.client.force_login(self.user2)
+        r = self.client.get(base_url)
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=r)
+
+        # user2 no vo perm
+        base_url = reverse('apply-api:coupon-detail', kwargs={'id': apply1.id})
+        r = self.client.get(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        member = VoMember(vo=self.vo, user=self.user2, role=VoMember.Role.LEADER.value)
+        member.save(force_insert=True)
+        r = self.client.get(base_url)
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn([
+            'id', 'service_type', 'odc', 'service_id', 'service_name', 'service_name_en',
+            'face_value', 'expiration_time', 'apply_desc', 'creation_time', 'update_time',
+            'user_id', 'username', 'vo_id', 'vo_name', 'owner_type', 'order',
+            'status', 'approver', 'approved_amount', 'reject_reason', 'coupon_id'], r.data)
+        self.assertIsNone(r.data['order'])
+
+        # user2 by admin
+        query = parse.urlencode(query={'as-admin': ''})
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        self.odc1.users.add(self.user2)
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn([
+            'id', 'service_type', 'odc', 'service_id', 'service_name', 'service_name_en',
+            'face_value', 'expiration_time', 'apply_desc', 'creation_time', 'update_time',
+            'user_id', 'username', 'vo_id', 'vo_name', 'owner_type', 'order',
+            'status', 'approver', 'approved_amount', 'reject_reason', 'coupon_id'], r.data)
+
+        # user2 apply2
+        base_url = reverse('apply-api:coupon-detail', kwargs={'id': apply2.id})
+        r = self.client.get(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        # user2 by admin
+        query = parse.urlencode(query={'as-admin': ''})
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        self.user2.set_federal_admin()
+        query = parse.urlencode(query={'as-admin': ''})
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn([
+            'id', 'service_type', 'odc', 'service_id', 'service_name', 'service_name_en',
+            'face_value', 'expiration_time', 'apply_desc', 'creation_time', 'update_time',
+            'user_id', 'username', 'vo_id', 'vo_name', 'owner_type', 'order',
+            'status', 'approver', 'approved_amount', 'reject_reason', 'coupon_id'], r.data)
+        self.assertKeysIn([
+            "id", "order_type", "status", "total_amount", "pay_amount",
+            "service_id", "service_name", "resource_type", "instance_config", "period",
+            "payment_time", "pay_type", "creation_time", "user_id", "username", 'number',
+            "vo_id", "vo_name", "owner_type", "cancelled_time", "app_service_id", 'trading_status'
+        ], r.data['order'])
+
+        r = self.client.get(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        self.client.logout()
+        self.client.force_login(self.user1)
+        r = self.client.get(base_url)
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn([
+            'id', 'service_type', 'odc', 'service_id', 'service_name', 'service_name_en',
+            'face_value', 'expiration_time', 'apply_desc', 'creation_time', 'update_time',
+            'user_id', 'username', 'vo_id', 'vo_name', 'owner_type', 'order',
+            'status', 'approver', 'approved_amount', 'reject_reason', 'coupon_id'], r.data)
+        self.assertKeysIn([
+            "id", "order_type", "status", "total_amount", "pay_amount",
+            "service_id", "service_name", "resource_type", "instance_config", "period",
+            "payment_time", "pay_type", "creation_time", "user_id", "username", 'number',
+            "vo_id", "vo_name", "owner_type", "cancelled_time", "app_service_id", 'trading_status'
+        ], r.data['order'])

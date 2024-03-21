@@ -72,7 +72,7 @@ class CouponApplyManager:
         if select_for_update:
             apply = CouponApply.objects.select_related('odc').select_for_update().filter(id=_id).first()
         else:
-            apply = CouponApply.objects.select_related('odc').filter(id=_id).first()
+            apply = CouponApply.objects.select_related('odc', 'order').filter(id=_id).first()
 
         if apply is None or apply.deleted:
             raise errors.TargetNotExist(message=_('申请记录不存在'))
@@ -90,7 +90,7 @@ class CouponApplyManager:
         if select_for_update:
             apply = CouponApply.objects.select_related('odc').select_for_update().filter(id=_id).first()
         else:
-            apply = CouponApply.objects.select_related('odc').filter(id=_id).first()
+            apply = CouponApply.objects.select_related('odc', 'order').filter(id=_id).first()
 
         if apply is None or apply.deleted:
             raise errors.TargetNotExist(message=_('申请记录不存在'))

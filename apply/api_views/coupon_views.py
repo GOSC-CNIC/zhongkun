@@ -796,6 +796,87 @@ class CouponApplyViewSet(NormalGenericViewSet):
 
         return Response(data=None, status=200)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('资源券申请记录详情查询'),
+        manual_parameters=NormalGenericViewSet.PARAMETERS_AS_ADMIN,
+        responses={
+            204: ''
+        }
+    )
+    def retrieve(self, request, *args, **kwargs):
+        """
+        资源券申请记录详情查询
+
+            http code 200:
+            {
+                "id": "1spdsf5d4rf48ecpwx82eya23",
+                "service_type": "scan",
+                "odc": null,
+                "service_id": "scan1",
+                "service_name": "scan_name1",
+                "service_name_en": "scan_name_en1",
+                "face_value": "7000.12",
+                "expiration_time": "2024-03-15T00:00:00Z",
+                "apply_desc": "申请说明",
+                "creation_time": "2024-03-09T00:00:00Z",
+                "update_time": "2024-03-09T00:00:00Z",
+                "user_id": "1snj1fmahymxr60ary3t10gyt",
+                "username": "test",
+                "vo_id": "",
+                "vo_name": "",
+                "owner_type": "user",
+                "status": "wait",
+                "approver": "",
+                "reject_reason": "",
+                "approved_amount": "0.00",
+                "coupon_id": "",
+                "order": {          # 关联订单，未关联为 null
+                    "id": "2024032107101265626013",
+                    "order_type": "new",
+                    "status": "unpaid",
+                    "total_amount": "333.33",
+                    "pay_amount": "0.00",
+                    "payable_amount": "220.00",
+                    "balance_amount": "0.00",
+                    "coupon_amount": "0.00",
+                    "service_id": "scan_service_id",
+                    "service_name": "scan_service_name",
+                    "resource_type": "scan",
+                    "instance_config": {
+                        "name": "host and web",
+                        "host_addr": "10.8.8.6",
+                        "web_url": "https://test.cn",
+                        "remark": "test remark"
+                    },
+                    "period": 0,
+                    "payment_time": null,
+                    "pay_type": "prepaid",
+                    "creation_time": "2024-03-21T07:10:12.656447Z",
+                    "user_id": "1snj1fmahymxr60ary3t10gyt",
+                    "username": "test",
+                    "vo_id": "",
+                    "vo_name": "",
+                    "owner_type": "user",
+                    "cancelled_time": null,
+                    "app_service_id": "app_service_id",
+                    "trading_status": "opening",
+                    "number": 1
+                }
+            }
+        """
+        apply_id = kwargs[self.lookup_field]
+        try:
+            if self.is_as_admin_request(request):
+                apply = CouponApplyManager.get_admin_perm_apply(
+                    _id=apply_id, admin_user=request.user, select_for_update=False)
+            else:
+                apply = CouponApplyManager.get_perm_apply(
+                    _id=apply_id, user=request.user, select_for_update=False)
+        except errors.Error as exc:
+            return self.exception_response(exc)
+
+        return Response(data=serializers.CouponDetailSerializer(apply).data)
+
     def get_serializer_class(self):
         if self.action == 'list':
             return serializers.CouponApplySerializer
