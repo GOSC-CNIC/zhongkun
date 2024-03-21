@@ -16,7 +16,7 @@ from bill.models import CashCoupon, PayAppService, PayApp
 from servers.models import ServiceConfig
 from storage.models import ObjectsService
 from monitor.models import MonitorWebsiteVersion
-from scan.models import VtScanService
+from scan.models import VtScanService, VtTask
 from apply.models import CouponApply
 from apply.managers import CouponApplyManager
 from order.models import Price
@@ -33,6 +33,29 @@ class CouponApplyTests(MyAPITestCase):
         self.vo.save()
         self.odc1 = get_or_create_org_data_center(name='odc1')
         self.odc2 = get_or_create_org_data_center(name='odc2')
+
+        price = Price(
+            vm_ram=Decimal('0.012'),
+            vm_cpu=Decimal('0.066'),
+            vm_disk=Decimal('0.122'),
+            vm_pub_ip=Decimal('0.66'),
+            vm_upstream=Decimal('0.33'),
+            vm_downstream=Decimal('1.44'),
+            vm_disk_snap=Decimal('0.65'),
+            disk_size=Decimal('1.02'),
+            disk_snap=Decimal('0.77'),
+            obj_size=Decimal('0'),
+            obj_upstream=Decimal('0'),
+            obj_downstream=Decimal('0'),
+            obj_replication=Decimal('0'),
+            obj_get_request=Decimal('0'),
+            obj_put_request=Decimal('0'),
+            scan_host=Decimal('111.11'),
+            scan_web=Decimal('222.22'),
+            prepaid_discount=66
+        )
+        price.save(force_insert=True)
+        self.price = price
 
     def test_list(self):
         apply1 = CouponApplyManager.create_apply(
@@ -1000,6 +1023,28 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(apply1.reject_reason, '')
         self.assertEqual(apply1.approver, '')
 
+        # 关联订单的申请
+        scan_config = ScanConfig(
+            name='测试 scan，host and web', host_addr=' 10.8.8.6', web_url='https://test.cn ', remark='test remark')
+        scan_order, ress = OrderManager().create_scan_order(
+            service_id=scan_service.id,
+            service_name=scan_service.name,
+            pay_app_service_id=scan_service.pay_app_service_id,
+            instance_config=scan_config,
+            user_id=self.user1.id,
+            username=self.user1.username
+        )
+        apply1.order_id = scan_order.id
+        apply1.save(update_fields=['order_id'])
+        base_url = reverse('apply-api:coupon-detail', kwargs={'id': apply1.id})
+        r = self.client.put(base_url, data={
+            "face_value": "1666.33",
+            "expiration_time": expiration_time.isoformat(),
+            "apply_desc": "scan 申请说明ss22qwdqw",
+            "service_type": CouponApply.ServiceType.SCAN.value
+        })
+        self.assertErrorResponse(status_code=409, code='Conflict', response=r)
+
     def test_delete(self):
         apply1 = CouponApplyManager.create_apply(
             service_type=CouponApply.ServiceType.STORAGE.value, odc=self.odc1,
@@ -1395,28 +1440,6 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(coupon2.issuer, self.user1.username)
 
     def test_order_apply(self):
-        price = Price(
-            vm_ram=Decimal('0.012'),
-            vm_cpu=Decimal('0.066'),
-            vm_disk=Decimal('0.122'),
-            vm_pub_ip=Decimal('0.66'),
-            vm_upstream=Decimal('0.33'),
-            vm_downstream=Decimal('1.44'),
-            vm_disk_snap=Decimal('0.65'),
-            disk_size=Decimal('1.02'),
-            disk_snap=Decimal('0.77'),
-            obj_size=Decimal('0'),
-            obj_upstream=Decimal('0'),
-            obj_downstream=Decimal('0'),
-            obj_replication=Decimal('0'),
-            obj_get_request=Decimal('0'),
-            obj_put_request=Decimal('0'),
-            scan_host=Decimal('111.11'),
-            scan_web=Decimal('222.22'),
-            prepaid_discount=66
-        )
-        price.save(force_insert=True)
-
         # 余额支付有关配置
         app = PayApp(name='app', id=settings.PAYMENT_BALANCE['app_id'])
         app.save(force_insert=True)
@@ -1527,3 +1550,54 @@ class CouponApplyTests(MyAPITestCase):
         apply1 = CouponApply.objects.first()
         self.assertEqual(apply1.face_value, scan_order.payable_amount)
         self.assertEqual(apply1.order_id, scan_order.id)
+
+        # 审批通过自动支付订单交付资源test
+        base_url = reverse('apply-api:coupon-pass', kwargs={'id': apply1.id})
+        query = parse.urlencode(query={'approved_amount': '66.12'})
+        r = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        # fed admin
+        self.user1.set_federal_admin()
+
+        # 只能审批挂起的
+        r = self.client.post(base_url)
+        self.assertErrorResponse(status_code=409, code='Conflict', response=r)
+
+        apply1.status = CouponApply.Status.PENDING.value
+        apply1.save(update_fields=['status'])
+
+        # 关联订单不能审批部分金额
+        query = parse.urlencode(query={'approved_amount': '66.12'})
+        r = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=409, code='Conflict', response=r)
+
+        # ok
+        self.assertEqual(CashCoupon.objects.count(), 0)
+        self.assertEqual(VtTask.objects.count(), 0)
+        r = self.client.post(base_url)
+        self.assertEqual(r.status_code, 200)
+        apply1.refresh_from_db()
+        self.assertEqual(apply1.status, CouponApply.Status.PASS.value)
+        self.assertEqual(apply1.approver, self.user1.username)
+        self.assertEqual(apply1.approved_amount, scan_order.payable_amount)
+        self.assertEqual(CashCoupon.objects.count(), 1)
+        coupon2: CashCoupon = CashCoupon.objects.get(id=apply1.coupon_id)
+        self.assertEqual(coupon2.app_service_id, scan_service.pay_app_service_id)
+        self.assertEqual(coupon2.face_value, scan_order.payable_amount)
+        self.assertEqual(coupon2.balance, Decimal('0'))
+        self.assertEqual(coupon2.status, CashCoupon.Status.AVAILABLE.value)
+        self.assertEqual(coupon2.owner_type, OwnerType.USER.value)
+        self.assertEqual(coupon2.user_id, apply1.user_id)
+        self.assertIsNone(coupon2.vo_id)
+        self.assertEqual(coupon2.issuer, self.user1.username)
+        # 订单支付
+        scan_order.refresh_from_db()
+        self.assertEqual(scan_order.status, scan_order.Status.PAID.value)
+        self.assertEqual(scan_order.trading_status, scan_order.TradingStatus.COMPLETED.value)
+        # 任务交付
+        self.assertEqual(VtTask.objects.count(), 2)
+        host_task = VtTask.objects.filter(target='10.8.8.6', type=VtTask.TaskType.HOST.value).first()
+        self.assertEqual(host_task.user_id, scan_order.user_id)
+        web_task = VtTask.objects.filter(target='https://test.cn', type=VtTask.TaskType.WEB.value).first()
+        self.assertEqual(web_task.user_id, scan_order.user_id)

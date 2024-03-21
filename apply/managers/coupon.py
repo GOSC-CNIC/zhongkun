@@ -268,7 +268,7 @@ class CouponApplyManager:
             return apply
 
     @staticmethod
-    def pass_apply(apply_id: str, admin_user, approved_amount: Union[Decimal, None]):
+    def pass_apply(apply_id: str, admin_user, approved_amount: Union[Decimal, None]) -> CouponApply:
         with transaction.atomic():
             apply = CouponApplyManager.get_admin_perm_apply(
                 _id=apply_id, admin_user=admin_user, select_for_update=True
@@ -276,6 +276,8 @@ class CouponApplyManager:
             if approved_amount:
                 if approved_amount > apply.face_value:
                     raise errors.ConflictError(message=_('指定的金额不能大于用户申请金额'))
+                if apply.order_id:
+                    raise errors.ConflictError(message=_('为订单提交的资源券申请不能指定金额'))
             else:
                 approved_amount = apply.face_value
 

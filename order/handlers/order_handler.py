@@ -4,7 +4,7 @@ from django.utils.translation import gettext as _
 from django.conf import settings
 from rest_framework.response import Response
 
-from core import errors
+from core import errors, site_configs_manager
 from api.viewsets import CustomGenericViewSet
 from order.deliver_resource import OrderResourceDeliverer
 from order.models import ResourceType, Order, Resource
@@ -215,7 +215,7 @@ class OrderHandler:
         try:
             subject = order.build_subject()
             order = OrderPaymentManager().pay_order(
-                order=order, app_id=settings.PAYMENT_BALANCE['app_id'], subject=subject,
+                order=order, app_id=site_configs_manager.get_pay_app_id(settings), subject=subject,
                 executor=request.user.username, remark='',
                 coupon_ids=coupon_ids, only_coupon=only_coupon,
                 required_enough_balance=True

@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from decimal import Decimal
 
+from django.conf import settings
 from django.utils import timezone as dj_timezone
 from django.utils.translation import gettext_lazy, gettext as _
 from django.db import transaction
@@ -12,7 +13,7 @@ from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
-from core import errors
+from core import errors, site_configs_manager
 from utils.time import iso_to_datetime
 from utils.model import OwnerType, ResourceType, PayType
 from api.viewsets import NormalGenericViewSet, serializer_error_msg
@@ -21,12 +22,14 @@ from vo.managers import VoManager
 from servers.managers import ServiceManager as ServerServiceManager
 from storage.managers import ObjectsServiceManager
 from monitor.models import MonitorWebsiteVersion
+from monitor.models import ErrorLog
 from scan.models import VtScanService
 from apply import serializers
 from apply.models import CouponApply
 from apply.managers.coupon import CouponApplyManager
 from order.models import Order
-from order.managers import OrderManager
+from order.managers import OrderManager, OrderPaymentManager
+from order.deliver_resource import OrderResourceDeliverer
 
 
 class CouponApplyViewSet(NormalGenericViewSet):
@@ -538,6 +541,7 @@ class CouponApplyViewSet(NormalGenericViewSet):
 
             * 只有云主机服务可以为vo组申请资源券
             * 服务类型为云主机和对象存储时，需要指定服务单元id
+            * 为订单提交的申请不允许修改
 
             http code 201:
             {
@@ -603,6 +607,9 @@ class CouponApplyViewSet(NormalGenericViewSet):
                     _id=kwargs[self.lookup_field], user=user, select_for_update=True)
                 if apply.status not in [CouponApply.Status.WAIT.value, CouponApply.Status.REJECT.value]:
                     raise errors.ConflictError(message=_('只允许修改“待审批”和“拒绝”状态的申请记录'))
+
+                if apply.order_id:
+                    raise errors.ConflictError(message=_('指定订单的申请记录不允许修改'))
 
                 if apply.status == CouponApply.Status.REJECT.value:
                     CouponApplyManager.check_apply_limit(
@@ -744,6 +751,7 @@ class CouponApplyViewSet(NormalGenericViewSet):
         审批通过资源券申请，需要数据中心管理员和联邦管理员权限
 
             * 只能审批挂起状态的申请，通过
+            * 为订单提交的资源券申请不能审批通过部分金额
             http code 200: ok
         """
         approved_amount = request.query_params.get('approved_amount', None)
@@ -757,10 +765,34 @@ class CouponApplyViewSet(NormalGenericViewSet):
                 return self.exception_response(errors.InvalidArgument(message=_('金额不能小于0')))
 
         try:
-            CouponApplyManager.pass_apply(
+            apply = CouponApplyManager.pass_apply(
                 apply_id=kwargs[self.lookup_field], admin_user=request.user, approved_amount=approved_amount)
         except errors.Error as exc:
             return self.exception_response(exc)
+
+        if not apply.order:
+            return Response(data=None, status=200)
+
+        # 申请关联订单，自动支付，交付资源
+        try:
+            order = apply.order
+            subject = order.build_subject()
+            order = OrderPaymentManager().pay_order(
+                order=order, app_id=site_configs_manager.get_pay_app_id(settings), subject=subject,
+                executor=apply.username, remark='',
+                coupon_ids=[apply.coupon_id], only_coupon=True,
+                required_enough_balance=True
+            )
+            OrderResourceDeliverer().deliver_order(order=order)
+        except Exception as exc:
+            try:
+                err_msg = f'自动支付订单，交付资源，[{type(exc)}] {str(exc)}'
+                method = request.method
+                full_path = request.get_full_path()
+                ErrorLog.add_log(
+                    status_code=0, method=method, full_path=full_path, message=err_msg, username=request.user.username)
+            except Exception:
+                pass
 
         return Response(data=None, status=200)
 
