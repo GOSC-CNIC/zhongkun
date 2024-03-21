@@ -14,7 +14,7 @@ from drf_yasg import openapi
 
 from core import errors
 from utils.time import iso_to_datetime
-from utils.model import OwnerType
+from utils.model import OwnerType, ResourceType, PayType
 from api.viewsets import NormalGenericViewSet, serializer_error_msg
 from api.paginations import NewPageNumberPagination100
 from vo.managers import VoManager
@@ -25,6 +25,8 @@ from scan.models import VtScanService
 from apply import serializers
 from apply.models import CouponApply
 from apply.managers.coupon import CouponApplyManager
+from order.models import Order
+from order.managers import OrderManager
 
 
 class CouponApplyViewSet(NormalGenericViewSet):
@@ -111,7 +113,8 @@ class CouponApplyViewSet(NormalGenericViewSet):
                         "approver": "",         # 审批人
                         "reject_reason": "",    # 审批拒绝时，拒绝原因
                         "approved_amount": "0.00",  # 审批通过的实际资源券金额
-                        "coupon_id": ""
+                        "coupon_id": "",
+                        "order_id": "xxx"       # 申请关联的订单id，为此订单申请资源券，可能null
                     }
                 ]
             }
@@ -232,7 +235,8 @@ class CouponApplyViewSet(NormalGenericViewSet):
                 "approver": "",
                 "reject_reason": "",
                 "approved_amount": "0.00",
-                "coupon_id": ""
+                "coupon_id": "",
+                "order_id": "null"
             }
 
             http code 400, 401, 403, 404, 409:
@@ -284,6 +288,132 @@ class CouponApplyViewSet(NormalGenericViewSet):
                 service_name_en=service_name_en, pay_service_id=pay_service_id,
                 face_value=face_value, expiration_time=expiration_time, apply_desc=apply_desc,
                 user_id=user_id, username=username, vo_id=vo_id, vo_name=vo_name, owner_type=owner_type
+            )
+        except errors.Error as exc:
+            return self.exception_response(exc)
+
+        return Response(data=serializers.CouponApplySerializer(apply).data, status=201)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('为订单提交资源券申请'),
+        responses={
+            201: ''
+        }
+    )
+    @action(methods=['post'], detail=False, url_path='order', url_name='order')
+    def for_order_apply(self, request, *args, **kwargs):
+        """
+        为订单提交资源券申请
+
+            * 需要是待支付状态的预付费订单
+
+            http code 201:
+            {
+                "id": "oft85v49io35e3kmsf2wd1yev",
+                "service_type": "server",
+                "odc": {                            # 数据中心，站点监控和安全扫描服务时 为 null
+                    "id": "of5z7h3pnagywp3f1g05fpx95",
+                    "name": "odc1",
+                    "name_en": "test_en"
+                },
+                "service_id": "ofma1ygtqkwpe9vjh43gr769v",  # 对应各服务类型的服务单元id
+                "service_name": "server1",
+                "service_name_en": "server1 en",
+                "face_value": "2000.12",
+                "expiration_time": "2024-03-18T06:44:32Z",
+                "apply_desc": "申请说明",
+                "creation_time": "2024-03-14T02:44:32.576110Z",
+                "update_time": "2024-03-14T02:44:32.576110Z",
+                "user_id": "of4wiym05t41g7zyov60ifofv",
+                "username": "test",
+                "vo_id": "",
+                "vo_name": "",
+                "owner_type": "user",
+                "status": "wait",
+                "approver": "",
+                "reject_reason": "",
+                "approved_amount": "0.00",
+                "coupon_id": "",
+                "order_id": "xxx"       # 申请关联的订单id，为此订单申请资源券
+            }
+
+            http code 400, 401, 403, 404, 409:
+            {
+                "code": "BadRequest",
+                "message": "xxx"
+            }
+            * code
+            400：BadRequest: 请求有误、参数无效
+            403：AccessDenied: 你没有订单管理权限
+            404：
+                VoNotExist：项目组不存在
+                TargetNotExist：云主机、对象存储服务单元不存在
+            409：Conflict：
+                    服务单元停止服务中 / 指定服务可能未注册钱包结算单元 / 订单不是未支付状态 / 订单不在交易中，订单交易可能已完成或关闭
+                    不是预付费订单 / 订单应付金额不大于0
+                TooManyApply: 已有多个申请待审批，暂不能提交更多的申请
+        """
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid(raise_exception=False):
+            msg = serializer_error_msg(serializer.errors)
+            exc = errors.BadRequest(message=msg)
+            return self.exception_response(exc)
+
+        data = serializer.validated_data
+        apply_desc = data['apply_desc']
+        order_id = data['order_id']
+        try:
+            order = OrderManager().get_permission_order(
+                order_id=order_id, user=request.user, check_permission=True, read_only=False)
+            if order.status != Order.Status.UNPAID.value:
+                raise errors.ConflictError(message=_('订单不是未支付状态'))
+            if order.trading_status != Order.TradingStatus.OPENING.value:
+                raise errors.ConflictError(message=_('订单不在交易中，订单交易可能已完成或关闭'))
+            if order.pay_type != PayType.PREPAID.value:
+                raise errors.ConflictError(message=_('不是预付费订单'))
+
+            face_value = order.payable_amount
+            if face_value <= Decimal('0'):
+                raise errors.ConflictError(message=_('订单应付金额不大于0'))
+
+            service_type_map = {
+                ResourceType.VM.value: CouponApply.ServiceType.SERVER.value,
+                ResourceType.DISK.value: CouponApply.ServiceType.SERVER.value,
+                ResourceType.SCAN.value: CouponApply.ServiceType.SCAN.value
+            }
+            if order.resource_type not in service_type_map:
+                raise errors.ConflictError(message=_('订单订购资源类型不支持资源券申请'))
+
+            service_type = service_type_map[order.resource_type]
+            service_id = order.service_id
+        except errors.Error as exc:
+            return self.exception_response(exc)
+
+        if order.owner_type == OwnerType.VO.value:
+            user = request.user
+            user_id = user.id
+            username = user.username
+            vo_id = order.vo_id
+            vo_name = order.vo_name
+            owner_type = OwnerType.VO.value
+        else:
+            vo_id = ''
+            vo_name = ''
+            user_id = order.user_id
+            username = order.username
+            owner_type = OwnerType.USER.value
+
+        try:
+            CouponApplyManager.check_apply_limit(owner_type=owner_type, user_id=user_id, vo_id=vo_id)
+            odc, service_id, service_name, service_name_en, pay_service_id = self._get_service_info(
+                service_type=service_type, service_id=service_id
+            )
+            apply = CouponApplyManager.create_apply(
+                service_type=service_type, odc=odc, service_id=service_id, service_name=service_name,
+                service_name_en=service_name_en, pay_service_id=pay_service_id,
+                face_value=face_value, expiration_time=dj_timezone.now() + timedelta(days=30), apply_desc=apply_desc,
+                user_id=user_id, username=username, vo_id=vo_id, vo_name=vo_name, owner_type=owner_type,
+                order_id=order_id
             )
         except errors.Error as exc:
             return self.exception_response(exc)
@@ -641,5 +771,7 @@ class CouponApplyViewSet(NormalGenericViewSet):
             return serializers.CouponApplyCreateSerializer
         elif self.action == 'update':
             return serializers.CouponApplyUpdateSerializer
+        elif self.action == 'for_order_apply':
+            return serializers.OrderCouponApplySerializer
 
         return Serializer

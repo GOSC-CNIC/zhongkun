@@ -24,7 +24,7 @@ class CouponApplyManager:
             apply_desc: str, user_id: str, username: str, vo_id: str, vo_name: str, owner_type: str,
             creation_time: datetime = None, status: str = CouponApply.Status.WAIT.value,
             approver: str = '', reject_reason: str = '', approved_amount: Decimal = Decimal('0.00'),
-            coupon_id: str = '', deleted: bool = False, delete_user: str = ''
+            coupon_id: str = '', deleted: bool = False, delete_user: str = '', order_id: str = None
     ):
         if not creation_time:
             creation_time = dj_timezone.now()
@@ -36,7 +36,7 @@ class CouponApplyManager:
             user_id=user_id, username=username, vo_id=vo_id, vo_name=vo_name, owner_type=owner_type,
             creation_time=creation_time, update_time=creation_time,
             status=status, approver=approver, reject_reason=reject_reason, approved_amount=approved_amount,
-            coupon_id=coupon_id, deleted=deleted, delete_user=delete_user
+            coupon_id=coupon_id, deleted=deleted, delete_user=delete_user, order_id=order_id
         )
         apply.save(force_insert=True)
         return apply

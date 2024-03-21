@@ -7,11 +7,11 @@ from utils.model import NoDeleteSelectModelAdmin
 
 @admin.register(CouponApply)
 class CouponApplyAdmin(NoDeleteSelectModelAdmin):
-    list_display = ['id', 'service_type', 'odc', 'service_name', 'face_value', 'expiration_time',
+    list_display = ['id', 'service_type', 'odc', 'service_name', 'face_value', 'expiration_time', 'order',
                     'apply_desc', 'creation_time', 'username', 'vo_name', 'owner_type', 'status',
                     'approver', 'approved_amount', 'reject_reason', 'show_deleted', 'delete_user', 'coupon_id']
     list_display_links = ('id',)
-    list_select_related = ('odc',)
+    list_select_related = ('odc', 'order')
     list_filter = ('service_type', 'status', 'owner_type', 'deleted')
     search_fields = ('service_name', 'username', 'vo_name', 'approver')
 

@@ -4,6 +4,7 @@ from django.utils.translation import gettext_lazy as _
 from utils.model import UuidModel, OwnerType
 from users.models import UserProfile
 from service.models import OrgDataCenter
+from order.models import Order
 
 
 class CouponApply(UuidModel):
@@ -49,6 +50,10 @@ class CouponApply(UuidModel):
 
     deleted = models.BooleanField(verbose_name=_('删除'), default=False)
     delete_user = models.CharField(verbose_name=_('删除人'), max_length=128, blank=True, default='')
+    order = models.ForeignKey(
+        verbose_name=_('申请订单'), to=Order, on_delete=models.SET_NULL, null=True, related_name='+',
+        blank=True, default=None, help_text=_('为某个订单申请资源券，审批通过后自动支付订单')
+    )
 
     class Meta:
         db_table = 'apply_coupon'

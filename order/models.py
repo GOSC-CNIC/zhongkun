@@ -173,13 +173,10 @@ class Order(models.Model):
         self.save(update_fields=['status', 'trading_status', 'cancelled_time'])
 
     def build_subject(self):
-        resource_type = gettext('未知资源')
-        if self.resource_type == ResourceType.VM.value:
-            resource_type = gettext('云服务器')
-        elif self.resource_type == ResourceType.DISK.value:
-            resource_type = gettext('云硬盘')
-        elif self.resource_type == ResourceType.BUCKET.value:
-            resource_type = gettext('存储桶')
+        if self.resource_type in ResourceType:
+            resource_type = ResourceType(self.resource_type).label
+        else:
+            resource_type = gettext('未知资源')
 
         order_type = self.get_order_type_display()
         subject = f'{resource_type}({order_type})'

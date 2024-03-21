@@ -1,8 +1,9 @@
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
+from order.serializers import OrderSerializer
 
 
-class CouponApplySerializer(serializers.Serializer):
+class CouponApplyBaseSerializer(serializers.Serializer):
     id = serializers.CharField()
     service_type = serializers.CharField(label=_('服务类型'))
     odc = serializers.SerializerMethodField(label=_('数据中心'), method_name='get_odc')
@@ -36,6 +37,14 @@ class CouponApplySerializer(serializers.Serializer):
         return {'id': obj.odc.id, 'name': obj.odc.name, 'name_en': obj.odc.name_en}
 
 
+class CouponApplySerializer(CouponApplyBaseSerializer):
+    order_id = serializers.CharField(label=_('订单ID'), max_length=36)
+
+
+class CouponDetailSerializer(CouponApplyBaseSerializer):
+    order = OrderSerializer(label=_('订单'), allow_null=True)
+
+
 class CouponApplyUpdateSerializer(serializers.Serializer):
     face_value = serializers.DecimalField(label=_('面额'), max_digits=10, decimal_places=2, required=True)
     expiration_time = serializers.DateTimeField(
@@ -50,3 +59,7 @@ class CouponApplyCreateSerializer(CouponApplyUpdateSerializer):
     vo_id = serializers.CharField(
         label=_('项目组id'), max_length=36, required=False, help_text=_('为项目组申请'), allow_null=True, default=None)
 
+
+class OrderCouponApplySerializer(serializers.Serializer):
+    apply_desc = serializers.CharField(label=_('申请描述'), max_length=255, required=True)
+    order_id = serializers.CharField(label=_('项目组id'), max_length=36, required=True, help_text=_('为项目组申请'))

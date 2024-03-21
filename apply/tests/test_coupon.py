@@ -4,10 +4,12 @@ from datetime import datetime, timedelta
 
 from django.urls import reverse
 from django.utils import timezone as dj_timezone
+from django.conf import settings
 
 from core import errors
-from utils.model import OwnerType
+from utils.model import OwnerType, PayType, ResourceType
 from utils.time import utc
+from utils.decimal_utils import quantize_10_2
 from utils.test import get_or_create_org_data_center, get_or_create_user, MyAPITestCase
 from vo.models import VirtualOrganization
 from bill.models import CashCoupon, PayAppService, PayApp
@@ -17,6 +19,8 @@ from monitor.models import MonitorWebsiteVersion
 from scan.models import VtScanService
 from apply.models import CouponApply
 from apply.managers import CouponApplyManager
+from order.models import Price
+from order.managers import OrderManager, ScanConfig
 
 
 class CouponApplyTests(MyAPITestCase):
@@ -116,7 +120,7 @@ class CouponApplyTests(MyAPITestCase):
         self.assertKeysIn([
             'id', 'service_type', 'odc', 'service_id', 'service_name', 'service_name_en',
             'face_value', 'expiration_time', 'apply_desc', 'creation_time', 'update_time',
-            'user_id', 'username', 'vo_id', 'vo_name', 'owner_type',
+            'user_id', 'username', 'vo_id', 'vo_name', 'owner_type', 'order_id',
             'status', 'approver', 'approved_amount', 'reject_reason', 'coupon_id'], r.data['results'][0])
         self.assertEqual(r.data['results'][0]['id'], apply8.id)
 
@@ -385,7 +389,7 @@ class CouponApplyTests(MyAPITestCase):
         self.assertKeysIn([
             'id', 'service_type', 'odc', 'service_id', 'service_name', 'service_name_en',
             'face_value', 'expiration_time', 'apply_desc', 'creation_time', 'update_time',
-            'user_id', 'username', 'vo_id', 'vo_name', 'owner_type',
+            'user_id', 'username', 'vo_id', 'vo_name', 'owner_type', 'order_id',
             'status', 'approver', 'approved_amount', 'reject_reason', 'coupon_id'], r.data)
         qs = CouponApply.objects.all()
         self.assertEqual(len(qs), 1)
@@ -405,6 +409,7 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(apply1.owner_type, OwnerType.VO.value)
         self.assertEqual(apply1.status, CouponApply.Status.WAIT.value)
         self.assertEqual(apply1.pay_service_id, server_service1.pay_app_service_id)
+        self.assertIsNone(apply1.order_id)
 
         # user
         expiration_time = (nt_utc + timedelta(hours=100)).replace(microsecond=0)
@@ -766,7 +771,7 @@ class CouponApplyTests(MyAPITestCase):
         self.assertKeysIn([
             'id', 'service_type', 'odc', 'service_id', 'service_name', 'service_name_en',
             'face_value', 'expiration_time', 'apply_desc', 'creation_time', 'update_time',
-            'user_id', 'username', 'vo_id', 'vo_name', 'owner_type',
+            'user_id', 'username', 'vo_id', 'vo_name', 'owner_type', 'order_id',
             'status', 'approver', 'approved_amount', 'reject_reason', 'coupon_id'], r.data)
 
         apply1.refresh_from_db()
@@ -1388,3 +1393,137 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(coupon2.user_id, apply2.user_id)
         self.assertIsNone(coupon2.vo_id)
         self.assertEqual(coupon2.issuer, self.user1.username)
+
+    def test_order_apply(self):
+        price = Price(
+            vm_ram=Decimal('0.012'),
+            vm_cpu=Decimal('0.066'),
+            vm_disk=Decimal('0.122'),
+            vm_pub_ip=Decimal('0.66'),
+            vm_upstream=Decimal('0.33'),
+            vm_downstream=Decimal('1.44'),
+            vm_disk_snap=Decimal('0.65'),
+            disk_size=Decimal('1.02'),
+            disk_snap=Decimal('0.77'),
+            obj_size=Decimal('0'),
+            obj_upstream=Decimal('0'),
+            obj_downstream=Decimal('0'),
+            obj_replication=Decimal('0'),
+            obj_get_request=Decimal('0'),
+            obj_put_request=Decimal('0'),
+            scan_host=Decimal('111.11'),
+            scan_web=Decimal('222.22'),
+            prepaid_discount=66
+        )
+        price.save(force_insert=True)
+
+        # 余额支付有关配置
+        app = PayApp(name='app', id=settings.PAYMENT_BALANCE['app_id'])
+        app.save(force_insert=True)
+        app_service1 = PayAppService(
+            name='scan app s1', app=app, orgnazition=self.odc1.organization
+        )
+        app_service1.save(force_insert=True)
+        scan_service = VtScanService(
+            name='scan', name_en='scan en', status=VtScanService.Status.DISABLE.value,
+            pay_app_service_id=app_service1.id
+        )
+        scan_service.save(force_insert=True)
+
+        # 扫描任务订单
+        scan_config = ScanConfig(
+            name='测试 scan，host and web', host_addr=' 10.8.8.6', web_url='https://test.cn ', remark='test remark')
+        scan_order, ress = OrderManager().create_scan_order(
+            service_id=scan_service.id,
+            service_name=scan_service.name,
+            pay_app_service_id=scan_service.pay_app_service_id,
+            instance_config=scan_config,
+            user_id=self.user1.id,
+            username=self.user1.username
+        )
+        scan_order.refresh_from_db()
+        self.assertEqual(scan_order.order_type, scan_order.OrderType.NEW.value)
+        self.assertEqual(scan_order.resource_type, ResourceType.SCAN.value)
+        self.assertEqual(scan_order.number, 1)
+        self.assertEqual(scan_order.status, scan_order.Status.UNPAID.value)
+        self.assertEqual(scan_order.period, 0)
+        self.assertEqual(scan_order.total_amount, Decimal('333.33'))
+        self.assertEqual(scan_order.payable_amount, quantize_10_2(Decimal('333.33') * Decimal('0.66')))
+
+        base_url = reverse('apply-api:coupon-order')
+        r = self.client.post(base_url)
+        self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
+        self.client.force_login(self.user2)
+
+        r = self.client.post(base_url, data={
+            "apply_desc": "申请说明",
+            "order_id": 'scan_order.id'
+        })
+        self.assertErrorResponse(status_code=404, code='NotFound', response=r)
+
+        r = self.client.post(base_url, data={
+            "apply_desc": "申请说明",
+            "order_id": scan_order.id
+        })
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+
+        self.client.logout()
+        self.client.force_login(self.user1)
+
+        scan_order.status = scan_order.Status.PAID.value
+        scan_order.trading_status = scan_order.TradingStatus.OPENING.value
+        scan_order.save(update_fields=['status', 'trading_status'])
+        r = self.client.post(base_url, data={
+            "apply_desc": "申请说明",
+            "order_id": scan_order.id
+        })
+        self.assertErrorResponse(status_code=409, code='Conflict', response=r)
+
+        scan_order.status = scan_order.Status.UNPAID.value
+        scan_order.trading_status = scan_order.TradingStatus.COMPLETED.value
+        scan_order.save(update_fields=['status', 'trading_status'])
+        r = self.client.post(base_url, data={
+            "apply_desc": "申请说明",
+            "order_id": scan_order.id
+        })
+        self.assertErrorResponse(status_code=409, code='Conflict', response=r)
+
+        scan_order.status = scan_order.Status.UNPAID.value
+        scan_order.trading_status = scan_order.TradingStatus.OPENING.value
+        scan_order.save(update_fields=['status', 'trading_status'])
+        r = self.client.post(base_url, data={
+            "apply_desc": "申请说明",
+            "order_id": scan_order.id
+        })
+        self.assertErrorResponse(status_code=409, code='Conflict', response=r)
+        scan_service.status = scan_service.Status.ENABLE.value
+        scan_service.save(update_fields=['status'])
+
+        r = self.client.post(base_url, data={
+            "apply_desc": "申请说明",
+            "order_id": scan_order.id
+        })
+        self.assertEqual(r.status_code, 201)
+        self.assertKeysIn([
+            'id', 'service_type', 'odc', 'service_id', 'service_name', 'service_name_en',
+            'face_value', 'expiration_time', 'apply_desc', 'creation_time', 'update_time',
+            'user_id', 'username', 'vo_id', 'vo_name', 'owner_type', 'order_id',
+            'status', 'approver', 'approved_amount', 'reject_reason', 'coupon_id'], r.data)
+        self.assertEqual(r.data['service_type'], CouponApply.ServiceType.SCAN.value)
+        self.assertIsNone(r.data['odc'])
+        self.assertEqual(r.data['service_id'], scan_service.id)
+        self.assertEqual(r.data['service_name'], scan_service.name)
+        self.assertEqual(r.data['service_name_en'], scan_service.name_en)
+        self.assertEqual(Decimal(r.data['face_value']), scan_order.payable_amount)
+        self.assertEqual(r.data['apply_desc'], '申请说明')
+        self.assertEqual(r.data['user_id'], self.user1.id)
+        self.assertEqual(r.data['username'], self.user1.username)
+        self.assertEqual(r.data['vo_id'], '')
+        self.assertEqual(r.data['vo_name'], '')
+        self.assertEqual(r.data['owner_type'], OwnerType.USER.value)
+        self.assertEqual(r.data['status'], CouponApply.Status.WAIT.value)
+        self.assertEqual(r.data['order_id'], scan_order.id)
+
+        apply1 = CouponApply.objects.first()
+        self.assertEqual(apply1.face_value, scan_order.payable_amount)
+        self.assertEqual(apply1.order_id, scan_order.id)
