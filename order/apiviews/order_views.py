@@ -8,7 +8,7 @@ from drf_yasg import openapi
 
 from api.viewsets import CustomGenericViewSet
 from api.paginations import OrderPageNumberPagination, NewPageNumberPagination
-from order.handlers.price_handler import DescribePriceHandler
+from order.handlers.price_handler import DescribePriceHandler, ScanTaskType
 from order import serializers
 from order.models import ResourceType, Order, Period
 from order.handlers.order_handler import OrderHandler, CASH_COUPON_BALANCE
@@ -32,7 +32,8 @@ class PriceViewSet(CustomGenericViewSet):
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=True,
-                description=gettext_lazy('资源类型') + f', {ResourceType.choices}'
+                description=gettext_lazy('资源类型') + f', {ResourceType.choices}',
+                enum=ResourceType.values
             ),
             openapi.Parameter(
                 name='pay_type',
@@ -53,28 +54,28 @@ class PriceViewSet(CustomGenericViewSet):
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=gettext_lazy('云主机配置样式id，资源类型为"vm"时，必须同时指定此参数')
+                description=gettext_lazy('云主机配置样式id，资源类型为"vm"时，必须同时指定此参数，云主机询价参数')
             ),
             openapi.Parameter(
                 name='external_ip',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_BOOLEAN,
                 required=False,
-                description=gettext_lazy('公网ip')
+                description=gettext_lazy('公网ip，云主机询价参数')
             ),
             openapi.Parameter(
                 name='system_disk_size',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_INTEGER,
                 required=False,
-                description=gettext_lazy('系统盘大小GiB')
+                description=gettext_lazy('系统盘大小GiB，云主机询价参数')
             ),
             openapi.Parameter(
                 name='data_disk_size',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_INTEGER,
                 required=False,
-                description=gettext_lazy('云硬盘大小GiB')
+                description=gettext_lazy('云硬盘大小GiB，云硬盘询价参数')
             ),
             openapi.Parameter(
                 name='number',
@@ -82,6 +83,18 @@ class PriceViewSet(CustomGenericViewSet):
                 type=openapi.TYPE_INTEGER,
                 required=False,
                 description=gettext_lazy('订购资源数量，默认为1')
+            ),
+            openapi.Parameter(
+                name='scan_task',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_ARRAY,
+                required=False,
+                collectionFormat="multi",
+                description=gettext_lazy('扫描任务类型，可以同时询价一种或两种任务，安全扫描询价参数'),
+                items=openapi.Items(
+                    type=openapi.TYPE_STRING,
+                    enum=ScanTaskType.values
+                ),
             ),
         ],
         responses={
@@ -94,6 +107,7 @@ class PriceViewSet(CustomGenericViewSet):
 
             * resource_type = bucket时，存储询价结果为 GiB*day 价格，订购资源数量number忽略
             * resource_type = vm、disk时，pay_type = postpaid，不指定时长period时（默认一天），询价结果为按量计费每天价格
+            * resource_type = scan时，询价结果为 扫描任务类型每次扫描价格，多个扫描任务类型每次扫描总价格，订购资源数量number忽略
 
             http code 200：
             {

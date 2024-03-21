@@ -10,8 +10,9 @@ from servers.tests.test_disk import create_disk_metadata
 from servers.tests import create_server_metadata
 from order.models import Price
 from order.managers import PriceManager
+from order.handlers.price_handler import ScanTaskType
 from utils.decimal_utils import quantize_10_2
-from utils.model import PayType
+from utils.model import PayType, ResourceType
 from utils.test import MyAPITestCase, get_or_create_user
 
 
@@ -38,6 +39,8 @@ class PriceTests(MyAPITestCase):
             obj_replication=Decimal('0'),
             obj_get_request=Decimal('0'),
             obj_put_request=Decimal('0'),
+            scan_host=Decimal('100'),
+            scan_web=Decimal('200'),
             prepaid_discount=66
         )
         price.save()
@@ -328,6 +331,46 @@ class PriceTests(MyAPITestCase):
         })
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 400)
+
+    def describe_price_scan(self):
+        price = self.price
+        prepaid_discount = Decimal.from_float(price.prepaid_discount / 100)
+
+        base_url = reverse('order-api:describe-price-list')
+        query = parse.urlencode(query={
+            'resource_type': ResourceType.SCAN.value,
+            'scan_task': [ScanTaskType.HOST.value]
+        }, doseq=True)
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['price'], response.data)
+        self.assertKeysIn(['original', 'trade'], response.data['price'])
+        original_p = price.scan_host
+        trade_p = original_p * prepaid_discount
+        self.assertEqual(str(quantize_10_2(original_p)), response.data['price']['original'])
+        self.assertEqual(str(quantize_10_2(trade_p)), response.data['price']['trade'])
+
+        query = parse.urlencode(query={
+            'resource_type': ResourceType.SCAN.value,
+            'scan_task': [ScanTaskType.WEB.value]
+        }, doseq=True)
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        original_p = price.scan_web
+        trade_p = original_p * prepaid_discount
+        self.assertEqual(str(quantize_10_2(original_p)), response.data['price']['original'])
+        self.assertEqual(str(quantize_10_2(trade_p)), response.data['price']['trade'])
+
+        query = parse.urlencode(query={
+            'resource_type': ResourceType.SCAN.value,
+            'scan_task': [ScanTaskType.WEB.value, ScanTaskType.HOST.value]
+        }, doseq=True)
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        original_p = price.scan_web + price.scan_host
+        trade_p = original_p * prepaid_discount
+        self.assertEqual(str(quantize_10_2(original_p)), response.data['price']['original'])
+        self.assertEqual(str(quantize_10_2(trade_p)), response.data['price']['trade'])
 
     def test_describe_renewal_price(self):
         price = self.price

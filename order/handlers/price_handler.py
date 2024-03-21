@@ -2,6 +2,7 @@ from datetime import datetime
 
 from django.utils.translation import gettext as _
 from django.utils import timezone
+from django.db import models
 from rest_framework.response import Response
 
 from core import errors
@@ -13,6 +14,11 @@ from order.managers import PriceManager
 from utils.decimal_utils import quantize_10_2
 from utils.time import iso_utc_to_datetime
 from servers.managers import ServerManager, DiskManager
+
+
+class ScanTaskType(models.TextChoices):
+    HOST = 'host', 'Host'
+    WEB = 'web', 'Web'
 
 
 class DescribePriceHandler:
@@ -56,8 +62,16 @@ class DescribePriceHandler:
             if number > 1:
                 original_price = original_price * number
                 trade_price = trade_price * number
-        else:
+        elif resource_type == ResourceType.BUCKET.value:
             original_price, trade_price = pmgr.describe_bucket_price()
+        elif resource_type == ResourceType.SCAN.value:
+            scan_tasks = data['scan_task']
+            original_price, trade_price = pmgr.describe_scan_price(
+                has_host=ScanTaskType.HOST.value in scan_tasks,
+                has_web=ScanTaskType.WEB.value in scan_tasks
+            )
+        else:
+            return view.exception_response(errors.BadRequest(message=_('资源类型不支持询价')))
 
         return Response(data={
             'price': {
@@ -81,6 +95,9 @@ class DescribePriceHandler:
         elif resource_type == ResourceType.DISK:
             data = self.validate_disk_params(request)
             return ResourceType.DISK, data
+        elif resource_type == ResourceType.SCAN.value:
+            data = self.validate_scan_params(request)
+            return ResourceType.SCAN.value, data
         else:
             return ResourceType.BUCKET, {}
 
@@ -196,6 +213,24 @@ class DescribePriceHandler:
             'data_disk_size': data_disk_size,
             'period': period,
             'number': number
+        }
+
+    @staticmethod
+    def validate_scan_params(request):
+        scan_task = request.query_params.getlist('scan_task', [])
+        if not scan_task:
+            raise errors.InvalidArgument(message=_('请指定要询价的安全扫描任务类型'))
+
+        tasks = set(scan_task)
+        if len(tasks) != len(scan_task):
+            raise errors.InvalidArgument(message=_('指定的安全扫描任务类型重复'))
+
+        for tt in tasks:
+            if tt not in ScanTaskType.values:
+                raise errors.InvalidArgument(message=_('指定的安全扫描任务类型无效'))
+
+        return {
+            'scan_task': tasks
         }
 
     def _describe_renewal_price_validate_params(self, request):
