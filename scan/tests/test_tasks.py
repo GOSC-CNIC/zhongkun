@@ -271,7 +271,7 @@ class ScanTaskTests(MyAPITestCase):
         self.assertEqual(r.data["results"][0]["id"], user_scan_task4.id)
         self.assertEqual(r.data["results"][1]["id"], user_scan_task3.id)
 
-    def test_create_website_task(self):
+    def test_create_task(self):
         # 价格
         price = Price(
             vm_ram=Decimal('0.012'),

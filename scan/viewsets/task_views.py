@@ -4,7 +4,8 @@ from rest_framework.permissions import IsAuthenticated
 from django.utils.translation import gettext_lazy
 from api.paginations import ScanTaskPageNumberPagination
 from api.viewsets import CustomGenericViewSet
-from scan.handlers.task_handler import TaskHandler, TaskType
+from scan.models import VtTask
+from scan.handlers.task_handler import TaskHandler
 from scan.serializers import ScanTaskOrderCreateSerializer, ScanTaskListSerializer
 from rest_framework.serializers import Serializer
 
@@ -23,7 +24,8 @@ class ScanTaskViewSet(CustomGenericViewSet):
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=False,
-                description=f"扫描类型筛选，{TaskType.values}",
+                description=f"扫描类型筛选，{VtTask.TaskType.values}",
+                enum=VtTask.TaskType.values
             )
         ],
         responses={200: ""},

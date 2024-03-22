@@ -151,6 +151,7 @@ class ScanZapManager:
         except Exception as e:
             return False
 
+
 class TaskManager:
     @staticmethod
     def reset_task_status(task: VtTask):
@@ -168,42 +169,17 @@ class TaskManager:
             return False
 
     @staticmethod
-    def get_user_task_queryset(user_id: str, type: str = None):
+    def filter_task_queryset(user_id: str, _type: str = None):
         """
         获取用户任务查询集
-        type: one in [None, web, host]
         """
-        q = models.Q(user_id=user_id)
-        if type:
-            q = q & models.Q(type=type)
+        lookups = {}
+        if user_id:
+            lookups['user_id'] = user_id
+        if _type:
+            lookups['type'] = _type
 
-        return (
-            VtTask.objects.select_related('user')
-            .filter(q)
-            .order_by('-create_time')
-            .distinct()
-        )
-
-    @staticmethod
-    def get_user_web_tasks(user_id: str):
-        """
-        获取用户的站点扫描任务
-        """
-        return TaskManager.get_user_task_queryset(user_id=user_id, type='web')
-
-    @staticmethod
-    def get_user_host_tasks(user_id: str):
-        """
-        获取用户的主机扫描任务
-        """
-        return TaskManager.get_user_task_queryset(user_id=user_id, type='host')
-
-    @staticmethod
-    def get_user_all_tasks(user_id: str):
-        """
-        获取用户的所有任务
-        """
-        return TaskManager.get_user_task_queryset(user_id=user_id)
+        return VtTask.objects.select_related('user').filter(**lookups).order_by('-create_time').distinct()
 
     @staticmethod
     def create_task(

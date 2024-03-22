@@ -40,7 +40,7 @@ class VtScanService(UuidModel):
     def get_instance(cls):
         inst = cls.objects.order_by('-add_time').first()
         if inst is None:
-            raise errors.NotFound(message=_(f'安全扫描服务配置信息不存在。'))
+            raise errors.NotFound(message=_('安全扫描服务配置信息不存在。'))
         return inst
     
     
