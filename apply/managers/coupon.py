@@ -14,6 +14,7 @@ from service.odc_manager import OrgDataCenterManager
 from bill.managers.cash_coupon import CashCouponManager
 from vo.managers import VoManager
 from apply.models import CouponApply
+from order.models import Order
 
 
 class CouponApplyManager:
@@ -283,6 +284,11 @@ class CouponApplyManager:
 
             if apply.status != CouponApply.Status.PENDING.value:
                 raise errors.ConflictError(message=_('只能审批挂起状态申请'))
+
+            if apply.order:
+                if apply.order.status != Order.Status.UNPAID.value:
+                    raise errors.ConflictError(message=_(
+                        '此申请记录是为订单支付提交的申请，申请关联的订单现在不是未支付，订单可能已支付或取消。'))
 
             # 创建券
             issuer = admin_user.username

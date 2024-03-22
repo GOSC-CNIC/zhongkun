@@ -1572,6 +1572,14 @@ class CouponApplyTests(MyAPITestCase):
         r = self.client.post(f'{base_url}?{query}')
         self.assertErrorResponse(status_code=409, code='Conflict', response=r)
 
+        # 关联订单不是未支付状态
+        scan_order.status = scan_order.Status.PAID.value
+        scan_order.save(update_fields=['status'])
+        r = self.client.post(base_url)
+        self.assertErrorResponse(status_code=409, code='Conflict', response=r)
+        scan_order.status = scan_order.Status.UNPAID.value
+        scan_order.save(update_fields=['status'])
+
         # ok
         self.assertEqual(CashCoupon.objects.count(), 0)
         self.assertEqual(VtTask.objects.count(), 0)
