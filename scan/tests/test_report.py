@@ -75,8 +75,7 @@ class ScanReportTests(MyAPITestCase):
             target="http://test.com/",
             type="web",
             user=self.user,
-            remark="user task test",
-            payment_history_id="testpaymenthistoryid1",
+            remark="user task test"
         )
         user_scan_task1.save(force_insert=True)
 
@@ -92,7 +91,6 @@ class ScanReportTests(MyAPITestCase):
             type="web",
             user=self.user,
             remark="user task test",
-            payment_history_id="testpaymenthistoryid2",
             task_status="done",
             report=report,
         )

@@ -74,8 +74,7 @@ class ScanWorkerTests(MyAPITestCase):
             target="http://test.com/",
             type="web",
             user=self.user,
-            remark="user task test",
-            payment_history_id="testpaymenthistoryid1",
+            remark="user task test"
         )
         user_scan_task1.save(force_insert=True)
         user_scan_task2 = VtTask(
@@ -83,8 +82,7 @@ class ScanWorkerTests(MyAPITestCase):
             target="127.0.0.1",
             type="host",
             user=self.user,
-            remark="user task test",
-            payment_history_id="testpaymenthistoryid2",
+            remark="user task test"
         )
         user_scan_task2.save(force_insert=True)
         user_scan_task3 = VtTask(
@@ -92,8 +90,7 @@ class ScanWorkerTests(MyAPITestCase):
             target="127.0.0.1",
             type="host",
             user=self.user,
-            remark="user task test",
-            payment_history_id="testpaymenthistoryid2",
+            remark="user task test"
         )
         user_scan_task3.save(force_insert=True)
         user_scan_task4 = VtTask(
@@ -101,8 +98,7 @@ class ScanWorkerTests(MyAPITestCase):
             target="http://test.com/",
             type="web",
             user=self.user,
-            remark="user task test",
-            payment_history_id="testpaymenthistoryid1",
+            remark="user task test"
         )
         user_scan_task4.save(force_insert=True)
         self.assertEqual(user_scan_task2.task_status, "queued")

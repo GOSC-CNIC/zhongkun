@@ -194,8 +194,8 @@ class Migration(migrations.Migration):
                 ),
             ],
             options={
-                "verbose_name": "服务价格结算配置",
-                "verbose_name_plural": "服务价格结算配置",
+                "verbose_name": "服务配置",
+                "verbose_name_plural": "服务配置",
                 "ordering": ["-add_time"],
             },
         ),

@@ -1,12 +1,16 @@
-from decimal import Decimal
 from django.db import models
-from django.utils.translation import gettext_lazy as _
-from utils.model import UuidModel
+from django.db import transaction
+from django.utils.translation import gettext, gettext_lazy as _
+from django.core.exceptions import ValidationError
+from django.conf import settings
 from django.contrib.auth import get_user_model
 
+from utils.model import UuidModel
 from core import errors
+from core import site_configs_manager
 
 User = get_user_model()
+
 
 class VtScanService(UuidModel):
     """
@@ -21,10 +25,6 @@ class VtScanService(UuidModel):
     name_en = models.CharField(verbose_name=_('服务英文名称'), max_length=255, default='')
     status = models.CharField(verbose_name=_('服务状态'), max_length=32, choices=Status.choices, default=Status.ENABLE)
     remark = models.CharField(max_length=255, default='', blank=True, verbose_name=_('备注'))
-    host_scan_price = models.DecimalField(
-        verbose_name=_('主机扫描单价'), max_digits=10, decimal_places=2, default=Decimal(0))
-    web_scan_price = models.DecimalField(
-        verbose_name=_('站点扫描单价'), max_digits=10, decimal_places=2, default=Decimal(0))
     pay_app_service_id = models.CharField(
         verbose_name=_('余额结算APP服务ID'), max_length=36, blank=True, default='',
         help_text=_('此服务对应的APP结算服务单元（注册在余额结算中的APP服务）id，扣费时需要此id，用于指定哪个服务发生的扣费；'
@@ -33,15 +33,99 @@ class VtScanService(UuidModel):
     
     class Meta:
         ordering = ['-add_time']
-        verbose_name = _('服务价格结算配置')
+        verbose_name = _('服务配置')
         verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return f'{self.name} [{self.get_status_display()}]'
     
     @classmethod
     def get_instance(cls):
         inst = cls.objects.order_by('-add_time').first()
         if inst is None:
-            raise errors.NotFound(message=_('安全扫描服务配置信息不存在。'))
+            raise errors.NotFound(message=gettext('安全扫描服务配置信息不存在。'))
+
         return inst
+
+    def sync_to_pay_app_service(self):
+        """
+        当name修改时，同步变更到 对应的钱包的pay app service
+        """
+        from bill.models import PayAppService
+        try:
+            app_service = PayAppService.objects.filter(id=self.pay_app_service_id).first()
+            if app_service:
+                update_fields = []
+                if app_service.name != self.name:
+                    app_service.name = self.name
+                    update_fields.append('name')
+
+                if app_service.name_en != self.name_en:
+                    app_service.name_en = self.name_en
+                    update_fields.append('name_en')
+
+                if self.id and app_service.service_id != self.id:
+                    app_service.service_id = self.id
+                    update_fields.append('service_id')
+
+                if update_fields:
+                    app_service.save(update_fields=update_fields)
+        except Exception as exc:
+            raise ValidationError(str(exc))
+
+    def check_or_register_pay_app_service(self):
+        """
+        如果指定结算服务单元，确认结算服务单元是否存在有效；未指定结算服务单元时为云主机服务单元注册对应的钱包结算服务单元
+        :raises: ValidationError
+        """
+        from bill.models import PayAppService
+
+        app_id = site_configs_manager.get_pay_app_id(dj_settings=settings)
+
+        if self.pay_app_service_id:
+            app_service = self.check_pay_app_service_id(self.pay_app_service_id)
+            return app_service
+
+        # 新注册
+        with transaction.atomic():
+            app_service = PayAppService(
+                name=self.name, name_en=self.name_en, app_id=app_id, orgnazition_id=None,
+                resources=gettext('安全扫描'), status=PayAppService.Status.NORMAL.value,
+                category=PayAppService.Category.OTHER.value, service_id=self.id,
+                longitude=0, latitude=0,
+                contact_person='', contact_telephone='',
+                contact_email='', contact_address='',
+                contact_fixed_phone=''
+            )
+            app_service.save(force_insert=True)
+            self.pay_app_service_id = app_service.id
+            self.save(update_fields=['pay_app_service_id'])
+
+        return app_service
+
+    @staticmethod
+    def check_pay_app_service_id(pay_app_service_id: str):
+        from bill.models import PayAppService
+
+        app_service = PayAppService.objects.filter(id=pay_app_service_id).first()
+        if app_service is None:
+            raise ValidationError(message={
+                'pay_app_service_id': gettext(
+                    '结算服务单元不存在，请仔细确认。如果是新建服务单元不需要手动填写结算服务单元id，'
+                    '保持为空，保存后会自动注册对应的结算单元，并填充此字段')})
+
+        return app_service
+
+    def clean(self):
+        if self.pay_app_service_id:
+            self.check_pay_app_service_id(self.pay_app_service_id)
+
+        qs = VtScanService.objects.all()
+        if self.id:
+            qs = qs.exclude(id=self.id)
+
+        if qs.count() >= 1:
+            raise ValidationError(message=gettext('已存在安全扫描服务配置记录，只能创建一个服务配置记录'))
     
     
 class VtScanner(UuidModel):
@@ -133,7 +217,6 @@ class VtTask(UuidModel):
     errmsg = models.CharField(verbose_name=_('任务失败原因'), max_length=255, default='', blank=True)
     report = models.ForeignKey(verbose_name=_('扫描报告'), to=VtReport, on_delete=models.SET_NULL, blank=True, null=True)
     remark = models.CharField(verbose_name=_('备注'), max_length=255, default='', blank=True)
-    payment_history_id = models.CharField(verbose_name=_('支付记录id'), max_length=36, blank=True, default='')
     # 站点扫描使用的ZAP所需要的字段
     running_status = models.CharField(verbose_name=_('内部扫描状态'), max_length=16, choices=RunningStatus.choices, null=True)
     # 主机扫描使用的GVM所需要的字段

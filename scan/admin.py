@@ -1,12 +1,29 @@
-from django.contrib import admin
-from utils.model import BaseModelAdmin
+from django.contrib import admin, messages
+from django.utils.translation import gettext
+from django.db import transaction
 
+from utils.model import BaseModelAdmin
 from .models import VtScanService, VtScanner, VtReport, VtTask
 
 
 @admin.register(VtScanService)
 class VtScanServiceAdmin(BaseModelAdmin):
-    list_display = ['name', 'status', 'host_scan_price', 'web_scan_price', 'pay_app_service_id']
+    list_display = ['name', 'status', 'pay_app_service_id']
+
+    def save_model(self, request, obj: VtScanService, form, change):
+        if change:
+            super().save_model(request=request, obj=obj, form=form, change=change)
+            try:
+                obj.sync_to_pay_app_service()
+            except Exception as exc:
+                self.message_user(request, gettext("更新服务单元对应的结算服务单元错误") + str(exc), level=messages.ERROR)
+        else:   # add
+            with transaction.atomic():
+                super().save_model(request=request, obj=obj, form=form, change=change)
+                obj.check_or_register_pay_app_service()
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(VtScanner)

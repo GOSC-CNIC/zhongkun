@@ -48,8 +48,7 @@ class ScanTaskTests(MyAPITestCase):
             target="http://test.com/",
             type="web",
             user=self.user,
-            remark="user task test",
-            payment_history_id="testpaymenthistoryid1",
+            remark="user task test"
         )
         user_scan_task1.save(force_insert=True)
 
@@ -58,8 +57,7 @@ class ScanTaskTests(MyAPITestCase):
             target="http://test2.com/",
             type="web",
             user=self.user,
-            remark="user task test",
-            payment_history_id="testpaymenthistoryid2",
+            remark="user task test"
         )
         user_scan_task2.save(force_insert=True)
 
@@ -68,8 +66,7 @@ class ScanTaskTests(MyAPITestCase):
             target="http://test3.com/",
             type="web",
             user=self.user,
-            remark="user task test",
-            payment_history_id="testpaymenthistoryid3",
+            remark="user task test"
         )
         user_scan_task3.save(force_insert=True)
 
@@ -78,8 +75,7 @@ class ScanTaskTests(MyAPITestCase):
             target="3.3.3.3",
             type="host",
             user=self.user2,
-            remark="user task test",
-            payment_history_id="testpaymenthistoryid1",
+            remark="user task test"
         )
         user2_scan_task1.save(force_insert=True)
 
@@ -88,8 +84,7 @@ class ScanTaskTests(MyAPITestCase):
             target="http://test1.com/",
             type="web",
             user=self.user2,
-            remark="user task test",
-            payment_history_id="testpaymenthistoryid2",
+            remark="user task test"
         )
         user2_scan_task2.save(force_insert=True)
 
@@ -98,8 +93,7 @@ class ScanTaskTests(MyAPITestCase):
             target="1.1.1.1",
             type="host",
             user=self.user,
-            remark="user task test",
-            payment_history_id="testpaymenthistoryid4",
+            remark="user task test"
         )
         user_scan_task4.save(force_insert=True)
 
@@ -108,8 +102,7 @@ class ScanTaskTests(MyAPITestCase):
             target="2.2.2.2",
             type="host",
             user=self.user,
-            remark="user task test",
-            payment_history_id="testpaymenthistoryid5",
+            remark="user task test"
         )
         user_scan_task5.save(force_insert=True)
 
@@ -118,8 +111,7 @@ class ScanTaskTests(MyAPITestCase):
             target="3.3.3.3",
             type="host",
             user=self.user,
-            remark="user task test",
-            payment_history_id="testpaymenthistoryid6",
+            remark="user task test"
         )
         user_scan_task6.save(force_insert=True)
 
