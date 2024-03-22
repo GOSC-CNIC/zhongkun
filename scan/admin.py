@@ -24,7 +24,7 @@ class VtReportAdmin(BaseModelAdmin):
 @admin.register(VtTask)
 class VtTaskAdmin(BaseModelAdmin):
     list_display = ['id', 'name', 'type', 'task_status', 'create_time', 'user', 'scanner', 'running_status',
-                    'finish_time', 'report', 'pay_amount', 'payment_history_id', 'remark']
+                    'finish_time', 'report', 'remark']
     list_select_related = ('scanner', 'report', 'user')
     list_filter = ('type', 'task_status', 'running_status')
     search_fields = ('name', 'remark', 'user__username')

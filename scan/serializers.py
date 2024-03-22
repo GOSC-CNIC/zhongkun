@@ -4,7 +4,7 @@ from rest_framework import serializers
 from scan.models import VtTask
 
 
-class ScanTaskCreateSerializer(serializers.Serializer):
+class ScanTaskOrderCreateSerializer(serializers.Serializer):
     """创建安全扫描任务序列化器"""
 
     name = serializers.CharField(label=_("任务名称"), max_length=255, required=True)

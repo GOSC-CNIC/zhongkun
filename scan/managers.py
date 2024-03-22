@@ -5,7 +5,6 @@ from django.core.validators import URLValidator
 from django.utils.translation import gettext as _
 from core import errors
 from django.utils import timezone
-from decimal import Decimal
 
 
 class ScanManager:
@@ -152,7 +151,6 @@ class ScanZapManager:
         except Exception as e:
             return False
 
-
 class TaskManager:
     @staticmethod
     def reset_task_status(task: VtTask):
@@ -209,14 +207,11 @@ class TaskManager:
 
     @staticmethod
     def create_task(
-            user_id: str, name: str, type: str, target: str, remark: str,
-            pay_amount: Decimal = Decimal('0'), balance_amount: Decimal = Decimal('0'),
-            coupon_amount: Decimal = Decimal('0'), task_id: str = None
+            user_id: str, name: str, type: str, target: str, remark: str, task_id: str = None
     ):
         """创建用户扫描任务"""
         task = VtTask(
             user_id=user_id, name=name, type=type, target=target, remark=remark,
-            pay_amount=pay_amount, balance_amount=balance_amount, coupon_amount=coupon_amount
         )
         if task_id:
             task.id = task_id
@@ -243,11 +238,6 @@ class TaskManager:
         )
 
     @staticmethod
-    def set_task_payment_id(task: VtTask, payment_history_id: str):
-        task.payment_history_id = payment_history_id
-        task.save(update_fields=['payment_history_id'])
-
-    @staticmethod
     def get_disable_scanner_task():
         tasks = VtTask.objects.filter(scanner__status='disable', task_status='running')
         return tasks
@@ -269,17 +259,18 @@ class ScannerManager:
         新建扫描器
         """
         scanner = VtScanner(
-            name=name,
-            type=type,
-            engine=engine,
-            ipaddr=ipaddr,
-            port=port,
-            key=key,
-            max_concurrency=max_concurrency,
-            status=status,
-        )
-        scanner.save(force_insert=True)
-        return scanner
+                name=name,
+                type=type,
+                engine=engine,
+                ipaddr=ipaddr,
+                port=port,
+                key=key,
+                max_concurrency=max_concurrency,
+                status=status,
+            )
+        with transaction.atomic():
+            scanner.save(force_insert=True)
+            return scanner
 
     @staticmethod
     def enable_scanner(scanner: VtScanner):
