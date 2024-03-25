@@ -49,7 +49,6 @@ INSTALLED_APPS = [
     'corsheaders',
     'django_json_widget',
 
-    # app排序对应admin后台app排序
     'service',
     'storage',
     'servers',
@@ -69,6 +68,25 @@ INSTALLED_APPS = [
     'docs',
     'apply',
     'baton.autodiscover',
+]
+
+# 自定义参数，设置admin后台app的排列顺序
+ADMIN_SORTED_APP_LIST = [
+    'service',
+    'storage',
+    'servers',
+    'order',
+    'bill',
+    'metering',
+    'report',
+    'ticket',
+    'users',
+    'vo',
+    'monitor',
+    'netbox',
+    'scan',
+    'vpn',
+    'apply',
 ]
 
 MIDDLEWARE = [
