@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
+import sys
 from datetime import timedelta
 from pathlib import Path
 
@@ -19,6 +20,7 @@ from django.conf.locale.en import formats as en_formats
 
 
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
+sys.path.insert(0, str(BASE_DIR.joinpath('apps')))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/
@@ -382,7 +384,7 @@ WEBSITE_CONFIG = {
 # 任务管理命令 python3 manage.py crontabtask add/remove/show
 CRONTABJOBS = [
     ('task1_metering', '0 9 * * *',
-     'python3 /home/uwsgi/yunkun/metering/timedelta_metering.py >> /var/log/yunkun/task_metering.log'),
+     'python3 /home/uwsgi/yunkun/scripts/timedelta_metering.py >> /var/log/yunkun/task_metering.log'),
     ('task2_bkt_monthly', '0 12 28 * *',
      'python3 /home/uwsgi/yunkun/scripts/run_bucket_monthly_stats.py',),
     ('task3_monthly_report', '0 17 28 * *',
@@ -392,7 +394,7 @@ CRONTABJOBS = [
     ('task5_req_num', '0 */1 * * *',
      'python3 /home/uwsgi/yunkun/scripts/update_service_req_num.py >> /var/log/yunkun/task_update_req_num.log'),
     ('task6_scan_start', '*/3 * * * *',
-     'python3 /home/uwsgi/yunkun/scan/run_scan_process.py >> /var/log/yunkun/task_scan_process.log')
+     'python3 /home/uwsgi/yunkun/scripts/run_scan_process.py >> /var/log/yunkun/task_scan_process.log')
 ]
 
 # 安全配置导入
