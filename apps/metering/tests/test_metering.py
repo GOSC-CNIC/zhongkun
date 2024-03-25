@@ -1875,7 +1875,7 @@ class MeteringObsTests(MyAPITestCase):
             'date_start': '2022-10-01', 'date_end': '2022-10-10', 'as-admin': ''
         })
         r = self.client.get(f'{base_url}?{query}')
-        self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
+        self.assertEqual(len(r.data["results"]), 0)
 
         self.user.set_federal_admin()
         r = self.client.get(f'{base_url}?{query}')
@@ -1889,6 +1889,24 @@ class MeteringObsTests(MyAPITestCase):
         r = self.client.get(f'{base_url}?{query}')
         self.assertEqual(len(r.data["results"]), 1)
         self.assertEqual(r.data['results'][0]['id'], metering3.id)
+
+        # param odc 'admin'
+        self.user.unset_federal_admin()
+        query = parse.urlencode(query={
+            'date_start': '2022-10-01', 'date_end': '2022-10-10', 'as-admin': ''
+        })
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(len(r.data["results"]), 0)
+
+        self.service2.users.add(self.user)
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data["results"]), 2)
+
+        self.service2.org_data_center.users.add(self.user)
+        r = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data["results"]), 3)
 
 
 class StatementStorageTests(MyAPITestCase):

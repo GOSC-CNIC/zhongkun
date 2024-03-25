@@ -23,7 +23,7 @@ class OrderResourceDeliverer:
     """
     订单资源创建交付管理器
     """
-    def deliver_order(self, order: Order, resource: Resource = None) -> List[Union[Server, Disk]]:
+    def deliver_order(self, order: Order, resource: Resource = None) -> List[Union[Server, Disk, VtTask]]:
         """
         :return:
             list

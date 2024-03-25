@@ -647,7 +647,21 @@ class MeteringStorageManager:
                 date_end=date_end, user_id=user_id
             )
 
-        raise errors.AccessDenied(message=_('您没有管理员权限'))
+        if service_id:
+            service = ObjectsServiceManager.get_service_if_admin(user=user, service_id=service_id)
+            if service is None:
+                raise errors.AccessDenied(message=_('您没有指定服务的访问权限'))
+
+        queryset = self.filter_obs_metering_queryset(
+            service_id=service_id, date_start=date_start, date_end=date_end, user_id=user_id, bucket_id=bucket_id
+        )
+
+        if not service_id:
+            qs = ObjectsServiceManager.get_all_has_perm_service(user)
+            subq = Subquery(qs.values_list('id', flat=True))
+            queryset = queryset.filter(service_id__in=subq)
+
+        return queryset
 
     def filter_obs_metering_queryset(
             self, service_id: str = None,
