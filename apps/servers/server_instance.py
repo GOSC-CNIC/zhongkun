@@ -1,4 +1,4 @@
-from adapters import inputs, outputs
+from core.adapters import inputs, outputs
 from core import errors
 from core.request import request_service
 from core import request as core_request

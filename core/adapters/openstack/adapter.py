@@ -4,18 +4,16 @@ import re
 import base64
 import string
 import random
-from django.core.paginator import Paginator
 
+from django.core.paginator import Paginator
 import openstack
 from openstack import exceptions as opsk_exceptions
 from keystoneauth1.exceptions import EndpointNotFound
 
-from adapters.base import BaseAdapter
-from adapters import inputs
-from adapters import outputs
+from ..base import BaseAdapter
+from .. import inputs, outputs, exceptions
+from ..params import OpenStackParams
 
-from adapters import exceptions
-from adapters.params import OpenStackParams
 
 datetime_re = re.compile(
     r'(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<day>\d{1,2})'

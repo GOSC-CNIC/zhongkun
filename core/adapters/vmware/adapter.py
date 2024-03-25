@@ -7,10 +7,8 @@ from pyVim.connect import SmartConnectNoSSL, Disconnect
 from pyVmomi import vim
 from pyVim.task import WaitForTask
 
-from adapters.base import BaseAdapter
-from adapters import inputs
-from adapters import outputs
-from adapters import exceptions
+from ..base import BaseAdapter
+from .. import inputs, outputs, exceptions
 from . import helpers
 
 

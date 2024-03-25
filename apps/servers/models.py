@@ -15,8 +15,8 @@ from utils.validators import json_string_validator, http_url_validator
 from utils import rand_utils
 from vo.models import VirtualOrganization
 from users.models import UserProfile as User
-from adapters.outputs import ImageSysType, ImageSysArch, ImageSysRelease
-from adapters.params import OpenStackParams
+from core.adapters.outputs import ImageSysType, ImageSysArch, ImageSysRelease
+from core.adapters.params import OpenStackParams
 
 
 def short_uuid1_l25():
@@ -197,7 +197,7 @@ class ServiceConfig(BaseService):
         return app_service
 
     def clean(self):
-        from adapters.client import get_adapter_params_for_service, UnsupportedServiceType
+        from core.adapters.client import get_adapter_params_for_service, UnsupportedServiceType
 
         # 网址验证
         try:

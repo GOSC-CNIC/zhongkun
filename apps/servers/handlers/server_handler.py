@@ -19,8 +19,8 @@ from api.viewsets import CustomGenericViewSet, serializer_error_msg
 from api import request_logger
 from vo.managers import VoManager
 from vo.models import VirtualOrganization
-from adapters import inputs
-from adapters.client import get_service_client
+from core.adapters import inputs
+from core.adapters.client import get_service_client
 from utils.model import PayType, OwnerType
 from utils.time import iso_utc_to_datetime
 from order.deliver_resource import OrderResourceDeliverer

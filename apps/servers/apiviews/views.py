@@ -8,7 +8,7 @@ from drf_yasg import openapi
 
 from servers.models import Flavor
 from servers import serializers
-from adapters import inputs
+from core.adapters import inputs
 from core import errors as exceptions
 from api.viewsets import CustomGenericViewSet
 from api.paginations import ImagesPagination

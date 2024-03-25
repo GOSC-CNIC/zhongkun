@@ -14,7 +14,7 @@ from servers.models import ServiceConfig
 from servers.handlers import service_handlers as handlers
 from servers.handlers.service_handlers import ServiceQuotaHandler
 from servers import serializers
-from adapters import inputs, outputs
+from core.adapters import inputs, outputs
 from core import errors as exceptions
 
 

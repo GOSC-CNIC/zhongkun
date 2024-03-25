@@ -17,7 +17,7 @@ from servers.managers import ServerManager, DiskManager
 from servers import disk_serializers
 from servers.handlers.server_handler import ServerHandler, ServerArchiveHandler
 from servers import serializers
-from adapters import inputs, outputs
+from core.adapters import inputs, outputs
 from core import request as core_request
 from core import errors as exceptions
 from api.viewsets import CustomGenericViewSet

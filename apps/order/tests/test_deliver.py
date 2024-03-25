@@ -4,7 +4,7 @@ from datetime import timedelta
 
 from django.utils import timezone as dj_timezone
 
-from adapters import inputs, outputs
+from core.adapters import inputs, outputs
 from core import errors
 from utils.model import PayType, OwnerType, ResourceType
 from order.models import Order, Price, Resource

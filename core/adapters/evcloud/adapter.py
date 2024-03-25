@@ -1,10 +1,9 @@
 from datetime import datetime
 import requests
 
-from adapters.base import BaseAdapter
-from adapters import inputs
-from adapters import outputs
-from adapters.params import GenericAdapterParams
+from ..base import BaseAdapter
+from .. import inputs, outputs
+from ..params import GenericAdapterParams
 from .builders import APIBuilder
 from . import exceptions
 from .validators import InputValidator

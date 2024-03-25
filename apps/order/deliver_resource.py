@@ -11,7 +11,7 @@ from core.taskqueue import server_build_status
 from servers.managers import ServiceManager
 from servers.models import Server, Disk, ServerArchive, DiskChangeLog, ServiceConfig
 from servers.managers import ServerManager, DiskManager
-from adapters import inputs, outputs
+from core.adapters import inputs, outputs
 from utils.model import PayType, OwnerType, ResourceType
 from order.models import Order, Resource
 from order.managers import OrderManager, ServerConfig, PriceManager, DiskConfig, ScanConfig

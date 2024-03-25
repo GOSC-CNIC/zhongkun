@@ -10,11 +10,11 @@ from alibabacloud_tea_util import models as util_models
 from alibabacloud_tea_openapi import models as open_api_models
 from alibabacloud_vpc20160428 import models as vpc_20160428_models
 
-from adapters.base import BaseAdapter
-from adapters import inputs
-from adapters import outputs
-from adapters import exceptions
-from adapters.aliyun import helpers
+from ..base import BaseAdapter
+from .. import inputs
+from .. import outputs
+from .. import exceptions
+from . import helpers
 
 
 class AliyunAdapter(BaseAdapter):

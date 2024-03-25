@@ -1,5 +1,5 @@
-from adapters import exceptions as apt_exceptions, client as clients
-from adapters import inputs, outputs
+from core.adapters import exceptions as apt_exceptions, client as clients
+from core.adapters import inputs, outputs
 from servers.models import Disk, Server
 from .auth import auth_handler
 from . import errors as exceptions

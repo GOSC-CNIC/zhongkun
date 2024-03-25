@@ -25,8 +25,8 @@ from bill.managers import PaymentManager
 from bill.models import PayApp, PayAppService
 from metering.measurers import ServerMeasurer
 from metering.models import MeteringServer
-from adapters.evcloud import EVCloudAdapter
-from adapters import outputs
+from core.adapters.evcloud import EVCloudAdapter
+from core.adapters import outputs
 from . import create_server_metadata
 
 

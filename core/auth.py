@@ -1,8 +1,8 @@
 from datetime import datetime
 from threading import local
 
-from adapters import exceptions as os_exceptions, client
-from adapters import inputs
+from core.adapters import exceptions as os_exceptions, client
+from core.adapters import inputs
 from servers.models import ServiceConfig
 from . import errors as exceptions
 

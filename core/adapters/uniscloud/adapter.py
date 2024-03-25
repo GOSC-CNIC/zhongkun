@@ -3,10 +3,10 @@ import random
 import uuid
 from datetime import datetime, timedelta
 
-from adapters import outputs, inputs
-from adapters import exceptions
-from adapters.params import GenericAdapterParams
-from adapters.base import BaseAdapter
+from .. import outputs, inputs
+from .. import exceptions
+from ..params import GenericAdapterParams
+from ..base import BaseAdapter
 from .sdk import (
     UnisCloud, Credentials, RequestError
 )
