@@ -63,10 +63,13 @@ INSTALLED_APPS = [
     'netbox',
     'scan',
     'vpn',
-    'scripts',
     'api',
-    'docs',
     'apply',
+    'apps.app_screenvis',
+
+    # app放上面
+    'docs',
+    'scripts',
     'baton.autodiscover',
 ]
 
@@ -87,6 +90,7 @@ ADMIN_SORTED_APP_LIST = [
     'scan',
     'vpn',
     'apply',
+    'app_screenvis',
 ]
 
 MIDDLEWARE = [

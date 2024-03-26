@@ -76,6 +76,7 @@ urlpatterns = [
     path('api/netbox/', include('netbox.api_urls', namespace='netbox-api')),
     path('api/scan/', include('scan.api_urls', namespace='scan-api')),
     path('api/apply/', include('apply.api_urls', namespace='apply-api')),
+    path('api/app_screenvis/', include('apps.app_screenvis.api_urls', namespace='screenvis-api')),
     path('vpn/', include('vpn.urls', namespace='vpn')),
     path('apidocs/', login_required(schema_view.with_ui('swagger', cache_timeout=0)), name='apidocs'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='redoc'),
