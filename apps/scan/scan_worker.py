@@ -43,7 +43,7 @@ class WebZapScanner(Scanner):
         super().__init__(vtscanner)
         self.url = self.build_url(self.ipaddr, self.port)
 
-    def get_task_status(self, running_status: str, target: str):
+    def get_task_status(self, running_status: str, target: str, task_id:str):
         """
             reponse:
             {
@@ -55,7 +55,7 @@ class WebZapScanner(Scanner):
         try:
             response = requests.get(
                 self.url + 'zap/get_task',
-                params={'running_status': running_status, 'target': target},
+                params={'running_status': running_status, 'target': target, 'task_id':task_id},
                 headers={'secret-key': self.key},
             )
             response.raise_for_status()
@@ -70,7 +70,7 @@ class WebZapScanner(Scanner):
             logging.error(f"Get task from zap {self.url} failed, {str(e)}")
             return None, None
 
-    def get_report(self):
+    def get_report(self, task_id:str):
         """
             reponse:
             {
@@ -81,7 +81,9 @@ class WebZapScanner(Scanner):
         """
         try:
             response = requests.get(
-                self.url + 'zap/get_report', headers={'secret-key': self.key}
+                self.url + 'zap/get_report', 
+                headers={'secret-key': self.key},
+                params={'task_id': task_id},
             )
             response.raise_for_status()
             data = response.json()
@@ -97,7 +99,7 @@ class WebZapScanner(Scanner):
             logging.error(f"Get report from zap {self.url} failed, {str(e)}")
             return None
 
-    def create_task(self, target: str):
+    def create_task(self, target: str, task_id: str):
         """
             reponse:
             {
@@ -110,7 +112,7 @@ class WebZapScanner(Scanner):
             response = requests.post(
                 self.url + 'zap/create_task',
                 headers={'secret-key': self.key},
-                params={'target': target},
+                params={'target': target, 'task_id': task_id},
             )
             response.raise_for_status()
             data = response.json()
@@ -123,7 +125,7 @@ class WebZapScanner(Scanner):
             logging.error(f"Create task of zap {self.url} failed, {str(e)}")
             return None
 
-    def delete_task(self):
+    def delete_task(self, task_id: str):
         """
             reponse:
             {
@@ -133,7 +135,9 @@ class WebZapScanner(Scanner):
         """
         try:
             response = requests.delete(
-                self.url + 'zap/delete_task', headers={'secret-key': self.key}
+                self.url + 'zap/delete_task', 
+                headers={'secret-key': self.key}, 
+                params={'task_id': task_id},
             )
             response.raise_for_status()
             data = response.json()
@@ -145,12 +149,12 @@ class WebZapScanner(Scanner):
             logging.error(f"Delete task from gvm {self.url} failed, {str(e)}")
 
     def create_task_and_update_vtwebtask(self, vttask: VtTask):
-        running_status = self.create_task(target=vttask.target)
+        running_status = self.create_task(target=vttask.target, task_id=vttask.id)
         if running_status:
             if not ScanZapManager.set_web_task_running(
                 task=vttask, scanner=self.vtscanner, running_status=running_status
             ):
-                self.delete_task()
+                self.delete_task(task_id=vttask.id)
 
     def process_running_tasks(self):
         """
@@ -162,20 +166,22 @@ class WebZapScanner(Scanner):
         self.get_own_tasks()
         for task in self.tasks:
             running_status, errmsg = self.get_task_status(
-                running_status=task.running_status, target=task.target
+                running_status=task.running_status, target=task.target, task_id=task.id
             )
             if running_status is None:
                 continue
             elif running_status == self.ZapStatus.FAILED:
-                ScanZapManager.set_web_task_status(
+                if ScanZapManager.set_web_task_status(
                     task=task, running_status=running_status, errmsg=errmsg
-                )
+                ):
+                    self.delete_task(task_id=task.id)
             elif running_status == self.ZapStatus.DONE:
-                content = self.get_report()
+                content = self.get_report(task_id=task.id)
                 if content is not None:
-                    ScanZapManager.web_create_report_and_save(
+                    if ScanZapManager.web_create_report_and_save(
                         task=task, content=content
-                    )
+                    ):
+                        self.delete_task(task_id=task.id)
             elif running_status != task.running_status:
                 ScanZapManager.set_web_task_status(
                     task=task, running_status=running_status
