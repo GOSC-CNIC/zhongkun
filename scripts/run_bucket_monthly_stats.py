@@ -1,3 +1,7 @@
+"""
+存储桶月度趋势统计
+"""
+
 import os
 import sys
 

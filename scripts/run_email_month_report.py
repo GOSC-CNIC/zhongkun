@@ -1,3 +1,7 @@
+"""
+邮件发送月度报表
+"""
+
 import os
 import sys
 

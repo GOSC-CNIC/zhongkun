@@ -1,3 +1,7 @@
+"""
+资源券过期和余额不足通知
+"""
+
 import os
 import sys
 

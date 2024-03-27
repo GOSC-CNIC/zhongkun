@@ -1,3 +1,7 @@
+"""
+每日计量计费扣费定时任务
+云主机、云硬盘、对象存储、站点监控
+"""
 import os
 import sys
 from datetime import date, datetime, timedelta, timezone

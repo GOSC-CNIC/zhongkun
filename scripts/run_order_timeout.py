@@ -1,3 +1,7 @@
+"""
+未支付订单超时取消
+"""
+
 import os
 import sys
 
@@ -14,4 +18,4 @@ from scripts.workers.timeout_cancel import OrderTimeoutTask
 
 
 if __name__ == "__main__":
-    OrderTimeoutTask(log_stdout=False).run()
+    OrderTimeoutTask(timeout_minutes=60*24*7, log_stdout=False).run()

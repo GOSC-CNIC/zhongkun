@@ -1,3 +1,7 @@
+"""
+统计生成月度报表记录
+"""
+
 import os
 import sys
 
