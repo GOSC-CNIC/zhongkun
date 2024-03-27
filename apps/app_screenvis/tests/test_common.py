@@ -1,7 +1,7 @@
 from django.urls import reverse
 from django.utils import timezone as dj_timezone
 
-from apps.app_screenvis.models import DataCenter, MetricMonitorUnit, LogMonitorUnit
+from apps.app_screenvis.models import DataCenter, MetricMonitorUnit, LogMonitorUnit, ScreenConfig
 from . import MyAPITestCase
 
 
@@ -104,3 +104,32 @@ class DataCenterTests(MyAPITestCase):
         self.assertKeysIn([
             'id', 'name', 'name_en', 'creation_time', 'log_type', 'job_tag', 'data_center', 'sort_weight', 'remark'
         ], response.data['log_units'][0])
+
+
+class ConfigTests(MyAPITestCase):
+    def setUp(self):
+        pass
+
+    def test_list(self):
+        base_url = reverse('screenvis-api:configs-list')
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['org_name', 'org_name_en'], response.data)
+        self.assertEqual(response.data['org_name'], '')
+        self.assertEqual(response.data['org_name_en'], '')
+
+        org_name = ScreenConfig(name=ScreenConfig.ConfigName.ORG_NAME.value, value='org 名称')
+        org_name.save(force_insert=True)
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['org_name', 'org_name_en'], response.data)
+        self.assertEqual(response.data['org_name'], 'org 名称')
+        self.assertEqual(response.data['org_name_en'], '')
+
+        org_name_en = ScreenConfig(name=ScreenConfig.ConfigName.ORG_NAME_EN.value, value='org name')
+        org_name_en.save(force_insert=True)
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['org_name', 'org_name_en'], response.data)
+        self.assertEqual(response.data['org_name'], 'org 名称')
+        self.assertEqual(response.data['org_name_en'], 'org name')

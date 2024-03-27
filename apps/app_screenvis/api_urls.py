@@ -8,6 +8,7 @@ app_name = 'screenvis'
 
 
 no_slash_router = SimpleRouter(trailing_slash=False)
+no_slash_router.register(r'configs', common_views.ConfigsViewSet, basename='configs')
 no_slash_router.register(r'datacenter', common_views.DataCenterViewSet, basename='datacenter')
 no_slash_router.register(r'ceph', ceph_views.MetricCephViewSet, basename='ceph')
 no_slash_router.register(r'host', host_views.MetricHostViewSet, basename='host')

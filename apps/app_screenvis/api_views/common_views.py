@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
 
 from apps.app_screenvis.utils import errors
-from apps.app_screenvis.models import DataCenter, MetricMonitorUnit, LogMonitorUnit
+from apps.app_screenvis.models import DataCenter, MetricMonitorUnit, LogMonitorUnit, ScreenConfig
 from apps.app_screenvis import serializers
 from . import NormalGenericViewSet
 
@@ -140,3 +140,34 @@ class DataCenterViewSet(NormalGenericViewSet):
 
     def get_serializer_class(self):
         return Serializer
+
+
+class ConfigsViewSet(NormalGenericViewSet):
+    queryset = []
+    permission_classes = []
+    pagination_class = None
+    lookup_field = 'id'
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('列举大屏展示配置信息'),
+        responses={
+            200: f'config names: {ScreenConfig.ConfigName.choices}'
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        列举大屏展示配置信息
+
+            Http Code 200:
+            {
+                "org_name": "机构名称",
+                "org_name_en": "机构英文名称"
+            }
+        """
+        qs = ScreenConfig.objects.all().values('name', 'value')
+        data = {cfg['name']: cfg['value'] for cfg in qs}
+        for name in ScreenConfig.ConfigName.values:
+            if name not in data:
+                data[name] = ''
+
+        return Response(data=data, status=200)
