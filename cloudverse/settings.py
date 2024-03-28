@@ -64,7 +64,7 @@ INSTALLED_APPS = [
     'scan',
     'vpn',
     'api',
-    'apply',
+    'apps.app_apply',
     'apps.app_screenvis',
 
     # app放上面

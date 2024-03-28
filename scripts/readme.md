@@ -34,7 +34,7 @@ service crond staus    //查看状态
   可以使用`crontab -e`编辑配置文件，会在路径/var/spool/cron下创建一个以当前用户名命名的文件，以配置用户定时任务；   
   也可以直接编辑/etc/crontab文件配置系统定时任务；  
   配置完成后，重新载入配置，`service crond reload`。  
-  本服务需要配置的定时任务如下：
+  本服务需要配置的定时任务如下(具体参照参考项目配置文件中配置项“CRONTABJOBS”配置定时任务)：
   ```
   # Example of job definition:
   # .---------------- minute (0 - 59)
@@ -45,9 +45,11 @@ service crond staus    //查看状态
   # |  |  |  |  |
   # *  *  *  *  * user-name  command to be executed
   
-  0 9 * * * root python3 /home/uwsgi/yunkun/metering/timedelta_metering.py >> /var/log/yunkun/metering.log
+  0 9 * * * root python3 /home/uwsgi/yunkun/scripts/timedelta_metering.py >> /var/log/yunkun/metering.log
   0 12 28 * * root python3 /home/uwsgi/yunkun/scripts/run_bucket_monthly_stats.py >> /var/log/yunkun/monthly_bucket_stats.log
   0 17 28 * * root python3 /home/uwsgi/yunkun/scripts/run_generate_and_email_month_report.py >> /var/log/yunkun/monthly_report.log
   */1 * * * * root python3 /home/uwsgi/yunkun/scripts/run_log_site_req_num.py >> /var/log/yunkun/logsite_timecount.log
   0 */1 * * * root python3 /home/uwsgi/yunkun/scripts/update_service_req_num.py >> /var/log/yunkun/update_req_num.log
+  */3 * * * * root python3 /home/uwsgi/yunkun/scripts/run_scan_process.py >> /var/log/yunkun/task_scan_process.log
   ```
+  

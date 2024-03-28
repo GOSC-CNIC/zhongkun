@@ -17,10 +17,10 @@ from servers.models import ServiceConfig
 from storage.models import ObjectsService
 from monitor.models import MonitorWebsiteVersion
 from scan.models import VtScanService, VtTask
-from apply.models import CouponApply
-from apply.managers import CouponApplyManager
 from order.models import Price
 from order.managers import OrderManager, ScanConfig
+from apps.app_apply.models import CouponApply
+from apps.app_apply.managers import CouponApplyManager
 
 
 class CouponApplyTests(MyAPITestCase):

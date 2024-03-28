@@ -1,8 +1,8 @@
 from django.contrib import admin
 from django.utils.translation import gettext_lazy
 
-from apply.models import CouponApply
 from utils.model import NoDeleteSelectModelAdmin
+from apps.app_apply.models import CouponApply
 
 
 @admin.register(CouponApply)

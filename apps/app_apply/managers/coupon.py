@@ -13,8 +13,8 @@ from service.models import OrgDataCenter
 from service.odc_manager import OrgDataCenterManager
 from bill.managers.cash_coupon import CashCouponManager
 from vo.managers import VoManager
-from apply.models import CouponApply
 from order.models import Order
+from apps.app_apply.models import CouponApply
 
 
 class CouponApplyManager:
