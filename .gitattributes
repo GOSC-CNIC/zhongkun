@@ -1,4 +1,6 @@
-# Common settings that generally should always be used with your language specific settings
+# Details per file setting:
+#   text    These files should be normalized (i.e. convert CRLF to LF).
+#   binary  These files are binary and should be left untouched.
 
 # Auto detect text files and perform LF normalization
 *          text=auto
@@ -127,3 +129,20 @@
 # with the python modules ``pickle``, ``dbm.*``,
 # ``shelve``, ``marshal``, ``anydbm``, & ``bsddb``
 # (among others).
+
+# Web
+*.css       text diff=css
+*.sass      text
+*.htm       text diff=html
+*.html      text diff=html
+*.js        text
+*.ts        text
+*.tsx       text
+
+# Configs
+*.cnf       text
+*.conf      text
+*.config    text
+.ini        text
+*.lock      text -diff
+*.service   text
