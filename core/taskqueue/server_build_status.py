@@ -1,5 +1,6 @@
+from typing import Union
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, Future
 
 from core import request
 from servers.models import Disk
@@ -8,22 +9,22 @@ from servers.models import Disk
 _pool_executor = ThreadPoolExecutor()
 
 
-def creat_task(server):
+def creat_task(server) -> Union[Future, None]:
     try:
-        _pool_executor.submit(task_server_build_status, server)
+        f = _pool_executor.submit(task_server_build_status, server)
     except Exception as e:
-        return False
+        return None
 
-    return True
+    return f
 
 
-def creat_disk_task(disk):
+def creat_disk_task(disk) -> Union[Future, None]:
     try:
-        _pool_executor.submit(task_disk_build_status, disk)
+        f = _pool_executor.submit(task_disk_build_status, disk)
     except Exception as e:
-        return False
+        return None
 
-    return True
+    return f
 
 
 def task_server_build_status(server):

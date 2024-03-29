@@ -7,7 +7,7 @@ from django.utils import timezone
 from core import errors as exceptions
 from core.quota import QuotaAPI
 from core import request as core_request
-from core.taskqueue import server_build_status
+from core.taskqueue import server_build_status, Future
 from servers.managers import ServiceManager
 from servers.models import Server, Disk, ServerArchive, DiskChangeLog, ServiceConfig
 from servers.managers import ServerManager, DiskManager
@@ -30,51 +30,101 @@ class OrderResourceDeliverer:
 
         :raises: Error
         """
+        res_list, futures, err_list = self.deliver_order_with_futures(order=order, resource=resource)
+        if err_list:
+            raise err_list[0]
+
+        return res_list
+        # if order.order_type == Order.OrderType.NEW.value:  # 新购
+        #     if order.resource_type == ResourceType.VM.value:
+        #         service, server_list, err_list = self.deliver_new_servers(order=order)
+        #         self.after_deliver_server_list(service=service, servers=server_list)
+        #         if err_list:
+        #             raise err_list[0]
+        #         return server_list
+        #     elif order.resource_type == ResourceType.DISK.value:
+        #         service, disk = self.deliver_new_disk(order=order, resource=resource)
+        #         self.after_deliver_disk(service=service, disk=disk)
+        #         return [disk]
+        #     if order.resource_type == ResourceType.SCAN.value:
+        #         tasks = self.deliver_new_sacn(order=order)
+        #         return tasks
+        # elif order.order_type == Order.OrderType.RENEWAL.value:  # 续费
+        #     if order.resource_type == ResourceType.VM.value:
+        #         server = self.deliver_renewal_server(order=order, resource=resource)
+        #         return [server]
+        #     elif order.resource_type == ResourceType.DISK.value:
+        #         disk = self.deliver_renewal_disk(order=order, resource=resource)
+        #         return [disk]
+        # elif order.order_type in [Order.OrderType.POST2PRE.value]:  # 付费方式修改
+        #     if order.resource_type == ResourceType.VM.value:
+        #         server = self.deliver_modify_server_pay_type(order=order, resource=resource)
+        #         return [server]
+        #     elif order.resource_type == ResourceType.DISK.value:
+        #         disk = self.deliver_modify_disk_pay_type(order=order, resource=resource)
+        #         return [disk]
+        # else:
+        #     raise exceptions.Error(message=_('订单的类型不支持交付。'))
+        #
+        # raise exceptions.Error(message=_('订购的资源类型无法交付，资源类型服务不支持。'))
+
+    def deliver_order_with_futures(
+            self, order: Order, resource: Resource = None
+    ) -> Tuple[List[Union[Server, Disk, VtTask]], List[Future], List[exceptions.Error]]:
+        """
+        :return:
+            list
+
+        :raises: Error
+        """
         if order.order_type == Order.OrderType.NEW.value:  # 新购
             if order.resource_type == ResourceType.VM.value:
                 service, server_list, err_list = self.deliver_new_servers(order=order)
-                self.after_deliver_server_list(service=service, servers=server_list)
-                if err_list:
-                    raise err_list[0]
-                return server_list
+                sl, futures = self.after_deliver_server_list(service=service, servers=server_list)
+                return server_list, futures, err_list
             elif order.resource_type == ResourceType.DISK.value:
                 service, disk = self.deliver_new_disk(order=order, resource=resource)
-                self.after_deliver_disk(service=service, disk=disk)
-                return [disk]
+                d, futures = self.after_deliver_disk(service=service, disk=disk)
+                return [disk], futures, []
             if order.resource_type == ResourceType.SCAN.value:
                 tasks = self.deliver_new_sacn(order=order)
-                return tasks
+                return tasks, [], []
         elif order.order_type == Order.OrderType.RENEWAL.value:  # 续费
             if order.resource_type == ResourceType.VM.value:
                 server = self.deliver_renewal_server(order=order, resource=resource)
-                return [server]
+                return [server], [], []
             elif order.resource_type == ResourceType.DISK.value:
                 disk = self.deliver_renewal_disk(order=order, resource=resource)
-                return [disk]
+                return [disk], [], []
         elif order.order_type in [Order.OrderType.POST2PRE.value]:  # 付费方式修改
             if order.resource_type == ResourceType.VM.value:
                 server = self.deliver_modify_server_pay_type(order=order, resource=resource)
-                return [server]
+                return [server], [], []
             elif order.resource_type == ResourceType.DISK.value:
                 disk = self.deliver_modify_disk_pay_type(order=order, resource=resource)
-                return [disk]
+                return [disk], [], []
         else:
             raise exceptions.Error(message=_('订单的类型不支持交付。'))
 
         raise exceptions.Error(message=_('订购的资源类型无法交付，资源类型服务不支持。'))
 
-    def after_deliver_server_list(self, service: ServiceConfig, servers: List[Server]):
+    def after_deliver_server_list(
+            self, service: ServiceConfig, servers: List[Server]
+    ) -> Tuple[List[Server], List[Future]]:
         if len(servers) == 1:
-            self.after_deliver_server(service=service, server=servers[0])
-            return servers
+            s, futures = self.after_deliver_server(service=service, server=servers[0])
+            return servers, futures
 
+        futures = []
         for s in servers:
-            server_build_status.creat_task(s)  # 异步任务查询server创建结果，更新server信息和创建状态
+            f = server_build_status.creat_task(s)  # 异步任务查询server创建结果，更新server信息和创建状态
+            if f is not None:
+                futures.append(f)
 
-        return servers
+        return servers, futures
 
     @staticmethod
-    def after_deliver_server(service: ServiceConfig, server: Server):
+    def after_deliver_server(service: ServiceConfig, server: Server) -> Tuple[Disk, List[Future]]:
         if service.service_type == service.ServiceType.EVCLOUD.value:
             try:
                 server = core_request.update_server_detail(server=server, task_status=server.TASK_CREATED_OK)
@@ -83,21 +133,29 @@ class OrderResourceDeliverer:
             else:
                 return server
 
-        server_build_status.creat_task(server)  # 异步任务查询server创建结果，更新server信息和创建状态
-        return server
+        futures = []
+        f = server_build_status.creat_task(server)  # 异步任务查询server创建结果，更新server信息和创建状态
+        if f is not None:
+            futures.append(f)
+
+        return server, futures
 
     @staticmethod
-    def after_deliver_disk(service: ServiceConfig, disk: Disk):
+    def after_deliver_disk(service: ServiceConfig, disk: Disk) -> Tuple[Disk, List[Future]]:
         if service.service_type == service.ServiceType.EVCLOUD.value:
             try:
                 disk = core_request.update_disk_detail(disk=disk, task_status=disk.TaskStatus.OK.value)
             except exceptions.Error as e:
                 pass
             else:
-                return disk
+                return disk, []
 
-        server_build_status.creat_disk_task(disk=disk)  # 异步任务查询disk创建结果，更新disk信息和创建状态
-        return disk
+        futures = []
+        f = server_build_status.creat_disk_task(disk=disk)  # 异步任务查询disk创建结果，更新disk信息和创建状态
+        if f is not None:
+            futures.append(f)
+
+        return disk, futures
 
     @staticmethod
     def _check_pre_create_server_resources(order: Order, resources: List[Resource]) -> (ServiceConfig, ServerConfig):
