@@ -60,7 +60,7 @@ INSTALLED_APPS = [
     'vo',
     'ticket',
     'monitor',
-    'netbox',
+    'apps.app_netbox',
     'scan',
     'vpn',
     'api',
