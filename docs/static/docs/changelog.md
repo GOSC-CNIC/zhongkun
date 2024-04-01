@@ -1,3 +1,17 @@
+## v2.1.0
+发布时间： 2024-04-01  
+发布人： shun  
+
+* 目录调整，把所有app移动到apps目录下，adapter包移除到core；提交人：shun
+* app apply、netbox 重命名为 app_apply、app_netbox，app_netbox的所有接口前缀'netbox'改为'app_netbox'；提交人：shun
+* 新增 app_screenvis, 新增 列举配置参数、列举数据中心、列举数据中心下的各单元、查询ceph、host、tidb指标数据查询接口和测试用例；提交人：shun
+* 添加.gitattributes文件规范仓库行为，避免多人协作开发规范不统一相互影响冲突，规范换行符为LF，仓库中CRLF换行符文件统一改为LF；提交人：shun
+* 资源券申请关联订单不是未支付状态时不允许审批通过；提交人：shun
+* 对象存储计量信息查询接口开放数据中心管理员权限；提交人：shun
+* 订单资源交付代码和线程池任务队列代码一些优化，定义admin后台app排序配置参数；提交人：shun
+* 安全扫描定时脚本优化，web扫描器添加识别任务功能；提交人：SLZhan
+
+
 ## v2.0.0
 发布时间： 2024-03-22  
 发布人： shun  
