@@ -3,8 +3,9 @@ import ipaddress
 
 from django.core.management.base import BaseCommand
 import requests
-from scan.managers import ScannerManager, TaskManager, URLHTTPValidator
+
 from core import errors
+from apps.app_scan.managers import ScannerManager, TaskManager, URLHTTPValidator
 
 
 class Command(BaseCommand):

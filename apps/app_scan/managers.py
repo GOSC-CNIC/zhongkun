@@ -1,10 +1,12 @@
 import datetime
+
 from django.db import transaction, models
-from scan.models import VtReport, VtScanner, VtTask
 from django.core.validators import URLValidator
 from django.utils.translation import gettext as _
-from core import errors
 from django.utils import timezone
+
+from core import errors
+from apps.app_scan.models import VtReport, VtScanner, VtTask
 
 
 class ScanManager:

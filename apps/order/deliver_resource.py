@@ -15,8 +15,8 @@ from core.adapters import inputs, outputs
 from utils.model import PayType, OwnerType, ResourceType
 from order.models import Order, Resource
 from order.managers import OrderManager, ServerConfig, PriceManager, DiskConfig, ScanConfig
-from scan.models import VtTask
-from scan.managers import TaskManager
+from apps.app_scan.models import VtTask
+from apps.app_scan.managers import TaskManager
 
 
 class OrderResourceDeliverer:

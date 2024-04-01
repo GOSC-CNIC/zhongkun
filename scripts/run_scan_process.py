@@ -9,7 +9,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "cloudverse.settings")
 setup()
 
-from scan.scan_worker import ScanWorker
+from apps.app_scan.scan_worker import ScanWorker
 
 if __name__ == "__main__":
     ScanWorker().run()

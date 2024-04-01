@@ -15,7 +15,7 @@ from utils.test import get_or_create_user, MyAPITestCase
 from servers.models import ServiceConfig, Server
 from vo.models import VirtualOrganization
 from servers.managers import ServicePrivateQuotaManager
-from scan.models import VtTask
+from apps.app_scan.models import VtTask
 
 
 class CreateServerRequest:

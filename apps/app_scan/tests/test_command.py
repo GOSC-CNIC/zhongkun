@@ -1,11 +1,14 @@
+from io import StringIO
+
 from django.core.management import call_command
 import responses
-from scan.managers import ScanManager
-from io import StringIO
+
+from apps.app_scan.managers import ScanManager
 from utils.test import (
     get_or_create_user,
     MyAPITestCase, 
 )
+
 
 class ScanPriceTests(MyAPITestCase):
     def setUp(self):

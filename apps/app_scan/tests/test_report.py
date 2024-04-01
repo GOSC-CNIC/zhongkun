@@ -1,14 +1,15 @@
-from ..models import VtReport, VtTask
-from django.urls import reverse
-from utils.test import (
-    get_or_create_user,
-    MyAPITestCase,
-)
 import hashlib
 import collections
 import io
 import random
 from string import printable
+
+from django.urls import reverse
+from utils.test import (
+    get_or_create_user,
+    MyAPITestCase,
+)
+from apps.app_scan.models import VtReport, VtTask
 
 
 def random_string(length: int = 10):

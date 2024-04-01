@@ -16,7 +16,7 @@ from bill.models import CashCoupon, PayAppService, PayApp
 from servers.models import ServiceConfig
 from storage.models import ObjectsService
 from monitor.models import MonitorWebsiteVersion
-from scan.models import VtScanService, VtTask
+from apps.app_scan.models import VtScanService, VtTask
 from order.models import Price
 from order.managers import OrderManager, ScanConfig
 from apps.app_apply.models import CouponApply

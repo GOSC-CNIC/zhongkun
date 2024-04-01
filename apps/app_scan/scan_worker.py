@@ -1,8 +1,10 @@
 import base64
-from scan.managers import ScanGvmManager, ScanManager, ScanZapManager, TaskManager
-from scan.models import VtScanner, VtTask
-import requests
 import logging
+
+import requests
+
+from apps.app_scan.managers import ScanGvmManager, ScanManager, ScanZapManager, TaskManager
+from apps.app_scan.models import VtScanner, VtTask
 
 
 class Scanner:

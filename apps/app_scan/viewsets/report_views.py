@@ -2,7 +2,7 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework.permissions import IsAuthenticated
 from django.utils.translation import gettext_lazy
 from api.viewsets import CustomGenericViewSet
-from scan.handlers.report_handler import ReportHandler
+from apps.app_scan.handlers.report_handler import ReportHandler
 
 
 class ScanReportViewSet(CustomGenericViewSet):

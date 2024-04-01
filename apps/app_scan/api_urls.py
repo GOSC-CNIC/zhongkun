@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import SimpleRouter
-from scan.viewsets import report_views, task_views
+from apps.app_scan.viewsets import report_views, task_views
 
 
 app_name = "scan"

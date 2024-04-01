@@ -23,10 +23,10 @@ from servers.managers import ServiceManager as ServerServiceManager
 from storage.managers import ObjectsServiceManager
 from monitor.models import MonitorWebsiteVersion
 from monitor.models import ErrorLog
-from scan.models import VtScanService
 from order.models import Order
 from order.managers import OrderManager, OrderPaymentManager
 from order.deliver_resource import OrderResourceDeliverer
+from apps.app_scan.models import VtScanService
 from apps.app_apply import serializers
 from apps.app_apply.models import CouponApply
 from apps.app_apply.managers.coupon import CouponApplyManager

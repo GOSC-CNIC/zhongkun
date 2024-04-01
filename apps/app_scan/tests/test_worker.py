@@ -1,14 +1,13 @@
 import base64
-import time
 
-from django.urls import reverse
-from scan.scan_worker import HostGvmScanner, ScanWorker, WebZapScanner
-from ..models import VtScanner, VtTask
 import responses
+
 from utils.test import (
     get_or_create_user,
     MyAPITestCase,
 )
+from apps.app_scan.scan_worker import HostGvmScanner, ScanWorker, WebZapScanner
+from apps.app_scan.models import VtScanner, VtTask
 
 
 class ScanWorkerTests(MyAPITestCase):

@@ -71,7 +71,7 @@ urlpatterns = [
     path('api/monitor/', include('monitor.api_urls', namespace='monitor-api')),
     path('api/netbox/', include('apps.app_netbox.api_urls', namespace='old-netbox-api')),
     path('api/app_netbox/', include('apps.app_netbox.api_urls', namespace='netbox-api')),
-    path('api/scan/', include('scan.api_urls', namespace='scan-api')),
+    path('api/scan/', include('apps.app_scan.api_urls', namespace='scan-api')),
     path('api/apply/', include('apps.app_apply.api_urls', namespace='apply-api')),
     path('api/app_screenvis/', include('apps.app_screenvis.api_urls', namespace='screenvis-api')),
 

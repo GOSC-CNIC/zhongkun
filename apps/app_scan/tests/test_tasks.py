@@ -1,9 +1,9 @@
 from decimal import Decimal
 from urllib import parse
-from order.managers.order import OrderManager
-from scan.models import VtScanService, VtTask
+
 from django.urls import reverse
 from django.conf import settings
+
 from bill.models import PayApp, PayAppService
 from utils.test import (
     get_or_create_user,
@@ -11,6 +11,8 @@ from utils.test import (
     MyAPITestCase,
 )
 from order.models import Price
+from order.managers.order import OrderManager
+from apps.app_scan.models import VtScanService, VtTask
 
 
 class ScanTaskTests(MyAPITestCase):

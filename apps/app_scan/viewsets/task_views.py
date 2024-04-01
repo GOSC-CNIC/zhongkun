@@ -1,13 +1,14 @@
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.serializers import Serializer
 from django.utils.translation import gettext_lazy
+
 from api.paginations import ScanTaskPageNumberPagination
 from api.viewsets import CustomGenericViewSet
-from scan.models import VtTask
-from scan.handlers.task_handler import TaskHandler
-from scan.serializers import ScanTaskOrderCreateSerializer, ScanTaskListSerializer
-from rest_framework.serializers import Serializer
+from apps.app_scan.models import VtTask
+from apps.app_scan.handlers.task_handler import TaskHandler
+from apps.app_scan.serializers import ScanTaskOrderCreateSerializer, ScanTaskListSerializer
 
 
 class ScanTaskViewSet(CustomGenericViewSet):
