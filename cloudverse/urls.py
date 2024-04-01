@@ -57,11 +57,7 @@ schema_view = get_schema_view(
 )
 
 urlpatterns = [
-    path('', views.home, name='index'),
-    path('home/', views.home, name='home'),
-    path('accounts/', include('users.urls', namespace='users')),
-    path('servers/', include('servers.urls', namespace='servers')),
-    path('service/', include('service.urls', namespace='service')),
+    # api url
     path('api/', include('api.urls', namespace='api')),
     path('api/', include('vo.api_urls', namespace='vo-api')),
     path('api/', include('service.api_urls', namespace='service-api')),
@@ -73,10 +69,18 @@ urlpatterns = [
     path('api/', include('bill.api_urls', namespace='wallet-api')),
     path('api/report/', include('report.api_urls', namespace='report-api')),
     path('api/monitor/', include('monitor.api_urls', namespace='monitor-api')),
-    path('api/netbox/', include('apps.app_netbox.api_urls', namespace='netbox-api')),
+    path('api/netbox/', include('apps.app_netbox.api_urls', namespace='old-netbox-api')),
+    path('api/app_netbox/', include('apps.app_netbox.api_urls', namespace='netbox-api')),
     path('api/scan/', include('scan.api_urls', namespace='scan-api')),
-    path('api/apply/', include('app_apply.api_urls', namespace='apply-api')),
+    path('api/apply/', include('apps.app_apply.api_urls', namespace='apply-api')),
     path('api/app_screenvis/', include('apps.app_screenvis.api_urls', namespace='screenvis-api')),
+
+    # views url
+    path('', views.home, name='index'),
+    path('home/', views.home, name='home'),
+    path('accounts/', include('users.urls', namespace='users')),
+    path('servers/', include('servers.urls', namespace='servers')),
+    path('service/', include('service.urls', namespace='service')),
     path('vpn/', include('vpn.urls', namespace='vpn')),
     path('apidocs/', login_required(schema_view.with_ui('swagger', cache_timeout=0)), name='apidocs'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='redoc'),
