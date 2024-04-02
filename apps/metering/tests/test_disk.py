@@ -13,7 +13,7 @@ from core import errors
 from servers.models import Disk, DiskChangeLog
 from vo.managers import VoManager
 from order.models import Price
-from bill.models import CashCoupon, PaymentHistory, PayAppService, PayApp
+from apps.app_wallet.models import CashCoupon, PaymentHistory, PayAppService, PayApp
 from servers.models import ServiceConfig
 from metering.measurers import DiskMeasurer
 from metering.models import PaymentStatus, DailyStatementDisk, MeteringDisk

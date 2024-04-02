@@ -5,7 +5,7 @@ from django.db import transaction
 
 from core import errors
 from metering.models import PaymentStatus, DailyStatementBase
-from bill.managers.payment import PaymentManager
+from apps.app_wallet.managers.payment import PaymentManager
 
 
 class MeteringPaymentManager:

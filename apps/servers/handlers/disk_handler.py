@@ -20,7 +20,7 @@ from utils.time import iso_utc_to_datetime
 from order.deliver_resource import OrderResourceDeliverer
 from order.models import ResourceType, Order
 from order.managers import OrderManager, OrderPaymentManager, DiskConfig
-from bill.managers import PaymentManager
+from apps.app_wallet.managers import PaymentManager
 from servers.managers import ServiceManager
 from servers.managers import ServerManager, DiskManager, ResourceActionLogManager
 from servers.models import Server, Disk

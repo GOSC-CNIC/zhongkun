@@ -321,7 +321,7 @@ class VoManager:
 
         :raises: Error
         """
-        from bill.managers.payment import PaymentManager
+        from apps.app_wallet.managers.payment import PaymentManager
         vo, admin_member = self.get_has_manager_perm_vo(vo_id=vo_id, user=admin_user)
         if not vo.is_owner(admin_user):
             raise errors.AccessDenied(message=_('你不是组拥有者，你没有权限删除组'))

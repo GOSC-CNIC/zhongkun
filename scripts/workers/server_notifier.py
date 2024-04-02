@@ -7,10 +7,8 @@ from django.utils import timezone
 from django.db.models import F
 from django.template.loader import get_template
 from django.template import Template, Context
-from django.conf import settings
-from django.core.mail import send_mail
 
-from bill.managers.payment import PaymentManager
+from apps.app_wallet.managers.payment import PaymentManager
 from servers.models import ServiceConfig
 from servers.models import Server
 from servers.managers import ServerManager

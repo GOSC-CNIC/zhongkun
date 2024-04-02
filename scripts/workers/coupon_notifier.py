@@ -4,7 +4,7 @@ from datetime import timedelta, datetime
 from django.utils import timezone
 from django.db.models import Q
 
-from bill.models import CashCoupon
+from apps.app_wallet.models import CashCoupon
 from users.models import Email
 from vo.models import VirtualOrganization, VoMember
 from utils.model import OwnerType

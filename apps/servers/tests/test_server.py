@@ -21,8 +21,8 @@ from vo.tests import VoTests
 from order.managers import OrderManager, PriceManager
 from order.models import Price, Order, Resource
 from order.managers import ServerConfig
-from bill.managers import PaymentManager
-from bill.models import PayApp, PayAppService
+from apps.app_wallet.managers import PaymentManager
+from apps.app_wallet.models import PayApp, PayAppService
 from metering.measurers import ServerMeasurer
 from metering.models import MeteringServer
 from core.adapters.evcloud import EVCloudAdapter

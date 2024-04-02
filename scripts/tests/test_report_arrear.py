@@ -9,8 +9,8 @@ from utils.test import get_or_create_user, get_or_create_organization, get_or_cr
 from utils.time import utc
 from utils.model import PayType, OwnerType
 from vo.models import VirtualOrganization
-from bill.models import PayApp, PayAppService
-from bill.managers import PaymentManager, CashCouponManager
+from apps.app_wallet.models import PayApp, PayAppService
+from apps.app_wallet.managers import PaymentManager, CashCouponManager
 from storage.models import ObjectsService, Bucket
 from servers.models import Server, ServiceConfig
 from servers.tests import create_server_metadata

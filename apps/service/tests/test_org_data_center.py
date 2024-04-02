@@ -6,7 +6,7 @@ from django.conf import settings
 from utils.test import MyAPITransactionTestCase, get_or_create_user, get_or_create_organization
 from storage.models import ObjectsService
 from monitor.models import MonitorJobCeph, MonitorJobServer, MonitorJobTiDB, LogSite, LogSiteType
-from bill.models import PayAppService, PayApp
+from apps.app_wallet.models import PayAppService, PayApp
 from servers.models import ServiceConfig
 from ..models import OrgDataCenter
 from ..odc_manager import OrgDataCenterManager

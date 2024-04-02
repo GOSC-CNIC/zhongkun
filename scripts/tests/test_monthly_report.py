@@ -14,7 +14,7 @@ from metering.models import (
     MeteringServer, MeteringObjectStorage, DailyStatementServer, DailyStatementObjectStorage, PaymentStatus,
     MeteringDisk, DailyStatementDisk, MeteringMonitorWebsite, DailyStatementMonitorWebsite
 )
-from bill.models import PayApp, PayAppService, CashCoupon
+from apps.app_wallet.models import PayApp, PayAppService, CashCoupon
 from storage.models import ObjectsService, Bucket, BucketArchive
 from vo.models import VirtualOrganization, VoMember
 from report.models import MonthlyReport, BucketMonthlyReport

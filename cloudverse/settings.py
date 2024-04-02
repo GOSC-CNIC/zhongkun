@@ -53,7 +53,7 @@ INSTALLED_APPS = [
     'storage',
     'servers',
     'order',
-    'bill',
+    'apps.app_wallet',
     'metering',
     'report',
     'users',
@@ -79,17 +79,17 @@ ADMIN_SORTED_APP_LIST = [
     'storage',
     'servers',
     'order',
-    'bill',
+    'bill',     # app_wallet
     'metering',
     'report',
     'ticket',
     'users',
     'vo',
     'monitor',
-    'netbox',
-    'scan',
+    'netbox',   # app_netbox
+    'scan',     # app_scan
     'vpn',
-    'apply',
+    'apply',    # app_apply
     'app_screenvis',
 ]
 

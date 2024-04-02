@@ -11,7 +11,7 @@ from monitor.managers import MonitorWebsiteManager, WebsiteQueryChoices, URLTCPV
 from monitor.models import MonitorWebsiteTask, MonitorWebsiteVersion, MonitorWebsite, WebsiteDetectionPoint
 from monitor.utils import MonitorEmailAddressIPRestrictor
 from api.viewsets import CustomGenericViewSet
-from bill.managers.payment import PaymentManager
+from apps.app_wallet.managers.payment import PaymentManager
 from order.managers.price import PriceManager
 from api.handlers import serializer_error_msg
 

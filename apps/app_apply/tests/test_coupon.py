@@ -12,7 +12,7 @@ from utils.time import utc
 from utils.decimal_utils import quantize_10_2
 from utils.test import get_or_create_org_data_center, get_or_create_user, MyAPITestCase
 from vo.models import VirtualOrganization, VoMember
-from bill.models import CashCoupon, PayAppService, PayApp
+from apps.app_wallet.models import CashCoupon, PayAppService, PayApp
 from servers.models import ServiceConfig
 from storage.models import ObjectsService
 from monitor.models import MonitorWebsiteVersion

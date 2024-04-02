@@ -1,12 +1,8 @@
 import os
-import json
 
 from django.core.management.base import BaseCommand, CommandError
-from django.utils import timezone
-from rest_framework import serializers
-from storage.models import ObjectsService, Bucket
-from users.models import UserProfile
-from bill.models import PayApp
+
+from apps.app_wallet.models import PayApp
 
 
 class Command(BaseCommand):

@@ -4,7 +4,7 @@ from urllib import parse
 from django.urls import reverse
 from django.conf import settings
 
-from bill.models import PayApp, PayAppService
+from apps.app_wallet.models import PayApp, PayAppService
 from utils.test import (
     get_or_create_user,
     get_or_create_organization,

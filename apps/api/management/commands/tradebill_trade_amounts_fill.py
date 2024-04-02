@@ -2,7 +2,7 @@ from datetime import datetime
 
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
-from bill.models import PaymentHistory, TransactionBill, RefundRecord
+from apps.app_wallet.models import PaymentHistory, TransactionBill, RefundRecord
 
 
 class Command(BaseCommand):

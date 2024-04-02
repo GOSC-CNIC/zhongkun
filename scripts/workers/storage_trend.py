@@ -7,7 +7,7 @@ from django.db import close_old_connections
 from django.db.models import Sum
 from django.utils import timezone
 
-from bill.managers.payment import PaymentManager
+from apps.app_wallet.managers.payment import PaymentManager
 from storage.models import Bucket, BucketArchive, ObjectsService
 from report.models import BucketStatsMonthly
 from report.managers import ArrearBucketManager

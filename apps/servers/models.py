@@ -125,7 +125,7 @@ class ServiceConfig(BaseService):
         """
         当name修改时，同步变更到 对应的钱包的pay app service
         """
-        from bill.models import PayAppService
+        from apps.app_wallet.models import PayAppService
         try:
             app_service = PayAppService.objects.filter(id=self.pay_app_service_id).first()
             if app_service:
@@ -157,7 +157,7 @@ class ServiceConfig(BaseService):
         如果指定结算服务单元，确认结算服务单元是否存在有效；未指定结算服务单元时为云主机服务单元注册对应的钱包结算服务单元
         :raises: ValidationError
         """
-        from bill.models import PayAppService
+        from apps.app_wallet.models import PayAppService
 
         payment_balance = getattr(settings, 'PAYMENT_BALANCE', {})
         app_id = payment_balance.get('app_id', None)
@@ -186,7 +186,7 @@ class ServiceConfig(BaseService):
 
     @staticmethod
     def check_pay_app_service_id(pay_app_service_id: str):
-        from bill.models import PayAppService
+        from apps.app_wallet.models import PayAppService
 
         app_service = PayAppService.objects.filter(id=pay_app_service_id).first()
         if app_service is None:

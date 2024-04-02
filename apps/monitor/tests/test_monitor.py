@@ -17,7 +17,7 @@ from monitor.managers import (
     VideoMeetingQueryChoices, WebsiteQueryChoices, MonitorWebsiteManager
 )
 from monitor.utils import MonitorEmailAddressIPRestrictor
-from bill.models import PayApp, PayAppService
+from apps.app_wallet.models import PayApp, PayAppService
 from order.models import Price
 from utils.test import (
     get_or_create_user, get_test_case_settings, get_or_create_organization,

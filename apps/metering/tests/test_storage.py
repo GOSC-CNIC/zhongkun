@@ -9,7 +9,7 @@ from utils.test import get_or_create_user, get_or_create_storage_service, get_or
 from utils.model import OwnerType
 from core import errors
 from order.models import Price
-from bill.models import CashCoupon, PaymentHistory, PayAppService, PayApp
+from apps.app_wallet.models import CashCoupon, PaymentHistory, PayAppService, PayApp
 from metering.measurers import StorageMeasurer
 from metering.models import PaymentStatus, MeteringObjectStorage, DailyStatementObjectStorage
 from metering.payment import MeteringPaymentManager

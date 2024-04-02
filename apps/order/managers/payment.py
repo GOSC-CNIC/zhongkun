@@ -7,7 +7,7 @@ from core import errors
 from utils.model import OwnerType
 from metering.models import PaymentStatus
 from order.models import Order
-from bill.managers.payment import PaymentManager
+from apps.app_wallet.managers.payment import PaymentManager
 
 
 class OrderPaymentManager:

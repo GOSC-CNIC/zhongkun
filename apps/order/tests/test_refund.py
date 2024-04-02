@@ -13,8 +13,8 @@ from order.managers import OrderManager, OrderPaymentManager
 from order.managers.instance_configs import ServerConfig
 from utils.test import get_or_create_user, get_or_create_service, get_or_create_organization, MyAPITestCase
 from vo.models import VirtualOrganization
-from bill.managers import PaymentManager
-from bill.models import CashCoupon, PayAppService, PayApp
+from apps.app_wallet.managers import PaymentManager
+from apps.app_wallet.models import CashCoupon, PayAppService, PayApp
 from servers.models import ServiceConfig, Flavor
 
 

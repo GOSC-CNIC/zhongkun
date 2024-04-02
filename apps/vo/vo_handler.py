@@ -9,8 +9,8 @@ from core import errors as exceptions
 from api.viewsets import CustomGenericViewSet, serializer_error_msg
 from servers.managers import ServerManager, DiskManager
 from order.managers import OrderManager
-from bill.models import CashCoupon
-from bill.managers import PaymentManager
+from apps.app_wallet.models import CashCoupon
+from apps.app_wallet.managers import PaymentManager
 
 
 class VoHandler:

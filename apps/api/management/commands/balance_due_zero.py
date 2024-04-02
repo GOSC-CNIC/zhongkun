@@ -5,8 +5,8 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.db import transaction
 
-from bill.models import UserPointAccount, VoPointAccount, Recharge
-from bill.managers.recharge import RechargeManager
+from apps.app_wallet.models import UserPointAccount, VoPointAccount, Recharge
+from apps.app_wallet.managers.recharge import RechargeManager
 from utils.model import OwnerType
 
 

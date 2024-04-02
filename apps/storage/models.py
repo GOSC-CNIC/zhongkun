@@ -8,7 +8,7 @@ from django.core.exceptions import ValidationError
 from service.models import DataCenter, OrgDataCenter
 from utils.model import UuidModel, get_encryptor
 from utils.validators import http_url_validator
-from bill.models import PayAppService
+from apps.app_wallet.models import PayAppService
 
 
 User = get_user_model()

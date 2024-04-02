@@ -9,7 +9,7 @@ from servers.models import Disk
 from servers.tests.test_disk import create_disk_metadata
 from utils.test import get_or_create_user, MyAPITestCase
 from vo.models import VirtualOrganization, VoMember
-from bill.managers.payment import PaymentManager
+from apps.app_wallet.managers.payment import PaymentManager
 from order.managers import OrderManager
 from order.models import Order, ResourceType
 from order.managers.instance_configs import ServerConfig

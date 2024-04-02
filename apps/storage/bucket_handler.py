@@ -7,7 +7,7 @@ from rest_framework.response import Response
 
 from core import errors as exceptions
 from api.viewsets import StorageGenericViewSet, serializer_error_msg
-from bill.managers import PaymentManager
+from apps.app_wallet.managers import PaymentManager
 from storage.adapter import inputs
 from storage.managers import BucketManager, ObjectsServiceManager
 from storage.models import Bucket, ObjectsService

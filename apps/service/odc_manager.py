@@ -8,7 +8,7 @@ from users.models import UserProfile
 from service.models import OrgDataCenter, DataCenter as Organization
 from servers.models import ServiceConfig
 from core import errors
-from bill.models import PayAppService
+from apps.app_wallet.models import PayAppService
 from storage.models import ObjectsService
 
 

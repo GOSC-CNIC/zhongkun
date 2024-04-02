@@ -20,7 +20,7 @@ from storage.models import Bucket, BucketArchive
 from order.models import Order, Resource, ResourceType
 from utils.model import OwnerType, PayType
 from utils.time import utc
-from bill.models import CashCoupon, CashCouponPaymentHistory
+from apps.app_wallet.models import CashCoupon, CashCouponPaymentHistory
 from servers.models import Server, ServerArchive, Disk
 from core.site_configs_manager import website_brand
 from . import config_logger

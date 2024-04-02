@@ -20,8 +20,8 @@ from vo.models import VirtualOrganization, VoMember
 from order.managers import OrderManager, PriceManager
 from order.models import Price, Order, Resource
 from order.managers import DiskConfig
-from bill.managers import PaymentManager
-from bill.models import PayApp, PayAppService
+from apps.app_wallet.managers import PaymentManager
+from apps.app_wallet.models import PayApp, PayAppService
 from metering.measurers import DiskMeasurer
 from metering.models import MeteringDisk
 

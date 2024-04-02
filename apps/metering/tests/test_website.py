@@ -16,7 +16,7 @@ from metering.statement_generators import WebsiteMonitorStatementGenerater
 from metering.payment import MeteringPaymentManager
 from metering.pay_metering import PayMeteringWebsite
 from users.models import UserProfile
-from bill.models import PayApp, PayAppService, PaymentHistory, CashCoupon
+from apps.app_wallet.models import PayApp, PayAppService, PaymentHistory, CashCoupon
 from core import errors
 from service.models import OrgDataCenter
 

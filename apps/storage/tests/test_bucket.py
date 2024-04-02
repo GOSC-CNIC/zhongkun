@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from django.urls import reverse
 
-from bill.models import PayApp, PayAppService
+from apps.app_wallet.models import PayApp, PayAppService
 from utils.test import get_or_create_user, get_or_create_storage_service, get_or_create_organization, MyAPITestCase
 from utils.model import OwnerType
 from storage.managers import BucketManager

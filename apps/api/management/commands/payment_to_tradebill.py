@@ -3,8 +3,8 @@ from decimal import Decimal
 
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
-from bill.models import PaymentHistory, TransactionBill
-from bill.managers.bill import TransactionBillManager
+from apps.app_wallet.models import PaymentHistory, TransactionBill
+from apps.app_wallet.managers.bill import TransactionBillManager
 
 
 class Command(BaseCommand):

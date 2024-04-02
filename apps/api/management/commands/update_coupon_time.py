@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
-from bill.models import CashCoupon, CashCouponActivity
+from apps.app_wallet.models import CashCoupon, CashCouponActivity
 
 
 class Command(BaseCommand):

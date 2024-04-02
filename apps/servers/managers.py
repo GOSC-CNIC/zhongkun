@@ -9,7 +9,7 @@ from django.core.cache import cache
 
 from core import errors
 from vo.managers import VoManager
-from bill.managers import PaymentManager
+from apps.app_wallet.managers import PaymentManager
 from utils.model import PayType, OwnerType
 from storage.serializers import BucketSerializer
 from storage.models import Bucket
