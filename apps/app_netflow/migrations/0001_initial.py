@@ -53,7 +53,7 @@ class Migration(migrations.Migration):
                 ('id', models.CharField(blank=True, editable=False, max_length=36, primary_key=True, serialize=False, verbose_name='ID')),
                 ('sort_weight', models.IntegerField(help_text='值越小排序越靠前', verbose_name='排序值')),
                 ('remark', models.TextField(default='', verbose_name='备注')),
-                ('category', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='sub_category_list', related_query_name='sub_category', to='app_netflow.menucategorymodel', verbose_name='类别')),
+                ('category', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='sub_categories', related_query_name='sub_category', to='app_netflow.menucategorymodel', verbose_name='类别')),
                 ('chart', models.ManyToManyField(blank=True, related_name='menu_list', related_query_name='menu', to='app_netflow.chartmodel', verbose_name='图表合集')),
             ],
             options={
