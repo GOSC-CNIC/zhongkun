@@ -18,7 +18,6 @@ from django.utils.translation import gettext_lazy
 from django.conf.locale.zh_Hans import formats as zh_formats
 from django.conf.locale.en import formats as en_formats
 
-
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
 sys.path.insert(0, str(BASE_DIR.joinpath('apps')))
 
@@ -27,7 +26,7 @@ sys.path.insert(0, str(BASE_DIR.joinpath('apps')))
 
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 INTERNAL_IPS = []
@@ -44,6 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'rest_framework',
+    'django_filters',
     # 'rest_framework.authtoken',
     'drf_yasg',
     'corsheaders',
@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     'apps.app_apply',
     'apps.app_screenvis',
 
+    'apps.app_netflow',
     # app放上面
     'docs',
     'scripts',
@@ -158,7 +159,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/2.2/topics/i18n/
 
@@ -182,7 +182,6 @@ en_formats.DATE_FORMAT = DATE_FORMAT
 en_formats.TIME_FORMAT = TIME_FORMAT
 en_formats.DATETIME_FORMAT = DATETIME_FORMAT
 en_formats.TIME_INPUT_FORMATS = TIME_INPUT_FORMATS
-
 
 LANGUAGE_CODE = 'zh-hans'
 
@@ -229,14 +228,14 @@ AUTH_USER_MODEL = 'users.UserProfile'
 # 登陆url
 LOGIN_URL = '/accounts/local_login/'
 LOGOUT_URL = '/accounts/logout/'
-LOGIN_REDIRECT_URL = '/'    # 默认重定向url
+LOGIN_REDIRECT_URL = '/'  # 默认重定向url
 LOGOUT_REDIRECT_URL = '/'
 
 # 第三方应用登录认证，不支持那种认证 注释掉
 THIRD_PARTY_APP_AUTH = {
     # 科技云通行证
     'SCIENCE_CLOUD': {
-        'name': gettext_lazy('中国科技云通行证'),    # 登录页面显示的名称
+        'name': gettext_lazy('中国科技云通行证'),  # 登录页面显示的名称
         'client_home_url': 'https://yunkun.cstcloud.cn',
         'client_callback_url': 'https://yunkun.cstcloud.cn/accounts/callback/',  # 认证回调地址
         'login_url': 'https://passport.escience.cn/oauth2/authorize?response_type=code&theme=embed',
@@ -245,7 +244,7 @@ THIRD_PARTY_APP_AUTH = {
     },
     # AAI
     'AAI': {
-        'name': gettext_lazy('中国科技云身份认证联盟'),    # 登录页面显示的名称
+        'name': gettext_lazy('中国科技云身份认证联盟'),  # 登录页面显示的名称
         'client_home_url': 'https://yunkun.cstcloud.cn',
         'client_callback_url': 'https://yunkun.cstcloud.cn/auth/callback/aai',  # 认证回调地址
         'login_url': 'https://aai.cstcloud.net/oidc/authorize?response_type=code',
@@ -253,7 +252,6 @@ THIRD_PARTY_APP_AUTH = {
         'user_info_url': 'https://aai.cstcloud.net/oidc/userinfo'
     },
 }
-
 
 REST_FRAMEWORK = {
     'PAGE_SIZE': 100,
@@ -265,7 +263,6 @@ REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'api.viewsets.exception_handler',
     'TEST_REQUEST_DEFAULT_FORMAT': 'json',
 }
-
 
 LOGGING_FILES_DIR = Path('/var/log/yunkun')
 if not LOGGING_FILES_DIR.exists():
@@ -300,8 +297,8 @@ LOGGING = {
             'class': 'concurrent_log_handler.ConcurrentRotatingFileHandler',
             'filename': LOGGING_FILES_DIR.joinpath('yunkun.log'),
             'formatter': 'verbose',
-            'maxBytes': 1024*1024*50,  # 50MB
-            'backupCount': 5           # 最多5个文件
+            'maxBytes': 1024 * 1024 * 50,  # 50MB
+            'backupCount': 5  # 最多5个文件
         },
         # output to console settings
         'console': {
@@ -319,12 +316,11 @@ LOGGING = {
         # },
         'django.request': {
             'handlers': ['file', 'console'],
-            'level': 'WARNING',    # 'ERROR',
+            'level': 'WARNING',  # 'ERROR',
             'propagate': False,
         },
     },
 }
-
 
 PASSPORT_JWT = {
     'ALGORITHM': 'RS512',
@@ -338,8 +334,8 @@ PASSPORT_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
     'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
     'USER_ID_FIELD': 'username',
-    'USER_ID_CLAIM': 'email',              # 'cstnetId','email'
-    'AAI_USER_ID': 'id',                     # 科技云通行证/AAI中user id在jwt中的字段名称
+    'USER_ID_CLAIM': 'email',  # 'cstnetId','email'
+    'AAI_USER_ID': 'id',  # 科技云通行证/AAI中user id在jwt中的字段名称
     'TOKEN_TYPE_CLAIM': 'type',
     'EXPIRATION_CLAIM': 'exp',
 
@@ -349,7 +345,6 @@ PASSPORT_JWT = {
     'ORG_NAME_FIELD': 'orgName',
     'TRUE_NAME_FIELD': 'name'
 }
-
 
 # drf-yasg
 SWAGGER_SETTINGS = {
@@ -375,7 +370,7 @@ SWAGGER_SETTINGS = {
 
 # admin
 BATON = {
-    'COPYRIGHT': '', # noqa
+    'COPYRIGHT': '',  # noqa
     'POWERED_BY': '<a href="https://gitee.com/cstcloud-cnic">CNIC</a>',
     'MENU_ALWAYS_COLLAPSED': True,
     'CHANGELIST_FILTERS_IN_MODAL': False,
@@ -385,21 +380,20 @@ BATON = {
 }
 
 # swagger api在线文档地址配置
-SWAGGER_SCHEMA_URL = None     # 'https://xxx.xxx'
-
+SWAGGER_SCHEMA_URL = None  # 'https://xxx.xxx'
 
 # 跨域
 # CORS_ALLOWED_ORIGINS = [
 #     "https://example.com",
 # ]
 
-CORS_ALLOW_ALL_ORIGINS = True       # 允许所有请求来源跨域
+CORS_ALLOW_ALL_ORIGINS = True  # 允许所有请求来源跨域
 
 # 站点的一些全局配置
 WEBSITE_CONFIG = {
     'site_brand': gettext_lazy('中国科技云一体化云服务平台'),  # 本站点的名称，一些邮件通知也会用到
     'site_url': 'https://service.cstcloud.cn',  # 本站点的地址，一些邮件通知也会用到
-    'about_us': '',    # gettext_lazy(''),     # “关于”网页中“关于我们”的文字描述
+    'about_us': '',  # gettext_lazy(''),     # “关于”网页中“关于我们”的文字描述
 }
 
 # crontab定时任务设置，每任务项的第一个值是任务的标签字符串，必须以“task”开头
@@ -422,7 +416,6 @@ CRONTABJOBS = [
 # 安全配置导入
 from .security import *
 
-
 if DEBUG:
     from .test_settings import TEST_CASE
 
@@ -432,4 +425,4 @@ if DEBUG:
     DEBUG_TOOLBAR_CONFIG = {
         # 'SHOW_COLLAPSED': True,
     }
-    INTERNAL_IPS += ['127.0.0.1']     # 通过这些IP地址访问时，页面才会出现django debug toolbar面板
+    INTERNAL_IPS += ['127.0.0.1']  # 通过这些IP地址访问时，页面才会出现django debug toolbar面板
