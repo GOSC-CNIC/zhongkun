@@ -74,6 +74,7 @@ urlpatterns = [
     path('api/scan/', include('apps.app_scan.api_urls', namespace='scan-api')),
     path('api/apply/', include('apps.app_apply.api_urls', namespace='apply-api')),
     path('api/app_screenvis/', include('apps.app_screenvis.api_urls', namespace='screenvis-api')),
+    path('api/app_netflow/', include('apps.app_netflow.api_urls', namespace='netflow-api')),
 
     # views url
     path('', views.home, name='index'),
@@ -81,6 +82,7 @@ urlpatterns = [
     path('accounts/', include('users.urls', namespace='users')),
     path('servers/', include('servers.urls', namespace='servers')),
     path('service/', include('service.urls', namespace='service')),
+
     path('vpn/', include('vpn.urls', namespace='vpn')),
     path('apidocs/', login_required(schema_view.with_ui('swagger', cache_timeout=0)), name='apidocs'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='redoc'),
