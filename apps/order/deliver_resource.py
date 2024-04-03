@@ -35,38 +35,6 @@ class OrderResourceDeliverer:
             raise err_list[0]
 
         return res_list
-        # if order.order_type == Order.OrderType.NEW.value:  # 新购
-        #     if order.resource_type == ResourceType.VM.value:
-        #         service, server_list, err_list = self.deliver_new_servers(order=order)
-        #         self.after_deliver_server_list(service=service, servers=server_list)
-        #         if err_list:
-        #             raise err_list[0]
-        #         return server_list
-        #     elif order.resource_type == ResourceType.DISK.value:
-        #         service, disk = self.deliver_new_disk(order=order, resource=resource)
-        #         self.after_deliver_disk(service=service, disk=disk)
-        #         return [disk]
-        #     if order.resource_type == ResourceType.SCAN.value:
-        #         tasks = self.deliver_new_sacn(order=order)
-        #         return tasks
-        # elif order.order_type == Order.OrderType.RENEWAL.value:  # 续费
-        #     if order.resource_type == ResourceType.VM.value:
-        #         server = self.deliver_renewal_server(order=order, resource=resource)
-        #         return [server]
-        #     elif order.resource_type == ResourceType.DISK.value:
-        #         disk = self.deliver_renewal_disk(order=order, resource=resource)
-        #         return [disk]
-        # elif order.order_type in [Order.OrderType.POST2PRE.value]:  # 付费方式修改
-        #     if order.resource_type == ResourceType.VM.value:
-        #         server = self.deliver_modify_server_pay_type(order=order, resource=resource)
-        #         return [server]
-        #     elif order.resource_type == ResourceType.DISK.value:
-        #         disk = self.deliver_modify_disk_pay_type(order=order, resource=resource)
-        #         return [disk]
-        # else:
-        #     raise exceptions.Error(message=_('订单的类型不支持交付。'))
-        #
-        # raise exceptions.Error(message=_('订购的资源类型无法交付，资源类型服务不支持。'))
 
     def deliver_order_with_futures(
             self, order: Order, resource: Resource = None
@@ -158,6 +126,14 @@ class OrderResourceDeliverer:
         return disk, futures
 
     @staticmethod
+    def format_inst_remark(order: Order, remark: str):
+        remarks = f'[user]{order.username};{remark}'
+        if order.owner_type == OwnerType.VO.value:
+            remarks = f'[vo]{order.vo_name};' + remarks
+
+        return remarks
+
+    @staticmethod
     def _check_pre_create_server_resources(order: Order, resources: List[Resource]) -> (ServiceConfig, ServerConfig):
         if order.resource_type != ResourceType.VM.value:
             raise exceptions.Error(message=_('订单的资源类型不是云服务器'))
@@ -239,9 +215,10 @@ class OrderResourceDeliverer:
         except exceptions.Error as exc:
             raise exc
 
+        inst_remarks = self.format_inst_remark(order=order, remark=resource.instance_remark)
         params = inputs.ServerCreateInput(
             ram=config.vm_ram_mib, vcpu=config.vm_cpu, image_id=config.vm_image_id, azone_id=config.vm_azone_id,
-            region_id=service.region_id, network_id=config.vm_network_id, remarks=resource.instance_remark,
+            region_id=service.region_id, network_id=config.vm_network_id, remarks=inst_remarks,
             systemdisk_size=config.vm_systemdisk_size, flavor_id=config.vm_flavor_id
         )
         try:
@@ -647,9 +624,10 @@ class OrderResourceDeliverer:
         except exceptions.Error as exc:
             raise exc
 
+        description = OrderResourceDeliverer.format_inst_remark(order=order, remark=resource.instance_remark)
         params = inputs.DiskCreateInput(
             region_id=service.region_id, azone_id=config.disk_azone_id,
-            size_gib=config.disk_size, description=resource.instance_remark
+            size_gib=config.disk_size, description=description
         )
         try:
             out = core_request.request_service(service=service, method='disk_create', params=params)

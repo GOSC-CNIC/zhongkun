@@ -5,7 +5,10 @@ from . import exceptions
 class InputValidator:
     @staticmethod
     def create_server_validate(params: inputs.ServerCreateInput):
-        remarks = params.remarks if params.remarks else 'GOSC'
+        remarks = params.remarks if params.remarks else 'yunkun'
+        if len(remarks) > 200:
+            remarks = remarks[0:200]
+
         try:
             center_id = int(params.region_id)
             image_id = int(params.image_id)
