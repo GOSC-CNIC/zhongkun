@@ -93,11 +93,12 @@ class PayAppService(CustomIdModel):
         BAN = 'ban', _('禁止')
 
     class Category(models.TextChoices):
-        VMS_SERVER = 'vms-server', _('VMS云服务器')
-        VMS_OBJECT = 'vms-object', _('VMS对象存储')
-        VMS_MONITOR = 'vms-monitor', _('VMS监控')
+        VMS_SERVER = 'vms-server', _('云服务器')
+        VMS_OBJECT = 'vms-object', _('对象存储')
+        VMS_MONITOR = 'vms-monitor', _('监控')
         HIGH_CLOUD = 'high-cloud', _('高等级云')
         HPC = 'hpc', _('高性能计算')
+        SCAN = 'scan', _('安全扫描')
         OTHER = 'other', _('其他')
 
     orgnazition = models.ForeignKey(

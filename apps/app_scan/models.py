@@ -91,7 +91,7 @@ class VtScanService(UuidModel):
             app_service = PayAppService(
                 name=self.name, name_en=self.name_en, app_id=app_id, orgnazition_id=None,
                 resources=gettext('安全扫描'), status=PayAppService.Status.NORMAL.value,
-                category=PayAppService.Category.OTHER.value, service_id=self.id,
+                category=PayAppService.Category.SCAN.value, service_id=self.id,
                 longitude=0, latitude=0,
                 contact_person='', contact_telephone='',
                 contact_email='', contact_address='',
