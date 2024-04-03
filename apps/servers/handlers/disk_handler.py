@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from core import errors as exceptions
 from core import request as core_request
 from core.quota import QuotaAPI
+from core import site_configs_manager
 from api.viewsets import CustomGenericViewSet, serializer_error_msg
 from api import request_logger
 from vo.managers import VoManager
@@ -25,6 +26,9 @@ from servers.managers import ServiceManager
 from servers.managers import ServerManager, DiskManager, ResourceActionLogManager
 from servers.models import Server, Disk
 from servers import disk_serializers
+
+
+PAY_APP_ID = site_configs_manager.get_pay_app_id(settings, check_valid=True)
 
 
 class DiskHandler:
@@ -246,7 +250,7 @@ class DiskHandler:
         try:
             subject = order.build_subject()
             order = OrderPaymentManager().pay_order(
-                order=order, app_id=settings.PAYMENT_BALANCE['app_id'], subject=subject,
+                order=order, app_id=PAY_APP_ID, subject=subject,
                 executor=request.user.username, remark='',
                 coupon_ids=None, only_coupon=False,
                 required_enough_balance=True

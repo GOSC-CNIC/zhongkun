@@ -7,6 +7,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.conf import settings
 
+from core import site_configs_manager
 from utils.model import PayType, OwnerType, ResourceType
 from order.models import Price, Order, Period
 from order.managers import OrderManager
@@ -19,6 +20,9 @@ from apps.app_wallet.managers import PaymentManager
 from apps.app_wallet.models import PaymentHistory, CashCoupon, PayAppService, PayApp, TransactionBill
 from servers.models import ServiceConfig, Flavor
 from servers.managers import ServicePrivateQuotaManager
+
+
+PAY_APP_ID = site_configs_manager.get_pay_app_id(settings)
 
 
 class OrderTests(MyAPITestCase):
@@ -55,7 +59,7 @@ class OrderTests(MyAPITestCase):
         self.service = get_or_create_service()
 
         # 余额支付有关配置
-        self.app = PayApp(name='app', id=settings.PAYMENT_BALANCE['app_id'])
+        self.app = PayApp(name='app', id=PAY_APP_ID)
         self.app.save(force_insert=True)
         self.po = get_or_create_organization(name='机构')
         self.po.save()
@@ -985,7 +989,7 @@ class OrderTests(MyAPITestCase):
         self.assertEqual(pay_history1.payment_account, '')
         self.assertEqual(pay_history1.app_service_id, self.service.pay_app_service_id)
         self.assertEqual(pay_history1.instance_id, '')
-        self.assertEqual(pay_history1.app_id, settings.PAYMENT_BALANCE['app_id'])
+        self.assertEqual(pay_history1.app_id, PAY_APP_ID)
         self.assertEqual(pay_history1.subject, order1.build_subject())
 
         # 券支付记录
@@ -1086,7 +1090,7 @@ class OrderTests(MyAPITestCase):
         self.assertEqual(pay_history2.payment_account, self.user.userpointaccount.id)
         self.assertEqual(pay_history2.app_service_id, self.service.pay_app_service_id)
         self.assertEqual(pay_history2.instance_id, '')
-        self.assertEqual(pay_history2.app_id, settings.PAYMENT_BALANCE['app_id'])
+        self.assertEqual(pay_history2.app_id, PAY_APP_ID)
         self.assertEqual(pay_history2.subject, order2.build_subject())
         # 券支付记录
         cc_historys = pay_history2.cashcouponpaymenthistory_set.all().order_by('creation_time')

@@ -9,6 +9,7 @@ from django.core.exceptions import ValidationError
 from django.conf import settings
 
 from core import errors
+from core import site_configs_manager
 from service.models import OrgDataCenter, DataCenter
 from utils.model import get_encryptor, PayType, UuidModel, OwnerType
 from utils.validators import json_string_validator, http_url_validator
@@ -159,8 +160,10 @@ class ServiceConfig(BaseService):
         """
         from apps.app_wallet.models import PayAppService
 
-        payment_balance = getattr(settings, 'PAYMENT_BALANCE', {})
-        app_id = payment_balance.get('app_id', None)
+        try:
+            app_id = site_configs_manager.get_pay_app_id(dj_settings=settings, check_valid=True)
+        except Exception as exc:
+            raise ValidationError(message=str(exc))
 
         if self.pay_app_service_id:
             app_service = self.check_pay_app_service_id(self.pay_app_service_id)

@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from core import errors as exceptions
 from core.quota import QuotaAPI
 from core import request as core_request
+from core import site_configs_manager
 from servers.managers import ServiceManager
 from servers.models import Server, Flavor
 from servers.managers import ServerManager, ServerArchiveManager, DiskManager, ResourceActionLogManager
@@ -28,6 +29,9 @@ from order.models import ResourceType, Order
 from order.managers import OrderManager, ServerConfig, OrderPaymentManager
 from apps.app_wallet.managers import PaymentManager
 from servers.handlers.disk_handler import DiskHandler
+
+
+PAY_APP_ID = site_configs_manager.get_pay_app_id(settings, check_valid=True)
 
 
 def str_to_true_false(val: str):
@@ -597,7 +601,7 @@ class ServerHandler:
         try:
             subject = order.build_subject()
             order = OrderPaymentManager().pay_order(
-                order=order, app_id=settings.PAYMENT_BALANCE['app_id'], subject=subject,
+                order=order, app_id=PAY_APP_ID, subject=subject,
                 executor=request.user.username, remark='',
                 coupon_ids=None, only_coupon=False,
                 required_enough_balance=True

@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.utils import timezone as dj_timezone
 from django.conf import settings
 
-from core import errors
+from core import errors, site_configs_manager
 from utils.model import PayType, OwnerType, ResourceType
 from order.models import Price, Order, Resource, OrderRefund
 from order.managers import OrderManager, OrderPaymentManager
@@ -51,7 +51,7 @@ class OrderRefundTests(MyAPITestCase):
         self.service = get_or_create_service()
 
         # 余额支付有关配置
-        self.app = PayApp(name='app', id=settings.PAYMENT_BALANCE['app_id'])
+        self.app = PayApp(name='app', id=site_configs_manager.get_pay_app_id(dj_settings=settings))
         self.app.save(force_insert=True)
         self.po = get_or_create_organization(name='机构')
         self.po.save()
@@ -62,7 +62,6 @@ class OrderRefundTests(MyAPITestCase):
         self.app_service1 = app_service1
         self.service.pay_app_service_id = app_service1.id
         self.service.save(update_fields=['pay_app_service_id'])
-        settings.PAYMENT_BALANCE['app_id'] = self.app.id
 
     def test_refund_order(self):
         self.app_service2 = PayAppService(

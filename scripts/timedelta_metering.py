@@ -15,16 +15,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'cloudverse.settings')
 setup()
 
-from django.conf import settings
 
-payment_balance = getattr(settings, 'PAYMENT_BALANCE', {})
-app_id = payment_balance.get('app_id', None)
-if not app_id:
-    print(f'Not set PAYMENT_BALANCE app_id')
-    exit(1)
-
-
-def server_metering_pay():
+def server_metering_pay(app_id: str):
     from metering.measurers import ServerMeasurer
     from metering.pay_metering import PayMeteringServer
     from metering.statement_generators import GenerateDailyStatementServer
@@ -59,7 +51,7 @@ def server_metering_pay():
         metering_date += timedelta(days=1)
 
 
-def disk_metering_pay():
+def disk_metering_pay(app_id: str):
     from metering.measurers import DiskMeasurer
     from metering.pay_metering import PayMeteringDisk
     from metering.statement_generators import DiskDailyStatementGenerater
@@ -94,7 +86,7 @@ def disk_metering_pay():
         metering_date += timedelta(days=1)
 
 
-def storage_metering_pay():
+def storage_metering_pay(app_id: str):
     from metering.measurers import StorageMeasurer
     from metering.pay_metering import PayMeteringObjectStorage
     from metering.statement_generators import GenerateDailyStatementObjectStorage
@@ -112,7 +104,7 @@ def storage_metering_pay():
         print(f'FAILED, {metering_date}, {str(e)}')
 
 
-def website_monitor_metering_pay():
+def website_monitor_metering_pay(app_id: str):
     from metering.measurers import MonitorWebsiteMeasurer
     from metering.statement_generators import WebsiteMonitorStatementGenerater
     from metering.pay_metering import PayMeteringWebsite
@@ -130,7 +122,17 @@ def website_monitor_metering_pay():
 
 
 if __name__ == "__main__":
-    server_metering_pay()
-    disk_metering_pay()
-    website_monitor_metering_pay()
-    storage_metering_pay()
+    from django.conf import settings
+    from core.site_configs_manager import get_pay_app_id
+
+    try:
+        pay_app_id = get_pay_app_id(dj_settings=settings)
+    except Exception as exc:
+        print(str(exc))
+        exit(1)
+        raise exc
+
+    server_metering_pay(app_id=pay_app_id)
+    disk_metering_pay(app_id=pay_app_id)
+    website_monitor_metering_pay(app_id=pay_app_id)
+    storage_metering_pay(app_id=pay_app_id)

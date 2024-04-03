@@ -7,6 +7,7 @@ from django.utils import timezone as dj_timezone
 from django.conf import settings
 
 from core import errors
+from core import site_configs_manager
 from utils.model import OwnerType, PayType, ResourceType
 from utils.time import utc
 from utils.decimal_utils import quantize_10_2
@@ -1441,7 +1442,7 @@ class CouponApplyTests(MyAPITestCase):
 
     def test_order_apply(self):
         # 余额支付有关配置
-        app = PayApp(name='app', id=settings.PAYMENT_BALANCE['app_id'])
+        app = PayApp(name='app', id=site_configs_manager.get_pay_app_id(dj_settings=settings))
         app.save(force_insert=True)
         app_service1 = PayAppService(
             name='scan app s1', app=app, orgnazition=self.odc1.organization

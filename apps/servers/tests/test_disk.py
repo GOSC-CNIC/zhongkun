@@ -7,6 +7,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.conf import settings
 
+from core import site_configs_manager
 from servers.managers import ServicePrivateQuotaManager
 from servers.models import ServiceConfig
 from servers.models import Disk, Server, ResourceActionLog, DiskChangeLog
@@ -24,6 +25,9 @@ from apps.app_wallet.managers import PaymentManager
 from apps.app_wallet.models import PayApp, PayAppService
 from metering.measurers import DiskMeasurer
 from metering.models import MeteringDisk
+
+
+PAY_APP_ID = site_configs_manager.get_pay_app_id(settings)
 
 
 def create_disk_metadata(
@@ -1439,7 +1443,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
 
     def test_renew_disk(self):
         # 余额支付有关配置
-        app = PayApp(name='app', id=settings.PAYMENT_BALANCE['app_id'])
+        app = PayApp(name='app', id=PAY_APP_ID)
         app.save()
         po = get_or_create_organization(name='机构')
         po.save()
@@ -1704,7 +1708,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
 
     def test_modify_pay_type(self):
         # 余额支付有关配置
-        app = PayApp(name='app', id=settings.PAYMENT_BALANCE['app_id'])
+        app = PayApp(name='app', id=PAY_APP_ID)
         app.save()
         po = get_or_create_organization(name='机构')
         po.save()

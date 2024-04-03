@@ -4,6 +4,7 @@ from urllib import parse
 from django.urls import reverse
 from django.conf import settings
 
+from core import site_configs_manager
 from apps.app_wallet.models import PayApp, PayAppService
 from utils.test import (
     get_or_create_user,
@@ -13,6 +14,9 @@ from utils.test import (
 from order.models import Price
 from order.managers.order import OrderManager
 from apps.app_scan.models import VtScanService, VtTask
+
+
+pay_app_id = site_configs_manager.get_pay_app_id(settings)
 
 
 class ScanTaskTests(MyAPITestCase):
@@ -289,7 +293,7 @@ class ScanTaskTests(MyAPITestCase):
         )
         price.save()
         # 扫描任务订单创建
-        app = PayApp(name="app", id=settings.PAYMENT_BALANCE["app_id"])
+        app = PayApp(name="app", id=pay_app_id)
         app.save()
         app = app
         po = get_or_create_organization(name="机构")
@@ -297,8 +301,7 @@ class ScanTaskTests(MyAPITestCase):
         app_service1 = PayAppService(
             name="scan",
             app=app,
-            orgnazition=po,
-            app_id=settings.PAYMENT_BALANCE["app_id"],
+            orgnazition=po
         )
         app_service1.save()
 

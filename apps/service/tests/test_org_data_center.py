@@ -3,6 +3,7 @@ from urllib import parse
 from django.urls import reverse
 from django.conf import settings
 
+from core import site_configs_manager
 from utils.test import MyAPITransactionTestCase, get_or_create_user, get_or_create_organization
 from storage.models import ObjectsService
 from monitor.models import MonitorJobCeph, MonitorJobServer, MonitorJobTiDB, LogSite, LogSiteType
@@ -548,9 +549,8 @@ class AdminODCTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['users'][0]['id'], user2.id)
 
     def test_add_admin(self):
-        app = PayApp(name='APP')
+        app = PayApp(name='APP', id=site_configs_manager.get_pay_app_id(dj_settings=settings))
         app.save(force_insert=True)
-        settings.PAYMENT_BALANCE['app_id'] = app.id
 
         user2 = get_or_create_user(username='test2@163.com')
         user3 = get_or_create_user(username='test3@qq.com')
@@ -685,9 +685,8 @@ class AdminODCTests(MyAPITransactionTestCase):
         self.assertTrue(pay1_obj.users.filter(username=user3.username).exists())
 
     def test_remove_admin(self):
-        app = PayApp(name='APP')
+        app = PayApp(name='APP', id=site_configs_manager.get_pay_app_id(dj_settings=settings))
         app.save(force_insert=True)
-        settings.PAYMENT_BALANCE['app_id'] = app.id
 
         user2 = get_or_create_user(username='test2@163.com')
         user3 = get_or_create_user(username='test3@qq.com')

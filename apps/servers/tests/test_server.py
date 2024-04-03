@@ -27,10 +27,12 @@ from metering.measurers import ServerMeasurer
 from metering.models import MeteringServer
 from core.adapters.evcloud import EVCloudAdapter
 from core.adapters import outputs
+from core import site_configs_manager
 from . import create_server_metadata
 
 
 utc = timezone.utc
+PAY_APP_ID = site_configs_manager.get_pay_app_id(settings)
 
 
 class ServerOrderTests(MyAPITransactionTestCase):
@@ -448,7 +450,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
 
     def test_renew_server(self):
         # 余额支付有关配置
-        app = PayApp(name='app', id=settings.PAYMENT_BALANCE['app_id'])
+        app = PayApp(name='app', id=PAY_APP_ID)
         app.save()
         po = get_or_create_organization(name='机构')
         po.save()
@@ -691,7 +693,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
 
     def test_modify_pay_type(self):
         # 余额支付有关配置
-        app = PayApp(name='app', id=settings.PAYMENT_BALANCE['app_id'])
+        app = PayApp(name='app', id=PAY_APP_ID)
         app.save()
         po = get_or_create_organization(name='机构')
         po.save()

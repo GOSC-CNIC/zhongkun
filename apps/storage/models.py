@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 
+from core import site_configs_manager
 from service.models import DataCenter, OrgDataCenter
 from utils.model import UuidModel, get_encryptor
 from utils.validators import http_url_validator
@@ -125,8 +126,10 @@ class ObjectsService(UuidModel):
         如果指定结算服务单元，确认结算服务单元是否存在有效；未指定结算服务单元时为云主机服务单元注册对应的钱包结算服务单元
         :raises: ValidationError
         """
-        payment_balance = getattr(settings, 'PAYMENT_BALANCE', {})
-        app_id = payment_balance.get('app_id', None)
+        try:
+            app_id = site_configs_manager.get_pay_app_id(dj_settings=settings, check_valid=True)
+        except Exception as exc:
+            raise ValidationError(message=str(exc))
 
         if self.pay_app_service_id:
             app_service = self.check_pay_app_service_id(self.pay_app_service_id)

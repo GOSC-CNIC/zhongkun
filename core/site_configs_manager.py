@@ -52,7 +52,6 @@ def get_pay_app_id(dj_settings, check_valid: bool = True) -> str:
     raise Error(message='配置参数PAYMENT_BALANCE app_id不是一个有效值')
 
 
-
 website_brand = get_website_brand()
 website_url = get_website_url()
 about_us = get_about_us()
