@@ -104,6 +104,7 @@ class MenuModel(UuidModel):
         ordering = ['sort_weight']
         verbose_name_plural = verbose_name
 
+
 # class CollectCategoryModel(UuidModel):
 #     """
 #     收藏夹分类
@@ -154,3 +155,37 @@ class MenuModel(UuidModel):
 #         verbose_name = _("个人收藏")
 #         ordering = ['sort_weight']
 #         verbose_name_plural = verbose_name
+class RoleModel(UuidModel):
+    name = models.CharField(max_length=255, verbose_name='名称')
+    menus = models.ManyToManyField(
+        to='MenuModel',
+        blank=True,
+        related_name="role_set",
+        related_query_name="role",
+        verbose_name=_("菜单权限"),
+    )
+    charts = models.ManyToManyField(
+        to='ChartModel',
+        blank=True,
+        related_name="role_set",
+        related_query_name="role",
+        verbose_name=_('图表权限')
+    )
+    users = models.ManyToManyField(
+        "users.UserProfile",
+        blank=True,
+        verbose_name=_("组员"),
+        related_name="netflow_role_set",
+        related_query_name="netflow_role",
+    )
+    sort_weight = models.IntegerField(verbose_name=_('排序值'), null=False, help_text=_('值越小排序越靠前'))
+    remark = models.TextField(default='', null=True, blank=True, verbose_name=_('备注'))
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        db_table = "netflow_role"
+        verbose_name = _("权限管理")
+        ordering = ['sort_weight']
+        verbose_name_plural = verbose_name
