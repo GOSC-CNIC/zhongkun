@@ -30,6 +30,7 @@ from apps.app_scan.models import VtScanService
 from apps.app_apply import serializers
 from apps.app_apply.models import CouponApply
 from apps.app_apply.managers.coupon import CouponApplyManager
+from apps.app_apply.notifiers import CouponApplyEmailNotifier
 
 
 class CouponApplyViewSet(NormalGenericViewSet):
@@ -295,6 +296,11 @@ class CouponApplyViewSet(NormalGenericViewSet):
         except errors.Error as exc:
             return self.exception_response(exc)
 
+        try:
+            self.email_notify_admin_new_apply(new_apply=apply)
+        except Exception as exc:
+            pass
+
         return Response(data=serializers.CouponApplySerializer(apply).data, status=201)
 
     @swagger_auto_schema(
@@ -421,6 +427,11 @@ class CouponApplyViewSet(NormalGenericViewSet):
         except errors.Error as exc:
             return self.exception_response(exc)
 
+        try:
+            self.email_notify_admin_new_apply(new_apply=apply)
+        except Exception as exc:
+            pass
+
         return Response(data=serializers.CouponApplySerializer(apply).data, status=201)
 
     @staticmethod
@@ -476,6 +487,20 @@ class CouponApplyViewSet(NormalGenericViewSet):
             raise errors.ConflictError(message=_('指定服务可能未注册钱包结算单元'))
 
         return odc, service_id, service_name, service_name_en, pay_app_service_id
+
+    @staticmethod
+    def email_notify_admin_new_apply(new_apply: CouponApply):
+        """
+        提交新的券申请，向服务单元管理员发送通知
+        """
+        CouponApplyEmailNotifier.new_apply_notice(apply=new_apply)
+
+    @staticmethod
+    def email_notify_user_apply_status(new_apply: CouponApply):
+        """
+        券申请审批状态通过或拒绝，向申请者发送通知
+        """
+        CouponApplyEmailNotifier.new_status_notice(apply=new_apply)
 
     def _create_validate_params(self, request, serializer):
         data = self._update_validate_params(serializer=serializer)
@@ -722,10 +747,15 @@ class CouponApplyViewSet(NormalGenericViewSet):
                 errors.InvalidArgument(message=_('请提交拒绝的原因')))
 
         try:
-            CouponApplyManager.reject_apply(
+            apply = CouponApplyManager.reject_apply(
                 apply_id=kwargs[self.lookup_field], admin_user=request.user, reject_reason=reason)
         except errors.Error as exc:
             return self.exception_response(exc)
+
+        try:
+            self.email_notify_user_apply_status(new_apply=apply)
+        except Exception as exc:
+            pass
 
         return Response(data=None, status=200)
 
@@ -769,6 +799,11 @@ class CouponApplyViewSet(NormalGenericViewSet):
                 apply_id=kwargs[self.lookup_field], admin_user=request.user, approved_amount=approved_amount)
         except errors.Error as exc:
             return self.exception_response(exc)
+
+        try:
+            self.email_notify_user_apply_status(new_apply=apply)
+        except Exception as exc:
+            pass
 
         if not apply.order:
             return Response(data=None, status=200)

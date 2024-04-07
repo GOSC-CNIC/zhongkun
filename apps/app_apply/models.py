@@ -68,3 +68,6 @@ class CouponApply(UuidModel):
 
     def __str__(self):
         return f'[{self.status}]({self.approved_amount}/{self.face_value}, {self.service_type}, {self.service_name})'
+
+    def is_owner_vo(self):
+        return self.owner_type == OwnerType.VO.value

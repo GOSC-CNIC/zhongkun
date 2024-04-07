@@ -1,10 +1,12 @@
 from decimal import Decimal
 from urllib import parse
 from datetime import datetime, timedelta
+import time
 
 from django.urls import reverse
 from django.utils import timezone as dj_timezone
 from django.conf import settings
+from django.core import mail as dj_mail
 
 from core import errors
 from core import site_configs_manager
@@ -398,6 +400,7 @@ class CouponApplyTests(MyAPITestCase):
         self.assertErrorResponse(status_code=409, code='Conflict', response=r)
 
         # vo
+        self.assertEqual(len(dj_mail.outbox), 0)
         server_service1.status = ServiceConfig.Status.ENABLE.value
         server_service1.save(update_fields=['status'])
         expiration_time = (nt_utc + timedelta(hours=2)).replace(microsecond=0)
@@ -434,8 +437,10 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(apply1.status, CouponApply.Status.WAIT.value)
         self.assertEqual(apply1.pay_service_id, server_service1.pay_app_service_id)
         self.assertIsNone(apply1.order_id)
+        self.assertEqual(len(dj_mail.outbox), 0)    # 没有数据中心管理员不发邮件
 
         # user
+        server_service1.org_data_center.users.add(self.user2)
         expiration_time = (nt_utc + timedelta(hours=100)).replace(microsecond=0)
         r = self.client.post(base_url, data={
             "face_value": "2000.12",
@@ -458,6 +463,8 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(apply2.owner_type, OwnerType.USER.value)
         self.assertEqual(apply2.status, CouponApply.Status.WAIT.value)
         self.assertEqual(apply2.pay_service_id, server_service1.pay_app_service_id)
+        time.sleep(0.5)
+        self.assertEqual(len(dj_mail.outbox), 1)
 
         server_service1.pay_app_service_id = ''
         server_service1.save(update_fields=['pay_app_service_id'])
@@ -530,6 +537,8 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(apply3.owner_type, OwnerType.USER.value)
         self.assertEqual(apply3.status, CouponApply.Status.WAIT.value)
         self.assertEqual(apply3.pay_service_id, 's666666')
+        time.sleep(0.5)
+        self.assertEqual(len(dj_mail.outbox), 2)
 
         # vo
         expiration_time = (nt_utc + timedelta(hours=2)).replace(microsecond=0)
@@ -566,6 +575,8 @@ class CouponApplyTests(MyAPITestCase):
         self.assertErrorResponse(status_code=409, code='Conflict', response=r)
 
         # user
+        self.user2.set_federal_admin()
+        self.assertEqual(len(dj_mail.outbox), 2)
         site_service.pay_app_service_id = '99767343'
         site_service.save(update_fields=['pay_app_service_id'])
         expiration_time = (nt_utc + timedelta(hours=20)).replace(microsecond=0)
@@ -597,6 +608,8 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(apply4.owner_type, OwnerType.USER.value)
         self.assertEqual(apply4.status, CouponApply.Status.WAIT.value)
         self.assertEqual(apply4.pay_service_id, '99767343')
+        time.sleep(0.5)
+        self.assertEqual(len(dj_mail.outbox), 3)
 
         # vo
         r = self.client.post(base_url, data={
@@ -644,6 +657,7 @@ class CouponApplyTests(MyAPITestCase):
         self.assertErrorResponse(status_code=409, code='Conflict', response=r)
 
         # user
+        self.assertEqual(len(dj_mail.outbox), 3)
         scan_service.status = VtScanService.Status.ENABLE.value
         scan_service.save(update_fields=['status'])
 
@@ -688,6 +702,9 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(apply5.owner_type, OwnerType.USER.value)
         self.assertEqual(apply5.status, CouponApply.Status.WAIT.value)
         self.assertEqual(apply5.pay_service_id, '88888676')
+
+        time.sleep(0.5)
+        self.assertEqual(len(dj_mail.outbox), 4)
 
         # vo
         r = self.client.post(base_url, data={
@@ -1268,6 +1285,7 @@ class CouponApplyTests(MyAPITestCase):
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
 
         # ok
+        self.assertEqual(len(dj_mail.outbox), 0)
         self.odc1.users.add(self.user2)
         base_url = reverse('apply-api:coupon-reject', kwargs={'id': apply1.id})
         query = parse.urlencode(query={'reason': 'reject 测试'})
@@ -1277,6 +1295,8 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(apply1.status, CouponApply.Status.REJECT.value)
         self.assertEqual(apply1.approver, self.user2.username)
         self.assertEqual(apply1.reject_reason, 'reject 测试')
+        time.sleep(0.5)
+        self.assertEqual(len(dj_mail.outbox), 1)
 
         r = self.client.post(f'{base_url}?{query}')
         self.assertErrorResponse(status_code=409, code='Conflict', response=r)
@@ -1304,6 +1324,8 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(apply2.status, CouponApply.Status.REJECT.value)
         self.assertEqual(apply2.approver, self.user2.username)
         self.assertEqual(apply2.reject_reason, 'reject 测试66')
+        time.sleep(0.5)
+        self.assertEqual(len(dj_mail.outbox), 2)
 
     def test_pass(self):
         # 余额支付有关配置
@@ -1345,6 +1367,7 @@ class CouponApplyTests(MyAPITestCase):
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
 
         # vo
+        self.assertEqual(len(dj_mail.outbox), 0)
         self.odc1.users.add(self.user1)
         base_url = reverse('apply-api:coupon-pass', kwargs={'id': apply1.id})
         r = self.client.post(base_url)
@@ -1365,6 +1388,8 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(coupon1.user_id, apply1.user_id)
         self.assertEqual(coupon1.vo_id, apply1.vo_id)
         self.assertEqual(coupon1.issuer, self.user1.username)
+        time.sleep(0.5)
+        self.assertEqual(len(dj_mail.outbox), 1)
 
         # scan
         app_service2 = PayAppService(
@@ -1420,6 +1445,7 @@ class CouponApplyTests(MyAPITestCase):
         apply2.status = CouponApply.Status.PENDING.value
         apply2.save(update_fields=['status'])
 
+        self.assertEqual(len(dj_mail.outbox), 1)
         query = parse.urlencode(query={'approved_amount': '66.12'})
         r = self.client.post(f'{base_url}?{query}')
         self.assertEqual(r.status_code, 200)
@@ -1439,6 +1465,8 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(coupon2.user_id, apply2.user_id)
         self.assertIsNone(coupon2.vo_id)
         self.assertEqual(coupon2.issuer, self.user1.username)
+        time.sleep(0.5)
+        self.assertEqual(len(dj_mail.outbox), 2)
 
     def test_order_apply(self):
         # 余额支付有关配置
