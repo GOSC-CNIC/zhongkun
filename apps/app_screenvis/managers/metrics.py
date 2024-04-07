@@ -15,13 +15,9 @@ ALL_TOGETHER_VALUE = 'all_together'
 
 class HostQueryChoices(models.TextChoices):
     HOST_UP_COUNT = 'up_count', gettext_lazy('在线主机数')
-    HOST_DOWN_COUNT = 'down_count', gettext_lazy('掉线主机数')
-    HOST_CPU_COUNT = 'cpu_count', gettext_lazy('主机CPU核数')
-    HOST_CPU_USAGE = 'cpu_usage', gettext_lazy('主机CPU使用率')
-    HOST_MEM_SIZE = 'mem_size', gettext_lazy('主机内存大小(GiB)')
-    HOST_MEM_AVAIL = 'mem_avail', gettext_lazy('主机可用内存大小(GiB)')
-    HOST_NET_RATE_IN = 'net_rate_in', gettext_lazy('下行接收带宽(MiB/s)')
-    HOST_NET_RATE_OUT = 'net_rate_out', gettext_lazy('上行发送带宽(MiB/s)')
+    HOST_DOWN = 'down', gettext_lazy('掉线主机')
+    # HOST_COUNT = 'host_count', gettext_lazy('主机总数')
+    # HOST_CPU_USAGE = 'cpu_usage', gettext_lazy('主机CPU使用率')
     ALL_TOGETHER = ALL_TOGETHER_VALUE, gettext_lazy('一起查询所有指标')
 
 
@@ -85,13 +81,7 @@ class MetricQueryManager:
 
     host_tag_tmpl_map = {
         HostQueryChoices.HOST_UP_COUNT.value: backend.host_query_builder.tmpl_up_count,
-        HostQueryChoices.HOST_DOWN_COUNT.value: backend.host_query_builder.tmpl_down_count,
-        HostQueryChoices.HOST_CPU_COUNT.value: backend.host_query_builder.tmpl_cpu_count,
-        HostQueryChoices.HOST_CPU_USAGE.value: backend.host_query_builder.tmpl_cpu_usage,
-        HostQueryChoices.HOST_MEM_SIZE.value: backend.host_query_builder.tmpl_mem_size,
-        HostQueryChoices.HOST_MEM_AVAIL.value: backend.host_query_builder.tmpl_mem_availabele,
-        HostQueryChoices.HOST_NET_RATE_IN.value: backend.host_query_builder.tmpl_net_rate_in,
-        HostQueryChoices.HOST_NET_RATE_OUT.value: backend.host_query_builder.tmpl_net_rate_out
+        HostQueryChoices.HOST_DOWN.value: backend.host_query_builder.tmpl_down,
     }
 
     tidb_tag_tmpl_map = {

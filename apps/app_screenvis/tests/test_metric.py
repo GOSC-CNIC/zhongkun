@@ -143,20 +143,8 @@ class MetricHostTests(MyAPITestCase):
 
         r = self.query_ok_test(unit_id=host_unit_id, query_tag=HostQueryChoices.HOST_UP_COUNT.value)
         self.assertTrue(len(r.data[HostQueryChoices.HOST_UP_COUNT.value]) == 1)
-        r = self.query_ok_test(unit_id=host_unit_id, query_tag=HostQueryChoices.HOST_DOWN_COUNT.value)
-        self.assertTrue(len(r.data[HostQueryChoices.HOST_DOWN_COUNT.value]) == 1)
-        r = self.query_ok_test(unit_id=host_unit_id, query_tag=HostQueryChoices.HOST_CPU_COUNT.value)
-        self.assertTrue(len(r.data[HostQueryChoices.HOST_CPU_COUNT.value]) == 1)
-        r = self.query_ok_test(unit_id=host_unit_id, query_tag=HostQueryChoices.HOST_CPU_USAGE.value)
-        self.assertTrue(len(r.data[HostQueryChoices.HOST_CPU_USAGE.value]) == 1)
-        r = self.query_ok_test(unit_id=host_unit_id, query_tag=HostQueryChoices.HOST_MEM_SIZE.value)
-        self.assertTrue(len(r.data[HostQueryChoices.HOST_MEM_SIZE.value]) == 1)
-        r = self.query_ok_test(unit_id=host_unit_id, query_tag=HostQueryChoices.HOST_MEM_AVAIL.value)
-        self.assertTrue(len(r.data[HostQueryChoices.HOST_MEM_AVAIL.value]) >= 1)
-        r = self.query_ok_test(unit_id=host_unit_id, query_tag=HostQueryChoices.HOST_NET_RATE_IN.value)
-        self.assertTrue(len(r.data[HostQueryChoices.HOST_NET_RATE_IN.value]) == 1)
-        r = self.query_ok_test(unit_id=host_unit_id, query_tag=HostQueryChoices.HOST_NET_RATE_OUT.value)
-        self.assertTrue(len(r.data[HostQueryChoices.HOST_NET_RATE_OUT.value]) == 1)
+        r = self.query_ok_test(unit_id=host_unit_id, query_tag=HostQueryChoices.HOST_DOWN.value)
+        self.assertTrue(len(r.data[HostQueryChoices.HOST_DOWN.value]) >= 0)
 
         # all together
         response = self.query_response(unit_id=host_unit_id, query_tag=HostQueryChoices.ALL_TOGETHER.value)

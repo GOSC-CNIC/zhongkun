@@ -44,7 +44,9 @@ class CephExpressionQuery(BaseExpressionQuery):
 
 class HostExpressionQuery(BaseExpressionQuery):
     tmpl_up_count = 'count(up{job="$job"} == 1) or vector(0)'
-    tmpl_down_count = 'count(up{job="$job"} == 0) or vector(0)'
+    tmpl_down = 'up{job="$job"} == 0'
+    tmpl_host_count = 'count(node_uname_info{job="$job"})'
+
     tmpl_cpu_count = 'count(node_cpu_seconds_total{job="$job", mode="system"})'
     tmpl_cpu_usage = '(1 - avg(rate(node_cpu_seconds_total{job="$job", mode="idle"}[1m]))) * 100'
     tmpl_mem_size = 'sum(node_memory_MemTotal_bytes{job="$job"}) / 1073741824'  # GiB
