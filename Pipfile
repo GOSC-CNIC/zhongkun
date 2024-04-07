@@ -30,6 +30,8 @@ django-json-widget = "==1.1.1"
 django-baton = "==3.0.2"
 responses = "==0.24.1"
 django-filter = "==23.1"
+requests = "==2.31.0"
+retrying = "==1.3.4"
 
 [requires]
 python_version = "3.9"
