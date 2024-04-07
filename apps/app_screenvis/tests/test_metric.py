@@ -51,6 +51,12 @@ class MetricCephTests(MyAPITestCase):
         response = self.query_response(unit_id=ceph_unit_id, query_tag='xxx')
         self.assertEqual(response.status_code, 400)
 
+        r = self.query_ok_test(unit_id=ceph_unit_id, query_tag=CephQueryChoices.HEALTH_STATUS_DETAIL.value)
+        self.assertTrue(len(r.data[CephQueryChoices.HEALTH_STATUS_DETAIL.value]) >= 1)
+        r = self.query_ok_test(unit_id=ceph_unit_id, query_tag=CephQueryChoices.CLUSTER_SIZE.value)
+        self.assertTrue(len(r.data[CephQueryChoices.CLUSTER_SIZE.value]) == 1)
+        r = self.query_ok_test(unit_id=ceph_unit_id, query_tag=CephQueryChoices.CLUSTER_USED_SIZE.value)
+        self.assertTrue(len(r.data[CephQueryChoices.CLUSTER_USED_SIZE.value]) == 1)
         r = self.query_ok_test(unit_id=ceph_unit_id, query_tag=CephQueryChoices.OSD_IN_COUNT.value)
         self.assertTrue(len(r.data[CephQueryChoices.OSD_IN_COUNT.value]) == 1)
         r = self.query_ok_test(unit_id=ceph_unit_id, query_tag=CephQueryChoices.OSD_OUT_COUNT.value)

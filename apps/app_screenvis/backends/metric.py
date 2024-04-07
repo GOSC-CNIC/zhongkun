@@ -20,9 +20,9 @@ class BaseExpressionQuery:
 class CephExpressionQuery(BaseExpressionQuery):
     # tmpl_health_status = 'ceph_health_status{job="$job"}'
     # tmpl_health_detail = 'ceph_health_detail{job="$job"} == 1'
-    # tmpl_health_status_detail = 'ceph_health_status{job="$job"} or ceph_health_detail{job="$job"} == 1'
-    # tmpl_total_bytes = 'ceph_cluster_total_bytes{job="$job"} / 1099511627776'    # 单位TiB
-    # tmpl_total_used_bytes = 'ceph_cluster_total_used_bytes{job="$job"} / 1099511627776'  # 单位TiB
+    tmpl_health_status_detail = 'ceph_health_status{job="$job"} or ceph_health_detail{job="$job"} == 1'
+    tmpl_total_bytes = 'ceph_cluster_total_bytes{job="$job"} / 1099511627776'    # 单位TiB
+    tmpl_total_used_bytes = 'ceph_cluster_total_used_bytes{job="$job"} / 1099511627776'  # 单位TiB
     # tmpl_osd_in = 'ceph_osd_in{job="$job"} == 1'
     tmpl_osd_in_count = 'count(ceph_osd_in{job="$job"} == 1)'
     # tmpl_osd_out = 'ceph_osd_in{job="$job"} == 0'

@@ -22,9 +22,9 @@ class HostQueryChoices(models.TextChoices):
 
 
 class CephQueryChoices(models.TextChoices):
-    # HEALTH_STATUS_DETAIL = 'health_status_detail', gettext_lazy('Ceph健康状态和异常信息')
-    # CLUSTER_SIZE = 'cluster_size', gettext_lazy('Ceph集群存储容量TiB')
-    # CLUSTER_USED_SIZE = 'cluster_used_size', gettext_lazy('Ceph集群已用存储容量TiB')
+    HEALTH_STATUS_DETAIL = 'health_status_detail', gettext_lazy('Ceph健康状态和异常信息')
+    CLUSTER_SIZE = 'cluster_size', gettext_lazy('Ceph集群存储容量TiB')
+    CLUSTER_USED_SIZE = 'cluster_used_size', gettext_lazy('Ceph集群已用存储容量TiB')
     OSD_IN_COUNT = 'osd_in_count', gettext_lazy('Ceph集群内OSD数')
     OSD_OUT_COUNT = 'osd_out_count', gettext_lazy('Ceph集群外OSD数')
     OSD_UP_COUNT = 'osd_up_count', gettext_lazy('Ceph集群活着且在运行OSD数')
@@ -62,9 +62,9 @@ class MetricQueryManager:
     backend = MetricQueryAPI()
 
     ceph_tag_tmpl_map = {
-        # CephQueryChoices.HEALTH_STATUS_DETAIL.value: backend.ceph_query_builder.tmpl_health_status_detail,
-        # CephQueryChoices.CLUSTER_SIZE.value: backend.ceph_query_builder.tmpl_total_bytes,
-        # CephQueryChoices.CLUSTER_USED_SIZE.value: backend.ceph_query_builder.tmpl_total_used_bytes,
+        CephQueryChoices.HEALTH_STATUS_DETAIL.value: backend.ceph_query_builder.tmpl_health_status_detail,
+        CephQueryChoices.CLUSTER_SIZE.value: backend.ceph_query_builder.tmpl_total_bytes,
+        CephQueryChoices.CLUSTER_USED_SIZE.value: backend.ceph_query_builder.tmpl_total_used_bytes,
         CephQueryChoices.OSD_IN_COUNT.value: backend.ceph_query_builder.tmpl_osd_in_count,
         CephQueryChoices.OSD_OUT_COUNT.value: backend.ceph_query_builder.tmpl_osd_out_count,
         CephQueryChoices.OSD_UP_COUNT.value: backend.ceph_query_builder.tmpl_osd_up_count,
