@@ -9,7 +9,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from apps.app_netflow.filters import MenuCategoryFilter
 from apps.app_netflow.filters import ChartFilter
 from apps.app_netflow.pagination import LimitOffsetPage
-from apps.app_netflow.permission import CustomPermission
+from apps.app_netflow.permission import SubCategoryPermission
 from rest_framework.response import Response
 
 
@@ -20,7 +20,7 @@ class MenuAPIView(GenericAPIView):
     filter_backends = [DjangoFilterBackend]
     filterset_class = MenuCategoryFilter
     pagination_class = LimitOffsetPage
-    permission_classes = [CustomPermission]
+    # permission_classes = [CustomPermission]
 
     def get(self, request):
         queryset = self.filter_queryset(self.get_queryset())
@@ -39,7 +39,7 @@ class ChartAPIView(GenericAPIView):
     filter_backends = [DjangoFilterBackend]
     filterset_class = ChartFilter
     pagination_class = LimitOffsetPage
-    permission_classes = [CustomPermission]
+    permission_classes = [SubCategoryPermission]
 
     def get(self, request):
         queryset = self.filter_queryset(self.get_queryset())
