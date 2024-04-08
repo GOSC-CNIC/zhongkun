@@ -41,15 +41,15 @@ class CephQueryChoices(models.TextChoices):
 
 
 class TiDBQueryChoices(models.TextChoices):
-    # PD_NODES = 'pd_nodes', gettext_lazy('pd节点')
-    # TIDB_NODES = 'tidb_nodes', gettext_lazy('tidb节点')
-    # TIKV_NODES = 'tikv_nodes', gettext_lazy('tivk节点')
+    PD_NODES = 'pd_nodes', gettext_lazy('pd节点')
+    TIDB_NODES = 'tidb_nodes', gettext_lazy('tidb节点')
+    TIKV_NODES = 'tikv_nodes', gettext_lazy('tivk节点')
     CONNECTIONS_COUNT = 'connections_count', gettext_lazy('连接数')
     QPS_COUNT = 'qps_count', gettext_lazy('每秒请求数')
     # REGION_STATUS = 'region_status', gettext_lazy('副本状态')
     # REGION_COUNT = 'region_count', gettext_lazy('副本异常状态数量')
     STORAGE = 'storage', gettext_lazy('存储总容量和当前已用容量')
-    SERVER_CPU_COUNT = 'server_cpu_count', gettext_lazy('主机CPU数量')
+    # SERVER_CPU_COUNT = 'server_cpu_count', gettext_lazy('主机CPU数量')
     SERVER_CPU_USAGE = 'server_cpu_usage', gettext_lazy('主机CPU使用率')
     SERVER_MEM_SIZE = 'server_mem_size', gettext_lazy('主机内存大小 GiB')
     SERVER_MEM_AVAIL = 'server_mem_avail', gettext_lazy('主机可用内存大小 GiB')
@@ -85,14 +85,14 @@ class MetricQueryManager:
     }
 
     tidb_tag_tmpl_map = {
-        # TiDBQueryChoices.PD_NODES.value: backend.tidb_query_builder.tmpl_pd_nodes,
-        # TiDBQueryChoices.TIDB_NODES.value: backend.tidb_query_builder.tmpl_tidb_nodes,
-        # TiDBQueryChoices.TIKV_NODES.value: backend.tidb_query_builder.tmpl_tikv_nodes,
+        TiDBQueryChoices.PD_NODES.value: backend.tidb_query_builder.tmpl_pd_nodes,
+        TiDBQueryChoices.TIDB_NODES.value: backend.tidb_query_builder.tmpl_tidb_nodes,
+        TiDBQueryChoices.TIKV_NODES.value: backend.tidb_query_builder.tmpl_tikv_nodes,
         TiDBQueryChoices.CONNECTIONS_COUNT.value: backend.tidb_query_builder.tmpl_connections_count,
         TiDBQueryChoices.QPS_COUNT.value: backend.tidb_query_builder.tmpl_qps_count,
         # TiDBQueryChoices.REGION_COUNT.value: backend.tidb_query_builder.tmpl_region_count,
         TiDBQueryChoices.STORAGE.value: backend.tidb_query_builder.tmpl_storage,
-        TiDBQueryChoices.SERVER_CPU_COUNT.value: backend.tidb_query_builder.tmpl_cpu_count,
+        # TiDBQueryChoices.SERVER_CPU_COUNT.value: backend.tidb_query_builder.tmpl_cpu_count,
         TiDBQueryChoices.SERVER_CPU_USAGE.value: backend.tidb_query_builder.tmpl_cpu_usage,
         TiDBQueryChoices.SERVER_MEM_SIZE.value: backend.tidb_query_builder.tmpl_mem,
         TiDBQueryChoices.SERVER_MEM_AVAIL.value: backend.tidb_query_builder.tmpl_mem_availabele
