@@ -12,6 +12,12 @@ class CouponApplyEmailNotifier:
         return email
 
     @staticmethod
+    def website_url_join(sub_url: str):
+        base = site_configs.website_url.rstrip('/')
+        sub_url = sub_url.lstrip('/')
+        return f'{base}/{sub_url}'
+
+    @staticmethod
     def build_apply_message(apply: CouponApply):
         apply_msg = f'服务类型为 {apply.get_service_type_display()}，服务单元为 {apply.service_name}，' \
                      f'申请点数为 {apply.face_value}，申请人为 {apply.username}'
@@ -36,7 +42,14 @@ class CouponApplyEmailNotifier:
         if not receivers:
             return None
 
+        subject = f'{apply.service_name}，{apply.get_service_type_display()} {apply.face_value}点券申请'
+        if apply.is_owner_vo():
+            subject += f'({apply.vo_name})'
+        else:
+            subject += f'({apply.username})'
+
         apply_message = CouponApplyEmailNotifier.build_apply_message(apply=apply)
+        web_url = CouponApplyEmailNotifier.website_url_join(sub_url='/my/wallet/manage/application')
 
         message = f"""
 您好：
@@ -47,13 +60,13 @@ class CouponApplyEmailNotifier:
 
 
 祝好
-{site_configs.website_brand}({site_configs.website_url})
+{site_configs.website_brand}({web_url})
         """
 
         future = taskqueue.submit_task(
             CouponApplyEmailNotifier.thread_send_email,
             kwargs={
-                'subject': '新资源券申请提交通知', 'receivers': receivers, 'message': message
+                'subject': subject, 'receivers': receivers, 'message': message
             }
         )
         return future
@@ -63,20 +76,22 @@ class CouponApplyEmailNotifier:
         if not receivers:
             receivers = [apply.username]
 
+        subject = f'{apply.service_name}，{apply.get_service_type_display()}券申请'
         apply_message = CouponApplyEmailNotifier.build_apply_message(apply=apply)
+        web_url = CouponApplyEmailNotifier.website_url_join(sub_url='my/wallet/voucher/application')
         if apply.status == CouponApply.Status.PASS.value:
             status_msg = '申请通过'
+            subject += ' 通过'
         elif apply.status == CouponApply.Status.REJECT.value:
             status_msg = f'申请被拒绝，原因：{apply.reject_reason}'
+            subject += ' 驳回'
         else:
             return None
 
         message = f"""
 您好：
 
-资源券申请有了新的动态。
-
-申请动态:
+资源券申请有了新的动态:
   {status_msg}
 
 申请信息：
@@ -84,12 +99,12 @@ class CouponApplyEmailNotifier:
 
 
 祝好
-{site_configs.website_brand}({site_configs.website_url})
+{site_configs.website_brand}({web_url})
             """
         future = taskqueue.submit_task(
             CouponApplyEmailNotifier.thread_send_email,
             kwargs={
-                'subject': '资源券申请动态通知', 'receivers': receivers, 'message': message
+                'subject': subject, 'receivers': receivers, 'message': message
             }
         )
         return future

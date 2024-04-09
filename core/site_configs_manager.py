@@ -18,7 +18,7 @@ def get_website_brand():
 def get_website_url():
     site_url = site_configs.get('site_url')
     if not site_url:
-        site_url = gettext('https://service.cstcloud.cn')
+        site_url = 'https://service.cstcloud.cn'
 
     return site_url
 
