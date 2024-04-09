@@ -157,7 +157,7 @@ class LogSiteReqCounter:
     def async_generate_req_num_log(self, now_timestamp: int):
         sites = self.get_log_sites()
         if not sites:
-            return 0, 0
+            return 0, [], []
 
         tasks = [self.req_num_for_site(site=site, now_timestamp=now_timestamp) for site in sites]
         ok_site_ids, objs = self.do_tasks(tasks=tasks)
