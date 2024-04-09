@@ -106,6 +106,7 @@ class CouponApplyViewSet(NormalGenericViewSet):
                         "face_value": "6000.12",                    # 申请券金额
                         "expiration_time": "2023-12-15T00:00:00Z",  # 申请券到期时间
                         "apply_desc": "申请原因说明",
+                        "contact_info": "122xx",                    # 联系方式
                         "creation_time": "2023-10-09T00:00:00Z",
                         "update_time": "2023-10-09T00:00:00Z",
                         "user_id": "o76e976pt9w6xbgya4c5acc1o",
@@ -228,6 +229,7 @@ class CouponApplyViewSet(NormalGenericViewSet):
                 "face_value": "2000.12",
                 "expiration_time": "2024-03-18T06:44:32Z",
                 "apply_desc": "申请说明",
+                "contact_info": "122xx",                    # 联系方式
                 "creation_time": "2024-03-14T02:44:32.576110Z",
                 "update_time": "2024-03-14T02:44:32.576110Z",
                 "user_id": "of4wiym05t41g7zyov60ifofv",
@@ -269,6 +271,7 @@ class CouponApplyViewSet(NormalGenericViewSet):
         service_type = data['service_type']
         service_id = data['service_id']
         vo = data['vo']
+        contact_info = data['contact_info']
 
         user = request.user
         user_id = user.id
@@ -291,6 +294,7 @@ class CouponApplyViewSet(NormalGenericViewSet):
                 service_type=service_type, odc=odc, service_id=service_id, service_name=service_name,
                 service_name_en=service_name_en, pay_service_id=pay_service_id,
                 face_value=face_value, expiration_time=expiration_time, apply_desc=apply_desc,
+                contact_info=contact_info,
                 user_id=user_id, username=username, vo_id=vo_id, vo_name=vo_name, owner_type=owner_type
             )
         except errors.Error as exc:
@@ -331,6 +335,7 @@ class CouponApplyViewSet(NormalGenericViewSet):
                 "face_value": "2000.12",
                 "expiration_time": "2024-03-18T06:44:32Z",
                 "apply_desc": "申请说明",
+                "contact_info": "122xx",                    # 联系方式
                 "creation_time": "2024-03-14T02:44:32.576110Z",
                 "update_time": "2024-03-14T02:44:32.576110Z",
                 "user_id": "of4wiym05t41g7zyov60ifofv",
@@ -371,6 +376,7 @@ class CouponApplyViewSet(NormalGenericViewSet):
         data = serializer.validated_data
         apply_desc = data['apply_desc']
         order_id = data['order_id']
+        contact_info = data['contact_info']
         try:
             order = OrderManager().get_permission_order(
                 order_id=order_id, user=request.user, check_permission=True, read_only=False)
@@ -422,7 +428,7 @@ class CouponApplyViewSet(NormalGenericViewSet):
                 service_name_en=service_name_en, pay_service_id=pay_service_id,
                 face_value=face_value, expiration_time=dj_timezone.now() + timedelta(days=30), apply_desc=apply_desc,
                 user_id=user_id, username=username, vo_id=vo_id, vo_name=vo_name, owner_type=owner_type,
-                order_id=order_id
+                order_id=order_id, contact_info=contact_info
             )
         except errors.Error as exc:
             return self.exception_response(exc)
@@ -532,6 +538,7 @@ class CouponApplyViewSet(NormalGenericViewSet):
         apply_desc = data['apply_desc']
         service_type = data['service_type']
         service_id = data.get('service_id', None)
+        contact_info = data.get('contact_info', '')
 
         if face_value < Decimal('0'):
             raise errors.InvalidArgument(message=_('申请金额必须大于0.00'))
@@ -551,7 +558,8 @@ class CouponApplyViewSet(NormalGenericViewSet):
             'expiration_time': expiration_time,
             'apply_desc': apply_desc,
             'service_type': service_type,
-            'service_id': service_id if service_id else ''
+            'service_id': service_id if service_id else '',
+            'contact_info': contact_info if contact_info else ''
         }
 
     @swagger_auto_schema(
@@ -620,6 +628,7 @@ class CouponApplyViewSet(NormalGenericViewSet):
         apply_desc = data['apply_desc']
         service_type = data['service_type']
         service_id = data['service_id']
+        contact_info = data['contact_info']
 
         user = request.user
 
@@ -647,7 +656,7 @@ class CouponApplyViewSet(NormalGenericViewSet):
                     apply=apply, service_type=service_type, odc=odc, service_id=service_id, service_name=service_name,
                     service_name_en=service_name_en, pay_service_id=pay_service_id,
                     face_value=face_value, expiration_time=expiration_time, apply_desc=apply_desc,
-                    user_id=user.id, username=user.username
+                    user_id=user.id, username=user.username, contact_info=contact_info
                 )
         except errors.Error as exc:
             return self.exception_response(exc)
@@ -853,6 +862,7 @@ class CouponApplyViewSet(NormalGenericViewSet):
                 "face_value": "7000.12",
                 "expiration_time": "2024-03-15T00:00:00Z",
                 "apply_desc": "申请说明",
+                "contact_info": "122xx",                    # 联系方式
                 "creation_time": "2024-03-09T00:00:00Z",
                 "update_time": "2024-03-09T00:00:00Z",
                 "user_id": "1snj1fmahymxr60ary3t10gyt",

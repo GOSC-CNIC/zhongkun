@@ -15,6 +15,7 @@ class CouponApplyBaseSerializer(serializers.Serializer):
     expiration_time = serializers.DateTimeField(label=_('过期时间'))
 
     apply_desc = serializers.CharField(label=_('申请描述'), max_length=255)
+    contact_info = serializers.CharField(label=_('联系方式'), max_length=64)
     creation_time = serializers.DateTimeField(label=_('创建时间'))
     update_time = serializers.DateTimeField(label=_('更新时间'))
     user_id = serializers.CharField(label=_('申请人id'), max_length=36)
@@ -53,6 +54,7 @@ class CouponApplyUpdateSerializer(serializers.Serializer):
     service_type = serializers.CharField(label=_('服务类型'), required=True)
     service_id = serializers.CharField(
         label=_('服务单元id'), max_length=36, required=False, allow_null=True, default=None)
+    contact_info = serializers.CharField(label=_('联系方式'), max_length=64, required=False, allow_null=True, default='')
 
 
 class CouponApplyCreateSerializer(CouponApplyUpdateSerializer):
@@ -62,4 +64,5 @@ class CouponApplyCreateSerializer(CouponApplyUpdateSerializer):
 
 class OrderCouponApplySerializer(serializers.Serializer):
     apply_desc = serializers.CharField(label=_('申请描述'), max_length=255, required=True)
-    order_id = serializers.CharField(label=_('项目组id'), max_length=36, required=True, help_text=_('为项目组申请'))
+    order_id = serializers.CharField(label=_('订单id'), max_length=36, required=True, help_text=_('为订单申请'))
+    contact_info = serializers.CharField(label=_('联系方式'), max_length=64, required=False, allow_null=True, default='')

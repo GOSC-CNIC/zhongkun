@@ -40,6 +40,7 @@ class CouponApply(UuidModel):
     vo_id = models.CharField(verbose_name=_('项目组id'), max_length=36, blank=True, default='')
     vo_name = models.CharField(verbose_name=_('项目组名称'), max_length=128, blank=True, default='')
     owner_type = models.CharField(verbose_name=_('所属类型'), max_length=16, choices=OwnerType.choices)
+    contact_info = models.CharField(verbose_name=_('联系方式'), max_length=64, blank=True, default='')
 
     # 审批信息
     status = models.CharField(verbose_name=_('状态'), max_length=16, choices=Status.choices, default=Status.WAIT.value)

@@ -22,7 +22,8 @@ class CouponApplyManager:
     def create_apply(
             service_type: str, odc: Union[OrgDataCenter, None], service_id: str, service_name: str,
             service_name_en: str, pay_service_id: str, face_value: Decimal, expiration_time: datetime,
-            apply_desc: str, user_id: str, username: str, vo_id: str, vo_name: str, owner_type: str,
+            apply_desc: str, contact_info: str,
+            user_id: str, username: str, vo_id: str, vo_name: str, owner_type: str,
             creation_time: datetime = None, status: str = CouponApply.Status.WAIT.value,
             approver: str = '', reject_reason: str = '', approved_amount: Decimal = Decimal('0.00'),
             coupon_id: str = '', deleted: bool = False, delete_user: str = '', order_id: str = None
@@ -33,7 +34,7 @@ class CouponApplyManager:
         apply = CouponApply(
             service_type=service_type, odc=odc, service_id=service_id, service_name=service_name,
             service_name_en=service_name_en, pay_service_id=pay_service_id,
-            face_value=face_value, expiration_time=expiration_time, apply_desc=apply_desc,
+            face_value=face_value, expiration_time=expiration_time, apply_desc=apply_desc, contact_info=contact_info,
             user_id=user_id, username=username, vo_id=vo_id, vo_name=vo_name, owner_type=owner_type,
             creation_time=creation_time, update_time=creation_time,
             status=status, approver=approver, reject_reason=reject_reason, approved_amount=approved_amount,
@@ -46,7 +47,7 @@ class CouponApplyManager:
     def update_apply(
             apply, service_type: str, odc: Union[OrgDataCenter, None], service_id: str, service_name: str,
             service_name_en: str, pay_service_id: str, face_value: Decimal, expiration_time: datetime,
-            apply_desc: str, user_id: str, username: str
+            apply_desc: str, user_id: str, username: str, contact_info: str
     ):
         apply.service_type = service_type
         apply.odc = odc
@@ -65,6 +66,7 @@ class CouponApplyManager:
         apply.status = CouponApply.Status.WAIT.value
         apply.reject_reason = ''
         apply.approver = ''
+        apply.contact_info = contact_info
         apply.save(force_update=True)
         return apply
 

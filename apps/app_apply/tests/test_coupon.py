@@ -10,7 +10,7 @@ from django.core import mail as dj_mail
 
 from core import errors
 from core import site_configs_manager
-from utils.model import OwnerType, PayType, ResourceType
+from utils.model import OwnerType, ResourceType
 from utils.time import utc
 from utils.decimal_utils import quantize_10_2
 from utils.test import get_or_create_org_data_center, get_or_create_user, MyAPITestCase
@@ -67,7 +67,8 @@ class CouponApplyTests(MyAPITestCase):
             pay_service_id='pay_service_id1', face_value=Decimal('1000.12'),
             expiration_time=datetime(year=2024, month=3, day=16, tzinfo=utc), apply_desc='申请原因2',
             user_id=self.user1.id, username=self.user1.username, vo_id='', vo_name='',
-            owner_type=OwnerType.USER.value, creation_time=datetime(year=2022, month=6, day=16, tzinfo=utc)
+            owner_type=OwnerType.USER.value, creation_time=datetime(year=2022, month=6, day=16, tzinfo=utc),
+            contact_info='apply1'
         )
         apply2 = CouponApplyManager.create_apply(
             service_type=CouponApply.ServiceType.STORAGE.value, odc=self.odc1,
@@ -76,7 +77,8 @@ class CouponApplyTests(MyAPITestCase):
             expiration_time=datetime(year=2024, month=3, day=16, tzinfo=utc), apply_desc='申请原因2',
             user_id=self.user1.id, username=self.user1.username, vo_id='', vo_name='',
             owner_type=OwnerType.USER.value, creation_time=datetime(year=2022, month=12, day=16, tzinfo=utc),
-            status=CouponApply.Status.REJECT.value, reject_reason='不允许', approver='approver1'
+            status=CouponApply.Status.REJECT.value, reject_reason='不允许', approver='approver1',
+            contact_info='apply2'
         )
         apply3 = CouponApplyManager.create_apply(
             service_type=CouponApply.ServiceType.SERVER.value, odc=self.odc1,
@@ -84,7 +86,8 @@ class CouponApplyTests(MyAPITestCase):
             pay_service_id='pay_service_id1', face_value=Decimal('3000.12'),
             expiration_time=datetime(year=2024, month=2, day=15, tzinfo=utc), apply_desc='申请原因3',
             user_id=self.user1.id, username=self.user1.username, vo_id=self.vo.id, vo_name=self.vo.name,
-            owner_type=OwnerType.VO.value, creation_time=datetime(year=2023, month=5, day=8, tzinfo=utc)
+            owner_type=OwnerType.VO.value, creation_time=datetime(year=2023, month=5, day=8, tzinfo=utc),
+            contact_info='apply3'
         )
         apply4 = CouponApplyManager.create_apply(
             service_type=CouponApply.ServiceType.STORAGE.value, odc=self.odc1,
@@ -93,7 +96,8 @@ class CouponApplyTests(MyAPITestCase):
             expiration_time=datetime(year=2023, month=11, day=15, tzinfo=utc), apply_desc='申请原因4',
             user_id=self.user1.id, username=self.user1.username, vo_id=self.vo.id, vo_name=self.vo.name,
             owner_type=OwnerType.VO.value, creation_time=datetime(year=2023, month=6, day=8, tzinfo=utc),
-            status=CouponApply.Status.PASS.value, approver='approver1', approved_amount=Decimal('4000')
+            status=CouponApply.Status.PASS.value, approver='approver1', approved_amount=Decimal('4000'),
+            contact_info='apply4'
         )
         apply5 = CouponApplyManager.create_apply(
             service_type=CouponApply.ServiceType.SERVER.value, odc=self.odc2,
@@ -102,7 +106,8 @@ class CouponApplyTests(MyAPITestCase):
             expiration_time=datetime(year=2023, month=12, day=15, tzinfo=utc), apply_desc='申请原因5',
             user_id=self.user1.id, username=self.user1.username, vo_id='', vo_name='',
             owner_type=OwnerType.USER.value, creation_time=datetime(year=2023, month=8, day=18, tzinfo=utc),
-            status=CouponApply.Status.PASS.value, approver='approver1', approved_amount=Decimal('4000')
+            status=CouponApply.Status.PASS.value, approver='approver1', approved_amount=Decimal('4000'),
+            contact_info='apply5'
         )
         apply6 = CouponApplyManager.create_apply(
             service_type=CouponApply.ServiceType.SERVER.value, odc=self.odc2,
@@ -111,7 +116,8 @@ class CouponApplyTests(MyAPITestCase):
             expiration_time=datetime(year=2023, month=12, day=15, tzinfo=utc), apply_desc='申请原因6',
             user_id=self.user2.id, username=self.user2.username, vo_id=self.vo.id, vo_name=self.vo.name,
             owner_type=OwnerType.VO.value, creation_time=datetime(year=2023, month=10, day=9, tzinfo=utc),
-            status=CouponApply.Status.PENDING.value
+            status=CouponApply.Status.PENDING.value,
+            contact_info='apply6'
         )
         apply7 = CouponApplyManager.create_apply(
             service_type=CouponApply.ServiceType.SCAN.value, odc=None,
@@ -120,7 +126,8 @@ class CouponApplyTests(MyAPITestCase):
             expiration_time=datetime(year=2024, month=3, day=15, tzinfo=utc), apply_desc='申请原因7',
             user_id=self.user1.id, username=self.user1.username, vo_id='', vo_name='',
             owner_type=OwnerType.USER.value, creation_time=datetime(year=2024, month=3, day=9, tzinfo=utc),
-            status=CouponApply.Status.WAIT.value
+            status=CouponApply.Status.WAIT.value,
+            contact_info='apply7'
         )
         apply8 = CouponApplyManager.create_apply(
             service_type=CouponApply.ServiceType.MONITOR_SITE.value, odc=None,
@@ -129,7 +136,7 @@ class CouponApplyTests(MyAPITestCase):
             expiration_time=datetime(year=2024, month=12, day=15, tzinfo=utc), apply_desc='申请原因8',
             user_id=self.user2.id, username=self.user2.username, vo_id='', vo_name='',
             owner_type=OwnerType.USER.value, creation_time=datetime(year=2024, month=3, day=11, tzinfo=utc),
-            status=CouponApply.Status.PENDING.value
+            status=CouponApply.Status.PENDING.value, contact_info='apply8'
         )
 
         # user1 list
@@ -146,7 +153,7 @@ class CouponApplyTests(MyAPITestCase):
         self.assertKeysIn([
             'id', 'service_type', 'odc', 'service_id', 'service_name', 'service_name_en',
             'face_value', 'expiration_time', 'apply_desc', 'creation_time', 'update_time',
-            'user_id', 'username', 'vo_id', 'vo_name', 'owner_type', 'order_id',
+            'user_id', 'username', 'vo_id', 'vo_name', 'owner_type', 'order_id', 'contact_info',
             'status', 'approver', 'approved_amount', 'reject_reason', 'coupon_id'], r.data['results'][0])
         self.assertEqual(r.data['results'][0]['id'], apply8.id)
 
@@ -437,6 +444,7 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(apply1.status, CouponApply.Status.WAIT.value)
         self.assertEqual(apply1.pay_service_id, server_service1.pay_app_service_id)
         self.assertIsNone(apply1.order_id)
+        self.assertEqual(apply1.contact_info, '')
         self.assertEqual(len(dj_mail.outbox), 0)    # 没有数据中心管理员不发邮件
 
         # user
@@ -447,7 +455,8 @@ class CouponApplyTests(MyAPITestCase):
             "expiration_time": expiration_time.isoformat(),
             "apply_desc": "申请说明user",
             "service_type": CouponApply.ServiceType.SERVER.value,
-            "service_id": server_service1.id
+            "service_id": server_service1.id,
+            "contact_info": 'test contact_info'
         })
         self.assertEqual(r.status_code, 201)
         qs = CouponApply.objects.all().order_by('-creation_time')
@@ -463,6 +472,7 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(apply2.owner_type, OwnerType.USER.value)
         self.assertEqual(apply2.status, CouponApply.Status.WAIT.value)
         self.assertEqual(apply2.pay_service_id, server_service1.pay_app_service_id)
+        self.assertEqual(apply2.contact_info, 'test contact_info')
         time.sleep(0.5)
         self.assertEqual(len(dj_mail.outbox), 1)
 
@@ -537,6 +547,7 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(apply3.owner_type, OwnerType.USER.value)
         self.assertEqual(apply3.status, CouponApply.Status.WAIT.value)
         self.assertEqual(apply3.pay_service_id, 's666666')
+        self.assertEqual(apply3.contact_info, '')
         time.sleep(0.5)
         self.assertEqual(len(dj_mail.outbox), 2)
 
@@ -584,7 +595,8 @@ class CouponApplyTests(MyAPITestCase):
             "face_value": "6234.56",
             "expiration_time": expiration_time.isoformat(),
             "apply_desc": "website申请说明",
-            "service_type": CouponApply.ServiceType.MONITOR_SITE.value
+            "service_type": CouponApply.ServiceType.MONITOR_SITE.value,
+            "contact_info": 'test monitor'
         })
         self.assertEqual(r.status_code, 201)
         self.assertKeysIn([
@@ -608,6 +620,7 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(apply4.owner_type, OwnerType.USER.value)
         self.assertEqual(apply4.status, CouponApply.Status.WAIT.value)
         self.assertEqual(apply4.pay_service_id, '99767343')
+        self.assertEqual(apply4.contact_info, 'test monitor')
         time.sleep(0.5)
         self.assertEqual(len(dj_mail.outbox), 3)
 
@@ -758,7 +771,7 @@ class CouponApplyTests(MyAPITestCase):
             pay_service_id=server_service1.pay_app_service_id, face_value=Decimal('1000.12'),
             expiration_time=datetime(year=2024, month=3, day=16, tzinfo=utc), apply_desc='申请原因1',
             user_id=self.user1.id, username=self.user1.username, vo_id='', vo_name='',
-            owner_type=OwnerType.USER.value
+            owner_type=OwnerType.USER.value, contact_info='110'
         )
         base_url = reverse('apply-api:coupon-detail', kwargs={'id': 'xx'})
         r = self.client.put(base_url)
@@ -831,6 +844,7 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(apply1.status, CouponApply.Status.WAIT.value)
         self.assertEqual(apply1.reject_reason, '')
         self.assertEqual(apply1.approver, '')
+        self.assertEqual(apply1.contact_info, '')
 
         # ----- to object service1  -----
         obj_service1 = ObjectsService(
@@ -881,7 +895,8 @@ class CouponApplyTests(MyAPITestCase):
             "expiration_time": expiration_time.isoformat(),
             "apply_desc": "obj申请说明",
             "service_type": CouponApply.ServiceType.STORAGE.value,
-            "service_id": obj_service1.id
+            "service_id": obj_service1.id,
+            "contact_info": "test 110"
         })
         self.assertEqual(r.status_code, 200)
         apply1.refresh_from_db()
@@ -900,6 +915,7 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(apply1.status, CouponApply.Status.WAIT.value)
         self.assertEqual(apply1.reject_reason, '')
         self.assertEqual(apply1.approver, '')
+        self.assertEqual(apply1.contact_info, 'test 110')
 
         # ----- vo ------
         self.client.logout()
@@ -910,7 +926,7 @@ class CouponApplyTests(MyAPITestCase):
             pay_service_id=server_service1.pay_app_service_id, face_value=Decimal('1000.12'),
             expiration_time=datetime(year=2024, month=3, day=16, tzinfo=utc), apply_desc='申请原因1',
             user_id=self.user2.id, username=self.user2.username, vo_id=self.vo.id, vo_name=self.vo.name,
-            owner_type=OwnerType.VO.value
+            owner_type=OwnerType.VO.value, contact_info='112'
         )
         base_url = reverse('apply-api:coupon-detail', kwargs={'id': apply2.id})
         expiration_time = nt_utc + timedelta(hours=200)
@@ -951,6 +967,7 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(apply2.status, CouponApply.Status.WAIT.value)
         self.assertEqual(apply2.reject_reason, '')
         self.assertEqual(apply2.approver, '')
+        self.assertEqual(apply2.contact_info, '')
 
         # can not update vo object service
         r = self.client.put(base_url, data={
@@ -1071,7 +1088,8 @@ class CouponApplyTests(MyAPITestCase):
             expiration_time=datetime(year=2024, month=3, day=16, tzinfo=utc), apply_desc='申请原因2',
             user_id=self.user1.id, username=self.user1.username, vo_id='', vo_name='',
             owner_type=OwnerType.USER.value, creation_time=datetime(year=2022, month=12, day=16, tzinfo=utc),
-            status=CouponApply.Status.REJECT.value, reject_reason='不允许', approver='approver1'
+            status=CouponApply.Status.REJECT.value, reject_reason='不允许', approver='approver1',
+            contact_info='110'
         )
         apply2 = CouponApplyManager.create_apply(
             service_type=CouponApply.ServiceType.SERVER.value, odc=self.odc1,
@@ -1079,7 +1097,8 @@ class CouponApplyTests(MyAPITestCase):
             pay_service_id='pay_service_id1', face_value=Decimal('6000.12'),
             expiration_time=datetime(year=2024, month=2, day=15, tzinfo=utc), apply_desc='申请原因3',
             user_id=self.user2.id, username=self.user2.username, vo_id=self.vo.id, vo_name=self.vo.name,
-            owner_type=OwnerType.VO.value, creation_time=datetime(year=2023, month=5, day=8, tzinfo=utc)
+            owner_type=OwnerType.VO.value, creation_time=datetime(year=2023, month=5, day=8, tzinfo=utc),
+            contact_info='110'
         )
 
         base_url = reverse('apply-api:coupon-detail', kwargs={'id': 'xx'})
@@ -1129,7 +1148,8 @@ class CouponApplyTests(MyAPITestCase):
             expiration_time=datetime(year=2024, month=3, day=16, tzinfo=utc), apply_desc='申请原因tw',
             user_id=self.user1.id, username=self.user1.username, vo_id='', vo_name='',
             owner_type=OwnerType.USER.value, creation_time=datetime(year=2022, month=12, day=16, tzinfo=utc),
-            status=CouponApply.Status.REJECT.value, reject_reason='不允许', approver='approver1'
+            status=CouponApply.Status.REJECT.value, reject_reason='不允许', approver='approver1',
+            contact_info='110'
         )
         apply2 = CouponApplyManager.create_apply(
             service_type=CouponApply.ServiceType.SERVER.value, odc=self.odc1,
@@ -1137,7 +1157,8 @@ class CouponApplyTests(MyAPITestCase):
             pay_service_id='pay_service_id1', face_value=Decimal('688.12'),
             expiration_time=datetime(year=2024, month=2, day=15, tzinfo=utc), apply_desc='申请原因rhr',
             user_id=self.user2.id, username=self.user2.username, vo_id=self.vo.id, vo_name=self.vo.name,
-            owner_type=OwnerType.VO.value, creation_time=datetime(year=2023, month=5, day=8, tzinfo=utc)
+            owner_type=OwnerType.VO.value, creation_time=datetime(year=2023, month=5, day=8, tzinfo=utc),
+            contact_info='110'
         )
 
         base_url = reverse('apply-api:coupon-cancel', kwargs={'id': 'xx'})
@@ -1194,7 +1215,8 @@ class CouponApplyTests(MyAPITestCase):
             expiration_time=datetime(year=2024, month=2, day=15, tzinfo=utc), apply_desc='申请原因rhr',
             user_id=self.user2.id, username=self.user2.username, vo_id=self.vo.id, vo_name=self.vo.name,
             owner_type=OwnerType.VO.value, creation_time=datetime(year=2023, month=5, day=8, tzinfo=utc),
-            status=CouponApply.Status.REJECT.value, reject_reason='不允许', approver='approver1'
+            status=CouponApply.Status.REJECT.value, reject_reason='不允许', approver='approver1',
+            contact_info='110'
         )
 
         apply2 = CouponApplyManager.create_apply(
@@ -1203,7 +1225,8 @@ class CouponApplyTests(MyAPITestCase):
             pay_service_id='pay_service_id1', face_value=Decimal('522.12'),
             expiration_time=datetime(year=2024, month=3, day=16, tzinfo=utc), apply_desc='申请原因twada',
             user_id=self.user1.id, username=self.user1.username, vo_id='', vo_name='',
-            owner_type=OwnerType.USER.value, creation_time=datetime(year=2022, month=12, day=16, tzinfo=utc)
+            owner_type=OwnerType.USER.value, creation_time=datetime(year=2022, month=12, day=16, tzinfo=utc),
+            contact_info='110'
         )
 
         base_url = reverse('apply-api:coupon-pending', kwargs={'id': 'xx'})
@@ -1255,7 +1278,8 @@ class CouponApplyTests(MyAPITestCase):
             expiration_time=datetime(year=2024, month=2, day=15, tzinfo=utc), apply_desc='申请原因rhr',
             user_id=self.user2.id, username=self.user2.username, vo_id=self.vo.id, vo_name=self.vo.name,
             owner_type=OwnerType.VO.value, creation_time=datetime(year=2023, month=5, day=8, tzinfo=utc),
-            status=CouponApply.Status.PENDING.value, reject_reason='不允许', approver='approver1'
+            status=CouponApply.Status.PENDING.value, reject_reason='不允许', approver='approver1',
+            contact_info='110'
         )
 
         apply2 = CouponApplyManager.create_apply(
@@ -1264,7 +1288,8 @@ class CouponApplyTests(MyAPITestCase):
             pay_service_id='pay_service_id1', face_value=Decimal('522.12'),
             expiration_time=datetime(year=2024, month=3, day=16, tzinfo=utc), apply_desc='申请原因twada',
             user_id=self.user1.id, username=self.user1.username, vo_id='', vo_name='',
-            owner_type=OwnerType.USER.value, creation_time=datetime(year=2022, month=12, day=16, tzinfo=utc)
+            owner_type=OwnerType.USER.value, creation_time=datetime(year=2022, month=12, day=16, tzinfo=utc),
+            contact_info='110'
         )
 
         base_url = reverse('apply-api:coupon-reject', kwargs={'id': 'xx'})
@@ -1351,7 +1376,7 @@ class CouponApplyTests(MyAPITestCase):
             expiration_time=expiration_time, apply_desc='申请原因rhr',
             user_id=self.user2.id, username=self.user2.username, vo_id=self.vo.id, vo_name=self.vo.name,
             owner_type=OwnerType.VO.value, creation_time=datetime(year=2023, month=5, day=8, tzinfo=utc),
-            status=CouponApply.Status.PENDING.value, reject_reason='', approver=''
+            status=CouponApply.Status.PENDING.value, reject_reason='', approver='', contact_info='110'
         )
 
         base_url = reverse('apply-api:coupon-pass', kwargs={'id': 'xx'})
@@ -1410,7 +1435,7 @@ class CouponApplyTests(MyAPITestCase):
             pay_service_id=scan_service.pay_app_service_id, face_value=Decimal('522.12'),
             expiration_time=expiration_time, apply_desc='申请原因twada',
             user_id=self.user1.id, username=self.user1.username, vo_id='', vo_name='',
-            owner_type=OwnerType.USER.value
+            owner_type=OwnerType.USER.value, contact_info='1123'
         )
 
         base_url = reverse('apply-api:coupon-pass', kwargs={'id': apply2.id})
@@ -1553,13 +1578,14 @@ class CouponApplyTests(MyAPITestCase):
 
         r = self.client.post(base_url, data={
             "apply_desc": "申请说明",
-            "order_id": scan_order.id
+            "order_id": scan_order.id,
+            'contact_info': '668'
         })
         self.assertEqual(r.status_code, 201)
         self.assertKeysIn([
             'id', 'service_type', 'odc', 'service_id', 'service_name', 'service_name_en',
             'face_value', 'expiration_time', 'apply_desc', 'creation_time', 'update_time',
-            'user_id', 'username', 'vo_id', 'vo_name', 'owner_type', 'order_id',
+            'user_id', 'username', 'vo_id', 'vo_name', 'owner_type', 'order_id', 'contact_info',
             'status', 'approver', 'approved_amount', 'reject_reason', 'coupon_id'], r.data)
         self.assertEqual(r.data['service_type'], CouponApply.ServiceType.SCAN.value)
         self.assertIsNone(r.data['odc'])
@@ -1575,10 +1601,12 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(r.data['owner_type'], OwnerType.USER.value)
         self.assertEqual(r.data['status'], CouponApply.Status.WAIT.value)
         self.assertEqual(r.data['order_id'], scan_order.id)
+        self.assertEqual(r.data['contact_info'], '668')
 
         apply1 = CouponApply.objects.first()
         self.assertEqual(apply1.face_value, scan_order.payable_amount)
         self.assertEqual(apply1.order_id, scan_order.id)
+        self.assertEqual(apply1.contact_info, '668')
 
         # 审批通过自动支付订单交付资源test
         base_url = reverse('apply-api:coupon-pass', kwargs={'id': apply1.id})
@@ -1647,7 +1675,7 @@ class CouponApplyTests(MyAPITestCase):
             expiration_time=datetime(year=2023, month=12, day=15, tzinfo=utc), apply_desc='申请原因6',
             user_id=self.user2.id, username=self.user2.username, vo_id=self.vo.id, vo_name=self.vo.name,
             owner_type=OwnerType.VO.value, creation_time=datetime(year=2023, month=10, day=9, tzinfo=utc),
-            status=CouponApply.Status.PENDING.value
+            status=CouponApply.Status.PENDING.value, contact_info='110'
         )
         scan_config = ScanConfig(
             name='测试 scan，host and web', host_addr=' 10.8.8.6', web_url='https://test.cn ', remark='test remark')
@@ -1666,7 +1694,7 @@ class CouponApplyTests(MyAPITestCase):
             expiration_time=datetime(year=2024, month=3, day=15, tzinfo=utc), apply_desc='申请原因7',
             user_id=self.user1.id, username=self.user1.username, vo_id='', vo_name='',
             owner_type=OwnerType.USER.value, creation_time=datetime(year=2024, month=3, day=9, tzinfo=utc),
-            status=CouponApply.Status.WAIT.value, order_id=scan_order.id
+            status=CouponApply.Status.WAIT.value, order_id=scan_order.id, contact_info='110'
         )
 
         base_url = reverse('apply-api:coupon-detail', kwargs={'id': 'xx'})
@@ -1689,7 +1717,7 @@ class CouponApplyTests(MyAPITestCase):
         self.assertKeysIn([
             'id', 'service_type', 'odc', 'service_id', 'service_name', 'service_name_en',
             'face_value', 'expiration_time', 'apply_desc', 'creation_time', 'update_time',
-            'user_id', 'username', 'vo_id', 'vo_name', 'owner_type', 'order',
+            'user_id', 'username', 'vo_id', 'vo_name', 'owner_type', 'order', 'contact_info',
             'status', 'approver', 'approved_amount', 'reject_reason', 'coupon_id'], r.data)
         self.assertIsNone(r.data['order'])
 
@@ -1704,7 +1732,7 @@ class CouponApplyTests(MyAPITestCase):
         self.assertKeysIn([
             'id', 'service_type', 'odc', 'service_id', 'service_name', 'service_name_en',
             'face_value', 'expiration_time', 'apply_desc', 'creation_time', 'update_time',
-            'user_id', 'username', 'vo_id', 'vo_name', 'owner_type', 'order',
+            'user_id', 'username', 'vo_id', 'vo_name', 'owner_type', 'order', 'contact_info',
             'status', 'approver', 'approved_amount', 'reject_reason', 'coupon_id'], r.data)
 
         # user2 apply2
