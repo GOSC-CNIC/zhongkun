@@ -287,6 +287,7 @@ class LogSiteReqCounter:
 
             try:
                 site_id = obj.site.id
+                odc = obj.site.org_data_center  # 防止后续在异步执行中，从数据库同步加载odc，django报错
             except Exception as exc:
                 continue
 
@@ -322,12 +323,15 @@ class LogSiteReqCounter:
 
         ok_count = 0
         update_objs = []
+        site_err_map = {}
         for r in results:
             if isinstance(r, tuple) and len(r) == 2:
                 obj, r_num = r
                 if isinstance(r_num, int):
                     obj.count = r_num
                     update_objs.append(obj)
+                else:
+                    site_err_map[obj.site_id] = r_num
             else:
                 print(r)
                 continue
@@ -338,11 +342,17 @@ class LogSiteReqCounter:
             except Exception as exc:
                 pass
 
+        try:
+            for err in site_err_map.values():
+                print(err)
+        except Exception as exc:
+            pass
+
         return ok_count
 
     @staticmethod
     def get_need_update_objs(start: int, end: int, log_site_id=None):
-        qs = LogSiteTimeReqNum.objects.select_related('site').filter(
+        qs = LogSiteTimeReqNum.objects.select_related('site__org_data_center').filter(
             timestamp__gte=start, timestamp__lte=end, count__lt=0)
         if log_site_id:
             qs = qs.filter(site__id=log_site_id)
