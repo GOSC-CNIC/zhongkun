@@ -1,8 +1,11 @@
+from datetime import datetime
+
+from django.utils import timezone as dj_timezone
 from django.contrib import admin
 from django.utils.translation import gettext_lazy
 
 from utils.model import BaseModelAdmin
-from .models import ScreenConfig, DataCenter, MetricMonitorUnit, LogMonitorUnit
+from .models import ScreenConfig, DataCenter, MetricMonitorUnit, LogMonitorUnit, HostCpuUsage
 
 
 @admin.register(ScreenConfig)
@@ -76,3 +79,19 @@ class LogMonitorUnitAdmin(BaseModelAdmin):
             return ''
 
         return obj.data_center.loki_endpoint_url
+
+
+@admin.register(HostCpuUsage)
+class HostCpuUsageAdmin(BaseModelAdmin):
+    list_display = ('id', 'timestamp', 'show_time', 'unit', 'value')
+    list_display_links = ('id',)
+    list_select_related = ('unit',)
+
+    @admin.display(description=gettext_lazy("统计时间"))
+    def show_time(self, obj):
+        try:
+            dt = datetime.fromtimestamp(obj.timestamp, tz=dj_timezone.get_default_timezone())
+        except Exception as exc:
+            return ''
+
+        return dt.isoformat(sep=' ')

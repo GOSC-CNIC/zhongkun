@@ -114,18 +114,21 @@ class MetricQueryAPI:
         return errors.Error(message=msg)
 
     @staticmethod
-    def _build_query_api(endpoint_url: str, expression_query: str):
-        endpoint_url = endpoint_url.rstrip('/')
-        query = parse.urlencode(query={'query': expression_query})
-        url = f'{endpoint_url}/api/v1/query?{query}'
-        return url
-
-    @staticmethod
     def _build_query_range_api(endpoint_url: str, expression_query: str, start, end, step):
         endpoint_url = endpoint_url.rstrip('/')
         query = parse.urlencode(query={'query': expression_query, 'start': start, 'end': end, 'step': step})
         url = f'{endpoint_url}/api/v1/query_range?{query}'
         return url
+
+    @staticmethod
+    def _build_query_url(endpoint_url: str, querys: dict):
+        endpoint_url = endpoint_url.rstrip('/')
+        query = parse.urlencode(query=querys)
+        return f'{endpoint_url}/api/v1/query?{query}'
+
+    async def async_raw_query(self, endpoint_url: str, querys: dict):
+        api_url = self._build_query_url(endpoint_url=endpoint_url, querys=querys)
+        return await self.async_request_query_api(url=api_url)
 
     def query_range_tag(
             self, endpoint_url: str, tag_tmpl: str, job: str, start: int, end: int, step: int,
@@ -144,7 +147,7 @@ class MetricQueryAPI:
             query_render = BaseExpressionQuery
 
         expression_query = query_render.render_expression(tmpl=tag_tmpl, job=job)
-        api_url = self._build_query_api(endpoint_url=endpoint_url, expression_query=expression_query)
+        api_url = self._build_query_url(endpoint_url=endpoint_url, querys={'query': expression_query})
         return self.request_query_api(url=api_url)
 
     async def async_query_tag(
@@ -154,7 +157,7 @@ class MetricQueryAPI:
             query_render = BaseExpressionQuery
 
         expression_query = query_render.render_expression(tmpl=tag_tmpl, job=job)
-        api_url = self._build_query_api(endpoint_url=endpoint_url, expression_query=expression_query)
+        api_url = self._build_query_url(endpoint_url=endpoint_url, querys={'query': expression_query})
         return await self.async_request_query_api(url=api_url)
 
     @staticmethod

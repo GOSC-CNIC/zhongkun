@@ -56,8 +56,19 @@ class MetricHostViewSet(NormalGenericViewSet):
                     "job_tag": "sdgs-ceph",
                     "creation_time": "2024-03-08T14:48:07+08:00"
                   }
-                "up_count": [],     # 数组，可能为空，单项，多项
-                "cpu_count ": [],   # 数组，可能为空，单项，多项
+                "up_count": [
+                    {"metric": {}, "value": [1712718507, "13"]}
+                ],     # 数组，可能为空，单项，多项
+                "down": [
+                    {
+                      "metric": {
+                        "__name__": "up",
+                        "instance": "10.16.1.10:9100",
+                        "job": "aiops_hosts_node_metric"
+                      },
+                      "value": [1712718507, "0"]
+                    }
+                ],   # 数组，可能为空，单项，多项
                 ...
             }
 

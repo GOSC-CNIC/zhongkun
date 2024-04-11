@@ -1,7 +1,12 @@
+from datetime import datetime
+
 from django.db import models
 from django.utils.translation import gettext, gettext_lazy as _
+from django.utils import timezone as dj_timezone
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
+
+from utils.model import UuidModel
 
 
 class ScreenConfig(models.Model):
@@ -143,3 +148,32 @@ class LogMonitorUnit(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class HostCpuUsage(UuidModel):
+    """
+    主机指标单元总cpu使用率时序数据
+    """
+    timestamp = models.PositiveBigIntegerField(null=False, blank=False, verbose_name="统计时间")
+    unit = models.ForeignKey(
+        to=MetricMonitorUnit, verbose_name='指标单元ID', on_delete=models.DO_NOTHING, null=True, blank=False,
+        db_constraint=False, db_index=False)
+    value = models.FloatField(verbose_name='CPU使用率', help_text='负数标识数据无效（查询失败的占位记录，便于后补）')
+
+    class Meta:
+        db_table = 'screenvis_hostcpuusage'
+        ordering = ['-timestamp']
+        verbose_name = _('主机指标单元总CPU使用率时序数据')
+        verbose_name_plural = verbose_name
+        indexes = [
+            models.Index(fields=['timestamp'], name='idx_screen_cpuusage_ts')
+        ]
+
+    def __str__(self):
+        return f'{self.id}({self.value}, {self.timestamp})'
+
+    def clean(self):
+        try:
+            datetime.fromtimestamp(self.timestamp, tz=dj_timezone.get_default_timezone())
+        except Exception as exc:
+            raise ValidationError({'timestamp': f'无效的时间戳，{str(exc)}，当前时间戳为:{int(dj_timezone.now().timestamp())}'})
