@@ -16,8 +16,8 @@ from storage.models import ObjectsService, Bucket
 from servers.models import Server, ServiceConfig
 from servers.tests import create_server_metadata
 from report.models import ArrearBucket, ArrearServer
-from scripts.workers.storage_trend import ArrearBucketReporter
-from scripts.workers.server_notifier import ArrearServerReporter
+from apps.report.workers.storage_trend import ArrearBucketReporter
+from apps.report.workers.server_notifier import ArrearServerReporter
 
 
 PAY_APP_ID = site_configs_manager.get_pay_app_id(settings)

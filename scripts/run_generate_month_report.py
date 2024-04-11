@@ -13,7 +13,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'cloudverse.settings')
 setup()
 
-from scripts.workers.report_generator import MonthlyReportGenerator
+from apps.report.workers.report_generator import MonthlyReportGenerator
 
 if __name__ == "__main__":
     MonthlyReportGenerator(log_stdout=True).run()

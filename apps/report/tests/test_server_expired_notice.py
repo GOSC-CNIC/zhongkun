@@ -8,7 +8,7 @@ from utils.model import PayType
 from utils.test import get_or_create_user
 from vo.models import VirtualOrganization, VoMember
 from servers.models import Server
-from scripts.workers.server_notifier import (
+from apps.report.workers.server_notifier import (
     ServerNotifier
 )
 from servers.tests import create_server_metadata

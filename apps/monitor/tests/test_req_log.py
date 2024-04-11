@@ -3,7 +3,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 from django.test.testcases import TransactionTestCase
-from scripts.workers.req_logs import ServiceReqCounter, LogSiteReqCounter
+from monitor.req_workers import ServiceReqCounter, LogSiteReqCounter
 from monitor.models import TotalReqNum, LogSite, LogSiteTimeReqNum
 
 

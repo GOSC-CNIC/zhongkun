@@ -14,7 +14,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'cloudverse.settings')
 setup()
 
 
-from scripts.workers.timeout_cancel import OrderTimeoutTask
+from apps.order.workers.timeout_cancel import OrderTimeoutTask
 
 
 if __name__ == "__main__":

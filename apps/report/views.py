@@ -2,7 +2,7 @@ from django.http.response import HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.template import loader
 
-from scripts.workers.report_generator import MonthlyReportNotifier, get_report_period_start_and_end
+from .workers.report_generator import MonthlyReportNotifier, get_report_period_start_and_end
 from report.models import MonthlyReport
 from utils.model import OwnerType
 

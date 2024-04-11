@@ -9,7 +9,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'cloudverse.settings')
 setup()
 
-from scripts.workers.report_generator import MonthlyReportGenerator, MonthlyReportNotifier
+from apps.report.workers.report_generator import MonthlyReportGenerator, MonthlyReportNotifier
 
 
 if __name__ == "__main__":
@@ -19,8 +19,8 @@ if __name__ == "__main__":
     遍历查询欠费的云主机和存储桶，记录到report中各资源的欠费记录表中
     """
     try:
-        from scripts.workers.server_notifier import ArrearServerReporter
-        from scripts.workers.storage_trend import ArrearBucketReporter
+        from apps.report.workers.server_notifier import ArrearServerReporter
+        from apps.report.workers.storage_trend import ArrearBucketReporter
         ArrearServerReporter().run()
         ArrearBucketReporter().run()
     except Exception as exc:

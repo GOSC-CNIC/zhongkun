@@ -7,7 +7,7 @@ from monitor.models import (
     LogSite, LogSiteType, LogSiteTimeReqNum
 )
 from utils.test import get_or_create_user, MyAPITestCase, get_or_create_org_data_center
-from scripts.workers.req_logs import LogSiteReqCounter
+from apps.monitor.req_workers import LogSiteReqCounter
 from .tests import get_or_create_job_log_site
 
 

@@ -16,7 +16,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'cloudverse.settings')
 setup()
 
 
-from scripts.workers.server_notifier import ServerArrearNotifier
+from apps.report.workers.server_notifier import ServerArrearNotifier
 
 
 if __name__ == "__main__":

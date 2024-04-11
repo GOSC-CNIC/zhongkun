@@ -13,7 +13,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'cloudverse.settings')
 setup()
 
-from scripts.workers.coupon_notifier import CouponNotifier
+from apps.app_wallet.coupon_notifier import CouponNotifier
 
 if __name__ == "__main__":
     CouponNotifier(log_stdout=False).run()

@@ -10,8 +10,8 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'cloudverse.settings')
 setup()
 
 
-from scripts.workers.server_notifier import ArrearServerReporter
-from scripts.workers.storage_trend import ArrearBucketReporter
+from apps.report.workers.server_notifier import ArrearServerReporter
+from apps.report.workers.storage_trend import ArrearBucketReporter
 
 
 if __name__ == "__main__":

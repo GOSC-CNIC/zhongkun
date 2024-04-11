@@ -18,7 +18,7 @@ from apps.app_wallet.models import PayApp, PayAppService, CashCoupon
 from storage.models import ObjectsService, Bucket, BucketArchive
 from vo.models import VirtualOrganization, VoMember
 from report.models import MonthlyReport, BucketMonthlyReport
-from scripts.workers.report_generator import (
+from apps.report.workers.report_generator import (
     MonthlyReportGenerator, MonthlyReportNotifier, get_report_period_start_and_end,
     last_target_day_date
 )

@@ -9,7 +9,7 @@ from utils.time import utc
 from storage.models import ObjectsService, Bucket, BucketArchive
 from metering.models import MeteringObjectStorage
 from report.models import BucketStatsMonthly
-from scripts.workers.storage_trend import (
+from apps.report.workers.storage_trend import (
     StorageSizeCounter, get_report_period_start_and_end,
 )
 
