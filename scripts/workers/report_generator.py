@@ -23,7 +23,7 @@ from utils.time import utc
 from apps.app_wallet.models import CashCoupon, CashCouponPaymentHistory
 from servers.models import Server, ServerArchive, Disk
 from core.site_configs_manager import website_brand
-from . import config_logger
+from core.loggers import config_script_logger
 
 
 def get_target_month_first_day_last_day(target_date: datetime.date):
@@ -87,7 +87,8 @@ def hours_to_days(hours: float) -> float:
 class MonthlyReportGenerator:
     def __init__(self, report_data: datetime.date = None, log_stdout: bool = False, limit: int = 1000):
         self.limit = limit if limit > 0 else 1000      # 每次从数据库获取vo和user的数量
-        self.logger = config_logger(name='monthly_report_logger', filename='monthly_report.log', stdout=log_stdout)
+        self.logger = config_script_logger(
+            name='script_monthly_report_logger', filename='monthly_report.log', stdout=log_stdout)
 
         if report_data:
             self.report_period_start, self.report_period_end = get_report_period_start_and_end(report_data)
@@ -735,7 +736,8 @@ class MonthlyReportGenerator:
 class MonthlyReportNotifier:
     def __init__(self, report_data: datetime.date = None, log_stdout: bool = False, limit: int = 1000):
         self.limit = limit if limit > 0 else 1000      # 每次从数据库获取vo和user的数量
-        self.logger = config_logger(name='monthly_report_logger', filename='monthly_report.log', stdout=log_stdout)
+        self.logger = config_script_logger(
+            name='script_monthly_report_logger', filename='monthly_report.log', stdout=log_stdout)
         self.template = get_template('monthly_report.html')
 
         if report_data:

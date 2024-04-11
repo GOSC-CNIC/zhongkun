@@ -16,9 +16,9 @@ from users.models import Email, UserProfile
 from vo.models import VirtualOrganization, VoMember
 from utils.model import PayType, OwnerType
 from core import site_configs_manager as site_configs
+from core.loggers import config_script_logger
 from report.managers import ArrearServerManager
 from monitor.models import ErrorLog
-from . import config_logger
 
 
 UserServerTuple = namedtuple(
@@ -299,7 +299,7 @@ class ServersSorter:
 
 class BaseNotifier:
     def __init__(self, filter_out_notified: bool, log_stdout: bool = False):
-        self.logger = config_logger(name='server-logger', filename="server_notice.log", stdout=log_stdout)
+        self.logger = config_script_logger(name='script-server-logger', filename="server_notice.log", stdout=log_stdout)
         self.querier = ServerQuerier(filter_out_notified=filter_out_notified)
 
     def do_email_notice(self, subject: str, html_message: str, username: str):
@@ -721,7 +721,8 @@ class ServerArrearNotifier(BaseServerArrear):
         """
         super().__init__()
         self.raise_exception = raise_exception
-        self.logger = config_logger(name='server-arrear-logger', filename="server_arrear.log", stdout=log_stdout)
+        self.logger = config_script_logger(
+            name='script-server-arrear-logger', filename="server_arrear.log", stdout=log_stdout)
         self.user_arrear_servers_map = {}
         self.vo_arrear_servers_map = {}
         self.template_all_arrear = Template(

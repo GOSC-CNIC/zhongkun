@@ -9,7 +9,7 @@ from users.models import Email
 from vo.models import VirtualOrganization, VoMember
 from utils.model import OwnerType
 from core import site_configs_manager as site_configs
-from . import config_logger
+from core.loggers import config_script_logger
 
 
 class MessageTemplate:
@@ -286,7 +286,7 @@ class CouponNotifier:
     querier = CouponQuerier()
 
     def __init__(self, log_stdout: bool = False):
-        self.logger = config_logger(name='coupon-logger', filename="coupon_notice.log", stdout=log_stdout)
+        self.logger = config_script_logger(name='script-coupon-logger', filename="coupon_notice.log", stdout=log_stdout)
 
     def run(self):
         self.loop_notice_together()

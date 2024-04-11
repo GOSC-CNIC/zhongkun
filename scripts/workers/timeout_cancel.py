@@ -4,14 +4,15 @@ from django.utils import timezone
 from order.models import Order
 from order.managers import OrderManager
 
-from . import config_logger
+from core.loggers import config_script_logger
 
 
 class OrderTimeoutTask:
     TIMEOUT_MINUTE = 60
 
     def __init__(self, timeout_minutes: int = None, log_stdout: bool = False):
-        self.logger = config_logger(name='order-timeout-logger', filename="order-timeout.log", stdout=log_stdout)
+        self.logger = config_script_logger(
+            name='script-order-timeout-logger', filename="order-timeout.log", stdout=log_stdout)
         if timeout_minutes:
             self.TIMEOUT_MINUTE = timeout_minutes
 
