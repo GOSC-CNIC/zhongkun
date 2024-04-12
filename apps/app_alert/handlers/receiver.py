@@ -192,7 +192,7 @@ class AlertReceiver(object):
     def get_probe_count():
         probe_model = ContentType.objects.get(app_label="monitor", model="websitedetectionpoint").model_class()
         count = probe_model.objects.filter(enable=True).count() or 2
-        return count
+        return 2  # TODO
 
     def pick_inaccessible_website_list(self):
         """
