@@ -179,10 +179,11 @@ class MonitorWebsiteVersionAdmin(NoDeleteSelectModelAdmin):
 
 @admin.register(WebsiteDetectionPoint)
 class WebsiteDetectionPointAdmin(NoDeleteSelectModelAdmin):
-    list_display = ('id', 'name', 'name_en', 'provider', 'enable', 'creation', 'modification')
+    list_display = ('id', 'name', 'name_en', 'provider', 'enable', 'sort_weight', 'creation', 'modification')
     list_display_links = ('id', )
     list_select_related = ('provider',)
     list_filter = ('enable',)
+    list_editable = ('sort_weight',)
 
 
 @admin.register(MonitorJobTiDB)

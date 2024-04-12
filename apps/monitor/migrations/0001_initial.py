@@ -257,7 +257,7 @@ class Migration(migrations.Migration):
                 'verbose_name': '网站监控探测点',
                 'verbose_name_plural': '网站监控探测点',
                 'db_table': 'website_detection_point',
-                'ordering': ['-creation'],
+                'ordering': ['sort_weight'],
             },
         ),
     ]

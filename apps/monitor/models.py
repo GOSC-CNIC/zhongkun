@@ -355,10 +355,11 @@ class WebsiteDetectionPoint(UuidModel):
         related_name='+', db_constraint=False, null=True, default=None)
     remark = models.CharField(verbose_name=_('备注'), max_length=255, blank=True, default='')
     enable = models.BooleanField(verbose_name=_('是否启用'), default=True)
+    sort_weight = models.IntegerField(verbose_name=_('排序值'), default=0, help_text=_('值越小排序越靠前'))
 
     class Meta:
         db_table = 'website_detection_point'
-        ordering = ['-creation']
+        ordering = ['sort_weight']
         verbose_name = _('网站监控探测点')
         verbose_name_plural = verbose_name
 

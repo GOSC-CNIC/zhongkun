@@ -387,7 +387,7 @@ class MonitorWebsiteHandler:
             else:
                 return view.exception_response(errors.InvalidArgument('参数“enable”的值无效。'))
 
-        queryset = WebsiteDetectionPoint.objects.all()
+        queryset = WebsiteDetectionPoint.objects.all().order_by('sort_weight')
         if enable is not None:
             queryset = WebsiteDetectionPoint.objects.filter(enable=enable)
 

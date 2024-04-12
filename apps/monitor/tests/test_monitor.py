@@ -986,13 +986,15 @@ class MonitorWebsiteTests(MyAPITestCase):
         # add data
         nt = timezone.now()
         detection_point1 = WebsiteDetectionPoint(
-            name='name1', name_en='name en1', creation=nt, modification=nt, remark='remark1', enable=True
+            name='name1', name_en='name en1', creation=nt, modification=nt, remark='remark1', enable=True,
+            sort_weight=0
         )
         detection_point1.save(force_insert=True)
 
         nt = timezone.now()
         detection_point2 = WebsiteDetectionPoint(
-            name='name2', name_en='name en2', creation=nt, modification=nt, remark='remark2', enable=False
+            name='name2', name_en='name en2', creation=nt, modification=nt, remark='remark2', enable=False,
+            sort_weight=-1
         )
         detection_point2.save(force_insert=True)
 
