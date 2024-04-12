@@ -68,6 +68,7 @@ INSTALLED_APPS = [
     'apps.app_screenvis',
 
     'apps.app_netflow',
+    'apps.app_alert',
     # app放上面
     'docs',
     'scripts',

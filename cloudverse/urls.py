@@ -75,6 +75,7 @@ urlpatterns = [
     path('api/apply/', include('apps.app_apply.api_urls', namespace='apply-api')),
     path('api/app_screenvis/', include('apps.app_screenvis.api_urls', namespace='screenvis-api')),
     path('api/app_netflow/', include('apps.app_netflow.api_urls', namespace='netflow-api')),
+    path('api/app_alert/', include('apps.app_alert.api_urls', namespace='alert-api')),
 
     # views url
     path('', views.home, name='index'),
