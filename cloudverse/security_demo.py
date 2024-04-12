@@ -4,7 +4,6 @@ from .settings import PASSPORT_JWT
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'xxx'
 
-
 # # Database
 # # https://docs.djangoproject.com/en/1.11/ref/settings/#databases
 DATABASES = {
@@ -17,11 +16,11 @@ DATABASES = {
         'USER': 'xxx',  # 数据库用户名
         'PASSWORD': 'xxx',  # 密码
         'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES';",   # SET foreign_key_checks = 0;
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES';",  # SET foreign_key_checks = 0;
             'charset': 'utf8mb4'
         },
         'TEST': {
-            'NAME': 'testvms',     # unit test database
+            'NAME': 'testvms',  # unit test database
             'CHARSET': 'utf8mb4'
         },
     },
@@ -43,16 +42,14 @@ THIRD_PARTY_APP_AUTH_SECURITY = {
 
 # 邮箱配置
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_USE_TLS = True    # 是否使用TLS安全传输协议
+EMAIL_USE_TLS = True  # 是否使用TLS安全传输协议
 # EMAIL_PORT = 25
 EMAIL_HOST = 'xxx'
 EMAIL_HOST_USER = 'xxx'
 EMAIL_HOST_PASSWORD = 'xxx'
 
-
 # 科技云通行证JWT认证公钥
 PASSPORT_JWT['VERIFYING_KEY'] = 'xxx'
-
 
 # 钱包结算服务RSA Key，加签验签
 PAYMENT_RSA2048 = {
@@ -67,7 +64,6 @@ xxx
 -----END PUBLIC KEY-----  
 """
 }
-
 
 # 余额支付配置
 PAYMENT_BALANCE = {
@@ -92,7 +88,7 @@ API_MONITOR_EMAIL_ALLOWED_IPS = []
 
 # link app api ip restrict
 API_IPRESTRICT_LINK_ALLOWED_IPS = [
-    '0.0.0.0/0',    # 允许所有IP访问
+    '0.0.0.0/0',  # 允许所有IP访问
 ]
 
 # 服务总请求数统计依赖设置，配置各站点loki日志服务接口，总请求数==各站点的请求数的和
@@ -118,4 +114,9 @@ TEST_CASE_SECURITY = {
         'password': 'test123456',
         'version': 'v1',
     }
+}
+# AIOps 后端接口
+AIOPS_BACKEND_CONFIG = {
+    "API": "https://xxxxxx.cn",
+    "AUTH": ('username', 'password'),
 }
