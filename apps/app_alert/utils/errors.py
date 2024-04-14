@@ -4,7 +4,7 @@ from rest_framework import status
 
 class APIError(APIException):
     status_code = 500
-    default_detail = 'API接口报错'
+    default_detail = 'API Error'
 
 
 class BadRequest(APIException):

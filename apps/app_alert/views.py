@@ -32,6 +32,7 @@ from apps.app_alert.models import EmailNotification
 from django.db.models import Q
 from apps.app_alert.handlers.handlers import EmailNotificationCleaner
 from apps.app_alert.permission import ReceiverPermission
+from apps.app_alert.handlers.handlers import UserMonitorUnit
 
 
 # Create your views here.
@@ -317,7 +318,6 @@ class WorkOrderListGenericAPIView(GenericAPIView, CreateModelMixin):
         return Response({"status": "success"}, status=status_code.HTTP_201_CREATED)
 
     def perform_create(self, serializer):
-        from apps.app_alert.handlers.handlers import UserMonitorUnit
         alert = serializer.validated_data.get("alert")
         user_monitor_units = UserMonitorUnit(self.request)
         if alert.fingerprint not in user_monitor_units.url_hash_list and alert.cluster not in user_monitor_units.clusters and not self.request.user.is_superuser:

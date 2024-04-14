@@ -190,3 +190,32 @@ class AlertMonitorJobServer(UuidModel):
         ordering = ['-creation']
         verbose_name = _("告警集群")
         verbose_name_plural = verbose_name
+
+
+class ScriptFlagModel(UuidModel):
+    name = models.CharField(max_length=50, null=False, verbose_name=_('任务名称'))
+    start = models.PositiveIntegerField(null=False, verbose_name=_('开始时间戳'))
+    end = models.PositiveIntegerField(null=True, verbose_name=_('结束时间戳'))
+
+    class Status(models.TextChoices):
+        RUNNING = 'running', _('运行中')
+        FINISH = 'finish', _('运行结束')
+        ABORT = 'abort', _('异常退出')
+
+    status = models.CharField(
+        verbose_name=_('运行状态'),
+        max_length=16,
+        choices=Status.choices,
+        default=Status.RUNNING.value)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        db_table = "alert_script_flag"
+        ordering = ['-start']
+        unique_together = (
+            ("name", "start"),
+        )
+        verbose_name = _("定时任务运行标志")
+        verbose_name_plural = verbose_name
