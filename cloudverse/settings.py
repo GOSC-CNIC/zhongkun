@@ -415,9 +415,9 @@ CRONTABJOBS = [
     ('task7_screen_host_cpuusage', '*/10 * * * *',
      'python3 /home/uwsgi/yunkun/scripts/run_screen_host_cpuusage.py >> /var/log/yunkun/task_screen_host_cpuusage.log'),
     ('task8_alert_email_notification', '*/2 * * * *',
-     'cd /home/uwsgi/yunkun && /usr/local/bin/pipenv run python3 /home/uwsgi/yunkun/apps/app_alert/scripts/alert_email_notification.py >> /var/log/yunkun/task_alert_email_notification.log'),
+     'python3 /home/uwsgi/yunkun/apps/app_alert/scripts/alert_email_notification.py >> /var/log/yunkun/task_alert_email_notification.log'),
     ('task9_alert_dingtalk_notification', '*/1 * * * *',
-     'cd /home/uwsgi/yunkun && /usr/local/bin/pipenv run python3 /home/uwsgi/yunkun/apps/app_alert/scripts/alert_dingtalk_notification.py >> /var/log/yunkun/task_alert_dingtalk_notification.log'),
+     'python3 /home/uwsgi/yunkun/apps/app_alert/scripts/alert_dingtalk_notification.py >> /var/log/yunkun/task_alert_dingtalk_notification.log'),
 ]
 
 # 安全配置导入
