@@ -7,14 +7,16 @@ from utils.model import BaseModelAdmin
 
 # Register your models here.
 @admin.register(AlertWhiteListModel)
-class MenuCategoryAdmin(BaseModelAdmin):
+class AlertWhiteListAdmin(BaseModelAdmin):
     list_display = [
         'id',
+        'ip',
         'remark',
         'creation',
         'modification', ]
     list_display_links = (
         'id',
+        'ip',
         'remark',
         'creation',
         'modification',)
