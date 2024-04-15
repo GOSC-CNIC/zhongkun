@@ -1,4 +1,5 @@
 from datetime import datetime
+import ipaddress
 
 from django.db import models
 from django.utils.translation import gettext, gettext_lazy as _
@@ -199,6 +200,9 @@ class ApiAllowIP(models.Model):
 
     def clean(self):
         try:
-            convert_iprange(self.ip_value)
+            subnet = convert_iprange(self.ip_value)
         except Exception as exc:
             raise ValidationError({'ip_value': str(exc)})
+
+        if isinstance(subnet, ipaddress.IPv4Network):
+            self.ip_value = str(subnet)
