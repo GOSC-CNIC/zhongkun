@@ -9,12 +9,13 @@ from drf_yasg import openapi
 from apps.app_screenvis.managers import HostQueryChoices, MetricQueryManager
 from apps.app_screenvis.utils import errors
 from apps.app_screenvis.models import MetricMonitorUnit, HostCpuUsage
+from apps.app_screenvis.permissions import ScreenAPIIPPermission
 from . import NormalGenericViewSet
 
 
 class MetricHostViewSet(NormalGenericViewSet):
     queryset = []
-    permission_classes = []
+    permission_classes = [ScreenAPIIPPermission]
     pagination_class = None
     lookup_field = 'id'
 

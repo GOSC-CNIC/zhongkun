@@ -1,11 +1,14 @@
 from datetime import datetime
 
-from django.utils import timezone as dj_timezone
 from django.contrib import admin
 from django.utils.translation import gettext_lazy
+from django.utils import timezone as dj_timezone
 
 from utils.model import BaseModelAdmin
-from .models import ScreenConfig, DataCenter, MetricMonitorUnit, LogMonitorUnit, HostCpuUsage
+from .models import (
+    ScreenConfig, DataCenter, MetricMonitorUnit, LogMonitorUnit, HostCpuUsage,
+    ApiAllowIP
+)
 
 
 @admin.register(ScreenConfig)
@@ -95,3 +98,9 @@ class HostCpuUsageAdmin(BaseModelAdmin):
             return ''
 
         return dt.isoformat(sep=' ')
+
+
+@admin.register(ApiAllowIP)
+class ApiAllowIPAdmin(BaseModelAdmin):
+    list_display = ('id', 'ip_value', 'creation_time', 'update_time', 'remark')
+    list_display_links = ('id',)

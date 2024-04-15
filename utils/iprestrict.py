@@ -11,37 +11,47 @@ from core import errors
 IPRange = namedtuple('IPRange', ['start', 'end'])
 
 
+def convert_iprange(ip_str: str) -> Union[ipaddress.IPv4Network, IPRange]:
+    if '/' in ip_str:
+        try:
+            return ipaddress.IPv4Network(ip_str, strict=False)
+        except (ipaddress.AddressValueError, ipaddress.NetmaskValueError):
+            raise Exception(_('无效的IP子网'))
+    elif '-' in ip_str:
+        items = ip_str.split('-')
+        if len(items) != 2:
+            raise Exception(_('无效的IP网段'))
+
+        start = items[0].strip(' ')
+        end = items[1].strip(' ')
+        try:
+            start = ipaddress.IPv4Address(start)
+            end = ipaddress.IPv4Address(end)
+            if end >= start:
+                return IPRange(start=start, end=end)
+
+            raise Exception(_('无效的IP网段，地址无效'))
+        except (ipaddress.AddressValueError, ipaddress.NetmaskValueError):
+            raise Exception(_('无效的IP网段，地址无效'))
+    else:
+        try:
+            start = ipaddress.IPv4Address(ip_str)
+            return IPRange(start=start, end=start)
+        except (ipaddress.AddressValueError, ipaddress.NetmaskValueError):
+            raise Exception(_('无效的IP地址'))
+
+
 def load_allowed_ips(setting_key: str) -> List[Union[ipaddress.IPv4Network, IPRange]]:
     ips = getattr(settings, setting_key, [])
     allowed_ips = []
     for ip_str in ips:
         if not isinstance(ip_str, str):
             continue
-        if '/' in ip_str:
-            try:
-                allowed_ips.append(ipaddress.IPv4Network(ip_str, strict=False))
-            except (ipaddress.AddressValueError, ipaddress.NetmaskValueError):
-                pass
-        elif '-' in ip_str:
-            items = ip_str.split('-')
-            if len(items) != 2:
-                continue
 
-            start = items[0].strip(' ')
-            end = items[1].strip(' ')
-            try:
-                start = ipaddress.IPv4Address(start)
-                end = ipaddress.IPv4Address(end)
-                if end >= start:
-                    allowed_ips.append(IPRange(start=start, end=end))
-            except (ipaddress.AddressValueError, ipaddress.NetmaskValueError):
-                pass
-        else:
-            try:
-                start = ipaddress.IPv4Address(ip_str)
-                allowed_ips.append(IPRange(start=start, end=start))
-            except (ipaddress.AddressValueError, ipaddress.NetmaskValueError):
-                pass
+        try:
+            allowed_ips.append(convert_iprange(ip_str))
+        except Exception:
+            pass
 
     return allowed_ips
 
@@ -94,7 +104,7 @@ class IPRestrictor:
                 if client_ip in ip_rule:
                     return False
 
-        raise errors.AccessDenied(message="此API拒绝从IP地址'%s'访问" % (client_ip,))
+        raise errors.AccessDenied(message=_("此API拒绝从IP地址'%s'访问") % (client_ip,))
 
     @staticmethod
     def get_remote_ip(request):

@@ -7,6 +7,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 
 from utils.model import UuidModel
+from utils.iprestrict import convert_iprange
 
 
 class ScreenConfig(models.Model):
@@ -177,3 +178,27 @@ class HostCpuUsage(UuidModel):
             datetime.fromtimestamp(self.timestamp, tz=dj_timezone.get_default_timezone())
         except Exception as exc:
             raise ValidationError({'timestamp': f'无效的时间戳，{str(exc)}，当前时间戳为:{int(dj_timezone.now().timestamp())}'})
+
+
+class ApiAllowIP(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    ip_value = models.CharField(
+        verbose_name=_('IP'), max_length=100, help_text='192.168.1.1、 192.168.1.1/24、192.168.1.66 - 192.168.1.100')
+    remark = models.CharField(verbose_name=_('备注'), max_length=255, blank=True, default='')
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
+    update_time = models.DateTimeField(verbose_name=_('更新时间'), auto_now=True)
+
+    class Meta:
+        db_table = 'screenvis_apiallowip'
+        ordering = ['-creation_time']
+        verbose_name = _('API允许访问的IP')
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return f'{self.id}({self.ip_value})'
+
+    def clean(self):
+        try:
+            convert_iprange(self.ip_value)
+        except Exception as exc:
+            raise ValidationError({'ip_value': str(exc)})

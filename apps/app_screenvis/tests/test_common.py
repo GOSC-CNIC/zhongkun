@@ -1,13 +1,14 @@
 from django.urls import reverse
 from django.utils import timezone as dj_timezone
 
-from apps.app_screenvis.models import DataCenter, MetricMonitorUnit, LogMonitorUnit, ScreenConfig
+from apps.app_screenvis.models import DataCenter, MetricMonitorUnit, LogMonitorUnit, ScreenConfig, ApiAllowIP
+from apps.app_screenvis.permissions import ScreenAPIIPRestrictor
 from . import MyAPITestCase
 
 
 class DataCenterTests(MyAPITestCase):
     def setUp(self):
-        pass
+        ScreenAPIIPRestrictor.clear_cache()
 
     def test_list(self):
         nt = dj_timezone.now()
@@ -21,6 +22,11 @@ class DataCenterTests(MyAPITestCase):
         odc2.save(force_insert=True)
 
         base_url = reverse('screenvis-api:datacenter-list')
+        response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+        ApiAllowIP(ip_value='127.0.0.1').save(force_insert=True)
+        ScreenAPIIPRestrictor.clear_cache()
+
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data['results']), 2)
@@ -85,6 +91,12 @@ class DataCenterTests(MyAPITestCase):
 
         base_url = reverse('screenvis-api:datacenter-units', kwargs={'id': 666})
         response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+        ApiAllowIP(ip_value='127.0.0.1').save(force_insert=True)
+        ScreenAPIIPRestrictor.clear_cache()
+
+        base_url = reverse('screenvis-api:datacenter-units', kwargs={'id': 666})
+        response = self.client.get(base_url)
         self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
 
         base_url = reverse('screenvis-api:datacenter-units', kwargs={'id': odc1.id})
@@ -108,10 +120,15 @@ class DataCenterTests(MyAPITestCase):
 
 class ConfigTests(MyAPITestCase):
     def setUp(self):
-        pass
+        ScreenAPIIPRestrictor.clear_cache()
 
     def test_list(self):
         base_url = reverse('screenvis-api:configs-list')
+        response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+        ApiAllowIP(ip_value='127.0.0.1').save(force_insert=True)
+        ScreenAPIIPRestrictor.clear_cache()
+
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['org_name', 'org_name_en'], response.data)

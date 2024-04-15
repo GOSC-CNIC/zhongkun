@@ -9,12 +9,13 @@ from drf_yasg import openapi
 from apps.app_screenvis.managers import TiDBQueryChoices, MetricQueryManager
 from apps.app_screenvis.utils import errors
 from apps.app_screenvis.models import MetricMonitorUnit
+from apps.app_screenvis.permissions import ScreenAPIIPPermission
 from . import NormalGenericViewSet
 
 
 class MetricTiDBViewSet(NormalGenericViewSet):
     queryset = []
-    permission_classes = []
+    permission_classes = [ScreenAPIIPPermission]
     pagination_class = None
     lookup_field = 'id'
 
