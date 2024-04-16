@@ -141,10 +141,10 @@ class MonitorCephQueryAPI:
         try:
             async with aiohttp.ClientSession() as client:
                 r = await client.get(url=url, timeout=aiohttp.ClientTimeout(connect=5, total=30))
-        except requests.exceptions.Timeout:
+        except aiohttp.ClientConnectionError:
             raise errors.Error(message='ceph backend,query api request timeout')
-        except requests.exceptions.RequestException:
-            raise errors.Error(message='ceph backend,query api request error')
+        except aiohttp.ClientError as exc:
+            raise errors.Error(message=f'ceph backend,query api request error: {str(exc)}')
 
         status_code = r.status
         if 300 > status_code >= 200:
