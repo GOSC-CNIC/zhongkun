@@ -8,6 +8,7 @@ from apps.app_alert.utils import errors
 from urllib3 import exceptions as urllib3_exceptions
 from requests import exceptions as requests_exceptions
 from django.forms.models import model_to_dict
+import pytz
 
 
 def custom_model_to_dict(obj):
@@ -33,33 +34,60 @@ def hash_sha1(s: str):
     return hashlib.sha1(s.encode(encoding='utf-8')).hexdigest()
 
 
+_timezone_utc = "UTC"
+_timezone_cn = "Asia/Shanghai"
+
+
 class DateUtils:
+
     @classmethod
-    def ts_to_date(cls, _ts, _format="%Y-%m-%d %H:%M:%S"):
+    def ts_to_date(cls, timestamp, fmt="%Y-%m-%d %H:%M:%S", timezone=_timezone_cn):
         """
         时间戳转日期
         """
-        return time.strftime(_format, time.localtime(int(_ts)))
+        tz = pytz.timezone(timezone)
+        timestamp_s = int(timestamp) if len(str(timestamp)) <= 10 else int(timestamp) / 1000
+        dt_tz = datetime.datetime.fromtimestamp(timestamp_s, tz)
+        return dt_tz.strftime(fmt)
 
     @classmethod
-    def date_to_ts(cls, _date, _format="%Y-%m-%d %H:%M"):
+    def date_to_ts(cls, dt, fmt="%Y-%m-%d %H:%M:%S", timezone=_timezone_cn):
         """
-        日期(年月日时分秒)->时间戳（秒）
+        日期转时间戳（秒）
         """
-        return round(time.mktime(time.strptime(_date, _format)))
+        if isinstance(dt, datetime.datetime):
+            return int(dt.timestamp())
+        else:
+            dt = datetime.datetime.strptime(dt, fmt)
+            dt_tz = pytz.timezone(timezone).localize(dt)
+            return int(dt_tz.timestamp())
 
     @classmethod
-    def current_minute(cls):
+    def now(cls, timezone=_timezone_cn):
         """
-        当前日期时间
+        当前时间
         """
-        return str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M'))
+        return datetime.datetime.now(tz=pytz.timezone(timezone))
 
-    def minute_timestamp(self):
+    @classmethod
+    def timestamp(cls):
         """
-        当前时间戳 （分钟）
+        当前时间戳
         """
-        return self.date_to_ts(self.current_minute())
+        return int(time.time())
+
+    @classmethod
+    def timestamp_round(cls, ts):
+        """
+        时间戳精确度到分钟
+        """
+        return int(ts / 60) * 60
+
+    @classmethod
+    def beijing_timetuple(cls, *args, **kwargs):
+        if time.strftime('%z') == "+0800":
+            return datetime.datetime.now().timetuple()
+        return (datetime.datetime.now() + datetime.timedelta(hours=8)).timetuple()
 
 
 @retry(stop_max_attempt_number=20)

@@ -4,7 +4,6 @@
 import re
 import os
 import sys
-import time
 from django import setup
 from pathlib import Path
 
@@ -32,7 +31,7 @@ class DingTalk(object):
     robot = DingtalkChatbot(webhook, secret=secret)
 
     def __init__(self):
-        self.end = int(int(time.time() / 60) * 60)
+        self.end = DateUtils.timestamp_round(DateUtils.timestamp())
         self.start = self.end - 60
         self.start_date = DateUtils.ts_to_date(self.start)
         self.end_date = DateUtils.ts_to_date(self.end)
@@ -57,13 +56,13 @@ class DingTalk(object):
         try:
             self._run()
             flag.status = ScriptFlagModel.Status.FINISH.value
-            flag.end = int(time.time())
+            flag.end = DateUtils.timestamp()
             flag.save()
         except Exception as e:
             exc = str(traceback.format_exc())
             logger.info(exc)
             flag.status = ScriptFlagModel.Status.ABORT.value
-            flag.end = int(time.time())
+            flag.end = DateUtils.timestamp()
             flag.save()
 
     def _run(self):
@@ -191,7 +190,7 @@ class DingTalk(object):
 
     def metric_alert_format(self, alert, status):
         alert_status = "**状态**: {}".format(status)
-        start = "**时间**: {}".format(DateUtils.ts_to_date(alert.get("start"), "%Y-%m-%d %H:%M:%S"))
+        start = "**时间**: {}".format(DateUtils.ts_to_date(alert.get("start")))
         alert_type = "**类别**: {}".format(alert.get("type"))
         alert_name = "**名称**: {}".format(alert.get("name"))
         severity = "**级别**: {}".format(alert.get("severity"))
@@ -206,7 +205,7 @@ class DingTalk(object):
 
     def log_alert_format(self, alerts):
         alert_status = "**日志告警**"
-        start = "**时间**: {}".format(DateUtils.ts_to_date(alerts[0].get("start"), "%Y-%m-%d %H:%M:%S"))
+        start = "**时间**: {}".format(DateUtils.ts_to_date(alerts[0].get("start")))
         alert_msg_mapping = dict()
         for alert in alerts:
             instance = self.parse_alert_instance(alert)

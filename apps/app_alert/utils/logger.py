@@ -4,6 +4,7 @@ import logging
 from pathlib import Path
 from logging.handlers import TimedRotatingFileHandler
 from django.conf import settings
+from .utils import DateUtils
 
 
 def get_log_folder(path):
@@ -44,7 +45,9 @@ def setup_logger(log_name, file_name):
     logger_handler.suffix = f"{logger_handler.suffix}.log"
     logger_handler.extMatch = re.compile(r"^\d{4}-\d{2}-\d{2}(.log)$", re.ASCII)
     logger_formatter = logging.Formatter(
-        "[%(asctime)s] [%(process)d] [%(levelname)s] - %(module)s.%(funcName)s (%(filename)s:%(lineno)d) - %(message)s")
+        "[%(asctime)s] [%(process)d] [%(levelname)s] - %(module)s.%(funcName)s (%(filename)s:%(lineno)d) - %(message)s", )
+    logger_formatter.converter = DateUtils.beijing_timetuple
+
     logger_handler.setFormatter(logger_formatter)
     logger.addHandler(logger_handler)
     logger.setLevel(logging.INFO)

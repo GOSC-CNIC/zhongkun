@@ -10,7 +10,7 @@ from apps.app_alert.utils.enums import AlertStatus
 from django.contrib.contenttypes.models import ContentType
 from apps.app_alert.models import AlertMonitorJobServer
 from django.forms.models import model_to_dict
-
+from apps.app_alert.utils.utils import DateUtils
 
 class UserMonitorUnit:
     def __init__(self, request):
@@ -132,7 +132,7 @@ class AlertCleaner(object):
             item["monitor_cluster"] = item.pop("cluster", "")
             item["alert_type"] = item.pop("type", "")
             item["timestamp"] = start
-            item["startsAt"] = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(start))
+            item["startsAt"] = DateUtils.ts_to_date(start)
             item["status"] = self.alert_status(_id)
             item["order"] = order_item
             cleaned_items.append(item)

@@ -1,13 +1,11 @@
 """
 告警邮件通知定时任务
 """
+
 import os
 import sys
 import re
-import time
-import datetime
 import traceback
-
 from django import setup
 from pathlib import Path
 
@@ -51,9 +49,9 @@ class EmailThresholdStrict(object):
 
     def __init__(self, timestamp, email_list):
         self.timestamp = timestamp
-        self.time_array = time.localtime(self.timestamp)
+        self.timetuple = DateUtils.beijing_timetuple()
         self.email_list = email_list
-        self.day_start, self.day_end = self.get_day_interval(self.timestamp)
+        self.day_start, self.day_end = self.get_day_interval()
         self.one_hour_list = [(_, _ + 3600) for _ in range(self.day_start, self.day_end, 3600)]
         self.four_hour_list = [(_, _ + 3600 * 4) for _ in range(self.day_start, self.day_end, 3600 * 4)]
         # 当前处于的时间区间
@@ -61,13 +59,12 @@ class EmailThresholdStrict(object):
         self.two_range = self.pick_hour_range(self.four_hour_list)
         self.mapping = dict()
 
-    @staticmethod
-    def get_day_interval(timestamp):
-        time_array = time.localtime(timestamp)
+    def get_day_interval(self):
         today_seven_timestamp = DateUtils.date_to_ts(
-            _date=f"{time_array.tm_year}-{time_array.tm_mon}-{time_array.tm_mday} 07:00:00",
-            _format="%Y-%m-%d %H:%M:%S")
-        start = today_seven_timestamp if time_array.tm_hour >= 7 else today_seven_timestamp - 86400
+            dt=f"{self.timetuple.tm_year}-{self.timetuple.tm_mon}-{self.timetuple.tm_mday} 07:00:00",
+            fmt="%Y-%m-%d %H:%M:%S")
+
+        start = today_seven_timestamp if self.timetuple.tm_hour >= 7 else today_seven_timestamp - 86400
         return start, start + 86400
 
     def pick_hour_range(self, rang_list):
@@ -106,7 +103,7 @@ class NotificationSender(object):
         for email, alerts in self.monitor_alerts_mapping.items():
             user_sent_mapping = self.filter_mapping.get(email)
             if not self.should_to_send(user_sent_mapping):
-                logger.info(f"{email},{user_sent_mapping} 该账号已经达到发送的上限，本次不发送邮件通知.")
+                logger.info(f"{user_sent_mapping} , {email}账号已经达到发送的上限，本次不发送邮件通知.")
                 continue
             subject, message = self.html_content(email, alerts, user_sent_mapping)
             if self.feint is True:
@@ -130,7 +127,7 @@ class NotificationSender(object):
             obj = {
                 "alert": alert.get("id"),
                 "email": alert.get("email"),
-                "timestamp": int(self.timestamp / 60) * 60,
+                "timestamp": DateUtils.timestamp_round(self.timestamp),
             }
             logger.info(str(obj))
             EmailNotification.objects.create(**obj)
@@ -176,8 +173,7 @@ class NotificationSender(object):
 
     def update_notification_timestamp(self, alerts):
         logger.info("更新首次发送时间戳、上次发送时间戳")
-        send_timestamp = int(self.timestamp / 60) * 60
-
+        send_timestamp = DateUtils.timestamp_round(self.timestamp)
         last_id_list = []
         first_id_list = []
         for alert in alerts:
@@ -371,14 +367,14 @@ class AlertMonitor(object):
 
     def __init__(self):
         self.one_hour = 3600
-        self.timestamp = int(time.time())  # 当前时间戳
-        self.run_time = int(self.timestamp / 60) * 60
+        self.timestamp = DateUtils.timestamp()  # 当前时间戳
+        self.run_time = DateUtils.timestamp_round(self.timestamp)
 
         self.monitor_mapping = dict()
 
     @staticmethod
     def current_datetime():
-        now = datetime.datetime.now()
+        now = DateUtils.now()
         week, hour, minute = now.isoweekday(), now.hour, now.minute
         return week, hour, minute
 
@@ -540,17 +536,17 @@ class AlertMonitor(object):
         try:
             self._run()
             flag.status = ScriptFlagModel.Status.FINISH.value
-            flag.end = int(time.time())
+            flag.end = DateUtils.timestamp()
             flag.save()
         except Exception as e:
             exc = str(traceback.format_exc())
             logger.info(exc)
             flag.status = ScriptFlagModel.Status.ABORT.value
-            flag.end = int(time.time())
+            flag.end = DateUtils.timestamp()
             flag.save()
 
     def _run(self):
-        logger.info(f"\n\n\n\n开始...{datetime.datetime.now()}", )
+        logger.info(f"\n\n\n\n开始...{DateUtils.now()}", )
         logger.info("挑选异常告警")
         alerts = self.pick_alerts_by_datetime()
         logger.info("查询每个异常告警的监控者列表")
@@ -567,7 +563,7 @@ class AlertMonitor(object):
             monitor_alerts_mapping=monitor_alerts_mapping,
             filter_mapping=filter_mapping
         ).start()
-        logger.info(f"结束...{datetime.datetime.now()}", )
+        logger.info(f"结束...{DateUtils.now()}", )
 
 
 if __name__ == '__main__':
