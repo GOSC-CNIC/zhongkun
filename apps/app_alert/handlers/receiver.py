@@ -1,10 +1,9 @@
 import json
-import time
 import re
 import datetime
 from apps.app_alert.utils.utils import hash_sha1
 from django.forms.models import model_to_dict
-from django.db import connection
+from django.db.models import Count
 from apps.app_alert.utils.errors import BadRequest
 from apps.app_alert.utils.utils import download
 from django.db.utils import IntegrityError
@@ -16,16 +15,16 @@ from apps.app_alert.models import AlertWorkOrder
 from django.conf import settings
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from django.contrib.contenttypes.models import ContentType
+from apps.app_alert.utils.utils import DateUtils
 
 
 class AlertReceiver(object):
     AIOPS_BACKEND_CONFIG = settings.AIOPS_BACKEND_CONFIG
 
     def __init__(self, data):
-        self.timestamp = int(time.time())
+        self.timestamp = DateUtils.timestamp()
         self.data = data
         self.log_instance_mapping = {}
-        # print(self.log_instance_mapping)
         self.need_to_pretreatment_type = ["webmonitor"]  # 网站类需要预处理
         self.fingerprint_field = "fingerprint"
 
@@ -89,12 +88,14 @@ class AlertReceiver(object):
     @staticmethod
     def generate_fingerprint(alert):
         """
-        生成 fingerprint
+        计算 fingerprint：
+            hash(annotations.summary + labels)
         """
-        annotations = alert.get("annotations").get("summary")
+        annotations = alert.get("annotations")
+        summary = annotations.get("summary")
         labels = alert.get("labels")
         labels.pop("device", "")
-        _str = json.dumps(annotations) + json.dumps(labels)
+        _str = json.dumps(summary) + json.dumps(labels)
         return hash_sha1(_str)
 
     @staticmethod
@@ -138,9 +139,10 @@ class AlertReceiver(object):
 
     @staticmethod
     def date_to_timestamp(date_string):
-        date_string = date_string.split(".")[0]
-        date = datetime.datetime.strptime(date_string, "%Y-%m-%dT%H:%M:%S") + datetime.timedelta(hours=8)
-        return int(date.timestamp())
+        date = date_string.split(".")[0]
+        date = datetime.datetime.strptime(date, "%Y-%m-%dT%H:%M:%S") + datetime.timedelta(hours=8)
+        ts = DateUtils.date_to_ts(dt=date, fmt="%Y-%m-%dT%H:%M:%S")
+        return ts
 
     def generate_alert_end_timestamp(self, alert, cluster):
         """
@@ -196,16 +198,17 @@ class AlertReceiver(object):
 
     def pick_inaccessible_website_list(self):
         """
-        从预处理表中挑选出 所有探针都为异常的网站
+        从预处理表中挑选出所有探针都为异常的网站
         """
-        probe_count = self.get_probe_count()
-        with connection.cursor() as cursor:
-            sql = f'select summary,count(*) from alert_prepare where end>={self.timestamp} group by summary;'
-            cursor.execute(sql)
-            ret = [_ for _ in cursor.fetchall()]
-            items = [_ for _ in ret if _[-1] == probe_count]  # 同时出现异常
         alerts = []
-        for summary in [_[0] for _ in items]:
+        probe_count = self.get_probe_count()
+        results = PreAlertModel.objects.filter(end__gte=self.timestamp).values("summary").annotate(
+            count=Count('summary'))
+        for item in results:
+            summary = item.get("summary")
+            count = item.get("count")
+            if count != probe_count:
+                continue
             website_alert = self.init_website_alert(summary)
             alerts.append(website_alert)
         return alerts
