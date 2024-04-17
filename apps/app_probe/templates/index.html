@@ -1,0 +1,107 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>探针</title>
+
+    <link rel="stylesheet" type="text/css" href="{% static 'bootstrap-4.5.0/css/bootstrap.min.css' %}">
+    <!-- jQuery and JavaScript Bundle with Popper -->
+    <script type="text/javascript" src="{% static 'jquery/jquery-3.5.1.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'bootstrap-4.5.0/js/bootstrap.bundle.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'fontawesome-free/js/all.min.js' %}"></script>
+</head>
+<body>
+<div style="display: flex">
+    <div style="width: 20%">
+
+        <div class="card" style="width: 18rem; margin-top: 20px; margin-left: 20px;">
+            <div class="card-body">
+                <h5 class="card-title">探针：{{ probe.get_probe_type_display }}</h5>
+                <p class="card-text">版本号：{{ probe.version }}</p>
+            </div>
+
+        </div>
+
+{#        <div class="card" style="width: 18rem; margin-top: 20px; margin-left: 20px;">#}
+{##}
+{#            <div class="card-body">#}
+{#                <h5 class="card-title">监控总量</h5>#}
+{#                <p class="card-text">xxx</p>#}
+{#            </div>#}
+{##}
+{#        </div>#}
+{##}
+{#        <div class="card" style="width: 18rem; margin-top: 20px; margin-left: 20px;">#}
+{##}
+{#            <div class="card-body">#}
+{#                <h5 class="card-title">HTTP总量/TCP总量</h5>#}
+{#                <p class="card-text">xxx/xxx</p>#}
+{#            </div>#}
+{#        </div>#}
+{##}
+{#        <div class="card" style="width: 18rem; margin-top: 20px; margin-left: 20px;">#}
+{##}
+{#            <div class="card-body">#}
+{#                <h5 class="card-title">HTTP总量/异常/正常</h5>#}
+{#                <p class="card-text">xxx/xxx/xxx</p>#}
+{#            </div>#}
+{#        </div>#}
+{##}
+{#        <div class="card" style="width: 18rem; margin-top: 20px; margin-left: 20px;">#}
+{##}
+{#            <div class="card-body">#}
+{#                <h5 class="card-title">TCP总量/异常/正常</h5>#}
+{#                <p class="card-text">xxx/xxx/xxx</p>#}
+{#            </div>#}
+{#        </div>#}
+
+    </div>
+
+    <div style="width: 78%; margin-top: 20px">
+        <table class="table">
+            <thead>
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">网址</th>
+                <th scope="col">网址hash值</th>
+                <th scope="col">时间</th>
+
+{#                <th scope="col">总耗时</th>#}
+{#                <th scope="col">DNS 解析时间</th>#}
+{#                <th scope="col">TCP 建立持续时间</th>#}
+{#                <th scope="col">tls 时间</th>#}
+{#                <th scope="col">连接成功到收到内容时间</th>#}
+{#                <th scope="col">响应内容时间</th>#}
+            </tr>
+            </thead>
+            <tbody>
+            {% for task in web_task %}
+                <tr>
+
+                    <th scope="row">{{ forloop.counter }}</th>
+                    <td>{{ task.uri }}</td>
+                    <td>{{ task.url_hash }}</td>
+                    <td>{{ task.creation }}</td>
+{#                    <td>{{ task.status }}</td>#}
+{#                    {% with total=task.resolve_time|floatformat:0|add:task.connect_time|floatformat:0 %}#}
+{#                    <td>{{ total }}</td>#}
+{#                    {% endwith %}#}
+{#                    <td>{{ task.resolve_time }}</td>#}
+{#                    <td>{{ task.connect_time }}</td>#}
+{#                    <td>{{ task.tls_time }}</td>#}
+{#                    <td>{{ task.processing_time }}</td>#}
+{#                    <td>{{ task.transfer_time }}</td>#}
+
+                </tr>
+            {% endfor %}
+
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+
+</body>
+</html>
