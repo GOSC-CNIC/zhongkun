@@ -2,9 +2,9 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from utils.model import UuidModel, OwnerType
-from users.models import UserProfile
-from service.models import OrgDataCenter
-from order.models import Order
+from apps.users.models import UserProfile
+from apps.service.models import OrgDataCenter
+from apps.order.models import Order
 
 
 class CouponApply(UuidModel):

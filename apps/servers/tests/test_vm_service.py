@@ -3,8 +3,8 @@ from urllib import parse
 from django.urls import reverse
 from utils.test import get_or_create_user, get_or_create_service, MyAPITransactionTestCase, MyAPITestCase
 
-from servers.models import ServiceConfig
-from servers.managers import ServicePrivateQuotaManager, ServiceShareQuotaManager
+from apps.servers.models import ServiceConfig
+from apps.servers.managers import ServicePrivateQuotaManager, ServiceShareQuotaManager
 
 
 class VmServiceQuotaTests(MyAPITransactionTestCase):

@@ -1,6 +1,6 @@
 from django.utils import timezone as dj_timezone
 
-from servers.models import Server
+from apps.servers.models import Server
 from utils.model import PayType
 
 

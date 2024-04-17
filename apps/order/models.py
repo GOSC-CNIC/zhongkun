@@ -7,7 +7,7 @@ from django.utils.translation import gettext, gettext_lazy as _
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.core.exceptions import ValidationError
 
-from servers.models import ServiceConfig
+from apps.servers.models import ServiceConfig
 from utils.model import UuidModel, OwnerType, PayType, ResourceType, CustomIdModel
 from utils import rand_utils
 

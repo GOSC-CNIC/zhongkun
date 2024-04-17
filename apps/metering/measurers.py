@@ -6,17 +6,17 @@ from decimal import Decimal
 from django.utils import timezone
 from django.db import close_old_connections
 
-from servers.models import Server, ServerArchive, ServerBase, Disk, DiskChangeLog
-from metering.models import MeteringServer, MeteringObjectStorage, MeteringDisk, MeteringMonitorWebsite
-from monitor.models import MonitorWebsite, MonitorWebsiteRecord, MonitorWebsiteBase
-from order.managers import PriceManager
+from apps.servers.models import Server, ServerArchive, ServerBase, Disk, DiskChangeLog
+from apps.metering.models import MeteringServer, MeteringObjectStorage, MeteringDisk, MeteringMonitorWebsite
+from apps.monitor.models import MonitorWebsite, MonitorWebsiteRecord, MonitorWebsiteBase
+from apps.order.managers import PriceManager
 from utils.decimal_utils import quantize_10_2
 from utils.model import PayType, OwnerType
-from vo.models import VirtualOrganization
-from users.models import UserProfile
-from storage.models import Bucket
-from storage.adapter import inputs
-from storage import request
+from apps.vo.models import VirtualOrganization
+from apps.users.models import UserProfile
+from apps.storage.models import Bucket
+from apps.storage.adapter import inputs
+from apps.storage import request
 from core import errors
 
 

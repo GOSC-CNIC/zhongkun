@@ -1,8 +1,8 @@
 from datetime import datetime
 import requests
 
-from storage.adapter import inputs
-from storage.adapter import outputs
+from apps.storage.adapter import inputs
+from apps.storage.adapter import outputs
 from core import errors
 from .builders import APIBuilder
 from .converters import OutputConverter

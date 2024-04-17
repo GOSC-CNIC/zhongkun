@@ -6,12 +6,12 @@ from rest_framework.serializers import Serializer
 from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
-from servers.models import Flavor
-from servers import serializers
+from apps.servers.models import Flavor
+from apps.servers import serializers
 from core.adapters import inputs
 from core import errors as exceptions
-from api.viewsets import CustomGenericViewSet
-from api.paginations import ImagesPagination
+from apps.api.viewsets import CustomGenericViewSet
+from apps.api.paginations import ImagesPagination
 
 
 class ImageViewSet(CustomGenericViewSet):

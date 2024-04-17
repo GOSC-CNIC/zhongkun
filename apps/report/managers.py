@@ -7,7 +7,7 @@ from django.db.models import TextChoices, Sum
 from django.utils import timezone as dj_timezone
 
 from core import errors
-from storage.managers.objects_service import ObjectsServiceManager
+from apps.storage.managers.objects_service import ObjectsServiceManager
 from .models import BucketStatsMonthly, ArrearServer, ArrearBucket
 
 

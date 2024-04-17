@@ -5,7 +5,7 @@ from django.http.request import HttpRequest
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
 
-from users.models import UserProfile
+from apps.users.models import UserProfile
 from . import jwt
 from .authentication import CreateUserJWTAuthentication, JWTInvalidError
 

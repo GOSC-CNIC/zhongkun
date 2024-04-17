@@ -2,10 +2,10 @@ from django.utils.translation import gettext as _
 from rest_framework.response import Response
 
 from core import errors
-from api.viewsets import CustomGenericViewSet
+from apps.api.viewsets import CustomGenericViewSet
 
-from monitor.models import LogSite, LogSiteTimeReqNum
-from monitor.managers.logs import LogSiteManager
+from apps.monitor.models import LogSite, LogSiteTimeReqNum
+from apps.monitor.managers.logs import LogSiteManager
 
 
 class BaseHandler:

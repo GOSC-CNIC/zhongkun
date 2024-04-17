@@ -6,13 +6,13 @@ from rest_framework.serializers import Serializer
 from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
-from api.viewsets import CustomGenericViewSet
-from api.paginations import OrderPageNumberPagination, NewPageNumberPagination
-from order.handlers.price_handler import DescribePriceHandler, ScanTaskType
-from order import serializers
-from order.models import ResourceType, Order, Period
-from order.handlers.order_handler import OrderHandler, CASH_COUPON_BALANCE
-from servers.serializers import PeriodSerializer
+from apps.api.viewsets import CustomGenericViewSet
+from apps.api.paginations import OrderPageNumberPagination, NewPageNumberPagination
+from apps.order.handlers.price_handler import DescribePriceHandler, ScanTaskType
+from apps.order import serializers
+from apps.order.models import ResourceType, Order, Period
+from apps.order.handlers.order_handler import OrderHandler, CASH_COUPON_BALANCE
+from apps.servers.serializers import PeriodSerializer
 from core import errors
 
 

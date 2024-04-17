@@ -5,7 +5,7 @@ from django.template import loader
 
 from utils.paginators import NumsPaginator
 from apps.report.workers.server_notifier import ServerNotifier, PersonalServersNotifier
-from .models import ServiceConfig
+from apps.servers.models import ServiceConfig
 from .managers import ServerManager
 
 

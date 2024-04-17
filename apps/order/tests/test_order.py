@@ -9,17 +9,17 @@ from django.conf import settings
 
 from core import site_configs_manager
 from utils.model import PayType, OwnerType, ResourceType
-from order.models import Price, Order, Period
-from order.managers import OrderManager
-from order.managers.instance_configs import ServerConfig, DiskConfig
-from order.handlers.order_handler import CASH_COUPON_BALANCE
+from apps.order.models import Price, Order, Period
+from apps.order.managers import OrderManager
+from apps.order.managers.instance_configs import ServerConfig, DiskConfig
+from apps.order.handlers.order_handler import CASH_COUPON_BALANCE
 from utils.decimal_utils import quantize_10_2
 from utils.test import get_or_create_user, get_or_create_service, get_or_create_organization, MyAPITestCase
-from vo.models import VirtualOrganization, VoMember
+from apps.vo.models import VirtualOrganization, VoMember
 from apps.app_wallet.managers import PaymentManager
 from apps.app_wallet.models import PaymentHistory, CashCoupon, PayAppService, PayApp, TransactionBill
-from servers.models import ServiceConfig, Flavor
-from servers.managers import ServicePrivateQuotaManager
+from apps.servers.models import ServiceConfig, Flavor
+from apps.servers.managers import ServicePrivateQuotaManager
 
 
 PAY_APP_ID = site_configs_manager.get_pay_app_id(settings)

@@ -14,14 +14,14 @@ from utils.model import OwnerType, ResourceType
 from utils.time import utc
 from utils.decimal_utils import quantize_10_2
 from utils.test import get_or_create_org_data_center, get_or_create_user, MyAPITestCase
-from vo.models import VirtualOrganization, VoMember
+from apps.vo.models import VirtualOrganization, VoMember
 from apps.app_wallet.models import CashCoupon, PayAppService, PayApp
-from servers.models import ServiceConfig
-from storage.models import ObjectsService
-from monitor.models import MonitorWebsiteVersion
+from apps.servers.models import ServiceConfig
+from apps.storage.models import ObjectsService
+from apps.monitor.models import MonitorWebsiteVersion
 from apps.app_scan.models import VtScanService, VtTask
-from order.models import Price
-from order.managers import OrderManager, ScanConfig
+from apps.order.models import Price
+from apps.order.managers import OrderManager, ScanConfig
 from apps.app_apply.models import CouponApply
 from apps.app_apply.managers import CouponApplyManager
 

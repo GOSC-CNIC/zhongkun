@@ -6,10 +6,10 @@ from django.urls import reverse
 from apps.app_wallet.models import PayApp, PayAppService
 from utils.test import get_or_create_user, get_or_create_storage_service, get_or_create_organization, MyAPITestCase
 from utils.model import OwnerType
-from storage.managers import BucketManager
-from storage.models import ObjectsService
-from storage.bucket_handler import BucketHandler
-from servers.models import ResourceActionLog
+from apps.storage.managers import BucketManager
+from apps.storage.models import ObjectsService
+from apps.storage.bucket_handler import BucketHandler
+from apps.servers.models import ResourceActionLog
 
 
 class BucketTests(MyAPITestCase):

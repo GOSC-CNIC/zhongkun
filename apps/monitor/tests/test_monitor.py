@@ -8,22 +8,22 @@ from django.utils import timezone
 from django.core.cache import cache as django_cache
 from django.conf import settings
 
-from monitor.models import (
+from apps.monitor.models import (
     MonitorJobCeph, MonitorJobServer, WebsiteDetectionPoint,
     MonitorWebsite, MonitorWebsiteRecord, MonitorWebsiteTask, MonitorWebsiteVersion, get_str_hash,
     MonitorJobTiDB, LogSite
 )
-from monitor.managers import (
+from apps.monitor.managers import (
     VideoMeetingQueryChoices, WebsiteQueryChoices, MonitorWebsiteManager
 )
-from monitor.utils import MonitorEmailAddressIPRestrictor
+from apps.monitor.utils import MonitorEmailAddressIPRestrictor
 from apps.app_wallet.models import PayApp, PayAppService
-from order.models import Price
+from apps.order.models import Price
 from utils.test import (
     get_or_create_user, get_test_case_settings, get_or_create_organization,
     MyAPITestCase, get_or_create_org_data_center
 )
-from service.models import OrgDataCenter
+from apps.service.models import OrgDataCenter
 
 from .tests import (
     get_or_create_monitor_job_meeting, get_or_create_monitor_provider

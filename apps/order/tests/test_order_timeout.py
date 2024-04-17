@@ -5,8 +5,8 @@ from django.utils import timezone
 from django.test.testcases import TransactionTestCase
 
 from utils.model import PayType, OwnerType, ResourceType
-from order.models import Order
-from order.workers.timeout_cancel import OrderTimeoutTask
+from apps.order.models import Order
+from apps.order.workers.timeout_cancel import OrderTimeoutTask
 
 
 class OrderTimeoutTests(TransactionTestCase):

@@ -5,14 +5,14 @@ from django.http import FileResponse
 from django.urls import reverse
 from rest_framework.response import Response
 
-from service.managers import (
+from apps.service.managers import (
     VmServiceApplyManager, OrganizationApplyManager,
 )
 from utils import storagers
 from utils import time
 from core import errors as exceptions
-from api.serializers import serializers
-from api.viewsets import serializer_error_msg
+from apps.api.serializers import serializers
+from apps.api.viewsets import serializer_error_msg
 
 
 class ApplyOrganizationHandler:

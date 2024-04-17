@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.db.models import Count
 
-from monitor.models import MonitorWebsite, MonitorWebsiteTask
+from apps.monitor.models import MonitorWebsite, MonitorWebsiteTask
 
 
 class Command(BaseCommand):

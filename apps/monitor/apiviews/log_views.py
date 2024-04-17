@@ -7,12 +7,12 @@ from rest_framework.serializers import Serializer
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-from api.viewsets import CustomGenericViewSet
-from api.paginations import NewPageNumberPagination100
+from apps.api.viewsets import CustomGenericViewSet
+from apps.api.paginations import NewPageNumberPagination100
 from utils.paginators import NoPaginatorInspector
-from monitor.models import LogSite
-from monitor.handlers.log_handler import LogSiteHandler
-from monitor import serializers as log_serializers
+from apps.monitor.models import LogSite
+from apps.monitor.handlers.log_handler import LogSiteHandler
+from apps.monitor import serializers as log_serializers
 
 
 PARAM_LOKI_TIMESTAMP_RANGE = [

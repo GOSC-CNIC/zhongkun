@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand, CommandError
 
-from monitor.models import MonitorWebsite, MonitorWebsiteTask, MonitorWebsiteVersion
+from apps.monitor.models import MonitorWebsite, MonitorWebsiteTask, MonitorWebsiteVersion
 
 
 class Command(BaseCommand):

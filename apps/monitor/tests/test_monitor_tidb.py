@@ -3,10 +3,10 @@ from urllib import parse
 from django.urls import reverse
 
 from utils.test import get_or_create_user, MyAPITestCase, get_or_create_org_data_center
-from monitor.models import (
+from apps.monitor.models import (
     MonitorJobTiDB
 )
-from monitor.managers.tidb import TiDBQueryChoices, TiDBQueryV2Choices
+from apps.monitor.managers.tidb import TiDBQueryChoices, TiDBQueryV2Choices
 from .tests import get_or_create_monitor_job_tidb
 
 

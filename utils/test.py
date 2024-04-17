@@ -1,14 +1,10 @@
-from django.contrib.auth import get_user_model
 from django.conf import settings
 from rest_framework.test import APITestCase, APITransactionTestCase
 
-from service.models import DataCenter, OrgDataCenter
-from servers.models import ServiceConfig
-from users.models import UserProfile
-from storage.models import ObjectsService
-
-
-User = get_user_model()
+from apps.service.models import DataCenter, OrgDataCenter
+from apps.servers.models import ServiceConfig
+from apps.users.models import UserProfile
+from apps.storage.models import ObjectsService
 
 
 def get_test_case_settings():
@@ -21,7 +17,8 @@ def get_test_case_settings():
 
 
 def get_or_create_user(username='test', password='password', company: str = 'cnic') -> UserProfile:
-    user, created = User.objects.get_or_create(username=username, password=password, company=company, is_active=True)
+    user, created = UserProfile.objects.get_or_create(
+        username=username, password=password, company=company, is_active=True)
     return user
 
 

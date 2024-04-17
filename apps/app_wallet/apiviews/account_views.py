@@ -5,11 +5,11 @@ from rest_framework.response import Response
 from rest_framework.serializers import Serializer
 from drf_yasg.utils import swagger_auto_schema, no_body
 
-from api.viewsets import CustomGenericViewSet
+from apps.api.viewsets import CustomGenericViewSet
 from apps.app_wallet import trade_serializers
 from apps.app_wallet.managers import PaymentManager
 from core import errors
-from vo.managers import VoManager
+from apps.vo.managers import VoManager
 
 
 class BalanceAccountViewSet(CustomGenericViewSet):

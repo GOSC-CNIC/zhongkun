@@ -10,12 +10,12 @@ from django.conf import settings
 
 from core import errors
 from core import site_configs_manager
-from service.models import OrgDataCenter, DataCenter
+from apps.service.models import OrgDataCenter, DataCenter
 from utils.model import get_encryptor, PayType, UuidModel, OwnerType
 from utils.validators import json_string_validator, http_url_validator
 from utils import rand_utils
-from vo.models import VirtualOrganization
-from users.models import UserProfile as User
+from apps.vo.models import VirtualOrganization
+from apps.users.models import UserProfile as User
 from core.adapters.outputs import ImageSysType, ImageSysArch, ImageSysRelease
 from core.adapters.params import OpenStackParams
 
@@ -314,7 +314,7 @@ class ServiceConfig(BaseService):
             change  # 更新
             delete  # 删除
         """
-        from monitor.managers import MonitorWebsiteManager
+        from apps.monitor.managers import MonitorWebsiteManager
 
         act = ''
         monitor_url = self.endpoint_url
@@ -375,7 +375,7 @@ class ServiceConfig(BaseService):
         """
         请在创建任务前，确认没有对应监控任务存在
         """
-        from monitor.managers import MonitorWebsiteManager
+        from apps.monitor.managers import MonitorWebsiteManager
 
         scheme, hostname, uri = MonitorWebsiteManager.parse_http_url(http_url=http_url)
         if not uri:
@@ -394,7 +394,7 @@ class ServiceConfig(BaseService):
         """
         删除对应监控任务
         """
-        from monitor.managers import MonitorWebsiteManager
+        from apps.monitor.managers import MonitorWebsiteManager
 
         with transaction.atomic():
             MonitorWebsiteManager.do_delete_website_task(user_website=task)

@@ -3,8 +3,8 @@ from django.db.models import Q
 from rest_framework.response import Response
 
 from core import errors
-from monitor.models import MonitorJobTiDB
-from monitor.managers.tidb import TiDBQueryChoices, MonitorJobTiDBManager, TiDBQueryV2Choices
+from apps.monitor.models import MonitorJobTiDB
+from apps.monitor.managers.tidb import TiDBQueryChoices, MonitorJobTiDBManager, TiDBQueryV2Choices
 
 
 class MonitorTiDBQueryHandler:

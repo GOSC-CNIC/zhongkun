@@ -5,10 +5,10 @@ from rest_framework.response import Response
 from rest_framework.serializers import Serializer
 from drf_yasg.utils import swagger_auto_schema
 
-from api.viewsets import CustomGenericViewSet
-from api.paginations import DefaultPageNumberPagination
-from users.managers import filter_user_queryset
-from monitor.models import TotalReqNum
+from apps.api.viewsets import CustomGenericViewSet
+from apps.api.paginations import DefaultPageNumberPagination
+from apps.users.managers import filter_user_queryset
+from apps.monitor.models import TotalReqNum
 from core import errors
 from utils.paginators import NoPaginatorInspector
 from utils.iprestrict import IPRestrictor, load_allowed_ips

@@ -4,7 +4,7 @@ from django.core import validators
 
 from utils.model import CustomIdModel
 from utils import rand_utils
-from users.models import UserProfile
+from apps.users.models import UserProfile
 
 
 class Ticket(CustomIdModel):

@@ -8,16 +8,16 @@ from utils.test import get_or_create_user, get_or_create_service, get_or_create_
 from utils.model import PayType, OwnerType
 from utils.decimal_utils import quantize_10_2
 from core import errors
-from servers.models import Server, ServerArchive
-from vo.managers import VoManager
-from order.models import Price
+from apps.servers.models import Server, ServerArchive
+from apps.vo.managers import VoManager
+from apps.order.models import Price
 from apps.app_wallet.models import CashCoupon, PaymentHistory, PayAppService, PayApp
-from servers.models import ServiceConfig
-from metering.measurers import ServerMeasurer
-from metering.models import MeteringServer, PaymentStatus, DailyStatementServer
-from metering.payment import MeteringPaymentManager
-from metering.statement_generators import GenerateDailyStatementServer
-from users.models import UserProfile
+from apps.servers.models import ServiceConfig
+from apps.metering.measurers import ServerMeasurer
+from apps.metering.models import MeteringServer, PaymentStatus, DailyStatementServer
+from apps.metering.payment import MeteringPaymentManager
+from apps.metering.statement_generators import GenerateDailyStatementServer
+from apps.users.models import UserProfile
 
 utc = dt_timezone.utc
 

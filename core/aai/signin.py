@@ -7,7 +7,7 @@ from django.utils.encoding import force_str
 from django.utils import timezone
 from django.contrib.auth import login
 
-from users.models import UserProfile
+from apps.users.models import UserProfile
 
 
 def replace_query_params(url, params: dict):

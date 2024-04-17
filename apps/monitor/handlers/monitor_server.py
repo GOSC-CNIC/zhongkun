@@ -3,8 +3,8 @@ from django.db.models import Q
 from rest_framework.response import Response
 
 from core import errors
-from monitor.managers import MonitorJobServerManager, ServerQueryChoices, ServerQueryV2Choices
-from monitor.models import MonitorJobServer
+from apps.monitor.managers import MonitorJobServerManager, ServerQueryChoices, ServerQueryV2Choices
+from apps.monitor.models import MonitorJobServer
 
 
 class MonitorServerQueryHandler:

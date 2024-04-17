@@ -5,10 +5,10 @@ from decimal import Decimal
 from django.urls import reverse
 from django.utils import timezone as dj_timezone
 
-from vo.models import VirtualOrganization
-from servers.models import ServiceConfig
-from storage.models import Bucket, ObjectsService
-from report.managers import (
+from apps.vo.models import VirtualOrganization
+from apps.servers.models import ServiceConfig
+from apps.storage.models import Bucket, ObjectsService
+from apps.report.managers import (
     ArrearServerQueryOrderBy, ArrearServerManager,
     ArrearBucketQueryOrderBy, ArrearBucketManager
 )

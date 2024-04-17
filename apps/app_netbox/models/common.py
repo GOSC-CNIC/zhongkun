@@ -5,8 +5,8 @@ from django.utils import timezone as dj_timezone
 
 from core import errors
 from utils.model import UuidModel
-from users.models import UserProfile
-from service.models import DataCenter
+from apps.users.models import UserProfile
+from apps.service.models import DataCenter
 
 
 class NetBoxUserRole(UuidModel):

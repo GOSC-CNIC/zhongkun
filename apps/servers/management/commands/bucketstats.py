@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.db.models import Sum, Count
 
-from storage.models import Bucket, BucketArchive
+from apps.storage.models import Bucket, BucketArchive
 
 
 class Command(BaseCommand):

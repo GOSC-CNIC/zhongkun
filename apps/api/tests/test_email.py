@@ -3,8 +3,8 @@ from django.conf import settings
 from django.core import mail
 
 from utils.test import get_or_create_user
-from users.models import Email
-from api.apiviews.email_views import EmailIPRestrictor
+from apps.users.models import Email
+from apps.api.apiviews.email_views import EmailIPRestrictor
 from . import MyAPITestCase
 
 

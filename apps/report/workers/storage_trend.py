@@ -8,10 +8,10 @@ from django.db.models import Sum
 from django.utils import timezone
 
 from apps.app_wallet.managers.payment import PaymentManager
-from storage.models import Bucket, BucketArchive, ObjectsService
-from report.models import BucketStatsMonthly
-from report.managers import ArrearBucketManager
-from metering.managers import MeteringStorageManager
+from apps.storage.models import Bucket, BucketArchive, ObjectsService
+from apps.report.models import BucketStatsMonthly
+from apps.report.managers import ArrearBucketManager
+from apps.metering.managers import MeteringStorageManager
 from .report_generator import get_report_period_start_and_end
 
 

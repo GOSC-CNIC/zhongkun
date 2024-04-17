@@ -3,7 +3,7 @@ from urllib import parse
 from django.urls import reverse
 from django.utils import timezone as dj_timezone
 
-from service.models import DataCenter, Contacts
+from apps.service.models import DataCenter, Contacts
 from utils.test import get_or_create_user, MyAPITransactionTestCase
 
 

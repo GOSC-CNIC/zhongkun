@@ -11,8 +11,8 @@ from utils.test import (
     get_or_create_organization,
     MyAPITestCase,
 )
-from order.models import Price
-from order.managers.order import OrderManager
+from apps.order.models import Price
+from apps.order.managers.order import OrderManager
 from apps.app_scan.models import VtScanService, VtTask
 
 

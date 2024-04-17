@@ -10,11 +10,11 @@ from drf_yasg import openapi
 
 from core.request import request_service, request_vpn_service
 from core import errors as exceptions
-from servers.managers import ServiceManager
-from storage.request import request_service as storage_request_service
-from storage.models import ObjectsService
-from storage.managers import ObjectsServiceManager
-from monitor.models import ErrorLog
+from apps.servers.managers import ServiceManager
+from apps.storage.request import request_service as storage_request_service
+from apps.storage.models import ObjectsService
+from apps.storage.managers import ObjectsServiceManager
+from apps.monitor.models import ErrorLog
 from . import request_logger as logger
 
 

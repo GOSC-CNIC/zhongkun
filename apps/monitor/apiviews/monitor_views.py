@@ -10,17 +10,17 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from drf_yasg.utils import no_body
 
-from api.viewsets import CustomGenericViewSet
-from api.paginations import MonitorPageNumberPagination, MonitorWebsiteTaskPagination
+from apps.api.viewsets import CustomGenericViewSet
+from apps.api.paginations import MonitorPageNumberPagination, MonitorWebsiteTaskPagination
 from utils.paginators import NoPaginatorInspector
-from service.models import OrgDataCenter
+from apps.service.models import OrgDataCenter
 from core import errors
-from monitor.managers import VideoMeetingQueryChoices, WebsiteQueryChoices
-from monitor.utils import MonitorEmailAddressIPRestrictor
-from monitor.models import MonitorJobCeph, MonitorJobTiDB, MonitorJobServer, LogSite
-from monitor.handlers.monitor_video_meeting import MonitorVideoMeetingQueryHandler
-from monitor.handlers.monitor_website import MonitorWebsiteHandler, TaskSchemeType
-from monitor import serializers as monitor_serializers
+from apps.monitor.managers import VideoMeetingQueryChoices, WebsiteQueryChoices
+from apps.monitor.utils import MonitorEmailAddressIPRestrictor
+from apps.monitor.models import MonitorJobCeph, MonitorJobTiDB, MonitorJobServer, LogSite
+from apps.monitor.handlers.monitor_video_meeting import MonitorVideoMeetingQueryHandler
+from apps.monitor.handlers.monitor_website import MonitorWebsiteHandler, TaskSchemeType
+from apps.monitor import serializers as monitor_serializers
 
 
 class MonitorVideoMeetingQueryViewSet(CustomGenericViewSet):

@@ -2,7 +2,7 @@
 
 from django.db import migrations, connection
 
-from service.models import OrgDataCenter, DataCenter
+from apps.service.models import OrgDataCenter, DataCenter
 
 
 def dictfetchall(cursor):

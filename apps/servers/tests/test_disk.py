@@ -8,23 +8,22 @@ from django.utils import timezone
 from django.conf import settings
 
 from core import site_configs_manager
-from servers.managers import ServicePrivateQuotaManager
-from servers.models import ServiceConfig
-from servers.models import Disk, Server, ResourceActionLog, DiskChangeLog
-from servers.tests import create_server_metadata
+from apps.servers.managers import ServicePrivateQuotaManager
+from apps.servers.models import ServiceConfig, Disk, Server, ResourceActionLog, DiskChangeLog
+from apps.servers.tests import create_server_metadata
 from utils.test import get_or_create_user, get_or_create_service, get_or_create_organization, MyAPITransactionTestCase
 from utils.model import PayType, OwnerType, ResourceType
 from utils.decimal_utils import quantize_10_2
 from utils.time import iso_utc_to_datetime, utc
 from utils import rand_utils
-from vo.models import VirtualOrganization, VoMember
-from order.managers import OrderManager, PriceManager
-from order.models import Price, Order, Resource
-from order.managers import DiskConfig
+from apps.vo.models import VirtualOrganization, VoMember
+from apps.order.managers import OrderManager, PriceManager
+from apps.order.models import Price, Order, Resource
+from apps.order.managers import DiskConfig
 from apps.app_wallet.managers import PaymentManager
 from apps.app_wallet.models import PayApp, PayAppService
-from metering.measurers import DiskMeasurer
-from metering.models import MeteringDisk
+from apps.metering.measurers import DiskMeasurer
+from apps.metering.models import MeteringDisk
 
 
 PAY_APP_ID = site_configs_manager.get_pay_app_id(settings)

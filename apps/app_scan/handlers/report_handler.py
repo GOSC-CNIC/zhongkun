@@ -3,7 +3,7 @@ from io import BytesIO
 from django.http import FileResponse
 from django.utils.translation import gettext_lazy as _
 
-from api.viewsets import CustomGenericViewSet
+from apps.api.viewsets import CustomGenericViewSet
 from core import errors
 from apps.app_scan.managers import TaskManager, VtReport
 from apps.app_scan.models import VtTask

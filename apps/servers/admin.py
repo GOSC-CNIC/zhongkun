@@ -6,8 +6,8 @@ from django.db import transaction
 from django import forms
 
 from utils.model import NoDeleteSelectModelAdmin, PayType, BaseModelAdmin
-from servers.forms import VmsProviderForm
-from .models import (
+from apps.servers.forms import VmsProviderForm
+from apps.servers.models import (
     Server, Flavor, ServerArchive, Disk, ResourceActionLog, DiskChangeLog,
     ServiceConfig, ServicePrivateQuota
 )

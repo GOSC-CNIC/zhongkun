@@ -1,9 +1,9 @@
 from datetime import date
 
-from metering.models import (
+from apps.metering.models import (
     PaymentStatus, DailyStatementServer, DailyStatementObjectStorage, DailyStatementDisk, DailyStatementMonitorWebsite
 )
-from metering.payment import MeteringPaymentManager
+from apps.metering.payment import MeteringPaymentManager
 
 
 class PayMeteringServer:

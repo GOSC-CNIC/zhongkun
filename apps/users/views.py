@@ -11,7 +11,7 @@ from django.contrib.auth.views import LoginView
 from django.views import View
 from django.utils import timezone
 
-from .models import Email
+from apps.users.models import Email
 from . import forms
 
 

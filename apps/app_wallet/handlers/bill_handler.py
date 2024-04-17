@@ -3,7 +3,7 @@ from django.utils import timezone
 from rest_framework.response import Response
 
 from core import errors
-from api.viewsets import CustomGenericViewSet
+from apps.api.viewsets import CustomGenericViewSet
 from apps.app_wallet import trade_serializers
 from apps.app_wallet.models import PaymentHistory
 from apps.app_wallet.managers import PaymentHistoryManager

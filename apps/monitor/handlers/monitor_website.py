@@ -7,13 +7,13 @@ from django.core.exceptions import ValidationError
 from rest_framework.response import Response
 
 from core import errors
-from monitor.managers import MonitorWebsiteManager, WebsiteQueryChoices, URLTCPValidator
-from monitor.models import MonitorWebsiteTask, MonitorWebsiteVersion, MonitorWebsite, WebsiteDetectionPoint
-from monitor.utils import MonitorEmailAddressIPRestrictor
-from api.viewsets import CustomGenericViewSet
+from apps.monitor.managers import MonitorWebsiteManager, WebsiteQueryChoices, URLTCPValidator
+from apps.monitor.models import MonitorWebsiteTask, MonitorWebsiteVersion, MonitorWebsite, WebsiteDetectionPoint
+from apps.monitor.utils import MonitorEmailAddressIPRestrictor
+from apps.api.viewsets import CustomGenericViewSet
 from apps.app_wallet.managers.payment import PaymentManager
-from order.managers.price import PriceManager
-from api.handlers import serializer_error_msg
+from apps.order.managers.price import PriceManager
+from apps.api.handlers import serializer_error_msg
 
 
 class TaskSchemeType(TextChoices):

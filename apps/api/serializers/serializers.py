@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
-from servers.models import ServiceConfig, ApplyVmService
+from apps.servers.models import ServiceConfig, ApplyVmService
 
 
 class DataCenterSerializer(serializers.Serializer):

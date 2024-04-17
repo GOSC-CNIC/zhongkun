@@ -3,7 +3,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, Future
 
 from core import request
-from servers.models import Disk
+from apps.servers.models import Disk
 
 
 _pool_executor = ThreadPoolExecutor()

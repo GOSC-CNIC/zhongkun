@@ -7,7 +7,7 @@ from django.utils.translation import gettext as _
 from django.core.exceptions import ValidationError
 
 from core import errors
-from service.models import DataCenter as Organization
+from apps.service.models import DataCenter as Organization
 from apps.app_netbox.models import (
     NetBoxUserRole, OrgVirtualObject, ContactPerson
 )

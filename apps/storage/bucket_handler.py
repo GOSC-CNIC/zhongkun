@@ -6,13 +6,13 @@ from django.utils import timezone
 from rest_framework.response import Response
 
 from core import errors as exceptions
-from api.viewsets import StorageGenericViewSet, serializer_error_msg
+from apps.api.viewsets import StorageGenericViewSet, serializer_error_msg
 from apps.app_wallet.managers import PaymentManager
-from storage.adapter import inputs
-from storage.managers import BucketManager, ObjectsServiceManager
-from storage.models import Bucket, ObjectsService
-from storage import serializers as storage_serializers
-from servers.managers import ResourceActionLogManager
+from apps.storage.adapter import inputs
+from apps.storage.managers import BucketManager, ObjectsServiceManager
+from apps.storage.models import Bucket, ObjectsService
+from apps.storage import serializers as storage_serializers
+from apps.servers.managers import ResourceActionLogManager
 
 
 class BucketHandler:

@@ -17,9 +17,9 @@ setup()
 
 
 def server_metering_pay(app_id: str):
-    from metering.measurers import ServerMeasurer
-    from metering.pay_metering import PayMeteringServer
-    from metering.statement_generators import GenerateDailyStatementServer
+    from apps.metering.measurers import ServerMeasurer
+    from apps.metering.pay_metering import PayMeteringServer
+    from apps.metering.statement_generators import GenerateDailyStatementServer
 
     now_date = datetime.utcnow().astimezone(utc).date() - timedelta(days=1)
     # start_date = date(year=2022, month=6, day=1)
@@ -52,9 +52,9 @@ def server_metering_pay(app_id: str):
 
 
 def disk_metering_pay(app_id: str):
-    from metering.measurers import DiskMeasurer
-    from metering.pay_metering import PayMeteringDisk
-    from metering.statement_generators import DiskDailyStatementGenerater
+    from apps.metering.measurers import DiskMeasurer
+    from apps.metering.pay_metering import PayMeteringDisk
+    from apps.metering.statement_generators import DiskDailyStatementGenerater
 
     now_date = datetime.utcnow().astimezone(utc).date() - timedelta(days=1)
     # start_date = date(year=2023, month=6, day=21)
@@ -87,9 +87,9 @@ def disk_metering_pay(app_id: str):
 
 
 def storage_metering_pay(app_id: str):
-    from metering.measurers import StorageMeasurer
-    from metering.pay_metering import PayMeteringObjectStorage
-    from metering.statement_generators import GenerateDailyStatementObjectStorage
+    from apps.metering.measurers import StorageMeasurer
+    from apps.metering.pay_metering import PayMeteringObjectStorage
+    from apps.metering.statement_generators import GenerateDailyStatementObjectStorage
 
     metering_date = datetime.utcnow().astimezone(utc).date() - timedelta(days=1)
 
@@ -105,9 +105,9 @@ def storage_metering_pay(app_id: str):
 
 
 def website_monitor_metering_pay(app_id: str):
-    from metering.measurers import MonitorWebsiteMeasurer
-    from metering.statement_generators import WebsiteMonitorStatementGenerater
-    from metering.pay_metering import PayMeteringWebsite
+    from apps.metering.measurers import MonitorWebsiteMeasurer
+    from apps.metering.statement_generators import WebsiteMonitorStatementGenerater
+    from apps.metering.pay_metering import PayMeteringWebsite
 
     metering_date = datetime.utcnow().astimezone(utc).date() - timedelta(days=1)
 

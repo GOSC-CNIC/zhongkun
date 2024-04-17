@@ -8,12 +8,12 @@ from django.db import transaction
 
 from core import errors
 from utils.model import OwnerType
-from users.managers import get_user_by_id
-from service.models import OrgDataCenter
-from service.odc_manager import OrgDataCenterManager
+from apps.users.managers import get_user_by_id
+from apps.service.models import OrgDataCenter
+from apps.service.odc_manager import OrgDataCenterManager
 from apps.app_wallet.managers.cash_coupon import CashCouponManager
-from vo.managers import VoManager
-from order.models import Order
+from apps.vo.managers import VoManager
+from apps.order.models import Order
 from apps.app_apply.models import CouponApply
 
 

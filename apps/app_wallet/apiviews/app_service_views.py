@@ -6,8 +6,8 @@ from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
-from api.viewsets import CustomGenericViewSet
-from api.paginations import NewPageNumberPagination
+from apps.api.viewsets import CustomGenericViewSet
+from apps.api.paginations import NewPageNumberPagination
 from apps.app_wallet import trade_serializers
 from apps.app_wallet.models import PayAppService
 from utils.crypto.rsa import generate_rsa_key

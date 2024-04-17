@@ -9,10 +9,10 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
 from core import errors
-from api.viewsets import NormalGenericViewSet
-from api.paginations import NewPageNumberPagination100
-from report import serializers as report_serializers
-from report.managers import BktStatsMonthQueryOrderBy, BucketStatsMonthlyManager, StorageAggQueryOrderBy
+from apps.api.viewsets import NormalGenericViewSet
+from apps.api.paginations import NewPageNumberPagination100
+from apps.report import serializers as report_serializers
+from apps.report.managers import BktStatsMonthQueryOrderBy, BucketStatsMonthlyManager, StorageAggQueryOrderBy
 from utils.paginators import NoPaginatorInspector
 
 

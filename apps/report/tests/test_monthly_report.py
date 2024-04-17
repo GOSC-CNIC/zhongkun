@@ -9,15 +9,15 @@ from django.core import mail
 from utils.model import PayType, OwnerType, ResourceType
 from utils.test import get_or_create_user, get_or_create_org_data_center, get_or_create_organization
 from utils.time import utc
-from order.models import Order
-from metering.models import (
+from apps.order.models import Order
+from apps.metering.models import (
     MeteringServer, MeteringObjectStorage, DailyStatementServer, DailyStatementObjectStorage, PaymentStatus,
     MeteringDisk, DailyStatementDisk, MeteringMonitorWebsite, DailyStatementMonitorWebsite
 )
 from apps.app_wallet.models import PayApp, PayAppService, CashCoupon
-from storage.models import ObjectsService, Bucket, BucketArchive
-from vo.models import VirtualOrganization, VoMember
-from report.models import MonthlyReport, BucketMonthlyReport
+from apps.storage.models import ObjectsService, Bucket, BucketArchive
+from apps.vo.models import VirtualOrganization, VoMember
+from apps.report.models import MonthlyReport, BucketMonthlyReport
 from apps.report.workers.report_generator import (
     MonthlyReportGenerator, MonthlyReportNotifier, get_report_period_start_and_end,
     last_target_day_date

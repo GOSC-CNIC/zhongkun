@@ -6,14 +6,14 @@ from django.db import models
 from rest_framework.response import Response
 
 from core import errors
-from servers.models import Flavor
+from apps.servers.models import Flavor
 
-from api.viewsets import CustomGenericViewSet
-from order.models import ResourceType
-from order.managers import PriceManager
+from apps.api.viewsets import CustomGenericViewSet
+from apps.order.models import ResourceType
+from apps.order.managers import PriceManager
 from utils.decimal_utils import quantize_10_2
 from utils.time import iso_utc_to_datetime
-from servers.managers import ServerManager, DiskManager
+from apps.servers.managers import ServerManager, DiskManager
 
 
 class ScanTaskType(models.TextChoices):

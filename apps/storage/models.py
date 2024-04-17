@@ -6,10 +6,10 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError
 
 from core import site_configs_manager
-from service.models import DataCenter, OrgDataCenter
 from utils.model import UuidModel, get_encryptor
 from utils.validators import http_url_validator
 from apps.app_wallet.models import PayAppService
+from apps.service.models import DataCenter, OrgDataCenter
 
 
 User = get_user_model()
@@ -202,7 +202,7 @@ class ObjectsService(UuidModel):
             change  # 更新
             delete  # 删除
         """
-        from monitor.managers import MonitorWebsiteManager
+        from apps.monitor.managers import MonitorWebsiteManager
 
         act = ''
         monitor_url = self.endpoint_url
@@ -263,7 +263,7 @@ class ObjectsService(UuidModel):
         """
         请在创建任务前，确认没有对应监控任务存在
         """
-        from monitor.managers import MonitorWebsiteManager
+        from apps.monitor.managers import MonitorWebsiteManager
 
         scheme, hostname, uri = MonitorWebsiteManager.parse_http_url(http_url=http_url)
         if not uri:
@@ -282,7 +282,7 @@ class ObjectsService(UuidModel):
         """
         删除对应监控任务
         """
-        from monitor.managers import MonitorWebsiteManager
+        from apps.monitor.managers import MonitorWebsiteManager
 
         with transaction.atomic():
             MonitorWebsiteManager.do_delete_website_task(user_website=task)

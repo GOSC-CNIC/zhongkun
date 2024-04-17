@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import SimpleRouter
 
-from app_netbox.api_viewsets import (
+from apps.app_netbox.api_viewsets import (
     common_views, ip_record_views, ipv4_views, ipv6_views,
     link_views, leaseline_views, element_views
 )

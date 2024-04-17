@@ -6,14 +6,14 @@ from django.db import transaction
 from rest_framework.response import Response
 
 from core import errors
-from api.viewsets import serializer_error_msg
+from apps.api.viewsets import serializer_error_msg
 from apps.app_wallet.apiviews import TradeGenericViewSet
 from apps.app_wallet import trade_serializers
 from apps.app_wallet.models import Recharge
 from apps.app_wallet.managers.recharge import RechargeManager
 from apps.app_wallet.managers.payment import PaymentManager
-from users import managers as user_manager
-from vo.managers import VoManager
+from apps.users import managers as user_manager
+from apps.vo.managers import VoManager
 from utils.model import OwnerType
 
 

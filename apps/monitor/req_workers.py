@@ -7,9 +7,9 @@ import requests
 from django.utils import timezone
 from django.conf import settings
 
-from monitor.models import TotalReqNum, LogSite, LogSiteTimeReqNum
-from monitor.backends.log import LogLokiAPI
-from monitor.utils import build_loki_provider
+from apps.monitor.models import TotalReqNum, LogSite, LogSiteTimeReqNum
+from apps.monitor.backends.log import LogLokiAPI
+from apps.monitor.utils import build_loki_provider
 
 
 def get_today_start_time():
@@ -125,11 +125,12 @@ class LogSiteReqCounter:
         """
         self.cycle_minutes = minutes
 
-    def run(self, update_before_invalid_cycles: int = None):
+    def run(self, update_before_invalid_cycles: int = None, now_timestamp: int = None):
         """
         :update_before_invalid_cycles: 尝试更新前n个周期的无效记录，大于0有效，默认不尝试更新前面可能无效的记录
         """
-        now_timestamp = self.get_now_timestamp()
+        if not now_timestamp:
+            now_timestamp = self.get_now_timestamp()
         sites_count, ok_site_ids, objs = self.async_generate_req_num_log(now_timestamp=now_timestamp)
         ok_count = len(ok_site_ids)
         print(f'{timezone.now().isoformat(sep=" ", timespec="seconds")} End，log sites: {sites_count}, ok: {ok_count}')

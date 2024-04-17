@@ -8,12 +8,12 @@ from django.utils.translation import gettext as _
 from django.db.models import TextChoices, Count, Sum, Q
 from rest_framework.response import Response
 
-from users.managers import get_user_by_name
-from users.models import UserProfile
-from vo.models import VirtualOrganization
-from vo.managers import VoManager
+from apps.users.managers import get_user_by_name
+from apps.users.models import UserProfile
+from apps.vo.models import VirtualOrganization
+from apps.vo.managers import VoManager
 from core import errors
-from api.viewsets import CustomGenericViewSet, serializer_error_msg
+from apps.api.viewsets import CustomGenericViewSet, serializer_error_msg
 from apps.app_wallet.trade_serializers import AdminCashCouponSerializer
 from apps.app_wallet.managers import CashCouponManager
 from apps.app_wallet.managers.cash_coupon import get_app_service_by_admin

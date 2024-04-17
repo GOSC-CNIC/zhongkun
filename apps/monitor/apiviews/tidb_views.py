@@ -6,11 +6,11 @@ from rest_framework.serializers import Serializer
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-from api.viewsets import CustomGenericViewSet
-from api.paginations import MonitorPageNumberPagination
-from monitor.managers.tidb import TiDBQueryChoices, TiDBQueryV2Choices
-from monitor.handlers.monitor_tidb import MonitorTiDBQueryHandler
-from monitor import serializers as monitor_serializers
+from apps.api.viewsets import CustomGenericViewSet
+from apps.api.paginations import MonitorPageNumberPagination
+from apps.monitor.managers.tidb import TiDBQueryChoices, TiDBQueryV2Choices
+from apps.monitor.handlers.monitor_tidb import MonitorTiDBQueryHandler
+from apps.monitor import serializers as monitor_serializers
 
 
 class MonitorUnitTiDBViewSet(CustomGenericViewSet):

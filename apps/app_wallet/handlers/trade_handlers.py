@@ -7,14 +7,14 @@ from rest_framework.response import Response
 from core import errors
 from core.aai.authentication import CreateUserJWTAuthentication
 from core.aai.jwt import JWTInvalidError
-from api.viewsets import serializer_error_msg
+from apps.api.viewsets import serializer_error_msg
 from apps.app_wallet.apiviews import PaySignGenericViewSet
 from apps.app_wallet import trade_serializers
 from apps.app_wallet.trade_serializers import PaymentHistorySerializer
 from apps.app_wallet.managers.payment import PaymentManager
 from apps.app_wallet.managers.bill import PaymentHistoryManager, RefundRecordManager
 from apps.app_wallet.models import PaymentHistory
-from users.models import UserProfile
+from apps.users.models import UserProfile
 from utils.decimal_utils import quantize_10_2
 
 

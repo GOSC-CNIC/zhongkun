@@ -7,8 +7,8 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
 from core import errors
-from api.paginations import NewPageNumberPagination100
-from api.viewsets import NormalGenericViewSet
+from apps.api.paginations import NewPageNumberPagination100
+from apps.api.viewsets import NormalGenericViewSet
 from apps.app_netbox.managers.common import NetBoxUserRoleWrapper
 from apps.app_netbox.models import IPv4RangeRecord
 from apps.app_netbox.serializers import ipam as ipam_serializers

@@ -3,10 +3,10 @@ import ipaddress
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
-from api.viewsets import CustomGenericViewSet, serializer_error_msg
+from apps.api.viewsets import CustomGenericViewSet, serializer_error_msg
 from core import errors
-from order.managers.order import OrderManager
-from order.managers.instance_configs import ScanConfig
+from apps.order.managers.order import OrderManager
+from apps.order.managers.instance_configs import ScanConfig
 from apps.app_scan.managers import TaskManager, URLHTTPValidator
 from apps.app_scan.models import VtScanService, VtTask
 

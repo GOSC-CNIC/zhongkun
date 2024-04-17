@@ -19,7 +19,6 @@ from django.conf.locale.zh_Hans import formats as zh_formats
 from django.conf.locale.en import formats as en_formats
 
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
-sys.path.insert(0, str(BASE_DIR.joinpath('apps')))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/
@@ -49,21 +48,21 @@ INSTALLED_APPS = [
     'corsheaders',
     'django_json_widget',
 
-    'service',
-    'storage',
-    'servers',
-    'order',
+    'apps.service',
+    'apps.storage',
+    'apps.servers',
+    'apps.order',
     'apps.app_wallet',
-    'metering',
-    'report',
-    'users',
-    'vo',
-    'ticket',
-    'monitor',
+    'apps.metering',
+    'apps.report',
+    'apps.users',
+    'apps.vo',
+    'apps.ticket',
+    'apps.monitor',
     'apps.app_netbox',
     'apps.app_scan',
-    'vpn',
-    'api',
+    'apps.vpn',
+    'apps.api',
     'apps.app_apply',
     'apps.app_screenvis',
 
@@ -261,7 +260,7 @@ REST_FRAMEWORK = {
         'core.aai.authentication.CreateUserJWTAuthentication',
         'rest_framework.authentication.SessionAuthentication'
     ),
-    'EXCEPTION_HANDLER': 'api.viewsets.exception_handler',
+    'EXCEPTION_HANDLER': 'apps.api.viewsets.exception_handler',
     'TEST_REQUEST_DEFAULT_FORMAT': 'json',
 }
 

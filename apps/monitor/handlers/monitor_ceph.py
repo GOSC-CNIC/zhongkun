@@ -4,8 +4,8 @@ from django.db.models import Q
 from rest_framework.response import Response
 
 from core import errors
-from monitor.managers import MonitorJobCephManager, CephQueryChoices, CephQueryV2Choices
-from monitor.models import MonitorJobCeph
+from apps.monitor.managers import MonitorJobCephManager, CephQueryChoices, CephQueryV2Choices
+from apps.monitor.models import MonitorJobCeph
 
 
 class MonitorCephQueryHandler:

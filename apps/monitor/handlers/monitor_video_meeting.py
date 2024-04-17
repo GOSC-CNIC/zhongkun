@@ -1,9 +1,8 @@
-import time
 from django.utils.translation import gettext, gettext_lazy as _
 from rest_framework.response import Response
 
 from core import errors
-from monitor.managers import MonitorJobVideoMeetingManager, VideoMeetingQueryChoices
+from apps.monitor.managers import MonitorJobVideoMeetingManager, VideoMeetingQueryChoices
 
 
 class MonitorVideoMeetingQueryHandler:

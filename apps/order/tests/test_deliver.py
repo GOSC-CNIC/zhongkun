@@ -7,14 +7,14 @@ from django.utils import timezone as dj_timezone
 from core.adapters import inputs, outputs
 from core import errors
 from utils.model import PayType, OwnerType, ResourceType
-from order.models import Order, Price, Resource
-from order.managers import OrderManager
-from order.managers.instance_configs import ServerConfig, ScanConfig
-from order.deliver_resource import OrderResourceDeliverer
+from apps.order.models import Order, Price, Resource
+from apps.order.managers import OrderManager
+from apps.order.managers.instance_configs import ServerConfig, ScanConfig
+from apps.order.deliver_resource import OrderResourceDeliverer
 from utils.test import get_or_create_user, MyAPITestCase
-from servers.models import ServiceConfig, Server
-from vo.models import VirtualOrganization
-from servers.managers import ServicePrivateQuotaManager
+from apps.servers.models import ServiceConfig, Server
+from apps.vo.models import VirtualOrganization
+from apps.servers.managers import ServicePrivateQuotaManager
 from apps.app_scan.models import VtTask
 
 

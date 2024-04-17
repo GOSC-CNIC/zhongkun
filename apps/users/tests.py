@@ -1,11 +1,13 @@
 from django.test import TestCase
 from django.core import mail
 
-from .models import Email
+from apps.users.models import Email
 
 
 class EmailTest(TestCase):
     def test_send_email(self):
+        Email.objects.all().delete()
+        self.assertEqual(Email.objects.count(), 0)
         self.assertEqual(len(mail.outbox), 0)
         Email.send_email(
             subject='test发送邮件1', receivers=['tomtest1@cnic.cnn', 'tomtest2@qq.com'], message='message邮件内容',

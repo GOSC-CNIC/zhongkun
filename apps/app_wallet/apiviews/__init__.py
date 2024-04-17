@@ -2,11 +2,10 @@ import base64
 
 from django.utils.translation import gettext as _
 from django.conf import settings
-from rest_framework import viewsets
 from core import errors as exceptions
 from apps.app_wallet.signers import SignatureResponse, SignatureRequest, SignatureParser
 from apps.app_wallet.models import PayApp
-from api.viewsets import CustomGenericViewSetMixin, BaseGenericViewSet
+from apps.api.viewsets import CustomGenericViewSetMixin, BaseGenericViewSet
 
 
 class PaySignGenericViewSet(CustomGenericViewSetMixin, BaseGenericViewSet):

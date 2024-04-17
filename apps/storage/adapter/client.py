@@ -1,4 +1,4 @@
-from storage.models import ObjectsService
+from apps.storage.models import ObjectsService
 
 from .iharbor import IHarborClient
 

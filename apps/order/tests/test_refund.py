@@ -8,14 +8,14 @@ from django.conf import settings
 
 from core import errors, site_configs_manager
 from utils.model import PayType, OwnerType, ResourceType
-from order.models import Price, Order, Resource, OrderRefund
-from order.managers import OrderManager, OrderPaymentManager
-from order.managers.instance_configs import ServerConfig
+from apps.order.models import Price, Order, Resource, OrderRefund
+from apps.order.managers import OrderManager, OrderPaymentManager
+from apps.order.managers.instance_configs import ServerConfig
 from utils.test import get_or_create_user, get_or_create_service, get_or_create_organization, MyAPITestCase
-from vo.models import VirtualOrganization
+from apps.vo.models import VirtualOrganization
 from apps.app_wallet.managers import PaymentManager
 from apps.app_wallet.models import CashCoupon, PayAppService, PayApp
-from servers.models import ServiceConfig, Flavor
+from apps.servers.models import ServiceConfig, Flavor
 
 
 class OrderRefundTests(MyAPITestCase):

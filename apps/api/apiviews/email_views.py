@@ -6,12 +6,12 @@ from rest_framework.serializers import Serializer
 from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
 
-from api.serializers import email as eamil_serializers
-from api.viewsets import serializer_error_msg, BaseGenericViewSet
+from apps.api.serializers import email as eamil_serializers
+from apps.api.viewsets import serializer_error_msg, BaseGenericViewSet
 from utils.paginators import NoPaginatorInspector
 from utils.iprestrict import IPRestrictor, load_allowed_ips
 from core import errors
-from users.models import Email
+from apps.users.models import Email
 
 
 class EmailIPRestrictor(IPRestrictor):

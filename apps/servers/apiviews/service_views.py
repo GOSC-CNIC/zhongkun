@@ -7,13 +7,13 @@ from rest_framework.serializers import Serializer
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-from api.viewsets import CustomGenericViewSet
-from api.paginations import DefaultPageNumberPagination
-from servers.managers import ServiceManager
-from servers.models import ServiceConfig
-from servers.handlers import service_handlers as handlers
-from servers.handlers.service_handlers import ServiceQuotaHandler
-from servers import serializers
+from apps.api.viewsets import CustomGenericViewSet
+from apps.api.paginations import DefaultPageNumberPagination
+from apps.servers.managers import ServiceManager
+from apps.servers.models import ServiceConfig
+from apps.servers.handlers import service_handlers as handlers
+from apps.servers.handlers.service_handlers import ServiceQuotaHandler
+from apps.servers import serializers
 from core.adapters import inputs, outputs
 from core import errors as exceptions
 

@@ -4,7 +4,7 @@ from django.utils.translation import gettext as _
 from rest_framework.response import Response
 
 from core import errors
-from api.viewsets import NormalGenericViewSet, serializer_error_msg
+from apps.api.viewsets import NormalGenericViewSet, serializer_error_msg
 from apps.app_netbox.managers.common import NetBoxUserRoleWrapper
 from apps.app_netbox.managers.link_mgrs import (
     LinkManager, DistriFrameManager, DistriFramePortManager, ElementManager,

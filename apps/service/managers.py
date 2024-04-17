@@ -2,11 +2,11 @@ from django.utils.translation import gettext as _
 from django.utils import timezone
 
 
-from users.models import UserProfile
+from apps.users.models import UserProfile
 from core import errors
 from core.utils import test_service_ok, InvalidServiceError
-from servers.models import ApplyVmService
-from .models import DataCenter, ApplyOrganization
+from apps.servers.models import ApplyVmService
+from apps.service.models import DataCenter, ApplyOrganization
 
 
 class OrganizationApplyManager:

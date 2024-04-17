@@ -5,7 +5,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db.models import F
 from django.utils import timezone
 
-from servers.models import Server, ServerArchive
+from apps.servers.models import Server, ServerArchive
 
 
 class Command(BaseCommand):

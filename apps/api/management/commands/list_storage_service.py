@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand, CommandError
-from storage.models import ObjectsService
+from apps.storage.models import ObjectsService
 
 
 class Command(BaseCommand):

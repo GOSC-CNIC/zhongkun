@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand, CommandError
 
-from monitor.models import MonitorWebsite, get_str_hash
+from apps.monitor.models import MonitorWebsite, get_str_hash
 
 
 class Command(BaseCommand):

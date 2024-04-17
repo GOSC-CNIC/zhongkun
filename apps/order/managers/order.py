@@ -8,9 +8,9 @@ from django.db import transaction
 
 from utils.model import OwnerType, PayType
 from utils import rand_utils
-from vo.managers import VoManager
+from apps.vo.managers import VoManager
 from core import errors
-from order.models import Order, Resource, ResourceType
+from apps.order.models import Order, Resource, ResourceType
 from .instance_configs import BaseConfig, ServerConfig, DiskConfig, BucketConfig, ScanConfig
 from .price import PriceManager
 

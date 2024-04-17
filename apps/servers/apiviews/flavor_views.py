@@ -6,10 +6,10 @@ from rest_framework.decorators import action
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-from servers import serializers as server_serializers
-from servers.handlers.flavor_handler import FlavorHandler
-from api.viewsets import CustomGenericViewSet
-from api.paginations import NewPageNumberPagination100
+from apps.servers import serializers as server_serializers
+from apps.servers.handlers.flavor_handler import FlavorHandler
+from apps.api.viewsets import CustomGenericViewSet
+from apps.api.paginations import NewPageNumberPagination100
 
 
 class FlavorViewSet(CustomGenericViewSet):

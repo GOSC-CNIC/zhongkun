@@ -4,8 +4,8 @@ from rest_framework.serializers import Serializer
 from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
-from api.viewsets import CustomGenericViewSet
-from api.paginations import PaymentHistoryPagination
+from apps.api.viewsets import CustomGenericViewSet
+from apps.api.paginations import PaymentHistoryPagination
 from apps.app_wallet.handlers.bill_handler import PaymentHistoryHandler
 from apps.app_wallet import trade_serializers
 from apps.app_wallet.models import PaymentHistory

@@ -5,14 +5,14 @@ from django.urls import reverse
 from django.utils import timezone
 
 from utils.model import PayType, OwnerType
-from servers.models import Disk
-from servers.tests.test_disk import create_disk_metadata
+from apps.servers.models import Disk
+from apps.servers.tests.test_disk import create_disk_metadata
 from utils.test import get_or_create_user, MyAPITestCase
-from vo.models import VirtualOrganization, VoMember
+from apps.vo.models import VirtualOrganization, VoMember
 from apps.app_wallet.managers.payment import PaymentManager
-from order.managers import OrderManager
-from order.models import Order, ResourceType
-from order.managers.instance_configs import ServerConfig
+from apps.order.managers import OrderManager
+from apps.order.models import Order, ResourceType
+from apps.order.managers.instance_configs import ServerConfig
 
 
 class VoTests(MyAPITestCase):

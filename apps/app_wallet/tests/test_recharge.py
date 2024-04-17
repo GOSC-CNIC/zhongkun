@@ -4,7 +4,7 @@ from django.urls import reverse
 
 from utils.model import OwnerType
 from utils.test import MyAPITransactionTestCase, get_or_create_user
-from vo.models import VirtualOrganization
+from apps.vo.models import VirtualOrganization
 from apps.app_wallet.models import TransactionBill, Recharge
 from apps.app_wallet.managers.payment import PaymentManager
 

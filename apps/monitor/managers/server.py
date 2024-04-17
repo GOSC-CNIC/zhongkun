@@ -3,10 +3,10 @@ import asyncio
 from django.db import models
 from django.utils.translation import gettext_lazy
 
-from monitor.utils import build_thanos_provider
-from monitor.serializers import MonitorJobServerSerializer
-from monitor.models import MonitorJobServer
-from monitor.backends.monitor_server import MonitorServerQueryAPI
+from apps.monitor.utils import build_thanos_provider
+from apps.monitor.serializers import MonitorJobServerSerializer
+from apps.monitor.models import MonitorJobServer
+from apps.monitor.backends.monitor_server import MonitorServerQueryAPI
 
 
 class ServerQueryChoices(models.TextChoices):

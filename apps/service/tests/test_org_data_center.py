@@ -5,11 +5,11 @@ from django.conf import settings
 
 from core import site_configs_manager
 from utils.test import MyAPITransactionTestCase, get_or_create_user, get_or_create_organization
-from storage.models import ObjectsService
-from monitor.models import MonitorJobCeph, MonitorJobServer, MonitorJobTiDB, LogSite, LogSiteType
+from apps.storage.models import ObjectsService
+from apps.monitor.models import MonitorJobCeph, MonitorJobServer, MonitorJobTiDB, LogSite, LogSiteType
 from apps.app_wallet.models import PayAppService, PayApp
-from servers.models import ServiceConfig
-from ..models import OrgDataCenter
+from apps.servers.models import ServiceConfig
+from apps.service.models import OrgDataCenter
 from ..odc_manager import OrgDataCenterManager
 
 

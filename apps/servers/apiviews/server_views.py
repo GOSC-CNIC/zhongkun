@@ -12,16 +12,16 @@ from rest_framework.utils.urls import replace_query_param
 from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
-from servers.models import Server
-from servers.managers import ServerManager, DiskManager
-from servers import disk_serializers
-from servers.handlers.server_handler import ServerHandler, ServerArchiveHandler
-from servers import serializers
+from apps.servers.models import Server
+from apps.servers.managers import ServerManager, DiskManager
+from apps.servers import disk_serializers
+from apps.servers.handlers.server_handler import ServerHandler, ServerArchiveHandler
+from apps.servers import serializers
 from core.adapters import inputs, outputs
 from core import request as core_request
 from core import errors as exceptions
-from api.viewsets import CustomGenericViewSet
-from api.paginations import ServersPagination, DefaultPageNumberPagination
+from apps.api.viewsets import CustomGenericViewSet
+from apps.api.paginations import ServersPagination, DefaultPageNumberPagination
 
 
 def is_ipv4(value):

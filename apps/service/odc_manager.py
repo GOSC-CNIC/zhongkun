@@ -4,12 +4,12 @@ from django.utils.translation import gettext as _
 from django.db.models import Q
 from django.db import transaction
 
-from users.models import UserProfile
-from service.models import OrgDataCenter, DataCenter as Organization
-from servers.models import ServiceConfig
+from apps.users.models import UserProfile
+from apps.service.models import OrgDataCenter, DataCenter as Organization
+from apps.servers.models import ServiceConfig
 from core import errors
 from apps.app_wallet.models import PayAppService
-from storage.models import ObjectsService
+from apps.storage.models import ObjectsService
 
 
 class OrgDataCenterManager:
@@ -255,7 +255,7 @@ class OrgDataCenterManager:
             change  # 更新
             delete  # 删除
         """
-        from monitor.managers import MonitorWebsiteManager
+        from apps.monitor.managers import MonitorWebsiteManager
 
         act = ''
         odc_id = odc.id
@@ -310,7 +310,7 @@ class OrgDataCenterManager:
         """
         请在创建任务前，确认没有对应监控任务存在
         """
-        from monitor.managers import MonitorWebsiteManager
+        from apps.monitor.managers import MonitorWebsiteManager
 
         scheme, hostname, uri = MonitorWebsiteManager.parse_http_url(http_url=http_url)
         if not uri:
@@ -335,7 +335,7 @@ class OrgDataCenterManager:
             change  # 更新
             delete  # 删除
         """
-        from monitor.managers import MonitorWebsiteManager
+        from apps.monitor.managers import MonitorWebsiteManager
 
         act = ''
         odc_id = odc.id
@@ -390,7 +390,7 @@ class OrgDataCenterManager:
         """
         请在创建任务前，确认没有对应监控任务存在
         """
-        from monitor.managers import MonitorWebsiteManager
+        from apps.monitor.managers import MonitorWebsiteManager
 
         scheme, hostname, uri = MonitorWebsiteManager.parse_http_url(http_url=http_url)
         if not uri:

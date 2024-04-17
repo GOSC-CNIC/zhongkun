@@ -2,11 +2,11 @@ from django.utils.translation import gettext as _
 from rest_framework.response import Response
 
 from core import errors as exceptions
-from servers.managers import ServiceManager
-from servers.models import Flavor
-from servers.managers import FlavorManager
-from servers import serializers as server_serializers
-from api.viewsets import CustomGenericViewSet, serializer_error_msg
+from apps.servers.managers import ServiceManager
+from apps.servers.models import Flavor
+from apps.servers.managers import FlavorManager
+from apps.servers import serializers as server_serializers
+from apps.api.viewsets import CustomGenericViewSet, serializer_error_msg
 
 
 def str_to_true_false(val: str):

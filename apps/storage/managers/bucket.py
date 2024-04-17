@@ -2,8 +2,8 @@ from django.utils.translation import gettext as _
 from django.utils import timezone
 
 from core import errors
-from storage.models import Bucket, ObjectsService
-from storage.managers.objects_service import ObjectsServiceManager
+from apps.storage.models import Bucket, ObjectsService
+from apps.storage.managers.objects_service import ObjectsServiceManager
 
 
 class BucketManager:

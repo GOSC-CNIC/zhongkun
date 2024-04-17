@@ -4,8 +4,8 @@ from django.utils.html import format_html
 from django.db import transaction
 from django.contrib.admin.filters import SimpleListFilter
 
-from storage.request import request_service
-from storage.adapter import inputs
+from apps.storage.request import request_service
+from apps.storage.adapter import inputs
 from core import errors
 from utils.model import NoDeleteSelectModelAdmin, BaseModelAdmin
 from . import models

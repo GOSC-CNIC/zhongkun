@@ -5,7 +5,7 @@ from django.utils.translation import gettext_lazy, gettext as _
 from django_json_widget.widgets import JSONEditorWidget
 from django.contrib.auth.forms import UserChangeForm
 
-from .models import default_role
+from apps.users.models import default_role
 
 
 class PasswordForm(forms.Form):

@@ -4,10 +4,10 @@ from django.db import models
 from django.utils.translation import gettext_lazy, gettext as _
 
 from core import errors
-from monitor.utils import build_thanos_provider
-from monitor.serializers import MonitorJobCephSerializer
-from monitor.models import MonitorJobCeph
-from monitor.backends.monitor_ceph import MonitorCephQueryAPI
+from apps.monitor.utils import build_thanos_provider
+from apps.monitor.serializers import MonitorJobCephSerializer
+from apps.monitor.models import MonitorJobCeph
+from apps.monitor.backends.monitor_ceph import MonitorCephQueryAPI
 
 
 class CephQueryChoices(models.TextChoices):

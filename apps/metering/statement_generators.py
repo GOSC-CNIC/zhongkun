@@ -5,13 +5,13 @@ from django.utils import timezone
 from django.db.models import Sum
 from django.db import transaction
 
-from metering.models import (
+from apps.metering.models import (
     DailyStatementServer, MeteringServer, PaymentStatus, DailyStatementObjectStorage, MeteringObjectStorage,
     DailyStatementDisk, MeteringDisk, MeteringMonitorWebsite, DailyStatementMonitorWebsite
 )
 from utils.model import OwnerType, PayType
-from users.models import UserProfile
-from vo.models import VirtualOrganization
+from apps.users.models import UserProfile
+from apps.vo.models import VirtualOrganization
 
 
 class BaseGeneratorStatement:

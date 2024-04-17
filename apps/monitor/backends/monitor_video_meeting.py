@@ -2,7 +2,7 @@ import requests
 from urllib import parse
 
 from core import errors
-from monitor.models import MonitorProvider
+from apps.monitor.models import MonitorProvider
 
 
 class ExpressionQuery:

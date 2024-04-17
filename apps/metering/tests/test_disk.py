@@ -10,16 +10,15 @@ from utils.decimal_utils import quantize_10_2
 from utils import rand_utils
 from utils.time import utc
 from core import errors
-from servers.models import Disk, DiskChangeLog
-from vo.managers import VoManager
-from order.models import Price
+from apps.servers.models import Disk, DiskChangeLog, ServiceConfig
+from apps.vo.managers import VoManager
+from apps.order.models import Price
 from apps.app_wallet.models import CashCoupon, PaymentHistory, PayAppService, PayApp
-from servers.models import ServiceConfig
-from metering.measurers import DiskMeasurer
-from metering.models import PaymentStatus, DailyStatementDisk, MeteringDisk
-from metering.payment import MeteringPaymentManager
-from metering.statement_generators import DiskDailyStatementGenerater
-from users.models import UserProfile
+from apps.metering.measurers import DiskMeasurer
+from apps.metering.models import PaymentStatus, DailyStatementDisk, MeteringDisk
+from apps.metering.payment import MeteringPaymentManager
+from apps.metering.statement_generators import DiskDailyStatementGenerater
+from apps.users.models import UserProfile
 
 
 def create_disk_metadata(

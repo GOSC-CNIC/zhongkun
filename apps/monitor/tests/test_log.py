@@ -3,7 +3,7 @@ from urllib import parse
 from django.urls import reverse
 from django.utils import timezone
 
-from monitor.models import (
+from apps.monitor.models import (
     LogSite, LogSiteType, LogSiteTimeReqNum
 )
 from utils.test import get_or_create_user, MyAPITestCase, get_or_create_org_data_center

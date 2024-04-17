@@ -5,12 +5,12 @@ from datetime import timedelta, timezone
 from django.urls import reverse
 from django.utils import timezone as dj_timezone
 
-from servers.models import Flavor, Disk
-from servers.tests.test_disk import create_disk_metadata
-from servers.tests import create_server_metadata
-from order.models import Price
-from order.managers import PriceManager
-from order.handlers.price_handler import ScanTaskType
+from apps.servers.models import Flavor, Disk
+from apps.servers.tests.test_disk import create_disk_metadata
+from apps.servers.tests import create_server_metadata
+from apps.order.models import Price
+from apps.order.managers import PriceManager
+from apps.order.handlers.price_handler import ScanTaskType
 from utils.decimal_utils import quantize_10_2
 from utils.model import PayType, ResourceType
 from utils.test import MyAPITestCase, get_or_create_user

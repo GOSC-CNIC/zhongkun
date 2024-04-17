@@ -4,11 +4,11 @@ from django.utils.translation import gettext as _
 from rest_framework.response import Response
 
 from core import errors
-from api.viewsets import NormalGenericViewSet, serializer_error_msg
-from ..managers.common import NetBoxUserRoleWrapper
-from ..managers.ipv4_mgrs import IPv4RangeManager, IPv4AddressManager
-from ..models import IPv4Range, OrgVirtualObject
-from ..serializers import ipam as ipam_serializers
+from apps.api.viewsets import NormalGenericViewSet, serializer_error_msg
+from apps.app_netbox.managers.common import NetBoxUserRoleWrapper
+from apps.app_netbox.managers.ipv4_mgrs import IPv4RangeManager, IPv4AddressManager
+from apps.app_netbox.models import IPv4Range, OrgVirtualObject
+from apps.app_netbox.serializers import ipam as ipam_serializers
 
 
 class IPv4RangeHandler:

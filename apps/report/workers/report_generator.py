@@ -8,20 +8,20 @@ from django.template.loader import get_template
 from django.core.mail import send_mail
 from django.conf import settings
 
-from users.models import UserProfile, Email
-from vo.models import VirtualOrganization, VoMember
-from metering.managers import (
+from apps.users.models import UserProfile, Email
+from apps.vo.models import VirtualOrganization, VoMember
+from apps.metering.managers import (
     MeteringServerManager, MeteringStorageManager, StatementStorageManager, StatementServerManager,
     MeteringDiskManager, StatementDiskManager, MeteringMonitorSiteManager
 )
-from metering.models import PaymentStatus, MeteringServer, MeteringDisk
-from report.models import MonthlyReport, BucketMonthlyReport
-from storage.models import Bucket, BucketArchive
-from order.models import Order, Resource, ResourceType
+from apps.metering.models import PaymentStatus, MeteringServer, MeteringDisk
+from apps.report.models import MonthlyReport, BucketMonthlyReport
+from apps.storage.models import Bucket, BucketArchive
+from apps.order.models import Order, Resource, ResourceType
 from utils.model import OwnerType, PayType
 from utils.time import utc
 from apps.app_wallet.models import CashCoupon, CashCouponPaymentHistory
-from servers.models import Server, ServerArchive, Disk
+from apps.servers.models import Server, ServerArchive, Disk
 from core.site_configs_manager import website_brand
 from core.loggers import config_script_logger
 

@@ -5,11 +5,11 @@ from rest_framework.serializers import Serializer
 from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
-from api.viewsets import AsRoleGenericViewSet
-from api.paginations import NewPageNumberPagination, FollowUpMarkerCursorPagination
-from ticket import serializers as ticket_serializers
-from ticket.ticket_handler import TicketHandler
-from ticket.models import Ticket
+from apps.api.viewsets import AsRoleGenericViewSet
+from apps.api.paginations import NewPageNumberPagination, FollowUpMarkerCursorPagination
+from apps.ticket import serializers as ticket_serializers
+from apps.ticket.ticket_handler import TicketHandler
+from apps.ticket.models import Ticket
 
 
 class TicketViewSet(AsRoleGenericViewSet):

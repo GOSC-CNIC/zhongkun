@@ -7,16 +7,15 @@ from django.utils import timezone
 
 from utils.model import PayType, OwnerType
 from utils.test import get_or_create_service, get_or_create_user, get_or_create_storage_service, MyAPITestCase
-from servers.models import ServiceConfig
-from storage.models import ObjectsService
-from vo.models import VirtualOrganization
-from metering.models import (
+from apps.storage.models import ObjectsService
+from apps.vo.models import VirtualOrganization
+from apps.metering.models import (
     MeteringServer, DailyStatementServer, PaymentStatus, MeteringObjectStorage, DailyStatementObjectStorage,
     MeteringDisk, DailyStatementDisk
 )
-from servers.models import Server, ServerArchive, Disk
-from servers.tests.test_disk import create_disk_metadata
-from users.models import UserProfile
+from apps.servers.models import Server, ServerArchive, Disk, ServiceConfig
+from apps.servers.tests.test_disk import create_disk_metadata
+from apps.users.models import UserProfile
 
 
 class MeteringServerTests(MyAPITestCase):

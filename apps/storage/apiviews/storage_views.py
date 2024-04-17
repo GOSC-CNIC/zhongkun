@@ -8,11 +8,11 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
 from core import errors
-from api.viewsets import StorageGenericViewSet
-from api.paginations import DefaultPageNumberPagination
-from storage import serializers as storage_serializers
-from storage.managers import ObjectsServiceManager
-from storage.models import ObjectsService, Bucket, BucketArchive
+from apps.api.viewsets import StorageGenericViewSet
+from apps.api.paginations import DefaultPageNumberPagination
+from apps.storage import serializers as storage_serializers
+from apps.storage.managers import ObjectsServiceManager
+from apps.storage.models import ObjectsService, Bucket, BucketArchive
 from utils.paginators import NoPaginatorInspector
 from utils.time import iso_utc_to_datetime
 

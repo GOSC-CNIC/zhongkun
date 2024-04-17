@@ -8,10 +8,10 @@ from core import errors
 from utils.test import get_or_create_user, get_or_create_service, get_or_create_organization
 from utils.model import OwnerType, PayType
 from utils.decimal_utils import quantize_10_2
-from order.models import ResourceType, Order
-from order.managers import OrderPaymentManager
-from vo.managers import VoManager
-from servers.models import ServiceConfig
+from apps.order.models import ResourceType, Order
+from apps.order.managers import OrderPaymentManager
+from apps.vo.managers import VoManager
+from apps.servers.models import ServiceConfig
 from apps.app_wallet.models import (
     CashCoupon, CashCouponActivity, CashCouponPaymentHistory, RefundRecord,
     PaymentHistory, PayAppService, PayApp, TransactionBill

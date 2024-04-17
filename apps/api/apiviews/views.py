@@ -12,13 +12,13 @@ from rest_framework import parsers
 from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
-from service.models import DataCenter, ApplyOrganization
-from servers.models import ApplyVmService
+from apps.service.models import DataCenter, ApplyOrganization
+from apps.servers.models import ApplyVmService
 from core import errors as exceptions
-from api.serializers import serializers
-from api.viewsets import CustomGenericViewSet
-from api.paginations import DefaultPageNumberPagination
-from api.handlers import (
+from apps.api.serializers import serializers
+from apps.api.viewsets import CustomGenericViewSet
+from apps.api.paginations import DefaultPageNumberPagination
+from apps.api.handlers import (
     handlers, VPNHandler,
 )
 

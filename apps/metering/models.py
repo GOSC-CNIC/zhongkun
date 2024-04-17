@@ -5,12 +5,12 @@ from django.utils.translation import gettext, gettext_lazy as _
 
 from utils.model import OwnerType, PayType, CustomIdModel
 from utils import rand_utils
-from users.models import UserProfile
-from vo.models import VirtualOrganization
-from servers.models import Server
-from servers.models import ServiceConfig
-from storage.models import ObjectsService
-from monitor.models import MonitorWebsiteVersion
+from apps.users.models import UserProfile
+from apps.vo.models import VirtualOrganization
+from apps.servers.models import Server
+from apps.servers.models import ServiceConfig
+from apps.storage.models import ObjectsService
+from apps.monitor.models import MonitorWebsiteVersion
 
 
 def short_uuid1_l25():

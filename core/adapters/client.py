@@ -1,4 +1,4 @@
-from servers.models import ServiceConfig
+from apps.servers.models import ServiceConfig
 
 from .evcloud.adapter import EVCloudAdapter
 from .openstack.adapter import OpenStackAdapter

@@ -2,7 +2,7 @@ from django.utils.translation import gettext as _
 from django.db.models import Q
 
 from core import errors
-from storage.models import ObjectsService
+from apps.storage.models import ObjectsService
 
 
 class ObjectsServiceManager:

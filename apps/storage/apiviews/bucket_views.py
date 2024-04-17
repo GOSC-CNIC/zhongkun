@@ -5,10 +5,10 @@ from rest_framework.serializers import Serializer
 from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
-from api.viewsets import StorageGenericViewSet
-from api.paginations import DefaultPageNumberPagination
-from storage.bucket_handler import BucketHandler
-from storage import serializers as storage_serializers
+from apps.api.viewsets import StorageGenericViewSet
+from apps.api.paginations import DefaultPageNumberPagination
+from apps.storage.bucket_handler import BucketHandler
+from apps.storage import serializers as storage_serializers
 
 
 class BucketViewSet(StorageGenericViewSet):

@@ -11,21 +11,21 @@ from core import errors as exceptions
 from core import request as core_request
 from core.quota import QuotaAPI
 from core import site_configs_manager
-from api.viewsets import CustomGenericViewSet, serializer_error_msg
-from api import request_logger
-from vo.managers import VoManager
-from vo.models import VirtualOrganization
+from apps.api.viewsets import CustomGenericViewSet, serializer_error_msg
+from apps.api import request_logger
+from apps.vo.managers import VoManager
+from apps.vo.models import VirtualOrganization
 from core.adapters import inputs
 from utils.model import PayType, OwnerType
 from utils.time import iso_utc_to_datetime
-from order.deliver_resource import OrderResourceDeliverer
-from order.models import ResourceType, Order
-from order.managers import OrderManager, OrderPaymentManager, DiskConfig
+from apps.order.deliver_resource import OrderResourceDeliverer
+from apps.order.models import ResourceType, Order
+from apps.order.managers import OrderManager, OrderPaymentManager, DiskConfig
 from apps.app_wallet.managers import PaymentManager
-from servers.managers import ServiceManager
-from servers.managers import ServerManager, DiskManager, ResourceActionLogManager
-from servers.models import Server, Disk
-from servers import disk_serializers
+from apps.servers.managers import ServiceManager
+from apps.servers.managers import ServerManager, DiskManager, ResourceActionLogManager
+from apps.servers.models import Server, Disk
+from apps.servers import disk_serializers
 
 
 PAY_APP_ID = site_configs_manager.get_pay_app_id(settings, check_valid=True)

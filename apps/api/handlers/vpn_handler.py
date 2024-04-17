@@ -1,10 +1,9 @@
 from django.utils.translation import gettext as _
-from django.utils import timezone
 from rest_framework.response import Response
 
 from core import errors
-from api.viewsets import CustomGenericViewSet
-from servers.managers import ServerManager
+from apps.api.viewsets import CustomGenericViewSet
+from apps.servers.managers import ServerManager
 
 
 class VPNHandler:

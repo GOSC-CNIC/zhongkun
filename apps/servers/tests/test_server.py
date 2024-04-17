@@ -6,9 +6,9 @@ from django.urls import reverse
 from django.utils import timezone as dj_timezone
 from django.conf import settings
 
-from servers.managers import ServicePrivateQuotaManager
-from servers.models import ServiceConfig
-from servers.models import Flavor, Server, ServerArchive, Disk, ResourceActionLog
+from apps.servers.managers import ServicePrivateQuotaManager
+from apps.servers.models import ServiceConfig
+from apps.servers.models import Flavor, Server, ServerArchive, Disk, ResourceActionLog
 from utils.test import (
     get_or_create_user, get_or_create_service, get_or_create_organization,
     MyAPITransactionTestCase, MyAPITestCase
@@ -16,15 +16,15 @@ from utils.test import (
 from utils.model import PayType, OwnerType, ResourceType
 from utils.time import iso_utc_to_datetime
 from utils.decimal_utils import quantize_10_2
-from vo.models import VirtualOrganization, VoMember
-from vo.tests import VoTests
-from order.managers import OrderManager, PriceManager
-from order.models import Price, Order, Resource
-from order.managers import ServerConfig
+from apps.vo.models import VirtualOrganization, VoMember
+from apps.vo.tests import VoTests
+from apps.order.managers import OrderManager, PriceManager
+from apps.order.models import Price, Order, Resource
+from apps.order.managers import ServerConfig
 from apps.app_wallet.managers import PaymentManager
 from apps.app_wallet.models import PayApp, PayAppService
-from metering.measurers import ServerMeasurer
-from metering.models import MeteringServer
+from apps.metering.measurers import ServerMeasurer
+from apps.metering.models import MeteringServer
 from core.adapters.evcloud import EVCloudAdapter
 from core.adapters import outputs
 from core import site_configs_manager
@@ -1165,7 +1165,7 @@ class ServersTests(MyAPITestCase):
         self.assertEqual(len(response.data['server']['attached_disks']), 0)
 
         # ----------------admin get server detail test -----------------------
-        from servers.tests.test_disk import create_disk_metadata
+        from apps.servers.tests.test_disk import create_disk_metadata
         create_disk_metadata(
             service_id=self.service.id, azone_id='1', disk_size=6, pay_type=PayType.PREPAID.value,
             classification=Disk.Classification.PERSONAL.value, user_id=self.user.id, vo_id=None,

@@ -9,13 +9,13 @@ from core import site_configs_manager
 from utils.test import get_or_create_user, get_or_create_organization, get_or_create_org_data_center
 from utils.time import utc
 from utils.model import PayType, OwnerType
-from vo.models import VirtualOrganization
+from apps.vo.models import VirtualOrganization
 from apps.app_wallet.models import PayApp, PayAppService
 from apps.app_wallet.managers import PaymentManager, CashCouponManager
-from storage.models import ObjectsService, Bucket
-from servers.models import Server, ServiceConfig
-from servers.tests import create_server_metadata
-from report.models import ArrearBucket, ArrearServer
+from apps.storage.models import ObjectsService, Bucket
+from apps.servers.models import Server, ServiceConfig
+from apps.servers.tests import create_server_metadata
+from apps.report.models import ArrearBucket, ArrearServer
 from apps.report.workers.storage_trend import ArrearBucketReporter
 from apps.report.workers.server_notifier import ArrearServerReporter
 

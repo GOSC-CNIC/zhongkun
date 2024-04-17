@@ -2,7 +2,7 @@ import os
 
 from django.core.management.base import BaseCommand, CommandError
 
-from monitor.models import MonitorJobVideoMeeting, MonitorProvider
+from apps.monitor.models import MonitorJobVideoMeeting, MonitorProvider
 
 
 class Command(BaseCommand):

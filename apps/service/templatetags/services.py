@@ -1,7 +1,7 @@
 from django import template
 from django.core.cache import cache
 
-from servers.models import ServiceConfig
+from apps.servers.models import ServiceConfig
 
 register = template.Library()
 

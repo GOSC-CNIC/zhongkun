@@ -5,8 +5,8 @@ from rest_framework.decorators import action
 from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
-from api.paginations import NewPageNumberPagination100
-from api.viewsets import NormalGenericViewSet
+from apps.api.paginations import NewPageNumberPagination100
+from apps.api.viewsets import NormalGenericViewSet
 from apps.app_netbox.handlers.ipv6_handlers import IPv6RangeHandler
 from apps.app_netbox.models import IPv4Range
 from apps.app_netbox.serializers import ipam as ipam_serializers

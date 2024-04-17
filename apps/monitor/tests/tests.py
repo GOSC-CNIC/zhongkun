@@ -1,5 +1,5 @@
 from utils.test import get_test_case_settings, get_or_create_org_data_center
-from monitor.models import (
+from apps.monitor.models import (
     MonitorProvider, MonitorJobCeph, MonitorJobServer, MonitorJobVideoMeeting, MonitorJobTiDB, LogSite
 )
 

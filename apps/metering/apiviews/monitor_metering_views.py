@@ -4,11 +4,11 @@ from rest_framework.serializers import Serializer
 from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
-from api.viewsets import CustomGenericViewSet
-from api.paginations import MeteringPageNumberPagination, StatementPageNumberPagination
-from metering.handlers.metering_handler import MeteringMonitorSiteHandler
-from metering import metering_serializers
-from metering.models import PaymentStatus
+from apps.api.viewsets import CustomGenericViewSet
+from apps.api.paginations import MeteringPageNumberPagination, StatementPageNumberPagination
+from apps.metering.handlers.metering_handler import MeteringMonitorSiteHandler
+from apps.metering import metering_serializers
+from apps.metering.models import PaymentStatus
 
 
 class MeteringMonitorSiteViewSet(CustomGenericViewSet):

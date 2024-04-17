@@ -2,8 +2,8 @@
 
 from django.db import migrations, connection
 
-from service.models import DataCenter, OrgDataCenter
-from storage.models import ObjectsService
+from apps.service.models import DataCenter, OrgDataCenter
+from apps.storage.models import ObjectsService
 
 
 def dictfetchall(cursor):

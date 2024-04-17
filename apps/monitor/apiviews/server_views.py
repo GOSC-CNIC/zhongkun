@@ -6,11 +6,11 @@ from rest_framework.serializers import Serializer
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-from api.viewsets import CustomGenericViewSet
-from api.paginations import MonitorPageNumberPagination
-from monitor.managers import ServerQueryChoices, ServerQueryV2Choices
-from monitor import serializers as monitor_serializers
-from monitor.handlers.monitor_server import MonitorServerQueryHandler
+from apps.api.viewsets import CustomGenericViewSet
+from apps.api.paginations import MonitorPageNumberPagination
+from apps.monitor.managers import ServerQueryChoices, ServerQueryV2Choices
+from apps.monitor import serializers as monitor_serializers
+from apps.monitor.handlers.monitor_server import MonitorServerQueryHandler
 
 
 class MonitorUnitServerViewSet(CustomGenericViewSet):

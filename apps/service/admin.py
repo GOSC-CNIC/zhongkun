@@ -5,7 +5,7 @@ from django.contrib.admin.filters import SimpleListFilter
 
 from utils.model import NoDeleteSelectModelAdmin
 from .odc_manager import OrgDataCenterManager
-from .models import (
+from apps.service.models import (
     DataCenter, Contacts, OrgDataCenter
 )
 

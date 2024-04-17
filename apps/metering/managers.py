@@ -4,16 +4,16 @@ from django.utils.translation import gettext as _
 from django.db.models import Subquery, Sum, Count
 
 from core import errors
-from servers.managers import ServiceManager
-from servers.models import ServiceConfig
-from servers.managers import ServerManager, DiskManager
-from servers.models import Server, ServerArchive, Disk
+from apps.servers.managers import ServiceManager
+from apps.servers.models import ServiceConfig
+from apps.servers.managers import ServerManager, DiskManager
+from apps.servers.models import Server, ServerArchive, Disk
 from utils.model import OwnerType
-from users.models import UserProfile
-from vo.models import VirtualOrganization
-from vo.managers import VoManager
-from storage.managers.objects_service import ObjectsServiceManager
-from storage.models import Bucket, BucketArchive, ObjectsService
+from apps.users.models import UserProfile
+from apps.vo.models import VirtualOrganization
+from apps.vo.managers import VoManager
+from apps.storage.managers.objects_service import ObjectsServiceManager
+from apps.storage.models import Bucket, BucketArchive, ObjectsService
 
 from .models import (
     MeteringServer, MeteringObjectStorage, MeteringDisk, MeteringMonitorWebsite,

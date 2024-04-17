@@ -3,7 +3,7 @@ from datetime import datetime
 
 from django.urls import reverse
 
-from vo.models import VirtualOrganization
+from apps.vo.models import VirtualOrganization
 from utils.test import get_or_create_service
 from utils.time import utc
 from . import MyAPITestCase, get_or_create_user

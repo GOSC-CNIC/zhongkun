@@ -4,7 +4,7 @@ import requests
 import aiohttp
 
 from core import errors
-from monitor.utils import LokiProvider
+from apps.monitor.utils import LokiProvider
 
 
 class LogLokiAPI:

@@ -5,9 +5,9 @@ from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
 
 from core import errors
-from service.models import DataCenter as Organization
-from service import serializers as org_serializers
-from api.paginations import NewPageNumberPagination100
+from apps.service.models import DataCenter as Organization
+from apps.service import serializers as org_serializers
+from apps.api.paginations import NewPageNumberPagination100
 
 
 class OrganizationViewSet(GenericViewSet):

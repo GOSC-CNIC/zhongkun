@@ -2,8 +2,7 @@ from urllib import parse
 
 from django.urls import reverse
 
-from servers.models import Flavor
-from servers.models import ServiceConfig
+from apps.servers.models import Flavor, ServiceConfig
 from utils.test import get_or_create_user, get_or_create_service, MyAPITestCase
 
 

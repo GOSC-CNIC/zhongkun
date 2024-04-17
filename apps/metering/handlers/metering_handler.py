@@ -9,23 +9,23 @@ from django.db.models import Sum, Count
 from rest_framework.response import Response
 
 from core import errors
-from api.viewsets import CustomGenericViewSet
-from metering.metering_serializers import (
+from apps.api.viewsets import CustomGenericViewSet
+from apps.metering.metering_serializers import (
     MeteringServerSerializer, MeteringStorageSimpleSerializer,
     MeteringDiskSerializer, MeteringMonitorSiteSerializer
 )
-from metering.models import PaymentStatus
-from metering.managers import (
+from apps.metering.models import PaymentStatus
+from apps.metering.managers import (
     MeteringServerManager, StatementServerManager, MeteringStorageManager, StatementStorageManager,
     MeteringDiskManager, StatementDiskManager, BaseMeteringManager, MeteringMonitorSiteManager
 )
-from servers.models import Server, ServerArchive, Disk
+from apps.servers.models import Server, ServerArchive, Disk
 from utils.report_file import CSVFileInMemory, wrap_csv_file_response
 from utils import rand_utils
 from utils.decimal_utils import quantize_18_2
 from utils.model import PayType, ResourceType, OwnerType
 from utils.time import utc
-from order.models import Order
+from apps.order.models import Order
 
 
 def validate_date_start_end(request, default_date_start: date = None, default_date_end: date = None):

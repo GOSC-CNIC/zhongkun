@@ -1,7 +1,7 @@
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from servers.models import Server
+from apps.servers.models import Server
 
 
 class DiskCreateSerializer(serializers.Serializer):

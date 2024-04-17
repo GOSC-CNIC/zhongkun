@@ -8,17 +8,17 @@ from utils.test import get_or_create_user, get_or_create_organization
 from utils.decimal_utils import quantize_10_2
 from utils.time import utc
 from utils.model import OwnerType
-from monitor.models import MonitorWebsite, MonitorWebsiteRecord, MonitorWebsiteBase, MonitorWebsiteVersion
-from order.models import Price
-from metering.measurers import MonitorWebsiteMeasurer
-from metering.models import MeteringMonitorWebsite, PaymentStatus, DailyStatementMonitorWebsite
-from metering.statement_generators import WebsiteMonitorStatementGenerater
-from metering.payment import MeteringPaymentManager
-from metering.pay_metering import PayMeteringWebsite
-from users.models import UserProfile
+from apps.monitor.models import MonitorWebsite, MonitorWebsiteRecord, MonitorWebsiteBase, MonitorWebsiteVersion
+from apps.order.models import Price
+from apps.metering.measurers import MonitorWebsiteMeasurer
+from apps.metering.models import MeteringMonitorWebsite, PaymentStatus, DailyStatementMonitorWebsite
+from apps.metering.statement_generators import WebsiteMonitorStatementGenerater
+from apps.metering.payment import MeteringPaymentManager
+from apps.metering.pay_metering import PayMeteringWebsite
+from apps.users.models import UserProfile
 from apps.app_wallet.models import PayApp, PayAppService, PaymentHistory, CashCoupon
 from core import errors
-from service.models import OrgDataCenter
+from apps.service.models import OrgDataCenter
 
 
 def create_website_metadata(

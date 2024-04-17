@@ -1,7 +1,7 @@
 from core import taskqueue, site_configs_manager as site_configs
 from apps.app_apply.models import CouponApply
-from users import managers as user_manager
-from users.models import Email
+from apps.users import managers as user_manager
+from apps.users.models import Email
 
 
 class CouponApplyEmailNotifier:

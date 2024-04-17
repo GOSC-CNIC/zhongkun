@@ -9,14 +9,14 @@ from django.core.validators import URLValidator
 from django.core.exceptions import ValidationError
 
 from core import errors
-from service.odc_manager import OrgDataCenterManager
-from monitor.models import (
+from apps.service.odc_manager import OrgDataCenterManager
+from apps.monitor.models import (
     MonitorProvider, MonitorJobVideoMeeting,
     MonitorWebsite, MonitorWebsiteTask, MonitorWebsiteVersion, get_str_hash,
     WebsiteDetectionPoint, MonitorWebsiteRecord
 )
-from monitor.backends.monitor_video_meeting import MonitorVideoMeetingQueryAPI
-from monitor.backends.monitor_website import MonitorWebsiteQueryAPI
+from apps.monitor.backends.monitor_video_meeting import MonitorVideoMeetingQueryAPI
+from apps.monitor.backends.monitor_website import MonitorWebsiteQueryAPI
 
 
 class VideoMeetingQueryChoices(models.TextChoices):

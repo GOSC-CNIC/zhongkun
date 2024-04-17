@@ -2,13 +2,13 @@ from django.utils.translation import gettext as _
 from rest_framework.response import Response
 from rest_framework.serializers import DecimalField
 
-from vo.managers import VoManager, VoMemberManager, VoMember
-from vo import vo_serializers
+from apps.vo.managers import VoManager, VoMemberManager, VoMember
+from apps.vo import vo_serializers
 from utils.model import OwnerType
 from core import errors as exceptions
-from api.viewsets import CustomGenericViewSet, serializer_error_msg
-from servers.managers import ServerManager, DiskManager
-from order.managers import OrderManager
+from apps.api.viewsets import CustomGenericViewSet, serializer_error_msg
+from apps.servers.managers import ServerManager, DiskManager
+from apps.order.managers import OrderManager
 from apps.app_wallet.models import CashCoupon
 from apps.app_wallet.managers import PaymentManager
 

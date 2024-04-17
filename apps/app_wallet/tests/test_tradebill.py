@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from utils.model import OwnerType
 from utils.test import get_or_create_organization, MyAPITestCase, get_or_create_user
-from vo.models import VirtualOrganization
+from apps.vo.models import VirtualOrganization
 from apps.app_wallet.models import TransactionBill, PayAppService, PayApp
 from apps.app_wallet.managers.bill import TransactionBillManager
 

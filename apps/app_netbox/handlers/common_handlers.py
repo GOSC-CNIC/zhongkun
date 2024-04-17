@@ -2,8 +2,8 @@ from django.utils.translation import gettext as _
 from rest_framework.response import Response
 
 from core import errors
-from api.viewsets import NormalGenericViewSet, serializer_error_msg
-from service.models import DataCenter as Organization
+from apps.api.viewsets import NormalGenericViewSet, serializer_error_msg
+from apps.service.models import DataCenter as Organization
 from ..managers.common import NetBoxUserRoleWrapper, OrgVirtualObjectManager, ContactPersonManager
 from ..serializers import common as common_serializers
 

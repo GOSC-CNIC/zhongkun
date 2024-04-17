@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import SimpleRouter
 
-from metering.apiviews import metering_views, storage_metering_views, monitor_metering_views
+from apps.metering.apiviews import metering_views, storage_metering_views, monitor_metering_views
 
 
 app_name = 'metering'

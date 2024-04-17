@@ -4,7 +4,7 @@ from datetime import timedelta
 from django.urls import reverse
 from django.utils import timezone
 
-from storage.models import Bucket, ObjectsService
+from apps.storage.models import Bucket, ObjectsService
 from utils.test import get_or_create_user, get_or_create_storage_service, MyAPITestCase
 
 

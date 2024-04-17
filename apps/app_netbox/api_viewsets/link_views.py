@@ -4,8 +4,8 @@ from rest_framework.serializers import Serializer
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-from api.viewsets import NormalGenericViewSet
-from api.paginations import NewPageNumberPagination
+from apps.api.viewsets import NormalGenericViewSet
+from apps.api.paginations import NewPageNumberPagination
 from apps.app_netbox.handlers.link_handlers import LinkHandler
 from apps.app_netbox.serializers import link as link_serializers
 from apps.app_netbox.models import Link

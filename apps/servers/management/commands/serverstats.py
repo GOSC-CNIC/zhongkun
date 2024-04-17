@@ -3,7 +3,7 @@ import datetime
 from django.core.management.base import BaseCommand, CommandError
 from django.db.models import Sum, Count
 
-from servers.models import Server, ServerArchive
+from apps.servers.models import Server, ServerArchive
 
 
 class Command(BaseCommand):

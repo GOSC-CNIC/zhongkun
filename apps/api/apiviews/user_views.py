@@ -6,15 +6,15 @@ from rest_framework.serializers import Serializer
 from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
-from api.viewsets import CustomGenericViewSet
-from api.serializers import serializers
-from servers.managers import ServiceManager
-from api.paginations import DefaultPageNumberPagination
-from users.managers import filter_user_queryset
+from apps.api.viewsets import CustomGenericViewSet
+from apps.api.serializers import serializers
+from apps.servers.managers import ServiceManager
+from apps.api.paginations import DefaultPageNumberPagination
+from apps.users.managers import filter_user_queryset
 from core import errors
 from utils.paginators import NoPaginatorInspector
 from utils.time import iso_utc_to_datetime
-from vo.models import VirtualOrganization
+from apps.vo.models import VirtualOrganization
 
 
 class UserViewSet(CustomGenericViewSet):

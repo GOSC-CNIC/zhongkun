@@ -8,13 +8,13 @@ from core import errors as exceptions
 from core.quota import QuotaAPI
 from core import request as core_request
 from core.taskqueue import server_build_status, Future
-from servers.managers import ServiceManager
-from servers.models import Server, Disk, ServerArchive, DiskChangeLog, ServiceConfig
-from servers.managers import ServerManager, DiskManager
+from apps.servers.managers import ServiceManager
+from apps.servers.models import Server, Disk, ServerArchive, DiskChangeLog, ServiceConfig
+from apps.servers.managers import ServerManager, DiskManager
 from core.adapters import inputs, outputs
 from utils.model import PayType, OwnerType, ResourceType
-from order.models import Order, Resource
-from order.managers import OrderManager, ServerConfig, PriceManager, DiskConfig, ScanConfig
+from apps.order.models import Order, Resource
+from apps.order.managers import OrderManager, ServerConfig, PriceManager, DiskConfig, ScanConfig
 from apps.app_scan.models import VtTask
 from apps.app_scan.managers import TaskManager
 

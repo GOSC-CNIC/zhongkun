@@ -7,8 +7,8 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
 from utils.paginators import NoPaginatorInspector
-from api.paginations import NewPageNumberPagination100
-from api.viewsets import NormalGenericViewSet
+from apps.api.paginations import NewPageNumberPagination100
+from apps.api.viewsets import NormalGenericViewSet
 from apps.app_netbox.serializers import common as common_serializers
 from apps.app_netbox.managers.common import NetBoxUserRoleWrapper
 from apps.app_netbox.handlers.common_handlers import OrgVirtObjHandler, ContactsHandler

@@ -5,13 +5,13 @@ from django.conf import settings
 from rest_framework.response import Response
 
 from core import errors, site_configs_manager
-from api.viewsets import CustomGenericViewSet
-from order.deliver_resource import OrderResourceDeliverer
-from order.models import ResourceType, Order, Resource
-from order.managers import OrderManager, OrderPaymentManager
+from apps.api.viewsets import CustomGenericViewSet
+from apps.order.deliver_resource import OrderResourceDeliverer
+from apps.order.models import ResourceType, Order, Resource
+from apps.order.managers import OrderManager, OrderPaymentManager
 from utils.time import iso_to_datetime
-from api import request_logger
-from servers. managers import ServerManager
+from apps.api import request_logger
+from apps.servers. managers import ServerManager
 
 
 CASH_COUPON_BALANCE = 'coupon_balance'

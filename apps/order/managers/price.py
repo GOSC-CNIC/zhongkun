@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from core import errors
-from order.models import Price
+from apps.order.models import Price
 
 
 class PriceManager:

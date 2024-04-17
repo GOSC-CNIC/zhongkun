@@ -8,14 +8,14 @@ from django.utils import timezone
 from utils.test import get_or_create_user, get_or_create_storage_service, get_or_create_organization
 from utils.model import OwnerType
 from core import errors
-from order.models import Price
+from apps.order.models import Price
 from apps.app_wallet.models import CashCoupon, PaymentHistory, PayAppService, PayApp
-from metering.measurers import StorageMeasurer
-from metering.models import PaymentStatus, MeteringObjectStorage, DailyStatementObjectStorage
-from metering.payment import MeteringPaymentManager
-from metering.statement_generators import GenerateDailyStatementObjectStorage
-from users.models import UserProfile
-from storage.models import Bucket, ObjectsService
+from apps.metering.measurers import StorageMeasurer
+from apps.metering.models import PaymentStatus, MeteringObjectStorage, DailyStatementObjectStorage
+from apps.metering.payment import MeteringPaymentManager
+from apps.metering.statement_generators import GenerateDailyStatementObjectStorage
+from apps.users.models import UserProfile
+from apps.storage.models import Bucket, ObjectsService
 
 
 utc = dt_timezone.utc

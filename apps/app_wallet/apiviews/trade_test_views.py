@@ -6,7 +6,7 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
 from apps.app_wallet.apiviews import PaySignGenericViewSet
-from api.paginations import NewPageNumberPagination
+from apps.api.paginations import NewPageNumberPagination
 from core import errors
 
 

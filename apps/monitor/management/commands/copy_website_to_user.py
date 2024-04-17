@@ -1,8 +1,8 @@
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
-from monitor.models import MonitorWebsite, MonitorWebsiteTask, get_str_hash
-from users.models import UserProfile
+from apps.monitor.models import MonitorWebsite, MonitorWebsiteTask, get_str_hash
+from apps.users.models import UserProfile
 
 
 class Command(BaseCommand):

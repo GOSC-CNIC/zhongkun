@@ -9,16 +9,15 @@ from django.template.loader import get_template
 from django.template import Template, Context
 
 from apps.app_wallet.managers.payment import PaymentManager
-from servers.models import ServiceConfig
-from servers.models import Server
-from servers.managers import ServerManager
-from users.models import Email, UserProfile
-from vo.models import VirtualOrganization, VoMember
+from apps.servers.models import ServiceConfig, Server
+from apps.servers.managers import ServerManager
+from apps.users.models import Email, UserProfile
+from apps.vo.models import VirtualOrganization, VoMember
 from utils.model import PayType, OwnerType
 from core import site_configs_manager as site_configs
 from core.loggers import config_script_logger
-from report.managers import ArrearServerManager
-from monitor.models import ErrorLog
+from apps.report.managers import ArrearServerManager
+from apps.monitor.models import ErrorLog
 
 
 UserServerTuple = namedtuple(

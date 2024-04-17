@@ -3,7 +3,7 @@ from django.views import View
 
 from core.request import request_vpn_service
 from core import errors as exceptions
-from servers.models import ServiceConfig
+from apps.servers.models import ServiceConfig
 from utils.time import iso_to_datetime
 
 

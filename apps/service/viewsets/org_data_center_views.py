@@ -7,16 +7,16 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
 from core import errors as exceptions
-from api.paginations import NewPageNumberPagination100
-from api.viewsets import NormalGenericViewSet, serializer_error_msg
-from service.models import OrgDataCenter
-from service.odc_manager import OrgDataCenterManager
-from servers.models import ServiceConfig
-from servers.serializers import AdminServiceSerializer
-from storage.models import ObjectsService
-from storage.serializers import AdminObjectsServiceSerializer
-from monitor.models import MonitorJobServer, MonitorJobCeph, MonitorJobTiDB, LogSite
-from monitor.serializers import (
+from apps.api.paginations import NewPageNumberPagination100
+from apps.api.viewsets import NormalGenericViewSet, serializer_error_msg
+from apps.service.models import OrgDataCenter
+from apps.service.odc_manager import OrgDataCenterManager
+from apps.servers.models import ServiceConfig
+from apps.servers.serializers import AdminServiceSerializer
+from apps.storage.models import ObjectsService
+from apps.storage.serializers import AdminObjectsServiceSerializer
+from apps.monitor.models import MonitorJobServer, MonitorJobCeph, MonitorJobTiDB, LogSite
+from apps.monitor.serializers import (
     MonitorUnitServerSerializer, MonitorUnitCephSerializer, MonitorUnitTiDBSerializer, LogSiteSerializer
 )
 from .. import serializers as dcserializers

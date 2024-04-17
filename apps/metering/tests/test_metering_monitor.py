@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from utils.test import get_or_create_user, MyAPITestCase
-from metering.models import MeteringMonitorWebsite, DailyStatementMonitorWebsite, PaymentStatus
+from apps.metering.models import MeteringMonitorWebsite, DailyStatementMonitorWebsite, PaymentStatus
 
 
 def create_site_metering(

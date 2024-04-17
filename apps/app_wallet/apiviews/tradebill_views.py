@@ -4,7 +4,7 @@ from rest_framework.serializers import Serializer
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-from api.paginations import TradeBillPagination
+from apps.api.paginations import TradeBillPagination
 from apps.app_wallet import trade_serializers
 from apps.app_wallet.handlers.tradebill_handler import TradeBillHandler
 from apps.app_wallet.models import TransactionBill

@@ -4,7 +4,7 @@ from django.utils.translation import gettext as _
 from django.db import transaction
 
 from core import errors
-from metering.models import PaymentStatus, DailyStatementBase
+from apps.metering.models import PaymentStatus, DailyStatementBase
 from apps.app_wallet.managers.payment import PaymentManager
 
 

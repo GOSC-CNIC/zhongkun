@@ -5,10 +5,10 @@ from django.utils.translation import gettext_lazy as _
 from django.utils import timezone as dj_timezone
 
 from utils.model import UuidModel, OwnerType, PayType
-from users.models import UserProfile
-from vo.models import VirtualOrganization
-from storage.models import ObjectsService, BucketBase
-from servers.models import Server, ServiceConfig
+from apps.users.models import UserProfile
+from apps.vo.models import VirtualOrganization
+from apps.storage.models import ObjectsService, BucketBase
+from apps.servers.models import Server, ServiceConfig
 
 
 class MonthlyReport(UuidModel):

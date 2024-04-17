@@ -1,13 +1,13 @@
 from django.utils.translation import gettext as _
 from rest_framework.response import Response
 
-from servers.managers import (
+from apps.servers.managers import (
     ServicePrivateQuotaManager, ServiceShareQuotaManager, ServiceManager
 )
-from servers.models import ServiceConfig
-from servers import serializers
+from apps.servers.models import ServiceConfig
+from apps.servers import serializers
 from core import errors as exceptions
-from api.viewsets import serializer_error_msg, CustomGenericViewSet
+from apps.api.viewsets import serializer_error_msg, CustomGenericViewSet
 
 
 class VmServiceHandler:

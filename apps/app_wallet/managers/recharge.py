@@ -8,7 +8,7 @@ from django.utils import timezone
 from core import errors
 from apps.app_wallet.models import Recharge, TransactionBill
 from utils.model import OwnerType
-from vo.managers import VoManager
+from apps.vo.managers import VoManager
 from .payment import PaymentManager
 from .bill import TransactionBillManager
 

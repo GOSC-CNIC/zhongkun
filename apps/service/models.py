@@ -6,9 +6,9 @@ from django.core.exceptions import ValidationError
 
 from utils.model import UuidModel, get_encryptor
 from utils.validators import http_url_validator
-from vo.models import VirtualOrganization
+from apps.vo.models import VirtualOrganization
 
-from users.models import UserProfile as User
+from apps.users.models import UserProfile as User
 
 
 app_name = 'service'

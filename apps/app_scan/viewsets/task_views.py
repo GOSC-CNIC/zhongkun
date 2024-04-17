@@ -4,8 +4,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.serializers import Serializer
 from django.utils.translation import gettext_lazy
 
-from api.paginations import ScanTaskPageNumberPagination
-from api.viewsets import CustomGenericViewSet
+from apps.api.paginations import ScanTaskPageNumberPagination
+from apps.api.viewsets import CustomGenericViewSet
 from apps.app_scan.models import VtTask
 from apps.app_scan.handlers.task_handler import TaskHandler
 from apps.app_scan.serializers import ScanTaskOrderCreateSerializer, ScanTaskListSerializer

@@ -4,10 +4,10 @@ from django.utils.translation import gettext as _
 from django.db.models import Q
 from django.db import transaction
 
-from servers.models import Server
+from apps.servers.models import Server
 from core import errors
-from users.models import UserProfile as User
-from .models import VirtualOrganization, VoMember
+from apps.users.models import UserProfile as User
+from apps.vo.models import VirtualOrganization, VoMember
 
 
 class VoManager:

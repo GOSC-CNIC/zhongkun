@@ -2,8 +2,8 @@ from django.urls import reverse
 from django.conf import settings
 
 from utils.test import get_or_create_service
-from monitor.models import TotalReqNum
-from api.apiviews.portal_views import PortalIPRestrictor
+from apps.monitor.models import TotalReqNum
+from apps.api.apiviews.portal_views import PortalIPRestrictor
 from . import MyAPITestCase, get_or_create_user
 
 

@@ -4,8 +4,8 @@ from rest_framework.decorators import action
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-from api.paginations import NewPageNumberPagination
-from api.viewsets import NormalGenericViewSet
+from apps.api.paginations import NewPageNumberPagination
+from apps.api.viewsets import NormalGenericViewSet
 from apps.app_netbox.serializers.link import LeaseLineSerializer
 from apps.app_netbox.handlers.link_handlers import LeaseLineHandler
 from apps.app_netbox.permissions import LinkIPRestrictPermission

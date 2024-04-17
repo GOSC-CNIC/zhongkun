@@ -18,7 +18,7 @@ from apps.app_wallet.models import (
 from apps.app_wallet.managers.payment import PaymentManager, TransactionBillManager
 from utils.test import get_or_create_user, get_or_create_organization, MyAPITestCase, MyAPITransactionTestCase
 from utils.model import OwnerType
-from vo.models import VirtualOrganization
+from apps.vo.models import VirtualOrganization
 
 
 def response_sign_assert(test_case, r, wallet_public_key: str):

@@ -5,10 +5,10 @@ from rest_framework.serializers import Serializer
 from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
-from api.viewsets import CustomGenericViewSet
-from api.paginations import NewPageNumberPagination
-from servers.handlers.disk_handler import DiskHandler
-from servers import disk_serializers
+from apps.api.viewsets import CustomGenericViewSet
+from apps.api.paginations import NewPageNumberPagination
+from apps.servers.handlers.disk_handler import DiskHandler
+from apps.servers import disk_serializers
 
 
 class DisksViewSet(CustomGenericViewSet):
