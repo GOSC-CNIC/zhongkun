@@ -9,8 +9,8 @@ from django.utils.translation import gettext as _
 
 from core import site_configs_manager
 from scripts.models import TimedTaskLook
-from users.models import Email
-from users import managers as user_manager
+from apps.users.models import Email
+from apps.users import managers as user_manager
 
 
 def get_local_ips() -> List[str]:
