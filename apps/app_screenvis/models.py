@@ -259,22 +259,6 @@ class BaseService(models.Model):
         encryptor = get_encryptor()
         self.password = encryptor.encrypt(raw_password)
 
-    def raw_vpn_password(self):
-        """
-        :return:
-            str     # success
-            None    # failed, invalid encrypted password
-        """
-        encryptor = get_encryptor()
-        try:
-            return encryptor.decrypt(self.vpn_password)
-        except encryptor.InvalidEncrypted as e:
-            return None
-
-    def set_vpn_password(self, raw_password: str):
-        encryptor = get_encryptor()
-        self.vpn_password = encryptor.encrypt(raw_password)
-
 
 class ServerService(BaseService):
     class Meta:
@@ -317,7 +301,9 @@ class ServerServiceTimedStats(BaseTimed):
     ip_count = models.IntegerField(verbose_name=_('IP总数'), blank=True, default=0)
     ip_used_count = models.IntegerField(verbose_name=_('已用IP数'), blank=True, default=0)
     mem_size = models.IntegerField(verbose_name=_('内存总数(GiB)'), blank=True, default=0)
-    mem_used_size = models.IntegerField(verbose_name=_('已用IP总数(GiB)'), blank=True, default=0)
+    mem_used_size = models.IntegerField(verbose_name=_('已用内存总数(GiB)'), blank=True, default=0)
+    cpu_count = models.IntegerField(verbose_name=_('CPU总数'), blank=True, default=0)
+    cpu_used_count = models.IntegerField(verbose_name=_('已用CPU总数'), blank=True, default=0)
 
     class Meta:
         db_table = 'screenvis_server_timedstats'

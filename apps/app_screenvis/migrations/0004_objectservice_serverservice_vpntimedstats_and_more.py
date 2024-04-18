@@ -83,7 +83,9 @@ class Migration(migrations.Migration):
                 ('ip_count', models.IntegerField(blank=True, default=0, verbose_name='IP总数')),
                 ('ip_used_count', models.IntegerField(blank=True, default=0, verbose_name='已用IP数')),
                 ('mem_size', models.IntegerField(blank=True, default=0, verbose_name='内存总数(GiB)')),
-                ('mem_used_size', models.IntegerField(blank=True, default=0, verbose_name='已用IP总数(GiB)')),
+                ('mem_used_size', models.IntegerField(blank=True, default=0, verbose_name='已用内存总数(GiB)')),
+                ('cpu_count', models.IntegerField(blank=True, default=0, verbose_name='CPU总数')),
+                ('cpu_used_count', models.IntegerField(blank=True, default=0, verbose_name='已用CPU总数')),
                 ('service', models.ForeignKey(db_constraint=False, db_index=False, null=True, on_delete=django.db.models.deletion.DO_NOTHING, to='app_screenvis.serverservice', verbose_name='服务单元')),
             ],
             options={
