@@ -18,4 +18,4 @@ from apps.app_screenvis.workers.cpu_usage import HostCpuUsageWorker
 
 
 if __name__ == "__main__":
-    HostCpuUsageWorker(minutes=10).run(update_before_invalid_cycles=5)
+    HostCpuUsageWorker(minutes=3).run(update_before_invalid_cycles=5)

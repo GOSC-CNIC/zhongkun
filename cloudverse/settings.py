@@ -90,8 +90,12 @@ ADMIN_SORTED_APP_LIST = [
     'netbox',   # app_netbox
     'scan',     # app_scan
     'vpn',
-    'apply',    # app_apply
     'app_screenvis',
+    'app_alert',
+    'app_netflow',
+    'apply',    # app_apply
+    'scripts',
+    'auth',
 ]
 
 MIDDLEWARE = [
@@ -411,7 +415,7 @@ CRONTABJOBS = [
      'python3 /home/uwsgi/yunkun/scripts/update_service_req_num.py >> /var/log/yunkun/task_update_req_num.log'),
     ('task6_scan_start', '*/3 * * * *',
      'python3 /home/uwsgi/yunkun/scripts/run_scan_process.py >> /var/log/yunkun/task_scan_process.log'),
-    ('task7_screen_host_cpuusage', '*/10 * * * *',
+    ('task7_screen_host_cpuusage', '*/3 * * * *',
      'python3 /home/uwsgi/yunkun/scripts/run_screen_host_cpuusage.py >> /var/log/yunkun/task_screen_host_cpuusage.log'),
     ('task8_alert_email_notification', '*/2 * * * *',
      'python3 /home/uwsgi/yunkun/apps/app_alert/scripts/alert_email_notification.py >> /var/log/yunkun/task_alert_email_notification.log'),
