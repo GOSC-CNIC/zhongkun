@@ -14,6 +14,7 @@ from drf_yasg import openapi
 
 from apps.service.models import DataCenter, ApplyOrganization
 from apps.servers.models import ApplyVmService
+from apps.servers import format_who_action_str
 from core import errors as exceptions
 from apps.api.serializers import serializers
 from apps.api.viewsets import CustomGenericViewSet
@@ -75,8 +76,9 @@ class VPNViewSet(CustomGenericViewSet):
         else:
             method = 'get_vpn'
 
+        who_action = format_who_action_str(username=request.user.username)
         try:
-            r = self.request_vpn_service(service, method=method, username=request.user.username)
+            r = self.request_vpn_service(service, method=method, username=request.user.username, who_action=who_action)
         except exceptions.AuthenticationFailed as exc:
             return Response(data=exc.err_data(), status=500)
         except exceptions.NotFound as exc:
@@ -136,9 +138,10 @@ class VPNViewSet(CustomGenericViewSet):
             exc = exceptions.NoSupportVPN()
             return Response(exc.err_data(), status=exc.status_code)
 
+        who_action = format_who_action_str(username=request.user.username)
         try:
             r = self.request_vpn_service(service, method='vpn_change_password', username=request.user.username,
-                                         password=password)
+                                         password=password, who_action=who_action)
         except exceptions.AuthenticationFailed as exc:
             return Response(data=exc.err_data(), status=500)
         except exceptions.APIException as exc:

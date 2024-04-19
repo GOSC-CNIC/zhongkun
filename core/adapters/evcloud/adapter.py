@@ -42,6 +42,21 @@ def get_failed_err_code(response, code_key='err_code'):
         return ''
 
 
+def query_add_param(query, who_action: str = None):
+    if who_action:
+        if query:
+            query['_who_action'] = who_action
+        else:
+            query = {'_who_action': who_action}
+
+    return query
+
+
+def query_add_who_action(query, params: inputs.InputBase):
+    who_action = params.get('_who_action', None)
+    return query_add_param(query=query, who_action=who_action)
+
+
 class EVCloudAdapter(BaseAdapter):
     """
     EVCloud服务API适配器
@@ -164,7 +179,8 @@ class EVCloudAdapter(BaseAdapter):
         :return:
             outputs.ServerCreateOutput()
         """
-        url = self.api_builder.vm_base_url()
+        query = query_add_who_action(query=None, params=params)
+        url = self.api_builder.vm_base_url(query=query)
         try:
             if params.systemdisk_size:
                 if params.systemdisk_size < self.SYSTEM_DISK_MIN_SIZE_GB:
@@ -188,6 +204,8 @@ class EVCloudAdapter(BaseAdapter):
         query = None
         if params.force:
             query = {'force': 'true'}
+
+        query = query_add_who_action(query=query, params=params)
         url = self.api_builder.vm_detail_url(vm_uuid=params.instance_id, query=query)
         try:
             headers = self.get_auth_header()
@@ -217,7 +235,8 @@ class EVCloudAdapter(BaseAdapter):
             return outputs.ServerActionOutput(ok=False, error=exceptions.APIInvalidParam('invalid param "action"'))
 
         if action in [inputs.ServerAction.DELETE_FORCE, inputs.ServerAction.DELETE]:
-            params = inputs.ServerDeleteInput(instance_id=params.instance_id, instance_name=params.instance_name)
+            params = inputs.ServerDeleteInput(
+                instance_id=params.instance_id, instance_name=params.instance_name, **params.get_kwargs())
             if action == inputs.ServerAction.DELETE_FORCE:
                 params.force = True
             r = self.server_delete(params=params)
@@ -227,7 +246,8 @@ class EVCloudAdapter(BaseAdapter):
             return outputs.ServerActionOutput(ok=False, error=r.error)
 
         try:
-            url = self.api_builder.vm_action_url(vm_uuid=params.instance_id)
+            query = query_add_who_action(query=None, params=params)
+            url = self.api_builder.vm_action_url(vm_uuid=params.instance_id, query=query)
             headers = self.get_auth_header()
             self.do_request(method='patch', url=url, data={'op': action}, headers=headers)
         except exceptions.Error as e:
@@ -257,7 +277,9 @@ class EVCloudAdapter(BaseAdapter):
         return OutputConverter.to_server_status_output_error(error=error)
 
     def server_vnc(self, params: inputs.ServerVNCInput, **kwargs):
-        url = self.api_builder.vm_vnc_url(vm_uuid=params.instance_id)
+        query = query_add_who_action(query=None, params=params)
+        url = self.api_builder.vm_vnc_url(vm_uuid=params.instance_id, query=query)
+
         try:
             headers = self.get_auth_header()
             r = self.do_request(method='post', url=url, headers=headers)
@@ -296,7 +318,8 @@ class EVCloudAdapter(BaseAdapter):
         :return:
             outputs.ServerRebuildOutput()
         """
-        url = self.api_builder.vm_reset_url(vm_uuid=params.instance_id, image_id=params.image_id)
+        query = query_add_who_action(query=None, params=params)
+        url = self.api_builder.vm_reset_url(vm_uuid=params.instance_id, image_id=params.image_id, query=query)
         try:
             headers = self.get_auth_header()
             self.server_action(params=inputs.ServerActionInput(
@@ -469,7 +492,8 @@ class EVCloudAdapter(BaseAdapter):
         :return:
             outputs.DiskCreateOutput()
         """
-        _api = self.api_builder.disk_base_url()
+        query = query_add_who_action(query=None, params=params)
+        _api = self.api_builder.disk_base_url(query=query)
         try:
             data = InputValidator.create_disk_validate(params)
             headers = self.get_auth_header()
@@ -589,7 +613,8 @@ class EVCloudAdapter(BaseAdapter):
         :return:
             outputs.DiskDeleteOutput()
         """
-        _api = self.api_builder.disk_detail_url(disk_id=params.disk_id)
+        query = query_add_who_action(query=None, params=params)
+        _api = self.api_builder.disk_detail_url(disk_id=params.disk_id, query=query)
         try:
             headers = self.get_auth_header()
             r = self.do_request(method='delete', url=_api, data=None, ok_status_codes=[204, 404], headers=headers)
@@ -612,7 +637,8 @@ class EVCloudAdapter(BaseAdapter):
         :return:
             outputs.DiskAttachOutput()
         """
-        _api = self.api_builder.disk_attach_url(disk_id=params.disk_id, vm_uuid=params.instance_id)
+        query = query_add_who_action(query=None, params=params)
+        _api = self.api_builder.disk_attach_url(disk_id=params.disk_id, vm_uuid=params.instance_id, query=query)
         try:
             headers = self.get_auth_header()
             self.do_request(method='patch', url=_api, data=None, ok_status_codes=[200], headers=headers)
@@ -627,7 +653,8 @@ class EVCloudAdapter(BaseAdapter):
         :return:
             outputs.DiskDetachOutput()
         """
-        _api = self.api_builder.disk_detach_url(disk_id=params.disk_id)
+        query = query_add_who_action(query=None, params=params)
+        _api = self.api_builder.disk_detach_url(disk_id=params.disk_id, query=query)
         try:
             headers = self.get_auth_header()
             self.do_request(method='patch', url=_api, data=None, ok_status_codes=[200], headers=headers)
@@ -698,17 +725,18 @@ class EVCloudAdapter(BaseAdapter):
         msg = get_failed_msg(r)
         raise exceptions.APIError(msg, status_code=r.status_code)
 
-    def create_vpn(self, username: str, password: str = None):
+    def create_vpn(self, username: str, password: str = None, who_action: str = None):
         data = {'username': username}
         if password:
             data['password'] = password
 
-        url = self.api_builder.vpn_base_url()
+        query = query_add_param(query=None, who_action=who_action)
+        url = self.api_builder.vpn_base_url(query=query)
         headers = self.get_auth_header()
         r = self.do_request(method='post', url=url, data=data, ok_status_codes=[201], headers=headers)
         return r.json()
 
-    def get_vpn_or_create(self, username: str):
+    def get_vpn_or_create(self, username: str, who_action: str = None):
         url = self.api_builder.vpn_detail_url(username=username)
         headers = self.get_auth_header()
         r = self.do_request(method='get', url=url, ok_status_codes=[200, 404], headers=headers)
@@ -717,13 +745,15 @@ class EVCloudAdapter(BaseAdapter):
             return d
 
         if 'err_code' in d and d['err_code'] == 'NoSuchVPN':
-            return self.create_vpn(username=username)
+            return self.create_vpn(username=username, who_action=who_action)
 
         msg = get_failed_msg(r)
         raise exceptions.APIError(msg, status_code=r.status_code)
 
-    def vpn_change_password(self, username: str, password: str):
-        url = self.api_builder.vpn_detail_url(username=username, query={'password': password})
+    def vpn_change_password(self, username: str, password: str, who_action: str = None):
+        query = {'password': password}
+        query = query_add_param(query=query, who_action=who_action)
+        url = self.api_builder.vpn_detail_url(username=username, query=query)
         headers = self.get_auth_header()
         r = self.do_request(method='patch', url=url, headers=headers)
         return r.json()
@@ -734,14 +764,16 @@ class EVCloudAdapter(BaseAdapter):
     def get_vpn_ca_file_url(self, **kwargs):
         return self.api_builder.vpn_ca_file_url()
 
-    def vpn_active(self, username: str):
-        url = self.api_builder.vpn_active_url(username=username)
+    def vpn_active(self, username: str, who_action: str = None):
+        query = query_add_param(query=None, who_action=who_action)
+        url = self.api_builder.vpn_active_url(username=username, query=query)
         headers = self.get_auth_header()
         r = self.do_request(method='post', url=url, headers=headers)
         return r.json()
 
-    def vpn_deactive(self, username: str):
-        url = self.api_builder.vpn_deactive_url(username=username)
+    def vpn_deactive(self, username: str, who_action: str = None):
+        query = query_add_param(query=None, who_action=who_action)
+        url = self.api_builder.vpn_deactive_url(username=username, query=query)
         headers = self.get_auth_header()
         r = self.do_request(method='post', url=url, headers=headers)
         return r.json()

@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from core import errors
 from apps.api.viewsets import CustomGenericViewSet
 from apps.servers.managers import ServerManager
+from apps.servers import format_who_action_str
 
 
 class VPNHandler:
@@ -36,8 +37,10 @@ class VPNHandler:
             )
             return Response(exc.err_data(), status=exc.status_code)
 
+        who_action = format_who_action_str(username=request.user.username)
         try:
-            r = view.request_vpn_service(service, method='active_vpn', username=request.user.username)
+            r = view.request_vpn_service(
+                service, method='active_vpn', username=request.user.username, who_action=who_action)
         except errors.AuthenticationFailed as exc:
             return Response(data=exc.err_data(), status=500)
         except errors.APIException as exc:
@@ -55,8 +58,10 @@ class VPNHandler:
             exc = errors.NoSupportVPN(message=_('服务单元未提供VPN服务'))
             return Response(exc.err_data(), status=exc.status_code)
 
+        who_action = format_who_action_str(username=request.user.username)
         try:
-            r = view.request_vpn_service(service, method='deactive_vpn', username=request.user.username)
+            r = view.request_vpn_service(
+                service, method='deactive_vpn', username=request.user.username, who_action=who_action)
         except errors.AuthenticationFailed as exc:
             return Response(data=exc.err_data(), status=500)
         except errors.APIException as exc:

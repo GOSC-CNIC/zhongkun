@@ -6,6 +6,7 @@ from core.request import request_vpn_service
 from apps.vo.models import VirtualOrganization, VoMember
 from apps.servers.models import Server
 from apps.servers.tests import create_server_metadata
+from apps.servers import format_who_action_str
 from . import MyAPITestCase
 
 
@@ -19,7 +20,8 @@ class VpnAdapterTests(MyAPITestCase):
         r = request_vpn_service(
             service=self.service,
             method='get_vpn_or_create',
-            username=vpn_username
+            username=vpn_username,
+            who_action=format_who_action_str(username='test@qq.com', vo_name='vo名称')
         )
         self.assertEqual(r['username'], vpn_username)
         self.assertIs(r['active'], False)
@@ -27,7 +29,8 @@ class VpnAdapterTests(MyAPITestCase):
         r = request_vpn_service(
             service=self.service,
             method='active_vpn',
-            username=vpn_username
+            username=vpn_username,
+            who_action=format_who_action_str(username=vpn_username)
         )
         self.assertIs(r['active'], True)
         self.assertEqual(r['username'], vpn_username)
@@ -35,7 +38,8 @@ class VpnAdapterTests(MyAPITestCase):
         r = request_vpn_service(
             service=self.service,
             method='deactive_vpn',
-            username=vpn_username
+            username=vpn_username,
+            who_action=format_who_action_str(username=vpn_username)
         )
         self.assertEqual(r['username'], vpn_username)
         self.assertIs(r['active'], False)
@@ -49,9 +53,15 @@ class VpnTests(MyAPITestCase):
         self.service = get_or_create_service()
 
     def test_active_deactive_vpn(self):
+        server_user = create_server_metadata(
+            service=self.service, user=self.user,
+            default_user='', default_password='',
+            ipv4='127.0.0.1', remarks='test miss server', pay_type=PayType.PREPAID.value
+        )
         detail_url = reverse('api:vpn-detail', kwargs={'service_id': self.service.id})
         r = self.client.get(detail_url)
         self.assertEqual(r.status_code, 200)
+        server_user.delete()
 
         deactive_url = reverse('api:vpn-deactive-vpn', kwargs={'service_id': self.service.id})
         r = self.client.post(deactive_url)
