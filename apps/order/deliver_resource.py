@@ -99,7 +99,7 @@ class OrderResourceDeliverer:
             except exceptions.Error as e:
                 pass
             else:
-                return server
+                return server, []
 
         futures = []
         f = server_build_status.creat_task(server)  # 异步任务查询server创建结果，更新server信息和创建状态
