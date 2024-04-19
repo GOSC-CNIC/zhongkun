@@ -1,3 +1,30 @@
+## v2.2.0
+发布时间： 2024-04-19  
+发布人： shun  
+
+* 目录apps添加__init__.py改为package，所有模块导入都改为from apps包绝对路径方式导入；提交人：yushunwang
+* app scan和bill重命名为app_scan和app_wallet；提交人：yushunwang
+* 大屏展示tidb、ceph和主机指标查询接口修改指标选项；提交人：yushunwang
+* 大屏展示，定义主机cpu使用率model，实现主机cpu使用率时序数据生产定时任务；提交人：yushunwang
+* 大屏展示，新增主机单元cpu使用率时序数据查询接口和测试用例；提交人：yushunwang
+* 大屏展示，定义IP白名单模型，大屏展示所有API鉴权客户端ip；提交人：yushunwang
+* 定时任务脚本的各功能实现代码和测试用例移动到各相关app下，定时任务相关日志配置接口移动到core.loggers；提交人：yushunwang
+* 基于数据库实现定时任务状态锁功能，定时任务分布式部署多个节点时，实现定时任务间的同步调度，避免重复执行；
+  计量计费和日志时序统计定时任务改为使用定时器状态锁；提交人：yushunwang
+* vpn、云主机和云硬盘的创建删除等操作传递额外参数who_action，evcloud适配器修改支持此参数，
+  通过url query告知evcloud服务是哪个用户在操作；提交人：yushunwang
+* 监控，站点监控探测点模型增加排序字段，列举探测点接口数据按排序值排序；提交人：yushunwang
+* 监控，当没有日志单元时，日志数量统计定时任务执行报错修复；
+  日志统计时序数据定时任务尝试更新无效数据失败问题修复，问题原因是在异步函数执行过程中同步访问数据库django orm 报错；提交人：yushunwang
+* 结算配置参数‘app_id’通过统一的函数接口获取，钱包结算单元model服务类型增加“安全扫描”选项；提交人：yushunwang
+* 资源券申请，实现邮件通知功能，券申请增加联系方式字段，申请提交、列举、更新等接口增加联系方式字段；提交人：yushunwang
+* 安全扫描订单无法支付的问题修复；提交人：yushunwang
+* 新增 站点监控探针app；提交人：wanghuang
+* 新增app app_netflow，定义图表Item、菜单和权限模型，实现图表Item和菜单列举接口提交人：wenhao
+* 新增app app_alert，定义模型，实现告警模块定时任务，实现异常告警接收接口，异常告警、告警可选项和用户告警通知记录查询接口，告警工单创建和查询接口；提交人：wenhao
+* 资源交付,云主机创建后更新元数据函数缺少一个返回值的bug修复；提交人：yushunwang
+
+
 ## v2.1.0
 发布时间： 2024-04-01  
 发布人： shun  
