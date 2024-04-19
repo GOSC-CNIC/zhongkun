@@ -25,7 +25,7 @@ from apps.app_wallet.managers import PaymentManager
 from apps.servers.managers import ServiceManager
 from apps.servers.managers import ServerManager, DiskManager, ResourceActionLogManager
 from apps.servers.models import Server, Disk
-from apps.servers import disk_serializers
+from apps.servers import disk_serializers, format_who_action_str
 
 
 PAY_APP_ID = site_configs_manager.get_pay_app_id(settings, check_valid=True)
@@ -465,8 +465,10 @@ class DiskHandler:
         except exceptions.Error as exc:
             return view.exception_response(exc)
 
+        who_action = format_who_action_str(username=request.user.username)
         try:
-            params = inputs.DiskDeleteInput(disk_id=disk.instance_id, disk_name=disk.instance_name)
+            params = inputs.DiskDeleteInput(
+                disk_id=disk.instance_id, disk_name=disk.instance_name, _who_action=who_action)
             r = view.request_service(disk.service, method='disk_delete', params=params)
             if not r.ok:
                 raise exceptions.ConflictError(message=_('向服务单元删除云硬盘时错误') + str(r.error))
@@ -546,19 +548,21 @@ class DiskHandler:
             return view.exception_response(exc)
 
         try:
-            DiskHandler.do_attach_disk(server=server, disk=disk)
+            DiskHandler.do_attach_disk(server=server, disk=disk, user=request.user)
         except exceptions.APIException as exc:
             return view.exception_response(exc)
 
         return Response(data={'server_id': server.id, 'disk_id': disk.id})
 
     @staticmethod
-    def do_attach_disk(server: Server, disk: Disk):
+    def do_attach_disk(server: Server, disk: Disk, user):
         """
         挂载硬盘
         :raises: Error，Conflict
         """
-        params = inputs.DiskAttachInput(instance_id=server.instance_id, disk_id=disk.instance_id)
+        who_action = format_who_action_str(username=user.username)
+        params = inputs.DiskAttachInput(
+            instance_id=server.instance_id, disk_id=disk.instance_id, _who_action=who_action)
         r = core_request.request_service(disk.service, method='disk_attach', params=params)
         if not r.ok:
             raise exceptions.ConflictError(message=_('向云主机挂载云硬盘时错误') + str(r.error))
@@ -606,19 +610,21 @@ class DiskHandler:
             return view.exception_response(exc)
 
         try:
-            DiskHandler.do_detach_disk(server=server, disk=disk)
+            DiskHandler.do_detach_disk(server=server, disk=disk, user=request.user)
         except exceptions.Error as exc:
             return view.exception_response(exc)
 
         return Response(data={'server_id': server.id, 'disk_id': disk.id})
 
     @staticmethod
-    def do_detach_disk(server: Server, disk: Disk):
+    def do_detach_disk(server: Server, disk: Disk, user):
         """
         卸载硬盘
         :raises: Error，Conflict
         """
-        params = inputs.DiskDetachInput(instance_id=server.instance_id, disk_id=disk.instance_id)
+        who_action = format_who_action_str(username=user.username)
+        params = inputs.DiskDetachInput(
+            instance_id=server.instance_id, disk_id=disk.instance_id, _who_action=who_action)
         r = core_request.request_service(disk.service, method='disk_detach', params=params)
         if not r.ok:
             raise exceptions.ConflictError(message=_('向云主机卸载云硬盘时错误') + str(r.error))

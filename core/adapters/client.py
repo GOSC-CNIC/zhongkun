@@ -218,17 +218,17 @@ class VPNClient:
     def authenticate(self, *args, **kwargs):
         return self.adapter.authenticate(*args, **kwargs)
 
-    def get_vpn(self, username: str):
+    def get_vpn(self, username: str, **kwargs):
         return self.adapter.get_vpn(username=username)
 
-    def create_vpn(self, username: str, password: str = None):
-        return self.adapter.create_vpn(username=username, password=password)
+    def create_vpn(self, username: str, password: str = None, who_action: str = None, **kwargs):
+        return self.adapter.create_vpn(username=username, password=password, who_action=who_action)
 
-    def get_vpn_or_create(self, username: str):
-        return self.adapter.get_vpn_or_create(username=username)
+    def get_vpn_or_create(self, username: str, who_action: str = None, **kwargs):
+        return self.adapter.get_vpn_or_create(username=username, who_action=who_action)
 
-    def vpn_change_password(self, username: str, password: str):
-        return self.adapter.vpn_change_password(username=username, password=password)
+    def vpn_change_password(self, username: str, password: str, who_action: str = None, **kwargs):
+        return self.adapter.vpn_change_password(username=username, password=password, who_action=who_action)
 
     def get_vpn_config_file_url(self, *args, **kwargs):
         return self.adapter.get_vpn_config_file_url()
@@ -236,8 +236,8 @@ class VPNClient:
     def get_vpn_ca_file_url(self, *args, **kwargs):
         return self.adapter.get_vpn_ca_file_url()
 
-    def active_vpn(self, username: str):
-        return self.adapter.vpn_active(username=username)
+    def active_vpn(self, username: str, who_action: str = None, **kwargs):
+        return self.adapter.vpn_active(username=username, who_action=who_action)
 
-    def deactive_vpn(self, username: str):
-        return self.adapter.vpn_deactive(username=username)
+    def deactive_vpn(self, username: str, who_action: str = None, **kwargs):
+        return self.adapter.vpn_deactive(username=username, who_action=who_action)

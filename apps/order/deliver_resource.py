@@ -8,9 +8,9 @@ from core import errors as exceptions
 from core.quota import QuotaAPI
 from core import request as core_request
 from core.taskqueue import server_build_status, Future
-from apps.servers.managers import ServiceManager
 from apps.servers.models import Server, Disk, ServerArchive, DiskChangeLog, ServiceConfig
-from apps.servers.managers import ServerManager, DiskManager
+from apps.servers.managers import ServerManager, DiskManager, ServiceManager
+from apps.servers import format_who_action_str
 from core.adapters import inputs, outputs
 from utils.model import PayType, OwnerType, ResourceType
 from apps.order.models import Order, Resource
@@ -127,11 +127,18 @@ class OrderResourceDeliverer:
 
     @staticmethod
     def format_inst_remark(order: Order, remark: str):
-        remarks = f'[user]{order.username};{remark}'
-        if order.owner_type == OwnerType.VO.value:
-            remarks = f'[vo]{order.vo_name};' + remarks
-
+        whos = OrderResourceDeliverer._format_who_action(order=order)
+        remarks = f'{whos};{remark}'
         return remarks
+
+    @staticmethod
+    def _format_who_action(order: Order):
+        if order.owner_type == OwnerType.VO.value:
+            vo_name = order.vo_name
+        else:
+            vo_name = ''
+
+        return format_who_action_str(username=order.username, vo_name=vo_name)
 
     @staticmethod
     def _check_pre_create_server_resources(order: Order, resources: List[Resource]) -> (ServiceConfig, ServerConfig):
@@ -216,10 +223,11 @@ class OrderResourceDeliverer:
             raise exc
 
         inst_remarks = self.format_inst_remark(order=order, remark=resource.instance_remark)
+        who_action = self._format_who_action(order=order)
         params = inputs.ServerCreateInput(
             ram=config.vm_ram_mib, vcpu=config.vm_cpu, image_id=config.vm_image_id, azone_id=config.vm_azone_id,
             region_id=service.region_id, network_id=config.vm_network_id, remarks=inst_remarks,
-            systemdisk_size=config.vm_systemdisk_size, flavor_id=config.vm_flavor_id
+            systemdisk_size=config.vm_systemdisk_size, flavor_id=config.vm_flavor_id, _who_action=who_action
         )
         try:
             out = self._request_create_server(service=service, params=params)
@@ -625,9 +633,10 @@ class OrderResourceDeliverer:
             raise exc
 
         description = OrderResourceDeliverer.format_inst_remark(order=order, remark=resource.instance_remark)
+        who_action = OrderResourceDeliverer._format_who_action(order=order)
         params = inputs.DiskCreateInput(
             region_id=service.region_id, azone_id=config.disk_azone_id,
-            size_gib=config.disk_size, description=description
+            size_gib=config.disk_size, description=description, _who_action=who_action
         )
         try:
             out = core_request.request_service(service=service, method='disk_create', params=params)

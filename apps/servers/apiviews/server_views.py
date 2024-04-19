@@ -16,7 +16,7 @@ from apps.servers.models import Server
 from apps.servers.managers import ServerManager, DiskManager
 from apps.servers import disk_serializers
 from apps.servers.handlers.server_handler import ServerHandler, ServerArchiveHandler
-from apps.servers import serializers
+from apps.servers import serializers, format_who_action_str
 from core.adapters import inputs, outputs
 from core import request as core_request
 from core import errors as exceptions
@@ -789,8 +789,10 @@ class ServersViewSet(CustomGenericViewSet):
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
 
+        who_action = format_who_action_str(username=request.user.username)
         service = server.service
-        params = inputs.ServerVNCInput(instance_id=server.instance_id, instance_name=server.instance_name)
+        params = inputs.ServerVNCInput(
+            instance_id=server.instance_id, instance_name=server.instance_name, _who_action=who_action)
         try:
             r = self.request_service(service, method='server_vnc', params=params)
         except exceptions.APIException as exc:

@@ -14,7 +14,7 @@ from core import site_configs_manager
 from apps.servers.managers import ServiceManager
 from apps.servers.models import Server, Flavor
 from apps.servers.managers import ServerManager, ServerArchiveManager, DiskManager, ResourceActionLogManager
-from apps.servers import serializers
+from apps.servers import serializers, format_who_action_str
 from apps.api import paginations
 from apps.api.viewsets import CustomGenericViewSet, serializer_error_msg
 from apps.api import request_logger
@@ -253,6 +253,8 @@ class ServerHandler:
         except exceptions.Error as exc:
             return view.exception_response(exc)
 
+        who_action = format_who_action_str(username=request.user.username)
+
         if server.task_status == server.TASK_CREATE_FAILED:
             return view.exception_response(
                 exceptions.ConflictError(message=_('创建失败的云主机不支持重建'))
@@ -305,7 +307,7 @@ class ServerHandler:
                 ])
 
                 params = inputs.ServerRebuildInput(instance_id=server.instance_id, instance_name=server.instance_name,
-                                                   image_id=image_id)
+                                                   image_id=image_id, _who_action=who_action)
                 try:
                     r = view.request_service(server.service, method='server_rebuild', params=params)
                 except exceptions.APIException as exc:
@@ -859,14 +861,15 @@ class ServerHandler:
         if server.is_locked_delete():
             raise exceptions.ResourceLocked(message=_('无法删除，云主机已加锁锁定了删除'))
 
+        who_action = format_who_action_str(username=user.username)
         # 卸载云硬盘
         disks = DiskManager.get_server_disks_qs(server_id=server.id)
         for disk in disks:
-            DiskHandler.do_detach_disk(server=disk.server, disk=disk)
+            DiskHandler.do_detach_disk(server=disk.server, disk=disk, user=user)
 
         try:
             params = inputs.ServerDeleteInput(
-                instance_id=server.instance_id, instance_name=server.instance_name, force=force)
+                instance_id=server.instance_id, instance_name=server.instance_name, force=force, _who_action=who_action)
             core_request.request_service(server.service, method='server_delete', params=params)
         except exceptions.APIException as exc:
             raise exc
@@ -959,9 +962,10 @@ class ServerHandler:
             ServerManager.check_situation_suspend(server=server)
             ServerManager.not_allow_start_server_check(server=server)
 
+        who_action = format_who_action_str(username=user.username)
         try:
             params = inputs.ServerActionInput(
-                instance_id=server.instance_id, instance_name=server.instance_name, action=act)
+                instance_id=server.instance_id, instance_name=server.instance_name, action=act, _who_action=who_action)
             r = core_request.request_service(server.service, method='server_action', params=params)
         except exceptions.APIException as exc:
             raise exc

@@ -24,6 +24,9 @@ class InputBase:
         except AttributeError:
             return None
 
+    def get_kwargs(self):
+        return self._kwargs if self._kwargs else {}
+
 
 class AuthenticateInput(InputBase):
     def __init__(self, username: str, password: str, **kwargs):
