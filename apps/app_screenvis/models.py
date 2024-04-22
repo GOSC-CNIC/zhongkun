@@ -350,6 +350,3 @@ class ObjectServiceTimedStats(BaseTimed):
         indexes = [
             models.Index(fields=['timestamp'], name='idx_screen_obj_tmstats_ts')
         ]
-
-# ObjectServiceTimedStats.objects.order_by('service_id', '-timestamp').distinct('service_id')
-# ObjectServiceTimedStats.objects.values('service_id').annotate(last_timestamp=Max('timestamp')).values('service_id', 'last_timestamp')

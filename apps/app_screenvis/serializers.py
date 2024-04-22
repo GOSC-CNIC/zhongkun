@@ -64,3 +64,19 @@ class LogMntrUnitSimpleSerializer(serializers.Serializer):
     @staticmethod
     def get_data_center(obj):
         return get_data_center_dict(obj.data_center)
+
+
+class BaseServiceSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    name = serializers.CharField(max_length=255, label=_('服务名称'))
+    name_en = serializers.CharField(label=_('服务英文名称'), max_length=255)
+    endpoint_url = serializers.CharField(max_length=255, label=_('服务地址url'))
+    status = serializers.CharField(label=_('服务状态'), max_length=32)
+    creation_time = serializers.DateTimeField(label=_('创建时间'))
+    remarks = serializers.CharField(max_length=255, label=_('备注'))
+    sort_weight = serializers.IntegerField(label=_('排序值'), help_text=_('值越小排序越靠前'))
+    data_center = serializers.SerializerMethodField(label=_('机构数据中心'), method_name='get_data_center')
+
+    @staticmethod
+    def get_data_center(obj):
+        return get_data_center_dict(obj.data_center)
