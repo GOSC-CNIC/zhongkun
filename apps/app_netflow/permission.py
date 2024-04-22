@@ -40,6 +40,15 @@ class UserPermissions(object):
                 return True
 
 
+class CustomPermission(BasePermission):
+    def has_permission(self, request, view):
+        user = request.user
+        if not user.is_authenticated:  # 需要登陆
+            return False
+        if user.is_superuser:
+            return True
+
+
 class SubCategoryPermission(BasePermission):
     """
     二级菜单栏权限
@@ -49,5 +58,6 @@ class SubCategoryPermission(BasePermission):
         user = request.user
         if not user.is_authenticated:  # 需要登陆
             return False
-        permissions = UserPermissions(request=request)
-        return permissions.has_menu_permission()
+        return True
+        # permissions = UserPermissions(request=request)
+        # return permissions.has_menu_permission()

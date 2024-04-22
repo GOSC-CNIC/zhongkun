@@ -1,97 +1,144 @@
 from django.db import models
 from utils.model import UuidModel
 from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ValidationError
 
 
 # Create your models here.
 class ChartModel(UuidModel):
     """
-    图表 Item
+    端口流量图表 Item
 
        全部---|
              |---图表1
-             |---图标2
-             |---图标3
+             |---图表2
+             |---图表3
     """
-    name = models.CharField(max_length=100, verbose_name=_('图表名称'))
-    expression = models.CharField(max_length=100, verbose_name=_('表达式'))
-    mapping = models.TextField(blank=True, null=True, verbose_name=_("映射"))
-    default = models.CharField(max_length=30, null=True, blank=True, default='', verbose_name=_("默认值"))
-    unit = models.CharField(max_length=25, verbose_name=_('单位'))
-    status = models.BooleanField(default=True, verbose_name=_("启用状态"))
-    sort_weight = models.IntegerField(verbose_name=_('排序值'), null=False, help_text=_('值越小排序越靠前'))
-    remark = models.TextField(default='', null=True, blank=True, verbose_name=_('备注'))
+    instance_uuid = models.CharField(max_length=255, null=True, blank=True, default='', )
+    instance_name = models.CharField(max_length=255, null=True, blank=True, default='', )
+    if_alias = models.CharField(max_length=255, null=True, blank=True, default='', verbose_name=_('别名'))
+    if_address = models.CharField(max_length=255, null=True, blank=True, default='', )
+    device_ip = models.CharField(max_length=255, null=False, blank=False, default='', verbose_name=_('IP'))
+    port_name = models.CharField(max_length=255, null=False, blank=False, default='', verbose_name=_('端口'))
+    class_uuid = models.CharField(max_length=255, null=True, blank=True, default='', )
+    class_name = models.CharField(max_length=255, null=True, blank=True, default='', )
+    band_width = models.PositiveIntegerField(default=0, verbose_name=_('带宽'))
+    sort_weight = models.IntegerField(verbose_name=_('排序值'), default=-1, help_text=_('值越小排序越靠前'))
+    remark = models.TextField(null=True, blank=True, default='', verbose_name=_('备注'))
+    creation = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
+    modification = models.DateTimeField(verbose_name=_('修改时间'), auto_now=True)
 
     def __str__(self):
-        return self.name
+        return f'{self.instance_name} | {self.if_alias} | {self.device_ip} | {self.port_name}'
 
     class Meta:
         db_table = "netflow_chart"
-        verbose_name = _("流量图表")
+        verbose_name = _("图表管理")
         ordering = ['sort_weight']
         verbose_name_plural = verbose_name
-
-
-class MenuCategoryModel(UuidModel):
-    """
-    菜单栏 一级分类
-    全部* 出口 机构 端口 项目 IP
-    """
-    name = models.CharField(max_length=255, verbose_name=_('名称'))
-    sort_weight = models.IntegerField(verbose_name=_('排序值'), null=False, help_text=_('值越小排序越靠前'))
-    remark = models.TextField(default='', null=True, blank=True, verbose_name=_('备注'))
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        db_table = "netflow_menu_category"
-        verbose_name = _("菜单栏一级分类")
-        ordering = ['sort_weight']
-        verbose_name_plural = verbose_name
+        unique_together = (
+            ('device_ip', 'port_name')
+        )
 
 
 class MenuModel(UuidModel):
     """
-    菜单栏 二级分类
-    全部---|
-          |---机构---|
-                    |----机构1
-                    |----机构2
-          |---出口---|
-                    |----出口1
-                    |----出口2
-
-          |---组织---|
-                    |---组织1
-                    |---组织2
-                    |---组织3
-
+    菜单栏
     """
     name = models.CharField(max_length=255, verbose_name=_('名称'))
-    category = models.ForeignKey(
+    father = models.ForeignKey(
         null=True,
-        to='MenuCategoryModel',
+        blank=True,
+        to='self',
         on_delete=models.SET_NULL,
         related_name="sub_categories",
-        related_query_name="sub_category",
-        verbose_name=_('类别')
+        related_query_name="children",
+        verbose_name=_('上级菜单')
     )
-    chart = models.ManyToManyField(
+
+    charts = models.ManyToManyField(
         to='ChartModel',
         blank=True,
-        related_name="menu_list",
+        related_name="menu_set",
         related_query_name="menu",
-        verbose_name=_('图表合集')
+        verbose_name=_('流量图表集')
     )
-    # 超管人员
-    # administrators = models.ManyToManyField(
-    #     to='users.UserProfile',
-    #     on_delete=models.DO_NOTHING,
-    #     related_name="admin_flow_organization_list",
-    #     related_query_name="admin_flow_organization",
-    #     verbose_name=_('超级管理员')
-    # )
+    level = models.PositiveSmallIntegerField(editable=False, null=False, default=0, verbose_name=_('菜单级别'))
+    sort_weight = models.IntegerField(verbose_name=_('排序值'), default=-1, help_text=_('值越小排序越靠前'))
+    remark = models.TextField(default='', null=True, blank=True, verbose_name=_('备注'))
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+        root = self.__class__.objects.filter(father=None).first()
+        if root:  # 存在根节点
+            if self != root and not self.father:  # 当前节点非根节点
+                raise ValidationError('请选择上级菜单')
+            if self == root and self.father:  # 当前节点是根节点
+                raise ValidationError('无法设置该菜单节点的上级菜单')
+        else:  # 不存在根节点
+            if self.name != '全部':
+                raise ValidationError('请先创建菜单-全部')
+
+    def save(self, force_insert=False, force_update=False, using=None,
+             update_fields=None):
+        self.enforce_id()
+        if self.__class__.objects.all().count() == 0:  # 根节点配置
+            self.id = '0'
+            self.level = 0
+        elif not self.level:
+            self.level = self.father.level + 1
+
+        super().save(
+            force_insert=force_insert,
+            force_update=force_update,
+            using=using,
+            update_fields=update_fields)
+
+    class Meta:
+        db_table = "netflow_menu"
+        verbose_name = _("菜单管理")
+        ordering = ['level', 'sort_weight']
+        verbose_name_plural = verbose_name
+        unique_together = (
+            ('father', 'name')
+        )
+
+
+class RoleModel(UuidModel):
+    """
+    角色组管理：
+        超管：可以修改所有节点，可以查看所有节点;
+        管理员：可以查看所有节点;
+        普通用户： 只可以看到特定图表，图表上方的隐私数据（两条备注）选择是否开放给用户（一条或者两个）;
+
+    """
+    name = models.CharField(max_length=255, verbose_name=_('组名称'))
+
+    class Roles(models.TextChoices):
+        ORDINARY = 'ordinary', _('普通用户')
+        ADMIN = 'admin', _('管理员')
+        SUPER_ADMIN = 'super-admin', _('超级管理员')
+
+    role = models.CharField(
+        verbose_name=_('组类别'), max_length=16, choices=Roles.choices, default=Roles.ORDINARY.value)
+
+    charts = models.ManyToManyField(
+        to='ChartModel',
+        blank=True,
+        related_name="role_set",
+        related_query_name="role",
+        verbose_name=_('图表权限')
+    )
+    users = models.ManyToManyField(
+        "users.UserProfile",
+        blank=True,
+        verbose_name=_("组员"),
+        related_name="netflow_role_set",
+        related_query_name="netflow_role",
+    )
+
     sort_weight = models.IntegerField(verbose_name=_('排序值'), null=False, help_text=_('值越小排序越靠前'))
     remark = models.TextField(default='', null=True, blank=True, verbose_name=_('备注'))
 
@@ -99,10 +146,101 @@ class MenuModel(UuidModel):
         return self.name
 
     class Meta:
-        db_table = "netflow_menu"
-        verbose_name = _("菜单栏")
+        db_table = "netflow_role"
+        verbose_name = _("角色组管理")
         ordering = ['sort_weight']
         verbose_name_plural = verbose_name
+
+# class MenuFirstModel(UuidModel):
+#     """
+#     一级菜单
+#     """
+#     name = models.CharField(max_length=255, verbose_name=_('名称'))
+#     sort_weight = models.IntegerField(verbose_name=_('排序值'), null=False, help_text=_('值越小排序越靠前'))
+#     remark = models.TextField(default='', null=True, blank=True, verbose_name=_('备注'))
+#     chart = models.ManyToManyField(
+#         to='ChartModel',
+#         blank=True,
+#         related_name="first_menu_set",
+#         related_query_name="first_menu",
+#         verbose_name=_('图表合集')
+#     )
+#
+#     def __str__(self):
+#         return self.name
+#
+#     class Meta:
+#         db_table = "netflow_menu_first"
+#         verbose_name = _("一级菜单")
+#         ordering = ['sort_weight']
+#         verbose_name_plural = verbose_name
+#
+
+# class MenuSecondModel(UuidModel):
+#     """
+#     二级菜单
+#     """
+#     category = models.ForeignKey(
+#         null=True,
+#         to='MenuFirstModel',
+#         on_delete=models.SET_NULL,
+#         related_name="second_menu_set",
+#         related_query_name="second_menu",
+#         verbose_name=_('一级菜单')
+#     )
+#     name = models.CharField(max_length=255, verbose_name=_('名称'))
+#     chart = models.ManyToManyField(
+#         to='ChartModel',
+#         blank=True,
+#         related_name="second_menu_set",
+#         related_query_name="second_menu",
+#         verbose_name=_('图表合集')
+#     )
+#     sort_weight = models.IntegerField(verbose_name=_('排序值'), null=False, help_text=_('值越小排序越靠前'))
+#     remark = models.TextField(default='', null=True, blank=True, verbose_name=_('备注'))
+#
+#     def __str__(self):
+#         return self.name
+#
+#     class Meta:
+#         db_table = "netflow_menu_second"
+#         verbose_name = _("二级菜单")
+#         ordering = ['sort_weight']
+#         verbose_name_plural = verbose_name
+#
+#
+# class MenuThirdModel(UuidModel):
+#     """
+#     三级菜单
+#     """
+#     category = models.ForeignKey(
+#         null=True,
+#         to='MenuSecondModel',
+#         on_delete=models.SET_NULL,
+#         related_name="third_menu_set",
+#         related_query_name="third_menu",
+#         verbose_name=_('二级菜单')
+#     )
+#     name = models.CharField(max_length=255, verbose_name=_('名称'))
+#     chart = models.ManyToManyField(
+#         to='ChartModel',
+#         blank=True,
+#         related_name="third_menu_set",
+#         related_query_name="third_menu",
+#         verbose_name=_('图表合集')
+#     )
+#     sort_weight = models.IntegerField(verbose_name=_('排序值'), null=False, help_text=_('值越小排序越靠前'))
+#     remark = models.TextField(default='', null=True, blank=True, verbose_name=_('备注'))
+#
+#     def __str__(self):
+#         return self.name
+#
+#     class Meta:
+#         db_table = "netflow_menu_third"
+#         verbose_name = _("三级菜单")
+#         ordering = ['sort_weight']
+#         verbose_name_plural = verbose_name
+#
 
 
 # class CollectCategoryModel(UuidModel):
@@ -155,37 +293,3 @@ class MenuModel(UuidModel):
 #         verbose_name = _("个人收藏")
 #         ordering = ['sort_weight']
 #         verbose_name_plural = verbose_name
-class RoleModel(UuidModel):
-    name = models.CharField(max_length=255, verbose_name='名称')
-    menus = models.ManyToManyField(
-        to='MenuModel',
-        blank=True,
-        related_name="role_set",
-        related_query_name="role",
-        verbose_name=_("菜单权限"),
-    )
-    charts = models.ManyToManyField(
-        to='ChartModel',
-        blank=True,
-        related_name="role_set",
-        related_query_name="role",
-        verbose_name=_('图表权限')
-    )
-    users = models.ManyToManyField(
-        "users.UserProfile",
-        blank=True,
-        verbose_name=_("组员"),
-        related_name="netflow_role_set",
-        related_query_name="netflow_role",
-    )
-    sort_weight = models.IntegerField(verbose_name=_('排序值'), null=False, help_text=_('值越小排序越靠前'))
-    remark = models.TextField(default='', null=True, blank=True, verbose_name=_('备注'))
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        db_table = "netflow_role"
-        verbose_name = _("权限管理")
-        ordering = ['sort_weight']
-        verbose_name_plural = verbose_name
