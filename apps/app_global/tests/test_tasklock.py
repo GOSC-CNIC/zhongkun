@@ -6,8 +6,8 @@ from django.test import TestCase
 from django.core import mail as dj_mail
 
 from utils.test import get_or_create_user
-from scripts.models import TimedTaskLook
-from scripts.task_lock import TaskLock
+from apps.app_global.models import TimedTaskLock
+from apps.app_global.task_locks import TaskLock
 
 
 class TaskLockTests(TestCase):
@@ -20,11 +20,11 @@ class TaskLockTests(TestCase):
         user2.set_federal_admin()
 
         # 不存在自动创建锁
-        meter_lock = TaskLock(task_name=TimedTaskLook.Task.METERING.value)
-        self.assertEqual(TimedTaskLook.objects.filter(task=TimedTaskLook.Task.METERING.value).count(), 0)
+        meter_lock = TaskLock(task_name=TimedTaskLock.Task.METERING.value)
+        self.assertEqual(TimedTaskLock.objects.filter(task=TimedTaskLock.Task.METERING.value).count(), 0)
         self.assertIsNone(meter_lock._task_lock)
-        self.assertEqual(meter_lock.status, TimedTaskLook.Status.NONE.value)
-        self.assertEqual(TimedTaskLook.objects.filter(task=TimedTaskLook.Task.METERING.value).count(), 1)
+        self.assertEqual(meter_lock.status, TimedTaskLock.Status.NONE.value)
+        self.assertEqual(TimedTaskLock.objects.filter(task=TimedTaskLock.Task.METERING.value).count(), 1)
         self.assertIsNone(meter_lock.start_time)
         self.assertIsNone(meter_lock.end_time)
         self.assertIsNone(meter_lock.expire_time)
@@ -40,7 +40,7 @@ class TaskLockTests(TestCase):
         expire_time = dj_timezone.now() + timedelta(minutes=5)
         ok, exc = meter_lock.acquire(expire_time=expire_time)
         self.assertTrue(ok)
-        self.assertEqual(meter_lock.status, TimedTaskLook.Status.RUNNING.value)
+        self.assertEqual(meter_lock.status, TimedTaskLock.Status.RUNNING.value)
         self.assertEqual(meter_lock.expire_time, expire_time)
         self.assertIsNone(meter_lock.start_time)
         self.assertIsNone(meter_lock.notify_time)
@@ -48,7 +48,7 @@ class TaskLockTests(TestCase):
         start_time = dj_timezone.now()
         ok, exc = meter_lock.mark_start_task(start_time=start_time)
         self.assertTrue(ok)
-        self.assertEqual(meter_lock.status, TimedTaskLook.Status.RUNNING.value)
+        self.assertEqual(meter_lock.status, TimedTaskLock.Status.RUNNING.value)
         self.assertEqual(meter_lock.expire_time, expire_time)
         self.assertEqual(meter_lock.start_time, start_time)
         self.assertIsNone(meter_lock.end_time)
@@ -58,7 +58,7 @@ class TaskLockTests(TestCase):
 
         ok, exc = meter_lock.release(run_desc='success')
         self.assertTrue(ok)
-        self.assertEqual(meter_lock.status, TimedTaskLook.Status.NONE.value)
+        self.assertEqual(meter_lock.status, TimedTaskLock.Status.NONE.value)
         self.assertIsNone(meter_lock.expire_time)
         self.assertEqual(meter_lock.start_time, start_time)
         self.assertIsInstance(meter_lock.end_time, datetime)
@@ -69,7 +69,7 @@ class TaskLockTests(TestCase):
         #
         self.assertEqual(len(dj_mail.outbox), 0)
         meter_lock.refresh()
-        self.assertEqual(meter_lock.status, TimedTaskLook.Status.NONE.value)
+        self.assertEqual(meter_lock.status, TimedTaskLock.Status.NONE.value)
         self.assertIsNone(meter_lock.expire_time)
         expire_time = dj_timezone.now() + timedelta(minutes=5)
         ok, exc = meter_lock.acquire(expire_time=expire_time)
@@ -81,7 +81,7 @@ class TaskLockTests(TestCase):
         self.assertEqual(len(dj_mail.outbox), 0)
 
         # 过期，发邮件
-        lock_obj = TimedTaskLook.objects.get(task=TimedTaskLook.Task.METERING.value)
+        lock_obj = TimedTaskLock.objects.get(task=TimedTaskLock.Task.METERING.value)
         lock_obj.expire_time = dj_timezone.now()
         lock_obj.save(update_fields=['expire_time'])
         ok, exc = meter_lock.acquire(expire_time=expire_time)
@@ -89,7 +89,7 @@ class TaskLockTests(TestCase):
         self.assertEqual(len(dj_mail.outbox), 1)
 
         # 过期，不重复发邮件
-        lock_obj = TimedTaskLook.objects.get(task=TimedTaskLook.Task.METERING.value)
+        lock_obj = TimedTaskLock.objects.get(task=TimedTaskLock.Task.METERING.value)
         lock_obj.expire_time = dj_timezone.now()
         lock_obj.save(update_fields=['expire_time'])
         ok, exc = meter_lock.acquire(expire_time=expire_time)
@@ -97,12 +97,12 @@ class TaskLockTests(TestCase):
         self.assertEqual(len(dj_mail.outbox), 1)
 
         # 不存在自动创建锁
-        alert_lock = TaskLock(task_name=TimedTaskLook.Task.ALERT_EMAIL.value)
-        self.assertEqual(TimedTaskLook.objects.filter(task=TimedTaskLook.Task.ALERT_EMAIL.value).count(), 0)
+        alert_lock = TaskLock(task_name=TimedTaskLock.Task.ALERT_EMAIL.value)
+        self.assertEqual(TimedTaskLock.objects.filter(task=TimedTaskLock.Task.ALERT_EMAIL.value).count(), 0)
         self.assertIsNone(alert_lock._task_lock)
-        self.assertEqual(alert_lock.status, TimedTaskLook.Status.NONE.value)
-        self.assertEqual(TimedTaskLook.objects.filter(task=TimedTaskLook.Task.METERING.value).count(), 1)
-        self.assertEqual(TimedTaskLook.objects.count(), 2)
+        self.assertEqual(alert_lock.status, TimedTaskLock.Status.NONE.value)
+        self.assertEqual(TimedTaskLock.objects.filter(task=TimedTaskLock.Task.METERING.value).count(), 1)
+        self.assertEqual(TimedTaskLock.objects.count(), 2)
         self.assertIsNone(alert_lock.start_time)
         self.assertIsNone(alert_lock.end_time)
         self.assertIsNone(alert_lock.expire_time)
@@ -118,14 +118,14 @@ class TaskLockTests(TestCase):
         expire_time = dj_timezone.now() + timedelta(minutes=1)
         ok, exc = alert_lock.acquire(expire_time=expire_time)
         self.assertTrue(ok)
-        self.assertEqual(alert_lock.status, TimedTaskLook.Status.RUNNING.value)
+        self.assertEqual(alert_lock.status, TimedTaskLock.Status.RUNNING.value)
         self.assertEqual(alert_lock.expire_time, expire_time)
         self.assertIsNone(alert_lock.start_time)
         self.assertIsNone(alert_lock.notify_time)
 
         ok, exc = alert_lock.mark_start_task()
         self.assertTrue(ok)
-        self.assertEqual(alert_lock.status, TimedTaskLook.Status.RUNNING.value)
+        self.assertEqual(alert_lock.status, TimedTaskLock.Status.RUNNING.value)
         self.assertEqual(alert_lock.expire_time, expire_time)
         self.assertIsInstance(alert_lock.start_time, datetime)
         self.assertIsNone(alert_lock.end_time)
@@ -139,7 +139,7 @@ class TaskLockTests(TestCase):
         self.assertEqual(len(dj_mail.outbox), 1)
 
         # 过期，发邮件
-        lock_obj = TimedTaskLook.objects.get(task=TimedTaskLook.Task.ALERT_EMAIL.value)
+        lock_obj = TimedTaskLock.objects.get(task=TimedTaskLock.Task.ALERT_EMAIL.value)
         lock_obj.expire_time = dj_timezone.now()
         lock_obj.save(update_fields=['expire_time'])
         ok, exc = alert_lock.acquire(expire_time=expire_time)
@@ -147,7 +147,7 @@ class TaskLockTests(TestCase):
         self.assertEqual(len(dj_mail.outbox), 2)
 
         # 过期，不重复发邮件
-        lock_obj = TimedTaskLook.objects.get(task=TimedTaskLook.Task.ALERT_EMAIL.value)
+        lock_obj = TimedTaskLock.objects.get(task=TimedTaskLock.Task.ALERT_EMAIL.value)
         lock_obj.expire_time = dj_timezone.now()
         lock_obj.save(update_fields=['expire_time'])
         ok, exc = alert_lock.acquire(expire_time=expire_time)

@@ -65,7 +65,7 @@ INSTALLED_APPS = [
     'apps.api',
     'apps.app_apply',
     'apps.app_screenvis',
-
+    'apps.app_global',
     'apps.app_netflow',
     'apps.app_alert',
     # app放上面
@@ -94,7 +94,7 @@ ADMIN_SORTED_APP_LIST = [
     'app_alert',
     'app_netflow',
     'apply',    # app_apply
-    'scripts',
+    'app_global',
     'auth',
 ]
 
