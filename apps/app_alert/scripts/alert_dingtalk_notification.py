@@ -18,9 +18,11 @@ from apps.app_alert.utils.utils import DateUtils
 from apps.app_alert.utils.logger import setup_logger
 from django.conf import settings
 from apps.app_alert.utils.db_manager import MysqlManager
-from apps.app_alert.models import ScriptFlagModel
 from django.db.utils import IntegrityError
 import traceback
+from django.utils import timezone as dj_timezone
+from datetime import timedelta
+from scripts.task_lock import alert_dingtalk_notify_lock
 
 logger = setup_logger(__name__, __file__)
 
@@ -38,34 +40,7 @@ class DingTalk(object):
         self.clusters = ["mail_metric", "mail_log"]
         logger.info(f"当前时间范围：{self.start_date}, {self.end_date}")
 
-    def check_flag(self, script_name):
-        try:
-            flag = ScriptFlagModel.objects.create(**{
-                'name': script_name,
-                'start': self.end,
-            })
-            return flag
-        except IntegrityError as e:
-            return
-
     def run(self):
-        flag = self.check_flag('dingtalk_notification')
-        if flag is None:
-            logger.info('flag is null.')
-            return
-        try:
-            self._run()
-            flag.status = ScriptFlagModel.Status.FINISH.value
-            flag.end = DateUtils.timestamp()
-            flag.save()
-        except Exception as e:
-            exc = str(traceback.format_exc())
-            logger.info(exc)
-            flag.status = ScriptFlagModel.Status.ABORT.value
-            flag.end = DateUtils.timestamp()
-            flag.save()
-
-    def _run(self):
         self.metric_notification()
         self.log_notification()
         self.work_order_notification()
@@ -254,5 +229,29 @@ class DingTalk(object):
         return f"工单处理：{list(alert_msg_mapping.keys())[0]}", "\n\n".join(record_msg_list)
 
 
+def run_task_use_lock():
+    nt = dj_timezone.now()
+    ok, exc = alert_dingtalk_notify_lock.acquire(expire_time=(nt + timedelta(minutes=1)))  # 先拿锁
+    if not ok:  # 未拿到锁退出
+        return
+
+    run_desc = 'success'
+    try:
+        # 成功拿到锁后，各定时任务根据锁的上周期任务执行开始时间 “lock.start_time”判断 当前任务是否需要执行（本周期其他节点可能已经执行过了）
+        if (
+                not alert_dingtalk_notify_lock.start_time
+                or (nt - alert_dingtalk_notify_lock.start_time) >= timedelta(minutes=1)  # 定时周期
+        ):
+            alert_dingtalk_notify_lock.mark_start_task()  # 更新任务执行信息
+            DingTalk().run()
+    except Exception as exc:
+        run_desc = str(exc)
+    finally:
+        ok, exc = alert_dingtalk_notify_lock.release(run_desc=run_desc)  # 释放锁
+        # 锁释放失败，发送通知
+        if not ok:
+            alert_dingtalk_notify_lock.notify_unrelease()
+
+
 if __name__ == '__main__':
-    DingTalk().run()
+    run_task_use_lock()

@@ -17,13 +17,15 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'cloudverse.settings')
 setup()
 from apps.app_alert.models import AlertModel
 from apps.app_alert.models import EmailNotification
-from apps.app_alert.models import ScriptFlagModel
 from apps.app_alert.utils.logger import setup_logger
 from apps.app_alert.utils.utils import custom_model_to_dict
 from apps.app_alert.utils.utils import DateUtils
 from django.contrib.contenttypes.models import ContentType
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from django.db.utils import IntegrityError
+from django.utils import timezone as dj_timezone
+from datetime import timedelta
+from scripts.task_lock import alert_email_notify_lock
 
 try:  # TODO
     from apps.app_monitor.managers import MonitorWebsiteManager
@@ -518,34 +520,7 @@ class AlertMonitor(object):
         }
         return result
 
-    def check_flag(self, script_name):
-        try:
-            flag = ScriptFlagModel.objects.create(**{
-                'name': script_name,
-                'start': self.run_time,
-            })
-            return flag
-        except IntegrityError as e:
-            return
-
     def run(self):
-        flag = self.check_flag('email_notification')
-        if flag is None:
-            logger.info('flag is null.')
-            return
-        try:
-            self._run()
-            flag.status = ScriptFlagModel.Status.FINISH.value
-            flag.end = DateUtils.timestamp()
-            flag.save()
-        except Exception as e:
-            exc = str(traceback.format_exc())
-            logger.info(exc)
-            flag.status = ScriptFlagModel.Status.ABORT.value
-            flag.end = DateUtils.timestamp()
-            flag.save()
-
-    def _run(self):
         logger.info(f"\n\n\n\n开始...{DateUtils.now()}", )
         logger.info("挑选异常告警")
         alerts = self.pick_alerts_by_datetime()
@@ -566,5 +541,29 @@ class AlertMonitor(object):
         logger.info(f"结束...{DateUtils.now()}", )
 
 
+def run_task_use_lock():
+    nt = dj_timezone.now()
+    ok, exc = alert_email_notify_lock.acquire(expire_time=(nt + timedelta(minutes=1)))  # 先拿锁
+    if not ok:  # 未拿到锁退出
+        return
+
+    run_desc = 'success'
+    try:
+        # 成功拿到锁后，各定时任务根据锁的上周期任务执行开始时间 “lock.start_time”判断 当前任务是否需要执行（本周期其他节点可能已经执行过了）
+        if (
+                not alert_email_notify_lock.start_time
+                or (nt - alert_email_notify_lock.start_time) >= timedelta(minutes=1)  # 定时周期
+        ):
+            alert_email_notify_lock.mark_start_task()  # 更新任务执行信息
+            AlertMonitor().run()
+    except Exception as exc:
+        run_desc = str(exc)
+    finally:
+        ok, exc = alert_email_notify_lock.release(run_desc=run_desc)  # 释放锁
+        # 锁释放失败，发送通知
+        if not ok:
+            alert_email_notify_lock.notify_unrelease()
+
+
 if __name__ == '__main__':
-    AlertMonitor().run()
+    run_task_use_lock()
