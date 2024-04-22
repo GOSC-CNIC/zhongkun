@@ -74,8 +74,6 @@ def exception_handler(exc, context):
     Any unhandled exceptions may return `None`, which will cause a 500 error
     to be raised.
     """
-    import traceback
-    print(traceback.format_exc())
     if isinstance(exc, exceptions.Error):
         pass
     elif isinstance(exc, Http404):
