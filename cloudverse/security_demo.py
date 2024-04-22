@@ -125,3 +125,9 @@ DINGTALKROBOT = {
     "WEBHOOK": "https://oapi.dingtalk.com/robot/send?access_token=xxxx",
     "SECRET": "xxx"
 }
+
+EASY_OPS = {
+    "DOMAIN": 'xxx',
+    "USERNAME": "xxx",
+    "PASSWORD": "xxx"
+}
