@@ -1,5 +1,4 @@
 from django.utils.translation import gettext_lazy, gettext as _
-from django.db.models import Max
 from rest_framework.decorators import action
 from rest_framework.serializers import Serializer
 from rest_framework.response import Response
@@ -7,7 +6,6 @@ from drf_yasg.utils import swagger_auto_schema
 
 from apps.app_screenvis.utils import errors
 from apps.app_screenvis.models import DataCenter, ServerService, ServerServiceTimedStats
-from apps.app_screenvis import serializers
 from apps.app_screenvis.permissions import ScreenAPIIPPermission
 from . import NormalGenericViewSet
 
@@ -25,29 +23,35 @@ class ServerServiceViewSet(NormalGenericViewSet):
         }
     )
     @action(methods=['GET'], detail=False, url_path=r'dc/(?P<dc_id>[^/]+)', url_name='dc')
-    def odc_units(self, request, *args, **kwargs):
+    def dc_server_stats(self, request, *args, **kwargs):
         """
         查询一个数据中心下各服务单元总的统计数据
 
             http code 200:
             {
-              "server_count": 44,
-              "disk_count": 46,
-              "ip_count": 136,
-              "ip_used_count": 26,
-              "mem_size": 44260,        # GiB
-              "mem_used_size": 4460,    # GiB
-              "cpu_count": 45040,
-              "cpu_used_count": 480
+              "server_count": 44,       # 云主机数
+              "disk_count": 46,         # 云硬盘数
+              "ip_count": 136,          # 总ip数
+              "ip_used_count": 26,      # 已用IP数
+              "mem_size": 44260,        # 总内存GiB
+              "mem_used_size": 4460,    # 已用内存GiB
+              "cpu_count": 45040,       # cpu总数
+              "cpu_used_count": 480     # cpu已用数
             }
         """
+        dc_id = kwargs['dc_id']
+        try:
+            dc_id = int(dc_id)
+        except ValueError:
+            return self.exception_response(errors.InvalidArgument(message=_('数据中心ID无效')))
+
         unit_ids = ServerService.objects.filter(
-            data_center_id=kwargs['dc_id'],
+            data_center_id=dc_id,
             status__in=[ServerService.Status.ENABLE.value, ServerService.Status.DISABLE.value]
         ).values_list('id', flat=True)
         if not unit_ids:
-            return self.exception_response(
-                errors.TargetNotExist(message=_('数据中心不存在，或者数据中心下没有云主机服务单元')))
+            if not DataCenter.objects.filter(id=dc_id).exists():
+                return self.exception_response(errors.TargetNotExist(message=_('数据中心不存在')))
 
         obj_list = []
         for unit_id in set(unit_ids):
