@@ -15,6 +15,8 @@ no_slash_router.register(r'host', host_views.MetricHostViewSet, basename='host')
 no_slash_router.register(r'tidb', tidb_views.MetricTiDBViewSet, basename='tidb')
 no_slash_router.register(r'service/server/stats', service_views.ServerServiceViewSet,
                          basename='server-stats')
+no_slash_router.register(r'service/vpn/stats', service_views.VPNServiceViewSet,
+                         basename='vpn-stats')
 
 
 urlpatterns = [
