@@ -421,6 +421,8 @@ CRONTABJOBS = [
      'python3 /home/uwsgi/yunkun/apps/app_alert/scripts/alert_email_notification.py >> /var/log/yunkun/task_alert_email_notification.log'),
     ('task9_alert_dingtalk_notification', '*/1 * * * *',
      'python3 /home/uwsgi/yunkun/apps/app_alert/scripts/alert_dingtalk_notification.py >> /var/log/yunkun/task_alert_dingtalk_notification.log'),
+    ('task10_screen_service_stats.py', '*/3 * * * *',
+     'python3 /home/uwsgi/yunkun/scripts/run_screen_service_stats.py >> /var/log/yunkun/task_screen_service_stats.log'),
 ]
 
 # 安全配置导入

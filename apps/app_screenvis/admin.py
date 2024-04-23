@@ -133,13 +133,13 @@ class ServiceForm(forms.ModelForm):
 class ServerServiceAdmin(BaseModelAdmin):
     form = ServiceForm
     list_display_links = ('id',)
-    list_display = ('id', 'name', 'name_en', 'data_center', 'sort_weight', 'endpoint_url',
+    list_display = ('id', 'name', 'name_en', 'data_center', 'status', 'sort_weight', 'endpoint_url',
                     'username', 'password', 'raw_password', 'creation_time', 'remarks')
     search_fields = ['name', 'name_en', 'endpoint_url', 'remarks']
     list_filter = ['data_center']
     list_select_related = ('data_center',)
     raw_id_fields = ('data_center',)
-    list_editable = ('sort_weight',)
+    list_editable = ('sort_weight', 'status')
 
     readonly_fields = ('password',)
 
@@ -156,13 +156,13 @@ class ServerServiceAdmin(BaseModelAdmin):
 class ObjectServiceAdmin(BaseModelAdmin):
     form = ServiceForm
     list_display_links = ('id',)
-    list_display = ('id', 'name', 'name_en', 'data_center', 'sort_weight', 'endpoint_url',
+    list_display = ('id', 'name', 'name_en', 'data_center', 'status', 'sort_weight', 'endpoint_url',
                     'username', 'password', 'raw_password', 'creation_time', 'remarks')
     search_fields = ['name', 'name_en', 'endpoint_url', 'remarks']
     list_filter = ['data_center']
     list_select_related = ('data_center',)
     raw_id_fields = ('data_center',)
-    list_editable = ('sort_weight',)
+    list_editable = ('sort_weight', 'status')
 
     readonly_fields = ('password',)
 
@@ -179,7 +179,7 @@ class ObjectServiceAdmin(BaseModelAdmin):
 class ServerServiceTimedStatsAdmin(BaseModelAdmin):
     list_display_links = ('id',)
     list_display = ('id', 'service', 'show_time', 'server_count', 'disk_count', 'ip_count',
-                    'ip_used_count', 'mem_size', 'mem_used_size')
+                    'ip_used_count', 'mem_size', 'mem_used_size', 'cpu_count', 'cpu_used_count')
     list_filter = ['service']
     list_select_related = ('service',)
     raw_id_fields = ('service',)

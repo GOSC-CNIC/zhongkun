@@ -13,6 +13,7 @@ class TimedTaskLock(UuidModel):
         REQ_COUNT = 'req-count', _('服务请求量统计')
         SCAN = 'scan', _('安全扫描')
         SCREEN_HOST_CPUUSAGE = 'screen_host_cpuusage', _('大屏展示主机CPU使用率')
+        SCREEN_SERVICE_STATS = 'screen_service_stats', _('大屏展示服务单元统计数据')
         ALERT_EMAIL = 'alert_email', _('告警邮件通知')
         ALERT_DINGTALK = 'alert_dingtalk', _('告警钉钉通知')
 
