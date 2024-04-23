@@ -455,7 +455,8 @@ class MonitorWebsiteViewSet(CustomGenericViewSet):
                   "creation": "2023-03-08T07:34:00Z",
                   "modification": "2023-03-08T07:34:00Z",
                   "remark": "备注信息",
-                  "enable": true
+                  "enable": true,
+                  "sort_weight": 1  # 值越小排序越靠前
                 }
               ]
             }

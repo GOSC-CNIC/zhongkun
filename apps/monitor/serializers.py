@@ -142,6 +142,7 @@ class MonitorWebsiteDetectionPointSerializer(serializers.Serializer):
     modification = serializers.DateTimeField(label=_('修改时间'))
     remark = serializers.CharField(label=_('备注'), max_length=255)
     enable = serializers.BooleanField(label=_('使用启用'))
+    sort_weight = serializers.IntegerField(label=_('排序值'), help_text=_('值越小排序越靠前'))
 
 
 class MonitorJobTiDBSimpleSerializer(serializers.Serializer):

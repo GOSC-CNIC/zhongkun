@@ -1040,7 +1040,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(len(r.data['results']), 1)
         self.assertEqual(r.data['results'][0]['id'], detection_point1.id)
         self.assertKeysIn(keys=[
-            'id', 'name', 'name_en', 'remark', 'modification', 'creation', 'enable'
+            'id', 'name', 'name_en', 'remark', 'modification', 'creation', 'enable', 'sort_weight'
         ], container=r.data['results'][0])
 
         # query "enable" false
