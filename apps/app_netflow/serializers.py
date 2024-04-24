@@ -30,17 +30,32 @@ class ChildDeptSerializer(serializers.ModelSerializer):
         return None
 
 
+class MenuWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChartModel
+        fields = "__all__"
+
+
 class MenuModelSerializer(serializers.ModelSerializer):
-    sub_categories = ChildDeptSerializer(many=True)
+    sub_categories = ChildDeptSerializer(many=True, read_only=True)
+    father_id = serializers.PrimaryKeyRelatedField(
+        queryset=MenuModel.objects.all(),
+        source='father',
+        write_only=True,
+        error_messages={
+            'required': '上级菜单不能为空.',
+        }
+    )
 
     class Meta:
         model = MenuModel
         fields = (
             'id',
             'name',
-            # 'sort_weight',
-            # 'remark',
+            'sort_weight',
+            'remark',
             'sub_categories',
+            'father_id',
         )
         depth = 1
 
@@ -91,9 +106,15 @@ class TrafficSerializer(TimestampRangeSerializer):
         required=True,
         error_messages={'required': "图标ID不能为空"}
     )
+    metrics_ids = serializers.JSONField(
+        label="查询字段",
+        help_text='查询字段',
+        required=True,
+        error_messages={'required': "查询字段不能为空"}
+    )
 
     def validate_chart(self, chart):
         obj = ChartModel.objects.filter(id=chart)
         if not obj:
-            raise serializers.ValidationError("ports参数无效")
+            raise serializers.ValidationError("chart参数无效")
         return chart

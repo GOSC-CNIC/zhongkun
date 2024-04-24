@@ -10,6 +10,7 @@ from apps.app_netflow.filters import ChartFilter
 from apps.app_netflow.filters import MenuFilter
 from apps.app_netflow.pagination import LimitOffsetPage
 from apps.app_netflow.permission import CustomPermission
+# from apps.app_netflow.permission import MenuPermission
 from rest_framework.response import Response
 from rest_framework.mixins import CreateModelMixin
 from rest_framework.mixins import RetrieveModelMixin
@@ -55,6 +56,22 @@ class MenuAPIView(GenericAPIView):
     def response(self, data):
         data = data[0]
         return data.get('sub_categories')
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status_code.HTTP_201_CREATED, headers=headers)
+
+    def perform_create(self, serializer):
+        serializer.save()
+
+    def get_success_headers(self, data):
+        try:
+            return {'Location': str(data[api_settings.URL_FIELD_NAME])}
+        except (TypeError, KeyError):
+            return {}
 
 
 class ChartAPIView(GenericAPIView, CreateModelMixin):
@@ -145,9 +162,11 @@ class TrafficAPIView(APIView, ):
         from django.forms.models import model_to_dict
         start = kwargs.get('start')
         end = kwargs.get('end')
+        metrics_ids = kwargs.get('metrics_ids')
         chart = ChartModel.objects.filter(id=kwargs.get('chart')).first()
         return EasyOPS().traffic(
+            chart=model_to_dict(chart),
+            metrics_ids=metrics_ids,
             start=start,
             end=end,
-            chart=model_to_dict(chart)
         )

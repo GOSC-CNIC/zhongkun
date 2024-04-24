@@ -1,7 +1,40 @@
 from rest_framework.permissions import IsAdminUser
 from rest_framework.permissions import BasePermission
 from apps.app_netflow.models import MenuModel
+from apps.app_netflow.models import RoleModel
 from django.forms.models import model_to_dict
+
+
+class Permission(object):
+    def __init__(self, request):
+        self.request = request
+        self.user = self.request.user
+
+    def is_super_admin(self):
+        """
+        超级管理员
+        """
+        role = self.user.netflow_role_set.filter(role=RoleModel.Roles.SUPER_ADMIN.value).first()
+        if role:
+            return True
+
+    def is_admin(self):
+        """
+        管理员
+        """
+        role = self.user.netflow_role_set.filter(role=RoleModel.Roles.ADMIN.value).first()
+        if role:
+            return True
+
+
+def has_netflow_admin_permission(user):
+    """
+    超级管理员
+    """
+    role_set = user.netflow_role_set.all()
+    for role in role_set:
+        if role.role == RoleModel.Roles.SUPER_ADMIN.value:
+            return True
 
 
 class UserPermissions(object):
@@ -40,7 +73,7 @@ class UserPermissions(object):
                 return True
 
 
-class CustomPermission(BasePermission):
+class MenuPermission(BasePermission):
     def has_permission(self, request, view):
         user = request.user
         if not user.is_authenticated:  # 需要登陆
@@ -49,15 +82,10 @@ class CustomPermission(BasePermission):
             return True
 
 
-class SubCategoryPermission(BasePermission):
-    """
-    二级菜单栏权限
-    """
-
+class CustomPermission(BasePermission):
     def has_permission(self, request, view):
         user = request.user
         if not user.is_authenticated:  # 需要登陆
             return False
-        return True
-        # permissions = UserPermissions(request=request)
-        # return permissions.has_menu_permission()
+        if user.is_superuser:
+            return True
