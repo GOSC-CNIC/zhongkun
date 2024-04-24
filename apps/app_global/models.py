@@ -44,3 +44,35 @@ class TimedTaskLock(UuidModel):
     def __str__(self):
         return f'[{self.get_status_display()}]({self.status})'
 
+
+class GlobalConfig(models.Model):
+    class ConfigName(models.TextChoices):
+        SITE_NAME = 'site_name', _('站点名称')
+        SITE_NAME_EN = 'site_name_en', _('站点英文名称')
+        SITE_FRONT_URL = 'site_front_url', _('站点前端地址')
+
+    # 配置的默认值，自动创建配置参数记录时填充的默认值
+    value_defaults = {
+        ConfigName.SITE_NAME.value: 'YunKun',
+        ConfigName.SITE_NAME_EN.value: 'YunKun',
+        ConfigName.SITE_FRONT_URL.value: ''
+    }
+
+    id = models.BigAutoField(primary_key=True)
+    name = models.CharField(verbose_name=_('配置名称'), max_length=32, choices=ConfigName.choices)
+    value = models.CharField(verbose_name=_('配置内容'), max_length=255, default='')
+    remark = models.CharField(verbose_name=_('备注'), blank=True, max_length=255)
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
+    update_time = models.DateTimeField(verbose_name=_('更新时间'), auto_now=True)
+
+    class Meta:
+        db_table = 'global_config'
+        ordering = ['creation_time']
+        verbose_name = _('站点配置')
+        verbose_name_plural = verbose_name
+        constraints = [
+            models.UniqueConstraint(fields=('name',), name='unique_global_config_name')
+        ]
+
+    def __str__(self):
+        return f'[{self.name}] {self.value}'

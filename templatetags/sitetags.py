@@ -44,15 +44,6 @@ def do_get_website_url():
     return u.rstrip('/')
 
 
-def get_about_us():
-    config = getattr(settings, 'WEBSITE_CONFIG', {})
-    s = config.get('about_us')
-    if not s:
-        s = gettext('中国科学院计算机网络信息中心，科技云部。')
-
-    return s
-
-
 @register.simple_tag(name='get_about_us')
 def do_get_about_us():
     return site_configs.get_about_us()

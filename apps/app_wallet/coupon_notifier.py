@@ -19,7 +19,7 @@ class MessageTemplate:
 %(message)s
 
 谢谢
-{site_configs.website_brand}({site_configs.website_url})
+{site_configs.get_website_brand()}({site_configs.get_website_url()})
 """
 
     SUBJECT_EXPIRE = '资源券过期通知'

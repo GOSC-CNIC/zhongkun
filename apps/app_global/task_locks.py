@@ -298,7 +298,7 @@ class TaskLock:
         message = f"""
 您好：
 
-{site_configs_manager.website_brand} 后端服务定时任务锁（{tlock.get_task_display()}）超时未释放，请尽快手动释放锁，以防影响定时任务执行。
+{site_configs_manager.get_website_brand()} 后端服务定时任务锁（{tlock.get_task_display()}）超时未释放，请尽快手动释放锁，以防影响定时任务执行。
 
 祝好
         """
