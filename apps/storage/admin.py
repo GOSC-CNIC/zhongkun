@@ -35,7 +35,7 @@ class ObjectsServiceAdmin(BaseModelAdmin):
     form = forms.ObjectsServiceForm
 
     list_display = ('id', 'name', 'name_en', 'org_data_center', 'organization_name', 'service_type',
-                    'sort_weight', 'endpoint_url', 'add_time', 'status',
+                    'sort_weight', 'version', 'endpoint_url', 'add_time', 'status',
                     'username', 'raw_password', 'provide_ftp', 'pay_app_service_id', 'monitor_task_id', 'loki_tag')
 
     search_fields = ['name', 'name_en', 'endpoint_url', 'remarks']
@@ -49,7 +49,7 @@ class ObjectsServiceAdmin(BaseModelAdmin):
     fieldsets = (
         (_('说明、备注'), {'fields': ('remarks', 'sort_weight')}),
         (_('服务配置信息'), {
-            'fields': ('org_data_center', 'name', 'name_en', 'service_type', 'status', 'endpoint_url',
+            'fields': ('org_data_center', 'name', 'name_en', 'service_type', 'version', 'status', 'endpoint_url',
                        'api_version', 'username', 'password', 'change_password')
         }),
         (_('FTP配置信息'), {

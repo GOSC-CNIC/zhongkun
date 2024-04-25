@@ -222,7 +222,8 @@ class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
     fieldsets = (
         (_('说明、备注'), {'fields': ('remarks', 'sort_weight', 'only_admin_visible')}),
         (_('服务配置信息'), {
-            'fields': ('org_data_center', 'name', 'name_en', 'service_type', 'cloud_type', 'status', 'endpoint_url',
+            'fields': ('org_data_center', 'name', 'name_en', 'service_type', 'cloud_type',
+                       'version', 'status', 'endpoint_url',
                        'api_version', 'region_id', 'disk_available', 'username', 'password', 'change_password')
         }),
         (_('VPN配置信息'), {

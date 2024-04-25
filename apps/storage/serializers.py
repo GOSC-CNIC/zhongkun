@@ -55,9 +55,10 @@ class ObjectsServiceSerializer(serializers.Serializer):
     pay_app_service_id = serializers.CharField(label=_('余额结算APP服务ID'))
     org_data_center = serializers.SerializerMethodField(label=_('机构数据中心'), method_name='get_org_data_center')
     sort_weight = serializers.IntegerField(label=_('排序权重'), default=0, help_text=_('值越大排序越靠前'))
-    loki_tag = serializers.CharField(
-        label=_('对应loki日志中集群标识'), max_length=128,
-        help_text=_('服务单元在Loki访问日志中对应的对象存储集群标识，用于计量网络流量、请求量等信息时标识对应关系'))
+    # loki_tag = serializers.CharField(
+    #     label=_('对应loki日志中集群标识'), max_length=128,
+    #     help_text=_('服务单元在Loki访问日志中对应的对象存储集群标识，用于计量网络流量、请求量等信息时标识对应关系'))
+    version = serializers.CharField(max_length=32, label=_('版本号'))
 
     @staticmethod
     def get_ftp_domains(obj):

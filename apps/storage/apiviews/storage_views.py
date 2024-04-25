@@ -88,7 +88,7 @@ class ObjectsServiceViewSet(StorageGenericViewSet):
                         "name_en": "xxx",
                     }
                   },
-                  "loki_tag": "xxx"
+                  "version": "v4.1.1"
                 }
               ]
             }
@@ -185,7 +185,7 @@ class ObjectsServiceViewSet(StorageGenericViewSet):
                         "name_en": "xxx",
                     }
                   },
-                  "loki_tag": "xxx"
+                  "version": "v4.1.1"
                 }
               ]
             }
