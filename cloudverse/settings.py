@@ -76,10 +76,12 @@ INSTALLED_APPS = [
 
 # 自定义参数，设置admin后台app的排列顺序
 ADMIN_SORTED_APP_LIST = [
+    'app_global',
     'service',
     'storage',
     'servers',
     'order',
+    'apply',    # app_apply
     'bill',     # app_wallet
     'metering',
     'report',
@@ -93,8 +95,6 @@ ADMIN_SORTED_APP_LIST = [
     'app_screenvis',
     'app_alert',
     'app_netflow',
-    'apply',    # app_apply
-    'app_global',
     'auth',
 ]
 
