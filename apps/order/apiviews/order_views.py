@@ -294,7 +294,10 @@ class OrderViewSet(CustomGenericViewSet):
                   "service_name": "xxx",
                   "resource_type": "vm",
                   "instance_config": {},
-                  "period": 0,
+                  "period": 0,              # 订购时长
+                  "period_unit": "month",   # 时长单位，month、day
+                  "start_time": "2022-03-10T06:05:00.478101Z",  # 订单订购资源的时长起始时间
+                  "end_time": "2022-04-10T06:05:00.478101Z",  # 订单订购资源的时长截止时间
                   "payment_time": "2022-03-10T06:05:00Z",
                   "pay_type": "postpaid",
                   "creation_time": "2022-03-10T06:10:32.478101Z",
@@ -382,7 +385,10 @@ class OrderViewSet(CustomGenericViewSet):
               "service_name": "",
               "resource_type": "vm",
               "instance_config": {},
-              "period": 0,
+              "period": 0,              # 订购时长
+              "period_unit": "month",   # 时长单位，month、day
+              "start_time": "2022-03-10T06:05:00.478101Z",  # 订单订购资源的时长起始时间
+              "end_time": "2022-04-10T06:05:00.478101Z",  # 订单订购资源的时长截止时间
               "payment_time": "2022-03-10T06:05:00Z",
               "pay_type": "postpaid",
               "creation_time": "2022-03-10T06:10:32.478101Z",

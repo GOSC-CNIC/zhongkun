@@ -121,7 +121,8 @@ class OrderTests(MyAPITestCase):
         self.assertEqual(response.data['count'], 1)
         self.assertEqual(len(response.data['orders']), 1)
         self.assertKeysIn(["id", "order_type", "status", "total_amount", "pay_amount",
-                           "service_id", "service_name", "resource_type", "instance_config", "period",
+                           "service_id", "service_name", "resource_type", "instance_config",
+                           "period", "period_unit", "start_time", "end_time",
                            "payment_time", "pay_type", "creation_time", "user_id", "username", 'number',
                            "vo_id", "vo_name", "owner_type", "cancelled_time", "app_service_id", 'trading_status'
                            ], response.data['orders'][0])
@@ -139,6 +140,9 @@ class OrderTests(MyAPITestCase):
             "resource_type": ResourceType.VM.value,
             "instance_config": order.instance_config,
             "period": order.period,
+            "period_unit": Order.PeriodUnit.MONTH.value,
+            "start_time": None,
+            "end_time": None,
             "pay_type": PayType.PREPAID.value,
             "user_id": self.user.id,
             "username": self.user.username,
@@ -553,7 +557,8 @@ class OrderTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn([
             "id", "order_type", "status", "total_amount", "pay_amount", "service_id", "service_name",
-            "resource_type", "instance_config", "period", "payment_time", "pay_type", "creation_time",
+            "resource_type", "instance_config", "payment_time", "pay_type", "creation_time",
+            "period", "period_unit", "start_time", "end_time",
             "user_id", "username", "vo_id", "vo_name", "owner_type", "resources", 'number', 'trading_status',
             "payable_amount", "balance_amount", "coupon_amount", "cancelled_time", "app_service_id",
         ], response.data)
