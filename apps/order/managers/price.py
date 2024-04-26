@@ -39,14 +39,15 @@ class PriceManager:
             raise Exception('无效的时长单位')
 
     def describe_disk_price(
-            self, size_gib: int, is_prepaid: bool, period: int, days: float
+            self, size_gib: int, is_prepaid: bool, period: int, period_unit: str, days: float
     ) -> (Decimal, Decimal):
         """
         云硬盘询价
         总时长 = period + days
         :param size_gib: disk size GiB
         :param is_prepaid: True(包年包月预付费)，False(按量计费)
-        :param period: 时长，单位月数
+        :param period: 时长
+        :param period_unit: 时长单位
         :param days: 时长天数，默认一天
         :return:
             (
@@ -57,7 +58,7 @@ class PriceManager:
         """
         total_days = days
         if period and period > 0:
-            period_days = self.convert_period_days(period=period, period_unit=Order.PeriodUnit.MONTH.value)
+            period_days = self.convert_period_days(period=period, period_unit=period_unit)
             total_days += period_days
 
         price = self.enforce_price()

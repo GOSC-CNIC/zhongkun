@@ -35,6 +35,7 @@ class DescribePriceHandler:
             external_ip = data['external_ip']
             system_disk_size = data['system_disk_size']
             period = data['period']
+            period_unit = data['period_unit']
             days = 1 if period is None else 0
 
             flavor = Flavor.objects.filter(id=flavor_id, enable=True).first()
@@ -44,7 +45,7 @@ class DescribePriceHandler:
             original_price, trade_price = pmgr.describe_server_price(
                 ram_mib=flavor.ram_mib, cpu=flavor.vcpus, disk_gib=system_disk_size, public_ip=external_ip,
                 is_prepaid=(pay_type == 'prepaid'),
-                period=period, period_unit=Order.PeriodUnit.MONTH.value, days=days)
+                period=period, period_unit=period_unit, days=days)
 
             number = data['number']
             if number > 1:
@@ -54,10 +55,12 @@ class DescribePriceHandler:
             pay_type = data['pay_type']
             data_disk_size = data['data_disk_size']
             period = data['period']
+            period_unit = data['period_unit']
             days = 1 if period is None else 0
 
             original_price, trade_price = pmgr.describe_disk_price(
-                size_gib=data_disk_size, is_prepaid=(pay_type == 'prepaid'), period=period, days=days)
+                size_gib=data_disk_size, is_prepaid=(pay_type == 'prepaid'),
+                period=period, period_unit=period_unit, days=days)
 
             number = data['number']
             if number > 1:
@@ -119,6 +122,16 @@ class DescribePriceHandler:
         return period
 
     @staticmethod
+    def param_period_unit_validate(period_unit) -> str:
+        if period_unit is None:
+            return Order.PeriodUnit.MONTH.value
+
+        if period_unit not in Order.PeriodUnit.values:
+            raise errors.InvalidArgument(message=_('时长单位无效'))
+
+        return period_unit
+
+    @staticmethod
     def param_number_validate(number: str):
         """
         :return: int
@@ -143,9 +156,11 @@ class DescribePriceHandler:
         system_disk_size = params.get('system_disk_size', None)
         pay_type = params.get('pay_type', None)
         period = request.query_params.get('period', None)
+        period_unit = request.query_params.get('period_unit', None)
         number = request.query_params.get('number', None)
 
         period = self.param_period_validate(period=period)
+        period_unit = self.param_period_unit_validate(period_unit=period_unit)
         number = self.param_number_validate(number=number)
 
         if pay_type not in ['prepaid', 'postpaid']:
@@ -182,6 +197,7 @@ class DescribePriceHandler:
             'external_ip': external_ip,
             'system_disk_size': system_disk_size,
             'period': period,
+            'period_unit': period_unit,
             'number': number
         }
 
@@ -190,9 +206,11 @@ class DescribePriceHandler:
         data_disk_size = params.get('data_disk_size', None)
         pay_type = params.get('pay_type', None)
         period = request.query_params.get('period', None)
+        period_unit = request.query_params.get('period_unit', None)
         number = request.query_params.get('number', None)
 
         period = self.param_period_validate(period=period)
+        period_unit = self.param_period_unit_validate(period_unit=period_unit)
         number = self.param_number_validate(number=number)
 
         if pay_type not in ['prepaid', 'postpaid']:
@@ -213,6 +231,7 @@ class DescribePriceHandler:
             'pay_type': pay_type,
             'data_disk_size': data_disk_size,
             'period': period,
+            'period_unit': period_unit,
             'number': number
         }
 
@@ -238,6 +257,7 @@ class DescribePriceHandler:
         resource_type = request.query_params.get('resource_type', None)
         instance_id = request.query_params.get('instance_id', None)
         period = request.query_params.get('period', None)
+        period_unit = request.query_params.get('period_unit', None)
         renew_to_time = request.query_params.get('renew_to_time', None)
 
         if resource_type is None:
@@ -270,10 +290,13 @@ class DescribePriceHandler:
                 raise errors.InvalidArgument(
                     message=_('参数“renew_to_time”的值无效的时间格式'), code='InvalidRenewToTime')
 
+        period_unit = self.param_period_unit_validate(period_unit=period_unit)
+
         return {
             'resource_type': resource_type,
             'instance_id': instance_id,
             'period': period,
+            'period_unit': period_unit,
             'renew_to_time': renew_to_time
         }
 
@@ -286,6 +309,7 @@ class DescribePriceHandler:
         resource_type = params['resource_type']
         instance_id = params['instance_id']
         period = params['period']
+        period_unit = params['period_unit']
         renew_to_time = params['renew_to_time']
 
         pmgr = PriceManager()
@@ -308,7 +332,7 @@ class DescribePriceHandler:
             original_price, trade_price = pmgr.describe_server_price(
                 ram_mib=server.ram_mib, cpu=server.vcpus, disk_gib=server.disk_size, public_ip=server.public_ip,
                 is_prepaid=(server.pay_type == 'prepaid'),
-                period=period, period_unit=Order.PeriodUnit.MONTH.value, days=days)
+                period=period, period_unit=period_unit, days=days)
         elif resource_type == ResourceType.DISK.value:
             try:
                 disk = DiskManager().get_disk(disk_id=instance_id)
@@ -326,7 +350,7 @@ class DescribePriceHandler:
 
             original_price, trade_price = pmgr.describe_disk_price(
                 size_gib=disk.size,
-                is_prepaid=(disk.pay_type == 'prepaid'), period=period, days=days)
+                is_prepaid=(disk.pay_type == 'prepaid'), period=period, period_unit=period_unit, days=days)
         else:
             return view.exception_response(
                 exc=errors.InvalidArgument(message=_('无效的资源类型'), code='InvalidResourceType'))
