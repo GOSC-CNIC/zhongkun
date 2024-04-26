@@ -350,3 +350,39 @@ class ObjectServiceTimedStats(BaseTimed):
         indexes = [
             models.Index(fields=['timestamp'], name='idx_screen_obj_tmstats_ts')
         ]
+
+
+class ServiceUserOperateLog(models.Model):
+    """对象存储/云主机服务单元用户操作日志"""
+    id = models.BigAutoField(primary_key=True)
+    username = models.CharField(verbose_name=_('用户'), max_length=255)
+    content = models.TextField(verbose_name=_('操作内容'), max_length=255)
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'))
+
+    class Meta:
+        abstract = True
+
+
+class ObjectServiceLog(ServiceUserOperateLog):
+    """对象存储服务单元操作日志"""
+
+    service_cell = models.ForeignKey(
+        to=ObjectService, verbose_name='对象存储服务单元', on_delete=models.SET_NULL, null=True, blank=False)
+    class Meta:
+        db_table = 'screenvis_objectservice_log'
+        ordering = ['-id']
+        verbose_name = _('对象存储服务单元用户操作日志')
+        verbose_name_plural = verbose_name
+
+
+class ServerServiceLog(ServiceUserOperateLog):
+    """云主机服务单元操作日志"""
+
+    service_cell = models.ForeignKey(
+        to=ServerService, verbose_name='云主机服务单元', on_delete=models.SET_NULL, null=True, blank=False)
+    class Meta:
+        db_table = 'screenvis_serverservice_log'
+        ordering = ['-id']
+        verbose_name = _('云主机服务单元用户操作日志')
+        verbose_name_plural = verbose_name
+

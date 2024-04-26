@@ -10,7 +10,8 @@ from django.utils.html import format_html
 from utils.model import BaseModelAdmin
 from .models import (
     ScreenConfig, DataCenter, MetricMonitorUnit, LogMonitorUnit, HostCpuUsage,
-    ApiAllowIP, ServerService, ObjectService, ServerServiceTimedStats, ObjectServiceTimedStats, VPNTimedStats
+    ApiAllowIP, ServerService, ObjectService, ServerServiceTimedStats, ObjectServiceTimedStats, VPNTimedStats,
+    ObjectServiceLog, ServerServiceLog
 )
 
 
@@ -228,3 +229,19 @@ class ObjectServiceTimedStatsAdmin(BaseModelAdmin):
             return ''
 
         return dt.isoformat(sep=' ')
+
+
+
+@admin.register(ObjectServiceLog)
+class ObjectServiceLogAdmin(BaseModelAdmin):
+    list_display_links = ('id',)
+    list_display = ('id', 'username', 'content', 'creation_time',)
+    search_fields = ['username', 'content',]
+
+
+@admin.register(ServerServiceLog)
+class ServerServiceLogAdmin(BaseModelAdmin):
+    list_display_links = ('id',)
+    list_display = ('id', 'username', 'content', 'creation_time',)
+    search_fields = ['username', 'content',]
+

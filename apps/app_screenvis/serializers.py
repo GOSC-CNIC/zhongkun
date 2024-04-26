@@ -80,3 +80,9 @@ class BaseServiceSerializer(serializers.Serializer):
     @staticmethod
     def get_data_center(obj):
         return get_data_center_dict(obj.data_center)
+
+
+class ServiceUserOperateLogSerializer(serializers.Serializer):
+    creation_time = serializers.DateTimeField()
+    username = serializers.CharField()
+    content = serializers.CharField()
