@@ -17,7 +17,7 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(primary_key=True, serialize=False)),
                 ('username', models.CharField(max_length=255, verbose_name='用户')),
                 ('content', models.TextField(max_length=255, verbose_name='操作内容')),
-                ('creation_time', models.DateTimeField(verbose_name='创建时间')),
+                ('creation_time', models.DateTimeField(verbose_name='用户操作时间')),
                 ('service_cell', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to='app_screenvis.serverservice', verbose_name='云主机服务单元')),
             ],
             options={
@@ -33,7 +33,7 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(primary_key=True, serialize=False)),
                 ('username', models.CharField(max_length=255, verbose_name='用户')),
                 ('content', models.TextField(max_length=255, verbose_name='操作内容')),
-                ('creation_time', models.DateTimeField(verbose_name='创建时间')),
+                ('creation_time', models.DateTimeField(verbose_name='用户操作时间')),
                 ('service_cell', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to='app_screenvis.objectservice', verbose_name='对象存储服务单元')),
             ],
             options={

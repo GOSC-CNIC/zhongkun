@@ -357,7 +357,8 @@ class ServiceUserOperateLog(models.Model):
     id = models.BigAutoField(primary_key=True)
     username = models.CharField(verbose_name=_('用户'), max_length=255)
     content = models.TextField(verbose_name=_('操作内容'), max_length=255)
-    creation_time = models.DateTimeField(verbose_name=_('创建时间'))
+    creation_time = models.DateTimeField(verbose_name=_('用户操作时间'))  # 用户操作时间
+    create_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
 
     class Meta:
         abstract = True

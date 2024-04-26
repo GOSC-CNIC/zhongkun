@@ -47,10 +47,10 @@ class UserOperateLogViewSet(NormalGenericViewSet):
 
 
         if server_type == 'evcloud':
-            queryset = ServerServiceLog.objects.all()
+            queryset = ServerServiceLog.objects.order_by('-creation_time').all()
 
         else:
-            queryset = ObjectServiceLog.objects.all()
+            queryset = ObjectServiceLog.objects.order_by('-creation_time').all()
 
         page = self.paginate_queryset(queryset)
         if page is not None:

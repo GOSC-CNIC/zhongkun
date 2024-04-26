@@ -235,13 +235,13 @@ class ObjectServiceTimedStatsAdmin(BaseModelAdmin):
 @admin.register(ObjectServiceLog)
 class ObjectServiceLogAdmin(BaseModelAdmin):
     list_display_links = ('id',)
-    list_display = ('id', 'username', 'content', 'creation_time',)
+    list_display = ('id', 'username', 'content', 'creation_time', 'create_time')
     search_fields = ['username', 'content',]
 
 
 @admin.register(ServerServiceLog)
 class ServerServiceLogAdmin(BaseModelAdmin):
     list_display_links = ('id',)
-    list_display = ('id', 'username', 'content', 'creation_time',)
+    list_display = ('id', 'username', 'content', 'creation_time', 'create_time')
     search_fields = ['username', 'content',]
 
