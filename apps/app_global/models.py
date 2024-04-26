@@ -15,6 +15,7 @@ class TimedTaskLock(UuidModel):
         SCREEN_HOST_CPUUSAGE = 'screen_host_cpuusage', _('大屏展示主机CPU使用率')
         ALERT_EMAIL = 'alert_email', _('告警邮件通知')
         ALERT_DINGTALK = 'alert_dingtalk', _('告警钉钉通知')
+        SCREEN_USER_OPERATE_LOG = 'scree_user_operate_log', _('大屏展示用户操作日志')
 
     class Status(models.TextChoices):
         NONE = 'none', _('无')

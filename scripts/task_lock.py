@@ -34,3 +34,4 @@ scan_lock = TaskLock(task_name=TaskLock.TaskNames.SCAN.value)   # 安全扫描
 screen_host_cpuusage_lock = TaskLock(task_name=TaskLock.TaskNames.SCREEN_HOST_CPUUSAGE.value)   # 大屏展示主机CPU使用率
 alert_email_notify_lock = TaskLock(task_name=TaskLock.TaskNames.ALERT_EMAIL.value)   # 告警邮件通知
 alert_dingtalk_notify_lock = TaskLock(task_name=TaskLock.TaskNames.ALERT_DINGTALK.value)   # 告警钉钉通知
+scree_user_operate_log_lock = TaskLock(task_name=TaskLock.TaskNames.SCREEN_USER_OPERATE_LOG.value)   # 大屏展示用户操作日志
