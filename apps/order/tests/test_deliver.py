@@ -97,6 +97,7 @@ class DeliverTests(MyAPITestCase):
             resource_type=ResourceType.VM.value,
             instance_config=instance_config,
             period=8,
+            period_unit=Order.PeriodUnit.MONTH.value,
             pay_type=PayType.PREPAID.value,
             user_id=self.user.id,
             username=self.user.username,
@@ -174,6 +175,7 @@ class DeliverTests(MyAPITestCase):
         self.assertFalse(Server.objects.filter(id=od1_res1.instance_id).exists())
 
         # 请求success
+        now_time = dj_timezone.now()
         od1_res1.last_deliver_time = dj_timezone.now() - timedelta(minutes=2)
         od1_res1.save(update_fields=['last_deliver_time'])
         or_dlver._request_create_server = cs_req.request_create_server_ok    # 替换创建请求方法
@@ -188,9 +190,54 @@ class DeliverTests(MyAPITestCase):
         self.assertLess(od1_res1.last_deliver_time - dj_timezone.now(), timedelta(seconds=30))
         self.assertEqual(od1_res1.instance_status, od1_res1.InstanceStatus.SUCCESS.value)
         self.assertTrue(Server.objects.filter(id=od1_res1.instance_id).exists())
+        # server 过期时间
+        s = Server.objects.filter(id=od1_res1.instance_id).first()
+        self.assertTrue((s.expiration_time - now_time) > timedelta(days=30 * 8))
 
         with self.assertRaises(errors.OrderTradingCompleted):
             or_dlver.deliver_order(order1, resource=None)
+
+        # 创建订单2
+        order2, resource_list2 = OrderManager().create_order(
+            order_type=Order.OrderType.NEW.value,
+            pay_app_service_id=self.service1.pay_app_service_id,
+            service_id=self.service1.id,
+            service_name=self.service1.name,
+            resource_type=ResourceType.VM.value,
+            instance_config=instance_config,
+            period=100,
+            period_unit=Order.PeriodUnit.DAY.value,
+            pay_type=PayType.PREPAID.value,
+            user_id=self.user.id,
+            username=self.user.username,
+            vo_id=self.vo.id,
+            vo_name=self.vo.name,
+            owner_type=OwnerType.VO.value,
+            remark='testcase创建，可删除'
+        )
+        od2_res1 = resource_list2[0]
+        order2.set_paid(
+            pay_amount=Decimal('0'), balance_amount=Decimal('0'), coupon_amount=Decimal('0'), payment_history_id='')
+        or_dlver = OrderResourceDeliverer()
+        or_dlver._request_create_server = cs_req.request_create_server_ok  # 替换创建请求方法
+        ServicePrivateQuotaManager().increase(service=self.service1, vcpus=2, ram_gib=4, public_ip=1)
+
+        # 请求success
+        now_time = dj_timezone.now()
+        or_dlver.deliver_order(order2, resource=None)
+        s1_quota.refresh_from_db()
+        self.assertEqual(s1_quota.vcpu_used, 2 + 2)
+        self.assertEqual(s1_quota.ram_used, 4 + 4)
+        self.assertEqual(s1_quota.public_ip_used, 1 + 1)
+        order2.refresh_from_db()
+        self.assertEqual(order2.trading_status, order2.TradingStatus.COMPLETED.value)
+        od2_res1.refresh_from_db()
+        self.assertLess(od2_res1.last_deliver_time - dj_timezone.now(), timedelta(seconds=30))
+        self.assertEqual(od2_res1.instance_status, od2_res1.InstanceStatus.SUCCESS.value)
+        self.assertTrue(Server.objects.filter(id=od2_res1.instance_id).exists())
+        # server 过期时间
+        s = Server.objects.filter(id=od2_res1.instance_id).first()
+        self.assertTrue((s.expiration_time - now_time) > timedelta(days=100))
 
     def _assert_res(self, res: Resource, instance_status=Resource.InstanceStatus.FAILED.value):
         res.refresh_from_db()
@@ -215,6 +262,7 @@ class DeliverTests(MyAPITestCase):
             resource_type=ResourceType.VM.value,
             instance_config=instance_config,
             period=8,
+            period_unit=Order.PeriodUnit.MONTH.value,
             pay_type=PayType.PREPAID.value,
             user_id=self.user.id,
             username=self.user.username,
@@ -293,6 +341,7 @@ class DeliverTests(MyAPITestCase):
         Resource.objects.filter(id__in=[x.id for x in resource_list]).update(
             last_deliver_time=dj_timezone.now() - timedelta(minutes=2))
 
+        now_time = dj_timezone.now()
         or_dlver._request_create_server = cs_req.request_create_server_ok    # 替换创建请求方法
         or_dlver.deliver_order(order1, resource=None)
         s1_quota.refresh_from_db()
@@ -305,6 +354,9 @@ class DeliverTests(MyAPITestCase):
         self._assert_res(res=od1_res2, instance_status=Resource.InstanceStatus.SUCCESS.value)
         self._assert_res(res=od1_res3, instance_status=Resource.InstanceStatus.SUCCESS.value)
         self.assertEqual(Server.objects.filter(id__in=[x.instance_id for x in resource_list]).count(), 3)
+        # server 过期时间
+        for s in Server.objects.filter(id__in=[x.instance_id for x in resource_list]).all():
+            self.assertTrue((s.expiration_time - now_time) > timedelta(days=30*8))
 
         with self.assertRaises(errors.OrderTradingCompleted):
             or_dlver.deliver_order(order1, resource=None)
@@ -318,6 +370,7 @@ class DeliverTests(MyAPITestCase):
             resource_type=ResourceType.VM.value,
             instance_config=instance_config,
             period=6,
+            period_unit=Order.PeriodUnit.MONTH.value,
             pay_type=PayType.POSTPAID.value,
             user_id=self.user.id,
             username=self.user.username,
@@ -411,6 +464,9 @@ class DeliverTests(MyAPITestCase):
         self.assertEqual(Server.objects.filter(id=od1_res4.instance_id).count(), 1)
         self.assertEqual(Server.objects.filter(id=od1_res5.instance_id).count(), 1)
         self.assertEqual(Server.objects.filter(id=od1_res6.instance_id).count(), 1)
+        # server 过期时间
+        for s in Server.objects.filter(id__in=[x.instance_id for x in resource_list2]).all():
+            self.assertIsNone(s.expiration_time)
 
         with self.assertRaises(errors.OrderTradingCompleted):
             or_dlver2.deliver_order(order2, resource=None)

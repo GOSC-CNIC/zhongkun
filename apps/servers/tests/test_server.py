@@ -301,7 +301,8 @@ class ServerOrderTests(MyAPITransactionTestCase):
         self.assertEqual(order.user_id, self.user.id)
 
         original_price, trade_price = PriceManager().describe_server_price(
-            ram_mib=1024*3, cpu=2, disk_gib=500, public_ip=is_public_network, is_prepaid=True, period=12, days=0)
+            ram_mib=1024*3, cpu=2, disk_gib=500, public_ip=is_public_network, is_prepaid=True,
+            period=12, period_unit=Order.PeriodUnit.MONTH.value, days=0)
         self.assertEqual(order.total_amount, quantize_10_2(original_price))
         self.assertEqual(order.payable_amount, quantize_10_2(trade_price))
 
@@ -372,7 +373,8 @@ class ServerOrderTests(MyAPITransactionTestCase):
         self.assertEqual(len(resources), 3)
 
         original_price, trade_price = PriceManager().describe_server_price(
-            ram_mib=1024 * 3, cpu=2, disk_gib=500, public_ip=is_public_network, is_prepaid=True, period=12, days=0)
+            ram_mib=1024 * 3, cpu=2, disk_gib=500, public_ip=is_public_network, is_prepaid=True,
+            period=12, period_unit=Order.PeriodUnit.MONTH.value, days=0)
         self.assertEqual(order.total_amount, quantize_10_2(original_price) * 3)
         self.assertEqual(int(order.payable_amount), int(quantize_10_2(trade_price) * 3))
 
@@ -788,7 +790,8 @@ class ServerOrderTests(MyAPITransactionTestCase):
         self.assertEqual(order.order_type, Order.OrderType.POST2PRE.value)
         self.assertEqual(order.status, Order.Status.UNPAID.value)
         original_price, trade_price = PriceManager().describe_server_price(
-            ram_mib=2048, cpu=6, disk_gib=100, public_ip=True, is_prepaid=True, period=period, days=0)
+            ram_mib=2048, cpu=6, disk_gib=100, public_ip=True, is_prepaid=True,
+            period=period, period_unit=Order.PeriodUnit.MONTH.value, days=0)
         self.assertEqual(order.total_amount, quantize_10_2(original_price))
         self.assertEqual(order.payable_amount, quantize_10_2(trade_price))
         self.assertEqual(order.period, period)
@@ -877,7 +880,8 @@ class ServerOrderTests(MyAPITransactionTestCase):
         self.assertEqual(vo_order.order_type, Order.OrderType.POST2PRE.value)
         self.assertEqual(vo_order.status, Order.Status.UNPAID.value)
         original_price, trade_price = PriceManager().describe_server_price(
-            ram_mib=4096, cpu=4, disk_gib=0, public_ip=False, is_prepaid=True, period=6, days=0)
+            ram_mib=4096, cpu=4, disk_gib=0, public_ip=False, is_prepaid=True,
+            period=6, period_unit=Order.PeriodUnit.MONTH.value, days=0)
         self.assertEqual(vo_order.total_amount, quantize_10_2(original_price))
         self.assertEqual(vo_order.payable_amount, quantize_10_2(trade_price))
         self.assertEqual(vo_order.period, 6)

@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from core import errors
-from apps.order.models import Price
+from apps.order.models import Price, Order
 
 
 class PriceManager:
@@ -27,11 +27,16 @@ class PriceManager:
         return self._price
 
     @staticmethod
-    def period_month_days(months: int):
+    def convert_period_days(period: int, period_unit: str):
         """
         每月按30天计算
         """
-        return 30 * months
+        if period_unit == Order.PeriodUnit.DAY.value:
+            return period
+        elif period_unit == Order.PeriodUnit.MONTH.value:
+            return 30 * period
+        else:
+            raise Exception('无效的时长单位')
 
     def describe_disk_price(
             self, size_gib: int, is_prepaid: bool, period: int, days: float
@@ -52,7 +57,7 @@ class PriceManager:
         """
         total_days = days
         if period and period > 0:
-            period_days = self.period_month_days(period)
+            period_days = self.convert_period_days(period=period, period_unit=Order.PeriodUnit.MONTH.value)
             total_days += period_days
 
         price = self.enforce_price()
@@ -73,6 +78,7 @@ class PriceManager:
             public_ip: bool,
             is_prepaid: bool,
             period: int,
+            period_unit: str,
             days: float
     ) -> (Decimal, Decimal):
         """
@@ -83,7 +89,8 @@ class PriceManager:
         :param disk_gib: disk size GiB
         :param public_ip:
         :param is_prepaid: True(包年包月预付费)，False(按量计费)
-        :param period: 时长，单位月数
+        :param period: 时长
+        :param period_unit: 时长单位
         :param days: 时长天数，默认一天
         :return:
             (
@@ -94,7 +101,7 @@ class PriceManager:
         """
         total_days = days
         if period and period > 0:
-            period_days = self.period_month_days(period)
+            period_days = self.convert_period_days(period=period, period_unit=period_unit)
             total_days += period_days
 
         price = self.enforce_price()

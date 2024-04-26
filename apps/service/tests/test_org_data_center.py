@@ -900,7 +900,7 @@ class AdminODCTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['object_units'][0]['id'], obj_unit1.id)
         self.assertKeysIn([
             'id', 'name', 'name_en', 'service_type', 'endpoint_url', 'add_time', 'status', 'remarks', 'provide_ftp',
-            'ftp_domains', 'longitude', 'latitude', 'pay_app_service_id', 'org_data_center', 'sort_weight', 'loki_tag',
+            'ftp_domains', 'longitude', 'latitude', 'pay_app_service_id', 'org_data_center', 'sort_weight', 'version',
             'username'], response.data["object_units"][0])
         self.assertKeysIn(['id', "name", "name_en", 'sort_weight', 'organization'
                            ], response.data["object_units"][0]['org_data_center'])

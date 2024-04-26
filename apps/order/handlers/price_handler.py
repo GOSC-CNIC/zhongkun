@@ -9,7 +9,7 @@ from core import errors
 from apps.servers.models import Flavor
 
 from apps.api.viewsets import CustomGenericViewSet
-from apps.order.models import ResourceType
+from apps.order.models import ResourceType, Order
 from apps.order.managers import PriceManager
 from utils.decimal_utils import quantize_10_2
 from utils.time import iso_utc_to_datetime
@@ -43,7 +43,8 @@ class DescribePriceHandler:
 
             original_price, trade_price = pmgr.describe_server_price(
                 ram_mib=flavor.ram_mib, cpu=flavor.vcpus, disk_gib=system_disk_size, public_ip=external_ip,
-                is_prepaid=(pay_type == 'prepaid'), period=period, days=days)
+                is_prepaid=(pay_type == 'prepaid'),
+                period=period, period_unit=Order.PeriodUnit.MONTH.value, days=days)
 
             number = data['number']
             if number > 1:
@@ -306,7 +307,8 @@ class DescribePriceHandler:
 
             original_price, trade_price = pmgr.describe_server_price(
                 ram_mib=server.ram_mib, cpu=server.vcpus, disk_gib=server.disk_size, public_ip=server.public_ip,
-                is_prepaid=(server.pay_type == 'prepaid'), period=period, days=days)
+                is_prepaid=(server.pay_type == 'prepaid'),
+                period=period, period_unit=Order.PeriodUnit.MONTH.value, days=days)
         elif resource_type == ResourceType.DISK.value:
             try:
                 disk = DiskManager().get_disk(disk_id=instance_id)

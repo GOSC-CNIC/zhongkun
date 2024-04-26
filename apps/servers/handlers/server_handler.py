@@ -550,7 +550,8 @@ class ServerHandler:
         if pay_type == PayType.POSTPAID.value:
             # 计算按量付费一天的计费
             original_price, trade_price = omgr.calculate_amount_money(
-                resource_type=ResourceType.VM.value, config=instance_config, is_prepaid=False, period=0, days=1
+                resource_type=ResourceType.VM.value, config=instance_config, is_prepaid=False,
+                period=0, period_unit=Order.PeriodUnit.DAY.value, days=1
             )
             if number > 1:
                 original_price = original_price * number
@@ -584,6 +585,7 @@ class ServerHandler:
             resource_type=ResourceType.VM.value,
             instance_config=instance_config,
             period=period,
+            period_unit=Order.PeriodUnit.MONTH.value,
             pay_type=pay_type,
             user_id=user.id,
             username=user.username,

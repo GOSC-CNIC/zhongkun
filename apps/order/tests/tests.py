@@ -63,7 +63,7 @@ class PriceManagerTests(TestCase):
         price = self.price
         disk_size_day = price.disk_size.__float__()
         # days = days_after_months(timezone.now(), months=months)
-        days = PriceManager.period_month_days(months)
+        days = PriceManager.convert_period_days(period=months, period_unit=Order.PeriodUnit.MONTH.value)
         op_months = disk_size_day * days * size_gib
         if is_prepaid:
             tp_months = op_months * price.prepaid_discount / 100
@@ -120,7 +120,7 @@ class PriceManagerTests(TestCase):
             self._disk_price_months_test(i, is_prepaid=bool(i % 3))
 
     @staticmethod
-    def _server_day_price(price: Price, ram_mib, cpu, disk_gib, public_ip, is_prepaid: bool) -> Decimal:
+    def _server_one_day_price(price: Price, ram_mib, cpu, disk_gib, public_ip, is_prepaid: bool) -> Decimal:
         p_ram = price.vm_ram * Decimal.from_float(ram_mib / 1024)
         p_cpu = price.vm_cpu * cpu
         p_disk = price.vm_disk * disk_gib
@@ -136,12 +136,13 @@ class PriceManagerTests(TestCase):
     def _server_day_price_test(self, price: Price, ram_mib, cpu, disk_gib, public_ip, is_prepaid: bool):
         pm = PriceManager()
         original_price, trade_price = pm.describe_server_price(
-            ram_mib=ram_mib, cpu=cpu, disk_gib=disk_gib, public_ip=public_ip, is_prepaid=is_prepaid, period=0, days=1)
-        op = self._server_day_price(
+            ram_mib=ram_mib, cpu=cpu, disk_gib=disk_gib, public_ip=public_ip, is_prepaid=is_prepaid,
+            period=0, period_unit=Order.PeriodUnit.DAY.value, days=1)
+        op = self._server_one_day_price(
             price=price, ram_mib=ram_mib, cpu=cpu, disk_gib=disk_gib, public_ip=public_ip, is_prepaid=False)
 
         if is_prepaid:
-            tp = self._server_day_price(
+            tp = self._server_one_day_price(
                 price=price, ram_mib=ram_mib, cpu=cpu, disk_gib=disk_gib, public_ip=public_ip, is_prepaid=True)
         else:
             tp = op
@@ -150,16 +151,17 @@ class PriceManagerTests(TestCase):
         self.assertEqual(quantize_10_2(trade_price), quantize_10_2(tp),
                          msg=f'trade_price, ram_min={ram_mib}, public_ip={public_ip}')
 
-    def _server_prepaid_months_price_test(self, price: Price, ram_mib, cpu, disk_gib, public_ip, months: int,
-                                          is_prepaid: bool):
+    def _server_prepaid_months_price_test(
+            self, price: Price, ram_mib, cpu, disk_gib, public_ip,
+            months: int, period_unit: str, is_prepaid: bool):
         pm = PriceManager()
         original_price, trade_price = pm.describe_server_price(
             ram_mib=ram_mib, cpu=cpu, disk_gib=disk_gib, public_ip=public_ip, period=months, days=0,
-            is_prepaid=is_prepaid)
-        p_day = self._server_day_price(
+            is_prepaid=is_prepaid, period_unit=period_unit)
+        p_day = self._server_one_day_price(
             price=price, ram_mib=ram_mib, cpu=cpu, disk_gib=disk_gib, public_ip=public_ip, is_prepaid=False)
         # days = days_after_months(dt=timezone.now(), months=months)
-        days = PriceManager.period_month_days(months)
+        days = PriceManager.convert_period_days(period=months, period_unit=period_unit)
         op_months = p_day * days
         if is_prepaid:
             tp_months = op_months * Decimal.from_float(price.prepaid_discount / 100)
@@ -183,11 +185,25 @@ class PriceManagerTests(TestCase):
 
         for i in range(1, 36):
             self._server_prepaid_months_price_test(
-                price=price, ram_mib=0, cpu=3, disk_gib=0, public_ip=False, months=i, is_prepaid=bool(i % 3))
+                price=price, ram_mib=0, cpu=3, disk_gib=0, public_ip=False,
+                months=i, period_unit=Order.PeriodUnit.MONTH.value, is_prepaid=bool(i % 3))
             self._server_prepaid_months_price_test(
-                price=price, ram_mib=1024, cpu=2, disk_gib=50, public_ip=True, months=i, is_prepaid=bool(i % 3))
+                price=price, ram_mib=1024, cpu=2, disk_gib=50, public_ip=True,
+                months=i, period_unit=Order.PeriodUnit.MONTH.value, is_prepaid=bool(i % 3))
             self._server_prepaid_months_price_test(
-                price=price, ram_mib=4096, cpu=3, disk_gib=150, public_ip=False, months=i, is_prepaid=bool(i % 3))
+                price=price, ram_mib=4096, cpu=3, disk_gib=150, public_ip=False,
+                months=i, period_unit=Order.PeriodUnit.MONTH.value, is_prepaid=bool(i % 3))
+
+        for i in range(7, 36):
+            self._server_prepaid_months_price_test(
+                price=price, ram_mib=0, cpu=3, disk_gib=0, public_ip=False,
+                months=i, period_unit=Order.PeriodUnit.DAY.value, is_prepaid=bool(i % 3))
+            self._server_prepaid_months_price_test(
+                price=price, ram_mib=1024, cpu=2, disk_gib=50, public_ip=True,
+                months=i, period_unit=Order.PeriodUnit.DAY.value, is_prepaid=bool(i % 3))
+            self._server_prepaid_months_price_test(
+                price=price, ram_mib=4096, cpu=3, disk_gib=150, public_ip=False,
+                months=i, period_unit=Order.PeriodUnit.DAY.value, is_prepaid=bool(i % 3))
 
     def test_scan_price(self):
         pm = PriceManager()

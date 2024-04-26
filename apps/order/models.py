@@ -57,6 +57,10 @@ class Order(models.Model):
         NONE = 'none', _('无')
         DELIVERING = 'delivering', _('正在交付订单资源')
 
+    class PeriodUnit(models.TextChoices):
+        DAY = 'day', _('天')
+        MONTH = 'month', _('月')
+
     id = models.CharField(verbose_name=_('订单编号'), max_length=32, primary_key=True, editable=False)
     order_type = models.CharField(
         verbose_name=_('订单类型'), max_length=16, choices=OrderType.choices, default=OrderType.NEW)
@@ -84,7 +88,9 @@ class Order(models.Model):
     resource_type = models.CharField(
         verbose_name=_('资源类型'), max_length=16, choices=ResourceType.choices, default=ResourceType.VM)
     instance_config = models.JSONField(verbose_name=_('资源的规格和配置'), null=False, blank=True, default=dict)
-    period = models.IntegerField(verbose_name=_('订购时长(月)'), blank=True, default=0)
+    period = models.IntegerField(verbose_name=_('订购时长'), blank=True, default=0)
+    period_unit = models.CharField(
+        verbose_name=_('订购时长单位'), max_length=8, choices=PeriodUnit.choices, default=PeriodUnit.MONTH.value)
 
     payment_time = models.DateTimeField(verbose_name=_('支付时间'), null=True, blank=True, default=None)
     pay_type = models.CharField(verbose_name=_('结算方式'), max_length=16, choices=PayType.choices)
