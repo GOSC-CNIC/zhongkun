@@ -94,7 +94,21 @@ class ServerOrderTests(MyAPITransactionTestCase):
         self.assertErrorResponse(status_code=400, code='InvalidPeriod', response=response)
         response = self.client.post(url, data={
             'pay_type': PayType.PREPAID.value, 'service_id': self.service.id, 'network_id': 'test',
-            'image_id': 'ss', 'flavor_id': '1', 'period': 12 * 5 + 1})
+            'image_id': 'ss', 'flavor_id': '1', 'period': 12*5 + 1})
+        self.assertErrorResponse(status_code=400, code='InvalidPeriod', response=response)
+
+        # param "period_unit"
+        response = self.client.post(url, data={
+            'pay_type': PayType.PREPAID.value, 'service_id': self.service.id, 'network_id': 'test',
+            'image_id': 'ss', 'flavor_id': '1', 'period': 6, 'period_unit': 'ss'})
+        self.assertErrorResponse(status_code=400, code='InvalidPeriodUnit', response=response)
+        response = self.client.post(url, data={
+            'pay_type': PayType.PREPAID.value, 'service_id': self.service.id, 'network_id': 'test',
+            'image_id': 'ss', 'flavor_id': '1', 'period': 12*5 + 1, 'period_unit': Order.PeriodUnit.MONTH.value})
+        self.assertErrorResponse(status_code=400, code='InvalidPeriod', response=response)
+        response = self.client.post(url, data={
+            'pay_type': PayType.PREPAID.value, 'service_id': self.service.id, 'network_id': 'test',
+            'image_id': 'ss', 'flavor_id': '1', 'period': 30*12*5 + 1, 'period_unit': Order.PeriodUnit.DAY.value})
         self.assertErrorResponse(status_code=400, code='InvalidPeriod', response=response)
 
         # param "flavor_id"
@@ -362,7 +376,8 @@ class ServerOrderTests(MyAPITransactionTestCase):
         # create user server prepaid mode
         response = self.client.post(url, data={
             'pay_type': PayType.PREPAID.value, 'service_id': self.service.id,
-            'image_id': image_id, 'period': 12, 'flavor_id': self.flavor.id, 'network_id': network_id,
+            'image_id': image_id, 'period': 12, 'period_unit': Order.PeriodUnit.MONTH.value,
+            'flavor_id': self.flavor.id, 'network_id': network_id,
             'remarks': 'testcase创建，可删除', 'systemdisk_size': 500, 'number': 3
         })
         self.assertEqual(response.status_code, 200)
@@ -396,7 +411,8 @@ class ServerOrderTests(MyAPITransactionTestCase):
         # create vo server postpaid mode, no balance
         response = self.client.post(url, data={
             'pay_type': PayType.POSTPAID.value, 'service_id': self.service.id,
-            'image_id': image_id, 'period': 12, 'flavor_id': self.flavor.id, 'network_id': network_id,
+            'image_id': image_id, 'period': 120, 'period_unit': Order.PeriodUnit.DAY.value,
+            'flavor_id': self.flavor.id, 'network_id': network_id,
             'remarks': 'testcase创建，可删除', 'vo_id': self.vo.id
         })
         self.assertErrorResponse(status_code=409, code='VoBalanceNotEnough', response=response)
@@ -409,7 +425,8 @@ class ServerOrderTests(MyAPITransactionTestCase):
         # create order
         response = self.client.post(url, data={
             'pay_type': PayType.PREPAID.value, 'service_id': self.service.id,
-            'image_id': image_id, 'period': 12, 'flavor_id': self.flavor.id, 'network_id': network_id,
+            'image_id': image_id, 'period': 120, 'period_unit': Order.PeriodUnit.DAY.value,
+            'flavor_id': self.flavor.id, 'network_id': network_id,
             'remarks': 'testcase创建，可删除', 'vo_id': self.vo.id
         })
         self.assertEqual(response.status_code, 200)
@@ -422,6 +439,11 @@ class ServerOrderTests(MyAPITransactionTestCase):
         self.assertEqual(order.owner_type, OwnerType.VO.value)
         self.assertEqual(order.vo_id, self.vo.id)
         self.assertEqual(order.user_id, self.user.id)
+        original_price, trade_price = PriceManager().describe_server_price(
+            ram_mib=1024 * 3, cpu=2, disk_gib=500, public_ip=is_public_network, is_prepaid=True,
+            period=120, period_unit=Order.PeriodUnit.DAY.value, days=0)
+        self.assertEqual(order.total_amount, quantize_10_2(original_price))
+        self.assertEqual(int(order.payable_amount), int(quantize_10_2(trade_price)))
 
         # 修改镜像id，让订单交付资源失败
         s_config = ServerConfig.from_dict(order.instance_config)

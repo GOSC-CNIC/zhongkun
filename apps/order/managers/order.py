@@ -303,7 +303,7 @@ class OrderManager:
                 raise errors.Error(message=_('无法计算资源金额，资源类型和资源规格配置不匹配'))
 
             original_price, trade_price = PriceManager().describe_disk_price(
-                size_gib=config.disk_size, is_prepaid=is_prepaid, period=period, days=days
+                size_gib=config.disk_size, is_prepaid=is_prepaid, period=period, period_unit=period_unit, days=days
             )
         elif resource_type == ResourceType.BUCKET.value:
             if not isinstance(config, BucketConfig):

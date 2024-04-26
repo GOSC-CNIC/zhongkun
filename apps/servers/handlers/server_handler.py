@@ -364,6 +364,7 @@ class ServerHandler:
         azone_id = data.get('azone_id', None)
         vo_id = data.get('vo_id', None)
         period = data.get('period', None)
+        period_unit = data.get('period_unit', None)
         systemdisk_size = data.get('systemdisk_size', None)
         number = data.get('number', 1)
 
@@ -381,11 +382,21 @@ class ServerHandler:
         if pay_type not in pay_type_values:
             raise exceptions.BadRequest(message=_('付费模式参数"pay_type"值无效'), code='InvalidPayType')
 
+        if period_unit is None:
+            period_unit = Order.PeriodUnit.MONTH.value
+        else:
+            if period_unit not in Order.PeriodUnit.values:
+                raise exceptions.BadRequest(message=_('订购时长单位无效，可选为天或月'), code='InvalidPeriodUnit')
+
         if period is not None:
             if period <= 0:
                 raise exceptions.BadRequest(message=_('订购时长参数"period"值必须大于0'), code='InvalidPeriod')
 
-            if period > (12 * 5):
+            period_days = period
+            if period_unit == Order.PeriodUnit.MONTH.value:
+                period_days = 30 * period
+
+            if period_days > (30 * 12 * 5):
                 raise exceptions.BadRequest(message=_('订购时长最长为5年'), code='InvalidPeriod')
         else:
             period = 0
@@ -469,6 +480,7 @@ class ServerHandler:
             'remarks': remarks,
             'service': service,
             'period': period,
+            'period_unit': period_unit,
             'systemdisk_size': systemdisk_size,
             'number': number
         }
@@ -526,6 +538,7 @@ class ServerHandler:
         remarks = data['remarks']
         service = data['service']
         period = data['period']
+        period_unit = data['period_unit']
         systemdisk_size = data['systemdisk_size']
         number = data['number']
 
@@ -585,7 +598,7 @@ class ServerHandler:
             resource_type=ResourceType.VM.value,
             instance_config=instance_config,
             period=period,
-            period_unit=Order.PeriodUnit.MONTH.value,
+            period_unit=period_unit,
             pay_type=pay_type,
             user_id=user.id,
             username=user.username,

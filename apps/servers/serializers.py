@@ -172,8 +172,11 @@ class ServerCreateSerializer(serializers.Serializer):
         label=_('vo组id'), required=False, allow_null=True, max_length=36, default=None,
         help_text=_('通过vo_id指定为vo组创建云服务器'))
     period = serializers.IntegerField(
-        label=_('订购时长（月）'), required=False, allow_null=True, default=None,
+        label=_('订购时长，单位由period_unit指定'), required=False, allow_null=True, default=None,
         help_text=_('付费模式为预付费时，必须指定订购时长'))
+    period_unit = serializers.CharField(
+        label=_('时长单位，默认（月）'), required=False, allow_null=True, default=None,
+        help_text=_('和时长'))
     number = serializers.IntegerField(label=_('订购资源数量'), required=False, allow_null=True, default=1)
 
     def validate(self, attrs):

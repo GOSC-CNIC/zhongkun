@@ -71,7 +71,7 @@ class PriceManagerTests(TestCase):
             tp_months = op_months
 
         original_price, trade_price = PriceManager().describe_disk_price(
-            size_gib=size_gib, period=months, is_prepaid=is_prepaid, days=0)
+            size_gib=size_gib, is_prepaid=is_prepaid, period=months, period_unit=Order.PeriodUnit.MONTH.value, days=0)
         self.assertEqual(quantize_10_2(original_price), quantize_10_2(Decimal(f'{op_months:.2f}')),
                          msg=f'months={months}')
         self.assertEqual(quantize_10_2(trade_price), quantize_10_2(Decimal(f'{tp_months:.2f}')),
@@ -83,7 +83,8 @@ class PriceManagerTests(TestCase):
 
         # one day prepaid
         size_gib = 0
-        original_price, trade_price = pm.describe_disk_price(size_gib=size_gib, is_prepaid=True, period=0, days=1)
+        original_price, trade_price = pm.describe_disk_price(
+            size_gib=size_gib, is_prepaid=True, period=0, period_unit=Order.PeriodUnit.MONTH.value, days=1)
         tp = self._disk_day_price(price=price, size_gib=size_gib, is_prepaid=True)
         op = self._disk_day_price(price=price, size_gib=size_gib, is_prepaid=False)
         self.assertEqual(quantize_10_2(original_price), quantize_10_2(Decimal(0)))
@@ -92,26 +93,30 @@ class PriceManagerTests(TestCase):
         self.assertEqual(quantize_10_2(trade_price), quantize_10_2(tp))
 
         size_gib = 50
-        original_price, trade_price = pm.describe_disk_price(size_gib=size_gib, is_prepaid=True, period=0, days=1)
+        original_price, trade_price = pm.describe_disk_price(
+            size_gib=size_gib, is_prepaid=True, period=0, period_unit=Order.PeriodUnit.MONTH.value, days=1)
         tp = self._disk_day_price(price=price, size_gib=size_gib, is_prepaid=True)
         op = self._disk_day_price(price=price, size_gib=size_gib, is_prepaid=False)
         self.assertEqual(quantize_10_2(original_price), quantize_10_2(op))
         self.assertEqual(quantize_10_2(trade_price), quantize_10_2(tp))
 
         size_gib = 150
-        original_price, trade_price = pm.describe_disk_price(size_gib=size_gib, is_prepaid=True, period=0, days=1)
+        original_price, trade_price = pm.describe_disk_price(
+            size_gib=size_gib, is_prepaid=True, period=0, period_unit=Order.PeriodUnit.MONTH.value, days=1)
         tp = self._disk_day_price(price=price, size_gib=size_gib, is_prepaid=True)
         op = self._disk_day_price(price=price, size_gib=size_gib, is_prepaid=False)
         self.assertEqual(quantize_10_2(original_price), quantize_10_2(op))
         self.assertEqual(quantize_10_2(trade_price), quantize_10_2(tp))
 
         # one day postpaid
-        original_price, trade_price = pm.describe_disk_price(size_gib=50, is_prepaid=False, period=0, days=1)
+        original_price, trade_price = pm.describe_disk_price(
+            size_gib=50, is_prepaid=False, period=0, period_unit=Order.PeriodUnit.MONTH.value, days=1)
         op = self._disk_day_price(price=price, size_gib=50, is_prepaid=False)
         self.assertEqual(quantize_10_2(original_price), quantize_10_2(op))
         self.assertEqual(quantize_10_2(trade_price), quantize_10_2(op))
 
-        original_price, trade_price = pm.describe_disk_price(size_gib=150, is_prepaid=False, period=0, days=1)
+        original_price, trade_price = pm.describe_disk_price(
+            size_gib=150, is_prepaid=False, period=0, period_unit=Order.PeriodUnit.MONTH.value, days=1)
         op = self._disk_day_price(price=price, size_gib=150, is_prepaid=False)
         self.assertEqual(quantize_10_2(original_price), quantize_10_2(op))
         self.assertEqual(quantize_10_2(trade_price), quantize_10_2(op))

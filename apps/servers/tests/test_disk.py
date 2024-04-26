@@ -255,7 +255,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
         self.assertEqual(order.user_id, self.user.id)
 
         original_price, trade_price = PriceManager().describe_disk_price(
-            size_gib=2, is_prepaid=True, period=13, days=0)
+            size_gib=2, is_prepaid=True, period=13, period_unit=Order.PeriodUnit.MONTH.value, days=0)
         self.assertEqual(order.total_amount, quantize_10_2(original_price))
         self.assertEqual(order.payable_amount, quantize_10_2(trade_price))
 
@@ -1789,7 +1789,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
         self.assertEqual(order.order_type, Order.OrderType.POST2PRE.value)
         self.assertEqual(order.status, Order.Status.UNPAID.value)
         original_price, trade_price = PriceManager().describe_disk_price(
-            size_gib=100, is_prepaid=True, period=period, days=0)
+            size_gib=100, is_prepaid=True, period=period, period_unit=Order.PeriodUnit.MONTH.value, days=0)
         self.assertEqual(order.total_amount, quantize_10_2(original_price))
         self.assertEqual(order.payable_amount, quantize_10_2(trade_price))
         self.assertEqual(order.period, period)
@@ -1865,7 +1865,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
         self.assertEqual(vo_order.order_type, Order.OrderType.POST2PRE.value)
         self.assertEqual(vo_order.status, Order.Status.UNPAID.value)
         original_price, trade_price = PriceManager().describe_disk_price(
-            size_gib=200, is_prepaid=True, period=6, days=0)
+            size_gib=200, is_prepaid=True, period=6, period_unit=Order.PeriodUnit.MONTH.value, days=0)
         self.assertEqual(vo_order.total_amount, quantize_10_2(original_price))
         self.assertEqual(vo_order.payable_amount, quantize_10_2(trade_price))
         self.assertEqual(vo_order.period, 6)
