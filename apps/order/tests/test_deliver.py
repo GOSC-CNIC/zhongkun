@@ -193,6 +193,7 @@ class DeliverTests(MyAPITestCase):
         # server 过期时间
         s = Server.objects.filter(id=od1_res1.instance_id).first()
         self.assertTrue((s.expiration_time - now_time) > timedelta(days=30 * 8))
+        self.assertTrue((s.expiration_time - now_time) < timedelta(days=30*8 + 1))
 
         with self.assertRaises(errors.OrderTradingCompleted):
             or_dlver.deliver_order(order1, resource=None)
@@ -357,6 +358,7 @@ class DeliverTests(MyAPITestCase):
         # server 过期时间
         for s in Server.objects.filter(id__in=[x.instance_id for x in resource_list]).all():
             self.assertTrue((s.expiration_time - now_time) > timedelta(days=30*8))
+            self.assertTrue((s.expiration_time - now_time) < timedelta(days=30*8 + 1))
 
         with self.assertRaises(errors.OrderTradingCompleted):
             or_dlver.deliver_order(order1, resource=None)
