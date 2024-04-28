@@ -20,14 +20,14 @@ class MetricCephViewSet(NormalGenericViewSet):
     lookup_field = 'id'
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('查询Cpph集群当前实时信息'),
+        operation_summary=gettext_lazy('查询CEPH集群当前实时信息'),
         manual_parameters=[
             openapi.Parameter(
                 name='unit_id',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=True,
-                description=_('CEPH指标单元id, 查询指定Cpph集群')
+                description=_('CEPH指标单元id, 查询指定CEPH集群')
             ),
             openapi.Parameter(
                 name='query',
@@ -45,7 +45,7 @@ class MetricCephViewSet(NormalGenericViewSet):
     @action(methods=['get'], detail=False, url_path='query', url_name='query')
     def query(self, request, *args, **kwargs):
         """
-        查询Cpph集群当前实时信息
+        查询CEPH集群当前实时信息
 
             Http Code: 状态码200，返回数据格式最外层key-value格式，key是查询指标参数值，value是单个查询指标的数据：
             {

@@ -11,7 +11,7 @@ from .models import Order, Resource, Price, Period, OrderRefund
 class OrderAdmin(BaseModelAdmin):
     list_display = ('id', 'order_type', 'number', 'status', 'total_amount', 'payable_amount', 'pay_amount',
                     'balance_amount', 'coupon_amount', 'service_name',
-                    'resource_type', 'period', 'pay_type', 'payment_time',
+                    'resource_type', 'period', 'period_unit', 'start_time', 'end_time', 'pay_type', 'payment_time',
                     'creation_time', 'trading_status', 'completion_time', 'deleted',
                     'owner_type', 'username', 'vo_name', 'cancelled_time', 'app_service_id', 'order_action')
     list_display_links = ('id',)

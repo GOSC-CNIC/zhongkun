@@ -98,8 +98,14 @@ class Order(models.Model):
         verbose_name=_('付款方式'), max_length=16, choices=PaymentMethod.choices, default=PaymentMethod.UNKNOWN)
 
     creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
-    start_time = models.DateTimeField(verbose_name=_('起用时间'), null=True, blank=True, default=None)
-    end_time = models.DateTimeField(verbose_name=_('终止时间'), null=True, blank=True, default=None)
+    start_time = models.DateTimeField(
+        verbose_name=_('订购起始时间'), null=True, blank=True, default=None,
+        help_text=_('包年包月订单订购资源的时间段起始时间')
+    )
+    end_time = models.DateTimeField(
+        verbose_name=_('订购截止时间'), null=True, blank=True, default=None,
+        help_text=_('包年包月订单订购资源的时间段截止时间')
+    )
     user_id = models.CharField(verbose_name=_('用户ID'), max_length=36, blank=True, default='')
     username = models.CharField(verbose_name=_('用户名'), max_length=64, blank=True, default='')
     vo_id = models.CharField(verbose_name=_('VO组ID'), max_length=36, blank=True, default='')
