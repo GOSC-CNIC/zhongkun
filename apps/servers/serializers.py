@@ -172,8 +172,11 @@ class ServerCreateSerializer(serializers.Serializer):
         label=_('vo组id'), required=False, allow_null=True, max_length=36, default=None,
         help_text=_('通过vo_id指定为vo组创建云服务器'))
     period = serializers.IntegerField(
-        label=_('订购时长（月）'), required=False, allow_null=True, default=None,
+        label=_('订购时长，单位由period_unit指定'), required=False, allow_null=True, default=None,
         help_text=_('付费模式为预付费时，必须指定订购时长'))
+    period_unit = serializers.CharField(
+        label=_('时长单位，默认（月）'), required=False, allow_null=True, default=None,
+        help_text=_('和时长'))
     number = serializers.IntegerField(label=_('订购资源数量'), required=False, allow_null=True, default=1)
 
     def validate(self, attrs):
@@ -327,6 +330,7 @@ class ServiceSerializer(serializers.Serializer):
     sort_weight = serializers.IntegerField(label=_('排序权重'), default=0, help_text=_('值越大排序越靠前'))
     disk_available = serializers.BooleanField(label=_('提供云硬盘服务'))
     only_admin_visible = serializers.BooleanField(label=_('仅管理员可见'))
+    version = serializers.CharField(max_length=32, label=_('版本号'))
 
     @staticmethod
     def get_org_data_center(obj):

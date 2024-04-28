@@ -253,7 +253,8 @@ class OrderResourceDeliverer:
 
         creation_time = timezone.now()
         if order.pay_type == PayType.PREPAID.value:
-            due_time = creation_time + timedelta(PriceManager.period_month_days(order.period))
+            due_time = creation_time + timedelta(
+                days=PriceManager.convert_period_days(period=order.period, period_unit=order.period_unit))
         else:
             due_time = None
 
@@ -311,6 +312,9 @@ class OrderResourceDeliverer:
         """
         order = OrderManager.get_order(order_id=order_id, select_for_update=True)
         OrderManager.can_deliver_or_refund_for_order(order)
+        if order.period_unit not in Order.PeriodUnit.values:
+            raise exceptions.ConflictError(message=_('订单订购时长单位无效。'), code='OrderPeriodUnit')
+
         return order
 
     @staticmethod
@@ -498,7 +502,8 @@ class OrderResourceDeliverer:
 
         if order.period > 0 and (order.start_time is None and order.end_time is None):
             start_time = server.expiration_time
-            end_time = start_time + timedelta(days=PriceManager.period_month_days(order.period))
+            end_time = start_time + timedelta(
+                days=PriceManager.convert_period_days(period=order.period, period_unit=order.period_unit))
         elif order.period <= 0 and (
                 isinstance(order.start_time, datetime) and isinstance(order.end_time, datetime)):
             if order.start_time != server.expiration_time:
@@ -659,7 +664,8 @@ class OrderResourceDeliverer:
 
         creation_time = timezone.now()
         if order.pay_type == PayType.PREPAID.value:
-            due_time = creation_time + timedelta(PriceManager.period_month_days(order.period))
+            due_time = creation_time + timedelta(
+                days=PriceManager.convert_period_days(period=order.period, period_unit=order.period_unit))
         else:
             due_time = None
 
@@ -791,7 +797,8 @@ class OrderResourceDeliverer:
 
         if order.period > 0 and (order.start_time is None and order.end_time is None):
             start_time = disk.expiration_time
-            end_time = start_time + timedelta(days=PriceManager.period_month_days(order.period))
+            end_time = start_time + timedelta(
+                days=PriceManager.convert_period_days(period=order.period, period_unit=order.period_unit))
         elif order.period <= 0 and (
                 isinstance(order.start_time, datetime) and isinstance(order.end_time, datetime)):
             if order.start_time != disk.expiration_time:
@@ -858,7 +865,8 @@ class OrderResourceDeliverer:
                 if order.order_type == Order.OrderType.POST2PRE.value:
                     pay_type = PayType.PREPAID.value
                     start_time = now_t
-                    end_time = start_time + timedelta(days=PriceManager.period_month_days(order.period))
+                    end_time = start_time + timedelta(
+                        days=PriceManager.convert_period_days(period=order.period, period_unit=order.period_unit))
                 else:
                     raise exceptions.Error(message='订单类型无效，不是有效的付费方式变更订单')
 
@@ -955,7 +963,8 @@ class OrderResourceDeliverer:
                 if order.order_type == Order.OrderType.POST2PRE.value:
                     pay_type = PayType.PREPAID.value
                     start_time = now_t
-                    end_time = start_time + timedelta(days=PriceManager.period_month_days(order.period))
+                    end_time = start_time + timedelta(
+                        days=PriceManager.convert_period_days(period=order.period, period_unit=order.period_unit))
                 else:
                     raise exceptions.Error(message='订单类型无效，不是有效的付费方式变更订单')
 

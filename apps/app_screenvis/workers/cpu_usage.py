@@ -20,11 +20,13 @@ class HostCpuUsageWorker:
         """
         self.cycle_minutes = minutes
 
-    def run(self, update_before_invalid_cycles: int = None):
+    def run(self, update_before_invalid_cycles: int = None, now_timestamp: int = None):
         """
         :update_before_invalid_cycles: 尝试更新前n个周期的无效记录，大于0有效，默认不尝试更新前面可能无效的记录
         """
-        now_timestamp = self.get_now_timestamp()
+        if not now_timestamp:
+            now_timestamp = self.get_now_timestamp()
+
         units_count, ok_unit_ids, objs = self.async_generate_cpuusage(now_timestamp=now_timestamp)
         ok_count = len(ok_unit_ids)
         print(f'{dj_timezone.now().isoformat(sep=" ", timespec="seconds")} End，'

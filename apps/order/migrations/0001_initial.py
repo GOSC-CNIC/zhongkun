@@ -29,7 +29,7 @@ class Migration(migrations.Migration):
                 ('service_name', models.CharField(blank=True, default='', max_length=255, verbose_name='服务名称')),
                 ('resource_type', models.CharField(choices=[('vm', '云主机'), ('disk', '云硬盘'), ('bucket', '存储桶'), ('scan', '安全扫描')], default='vm', max_length=16, verbose_name='资源类型')),
                 ('instance_config', models.JSONField(blank=True, default=dict, verbose_name='资源的规格和配置')),
-                ('period', models.IntegerField(blank=True, default=0, verbose_name='订购时长(月)')),
+                ('period', models.IntegerField(blank=True, default=0, verbose_name='订购时长')),
                 ('payment_time', models.DateTimeField(blank=True, default=None, null=True, verbose_name='支付时间')),
                 ('pay_type', models.CharField(choices=[('prepaid', '包年包月'), ('postpaid', '按量计费'), ('quota', '资源配额券')], max_length=16, verbose_name='结算方式')),
                 ('payment_method', models.CharField(choices=[('unknown', '未知'), ('balance', '余额'), ('cashcoupon', '资源券'), ('mixed', '混合支付')], default='unknown', max_length=16, verbose_name='付款方式')),

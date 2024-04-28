@@ -28,7 +28,7 @@ class TicketEmailNotifier:
 
 
 祝好
-{site_configs.website_brand}({site_configs.website_url})
+{site_configs.get_website_brand()}({site_configs.get_website_url()})
         """
         future = taskqueue.submit_task(
             TicketEmailNotifier.thread_send_email,
@@ -56,7 +56,7 @@ class TicketEmailNotifier:
 
 
 祝好
-{site_configs.website_brand}({site_configs.website_url})
+{site_configs.get_website_brand()}({site_configs.get_website_url()})
             """
         future = taskqueue.submit_task(
             TicketEmailNotifier.thread_send_email,

@@ -22,7 +22,7 @@ from utils.model import OwnerType, PayType
 from utils.time import utc
 from apps.app_wallet.models import CashCoupon, CashCouponPaymentHistory
 from apps.servers.models import Server, ServerArchive, Disk
-from core.site_configs_manager import website_brand
+from core import site_configs_manager as site_configs
 from core.loggers import config_script_logger
 
 
@@ -739,6 +739,7 @@ class MonthlyReportNotifier:
         self.logger = config_script_logger(
             name='script_monthly_report_logger', filename='monthly_report.log', stdout=log_stdout)
         self.template = get_template('monthly_report.html')
+        self.website_brand = site_configs.get_website_brand(default='YunKun')
 
         if report_data:
             self.report_period_start, self.report_period_end = get_report_period_start_and_end(report_data)
@@ -904,7 +905,7 @@ class MonthlyReportNotifier:
 
         html_message = self.template.render(context, request=None)
         html_message = self.html_minify(html_message)
-        subject = f'{website_brand}资源用量结算账单（{self.report_period_date.month}月）'
+        subject = f'{self.website_brand}资源用量结算账单（{self.report_period_date.month}月）'
 
         # 先保存邮件记录
         try:

@@ -47,7 +47,15 @@ class PriceViewSet(CustomGenericViewSet):
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_INTEGER,
                 required=False,
-                description=gettext_lazy('时长，单位月，默认(一天)')
+                description=gettext_lazy('时长')
+            ),
+            openapi.Parameter(
+                name='period_unit',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('时长单位(天、月)，默认(月)'),
+                enum=Order.PeriodUnit.values
             ),
             openapi.Parameter(
                 name='flavor_id',
@@ -106,7 +114,7 @@ class PriceViewSet(CustomGenericViewSet):
         询价
 
             * resource_type = bucket时，存储询价结果为 GiB*day 价格，订购资源数量number忽略
-            * resource_type = vm、disk时，pay_type = postpaid，不指定时长period时（默认一天），询价结果为按量计费每天价格
+            * resource_type = vm、disk时，pay_type = postpaid，时长period=1和period_unit=day时，询价结果为按量计费每天价格
             * resource_type = scan时，询价结果为 扫描任务类型每次扫描价格，多个扫描任务类型每次扫描总价格，订购资源数量number忽略
 
             http code 200：
@@ -128,7 +136,8 @@ class PriceViewSet(CustomGenericViewSet):
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
                 required=True,
-                description=gettext_lazy('资源类型') + f', {ResourceType.choices}'
+                description=gettext_lazy('资源类型') + f', {ResourceType.choices}',
+                enum=ResourceType.values
             ),
             openapi.Parameter(
                 name='instance_id',
@@ -142,7 +151,15 @@ class PriceViewSet(CustomGenericViewSet):
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_INTEGER,
                 required=False,
-                description=gettext_lazy('时长，单位月')
+                description=gettext_lazy('时长')
+            ),
+            openapi.Parameter(
+                name='period_unit',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=False,
+                description=gettext_lazy('时长单位(天、月)，默认(月)'),
+                enum=Order.PeriodUnit.values
             ),
             openapi.Parameter(
                 name='renew_to_time',
@@ -162,7 +179,7 @@ class PriceViewSet(CustomGenericViewSet):
         续费询价
 
             * 询价的资源实例是按量付费方式时，返回询价时长按量计费的总价格
-                询价时长 = period、或者当前时间至renew_to_time时间差
+                询价时长 = period (period_unit)、或者当前时间至renew_to_time时间差
 
             http code 200：
             {
@@ -277,7 +294,10 @@ class OrderViewSet(CustomGenericViewSet):
                   "service_name": "xxx",
                   "resource_type": "vm",
                   "instance_config": {},
-                  "period": 0,
+                  "period": 0,              # 订购时长
+                  "period_unit": "month",   # 时长单位，month、day
+                  "start_time": "2022-03-10T06:05:00.478101Z",  # 订单订购资源的时长起始时间
+                  "end_time": "2022-04-10T06:05:00.478101Z",  # 订单订购资源的时长截止时间
                   "payment_time": "2022-03-10T06:05:00Z",
                   "pay_type": "postpaid",
                   "creation_time": "2022-03-10T06:10:32.478101Z",
@@ -365,7 +385,10 @@ class OrderViewSet(CustomGenericViewSet):
               "service_name": "",
               "resource_type": "vm",
               "instance_config": {},
-              "period": 0,
+              "period": 0,              # 订购时长
+              "period_unit": "month",   # 时长单位，month、day
+              "start_time": "2022-03-10T06:05:00.478101Z",  # 订单订购资源的时长起始时间
+              "end_time": "2022-04-10T06:05:00.478101Z",  # 订单订购资源的时长截止时间
               "payment_time": "2022-03-10T06:05:00Z",
               "pay_type": "postpaid",
               "creation_time": "2022-03-10T06:10:32.478101Z",

@@ -76,10 +76,12 @@ INSTALLED_APPS = [
 
 # 自定义参数，设置admin后台app的排列顺序
 ADMIN_SORTED_APP_LIST = [
+    'app_global',
     'service',
     'storage',
     'servers',
     'order',
+    'apply',    # app_apply
     'bill',     # app_wallet
     'metering',
     'report',
@@ -93,8 +95,6 @@ ADMIN_SORTED_APP_LIST = [
     'app_screenvis',
     'app_alert',
     'app_netflow',
-    'apply',    # app_apply
-    'app_global',
     'auth',
 ]
 
@@ -395,8 +395,8 @@ CORS_ALLOW_ALL_ORIGINS = True  # 允许所有请求来源跨域
 
 # 站点的一些全局配置
 WEBSITE_CONFIG = {
-    'site_brand': gettext_lazy('中国科技云一体化云服务平台'),  # 本站点的名称，一些邮件通知也会用到
-    'site_url': 'https://service.cstcloud.cn',  # 本站点的地址，一些邮件通知也会用到
+    # 'site_brand': gettext_lazy('中国科技云一体化云服务平台'),  # 本站点的名称，一些邮件通知也会用到，此配置以被后台全局站点配置替代
+    # 'site_url': 'https://service.cstcloud.cn',  # 本站点的地址，一些邮件通知也会用到，此配置以被后台全局站点配置替代
     'about_us': '',  # gettext_lazy(''),     # “关于”网页中“关于我们”的文字描述
 }
 
@@ -421,7 +421,9 @@ CRONTABJOBS = [
      'python3 /home/uwsgi/yunkun/apps/app_alert/scripts/alert_email_notification.py >> /var/log/yunkun/task_alert_email_notification.log'),
     ('task9_alert_dingtalk_notification', '*/1 * * * *',
      'python3 /home/uwsgi/yunkun/apps/app_alert/scripts/alert_dingtalk_notification.py >> /var/log/yunkun/task_alert_dingtalk_notification.log'),
-    ('task10_screen_operate_user_log', '*/10 * * * *',
+    ('task10_screen_service_stats.py', '*/3 * * * *',
+     'python3 /home/uwsgi/yunkun/scripts/run_screen_service_stats.py >> /var/log/yunkun/task_screen_service_stats.log'),
+    ('task11_screen_operate_user_log', '*/10 * * * *',
      'python3 /home/uwsgi/yunkun/scripts/run_screen_operate_user_log.py >> /var/log/yunkun/task_screen_operate_user_log.log'),
 ]
 

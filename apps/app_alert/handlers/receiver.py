@@ -140,7 +140,7 @@ class AlertReceiver(object):
     @staticmethod
     def date_to_timestamp(date_string):
         date = date_string.split(".")[0]
-        date = datetime.datetime.strptime(date, "%Y-%m-%dT%H:%M:%S") + datetime.timedelta(hours=8)
+        date = datetime.datetime.strptime(date, "%Y-%m-%dT%H:%M:%S")
         ts = DateUtils.date_to_ts(dt=date, fmt="%Y-%m-%dT%H:%M:%S")
         return ts
 

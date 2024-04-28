@@ -1,5 +1,5 @@
 from decimal import Decimal
-from datetime import timedelta, datetime
+from datetime import datetime
 from typing import List
 
 from django.utils.translation import gettext as _
@@ -24,6 +24,7 @@ class OrderManager:
             resource_type,
             instance_config,
             period,
+            period_unit: str,
             pay_type,
             user_id,
             username,
@@ -58,7 +59,7 @@ class OrderManager:
             order_type=order_type, pay_type=pay_type,
             pay_app_service_id=pay_app_service_id, service_id=service_id, service_name=service_name,
             resource_type=resource_type, instance_ids=instance_ids, instance_config=instance_config,
-            period=period, start_time=None, end_time=None,
+            period=period, period_unit=period_unit, start_time=None, end_time=None,
             user_id=user_id, username=username, vo_id=vo_id, vo_name=vo_name, owner_type=owner_type,
             instance_remark=remark
         )
@@ -87,7 +88,7 @@ class OrderManager:
             order_type=Order.OrderType.RENEWAL.value, pay_type=PayType.PREPAID.value,
             pay_app_service_id=pay_app_service_id, service_id=service_id, service_name=service_name,
             resource_type=resource_type, instance_ids=[instance_id], instance_config=instance_config,
-            period=period, start_time=start_time, end_time=end_time,
+            period=period, period_unit=Order.PeriodUnit.MONTH.value, start_time=start_time, end_time=end_time,
             user_id=user_id, username=username, vo_id=vo_id, vo_name=vo_name, owner_type=owner_type,
             instance_remark='renew'
         )
@@ -121,16 +122,19 @@ class OrderManager:
             order_type=order_type, pay_type=pay_type,
             pay_app_service_id=pay_app_service_id, service_id=service_id, service_name=service_name,
             resource_type=resource_type, instance_ids=[instance_id], instance_config=instance_config,
-            period=period, start_time=None, end_time=None,
+            period=period, period_unit=Order.PeriodUnit.MONTH.value, start_time=None, end_time=None,
             user_id=user_id, username=username, vo_id=vo_id, vo_name=vo_name, owner_type=owner_type,
             instance_remark='post2prepaid'
         )
         return order, resources[0]
 
     @staticmethod
-    def _check_period_time(order_type: str, pay_type: str, period: int, start_time, end_time):
+    def _check_period_time(order_type: str, pay_type: str, period: int, period_unit: str, start_time, end_time):
         if period < 0:
             raise errors.Error(message=_('无法创建订单，时长不能小于0。'))
+
+        if period_unit not in Order.PeriodUnit.values:
+            raise errors.Error(message=_('无法创建订单，订购时长单位无效。'))
 
         if order_type == Order.OrderType.RENEWAL.value:
             if period and (start_time or end_time):
@@ -166,7 +170,7 @@ class OrderManager:
             self, order_type, pay_type,
             pay_app_service_id: str, service_id, service_name,
             resource_type, instance_ids: List[str], instance_config,
-            period: int, start_time, end_time,
+            period: int, period_unit: str, start_time, end_time,
             user_id, username, vo_id, vo_name, owner_type,
             instance_remark: str = ''
     ) -> (Order, List[Resource]):
@@ -205,7 +209,8 @@ class OrderManager:
             period = days = 0
         else:
             period, days = self._check_period_time(
-                order_type=order_type, period=period, start_time=start_time, end_time=end_time, pay_type=pay_type)
+                order_type=order_type, period=period, period_unit=period_unit,
+                start_time=start_time, end_time=end_time, pay_type=pay_type)
 
         if owner_type not in OwnerType.values:
             raise errors.Error(message=_('无法创建订单，订单所属类型无效'))
@@ -220,7 +225,8 @@ class OrderManager:
             raise errors.Error(message=_('无法创建订单，资源计费方式pay_type无效'))
         if pay_type == PayType.PREPAID.value:         # 预付费
             total_amount, trade_price = self.calculate_amount_money(
-                resource_type=resource_type, config=instance_config, is_prepaid=True, period=period, days=days)
+                resource_type=resource_type, config=instance_config, is_prepaid=True,
+                period=period, period_unit=period_unit, days=days)
             if number > 1:
                 total_amount = total_amount * number
                 trade_price = trade_price * number
@@ -271,7 +277,7 @@ class OrderManager:
 
     @staticmethod
     def calculate_amount_money(
-            resource_type, config: BaseConfig, is_prepaid, period: int, days: float
+            resource_type, config: BaseConfig, is_prepaid, period: int, period_unit: str, days: float
     ) -> (Decimal, Decimal):
         """
         计算资源金额
@@ -280,7 +286,8 @@ class OrderManager:
         :param resource_type: 资源类型， vm、disk
         :param config: 资源配置
         :param is_prepaid: True(预付费)， False(按量计费)
-        :param period: 预付费时长（月）
+        :param period: 预付费时长
+        :param period_unit: 时长单位
         :param days: 预付费时长天数
         """
         if resource_type == ResourceType.VM.value:
@@ -289,14 +296,14 @@ class OrderManager:
 
             original_price, trade_price = PriceManager().describe_server_price(
                 ram_mib=config.vm_ram_mib, cpu=config.vm_cpu, disk_gib=config.vm_systemdisk_size,
-                public_ip=config.vm_public_ip, is_prepaid=is_prepaid, period=period, days=days
+                public_ip=config.vm_public_ip, is_prepaid=is_prepaid, period=period, period_unit=period_unit, days=days
             )
         elif resource_type == ResourceType.DISK.value:
             if not isinstance(config, DiskConfig):
                 raise errors.Error(message=_('无法计算资源金额，资源类型和资源规格配置不匹配'))
 
             original_price, trade_price = PriceManager().describe_disk_price(
-                size_gib=config.disk_size, is_prepaid=is_prepaid, period=period, days=days
+                size_gib=config.disk_size, is_prepaid=is_prepaid, period=period, period_unit=period_unit, days=days
             )
         elif resource_type == ResourceType.BUCKET.value:
             if not isinstance(config, BucketConfig):
@@ -349,7 +356,7 @@ class OrderManager:
             order_type=Order.OrderType.NEW.value, pay_type=PayType.PREPAID.value,
             pay_app_service_id=pay_app_service_id, service_id=service_id, service_name=service_name,
             resource_type=ResourceType.SCAN.value, instance_ids=instance_ids, instance_config=instance_config,
-            period=0, start_time=None, end_time=None,
+            period=0, period_unit=Order.PeriodUnit.DAY.value, start_time=None, end_time=None,
             user_id=user_id, username=username, vo_id='', vo_name='', owner_type=OwnerType.USER.value,
             instance_remark=instance_config.remark
         )

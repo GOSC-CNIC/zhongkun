@@ -13,7 +13,7 @@ class CouponApplyEmailNotifier:
 
     @staticmethod
     def website_url_join(sub_url: str):
-        base = site_configs.website_url.rstrip('/')
+        base = site_configs.get_website_url().rstrip('/')
         sub_url = sub_url.lstrip('/')
         return f'{base}/{sub_url}'
 
@@ -60,7 +60,7 @@ class CouponApplyEmailNotifier:
 
 
 祝好
-{site_configs.website_brand}({web_url})
+{site_configs.get_website_brand()}({web_url})
         """
 
         future = taskqueue.submit_task(
@@ -99,7 +99,7 @@ class CouponApplyEmailNotifier:
 
 
 祝好
-{site_configs.website_brand}({web_url})
+{site_configs.get_website_brand()}({web_url})
             """
         future = taskqueue.submit_task(
             CouponApplyEmailNotifier.thread_send_email,

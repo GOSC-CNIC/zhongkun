@@ -32,6 +32,7 @@ monitor_log_time_count_lock = TaskLock(task_name=TaskLock.TaskNames.LOG_TIME_COU
 monitor_req_count_lock = TaskLock(task_name=TaskLock.TaskNames.REQ_COUNT.value)   # 服务请求量统计
 scan_lock = TaskLock(task_name=TaskLock.TaskNames.SCAN.value)   # 安全扫描
 screen_host_cpuusage_lock = TaskLock(task_name=TaskLock.TaskNames.SCREEN_HOST_CPUUSAGE.value)   # 大屏展示主机CPU使用率
+screen_service_stats_lock = TaskLock(task_name=TaskLock.TaskNames.SCREEN_SERVICE_STATS.value)   # 大屏展示服务单元统计数据
 alert_email_notify_lock = TaskLock(task_name=TaskLock.TaskNames.ALERT_EMAIL.value)   # 告警邮件通知
 alert_dingtalk_notify_lock = TaskLock(task_name=TaskLock.TaskNames.ALERT_DINGTALK.value)   # 告警钉钉通知
 scree_user_operate_log_lock = TaskLock(task_name=TaskLock.TaskNames.SCREEN_USER_OPERATE_LOG.value)   # 大屏展示用户操作日志

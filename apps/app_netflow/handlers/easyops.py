@@ -83,7 +83,7 @@ class EasyOPS(object):
                 self._chart_id_set.add(unique_str)
                 self._chart_list.append(item)
 
-    def traffic(self, chart, start, end):
+    def traffic(self, chart, metrics_ids,start, end):
         """
         获取 流量图表
         """
@@ -94,7 +94,7 @@ class EasyOPS(object):
             ],
             "show_max": True,
             "program": "SNMP",
-            "metrics_ids": {"ifHCInOctets": 8, "ifHCOutOctets": 8, "ifHCInUcastPkts": -1, "ifHCOutUcastPkts": -1},
+            "metrics_ids": metrics_ids,
             "end_time": end,
             "start_time": start
         }

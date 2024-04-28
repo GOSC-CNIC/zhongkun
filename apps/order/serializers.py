@@ -16,7 +16,10 @@ class OrderSerializer(serializers.Serializer):
     service_name = serializers.CharField(label=_('服务名称'), max_length=255)
     resource_type = serializers.CharField(label=_('资源类型'), max_length=16)
     instance_config = serializers.JSONField(label=_('资源的规格和配置'))
-    period = serializers.IntegerField(label=_('订购时长(月)'))
+    period = serializers.IntegerField(label=_('订购时长'))
+    period_unit = serializers.CharField(label=_('时长单位'))
+    start_time = serializers.DateTimeField(label=_('订购起始时间'))
+    end_time = serializers.DateTimeField(label=_('订购结束时间'))
 
     payment_time = serializers.DateTimeField(label=_('支付时间'))
     pay_type = serializers.CharField(label=_('付费方式'), max_length=16)

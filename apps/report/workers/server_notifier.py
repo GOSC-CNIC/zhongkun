@@ -385,8 +385,14 @@ class PersonalServersNotifier(BaseNotifier):
         server_ids = [s.id for s in context['user_servers']]
         html_message = self.expired_template.render(context, request=None)
         subject = '云服务器过期提醒'
-        if site_configs.website_brand:
-            subject += f'（{site_configs.website_brand}）'
+
+        try:
+            website_brand = site_configs.get_website_brand()
+        except Exception:
+            website_brand = ''
+
+        if website_brand:
+            subject += f'（{website_brand}）'
         if self.do_email_notice(subject=subject, html_message=html_message, username=username):
             self.querier.set_servers_notice_time(server_ids=server_ids, expire_notice_time=timezone.now())
             return True
@@ -541,8 +547,13 @@ class ServerNotifier(BaseNotifier):
         user_server_ids = [s.id for s in context['user_servers']]
         html_message = self.expired_template.render(context, request=None)
         subject = '云服务器过期提醒'
-        if site_configs.website_brand:
-            subject += f'（{site_configs.website_brand}）'
+        try:
+            website_brand = site_configs.get_website_brand()
+        except Exception:
+            website_brand = ''
+
+        if website_brand:
+            subject += f'（{website_brand}）'
         if self.do_email_notice(subject=subject, html_message=html_message, username=username):
             self.set_servers_email_lasttime(server_ids=user_server_ids, expire_notice_time=timezone.now())
             return True

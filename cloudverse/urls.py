@@ -47,7 +47,7 @@ class BothHttpAndHttpsSchemaGenerator(OpenAPISchemaGenerator):
 
 schema_view = get_schema_view(
     openapi.Info(
-        title=admin_site.site_header + " API",
+        title=admin_site.site_header_lazy,
         default_version='v1',
     ),
     url=getattr(settings, 'SWAGGER_SCHEMA_URL', None),

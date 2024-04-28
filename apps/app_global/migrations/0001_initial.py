@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
             name='TimedTaskLock',
             fields=[
                 ('id', models.CharField(blank=True, editable=False, max_length=36, primary_key=True, serialize=False, verbose_name='ID')),
-                ('task', models.CharField(choices=[('metering', '计量计费'), ('bkt-monthly', '存储桶月度统计'), ('report-monthly', '月度报表'), ('log-time-count', '日志时序统计'), ('req-count', '服务请求量统计'), ('scan', '安全扫描'), ('screen_host_cpuusage', '大屏展示主机CPU使用率'), ('alert_email', '告警邮件通知'), ('alert_dingtalk', '告警钉钉通知'), ('scree_user_operate_log', '大屏展示用户操作日志'),], max_length=32, verbose_name='定时任务')),
+                ('task', models.CharField(choices=[('metering', '计量计费'), ('bkt-monthly', '存储桶月度统计'), ('report-monthly', '月度报表'), ('log-time-count', '日志时序统计'), ('req-count', '服务请求量统计'), ('scan', '安全扫描'), ('screen_host_cpuusage', '大屏展示主机CPU使用率'), ('screen_service_stats', '大屏展示服务单元统计数据'), ('alert_email', '告警邮件通知'), ('alert_dingtalk', '告警钉钉通知'), ('scree_user_operate_log', '大屏展示用户操作日志')], max_length=32, verbose_name='定时任务')),
                 ('status', models.CharField(choices=[('none', '无'), ('running', '执行中')], default='none', max_length=16, verbose_name='状态')),
                 ('start_time', models.DateTimeField(blank=True, default=None, null=True, verbose_name='执行开始时间')),
                 ('end_time', models.DateTimeField(blank=True, default=None, null=True, verbose_name='执行结束时间')),

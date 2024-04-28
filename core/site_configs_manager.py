@@ -1,26 +1,33 @@
 from django.conf import settings
 from django.utils.translation import gettext
+from django.utils.functional import lazy
 
+from apps.app_global.configs_manager import global_configs
 from .errors import Error
 
 
 site_configs = getattr(settings, 'WEBSITE_CONFIG', {})
 
 
-def get_website_brand():
-    title = site_configs.get('site_brand')
-    if not title:
-        title = gettext('中国科技云一体化云服务')
+def get_website_brand(default: str = None):
+    try:
+        return global_configs.get(global_configs.ConfigName.SITE_NAME.value)
+    except Exception as exc:
+        if default:
+            return default
 
-    return title
+        raise exc
+
+
+def get_website_brand_en():
+    return global_configs.get(global_configs.ConfigName.SITE_NAME_EN.value)
+
+
+get_website_brand_lazy = lazy(get_website_brand, str)
 
 
 def get_website_url():
-    site_url = site_configs.get('site_url')
-    if not site_url:
-        site_url = 'https://service.cstcloud.cn'
-
-    return site_url
+    return global_configs.get(global_configs.ConfigName.SITE_FRONT_URL.value)
 
 
 def get_about_us():
@@ -50,8 +57,3 @@ def get_pay_app_id(dj_settings, check_valid: bool = True) -> str:
         return app_id
 
     raise Error(message='配置参数PAYMENT_BALANCE app_id不是一个有效值')
-
-
-website_brand = get_website_brand()
-website_url = get_website_url()
-about_us = get_about_us()

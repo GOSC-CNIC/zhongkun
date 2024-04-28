@@ -26,7 +26,7 @@ class ObjectsServiceTests(MyAPITestCase):
         self.assertEqual(r.data['count'], 1)
         self.assertKeysIn(keys=[
             'id', 'name', 'name_en', 'service_type', 'endpoint_url', 'add_time', 'status', 'remarks', 'provide_ftp',
-            'ftp_domains', 'longitude', 'latitude', 'pay_app_service_id', 'org_data_center', 'sort_weight', 'loki_tag'
+            'ftp_domains', 'longitude', 'latitude', 'pay_app_service_id', 'org_data_center', 'sort_weight', 'version'
         ], container=r.data['results'][0])
         self.assertKeysIn(keys=[
             'id', 'name', 'name_en', 'sort_weight', 'organization'], container=r.data['results'][0]['org_data_center'])
@@ -102,7 +102,7 @@ class ObjectsServiceTests(MyAPITestCase):
         self.assertEqual(r.data['count'], 1)
         self.assertKeysIn(keys=[
             'id', 'name', 'name_en', 'service_type', 'endpoint_url', 'add_time', 'status', 'remarks', 'provide_ftp',
-            'ftp_domains', 'longitude', 'latitude', 'pay_app_service_id', 'org_data_center', 'sort_weight', 'loki_tag'
+            'ftp_domains', 'longitude', 'latitude', 'pay_app_service_id', 'org_data_center', 'sort_weight', 'version'
         ], container=r.data['results'][0])
         self.assertKeysIn(keys=[
             'id', 'name', 'name_en', 'sort_weight', 'organization'], container=r.data['results'][0]['org_data_center'])
@@ -192,7 +192,7 @@ class ObjectsServiceTests(MyAPITestCase):
         self.assertEqual(r.data['count'], 2)
         self.assertKeysIn(keys=[
             'id', 'name', 'name_en', 'service_type', 'endpoint_url', 'add_time', 'status', 'remarks', 'provide_ftp',
-            'ftp_domains', 'longitude', 'latitude', 'pay_app_service_id', 'org_data_center', 'sort_weight', 'loki_tag'
+            'ftp_domains', 'longitude', 'latitude', 'pay_app_service_id', 'org_data_center', 'sort_weight', 'version'
         ], container=r.data['results'][0])
         self.assertKeysIn(keys=[
             'id', 'name', 'name_en', 'sort_weight', 'organization'], container=r.data['results'][0]['org_data_center'])

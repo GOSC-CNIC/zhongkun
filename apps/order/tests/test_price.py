@@ -8,7 +8,7 @@ from django.utils import timezone as dj_timezone
 from apps.servers.models import Flavor, Disk
 from apps.servers.tests.test_disk import create_disk_metadata
 from apps.servers.tests import create_server_metadata
-from apps.order.models import Price
+from apps.order.models import Price, Order
 from apps.order.managers import PriceManager
 from apps.order.handlers.price_handler import ScanTaskType
 from utils.decimal_utils import quantize_10_2
@@ -93,7 +93,7 @@ class PriceTests(MyAPITestCase):
             'flavor_id': self.flavor.id, 'external_ip': True,
             'system_disk_size': 100
         })
-        days = PriceManager.period_month_days(months=1)
+        days = PriceManager.convert_period_days(period=1, period_unit=Order.PeriodUnit.MONTH.value)
         original_p3 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_pub_ip + price.vm_disk * 100
         original_p3 = original_p3 * days * 24
         trade_p3 = original_p3 * prepaid_discount
@@ -108,7 +108,7 @@ class PriceTests(MyAPITestCase):
             'flavor_id': self.flavor.id, 'external_ip': False,
             'system_disk_size': 100
         })
-        days = PriceManager.period_month_days(months=1)
+        days = PriceManager.convert_period_days(period=1, period_unit=Order.PeriodUnit.MONTH.value)
         original_p4 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_disk * 100
         original_p4 = original_p4 * days * 24
         trade_p4 = original_p4 * prepaid_discount
@@ -123,7 +123,7 @@ class PriceTests(MyAPITestCase):
             'flavor_id': self.flavor.id, 'external_ip': False,
             'system_disk_size': 50
         })
-        days = PriceManager.period_month_days(months=1)
+        days = PriceManager.convert_period_days(period=1, period_unit=Order.PeriodUnit.MONTH.value)
         original_p5 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_disk * 50
         original_p5 = original_p5 * days * 24
         trade_p5 = original_p5 * prepaid_discount
@@ -191,6 +191,32 @@ class PriceTests(MyAPITestCase):
         self.assertEqual(str(quantize_10_2(original_p10)), response.data['price']['original'])
         self.assertEqual(str(quantize_10_2(trade_p10)), response.data['price']['trade'])
 
+        # period, period_unit, prepaid, only flavor_id, external_ip
+        query11 = parse.urlencode(query={
+            'resource_type': 'vm', 'pay_type': 'prepaid', 'period': 2, 'period_unit': Order.PeriodUnit.MONTH.value,
+            'flavor_id': self.flavor.id, 'external_ip': True,
+        })
+        response = self.client.get(f'{base_url}?{query11}')
+        self.assertEqual(response.status_code, 200)
+        original_p11 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_pub_ip
+        original_p11 = original_p11 * 24 * 2 * 30
+        trade_p11 = original_p11 * prepaid_discount
+        self.assertEqual(str(quantize_10_2(original_p11)), response.data['price']['original'])
+        self.assertEqual(str(quantize_10_2(trade_p11)), response.data['price']['trade'])
+
+        # period, period_unit, number, prepaid, only flavor_id, external_ip
+        query12 = parse.urlencode(query={
+            'resource_type': 'vm', 'pay_type': 'prepaid', 'period': 123, 'period_unit': Order.PeriodUnit.DAY.value,
+            'flavor_id': self.flavor.id, 'external_ip': True, 'number': 3
+        })
+        response = self.client.get(f'{base_url}?{query12}')
+        self.assertEqual(response.status_code, 200)
+        original_p12 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_pub_ip
+        original_p12 = original_p12 * 24 * 123 * 3
+        trade_p12 = original_p12 * prepaid_discount
+        self.assertEqual(str(quantize_10_2(original_p12)), response.data['price']['original'])
+        self.assertEqual(str(quantize_10_2(trade_p12)), response.data['price']['trade'])
+
     def describe_price_disk(self):
         price = self.price
         prepaid_discount = Decimal.from_float(price.prepaid_discount/100)
@@ -231,7 +257,7 @@ class PriceTests(MyAPITestCase):
         })
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
-        days = PriceManager.period_month_days(months=period)
+        days = PriceManager.convert_period_days(period=period, period_unit=Order.PeriodUnit.MONTH.value)
         original_p3 = price.disk_size * data_disk_size
         original_p3 = original_p3 * days
         trade_p3 = original_p3 * prepaid_discount
@@ -247,7 +273,7 @@ class PriceTests(MyAPITestCase):
         })
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
-        days = PriceManager.period_month_days(months=period)
+        days = PriceManager.convert_period_days(period=period, period_unit=Order.PeriodUnit.MONTH.value)
         original_p3a = price.disk_size * data_disk_size * 2
         original_p3a = original_p3a * days
         trade_p3a = original_p3a * prepaid_discount
@@ -263,7 +289,7 @@ class PriceTests(MyAPITestCase):
         })
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
-        days = PriceManager.period_month_days(months=period)
+        days = PriceManager.convert_period_days(period=period, period_unit=Order.PeriodUnit.MONTH.value)
         original_p4 = price.disk_size * data_disk_size
         trade_p4 = original_p4 = original_p4 * days
         self.assertEqual(str(quantize_10_2(original_p4)), response.data['price']['original'])
@@ -278,11 +304,43 @@ class PriceTests(MyAPITestCase):
         })
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
-        days = PriceManager.period_month_days(months=period)
+        days = PriceManager.convert_period_days(period=period, period_unit=Order.PeriodUnit.MONTH.value)
         original_p5 = price.disk_size * data_disk_size * 3
         trade_p5 = original_p5 = original_p5 * days
         self.assertEqual(str(quantize_10_2(original_p5)), response.data['price']['original'])
         self.assertEqual(str(quantize_10_2(trade_p5)), response.data['price']['trade'])
+
+        # postpaid period number
+        period = 9  # must be 1 - 12
+        data_disk_size = 150
+        query = parse.urlencode(query={
+            'resource_type': 'disk', 'pay_type': 'postpaid',
+            'period': period, 'period_unit': Order.PeriodUnit.MONTH.value,
+            'data_disk_size': data_disk_size, 'number': 3
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        days = PriceManager.convert_period_days(period=period, period_unit=Order.PeriodUnit.MONTH.value)
+        original_p6 = price.disk_size * data_disk_size * 3
+        trade_p6 = original_p6 = original_p6 * days
+        self.assertEqual(str(quantize_10_2(original_p6)), response.data['price']['original'])
+        self.assertEqual(str(quantize_10_2(trade_p6)), response.data['price']['trade'])
+
+        # postpaid period number
+        period = 199
+        data_disk_size = 150
+        query = parse.urlencode(query={
+            'resource_type': 'disk', 'pay_type': 'postpaid',
+            'period': period, 'period_unit': Order.PeriodUnit.DAY.value,
+            'data_disk_size': data_disk_size, 'number': 3
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        days = PriceManager.convert_period_days(period=period, period_unit=Order.PeriodUnit.DAY.value)
+        original_p7 = price.disk_size * data_disk_size * 3
+        trade_p7 = original_p7 = original_p7 * days
+        self.assertEqual(str(quantize_10_2(original_p7)), response.data['price']['original'])
+        self.assertEqual(str(quantize_10_2(trade_p7)), response.data['price']['trade'])
 
         # 400
         query = parse.urlencode(query={
@@ -487,6 +545,33 @@ class PriceTests(MyAPITestCase):
         self.assertEqual(response.data['price']['original'], str(quantize_10_2(original_p)))
         self.assertEqual(response.data['price']['trade'], str(quantize_10_2(trade_p)))
 
+        # period, period_unit
+        query = parse.urlencode(query={
+            'resource_type': 'vm', 'instance_id': server.id, 'period': 2, 'period_unit': Order.PeriodUnit.MONTH.value
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(keys=['original', 'trade'], container=response.data['price'])
+
+        original_p = price.vm_cpu * 2 + price.vm_ram * 2 + price.vm_pub_ip + price.vm_disk * 100
+        original_p *= 24 * 2 * 30
+        trade_p = original_p * prepaid_discount
+        self.assertEqual(response.data['price']['original'], str(quantize_10_2(original_p)))
+        self.assertEqual(response.data['price']['trade'], str(quantize_10_2(trade_p)))
+
+        query = parse.urlencode(query={
+            'resource_type': 'vm', 'instance_id': server.id, 'period': 122, 'period_unit': Order.PeriodUnit.DAY.value
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(keys=['original', 'trade'], container=response.data['price'])
+
+        original_p = price.vm_cpu * 2 + price.vm_ram * 2 + price.vm_pub_ip + price.vm_disk * 100
+        original_p *= 24 * 122
+        trade_p = original_p * prepaid_discount
+        self.assertEqual(response.data['price']['original'], str(quantize_10_2(original_p)))
+        self.assertEqual(response.data['price']['trade'], str(quantize_10_2(trade_p)))
+
         # ok period, postpaid server
         server.pay_type = PayType.POSTPAID.value
         server.expiration_time = None
@@ -539,6 +624,31 @@ class PriceTests(MyAPITestCase):
         self.assertKeysIn(keys=['original', 'trade'], container=response.data['price'])
 
         original_p = price.disk_size * 66 * 60
+        trade_p = original_p * prepaid_discount
+        self.assertEqual(response.data['price']['original'], str(quantize_10_2(original_p)))
+        self.assertEqual(response.data['price']['trade'], str(quantize_10_2(trade_p)))
+
+        # period, period_unit
+        query = parse.urlencode(query={
+            'resource_type': 'disk', 'instance_id': disk1.id, 'period': 2, 'period_unit': Order.PeriodUnit.MONTH.value
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(keys=['original', 'trade'], container=response.data['price'])
+
+        original_p = price.disk_size * 66 * 2 * 30
+        trade_p = original_p * prepaid_discount
+        self.assertEqual(response.data['price']['original'], str(quantize_10_2(original_p)))
+        self.assertEqual(response.data['price']['trade'], str(quantize_10_2(trade_p)))
+
+        query = parse.urlencode(query={
+            'resource_type': 'disk', 'instance_id': disk1.id, 'period': 211, 'period_unit': Order.PeriodUnit.DAY.value
+        })
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(keys=['original', 'trade'], container=response.data['price'])
+
+        original_p = price.disk_size * 66 * 211
         trade_p = original_p * prepaid_discount
         self.assertEqual(response.data['price']['original'], str(quantize_10_2(original_p)))
         self.assertEqual(response.data['price']['trade'], str(quantize_10_2(trade_p)))

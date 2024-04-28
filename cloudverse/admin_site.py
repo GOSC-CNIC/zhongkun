@@ -6,7 +6,7 @@ from django.conf import settings
 from core import site_configs_manager as site_configs
 
 
-site_header = site_configs.get_website_brand()
+site_header_lazy = site_configs.get_website_brand_lazy(default='YunKun')
 ADMIN_SORTED_APP_LIST = settings.ADMIN_SORTED_APP_LIST
 
 
@@ -51,7 +51,7 @@ def get_app_list(self, request, app_label=None):
 
 
 def config_site():
-    admin.AdminSite.site_header = site_header
+    admin.AdminSite.site_header = site_header_lazy
     admin.AdminSite.site_title = _('管理员登录')
     admin.AdminSite.get_app_list = get_app_list  # 覆盖原有的get_app_list方法
     admin.site.site_header = admin.AdminSite.site_header

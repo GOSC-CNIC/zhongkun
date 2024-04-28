@@ -76,6 +76,7 @@ class ObjectsService(UuidModel):
     monitor_task_id = models.CharField(
         verbose_name=_('服务单元对应监控任务ID'), max_length=36, blank=True, default='', editable=False,
         help_text=_('记录为服务单元创建的站点监控任务的ID'))
+    version = models.CharField(max_length=32, blank=True, default='', verbose_name=_('版本号'), help_text=_('服务当前的版本'))
 
     class Meta:
         db_table = 'object_service'

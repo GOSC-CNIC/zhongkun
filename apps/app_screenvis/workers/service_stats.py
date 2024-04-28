@@ -19,8 +19,10 @@ class ServerServiceStatsWorker:
         """
         self.cycle_minutes = minutes
 
-    def run(self):
-        now_timestamp = self.get_now_timestamp()
+    def run(self, now_timestamp: int = None):
+        if not now_timestamp:
+            now_timestamp = self.get_now_timestamp()
+
         units_count, ok_unit_ids, compute_objs, vpn_objs = self.async_generate_stats(now_timestamp=now_timestamp)
         ok_count = len(ok_unit_ids)
         print(f'{dj_timezone.now().isoformat(sep=" ", timespec="seconds")} End，'
