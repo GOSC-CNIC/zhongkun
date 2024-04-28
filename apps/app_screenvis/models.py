@@ -352,9 +352,8 @@ class ObjectServiceTimedStats(BaseTimed):
         ]
 
 
-class ServiceUserOperateLog(models.Model):
+class ServiceUserOperateLog(UuidModel):
     """对象存储/云主机服务单元用户操作日志"""
-    id = models.BigAutoField(primary_key=True)
     username = models.CharField(verbose_name=_('用户'), max_length=255)
     content = models.TextField(verbose_name=_('操作内容'), max_length=255)
     creation_time = models.DateTimeField(verbose_name=_('用户操作时间'))  # 用户操作时间

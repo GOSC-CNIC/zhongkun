@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ServerServiceLog',
             fields=[
-                ('id', models.BigAutoField(primary_key=True, serialize=False)),
+                ('id', models.CharField(blank=True, editable=False, max_length=36, primary_key=True, serialize=False, verbose_name='ID')),
                 ('username', models.CharField(max_length=255, verbose_name='用户')),
                 ('content', models.TextField(max_length=255, verbose_name='操作内容')),
                 ('creation_time', models.DateTimeField(verbose_name='用户操作时间')),
@@ -30,7 +30,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ObjectServiceLog',
             fields=[
-                ('id', models.BigAutoField(primary_key=True, serialize=False)),
+                ('id', models.CharField(blank=True, editable=False, max_length=36, primary_key=True, serialize=False, verbose_name='ID')),
                 ('username', models.CharField(max_length=255, verbose_name='用户')),
                 ('content', models.TextField(max_length=255, verbose_name='操作内容')),
                 ('creation_time', models.DateTimeField(verbose_name='用户操作时间')),
