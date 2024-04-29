@@ -16,7 +16,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'cloudverse.settings')
 setup()
 
 from django.utils import timezone as dj_timezone
-from apps.app_screenvis.workers.service_stats import ServerServiceStatsWorker
+from apps.app_screenvis.workers.service_stats import ServerServiceStatsWorker, ObjectServiceStatsWorker
 from scripts.task_lock import screen_service_stats_lock
 
 
@@ -38,6 +38,7 @@ def main_use_lock(timed_minutes: int):
         ):
             screen_service_stats_lock.mark_start_task(start_time=start_time)  # 更新任务执行信息
             task_worker.run(now_timestamp=now_timestamp)
+            ObjectServiceStatsWorker().run(now_timestamp=now_timestamp)
     except Exception as exc:
         run_desc = str(exc)
     finally:

@@ -102,9 +102,9 @@ class Migration(migrations.Migration):
                 ('id', models.CharField(blank=True, editable=False, max_length=36, primary_key=True, serialize=False, verbose_name='ID')),
                 ('timestamp', models.PositiveBigIntegerField(verbose_name='统计时间')),
                 ('bucket_count', models.IntegerField(blank=True, default=0, verbose_name='存储桶总数')),
-                ('bucket_storage', models.BigIntegerField(blank=True, default=0, verbose_name='存储桶总数据量')),
-                ('storage_used', models.BigIntegerField(blank=True, default=0, verbose_name='已用容量')),
-                ('storage_capacity', models.BigIntegerField(blank=True, default=0, verbose_name='总容量')),
+                ('bucket_storage', models.BigIntegerField(blank=True, default=0, verbose_name='存储桶总数据量(GiB)')),
+                ('storage_used', models.BigIntegerField(blank=True, default=0, verbose_name='已用容量(GiB)')),
+                ('storage_capacity', models.BigIntegerField(blank=True, default=0, verbose_name='总容量(GiB)')),
                 ('service', models.ForeignKey(db_constraint=False, db_index=False, null=True, on_delete=django.db.models.deletion.DO_NOTHING, to='app_screenvis.objectservice', verbose_name='服务单元')),
             ],
             options={
