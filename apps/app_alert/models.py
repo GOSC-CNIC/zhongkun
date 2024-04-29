@@ -15,13 +15,13 @@ class AlertAbstractModel(UuidModel):
     severity = models.CharField(max_length=50, verbose_name=_('级别'))
     summary = models.TextField(null=False, blank=False, verbose_name=_('摘要'))
     description = models.TextField(null=False, blank=False, verbose_name=_('详情'))
-    start = models.PositiveIntegerField(db_index=True, verbose_name=_('告警开始时间'))
-    end = models.PositiveIntegerField(null=True, db_index=True, verbose_name=_('告警结束时间'))
-    count = models.PositiveIntegerField(null=False, default=1, verbose_name=_('累加条数'))
-    first_notification = models.PositiveIntegerField(null=True, verbose_name=_('首次通知时间'))
-    last_notification = models.PositiveIntegerField(null=True, verbose_name=_('上次通知时间'))
-    creation = models.PositiveIntegerField(null=True, verbose_name=_('创建时间'))
-    modification = models.PositiveIntegerField(null=True, verbose_name=_('更新时间'))
+    start = models.PositiveBigIntegerField(db_index=True, verbose_name=_('告警开始时间'))
+    end = models.PositiveBigIntegerField(null=True, db_index=True, verbose_name=_('告警结束时间'))
+    count = models.PositiveBigIntegerField(null=False, default=1, verbose_name=_('累加条数'))
+    first_notification = models.PositiveBigIntegerField(null=True, verbose_name=_('首次通知时间'))
+    last_notification = models.PositiveBigIntegerField(null=True, verbose_name=_('上次通知时间'))
+    creation = models.PositiveBigIntegerField(null=True, verbose_name=_('创建时间'))
+    modification = models.PositiveBigIntegerField(null=True, verbose_name=_('更新时间'))
 
     class Meta:
         abstract = True
@@ -81,8 +81,8 @@ class AlertLifetimeModel(UuidModel):
         WORK_ORDER = 'work order', '工单处理'
 
     status = models.CharField(max_length=20, null=False, choices=Status.choices, verbose_name=_("告警状态"))
-    start = models.PositiveIntegerField(null=True, db_index=True, verbose_name=_('告警开始时间'))
-    end = models.PositiveIntegerField(null=True, db_index=True, verbose_name=_('告警结束时间'))
+    start = models.PositiveBigIntegerField(null=True, db_index=True, verbose_name=_('告警开始时间'))
+    end = models.PositiveBigIntegerField(null=True, db_index=True, verbose_name=_('告警结束时间'))
 
     class Meta:
         db_table = "alert_lifetime"
@@ -97,7 +97,7 @@ class EmailNotification(UuidModel):
     """
     alert = models.CharField(null=False, db_index=True, max_length=40, verbose_name='告警ID')
     email = models.CharField(null=False, db_index=True, max_length=100, verbose_name='邮箱')
-    timestamp = models.PositiveIntegerField(db_index=True, verbose_name='通知时间')
+    timestamp = models.PositiveBigIntegerField(db_index=True, verbose_name='通知时间')
 
     class Meta:
         db_table = "alert_email_notification"
@@ -132,8 +132,8 @@ class AlertWorkOrder(UuidModel):
     status = models.CharField(max_length=10, default=OrderStatus.IGNORE.value, choices=OrderStatus.choices,
                               verbose_name=_("状态"))
     remark = models.TextField(default="", verbose_name=_('备注'))
-    creation = models.PositiveIntegerField(null=True, verbose_name=_('创建时间'))
-    modification = models.PositiveIntegerField(null=True, verbose_name=_('更新时间'))
+    creation = models.PositiveBigIntegerField(null=True, verbose_name=_('创建时间'))
+    modification = models.PositiveBigIntegerField(null=True, verbose_name=_('更新时间'))
 
     class Meta:
         db_table = "alert_work_order"
