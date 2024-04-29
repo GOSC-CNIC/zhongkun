@@ -2,7 +2,8 @@ from django.utils import timezone as dj_timezone
 from django.urls import reverse
 
 from apps.app_screenvis.models import (
-    DataCenter, ServerService, ServerServiceTimedStats, ApiAllowIP, VPNTimedStats
+    DataCenter, ServerService, ServerServiceTimedStats, ApiAllowIP, VPNTimedStats,
+    ObjectService, ObjectServiceTimedStats
 )
 from apps.app_screenvis.permissions import ScreenAPIIPRestrictor
 from . import MyAPITestCase
@@ -238,3 +239,112 @@ class VPNServiceStatsTests(MyAPITestCase):
         self.assertEqual(response.data['vpn_online_count'], site1_obj1.vpn_online_count + site2_obj1.vpn_online_count)
         self.assertEqual(response.data['vpn_active_count'], site1_obj1.vpn_active_count + site2_obj1.vpn_active_count)
         self.assertEqual(response.data['vpn_count'], site1_obj1.vpn_count + site2_obj1.vpn_count)
+
+
+class ObjectServiceStatsTests(MyAPITestCase):
+    def setUp(self):
+        ScreenAPIIPRestrictor.clear_cache()
+
+    def test_list(self):
+        nt = dj_timezone.now()
+        dc1 = DataCenter(name='dc1', name_en='dc1', creation_time=nt, update_time=nt)
+        dc1.save(force_insert=True)
+        dc2 = DataCenter(name='dc2', name_en='dc2', creation_time=nt, update_time=nt)
+        dc2.save(force_insert=True)
+
+        site1 = ObjectService(
+            name='site1', name_en='site1 en', data_center=dc1, status=ObjectService.Status.ENABLE.value,
+            endpoint_url='https://test.com', username='test', sort_weight=1)
+        site1.set_password(raw_password='test_passwd')
+        site1.save(force_insert=True)
+
+        site2 = ObjectService(
+            name='site2', name_en='site2 en', data_center=dc1, status=ObjectService.Status.DISABLE.value,
+            endpoint_url='https://test2.com', username='test2', sort_weight=2)
+        site2.set_password(raw_password='test_passwd2')
+        site2.save(force_insert=True)
+
+        site3 = ObjectService(
+            name='site3', name_en='site3 en', data_center=dc1, status=ObjectService.Status.DELETED.value,
+            endpoint_url='https://test3.com', username='test3', sort_weight=3)
+        site3.set_password(raw_password='test_passwd')
+        site3.save(force_insert=True)
+
+        site4 = ObjectService(
+            name='site4', name_en='site4 en', data_center=dc2, status=ObjectService.Status.ENABLE.value,
+            endpoint_url='https://test4.com', username='test4', sort_weight=4
+        )
+        site4.set_password(raw_password='test_passwd')
+        site4.save(force_insert=True)
+
+        nt = dj_timezone.now()
+        now_ts = int(nt.timestamp())
+        site1_obj1 = ObjectServiceTimedStats(
+            service_id=site1.id, timestamp=now_ts,
+            bucket_count=10, bucket_storage=8,
+            storage_capacity=200, storage_used=88
+        )
+        site1_obj1.save(force_insert=True)
+        site1_obj2 = ObjectServiceTimedStats(
+            service_id=site1.id, timestamp=now_ts - 60,
+            bucket_count=242, bucket_storage=3533,
+            storage_capacity=57474, storage_used=5343
+        )
+        site1_obj2.save(force_insert=True)
+        site2_obj1 = ObjectServiceTimedStats(
+            service_id=site2.id, timestamp=now_ts - 120,
+            bucket_count=54, bucket_storage=5644,
+            storage_capacity=64757, storage_used=3222
+        )
+        site2_obj1.save(force_insert=True)
+        site3_obj1 = ObjectServiceTimedStats(
+            service_id=site3.id, timestamp=now_ts,
+            bucket_count=423, bucket_storage=2424,
+            storage_capacity=53535, storage_used=24245
+        )
+        site3_obj1.save(force_insert=True)
+        site4_obj1 = ObjectServiceTimedStats(
+            service_id=site4.id, timestamp=now_ts,
+            bucket_count=353, bucket_storage=353,
+            storage_capacity=4646, storage_used=674
+        )
+        site4_obj1.save(force_insert=True)
+
+        url = reverse('screenvis-api:object-stats-dc', kwargs={'dc_id': 'fafa'})
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+        ApiAllowIP(ip_value='127.0.0.1').save(force_insert=True)
+        ScreenAPIIPRestrictor.clear_cache()
+
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
+
+        url = reverse('screenvis-api:object-stats-dc', kwargs={'dc_id': 0})
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
+
+        url = reverse('screenvis-api:object-stats-dc', kwargs={'dc_id': dc2.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['bucket_count'], site4_obj1.bucket_count)
+        self.assertEqual(response.data['bucket_storage'], site4_obj1.bucket_storage)
+        self.assertEqual(response.data['storage_capacity'], site4_obj1.storage_capacity)
+        self.assertEqual(response.data['storage_used'], site4_obj1.storage_used)
+
+        site4.status = site4.Status.DELETED.value
+        site4.save(update_fields=['status'])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['bucket_count'], 0)
+        self.assertEqual(response.data['bucket_storage'], 0)
+        self.assertEqual(response.data['storage_capacity'], 0)
+        self.assertEqual(response.data['storage_used'], 0)
+
+        # dc1
+        url = reverse('screenvis-api:object-stats-dc', kwargs={'dc_id': dc1.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['bucket_count'], site1_obj1.bucket_count + site2_obj1.bucket_count)
+        self.assertEqual(response.data['bucket_storage'], site1_obj1.bucket_storage + site2_obj1.bucket_storage)
+        self.assertEqual(response.data['storage_capacity'], site1_obj1.storage_capacity + site2_obj1.storage_capacity)
+        self.assertEqual(response.data['storage_used'], site1_obj1.storage_used + site2_obj1.storage_used)

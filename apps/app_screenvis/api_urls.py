@@ -17,6 +17,8 @@ no_slash_router.register(r'service/server/stats', service_views.ServerServiceVie
                          basename='server-stats')
 no_slash_router.register(r'service/vpn/stats', service_views.VPNServiceViewSet,
                          basename='vpn-stats')
+no_slash_router.register(r'service/object/stats', service_views.ObjectServiceViewSet,
+                         basename='object-stats')
 no_slash_router.register(r'server_user_log', user_operate_log.UserOperateLogViewSet, basename='server-user-log')
 
 
