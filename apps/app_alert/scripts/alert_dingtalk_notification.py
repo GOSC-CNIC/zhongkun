@@ -343,5 +343,5 @@ def run_task_use_lock():
 
 
 if __name__ == '__main__':
-    # run_task_use_lock()
-    DingTalk().run()
+    run_task_use_lock()
+    # DingTalk().run()
