@@ -305,7 +305,7 @@ class DingTalk(object):
             property_id, property_name, property_director = self.parser_property_info(instance)
             record_msg_list.append(property_id)
             record_msg_list.append(property_name)
-            record_msg_list.append("**设备名称**: {}".format(instance))
+            record_msg_list.append("**设备IP**: {}".format(instance))
             record_msg_list.append(property_director)
             for message in messages:
                 record_msg_list.append("**告警信息**: {}".format(message.get("description")))
