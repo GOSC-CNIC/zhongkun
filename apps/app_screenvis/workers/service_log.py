@@ -63,7 +63,9 @@ class BaseSynchronizer:
         从指定时间戳开始同步服务单元的日志
         """
         return_err = None
-        while True:
+        # 循环查询次数，限制每个服务单元每次同步数据最大次数，防止循环卡死，或者服务单元接口问题造成无法跳出循环
+        count = 6
+        while count > 0:
             try:
                 data = self.query_page_data(unit=unit, timestamp=timestamp)
             except Exception as exc:
@@ -84,6 +86,7 @@ class BaseSynchronizer:
                 break
 
             timestamp = now_timestamp   # 从已同步时间戳继续同步
+            count = count - 1
 
         return return_err
 
@@ -108,13 +111,16 @@ class BaseSynchronizer:
                 continue
 
             obj_list.append(obj)
-            if len(obj_list) == 21:
+            if len(obj_list) == 200:
                 try:
                     type(obj_list[0]).objects.bulk_create(objs=obj_list)
                 except Exception as exc:
                     return False, exc, now_timestamp
 
-                now_timestamp = self.get_timestamp_from_log_obj(obj_list[-1])     # 记录已经同步数据的时间戳
+                # 记录已经同步数据的时间戳，两端之中大的时间戳，防止查询数据排序倒序 造成一直查询重复数据
+                now_timestamp = max(
+                    self.get_timestamp_from_log_obj(obj_list[-1]), self.get_timestamp_from_log_obj(obj_list[0])
+                )
                 obj_list = []
 
         if obj_list:
@@ -123,7 +129,10 @@ class BaseSynchronizer:
             except Exception as exc:
                 return False, exc, now_timestamp
 
-            now_timestamp = self.get_timestamp_from_log_obj(obj_list[-1])  # 记录已经同步数据的时间戳
+            # 记录已经同步数据的时间戳，两端之中大的时间戳，防止查询数据排序倒序 造成一直查询重复数据
+            now_timestamp = max(
+                self.get_timestamp_from_log_obj(obj_list[-1]), self.get_timestamp_from_log_obj(obj_list[0])
+            )
 
         return True, None, now_timestamp
 
