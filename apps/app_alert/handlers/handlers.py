@@ -124,7 +124,7 @@ class AlertCleaner(object):
                     "creator_email": order.creator.email,
                     "creator_name": order.creator.last_name + order.creator.first_name,
                 }
-                item["end"] = int(datetime.datetime.timestamp(order.creation))
+                item["end"] = order.creation
             else:
                 order_item = {}
             start = item.get("start")

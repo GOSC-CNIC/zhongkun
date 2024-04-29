@@ -33,6 +33,7 @@ from django.db.models import Q
 from apps.app_alert.handlers.handlers import EmailNotificationCleaner
 from apps.app_alert.permission import ReceiverPermission
 from apps.app_alert.handlers.handlers import UserMonitorUnit
+from apps.app_alert.utils.utils import DateUtils
 
 
 # Create your views here.
@@ -294,7 +295,7 @@ class WorkOrderListGenericAPIView(GenericAPIView, CreateModelMixin):
     )
     def post(self, request, *args, **kwargs):
         """
-            查询当前用户的告警通知记录
+            创建告警工单
 
                 http code 200：
                     {
@@ -313,21 +314,28 @@ class WorkOrderListGenericAPIView(GenericAPIView, CreateModelMixin):
             serializer = self.get_serializer(data=param)
             serializer.is_valid(raise_exception=True)
             serializers.append(serializer)
+
+        timestamp = DateUtils.timestamp()
+
         for serializer in serializers:
-            self.perform_create(serializer)
+            self.perform_create(serializer, timestamp=timestamp)
         return Response({"status": "success"}, status=status_code.HTTP_201_CREATED)
 
-    def perform_create(self, serializer):
+    def perform_create(self, serializer, **kwargs):
         alert = serializer.validated_data.get("alert")
         user_monitor_units = UserMonitorUnit(self.request)
         if alert.fingerprint not in user_monitor_units.url_hash_list and alert.cluster not in user_monitor_units.clusters and not self.request.user.is_superuser:
             raise PermissionDenied()
-        order = serializer.save(creator=self.request.user)
+        order = serializer.save(
+            creator=self.request.user,
+            creation=kwargs.get('timestamp'),
+            modification=kwargs.get('timestamp'),
+        )
         lifecycle = AlertLifetimeModel.objects.filter(id=order.alert.id).first()
         if lifecycle and not lifecycle.end:
-            lifecycle.end = int(order.creation.timestamp())
+            lifecycle.end = order.creation
             lifecycle.status = AlertLifetimeModel.Status.WORK_ORDER.value
-        lifecycle.save()
+            lifecycle.save()
 
     def pretreatment(self, request):
         """

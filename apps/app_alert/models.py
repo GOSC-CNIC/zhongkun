@@ -122,16 +122,18 @@ class AlertWorkOrder(UuidModel):
                                 on_delete=models.DO_NOTHING,
                                 related_name="work_order",
                                 verbose_name=_('创建者'))
-    status_choices = (
-        (u'无需处理', u'无需处理'),
-        (u'已完成', u'已完成'),
-        (u'误报', u'误报'),
-    )
+
+    class OrderStatus(models.TextChoices):
+        IGNORE = '无需处理', _('无需处理')
+        FINISHED = '已完成', _('已完成')
+        MISREPORT = '误报', _('误报')
+
     collect = models.CharField(max_length=40, null=False, verbose_name=_("集合ID"))
-    status = models.CharField(max_length=10, default=False, choices=status_choices, verbose_name=_("状态"))
+    status = models.CharField(max_length=10, default=OrderStatus.IGNORE.value, choices=OrderStatus.choices,
+                              verbose_name=_("状态"))
     remark = models.TextField(default="", verbose_name=_('备注'))
-    creation = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
-    modification = models.DateTimeField(verbose_name=_('修改时间'), auto_now=True)
+    creation = models.PositiveIntegerField(null=True, verbose_name=_('创建时间'))
+    modification = models.PositiveIntegerField(null=True, verbose_name=_('更新时间'))
 
     class Meta:
         db_table = "alert_work_order"
@@ -190,5 +192,3 @@ class AlertMonitorJobServer(UuidModel):
         ordering = ['-creation']
         verbose_name = _("告警集群")
         verbose_name_plural = verbose_name
-
-

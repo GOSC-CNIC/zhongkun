@@ -122,7 +122,7 @@ class AlertReceiver(object):
         """
         if alert_type == 'metric':
             instance = alert.get("labels").get("instance")
-        elif alert_type == 'mail_log':
+        elif alert_type == 'log':
             annotations = alert.get("annotations")
             description = annotations.get("description")
             log_name = re.findall(r'{"name":"(.*?)"}', description)
@@ -263,7 +263,7 @@ class AlertReceiver(object):
         for alert in firing_alerts:
             order = AlertWorkOrder.objects.filter(alert_id=alert.id).first()
             if order:
-                alert.end = int(order.creation.timestamp())
+                alert.end = order.creation
                 alert.status = AlertLifetimeModel.Status.WORK_ORDER.value
                 alert.save()
                 continue
