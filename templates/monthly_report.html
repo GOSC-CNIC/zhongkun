@@ -70,7 +70,7 @@
                     <td>{{ mr.total_original_amount|floatformat:2 }}</td>
                     <td>{{ mr.total_amount|floatformat:2 }}</td>
                     {% if forloop.first %}
-                    <td rowspan="{{ user_server_reports|length }}"><a target="view_window" href="{{ own_site_url }}/my/stats/consumption/personal">点击查看使用明细</a></td>
+                    <td rowspan="{{ user_server_reports|length }}"><a target="view_window" href="{{ own_site_url }}/my/stats/consumption/server">点击查看使用明细</a></td>
                     {% endif %}
                 </tr>
                 {% endfor %}
@@ -97,7 +97,7 @@
                 <td>{{ dmr.total_original_amount|floatformat:2 }}</td>
                 <td>{{ dmr.total_amount|floatformat:2 }}</td>
                 {% if forloop.first %}
-                <td rowspan="{{ user_disk_reports|length }}"><a target="view_window" href="{{ own_site_url }}/my/stats/consumption/personal">点击查看使用明细</a></td>
+                <td rowspan="{{ user_disk_reports|length }}"><a target="view_window" href="{{ own_site_url }}/my/stats/consumption/disk">点击查看使用明细</a></td>
                 {% endif %}
             </tr>
             {% endfor %}
@@ -122,7 +122,7 @@
                     <td>{{ b.original_amount }}</td>
                     <td>{{ b.payable_amount }}</td>
                     {% if forloop.first %}
-                        <td rowspan="{{ bucket_reports_len }}"><a target="view_window" href="{{ own_site_url }}/my/stats/consumption/storage" >点击查看使用明细</a></td>
+                        <td rowspan="{{ bucket_reports_len }}"><a target="view_window" href="{{ own_site_url }}/my/stats/storage" >点击查看使用明细</a></td>
                     {% endif %}
                 </tr>
             {% endfor %}
@@ -178,7 +178,7 @@
                             容量 {{ vmr.disk_size_days | floatformat:2 }} GB*天<br>
                             计量点数 {{ vmr.disk_original_amount | floatformat:2 }}{% endif %}
                         </td>
-                        <td colspan="2"><a target="view_window" href="{{ own_site_url }}/my/stats/consumption/group/metering/{{ vo_info.vo.id }}">点击查询用量明细</a></td>
+                        <td colspan="2"><a target="view_window" href="{{ own_site_url }}/my/stats/consumption/group/{{ vo_info.vo.id }}">点击查询用量明细</a></td>
                     </tr>
                 {% endwith %}
             {% endfor %}
