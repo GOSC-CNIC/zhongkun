@@ -1,12 +1,15 @@
 from django.utils.translation import gettext_lazy
+from django.db.models import Count, Sum
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.serializers import Serializer
+from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
 from apps.api.viewsets import StorageGenericViewSet
 from apps.api.paginations import DefaultPageNumberPagination
+from apps.storage.models import Bucket
 from apps.storage.bucket_handler import BucketHandler
 from apps.storage import serializers as storage_serializers
 
@@ -329,3 +332,36 @@ class AdminBucketViewSet(StorageGenericViewSet):
             return storage_serializers.AdminBucketSerializer
 
         return Serializer
+
+
+class StatsServiceViewSet(StorageGenericViewSet):
+    permission_classes = [IsAuthenticated, ]
+    pagination_class = None
+    lookup_value_regex = '[^/]+'
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询服务单元统计信息'),
+        responses={
+            200: ''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        查询服务单元统计信息
+
+            http code 200：
+            {
+                "stats": [  # 列表不会包含没有存储桶的服务单元
+                    {
+                        "service_id": "4fa94896-29a6-11ed-861f-c8009fe2ebbc",   # 服务单元ID
+                        "bucket_count": 12,         # 桶数量
+                        "storage_size": 91568184    # 桶总数据量 Byte
+                    }
+                ]
+            }
+        """
+        stats = Bucket.objects.values('service_id').annotate(
+            bucket_count=Count('id'),
+            storage_size=Sum('storage_size', default=0),
+        ).order_by('service_id')
+        return Response(data={'stats': list(stats)})

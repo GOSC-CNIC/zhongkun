@@ -13,6 +13,7 @@ no_slash_router.register(
     r'admin/storage/statistics', storage_views.StorageStatisticsViewSet, basename='admin-storage-statistics')
 no_slash_router.register(r'storage/service', storage_views.ObjectsServiceViewSet, basename='storage-service')
 no_slash_router.register(r'storage/bucket', bucket_views.BucketViewSet, basename='bucket')
+no_slash_router.register(r'storage/stats/service', bucket_views.StatsServiceViewSet, basename='stats-service')
 
 
 urlpatterns = [
