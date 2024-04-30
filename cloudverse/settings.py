@@ -423,7 +423,7 @@ CRONTABJOBS = [
      'python3 /home/uwsgi/yunkun/apps/app_alert/scripts/alert_dingtalk_notification.py >> /var/log/yunkun/task_alert_dingtalk_notification.log'),
     ('task10_screen_service_stats.py', '*/3 * * * *',
      'python3 /home/uwsgi/yunkun/scripts/run_screen_service_stats.py >> /var/log/yunkun/task_screen_service_stats.log'),
-    ('task11_screen_operate_user_log', '*/10 * * * *',
+    ('task11_screen_operate_user_log', '*/3 * * * *',
      'python3 /home/uwsgi/yunkun/scripts/run_screen_operate_user_log.py >> /var/log/yunkun/task_screen_operate_user_log.log'),
 ]
 

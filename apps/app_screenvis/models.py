@@ -338,9 +338,9 @@ class ObjectServiceTimedStats(BaseTimed):
         to=ObjectService, verbose_name='服务单元', on_delete=models.DO_NOTHING, null=True, blank=False,
         db_constraint=False, db_index=False)
     bucket_count = models.IntegerField(verbose_name=_('存储桶总数'), blank=True, default=0)
-    bucket_storage = models.BigIntegerField(verbose_name=_('存储桶总数据量'), blank=True, default=0)
-    storage_used = models.BigIntegerField(verbose_name=_('已用容量'), blank=True, default=0)
-    storage_capacity = models.BigIntegerField(verbose_name=_('总容量'), blank=True, default=0)
+    bucket_storage = models.BigIntegerField(verbose_name=_('存储桶总数据量(GiB)'), blank=True, default=0)
+    storage_used = models.BigIntegerField(verbose_name=_('已用容量(GiB)'), blank=True, default=0)
+    storage_capacity = models.BigIntegerField(verbose_name=_('总容量(GiB)'), blank=True, default=0)
 
     class Meta:
         db_table = 'screenvis_object_timedstats'
@@ -368,9 +368,10 @@ class ObjectServiceLog(ServiceUserOperateLog):
 
     service_cell = models.ForeignKey(
         to=ObjectService, verbose_name='对象存储服务单元', on_delete=models.SET_NULL, null=True, blank=False)
+
     class Meta:
         db_table = 'screenvis_objectservice_log'
-        ordering = ['-id']
+        ordering = ['-creation_time']
         verbose_name = _('对象存储服务单元用户操作日志')
         verbose_name_plural = verbose_name
 
@@ -380,9 +381,9 @@ class ServerServiceLog(ServiceUserOperateLog):
 
     service_cell = models.ForeignKey(
         to=ServerService, verbose_name='云主机服务单元', on_delete=models.SET_NULL, null=True, blank=False)
+
     class Meta:
         db_table = 'screenvis_serverservice_log'
-        ordering = ['-id']
+        ordering = ['-creation_time']
         verbose_name = _('云主机服务单元用户操作日志')
         verbose_name_plural = verbose_name
-

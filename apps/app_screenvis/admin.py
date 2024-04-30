@@ -69,7 +69,7 @@ class MetricMonitorUnitAdmin(BaseModelAdmin):
         return obj.data_center.metric_endpoint_url
 
 
-@admin.register(LogMonitorUnit)
+# @admin.register(LogMonitorUnit)
 class LogMonitorUnitAdmin(BaseModelAdmin):
     list_display = ('id', 'name', 'name_en', 'log_type', 'data_center', 'sort_weight',
                     'job_tag', 'loki_endpoint_url', 'creation_time', 'update_time')
@@ -231,17 +231,17 @@ class ObjectServiceTimedStatsAdmin(BaseModelAdmin):
         return dt.isoformat(sep=' ')
 
 
-
 @admin.register(ObjectServiceLog)
 class ObjectServiceLogAdmin(BaseModelAdmin):
     list_display_links = ('id',)
     list_display = ('id', 'username', 'content', 'creation_time', 'create_time')
-    search_fields = ['username', 'content',]
+    search_fields = ['username', 'content']
+    list_filter = ['service_cell']
 
 
 @admin.register(ServerServiceLog)
 class ServerServiceLogAdmin(BaseModelAdmin):
     list_display_links = ('id',)
     list_display = ('id', 'username', 'content', 'creation_time', 'create_time')
-    search_fields = ['username', 'content',]
-
+    search_fields = ['username', 'content']
+    list_filter = ['service_cell']

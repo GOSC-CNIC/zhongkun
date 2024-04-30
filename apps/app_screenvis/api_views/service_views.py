@@ -5,7 +5,10 @@ from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
 
 from apps.app_screenvis.utils import errors
-from apps.app_screenvis.models import DataCenter, ServerService, ServerServiceTimedStats, VPNTimedStats
+from apps.app_screenvis.models import (
+    DataCenter, ServerService, ServerServiceTimedStats, VPNTimedStats,
+    ObjectService, ObjectServiceTimedStats
+)
 from apps.app_screenvis.permissions import ScreenAPIIPPermission
 from . import NormalGenericViewSet
 
@@ -148,6 +151,72 @@ class VPNServiceViewSet(NormalGenericViewSet):
             'vpn_online_count': vpn_online_count,
             'vpn_active_count': vpn_active_count,
             'vpn_count': vpn_count
+        })
+
+    def get_serializer_class(self):
+        return Serializer
+
+
+class ObjectServiceViewSet(NormalGenericViewSet):
+    queryset = []
+    permission_classes = [ScreenAPIIPPermission]
+    pagination_class = None
+    lookup_field = 'id'
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询一个数据中心下各对象存储服务单元总的统计数据'),
+        responses={
+            200: ''''''
+        }
+    )
+    @action(methods=['GET'], detail=False, url_path=r'dc/(?P<dc_id>[^/]+)', url_name='dc')
+    def dc_object_stats(self, request, *args, **kwargs):
+        """
+        查询一个数据中心下各对象存储服务单元总的统计数据
+
+            http code 200:
+            {
+              "bucket_count": 44,       # 存储桶数
+              "bucket_storage": 46,     # 存储桶总数据量GiB
+              "storage_capacity": 44260,# 总存储容量GiB
+              "storage_used": 4460,     # 已用存储容量GiB
+            }
+        """
+        dc_id = kwargs['dc_id']
+        try:
+            dc_id = int(dc_id)
+        except ValueError:
+            return self.exception_response(errors.InvalidArgument(message=_('数据中心ID无效')))
+
+        unit_ids = ObjectService.objects.filter(
+            data_center_id=dc_id,
+            status__in=[ObjectService.Status.ENABLE.value, ObjectService.Status.DISABLE.value]
+        ).values_list('id', flat=True)
+        if not unit_ids:
+            if not DataCenter.objects.filter(id=dc_id).exists():
+                return self.exception_response(errors.TargetNotExist(message=_('数据中心不存在')))
+
+        obj_list = []
+        for unit_id in set(unit_ids):
+            obj = ObjectServiceTimedStats.objects.filter(service_id=unit_id).order_by('-timestamp').first()
+            if obj:
+                obj_list.append(obj)
+
+        bucket_count = 0
+        bucket_storage = 0
+        storage_used = 0
+        storage_capacity = 0
+        for obj in obj_list:
+            bucket_count = bucket_count + obj.bucket_count
+            bucket_storage = bucket_storage + obj.bucket_storage
+            storage_used = storage_used + obj.storage_used
+            storage_capacity = storage_capacity + obj.storage_capacity
+
+        return Response(data={
+            'bucket_count': bucket_count,
+            'bucket_storage': bucket_storage,
+            'storage_used': storage_used,
+            'storage_capacity': storage_capacity
         })
 
     def get_serializer_class(self):
