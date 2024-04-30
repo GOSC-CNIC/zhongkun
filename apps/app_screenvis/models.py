@@ -368,6 +368,7 @@ class ObjectServiceLog(ServiceUserOperateLog):
 
     service_cell = models.ForeignKey(
         to=ObjectService, verbose_name='对象存储服务单元', on_delete=models.SET_NULL, null=True, blank=False)
+
     class Meta:
         db_table = 'screenvis_objectservice_log'
         ordering = ['-id']
@@ -380,9 +381,9 @@ class ServerServiceLog(ServiceUserOperateLog):
 
     service_cell = models.ForeignKey(
         to=ServerService, verbose_name='云主机服务单元', on_delete=models.SET_NULL, null=True, blank=False)
+
     class Meta:
         db_table = 'screenvis_serverservice_log'
         ordering = ['-id']
         verbose_name = _('云主机服务单元用户操作日志')
         verbose_name_plural = verbose_name
-

@@ -157,7 +157,7 @@ class ServerUnitSynchronizer(BaseSynchronizer):
         """
         endpoint_url = endpoint_url.rstrip('/')
         query = parse.urlencode(query={'timestamp': timestamp})
-        return f'{endpoint_url}/api/v3/logrecord/?{query}'
+        return f'{endpoint_url}/api/v3/logrecord/?{query}&limit=100&direction=after'  # 正序
 
     def get_unit_start_timestamp(self, unit_id: int) -> Union[float, None]:
         """
@@ -172,8 +172,8 @@ class ServerUnitSynchronizer(BaseSynchronizer):
     @staticmethod
     def build_log_model_obj(log_data: dict, unit_id: int):
         try:
-            creation_time = datetime.fromisoformat(log_data['create_time'])
-            # creation_time = datetime.fromtimestamp(log_data['create_time'], tz=timezone.utc)
+            # creation_time = datetime.fromisoformat(log_data['create_time'])
+            creation_time = datetime.fromtimestamp(log_data['create_time'], tz=timezone.utc)
         except Exception as exc:
             print(f'日志创建时间无效，{log_data}')
             return None
@@ -213,7 +213,7 @@ class ObjectUnitSynchronizer(BaseSynchronizer):
         """
         endpoint_url = endpoint_url.rstrip('/')
         query = parse.urlencode(query={'timestamp': timestamp})
-        return f'{endpoint_url}/api/v1/log/user/?{query}'
+        return f'{endpoint_url}/api/v1/log/user/?{query}&limit=100&direction=after'
 
     def get_unit_start_timestamp(self, unit_id: int) -> Union[float, None]:
         """
@@ -228,8 +228,8 @@ class ObjectUnitSynchronizer(BaseSynchronizer):
     @staticmethod
     def build_log_model_obj(log_data: dict, unit_id: int):
         try:
-            creation_time = datetime.fromisoformat(log_data['create_time'])
-            # creation_time = datetime.fromtimestamp(log_data['create_time'], tz=timezone.utc)
+            # creation_time = datetime.fromisoformat(log_data['create_time'])
+            creation_time = datetime.fromtimestamp(log_data['create_time'], tz=timezone.utc)
         except Exception as exc:
             print(f'日志创建时间无效，{log_data}')
             return None
