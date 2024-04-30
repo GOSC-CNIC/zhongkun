@@ -371,7 +371,7 @@ class ObjectServiceLog(ServiceUserOperateLog):
 
     class Meta:
         db_table = 'screenvis_objectservice_log'
-        ordering = ['-id']
+        ordering = ['-creation_time']
         verbose_name = _('对象存储服务单元用户操作日志')
         verbose_name_plural = verbose_name
 
@@ -384,6 +384,6 @@ class ServerServiceLog(ServiceUserOperateLog):
 
     class Meta:
         db_table = 'screenvis_serverservice_log'
-        ordering = ['-id']
+        ordering = ['-creation_time']
         verbose_name = _('云主机服务单元用户操作日志')
         verbose_name_plural = verbose_name

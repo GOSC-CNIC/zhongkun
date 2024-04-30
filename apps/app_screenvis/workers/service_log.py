@@ -48,21 +48,21 @@ class BaseSynchronizer:
         units = self.get_service_units()
         err_units = []
         for unit in units:
-            timestamp = self.get_unit_start_timestamp(unit_id=unit.id)
-            if not timestamp:
-                timestamp = (dj_timezone.now() - timedelta(days=1)).timestamp()  # 没有数据，从一天前开始同步日志
-
-            ret = self.sync_unit_logs_from_ts(unit=unit, timestamp=timestamp)
+            ret = self.sync_unit_logs(unit=unit)
             if ret:
                 err_units.append(unit)
 
         return units, err_units
 
-    def sync_unit_logs_from_ts(self, unit: BaseService, timestamp: float):
+    def sync_unit_logs(self, unit: BaseService):
         """
         从指定时间戳开始同步服务单元的日志
         """
         return_err = None
+        timestamp = self.get_unit_start_timestamp(unit_id=unit.id)
+        if not timestamp:
+            timestamp = (dj_timezone.now() - timedelta(days=1)).timestamp()  # 没有数据，从一天前开始同步日志
+
         # 循环查询次数，限制每个服务单元每次同步数据最大次数，防止循环卡死，或者服务单元接口问题造成无法跳出循环
         count = 6
         while count > 0:
@@ -85,8 +85,14 @@ class BaseSynchronizer:
             if not now_timestamp:
                 break
 
-            timestamp = now_timestamp   # 从已同步时间戳继续同步
             count = count - 1
+
+            # 从数据库查询已同步的最新时间戳，并且与保存数据函数返回时间戳一致时才继续同步
+            db_timestamp = self.get_unit_start_timestamp(unit_id=unit.id)
+            if not db_timestamp or int(db_timestamp) != int(now_timestamp):
+                break
+
+            timestamp = now_timestamp  # 从已同步时间戳继续同步
 
         return return_err
 
@@ -111,21 +117,10 @@ class BaseSynchronizer:
                 continue
 
             obj_list.append(obj)
-            if len(obj_list) == 200:
-                try:
-                    type(obj_list[0]).objects.bulk_create(objs=obj_list)
-                except Exception as exc:
-                    return False, exc, now_timestamp
-
-                # 记录已经同步数据的时间戳，两端之中大的时间戳，防止查询数据排序倒序 造成一直查询重复数据
-                now_timestamp = max(
-                    self.get_timestamp_from_log_obj(obj_list[-1]), self.get_timestamp_from_log_obj(obj_list[0])
-                )
-                obj_list = []
 
         if obj_list:
             try:
-                type(obj_list[0]).objects.bulk_create(objs=obj_list)
+                type(obj_list[0]).objects.bulk_create(objs=obj_list, batch_size=500)
             except Exception as exc:
                 return False, exc, now_timestamp
 
@@ -156,8 +151,8 @@ class ServerUnitSynchronizer(BaseSynchronizer):
         数据按时间正序查询
         """
         endpoint_url = endpoint_url.rstrip('/')
-        query = parse.urlencode(query={'timestamp': timestamp})
-        return f'{endpoint_url}/api/v3/logrecord/?{query}&limit=100&direction=after'  # 正序
+        query = parse.urlencode(query={'timestamp': timestamp, 'direction': 'after', 'limit': 200})
+        return f'{endpoint_url}/api/v3/logrecord/?{query}'
 
     def get_unit_start_timestamp(self, unit_id: int) -> Union[float, None]:
         """
@@ -212,8 +207,8 @@ class ObjectUnitSynchronizer(BaseSynchronizer):
         数据按时间正序查询
         """
         endpoint_url = endpoint_url.rstrip('/')
-        query = parse.urlencode(query={'timestamp': timestamp})
-        return f'{endpoint_url}/api/v1/log/user/?{query}&limit=100&direction=after'
+        query = parse.urlencode(query={'timestamp': timestamp, 'direction': 'after', 'limit': 200})
+        return f'{endpoint_url}/api/v1/log/user/?{query}'
 
     def get_unit_start_timestamp(self, unit_id: int) -> Union[float, None]:
         """
