@@ -368,7 +368,7 @@ def run_task_use_lock():
         # 成功拿到锁后，各定时任务根据锁的上周期任务执行开始时间 “lock.start_time”判断 当前任务是否需要执行（本周期其他节点可能已经执行过了）
         if (
                 not alert_dingtalk_notify_lock.start_time
-                or (nt - alert_dingtalk_notify_lock.start_time) >= timedelta(minutes=1)  # 定时周期
+                or (nt - alert_dingtalk_notify_lock.start_time) >= timedelta(seconds=30)  # 定时周期
         ):
             alert_dingtalk_notify_lock.mark_start_task()  # 更新任务执行信息
             DingTalk().run()
