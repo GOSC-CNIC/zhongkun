@@ -11,6 +11,7 @@ from apps.servers.models import (
     Server, Flavor, ServerArchive, Disk, ResourceActionLog, DiskChangeLog,
     ServiceConfig, ServicePrivateQuota
 )
+from apps.servers.managers import ServiceManager
 
 
 class ServerAdminForm(forms.ModelForm):
@@ -239,7 +240,7 @@ class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
         (_('监控任务'), {'fields': ('monitor_task_id', 'delete_monitor_task')}),
     )
 
-    actions = ['encrypt_password', 'encrypt_vpn_password']
+    actions = ['encrypt_password', 'encrypt_vpn_password', 'update_service_version']
 
     @admin.action(description=_("加密用户密码"))
     def encrypt_password(self, request, queryset):
@@ -271,9 +272,29 @@ class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
                 count += 1
 
         if count > 0:
-            self.message_user(request, _("加密更新数量:") + str(count), level=messages.SUCCESS)
+            self.message_user(request, gettext("加密更新数量:") + str(count), level=messages.SUCCESS)
         else:
-            self.message_user(request, _("没有加密更新任何数据记录"), level=messages.SUCCESS)
+            self.message_user(request, gettext("没有加密更新任何数据记录"), level=messages.SUCCESS)
+
+    @admin.action(description=_("更新服务版本信息"))
+    def update_service_version(self, request, queryset):
+        count = 0
+        for service in queryset:
+            service: ServiceConfig
+            if (
+                    service.status != ServiceConfig.Status.ENABLE.value
+                    or service.service_type != ServiceConfig.ServiceType.EVCLOUD.value
+            ):
+                continue
+
+            ok = ServiceManager.update_service_version(service=service)
+            if ok is True:
+                count += 1
+
+        if count > 0:
+            self.message_user(request, gettext("更新版本数量:") + str(count), level=messages.SUCCESS)
+        else:
+            self.message_user(request, gettext("没有更新任何服务单元版本"), level=messages.SUCCESS)
 
     @admin.display(description=_("机构"))
     def organization_name(self, obj):

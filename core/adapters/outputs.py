@@ -617,3 +617,9 @@ class QuotaOutput(OutputBase):
     def __init__(self, quota: Quota, **kwargs):
         self.quota = quota
         super().__init__(**kwargs)
+
+
+class VersionOutput(OutputBase):
+    def __init__(self, version: str, **kwargs):
+        self.version = version
+        super().__init__(**kwargs)

@@ -166,3 +166,6 @@ class APIBuilder:
                 query = {'center_id': center_id}
 
         return self.build_url(path=f'api/{self.api_version}/compute/quota', query=query, trailing_slash=False)
+
+    def version_url(self):
+        return self.build_url(path=f'api/{self.api_version}/version/', query=None)

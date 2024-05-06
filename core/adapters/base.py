@@ -190,3 +190,12 @@ class BaseAdapter:
             outputs.QuotaOutput()
         """
         raise NotImplementedError('`get_quota()` must be implemented.')
+
+    def get_version(self):
+        """
+        查询服务的版本
+
+        :return:
+            outputs.VersionOutput()
+        """
+        raise NotImplementedError('`get_version()` must be implemented.')

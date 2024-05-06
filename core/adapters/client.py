@@ -199,6 +199,10 @@ class OneServiceClient:
     def get_quota(self, params: inputs.QuotaInput) -> outputs.QuotaOutput:
         return self.adapter.get_quota(params=params)
 
+    @adapter_method_not_support(action='get version')
+    def get_version(self) -> outputs.VersionOutput:
+        return self.adapter.get_version()
+
 
 class VPNClient:
     def __init__(self, endpoint_url, api_version='v3', auth=None):

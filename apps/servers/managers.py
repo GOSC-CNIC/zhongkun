@@ -8,6 +8,7 @@ from django.db.models import Subquery, Q
 from django.core.cache import cache
 
 from core import errors
+from core import request as core_request
 from apps.vo.managers import VoManager
 from apps.app_wallet.managers import PaymentManager
 from utils.model import PayType, OwnerType
@@ -136,6 +137,18 @@ class ServiceManager:
     def has_perm(user_id, service_id):
         qs = ServiceManager._get_perm_service_qs(user_id=user_id)
         return qs.filter(id=service_id).exists()
+
+    @staticmethod
+    def update_service_version(service: ServiceConfig):
+        try:
+            r = core_request.request_service(service=service, method='get_version')
+            if r.version:
+                service.version = r.version
+                service.save(update_fields=['version'])
+        except Exception as exc:
+            return exc
+
+        return True
 
 
 class ServerManager:

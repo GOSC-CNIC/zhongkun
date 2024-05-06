@@ -711,6 +711,23 @@ class EVCloudAdapter(BaseAdapter):
 
         return outputs.QuotaOutput(ok=True, quota=quota)
 
+    def get_version(self):
+        """
+        查询服务的版本
+
+        :return:
+            outputs.VersionOutput()
+        """
+        api_url = self.api_builder.version_url()
+        try:
+            headers = self.get_auth_header()
+            r = self.do_request(method='get', url=api_url, data=None, ok_status_codes=[200], headers=headers)
+            data = r.json()
+            version = data['version']
+            return outputs.VersionOutput(version=version)
+        except exceptions.Error as e:
+            return outputs.VersionOutput(ok=False, error=e, version='')
+
     def get_vpn(self, username: str):
         url = self.api_builder.vpn_detail_url(username=username)
         headers = self.get_auth_header()
