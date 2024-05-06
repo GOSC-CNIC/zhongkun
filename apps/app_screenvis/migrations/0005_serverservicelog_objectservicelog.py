@@ -24,7 +24,7 @@ class Migration(migrations.Migration):
                 'verbose_name': '云主机服务单元用户操作日志',
                 'verbose_name_plural': '云主机服务单元用户操作日志',
                 'db_table': 'screenvis_serverservice_log',
-                'ordering': ['-id'],
+                'ordering': ['-creation_time'],
             },
         ),
         migrations.CreateModel(
@@ -40,7 +40,7 @@ class Migration(migrations.Migration):
                 'verbose_name': '对象存储服务单元用户操作日志',
                 'verbose_name_plural': '对象存储服务单元用户操作日志',
                 'db_table': 'screenvis_objectservice_log',
-                'ordering': ['-id'],
+                'ordering': ['-creation_time'],
             },
         ),
     ]

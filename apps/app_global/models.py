@@ -69,7 +69,7 @@ class GlobalConfig(models.Model):
     class Meta:
         db_table = 'global_config'
         ordering = ['creation_time']
-        verbose_name = _('站点配置')
+        verbose_name = _('站点参数')
         verbose_name_plural = verbose_name
         constraints = [
             models.UniqueConstraint(fields=('name',), name='unique_global_config_name')

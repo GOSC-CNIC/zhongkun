@@ -21,8 +21,8 @@ class Migration(migrations.Migration):
                 ('update_time', models.DateTimeField(auto_now=True, verbose_name='更新时间')),
             ],
             options={
-                'verbose_name': '站点配置',
-                'verbose_name_plural': '站点配置',
+                'verbose_name': '站点参数',
+                'verbose_name_plural': '站点参数',
                 'db_table': 'global_config',
                 'ordering': ['creation_time'],
             },
