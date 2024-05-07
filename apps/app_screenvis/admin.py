@@ -10,7 +10,7 @@ from django.utils.html import format_html
 from utils.model import BaseModelAdmin
 from .models import (
     ScreenConfig, DataCenter, MetricMonitorUnit, LogMonitorUnit, HostCpuUsage,
-    ApiAllowIP, ServerService, ObjectService, ServerServiceTimedStats, ObjectServiceTimedStats, VPNTimedStats,
+    ServerService, ObjectService, ServerServiceTimedStats, ObjectServiceTimedStats, VPNTimedStats,
     ObjectServiceLog, ServerServiceLog
 )
 
@@ -102,12 +102,6 @@ class HostCpuUsageAdmin(BaseModelAdmin):
             return ''
 
         return dt.isoformat(sep=' ')
-
-
-@admin.register(ApiAllowIP)
-class ApiAllowIPAdmin(BaseModelAdmin):
-    list_display = ('id', 'ip_value', 'creation_time', 'update_time', 'remark')
-    list_display_links = ('id',)
 
 
 class ServiceForm(forms.ModelForm):
