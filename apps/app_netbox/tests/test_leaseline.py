@@ -8,6 +8,7 @@ from utils.test import get_or_create_user, MyAPITransactionTestCase
 from apps.app_netbox.managers.link_mgrs import LeaseLineManager, LinkManager
 from apps.app_netbox.managers.common import NetBoxUserRoleWrapper
 from apps.app_netbox.models import LeaseLine, Element, Link
+from apps.app_netbox.utils.iprestrict import LinkIPRestrictor
 
 
 class LeaseLineTests(MyAPITransactionTestCase):
@@ -23,6 +24,9 @@ class LeaseLineTests(MyAPITransactionTestCase):
         u3_roler = NetBoxUserRoleWrapper(self.user3)
         u3_roler.user_role = u3_roler.get_or_create_user_role()
         u3_roler.set_link_admin(True)
+
+        LinkIPRestrictor.add_ip_rule(ip_value='0.0.0.0/0')
+        LinkIPRestrictor.clear_cache()
 
         self.leaseline1 = LeaseLineManager.create_leaseline(
             private_line_number='00645713',

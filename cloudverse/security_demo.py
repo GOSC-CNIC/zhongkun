@@ -77,19 +77,11 @@ PAYMENT_BALANCE = {
 # proxy_set_header X-Forwarded-For $remote_addr;     不能使用 $proxy_add_x_forwarded_for;
 # ip设置规则允许 单个ip、一个网段、一个ip段，如'192.168.1.1'、 '192.168.1.1/24'、'192.168.1.66 - 192.168.1.100'
 
-# 邮件发送api权限允许的客户端ip地址列表
-API_EMAIL_ALLOWED_IPS = []
-
 # 科技云门户相关api权限允许的ip地址列表
 API_KJY_PORTAL_ALLOWED_IPS = []
 
 # 监控各单元用户邮件地址查询相关接口客户端IP鉴权配置
 API_MONITOR_EMAIL_ALLOWED_IPS = []
-
-# link app api ip restrict
-API_IPRESTRICT_LINK_ALLOWED_IPS = [
-    '0.0.0.0/0',  # 允许所有IP访问
-]
 
 # 服务总请求数统计依赖设置，配置各站点loki日志服务接口，总请求数==各站点的请求数的和
 PORTAL_REQ_NUM_LOKI_SITES = [

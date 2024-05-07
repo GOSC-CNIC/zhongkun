@@ -57,13 +57,20 @@ def load_allowed_ips(setting_key: str) -> List[Union[ipaddress.IPv4Network, IPRa
 
 
 class IPRestrictor:
-    _allowed_ip_rules = []
+    def __init__(self):
+        self._allowed_ip_rules = None
 
-    def reload_ip_rules(self) -> List[Union[ipaddress.IPv4Network, IPRange]]:
-        raise NotImplementedError('继承类IPRestrictor的子类没有实现类方法“reload_ip_rules”')
+    def load_ip_rules(self) -> List[Union[ipaddress.IPv4Network, IPRange]]:
+        raise NotImplementedError('继承类IPRestrictor的子类没有实现类方法“load_ip_rules”')
+
+    def reload_ip_rules(self):
+        self._allowed_ip_rules = self.load_ip_rules()
 
     @property
     def allowed_ips(self) -> List[Union[ipaddress.IPv4Network, IPRange]]:
+        if self._allowed_ip_rules is None:
+            self._allowed_ip_rules = self.load_ip_rules()
+
         return self._allowed_ip_rules
 
     @allowed_ips.setter

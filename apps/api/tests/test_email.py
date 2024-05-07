@@ -30,7 +30,6 @@ class EmailTests(MyAPITestCase):
         r = self.client.post(base_url, data=data)
         self.assertErrorResponse(status_code=400, code='InvalidReceivers', response=r)
 
-        settings.API_EMAIL_ALLOWED_IPS = []
         r = self.client.post(base_url, data={
             'subject': 'test',
             "receiver": "test@cnic.com",
@@ -43,10 +42,9 @@ class EmailTests(MyAPITestCase):
         r = self.client.get(reverse('api:email-realip'))
         real_ip = r.data['real_ip']
         if real_ip:
-            settings.API_EMAIL_ALLOWED_IPS = [real_ip]
-            e_ip_rt = EmailIPRestrictor()
-            e_ip_rt.reload_ip_rules()
-            EmailIPRestrictor.allowed_ips = e_ip_rt.allowed_ips
+            EmailIPRestrictor.add_ip_rule(ip_value=real_ip)
+            EmailIPRestrictor.clear_cache()
+
         self.client.logout()
 
         # ok, text

@@ -41,7 +41,6 @@ def build_loki_provider(odc: OrgDataCenter) -> LokiProvider:
 
 class MonitorEmailAddressIPRestrictor(IPRestrictor):
     SETTING_KEY_NAME = 'API_MONITOR_EMAIL_ALLOWED_IPS'
-    _allowed_ip_rules = load_allowed_ips(SETTING_KEY_NAME)
 
-    def reload_ip_rules(self):
-        self.allowed_ips = load_allowed_ips(self.SETTING_KEY_NAME)
+    def load_ip_rules(self):
+        return load_allowed_ips(self.SETTING_KEY_NAME)

@@ -6,6 +6,7 @@ from utils.test import get_or_create_user, MyAPITransactionTestCase, get_or_crea
 from apps.app_netbox.managers.common import OrgVirtualObjectManager, NetBoxUserRoleWrapper
 from apps.app_netbox.managers.link_mgrs import DistriFrameManager, LinkManager
 from apps.app_netbox.models import DistriFramePort, Link
+from apps.app_netbox.utils.iprestrict import LinkIPRestrictor
 
 
 class DistriFramePortTests(MyAPITransactionTestCase):
@@ -47,6 +48,9 @@ class DistriFramePortTests(MyAPITransactionTestCase):
             remarks='',
             link_org=linkorg2
         )
+
+        LinkIPRestrictor.add_ip_rule(ip_value='0.0.0.0/0')
+        LinkIPRestrictor.clear_cache()
     
     def test_list_distriframeport(self):
         # user role 

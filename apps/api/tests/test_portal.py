@@ -9,14 +9,10 @@ from . import MyAPITestCase, get_or_create_user
 
 def add_portal_allowed_ip(real_ip: str = '127.0.0.1'):
     settings.API_KJY_PORTAL_ALLOWED_IPS = [real_ip]
-    ip_rt = PortalIPRestrictor()
-    ip_rt.reload_ip_rules()
-    PortalIPRestrictor.allowed_ips = ip_rt.allowed_ips
 
 
 def clear_portal_allowed_ips():
     settings.API_KJY_PORTAL_ALLOWED_IPS = []
-    PortalIPRestrictor.allowed_ips = []
 
 
 class PortalServiceTests(MyAPITestCase):

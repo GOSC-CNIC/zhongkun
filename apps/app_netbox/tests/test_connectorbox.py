@@ -6,6 +6,7 @@ from utils.test import get_or_create_user, MyAPITransactionTestCase
 from apps.app_netbox.managers.link_mgrs import LinkManager, ConnectorBoxManager
 from apps.app_netbox.managers.common import NetBoxUserRoleWrapper
 from apps.app_netbox.models import ConnectorBox, Link
+from apps.app_netbox.utils.iprestrict import LinkIPRestrictor
 
 
 class ConnectorBoxTests(MyAPITransactionTestCase):
@@ -34,6 +35,8 @@ class ConnectorBoxTests(MyAPITransactionTestCase):
             remarks='',
             location='',
         )
+        LinkIPRestrictor.add_ip_rule(ip_value='0.0.0.0/0')
+        LinkIPRestrictor.clear_cache()
 
     def test_list_connectorbox(self):
         # user role 

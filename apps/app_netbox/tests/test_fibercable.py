@@ -6,6 +6,7 @@ from utils.test import get_or_create_user, MyAPITransactionTestCase
 from apps.app_netbox.managers.link_mgrs import FiberCableManager
 from apps.app_netbox.managers.common import NetBoxUserRoleWrapper
 from apps.app_netbox.models import FiberCable, Element, OpticalFiber
+from apps.app_netbox.utils.iprestrict import LinkIPRestrictor
 
 
 class FiberCableTests(MyAPITransactionTestCase):
@@ -21,6 +22,9 @@ class FiberCableTests(MyAPITransactionTestCase):
         u3_roler = NetBoxUserRoleWrapper(self.user3)
         u3_roler.user_role = u3_roler.get_or_create_user_role()
         u3_roler.set_link_admin(True)
+
+        LinkIPRestrictor.add_ip_rule(ip_value='0.0.0.0/0')
+        LinkIPRestrictor.clear_cache()
 
     def test_creat(self):
         base_url = reverse('netbox-api:link-fibercable-list')

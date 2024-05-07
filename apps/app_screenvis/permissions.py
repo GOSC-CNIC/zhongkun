@@ -5,11 +5,8 @@ from utils.iprestrict import IPRestrictor
 
 
 class ScreenAPIIPRestrictor(IPRestrictor):
-    def __init__(self):
-        self.reload_ip_rules()
-
-    def reload_ip_rules(self):
-        self.allowed_ips = IPAccessWhiteListManager.get_module_ip_whitelist(
+    def load_ip_rules(self):
+        return IPAccessWhiteListManager.get_module_ip_whitelist(
             module_name=IPAccessWhiteListManager.ModuleName.SCREEN.value)
 
     @staticmethod

@@ -134,5 +134,11 @@ class IPAccessWhiteListManager(Singleton):
     def get_ip_whitelist_qs():
         return IPAccessWhiteList.objects.all()
 
+    @staticmethod
+    def delete_whitelist(module_name: str, ip_values: List[str]):
+        return IPAccessWhiteList.objects.filter(
+            module_name=module_name, ip_value__in=ip_values
+        ).delete()
+
 
 global_configs = Configs()

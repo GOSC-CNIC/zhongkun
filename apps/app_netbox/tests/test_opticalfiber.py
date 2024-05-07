@@ -7,6 +7,7 @@ from utils.test import get_or_create_user, MyAPITransactionTestCase
 from apps.app_netbox.managers.link_mgrs import FiberCableManager, LinkManager
 from apps.app_netbox.managers.common import NetBoxUserRoleWrapper
 from apps.app_netbox.models import OpticalFiber, Link
+from apps.app_netbox.utils.iprestrict import LinkIPRestrictor
 
 
 class OpticalFiberTests(MyAPITransactionTestCase):
@@ -31,6 +32,8 @@ class OpticalFiberTests(MyAPITransactionTestCase):
             endpoint_2='古脊椎',
             remarks='test-remark'
         )
+        LinkIPRestrictor.add_ip_rule(ip_value='0.0.0.0/0')
+        LinkIPRestrictor.clear_cache()
         
     def test_list_opticalfiber(self):
         # user role 

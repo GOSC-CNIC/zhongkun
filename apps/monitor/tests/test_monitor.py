@@ -1125,9 +1125,6 @@ class MonitorWebsiteTests(MyAPITestCase):
     @staticmethod
     def _set_iprestrict_rule(ips: list):
         setattr(settings, MonitorEmailAddressIPRestrictor.SETTING_KEY_NAME, ips)
-        mea_ip_rt = MonitorEmailAddressIPRestrictor()
-        mea_ip_rt.reload_ip_rules()
-        MonitorEmailAddressIPRestrictor.allowed_ips = mea_ip_rt.allowed_ips
 
     def test_list_site_emails(self):
         self._set_iprestrict_rule(ips=[])
@@ -1888,9 +1885,6 @@ class UnitAdminEmailTests(MyAPITestCase):
     @staticmethod
     def _set_iprestrict_rule(ips: list):
         setattr(settings, MonitorEmailAddressIPRestrictor.SETTING_KEY_NAME, ips)
-        mea_ip_rt = MonitorEmailAddressIPRestrictor()
-        mea_ip_rt.reload_ip_rules()
-        MonitorEmailAddressIPRestrictor.allowed_ips = mea_ip_rt.allowed_ips
 
     def test_list_site_emails(self):
         user = get_or_create_user(username='tom@cnic.cn', password='password')

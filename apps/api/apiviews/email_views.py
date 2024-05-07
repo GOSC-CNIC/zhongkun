@@ -9,17 +9,26 @@ from drf_yasg.utils import swagger_auto_schema
 from apps.api.serializers import email as eamil_serializers
 from apps.api.viewsets import serializer_error_msg, BaseGenericViewSet
 from utils.paginators import NoPaginatorInspector
-from utils.iprestrict import IPRestrictor, load_allowed_ips
+from utils.iprestrict import IPRestrictor
 from core import errors
 from apps.users.models import Email
+from apps.app_global.configs_manager import IPAccessWhiteListManager
 
 
 class EmailIPRestrictor(IPRestrictor):
-    SETTING_KEY_NAME = 'API_EMAIL_ALLOWED_IPS'
-    _allowed_ip_rules = load_allowed_ips(SETTING_KEY_NAME)
+    def load_ip_rules(self):
+        return IPAccessWhiteListManager.get_module_ip_whitelist(
+            module_name=IPAccessWhiteListManager.ModuleName.EMAIL.value
+        )
 
-    def reload_ip_rules(self):
-        self.allowed_ips = load_allowed_ips(self.SETTING_KEY_NAME)
+    @staticmethod
+    def clear_cache():
+        IPAccessWhiteListManager.clear_cache()
+
+    @staticmethod
+    def add_ip_rule(ip_value: str):
+        return IPAccessWhiteListManager.add_whitelist_obj(
+            module_name=IPAccessWhiteListManager.ModuleName.EMAIL.value, ip_value=ip_value)
 
 
 class EmailViewSet(BaseGenericViewSet):

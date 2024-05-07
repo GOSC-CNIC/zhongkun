@@ -1,9 +1,22 @@
-from utils.iprestrict import IPRestrictor, load_allowed_ips
+from utils.iprestrict import IPRestrictor
+from apps.app_global.configs_manager import IPAccessWhiteListManager
 
 
 class LinkIPRestrictor(IPRestrictor):
-    SETTING_KEY_NAME = 'API_IPRESTRICT_LINK_ALLOWED_IPS'
-    _allowed_ip_rules = load_allowed_ips(SETTING_KEY_NAME)
+    def load_ip_rules(self):
+        return IPAccessWhiteListManager.get_module_ip_whitelist(
+            module_name=IPAccessWhiteListManager.ModuleName.NETBOX_LINK.value)
 
-    def reload_ip_rules(self):
-        self.allowed_ips = load_allowed_ips(self.SETTING_KEY_NAME)
+    @staticmethod
+    def clear_cache():
+        IPAccessWhiteListManager.clear_cache()
+
+    @staticmethod
+    def add_ip_rule(ip_value: str):
+        return IPAccessWhiteListManager.add_whitelist_obj(
+            module_name=IPAccessWhiteListManager.ModuleName.NETBOX_LINK.value, ip_value=ip_value)
+
+    @staticmethod
+    def delete_ip_rules(ip_values: list):
+        IPAccessWhiteListManager.delete_whitelist(
+            module_name=IPAccessWhiteListManager.ModuleName.NETBOX_LINK.value, ip_values=ip_values)
