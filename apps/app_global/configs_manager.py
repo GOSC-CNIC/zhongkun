@@ -1,7 +1,11 @@
+import ipaddress
+from typing import List, Union
+
 from django.core.cache import cache as dj_cache
 from django.utils.translation import gettext as _
 
-from apps.app_global.models import GlobalConfig
+from utils.iprestrict import convert_iprange, IPRange
+from apps.app_global.models import GlobalConfig, IPAccessWhiteList
 
 
 class Singleton(type):
@@ -60,6 +64,53 @@ class Configs(metaclass=Singleton):
 
         configs = self.get_configs()
         return configs[name]
+
+
+class IPAccessWhiteListManager(Singleton):
+    ModuleName = IPAccessWhiteList.ModuleName
+    CACHE_KEY = 'cache_global_api_ip_access_whitelist'
+
+    @staticmethod
+    def get_ip_whitelist_use_cahce() -> List:
+        whitelist = dj_cache.get(IPAccessWhiteListManager.CACHE_KEY)
+        if whitelist is None:
+            qs = IPAccessWhiteList.objects.values('ip_value', 'module_name')
+            whitelist = list(qs)
+            dj_cache.set(IPAccessWhiteListManager.CACHE_KEY, whitelist, timeout=60)
+
+        return whitelist
+
+    @staticmethod
+    def get_module_ip_whitelist(module_name: str) -> List[Union[ipaddress.IPv4Network, IPRange]]:
+        ip_whitelist = IPAccessWhiteListManager.get_ip_whitelist_use_cahce()
+        allowed_ips = []
+        for ip_item in ip_whitelist:
+            if ip_item['module_name'] == module_name:
+                try:
+                    allowed_ips.append(convert_iprange(ip_item['ip_value']))
+                except Exception:
+                    pass
+
+        return allowed_ips
+
+    @staticmethod
+    def clear_cache():
+        dj_cache.delete(IPAccessWhiteListManager.CACHE_KEY)
+
+    @staticmethod
+    def add_whitelist_obj(module_name: str, ip_value: str, remark: str = ''):
+        if module_name not in IPAccessWhiteList.ModuleName.values:
+            raise Exception(_('ip白名单适用功能模块无效'))
+
+        obj = IPAccessWhiteList(
+            module_name=module_name, ip_value=ip_value, remark=remark
+        )
+        obj.save(force_insert=True)
+        return obj
+
+    @staticmethod
+    def get_ip_whitelist_qs():
+        return IPAccessWhiteList.objects.all()
 
 
 global_configs = Configs()

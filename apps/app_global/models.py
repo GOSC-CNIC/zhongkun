@@ -1,7 +1,11 @@
+import ipaddress
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ValidationError
 
 from utils.model import UuidModel
+from utils.iprestrict import convert_iprange
 
 
 class TimedTaskLock(UuidModel):
@@ -77,3 +81,46 @@ class GlobalConfig(models.Model):
 
     def __str__(self):
         return f'[{self.name}] {self.value}'
+
+
+class IPAccessWhiteList(models.Model):
+    class ModuleName(models.TextChoices):
+        SCREEN = 'screen', _('大屏展示')
+        EMAIL = 'email', _('邮件发送API')
+        NETBOX_LINK = 'netbox-link', _('链路管理')
+        ALERT = 'alert', _('告警')
+
+    id = models.BigAutoField(primary_key=True)
+    module_name = models.CharField(
+        verbose_name=_('功能模块'), max_length=32, choices=ModuleName.choices, help_text=_('此IP白名单适用的功能模块'))
+    ip_value = models.CharField(
+        verbose_name=_('IP'), max_length=100, help_text='192.168.1.1、 192.168.1.1/24、192.168.1.66 - 192.168.1.100')
+    remark = models.CharField(verbose_name=_('备注'), max_length=255, blank=True, default='')
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
+    update_time = models.DateTimeField(verbose_name=_('更新时间'), auto_now=True)
+
+    class Meta:
+        db_table = 'global_ipaccesswhitelist'
+        ordering = ['-creation_time']
+        verbose_name = _('IP访问白名单')
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return f'{self.id}({self.ip_value})'
+
+    def clean(self):
+        try:
+            subnet = convert_iprange(self.ip_value)
+        except Exception as exc:
+            raise ValidationError({'ip_value': str(exc)})
+
+        if isinstance(subnet, ipaddress.IPv4Network):
+            self.ip_value = str(subnet)
+
+        obj = IPAccessWhiteList.objects.exclude(id=self.id).filter(
+            ip_value=self.ip_value, module_name=self.module_name).first()
+        if obj:
+            raise ValidationError({
+                'ip_value': _('功能模块"{module_name}"已存在相同的IP白名单({value})').format(
+                    module_name=self.get_module_name_display(), value=self.ip_value
+                )})
