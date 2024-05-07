@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.utils import timezone as dj_timezone
 
 from apps.app_screenvis.managers import CephQueryChoices, HostQueryChoices, TiDBQueryChoices
-from apps.app_screenvis.models import HostCpuUsage, MetricMonitorUnit, ApiAllowIP
+from apps.app_screenvis.models import HostCpuUsage, MetricMonitorUnit
 from apps.app_screenvis.permissions import ScreenAPIIPRestrictor
 from . import MyAPITestCase, get_or_create_metric_ceph, get_or_create_metric_host, get_or_create_metric_tidb
 
@@ -47,7 +47,7 @@ class MetricCephTests(MyAPITestCase):
 
         response = self.query_response(unit_id=666, query_tag=CephQueryChoices.MGR_STATUS.value)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
-        ApiAllowIP(ip_value='127.0.0.1').save(force_insert=True)
+        ScreenAPIIPRestrictor.add_ip_rule(ip_value='127.0.0.1')
         ScreenAPIIPRestrictor.clear_cache()
 
         response = self.query_response(unit_id=666, query_tag=CephQueryChoices.MGR_STATUS.value)
@@ -148,7 +148,7 @@ class MetricHostTests(MyAPITestCase):
 
         response = self.query_response(unit_id=666, query_tag=HostQueryChoices.HOST_UP_COUNT.value)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
-        ApiAllowIP(ip_value='127.0.0.1').save(force_insert=True)
+        ScreenAPIIPRestrictor.add_ip_rule(ip_value='127.0.0.1')
         ScreenAPIIPRestrictor.clear_cache()
 
         response = self.query_response(unit_id=666, query_tag=HostQueryChoices.HOST_UP_COUNT.value)
@@ -220,7 +220,7 @@ class MetricHostTests(MyAPITestCase):
         url = reverse('screenvis-api:host-query-cpuusage')
         response = self.client.get(url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
-        ApiAllowIP(ip_value='127.0.0.1').save(force_insert=True)
+        ScreenAPIIPRestrictor.add_ip_rule(ip_value='127.0.0.1')
         ScreenAPIIPRestrictor.clear_cache()
 
         r = self.client.get(url)
@@ -298,7 +298,7 @@ class MetricTiDBTests(MyAPITestCase):
 
         response = self.query_response(unit_id=666, query_tag=TiDBQueryChoices.CONNECTIONS_COUNT.value)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
-        ApiAllowIP(ip_value='127.0.0.1').save(force_insert=True)
+        ScreenAPIIPRestrictor.add_ip_rule(ip_value='127.0.0.1')
         ScreenAPIIPRestrictor.clear_cache()
 
         response = self.query_response(unit_id=666, query_tag=TiDBQueryChoices.CONNECTIONS_COUNT.value)

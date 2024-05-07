@@ -1,9 +1,7 @@
-from django.core.cache import cache as dj_cache
 from rest_framework.permissions import BasePermission
 
-from apps.app_screenvis.models import ApiAllowIP
-
-from utils.iprestrict import IPRestrictor, convert_iprange
+from apps.app_global.configs_manager import IPAccessWhiteListManager
+from utils.iprestrict import IPRestrictor
 
 
 class ScreenAPIIPRestrictor(IPRestrictor):
@@ -11,29 +9,17 @@ class ScreenAPIIPRestrictor(IPRestrictor):
         self.reload_ip_rules()
 
     def reload_ip_rules(self):
-        self.allowed_ips = self.get_allow_ipranges()
-
-    @staticmethod
-    def get_allow_ipranges():
-        cache_key = 'screen_api_allow_ips_cache'
-        allow_ips = dj_cache.get(cache_key)
-        if allow_ips is None:
-            allow_ips = ApiAllowIP.objects.values_list('ip_value', flat=True)
-            allow_ips = list(allow_ips)
-            dj_cache.set(cache_key, allow_ips, timeout=60)
-
-        allowed_ips = []
-        for ip_str in allow_ips:
-            try:
-                allowed_ips.append(convert_iprange(ip_str))
-            except Exception:
-                pass
-
-        return allowed_ips
+        self.allowed_ips = IPAccessWhiteListManager.get_module_ip_whitelist(
+            module_name=IPAccessWhiteListManager.ModuleName.SCREEN.value)
 
     @staticmethod
     def clear_cache():
-        dj_cache.delete('screen_api_allow_ips_cache')
+        IPAccessWhiteListManager.clear_cache()
+
+    @staticmethod
+    def add_ip_rule(ip_value: str):
+        return IPAccessWhiteListManager.add_whitelist_obj(
+            module_name=IPAccessWhiteListManager.ModuleName.SCREEN.value, ip_value=ip_value)
 
 
 class ScreenAPIIPPermission(BasePermission):

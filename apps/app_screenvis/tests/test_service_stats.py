@@ -2,7 +2,7 @@ from django.utils import timezone as dj_timezone
 from django.urls import reverse
 
 from apps.app_screenvis.models import (
-    DataCenter, ServerService, ServerServiceTimedStats, ApiAllowIP, VPNTimedStats,
+    DataCenter, ServerService, ServerServiceTimedStats, VPNTimedStats,
     ObjectService, ObjectServiceTimedStats
 )
 from apps.app_screenvis.permissions import ScreenAPIIPRestrictor
@@ -91,7 +91,7 @@ class ServerServiceStatsTests(MyAPITestCase):
         url = reverse('screenvis-api:server-stats-dc', kwargs={'dc_id': 'fafa'})
         response = self.client.get(url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
-        ApiAllowIP(ip_value='127.0.0.1').save(force_insert=True)
+        ScreenAPIIPRestrictor.add_ip_rule(ip_value='127.0.0.1')
         ScreenAPIIPRestrictor.clear_cache()
 
         response = self.client.get(url)
@@ -207,7 +207,7 @@ class VPNServiceStatsTests(MyAPITestCase):
         url = reverse('screenvis-api:vpn-stats-dc', kwargs={'dc_id': 'fafa'})
         response = self.client.get(url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
-        ApiAllowIP(ip_value='127.0.0.1').save(force_insert=True)
+        ScreenAPIIPRestrictor.add_ip_rule(ip_value='127.0.0.1')
         ScreenAPIIPRestrictor.clear_cache()
 
         response = self.client.get(url)
@@ -313,7 +313,7 @@ class ObjectServiceStatsTests(MyAPITestCase):
         url = reverse('screenvis-api:object-stats-dc', kwargs={'dc_id': 'fafa'})
         response = self.client.get(url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
-        ApiAllowIP(ip_value='127.0.0.1').save(force_insert=True)
+        ScreenAPIIPRestrictor.add_ip_rule(ip_value='127.0.0.1')
         ScreenAPIIPRestrictor.clear_cache()
 
         response = self.client.get(url)
