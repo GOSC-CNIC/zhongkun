@@ -1,5 +1,5 @@
 import ipaddress
-from typing import List, Union
+from typing import List, Union, Dict
 
 from django.core.cache import cache as dj_cache
 from django.utils.translation import gettext as _
@@ -71,25 +71,47 @@ class IPAccessWhiteListManager(Singleton):
     CACHE_KEY = 'cache_global_api_ip_access_whitelist'
 
     @staticmethod
-    def get_ip_whitelist_use_cahce() -> List:
-        whitelist = dj_cache.get(IPAccessWhiteListManager.CACHE_KEY)
-        if whitelist is None:
-            qs = IPAccessWhiteList.objects.values('ip_value', 'module_name')
-            whitelist = list(qs)
-            dj_cache.set(IPAccessWhiteListManager.CACHE_KEY, whitelist, timeout=60)
+    def get_ip_whitelist_map() -> Dict[str, List[str]]:
+        """
+        :return:{
+            module_name: list[str]
+        }
+        """
+        whitelist_map = {}
+        qs = IPAccessWhiteList.objects.values('ip_value', 'module_name')
+        for ip_item in qs:
+            name = ip_item['module_name']
+            if name in whitelist_map:
+                whitelist_map[name].append(ip_item['ip_value'])
+            else:
+                whitelist_map[name] = [ip_item['ip_value']]
 
-        return whitelist
+        return whitelist_map
+
+    @staticmethod
+    def get_whitelist_map_use_cahce() -> Dict[str, List[str]]:
+        """
+        :return:{
+            module_name: list[str]
+        }
+        """
+        whitelist_map = dj_cache.get(IPAccessWhiteListManager.CACHE_KEY)
+        if whitelist_map is None:
+            whitelist_map = IPAccessWhiteListManager.get_ip_whitelist_map()
+            dj_cache.set(IPAccessWhiteListManager.CACHE_KEY, whitelist_map, timeout=60)
+
+        return whitelist_map
 
     @staticmethod
     def get_module_ip_whitelist(module_name: str) -> List[Union[ipaddress.IPv4Network, IPRange]]:
-        ip_whitelist = IPAccessWhiteListManager.get_ip_whitelist_use_cahce()
+        ip_whitelist_map = IPAccessWhiteListManager.get_whitelist_map_use_cahce()
+        module_whitelist = ip_whitelist_map.get(module_name, [])
         allowed_ips = []
-        for ip_item in ip_whitelist:
-            if ip_item['module_name'] == module_name:
-                try:
-                    allowed_ips.append(convert_iprange(ip_item['ip_value']))
-                except Exception:
-                    pass
+        for ip_rule in module_whitelist:
+            try:
+                allowed_ips.append(convert_iprange(ip_rule))
+            except Exception:
+                pass
 
         return allowed_ips
 
