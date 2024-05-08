@@ -8,7 +8,7 @@ from utils.decimal_utils import quantize_10_2
 from utils.model import ResourceType, OwnerType, PayType
 from apps.order.models import Price, Order, Resource
 from apps.order.managers import PriceManager, OrderManager
-from apps.order.managers.instance_configs import ScanConfig
+from apps.order.managers.instance_configs import ScanConfig, ServerConfig
 
 
 class TimeTests(TestCase):
@@ -245,7 +245,7 @@ class OrderManagerTests(TestCase):
         price.save()
         self.price = price
 
-    def test_create(self):
+    def test_create_scan(self):
         # scan
         scan_config = ScanConfig(
             name='测试 scan，host and web', host_addr=' 10.8.8.6', web_url='https://test.cn ', remark='test remark')
@@ -340,3 +340,92 @@ class OrderManagerTests(TestCase):
         self.assertEqual(scan_order.payable_amount, quantize_10_2(Decimal('222.22') * Decimal('0.66')))
         self.assertEqual(len(resources), 1)
         self.assertEqual(resources[0].instance_remark, 'test remark88')
+
+    def test_create_server(self):
+        instance_config = ServerConfig(
+            vm_cpu=2, vm_ram=4, systemdisk_size=100, public_ip=True,
+            image_id='test', image_name='', network_id='network_id', network_name='',
+            azone_id='', azone_name='', flavor_id=''
+        )
+        order1, resource_list1 = OrderManager().create_order(
+            order_type=Order.OrderType.NEW.value,
+            pay_app_service_id='pay_app_service_id',
+            service_id='service1_id',
+            service_name='service1_name',
+            resource_type=ResourceType.VM.value,
+            instance_config=instance_config,
+            period=100,
+            period_unit=Order.PeriodUnit.DAY.value,
+            pay_type=PayType.PREPAID.value,
+            user_id='user_id1',
+            username='username1',
+            vo_id='vo_id1',
+            vo_name='vo_name1',
+            owner_type=OwnerType.VO.value,
+            remark='testcase创建，可删除'
+        )
+        server_order1 = Order.objects.get(id=order1.id)
+        resources = Resource.objects.filter(order_id=server_order1.id).all()
+        resources = list(resources)
+        original_price, trade_price = PriceManager().describe_server_price(
+            ram_mib=1024*4, cpu=2, disk_gib=100, public_ip=True, is_prepaid=True,
+            period=100, period_unit=Order.PeriodUnit.DAY.value, days=0)
+        self.assertEqual(server_order1.resource_type, ResourceType.VM.value)
+        self.assertEqual(server_order1.number, 1)
+        self.assertEqual(server_order1.period, 100)
+        self.assertEqual(server_order1.period_unit, Order.PeriodUnit.DAY.value)
+        self.assertEqual(server_order1.pay_type, PayType.PREPAID.value)
+        self.assertEqual(server_order1.user_id, 'user_id1')
+        self.assertEqual(server_order1.username, 'username1')
+        self.assertEqual(server_order1.owner_type, OwnerType.VO.value)
+        self.assertEqual(server_order1.vo_id, 'vo_id1')
+        self.assertEqual(server_order1.vo_name, 'vo_name1')
+        self.assertEqual(server_order1.app_service_id, 'pay_app_service_id')
+        self.assertEqual(server_order1.service_id, 'service1_id')
+        self.assertEqual(server_order1.service_name, 'service1_name')
+        self.assertEqual(server_order1.total_amount, quantize_10_2(original_price))
+        self.assertEqual(server_order1.payable_amount, quantize_10_2(trade_price))
+        self.assertEqual(len(resources), 1)
+        self.assertEqual(resources[0].instance_remark, 'testcase创建，可删除')
+
+        order1, resource_list1 = OrderManager().create_order(
+            order_type=Order.OrderType.NEW.value,
+            pay_app_service_id='pay_app_service_id',
+            service_id='service1_id',
+            service_name='service1_name',
+            resource_type=ResourceType.VM.value,
+            instance_config=instance_config,
+            period=2,
+            period_unit=Order.PeriodUnit.MONTH.value,
+            pay_type=PayType.PREPAID.value,
+            user_id='user_id1',
+            username='username1',
+            vo_id='',
+            vo_name='',
+            owner_type=OwnerType.USER.value,
+            remark='testcase创建，可删除3',
+            number=4
+        )
+        server_order1 = Order.objects.get(id=order1.id)
+        resources = Resource.objects.filter(order_id=server_order1.id).all()
+        resources = list(resources)
+        original_price, trade_price = PriceManager().describe_server_price(
+            ram_mib=1024 * 4, cpu=2, disk_gib=100, public_ip=True, is_prepaid=True,
+            period=2, period_unit=Order.PeriodUnit.MONTH.value, days=0)
+        self.assertEqual(server_order1.resource_type, ResourceType.VM.value)
+        self.assertEqual(server_order1.number, 4)
+        self.assertEqual(server_order1.period, 2)
+        self.assertEqual(server_order1.period_unit, Order.PeriodUnit.MONTH.value)
+        self.assertEqual(server_order1.pay_type, PayType.PREPAID.value)
+        self.assertEqual(server_order1.user_id, 'user_id1')
+        self.assertEqual(server_order1.username, 'username1')
+        self.assertEqual(server_order1.owner_type, OwnerType.USER.value)
+        self.assertEqual(server_order1.vo_id, '')
+        self.assertEqual(server_order1.vo_name, '')
+        self.assertEqual(server_order1.app_service_id, 'pay_app_service_id')
+        self.assertEqual(server_order1.service_id, 'service1_id')
+        self.assertEqual(server_order1.service_name, 'service1_name')
+        self.assertEqual(server_order1.total_amount, quantize_10_2(original_price * 4))
+        self.assertEqual(server_order1.payable_amount, quantize_10_2(trade_price * 4))
+        self.assertEqual(len(resources), 4)
+        self.assertEqual(resources[0].instance_remark, 'testcase创建，可删除3')

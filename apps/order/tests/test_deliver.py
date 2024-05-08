@@ -239,6 +239,7 @@ class DeliverTests(MyAPITestCase):
         # server 过期时间
         s = Server.objects.filter(id=od2_res1.instance_id).first()
         self.assertTrue((s.expiration_time - now_time) > timedelta(days=100))
+        self.assertTrue((s.expiration_time - now_time) < timedelta(days=101))
 
     def _assert_res(self, res: Resource, instance_status=Resource.InstanceStatus.FAILED.value):
         res.refresh_from_db()

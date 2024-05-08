@@ -247,6 +247,7 @@ class OrderManager:
             resource_type=resource_type,
             instance_config=instance_config.to_dict(),
             period=period,
+            period_unit=period_unit,
             pay_type=pay_type,
             payment_time=None,
             start_time=start_time,
