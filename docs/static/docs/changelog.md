@@ -1,6 +1,38 @@
+## v2.3.0
+发布时间： 2024-05-08  
+发布人： yushunwang 
+
+* 新增 全局配置app app_global，新增全局IP访问白名单模型，增加站点参数配置模型，替换配置文件里的站点配置项；提交人：yushunwang
+* scripts中的定时任务状态锁功能迁移到app_global；提交人：yushunwang
+* 邮件发送和链路管理API访问鉴权使用全局配置的ip白名单；提交人：yushunwang
+* 大屏展示，移除ip白名单模型，API访问鉴权使用全局配置的ip白名单；提交人：yushunwang
+* 大屏展示，新增云主机服务单元和统计数据模型，实现云主机服务单元时序统计数据定时任务功能和测试用例；提交人：yushunwang
+* 大屏展示，新增查询一个数据中心下的云主机服务统计数据接口、vpn统计数据查询接口和测试用例；提交人：yushunwang
+* 大屏展示，新增对象存储服务单元和统计数据模型，对象存储服务单元统计时序数据定时任务实现，查询数据中心对象存储服务单元总统计数据接口和测试用例；提交人：yushunwang
+* 大屏展示，新增云主机和对象存储服务单元操作日志模型，新增服务单元用户操作日志接口查询接口；提交人：wanghuang
+* 大屏展示，服务单元用户操作日志同步定时任务实现；提交人：yushunwang、wanghuang
+* 对象存储服务单元模型增加版本号version字段，列举服务单元接口返回数据增加version信息；提交人：yushunwang
+* 云主机服务单元模型增加版本号version字段，列举服务单元接口返回数据增加version信息；提交人：yushunwang
+* EVCloud适配器增加服务版本查询接口，后台云主机服务单元列表增加更新版本信息操作；提交人：yushunwang
+* 桶月度统计、月度报表、安全扫描、大屏展示主机cpu使用率时序数据等定时任务使用状态锁；提交人：yushunwang
+* 对象存储，新增按服务单元统计桶个数和数据量接口和测试用例；提交人：yushunwang
+* 监控，列举站点监控探测点接口返回数据增加排序值字段“sort_weight”；提交人：yushunwang
+* 订单模型增加订购时长单位字段period_unit，可选单位“天”和“月”，订单创建和资源交付支持订购时长单位，订单资源交付测试用例完善订购时长验证；提交人：yushunwang
+* 订单，询价和续费询价接口增加时长单位参数period_unit；提交人：yushunwang
+* 订单列举和详情查询接口返回数据增加字段“period_unit”、“start_time”和“end_time”；提交人：yushunwang
+* 订购云主机接口增加订购时长单位参数period_unit，支持订购指定天数或月数；提交人：yushunwang
+* vpn、云主机和云硬盘的创建删除等操作传递额外参数who_action，evcloud适配器修改支持此参数，通过url query告知evcloud服务是哪个用户在操作；提交人：yushunwang
+* IP和链路管理netbox，移除旧的以netbox为前缀的路由；月度报表html模板中前端链接修改；提交人：yushunwang
+* 告警通知定时任务使用状态锁，告警邮件通知定时任务定时周期改为每分钟；提交人：yushunwang
+* 流量app，添加流量数据查询接口，接入流量图表时序数据；提交人：wenhao
+* 告警app，一些模型时间字段类型修改为PositiveBigIntegerField，钉钉群告警通知关联资产信息；十分钟未处理的告警追加提醒通知；；提交人：wenhao
+* 告警app，修改钉钉告警通知定时任务和通知规则，1.首次提醒；2.重复提醒：第一次，告警持续20分钟，第二次，告警持续60分钟，每天早上8:00、下午16:00，推送未处
+理告警信息；提交人：wenhao
+
+
 ## v2.2.0
 发布时间： 2024-04-19  
-发布人： shun  
+发布人： yushunwang  
 
 * 目录apps添加__init__.py改为package，所有模块导入都改为from apps包绝对路径方式导入；提交人：yushunwang
 * app scan和bill重命名为app_scan和app_wallet；提交人：yushunwang
@@ -20,7 +52,7 @@
 * 资源券申请，实现邮件通知功能，券申请增加联系方式字段，申请提交、列举、更新等接口增加联系方式字段；提交人：yushunwang
 * 安全扫描订单无法支付的问题修复；提交人：yushunwang
 * 新增 站点监控探针app；提交人：wanghuang
-* 新增app app_netflow，定义图表Item、菜单和权限模型，实现图表Item和菜单列举接口提交人：wenhao
+* 新增app app_netflow，定义图表Item、菜单和权限模型，实现图表Item和菜单列举接口；提交人：wenhao
 * 新增app app_alert，定义模型，实现告警模块定时任务，实现异常告警接收接口，异常告警、告警可选项和用户告警通知记录查询接口，告警工单创建和查询接口；提交人：wenhao
 * 资源交付,云主机创建后更新元数据函数缺少一个返回值的bug修复；提交人：yushunwang
 
