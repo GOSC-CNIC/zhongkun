@@ -199,3 +199,24 @@ class BaseAdapter:
             outputs.VersionOutput()
         """
         raise NotImplementedError('`get_version()` must be implemented.')
+
+    def server_snap_create(self, params: inputs.ServerSnapCreateInput) -> outputs.ServerSnapCreateOutput:
+        """
+        创建云主机快照
+
+        :return:
+            outputs.ServerSnapCreateOutput()
+        """
+        raise NotImplementedError('`server_snap_create()` must be implemented.')
+
+    def server_snap_delete(self, params: inputs.ServerSnapDeleteInput) -> outputs.ServerSnapDeleteOutput:
+        """
+        删除云主机快照
+        """
+        raise NotImplementedError('`server_snap_delete()` must be implemented.')
+
+    def server_rollback_snap(self, params: inputs.ServerRollbackSnapInput) -> outputs.ServerRollbackSnapOutput:
+        """
+        云主机回滚到快照
+        """
+        raise NotImplementedError('`server_rollback_snap()` must be implemented.')

@@ -623,3 +623,27 @@ class VersionOutput(OutputBase):
     def __init__(self, version: str, **kwargs):
         self.version = version
         super().__init__(**kwargs)
+
+
+class ServerSnap:
+    def __init__(self, snap_id: str, description: str):
+        """
+        :param snap_id: 快照的ID
+        :param description: 快照的备注，描述
+        """
+        self.snap_id = snap_id
+        self.description = description
+
+
+class ServerSnapCreateOutput(OutputBase):
+    def __init__(self, snap: ServerSnap, **kwargs):
+        self.snap = snap
+        super().__init__(**kwargs)
+
+
+class ServerSnapDeleteOutput(OutputBase):
+    pass
+
+
+class ServerRollbackSnapOutput(OutputBase):
+    pass

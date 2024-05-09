@@ -169,3 +169,12 @@ class APIBuilder:
 
     def version_url(self):
         return self.build_url(path=f'api/{self.api_version}/version/', query=None)
+
+    def vm_snap_create_url(self, vm_uuid: str, query=None):
+        return self.build_url(path=f'api/{self.api_version}/vms/{vm_uuid}/snap/', query=query)
+
+    def vm_snap_delete_url(self, snap_id: int, query=None):
+        return self.build_url(path=f'api/{self.api_version}/vms/snap/{snap_id}/', query=query)
+
+    def vm_rollback_snap_url(self, vm_uuid: str, snap_id: int, query=None):
+        return self.build_url(path=f'api/{self.api_version}/vms/{vm_uuid}/rollback/{snap_id}/', query=query)

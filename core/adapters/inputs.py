@@ -246,3 +246,30 @@ class QuotaInput(InputBase):
         """
         self.region_id = region_id
         super().__init__(**kwargs)
+
+
+class ServerSnapCreateInput(ServerIdNameInput):
+    def __init__(self, description: str, **kwargs):
+        """
+        :param description: 快照的备注，描述
+        """
+        self.description = description
+        super().__init__(**kwargs)
+
+
+class ServerSnapDeleteInput(InputBase):
+    def __init__(self, snap_id: str, **kwargs):
+        """
+        :param snap_id: 快照的id
+        """
+        self.snap_id = snap_id
+        super().__init__(**kwargs)
+
+
+class ServerRollbackSnapInput(ServerIdNameInput):
+    def __init__(self, snap_id: str, **kwargs):
+        """
+        :param snap_id: 快照的id
+        """
+        self.snap_id = snap_id
+        super().__init__(**kwargs)

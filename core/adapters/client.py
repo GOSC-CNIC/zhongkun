@@ -203,6 +203,18 @@ class OneServiceClient:
     def get_version(self) -> outputs.VersionOutput:
         return self.adapter.get_version()
 
+    @adapter_method_not_support(action='create server snap')
+    def server_snap_create(self, params: inputs.ServerSnapCreateInput) -> outputs.ServerSnapCreateOutput:
+        return self.adapter.server_snap_create(params=params)
+
+    @adapter_method_not_support(action='delete server snap')
+    def server_snap_delete(self, params: inputs.ServerSnapDeleteInput) -> outputs.ServerSnapDeleteOutput:
+        return self.adapter.server_snap_delete(params=params)
+
+    @adapter_method_not_support(action='rollback server to snap')
+    def server_rollback_snap(self, params: inputs.ServerRollbackSnapInput) -> outputs.ServerRollbackSnapOutput:
+        return self.adapter.server_rollback_snap(params=params)
+
 
 class VPNClient:
     def __init__(self, endpoint_url, api_version='v3', auth=None):

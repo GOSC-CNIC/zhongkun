@@ -310,3 +310,11 @@ class OutputConverter:
     @staticmethod
     def to_disk_detail_output_error(error=None):
         return outputs.DiskDetailOutput(ok=False, error=error, disk=None)
+
+    @staticmethod
+    def to_server_snap_create_output(data: dict):
+        snap = data['snap']
+        return outputs.ServerSnapCreateOutput(
+            ok=True, error=None,
+            snap=outputs.ServerSnap(snap_id=str(snap['id']), description=snap.get('remarks', ''))
+        )
