@@ -248,7 +248,7 @@ class QuotaInput(InputBase):
         super().__init__(**kwargs)
 
 
-class ServerSnapCreateInput(ServerIdNameInput):
+class ServerSnapshotCreateInput(ServerIdNameInput):
     def __init__(self, description: str, **kwargs):
         """
         :param description: 快照的备注，描述
@@ -257,7 +257,7 @@ class ServerSnapCreateInput(ServerIdNameInput):
         super().__init__(**kwargs)
 
 
-class ServerSnapDeleteInput(InputBase):
+class ServerSnapshotDeleteInput(InputBase):
     def __init__(self, snap_id: str, **kwargs):
         """
         :param snap_id: 快照的id
@@ -266,7 +266,7 @@ class ServerSnapDeleteInput(InputBase):
         super().__init__(**kwargs)
 
 
-class ServerRollbackSnapInput(ServerIdNameInput):
+class ServerRollbackSnapshotInput(ServerIdNameInput):
     def __init__(self, snap_id: str, **kwargs):
         """
         :param snap_id: 快照的id

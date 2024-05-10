@@ -314,7 +314,7 @@ class OutputConverter:
     @staticmethod
     def to_server_snap_create_output(data: dict):
         snap = data['snap']
-        return outputs.ServerSnapCreateOutput(
+        return outputs.ServerSnapshotCreateOutput(
             ok=True, error=None,
-            snap=outputs.ServerSnap(snap_id=str(snap['id']), description=snap.get('remarks', ''))
+            snapshot=outputs.ServerSnapshot(snap_id=str(snap['id']), description=snap.get('remarks', ''))
         )

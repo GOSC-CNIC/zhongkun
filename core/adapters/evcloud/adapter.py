@@ -795,12 +795,9 @@ class EVCloudAdapter(BaseAdapter):
         r = self.do_request(method='post', url=url, headers=headers)
         return r.json()
 
-    def server_snap_create(self, params: inputs.ServerSnapCreateInput) -> outputs.ServerSnapCreateOutput:
+    def server_snapshot_create(self, params: inputs.ServerSnapshotCreateInput) -> outputs.ServerSnapshotCreateOutput:
         """
         创建云主机快照
-
-        :return:
-            outputs.ServerSnapCreateOutput()
         """
         query = query_add_who_action(query={'remark': params.description}, params=params)
         _api = self.api_builder.vm_snap_create_url(vm_uuid=params.instance_id, query=query)
@@ -809,18 +806,18 @@ class EVCloudAdapter(BaseAdapter):
             r = self.do_request(method='post', url=_api, data=None, ok_status_codes=[200, 201], headers=headers)
             data = r.json()
         except exceptions.Error as e:
-            return outputs.ServerSnapCreateOutput(ok=False, error=e, snap=None)
+            return outputs.ServerSnapshotCreateOutput(ok=False, error=e, snapshot=None)
 
         return OutputConverter.to_server_snap_create_output(data=data)
 
-    def server_snap_delete(self, params: inputs.ServerSnapDeleteInput) -> outputs.ServerSnapDeleteOutput:
+    def server_snapshot_delete(self, params: inputs.ServerSnapshotDeleteInput) -> outputs.ServerSnapshotDeleteOutput:
         """
         删除云主机快照
         """
         try:
             snap_id = int(params.snap_id)
         except ValueError:
-            return outputs.ServerSnapDeleteOutput(ok=False, error=exceptions.APIInvalidParam(message='参数snap_id无效'))
+            return outputs.ServerSnapshotDeleteOutput(ok=False, error=exceptions.APIInvalidParam(message='参数snap_id无效'))
 
         query = query_add_who_action(query={'remark': params.description}, params=params)
         _api = self.api_builder.vm_snap_delete_url(snap_id=snap_id, query=query)
@@ -828,26 +825,28 @@ class EVCloudAdapter(BaseAdapter):
             headers = self.get_auth_header()
             r = self.do_request(method='delete', url=_api, data=None, ok_status_codes=[204, 404], headers=headers)
             if r.status_code == 204:
-                return outputs.ServerSnapDeleteOutput(ok=True, error=None)
+                return outputs.ServerSnapshotDeleteOutput(ok=True, error=None)
             elif r.status_code == 404:
                 err_code = get_failed_err_code(r)
                 if err_code == 'NotFound':
-                    return outputs.ServerSnapDeleteOutput(ok=True, error=None)
+                    return outputs.ServerSnapshotDeleteOutput(ok=True, error=None)
 
             err_code = get_failed_err_code(r)
             msg = get_failed_msg(r)
             raise exceptions.APIError(msg, status_code=r.status_code, err_code=err_code)
         except exceptions.Error as e:
-            return outputs.ServerSnapDeleteOutput(ok=False, error=e)
+            return outputs.ServerSnapshotDeleteOutput(ok=False, error=e)
 
-    def server_rollback_snap(self, params: inputs.ServerRollbackSnapInput) -> outputs.ServerRollbackSnapOutput:
+    def server_rollback_snapshot(
+            self, params: inputs.ServerRollbackSnapshotInput) -> outputs.ServerRollbackSnapshotOutput:
         """
         云主机回滚到快照
         """
         try:
             snap_id = int(params.snap_id)
         except ValueError:
-            return outputs.ServerRollbackSnapOutput(ok=False, error=exceptions.APIInvalidParam(message='参数snap_id无效'))
+            return outputs.ServerRollbackSnapshotOutput(
+                ok=False, error=exceptions.APIInvalidParam(message='参数snap_id无效'))
 
         query = query_add_who_action(query={'remark': params.description}, params=params)
         _api = self.api_builder.vm_rollback_snap_url(vm_uuid=params.instance_id, snap_id=snap_id, query=query)
@@ -855,6 +854,6 @@ class EVCloudAdapter(BaseAdapter):
             headers = self.get_auth_header()
             self.do_request(method='post', url=_api, data=None, ok_status_codes=[200, 201], headers=headers)
         except exceptions.Error as e:
-            return outputs.ServerRollbackSnapOutput(ok=False, error=e)
+            return outputs.ServerRollbackSnapshotOutput(ok=False, error=e)
 
-        return outputs.ServerRollbackSnapOutput(ok=True, error=None)
+        return outputs.ServerRollbackSnapshotOutput(ok=True, error=None)

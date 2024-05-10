@@ -203,17 +203,18 @@ class OneServiceClient:
     def get_version(self) -> outputs.VersionOutput:
         return self.adapter.get_version()
 
-    @adapter_method_not_support(action='create server snap')
-    def server_snap_create(self, params: inputs.ServerSnapCreateInput) -> outputs.ServerSnapCreateOutput:
-        return self.adapter.server_snap_create(params=params)
+    @adapter_method_not_support(action='create server snapshot')
+    def server_snapshot_create(self, params: inputs.ServerSnapshotCreateInput) -> outputs.ServerSnapshotCreateOutput:
+        return self.adapter.server_snapshot_create(params=params)
 
-    @adapter_method_not_support(action='delete server snap')
-    def server_snap_delete(self, params: inputs.ServerSnapDeleteInput) -> outputs.ServerSnapDeleteOutput:
-        return self.adapter.server_snap_delete(params=params)
+    @adapter_method_not_support(action='delete server snapshot')
+    def server_snapshot_delete(self, params: inputs.ServerSnapshotDeleteInput) -> outputs.ServerSnapshotDeleteOutput:
+        return self.adapter.server_snapshot_delete(params=params)
 
-    @adapter_method_not_support(action='rollback server to snap')
-    def server_rollback_snap(self, params: inputs.ServerRollbackSnapInput) -> outputs.ServerRollbackSnapOutput:
-        return self.adapter.server_rollback_snap(params=params)
+    @adapter_method_not_support(action='rollback server to snapshot')
+    def server_rollback_snapshot(
+            self, params: inputs.ServerRollbackSnapshotInput) -> outputs.ServerRollbackSnapshotOutput:
+        return self.adapter.server_rollback_snapshot(params=params)
 
 
 class VPNClient:
