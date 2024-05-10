@@ -257,6 +257,11 @@ class DingTalk(object):
     def metric_alert_format(self, alerts, status, minute=0):
         if not alerts:
             return '', ''
+        if len(alerts) > 30:
+            alerts = alerts[:30]
+            omit = True
+        else:
+            omit = False
         alert_status = f"### **指标告警({status})**"
         start = "**告警时间**: {}".format(DateUtils.ts_to_date(alerts[0].get("start")))
         alert_msg_mapping = dict()
@@ -272,6 +277,8 @@ class DingTalk(object):
                 record_msg_list.append(f'### *Tip:未处理告警信息推送*')
             else:
                 record_msg_list.append(f'### *Tip:告警时长超过{minute}分钟*')
+        if omit:
+            record_msg_list.append('### *请在AIOps网站查看全部内容*')
         record_msg_list.extend(["---", alert_status, start, "---"])
         for instance, descriptions in alert_msg_mapping.items():
             property_id, property_name, property_director = self.parser_property_info(instance)
@@ -289,6 +296,11 @@ class DingTalk(object):
     def log_alert_format(self, alerts, minute=0):
         if not alerts:
             return '', ''
+        if len(alerts) > 10:
+            alerts = alerts[:10]
+            omit = True
+        else:
+            omit = False
         alert_status = "### **日志告警(Firing)**"
         start = "**告警时间**: {}".format(DateUtils.ts_to_date(alerts[0].get("start")))
         alert_msg_mapping = dict()
@@ -304,6 +316,8 @@ class DingTalk(object):
                 record_msg_list.append(f'### *Tip:未处理告警信息推送*')
             else:
                 record_msg_list.append(f'### *Tip:告警时长超过{minute}分钟*')
+        if omit:
+            record_msg_list.append('### *请在AIOps网站查看全部内容*')
         record_msg_list.extend(["---", alert_status, start, "---"])
         for instance, descriptions in alert_msg_mapping.items():
             property_id, property_name, property_director = self.parser_property_info(instance)
@@ -318,12 +332,18 @@ class DingTalk(object):
             record_msg_list.append("---\n\n")
         return f"日志告警：{list(alert_msg_mapping.keys())[0]}", "\n\n".join(record_msg_list)
 
-    def work_order_format(self, collect_id, alerts):
+    def work_order_format(self, collect_id, alerts,):
+        if len(alerts) > 10:
+            alerts = alerts[:10]
+            omit = True
+        else:
+            omit = False
         alert_status = "### **工单处理**"
         start_timestamp = alerts[0].get("creation")
         start = "**创建时间**: {}".format(DateUtils.ts_to_date(start_timestamp))
         # 按照主机IP进行分类
         alert_msg_mapping = dict()
+
         for alert in alerts:
             instance = self.parse_alert_instance(alert)
             if not alert_msg_mapping.get(instance):
@@ -339,7 +359,10 @@ class DingTalk(object):
                 "status": status,
                 "remark": remark,
             })
-        record_msg_list = ["---", alert_status, start, "---"]
+        record_msg_list = list()
+        if omit:
+            record_msg_list.append('### *Tip:请在AIOps网站查看全部内容*')
+        record_msg_list.extend(["---", alert_status, start, '---'])
         for instance, messages in alert_msg_mapping.items():
             property_id, property_name, property_director = self.parser_property_info(instance)
             record_msg_list.append(property_id)
