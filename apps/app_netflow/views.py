@@ -1,16 +1,36 @@
 from rest_framework.generics import GenericAPIView
 from apps.app_netflow.models import ChartModel
+from apps.app_netflow.models import Menu2Chart
+from apps.app_netflow.models import Menu2Member
 from apps.app_netflow.models import MenuModel
-from apps.app_netflow.models import RoleModel
-from apps.app_netflow.serializers import ChartModelSerializer
+from apps.app_netflow.models import GlobalAdminModel
+from apps.app_netflow.serializers import ChartSerializer
+from apps.app_netflow.serializers import Menu2ChartSerializer
+from apps.app_netflow.serializers import GlobalAdminSerializer
+from apps.app_netflow.serializers import GlobalAdminWriteSerializer
+from apps.app_netflow.serializers import Menu2MemberSerializer
+from apps.app_netflow.serializers import Menu2MemberWriteSerializer
 from apps.app_netflow.serializers import MenuModelSerializer
+from apps.app_netflow.serializers import MenuWriteSerializer
+from apps.app_netflow.serializers import Menu2ChartWriteSerializer
 from apps.app_netflow.serializers import TrafficSerializer
 from django_filters.rest_framework import DjangoFilterBackend
-from apps.app_netflow.filters import ChartFilter
 from apps.app_netflow.filters import MenuFilter
+from apps.app_netflow.filters import ChartFilter
+from apps.app_netflow.filters import Menu2ChartFilter
+from apps.app_netflow.filters import Menu2MemberFilter
+from apps.app_netflow.filters import GlobalAdminFilter
 from apps.app_netflow.pagination import LimitOffsetPage
 from apps.app_netflow.permission import CustomPermission
-# from apps.app_netflow.permission import MenuPermission
+from apps.app_netflow.permission import PortListCustomPermission
+from apps.app_netflow.permission import MenuListCustomPermission
+from apps.app_netflow.permission import MenuDetailCustomPermission
+from apps.app_netflow.permission import Menu2ChartListCustomPermission
+from apps.app_netflow.permission import Menu2ChartDetailCustomPermission
+from apps.app_netflow.permission import Menu2MemberListCustomPermission
+from apps.app_netflow.permission import Menu2MemberDetailCustomPermission
+from apps.app_netflow.permission import GlobalAdministratorCustomPermission
+from apps.app_netflow.permission import TrafficCustomPermission
 from rest_framework.response import Response
 from rest_framework.mixins import CreateModelMixin
 from rest_framework.mixins import RetrieveModelMixin
@@ -22,21 +42,22 @@ from rest_framework.views import APIView
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from django.utils.translation import gettext_lazy
+from apps.app_netflow.handlers.easyops import EasyOPS
+from django.forms.models import model_to_dict
+from django.http import QueryDict
 
 
 # Create your views here.
 
-class MenuAPIView(GenericAPIView):
-    queryset = MenuModel.objects.all().filter(id='0')
+class MenuListGenericAPIView(GenericAPIView):
+    queryset = MenuModel.objects.all()
     serializer_class = MenuModelSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_class = MenuFilter
-    pagination_class = LimitOffsetPage
-
-    permission_classes = [CustomPermission]
+    permission_classes = [MenuListCustomPermission]
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('查询菜单栏'),
+        operation_summary=gettext_lazy('查询当前用户权限内的分组列表'),
         manual_parameters=[
         ],
         responses={
@@ -44,19 +65,26 @@ class MenuAPIView(GenericAPIView):
         }
     )
     def get(self, request):
-        queryset = self.filter_queryset(self.get_queryset())
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(self.response(serializer.data))
-
+        queryset = self.get_queryset()
+        queryset = queryset.filter(id='root')
         serializer = self.get_serializer(queryset, many=True)
-        return Response(self.response(serializer.data))
+        return Response(self.response_format(serializer.data))
 
-    def response(self, data):
-        data = data[0]
-        return data.get('sub_categories')
+    def response_format(self, data):
+        if data:
+            children = dict(data[0]).get('sub_categories')
+        else:
+            children = []
+        return {"count": len(children), "results": children}
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('创建分组'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -74,16 +102,79 @@ class MenuAPIView(GenericAPIView):
             return {}
 
 
-class ChartAPIView(GenericAPIView, CreateModelMixin):
+class MenuDetailGenericAPIView(GenericAPIView, RetrieveModelMixin, DestroyModelMixin, UpdateModelMixin):
+    queryset = MenuModel.objects.all().exclude(id='root')
+    serializer_class = MenuWriteSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = MenuFilter
+    pagination_class = LimitOffsetPage
+    permission_classes = [MenuDetailCustomPermission]
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询指定分组'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('修改指定分组'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def put(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', True)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            # If 'prefetch_related' has been applied to a queryset, we need to
+            # forcibly invalidate the prefetch cache on the instance.
+            instance._prefetched_objects_cache = {}
+
+        return Response(serializer.data)
+
+    def perform_update(self, serializer):
+        serializer.save()
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('删除指定分组'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def delete(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(status=status_code.HTTP_204_NO_CONTENT)
+
+    def perform_destroy(self, instance):
+        instance.delete()
+
+
+class PortListGenericAPIView(GenericAPIView, ):
     queryset = ChartModel.objects.all()
-    serializer_class = ChartModelSerializer
+    serializer_class = ChartSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_class = ChartFilter
     pagination_class = LimitOffsetPage
-    permission_classes = [CustomPermission]
+    permission_classes = [PortListCustomPermission]
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('查询菜单的图表列表'),
+        operation_summary=gettext_lazy('查询端口列表'),
         manual_parameters=[
         ],
         responses={
@@ -101,7 +192,7 @@ class ChartAPIView(GenericAPIView, CreateModelMixin):
         return Response(serializer.data)
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('创建图表'),
+        operation_summary=gettext_lazy('新增端口'),
         manual_parameters=[
         ],
         responses={
@@ -125,11 +216,362 @@ class ChartAPIView(GenericAPIView, CreateModelMixin):
             return {}
 
 
-class TrafficAPIView(APIView, ):
-    permission_classes = [CustomPermission]
+class Menu2ChartListGenericAPIView(GenericAPIView, CreateModelMixin):
+    queryset = Menu2Chart.objects.all()
+    serializer_class = Menu2ChartSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = Menu2ChartFilter
+    pagination_class = LimitOffsetPage
+    permission_classes = [Menu2ChartListCustomPermission]
 
     @swagger_auto_schema(
-        operation_summary=gettext_lazy('查询流量数据'),
+        operation_summary=gettext_lazy('查询组内元素列表'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def get(self, request):
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('添加组内元素'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status_code.HTTP_201_CREATED, headers=headers)
+
+
+class Menu2ChartDetailGenericAPIView(GenericAPIView, RetrieveModelMixin, DestroyModelMixin, UpdateModelMixin):
+    queryset = Menu2Chart.objects.all()
+    serializer_class = Menu2ChartWriteSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = Menu2ChartFilter
+    pagination_class = LimitOffsetPage
+    permission_classes = [Menu2ChartDetailCustomPermission]
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询组内指定元素信息'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('修改组内指定元素信息'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def put(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', True)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            # If 'prefetch_related' has been applied to a queryset, we need to
+            # forcibly invalidate the prefetch cache on the instance.
+            instance._prefetched_objects_cache = {}
+
+        return Response(serializer.data)
+
+    def perform_update(self, serializer):
+        serializer.save()
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('删除组内指定元素'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def delete(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(status=status_code.HTTP_204_NO_CONTENT)
+
+    def perform_destroy(self, instance):
+        instance.delete()
+
+
+class Menu2MemberListGenericAPIView(GenericAPIView, CreateModelMixin):
+    queryset = Menu2Member.objects.all()
+    serializer_class = Menu2MemberSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = Menu2MemberFilter
+    pagination_class = LimitOffsetPage
+    permission_classes = [Menu2MemberListCustomPermission]
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询组内成员列表'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def get(self, request):
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('添加组内成员'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def post(self, request, *args, **kwargs):
+        """
+        可批量添加成员
+        """
+        raw, params = self.pretreatment(request)
+        serializers = list()
+        for param in params:
+            serializer = self.get_serializer(data=param)
+            serializer.is_valid(raise_exception=True)
+            serializers.append(serializer)
+        for serializer in serializers:
+            self.perform_create(serializer)
+        return Response(raw, status=status_code.HTTP_201_CREATED, )
+
+    def perform_create(self, serializer):
+        context = serializer.context
+        request = context.get('request')  # 邀请人
+        serializer.save(inviter=request.user.username)
+
+    def pretreatment(self, request):
+        """
+        参数与处理
+        """
+        import copy
+        request_data = dict(request.data)
+        raw = copy.deepcopy(request_data)
+        members = request_data.pop("member") or []
+        if isinstance(members, str):
+            members = [members]
+        params = []
+        for member in members:
+            data = QueryDict(mutable=True)
+            for k, v in request_data.items():
+                v = v[0] if isinstance(v, list) else v
+                data[k] = v
+            data["member"] = member
+            params.append(data)
+        return raw, params
+
+
+class Menu2MemberDetailGenericAPIView(GenericAPIView, RetrieveModelMixin, DestroyModelMixin, UpdateModelMixin):
+    queryset = Menu2Member.objects.all()
+    serializer_class = Menu2MemberWriteSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = Menu2MemberFilter
+    pagination_class = LimitOffsetPage
+    permission_classes = [Menu2MemberDetailCustomPermission]
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询组内指定成员信息'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('修改组内指定成员角色'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def put(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', True)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            # If 'prefetch_related' has been applied to a queryset, we need to
+            # forcibly invalidate the prefetch cache on the instance.
+            instance._prefetched_objects_cache = {}
+
+        return Response(serializer.data)
+
+    def perform_update(self, serializer):
+        serializer.save()
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('删除组内指定成员'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def delete(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(status=status_code.HTTP_204_NO_CONTENT)
+
+    def perform_destroy(self, instance):
+        instance.delete()
+
+
+class GlobalAdministratorListGenericAPIView(GenericAPIView, CreateModelMixin):
+    queryset = GlobalAdminModel.objects.all()
+    serializer_class = GlobalAdminSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = GlobalAdminFilter
+    pagination_class = LimitOffsetPage
+    permission_classes = [GlobalAdministratorCustomPermission]
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询全局管理员列表'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def get(self, request):
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('添加全局管理员'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response(serializer.data, status=status_code.HTTP_201_CREATED, )
+
+    def perform_create(self, serializer):
+        context = serializer.context
+        request = context.get('request')  # 邀请人
+        serializer.save(inviter=request.user.username)
+
+
+class GlobalAdministratorDetailGenericAPIView(GenericAPIView, RetrieveModelMixin, DestroyModelMixin, UpdateModelMixin):
+    queryset = GlobalAdminModel.objects.all()
+    serializer_class = GlobalAdminWriteSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = GlobalAdminFilter
+    pagination_class = LimitOffsetPage
+    permission_classes = [GlobalAdministratorCustomPermission]
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询指定管理员信息'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('修改指定管理员角色'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def put(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', True)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            # If 'prefetch_related' has been applied to a queryset, we need to
+            # forcibly invalidate the prefetch cache on the instance.
+            instance._prefetched_objects_cache = {}
+
+        return Response(serializer.data)
+
+    def perform_update(self, serializer):
+        serializer.save()
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('删除指定管理员'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def delete(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(status=status_code.HTTP_204_NO_CONTENT)
+
+    def perform_destroy(self, instance):
+        instance.delete()
+
+
+class TrafficAPIView(APIView, ):
+    permission_classes = [TrafficCustomPermission]
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询指定端口流量数据'),
         manual_parameters=[
             openapi.Parameter(name='start',
                               in_=openapi.IN_QUERY,
@@ -158,8 +600,6 @@ class TrafficAPIView(APIView, ):
         return Response(response)
 
     def download(self, *args, **kwargs):
-        from apps.app_netflow.handlers.easyops import EasyOPS
-        from django.forms.models import model_to_dict
         start = kwargs.get('start')
         end = kwargs.get('end')
         metrics_ids = kwargs.get('metrics_ids')

@@ -3,10 +3,15 @@ from apps.app_netflow import views
 
 app_name = "app_netflow"
 urlpatterns = [
-    re_path('^menu/$', views.MenuAPIView.as_view()),
+    re_path('^menu/$', views.MenuListGenericAPIView.as_view(), name='menu-list'),
+    re_path('^menu/(?P<pk>[a-z0-9]+)/$', views.MenuDetailGenericAPIView.as_view(), name='menu-detail'),
+    re_path('^chart/traffic/$', views.TrafficAPIView.as_view()),
+    re_path('^port/$', views.PortListGenericAPIView.as_view()),
 
-    re_path('^chart/$', views.ChartAPIView.as_view()),
-    re_path('^chart/traffic/$', views.TrafficAPIView.as_view()),  # 端口流量数据
-
-
+    re_path('^chart/$', views.Menu2ChartListGenericAPIView.as_view()),
+    re_path('^chart/(?P<pk>[a-z0-9]+)/$', views.Menu2ChartDetailGenericAPIView.as_view()),
+    re_path('^group/member/$', views.Menu2MemberListGenericAPIView.as_view()),
+    re_path('^group/member/(?P<pk>[a-z0-9]+)/$', views.Menu2MemberDetailGenericAPIView.as_view()),
+    re_path('^administrator/$', views.GlobalAdministratorListGenericAPIView.as_view(), name='administrator-list'),
+    re_path('^administrator/(?P<pk>[a-z0-9]+)/$', views.GlobalAdministratorDetailGenericAPIView.as_view()),
 ]

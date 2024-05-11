@@ -24,11 +24,11 @@ class Migration(migrations.Migration):
         migrations.RunPython(clear_menu_table, reverse_code=do_nothing),
         migrations.AlterModelOptions(
             name='chartmodel',
-            options={'ordering': ['sort_weight'], 'verbose_name': '图表管理', 'verbose_name_plural': '图表管理'},
+            options={'ordering': ['sort_weight'], 'verbose_name': '元素管理', 'verbose_name_plural': '元素管理'},
         ),
         migrations.AlterModelOptions(
             name='menumodel',
-            options={'ordering': ['level', 'sort_weight'], 'verbose_name': '菜单管理', 'verbose_name_plural': '菜单管理'},
+            options={'ordering': ['level', 'sort_weight'], 'verbose_name': '组结构管理', 'verbose_name_plural': '组结构管理'},
         ),
         migrations.AlterModelOptions(
             name='rolemodel',

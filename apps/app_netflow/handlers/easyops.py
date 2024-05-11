@@ -83,7 +83,7 @@ class EasyOPS(object):
                 self._chart_id_set.add(unique_str)
                 self._chart_list.append(item)
 
-    def traffic(self, chart, metrics_ids,start, end):
+    def traffic(self, chart, metrics_ids, start, end):
         """
         获取 流量图表
         """
