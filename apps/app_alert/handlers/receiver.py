@@ -24,28 +24,8 @@ class AlertReceiver(object):
     def __init__(self, data):
         self.timestamp = DateUtils.timestamp()
         self.data = data
-        self.log_instance_mapping = {}
         self.need_to_pretreatment_type = ["webmonitor"]  # 网站类需要预处理
         self.fingerprint_field = "fingerprint"
-
-    def get_mail_log_mapping(self):
-        resp = download(
-            method='get',
-            url=self.AIOPS_BACKEND_CONFIG.get('API') + '/api/v1/mail/machine/',
-            auth=self.AIOPS_BACKEND_CONFIG.get('AUTH')
-        )
-        text = resp.text
-        text = json.loads(text)
-        results = text.get('results') or []
-        mapping = dict()
-        for item in results:
-            instance = item.get('instance')
-            log_name = item.get('log_name')
-            sources = item.get('log_sources')
-            for source in sources:
-                key = f"{log_name}_{source.get('source')}"
-                mapping[key] = instance
-        return mapping
 
     def start(self):
         pool = ThreadPoolExecutor(max_workers=1)
@@ -126,12 +106,7 @@ class AlertReceiver(object):
             annotations = alert.get("annotations")
             description = annotations.get("description")
             log_name = re.findall(r'{"name":"(.*?)"}', description)
-            log_source = re.findall(r'{"log_source":"(.*?)"}', description)
-            log_name = log_name[0] if log_name else ""
-            log_source = log_source[0] if log_source else ""
-            if not self.log_instance_mapping:
-                self.log_instance_mapping = self.get_mail_log_mapping()
-            instance = self.log_instance_mapping.get(f"{log_name}_{log_source}") or ""
+            instance = log_name[0] if log_name else ""
         else:
             instance = ""
 
