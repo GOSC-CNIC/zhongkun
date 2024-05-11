@@ -1158,7 +1158,7 @@ class Disk(DiskBase):
     detached_time = models.DateTimeField(verbose_name=_('最后一次卸载时间'), null=True, blank=True, default=None)
     deleted = models.BooleanField(verbose_name=_('删除状态'), default=False, help_text=_('选中表示已删除'))
     deleted_time = models.DateTimeField(verbose_name=_('删除时间'), null=True, blank=True, default=None)
-    deleted_user = models.CharField(verbose_name=_('删除人'), max_length=128, default='')
+    deleted_user = models.CharField(verbose_name=_('删除人'), max_length=128, blank=True, default='')
 
     class Meta:
         db_table = 'servers_disk'
@@ -1371,3 +1371,81 @@ class ResourceActionLog(UuidModel):
 
     def is_deletion(self):
         return self.action_flag == self.ActionFlag.DELETION.value
+
+
+class ServerSnapshot(UuidModel):
+    """
+    云主机快照
+    """
+    class Classification(models.TextChoices):
+        PERSONAL = 'personal', _('个人的')
+        VO = 'vo', _('VO组的')
+
+    name = models.CharField(max_length=128, verbose_name=_('快照名称'))
+    instance_id = models.CharField(max_length=128, verbose_name=_('快照实例ID'), help_text=_('各接入服务单元中快照的ID'))
+    size = models.IntegerField(verbose_name=_('容量大小GiB'), default=0)
+    remarks = models.CharField(max_length=255, blank=True, default='', verbose_name=_('备注'))
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'))
+    expiration_time = models.DateTimeField(verbose_name=_('过期时间'), null=True, blank=True, default=None)
+    start_time = models.DateTimeField(verbose_name=_('计量开始时间'), help_text=_('快照资源使用量计量开始时间'))
+    pay_type = models.CharField(
+        verbose_name=_('计费方式'), max_length=16, choices=PayType.choices, default=PayType.POSTPAID.value)
+    classification = models.CharField(
+        verbose_name=_('快照归属类型'), max_length=16, choices=Classification.choices,
+        default=Classification.PERSONAL.value, help_text=_('标识快照属于申请者个人的，还是vo组的'))
+    user = models.ForeignKey(
+        to=User, verbose_name=_('创建者'), related_name='+', null=True, on_delete=models.SET_NULL,
+        blank=True, default=None)
+    vo = models.ForeignKey(
+        verbose_name=_('项目组'), to=VirtualOrganization, related_name='+', null=True, on_delete=models.SET_NULL,
+        blank=True, default=None)
+
+    email_lasttime = models.DateTimeField(
+        verbose_name=_('上次发送邮件时间'), null=True, blank=True, default=None,
+        help_text=_('记录上次发邮件的时间，邮件通知用户快照即将到期'))
+    server = models.ForeignKey(
+        verbose_name=_('归属云主机'), to=Server, related_name='snapshot_set', on_delete=models.DO_NOTHING,
+        db_constraint=False, db_index=False, null=True, blank=True, default=None)
+    service = models.ForeignKey(
+        verbose_name=_('服务单元'), to=ServiceConfig, null=True, on_delete=models.SET_NULL, related_name='+',
+        db_constraint=False, db_index=False
+    )
+    deleted = models.BooleanField(verbose_name=_('删除状态'), default=False, help_text=_('选中表示已删除'))
+    deleted_time = models.DateTimeField(verbose_name=_('删除时间'), null=True, blank=True, default=None)
+    deleted_user = models.CharField(verbose_name=_('删除人'), max_length=128, blank=True, default='')
+
+    class Meta:
+        db_table = 'servers_serversnapshot'
+        ordering = ['-creation_time']
+        verbose_name = _('云主机快照')
+        verbose_name_plural = verbose_name
+        indexes = [
+            models.Index(fields=('server_id',), name='idx_snapshot_server_id')
+        ]
+
+    def __str__(self):
+        return f'ServerSnapshot({self.id}, {self.name}, {self.size}GiB)'
+
+    def save(self, force_insert=False, force_update=False, using=None,
+             update_fields=None):
+        if not self.id:
+            self.id = short_uuid1_l25() + '-s'
+
+        super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
+
+    def do_soft_delete(self, deleted_user: str, raise_exception=True):
+        """
+        :return: True or False
+        """
+        try:
+            self.deleted = True
+            self.deleted_time = timezone.now()
+            self.deleted_user = deleted_user
+            self.save(update_fields=['deleted', 'deleted_time', 'deleted_user'])
+        except Exception as e:
+            if raise_exception:
+                raise e
+
+            return False
+
+        return True

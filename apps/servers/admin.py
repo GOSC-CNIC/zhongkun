@@ -9,7 +9,7 @@ from utils.model import NoDeleteSelectModelAdmin, PayType, BaseModelAdmin
 from apps.servers.forms import VmsProviderForm
 from apps.servers.models import (
     Server, Flavor, ServerArchive, Disk, ResourceActionLog, DiskChangeLog,
-    ServiceConfig, ServicePrivateQuota
+    ServiceConfig, ServicePrivateQuota, ServerSnapshot
 )
 from apps.servers.managers import ServiceManager
 
@@ -396,6 +396,16 @@ class ServicePrivateQuotaAdmin(BaseModelAdmin):
             self.message_user(request, _("统计更新已用配额失败") + f'({failed_count})', level=messages.ERROR)
         else:
             self.message_user(request, _("统计更新已用配额成功"), level=messages.SUCCESS)
+
+
+@admin.register(ServerSnapshot)
+class ServerSnapshotAdmin(NoDeleteSelectModelAdmin):
+    list_display_links = ('id',)
+    list_display = ('id', 'name', 'size', 'creation_time', 'pay_type', 'expiration_time', 'remarks',
+                    'classification', 'user', 'vo', 'server', 'deleted', 'deleted_time', 'deleted_user')
+    list_select_related = ('user', 'vo', 'service', 'server')
+    list_filter = ('service',)
+    raw_id_fields = ('user', 'vo', 'server')
 
 
 # @admin.register(ServiceShareQuota)

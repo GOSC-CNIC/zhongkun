@@ -1,9 +1,8 @@
-from typing import Dict
+from typing import Union, Dict
 from decimal import Decimal
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from django.utils.translation import gettext_lazy, gettext as _
-from django.utils import timezone
 from django.db import transaction
 from django.db.models import Subquery, Q
 from django.utils import timezone as dj_timezone
@@ -20,7 +19,8 @@ from apps.storage.models import Bucket
 from apps.servers.disk_serializers import DiskSerializer
 from apps.servers.serializers import ServerSerializer
 from apps.servers.models import (
-    Server, ServerArchive, Flavor, Disk, ResourceActionLog, ServiceConfig, ServicePrivateQuota, ServiceShareQuota
+    Server, ServerArchive, Flavor, Disk, ResourceActionLog, ServiceConfig, ServicePrivateQuota, ServiceShareQuota,
+    ServerSnapshot
 )
 from .server_instance import ServerInstance
 
@@ -247,9 +247,9 @@ class ServerManager:
             user=user, classification=Server.Classification.PERSONAL, **lookups)
 
         if expired is True:
-            qs = qs.filter(expiration_time__lte=timezone.now())
+            qs = qs.filter(expiration_time__lte=dj_timezone.now())
         elif expired is False:
-            qs = qs.filter(~Q(expiration_time__lte=timezone.now()))     # 取反的方式，存在expiration_time == None
+            qs = qs.filter(~Q(expiration_time__lte=dj_timezone.now()))     # 取反的方式，存在expiration_time == None
 
         return qs
 
@@ -320,9 +320,9 @@ class ServerManager:
                 qs = qs.filter(service_id__in=subq)
 
         if expired is True:
-            qs = qs.filter(expiration_time__lte=timezone.now(), pay_type=PayType.PREPAID.value)
+            qs = qs.filter(expiration_time__lte=dj_timezone.now(), pay_type=PayType.PREPAID.value)
         elif expired is False:
-            qs = qs.filter(~Q(expiration_time__lte=timezone.now()))
+            qs = qs.filter(~Q(expiration_time__lte=dj_timezone.now()))
 
         if ipv4_contains:
             qs = qs.filter(ipv4__contains=ipv4_contains)
@@ -344,9 +344,9 @@ class ServerManager:
             qs = qs.filter(service_id=service_id)
 
         if expired is True:
-            qs = qs.filter(expiration_time__lte=timezone.now())
+            qs = qs.filter(expiration_time__lte=dj_timezone.now())
         elif expired is False:
-            qs = qs.filter(~Q(expiration_time__lte=timezone.now()))
+            qs = qs.filter(~Q(expiration_time__lte=dj_timezone.now()))
 
         if pay_type:
             qs = qs.filter(pay_type=pay_type)
@@ -467,7 +467,7 @@ class ServerManager:
         if server.situation == Server.Situation.NORMAL.value:
             return
         elif server.situation == Server.Situation.EXPIRED.value:
-            if server.expiration_time and server.expiration_time <= timezone.now():
+            if server.expiration_time and server.expiration_time <= dj_timezone.now():
                 raise errors.ExpiredSuspending(message=_('云主机过期停机停服挂起中'))
             server.set_situation_normal()
         elif server.situation == Server.Situation.ARREARAGE.value:
@@ -524,7 +524,7 @@ class ServerManager:
         """
         # 预付费云主机，过期不允许开机；
         if server.pay_type == PayType.PREPAID.value:
-            if server.expiration_time and server.expiration_time <= timezone.now():
+            if server.expiration_time and server.expiration_time <= dj_timezone.now():
                 raise errors.ExpiredSuspending(message=_('云主机已过期，不允许开机，请完成续费后重试。'))
         # 按量计费云主机，欠费不允许开机；
         else:
@@ -574,7 +574,7 @@ class ServerManager:
                 si.action(act=si.ServerAction.POWER_OFF)
 
         server.situation = situation
-        server.situation_time = timezone.now()
+        server.situation_time = dj_timezone.now()
         try:
             server.save(update_fields=['situation', 'situation_time'])
         except Exception as exc:
@@ -804,9 +804,9 @@ class DiskManager:
             lookups['server__ipv4__contains'] = ipv4_contains
 
         if expired is True:
-            queryset = queryset.filter(expiration_time__lte=timezone.now())
+            queryset = queryset.filter(expiration_time__lte=dj_timezone.now())
         elif expired is False:
-            queryset = queryset.filter(~Q(expiration_time__lte=timezone.now()))
+            queryset = queryset.filter(~Q(expiration_time__lte=dj_timezone.now()))
 
         queryset = queryset.filter(**lookups)
         return queryset
@@ -993,7 +993,7 @@ class ResourceActionLogManager:
             owner_id, owner_name, owner_type
     ):
         log = ResourceActionLog(
-            action_time=timezone.now(),
+            action_time=dj_timezone.now(),
             user_id=user_id, username=username, action_flag=action_flag, resource_type=resource_type,
             resource_id=resource_id, resource_repr=resource_repr, resource_message=resource_message,
             owner_id=owner_id, owner_name=owner_name, owner_type=owner_type
@@ -1439,4 +1439,160 @@ class ServiceShareQuotaManager(ServiceQuotaManagerBase):
             qs = qs.filter(service__org_data_center__organization_id=center_id)
 
         qs = qs.exclude(service__status=ServiceConfig.Status.DELETED.value)
+        return qs
+
+
+class ServerSnapshotManager:
+    @staticmethod
+    def create_snapshot_metadata(
+            instance_id: str, name: str, size_dib: int, remarks: str,
+            creation_time: datetime, expiration_time: datetime, start_time: Union[datetime, None],
+            pay_type: str, classification: str, user, vo, server, service,
+            deleted: bool = False, deleted_time: datetime = None, deleted_user: str = ''
+    ):
+        if not start_time:
+            start_time = dj_timezone.now()
+
+        snap = ServerSnapshot(
+            name=name, instance_id=instance_id, size=size_dib, remarks=remarks,
+            creation_time=creation_time, expiration_time=expiration_time, start_time=start_time,
+            pay_type=pay_type, classification=classification, user=user, vo=vo, server=server, service=service,
+            deleted=deleted, deleted_time=deleted_time, deleted_user=deleted_user
+        )
+        snap.save(force_insert=True)
+        return snap
+
+    @staticmethod
+    def get_snapshot_queryset():
+        return ServerSnapshot.objects.filter(deleted=False)
+
+    @staticmethod
+    def filter_snapshot_queryset(
+            queryset, service_ids: list, server_id: str,
+            remark: str, expired: bool = None, ipv4_contains: str = None,
+    ):
+        lookups = {}
+        if service_ids:
+            if len(service_ids) == 1:
+                lookups['service_id'] = service_ids[0]
+            else:
+                lookups['service_id__in'] = service_ids
+
+        if server_id:
+            lookups['server_id'] = server_id
+
+        if remark:
+            lookups['remarks__icontains'] = remark
+
+        if ipv4_contains:
+            lookups['server__ipv4__contains'] = ipv4_contains
+
+        if expired is True:
+            queryset = queryset.filter(expiration_time__lte=dj_timezone.now())
+        elif expired is False:
+            queryset = queryset.filter(~Q(expiration_time__lte=dj_timezone.now()))
+
+        queryset = queryset.filter(**lookups).order_by('-creation_time')
+        return queryset
+
+    def get_user_snapshot_queryset(
+            self, user, service_id: str = None, server_id: str = None, remark: str = None
+    ):
+        """
+        查询用户个人云硬盘
+
+        :param user: 用户过滤
+        :param service_id: 服务单元id过滤
+        :param server_id: 云主机id过滤
+        :param remark: 备注模糊查询
+        :return: QuerySet()
+        """
+        qs = self.get_snapshot_queryset()
+        qs = qs.select_related('service', 'user', 'server').filter(
+            user=user, classification=ServerSnapshot.Classification.PERSONAL.value)
+
+        service_ids = [service_id] if service_id else None
+        qs = self.filter_snapshot_queryset(
+            queryset=qs, service_ids=service_ids, server_id=server_id, remark=remark
+        )
+
+        return qs
+
+    def get_vo_snapshot_queryset(
+            self, vo_id: str, service_id: str = None, server_id: str = None, remark: str = None
+    ):
+        """
+        查询vo组的disk
+        """
+        qs = self.get_snapshot_queryset()
+        qs = qs.select_related('service', 'user', 'vo', 'server').filter(
+            vo_id=vo_id, classification=ServerSnapshot.Classification.VO.value)
+
+        service_ids = [service_id] if service_id else None
+        qs = self.filter_snapshot_queryset(
+            queryset=qs, service_ids=service_ids, server_id=server_id, remark=remark
+        )
+        return qs
+
+    def get_admin_snapshot_queryset(
+            self, admin_user, service_id: str = None, server_id: str = None, remark: str = None,
+            vo_id: str = None, vo_name: str = None, user_id: str = None, username: str = None,
+            exclude_vo: bool = None
+    ):
+        """
+        管理员查询云主机快照
+
+        :param admin_user: 管理员用户
+        :param service_id: 服务单元id过滤
+        :param server_id: 云主机id
+        :param user_id: 过滤用户, 包括vo内的用户创建的
+        :param username: 过滤用户名，包括vo内的用户创建的
+        :param vo_id: 过滤vo
+        :param vo_name: 过滤vo组名,模糊查询
+        :param exclude_vo: True(排除vo组的server)，其他忽略
+        :param remark: 备注模糊查询
+        :return: QuerySet()
+        :raises: Error
+        """
+        qs = self.get_snapshot_queryset()
+        qs = qs.select_related('service', 'server', 'user', 'vo')
+
+        if user_id:
+            qs = qs.filter(user_id=user_id)
+
+        if username:
+            qs = qs.filter(user__username=username)
+
+        if exclude_vo:
+            qs = qs.filter(classification=ServerSnapshot.Classification.PERSONAL.value)
+
+        if vo_id or vo_name:
+            lookups = {'classification': ServerSnapshot.Classification.VO.value}
+            if vo_id:
+                lookups['vo_id'] = vo_id
+            if vo_name:
+                lookups['vo__name__icontains'] = vo_name
+
+            qs = qs.filter(**lookups)
+
+        if admin_user.is_federal_admin():
+            if service_id:
+                service_ids = [service_id]
+            else:
+                service_ids = None
+        elif service_id:
+            service = ServiceManager.get_service_if_admin(user=admin_user, service_id=service_id)
+            if service is None:
+                raise errors.AccessDenied(message=_('您没有指定服务的访问权限'))
+
+            service_ids = [service_id]
+        else:
+            service_ids = ServiceManager.get_has_perm_service_ids(user_id=admin_user.id)
+            if not service_ids:
+                return qs.none()
+
+        qs = self.filter_snapshot_queryset(
+            queryset=qs, service_ids=service_ids, server_id=server_id, remark=remark
+        )
+
         return qs

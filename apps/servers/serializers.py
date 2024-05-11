@@ -359,3 +359,54 @@ class ServiceAdminSerializer(ServiceSerializer):
     @staticmethod
     def get_admin_users(obj):
         return obj.admin_users
+
+
+class ServerSnapshotSerializer(serializers.Serializer):
+    id = serializers.CharField(max_length=36, label='ID')
+    name = serializers.CharField(max_length=128, label=_('快照名称'))
+    size = serializers.IntegerField(label=_('容量大小GiB'))
+    remarks = serializers.CharField(max_length=255, label=_('备注'))
+    creation_time = serializers.DateTimeField(label=_('创建时间'))
+    expiration_time = serializers.DateTimeField(label=_('过期时间'))
+    pay_type = serializers.CharField(label=_('计费方式'), max_length=16)
+    classification = serializers.CharField(label=_('快照归属类型'), max_length=16)
+    user = serializers.SerializerMethodField(label=_('创建者'), method_name='get_user')
+    vo = serializers.SerializerMethodField(label=_('项目组'), method_name='get_vo')
+    server = serializers.SerializerMethodField(label=_('归属云主机'), method_name='get_server')
+    service = serializers.SerializerMethodField(label=_('服务单元'), method_name='get_service')
+
+    @staticmethod
+    def get_user(obj):
+        if obj.user:
+            return {'id': obj.user.id, 'username': obj.user.username}
+
+        return None
+
+    @staticmethod
+    def get_vo(obj):
+        if not obj.vo_id or not obj.vo:
+            return None
+
+        return {'id': obj.vo.id, 'name': obj.vo.name}
+
+    @staticmethod
+    def get_server(obj):
+        if not obj.server_id or not obj.server:
+            return None
+
+        server = obj.server
+        return {
+            'id': server.id,
+            'vcpus': server.vcpus, 'ram_gib': server.ram_gib,
+            'ipv4': server.ipv4, 'image': server.image,
+            'creation_time': serializers.DateTimeField().to_representation(server.creation_time),
+            'expiration_time': serializers.DateTimeField().to_representation(server.expiration_time),
+            'remarks': server.remarks
+        }
+
+    @staticmethod
+    def get_service(obj):
+        if not obj.service_id or not obj.service:
+            return None
+
+        return {'id': obj.service.id, 'name': obj.service.name, 'name_en': obj.service.name_en}

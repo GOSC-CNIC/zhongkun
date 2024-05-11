@@ -158,7 +158,7 @@ class Migration(migrations.Migration):
                 ('detached_time', models.DateTimeField(blank=True, default=None, null=True, verbose_name='最后一次卸载时间')),
                 ('deleted', models.BooleanField(default=False, help_text='选中表示已删除', verbose_name='删除状态')),
                 ('deleted_time', models.DateTimeField(blank=True, default=None, null=True, verbose_name='删除时间')),
-                ('deleted_user', models.CharField(default='', max_length=128, verbose_name='删除人')),
+                ('deleted_user', models.CharField(blank=True, default='', max_length=128, verbose_name='删除人')),
             ],
             options={
                 'verbose_name': '云硬盘',
