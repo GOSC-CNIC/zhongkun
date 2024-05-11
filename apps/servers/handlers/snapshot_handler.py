@@ -1,4 +1,5 @@
 from django.utils.translation import gettext as _
+from rest_framework.response import Response
 
 from core import errors as exceptions
 from apps.api.viewsets import CustomGenericViewSet
@@ -112,3 +113,20 @@ class SnapshotHandler:
             'user_id': user_id,
             'exclude_vo': exclude_vo
         }
+
+    @staticmethod
+    def detail_server_snapshot(view: CustomGenericViewSet, request, kwargs):
+        snapshot_id = kwargs.get(view.lookup_field, '')
+
+        try:
+            if view.is_as_admin_request(request):
+                snapshot = ServerSnapshotManager().admin_get_snapshot(
+                    snapshot_id=snapshot_id, user=request.user)
+            else:
+                snapshot = ServerSnapshotManager().get_has_perm_snapshot(
+                    snapshot_id=snapshot_id, user=request.user, is_readonly=True)
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        slr = serializers.ServerSnapshotSerializer(instance=snapshot, many=False)
+        return Response(data=slr.data)

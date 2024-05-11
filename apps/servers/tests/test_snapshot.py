@@ -402,3 +402,106 @@ class DiskOrderTests(MyAPITransactionTestCase):
         query_str = parse.urlencode(query={'as-admin': '', 'vo_name': 'sss', 'exclude_vo': ''})
         response = self.client.get(f'{base_url}?{query_str}')
         self.assertEqual(response.status_code, 400)
+
+    def test_detail(self):
+        server1 = create_server_metadata(
+            service=self.service, user=self.user, ram=8, vcpus=6,
+            default_user='user', default_password='password',
+            ipv4='127.12.33.111', remarks='test server', pay_type=PayType.PREPAID.value
+        )
+        snapshot1 = ServerSnapshotManager.create_snapshot_metadata(
+            name='name1', size_dib=66, remarks='snapshot1 test', instance_id='11',
+            creation_time=timezone.now(), expiration_time=timezone.now() - timedelta(days=1),
+            start_time=None, pay_type=PayType.PREPAID.value,
+            classification=ServerSnapshot.Classification.PERSONAL.value, user=self.user, vo=None,
+            server=server1, service=server1.service
+        )
+        snapshot2 = ServerSnapshotManager.create_snapshot_metadata(
+            name='name2', size_dib=88, remarks='snapshot2 test', instance_id='22',
+            creation_time=timezone.now(), expiration_time=timezone.now() + timedelta(days=1),
+            start_time=None, pay_type=PayType.PREPAID.value,
+            classification=ServerSnapshot.Classification.PERSONAL.value, user=self.user, vo=None,
+            server=None, service=self.service
+        )
+        snapshot3_vo = ServerSnapshotManager.create_snapshot_metadata(
+            name='name3', size_dib=886, remarks='vo snapshot3 test', instance_id='33',
+            creation_time=timezone.now(), expiration_time=timezone.now() + timedelta(days=11),
+            start_time=None, pay_type=PayType.POSTPAID.value,
+            classification=ServerSnapshot.Classification.VO.value, user=self.user2, vo=self.vo,
+            server=server1, service=server1.service
+        )
+        snapshot3_vo.server_id = 'afafa'
+        snapshot3_vo.save(update_fields=['server_id'])
+
+        base_url = reverse('servers-api:server-snapshot-detail', kwargs={'id': 'test'})
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 401)
+        self.client.force_login(self.user)
+
+        base_url = reverse('servers-api:server-snapshot-detail', kwargs={'id': 'test'})
+        response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
+
+        # detail user
+        base_url = reverse('servers-api:server-snapshot-detail', kwargs={'id': snapshot1.id})
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['id', 'name', 'size', 'remarks', 'creation_time', 'expiration_time', 'pay_type',
+                           'classification', 'user', 'vo', 'server', 'service'], response.data)
+        self.assertKeysIn(['id', 'name', 'name_en'], response.data['service'])
+        self.assertKeysIn(['id', 'username'], response.data['user'])
+        self.assertEqual(response.data['id'], snapshot1.id)
+        self.assertKeysIn(['id', 'vcpus', 'ram_gib', 'ipv4', 'image', 'creation_time', 'expiration_time',
+                           'remarks'], response.data['server'])
+
+        # detail vo disk
+        base_url = reverse('servers-api:server-snapshot-detail', kwargs={'id': snapshot3_vo.id})
+        response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # set vo member
+        VoMember(user_id=self.user.id, vo_id=self.vo.id, role=VoMember.Role.LEADER.value).save()
+
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['id', 'name', 'size', 'remarks', 'creation_time', 'expiration_time', 'pay_type',
+                           'classification', 'user', 'vo', 'server', 'service'], response.data)
+        self.assertEqual(response.data['id'], snapshot3_vo.id)
+        self.assertIsNone(response.data['server'])
+
+        # --- test service admin ---
+        base_url = reverse('servers-api:server-snapshot-detail', kwargs={'id': snapshot3_vo.id})
+        query = parse.urlencode(query={'as-admin': ''})
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.service.users.add(self.user)
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['id', 'name', 'size', 'remarks', 'creation_time', 'expiration_time', 'pay_type',
+                           'classification', 'user', 'vo', 'server', 'service'], response.data)
+        self.assertEqual(response.data['id'], snapshot3_vo.id)
+
+        # --- test odc admin ---
+        self.service.users.remove(self.user)
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.service.org_data_center.users.add(self.user)
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['id', 'name', 'size', 'remarks', 'creation_time', 'expiration_time', 'pay_type',
+                           'classification', 'user', 'vo', 'server', 'service'], response.data)
+        self.assertEqual(response.data['id'], snapshot3_vo.id)
+
+        # --- test fed admin ---
+        self.service.org_data_center.users.remove(self.user)
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.user.set_federal_admin()
+        response = self.client.get(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['id', 'name', 'size', 'remarks', 'creation_time', 'expiration_time', 'pay_type',
+                           'classification', 'user', 'vo', 'server', 'service'], response.data)
+        self.assertEqual(response.data['id'], snapshot3_vo.id)

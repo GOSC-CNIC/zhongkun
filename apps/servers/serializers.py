@@ -1,4 +1,5 @@
 from django.utils.translation import gettext_lazy as _
+from django.db.models import ObjectDoesNotExist
 from rest_framework import serializers
 
 
@@ -391,7 +392,11 @@ class ServerSnapshotSerializer(serializers.Serializer):
 
     @staticmethod
     def get_server(obj):
-        if not obj.server_id or not obj.server:
+        # 云主机删除后，触发逻辑外键 server查询数据库时会报错
+        try:
+            if not obj.server_id or not obj.server:
+                return None
+        except ObjectDoesNotExist:
             return None
 
         server = obj.server

@@ -1596,3 +1596,52 @@ class ServerSnapshotManager:
         )
 
         return qs
+
+    @staticmethod
+    def get_snapshot(snapshot_id: str) -> ServerSnapshot:
+        snapshot = ServerSnapshot.objects.select_related(
+            # 'service', 'server', 'vo', 'user'
+        ).filter(id=snapshot_id, deleted=False).first()
+        if snapshot is None:
+            raise errors.TargetNotExist(message=_('云主机快照不存在'))
+
+        return snapshot
+
+    def get_has_perm_snapshot(self, snapshot_id: str, user, is_readonly: bool) -> ServerSnapshot:
+        """
+        查询用户有指定权限的云主机快照
+
+        :raise: TargetNotExist, AccessDenied
+        """
+        snapshot = self.get_snapshot(snapshot_id=snapshot_id)
+        if snapshot.classification == ServerSnapshot.Classification.PERSONAL.value and snapshot.user_id == user.id:
+            return snapshot
+        elif snapshot.classification == ServerSnapshot.Classification.VO.value:
+            try:
+                if is_readonly:
+                    VoManager().get_has_read_perm_vo(vo_id=snapshot.vo_id, user=user)
+                else:
+                    VoManager().get_has_manager_perm_vo(vo_id=snapshot.vo_id, user=user)
+
+                return snapshot
+            except errors.Error as exc:
+                raise errors.AccessDenied(message=_('你没有快照所属项目组的访问权限'))
+        else:
+            raise errors.AccessDenied(message=_('你没有快照的访问权限'))
+
+    def admin_get_snapshot(self, snapshot_id: str, user) -> ServerSnapshot:
+        """
+        查询有管理员权限的云主机快照
+
+        :raise: TargetNotExist, AccessDenied
+        """
+        snapshot = self.get_snapshot(snapshot_id=snapshot_id)
+        if user.is_federal_admin():
+            return snapshot
+
+        service_id = snapshot.service_id
+        if service_id and isinstance(service_id, str):
+            if ServiceManager.get_service_if_admin(service_id=service_id, user=user):
+                return snapshot
+
+        raise errors.AccessDenied(message=_('你没有快照的管理权限。'))

@@ -129,5 +129,52 @@ class ServerSnapshotViewSet(CustomGenericViewSet):
         """
         return SnapshotHandler.list_server_snapshot(view=self, request=request)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询一个用户个人或vo组云主机快照信息，或者以管理员身份查询云主机快照信息'),
+        manual_parameters=CustomGenericViewSet.PARAMETERS_AS_ADMIN,
+        responses={
+            200: ''
+        }
+    )
+    def retrieve(self, request, *args, **kwargs):
+        """
+        查询一个用户个人或vo组云主机快照信息，或者以管理员身份查询云主机快照信息
+
+            200: {
+                "id": "r7o6ab5guv3uc6qs9uckfu89w-s",
+                "name": "name1",
+                "size": 66,     # GiB
+                "remarks": "snapshot1 test",
+                "creation_time": "2024-05-11T06:15:35.707263Z",
+                "expiration_time": "2024-05-10T06:15:35.707268Z",
+                "pay_type": "prepaid",
+                "classification": "vo",
+                "user": {
+                    "id": "r7kfbn3aick5z4o3re2y08mo1",
+                    "username": "test"
+                },
+                "vo": {
+                    "id": "dkfbn3a3ergz4o3r42y08mrt",
+                    "name": "test"
+                },
+                "server": {
+                    "id": "r7n8h7zsjppav5m757sxzndeb-i",
+                    "vcpus": 6,
+                    "ram_gib": 8,
+                    "ipv4": "127.12.33.111",
+                    "image": "test-image",
+                    "creation_time": "2024-05-11T06:15:35.696297Z",
+                    "expiration_time": null,
+                    "remarks": "test server"
+                },
+                "service": {
+                    "id": "r7msvmmvr2i6zi59s45y3gvjb",
+                    "name": "test",
+                    "name_en": "test_en"
+                }
+            }
+        """
+        return SnapshotHandler.detail_server_snapshot(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         return Serializer
