@@ -13,6 +13,17 @@ class PermissionManager(object):
         self.user = self.request.user
         self.global_role = GlobalAdminModel.objects.filter(member=self.user).values_list('role', flat=True).first()
 
+    def get_user_role(self):
+        """
+        当前用户的角色
+        """
+        if self.is_global_super_admin():
+            return GlobalAdminModel.Roles.SUPER_ADMIN.value
+        if self.is_global_ops_admin():
+            return GlobalAdminModel.Roles.ADMIN.value
+        if self.user_group_list(is_admin=True):
+            return Menu2Member.Roles.GROUP_ADMIN.value
+
     def is_global_ops_admin(self):
         """
         全局运维管理员

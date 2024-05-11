@@ -186,6 +186,18 @@ class MenuModelSerializer(serializers.ModelSerializer):
         write_only=True,
         default=None
     )
+    admin = serializers.SerializerMethodField(read_only=True)
+
+    def get_admin(self, obj):
+        """
+        是否为组管理员
+        """
+        request = self.context.get('request')
+        perm = PermissionManager(request=request)
+        if perm.has_group_admin_permission(obj):
+            return True
+        else:
+            return False
 
     def get_sub_categories(self, obj):
         """
@@ -212,6 +224,7 @@ class MenuModelSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'name',
+            'admin',
             'sort_weight',
             'remark',
             'level',

@@ -45,9 +45,30 @@ from django.utils.translation import gettext_lazy
 from apps.app_netflow.handlers.easyops import EasyOPS
 from django.forms.models import model_to_dict
 from django.http import QueryDict
+from apps.app_netflow.permission import PermissionManager
 
 
 # Create your views here.
+class GlobalUserRoleAPIView(APIView):
+    permission_classes = [CustomPermission]
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询当前用户的角色'),
+        manual_parameters=[
+        ],
+        responses={
+            200: ""
+        }
+    )
+    def get(self, request):
+        """
+        超级管理员
+        运维管理员（管理员）
+        组管理员
+        """
+        result = PermissionManager(request).get_user_role()
+        return Response({"role": result})
+
 
 class MenuListGenericAPIView(GenericAPIView):
     queryset = MenuModel.objects.all()
