@@ -88,7 +88,8 @@ class IPAccessWhiteList(models.Model):
         SCREEN = 'screen', _('大屏展示')
         EMAIL = 'email', _('邮件发送API')
         NETBOX_LINK = 'netbox-link', _('链路管理')
-        ALERT = 'alert', _('告警')
+        ALERT = 'alert-receiver', _('告警接收API')
+        NETFLOW = 'netflow', _('流量')
 
     id = models.BigAutoField(primary_key=True)
     module_name = models.CharField(

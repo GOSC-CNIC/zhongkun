@@ -1,24 +1,9 @@
 from django.contrib import admin
-from apps.app_alert.models import AlertWhiteListModel
 from apps.app_alert.models import AlertMonitorJobServer
 from utils.model import BaseModelAdmin
 
 
 # Register your models here.
-@admin.register(AlertWhiteListModel)
-class AlertWhiteListAdmin(BaseModelAdmin):
-    list_display = [
-        'id',
-        'ip',
-        'remark',
-        'creation',
-        'modification', ]
-    list_display_links = (
-        'id',
-        'ip',
-        'remark',
-        'creation',
-        'modification',)
 
 
 @admin.register(AlertMonitorJobServer)

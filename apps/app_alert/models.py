@@ -145,22 +145,6 @@ class AlertWorkOrder(UuidModel):
         )
 
 
-class AlertWhiteListModel(UuidModel):
-    """
-    告警集群IP白名单
-    """
-    ip = models.CharField(max_length=25, unique=True, verbose_name=_('ipv4'))
-    remark = models.TextField(default='', null=True, blank=True, verbose_name=_('备注'))
-    creation = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
-    modification = models.DateTimeField(verbose_name=_('修改时间'), auto_now=True)
-
-    class Meta:
-        db_table = "alert_whitelist"
-        ordering = ['-creation']
-        verbose_name = _("IP白名单")
-        verbose_name_plural = verbose_name
-
-
 class AlertMonitorJobServer(UuidModel):
     """
     主机集群监控单元

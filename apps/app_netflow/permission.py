@@ -1,10 +1,29 @@
-from rest_framework.permissions import IsAdminUser
 from rest_framework.permissions import BasePermission, SAFE_METHODS
 from apps.app_netflow.models import MenuModel
 from apps.app_netflow.models import Menu2Chart
 from apps.app_netflow.models import Menu2Member
 from apps.app_netflow.models import GlobalAdminModel
-from django.forms.models import model_to_dict
+from apps.app_global.configs_manager import IPAccessWhiteListManager
+from utils.iprestrict import IPRestrictor
+
+
+class NetFlowAPIIPRestrictor(IPRestrictor):
+    """
+    流量模块 IP 白名单
+    """
+
+    def load_ip_rules(self):
+        return IPAccessWhiteListManager.get_module_ip_whitelist(
+            module_name=IPAccessWhiteListManager.ModuleName.NETFLOW.value)
+
+    @staticmethod
+    def clear_cache():
+        IPAccessWhiteListManager.clear_cache()
+
+    @staticmethod
+    def add_ip_rule(ip_value: str):
+        return IPAccessWhiteListManager.add_whitelist_obj(
+            module_name=IPAccessWhiteListManager.ModuleName.NETFLOW.value, ip_value=ip_value)
 
 
 class PermissionManager(object):
@@ -105,6 +124,7 @@ class CustomPermission(BasePermission):
     """
 
     def has_permission(self, request, view):
+        NetFlowAPIIPRestrictor().check_restricted(request=request)
         user = request.user
         if not user.is_authenticated:  # 需要登陆
             return False
@@ -119,6 +139,7 @@ class MenuListCustomPermission(BasePermission):
     """
 
     def has_permission(self, request, view):
+        NetFlowAPIIPRestrictor().check_restricted(request=request)
         user = request.user
         perm = PermissionManager(request)
         if not user.is_authenticated:  # 需要登陆
@@ -140,6 +161,7 @@ class MenuDetailCustomPermission(BasePermission):
     """
 
     def has_permission(self, request, view):
+        NetFlowAPIIPRestrictor().check_restricted(request=request)
         user = request.user
         perm = PermissionManager(request)
         if not user.is_authenticated:  # 需要登陆
@@ -164,6 +186,7 @@ class Menu2ChartListCustomPermission(BasePermission):
     """
 
     def has_permission(self, request, view):
+        NetFlowAPIIPRestrictor().check_restricted(request=request)
         user = request.user
         perm = PermissionManager(request)
         if not user.is_authenticated:  # 需要登陆
@@ -205,6 +228,7 @@ class Menu2MemberListCustomPermission(BasePermission):
     """
 
     def has_permission(self, request, view):
+        NetFlowAPIIPRestrictor().check_restricted(request=request)
         user = request.user
         perm = PermissionManager(request)
         if not user.is_authenticated:  # 需要登陆
@@ -237,6 +261,7 @@ class Menu2MemberDetailCustomPermission(BasePermission):
     """
 
     def has_permission(self, request, view):
+        NetFlowAPIIPRestrictor().check_restricted(request=request)
         user = request.user
         perm = PermissionManager(request)
         if not user.is_authenticated:  # 需要登陆
@@ -262,6 +287,7 @@ class GlobalAdministratorCustomPermission(BasePermission):
     """
 
     def has_permission(self, request, view):
+        NetFlowAPIIPRestrictor().check_restricted(request=request)
         user = request.user
         perm = PermissionManager(request)
         if not user.is_authenticated:  # 需要登陆
@@ -280,6 +306,7 @@ class PortListCustomPermission(BasePermission):
     """
 
     def has_permission(self, request, view):
+        NetFlowAPIIPRestrictor().check_restricted(request=request)
         user = request.user
         perm = PermissionManager(request)
         if not user.is_authenticated:  # 需要登陆
@@ -290,6 +317,7 @@ class PortListCustomPermission(BasePermission):
 
 class TrafficCustomPermission(BasePermission):
     def has_permission(self, request, view):
+        NetFlowAPIIPRestrictor().check_restricted(request=request)
         user = request.user
         perm = PermissionManager(request)
         if not user.is_authenticated:  # 需要登陆
