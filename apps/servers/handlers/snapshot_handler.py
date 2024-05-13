@@ -2,6 +2,8 @@ from django.utils.translation import gettext as _
 from rest_framework.response import Response
 
 from core import errors as exceptions
+from core.adapters import inputs
+from core.request import request_service
 from apps.api.viewsets import CustomGenericViewSet
 from apps.vo.managers import VoManager
 from apps.servers.managers import ServerSnapshotManager
@@ -130,3 +132,29 @@ class SnapshotHandler:
 
         slr = serializers.ServerSnapshotSerializer(instance=snapshot, many=False)
         return Response(data=slr.data)
+
+    @staticmethod
+    def delete_server_snapshot(view: CustomGenericViewSet, request, kwargs):
+        snapshot_id = kwargs.get(view.lookup_field, '')
+
+        try:
+            if view.is_as_admin_request(request):
+                snapshot = ServerSnapshotManager().admin_get_snapshot(
+                    snapshot_id=snapshot_id, user=request.user)
+            else:
+                snapshot = ServerSnapshotManager().get_has_perm_snapshot(
+                    snapshot_id=snapshot_id, user=request.user, is_readonly=False)
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        try:
+            r = request_service(
+                service=snapshot.service, method='server_snapshot_delete',
+                params=inputs.ServerSnapshotDeleteInput(snap_id=snapshot.instance_id)
+            )
+            if r.ok:
+                snapshot.do_soft_delete(deleted_user=request.user.username)
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        return Response(status=204)

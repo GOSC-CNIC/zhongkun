@@ -176,5 +176,17 @@ class ServerSnapshotViewSet(CustomGenericViewSet):
         """
         return SnapshotHandler.detail_server_snapshot(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('删除一个用户个人或vo组的云主机快照，或者以管理员身份删除云主机快照'),
+        manual_parameters=CustomGenericViewSet.PARAMETERS_AS_ADMIN
+    )
+    def destroy(self, request, *args, **kwargs):
+        """
+        删除一个用户个人或vo组的云主机快照，或者以管理员身份删除云主机快照
+
+            204 ok
+        """
+        return SnapshotHandler.delete_server_snapshot(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         return Serializer

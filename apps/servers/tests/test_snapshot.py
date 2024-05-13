@@ -13,7 +13,7 @@ from apps.vo.models import VirtualOrganization, VoMember
 from apps.servers.managers import ServerSnapshotManager
 
 
-class DiskOrderTests(MyAPITransactionTestCase):
+class ServerSnapshotTests(MyAPITransactionTestCase):
     def setUp(self):
         self.user = get_or_create_user()
         self.user2 = get_or_create_user(username='user2')
@@ -505,3 +505,112 @@ class DiskOrderTests(MyAPITransactionTestCase):
         self.assertKeysIn(['id', 'name', 'size', 'remarks', 'creation_time', 'expiration_time', 'pay_type',
                            'classification', 'user', 'vo', 'server', 'service'], response.data)
         self.assertEqual(response.data['id'], snapshot3_vo.id)
+
+    def test_delete(self):
+        server1 = create_server_metadata(
+            service=self.service, user=self.user, ram=8, vcpus=6,
+            default_user='user', default_password='password',
+            ipv4='127.12.33.111', remarks='test server', pay_type=PayType.PREPAID.value
+        )
+        snapshot1 = ServerSnapshotManager.create_snapshot_metadata(
+            name='name1', size_dib=66, remarks='snapshot1 test', instance_id='99999999123456789',   # 避免误删真实快照
+            creation_time=timezone.now(), expiration_time=timezone.now() - timedelta(days=1),
+            start_time=None, pay_type=PayType.PREPAID.value,
+            classification=ServerSnapshot.Classification.PERSONAL.value, user=self.user, vo=None,
+            server=server1, service=server1.service
+        )
+        snapshot2 = ServerSnapshotManager.create_snapshot_metadata(
+            name='name2', size_dib=88, remarks='snapshot2 test', instance_id='99999999123456789',
+            creation_time=timezone.now(), expiration_time=timezone.now() + timedelta(days=1),
+            start_time=None, pay_type=PayType.PREPAID.value,
+            classification=ServerSnapshot.Classification.PERSONAL.value, user=self.user, vo=None,
+            server=None, service=self.service
+        )
+        snapshot3_vo = ServerSnapshotManager.create_snapshot_metadata(
+            name='name3', size_dib=886, remarks='vo snapshot3 test', instance_id='99999999123456789',
+            creation_time=timezone.now(), expiration_time=timezone.now() + timedelta(days=11),
+            start_time=None, pay_type=PayType.POSTPAID.value,
+            classification=ServerSnapshot.Classification.VO.value, user=self.user2, vo=self.vo,
+            server=server1, service=server1.service
+        )
+        snapshot3_vo.server_id = 'afafa'
+        snapshot3_vo.save(update_fields=['server_id'])
+
+        base_url = reverse('servers-api:server-snapshot-detail', kwargs={'id': 'test'})
+        response = self.client.delete(base_url)
+        self.assertEqual(response.status_code, 401)
+        self.client.force_login(self.user)
+
+        base_url = reverse('servers-api:server-snapshot-detail', kwargs={'id': 'test'})
+        response = self.client.delete(base_url)
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
+
+        # user
+        base_url = reverse('servers-api:server-snapshot-detail', kwargs={'id': snapshot1.id})
+        response = self.client.delete(base_url)
+        self.assertEqual(response.status_code, 204)
+        snapshot1.refresh_from_db()
+        self.assertTrue(snapshot1.deleted)
+        self.assertEqual(snapshot1.deleted_user, self.user.username)
+
+        # vo
+        base_url = reverse('servers-api:server-snapshot-detail', kwargs={'id': snapshot3_vo.id})
+        response = self.client.delete(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # set vo member
+        VoMember(user_id=self.user.id, vo_id=self.vo.id, role=VoMember.Role.LEADER.value).save()
+
+        response = self.client.delete(base_url)
+        self.assertEqual(response.status_code, 204)
+        snapshot3_vo.refresh_from_db()
+        self.assertTrue(snapshot3_vo.deleted)
+        self.assertEqual(snapshot3_vo.deleted_user, self.user.username)
+
+        # --- test service admin ---
+        base_url = reverse('servers-api:server-snapshot-detail', kwargs={'id': snapshot2.id})
+        query = parse.urlencode(query={'as-admin': ''})
+        response = self.client.delete(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.service.users.add(self.user)
+        response = self.client.delete(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 204)
+        snapshot2.refresh_from_db()
+        self.assertTrue(snapshot2.deleted)
+        self.assertEqual(snapshot2.deleted_user, self.user.username)
+
+        # --- test odc admin ---
+        self.service.users.remove(self.user)
+        base_url = reverse('servers-api:server-snapshot-detail', kwargs={'id': snapshot2.id})
+        response = self.client.delete(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
+
+        snapshot2.deleted = False
+        snapshot2.deleted_user = ''
+        snapshot2.save(update_fields=['deleted', 'deleted_user'])
+        response = self.client.delete(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.service.org_data_center.users.add(self.user)
+        response = self.client.delete(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 204)
+        snapshot2.refresh_from_db()
+        self.assertTrue(snapshot2.deleted)
+        self.assertEqual(snapshot2.deleted_user, self.user.username)
+
+        # --- test fed admin ---
+        self.service.org_data_center.users.remove(self.user)
+        snapshot3_vo.deleted = False
+        snapshot3_vo.deleted_user = ''
+        snapshot3_vo.save(update_fields=['deleted', 'deleted_user'])
+        base_url = reverse('servers-api:server-snapshot-detail', kwargs={'id': snapshot3_vo.id})
+        response = self.client.delete(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.user.set_federal_admin()
+        response = self.client.delete(f'{base_url}?{query}')
+        self.assertEqual(response.status_code, 204)
+        snapshot3_vo.refresh_from_db()
+        self.assertTrue(snapshot3_vo.deleted)
+        self.assertEqual(snapshot3_vo.deleted_user, self.user.username)
