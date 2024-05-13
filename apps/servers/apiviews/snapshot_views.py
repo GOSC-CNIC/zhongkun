@@ -1,6 +1,7 @@
 from django.utils.translation import gettext_lazy
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.serializers import Serializer
+from rest_framework.decorators import action
 from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
@@ -187,6 +188,18 @@ class ServerSnapshotViewSet(CustomGenericViewSet):
             204 ok
         """
         return SnapshotHandler.delete_server_snapshot(view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('用户个人或vo组的云主机回滚到快照')
+    )
+    @action(methods=['POST'], detail=True, url_path=r'rollback/server/(?P<server_id>[^/]+)', url_name='rollback')
+    def rollback_server(self, request, *args, **kwargs):
+        """
+        用户个人或vo组的云主机回滚到快照
+
+            200 ok
+        """
+        return SnapshotHandler.rollback_server_to_snapshot(view=self, request=request, kwargs=kwargs)
 
     def get_serializer_class(self):
         return Serializer

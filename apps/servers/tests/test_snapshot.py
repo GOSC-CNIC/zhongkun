@@ -5,12 +5,12 @@ from urllib.parse import urlencode
 from django.urls import reverse
 from django.utils import timezone
 
-from apps.servers.models import ServiceConfig, ServerSnapshot
-from apps.servers.tests import create_server_metadata
 from utils.test import get_or_create_user, get_or_create_service, MyAPITransactionTestCase
 from utils.model import PayType, OwnerType, ResourceType
 from apps.vo.models import VirtualOrganization, VoMember
 from apps.servers.managers import ServerSnapshotManager
+from apps.servers.models import ServiceConfig, ServerSnapshot, Server
+from apps.servers.tests import create_server_metadata
 
 
 class ServerSnapshotTests(MyAPITransactionTestCase):
@@ -614,3 +614,77 @@ class ServerSnapshotTests(MyAPITransactionTestCase):
         snapshot3_vo.refresh_from_db()
         self.assertTrue(snapshot3_vo.deleted)
         self.assertEqual(snapshot3_vo.deleted_user, self.user.username)
+
+    def test_rollback(self):
+        server1 = create_server_metadata(
+            service=self.service, user=self.user2, ram=8, vcpus=6,
+            default_user='user', default_password='password',
+            ipv4='127.12.33.111', remarks='test server', pay_type=PayType.PREPAID.value
+        )
+        server1.lock = Server.Lock.OPERATION.value
+        server1.save(update_fields=['lock'])
+        server2_vo = create_server_metadata(
+            service=self.service, user=self.user, vo_id=self.vo.id, classification='vo',
+            ram=8, vcpus=6, default_user='user', default_password='password',
+            ipv4='127.12.33.111', remarks='test server', pay_type=PayType.PREPAID.value
+        )
+        snapshot1 = ServerSnapshotManager.create_snapshot_metadata(
+            name='name1', size_dib=66, remarks='snapshot1 test', instance_id='99999999123456789',
+            creation_time=timezone.now(), expiration_time=timezone.now() - timedelta(days=1),
+            start_time=None, pay_type=PayType.PREPAID.value,
+            classification=ServerSnapshot.Classification.PERSONAL.value, user=self.user2, vo=None,
+            server=server1, service=server1.service
+        )
+        snapshot2_vo = ServerSnapshotManager.create_snapshot_metadata(
+            name='name1', size_dib=66, remarks='snapshot1 test', instance_id='99999999123456789',
+            creation_time=timezone.now(), expiration_time=timezone.now() - timedelta(days=1),
+            start_time=None, pay_type=PayType.PREPAID.value,
+            classification=ServerSnapshot.Classification.VO.value, user=self.user, vo=self.vo,
+            server=server2_vo, service=server2_vo.service
+        )
+
+        base_url = reverse('servers-api:server-snapshot-rollback', kwargs={'id': 'test', 'server_id': 'server_id'})
+        response = self.client.post(base_url)
+        self.assertEqual(response.status_code, 401)
+        self.client.force_login(self.user)
+
+        base_url = reverse('servers-api:server-snapshot-rollback', kwargs={'id': 'test', 'server_id': 'server_id'})
+        response = self.client.post(base_url)
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
+
+        # user
+        base_url = reverse('servers-api:server-snapshot-rollback',
+                           kwargs={'id': snapshot1.id, 'server_id': 'server_id'})
+        response = self.client.post(base_url)
+        self.assertErrorResponse(status_code=404, code='NotFound', response=response)
+
+        base_url = reverse('servers-api:server-snapshot-rollback',
+                           kwargs={'id': snapshot1.id, 'server_id': server1.id})
+        response = self.client.post(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # vo
+        base_url = reverse('servers-api:server-snapshot-rollback',
+                           kwargs={'id': snapshot2_vo.id, 'server_id': server2_vo.id})
+        response = self.client.post(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # set vo member
+        VoMember(user_id=self.user.id, vo_id=self.vo.id, role=VoMember.Role.LEADER.value).save()
+        response = self.client.post(base_url)
+        self.assertEqual(response.status_code, 500)
+
+        # 快照不属于云主机
+        base_url = reverse('servers-api:server-snapshot-rollback',
+                           kwargs={'id': snapshot1.id, 'server_id': server2_vo.id})
+        response = self.client.post(base_url)
+        self.assertErrorResponse(status_code=409, code='Conflict', response=response)
+
+        # user2
+        self.client.logout()
+        self.client.force_login(self.user2)
+
+        base_url = reverse('servers-api:server-snapshot-rollback',
+                           kwargs={'id': snapshot1.id, 'server_id': server1.id})
+        response = self.client.post(base_url)
+        self.assertErrorResponse(status_code=409, code='ResourceLocked', response=response)

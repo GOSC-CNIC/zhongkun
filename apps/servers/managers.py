@@ -1600,7 +1600,7 @@ class ServerSnapshotManager:
     @staticmethod
     def get_snapshot(snapshot_id: str) -> ServerSnapshot:
         snapshot = ServerSnapshot.objects.select_related(
-            # 'service', 'server', 'vo', 'user'
+            'service', 'server', 'vo', 'user'
         ).filter(id=snapshot_id, deleted=False).first()
         if snapshot is None:
             raise errors.TargetNotExist(message=_('云主机快照不存在'))

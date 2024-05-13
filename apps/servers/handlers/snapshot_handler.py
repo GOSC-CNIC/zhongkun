@@ -6,7 +6,7 @@ from core.adapters import inputs
 from core.request import request_service
 from apps.api.viewsets import CustomGenericViewSet
 from apps.vo.managers import VoManager
-from apps.servers.managers import ServerSnapshotManager
+from apps.servers.managers import ServerSnapshotManager, ServerManager
 from apps.servers import serializers
 
 
@@ -147,14 +147,42 @@ class SnapshotHandler:
         except exceptions.Error as exc:
             return view.exception_response(exc)
 
+        who_action = request.user.username
         try:
             r = request_service(
                 service=snapshot.service, method='server_snapshot_delete',
-                params=inputs.ServerSnapshotDeleteInput(snap_id=snapshot.instance_id)
+                params=inputs.ServerSnapshotDeleteInput(snap_id=snapshot.instance_id, _who_action=who_action)
             )
             if r.ok:
-                snapshot.do_soft_delete(deleted_user=request.user.username)
+                snapshot.do_soft_delete(deleted_user=who_action)
         except Exception as exc:
             return view.exception_response(exc)
 
         return Response(status=204)
+
+    @staticmethod
+    def rollback_server_to_snapshot(view: CustomGenericViewSet, request, kwargs):
+        snapshot_id = kwargs.get(view.lookup_field, '')
+        server_id = kwargs['server_id']
+
+        try:
+            snapshot = ServerSnapshotManager().get_snapshot(snapshot_id=snapshot_id)
+            server = ServerManager().get_manage_perm_server(server_id=server_id, user=request.user)
+            if server.is_locked_operation():
+                raise exceptions.ResourceLocked(message=_('云主机已加锁锁定了一切操作'))
+
+            if server.id != snapshot.server_id:
+                raise exceptions.ConflictError(message=_('快照不属于此云主机'))
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        try:
+            request_service(
+                service=snapshot.service, method='server_rollback_snapshot',
+                params=inputs.ServerRollbackSnapshotInput(
+                    instance_id=server.id, snap_id=snapshot.instance_id, _who_action=request.user.username)
+            )
+        except Exception as exc:
+            return view.exception_response(exc)
+
+        return Response(status=200)
