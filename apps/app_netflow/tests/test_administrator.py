@@ -1,6 +1,6 @@
 from django.urls import reverse
 from django.conf import settings
-
+from apps.app_global.models import IPAccessWhiteList
 from utils.test import get_or_create_user
 from utils.test import MyAPITestCase
 from utils.test import MyAPITransactionTestCase
@@ -16,7 +16,7 @@ class GlobalAdministratorTests(MyAPITransactionTestCase):
         self.super_user = get_or_create_user(username='superuser@cnic.com')  # 全局超级管理员
         self.obs_user = get_or_create_user(username='obsuser@cnic.cn')  # 全局运维管理员
         self.group_admin1 = get_or_create_user(username='groupadmin1@cnic.cn')  # 组管理员
-        self.group_admin2 = get_or_create_user(username='groupadmin2@cnic.cn')
+        self.group_admin2 = get_or_create_user(username='groupadmin2@cnic.cn')  # 组管理员
         self.group_user1 = get_or_create_user(username='groupuser1@cnic.cn')  # 组员
         self.group_user2 = get_or_create_user(username='groupuser2@cnic.cn')  # 组员
         self.user1 = get_or_create_user(username='user1@cnic.cn')  # 普通用户
@@ -173,7 +173,12 @@ class GlobalAdministratorTests(MyAPITransactionTestCase):
             role=Menu2Member.Roles.ORDINARY.value,
             inviter="test@cnic.cn",
         )
+        # 添加ip 白名单
 
+        IPAccessWhiteList.objects.create(
+            module_name=IPAccessWhiteList.ModuleName.NETFLOW,
+            ip_value='127.0.0.1',
+        )
 
 class GlobalAdministratorListTests(GlobalAdministratorTests):
     """
