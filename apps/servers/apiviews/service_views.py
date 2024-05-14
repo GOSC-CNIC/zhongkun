@@ -3,7 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.serializers import Serializer
+from rest_framework.serializers import Serializer, DateTimeField as DRFDateTimeField
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
@@ -405,6 +405,41 @@ class ServiceViewSet(CustomGenericViewSet):
             return Response(data=exc.err_data(), status=500)
         except exceptions.APIException as exc:
             return Response(data=exc.err_data(), status=exc.status_code)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询服务单元版本号'),
+        responses={
+            status.HTTP_200_OK: ''
+        }
+    )
+    @action(methods=['get'], detail=True, url_path='version', url_name='version')
+    def update_get_version(self, request, *args, **kwargs):
+        """
+        查询服务单元版本号
+
+            http code 200:
+            {
+              "version": "4.2.1",   # 可能为空字符串，非EVCloud时
+              "version_update_time": "2024-05-14T01:46:17.817050Z"  # 可能为空，非EVCloud时
+            }
+        """
+        try:
+            service = handlers.VmServiceHandler.get_user_perm_service(
+                _id=kwargs.get(self.lookup_field), user=request.user)
+            if (
+                    service.status == ServiceConfig.Status.ENABLE.value
+                    and service.service_type == ServiceConfig.ServiceType.EVCLOUD.value
+            ):
+                ok_or_exc = ServiceManager.update_service_version(service=service)
+                if ok_or_exc is not True:
+                    raise ok_or_exc
+        except exceptions.Error as exc:
+            return self.exception_response(exc)
+
+        return Response(data={
+            'version': service.version,
+            'version_update_time': DRFDateTimeField().to_representation(service.version_update_time)
+        }, status=200)
 
     def paginate_service_response(self, request, qs):
         paginator = self.paginator

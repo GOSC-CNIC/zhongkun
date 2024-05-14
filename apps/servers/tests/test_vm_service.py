@@ -394,3 +394,29 @@ class ServiceTests(MyAPITestCase):
     def test_share_quota(self):
         url = reverse('servers-api:service-share-quota', kwargs={'id': self.service.id})
         self.service_quota_get_update(url=url)
+
+    def test_version(self):
+        service2 = ServiceConfig(
+            name='service2', name_en='service2 en', org_data_center=self.service.org_data_center,
+            username='test'
+        )
+        service2.set_password(raw_password='test')
+        service2.save(force_insert=True)
+
+        url = reverse('servers-api:service-version', kwargs={'id': self.service.id})
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.service.users.add(self.user)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["version", "version_update_time"], response.data)
+
+        # 数据中心管理员
+        url = reverse('servers-api:service-version', kwargs={'id': service2.id})
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.service.org_data_center.users.add(self.user)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 401)

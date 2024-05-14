@@ -208,8 +208,9 @@ class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
     form = VmsProviderForm
     list_display_links = ('id',)
     list_display = ('id', 'name', 'name_en', 'org_data_center', 'organization_name', 'sort_weight',
-                    'only_admin_visible', 'region_id', 'service_type', 'version', 'endpoint_url', 'username',
-                    'password', 'raw_password', 'add_time', 'status', 'need_vpn', 'disk_available',
+                    'only_admin_visible', 'region_id', 'service_type', 'version', 'version_update_time',
+                    'endpoint_url', 'username', 'password', 'raw_password',
+                    'add_time', 'status', 'need_vpn', 'disk_available',
                     'vpn_endpoint_url', 'vpn_password',
                     'pay_app_service_id', 'longitude', 'latitude', 'remarks', 'monitor_task_id')
     search_fields = ['name', 'name_en', 'endpoint_url', 'remarks']
@@ -224,7 +225,7 @@ class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
         (_('说明、备注'), {'fields': ('remarks', 'sort_weight', 'only_admin_visible')}),
         (_('服务配置信息'), {
             'fields': ('org_data_center', 'name', 'name_en', 'service_type', 'cloud_type',
-                       'version', 'status', 'endpoint_url',
+                       'version', 'version_update_time', 'status', 'endpoint_url',
                        'api_version', 'region_id', 'disk_available', 'username', 'password', 'change_password')
         }),
         (_('VPN配置信息'), {

@@ -1,9 +1,11 @@
 from decimal import Decimal
+from datetime import timedelta
 
 from django.utils.translation import gettext_lazy, gettext as _
 from django.utils import timezone
 from django.db import transaction
 from django.db.models import Subquery, Q
+from django.utils import timezone as dj_timezone
 
 from django.core.cache import cache
 
@@ -141,10 +143,13 @@ class ServiceManager:
     @staticmethod
     def update_service_version(service: ServiceConfig):
         try:
-            r = core_request.request_service(service=service, method='get_version')
-            if r.version:
-                service.version = r.version
-                service.save(update_fields=['version'])
+            nt = dj_timezone.now()
+            if not service.version_update_time or (nt - service.version_update_time) > timedelta(minutes=1):
+                r = core_request.request_service(service=service, method='get_version')
+                if r.version:
+                    service.version = r.version
+                    service.version_update_time = nt
+                    service.save(update_fields=['version', 'version_update_time'])
         except Exception as exc:
             return exc
 
