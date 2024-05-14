@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('service', '0010_remove_datacenter_endpoint_compute_and_more'),
+        ('service', '0001_squashed_0010_remove_datacenter_endpoint_compute_and_more'),
     ]
 
     operations = [

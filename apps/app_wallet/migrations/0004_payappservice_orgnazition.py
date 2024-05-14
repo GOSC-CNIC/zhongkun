@@ -7,7 +7,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('service', '0003_contacts_datacenter_province_datacenter_contacts'),
+        ('service', '0001_squashed_0010_remove_datacenter_endpoint_compute_and_more'),
         ('bill', '0003_remove_payappservice_orgnazition'),
     ]
 

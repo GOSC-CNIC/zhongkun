@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('service', '0002_initial'),
+        ('service', '0001_squashed_0010_remove_datacenter_endpoint_compute_and_more'),
         ('storage', '0001_initial'),
     ]
 

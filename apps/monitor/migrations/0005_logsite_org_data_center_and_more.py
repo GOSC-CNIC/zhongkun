@@ -7,7 +7,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('service', '0006_remove_serviceconfig_data_center_and_more'),
+        ('service', '0001_squashed_0010_remove_datacenter_endpoint_compute_and_more'),
         ('monitor', '0004_alter_monitorwebsite_url'),
     ]
 
