@@ -52,7 +52,7 @@ python3 manage.py migrate link --prune
 
 
 ### 4. 从v2.3.0（含）之前的版本升级到v2.3.1之后版本的步骤
-    原因：由于v2.3.1版本对monitor和service app的迁移文件进行了压缩。
+    原因：由于v2.3.1版本对 monitor、service、app_alert、app_netflow 的迁移文件进行了压缩。
 
 * 必须先正常升级到v2.3.1，执行数据库迁移，把压缩后的迁移文件记录更新到数据库迁移记录表；
 * 再升级到v2.3.1之后的版本。
