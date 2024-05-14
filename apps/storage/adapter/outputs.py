@@ -106,3 +106,13 @@ class BucketStatsOutput(OutputBase):
     @property
     def bucket_size_gib(self) -> float:
         return self.bucket_size_byte / 1024**3
+
+
+class VersionOutput(OutputBase):
+    def __init__(
+            self,
+            version: str,
+            **kwargs
+    ):
+        self.version = version
+        super().__init__(**kwargs)

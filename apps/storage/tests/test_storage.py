@@ -26,7 +26,8 @@ class ObjectsServiceTests(MyAPITestCase):
         self.assertEqual(r.data['count'], 1)
         self.assertKeysIn(keys=[
             'id', 'name', 'name_en', 'service_type', 'endpoint_url', 'add_time', 'status', 'remarks', 'provide_ftp',
-            'ftp_domains', 'longitude', 'latitude', 'pay_app_service_id', 'org_data_center', 'sort_weight', 'version'
+            'ftp_domains', 'longitude', 'latitude', 'pay_app_service_id', 'org_data_center', 'sort_weight', 'version',
+            'version_update_time'
         ], container=r.data['results'][0])
         self.assertKeysIn(keys=[
             'id', 'name', 'name_en', 'sort_weight', 'organization'], container=r.data['results'][0]['org_data_center'])
@@ -102,7 +103,8 @@ class ObjectsServiceTests(MyAPITestCase):
         self.assertEqual(r.data['count'], 1)
         self.assertKeysIn(keys=[
             'id', 'name', 'name_en', 'service_type', 'endpoint_url', 'add_time', 'status', 'remarks', 'provide_ftp',
-            'ftp_domains', 'longitude', 'latitude', 'pay_app_service_id', 'org_data_center', 'sort_weight', 'version'
+            'ftp_domains', 'longitude', 'latitude', 'pay_app_service_id', 'org_data_center', 'sort_weight', 'version',
+            'version_update_time'
         ], container=r.data['results'][0])
         self.assertKeysIn(keys=[
             'id', 'name', 'name_en', 'sort_weight', 'organization'], container=r.data['results'][0]['org_data_center'])
@@ -197,6 +199,23 @@ class ObjectsServiceTests(MyAPITestCase):
         self.assertKeysIn(keys=[
             'id', 'name', 'name_en', 'sort_weight', 'organization'], container=r.data['results'][0]['org_data_center'])
         self.assertIsInstance(r.data['results'][0]['ftp_domains'], list)
+
+    def test_version(self):
+        service2 = ObjectsService(
+            name='service2', name_en='service2 en', org_data_center=self.service.org_data_center,
+            username='test'
+        )
+        service2.set_password(raw_password='test')
+        service2.save(force_insert=True)
+
+        url = reverse('storage-api:storage-service-version', kwargs={'id': self.service.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(["version", "version_update_time"], response.data)
+
+        url = reverse('storage-api:storage-service-version', kwargs={'id': service2.id})
+        response = self.client.get(url)
+        self.assertErrorResponse(status_code=500, code='Adapter.AuthenticationFailed', response=response)
 
 
 class StorageStatisticsTests(MyAPITestCase):

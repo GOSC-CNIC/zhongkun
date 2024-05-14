@@ -8,6 +8,7 @@ from apps.storage.request import request_service
 from apps.storage.adapter import inputs
 from core import errors
 from utils.model import NoDeleteSelectModelAdmin, BaseModelAdmin
+from apps.storage.managers import ObjectsServiceManager
 from . import models
 from . import forms
 
@@ -35,7 +36,7 @@ class ObjectsServiceAdmin(BaseModelAdmin):
     form = forms.ObjectsServiceForm
 
     list_display = ('id', 'name', 'name_en', 'org_data_center', 'organization_name', 'service_type',
-                    'sort_weight', 'version', 'endpoint_url', 'add_time', 'status',
+                    'sort_weight', 'version', 'version_update_time', 'endpoint_url', 'add_time', 'status',
                     'username', 'raw_password', 'provide_ftp', 'pay_app_service_id', 'monitor_task_id', 'loki_tag')
 
     search_fields = ['name', 'name_en', 'endpoint_url', 'remarks']
@@ -49,8 +50,8 @@ class ObjectsServiceAdmin(BaseModelAdmin):
     fieldsets = (
         (_('说明、备注'), {'fields': ('remarks', 'sort_weight')}),
         (_('服务配置信息'), {
-            'fields': ('org_data_center', 'name', 'name_en', 'service_type', 'version', 'status', 'endpoint_url',
-                       'api_version', 'username', 'password', 'change_password')
+            'fields': ('org_data_center', 'name', 'name_en', 'service_type', 'version', 'version_update_time',
+                       'status', 'endpoint_url', 'api_version', 'username', 'password', 'change_password')
         }),
         (_('FTP配置信息'), {
             'fields': ('provide_ftp', 'ftp_domains')
@@ -63,6 +64,7 @@ class ObjectsServiceAdmin(BaseModelAdmin):
         }),
         (_('其他'), {'fields': ('monitor_task_id', 'delete_monitor_task', 'loki_tag',)}),
     )
+    actions = ['update_service_version']
 
     @admin.display(description=_("原始密码"))
     def raw_password(self, obj):
@@ -78,6 +80,25 @@ class ObjectsServiceAdmin(BaseModelAdmin):
             return ''
 
         return obj.org_data_center.organization.name
+
+    @admin.action(description=_("更新服务版本信息"))
+    def update_service_version(self, request, queryset):
+        count = 0
+        for service in queryset:
+            if (
+                    service.status != models.ObjectsService.Status.ENABLE.value
+                    or service.service_type != models.ObjectsService.ServiceType.IHARBOR.value
+            ):
+                continue
+
+            ok = ObjectsServiceManager.update_service_version(service=service)
+            if ok is True:
+                count += 1
+
+        if count > 0:
+            self.message_user(request, gettext("更新版本数量:") + str(count), level=messages.SUCCESS)
+        else:
+            self.message_user(request, gettext("没有更新任何服务单元版本"), level=messages.SUCCESS)
 
     def has_delete_permission(self, request, obj=None):
         return False

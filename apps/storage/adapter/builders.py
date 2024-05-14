@@ -76,3 +76,9 @@ class APIBuilder:
             path=f'api/{self.api_version}/stats/bucket/{bucket_name}',
             query=query, trailing_slash=True
         )
+
+    def version_url(self):
+        return self.build_url(
+            path=f'api/{self.api_version}/version',
+            query=None, trailing_slash=True
+        )

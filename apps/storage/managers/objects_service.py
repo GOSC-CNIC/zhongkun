@@ -1,8 +1,12 @@
+from datetime import timedelta
+
 from django.utils.translation import gettext as _
+from django.utils import timezone as dj_timezone
 from django.db.models import Q
 
 from core import errors
 from apps.storage.models import ObjectsService
+from apps.storage.request import request_service as storage_request_service
 
 
 class ObjectsServiceManager:
@@ -78,3 +82,18 @@ class ObjectsServiceManager:
             return self.get_service_queryset()
 
         return self.get_all_has_perm_service(user=user)
+
+    @staticmethod
+    def update_service_version(service: ObjectsService):
+        try:
+            nt = dj_timezone.now()
+            if not service.version_update_time or (nt - service.version_update_time) > timedelta(minutes=1):
+                r = storage_request_service(service=service, method='get_version')
+                if r.version:
+                    service.version = r.version
+                    service.version_update_time = nt
+                    service.save(update_fields=['version', 'version_update_time'])
+        except Exception as exc:
+            return exc
+
+        return True

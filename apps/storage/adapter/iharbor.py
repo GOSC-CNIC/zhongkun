@@ -246,3 +246,16 @@ class IHarborClient:
             error = errors.APIException(message=msg, status_code=r.status_code, code=err_code)
 
         return OutputConverter.to_bucket_stats_output_error(error)
+
+    def get_version(self):
+        url = self.api_builder.version_url()
+        try:
+            headers = self.get_auth_header()
+            r = self.do_request(
+                method='get', url=url, ok_status_codes=[200], headers=headers
+            )
+        except errors.Error as e:
+            return outputs.VersionOutput(ok=False, error=e, version='')
+
+        if r.status_code == 200:
+            return outputs.VersionOutput(ok=True, error=None, version=r.json().get('version', ''))

@@ -59,6 +59,7 @@ class ObjectsServiceSerializer(serializers.Serializer):
     #     label=_('对应loki日志中集群标识'), max_length=128,
     #     help_text=_('服务单元在Loki访问日志中对应的对象存储集群标识，用于计量网络流量、请求量等信息时标识对应关系'))
     version = serializers.CharField(max_length=32, label=_('版本号'))
+    version_update_time = serializers.DateTimeField(label=_('版本号更新时间'))
 
     @staticmethod
     def get_ftp_domains(obj):

@@ -1,7 +1,7 @@
 from django.utils.translation import gettext_lazy, gettext as _
 from django.db.models import Sum, Count
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.serializers import Serializer
+from rest_framework.serializers import Serializer, DateTimeField as DRFDateTimeField
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from drf_yasg.utils import swagger_auto_schema
@@ -88,7 +88,8 @@ class ObjectsServiceViewSet(StorageGenericViewSet):
                         "name_en": "xxx",
                     }
                   },
-                  "version": "v4.1.1"
+                  "version": "v4.1.1",
+                  "version_update_time": "2024-05-14T01:46:17.817050Z"  # 可能为空
                 }
               ]
             }
@@ -185,7 +186,8 @@ class ObjectsServiceViewSet(StorageGenericViewSet):
                         "name_en": "xxx",
                     }
                   },
-                  "version": "v4.1.1"
+                  "version": "v4.1.1",
+                  "version_update_time": "2024-05-14T01:46:17.817050Z"  # 可能为空
                 }
               ]
             }
@@ -215,6 +217,43 @@ class ObjectsServiceViewSet(StorageGenericViewSet):
             return self.get_paginated_response(data=serializer.data)
         except Exception as exc:
             return self.exception_response(exc)
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询服务单元版本号'),
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['get'], detail=True, url_path='version', url_name='version')
+    def update_get_version(self, request, *args, **kwargs):
+        """
+        查询服务单元版本号
+
+            http code 200:
+            {
+              "version": "4.2.1",   # 可能为空字符串
+              "version_update_time": "2024-05-14T01:46:17.817050Z"  # 可能为空
+            }
+        """
+        try:
+            service = ObjectsServiceManager.get_service_by_id(_id=kwargs.get(self.lookup_field))
+            if service is None:
+                raise errors.ServiceNotExist(message=_('服务单元不存在'))
+
+            if (
+                    service.status == ObjectsService.Status.ENABLE.value
+                    and service.service_type == ObjectsService.ServiceType.IHARBOR.value
+            ):
+                ok_or_exc = ObjectsServiceManager.update_service_version(service=service)
+                if ok_or_exc is not True:
+                    raise ok_or_exc
+        except errors.Error as exc:
+            return self.exception_response(exc)
+
+        return Response(data={
+            'version': service.version,
+            'version_update_time': DRFDateTimeField().to_representation(service.version_update_time)
+        }, status=200)
 
     def get_serializer_class(self):
         if self.action in ['list', 'admin_list']:
