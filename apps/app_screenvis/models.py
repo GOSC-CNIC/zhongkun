@@ -1,5 +1,4 @@
 from datetime import datetime
-import ipaddress
 
 from django.db import models
 from django.utils.translation import gettext, gettext_lazy as _
@@ -8,7 +7,6 @@ from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 
 from utils.model import UuidModel, get_encryptor
-from utils.iprestrict import convert_iprange
 
 
 class ScreenConfig(models.Model):
