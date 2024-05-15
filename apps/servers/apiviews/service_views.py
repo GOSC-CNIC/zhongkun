@@ -1,4 +1,4 @@
-from django.utils.translation import gettext_lazy
+from django.utils.translation import gettext_lazy, gettext as _
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -424,8 +424,10 @@ class ServiceViewSet(CustomGenericViewSet):
             }
         """
         try:
-            service = handlers.VmServiceHandler.get_user_perm_service(
-                _id=kwargs.get(self.lookup_field), user=request.user)
+            service = ServiceManager.get_service_by_id(_id=kwargs.get(self.lookup_field))
+            if service is None:
+                raise exceptions.ServiceNotExist(message=_('服务单元不存在'))
+
             if (
                     service.status == ServiceConfig.Status.ENABLE.value
                     and service.service_type == ServiceConfig.ServiceType.EVCLOUD.value

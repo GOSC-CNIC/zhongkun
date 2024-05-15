@@ -405,18 +405,9 @@ class ServiceTests(MyAPITestCase):
 
         url = reverse('servers-api:service-version', kwargs={'id': self.service.id})
         response = self.client.get(url)
-        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
-
-        self.service.users.add(self.user)
-        response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["version", "version_update_time"], response.data)
 
-        # 数据中心管理员
         url = reverse('servers-api:service-version', kwargs={'id': service2.id})
-        response = self.client.get(url)
-        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
-
-        self.service.org_data_center.users.add(self.user)
         response = self.client.get(url)
         self.assertEqual(response.status_code, 401)
