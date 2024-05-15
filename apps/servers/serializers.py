@@ -331,6 +331,7 @@ class ServiceSerializer(serializers.Serializer):
     disk_available = serializers.BooleanField(label=_('提供云硬盘服务'))
     only_admin_visible = serializers.BooleanField(label=_('仅管理员可见'))
     version = serializers.CharField(max_length=32, label=_('版本号'))
+    version_update_time = serializers.DateTimeField()
 
     @staticmethod
     def get_org_data_center(obj):
