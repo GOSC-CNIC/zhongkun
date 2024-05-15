@@ -1,6 +1,5 @@
 from django.urls import reverse
 from django.conf import settings
-from apps.app_global.models import IPAccessWhiteList
 from utils.test import get_or_create_user
 from utils.test import MyAPITestCase
 from utils.test import MyAPITransactionTestCase
@@ -9,6 +8,7 @@ from apps.app_netflow.models import GlobalAdminModel
 from apps.app_netflow.models import ChartModel
 from apps.app_netflow.models import Menu2Chart
 from apps.app_netflow.models import Menu2Member
+from apps.app_netflow.permission import NetFlowAPIIPRestrictor
 
 
 class GlobalAdministratorTests(MyAPITransactionTestCase):
@@ -174,11 +174,9 @@ class GlobalAdministratorTests(MyAPITransactionTestCase):
             inviter="test@cnic.cn",
         )
         # 添加ip 白名单
+        NetFlowAPIIPRestrictor.add_ip_rule(ip_value='127.0.0.1')
+        NetFlowAPIIPRestrictor.clear_cache()    # 有缓存，需要清除缓存
 
-        IPAccessWhiteList.objects.create(
-            module_name=IPAccessWhiteList.ModuleName.NETFLOW,
-            ip_value='127.0.0.1',
-        )
 
 class GlobalAdministratorListTests(GlobalAdministratorTests):
     """
