@@ -358,3 +358,33 @@ class ServerServiceLog(ServiceUserOperateLog):
         ordering = ['-creation_time']
         verbose_name = _('云主机服务单元用户操作日志')
         verbose_name_plural = verbose_name
+
+
+class HostNetflow(UuidModel):
+    """
+    主机指标单元网络流量
+    """
+    timestamp = models.PositiveBigIntegerField(null=False, blank=False, verbose_name="统计时间")
+    unit = models.ForeignKey(
+        to=MetricMonitorUnit, verbose_name=_('指标单元ID'), on_delete=models.DO_NOTHING, null=True, blank=False,
+        db_constraint=False, db_index=False)
+    flow_in = models.FloatField(verbose_name=_('进流量(B/s)'), help_text=_('负数标识数据无效（查询失败的占位记录，便于后补）'))
+    flow_out = models.FloatField(verbose_name=_('出流量(B/s)'), help_text=_('负数标识数据无效（查询失败的占位记录，便于后补）'))
+
+    class Meta:
+        db_table = 'screenvis_hostnetflow'
+        ordering = ['-timestamp']
+        verbose_name = _('主机指标单元网络流量')
+        verbose_name_plural = verbose_name
+        indexes = [
+            models.Index(fields=['timestamp'], name='idx_screen_netflow_ts')
+        ]
+
+    def __str__(self):
+        return f'{self.id}(flow in {self.flow_in}, out {self.flow_out}, {self.timestamp})'
+
+    def clean(self):
+        try:
+            datetime.fromtimestamp(self.timestamp, tz=dj_timezone.get_default_timezone())
+        except Exception as exc:
+            raise ValidationError({'timestamp': f'无效的时间戳，{str(exc)}，当前时间戳为:{int(dj_timezone.now().timestamp())}'})

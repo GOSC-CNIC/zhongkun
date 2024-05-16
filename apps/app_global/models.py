@@ -18,9 +18,10 @@ class TimedTaskLock(UuidModel):
         SCAN = 'scan', _('安全扫描')
         SCREEN_HOST_CPUUSAGE = 'screen_host_cpuusage', _('大屏展示主机CPU使用率')
         SCREEN_SERVICE_STATS = 'screen_service_stats', _('大屏展示服务单元统计数据')
+        SCREEN_USER_OPERATE_LOG = 'scree_user_operate_log', _('大屏展示用户操作日志')
+        SCREEN_HOST_NETFLOW = 'screen_host_netflow', _('大屏展示主机单元网络流量')
         ALERT_EMAIL = 'alert_email', _('告警邮件通知')
         ALERT_DINGTALK = 'alert_dingtalk', _('告警钉钉通知')
-        SCREEN_USER_OPERATE_LOG = 'scree_user_operate_log', _('大屏展示用户操作日志')
 
     class Status(models.TextChoices):
         NONE = 'none', _('无')

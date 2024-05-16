@@ -11,7 +11,7 @@ from utils.model import BaseModelAdmin
 from .models import (
     ScreenConfig, DataCenter, MetricMonitorUnit, LogMonitorUnit, HostCpuUsage,
     ServerService, ObjectService, ServerServiceTimedStats, ObjectServiceTimedStats, VPNTimedStats,
-    ObjectServiceLog, ServerServiceLog
+    ObjectServiceLog, ServerServiceLog, HostNetflow
 )
 
 
@@ -239,3 +239,19 @@ class ServerServiceLogAdmin(BaseModelAdmin):
     list_display = ('id', 'username', 'content', 'creation_time', 'create_time')
     search_fields = ['username', 'content']
     list_filter = ['service_cell']
+
+
+@admin.register(HostNetflow)
+class HostNetflowAdmin(BaseModelAdmin):
+    list_display = ('id', 'timestamp', 'show_time', 'unit', 'flow_in', 'flow_out')
+    list_display_links = ('id',)
+    list_select_related = ('unit',)
+
+    @admin.display(description=gettext_lazy("统计时间"))
+    def show_time(self, obj):
+        try:
+            dt = datetime.fromtimestamp(obj.timestamp, tz=dj_timezone.get_default_timezone())
+        except Exception as exc:
+            return ''
+
+        return dt.isoformat(sep=' ')
