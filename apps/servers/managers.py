@@ -1,3 +1,4 @@
+from typing import Dict
 from decimal import Decimal
 from datetime import timedelta
 
@@ -154,6 +155,31 @@ class ServiceManager:
             return exc
 
         return True
+
+    @staticmethod
+    def get_service_admins_map(service_ids: list) -> Dict[str, Dict[str, Dict]]:
+        """
+        服务单元管理员，不包含数据中心管理员
+
+        :return:{
+            service_id: {
+                "user_id": {"id": "xx", "username": "xxx"}
+            }
+        }
+        """
+        queryset = ServiceConfig.users.through.objects.filter(
+            serviceconfig_id__in=service_ids
+        ).values('serviceconfig_id', 'userprofile_id', 'userprofile__username')
+        service_admins_amp = {}
+        for i in queryset:
+            sv_id = i['serviceconfig_id']
+            user_info = {'id': i['userprofile_id'], 'username': i['userprofile__username']}
+            if sv_id in service_admins_amp:
+                service_admins_amp[sv_id][user_info['id']] = user_info
+            else:
+                service_admins_amp[sv_id] = {user_info['id']: user_info}
+
+        return service_admins_amp
 
 
 class ServerManager:

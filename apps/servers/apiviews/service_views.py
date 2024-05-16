@@ -9,6 +9,7 @@ from drf_yasg import openapi
 
 from apps.api.viewsets import CustomGenericViewSet
 from apps.api.paginations import DefaultPageNumberPagination
+from apps.service.odc_manager import OrgDataCenterManager
 from apps.servers.managers import ServiceManager
 from apps.servers.models import ServiceConfig
 from apps.servers.handlers import service_handlers as handlers
@@ -223,7 +224,8 @@ class ServiceViewSet(CustomGenericViewSet):
                   "sort_weight": 8,
                   "disk_available": true    # true: 提供云硬盘服务; false: 云硬盘服务不可用
                   "only_admin_visible": false,   # 是否仅管理员可见
-                  "version": "v4.1.0"
+                  "version": "v4.1.0",
+                  "version_update_time": "2024-05-14T01:46:17.817050Z"  # 可能为空
                 }
               ]
             }
@@ -233,6 +235,15 @@ class ServiceViewSet(CustomGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举用户有管理权限的服务'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='with_admin_users',
+                type=openapi.TYPE_STRING,
+                in_=openapi.IN_QUERY,
+                required=False,
+                description=gettext_lazy('要求返回数据包含管理员信息，此参数不需要值')
+            )
+        ],
         responses={
             status.HTTP_200_OK: ''
         }
@@ -241,9 +252,52 @@ class ServiceViewSet(CustomGenericViewSet):
     def admin_list(self, request, *args, **kwargs):
         """
         列举用户有管理权限的服务
+
+        Http Code: 状态码200，返回数据：
+            {
+              "count": 1,
+              "next": null,
+              "previous": null,
+              "results": [
+                {
+                  "id": 9c70cbe2-690c-11eb-a4b7-c8009fe2eb10,
+                  "name": "vmware(10.0.200.243)",
+                  "name_en": "string",
+                  "service_type": "vmware",
+                  "cloud_type": "private",
+                  "add_time": "2020-10-16T09:01:44.402955Z",
+                  "need_vpn": false,
+                  "status": "enable",              # enable: 开启状态；disable: 停止服务状态; deleted: 删除
+                  "org_data_center": {      # maybe null
+                    "id": 3,
+                    "name": "VMware测试中心",
+                    "name_en": "xxx",
+                    "sort_weight": 6,
+                    "organization": {       # maybe null
+                        "id": 3,
+                        "name": "VMware机构",
+                        "name_en": "xxx",
+                    }
+                  },
+                  "longitude": 0,
+                  "latitude": 0,
+                  "pay_app_service_id": "xxx",      # 通过此id可以查询在余额结算系统中此服务可用的券
+                  "sort_weight": 8,
+                  "disk_available": true    # true: 提供云硬盘服务; false: 云硬盘服务不可用
+                  "only_admin_visible": false,   # 是否仅管理员可见
+                  "version": "v4.1.0",
+                  "version_update_time": "2024-05-14T01:46:17.817050Z",  # 可能为空
+                  "admin_users":[   #
+                    {"id": "xxx", "username": "xxxx"}
+                  ]
+                }
+              ]
+            }
         """
+        with_admin_users = request.query_params.get('with_admin_users', None)
+        with_admin_users = with_admin_users is not None
         service_qs = ServiceManager().get_has_perm_service(user=request.user)
-        return self.paginate_service_response(request=request, qs=service_qs)
+        return self.paginate_service_response(request=request, qs=service_qs, with_admin_users=with_admin_users)
 
     @action(methods=[], detail=True, url_path='p-quota', url_name='private-quota')
     def private_quota(self, request, *args, **kwargs):
@@ -443,17 +497,52 @@ class ServiceViewSet(CustomGenericViewSet):
             'version_update_time': DRFDateTimeField().to_representation(service.version_update_time)
         }, status=200)
 
-    def paginate_service_response(self, request, qs):
+    def paginate_service_response(self, request, qs, with_admin_users: bool = False):
         paginator = self.paginator
         try:
-            quotas = paginator.paginate_queryset(request=request, queryset=qs)
-            serializer = serializers.ServiceSerializer(quotas, many=True)
+            services = paginator.paginate_queryset(request=request, queryset=qs)
+            if with_admin_users:
+                self.services_mixin_admins(services=services)
+                serializer = serializers.ServiceAdminSerializer(services, many=True)
+            else:
+                serializer = serializers.ServiceSerializer(services, many=True)
+
             response = paginator.get_paginated_response(data=serializer.data)
         except Exception as exc:
             err = exceptions.APIException(message=str(exc))
             return Response(err.err_data(), status=err.status_code)
 
         return response
+
+    @staticmethod
+    def services_mixin_admins(services: list):
+        """
+        给服务单元添加管理员列表属性
+        """
+        service_ids = []
+        odc_ids = []
+        for sv in services:
+            service_ids.append(sv.id)
+            if sv.org_data_center_id not in odc_ids:
+                odc_ids.append(sv.org_data_center_id)
+
+        service_admins_map = {}
+        if service_ids:
+            service_admins_map = ServiceManager.get_service_admins_map(service_ids=service_ids)
+
+        odc_admins_map = {}
+        if odc_ids:
+            odc_admins_map = OrgDataCenterManager.get_odc_admins_map(odc_ids=odc_ids)
+
+        for sv in services:
+            user_dict = {}
+            if sv.org_data_center_id in odc_admins_map:
+                user_dict.update(odc_admins_map[sv.org_data_center_id])
+
+            if sv.id in service_admins_map:
+                user_dict.update(service_admins_map[sv.id])
+
+            sv.admin_users = list(user_dict.values())
 
     def get_serializer_class(self):
         if self.action == 'change_private_quota':

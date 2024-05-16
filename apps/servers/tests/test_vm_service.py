@@ -315,17 +315,21 @@ class ServiceTests(MyAPITestCase):
         self.assertEqual(response.data['count'], 0)
 
         self.service.users.add(self.user)
-        response = self.client.get(url)
+        query = parse.urlencode(query={'with_admin_users': ''})
+        response = self.client.get(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "next", "previous", "results"], response.data)
         self.assertKeysIn(["id", "name", "name_en", "service_type", "cloud_type", "add_time", "sort_weight",
                            "need_vpn", "status", "org_data_center", 'longitude', 'latitude', 'pay_app_service_id',
-                           'disk_available', 'only_admin_visible', 'version', 'version_update_time'
+                           'disk_available', 'only_admin_visible', 'version', 'version_update_time', 'admin_users'
                            ], response.data["results"][0])
         self.assertKeysIn([
             "id", "name", "name_en", "sort_weight", "organization"], response.data["results"][0]['org_data_center'])
         self.assertKeysIn(["id", "name", "name_en"], response.data["results"][0]['org_data_center']['organization'])
         self.assertIsInstance(response.data["results"][0]['status'], str)
+        self.assertEqual(len(response.data["results"][0]['admin_users']), 1)
+        self.assertEqual(response.data["results"][0]['admin_users'][0]['id'], self.user.id)
+        self.assertEqual(response.data["results"][0]['admin_users'][0]['username'], self.user.username)
 
         # 数据中心管理员
         self.service.users.remove(self.user)
@@ -337,12 +341,23 @@ class ServiceTests(MyAPITestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 1)
+        self.assertNotIn('admin_users', response.data["results"][0])
+
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data["results"][0]['admin_users']), 1)
+        self.assertEqual(response.data["results"][0]['admin_users'][0]['id'], self.user.id)
+        self.assertEqual(response.data["results"][0]['admin_users'][0]['username'], self.user.username)
 
         # 同为数据中心和服务单元管理员
         self.service.users.add(self.user)
-        response = self.client.get(url)
+        response = self.client.get(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data["results"][0]['admin_users']), 1)
+        self.assertEqual(response.data["results"][0]['admin_users'][0]['id'], self.user.id)
+        self.assertEqual(response.data["results"][0]['admin_users'][0]['username'], self.user.username)
 
     def service_quota_get_update(self, url):
         # get

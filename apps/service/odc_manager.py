@@ -1,4 +1,4 @@
-from typing import Union, List
+from typing import Union, List, Dict
 
 from django.utils.translation import gettext as _
 from django.db.models import Q
@@ -408,3 +408,28 @@ class OrgDataCenterManager:
     @staticmethod
     def get_admin_perm_odc_ids(user_id: str):
         return OrgDataCenter.objects.filter(users__id=user_id).distinct().values_list('id', flat=True)
+
+    @staticmethod
+    def get_odc_admins_map(odc_ids: list) -> Dict[str, Dict[str, Dict]]:
+        """
+        数据中心管理员关系
+
+        :return:{
+            odc_id: {
+                "user_id": {"id": "xx", "username": "xxx"}
+            }
+        }
+        """
+        queryset = OrgDataCenter.users.through.objects.filter(
+            orgdatacenter_id__in=odc_ids
+        ).values('orgdatacenter_id', 'userprofile_id', 'userprofile__username')
+        odc_admins_amp = {}
+        for i in queryset:
+            odc_id = i['orgdatacenter_id']
+            user_info = {'id': i['userprofile_id'], 'username': i['userprofile__username']}
+            if odc_id in odc_admins_amp:
+                odc_admins_amp[odc_id][user_info['id']] = user_info
+            else:
+                odc_admins_amp[odc_id] = {user_info['id']: user_info}
+
+        return odc_admins_amp

@@ -351,3 +351,11 @@ class ServiceSerializer(serializers.Serializer):
             }
 
         return data
+
+
+class ServiceAdminSerializer(ServiceSerializer):
+    admin_users = serializers.SerializerMethodField(label=_('服务单元管理员'), method_name='get_admin_users')
+
+    @staticmethod
+    def get_admin_users(obj):
+        return obj.admin_users
