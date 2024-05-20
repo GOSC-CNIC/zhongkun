@@ -59,7 +59,19 @@ class ServiceManager:
         :param status: 服务单元服务状态
         """
         queryset = ServiceConfig.objects.select_related('org_data_center', 'org_data_center__organization').all()
+        queryset = ServiceManager.filter_service_queryset(
+            queryset=queryset, org_id=org_id, center_id=center_id, status=status)
 
+        return queryset.order_by('-add_time')
+
+    @staticmethod
+    def filter_service_queryset(queryset, org_id: str, center_id: str, status: str):
+        """
+        :param queryset:
+        :param org_id: 机构id
+        :param center_id: 机构数据中心
+        :param status: 服务单元服务状态
+        """
         if status:
             queryset = queryset.filter(status=status)
 
@@ -69,7 +81,18 @@ class ServiceManager:
         if org_id:
             queryset = queryset.filter(org_data_center__organization_id=org_id)
 
-        return queryset.order_by('-add_time')
+        return queryset
+
+    @staticmethod
+    def admin_list_service_queryset(admin_user, org_id: str, center_id: str, status: str):
+        if admin_user.is_federal_admin():
+            service_qs = ServiceManager().filter_service(org_id=org_id, center_id=center_id, status=status)
+        else:
+            service_qs = ServiceManager().get_has_perm_service(user=admin_user)
+            service_qs = ServiceManager.filter_service_queryset(
+                queryset=service_qs, org_id=org_id, center_id=center_id, status=status)
+
+        return service_qs.order_by('-add_time')
 
     @staticmethod
     def _get_perm_service_qs(user_id: str):

@@ -137,6 +137,8 @@ class VmServiceHandler:
         org_id = request.query_params.get('org_id', None)
         center_id = request.query_params.get('center_id', None)
         status = request.query_params.get('status', None)
+        with_admin_users = request.query_params.get('with_admin_users', None)
+        with_admin_users = with_admin_users is not None
 
         if status is not None:
             if status not in ServiceConfig.Status.values:
@@ -144,8 +146,14 @@ class VmServiceHandler:
                     exceptions.InvalidArgument(message=_('服务单元服务状态查询参数值无效'), code='InvalidStatus')
                 )
 
-        service_qs = ServiceManager().filter_service(org_id=org_id, center_id=center_id, status=status)
-        return view.paginate_service_response(request=request, qs=service_qs)
+        if view.is_as_admin_request(request):
+            service_qs = ServiceManager.admin_list_service_queryset(
+                admin_user=request.user, org_id=org_id, center_id=center_id, status=status)
+        else:
+            with_admin_users = False
+            service_qs = ServiceManager().filter_service(org_id=org_id, center_id=center_id, status=status)
+
+        return view.paginate_service_response(request=request, qs=service_qs, with_admin_users=with_admin_users)
 
 
 class ServiceQuotaHandler:

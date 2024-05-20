@@ -161,7 +161,7 @@ class ServiceViewSet(CustomGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举已接入的服务'),
-        manual_parameters=[
+        manual_parameters=CustomGenericViewSet.PARAMETERS_AS_ADMIN + [
             openapi.Parameter(
                 name='org_id',
                 in_=openapi.IN_QUERY,
@@ -182,6 +182,13 @@ class ServiceViewSet(CustomGenericViewSet):
                 type=openapi.TYPE_STRING,
                 required=False,
                 description=f'查询条件，服务单元服务状态, {ServiceConfig.Status.choices}'
+            ),
+            openapi.Parameter(
+                name='with_admin_users',
+                type=openapi.TYPE_STRING,
+                in_=openapi.IN_QUERY,
+                required=False,
+                description=gettext_lazy('要求返回数据包含管理员信息，此参数不需要值')
             )
         ],
         responses={
@@ -192,6 +199,7 @@ class ServiceViewSet(CustomGenericViewSet):
         """
         列举已接入的服务
 
+            * 参数 with_admin_users 仅在管理员身份请求时有效
             Http Code: 状态码200，返回数据：
             {
               "count": 1,
@@ -225,7 +233,10 @@ class ServiceViewSet(CustomGenericViewSet):
                   "disk_available": true    # true: 提供云硬盘服务; false: 云硬盘服务不可用
                   "only_admin_visible": false,   # 是否仅管理员可见
                   "version": "v4.1.0",
-                  "version_update_time": "2024-05-14T01:46:17.817050Z"  # 可能为空
+                  "version_update_time": "2024-05-14T01:46:17.817050Z",  # 可能为空
+                  "admin_users":[   # when query with "with_admin_users"
+                    {"id": "xxx", "username": "xxxx"}
+                  ]
                 }
               ]
             }

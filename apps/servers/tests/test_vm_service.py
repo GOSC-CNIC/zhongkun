@@ -304,6 +304,29 @@ class ServiceTests(MyAPITestCase):
         self.assertEqual(response.data['results'][0]['id'], service2.id)
         self.assertEqual(response.data['results'][0]['status'], ServiceConfig.Status.DELETED.value)
 
+        # as-admin
+        service2.status = ServiceConfig.Status.ENABLE.value
+        service2.save(update_fields=['status'])
+
+        query = parse.urlencode(query={'as-admin': ''})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 0)
+
+        service2.users.add(self.user)
+        # self.service.org_data_center.users.add(self.user)
+        query = parse.urlencode(query={'as-admin': ''})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 1)
+        self.assertNotIn('admin_users', response.data["results"][0])
+
+        query = parse.urlencode(query={'as-admin': '', 'with_admin_users': ''})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 1)
+        self.assertIn('admin_users', response.data["results"][0])
+
     def test_admin_list(self):
         service2 = ServiceConfig(name='service2', name_en='service2 en', org_data_center=None)
         service2.save(force_insert=True)
