@@ -8,7 +8,7 @@ from drf_yasg import openapi
 
 from apps.app_screenvis.managers import HostQueryChoices, MetricQueryManager
 from apps.app_screenvis.utils import errors
-from apps.app_screenvis.models import MetricMonitorUnit, HostCpuUsage
+from apps.app_screenvis.models import MetricMonitorUnit, HostCpuUsage, HostNetflow
 from apps.app_screenvis.permissions import ScreenAPIIPPermission
 from . import NormalGenericViewSet
 
@@ -219,6 +219,106 @@ class MetricHostViewSet(NormalGenericViewSet):
             lookups['timestamp__lte'] = timestamp
 
         qs = HostCpuUsage.objects.filter(**lookups).order_by('-timestamp')
+        return qs[0:limit]
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询主机单元网络流量时序数据'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='unit_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description=_('主机指标单元id, 查询指定主机集群')
+            ),
+            openapi.Parameter(
+                name='time',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                required=False,
+                description=_('从指定时间戳向前查询数据，默认为当前时间')
+            ),
+            openapi.Parameter(
+                name='limit',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                required=False,
+                description=_('指定查询最大数据量，默认200，范围1-2000')
+            )
+        ],
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['get'], detail=False, url_path='query/netflow', url_name='query-netflow')
+    def query_netflow(self, request, *args, **kwargs):
+        """
+        查询主机单元网络流量时序数据
+
+            Http Code 200:
+            {
+                "results": {
+                    {
+                        "id": "dghrt34ehewwfdw",
+                        "timestamp": 1446758567,
+                        "flow_in": 2442.3456,   # B/s
+                        "flow_out": 5252.654,   # B/s
+                        "unit_id": 1
+                      }
+                ]
+            }
+        """
+        unit_id = request.query_params.get('unit_id', None)
+        timestamp = request.query_params.get('time', None)
+        limit = request.query_params.get('limit', None)
+
+        if unit_id:
+            try:
+                unit_id = int(unit_id)
+            except ValueError:
+                return self.exception_response(errors.InvalidArgument(message=_('指定监控单元id无效')))
+
+        if timestamp:
+            try:
+                timestamp = int(timestamp)
+                if timestamp < 0:
+                    raise ValueError('时间戳不能为负数')
+            except ValueError:
+                return self.exception_response(errors.InvalidArgument(message=_('指定时间戳无效')))
+
+        if limit:
+            try:
+                limit = int(limit)
+                if limit < 1 or limit > 2000:
+                    raise ValueError
+            except ValueError:
+                return self.exception_response(errors.InvalidArgument(message=_('指定查询数据量范围为1-2000')))
+        else:
+            limit = 200
+
+        try:
+            qs = self.filter_netflow_qs(unit_id=unit_id, timestamp=timestamp, limit=limit)
+            data = []
+            for obj in qs:
+                data.insert(0, {
+                    'id': obj.id, 'unit_id': obj.unit_id, 'timestamp': obj.timestamp,
+                    'flow_in': obj.flow_in, 'flow_out': obj.flow_out
+                })
+        except errors.Error as exc:
+            return self.exception_response(exc)
+
+        return Response(data={'results': data}, status=200)
+
+    @staticmethod
+    def filter_netflow_qs(unit_id: int, timestamp: int, limit: int):
+        lookups = {'flow_in__gte': 0, 'flow_out__gte': 0}
+        if unit_id:
+            lookups['unit_id'] = unit_id
+
+        if timestamp:
+            lookups['timestamp__lte'] = timestamp
+
+        qs = HostNetflow.objects.filter(**lookups).order_by('-timestamp')
         return qs[0:limit]
 
     def get_serializer_class(self):
