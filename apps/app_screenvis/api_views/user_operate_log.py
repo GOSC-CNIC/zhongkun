@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-from apps.api.paginations import NewPageNumberPagination100
+from apps.app_screenvis.paginations import NewPageNumberPagination100
 from apps.app_screenvis.utils import errors
 from apps.app_screenvis.models import ServerServiceLog, ObjectServiceLog
 from apps.app_screenvis.permissions import ScreenAPIIPPermission
