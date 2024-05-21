@@ -4,24 +4,85 @@ from django.utils.translation import gettext_lazy as _
 
 
 # Create your models here.
+class AlertWorkOrder(UuidModel):
+    """
+    告警工单
+    """
+
+    class OrderStatus(models.TextChoices):
+        MISREPORT = '误报', _('误报')
+        FINISHED = '已完成', _('已完成')
+        IGNORE = '无需处理', _('无需处理')
+
+    status = models.CharField(max_length=10,
+                              default=OrderStatus.IGNORE.value,
+                              choices=OrderStatus.choices,
+                              verbose_name=_("状态"))
+    remark = models.TextField(default="", verbose_name=_('备注'))
+    creator = models.ForeignKey(null=False,
+                                to="users.UserProfile",
+                                on_delete=models.DO_NOTHING,
+                                related_name="work_order",
+                                verbose_name=_('创建者'))
+    creation = models.PositiveBigIntegerField(null=True, verbose_name=_('创建时间'))
+    modification = models.PositiveBigIntegerField(null=True, verbose_name=_('更新时间'))
+
+    class Meta:
+        db_table = "alert_work_order"
+        ordering = ['-creation']
+        verbose_name = _("告警工单")
+        verbose_name_plural = verbose_name
+
 
 class AlertAbstractModel(UuidModel):
     fingerprint = models.CharField(blank=False, unique=True, db_index=True, max_length=40, verbose_name=_('指纹'))
     name = models.CharField(max_length=100, verbose_name=_('名称'))
-    type = models.CharField(max_length=255, verbose_name=_('类型'))
+
+    class AlertType(models.TextChoices):
+        METRIC = 'metric', _('指标类')
+        LOG = 'log', _('日志类')
+        WEBMONITOR = 'webmonitor', _('网站监控')
+
+    type = models.CharField(max_length=64, choices=AlertType.choices, db_index=True, verbose_name=_('类型'))
     instance = models.CharField(null=False, default="", db_index=True, max_length=100, verbose_name=_('告警实例'))
     port = models.CharField(null=False, default="", db_index=True, max_length=100, verbose_name=_('告警端口'))
     cluster = models.CharField(db_index=True, max_length=50, verbose_name=_('集群名称'))
-    severity = models.CharField(max_length=50, verbose_name=_('级别'))
+
+    class AlertSeverity(models.TextChoices):
+        WARNING = 'warning', _('警告')
+        ERROR = 'error', _('错误')
+        CRITICAL = 'critical', _('严重错误')
+
+    severity = models.CharField(max_length=50, choices=AlertSeverity.choices, db_index=True, verbose_name=_('级别'))
     summary = models.TextField(null=False, blank=False, verbose_name=_('摘要'))
     description = models.TextField(null=False, blank=False, verbose_name=_('详情'))
     start = models.PositiveBigIntegerField(db_index=True, verbose_name=_('告警开始时间'))
-    end = models.PositiveBigIntegerField(null=True, db_index=True, verbose_name=_('告警结束时间'))
+    end = models.PositiveBigIntegerField(null=True, db_index=True, verbose_name=_('告警预结束时间'))
+    recovery = models.PositiveBigIntegerField(null=True, verbose_name=_('恢复时间'))
+
+    class AlertStatus(models.TextChoices):
+        FIRING = 'firing', _('进行中')
+        RESOLVED = 'resolved', _('已恢复')
+
+    status = models.CharField(max_length=20,
+                              null=False,
+                              default=AlertStatus.FIRING.value,
+                              choices=AlertStatus.choices,
+                              verbose_name=_("告警状态"))
+    order = models.ForeignKey(
+        null=True,
+        to='AlertWorkOrder',
+        on_delete=models.SET_NULL,
+        verbose_name=_('工单'),
+        related_name='+',
+        db_constraint=False
+    )
+
     count = models.PositiveBigIntegerField(null=False, default=1, verbose_name=_('累加条数'))
+    creation = models.FloatField(null=False, db_index=True, verbose_name=_('创建时间'))
+    modification = models.PositiveBigIntegerField(null=True, verbose_name=_('更新时间'))
     first_notification = models.PositiveBigIntegerField(null=True, verbose_name=_('首次通知时间'))
     last_notification = models.PositiveBigIntegerField(null=True, verbose_name=_('上次通知时间'))
-    creation = models.PositiveBigIntegerField(null=True, verbose_name=_('创建时间'))
-    modification = models.PositiveBigIntegerField(null=True, verbose_name=_('更新时间'))
 
     class Meta:
         abstract = True
@@ -29,66 +90,43 @@ class AlertAbstractModel(UuidModel):
 
 class PreAlertModel(AlertAbstractModel):
     """
-    需要预处理的告警
+    预处理告警
     如网站类 多个探针同时告警则判定为告警
     """
 
     class Meta:
         db_table = "alert_prepare"
-        ordering = ['-start']
+        ordering = ['-creation']
         verbose_name = _("预处理告警")
         verbose_name_plural = verbose_name
 
 
 class AlertModel(AlertAbstractModel):
     """
-    进行中的告警
+    进行中告警
     """
 
     class Meta:
         db_table = "alert_firing"
-        ordering = ['-start']
+        ordering = ['-creation']
         verbose_name = _("进行中告警")
         verbose_name_plural = verbose_name
 
 
 class ResolvedAlertModel(AlertAbstractModel):
     """
-    已恢复的告警
+    已恢复告警
     """
     fingerprint = models.CharField(blank=False, db_index=True, max_length=40, verbose_name=_('指纹'))
 
     class Meta:
         db_table = "alert_resolved"
-        ordering = ['-start']
+        ordering = ['-creation']
         verbose_name = _("已恢复告警")
         verbose_name_plural = verbose_name
         unique_together = (
             ('fingerprint', 'start'),
         )
-
-
-class AlertLifetimeModel(UuidModel):
-    """
-    告警的生命周期
-    end：最终的结束时间
-    PreAlertModel、 AlertModel、ResolvedAlertModel 中的end：预结束时间
-    """
-
-    class Status(models.TextChoices):
-        FIRING = 'firing', '进行中'
-        RESOLVED = 'resolved', '已恢复'
-        WORK_ORDER = 'work order', '工单处理'
-
-    status = models.CharField(max_length=20, null=False, choices=Status.choices, verbose_name=_("告警状态"))
-    start = models.PositiveBigIntegerField(null=True, db_index=True, verbose_name=_('告警开始时间'))
-    end = models.PositiveBigIntegerField(null=True, db_index=True, verbose_name=_('告警结束时间'))
-
-    class Meta:
-        db_table = "alert_lifetime"
-        ordering = ['-start']
-        verbose_name = _("告警生命周期")
-        verbose_name_plural = verbose_name
 
 
 class EmailNotification(UuidModel):
@@ -105,44 +143,6 @@ class EmailNotification(UuidModel):
         unique_together = (('alert', 'email', 'timestamp'),)
         verbose_name = _("邮件通知记录")
         verbose_name_plural = verbose_name
-
-
-class AlertWorkOrder(UuidModel):
-    """
-    告警工单
-    """
-    alert = models.OneToOneField(null=False,
-                                 to=AlertModel,
-                                 unique=True,
-                                 on_delete=models.DO_NOTHING,
-                                 related_name="work_order",
-                                 verbose_name=_('告警'))
-    creator = models.ForeignKey(null=False,
-                                to="users.UserProfile",
-                                on_delete=models.DO_NOTHING,
-                                related_name="work_order",
-                                verbose_name=_('创建者'))
-
-    class OrderStatus(models.TextChoices):
-        IGNORE = '无需处理', _('无需处理')
-        FINISHED = '已完成', _('已完成')
-        MISREPORT = '误报', _('误报')
-
-    collect = models.CharField(max_length=40, null=False, verbose_name=_("集合ID"))
-    status = models.CharField(max_length=10, default=OrderStatus.IGNORE.value, choices=OrderStatus.choices,
-                              verbose_name=_("状态"))
-    remark = models.TextField(default="", verbose_name=_('备注'))
-    creation = models.PositiveBigIntegerField(null=True, verbose_name=_('创建时间'))
-    modification = models.PositiveBigIntegerField(null=True, verbose_name=_('更新时间'))
-
-    class Meta:
-        db_table = "alert_work_order"
-        ordering = ['-creation']
-        verbose_name = _("告警工单")
-        verbose_name_plural = verbose_name
-        unique_together = (
-            ('collect', 'alert',),
-        )
 
 
 class AlertMonitorJobServer(UuidModel):

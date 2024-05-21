@@ -2,23 +2,18 @@ import copy
 import time
 from rest_framework.generics import GenericAPIView
 from django.utils.translation import gettext_lazy
-from apps.app_alert.filters import FiringAlterFilter, ResolvedAlterFilter, AlertFilterBackend, WorkOrderFilter
+from apps.app_alert.filters import AlterFilter, AlertFilterBackend, WorkOrderFilter
 from apps.app_alert.models import AlertModel
 from apps.app_alert.models import ResolvedAlertModel
 from apps.app_alert.models import AlertWorkOrder
-from apps.app_alert.models import AlertLifetimeModel
 from rest_framework.views import APIView
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.response import Response
 from apps.app_alert.handlers.receiver import AlertReceiver
-from apps.app_alert.serializers import ResolvedAlertModelSerializer
-from apps.app_alert.pagination import AlertCustomLimitOffset
 from apps.app_alert.pagination import LimitOffsetPage
+from apps.app_alert.pagination import CustomAlertCursorPagination
 from django_filters.rest_framework import DjangoFilterBackend
-from apps.app_alert.handlers.handlers import AlertQuerysetFilter
-from itertools import chain
-from apps.app_alert.handlers.handlers import AlertCleaner
 from apps.app_alert.handlers.handlers import AlertChoiceHandler
 from rest_framework.mixins import CreateModelMixin
 from apps.app_alert.serializers import WorkOrderSerializer
@@ -26,14 +21,17 @@ from apps.app_alert.serializers import NotificationModelSerializer
 from apps.app_alert.filters import WorkOrderFilter
 from rest_framework import status as status_code
 from rest_framework.exceptions import PermissionDenied
-from apps.app_alert.utils.utils import hash_md5
-from django.http import QueryDict
 from apps.app_alert.models import EmailNotification
 from django.db.models import Q
 from apps.app_alert.handlers.handlers import EmailNotificationCleaner
 from apps.app_alert.permission import ReceiverPermission
 from apps.app_alert.handlers.handlers import UserMonitorUnit
 from apps.app_alert.utils.utils import DateUtils
+from django.db.utils import IntegrityError
+from django.forms.models import model_to_dict
+from apps.app_alert.utils import errors
+from apps.app_alert.serializers import AlertModelSerializer
+from collections import OrderedDict
 
 
 # Create your views here.
@@ -62,13 +60,7 @@ class AlertReceiverAPIView(APIView):
         return Response({"status": "success"})
 
 
-class AlertAPIView(GenericAPIView):
-    queryset_list = [AlertModel.objects.all(), ResolvedAlertModel.objects.all()]  # firing + resolved
-    serializer_class = ResolvedAlertModelSerializer
-    filterset_classes = [FiringAlterFilter, ResolvedAlterFilter]  # 对应两个filter
-    pagination_class = AlertCustomLimitOffset  # 重写分页器
-    filterset_class = ResolvedAlterFilter
-    filter_backends = [DjangoFilterBackend]  # apidoc params
+class AlertGenericAPIView(APIView):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('查询告警列表'),
@@ -136,12 +128,12 @@ class AlertAPIView(GenericAPIView):
                               type=openapi.TYPE_STRING,
                               required=False,
                               description='来源'),
-            openapi.Parameter(name='offset',
+            openapi.Parameter(name='cursor',
                               in_=openapi.IN_QUERY,
                               type=openapi.TYPE_STRING,
                               required=False,
-                              description='查询偏移量'),
-            openapi.Parameter(name='limit',
+                              description='游标'),
+            openapi.Parameter(name='page_size',
                               in_=openapi.IN_QUERY,
                               type=openapi.TYPE_STRING,
                               required=False,
@@ -154,7 +146,7 @@ class AlertAPIView(GenericAPIView):
     )
     def get(self, request):
         """
-                查询异常告警（需要使用JWT）
+            查询告警列表
 
                     http code 200：
                     {
@@ -192,42 +184,43 @@ class AlertAPIView(GenericAPIView):
                             }]
                     }
                 """
-        queryset = self.filter_queryset(self.queryset_list)  # 两个 model 过滤后进行合并
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(AlertCleaner().clean(serializer.data))
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(AlertCleaner().clean(serializer.data))
+
+        # 进行中告警和已恢复告警
+        queryset_list = [AlertModel.objects.all(), ResolvedAlertModel.objects.all()]
+        queryset_list = self.filter_queryset(queryset_list)
+        page_data_list, previous_link, next_link, total_count = CustomAlertCursorPagination().paginate_queryset(
+            queryset_list, request, self)
+        serializer = AlertModelSerializer(page_data_list, many=True)
+        return Response(OrderedDict([
+            ('count', total_count),
+            ('previous', previous_link),
+            ('next', next_link),
+            ('results', serializer.data)
+        ]))
 
     def filter_queryset(self, queryset_list):
-        queryset_list = AlertQuerysetFilter(request=self.request).filter()
+        # 通过用户权限过滤queryset
+        queryset_list = self.filter_by_user_permission(queryset_list=queryset_list)
+        # 通过请求参数过滤queryset
+        queryset_list = self.filter_by_request_params(queryset_list=queryset_list)
+        return queryset_list
+
+    def filter_by_request_params(self, queryset_list):
         filtered_queryset_list = []
         for queryset in queryset_list:
             queryset = AlertFilterBackend().filter_queryset(self.request, queryset, self)
             filtered_queryset_list.append(queryset)
-        self._filtered_queryset_list = filtered_queryset_list
-        return chain(*filtered_queryset_list)
+        return filtered_queryset_list
 
-    @property
-    def paginator(self):
-        """
-        The paginator instance associated with the view, or `None`.
-        """
-        if not hasattr(self, '_paginator'):
-            self._paginator = self.pagination_class(self._filtered_queryset_list)  # 传入过滤后的queryset列表，计算总数
-        return self._paginator
-
-    def paginate_queryset(self, queryset):
-        if self.paginator is None:
-            return None
-        return self.paginator.paginate_queryset(queryset, self.request, view=self)
-
-    def get_queryset(self):
-        """
-        覆盖原方法
-        """
-        pass
+    def filter_by_user_permission(self, queryset_list):
+        if self.request.user.is_superuser:
+            return queryset_list
+        user_units = UserMonitorUnit(self.request)
+        filtered_queryset_list = []
+        for queryset in queryset_list:
+            qs = queryset.filter(Q(cluster__in=user_units.clusters) | Q(fingerprint__in=user_units.url_hash_list))
+            filtered_queryset_list.append(qs)
+        return filtered_queryset_list
 
 
 class AlertChoiceAPIView(APIView):
@@ -304,58 +297,52 @@ class WorkOrderListGenericAPIView(GenericAPIView, CreateModelMixin):
                       "remark": "测试",
                       "creation": "2024-01-26T11:03:37.402077",
                       "modification": "2024-01-26T11:03:37.402077",
-                      "alert": "xxx",
                       "creator": "xxx"
                     }
         """
-        params = self.pretreatment(request)
-        serializers = []
-        for param in params:
-            serializer = self.get_serializer(data=param)
-            serializer.is_valid(raise_exception=True)
-            serializers.append(serializer)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status_code.HTTP_201_CREATED, headers=headers)
 
-        timestamp = DateUtils.timestamp()
-
-        for serializer in serializers:
-            self.perform_create(serializer, timestamp=timestamp)
-        return Response({"status": "success"}, status=status_code.HTTP_201_CREATED)
-
-    def perform_create(self, serializer, **kwargs):
-        alert = serializer.validated_data.get("alert")
+    def perform_create(self, serializer):
         user_monitor_units = UserMonitorUnit(self.request)
-        if alert.fingerprint not in user_monitor_units.url_hash_list and alert.cluster not in user_monitor_units.clusters and not self.request.user.is_superuser:
-            raise PermissionDenied()
+        alert_list = self.request.data.get("alert")
+        if not alert_list:
+            raise errors.InvalidArgument(detail=f'alert argument is required')
+        for alert_id in alert_list:
+            alert = AlertModel.objects.filter(id=alert_id).first()
+            if not alert:
+                raise errors.InvalidArgument(detail=f'invalid alert_id :{alert_id}')
+            if alert.order:
+                raise errors.InvalidArgument(detail=f'alert:{alert_id} existed order')
+
+            if alert.fingerprint not in user_monitor_units.url_hash_list and alert.cluster not in user_monitor_units.clusters and not self.request.user.is_superuser:
+                raise PermissionDenied()
         order = serializer.save(
             creator=self.request.user,
-            creation=kwargs.get('timestamp'),
-            modification=kwargs.get('timestamp'),
+            creation=DateUtils.timestamp(),
+            modification=DateUtils.timestamp(),
         )
-        lifecycle = AlertLifetimeModel.objects.filter(id=order.alert.id).first()
-        if lifecycle and not lifecycle.end:
-            lifecycle.end = order.creation
-            lifecycle.status = AlertLifetimeModel.Status.WORK_ORDER.value
-            lifecycle.save()
+        for alert_id in alert_list:
+            alert_object = AlertModel.objects.filter(id=alert_id).first()
+            if alert_object:
+                alert_object.order = order
+                alert_object.recovery = order.creation
+                alert_object.status = AlertModel.AlertStatus.RESOLVED.value
+                alert_object.save()
 
-    def pretreatment(self, request):
-        """
-        创建工单 参数预处理
-        """
-        request_data = dict(request.data)
-        alerts = request_data.pop("alert", [])
-        if isinstance(alerts, str):
-            alerts = [alerts]
-        collect = hash_md5(str(sorted(alerts)))
-        params = []
-        for alert in alerts:
-            data = QueryDict(mutable=True)
-            for k, v in request_data.items():
-                v = v[0] if isinstance(v, list) else v
-                data[k] = v
-            data["alert"] = alert
-            data["collect"] = collect
-            params.append(data)
-        return params
+            if alert_object.type == AlertModel.AlertType.LOG.value:  # 日志类 归入 已恢复队列
+                item = model_to_dict(alert_object)
+                item["id"] = alert_object.id
+                item["modification"] = order.creation
+                item['order'] = order
+                try:
+                    ResolvedAlertModel.objects.create(**item)
+                except IntegrityError as e:
+                    pass
+                alert_object.delete()
 
 
 class EmailNotificationAPIView(GenericAPIView):

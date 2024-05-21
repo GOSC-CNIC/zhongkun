@@ -4,13 +4,13 @@ import datetime
 from apps.app_alert.models import AlertModel
 from apps.app_alert.models import ResolvedAlertModel
 from apps.app_alert.models import AlertWorkOrder
-from apps.app_alert.models import AlertLifetimeModel
 from django.db.models import Q
 from apps.app_alert.utils.enums import AlertStatus
 from django.contrib.contenttypes.models import ContentType
 from apps.app_alert.models import AlertMonitorJobServer
 from django.forms.models import model_to_dict
 from apps.app_alert.utils.utils import DateUtils
+
 
 class UserMonitorUnit:
     def __init__(self, request):
@@ -31,7 +31,7 @@ class UserMonitor(object):
         user = self.request.user
         monitor_job_server = ContentType.objects.get(app_label="monitor", model="monitorjobserver").model_class()
         queryset = monitor_job_server.objects.select_related('org_data_center__organization').all()
-        if user.is_federal_admin():
+        if user.is_authenticated and user.is_federal_admin():
             pass
         else:
             queryset = queryset.filter(Q(users__id=user.id) | Q(org_data_center__users__id=user.id))
@@ -42,7 +42,7 @@ class UserMonitor(object):
     def alert_server_list(self):
         user = self.request.user
         queryset = AlertMonitorJobServer.objects.all()
-        if user.is_federal_admin():
+        if user.is_authenticated and user.is_federal_admin():
             pass
         else:
             queryset = queryset.filter(users__id=user.id)
@@ -54,7 +54,7 @@ class UserMonitor(object):
         user = self.request.user
         monitor_job_tidb = ContentType.objects.get(app_label="monitor", model="monitorjobtidb").model_class()
         queryset = monitor_job_tidb.objects.select_related('org_data_center__organization').all()
-        if user.is_federal_admin():
+        if user.is_authenticated and user.is_federal_admin():
             pass
         else:
             queryset = queryset.filter(Q(users__id=user.id) | Q(org_data_center__users__id=user.id))
@@ -66,7 +66,7 @@ class UserMonitor(object):
         user = self.request.user
         monitor_job_ceph = ContentType.objects.get(app_label="monitor", model="monitorjobceph").model_class()
         queryset = monitor_job_ceph.objects.select_related('org_data_center__organization').all()
-        if user.is_federal_admin():
+        if user.is_authenticated and user.is_federal_admin():
             pass
         else:
             queryset = queryset.filter(Q(users__id=user.id) | Q(org_data_center__users__id=user.id))
@@ -107,45 +107,6 @@ class AlertQuerysetFilter(object):
         return qs_list
 
 
-class AlertCleaner(object):
-
-    def clean(self, data):
-        cleaned_items = []
-        for item in data:
-            item = dict(item)
-            _id = item.get("id")
-            order = AlertWorkOrder.objects.filter(alert_id=_id).first()
-            if order:
-                order_item = {
-                    "id": order.id,
-                    "status": order.status,
-                    "remark": order.remark,
-                    "creation": order.creation,
-                    "creator_email": order.creator.email,
-                    "creator_name": order.creator.last_name + order.creator.first_name,
-                }
-                item["end"] = order.creation
-            else:
-                order_item = {}
-            start = item.get("start")
-            item["alertname"] = item.pop("name", "")
-            item["monitor_cluster"] = item.pop("cluster", "")
-            item["alert_type"] = item.pop("type", "")
-            item["timestamp"] = start
-            item["startsAt"] = DateUtils.ts_to_date(start)
-            item["status"] = self.alert_status(_id)
-            item["order"] = order_item
-            cleaned_items.append(item)
-        return cleaned_items
-
-    def alert_status(self, alert_id):
-        lifecycle = AlertLifetimeModel.objects.filter(id=alert_id).first()
-        if lifecycle.status == AlertStatus.FIRING.value:
-            return AlertStatus.FIRING.value
-        else:
-            return AlertStatus.RESOLVED.value
-
-
 class AlertChoiceHandler(object):
     def __init__(self, request):
         self.filtered_qs_list = AlertQuerysetFilter(request=request).filter()
@@ -182,14 +143,7 @@ class EmailNotificationCleaner(object):
         for obj in data:
             alert_id = obj.get("alert")
             alert = model_to_dict(mapping.get(alert_id))
-            alert["status"] = self.alert_status(alert_id)
             obj.update({"alert": alert})
             items.append(obj)
         return items
 
-    def alert_status(self, alert_id):
-        lifecycle = AlertLifetimeModel.objects.filter(id=alert_id).first()
-        if lifecycle.status == AlertStatus.FIRING.value:
-            return AlertStatus.FIRING.value
-        else:
-            return AlertStatus.RESOLVED.value

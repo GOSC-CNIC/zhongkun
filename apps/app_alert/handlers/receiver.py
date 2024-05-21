@@ -5,17 +5,15 @@ from apps.app_alert.utils.utils import hash_sha1
 from django.forms.models import model_to_dict
 from django.db.models import Count
 from apps.app_alert.utils.errors import BadRequest
-from apps.app_alert.utils.utils import download
 from django.db.utils import IntegrityError
 from apps.app_alert.models import PreAlertModel
 from apps.app_alert.models import AlertModel
 from apps.app_alert.models import ResolvedAlertModel
-from apps.app_alert.models import AlertLifetimeModel
-from apps.app_alert.models import AlertWorkOrder
 from django.conf import settings
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from django.contrib.contenttypes.models import ContentType
 from apps.app_alert.utils.utils import DateUtils
+from django.utils import timezone
 
 
 class AlertReceiver(object):
@@ -24,22 +22,17 @@ class AlertReceiver(object):
     def __init__(self, data):
         self.timestamp = DateUtils.timestamp()
         self.data = data
-        self.need_to_pretreatment_type = ["webmonitor"]  # 网站类需要预处理
+        self.need_to_pretreatment_type = [AlertModel.AlertType.WEBMONITOR.value]  # 网站类需要预处理
         self.fingerprint_field = "fingerprint"
 
     def start(self):
-        pool = ThreadPoolExecutor(max_workers=1)
-        pool.submit(self._start, )
-        pool.shutdown(wait=False)
-
-    def _start(self):
         items = self.clean()
         prepare_alerts, alerts = self.group_by_prepare_type(items)
         self.create_or_update(PreAlertModel, prepare_alerts)
         alerts.extend(self.pick_inaccessible_website_list())
-        self.create_or_update(AlertModel, alerts, save_lifetime=True)
+        self.create_or_update(AlertModel, alerts)
+        # 归入已恢复队列
         self.firing_to_resolved()
-        self.update_alert_lifetime()
 
     def clean(self):
         items = []
@@ -49,7 +42,7 @@ class AlertReceiver(object):
             labels = alert.get("labels")
             cluster, alert_type = self.parse_alert_type_field(alert)
             instance = self.parse_alert_instance(alert_type=alert_type, alert=alert)
-            severity = labels.get("severity") or "warning"
+            severity = labels.get("severity") or AlertModel.AlertSeverity.WARNING.value
             item = dict()
             item[self.fingerprint_field] = fingerprint
             item["name"] = labels.get("alertname")
@@ -61,7 +54,7 @@ class AlertReceiver(object):
             item["summary"] = annotations.get("summary")
             item["description"] = annotations.get("description")
             item["start"] = self.date_to_timestamp(alert.get("startsAt"))
-            item["end"] = self.generate_alert_end_timestamp(alert, cluster)
+            item["end"] = self.generate_alert_end_timestamp(cluster)
             items.append(item)
         return items
 
@@ -86,12 +79,12 @@ class AlertReceiver(object):
         labels = alert.get("labels")
         cluster = labels.get("monitor_cluster") or labels.get("job") or ""  # 告警集群名称
         cluster = cluster.lower()
-        if "webmonitor" in cluster:
-            alert_type = "webmonitor"
-        elif cluster.endswith("_log"):
-            alert_type = "log"
-        elif cluster.endswith("_metric"):
-            alert_type = "metric"
+        if AlertModel.AlertType.WEBMONITOR.value in cluster:
+            alert_type = AlertModel.AlertType.WEBMONITOR.value
+        elif cluster.endswith(AlertModel.AlertType.LOG.value):
+            alert_type = AlertModel.AlertType.LOG.value
+        elif cluster.endswith(AlertModel.AlertType.METRIC.value):
+            alert_type = AlertModel.AlertType.METRIC.value
         else:
             raise BadRequest(detail=f"invalid cluster:`{cluster}`,\n\n{json.dumps(alert)}")
         return cluster, alert_type
@@ -119,18 +112,12 @@ class AlertReceiver(object):
         ts = DateUtils.date_to_ts(dt=date, fmt="%Y-%m-%dT%H:%M:%S")
         return ts
 
-    def generate_alert_end_timestamp(self, alert, cluster):
+    def generate_alert_end_timestamp(self, cluster):
         """
         生成预结束时间
         """
-        if cluster in ["mail_metric", "mail_log"]:
+        if cluster in ["mail_metric"]:
             return self.timestamp + 60 * 5
-        recent_alerts = ResolvedAlertModel.objects.filter(
-            fingerprint=alert.get("fingerprint"),
-            start__gte=self.timestamp - 86400,
-            start__lte=self.timestamp)
-        if recent_alerts and len(recent_alerts) >= 10:
-            return self.timestamp + 60 * 60 * 3
         return self.timestamp + 60 * 60
 
     def group_by_prepare_type(self, items):
@@ -146,24 +133,20 @@ class AlertReceiver(object):
                 alerts.append(item)
         return prepare_alerts, alerts
 
-    def create_or_update(self, model, items, save_lifetime=False):
+    def create_or_update(self, model, items):
         for item in items:
             existed_obj = model.objects.filter(fingerprint=item.get(self.fingerprint_field)).first()
-            if existed_obj:
+            if existed_obj:  # 如果存在则更新end description modification count字段
                 existed_obj.end = item.get("end")
                 existed_obj.description = item.get("description")
                 existed_obj.modification = self.timestamp
                 existed_obj.count = existed_obj.count + 1
                 existed_obj.save()
                 continue
-            item["creation"] = item["modification"] = self.timestamp
-            alert = model.objects.create(**item)
-            if save_lifetime:
-                alert_lifetime = {
-                    "id": alert.id,
-                    "start": item.get("start"),
-                    "status": AlertLifetimeModel.Status.FIRING.value}
-                AlertLifetimeModel.objects.create(**alert_lifetime)
+            timestamp = timezone.now().timestamp()
+            item["creation"] = timestamp
+            item["modification"] = int(timestamp)
+            model.objects.create(**item)
 
     @staticmethod
     def get_probe_count():
@@ -184,66 +167,49 @@ class AlertReceiver(object):
             count = item.get("count")
             if count != probe_count:
                 continue
-            website_alert = self.init_website_alert(summary)
+            website_alert = self.generate_website_alert(summary)
             alerts.append(website_alert)
         return alerts
 
-    def init_website_alert(self, item):
-        pop_keys = ["id", "count", "first_notification", "last_notification", "creation", "modification"]
+    def generate_website_alert(self, item):
         obj = PreAlertModel.objects.filter(summary=item).first()
-        website_alert = model_to_dict(obj)
-        for key in pop_keys:
-            website_alert.pop(key, "")
-        description = website_alert["description"].split()
+        description = obj.description.split()
         url_hash = description[-2]
-        website_alert["cluster"] = "webMonitor"
-        website_alert["description"] = " ".join(description[:-2])
-        website_alert["start"] = self.timestamp
-        website_alert[self.fingerprint_field] = url_hash
-        return website_alert
+        result = dict()
+        result[self.fingerprint_field] = url_hash
+        result['name'] = obj.name
+        result['type'] = obj.type
+        result['instance'] = obj.instance
+        result['port'] = obj.port
+        result['cluster'] = AlertModel.AlertType.WEBMONITOR.value
+        result['severity'] = obj.severity
+        result['summary'] = obj.summary
+        result['description'] = " ".join(description[:-2])
+        result["start"] = self.timestamp
+        result["end"] = self.generate_alert_end_timestamp(AlertModel.AlertType.WEBMONITOR.value)
+        return result
 
     def firing_to_resolved(self):
         """
-        当告警end字段小于当前时间时,归入已恢复队列
-
-            日志类的需要创建工单后，才会移入已恢复队列
+        当 预结束时间 小于当前时间时,归入 已恢复队列
+            *日志类的需要创建工单后，才会移入已恢复队列
         """
         # 进行中告警中 挑选出 end 小于当前时间的告警
         alerts = AlertModel.objects.filter(end__lt=self.timestamp).all()
         for alert in alerts:
-            # 非log告警, 移入 resolved
-            if alert.type != 'log':
-                self.move_to_resolved(alert)
-                # log告警创建工单后会归入resolved
-            elif AlertWorkOrder.objects.filter(alert_id=alert.id).first():
+            if alert.type in [AlertModel.AlertType.METRIC, AlertModel.AlertType.WEBMONITOR]:
                 self.move_to_resolved(alert)
 
     def move_to_resolved(self, alert):
         item = model_to_dict(alert)
         item["id"] = alert.id
+        item["order"] = alert.order
         item["modification"] = self.timestamp
+        if item.get("status") == AlertModel.AlertStatus.FIRING.value:
+            item["status"] = AlertModel.AlertStatus.RESOLVED.value
+            item["recovery"] = self.timestamp
         try:
             ResolvedAlertModel.objects.create(**item)
         except IntegrityError as e:
             pass
         alert.delete()
-
-    @staticmethod
-    def update_alert_lifetime():
-        """
-        更新告警生命周期
-        """
-        # 挑选出 end 为空的告警
-        firing_alerts = AlertLifetimeModel.objects.filter(end__isnull=True)
-        for alert in firing_alerts:
-            order = AlertWorkOrder.objects.filter(alert_id=alert.id).first()
-            if order:
-                alert.end = order.creation
-                alert.status = AlertLifetimeModel.Status.WORK_ORDER.value
-                alert.save()
-                continue
-            resolved = ResolvedAlertModel.objects.filter(id=alert.id).first()
-            if resolved:
-                alert.end = resolved.end
-                alert.status = AlertLifetimeModel.Status.RESOLVED.value
-                alert.save()
