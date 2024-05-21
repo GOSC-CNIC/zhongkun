@@ -8,11 +8,11 @@ import django.utils.timezone
 
 class Migration(migrations.Migration):
 
-    replaces = [('app_netflow', '0001_initial'), ('app_netflow', '0002_alter_chartmodel_remark_and_more'),
-                ('app_netflow', '0003_menumodel_name'), ('app_netflow', '0004_rolemodel'),
-                ('app_netflow', '0005_alter_chartmodel_options_alter_menumodel_options_and_more'),
-                ('app_netflow', '0006_remove_rolemodel_charts_remove_rolemodel_users_and_more'),
-                ('app_netflow', '0007_menu2chart_menu2member_menumodel_menu2member_menu_and_more')]
+    # replaces = [('app_netflow', '0001_initial'), ('app_netflow', '0002_alter_chartmodel_remark_and_more'),
+    #             ('app_netflow', '0003_menumodel_name'), ('app_netflow', '0004_rolemodel'),
+    #             ('app_netflow', '0005_alter_chartmodel_options_alter_menumodel_options_and_more'),
+    #             ('app_netflow', '0006_remove_rolemodel_charts_remove_rolemodel_users_and_more'),
+    #             ('app_netflow', '0007_menu2chart_menu2member_menumodel_menu2member_menu_and_more')]
 
     initial = True
 

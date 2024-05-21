@@ -7,12 +7,12 @@ import django.db.models.deletion
 
 class Migration(migrations.Migration):
 
-    replaces = [('app_alert', '0001_initial'), ('app_alert', '0002_scriptflagmodel'),
-                ('app_alert', '0003_delete_scriptflagmodel'),
-                ('app_alert', '0004_alter_alertworkorder_creation_and_more'),
-                ('app_alert', '0005_alter_alertworkorder_status'),
-                ('app_alert', '0006_alter_alertlifetimemodel_end_and_more'),
-                ('app_alert', '0007_delete_alertwhitelistmodel')]
+    # replaces = [('app_alert', '0001_initial'), ('app_alert', '0002_scriptflagmodel'),
+    #             ('app_alert', '0003_delete_scriptflagmodel'),
+    #             ('app_alert', '0004_alter_alertworkorder_creation_and_more'),
+    #             ('app_alert', '0005_alter_alertworkorder_status'),
+    #             ('app_alert', '0006_alter_alertlifetimemodel_end_and_more'),
+    #             ('app_alert', '0007_delete_alertwhitelistmodel')]
 
     initial = True
 
