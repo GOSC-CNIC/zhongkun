@@ -90,7 +90,7 @@ class ServiceLogTests(MyAPITestCase):
         self.assertEqual(response.data['count'], 0)
         self.assertEqual(len(response.data['results']), 0)
 
-        query = parse.urlencode(query={'server_type': 'server', 'dc_id': server_site1.id})
+        query = parse.urlencode(query={'server_type': 'server', 'dc_id': server_site1.data_center_id})
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], container=response.data)
@@ -115,7 +115,7 @@ class ServiceLogTests(MyAPITestCase):
         self.assertEqual(response.data['count'], 0)
         self.assertEqual(len(response.data['results']), 0)
 
-        query = parse.urlencode(query={'server_type': 'object', 'dc_id': obj_site1.id})
+        query = parse.urlencode(query={'server_type': 'object', 'dc_id': obj_site1.data_center_id})
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], container=response.data)
