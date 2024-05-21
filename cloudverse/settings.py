@@ -236,26 +236,26 @@ LOGIN_REDIRECT_URL = '/'  # 默认重定向url
 LOGOUT_REDIRECT_URL = '/'
 
 # 第三方应用登录认证，不支持那种认证 注释掉
-THIRD_PARTY_APP_AUTH = {
-    # 科技云通行证
-    'SCIENCE_CLOUD': {
-        'name': gettext_lazy('中国科技云通行证'),  # 登录页面显示的名称
-        'client_home_url': 'https://yunkun.cstcloud.cn',
-        'client_callback_url': 'https://yunkun.cstcloud.cn/accounts/callback/',  # 认证回调地址
-        'login_url': 'https://passport.escience.cn/oauth2/authorize?response_type=code&theme=embed',
-        'token_url': 'https://passport.escience.cn/oauth2/token',
-        'logout_url': 'https://passport.escience.cn/logout'
-    },
-    # AAI
-    'AAI': {
-        'name': gettext_lazy('中国科技云身份认证联盟'),  # 登录页面显示的名称
-        'client_home_url': 'https://yunkun.cstcloud.cn',
-        'client_callback_url': 'https://yunkun.cstcloud.cn/auth/callback/aai',  # 认证回调地址
-        'login_url': 'https://aai.cstcloud.net/oidc/authorize?response_type=code',
-        'token_url': 'https://aai.cstcloud.net/oidc/token',
-        'user_info_url': 'https://aai.cstcloud.net/oidc/userinfo'
-    },
-}
+# THIRD_PARTY_APP_AUTH = {
+#     # 科技云通行证
+#     'SCIENCE_CLOUD': {
+#         'name': gettext_lazy('中国科技云通行证'),  # 登录页面显示的名称
+#         'client_home_url': 'https://yunkun.cstcloud.cn',
+#         'client_callback_url': 'https://yunkun.cstcloud.cn/accounts/callback/',  # 认证回调地址
+#         'login_url': 'https://passport.escience.cn/oauth2/authorize?response_type=code&theme=embed',
+#         'token_url': 'https://passport.escience.cn/oauth2/token',
+#         'logout_url': 'https://passport.escience.cn/logout'
+#     },
+#     # AAI
+#     'AAI': {
+#         'name': gettext_lazy('中国科技云身份认证联盟'),  # 登录页面显示的名称
+#         # 'client_home_url': 'https://yunkun.cstcloud.cn',
+#         'client_callback_url': 'https://yunkun.cstcloud.cn/auth/callback/aai',  # 认证回调地址
+#         'login_url': 'https://aai.cstcloud.net/oidc/authorize',#?response_type=code',
+#         'token_url': 'https://aai.cstcloud.net/oidc/token',
+#         'user_info_url': 'https://aai.cstcloud.net/oidc/userinfo'
+#     },
+# }
 
 REST_FRAMEWORK = {
     'PAGE_SIZE': 100,

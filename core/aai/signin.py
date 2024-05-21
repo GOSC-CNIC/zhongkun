@@ -2,12 +2,13 @@ from urllib import parse
 
 import requests
 from django.shortcuts import redirect
-from django.conf import settings
 from django.utils.encoding import force_str
-from django.utils import timezone
+from django.utils import timezone as dj_timezone
 from django.contrib.auth import login
+from django.core.validators import URLValidator, ValidationError
 
 from apps.users.models import UserProfile
+from apps.app_global.configs_manager import global_configs
 
 
 def replace_query_params(url, params: dict):
@@ -48,7 +49,7 @@ class AAISignIn:
         # 标记当前为科技云通行证登录用户
         if user.third_app != user.ThirdApp.AAI.value:
             user.third_app = user.ThirdApp.AAI.value
-            user.last_active = timezone.now()
+            user.last_active = dj_timezone.now()
             user.save(update_fields=['third_app', 'last_active'])
 
         login(request, user)  # 登录用户
@@ -127,17 +128,19 @@ class AAISignIn:
             success: url
             failed: None
         """
-        auth_settings = settings.THIRD_PARTY_APP_AUTH.get('AAI')
-        auth_security_settings = settings.THIRD_PARTY_APP_AUTH_SECURITY.get('AAI')
-        if not auth_settings or not auth_security_settings:
+        client_id = global_configs.get(global_configs.ConfigName.AAI_LOGIN_CLIENT_ID.value)
+        client_callback_url = global_configs.get(global_configs.ConfigName.AAI_LOGIN_CLIENT_CALLBACK_URL.value)
+        login_url = global_configs.get(global_configs.ConfigName.AAI_LOGIN_URL.value)
+
+        try:
+            URLValidator(schemes=['http', 'https'])(client_callback_url)
+        except ValidationError:
             return None
 
-        client_id = auth_security_settings.get('client_id')
-        client_callback_url = auth_settings.get('client_callback_url')
-        login_url = auth_settings.get('login_url')
         params = {
             'client_id': client_id,
             'redirect_uri': client_callback_url,
+            'response_type': 'code'
         }
         try:
             url = replace_query_params(url=login_url, params=params)
@@ -163,15 +166,11 @@ class AAISignIn:
 
         :raises: Exception
         """
-        auth_settings = settings.THIRD_PARTY_APP_AUTH.get('AAI')
-        auth_security_settings = settings.THIRD_PARTY_APP_AUTH_SECURITY.get('AAI')
-        if not auth_settings or not auth_security_settings:
-            return None
+        client_id = global_configs.get(global_configs.ConfigName.AAI_LOGIN_CLIENT_ID.value)
+        client_secret = global_configs.get(global_configs.ConfigName.AAI_LOGIN_CLIENT_SECRET.value)
+        client_callback_url = global_configs.get(global_configs.ConfigName.AAI_LOGIN_CLIENT_CALLBACK_URL.value)
+        token_url = global_configs.get(global_configs.ConfigName.AAI_LOGIN_TOKEN_URL.value)
 
-        client_id = auth_security_settings.get('client_id')
-        client_secret = auth_security_settings.get('client_secret')
-        client_callback_url = auth_settings.get('client_callback_url')
-        token_url = auth_settings.get('token_url')
         data = {
             'client_id': client_id,
             'client_secret': client_secret,
@@ -212,8 +211,7 @@ class AAISignIn:
 
         :raises: Exception
         """
-        auth_settings = settings.THIRD_PARTY_APP_AUTH.get('AAI')
-        user_info_url = auth_settings['user_info_url']
+        user_info_url = global_configs.get(global_configs.ConfigName.AAI_LOGIN_USER_INFO_URL.value)
         r = requests.get(url=user_info_url, headers={'Authorization': f'Bearer {access_token}'})
         if r.status_code == 200:
             return r.json()

@@ -27,18 +27,18 @@ DATABASES = {
 }
 
 # 第三方应用登录认证敏感信息
-THIRD_PARTY_APP_AUTH_SECURITY = {
-    # 科技云通行证
-    'SCIENCE_CLOUD': {
-        'client_id': 0,
-        'client_secret': 'xxx',
-    },
-    # AAI
-    'AAI': {
-        'client_id': 'xxx',
-        'client_secret': 'xxx',
-    },
-}
+# THIRD_PARTY_APP_AUTH_SECURITY = {
+#     # 科技云通行证
+#     'SCIENCE_CLOUD': {
+#         'client_id': 0,
+#         'client_secret': 'xxx',
+#     },
+#     # AAI
+#     'AAI': {
+#         'client_id': 'xxx',
+#         'client_secret': 'xxx',
+#     },
+# }
 
 # 邮箱配置
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'

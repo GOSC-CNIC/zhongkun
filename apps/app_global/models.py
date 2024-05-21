@@ -56,12 +56,27 @@ class GlobalConfig(models.Model):
         SITE_NAME = 'site_name', _('站点名称')
         SITE_NAME_EN = 'site_name_en', _('站点英文名称')
         SITE_FRONT_URL = 'site_front_url', _('站点前端地址')
+        AAI_LOGIN_NAME = 'aai_login_name', _('AAI登录，名称')
+        AAI_LOGIN_CLIENT_CALLBACK_URL = 'aai_login_client_callback_url', _('AAI登录，本服务认证回调地址')
+        AAI_LOGIN_URL = 'aai_login_url', _('AAI登录，登录地址')
+        AAI_LOGIN_TOKEN_URL = 'aai_login_token_url', _('AAI登录，token查询地址')
+        AAI_LOGIN_USER_INFO_URL = 'aai_login_user_info_url', _('AAI登录，用户信息查询地址')
+        AAI_LOGIN_CLIENT_ID = 'aai_login_client_id', _('AAI登录，客户端id')
+        AAI_LOGIN_CLIENT_SECRET = 'aai_login_client_secret', _('AAI登录，客户端密钥')
 
     # 配置的默认值，自动创建配置参数记录时填充的默认值
     value_defaults = {
         ConfigName.SITE_NAME.value: 'YunKun',
         ConfigName.SITE_NAME_EN.value: 'YunKun',
-        ConfigName.SITE_FRONT_URL.value: ''
+        ConfigName.SITE_FRONT_URL.value: '',
+        ConfigName.AAI_LOGIN_NAME.value: '中国科技云身份认证联盟(CSTCLOUD AAI)',
+        ConfigName.AAI_LOGIN_CLIENT_CALLBACK_URL.value: 'https://{your hostname}/auth/callback/aai',
+        ConfigName.AAI_LOGIN_URL.value: 'https://aai.cstcloud.net/oidc/authorize',
+        ConfigName.AAI_LOGIN_TOKEN_URL.value: 'https://aai.cstcloud.net/oidc/token',
+        ConfigName.AAI_LOGIN_USER_INFO_URL.value: 'https://aai.cstcloud.net/oidc/userinfo',
+        ConfigName.AAI_LOGIN_CLIENT_ID.value: '',
+        ConfigName.AAI_LOGIN_CLIENT_SECRET.value: '',
+
     }
 
     id = models.BigAutoField(primary_key=True)

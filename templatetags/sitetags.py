@@ -5,6 +5,7 @@ from django.conf import settings
 from utils.time import datesince_days, dateuntil_days
 from core.aai.signin import AAISignIn
 from core import site_configs_manager as site_configs
+from apps.app_global.configs_manager import global_configs
 
 register = template.Library()
 
@@ -22,10 +23,10 @@ def use_kjy_signin():
 
 @register.simple_tag
 def get_aai_signin_name_url():
-    tpaa = getattr(settings, 'THIRD_PARTY_APP_AUTH', {})
-    tpaas = getattr(settings, 'THIRD_PARTY_APP_AUTH_SECURITY', {})
-    if 'AAI' in tpaa and 'AAI' in tpaas:
-        name = tpaa['AAI'].get('name', gettext('中国科技云身份认证联盟'))
+    name = global_configs.get(global_configs.ConfigName.AAI_LOGIN_NAME.value)
+    client_id = global_configs.get(global_configs.ConfigName.AAI_LOGIN_CLIENT_ID.value)
+    client_secret = global_configs.get(global_configs.ConfigName.AAI_LOGIN_CLIENT_SECRET.value)
+    if name and client_id and client_secret:
         url = AAISignIn.get_signin_url()
         if url:
             return {'name': name, 'url': url}

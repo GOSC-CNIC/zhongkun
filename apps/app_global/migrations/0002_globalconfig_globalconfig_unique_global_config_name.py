@@ -14,7 +14,13 @@ class Migration(migrations.Migration):
             name='GlobalConfig',
             fields=[
                 ('id', models.BigAutoField(primary_key=True, serialize=False)),
-                ('name', models.CharField(choices=[('site_name', '站点名称'), ('site_name_en', '站点英文名称'), ('site_front_url', '站点前端地址')], max_length=32, verbose_name='配置名称')),
+                ('name', models.CharField(choices=[
+                    ('site_name', '站点名称'), ('site_name_en', '站点英文名称'), ('site_front_url', '站点前端地址'),
+                    ('aai_login_name', 'AAI登录，名称'), ('aai_login_client_callback_url', 'AAI登录，本服务认证回调地址'),
+                    ('aai_login_url', 'AAI登录，登录地址'), ('aai_login_token_url', 'AAI登录，token查询地址'),
+                    ('aai_login_user_info_url', 'AAI登录，用户信息查询地址'), ('aai_login_client_id', 'AAI登录，客户端id'),
+                    ('aai_login_client_secret', 'AAI登录，客户端密钥')
+                ], max_length=32, verbose_name='配置名称')),
                 ('value', models.CharField(default='', max_length=255, verbose_name='配置内容')),
                 ('remark', models.CharField(blank=True, max_length=255, verbose_name='备注')),
                 ('creation_time', models.DateTimeField(auto_now_add=True, verbose_name='创建时间')),
