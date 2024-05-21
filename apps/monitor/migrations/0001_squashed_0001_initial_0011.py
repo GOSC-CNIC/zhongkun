@@ -6,13 +6,13 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-    replaces = [('monitor', '0001_initial'), ('monitor', '0002_initial'),
-                ('monitor', '0003_monitorwebsiterecord_and_more'), ('monitor', '0004_alter_monitorwebsite_url'),
-                ('monitor', '0005_logsite_org_data_center_and_more'), ('monitor', '0006_auto_20231103_0215'),
-                ('monitor', '0007_remove_logsite_organization_remove_logsite_provider_and_more'),
-                ('monitor', '0008_alter_logsitetimereqnum_count'),
-                ('monitor', '0009_remove_monitorwebsite_url_monitorwebsite_odc'), ('monitor', '0010_errorlog'),
-                ('monitor', '0011_websitedetectionpoint_sort_weight')]
+    # replaces = [('monitor', '0001_initial'), ('monitor', '0002_initial'),
+    #             ('monitor', '0003_monitorwebsiterecord_and_more'), ('monitor', '0004_alter_monitorwebsite_url'),
+    #             ('monitor', '0005_logsite_org_data_center_and_more'), ('monitor', '0006_auto_20231103_0215'),
+    #             ('monitor', '0007_remove_logsite_organization_remove_logsite_provider_and_more'),
+    #             ('monitor', '0008_alter_logsitetimereqnum_count'),
+    #             ('monitor', '0009_remove_monitorwebsite_url_monitorwebsite_odc'), ('monitor', '0010_errorlog'),
+    #             ('monitor', '0011_websitedetectionpoint_sort_weight')]
 
     initial = True
 

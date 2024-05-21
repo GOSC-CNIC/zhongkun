@@ -7,13 +7,13 @@ import django.db.models.deletion
 
 class Migration(migrations.Migration):
 
-    replaces = [('service', '0001_initial'), ('service', '0002_initial'),
-                ('service', '0003_contacts_datacenter_province_datacenter_contacts'),
-                ('service', '0004_orgdatacenter_serviceconfig_org_data_center'),
-                ('service', '0005_auto_20231101_0610'), ('service', '0006_remove_serviceconfig_data_center_and_more'),
-                ('service', '0007_alter_orgdatacenter_remark'), ('service', '0008_serviceconfig_only_admin_visible'),
-                ('service', '0009_orgdatacenter_log_monitor_url_and_more'),
-                ('service', '0010_remove_datacenter_endpoint_compute_and_more')]
+    # replaces = [('service', '0001_initial'), ('service', '0002_initial'),
+    #             ('service', '0003_contacts_datacenter_province_datacenter_contacts'),
+    #             ('service', '0004_orgdatacenter_serviceconfig_org_data_center'),
+    #             ('service', '0005_auto_20231101_0610'), ('service', '0006_remove_serviceconfig_data_center_and_more'),
+    #             ('service', '0007_alter_orgdatacenter_remark'), ('service', '0008_serviceconfig_only_admin_visible'),
+    #             ('service', '0009_orgdatacenter_log_monitor_url_and_more'),
+    #             ('service', '0010_remove_datacenter_endpoint_compute_and_more')]
 
     initial = True
 
