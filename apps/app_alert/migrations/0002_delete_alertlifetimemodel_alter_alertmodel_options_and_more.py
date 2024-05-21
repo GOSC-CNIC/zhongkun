@@ -73,7 +73,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='resolvedalertmodel',
             name='status',
-            field=models.CharField(choices=[('firing', '进行中'), ('resolved', '已恢复')], default='firing', max_length=20, verbose_name='告警状态'),
+            field=models.CharField(choices=[('firing', '进行中'), ('resolved', '已恢复')], default='resolved', max_length=20, verbose_name='告警状态'),
         ),
         migrations.AlterField(
             model_name='alertmodel',

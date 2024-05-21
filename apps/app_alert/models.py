@@ -118,6 +118,9 @@ class ResolvedAlertModel(AlertAbstractModel):
     已恢复告警
     """
     fingerprint = models.CharField(blank=False, db_index=True, max_length=40, verbose_name=_('指纹'))
+    status = models.CharField(
+        max_length=20, null=False, default=AlertAbstractModel.AlertStatus.RESOLVED.value,
+        choices=AlertAbstractModel.AlertStatus.choices, verbose_name=_("告警状态"))
 
     class Meta:
         db_table = "alert_resolved"
