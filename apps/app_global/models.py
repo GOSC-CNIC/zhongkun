@@ -22,6 +22,7 @@ class TimedTaskLock(UuidModel):
         SCREEN_HOST_NETFLOW = 'screen_host_netflow', _('大屏展示主机单元网络流量')
         ALERT_EMAIL = 'alert_email', _('告警邮件通知')
         ALERT_DINGTALK = 'alert_dingtalk', _('告警钉钉通知')
+        NETFLOW_UPDATE_ELEMENT = 'netflow_update_element', _('流量图表元素更新')
 
     class Status(models.TextChoices):
         NONE = 'none', _('无')

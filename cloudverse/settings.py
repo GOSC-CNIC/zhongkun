@@ -427,6 +427,8 @@ CRONTABJOBS = [
      'python3 /home/uwsgi/yunkun/scripts/run_screen_operate_user_log.py >> /var/log/yunkun/task_screen_operate_user_log.log'),
     ('task12_screen_host_netflow', '*/3 * * * *',
      'python3 /home/uwsgi/yunkun/scripts/run_screen_host_netflow.py >> /var/log/yunkun/task_screen_host_netflow.log'),
+    ('task13_netflow_update_element', '0 */1 * * *',
+     'python3 /home/uwsgi/yunkun/apps/app_netflow/scripts/netflow_update_element.py >> /var/log/yunkun/netflow_update_element.log'),
 ]
 
 # 安全配置导入

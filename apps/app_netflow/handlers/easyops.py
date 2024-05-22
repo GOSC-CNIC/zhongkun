@@ -5,7 +5,7 @@ from apps.app_alert.utils.utils import DateUtils
 from django.conf import settings
 
 
-class EasyOPSLoginManager(object):
+class EasyOPSAccount(object):
     DOMAIN = settings.EASY_OPS.get('DOMAIN')
 
     def __init__(self):
@@ -15,6 +15,7 @@ class EasyOPSLoginManager(object):
     def get_headers(self):
         if self.expire > DateUtils.timestamp():
             return {'Authorization': self.token}
+
         else:
             self.token = self._get_token()
             self.expire = DateUtils.timestamp() + 600
@@ -36,7 +37,7 @@ class EasyOPSLoginManager(object):
         return data
 
 
-logged_in = EasyOPSLoginManager()
+easyops_account = EasyOPSAccount()
 
 
 class EasyOPS(object):
@@ -46,13 +47,13 @@ class EasyOPS(object):
         self._chart_id_set = set()
         self._chart_list = list()
 
-    def charts(self):
+    def crawler_easyops_chart_list(self):
         self._get_chart_list()
         return self._chart_list
 
     def _get_menu_id_list(self):
         url = f'{self.DOMAIN}/api/v3/model-factory/tree/nodes-contain-instance-by-relation-end/uplink/port'
-        resp = download(method='get', url=url, headers=logged_in.get_headers())
+        resp = download(method='get', url=url, headers=easyops_account.get_headers())
         return self._parse_menu(resp)
 
     @staticmethod
@@ -68,7 +69,7 @@ class EasyOPS(object):
 
     def _get_sub_chart_list(self, menu_id):
         url = f'{self.DOMAIN}/api/v3/mrtg/mrtg/instance-ports-in-tree-node/{menu_id}'
-        resp = download(method='get', url=url, headers=logged_in.get_headers())
+        resp = download(method='get', url=url, headers=easyops_account.get_headers())
         return self._parse_chart_list(resp)
 
     def _parse_chart_list(self, resp):
@@ -76,6 +77,7 @@ class EasyOPS(object):
         text = json.loads(text)
         data = text.get('data')
         for item in data:
+            item.pop('if_index', '')
             device_ip = item.get("device_ip")
             port_name = item.get("port_name")
             unique_str = f'{device_ip}_{port_name}'
@@ -98,6 +100,6 @@ class EasyOPS(object):
             "end_time": end,
             "start_time": start
         }
-        resp = download(method='post', url=url, json=data, headers=logged_in.get_headers())
+        resp = download(method='post', url=url, json=data, headers=easyops_account.get_headers())
         text = resp.text
         return json.loads(text)

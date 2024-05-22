@@ -37,3 +37,4 @@ alert_email_notify_lock = TaskLock(task_name=TaskLock.TaskNames.ALERT_EMAIL.valu
 alert_dingtalk_notify_lock = TaskLock(task_name=TaskLock.TaskNames.ALERT_DINGTALK.value)   # 告警钉钉通知
 screen_user_operate_log_lock = TaskLock(task_name=TaskLock.TaskNames.SCREEN_USER_OPERATE_LOG.value)   # 大屏展示用户操作日志
 screen_host_netflow_lock = TaskLock(task_name=TaskLock.TaskNames.SCREEN_HOST_NETFLOW.value)  # 大屏展示主机单元网络流量
+netflow_update_element_lock = TaskLock(task_name=TaskLock.TaskNames.NETFLOW_UPDATE_ELEMENT.value)  # 流量图表元素更新
