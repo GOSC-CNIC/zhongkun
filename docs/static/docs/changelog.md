@@ -1,3 +1,20 @@
+## v2.3.2
+发布时间： 2024-05-22  
+发布人： yushunwang  
+
+* 云主机服务单元版本号查询接口移除管理员权限限制；提交人：yushunwang
+* 云主机服务单元列举接口增加以管理员身份查询参数“as-admin”和“whit_admin_uses”，返回数据增加服务单元管理员信息和版本号更新时间；提交人：yushunwang
+* 移除app service、monitor、alert和netflow的被压缩的旧的数据库迁移文件；提交人：yushunwang
+* 大屏展示，主机单元网络流量模型定义，网络流量时序数据定时任务脚本实现和增加对应定时任务状态锁；提交人：yushunwang
+* 大屏展示，新增主机单元网络流量时序数据查询接口和测试用例；提交人：yushunwang
+* 大屏展示，新增告警查询接口和测试用例；提交人：yushunwang
+* 大屏展示，服务单元日志查询接口分页器修改，测试用例无法通过问题修复；提交人：yushunwang
+* AAI登录认证配置参数不再通过配置文件设置，改为在后台全局站点配置列表中管理；提交人：yushunwang
+* 告警模块，移除模型AlertLifetimeModel，基类模型AlertAbstractModel 添加recovery、status、order字段，creation字段调整为FloatField类型，调整为按照creation倒序；提交人：wenhao
+* 告警模块，修改优化告警列表查询接口的分页功能；提交人：wenhao
+* 告警模块，钉钉通知定时任务调整，修改告警是否已经创建工单的判定条件；提交人：wenhao
+
+
 ## v2.3.1
 发布时间： 2024-05-15  
 发布人： yushunwang 

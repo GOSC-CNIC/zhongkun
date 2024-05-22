@@ -324,7 +324,6 @@ class MetricHostTests(MyAPITestCase):
         r = self.client.get(f'{url}?{query}')
         self.assertEqual(r.status_code, 200)
         self.assertEqual(len(r.data['results']), 1)
-        print(r.data)
 
         query = parse.urlencode(query={'unit_id': host_unit1.id, 'time': (now_ts - 60 * 10), 'limit': 0})
         r = self.client.get(f'{url}?{query}')
