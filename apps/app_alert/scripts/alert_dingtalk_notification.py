@@ -151,35 +151,35 @@ class DingTalk(object):
         """
         判断该告警是否已经创建工单
         """
-        with MysqlManager() as client:
-            sql = f'select * from alert_work_order where alert_id="{alert.get("id")}";'
-            return client.search(sql)
+        return alert.get('order_id')
 
-    def search_work_order(self):
+    def search_work_order_notification(self):
         """
         挑选出上一分钟创建的工单，进行通知
         """
-        alerts = []
+        order_notification_list = list()
         with MysqlManager() as client:
             sql = f'select * from alert_work_order where creation>"{self.start}" and creation<="{self.end}";'
-            work_orders = client.search(sql)
-            for order in work_orders:
-                alert_id = order.get("alert_id")
+            order_list = client.search(sql)
+            for order in order_list:
+                order_id = order.get("id")
                 creator_id = order.get("creator_id")
-                alert = client.search(f'select * from alert_firing where id="{alert_id}";') or client.search(
-                    f'select * from alert_resolved where id="{alert_id}";')
-                alert = alert[0]
-                if not self.alert_cluster_filter(alert):
+                firing_alerts = client.search(f'select * from alert_firing where order_id="{order_id}";')
+                resolved_alerts = client.search(f'select * from alert_resolved where order_id="{order_id}";')
+                alert_list = firing_alerts + resolved_alerts
+                if not alert_list or not self.alert_cluster_filter(alert_list[0]):
                     continue
                 creator = client.search(
                     f'select last_name,first_name,email from users_userprofile where id="{creator_id}";')
                 creator = creator[0] if creator else {}
-                order.pop("id")
-                order.pop("alert_id")
-                alert.update(order)
-                alert.update(creator)
-                alerts.append(alert)
-        return alerts
+                order_notification_list.append(
+                    {
+                        "order": order,
+                        "alert_list": alert_list,
+                        "creator": creator,
+                    }
+                )
+        return order_notification_list
 
     def post(self, title, text):
         if not title or not text:
@@ -221,22 +221,12 @@ class DingTalk(object):
         告警工单通知
         :return:
         """
-        alerts = self.search_work_order()
-        if not alerts:
+        work_order_notification_list = self.search_work_order_notification()
+        if not work_order_notification_list:
             return
-        collected_alerts = self.group_by_collect(alerts)
-        for collect_id, collect_alerts in collected_alerts.items():
-            title, record = self.work_order_format(collect_id, collect_alerts)
+        for work_order_notification in work_order_notification_list:
+            title, record = self.work_order_format(work_order_notification)
             self.post(title, record)
-
-    def group_by_collect(self, alerts):
-        mapping = dict()
-        for alert in alerts:
-            collect = alert.get('collect')
-            if not mapping.get(collect):
-                mapping[collect] = []
-            mapping[collect].append(alert)
-        return mapping
 
     def alert_cluster_filter(self, alert):
         if alert.get("cluster") in self.clusters:
@@ -332,32 +322,28 @@ class DingTalk(object):
             record_msg_list.append("---\n\n")
         return f"日志告警：{list(alert_msg_mapping.keys())[0]}", "\n\n".join(record_msg_list)
 
-    def work_order_format(self, collect_id, alerts,):
-        if len(alerts) > 10:
-            alerts = alerts[:10]
+    def work_order_format(self, work_order_notification):
+        order = work_order_notification.get('order')
+        alert_list = work_order_notification.get('alert_list')
+        creator_info = work_order_notification.get('creator')
+        if len(alert_list) > 10:
+            alert_list = alert_list[:10]
             omit = True
         else:
             omit = False
         alert_status = "### **工单处理**"
-        start_timestamp = alerts[0].get("creation")
-        start = "**创建时间**: {}".format(DateUtils.ts_to_date(start_timestamp))
+        start = "**创建时间**: {}".format(DateUtils.ts_to_date(order.get("creation")))
         # 按照主机IP进行分类
         alert_msg_mapping = dict()
-
-        for alert in alerts:
+        for alert in alert_list:
             instance = self.parse_alert_instance(alert)
             if not alert_msg_mapping.get(instance):
                 alert_msg_mapping[instance] = []
             description = alert.get("description")
             description = f"{description}, {alert.get('id')[:10]}"
-            creator = f"{alert.get('last_name')}{alert.get('first_name')}({alert.get('email')})"
-            status = alert.get("status")
-            remark = alert.get("remark")
             alert_msg_mapping[instance].append({
                 "description": description,
-                "creator": creator,
-                "status": status,
-                "remark": remark,
+
             })
         record_msg_list = list()
         if omit:
@@ -372,10 +358,10 @@ class DingTalk(object):
             for message in messages:
                 record_msg_list.append("**告警信息**: {}".format(message.get("description")))
             record_msg_list.append("---\n\n")
-        order_message = list(alert_msg_mapping.values())[0][0]
-        record_msg_list.append("**创建者**: {}".format(order_message.get("creator")))
-        record_msg_list.append("**处理状态**: {}".format(order_message.get("status")))
-        record_msg_list.append("**工单备注**: {}".format(order_message.get("remark")))
+        creator = f"{creator_info.get('last_name')}{creator_info.get('first_name')}({creator_info.get('email')})"
+        record_msg_list.append("**创建者**: {}".format(creator))
+        record_msg_list.append("**处理状态**: {}".format(order.get("status")))
+        record_msg_list.append("**工单备注**: {}".format(order.get("remark")))
         record_msg_list.append("---\n\n")
         return f"工单处理：{list(alert_msg_mapping.keys())[0]}", "\n\n".join(record_msg_list)
 
@@ -405,7 +391,5 @@ def run_task_use_lock():
 
 
 if __name__ == '__main__':
-    # while True:
-    #     run_task_use_lock()
-    #     time.sleep(1)
     run_task_use_lock()
+
