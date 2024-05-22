@@ -165,7 +165,7 @@ class Migration(migrations.Migration):
                 ('id', models.CharField(blank=True, editable=False, max_length=36, primary_key=True, serialize=False, verbose_name='ID')),
                 ('collect', models.CharField(max_length=40, verbose_name='集合ID')),
                 ('status', models.CharField(choices=[('无需处理', '无需处理'), ('已完成', '已完成'), ('误报', '误报')], default='无需处理', max_length=10, verbose_name='状态')),
-                ('remark', models.TextField(default='', verbose_name='备注')),
+                ('remark', models.TextField(blank=True, default='', verbose_name='备注')),
                 ('creation', models.PositiveBigIntegerField(null=True, verbose_name='创建时间')),
                 ('modification', models.PositiveBigIntegerField(null=True, verbose_name='更新时间')),
                 ('alert', models.OneToOneField(on_delete=django.db.models.deletion.DO_NOTHING, related_name='work_order', to='app_alert.alertmodel', verbose_name='告警')),

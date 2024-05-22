@@ -18,7 +18,7 @@ class AlertWorkOrder(UuidModel):
                               default=OrderStatus.IGNORE.value,
                               choices=OrderStatus.choices,
                               verbose_name=_("状态"))
-    remark = models.TextField(default="", verbose_name=_('备注'))
+    remark = models.TextField(blank=True, default="", verbose_name=_('备注'))
     creator = models.ForeignKey(null=False,
                                 to="users.UserProfile",
                                 on_delete=models.DO_NOTHING,
