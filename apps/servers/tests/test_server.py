@@ -440,7 +440,7 @@ class ServerOrderTests(MyAPITransactionTestCase):
         self.assertEqual(order.vo_id, self.vo.id)
         self.assertEqual(order.user_id, self.user.id)
         original_price, trade_price = PriceManager().describe_server_price(
-            ram_mib=1024 * 3, cpu=2, disk_gib=500, public_ip=is_public_network, is_prepaid=True,
+            ram_mib=1024 * 3, cpu=2, disk_gib=min_sys_disk_gb, public_ip=is_public_network, is_prepaid=True,
             period=120, period_unit=Order.PeriodUnit.DAY.value, days=0)
         self.assertEqual(order.total_amount, quantize_10_2(original_price))
         self.assertEqual(int(order.payable_amount), int(quantize_10_2(trade_price)))

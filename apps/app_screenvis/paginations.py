@@ -127,6 +127,7 @@ class AlertPagination(BasePagination):
             ('has_next', self.has_next),
             ('next_marker', self.get_next_marker()),
             ('marker', self.get_marker(self.request)),
+            ('page_size', self.page_size),
             ('results', data)
         ]))
 

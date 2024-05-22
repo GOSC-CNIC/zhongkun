@@ -1,7 +1,10 @@
 from django.urls import path, include
 from rest_framework.routers import SimpleRouter
 
-from .api_views import ceph_views, common_views, host_views, tidb_views, service_views, user_operate_log
+from .api_views import (
+    ceph_views, common_views, host_views, tidb_views, service_views, user_operate_log,
+    alert_views
+)
 
 
 app_name = 'screenvis'
@@ -20,6 +23,7 @@ no_slash_router.register(r'service/vpn/stats', service_views.VPNServiceViewSet,
 no_slash_router.register(r'service/object/stats', service_views.ObjectServiceViewSet,
                          basename='object-stats')
 no_slash_router.register(r'server_user_log', user_operate_log.UserOperateLogViewSet, basename='server-user-log')
+no_slash_router.register(r'alert', alert_views.AlertViewSet, basename='alert')
 
 
 urlpatterns = [

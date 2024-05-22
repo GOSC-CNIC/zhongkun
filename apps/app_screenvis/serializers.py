@@ -86,3 +86,21 @@ class ServiceUserOperateLogSerializer(serializers.Serializer):
     creation_time = serializers.DateTimeField()
     username = serializers.CharField()
     content = serializers.CharField()
+
+
+class AlertSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    name = serializers.CharField(max_length=100, label=_('名称'))
+    type = serializers.CharField(max_length=64, label=_('类型'))
+    instance = serializers.CharField(max_length=100, label=_('告警实例'))
+    port = serializers.CharField(max_length=100, label=_('告警端口'))
+    cluster = serializers.CharField(max_length=50, label=_('集群名称'))
+    severity = serializers.CharField(max_length=50, label=_('级别'))
+    summary = serializers.CharField(label=_('摘要'))
+    description = serializers.CharField(label=_('详情'))
+    start = serializers.IntegerField(label=_('告警开始时间'))
+    end = serializers.IntegerField(label=_('告警预结束时间'))
+    status = serializers.CharField(max_length=20, label=_("告警状态"))
+    count = serializers.IntegerField(label=_('累加条数'))
+    creation = serializers.FloatField(label=_('创建时间'))
+    # modification = serializers.IntegerField(label=_('更新时间'))
