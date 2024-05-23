@@ -254,7 +254,7 @@ class OrgDataCenterAdminUser(models.Model):
     orgdatacenter = models.ForeignKey(
         verbose_name=_('数据中心'), to=OrgDataCenter, on_delete=models.CASCADE, db_constraint=False)
     role = models.CharField(verbose_name=_('角色'), max_length=16, choices=Role.choices, default=Role.ADMIN.value)
-    join_time = models.DateTimeField(verbose_name=_('加入时间'))#, default=dj_timezone.now)
+    join_time = models.DateTimeField(verbose_name=_('加入时间'), default=dj_timezone.now)
 
     class Meta:
         db_table = 'org_data_center_users'

@@ -27,6 +27,11 @@ class UserProfileAdmin(UserAdmin):
     )
     ordering = ['date_joined']
 
+    class Media:
+        css = {
+            'all': ['yunkun/admin/common.css']
+        }
+
     def fullname(self, obj):
         return obj.get_full_name()
 
