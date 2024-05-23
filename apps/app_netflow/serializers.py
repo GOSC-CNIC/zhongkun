@@ -4,7 +4,6 @@ from apps.app_netflow.models import ChartModel
 from apps.app_netflow.models import Menu2Chart
 from apps.app_netflow.models import Menu2Member
 from apps.app_netflow.models import GlobalAdminModel
-from apps.app_netflow.permission import PermissionManager
 from apps.users.models import UserProfile
 
 
@@ -179,56 +178,23 @@ class MenuWriteSerializer(serializers.ModelSerializer):
 
 
 class MenuModelSerializer(serializers.ModelSerializer):
-    sub_categories = serializers.SerializerMethodField(read_only=True)
-    father_id = serializers.PrimaryKeyRelatedField(
+    father_id = serializers.PrimaryKeyRelatedField(  # 只写
         queryset=MenuModel.objects.all(),
         source='father',
         write_only=True,
         default=None
     )
-    admin = serializers.SerializerMethodField(read_only=True)
-
-    def get_admin(self, obj):
-        """
-        是否为组管理员
-        """
-        request = self.context.get('request')
-        perm = PermissionManager(request=request)
-        if perm.has_group_admin_permission(obj):
-            return True
-        else:
-            return False
-
-    def get_sub_categories(self, obj):
-        """
-        根据用户角色，返回目录结构
-        """
-        request = self.context.get('request')
-        perm = PermissionManager(request=request)
-        children = obj.sub_categories.all()
-        if perm.is_global_admin():  # 全局管理员
-            return MenuModelSerializer(children, many=True, context=self.context).data
-        groups = perm.user_group_list()
-        exclude = []
-        for child in children:
-            for group_node in groups:
-                flag = perm.is_branch_relationship(child, group_node)
-                if flag:
-                    break
-            else:
-                exclude.append(child.id)
-        return MenuModelSerializer(children.exclude(id__in=exclude), many=True, context=self.context).data
 
     class Meta:
         model = MenuModel
         fields = (
             'id',
             'name',
-            'admin',
+            # 'admin',
             'sort_weight',
             'remark',
             'level',
-            'sub_categories',
+            # 'sub_categories',
             'father_id',
         )
         depth = 0

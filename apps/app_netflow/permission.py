@@ -31,6 +31,87 @@ class PermissionManager(object):
         self.request = request
         self.user = self.request.user
         self.global_role = GlobalAdminModel.objects.filter(member=self.user).values_list('role', flat=True).first()
+        self.relation_mapping = {_.get('id'): _.get('father_id') for _ in MenuModel.objects.values('id', 'father_id')}
+
+    def is_global_ops_admin(self):
+        """
+        运维管理员
+        """
+        return self.global_role == GlobalAdminModel.Roles.ADMIN.value
+
+    def is_global_super_admin(self):
+        """
+        超级管理员
+        """
+        return self.global_role == GlobalAdminModel.Roles.SUPER_ADMIN.value
+
+    def is_global_admin(self):
+        """
+        全局管理员
+            超级管理员
+            运维管理员
+        """
+        return self.is_global_super_admin() or self.is_global_ops_admin()
+
+    def user_group_list(self, is_admin=False):
+        queryset = self.user.netflow_group_set.all()
+        if is_admin:
+            queryset = queryset.filter(menu2member__role=Menu2Member.Roles.GROUP_ADMIN.value)
+        return queryset.values('id', 'name', 'father_id', 'level', 'sort_weight', 'remark', 'menu2member__role')
+
+    def is_branch_relationship(self, node1, node2):
+        """
+        判断两个节点是否在同一个分支
+        """
+        if node1.get('level') < node2.get('level'):
+            parent, child = node1, node2
+        else:
+            parent, child = node2, node1
+        return self.is_parent_or_self(parent.get('id'), child.get('id'))
+
+    def is_parent_or_self(self, pid, cid):
+        if pid == cid:
+            return True
+        father = self.relation_mapping.get(cid)
+        while father:
+            if pid == father:
+                return True
+            father = self.relation_mapping.get(father)
+
+    def has_group_admin_permission(self, target_id: str):
+        """
+        具有当前组的访问权限
+        """
+        for group in self.user_group_list(is_admin=True):
+            if self.is_parent_or_self(group.get('id'), target_id):
+                return True
+
+    def has_group_permission(self, target_id: str):
+        """
+        具有当前组的访问权限
+        """
+        groups = self.user_group_list()
+        for group in groups:
+            if self.is_parent_or_self(group.get('id'), target_id):
+                return True
+
+    def get_group_list(self, father, node_list):
+        result = []
+        for item in node_list:
+            if item['father_id'] != father:  # 当前节点不是子节点
+                continue
+            if self.is_global_super_admin():  # TODO: 运维管理员角色查询速度优化
+                item['admin'] = True
+            elif self.has_group_admin_permission(item["id"]):
+                item['admin'] = True
+            else:
+                item['admin'] = False
+            if item['level'] < 2:
+                item['sub_categories'] = self.get_group_list(item['id'], node_list)
+            else:
+                item['sub_categories'] = []
+            result.append(item)
+        return result
 
     def get_user_role(self):
         """
@@ -42,80 +123,8 @@ class PermissionManager(object):
             return GlobalAdminModel.Roles.ADMIN.value
         if self.user_group_list(is_admin=True):
             return Menu2Member.Roles.GROUP_ADMIN.value
-
-    def is_global_ops_admin(self):
-        """
-        全局运维管理员
-        """
-        if self.global_role == GlobalAdminModel.Roles.ADMIN.value:
-            return True
-
-    def is_global_super_admin(self):
-        """
-        全局超级管理员
-        """
-        if self.global_role == GlobalAdminModel.Roles.SUPER_ADMIN.value:
-            return True
-
-    def is_global_admin(self):
-        """
-        全局管理员
-            超级管理员
-            运维管理员
-        """
-        if self.is_global_super_admin() or self.is_global_ops_admin():
-            return True
-
-    def user_group_list(self, is_admin=False):
-        queryset = self.user.netflow_group_set.all()
-        if is_admin:
-            queryset = queryset.filter(menu2member__role=Menu2Member.Roles.GROUP_ADMIN.value)
-        return queryset
-
-    def has_group_permission(self, menu: MenuModel):
-        """
-        具有当前组的访问权限
-        """
-        groups = self.user_group_list()
-        for group in groups:
-            if self.is_parent_or_self(group, menu):
-                return True
-
-    def has_group_admin_permission(self, menu: MenuModel):
-        """
-        具有当前组的访问权限
-        """
-        groups = self.user_group_list(is_admin=True)
-        for group in groups:
-            if self.is_parent_or_self(group, menu):
-                return True
-
-    @staticmethod
-    def is_parent_or_self(parent, child):
-        if parent.level == child.level:
-            if parent == child:
-                return True
-            else:
-                return False
-        father = child.father
-        while father:
-            if parent == father:
-                return True
-            father = father.father
-
-    def _is_branch_relationship(self, node1, node2):
-        """
-        判断两个节点是否在同一个分支
-        """
-        if node1.level < node2.level:
-            parent, child = node1, node2
         else:
-            parent, child = node2, node1
-        return self.is_parent_or_self(parent, child)
-
-    def is_branch_relationship(self, node1, node2):
-        result = self._is_branch_relationship(node1, node2)
-        return result
+            return Menu2Member.Roles.ORDINARY.value
 
 
 class CustomPermission(BasePermission):
@@ -198,9 +207,8 @@ class Menu2ChartListCustomPermission(BasePermission):
         if request_method in SAFE_METHODS:
             if perm.is_global_ops_admin():  # 运维管理员 读权限
                 return True
-            menu_id = request.query_params.get("menu") or ''
-            menu = MenuModel.objects.filter(id=menu_id).first()
-            if menu and perm.has_group_permission(menu):  # 组员或组管理员 读权限
+            group_id = request.query_params.get("menu") or ''
+            if group_id and perm.has_group_permission(group_id):  # 组员或组管理员 读权限
                 return True
 
 
@@ -238,18 +246,16 @@ class Menu2MemberListCustomPermission(BasePermission):
 
         meta = request.META
         request_method = meta.get('REQUEST_METHOD')
-        if request_method in SAFE_METHODS:  # 读
+        if request_method in SAFE_METHODS:
             if perm.is_global_ops_admin():  # 运维管理员 读权限
                 return True
 
             menu_id = request.query_params.get("menu") or ''
-            menu = MenuModel.objects.filter(id=menu_id).first()
-            if menu and perm.has_group_admin_permission(menu):  # 组管理员 读权限
+            if menu_id and perm.has_group_admin_permission(menu_id):  # 组管理员 读权限
                 return True
         if request_method == "POST":  # 添加组内成员
             menu_id = request.data.get('menu') or ''
-            menu = MenuModel.objects.filter(id=menu_id).first()
-            if menu and perm.has_group_admin_permission(menu):  # 组管理员 写权限
+            if menu_id and perm.has_group_admin_permission(menu_id):  # 组管理员 写权限
                 return True
 
 
@@ -276,7 +282,7 @@ class Menu2MemberDetailCustomPermission(BasePermission):
         if request_method in ["GET", "PUT", "DELETE"]:  # 当前组组管理员 或上级组管理员 读写权限
             menu_id = view.kwargs.get("pk")
             menu2member = Menu2Member.objects.filter(id=menu_id).first()
-            if menu2member and perm.has_group_admin_permission(menu2member.menu):
+            if menu2member and menu2member.menu and perm.has_group_admin_permission(menu2member.menu.id):
                 return True
 
 
@@ -326,5 +332,5 @@ class TrafficCustomPermission(BasePermission):
             return True
         chart = request.data.get("chart") or ''
         element = Menu2Chart.objects.filter(id=chart).first()
-        if element and element.menu and perm.has_group_permission(element.menu):
+        if element and element.menu and perm.has_group_permission(element.menu.id):
             return True

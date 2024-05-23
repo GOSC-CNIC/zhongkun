@@ -1,3 +1,8 @@
+import json
+import time
+
+from django.http import JsonResponse, HttpResponse
+
 from rest_framework.generics import GenericAPIView
 from apps.app_netflow.models import ChartModel
 from apps.app_netflow.models import Menu2Chart
@@ -73,8 +78,6 @@ class GlobalUserRoleAPIView(APIView):
 class MenuListGenericAPIView(GenericAPIView):
     queryset = MenuModel.objects.all()
     serializer_class = MenuModelSerializer
-    filter_backends = [DjangoFilterBackend]
-    filterset_class = MenuFilter
     permission_classes = [MenuListCustomPermission]
 
     @swagger_auto_schema(
@@ -86,17 +89,27 @@ class MenuListGenericAPIView(GenericAPIView):
         }
     )
     def get(self, request):
-        queryset = self.get_queryset()
-        queryset = queryset.filter(id='root')
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(self.response_format(serializer.data))
+        queryset = self.get_queryset().values('id', 'name', 'father_id', 'level', 'sort_weight', 'remark')
+        result = self.filter_queryset(queryset)
+        return Response({
+            'count': len(result),
+            "results": result}
+        )
 
-    def response_format(self, data):
-        if data:
-            children = dict(data[0]).get('sub_categories')
+    def filter_queryset(self, queryset):
+        perm = PermissionManager(request=self.request)
+        if perm.is_global_admin():
+            nodes = queryset
         else:
-            children = []
-        return {"count": len(children), "results": children}
+            user_groups = perm.user_group_list()
+            nodes = []
+            for obj in queryset:
+                for group in user_groups:
+                    if perm.is_branch_relationship(group, obj):
+                        nodes.append(obj)
+                        break
+
+        return perm.get_group_list('root', nodes)
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('创建分组'),
