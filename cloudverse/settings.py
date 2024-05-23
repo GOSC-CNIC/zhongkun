@@ -187,6 +187,8 @@ en_formats.TIME_FORMAT = TIME_FORMAT
 en_formats.DATETIME_FORMAT = DATETIME_FORMAT
 en_formats.TIME_INPUT_FORMATS = TIME_INPUT_FORMATS
 
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
 LANGUAGE_CODE = 'zh-hans'
 
 TIME_ZONE = 'UTC'
