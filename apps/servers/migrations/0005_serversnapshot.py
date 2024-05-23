@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
         ('vo', '0001_initial'),
-        ('servers', '0004_serviceconfig_version'),
+        ('servers', '0005_serviceconfig_version_update_time'),
     ]
 
     operations = [

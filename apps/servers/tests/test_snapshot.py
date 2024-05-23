@@ -259,7 +259,7 @@ class ServerSnapshotTests(MyAPITransactionTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 2)
         # 数据中心管理员
-        service2.org_data_center.users.add(self.user)
+        service2.org_data_center.add_admin_user(self.user)
         query = parse.urlencode(query={'as-admin': ''})
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
@@ -268,7 +268,7 @@ class ServerSnapshotTests(MyAPITransactionTestCase):
         # -------------- federal_admin ----------------
         self.service.users.remove(self.user)
         service2.users.remove(self.user)
-        service2.org_data_center.users.remove(self.user)
+        service2.org_data_center.remove_admin_user(self.user)
         query = parse.urlencode(query={'as-admin': ''})
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
