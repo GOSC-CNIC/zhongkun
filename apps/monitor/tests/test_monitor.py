@@ -607,7 +607,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(r.data['results'][0]['id'], user_tcp_task1.id)
 
         # odc admin test
-        odc1.users.add(self.user)
+        odc1.add_admin_user(user=self.user)
         r = self.client.get(path=base_url)
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn(keys=['count', 'page_num', 'page_size', 'results'], container=r.data)
@@ -1227,8 +1227,11 @@ class MonitorWebsiteTests(MyAPITestCase):
             self.assertEqual(url1, user2_website1.full_url)
             self.assertIn(item['email'], [self.user.username, self.user2.username])
 
-        odc1.users.add(self.user, self.user2, user3)
-        odc2.users.add(self.user2, user4)
+        odc1.add_admin_user(self.user)
+        odc1.add_admin_user(self.user2)
+        odc1.add_admin_user(user3)
+        odc2.add_admin_user(user=self.user2)
+        odc2.add_admin_user(user=user4)
         r = self.client.get(path=f'{base_url}?{query}')
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn(keys=['url_hash', 'results'], container=r.data)
@@ -1466,7 +1469,7 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
             detection_point_id=detection_point1.id)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
 
-        odc1.users.add(self.user2)
+        odc1.add_admin_user(user=self.user2)
         r = self.query_response(
             website_id=odc_task.id, detection_point_id=detection_point1.id,
             query_tag=WebsiteQueryChoices.DURATION_SECONDS.value)
@@ -1689,7 +1692,7 @@ class MonitorWebsiteQueryTests(MyAPITestCase):
             query_tag=WebsiteQueryChoices.DURATION_SECONDS.value, start=start, end=end, step=step)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
 
-        odc1.users.add(self.user2)
+        odc1.add_admin_user(user=self.user2)
         r = self.query_range_response(
             website_id=odc_task.id, detection_point_id=detection_point1.id,
             query_tag=WebsiteQueryChoices.DURATION_SECONDS.value, start=start, end=end, step=step)
@@ -1891,7 +1894,7 @@ class UnitAdminEmailTests(MyAPITestCase):
         user2 = get_or_create_user(username='lisi@cnic.cn', password='password')
         user3 = get_or_create_user(username='zhangsan@cnic.cn', password='password')
         odc = get_or_create_org_data_center()
-        odc.users.add(user)
+        odc.add_admin_user(user)
         unit_ceph1 = MonitorJobCeph(
             name='ceph1', name_en='name_en1', job_tag='test1_ceph_metric', sort_weight=10,
             org_data_center=odc

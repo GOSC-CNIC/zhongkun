@@ -90,7 +90,7 @@ class MonitorServerTests(MyAPITestCase):
         self.assertEqual(len(response.data['results']), 0)
 
         # unit_server1, unit_server3
-        odc.users.add(self.user)  # 关联的机构数据中心管理员权限
+        odc.add_admin_user(user=self.user)  # 关联的机构数据中心管理员权限
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "page_num", "page_size", 'results'], response.data)
@@ -200,10 +200,10 @@ class MonitorServerTests(MyAPITestCase):
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
         # 服务单元管理员权限测试
-        monitor_server_unit.org_data_center.users.add(self.user)
+        monitor_server_unit.org_data_center.add_admin_user(user=self.user)
         self.query_ok_test(monitor_unit_id=server_unit_id, query_tag=ServerQueryChoices.HEALTH_STATUS.value)
         # 移除服务单元管理员权限
-        monitor_server_unit.org_data_center.users.remove(self.user)
+        monitor_server_unit.org_data_center.remove_admin_user(user=self.user)
 
         # no permission
         response = self.query_response(monitor_unit_id=server_unit_id, query_tag=ServerQueryChoices.CPU_USAGE.value)
@@ -230,11 +230,11 @@ class MonitorServerTests(MyAPITestCase):
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
         # data center admin
-        monitor_server_unit.org_data_center.users.add(self.user)
+        monitor_server_unit.org_data_center.add_admin_user(user=self.user)
         self.query_ok_test(monitor_unit_id=server_unit_id, query_tag=ServerQueryChoices.HEALTH_STATUS.value)
 
         # no permission
-        monitor_server_unit.org_data_center.users.remove(self.user)
+        monitor_server_unit.org_data_center.remove_admin_user(user=self.user)
         response = self.query_response(monitor_unit_id=server_unit_id, query_tag=ServerQueryChoices.CPU_USAGE.value)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
@@ -313,10 +313,10 @@ class MonitorServerTests(MyAPITestCase):
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
         # 服务单元管理员权限测试
-        server_unit.org_data_center.users.add(self.user)
+        server_unit.org_data_center.add_admin_user(user=self.user)
         self.query_v2_ok_test(unit_id=server_unit_id, query_tag=ServerQueryV2Choices.HOST_UP.value)
         # 移除服务单元管理员权限
-        server_unit.org_data_center.users.remove(self.user)
+        server_unit.org_data_center.remove_admin_user(user=self.user)
 
         # no permission
         response = self.query_v2_response(unit_id=server_unit_id, query_tag=ServerQueryV2Choices.HOST_CPU_USAGE.value)
@@ -342,11 +342,11 @@ class MonitorServerTests(MyAPITestCase):
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
         # data center admin
-        server_unit.org_data_center.users.add(self.user)
+        server_unit.org_data_center.add_admin_user(user=self.user)
         self.query_v2_ok_test(unit_id=server_unit_id, query_tag=ServerQueryV2Choices.HOST_NET_RATE_OUT.value)
 
         # no permission
-        server_unit.org_data_center.users.remove(self.user)
+        server_unit.org_data_center.remove_admin_user(user=self.user)
         response = self.query_v2_response(unit_id=server_unit_id, query_tag=ServerQueryV2Choices.HOST_CPU_USAGE.value)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 

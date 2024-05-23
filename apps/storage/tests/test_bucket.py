@@ -227,7 +227,7 @@ class AdminBucketTests(MyAPITestCase):
         self.assertEqual(r.data['count'], 0)
         self.assertEqual(len(r.data['results']), 0)
 
-        self.service1.org_data_center.users.add(self.user)
+        self.service1.org_data_center.add_admin_user(self.user)
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn(keys=['count', 'next', 'previous', 'results'], container=r.data)
@@ -245,7 +245,7 @@ class AdminBucketTests(MyAPITestCase):
         self.assertEqual(r.data['results'][1]['id'], b3_u1_s2.id)
 
         # ----- federal_admin -------------
-        self.service1.org_data_center.users.remove(self.user)
+        self.service1.org_data_center.remove_admin_user(self.user)
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn(keys=['count', 'next', 'previous', 'results'], container=r.data)
@@ -368,7 +368,7 @@ class AdminBucketTests(MyAPITestCase):
         r = self.client.delete(f'{url}?{query}')
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
 
-        self.service1.org_data_center.users.add(self.user)
+        self.service1.org_data_center.add_admin_user(self.user)
         r = self.client.delete(f'{url}?{query}')
         self.assertEqual(r.status_code, 204)
 
@@ -403,13 +403,13 @@ class AdminBucketTests(MyAPITestCase):
         r = self.client.get(url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
 
-        self.service1.org_data_center.users.add(self.user)
+        self.service1.org_data_center.add_admin_user(self.user)
         r = self.client.get(url)
         self.assertEqual(r.status_code, 500)
         self.assertEqual(r.data['code'], 'Adapter.BucketNotExist')
 
         # set federal admin
-        self.service1.org_data_center.users.remove(self.user)
+        self.service1.org_data_center.remove_admin_user(self.user)
         r = self.client.get(url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
 
@@ -464,13 +464,13 @@ class AdminBucketTests(MyAPITestCase):
         r = self.client.post(f'{url}?{query}')
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
 
-        self.service1.org_data_center.users.add(self.user)
+        self.service1.org_data_center.add_admin_user(self.user)
         r = self.client.post(f'{url}?{query}')
         self.assertEqual(r.status_code, 500)
         self.assertEqual(r.data['code'], 'Adapter.BucketNotExist')
 
         # set federal admin
-        self.service1.org_data_center.users.remove(self.user)
+        self.service1.org_data_center.remove_admin_user(self.user)
         r = self.client.post(f'{url}?{query}')
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
 

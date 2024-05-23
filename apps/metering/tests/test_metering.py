@@ -1902,7 +1902,7 @@ class MeteringObsTests(MyAPITestCase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(len(r.data["results"]), 2)
 
-        self.service2.org_data_center.users.add(self.user)
+        self.service2.org_data_center.add_admin_user(self.user)
         r = self.client.get(f'{base_url}?{query}')
         self.assertEqual(r.status_code, 200)
         self.assertEqual(len(r.data["results"]), 3)

@@ -124,7 +124,7 @@ class LogSiteTests(MyAPITestCase):
         self.assertEqual(response.data['count'], 0)
         self.assertEqual(len(response.data['results']), 0)
 
-        odc.users.add(self.user)
+        odc.add_admin_user(user=self.user)
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "page_num", "page_size", 'results'], response.data)
@@ -264,7 +264,7 @@ class LogSiteTests(MyAPITestCase):
         response = self.client.get(f'{url}?{query}')
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        log_site.org_data_center.users.add(self.user)
+        log_site.org_data_center.add_admin_user(user=self.user)
         query = parse.urlencode(query={
             'log_site_id': log_site.id, 'start': timestamp - 1000, 'end': timestamp, 'direction': 'backward',
             'limit': '10'

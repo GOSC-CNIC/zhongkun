@@ -1235,14 +1235,14 @@ class ServersTests(MyAPITestCase):
             client=self.client, server_id=self.miss_server.id, querys={'as-admin': ''})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        self.service.org_data_center.users.add(admin_user)
+        self.service.org_data_center.add_admin_user(user=admin_user)
         response = self.server_detail_response(
             client=self.client, server_id=self.miss_server.id, querys={'as-admin': ''})
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['server'], response.data)
 
         # test when federal admin
-        self.service.org_data_center.users.remove(admin_user)
+        self.service.org_data_center.remove_admin_user(user=admin_user)
         response = self.server_detail_response(
             client=self.client, server_id=self.miss_server.id, querys={'as-admin': ''})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
@@ -1641,14 +1641,14 @@ class ServersTests(MyAPITestCase):
         self.assertIsInstance(response.data['servers'], list)
         self.assertEqual(len(response.data['servers']), 0)
 
-        self.service.org_data_center.users.add(admin_user)
+        self.service.org_data_center.add_admin_user(user=admin_user)
         response = self.client.get(f'{url}?{query_str}')
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['count', 'next', 'previous', 'servers'], response.data)
         self.assertEqual(response.data['count'], 2)
         self.assertIsInstance(response.data['servers'], list)
         self.assertEqual(len(response.data['servers']), 2)
-        self.service.org_data_center.users.remove(admin_user)
+        self.service.org_data_center.remove_admin_user(user=admin_user)
 
         # -------------list server when federal admin---------------
         admin_user.set_federal_admin()
@@ -1853,11 +1853,11 @@ class ServersTests(MyAPITestCase):
         response = self.client.post(f'{url}?{query}', data={'action': 'start'})
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        self.miss_server.service.org_data_center.users.add(admin_user)
+        self.miss_server.service.org_data_center.add_admin_user(user=admin_user)
         query = parse.urlencode(query={'as-admin': ''})
         response = self.client.post(f'{url}?{query}', data={'action': 'start'})
         self.assertErrorResponse(status_code=500, code='InternalError', response=response)
-        self.miss_server.service.org_data_center.users.remove(admin_user)
+        self.miss_server.service.org_data_center.remove_admin_user(user=admin_user)
 
         # test when federal admin
         url = reverse('servers-api:servers-server-action', kwargs={'id': self.miss_server.id})
@@ -2166,8 +2166,8 @@ class ServersTests(MyAPITestCase):
             },
             'vo_id': None
         }, d=obj)
-        UTC_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
-        self.assertEqual(datetime.strptime(obj['creation_time'], UTC_FORMAT).timestamp(),
+
+        self.assertEqual(datetime.strptime(obj['creation_time'], "%Y-%m-%dT%H:%M:%S.%fZ").timestamp(),
                          self.miss_server.creation_time.timestamp())
 
         # list vo server archives
@@ -2229,12 +2229,12 @@ class ServersTests(MyAPITestCase):
         response = self.client.delete(delete_url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        self.service.org_data_center.users.add(admin_user)
+        self.service.org_data_center.add_admin_user(user=admin_user)
         response = self.client.delete(delete_url)
         self.assertEqual(response.status_code, 204)
 
         # test when federal admin
-        self.service.org_data_center.users.remove(admin_user)
+        self.service.org_data_center.remove_admin_user(user=admin_user)
         delete_server = create_server_metadata(
             service=self.service, user=self.user,
             default_user=self.default_user, default_password=self.default_password)

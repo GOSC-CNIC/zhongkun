@@ -184,7 +184,7 @@ class AdminODCTests(MyAPITransactionTestCase):
         self.assertEqual(len(response.data['results']), 0)
 
         # test dc admin
-        odc1.users.add(self.user1)
+        odc1.add_admin_user(user=self.user1)
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 1)
@@ -199,7 +199,7 @@ class AdminODCTests(MyAPITransactionTestCase):
         self.assertKeysIn(['id', 'name', 'name_en'], response.data['results'][0]['organization'])
 
         # test federal admin
-        odc1.users.remove(self.user1)
+        odc1.remove_admin_user(user=self.user1)
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 0)
@@ -511,7 +511,7 @@ class AdminODCTests(MyAPITransactionTestCase):
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
         # odc admin
-        odc1.users.add(self.user1)
+        odc1.add_admin_user(user=self.user1.id)
         url = reverse('service-api:admin-odc-detail', kwargs={'id': odc1.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -525,13 +525,13 @@ class AdminODCTests(MyAPITransactionTestCase):
         self.assertEqual(response.data['users'][0]['id'], self.user1.id)
         self.assertEqual(response.data['users'][0]['username'], self.user1.username)
 
-        odc1.users.add(user2)
+        odc1.add_admin_user(user=user2.id)
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data['users']), 2)
 
         # test federal admin
-        odc1.users.remove(self.user1)
+        odc1.remove_admin_user(user=self.user1)
         url = reverse('service-api:admin-odc-detail', kwargs={'id': odc1.id})
         response = self.client.get(url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
@@ -698,7 +698,9 @@ class AdminODCTests(MyAPITransactionTestCase):
             loki_endpoint_url='https://lokixxxx.cn', loki_receive_url='https://lokerexxxx.cn',
             loki_username='jerry@qq.com', loki_password='loki123456', loki_remark='loki remark'
         )
-        odc1.users.add(self.user1, user2, user3)
+        odc1.add_admin_user(user=self.user1)
+        odc1.add_admin_user(user=user2)
+        odc1.add_admin_user(user=user3)
 
         # 云主机、对象存储服务单元
         server_unit1 = ServiceConfig(name='service1', name_en='service1 en', org_data_center=odc1)

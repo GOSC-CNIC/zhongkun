@@ -314,7 +314,6 @@ class ServiceTests(MyAPITestCase):
         self.assertEqual(response.data["count"], 0)
 
         service2.users.add(self.user)
-        # self.service.org_data_center.users.add(self.user)
         query = parse.urlencode(query={'as-admin': ''})
         response = self.client.get(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
@@ -360,7 +359,7 @@ class ServiceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 0)
 
-        self.service.org_data_center.users.add(self.user)
+        self.service.org_data_center.add_admin_user(user=self.user)
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 1)

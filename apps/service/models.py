@@ -1,7 +1,7 @@
 from django.db import models
 from django.db import transaction
 from django.utils.translation import gettext, gettext_lazy as _
-from django.utils import timezone
+from django.utils import timezone as dj_timezone
 from django.core.exceptions import ValidationError
 
 from utils.model import UuidModel, get_encryptor
@@ -78,7 +78,7 @@ class DataCenter(UuidModel):
     def save(self, force_insert=False, force_update=False, using=None,
              update_fields=None):
         if not self.creation_time:
-            self.creation_time = timezone.now()
+            self.creation_time = dj_timezone.now()
             if update_fields and 'creation_time' not in update_fields:
                 update_fields.append('creation_time')
 
@@ -93,8 +93,8 @@ class OrgDataCenter(UuidModel):
     organization = models.ForeignKey(
         to=DataCenter, verbose_name=_('机构'), on_delete=models.SET_NULL, null=True, blank=False, db_constraint=False)
     users = models.ManyToManyField(
-        to=User, verbose_name=_('管理员'), blank=True, related_name='+', db_table='org_data_center_users',
-        db_constraint=False)
+        to=User, verbose_name=_('管理员'), blank=True, related_name='+',
+        through='OrgDataCenterAdminUser', through_fields=('orgdatacenter', 'userprofile'))
     longitude = models.FloatField(verbose_name=_('经度'), blank=True, default=0)
     latitude = models.FloatField(verbose_name=_('纬度'), blank=True, default=0)
     creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
@@ -136,7 +136,7 @@ class OrgDataCenter(UuidModel):
     class Meta:
         db_table = 'org_data_center'
         ordering = ['sort_weight']
-        verbose_name = _('机构数据中心')
+        verbose_name = _('数据中心')
         verbose_name_plural = verbose_name
 
     def __str__(self):
@@ -202,6 +202,71 @@ class OrgDataCenter(UuidModel):
     def raw_loki_password(self, raw_password: str):
         encryptor = get_encryptor()
         self.loki_password = encryptor.encrypt(raw_password)
+
+    def add_admin_user(self, user, is_ops_user: bool = False):
+        """
+        :is_admin: False(管理员)，True(运维人员)
+        """
+        if isinstance(user, str):
+            user_id = user
+        else:
+            user_id = user.id
+
+        if is_ops_user:
+            user_role = OrgDataCenterAdminUser.Role.OPS.value
+        else:
+            user_role = OrgDataCenterAdminUser.Role.ADMIN.value
+
+        odc_admin = OrgDataCenterAdminUser.objects.filter(orgdatacenter_id=self.id, userprofile_id=user_id).first()
+        if odc_admin:
+            if odc_admin.role == user_role:
+                return False, odc_admin
+
+            odc_admin.role = user_role
+            odc_admin.save(update_fields=['role'])
+            return True, odc_admin
+
+        admin_user = OrgDataCenterAdminUser(
+            orgdatacenter_id=self.id, userprofile_id=user_id, role=user_role, join_time=dj_timezone.now())
+        admin_user.save(force_insert=True)
+        return True, admin_user
+
+    def remove_admin_user(self, user):
+        if isinstance(user, str):
+            user_id = user
+        else:
+            user_id = user.id
+
+        num, d = OrgDataCenterAdminUser.objects.filter(orgdatacenter_id=self.id, userprofile_id=user_id).delete()
+        return num
+
+
+class OrgDataCenterAdminUser(models.Model):
+    """
+    数据中心管理员
+    """
+    class Role(models.TextChoices):
+        ADMIN = 'admin', _('管理员')
+        OPS = 'ops', _('运维')
+
+    id = models.AutoField(primary_key=True)
+    userprofile = models.ForeignKey(verbose_name=_('用户'), to=User, on_delete=models.CASCADE, db_constraint=False)
+    orgdatacenter = models.ForeignKey(
+        verbose_name=_('数据中心'), to=OrgDataCenter, on_delete=models.CASCADE, db_constraint=False)
+    role = models.CharField(verbose_name=_('角色'), max_length=16, choices=Role.choices, default=Role.ADMIN.value)
+    join_time = models.DateTimeField(verbose_name=_('加入时间'))#, default=dj_timezone.now)
+
+    class Meta:
+        db_table = 'org_data_center_users'
+        ordering = ['-join_time']
+        verbose_name = _('数据中心管理员')
+        verbose_name_plural = verbose_name
+        constraints = [
+            models.UniqueConstraint(fields=('orgdatacenter', 'userprofile'), name='unique_together_odc_user')
+        ]
+
+    def __str__(self):
+        return f'{self.userprofile.username}[{self.get_role_display()}]'
 
 
 class ApplyOrganization(UuidModel):

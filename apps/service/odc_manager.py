@@ -182,7 +182,9 @@ class OrgDataCenterManager:
             return odc
 
         with transaction.atomic():
-            odc.users.add(*users)    # 底层不会重复添加已存在的用户
+            for user in users:
+                odc.add_admin_user(user=user)
+
             OrgDataCenterManager.sync_odc_admin_to_pay_service(odc=odc, add_admins=users, remove_admins=[])
 
         return odc
@@ -194,7 +196,9 @@ class OrgDataCenterManager:
             return odc
 
         with transaction.atomic():
-            odc.users.remove(*users)
+            for user in users:
+                odc.remove_admin_user(user=user)
+
             OrgDataCenterManager.sync_odc_admin_to_pay_service(odc=odc, add_admins=[], remove_admins=users)
 
         return odc

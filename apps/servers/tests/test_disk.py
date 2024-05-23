@@ -767,7 +767,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 2)
         # 数据中心管理员
-        service2.org_data_center.users.add(self.user)
+        service2.org_data_center.add_admin_user(user=self.user)
         query = parse.urlencode(query={'as-admin': ''})
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
@@ -776,7 +776,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
         # -------------- federal_admin ----------------
         self.service.users.remove(self.user)
         service2.users.remove(self.user)
-        service2.org_data_center.users.remove(self.user)
+        service2.org_data_center.remove_admin_user(user=self.user)
         query = parse.urlencode(query={'as-admin': ''})
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
@@ -1169,12 +1169,12 @@ class DiskOrderTests(MyAPITransactionTestCase):
         response = self.client.delete(f'{base_url}?{query}')
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
-        self.service.org_data_center.users.add(self.user2)
+        self.service.org_data_center.add_admin_user(user=self.user2)
         response = self.client.delete(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 204)
 
         # test federal admin
-        self.service.org_data_center.users.remove(self.user2)
+        self.service.org_data_center.remove_admin_user(user=self.user2)
         disk3.deleted = False
         disk3.save(update_fields=['deleted'])
         response = self.client.delete(f'{base_url}?{query}')

@@ -247,7 +247,7 @@ class CouponApplyTests(MyAPITestCase):
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
 
         # odc1 admin
-        self.odc1.users.add(self.user1)
+        self.odc1.add_admin_user(self.user1)
         query = parse.urlencode(query={'as-admin': ''})
         r = self.client.get(f'{base_url}?{query}')
         self.assertEqual(r.status_code, 200)
@@ -259,7 +259,7 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(r.data['results'][3]['id'], apply1.id)
 
         # odc1 odc2 admin
-        self.odc2.users.add(self.user1)
+        self.odc2.add_admin_user(self.user1)
         query = parse.urlencode(query={'as-admin': ''})
         r = self.client.get(f'{base_url}?{query}')
         self.assertEqual(r.status_code, 200)
@@ -282,8 +282,8 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(r.data['results'][1]['id'], apply4.id)
         self.assertEqual(r.data['results'][2]['id'], apply3.id)
 
-        self.odc1.users.remove(self.user1)
-        self.odc2.users.remove(self.user1)
+        self.odc1.remove_admin_user(self.user1)
+        self.odc2.remove_admin_user(self.user1)
 
         # -- test fed admin ----
         query = parse.urlencode(query={'as-admin': ''})
@@ -448,7 +448,7 @@ class CouponApplyTests(MyAPITestCase):
         self.assertEqual(len(dj_mail.outbox), 0)    # 没有数据中心管理员不发邮件
 
         # user
-        server_service1.org_data_center.users.add(self.user2)
+        server_service1.org_data_center.add_admin_user(self.user2)
         expiration_time = (nt_utc + timedelta(hours=100)).replace(microsecond=0)
         r = self.client.post(base_url, data={
             "face_value": "2000.12",
@@ -1242,7 +1242,7 @@ class CouponApplyTests(MyAPITestCase):
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
 
         # 只能挂起待审批
-        self.odc1.users.add(self.user2)
+        self.odc1.add_admin_user(self.user2)
         r = self.client.post(base_url)
         self.assertErrorResponse(status_code=409, code='Conflict', response=r)
 
@@ -1311,7 +1311,7 @@ class CouponApplyTests(MyAPITestCase):
 
         # ok
         self.assertEqual(len(dj_mail.outbox), 0)
-        self.odc1.users.add(self.user2)
+        self.odc1.add_admin_user(self.user2)
         base_url = reverse('apply-api:coupon-reject', kwargs={'id': apply1.id})
         query = parse.urlencode(query={'reason': 'reject 测试'})
         r = self.client.post(f'{base_url}?{query}')
@@ -1393,7 +1393,7 @@ class CouponApplyTests(MyAPITestCase):
 
         # vo
         self.assertEqual(len(dj_mail.outbox), 0)
-        self.odc1.users.add(self.user1)
+        self.odc1.add_admin_user(self.user1)
         base_url = reverse('apply-api:coupon-pass', kwargs={'id': apply1.id})
         r = self.client.post(base_url)
         self.assertEqual(r.status_code, 200)
@@ -1726,7 +1726,7 @@ class CouponApplyTests(MyAPITestCase):
         r = self.client.get(f'{base_url}?{query}')
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=r)
 
-        self.odc1.users.add(self.user2)
+        self.odc1.add_admin_user(self.user2)
         r = self.client.get(f'{base_url}?{query}')
         self.assertEqual(r.status_code, 200)
         self.assertKeysIn([

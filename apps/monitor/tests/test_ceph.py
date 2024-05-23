@@ -51,10 +51,10 @@ class MonitorCephTests(MyAPITestCase):
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
         # 数据中心管理员权限测试
-        monitor_job_ceph.org_data_center.users.add(self.user)
+        monitor_job_ceph.org_data_center.add_admin_user(user=self.user)
         self.query_ok_test(monitor_unit_id=ceph_unit_id, query_tag=CephQueryChoices.HEALTH_STATUS.value)
         # 移除数据中心管理员权限
-        monitor_job_ceph.org_data_center.users.remove(self.user)
+        monitor_job_ceph.org_data_center.remove_admin_user(user=self.user)
 
         # no permission
         response = self.query_response(monitor_unit_id=ceph_unit_id, query_tag=CephQueryChoices.HEALTH_STATUS.value)
@@ -239,12 +239,12 @@ class MonitorCephTests(MyAPITestCase):
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
         # 数据中心管理员
-        monitor_job_ceph.org_data_center.users.add(self.user)
+        monitor_job_ceph.org_data_center.add_admin_user(user=self.user)
         self.query_range_ok_test(monitor_unit_id=ceph_unit_id, query_tag=CephQueryChoices.HEALTH_STATUS.value,
                                  start=start, end=end, step=step)
 
         # no permission
-        monitor_job_ceph.org_data_center.users.remove(self.user)
+        monitor_job_ceph.org_data_center.remove_admin_user(user=self.user)
         response = self.query_range_response(
             monitor_unit_id=ceph_unit_id, query_tag=CephQueryChoices.HEALTH_STATUS.value,
             start=start, end=end, step=step)
@@ -338,7 +338,7 @@ class MonitorCephTests(MyAPITestCase):
             'id', "name", "name_en", 'sort_weight'], response.data['results'][0]['org_data_center']['organization'])
 
         # unit_ceph1, unit_ceph4, unit_ceph2
-        unit_ceph2.org_data_center.users.add(self.user)     # 关联的机构数据中心管理员
+        unit_ceph2.org_data_center.add_admin_user(user=self.user)     # 关联的机构数据中心管理员
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "page_num", "page_size", 'results'], response.data)
@@ -437,10 +437,10 @@ class MonitorCephTests(MyAPITestCase):
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
         # 数据中心管理员权限测试
-        ceph_unit.org_data_center.users.add(self.user)
+        ceph_unit.org_data_center.add_admin_user(user=self.user)
         self.query_v2_ok_test(unit_id=ceph_unit_id, query_tag=CephQueryV2Choices.HEALTH_STATUS_DETAIL.value)
         # 移除数据中心管理员权限
-        ceph_unit.org_data_center.users.remove(self.user)
+        ceph_unit.org_data_center.remove_admin_user(user=self.user)
 
         # no permission
         response = self.query_v2_response(unit_id=ceph_unit_id, query_tag=CephQueryV2Choices.HEALTH_STATUS_DETAIL.value)

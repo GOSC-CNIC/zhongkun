@@ -130,17 +130,39 @@ class Migration(migrations.Migration):
                 ('loki_receive_url', models.CharField(blank=True, default='', help_text='http(s)://example.cn/', max_length=255, verbose_name='日志聚合系统接收接口')),
                 ('loki_remark', models.CharField(blank=True, default='', max_length=255, verbose_name='日志聚合系统备注')),
                 ('organization', models.ForeignKey(db_constraint=False, null=True, on_delete=django.db.models.deletion.SET_NULL, to='service.datacenter', verbose_name='机构')),
-                ('users', models.ManyToManyField(blank=True, db_constraint=False, db_table='org_data_center_users', related_name='+', to=settings.AUTH_USER_MODEL, verbose_name='管理员')),
+                # ('users', models.ManyToManyField(blank=True, db_constraint=False, db_table='org_data_center_users', related_name='+', to=settings.AUTH_USER_MODEL, verbose_name='管理员')),
                 ('log_monitor_url', models.CharField(blank=True, default='', help_text='如果填写有效网址会自动创建对应的站点监控任务，格式为 http(s)://example.cn/', max_length=255, verbose_name='日志聚合系统监控网址')),
                 ('log_task_id', models.CharField(blank=True, default='', editable=False, help_text='记录为日志聚合系统监控网址创建的站点监控任务的ID', max_length=36, verbose_name='日志聚合系统监控任务ID')),
                 ('metric_monitor_url', models.CharField(blank=True, default='', help_text='如果填写有效网址会自动创建对应的站点监控任务，格式为 http(s)://example.cn/', max_length=255, verbose_name='指标监控系统监控网址')),
                 ('metric_task_id', models.CharField(blank=True, default='', editable=False, help_text='记录为指标监控系统监控地址创建的站点监控任务的ID', max_length=36, verbose_name='指标监控系统监控任务ID')),
             ],
             options={
-                'verbose_name': '机构数据中心',
-                'verbose_name_plural': '机构数据中心',
+                'verbose_name': '数据中心',
+                'verbose_name_plural': '数据中心',
                 'db_table': 'org_data_center',
                 'ordering': ['sort_weight'],
             },
+        ),
+        migrations.CreateModel(
+            name='OrgDataCenterAdminUser',
+            fields=[
+                ('id', models.AutoField(primary_key=True, serialize=False)),
+                ('orgdatacenter', models.ForeignKey(db_constraint=False, on_delete=django.db.models.deletion.CASCADE, to='service.orgdatacenter', verbose_name='数据中心')),
+                ('userprofile', models.ForeignKey(db_constraint=False, on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL, verbose_name='用户')),
+            ],
+            options={
+                'verbose_name': '数据中心管理员',
+                'verbose_name_plural': '数据中心管理员',
+                'db_table': 'org_data_center_users',
+            },
+        ),
+        migrations.AddField(
+            model_name='orgdatacenter',
+            name='users',
+            field=models.ManyToManyField(blank=True, related_name='+', through='service.OrgDataCenterAdminUser', to=settings.AUTH_USER_MODEL, verbose_name='管理员'),
+        ),
+        migrations.AddConstraint(
+            model_name='orgdatacenteradminuser',
+            constraint=models.UniqueConstraint(fields=('orgdatacenter', 'userprofile'), name='unique_together_odc_user'),
         ),
     ]

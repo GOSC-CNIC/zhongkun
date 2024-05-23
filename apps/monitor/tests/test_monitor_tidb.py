@@ -90,7 +90,7 @@ class MonitorUnitTiDBTests(MyAPITestCase):
         self.assertEqual(len(response.data['results']), 0)
 
         # unit_tidb1, unit_tidb2
-        unit_tidb2.org_data_center.users.add(self.user)     # 关联的数据中心管理员权限
+        unit_tidb2.org_data_center.add_admin_user(user=self.user)     # 关联的数据中心管理员权限
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(["count", "page_num", "page_size", 'results'], response.data)
@@ -212,10 +212,10 @@ class MonitorUnitTiDBTests(MyAPITestCase):
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
         # 服务单元管理员权限测试
-        monitor_job_tidb.org_data_center.users.add(self.user)
+        monitor_job_tidb.org_data_center.add_admin_user(user=self.user)
         self.query_ok_test(monitor_unit_id=monitor_job_tidb.id, query_tag=TiDBQueryChoices.QPS.value)
         # 移除服务单元管理员权限
-        monitor_job_tidb.org_data_center.users.remove(self.user)
+        monitor_job_tidb.org_data_center.remove_admin_user(user=self.user)
 
         # no permission
         response = self.query_response(
@@ -344,10 +344,10 @@ class MonitorUnitTiDBTests(MyAPITestCase):
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
 
         # 服务单元管理员权限测试
-        unit_tidb.org_data_center.users.add(self.user)
+        unit_tidb.org_data_center.add_admin_user(user=self.user)
         self.query_v2_ok_test(monitor_unit_id=unit_tidb.id, query_tag=TiDBQueryV2Choices.QPS.value)
         # 移除服务单元管理员权限
-        unit_tidb.org_data_center.users.remove(self.user)
+        unit_tidb.org_data_center.remove_admin_user(user=self.user)
 
         # no permission
         response = self.query_v2_response(
