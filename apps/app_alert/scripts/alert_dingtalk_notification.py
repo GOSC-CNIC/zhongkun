@@ -85,9 +85,9 @@ class DingTalk(object):
             self.post(title, record)
         # 日志类长时间未解决 重复通知
         log_alerts = self.search_firing_alerts(alert_type="log", start=0, end=self.end)
-        title, record = self.log_alert_format(log_alerts, minute=-1)
+        title, record = self.log_alert_text_format(log_alerts, minute=-1)
         if record:
-            self.post(title, record)
+            self.post(title, record, send_type='text')
 
     def repeat_notice(self, minute):
         # 指标类长时间未解决 重复通知
@@ -104,9 +104,9 @@ class DingTalk(object):
             alert_type="log",
             start=self.start - minute * 60,
             end=self.end - minute * 60)
-        title, record = self.log_alert_format(log_alerts, minute=minute)
+        title, record = self.log_alert_text_format(log_alerts, minute=minute)
         if record:
-            self.post(title, record)
+            self.post(title, record, send_type='text')
 
     def get_instance_property_mapping(self):
         try:
@@ -181,10 +181,13 @@ class DingTalk(object):
                 )
         return order_notification_list
 
-    def post(self, title, text):
+    def post(self, title, text, send_type='markdown'):
         if not title or not text:
             return
-        ret = self.robot.send_markdown(title=title, text=text)
+        if send_type == 'text':
+            ret = self.robot.send_text(msg=text)
+        else:
+            ret = self.robot.send_markdown(title=title, text=text)
         logger.info(str(ret))
 
     def metric_notification(self):
@@ -212,9 +215,9 @@ class DingTalk(object):
         """
         logger.info("日志类告警通知")
         log_alerts = self.search_firing_alerts(alert_type="log", start=self.start, end=self.end)
-        title, record = self.log_alert_format(log_alerts)
+        title, record = self.log_alert_text_format(log_alerts)
         if record:
-            self.post(title, record)
+            self.post(title, record, send_type='text')
 
     def work_order_notification(self):
         """
@@ -242,6 +245,13 @@ class DingTalk(object):
         property_id = "**设备序号**: {}".format(instance_property.get("id") or "")
         property_name = "**设备名称**: {}".format(instance_property.get("name") or "")
         property_director = "**管理员**: {}".format(instance_property.get("director") or "")
+        return property_id, property_name, property_director
+
+    def parser_property_info_text(self, instance):
+        instance_property = self.instance_property_mapping.get(instance) or {}
+        property_id = "设备序号: {}".format(instance_property.get("id") or "")
+        property_name = "设备名称: {}".format(instance_property.get("name") or "")
+        property_director = "管理员: {}".format(instance_property.get("director") or "")
         return property_id, property_name, property_director
 
     def metric_alert_format(self, alerts, status, minute=0):
@@ -322,6 +332,44 @@ class DingTalk(object):
             record_msg_list.append("---\n\n")
         return f"日志告警：{list(alert_msg_mapping.keys())[0]}", "\n\n".join(record_msg_list)
 
+    def log_alert_text_format(self, alerts, minute=0):
+        if not alerts:
+            return '', ''
+        if len(alerts) > 10:
+            alerts = alerts[:10]
+            omit = True
+        else:
+            omit = False
+        alert_status = "日志告警(Firing)"
+        alert_msg_mapping = dict()
+        for alert in alerts:
+            instance = self.parse_alert_instance(alert)
+            if not alert_msg_mapping.get(instance):
+                alert_msg_mapping[instance] = []
+            description = alert.get("description")
+            alert_msg_mapping[instance].append(f"{description}, {alert.get('id')[:10]}")
+        record_msg_list = list()
+        if minute:
+            if minute == -1:
+                record_msg_list.append(f'Tip:未处理告警信息推送')
+            else:
+                record_msg_list.append(f'Tip:告警时长超过{minute}分钟')
+        if omit:
+            record_msg_list.append('请在AIOps网站查看全部内容')
+        record_msg_list.append(alert_status)
+        for instance, descriptions in alert_msg_mapping.items():
+            property_id, property_name, property_director = self.parser_property_info_text(instance)
+            instance_field = "设备IP: {}".format(instance)
+            record_msg_list.append("\n")
+            record_msg_list.append(property_id)
+            record_msg_list.append(property_name)
+            record_msg_list.append(instance_field)
+            record_msg_list.append(property_director)
+            for description in descriptions:
+                description = "告警信息: {}".format(description)
+                record_msg_list.append(description)
+        return f"日志告警：{list(alert_msg_mapping.keys())[0]}", "\n".join(record_msg_list).replace('\n' * 2, "\n")
+
     def work_order_format(self, work_order_notification):
         order = work_order_notification.get('order')
         alert_list = work_order_notification.get('alert_list')
@@ -392,4 +440,4 @@ def run_task_use_lock():
 
 if __name__ == '__main__':
     run_task_use_lock()
-
+    # DingTalk().run()
