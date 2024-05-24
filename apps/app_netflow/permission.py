@@ -115,7 +115,11 @@ class PermissionManager(object):
 
     def get_user_role(self):
         """
-        当前用户的角色
+        查询当前用户的角色
+            super-admin    流量模块超级管理员
+            admin          流量模块运维管理员
+            group-admin   流量模块组管理员
+            ordinary      流量模块组员
         """
         if self.is_global_super_admin():
             return GlobalAdminModel.Roles.SUPER_ADMIN.value
@@ -123,7 +127,7 @@ class PermissionManager(object):
             return GlobalAdminModel.Roles.ADMIN.value
         if self.user_group_list(is_admin=True):
             return Menu2Member.Roles.GROUP_ADMIN.value
-        else:
+        if self.user_group_list():
             return Menu2Member.Roles.ORDINARY.value
 
 

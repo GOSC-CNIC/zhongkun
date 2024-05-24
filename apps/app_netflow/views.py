@@ -67,9 +67,11 @@ class GlobalUserRoleAPIView(APIView):
     )
     def get(self, request):
         """
-        超级管理员
-        运维管理员（管理员）
-        组管理员
+        查询当前用户的角色
+            super-admin    流量模块超级管理员
+            admin          流量模块运维管理员
+            group-admin   流量模块组管理员
+            ordinary      流量模块组员
         """
         result = PermissionManager(request).get_user_role()
         return Response({"role": result})
