@@ -3,12 +3,13 @@ from decimal import Decimal
 from django.test import TestCase
 from django.utils import timezone
 
+from core import errors
 from utils.time import datetime_add_months
 from utils.decimal_utils import quantize_10_2
 from utils.model import ResourceType, OwnerType, PayType
 from apps.order.models import Price, Order, Resource
 from apps.order.managers import PriceManager, OrderManager
-from apps.order.managers.instance_configs import ScanConfig, ServerConfig
+from apps.order.managers.instance_configs import ScanConfig, ServerConfig, ServerSnapshotConfig
 
 
 class TimeTests(TestCase):
@@ -218,6 +219,61 @@ class PriceManagerTests(TestCase):
         self.assertEqual(quantize_10_2(original_price), quantize_10_2(self.price.scan_web))
         original_price, trade_price = pm.describe_scan_price(has_web=False, has_host=True)
         self.assertEqual(quantize_10_2(original_price), quantize_10_2(self.price.scan_host))
+
+    def _snapshot_price_test(
+            self, price: Price, disk_gib, period: int, period_unit: str, is_prepaid: bool, days: float = 0
+    ):
+        pm = PriceManager()
+        original_price, trade_price = pm.describe_snapshot_price(
+            disk_gib=disk_gib, period=period, days=0, is_prepaid=is_prepaid, period_unit=period_unit)
+
+        days = PriceManager.convert_period_days(period=period, period_unit=period_unit)
+        op_months = price.vm_disk_snap * (disk_gib * 24 * days)
+        if is_prepaid:
+            tp_months = op_months * Decimal.from_float(price.prepaid_discount / 100)
+        else:
+            tp_months = op_months
+
+        self.assertEqual(quantize_10_2(original_price), quantize_10_2(op_months), msg=f'period={period} {period_unit}')
+        self.assertEqual(quantize_10_2(trade_price), quantize_10_2(tp_months), msg=f'period={period} {period_unit}')
+
+    def test_snapshot_price(self):
+        self._snapshot_price_test(
+            price=self.price, disk_gib=1, is_prepaid=True,
+            period=1, period_unit=Order.PeriodUnit.DAY.value, days=0)
+        self._snapshot_price_test(
+            price=self.price, disk_gib=8, is_prepaid=False,
+            period=2, period_unit=Order.PeriodUnit.DAY.value, days=0)
+        self._snapshot_price_test(
+            price=self.price, disk_gib=50, is_prepaid=True,
+            period=123, period_unit=Order.PeriodUnit.DAY.value, days=0)
+        self._snapshot_price_test(
+            price=self.price, disk_gib=128, is_prepaid=True,
+            period=120, period_unit=Order.PeriodUnit.DAY.value, days=0)
+        self._snapshot_price_test(
+            price=self.price, disk_gib=1024, is_prepaid=True,
+            period=180, period_unit=Order.PeriodUnit.DAY.value, days=0)
+        self._snapshot_price_test(
+            price=self.price, disk_gib=1024, is_prepaid=True,
+            period=0, period_unit=Order.PeriodUnit.DAY.value, days=123.5)
+        self._snapshot_price_test(
+            price=self.price, disk_gib=1, is_prepaid=True,
+            period=1, period_unit=Order.PeriodUnit.MONTH.value, days=0)
+        self._snapshot_price_test(
+            price=self.price, disk_gib=8, is_prepaid=False,
+            period=2, period_unit=Order.PeriodUnit.MONTH.value, days=0)
+        self._snapshot_price_test(
+            price=self.price, disk_gib=50, is_prepaid=True,
+            period=6, period_unit=Order.PeriodUnit.MONTH.value, days=0)
+        self._snapshot_price_test(
+            price=self.price, disk_gib=128, is_prepaid=True,
+            period=12, period_unit=Order.PeriodUnit.MONTH.value, days=0)
+        self._snapshot_price_test(
+            price=self.price, disk_gib=1024, is_prepaid=True,
+            period=36, period_unit=Order.PeriodUnit.MONTH.value, days=0)
+        self._snapshot_price_test(
+            price=self.price, disk_gib=1024, is_prepaid=True,
+            period=1, period_unit=Order.PeriodUnit.MONTH.value, days=123.5)
 
 
 class OrderManagerTests(TestCase):
@@ -429,3 +485,127 @@ class OrderManagerTests(TestCase):
         self.assertEqual(server_order1.payable_amount, quantize_10_2(trade_price * 4))
         self.assertEqual(len(resources), 4)
         self.assertEqual(resources[0].instance_remark, 'testcase创建，可删除3')
+
+    def test_create_snapshot(self):
+        instance_config = ServerSnapshotConfig(
+            server_id='server_id1', systemdisk_size=100, azone_id='azone_id1',
+            snapshot_name='snapshot_name1', snapshot_desc='testcase创建，可删除'
+        )
+        order1, resource_list1 = OrderManager().create_order(
+            order_type=Order.OrderType.NEW.value,
+            pay_app_service_id='pay_app_service_id',
+            service_id='service1_id',
+            service_name='service1_name',
+            resource_type=ResourceType.VM_SNAPSHOT.value,
+            instance_config=instance_config,
+            period=100,
+            period_unit=Order.PeriodUnit.DAY.value,
+            pay_type=PayType.PREPAID.value,
+            user_id='user_id1',
+            username='username1',
+            vo_id='vo_id1',
+            vo_name='vo_name1',
+            owner_type=OwnerType.VO.value,
+            remark='testcase创建，可删除'
+        )
+        snapshot_order1 = Order.objects.get(id=order1.id)
+        resources = Resource.objects.filter(order_id=snapshot_order1.id).all()
+        resources = list(resources)
+        original_price, trade_price = PriceManager().describe_snapshot_price(
+            disk_gib=100, is_prepaid=True,
+            period=100, period_unit=Order.PeriodUnit.DAY.value, days=0)
+        self.assertEqual(snapshot_order1.resource_type, ResourceType.VM_SNAPSHOT.value)
+        self.assertEqual(snapshot_order1.number, 1)
+        self.assertEqual(snapshot_order1.period, 100)
+        self.assertEqual(snapshot_order1.period_unit, Order.PeriodUnit.DAY.value)
+        self.assertEqual(snapshot_order1.pay_type, PayType.PREPAID.value)
+        self.assertEqual(snapshot_order1.user_id, 'user_id1')
+        self.assertEqual(snapshot_order1.username, 'username1')
+        self.assertEqual(snapshot_order1.owner_type, OwnerType.VO.value)
+        self.assertEqual(snapshot_order1.vo_id, 'vo_id1')
+        self.assertEqual(snapshot_order1.vo_name, 'vo_name1')
+        self.assertEqual(snapshot_order1.app_service_id, 'pay_app_service_id')
+        self.assertEqual(snapshot_order1.service_id, 'service1_id')
+        self.assertEqual(snapshot_order1.service_name, 'service1_name')
+        self.assertEqual(snapshot_order1.total_amount, quantize_10_2(original_price))
+        self.assertEqual(snapshot_order1.payable_amount, quantize_10_2(trade_price))
+        self.assertEqual(len(resources), 1)
+        self.assertEqual(resources[0].instance_remark, 'testcase创建，可删除')
+        ins_cfg = ServerSnapshotConfig.from_dict(snapshot_order1.instance_config)
+        self.assertEqual(ins_cfg.server_id, 'server_id1')
+        self.assertEqual(ins_cfg.systemdisk_size, 100)
+        self.assertEqual(ins_cfg.azone_id, 'azone_id1')
+        self.assertEqual(ins_cfg.snapshot_name, 'snapshot_name1')
+        self.assertEqual(ins_cfg.snapshot_desc, 'testcase创建，可删除')
+
+        with self.assertRaises(errors.Error):
+            OrderManager().create_order(
+                order_type=Order.OrderType.NEW.value,
+                pay_app_service_id='pay_app_service_id',
+                service_id='service1_id',
+                service_name='service1_name',
+                resource_type=ResourceType.VM_SNAPSHOT.value,
+                instance_config=instance_config,
+                period=2,
+                period_unit=Order.PeriodUnit.MONTH.value,
+                pay_type=PayType.PREPAID.value,
+                user_id='user_id1',
+                username='username1',
+                vo_id='',
+                vo_name='',
+                owner_type=OwnerType.USER.value,
+                remark='testcase创建，可删除3',
+                number=4
+            )
+
+        instance_config2 = ServerSnapshotConfig(
+            server_id='server_id2', systemdisk_size=1024, azone_id='azone_id2',
+            snapshot_name='snapshot_name2', snapshot_desc='testcase创建，可删除2'
+        )
+        order2, resource_list2 = OrderManager().create_order(
+            order_type=Order.OrderType.NEW.value,
+            pay_app_service_id='pay_app_service_id',
+            service_id='service1_id',
+            service_name='service1_name',
+            resource_type=ResourceType.VM_SNAPSHOT.value,
+            instance_config=instance_config2,
+            period=2,
+            period_unit=Order.PeriodUnit.MONTH.value,
+            pay_type=PayType.PREPAID.value,
+            user_id='user_id1',
+            username='username1',
+            vo_id='',
+            vo_name='',
+            owner_type=OwnerType.USER.value,
+            remark='testcase创建，可删除3',
+            number=1
+        )
+        snapshot_order2 = Order.objects.get(id=order2.id)
+        resources = Resource.objects.filter(order_id=snapshot_order2.id).all()
+        resources = list(resources)
+        original_price, trade_price = PriceManager().describe_snapshot_price(
+            disk_gib=1024, is_prepaid=True,
+            period=2, period_unit=Order.PeriodUnit.MONTH.value, days=0)
+        self.assertEqual(snapshot_order2.resource_type, ResourceType.VM_SNAPSHOT.value)
+        self.assertEqual(snapshot_order2.number, 1)
+        self.assertEqual(snapshot_order2.period, 2)
+        self.assertEqual(snapshot_order2.period_unit, Order.PeriodUnit.MONTH.value)
+        self.assertEqual(snapshot_order2.pay_type, PayType.PREPAID.value)
+        self.assertEqual(snapshot_order2.user_id, 'user_id1')
+        self.assertEqual(snapshot_order2.username, 'username1')
+        self.assertEqual(snapshot_order2.owner_type, OwnerType.USER.value)
+        self.assertEqual(snapshot_order2.vo_id, '')
+        self.assertEqual(snapshot_order2.vo_name, '')
+        self.assertEqual(snapshot_order2.app_service_id, 'pay_app_service_id')
+        self.assertEqual(snapshot_order2.service_id, 'service1_id')
+        self.assertEqual(snapshot_order2.service_name, 'service1_name')
+        self.assertEqual(snapshot_order2.total_amount, quantize_10_2(original_price))
+        self.assertEqual(snapshot_order2.payable_amount, quantize_10_2(trade_price))
+        self.assertEqual(len(resources), 1)
+        self.assertEqual(resources[0].instance_remark, 'testcase创建，可删除3')
+        ins_cfg = ServerSnapshotConfig.from_dict(snapshot_order2.instance_config)
+        self.assertEqual(ins_cfg.server_id, 'server_id2')
+        self.assertEqual(ins_cfg.systemdisk_size, 1024)
+        self.assertEqual(ins_cfg.azone_id, 'azone_id2')
+        self.assertEqual(ins_cfg.snapshot_name, 'snapshot_name2')
+        self.assertEqual(ins_cfg.snapshot_desc, 'testcase创建，可删除2')

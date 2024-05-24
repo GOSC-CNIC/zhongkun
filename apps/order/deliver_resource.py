@@ -8,13 +8,13 @@ from core import errors as exceptions
 from core.quota import QuotaAPI
 from core import request as core_request
 from core.taskqueue import server_build_status, Future
-from apps.servers.models import Server, Disk, ServerArchive, DiskChangeLog, ServiceConfig
+from apps.servers.models import Server, Disk, ServerArchive, DiskChangeLog, ServiceConfig, ServerSnapshot
 from apps.servers.managers import ServerManager, DiskManager, ServiceManager
 from apps.servers import format_who_action_str
 from core.adapters import inputs, outputs
 from utils.model import PayType, OwnerType, ResourceType
 from apps.order.models import Order, Resource
-from apps.order.managers import OrderManager, ServerConfig, PriceManager, DiskConfig, ScanConfig
+from apps.order.managers import OrderManager, ServerConfig, PriceManager, DiskConfig, ScanConfig, ServerSnapshotConfig
 from apps.app_scan.models import VtTask
 from apps.app_scan.managers import TaskManager
 
@@ -23,6 +23,16 @@ class OrderResourceDeliverer:
     """
     订单资源创建交付管理器
     """
+
+    @staticmethod
+    def deliverer_request_service(service, method: str, params: inputs.InputBase):
+        """
+        资源交付者向服务单元发送请求的函数接口
+
+        * 测试用例会替换此函数，以模拟请求成功
+        """
+        return core_request.request_service(service=service, method=method, params=params)
+
     def deliver_order(self, order: Order, resource: Resource = None) -> List[Union[Server, Disk, VtTask]]:
         """
         :return:
@@ -38,7 +48,7 @@ class OrderResourceDeliverer:
 
     def deliver_order_with_futures(
             self, order: Order, resource: Resource = None
-    ) -> Tuple[List[Union[Server, Disk, VtTask]], List[Future], List[exceptions.Error]]:
+    ) -> Tuple[List[Union[Server, Disk, ServerSnapshot, VtTask]], List[Future], List[exceptions.Error]]:
         """
         :return:
             list
@@ -54,6 +64,9 @@ class OrderResourceDeliverer:
                 service, disk = self.deliver_new_disk(order=order, resource=resource)
                 d, futures = self.after_deliver_disk(service=service, disk=disk)
                 return [disk], futures, []
+            elif order.resource_type == ResourceType.VM_SNAPSHOT.value:
+                service, snapshot = self.deliver_new_snapshot(order=order, resource=resource)
+                return [snapshot], [], []
             if order.resource_type == ResourceType.SCAN.value:
                 tasks = self.deliver_new_sacn(order=order)
                 return tasks, [], []
@@ -1083,3 +1096,130 @@ class OrderResourceDeliverer:
 
         OrderManager.set_order_deliver_success(order=order, select_for_update=False)
         return tasks
+
+    def deliver_new_snapshot(self, order: Order, resource: Resource):
+        """
+        交付云主机快照
+        :return:
+            service, disk            # success
+
+        :raises: Error, NeetReleaseResource
+        """
+        resource_ids = [resource.id] if resource else None
+        order, resource_list = self._pre_check_deliver(order=order, resource_ids=resource_ids)
+
+        try:
+            resource = resource_list[0]
+            service, server, snapshot = self.create_snapshot_resource_for_order(order=order, resource=resource)
+        except exceptions.Error as exc:
+            try:
+                OrderManager.set_order_resource_deliver_failed(
+                    order=order, resource=resource, failed_msg='无法为订单创建云主机快照资源, ' + str(exc))
+            except exceptions.Error:
+                pass
+
+            raise exc
+        finally:
+            self.clear_order_action(order=order)
+
+        try:
+            OrderManager.set_order_resource_deliver_ok(
+                order=order, resource=resource, start_time=snapshot.creation_time,
+                due_time=snapshot.expiration_time, instance_id=snapshot.id
+            )
+        except exceptions.Error:
+            pass
+
+        return service, snapshot
+
+    def create_snapshot_resource_for_order(self, order: Order, resource: Resource):
+        """
+        为订单创建云主机快照资源
+
+        :return:
+            service, snap
+
+        :raises: Error, NeetReleaseResource
+        """
+        if order.resource_type != ResourceType.VM_SNAPSHOT.value:
+            raise exceptions.Error(message=_('订单的资源类型不是云主机快照'))
+
+        try:
+            config = ServerSnapshotConfig.from_dict(order.instance_config)
+        except Exception as exc:
+            raise exceptions.Error(message=str(exc))
+
+        snapshot_name = config.snapshot_name
+        server_id = config.server_id
+        systemdisk_size = config.systemdisk_size
+        try:
+            server = ServerManager.get_server(server_id=server_id)
+            service = server.service
+        except exceptions.Error as exc:
+            raise exc
+
+        if systemdisk_size != server.disk_size:
+            raise exceptions.Error(message=_('订单云主机快照时系统盘大小和当前云主机系统盘大小不一致'))
+
+        description = OrderResourceDeliverer.format_inst_remark(order=order, remark=resource.instance_remark)
+        who_action = OrderResourceDeliverer._format_who_action(order=order)
+        params = inputs.ServerSnapshotCreateInput(
+            region_id=service.region_id, instance_id=server_id,
+            description=description, _who_action=who_action
+        )
+        try:
+            out = self.deliverer_request_service(service=service, method='server_snapshot_create', params=params)
+        except exceptions.APIException as exc:
+            raise exc
+
+        out_snap_id = out.snapshot.snap_id
+        kwargs = {}
+        if order.owner_type == OwnerType.VO.value:
+            kwargs['classification'] = Disk.Classification.VO.value
+            kwargs['vo_id'] = order.vo_id
+        else:
+            kwargs['classification'] = Disk.Classification.PERSONAL.value
+            kwargs['vo_id'] = None
+
+        creation_time = timezone.now()
+        if order.pay_type == PayType.PREPAID.value:
+            due_time = creation_time + timedelta(
+                days=PriceManager.convert_period_days(period=order.period, period_unit=order.period_unit))
+        else:
+            due_time = None
+
+        snap = ServerSnapshot(
+            id=resource.instance_id,
+            name=snapshot_name,
+            instance_id=out_snap_id,    # 服务单元的快照id
+            size=systemdisk_size,
+            remarks=resource.instance_remark,
+            creation_time=creation_time,
+            expiration_time=due_time,
+            start_time=creation_time,
+            pay_type=order.pay_type,
+            user_id=order.user_id,
+            server=server,
+            service=service,
+            deleted=False,
+            **kwargs
+        )
+        try:
+            snap.save(force_insert=True)
+        except Exception as e:
+            try:
+                if ServerSnapshot.objects.filter(id=snap.id).exists():
+                    snap.id = None  # 清除id，save时会更新id
+
+                snap.save(force_insert=True)
+            except Exception:
+                message = f'向服务单元({service.id})请求创建云主机快照{out_snap_id}成功，创建云主机快照记录元素据失败，{str(e)}。'
+                params = inputs.ServerSnapshotDeleteInput(snap_id=snap.instance_id)
+                try:
+                    self.deliverer_request_service(service=service, method='server_snapshot_delete', params=params)
+                except exceptions.APIException as exc:
+                    message += f'尝试向服务单元请求删除云主机快照失败，{str(exc)}'
+
+                raise exceptions.NeetReleaseResource(message=message)
+
+        return service, server, snap

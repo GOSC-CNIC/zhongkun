@@ -22,7 +22,7 @@ class InputBase:
         try:
             return getattr(self._kwargs, attr)
         except AttributeError:
-            return None
+            return self.__getattribute__(attr)
 
     def get_kwargs(self):
         return self._kwargs if self._kwargs else {}

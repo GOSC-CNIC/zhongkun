@@ -246,3 +246,42 @@ class PriceManager:
 
         trade_price = original_price * Decimal.from_float(price.prepaid_discount / 100)
         return original_price, trade_price
+
+    def describe_snapshot_price(
+            self,
+            disk_gib: int,
+            is_prepaid: bool,
+            period: int,
+            period_unit: str,
+            days: float
+    ) -> (Decimal, Decimal):
+        """
+        云主机快照询价
+        总时长 = period * period_unit + days
+        :param disk_gib: disk size GiB
+        :param is_prepaid: True(包年包月预付费)，False(按量计费)
+        :param period: 时长
+        :param period_unit: 时长单位
+        :param days: 时长天数
+        :return:
+            (
+                original_price,    # 原价
+                trade_price        # 减去折扣的价格
+            )
+        :raises: NoPrice
+        """
+        total_days = days
+        if period and period > 0:
+            period_days = self.convert_period_days(period=period, period_unit=period_unit)
+            total_days += period_days
+
+        price = self.enforce_price()
+        total_gib_hours = disk_gib * 24 * total_days
+        original_price = price.vm_disk_snap * Decimal.from_float(total_gib_hours)
+
+        if is_prepaid:
+            trade_price = original_price * Decimal.from_float(price.prepaid_discount / 100)
+        else:
+            trade_price = original_price
+
+        return original_price, trade_price

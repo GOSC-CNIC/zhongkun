@@ -169,9 +169,9 @@ class OutputBase:
 
     def __getattr__(self, attr):
         try:
-            return getattr(self._kwargs, attr)
+            return getattr(self.kwargs, attr)
         except AttributeError:
-            return None
+            return self.__getattribute__(attr)
 
 
 class AuthenticateOutput(OutputBase):

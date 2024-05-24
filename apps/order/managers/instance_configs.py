@@ -194,3 +194,49 @@ class ScanConfig(BaseConfig):
             web_url=config[cls.KEY_WEB_URL],
             remark=config.get(cls.KEY_REMARK, '')
         )
+
+
+class ServerSnapshotConfig(BaseConfig):
+    KEY_SEVER_ID = 'server_id'
+    KEY_DISK_SIZE = 'systemdisk_size'
+    KEY_AZONE_ID = 'azone_id'
+    KEY_SNAPSHOT_NAME = 'snapshot_name'
+    KEY_SNAPSHOT_DESC = 'snapshot_desc'
+    KEYS = (KEY_SEVER_ID, KEY_DISK_SIZE, KEY_AZONE_ID, KEY_SNAPSHOT_NAME, KEY_SNAPSHOT_DESC)
+
+    def __init__(self, server_id: str, systemdisk_size: int, azone_id: str, snapshot_name: str, snapshot_desc: str):
+        """
+        :param server_id: 云主机id
+        :param systemdisk_size: Gib
+        :param azone_id: 可用区id
+        :param snapshot_name: 快照名称
+        :param snapshot_desc: 快照描述备注
+        """
+        self.server_id = server_id
+        self.systemdisk_size = systemdisk_size
+        self.azone_id = azone_id
+        self.snapshot_name = snapshot_name
+        self.snapshot_desc = snapshot_desc
+
+    def to_dict(self):
+        return {
+            self.KEY_SEVER_ID: self.server_id,
+            self.KEY_DISK_SIZE: self.systemdisk_size,
+            self.KEY_AZONE_ID: self.azone_id,
+            self.KEY_SNAPSHOT_NAME: self.snapshot_name,
+            self.KEY_SNAPSHOT_DESC: self.snapshot_desc
+        }
+
+    @classmethod
+    def from_dict(cls, config: dict):
+        for key in cls.KEYS:
+            if key not in config:
+                raise Exception(f'无效的云主机配置数据，缺少“{key}”配置数据')
+
+        return cls(
+            server_id=config[cls.KEY_SEVER_ID],
+            systemdisk_size=config[cls.KEY_DISK_SIZE],
+            azone_id=config[cls.KEY_AZONE_ID],
+            snapshot_name=config[cls.KEY_SNAPSHOT_NAME],
+            snapshot_desc=config[cls.KEY_SNAPSHOT_DESC]
+        )

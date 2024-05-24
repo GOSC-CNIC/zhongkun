@@ -9,12 +9,13 @@ from core import errors
 from utils.model import PayType, OwnerType, ResourceType
 from apps.order.models import Order, Price, Resource
 from apps.order.managers import OrderManager
-from apps.order.managers.instance_configs import ServerConfig, ScanConfig
+from apps.order.managers.instance_configs import ServerConfig, ScanConfig, ServerSnapshotConfig
 from apps.order.deliver_resource import OrderResourceDeliverer
-from utils.test import get_or_create_user, MyAPITestCase
-from apps.servers.models import ServiceConfig, Server
+from utils.test import get_or_create_user, MyAPITransactionTestCase
+from apps.servers.models import ServiceConfig, Server, ServerSnapshot
 from apps.vo.models import VirtualOrganization
 from apps.servers.managers import ServicePrivateQuotaManager
+from apps.servers.tests import create_server_metadata
 from apps.app_scan.models import VtTask
 
 
@@ -45,7 +46,40 @@ class CreateServerRequest:
         return self.request_create_server_ok(service=service, params=params)
 
 
-class DeliverTests(MyAPITestCase):
+class SnapshotRequest:
+    def __init__(self, create_ok: bool, delete_ok: bool):
+        self.create_ok = create_ok
+        self.delete_ok = delete_ok
+
+    def server_snapshot_create(self):
+        if self.create_ok:
+            return outputs.ServerSnapshotCreateOutput(
+                snapshot=outputs.ServerSnapshot(snap_id='snap_id_test', description='snap desc')
+            )
+
+        raise errors.APIException(message="adapter error: test case create snapshot")
+
+    def server_snapshot_delete(self):
+        if self.delete_ok:
+            return outputs.ServerSnapshotDeleteOutput(ok=True)
+
+        raise errors.APIException(message="adapter error: test case delete snapshot")
+
+
+class DelivererRequestService:
+    def __init__(self, snap_request: SnapshotRequest):
+        self.snap_request = snap_request
+
+    def deliverer_request_service(self, service, method: str, params: inputs.InputBase):
+        if method == 'server_snapshot_create':
+            return self.snap_request.server_snapshot_create()
+        elif method == 'server_snapshot_delete':
+            return self.snap_request.server_snapshot_delete()
+
+        raise Exception(f'未覆盖的请求，method={method}')
+
+
+class DeliverTests(MyAPITransactionTestCase):
     def setUp(self):
         self.user = get_or_create_user()
         self.user2 = get_or_create_user(username='user2')
@@ -520,3 +554,186 @@ class DeliverTests(MyAPITestCase):
         self.assertEqual(web_task.name, '测试 scan，host and web')
         self.assertEqual(web_task.remark, 'test remark')
         self.assertEqual(host_task.user_id, self.user.id)
+
+    def test_snapshot_order_deliver(self):
+        vo_server = create_server_metadata(
+            service=self.service1, user=self.user, vo_id=self.vo.id, ram=2,
+            classification=Server.Classification.VO, default_user='root',
+            default_password='password', ipv4='127.0.0.12', remarks='test',
+            disk_size=100
+        )
+
+        instance_config = ServerSnapshotConfig(
+            server_id=vo_server.id, systemdisk_size=100, azone_id='',
+            snapshot_name='snapshot_name1', snapshot_desc='snapshot_desc1'
+        )
+        # 创建订单
+        order1, resource_list = OrderManager().create_order(
+            order_type=Order.OrderType.NEW.value,
+            pay_app_service_id=self.service1.pay_app_service_id,
+            service_id=self.service1.id,
+            service_name=self.service1.name,
+            resource_type=ResourceType.VM_SNAPSHOT.value,
+            instance_config=instance_config,
+            period=8,
+            period_unit=Order.PeriodUnit.MONTH.value,
+            pay_type=PayType.PREPAID.value,
+            user_id=self.user.id,
+            username=self.user.username,
+            vo_id=self.vo.id,
+            vo_name=self.vo.name,
+            owner_type=OwnerType.VO.value,
+            remark='testcase创建，可删除'
+        )
+        or_dlver = OrderResourceDeliverer()
+        # 替换创建请求方法
+        or_dlver.deliverer_request_service = DelivererRequestService(
+            snap_request=SnapshotRequest(create_ok=False, delete_ok=True)).deliverer_request_service
+
+        # order unpaid
+        with self.assertRaises(errors.OrderUnpaid):
+            or_dlver.deliver_order(order1, resource=None)
+
+        order1.set_paid(
+            pay_amount=Decimal('0'), balance_amount=Decimal('0'), coupon_amount=Decimal('0'), payment_history_id='')
+
+        od1_res1 = resource_list[0]
+        od1_res1.refresh_from_db()
+        self.assertIsNone(od1_res1.last_deliver_time)
+        self.assertEqual(order1.trading_status, order1.TradingStatus.OPENING.value)
+        self.assertEqual(od1_res1.instance_status, od1_res1.InstanceStatus.WAIT.value)
+
+        # 请求错误
+        with self.assertRaises(errors.APIException) as cm:
+            or_dlver.deliver_order(order1, resource=None)
+        self.assertEqual(cm.exception.code, 'InternalError')
+        self.assertEqual(cm.exception.status_code, 500)
+        order1.refresh_from_db()
+        self.assertEqual(order1.trading_status, order1.TradingStatus.UNDELIVERED.value)
+        od1_res1.refresh_from_db()
+        self.assertLess(od1_res1.last_deliver_time - dj_timezone.now(), timedelta(seconds=30))
+        self.assertEqual(od1_res1.instance_status, od1_res1.InstanceStatus.FAILED.value)
+        self.assertFalse(ServerSnapshot.objects.filter(id=od1_res1.instance_id).exists())
+
+        # 请求太频繁
+        with self.assertRaises(errors.TryAgainLater) as cm:
+            or_dlver.deliver_order(order1, resource=None)
+        self.assertEqual(cm.exception.code, 'TryAgainLater')
+        self.assertEqual(cm.exception.status_code, 409)
+
+        od1_res1.last_deliver_time = dj_timezone.now() - timedelta(seconds=55)
+        od1_res1.save(update_fields=['last_deliver_time'])
+
+        with self.assertRaises(errors.TryAgainLater) as cm:
+            or_dlver.deliver_order(order1, resource=None)
+        self.assertEqual(cm.exception.code, 'TryAgainLater')
+        self.assertEqual(cm.exception.status_code, 409)
+
+        # 请求success
+        now_time = dj_timezone.now()
+        od1_res1.last_deliver_time = dj_timezone.now() - timedelta(seconds=60)
+        od1_res1.save(update_fields=['last_deliver_time'])
+        # 替换创建请求方法
+        or_dlver.deliverer_request_service = DelivererRequestService(
+            snap_request=SnapshotRequest(create_ok=True, delete_ok=True)).deliverer_request_service
+        or_dlver.deliver_order(order1, resource=None)
+        order1.refresh_from_db()
+        self.assertEqual(order1.trading_status, order1.TradingStatus.COMPLETED.value)
+        od1_res1.refresh_from_db()
+        self.assertLess(od1_res1.last_deliver_time - dj_timezone.now(), timedelta(seconds=30))
+        self.assertEqual(od1_res1.instance_status, od1_res1.InstanceStatus.SUCCESS.value)
+        self.assertTrue(ServerSnapshot.objects.filter(id=od1_res1.instance_id).exists())
+        # snapshot 过期时间
+        snapshot1: ServerSnapshot = ServerSnapshot.objects.filter(id=od1_res1.instance_id).first()
+        self.assertTrue((snapshot1.expiration_time - now_time) > timedelta(days=30 * 8))
+        self.assertTrue((snapshot1.expiration_time - now_time) < timedelta(days=30*8 + 1))
+        self.assertEqual(snapshot1.name, 'snapshot_name1')
+        self.assertEqual(snapshot1.remarks, 'testcase创建，可删除')
+        self.assertEqual(snapshot1.server_id, vo_server.id)
+        self.assertEqual(snapshot1.service_id, vo_server.service_id)
+        self.assertEqual(snapshot1.size, 100)
+        self.assertFalse(snapshot1.deleted)
+        self.assertEqual(snapshot1.classification, snapshot1.Classification.VO.value)
+        self.assertEqual(snapshot1.vo_id, self.vo.id)
+        self.assertEqual(snapshot1.user_id, order1.user_id)
+        self.assertEqual(snapshot1.pay_type, PayType.PREPAID.value)
+
+        with self.assertRaises(errors.OrderTradingCompleted):
+            or_dlver.deliver_order(order1, resource=None)
+
+        # 创建订单2
+        instance_config2 = ServerSnapshotConfig(
+            server_id=vo_server.id, systemdisk_size=200, azone_id='',
+            snapshot_name='snapshot_name2', snapshot_desc='snapshot_desc2'
+        )
+        order2, resource_list2 = OrderManager().create_order(
+            order_type=Order.OrderType.NEW.value,
+            pay_app_service_id=self.service1.pay_app_service_id,
+            service_id=self.service1.id,
+            service_name=self.service1.name,
+            resource_type=ResourceType.VM_SNAPSHOT.value,
+            instance_config=instance_config2,
+            period=128,
+            period_unit=Order.PeriodUnit.DAY.value,
+            pay_type=PayType.PREPAID.value,
+            user_id=self.user.id,
+            username=self.user.username,
+            vo_id=self.vo.id,
+            vo_name=self.vo.name,
+            owner_type=OwnerType.VO.value,
+            remark='testcase创建，可删除2'
+        )
+        od2_res1 = resource_list2[0]
+        order2.set_paid(
+            pay_amount=Decimal('0'), balance_amount=Decimal('0'), coupon_amount=Decimal('0'), payment_history_id='')
+        or_dlver = OrderResourceDeliverer()
+        # 替换创建请求方法
+        or_dlver.deliverer_request_service = DelivererRequestService(
+            snap_request=SnapshotRequest(create_ok=True, delete_ok=True)).deliverer_request_service
+
+        # 系统盘大小不一致
+        with self.assertRaises(errors.Error) as cm:
+            or_dlver.deliver_order(order2, resource=None)
+        self.assertEqual(cm.exception.code, 'InternalError')
+        self.assertEqual(cm.exception.status_code, 500)
+        order2.refresh_from_db()
+        self.assertEqual(order2.trading_status, order2.TradingStatus.UNDELIVERED.value)
+        od2_res1.refresh_from_db()
+        self.assertLess(od2_res1.last_deliver_time - dj_timezone.now(), timedelta(seconds=30))
+        self.assertEqual(od2_res1.instance_status, od2_res1.InstanceStatus.FAILED.value)
+        self.assertFalse(ServerSnapshot.objects.filter(id=od2_res1.instance_id).exists())
+
+        # 请求太频繁
+        with self.assertRaises(errors.TryAgainLater) as cm:
+            or_dlver.deliver_order(order2, resource=None)
+        self.assertEqual(cm.exception.code, 'TryAgainLater')
+        self.assertEqual(cm.exception.status_code, 409)
+
+        # 请求success
+        now_time = dj_timezone.now()
+        od2_res1.last_deliver_time = dj_timezone.now() - timedelta(seconds=60)
+        od2_res1.save(update_fields=['last_deliver_time'])
+        vo_server.disk_size = 200
+        vo_server.save(update_fields=['disk_size'])
+
+        or_dlver.deliver_order(order2, resource=None)
+        order2.refresh_from_db()
+        self.assertEqual(order2.trading_status, order2.TradingStatus.COMPLETED.value)
+        od2_res1.refresh_from_db()
+        self.assertLess(od2_res1.last_deliver_time - dj_timezone.now(), timedelta(seconds=30))
+        self.assertEqual(od2_res1.instance_status, od2_res1.InstanceStatus.SUCCESS.value)
+        self.assertTrue(ServerSnapshot.objects.filter(id=od2_res1.instance_id).exists())
+        # snapshot 过期时间
+        snapshot2 = ServerSnapshot.objects.filter(id=od2_res1.instance_id).first()
+        self.assertTrue((snapshot2.expiration_time - now_time) > timedelta(days=128))
+        self.assertTrue((snapshot2.expiration_time - now_time) < timedelta(days=129))
+        self.assertEqual(snapshot2.name, 'snapshot_name2')
+        self.assertEqual(snapshot2.remarks, 'testcase创建，可删除2')
+        self.assertEqual(snapshot2.server_id, vo_server.id)
+        self.assertEqual(snapshot2.service_id, vo_server.service_id)
+        self.assertEqual(snapshot2.size, 200)
+        self.assertFalse(snapshot2.deleted)
+        self.assertEqual(snapshot2.classification, snapshot2.Classification.VO.value)
+        self.assertEqual(snapshot2.vo_id, self.vo.id)
+        self.assertEqual(snapshot2.user_id, order1.user_id)
+        self.assertEqual(snapshot2.pay_type, PayType.PREPAID.value)

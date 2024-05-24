@@ -11,7 +11,9 @@ from utils import rand_utils
 from apps.vo.managers import VoManager
 from core import errors
 from apps.order.models import Order, Resource, ResourceType
-from .instance_configs import BaseConfig, ServerConfig, DiskConfig, BucketConfig, ScanConfig
+from .instance_configs import (
+    BaseConfig, ServerConfig, DiskConfig, BucketConfig, ScanConfig, ServerSnapshotConfig
+)
 from .price import PriceManager
 
 
@@ -50,6 +52,8 @@ class OrderManager:
                 ins_id += '-i'
             elif resource_type == ResourceType.DISK.value:
                 ins_id += '-d'
+            elif resource_type == ResourceType.VM_SNAPSHOT.value:
+                ins_id += '-s'
             else:
                 pass
 
@@ -212,6 +216,10 @@ class OrderManager:
                 order_type=order_type, period=period, period_unit=period_unit,
                 start_time=start_time, end_time=end_time, pay_type=pay_type)
 
+        if resource_type == ResourceType.VM_SNAPSHOT.value:
+            if number != 1:
+                raise errors.Error(message=_('无法创建订单，快照订购数量必须为1'))
+
         if owner_type not in OwnerType.values:
             raise errors.Error(message=_('无法创建订单，订单所属类型无效'))
 
@@ -305,6 +313,14 @@ class OrderManager:
 
             original_price, trade_price = PriceManager().describe_disk_price(
                 size_gib=config.disk_size, is_prepaid=is_prepaid, period=period, period_unit=period_unit, days=days
+            )
+        elif resource_type == ResourceType.VM_SNAPSHOT.value:
+            if not isinstance(config, ServerSnapshotConfig):
+                raise errors.Error(message=_('无法计算资源金额，资源类型和资源规格配置不匹配'))
+
+            original_price, trade_price = PriceManager().describe_snapshot_price(
+                disk_gib=config.systemdisk_size, is_prepaid=is_prepaid,
+                period=period, period_unit=period_unit, days=days
             )
         elif resource_type == ResourceType.BUCKET.value:
             if not isinstance(config, BucketConfig):
