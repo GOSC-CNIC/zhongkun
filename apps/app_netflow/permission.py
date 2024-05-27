@@ -29,35 +29,28 @@ class NetFlowAPIIPRestrictor(IPRestrictor):
 class PermissionManager(object):
     def __init__(self, request):
         self.request = request
-        self.user = self.request.user
-        self.global_role = GlobalAdminModel.objects.filter(member=self.user).values_list('role', flat=True).first()
+        self.global_role = GlobalAdminModel.objects.filter(member=request.user).values_list('role', flat=True).first()
         self.relation_mapping = {_.get('id'): _.get('father_id') for _ in MenuModel.objects.values('id', 'father_id')}
-
-    def is_global_ops_admin(self):
-        """
-        运维管理员
-        """
-        return self.global_role == GlobalAdminModel.Roles.ADMIN.value
+        self.group_role_mapping = self._get_group_role_mapping()
 
     def is_global_super_admin(self):
         """
-        超级管理员
+        是否是流量模块超级管理员
         """
         return self.global_role == GlobalAdminModel.Roles.SUPER_ADMIN.value
 
-    def is_global_admin(self):
+    def is_global_ops_admin(self):
         """
-        全局管理员
-            超级管理员
-            运维管理员
+        是否是流量模块运维管理员
+        """
+        return self.global_role == GlobalAdminModel.Roles.ADMIN.value
+
+    def is_global_super_admin_or_ops_admin(self):
+        """
+        是否是流量模块全局管理员：
+            超级管理员、运维管理员
         """
         return self.is_global_super_admin() or self.is_global_ops_admin()
-
-    def user_group_list(self, is_admin=False):
-        queryset = self.user.netflow_group_set.all()
-        if is_admin:
-            queryset = queryset.filter(menu2member__role=Menu2Member.Roles.GROUP_ADMIN.value)
-        return queryset.values('id', 'name', 'father_id', 'level', 'sort_weight', 'remark', 'menu2member__role')
 
     def is_branch_relationship(self, node1, node2):
         """
@@ -78,39 +71,35 @@ class PermissionManager(object):
                 return True
             father = self.relation_mapping.get(father)
 
-    def has_group_admin_permission(self, target_id: str):
+    def has_group_admin_permission(self, target_group_id: str):
+        """
+        具有当前组的管理权限
+        """
+        role = self.group_role_mapping.get(target_group_id)
+        return role == Menu2Member.Roles.GROUP_ADMIN.value
+
+    def has_group_permission(self, target_group_id: str):
         """
         具有当前组的访问权限
         """
-        for group in self.user_group_list(is_admin=True):
-            if self.is_parent_or_self(group.get('id'), target_id):
-                return True
+        return self.group_role_mapping.get(target_group_id)
 
-    def has_group_permission(self, target_id: str):
-        """
-        具有当前组的访问权限
-        """
-        groups = self.user_group_list()
-        for group in groups:
-            if self.is_parent_or_self(group.get('id'), target_id):
-                return True
-
-    def get_group_list(self, father, node_list):
+    def generate_group_tree(self, father, node_list):
         result = []
-        for item in node_list:
-            if item['father_id'] != father:  # 当前节点不是子节点
+        for node in node_list:
+            # 当前节点不是子节点
+            if node['father_id'] != father:
                 continue
-            if self.is_global_super_admin():  # TODO: 运维管理员角色查询速度优化
-                item['admin'] = True
-            elif self.has_group_admin_permission(item["id"]):
-                item['admin'] = True
+            # 是否有当前组的管理权限
+            if self.is_global_super_admin():
+                node['admin'] = True
+            elif self.has_group_admin_permission(node.get('id')):
+                node['admin'] = True
             else:
-                item['admin'] = False
-            if item['level'] < 2:
-                item['sub_categories'] = self.get_group_list(item['id'], node_list)
-            else:
-                item['sub_categories'] = []
-            result.append(item)
+                node['admin'] = False
+            node['sub_categories'] = self.generate_group_tree(node.get('id'), node_list)
+            node.pop('_state', '')
+            result.append(node)
         return result
 
     def get_user_role(self):
@@ -121,14 +110,77 @@ class PermissionManager(object):
             group-admin   流量模块组管理员
             ordinary      流量模块组员
         """
+        # 超级管理员
         if self.is_global_super_admin():
             return GlobalAdminModel.Roles.SUPER_ADMIN.value
+        # 运维管理员
         if self.is_global_ops_admin():
             return GlobalAdminModel.Roles.ADMIN.value
-        if self.user_group_list(is_admin=True):
+        # 组管理员
+        if Menu2Member.Roles.GROUP_ADMIN.value in self.group_role_mapping.values():
             return Menu2Member.Roles.GROUP_ADMIN.value
-        if self.user_group_list():
+        # 组员
+        if self.group_role_mapping.values():
             return Menu2Member.Roles.ORDINARY.value
+
+    def get_relation_group_set(self) -> list:
+        """
+        所在分组以及所有下级分组
+        """
+        relation_group_set = list()
+        located_group_queryset = self.request.user.netflow_group_set.all()  # 当前用户所在的组
+        for group in located_group_queryset:
+            # 获取所有上级分组
+            for parent_group in self.get_parent_groups(group):
+                if parent_group not in relation_group_set:
+                    relation_group_set.append(parent_group)
+            # 获取所有下级分组
+            for child_group in self.get_all_children_groups(group):
+                if child_group not in relation_group_set:
+                    relation_group_set.append(child_group)
+
+        return relation_group_set
+
+    def get_parent_groups(self, group: MenuModel) -> list:  # TODO
+        result = []
+        while True:
+            father = group.father
+            if father:
+                result.insert(0, father)
+                group = father
+            else:
+                break
+        return result
+
+    def _get_group_role_mapping(self) -> dict[str:str]:
+        """
+        用户所在的组和下级分组和相应的角色
+        {
+            'group1':'role1',
+            'group2':'role1',
+            'group3':'role2',
+        }
+        """
+        group_relation_mapping = dict()
+
+        located_group_queryset = self.request.user.netflow_group_set.all()  # 当前用户所在的组
+        for group in located_group_queryset.filter(menu2member__role=Menu2Member.Roles.ORDINARY.value):  # 组员
+            for child_group in self.get_all_children_groups(group):
+                group_relation_mapping[child_group.id] = Menu2Member.Roles.ORDINARY.value
+        for group in located_group_queryset.filter(menu2member__role=Menu2Member.Roles.GROUP_ADMIN.value):  # 组管理员
+            for child_group in self.get_all_children_groups(group):
+                group_relation_mapping[child_group.id] = Menu2Member.Roles.GROUP_ADMIN.value
+        return group_relation_mapping
+
+    def get_all_children_groups(self, node: MenuModel) -> list:  # TODO
+        """
+        获取当前分组和所有下级分组
+        """
+        if not node.sub_categories.all():
+            return [node]
+        else:
+            return [node] + [child for child in node.sub_categories.all() for child in
+                             self.get_all_children_groups(child)]
 
 
 class CustomPermission(BasePermission):
@@ -154,9 +206,9 @@ class MenuListCustomPermission(BasePermission):
     def has_permission(self, request, view):
         NetFlowAPIIPRestrictor().check_restricted(request=request)
         user = request.user
-        perm = PermissionManager(request)
         if not user.is_authenticated:  # 需要登陆
             return False
+        perm = PermissionManager(request)
         if perm.is_global_super_admin():  # 全局超级管理员 读写权限
             return True
         meta = request.META
@@ -176,14 +228,14 @@ class MenuDetailCustomPermission(BasePermission):
     def has_permission(self, request, view):
         NetFlowAPIIPRestrictor().check_restricted(request=request)
         user = request.user
-        perm = PermissionManager(request)
         if not user.is_authenticated:  # 需要登陆
             return False
+        perm = PermissionManager(request)
         if perm.is_global_super_admin():  # 全局超级管理员 读写权限
             return True
         meta = request.META
         request_method = meta.get('REQUEST_METHOD')
-        if request_method in SAFE_METHODS and perm.is_global_admin():  # 全局超级管理员 运维管理员 读权限
+        if request_method in SAFE_METHODS and perm.is_global_super_admin_or_ops_admin():  # 全局超级管理员 运维管理员 读权限
             return True
 
 
@@ -201,9 +253,9 @@ class Menu2ChartListCustomPermission(BasePermission):
     def has_permission(self, request, view):
         NetFlowAPIIPRestrictor().check_restricted(request=request)
         user = request.user
-        perm = PermissionManager(request)
         if not user.is_authenticated:  # 需要登陆
             return False
+        perm = PermissionManager(request)
         if perm.is_global_super_admin():  # 全局超级管理员 读写权限
             return True
         meta = request.META
@@ -242,9 +294,9 @@ class Menu2MemberListCustomPermission(BasePermission):
     def has_permission(self, request, view):
         NetFlowAPIIPRestrictor().check_restricted(request=request)
         user = request.user
-        perm = PermissionManager(request)
         if not user.is_authenticated:  # 需要登陆
             return False
+        perm = PermissionManager(request)
         if perm.is_global_super_admin():  # 超级管理员  读写权限
             return True
 
@@ -273,9 +325,9 @@ class Menu2MemberDetailCustomPermission(BasePermission):
     def has_permission(self, request, view):
         NetFlowAPIIPRestrictor().check_restricted(request=request)
         user = request.user
-        perm = PermissionManager(request)
         if not user.is_authenticated:  # 需要登陆
             return False
+        perm = PermissionManager(request)
         if perm.is_global_super_admin():  # 超级管理员  读写权限
             return True
         meta = request.META
@@ -299,9 +351,9 @@ class GlobalAdministratorCustomPermission(BasePermission):
     def has_permission(self, request, view):
         NetFlowAPIIPRestrictor().check_restricted(request=request)
         user = request.user
-        perm = PermissionManager(request)
         if not user.is_authenticated:  # 需要登陆
             return False
+        perm = PermissionManager(request)
         if perm.is_global_super_admin():  # 超级管理员  读写权限
             return True
         meta = request.META
@@ -318,9 +370,9 @@ class PortListCustomPermission(BasePermission):
     def has_permission(self, request, view):
         NetFlowAPIIPRestrictor().check_restricted(request=request)
         user = request.user
-        perm = PermissionManager(request)
         if not user.is_authenticated:  # 需要登陆
             return False
+        perm = PermissionManager(request)
         if perm.is_global_super_admin():  # 超级管理员  读写权限
             return True
 
@@ -329,10 +381,10 @@ class TrafficCustomPermission(BasePermission):
     def has_permission(self, request, view):
         NetFlowAPIIPRestrictor().check_restricted(request=request)
         user = request.user
-        perm = PermissionManager(request)
         if not user.is_authenticated:  # 需要登陆
             return False
-        if perm.is_global_admin():  # 全局管理员  读权限
+        perm = PermissionManager(request)
+        if perm.is_global_super_admin_or_ops_admin():  # 全局管理员  读权限
             return True
         chart = request.data.get("chart") or ''
         element = Menu2Chart.objects.filter(id=chart).first()

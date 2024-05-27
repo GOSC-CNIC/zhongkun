@@ -5,6 +5,7 @@ from apps.app_netflow.models import Menu2Chart
 from apps.app_netflow.models import Menu2Member
 from apps.app_netflow.models import GlobalAdminModel
 from apps.users.models import UserProfile
+from apps.app_netflow.permission import PermissionManager
 
 
 class ChartSerializer(serializers.ModelSerializer):
@@ -93,6 +94,10 @@ class Menu2MemberWriteSerializer(serializers.ModelSerializer):
 
 
 class Menu2ChartSerializer(serializers.ModelSerializer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.perm = PermissionManager(request=self.context.get('request'))
+
     instance_name = serializers.SerializerMethodField(read_only=True)
     global_title = serializers.SerializerMethodField(read_only=True)
     global_remark = serializers.SerializerMethodField(read_only=True)
@@ -140,13 +145,21 @@ class Menu2ChartSerializer(serializers.ModelSerializer):
         return obj.chart.if_alias
 
     def get_device_ip(self, obj):
-        return obj.chart.device_ip
+        if self.perm.is_global_super_admin_or_ops_admin():
+            return obj.chart.device_ip
+        if self.perm.has_group_admin_permission(obj.menu.id):
+            return obj.chart.device_ip
+        return None
+
+    def get_port_name(self, obj):
+        if self.perm.is_global_super_admin_or_ops_admin():
+            return obj.chart.port_name
+        if self.perm.has_group_admin_permission(obj.menu.id):
+            return obj.chart.port_name
+        return None
 
     def get_if_address(self, obj):
         return obj.chart.if_address
-
-    def get_port_name(self, obj):
-        return obj.chart.port_name
 
     def get_class_uuid(self, obj):
         return obj.chart.class_uuid

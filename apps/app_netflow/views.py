@@ -100,18 +100,16 @@ class MenuListGenericAPIView(GenericAPIView):
 
     def filter_queryset(self, queryset):
         perm = PermissionManager(request=self.request)
-        if perm.is_global_admin():
+        """
+        超级管理员和运维管理员 返回所有分组集合
+        组管理员和组员返回 所在的分组集合
+        """
+        if perm.is_global_super_admin_or_ops_admin():
             nodes = queryset
         else:
-            user_groups = perm.user_group_list()
-            nodes = []
-            for obj in queryset:
-                for group in user_groups:
-                    if perm.is_branch_relationship(group, obj):
-                        nodes.append(obj)
-                        break
-
-        return perm.get_group_list('root', nodes)
+            nodes = [_.__dict__ for _ in perm.get_relation_group_set()]
+        result = perm.generate_group_tree('root', nodes)
+        return result
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('创建分组'),

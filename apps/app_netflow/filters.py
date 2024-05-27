@@ -5,6 +5,7 @@ from apps.app_netflow.models import Menu2Chart
 from apps.app_netflow.models import Menu2Member
 from apps.app_netflow.models import MenuModel
 from apps.app_netflow.models import GlobalAdminModel
+from apps.app_netflow.permission import PermissionManager
 
 
 class ChartFilter(django_filters.FilterSet):
@@ -30,13 +31,35 @@ class ChartFilter(django_filters.FilterSet):
 
 
 class Menu2ChartFilter(django_filters.FilterSet):
+    menu = django_filters.CharFilter(field_name="menu", method="menu_filter")
+
     class Meta:
         model = Menu2Chart
         fields = [
             # 'id',
-            'menu',
+            # 'menu',
             # 'name'
         ]
+
+    def menu_filter(self, queryset, field_name, value):
+        """
+        超级管理员和运维管理员:
+            显示当前分组和所有下级分组
+
+        组员和组管理员:
+            显示当前分组和有权限的下级分组
+        """
+        perm = PermissionManager(request=self.request)
+        target_group = MenuModel.objects.filter(id=value).first()
+        groups = perm.get_all_children_groups(target_group)
+        menu_id_list = list()
+        items = list()
+        for g in groups:
+            for obj in queryset.filter(menu=g):
+                if obj.chart.id not in menu_id_list:
+                    menu_id_list.append(obj.chart.id)
+                    items.append(obj.id)
+        return queryset.filter(id__in=items)
 
 
 class GlobalAdminFilter(django_filters.FilterSet):

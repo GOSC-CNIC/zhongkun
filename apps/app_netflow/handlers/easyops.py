@@ -101,5 +101,22 @@ class EasyOPS(object):
             "start_time": start
         }
         resp = download(method='post', url=url, json=data, headers=easyops_account.get_headers())
+        return self.traffic_parser(resp=resp)
+
+    @staticmethod
+    def traffic_parser(resp):
+        """
+        移除 ifHCInOctets_max ifHCOutOctets_max 字段
+        """
+
         text = resp.text
-        return json.loads(text)
+        text = json.loads(text)
+        data = text.get('data')
+        legends = data.get('legends')
+        if 'ifHCInOctets_max' in legends and 'ifHCOutOctets_max' in legends:
+            text['data']["legends"].remove('ifHCInOctets_max')
+            text['data']["legends"].remove('ifHCOutOctets_max')
+            for item in text['data']["data"]:
+                item['values'].pop(-1)
+                item['values'].pop(-1)
+        return text
