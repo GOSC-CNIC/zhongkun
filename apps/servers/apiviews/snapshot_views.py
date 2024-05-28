@@ -221,8 +221,30 @@ class ServerSnapshotViewSet(CustomGenericViewSet):
         """
         return SnapshotHandler.rollback_server_to_snapshot(view=self, request=request, kwargs=kwargs)
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('续费云主机快照'),
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['POST'], detail=False, url_path=r'renew', url_name='renew')
+    def renew_snapshot(self, request, *args, **kwargs):
+        """
+        续费云主机快照
+
+            请求成功会创建一个云主机快照订购订单，订单支付后延后云主机快照过期时间
+
+            http code 200 ok:
+            {
+                "order_id": "xxx"
+            }
+        """
+        return SnapshotHandler.renew_server_snapshot(view=self, request=request, kwargs=kwargs)
+
     def get_serializer_class(self):
         if self.action == 'create':
             return serializers.SnapshotCreateSerializer
+        elif self.action == 'renew_snapshot':
+            return serializers.SnapshotRenewSerializer
 
         return Serializer

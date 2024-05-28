@@ -9,7 +9,7 @@ from core.quota import QuotaAPI
 from core import request as core_request
 from core.taskqueue import server_build_status, Future
 from apps.servers.models import Server, Disk, ServerArchive, DiskChangeLog, ServiceConfig, ServerSnapshot
-from apps.servers.managers import ServerManager, DiskManager, ServiceManager
+from apps.servers.managers import ServerManager, DiskManager, ServiceManager, ServerSnapshotManager
 from apps.servers import format_who_action_str
 from core.adapters import inputs, outputs
 from utils.model import PayType, OwnerType, ResourceType
@@ -77,6 +77,9 @@ class OrderResourceDeliverer:
             elif order.resource_type == ResourceType.DISK.value:
                 disk = self.deliver_renewal_disk(order=order, resource=resource)
                 return [disk], [], []
+            elif order.resource_type == ResourceType.VM_SNAPSHOT.value:
+                snapshot = self.deliver_renewal_snapshot(order=order, resource=resource)
+                return [snapshot], [], []
         elif order.order_type in [Order.OrderType.POST2PRE.value]:  # 付费方式修改
             if order.resource_type == ResourceType.VM.value:
                 server = self.deliver_modify_server_pay_type(order=order, resource=resource)
@@ -734,7 +737,7 @@ class OrderResourceDeliverer:
         """
         云硬盘续费交付
         :return:
-            server            # success
+            disk            # success
 
         :raises: Error
         """
@@ -761,7 +764,7 @@ class OrderResourceDeliverer:
         为订单续费云硬盘资源
 
         :return:
-            server
+            disk
 
         :raises: Error
         """
@@ -1101,7 +1104,7 @@ class OrderResourceDeliverer:
         """
         交付云主机快照
         :return:
-            service, disk            # success
+            service, snapshot            # success
 
         :raises: Error, NeetReleaseResource
         """
@@ -1137,7 +1140,7 @@ class OrderResourceDeliverer:
         为订单创建云主机快照资源
 
         :return:
-            service, snap
+            service, server, snapshot
 
         :raises: Error, NeetReleaseResource
         """
@@ -1223,3 +1226,96 @@ class OrderResourceDeliverer:
                 raise exceptions.NeetReleaseResource(message=message)
 
         return service, server, snap
+
+    def deliver_renewal_snapshot(self, order: Order, resource: Resource):
+        """
+        交付云主机快照续费
+        :return:
+            snapshot            # success
+
+        :raises: Error
+        """
+        resource_ids = [resource.id] if resource else None
+        order, resource_list = self._pre_check_deliver(order=order, resource_ids=resource_ids)
+
+        try:
+            resource = resource_list[0]
+            snapshot = self.renewal_snapshot_resource_for_order(order=order, resource=resource)
+        except exceptions.Error as exc:
+            try:
+                OrderManager.set_order_resource_deliver_failed(
+                    order=order, resource=resource, failed_msg='无法为订单续费云主机快照资源, ' + str(exc))
+            except exceptions.Error:
+                pass
+
+            raise exc
+        finally:
+            self.clear_order_action(order=order)
+
+        return snapshot
+
+    def renewal_snapshot_resource_for_order(self, order: Order, resource: Resource):
+        """
+        为订单续费云主机快照
+
+        :return:
+            snapshot
+
+        :raises: Error
+        """
+        if order.resource_type != ResourceType.VM_SNAPSHOT.value:
+            raise exceptions.Error(message=_('订单的资源类型不是云主机快照'))
+
+        if isinstance(order.start_time, datetime) and isinstance(order.end_time, datetime):
+            if order.start_time >= order.end_time:
+                raise exceptions.Error(message=_('续费订单续费时长或时段无效。'))
+
+        try:
+            with transaction.atomic():
+                snapshot = ServerSnapshot.objects.select_for_update().select_related(
+                    'service', 'server', 'vo', 'user'
+                ).filter(id=resource.instance_id, deleted=False).first()
+                if snapshot is None:
+                    raise exceptions.TargetNotExist(message=_('云主机快照不存在'))
+
+                start_time, end_time = self.check_pre_renewal_snapshot_resource(
+                    order=order, snapshot=snapshot
+                )
+                snapshot.expiration_time = end_time
+                snapshot.save(update_fields=['expiration_time'])
+                OrderManager.set_order_resource_deliver_ok(
+                    order=order, resource=resource, start_time=start_time, due_time=end_time)
+                return snapshot
+        except Exception as e:
+            raise exceptions.Error.from_error(e)
+
+    @staticmethod
+    def check_pre_renewal_snapshot_resource(order: Order, snapshot: ServerSnapshot):
+        """
+        检查是否满足云主机快照续费的条件
+
+        :return:
+            start_time, end_time    # 此订单续费的起始和截止时间
+
+        :raises: Error
+        """
+        if snapshot.pay_type != PayType.PREPAID.value:
+            raise exceptions.Error(message=_('云主机快照不是包年包月预付费模式，无法完成续费。'))
+        elif not isinstance(snapshot.expiration_time, datetime):
+            raise exceptions.Error(message=_('云主机快照没有过期时间，无法完成续费。'))
+        try:
+            config = ServerSnapshotConfig.from_dict(order.instance_config)
+        except Exception as exc:
+            raise exceptions.Error(message=_('续费订单中云主机快照配置信息有误。') + str(exc))
+
+        if config.systemdisk_size != snapshot.size:
+            raise exceptions.Error(message=_('续费订单中云主机快照容量大小与快照大小不一致。'))
+
+        if order.period > 0 and (order.start_time is None and order.end_time is None):
+            start_time = snapshot.expiration_time
+            end_time = start_time + timedelta(
+                days=PriceManager.convert_period_days(period=order.period, period_unit=order.period_unit))
+        else:
+            raise exceptions.Error(message=_('续费订单续费时长或时段无效。'))
+
+        return start_time, end_time

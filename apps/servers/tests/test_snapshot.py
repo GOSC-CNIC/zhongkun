@@ -1,10 +1,10 @@
-from datetime import timedelta, datetime
+from datetime import timedelta
 from urllib import parse
 from urllib.parse import urlencode
 from decimal import Decimal
 
 from django.urls import reverse
-from django.utils import timezone
+from django.utils import timezone as dj_timezone
 
 from utils.test import get_or_create_user, get_or_create_service, MyAPITransactionTestCase
 from utils.model import PayType, OwnerType, ResourceType
@@ -57,28 +57,28 @@ class ServerSnapshotTests(MyAPITransactionTestCase):
         )
         snapshot1 = ServerSnapshotManager.create_snapshot_metadata(
             name='name1', size_dib=66, remarks='snapshot1 test', instance_id='11',
-            creation_time=timezone.now(), expiration_time=timezone.now()-timedelta(days=1),
+            creation_time=dj_timezone.now(), expiration_time=dj_timezone.now()-timedelta(days=1),
             start_time=None, pay_type=PayType.PREPAID.value,
             classification=ServerSnapshot.Classification.PERSONAL.value, user=self.user, vo=None,
             server=server1, service=server1.service
         )
         snapshot2 = ServerSnapshotManager.create_snapshot_metadata(
             name='name2', size_dib=88, remarks='snapshot2 test', instance_id='22',
-            creation_time=timezone.now(), expiration_time=timezone.now() + timedelta(days=1),
+            creation_time=dj_timezone.now(), expiration_time=dj_timezone.now() + timedelta(days=1),
             start_time=None, pay_type=PayType.PREPAID.value,
             classification=ServerSnapshot.Classification.PERSONAL.value, user=self.user, vo=None,
             server=None, service=service2
         )
         snapshot3_vo = ServerSnapshotManager.create_snapshot_metadata(
             name='name3', size_dib=886, remarks='vo snapshot3 test', instance_id='33',
-            creation_time=timezone.now(), expiration_time=None,
+            creation_time=dj_timezone.now(), expiration_time=None,
             start_time=None, pay_type=PayType.POSTPAID.value,
             classification=ServerSnapshot.Classification.VO.value, user=self.user2, vo=self.vo,
             server=server1, service=server1.service
         )
         snapshot4_vo = ServerSnapshotManager.create_snapshot_metadata(
             name='name4', size_dib=286, remarks='vo snapshot4 test', instance_id='44',
-            creation_time=timezone.now(), expiration_time=timezone.now() + timedelta(days=10),
+            creation_time=dj_timezone.now(), expiration_time=dj_timezone.now() + timedelta(days=10),
             start_time=None, pay_type=PayType.PREPAID.value,
             classification=ServerSnapshot.Classification.VO.value, user=self.user, vo=self.vo,
             server=None, service=service2
@@ -434,21 +434,21 @@ class ServerSnapshotTests(MyAPITransactionTestCase):
         )
         snapshot1 = ServerSnapshotManager.create_snapshot_metadata(
             name='name1', size_dib=66, remarks='snapshot1 test', instance_id='11',
-            creation_time=timezone.now(), expiration_time=timezone.now() - timedelta(days=1),
+            creation_time=dj_timezone.now(), expiration_time=dj_timezone.now() - timedelta(days=1),
             start_time=None, pay_type=PayType.PREPAID.value,
             classification=ServerSnapshot.Classification.PERSONAL.value, user=self.user, vo=None,
             server=server1, service=server1.service
         )
         snapshot2 = ServerSnapshotManager.create_snapshot_metadata(
             name='name2', size_dib=88, remarks='snapshot2 test', instance_id='22',
-            creation_time=timezone.now(), expiration_time=timezone.now() + timedelta(days=1),
+            creation_time=dj_timezone.now(), expiration_time=dj_timezone.now() + timedelta(days=1),
             start_time=None, pay_type=PayType.PREPAID.value,
             classification=ServerSnapshot.Classification.PERSONAL.value, user=self.user, vo=None,
             server=None, service=self.service
         )
         snapshot3_vo = ServerSnapshotManager.create_snapshot_metadata(
             name='name3', size_dib=886, remarks='vo snapshot3 test', instance_id='33',
-            creation_time=timezone.now(), expiration_time=timezone.now() + timedelta(days=11),
+            creation_time=dj_timezone.now(), expiration_time=dj_timezone.now() + timedelta(days=11),
             start_time=None, pay_type=PayType.POSTPAID.value,
             classification=ServerSnapshot.Classification.VO.value, user=self.user2, vo=self.vo,
             server=server1, service=server1.service
@@ -537,21 +537,21 @@ class ServerSnapshotTests(MyAPITransactionTestCase):
         )
         snapshot1 = ServerSnapshotManager.create_snapshot_metadata(
             name='name1', size_dib=66, remarks='snapshot1 test', instance_id='99999999123456789',   # 避免误删真实快照
-            creation_time=timezone.now(), expiration_time=timezone.now() - timedelta(days=1),
+            creation_time=dj_timezone.now(), expiration_time=dj_timezone.now() - timedelta(days=1),
             start_time=None, pay_type=PayType.PREPAID.value,
             classification=ServerSnapshot.Classification.PERSONAL.value, user=self.user, vo=None,
             server=server1, service=server1.service
         )
         snapshot2 = ServerSnapshotManager.create_snapshot_metadata(
             name='name2', size_dib=88, remarks='snapshot2 test', instance_id='99999999123456789',
-            creation_time=timezone.now(), expiration_time=timezone.now() + timedelta(days=1),
+            creation_time=dj_timezone.now(), expiration_time=dj_timezone.now() + timedelta(days=1),
             start_time=None, pay_type=PayType.PREPAID.value,
             classification=ServerSnapshot.Classification.PERSONAL.value, user=self.user, vo=None,
             server=None, service=self.service
         )
         snapshot3_vo = ServerSnapshotManager.create_snapshot_metadata(
             name='name3', size_dib=886, remarks='vo snapshot3 test', instance_id='99999999123456789',
-            creation_time=timezone.now(), expiration_time=timezone.now() + timedelta(days=11),
+            creation_time=dj_timezone.now(), expiration_time=dj_timezone.now() + timedelta(days=11),
             start_time=None, pay_type=PayType.POSTPAID.value,
             classification=ServerSnapshot.Classification.VO.value, user=self.user2, vo=self.vo,
             server=server1, service=server1.service
@@ -653,14 +653,14 @@ class ServerSnapshotTests(MyAPITransactionTestCase):
         )
         snapshot1 = ServerSnapshotManager.create_snapshot_metadata(
             name='name1', size_dib=66, remarks='snapshot1 test', instance_id='99999999123456789',
-            creation_time=timezone.now(), expiration_time=timezone.now() - timedelta(days=1),
+            creation_time=dj_timezone.now(), expiration_time=dj_timezone.now() - timedelta(days=1),
             start_time=None, pay_type=PayType.PREPAID.value,
             classification=ServerSnapshot.Classification.PERSONAL.value, user=self.user2, vo=None,
             server=server1, service=server1.service
         )
         snapshot2_vo = ServerSnapshotManager.create_snapshot_metadata(
             name='name1', size_dib=66, remarks='snapshot1 test', instance_id='99999999123456789',
-            creation_time=timezone.now(), expiration_time=timezone.now() - timedelta(days=1),
+            creation_time=dj_timezone.now(), expiration_time=dj_timezone.now() - timedelta(days=1),
             start_time=None, pay_type=PayType.PREPAID.value,
             classification=ServerSnapshot.Classification.VO.value, user=self.user, vo=self.vo,
             server=server2_vo, service=server2_vo.service
@@ -1002,3 +1002,284 @@ class ServerSnapshotTests(MyAPITransactionTestCase):
         resources4[0].refresh_from_db()
         self.assertEqual(resources4[0].instance_status, resources4[0].InstanceStatus.FAILED.value)
         self.assertEqual(order4.trading_status, order4.TradingStatus.UNDELIVERED.value)
+
+    def test_renew(self):
+        server1 = create_server_metadata(
+            service=self.service, user=self.user, ram=8, vcpus=6,
+            default_user='user', default_password='password', disk_size=88,
+            ipv4='127.12.33.111', remarks='test server', pay_type=PayType.PREPAID.value
+        )
+        server2_vo = create_server_metadata(
+            service=self.service, user=self.user, vo_id=self.vo.id, classification='vo',
+            ram=8, vcpus=6, default_user='user', default_password='password',
+            ipv4='127.12.33.111', remarks='test server', pay_type=PayType.PREPAID.value
+        )
+        snapshot1 = ServerSnapshotManager.create_snapshot_metadata(
+            name='name1', size_dib=0, remarks='snapshot1 test', instance_id='99999999123456789',
+            creation_time=dj_timezone.now(), expiration_time=dj_timezone.now() - timedelta(days=1),
+            start_time=None, pay_type=PayType.PREPAID.value,
+            classification=ServerSnapshot.Classification.PERSONAL.value, user=self.user, vo=None,
+            server=None, service=server1.service
+        )
+        snapshot2_vo = ServerSnapshotManager.create_snapshot_metadata(
+            name='name1', size_dib=66, remarks='snapshot1 test', instance_id='99999999123456789',
+            creation_time=dj_timezone.now(), expiration_time=dj_timezone.now() - timedelta(days=1),
+            start_time=None, pay_type=PayType.PREPAID.value,
+            classification=ServerSnapshot.Classification.VO.value, user=self.user, vo=self.vo,
+            server=server2_vo, service=server2_vo.service
+        )
+
+        base_url = reverse('servers-api:server-snapshot-renew')
+        response = self.client.post(base_url)
+        self.assertEqual(response.status_code, 401)
+        self.client.force_login(self.user2)
+
+        # period
+        response = self.client.post(base_url, data={
+            'snapshot_id': 'snapshot_id',
+            'period_unit': Order.PeriodUnit.DAY.value
+        })
+        self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
+        response = self.client.post(base_url, data={
+            'snapshot_id': 'snapshot_id',
+            'period': 'period',
+            'period_unit': Order.PeriodUnit.DAY.value
+        })
+        self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
+        response = self.client.post(base_url, data={
+            'snapshot_id': 'snapshot_id',
+            'period': 0,
+            'period_unit': Order.PeriodUnit.DAY.value
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidPeriod', response=response)
+
+        # period_unit
+        response = self.client.post(base_url, data={
+            'snapshot_id': 'snapshot_id',
+            'period': 1,
+        })
+        self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
+        response = self.client.post(base_url, data={
+            'snapshot_id': 'snapshot_id',
+            'period': 1,
+            'period_unit': 'test'
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidPeriodUnit', response=response)
+
+        # period and period_unit， 最大时长五年
+        response = self.client.post(base_url, data={
+            'snapshot_id': 'snapshot_id',
+            'period': 12 * 5 + 1,
+            'period_unit': Order.PeriodUnit.MONTH.value
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidPeriod', response=response)
+        response = self.client.post(base_url, data={
+            'snapshot_id': 'snapshot_id',
+            'period': 30 * 12 * 5 + 1,
+            'period_unit': Order.PeriodUnit.DAY.value
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidPeriod', response=response)
+
+        # snapshot_id
+        response = self.client.post(base_url, data={
+            'period': 1,
+            'period_unit': Order.PeriodUnit.DAY.value
+        })
+        self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
+        response = self.client.post(base_url, data={
+            'snapshot_id': 'snapshot_id',
+            'period': 1,
+            'period_unit': Order.PeriodUnit.DAY.value
+        })
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
+
+        response = self.client.post(base_url, data={
+            'snapshot_id': snapshot1.id,
+            'period': 1,
+            'period_unit': Order.PeriodUnit.DAY.value
+        })
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        self.client.logout()
+        self.client.force_login(self.user)
+
+        # 系统盘大小未知
+        response = self.client.post(base_url, data={
+            'snapshot_id': snapshot1.id,
+            'period': 1,
+            'period_unit': Order.PeriodUnit.DAY.value
+        })
+        self.assertErrorResponse(status_code=409, code='Conflict', response=response)
+        snapshot1.size = 100
+        snapshot1.save(update_fields=['size'])
+
+        # 未关联云主机未知
+        response = self.client.post(base_url, data={
+            'snapshot_id': snapshot1.id,
+            'period': 1,
+            'period_unit': Order.PeriodUnit.DAY.value
+        })
+        self.assertErrorResponse(status_code=409, code='Conflict', response=response)
+        snapshot1.server = server1
+        snapshot1.save(update_fields=['server'])
+
+        # user，服务单元结算单元id无效
+        response = self.client.post(base_url, data={
+            'snapshot_id': snapshot1.id,
+            'period': 1,
+            'period_unit': Order.PeriodUnit.DAY.value
+        })
+        self.assertErrorResponse(status_code=409, code='ServiceNoPayAppServiceId', response=response)
+        server1.service.pay_app_service_id = 'test'
+        server1.service.save(update_fields=['pay_app_service_id'])
+
+        # ok
+        self.assertEqual(Order.objects.count(), 0)
+        response = self.client.post(base_url, data={
+            'snapshot_id': snapshot1.id,
+            'period': 2,
+            'period_unit': Order.PeriodUnit.DAY.value
+        })
+        self.assertEqual(response.status_code, 200)
+        order1_id = response.data['order_id']
+        self.assertEqual(Order.objects.count(), 1)
+        order1, resources1 = OrderManager().get_order_detail(order_id=order1_id, user=self.user)
+        self.assertEqual(resources1[0].instance_id, snapshot1.id)
+        self.assertEqual(resources1[0].instance_status, resources1[0].InstanceStatus.WAIT.value)
+        self.assertEqual(order1.trading_status, order1.TradingStatus.OPENING.value)
+        self.assertEqual(order1.order_type, Order.OrderType.RENEWAL.value)
+        self.assertEqual(order1.resource_type, ResourceType.VM_SNAPSHOT.value)
+        self.assertEqual(order1.owner_type, OwnerType.USER.value)
+        self.assertEqual(order1.user_id, self.user.id)
+        self.assertEqual(order1.period, 2)
+        self.assertEqual(order1.period_unit, Order.PeriodUnit.DAY.value)
+
+        original_price = self.price.vm_disk_snap * 100 * 24 * 2
+        trade_price = original_price * Decimal.from_float(self.price.prepaid_discount / 100)
+        self.assertEqual(order1.total_amount, quantize_10_2(original_price))
+        self.assertEqual(order1.payable_amount, quantize_10_2(trade_price))
+        cfg = ServerSnapshotConfig.from_dict(order1.instance_config)
+        self.assertEqual(cfg.server_id, server1.id)
+        self.assertEqual(cfg.systemdisk_size, 100)
+
+        # 有未完成订单
+        response = self.client.post(base_url, data={
+            'snapshot_id': snapshot1.id,
+            'period': 2,
+            'period_unit': Order.PeriodUnit.MONTH.value
+        })
+        self.assertErrorResponse(status_code=409, code='SomeOrderNeetToTrade', response=response)
+
+        # 支付订单
+        expiration_time = snapshot1.expiration_time
+        order1.payable_amount = Decimal('0')
+        order1.save(update_fields=['payable_amount'])
+        pay_url = reverse('order-api:order-pay-order', kwargs={'id': order1_id})
+        query = parse.urlencode(query={
+            'payment_method': Order.PaymentMethod.BALANCE.value
+        })
+        response = self.client.post(f'{pay_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+
+        order1.refresh_from_db()
+        resources1[0].refresh_from_db()
+        self.assertEqual(resources1[0].instance_status, resources1[0].InstanceStatus.SUCCESS.value)
+        self.assertEqual(order1.trading_status, order1.TradingStatus.COMPLETED.value)
+        snapshot1.refresh_from_db()
+        self.assertEqual(snapshot1.expiration_time, expiration_time + timedelta(days=2))
+
+        # 再次续费
+        response = self.client.post(base_url, data={
+            'snapshot_id': snapshot1.id,
+            'period': 2,
+            'period_unit': Order.PeriodUnit.MONTH.value
+        })
+        self.assertEqual(response.status_code, 200)
+        order2_id = response.data['order_id']
+        self.assertEqual(Order.objects.count(), 2)
+        order2, resources2 = OrderManager().get_order_detail(order_id=order2_id, user=self.user)
+        self.assertEqual(resources2[0].instance_id, snapshot1.id)
+        self.assertEqual(resources2[0].instance_status, resources2[0].InstanceStatus.WAIT.value)
+        self.assertEqual(order2.trading_status, order2.TradingStatus.OPENING.value)
+        self.assertEqual(order2.order_type, Order.OrderType.RENEWAL.value)
+        self.assertEqual(order2.resource_type, ResourceType.VM_SNAPSHOT.value)
+        self.assertEqual(order2.owner_type, OwnerType.USER.value)
+        self.assertEqual(order2.user_id, self.user.id)
+        self.assertEqual(order2.period, 2)
+        self.assertEqual(order2.period_unit, Order.PeriodUnit.MONTH.value)
+
+        original_price = self.price.vm_disk_snap * 100 * 24 * 30 * 2
+        trade_price = original_price * Decimal.from_float(self.price.prepaid_discount / 100)
+        self.assertEqual(order2.total_amount, quantize_10_2(original_price))
+        self.assertEqual(order2.payable_amount, quantize_10_2(trade_price))
+        cfg = ServerSnapshotConfig.from_dict(order2.instance_config)
+        self.assertEqual(cfg.server_id, server1.id)
+        self.assertEqual(cfg.systemdisk_size, 100)
+
+        # vo server
+        self.assertEqual(Order.objects.count(), 2)
+        response = self.client.post(base_url, data={
+            'snapshot_id': snapshot2_vo.id,
+            'period': 64,
+            'period_unit': Order.PeriodUnit.DAY.value
+        })
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # user2
+        self.client.logout()
+        self.client.force_login(self.user2)
+
+        response = self.client.post(base_url, data={
+            'snapshot_id': snapshot2_vo.id,
+            'period': 64,
+            'period_unit': Order.PeriodUnit.DAY.value
+        })
+        self.assertEqual(response.status_code, 200)
+        order3_id = response.data['order_id']
+        self.assertEqual(Order.objects.count(), 3)
+        order3, resources3 = OrderManager().get_order_detail(order_id=order3_id, user=self.user2)
+        self.assertEqual(resources3[0].instance_status, resources3[0].InstanceStatus.WAIT.value)
+        self.assertEqual(resources3[0].instance_id, snapshot2_vo.id)
+        self.assertEqual(order3.trading_status, order3.TradingStatus.OPENING.value)
+        self.assertEqual(order3.order_type, Order.OrderType.RENEWAL.value)
+        self.assertEqual(order3.resource_type, ResourceType.VM_SNAPSHOT.value)
+        self.assertEqual(order3.owner_type, OwnerType.VO.value)
+        self.assertEqual(order3.user_id, self.user2.id)
+        self.assertEqual(order3.username, self.user2.username)
+        self.assertEqual(order3.vo_id, self.vo.id)
+        self.assertEqual(order3.period, 64)
+        self.assertEqual(order3.period_unit, Order.PeriodUnit.DAY.value)
+
+        original_price = self.price.vm_disk_snap * (66 * 24 * 64)
+        trade_price = original_price * Decimal.from_float(self.price.prepaid_discount / 100)
+        self.assertEqual(order3.total_amount, quantize_10_2(original_price))
+        self.assertEqual(order3.payable_amount, quantize_10_2(trade_price))
+        cfg = ServerSnapshotConfig.from_dict(order3.instance_config)
+        self.assertEqual(cfg.server_id, snapshot2_vo.server_id)
+        self.assertEqual(cfg.systemdisk_size, 66)
+
+        # 有未完成订单
+        response = self.client.post(base_url, data={
+            'snapshot_id': snapshot2_vo.id,
+            'period': 12,
+            'period_unit': Order.PeriodUnit.MONTH.value
+        })
+        self.assertErrorResponse(status_code=409, code='SomeOrderNeetToTrade', response=response)
+
+        # 支付
+        expiration_time = snapshot2_vo.expiration_time
+        order3.payable_amount = Decimal('0')
+        order3.save(update_fields=['payable_amount'])
+        pay_url = reverse('order-api:order-pay-order', kwargs={'id': order3_id})
+        query = parse.urlencode(query={
+            'payment_method': Order.PaymentMethod.BALANCE.value
+        })
+        response = self.client.post(f'{pay_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+
+        order3.refresh_from_db()
+        resources3[0].refresh_from_db()
+        self.assertEqual(resources3[0].instance_status, resources3[0].InstanceStatus.SUCCESS.value)
+        self.assertEqual(order3.trading_status, order3.TradingStatus.COMPLETED.value)
+        snapshot2_vo.refresh_from_db()
+        self.assertEqual(snapshot2_vo.expiration_time, expiration_time + timedelta(days=64))

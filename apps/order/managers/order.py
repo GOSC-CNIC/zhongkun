@@ -1,6 +1,6 @@
 from decimal import Decimal
 from datetime import datetime
-from typing import List
+from typing import List, Union
 
 from django.utils.translation import gettext as _
 from django.utils import timezone as dj_timezone
@@ -72,8 +72,8 @@ class OrderManager:
             self,
             pay_app_service_id: str, service_id, service_name,
             resource_type, instance_id: str, instance_config,
-            period, start_time: datetime, end_time: datetime,
-            user_id, username, vo_id, vo_name, owner_type
+            period: int, start_time: Union[datetime, None], end_time: Union[datetime, None],
+            user_id, username, vo_id, vo_name, owner_type, period_unit=Order.PeriodUnit.MONTH.value
     ) -> (Order, Resource):
         """
         提交一个续费订单
@@ -92,7 +92,7 @@ class OrderManager:
             order_type=Order.OrderType.RENEWAL.value, pay_type=PayType.PREPAID.value,
             pay_app_service_id=pay_app_service_id, service_id=service_id, service_name=service_name,
             resource_type=resource_type, instance_ids=[instance_id], instance_config=instance_config,
-            period=period, period_unit=Order.PeriodUnit.MONTH.value, start_time=start_time, end_time=end_time,
+            period=period, period_unit=period_unit, start_time=start_time, end_time=end_time,
             user_id=user_id, username=username, vo_id=vo_id, vo_name=vo_name, owner_type=owner_type,
             instance_remark='renew'
         )

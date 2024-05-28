@@ -14,7 +14,7 @@ from apps.order.deliver_resource import OrderResourceDeliverer
 from utils.test import get_or_create_user, MyAPITransactionTestCase
 from apps.servers.models import ServiceConfig, Server, ServerSnapshot
 from apps.vo.models import VirtualOrganization
-from apps.servers.managers import ServicePrivateQuotaManager
+from apps.servers.managers import ServicePrivateQuotaManager, ServerSnapshotManager
 from apps.servers.tests import create_server_metadata
 from apps.app_scan.models import VtTask
 
@@ -555,7 +555,7 @@ class DeliverTests(MyAPITransactionTestCase):
         self.assertEqual(web_task.remark, 'test remark')
         self.assertEqual(host_task.user_id, self.user.id)
 
-    def test_snapshot_order_deliver(self):
+    def test_snapshot_create_deliver(self):
         vo_server = create_server_metadata(
             service=self.service1, user=self.user, vo_id=self.vo.id, ram=2,
             classification=Server.Classification.VO, default_user='root',
@@ -737,3 +737,124 @@ class DeliverTests(MyAPITransactionTestCase):
         self.assertEqual(snapshot2.vo_id, self.vo.id)
         self.assertEqual(snapshot2.user_id, order1.user_id)
         self.assertEqual(snapshot2.pay_type, PayType.PREPAID.value)
+
+    def test_snapshot_renew_deliver(self):
+        vo_server = create_server_metadata(
+            service=self.service1, user=self.user, vo_id=self.vo.id, ram=2,
+            classification=Server.Classification.VO, default_user='root',
+            default_password='password', ipv4='127.0.0.12', remarks='test',
+            disk_size=100
+        )
+        now_time = dj_timezone.now()
+        expiration_time = now_time - timedelta(days=1)
+        snapshot1 = ServerSnapshotManager.create_snapshot_metadata(
+            name='name1', size_dib=100, remarks='snapshot1 test', instance_id='11',
+            creation_time=dj_timezone.now(), expiration_time=expiration_time,
+            start_time=None, pay_type=PayType.PREPAID.value,
+            classification=ServerSnapshot.Classification.VO.value, user=self.user, vo=self.vo,
+            server=vo_server, service=vo_server.service
+        )
+
+        instance_config = ServerSnapshotConfig(
+            server_id=vo_server.id, systemdisk_size=100, azone_id='',
+            snapshot_name='snapshot_name1', snapshot_desc=''
+        )
+        # 创建订单
+        service = vo_server.service
+        order1, resource1 = OrderManager().create_renew_order(
+            service_id=service.id, service_name=service.name, pay_app_service_id=service.pay_app_service_id,
+            resource_type=ResourceType.VM_SNAPSHOT.value, instance_id=snapshot1.id,
+            instance_config=instance_config,
+            period=128, period_unit=Order.PeriodUnit.DAY.value, start_time=None, end_time=None,
+            user_id=snapshot1.user_id, username=snapshot1.user.username,
+            vo_id=snapshot1.vo_id, vo_name=snapshot1.vo.name, owner_type=OwnerType.VO.value
+        )
+        or_dlver = OrderResourceDeliverer()
+
+        # order unpaid
+        with self.assertRaises(errors.OrderUnpaid):
+            or_dlver.deliver_order(order1, resource=None)
+
+        order1.set_paid(
+            pay_amount=Decimal('0'), balance_amount=Decimal('0'), coupon_amount=Decimal('0'), payment_history_id='')
+
+        od1_res1 = resource1
+        od1_res1.refresh_from_db()
+        self.assertIsNone(od1_res1.last_deliver_time)
+        self.assertEqual(order1.trading_status, order1.TradingStatus.OPENING.value)
+        self.assertEqual(od1_res1.instance_status, od1_res1.InstanceStatus.WAIT.value)
+
+        # 请求success
+        or_dlver.deliver_order(order1, resource=None)
+        order1.refresh_from_db()
+        self.assertEqual(order1.trading_status, order1.TradingStatus.COMPLETED.value)
+        od1_res1.refresh_from_db()
+        self.assertLess(od1_res1.last_deliver_time - dj_timezone.now(), timedelta(seconds=30))
+        self.assertEqual(od1_res1.instance_status, od1_res1.InstanceStatus.SUCCESS.value)
+        # snapshot 过期时间
+        snapshot1.refresh_from_db()
+        self.assertTrue((snapshot1.expiration_time - expiration_time) >= timedelta(days=128))
+        self.assertTrue((snapshot1.expiration_time - expiration_time) < timedelta(days=129))
+
+        with self.assertRaises(errors.OrderTradingCompleted):
+            or_dlver.deliver_order(order1, resource=None)
+
+        # 创建订单2
+        expiration_time = snapshot1.expiration_time
+        instance_config2 = ServerSnapshotConfig(
+            server_id=vo_server.id, systemdisk_size=200, azone_id='',
+            snapshot_name='snapshot_name2', snapshot_desc='snapshot_desc2'
+        )
+        order2, resource2 = OrderManager().create_renew_order(
+            service_id=service.id, service_name=service.name, pay_app_service_id=service.pay_app_service_id,
+            resource_type=ResourceType.VM_SNAPSHOT.value, instance_id=snapshot1.id,
+            instance_config=instance_config2,
+            period=8, period_unit=Order.PeriodUnit.MONTH.value, start_time=None, end_time=None,
+            user_id=snapshot1.user_id, username=snapshot1.user.username,
+            vo_id=snapshot1.vo_id, vo_name=snapshot1.vo.name, owner_type=OwnerType.VO.value
+        )
+        od2_res1 = resource2
+        order2.set_paid(
+            pay_amount=Decimal('0'), balance_amount=Decimal('0'), coupon_amount=Decimal('0'), payment_history_id='')
+        or_dlver = OrderResourceDeliverer()
+
+        # 系统盘大小不一致
+        with self.assertRaises(errors.Error) as cm:
+            or_dlver.deliver_order(order2, resource=None)
+        self.assertEqual(cm.exception.code, 'InternalError')
+        self.assertEqual(cm.exception.status_code, 500)
+        order2.refresh_from_db()
+        self.assertEqual(order2.trading_status, order2.TradingStatus.UNDELIVERED.value)
+        od2_res1.refresh_from_db()
+        self.assertLess(od2_res1.last_deliver_time - dj_timezone.now(), timedelta(seconds=30))
+        self.assertEqual(od2_res1.instance_status, od2_res1.InstanceStatus.FAILED.value)
+        snapshot1.refresh_from_db()
+        self.assertEqual(snapshot1.expiration_time, expiration_time)
+
+        # 请求太频繁
+        with self.assertRaises(errors.TryAgainLater) as cm:
+            or_dlver.deliver_order(order2, resource=None)
+        self.assertEqual(cm.exception.code, 'TryAgainLater')
+        self.assertEqual(cm.exception.status_code, 409)
+
+        # 请求success
+        now_time = dj_timezone.now()
+        od2_res1.last_deliver_time = dj_timezone.now() - timedelta(seconds=60)
+        od2_res1.save(update_fields=['last_deliver_time'])
+        cfg = ServerSnapshotConfig.from_dict(order2.instance_config)
+        cfg.systemdisk_size = snapshot1.size
+        order2.instance_config = cfg.to_dict()
+        order2.save(update_fields=['instance_config'])
+
+        or_dlver.deliver_order(order2, resource=None)
+        order2.refresh_from_db()
+        self.assertEqual(order2.trading_status, order2.TradingStatus.COMPLETED.value)
+        od2_res1.refresh_from_db()
+        self.assertLess(od2_res1.last_deliver_time - dj_timezone.now(), timedelta(seconds=30))
+        self.assertEqual(od2_res1.instance_status, od2_res1.InstanceStatus.SUCCESS.value)
+        # snapshot 过期时间
+        snapshot1.refresh_from_db()
+        self.assertTrue((snapshot1.expiration_time - expiration_time) >= timedelta(days=30 * 8))
+        self.assertTrue((snapshot1.expiration_time - expiration_time) < timedelta(days=30 * 8 + 1))
+        with self.assertRaises(errors.OrderTradingCompleted):
+            or_dlver.deliver_order(order1, resource=None)

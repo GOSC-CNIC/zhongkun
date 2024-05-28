@@ -297,3 +297,111 @@ class SnapshotHandler:
             'period': period,
             'period_unit': period_unit
         }
+
+    @staticmethod
+    def renew_server_snapshot(view: CustomGenericViewSet, request, kwargs):
+        try:
+            data = SnapshotHandler._snapshot_renew_validate_params(view=view, request=request)
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        snapshot_id = data['snapshot_id']
+        period = data['period']
+        period_unit = data['period_unit']
+
+        try:
+            snapshot = ServerSnapshotManager().get_has_perm_snapshot(
+                snapshot_id=snapshot_id, user=request.user, is_readonly=True)
+            if snapshot.size <= 0:
+                raise exceptions.ConflictError(message=_('无法续费，快照大小未知。'))
+            if snapshot.expiration_time is None:
+                raise exceptions.UnknownExpirationTime(message=_('无法续费，快照没有过期时间。'))
+
+            server = snapshot.get_server()
+            if not server:
+                raise exceptions.ConflictError(message=_('无法续费，快照所属云主机未知'))
+
+            service = server.service
+            if not service:
+                raise exceptions.ConflictError(message=_('快照所属云主机服务单元未知'))
+
+            if not service.pay_app_service_id:
+                raise exceptions.ConflictError(
+                    message=_('服务单元未配置对应的结算系统APP服务id'), code='ServiceNoPayAppServiceId')
+
+            _order = Order.objects.filter(
+                resource_type=ResourceType.VM_SNAPSHOT.value, resource_set__instance_id=snapshot.id,
+                trading_status__in=[Order.TradingStatus.OPENING.value, Order.TradingStatus.UNDELIVERED.value]
+            ).order_by('-creation_time').first()
+            if _order is not None:
+                raise exceptions.SomeOrderNeetToTrade(
+                    message=_('此快照存在未完成的订单（%s）, 请先完成已有订单后再提交新的订单。') % _order.id)
+
+            if snapshot.classification == snapshot.Classification.PERSONAL.value:
+                user_id = snapshot.user_id
+                username = snapshot.user.username
+                vo_id = ''
+                vo_name = ''
+                owner_type = OwnerType.USER.value
+            else:
+                user_id = request.user.id
+                username = request.user.username
+                vo_id = snapshot.vo_id
+                vo_name = snapshot.vo.name
+                owner_type = OwnerType.VO.value
+
+            ins_config = ServerSnapshotConfig(
+                server_id=server.id, systemdisk_size=snapshot.size, azone_id=server.azone_id,
+                snapshot_name=snapshot.name, snapshot_desc=snapshot.remarks
+            )
+            order, resources = OrderManager().create_renew_order(
+                service_id=service.id, service_name=service.name, pay_app_service_id=service.pay_app_service_id,
+                resource_type=ResourceType.VM_SNAPSHOT.value, instance_id=snapshot_id,
+                instance_config=ins_config,
+                period=period, period_unit=period_unit, start_time=None, end_time=None,
+                user_id=user_id, username=username, vo_id=vo_id, vo_name=vo_name, owner_type=owner_type
+            )
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        return Response(data={'order_id': order.id})
+
+    @staticmethod
+    def _snapshot_renew_validate_params(view: CustomGenericViewSet, request):
+        """
+        :raises: Error
+        """
+        serializer = view.get_serializer(data=request.data)
+        if not serializer.is_valid(raise_exception=False):
+            msg = serializer_error_msg(serializer.errors)
+            raise exceptions.BadRequest(msg)
+
+        data = serializer.validated_data
+        snapshot_id = data.get('snapshot_id', None)
+        period = data.get('period', None)
+        period_unit = data.get('period_unit', None)
+
+        if not snapshot_id:
+            raise exceptions.BadRequest(message=_('必须指定云主机快照'), code='InvalidSnapshotId')
+
+        if not period_unit:
+            raise exceptions.BadRequest(message=_('必须指定订购时长单位'), code='InvalidPeriodUnit')
+
+        if period_unit not in Order.PeriodUnit.values:
+            raise exceptions.BadRequest(message=_('订购时长单位无效，可选为天或月'), code='InvalidPeriodUnit')
+
+        if period <= 0:
+            raise exceptions.BadRequest(message=_('订购时长必须大于0'), code='InvalidPeriod')
+
+        period_days = period
+        if period_unit == Order.PeriodUnit.MONTH.value:
+            period_days = 30 * period
+
+        if period_days > (30 * 12 * 5):
+            raise exceptions.BadRequest(message=_('订购时长最长为5年'), code='InvalidPeriod')
+
+        return {
+            'snapshot_id': snapshot_id,
+            'period': period,
+            'period_unit': period_unit
+        }
