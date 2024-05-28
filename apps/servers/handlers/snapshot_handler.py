@@ -3,11 +3,14 @@ from rest_framework.response import Response
 
 from core import errors as exceptions
 from core.adapters import inputs
-from core.request import request_service
-from apps.api.viewsets import CustomGenericViewSet
+from core.request import request_service, update_server_detail
+from utils.model import ResourceType, PayType, OwnerType
+from apps.api.viewsets import CustomGenericViewSet, serializer_error_msg
 from apps.vo.managers import VoManager
 from apps.servers.managers import ServerSnapshotManager, ServerManager
 from apps.servers import serializers
+from apps.order.models import Order
+from apps.order.managers import OrderManager, ServerSnapshotConfig
 
 
 class SnapshotHandler:
@@ -186,3 +189,111 @@ class SnapshotHandler:
             return view.exception_response(exc)
 
         return Response(status=200)
+
+    @staticmethod
+    def create_server_snapshot(view: CustomGenericViewSet, request, kwargs):
+        try:
+            data = SnapshotHandler._snapshot_create_validate_params(view=view, request=request)
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        server_id = data['server_id']
+        period = data['period']
+        period_unit = data['period_unit']
+        snapshot_name = data['snapshot_name']
+        description = data['description']
+
+        try:
+            server = ServerManager().get_manage_perm_server(
+                server_id=server_id, user=request.user, as_admin=False)
+
+            service = server.service
+            if not service:
+                raise exceptions.ConflictError(message=_('云主机服务单元未知'))
+
+            if not service.pay_app_service_id:
+                raise exceptions.ConflictError(
+                    message=_('服务未配置对应的结算系统APP服务id'), code='ServiceNoPayAppServiceId')
+
+            if server.disk_size <= 0:
+                try:
+                    server = update_server_detail(server=server)
+                except exceptions.Error as exc:
+                    raise exceptions.ConflictError(
+                        message=_('云主机系统盘大小未知，尝试更新云主机系统盘大小失败') + str(exc))
+
+            if server.disk_size <= 0:
+                raise exceptions.ConflictError(message=_('云主机系统盘大小未知'))
+
+            if server.classification == server.Classification.PERSONAL.value:
+                user_id = server.user_id
+                username = server.user.username
+                vo_id = ''
+                vo_name = ''
+                owner_type = OwnerType.USER.value
+            else:
+                user_id = request.user.id
+                username = request.user.username
+                vo_id = server.vo_id
+                vo_name = server.vo.name
+                owner_type = OwnerType.VO.value
+
+            ins_config = ServerSnapshotConfig(
+                server_id=server_id, systemdisk_size=server.disk_size, azone_id=server.azone_id,
+                snapshot_name=snapshot_name, snapshot_desc=description
+            )
+            order, resources = OrderManager().create_order(
+                order_type=Order.OrderType.NEW.value, service_id=service.id, service_name=service.name,
+                pay_app_service_id=service.pay_app_service_id, resource_type=ResourceType.VM_SNAPSHOT.value,
+                instance_config=ins_config, period=period, period_unit=period_unit, pay_type=PayType.PREPAID.value,
+                user_id=user_id, username=username, vo_id=vo_id, vo_name=vo_name, owner_type=owner_type,
+                number=1, remark=description
+            )
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        return Response(data={'order_id': order.id})
+
+    @staticmethod
+    def _snapshot_create_validate_params(view: CustomGenericViewSet, request):
+        """
+        :raises: Error
+        """
+        serializer = view.get_serializer(data=request.data)
+        if not serializer.is_valid(raise_exception=False):
+            msg = serializer_error_msg(serializer.errors)
+            raise exceptions.BadRequest(msg)
+
+        data = serializer.validated_data
+        server_id = data.get('server_id', None)
+        period = data.get('period', None)
+        period_unit = data.get('period_unit', None)
+        snapshot_name = data.get('snapshot_name', '')
+        description = data.get('description', '')
+
+        if not server_id:
+            raise exceptions.BadRequest(message=_('必须指定云主机'), code='InvalidServerId')
+
+        if not period_unit:
+            raise exceptions.BadRequest(message=_('必须指定订购时长单位'), code='InvalidPeriodUnit')
+
+        if period_unit not in Order.PeriodUnit.values:
+            raise exceptions.BadRequest(message=_('订购时长单位无效，可选为天或月'), code='InvalidPeriodUnit')
+
+        if period <= 0:
+            raise exceptions.BadRequest(message=_('订购时长必须大于0'), code='InvalidPeriod')
+
+        period_days = period
+        if period_unit == Order.PeriodUnit.MONTH.value:
+            period_days = 30 * period
+
+        if period_days > (30 * 12 * 5):
+            raise exceptions.BadRequest(message=_('订购时长最长为5年'), code='InvalidPeriod')
+
+        return {
+            'server_id': server_id,
+            'snapshot_name': snapshot_name,
+            'description': description,
+            'period': period,
+            'period_unit': period_unit
+        }

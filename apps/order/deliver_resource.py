@@ -1164,7 +1164,7 @@ class OrderResourceDeliverer:
         description = OrderResourceDeliverer.format_inst_remark(order=order, remark=resource.instance_remark)
         who_action = OrderResourceDeliverer._format_who_action(order=order)
         params = inputs.ServerSnapshotCreateInput(
-            region_id=service.region_id, instance_id=server_id,
+            region_id=service.region_id, instance_id=server.instance_id,
             description=description, _who_action=who_action
         )
         try:

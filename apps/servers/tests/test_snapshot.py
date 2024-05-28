@@ -1,12 +1,16 @@
 from datetime import timedelta, datetime
 from urllib import parse
 from urllib.parse import urlencode
+from decimal import Decimal
 
 from django.urls import reverse
 from django.utils import timezone
 
 from utils.test import get_or_create_user, get_or_create_service, MyAPITransactionTestCase
 from utils.model import PayType, OwnerType, ResourceType
+from utils.decimal_utils import quantize_10_2
+from apps.order.models import Order, Price
+from apps.order.managers import OrderManager, ServerSnapshotConfig
 from apps.vo.models import VirtualOrganization, VoMember
 from apps.servers.managers import ServerSnapshotManager
 from apps.servers.models import ServiceConfig, ServerSnapshot, Server
@@ -20,6 +24,25 @@ class ServerSnapshotTests(MyAPITransactionTestCase):
         self.service = get_or_create_service()
         self.vo = VirtualOrganization(name='test vo', owner=self.user2)
         self.vo.save(force_insert=True)
+        self.price = Price(
+            vm_ram=Decimal('0.012'),
+            vm_cpu=Decimal('0.066'),
+            vm_disk=Decimal('0.122'),
+            vm_pub_ip=Decimal('0.66'),
+            vm_upstream=Decimal('0.33'),
+            vm_downstream=Decimal('1.44'),
+            vm_disk_snap=Decimal('0.65'),
+            disk_size=Decimal('1.02'),
+            disk_snap=Decimal('0.77'),
+            obj_size=Decimal('0'),
+            obj_upstream=Decimal('0'),
+            obj_downstream=Decimal('0'),
+            obj_replication=Decimal('0'),
+            obj_get_request=Decimal('0'),
+            obj_put_request=Decimal('0'),
+            prepaid_discount=66
+        )
+        self.price.save(force_insert=True)
 
     def test_list_disk(self):
         service2 = ServiceConfig(
@@ -688,3 +711,294 @@ class ServerSnapshotTests(MyAPITransactionTestCase):
                            kwargs={'id': snapshot1.id, 'server_id': server1.id})
         response = self.client.post(base_url)
         self.assertErrorResponse(status_code=409, code='ResourceLocked', response=response)
+
+    def test_create(self):
+        server1 = create_server_metadata(
+            service=self.service, user=self.user, ram=8, vcpus=6, disk_size=0,
+            default_user='user', default_password='password',
+            ipv4='127.12.33.111', remarks='test server', pay_type=PayType.PREPAID.value
+        )
+        vo_server = create_server_metadata(
+            service=self.service, user=self.user, vo_id=self.vo.id,
+            ram=8, vcpus=6, disk_size=128, classification=Server.Classification.VO.value,
+            default_user='user', default_password='password',
+            ipv4='127.12.33.111', remarks='test server', pay_type=PayType.PREPAID.value
+        )
+
+        base_url = reverse('servers-api:server-snapshot-list')
+        response = self.client.post(base_url)
+        self.assertEqual(response.status_code, 401)
+        self.client.force_login(self.user2)
+
+        # period
+        response = self.client.post(base_url, data={
+            'server_id': 'server_id',
+            'snapshot_name': 'snapshot_name',
+            'description': 'description',
+            'period_unit': Order.PeriodUnit.DAY.value
+        })
+        self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
+        response = self.client.post(base_url, data={
+            'server_id': 'server_id',
+            'snapshot_name': 'snapshot_name',
+            'description': 'description',
+            'period': 'period',
+            'period_unit': Order.PeriodUnit.DAY.value
+        })
+        self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
+        response = self.client.post(base_url, data={
+            'server_id': 'server_id',
+            'snapshot_name': 'snapshot_name',
+            'description': 'description',
+            'period': 0,
+            'period_unit': Order.PeriodUnit.DAY.value
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidPeriod', response=response)
+
+        # period_unit
+        response = self.client.post(base_url, data={
+            'server_id': 'server_id',
+            'snapshot_name': 'snapshot_name',
+            'description': 'description',
+            'period': 1,
+        })
+        self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
+        response = self.client.post(base_url, data={
+            'server_id': 'server_id',
+            'snapshot_name': 'snapshot_name',
+            'description': 'description',
+            'period': 1,
+            'period_unit': 'test'
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidPeriodUnit', response=response)
+
+        # period and period_unit， 最大时长五年
+        response = self.client.post(base_url, data={
+            'server_id': 'server_id',
+            'snapshot_name': 'snapshot_name',
+            'description': 'description',
+            'period': 12 * 5 + 1,
+            'period_unit': Order.PeriodUnit.MONTH.value
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidPeriod', response=response)
+        response = self.client.post(base_url, data={
+            'server_id': 'server_id',
+            'snapshot_name': 'snapshot_name',
+            'description': 'description',
+            'period': 30 * 12 * 5 + 1,
+            'period_unit': Order.PeriodUnit.DAY.value
+        })
+        self.assertErrorResponse(status_code=400, code='InvalidPeriod', response=response)
+
+        # server_id
+        response = self.client.post(base_url, data={
+            'snapshot_name': 'snapshot_name',
+            'description': 'description',
+            'period': 1,
+            'period_unit': Order.PeriodUnit.DAY.value
+        })
+        self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
+        response = self.client.post(base_url, data={
+            'server_id': 'server_id',
+            'snapshot_name': 'snapshot_name',
+            'description': 'description',
+            'period': 1,
+            'period_unit': Order.PeriodUnit.DAY.value
+        })
+        self.assertErrorResponse(status_code=404, code='NotFound', response=response)
+
+        response = self.client.post(base_url, data={
+            'server_id': server1.id,
+            'snapshot_name': 'snapshot_name',
+            'description': 'description',
+            'period': 1,
+            'period_unit': Order.PeriodUnit.DAY.value
+        })
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # user，服务单元结算单元id无效
+        self.client.logout()
+        self.client.force_login(self.user)
+        response = self.client.post(base_url, data={
+            'server_id': server1.id,
+            'snapshot_name': 'snapshot_name',
+            'description': 'description',
+            'period': 1,
+            'period_unit': Order.PeriodUnit.DAY.value
+        })
+        self.assertErrorResponse(status_code=409, code='ServiceNoPayAppServiceId', response=response)
+        server1.service.pay_app_service_id = 'test'
+        server1.service.save(update_fields=['pay_app_service_id'])
+
+        # 系统盘大小未知
+        response = self.client.post(base_url, data={
+            'server_id': server1.id,
+            'snapshot_name': 'snapshot_name',
+            'description': 'description',
+            'period': 1,
+            'period_unit': Order.PeriodUnit.DAY.value
+        })
+        self.assertErrorResponse(status_code=409, code='Conflict', response=response)
+
+        # ok
+        self.assertEqual(Order.objects.count(), 0)
+        server1.disk_size = 100
+        server1.save(update_fields=['disk_size'])
+        response = self.client.post(base_url, data={
+            'server_id': server1.id,
+            'snapshot_name': 'snapshot_name',
+            'description': 'description',
+            'period': 1,
+            'period_unit': Order.PeriodUnit.DAY.value
+        })
+        self.assertEqual(response.status_code, 200)
+        order1_id = response.data['order_id']
+        self.assertEqual(Order.objects.count(), 1)
+        order1, resources1 = OrderManager().get_order_detail(order_id=order1_id, user=self.user)
+        self.assertEqual(resources1[0].instance_status, resources1[0].InstanceStatus.WAIT.value)
+        self.assertEqual(resources1[0].instance_remark, 'description')
+        self.assertEqual(order1.trading_status, order1.TradingStatus.OPENING.value)
+        self.assertEqual(order1.order_type, Order.OrderType.NEW.value)
+        self.assertEqual(order1.resource_type, ResourceType.VM_SNAPSHOT.value)
+        self.assertEqual(order1.owner_type, OwnerType.USER.value)
+        self.assertEqual(order1.user_id, self.user.id)
+        self.assertEqual(order1.period, 1)
+        self.assertEqual(order1.period_unit, Order.PeriodUnit.DAY.value)
+
+        original_price = self.price.vm_disk_snap * 100 * 24 * 1
+        trade_price = original_price * Decimal.from_float(self.price.prepaid_discount / 100)
+        self.assertEqual(order1.total_amount, quantize_10_2(original_price))
+        self.assertEqual(order1.payable_amount, quantize_10_2(trade_price))
+        cfg = ServerSnapshotConfig.from_dict(order1.instance_config)
+        self.assertEqual(cfg.server_id, server1.id)
+        self.assertEqual(cfg.systemdisk_size, 100)
+        self.assertEqual(cfg.snapshot_name, 'snapshot_name')
+        self.assertEqual(cfg.snapshot_desc, 'description')
+
+        server1.disk_size = 200
+        server1.save(update_fields=['disk_size'])
+        response = self.client.post(base_url, data={
+            'server_id': server1.id,
+            'snapshot_name': 'snapshot_name1',
+            'description': 'tes的歌曲',
+            'period': 2,
+            'period_unit': Order.PeriodUnit.MONTH.value
+        })
+        self.assertEqual(response.status_code, 200)
+        order2_id = response.data['order_id']
+        self.assertEqual(Order.objects.count(), 2)
+        order2, resources2 = OrderManager().get_order_detail(order_id=order2_id, user=self.user)
+        self.assertEqual(resources2[0].instance_status, resources2[0].InstanceStatus.WAIT.value)
+        self.assertEqual(resources2[0].instance_remark, 'tes的歌曲')
+        self.assertEqual(order2.trading_status, order2.TradingStatus.OPENING.value)
+        self.assertEqual(order2.order_type, Order.OrderType.NEW.value)
+        self.assertEqual(order2.resource_type, ResourceType.VM_SNAPSHOT.value)
+        self.assertEqual(order2.owner_type, OwnerType.USER.value)
+        self.assertEqual(order2.user_id, self.user.id)
+        self.assertEqual(order2.period, 2)
+        self.assertEqual(order2.period_unit, Order.PeriodUnit.MONTH.value)
+
+        original_price = self.price.vm_disk_snap * 200 * 24 * 30 * 2
+        trade_price = original_price * Decimal.from_float(self.price.prepaid_discount / 100)
+        self.assertEqual(order2.total_amount, quantize_10_2(original_price))
+        self.assertEqual(order2.payable_amount, quantize_10_2(trade_price))
+        cfg = ServerSnapshotConfig.from_dict(order2.instance_config)
+        self.assertEqual(cfg.server_id, server1.id)
+        self.assertEqual(cfg.systemdisk_size, 200)
+        self.assertEqual(cfg.snapshot_name, 'snapshot_name1')
+        self.assertEqual(cfg.snapshot_desc, 'tes的歌曲')
+
+        # vo server
+        self.assertEqual(Order.objects.count(), 2)
+        response = self.client.post(base_url, data={
+            'server_id': vo_server.id,
+            'snapshot_name': 'snapshot_name3',
+            'description': 'description3',
+            'period': 64,
+            'period_unit': Order.PeriodUnit.DAY.value
+        })
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # user2
+        self.client.logout()
+        self.client.force_login(self.user2)
+
+        response = self.client.post(base_url, data={
+            'server_id': vo_server.id,
+            'snapshot_name': 'snapshot_name3',
+            'description': 'description3',
+            'period': 64,
+            'period_unit': Order.PeriodUnit.DAY.value
+        })
+        self.assertEqual(response.status_code, 200)
+        order3_id = response.data['order_id']
+        self.assertEqual(Order.objects.count(), 3)
+        order3, resources3 = OrderManager().get_order_detail(order_id=order3_id, user=self.user2)
+        self.assertEqual(resources3[0].instance_status, resources3[0].InstanceStatus.WAIT.value)
+        self.assertEqual(resources3[0].instance_remark, 'description3')
+        self.assertEqual(order3.trading_status, order3.TradingStatus.OPENING.value)
+        self.assertEqual(order3.order_type, Order.OrderType.NEW.value)
+        self.assertEqual(order3.resource_type, ResourceType.VM_SNAPSHOT.value)
+        self.assertEqual(order3.owner_type, OwnerType.VO.value)
+        self.assertEqual(order3.user_id, self.user2.id)
+        self.assertEqual(order3.username, self.user2.username)
+        self.assertEqual(order3.vo_id, self.vo.id)
+        self.assertEqual(order3.period, 64)
+        self.assertEqual(order3.period_unit, Order.PeriodUnit.DAY.value)
+
+        original_price = self.price.vm_disk_snap * (128 * 24 * 64)
+        trade_price = original_price * Decimal.from_float(self.price.prepaid_discount / 100)
+        self.assertEqual(order3.total_amount, quantize_10_2(original_price))
+        self.assertEqual(order3.payable_amount, quantize_10_2(trade_price))
+        cfg = ServerSnapshotConfig.from_dict(order3.instance_config)
+        self.assertEqual(cfg.server_id, vo_server.id)
+        self.assertEqual(cfg.systemdisk_size, 128)
+        self.assertEqual(cfg.snapshot_name, 'snapshot_name3')
+        self.assertEqual(cfg.snapshot_desc, 'description3')
+
+        response = self.client.post(base_url, data={
+            'server_id': vo_server.id,
+            'snapshot_name': 'snapshot_name4',
+            'description': 'sfwefre隔热4',
+            'period': 12,
+            'period_unit': Order.PeriodUnit.MONTH.value
+        })
+        self.assertEqual(response.status_code, 200)
+        order4_id = response.data['order_id']
+        self.assertEqual(Order.objects.count(), 4)
+        order4, resources4 = OrderManager().get_order_detail(order_id=order4_id, user=self.user2)
+        self.assertEqual(resources4[0].instance_status, resources4[0].InstanceStatus.WAIT.value)
+        self.assertEqual(resources4[0].instance_remark, 'sfwefre隔热4')
+        self.assertEqual(order4.trading_status, order4.TradingStatus.OPENING.value)
+        self.assertEqual(order4.order_type, Order.OrderType.NEW.value)
+        self.assertEqual(order4.resource_type, ResourceType.VM_SNAPSHOT.value)
+        self.assertEqual(order4.owner_type, OwnerType.VO.value)
+        self.assertEqual(order4.user_id, self.user2.id)
+        self.assertEqual(order4.username, self.user2.username)
+        self.assertEqual(order4.vo_id, self.vo.id)
+        self.assertEqual(order4.period, 12)
+        self.assertEqual(order4.period_unit, Order.PeriodUnit.MONTH.value)
+
+        original_price = self.price.vm_disk_snap * (128 * 24 * 30 * 12)
+        trade_price = original_price * Decimal.from_float(self.price.prepaid_discount / 100)
+        self.assertEqual(order4.total_amount, quantize_10_2(original_price))
+        self.assertEqual(order4.payable_amount, quantize_10_2(trade_price))
+        cfg = ServerSnapshotConfig.from_dict(order4.instance_config)
+        self.assertEqual(cfg.server_id, vo_server.id)
+        self.assertEqual(cfg.systemdisk_size, 128)
+        self.assertEqual(cfg.snapshot_name, 'snapshot_name4')
+        self.assertEqual(cfg.snapshot_desc, 'sfwefre隔热4')
+
+        order4.payable_amount = Decimal('0')
+        order4.save(update_fields=['payable_amount'])
+        pay_url = reverse('order-api:order-pay-order', kwargs={'id': order4_id})
+        query = parse.urlencode(query={
+            'payment_method': Order.PaymentMethod.BALANCE.value
+        })
+        response = self.client.post(f'{pay_url}?{query}')
+        self.assertEqual(response.status_code, 200)
+
+        order4.refresh_from_db()
+        resources4[0].refresh_from_db()
+        self.assertEqual(resources4[0].instance_status, resources4[0].InstanceStatus.FAILED.value)
+        self.assertEqual(order4.trading_status, order4.TradingStatus.UNDELIVERED.value)

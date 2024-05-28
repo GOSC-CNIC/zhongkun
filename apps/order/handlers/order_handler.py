@@ -250,7 +250,7 @@ class OrderHandler:
         except errors.Error as exc:
             return view.exception_response(exc)
 
-        if order.resource_type not in [ResourceType.VM.value, ResourceType.DISK.value]:
+        if order.resource_type not in ResourceType.values:
             return view.exception_response(
                 errors.BadRequest(message=_('订单订购的资源类型无效'), code='InvalidResourceType'))
 

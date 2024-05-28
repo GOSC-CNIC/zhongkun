@@ -819,7 +819,7 @@ class EVCloudAdapter(BaseAdapter):
         except ValueError:
             return outputs.ServerSnapshotDeleteOutput(ok=False, error=exceptions.APIInvalidParam(message='参数snap_id无效'))
 
-        query = query_add_who_action(query={'remark': params.description}, params=params)
+        query = query_add_who_action(query=None, params=params)
         _api = self.api_builder.vm_snap_delete_url(snap_id=snap_id, query=query)
         try:
             headers = self.get_auth_header()
@@ -848,7 +848,7 @@ class EVCloudAdapter(BaseAdapter):
             return outputs.ServerRollbackSnapshotOutput(
                 ok=False, error=exceptions.APIInvalidParam(message='参数snap_id无效'))
 
-        query = query_add_who_action(query={'remark': params.description}, params=params)
+        query = query_add_who_action(query=None, params=params)
         _api = self.api_builder.vm_rollback_snap_url(vm_uuid=params.instance_id, snap_id=snap_id, query=query)
         try:
             headers = self.get_auth_header()

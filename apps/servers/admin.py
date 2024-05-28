@@ -402,10 +402,17 @@ class ServicePrivateQuotaAdmin(BaseModelAdmin):
 class ServerSnapshotAdmin(NoDeleteSelectModelAdmin):
     list_display_links = ('id',)
     list_display = ('id', 'name', 'size', 'creation_time', 'pay_type', 'expiration_time', 'remarks',
-                    'classification', 'user', 'vo', 'server', 'deleted', 'deleted_time', 'deleted_user')
+                    'classification', 'user', 'vo', 'server', 'show_deleted', 'deleted_time', 'deleted_user')
     list_select_related = ('user', 'vo', 'service', 'server')
-    list_filter = ('service',)
+    list_filter = ('service', 'deleted')
     raw_id_fields = ('user', 'vo', 'server')
+
+    @admin.display(description=_('删除状态'))
+    def show_deleted(self, obj):
+        if obj.deleted:
+            return gettext('已删除')
+
+        return gettext('正常')
 
 
 # @admin.register(ServiceShareQuota)

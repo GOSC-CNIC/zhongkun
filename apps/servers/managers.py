@@ -382,7 +382,8 @@ class ServerManager:
 
         server = self.get_server(server_id=server_id, related_fields=related_fields)
         if server.classification == server.Classification.PERSONAL:
-            if not server.user_has_perms(user):
+            # if not server.user_has_perms(user):
+            if not (server.user_id == user.id):
                 raise errors.AccessDenied(_('无权限访问此服务器实例'))
         elif server.classification == server.Classification.VO:
             if server.vo is None:

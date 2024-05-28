@@ -415,3 +415,14 @@ class ServerSnapshotSerializer(serializers.Serializer):
             return None
 
         return {'id': obj.service.id, 'name': obj.service.name, 'name_en': obj.service.name_en}
+
+
+class SnapshotCreateSerializer(serializers.Serializer):
+    """
+    云主机快照序列化器
+    """
+    snapshot_name = serializers.CharField(label=_('快照名称'), required=True, max_length=128)
+    server_id = serializers.CharField(label=_('云主机ID'), required=True)
+    period = serializers.IntegerField(label=_('订购时长，单位由period_unit指定'), required=True)
+    period_unit = serializers.CharField(label=_('时长单位'), required=True)
+    description = serializers.CharField(label=_('快照描述'), required=False, allow_blank=True, max_length=255, default='')

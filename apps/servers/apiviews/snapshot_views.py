@@ -8,6 +8,7 @@ from drf_yasg import openapi
 from apps.servers.handlers.snapshot_handler import SnapshotHandler
 from apps.api.viewsets import CustomGenericViewSet
 from apps.api.paginations import NewPageNumberPagination100
+from apps.servers import serializers
 
 
 class ServerSnapshotViewSet(CustomGenericViewSet):
@@ -131,6 +132,25 @@ class ServerSnapshotViewSet(CustomGenericViewSet):
         return SnapshotHandler.list_server_snapshot(view=self, request=request)
 
     @swagger_auto_schema(
+        operation_summary=gettext_lazy('创建云主机快照'),
+        responses={
+            200: ''
+        }
+    )
+    def create(self, request, *args, **kwargs):
+        """
+        创建云主机快照
+
+            请求成功会创建一个云主机快照订购订单，订单支付后创建交付云主机快照
+
+            http code 200 ok:
+            {
+                "order_id": "xxx"
+            }
+        """
+        return SnapshotHandler.create_server_snapshot(view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
         operation_summary=gettext_lazy('查询一个用户个人或vo组云主机快照信息，或者以管理员身份查询云主机快照信息'),
         manual_parameters=CustomGenericViewSet.PARAMETERS_AS_ADMIN,
         responses={
@@ -202,4 +222,7 @@ class ServerSnapshotViewSet(CustomGenericViewSet):
         return SnapshotHandler.rollback_server_to_snapshot(view=self, request=request, kwargs=kwargs)
 
     def get_serializer_class(self):
+        if self.action == 'create':
+            return serializers.SnapshotCreateSerializer
+
         return Serializer
