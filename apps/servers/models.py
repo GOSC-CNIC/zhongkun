@@ -3,6 +3,7 @@ import json
 
 from django.db import models, transaction
 from django.db.models import Count, Sum, Q
+from django.db.models import ObjectDoesNotExist
 from django.utils.translation import gettext, gettext_lazy as _
 from django.utils import timezone
 from django.core.exceptions import ValidationError
@@ -1449,3 +1450,13 @@ class ServerSnapshot(UuidModel):
             return False
 
         return True
+
+    def get_server(self):
+        # 云主机删除后，触发逻辑外键 server查询数据库时会报错
+        try:
+            if not self.server_id:
+                return None
+
+            return self.server
+        except ObjectDoesNotExist:
+            return None
