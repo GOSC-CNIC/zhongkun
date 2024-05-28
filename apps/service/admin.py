@@ -141,12 +141,6 @@ class OrgDataCenterAdmin(NoDeleteSelectModelAdmin):
                               level=messages.ERROR)
 
 
-# @admin.register(ApplyOrganization)
-# class ApplyOrganizationAdmin(admin.ModelAdmin):
-#     list_display_links = ('id',)
-#     list_display = ('id', 'name', 'name_en', 'abbreviation', 'status', 'user', 'deleted', 'creation_time', 'desc')
-
-
 @admin.register(Contacts)
 class ContactsAdmin(NoDeleteSelectModelAdmin):
     list_display_links = ('id',)

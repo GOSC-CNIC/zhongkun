@@ -16,8 +16,6 @@ no_slash_router.register(r'media', views.MediaViewSet, basename='media')
 no_slash_router.register(r'vpn', views.VPNViewSet, basename='vpn')
 no_slash_router.register(r'registry', views.DataCenterViewSet, basename='registry')
 no_slash_router.register(r'user', user_views.UserViewSet, basename='user')
-# no_slash_router.register(r'apply/service', views.ApplyVmServiceViewSet, basename='apply-service')
-# no_slash_router.register(r'apply/organization', views.ApplyOrganizationViewSet, basename='apply-organization')
 no_slash_router.register(r'email', email_views.EmailViewSet, basename='email')
 no_slash_router.register(
     r'admin/user/statistics', user_views.AdminUserStatisticsViewSet, basename='admin-user-statistics')

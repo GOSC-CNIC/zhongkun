@@ -392,14 +392,10 @@ class ServerSnapshotSerializer(serializers.Serializer):
 
     @staticmethod
     def get_server(obj):
-        # 云主机删除后，触发逻辑外键 server查询数据库时会报错
-        try:
-            if not obj.server_id or not obj.server:
-                return None
-        except ObjectDoesNotExist:
+        server = obj.get_server()
+        if not server:
             return None
 
-        server = obj.server
         return {
             'id': server.id,
             'vcpus': server.vcpus, 'ram_gib': server.ram_gib,

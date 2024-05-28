@@ -464,14 +464,3 @@ class ServerSnapshotAdmin(NoDeleteSelectModelAdmin):
 #             self.message_user(request, _("统计更新已用配额失败") + f'({failed_count})', level=messages.ERROR)
 #         else:
 #             self.message_user(request, _("统计更新已用配额成功"), level=messages.SUCCESS)
-
-
-# @admin.register(ApplyVmService)
-# class ApplyServiceAdmin(admin.ModelAdmin):
-#     list_display_links = ('id',)
-#     list_display = ('id', 'organization', 'name', 'name_en', 'service_type', 'status', 'user',
-#                     'creation_time', 'approve_time')
-#
-#     list_filter = ('organization',)
-#
-#
