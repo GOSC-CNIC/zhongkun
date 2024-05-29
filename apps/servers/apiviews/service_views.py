@@ -235,7 +235,7 @@ class ServiceViewSet(CustomGenericViewSet):
                   "version": "v4.1.0",
                   "version_update_time": "2024-05-14T01:46:17.817050Z",  # 可能为空
                   "admin_users":[   # when query with "with_admin_users"
-                    {"id": "xxx", "username": "xxxx"}
+                    {"id": "xxx", "username": "xxxx", "role": "admin"}  # role: admin(管理员)，ops(运维管理员)
                   ]
                 }
               ]
@@ -299,7 +299,7 @@ class ServiceViewSet(CustomGenericViewSet):
                   "version": "v4.1.0",
                   "version_update_time": "2024-05-14T01:46:17.817050Z",  # 可能为空
                   "admin_users":[   #
-                    {"id": "xxx", "username": "xxxx"}
+                    {"id": "xxx", "username": "xxxx", "role": "admin"}  # role: admin(管理员)，ops(运维管理员)
                   ]
                 }
               ]
@@ -550,6 +550,7 @@ class ServiceViewSet(CustomGenericViewSet):
             if sv.org_data_center_id in odc_admins_map:
                 user_dict.update(odc_admins_map[sv.org_data_center_id])
 
+            # 服务单元管理员和数据中心管理员存在相同用户时，后update会覆盖数据中心运维角色管理员员
             if sv.id in service_admins_map:
                 user_dict.update(service_admins_map[sv.id])
 

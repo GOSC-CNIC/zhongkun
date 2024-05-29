@@ -5,7 +5,7 @@ from django.db.models import Q
 from django.db import transaction
 
 from apps.users.models import UserProfile
-from apps.service.models import OrgDataCenter, DataCenter as Organization
+from apps.service.models import OrgDataCenter, OrgDataCenterAdminUser, DataCenter as Organization
 from apps.servers.models import ServiceConfig
 from core import errors
 from apps.app_wallet.models import PayAppService
@@ -424,13 +424,14 @@ class OrgDataCenterManager:
             }
         }
         """
-        queryset = OrgDataCenter.users.through.objects.filter(
+        queryset = OrgDataCenterAdminUser.objects.filter(
             orgdatacenter_id__in=odc_ids
-        ).values('orgdatacenter_id', 'userprofile_id', 'userprofile__username')
+        ).values('orgdatacenter_id', 'userprofile_id', 'userprofile__username', 'role')
         odc_admins_amp = {}
         for i in queryset:
             odc_id = i['orgdatacenter_id']
-            user_info = {'id': i['userprofile_id'], 'username': i['userprofile__username']}
+            user_info = {'id': i['userprofile_id'], 'username': i['userprofile__username'],
+                         'role': i['role']}
             if odc_id in odc_admins_amp:
                 odc_admins_amp[odc_id][user_info['id']] = user_info
             else:

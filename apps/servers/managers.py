@@ -22,6 +22,7 @@ from apps.servers.models import (
     Server, ServerArchive, Flavor, Disk, ResourceActionLog, ServiceConfig, ServicePrivateQuota, ServiceShareQuota,
     ServerSnapshot
 )
+from apps.service.models import OrgDataCenterAdminUser
 from .server_instance import ServerInstance
 
 
@@ -196,7 +197,8 @@ class ServiceManager:
         service_admins_amp = {}
         for i in queryset:
             sv_id = i['serviceconfig_id']
-            user_info = {'id': i['userprofile_id'], 'username': i['userprofile__username']}
+            user_info = {'id': i['userprofile_id'], 'username': i['userprofile__username'],
+                         'role': OrgDataCenterAdminUser.Role.ADMIN.value}
             if sv_id in service_admins_amp:
                 service_admins_amp[sv_id][user_info['id']] = user_info
             else:

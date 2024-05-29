@@ -5,6 +5,7 @@ from utils.test import get_or_create_user, get_or_create_service, MyAPITransacti
 
 from apps.servers.models import ServiceConfig
 from apps.servers.managers import ServicePrivateQuotaManager, ServiceShareQuotaManager
+from apps.service.models import OrgDataCenterAdminUser
 
 
 class VmServiceQuotaTests(MyAPITransactionTestCase):
@@ -325,6 +326,7 @@ class ServiceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["count"], 1)
         self.assertIn('admin_users', response.data["results"][0])
+        self.assertKeysIn(["id", "username", "role"], response.data["results"][0]['admin_users'][0])
 
     def test_admin_list(self):
         service2 = ServiceConfig(name='service2', name_en='service2 en', org_data_center=None)
@@ -352,6 +354,7 @@ class ServiceTests(MyAPITestCase):
         self.assertEqual(len(response.data["results"][0]['admin_users']), 1)
         self.assertEqual(response.data["results"][0]['admin_users'][0]['id'], self.user.id)
         self.assertEqual(response.data["results"][0]['admin_users'][0]['username'], self.user.username)
+        self.assertEqual(response.data["results"][0]['admin_users'][0]['role'], OrgDataCenterAdminUser.Role.ADMIN.value)
 
         # 数据中心管理员
         self.service.users.remove(self.user)
@@ -359,7 +362,7 @@ class ServiceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 0)
 
-        self.service.org_data_center.add_admin_user(user=self.user)
+        self.service.org_data_center.add_admin_user(user=self.user, is_ops_user=True)
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 1)
@@ -371,6 +374,7 @@ class ServiceTests(MyAPITestCase):
         self.assertEqual(len(response.data["results"][0]['admin_users']), 1)
         self.assertEqual(response.data["results"][0]['admin_users'][0]['id'], self.user.id)
         self.assertEqual(response.data["results"][0]['admin_users'][0]['username'], self.user.username)
+        self.assertEqual(response.data["results"][0]['admin_users'][0]['role'], OrgDataCenterAdminUser.Role.OPS.value)
 
         # 同为数据中心和服务单元管理员
         self.service.users.add(self.user)
@@ -380,6 +384,7 @@ class ServiceTests(MyAPITestCase):
         self.assertEqual(len(response.data["results"][0]['admin_users']), 1)
         self.assertEqual(response.data["results"][0]['admin_users'][0]['id'], self.user.id)
         self.assertEqual(response.data["results"][0]['admin_users'][0]['username'], self.user.username)
+        self.assertEqual(response.data["results"][0]['admin_users'][0]['role'], OrgDataCenterAdminUser.Role.ADMIN.value)
 
     def service_quota_get_update(self, url):
         # get
