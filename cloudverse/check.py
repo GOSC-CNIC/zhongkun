@@ -3,8 +3,9 @@ from django.conf import settings
 from core import site_configs_manager
 
 
-def check_setting():
-    site_configs_manager.get_pay_app_id(dj_settings=settings)
+def check_setting(screenvis_only: bool):
+    check_valid = not screenvis_only
+    site_configs_manager.get_pay_app_id(dj_settings=settings, check_valid=check_valid)
 
     payment_rsa = getattr(settings, 'PAYMENT_RSA2048', {})
     private_key = payment_rsa.get('private_key')

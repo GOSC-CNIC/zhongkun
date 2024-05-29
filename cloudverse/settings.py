@@ -433,6 +433,10 @@ CRONTABJOBS = [
      'python3 /home/uwsgi/yunkun/apps/app_netflow/scripts/netflow_update_element.py >> /var/log/yunkun/netflow_update_element.log'),
 ]
 
+# 是否只使用大屏展示功能
+SCREEN_VIS_USE_ONLY = False
+
+
 # 安全配置导入
 from .security import *
 
