@@ -425,3 +425,10 @@ class SnapshotRenewSerializer(serializers.Serializer):
     snapshot_id = serializers.CharField(label=_('快照ID'), required=True, max_length=36)
     period = serializers.IntegerField(label=_('订购时长，单位由period_unit指定'), required=True)
     period_unit = serializers.CharField(label=_('时长单位'), required=True)
+
+
+class SnapshotUpdateSerializer(serializers.Serializer):
+    snapshot_name = serializers.CharField(
+        label=_('快照名称'), required=False, allow_blank=True, max_length=128, default=None)
+    description = serializers.CharField(
+        label=_('快照描述'), required=False, allow_blank=True, max_length=255, default=None)

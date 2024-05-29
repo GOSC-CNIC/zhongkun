@@ -1283,3 +1283,98 @@ class ServerSnapshotTests(MyAPITransactionTestCase):
         self.assertEqual(order3.trading_status, order3.TradingStatus.COMPLETED.value)
         snapshot2_vo.refresh_from_db()
         self.assertEqual(snapshot2_vo.expiration_time, expiration_time + timedelta(days=64))
+
+    def test_update(self):
+        server1 = create_server_metadata(
+            service=self.service, user=self.user, ram=8, vcpus=6,
+            default_user='user', default_password='password',
+            ipv4='127.12.33.111', remarks='test server', pay_type=PayType.PREPAID.value
+        )
+        snapshot1 = ServerSnapshotManager.create_snapshot_metadata(
+            name='name1', size_dib=66, remarks='snapshot1 test', instance_id='11',
+            creation_time=dj_timezone.now(), expiration_time=dj_timezone.now() - timedelta(days=1),
+            start_time=None, pay_type=PayType.PREPAID.value,
+            classification=ServerSnapshot.Classification.PERSONAL.value, user=self.user, vo=None,
+            server=server1, service=server1.service
+        )
+        snapshot3_vo = ServerSnapshotManager.create_snapshot_metadata(
+            name='name3', size_dib=886, remarks='vo snapshot3 test', instance_id='33',
+            creation_time=dj_timezone.now(), expiration_time=dj_timezone.now() + timedelta(days=11),
+            start_time=None, pay_type=PayType.POSTPAID.value,
+            classification=ServerSnapshot.Classification.VO.value, user=self.user2, vo=self.vo,
+            server=server1, service=server1.service
+        )
+
+        base_url = reverse('servers-api:server-snapshot-detail', kwargs={'id': 'test'})
+        response = self.client.patch(base_url)
+        self.assertEqual(response.status_code, 401)
+        self.client.force_login(self.user)
+
+        base_url = reverse('servers-api:server-snapshot-detail', kwargs={'id': 'test'})
+        response = self.client.patch(base_url, data={
+            'snapshot_name': '新 snapshot name',
+            'description': '新 description'
+        })
+        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
+
+        # user
+        base_url = reverse('servers-api:server-snapshot-detail', kwargs={'id': snapshot1.id})
+        response = self.client.patch(base_url, data={
+            'snapshot_name': '新 snapshot name',
+            'description': '新 description'
+        })
+        self.assertEqual(response.status_code, 200)
+        snapshot1.refresh_from_db()
+        self.assertEqual(snapshot1.name, '新 snapshot name')
+        self.assertEqual(snapshot1.remarks, '新 description')
+
+        response = self.client.patch(base_url, data={
+            'snapshot_name': '新 snapshot name2'
+        })
+        self.assertEqual(response.status_code, 200)
+        snapshot1.refresh_from_db()
+        self.assertEqual(snapshot1.name, '新 snapshot name2')
+        self.assertEqual(snapshot1.remarks, '新 description')
+
+        response = self.client.patch(base_url, data={
+            'description': '新 description2'
+        })
+        self.assertEqual(response.status_code, 200)
+        snapshot1.refresh_from_db()
+        self.assertEqual(snapshot1.name, '新 snapshot name2')
+        self.assertEqual(snapshot1.remarks, '新 description2')
+
+        response = self.client.patch(base_url, data={
+            'snapshot_name': '',
+            'description': ''
+        })
+        self.assertEqual(response.status_code, 200)
+        snapshot1.refresh_from_db()
+        self.assertEqual(snapshot1.name, '新 snapshot name2')
+        self.assertEqual(snapshot1.remarks, '新 description2')
+
+        # vo
+        base_url = reverse('servers-api:server-snapshot-detail', kwargs={'id': snapshot3_vo.id})
+        response = self.client.patch(base_url, data={
+            'snapshot_name': 'test',
+            'description': ''
+        })
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        # set vo member
+        VoMember(user_id=self.user.id, vo_id=self.vo.id, role=VoMember.Role.LEADER.value).save()
+
+        response = self.client.patch(base_url, data={
+            'snapshot_name': 'vo name',
+            'description': 'vo desc'
+        })
+        self.assertEqual(response.status_code, 200)
+        snapshot3_vo.refresh_from_db()
+        self.assertEqual(snapshot3_vo.name, 'vo name')
+        self.assertEqual(snapshot3_vo.remarks, 'vo desc')
+
+        response = self.client.patch(base_url)
+        self.assertEqual(response.status_code, 200)
+        snapshot3_vo.refresh_from_db()
+        self.assertEqual(snapshot3_vo.name, 'vo name')
+        self.assertEqual(snapshot3_vo.remarks, 'vo desc')

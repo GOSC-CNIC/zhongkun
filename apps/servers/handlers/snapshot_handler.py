@@ -405,3 +405,42 @@ class SnapshotHandler:
             'period': period,
             'period_unit': period_unit
         }
+
+    @staticmethod
+    def update_server_snapshot(view: CustomGenericViewSet, request, kwargs):
+        snapshot_id = kwargs.get(view.lookup_field, '')
+
+        try:
+            serializer = view.get_serializer(data=request.data)
+            if not serializer.is_valid(raise_exception=False):
+                msg = serializer_error_msg(serializer.errors)
+                raise exceptions.BadRequest(msg)
+
+            data = serializer.validated_data
+            snapshot_name = data.get('snapshot_name', '')
+            description = data.get('description', '')
+
+            if not snapshot_name and not description:
+                return Response(data=None)
+
+            snapshot = ServerSnapshotManager().get_has_perm_snapshot(
+                snapshot_id=snapshot_id, user=request.user, is_readonly=False)
+
+            update_fields = []
+            if snapshot_name:
+                snapshot.name = snapshot_name
+                update_fields.append('name')
+
+            if description:
+                snapshot.remarks = description
+                update_fields.append('remarks')
+
+            if update_fields:
+                try:
+                    snapshot.save(update_fields=update_fields)
+                except Exception as exc:
+                    raise exceptions.Error(message=_('更新快照元数据错误') + str(exc))
+        except exceptions.Error as exc:
+            return view.exception_response(exc)
+
+        return Response(data=None)

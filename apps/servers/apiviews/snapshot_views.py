@@ -198,6 +198,20 @@ class ServerSnapshotViewSet(CustomGenericViewSet):
         return SnapshotHandler.detail_server_snapshot(view=self, request=request, kwargs=kwargs)
 
     @swagger_auto_schema(
+        operation_summary=gettext_lazy('修改云主机快照名称和描述信息'),
+        responses={
+            200: ''
+        }
+    )
+    def partial_update(self, request, *args, **kwargs):
+        """
+        修改云主机快照名称和描述信息
+
+            200 ok: no content
+        """
+        return SnapshotHandler.update_server_snapshot(view=self, request=request, kwargs=kwargs)
+
+    @swagger_auto_schema(
         operation_summary=gettext_lazy('删除一个用户个人或vo组的云主机快照，或者以管理员身份删除云主机快照'),
         manual_parameters=CustomGenericViewSet.PARAMETERS_AS_ADMIN
     )
@@ -246,5 +260,7 @@ class ServerSnapshotViewSet(CustomGenericViewSet):
             return serializers.SnapshotCreateSerializer
         elif self.action == 'renew_snapshot':
             return serializers.SnapshotRenewSerializer
+        elif self.action == 'partial_update':
+            return serializers.SnapshotUpdateSerializer
 
         return Serializer
