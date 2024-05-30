@@ -3,22 +3,12 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 
-class NetBoxUserRoleSerializer(serializers.Serializer):
+class NetManageUserRoleSerializer(serializers.Serializer):
     id = serializers.CharField(label='ID', read_only=True)
-    is_ipam_admin = serializers.BooleanField(
-        label=_('IP管理员'), default=False, help_text=_('选中，用户拥有网络IP管理功能的管理员权限'))
-    is_ipam_readonly = serializers.BooleanField(
-        label=_('IP管理全局只读权限'), default=False, help_text=_('选中，用户拥有网络IP管理功能的全局只读权限'))
-    is_link_admin = serializers.BooleanField(
-        label=_('链路管理员'), default=False, help_text=_('选中，用户拥有链路管理功能的管理员权限'))
-    is_link_readonly = serializers.BooleanField(
-        label=_('链路管理全局只读权限'), default=False, help_text=_('选中，用户拥有链路管理功能的全局只读权限'))
+    role = serializers.CharField()
     creation_time = serializers.DateTimeField(label=_('创建时间'))
     update_time = serializers.DateTimeField(label=_('更新时间'))
     user = serializers.SerializerMethodField(label=_('用户'), method_name='get_user')
-
-    class Meta:
-        ref_name = 'netbox_NetBoxUserRoleSerializer'
 
     @staticmethod
     def get_user(obj):
@@ -36,9 +26,6 @@ class OrgVirtualObjectSimpleSerializer(serializers.Serializer):
     remark = serializers.CharField(label=_('备注信息'), max_length=255)
     organization = serializers.SerializerMethodField(label=_('机构'), method_name='get_organization')
 
-    class Meta:
-        ref_name = 'netbox_OrgVirtualObjectSimpleSerializer'
-
     @staticmethod
     def get_organization(obj):
         org = obj.organization
@@ -53,15 +40,9 @@ class OrgVirtObjCreateSerializer(serializers.Serializer):
     organization_id = serializers.CharField(label=_('机构ID'), required=True)
     remark = serializers.CharField(label=_('备注信息'), max_length=255, allow_blank=True, default='')
 
-    class Meta:
-        ref_name = 'netbox_OrgVirtObjCreateSerializer'
-
 
 class OrgVOContactsPostSerializer(serializers.Serializer):
     contact_ids = serializers.ListField(label=_('联系人ID'), max_length=128, required=True)
-
-    class Meta:
-        ref_name = 'netbox_OrgVOContactsPostSerializer'
 
 
 class ContactPersonSerializer(serializers.Serializer):
@@ -74,6 +55,3 @@ class ContactPersonSerializer(serializers.Serializer):
 
     creation_time = serializers.DateTimeField(label=_('创建时间'), read_only=True)
     update_time = serializers.DateTimeField(label=_('更新时间'), read_only=True)
-
-    class Meta:
-        ref_name = 'netbox_ContactPersonSerializer'
