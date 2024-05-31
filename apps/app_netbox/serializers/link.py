@@ -9,6 +9,9 @@ class ElementBaseSerializer(serializers.Serializer):
     link_id = serializers.ListField(
         label=_('链路ID数组'), read_only=True, child=serializers.CharField(label=_('链路ID'), max_length=36))
 
+    class Meta:
+        ref_name = 'netbox_ElementBaseSerializer'
+
 
 class ConnectorBoxSerializer(ElementBaseSerializer):
     id = serializers.CharField(max_length=36, label='ID', read_only=True)
@@ -20,6 +23,9 @@ class ConnectorBoxSerializer(ElementBaseSerializer):
     location = serializers.CharField(
         label=_('经纬度'), max_length=64, allow_blank=True, allow_null=True, required=False, default='')
 
+    class Meta:
+        ref_name = 'netbox_ConnectorBoxSerializer'
+
 
 class DistriFrameSerializer(serializers.Serializer):
     id = serializers.CharField(max_length=36, label='ID', read_only=True)
@@ -30,6 +36,9 @@ class DistriFrameSerializer(serializers.Serializer):
     place = serializers.CharField(label=_('位置'), max_length=128, allow_blank=True, allow_null=True, required=False, default='')
     remarks = serializers.CharField(label=_('备注'), max_length=255, allow_blank=True, allow_null=True, required=False, default='')
     link_org = serializers.SerializerMethodField(label=_('机构二级'), method_name='get_link_org')
+
+    class Meta:
+        ref_name = 'netbox_DistriFrameSerializer'
 
     @staticmethod
     def get_link_org(obj):
@@ -46,6 +55,9 @@ class DistriFramePortSerializer(ElementBaseSerializer):
     row = serializers.IntegerField(label=_('行号'), validators=(MinValueValidator(1),), required=True)
     col = serializers.IntegerField(label=_('列号'), validators=(MinValueValidator(1),), required=True)
     distribution_frame = serializers.SerializerMethodField(label=_('配线架'), method_name='get_distribution_frame')
+
+    class Meta:
+        ref_name = 'netbox_DistriFramePortSerializer'
 
     @staticmethod
     def get_distribution_frame(obj):
@@ -68,6 +80,9 @@ class FiberCableSerializer(serializers.Serializer):
         label=_('端点2'), max_length=255, allow_blank=True, allow_null=True, required=False, default='')
     remarks = serializers.CharField(
         label=_('备注'), max_length=255, allow_blank=True, allow_null=True, required=False, default='')
+
+    class Meta:
+        ref_name = 'netbox_FiberCableSerializer'
 
 
 class LeaseLineSerializer(ElementBaseSerializer):
@@ -100,11 +115,17 @@ class LeaseLineSerializer(ElementBaseSerializer):
     remarks = serializers.CharField(
         max_length=255, label=_('备注'), default='', allow_blank=True, allow_null=True, required=False)
 
+    class Meta:
+        ref_name = 'netbox_LeaseLineSerializer'
+
 
 class OpticalFiberSerializer(ElementBaseSerializer):
     id = serializers.CharField(label='ID', max_length=36, read_only=True)
     sequence = serializers.IntegerField(label=_('纤序'), read_only=True)
     fiber_cable = serializers.SerializerMethodField(label=_('光缆'), method_name='get_fibercable')
+
+    class Meta:
+        ref_name = 'netbox_OpticalFiberSerializer'
 
     @staticmethod
     def get_fibercable(obj):
@@ -122,6 +143,9 @@ class ElementDetailDataSerializer(serializers.Serializer):
     port = DistriFramePortSerializer()
     fiber = OpticalFiberSerializer()
     box = ConnectorBoxSerializer()
+
+    class Meta:
+        ref_name = 'netbox_ElementDetailDataSerializer'
 
 
 class LinkSerializer(serializers.Serializer):
@@ -141,6 +165,9 @@ class LinkSerializer(serializers.Serializer):
     remarks = serializers.CharField(label=_('备注'), max_length=255, allow_blank=True, allow_null=True, required=False, default='')
     enable_date = serializers.DateField(label=_('开通日期'), default=None, allow_null=True, required=False)
 
+    class Meta:
+        ref_name = 'netbox_LinkSerializer'
+
 
 class LinkElementSerializer(serializers.Serializer):
     """链路网元关系列化器"""
@@ -148,10 +175,16 @@ class LinkElementSerializer(serializers.Serializer):
     sub_index = serializers.IntegerField(label=_('同位编号'), validators=(MinValueValidator(1),))
     element_data = ElementDetailDataSerializer()
 
+    class Meta:
+        ref_name = 'netbox_LinkElementSerializer'
+
 
 class LinkDetailSerializer(LinkSerializer):
     """链路详情（链路基本信息，网元信息）序列化器"""
     link_element = LinkElementSerializer(many=True)
+
+    class Meta:
+        ref_name = 'netbox_LinkDetailSerializer'
 
 
 class CreatLinkElementSerializer(serializers.Serializer):
@@ -161,7 +194,13 @@ class CreatLinkElementSerializer(serializers.Serializer):
         label=_('同位编号'), validators=(MinValueValidator(1),), default=1, allow_null=True, required=False)
     element_id = serializers.CharField(max_length=36, label=_('网元id'), required=True)
 
+    class Meta:
+        ref_name = 'netbox_CreatLinkElementSerializer'
+
 
 class CreatLinkSerializer(LinkSerializer):
     """创建链路序列化器"""
     link_element = CreatLinkElementSerializer(many=True, required=True)
+
+    class Meta:
+        ref_name = 'netbox_CreatLinkSerializer'
