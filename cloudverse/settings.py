@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     'apps.app_net_flow',
     'apps.app_alert',
     'apps.app_net_manage',
+    'apps.app_net_link',
 
     # app放上面
     'docs',

@@ -79,6 +79,7 @@ else:
         path('api/monitor/', include('apps.monitor.api_urls', namespace='monitor-api')),
         path('api/app_netbox/', include('apps.app_netbox.api_urls', namespace='netbox-api')),
         path('api/app_net_manage/', include('apps.app_net_manage.api_urls', namespace='net_manage-api')),
+        path('api/app_net_link/', include('apps.app_net_link.api_urls', namespace='net_link-api')),
         path('api/scan/', include('apps.app_scan.api_urls', namespace='scan-api')),
         path('api/apply/', include('apps.app_apply.api_urls', namespace='apply-api')),
         path('api/app_screenvis/', include('apps.app_screenvis.api_urls', namespace='screenvis-api')),
