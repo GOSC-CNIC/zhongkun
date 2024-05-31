@@ -3,10 +3,11 @@ from urllib import parse
 from django.urls import reverse
 
 from utils.test import get_or_create_user, MyAPITransactionTestCase, get_or_create_organization
-from apps.app_netbox.managers.common import OrgVirtualObjectManager, NetBoxUserRoleWrapper
-from apps.app_netbox.managers.link_mgrs import DistriFrameManager, LinkManager
-from apps.app_netbox.models import DistriFramePort, Link
-from apps.app_netbox.utils.iprestrict import LinkIPRestrictor
+from apps.app_net_manage.managers.common import OrgVirtualObjectManager
+from apps.app_net_link.managers import NetLinkUserRoleWrapper as NetBoxUserRoleWrapper
+from apps.app_net_link.managers.link import DistriFrameManager, LinkManager
+from apps.app_net_link.models import DistriFramePort, Link
+from apps.app_net_link.permissions import LinkIPRestrictor
 
 
 class DistriFramePortTests(MyAPITransactionTestCase):

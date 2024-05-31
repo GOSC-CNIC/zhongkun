@@ -4,9 +4,9 @@ from django.urls import reverse
 from django.utils import timezone as dj_timezone
 
 from utils.test import get_or_create_user, MyAPITransactionTestCase, get_or_create_organization
-from ..managers.common import NetBoxUserRoleWrapper
-from ..managers.ipv4_mgrs import IPv4RangeManager, IPv4RangeRecordManager
-from ..models import ASN, OrgVirtualObject, IPv4Range, IPv4RangeRecord, IPRangeItem
+from apps.app_net_ipam.managers.common import NetIPamUserRoleWrapper as NetBoxUserRoleWrapper
+from apps.app_net_ipam.managers.ipv4_mgrs import IPv4RangeManager, IPv4RangeRecordManager
+from apps.app_net_ipam.models import ASN, OrgVirtualObject, IPv4Range, IPv4RangeRecord, IPRangeItem
 
 
 class IPv4RangeRecordTests(MyAPITransactionTestCase):

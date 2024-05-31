@@ -5,9 +5,9 @@ from django.urls import reverse
 from django.utils import timezone as dj_timezone
 
 from utils.test import get_or_create_user, MyAPITransactionTestCase, get_or_create_organization
-from ..managers.common import NetBoxUserRoleWrapper
-from ..managers.ipv6_mgrs import IPv6RangeManager
-from ..models import ASN, OrgVirtualObject, IPv6Range, IPv6RangeRecord
+from apps.app_net_ipam.managers.common import NetIPamUserRoleWrapper as NetBoxUserRoleWrapper
+from apps.app_net_ipam.managers.ipv6_mgrs import IPv6RangeManager
+from apps.app_net_ipam.models import ASN, OrgVirtualObject, IPv6Range, IPv6RangeRecord
 
 
 class IPv6RangeTests(MyAPITransactionTestCase):

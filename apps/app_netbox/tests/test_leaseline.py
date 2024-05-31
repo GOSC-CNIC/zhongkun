@@ -5,10 +5,10 @@ from datetime import date
 from django.urls import reverse
 
 from utils.test import get_or_create_user, MyAPITransactionTestCase
-from apps.app_netbox.managers.link_mgrs import LeaseLineManager, LinkManager
-from apps.app_netbox.managers.common import NetBoxUserRoleWrapper
-from apps.app_netbox.models import LeaseLine, Element, Link
-from apps.app_netbox.utils.iprestrict import LinkIPRestrictor
+from apps.app_net_link.managers.link import LeaseLineManager, LinkManager
+from apps.app_net_link.models import LeaseLine, Element, Link
+from apps.app_net_link.permissions import LinkIPRestrictor
+from apps.app_net_link.managers.common import NetLinkUserRoleWrapper as NetBoxUserRoleWrapper
 
 
 class LeaseLineTests(MyAPITransactionTestCase):

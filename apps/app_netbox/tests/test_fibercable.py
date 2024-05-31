@@ -3,10 +3,10 @@ from urllib import parse
 from django.urls import reverse
 
 from utils.test import get_or_create_user, MyAPITransactionTestCase
-from apps.app_netbox.managers.link_mgrs import FiberCableManager
-from apps.app_netbox.managers.common import NetBoxUserRoleWrapper
-from apps.app_netbox.models import FiberCable, Element, OpticalFiber
-from apps.app_netbox.utils.iprestrict import LinkIPRestrictor
+from apps.app_net_link.managers import NetLinkUserRoleWrapper as NetBoxUserRoleWrapper
+from apps.app_net_link.managers.link import FiberCableManager
+from apps.app_net_link.models import FiberCable, Element, OpticalFiber
+from apps.app_net_link.permissions import LinkIPRestrictor
 
 
 class FiberCableTests(MyAPITransactionTestCase):
