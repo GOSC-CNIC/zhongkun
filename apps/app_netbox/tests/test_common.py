@@ -6,6 +6,8 @@ from django.utils import timezone as dj_timezone
 from utils.test import get_or_create_user, MyAPITransactionTestCase, get_or_create_organization
 from ..managers.common import NetBoxUserRoleWrapper, OrgVirtualObjectManager, ContactPersonManager
 from ..models import ContactPerson, OrgVirtualObject
+from apps.app_net_ipam.managers import NetIPamUserRoleWrapper
+from apps.app_net_link.managers import NetLinkUserRoleWrapper
 
 
 class NetBoxUserRoleTests(MyAPITransactionTestCase):
@@ -30,9 +32,13 @@ class NetBoxUserRoleTests(MyAPITransactionTestCase):
         self.assertKeysIn(['id', 'username'], response.data['user'])
         self.assertEqual(response.data['user']['id'], self.user1.id)
         self.assertEqual(len(response.data['organizations']), 0)
+        self.assertFalse(response.data['is_ipam_admin'])
+        self.assertFalse(response.data['is_ipam_readonly'])
+        self.assertFalse(response.data['is_link_admin'])
+        self.assertFalse(response.data['is_link_readonly'])
 
         # 不会自动创建ipam用户角色
-        u1_role_wrapper = NetBoxUserRoleWrapper(user=self.user1)
+        u1_role_wrapper = NetIPamUserRoleWrapper(user=self.user1)
         u1_role_wrapper.user_role.organizations.add(org1)
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
@@ -46,6 +52,7 @@ class NetBoxUserRoleTests(MyAPITransactionTestCase):
 
         u1_role_wrapper.user_role = u1_role_wrapper.get_or_create_user_role()
         u1_role_wrapper.user_role.organizations.add(org1)
+        u1_role_wrapper.set_ipam_admin(True)
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(
@@ -56,8 +63,23 @@ class NetBoxUserRoleTests(MyAPITransactionTestCase):
         self.assertEqual(len(response.data['organizations']), 1)
         self.assertKeysIn(['id', 'name', 'name_en'], response.data['organizations'][0])
         self.assertEqual(response.data['organizations'][0]['id'], org1.id)
+        self.assertTrue(response.data['is_ipam_admin'])
+        self.assertFalse(response.data['is_ipam_readonly'])
+        self.assertFalse(response.data['is_link_admin'])
+        self.assertFalse(response.data['is_link_readonly'])
 
-        u2_role_wrapper = NetBoxUserRoleWrapper(user=self.user2)
+        u1_link = NetLinkUserRoleWrapper(self.user1)
+        u1_link.user_role = u1_link.get_or_create_user_role()
+        u1_link.set_link_readonly(True)
+        u1_link.set_link_admin(True)
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data['is_ipam_admin'])
+        self.assertFalse(response.data['is_ipam_readonly'])
+        self.assertTrue(response.data['is_link_admin'])
+        self.assertTrue(response.data['is_link_readonly'])
+
+        u2_role_wrapper = NetIPamUserRoleWrapper(user=self.user2)
         u2_role_wrapper.user_role = u2_role_wrapper.get_or_create_user_role()
         u2_role_wrapper.user_role.organizations.add(org1)
         u2_role_wrapper.user_role.organizations.add(org2)

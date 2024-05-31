@@ -10,8 +10,10 @@ from utils.paginators import NoPaginatorInspector
 from apps.api.paginations import NewPageNumberPagination100
 from apps.api.viewsets import NormalGenericViewSet
 from apps.app_netbox.serializers import common as common_serializers
-from apps.app_netbox.managers.common import NetBoxUserRoleWrapper
 from apps.app_netbox.handlers.common_handlers import OrgVirtObjHandler, ContactsHandler
+from apps.app_net_ipam.managers import NetIPamUserRoleWrapper
+from apps.app_net_link.managers import NetLinkUserRoleWrapper
+from apps.app_net_ipam.serializers import NetIPamUserRoleSerializer
 
 
 class NetBoxUserRoleViewSet(NormalGenericViewSet):
@@ -53,11 +55,14 @@ class NetBoxUserRoleViewSet(NormalGenericViewSet):
                   ]
                 }
         """
-        urw = NetBoxUserRoleWrapper(user=request.user)
+        urw = NetIPamUserRoleWrapper(user=request.user)
         user_role = urw.user_role
-        data = common_serializers.NetBoxUserRoleSerializer(instance=user_role).data
+        data = NetIPamUserRoleSerializer(instance=user_role).data
         orgs = user_role.organizations.all().values('id', 'name', 'name_en')
         data['organizations'] = orgs
+        link_urw = NetLinkUserRoleWrapper(user=request.user)
+        data['is_link_admin'] = link_urw.user_role.is_link_admin
+        data['is_link_readonly'] = link_urw.user_role.is_link_readonly
         return Response(data=data)
 
     def get_serializer_class(self):
