@@ -1,7 +1,26 @@
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from .common import OrgVirtualObjectSimpleSerializer
+from apps.app_net_manage.serializers import OrgVirtualObjectSimpleSerializer
+
+
+class NetIPamUserRoleSerializer(serializers.Serializer):
+    id = serializers.CharField(label='ID', read_only=True)
+    is_ipam_admin = serializers.BooleanField(
+        label=_('IP管理员'), default=False, help_text=_('选中，用户拥有网络IP管理功能的管理员权限'))
+    is_ipam_readonly = serializers.BooleanField(
+        label=_('IP管理全局只读权限'), default=False, help_text=_('选中，用户拥有网络IP管理功能的全局只读权限'))
+    creation_time = serializers.DateTimeField(label=_('创建时间'))
+    update_time = serializers.DateTimeField(label=_('更新时间'))
+    user = serializers.SerializerMethodField(label=_('用户'), method_name='get_user')
+
+    @staticmethod
+    def get_user(obj):
+        user = obj.user
+        if user:
+            return {'id': user.id, 'username': user.username}
+
+        return None
 
 
 class IPv4RangeSerializer(serializers.Serializer):
@@ -18,9 +37,6 @@ class IPv4RangeSerializer(serializers.Serializer):
     mask_len = serializers.IntegerField(label=_('子网掩码长度'))
     asn = serializers.SerializerMethodField(label=_('AS编号'), method_name='get_asn')
     org_virt_obj = OrgVirtualObjectSimpleSerializer(label=_('机构虚拟对象'))
-
-    class Meta:
-        ref_name = 'netbox_IPv4RangeSerializer'
 
     @staticmethod
     def get_asn(obj):
@@ -39,9 +55,6 @@ class IPv4RangeCreateSerializer(serializers.Serializer):
     asn = serializers.IntegerField(label=_('AS编号'), required=True, min_value=0, max_value=4294967295)
     admin_remark = serializers.CharField(label=_('科技网管理员备注信息'), max_length=255, allow_blank=True, default='')
 
-    class Meta:
-        ref_name = 'netbox_IPv4RangeCreateSerializer'
-
 
 class IPv4RangeSplitSerializer(serializers.Serializer):
     new_prefix = serializers.IntegerField(label=_('子网掩码长度'), required=True, min_value=1, max_value=31)
@@ -49,24 +62,15 @@ class IPv4RangeSplitSerializer(serializers.Serializer):
         label=_('假拆分'), allow_null=True, default=False,
         help_text=_('true(假装拆分，询问拆分规划)；其他值或不提交此参数（正常真实拆分地址段）'))
 
-    class Meta:
-        ref_name = 'netbox_IPv4RangeSplitSerializer'
-
 
 class SubIPv4Range(serializers.Serializer):
     start_address = serializers.IntegerField(label=_('起始地址'), min_value=0, required=True)
     end_address = serializers.IntegerField(label=_('截止地址'), min_value=0, required=True)
     prefix = serializers.IntegerField(label=_('前缀（子网掩码）长度'), required=True, min_value=0, max_value=32)
 
-    class Meta:
-        ref_name = 'netbox_SubIPv4Range'
-
 
 class IPv4RangePlanSplitSerializer(serializers.Serializer):
     sub_ranges = serializers.ListField(child=SubIPv4Range(), label=_('拆分计划子网段'), required=True)
-
-    class Meta:
-        ref_name = 'netbox_IPv4RangePlanSplitSerializer'
 
 
 class IPv4RangeMergeSerializer(serializers.Serializer):
@@ -77,9 +81,6 @@ class IPv4RangeMergeSerializer(serializers.Serializer):
     fake = serializers.BooleanField(
         label=_('假合并'), allow_null=True, default=False,
         help_text=_('true(假装合并，询问合并结果)；其他值或不提交此参数（正常真实合并地址段）'))
-
-    class Meta:
-        ref_name = 'netbox_IPv4RangeMergeSerializer'
 
 
 class IPv4RangeRecordSerializer(serializers.Serializer):
@@ -93,9 +94,6 @@ class IPv4RangeRecordSerializer(serializers.Serializer):
     remark = serializers.CharField(label=_('备注信息'), max_length=255)
     user = serializers.SerializerMethodField(label=_('操作用户'), method_name='get_user')
     org_virt_obj = OrgVirtualObjectSimpleSerializer(label=_('机构二级对象'))
-
-    class Meta:
-        ref_name = 'netbox_IPv4RangeRecordSerializer'
 
     @staticmethod
     def get_user(obj):
@@ -112,15 +110,9 @@ class IPv4AddressSerializer(serializers.Serializer):
     # creation_time = serializers.DateTimeField(label=_('创建时间'))
     # update_time = serializers.DateTimeField(label=_('更新时间'))
 
-    class Meta:
-        ref_name = 'netbox_IPv4AddressSerializer'
-
 
 class IPv4AddressAdminSerializer(IPv4AddressSerializer):
     admin_remark = serializers.CharField(label=_('科技网管理员备注信息'), max_length=255)
-
-    class Meta:
-        ref_name = 'netbox_IPv4AddressAdminSerializer'
 
 
 class IPv6RangeSerializer(serializers.Serializer):
@@ -137,9 +129,6 @@ class IPv6RangeSerializer(serializers.Serializer):
     prefixlen = serializers.IntegerField(label=_('前缀长度'))
     asn = serializers.SerializerMethodField(label=_('AS编号'), method_name='get_asn')
     org_virt_obj = OrgVirtualObjectSimpleSerializer(label=_('机构虚拟对象'))
-
-    class Meta:
-        ref_name = 'netbox_IPv6RangeSerializer'
 
     @staticmethod
     def get_asn(obj):
@@ -173,6 +162,3 @@ class IPv6RangeCreateSerializer(serializers.Serializer):
     prefixlen = serializers.IntegerField(label=_('子网前缀'), required=True, min_value=0, max_value=128)
     asn = serializers.IntegerField(label=_('AS编号'), required=True, min_value=0, max_value=4294967295)
     admin_remark = serializers.CharField(label=_('科技网管理员备注信息'), max_length=255, allow_blank=True, default='')
-
-    class Meta:
-        ref_name = 'netbox_IPv6RangeCreateSerializer'
