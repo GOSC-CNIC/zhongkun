@@ -66,7 +66,7 @@ INSTALLED_APPS = [
     'apps.app_apply',
     'apps.app_screenvis',
     'apps.app_global',
-    'apps.app_netflow',
+    'apps.app_net_flow',
     'apps.app_alert',
     # app放上面
     'docs',
@@ -94,7 +94,7 @@ ADMIN_SORTED_APP_LIST = [
     'vpn',
     'app_screenvis',
     'app_alert',
-    'app_netflow',
+    'app_netflow',  # app_net_flow
     'auth',
 ]
 
@@ -430,7 +430,7 @@ CRONTABJOBS = [
     ('task12_screen_host_netflow', '*/3 * * * *',
      'python3 /home/uwsgi/yunkun/scripts/run_screen_host_netflow.py >> /var/log/yunkun/task_screen_host_netflow.log'),
     ('task13_netflow_update_element', '0 */1 * * *',
-     'python3 /home/uwsgi/yunkun/apps/app_netflow/scripts/netflow_update_element.py >> /var/log/yunkun/netflow_update_element.log'),
+     'python3 /home/uwsgi/yunkun/apps/app_net_flow/scripts/netflow_update_element.py >> /var/log/yunkun/netflow_update_element.log'),
 ]
 
 # 是否只使用大屏展示功能

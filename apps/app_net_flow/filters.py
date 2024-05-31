@@ -1,11 +1,11 @@
 import django_filters
 
-from apps.app_netflow.models import ChartModel
-from apps.app_netflow.models import Menu2Chart
-from apps.app_netflow.models import Menu2Member
-from apps.app_netflow.models import MenuModel
-from apps.app_netflow.models import GlobalAdminModel
-from apps.app_netflow.permission import PermissionManager
+from apps.app_net_flow.models import ChartModel
+from apps.app_net_flow.models import Menu2Chart
+from apps.app_net_flow.models import Menu2Member
+from apps.app_net_flow.models import MenuModel
+from apps.app_net_flow.models import GlobalAdminModel
+from apps.app_net_flow.permission import PermissionManager
 
 
 class ChartFilter(django_filters.FilterSet):

@@ -14,9 +14,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'cloudverse.settings')
 setup()
 
-from apps.app_netflow.models import ChartModel
+from apps.app_net_flow.models import ChartModel
 from scripts.task_lock import netflow_update_element_lock
-from apps.app_netflow.handlers.easyops import EasyOPS
+from apps.app_net_flow.handlers.easyops import EasyOPS
 from django.utils import timezone as dj_timezone
 from datetime import timedelta
 from apps.app_alert.utils.utils import DateUtils

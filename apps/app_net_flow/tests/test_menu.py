@@ -5,9 +5,9 @@ from utils.test import get_or_create_user
 from utils.test import get_or_create_user
 from utils.test import MyAPITestCase
 from utils.test import MyAPITransactionTestCase
-from apps.app_netflow.models import MenuModel
-from apps.app_netflow.models import ChartModel
-from apps.app_netflow.serializers import MenuModelSerializer
+from apps.app_net_flow.models import MenuModel
+from apps.app_net_flow.models import ChartModel
+from apps.app_net_flow.serializers import MenuModelSerializer
 
 
 class NetflowMenuTests(MyAPITransactionTestCase):

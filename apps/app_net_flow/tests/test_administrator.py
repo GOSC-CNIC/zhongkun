@@ -3,12 +3,12 @@ from django.conf import settings
 from utils.test import get_or_create_user
 from utils.test import MyAPITestCase
 from utils.test import MyAPITransactionTestCase
-from apps.app_netflow.models import MenuModel
-from apps.app_netflow.models import GlobalAdminModel
-from apps.app_netflow.models import ChartModel
-from apps.app_netflow.models import Menu2Chart
-from apps.app_netflow.models import Menu2Member
-from apps.app_netflow.permission import NetFlowAPIIPRestrictor
+from apps.app_net_flow.models import MenuModel
+from apps.app_net_flow.models import GlobalAdminModel
+from apps.app_net_flow.models import ChartModel
+from apps.app_net_flow.models import Menu2Chart
+from apps.app_net_flow.models import Menu2Member
+from apps.app_net_flow.permission import NetFlowAPIIPRestrictor
 
 
 class GlobalAdministratorTests(MyAPITransactionTestCase):

@@ -1,7 +1,7 @@
 from django.urls import re_path, path
-from apps.app_netflow import views
+from apps.app_net_flow import views
 
-app_name = "app_netflow"
+app_name = "app_net_flow"
 urlpatterns = [
     re_path('^role/$', views.GlobalUserRoleAPIView.as_view(), name='user-role'),  # 当前用户的角色
     re_path('^menu/$', views.MenuListGenericAPIView.as_view(), name='menu-list'),

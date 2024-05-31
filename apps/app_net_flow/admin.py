@@ -1,10 +1,10 @@
 from django.contrib import admin
 from django.utils.translation import gettext_lazy
-from apps.app_netflow.models import MenuModel
-from apps.app_netflow.models import ChartModel
-from apps.app_netflow.models import Menu2Chart
-from apps.app_netflow.models import GlobalAdminModel
-from apps.app_netflow.models import Menu2Member
+from apps.app_net_flow.models import MenuModel
+from apps.app_net_flow.models import ChartModel
+from apps.app_net_flow.models import Menu2Chart
+from apps.app_net_flow.models import GlobalAdminModel
+from apps.app_net_flow.models import Menu2Member
 from utils.model import BaseModelAdmin
 
 
