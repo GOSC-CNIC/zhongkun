@@ -10,6 +10,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('service', '0012_delete_applyorganization'),
+        ('netbox', '0001_initial'),
     ]
 
     operations = [

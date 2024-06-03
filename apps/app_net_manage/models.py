@@ -1,3 +1,5 @@
+import ipaddress
+
 from django.db import models
 from django.utils.translation import gettext, gettext_lazy as _
 from django.core.exceptions import ValidationError
@@ -5,6 +7,7 @@ from django.utils import timezone as dj_timezone
 
 from core import errors
 from utils.model import UuidModel
+from utils.iprestrict import convert_iprange
 from apps.users.models import UserProfile
 from apps.service.models import DataCenter
 
@@ -98,3 +101,36 @@ class NetManageUserRole(UuidModel):
 
     def __str__(self):
         return self.user.username
+
+
+class NetIPAccessWhiteList(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    ip_value = models.CharField(
+        verbose_name=_('IP'), max_length=100, help_text='192.168.1.1、 192.168.1.1/24、192.168.1.66 - 192.168.1.100')
+    remark = models.CharField(verbose_name=_('备注'), max_length=255, blank=True, default='')
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
+    update_time = models.DateTimeField(verbose_name=_('更新时间'), auto_now=True)
+
+    class Meta:
+        db_table = 'net_ipaccesswhitelist'
+        ordering = ['-creation_time']
+        verbose_name = _('网络管理IP访问白名单')
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return f'{self.id}({self.ip_value})'
+
+    def clean(self):
+        try:
+            subnet = convert_iprange(self.ip_value)
+        except Exception as exc:
+            raise ValidationError({'ip_value': str(exc)})
+
+        if isinstance(subnet, ipaddress.IPv4Network):
+            self.ip_value = str(subnet)
+
+        obj = NetIPAccessWhiteList.objects.exclude(id=self.id).filter(ip_value=self.ip_value).first()
+        if obj:
+            raise ValidationError({
+                'ip_value': _('已存在相同的IP白名单({value})').format(value=self.ip_value)
+            })

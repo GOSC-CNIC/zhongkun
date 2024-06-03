@@ -1,7 +1,7 @@
 from django.test import TestCase
 
 from core.errors import AccessDenied
-from apps.app_global.models import IPAccessWhiteList
+from apps.app_net_manage.models import NetIPAccessWhiteList as IPAccessWhiteList
 from apps.app_net_link.permissions import LinkIPRestrictor
 
 
