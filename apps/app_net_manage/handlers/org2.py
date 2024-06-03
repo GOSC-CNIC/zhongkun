@@ -96,9 +96,9 @@ class OrgVirtObjHandler(PermissionMixin):
         org_id = request.query_params.get('org_id')
         search = request.query_params.get('search')
 
-        if not OrgVirtObjHandler.has_read_permission(request.user):
-            return view.exception_response(
-                errors.AccessDenied(message=_('你没有管理员权限')))
+        # if not OrgVirtObjHandler.has_read_permission(request.user):
+        #     return view.exception_response(
+        #         errors.AccessDenied(message=_('你没有管理员权限')))
 
         try:
             qs = OrgVirtualObjectManager.filter_queryset(org_id=org_id, search=search)

@@ -120,7 +120,7 @@ class OrgObjViewSet(NormalGenericViewSet):
     )
     def list(self, request, *args, **kwargs):
         """
-        列举机构二级对象，需要有管理员权限
+        列举机构二级对象，需要身份认证
 
             http Code 200 Ok:
                 {
