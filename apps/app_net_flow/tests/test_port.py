@@ -1,175 +1,114 @@
 from django.urls import reverse
 from django.conf import settings
 from django.core.exceptions import ValidationError
-
-from utils.test import get_or_create_user
 from utils.test import get_or_create_user
 from utils.test import MyAPITestCase
 from utils.test import MyAPITransactionTestCase
-from apps.app_net_flow.models import MenuModel
-from apps.app_net_flow.models import ChartModel
-from apps.app_net_flow.serializers import MenuModelSerializer
+from .test_administrator import GlobalAdministratorTests
+from apps.app_net_flow.models import Menu2Chart
 
 
-class NetflowMenuTests(MyAPITransactionTestCase):
+class NetflowPortListTests(GlobalAdministratorTests):
+    """
+    查询端口列表
+    """
+
     def setUp(self):
-        # 用户
-        self.user1 = get_or_create_user(username='user1@cnic.com')
-        self.user2 = get_or_create_user(username='user2@cnic.cn')
-        self.user3 = get_or_create_user(username='user3@cnic.cn')
-        self.user4 = get_or_create_user(username='user4@cnic.cn')
-        # 图表元素
-        ChartModel.objects.create(
-            title='global_title1',
-            instance_name='test1',
-            if_alias='alias1',
-            if_address='192.168.0.1',
-            device_ip='192.168.0.1',
-            port_name='Ethernet1/0/1',
-        )
-        ChartModel.objects.create(
-            title='global_title2',
-            instance_name='test2',
-            if_alias='alias2',
-            if_address='192.168.0.1',
-            device_ip='192.168.0.1',
-            port_name='Ethernet1/0/2',
-        )
-        ChartModel.objects.create(
-            title='global_title3',
-            instance_name='test3',
-            if_alias='alias3',
-            if_address='192.168.0.1',
-            device_ip='192.168.0.1',
-            port_name='Ethernet1/0/3',
-        )
-        ChartModel.objects.create(
-            title='global_title4',
-            instance_name='test4',
-            if_alias='alias4',
-            if_address='192.168.0.1',
-            device_ip='192.168.0.1',
-            port_name='Ethernet1/0/4',
-        )
-        ChartModel.objects.create(
-            title='global_title5',
-            instance_name='test5',
-            if_alias='alias5',
-            if_address='192.168.0.1',
-            device_ip='192.168.0.1',
-            port_name='Ethernet1/0/5',
-        )
-        ChartModel.objects.create(
-            title='global_title6',
-            instance_name='test6',
-            if_alias='alias6',
-            if_address='192.168.1.1',
-            device_ip='192.168.1.1',
-            port_name='Ethernet1/0/5',
-        )
-        ChartModel.objects.create(
-            title='global_title7',
-            instance_name='test7',
-            if_alias='alias7',
-            if_address='192.168.1.2',
-            device_ip='192.168.1.2',
-            port_name='Ethernet1/0/6',
-        )
-        # 组结构
-        # 根节点
-        root = MenuModel.objects.create(
-            name='全部'
-        )
-        top_level_menu = MenuModel.objects.create(
-            name='顶级分组1',
-            father=root
-        )
-        self.first_level_menu = MenuModel.objects.create(
-            name='一级分组1',
-            father=top_level_menu
-        )
-        self.second_level_menu = MenuModel.objects.create(
-            name='二级分组2',
-            father=self.first_level_menu
-        )
-        MenuModel.objects.create(
-            name='顶级分组2',
-            father=root
-        )
-        MenuModel.objects.create(
-            name='顶级分组3',
-            father=root
-        )
+        super().setUp()
 
-    def test_menu_model(self):
-        with self.assertRaises(ValidationError) as ve:
-            MenuModel.objects.create(
-                name='三级分组1',
-                father=self.second_level_menu
-            )
-        exception = ve.exception
-
-    def test_menu_serializer(self):
-        self.assertFalse(MenuModelSerializer(data={}).is_valid())
-
-        self.assertFalse(MenuModelSerializer(data={
-            "name": 'name1',
-            "sort_weight": '',
-        }).is_valid())
-        self.assertTrue(MenuModelSerializer(data={
-            "name": 'name1',
-            "sort_weight": -99,
-        }).is_valid())
-        self.assertFalse(MenuModelSerializer(data={
-            "name": 'name1',
-            "sort_weight": -0.1,
-        }).is_valid())
-        self.assertFalse(MenuModelSerializer(data={
-            "name": 'name1',
-            "sort_weight": True,
-        }).is_valid())
-        self.assertFalse(MenuModelSerializer(data={
-            "name": 100,
-            "sort_weight": True,
-        }).is_valid())
-        self.assertFalse(MenuModelSerializer(data={
-            "name": -1,
-            "sort_weight": True,
-        }).is_valid())
-        self.assertFalse(MenuModelSerializer(data={
-            "name": False,
-            "sort_weight": True,
-        }).is_valid())
-        self.assertFalse(MenuModelSerializer(data={
-            "remark": True,
-        }).is_valid())
-        self.assertFalse(MenuModelSerializer(data={
-            "remark": -1,
-        }).is_valid())
-        self.assertFalse(MenuModelSerializer(data={
-            "remark": "备注1",
-        }).is_valid())
-        self.assertFalse(MenuModelSerializer(data={
-            "father": False,
-        }).is_valid())
-        self.assertFalse(MenuModelSerializer(data={
-            "father": -1,
-        }).is_valid())
-        self.assertFalse(MenuModelSerializer(data={
-            "father": "",
-        }).is_valid())
-        self.assertFalse(MenuModelSerializer(data={
-            "father": None,
-        }).is_valid())
-
-    def test_menu_list_api(self):
-        base_url = reverse('netflow-api:menu-list')
+    def test_anonymous_user(self):
+        """
+        查询端口列表
+        需要登陆
+        """
+        base_url = reverse('netflow-api:port-list')
         response = self.client.get(base_url)
-        # self.assertEqual(response.status_code, 401)
-        # self.client.force_login(self.user1)
-        # response = self.client.get(base_url)
-        # self.assertEqual(response.status_code, 200)
-        # self.assertKeysIn(['count', "results"], response.data)
-        # self.client.logout()
+        self.assertEqual(response.status_code, 401)
+        self.assertKeysIn(['code', "message"], response.data)
+        self.assertEqual(response.data["code"], "NotAuthenticated")
+        self.assertEqual(response.data["message"], "身份认证信息未提供。")
 
-    # def test_
+    def test_user(self):
+        """
+        查询端口列表
+        普通用户不可查看
+        """
+        base_url = reverse('netflow-api:port-list')
+        self.client.force_login(self.user1)
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 403)
+        self.assertKeysIn(['code', "message"], response.data)
+        self.assertEqual(response.data["code"], "permission_denied")
+
+    def test_group_admin_user(self):
+        """
+        查询端口列表
+        组管理员 不可查看
+        """
+        base_url = reverse('netflow-api:port-list')
+        self.client.force_login(self.group_admin1)
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 403)
+        self.assertKeysIn(['code', "message"], response.data)
+        self.assertEqual(response.data["code"], "permission_denied")
+
+    def test_obs_user(self):
+        """
+        查询端口列表
+        运维管理员 无权限
+        """
+        base_url = reverse('netflow-api:port-list')
+        self.client.force_login(self.obs_user)
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 403)
+        self.assertKeysIn(['code', "message"], response.data)
+        self.assertEqual(response.data["code"], "permission_denied")
+
+    def test_super_user(self):
+        """
+        查询端口列表
+        超级管理员可查看
+        """
+        base_url = reverse('netflow-api:port-list')
+        self.client.force_login(self.super_user)
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', "next", 'previous', 'results'], response.data)
+        self.assertTrue(response.data['results'])
+
+    def test_group_filter(self):
+        """
+        查询端口列表
+        如果是查询指定分组，会过滤掉已经在当前组的元素
+        """
+        base_url = reverse('netflow-api:port-list')
+        url = f'{base_url}?group={self.second_level_menu1.id}'
+        self.client.force_login(self.super_user)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', "next", 'previous', 'results'], response.data)
+        self.assertTrue(response.data['results'])
+        count1 = response.data['count']
+        results1 = response.data['results']
+        chart_id_list = [_["id"] for _ in results1]
+        self.assertTrue(self.chart4.id in chart_id_list)
+        self.assertFalse(self.chart1.id in chart_id_list)
+        # 二级分组2 添加图表4
+
+        Menu2Chart.objects.create(
+            title='自定义标题4',
+            menu=self.second_level_menu1,
+            chart=self.chart4,
+            remark='组内备注文本',
+            sort_weight=-998,
+        )
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', "next", 'previous', 'results'], response.data)
+        self.assertTrue(response.data['results'])
+
+        count2 = response.data['count']
+        results2 = response.data['results']
+        chart_id_list = [_["id"] for _ in results2]
+        self.assertFalse(self.chart4.id in chart_id_list)
+        self.assertTrue(count1 - count2 == 1)

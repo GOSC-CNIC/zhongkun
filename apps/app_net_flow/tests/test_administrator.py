@@ -183,7 +183,7 @@ class GlobalAdministratorListTests(GlobalAdministratorTests):
     查询管理员列表
     """
 
-    def test_not_login(self):
+    def test_anonymous_user(self):
         """
         全局管理员列表
         需要登陆
@@ -257,7 +257,7 @@ class GlobalAdministratorListTests(GlobalAdministratorTests):
 
 
 class GlobalAdministratorCreateTests(GlobalAdministratorTests):
-    def test_not_login(self):
+    def test_anonymous_user(self):
         """
         新增全局管理员
         需要登陆
@@ -391,7 +391,7 @@ class GlobalAdministratorRetrieveTests(GlobalAdministratorTests):
         self.global_admin_id = response.data['id']
         self.client.logout()
 
-    def test_not_login(self):
+    def test_anonymous_user(self):
         """
         查看指定 全局管理员
         需要登陆
@@ -486,7 +486,7 @@ class GlobalAdministratorUpdateTests(GlobalAdministratorTests):
         self.global_admin_id = response.data['id']
         self.client.logout()
 
-    def test_not_login(self):
+    def test_anonymous_user(self):
         """
         修改 全局管理员
         需要登陆
@@ -590,7 +590,7 @@ class GlobalAdministratorDestroyTests(GlobalAdministratorTests):
         self.global_admin_id = response.data['id']
         self.client.logout()
 
-    def test_not_login(self):
+    def test_anonymous_user(self):
         """
         删除指定 全局管理员
         需要登陆
