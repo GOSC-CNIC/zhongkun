@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from utils.model import BaseModelAdmin
-from apps.app_net_manage.models import OrgVirtualObject, ContactPerson, NetManageUserRole
+from apps.app_net_manage.models import OrgVirtualObject, ContactPerson, NetManageUserRole, NetIPAccessWhiteList
 
 
 @admin.register(OrgVirtualObject)
@@ -29,3 +29,10 @@ class NetManageUserRoleAdmin(BaseModelAdmin):
     list_select_related = ('user',)
     raw_id_fields = ('user',)
     search_fields = ('user_username',)
+
+
+@admin.register(NetIPAccessWhiteList)
+class NetIPAccessWhiteListAdmin(BaseModelAdmin):
+    list_display = ['id', 'ip_value', 'creation_time', 'update_time', 'remark']
+    list_display_links = ['id', 'ip_value']
+    search_fields = ('ip_value', 'remark')

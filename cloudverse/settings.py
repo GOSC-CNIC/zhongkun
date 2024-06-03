@@ -93,12 +93,15 @@ ADMIN_SORTED_APP_LIST = [
     'users',
     'vo',
     'monitor',
-    'netbox',   # app_netbox
     'scan',     # app_scan
     'vpn',
     'app_screenvis',
     'app_alert',
+    'app_net_manage',
     'app_netflow',  # app_net_flow
+    'app_net_ipam',
+    'app_net_link',
+    'netbox',   # app_netbox
     'auth',
 ]
 
