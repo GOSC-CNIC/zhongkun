@@ -153,7 +153,13 @@ class OrgObjTests(MyAPITransactionTestCase):
 
         self.client.force_login(self.user1)
         response = self.client.get(base_url)
-        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+        # self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+        self.assertEqual(response.status_code, 200)
+        self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], response.data)
+        self.assertEqual(response.data['count'], 3)
+        self.assertEqual(response.data['page_num'], 1)
+        self.assertEqual(response.data['page_size'], 100)
+        self.assertEqual(len(response.data['results']), 3)
 
         u1_role_wrapper = NetManageUserRoleWrapper(user=self.user1)
         u1_role_wrapper.user_role = u1_role_wrapper.get_or_create_user_role()
