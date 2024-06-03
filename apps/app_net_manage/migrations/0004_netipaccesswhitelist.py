@@ -2,6 +2,35 @@
 
 from django.db import migrations, models
 
+from apps.app_global.models import IPAccessWhiteList
+from apps.app_net_manage.models import NetIPAccessWhiteList
+
+
+def do_nothing(apps, schema_editor):
+    print('do nothing')
+
+
+def run_copy_ip_whitelist(apps, schema_editor):
+    for wl in IPAccessWhiteList.objects.filter(
+            module_name__in=[
+                IPAccessWhiteList.ModuleName.NETFLOW.value,
+                IPAccessWhiteList.ModuleName.NETBOX_LINK.value
+            ]).all():
+        try:
+            wl: IPAccessWhiteList
+            if wl.remark:
+                remark = wl.remark
+            else:
+                remark = wl.get_module_name_display()
+
+            net_wl = NetIPAccessWhiteList(ip_value=wl.ip_value, remark=remark)
+            net_wl.clean()
+            net_wl.save(force_insert=True)
+        except Exception as exc:
+            pass
+
+    print('[Ok] Copy全局IP白名单表网络配置数据 to app_net_manage 白名单表')
+
 
 class Migration(migrations.Migration):
 
@@ -26,4 +55,5 @@ class Migration(migrations.Migration):
                 'ordering': ['-creation_time'],
             },
         ),
+        migrations.RunPython(run_copy_ip_whitelist, reverse_code=do_nothing),
     ]
