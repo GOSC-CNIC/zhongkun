@@ -15,6 +15,7 @@ from apps.storage.managers import ObjectsServiceManager
 from apps.storage.models import ObjectsService, Bucket, BucketArchive
 from utils.paginators import NoPaginatorInspector
 from utils.time import iso_utc_to_datetime
+from apps.service.odc_manager import OrgDataCenterManager
 
 
 class ObjectsServiceViewSet(StorageGenericViewSet):
@@ -143,6 +144,13 @@ class ObjectsServiceViewSet(StorageGenericViewSet):
                 type=openapi.TYPE_STRING,
                 required=False,
                 description=f'查询条件，服务单元服务状态, {ObjectsService.Status.choices}'
+            ),
+            openapi.Parameter(
+                name='with_admin_users',
+                type=openapi.TYPE_STRING,
+                in_=openapi.IN_QUERY,
+                required=False,
+                description=gettext_lazy('要求返回数据包含管理员信息，此参数不需要值')
             )
         ],
         responses={
@@ -188,6 +196,9 @@ class ObjectsServiceViewSet(StorageGenericViewSet):
                   },
                   "version": "v4.1.1",
                   "version_update_time": "2024-05-14T01:46:17.817050Z"  # 可能为空
+                  "admin_users":[   # only when with query with_admin_users
+                    {"id": "xxx", "username": "xxxx", "role": "admin"}  # role: admin(管理员)，ops(运维管理员)
+                  ]
                 }
               ]
             }
@@ -195,6 +206,8 @@ class ObjectsServiceViewSet(StorageGenericViewSet):
         org_id = request.query_params.get('org_id', None)
         center_id = request.query_params.get('center_id', None)
         status = request.query_params.get('status', None)
+        with_admin_users = request.query_params.get('with_admin_users', None)
+        with_admin_users = with_admin_users is not None
 
         if status is not None and status not in ObjectsService.Status.values:
             return self.exception_response(
@@ -213,7 +226,12 @@ class ObjectsServiceViewSet(StorageGenericViewSet):
         qs = qs.order_by('sort_weight')
         try:
             services = self.paginate_queryset(queryset=qs)
-            serializer = self.get_serializer(services, many=True)
+            if with_admin_users:
+                self.services_mixin_admins(services)
+                serializer = storage_serializers.ObjectsServiceWithAdminsSerializer(services, many=True)
+            else:
+                serializer = storage_serializers.ObjectsServiceSerializer(services, many=True)
+
             return self.get_paginated_response(data=serializer.data)
         except Exception as exc:
             return self.exception_response(exc)
@@ -266,6 +284,37 @@ class ObjectsServiceViewSet(StorageGenericViewSet):
             return [IsAuthenticated()]
 
         return super().get_permissions()
+
+    @staticmethod
+    def services_mixin_admins(services: list):
+        """
+        给服务单元添加管理员列表属性
+        """
+        service_ids = []
+        odc_ids = []
+        for sv in services:
+            service_ids.append(sv.id)
+            if sv.org_data_center_id not in odc_ids:
+                odc_ids.append(sv.org_data_center_id)
+
+        service_admins_map = {}
+        if service_ids:
+            service_admins_map = ObjectsServiceManager.get_service_admins_map(service_ids=service_ids)
+
+        odc_admins_map = {}
+        if odc_ids:
+            odc_admins_map = OrgDataCenterManager.get_odc_admins_map(odc_ids=odc_ids)
+
+        for sv in services:
+            user_dict = {}
+            if sv.org_data_center_id in odc_admins_map:
+                user_dict.update(odc_admins_map[sv.org_data_center_id])
+
+            # 服务单元管理员和数据中心管理员存在相同用户时，后update会覆盖数据中心运维角色管理员员
+            if sv.id in service_admins_map:
+                user_dict.update(service_admins_map[sv.id])
+
+            sv.admin_users = list(user_dict.values())
 
 
 class StorageStatisticsViewSet(StorageGenericViewSet):

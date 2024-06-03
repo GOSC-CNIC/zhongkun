@@ -87,3 +87,11 @@ class ObjectsServiceSerializer(serializers.Serializer):
 
 class AdminObjectsServiceSerializer(ObjectsServiceSerializer):
     username = serializers.CharField(max_length=128, label=_('用户名'), help_text=_('用于此服务认证的用户名'))
+
+
+class ObjectsServiceWithAdminsSerializer(ObjectsServiceSerializer):
+    admin_users = serializers.SerializerMethodField(label=_('服务单元管理员'), method_name='get_admin_users')
+
+    @staticmethod
+    def get_admin_users(obj):
+        return obj.admin_users

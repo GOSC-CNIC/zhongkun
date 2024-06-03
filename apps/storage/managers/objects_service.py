@@ -1,3 +1,4 @@
+from typing import Dict
 from datetime import timedelta
 
 from django.utils.translation import gettext as _
@@ -7,6 +8,7 @@ from django.db.models import Q
 from core import errors
 from apps.storage.models import ObjectsService
 from apps.storage.request import request_service as storage_request_service
+from apps.service.models import OrgDataCenterAdminUser
 
 
 class ObjectsServiceManager:
@@ -97,3 +99,29 @@ class ObjectsServiceManager:
             return exc
 
         return True
+
+    @staticmethod
+    def get_service_admins_map(service_ids: list) -> Dict[str, Dict[str, Dict]]:
+        """
+        服务单元管理员，不包含数据中心管理员
+
+        :return:{
+            service_id: {
+                "user_id": {"id": "xx", "username": "xxx"}
+            }
+        }
+        """
+        queryset = ObjectsService.users.through.objects.filter(
+            objectsservice_id__in=service_ids
+        ).values('objectsservice_id', 'userprofile_id', 'userprofile__username')
+        service_admins_amp = {}
+        for i in queryset:
+            sv_id = i['objectsservice_id']
+            user_info = {'id': i['userprofile_id'], 'username': i['userprofile__username'],
+                         'role': OrgDataCenterAdminUser.Role.ADMIN.value}
+            if sv_id in service_admins_amp:
+                service_admins_amp[sv_id][user_info['id']] = user_info
+            else:
+                service_admins_amp[sv_id] = {user_info['id']: user_info}
+
+        return service_admins_amp

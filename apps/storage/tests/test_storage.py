@@ -200,6 +200,34 @@ class ObjectsServiceTests(MyAPITestCase):
             'id', 'name', 'name_en', 'sort_weight', 'organization'], container=r.data['results'][0]['org_data_center'])
         self.assertIsInstance(r.data['results'][0]['ftp_domains'], list)
 
+        # query "with_admin_users"
+        self.service.users.remove(self.user)
+        self.service.org_data_center.add_admin_user(self.user, is_ops_user=True)
+
+        query = parse.urlencode(query={'with_admin_users': ''})
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertKeysIn(keys=['count', 'next', 'previous', 'results'], container=r.data)
+        self.assertEqual(r.data['count'], 2)
+        self.assertKeysIn(keys=[
+            'id', 'name', 'name_en', 'service_type', 'endpoint_url', 'add_time', 'status', 'remarks', 'provide_ftp',
+            'ftp_domains', 'longitude', 'latitude', 'pay_app_service_id', 'org_data_center', 'sort_weight', 'version',
+            'admin_users'
+        ], container=r.data['results'][0])
+        self.assertKeysIn(keys=[
+            'id', 'name', 'name_en', 'sort_weight', 'organization'], container=r.data['results'][0]['org_data_center'])
+        self.assertIsInstance(r.data['results'][0]['ftp_domains'], list)
+        self.assertIsInstance(r.data['results'][0]['admin_users'], list)
+        self.assertKeysIn(keys=['id', 'username', 'role'], container=r.data['results'][0]['admin_users'][0])
+        self.assertEqual(r.data['results'][0]['admin_users'][0]['username'], self.user.username)
+        self.assertEqual(r.data['results'][0]['admin_users'][0]['role'], 'ops')
+
+        self.service.users.add(self.user)
+        r = self.client.get(f'{url}?{query}')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data['results'][0]['admin_users'][0]['username'], self.user.username)
+        self.assertEqual(r.data['results'][0]['admin_users'][0]['role'], 'admin')
+
     def test_version(self):
         service2 = ObjectsService(
             name='service2', name_en='service2 en', org_data_center=self.service.org_data_center,
