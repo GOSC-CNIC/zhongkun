@@ -2,8 +2,14 @@
 
 from django.db import migrations, connection, transaction
 
-from apps.app_netbox.models import NetBoxUserRole
+# from apps.app_netbox.models import NetBoxUserRole
 from apps.app_net_link.managers import NetLinkUserRoleWrapper
+from apps.users.models import UserProfile
+
+
+def dictfetchall(cursor):
+    columns = [col[0] for col in cursor.description]
+    return [dict(zip(columns, row)) for row in cursor.fetchall()]
 
 
 def run_copy_link(apps, schema_editor):
@@ -85,12 +91,29 @@ def reverse_copy_link(apps, schema_editor):
 
 def run_copy_net_link_user_role(apps, schema_editor):
     with transaction.atomic():
-        for box_ur in NetBoxUserRole.objects.select_related('user').all():
-            if box_ur.is_link_admin or box_ur.is_link_readonly:
-                nlur = NetLinkUserRoleWrapper(box_ur.user)
+        # for box_ur in NetBoxUserRole.objects.select_related('user').all():
+        #     if box_ur.is_link_admin or box_ur.is_link_readonly:
+        #         nlur = NetLinkUserRoleWrapper(box_ur.user)
+        #         nlur.user_role = nlur.get_or_create_user_role()
+        #         nlur.set_link_admin(box_ur.is_link_admin)
+        #         nlur.set_link_readonly(box_ur.is_link_readonly)
+
+        cursor = connection.cursor()
+        sql = 'SELECT `t1`.`id`, `t1`.`user_id`, `t1`.`is_link_admin`, `t1`.`is_link_readonly` FROM `netbox_user_role` AS `t1`'
+        cursor.execute(sql)
+        objs = dictfetchall(cursor)
+        for box_ur in objs:
+            is_link_admin = box_ur['is_link_admin']
+            is_link_readonly = box_ur['is_link_readonly']
+            if is_link_admin or is_link_readonly:
+                user = UserProfile.objects.filter(id=box_ur['user_id']).first()
+                if not user:
+                    continue
+
+                nlur = NetLinkUserRoleWrapper(user)
                 nlur.user_role = nlur.get_or_create_user_role()
-                nlur.set_link_admin(box_ur.is_link_admin)
-                nlur.set_link_readonly(box_ur.is_link_readonly)
+                nlur.set_link_admin(is_link_admin)
+                nlur.set_link_readonly(is_link_readonly)
 
     print('[Ok] Copy user role to app_net_link')
 

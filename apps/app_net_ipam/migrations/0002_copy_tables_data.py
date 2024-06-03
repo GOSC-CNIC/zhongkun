@@ -3,7 +3,13 @@
 from django.db import migrations, connection, transaction
 
 from apps.app_net_ipam.managers import NetIPamUserRoleWrapper
-from apps.app_netbox.models import NetBoxUserRole
+from apps.users.models import UserProfile
+# from apps.app_netbox.models import NetBoxUserRole
+
+
+def dictfetchall(cursor):
+    columns = [col[0] for col in cursor.description]
+    return [dict(zip(columns, row)) for row in cursor.fetchall()]
 
 
 def run_copy_asn_ipv4v6range(apps, schema_editor):
@@ -70,12 +76,29 @@ def reverse_copy_asn_ipv4v6range(apps, schema_editor):
 
 def run_copy_net_ipam_user_role(apps, schema_editor):
     with transaction.atomic():
-        for box_ur in NetBoxUserRole.objects.select_related('user').all():
-            if box_ur.is_ipam_admin or box_ur.is_ipam_readonly:
-                nlur = NetIPamUserRoleWrapper(box_ur.user)
+        # for box_ur in NetBoxUserRole.objects.select_related('user').all():
+        #     if box_ur.is_ipam_admin or box_ur.is_ipam_readonly:
+        #         nlur = NetIPamUserRoleWrapper(box_ur.user)
+        #         nlur.user_role = nlur.get_or_create_user_role()
+        #         nlur.set_ipam_admin(box_ur.is_ipam_admin)
+        #         nlur.set_ipam_readonly(box_ur.is_ipam_readonly)
+
+        cursor = connection.cursor()
+        sql = 'SELECT `t1`.`id`, `t1`.`user_id`, `t1`.`is_ipam_admin`, `t1`.`is_ipam_readonly` FROM `netbox_user_role` AS `t1`'
+        cursor.execute(sql)
+        objs = dictfetchall(cursor)
+        for box_ur in objs:
+            is_ipam_admin = box_ur['is_ipam_admin']
+            is_ipam_readonly = box_ur['is_ipam_readonly']
+            if is_ipam_admin or is_ipam_readonly:
+                user = UserProfile.objects.filter(id=box_ur['user_id']).first()
+                if not user:
+                    continue
+
+                nlur = NetIPamUserRoleWrapper(user)
                 nlur.user_role = nlur.get_or_create_user_role()
-                nlur.set_ipam_admin(box_ur.is_ipam_admin)
-                nlur.set_ipam_readonly(box_ur.is_ipam_readonly)
+                nlur.set_ipam_admin(is_ipam_admin)
+                nlur.set_ipam_readonly(is_ipam_readonly)
 
     print('[Ok] Copy user role to app_net_ipam')
 
