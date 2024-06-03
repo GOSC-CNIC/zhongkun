@@ -294,6 +294,7 @@ class DingTalk(object):
         return f"指标告警：{list(alert_msg_mapping.keys())[0]}", "\n\n".join(record_msg_list)
 
     def log_alert_format(self, alerts, minute=0):
+
         if not alerts:
             return '', ''
         if len(alerts) > 10:
@@ -332,6 +333,12 @@ class DingTalk(object):
             record_msg_list.append("---\n\n")
         return f"日志告警：{list(alert_msg_mapping.keys())[0]}", "\n\n".join(record_msg_list)
 
+    def clean_log_alert_description(self, description):
+        description = re.sub(r'source: .*? level: .*? content:', '', description)
+        description = re.sub(r',{"name":".*?"},{"log_source":".*?"}', '', description)
+        description = description.strip()
+        return description
+
     def log_alert_text_format(self, alerts, minute=0):
         if not alerts:
             return '', ''
@@ -347,6 +354,7 @@ class DingTalk(object):
             if not alert_msg_mapping.get(instance):
                 alert_msg_mapping[instance] = []
             description = alert.get("description")
+            description = self.clean_log_alert_description(description)
             alert_msg_mapping[instance].append(f"{description}, {alert.get('id')[:10]}")
         record_msg_list = list()
         if minute:
@@ -388,6 +396,7 @@ class DingTalk(object):
             if not alert_msg_mapping.get(instance):
                 alert_msg_mapping[instance] = []
             description = alert.get("description")
+            description = self.clean_log_alert_description(description)
             description = f"{description}, {alert.get('id')[:10]}"
             alert_msg_mapping[instance].append({
                 "description": description,
