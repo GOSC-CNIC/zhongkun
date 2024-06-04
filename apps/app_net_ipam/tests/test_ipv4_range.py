@@ -10,12 +10,16 @@ from utils.test import get_or_create_user, MyAPITransactionTestCase, get_or_crea
 from apps.app_net_ipam.managers.common import NetIPamUserRoleWrapper
 from apps.app_net_ipam.managers.ipv4_mgrs import IPv4RangeManager, IPv4RangeSplitter
 from apps.app_net_ipam.models import ASN, OrgVirtualObject, IPv4Range, IPv4RangeRecord, IPRangeIntItem
+from apps.app_net_ipam.permissions import IPamIPRestrictor
 
 
 class IPv4RangeTests(MyAPITransactionTestCase):
     def setUp(self):
         self.user1 = get_or_create_user(username='tom@qq.com')
         self.user2 = get_or_create_user(username='lisi@cnic.cn')
+
+        IPamIPRestrictor.add_ip_rule('127.0.0.1')
+        IPamIPRestrictor.clear_cache()
 
     def test_list_ipv4_ranges(self):
         org1 = get_or_create_organization(name='org1')

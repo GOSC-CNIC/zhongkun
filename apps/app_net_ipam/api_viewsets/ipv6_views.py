@@ -10,10 +10,11 @@ from apps.api.viewsets import NormalGenericViewSet
 from apps.app_net_ipam.handlers.ipv6_handlers import IPv6RangeHandler
 from apps.app_net_ipam.models import IPv4Range
 from apps.app_net_ipam import serializers as ipam_serializers
+from apps.app_net_ipam.permissions import IPamIPRestrictPermission
 
 
 class IPv6RangeViewSet(NormalGenericViewSet):
-    permission_classes = [IsAuthenticated, ]
+    permission_classes = [IsAuthenticated, IPamIPRestrictPermission]
     pagination_class = NewPageNumberPagination100
     lookup_field = 'id'
 

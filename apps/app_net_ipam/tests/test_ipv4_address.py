@@ -8,6 +8,7 @@ from utils.test import get_or_create_user, MyAPITransactionTestCase, get_or_crea
 from apps.app_net_ipam.managers.common import NetIPamUserRoleWrapper
 from apps.app_net_ipam.managers.ipv4_mgrs import IPv4RangeManager
 from apps.app_net_ipam.models import OrgVirtualObject, IPv4Range, IPv4Address
+from apps.app_net_ipam.permissions import IPamIPRestrictor
 
 
 class IPv4AddressTests(MyAPITransactionTestCase):
@@ -37,8 +38,18 @@ class IPv4AddressTests(MyAPITransactionTestCase):
         response = self.client.post(base_url)
         self.assertEqual(response.status_code, 401)
 
-        # ipv4
+        # ip whitelist
         self.client.force_login(self.user1)
+        base_url = reverse('net_ipam-api:ipam-ipv4address-remark',
+                           kwargs={'ipv4': int(ipaddress.IPv4Address('127.0.0.1'))})
+        query = parse.urlencode(query={'remark': 'test'})
+        response = self.client.post(f'{base_url}?{query}')
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+        IPamIPRestrictor.add_ip_rule('127.0.0.1')
+        IPamIPRestrictor.clear_cache()
+
+        # ipv4
+        base_url = reverse('net_ipam-api:ipam-ipv4address-remark', kwargs={'ipv4': 'tes6'})
         response = self.client.post(base_url)
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
 
@@ -199,6 +210,11 @@ class IPv4AddressTests(MyAPITransactionTestCase):
 
         # ipv4range_id
         self.client.force_login(self.user1)
+        response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+        IPamIPRestrictor.add_ip_rule('127.0.0.1')
+        IPamIPRestrictor.clear_cache()
+
         response = self.client.get(base_url)
         self.assertErrorResponse(status_code=400, code='BadRequest', response=response)
 

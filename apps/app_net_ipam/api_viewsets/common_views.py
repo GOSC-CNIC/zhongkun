@@ -8,10 +8,11 @@ from utils.paginators import NoPaginatorInspector
 from apps.api.viewsets import NormalGenericViewSet
 from apps.app_net_ipam.managers import NetIPamUserRoleWrapper
 from apps.app_net_ipam.serializers import NetIPamUserRoleSerializer
+from apps.app_net_ipam.permissions import IPamIPRestrictPermission
 
 
 class NetIPamUserRoleViewSet(NormalGenericViewSet):
-    permission_classes = [IsAuthenticated,]
+    permission_classes = [IsAuthenticated, IPamIPRestrictPermission]
     pagination_class = None
     lookup_field = 'id'
 

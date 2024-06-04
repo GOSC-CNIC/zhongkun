@@ -10,10 +10,11 @@ from apps.api.viewsets import NormalGenericViewSet
 from apps.app_net_ipam.handlers.ipv4_handlers import IPv4RangeHandler
 from apps.app_net_ipam.models import IPv4Range
 from apps.app_net_ipam import serializers as ipam_serializers
+from apps.app_net_ipam.permissions import IPamIPRestrictPermission
 
 
 class IPv4RangeViewSet(NormalGenericViewSet):
-    permission_classes = [IsAuthenticated, ]
+    permission_classes = [IsAuthenticated, IPamIPRestrictPermission]
     pagination_class = NewPageNumberPagination
     lookup_field = 'id'
 
@@ -587,7 +588,7 @@ class IPv4RangeViewSet(NormalGenericViewSet):
 
 
 class IPv4AddressViewSet(NormalGenericViewSet):
-    permission_classes = [IsAuthenticated, ]
+    permission_classes = [IsAuthenticated, IPamIPRestrictPermission]
     pagination_class = NewPageNumberPagination100
     lookup_field = 'id'
 
