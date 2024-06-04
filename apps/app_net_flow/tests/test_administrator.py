@@ -104,7 +104,7 @@ class GlobalAdministratorTests(MyAPITransactionTestCase):
             father=self.top_level_menu1
         )
         self.second_level_menu1 = MenuModel.objects.create(
-            name='二级分组2',
+            name='二级分组1',
             father=self.first_level_menu1
         )
         self.top_level_menu2 = MenuModel.objects.create(
@@ -396,8 +396,8 @@ class GlobalAdministratorRetrieveTests(GlobalAdministratorTests):
         查看指定 全局管理员
         需要登陆
         """
-        base_url = reverse('netflow-api:administrator-list')
-        response = self.client.get(f'{base_url}{self.global_admin_id}/')
+        base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
+        response = self.client.get(base_url)
         self.assertEqual(response.status_code, 401)
         self.assertKeysIn(['code', "message"], response.data)
         self.assertEqual(response.data["code"], "NotAuthenticated")
@@ -408,9 +408,9 @@ class GlobalAdministratorRetrieveTests(GlobalAdministratorTests):
         查看指定 全局管理员
         普通用户 无权限
         """
-        base_url = reverse('netflow-api:administrator-list')
+        base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
         self.client.force_login(self.user1)
-        response = self.client.get(f'{base_url}{self.global_admin_id}/')
+        response = self.client.get(base_url)
         self.assertEqual(response.status_code, 403)
         self.assertKeysIn(['code', "message"], response.data)
         self.assertEqual(response.data["code"], "permission_denied")
@@ -420,9 +420,9 @@ class GlobalAdministratorRetrieveTests(GlobalAdministratorTests):
         查看指定  全局管理员
         组管理员 无权限
         """
-        base_url = reverse('netflow-api:administrator-list')
+        base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
         self.client.force_login(self.group_admin1)
-        response = self.client.get(f'{base_url}{self.global_admin_id}/')
+        response = self.client.get(base_url)
         self.assertEqual(response.status_code, 403)
         self.assertKeysIn(['code', "message"], response.data)
         self.assertEqual(response.data["code"], "permission_denied")
@@ -432,9 +432,9 @@ class GlobalAdministratorRetrieveTests(GlobalAdministratorTests):
         查看指定 全局管理员
         组员 无权限
         """
-        base_url = reverse('netflow-api:administrator-list')
+        base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
         self.client.force_login(self.group_user1)
-        response = self.client.get(f'{base_url}{self.global_admin_id}/')
+        response = self.client.get(base_url)
         self.assertEqual(response.status_code, 403)
         self.assertKeysIn(['code', "message"], response.data)
         self.assertEqual(response.data["code"], "permission_denied")
@@ -444,9 +444,9 @@ class GlobalAdministratorRetrieveTests(GlobalAdministratorTests):
         查看指定 全局管理员
         运维管理员 无权限
         """
-        base_url = reverse('netflow-api:administrator-list')
+        base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
         self.client.force_login(self.obs_user)
-        response = self.client.get(f'{base_url}{self.global_admin_id}/')
+        response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['id', "role"], response.data)
         self.assertTrue(response.data['role'] == GlobalAdminModel.Roles.SUPER_ADMIN.value)
@@ -456,9 +456,9 @@ class GlobalAdministratorRetrieveTests(GlobalAdministratorTests):
         查看指定全局管理员
         超级管理员 有添加权限
         """
-        base_url = reverse('netflow-api:administrator-list')
+        base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
         self.client.force_login(self.super_user)
-        response = self.client.get(f'{base_url}{self.global_admin_id}/')
+        response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['id', "role"], response.data)
         self.assertTrue(response.data['role'] == GlobalAdminModel.Roles.SUPER_ADMIN.value)
@@ -491,8 +491,8 @@ class GlobalAdministratorUpdateTests(GlobalAdministratorTests):
         修改 全局管理员
         需要登陆
         """
-        base_url = reverse('netflow-api:administrator-list')
-        response = self.client.put(f'{base_url}{self.global_admin_id}/', data={'test': 'test'})
+        base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
+        response = self.client.put(base_url, data={'test': 'test'})
         self.assertEqual(response.status_code, 401)
         self.assertKeysIn(['code', "message"], response.data)
         self.assertEqual(response.data["code"], "NotAuthenticated")
@@ -504,9 +504,9 @@ class GlobalAdministratorUpdateTests(GlobalAdministratorTests):
         修改 全局管理员
         普通用户 无权限
         """
-        base_url = reverse('netflow-api:administrator-list')
+        base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
         self.client.force_login(self.user1)
-        response = self.client.put(f'{base_url}{self.global_admin_id}/', data={'test': 'test'})
+        response = self.client.put(base_url, data={'test': 'test'})
         self.assertEqual(response.status_code, 403)
         self.assertKeysIn(['code', "message"], response.data)
         self.assertEqual(response.data["code"], "permission_denied")
@@ -516,9 +516,9 @@ class GlobalAdministratorUpdateTests(GlobalAdministratorTests):
         修改 全局管理员
         组管理员 无权限
         """
-        base_url = reverse('netflow-api:administrator-list')
+        base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
         self.client.force_login(self.group_admin1)
-        response = self.client.put(f'{base_url}{self.global_admin_id}/', data={'test': 'test'})
+        response = self.client.put(base_url, data={'test': 'test'})
         self.assertEqual(response.status_code, 403)
         self.assertKeysIn(['code', "message"], response.data)
         self.assertEqual(response.data["code"], "permission_denied")
@@ -528,9 +528,9 @@ class GlobalAdministratorUpdateTests(GlobalAdministratorTests):
         修改全局管理员
         组员 无权限
         """
-        base_url = reverse('netflow-api:administrator-list')
+        base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
         self.client.force_login(self.group_user1)
-        response = self.client.put(f'{base_url}{self.global_admin_id}/', data={'test': 'test'})
+        response = self.client.put(base_url, data={'test': 'test'})
         self.assertEqual(response.status_code, 403)
         self.assertKeysIn(['code', "message"], response.data)
         self.assertEqual(response.data["code"], "permission_denied")
@@ -540,9 +540,9 @@ class GlobalAdministratorUpdateTests(GlobalAdministratorTests):
         修改全局管理员
         运维管理员 无权限
         """
-        base_url = reverse('netflow-api:administrator-list')
+        base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
         self.client.force_login(self.obs_user)
-        response = self.client.put(f'{base_url}{self.global_admin_id}/', data={'test': 'test'})
+        response = self.client.put(base_url, data={'test': 'test'})
         self.assertEqual(response.status_code, 403)
         self.assertKeysIn(['code', "message"], response.data)
         self.assertEqual(response.data["code"], "permission_denied")
@@ -552,17 +552,17 @@ class GlobalAdministratorUpdateTests(GlobalAdministratorTests):
         修改全局管理员
         超级管理员 有添加权限
         """
-        base_url = reverse('netflow-api:administrator-list')
+        base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
         self.client.force_login(self.super_user)
-        response = self.client.put(f'{base_url}{self.global_admin_id}/', data={'test': 'test'})
+        response = self.client.put(base_url, data={'test': 'test'})
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['id', "role"], response.data)
         self.assertTrue(response.data['role'] == GlobalAdminModel.Roles.SUPER_ADMIN.value)
-        response = self.client.put(f'{base_url}{self.global_admin_id}/', data={'role': "asdasdsad"})
+        response = self.client.put(base_url, data={'role': "asdasdsad"})
         self.assertEqual(response.status_code, 400)
         self.assertKeysIn(['code', "message"], response.data)
         self.assertTrue('“asdasdsad” 不是合法选项。' in response.data['message'])
-        response = self.client.put(f'{base_url}{self.global_admin_id}/',
+        response = self.client.put(base_url,
                                    data={'role': GlobalAdminModel.Roles.ADMIN.value})
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['id', "role"], response.data)
@@ -595,8 +595,8 @@ class GlobalAdministratorDestroyTests(GlobalAdministratorTests):
         删除指定 全局管理员
         需要登陆
         """
-        base_url = reverse('netflow-api:administrator-list')
-        response = self.client.delete(f'{base_url}{self.global_admin_id}/')
+        base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
+        response = self.client.delete(base_url)
         self.assertEqual(response.status_code, 401)
         self.assertKeysIn(['code', "message"], response.data)
         self.assertEqual(response.data["code"], "NotAuthenticated")
@@ -607,9 +607,9 @@ class GlobalAdministratorDestroyTests(GlobalAdministratorTests):
         删除指定 全局管理员
         普通用户 无权限
         """
-        base_url = reverse('netflow-api:administrator-list')
+        base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
         self.client.force_login(self.user1)
-        response = self.client.delete(f'{base_url}{self.global_admin_id}/')
+        response = self.client.delete(base_url)
         self.assertEqual(response.status_code, 403)
         self.assertKeysIn(['code', "message"], response.data)
         self.assertEqual(response.data["code"], "permission_denied")
@@ -619,9 +619,9 @@ class GlobalAdministratorDestroyTests(GlobalAdministratorTests):
         删除指定  全局管理员
         组管理员 无权限
         """
-        base_url = reverse('netflow-api:administrator-list')
+        base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
         self.client.force_login(self.group_admin1)
-        response = self.client.delete(f'{base_url}{self.global_admin_id}/')
+        response = self.client.delete(base_url)
         self.assertEqual(response.status_code, 403)
         self.assertKeysIn(['code', "message"], response.data)
         self.assertEqual(response.data["code"], "permission_denied")
@@ -631,9 +631,9 @@ class GlobalAdministratorDestroyTests(GlobalAdministratorTests):
         删除指定 全局管理员
         组员 无权限
         """
-        base_url = reverse('netflow-api:administrator-list')
+        base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
         self.client.force_login(self.group_user1)
-        response = self.client.delete(f'{base_url}{self.global_admin_id}/')
+        response = self.client.delete(base_url)
         self.assertEqual(response.status_code, 403)
         self.assertKeysIn(['code', "message"], response.data)
         self.assertEqual(response.data["code"], "permission_denied")
@@ -643,9 +643,9 @@ class GlobalAdministratorDestroyTests(GlobalAdministratorTests):
         删除指定 全局管理员
         运维管理员 无权限
         """
-        base_url = reverse('netflow-api:administrator-list')
+        base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
         self.client.force_login(self.obs_user)
-        response = self.client.delete(f'{base_url}{self.global_admin_id}/')
+        response = self.client.delete(base_url)
         self.assertEqual(response.status_code, 403)
         self.assertKeysIn(['code', "message"], response.data)
         self.assertEqual(response.data["code"], "permission_denied")
@@ -655,8 +655,8 @@ class GlobalAdministratorDestroyTests(GlobalAdministratorTests):
         删除指定全局管理员
         超级管理员 有添加权限
         """
-        base_url = reverse('netflow-api:administrator-list')
+        base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
         self.client.force_login(self.super_user)
-        response = self.client.delete(f'{base_url}{self.global_admin_id}/')
+        response = self.client.delete(base_url)
         self.assertEqual(response.status_code, 204)
         self.assertTrue(response.data is None)

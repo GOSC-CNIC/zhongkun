@@ -84,16 +84,16 @@ class MenuModel(UuidModel):
         root = self.__class__.objects.filter(father=None).first()
         if root:  # 存在根节点
             if self != root and not self.father:  # 当前节点是子节点节点 且没有上级分组
-                raise ValidationError('请选择上级分组')
+                raise ValidationError({"father_id": _('请选择上级分组')})
             if self != root and self == self.father:  # 不能设置自身为上级分组
-                raise ValidationError('无法设置自身为上级分组')
+                raise ValidationError({"father_id": _('无法设置自身为上级分组')})
             if self == root and self.father:  # 当前节点是根节点
-                raise ValidationError('无法设置`根节点`的上级分组')
+                raise ValidationError({"father_id": _('无法设置`根节点`的上级分组')})
             if self.father.level + 1 >= 3:
-                raise ValidationError("仅支持三层组结构")
+                raise ValidationError({"father_id": _("仅支持三层组结构")})
         else:  # 不存在根节点
             if self.name != '全部':
-                raise ValidationError('请先创建分组-全部')
+                raise ValidationError(_('请先创建分组-全部'))
 
     def save(self, force_insert=False, force_update=False, using=None,
              update_fields=None):
@@ -192,12 +192,6 @@ class GlobalAdminModel(UuidModel):
         verbose_name = _("全局管理员")
         ordering = ['creation', 'modification']
         verbose_name_plural = verbose_name
-
-
-
-
-
-
 
 # class RoleModel(UuidModel):
 #     """

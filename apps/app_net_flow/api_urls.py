@@ -14,5 +14,6 @@ urlpatterns = [
     re_path('^group/member/$', views.Menu2MemberListGenericAPIView.as_view()),
     re_path('^group/member/(?P<pk>[a-z0-9]+)/$', views.Menu2MemberDetailGenericAPIView.as_view()),
     re_path('^administrator/$', views.GlobalAdministratorListGenericAPIView.as_view(), name='administrator-list'),
-    re_path('^administrator/(?P<pk>[a-z0-9]+)/$', views.GlobalAdministratorDetailGenericAPIView.as_view()),
+    re_path('^administrator/(?P<pk>[a-z0-9]+)/$', views.GlobalAdministratorDetailGenericAPIView.as_view(),
+            name='administrator-detail'),
 ]
