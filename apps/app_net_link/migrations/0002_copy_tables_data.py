@@ -133,6 +133,6 @@ class Migration(migrations.Migration):
 
     operations = [
         # 顺序要考虑到外键约束，run按正序执行，reverse按倒序执行
-        migrations.RunPython(run_copy_net_link_user_role, reverse_code=reverse_copy_net_link_user_role),
-        migrations.RunPython(run_copy_link, reverse_code=reverse_copy_link),
+        # migrations.RunPython(run_copy_net_link_user_role, reverse_code=reverse_copy_net_link_user_role),
+        # migrations.RunPython(run_copy_link, reverse_code=reverse_copy_link),
     ]

@@ -52,6 +52,6 @@ class Migration(migrations.Migration):
 
     operations = [
         # 顺序要考虑到外键约束，run按正序执行，reverse按倒序执行
-        migrations.RunPython(do_nothing, reverse_code=reverse_copy_org),
-        migrations.RunPython(run_copy_org_contacts, reverse_code=reverse_copy_org_contacts),
+        # migrations.RunPython(do_nothing, reverse_code=reverse_copy_org),
+        # migrations.RunPython(run_copy_org_contacts, reverse_code=reverse_copy_org_contacts),
     ]

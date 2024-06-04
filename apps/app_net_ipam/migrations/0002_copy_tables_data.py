@@ -117,6 +117,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(run_copy_net_ipam_user_role, reverse_code=reverse_copy_net_link_user_role),
-        migrations.RunPython(run_copy_asn_ipv4v6range, reverse_code=reverse_copy_asn_ipv4v6range),
+        # migrations.RunPython(run_copy_net_ipam_user_role, reverse_code=reverse_copy_net_link_user_role),
+        # migrations.RunPython(run_copy_asn_ipv4v6range, reverse_code=reverse_copy_asn_ipv4v6range),
     ]

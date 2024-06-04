@@ -59,7 +59,6 @@ INSTALLED_APPS = [
     'apps.vo',
     'apps.ticket',
     'apps.monitor',
-    'apps.app_netbox',
     'apps.app_scan',
     'apps.vpn',
     'apps.api',
@@ -101,7 +100,6 @@ ADMIN_SORTED_APP_LIST = [
     'app_netflow',  # app_net_flow
     'app_net_ipam',
     'app_net_link',
-    'netbox',   # app_netbox
     'auth',
 ]
 
