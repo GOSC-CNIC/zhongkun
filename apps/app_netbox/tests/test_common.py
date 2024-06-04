@@ -9,12 +9,15 @@ from apps.app_net_manage.managers.common import NetManageUserRoleWrapper
 from apps.app_net_manage.models import ContactPerson, OrgVirtualObject
 from apps.app_net_ipam.managers import NetIPamUserRoleWrapper
 from apps.app_net_link.managers import NetLinkUserRoleWrapper
+from apps.app_net_ipam.permissions import IPamIPRestrictor
 
 
 class NetBoxUserRoleTests(MyAPITransactionTestCase):
     def setUp(self):
         self.user1 = get_or_create_user(username='tom@qq.com')
         self.user2 = get_or_create_user(username='lisi@cnic.cn')
+        IPamIPRestrictor.add_ip_rule(ip_value='0.0.0.0/0')
+        IPamIPRestrictor.clear_cache()
 
     def test_list_user_role(self):
         org1 = get_or_create_organization(name='org1')
@@ -96,6 +99,8 @@ class OrgObjTests(MyAPITransactionTestCase):
     def setUp(self):
         self.user1 = get_or_create_user(username='tom@qq.com')
         self.user2 = get_or_create_user(username='lisi@cnic.cn')
+        IPamIPRestrictor.add_ip_rule(ip_value='0.0.0.0/0')
+        IPamIPRestrictor.clear_cache()
 
     def test_create(self):
         org1 = get_or_create_organization(name='org1')
@@ -484,6 +489,8 @@ class ContactsTests(MyAPITransactionTestCase):
     def setUp(self):
         self.user1 = get_or_create_user(username='tom@qq.com')
         self.user2 = get_or_create_user(username='lisi@cnic.cn')
+        IPamIPRestrictor.add_ip_rule(ip_value='0.0.0.0/0')
+        IPamIPRestrictor.clear_cache()
 
     def test_create(self):
         base_url = reverse('netbox-api:contacts-list')

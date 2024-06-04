@@ -210,6 +210,7 @@ class IPv4AddressTests(MyAPITransactionTestCase):
 
         # ipv4range_id
         self.client.force_login(self.user1)
+        IPamIPRestrictor.clear_cache()
         response = self.client.get(base_url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
         IPamIPRestrictor.add_ip_rule('127.0.0.1')

@@ -8,12 +8,15 @@ from utils.test import get_or_create_user, MyAPITransactionTestCase, get_or_crea
 from apps.app_net_ipam.managers.common import NetIPamUserRoleWrapper as NetBoxUserRoleWrapper
 from apps.app_net_ipam.managers.ipv6_mgrs import IPv6RangeManager
 from apps.app_net_ipam.models import ASN, OrgVirtualObject, IPv6Range, IPv6RangeRecord
+from apps.app_net_ipam.permissions import IPamIPRestrictor
 
 
 class IPv6RangeTests(MyAPITransactionTestCase):
     def setUp(self):
         self.user1 = get_or_create_user(username='tom@qq.com')
         self.user2 = get_or_create_user(username='lisi@cnic.cn')
+        IPamIPRestrictor.add_ip_rule(ip_value='0.0.0.0/0')
+        IPamIPRestrictor.clear_cache()
 
     def test_list_ipv6_ranges(self):
         org1 = get_or_create_organization(name='org1')
