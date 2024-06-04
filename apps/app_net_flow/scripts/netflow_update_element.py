@@ -25,17 +25,25 @@ from apps.app_alert.utils.logger import setup_logger
 logger = setup_logger(__name__, __file__)
 
 
-def insert_or_update_elements():
+def update_elements():
     logger.info(f"当前时间：{DateUtils.now()}")
     chart_list = EasyOPS().crawler_easyops_chart_list()
+    element_set = set()
     for item in chart_list:
         obj, created = ChartModel.objects.update_or_create(
             device_ip=item.get("device_ip"),
             port_name=item.get("port_name"),
             defaults=item
         )
+        element_set.add(f'{item.get("device_ip")}_{item.get("port_name")}')
         logger.info(obj)
         logger.info(created)
+
+    queryset = ChartModel.objects.all()
+    for item in queryset:
+        ip_port = f'{item.device_ip}_{item.port_name}'
+        if ip_port not in element_set:
+            item.delete()
 
 
 def run_task_use_lock():
@@ -52,7 +60,7 @@ def run_task_use_lock():
                 or (nt - netflow_update_element_lock.start_time) >= timedelta(minutes=1)  # 定时周期
         ):
             netflow_update_element_lock.mark_start_task()  # 更新任务执行信息
-            insert_or_update_elements()
+            update_elements()
     except Exception as exc:
         run_desc = str(exc)
     finally:
@@ -64,3 +72,4 @@ def run_task_use_lock():
 
 if __name__ == '__main__':
     run_task_use_lock()
+    # update_elements()
