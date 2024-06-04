@@ -15,6 +15,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'cloudverse.settings')
 setup()
 
 from apps.app_net_flow.models import ChartModel
+from apps.app_net_flow.models import Menu2Chart
 from scripts.task_lock import netflow_update_element_lock
 from apps.app_net_flow.handlers.easyops import EasyOPS
 from django.utils import timezone as dj_timezone
@@ -43,6 +44,8 @@ def update_elements():
     for item in queryset:
         ip_port = f'{item.device_ip}_{item.port_name}'
         if ip_port not in element_set:
+            menu2chart_queryset = Menu2Chart.objects.filter(chart=item)
+            menu2chart_queryset.delete()
             item.delete()
 
 
