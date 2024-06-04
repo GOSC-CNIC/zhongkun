@@ -6,6 +6,7 @@ from django.utils import timezone as dj_timezone
 from utils.test import get_or_create_user, MyAPITransactionTestCase, get_or_create_organization
 from apps.app_net_manage.managers import NetManageUserRoleWrapper, OrgVirtualObjectManager, ContactPersonManager
 from apps.app_net_manage.models import ContactPerson, OrgVirtualObject, NetManageUserRole
+from apps.app_net_manage.permissions import NetIPRestrictor
 
 
 class NetUserRoleTests(MyAPITransactionTestCase):
@@ -19,6 +20,12 @@ class NetUserRoleTests(MyAPITransactionTestCase):
         self.assertEqual(response.status_code, 401)
 
         self.client.force_login(self.user1)
+        NetIPRestrictor.clear_cache()
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 403)
+        NetIPRestrictor.add_ip_rule('127.0.0.1')
+        NetIPRestrictor.clear_cache()
+
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(
@@ -52,6 +59,9 @@ class OrgObjTests(MyAPITransactionTestCase):
     def setUp(self):
         self.user1 = get_or_create_user(username='tom@qq.com')
         self.user2 = get_or_create_user(username='lisi@cnic.cn')
+
+        NetIPRestrictor.add_ip_rule('127.0.0.1')
+        NetIPRestrictor.clear_cache()
 
     def test_create(self):
         org1 = get_or_create_organization(name='org1')
@@ -456,6 +466,9 @@ class ContactsTests(MyAPITransactionTestCase):
     def setUp(self):
         self.user1 = get_or_create_user(username='tom@qq.com')
         self.user2 = get_or_create_user(username='lisi@cnic.cn')
+
+        NetIPRestrictor.add_ip_rule('127.0.0.1')
+        NetIPRestrictor.clear_cache()
 
     def test_create(self):
         base_url = reverse('net_manage-api:contacts-list')

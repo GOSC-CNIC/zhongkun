@@ -3,27 +3,14 @@ from apps.app_net_flow.models import MenuModel
 from apps.app_net_flow.models import Menu2Chart
 from apps.app_net_flow.models import Menu2Member
 from apps.app_net_flow.models import GlobalAdminModel
-from apps.app_global.configs_manager import IPAccessWhiteListManager
-from utils.iprestrict import IPRestrictor
+from apps.app_net_manage.permissions import NetIPRestrictor
 
 
-class NetFlowAPIIPRestrictor(IPRestrictor):
+class NetFlowAPIIPRestrictor(NetIPRestrictor):
     """
     流量模块 IP 白名单
     """
-
-    def load_ip_rules(self):
-        return IPAccessWhiteListManager.get_module_ip_whitelist(
-            module_name=IPAccessWhiteListManager.ModuleName.NETFLOW.value)
-
-    @staticmethod
-    def clear_cache():
-        IPAccessWhiteListManager.clear_cache()
-
-    @staticmethod
-    def add_ip_rule(ip_value: str):
-        return IPAccessWhiteListManager.add_whitelist_obj(
-            module_name=IPAccessWhiteListManager.ModuleName.NETFLOW.value, ip_value=ip_value)
+    pass
 
 
 class PermissionManager(object):

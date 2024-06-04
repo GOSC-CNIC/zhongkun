@@ -12,11 +12,12 @@ from apps.api.viewsets import NormalGenericViewSet
 from apps.app_net_manage import serializers
 from apps.app_net_manage.managers import NetManageUserRoleWrapper
 from apps.app_net_manage.handlers.org2 import OrgVirtObjHandler, ContactsHandler
+from apps.app_net_manage.permissions import NetIPRestrictPermission
 
 
 class NetManageUserRoleViewSet(NormalGenericViewSet):
-    permission_classes = [IsAuthenticated, ]
-    pagination_class = NewPageNumberPagination100
+    permission_classes = [IsAuthenticated, NetIPRestrictPermission]
+    pagination_class = None
     lookup_field = 'id'
 
     @swagger_auto_schema(
@@ -53,7 +54,7 @@ class NetManageUserRoleViewSet(NormalGenericViewSet):
 
 
 class OrgObjViewSet(NormalGenericViewSet):
-    permission_classes = [IsAuthenticated, ]
+    permission_classes = [IsAuthenticated, NetIPRestrictPermission]
     pagination_class = NewPageNumberPagination100
     lookup_field = 'id'
 
@@ -311,7 +312,7 @@ class OrgObjViewSet(NormalGenericViewSet):
 
 
 class ContactPersonViewSet(NormalGenericViewSet):
-    permission_classes = [IsAuthenticated, ]
+    permission_classes = [IsAuthenticated, NetIPRestrictPermission]
     pagination_class = NewPageNumberPagination100
     lookup_field = 'id'
 
