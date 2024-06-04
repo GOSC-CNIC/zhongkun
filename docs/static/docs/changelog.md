@@ -1,3 +1,18 @@
+## v2.4.1
+发布时间： 2024-06-04  
+发布人： yushunwang  
+
+* 流量模块，添加查询端口列表测试用例；提交人：wenhao
+* 告警模块，钉钉群告警通知，日志类型告警文本格式清洗，移除source，level，name，log_source字段；提交人：wenhao
+* 云主机EVCloud适配器增加云主机快照创建、删除和回滚接口；提交人：yushunwang
+* 把原app_netbox的功能和接口拆分到app_net_manage、app_net_link和app_net_ipam 3个新app中，
+  把app_netbox的数据复制到3个app对应的表，移除app_netbox所有模型和对应数据库表；提交人：yushunwang
+* app_net_manage、app_net_link和app_net_ipam 3个新app添加各自的用户角色权限和查询接口，netbox原接口路由到3个app对应的接口视图；提交人：yushunwang
+* 网管新增自己的ip访问白名单，把全局ip白名单网管相关的配置数据导入网管ip白名单，
+  综合网管管理、IP地址管理、链路管理和流量管理的接口ip鉴权使用网管的IP白名单；提交人：yushunwang
+* 对象存储，列举有管理员权限的服务单元接口增加参数“with_admin_users”，返回服务单元管理员列表；提交人：yushunwang
+
+
 ## v2.4.0
 发布时间： 2024-05-31  
 发布人： yushunwang  

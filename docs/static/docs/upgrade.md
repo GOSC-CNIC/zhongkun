@@ -56,3 +56,16 @@ python3 manage.py migrate link --prune
 
 * 必须先正常升级到v2.3.1，执行数据库迁移，把压缩后的迁移文件记录更新到数据库迁移记录表；
 * 再升级到v2.3.1之后的版本。
+
+
+### 5. 从v2.4.1之前的版本升级到v2.5.0及之后版本的步骤
+    原因：由于v2.4.1版本 把 app_netbox 拆分成了app_net_manage、app_net_link和app_net_ipam 3个app，需要数据库迁移把原app_netbox的数据库表数据复制到app_net_manage、app_net_link和app_net_ipam对
+    应的表中，原app_netbox的API接口在v2.5.0之后版本将弃用，app_net_manage、app_net_link和app_net_ipam有对应的新api替换netbox原接口。
+    新api主要变更：
+        ipam和link新增各自的用户角色权限API接口；其他接口只是url路径做了更改。
+        app_net_manage有自己的用户角色权限，来限制机构二级的管理权限。
+
+* 升级前先备份数据库数据；
+* 必须先正常升级到v2.4.1，执行数据库迁移，创建app_net_manage、app_net_link和app_net_ipam 3个app模型的数据库表，
+  并从app_netbox的数据库表复制数据，然后删除app_netbox的数据库表；
+* 再升级到v2.5.0之后的版本。
