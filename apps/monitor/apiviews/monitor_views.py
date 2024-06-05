@@ -830,13 +830,7 @@ class UnitAdminEmailViewSet(CustomGenericViewSet):
             return self.exception_response(
                 errors.TargetNotExist(message=_('未找到指定标签标识的监控单元')))
 
-        odc_id = unit.org_data_center_id
-        unit_admin_emails = set(unit.users.values_list('username', flat=True))
-        if odc_id:
-            odc_admin_emails = set(OrgDataCenter.objects.get(id=odc_id).users.values_list('username', flat=True))
-            unit_admin_emails.update(odc_admin_emails)
-
-        emails = list(set(unit_admin_emails))
+        emails = self.get_unit_emails(unit)
         return Response(data={
             'tag': tag,
             'unit': {
@@ -844,6 +838,16 @@ class UnitAdminEmailViewSet(CustomGenericViewSet):
             },
             'emails': emails
         })
+
+    @staticmethod
+    def get_unit_emails(unit):
+        odc_id = unit.org_data_center_id
+        unit_admin_emails = set(unit.users.values_list('username', flat=True))
+        if odc_id:
+            odc_admin_emails = set(OrgDataCenter.objects.get(id=odc_id).users.values_list('username', flat=True))
+            unit_admin_emails.update(odc_admin_emails)
+
+        return list(set(unit_admin_emails))
 
     @staticmethod
     def try_get_unit(tag: str) -> Union[MonitorJobCeph, MonitorJobTiDB, MonitorJobServer, LogSite, None]:
