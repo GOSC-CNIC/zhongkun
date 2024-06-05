@@ -115,7 +115,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'cloudverse.urls'
+ROOT_URLCONF = 'django_site.urls'
 
 TEMPLATES = [
     {
@@ -136,7 +136,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'cloudverse.wsgi.application'
+WSGI_APPLICATION = 'django_site.wsgi.application'
 
 # CACHE
 CACHES = {

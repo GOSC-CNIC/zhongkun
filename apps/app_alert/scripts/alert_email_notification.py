@@ -13,7 +13,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'cloudverse.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django_site.settings')
 setup()
 from apps.app_alert.models import AlertModel
 from apps.app_alert.models import EmailNotification

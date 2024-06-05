@@ -6,7 +6,7 @@ from django.utils import timezone
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
 # 设置项目的配置文件 不做修改的话就是 settings 文件
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "cloudverse.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "django_site.settings")
 setup()
 
 from apps.app_probe.models import ProbeDetails, ProbeMonitorWebsite

@@ -8,6 +8,7 @@
 *.log
 /collect_static/
 /cloudverse/security.py
+/django_site/security.py
 /data/
 /ignore*
 .DS_Store
