@@ -1,14 +1,19 @@
-from retrying import retry
-import requests
 import hashlib
-import json
 import time
 import datetime
-from apps.app_alert.utils import errors
+from zoneinfo import ZoneInfo
 from urllib3 import exceptions as urllib3_exceptions
+
+from retrying import retry
+import requests
 from requests import exceptions as requests_exceptions
 from django.forms.models import model_to_dict
-import pytz
+
+from apps.app_alert.utils import errors
+
+
+tz_utc = datetime.timezone.utc
+tz_shanghai = ZoneInfo('Asia/Shanghai')
 
 
 def custom_model_to_dict(obj):
@@ -34,40 +39,37 @@ def hash_sha1(s: str):
     return hashlib.sha1(s.encode(encoding='utf-8')).hexdigest()
 
 
-_timezone_utc = "UTC"
-_timezone_cn = "Asia/Shanghai"
-
-
 class DateUtils:
 
     @classmethod
-    def ts_to_date(cls, timestamp, fmt="%Y-%m-%d %H:%M:%S", timezone=_timezone_cn):
+    def ts_to_date(cls, timestamp, fmt="%Y-%m-%d %H:%M:%S", timezone=tz_shanghai):
         """
         时间戳转日期
         """
-        tz = pytz.timezone(timezone)
         timestamp_s = int(timestamp) if len(str(timestamp)) <= 10 else int(timestamp) / 1000
-        dt_tz = datetime.datetime.fromtimestamp(timestamp_s, tz)
+        dt_tz = datetime.datetime.fromtimestamp(timestamp_s, timezone)
         return dt_tz.strftime(fmt)
 
     @classmethod
-    def date_to_ts(cls, dt, fmt="%Y-%m-%d %H:%M:%S", timezone=_timezone_cn):
+    def date_to_ts(cls, dt, fmt="%Y-%m-%d %H:%M:%S", timezone=tz_shanghai):
         """
         日期转时间戳（秒）
         """
         if isinstance(dt, datetime.datetime):
             return int(dt.timestamp())
         else:
-            dt = datetime.datetime.strptime(dt, fmt)
-            dt_tz = pytz.timezone(timezone).localize(dt)
+            dt_tz = datetime.datetime.strptime(dt, fmt)
+            if dt.tzinfo is None:
+                dt_tz = dt.replace(tzinfo=timezone)     # 时间不变，只添加时区信息
+
             return int(dt_tz.timestamp())
 
     @classmethod
-    def now(cls, timezone=_timezone_cn):
+    def now(cls, timezone=tz_shanghai):
         """
         当前时间
         """
-        return datetime.datetime.now(tz=pytz.timezone(timezone))
+        return datetime.datetime.now(tz=timezone)
 
     @classmethod
     def timestamp(cls):
