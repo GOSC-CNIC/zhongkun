@@ -17,8 +17,11 @@ class PermissionManager(object):
     def __init__(self, request):
         self.request = request
         self.global_role = GlobalAdminModel.objects.filter(member=request.user).values_list('role', flat=True).first()
-        self.relation_mapping = {_.get('id'): _.get('father_id') for _ in MenuModel.objects.values('id', 'father_id')}
+        self.relation = MenuModel.objects.values('id', 'father_id')
+        self.relation_mapping = {_.get('id'): _.get('father_id') for _ in self.relation}
         self.group_role_mapping = self._get_group_role_mapping()
+
+
 
     def is_global_super_admin(self):
         """
@@ -128,7 +131,7 @@ class PermissionManager(object):
 
         return relation_group_set
 
-    def get_parent_groups(self, group: MenuModel) -> list:  # TODO
+    def get_parent_groups(self, group: MenuModel) -> list:
         result = []
         while True:
             father = group.father
@@ -148,18 +151,18 @@ class PermissionManager(object):
             'group3':'role2',
         }
         """
-        group_relation_mapping = dict()
+        group_role_relation_mapping = dict()
 
         located_group_queryset = self.request.user.netflow_group_set.all()  # 当前用户所在的组
         for group in located_group_queryset.filter(menu2member__role=Menu2Member.Roles.ORDINARY.value):  # 组员
             for child_group in self.get_all_children_groups(group):
-                group_relation_mapping[child_group.id] = Menu2Member.Roles.ORDINARY.value
+                group_role_relation_mapping[child_group.id] = Menu2Member.Roles.ORDINARY.value
         for group in located_group_queryset.filter(menu2member__role=Menu2Member.Roles.GROUP_ADMIN.value):  # 组管理员
             for child_group in self.get_all_children_groups(group):
-                group_relation_mapping[child_group.id] = Menu2Member.Roles.GROUP_ADMIN.value
-        return group_relation_mapping
+                group_role_relation_mapping[child_group.id] = Menu2Member.Roles.GROUP_ADMIN.value
+        return group_role_relation_mapping
 
-    def get_all_children_groups(self, node: MenuModel) -> list:  # TODO
+    def get_all_children_groups(self, node: MenuModel) -> list:
         """
         获取当前分组和所有下级分组
         """
@@ -168,6 +171,14 @@ class PermissionManager(object):
         else:
             return [node] + [child for child in node.sub_categories.all() for child in
                              self.get_all_children_groups(child)]
+
+    def get_child_nodes(self, node_id):
+        result = [node_id]
+        for node in self.relation:  # 遍历所有节点
+            if node['father_id'] != node_id:
+                continue
+            result.extend(self.get_child_nodes(node.get('id')))
+        return result
 
 
 class CustomPermission(BasePermission):

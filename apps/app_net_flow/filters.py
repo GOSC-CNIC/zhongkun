@@ -6,6 +6,7 @@ from apps.app_net_flow.models import Menu2Member
 from apps.app_net_flow.models import MenuModel
 from apps.app_net_flow.models import GlobalAdminModel
 from apps.app_net_flow.permission import PermissionManager
+from apps.app_alert.utils.errors import InvalidArgument
 
 
 class ChartFilter(django_filters.FilterSet):
@@ -32,6 +33,7 @@ class ChartFilter(django_filters.FilterSet):
 
 class Menu2ChartFilter(django_filters.FilterSet):
     menu = django_filters.CharFilter(field_name="menu", method="menu_filter")
+    exact_menu = django_filters.CharFilter(field_name="menu", method="exact_menu_filter")
 
     class Meta:
         model = Menu2Chart
@@ -43,23 +45,24 @@ class Menu2ChartFilter(django_filters.FilterSet):
 
     def menu_filter(self, queryset, field_name, value):
         """
-        超级管理员和运维管理员:
-            显示当前分组和所有下级分组
-
-        组员和组管理员:
-            显示当前分组和有权限的下级分组
+        查询当前分组和所有下级分组的流量元素对象集合
         """
         perm = PermissionManager(request=self.request)
         target_group = MenuModel.objects.filter(id=value).first()
-        groups = perm.get_all_children_groups(target_group)
-        menu_id_list = list()
-        items = list()
-        for g in groups:
-            for obj in queryset.filter(menu=g):
-                if obj.chart.id not in menu_id_list:
-                    menu_id_list.append(obj.chart.id)
-                    items.append(obj.id)
-        return queryset.filter(id__in=items)
+        if target_group is None:
+            raise InvalidArgument(f"invalid menu: `{value}`")
+        groups = perm.get_child_nodes(value)  # 当前分组以及所有下级分组
+        queryset = queryset.filter(menu__id__in=groups).values_list('id', flat=True)
+        return queryset
+
+    def exact_menu_filter(self, queryset, field_name, value):
+        """
+        查询当前组内的流量元素对象
+        """
+        target_group = MenuModel.objects.filter(id=value).first()
+        if target_group is None:
+            raise InvalidArgument(f"invalid group: `{value}`")
+        return queryset.filter(menu__id=value)
 
 
 class GlobalAdminFilter(django_filters.FilterSet):

@@ -1,8 +1,5 @@
 import json
 import time
-
-from django.http import JsonResponse, HttpResponse
-
 from rest_framework.generics import GenericAPIView
 from apps.app_net_flow.models import ChartModel
 from apps.app_net_flow.models import Menu2Chart
@@ -26,6 +23,7 @@ from apps.app_net_flow.filters import Menu2ChartFilter
 from apps.app_net_flow.filters import Menu2MemberFilter
 from apps.app_net_flow.filters import GlobalAdminFilter
 from apps.app_net_flow.pagination import LimitOffsetPage
+from apps.app_net_flow.pagination import Menu2ChartListLimitOffsetPage
 from apps.app_net_flow.permission import CustomPermission
 from apps.app_net_flow.permission import PortListCustomPermission
 from apps.app_net_flow.permission import MenuListCustomPermission
@@ -255,7 +253,7 @@ class Menu2ChartListGenericAPIView(GenericAPIView, CreateModelMixin):
     serializer_class = Menu2ChartSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_class = Menu2ChartFilter
-    pagination_class = LimitOffsetPage
+    pagination_class = Menu2ChartListLimitOffsetPage
     permission_classes = [Menu2ChartListCustomPermission]
 
     @swagger_auto_schema(
@@ -269,12 +267,10 @@ class Menu2ChartListGenericAPIView(GenericAPIView, CreateModelMixin):
     def get(self, request):
         queryset = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+        if page and isinstance(page[0], str):
+            page = self.get_queryset().filter(id__in=page)
+        serializer = self.get_serializer(page, many=True)
+        return self.get_paginated_response(serializer.data)
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('添加组内元素'),
