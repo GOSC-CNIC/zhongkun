@@ -61,7 +61,9 @@ schema_view = get_schema_view(
 
 if screenvis_only:
     home_view = views.about
-    urlpatterns = []
+    urlpatterns = [
+        path('api/app_screenvis/', include('apps.app_screenvis.api_urls', namespace='screenvis-api')),
+    ]
 else:
     home_view = views.home
     urlpatterns = [
