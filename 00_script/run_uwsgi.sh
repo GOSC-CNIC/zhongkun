@@ -1,0 +1,1 @@
+uwsgi --ini /home/uwsgi/yunkun/00_script/uwsgi.ini
