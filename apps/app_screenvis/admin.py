@@ -2,12 +2,14 @@ from datetime import datetime
 
 from django import forms
 from django.contrib import admin
+from django.contrib.admin import helpers
 from django.utils.translation import gettext_lazy
 from django.utils import timezone as dj_timezone
 from django.utils.html import format_html
 
 
 from utils.model import BaseModelAdmin
+from apps.app_screenvis.configs_manager import screen_configs
 from .models import (
     ScreenConfig, DataCenter, MetricMonitorUnit, LogMonitorUnit, HostCpuUsage,
     ServerService, ObjectService, ServerServiceTimedStats, ObjectServiceTimedStats, VPNTimedStats,
@@ -20,6 +22,31 @@ class ScreenConfigAdmin(BaseModelAdmin):
     list_display_links = ('id', 'name')
     list_display = ('id', 'name', 'value', 'creation_time', 'remark')
     search_fields = ('name', 'value')
+    actions = ('update_configs',)
+    show_full_result_count = False
+
+    @admin.action(description=gettext_lazy('清理更新配置项'))
+    def update_configs(self, request, queryset):
+        screen_configs.clear_cache()
+        screen_configs.get_configs()
+
+    update_configs.act_not_need_selected = True
+
+    def changelist_view(self, request, extra_context=None):
+        if request.method == "POST":
+            action = self.get_actions(request)[request.POST['action']][0]
+            act_not_need_selected = getattr(action, 'act_not_need_selected', False)
+            if act_not_need_selected:
+                post = request.POST.copy()
+                post.setlist(helpers.ACTION_CHECKBOX_NAME, [0])
+                request.POST = post
+
+        return super().changelist_view(request, extra_context)
+
+    def get_changelist_instance(self, request):
+        cl = super().get_changelist_instance(request)
+        cl.show_admin_actions = True
+        return cl
 
 
 @admin.register(DataCenter)

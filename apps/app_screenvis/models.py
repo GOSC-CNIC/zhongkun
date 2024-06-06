@@ -13,6 +13,16 @@ class ScreenConfig(models.Model):
     class ConfigName(models.TextChoices):
         ORG_NAME = 'org_name', _('机构名称')
         ORG_NAME_EN = 'org_name_en', _('机构英文名称')
+        PROBE_TASK_ENDPOINT_URL = 'probe_task_endpoint_url', _('站点监控探针任务更新服务地址')
+        PROBE_QUERY_ENDPOINT_URL = 'probe_query_endpoint_url', _('站点监控数据查询服务地址')
+
+    # 配置的默认值，自动创建配置参数记录时填充的默认值
+    value_defaults = {
+        ConfigName.ORG_NAME.value: 'YunKun',
+        ConfigName.ORG_NAME_EN.value: 'YunKun',
+        ConfigName.PROBE_TASK_ENDPOINT_URL.value: '',
+        ConfigName.PROBE_QUERY_ENDPOINT_URL.value: '',
+    }
 
     id = models.BigAutoField(primary_key=True)
     name = models.CharField(verbose_name=_('配置名称'), max_length=32, choices=ConfigName.choices)
@@ -23,8 +33,8 @@ class ScreenConfig(models.Model):
 
     class Meta:
         db_table = 'screenvis_config'
-        ordering = ['creation_time']
-        verbose_name = _('配置')
+        ordering = ['name']
+        verbose_name = _('01_大屏展示配置')
         verbose_name_plural = verbose_name
         constraints = [
             models.UniqueConstraint(fields=('name',), name='unique_config_name')
@@ -32,6 +42,15 @@ class ScreenConfig(models.Model):
 
     def __str__(self):
         return f'[{self.name}] {self.value}'
+
+    def clean(self):
+        if self.value and self.name in [
+            self.ConfigName.PROBE_TASK_ENDPOINT_URL.value, self.ConfigName.PROBE_QUERY_ENDPOINT_URL.value
+        ]:
+            try:
+                URLValidator(schemes=["http", "https"])(self.value)
+            except ValidationError as exc:
+                raise ValidationError(message={'name': gettext('不是一个有效的网址')})
 
 
 class DataCenter(models.Model):

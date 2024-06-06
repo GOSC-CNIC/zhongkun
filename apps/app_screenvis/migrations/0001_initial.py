@@ -85,17 +85,21 @@ class Migration(migrations.Migration):
             name='ScreenConfig',
             fields=[
                 ('id', models.BigAutoField(primary_key=True, serialize=False)),
-                ('name', models.CharField(choices=[('org_name', '机构名称'), ('org_name_en', '机构英文名称')], max_length=32, verbose_name='配置名称')),
+                ('name', models.CharField(choices=[
+                    ('org_name', '机构名称'), ('org_name_en', '机构英文名称'),
+                    ('probe_task_endpoint_url', '站点监控探针任务更新服务地址'),
+                    ('probe_query_endpoint_url', '站点监控数据查询服务地址'),
+                ], max_length=32, verbose_name='配置名称')),
                 ('value', models.CharField(default='', max_length=255, verbose_name='配置内容')),
                 ('remark', models.CharField(blank=True, max_length=255, verbose_name='备注')),
                 ('creation_time', models.DateTimeField(auto_now_add=True, verbose_name='创建时间')),
                 ('update_time', models.DateTimeField(auto_now=True, verbose_name='更新时间')),
             ],
             options={
-                'verbose_name': '配置',
-                'verbose_name_plural': '配置',
+                'verbose_name': '01_大屏展示配置',
+                'verbose_name_plural': '01_大屏展示配置',
                 'db_table': 'screenvis_config',
-                'ordering': ['creation_time'],
+                'ordering': ['name'],
             },
         ),
         migrations.AddConstraint(

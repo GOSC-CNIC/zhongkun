@@ -8,6 +8,7 @@ from apps.app_screenvis.utils import errors
 from apps.app_screenvis.models import DataCenter, MetricMonitorUnit, LogMonitorUnit, ScreenConfig
 from apps.app_screenvis import serializers
 from apps.app_screenvis.permissions import ScreenAPIIPPermission
+from apps.app_screenvis.configs_manager import screen_configs
 from . import NormalGenericViewSet
 
 
@@ -165,10 +166,8 @@ class ConfigsViewSet(NormalGenericViewSet):
                 "org_name_en": "机构英文名称"
             }
         """
-        qs = ScreenConfig.objects.all().values('name', 'value')
-        data = {cfg['name']: cfg['value'] for cfg in qs}
-        for name in ScreenConfig.ConfigName.values:
-            if name not in data:
-                data[name] = ''
-
+        return_configs = [
+            ScreenConfig.ConfigName.ORG_NAME.value, ScreenConfig.ConfigName.ORG_NAME_EN.value
+        ]
+        data = {key: screen_configs.get(key) for key in return_configs}
         return Response(data=data, status=200)

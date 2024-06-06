@@ -3,6 +3,7 @@ from django.utils import timezone as dj_timezone
 
 from apps.app_screenvis.models import DataCenter, MetricMonitorUnit, LogMonitorUnit, ScreenConfig
 from apps.app_screenvis.permissions import ScreenAPIIPRestrictor
+from apps.app_screenvis.configs_manager import screen_configs
 from . import MyAPITestCase
 
 
@@ -132,19 +133,19 @@ class ConfigTests(MyAPITestCase):
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['org_name', 'org_name_en'], response.data)
-        self.assertEqual(response.data['org_name'], '')
-        self.assertEqual(response.data['org_name_en'], '')
+        self.assertEqual(response.data['org_name'], 'YunKun')
+        self.assertEqual(response.data['org_name_en'], 'YunKun')
 
-        org_name = ScreenConfig(name=ScreenConfig.ConfigName.ORG_NAME.value, value='org 名称')
-        org_name.save(force_insert=True)
+        ScreenConfig.objects.filter(name=ScreenConfig.ConfigName.ORG_NAME.value).update(value='org 名称')
+        screen_configs.clear_cache()
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['org_name', 'org_name_en'], response.data)
         self.assertEqual(response.data['org_name'], 'org 名称')
-        self.assertEqual(response.data['org_name_en'], '')
+        self.assertEqual(response.data['org_name_en'], 'YunKun')
 
-        org_name_en = ScreenConfig(name=ScreenConfig.ConfigName.ORG_NAME_EN.value, value='org name')
-        org_name_en.save(force_insert=True)
+        ScreenConfig.objects.filter(name=ScreenConfig.ConfigName.ORG_NAME_EN.value).update(value='org name')
+        screen_configs.clear_cache()
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['org_name', 'org_name_en'], response.data)
