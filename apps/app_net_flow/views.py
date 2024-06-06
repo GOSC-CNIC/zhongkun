@@ -1,5 +1,6 @@
 import json
 import time
+import copy
 from rest_framework.generics import GenericAPIView
 from apps.app_net_flow.models import ChartModel
 from apps.app_net_flow.models import Menu2Chart
@@ -49,6 +50,7 @@ from apps.app_net_flow.handlers.easyops import EasyOPS
 from django.forms.models import model_to_dict
 from django.http import QueryDict
 from apps.app_net_flow.permission import PermissionManager
+from apps.app_net_flow.handlers.logentry import NetflowLogEntry
 
 
 # Create your views here.
@@ -125,7 +127,11 @@ class MenuListGenericAPIView(GenericAPIView):
         return Response(serializer.data, status=status_code.HTTP_201_CREATED, headers=headers)
 
     def perform_create(self, serializer):
-        serializer.save()
+        obj = serializer.save()
+        NetflowLogEntry().log_addition(
+            request=self.request,
+            obj=obj
+        )
 
     def get_success_headers(self, data):
         try:
@@ -166,10 +172,15 @@ class MenuDetailGenericAPIView(GenericAPIView, RetrieveModelMixin, DestroyModelM
     def put(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', True)
         instance = self.get_object()
+        copy_object = copy.deepcopy(instance)
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-
+        updated_object = self.perform_update(serializer)
+        NetflowLogEntry().log_change(
+            request=request,
+            old=copy_object,
+            new=updated_object
+        )
         if getattr(instance, '_prefetched_objects_cache', None):
             # If 'prefetch_related' has been applied to a queryset, we need to
             # forcibly invalidate the prefetch cache on the instance.
@@ -178,7 +189,8 @@ class MenuDetailGenericAPIView(GenericAPIView, RetrieveModelMixin, DestroyModelM
         return Response(serializer.data)
 
     def perform_update(self, serializer):
-        serializer.save()
+        obj = serializer.save()
+        return obj
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('删除指定分组'),
@@ -194,7 +206,13 @@ class MenuDetailGenericAPIView(GenericAPIView, RetrieveModelMixin, DestroyModelM
         return Response(status=status_code.HTTP_204_NO_CONTENT)
 
     def perform_destroy(self, instance):
-        instance.delete()
+        copy_instance = copy.deepcopy(instance)
+        flag, _ = instance.delete()
+        if flag:
+            NetflowLogEntry().log_deletion(
+                request=self.request,
+                obj=copy_instance,
+            )
 
 
 class PortListGenericAPIView(GenericAPIView, ):
@@ -287,6 +305,13 @@ class Menu2ChartListGenericAPIView(GenericAPIView, CreateModelMixin):
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status_code.HTTP_201_CREATED, headers=headers)
 
+    def perform_create(self, serializer):
+        obj = serializer.save()
+        NetflowLogEntry().log_addition(
+            request=self.request,
+            obj=obj
+        )
+
 
 class Menu2ChartDetailGenericAPIView(GenericAPIView, RetrieveModelMixin, DestroyModelMixin, UpdateModelMixin):
     queryset = Menu2Chart.objects.all()
@@ -320,10 +345,15 @@ class Menu2ChartDetailGenericAPIView(GenericAPIView, RetrieveModelMixin, Destroy
     def put(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', True)
         instance = self.get_object()
+        copy_object = copy.deepcopy(instance)
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-
+        updated_object = self.perform_update(serializer)
+        NetflowLogEntry().log_change(
+            request=request,
+            old=copy_object,
+            new=updated_object
+        )
         if getattr(instance, '_prefetched_objects_cache', None):
             # If 'prefetch_related' has been applied to a queryset, we need to
             # forcibly invalidate the prefetch cache on the instance.
@@ -332,7 +362,8 @@ class Menu2ChartDetailGenericAPIView(GenericAPIView, RetrieveModelMixin, Destroy
         return Response(serializer.data)
 
     def perform_update(self, serializer):
-        serializer.save()
+        obj = serializer.save()
+        return obj
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('删除组内指定元素'),
@@ -348,7 +379,13 @@ class Menu2ChartDetailGenericAPIView(GenericAPIView, RetrieveModelMixin, Destroy
         return Response(status=status_code.HTTP_204_NO_CONTENT)
 
     def perform_destroy(self, instance):
-        instance.delete()
+        copy_instance = copy.deepcopy(instance)
+        flag, _ = instance.delete()
+        if flag:
+            NetflowLogEntry().log_deletion(
+                request=self.request,
+                obj=copy_instance,
+            )
 
 
 class Menu2MemberListGenericAPIView(GenericAPIView, CreateModelMixin):
@@ -402,13 +439,16 @@ class Menu2MemberListGenericAPIView(GenericAPIView, CreateModelMixin):
     def perform_create(self, serializer):
         context = serializer.context
         request = context.get('request')  # 邀请人
-        serializer.save(inviter=request.user.username)
+        obj = serializer.save(inviter=request.user.username)
+        NetflowLogEntry().log_addition(
+            request=self.request,
+            obj=obj
+        )
 
     def pretreatment(self, request):
         """
-        参数与处理
+        参数预处理
         """
-        import copy
         request_data = dict(request.data)
         raw = copy.deepcopy(request_data)
         members = request_data.pop("member") or []
@@ -457,10 +497,15 @@ class Menu2MemberDetailGenericAPIView(GenericAPIView, RetrieveModelMixin, Destro
     def put(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', True)
         instance = self.get_object()
+        copy_object = copy.deepcopy(instance)
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-
+        updated_object = self.perform_update(serializer)
+        NetflowLogEntry().log_change(
+            request=request,
+            old=copy_object,
+            new=updated_object
+        )
         if getattr(instance, '_prefetched_objects_cache', None):
             # If 'prefetch_related' has been applied to a queryset, we need to
             # forcibly invalidate the prefetch cache on the instance.
@@ -469,7 +514,8 @@ class Menu2MemberDetailGenericAPIView(GenericAPIView, RetrieveModelMixin, Destro
         return Response(serializer.data)
 
     def perform_update(self, serializer):
-        serializer.save()
+        obj = serializer.save()
+        return obj
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('删除组内指定成员'),
@@ -485,7 +531,13 @@ class Menu2MemberDetailGenericAPIView(GenericAPIView, RetrieveModelMixin, Destro
         return Response(status=status_code.HTTP_204_NO_CONTENT)
 
     def perform_destroy(self, instance):
-        instance.delete()
+        copy_instance = copy.deepcopy(instance)
+        flag, _ = instance.delete()
+        if flag:
+            NetflowLogEntry().log_deletion(
+                request=self.request,
+                obj=copy_instance,
+            )
 
 
 class GlobalAdministratorListGenericAPIView(GenericAPIView, CreateModelMixin):
@@ -531,7 +583,11 @@ class GlobalAdministratorListGenericAPIView(GenericAPIView, CreateModelMixin):
     def perform_create(self, serializer):
         context = serializer.context
         request = context.get('request')  # 邀请人
-        serializer.save(inviter=request.user.username)
+        obj = serializer.save(inviter=request.user.username)
+        NetflowLogEntry().log_addition(
+            request=self.request,
+            obj=obj
+        )
 
 
 class GlobalAdministratorDetailGenericAPIView(GenericAPIView, RetrieveModelMixin, DestroyModelMixin, UpdateModelMixin):
@@ -566,10 +622,15 @@ class GlobalAdministratorDetailGenericAPIView(GenericAPIView, RetrieveModelMixin
     def put(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', True)
         instance = self.get_object()
+        copy_object = copy.deepcopy(instance)
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-
+        updated_object = self.perform_update(serializer)
+        NetflowLogEntry().log_change(
+            request=request,
+            old=copy_object,
+            new=updated_object
+        )
         if getattr(instance, '_prefetched_objects_cache', None):
             # If 'prefetch_related' has been applied to a queryset, we need to
             # forcibly invalidate the prefetch cache on the instance.
@@ -578,7 +639,8 @@ class GlobalAdministratorDetailGenericAPIView(GenericAPIView, RetrieveModelMixin
         return Response(serializer.data)
 
     def perform_update(self, serializer):
-        serializer.save()
+        obj = serializer.save()
+        return obj
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('删除指定管理员'),
@@ -594,7 +656,13 @@ class GlobalAdministratorDetailGenericAPIView(GenericAPIView, RetrieveModelMixin
         return Response(status=status_code.HTTP_204_NO_CONTENT)
 
     def perform_destroy(self, instance):
-        instance.delete()
+        copy_instance = copy.deepcopy(instance)
+        flag, _ = instance.delete()
+        if flag:
+            NetflowLogEntry().log_deletion(
+                request=self.request,
+                obj=copy_instance
+            )
 
 
 class TrafficAPIView(APIView, ):
