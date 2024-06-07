@@ -1,5 +1,4 @@
 from django.contrib import admin
-from django.utils.translation import gettext_lazy
 from apps.app_net_flow.models import MenuModel
 from apps.app_net_flow.models import ChartModel
 from apps.app_net_flow.models import Menu2Chart
@@ -21,9 +20,8 @@ class MenuAdmin(BaseModelAdmin):
         'remark',
     ]
     list_display_links = ('id',)
-    filter_horizontal = (
-        "charts",
-    )
+
+    search_fields = ('id', 'name')  # 搜索字段
 
 
 @admin.register(ChartModel)
@@ -41,6 +39,7 @@ class ChartAdmin(BaseModelAdmin):
 
     ]
     list_display_links = ('id',)
+    search_fields = ('id', 'instance_name', 'if_alias', 'device_ip', 'port_name')  # 搜索字段
 
 
 @admin.register(Menu2Chart)
@@ -54,6 +53,11 @@ class Menu2ChartAdmin(BaseModelAdmin):
 
     ]
     list_display_links = ('id',)
+    raw_id_fields = ('menu', 'chart')
+    search_fields = (
+        'id', 'menu__name', 'menu__id', 'chart__id',
+        'chart__instance_name', 'chart__device_ip', 'title'
+    )  # 搜索字段
 
 
 @admin.register(Menu2Member)
@@ -67,6 +71,15 @@ class Menu2MemberAdmin(BaseModelAdmin):
 
     ]
     list_display_links = ('id',)
+    raw_id_fields = ('menu', 'member')
+    search_fields = ('id', 'menu__id', 'menu__name', 'member__email', 'member__username', 'title')  # 搜索字段
+
+    def save_model(self, request, obj, form, change):
+        """
+        Given a model instance save it to the database.
+        """
+        obj.inviter = request.user.username
+        obj.save()
 
 
 @admin.register(GlobalAdminModel)
@@ -75,7 +88,16 @@ class GlobalAdministratorAdmin(BaseModelAdmin):
         'id',
         'member',
         'role',
+        'inviter',
         'creation',
-        'modification',
     ]
     list_display_links = ('id',)
+    raw_id_fields = ('member',)
+    search_fields = ('id', 'member__email', 'member__username', 'role',)  # 搜索字段
+
+    def save_model(self, request, obj, form, change):
+        """
+        Given a model instance save it to the database.
+        """
+        obj.inviter = request.user.username
+        obj.save()

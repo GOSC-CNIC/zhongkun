@@ -122,8 +122,8 @@ class Migration(migrations.Migration):
                 ('member', models.OneToOneField(on_delete=django.db.models.deletion.DO_NOTHING, to=settings.AUTH_USER_MODEL, verbose_name='用户')),
             ],
             options={
-                'verbose_name': '全局管理员',
-                'verbose_name_plural': '全局管理员',
+                'verbose_name': '01_网络流量全局用户角色',
+                'verbose_name_plural': '01_网络流量全局用户角色',
                 'db_table': 'netflow_globaladmin',
                 'ordering': ['creation', 'modification'],
             },
