@@ -7,5 +7,5 @@ class LimitOffsetPage(LimitOffsetPagination):
 
 
 class Menu2ChartListLimitOffsetPage(LimitOffsetPagination):
-    default_limit = 15
+    default_limit = 12
     max_limit = 100
