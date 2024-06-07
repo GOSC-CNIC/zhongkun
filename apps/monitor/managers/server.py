@@ -35,8 +35,8 @@ class ServerQueryV2Choices(models.TextChoices):
     HOST_MEM_AVAIL = 'host_mem_avail', gettext_lazy('主机可用内存大小(GiB)')
     HOST_ROOT_DIR_SIZE = 'root_dir_size', gettext_lazy('主机根目录容量(GiB)')
     HOST_ROOT_DIR_AVAIL_SIZE = 'root_dir_avail_size', gettext_lazy('主机根目录可用容量(GiB)')
-    HOST_NET_RATE_IN = 'net_rate_in', gettext_lazy('下行接收带宽(MiB/s)')
-    HOST_NET_RATE_OUT = 'net_rate_out', gettext_lazy('上行发送带宽(MiB/s)')
+    HOST_NET_RATE_IN = 'net_rate_in', gettext_lazy('下行接收带宽(Mib/s)')
+    HOST_NET_RATE_OUT = 'net_rate_out', gettext_lazy('上行发送带宽(Mib/s)')
     ALL_TOGETHER = 'all_together', gettext_lazy('一起查询所有指标')
 
 

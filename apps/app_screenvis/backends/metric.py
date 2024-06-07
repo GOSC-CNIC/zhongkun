@@ -56,8 +56,8 @@ class HostExpressionQuery(BaseExpressionQuery):
     #                    'job, instance, device) (node_network_info{operstate="up"} == 1) / 8388608'
     # tmpl_net_rate_out = 'rate(node_network_transmit_bytes_total{job="$job", device!~"lo|br_.*|vnet.*"}[1m]) * on(' \
     #                     'job, instance, device) (node_network_info{operstate="up"} == 1) / 8388608'
-    tmpl_net_rate_in = 'sum(rate(node_network_receive_bytes_total{job="$job", device!~"lo|br_.*|vnet.*"}[1m])) / 8388608'
-    tmpl_net_rate_out = 'sum(rate(node_network_transmit_bytes_total{job="$job", device!~"lo|br_.*|vnet.*"}[1m])) / 8388608'
+    tmpl_net_rate_in = 'sum(rate(node_network_receive_bytes_total{job="$job", device!="lo"}[2m])) / 125000'     # Mib/s
+    tmpl_net_rate_out = 'sum(rate(node_network_transmit_bytes_total{job="$job", device!="lo"}[2m])) / 125000'   # Mib/s
 
 
 class TiDBExpressionQuery(BaseExpressionQuery):

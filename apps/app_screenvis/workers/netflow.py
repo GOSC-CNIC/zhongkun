@@ -121,8 +121,7 @@ class HostNetflowWorker:
     async def get_unit_netflow_in_value(
             unit: MetricMonitorUnit, until_timestamp: int, minutes: int, endpoint_url: str
     ) -> float:
-        query = f'sum(rate(node_network_receive_bytes_total{{job="{unit.job_tag}", device!~"lo|br_.*|vnet.*"}}' \
-                f'[{minutes}m]) * on(job, instance, device) (node_network_info{{operstate="up"}} == 1))'
+        query = f'sum(rate(node_network_receive_bytes_total{{job="{unit.job_tag}", device!="lo"}}[{minutes}m]))'
         querys = {'query': query, 'time': until_timestamp}
         try:
             result = await MetricQueryAPI().async_raw_query(endpoint_url=endpoint_url, querys=querys)
@@ -139,8 +138,7 @@ class HostNetflowWorker:
     async def get_unit_netflow_out_value(
             unit: MetricMonitorUnit, until_timestamp: int, minutes: int, endpoint_url: str
     ) -> float:
-        query = f'sum(rate(node_network_transmit_bytes_total{{job="{unit.job_tag}", device!~"lo|br_.*|vnet.*"}}' \
-                f'[{minutes}m]) * on(job, instance, device) (node_network_info{{operstate="up"}} == 1))'
+        query = f'sum(rate(node_network_transmit_bytes_total{{job="{unit.job_tag}", device!="lo"}}[{minutes}m]))'
         querys = {'query': query, 'time': until_timestamp}
 
         try:

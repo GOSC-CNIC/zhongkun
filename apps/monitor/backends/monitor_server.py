@@ -49,11 +49,11 @@ class ExpressionQuery:
     tmpl_mem_availabele = 'node_memory_MemAvailable_bytes{job="$job"} / 1073741824'   # GiB
     tmpl_root_dir_size = 'node_filesystem_size_bytes{job="$job", mountpoint="/"} / 1073741824'    # GiB
     tmpl_root_dir_avail_size = 'node_filesystem_avail_bytes{job="$job", mountpoint="/"} / 1073741824'  # GiB
-    # MiB/s
+    # Mib/s
     tmpl_net_rate_in = 'rate(node_network_receive_bytes_total{job="$job", device!~"lo|br_.*|vnet.*"}[1m]) * on(' \
-                       'job, instance, device) (node_network_info{operstate="up"} == 1) / 8388608'
+                       'job, instance, device) (node_network_info{operstate="up"} == 1) / 125000'
     tmpl_net_rate_out = 'rate(node_network_transmit_bytes_total{job="$job", device!~"lo|br_.*|vnet.*"}[1m]) * on(' \
-                        'job, instance, device) (node_network_info{operstate="up"} == 1) / 8388608'
+                        'job, instance, device) (node_network_info{operstate="up"} == 1) / 125000'
 
     @staticmethod
     def render_expression(tmpl: str, job: str = None):
