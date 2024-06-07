@@ -68,7 +68,7 @@ class Migration(migrations.Migration):
             name='Menu2Member',
             fields=[
                 ('id', models.CharField(blank=True, editable=False, max_length=36, primary_key=True, serialize=False, verbose_name='ID')),
-                ('role', models.CharField(choices=[('ordinary', '组员'), ('group-admin', '组管理员')], default='ordinary', max_length=16, verbose_name='角色')),
+                ('role', models.CharField(choices=[('ordinary', '组员'), ('group-admin', '网络流量组管理员')], default='ordinary', max_length=16, verbose_name='角色')),
                 ('inviter', models.CharField(editable=False, max_length=128, verbose_name='邀请人')),
                 ('creation', models.DateTimeField(auto_now_add=True, verbose_name='创建时间')),
                 ('modification', models.DateTimeField(auto_now=True, verbose_name='修改时间')),
@@ -115,7 +115,7 @@ class Migration(migrations.Migration):
             name='GlobalAdminModel',
             fields=[
                 ('id', models.CharField(blank=True, editable=False, max_length=36, primary_key=True, serialize=False, verbose_name='ID')),
-                ('role', models.CharField(choices=[('admin', '管理员'), ('super-admin', '超级管理员')], default='admin', max_length=16, verbose_name='角色')),
+                ('role', models.CharField(choices=[('admin', '网络流量运维管理员'), ('super-admin', '网络流量超级管理员')], default='admin', max_length=16, verbose_name='角色')),
                 ('inviter', models.CharField(default='', editable=False, max_length=128, verbose_name='邀请人')),
                 ('creation', models.DateTimeField(auto_now_add=True, verbose_name='创建时间')),
                 ('modification', models.DateTimeField(auto_now=True, verbose_name='修改时间')),

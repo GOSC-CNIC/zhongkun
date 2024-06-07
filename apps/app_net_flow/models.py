@@ -130,6 +130,9 @@ class Menu2Chart(UuidModel):
                                       default=-1,
                                       help_text=_('值越小排序越靠前'))
 
+    def __str__(self):
+        return f'{self.menu} | {self.chart}'
+
     class Meta:
         db_table = "netflow_menu2chart"
         verbose_name = _("组-元素")
@@ -149,7 +152,7 @@ class Menu2Member(UuidModel):
 
     class Roles(models.TextChoices):
         ORDINARY = 'ordinary', _('组员')
-        GROUP_ADMIN = 'group-admin', _('组管理员')
+        GROUP_ADMIN = 'group-admin', _('网络流量组管理员')
 
     role = models.CharField(
         verbose_name=_('角色'), max_length=16, choices=Roles.choices, default=Roles.ORDINARY.value)
@@ -178,8 +181,8 @@ class GlobalAdminModel(UuidModel):
         verbose_name=_('用户'))
 
     class Roles(models.TextChoices):
-        ADMIN = 'admin', _('管理员')
-        SUPER_ADMIN = 'super-admin', _('超级管理员')
+        ADMIN = 'admin', _('网络流量运维管理员')
+        SUPER_ADMIN = 'super-admin', _('网络流量超级管理员')
 
     role = models.CharField(
         verbose_name=_('角色'), max_length=16, choices=Roles.choices, default=Roles.ADMIN.value)
@@ -188,7 +191,7 @@ class GlobalAdminModel(UuidModel):
     modification = models.DateTimeField(verbose_name='修改时间', auto_now=True)
 
     def __str__(self):
-        return f"流量全局管理员 | {self.member}"
+        return f"网络流量全局管理员 | {self.member}"
 
     class Meta:
         db_table = "netflow_globaladmin"
