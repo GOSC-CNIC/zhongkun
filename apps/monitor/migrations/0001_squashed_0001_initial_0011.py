@@ -147,8 +147,8 @@ class Migration(migrations.Migration):
                 ('modification', models.DateTimeField(verbose_name='更新时间')),
             ],
             options={
-                'verbose_name': '本服务和对象存储总请求数',
-                'verbose_name_plural': '本服务和对象存储总请求数',
+                'verbose_name': '服务总请求数记录',
+                'verbose_name_plural': '服务总请求数记录',
                 'db_table': 'total_req_num',
                 'ordering': ['creation'],
             },

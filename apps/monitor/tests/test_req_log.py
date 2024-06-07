@@ -12,10 +12,15 @@ class ServiceReqCounterTests(TransactionTestCase):
         pass
 
     def test_req_num(self):
-        def get_sites_req_num(sites: dict, new_until_time, hours: int):
+        self.service_req_num_test(service_type=TotalReqNum.ServiceType.YUNKUN.value)
+        self.service_req_num_test(service_type=TotalReqNum.ServiceType.VMS.value)
+        self.service_req_num_test(service_type=TotalReqNum.ServiceType.OBS.value)
+
+    def service_req_num_test(self, service_type: str):
+        def get_sites_req_num(sites: list, new_until_time, hours: int):
             return hours * 2
 
-        req_ins = TotalReqNum.get_instance()
+        req_ins = TotalReqNum.get_instance(service_type=service_type)
         self.assertEqual(req_ins.req_num, 0)
         req_ins.until_time = timezone.now() - timedelta(hours=1)
         req_ins.save(update_fields=['until_time'])
@@ -24,7 +29,7 @@ class ServiceReqCounterTests(TransactionTestCase):
         req_counter.get_sites_req_num = get_sites_req_num
 
         # 不更新
-        count_hours = req_counter.run()
+        count_hours = req_counter.do_update(service_type=service_type, new_until_time=req_counter.new_until_time)
         self.assertEqual(count_hours, 0)
         req_ins.refresh_from_db()
         self.assertNotEqual(req_counter.new_until_time, req_ins.until_time)
@@ -33,7 +38,7 @@ class ServiceReqCounterTests(TransactionTestCase):
 
         # -2h
         req_counter.new_until_time = req_counter.new_until_time - timedelta(hours=2)
-        count_hours = req_counter.run()
+        count_hours = req_counter.do_update(service_type=service_type, new_until_time=req_counter.new_until_time)
         self.assertEqual(count_hours, 0)
         req_ins.refresh_from_db()
         self.assertNotEqual(req_counter.new_until_time, req_ins.until_time)
@@ -41,7 +46,7 @@ class ServiceReqCounterTests(TransactionTestCase):
 
         # 1h
         req_counter.new_until_time = now_hour_start_time + timedelta(hours=1)
-        count_hours = req_counter.run()
+        count_hours = req_counter.do_update(service_type=service_type, new_until_time=req_counter.new_until_time)
         self.assertEqual(count_hours, 1)
         req_ins.refresh_from_db()
         self.assertEqual(req_counter.new_until_time, req_ins.until_time)
@@ -49,7 +54,7 @@ class ServiceReqCounterTests(TransactionTestCase):
 
         # 6h
         req_counter.new_until_time = req_counter.new_until_time + timedelta(hours=6)
-        count_hours = req_counter.run()
+        count_hours = req_counter.do_update(service_type=service_type, new_until_time=req_counter.new_until_time)
         self.assertEqual(count_hours, 6)
         req_ins.refresh_from_db()
         self.assertEqual(req_counter.new_until_time, req_ins.until_time)
@@ -57,7 +62,7 @@ class ServiceReqCounterTests(TransactionTestCase):
 
         # 26h
         req_counter.new_until_time = req_counter.new_until_time + timedelta(hours=26)
-        count_hours = req_counter.run()
+        count_hours = req_counter.do_update(service_type=service_type, new_until_time=req_counter.new_until_time)
         self.assertEqual(count_hours, 24)
         req_ins.refresh_from_db()
         self.assertEqual(req_counter.new_until_time, req_ins.until_time)
@@ -66,7 +71,7 @@ class ServiceReqCounterTests(TransactionTestCase):
 
         # 不更新
         req_counter.new_until_time = now_hour_start_time
-        count_hours = req_counter.run()
+        count_hours = req_counter.do_update(service_type=service_type, new_until_time=req_counter.new_until_time)
         self.assertEqual(count_hours, 0)
         req_ins.refresh_from_db()
         self.assertEqual(pre_until_time, req_ins.until_time)

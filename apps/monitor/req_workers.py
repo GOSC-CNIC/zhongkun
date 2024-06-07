@@ -23,18 +23,49 @@ def get_now_hour_start_time():
 
 
 class ServiceReqCounter:
-    PORTAL_REQ_NUM_LOKI_SITES = settings.PORTAL_REQ_NUM_LOKI_SITES
+    @staticmethod
+    def get_sites(service_type: str) -> list:
+        sites_dict = getattr(settings, 'PORTAL_REQ_NUM_LOKI_SITES_MAP', {})
+        if service_type == TotalReqNum.ServiceType.YUNKUN.value:
+            return sites_dict.get('yunkun', [])
+        elif service_type == TotalReqNum.ServiceType.VMS.value:
+            return sites_dict.get('vms', [])
+        elif service_type == TotalReqNum.ServiceType.OBS.value:
+            return sites_dict.get('obs', [])
+
+        raise Exception('服务类型无效')
 
     def __init__(self):
         self.new_until_time = get_now_hour_start_time()
 
-    def run(self) -> int:
+    def run(self):
         """
         每次最少统计1h、最多统计24h内的请求数，定时执行周期可选1-24小时
         :return: 本次统计的前多少个小时内的请求数
         """
         new_until_time = self.new_until_time
-        req_num_ins = TotalReqNum.get_instance()
+        self.do_update(
+            service_type=TotalReqNum.ServiceType.VMS.value, new_until_time=new_until_time)
+        self.do_update(
+            service_type=TotalReqNum.ServiceType.OBS.value, new_until_time=new_until_time)
+        self.do_update(
+            service_type=TotalReqNum.ServiceType.YUNKUN.value, new_until_time=new_until_time)
+
+    def do_update(self, service_type: str, new_until_time):
+        try:
+            ins = TotalReqNum.get_instance(service_type=service_type)
+            sites = self.get_sites(service_type=service_type)
+            hours = self.update_service_req_count(req_num_ins=ins, new_until_time=new_until_time, sites=sites)
+            return hours
+        except Exception as exc:
+            print(f'Failed，{str(exc)}。')
+
+    def update_service_req_count(self, req_num_ins, new_until_time, sites: list) -> int:
+        """
+        sites: [
+            {'api': 'https://xx.xx.cn/loki/api/v1/query', 'job': 'xx_log'},
+        ]
+        """
         # 最大统计24h内的
         hours = self.range_hours(until_time=new_until_time, ins=req_num_ins)
         delta_str = f'时间{new_until_time}向前{hours}小时内请求数'
@@ -42,9 +73,9 @@ class ServiceReqCounter:
             print(f'END，已统计过 {delta_str}。')
             return hours
 
-        print(f'Start，{delta_str}统计')
+        print(f'Start，service {req_num_ins.service_type},{delta_str}统计')
         hours_req_num = self.get_sites_req_num(
-            sites=self.PORTAL_REQ_NUM_LOKI_SITES, new_until_time=new_until_time, hours=hours)
+            sites=sites, new_until_time=new_until_time, hours=hours)
         req_num_ins.req_num += hours_req_num
         req_num_ins.until_time = new_until_time
         req_num_ins.modification = timezone.now()
@@ -64,7 +95,7 @@ class ServiceReqCounter:
         hours = max(hours, 0)
         return hours
 
-    def get_sites_req_num(self, sites: dict, new_until_time: datetime, hours: int):
+    def get_sites_req_num(self, sites: list, new_until_time: datetime, hours: int):
         """
         sites: [{'api': 'https://x.x.1.x:44135/loki/api/v1/query', 'job': 'servicebackend'}]
         """

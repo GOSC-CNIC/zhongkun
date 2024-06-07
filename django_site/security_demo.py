@@ -83,11 +83,22 @@ API_KJY_PORTAL_ALLOWED_IPS = []
 # 监控各单元用户邮件地址查询相关接口客户端IP鉴权配置
 API_MONITOR_EMAIL_ALLOWED_IPS = []
 
-# 服务总请求数统计依赖设置，配置各站点loki日志服务接口，总请求数==各站点的请求数的和
-PORTAL_REQ_NUM_LOKI_SITES = [
-    {'api': 'http://xx.xx.xx.xx:34135/loki/api/v1/query', 'job': 'servicebackend'},
-    {'api': 'http://xx.xx.xx.xx:34135/loki/api/v1/query', 'job': 'obs'},
-]
+# 各种服务总请求数统计依赖设置，配置各站点loki日志服务接口，总请求数==各站点的请求数的和
+PORTAL_REQ_NUM_LOKI_SITES_MAP = {
+    # yunkun，
+    'yunkun': [
+        {'api': 'https://xx.xx.cn/loki/api/v1/query', 'job': 'xx_log'},
+    ],
+    # 云主机
+    'vms': [
+        {'api': 'https://xxx.xxx.cn/loki/api/v1/query', 'job': 'xx_log'},
+        {'api': 'https://xx.xx.cn/loki/api/v1/query', 'job': 'xx_log'},
+    ],
+    # 对象存储
+    'obs': [
+        {'api': 'http://10.0.91.149:34135/loki/api/v1/query', 'job': 'obs'},
+    ],
+}
 
 # test case settings
 TEST_CASE_SECURITY = {
