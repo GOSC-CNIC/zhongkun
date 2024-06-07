@@ -65,3 +65,65 @@ class PortalServiceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['code'], 200)
         self.assertEqual(response.data['num'], 6688)
+
+
+class PortalVmsTests(MyAPITestCase):
+    def setUp(self):
+        self.user = get_or_create_user(username='tom@cnic.cn')
+        self.service = get_or_create_service()
+        clear_portal_allowed_ips()
+
+    def test_status(self):
+        base_url = reverse('api:portal-vms-status')
+        response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        add_portal_allowed_ip()
+
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['code'], 200)
+        self.assertEqual(response.data['status'], 'success')
+
+    def test_user_num(self):
+        base_url = reverse('api:portal-vms-user-num')
+        response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        add_portal_allowed_ip()
+
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['code'], 200)
+        self.assertEqual(response.data['count'], 1)
+
+
+class PortalObsTests(MyAPITestCase):
+    def setUp(self):
+        self.user = get_or_create_user(username='tom@cnic.cn')
+        self.service = get_or_create_service()
+        clear_portal_allowed_ips()
+
+    def test_status(self):
+        base_url = reverse('api:portal-obs-status')
+        response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        add_portal_allowed_ip()
+
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['code'], 200)
+        self.assertEqual(response.data['status'], 'success')
+
+    def test_user_num(self):
+        base_url = reverse('api:portal-obs-user-num')
+        response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        add_portal_allowed_ip()
+
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['code'], 200)
+        self.assertEqual(response.data['count'], 1)

@@ -21,6 +21,8 @@ no_slash_router.register(
     r'admin/user/statistics', user_views.AdminUserStatisticsViewSet, basename='admin-user-statistics')
 
 no_slash_router.register(r'portal/service', portal_views.PortalServiceViewSet, basename='portal-service')
+no_slash_router.register(r'portal/vms', portal_views.PortalVmsViewSet, basename='portal-vms')
+no_slash_router.register(r'portal/obs', portal_views.PortalObsViewSet, basename='portal-obs')
 
 
 urlpatterns = [

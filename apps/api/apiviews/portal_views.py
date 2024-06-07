@@ -121,3 +121,127 @@ class PortalServiceViewSet(CustomGenericViewSet):
                 errors.AccessDenied(message=_('您的IP地址%(value)s没有访问权限。') % {'value': addr_ip}))
 
         return None
+
+
+class PortalVmsViewSet(CustomGenericViewSet):
+    permission_classes = [InAllowedIp]
+    pagination_class = DefaultPageNumberPagination
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('云主机服务可用性查询'),
+        paginator_inspectors=[NoPaginatorInspector],
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['get'], detail=False, url_path='status', url_name='status')
+    def service_status(self, request, *args, **kwargs):
+        """
+        云主机服务可用性查询
+
+            Http Code: 状态码200，返回数据：
+            {
+              "code": 200,
+              "status": "success" # success 表示可访问，failure 表示不可访问
+            }
+        """
+        return Response(data={
+            'code': 200,
+            'status': 'success'
+        })
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('云主机服务服务用户数查询'),
+        paginator_inspectors=[NoPaginatorInspector],
+        responses={200: ''}
+    )
+    @action(methods=['get'], detail=False, url_path='user-num', url_name='user-num')
+    def user_number(self, request, *args, **kwargs):
+        """
+        云主机服务服务用户数查询
+
+            Http Code 200 ok:
+            {
+              "code": 200,
+              "count": 1234
+            }
+        """
+        qs = filter_user_queryset()
+        user_num = qs.count()
+        return Response(data={
+            'code': 200,
+            'count': user_num
+        })
+
+    def get_serializer_class(self):
+        return Serializer
+
+    def allowed_addr_ip(self, request):
+        allowd, addr_ip = InAllowedIp.check_addr_allowed(request=request)
+        if not allowd:
+            return self.exception_response(
+                errors.AccessDenied(message=_('您的IP地址%(value)s没有访问权限。') % {'value': addr_ip}))
+
+        return None
+
+
+class PortalObsViewSet(CustomGenericViewSet):
+    permission_classes = [InAllowedIp]
+    pagination_class = DefaultPageNumberPagination
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('对象存储服务可用性查询'),
+        paginator_inspectors=[NoPaginatorInspector],
+        responses={
+            200: ''
+        }
+    )
+    @action(methods=['get'], detail=False, url_path='status', url_name='status')
+    def service_status(self, request, *args, **kwargs):
+        """
+        对象存储服务可用性查询
+
+            Http Code: 状态码200，返回数据：
+            {
+              "code": 200,
+              "status": "success" # success 表示可访问，failure 表示不可访问
+            }
+        """
+        return Response(data={
+            'code': 200,
+            'status': 'success'
+        })
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('对象存储服务用户数查询'),
+        paginator_inspectors=[NoPaginatorInspector],
+        responses={200: ''}
+    )
+    @action(methods=['get'], detail=False, url_path='user-num', url_name='user-num')
+    def user_number(self, request, *args, **kwargs):
+        """
+        对象存储服务用户数查询
+
+            Http Code 200 ok:
+            {
+              "code": 200,
+              "count": 1234
+            }
+        """
+        qs = filter_user_queryset()
+        user_num = qs.count()
+        return Response(data={
+            'code': 200,
+            'count': user_num
+        })
+
+    def get_serializer_class(self):
+        return Serializer
+
+    def allowed_addr_ip(self, request):
+        allowd, addr_ip = InAllowedIp.check_addr_allowed(request=request)
+        if not allowd:
+            return self.exception_response(
+                errors.AccessDenied(message=_('您的IP地址%(value)s没有访问权限。') % {'value': addr_ip}))
+
+        return None
