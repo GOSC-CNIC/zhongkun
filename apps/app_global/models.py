@@ -104,9 +104,7 @@ class IPAccessWhiteList(models.Model):
     class ModuleName(models.TextChoices):
         SCREEN = 'screen', _('大屏展示')
         EMAIL = 'email', _('邮件发送API')
-        NETBOX_LINK = 'netbox-link', _('链路管理')
         ALERT = 'alert-receiver', _('告警接收API')
-        NETFLOW = 'netflow', _('流量')
         PORTAL = 'portal', _('Portal门户接口')
 
     id = models.BigAutoField(primary_key=True)

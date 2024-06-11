@@ -78,7 +78,9 @@ class IPAccessWhiteListManager(Singleton):
         }
         """
         whitelist_map = {}
-        qs = IPAccessWhiteList.objects.values('ip_value', 'module_name')
+        qs = IPAccessWhiteList.objects.filter(
+            module_name__in=IPAccessWhiteList.ModuleName.values
+        ).values('ip_value', 'module_name')
         for ip_item in qs:
             name = ip_item['module_name']
             if name in whitelist_map:

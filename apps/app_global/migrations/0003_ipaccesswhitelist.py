@@ -15,8 +15,8 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.BigAutoField(primary_key=True, serialize=False)),
                 ('module_name', models.CharField(choices=[
-                    ('screen', '大屏展示'), ('email', '邮件发送API'), ('netbox-link', '链路管理'),
-                    ('alert-receiver', '告警接收API'), ('netflow', '流量'),
+                    ('screen', '大屏展示'), ('email', '邮件发送API'),
+                    ('alert-receiver', '告警接收API'),
                     ('portal', 'Portal门户接口')
                 ], help_text='此IP白名单适用的功能模块', max_length=32, verbose_name='功能模块')),
                 ('ip_value', models.CharField(help_text='192.168.1.1、 192.168.1.1/24、192.168.1.66 - 192.168.1.100', max_length=100, verbose_name='IP')),

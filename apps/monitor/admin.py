@@ -249,7 +249,7 @@ class LogSiteAdmin(BaseModelAdmin):
 
 @admin.register(TotalReqNum)
 class TotalReqNumAdmin(NoDeleteSelectModelAdmin):
-    list_display = ('id', 'req_num', 'until_time', 'creation', 'modification')
+    list_display = ('id', 'service_type', 'req_num', 'until_time', 'creation', 'modification')
     list_display_links = ('id', )
 
     def has_delete_permission(self, request, obj=None):
