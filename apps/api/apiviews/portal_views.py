@@ -5,20 +5,34 @@ from rest_framework.response import Response
 from rest_framework.serializers import Serializer
 from drf_yasg.utils import swagger_auto_schema
 
+from core import errors
+from utils.paginators import NoPaginatorInspector
+from utils.iprestrict import IPRestrictor
+from apps.app_global.configs_manager import IPAccessWhiteListManager
 from apps.api.viewsets import CustomGenericViewSet
 from apps.api.paginations import DefaultPageNumberPagination
 from apps.users.managers import filter_user_queryset
 from apps.monitor.models import TotalReqNum
-from core import errors
-from utils.paginators import NoPaginatorInspector
-from utils.iprestrict import IPRestrictor, load_allowed_ips
 
 
 class PortalIPRestrictor(IPRestrictor):
-    SETTING_KEY_NAME = 'API_KJY_PORTAL_ALLOWED_IPS'
-
     def load_ip_rules(self):
-        return load_allowed_ips(self.SETTING_KEY_NAME)
+        return IPAccessWhiteListManager.get_module_ip_whitelist(
+            module_name=IPAccessWhiteListManager.ModuleName.PORTAL.value)
+
+    @staticmethod
+    def clear_cache():
+        IPAccessWhiteListManager.clear_cache()
+
+    @staticmethod
+    def add_ip_rule(ip_value: str):
+        return IPAccessWhiteListManager.add_whitelist_obj(
+            module_name=IPAccessWhiteListManager.ModuleName.PORTAL.value, ip_value=ip_value)
+
+    @staticmethod
+    def remove_ip_rules(ip_values: list):
+        return IPAccessWhiteListManager.delete_whitelist(
+            module_name=IPAccessWhiteListManager.ModuleName.PORTAL.value, ip_values=ip_values)
 
 
 class InAllowedIp(BasePermission):

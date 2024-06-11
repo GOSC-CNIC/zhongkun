@@ -1,5 +1,4 @@
 from django.urls import reverse
-from django.conf import settings
 
 from utils.test import get_or_create_service
 from apps.monitor.models import TotalReqNum
@@ -8,11 +7,13 @@ from . import MyAPITestCase, get_or_create_user
 
 
 def add_portal_allowed_ip(real_ip: str = '127.0.0.1'):
-    settings.API_KJY_PORTAL_ALLOWED_IPS = [real_ip]
+    PortalIPRestrictor.add_ip_rule(real_ip)
+    PortalIPRestrictor.clear_cache()
 
 
 def clear_portal_allowed_ips():
-    settings.API_KJY_PORTAL_ALLOWED_IPS = []
+    PortalIPRestrictor.remove_ip_rules(ip_values=['127.0.0.1'])
+    PortalIPRestrictor.clear_cache()
 
 
 class PortalServiceTests(MyAPITestCase):

@@ -77,9 +77,6 @@ PAYMENT_BALANCE = {
 # proxy_set_header X-Forwarded-For $remote_addr;     不能使用 $proxy_add_x_forwarded_for;
 # ip设置规则允许 单个ip、一个网段、一个ip段，如'192.168.1.1'、 '192.168.1.1/24'、'192.168.1.66 - 192.168.1.100'
 
-# 科技云门户相关api权限允许的ip地址列表
-API_KJY_PORTAL_ALLOWED_IPS = []
-
 # 监控各单元用户邮件地址查询相关接口客户端IP鉴权配置
 API_MONITOR_EMAIL_ALLOWED_IPS = []
 
