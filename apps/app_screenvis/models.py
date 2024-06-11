@@ -1,3 +1,4 @@
+import hashlib
 from datetime import datetime
 
 from django.db import models
@@ -9,11 +10,20 @@ from django.core.validators import URLValidator
 from utils.model import UuidModel, get_encryptor
 
 
+def get_str_hash(s: str):
+    """
+    计算字符串的hash1
+    """
+    return hashlib.sha1(s.encode(encoding='utf-8')).hexdigest()
+
+
 class ScreenConfig(models.Model):
     class ConfigName(models.TextChoices):
         ORG_NAME = 'org_name', _('机构名称')
         ORG_NAME_EN = 'org_name_en', _('机构英文名称')
         PROBE_TASK_ENDPOINT_URL = 'probe_task_endpoint_url', _('站点监控探针任务更新服务地址')
+        # PROBE_TASK_USERNAME = 'probe_task_username', _('站点监控探针任务更新服务认证用户名')
+        # PROBE_TASK_PASSWORD = 'probe_task_password', _('站点监控探针任务更新服务认证密码')
         PROBE_QUERY_ENDPOINT_URL = 'probe_query_endpoint_url', _('站点监控数据查询服务地址')
 
     # 配置的默认值，自动创建配置参数记录时填充的默认值
@@ -407,3 +417,50 @@ class HostNetflow(UuidModel):
             datetime.fromtimestamp(self.timestamp, tz=dj_timezone.get_default_timezone())
         except Exception as exc:
             raise ValidationError({'timestamp': f'无效的时间戳，{str(exc)}，当前时间戳为:{int(dj_timezone.now().timestamp())}'})
+
+
+class WebsiteMonitorTask(UuidModel):
+    """
+    网站监控任务
+    """
+    name = models.CharField(verbose_name=_('名称'), max_length=255)
+    data_center = models.ForeignKey(
+        to=DataCenter, null=True, on_delete=models.SET_NULL, related_name='+', verbose_name=_('数据中心'),
+        db_constraint=False)
+    url = models.CharField(verbose_name=_('要监控的网址'), max_length=2048, default='')
+    url_hash = models.CharField(verbose_name=_('网址hash值'), max_length=64, blank=True, default='')
+    creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
+    is_tamper_resistant = models.BooleanField(verbose_name=_('防篡改'), blank=True, default=False)
+
+    class Meta:
+        db_table = 'screenvis_website_task'
+        ordering = ['-creation_time']
+        verbose_name = _('网站监控任务')
+        verbose_name_plural = verbose_name
+        constraints = [
+            models.UniqueConstraint(fields=('url_hash',), name='uniq_screenvis_webtask_url_hash')
+        ]
+
+    def __str__(self):
+        return f'Task(id={self.id}, url={self.url})'
+
+    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
+        self.url_hash = get_str_hash(self.url)
+        if isinstance(update_fields, list) and 'url' in update_fields:
+            update_fields.append('url_hash')
+
+        super().save(force_insert=force_insert, force_update=force_update, using=using, update_fields=update_fields)
+
+    def clean(self):
+        super().clean()
+        # 网址验证
+        try:
+            URLValidator(schemes=['http', 'https'])(self.url)
+        except ValidationError:
+            raise ValidationError(message={'url': gettext('不是一个有效的网址')})
+
+        self.url_hash = get_str_hash(self.url)
+        task = WebsiteMonitorTask.objects.exclude(id=self.id).filter(
+            models.Q(url=self.url) | models.Q(url_hash=self.url_hash)).first()
+        if task:
+            raise ValidationError({'url': gettext("已存在相同的监控网址")})

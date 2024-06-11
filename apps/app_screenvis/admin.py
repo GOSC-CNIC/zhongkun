@@ -8,12 +8,12 @@ from django.utils import timezone as dj_timezone
 from django.utils.html import format_html
 
 
-from utils.model import BaseModelAdmin
+from utils.model import BaseModelAdmin, NoDeleteSelectModelAdmin
 from apps.app_screenvis.configs_manager import screen_configs
 from .models import (
     ScreenConfig, DataCenter, MetricMonitorUnit, LogMonitorUnit, HostCpuUsage,
     ServerService, ObjectService, ServerServiceTimedStats, ObjectServiceTimedStats, VPNTimedStats,
-    ObjectServiceLog, ServerServiceLog, HostNetflow
+    ObjectServiceLog, ServerServiceLog, HostNetflow, WebsiteMonitorTask
 )
 
 
@@ -282,3 +282,32 @@ class HostNetflowAdmin(BaseModelAdmin):
             return ''
 
         return dt.isoformat(sep=' ')
+
+
+class WebsiteMonitorTaskForm(forms.ModelForm):
+    def clean(self):
+        return super().clean()
+
+
+@admin.register(WebsiteMonitorTask)
+class WebsiteMonitorTaskAdmin(NoDeleteSelectModelAdmin):
+    form = WebsiteMonitorTaskForm
+    list_display = ('id', 'name', 'data_center', 'url', 'url_hash', 'is_tamper_resistant', 'creation_time')
+    list_display_links = ('id',)
+    list_filter = ('data_center',)
+    list_select_related = ('data_center',)
+    search_fields = ('url',)
+    readonly_fields = ('url_hash',)
+
+    def save_model(self, request, obj, form, change):
+        if change:
+            old_obj = WebsiteMonitorTask.objects.get(id=obj.id)
+            if old_obj.url != obj.url or old_obj.is_tamper_resistant != obj.is_tamper_resistant:
+                pass    # change
+        else:
+            pass    # add
+
+        super().save_model(request=request, obj=obj, form=form, change=change)
+
+    def delete_model(self, request, obj):
+        super().delete_model(request=request, obj=obj)
