@@ -122,6 +122,27 @@ class PortalVmsTests(MyAPITestCase):
         self.assertEqual(response.data['code'], 200)
         self.assertEqual(response.data['count'], 1)
 
+    def test_req_num(self):
+        base_url = reverse('api:portal-vms-total-req-num')
+        response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        add_portal_allowed_ip()
+
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['code'], 200)
+        self.assertEqual(response.data['num'], 0)
+        self.assertTrue(response.data['until_time'])
+
+        ins = TotalReqNum.get_instance(TotalReqNum.ServiceType.VMS.value)
+        ins.req_num = 6688
+        ins.save(update_fields=['req_num'])
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['code'], 200)
+        self.assertEqual(response.data['num'], 6688)
+
 
 class PortalObsTests(MyAPITestCase):
     def setUp(self):
@@ -152,3 +173,24 @@ class PortalObsTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['code'], 200)
         self.assertEqual(response.data['count'], 1)
+
+    def test_req_num(self):
+        base_url = reverse('api:portal-obs-total-req-num')
+        response = self.client.get(base_url)
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+
+        add_portal_allowed_ip()
+
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['code'], 200)
+        self.assertEqual(response.data['num'], 0)
+        self.assertTrue(response.data['until_time'])
+
+        ins = TotalReqNum.get_instance(TotalReqNum.ServiceType.OBS.value)
+        ins.req_num = 6688
+        ins.save(update_fields=['req_num'])
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['code'], 200)
+        self.assertEqual(response.data['num'], 6688)

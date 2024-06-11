@@ -183,6 +183,30 @@ class PortalVmsViewSet(CustomGenericViewSet):
             'count': user_num
         })
 
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('云主机服务总请求数查询'),
+        paginator_inspectors=[NoPaginatorInspector],
+        responses={200: ''}
+    )
+    @action(methods=['get'], detail=False, url_path='total-req-num', url_name='total-req-num')
+    def req_number(self, request, *args, **kwargs):
+        """
+        云主机服务总请求数查询
+
+            Http Code 200 ok:
+            {
+              "code": 200,
+              "num": 312734,
+              "until_time": "2023-07-25T00:00:00+00:00"
+            }
+        """
+        ins = TotalReqNum.get_instance(TotalReqNum.ServiceType.VMS.value)
+        return Response(data={
+            'code': 200,
+            'num': ins.req_num,
+            'until_time': ins.until_time.isoformat()
+        })
+
     def get_serializer_class(self):
         return Serializer
 
@@ -243,6 +267,30 @@ class PortalObsViewSet(CustomGenericViewSet):
         return Response(data={
             'code': 200,
             'count': user_num
+        })
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('对象存储服务总请求数查询'),
+        paginator_inspectors=[NoPaginatorInspector],
+        responses={200: ''}
+    )
+    @action(methods=['get'], detail=False, url_path='total-req-num', url_name='total-req-num')
+    def req_number(self, request, *args, **kwargs):
+        """
+        对象存储服务总请求数查询
+
+            Http Code 200 ok:
+            {
+              "code": 200,
+              "num": 312734,
+              "until_time": "2023-07-25T00:00:00+00:00"
+            }
+        """
+        ins = TotalReqNum.get_instance(TotalReqNum.ServiceType.OBS.value)
+        return Response(data={
+            'code': 200,
+            'num': ins.req_num,
+            'until_time': ins.until_time.isoformat()
         })
 
     def get_serializer_class(self):
