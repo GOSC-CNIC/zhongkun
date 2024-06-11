@@ -56,15 +56,40 @@ class PortalServiceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['code'], 200)
         self.assertEqual(response.data['num'], 0)
-        self.assertTrue(response.data['until_time'])
+        self.assertIsNone(response.data['until_time'])
 
-        ins = TotalReqNum.get_instance()
+        ins = TotalReqNum.get_instance(TotalReqNum.ServiceType.YUNKUN.value)
         ins.req_num = 6688
         ins.save(update_fields=['req_num'])
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['code'], 200)
         self.assertEqual(response.data['num'], 6688)
+        self.assertIsNotNone(response.data['until_time'])
+
+        vms_ins = TotalReqNum.get_instance(TotalReqNum.ServiceType.VMS.value)
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['code'], 200)
+        self.assertEqual(response.data['num'], 6688)
+        self.assertIsNotNone(response.data['until_time'])
+
+        obs_ins = TotalReqNum.get_instance(TotalReqNum.ServiceType.OBS.value)
+        obs_ins.req_num = 134634
+        obs_ins.save(update_fields=['req_num'])
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['code'], 200)
+        self.assertEqual(response.data['num'], 6688 + 134634)
+        self.assertIsNotNone(response.data['until_time'])
+
+        vms_ins.req_num = 56758
+        vms_ins.save(update_fields=['req_num'])
+        response = self.client.get(base_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['code'], 200)
+        self.assertEqual(response.data['num'], 6688 + 134634 + 56758)
+        self.assertIsNotNone(response.data['until_time'])
 
 
 class PortalVmsTests(MyAPITestCase):

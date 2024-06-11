@@ -104,11 +104,21 @@ class PortalServiceViewSet(CustomGenericViewSet):
               "until_time": "2023-07-25T00:00:00+00:00"
             }
         """
-        ins = TotalReqNum.get_instance()
+        total_req_num = 0
+        until_time = None
+        qs = TotalReqNum.objects.filter(
+            service_type__in=TotalReqNum.ServiceType.values
+        )
+        for i in qs:
+            i: TotalReqNum
+            total_req_num += i.req_num
+            if not until_time or i.until_time > until_time:
+                until_time = i.until_time
+
         return Response(data={
             'code': 200,
-            'num': ins.req_num,
-            'until_time': ins.until_time.isoformat()
+            'num': total_req_num,
+            'until_time': until_time.isoformat() if until_time else None
         })
 
     def get_serializer_class(self):
