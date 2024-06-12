@@ -1,15 +1,17 @@
 from datetime import datetime
 
 from django import forms
-from django.contrib import admin
+from django.core.exceptions import ValidationError
+from django.contrib import admin, messages
 from django.contrib.admin import helpers
-from django.utils.translation import gettext_lazy
+from django.utils.translation import gettext_lazy, gettext
 from django.utils import timezone as dj_timezone
 from django.utils.html import format_html
 
 
 from utils.model import BaseModelAdmin, NoDeleteSelectModelAdmin
 from apps.app_screenvis.configs_manager import screen_configs
+from apps.app_screenvis.managers import ScreenWebMonitorManager
 from .models import (
     ScreenConfig, DataCenter, MetricMonitorUnit, LogMonitorUnit, HostCpuUsage,
     ServerService, ObjectService, ServerServiceTimedStats, ObjectServiceTimedStats, VPNTimedStats,
@@ -286,6 +288,11 @@ class HostNetflowAdmin(BaseModelAdmin):
 
 class WebsiteMonitorTaskForm(forms.ModelForm):
     def clean(self):
+        try:
+            ScreenWebMonitorManager.get_check_task_configs()
+        except Exception as exc:
+            raise ValidationError(message=str(exc))
+
         return super().clean()
 
 
@@ -300,14 +307,82 @@ class WebsiteMonitorTaskAdmin(NoDeleteSelectModelAdmin):
     readonly_fields = ('url_hash',)
 
     def save_model(self, request, obj, form, change):
+        obj: WebsiteMonitorTask
         if change:
             old_obj = WebsiteMonitorTask.objects.get(id=obj.id)
             if old_obj.url != obj.url or old_obj.is_tamper_resistant != obj.is_tamper_resistant:
-                pass    # change
+                obj.reset_url_hash()
+                try:
+                    ScreenWebMonitorManager.change_task_to_probe(
+                        web_url=old_obj.url, url_hash=old_obj.url_hash, is_tamper_resistant=old_obj.is_tamper_resistant,
+                        new_web_url=obj.url, new_url_hash=obj.url_hash, new_is_tamper_resistant=obj.is_tamper_resistant
+                    )
+                except Exception as exc:
+                    self.message_user(request, gettext("修改监控任务失败，任务变更推送到探针失败。") + str(exc),
+                                      level=messages.ERROR)
+                    request.post_to_probe_failed = True
+                    return
+
+                self.message_user(request, gettext("监控任务变更成功推送到探针"), level=messages.SUCCESS)
         else:
-            pass    # add
+            obj.reset_url_hash()
+            try:
+                ScreenWebMonitorManager.add_task_to_probe(
+                    web_url=obj.url, url_hash=obj.url_hash, is_tamper_resistant=obj.is_tamper_resistant)
+            except Exception as exc:
+                self.message_user(request, gettext("添加监控任务失败，新任务推送到探针失败。") + str(exc),
+                                  level=messages.ERROR)
+                request.post_to_probe_failed = True
+                return
+
+            self.message_user(request, gettext("新监控任务成功推送到探针"), level=messages.SUCCESS)
 
         super().save_model(request=request, obj=obj, form=form, change=change)
 
+    def response_change(self, request, obj):
+        r = super(WebsiteMonitorTaskAdmin, self).response_change(request=request, obj=obj)
+        self.remove_success_messages_when_failed(request=request, response=r)
+        return r
+
+    def response_add(self, request, obj, post_url_continue=None):
+        r = super(WebsiteMonitorTaskAdmin, self).response_add(request=request, obj=obj)
+        self.remove_success_messages_when_failed(request=request, response=r)
+        return r
+
+    @staticmethod
+    def remove_success_messages_when_failed(request, response):
+        post_to_probe_failed = getattr(request, 'post_to_probe_failed', False)
+        if not post_to_probe_failed:
+            return response
+
+        storage = messages.get_messages(request)
+        msgs = []
+        for m in storage:
+            if m.level == messages.SUCCESS:
+                continue
+
+            msgs.append(m)
+
+        for m in msgs:
+            messages.add_message(request, m.level, m.message)
+
+        return response
+
     def delete_model(self, request, obj):
+        try:
+            ScreenWebMonitorManager.remove_task_from_probe(
+                web_url=obj.url, url_hash=obj.url_hash, is_tamper_resistant=obj.is_tamper_resistant)
+        except Exception as exc:
+            self.message_user(request, gettext("删除监控任务失败，从探针删除任务失败。") + str(exc),
+                              level=messages.ERROR)
+            request.post_to_probe_failed = True
+            return
+
         super().delete_model(request=request, obj=obj)
+        self.message_user(request, gettext("成功从探针删除监控任务"), level=messages.SUCCESS)
+
+    def response_delete(self, request, obj_display, obj_id):
+        r = super(WebsiteMonitorTaskAdmin, self).response_delete(
+            request=request, obj_display=obj_display, obj_id=obj_id)
+        self.remove_success_messages_when_failed(request=request, response=r)
+        return r

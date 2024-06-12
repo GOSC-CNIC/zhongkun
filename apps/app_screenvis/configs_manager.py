@@ -41,7 +41,7 @@ class Configs(metaclass=Singleton):
             for name in ScreenConfig.ConfigName.values:
                 if name not in configs:
                     obj, created = ScreenConfig.objects.get_or_create(
-                        name=name, defaults={'value': ScreenConfig.value_defaults[name]})
+                        name=name, defaults={'value': ScreenConfig.value_defaults.get(name, '')})
                     configs[name] = obj.value
 
         dj_cache.set(cache_key, configs, timeout=120)
