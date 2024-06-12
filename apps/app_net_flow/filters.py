@@ -53,6 +53,8 @@ class Menu2ChartFilter(django_filters.FilterSet):
             raise InvalidArgument(f"invalid menu: `{value}`")
         groups = perm.get_child_nodes(value)  # 当前分组以及所有下级分组
         queryset = queryset.filter(menu__id__in=groups).values_list('id', flat=True)
+        for _ in queryset:
+            pass
         return queryset
 
     def exact_menu_filter(self, queryset, field_name, value):

@@ -1,6 +1,6 @@
 import json
 import datetime
-from django.contrib.admin.models import LogEntry
+from apps.app_net_flow.models import NetflowLogEntryModel
 from django.contrib.admin.models import ADDITION
 from django.contrib.admin.models import CHANGE
 from django.contrib.admin.models import DELETION
@@ -22,7 +22,7 @@ class NetflowLogEntry:
 
     def log_addition(self, request, obj, ):
         message = [{"added": {}}, {}, self.model_to_dict(obj)]
-        return LogEntry.objects.log_action(
+        return NetflowLogEntryModel.objects.log_action(
             user_id=request.user.pk,
             content_type_id=get_content_type_for_model(obj).pk,
             object_id=obj.pk,
@@ -40,7 +40,7 @@ class NetflowLogEntry:
                 key_list.append(k)
 
         message = [{"changed": {"fields": key_list}}, old_dict, new_dict]
-        return LogEntry.objects.log_action(
+        return NetflowLogEntryModel.objects.log_action(
             user_id=request.user.pk,
             content_type_id=get_content_type_for_model(new).pk,
             object_id=new.pk,
@@ -49,9 +49,9 @@ class NetflowLogEntry:
             change_message=json.dumps(message, ensure_ascii=False),
         )
 
-    def log_deletion(self, request, obj, ):
+    def log_deletion(self, request, obj):
         message = [{"deleted": {}}, self.model_to_dict(obj), {}]
-        return LogEntry.objects.log_action(
+        return NetflowLogEntryModel.objects.log_action(
             user_id=request.user.pk,
             content_type_id=get_content_type_for_model(obj).pk,
             object_id=obj.pk,
