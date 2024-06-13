@@ -17,7 +17,10 @@ class HostQueryChoices(models.TextChoices):
     HOST_UP_COUNT = 'up_count', gettext_lazy('在线主机数')
     HOST_DOWN = 'down', gettext_lazy('掉线主机')
     # HOST_COUNT = 'host_count', gettext_lazy('主机总数')
-    # HOST_CPU_USAGE = 'cpu_usage', gettext_lazy('主机CPU使用率')
+    HOST_CPU_USAGE = 'cpu_usage', gettext_lazy('主机CPU使用率')
+    HOST_MEM_AVAIL_SIZE = 'mem_avail_size', gettext_lazy('主机内存可用容量(GiB)')
+    HOST_ROOT_AVAIL_SIZE = 'root_avail_size', gettext_lazy('主机根目录可用容量(GiB)')
+    HOST_MEM_HUGEPAGE_USAGE = 'mem_hugepage_usage', gettext_lazy('主机大页内存使用率')
     ALL_TOGETHER = ALL_TOGETHER_VALUE, gettext_lazy('一起查询所有指标')
 
 
@@ -82,6 +85,10 @@ class MetricQueryManager:
     host_tag_tmpl_map = {
         HostQueryChoices.HOST_UP_COUNT.value: backend.host_query_builder.tmpl_up_count,
         HostQueryChoices.HOST_DOWN.value: backend.host_query_builder.tmpl_down,
+        HostQueryChoices.HOST_CPU_USAGE.value: backend.host_query_builder.tmpl_node_cpu_usage,
+        HostQueryChoices.HOST_MEM_AVAIL_SIZE.value: backend.host_query_builder.tmpl_node_mem_avail_size,
+        HostQueryChoices.HOST_ROOT_AVAIL_SIZE.value: backend.host_query_builder.tmpl_node_root_avail_size,
+        HostQueryChoices.HOST_MEM_HUGEPAGE_USAGE.value: backend.host_query_builder.tmpl_node_mem_hugepage_usage,
     }
 
     tidb_tag_tmpl_map = {

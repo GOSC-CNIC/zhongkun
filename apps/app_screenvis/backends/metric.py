@@ -49,8 +49,13 @@ class HostExpressionQuery(BaseExpressionQuery):
 
     tmpl_cpu_count = 'count(node_cpu_seconds_total{job="$job", mode="system"})'
     tmpl_cpu_usage = '(1 - avg(rate(node_cpu_seconds_total{job="$job", mode="idle"}[1m]))) * 100'
+    tmpl_node_cpu_usage = '(1 - avg(rate(node_cpu_seconds_total{job="$job", mode="idle"}[1m])) by (instance)) * 100'
     tmpl_mem_size = 'sum(node_memory_MemTotal_bytes{job="$job"}) / 1073741824'  # GiB
     tmpl_mem_availabele = 'sum(node_memory_MemAvailable_bytes{job="$job"}) / 1073741824'   # GiB
+    tmpl_node_mem_avail_size = 'node_memory_MemAvailable_bytes{job="$job"} / 1073741824'  # GiB
+    tmpl_node_root_avail_size = 'node_filesystem_avail_bytes{job="$job", mountpoint="/"} / 1073741824'  # GiB
+    tmpl_node_mem_hugepage_usage = '(1 - node_memory_HugePages_Free{job="$job"} / ' \
+                                   'node_memory_HugePages_Total{job="$job"}) * 100'
     # MiB/s
     # tmpl_net_rate_in = 'rate(node_network_receive_bytes_total{job="$job", device!~"lo|br_.*|vnet.*"}[1m]) * on(' \
     #                    'job, instance, device) (node_network_info{operstate="up"} == 1) / 8388608'
@@ -167,7 +172,7 @@ class MetricQueryAPI:
         """
         try:
             async with aiohttp.ClientSession() as client:
-                r = await client.get(url=url, timeout=aiohttp.ClientTimeout(connect=5, total=30))
+                r = await client.get(url=url, timeout=aiohttp.ClientTimeout(connect=10, total=30))
         except aiohttp.ClientConnectionError:
             raise errors.Error(message='backend query api request timeout')
         except aiohttp.ClientError as exc:
