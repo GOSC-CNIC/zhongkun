@@ -546,15 +546,26 @@ class ServiceViewSet(CustomGenericViewSet):
             odc_admins_map = OrgDataCenterManager.get_odc_admins_map(odc_ids=odc_ids)
 
         for sv in services:
-            user_dict = {}
-            if sv.org_data_center_id in odc_admins_map:
-                user_dict.update(odc_admins_map[sv.org_data_center_id])
-
-            # 服务单元管理员和数据中心管理员存在相同用户时，后update会覆盖数据中心运维角色管理员员
+            admin_dict = {}
+            ops_dict = {}
+            # 服务单元管理员和数据中心管理员存在相同用户时，以服务单元管理员优先，角色不去重（同一用户可以同时为管理员和运维）
             if sv.id in service_admins_map:
-                user_dict.update(service_admins_map[sv.id])
+                sv_admins = service_admins_map[sv.id]
+                for u_id, u in sv_admins.items():
+                    if u['role'] == 'admin':
+                        admin_dict[u_id] = u
+                    else:
+                        ops_dict[u_id] = u
 
-            sv.admin_users = list(user_dict.values())
+            if sv.org_data_center_id in odc_admins_map:
+                odc_admins = odc_admins_map[sv.org_data_center_id]
+                for u_id, u in odc_admins.items():
+                    if u['role'] == 'admin':
+                        admin_dict[u_id] = u
+                    else:
+                        ops_dict[u_id] = u
+
+            sv.admin_users = list(admin_dict.values()) + list(ops_dict.values())
 
     def get_serializer_class(self):
         if self.action == 'change_private_quota':

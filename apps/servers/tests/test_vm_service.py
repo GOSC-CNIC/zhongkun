@@ -235,7 +235,7 @@ class ServiceTests(MyAPITestCase):
         self.assertKeysIn(["count", "next", "previous", "results"], response.data)
         self.assertKeysIn(["id", "name", "name_en", "service_type", "cloud_type", "add_time", "sort_weight",
                            "need_vpn", "status", "org_data_center", 'longitude', 'latitude', 'pay_app_service_id',
-                           'disk_available', 'only_admin_visible', 'version', 'version_update_time'
+                           'disk_available', 'only_admin_visible', 'version', 'version_update_time', 'endpoint_url'
                            ], response.data["results"][0])
         self.assertEqual(len(response.data["results"]), 2)
         map_ = {s['id']: s for s in response.data["results"]}
@@ -327,6 +327,35 @@ class ServiceTests(MyAPITestCase):
         self.assertEqual(response.data["count"], 1)
         self.assertIn('admin_users', response.data["results"][0])
         self.assertKeysIn(["id", "username", "role"], response.data["results"][0]['admin_users'][0])
+        self.assertEqual(len(response.data["results"][0]['admin_users']), 1)
+        self.assertEqual(response.data["results"][0]['admin_users'][0]['id'], self.user.id)
+        self.assertEqual(response.data["results"][0]['admin_users'][0]['username'], self.user.username)
+        self.assertEqual(response.data["results"][0]['admin_users'][0]['role'], OrgDataCenterAdminUser.Role.ADMIN.value)
+
+        # 同为数据中心运维和服务单元管理员
+        service2.org_data_center = self.service.org_data_center
+        service2.save(update_fields=['org_data_center'])
+        self.service.org_data_center.add_admin_user(self.user, is_ops_user=True)
+        query = parse.urlencode(query={'as-admin': '', 'with_admin_users': ''})
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 2)
+        sv_map = {s['id']: s for s in response.data["results"]}
+        r_service1 = sv_map[self.service.id]
+        r_service2 = sv_map[service2.id]
+        # service2
+        self.assertEqual(len(r_service2['admin_users']), 2)
+        self.assertEqual(r_service2['admin_users'][0]['id'], self.user.id)
+        self.assertEqual(r_service2['admin_users'][0]['username'], self.user.username)
+        self.assertEqual(r_service2['admin_users'][0]['role'], OrgDataCenterAdminUser.Role.ADMIN.value)
+        self.assertEqual(r_service2['admin_users'][1]['id'], self.user.id)
+        self.assertEqual(r_service2['admin_users'][1]['username'], self.user.username)
+        self.assertEqual(r_service2['admin_users'][1]['role'], OrgDataCenterAdminUser.Role.OPS.value)
+        # service1
+        self.assertEqual(len(r_service1['admin_users']), 1)
+        self.assertEqual(r_service1['admin_users'][0]['id'], self.user.id)
+        self.assertEqual(r_service1['admin_users'][0]['username'], self.user.username)
+        self.assertEqual(r_service1['admin_users'][0]['role'], OrgDataCenterAdminUser.Role.OPS.value)
 
     def test_admin_list(self):
         service2 = ServiceConfig(name='service2', name_en='service2 en', org_data_center=None)
@@ -345,7 +374,8 @@ class ServiceTests(MyAPITestCase):
         self.assertKeysIn(["count", "next", "previous", "results"], response.data)
         self.assertKeysIn(["id", "name", "name_en", "service_type", "cloud_type", "add_time", "sort_weight",
                            "need_vpn", "status", "org_data_center", 'longitude', 'latitude', 'pay_app_service_id',
-                           'disk_available', 'only_admin_visible', 'version', 'version_update_time', 'admin_users'
+                           'disk_available', 'only_admin_visible', 'version', 'version_update_time', 'admin_users',
+                           'endpoint_url'
                            ], response.data["results"][0])
         self.assertKeysIn([
             "id", "name", "name_en", "sort_weight", "organization"], response.data["results"][0]['org_data_center'])
@@ -376,8 +406,21 @@ class ServiceTests(MyAPITestCase):
         self.assertEqual(response.data["results"][0]['admin_users'][0]['username'], self.user.username)
         self.assertEqual(response.data["results"][0]['admin_users'][0]['role'], OrgDataCenterAdminUser.Role.OPS.value)
 
-        # 同为数据中心和服务单元管理员
+        # 同为数据中心运维和服务单元管理员
         self.service.users.add(self.user)
+        response = self.client.get(f'{url}?{query}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(len(response.data["results"][0]['admin_users']), 2)
+        self.assertEqual(response.data["results"][0]['admin_users'][0]['id'], self.user.id)
+        self.assertEqual(response.data["results"][0]['admin_users'][0]['username'], self.user.username)
+        self.assertEqual(response.data["results"][0]['admin_users'][0]['role'], OrgDataCenterAdminUser.Role.ADMIN.value)
+        self.assertEqual(response.data["results"][0]['admin_users'][1]['id'], self.user.id)
+        self.assertEqual(response.data["results"][0]['admin_users'][1]['username'], self.user.username)
+        self.assertEqual(response.data["results"][0]['admin_users'][1]['role'], OrgDataCenterAdminUser.Role.OPS.value)
+
+        # 同为数据中心和服务单元管理员
+        self.service.org_data_center.add_admin_user(user=self.user, is_ops_user=False)
         response = self.client.get(f'{url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 1)

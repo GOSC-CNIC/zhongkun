@@ -321,6 +321,7 @@ class ServiceSerializer(serializers.Serializer):
     name_en = serializers.CharField()
     service_type = serializers.CharField()
     cloud_type = serializers.CharField()
+    endpoint_url = serializers.CharField()
     add_time = serializers.DateTimeField()
     need_vpn = serializers.BooleanField()
     status = serializers.CharField()
