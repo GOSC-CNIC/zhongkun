@@ -1,3 +1,5 @@
+import time
+
 from django.utils.translation import gettext_lazy, gettext as _
 from rest_framework.decorators import action
 from rest_framework.serializers import Serializer
@@ -6,7 +8,7 @@ from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-from apps.app_screenvis.managers import HostQueryChoices, MetricQueryManager
+from apps.app_screenvis.managers import HostQueryChoices, MetricQueryManager, HostQueryRangeChoices
 from apps.app_screenvis.utils import errors
 from apps.app_screenvis.models import MetricMonitorUnit, HostCpuUsage, HostNetflow
 from apps.app_screenvis.permissions import ScreenAPIIPPermission
@@ -320,6 +322,165 @@ class MetricHostViewSet(NormalGenericViewSet):
 
         qs = HostNetflow.objects.filter(**lookups).order_by('-timestamp')
         return qs[0:limit]
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询主机单元时间段内指标信息'),
+        manual_parameters=[
+            openapi.Parameter(
+                name='unit_id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description=_('主机单元id')
+            ),
+            openapi.Parameter(
+                name='query',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+                required=True,
+                description=f"{HostQueryRangeChoices.choices}",
+                enum=HostQueryRangeChoices.values
+            ),
+            openapi.Parameter(
+                name='start',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                required=True,
+                description=_('查询起始时间点')
+            ),
+            openapi.Parameter(
+                name='end',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                required=False,
+                description=_('查询截止时间点, 默认是当前时间')
+            ),
+            openapi.Parameter(
+                name='step',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                required=False,
+                description=_('查询步长, 默认为300, 单位为秒')
+            )
+        ]
+    )
+    @action(methods=['get'], detail=False, url_path='query/range', url_name='query-range')
+    def query_range(self, request, *args, **kwargs):
+        """
+        查询主机单元时间段内指标信息
+
+            Http Code: 状态码200，返回数据：
+            {
+              "cpu_usage": [
+                {
+                  "metric": {"instance": "10.16.1.10:9100"},
+                  "values": [
+                    [1718178221, "35.35099206403609" ,
+                    [1718228221, "33.81190476192542"]
+                  ]
+                },
+                {
+                  "metric": {"instance": "10.16.1.11:9100"},
+                  "values": [
+                    [1718178221, "21.46111111127078"],
+                    [1718228221, "17.68511904765749"]
+                  ]
+                }
+              ],
+              "monitor": {
+                "id": "1",
+                "name": "中国科技云-运维大数据-服务器",
+                "name_en": "CSTcloud AIOPS Servers",
+                "unit_type": "host",
+                "job_tag": "aiops_hosts_node_metric",
+                "creation_time": "2024-04-10T02:00:38Z"
+              }
+            }
+
+            http code 409：
+            {
+              "code": "NoMonitorJob",
+              "message": "没有配置监控"
+            }
+        """
+        try:
+            unit_id, query, start, end, step = self.validate_query_range_params(request)
+            unit = self.get_host_metric_unit(unit_id=unit_id)
+        except errors.Error as exc:
+            return self.exception_response(exc)
+
+        try:
+            data = MetricQueryManager().query_range(
+                tag=query, metric_unit=unit, start=start, end=end, step=step)
+        except errors.Error as exc:
+            return self.exception_response(exc)
+
+        return Response(data=data, status=200)
+
+    @staticmethod
+    def validate_query_range_params(request):
+        """
+        :return:
+            (unit_id: int, query: str, start: int, end: int, step: int)
+
+        :raises: Error
+        """
+        query = request.query_params.get('query', None)
+        unit_id = request.query_params.get('unit_id', None)
+        start = request.query_params.get('start', None)
+        end = request.query_params.get('end', int(time.time()))
+        step = request.query_params.get('step', 300)
+
+        if query is None:
+            raise errors.BadRequest(message=_('必须指定查询指标'))
+
+        if query not in HostQueryRangeChoices.values:
+            raise errors.InvalidArgument(message=_('指定查询指标无效'))
+
+        if unit_id is None:
+            raise errors.BadRequest(message=_('必须指定主机单元'))
+
+        try:
+            unit_id = int(unit_id)
+            if unit_id <= 0:
+                raise ValueError
+        except ValueError:
+            raise errors.InvalidArgument(message=_('必须指定主机单元id无效, 请尝试一个正整数'))
+
+        if start is None:
+            raise errors.BadRequest(message=_('参数"start"必须提交'))
+
+        try:
+            start = int(start)
+            if start <= 0:
+                raise ValueError
+        except ValueError:
+            raise errors.InvalidArgument(message=_('起始时间"start"的值无效, 请尝试一个正整数'))
+
+        try:
+            end = int(end)
+            if end <= 0:
+                raise ValueError
+        except ValueError:
+            raise errors.InvalidArgument(message=_('截止时间"end"的值无效, 请尝试一个正整数'))
+
+        timestamp_delta = end - start
+        if timestamp_delta < 0:
+            raise errors.BadRequest(message=_('截止时间必须大于起始时间'))
+
+        try:
+            step = int(step)
+        except ValueError:
+            raise errors.InvalidArgument(message=_('步长"step"的值无效, 请尝试一个正整数'))
+
+        if step <= 0:
+            raise errors.InvalidArgument(message=_('不接受零或负查询解析步长, 请尝试一个正整数'))
+
+        resolution = timestamp_delta // step
+        if resolution > 11000:
+            raise errors.BadRequest(message=_('超过了每个时间序列11000点的最大分辨率。尝试降低查询分辨率（？step=XX）'))
+
+        return unit_id, query, start, end, step
 
     def get_serializer_class(self):
         return Serializer

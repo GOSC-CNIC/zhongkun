@@ -24,6 +24,10 @@ class HostQueryChoices(models.TextChoices):
     ALL_TOGETHER = ALL_TOGETHER_VALUE, gettext_lazy('一起查询所有指标')
 
 
+class HostQueryRangeChoices(models.TextChoices):
+    HOST_CPU_USAGE = 'cpu_usage', gettext_lazy('主机CPU使用率')
+
+
 class CephQueryChoices(models.TextChoices):
     HEALTH_STATUS_DETAIL = 'health_status_detail', gettext_lazy('Ceph健康状态和异常信息')
     CLUSTER_SIZE = 'cluster_size', gettext_lazy('Ceph集群存储容量TiB')
@@ -89,6 +93,9 @@ class MetricQueryManager:
         HostQueryChoices.HOST_MEM_AVAIL_SIZE.value: backend.host_query_builder.tmpl_node_mem_avail_size,
         HostQueryChoices.HOST_ROOT_AVAIL_SIZE.value: backend.host_query_builder.tmpl_node_root_avail_size,
         HostQueryChoices.HOST_MEM_HUGEPAGE_USAGE.value: backend.host_query_builder.tmpl_node_mem_hugepage_usage,
+    }
+    range_host_tag_tmpl_map = {
+        HostQueryRangeChoices.HOST_CPU_USAGE.value: backend.host_query_builder.tmpl_node_cpu_usage,
     }
 
     tidb_tag_tmpl_map = {
@@ -205,3 +212,63 @@ class MetricQueryManager:
             return tag, err
 
         return tag, ret
+
+    def get_query_range_choices_tag_tmpl_map(self, metric_unit: MetricMonitorUnit):
+        if metric_unit.unit_type == MetricMonitorUnit.UnitType.HOST.value:
+            return HostQueryRangeChoices, self.range_host_tag_tmpl_map
+        else:
+            raise errors.BadRequest(message=_('无效的指标单元类型'))
+
+    def query_range(self, tag: str, metric_unit: MetricMonitorUnit, start: int, end: int, step: int):
+        """
+        {
+            "monitor":{
+                "name": "",
+                "name_en": "",
+                "job_tag": "",
+                "id": "",
+                "creation": "2020-11-02T07:47:39.776384Z"
+            },
+            "tag": [
+                {
+                    "metric": {                 # 此项的数据内容随查询数据类型变化
+                        "__name__": "ceph_cluster_total_used_bytes",
+                        "instance": "10.0.200.100:9283",
+                        "job": "Fed-ceph",
+                        "receive_cluster": "obs",
+                        "receive_replica": "0",
+                        "tenant_id": "default-tenant"
+                    },
+                    "value": [
+                        1630267851.781,
+                        "0"
+                    ]
+                }
+            ]
+        }
+        """
+        query_choices, tags_map = self.get_choices_tag_tmpl_map(metric_unit)
+        provider = build_metric_provider(metric_unit.data_center)
+        job_dict = MetricMntrUnitSimpleSerializer(metric_unit).data
+        data = self._query_range(
+            metric_unit=metric_unit, provider=provider, tag=tag, tag_map=tags_map,
+            start=start, end=end, step=step
+        )
+        data['monitor'] = job_dict
+        return data
+
+    def _query_range(
+            self, metric_unit: MetricMonitorUnit, provider: MetricProvider, tag: str, tag_map: dict,
+            start: int, end: int, step: int
+    ):
+        """
+        :return:
+            { tag: []}
+        :raises: Error
+        """
+        tag_tmpl = tag_map[tag]
+        r = self.backend.query_range_tag(
+            endpoint_url=provider.endpoint_url, tag_tmpl=tag_tmpl, job=metric_unit.job_tag,
+            start=start, end=end, step=step
+        )
+        return {tag: r}

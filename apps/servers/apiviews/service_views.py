@@ -264,7 +264,7 @@ class ServiceViewSet(CustomGenericViewSet):
         """
         列举用户有管理权限的服务
 
-        Http Code: 状态码200，返回数据：
+            Http Code: 状态码200，返回数据：
             {
               "count": 1,
               "next": null,

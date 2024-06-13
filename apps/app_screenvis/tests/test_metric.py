@@ -1,9 +1,10 @@
+import time
 from urllib import parse
 
 from django.urls import reverse
 from django.utils import timezone as dj_timezone
 
-from apps.app_screenvis.managers import CephQueryChoices, HostQueryChoices, TiDBQueryChoices
+from apps.app_screenvis.managers import CephQueryChoices, HostQueryChoices, TiDBQueryChoices, HostQueryRangeChoices
 from apps.app_screenvis.models import HostCpuUsage, MetricMonitorUnit, HostNetflow
 from apps.app_screenvis.permissions import ScreenAPIIPRestrictor
 from . import MyAPITestCase, get_or_create_metric_ceph, get_or_create_metric_host, get_or_create_metric_tidb
@@ -334,6 +335,99 @@ class MetricHostTests(MyAPITestCase):
         query = parse.urlencode(query={'unit_id': host_unit1.id, 'time': -1})
         r = self.client.get(f'{url}?{query}')
         self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
+
+    def query_range_response(self, unit_id, query_tag: str, start: int, end: int, step: int):
+        querys = {}
+        if unit_id:
+            querys['unit_id'] = unit_id
+
+        if query_tag:
+            querys['query'] = query_tag
+
+        if start:
+            querys['start'] = start
+
+        if end:
+            querys['end'] = end
+
+        if step:
+            querys['step'] = step
+
+        url = reverse('screenvis-api:host-query-range')
+        query = parse.urlencode(query=querys)
+        return self.client.get(f'{url}?{query}')
+
+    def query_range_ok_test(self, unit_id: int, query_tag: str, start: int, end: int, step: int):
+        response = self.query_range_response(unit_id=unit_id, query_tag=query_tag, start=start, end=end, step=step)
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.data, dict)
+        self.assertKeysIn([query_tag, "monitor"], response.data)
+        self.assertKeysIn(["name", "name_en", "job_tag", "id", "unit_type", 'creation_time'], response.data["monitor"])
+        tag_data = response.data[query_tag]
+        if tag_data:
+            data_item = tag_data[0]
+            self.assertKeysIn(["metric", "values"], data_item)
+            if data_item["values"] is not None:
+                self.assertIsInstance(data_item["values"], list)
+                self.assertEqual(len(data_item["values"][0]), 2)
+
+        return response
+
+    def test_query_range(self):
+        host_unit = get_or_create_metric_host()
+        host_unit_id = host_unit.id
+
+        now_ts = int(time.time())
+        one_hour_ago_ts = now_ts - 60 * 60
+
+        response = self.query_range_response(
+            unit_id=666, query_tag=HostQueryRangeChoices.HOST_CPU_USAGE.value,
+            start=one_hour_ago_ts, end=now_ts, step=60
+        )
+        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
+        ScreenAPIIPRestrictor.add_ip_rule(ip_value='127.0.0.1')
+        ScreenAPIIPRestrictor.clear_cache()
+
+        response = self.query_range_response(
+            unit_id=666, query_tag=HostQueryRangeChoices.HOST_CPU_USAGE.value,
+            start=one_hour_ago_ts, end=now_ts, step=60
+        )
+        self.assertEqual(response.status_code, 404)
+        response = self.query_range_response(
+            unit_id='666', query_tag=HostQueryRangeChoices.HOST_CPU_USAGE.value,
+            start=one_hour_ago_ts, end=now_ts, step=60
+        )
+        self.assertEqual(response.status_code, 404)
+        response = self.query_range_response(
+            unit_id='xxx', query_tag=HostQueryRangeChoices.HOST_CPU_USAGE.value,
+            start=one_hour_ago_ts, end=now_ts, step=60
+        )
+        self.assertEqual(response.status_code, 400)
+        response = self.query_range_response(
+            unit_id=host_unit_id, query_tag='xxx', start=one_hour_ago_ts, end=now_ts, step=60)
+        self.assertEqual(response.status_code, 400)
+
+        response = self.query_range_ok_test(
+            unit_id=host_unit_id, query_tag=HostQueryRangeChoices.HOST_CPU_USAGE.value,
+            start=one_hour_ago_ts, end=now_ts, step=60
+        )
+        self.assertKeysIn(["name", "name_en", "job_tag", "id", "unit_type", 'creation_time'], response.data["monitor"])
+        data_list = response.data[HostQueryRangeChoices.HOST_CPU_USAGE.value]
+        self.assertIsInstance(data_list, list)
+        self.assertKeysIn(["metric", "values"], data_list[0])
+        if data_list[0]["values"] is not None:
+            self.assertTrue(len(data_list[0]["values"]) >= 60)
+
+        response = self.query_range_ok_test(
+            unit_id=host_unit_id, query_tag=HostQueryRangeChoices.HOST_CPU_USAGE.value,
+            start=one_hour_ago_ts, end=now_ts, step=600
+        )
+        self.assertKeysIn(["name", "name_en", "job_tag", "id", "unit_type", 'creation_time'], response.data["monitor"])
+        data_list = response.data[HostQueryRangeChoices.HOST_CPU_USAGE.value]
+        self.assertIsInstance(data_list, list)
+        self.assertKeysIn(["metric", "values"], data_list[0])
+        if data_list[0]["values"] is not None:
+            self.assertTrue(len(data_list[0]["values"]) >= 6)
 
 
 class MetricTiDBTests(MyAPITestCase):
