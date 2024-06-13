@@ -218,6 +218,7 @@ class ObjectsServiceTests(MyAPITestCase):
             'id', 'name', 'name_en', 'sort_weight', 'organization'], container=r.data['results'][0]['org_data_center'])
         self.assertIsInstance(r.data['results'][0]['ftp_domains'], list)
         self.assertIsInstance(r.data['results'][0]['admin_users'], list)
+        self.assertEqual(len(r.data['results'][0]['admin_users']), 1)
         self.assertKeysIn(keys=['id', 'username', 'role'], container=r.data['results'][0]['admin_users'][0])
         self.assertEqual(r.data['results'][0]['admin_users'][0]['username'], self.user.username)
         self.assertEqual(r.data['results'][0]['admin_users'][0]['role'], 'ops')
@@ -225,8 +226,11 @@ class ObjectsServiceTests(MyAPITestCase):
         self.service.users.add(self.user)
         r = self.client.get(f'{url}?{query}')
         self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data['results'][0]['admin_users']), 2)
         self.assertEqual(r.data['results'][0]['admin_users'][0]['username'], self.user.username)
         self.assertEqual(r.data['results'][0]['admin_users'][0]['role'], 'admin')
+        self.assertEqual(r.data['results'][0]['admin_users'][1]['username'], self.user.username)
+        self.assertEqual(r.data['results'][0]['admin_users'][1]['role'], 'ops')
 
     def test_version(self):
         service2 = ObjectsService(
