@@ -59,9 +59,8 @@ class DateUtils:
             return int(dt.timestamp())
         else:
             dt_tz = datetime.datetime.strptime(dt, fmt)
-            if dt.tzinfo is None:
-                dt_tz = dt.replace(tzinfo=timezone)     # 时间不变，只添加时区信息
-
+            if dt_tz.tzinfo is None:
+                dt_tz = dt_tz.replace(tzinfo=timezone)  # 时间不变，只添加时区信息
             return int(dt_tz.timestamp())
 
     @classmethod

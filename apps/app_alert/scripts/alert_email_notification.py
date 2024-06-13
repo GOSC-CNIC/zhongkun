@@ -1,5 +1,5 @@
 """
-告警邮件通知定时任务
+告警模块，邮件通知定时任务
 """
 
 import os
@@ -21,21 +21,11 @@ from apps.app_alert.utils.logger import setup_logger
 from apps.app_alert.utils.utils import custom_model_to_dict
 from apps.app_alert.utils.utils import DateUtils
 from django.contrib.contenttypes.models import ContentType
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from django.db.utils import IntegrityError
+from concurrent.futures import ThreadPoolExecutor
 from django.utils import timezone as dj_timezone
 from datetime import timedelta
 from scripts.task_lock import alert_email_notify_lock
-
-try:  # TODO
-    from apps.app_monitor.managers import MonitorWebsiteManager
-except:
-    from apps.monitor.managers import MonitorWebsiteManager
-
-try:
-    from apps.app_monitor.apiviews.monitor_views import UnitAdminEmailViewSet
-except:
-    from apps.monitor.apiviews.monitor_views import UnitAdminEmailViewSet
+from apps.monitor.alert_helpers import AlertEmailsHelper
 
 logger = setup_logger(__name__, __file__)
 
@@ -372,8 +362,6 @@ class AlertMonitor(object):
         self.timestamp = DateUtils.timestamp()  # 当前时间戳
         self.run_time = DateUtils.timestamp_round(self.timestamp)
 
-        self.monitor_mapping = dict()
-
     @staticmethod
     def current_datetime():
         now = DateUtils.now()
@@ -472,56 +460,37 @@ class AlertMonitor(object):
             return self.get_website_monitor_list(alert)
         elif alert_type in ["metric", "log"]:
             return self.get_cluster_monitor_list(alert)
+        else:
+            logger.error(f'unknown alert type: {alert_type}')
 
     @staticmethod
-    def _yunkun_cluster_monitor_list(tag):
-        unit = UnitAdminEmailViewSet().try_get_unit(tag=tag)
-        odc_id = unit.org_data_center_id
-        unit_admin_emails = set(unit.users.values_list('username', flat=True))
-        org_data_center_model = ContentType.objects.get(app_label="service", model="orgdatacenter").model_class()
-        if odc_id:
-            odc_admin_emails = set(
-                org_data_center_model.objects.get(id=odc_id).users.values_list('username', flat=True))
-            unit_admin_emails.update(odc_admin_emails)
-        emails = list(set(unit_admin_emails))
-        result = {
-            'tag': tag,
-            'unit': {
-                'name': unit.name, 'name_en': unit.name_en
-            },
-            'emails': emails
-        }
-        return result
-
-    def get_cluster_monitor_list(self, alert):
+    def get_cluster_monitor_list(alert):
         """
-        获取 非网站类告警 监控者邮箱列表
+        获取非网站监控类告警的监控者邮箱列表
         """
         cluster = alert.get("cluster")
         if cluster in ["mail_metric", "mail_log"]:  # TODO
             return None
-        if self.monitor_mapping.get(cluster):
-            return self.monitor_mapping.get(cluster)
-        text = self._yunkun_cluster_monitor_list(cluster)
-        self.monitor_mapping[cluster] = text
-        return text
+        return AlertEmailsHelper.get_monitor_unit_user_emails(unit_tag=cluster)
 
     @staticmethod
     def get_website_monitor_list(alert):
         """
-        获取网站类告警的监控者列表
+        获取网站监控类告警的监控者邮箱列表
         """
         url_hash = alert.get("fingerprint")
-        emails = MonitorWebsiteManager.get_site_user_emails(url_hash=url_hash)
-        result = {
-            "tag": "webmonitor",
-            "unit": {"name": "网站异常监控"},
-            "emails": [_.get("email") for _ in emails]
-        }
-        return result
+        emails = AlertEmailsHelper.get_website_user_emails(url_hash=url_hash)
+        if emails:
+            result = {
+                "tag": "webmonitor",
+                "unit": {"name": "网站异常监控"},
+                "emails": emails
+            }
+            return result
+        return None
 
     def run(self):
-        logger.info(f"\n\n\n\n开始...{DateUtils.now()}", )
+        logger.info(f"\n\n开始...{DateUtils.now()}", )
         logger.info("挑选异常告警")
         alerts = self.pick_alerts_by_datetime()
         logger.info("查询每个异常告警的监控者列表")
@@ -558,6 +527,7 @@ def run_task_use_lock():
             AlertMonitor().run()
     except Exception as exc:
         run_desc = str(exc)
+        logger.info(traceback.format_exc())
     finally:
         ok, exc = alert_email_notify_lock.release(run_desc=run_desc)  # 释放锁
         # 锁释放失败，发送通知
@@ -567,3 +537,4 @@ def run_task_use_lock():
 
 if __name__ == '__main__':
     run_task_use_lock()
+    # AlertMonitor().run()
