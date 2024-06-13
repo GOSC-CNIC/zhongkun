@@ -8,7 +8,7 @@ app_name = 'app_probes'
 
 
 no_slash_router = SimpleRouter(trailing_slash=False)
-no_slash_router.register(r'', ProbeViewSet, basename='app_probe')
+no_slash_router.register(r'task', ProbeViewSet, basename='task')
 
 urlpatterns = [
     path('', include(no_slash_router.urls)),

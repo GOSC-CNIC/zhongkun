@@ -46,7 +46,7 @@ class ProbeViewSet(NormalGenericViewSet):
             200: ''
         }
     )
-    @action(methods=['post'], detail=False, url_path='task/submit', url_name='sbumit_probe')
+    @action(methods=['post'], detail=False, url_path='submit', url_name='sbumit_probe')
     def sbumit_probe_website(self, request, *args, **kwargs):
         """
         通知更新服务配置信息
