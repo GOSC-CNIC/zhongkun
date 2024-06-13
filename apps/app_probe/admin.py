@@ -15,4 +15,6 @@ class ProbeDetailsAdmin(BaseModelAdmin):
 @admin.register(ProbeMonitorWebsite)
 class ProbeMonitorWebsiteAdmin(BaseModelAdmin):
     list_display_links = ('id',)
-    list_display = ('id', 'uri', 'url_hash', 'is_tamper_resistant', 'creation', 'tls_time', 'connect_time', 'processing_time', 'resolve_time', 'transfer_time', 'status')
+    list_display = (
+        'id', 'url', 'url_hash', 'is_tamper_resistant', 'creation', 'tls_time', 'connect_time', 'processing_time',
+        'resolve_time', 'transfer_time', 'status')

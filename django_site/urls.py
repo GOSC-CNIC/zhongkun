@@ -88,6 +88,7 @@ else:
         path('api/app_screenvis/', include('apps.app_screenvis.api_urls', namespace='screenvis-api')),
         path('api/app_netflow/', include('apps.app_net_flow.api_urls', namespace='netflow-api')),
         path('api/app_alert/', include('apps.app_alert.api_urls', namespace='alert-api')),
+        path('api/app_probe/', include('apps.app_probe.api_urls', namespace='probe-api')),
 
         # views url
         path('servers/', include('apps.servers.urls', namespace='servers')),
@@ -107,6 +108,7 @@ urlpatterns += [
     path('auth/callback/aai', AAISignIn.as_view(), name='auth-callback-aai'),
     path('admin/', admin.site.urls),
     path('baton/', include('baton.urls')),
+    path('probe/', include('app_probe.urls', namespace='probe'))
 ]
 
 

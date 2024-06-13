@@ -19,6 +19,7 @@
             <div class="card-body">
                 <h5 class="card-title">探针：{{ probe.get_probe_type_display }}</h5>
                 <p class="card-text">版本号：{{ probe.version }}</p>
+                <p class="card-text">更新时间：{{ web_task.0.creation}}</p>
             </div>
 
         </div>
@@ -65,7 +66,7 @@
                 <th scope="col">#</th>
                 <th scope="col">网址</th>
                 <th scope="col">网址hash值</th>
-                <th scope="col">时间</th>
+{#                <th scope="col">时间</th>#}
 
 {#                <th scope="col">总耗时</th>#}
 {#                <th scope="col">DNS 解析时间</th>#}
@@ -80,9 +81,9 @@
                 <tr>
 
                     <th scope="row">{{ forloop.counter }}</th>
-                    <td>{{ task.uri }}</td>
+                    <td>{{ task.url }}</td>
                     <td>{{ task.url_hash }}</td>
-                    <td>{{ task.creation }}</td>
+{#                    <td>{{ task.creation }}</td>#}
 {#                    <td>{{ task.status }}</td>#}
 {#                    {% with total=task.resolve_time|floatformat:0|add:task.connect_time|floatformat:0 %}#}
 {#                    <td>{{ total }}</td>#}
