@@ -70,6 +70,7 @@ INSTALLED_APPS = [
     'apps.app_net_manage',
     'apps.app_net_link',
     'apps.app_net_ipam',
+    'apps.app_probe',
 
     # app放上面
     'docs',
