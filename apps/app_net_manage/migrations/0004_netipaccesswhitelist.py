@@ -12,10 +12,7 @@ def do_nothing(apps, schema_editor):
 
 def run_copy_ip_whitelist(apps, schema_editor):
     for wl in IPAccessWhiteList.objects.filter(
-            module_name__in=[
-                IPAccessWhiteList.ModuleName.NETFLOW.value,
-                IPAccessWhiteList.ModuleName.NETBOX_LINK.value
-            ]).all():
+            module_name__in=['netflow', 'netbox-link']).all():
         try:
             wl: IPAccessWhiteList
             if wl.remark:
