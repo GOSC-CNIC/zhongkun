@@ -17,7 +17,6 @@ from django.utils import timezone
 
 
 class AlertReceiver(object):
-    AIOPS_BACKEND_CONFIG = settings.AIOPS_BACKEND_CONFIG
 
     def __init__(self, data):
         self.timestamp = DateUtils.timestamp()

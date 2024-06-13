@@ -115,11 +115,6 @@ TEST_CASE_SECURITY = {
         'version': 'v1',
     }
 }
-# AIOps 后端接口
-AIOPS_BACKEND_CONFIG = {
-    "API": "https://xxxxxx.cn",
-    "AUTH": ('username', 'password'),
-}
 
 DINGTALKROBOT = {
     "WEBHOOK": "https://oapi.dingtalk.com/robot/send?access_token=xxxx",

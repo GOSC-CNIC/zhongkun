@@ -1,11 +1,9 @@
 """
-告警钉钉通知定时任务
+告警模块，钉钉通知定时任务
 """
 import re
 import os
 import sys
-import time
-
 from django import setup
 from pathlib import Path
 
@@ -15,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django_site.settings')
 setup()
+import traceback
 from dingtalkchatbot.chatbot import DingtalkChatbot
 from apps.app_alert.utils.utils import DateUtils
 from apps.app_alert.utils.logger import setup_logger
@@ -30,7 +29,6 @@ logger = setup_logger(__name__, __file__)
 
 class DingTalk(object):
     webhook = settings.DINGTALKROBOT.get("WEBHOOK")
-    AIOPS_BACKEND = settings.AIOPS_BACKEND_CONFIG
     secret = settings.DINGTALKROBOT.get("SECRET")
     robot = DingtalkChatbot(webhook, secret=secret)
 
@@ -108,11 +106,11 @@ class DingTalk(object):
         if record:
             self.post(title, record, send_type='text')
 
-    def get_instance_property_mapping(self):
+    @staticmethod
+    def get_instance_property_mapping():
         try:
-            url = f'{self.AIOPS_BACKEND.get("API")}/api/v1/mail/ipaddress/property/'
-            auth = self.AIOPS_BACKEND.get("AUTH")
-            resp = download(method="get", url=url, auth=auth)
+            url = 'https://aiopsbackend.cstcloud.cn/api/v1/mail/ipaddress/property/'
+            resp = download(method="get", url=url)
             return resp.json()
         except:
             return {}
@@ -353,9 +351,7 @@ class DingTalk(object):
             instance = self.parse_alert_instance(alert)
             if not alert_msg_mapping.get(instance):
                 alert_msg_mapping[instance] = []
-            description = alert.get("description")
-            description = self.clean_log_alert_description(description)
-            alert_msg_mapping[instance].append(f"{description}, {alert.get('id')[:10]}")
+            alert_msg_mapping[instance].append([alert.get("description"), alert.get('id')])
         record_msg_list = list()
         if minute:
             if minute == -1:
@@ -373,8 +369,12 @@ class DingTalk(object):
             record_msg_list.append(property_name)
             record_msg_list.append(instance_field)
             record_msg_list.append(property_director)
+            log_source = re.findall(r'{"log_source":"(.*?)"}', descriptions[0][0])[0]
+            record_msg_list.append(f'日志类型: {log_source}')
             for description in descriptions:
-                description = "告警信息: {}".format(description)
+                description = "告警信息: {},{}".format(
+                    self.clean_log_alert_description(description[0]),
+                    description[1][:10])
                 record_msg_list.append(description)
         return f"日志告警：{list(alert_msg_mapping.keys())[0]}", "\n".join(record_msg_list).replace('\n' * 2, "\n")
 
@@ -440,6 +440,7 @@ def run_task_use_lock():
             DingTalk().run()
     except Exception as exc:
         run_desc = str(exc)
+        logger.error(traceback.format_exc())
     finally:
         ok, exc = alert_dingtalk_notify_lock.release(run_desc=run_desc)  # 释放锁
         # 锁释放失败，发送通知

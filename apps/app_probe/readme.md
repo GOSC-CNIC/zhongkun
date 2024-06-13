@@ -43,11 +43,6 @@ apps/servers/handlers/disk_handler.py
 
 apps/servers/handlers/server_handler.py
 
-
-settings.py 
-添加 
-AIOPS_BACKEND_CONFIG = []
-
 url.py 
 注释掉
 check.check_setting()
