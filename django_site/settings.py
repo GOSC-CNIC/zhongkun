@@ -30,6 +30,7 @@ DEBUG = False
 
 ALLOWED_HOSTS = ['*']
 INTERNAL_IPS = []
+# CSRF_TRUSTED_ORIGINS = ['https://xxx', 'http://xxx']
 
 # Application definition
 

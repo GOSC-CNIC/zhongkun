@@ -5,4 +5,4 @@ def docs(request, *args, **kwargs):
     """
     文档函数视图
     """
-    return render(request, 'index.html')
+    return render(request, 'docs_index.html')
