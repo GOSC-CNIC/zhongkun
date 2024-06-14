@@ -113,7 +113,7 @@ class ImageViewSet(CustomGenericViewSet):
                   {
                     "id": "18",
                     "name": "Ubuntu 2004",
-                    "release": 系统发行版本，取值空间为{"Windows Desktop", "Windows Server", "Ubuntu", "Fedora", "Centos", "Unknown"},
+                    "release": 系统发行版本，取值空间为{"Windows Desktop", "Windows Server", "Ubuntu", "Fedora", "Centos", "OpenEuler", "Unknown"},
                     "version":系统发行编号（64字符内），取值空间为{"win10","win11","2021","2019","2204","2004","36","37","7","8","9","Unknown",....}
                     "architecture":系统架构，取值空间为{"x86-64","i386","arm-64","Unknown"}
                     "system_type": 系统类型，取值空间为{"Linux",“Windows","Unknown"}

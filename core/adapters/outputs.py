@@ -55,12 +55,14 @@ class ImageSysRelease(ImageSysBase):
     DEEPIN = 'Deepin'
     DEBIAN = 'Debian'
     RED_HAT = 'RedHat'
+    OPEN_EULER = 'OpenEuler'
 
     choices = {
         'windows': WINDOWS_DESKTOP, 'windows desktop': WINDOWS_DESKTOP,
         'windows server': WINDOWS_SERVER,
         'ubuntu': UBUNTU, 'fedora': FEDORA, 'centos': CENTOS, 'deepin': DEEPIN, 'debian': DEBIAN,
         'red hat': RED_HAT, 'red hat enterprise linux': RED_HAT, 'rhel': RED_HAT, 'redhat': RED_HAT,
+        'openeuler': OPEN_EULER, 'open euler': OPEN_EULER,
         'unknown': ImageSysBase.UNKNOWN
     }
 
