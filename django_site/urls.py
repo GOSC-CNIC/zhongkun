@@ -60,12 +60,10 @@ schema_view = get_schema_view(
 
 
 if screenvis_only:
-    home_view = views.about
     urlpatterns = [
         path('api/app_screenvis/', include('apps.app_screenvis.api_urls', namespace='screenvis-api')),
     ]
 else:
-    home_view = views.home
     urlpatterns = [
         # api url
         path('api/', include('apps.api.urls', namespace='api')),
@@ -98,8 +96,8 @@ else:
     ]
 
 urlpatterns += [
-    path('', home_view, name='index'),
-    path('home/', home_view, name='home'),
+    path('', views.home, name='index'),
+    path('home/', views.home, name='home'),
     path('about/', views.about, name='about'),
     path('accounts/', include('apps.users.urls', namespace='users')),
     path('apidocs/', login_required(schema_view.with_ui('swagger', cache_timeout=0)), name='apidocs'),

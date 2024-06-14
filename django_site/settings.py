@@ -17,6 +17,7 @@ from pathlib import Path
 from django.utils.translation import gettext_lazy
 from django.conf.locale.zh_Hans import formats as zh_formats
 from django.conf.locale.en import formats as en_formats
+from django.urls import reverse_lazy
 
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
 
@@ -48,6 +49,11 @@ INSTALLED_APPS = [
     'corsheaders',
     'django_json_widget',
 
+    'apps.users',
+    'apps.app_global',
+    'apps.app_screenvis',
+    'apps.app_alert',
+
     'apps.service',
     'apps.storage',
     'apps.servers',
@@ -55,7 +61,6 @@ INSTALLED_APPS = [
     'apps.app_wallet',
     'apps.metering',
     'apps.report',
-    'apps.users',
     'apps.vo',
     'apps.ticket',
     'apps.monitor',
@@ -63,10 +68,7 @@ INSTALLED_APPS = [
     'apps.vpn',
     'apps.api',
     'apps.app_apply',
-    'apps.app_screenvis',
-    'apps.app_global',
     'apps.app_net_flow',
-    'apps.app_alert',
     'apps.app_net_manage',
     'apps.app_net_link',
     'apps.app_net_ipam',
@@ -103,6 +105,14 @@ ADMIN_SORTED_APP_LIST = [
     'app_net_link',
     'auth',
 ]
+
+# 是否只使用大屏展示功能
+SCREEN_VIS_USE_ONLY = False
+
+# 指定home视图重定向到那个view
+# HOME_PAGE_REDIRECT_VIEW = reverse_lazy('about')
+# HOME_PAGE_REDIRECT_VIEW = reverse_lazy('probe:probe-details')
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -438,9 +448,6 @@ CRONTABJOBS = [
     ('task13_netflow_update_element', '0 */1 * * *',
      'python3 /home/uwsgi/yunkun/apps/app_net_flow/scripts/netflow_update_element.py >> /var/log/yunkun/netflow_update_element.log'),
 ]
-
-# 是否只使用大屏展示功能
-SCREEN_VIS_USE_ONLY = False
 
 
 # 安全配置导入

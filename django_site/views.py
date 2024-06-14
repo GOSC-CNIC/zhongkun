@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, reverse
 from django.contrib.auth.decorators import login_required
+from django.conf import settings
 from django.views.decorators.cache import cache_page
 
 from version import __version__, __git_tagset__, __git_changeset__
@@ -7,7 +8,11 @@ from version import __version__, __git_tagset__, __git_changeset__
 
 @login_required()
 def home(request, *args, **kwargs):
-    return redirect(to=reverse('servers:server-list'))
+    viewname = getattr(settings, 'HOME_PAGE_REDIRECT_VIEW', None)
+    if not viewname:
+        viewname = reverse('servers:server-list')
+
+    return redirect(to=viewname)
 
 
 def get_about_context():

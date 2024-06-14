@@ -48,7 +48,6 @@
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav mr-auto">
                 <li class="nav-item"><a class="nav-link" href="{% url "home" %}"><i class="fa fa-home"></i>{% trans '首页' %}</a></li>
-                <li class="nav-item"><a class="nav-link" href="{% url "probe:probe-details" %}"><i class="bi bi-broadcast-pin"></i>{% trans '探针' %}</a></li>
 
                 {% block navbar %}{% endblock %}
             </ul>
@@ -98,3 +97,4 @@
     {% block base-script %}{% endblock %}
 </body>
 </html>
+

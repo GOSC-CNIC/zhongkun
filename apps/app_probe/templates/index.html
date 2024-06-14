@@ -1,17 +1,9 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>探针</title>
+{% extends 'base.html' %}
+{% load i18n %}
 
-    <link rel="stylesheet" type="text/css" href="{% static 'bootstrap-4.5.0/css/bootstrap.min.css' %}">
-    <!-- jQuery and JavaScript Bundle with Popper -->
-    <script type="text/javascript" src="{% static 'jquery/jquery-3.5.1.min.js' %}"></script>
-    <script type="text/javascript" src="{% static 'bootstrap-4.5.0/js/bootstrap.bundle.min.js' %}"></script>
-    <script type="text/javascript" src="{% static 'fontawesome-free/js/all.min.js' %}"></script>
-</head>
-<body>
+{% block title %}{% trans '探针' %}{% endblock %}
+
+{% block body %}
 <div style="display: flex">
     <div style="width: 20%">
 
@@ -102,7 +94,4 @@
     </div>
 
 </div>
-
-
-</body>
-</html>
+{% endblock %}
