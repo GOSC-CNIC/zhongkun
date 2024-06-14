@@ -27,6 +27,7 @@ class AlterFilter(django_filters.FilterSet):
     class Meta:
         model = AlertModel
         fields = {
+            "fingerprint": ['exact'],
             "instance": ["exact", ],
             "port": ["exact", ],
             "type": ["exact", ],

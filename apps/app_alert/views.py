@@ -32,6 +32,7 @@ from django.forms.models import model_to_dict
 from apps.app_alert.utils import errors
 from apps.app_alert.serializers import AlertModelSerializer
 from collections import OrderedDict
+from rest_framework.permissions import IsAuthenticated
 
 
 # Create your views here.
@@ -61,6 +62,7 @@ class AlertReceiverAPIView(APIView):
 
 
 class AlertGenericAPIView(APIView):
+    permission_classes = [IsAuthenticated, ]
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('查询告警列表'),
@@ -224,7 +226,7 @@ class AlertGenericAPIView(APIView):
 
 
 class AlertChoiceAPIView(APIView):
-    # permission_classes = [IsAuthenticated, ]
+    permission_classes = [IsAuthenticated, ]
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('查询异常告警可选项'),
@@ -250,7 +252,8 @@ class AlertChoiceAPIView(APIView):
                         ]
                     }
                 """
-        return Response(AlertChoiceHandler(request).get())
+        result = AlertChoiceHandler(request).get()
+        return Response(result)
 
 
 class WorkOrderListGenericAPIView(GenericAPIView, CreateModelMixin):
@@ -259,6 +262,7 @@ class WorkOrderListGenericAPIView(GenericAPIView, CreateModelMixin):
     filter_backends = [DjangoFilterBackend]
     filterset_class = WorkOrderFilter
     pagination_class = LimitOffsetPage
+    permission_classes = [IsAuthenticated, ]
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('查询告警工单列表'),
@@ -351,7 +355,7 @@ class EmailNotificationAPIView(GenericAPIView):
     filter_backends = [DjangoFilterBackend]
     pagination_class = LimitOffsetPage
 
-    # permission_classes = [IsAuthenticated, ]
+    permission_classes = [IsAuthenticated, ]
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('查询当前用户的告警通知记录'),

@@ -6,10 +6,13 @@ from apps.app_alert.models import ResolvedAlertModel
 from apps.app_alert.models import AlertWorkOrder
 from django.db.models import Q
 from apps.app_alert.utils.enums import AlertStatus
-from django.contrib.contenttypes.models import ContentType
 from apps.app_alert.models import AlertMonitorJobServer
 from django.forms.models import model_to_dict
 from apps.app_alert.utils.utils import DateUtils
+from apps.monitor.models import MonitorJobServer
+from apps.monitor.models import MonitorWebsite
+from apps.monitor.models import MonitorJobCeph
+from apps.monitor.models import MonitorJobTiDB
 
 
 class UserMonitorUnit:
@@ -29,8 +32,7 @@ class UserMonitor(object):
 
     def server_list(self):
         user = self.request.user
-        monitor_job_server = ContentType.objects.get(app_label="monitor", model="monitorjobserver").model_class()
-        queryset = monitor_job_server.objects.select_related('org_data_center__organization').all()
+        queryset = MonitorJobServer.objects.select_related('org_data_center__organization').all()
         if user.is_authenticated and user.is_federal_admin():
             pass
         else:
@@ -52,8 +54,7 @@ class UserMonitor(object):
 
     def tidb_list(self):
         user = self.request.user
-        monitor_job_tidb = ContentType.objects.get(app_label="monitor", model="monitorjobtidb").model_class()
-        queryset = monitor_job_tidb.objects.select_related('org_data_center__organization').all()
+        queryset = MonitorJobTiDB.objects.select_related('org_data_center__organization').all()
         if user.is_authenticated and user.is_federal_admin():
             pass
         else:
@@ -64,8 +65,7 @@ class UserMonitor(object):
 
     def ceph_list(self):
         user = self.request.user
-        monitor_job_ceph = ContentType.objects.get(app_label="monitor", model="monitorjobceph").model_class()
-        queryset = monitor_job_ceph.objects.select_related('org_data_center__organization').all()
+        queryset = MonitorJobCeph.objects.select_related('org_data_center__organization').all()
         if user.is_authenticated and user.is_federal_admin():
             pass
         else:
@@ -77,8 +77,7 @@ class UserMonitor(object):
     def website_list(self):
         user = self.request.user
         user_id = user.id
-        monitor_job_ceph = ContentType.objects.get(app_label="monitor", model="monitorwebsite").model_class()
-        queryset = monitor_job_ceph.objects.select_related('user', 'odc').all()
+        queryset = MonitorWebsite.objects.select_related('user', 'odc').all()
         q = Q(user_id=user_id) | Q(odc__users__id=user_id)
         queryset = queryset.filter(q).distinct()
         url_hash_list = [_.url_hash for _ in queryset]
