@@ -12,6 +12,7 @@ from apps.servers.models import (
     ServiceConfig, ServicePrivateQuota, ServerSnapshot
 )
 from apps.servers.managers import ServiceManager
+from apps.service.odc_manager import OrgDataCenterManager
 
 
 class ServerAdminForm(forms.ModelForm):
@@ -338,6 +339,82 @@ class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
                 self.message_user(request, _("删除了服务单元对应的站点监控任务"), level=messages.SUCCESS)
         except Exception as exc:
             self.message_user(request, _("创建或更新服务单元对应的站点监控任务错误") + str(exc), level=messages.ERROR)
+
+    def save_related(self, request, form, formsets, change):
+        new_users = form.cleaned_data['users']
+        service = form.instance
+        old_users = service.users.all()
+        old_user_ids = [u.id for u in old_users]
+
+        add_users = []
+        for u in new_users:
+            if u.id in old_user_ids:
+                old_user_ids.remove(u.id)    # 删除完未变的，剩余的都是将被删除的user
+            else:
+                add_users.append(u)
+
+        remove_user_ids = old_user_ids
+        remove_users = []
+        if remove_user_ids:
+            for u in old_users:
+                if u.id in remove_user_ids:
+                    remove_users.append(u)
+
+        super(ServiceConfigAdmin, self).save_related(request=request, form=form, formsets=formsets, change=change)
+        if not remove_users and not add_users:
+            return
+
+        pay_app_service_id = service.pay_app_service_id
+        if not pay_app_service_id:
+            return
+
+        not_need_remove_admins = []  # 数据中心管理员不需要移除
+        try:
+            # 如果是数据中心管理员的，不需要移除钱包权限
+            if remove_users and service.org_data_center_id:
+                odc_id = service.org_data_center_id
+                admin_map = OrgDataCenterManager.get_odc_admins_map(
+                    odc_ids=[odc_id], admin=True, ops=False)
+                if odc_id in admin_map:
+                    odc_admin_dict = admin_map.get(odc_id)
+                    new_remove_users = []
+                    for u in remove_users:
+                        if u.id in odc_admin_dict:
+                            not_need_remove_admins.append(u)
+                        else:
+                            new_remove_users.append(u)
+
+                    remove_users = new_remove_users
+
+            if not remove_users and not add_users:
+                if not_need_remove_admins:
+                    msg = _('因为是数据中心管理员而不需要从钱包移除的管理员') + f'{[u.username for u in not_need_remove_admins]}'
+                    messages.add_message(request=request, level=messages.SUCCESS, message=msg)
+                return
+
+            pay_service = OrgDataCenterManager.sync_admin_to_one_pay_service(
+                pay_service_or_id=pay_app_service_id, add_admins=add_users, remove_admins=remove_users)
+        except Exception as exc:
+            messages.add_message(
+                request=request, level=messages.ERROR,
+                message=_('服务单元管理员变更权限同步到钱包结算单元失败。' + str(exc)))
+            return
+
+        if pay_service is None:
+            messages.add_message(
+                request=request, level=messages.WARNING,
+                message=gettext('服务单元未配置钱包结算单元信息，管理员权限变更未同步到钱包。'))
+            return
+
+        msg = _('服务单元管理员权限变更成功同步到钱包结算单元')
+        if add_users:
+            msg += ';' + _('新添加管理员') + f'{[u.username for u in add_users]}'
+        if remove_users:
+            msg += ';' + _('移除管理员') + f'{[u.username for u in remove_users]}'
+        if not_need_remove_admins:
+            msg += ';' + _('因为是数据中心管理员而不需要移除的管理员') + f'{[u.username for u in not_need_remove_admins]}'
+
+        messages.add_message(request=request, level=messages.SUCCESS, message=msg)
 
 
 @admin.register(ServicePrivateQuota)

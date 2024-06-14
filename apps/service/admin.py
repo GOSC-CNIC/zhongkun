@@ -161,34 +161,60 @@ class OrgDataCenterAdminUserAdmin(BaseModelAdmin):
 
         try:
             if obj.role == OrgDataCenterAdminUser.Role.ADMIN.value:
-                OrgDataCenterManager.sync_odc_admin_to_pay_service(
+                add_tup, rm_tup_list = OrgDataCenterManager.sync_odc_admin_to_pay_service(
                     odc=obj.orgdatacenter, add_admins=[obj.userprofile], remove_admins=[])
-                msg = _('数据中心管理员权限变更成功同步添加到钱包结算单元')
+                # msg = _('数据中心管理员权限变更成功同步添加到钱包结算单元')
+                self._add_admin_to_pay_message(request=request, add_tuple=add_tup)
+                self._rm_admin_to_pay_message(request=request, rm_tuple_list=rm_tup_list)
             else:
-                OrgDataCenterManager.sync_odc_admin_to_pay_service(
+                add_tup, rm_tup_list = OrgDataCenterManager.sync_odc_admin_to_pay_service(
                     odc=obj.orgdatacenter, add_admins=[], remove_admins=[obj.userprofile])
-                msg = _('数据中心管理员权限变更成功从钱包结算单元移除')
+                self._add_admin_to_pay_message(request=request, add_tuple=add_tup)
+                self._rm_admin_to_pay_message(request=request, rm_tuple_list=rm_tup_list)
+                # msg = _('数据中心管理员权限变更成功从钱包结算单元移除')
         except Exception as exc:
             messages.add_message(
                 request=request, level=messages.ERROR,
                 message=_('数据中心管理员变更权限同步到钱包结算单元失败。' + str(exc)))
-        else:
-            messages.add_message(request=request, level=messages.SUCCESS, message=msg)
 
     def delete_model(self, request, obj: OrgDataCenterAdminUser):
         with transaction.atomic():
-            OrgDataCenterManager.sync_odc_admin_to_pay_service(
+            add_tup, rm_tup_list = OrgDataCenterManager.sync_odc_admin_to_pay_service(
                 odc=obj.orgdatacenter, add_admins=[], remove_admins=[obj.userprofile])
             super().delete_model(request=request, obj=obj)
-            messages.add_message(request=request, level=messages.SUCCESS,
-                                 message=_('数据中心管理员权限变更成功从钱包结算单元移除'))
+            self._add_admin_to_pay_message(request=request, add_tuple=add_tup)
+            self._rm_admin_to_pay_message(request=request, rm_tuple_list=rm_tup_list)
+            # messages.add_message(request=request, level=messages.SUCCESS,
+            #                      message=_('数据中心管理员权限变更成功从钱包结算单元移除'))
 
     def delete_queryset(self, request, queryset):
         with transaction.atomic():
             for obj in queryset:
-                OrgDataCenterManager.sync_odc_admin_to_pay_service(
+                add_tup, rm_tup_list = OrgDataCenterManager.sync_odc_admin_to_pay_service(
                     odc=obj.orgdatacenter, add_admins=[], remove_admins=[obj.userprofile])
+                self._add_admin_to_pay_message(request=request, add_tuple=add_tup)
+                self._rm_admin_to_pay_message(request=request, rm_tuple_list=rm_tup_list)
 
             super().delete_queryset(request=request, queryset=queryset)
-            messages.add_message(request=request, level=messages.SUCCESS,
-                                 message=_('数据中心管理员权限变更成功从钱包结算单元移除'))
+            # messages.add_message(request=request, level=messages.SUCCESS,
+            #                      message=_('数据中心管理员权限变更成功从钱包结算单元移除'))
+
+    @staticmethod
+    def _add_admin_to_pay_message(request, add_tuple: tuple):
+        pay_services, users = add_tuple
+        if pay_services and users:
+            services = [f'"{s.name}({s.get_category_display()})"' for s in pay_services]
+            admins = [u.username for u in users]
+            msg = _('添加管理员[{users}]到钱包结算单元[{services}]').format(
+                users=','.join(admins), services='、 '.join(services))
+            messages.add_message(request=request, level=messages.SUCCESS, message=msg)
+
+    @staticmethod
+    def _rm_admin_to_pay_message(request, rm_tuple_list: list):
+        for rm_tuple in rm_tuple_list:
+            pay_services, user = rm_tuple
+            if pay_services and user:
+                services = [f'"{s.name}({s.get_category_display()})"' for s in pay_services]
+                msg = _('从钱包结算单元[{services}]移除管理员[{users}]').format(
+                    users=user.username, services='、 '.join(services))
+                messages.add_message(request=request, level=messages.SUCCESS, message=msg)

@@ -205,10 +205,19 @@ class OrgDataCenterManager:
 
     @staticmethod
     def get_odc_pay_service_qs(odc: OrgDataCenter):
+        """
+        查询数据中心下，所有的服务单元对应的钱包结算单元
+        """
         server_pay_ids = ServiceConfig.objects.filter(
-            org_data_center_id=odc.id).values_list('pay_app_service_id', flat=True)
+            org_data_center_id=odc.id,
+            status__in=[ServiceConfig.Status.ENABLE.value, ServiceConfig.Status.DISABLE.value]
+        ).values_list('pay_app_service_id', flat=True)
+
         storage_pay_ids = ObjectsService.objects.filter(
-            org_data_center_id=odc.id).values_list('pay_app_service_id', flat=True)
+            org_data_center_id=odc.id,
+            status__in=[ObjectsService.Status.ENABLE.value, ObjectsService.Status.DISABLE.value]
+        ).values_list('pay_app_service_id', flat=True)
+
         pay_service_ids = [i for i in server_pay_ids if i] + [i for i in storage_pay_ids if i]
         if pay_service_ids:
             return PayAppService.objects.filter(id__in=pay_service_ids)
@@ -216,22 +225,77 @@ class OrgDataCenterManager:
         return None
 
     @staticmethod
+    def get_not_admin_odc_pay_services(odc: OrgDataCenter, user_id: str) -> list:
+        """
+        查询数据中心下，用户不是管理员的服务单元对应的钱包结算单元
+        """
+        server_pay_ids = ServiceConfig.objects.filter(
+            org_data_center_id=odc.id,
+            status__in=[ServiceConfig.Status.ENABLE.value, ServiceConfig.Status.DISABLE.value]
+        ).exclude(users__id=user_id).values_list('pay_app_service_id', flat=True)
+
+        storage_pay_ids = ObjectsService.objects.filter(
+            org_data_center_id=odc.id,
+            status__in=[ObjectsService.Status.ENABLE.value, ObjectsService.Status.DISABLE.value]
+        ).exclude(users__id=user_id).values_list('pay_app_service_id', flat=True)
+
+        pay_service_ids = [i for i in server_pay_ids if i] + [i for i in storage_pay_ids if i]
+        if pay_service_ids:
+            return list(PayAppService.objects.filter(id__in=pay_service_ids))
+
+        return []
+
+    @staticmethod
     def sync_odc_admin_to_pay_service(odc: OrgDataCenter, remove_admins: list, add_admins: list):
         """
         数据中心下云主机和存储服务单元对应的钱包结算单元管理员设置
+        :return:(
+            (pay_services: list, users: list),  # add admins
+            [                                   # remove admins
+                (pay_services: list, user),
+            ]
+        )
         """
-        pay_services = OrgDataCenterManager.get_odc_pay_service_qs(odc=odc)
-        if pay_services is None:
-            return []
-
         with transaction.atomic():
-            for pay in pay_services:
-                if remove_admins:
-                    pay.users.remove(*remove_admins)
-                if add_admins:
-                    pay.users.add(*add_admins)
+            add_pay_services = []
+            if add_admins:
+                add_pay_services = OrgDataCenterManager.get_odc_pay_service_qs(odc=odc)
+                if add_pay_services is not None:
+                    for pay in add_pay_services:
+                        if add_admins:
+                            pay.users.add(*add_admins)
 
-        return pay_services
+            rm_result_list = []
+            if remove_admins:
+                for user in remove_admins:
+                    remove_pay_services = OrgDataCenterManager.get_not_admin_odc_pay_services(odc=odc, user_id=user.id)
+                    for pay in remove_pay_services:
+                        pay.users.remove(user)
+
+                    rm_result_list.append((remove_pay_services, user))
+
+        return (add_pay_services, add_admins), rm_result_list
+
+    @staticmethod
+    def sync_admin_to_one_pay_service(
+            pay_service_or_id: Union[str, PayAppService], remove_admins: list, add_admins: list):
+        """
+        钱包结算单元管理员设置
+        """
+        if isinstance(pay_service_or_id, str):
+            pay_service = PayAppService.objects.filter(id=pay_service_or_id).first()
+        else:
+            pay_service = pay_service_or_id
+
+        if pay_service is None:
+            return pay_service
+
+        if remove_admins:
+            pay_service.users.remove(*remove_admins)
+        if add_admins:
+            pay_service.users.add(*add_admins)
+
+        return pay_service
 
     @staticmethod
     def is_admin_of_odc(odc_id, user_id):
@@ -414,18 +478,27 @@ class OrgDataCenterManager:
         return OrgDataCenter.objects.filter(users__id=user_id).distinct().values_list('id', flat=True)
 
     @staticmethod
-    def get_odc_admins_map(odc_ids: list) -> Dict[str, Dict[str, Dict]]:
+    def get_odc_admins_map(odc_ids: list, admin: bool = True, ops: bool = True) -> Dict[str, Dict[str, Dict]]:
         """
         数据中心管理员关系
 
-        :return:{
+        :admin: 返回admin
+        :ops: 返回运维人员
+        :return:{   # 不包含没有管理员人员的数据中心id
             odc_id: {
-                "user_id": {"id": "xx", "username": "xxx"}
+                "user_id": {"id": "xx", "username": "xxx", "role": "xxx"}
             }
         }
         """
+        roles = []
+        if admin:
+            roles.append(OrgDataCenterAdminUser.Role.ADMIN.value)
+
+        if ops:
+            roles.append(OrgDataCenterAdminUser.Role.OPS.value)
+
         queryset = OrgDataCenterAdminUser.objects.filter(
-            orgdatacenter_id__in=odc_ids
+            orgdatacenter_id__in=odc_ids, role__in=roles
         ).values('orgdatacenter_id', 'userprofile_id', 'userprofile__username', 'role')
         odc_admins_amp = {}
         for i in queryset:
