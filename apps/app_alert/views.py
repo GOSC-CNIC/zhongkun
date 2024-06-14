@@ -33,6 +33,8 @@ from apps.app_alert.utils import errors
 from apps.app_alert.serializers import AlertModelSerializer
 from collections import OrderedDict
 from rest_framework.permissions import IsAuthenticated
+from core.aai.authentication import CreateUserJWTAuthentication
+from rest_framework.authentication import BasicAuthentication, SessionAuthentication
 
 
 # Create your views here.
@@ -63,6 +65,7 @@ class AlertReceiverAPIView(APIView):
 
 class AlertGenericAPIView(APIView):
     permission_classes = [IsAuthenticated, ]
+    authentication_classes = [CreateUserJWTAuthentication, BasicAuthentication, SessionAuthentication, ]
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('查询告警列表'),
