@@ -9,12 +9,11 @@ from utils.model import BaseModelAdmin
 @admin.register(ProbeDetails)
 class ProbeDetailsAdmin(BaseModelAdmin):
     list_display_links = ('id',)
-    list_display = ('id', 'probe_type', 'version')
+    list_display = ('id', 'probe_name', 'version')
 
 
 @admin.register(ProbeMonitorWebsite)
 class ProbeMonitorWebsiteAdmin(BaseModelAdmin):
     list_display_links = ('id',)
     list_display = (
-        'id', 'url', 'url_hash', 'is_tamper_resistant', 'creation', 'tls_time', 'connect_time', 'processing_time',
-        'resolve_time', 'transfer_time', 'status')
+        'id', 'url', 'url_hash', 'is_tamper_resistant', 'creation')

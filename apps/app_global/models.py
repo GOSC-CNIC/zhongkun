@@ -4,6 +4,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
 
+from app_probe.handlers.handlers import ProbeHandlers
 from utils.model import UuidModel
 from utils.iprestrict import convert_iprange
 
@@ -64,6 +65,13 @@ class GlobalConfig(models.Model):
         AAI_LOGIN_USER_INFO_URL = 'aai_login_user_info_url', _('AAI登录，用户信息查询地址')
         AAI_LOGIN_CLIENT_ID = 'aai_login_client_id', _('AAI登录，客户端id')
         AAI_LOGIN_CLIENT_SECRET = 'aai_login_client_secret', _('AAI登录，客户端密钥')
+        PROMETHEUS_SERVICE_URL = 'prometheus_service_url', _('prometheus服务地址')
+        PROMETHEUS_BASE = 'prometheus_base', _('promtheus基础配置文件')
+        PROMETHEUS_BLACKBOX_HTTP = 'prometheus_blackbox_http', _('promtheus blackbox http 配置文件模板')
+        PROMETHEUS_BLACKBOX_TCP = 'prometheus_blackbox_tcp', _('promtheus blackbox tcp 配置文件模板')
+        PROMETHEUS_EXPORTER_NODE = 'prometheus_exporter_node', _('promtheus exporter node 配置文件')
+        PROMETHEUS_EXPORTER_TIDB = 'prometheus_exporter_tidb', _('promtheus exporter tidb 配置文件')
+        PROMETHEUS_EXPORTER_CEPH = 'prometheus_exporter_ceph', _('promtheus exporter ceph 配置文件')
 
     # 配置的默认值，自动创建配置参数记录时填充的默认值
     value_defaults = {
@@ -77,6 +85,13 @@ class GlobalConfig(models.Model):
         ConfigName.AAI_LOGIN_USER_INFO_URL.value: 'https://aai.cstcloud.net/oidc/userinfo',
         ConfigName.AAI_LOGIN_CLIENT_ID.value: '',
         ConfigName.AAI_LOGIN_CLIENT_SECRET.value: '',
+        ConfigName.PROMETHEUS_SERVICE_URL.value: 'http://127.0.0.1:9090',
+        ConfigName.PROMETHEUS_BASE.value: '',
+        ConfigName.PROMETHEUS_BLACKBOX_HTTP.value: '',
+        ConfigName.PROMETHEUS_BLACKBOX_TCP.value: '',
+        ConfigName.PROMETHEUS_EXPORTER_NODE.value: '',
+        ConfigName.PROMETHEUS_EXPORTER_TIDB.value: '',
+        ConfigName.PROMETHEUS_EXPORTER_CEPH.value: '',
 
     }
 
@@ -98,6 +113,23 @@ class GlobalConfig(models.Model):
 
     def __str__(self):
         return f'[{self.name}] {self.value}'
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+
+        prometheus_query_name_list = [
+            GlobalConfig.ConfigName.PROMETHEUS_BASE.value,
+            GlobalConfig.ConfigName.PROMETHEUS_EXPORTER_TIDB.value,
+            GlobalConfig.ConfigName.PROMETHEUS_EXPORTER_CEPH.value,
+            GlobalConfig.ConfigName.PROMETHEUS_EXPORTER_NODE.value,
+            GlobalConfig.ConfigName.PROMETHEUS_BLACKBOX_HTTP.value,
+            GlobalConfig.ConfigName.PROMETHEUS_BLACKBOX_TCP.value,
+
+        ]
+
+        if self.name in prometheus_query_name_list:
+            ProbeHandlers().handler_prometheus_config()
+
 
 
 class IPAccessWhiteList(models.Model):
