@@ -1,6 +1,7 @@
 from django import template
 from django.utils.translation import gettext
 from django.conf import settings
+from django.shortcuts import reverse
 
 from utils.time import datesince_days, dateuntil_days
 from core.aai.signin import AAISignIn
@@ -82,3 +83,27 @@ def dateuntil_days_filter(value, arg=None):
         return gettext('%d天 后到期') % days
     except (ValueError, TypeError):
         return ''
+
+
+@register.simple_tag(name='show_navbars')
+def show_navbars():
+    """
+    导航栏
+    """
+    navbars = NavbarList()
+    navbars.add_navbar(name=gettext('云主机'), view_name='servers:server-list')
+    navbars.add_navbar(name=gettext('探针'), view_name='probe:probe-details')
+    return navbars
+
+
+class NavbarList(list):
+    def add_navbar(self, name: str, view_name: str) -> bool:
+        try:
+            url = reverse(view_name)
+            if url:
+                self.append({'name': name, 'url': url})
+                return True
+        except Exception as exc:
+            return False
+
+        return False
