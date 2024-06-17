@@ -82,7 +82,7 @@ class GlobalConfig(models.Model):
 
     id = models.BigAutoField(primary_key=True)
     name = models.CharField(verbose_name=_('配置名称'), max_length=32, choices=ConfigName.choices)
-    value = models.CharField(verbose_name=_('配置内容'), max_length=255, default='')
+    value = models.TextField(verbose_name=_('配置内容'), default='')
     remark = models.CharField(verbose_name=_('备注'), blank=True, max_length=255)
     creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)
     update_time = models.DateTimeField(verbose_name=_('更新时间'), auto_now=True)
