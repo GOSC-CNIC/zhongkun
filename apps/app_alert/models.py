@@ -1,10 +1,22 @@
 from django.db import models
 from utils.model import UuidModel
 from django.utils.translation import gettext_lazy as _
+from apps.app_alert.utils.utils import DateUtils
+import shortuuid
+import uuid
+
+
+class AlertUuidModel(UuidModel):
+    class Meta:
+        abstract = True
+
+    def generate_id(self):
+        short_uuid = shortuuid.ShortUUID(alphabet='23456789abcdefghjkmnpqrstuvwxyz').encode(uuid.uuid1())
+        return f"{str(DateUtils.now().date()).replace('-', '')}-{short_uuid[-5:]}"
 
 
 # Create your models here.
-class AlertWorkOrder(UuidModel):
+class AlertWorkOrder(AlertUuidModel):
     """
     告警工单
     """
@@ -34,7 +46,7 @@ class AlertWorkOrder(UuidModel):
         verbose_name_plural = verbose_name
 
 
-class AlertAbstractModel(UuidModel):
+class AlertAbstractModel(AlertUuidModel):
     fingerprint = models.CharField(blank=False, unique=True, db_index=True, max_length=40, verbose_name=_('指纹'))
     name = models.CharField(max_length=100, verbose_name=_('名称'))
 
@@ -132,7 +144,7 @@ class ResolvedAlertModel(AlertAbstractModel):
         )
 
 
-class EmailNotification(UuidModel):
+class EmailNotification(AlertUuidModel):
     """
     邮件通知记录
     """
