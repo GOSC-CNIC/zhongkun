@@ -88,6 +88,17 @@ class OrderManager:
 
         :raises: Error
         """
+        if period:
+            days = PriceManager.convert_period_days(period=period, period_unit=period_unit)
+        else:
+            if not (start_time and end_time):
+                raise errors.Error(message=_('无法创建订单，必须同时指定时段起始和终止时间。'))
+
+            days = (end_time - start_time).days
+
+        if days > 365 * 2:
+            raise errors.ConflictError(message=_('单次续费时长不能超过2年'), code='PeriodTooLong')
+
         order, resources = self.create_order_for_resources(
             order_type=Order.OrderType.RENEWAL.value, pay_type=PayType.PREPAID.value,
             pay_app_service_id=pay_app_service_id, service_id=service_id, service_name=service_name,

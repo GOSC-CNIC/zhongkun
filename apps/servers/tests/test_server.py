@@ -715,6 +715,26 @@ class ServerOrderTests(MyAPITransactionTestCase):
         vo_server.refresh_from_db()
         self.assertEqual(vo_server.expiration_time, renew_to_datetime)
 
+        # 单次续费最长2年
+        url = reverse('servers-api:servers-renew-server', kwargs={'id': vo_server.id})
+        query = parse.urlencode(query={'period': 25})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=409, code='PeriodTooLong', response=response)
+
+        url = reverse('servers-api:servers-renew-server', kwargs={'id': vo_server.id})
+        renew_to_datetime += timedelta(days=365*2 + 1)
+        renew_to_time = renew_to_datetime.astimezone(utc).isoformat()
+        if '.' in renew_to_time:
+            renew_to_time = renew_to_time.split('.')[0] + 'Z'
+        elif '+' in renew_to_time:
+            renew_to_time = renew_to_time.split('+')[0] + 'Z'
+        else:
+            renew_to_time = renew_to_time.split('-')[0] + 'Z'
+
+        query = parse.urlencode(query={'renew_to_time': renew_to_time})
+        response = self.client.post(f'{url}?{query}')
+        self.assertErrorResponse(status_code=409, code='PeriodTooLong', response=response)
+
     def test_modify_pay_type(self):
         # 余额支付有关配置
         app = PayApp(name='app', id=PAY_APP_ID)

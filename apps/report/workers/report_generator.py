@@ -739,7 +739,7 @@ class MonthlyReportNotifier:
         self.logger = config_script_logger(
             name='script_monthly_report_logger', filename='monthly_report.log', stdout=log_stdout)
         self.template = get_template('monthly_report.html')
-        self.website_brand = site_configs.get_website_brand(default='YunKun')
+        self.website_brand = site_configs.get_website_brand(default='ZhongKun')
 
         if report_data:
             self.report_period_start, self.report_period_end = get_report_period_start_and_end(report_data)
