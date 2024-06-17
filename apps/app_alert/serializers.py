@@ -12,6 +12,7 @@ class AlertModelSerializer(serializers.ModelSerializer):
     alert_type = serializers.SerializerMethodField(read_only=True)
     timestamp = serializers.SerializerMethodField(read_only=True)
     startsAt = serializers.SerializerMethodField(read_only=True)
+    monitor_cluster = serializers.SerializerMethodField(read_only=True)
 
     def get_order(self, obj):
         order = obj.order
@@ -44,6 +45,9 @@ class AlertModelSerializer(serializers.ModelSerializer):
 
     def get_startsAt(self, obj):
         return DateUtils.ts_to_date(obj.start)
+
+    def get_monitor_cluster(self, obj):
+        return obj.cluster
 
     class Meta:
         model = AlertModel

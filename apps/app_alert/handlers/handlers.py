@@ -142,6 +142,7 @@ class EmailNotificationCleaner(object):
         for obj in data:
             alert_id = obj.get("alert")
             alert = model_to_dict(mapping.get(alert_id))
+            alert["monitor_cluster"] = alert.get('cluster')
             obj.update({"alert": alert})
             items.append(obj)
         return items
