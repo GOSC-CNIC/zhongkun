@@ -13,6 +13,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='totalreqnum',
             name='service_type',
-            field=models.CharField(choices=[('vms', '云主机'), ('obs', '对象存储'), ('yunkun', '本服务')], default='yunkun', max_length=16, verbose_name='服务类型'),
+            field=models.CharField(choices=[('vms', '云主机'), ('obs', '对象存储'), ('own', '本服务')], default='own', max_length=16, verbose_name='服务类型'),
         ),
     ]

@@ -1,1 +1,1 @@
-uwsgi --stop /home/uwsgi/yunkun/uwsgi-master.pid
+uwsgi --stop /home/uwsgi/zhongkun/uwsgi-master.pid

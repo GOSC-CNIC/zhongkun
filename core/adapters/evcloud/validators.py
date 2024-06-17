@@ -5,7 +5,7 @@ from . import exceptions
 class InputValidator:
     @staticmethod
     def create_server_validate(params: inputs.ServerCreateInput):
-        remarks = params.remarks if params.remarks else 'yunkun'
+        remarks = params.remarks if params.remarks else 'zhongkun'
         if len(remarks) > 200:
             remarks = remarks[0:200]
 

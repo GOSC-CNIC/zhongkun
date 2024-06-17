@@ -1,1 +1,1 @@
-uwsgi --ini /home/uwsgi/yunkun/00_script/uwsgi.ini
+uwsgi --ini /home/uwsgi/zhongkun/00_script/uwsgi.ini

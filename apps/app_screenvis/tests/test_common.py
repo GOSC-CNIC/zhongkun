@@ -133,8 +133,8 @@ class ConfigTests(MyAPITestCase):
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['org_name', 'org_name_en'], response.data)
-        self.assertEqual(response.data['org_name'], 'YunKun')
-        self.assertEqual(response.data['org_name_en'], 'YunKun')
+        self.assertEqual(response.data['org_name'], 'ZhongKun')
+        self.assertEqual(response.data['org_name_en'], 'ZhongKun')
 
         ScreenConfig.objects.filter(name=ScreenConfig.ConfigName.ORG_NAME.value).update(value='org 名称')
         screen_configs.clear_cache()
@@ -142,7 +142,7 @@ class ConfigTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['org_name', 'org_name_en'], response.data)
         self.assertEqual(response.data['org_name'], 'org 名称')
-        self.assertEqual(response.data['org_name_en'], 'YunKun')
+        self.assertEqual(response.data['org_name_en'], 'ZhongKun')
 
         ScreenConfig.objects.filter(name=ScreenConfig.ConfigName.ORG_NAME_EN.value).update(value='org name')
         screen_configs.clear_cache()

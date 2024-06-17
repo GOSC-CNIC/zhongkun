@@ -82,8 +82,8 @@ API_MONITOR_EMAIL_ALLOWED_IPS = []
 
 # 各种服务总请求数统计依赖设置，配置各站点loki日志服务接口，总请求数==各站点的请求数的和
 PORTAL_REQ_NUM_LOKI_SITES_MAP = {
-    # yunkun，
-    'yunkun': [
+    # 本服务
+    'own': [
         {'api': 'https://xx.xx.cn/loki/api/v1/query', 'job': 'xx_log'},
     ],
     # 云主机

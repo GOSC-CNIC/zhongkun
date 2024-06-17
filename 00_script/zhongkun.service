@@ -1,0 +1,14 @@
+[Unit]
+Description=ZhongKun's web service
+After=network.target
+
+[Service]
+Type=forking
+PIDFile=/home/uwsgi/zhongkun/uwsgi-master.pid
+ExecStart=/bin/bash /home/uwsgi/zhongkun/00_script/run_uwsgi.sh
+ExecReload=/bin/bash /home/uwsgi/zhongkun/00_script/reload_uwsgi.sh
+ExecStop=/bin/bash /home/uwsgi/zhongkun/00_script/stop_uwsgi.sh
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

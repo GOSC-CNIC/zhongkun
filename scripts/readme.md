@@ -45,11 +45,11 @@ service crond staus    //查看状态
   # |  |  |  |  |
   # *  *  *  *  * user-name  command to be executed
   
-  0 9 * * * root python3 /home/uwsgi/yunkun/scripts/timedelta_metering.py >> /var/log/yunkun/metering.log
-  0 12 28 * * root python3 /home/uwsgi/yunkun/scripts/run_bucket_monthly_stats.py >> /var/log/yunkun/monthly_bucket_stats.log
-  0 17 28 * * root python3 /home/uwsgi/yunkun/scripts/run_generate_and_email_month_report.py >> /var/log/yunkun/monthly_report.log
-  */1 * * * * root python3 /home/uwsgi/yunkun/scripts/run_log_site_req_num.py >> /var/log/yunkun/logsite_timecount.log
-  0 */1 * * * root python3 /home/uwsgi/yunkun/scripts/update_service_req_num.py >> /var/log/yunkun/update_req_num.log
-  */3 * * * * root python3 /home/uwsgi/yunkun/scripts/run_scan_process.py >> /var/log/yunkun/task_scan_process.log
+  0 9 * * * root python3 /home/uwsgi/zhongkun/scripts/timedelta_metering.py >> /var/log/zhongkun/metering.log
+  0 12 28 * * root python3 /home/uwsgi/zhongkun/scripts/run_bucket_monthly_stats.py >> /var/log/zhongkun/monthly_bucket_stats.log
+  0 17 28 * * root python3 /home/uwsgi/zhongkun/scripts/run_generate_and_email_month_report.py >> /var/log/zhongkun/monthly_report.log
+  */1 * * * * root python3 /home/uwsgi/zhongkun/scripts/run_log_site_req_num.py >> /var/log/zhongkun/logsite_timecount.log
+  0 */1 * * * root python3 /home/uwsgi/zhongkun/scripts/update_service_req_num.py >> /var/log/zhongkun/update_req_num.log
+  */3 * * * * root python3 /home/uwsgi/zhongkun/scripts/run_scan_process.py >> /var/log/zhongkun/task_scan_process.log
   ```
   

@@ -1,3 +1,3 @@
-cp /home/uwsgi/yunkun/00_script/yunkun.service /usr/lib/systemd/system/ -f
+cp /home/uwsgi/zhongkun/00_script/zhongkun.service /usr/lib/systemd/system/ -f
 systemctl daemon-reload
-systemctl enable yunkun
+systemctl enable zhongkun

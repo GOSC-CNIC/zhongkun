@@ -28,8 +28,8 @@ class ScreenConfig(models.Model):
 
     # 配置的默认值，自动创建配置参数记录时填充的默认值
     value_defaults = {
-        ConfigName.ORG_NAME.value: 'YunKun',
-        ConfigName.ORG_NAME_EN.value: 'YunKun',
+        ConfigName.ORG_NAME.value: 'ZhongKun',
+        ConfigName.ORG_NAME_EN.value: 'ZhongKun',
         ConfigName.PROBE_TASK_ENDPOINT_URL.value: '',
         ConfigName.PROBE_TASK_USERNAME.value: '',
         ConfigName.PROBE_TASK_PASSWORD.value: '',

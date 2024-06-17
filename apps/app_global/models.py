@@ -67,8 +67,8 @@ class GlobalConfig(models.Model):
 
     # 配置的默认值，自动创建配置参数记录时填充的默认值
     value_defaults = {
-        ConfigName.SITE_NAME.value: 'YunKun',
-        ConfigName.SITE_NAME_EN.value: 'YunKun',
+        ConfigName.SITE_NAME.value: 'ZhongKun',
+        ConfigName.SITE_NAME_EN.value: 'ZhongKun',
         ConfigName.SITE_FRONT_URL.value: '',
         ConfigName.AAI_LOGIN_NAME.value: '中国科技云身份认证联盟(CSTCLOUD AAI)',
         ConfigName.AAI_LOGIN_CLIENT_CALLBACK_URL.value: 'https://{your hostname}/auth/callback/aai',

@@ -6,7 +6,7 @@ from django.conf import settings
 from core import site_configs_manager as site_configs
 
 
-site_header_lazy = site_configs.get_website_brand_lazy(default='YunKun')
+site_header_lazy = site_configs.get_website_brand_lazy(default='ZhongKun')
 ADMIN_SORTED_APP_LIST = settings.ADMIN_SORTED_APP_LIST
 
 

@@ -9,7 +9,7 @@ INSTALLED_APPS = ['apps.app_probe']
 
 CRONTABJOBS = [
     ('task100_probe_start', '*/3 * * * *',
-     'python3 /home/uwsgi/yunkun/apps/app_probe/scripts/updatePrometheus.py >> /var/log/yunkun/probe.log')
+     'python3 /home/uwsgi/zhongkun/apps/app_probe/scripts/updatePrometheus.py >> /var/log/zhongkun/probe.log')
 ]  # 注意 将原来的任务删除，只保留自己执行的文件任务
 
 
@@ -63,7 +63,7 @@ nginx 配置
         listen      8000 ;               # TCP listener for HTTP/1.1
 
         location /  {
-            uwsgi_pass unix:///home/uwsgi/yunkun/yunkun.sock;
+            uwsgi_pass unix:///home/uwsgi/zhongkun/web.sock;
             include /etc/nginx/uwsgi_params;
             uwsgi_param Host $host;
             uwsgi_param X-Real_IP $remote_addr;
@@ -126,11 +126,11 @@ service crond staus    //查看状态
   # |  |  |  |  |
   # *  *  *  *  * user-name  command to be executed
   
-  0 9 * * * root python3 /home/uwsgi/yunkun/scripts/timedelta_metering.py >> /var/log/yunkun/metering.log
-  0 12 28 * * root python3 /home/uwsgi/yunkun/scripts/run_bucket_monthly_stats.py >> /var/log/yunkun/monthly_bucket_stats.log
-  0 17 28 * * root python3 /home/uwsgi/yunkun/scripts/run_generate_and_email_month_report.py >> /var/log/yunkun/monthly_report.log
-  */1 * * * * root python3 /home/uwsgi/yunkun/scripts/run_log_site_req_num.py >> /var/log/yunkun/logsite_timecount.log
-  0 */1 * * * root python3 /home/uwsgi/yunkun/scripts/update_service_req_num.py >> /var/log/yunkun/update_req_num.log
-  */3 * * * * root python3 /home/uwsgi/yunkun/scripts/run_scan_process.py >> /var/log/yunkun/task_scan_process.log
+  0 9 * * * root python3 /home/uwsgi/zhongkun/scripts/timedelta_metering.py >> /var/log/zhongkun/metering.log
+  0 12 28 * * root python3 /home/uwsgi/zhongkun/scripts/run_bucket_monthly_stats.py >> /var/log/zhongkun/monthly_bucket_stats.log
+  0 17 28 * * root python3 /home/uwsgi/zhongkun/scripts/run_generate_and_email_month_report.py >> /var/log/zhongkun/monthly_report.log
+  */1 * * * * root python3 /home/uwsgi/zhongkun/scripts/run_log_site_req_num.py >> /var/log/zhongkun/logsite_timecount.log
+  0 */1 * * * root python3 /home/uwsgi/zhongkun/scripts/update_service_req_num.py >> /var/log/zhongkun/update_req_num.log
+  */3 * * * * root python3 /home/uwsgi/zhongkun/scripts/run_scan_process.py >> /var/log/zhongkun/task_scan_process.log
   ```
   

@@ -59,7 +59,7 @@ class PortalServiceTests(MyAPITestCase):
         self.assertEqual(response.data['num'], 0)
         self.assertIsNone(response.data['until_time'])
 
-        ins = TotalReqNum.get_instance(TotalReqNum.ServiceType.YUNKUN.value)
+        ins = TotalReqNum.get_instance(TotalReqNum.ServiceType.OWN.value)
         ins.req_num = 6688
         ins.save(update_fields=['req_num'])
         response = self.client.get(base_url)

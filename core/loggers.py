@@ -6,7 +6,7 @@ from concurrent_log_handler import ConcurrentRotatingFileHandler
 
 
 def config_script_logger(name: str, filename: str, level=logging.INFO, stdout: bool = False):
-    log_dir = Path('/var/log/yunkun/scripts')
+    log_dir = Path('/var/log/zhongkun/scripts')
     if not log_dir.exists():
         log_dir.mkdir(parents=True, exist_ok=True)
 

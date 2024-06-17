@@ -26,8 +26,8 @@ class ServiceReqCounter:
     @staticmethod
     def get_sites(service_type: str) -> list:
         sites_dict = getattr(settings, 'PORTAL_REQ_NUM_LOKI_SITES_MAP', {})
-        if service_type == TotalReqNum.ServiceType.YUNKUN.value:
-            return sites_dict.get('yunkun', [])
+        if service_type == TotalReqNum.ServiceType.OWN.value:
+            return sites_dict.get('own', [])
         elif service_type == TotalReqNum.ServiceType.VMS.value:
             return sites_dict.get('vms', [])
         elif service_type == TotalReqNum.ServiceType.OBS.value:
@@ -49,7 +49,7 @@ class ServiceReqCounter:
         self.do_update(
             service_type=TotalReqNum.ServiceType.OBS.value, new_until_time=new_until_time)
         self.do_update(
-            service_type=TotalReqNum.ServiceType.YUNKUN.value, new_until_time=new_until_time)
+            service_type=TotalReqNum.ServiceType.OWN.value, new_until_time=new_until_time)
 
     def do_update(self, service_type: str, new_until_time):
         try:

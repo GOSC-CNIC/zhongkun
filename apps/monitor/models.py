@@ -496,14 +496,14 @@ class TotalReqNum(UuidModel):
     class ServiceType(models.TextChoices):
         VMS = 'vms', _('云主机')
         OBS = 'obs', _('对象存储')
-        YUNKUN = 'yunkun', _('本服务')
+        OWN = 'own', _('本服务')
 
     req_num = models.IntegerField(verbose_name=_('服务总请求数'), default=0)
     until_time = models.DateTimeField(verbose_name=_('截止到时间'))
     creation = models.DateTimeField(verbose_name=_('创建时间'))
     modification = models.DateTimeField(verbose_name=_('更新时间'))
     service_type = models.CharField(
-        verbose_name=_('服务类型'), max_length=16, choices=ServiceType.choices, default=ServiceType.YUNKUN.value)
+        verbose_name=_('服务类型'), max_length=16, choices=ServiceType.choices, default=ServiceType.OWN.value)
 
     class Meta:
         db_table = 'total_req_num'

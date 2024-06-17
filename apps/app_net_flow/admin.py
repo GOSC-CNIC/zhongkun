@@ -20,10 +20,6 @@ from django.forms.formsets import all_valid
 
 # Register your models here.
 class NetflowLogEntryBaseModelAdmin(BaseModelAdmin):
-    class Media:
-        css = {
-            'all': ['yunkun/admin/common.css']
-        }
 
     def log_addition(self, request, obj, message):
         return NetflowLogEntry().log_addition(request=request, obj=obj)

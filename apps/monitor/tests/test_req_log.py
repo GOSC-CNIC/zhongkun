@@ -12,7 +12,7 @@ class ServiceReqCounterTests(TransactionTestCase):
         pass
 
     def test_req_num(self):
-        self.service_req_num_test(service_type=TotalReqNum.ServiceType.YUNKUN.value)
+        self.service_req_num_test(service_type=TotalReqNum.ServiceType.OWN.value)
         self.service_req_num_test(service_type=TotalReqNum.ServiceType.VMS.value)
         self.service_req_num_test(service_type=TotalReqNum.ServiceType.OBS.value)
 

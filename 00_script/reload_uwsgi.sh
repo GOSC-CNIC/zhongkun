@@ -1,1 +1,1 @@
-uwsgi --reload /home/uwsgi/yunkun/uwsgi-master.pid
+uwsgi --reload /home/uwsgi/zhongkun/uwsgi-master.pid
