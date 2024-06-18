@@ -9,6 +9,15 @@ probe_logger = config_script_logger(name='app-probe-handler', filename='app_prob
 
 class ProbeHandlers:
 
+    def __init__(self):
+
+        self.base_path = '/etc/prometheus/prometheus.yml'
+        self.path_http = '/etc/prometheus/prometheus_blackbox_http.yml'
+        self.path_tcp = '/etc/prometheus/prometheus_blackbox_tcp.yml'
+        self.path_exporter_node = '/etc/prometheus/prometheus_exporter_node.yml'
+        self.path_exporter_tidb = '/etc/prometheus/prometheus_exporter_tidb.yml'
+        self.path_exporter_ceph = '/etc/prometheus/prometheus_exporter_ceph.yml'
+
     def get_probe_details(self):
         """获取探针信息"""
 
@@ -32,7 +41,7 @@ class ProbeHandlers:
     def update_version(self, version: int):
         """更新版本信息"""
 
-        if not version or version <=0:
+        if not version or version <= 0:
             return False
 
         inst = self.get_probe_details()
@@ -78,11 +87,18 @@ class ProbeHandlers:
         except Exception as e:
             raise errors.Error(message=f'创建探针网站监控任务错误：{str(e)}')
 
-        try:
-            self.handler_prometheus_config()
-        except errors.Error as e:
-            probe_logger.error(msg=f'添加探针信息后重新加载prometheus配置文件时错误：{str(e)}')
-            raise e
+        if task['url'].startswith('http'):
+            need_update_prometheus_config_list = ['prometheus_blackbox_http']
+        else:
+            need_update_prometheus_config_list = ['prometheus_blackbox_tcp']
+
+        if need_update_prometheus_config_list:
+
+            try:
+                self.handler_prometheus_config(need_update_prometheus_config_list=need_update_prometheus_config_list)
+            except errors.Error as e:
+                probe_logger.error(msg=f'添加探针信息后重新加载prometheus配置文件时错误：{str(e)}')
+                raise e
 
         return True
 
@@ -102,11 +118,17 @@ class ProbeHandlers:
         except Exception as e:
             raise errors.Error(message=f'删除探针网站监控任务错误：{str(e)}')
 
-        try:
-            self.handler_prometheus_config()
-        except errors.Error as e:
-            probe_logger.error(msg=f'删除探针信息后重新加载prometheus配置文件时错误：{str(e)}')
-            raise e
+        if task['url'].startswith('http'):
+            need_update_prometheus_config_list = ['prometheus_blackbox_http']
+        else:
+            need_update_prometheus_config_list = ['prometheus_blackbox_tcp']
+
+        if need_update_prometheus_config_list:
+            try:
+                self.handler_prometheus_config(need_update_prometheus_config_list=need_update_prometheus_config_list)
+            except errors.Error as e:
+                probe_logger.error(msg=f'删除探针信息后重新加载prometheus配置文件时错误：{str(e)}')
+                raise e
 
         return True
 
@@ -142,8 +164,16 @@ class ProbeHandlers:
         if update_fields_list:
             obj.save(update_fields=update_fields_list)
 
+            if newtask['url'].startswith('http'):
+                need_update_prometheus_config_list = ['prometheus_blackbox_http']
+            else:
+                need_update_prometheus_config_list = ['prometheus_blackbox_tcp']
+
+            if not need_update_prometheus_config_list:
+                return True
+
             try:
-                self.handler_prometheus_config()
+                self.handler_prometheus_config(need_update_prometheus_config_list=need_update_prometheus_config_list)
             except errors.Error as e:
                 probe_logger.error(msg=f'更新探针信息后重新加载prometheus配置文件时错误：{str(e)}')
                 raise e
@@ -257,26 +287,66 @@ class ProbeHandlers:
 
         return
 
-    def handler_prometheus_config(self):
-        from apps.app_global.models import GlobalConfig
+    def update_prometheus_part_config(self, prometheus_configs, prometheus_module):
+        """更新部分文件 prometheus"""
 
-        base_path = '/etc/prometheus/prometheus.yml'
-        path_http = '/etc/prometheus/prometheus_blackbox_http.yml'
-        path_tcp = '/etc/prometheus/prometheus_blackbox_tcp.yml'
-        path_exporter_node = '/etc/prometheus/prometheus_exporter_node.yml'
-        path_exporter_tidb = '/etc/prometheus/prometheus_exporter_tidb.yml'
-        path_exporter_ceph = '/etc/prometheus/prometheus_exporter_ceph.yml'
+        for prometheus in prometheus_configs:
+
+            if prometheus.name == prometheus_module.PROMETHEUS_EXPORTER_TIDB.value and prometheus.value:
+                self.write_prometheus_config_tidb(path=self.path_exporter_tidb,
+                                                  prometheus_base_tidb_yml=prometheus.value)
+
+            if prometheus.name == prometheus_module.PROMETHEUS_EXPORTER_CEPH.value and prometheus.value:
+                self.write_prometheus_config_ceph(path=self.path_exporter_ceph,
+                                                  prometheus_base_ceph_yml=prometheus.value)
+
+            if prometheus.name == prometheus_module.PROMETHEUS_EXPORTER_NODE.value and prometheus.value:
+                self.write_prometheus_config_node(path=self.path_exporter_node,
+                                                  prometheus_base_node_yml=prometheus.value)
+
+            if prometheus.name == prometheus_module.PROMETHEUS_BLACKBOX_HTTP.value and prometheus.value:
+
+                website = self.get_probe_monitor_website()
+
+                try:
+                    self.write_probe_http_config(website=website, prometheus_blackbox_http_yml=prometheus.value,
+                                                 path_http=self.path_http)
+                except Exception as e:
+                    raise Exception(f'写入prometheus_blackbox_http.yml文件时错误:{str(e)}')
+
+            if prometheus.name == prometheus_module.PROMETHEUS_BLACKBOX_TCP.value and prometheus.value:
+
+                website = self.get_probe_monitor_website()
+
+                try:
+                    self.write_probe_tcp_config(website=website, prometheus_blackbox_tcp_yml=prometheus.value,
+                                                path_tcp=self.path_tcp)
+                except Exception as e:
+                    raise Exception(f'写入prometheus_blackbox_tcp.yml文件时错误:{str(e)}')
+
+            if prometheus.name == prometheus_module.PROMETHEUS_BASE.value:
+                self.write_prometheus_config(path=self.base_path, prometheus_base_yml=prometheus.value)
+
+    def handler_prometheus_config(self, need_update_prometheus_config_list: list = []):
+        from apps.app_global.models import GlobalConfig
 
         prometheus_query_name_list = [
             GlobalConfig.ConfigName.PROMETHEUS_BASE.value,
+            GlobalConfig.ConfigName.PROMETHEUS_SERVICE_URL.value,
+        ]
+
+        prometheus_config_list = [
             GlobalConfig.ConfigName.PROMETHEUS_EXPORTER_TIDB.value,
             GlobalConfig.ConfigName.PROMETHEUS_EXPORTER_CEPH.value,
             GlobalConfig.ConfigName.PROMETHEUS_EXPORTER_NODE.value,
             GlobalConfig.ConfigName.PROMETHEUS_BLACKBOX_HTTP.value,
             GlobalConfig.ConfigName.PROMETHEUS_BLACKBOX_TCP.value,
-            GlobalConfig.ConfigName.PROMETHEUS_SERVICE_URL.value,
-
         ]
+
+        if need_update_prometheus_config_list:
+            prometheus_query_name_list = prometheus_query_name_list + need_update_prometheus_config_list
+        else:
+            prometheus_query_name_list = prometheus_query_name_list + prometheus_config_list
 
         prometheus_configs = GlobalConfig.objects.filter(
             name__in=prometheus_query_name_list).all()
@@ -284,44 +354,17 @@ class ProbeHandlers:
         if not prometheus_configs:
             raise Exception('请到全局配置表中添加 prometheus 相关配置')
 
-        prometheus_config = prometheus_configs.filter(name=prometheus_query_name_list[0]).first()
+        prometheus_config = prometheus_configs.filter(name=GlobalConfig.ConfigName.PROMETHEUS_BASE.value).first()
 
         if not prometheus_config:
             raise Exception('请到全局配置表中添加 prometheus 基础配置文件')
 
-        prometheus_url = prometheus_configs.filter(name=prometheus_query_name_list[6]).first()
+        prometheus_url = prometheus_configs.filter(name=GlobalConfig.ConfigName.PROMETHEUS_SERVICE_URL.value).first()
         if not prometheus_url:
             raise Exception('未找到prometheus_url 信息，请到全局配置表中配置')
 
-        if prometheus_config.name == prometheus_query_name_list[0]:
-            self.write_prometheus_config(path=base_path, prometheus_base_yml=prometheus_config.value)
-
-        website = self.get_probe_monitor_website()
-
-        for prometheus in prometheus_configs:
-
-            if prometheus.name == prometheus_query_name_list[1] and prometheus.value:
-                self.write_prometheus_config_tidb(path=path_exporter_tidb, prometheus_base_tidb_yml=prometheus.value)
-
-            if prometheus.name == prometheus_query_name_list[2] and prometheus.value:
-                self.write_prometheus_config_ceph(path=path_exporter_ceph, prometheus_base_ceph_yml=prometheus.value)
-
-            if prometheus.name == prometheus_query_name_list[3] and prometheus.value:
-                self.write_prometheus_config_node(path=path_exporter_node, prometheus_base_node_yml=prometheus.value)
-
-            if prometheus.name == prometheus_query_name_list[4] and prometheus.value:
-                try:
-                    self.write_probe_http_config(website=website, prometheus_blackbox_http_yml=prometheus.value,
-                                                 path_http=path_http)
-                except Exception as e:
-                    raise Exception(f'写入prometheus_blackbox_http.yml文件时错误:{str(e)}')
-
-            if prometheus.name == prometheus_query_name_list[5] and prometheus.value:
-                try:
-                    self.write_probe_tcp_config(website=website, prometheus_blackbox_tcp_yml=prometheus.value,
-                                                path_tcp=path_tcp)
-                except Exception as e:
-                    raise Exception(f'写入prometheus_blackbox_tcp.yml文件时错误:{str(e)}')
+        self.update_prometheus_part_config(prometheus_configs=prometheus_configs,
+                                           prometheus_module=GlobalConfig.ConfigName)
 
         if not prometheus_url.value.endswith('/'):
             prometheus_url.value += '/'
