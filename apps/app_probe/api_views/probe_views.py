@@ -36,8 +36,8 @@ class ProbeViewSet(NormalGenericViewSet):
               "server": "中国科技网"
             }
         """
-        obj = ProbeDetails.get_instance()
-        data = {'version': obj.version, 'server': obj.get_probe_type_display()}
+        obj = ProbeHandlers().get_probe_details()
+        data = {'version': obj.version, 'server': obj.probe_name}
 
         return Response(data=data, status=200)
 
