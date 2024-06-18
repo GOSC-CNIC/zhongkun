@@ -146,6 +146,14 @@ class ProbeHandlers:
         if not newtask:
             raise errors.Error('请添加 newtask 参数')
 
+        try:
+            new_task_key_list = list(newtask.keys())
+            for key in ['url', 'url_hash', 'is_tamper_resistant']:
+                if key not in new_task_key_list:
+                    raise Exception(f'请添加 newtask {key} 参数')
+        except Exception as e:
+            raise errors.BadRequest(message=str(e))
+
         update_fields_list = []
         if newtask['url'] and newtask['url'] != obj.url:
             obj.url = newtask['url']

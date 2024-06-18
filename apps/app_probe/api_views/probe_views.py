@@ -86,7 +86,7 @@ class ProbeViewSet(NormalGenericViewSet):
             try:
                 newtask = data['newtask']
             except Exception as e:
-                return self.exception_response(f'newtask 参数必填')
+                return self.exception_response(errors.BadRequest(message=f'newtask 参数必填'))
 
             try:
                 probehandler.update_probe_website(task=data['task'], newtask=newtask)
