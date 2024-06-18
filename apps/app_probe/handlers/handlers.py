@@ -11,7 +11,12 @@ class ProbeHandlers:
 
     def get_probe_details(self):
         """获取探针信息"""
-        return ProbeDetails().get_instance()
+
+        inst = ProbeDetails().get_instance()
+        if inst is None:
+            inst = ProbeDetails.objects.create(version=0, probe_name='探针服务')
+
+        return inst
 
     def get_local_probe_version(self):
         """获取本地版本号"""
@@ -26,10 +31,13 @@ class ProbeHandlers:
 
     def update_version(self, version: int):
         """更新版本信息"""
-        local_version = self.get_local_probe_version()
 
-        if local_version != version:
-            inst = self.get_probe_details()
+        if not version or version <=0:
+            return False
+
+        inst = self.get_probe_details()
+
+        if inst.version != version:
             inst.version = version
             inst.save(update_fields=['version'])
             return True
@@ -41,8 +49,7 @@ class ProbeHandlers:
         """获取监控任务的一条数据"""
 
         try:
-            obj = ProbeMonitorWebsite.objects.filter(url_hash=task['url_hash'], url=task['url'],
-                                                     is_tamper_resistant=task['is_tamper_resistant']).first()
+            obj = ProbeMonitorWebsite.objects.filter(url_hash=task['url_hash'], url=task['url']).first()
         except Exception as e:
             raise errors.Error(message=f'查询探针网站监控任务错误：{str(e)}')
 

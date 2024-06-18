@@ -23,7 +23,7 @@ class ProbeDetails(models.Model):
 
     INSTANCE_ID = 1
     id = models.AutoField(primary_key=True, verbose_name=_('ID'), default=INSTANCE_ID)
-    probe_name = models.CharField(verbose_name=_('探针'), max_length=255, default=None)
+    probe_name = models.CharField(verbose_name=_('探针服务名称'), max_length=255, default=None)
     version = models.IntegerField(verbose_name=_('版本号'), default=0, blank=True)
 
     class Meta:

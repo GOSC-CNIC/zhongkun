@@ -41,6 +41,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='probedetails',
             name='probe_name',
-            field=models.CharField(default=None, max_length=255, verbose_name='探针'),
+            field=models.CharField(default=None, max_length=255, verbose_name='探针服务名称'),
         ),
     ]

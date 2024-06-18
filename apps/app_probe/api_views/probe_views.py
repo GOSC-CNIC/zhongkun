@@ -96,7 +96,8 @@ class ProbeViewSet(NormalGenericViewSet):
         else:
             return self.exception_response(f'operate 只有 add/update/delete ')
 
-        probehandler.update_version(version=version)
+        if version and version > 0:
+            probehandler.update_version(version=version)
 
         return Response(status=200)
 
