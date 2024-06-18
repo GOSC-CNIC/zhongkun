@@ -163,7 +163,7 @@ class ProbeHandlers:
         try:
             self.write_yml(path, prometheus_base_yml, flag=True)
         except Exception as e:
-            raise f'写入prometheus.yml文件时错误：{str(e)}'
+            raise Exception(f'写入prometheus.yml文件时错误：{str(e)}')
 
     def write_prometheus_config_tidb(self, path, prometheus_base_tidb_yml):
         """写入 prometheus 配置文件
@@ -174,7 +174,7 @@ class ProbeHandlers:
         try:
             self.write_yml(path, prometheus_base_tidb_yml)
         except Exception as e:
-            raise f'写入prometheus_exporter_tibd.yml文件时错误：{str(e)}'
+            raise Exception(f'写入prometheus_exporter_tibd.yml文件时错误：{str(e)}')
 
     def write_prometheus_config_ceph(self, path, prometheus_base_ceph_yml):
         """写入 prometheus 配置文件
@@ -184,7 +184,7 @@ class ProbeHandlers:
         try:
             self.write_yml(path, prometheus_base_ceph_yml)
         except Exception as e:
-            raise f'写入prometheus_exporter_ceph.yml文件时错误：{str(e)}'
+            raise Exception(f'写入prometheus_exporter_ceph.yml文件时错误：{str(e)}')
 
     def write_prometheus_config_node(self, path, prometheus_base_node_yml):
         """写入 prometheus 配置文件
@@ -194,7 +194,7 @@ class ProbeHandlers:
         try:
             self.write_yml(path, prometheus_base_node_yml)
         except Exception as e:
-            raise f'写入prometheus_exporter_node.yml文件时错误：{str(e)}'
+            raise Exception(f'写入prometheus_exporter_node.yml文件时错误：{str(e)}')
 
     @staticmethod
     def write_probe_http_config(website, prometheus_blackbox_http_yml, path_http):
@@ -275,17 +275,16 @@ class ProbeHandlers:
             name__in=prometheus_query_name_list).all()
 
         if not prometheus_configs:
-            raise f'请到全局配置表中添加 prometheus 相关配置'
+            raise Exception('请到全局配置表中添加 prometheus 相关配置')
 
         prometheus_config = prometheus_configs.filter(name=prometheus_query_name_list[0]).first()
 
         if not prometheus_config:
-            raise f'请到全局配置表中添加 prometheus 基础配置文件'
+            raise Exception('请到全局配置表中添加 prometheus 基础配置文件')
 
         prometheus_url = prometheus_configs.filter(name=prometheus_query_name_list[6]).first()
         if not prometheus_url:
-            raise f'未找到prometheus_url 信息，请到全局配置表中配置'
-
+            raise Exception('未找到prometheus_url 信息，请到全局配置表中配置')
 
         if prometheus_config.name == prometheus_query_name_list[0]:
             self.write_prometheus_config(path=base_path, prometheus_base_yml=prometheus_config.value)
@@ -308,14 +307,14 @@ class ProbeHandlers:
                     self.write_probe_http_config(website=website, prometheus_blackbox_http_yml=prometheus.value,
                                                  path_http=path_http)
                 except Exception as e:
-                    raise f'写入prometheus_blackbox_http.yml文件时错误:{str(e)}'
+                    raise Exception(f'写入prometheus_blackbox_http.yml文件时错误:{str(e)}')
 
             if prometheus.name == prometheus_query_name_list[5] and prometheus.value:
                 try:
                     self.write_probe_tcp_config(website=website, prometheus_blackbox_tcp_yml=prometheus.value,
                                                 path_tcp=path_tcp)
                 except Exception as e:
-                    raise f'写入prometheus_blackbox_tcp.yml文件时错误:{str(e)}'
+                    raise Exception(f'写入prometheus_blackbox_tcp.yml文件时错误:{str(e)}')
 
         if not prometheus_url.value.endswith('/'):
             prometheus_url.value += '/'

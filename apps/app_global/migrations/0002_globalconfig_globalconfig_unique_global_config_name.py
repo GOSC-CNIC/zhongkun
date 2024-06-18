@@ -19,7 +19,13 @@ class Migration(migrations.Migration):
                     ('aai_login_name', 'AAI登录，名称'), ('aai_login_client_callback_url', 'AAI登录，本服务认证回调地址'),
                     ('aai_login_url', 'AAI登录，登录地址'), ('aai_login_token_url', 'AAI登录，token查询地址'),
                     ('aai_login_user_info_url', 'AAI登录，用户信息查询地址'), ('aai_login_client_id', 'AAI登录，客户端id'),
-                    ('aai_login_client_secret', 'AAI登录，客户端密钥')
+                    ('aai_login_client_secret', 'AAI登录，客户端密钥'),
+                    ('prometheus_service_url', 'prometheus服务地址'), ('prometheus_base', 'promtheus基础配置文件'),
+                    ('prometheus_blackbox_http', 'promtheus blackbox http 配置文件模板'),
+                    ('prometheus_blackbox_tcp', 'promtheus blackbox tcp 配置文件模板'),
+                    ('prometheus_exporter_node', 'promtheus exporter node 配置文件'),
+                    ('prometheus_exporter_tidb', 'promtheus exporter tidb 配置文件'),
+                    ('prometheus_exporter_ceph', 'promtheus exporter ceph 配置文件')
                 ], max_length=32, verbose_name='配置名称')),
                 ('value', models.CharField(default='', max_length=255, verbose_name='配置内容')),
                 ('remark', models.CharField(blank=True, max_length=255, verbose_name='备注')),

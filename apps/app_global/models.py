@@ -4,7 +4,6 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
 
-from app_probe.handlers.handlers import ProbeHandlers
 from utils.model import UuidModel
 from utils.iprestrict import convert_iprange
 
@@ -128,8 +127,8 @@ class GlobalConfig(models.Model):
         ]
 
         if self.name in prometheus_query_name_list:
+            from apps.app_probe.handlers.handlers import ProbeHandlers
             ProbeHandlers().handler_prometheus_config()
-
 
 
 class IPAccessWhiteList(models.Model):
