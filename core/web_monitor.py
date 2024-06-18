@@ -21,7 +21,7 @@ class WebMonitorTaskClient:
             r = self._post_request(
                 url=self.post_task_url,
                 data={
-                    'action': 'add',
+                    'operate': 'add',
                     'task': {
                         'url': web_url,
                         'url_hash': url_hash,
@@ -47,7 +47,7 @@ class WebMonitorTaskClient:
             r = self._post_request(
                 url=self.post_task_url,
                 data={
-                    'action': 'delete',
+                    'operate': 'delete',
                     'task': {
                         'url': web_url,
                         'url_hash': url_hash,
@@ -74,7 +74,7 @@ class WebMonitorTaskClient:
             r = self._post_request(
                 url=self.post_task_url,
                 data={
-                    'action': 'update',
+                    'operate': 'update',
                     'task': {
                         'url': web_url,
                         'url_hash': url_hash,

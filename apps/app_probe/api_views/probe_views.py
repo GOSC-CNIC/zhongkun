@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.serializers import Serializer
 from rest_framework.response import Response
+from rest_framework.authentication import BasicAuthentication
 
 from drf_yasg.utils import swagger_auto_schema, no_body
 
@@ -104,3 +105,6 @@ class ProbeViewSet(NormalGenericViewSet):
         if self.action == 'sbumit_probe_website':
             return AppProbeSerializer
         return Serializer
+
+    def get_authenticators(self):
+        return [BasicAuthentication()] + super().get_authenticators()
