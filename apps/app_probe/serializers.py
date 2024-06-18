@@ -3,9 +3,9 @@ from rest_framework import serializers
 
 
 class AppProbeTaskSerializer(serializers.Serializer):
-    url = serializers.CharField(label=_('URI'), max_length=1024)
-    url_hash = serializers.CharField(label=_('网址hash值'), max_length=64)
-    is_tamper_resistant = serializers.BooleanField(default=False)
+    url = serializers.CharField(label=_('URI'), max_length=1024, required=False)
+    url_hash = serializers.CharField(label=_('网址hash值'), max_length=64, required=False)
+    is_tamper_resistant = serializers.BooleanField(default=False, required=False)
 
 class AppProbeSerializer(serializers.Serializer):
     operate = serializers.CharField(label=_('操作'))

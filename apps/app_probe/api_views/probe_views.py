@@ -83,7 +83,8 @@ class ProbeViewSet(NormalGenericViewSet):
         elif operate == 'update':
 
             try:
-                probehandler.update_probe_website(task=data['task'], newtask=data['newtask'])
+                newtask = data['newtask']
+                probehandler.update_probe_website(task=data['task'], newtask=newtask)
             except errors.Error as e:
                 return self.exception_response(e)
 

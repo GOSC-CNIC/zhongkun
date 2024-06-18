@@ -143,6 +143,9 @@ class ProbeHandlers:
         if not obj:
             return self.add_probe_website(task=task)
 
+        if not newtask:
+            raise errors.Error('请添加 newtask 参数')
+
         update_fields_list = []
         if newtask['url'] and newtask['url'] != obj.url:
             obj.url = newtask['url']
