@@ -54,12 +54,13 @@ class ProbeViewSet(NormalGenericViewSet):
 
             {
               "operate": "string",  # 操作 add/update/delete
+              "version": 0  # 版本号
               "task": {
                 "url": "string",    # 网址
                 "url_hash": "string",  # 哈希值
                 "is_tamper_resistant": false,  # 防篡改
               },
-              "version": 0  # 版本号
+
             }
 
         """
@@ -84,6 +85,10 @@ class ProbeViewSet(NormalGenericViewSet):
 
             try:
                 newtask = data['newtask']
+            except Exception as e:
+                return self.exception_response(f'newtask 参数必填')
+
+            try:
                 probehandler.update_probe_website(task=data['task'], newtask=newtask)
             except errors.Error as e:
                 return self.exception_response(e)
