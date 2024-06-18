@@ -62,6 +62,7 @@ schema_view = get_schema_view(
 if screenvis_only:
     urlpatterns = [
         path('api/app_screenvis/', include('apps.app_screenvis.api_urls', namespace='screenvis-api')),
+        path('api/app_alert/', include('apps.app_alert.api_urls', namespace='alert-api')),
     ]
 else:
     urlpatterns = [
