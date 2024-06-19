@@ -32,7 +32,8 @@ class GlobalConfigAdmin(NoDeleteSelectModelAdmin):
             GlobalConfig.ConfigName.PROMETHEUS_EXPORTER_CEPH.value,
             GlobalConfig.ConfigName.PROMETHEUS_EXPORTER_NODE.value,
             GlobalConfig.ConfigName.PROMETHEUS_BLACKBOX_HTTP.value,
-            GlobalConfig.ConfigName.PROMETHEUS_BLACKBOX_TCP.value
+            GlobalConfig.ConfigName.PROMETHEUS_BLACKBOX_TCP.value,
+            GlobalConfig.ConfigName.PROMETHEUS_SERVICE_URL.value
         ]
 
         prometheus_globalconfig_name = obj.name
@@ -40,41 +41,48 @@ class GlobalConfigAdmin(NoDeleteSelectModelAdmin):
         if prometheus_globalconfig_name not in prometheus_globalconfig_list:
             return
 
+        global_config_name = GlobalConfig.ConfigName
 
         content = f'配置内容已保存，'
-        if prometheus_globalconfig_name == GlobalConfig.ConfigName.PROMETHEUS_BASE.value:
+        if prometheus_globalconfig_name == global_config_name.PROMETHEUS_BASE.value:
             try:
                 ProbeHandlers().update_prometheus_yml(obj=obj)
             except Exception as e:
                 self.message_user(request, content + str(e), level=messages.ERROR)
 
-        if prometheus_globalconfig_name == GlobalConfig.ConfigName.PROMETHEUS_EXPORTER_TIDB.value:
+        if prometheus_globalconfig_name == global_config_name.PROMETHEUS_EXPORTER_TIDB.value:
             try:
                 ProbeHandlers().update_prometheus_exporter_tidb_yml(obj=obj)
             except Exception as e:
                 self.message_user(request, content + str(e), level=messages.ERROR)
 
-        if prometheus_globalconfig_name == GlobalConfig.ConfigName.PROMETHEUS_EXPORTER_CEPH.value:
+        if prometheus_globalconfig_name == global_config_name.PROMETHEUS_EXPORTER_CEPH.value:
             try:
                 ProbeHandlers().update_prometheus_exporter_ceph_yml(obj=obj)
             except Exception as e:
                 self.message_user(request, content + str(e), level=messages.ERROR)
 
-        if prometheus_globalconfig_name == GlobalConfig.ConfigName.PROMETHEUS_EXPORTER_NODE.value:
+        if prometheus_globalconfig_name == global_config_name.PROMETHEUS_EXPORTER_NODE.value:
             try:
                 ProbeHandlers().update_prometheus_exporter_node_yml(obj=obj)
             except Exception as e:
                 self.message_user(request, content + str(e), level=messages.ERROR)
 
-        if prometheus_globalconfig_name == GlobalConfig.ConfigName.PROMETHEUS_BLACKBOX_HTTP.value:
+        if prometheus_globalconfig_name == global_config_name.PROMETHEUS_BLACKBOX_HTTP.value:
             try:
                 ProbeHandlers().update_prometheus_blackbox_http_tcp(blackbox_type='http')
             except Exception as e:
                 self.message_user(request, content + str(e), level=messages.ERROR)
 
-        if prometheus_globalconfig_name == GlobalConfig.ConfigName.PROMETHEUS_BLACKBOX_TCP.value:
+        if prometheus_globalconfig_name == global_config_name.PROMETHEUS_BLACKBOX_TCP.value:
             try:
                 ProbeHandlers().update_prometheus_blackbox_http_tcp(blackbox_type='tcp')
+            except Exception as e:
+                self.message_user(request, content + str(e), level=messages.ERROR)
+
+        if prometheus_globalconfig_name == global_config_name.PROMETHEUS_SERVICE_URL.value:
+            try:
+                ProbeHandlers().update_prometheus_service_url()
             except Exception as e:
                 self.message_user(request, content + str(e), level=messages.ERROR)
 

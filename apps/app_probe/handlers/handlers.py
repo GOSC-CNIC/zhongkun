@@ -427,7 +427,7 @@ class ProbeHandlers:
 
         try:
             self.write_probe_tcp_config(website=website_qs, prometheus_blackbox_tcp_yml=yml_template.value,
-                                         path_tcp=self.path_tcp)
+                                        path_tcp=self.path_tcp)
         except Exception as e:
             raise Exception(f'写入prometheus_blackbox_http.yml文件时错误:{str(e)}')
 
@@ -440,6 +440,14 @@ class ProbeHandlers:
             return self.update_prometheus_blackbox_http_yml()
         else:
             return self.update_prometheus_blackbox_tcp_yml()
+
+    def update_prometheus_service_url(self):
+        """prometheus 服务地址更新 """
+        prom_service_url = GlobalConfig.objects.filter(
+            name=GlobalConfig.ConfigName.PROMETHEUS_SERVICE_URL.value).first()
+
+        if prom_service_url and prom_service_url.value:
+            return self.reload_prometheus_config()
 
     @staticmethod
     def reload_prometheus_config():
@@ -456,4 +464,3 @@ class ProbeHandlers:
             os.system(f"curl -X POST {prom_base_url.value}-/reload")
         except Exception as e:
             probe_logger.error(f'重新加载prometheus服务失败，请检查服务及端口配置是否正确：{str(e)}')
-
