@@ -5,7 +5,7 @@ from django.urls import reverse
 from django.utils import timezone as dj_timezone
 
 from apps.app_screenvis.managers import CephQueryChoices, HostQueryChoices, TiDBQueryChoices, HostQueryRangeChoices
-from apps.app_screenvis.models import HostCpuUsage, MetricMonitorUnit, HostNetflow
+from apps.app_screenvis.models import MetricMonitorUnit, HostNetflow
 from apps.app_screenvis.permissions import ScreenAPIIPRestrictor
 from . import MyAPITestCase, get_or_create_metric_ceph, get_or_create_metric_host, get_or_create_metric_tidb
 
@@ -184,81 +184,6 @@ class MetricHostTests(MyAPITestCase):
                 if data_item["value"] is not None:
                     self.assertIsInstance(data_item["value"], list)
                     self.assertEqual(len(data_item["value"]), 2)
-
-    def test_cpuusage(self):
-        now_time = dj_timezone.now()
-        now_ts = int(now_time.timestamp())
-        host_unit1 = MetricMonitorUnit(
-            name='name1', name_en='name_en1', job_tag='tag1', data_center=None,
-            unit_type=MetricMonitorUnit.UnitType.HOST.value,
-            creation_time=now_time, update_time=now_time
-        )
-        host_unit1.save(force_insert=True)
-        host_unit2 = MetricMonitorUnit(
-            name='name2', name_en='name_en2', job_tag='tag2', data_center=None,
-            unit_type=MetricMonitorUnit.UnitType.HOST.value,
-            creation_time=now_time, update_time=now_time
-        )
-        host_unit2.save(force_insert=True)
-
-        hcu1 = HostCpuUsage(timestamp=now_ts, value=1.234, unit_id=host_unit1.id)
-        hcu1.save(force_insert=True)
-        hcu2 = HostCpuUsage(timestamp=(now_ts - 60*10), value=6.8234, unit_id=host_unit1.id)
-        hcu2.save(force_insert=True)
-        hcu3 = HostCpuUsage(timestamp=(now_ts - 60*20), value=16.8234, unit_id=host_unit1.id)
-        hcu3.save(force_insert=True)
-        hcu4 = HostCpuUsage(timestamp=(now_ts - 60*22), value=8.18234, unit_id=host_unit1.id)
-        hcu4.save(force_insert=True)
-        hcu5 = HostCpuUsage(timestamp=(now_ts - 60*30), value=9.14464, unit_id=host_unit1.id)
-        hcu5.save(force_insert=True)
-        u2_hcu1 = HostCpuUsage(timestamp=now_ts, value=8.18234, unit_id=host_unit2.id)
-        u2_hcu1.save(force_insert=True)
-        u2_hcu2 = HostCpuUsage(timestamp=(now_ts - 60*10), value=5.754, unit_id=host_unit2.id)
-        u2_hcu2.save(force_insert=True)
-        hcu6 = HostCpuUsage(timestamp=(now_ts - 60 * 21), value=-1, unit_id=host_unit1.id)
-        hcu6.save(force_insert=True)
-
-        url = reverse('screenvis-api:host-query-cpuusage')
-        response = self.client.get(url)
-        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
-        ScreenAPIIPRestrictor.add_ip_rule(ip_value='127.0.0.1')
-        ScreenAPIIPRestrictor.clear_cache()
-
-        r = self.client.get(url)
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(len(r.data['results']), 7)
-
-        query = parse.urlencode(query={'unit_id': host_unit1.id})
-        r = self.client.get(f'{url}?{query}')
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(len(r.data['results']), 5)
-
-        query = parse.urlencode(query={'unit_id': host_unit1.id, 'time': now_ts})
-        r = self.client.get(f'{url}?{query}')
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(len(r.data['results']), 5)
-        query = parse.urlencode(query={'unit_id': host_unit1.id, 'time': (now_ts - 60*21)})
-        r = self.client.get(f'{url}?{query}')
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(len(r.data['results']), 2)
-        query = parse.urlencode(query={'unit_id': host_unit1.id, 'time': (now_ts - 60 * 10)})
-        r = self.client.get(f'{url}?{query}')
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(len(r.data['results']), 4)
-        query = parse.urlencode(query={'unit_id': host_unit1.id, 'time': (now_ts - 60 * 10), 'limit': 1})
-        r = self.client.get(f'{url}?{query}')
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(len(r.data['results']), 1)
-
-        query = parse.urlencode(query={'unit_id': host_unit1.id, 'time': (now_ts - 60 * 10), 'limit': 0})
-        r = self.client.get(f'{url}?{query}')
-        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
-        query = parse.urlencode(query={'unit_id': host_unit1.id, 'time': (now_ts - 60 * 10), 'limit': 2001})
-        r = self.client.get(f'{url}?{query}')
-        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
-        query = parse.urlencode(query={'unit_id': host_unit1.id, 'time': -1})
-        r = self.client.get(f'{url}?{query}')
-        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=r)
 
     def test_netflow(self):
         now_time = dj_timezone.now()

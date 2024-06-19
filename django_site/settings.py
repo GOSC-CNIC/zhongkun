@@ -435,8 +435,6 @@ CRONTABJOBS = [
      'python3 /home/uwsgi/zhongkun/scripts/update_service_req_num.py >> /var/log/zhongkun/task_update_req_num.log'),
     ('task6_scan_start', '*/3 * * * *',
      'python3 /home/uwsgi/zhongkun/scripts/run_scan_process.py >> /var/log/zhongkun/task_scan_process.log'),
-    ('task7_screen_host_cpuusage', '*/3 * * * *',
-     'python3 /home/uwsgi/zhongkun/scripts/run_screen_host_cpuusage.py >> /var/log/zhongkun/task_screen_host_cpuusage.log'),
     ('task8_alert_email_notification', '*/1 * * * *',
      'python3 /home/uwsgi/zhongkun/apps/app_alert/scripts/alert_email_notification.py >> /var/log/zhongkun/task_alert_email_notification.log'),
     ('task9_alert_dingtalk_notification', '*/1 * * * *',

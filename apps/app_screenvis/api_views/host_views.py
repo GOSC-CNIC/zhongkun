@@ -10,7 +10,7 @@ from drf_yasg import openapi
 
 from apps.app_screenvis.managers import HostQueryChoices, MetricQueryManager, HostQueryRangeChoices
 from apps.app_screenvis.utils import errors
-from apps.app_screenvis.models import MetricMonitorUnit, HostCpuUsage, HostNetflow
+from apps.app_screenvis.models import MetricMonitorUnit, HostNetflow
 from apps.app_screenvis.tasks import try_host_netflow
 from apps.app_screenvis.permissions import ScreenAPIIPPermission
 from . import NormalGenericViewSet
@@ -125,104 +125,6 @@ class MetricHostViewSet(NormalGenericViewSet):
             raise errors.NotFound(message=_('查询的指标单元不存在。'))
 
         return unit
-
-    @swagger_auto_schema(
-        operation_summary=gettext_lazy('查询主机单元总CPU使用率时序数据'),
-        manual_parameters=[
-            openapi.Parameter(
-                name='unit_id',
-                in_=openapi.IN_QUERY,
-                type=openapi.TYPE_STRING,
-                required=True,
-                description=_('主机指标单元id, 查询指定主机集群')
-            ),
-            openapi.Parameter(
-                name='time',
-                in_=openapi.IN_QUERY,
-                type=openapi.TYPE_INTEGER,
-                required=False,
-                description=_('从指定时间戳向前查询数据，默认为当前时间')
-            ),
-            openapi.Parameter(
-                name='limit',
-                in_=openapi.IN_QUERY,
-                type=openapi.TYPE_INTEGER,
-                required=False,
-                description=_('指定查询最大数据量，默认200，范围1-2000')
-            )
-        ],
-        responses={
-            200: ''
-        }
-    )
-    @action(methods=['get'], detail=False, url_path='query/cpuusage', url_name='query-cpuusage')
-    def query_cpuusage(self, request, *args, **kwargs):
-        """
-        查询主机单元总CPU使用率时序数据
-
-            Http Code 200:
-            {
-                "results": {
-                    {
-                        "id": "dghrt34ehewwfdw",
-                        "timestamp": 1446758567,
-                        "value": 12.3456,   # 0 - 100
-                        "unit_id": 1
-                      }
-                ]
-            }
-        """
-        unit_id = request.query_params.get('unit_id', None)
-        timestamp = request.query_params.get('time', None)
-        limit = request.query_params.get('limit', None)
-
-        if unit_id:
-            try:
-                unit_id = int(unit_id)
-            except ValueError:
-                return self.exception_response(errors.InvalidArgument(message=_('指定监控单元id无效')))
-
-        if timestamp:
-            try:
-                timestamp = int(timestamp)
-                if timestamp < 0:
-                    raise ValueError('时间戳不能为负数')
-            except ValueError:
-                return self.exception_response(errors.InvalidArgument(message=_('指定时间戳无效')))
-
-        if limit:
-            try:
-                limit = int(limit)
-                if limit < 1 or limit > 2000:
-                    raise ValueError
-            except ValueError:
-                return self.exception_response(errors.InvalidArgument(message=_('指定查询数据量范围为1-2000')))
-        else:
-            limit = 200
-
-        try:
-            qs = self.filter_cpuusage_qs(unit_id=unit_id, timestamp=timestamp, limit=limit)
-            data = []
-            for obj in qs:
-                data.insert(0, {
-                    'id': obj.id, 'timestamp': obj.timestamp, 'value': obj.value, 'unit_id': obj.unit_id
-                })
-        except errors.Error as exc:
-            return self.exception_response(exc)
-
-        return Response(data={'results': data}, status=200)
-
-    @staticmethod
-    def filter_cpuusage_qs(unit_id: int, timestamp: int, limit: int):
-        lookups = {'value__gte': 0}
-        if unit_id:
-            lookups['unit_id'] = unit_id
-
-        if timestamp:
-            lookups['timestamp__lte'] = timestamp
-
-        qs = HostCpuUsage.objects.filter(**lookups).order_by('-timestamp')
-        return qs[0:limit]
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('查询主机单元网络流量时序数据'),
