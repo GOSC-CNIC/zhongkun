@@ -139,7 +139,8 @@ class ProbeHandlers:
             raise e
 
         if not obj:
-            return self.add_probe_website(task=task)
+
+            return self.add_probe_website(task=newtask)
 
         if not newtask:
             raise errors.Error('请添加 newtask 参数')
