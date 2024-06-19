@@ -269,6 +269,19 @@ class TaskLock:
 
         return ok, exc
 
+    def is_expired(self):
+        """
+        锁过期时间是否过期
+        没有过期时间，或已过过期时间，判定过期
+        """
+        self._ensure_lock()
+        tlock = self._task_lock
+        nt = dj_timezone.now()
+        if not tlock.expire_time or tlock.expire_time < nt:
+            return True
+
+        return False
+
     def _expired_unrelease_notify(self):
         """
         定时任务锁过期未释放发送通知

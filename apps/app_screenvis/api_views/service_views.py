@@ -9,6 +9,7 @@ from apps.app_screenvis.models import (
     DataCenter, ServerService, ServerServiceTimedStats, VPNTimedStats,
     ObjectService, ObjectServiceTimedStats
 )
+from apps.app_screenvis.tasks import try_stats_service
 from apps.app_screenvis.permissions import ScreenAPIIPPermission
 from . import NormalGenericViewSet
 
@@ -42,6 +43,12 @@ class ServerServiceViewSet(NormalGenericViewSet):
               "cpu_used_count": 480     # cpu已用数
             }
         """
+        # 触发统计服务单元数据
+        try:
+            try_stats_service()
+        except Exception as exc:
+            pass
+
         dc_id = kwargs['dc_id']
         try:
             dc_id = int(dc_id)
@@ -119,6 +126,12 @@ class VPNServiceViewSet(NormalGenericViewSet):
               "vpn_count": 136              # 总数
             }
         """
+        # 触发统计服务单元数据
+        try:
+            try_stats_service()
+        except Exception as exc:
+            pass
+
         dc_id = kwargs['dc_id']
         try:
             dc_id = int(dc_id)
@@ -182,6 +195,12 @@ class ObjectServiceViewSet(NormalGenericViewSet):
               "storage_used": 4460,     # 已用存储容量GiB
             }
         """
+        # 触发统计服务单元数据
+        try:
+            try_stats_service()
+        except Exception as exc:
+            pass
+
         dc_id = kwargs['dc_id']
         try:
             dc_id = int(dc_id)

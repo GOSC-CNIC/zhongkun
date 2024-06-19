@@ -9,6 +9,7 @@ from apps.app_screenvis.paginations import NewPageNumberPagination100
 from apps.app_screenvis.utils import errors
 from apps.app_screenvis.models import ServerServiceLog, ObjectServiceLog
 from apps.app_screenvis.permissions import ScreenAPIIPPermission
+from apps.app_screenvis.tasks import try_sync_service_log
 from . import NormalGenericViewSet
 from ..serializers import ServiceUserOperateLogSerializer
 
@@ -59,6 +60,12 @@ class UserOperateLogViewSet(NormalGenericViewSet):
                 ]
             }
         """
+        # 同步日志
+        try:
+            f = try_sync_service_log()
+        except Exception as exc:
+            pass
+
         server_type = request.query_params.get('server_type', None)
         dc_id = request.query_params.get('dc_id', None)
 

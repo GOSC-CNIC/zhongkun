@@ -11,6 +11,7 @@ from drf_yasg import openapi
 from apps.app_screenvis.managers import HostQueryChoices, MetricQueryManager, HostQueryRangeChoices
 from apps.app_screenvis.utils import errors
 from apps.app_screenvis.models import MetricMonitorUnit, HostCpuUsage, HostNetflow
+from apps.app_screenvis.tasks import try_host_netflow
 from apps.app_screenvis.permissions import ScreenAPIIPPermission
 from . import NormalGenericViewSet
 
@@ -270,6 +271,12 @@ class MetricHostViewSet(NormalGenericViewSet):
                 ]
             }
         """
+        # 触发统计服务单元数据
+        try:
+            try_host_netflow()
+        except Exception as exc:
+            pass
+
         unit_id = request.query_params.get('unit_id', None)
         timestamp = request.query_params.get('time', None)
         limit = request.query_params.get('limit', None)
