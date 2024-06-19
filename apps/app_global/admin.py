@@ -1,4 +1,5 @@
 from django.contrib import admin, messages
+from django.utils.translation import gettext
 
 from utils.model import NoDeleteSelectModelAdmin, BaseModelAdmin
 from apps.app_global.models import TimedTaskLock, GlobalConfig, IPAccessWhiteList
@@ -24,16 +25,24 @@ class GlobalConfigAdmin(NoDeleteSelectModelAdmin):
 
     def prometheus_config_tips(self, request, obj):
         """prometheus 配置提示 """
-        from apps.app_probe.handlers.handlers import ProbeHandlers
+        if obj.name not in [
+            GlobalConfig.ConfigName.PROMETHEUS_BASE.value,
+            GlobalConfig.ConfigName.PROMETHEUS_EXPORTER_TIDB.value,
+            GlobalConfig.ConfigName.PROMETHEUS_EXPORTER_CEPH.value,
+            GlobalConfig.ConfigName.PROMETHEUS_EXPORTER_NODE.value,
+            GlobalConfig.ConfigName.PROMETHEUS_BLACKBOX_HTTP.value,
+            GlobalConfig.ConfigName.PROMETHEUS_BLACKBOX_TCP.value,
+            GlobalConfig.ConfigName.PROMETHEUS_SERVICE_URL.value
+        ]:
+            return
 
-        content = f'配置内容已保存，'
+        from apps.app_probe.handlers.handlers import ProbeHandlers
 
         try:
             ProbeHandlers().handler_prometheus_config(obj=obj)
         except Exception as e:
-            self.message_user(request, content + str(e), level=messages.ERROR)
-
-
+            self.message_user(request, gettext(
+                '配置内容已保存到数据库，内容更新到对应配置文件时错误。') + str(e), level=messages.ERROR)
 
 
 @admin.register(IPAccessWhiteList)

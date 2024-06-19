@@ -467,63 +467,22 @@ class ProbeHandlers:
             probe_logger.error(f'重新加载prometheus服务失败，请检查服务及端口配置是否正确：{str(e)}')
 
     def handler_prometheus_config(self, obj: GlobalConfig):
-        """"""
+        """
+        :raises: Exception
+        """
+        prom_cfg_name = obj.name
 
-        global_config_name = GlobalConfig.ConfigName
-
-        prometheus_globalconfig_list = [
-            global_config_name.PROMETHEUS_BASE.value,
-            global_config_name.PROMETHEUS_EXPORTER_TIDB.value,
-            global_config_name.PROMETHEUS_EXPORTER_CEPH.value,
-            global_config_name.PROMETHEUS_EXPORTER_NODE.value,
-            global_config_name.PROMETHEUS_BLACKBOX_HTTP.value,
-            global_config_name.PROMETHEUS_BLACKBOX_TCP.value,
-            global_config_name.PROMETHEUS_SERVICE_URL.value
-        ]
-
-        prometheus_globalconfig_name = obj.name
-
-        if prometheus_globalconfig_name not in prometheus_globalconfig_list:
-            return
-
-        if prometheus_globalconfig_name == global_config_name.PROMETHEUS_BASE.value:
-            try:
-                self.update_prometheus_yml(obj=obj)
-            except Exception as e:
-                raise e
-
-        if prometheus_globalconfig_name == global_config_name.PROMETHEUS_EXPORTER_TIDB.value:
-            try:
-                self.update_prometheus_exporter_tidb_yml(obj=obj)
-            except Exception as e:
-                raise e
-
-        if prometheus_globalconfig_name == global_config_name.PROMETHEUS_EXPORTER_CEPH.value:
-            try:
-                self.update_prometheus_exporter_ceph_yml(obj=obj)
-            except Exception as e:
-                raise e
-
-        if prometheus_globalconfig_name == global_config_name.PROMETHEUS_EXPORTER_NODE.value:
-            try:
-                self.update_prometheus_exporter_node_yml(obj=obj)
-            except Exception as e:
-                raise e
-
-        if prometheus_globalconfig_name == global_config_name.PROMETHEUS_BLACKBOX_HTTP.value:
-            try:
-                self.update_prometheus_blackbox_http_tcp(blackbox_type='http')
-            except Exception as e:
-                raise e
-
-        if prometheus_globalconfig_name == global_config_name.PROMETHEUS_BLACKBOX_TCP.value:
-            try:
-                self.update_prometheus_blackbox_http_tcp(blackbox_type='tcp')
-            except Exception as e:
-                raise e
-
-        if prometheus_globalconfig_name == global_config_name.PROMETHEUS_SERVICE_URL.value:
-            try:
-                self.update_prometheus_service_url()
-            except Exception as e:
-                raise e
+        if prom_cfg_name == GlobalConfig.ConfigName.PROMETHEUS_BASE.value:
+            self.update_prometheus_yml(obj=obj)
+        elif prom_cfg_name == GlobalConfig.ConfigName.PROMETHEUS_EXPORTER_TIDB.value:
+            self.update_prometheus_exporter_tidb_yml(obj=obj)
+        elif prom_cfg_name == GlobalConfig.ConfigName.PROMETHEUS_EXPORTER_CEPH.value:
+            self.update_prometheus_exporter_ceph_yml(obj=obj)
+        elif prom_cfg_name == GlobalConfig.ConfigName.PROMETHEUS_EXPORTER_NODE.value:
+            self.update_prometheus_exporter_node_yml(obj=obj)
+        elif prom_cfg_name == GlobalConfig.ConfigName.PROMETHEUS_BLACKBOX_HTTP.value:
+            self.update_prometheus_blackbox_http_tcp(blackbox_type='http')
+        elif prom_cfg_name == GlobalConfig.ConfigName.PROMETHEUS_BLACKBOX_TCP.value:
+            self.update_prometheus_blackbox_http_tcp(blackbox_type='tcp')
+        elif prom_cfg_name == GlobalConfig.ConfigName.PROMETHEUS_SERVICE_URL.value:
+            self.update_prometheus_service_url()
