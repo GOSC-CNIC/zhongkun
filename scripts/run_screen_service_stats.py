@@ -17,7 +17,7 @@ setup()
 
 from django.utils import timezone as dj_timezone
 from apps.app_screenvis.workers.service_stats import ServerServiceStatsWorker, ObjectServiceStatsWorker
-from scripts.task_lock import screen_service_stats_lock
+from apps.app_global.task_locks import screen_service_stats_lock
 
 
 def main_use_lock(timed_minutes: int):

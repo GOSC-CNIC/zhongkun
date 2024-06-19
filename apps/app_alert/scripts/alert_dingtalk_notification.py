@@ -22,7 +22,7 @@ from apps.app_alert.utils.db_manager import MysqlManager
 from apps.app_alert.utils.utils import download
 from django.utils import timezone as dj_timezone
 from datetime import timedelta
-from scripts.task_lock import alert_dingtalk_notify_lock
+from apps.app_global.task_locks import alert_dingtalk_notify_lock
 
 logger = setup_logger(__name__, __file__)
 

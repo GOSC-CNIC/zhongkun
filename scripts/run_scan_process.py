@@ -13,7 +13,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "django_site.settings")
 setup()
 
 from apps.app_scan.scan_worker import ScanWorker
-from scripts.task_lock import scan_lock
+from apps.app_global.task_locks import scan_lock
 
 
 def run_task_use_lock(timed_minutes: int):

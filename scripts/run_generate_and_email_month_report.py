@@ -13,7 +13,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django_site.settings')
 setup()
 
 from apps.report.workers.report_generator import MonthlyReportGenerator, MonthlyReportNotifier
-from scripts.task_lock import report_monthly_lock
+from apps.app_global.task_locks import report_monthly_lock
 
 
 def run_task():

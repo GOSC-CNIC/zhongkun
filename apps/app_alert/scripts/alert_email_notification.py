@@ -24,7 +24,7 @@ from django.contrib.contenttypes.models import ContentType
 from concurrent.futures import ThreadPoolExecutor
 from django.utils import timezone as dj_timezone
 from datetime import timedelta
-from scripts.task_lock import alert_email_notify_lock
+from apps.app_global.task_locks import alert_email_notify_lock
 from apps.monitor.alert_helpers import AlertEmailsHelper
 
 logger = setup_logger(__name__, __file__)

@@ -1,11 +1,12 @@
 from typing import Union
-from concurrent.futures import Future
+from concurrent.futures import ThreadPoolExecutor, Future
 
-from .server_build_status import _pool_executor
+
+_thread_pool_executor = ThreadPoolExecutor()
 
 
 def submit_task(task, kwargs: dict = None) -> Union[Future, None]:
     try:
-        return _pool_executor.submit(task, **kwargs)
+        return _thread_pool_executor.submit(task, **kwargs)
     except Exception as e:
         return None

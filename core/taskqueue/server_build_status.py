@@ -1,12 +1,10 @@
 from typing import Union
 import time
-from concurrent.futures import ThreadPoolExecutor, Future
+from concurrent.futures import Future
 
 from core import request
 from apps.servers.models import Disk
-
-
-_pool_executor = ThreadPoolExecutor()
+from . import _thread_pool_executor as _pool_executor
 
 
 def creat_task(server) -> Union[Future, None]:

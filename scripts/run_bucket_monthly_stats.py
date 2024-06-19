@@ -17,7 +17,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django_site.settings')
 setup()
 
 from apps.report.workers.storage_trend import StorageSizeCounter
-from scripts.task_lock import bucket_monthly_lock
+from apps.app_global.task_locks import bucket_monthly_lock
 
 
 def run_task_use_lock():

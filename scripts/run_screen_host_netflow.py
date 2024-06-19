@@ -17,7 +17,7 @@ setup()
 
 from django.utils import timezone as dj_timezone
 from apps.app_screenvis.workers import HostNetflowWorker
-from scripts.task_lock import screen_host_netflow_lock
+from apps.app_global.task_locks import screen_host_netflow_lock
 
 
 def main_use_lock(timed_minutes: int):

@@ -16,7 +16,7 @@ setup()
 
 from apps.app_net_flow.models import ChartModel
 from apps.app_net_flow.models import Menu2Chart
-from scripts.task_lock import netflow_update_element_lock
+from apps.app_global.task_locks import netflow_update_element_lock
 from apps.app_net_flow.handlers.easyops import EasyOPS
 from django.utils import timezone as dj_timezone
 from datetime import timedelta

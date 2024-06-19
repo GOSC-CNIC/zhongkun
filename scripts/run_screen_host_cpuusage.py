@@ -17,7 +17,7 @@ setup()
 
 from django.utils import timezone as dj_timezone
 from apps.app_screenvis.workers.cpu_usage import HostCpuUsageWorker
-from scripts.task_lock import screen_host_cpuusage_lock
+from apps.app_global.task_locks import screen_host_cpuusage_lock
 
 
 def main_use_lock(timed_minutes: int):

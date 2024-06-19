@@ -21,7 +21,7 @@ from django.utils import timezone as dj_timezone
 from django.conf import settings
 
 from core.site_configs_manager import get_pay_app_id
-from scripts.task_lock import metering_lock
+from apps.app_global.task_locks import metering_lock
 
 
 def server_metering_pay(app_id: str):
