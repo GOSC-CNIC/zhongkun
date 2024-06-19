@@ -26,65 +26,14 @@ class GlobalConfigAdmin(NoDeleteSelectModelAdmin):
         """prometheus 配置提示 """
         from apps.app_probe.handlers.handlers import ProbeHandlers
 
-        prometheus_globalconfig_list = [
-            GlobalConfig.ConfigName.PROMETHEUS_BASE.value,
-            GlobalConfig.ConfigName.PROMETHEUS_EXPORTER_TIDB.value,
-            GlobalConfig.ConfigName.PROMETHEUS_EXPORTER_CEPH.value,
-            GlobalConfig.ConfigName.PROMETHEUS_EXPORTER_NODE.value,
-            GlobalConfig.ConfigName.PROMETHEUS_BLACKBOX_HTTP.value,
-            GlobalConfig.ConfigName.PROMETHEUS_BLACKBOX_TCP.value,
-            GlobalConfig.ConfigName.PROMETHEUS_SERVICE_URL.value
-        ]
-
-        prometheus_globalconfig_name = obj.name
-
-        if prometheus_globalconfig_name not in prometheus_globalconfig_list:
-            return
-
-        global_config_name = GlobalConfig.ConfigName
-
         content = f'配置内容已保存，'
-        if prometheus_globalconfig_name == global_config_name.PROMETHEUS_BASE.value:
-            try:
-                ProbeHandlers().update_prometheus_yml(obj=obj)
-            except Exception as e:
-                self.message_user(request, content + str(e), level=messages.ERROR)
 
-        if prometheus_globalconfig_name == global_config_name.PROMETHEUS_EXPORTER_TIDB.value:
-            try:
-                ProbeHandlers().update_prometheus_exporter_tidb_yml(obj=obj)
-            except Exception as e:
-                self.message_user(request, content + str(e), level=messages.ERROR)
+        try:
+            ProbeHandlers().handler_prometheus_config(obj=obj)
+        except Exception as e:
+            self.message_user(request, content + str(e), level=messages.ERROR)
 
-        if prometheus_globalconfig_name == global_config_name.PROMETHEUS_EXPORTER_CEPH.value:
-            try:
-                ProbeHandlers().update_prometheus_exporter_ceph_yml(obj=obj)
-            except Exception as e:
-                self.message_user(request, content + str(e), level=messages.ERROR)
 
-        if prometheus_globalconfig_name == global_config_name.PROMETHEUS_EXPORTER_NODE.value:
-            try:
-                ProbeHandlers().update_prometheus_exporter_node_yml(obj=obj)
-            except Exception as e:
-                self.message_user(request, content + str(e), level=messages.ERROR)
-
-        if prometheus_globalconfig_name == global_config_name.PROMETHEUS_BLACKBOX_HTTP.value:
-            try:
-                ProbeHandlers().update_prometheus_blackbox_http_tcp(blackbox_type='http')
-            except Exception as e:
-                self.message_user(request, content + str(e), level=messages.ERROR)
-
-        if prometheus_globalconfig_name == global_config_name.PROMETHEUS_BLACKBOX_TCP.value:
-            try:
-                ProbeHandlers().update_prometheus_blackbox_http_tcp(blackbox_type='tcp')
-            except Exception as e:
-                self.message_user(request, content + str(e), level=messages.ERROR)
-
-        if prometheus_globalconfig_name == global_config_name.PROMETHEUS_SERVICE_URL.value:
-            try:
-                ProbeHandlers().update_prometheus_service_url()
-            except Exception as e:
-                self.message_user(request, content + str(e), level=messages.ERROR)
 
 
 @admin.register(IPAccessWhiteList)
