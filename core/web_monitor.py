@@ -26,7 +26,8 @@ class WebMonitorTaskClient:
                         'url': web_url,
                         'url_hash': url_hash,
                         'is_tamper_resistant': is_tamper_resistant
-                    }
+                    },
+                    'version': 0
                 },
                 auth=(self.username, self.passwd)
             )
@@ -52,7 +53,8 @@ class WebMonitorTaskClient:
                         'url': web_url,
                         'url_hash': url_hash,
                         'is_tamper_resistant': is_tamper_resistant
-                    }
+                    },
+                    'version': 0
                 },
                 auth=(self.username, self.passwd)
             )
@@ -84,7 +86,8 @@ class WebMonitorTaskClient:
                         'url': new_web_url,
                         'url_hash': new_url_hash,
                         'is_tamper_resistant': new_is_tamper_resistant
-                    }
+                    },
+                    'version': 0
                 },
                 auth=(self.username, self.passwd)
             )
@@ -101,5 +104,5 @@ class WebMonitorTaskClient:
     @staticmethod
     def _post_request(url, data, auth):
         return requests.post(
-            url=url, data=data, auth=auth, timeout=(6, 60)
+            url=url, json=data, auth=auth, timeout=(6, 60)
         )
