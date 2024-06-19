@@ -256,7 +256,6 @@ class ProbeTestClass(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
 
         # 删除
-
         data = {
             "operate": "delete",
             "version": 0,

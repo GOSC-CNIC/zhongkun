@@ -113,22 +113,6 @@ class GlobalConfig(models.Model):
     def __str__(self):
         return f'[{self.name}] {self.value}'
 
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-
-        prometheus_query_name_list = [
-            GlobalConfig.ConfigName.PROMETHEUS_BASE.value,
-            GlobalConfig.ConfigName.PROMETHEUS_EXPORTER_TIDB.value,
-            GlobalConfig.ConfigName.PROMETHEUS_EXPORTER_CEPH.value,
-            GlobalConfig.ConfigName.PROMETHEUS_EXPORTER_NODE.value,
-            GlobalConfig.ConfigName.PROMETHEUS_BLACKBOX_HTTP.value,
-            GlobalConfig.ConfigName.PROMETHEUS_BLACKBOX_TCP.value,
-        ]
-
-        if self.name in prometheus_query_name_list:
-            from apps.app_probe.handlers.handlers import ProbeHandlers
-            ProbeHandlers().handler_prometheus_config(need_update_prometheus_config_list=[self.name])
-
 
 class IPAccessWhiteList(models.Model):
     class ModuleName(models.TextChoices):

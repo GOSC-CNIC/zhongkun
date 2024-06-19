@@ -3,6 +3,7 @@ import os
 from apps.app_probe.models import ProbeDetails, ProbeMonitorWebsite
 from core import errors
 from core.loggers import config_script_logger
+from apps.app_global.models import GlobalConfig
 
 probe_logger = config_script_logger(name='app-probe-handler', filename='app_probe.log')
 
@@ -88,17 +89,15 @@ class ProbeHandlers:
             raise errors.Error(message=f'创建探针网站监控任务错误：{str(e)}')
 
         if task['url'].startswith('http'):
-            need_update_prometheus_config_list = ['prometheus_blackbox_http']
+            need_update_blackbox_type = 'http'
         else:
-            need_update_prometheus_config_list = ['prometheus_blackbox_tcp']
+            need_update_blackbox_type = 'tcp'
 
-        if need_update_prometheus_config_list:
-
-            try:
-                self.handler_prometheus_config(need_update_prometheus_config_list=need_update_prometheus_config_list)
-            except errors.Error as e:
-                probe_logger.error(msg=f'添加探针信息后重新加载prometheus配置文件时错误：{str(e)}')
-                raise e
+        try:
+            self.update_prometheus_blackbox_http_tcp(blackbox_type=need_update_blackbox_type)
+        except errors.Error as e:
+            probe_logger.error(msg=f'添加探针信息后重新加载prometheus配置文件时错误：{str(e)}')
+            raise e
 
         return True
 
@@ -119,16 +118,15 @@ class ProbeHandlers:
             raise errors.Error(message=f'删除探针网站监控任务错误：{str(e)}')
 
         if task['url'].startswith('http'):
-            need_update_prometheus_config_list = ['prometheus_blackbox_http']
+            need_update_blackbox_type = 'http'
         else:
-            need_update_prometheus_config_list = ['prometheus_blackbox_tcp']
+            need_update_blackbox_type = 'tcp'
 
-        if need_update_prometheus_config_list:
-            try:
-                self.handler_prometheus_config(need_update_prometheus_config_list=need_update_prometheus_config_list)
-            except errors.Error as e:
-                probe_logger.error(msg=f'删除探针信息后重新加载prometheus配置文件时错误：{str(e)}')
-                raise e
+        try:
+            self.update_prometheus_blackbox_http_tcp(blackbox_type=need_update_blackbox_type)
+        except errors.Error as e:
+            probe_logger.error(msg=f'删除探针信息后重新加载prometheus配置文件时错误：{str(e)}')
+            raise e
 
         return True
 
@@ -141,7 +139,8 @@ class ProbeHandlers:
             raise e
 
         if not obj:
-            return self.add_probe_website(task=task)
+
+            return self.add_probe_website(task=newtask)
 
         if not newtask:
             raise errors.Error('请添加 newtask 参数')
@@ -176,15 +175,12 @@ class ProbeHandlers:
             obj.save(update_fields=update_fields_list)
 
             if newtask['url'].startswith('http'):
-                need_update_prometheus_config_list = ['prometheus_blackbox_http']
+                need_update_blackbox_type = 'http'
             else:
-                need_update_prometheus_config_list = ['prometheus_blackbox_tcp']
-
-            if not need_update_prometheus_config_list:
-                return True
+                need_update_blackbox_type = 'tcp'
 
             try:
-                self.handler_prometheus_config(need_update_prometheus_config_list=need_update_prometheus_config_list)
+                self.update_prometheus_blackbox_http_tcp(blackbox_type=need_update_blackbox_type)
             except errors.Error as e:
                 probe_logger.error(msg=f'更新探针信息后重新加载prometheus配置文件时错误：{str(e)}')
                 raise e
@@ -207,6 +203,7 @@ class ProbeHandlers:
     def write_prometheus_config(self, path, prometheus_base_yml):
         """写入 prometheus 配置文件
         :param path:  '/etc/prometheus/prometheus.yml'
+        :param prometheus_base_yml: promtheus基础配置文件内容
         """
         try:
             self.write_yml(path, prometheus_base_yml, flag=True)
@@ -227,6 +224,7 @@ class ProbeHandlers:
     def write_prometheus_config_ceph(self, path, prometheus_base_ceph_yml):
         """写入 prometheus 配置文件
         :param path:  # path = '/etc/prometheus/prometheus.yml'
+        :param prometheus_base_ceph_yml: promtheus exporter ceph 配置文件
         """
 
         try:
@@ -237,6 +235,7 @@ class ProbeHandlers:
     def write_prometheus_config_node(self, path, prometheus_base_node_yml):
         """写入 prometheus 配置文件
         :param path:  # path = '/etc/prometheus/prometheus.yml'
+        :param prometheus_base_node_yml:
         """
 
         try:
@@ -298,86 +297,233 @@ class ProbeHandlers:
 
         return
 
-    def update_prometheus_part_config(self, prometheus_configs, prometheus_module):
-        """更新部分文件 prometheus"""
+    def update_prometheus_exporter_node_yml(self, obj: GlobalConfig = None):
+        """更新 prometheus exorpter node """
 
-        for prometheus in prometheus_configs:
+        if obj and obj.value:
+            try:
+                self.write_prometheus_config_node(
+                    path=self.path_exporter_node, prometheus_base_node_yml=obj.value)
+            except Exception as e:
+                raise Exception(f'写入prometheus_exporter_node.yml文件时错误:{str(e)}')
 
-            if prometheus.name == prometheus_module.PROMETHEUS_EXPORTER_TIDB.value and prometheus.value:
-                self.write_prometheus_config_tidb(path=self.path_exporter_tidb,
-                                                  prometheus_base_tidb_yml=prometheus.value)
+            self.reload_prometheus_config()
+            return
 
-            if prometheus.name == prometheus_module.PROMETHEUS_EXPORTER_CEPH.value and prometheus.value:
-                self.write_prometheus_config_ceph(path=self.path_exporter_ceph,
-                                                  prometheus_base_ceph_yml=prometheus.value)
+        yml_template = GlobalConfig.objects.filter(name=GlobalConfig.ConfigName.PROMETHEUS_EXPORTER_NODE.value).first()
+        if not yml_template or not yml_template.value:
+            raise Exception(f'未找到 “promtheus exporter node 配置文件” 内容')
 
-            if prometheus.name == prometheus_module.PROMETHEUS_EXPORTER_NODE.value and prometheus.value:
-                self.write_prometheus_config_node(path=self.path_exporter_node,
-                                                  prometheus_base_node_yml=prometheus.value)
+        try:
+            self.write_prometheus_config_node(
+                path=self.path_exporter_node, prometheus_base_node_yml=yml_template.value)
+        except Exception as e:
+            raise Exception(f'写入prometheus_exporter_node.yml文件时错误:{str(e)}')
 
-            if prometheus.name == prometheus_module.PROMETHEUS_BLACKBOX_HTTP.value and prometheus.value:
+        self.reload_prometheus_config()
 
-                website = self.get_probe_monitor_website()
+    def update_prometheus_exporter_tidb_yml(self, obj: GlobalConfig = None):
+        """更新 prometheus exorpter tidb """
 
-                try:
-                    self.write_probe_http_config(website=website, prometheus_blackbox_http_yml=prometheus.value,
-                                                 path_http=self.path_http)
-                except Exception as e:
-                    raise Exception(f'写入prometheus_blackbox_http.yml文件时错误:{str(e)}')
+        if obj and obj.value:
+            try:
+                self.write_prometheus_config_tidb(
+                    path=self.path_exporter_tidb, prometheus_base_tidb_yml=obj.value)
+            except Exception as e:
+                raise Exception(f'写入prometheus_exporter_tidb.yml文件时错误:{str(e)}')
 
-            if prometheus.name == prometheus_module.PROMETHEUS_BLACKBOX_TCP.value and prometheus.value:
+            self.reload_prometheus_config()
+            return
 
-                website = self.get_probe_monitor_website()
+        yml_template = GlobalConfig.objects.filter(name=GlobalConfig.ConfigName.PROMETHEUS_EXPORTER_TIDB.value).first()
+        if not yml_template or not yml_template.value:
+            raise Exception(
+                f'未找到 prometheus_exporter_tidb配置内容，请到 站点参数中配置"promtheus exporter tidb 配置文件"')
 
-                try:
-                    self.write_probe_tcp_config(website=website, prometheus_blackbox_tcp_yml=prometheus.value,
-                                                path_tcp=self.path_tcp)
-                except Exception as e:
-                    raise Exception(f'写入prometheus_blackbox_tcp.yml文件时错误:{str(e)}')
+        try:
+            self.write_prometheus_config_tidb(
+                path=self.path_exporter_tidb, prometheus_base_tidb_yml=yml_template.value)
+        except Exception as e:
+            raise Exception(f'写入prometheus_exporter_tidb.yml文件时错误:{str(e)}')
 
-            if prometheus.name == prometheus_module.PROMETHEUS_BASE.value:
-                self.write_prometheus_config(path=self.base_path, prometheus_base_yml=prometheus.value)
+        self.reload_prometheus_config()
 
-    def handler_prometheus_config(self, need_update_prometheus_config_list: list = []):
-        from apps.app_global.models import GlobalConfig
+    def update_prometheus_exporter_ceph_yml(self, obj: GlobalConfig = None):
+        """更新 prometheus exorpter ceph """
 
-        prometheus_query_name_list = [
-            GlobalConfig.ConfigName.PROMETHEUS_BASE.value,
-            GlobalConfig.ConfigName.PROMETHEUS_SERVICE_URL.value,
-        ]
+        if obj and obj.value:
+            try:
+                self.write_prometheus_config_ceph(
+                    path=self.path_exporter_ceph, prometheus_base_ceph_yml=obj.value)
+            except Exception as e:
+                raise Exception(f'写入prometheus_exporter_ceph.yml文件时错误:{str(e)}')
 
-        prometheus_config_list = [
-            GlobalConfig.ConfigName.PROMETHEUS_EXPORTER_TIDB.value,
-            GlobalConfig.ConfigName.PROMETHEUS_EXPORTER_CEPH.value,
-            GlobalConfig.ConfigName.PROMETHEUS_EXPORTER_NODE.value,
-            GlobalConfig.ConfigName.PROMETHEUS_BLACKBOX_HTTP.value,
-            GlobalConfig.ConfigName.PROMETHEUS_BLACKBOX_TCP.value,
-        ]
+            self.reload_prometheus_config()
+            return
 
-        if need_update_prometheus_config_list:
-            prometheus_query_name_list = prometheus_query_name_list + need_update_prometheus_config_list
+        yml_template = GlobalConfig.objects.filter(name=GlobalConfig.ConfigName.PROMETHEUS_EXPORTER_CEPH.value).first()
+        if not yml_template or not yml_template.value:
+            raise Exception(f'未找到 "promtheus exporter ceph 配置文件"内容, 请到站点参数中配置')
+
+        try:
+            self.write_prometheus_config_ceph(
+                path=self.path_exporter_ceph, prometheus_base_ceph_yml=yml_template.value)
+        except Exception as e:
+            raise Exception(f'写入prometheus_exporter_ceph.yml文件时错误:{str(e)}')
+
+        self.reload_prometheus_config()
+
+    def update_prometheus_yml(self, obj: GlobalConfig = None):
+        """更新 prometheus yml """
+
+        if obj and obj.value:
+            try:
+                self.write_prometheus_config(path=self.base_path, prometheus_base_yml=obj.value)
+            except Exception as e:
+                raise Exception(f'写入prometheus.yml文件时错误:{str(e)}')
+
+            self.reload_prometheus_config()
+            return
+
+        yml_template = GlobalConfig.objects.filter(name=GlobalConfig.ConfigName.PROMETHEUS_BASE.value).first()
+        if not yml_template or not yml_template.value:
+            raise Exception(f'未找到 "promtheus基础配置文件"内容, 请到站点参数里设置')
+
+        try:
+            self.write_prometheus_config(path=self.base_path, prometheus_base_yml=yml_template.value)
+        except Exception as e:
+            raise Exception(f'写入prometheus.yml文件时错误:{str(e)}')
+
+        self.reload_prometheus_config()
+
+    def update_prometheus_blackbox_http_yml(self):
+        """更新 prometheus http """
+        website_qs = self.get_probe_monitor_website()  # 数据集
+
+        if not website_qs:
+            return
+
+        yml_template = GlobalConfig.objects.filter(name=GlobalConfig.ConfigName.PROMETHEUS_BLACKBOX_HTTP.value).first()
+        if not yml_template or not yml_template.value:
+            raise Exception(f'未找到 "promtheus blackbox http 配置文件模板"内容')
+
+        try:
+            self.write_probe_http_config(website=website_qs, prometheus_blackbox_http_yml=yml_template.value,
+                                         path_http=self.path_http)
+        except Exception as e:
+            raise Exception(f'写入prometheus_blackbox_http.yml文件时错误:{str(e)}')
+
+        self.reload_prometheus_config()
+
+    def update_prometheus_blackbox_tcp_yml(self):
+        """更新 prometheus tcp """
+        website_qs = self.get_probe_monitor_website()  # 数据集
+
+        if not website_qs:
+            return
+
+        yml_template = GlobalConfig.objects.filter(name=GlobalConfig.ConfigName.PROMETHEUS_BLACKBOX_TCP.value).first()
+        if not yml_template or not yml_template.value:
+            raise Exception(f'未找到 "promtheus blackbox tcp 配置文件模板"内容')
+
+        try:
+            self.write_probe_tcp_config(website=website_qs, prometheus_blackbox_tcp_yml=yml_template.value,
+                                        path_tcp=self.path_tcp)
+        except Exception as e:
+            raise Exception(f'写入prometheus_blackbox_http.yml文件时错误:{str(e)}')
+
+        self.reload_prometheus_config()
+
+    def update_prometheus_blackbox_http_tcp(self, blackbox_type):
+        """"""
+
+        if blackbox_type == "http":
+            return self.update_prometheus_blackbox_http_yml()
         else:
-            prometheus_query_name_list = prometheus_query_name_list + prometheus_config_list
+            return self.update_prometheus_blackbox_tcp_yml()
 
-        prometheus_configs = GlobalConfig.objects.filter(
-            name__in=prometheus_query_name_list).all()
+    def update_prometheus_service_url(self):
+        """prometheus 服务地址更新 """
+        prom_service_url = GlobalConfig.objects.filter(
+            name=GlobalConfig.ConfigName.PROMETHEUS_SERVICE_URL.value).first()
 
-        if not prometheus_configs:
-            raise Exception('请到全局配置表中添加 prometheus 相关配置')
+        if prom_service_url and prom_service_url.value:
+            return self.reload_prometheus_config()
 
-        prometheus_config = prometheus_configs.filter(name=GlobalConfig.ConfigName.PROMETHEUS_BASE.value).first()
+    @staticmethod
+    def reload_prometheus_config():
+        """重新加载 prometheus 服务配置文件 """
+        prom_base_url = GlobalConfig.objects.filter(name=GlobalConfig.ConfigName.PROMETHEUS_SERVICE_URL.value).first()
+        if not prom_base_url:
+            probe_logger.error(f'未找到prometheus服务地址信息内容，请检查站点信息中是否配置')
+            return
 
-        if not prometheus_config:
-            raise Exception('请到全局配置表中添加 prometheus 基础配置文件')
+        if not prom_base_url.value.endswith('/'):
+            prom_base_url.value += '/'
 
-        prometheus_url = prometheus_configs.filter(name=GlobalConfig.ConfigName.PROMETHEUS_SERVICE_URL.value).first()
-        if not prometheus_url:
-            raise Exception('未找到prometheus_url 信息，请到全局配置表中配置')
+        try:
+            os.system(f"curl -X POST {prom_base_url.value}-/reload")
+        except Exception as e:
+            probe_logger.error(f'重新加载prometheus服务失败，请检查服务及端口配置是否正确：{str(e)}')
 
-        self.update_prometheus_part_config(prometheus_configs=prometheus_configs,
-                                           prometheus_module=GlobalConfig.ConfigName)
+    def handler_prometheus_config(self, obj: GlobalConfig):
+        """"""
 
-        if not prometheus_url.value.endswith('/'):
-            prometheus_url.value += '/'
+        global_config_name = GlobalConfig.ConfigName
 
-        os.system(f"curl -X POST {prometheus_url.value}-/reload")
+        prometheus_globalconfig_list = [
+            global_config_name.PROMETHEUS_BASE.value,
+            global_config_name.PROMETHEUS_EXPORTER_TIDB.value,
+            global_config_name.PROMETHEUS_EXPORTER_CEPH.value,
+            global_config_name.PROMETHEUS_EXPORTER_NODE.value,
+            global_config_name.PROMETHEUS_BLACKBOX_HTTP.value,
+            global_config_name.PROMETHEUS_BLACKBOX_TCP.value,
+            global_config_name.PROMETHEUS_SERVICE_URL.value
+        ]
+
+        prometheus_globalconfig_name = obj.name
+
+        if prometheus_globalconfig_name not in prometheus_globalconfig_list:
+            return
+
+        if prometheus_globalconfig_name == global_config_name.PROMETHEUS_BASE.value:
+            try:
+                self.update_prometheus_yml(obj=obj)
+            except Exception as e:
+                raise e
+
+        if prometheus_globalconfig_name == global_config_name.PROMETHEUS_EXPORTER_TIDB.value:
+            try:
+                self.update_prometheus_exporter_tidb_yml(obj=obj)
+            except Exception as e:
+                raise e
+
+        if prometheus_globalconfig_name == global_config_name.PROMETHEUS_EXPORTER_CEPH.value:
+            try:
+                self.update_prometheus_exporter_ceph_yml(obj=obj)
+            except Exception as e:
+                raise e
+
+        if prometheus_globalconfig_name == global_config_name.PROMETHEUS_EXPORTER_NODE.value:
+            try:
+                self.update_prometheus_exporter_node_yml(obj=obj)
+            except Exception as e:
+                raise e
+
+        if prometheus_globalconfig_name == global_config_name.PROMETHEUS_BLACKBOX_HTTP.value:
+            try:
+                self.update_prometheus_blackbox_http_tcp(blackbox_type='http')
+            except Exception as e:
+                raise e
+
+        if prometheus_globalconfig_name == global_config_name.PROMETHEUS_BLACKBOX_TCP.value:
+            try:
+                self.update_prometheus_blackbox_http_tcp(blackbox_type='tcp')
+            except Exception as e:
+                raise e
+
+        if prometheus_globalconfig_name == global_config_name.PROMETHEUS_SERVICE_URL.value:
+            try:
+                self.update_prometheus_service_url()
+            except Exception as e:
+                raise e

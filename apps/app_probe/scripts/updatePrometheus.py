@@ -107,13 +107,16 @@ def get_zk_website_task(web_version_url, web_task_list_url):
 def update_prometheus_config():
 
     try:
-        ProbeHandlers().handler_prometheus_config()
+        ProbeHandlers().update_prometheus_blackbox_http_tcp(blackbox_type='http')
+        ProbeHandlers().update_prometheus_blackbox_http_tcp(blackbox_type='tcp')
     except Exception as e:
         probe_logger.error(f'重新加载prometheus服务配置有误：{str(e)}')
 
 
 if __name__ == '__main__':
-    web_version_url = ""
-    web_task_list_url = ""
-    get_zk_website_task(web_version_url, web_task_list_url)
+    pass
+
+    # web_version_url = ""
+    # web_task_list_url = ""
+    # get_zk_website_task(web_version_url, web_task_list_url)
     # update_prometheus_config()
