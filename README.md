@@ -63,16 +63,19 @@ python3 manage.py runserver 0:80
 
 
 ### 余额结算
-云服务器云硬盘等功能模块的资源订购支付和计量扣费依赖余额结算模块，云服务器功能模块对应于余额结算模块中
-的一个应用APP，所以需要在余额结算模块中先注册一个APP，启动服务后，在后台添加一个APP即可。  
-然后配置安全信息配置security.py中余额结算支付配置项PAYMENT_BALANCE，
-"app_id"需要配置成上面注册的云服务器APP的id。
+服务启动时会检测钱包结算配置参数PAYMENT_BALANCE中的app_id，第一次部署服务时app_id未配置会无法启动服务，
+需要先设置一个类似“20240610186309”的有效值，然后启动服务后再后台添加一个结算app后，再修改为正确的。  
+钱包可以支持多个外部服务接入结算，一个服务接入钱包都需要在钱包中先注册一个APP，用于钱包接口的权限验证和交易流水所属记录。  
+本服务中云主机、云硬盘等功能模块的资源订购支付和计量扣费依赖钱包结算模块，
+本服务需要在钱包结算模块中注册一个应用APP，启动服务后，在后台添加一个APP。然后配置安全信息配置文件security.py中余额结算支付
+配置项PAYMENT_BALANCE，"app_id"需要配置成上面注册的云服务器APP的id。   
+因为钱包在本服务中，所以本服务的结算不会通过钱包网络接口调用，会直接在服务内部函数接口调用。
 
 
 ### 生成环境部署
 部署方式不是唯一的，下面推荐一种方式，Python3.9+、Nginx、uwsgi。
 
-* 项目代码必须放在路径/home/uwsgi/下，根目录下有uwsgi的配置文件和几个sh脚本可以方便控制uwsgi启动关闭；
+* 项目代码必须放在路径/home/uwsgi/下，项目根目录下00_shell目录中有uwsgi的配置文件和几个sh脚本可以方便控制uwsgi启动关闭；
 * 也可以使用systemctl管理服务，执行一下脚本config_systemctl.sh，会配置好zhongkun.service服务；
 ```
 systemctl start/stop/reload zhongkun.service
@@ -90,5 +93,3 @@ proxy_set_header X-Forwarded-For $remote_addr;     不能使用 $proxy_add_x_for
 ```
 python3 manage.py crontabtask [subcommand] [comment]
 ```
-
-
