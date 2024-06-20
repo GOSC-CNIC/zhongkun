@@ -195,9 +195,13 @@ class ProbeHandlers:
 
         with open(path, 'w') as f:
             if flag:
+                config = yml.replace('\r\n', '\n')  # Windows
+                yml = config.replace('\r', '\n')  # MacOS
                 f.write(yml + '\n')
             else:
                 # f.write('scrape_configs:' + '\n')
+                config = yml.replace('\r\n', '\n')  # Windows
+                yml = config.replace('\r', '\n')  # MacOS
                 f.write('  ' + yml + '\n')
 
     def write_prometheus_config(self, path, prometheus_base_yml):
