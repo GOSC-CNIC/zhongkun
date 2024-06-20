@@ -317,6 +317,10 @@ class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
         return False
 
     def save_model(self, request, obj: ServiceConfig, form, change):
+        in_custom_admin_changelist = getattr(request, 'in_custom_admin_changelist', None)
+        if in_custom_admin_changelist:
+            return super().save_model(request=request, obj=obj, form=form, change=change)
+
         if change:
             super().save_model(request=request, obj=obj, form=form, change=change)
             try:
@@ -341,6 +345,11 @@ class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
             self.message_user(request, _("创建或更新服务单元对应的站点监控任务错误") + str(exc), level=messages.ERROR)
 
     def save_related(self, request, form, formsets, change):
+        in_custom_admin_changelist = getattr(request, 'in_custom_admin_changelist', None)
+        if in_custom_admin_changelist:
+            return super(ServiceConfigAdmin, self).save_related(
+                request=request, form=form, formsets=formsets, change=change)
+
         new_users = form.cleaned_data['users']
         service = form.instance
         old_users = service.users.all()
@@ -415,6 +424,11 @@ class ServiceConfigAdmin(NoDeleteSelectModelAdmin):
             msg += ';' + _('因为是数据中心管理员而不需要移除的管理员') + f'{[u.username for u in not_need_remove_admins]}'
 
         messages.add_message(request=request, level=messages.SUCCESS, message=msg)
+
+    def changelist_view(self, request, extra_context=None):
+        request.in_custom_admin_changelist = True
+        respone = super(ServiceConfigAdmin, self).changelist_view(request=request, extra_context=extra_context)
+        return respone
 
 
 @admin.register(ServicePrivateQuota)

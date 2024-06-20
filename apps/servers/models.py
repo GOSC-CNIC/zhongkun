@@ -211,7 +211,7 @@ class ServiceConfig(BaseService):
         except ValidationError:
             raise ValidationError(message={'endpoint_url': gettext('不是一个有效的网址')})
 
-        if self.pay_app_service_id:
+        if self.pay_app_service_id and self.status == self.Status.ENABLE.value:
             self.check_pay_app_service_id(self.pay_app_service_id)
 
         try:
