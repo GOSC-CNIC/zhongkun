@@ -202,7 +202,7 @@ class ProbeHandlers:
                 # f.write('scrape_configs:' + '\n')
                 config = yml.replace('\r\n', '\n')  # Windows
                 yml = config.replace('\r', '\n')  # MacOS
-                f.write('  ' + yml + '\n')
+                f.write(yml + '\n')
 
     def write_prometheus_config(self, path, prometheus_base_yml):
         """写入 prometheus 配置文件
