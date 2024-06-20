@@ -270,7 +270,7 @@ class ProbeHandlers:
 
                     config = yml_http.replace('\r\n', '\n')  # Windows
                     yml_http = config.replace('\r', '\n')  # MacOS
-                    f.write('  ' + yml_http + '\n\n')  # 最后留空行
+                    f.write(yml_http + '\n\n')  # 最后留空行
 
         return
 
@@ -297,7 +297,7 @@ class ProbeHandlers:
 
                     config = yml_tcp.replace('\r\n', '\n')  # Windows
                     yml_tcp = config.replace('\r', '\n')  # MacOS
-                    f.write('  ' + yml_tcp + '\n\n')
+                    f.write(yml_tcp + '\n\n')
 
         return
 
