@@ -17,6 +17,8 @@ class GlobalAdministratorTests(MyAPITransactionTestCase):
         self.obs_user = get_or_create_user(username='obsuser@cnic.cn')  # 全局运维管理员
         self.group_admin1 = get_or_create_user(username='groupadmin1@cnic.cn')  # 组管理员
         self.group_admin2 = get_or_create_user(username='groupadmin2@cnic.cn')  # 组管理员
+        self.group_admin3 = get_or_create_user(username='groupadmin3@cnic.cn')  # 组管理员
+        self.group_admin4 = get_or_create_user(username='groupadmin4@cnic.cn')  # 组管理员
         self.group_user1 = get_or_create_user(username='groupuser1@cnic.cn')  # 组员
         self.group_user2 = get_or_create_user(username='groupuser2@cnic.cn')  # 组员
         self.user1 = get_or_create_user(username='user1@cnic.cn')  # 普通用户
@@ -88,6 +90,16 @@ class GlobalAdministratorTests(MyAPITransactionTestCase):
         )
         # 组结构
         # 根节点
+        """
+        -root
+            -toplevel1
+                -firstlevel1  (group_admin3)
+                    -secondlevel1  (member1)
+                    -secondlevel2  (group_admin2)
+                -firstlevel2   (group_admin4)
+            -toplevel2
+            -toplevel3
+        """
         self.root = MenuModel.objects.create(
             name='全部'
         )
@@ -105,6 +117,10 @@ class GlobalAdministratorTests(MyAPITransactionTestCase):
         )
         self.second_level_menu1 = MenuModel.objects.create(
             name='二级分组1',
+            father=self.first_level_menu1
+        )
+        self.second_level_menu2 = MenuModel.objects.create(
+            name='二级分组2',
             father=self.first_level_menu1
         )
         self.top_level_menu2 = MenuModel.objects.create(
@@ -154,21 +170,36 @@ class GlobalAdministratorTests(MyAPITransactionTestCase):
             role=Menu2Member.Roles.GROUP_ADMIN.value,
             inviter="test@cnic.cn",
         )
-        Menu2Member.objects.create(
-            menu=self.second_level_menu1,
+        self.menu1_member1 = Menu2Member.objects.create(
+            menu=self.first_level_menu1,
+            member=self.group_admin3,
+            role=Menu2Member.Roles.GROUP_ADMIN.value,
+            inviter="test@cnic.cn",
+        )
+        self.menu2_admin_member1 = Menu2Member.objects.create(
+            menu=self.first_level_menu2,
+            member=self.group_admin4,
+            role=Menu2Member.Roles.GROUP_ADMIN.value,
+            inviter="test@cnic.cn",
+        )
+        self.menu2_member1 = Menu2Member.objects.create(
+            menu=self.second_level_menu2,
             member=self.group_admin2,
             role=Menu2Member.Roles.GROUP_ADMIN.value,
             inviter="test@cnic.cn",
         )
+
         # 添加组员
-        Menu2Member.objects.create(
+        self.member1 = Menu2Member.objects.create(
             menu=self.second_level_menu1,
             member=self.group_user1,
             role=Menu2Member.Roles.ORDINARY.value,
             inviter="test@cnic.cn",
         )
+
+
         Menu2Member.objects.create(
-            menu=self.second_level_menu1,
+            menu=self.second_level_menu2,
             member=self.group_user2,
             role=Menu2Member.Roles.ORDINARY.value,
             inviter="test@cnic.cn",
@@ -442,7 +473,7 @@ class GlobalAdministratorRetrieveTests(GlobalAdministratorTests):
     def test_obs_user(self):
         """
         查看指定 全局管理员
-        运维管理员 无权限
+        运维管理员 有权限
         """
         base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
         self.client.force_login(self.obs_user)
@@ -454,7 +485,7 @@ class GlobalAdministratorRetrieveTests(GlobalAdministratorTests):
     def test_super_user(self):
         """
         查看指定全局管理员
-        超级管理员 有添加权限
+        超级管理员 有权限
         """
         base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
         self.client.force_login(self.super_user)
@@ -550,7 +581,7 @@ class GlobalAdministratorUpdateTests(GlobalAdministratorTests):
     def test_super_user(self):
         """
         修改全局管理员
-        超级管理员 有添加权限
+        超级管理员 有权限
         """
         base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
         self.client.force_login(self.super_user)
@@ -653,7 +684,7 @@ class GlobalAdministratorDestroyTests(GlobalAdministratorTests):
     def test_super_user(self):
         """
         删除指定全局管理员
-        超级管理员 有添加权限
+        超级管理员 有权限
         """
         base_url = reverse('netflow-api:administrator-detail',args=[self.global_admin_id])
         self.client.force_login(self.super_user)
