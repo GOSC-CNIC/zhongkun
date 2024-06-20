@@ -1,12 +1,24 @@
-from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy, gettext as _
+from django.db import models
 
 from core import errors
 from core.web_monitor import WebMonitorTaskClient
 from apps.app_screenvis.configs_manager import screen_configs
 from apps.app_screenvis.models import ScreenConfig
+from apps.app_screenvis.backends.website import WebMonitorQueryAPI, WebsiteExpressionQuery
+
+
+class WebQueryChoices(models.TextChoices):
+    DURATION_SECONDS = 'duration_seconds', gettext_lazy('http请求耗时')
+    HTTP_DURATION_SECONDS = 'http_duration_seconds', gettext_lazy('http请求各个部分耗时')
 
 
 class ScreenWebMonitorManager:
+    query_tag_tmpl_map = {
+        WebQueryChoices.DURATION_SECONDS.value: WebsiteExpressionQuery.duration_seconds,
+        WebQueryChoices.HTTP_DURATION_SECONDS.value: WebsiteExpressionQuery.http_duration_seconds,
+    }
+
     @staticmethod
     def get_probe_configs():
         return {
@@ -77,3 +89,34 @@ class ScreenWebMonitorManager:
         )
         if not ok:
             raise err
+
+    def query(self, tag: str):
+        """
+        {
+            "tag": [
+                {
+                    "metric": {                 # 此项的数据内容随查询数据类型变化
+                        "__name__": "ceph_cluster_total_used_bytes",
+                        "instance": "10.0.200.100:9283",
+                        "job": "Fed-ceph",
+                        "receive_cluster": "obs",
+                        "receive_replica": "0",
+                        "tenant_id": "default-tenant"
+                    },
+                    "value": [
+                        1630267851.781,
+                        "0"
+                    ]
+                }
+            ]
+        }
+        """
+        cfgs = self.get_probe_configs()
+        query_endpoint_url = cfgs['query_endpoint_url']
+        if not query_endpoint_url:
+            raise errors.Error(message=_('没有配置站点监控数据查询服务地址'))
+
+        tag_tmpl = self.query_tag_tmpl_map[tag]
+        querys = {'query': tag_tmpl}
+        r = WebMonitorQueryAPI.raw_query(endpoint_url=query_endpoint_url, querys=querys)
+        return {tag: r}

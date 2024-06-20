@@ -3,7 +3,7 @@ from rest_framework.routers import SimpleRouter
 
 from .api_views import (
     ceph_views, common_views, host_views, tidb_views, service_views, user_operate_log,
-    alert_views
+    alert_views, website_views
 )
 
 
@@ -24,6 +24,7 @@ no_slash_router.register(r'service/object/stats', service_views.ObjectServiceVie
                          basename='object-stats')
 no_slash_router.register(r'server_user_log', user_operate_log.UserOperateLogViewSet, basename='server-user-log')
 no_slash_router.register(r'alert', alert_views.AlertViewSet, basename='alert')
+no_slash_router.register(r'website', website_views.WebsiteMonitorViewSet, basename='website')
 
 
 urlpatterns = [
