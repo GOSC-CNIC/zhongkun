@@ -22,6 +22,7 @@ class ServerServiceViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('查询一个数据中心下各云主机服务单元总的统计数据'),
+        deprecated=True,
         responses={
             200: ''''''
         }
@@ -43,25 +44,43 @@ class ServerServiceViewSet(NormalGenericViewSet):
               "cpu_used_count": 480     # cpu已用数
             }
         """
+        return self.get_server_stats_response()
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询各云主机服务单元总的统计数据'),
+        responses={
+            200: ''''''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        查询各云主机服务单元总的统计数据
+
+            http code 200:
+            {
+              "server_count": 44,       # 云主机数
+              "disk_count": 46,         # 云硬盘数
+              "ip_count": 136,          # 总ip数
+              "ip_used_count": 26,      # 已用IP数
+              "mem_size": 44260,        # 总内存GiB
+              "mem_used_size": 4460,    # 已用内存GiB
+              "cpu_count": 45040,       # cpu总数
+              "cpu_used_count": 480     # cpu已用数
+            }
+        """
+        return self.get_server_stats_response()
+
+    @staticmethod
+    def get_server_stats_response():
         # 触发统计服务单元数据
         try:
             try_stats_service()
         except Exception as exc:
             pass
 
-        dc_id = kwargs['dc_id']
-        try:
-            dc_id = int(dc_id)
-        except ValueError:
-            return self.exception_response(errors.InvalidArgument(message=_('数据中心ID无效')))
-
         unit_ids = ServerService.objects.filter(
-            data_center_id=dc_id,
             status__in=[ServerService.Status.ENABLE.value, ServerService.Status.DISABLE.value]
         ).values_list('id', flat=True)
-        if not unit_ids:
-            if not DataCenter.objects.filter(id=dc_id).exists():
-                return self.exception_response(errors.TargetNotExist(message=_('数据中心不存在')))
 
         obj_list = []
         for unit_id in set(unit_ids):

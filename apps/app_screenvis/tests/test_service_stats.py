@@ -88,47 +88,36 @@ class ServerServiceStatsTests(MyAPITestCase):
         )
         site4_obj1.save(force_insert=True)
 
-        url = reverse('screenvis-api:server-stats-dc', kwargs={'dc_id': 'fafa'})
-        response = self.client.get(url)
+        base_url = reverse('screenvis-api:server-stats-list')
+        response = self.client.get(base_url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
         ScreenAPIIPRestrictor.add_ip_rule(ip_value='127.0.0.1')
         ScreenAPIIPRestrictor.clear_cache()
 
-        response = self.client.get(url)
-        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
-
-        url = reverse('screenvis-api:server-stats-dc', kwargs={'dc_id': 0})
-        response = self.client.get(url)
-        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
-
-        url = reverse('screenvis-api:server-stats-dc', kwargs={'dc_id': dc2.id})
-        response = self.client.get(url)
+        # site1\2\4
+        response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['server_count'], site4_obj1.server_count)
-        self.assertEqual(response.data['disk_count'], site4_obj1.disk_count)
-        self.assertEqual(response.data['ip_count'], site4_obj1.ip_count)
-        self.assertEqual(response.data['ip_used_count'], site4_obj1.ip_used_count)
-        self.assertEqual(response.data['mem_size'], site4_obj1.mem_size)
-        self.assertEqual(response.data['mem_used_size'], site4_obj1.mem_used_size)
-        self.assertEqual(response.data['cpu_count'], site4_obj1.cpu_count)
-        self.assertEqual(response.data['cpu_used_count'], site4_obj1.cpu_used_count)
+        self.assertEqual(response.data['server_count'],
+                         site1_obj1.server_count + site2_obj1.server_count + site4_obj1.server_count)
+        self.assertEqual(response.data['disk_count'],
+                         site1_obj1.disk_count + site2_obj1.disk_count + site4_obj1.disk_count)
+        self.assertEqual(response.data['ip_count'],
+                         site1_obj1.ip_count + site2_obj1.ip_count + site4_obj1.ip_count)
+        self.assertEqual(response.data['ip_used_count'],
+                         site1_obj1.ip_used_count + site2_obj1.ip_used_count + site4_obj1.ip_used_count)
+        self.assertEqual(response.data['mem_size'],
+                         site1_obj1.mem_size + site2_obj1.mem_size + site4_obj1.mem_size)
+        self.assertEqual(response.data['mem_used_size'],
+                         site1_obj1.mem_used_size + site2_obj1.mem_used_size + site4_obj1.mem_used_size)
+        self.assertEqual(response.data['cpu_count'],
+                         site1_obj1.cpu_count + site2_obj1.cpu_count + site4_obj1.cpu_count)
+        self.assertEqual(response.data['cpu_used_count'],
+                         site1_obj1.cpu_used_count + site2_obj1.cpu_used_count + site4_obj1.cpu_used_count)
 
         site4.status = site4.Status.DELETED.value
         site4.save(update_fields=['status'])
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['server_count'], 0)
-        self.assertEqual(response.data['disk_count'], 0)
-        self.assertEqual(response.data['ip_count'], 0)
-        self.assertEqual(response.data['ip_used_count'], 0)
-        self.assertEqual(response.data['mem_size'], 0)
-        self.assertEqual(response.data['mem_used_size'], 0)
-        self.assertEqual(response.data['cpu_count'], 0)
-        self.assertEqual(response.data['cpu_used_count'], 0)
-
-        # dc1
-        url = reverse('screenvis-api:server-stats-dc', kwargs={'dc_id': dc1.id})
-        response = self.client.get(url)
+        # site1\2
+        response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['server_count'], site1_obj1.server_count + site2_obj1.server_count)
         self.assertEqual(response.data['disk_count'], site1_obj1.disk_count + site2_obj1.disk_count)
