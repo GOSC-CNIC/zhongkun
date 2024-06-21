@@ -18,8 +18,9 @@ from utils.time import iso_utc_to_datetime, utc
 from utils import rand_utils
 from apps.vo.models import VirtualOrganization, VoMember
 from apps.order.managers import OrderManager, PriceManager
-from apps.order.models import Price, Order, Resource
+from apps.order.models import Order, Resource
 from apps.order.managers import DiskConfig
+from apps.order.tests import create_price
 from apps.app_wallet.managers import PaymentManager
 from apps.app_wallet.models import PayApp, PayAppService
 from apps.metering.measurers import DiskMeasurer
@@ -72,25 +73,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
         self.service = get_or_create_service()
         self.vo = VirtualOrganization(name='test vo', owner=self.user2)
         self.vo.save(force_insert=True)
-        self.price = Price(
-            vm_ram=Decimal('0.012'),
-            vm_cpu=Decimal('0.066'),
-            vm_disk=Decimal('0.122'),
-            vm_pub_ip=Decimal('0.66'),
-            vm_upstream=Decimal('0.33'),
-            vm_downstream=Decimal('1.44'),
-            vm_disk_snap=Decimal('0.65'),
-            disk_size=Decimal('0.12'),
-            disk_snap=Decimal('0.77'),
-            obj_size=Decimal('0'),
-            obj_upstream=Decimal('0'),
-            obj_downstream=Decimal('0'),
-            obj_replication=Decimal('0'),
-            obj_get_request=Decimal('0'),
-            obj_put_request=Decimal('0'),
-            prepaid_discount=66
-        )
-        self.price.save(force_insert=True)
+        self.price = create_price()
 
     def test_disk_create_bad_request(self):
         url = reverse('servers-api:disks-list')
@@ -1811,7 +1794,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
         # pay order
         u_disk_start_time_old = user_disk.start_time
         user_account = PaymentManager.get_user_point_account(user_id=self.user.id)
-        user_account.balance = Decimal(10000)
+        user_account.balance = Decimal(30000)
         user_account.save(update_fields=['balance'])
         url = reverse('order-api:order-pay-order', kwargs={'id': order_id})
         query = parse.urlencode(query={'payment_method': Order.PaymentMethod.BALANCE.value})
@@ -1881,7 +1864,7 @@ class DiskOrderTests(MyAPITransactionTestCase):
 
         # pay renewal order
         vo_account = PaymentManager.get_vo_point_account(vo_id=self.vo.id)
-        vo_account.balance = Decimal(12000)
+        vo_account.balance = Decimal(25000)
         vo_account.save(update_fields=['balance'])
         url = reverse('order-api:order-pay-order', kwargs={'id': order_id})
         query = parse.urlencode(query={'payment_method': Order.PaymentMethod.BALANCE.value})

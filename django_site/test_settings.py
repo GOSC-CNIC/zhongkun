@@ -56,7 +56,7 @@ TEST_CASE = {
     },
     'LOG_SITE': {
         'PROVIDER': {
-            'endpoint_url': 'http://159.226.91.149:34135',
+            'endpoint_url': 'http://159.226.91.149:3100',
             'username': '',
             'password': ''
         },

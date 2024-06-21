@@ -12,7 +12,7 @@ from utils.time import utc
 from core import errors
 from apps.servers.models import Disk, DiskChangeLog, ServiceConfig
 from apps.vo.managers import VoManager
-from apps.order.models import Price
+from apps.order.tests import create_price
 from apps.app_wallet.models import CashCoupon, PaymentHistory, PayAppService, PayApp
 from apps.metering.measurers import DiskMeasurer
 from apps.metering.models import PaymentStatus, DailyStatementDisk, MeteringDisk
@@ -90,25 +90,7 @@ class MeteringDiskTests(TransactionTestCase):
         self.user = get_or_create_user()
         self.service = get_or_create_service()
         self.vo = VoManager().create_vo(user=self.user, name='test vo', company='test', description='test')
-        self.price = Price(
-            vm_ram=Decimal('0.012'),
-            vm_cpu=Decimal('0.066'),
-            vm_disk=Decimal('0.122'),
-            vm_pub_ip=Decimal('0.66'),
-            vm_upstream=Decimal('0.33'),
-            vm_downstream=Decimal('1.44'),
-            vm_disk_snap=Decimal('0.65'),
-            disk_size=Decimal('1.02'),
-            disk_snap=Decimal('0.77'),
-            obj_size=Decimal('0'),
-            obj_upstream=Decimal('0'),
-            obj_downstream=Decimal('0'),
-            obj_replication=Decimal('0'),
-            obj_get_request=Decimal('0'),
-            obj_put_request=Decimal('0'),
-            prepaid_discount=66
-        )
-        self.price.save()
+        self.price = create_price()
 
     def init_data_only_normal_disk(self, now: datetime):
         ago_hour_time = now - timedelta(hours=1)    # utc时间00:00（北京时间08:00）之后的1hour之内，测试会通不过，server4会被计量

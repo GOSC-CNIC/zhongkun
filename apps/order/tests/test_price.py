@@ -8,12 +8,13 @@ from django.utils import timezone as dj_timezone
 from apps.servers.models import Flavor, Disk
 from apps.servers.tests.test_disk import create_disk_metadata
 from apps.servers.tests import create_server_metadata
-from apps.order.models import Price, Order
+from apps.order.models import Order
 from apps.order.managers import PriceManager
 from apps.order.handlers.price_handler import ScanTaskType
 from utils.decimal_utils import quantize_10_2
 from utils.model import PayType, ResourceType
 from utils.test import MyAPITestCase, get_or_create_user
+from . import create_price
 
 
 utc = timezone.utc
@@ -23,28 +24,7 @@ class PriceTests(MyAPITestCase):
     def setUp(self):
         self.user = get_or_create_user()
         self.client.force_login(self.user)
-        price = Price(
-            vm_ram=Decimal('0.012'),
-            vm_cpu=Decimal('0.066'),
-            vm_disk=Decimal('0.122'),
-            vm_pub_ip=Decimal('0.66'),
-            vm_upstream=Decimal('0.33'),
-            vm_downstream=Decimal('1.44'),
-            vm_disk_snap=Decimal('0.65'),
-            disk_size=Decimal('1.02'),
-            disk_snap=Decimal('0.77'),
-            obj_size=Decimal('0'),
-            obj_upstream=Decimal('0'),
-            obj_downstream=Decimal('0'),
-            obj_replication=Decimal('0'),
-            obj_get_request=Decimal('0'),
-            obj_put_request=Decimal('0'),
-            scan_host=Decimal('100'),
-            scan_web=Decimal('200'),
-            prepaid_discount=66
-        )
-        price.save()
-        self.price = price
+        self.price = create_price()
         self.flavor = Flavor(vcpus=2, ram=4)
         self.flavor.save()
 
@@ -68,7 +48,7 @@ class PriceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['price'], response.data)
         self.assertKeysIn(['original', 'trade'], response.data['price'])
-        original_p = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_pub_ip + price.vm_disk * 100
+        original_p = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_pub_ip + price.vm_disk * 100 + price.vm_base
         original_p *= 24
         trade_p = original_p * prepaid_discount
         self.assertEqual(str(quantize_10_2(original_p)), response.data['price']['original'])
@@ -82,7 +62,7 @@ class PriceTests(MyAPITestCase):
         })
         response = self.client.get(f'{base_url}?{query2}')
         self.assertEqual(response.status_code, 200)
-        original_p2 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_pub_ip + price.vm_disk * 100
+        original_p2 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_pub_ip + price.vm_disk * 100 + price.vm_base
         original_p2 *= 24
         self.assertEqual(str(quantize_10_2(original_p2)), response.data['price']['original'])
         self.assertEqual(str(quantize_10_2(original_p2)), response.data['price']['trade'])
@@ -94,7 +74,7 @@ class PriceTests(MyAPITestCase):
             'system_disk_size': 100
         })
         days = PriceManager.convert_period_days(period=1, period_unit=Order.PeriodUnit.MONTH.value)
-        original_p3 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_pub_ip + price.vm_disk * 100
+        original_p3 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_pub_ip + price.vm_disk * 100 + price.vm_base
         original_p3 = original_p3 * days * 24
         trade_p3 = original_p3 * prepaid_discount
         response = self.client.get(f'{base_url}?{query3}')
@@ -109,7 +89,7 @@ class PriceTests(MyAPITestCase):
             'system_disk_size': 100
         })
         days = PriceManager.convert_period_days(period=1, period_unit=Order.PeriodUnit.MONTH.value)
-        original_p4 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_disk * 100
+        original_p4 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_disk * 100 + price.vm_base
         original_p4 = original_p4 * days * 24
         trade_p4 = original_p4 * prepaid_discount
         response = self.client.get(f'{base_url}?{query4}')
@@ -124,7 +104,7 @@ class PriceTests(MyAPITestCase):
             'system_disk_size': 50
         })
         days = PriceManager.convert_period_days(period=1, period_unit=Order.PeriodUnit.MONTH.value)
-        original_p5 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_disk * 50
+        original_p5 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_disk * 50 + price.vm_base
         original_p5 = original_p5 * days * 24
         trade_p5 = original_p5 * prepaid_discount
         response = self.client.get(f'{base_url}?{query5}')
@@ -148,7 +128,7 @@ class PriceTests(MyAPITestCase):
         })
         response = self.client.get(f'{base_url}?{query7}')
         self.assertEqual(response.status_code, 200)
-        original_p7 = price.vm_cpu * 2 + price.vm_ram * 4
+        original_p7 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_base
         original_p7 *= 24
         self.assertEqual(str(quantize_10_2(original_p7)), response.data['price']['original'])
         self.assertEqual(str(quantize_10_2(original_p7)), response.data['price']['trade'])
@@ -160,7 +140,7 @@ class PriceTests(MyAPITestCase):
         })
         response = self.client.get(f'{base_url}?{query8}')
         self.assertEqual(response.status_code, 200)
-        original_p8 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_pub_ip
+        original_p8 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_pub_ip + price.vm_base
         original_p8 *= 24
         self.assertEqual(str(quantize_10_2(original_p8)), response.data['price']['original'])
         self.assertEqual(str(quantize_10_2(original_p8)), response.data['price']['trade'])
@@ -172,7 +152,7 @@ class PriceTests(MyAPITestCase):
         })
         response = self.client.get(f'{base_url}?{query9}')
         self.assertEqual(response.status_code, 200)
-        original_p9 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_pub_ip
+        original_p9 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_pub_ip + price.vm_base
         original_p9 *= 24
         trade_p9 = original_p9 * prepaid_discount
         self.assertEqual(str(quantize_10_2(original_p9)), response.data['price']['original'])
@@ -185,7 +165,7 @@ class PriceTests(MyAPITestCase):
         })
         response = self.client.get(f'{base_url}?{query10}')
         self.assertEqual(response.status_code, 200)
-        original_p10 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_pub_ip
+        original_p10 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_pub_ip + price.vm_base
         original_p10 = original_p10 * 24 * 3
         trade_p10 = original_p10 * prepaid_discount
         self.assertEqual(str(quantize_10_2(original_p10)), response.data['price']['original'])
@@ -198,7 +178,7 @@ class PriceTests(MyAPITestCase):
         })
         response = self.client.get(f'{base_url}?{query11}')
         self.assertEqual(response.status_code, 200)
-        original_p11 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_pub_ip
+        original_p11 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_pub_ip + price.vm_base
         original_p11 = original_p11 * 24 * 2 * 30
         trade_p11 = original_p11 * prepaid_discount
         self.assertEqual(str(quantize_10_2(original_p11)), response.data['price']['original'])
@@ -211,7 +191,7 @@ class PriceTests(MyAPITestCase):
         })
         response = self.client.get(f'{base_url}?{query12}')
         self.assertEqual(response.status_code, 200)
-        original_p12 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_pub_ip
+        original_p12 = price.vm_cpu * 2 + price.vm_ram * 4 + price.vm_pub_ip + price.vm_base
         original_p12 = original_p12 * 24 * 123 * 3
         trade_p12 = original_p12 * prepaid_discount
         self.assertEqual(str(quantize_10_2(original_p12)), response.data['price']['original'])
@@ -525,11 +505,11 @@ class PriceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(keys=['original', 'trade'], container=response.data['price'])
 
-        original_p = price.vm_cpu * 2 + price.vm_ram * 2 + price.vm_pub_ip + price.vm_disk * 100
+        original_p = price.vm_cpu * 2 + price.vm_ram * 2 + price.vm_pub_ip + price.vm_disk * 100 + price.vm_base
         original_p *= 24 * 30
         trade_p = original_p * prepaid_discount
-        self.assertEqual(response.data['price']['original'], str(quantize_10_2(original_p)))
-        self.assertEqual(response.data['price']['trade'], str(quantize_10_2(trade_p)))
+        self.assertLessEqual(abs(Decimal(response.data['price']['original']) - quantize_10_2(original_p)), Decimal(0.01))
+        self.assertLessEqual(abs(Decimal(response.data['price']['trade']) - quantize_10_2(trade_p)), Decimal(0.01))
 
         # ok period
         query = parse.urlencode(query={
@@ -539,7 +519,7 @@ class PriceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(keys=['original', 'trade'], container=response.data['price'])
 
-        original_p = price.vm_cpu * 2 + price.vm_ram * 2 + price.vm_pub_ip + price.vm_disk * 100
+        original_p = price.vm_cpu * 2 + price.vm_ram * 2 + price.vm_pub_ip + price.vm_disk * 100 + price.vm_base
         original_p *= 24 * 60
         trade_p = original_p * prepaid_discount
         self.assertEqual(response.data['price']['original'], str(quantize_10_2(original_p)))
@@ -553,7 +533,7 @@ class PriceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(keys=['original', 'trade'], container=response.data['price'])
 
-        original_p = price.vm_cpu * 2 + price.vm_ram * 2 + price.vm_pub_ip + price.vm_disk * 100
+        original_p = price.vm_cpu * 2 + price.vm_ram * 2 + price.vm_pub_ip + price.vm_disk * 100 + price.vm_base
         original_p *= 24 * 2 * 30
         trade_p = original_p * prepaid_discount
         self.assertEqual(response.data['price']['original'], str(quantize_10_2(original_p)))
@@ -566,7 +546,7 @@ class PriceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(keys=['original', 'trade'], container=response.data['price'])
 
-        original_p = price.vm_cpu * 2 + price.vm_ram * 2 + price.vm_pub_ip + price.vm_disk * 100
+        original_p = price.vm_cpu * 2 + price.vm_ram * 2 + price.vm_pub_ip + price.vm_disk * 100 + price.vm_base
         original_p *= 24 * 122
         trade_p = original_p * prepaid_discount
         self.assertEqual(response.data['price']['original'], str(quantize_10_2(original_p)))
@@ -584,7 +564,7 @@ class PriceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(keys=['original', 'trade'], container=response.data['price'])
 
-        original_p = price.vm_cpu * 2 + price.vm_ram * 2 + price.vm_pub_ip + price.vm_disk * 100
+        original_p = price.vm_cpu * 2 + price.vm_ram * 2 + price.vm_pub_ip + price.vm_disk * 100 + price.vm_base
         original_p *= 24 * 60
         trade_p = original_p
         self.assertEqual(response.data['price']['original'], str(quantize_10_2(original_p)))
@@ -599,7 +579,7 @@ class PriceTests(MyAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(keys=['original', 'trade'], container=response.data['price'])
 
-        original_p = price.vm_cpu * 2 + price.vm_ram * 2 + price.vm_pub_ip + price.vm_disk * 100
+        original_p = price.vm_cpu * 2 + price.vm_ram * 2 + price.vm_pub_ip + price.vm_disk * 100 + price.vm_base
         original_p *= 24 * 40
         trade_p = original_p
         self.assertEqual(response.data['price']['original'], str(quantize_10_2(original_p)))

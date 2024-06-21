@@ -7,7 +7,7 @@ from apps.app_global.configs_manager import global_configs
 
 class CommonTests(MyAPITestCase):
     def setUp(self):
-        pass
+        global_configs.clear_cache()
 
     def test_sales_customer(self):
         user1 = get_or_create_user(username='lisi@cnic.cn')

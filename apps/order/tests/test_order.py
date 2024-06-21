@@ -9,7 +9,7 @@ from django.conf import settings
 
 from core import site_configs_manager
 from utils.model import PayType, OwnerType, ResourceType
-from apps.order.models import Price, Order, Period
+from apps.order.models import Order, Period
 from apps.order.managers import OrderManager
 from apps.order.managers.instance_configs import ServerConfig, DiskConfig
 from apps.order.handlers.order_handler import CASH_COUPON_BALANCE
@@ -20,6 +20,7 @@ from apps.app_wallet.managers import PaymentManager
 from apps.app_wallet.models import PaymentHistory, CashCoupon, PayAppService, PayApp, TransactionBill
 from apps.servers.models import ServiceConfig, Flavor
 from apps.servers.managers import ServicePrivateQuotaManager
+from . import create_price
 
 
 PAY_APP_ID = site_configs_manager.get_pay_app_id(settings)
@@ -30,26 +31,7 @@ class OrderTests(MyAPITestCase):
         self.user = get_or_create_user()
         self.user2 = get_or_create_user(username='user2')
         self.client.force_login(self.user)
-        price = Price(
-            vm_ram=Decimal('0.12'),
-            vm_cpu=Decimal('0.066'),
-            vm_disk=Decimal('0.122'),
-            vm_pub_ip=Decimal('0.66'),
-            vm_upstream=Decimal('0.33'),
-            vm_downstream=Decimal('1.446'),
-            vm_disk_snap=Decimal('0.65'),
-            disk_size=Decimal('1.02'),
-            disk_snap=Decimal('0.77'),
-            obj_size=Decimal('0'),
-            obj_upstream=Decimal('0'),
-            obj_downstream=Decimal('0'),
-            obj_replication=Decimal('0.2'),
-            obj_get_request=Decimal('0'),
-            obj_put_request=Decimal('0'),
-            prepaid_discount=66
-        )
-        price.save()
-        self.price = price
+        self.price = create_price()
         self.flavor = Flavor(vcpus=2, ram=4)
         self.flavor.save()
         self.vo = VirtualOrganization(

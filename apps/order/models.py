@@ -305,6 +305,9 @@ class Resource(UuidModel):
 
 
 class Price(UuidModel):
+    vm_base = models.DecimalField(
+        verbose_name=_('每小时云主机基础维护费'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
+        default=Decimal('0'), help_text=_('每小时云主机基础维护费价格'))
     vm_ram = models.DecimalField(
         verbose_name=_('内存GiB每小时'), max_digits=10, decimal_places=5, validators=(MinValueValidator(0),),
         help_text=_('内存每GiB每小时的价格'))

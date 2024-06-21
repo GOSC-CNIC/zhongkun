@@ -11,35 +11,15 @@ from utils.model import PayType
 from apps.servers.tests import create_server_metadata
 from apps.servers.managers import ServerSnapshotManager
 from apps.servers.models import ServerSnapshot
-from apps.order.models import Price, Order
+from apps.order.models import Order
+from apps.order.tests import create_price
 
 
 class PriceTests(MyAPITestCase):
     def setUp(self):
         self.user = get_or_create_user()
         self.client.force_login(self.user)
-        price = Price(
-            vm_ram=Decimal('0.012'),
-            vm_cpu=Decimal('0.066'),
-            vm_disk=Decimal('0.122'),
-            vm_pub_ip=Decimal('0.66'),
-            vm_upstream=Decimal('0.33'),
-            vm_downstream=Decimal('1.44'),
-            vm_disk_snap=Decimal('0.65'),
-            disk_size=Decimal('1.02'),
-            disk_snap=Decimal('0.77'),
-            obj_size=Decimal('0'),
-            obj_upstream=Decimal('0'),
-            obj_downstream=Decimal('0'),
-            obj_replication=Decimal('0'),
-            obj_get_request=Decimal('0'),
-            obj_put_request=Decimal('0'),
-            scan_host=Decimal('100'),
-            scan_web=Decimal('200'),
-            prepaid_discount=66
-        )
-        price.save()
-        self.price = price
+        self.price = create_price()
 
     def test_server_snapshot(self):
         # ------ server ---------

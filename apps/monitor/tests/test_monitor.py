@@ -18,7 +18,7 @@ from apps.monitor.managers import (
 )
 from apps.monitor.utils import MonitorEmailAddressIPRestrictor
 from apps.app_wallet.models import PayApp, PayAppService
-from apps.order.models import Price
+from apps.order.tests import create_price
 from utils.test import (
     get_or_create_user, get_test_case_settings, get_or_create_organization,
     MyAPITestCase, get_or_create_org_data_center
@@ -89,28 +89,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         )
         app_service1.save()
 
-        price = Price(
-            vm_ram=Decimal('0.0'),
-            vm_cpu=Decimal('0.0'),
-            vm_disk=Decimal('0'),
-            vm_pub_ip=Decimal('0'),
-            vm_upstream=Decimal('0'),
-            vm_downstream=Decimal('1'),
-            vm_disk_snap=Decimal('0'),
-            disk_size=Decimal('1.02'),
-            disk_snap=Decimal('0.77'),
-            obj_size=Decimal('0'),
-            obj_upstream=Decimal('0'),
-            obj_downstream=Decimal('0'),
-            obj_replication=Decimal('0'),
-            obj_get_request=Decimal('0'),
-            obj_put_request=Decimal('0'),
-            prepaid_discount=66,
-            mntr_site_base=Decimal('0.3'),
-            mntr_site_tamper=Decimal('0.2'),
-            mntr_site_security=Decimal('0.5')
-        )
-        price.save()
+        price = create_price()
 
         # NotAuthenticated
         url = reverse('monitor-api:website-list')

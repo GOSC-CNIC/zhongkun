@@ -10,6 +10,7 @@ from utils.model import ResourceType, OwnerType, PayType
 from apps.order.models import Price, Order, Resource
 from apps.order.managers import PriceManager, OrderManager
 from apps.order.managers.instance_configs import ScanConfig, ServerConfig, ServerSnapshotConfig
+from . import create_price
 
 
 class TimeTests(TestCase):
@@ -28,28 +29,7 @@ class TimeTests(TestCase):
 
 class PriceManagerTests(TestCase):
     def setUp(self):
-        price = Price(
-            vm_ram=Decimal('0.012'),
-            vm_cpu=Decimal('0.066'),
-            vm_disk=Decimal('0.122'),
-            vm_pub_ip=Decimal('0.66'),
-            vm_upstream=Decimal('0.33'),
-            vm_downstream=Decimal('1.44'),
-            vm_disk_snap=Decimal('0.65'),
-            disk_size=Decimal('1.02'),
-            disk_snap=Decimal('0.77'),
-            obj_size=Decimal('0'),
-            obj_upstream=Decimal('0'),
-            obj_downstream=Decimal('0'),
-            obj_replication=Decimal('0'),
-            obj_get_request=Decimal('0'),
-            obj_put_request=Decimal('0'),
-            scan_host=Decimal('111.11'),
-            scan_web=Decimal('222.22'),
-            prepaid_discount=66
-        )
-        price.save()
-        self.price = price
+        self.price = create_price()
 
     @staticmethod
     def _disk_day_price(price, size_gib: int, is_prepaid: bool):
@@ -130,7 +110,7 @@ class PriceManagerTests(TestCase):
         p_ram = price.vm_ram * Decimal.from_float(ram_mib / 1024)
         p_cpu = price.vm_cpu * cpu
         p_disk = price.vm_disk * disk_gib
-        p = p_ram + p_cpu + p_disk
+        p = p_ram + p_cpu + p_disk + price.vm_base
         if public_ip:
             p += price.vm_pub_ip
 
@@ -278,28 +258,7 @@ class PriceManagerTests(TestCase):
 
 class OrderManagerTests(TestCase):
     def setUp(self):
-        price = Price(
-            vm_ram=Decimal('0.012'),
-            vm_cpu=Decimal('0.066'),
-            vm_disk=Decimal('0.122'),
-            vm_pub_ip=Decimal('0.66'),
-            vm_upstream=Decimal('0.33'),
-            vm_downstream=Decimal('1.44'),
-            vm_disk_snap=Decimal('0.65'),
-            disk_size=Decimal('1.02'),
-            disk_snap=Decimal('0.77'),
-            obj_size=Decimal('0'),
-            obj_upstream=Decimal('0'),
-            obj_downstream=Decimal('0'),
-            obj_replication=Decimal('0'),
-            obj_get_request=Decimal('0'),
-            obj_put_request=Decimal('0'),
-            scan_host=Decimal('111.11'),
-            scan_web=Decimal('222.22'),
-            prepaid_discount=66
-        )
-        price.save()
-        self.price = price
+        self.price = create_price()
 
     def test_create_scan(self):
         # scan

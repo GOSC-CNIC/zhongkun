@@ -1,4 +1,3 @@
-from decimal import Decimal
 from urllib import parse
 
 from django.urls import reverse
@@ -11,7 +10,7 @@ from utils.test import (
     get_or_create_organization,
     MyAPITestCase,
 )
-from apps.order.models import Price
+from apps.order.tests import create_price
 from apps.order.managers.order import OrderManager
 from apps.app_scan.models import VtScanService, VtTask
 
@@ -271,27 +270,7 @@ class ScanTaskTests(MyAPITestCase):
 
     def test_create_task(self):
         # 价格
-        price = Price(
-            vm_ram=Decimal('0.012'),
-            vm_cpu=Decimal('0.066'),
-            vm_disk=Decimal('0.122'),
-            vm_pub_ip=Decimal('0.66'),
-            vm_upstream=Decimal('0.33'),
-            vm_downstream=Decimal('1.44'),
-            vm_disk_snap=Decimal('0.65'),
-            disk_size=Decimal('1.02'),
-            disk_snap=Decimal('0.77'),
-            obj_size=Decimal('0'),
-            obj_upstream=Decimal('0'),
-            obj_downstream=Decimal('0'),
-            obj_replication=Decimal('0'),
-            obj_get_request=Decimal('0'),
-            obj_put_request=Decimal('0'),
-            scan_web=Decimal('10'),
-            scan_host=Decimal('20'),
-            prepaid_discount=66
-        )
-        price.save()
+        create_price()
         # 扫描任务订单创建
         app = PayApp(name="app", id=pay_app_id)
         app.save()

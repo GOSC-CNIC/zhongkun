@@ -7,10 +7,11 @@ from django.utils import timezone as dj_timezone
 from core.adapters import inputs, outputs
 from core import errors
 from utils.model import PayType, OwnerType, ResourceType
-from apps.order.models import Order, Price, Resource
+from apps.order.models import Order, Resource
 from apps.order.managers import OrderManager
 from apps.order.managers.instance_configs import ServerConfig, ScanConfig, ServerSnapshotConfig
 from apps.order.deliver_resource import OrderResourceDeliverer
+from apps.order.tests import create_price
 from utils.test import get_or_create_user, MyAPITransactionTestCase
 from apps.servers.models import ServiceConfig, Server, ServerSnapshot
 from apps.vo.models import VirtualOrganization
@@ -92,27 +93,7 @@ class DeliverTests(MyAPITransactionTestCase):
             name='service1', name_en='service1 en'
         )
         self.service1.save(force_insert=True)
-
-        price = Price(
-            vm_ram=Decimal('0.12'),
-            vm_cpu=Decimal('0.066'),
-            vm_disk=Decimal('0.122'),
-            vm_pub_ip=Decimal('0.66'),
-            vm_upstream=Decimal('0.33'),
-            vm_downstream=Decimal('1.446'),
-            vm_disk_snap=Decimal('0.65'),
-            disk_size=Decimal('1.02'),
-            disk_snap=Decimal('0.77'),
-            obj_size=Decimal('0'),
-            obj_upstream=Decimal('0'),
-            obj_downstream=Decimal('0'),
-            obj_replication=Decimal('0.2'),
-            obj_get_request=Decimal('0'),
-            obj_put_request=Decimal('0'),
-            prepaid_discount=66
-        )
-        price.save(True)
-        self.price = price
+        self.price = create_price()
 
     def test_one_server_order_deliver(self):
         cs_req = CreateServerRequest()

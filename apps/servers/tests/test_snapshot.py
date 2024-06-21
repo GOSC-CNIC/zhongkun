@@ -9,8 +9,9 @@ from django.utils import timezone as dj_timezone
 from utils.test import get_or_create_user, get_or_create_service, MyAPITransactionTestCase
 from utils.model import PayType, OwnerType, ResourceType
 from utils.decimal_utils import quantize_10_2
-from apps.order.models import Order, Price
+from apps.order.models import Order
 from apps.order.managers import OrderManager, ServerSnapshotConfig
+from apps.order.tests import create_price
 from apps.vo.models import VirtualOrganization, VoMember
 from apps.servers.managers import ServerSnapshotManager
 from apps.servers.models import ServiceConfig, ServerSnapshot, Server
@@ -24,25 +25,7 @@ class ServerSnapshotTests(MyAPITransactionTestCase):
         self.service = get_or_create_service()
         self.vo = VirtualOrganization(name='test vo', owner=self.user2)
         self.vo.save(force_insert=True)
-        self.price = Price(
-            vm_ram=Decimal('0.012'),
-            vm_cpu=Decimal('0.066'),
-            vm_disk=Decimal('0.122'),
-            vm_pub_ip=Decimal('0.66'),
-            vm_upstream=Decimal('0.33'),
-            vm_downstream=Decimal('1.44'),
-            vm_disk_snap=Decimal('0.65'),
-            disk_size=Decimal('1.02'),
-            disk_snap=Decimal('0.77'),
-            obj_size=Decimal('0'),
-            obj_upstream=Decimal('0'),
-            obj_downstream=Decimal('0'),
-            obj_replication=Decimal('0'),
-            obj_get_request=Decimal('0'),
-            obj_put_request=Decimal('0'),
-            prepaid_discount=66
-        )
-        self.price.save(force_insert=True)
+        self.price = create_price()
 
     def test_list_disk(self):
         service2 = ServiceConfig(

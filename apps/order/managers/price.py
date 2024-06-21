@@ -120,7 +120,8 @@ class PriceManager:
             ram_gib_hours=ram_gib_hours,
             cpu_hours=cpu_hours,
             disk_gib_hours=disk_gib_hours,
-            public_ip_hours=public_ip_hours
+            public_ip_hours=public_ip_hours,
+            hours=total_hours,
         )
 
         if is_prepaid:
@@ -150,7 +151,8 @@ class PriceManager:
             ram_gib_hours: float,
             cpu_hours: float,
             disk_gib_hours: float,
-            public_ip_hours: float
+            public_ip_hours: float,
+            hours: float
     ) -> Decimal:
         """
         按量计费云主机计价
@@ -161,7 +163,8 @@ class PriceManager:
             ram_gib_hours=ram_gib_hours,
             cpu_hours=cpu_hours,
             disk_gib_hours=disk_gib_hours,
-            public_ip_hours=public_ip_hours
+            public_ip_hours=public_ip_hours,
+            hours=hours
         )
 
     @staticmethod
@@ -170,16 +173,18 @@ class PriceManager:
             ram_gib_hours: float,
             cpu_hours: float,
             disk_gib_hours: float,
-            public_ip_hours: float
+            public_ip_hours: float,
+            hours: float
     ) -> Decimal:
         """
         计算金额
         """
+        vm_base_amount = price.vm_base * Decimal.from_float(hours)
         ram_amount = price.vm_ram * Decimal.from_float(ram_gib_hours)
         cpu_amount = price.vm_cpu * Decimal.from_float(cpu_hours)
         disk_amount = price.vm_disk * Decimal.from_float(disk_gib_hours)
         ip_amount = price.vm_pub_ip * Decimal.from_float(public_ip_hours)
-        return ram_amount + cpu_amount + disk_amount + ip_amount
+        return vm_base_amount + ram_amount + cpu_amount + disk_amount + ip_amount
 
     @staticmethod
     def calculate_bucket_amounts(

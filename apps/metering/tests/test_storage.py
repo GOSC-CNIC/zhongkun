@@ -8,7 +8,7 @@ from django.utils import timezone
 from utils.test import get_or_create_user, get_or_create_storage_service, get_or_create_organization
 from utils.model import OwnerType
 from core import errors
-from apps.order.models import Price
+from apps.order.tests import create_price
 from apps.app_wallet.models import CashCoupon, PaymentHistory, PayAppService, PayApp
 from apps.metering.measurers import StorageMeasurer
 from apps.metering.models import PaymentStatus, MeteringObjectStorage, DailyStatementObjectStorage
@@ -40,25 +40,7 @@ class MeteringObjectStorageTests(TransactionTestCase):
     def setUp(self):
         self.user = get_or_create_user()
         self.service = get_or_create_storage_service()
-        self.price = Price(
-            vm_ram=Decimal('0'),
-            vm_cpu=Decimal('0'),
-            vm_disk=Decimal('0'),
-            vm_pub_ip=Decimal('0'),
-            vm_upstream=Decimal('0'),
-            vm_downstream=Decimal('0'),
-            vm_disk_snap=Decimal('0'),
-            disk_size=Decimal('0'),
-            disk_snap=Decimal('0'),
-            obj_size=Decimal('1.2'),
-            obj_upstream=Decimal('0'),
-            obj_downstream=Decimal('0'),
-            obj_replication=Decimal('0'),
-            obj_get_request=Decimal('0'),
-            obj_put_request=Decimal('0'),
-            prepaid_discount=66
-        )
-        self.price.save()
+        self.price = create_price()
 
     def init_data_only_bucket(self, now: datetime):
         ago_hour_time = now - timedelta(hours=1)

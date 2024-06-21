@@ -10,7 +10,7 @@ from utils.decimal_utils import quantize_10_2
 from core import errors
 from apps.servers.models import Server, ServerArchive
 from apps.vo.managers import VoManager
-from apps.order.models import Price
+from apps.order.tests import create_price
 from apps.app_wallet.models import CashCoupon, PaymentHistory, PayAppService, PayApp
 from apps.servers.models import ServiceConfig
 from apps.metering.measurers import ServerMeasurer
@@ -98,25 +98,7 @@ class MeteringServerTests(TransactionTestCase):
         self.user = get_or_create_user()
         self.service = get_or_create_service()
         self.vo = VoManager().create_vo(user=self.user, name='test vo', company='test', description='test')
-        self.price = Price(
-            vm_ram=Decimal('0.012'),
-            vm_cpu=Decimal('0.066'),
-            vm_disk=Decimal('0.122'),
-            vm_pub_ip=Decimal('0.66'),
-            vm_upstream=Decimal('0.33'),
-            vm_downstream=Decimal('1.44'),
-            vm_disk_snap=Decimal('0.65'),
-            disk_size=Decimal('1.02'),
-            disk_snap=Decimal('0.77'),
-            obj_size=Decimal('0'),
-            obj_upstream=Decimal('0'),
-            obj_downstream=Decimal('0'),
-            obj_replication=Decimal('0'),
-            obj_get_request=Decimal('0'),
-            obj_put_request=Decimal('0'),
-            prepaid_discount=66
-        )
-        self.price.save()
+        self.price = create_price()
 
     def init_data_only_server(self, now: datetime):
         ago_hour_time = now - timedelta(hours=1)    # utc时间00:00（北京时间08:00）之后的1hour之内，测试会通不过，server4会被计量
@@ -211,7 +193,7 @@ class MeteringServerTests(TransactionTestCase):
             self.assertEqual(up_int(metering.public_ip_hours), 0)
 
         original_amount1 = (self.price.vm_cpu * 4) + (self.price.vm_ram * 4) + (
-                self.price.vm_disk * 100) + self.price.vm_pub_ip
+                self.price.vm_disk * 100) + self.price.vm_pub_ip + self.price.vm_base
         trade_amount = original_amount1 * server1_hours
         original_amount1 = original_amount1 * 24
         self.assertEqual(metering.original_amount, quantize_10_2(original_amount1))
@@ -233,7 +215,8 @@ class MeteringServerTests(TransactionTestCase):
         else:
             self.assertEqual(up_int(metering.public_ip_hours), 0)
 
-        original_amount2 = (self.price.vm_cpu * 3) + (self.price.vm_ram * 3) + (self.price.vm_disk * 88)
+        original_amount2 = (self.price.vm_cpu * 3) + (self.price.vm_ram * 3) +\
+                           (self.price.vm_disk * 88) + self.price.vm_base
         original_amount2 = original_amount2 * Decimal.from_float(hours)
         self.assertEqual(metering.original_amount, quantize_10_2(original_amount2))
         self.assertEqual(metering.trade_amount, quantize_10_2(original_amount2))

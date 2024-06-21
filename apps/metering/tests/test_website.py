@@ -9,7 +9,7 @@ from utils.decimal_utils import quantize_10_2
 from utils.time import utc
 from utils.model import OwnerType
 from apps.monitor.models import MonitorWebsite, MonitorWebsiteRecord, MonitorWebsiteBase, MonitorWebsiteVersion
-from apps.order.models import Price
+from apps.order.tests import create_price
 from apps.metering.measurers import MonitorWebsiteMeasurer
 from apps.metering.models import MeteringMonitorWebsite, PaymentStatus, DailyStatementMonitorWebsite
 from apps.metering.statement_generators import WebsiteMonitorStatementGenerater
@@ -90,28 +90,7 @@ def up_int(val, base=100):
 class MeteringWebsiteTests(TransactionTestCase):
     def setUp(self):
         self.user = get_or_create_user()
-        self.price = Price(
-            vm_ram=Decimal('0.0'),
-            vm_cpu=Decimal('0.0'),
-            vm_disk=Decimal('0'),
-            vm_pub_ip=Decimal('0'),
-            vm_upstream=Decimal('0'),
-            vm_downstream=Decimal('1'),
-            vm_disk_snap=Decimal('0'),
-            disk_size=Decimal('1.02'),
-            disk_snap=Decimal('0.77'),
-            obj_size=Decimal('0'),
-            obj_upstream=Decimal('0'),
-            obj_downstream=Decimal('0'),
-            obj_replication=Decimal('0'),
-            obj_get_request=Decimal('0'),
-            obj_put_request=Decimal('0'),
-            prepaid_discount=66,
-            mntr_site_base=Decimal('0.3'),
-            mntr_site_tamper=Decimal('0.2'),
-            mntr_site_security=Decimal('0.5')
-        )
-        self.price.save()
+        self.price = create_price()
 
     def init_data_only_normal_site(self, now: datetime):
         ago_hour_time = now - timedelta(hours=1)    # utc时间00:00（北京时间08:00）之后的1hour之内，测试会通不过，site4会被计量

@@ -20,7 +20,7 @@ from apps.servers.models import ServiceConfig
 from apps.storage.models import ObjectsService
 from apps.monitor.models import MonitorWebsiteVersion
 from apps.app_scan.models import VtScanService, VtTask
-from apps.order.models import Price
+from apps.order.tests import create_price
 from apps.order.managers import OrderManager, ScanConfig
 from apps.app_apply.models import CouponApply
 from apps.app_apply.managers import CouponApplyManager
@@ -36,29 +36,7 @@ class CouponApplyTests(MyAPITestCase):
         self.vo.save()
         self.odc1 = get_or_create_org_data_center(name='odc1')
         self.odc2 = get_or_create_org_data_center(name='odc2')
-
-        price = Price(
-            vm_ram=Decimal('0.012'),
-            vm_cpu=Decimal('0.066'),
-            vm_disk=Decimal('0.122'),
-            vm_pub_ip=Decimal('0.66'),
-            vm_upstream=Decimal('0.33'),
-            vm_downstream=Decimal('1.44'),
-            vm_disk_snap=Decimal('0.65'),
-            disk_size=Decimal('1.02'),
-            disk_snap=Decimal('0.77'),
-            obj_size=Decimal('0'),
-            obj_upstream=Decimal('0'),
-            obj_downstream=Decimal('0'),
-            obj_replication=Decimal('0'),
-            obj_get_request=Decimal('0'),
-            obj_put_request=Decimal('0'),
-            scan_host=Decimal('111.11'),
-            scan_web=Decimal('222.22'),
-            prepaid_discount=66
-        )
-        price.save(force_insert=True)
-        self.price = price
+        self.price = create_price()
 
     def test_list(self):
         apply1 = CouponApplyManager.create_apply(

@@ -38,7 +38,7 @@ class ResourceAdmin(BaseModelAdmin):
 
 @admin.register(Price)
 class PriceAdmin(BaseModelAdmin):
-    list_display = ('id', 'vm_ram', 'vm_cpu', 'vm_pub_ip', 'vm_disk', 'vm_disk_snap', 'vm_upstream',
+    list_display = ('id', 'vm_base', 'vm_ram', 'vm_cpu', 'vm_pub_ip', 'vm_disk', 'vm_disk_snap', 'vm_upstream',
                     'vm_downstream', 'disk_size', 'disk_snap', 'obj_size', 'obj_upstream', 'obj_downstream',
                     'obj_replication', 'obj_get_request', 'obj_put_request', 'prepaid_discount',
                     'mntr_site_base', 'mntr_site_tamper', 'mntr_site_security', 'scan_web', 'scan_host')

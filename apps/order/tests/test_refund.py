@@ -8,7 +8,7 @@ from django.conf import settings
 
 from core import errors, site_configs_manager
 from utils.model import PayType, OwnerType, ResourceType
-from apps.order.models import Price, Order, Resource, OrderRefund
+from apps.order.models import Order, Resource, OrderRefund
 from apps.order.managers import OrderManager, OrderPaymentManager
 from apps.order.managers.instance_configs import ServerConfig
 from utils.test import get_or_create_user, get_or_create_service, get_or_create_organization, MyAPITestCase
@@ -16,32 +16,14 @@ from apps.vo.models import VirtualOrganization
 from apps.app_wallet.managers import PaymentManager
 from apps.app_wallet.models import CashCoupon, PayAppService, PayApp
 from apps.servers.models import ServiceConfig, Flavor
+from . import create_price
 
 
 class OrderRefundTests(MyAPITestCase):
     def setUp(self):
         self.user = get_or_create_user()
         self.user2 = get_or_create_user(username='user2')
-        price = Price(
-            vm_ram=Decimal('0.12'),
-            vm_cpu=Decimal('0.066'),
-            vm_disk=Decimal('0.122'),
-            vm_pub_ip=Decimal('0.66'),
-            vm_upstream=Decimal('0.33'),
-            vm_downstream=Decimal('1.446'),
-            vm_disk_snap=Decimal('0.65'),
-            disk_size=Decimal('1.02'),
-            disk_snap=Decimal('0.77'),
-            obj_size=Decimal('0'),
-            obj_upstream=Decimal('0'),
-            obj_downstream=Decimal('0'),
-            obj_replication=Decimal('0.2'),
-            obj_get_request=Decimal('0'),
-            obj_put_request=Decimal('0'),
-            prepaid_discount=66
-        )
-        price.save(force_insert=True)
-        self.price = price
+        self.price = create_price()
         self.flavor = Flavor(vcpus=2, ram=4)
         self.flavor.save()
         self.vo = VirtualOrganization(
