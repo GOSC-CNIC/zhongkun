@@ -90,33 +90,22 @@ class DataCenterTests(MyAPITestCase):
         )
         log2.save(force_insert=True)
 
-        base_url = reverse('screenvis-api:datacenter-units', kwargs={'id': 666})
+        base_url = reverse('screenvis-api:datacenter-units')
         response = self.client.get(base_url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
         ScreenAPIIPRestrictor.add_ip_rule(ip_value='127.0.0.1')
         ScreenAPIIPRestrictor.clear_cache()
 
-        base_url = reverse('screenvis-api:datacenter-units', kwargs={'id': 666})
-        response = self.client.get(base_url)
-        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
-
-        base_url = reverse('screenvis-api:datacenter-units', kwargs={'id': odc1.id})
+        base_url = reverse('screenvis-api:datacenter-units')
         response = self.client.get(base_url)
         self.assertEqual(response.status_code, 200)
-        self.assertKeysIn(['data_center', 'metric_units', 'log_units'], response.data)
+        self.assertKeysIn(['metric_units', 'log_units'], response.data)
 
-        self.assertKeysIn([
-            'id', 'name', 'name_en', 'creation_time', 'update_time', 'longitude', 'latitude', 'sort_weight', 'remark'
-        ], response.data['data_center'])
         self.assertEqual(len(response.data['metric_units']), 4)
         self.assertKeysIn([
-            'id', 'name', 'name_en', 'creation_time', 'unit_type', 'job_tag', 'data_center', 'sort_weight', 'remark'
+            'id', 'name', 'name_en', 'creation_time', 'unit_type', 'job_tag', 'sort_weight', 'remark'
         ], response.data['metric_units'][0])
-        self.assertKeysIn(['id', 'name', 'name_en', 'sort_weight'], response.data['metric_units'][0]['data_center'])
-        self.assertEqual(len(response.data['log_units']), 2)
-        self.assertKeysIn([
-            'id', 'name', 'name_en', 'creation_time', 'log_type', 'job_tag', 'data_center', 'sort_weight', 'remark'
-        ], response.data['log_units'][0])
+        self.assertEqual(len(response.data['log_units']), 0)
 
 
 class ConfigTests(MyAPITestCase):

@@ -1,11 +1,10 @@
-from django.utils.translation import gettext_lazy, gettext as _
+from django.utils.translation import gettext_lazy
 from rest_framework.decorators import action
 from rest_framework.serializers import Serializer
 from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
 
-from apps.app_screenvis.utils import errors
-from apps.app_screenvis.models import DataCenter, MetricMonitorUnit, LogMonitorUnit, ScreenConfig
+from apps.app_screenvis.models import DataCenter, MetricMonitorUnit, ScreenConfig
 from apps.app_screenvis import serializers
 from apps.app_screenvis.permissions import ScreenAPIIPPermission
 from apps.app_screenvis.configs_manager import screen_configs
@@ -51,28 +50,28 @@ class DataCenterViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('查询一个数据中心下关联的各服务单元信息'),
+        deprecated=True,
         responses={
             200: ''''''
         }
     )
-    @action(methods=['GET'], detail=True, url_path='units', url_name='units')
+    @action(methods=['GET'], detail=True, url_path='units', url_name='units-old')
     def odc_units(self, request, *args, **kwargs):
+        return self.list_dc_units_response()
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询数据中心下的各指标单元信息'),
+        responses={
+            200: ''''''
+        }
+    )
+    @action(methods=['GET'], detail=False, url_path='units', url_name='units')
+    def list_dc_units(self, request, *args, **kwargs):
         """
-        查询一个数据中心下关联的各服务单元信息
+        查询数据中心下的各指标单元信息
 
             http code 200:
             {
-                "data_center": {
-                    "id": 34,
-                    "creation_time": "2024-03-11T15:02:46.001436+08:00",
-                    "update_time": "2024-03-11T15:02:46.001436+08:00",
-                    "name": "name1",
-                    "name_en": "name1_en",
-                    "longitude": 0.0,
-                    "latitude": 0.0,
-                    "sort_weight": 0,
-                    "remark": ""
-                },
                 "metric_units": [
                     {
                         "id": "37",
@@ -84,60 +83,21 @@ class DataCenterViewSet(NormalGenericViewSet):
                         "remark": "",
                         "sort_weight": 0,
                         "grafana_url": "",
-                        "dashboard_url": "",
-                        "data_center": {
-                            "id": 34,
-                            "name": "name1",
-                            "name_en": "name1_en",
-                            "sort_weight": 0
-                        }
-                    }
-                ],
-                "log_units": [
-                    {
-                        "id": 11,
-                        "creation_time": "2024-03-11T15:02:46.005009+08:00",
-                        "update_time": "2024-03-11T15:02:46.005009+08:00",
-                        "name": "log1 name",
-                        "name_en": "log1 name en",
-                        "log_type": "nat",          # http, nat
-                        "job_tag": "log1_metric",
-                        "sort_weight": 0,
-                        "remark": "",
-                        "data_center": {
-                            "id": 34,
-                            "name": "name1",
-                            "name_en": "name1_en",
-                            "sort_weight": 0
-                        }
+                        "dashboard_url": ""
                     }
                 ]
             }
         """
-        odc = DataCenter.objects.filter(id=kwargs[self.lookup_field]).first()
-        if odc is None:
-            return self.exception_response(
-                errors.TargetNotExist(message=_('数据中心不存在')))
+        return self.list_dc_units_response()
 
+    @staticmethod
+    def list_dc_units_response():
         # monitor server单元
-        metric_units = []
-        for u in MetricMonitorUnit.objects.filter(data_center_id=odc.id):
-            u.data_center = odc
-            metric_units.append(u)
-
-        # 日志单元
-        log_units = []
-        for u in LogMonitorUnit.objects.filter(data_center_id=odc.id):
-            u.data_center = odc
-            log_units.append(u)
-
-        odc_data = serializers.DataCenterSerializer(instance=odc).data
+        metric_units = MetricMonitorUnit.objects.all()
         metric_units_data = serializers.MetricMntrUnitSerializer(metric_units, many=True).data
-        log_units_data = serializers.LogMntrUnitSimpleSerializer(log_units, many=True).data
         return Response(data={
-            'data_center': odc_data,
             'metric_units': metric_units_data,
-            'log_units': log_units_data
+            'log_units': []
         })
 
     def get_serializer_class(self):

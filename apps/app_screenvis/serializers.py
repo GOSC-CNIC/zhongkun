@@ -42,11 +42,6 @@ class MetricMntrUnitSerializer(MetricMntrUnitSimpleSerializer):
     sort_weight = serializers.IntegerField(label=_('排序权重'), help_text=_('值越大排序越靠前'))
     grafana_url = serializers.CharField(label=_('Grafana连接'), max_length=255)
     dashboard_url = serializers.CharField(label=_('Dashboard连接'), max_length=255)
-    data_center = serializers.SerializerMethodField(label=_('机构数据中心'), method_name='get_data_center')
-
-    @staticmethod
-    def get_data_center(obj):
-        return get_data_center_dict(obj.data_center)
 
 
 class LogMntrUnitSimpleSerializer(serializers.Serializer):
