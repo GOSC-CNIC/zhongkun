@@ -71,6 +71,7 @@ class GlobalConfig(models.Model):
         PROMETHEUS_EXPORTER_NODE = 'prometheus_exporter_node', _('promtheus exporter node 配置文件')
         PROMETHEUS_EXPORTER_TIDB = 'prometheus_exporter_tidb', _('promtheus exporter tidb 配置文件')
         PROMETHEUS_EXPORTER_CEPH = 'prometheus_exporter_ceph', _('promtheus exporter ceph 配置文件')
+        SALES_CUSTOMER_SERVICE_INFO = 'sales_customer_service_info', _('销售客服人员联系信息')
 
     # 配置的默认值，自动创建配置参数记录时填充的默认值
     value_defaults = {
@@ -91,7 +92,7 @@ class GlobalConfig(models.Model):
         ConfigName.PROMETHEUS_EXPORTER_NODE.value: '',
         ConfigName.PROMETHEUS_EXPORTER_TIDB.value: '',
         ConfigName.PROMETHEUS_EXPORTER_CEPH.value: '',
-
+        ConfigName.SALES_CUSTOMER_SERVICE_INFO.value: ''
     }
 
     id = models.BigAutoField(primary_key=True)

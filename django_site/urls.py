@@ -76,6 +76,7 @@ else:
         path('api/', include('apps.order.api_urls', namespace='order-api')),
         path('api/', include('apps.metering.api_urls', namespace='metering-api')),
         path('api/', include('apps.app_wallet.api_urls', namespace='wallet-api')),
+        path('api/app_global/', include('apps.app_global.api_urls', namespace='app-global-api')),
         path('api/report/', include('apps.report.api_urls', namespace='report-api')),
         path('api/monitor/', include('apps.monitor.api_urls', namespace='monitor-api')),
         path('api/app_net_manage/', include('apps.app_net_manage.api_urls', namespace='net_manage-api')),

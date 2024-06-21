@@ -25,7 +25,8 @@ class Migration(migrations.Migration):
                     ('prometheus_blackbox_tcp', 'promtheus blackbox tcp 配置文件模板'),
                     ('prometheus_exporter_node', 'promtheus exporter node 配置文件'),
                     ('prometheus_exporter_tidb', 'promtheus exporter tidb 配置文件'),
-                    ('prometheus_exporter_ceph', 'promtheus exporter ceph 配置文件')
+                    ('prometheus_exporter_ceph', 'promtheus exporter ceph 配置文件'),
+                    ('sales_customer_service_info', '销售客服人员联系信息')
                 ], max_length=32, verbose_name='配置名称')),
                 ('value', models.CharField(default='', max_length=255, verbose_name='配置内容')),
                 ('remark', models.CharField(blank=True, max_length=255, verbose_name='备注')),
