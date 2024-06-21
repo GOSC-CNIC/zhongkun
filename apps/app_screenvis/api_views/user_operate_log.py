@@ -29,14 +29,7 @@ class UserOperateLogViewSet(NormalGenericViewSet):
                 required=True,
                 description="object:对象存储；server:云主机服务单元;",
                 enum=['server', 'object']
-            ),
-            openapi.Parameter(
-                name='dc_id',
-                in_=openapi.IN_QUERY,
-                type=openapi.TYPE_INTEGER,
-                required=False,
-                description=gettext_lazy('数据中心id')
-            ),
+            )
         ],
         responses={
             200: ''
@@ -67,7 +60,6 @@ class UserOperateLogViewSet(NormalGenericViewSet):
             pass
 
         server_type = request.query_params.get('server_type', None)
-        dc_id = request.query_params.get('dc_id', None)
 
         if not server_type:
             return self.exception_response(errors.BadRequest(message=_('请指定查询服务类型')))
@@ -75,20 +67,10 @@ class UserOperateLogViewSet(NormalGenericViewSet):
         if server_type not in ['object', 'server']:
             return self.exception_response(errors.InvalidArgument(message=_('指定查询服务类型无效')))
 
-        if dc_id:
-            try:
-                dc_id = int(dc_id)
-            except ValueError:
-                return self.exception_response(errors.InvalidArgument(message=_('数据中心无效')))
-
         if server_type == 'server':
             queryset = ServerServiceLog.objects.order_by('-creation_time').all()
-            if dc_id:
-                queryset = queryset.filter(service_cell__data_center_id=dc_id)
         else:
             queryset = ObjectServiceLog.objects.order_by('-creation_time').all()
-            if dc_id:
-                queryset = queryset.filter(service_cell__data_center_id=dc_id)
 
         page = self.paginate_queryset(queryset)
         if page is not None:

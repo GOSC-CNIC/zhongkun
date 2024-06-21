@@ -19,6 +19,7 @@ class DataCenterViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举数据中心'),
+        deprecated=True,
         responses={
             200: ''
         }
@@ -113,7 +114,7 @@ class ConfigsViewSet(NormalGenericViewSet):
     @swagger_auto_schema(
         operation_summary=gettext_lazy('列举大屏展示配置信息'),
         responses={
-            200: f'config names: {ScreenConfig.ConfigName.choices}'
+            200: ''
         }
     )
     def list(self, request, *args, **kwargs):

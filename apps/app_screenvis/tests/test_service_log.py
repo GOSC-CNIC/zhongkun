@@ -47,7 +47,7 @@ class ServiceLogTests(MyAPITestCase):
             username='user1', content='test server1', creation_time=dj_timezone.now(), service_cell=server_site1)
         server_log1.save(force_insert=True)
         server_log2 = ServerServiceLog(
-            username='user2', content='test serfver2', creation_time=dj_timezone.now(), service_cell=server_site2)
+            username='user2', content='test server2', creation_time=dj_timezone.now(), service_cell=server_site2)
         server_log2.save(force_insert=True)
 
         obj_log1 = ObjectServiceLog(
@@ -80,24 +80,15 @@ class ServiceLogTests(MyAPITestCase):
         self.assertEqual(response.data['page_size'], 100)
         self.assertEqual(len(response.data['results']), 2)
 
-        query = parse.urlencode(query={'server_type': 'server', 'dc_id': 's'})
-        response = self.client.get(f'{base_url}?{query}')
-        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
-
-        query = parse.urlencode(query={'server_type': 'server', 'dc_id': -1})
-        response = self.client.get(f'{base_url}?{query}')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['count'], 0)
-        self.assertEqual(len(response.data['results']), 0)
-
-        query = parse.urlencode(query={'server_type': 'server', 'dc_id': server_site1.data_center_id})
+        query = parse.urlencode(query={'server_type': 'server'})
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], container=response.data)
-        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['count'], 2)
         self.assertEqual(response.data['page_num'], 1)
-        self.assertEqual(len(response.data['results']), 1)
-        self.assertEqual(response.data['results'][0]['content'], 'test server1')
+        self.assertEqual(len(response.data['results']), 2)
+        self.assertEqual(response.data['results'][0]['content'], 'test server2')
+        self.assertEqual(response.data['results'][1]['content'], 'test server1')
 
         # object
         query = parse.urlencode(query={'server_type': 'object'})
@@ -109,17 +100,12 @@ class ServiceLogTests(MyAPITestCase):
         self.assertEqual(response.data['page_size'], 100)
         self.assertEqual(len(response.data['results']), 2)
 
-        query = parse.urlencode(query={'server_type': 'object', 'dc_id': -1})
-        response = self.client.get(f'{base_url}?{query}')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['count'], 0)
-        self.assertEqual(len(response.data['results']), 0)
-
-        query = parse.urlencode(query={'server_type': 'object', 'dc_id': obj_site1.data_center_id})
+        query = parse.urlencode(query={'server_type': 'object'})
         response = self.client.get(f'{base_url}?{query}')
         self.assertEqual(response.status_code, 200)
         self.assertKeysIn(['count', 'page_num', 'page_size', 'results'], container=response.data)
-        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['count'], 2)
         self.assertEqual(response.data['page_num'], 1)
-        self.assertEqual(len(response.data['results']), 1)
-        self.assertEqual(response.data['results'][0]['content'], 'test obj1')
+        self.assertEqual(len(response.data['results']), 2)
+        self.assertEqual(response.data['results'][0]['content'], 'test obj2')
+        self.assertEqual(response.data['results'][1]['content'], 'test obj1')
