@@ -23,13 +23,6 @@ class AlertViewSet(NormalGenericViewSet):
         operation_summary=gettext_lazy('查询告警信息'),
         manual_parameters=[
             openapi.Parameter(
-                name='dc_id',
-                in_=openapi.IN_QUERY,
-                type=openapi.TYPE_STRING,
-                required=False,
-                description=_('数据中心')
-            ),
-            openapi.Parameter(
                 name='status',
                 in_=openapi.IN_QUERY,
                 type=openapi.TYPE_STRING,
@@ -71,35 +64,25 @@ class AlertViewSet(NormalGenericViewSet):
               ]
             }
         """
-        dc_id = request.query_params.get('dc_id', None)
         status = request.query_params.get('status', None)
-
-        if dc_id:
-            try:
-                dc_id = int(dc_id)
-            except ValueError:
-                return self.exception_response(errors.InvalidArgument(message=_('数据中心无效')))
 
         if status and status not in ['firing', 'resolved']:
             return self.exception_response(errors.InvalidArgument(message=_('查询的告警状态无效')))
 
         try:
-            querysets = self.filter_alert_querysets(dc_id=dc_id, status=status)
+            querysets = self.filter_alert_querysets(status=status)
             paginator = self.paginator
             objs = paginator.paginate_queryset(querysets=querysets, request=request, view=self)
             return paginator.get_paginated_response(data=AlertSerializer(instance=objs, many=True).data)
         except errors.Error as exc:
             return self.exception_response(exc)
 
-    def filter_alert_querysets(self, dc_id: int = None, status: str = None) -> list:
+    def filter_alert_querysets(self, status: str = None) -> list:
         querysets = [AlertModel.objects.all(), ResolvedAlertModel.objects.all()]
-        tags = None
-        if dc_id is not None:
-            tags = MetricMonitorUnit.objects.filter(data_center_id=dc_id).values_list('job_tag', flat=True)
 
         queryset_list = []
         for qs in querysets:
-            queryset_list.append(self._filter_alert_qs(queryset=qs, tags=tags, status=status))
+            queryset_list.append(self._filter_alert_qs(queryset=qs, tags=None, status=status))
 
         return queryset_list
 
