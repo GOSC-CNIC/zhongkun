@@ -211,6 +211,7 @@ class ObjectServiceViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('查询一个数据中心下各对象存储服务单元总的统计数据'),
+        deprecated=True,
         responses={
             200: ''''''
         }
@@ -228,25 +229,39 @@ class ObjectServiceViewSet(NormalGenericViewSet):
               "storage_used": 4460,     # 已用存储容量GiB
             }
         """
+        return self.get_object_stats_response()
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询各对象存储服务单元总的统计数据'),
+        responses={
+            200: ''''''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        查询各对象存储服务单元总的统计数据
+
+            http code 200:
+            {
+              "bucket_count": 44,       # 存储桶数
+              "bucket_storage": 46,     # 存储桶总数据量GiB
+              "storage_capacity": 44260,# 总存储容量GiB
+              "storage_used": 4460,     # 已用存储容量GiB
+            }
+        """
+        return self.get_object_stats_response()
+
+    @staticmethod
+    def get_object_stats_response():
         # 触发统计服务单元数据
         try:
             try_stats_service()
         except Exception as exc:
             pass
 
-        dc_id = kwargs['dc_id']
-        try:
-            dc_id = int(dc_id)
-        except ValueError:
-            return self.exception_response(errors.InvalidArgument(message=_('数据中心ID无效')))
-
         unit_ids = ObjectService.objects.filter(
-            data_center_id=dc_id,
             status__in=[ObjectService.Status.ENABLE.value, ObjectService.Status.DISABLE.value]
         ).values_list('id', flat=True)
-        if not unit_ids:
-            if not DataCenter.objects.filter(id=dc_id).exists():
-                return self.exception_response(errors.TargetNotExist(message=_('数据中心不存在')))
 
         obj_list = []
         for unit_id in set(unit_ids):
