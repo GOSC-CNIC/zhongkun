@@ -1,7 +1,7 @@
 from django.urls import reverse
 from django.utils import timezone as dj_timezone
 
-from apps.app_screenvis.models import DataCenter, MetricMonitorUnit, LogMonitorUnit, ScreenConfig
+from apps.app_screenvis.models import MetricMonitorUnit, LogMonitorUnit, ScreenConfig
 from apps.app_screenvis.permissions import ScreenAPIIPRestrictor
 from apps.app_screenvis.configs_manager import screen_configs
 from . import MyAPITestCase
@@ -10,30 +10,6 @@ from . import MyAPITestCase
 class DataCenterTests(MyAPITestCase):
     def setUp(self):
         ScreenAPIIPRestrictor.clear_cache()
-
-    def test_list(self):
-        nt = dj_timezone.now()
-        odc1 = DataCenter(
-            name='name1', name_en='name1_en', creation_time=nt, update_time=nt, loki_endpoint_url=''
-        )
-        odc1.save(force_insert=True)
-        odc2 = DataCenter(
-            name='name2', name_en='name2_en', creation_time=nt, update_time=nt, loki_endpoint_url=''
-        )
-        odc2.save(force_insert=True)
-
-        base_url = reverse('screenvis-api:datacenter-list')
-        response = self.client.get(base_url)
-        self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
-        ScreenAPIIPRestrictor.add_ip_rule(ip_value='127.0.0.1')
-        ScreenAPIIPRestrictor.clear_cache()
-
-        response = self.client.get(base_url)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data['results']), 2)
-        self.assertKeysIn([
-            'id', 'name', 'name_en', 'creation_time', 'update_time', 'longitude', 'latitude', 'sort_weight', 'remark'
-        ], response.data['results'][0])
 
     def test_odc_units(self):
 

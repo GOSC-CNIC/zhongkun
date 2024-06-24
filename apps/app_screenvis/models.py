@@ -68,55 +68,6 @@ class ScreenConfig(models.Model):
                 raise ValidationError(message={'name': gettext('不是一个有效的网址')})
 
 
-class DataCenter(models.Model):
-    """数据中心"""
-    id = models.BigAutoField(primary_key=True)
-    creation_time = models.DateTimeField(verbose_name=_('创建时间'))
-    update_time = models.DateTimeField(verbose_name=_('更新时间'))
-    name = models.CharField(verbose_name=_('名称'), max_length=255)
-    name_en = models.CharField(verbose_name=_('英文名称'), max_length=255, default='')
-    longitude = models.FloatField(verbose_name=_('经度'), blank=True, default=0)
-    latitude = models.FloatField(verbose_name=_('纬度'), blank=True, default=0)
-    sort_weight = models.IntegerField(verbose_name=_('排序值'), default=0, help_text=_('值越小排序越靠前'))
-    remark = models.TextField(verbose_name=_('数据中心备注'), max_length=10000, blank=True, default='')
-
-    # 指标数据服务
-    metric_endpoint_url = models.CharField(
-        verbose_name=_('指标监控系统查询接口'), max_length=255, blank=True, default='', help_text=_('http(s)://example.cn/'))
-    metric_receive_url = models.CharField(
-        verbose_name=_('指标监控系统接收接口'), max_length=255, blank=True, default='', help_text=_('http(s)://example.cn/'))
-    metric_remark = models.CharField(verbose_name=_('指标监控系统备注'), max_length=255, blank=True, default='')
-
-    # 日志服务
-    loki_endpoint_url = models.CharField(
-        verbose_name=_('日志聚合系统查询接口'), max_length=255, blank=True, default='', help_text=_('http(s)://example.cn/'))
-    loki_receive_url = models.CharField(
-        verbose_name=_('日志聚合系统接收接口'), max_length=255, blank=True, default='', help_text=_('http(s)://example.cn/'))
-    loki_remark = models.CharField(verbose_name=_('日志聚合系统备注'), max_length=255, blank=True, default='')
-
-    class Meta:
-        db_table = 'screenvis_data_center'
-        ordering = ['sort_weight']
-        verbose_name = _('机构数据中心')
-        verbose_name_plural = verbose_name
-
-    def __str__(self):
-        return self.name
-
-    def clean(self):
-        if self.metric_endpoint_url:
-            try:
-                URLValidator(self.metric_endpoint_url)
-            except ValidationError:
-                raise ValidationError(message={'metric_endpoint_url': gettext('不是一个有效的网址')})
-
-        if self.loki_endpoint_url:
-            try:
-                URLValidator(self.loki_endpoint_url)
-            except ValidationError:
-                raise ValidationError(message={'loki_endpoint_url': gettext('不是一个有效的网址')})
-
-
 class MetricMonitorUnit(models.Model):
     """
     监控单元
@@ -176,35 +127,6 @@ class LogMonitorUnit(models.Model):
 
     def __str__(self):
         return self.name
-
-
-class HostCpuUsage(UuidModel):
-    """
-    主机指标单元总cpu使用率时序数据
-    """
-    timestamp = models.PositiveBigIntegerField(null=False, blank=False, verbose_name="统计时间")
-    unit = models.ForeignKey(
-        to=MetricMonitorUnit, verbose_name='指标单元ID', on_delete=models.DO_NOTHING, null=True, blank=False,
-        db_constraint=False, db_index=False)
-    value = models.FloatField(verbose_name='CPU使用率', help_text='负数标识数据无效（查询失败的占位记录，便于后补）')
-
-    class Meta:
-        db_table = 'screenvis_hostcpuusage'
-        ordering = ['-timestamp']
-        verbose_name = _('主机指标单元总CPU使用率时序数据')
-        verbose_name_plural = verbose_name
-        indexes = [
-            models.Index(fields=['timestamp'], name='idx_screen_cpuusage_ts')
-        ]
-
-    def __str__(self):
-        return f'{self.id}({self.value}, {self.timestamp})'
-
-    def clean(self):
-        try:
-            datetime.fromtimestamp(self.timestamp, tz=dj_timezone.get_default_timezone())
-        except Exception as exc:
-            raise ValidationError({'timestamp': f'无效的时间戳，{str(exc)}，当前时间戳为:{int(dj_timezone.now().timestamp())}'})
 
 
 class BaseService(models.Model):

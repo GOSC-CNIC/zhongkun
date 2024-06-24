@@ -13,7 +13,7 @@ from utils.model import BaseModelAdmin, NoDeleteSelectModelAdmin
 from apps.app_screenvis.configs_manager import screen_configs
 from apps.app_screenvis.managers import ScreenWebMonitorManager
 from .models import (
-    ScreenConfig, DataCenter, MetricMonitorUnit, LogMonitorUnit, HostCpuUsage,
+    ScreenConfig, MetricMonitorUnit, LogMonitorUnit,
     ServerService, ObjectService, ServerServiceTimedStats, ObjectServiceTimedStats, VPNTimedStats,
     ObjectServiceLog, ServerServiceLog, HostNetflow, WebsiteMonitorTask
 )
@@ -51,34 +51,6 @@ class ScreenConfigAdmin(BaseModelAdmin):
         return cl
 
 
-@admin.register(DataCenter)
-class DataCenterAdmin(BaseModelAdmin):
-    list_display_links = ('id', 'name')
-    list_display = ('id', 'name', 'name_en', 'sort_weight', 'longitude', 'latitude',
-                    'creation_time', 'update_time',
-                    'metric_endpoint_url', 'metric_receive_url', 'loki_endpoint_url', 'loki_receive_url')
-    search_fields = ['name', 'name_en', 'remark']
-    list_editable = ('sort_weight',)
-    fieldsets = (
-        (gettext_lazy('数据中心基础信息'), {
-            'fields': (
-                'name', 'name_en', 'sort_weight', 'longitude', 'latitude', 'remark',
-                'creation_time', 'update_time'
-            )
-        }),
-        (gettext_lazy('指标监控系统'), {
-            'fields': (
-                'metric_endpoint_url', 'metric_receive_url', 'metric_remark',
-            )
-        }),
-        (gettext_lazy('日志聚合系统'), {
-            'fields': (
-                'loki_endpoint_url', 'loki_receive_url', 'loki_remark'
-            )
-        }),
-    )
-
-
 @admin.register(MetricMonitorUnit)
 class MetricMonitorUnitAdmin(BaseModelAdmin):
     list_display = ('id', 'name', 'name_en', 'unit_type', 'sort_weight',
@@ -100,22 +72,6 @@ class LogMonitorUnitAdmin(BaseModelAdmin):
     list_editable = ('sort_weight',)
     list_filter = ('log_type',)
     search_fields = ('name', 'name_en', 'job_tag',)
-
-
-@admin.register(HostCpuUsage)
-class HostCpuUsageAdmin(BaseModelAdmin):
-    list_display = ('id', 'timestamp', 'show_time', 'unit', 'value')
-    list_display_links = ('id',)
-    list_select_related = ('unit',)
-
-    @admin.display(description=gettext_lazy("统计时间"))
-    def show_time(self, obj):
-        try:
-            dt = datetime.fromtimestamp(obj.timestamp, tz=dj_timezone.get_default_timezone())
-        except Exception as exc:
-            return ''
-
-        return dt.isoformat(sep=' ')
 
 
 class ServiceForm(forms.ModelForm):

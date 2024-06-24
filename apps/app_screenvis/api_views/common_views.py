@@ -4,7 +4,7 @@ from rest_framework.serializers import Serializer
 from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
 
-from apps.app_screenvis.models import DataCenter, MetricMonitorUnit, ScreenConfig
+from apps.app_screenvis.models import MetricMonitorUnit, ScreenConfig
 from apps.app_screenvis import serializers
 from apps.app_screenvis.permissions import ScreenAPIIPPermission
 from apps.app_screenvis.configs_manager import screen_configs
@@ -16,38 +16,6 @@ class DataCenterViewSet(NormalGenericViewSet):
     permission_classes = [ScreenAPIIPPermission]
     pagination_class = None
     lookup_field = 'id'
-
-    @swagger_auto_schema(
-        operation_summary=gettext_lazy('列举数据中心'),
-        deprecated=True,
-        responses={
-            200: ''
-        }
-    )
-    def list(self, request, *args, **kwargs):
-        """
-        列举数据中心
-
-            Http Code 200:
-            {
-                "results": [
-                    {
-                        "id": 32,
-                        "creation_time": "2024-03-11T15:02:45.980022+08:00",
-                        "update_time": "2024-03-11T15:02:45.980022+08:00",
-                        "name": "name1",
-                        "name_en": "name1_en",
-                        "longitude": 0.0,
-                        "latitude": 0.0,
-                        "sort_weight": 0,
-                        "remark": ""
-                    }
-                ]
-            }
-        """
-        qs = DataCenter.objects.all()
-        dcs = serializers.DataCenterSerializer(qs, many=True).data
-        return Response(data={'results': dcs}, status=200)
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('查询一个数据中心下关联的各服务单元信息'),
