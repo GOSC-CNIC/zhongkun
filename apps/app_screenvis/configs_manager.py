@@ -61,5 +61,19 @@ class Configs(metaclass=Singleton):
         configs = self.get_configs()
         return configs[name]
 
+    def add_or_update(self, name: str, value):
+        if name not in ScreenConfig.ConfigName.values:
+            raise Exception(_('未知的配置参数'))
+
+        cfg = ScreenConfig.objects.filter(name=name).first()
+        if cfg is None:
+            cfg = ScreenConfig(name=name, value=value)
+        else:
+            cfg.value = value
+
+        cfg.clean()
+        cfg.save()
+        self.clear_cache()
+
 
 screen_configs = Configs()

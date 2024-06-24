@@ -5,7 +5,7 @@ from datetime import datetime
 from django.utils import timezone as dj_timezone
 
 from apps.app_screenvis.models import MetricMonitorUnit, HostNetflow
-from apps.app_screenvis.utils import build_metric_provider
+from apps.app_screenvis.utils import build_metric_provider, MetricProvider
 from apps.app_screenvis.backends import MetricQueryAPI
 
 
@@ -49,8 +49,7 @@ class HostNetflowWorker:
 
     @staticmethod
     def get_host_metric_units():
-        qs = MetricMonitorUnit.objects.select_related(
-            'data_center').filter(unit_type=MetricMonitorUnit.UnitType.HOST.value)
+        qs = MetricMonitorUnit.objects.filter(unit_type=MetricMonitorUnit.UnitType.HOST.value)
         return list(qs)
 
     def async_generate_netflow(self, now_timestamp: int):
@@ -58,7 +57,8 @@ class HostNetflowWorker:
         if not units:
             return 0, [], []
 
-        tasks = [self.req_netflow_for_unit(unit=unit, now_timestamp=now_timestamp) for unit in units]
+        provider = build_metric_provider()
+        tasks = [self.req_netflow_for_unit(unit=unit, now_timestamp=now_timestamp, provider=provider) for unit in units]
         ok_unit_ids, objs = self.do_tasks(tasks=tasks)
         return len(units), ok_unit_ids, objs
 
@@ -95,10 +95,10 @@ class HostNetflowWorker:
     async def do_async_requests(tasks):
         return await asyncio.gather(*tasks, return_exceptions=True)
 
-    async def req_netflow_for_unit(self, unit: MetricMonitorUnit, now_timestamp: int):
+    async def req_netflow_for_unit(self, unit: MetricMonitorUnit, now_timestamp: int, provider: MetricProvider):
         try:
             r_value = await self.get_unit_netflow_values(
-                unit=unit, until_timestamp=now_timestamp, minutes=self.cycle_minutes)
+                unit=unit, until_timestamp=now_timestamp, minutes=self.cycle_minutes, provider=provider)
         except Exception as exc:
             err = Exception(f'{dj_timezone.now().isoformat(sep=" ", timespec="seconds")},{unit.name},{exc}')
             return unit.id, err, now_timestamp
@@ -106,10 +106,9 @@ class HostNetflowWorker:
         return unit.id, r_value, now_timestamp
 
     async def get_unit_netflow_values(
-            self, unit: MetricMonitorUnit, until_timestamp: int, minutes: int
+            self, unit: MetricMonitorUnit, until_timestamp: int, minutes: int, provider: MetricProvider
     ) -> Tuple[float, float]:
         minutes = min(minutes, 5)
-        provider = build_metric_provider(odc=unit.data_center)
         flow_in = await self.get_unit_netflow_in_value(
             unit=unit, until_timestamp=until_timestamp, minutes=minutes, endpoint_url=provider.endpoint_url)
         flow_out = await self.get_unit_netflow_out_value(
@@ -205,18 +204,18 @@ class HostNetflowWorker:
         ok_count = 0
         update_count = 0
         tasks = []
+        provider = build_metric_provider()
         for obj in records:
             if obj.flow_in >= 0 and obj.flow_out >= 0:
                 continue
 
             try:
                 unit_id = obj.unit.id
-                dc = obj.unit.data_center  # 防止后续在异步执行中，从数据库同步加载dc，django报错
             except Exception as exc:
                 continue
 
             if unit_id not in down_unit_ids:
-                tasks.append(self.query_netflow_for_invalid_obj(obj=obj))
+                tasks.append(self.query_netflow_for_invalid_obj(obj=obj, provider=provider))
 
             if len(tasks) >= 100:
                 ok_ct = self.do_update_tasks(tasks=tasks)
@@ -232,11 +231,11 @@ class HostNetflowWorker:
 
         return len(records), update_count, ok_count
 
-    async def query_netflow_for_invalid_obj(self, obj: HostNetflow):
+    async def query_netflow_for_invalid_obj(self, obj: HostNetflow, provider: MetricProvider):
         unit = obj.unit
         try:
             r_values = await self.get_unit_netflow_values(
-                unit=unit, until_timestamp=obj.timestamp, minutes=self.cycle_minutes)
+                unit=unit, until_timestamp=obj.timestamp, minutes=self.cycle_minutes, provider=provider)
         except Exception as exc:
             err = Exception(f'{dj_timezone.now().isoformat(sep=" ", timespec="seconds")},{unit.name},{exc}')
             return obj, err
@@ -279,7 +278,7 @@ class HostNetflowWorker:
 
     @staticmethod
     def get_need_update_objs(start: int, end: int, unit_id=None):
-        qs = HostNetflow.objects.select_related('unit__data_center').filter(
+        qs = HostNetflow.objects.select_related('unit').filter(
             timestamp__gte=start, timestamp__lte=end, flow_in__lt=0)
         if unit_id:
             qs = qs.filter(unit_id=unit_id)

@@ -151,7 +151,7 @@ class MetricQueryManager:
         }
         """
         query_choices, tags_map = self.get_choices_tag_tmpl_map(metric_unit)
-        provider = build_metric_provider(metric_unit.data_center)
+        provider = build_metric_provider()
         job_dict = MetricMntrUnitSimpleSerializer(metric_unit).data
         if tag == ALL_TOGETHER_VALUE:
             tags = query_choices.values
@@ -248,7 +248,7 @@ class MetricQueryManager:
         }
         """
         query_choices, tags_map = self.get_choices_tag_tmpl_map(metric_unit)
-        provider = build_metric_provider(metric_unit.data_center)
+        provider = build_metric_provider()
         job_dict = MetricMntrUnitSimpleSerializer(metric_unit).data
         data = self._query_range(
             metric_unit=metric_unit, provider=provider, tag=tag, tag_map=tags_map,

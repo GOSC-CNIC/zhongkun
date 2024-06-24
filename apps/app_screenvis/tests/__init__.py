@@ -3,6 +3,7 @@ from django.utils import timezone as dj_timezone
 from rest_framework.test import APITestCase, APITransactionTestCase
 
 from apps.app_screenvis.models import DataCenter, MetricMonitorUnit
+from apps.app_screenvis.configs_manager import screen_configs
 
 
 def get_test_case_settings():
@@ -54,39 +55,7 @@ class MyAPITransactionTestCase(APITransactionTestCase):
         return True
 
 
-def get_odc_with_metric_config(alias: str, name: str = 'test', name_en: str = 'test'):
-    try:
-        test_settings = get_test_case_settings()
-        provider_settings = test_settings[alias]['PROVIDER']
-    except Exception as e:
-        raise Exception(f'No test settings({alias}.PROVIDER) in file "test_settings.TEST_CASE"， {str(e)}')
-
-    nt = dj_timezone.now()
-    odc = DataCenter(
-        name=name, name_en=name_en, creation_time=nt, update_time=nt,
-        metric_endpoint_url=provider_settings.get('endpoint_url')
-    )
-    odc.save(force_insert=True)
-    return odc
-
-
-def get_odc_with_loki_config(alias: str, name: str = 'test', name_en: str = 'test'):
-    try:
-        test_settings = get_test_case_settings()
-        provider_settings = test_settings[alias]['PROVIDER']
-    except Exception as e:
-        raise Exception(f'No test settings({alias}.PROVIDER) in file "test_settings.TEST_CASE"， {str(e)}')
-
-    nt = dj_timezone.now()
-    odc = DataCenter(
-        name=name, name_en=name_en, creation_time=nt, update_time=nt,
-        loki_endpoint_url=provider_settings.get('endpoint_url')
-    )
-    odc.save(force_insert=True)
-    return odc
-
-
-def get_or_create_metric_ceph(job_tag: str = None, name: str = 'test ceph', name_en: str = 'test ceph en', odc=None):
+def get_or_create_metric_ceph(job_tag: str = None, name: str = 'test ceph', name_en: str = 'test ceph en'):
     if job_tag is None:
         try:
             test_settings = get_test_case_settings()
@@ -103,19 +72,36 @@ def get_or_create_metric_ceph(job_tag: str = None, name: str = 'test ceph', name
     if job_ceph is not None:
         return job_ceph
 
-    if not odc:
-        odc = get_odc_with_metric_config(alias='MONITOR_CEPH')
+    try:
+        test_settings = get_test_case_settings()
+        provider_settings = test_settings['MONITOR_CEPH']['PROVIDER']
+        metric_endpoint_url = provider_settings.get('endpoint_url')
+    except Exception as e:
+        raise Exception(f'No test settings(MONITOR_CEPH.PROVIDER) in file "test_settings.TEST_CASE"， {str(e)}')
+
+    screen_configs.add_or_update(
+        name=screen_configs.ConfigName.METRIC_QUERY_ENDPOINT_URL.value, value=metric_endpoint_url)
 
     nt = dj_timezone.now()
     job_ceph = MetricMonitorUnit(
-        name=name, name_en=name_en, job_tag=job_tag, data_center=odc, unit_type=MetricMonitorUnit.UnitType.CEPH.value,
+        name=name, name_en=name_en, job_tag=job_tag, data_center=None, unit_type=MetricMonitorUnit.UnitType.CEPH.value,
         creation_time=nt, update_time=nt
     )
     job_ceph.save(force_insert=True)
     return job_ceph
 
 
-def get_or_create_metric_host(job_tag: str = None, name: str = 'test host', name_en: str = 'test host en', odc=None):
+def get_or_create_metric_host(job_tag: str = None, name: str = 'test host', name_en: str = 'test host en'):
+    try:
+        test_settings = get_test_case_settings()
+        provider_settings = test_settings['MONITOR_SERVER']['PROVIDER']
+        metric_endpoint_url = provider_settings.get('endpoint_url')
+    except Exception as e:
+        raise Exception(f'No test settings(MONITOR_SERVER.PROVIDER) in file "test_settings.TEST_CASE"， {str(e)}')
+
+    screen_configs.add_or_update(
+        name=screen_configs.ConfigName.METRIC_QUERY_ENDPOINT_URL.value, value=metric_endpoint_url)
+
     if job_tag is None:
         try:
             test_settings = get_test_case_settings()
@@ -132,19 +118,16 @@ def get_or_create_metric_host(job_tag: str = None, name: str = 'test host', name
     if unit is not None:
         return unit
 
-    if not odc:
-        odc = get_odc_with_metric_config(alias='MONITOR_SERVER')
-
     nt = dj_timezone.now()
     unit = MetricMonitorUnit(
-        name=name, name_en=name_en, job_tag=job_tag, data_center=odc, unit_type=MetricMonitorUnit.UnitType.HOST.value,
+        name=name, name_en=name_en, job_tag=job_tag, data_center=None, unit_type=MetricMonitorUnit.UnitType.HOST.value,
         creation_time=nt, update_time=nt
     )
     unit.save(force_insert=True)
     return unit
 
 
-def get_or_create_metric_tidb(job_tag: str = None, name: str = 'test tidb', name_en: str = 'test tidb en', odc=None):
+def get_or_create_metric_tidb(job_tag: str = None, name: str = 'test tidb', name_en: str = 'test tidb en'):
     if job_tag is None:
         try:
             test_settings = get_test_case_settings()
@@ -161,12 +144,19 @@ def get_or_create_metric_tidb(job_tag: str = None, name: str = 'test tidb', name
     if unit is not None:
         return unit
 
-    if not odc:
-        odc = get_odc_with_metric_config(alias='MONITOR_TIDB')
+    try:
+        test_settings = get_test_case_settings()
+        provider_settings = test_settings['MONITOR_TIDB']['PROVIDER']
+        metric_endpoint_url = provider_settings.get('endpoint_url')
+    except Exception as e:
+        raise Exception(f'No test settings(MONITOR_TIDB.PROVIDER) in file "test_settings.TEST_CASE"， {str(e)}')
+
+    screen_configs.add_or_update(
+        name=screen_configs.ConfigName.METRIC_QUERY_ENDPOINT_URL.value, value=metric_endpoint_url)
 
     nt = dj_timezone.now()
     unit = MetricMonitorUnit(
-        name=name, name_en=name_en, job_tag=job_tag, data_center=odc, unit_type=MetricMonitorUnit.UnitType.TIDB.value,
+        name=name, name_en=name_en, job_tag=job_tag, data_center=None, unit_type=MetricMonitorUnit.UnitType.TIDB.value,
         creation_time=nt, update_time=nt
     )
     unit.save(force_insert=True)

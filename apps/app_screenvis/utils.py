@@ -3,34 +3,25 @@ from collections import namedtuple
 from django.utils.translation import gettext as _
 
 from core import errors
-from apps.app_screenvis.models import DataCenter
+from apps.app_screenvis.configs_manager import screen_configs
 
 
 MetricProvider = namedtuple('MetricProvider', ['endpoint_url', 'username', 'password'])
 LokiProvider = namedtuple('LokiProvider', ['endpoint_url', 'username', 'password'])
 
 
-def build_metric_provider(odc: DataCenter) -> MetricProvider:
+def build_metric_provider() -> MetricProvider:
     """
     :raises: Error
     """
-    if not odc or not odc.metric_endpoint_url:
-        raise errors.ConflictError(message=_('数据中心未配置Metric服务信息，无法查询监控数据'))
+    metric_endpoint_url = screen_configs.get(screen_configs.ConfigName.METRIC_QUERY_ENDPOINT_URL.value)
+    if not metric_endpoint_url:
+        raise errors.ConflictError(message=_('未配置指标数据查询服务地址信息，无法查询监控数据'))
+
+    if not metric_endpoint_url.startswith('http'):
+        raise errors.ConflictError(message=_('配置指标数据查询服务地址格式无效，无法查询监控数据'))
 
     return MetricProvider(
-        endpoint_url=odc.metric_endpoint_url,
-        username='', password=''
-    )
-
-
-def build_loki_provider(odc: DataCenter) -> LokiProvider:
-    """
-    :raises: Error
-    """
-    if not odc or not odc.loki_endpoint_url:
-        raise errors.ConflictError(message=_('数据中心未配置Loki服务信息，无法查询监控数据'))
-
-    return LokiProvider(
-        endpoint_url=odc.loki_endpoint_url,
+        endpoint_url=metric_endpoint_url,
         username='', password=''
     )

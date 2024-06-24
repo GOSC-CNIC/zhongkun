@@ -5,7 +5,7 @@ from datetime import datetime
 from django.utils import timezone as dj_timezone
 
 from apps.app_screenvis.models import MetricMonitorUnit, HostCpuUsage
-from apps.app_screenvis.utils import build_metric_provider
+from apps.app_screenvis.utils import build_metric_provider, MetricProvider
 from apps.app_screenvis.backends import MetricQueryAPI
 
 
@@ -49,8 +49,7 @@ class HostCpuUsageWorker:
 
     @staticmethod
     def get_host_metric_units():
-        qs = MetricMonitorUnit.objects.select_related(
-            'data_center').filter(unit_type=MetricMonitorUnit.UnitType.HOST.value)
+        qs = MetricMonitorUnit.objects.filter(unit_type=MetricMonitorUnit.UnitType.HOST.value)
         return list(qs)
 
     def async_generate_cpuusage(self, now_timestamp: int):
@@ -58,7 +57,8 @@ class HostCpuUsageWorker:
         if not units:
             return 0, [], []
 
-        tasks = [self.req_usage_for_unit(unit=unit, now_timestamp=now_timestamp) for unit in units]
+        provider = build_metric_provider()
+        tasks = [self.req_usage_for_unit(unit=unit, now_timestamp=now_timestamp, provider=provider) for unit in units]
         ok_unit_ids, objs = self.do_tasks(tasks=tasks)
         return len(units), ok_unit_ids, objs
 
@@ -95,10 +95,10 @@ class HostCpuUsageWorker:
     async def do_async_requests(tasks):
         return await asyncio.gather(*tasks, return_exceptions=True)
 
-    async def req_usage_for_unit(self, unit: MetricMonitorUnit, now_timestamp: int):
+    async def req_usage_for_unit(self, unit: MetricMonitorUnit, now_timestamp: int, provider: MetricProvider):
         try:
             r_value = await self.get_unit_cpuusage_value(
-                unit=unit, until_timestamp=now_timestamp, minutes=self.cycle_minutes)
+                unit=unit, until_timestamp=now_timestamp, minutes=self.cycle_minutes, provider=provider)
         except Exception as exc:
             err = Exception(f'{dj_timezone.now().isoformat(sep=" ", timespec="seconds")},{unit.name},{exc}')
             return unit.id, err, now_timestamp
@@ -106,12 +106,11 @@ class HostCpuUsageWorker:
         return unit.id, r_value, now_timestamp
 
     @staticmethod
-    async def get_unit_cpuusage_value(unit: MetricMonitorUnit, until_timestamp: int, minutes: int):
+    async def get_unit_cpuusage_value(unit: MetricMonitorUnit, until_timestamp: int, minutes: int, provider):
         minutes = min(minutes, 5)
         query = f'(1 - avg(rate(node_cpu_seconds_total{{job="{unit.job_tag}", mode="idle"}}[{minutes}m]))) * 100'
         querys = {'query': query, 'time': until_timestamp}
 
-        provider = build_metric_provider(odc=unit.data_center)
         try:
             result = await MetricQueryAPI().async_raw_query(endpoint_url=provider.endpoint_url, querys=querys)
         except Exception:
@@ -186,18 +185,18 @@ class HostCpuUsageWorker:
         ok_count = 0
         update_count = 0
         tasks = []
+        provider = build_metric_provider()
         for obj in records:
             if obj.value >= 0:
                 continue
 
             try:
                 unit_id = obj.unit.id
-                dc = obj.unit.data_center  # 防止后续在异步执行中，从数据库同步加载dc，django报错
             except Exception as exc:
                 continue
 
             if unit_id not in down_unit_ids:
-                tasks.append(self.query_cpuusage_for_invalid_obj(obj=obj))
+                tasks.append(self.query_cpuusage_for_invalid_obj(obj=obj, provider=provider))
 
             if len(tasks) >= 100:
                 ok_ct = self.do_update_tasks(tasks=tasks)
@@ -213,11 +212,11 @@ class HostCpuUsageWorker:
 
         return len(records), update_count, ok_count
 
-    async def query_cpuusage_for_invalid_obj(self, obj: HostCpuUsage):
+    async def query_cpuusage_for_invalid_obj(self, obj: HostCpuUsage, provider):
         unit = obj.unit
         try:
             r_value = await self.get_unit_cpuusage_value(
-                unit=unit, until_timestamp=obj.timestamp, minutes=self.cycle_minutes)
+                unit=unit, until_timestamp=obj.timestamp, minutes=self.cycle_minutes, provider=provider)
         except Exception as exc:
             err = Exception(f'{dj_timezone.now().isoformat(sep=" ", timespec="seconds")},{unit.name},{exc}')
             return obj, err
@@ -258,7 +257,7 @@ class HostCpuUsageWorker:
 
     @staticmethod
     def get_need_update_objs(start: int, end: int, unit_id=None):
-        qs = HostCpuUsage.objects.select_related('unit__data_center').filter(
+        qs = HostCpuUsage.objects.select_related('unit').filter(
             timestamp__gte=start, timestamp__lte=end, value__lt=0)
         if unit_id:
             qs = qs.filter(unit_id=unit_id)

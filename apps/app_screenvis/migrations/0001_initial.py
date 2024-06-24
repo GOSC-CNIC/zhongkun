@@ -91,6 +91,7 @@ class Migration(migrations.Migration):
                     ('probe_task_username', '站点监控探针任务更新服务认证用户名'),
                     ('probe_task_password', '站点监控探针任务更新服务认证密码'),
                     ('probe_query_endpoint_url', '站点监控数据查询服务地址'),
+                    ('metric_query_endpoint_url', '数据中心指标数据查询服务地址'),
                 ], max_length=32, verbose_name='配置名称')),
                 ('value', models.CharField(default='', max_length=255, verbose_name='配置内容')),
                 ('remark', models.CharField(blank=True, max_length=255, verbose_name='备注')),

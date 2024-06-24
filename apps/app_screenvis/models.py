@@ -25,6 +25,7 @@ class ScreenConfig(models.Model):
         PROBE_TASK_USERNAME = 'probe_task_username', _('站点监控探针任务更新服务认证用户名')
         PROBE_TASK_PASSWORD = 'probe_task_password', _('站点监控探针任务更新服务认证密码')
         PROBE_QUERY_ENDPOINT_URL = 'probe_query_endpoint_url', _('站点监控数据查询服务地址')
+        METRIC_QUERY_ENDPOINT_URL = 'metric_query_endpoint_url', _('数据中心指标数据查询服务地址')
 
     # 配置的默认值，自动创建配置参数记录时填充的默认值
     value_defaults = {
@@ -34,6 +35,7 @@ class ScreenConfig(models.Model):
         ConfigName.PROBE_TASK_USERNAME.value: '',
         ConfigName.PROBE_TASK_PASSWORD.value: '',
         ConfigName.PROBE_QUERY_ENDPOINT_URL.value: '',
+        ConfigName.METRIC_QUERY_ENDPOINT_URL.value: ''
     }
 
     id = models.BigAutoField(primary_key=True)
@@ -57,7 +59,8 @@ class ScreenConfig(models.Model):
 
     def clean(self):
         if self.value and self.name in [
-            self.ConfigName.PROBE_TASK_ENDPOINT_URL.value, self.ConfigName.PROBE_QUERY_ENDPOINT_URL.value
+            self.ConfigName.PROBE_TASK_ENDPOINT_URL.value, self.ConfigName.PROBE_QUERY_ENDPOINT_URL.value,
+            self.ConfigName.METRIC_QUERY_ENDPOINT_URL.value
         ]:
             try:
                 URLValidator(schemes=["http", "https"])(self.value)
