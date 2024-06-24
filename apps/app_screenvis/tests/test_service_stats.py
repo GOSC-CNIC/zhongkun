@@ -193,36 +193,26 @@ class VPNServiceStatsTests(MyAPITestCase):
         )
         site4_obj1.save(force_insert=True)
 
-        url = reverse('screenvis-api:vpn-stats-dc', kwargs={'dc_id': 'fafa'})
+        url = reverse('screenvis-api:vpn-stats-list')
         response = self.client.get(url)
         self.assertErrorResponse(status_code=403, code='AccessDenied', response=response)
         ScreenAPIIPRestrictor.add_ip_rule(ip_value='127.0.0.1')
         ScreenAPIIPRestrictor.clear_cache()
 
-        response = self.client.get(url)
-        self.assertErrorResponse(status_code=400, code='InvalidArgument', response=response)
-
-        url = reverse('screenvis-api:vpn-stats-dc', kwargs={'dc_id': 0})
-        response = self.client.get(url)
-        self.assertErrorResponse(status_code=404, code='TargetNotExist', response=response)
-
-        url = reverse('screenvis-api:vpn-stats-dc', kwargs={'dc_id': dc2.id})
+        # 1、2、4
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['vpn_online_count'], site4_obj1.vpn_online_count)
-        self.assertEqual(response.data['vpn_active_count'], site4_obj1.vpn_active_count)
-        self.assertEqual(response.data['vpn_count'], site4_obj1.vpn_count)
+        self.assertEqual(response.data['vpn_online_count'],
+                         site1_obj1.vpn_online_count + site2_obj1.vpn_online_count + site4_obj1.vpn_online_count)
+        self.assertEqual(response.data['vpn_active_count'],
+                         site1_obj1.vpn_active_count + site2_obj1.vpn_active_count + site4_obj1.vpn_active_count)
+        self.assertEqual(response.data['vpn_count'],
+                         site1_obj1.vpn_count + site2_obj1.vpn_count + site4_obj1.vpn_count)
 
+        # 1、2
         site4.status = site4.Status.DELETED.value
         site4.save(update_fields=['status'])
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['vpn_online_count'], 0)
-        self.assertEqual(response.data['vpn_active_count'], 0)
-        self.assertEqual(response.data['vpn_count'], 0)
 
-        # dc1
-        url = reverse('screenvis-api:vpn-stats-dc', kwargs={'dc_id': dc1.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['vpn_online_count'], site1_obj1.vpn_online_count + site2_obj1.vpn_online_count)

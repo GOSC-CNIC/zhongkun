@@ -129,6 +129,7 @@ class VPNServiceViewSet(NormalGenericViewSet):
 
     @swagger_auto_schema(
         operation_summary=gettext_lazy('查询一个数据中心下各云主机服务单元总的VPN统计数据'),
+        deprecated=True,
         responses={
             200: ''''''
         }
@@ -145,25 +146,38 @@ class VPNServiceViewSet(NormalGenericViewSet):
               "vpn_count": 136              # 总数
             }
         """
+        return self.get_vpn_stats_response()
+
+    @swagger_auto_schema(
+        operation_summary=gettext_lazy('查询各云主机服务单元总的VPN统计数据'),
+        responses={
+            200: ''''''
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        查询各云主机服务单元总的VPN统计数据
+
+            http code 200:
+            {
+              "vpn_online_count": 44,       # 在线数
+              "vpn_active_count": 46,       # 有效数
+              "vpn_count": 136              # 总数
+            }
+        """
+        return self.get_vpn_stats_response()
+
+    @staticmethod
+    def get_vpn_stats_response():
         # 触发统计服务单元数据
         try:
             try_stats_service()
         except Exception as exc:
             pass
 
-        dc_id = kwargs['dc_id']
-        try:
-            dc_id = int(dc_id)
-        except ValueError:
-            return self.exception_response(errors.InvalidArgument(message=_('数据中心ID无效')))
-
         unit_ids = ServerService.objects.filter(
-            data_center_id=dc_id,
             status__in=[ServerService.Status.ENABLE.value, ServerService.Status.DISABLE.value]
         ).values_list('id', flat=True)
-        if not unit_ids:
-            if not DataCenter.objects.filter(id=dc_id).exists():
-                return self.exception_response(errors.TargetNotExist(message=_('数据中心不存在')))
 
         obj_list = []
         for unit_id in set(unit_ids):
