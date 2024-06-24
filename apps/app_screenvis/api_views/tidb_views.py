@@ -105,8 +105,7 @@ class MetricTiDBViewSet(NormalGenericViewSet):
 
         :raises: Error
         """
-        unit = MetricMonitorUnit.objects.select_related(
-            'data_center').filter(id=unit_id, unit_type=MetricMonitorUnit.UnitType.TIDB.value).first()
+        unit = MetricMonitorUnit.objects.filter(id=unit_id, unit_type=MetricMonitorUnit.UnitType.TIDB.value).first()
         if unit is None:
             raise errors.NotFound(message=_('查询的指标单元不存在。'))
 

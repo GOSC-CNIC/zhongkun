@@ -7,7 +7,6 @@ from drf_yasg import openapi
 from apps.app_alert.models import AlertModel, ResolvedAlertModel
 from apps.app_screenvis.utils import errors
 from apps.app_screenvis.permissions import ScreenAPIIPPermission
-from apps.app_screenvis.models import MetricMonitorUnit
 from apps.app_screenvis.paginations import AlertPagination
 from apps.app_screenvis.serializers import AlertSerializer
 from . import NormalGenericViewSet

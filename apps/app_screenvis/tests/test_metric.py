@@ -189,13 +189,13 @@ class MetricHostTests(MyAPITestCase):
         now_time = dj_timezone.now()
         now_ts = int(now_time.timestamp())
         host_unit1 = MetricMonitorUnit(
-            name='name1', name_en='name_en1', job_tag='tag1', data_center=None,
+            name='name1', name_en='name_en1', job_tag='tag1',
             unit_type=MetricMonitorUnit.UnitType.HOST.value,
             creation_time=now_time, update_time=now_time
         )
         host_unit1.save(force_insert=True)
         host_unit2 = MetricMonitorUnit(
-            name='name2', name_en='name_en2', job_tag='tag2', data_center=None,
+            name='name2', name_en='name_en2', job_tag='tag2',
             unit_type=MetricMonitorUnit.UnitType.HOST.value,
             creation_time=now_time, update_time=now_time
         )

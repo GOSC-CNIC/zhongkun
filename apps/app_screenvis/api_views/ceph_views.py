@@ -108,8 +108,8 @@ class MetricCephViewSet(NormalGenericViewSet):
 
         :raises: Error
         """
-        ceph_unit = MetricMonitorUnit.objects.select_related(
-            'data_center').filter(id=unit_id, unit_type=MetricMonitorUnit.UnitType.CEPH.value).first()
+        ceph_unit = MetricMonitorUnit.objects.filter(
+            id=unit_id, unit_type=MetricMonitorUnit.UnitType.CEPH.value).first()
         if ceph_unit is None:
             raise errors.NotFound(message=_('查询的指标单元不存在。'))
 

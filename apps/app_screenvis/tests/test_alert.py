@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.utils import timezone as dj_timezone
 
 from apps.app_alert.models import AlertModel, ResolvedAlertModel
-from apps.app_screenvis.models import MetricMonitorUnit, DataCenter
+from apps.app_screenvis.models import MetricMonitorUnit
 from apps.app_screenvis.permissions import ScreenAPIIPRestrictor
 from . import MyAPITestCase
 
@@ -23,18 +23,8 @@ class AlertTests(MyAPITestCase):
 
     def test_list(self):
         nt = dj_timezone.now()
-        odc1 = DataCenter(
-            name='name1', name_en='name1_en', creation_time=nt, update_time=nt, loki_endpoint_url=''
-        )
-        odc1.save(force_insert=True)
-        odc2 = DataCenter(
-            name='name2', name_en='name2_en', creation_time=nt, update_time=nt, loki_endpoint_url=''
-        )
-        odc2.save(force_insert=True)
-
-        nt = dj_timezone.now()
         unit_ceph1 = MetricMonitorUnit(
-            name='ceph1 name', name_en='ceph1 name en', job_tag='ceph1_metric', data_center=odc1,
+            name='ceph1 name', name_en='ceph1 name en', job_tag='ceph1_metric',
             unit_type=MetricMonitorUnit.UnitType.CEPH.value,
             creation_time=nt, update_time=nt
         )
@@ -42,7 +32,7 @@ class AlertTests(MyAPITestCase):
 
         nt = dj_timezone.now()
         unit_host1 = MetricMonitorUnit(
-            name='host1 name', name_en='host1 name en', job_tag='host1_metric', data_center=odc2,
+            name='host1 name', name_en='host1 name en', job_tag='host1_metric',
             unit_type=MetricMonitorUnit.UnitType.HOST.value,
             creation_time=nt, update_time=nt
         )

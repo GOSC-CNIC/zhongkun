@@ -140,9 +140,6 @@ class MetricMonitorUnit(models.Model):
     sort_weight = models.IntegerField(verbose_name=_('排序值'), default=0, help_text=_('值越小排序越靠前'))
     grafana_url = models.CharField(verbose_name=_('Grafana连接'), max_length=255, blank=True, default='')
     dashboard_url = models.CharField(verbose_name=_('Dashboard连接'), max_length=255, blank=True, default='')
-    data_center = models.ForeignKey(
-        to=DataCenter, null=True, on_delete=models.SET_NULL, related_name='+', verbose_name=_('数据中心'),
-        db_constraint=False)
 
     class Meta:
         db_table = 'screenvis_metric_unit'
@@ -170,9 +167,6 @@ class LogMonitorUnit(models.Model):
                                help_text=_('Loki日志中对应的job标识，模板xxx_log'))
     sort_weight = models.IntegerField(verbose_name=_('排序值'), help_text=_('值越小排序越靠前'), default=0)
     remark = models.CharField(max_length=255, blank=True, default="", verbose_name=_("备注"))
-    data_center = models.ForeignKey(
-        to=DataCenter, null=True, on_delete=models.SET_NULL, related_name='+', verbose_name=_('数据中心'),
-        db_constraint=False)
 
     class Meta:
         db_table = "screenvis_log_unit"
@@ -220,9 +214,6 @@ class BaseService(models.Model):
         DELETED = 'deleted', _('删除')
 
     id = models.BigAutoField(primary_key=True)
-    data_center = models.ForeignKey(
-        to=DataCenter, null=True, on_delete=models.SET_NULL, related_name='+', verbose_name=_('数据中心'),
-        db_constraint=False, blank=True, default=None)
     name = models.CharField(max_length=255, verbose_name=_('服务名称'))
     name_en = models.CharField(verbose_name=_('服务英文名称'), max_length=255, default='')
     endpoint_url = models.CharField(
@@ -429,9 +420,6 @@ class WebsiteMonitorTask(UuidModel):
     网站监控任务
     """
     name = models.CharField(verbose_name=_('名称'), max_length=255)
-    data_center = models.ForeignKey(
-        to=DataCenter, null=True, on_delete=models.SET_NULL, related_name='+', verbose_name=_('数据中心'),
-        db_constraint=False)
     url = models.CharField(verbose_name=_('要监控的网址'), max_length=2048, default='')
     url_hash = models.CharField(verbose_name=_('网址hash值'), max_length=64, blank=True, default='')
     creation_time = models.DateTimeField(verbose_name=_('创建时间'), auto_now_add=True)

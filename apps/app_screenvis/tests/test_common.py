@@ -36,15 +36,10 @@ class DataCenterTests(MyAPITestCase):
         ], response.data['results'][0])
 
     def test_odc_units(self):
-        nt = dj_timezone.now()
-        odc1 = DataCenter(
-            name='name1', name_en='name1_en', creation_time=nt, update_time=nt, loki_endpoint_url=''
-        )
-        odc1.save(force_insert=True)
 
         nt = dj_timezone.now()
         ceph1 = MetricMonitorUnit(
-            name='ceph1 name', name_en='ceph1 name en', job_tag='ceph1_metric', data_center=odc1,
+            name='ceph1 name', name_en='ceph1 name en', job_tag='ceph1_metric',
             unit_type=MetricMonitorUnit.UnitType.CEPH.value,
             creation_time=nt, update_time=nt
         )
@@ -52,7 +47,7 @@ class DataCenterTests(MyAPITestCase):
 
         nt = dj_timezone.now()
         ceph2 = MetricMonitorUnit(
-            name='ceph2 name', name_en='ceph2 name en', job_tag='ceph2_metric', data_center=odc1,
+            name='ceph2 name', name_en='ceph2 name en', job_tag='ceph2_metric',
             unit_type=MetricMonitorUnit.UnitType.CEPH.value,
             creation_time=nt, update_time=nt
         )
@@ -60,7 +55,7 @@ class DataCenterTests(MyAPITestCase):
 
         nt = dj_timezone.now()
         host1 = MetricMonitorUnit(
-            name='host1 name', name_en='host1 name en', job_tag='host1_metric', data_center=odc1,
+            name='host1 name', name_en='host1 name en', job_tag='host1_metric',
             unit_type=MetricMonitorUnit.UnitType.HOST.value,
             creation_time=nt, update_time=nt
         )
@@ -68,7 +63,7 @@ class DataCenterTests(MyAPITestCase):
 
         nt = dj_timezone.now()
         tidb1 = MetricMonitorUnit(
-            name='tidb1 name', name_en='tidb1 name en', job_tag='tidb1_metric', data_center=odc1,
+            name='tidb1 name', name_en='tidb1 name en', job_tag='tidb1_metric',
             unit_type=MetricMonitorUnit.UnitType.TIDB.value,
             creation_time=nt, update_time=nt
         )
@@ -76,7 +71,7 @@ class DataCenterTests(MyAPITestCase):
 
         nt = dj_timezone.now()
         log1 = LogMonitorUnit(
-            name='log1 name', name_en='log1 name en', job_tag='log1_metric', data_center=odc1,
+            name='log1 name', name_en='log1 name en', job_tag='log1_metric',
             log_type=LogMonitorUnit.LogType.NAT.value,
             creation_time=nt, update_time=nt
         )
@@ -84,7 +79,7 @@ class DataCenterTests(MyAPITestCase):
 
         nt = dj_timezone.now()
         log2 = LogMonitorUnit(
-            name='log2 name', name_en='log2 name en', job_tag='log2_metric', data_center=odc1,
+            name='log2 name', name_en='log2 name en', job_tag='log2_metric',
             log_type=LogMonitorUnit.LogType.HTTP.value,
             creation_time=nt, update_time=nt
         )

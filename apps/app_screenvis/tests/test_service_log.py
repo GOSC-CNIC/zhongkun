@@ -4,7 +4,7 @@ from django.utils import timezone as dj_timezone
 from django.urls import reverse
 
 from apps.app_screenvis.models import (
-    DataCenter, ServerService, ObjectService, ObjectServiceLog, ServerServiceLog
+    ServerService, ObjectService, ObjectServiceLog, ServerServiceLog
 )
 from apps.app_screenvis.permissions import ScreenAPIIPRestrictor
 from . import MyAPITestCase
@@ -15,30 +15,24 @@ class ServiceLogTests(MyAPITestCase):
         ScreenAPIIPRestrictor.clear_cache()
 
     def test_list(self):
-        nt = dj_timezone.now()
-        dc1 = DataCenter(name='dc1', name_en='dc1', creation_time=nt, update_time=nt)
-        dc1.save(force_insert=True)
-        dc2 = DataCenter(name='dc2', name_en='dc2', creation_time=nt, update_time=nt)
-        dc2.save(force_insert=True)
-
         server_site1 = ServerService(
-            name='site1', name_en='site1 en', data_center=dc1, status=ServerService.Status.ENABLE.value,
+            name='site1', name_en='site1 en', status=ServerService.Status.ENABLE.value,
             endpoint_url='https://test.com', username='test', sort_weight=1)
         server_site1.set_password(raw_password='test_passwd')
         server_site1.save(force_insert=True)
         server_site2 = ServerService(
-            name='site2', name_en='site2 en', data_center=dc2, status=ServerService.Status.DISABLE.value,
+            name='site2', name_en='site2 en', status=ServerService.Status.DISABLE.value,
             endpoint_url='https://test2.com', username='test2', sort_weight=2)
         server_site2.set_password(raw_password='test_passwd2')
         server_site2.save(force_insert=True)
 
         obj_site1 = ObjectService(
-            name='site1', name_en='site1 en', data_center=dc1, status=ObjectService.Status.DISABLE.value,
+            name='site1', name_en='site1 en', status=ObjectService.Status.DISABLE.value,
             endpoint_url='https://test1.com', username='test2', sort_weight=2)
         obj_site1.set_password(raw_password='test_passwd2')
         obj_site1.save(force_insert=True)
         obj_site2 = ObjectService(
-            name='site2', name_en='site2 en', data_center=dc2, status=ObjectService.Status.DISABLE.value,
+            name='site2', name_en='site2 en', status=ObjectService.Status.DISABLE.value,
             endpoint_url='https://test2.com', username='test2', sort_weight=2)
         obj_site2.set_password(raw_password='test_passwd2')
         obj_site2.save(force_insert=True)

@@ -1,19 +1,6 @@
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from apps.app_screenvis.models import DataCenter
-
-
-def get_data_center_dict(odc: DataCenter):
-    if odc is None:
-        return None
-
-    data = {
-        'id': odc.id, 'name': odc.name, 'name_en': odc.name_en, 'sort_weight': odc.sort_weight
-    }
-
-    return data
-
 
 class DataCenterSerializer(serializers.Serializer):
     id = serializers.IntegerField()
@@ -54,11 +41,6 @@ class LogMntrUnitSimpleSerializer(serializers.Serializer):
     job_tag = serializers.CharField(label=_('日志单元标识'))
     sort_weight = serializers.IntegerField(label=_('排序值'), help_text=_('值越小排序越靠前'))
     remark = serializers.CharField(label=_("备注"))
-    data_center = serializers.SerializerMethodField(label=_('数据中心'), method_name='get_data_center')
-
-    @staticmethod
-    def get_data_center(obj):
-        return get_data_center_dict(obj.data_center)
 
 
 class BaseServiceSerializer(serializers.Serializer):
@@ -70,11 +52,6 @@ class BaseServiceSerializer(serializers.Serializer):
     creation_time = serializers.DateTimeField(label=_('创建时间'))
     remarks = serializers.CharField(max_length=255, label=_('备注'))
     sort_weight = serializers.IntegerField(label=_('排序值'), help_text=_('值越小排序越靠前'))
-    data_center = serializers.SerializerMethodField(label=_('机构数据中心'), method_name='get_data_center')
-
-    @staticmethod
-    def get_data_center(obj):
-        return get_data_center_dict(obj.data_center)
 
 
 class ServiceUserOperateLogSerializer(serializers.Serializer):

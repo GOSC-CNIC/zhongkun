@@ -1,12 +1,11 @@
-from django.utils.translation import gettext_lazy, gettext as _
+from django.utils.translation import gettext_lazy
 from rest_framework.decorators import action
 from rest_framework.serializers import Serializer
 from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
 
-from apps.app_screenvis.utils import errors
 from apps.app_screenvis.models import (
-    DataCenter, ServerService, ServerServiceTimedStats, VPNTimedStats,
+    ServerService, ServerServiceTimedStats, VPNTimedStats,
     ObjectService, ObjectServiceTimedStats
 )
 from apps.app_screenvis.tasks import try_stats_service

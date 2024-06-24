@@ -81,40 +81,25 @@ class DataCenterAdmin(BaseModelAdmin):
 
 @admin.register(MetricMonitorUnit)
 class MetricMonitorUnitAdmin(BaseModelAdmin):
-    list_display = ('id', 'name', 'name_en', 'unit_type', 'data_center', 'sort_weight',
+    list_display = ('id', 'name', 'name_en', 'unit_type', 'sort_weight',
                     'job_tag', 'metric_endpoint_url', 'prometheus', 'creation_time', 'update_time')
     list_display_links = ('id', 'name')
-    list_select_related = ('data_center', )
     list_editable = ('sort_weight',)
-    list_filter = ('data_center',)
     search_fields = ('name', 'name_en', 'job_tag',)
-    raw_id_fields = ('data_center',)
 
     @admin.display(description=gettext_lazy("指标监控系统url"))
     def metric_endpoint_url(self, obj):
-        if not obj.data_center:
-            return ''
-
-        return obj.data_center.metric_endpoint_url
+        return screen_configs.get(screen_configs.ConfigName.METRIC_QUERY_ENDPOINT_URL.value)
 
 
 # @admin.register(LogMonitorUnit)
 class LogMonitorUnitAdmin(BaseModelAdmin):
-    list_display = ('id', 'name', 'name_en', 'log_type', 'data_center', 'sort_weight',
-                    'job_tag', 'loki_endpoint_url', 'creation_time', 'update_time')
+    list_display = ('id', 'name', 'name_en', 'log_type', 'sort_weight',
+                    'job_tag', 'creation_time', 'update_time')
     list_display_links = ('id', 'name')
-    list_select_related = ('data_center', )
     list_editable = ('sort_weight',)
-    list_filter = ('log_type', 'data_center',)
-    raw_id_fields = ('data_center',)
+    list_filter = ('log_type',)
     search_fields = ('name', 'name_en', 'job_tag',)
-
-    @admin.display(description=gettext_lazy("日志聚合系统url"))
-    def loki_endpoint_url(self, obj):
-        if not obj.data_center:
-            return ''
-
-        return obj.data_center.loki_endpoint_url
 
 
 @admin.register(HostCpuUsage)
@@ -157,12 +142,9 @@ class ServiceForm(forms.ModelForm):
 class ServerServiceAdmin(BaseModelAdmin):
     form = ServiceForm
     list_display_links = ('id',)
-    list_display = ('id', 'name', 'name_en', 'data_center', 'status', 'sort_weight', 'endpoint_url',
+    list_display = ('id', 'name', 'name_en', 'status', 'sort_weight', 'endpoint_url',
                     'username', 'password', 'raw_password', 'creation_time', 'remarks')
     search_fields = ['name', 'name_en', 'endpoint_url', 'remarks']
-    list_filter = ['data_center']
-    list_select_related = ('data_center',)
-    raw_id_fields = ('data_center',)
     list_editable = ('sort_weight', 'status')
 
     readonly_fields = ('password',)
@@ -180,12 +162,9 @@ class ServerServiceAdmin(BaseModelAdmin):
 class ObjectServiceAdmin(BaseModelAdmin):
     form = ServiceForm
     list_display_links = ('id',)
-    list_display = ('id', 'name', 'name_en', 'data_center', 'status', 'sort_weight', 'endpoint_url',
+    list_display = ('id', 'name', 'name_en', 'status', 'sort_weight', 'endpoint_url',
                     'username', 'password', 'raw_password', 'creation_time', 'remarks')
     search_fields = ['name', 'name_en', 'endpoint_url', 'remarks']
-    list_filter = ['data_center']
-    list_select_related = ('data_center',)
-    raw_id_fields = ('data_center',)
     list_editable = ('sort_weight', 'status')
 
     readonly_fields = ('password',)
@@ -299,10 +278,8 @@ class WebsiteMonitorTaskForm(forms.ModelForm):
 @admin.register(WebsiteMonitorTask)
 class WebsiteMonitorTaskAdmin(NoDeleteSelectModelAdmin):
     form = WebsiteMonitorTaskForm
-    list_display = ('id', 'name', 'data_center', 'url', 'url_hash', 'is_tamper_resistant', 'creation_time')
+    list_display = ('id', 'name', 'url', 'url_hash', 'is_tamper_resistant', 'creation_time')
     list_display_links = ('id',)
-    list_filter = ('data_center',)
-    list_select_related = ('data_center',)
     search_fields = ('url',)
     readonly_fields = ('url_hash',)
 

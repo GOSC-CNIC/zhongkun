@@ -2,7 +2,7 @@ from django.conf import settings
 from django.utils import timezone as dj_timezone
 from rest_framework.test import APITestCase, APITransactionTestCase
 
-from apps.app_screenvis.models import DataCenter, MetricMonitorUnit
+from apps.app_screenvis.models import MetricMonitorUnit
 from apps.app_screenvis.configs_manager import screen_configs
 
 
@@ -84,7 +84,7 @@ def get_or_create_metric_ceph(job_tag: str = None, name: str = 'test ceph', name
 
     nt = dj_timezone.now()
     job_ceph = MetricMonitorUnit(
-        name=name, name_en=name_en, job_tag=job_tag, data_center=None, unit_type=MetricMonitorUnit.UnitType.CEPH.value,
+        name=name, name_en=name_en, job_tag=job_tag, unit_type=MetricMonitorUnit.UnitType.CEPH.value,
         creation_time=nt, update_time=nt
     )
     job_ceph.save(force_insert=True)
@@ -120,7 +120,7 @@ def get_or_create_metric_host(job_tag: str = None, name: str = 'test host', name
 
     nt = dj_timezone.now()
     unit = MetricMonitorUnit(
-        name=name, name_en=name_en, job_tag=job_tag, data_center=None, unit_type=MetricMonitorUnit.UnitType.HOST.value,
+        name=name, name_en=name_en, job_tag=job_tag, unit_type=MetricMonitorUnit.UnitType.HOST.value,
         creation_time=nt, update_time=nt
     )
     unit.save(force_insert=True)
@@ -156,7 +156,7 @@ def get_or_create_metric_tidb(job_tag: str = None, name: str = 'test tidb', name
 
     nt = dj_timezone.now()
     unit = MetricMonitorUnit(
-        name=name, name_en=name_en, job_tag=job_tag, data_center=None, unit_type=MetricMonitorUnit.UnitType.TIDB.value,
+        name=name, name_en=name_en, job_tag=job_tag, unit_type=MetricMonitorUnit.UnitType.TIDB.value,
         creation_time=nt, update_time=nt
     )
     unit.save(force_insert=True)

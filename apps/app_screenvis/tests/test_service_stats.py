@@ -2,7 +2,7 @@ from django.utils import timezone as dj_timezone
 from django.urls import reverse
 
 from apps.app_screenvis.models import (
-    DataCenter, ServerService, ServerServiceTimedStats, VPNTimedStats,
+    ServerService, ServerServiceTimedStats, VPNTimedStats,
     ObjectService, ObjectServiceTimedStats
 )
 from apps.app_screenvis.permissions import ScreenAPIIPRestrictor
@@ -14,32 +14,26 @@ class ServerServiceStatsTests(MyAPITestCase):
         ScreenAPIIPRestrictor.clear_cache()
 
     def test_list(self):
-        nt = dj_timezone.now()
-        dc1 = DataCenter(name='dc1', name_en='dc1', creation_time=nt, update_time=nt)
-        dc1.save(force_insert=True)
-        dc2 = DataCenter(name='dc2', name_en='dc2', creation_time=nt, update_time=nt)
-        dc2.save(force_insert=True)
-
         site1 = ServerService(
-            name='site1', name_en='site1 en', data_center=dc1, status=ServerService.Status.ENABLE.value,
+            name='site1', name_en='site1 en', status=ServerService.Status.ENABLE.value,
             endpoint_url='https://test.com', username='test', sort_weight=1)
         site1.set_password(raw_password='test_passwd')
         site1.save(force_insert=True)
 
         site2 = ServerService(
-            name='site2', name_en='site2 en', data_center=dc1, status=ServerService.Status.DISABLE.value,
+            name='site2', name_en='site2 en', status=ServerService.Status.DISABLE.value,
             endpoint_url='https://test2.com', username='test2', sort_weight=2)
         site2.set_password(raw_password='test_passwd2')
         site2.save(force_insert=True)
 
         site3 = ServerService(
-            name='site3', name_en='site3 en', data_center=dc1, status=ServerService.Status.DELETED.value,
+            name='site3', name_en='site3 en', status=ServerService.Status.DELETED.value,
             endpoint_url='https://test3.com', username='test3', sort_weight=3)
         site3.set_password(raw_password='test_passwd')
         site3.save(force_insert=True)
 
         site4 = ServerService(
-            name='site4', name_en='site4 en', data_center=dc2, status=ServerService.Status.ENABLE.value,
+            name='site4', name_en='site4 en', status=ServerService.Status.ENABLE.value,
             endpoint_url='https://test4.com', username='test4', sort_weight=4
         )
         site4.set_password(raw_password='test_passwd')
@@ -134,32 +128,27 @@ class VPNServiceStatsTests(MyAPITestCase):
         ScreenAPIIPRestrictor.clear_cache()
 
     def test_list(self):
-        nt = dj_timezone.now()
-        dc1 = DataCenter(name='dc1', name_en='dc1', creation_time=nt, update_time=nt)
-        dc1.save(force_insert=True)
-        dc2 = DataCenter(name='dc2', name_en='dc2', creation_time=nt, update_time=nt)
-        dc2.save(force_insert=True)
 
         site1 = ServerService(
-            name='site1', name_en='site1 en', data_center=dc1, status=ServerService.Status.ENABLE.value,
+            name='site1', name_en='site1 en', status=ServerService.Status.ENABLE.value,
             endpoint_url='https://test.com', username='test', sort_weight=1)
         site1.set_password(raw_password='test_passwd')
         site1.save(force_insert=True)
 
         site2 = ServerService(
-            name='site2', name_en='site2 en', data_center=dc1, status=ServerService.Status.DISABLE.value,
+            name='site2', name_en='site2 en', status=ServerService.Status.DISABLE.value,
             endpoint_url='https://test2.com', username='test2', sort_weight=2)
         site2.set_password(raw_password='test_passwd2')
         site2.save(force_insert=True)
 
         site3 = ServerService(
-            name='site3', name_en='site3 en', data_center=dc1, status=ServerService.Status.DELETED.value,
+            name='site3', name_en='site3 en', status=ServerService.Status.DELETED.value,
             endpoint_url='https://test3.com', username='test3', sort_weight=3)
         site3.set_password(raw_password='test_passwd')
         site3.save(force_insert=True)
 
         site4 = ServerService(
-            name='site4', name_en='site4 en', data_center=dc2, status=ServerService.Status.ENABLE.value,
+            name='site4', name_en='site4 en', status=ServerService.Status.ENABLE.value,
             endpoint_url='https://test4.com', username='test4', sort_weight=4
         )
         site4.set_password(raw_password='test_passwd')
@@ -225,32 +214,26 @@ class ObjectServiceStatsTests(MyAPITestCase):
         ScreenAPIIPRestrictor.clear_cache()
 
     def test_list(self):
-        nt = dj_timezone.now()
-        dc1 = DataCenter(name='dc1', name_en='dc1', creation_time=nt, update_time=nt)
-        dc1.save(force_insert=True)
-        dc2 = DataCenter(name='dc2', name_en='dc2', creation_time=nt, update_time=nt)
-        dc2.save(force_insert=True)
-
         site1 = ObjectService(
-            name='site1', name_en='site1 en', data_center=dc1, status=ObjectService.Status.ENABLE.value,
+            name='site1', name_en='site1 en', status=ObjectService.Status.ENABLE.value,
             endpoint_url='https://test.com', username='test', sort_weight=1)
         site1.set_password(raw_password='test_passwd')
         site1.save(force_insert=True)
 
         site2 = ObjectService(
-            name='site2', name_en='site2 en', data_center=dc1, status=ObjectService.Status.DISABLE.value,
+            name='site2', name_en='site2 en', status=ObjectService.Status.DISABLE.value,
             endpoint_url='https://test2.com', username='test2', sort_weight=2)
         site2.set_password(raw_password='test_passwd2')
         site2.save(force_insert=True)
 
         site3 = ObjectService(
-            name='site3', name_en='site3 en', data_center=dc1, status=ObjectService.Status.DELETED.value,
+            name='site3', name_en='site3 en', status=ObjectService.Status.DELETED.value,
             endpoint_url='https://test3.com', username='test3', sort_weight=3)
         site3.set_password(raw_password='test_passwd')
         site3.save(force_insert=True)
 
         site4 = ObjectService(
-            name='site4', name_en='site4 en', data_center=dc2, status=ObjectService.Status.ENABLE.value,
+            name='site4', name_en='site4 en', status=ObjectService.Status.ENABLE.value,
             endpoint_url='https://test4.com', username='test4', sort_weight=4
         )
         site4.set_password(raw_password='test_passwd')
