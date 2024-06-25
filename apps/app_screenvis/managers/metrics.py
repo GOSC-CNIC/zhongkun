@@ -26,6 +26,7 @@ class HostQueryChoices(models.TextChoices):
 
 class HostQueryRangeChoices(models.TextChoices):
     HOST_CPU_USAGE = 'cpu_usage', gettext_lazy('主机CPU使用率')
+    HOST_CPU_USAGE_AVG = 'cpu_usage_avg', gettext_lazy('主机单元CPU平均使用率')
 
 
 class CephQueryChoices(models.TextChoices):
@@ -96,6 +97,7 @@ class MetricQueryManager:
     }
     range_host_tag_tmpl_map = {
         HostQueryRangeChoices.HOST_CPU_USAGE.value: backend.host_query_builder.tmpl_node_cpu_usage,
+        HostQueryRangeChoices.HOST_CPU_USAGE_AVG.value: backend.host_query_builder.tmpl_cpu_usage,
     }
 
     tidb_tag_tmpl_map = {
@@ -247,7 +249,7 @@ class MetricQueryManager:
             ]
         }
         """
-        query_choices, tags_map = self.get_choices_tag_tmpl_map(metric_unit)
+        query_choices, tags_map = self.get_query_range_choices_tag_tmpl_map(metric_unit)
         provider = build_metric_provider()
         job_dict = MetricMntrUnitSimpleSerializer(metric_unit).data
         data = self._query_range(
