@@ -31,6 +31,9 @@ def get_app_list(self, request, app_label=None):
     registered in this site.
     """
     app_dict = self._build_app_dict(request, app_label)
+    # admin not display baton's model
+    if 'baton' in app_dict:
+        app_dict.pop('baton', None)
 
     # Sort the apps alphabetically.
     # app_list = sorted(app_dict.values(), key=lambda x: x["name"].lower())
