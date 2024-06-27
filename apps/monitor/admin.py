@@ -12,7 +12,7 @@ from .models import (
     MonitorJobCeph, MonitorProvider, MonitorJobServer, MonitorJobVideoMeeting,
     MonitorWebsite, MonitorWebsiteRecord, MonitorWebsiteTask, MonitorWebsiteVersion,
     WebsiteDetectionPoint, MonitorJobTiDB, LogSiteType, LogSite,
-    TotalReqNum, LogSiteTimeReqNum, ErrorLog
+    TotalReqNum, LogSiteTimeReqNum, ErrorLog, ProbeTaskSubmitLog
 )
 from .managers import MonitorWebsiteManager
 
@@ -143,7 +143,7 @@ class MonitorWebsiteRecordAdmin(NoDeleteSelectModelAdmin):
 
 @admin.register(MonitorWebsiteTask)
 class MonitorWebsiteTaskAdmin(BaseModelAdmin):
-    list_display = ('id', 'url', 'url_hash', 'creation')
+    list_display = ('id', 'url', 'url_hash', 'is_tamper_resistant', 'creation')
     list_display_links = ('id', )
     search_fields = ('url',)
     readonly_fields = ('url_hash',)
@@ -179,11 +179,22 @@ class MonitorWebsiteVersionAdmin(NoDeleteSelectModelAdmin):
 
 @admin.register(WebsiteDetectionPoint)
 class WebsiteDetectionPointAdmin(NoDeleteSelectModelAdmin):
-    list_display = ('id', 'name', 'name_en', 'provider', 'enable', 'sort_weight', 'creation', 'modification')
+    list_display = ('id', 'name', 'name_en', 'provider', 'enable', 'sort_weight', 'creation', 'modification',
+                    'endpoint_url', 'auth_username', 'auth_password')
     list_display_links = ('id', )
     list_select_related = ('provider',)
     list_filter = ('enable',)
     list_editable = ('sort_weight',)
+
+
+@admin.register(ProbeTaskSubmitLog)
+class ProbeTaskSubmitLogAdmin(BaseModelAdmin):
+    list_display = ('id', 'probe', 'action_type', 'status', 'task_url', 'task_url_hash', 'task_is_tamper',
+                    'new_url', 'new_url_hash', 'new_is_tamper', 'task_version', 'desc', 'creation')
+    list_display_links = ('id', )
+    search_fields = ('new_url', 'task_url')
+    list_select_related = ('probe',)
+    list_filter = ('probe',)
 
 
 @admin.register(MonitorJobTiDB)

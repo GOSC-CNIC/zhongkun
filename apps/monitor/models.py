@@ -4,7 +4,8 @@ from datetime import datetime
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext, gettext_lazy as _
-from django.utils import timezone
+from django.utils import timezone as dj_timezone
+from django.core.validators import URLValidator
 
 from apps.service.models import OrgDataCenter
 from utils.model import UuidModel, get_encryptor
@@ -270,7 +271,7 @@ class MonitorWebsiteRecord(MonitorWebsiteBase):
             uri=site.uri,
             user_id=site.user_id,
             username=site.user.username,
-            record_time=timezone.now(),
+            record_time=dj_timezone.now(),
             type=cls.RecordType.DELETED.value
         )
         record.save(force_insert=True)
@@ -331,7 +332,7 @@ class MonitorWebsiteVersion(models.Model):
         if inst is not None:
             return inst
 
-        nt = timezone.now()
+        nt = dj_timezone.now()
         inst = cls(id=cls.INSTANCE_ID, version=0, creation=nt, modification=nt)
         inst.save(force_insert=True)
         if select_for_update:
@@ -341,7 +342,7 @@ class MonitorWebsiteVersion(models.Model):
 
     def version_add_1(self):
         self.version += 1
-        self.modification = timezone.now()
+        self.modification = dj_timezone.now()
         self.save(update_fields=['version', 'modification'])
 
 
@@ -356,6 +357,9 @@ class WebsiteDetectionPoint(UuidModel):
     remark = models.CharField(verbose_name=_('备注'), max_length=255, blank=True, default='')
     enable = models.BooleanField(verbose_name=_('是否启用'), default=True)
     sort_weight = models.IntegerField(verbose_name=_('排序值'), default=0, help_text=_('值越小排序越靠前'))
+    endpoint_url = models.CharField(verbose_name=_('监控任务提交探针服务地址'), max_length=255, blank=True, default='')
+    auth_username = models.CharField(verbose_name=_('探针服务认证用户'), max_length=128, blank=True, default='')
+    auth_password = models.CharField(verbose_name=_('探针服务认证密码'), max_length=128, blank=True, default='')
 
     class Meta:
         db_table = 'website_detection_point'
@@ -365,6 +369,44 @@ class WebsiteDetectionPoint(UuidModel):
 
     def __str__(self):
         return self.name
+
+    def clean(self):
+        # 网址验证
+        try:
+            URLValidator(schemes=['http', 'https'])(self.endpoint_url)
+        except ValidationError:
+            raise ValidationError(message={'endpoint_url': gettext('不是一个有效的网址')})
+
+
+class ProbeTaskSubmitLog(UuidModel):
+    class ActionType(models.TextChoices):
+        ADD = 'add', _('添加')
+        UPDATE = 'update', _('更新')
+        DELETE = 'delete', _('删除')
+
+    class Status(models.TextChoices):
+        SUCCESS = 'sucess', _('成功')
+        FAILED = 'failed', _('失败')
+
+    action_type = models.CharField(verbose_name=_('操作类型'), max_length=16, choices=ActionType.choices)
+    status = models.CharField(verbose_name=_('状态'), max_length=16, choices=Status.choices)
+    probe = models.ForeignKey(to=WebsiteDetectionPoint, verbose_name=_('探测点'), on_delete=models.SET_NULL, null=True,
+                              related_name='+')
+    task_url = models.CharField(verbose_name=_('监控网址'), max_length=2048)
+    task_url_hash = models.CharField(verbose_name=_('网址hash值'), max_length=64)
+    task_is_tamper = models.BooleanField(verbose_name=_('防篡改'), default=False)
+    new_url = models.CharField(verbose_name=_('新的监控网址'), max_length=2048, default='')
+    new_url_hash = models.CharField(verbose_name=_('新的网址hash值'), max_length=64, default='')
+    new_is_tamper = models.BooleanField(verbose_name=_('新网址防篡改'), default=False)
+    task_version = models.IntegerField(verbose_name=_('监控任务版本号'), default=0)
+    desc = models.CharField(verbose_name=_('描述信息'), max_length=2048, default='')
+    creation = models.DateTimeField(verbose_name=_('创建时间'))
+
+    class Meta:
+        db_table = 'monitor_probetask_submitlog'
+        ordering = ['-creation']
+        verbose_name = _('网站探测点任务提交记录')
+        verbose_name_plural = verbose_name
 
 
 class MonitorJobTiDB(UuidModel):
@@ -484,9 +526,9 @@ class LogSiteTimeReqNum(UuidModel):
 
     def clean(self):
         try:
-            datetime.fromtimestamp(self.timestamp, tz=timezone.get_default_timezone())
+            datetime.fromtimestamp(self.timestamp, tz=dj_timezone.get_default_timezone())
         except Exception as exc:
-            raise ValidationError({'timestamp': f'无效的时间戳，{str(exc)}，当前时间戳为:{int(timezone.now().timestamp())}'})
+            raise ValidationError({'timestamp': f'无效的时间戳，{str(exc)}，当前时间戳为:{int(dj_timezone.now().timestamp())}'})
 
 
 class TotalReqNum(UuidModel):
@@ -520,7 +562,7 @@ class TotalReqNum(UuidModel):
         if obj:
             return obj
 
-        nt = timezone.now()
+        nt = dj_timezone.now()
         until_time = nt.replace(hour=0, minute=0, second=0, microsecond=0)
         obj = cls(req_num=0, until_time=until_time, creation=nt, modification=nt, service_type=service_type)
         obj.save(force_insert=True)

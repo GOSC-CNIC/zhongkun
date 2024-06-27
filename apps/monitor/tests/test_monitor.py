@@ -11,7 +11,7 @@ from django.conf import settings
 from apps.monitor.models import (
     MonitorJobCeph, MonitorJobServer, WebsiteDetectionPoint,
     MonitorWebsite, MonitorWebsiteRecord, MonitorWebsiteTask, MonitorWebsiteVersion, get_str_hash,
-    MonitorJobTiDB, LogSite
+    MonitorJobTiDB, LogSite, ProbeTaskSubmitLog
 )
 from apps.monitor.managers import (
     VideoMeetingQueryChoices, WebsiteQueryChoices, MonitorWebsiteManager
@@ -90,6 +90,13 @@ class MonitorWebsiteTests(MyAPITestCase):
         app_service1.save()
 
         price = create_price()
+        nt = timezone.now()
+        detection_point1 = WebsiteDetectionPoint(
+            name='name1', name_en='name en1', creation=nt, modification=nt, remark='remark1', enable=True,
+            sort_weight=0
+        )
+        detection_point1.save(force_insert=True)
+        django_cache.clear()
 
         # NotAuthenticated
         url = reverse('monitor-api:website-list')
@@ -183,6 +190,16 @@ class MonitorWebsiteTests(MyAPITestCase):
         version = MonitorWebsiteVersion.get_instance()
         self.assertEqual(version.version, 1)
 
+        # 任务提交到探测点失败记录
+        self.assertEqual(ProbeTaskSubmitLog.objects.count(), 1)
+        pts_log1: ProbeTaskSubmitLog = ProbeTaskSubmitLog.objects.order_by('-creation').first()
+        self.assertEqual(pts_log1.task_url, website_url)
+        self.assertEqual(pts_log1.task_url_hash, website.url_hash)
+        self.assertIs(pts_log1.task_is_tamper, True)
+        self.assertEqual(pts_log1.action_type, ProbeTaskSubmitLog.ActionType.ADD.value)
+        self.assertEqual(pts_log1.status, ProbeTaskSubmitLog.Status.FAILED.value)
+        self.assertEqual(pts_log1.task_version, 1)
+
         # user, 2 ok
         website_url2 = 'https://test66.com/'
         r = self.client.post(path=url, data={
@@ -215,13 +232,23 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertIs(website.is_tamper_resistant, False)
 
         self.assertEqual(MonitorWebsiteTask.objects.count(), 2)
-        task: MonitorWebsiteTask = MonitorWebsiteTask.objects.order_by('-creation').first()
-        self.assertEqual(task.url, website_url2)
-        self.assertEqual(task.url_hash, get_str_hash(website.full_url))
-        self.assertIs(task.is_tamper_resistant, False)
+        task2: MonitorWebsiteTask = MonitorWebsiteTask.objects.order_by('-creation').first()
+        self.assertEqual(task2.url, website_url2)
+        self.assertEqual(task2.url_hash, get_str_hash(website.full_url))
+        self.assertIs(task2.is_tamper_resistant, False)
 
         version = MonitorWebsiteVersion.get_instance()
         self.assertEqual(version.version, 2)
+
+        # 任务提交到探测点失败记录
+        self.assertEqual(ProbeTaskSubmitLog.objects.count(), 2)
+        pts_log2: ProbeTaskSubmitLog = ProbeTaskSubmitLog.objects.order_by('-creation').first()
+        self.assertEqual(pts_log2.task_url, task2.url)
+        self.assertEqual(pts_log2.task_url_hash, task2.url_hash)
+        self.assertIs(pts_log2.task_is_tamper, False)
+        self.assertEqual(pts_log2.action_type, ProbeTaskSubmitLog.ActionType.ADD.value)
+        self.assertEqual(pts_log2.status, ProbeTaskSubmitLog.Status.FAILED.value)
+        self.assertEqual(pts_log2.task_version, 2)
 
         # user2, 1 ok
         self.client.logout()
@@ -268,13 +295,23 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertIs(website.is_tamper_resistant, False)
 
         self.assertEqual(MonitorWebsiteTask.objects.count(), 3)
-        task: MonitorWebsiteTask = MonitorWebsiteTask.objects.order_by('-creation').first()
-        self.assertEqual(task.url, website_url3)
-        self.assertEqual(task.url_hash, get_str_hash(website.full_url))
-        self.assertIs(task.is_tamper_resistant, False)
+        task3: MonitorWebsiteTask = MonitorWebsiteTask.objects.order_by('-creation').first()
+        self.assertEqual(task3.url, website_url3)
+        self.assertEqual(task3.url_hash, get_str_hash(website.full_url))
+        self.assertIs(task3.is_tamper_resistant, False)
 
         version = MonitorWebsiteVersion.get_instance()
         self.assertEqual(version.version, 3)
+
+        # 任务提交到探测点失败记录
+        self.assertEqual(ProbeTaskSubmitLog.objects.count(), 3)
+        pts_log3: ProbeTaskSubmitLog = ProbeTaskSubmitLog.objects.order_by('-creation').first()
+        self.assertEqual(pts_log3.task_url, task3.url)
+        self.assertEqual(pts_log3.task_url_hash, task3.url_hash)
+        self.assertIs(pts_log3.task_is_tamper, False)
+        self.assertEqual(pts_log3.action_type, ProbeTaskSubmitLog.ActionType.ADD.value)
+        self.assertEqual(pts_log3.status, ProbeTaskSubmitLog.Status.FAILED.value)
+        self.assertEqual(pts_log3.task_version, 3)
 
         # user2, TargetAlreadyExists; website_url3='https://test3.cnn'
         r = self.client.post(path=url, data={
@@ -323,6 +360,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(website.uri, '/')
         self.assertIs(website.is_tamper_resistant, True)
 
+        # task2 变更为防篡改
         self.assertEqual(MonitorWebsiteTask.objects.count(), 3)
         task: MonitorWebsiteTask = MonitorWebsiteTask.objects.order_by('-creation')[1]
         self.assertEqual(task.url, website_url2)
@@ -330,6 +368,19 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertIs(task.is_tamper_resistant, True)
         version = MonitorWebsiteVersion.get_instance()
         self.assertEqual(version.version, 4)
+
+        # 任务提交到探测点失败记录
+        self.assertEqual(ProbeTaskSubmitLog.objects.count(), 4)
+        pts_log4: ProbeTaskSubmitLog = ProbeTaskSubmitLog.objects.order_by('-creation').first()
+        self.assertEqual(pts_log4.task_url, task2.url)
+        self.assertEqual(pts_log4.task_url_hash, task2.url_hash)
+        self.assertIs(pts_log4.task_is_tamper, False)
+        self.assertEqual(pts_log4.new_url, task2.url)
+        self.assertEqual(pts_log4.new_url_hash, task2.url_hash)
+        self.assertIs(pts_log4.new_is_tamper, True)
+        self.assertEqual(pts_log4.action_type, ProbeTaskSubmitLog.ActionType.UPDATE.value)
+        self.assertEqual(pts_log4.status, ProbeTaskSubmitLog.Status.FAILED.value)
+        self.assertEqual(pts_log4.task_version, 4)
 
         # tcp test
         user2pointaccount.balance = Decimal('130')
@@ -412,6 +463,16 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertIs(task.is_tamper_resistant, False)
         version = MonitorWebsiteVersion.get_instance()
         self.assertEqual(version.version, 5)
+
+        # 任务提交到探测点失败记录
+        self.assertEqual(ProbeTaskSubmitLog.objects.count(), 5)
+        pts_log5: ProbeTaskSubmitLog = ProbeTaskSubmitLog.objects.order_by('-creation').first()
+        self.assertEqual(pts_log5.task_url, website_tcp1)
+        self.assertEqual(pts_log5.task_url_hash, get_str_hash(website.full_url))
+        self.assertIs(pts_log5.task_is_tamper, False)
+        self.assertEqual(pts_log5.action_type, ProbeTaskSubmitLog.ActionType.ADD.value)
+        self.assertEqual(pts_log5.status, ProbeTaskSubmitLog.Status.FAILED.value)
+        self.assertEqual(pts_log5.task_version, 5)
 
         # user2, TargetAlreadyExists; website_tcp1='tcp://testtcp.com:22'
         r = self.client.post(path=url, data={
@@ -642,6 +703,14 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(MonitorWebsite.objects.count(), 3)
         self.assertEqual(MonitorWebsiteTask.objects.count(), 2)
 
+        nt = timezone.now()
+        detection_point1 = WebsiteDetectionPoint(
+            name='name1', name_en='name en1', creation=nt, modification=nt, remark='remark1', enable=True,
+            sort_weight=0
+        )
+        detection_point1.save(force_insert=True)
+        django_cache.clear()
+
         # ok, NotFound
         self.client.force_login(self.user)
         r = self.client.delete(path=url)
@@ -667,6 +736,16 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(user_website1.creation, record1.creation)
         self.assertEqual(record1.type, MonitorWebsiteRecord.RecordType.DELETED.value)
 
+        # 任务提交到探测点失败记录
+        self.assertEqual(ProbeTaskSubmitLog.objects.count(), 1)
+        pts_log1: ProbeTaskSubmitLog = ProbeTaskSubmitLog.objects.order_by('-creation').first()
+        self.assertEqual(pts_log1.task_url, task1.url)
+        self.assertEqual(pts_log1.task_url_hash, task1.url_hash)
+        self.assertIs(pts_log1.task_is_tamper, False)
+        self.assertEqual(pts_log1.action_type, ProbeTaskSubmitLog.ActionType.DELETE.value)
+        self.assertEqual(pts_log1.status, ProbeTaskSubmitLog.Status.FAILED.value)
+        self.assertEqual(pts_log1.task_version, 1)
+
         # user delete website2 ok
         task2.refresh_from_db()
         self.assertIs(task2.is_tamper_resistant, True)
@@ -683,6 +762,19 @@ class MonitorWebsiteTests(MyAPITestCase):
         task = MonitorWebsiteTask.objects.first()
         self.assertEqual(task.url, user2_website2.full_url)
         self.assertEqual(MonitorWebsiteRecord.objects.count(), 2)
+
+        # 任务提交到探测点失败记录
+        self.assertEqual(ProbeTaskSubmitLog.objects.count(), 2)
+        pts_log2: ProbeTaskSubmitLog = ProbeTaskSubmitLog.objects.order_by('-creation').first()
+        self.assertEqual(pts_log2.task_url, task2.url)
+        self.assertEqual(pts_log2.task_url_hash, task2.url_hash)
+        self.assertIs(pts_log2.task_is_tamper, True)
+        self.assertEqual(pts_log2.new_url, task2.url)
+        self.assertEqual(pts_log2.new_url_hash, task2.url_hash)
+        self.assertIs(pts_log2.new_is_tamper, False)
+        self.assertEqual(pts_log2.action_type, ProbeTaskSubmitLog.ActionType.UPDATE.value)
+        self.assertEqual(pts_log2.status, ProbeTaskSubmitLog.Status.FAILED.value)
+        self.assertEqual(pts_log2.task_version, 2)
 
     def test_task_version_list(self):
         url = reverse('monitor-api:website-task-version')
@@ -752,6 +844,14 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertErrorResponse(status_code=401, code='NotAuthenticated', response=r)
 
         # add data
+        nt = timezone.now()
+        detection_point1 = WebsiteDetectionPoint(
+            name='name1', name_en='name en1', creation=nt, modification=nt, remark='remark1', enable=True,
+            sort_weight=0
+        )
+        detection_point1.save(force_insert=True)
+        django_cache.clear()
+
         nt = timezone.now()
         website_url1 = 'https://111.com/'
         user_website1 = MonitorWebsite(
@@ -831,6 +931,8 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertIs(tasks[0].is_tamper_resistant, True)
         self.assertEqual(tasks[1].url, website_url1)
         self.assertIs(tasks[1].is_tamper_resistant, False)
+        # 任务提交到探测点失败记录
+        self.assertEqual(ProbeTaskSubmitLog.objects.count(), 0)
 
         # user change website1 "name" and "url", InvalidUrl
         r = self.client.put(path=url, data={
@@ -863,6 +965,24 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(tasks[0].url, new_website_url1)
         self.assertIs(tasks[0].is_tamper_resistant, False)
 
+        # 任务提交到探测点失败记录
+        self.assertEqual(ProbeTaskSubmitLog.objects.count(), 2)
+        qs = ProbeTaskSubmitLog.objects.order_by('-creation')
+        log_map = {log.action_type: log for log in qs}
+        self.assertEqual(len(log_map), 2)
+        dlt_log: ProbeTaskSubmitLog = log_map[ProbeTaskSubmitLog.ActionType.DELETE.value]
+        self.assertEqual(dlt_log.task_url, website_url1)
+        self.assertEqual(dlt_log.task_url_hash, get_str_hash(website_url1))
+        self.assertIs(dlt_log.task_is_tamper, False)
+        self.assertEqual(dlt_log.status, ProbeTaskSubmitLog.Status.FAILED.value)
+        self.assertEqual(dlt_log.task_version, 1)
+        add_log: ProbeTaskSubmitLog = log_map[ProbeTaskSubmitLog.ActionType.ADD.value]
+        self.assertEqual(add_log.task_url, new_website_url1)
+        self.assertEqual(add_log.task_url_hash, get_str_hash(new_website_url1))
+        self.assertIs(add_log.task_is_tamper, False)
+        self.assertEqual(add_log.status, ProbeTaskSubmitLog.Status.FAILED.value)
+        self.assertEqual(add_log.task_version, 1)
+
         # user change website2 "remark" and "uri", ok
         new_website_url2 = 'https://888.cn/a/?b=6&c=8#test'
         data = {'name': user_website2.name, 'scheme': 'https://', 'hostname': '888.cn', 'uri': '/a/?b=6&c=8#test',
@@ -876,6 +996,7 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(website2.remark, '新的 remark')
         self.assertIs(website2.is_tamper_resistant, True)
 
+        # website_url2变为非防篡改，增加new_website_url2任务
         version = MonitorWebsiteVersion.get_instance()
         self.assertEqual(version.version, 2)
         self.assertEqual(MonitorWebsite.objects.count(), 3)
@@ -887,6 +1008,27 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertIs(tasks[1].is_tamper_resistant, False)
         self.assertEqual(tasks[2].url, website_url2)
         self.assertIs(tasks[2].is_tamper_resistant, False)
+
+        # 任务提交到探测点失败记录
+        self.assertEqual(ProbeTaskSubmitLog.objects.count(), 4)
+        qs = ProbeTaskSubmitLog.objects.order_by('-creation')[0:2]
+        log_map = {log.action_type: log for log in qs}
+        self.assertEqual(len(log_map), 2)
+        add_log2: ProbeTaskSubmitLog = log_map[ProbeTaskSubmitLog.ActionType.ADD.value]
+        self.assertEqual(add_log2.task_url, new_website_url2)
+        self.assertEqual(add_log2.task_url_hash, get_str_hash(new_website_url2))
+        self.assertIs(add_log2.task_is_tamper, True)
+        self.assertEqual(add_log2.status, ProbeTaskSubmitLog.Status.FAILED.value)
+        self.assertEqual(add_log2.task_version, 2)
+        up_log2: ProbeTaskSubmitLog = log_map[ProbeTaskSubmitLog.ActionType.UPDATE.value]
+        self.assertEqual(up_log2.task_url, website_url2)
+        self.assertEqual(up_log2.task_url_hash, get_str_hash(website_url2))
+        self.assertIs(up_log2.task_is_tamper, True)
+        self.assertEqual(up_log2.new_url, website_url2)
+        self.assertEqual(up_log2.new_url_hash, get_str_hash(website_url2))
+        self.assertIs(up_log2.new_is_tamper, False)
+        self.assertEqual(up_log2.status, ProbeTaskSubmitLog.Status.FAILED.value)
+        self.assertEqual(up_log2.task_version, 2)
 
         # user change website2 "is_tamper_resistant", ok
         data = {'name': user_website2.name, 'scheme': 'https://', 'hostname': '888.cn', 'uri': '/a/?b=6&c=8#test',
@@ -911,6 +1053,19 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertIs(tasks[1].is_tamper_resistant, False)
         self.assertEqual(tasks[2].url, website_url2)
         self.assertIs(tasks[2].is_tamper_resistant, False)
+
+        # 任务提交到探测点失败记录
+        self.assertEqual(ProbeTaskSubmitLog.objects.count(), 5)
+        up_log3: ProbeTaskSubmitLog = ProbeTaskSubmitLog.objects.order_by('-creation').first()
+        self.assertEqual(up_log3.task_url, new_website_url2)
+        self.assertEqual(up_log3.task_url_hash, get_str_hash(new_website_url2))
+        self.assertIs(up_log3.task_is_tamper, True)
+        self.assertEqual(up_log3.new_url, new_website_url2)
+        self.assertEqual(up_log3.new_url_hash, get_str_hash(new_website_url2))
+        self.assertIs(up_log3.new_is_tamper, False)
+        self.assertEqual(up_log3.action_type, ProbeTaskSubmitLog.ActionType.UPDATE.value)
+        self.assertEqual(up_log3.status, ProbeTaskSubmitLog.Status.FAILED.value)
+        self.assertEqual(up_log3.task_version, 3)
 
         # tcp test
         nt = timezone.now()
@@ -939,6 +1094,24 @@ class MonitorWebsiteTests(MyAPITestCase):
         self.assertEqual(r.status_code, 200)
         user1_tcp_task1.refresh_from_db()
         self.assertEqual(user1_tcp_task1.hostname, '2222.cn:666')
+
+        # 任务提交到探测点失败记录
+        self.assertEqual(ProbeTaskSubmitLog.objects.count(), 7)
+        qs = ProbeTaskSubmitLog.objects.order_by('-creation')[0:2]
+        log_map = {log.action_type: log for log in qs}
+        self.assertEqual(len(log_map), 2)
+        add_log4: ProbeTaskSubmitLog = log_map[ProbeTaskSubmitLog.ActionType.ADD.value]
+        self.assertEqual(add_log4.task_url, 'tcp://2222.cn:666/')
+        self.assertEqual(add_log4.task_url_hash, get_str_hash('tcp://2222.cn:666/'))
+        self.assertIs(add_log4.task_is_tamper, False)
+        self.assertEqual(add_log4.status, ProbeTaskSubmitLog.Status.FAILED.value)
+        self.assertEqual(add_log4.task_version, 4)
+        dl_log4: ProbeTaskSubmitLog = log_map[ProbeTaskSubmitLog.ActionType.DELETE.value]
+        self.assertEqual(dl_log4.task_url, 'tcp://2222.com:8888/')
+        self.assertEqual(dl_log4.task_url_hash, get_str_hash('tcp://2222.com:8888/'))
+        self.assertIs(dl_log4.task_is_tamper, False)
+        self.assertEqual(dl_log4.status, ProbeTaskSubmitLog.Status.FAILED.value)
+        self.assertEqual(dl_log4.task_version, 4)
 
         data = {'name': user1_tcp_task1.name, 'scheme': 'https://', 'hostname': '2222.cn:666', 'uri': '/',
                 'remark': '新的 remark'}

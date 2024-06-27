@@ -17,6 +17,7 @@ from apps.monitor.models import (
 )
 from apps.monitor.backends.monitor_video_meeting import MonitorVideoMeetingQueryAPI
 from apps.monitor.backends.monitor_website import MonitorWebsiteQueryAPI
+from apps.monitor.managers.probe_task import ProbeTaskClient
 
 
 class VideoMeetingQueryChoices(models.TextChoices):
@@ -257,6 +258,7 @@ class MonitorWebsiteManager:
             raise errors.TargetAlreadyExists(message=_('已存在相同的网址。'))
 
         try:
+            probe_tasks = []
             with transaction.atomic():
                 version = MonitorWebsiteVersion.get_instance(select_for_update=True)
                 user_website.save(force_insert=True)
@@ -267,12 +269,34 @@ class MonitorWebsiteManager:
                     task = MonitorWebsiteTask(url=full_url, is_tamper_resistant=user_website.is_tamper_resistant)
                     task.save(force_insert=True)
                     version.version_add_1()
+                    # 同步到探测点服务的任务
+                    probes_dict = MonitorWebsiteManager.get_detection_ponits(enable=True)
+                    for probe in probes_dict.values():
+                        probe_tasks.append(ProbeTaskClient(probe=probe).add_task_to_probe(
+                            web_url=full_url, url_hash=user_website.url_hash,
+                            is_tamper_resistant=user_website.is_tamper_resistant, version=version.version
+                        ))
                 else:
                     # 用户监控任务标记防篡改，监控任务需要标记防篡改
-                    if user_website.is_tamper_resistant and not task.is_tamper_resistant:
+                    task_old_is_tamper_resistant = task.is_tamper_resistant
+                    if user_website.is_tamper_resistant and not task_old_is_tamper_resistant:
                         task.is_tamper_resistant = True
                         task.save(update_fields=['is_tamper_resistant'])
                         version.version_add_1()
+                        # 同步到探测点服务的任务
+                        probes_dict = MonitorWebsiteManager.get_detection_ponits(enable=True)
+                        for probe in probes_dict.values():
+                            probe_tasks.append(ProbeTaskClient(probe=probe).change_task_to_probe(
+                                web_url=full_url, url_hash=user_website.url_hash,
+                                is_tamper_resistant=task_old_is_tamper_resistant,
+                                new_web_url=full_url, new_url_hash=user_website.url_hash,
+                                new_is_tamper_resistant=True,
+                                version=version.version
+                            ))
+
+            if probe_tasks:
+                ProbeTaskClient.do_async_probe_tasks(tasks=probe_tasks)
+
         except Exception as exc:
             raise errors.Error(message=str(exc))
 
@@ -296,6 +320,7 @@ class MonitorWebsiteManager:
     def do_delete_website_task(user_website: MonitorWebsite):
         full_url = user_website.full_url
         try:
+            probe_tasks = []
             with transaction.atomic():
                 version = MonitorWebsiteVersion.get_instance(select_for_update=True)
                 user_website.delete()
@@ -307,22 +332,45 @@ class MonitorWebsiteManager:
                     # 监控任务表移除任务，更新任务版本
                     MonitorWebsiteTask.objects.filter(url_hash=user_website.url_hash, url=full_url).delete()
                     version.version_add_1()
+
+                    # 同步到探测点服务的任务
+                    probes_dict = MonitorWebsiteManager.get_detection_ponits(enable=True)
+                    for probe in probes_dict.values():
+                        probe_tasks.append(ProbeTaskClient(probe=probe).remove_task_from_probe(
+                            web_url=full_url, url_hash=user_website.url_hash,
+                            is_tamper_resistant=user_website.is_tamper_resistant, version=version.version
+                        ))
                 else:
                     # 监控任务 防篡改 更新
-                    changed = MonitorWebsiteManager._update_task_tamper_resistant(
+                    changed, task_now_tamper = MonitorWebsiteManager._update_task_tamper_resistant(
                         url_hash=user_website.url_hash, full_url=full_url)
                     # 监控任务防篡改更新了，更新任务版本
                     if changed:
                         version.version_add_1()
+                        # 同步到探测点服务的任务
+                        probes_dict = MonitorWebsiteManager.get_detection_ponits(enable=True)
+                        for probe in probes_dict.values():
+                            probe_tasks.append(ProbeTaskClient(probe=probe).change_task_to_probe(
+                                web_url=full_url, url_hash=user_website.url_hash,
+                                is_tamper_resistant=user_website.is_tamper_resistant,
+                                new_web_url=full_url, new_url_hash=user_website.url_hash,
+                                new_is_tamper_resistant=task_now_tamper,
+                                version=version.version
+                            ))
+
+            if probe_tasks:
+                ProbeTaskClient.do_async_probe_tasks(tasks=probe_tasks)
+
         except Exception as exc:
             raise errors.Error(message=str(exc))
 
     @staticmethod
     def _update_task_tamper_resistant(url_hash: str, full_url: str):
         """
-        :return:
-            True    # 监控任务 防篡改 更新
-            False   # 监控任务 防篡改 未更新
+        :return:(
+            change: bool,        # True(监控任务 防篡改 发生更新)，False(监控任务 防篡改 未更新)
+            is_tamper_resistant: bool    # 当前监控任务 防篡改 应该的状态
+        )
         """
         # 是否还有防篡改用户监控任务
         is_tamper_resistant = False
@@ -340,9 +388,9 @@ class MonitorWebsiteManager:
             url_hash=url_hash, url=full_url,
             is_tamper_resistant=not is_tamper_resistant).update(is_tamper_resistant=is_tamper_resistant)
         if rows > 0:
-            return True
+            return True, is_tamper_resistant
 
-        return False
+        return False, is_tamper_resistant
 
     @staticmethod
     def change_website_task(
@@ -416,6 +464,8 @@ class MonitorWebsiteManager:
         # url有更改，可能需要修改监控任务表和版本编号
         if old_url != new_url or new_tamper_resistant != old_is_tamper_resistant:
             try:
+                probe_tasks = []
+                probes_dict = MonitorWebsiteManager.get_detection_ponits(enable=True)
                 with transaction.atomic():
                     version = MonitorWebsiteVersion.get_instance(select_for_update=True)
                     user_website.save(force_update=True)
@@ -423,10 +473,22 @@ class MonitorWebsiteManager:
                     # url未更改， 只是 防篡改标记 更改
                     if old_url == new_url:
                         # 监控任务 防篡改 更新
-                        changed = MonitorWebsiteManager._update_task_tamper_resistant(
+                        changed, task_now_tamper = MonitorWebsiteManager._update_task_tamper_resistant(
                             url_hash=user_website.url_hash, full_url=new_url)
                         if changed:
                             version.version_add_1()
+                            # 同步到探测点服务的任务
+                            for probe in probes_dict.values():
+                                probe_tasks.append(ProbeTaskClient(probe=probe).change_task_to_probe(
+                                    web_url=new_url, url_hash=user_website.url_hash,
+                                    is_tamper_resistant=not task_now_tamper,
+                                    new_web_url=new_url, new_url_hash=user_website.url_hash,
+                                    new_is_tamper_resistant=task_now_tamper,
+                                    version=version.version
+                                ))
+                                if probe_tasks:
+                                    ProbeTaskClient.do_async_probe_tasks(tasks=probe_tasks)
+
                             return user_website
 
                     # --- url有更新，是否删除旧监控任务和增加新监控任务----
@@ -439,12 +501,27 @@ class MonitorWebsiteManager:
                         # 监控任务表移除任务，需要更新任务版本
                         MonitorWebsiteTask.objects.filter(url_hash=old_url_hash, url=old_url).delete()
                         neet_change_version = True
+                        # 同步到探测点服务的任务
+                        for probe in probes_dict.values():
+                            probe_tasks.append(ProbeTaskClient(probe=probe).remove_task_from_probe(
+                                web_url=old_url, url_hash=old_url_hash,
+                                is_tamper_resistant=False, version=version.version + 1
+                            ))
                     else:
                         # 监控任务 防篡改 更新
-                        changed = MonitorWebsiteManager._update_task_tamper_resistant(
+                        changed, task_now_tamper = MonitorWebsiteManager._update_task_tamper_resistant(
                             url_hash=old_url_hash, full_url=old_url)
                         if changed:
                             neet_change_version = True
+                            # 同步到探测点服务的任务
+                            for probe in probes_dict.values():
+                                probe_tasks.append(ProbeTaskClient(probe=probe).change_task_to_probe(
+                                    web_url=old_url, url_hash=old_url_hash,
+                                    is_tamper_resistant=not task_now_tamper,
+                                    new_web_url=old_url, new_url_hash=old_url_hash,
+                                    new_is_tamper_resistant=task_now_tamper,
+                                    version=version.version + 1
+                                ))
 
                     # 修改站点地址后，是否需要增加新的监控网址 监控任务
                     new_url_hash = get_str_hash(new_url)
@@ -453,15 +530,34 @@ class MonitorWebsiteManager:
                         task = MonitorWebsiteTask(url=new_url, is_tamper_resistant=new_tamper_resistant)
                         task.save(force_insert=True)
                         neet_change_version = True
+                        # 同步到探测点服务的任务
+                        for probe in probes_dict.values():
+                            probe_tasks.append(ProbeTaskClient(probe=probe).add_task_to_probe(
+                                web_url=new_url, url_hash=new_url_hash,
+                                is_tamper_resistant=new_tamper_resistant,
+                                version=version.version + 1
+                            ))
                     else:
                         # 监控任务 防篡改 更新
-                        changed = MonitorWebsiteManager._update_task_tamper_resistant(
+                        changed, task_now_tamper = MonitorWebsiteManager._update_task_tamper_resistant(
                             url_hash=new_url_hash, full_url=new_url)
                         if changed:
                             neet_change_version = True
+                            # 同步到探测点服务的任务
+                            for probe in probes_dict.values():
+                                probe_tasks.append(ProbeTaskClient(probe=probe).change_task_to_probe(
+                                    web_url=new_url, url_hash=new_url_hash,
+                                    is_tamper_resistant=not task_now_tamper,
+                                    new_web_url=new_url, new_url_hash=new_url_hash,
+                                    new_is_tamper_resistant=task_now_tamper,
+                                    version=version.version + 1
+                                ))
 
                     if neet_change_version:
                         version.version_add_1()
+
+                    if probe_tasks:
+                        ProbeTaskClient.do_async_probe_tasks(tasks=probe_tasks)
             except Exception as exc:
                 raise errors.Error(message=str(exc))
         else:
@@ -473,7 +569,7 @@ class MonitorWebsiteManager:
         return user_website
 
     @staticmethod
-    def get_detection_ponits() -> dict:
+    def get_detection_ponits(enable: bool = None) -> dict:
         """
         查询所有探测点
         """
@@ -484,7 +580,12 @@ class MonitorWebsiteManager:
             dict_dps = {point.id: point for point in queryset}
             django_cache.set(_key, dict_dps, 120)
 
-        return dict_dps
+        if enable is None:
+            return dict_dps
+        elif enable is True:
+            return {k: v for k, v in dict_dps.items() if v.enable}
+
+        return {k: v for k, v in dict_dps.items() if not v.enable}
 
     def get_detection_ponit(self, dp_id: str) -> WebsiteDetectionPoint:
         """
