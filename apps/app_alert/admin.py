@@ -219,3 +219,4 @@ class ServiceAdminUserAdmin(BaseModelAdmin):
         'id',
         'userprofile',
     )
+    raw_id_fields = ('userprofile',)
