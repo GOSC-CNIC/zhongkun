@@ -31,9 +31,6 @@ from apps.app_wallet.managers import PaymentManager
 from apps.servers.handlers.disk_handler import DiskHandler
 
 
-PAY_APP_ID = site_configs_manager.get_pay_app_id(settings, check_valid=True)
-
-
 def str_to_true_false(val: str):
     if not isinstance(val, str):
         return val
@@ -525,6 +522,7 @@ class ServerHandler:
         """
         try:
             data = ServerHandler._server_create_validate_params(view=view, request=request)
+            pay_app_id = site_configs_manager.get_pay_app_id(settings, check_valid=True)
         except exceptions.Error as exc:
             return view.exception_response(exc)
 
@@ -618,7 +616,7 @@ class ServerHandler:
         try:
             subject = order.build_subject()
             order = OrderPaymentManager().pay_order(
-                order=order, app_id=PAY_APP_ID, subject=subject,
+                order=order, app_id=pay_app_id, subject=subject,
                 executor=request.user.username, remark='',
                 coupon_ids=None, only_coupon=False,
                 required_enough_balance=True
