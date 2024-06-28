@@ -102,6 +102,9 @@ class CreateUserJWTAuthentication(authentication.BaseAuthentication):
         except self.user_model.DoesNotExist:
             user = self.create_user(validated_token)
 
+        # 尝试更新用户信息
+        self.try_updata_user_info(user=user, validated_token=validated_token)
+
         if not user.is_active:
             raise AuthenticationFailed('User is inactive', code='user_inactive')
 
@@ -150,15 +153,12 @@ class CreateUserJWTAuthentication(authentication.BaseAuthentication):
         except KeyError:
             raise JWTInvalidError(f'Token contained no recognizable user identification "{JWT_SETTINGS.AAI_USER_ID}"')
 
-        params = {JWT_SETTINGS.USER_ID_FIELD: user_id, 'id': str(aai_user_id)}
-        try:
-            truename = validated_token.get(JWT_SETTINGS.TRUE_NAME_FIELD, '')
-            first_name, last_name = self.get_first_and_last_name(truename)
-        except Exception:
-            first_name, last_name = '', ''
+        info = self.get_user_info(validated_token)
+        first_name = info['first_name']
+        last_name = info['last_name']
+        org_name = info['org_name']
 
-        org_name = validated_token.get(JWT_SETTINGS.ORG_NAME_FIELD, '')
-        org_name = org_name if org_name else ''
+        params = {JWT_SETTINGS.USER_ID_FIELD: user_id, 'id': str(aai_user_id)}
         params.update({'email': user_id, 'first_name': first_name, 'last_name': last_name, 'company': org_name})
         user = self.user_model(**params)
         try:
@@ -170,3 +170,46 @@ class CreateUserJWTAuthentication(authentication.BaseAuthentication):
                 raise AuthenticationFailed(_('User create failed') + f';error: {str(e)}', code='user_create_failed')
 
         return user
+
+    def get_user_info(self, validated_token: dict):
+        try:
+            truename = validated_token.get(JWT_SETTINGS.TRUE_NAME_FIELD, '')
+            first_name, last_name = self.get_first_and_last_name(truename)
+        except Exception:
+            first_name, last_name = '', ''
+
+        org_name = validated_token.get(JWT_SETTINGS.ORG_NAME_FIELD, '')
+        org_name = org_name if org_name else ''
+
+        return {
+            'first_name': first_name,
+            'last_name': last_name,
+            'org_name': org_name
+        }
+
+    def try_updata_user_info(self, user, validated_token: dict):
+        try:
+            self.updata_user_info(user=user, validated_token=validated_token)
+        except Exception as exc:
+            pass
+
+    def updata_user_info(self, user, validated_token: dict):
+        info = self.get_user_info(validated_token)
+        first_name = info['first_name']
+        last_name = info['last_name']
+        org_name = info['org_name']
+
+        update_fields = []
+        full_name = first_name + last_name
+        if full_name and full_name != (user.first_name + user.last_name):
+            user.first_name = first_name
+            user.last_name = last_name
+            update_fields.append('first_name')
+            update_fields.append('last_name')
+
+        if org_name and org_name != user.company:
+            user.company = org_name
+            update_fields.append('company')
+
+        if update_fields:
+            user.save(update_fields=update_fields)
